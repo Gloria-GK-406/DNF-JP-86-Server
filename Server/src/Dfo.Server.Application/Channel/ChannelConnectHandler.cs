@@ -1,22 +1,25 @@
-using System.Globalization;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Commands.Channel;
 using Dfo.Server.Data.Networking;
 
 namespace Dfo.Server.Application.Channel;
 
 public sealed class ChannelConnectHandler(
     INetworkMessageSender sender,
-    TimeProvider timeProvider) : ClientMessageHandler<ChannelConnectRequest>
+    ICommandBus commandBus) : ClientMessageHandler<ChannelConnectRequest>
 {
-    protected override ValueTask HandleMessageAsync(
+    protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
         ChannelConnectRequest message,
         CancellationToken cancellationToken)
     {
-        var encryptionKey = timeProvider.GetLocalNow().ToString("yyyyMMdd'000006'", CultureInfo.InvariantCulture);
-        return sender.SendAsync(
+        var result = await commandBus.SendAsync(
+            new EstablishChannelConnectionCommand(),
+            cancellationToken).ConfigureAwait(false);
+        await sender.SendAsync(
             context.Connection.ConnectionId,
-            new ChannelConnectResponse(encryptionKey),
-            cancellationToken);
+            new ChannelConnectResponse(result.EncryptionKey),
+            cancellationToken).ConfigureAwait(false);
     }
 }

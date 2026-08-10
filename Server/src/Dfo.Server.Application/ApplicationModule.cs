@@ -1,5 +1,7 @@
 using Dfo.Server.Abstractions;
 using Dfo.Server.Application.Channel;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Commands.Channel;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.Configuration;
@@ -18,6 +20,10 @@ public sealed class ApplicationModule : IServerModule
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.TryAddSingleton(TimeProvider.System);
+        services.AddCommandDispatching();
+        services.RegisterCommandHandler<EstablishChannelConnectionCommandHandler>(
+            ApplicationCommandType.EstablishChannelConnection,
+            CommandExecutionKind.Direct);
         services.AddNetworkMessageDispatching();
         services.RegisterMessageHandler<ChannelConnectHandler>(ClientMessageType.ChannelConnect);
     }

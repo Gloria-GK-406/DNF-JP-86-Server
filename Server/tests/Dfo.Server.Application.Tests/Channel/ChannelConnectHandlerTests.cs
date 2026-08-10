@@ -1,5 +1,7 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Channel;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Commands.Channel;
 using Dfo.Server.Data.Networking;
 
 namespace Dfo.Server.Application.Tests.Channel;
@@ -10,9 +12,9 @@ public sealed class ChannelConnectHandlerTests
     public async Task HandleAsync_SendsTheDateBasedConnectKeyToTheSameConnection()
     {
         var sender = new RecordingSender();
-        var handler = new ChannelConnectHandler(
-            sender,
-            new FixedTimeProvider(new DateTimeOffset(2026, 8, 10, 12, 0, 0, TimeSpan.FromHours(8))));
+        var commandBus = new RecordingCommandBus(
+            new EstablishChannelConnectionResult("20260810000006"));
+        var handler = new ChannelConnectHandler(sender, commandBus);
         var connectionId = new NetworkConnectionId("channel-42");
         var context = new NetworkDispatchContext(
             new NetworkConnectionContext(connectionId, NetworkEndpointKind.Channel, 7001));
@@ -23,6 +25,7 @@ public sealed class ChannelConnectHandlerTests
             CancellationToken.None);
 
         Assert.Equal(connectionId, sender.ConnectionId);
+        Assert.IsType<EstablishChannelConnectionCommand>(commandBus.Command);
         var response = Assert.IsType<ChannelConnectResponse>(sender.Message);
         Assert.Equal("20260810000006", response.EncryptionKey);
     }
@@ -44,11 +47,16 @@ public sealed class ChannelConnectHandlerTests
         }
     }
 
-    private sealed class FixedTimeProvider(DateTimeOffset value) : TimeProvider
+    private sealed class RecordingCommandBus(EstablishChannelConnectionResult result) : ICommandBus
     {
-        public override DateTimeOffset GetUtcNow() => value.ToUniversalTime();
+        public ICommand? Command { get; private set; }
 
-        public override TimeZoneInfo LocalTimeZone { get; } =
-            TimeZoneInfo.CreateCustomTimeZone("Test/UTC+8", TimeSpan.FromHours(8), "Test/UTC+8", "Test/UTC+8");
+        public ValueTask<TResult> SendAsync<TResult>(
+            ICommand<TResult> command,
+            CancellationToken cancellationToken = default)
+        {
+            Command = command;
+            return ValueTask.FromResult((TResult)(object)result);
+        }
     }
 }
