@@ -1,11 +1,14 @@
 using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Channel;
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application.Channel;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Commands.Channel;
 using Dfo.Server.Application.Commands.Game;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Application.Game;
+using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +27,13 @@ public sealed class ApplicationModule : IServerModule
 
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<IChannelEncryptionKeyProvider, ChannelEncryptionKeyProvider>();
+        services.TryAddSingleton<OnlineUserService>();
+        services.TryAddSingleton<IOnlineUserService>(
+            provider => provider.GetRequiredService<OnlineUserService>());
+        services.TryAddSingleton<IOnlineUserQueryService>(
+            provider => provider.GetRequiredService<OnlineUserService>());
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<INetworkConnectionObserver, OnlineUserConnectionObserver>());
         services.AddCommandDispatching();
         services.RegisterCommandHandler<EstablishChannelConnectionCommandHandler>(
             ApplicationCommandType.EstablishChannelConnection,
@@ -40,11 +50,16 @@ public sealed class ApplicationModule : IServerModule
         services.RegisterCommandHandler<AcknowledgeGameExitCommandHandler>(
             ApplicationCommandType.AcknowledgeGameExit,
             CommandExecutionKind.Direct);
+        services.RegisterCommandHandler<LoginGameUserCommandHandler>(
+            ApplicationCommandType.LoginGameUser,
+            CommandExecutionKind.Direct,
+            OnlineUserAccessMode.Exclusive);
         services.AddNetworkMessageDispatching();
         services.RegisterMessageHandler<ChannelConnectHandler>(ClientMessageType.ChannelConnect);
         services.RegisterMessageHandler<ChannelScriptVersionHandler>(ClientMessageType.ChannelScriptVersion);
         services.RegisterMessageHandler<ChannelScriptHandler>(ClientMessageType.ChannelScript);
         services.RegisterMessageHandler<ChannelInfoHandler>(ClientMessageType.ChannelInfo);
         services.RegisterMessageHandler<GameExitHandler>(ClientMessageType.GameExit);
+        services.RegisterMessageHandler<GameLoginHandler>(ClientMessageType.GameLogin);
     }
 }

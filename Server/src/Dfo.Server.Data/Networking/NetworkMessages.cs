@@ -2,6 +2,7 @@ namespace Dfo.Server.Data.Networking;
 
 public enum ClientMessageType
 {
+    GameLogin = 0x0001_0001,
     ChannelScriptVersion = 0x05,
     ChannelScript = 0x09,
     ChannelConnect = 0x0B,
@@ -11,6 +12,7 @@ public enum ClientMessageType
 
 public enum ServerMessageType
 {
+    GameLogin = 0x0001_0001,
     ChannelScriptVersion = 0x06,
     ChannelScript = 0x0A,
     ChannelConnect = 0x0C,
@@ -90,6 +92,19 @@ public sealed record GameMessageMetadata(
 public sealed record GameExitRequest(GameMessageMetadata Metadata) : IClientNetworkMessage
 {
     public ClientMessageType MessageType => ClientMessageType.GameExit;
+}
+
+public sealed record GameLoginRequest(
+    GameMessageMetadata Metadata,
+    string LoginId,
+    string PasswordHash) : IClientNetworkMessage
+{
+    public ClientMessageType MessageType => ClientMessageType.GameLogin;
+}
+
+public sealed record GameLoginResponse(bool Succeeded) : IServerNetworkMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameLogin;
 }
 
 public sealed record GameExitResponse(bool Succeeded) : IServerNetworkMessage

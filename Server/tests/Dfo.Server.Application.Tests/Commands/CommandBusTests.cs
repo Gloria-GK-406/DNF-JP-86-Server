@@ -1,4 +1,5 @@
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Data.OnlineUsers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -109,6 +110,38 @@ public sealed class CommandBusTests
     }
 
     [Fact]
+    public async Task OnlineUserScopedRegistration_RequiresAnOnlineUserCommand()
+    {
+        await using var provider = BuildProvider(services =>
+            services.RegisterCommandHandler<CountingHandler>(
+                ApplicationCommandType.EstablishChannelConnection,
+                CommandExecutionKind.Direct,
+                OnlineUserAccessMode.Shared));
+        var bus = provider.GetRequiredService<ICommandBus>();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await bus.SendAsync(new TestCommand(), CancellationToken.None));
+
+        Assert.Contains(nameof(IOnlineUserCommand), exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SharedOnlineUserLease_IsReleasedWhenHandlerThrows()
+    {
+        await AssertOnlineUserLeaseReleasedAfterFailureAsync(
+            OnlineUserAccessMode.Shared,
+            new InvalidOperationException("shared failure"));
+    }
+
+    [Fact]
+    public async Task ExclusiveOnlineUserLease_IsReleasedWhenHandlerIsCancelled()
+    {
+        await AssertOnlineUserLeaseReleasedAfterFailureAsync(
+            OnlineUserAccessMode.Exclusive,
+            new OperationCanceledException("exclusive cancellation"));
+    }
+
+    [Fact]
     public async Task TransactionalCommand_FailsClearlyUntilAUnitOfWorkPolicyIsRegistered()
     {
         CountingHandler.ExecutionCount = 0;
@@ -176,6 +209,30 @@ public sealed class CommandBusTests
         return services.BuildServiceProvider();
     }
 
+    private static async Task AssertOnlineUserLeaseReleasedAfterFailureAsync(
+        OnlineUserAccessMode accessMode,
+        Exception failure)
+    {
+        var probe = new FailOnceProbe(failure);
+        await using var provider = BuildProvider(services =>
+        {
+            services.AddSingleton(probe);
+            services.RegisterCommandHandler<FailOnceOnlineHandler>(
+                ApplicationCommandType.EstablishChannelConnection,
+                CommandExecutionKind.Direct,
+                accessMode);
+        });
+        var bus = provider.GetRequiredService<ICommandBus>();
+        var command = new OnlineTestCommand(OnlineUserId.New());
+
+        await Assert.ThrowsAsync(failure.GetType(), async () =>
+            await bus.SendAsync(command, CancellationToken.None));
+
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        var result = await bus.SendAsync(command, timeout.Token);
+        Assert.NotEqual(Guid.Empty, result.ScopeId);
+    }
+
     private static ServiceCollection CreateServices()
     {
         var services = new ServiceCollection();
@@ -199,6 +256,13 @@ public sealed class CommandBusTests
             ApplicationCommandType.EstablishChannelConnection;
     }
 
+    private sealed record OnlineTestCommand(OnlineUserId OnlineUserId)
+        : ICommand<TestResult>, IOnlineUserCommand
+    {
+        public ApplicationCommandType CommandType =>
+            ApplicationCommandType.EstablishChannelConnection;
+    }
+
     private sealed class ScopedProbe
     {
         public Guid Id { get; } = Guid.NewGuid();
@@ -215,6 +279,33 @@ public sealed class CommandBusTests
         {
             ExecutionCount++;
             return ValueTask.FromResult(new TestResult(probe.Id));
+        }
+    }
+
+    private sealed class FailOnceOnlineHandler(ScopedProbe probe, FailOnceProbe failure)
+        : CommandHandler<OnlineTestCommand, TestResult>
+    {
+        protected override ValueTask<TestResult> HandleCommandAsync(
+            CommandExecutionContext context,
+            OnlineTestCommand command,
+            CancellationToken cancellationToken)
+        {
+            failure.ThrowIfPending();
+            return ValueTask.FromResult(new TestResult(probe.Id));
+        }
+    }
+
+    private sealed class FailOnceProbe(Exception failure)
+    {
+        private Exception? failure = failure;
+
+        public void ThrowIfPending()
+        {
+            var pending = Interlocked.Exchange(ref failure, null);
+            if (pending is not null)
+            {
+                throw pending;
+            }
         }
     }
 

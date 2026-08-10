@@ -1,5 +1,7 @@
 namespace Dfo.Server.Application.Commands;
 
+using Dfo.Server.Data.OnlineUsers;
+
 public enum ApplicationCommandType
 {
     EstablishChannelConnection = 1,
@@ -7,6 +9,7 @@ public enum ApplicationCommandType
     GetChannelScript = 3,
     GetChannelInfo = 4,
     AcknowledgeGameExit = 5,
+    LoginGameUser = 6,
 }
 
 public enum CommandExecutionKind
@@ -16,12 +19,24 @@ public enum CommandExecutionKind
     Workflow = 2,
 }
 
+public enum OnlineUserAccessMode
+{
+    Unscoped = 0,
+    Shared = 1,
+    Exclusive = 2,
+}
+
 public interface ICommand
 {
     ApplicationCommandType CommandType { get; }
 }
 
 public interface ICommand<out TResult> : ICommand;
+
+public interface IOnlineUserCommand : ICommand
+{
+    OnlineUserId OnlineUserId { get; }
+}
 
 public interface ICommandBus
 {
@@ -34,7 +49,8 @@ public sealed record CommandExecutionContext(
     Guid ExecutionId,
     ApplicationCommandType CommandType,
     Type HandlerType,
-    CommandExecutionKind ExecutionKind);
+    CommandExecutionKind ExecutionKind,
+    OnlineUserAccessMode OnlineUserAccessMode = OnlineUserAccessMode.Unscoped);
 
 public delegate ValueTask<object?> CommandExecutionDelegate();
 

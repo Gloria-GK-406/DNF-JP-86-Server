@@ -3,7 +3,8 @@ namespace Dfo.Server.Application.Commands;
 public sealed record CommandHandlerRegistration(
     ApplicationCommandType CommandType,
     Type HandlerType,
-    CommandExecutionKind ExecutionKind);
+    CommandExecutionKind ExecutionKind,
+    OnlineUserAccessMode OnlineUserAccessMode);
 
 public sealed class CommandHandlerRegistry
 {

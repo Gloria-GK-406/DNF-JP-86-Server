@@ -110,15 +110,27 @@ internal sealed class GameNetworkPlugin(
 
     private static IClientNetworkMessage? CreateMessage(GameClientFrameRequestInfo frame)
     {
-        if (frame.Command != GameProtocol.Command || frame.Type != GameProtocol.ExitType)
+        if (frame.Command != GameProtocol.Command)
         {
             return null;
         }
 
-        return new GameExitRequest(new GameMessageMetadata(
+        var metadata = new GameMessageMetadata(
             frame.Command,
             frame.Type,
             frame.Checksum,
-            frame.Sequence));
+            frame.Sequence);
+        if (frame.Type == GameProtocol.LoginType
+            && GameLoginPayloadCodec.TryDecode(
+                frame.Body.Span,
+                out var loginId,
+                out var passwordHash))
+        {
+            return new GameLoginRequest(metadata, loginId, passwordHash);
+        }
+
+        return frame.Type == GameProtocol.ExitType
+            ? new GameExitRequest(metadata)
+            : null;
     }
 }

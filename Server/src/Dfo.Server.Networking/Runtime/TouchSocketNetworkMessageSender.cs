@@ -4,6 +4,7 @@ using System.Text;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Networking.Configuration;
 using Dfo.Server.Networking.Framing;
 using TouchSocket.Sockets;
 
@@ -11,7 +12,8 @@ namespace Dfo.Server.Networking.Runtime;
 
 internal sealed class TouchSocketNetworkMessageSender(
     TouchSocketConnectionRegistry connections,
-    IChannelEncryptionKeyProvider keyProvider) : INetworkMessageSender
+    IChannelEncryptionKeyProvider keyProvider,
+    GameLoginOptions gameLoginOptions) : INetworkMessageSender
 {
     public async ValueTask SendAsync(
         NetworkConnectionId connectionId,
@@ -32,6 +34,8 @@ internal sealed class TouchSocketNetworkMessageSender(
                 EncodeChannelInfo(response, keyProvider.GetCurrentKey()),
             GameExitResponse response when connection.Context.EndpointKind == NetworkEndpointKind.Game =>
                 EncodeGameExit(response),
+            GameLoginResponse response when connection.Context.EndpointKind == NetworkEndpointKind.Game =>
+                EncodeGameLogin(response, gameLoginOptions),
             _ => throw new InvalidOperationException(
                 $"Server message '{message.GetType().Name}' is not supported for endpoint " +
                 $"'{connection.Context.EndpointKind}'.")
@@ -99,6 +103,12 @@ internal sealed class TouchSocketNetworkMessageSender(
             GameProtocol.Command,
             GameProtocol.ExitType,
             [response.Succeeded ? (byte)0x01 : (byte)0x00]);
+
+    private static byte[] EncodeGameLogin(
+        GameLoginResponse response,
+        GameLoginOptions options) => response.Succeeded
+        ? GameLoginPayloadCodec.EncodeSuccess(options)
+        : throw new InvalidOperationException("The observed Game LOGIN protocol has no failure body yet.");
 
     private static byte[] EncodeEncrypted(
         byte messageNumber,

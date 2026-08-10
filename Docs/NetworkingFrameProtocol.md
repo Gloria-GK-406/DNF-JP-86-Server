@@ -134,6 +134,45 @@ Message 建立强类型请求、Command 和响应编码：
 | 11 | 2 | `uint16 LE` | `seq` | 序号 | 待确认 |
 | 13 | `length - 13` | bytes | Body | 消息负载 | 代码事实 |
 
+### Game CMD `0x0001`（LOGIN）
+
+旧实现将客户端 Body 解析为两个连续的 ASCII DString：
+
+| 顺序 | 类型 | 内容 | 状态 |
+|---:|---|---|---|
+| 1 | `int32 LE length + byte[length]` | `m_id` 登录名 | 代码事实 |
+| 2 | `int32 LE length + byte[length]` | 密码 Hash 文本 | 代码事实 |
+
+每个字符串的旧代码上限为 256 字节。旧登录逻辑按 `m_id` 查询账号；不存在时使用收到的
+密码 Hash 创建账号，存在时直接复用旧账号，并未在该路径验证新收到的密码 Hash。当前
+迁移仅兼容这项旧行为，不把它解释为推荐的认证策略。
+
+基础成功响应使用 `cmd=0x01/type=0x0001`，Body 为：
+
+| Offset | 长度 | 内容 | 状态 |
+|---:|---:|---|---|
+| 0 | 1 | 成功值 `0x01` | 代码事实 |
+| 1 | 1 | 固定值 `18` | 待确认 |
+| 2 | 1 | 固定零 | 待确认 |
+| 3 | 1 | 频道环境值 | 实现推断 |
+| 4 | 1 | 固定零 | 待确认 |
+| 5 | 4 | `int32 LE` 登录频道端口 | 实现推断 |
+| 9 | 4 + N | ASCII DString 服务端 IP | 实现推断 |
+| 13 + N | 4 | `int32 LE` 未知端口，旧默认 `17200` | 待确认 |
+| 17 + N | 4 | 再次写入相同未知端口 | 待确认 |
+| 21 + N | 24 | 固定零 | 待确认 |
+
+当前阶段在 Game 连接建立时创建匿名 `OnlineUserId` 索引；LOGIN Command 以排他方式查询或
+创建账号，并把账号 ID 绑定到同一个在线用户聚合。内部索引和 generation 不写入协议帧。
+账号设置、拍卖开放、荣誉等级、成长胶囊以及其他旧登录后通知尚未迁移，后续仍应作为各自
+的强类型 Message 处理，不能把它们误称为当前基础 LOGIN ACK 的一部分。
+
+> **TODO(protocol-capture): Game CMD `0x0001` (`LOGIN`)**
+>
+> 需要确认两个 DString 的真实字符集和长度边界、客户端是否接受空密码 Hash、响应常量与
+> 两个 `17200` 字段的含义、不同 Game 频道的环境值，以及基础 ACK 后各通知的真实顺序和
+> 必需性。本文所有 LOGIN 布局仍来自代码反推，不是抓包结论。
+
 > **TODO(protocol-capture): Game CMD `0x0003` (`EXIT`)**
 >
 > 旧枚举将它命名为 `EXIT`，旧处理器忽略请求 Body，只返回同类型、Body 为 `0x01` 的
@@ -171,6 +210,8 @@ Networking 当前提供：
 - `GameServerFrameEncoder`：生成观察到的 15 字节 Game 服务端帧。
 - `ChannelPayloadCipher`：兼容旧实现的 Channel AES-128-ECB、零填充和 zlib 顺序。
 - Channel `0x05/0x09/0x0B/0x11` 到强类型 Message 的解码，以及对应响应编码。
+- Game `cmd=0x01/type=0x0001` LOGIN DString 解码、强类型 Message、账号绑定以及基础
+  成功 ACK 编码；身份变更通过按在线用户分区的排他 Command 执行。
 - Game `cmd=0x01/type=0x0003` 到 `GameExitRequest` 的解码，以及 Body 为 `0x01` 的
   `GameExitResponse` ACK 编码；当前实现不因该消息主动关闭连接或清理 Session。
 
@@ -228,5 +269,6 @@ golden packets。抓包完成后应增加独立的 `Fixtures/GoldenPackets`，�
 9. 真实最大帧长度和合理缓存超时。
 10. 客户端遇到非法帧、未知 type 或 checksum 错误时的行为。
 11. Game CMD `0x0003` 的真实触发场景、请求 Body、ACK 后关闭方和预期副作用。
+12. Game CMD `0x0001` 的字符集、响应常量/端口字段，以及登录后通知的必要集合与顺序。
 
 每次确认后，应同时更新本文档、golden packet fixture 和相应自动化测试，并注明证据来源。
