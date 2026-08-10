@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Dfo.Server.Abstractions/Dfo.Server.Abstractions.csproj" />
+    <Project Path="src/Dfo.Server.Host/Dfo.Server.Host.csproj" />
+    <Project Path="src/Dfo.Server.Networking/Dfo.Server.Networking.csproj" />
+    <Project Path="src/Dfo.Server.Utilities/Dfo.Server.Utilities.csproj" />
+  </Folder>
+</Solution>

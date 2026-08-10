@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="TouchSocket.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Dfo.Server.Abstractions\Dfo.Server.Abstractions.csproj" />
+  </ItemGroup>
+</Project>
