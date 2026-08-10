@@ -5,4 +5,7 @@
     <Project Path="src/Dfo.Server.Networking/Dfo.Server.Networking.csproj" />
     <Project Path="src/Dfo.Server.Utilities/Dfo.Server.Utilities.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Dfo.Server.Networking.Tests/Dfo.Server.Networking.Tests.csproj" />
+  </Folder>
 </Solution>
