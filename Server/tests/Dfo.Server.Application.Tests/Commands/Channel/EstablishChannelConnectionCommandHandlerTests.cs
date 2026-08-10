@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Commands.Channel;
 
@@ -9,7 +10,7 @@ public sealed class EstablishChannelConnectionCommandHandlerTests
     public async Task HandleAsync_ReturnsTheDateBasedEncryptionKey()
     {
         var handler = new EstablishChannelConnectionCommandHandler(
-            new FixedTimeProvider(new DateTimeOffset(2026, 8, 10, 12, 0, 0, TimeSpan.FromHours(8))));
+            new StubEncryptionKeyProvider("20260810000006"));
         var command = new EstablishChannelConnectionCommand();
         var context = new CommandExecutionContext(
             Guid.NewGuid(),
@@ -37,11 +38,8 @@ public sealed class EstablishChannelConnectionCommandHandlerTests
         Assert.Empty(violations);
     }
 
-    private sealed class FixedTimeProvider(DateTimeOffset value) : TimeProvider
+    private sealed class StubEncryptionKeyProvider(string key) : IChannelEncryptionKeyProvider
     {
-        public override DateTimeOffset GetUtcNow() => value.ToUniversalTime();
-
-        public override TimeZoneInfo LocalTimeZone { get; } =
-            TimeZoneInfo.CreateCustomTimeZone("Test/UTC+8", TimeSpan.FromHours(8), "Test/UTC+8", "Test/UTC+8");
+        public string GetCurrentKey() => key;
     }
 }

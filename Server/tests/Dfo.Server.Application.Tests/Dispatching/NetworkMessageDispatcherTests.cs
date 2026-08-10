@@ -72,6 +72,15 @@ public sealed class NetworkMessageDispatcherTests
         var services = new ServiceCollection();
         services.AddNetworkMessageDispatching();
         configure(services);
+        var registeredTypes = services
+            .Select(descriptor => descriptor.ImplementationInstance)
+            .OfType<MessageHandlerRegistration>()
+            .Select(registration => registration.MessageType)
+            .ToHashSet();
+        foreach (var messageType in Enum.GetValues<ClientMessageType>().Except(registeredTypes))
+        {
+            services.RegisterMessageHandler<OtherHandler>(messageType);
+        }
         return services.BuildServiceProvider();
     }
 

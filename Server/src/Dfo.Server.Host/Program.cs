@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions;
 using Dfo.Server.Application;
 using Dfo.Server.Host.Modules;
+using Dfo.Server.Infrastructure;
 using Dfo.Server.Networking;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -9,6 +10,7 @@ using Microsoft.Extensions.Logging;
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.AddServerModules(
+    new InfrastructureModule(),
     new ApplicationModule(),
     new NetworkingModule());
 

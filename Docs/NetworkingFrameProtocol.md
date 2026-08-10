@@ -91,6 +91,34 @@ ack             = 1
 
 状态：发送值是**代码事实**；这些值是否对所有命令都固定仍然**待确认**。
 
+### 当前已反推的 Channel Message
+
+下表来自旧 `ChannelProtocolHandler` 的实现，并非抓包确认结果。当前重构实现已经为这些
+Message 建立强类型请求、Command 和响应编码：
+
+| 客户端 `msg_no` | 服务端 `msg_no` | 语义 | 响应 Body |
+|---:|---:|---|---|
+| `0x05` | `0x06` | 检查脚本版本 | 4 字节零前缀、最长 16 字节 ASCII 版本字段，补零到 AES 块后加密，不压缩 |
+| `0x09` | `0x0A` | 获取频道脚本 | 文件原始字节补零到 AES 块、AES-128-ECB 加密、zlib 压缩 |
+| `0x0B` | `0x0C` | 建立频道连接 | 4 字节零前缀、32 字节 ASCII 密钥字段，不加密 |
+| `0x11` | `0x12` | 获取新版频道列表 | 列表明文补零到 AES 块、AES-128-ECB 加密、zlib 压缩 |
+
+当前代码反推的 AES 密钥为本地日期的 `yyyyMMdd000006`，按 UTF-8 写入 16 字节密钥区并
+在末尾补零。AES 模式为 ECB、无内建 Padding；明文使用零字节手动对齐到 16 字节。
+这些密码学选择只是在兼容旧客户端协议，不代表推荐的通用安全设计。
+
+频道列表加密前的明文布局为：
+
+| Offset | 长度 | 内容 |
+|---:|---:|---|
+| 0 | 2 | 固定零 |
+| 2 | 4 | `int32 LE` 频道数量 |
+| 6 | `count × 48` | 频道条目 |
+
+每个 48 字节频道条目依次为：20 字节零结尾 ASCII 名称、`int32 LE` 最大人数、
+`int32 LE` 当前人数、16 字节零结尾 ASCII 地址、`int32 LE` Game 端口。旧实现忽略上述
+四种请求的 Body；这一行为也仍需抓包确认。
+
 ## Game 帧
 
 ### 客户端到服务端
@@ -133,6 +161,8 @@ Networking 当前提供：
 - `GameClientFrameDataHandlingAdapter`：TouchSocket Game 入站流适配器。
 - `ChannelFrameEncoder`：生成观察到的 11 字节 Channel 帧。
 - `GameServerFrameEncoder`：生成观察到的 15 字节 Game 服务端帧。
+- `ChannelPayloadCipher`：兼容旧实现的 Channel AES-128-ECB、零填充和 zlib 顺序。
+- Channel `0x05/0x09/0x0B/0x11` 到强类型 Message 的解码，以及对应响应编码。
 
 这些类型属于 Networking 的传输协议层。完整帧形成后，还应由消息 decoder 将
 `msg_no/type + Body` 转换为共享业务数据类型，再通过 Abstractions 中的分发接口进入业务层。

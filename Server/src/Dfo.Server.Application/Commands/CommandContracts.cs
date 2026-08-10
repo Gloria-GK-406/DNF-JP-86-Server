@@ -3,6 +3,9 @@ namespace Dfo.Server.Application.Commands;
 public enum ApplicationCommandType
 {
     EstablishChannelConnection = 1,
+    GetChannelScriptVersion = 2,
+    GetChannelScript = 3,
+    GetChannelInfo = 4,
 }
 
 public enum CommandExecutionKind

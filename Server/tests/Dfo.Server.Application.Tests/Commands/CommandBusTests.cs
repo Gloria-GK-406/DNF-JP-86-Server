@@ -164,6 +164,15 @@ public sealed class CommandBusTests
     {
         var services = CreateServices();
         configure(services);
+        var registeredTypes = services
+            .Select(descriptor => descriptor.ImplementationInstance)
+            .OfType<CommandHandlerRegistration>()
+            .Select(registration => registration.CommandType)
+            .ToHashSet();
+        foreach (var commandType in Enum.GetValues<ApplicationCommandType>().Except(registeredTypes))
+        {
+            services.RegisterCommandHandler<OtherHandler>(commandType, CommandExecutionKind.Direct);
+        }
         return services.BuildServiceProvider();
     }
 

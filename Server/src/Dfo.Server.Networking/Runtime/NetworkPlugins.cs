@@ -49,22 +49,41 @@ internal sealed class ChannelNetworkPlugin(
 {
     public async Task OnTcpReceived(ITcpSession client, ReceivedDataEventArgs e)
     {
-        if (e.RequestInfo is ChannelFrameRequestInfo frame && frame.MessageNumber == 0x0B)
+        if (e.RequestInfo is ChannelFrameRequestInfo frame)
         {
+            var message = CreateMessage(frame);
+            if (message is null)
+            {
+                await e.InvokeNext();
+                return;
+            }
+
             var connectionId = TouchSocketConnectionRegistry.CreateConnectionId(client, NetworkEndpointKind.Channel);
             var connection = Connections.Get(connectionId).Context;
-            var metadata = new ChannelMessageMetadata(
-                frame.Classification,
-                frame.MessageNumber,
-                frame.Checksum,
-                frame.Acknowledgement);
             await dispatcher.DispatchAsync(
                 new NetworkDispatchContext(connection),
-                new ChannelConnectRequest(metadata),
+                message,
                 CancellationToken.None);
         }
 
         await e.InvokeNext();
+    }
+
+    private static IClientNetworkMessage? CreateMessage(ChannelFrameRequestInfo frame)
+    {
+        var metadata = new ChannelMessageMetadata(
+            frame.Classification,
+            frame.MessageNumber,
+            frame.Checksum,
+            frame.Acknowledgement);
+        return (ClientMessageType)frame.MessageNumber switch
+        {
+            ClientMessageType.ChannelScriptVersion => new ChannelScriptVersionRequest(metadata),
+            ClientMessageType.ChannelScript => new ChannelScriptRequest(metadata),
+            ClientMessageType.ChannelConnect => new ChannelConnectRequest(metadata),
+            ClientMessageType.ChannelInfo => new ChannelInfoRequest(metadata),
+            _ => null,
+        };
     }
 }
 
