@@ -3,4 +3,8 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Dfo.Server.Data\Dfo.Server.Data.csproj" />
+  </ItemGroup>
 </Project>

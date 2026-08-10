@@ -5,5 +5,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Dfo.Server.Abstractions\Dfo.Server.Abstractions.csproj" />
+    <ProjectReference Include="..\Dfo.Server.Data\Dfo.Server.Data.csproj" />
   </ItemGroup>
 </Project>

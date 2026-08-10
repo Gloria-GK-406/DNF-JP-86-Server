@@ -1,11 +1,14 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Dfo.Server.Abstractions/Dfo.Server.Abstractions.csproj" />
+    <Project Path="src/Dfo.Server.Application/Dfo.Server.Application.csproj" />
+    <Project Path="src/Dfo.Server.Data/Dfo.Server.Data.csproj" />
     <Project Path="src/Dfo.Server.Host/Dfo.Server.Host.csproj" />
     <Project Path="src/Dfo.Server.Networking/Dfo.Server.Networking.csproj" />
     <Project Path="src/Dfo.Server.Utilities/Dfo.Server.Utilities.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Dfo.Server.Application.Tests/Dfo.Server.Application.Tests.csproj" />
     <Project Path="tests/Dfo.Server.Networking.Tests/Dfo.Server.Networking.Tests.csproj" />
   </Folder>
 </Solution>

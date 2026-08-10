@@ -6,5 +6,7 @@ public sealed class NetworkingOptions
 
     public bool Enabled { get; init; }
 
-    public int ListenPort { get; init; } = 7001;
+    public int ChannelPort { get; init; } = 7001;
+
+    public IReadOnlyList<int> GamePorts { get; init; } = new[] { 10011 };
 }

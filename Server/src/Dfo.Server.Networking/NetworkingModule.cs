@@ -1,7 +1,11 @@
 using Dfo.Server.Abstractions;
+using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Networking.Configuration;
+using Dfo.Server.Networking.Framing;
+using Dfo.Server.Networking.Runtime;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using TouchSocket.Core;
 using TouchSocket.Hosting;
 using TouchSocket.Sockets;
@@ -14,23 +18,56 @@ public sealed class NetworkingModule : IServerModule
 
     public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+
         var section = configuration.GetSection(NetworkingOptions.SectionName);
+        var gamePorts = section.GetSection(nameof(NetworkingOptions.GamePorts))
+            .GetChildren()
+            .Select(value => int.TryParse(value.Value, out var port) ? port : -1)
+            .ToArray();
         var options = new NetworkingOptions
         {
             Enabled = bool.TryParse(section[nameof(NetworkingOptions.Enabled)], out var enabled) && enabled,
-            ListenPort = int.TryParse(section[nameof(NetworkingOptions.ListenPort)], out var port) ? port : 7001
+            ChannelPort = int.TryParse(section[nameof(NetworkingOptions.ChannelPort)], out var channelPort)
+                ? channelPort
+                : 7001,
+            GamePorts = gamePorts.Length == 0 ? new[] { 10011 } : gamePorts
         };
 
-        if (options.ListenPort is < 1 or > 65535)
+        ValidatePort(options.ChannelPort, $"{NetworkingOptions.SectionName}:{nameof(NetworkingOptions.ChannelPort)}");
+        foreach (var gamePort in options.GamePorts)
         {
-            throw new InvalidOperationException("Networking:ListenPort must be between 1 and 65535.");
+            ValidatePort(gamePort, $"{NetworkingOptions.SectionName}:{nameof(NetworkingOptions.GamePorts)}");
         }
 
         services.AddSingleton(options);
+        services.TryAddSingleton<TouchSocketConnectionRegistry>();
+        services.TryAddSingleton<INetworkMessageSender, TouchSocketNetworkMessageSender>();
+        services.TryAddSingleton<ChannelNetworkPlugin>();
+        services.TryAddSingleton<GameNetworkPlugin>();
 
-        if (options.Enabled)
+        if (!options.Enabled)
         {
-            services.AddTcpService(config => config.SetListenIPHosts(options.ListenPort));
+            return;
+        }
+
+        services.AddTcpService<IChannelTcpService, ChannelTcpService>(config => config
+            .SetListenIPHosts(options.ChannelPort)
+            .SetSingleStreamDataHandlingAdapter(() => new ChannelFrameDataHandlingAdapter())
+            .ConfigurePlugins(plugins => plugins.Add<ChannelNetworkPlugin>()));
+
+        services.AddTcpService<IGameTcpService, GameTcpService>(config => config
+            .SetListenIPHosts(options.GamePorts.Select(port => new IPHost(port)).ToArray())
+            .SetSingleStreamDataHandlingAdapter(() => new GameClientFrameDataHandlingAdapter())
+            .ConfigurePlugins(plugins => plugins.Add<GameNetworkPlugin>()));
+    }
+
+    private static void ValidatePort(int port, string settingName)
+    {
+        if (port is < 1 or > 65535)
+        {
+            throw new InvalidOperationException($"{settingName} must contain ports between 1 and 65535.");
         }
     }
 }

@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Dfo.Server.Abstractions\Dfo.Server.Abstractions.csproj" />
+    <ProjectReference Include="..\Dfo.Server.Application\Dfo.Server.Application.csproj" />
     <ProjectReference Include="..\Dfo.Server.Networking\Dfo.Server.Networking.csproj" />
   </ItemGroup>
 
