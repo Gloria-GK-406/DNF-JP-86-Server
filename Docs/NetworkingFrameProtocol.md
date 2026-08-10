@@ -171,6 +171,8 @@ Networking 当前提供：
 - `GameServerFrameEncoder`：生成观察到的 15 字节 Game 服务端帧。
 - `ChannelPayloadCipher`：兼容旧实现的 Channel AES-128-ECB、零填充和 zlib 顺序。
 - Channel `0x05/0x09/0x0B/0x11` 到强类型 Message 的解码，以及对应响应编码。
+- Game `cmd=0x01/type=0x0003` 到 `GameExitRequest` 的解码，以及 Body 为 `0x01` 的
+  `GameExitResponse` ACK 编码；当前实现不因该消息主动关闭连接或清理 Session。
 
 这些类型属于 Networking 的传输协议层。完整帧形成后，还应由消息 decoder 将
 `msg_no/type + Body` 转换为共享业务数据类型，再通过 Abstractions 中的分发接口进入业务层。

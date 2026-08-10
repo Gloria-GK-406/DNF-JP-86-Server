@@ -6,6 +6,7 @@ public enum ClientMessageType
     ChannelScript = 0x09,
     ChannelConnect = 0x0B,
     ChannelInfo = 0x11,
+    GameExit = 0x0001_0003,
 }
 
 public enum ServerMessageType
@@ -14,6 +15,7 @@ public enum ServerMessageType
     ChannelScript = 0x0A,
     ChannelConnect = 0x0C,
     ChannelInfo = 0x12,
+    GameExit = 0x0001_0003,
 }
 
 public interface IClientNetworkMessage
@@ -74,4 +76,23 @@ public sealed record ChannelInfoResponse(
     IReadOnlyList<Dfo.Server.Data.Channel.ChannelServerInfo> Channels) : IServerNetworkMessage
 {
     public ServerMessageType MessageType => ServerMessageType.ChannelInfo;
+}
+
+public sealed record GameMessageMetadata(
+    byte Command,
+    ushort Type,
+    uint Checksum,
+    ushort Sequence)
+{
+    public static GameMessageMetadata Empty { get; } = new(0, 0, 0, 0);
+}
+
+public sealed record GameExitRequest(GameMessageMetadata Metadata) : IClientNetworkMessage
+{
+    public ClientMessageType MessageType => ClientMessageType.GameExit;
+}
+
+public sealed record GameExitResponse(bool Succeeded) : IServerNetworkMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameExit;
 }

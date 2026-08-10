@@ -6,6 +6,7 @@ public enum ApplicationCommandType
     GetChannelScriptVersion = 2,
     GetChannelScript = 3,
     GetChannelInfo = 4,
+    AcknowledgeGameExit = 5,
 }
 
 public enum CommandExecutionKind

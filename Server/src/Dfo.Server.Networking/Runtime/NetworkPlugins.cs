@@ -89,5 +89,36 @@ internal sealed class ChannelNetworkPlugin(
 
 internal sealed class GameNetworkPlugin(
     TouchSocketConnectionRegistry connections,
-    IEnumerable<INetworkConnectionObserver> observers)
-    : NetworkPluginBase(connections, observers, NetworkEndpointKind.Game);
+    IEnumerable<INetworkConnectionObserver> observers,
+    INetworkMessageDispatcher dispatcher)
+    : NetworkPluginBase(connections, observers, NetworkEndpointKind.Game), ITcpReceivedPlugin
+{
+    public async Task OnTcpReceived(ITcpSession client, ReceivedDataEventArgs e)
+    {
+        if (e.RequestInfo is GameClientFrameRequestInfo frame && CreateMessage(frame) is { } message)
+        {
+            var connectionId = TouchSocketConnectionRegistry.CreateConnectionId(client, NetworkEndpointKind.Game);
+            var connection = Connections.Get(connectionId).Context;
+            await dispatcher.DispatchAsync(
+                new NetworkDispatchContext(connection),
+                message,
+                CancellationToken.None);
+        }
+
+        await e.InvokeNext();
+    }
+
+    private static IClientNetworkMessage? CreateMessage(GameClientFrameRequestInfo frame)
+    {
+        if (frame.Command != GameProtocol.Command || frame.Type != GameProtocol.ExitType)
+        {
+            return null;
+        }
+
+        return new GameExitRequest(new GameMessageMetadata(
+            frame.Command,
+            frame.Type,
+            frame.Checksum,
+            frame.Sequence));
+    }
+}

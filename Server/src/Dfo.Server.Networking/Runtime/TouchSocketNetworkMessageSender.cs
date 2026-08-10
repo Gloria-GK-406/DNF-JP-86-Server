@@ -30,6 +30,8 @@ internal sealed class TouchSocketNetworkMessageSender(
                 EncodeChannelScript(response, keyProvider.GetCurrentKey()),
             ChannelInfoResponse response when connection.Context.EndpointKind == NetworkEndpointKind.Channel =>
                 EncodeChannelInfo(response, keyProvider.GetCurrentKey()),
+            GameExitResponse response when connection.Context.EndpointKind == NetworkEndpointKind.Game =>
+                EncodeGameExit(response),
             _ => throw new InvalidOperationException(
                 $"Server message '{message.GetType().Name}' is not supported for endpoint " +
                 $"'{connection.Context.EndpointKind}'.")
@@ -91,6 +93,12 @@ internal sealed class TouchSocketNetworkMessageSender(
 
         return EncodeEncrypted(0x12, plaintext, key, compress: true);
     }
+
+    private static byte[] EncodeGameExit(GameExitResponse response) =>
+        GameServerFrameEncoder.Encode(
+            GameProtocol.Command,
+            GameProtocol.ExitType,
+            [response.Succeeded ? (byte)0x01 : (byte)0x00]);
 
     private static byte[] EncodeEncrypted(
         byte messageNumber,

@@ -3,7 +3,9 @@ using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Application.Channel;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Commands.Channel;
+using Dfo.Server.Application.Commands.Game;
 using Dfo.Server.Application.Dispatching;
+using Dfo.Server.Application.Game;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,10 +37,14 @@ public sealed class ApplicationModule : IServerModule
         services.RegisterCommandHandler<GetChannelInfoCommandHandler>(
             ApplicationCommandType.GetChannelInfo,
             CommandExecutionKind.Direct);
+        services.RegisterCommandHandler<AcknowledgeGameExitCommandHandler>(
+            ApplicationCommandType.AcknowledgeGameExit,
+            CommandExecutionKind.Direct);
         services.AddNetworkMessageDispatching();
         services.RegisterMessageHandler<ChannelConnectHandler>(ClientMessageType.ChannelConnect);
         services.RegisterMessageHandler<ChannelScriptVersionHandler>(ClientMessageType.ChannelScriptVersion);
         services.RegisterMessageHandler<ChannelScriptHandler>(ClientMessageType.ChannelScript);
         services.RegisterMessageHandler<ChannelInfoHandler>(ClientMessageType.ChannelInfo);
+        services.RegisterMessageHandler<GameExitHandler>(ClientMessageType.GameExit);
     }
 }
