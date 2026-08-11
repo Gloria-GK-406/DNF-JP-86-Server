@@ -11,6 +11,7 @@ internal sealed class CommandBus(
     public async ValueTask<TResult> SendAsync<TResult>(
         ICommand<TResult> command,
         CancellationToken cancellationToken = default)
+        where TResult : notnull
     {
         ArgumentNullException.ThrowIfNull(command);
         if (DispatchDepth.Value != 0)
@@ -61,13 +62,10 @@ internal sealed class CommandBus(
                 return typedResult;
             }
 
-            if (result is null && default(TResult) is null)
-            {
-                return default!;
-            }
-
+            // TResult is constrained to notnull and the pipeline returns object, so a
+            // mismatch here is a wiring defect rather than a representable absence.
             throw new InvalidOperationException(
-                $"Command '{command.CommandType}' returned '{result?.GetType().Name ?? "null"}', " +
+                $"Command '{command.CommandType}' returned '{result.GetType().Name}', " +
                 $"but '{typeof(TResult).Name}' was expected.");
         }
         finally

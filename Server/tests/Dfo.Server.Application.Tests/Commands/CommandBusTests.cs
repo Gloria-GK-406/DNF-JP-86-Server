@@ -73,6 +73,39 @@ public sealed class CommandBusTests
     }
 
     [Fact]
+    public async Task SendAsync_RejectsAPipelineResultOfTheWrongType()
+    {
+        // The pipeline seam is object, so a behavior can still short-circuit with a value
+        // of the wrong type. Null can no longer reach here -- the contract is non-nullable
+        // and a null literal does not compile -- so a mismatch is all that remains.
+        await using var provider = BuildProvider(services =>
+        {
+            services.AddSingleton<ICommandPipelineBehavior, WrongTypeBehavior>();
+            services.RegisterCommandHandler<CountingHandler>(
+                ApplicationCommandType.EstablishChannelConnection,
+                CommandExecutionKind.Direct);
+        });
+        var bus = provider.GetRequiredService<ICommandBus>();
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await bus.SendAsync(new TestCommand(), CancellationToken.None));
+
+        Assert.Contains(nameof(TestResult), error.Message, StringComparison.Ordinal);
+        Assert.Contains(nameof(String), error.Message, StringComparison.Ordinal);
+    }
+
+    private sealed class WrongTypeBehavior : ICommandPipelineBehavior
+    {
+        public int Order => -1000;
+
+        public ValueTask<object> ExecuteAsync(
+            CommandExecutionContext context,
+            ICommand command,
+            CommandExecutionDelegate next,
+            CancellationToken cancellationToken) => ValueTask.FromResult<object>("not a TestResult");
+    }
+
+    [Fact]
     public async Task Pipeline_ExecutesBehaviorsInOrderAroundTheTerminalHandler()
     {
         var events = new List<string>();
@@ -343,7 +376,7 @@ public sealed class CommandBusTests
     {
         public int Order => -100;
 
-        public async ValueTask<object?> ExecuteAsync(
+        public async ValueTask<object> ExecuteAsync(
             CommandExecutionContext context,
             ICommand command,
             CommandExecutionDelegate next,
@@ -360,7 +393,7 @@ public sealed class CommandBusTests
     {
         public int Order => 50;
 
-        public async ValueTask<object?> ExecuteAsync(
+        public async ValueTask<object> ExecuteAsync(
             CommandExecutionContext context,
             ICommand command,
             CommandExecutionDelegate next,

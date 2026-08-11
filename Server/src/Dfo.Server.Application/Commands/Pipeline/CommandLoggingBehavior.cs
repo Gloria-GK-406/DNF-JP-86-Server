@@ -8,7 +8,7 @@ internal sealed class CommandLoggingBehavior(ILogger<CommandLoggingBehavior> log
 {
     public int Order => 0;
 
-    public async ValueTask<object?> ExecuteAsync(
+    public async ValueTask<object> ExecuteAsync(
         CommandExecutionContext context,
         ICommand command,
         CommandExecutionDelegate next,

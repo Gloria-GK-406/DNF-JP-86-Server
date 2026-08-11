@@ -7,7 +7,7 @@ internal sealed class OnlineUserExecutionBehavior(OnlineUserExecutionGate gate)
 {
     public int Order => 50;
 
-    public async ValueTask<object?> ExecuteAsync(
+    public async ValueTask<object> ExecuteAsync(
         CommandExecutionContext context,
         ICommand command,
         CommandExecutionDelegate next,

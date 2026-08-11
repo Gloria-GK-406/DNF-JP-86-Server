@@ -4,7 +4,7 @@ internal sealed class CommandExecutionPolicyBehavior : ICommandPipelineBehavior
 {
     public int Order => 100;
 
-    public ValueTask<object?> ExecuteAsync(
+    public ValueTask<object> ExecuteAsync(
         CommandExecutionContext context,
         ICommand command,
         CommandExecutionDelegate next,

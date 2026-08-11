@@ -34,7 +34,8 @@ public interface ICommand
     ApplicationCommandType CommandType { get; }
 }
 
-public interface ICommand<out TResult> : ICommand;
+public interface ICommand<out TResult> : ICommand
+    where TResult : notnull;
 
 public interface IOnlineUserCommand : ICommand
 {
@@ -50,7 +51,8 @@ public interface ICommandBus
 {
     ValueTask<TResult> SendAsync<TResult>(
         ICommand<TResult> command,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default)
+        where TResult : notnull;
 }
 
 public sealed record CommandExecutionContext(
@@ -61,13 +63,13 @@ public sealed record CommandExecutionContext(
     UserAccessMode OnlineUserAccessMode = UserAccessMode.Unscoped,
     UserAccessMode AccountAccessMode = UserAccessMode.Unscoped);
 
-public delegate ValueTask<object?> CommandExecutionDelegate();
+public delegate ValueTask<object> CommandExecutionDelegate();
 
 public interface ICommandPipelineBehavior
 {
     int Order { get; }
 
-    ValueTask<object?> ExecuteAsync(
+    ValueTask<object> ExecuteAsync(
         CommandExecutionContext context,
         ICommand command,
         CommandExecutionDelegate next,
@@ -78,7 +80,7 @@ public interface ICommandHandler
 {
     bool CanHandle(ICommand command);
 
-    ValueTask<object?> HandleAsync(
+    ValueTask<object> HandleAsync(
         CommandExecutionContext context,
         ICommand command,
         CancellationToken cancellationToken);
@@ -86,10 +88,11 @@ public interface ICommandHandler
 
 public abstract class CommandHandler<TCommand, TResult> : ICommandHandler
     where TCommand : class, ICommand<TResult>
+    where TResult : notnull
 {
     public bool CanHandle(ICommand command) => command is TCommand;
 
-    public async ValueTask<object?> HandleAsync(
+    public async ValueTask<object> HandleAsync(
         CommandExecutionContext context,
         ICommand command,
         CancellationToken cancellationToken)

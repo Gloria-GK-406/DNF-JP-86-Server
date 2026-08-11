@@ -83,7 +83,8 @@ public sealed class ChannelControlMessageHandlerTests
     {
         public ValueTask<TResult> SendAsync<TResult>(
             ICommand<TResult> command,
-            CancellationToken cancellationToken = default) =>
+            CancellationToken cancellationToken = default)
+            where TResult : notnull =>
             ValueTask.FromResult((TResult)execute(command));
     }
 
