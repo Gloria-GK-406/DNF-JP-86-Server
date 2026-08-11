@@ -1,11 +1,13 @@
 using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Channel;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Infrastructure.Accounts;
 using Dfo.Server.Infrastructure.Characters;
+using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Infrastructure.Inventory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,6 +29,18 @@ public sealed class InfrastructureModule : IServerModule
             new FileChannelScriptSource(options.ScriptVersion, options.ScriptPath));
         services.TryAddSingleton<IChannelCatalog>(
             new ConfigurationChannelCatalog(options.Channels));
+        // Static game content. The archive opens lazily, so a server that never reads
+        // content still starts when Script.pvf is absent.
+        services.TryAddSingleton(new PvfContentOptions
+        {
+            ArchivePath = configuration["Pvf:ArchivePath"],
+            ChunkCacheBytes = long.TryParse(configuration["Pvf:ChunkCacheBytes"], out var chunkCacheBytes)
+                ? chunkCacheBytes
+                : 0,
+        });
+        services.TryAddSingleton<PvfArchiveProvider>();
+        services.TryAddSingleton<IQuestDefinitionSource, PvfQuestDefinitionSource>();
+
         var configuredDatabasePath = configuration["Database:Path"] ?? "Data/dfo-server.db";
         var databasePath = Path.IsPathRooted(configuredDatabasePath)
             ? configuredDatabasePath
