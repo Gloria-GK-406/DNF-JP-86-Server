@@ -14,7 +14,7 @@ public readonly record struct LevelRange(int Minimum, int Maximum)
 /// </summary>
 /// <remarks>
 /// These are the distinctions the content itself draws, enumerated from every quest in
-/// the shipping archive. Whether a given character qualifies is a rule, and lives above
+/// the content itself. Whether a given character qualifies is a rule, and lives above
 /// this contract.
 /// </remarks>
 public enum QuestJobRequirement
@@ -92,12 +92,13 @@ public sealed record QuestReward(QuestRewardKind Kind, IReadOnlyList<int> Values
 /// genuinely declares no name; that is not a projection failure.
 /// </param>
 /// <param name="DifficultyCode">
-/// The archive's single-letter difficulty code, passed through verbatim. Its meaning is
-/// not confirmed, so it is deliberately not given a business name.
+/// A single-letter grading the content applies to the quest. Its meaning is not confirmed,
+/// so it is deliberately not given a business name.
 /// </param>
 /// <param name="ObjectiveTypeCode">
-/// The archive's objective-type token, passed through verbatim pending confirmation of
-/// the full vocabulary.
+/// What the quest asks the character to do, as a bare vocabulary value such as
+/// <c>seeking</c> or <c>meet npc</c>. It is passed through rather than modelled as an
+/// enumeration because the full vocabulary is not yet confirmed.
 /// </param>
 public sealed record QuestDefinition(
     int QuestId,

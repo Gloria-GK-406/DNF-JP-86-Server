@@ -122,6 +122,21 @@ public sealed class PvfQuestDefinitionSourceTests
     }
 
     [SkippableFact]
+    public async Task Vocabulary_values_cross_the_boundary_without_archive_spelling()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfQuestDefinitionSource(provider);
+
+        var quests = await source.GetAllAsync(CancellationToken.None);
+
+        // Bracket delimiters are how the archive spells a token, not part of the value.
+        Assert.All(quests, quest => Assert.DoesNotContain('[', quest.ObjectiveTypeCode));
+        Assert.All(quests, quest => Assert.DoesNotContain(']', quest.ObjectiveTypeCode));
+        Assert.Contains(quests, quest => quest.ObjectiveTypeCode == "seeking");
+    }
+
+    [SkippableFact]
     public async Task An_undefined_quest_returns_null_rather_than_a_placeholder()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);

@@ -40,6 +40,9 @@ public sealed class InfrastructureModule : IServerModule
         });
         services.TryAddSingleton<PvfArchiveProvider>();
         services.TryAddSingleton<IQuestDefinitionSource, PvfQuestDefinitionSource>();
+        services.TryAddSingleton<ICollectionBoxDefinitionSource, PvfCollectionBoxDefinitionSource>();
+        services.TryAddSingleton<IDailyActivityDefinitionSource, PvfDailyActivityDefinitionSource>();
+        services.TryAddSingleton<ICreatureDefinitionSource, PvfCreatureDefinitionSource>();
 
         var configuredDatabasePath = configuration["Database:Path"] ?? "Data/dfo-server.db";
         var databasePath = Path.IsPathRooted(configuredDatabasePath)

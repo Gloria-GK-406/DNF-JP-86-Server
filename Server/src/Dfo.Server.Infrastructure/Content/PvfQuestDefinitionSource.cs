@@ -100,15 +100,11 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
 
     private static Catalog Build(PvfArchive archive)
     {
-        var listIndex = archive.FindFile(ListPath);
-        if (listIndex < 0)
-            throw new InvalidOperationException($"The archive does not contain {ListPath}.");
-
         var tags = new QuestTags(archive);
         var ordered = new List<QuestDefinition>();
         var byId = new Dictionary<int, QuestDefinition>();
 
-        foreach (var (questId, relativePath) in ReadList(archive, listIndex))
+        foreach (var (questId, relativePath) in PvfListFile.Read(archive, ListPath))
         {
             var fileIndex = archive.FindFile($"{QuestDirectory}/{relativePath}");
             if (fileIndex < 0)
@@ -123,31 +119,6 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             throw new InvalidOperationException($"{ListPath} yielded no quest definitions.");
 
         return new Catalog(ordered, byId);
-    }
-
-    /// <summary>A list file alternates an integer identifier with the relative file name.</summary>
-    private static List<(int Id, string Path)> ReadList(PvfArchive archive, int listIndex)
-    {
-        var entries = new List<(int, string)>();
-        var reader = archive.OpenScript(listIndex);
-        var pendingId = int.MinValue;
-
-        while (reader.Read(out var token))
-        {
-            if (token.Kind == PvfTokenKind.Int32)
-            {
-                pendingId = token.Value;
-            }
-            else if (token.IsString && pendingId != int.MinValue)
-            {
-                var name = archive.ResolveString(token.Value).Replace('\\', '/');
-                if (name.Length > 0)
-                    entries.Add((pendingId, name));
-                pendingId = int.MinValue;
-            }
-        }
-
-        return entries;
     }
 
     private static QuestDefinition Project(PvfArchive archive, QuestTags tags, int questId, int fileIndex)
@@ -189,7 +160,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             else if (section == tags.Job && token.IsString)
                 job = Map(JobTokens, archive.ResolveString(token.Value), QuestJobRequirement.Unrecognized);
             else if (section == tags.Type && token.IsString)
-                objectiveType = archive.ResolveString(token.Value);
+                objectiveType = StripBrackets(archive.ResolveString(token.Value));
             else if (section == tags.Difficulty && token.IsString)
                 difficulty = archive.ResolveString(token.Value);
             else if (section == tags.GrowType && token.Kind == PvfTokenKind.Int32)
@@ -215,6 +186,18 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
 
     private static TValue Map<TValue>(Dictionary<string, TValue> table, string token, TValue fallback) =>
         table.GetValueOrDefault(token.Trim(), fallback);
+
+    /// <summary>
+    /// Removes the archive's bracket delimiters so a passed-through vocabulary value does
+    /// not carry PVF spelling across the contract boundary.
+    /// </summary>
+    private static string StripBrackets(string value)
+    {
+        var trimmed = value.Trim();
+        return trimmed.Length >= 2 && trimmed[0] == '[' && trimmed[^1] == ']'
+            ? trimmed[1..^1]
+            : trimmed;
+    }
 
     /// <summary>Tag offsets resolved once so the projection loop compares integers.</summary>
     private sealed class QuestTags
