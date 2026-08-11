@@ -9,6 +9,7 @@ using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Application.Users;
 
 namespace Dfo.Server.Application.Tests.OnlineUsers;
@@ -170,16 +171,15 @@ public sealed class UserServiceTests
         var previous = CreateCharacter(1003, 4);
         service.Publish(accountId, previous);
         var snapshotBeforeFailure = service.GetRequired(registered.OnlineUserId);
-        var entry = new CharacterEntryService(
+        var entry = EntryServices.Create(
             new MissingCharacterService(),
             new NotReachedInventoryEntryService(),
             new NotReachedCharacterEntryStateService(),
             new NotReachedAccountEntryStateService(),
-            service,
-            TimeProvider.System);
+            service);
 
         await Assert.ThrowsAsync<KeyNotFoundException>(async () =>
-            await entry.EnterAsync(accountId, 5, CancellationToken.None));
+            await entry.EnterAsync(accountId, 5, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None));
 
         Assert.Same(previous, service.GetRequired(accountId));
         Assert.Equal(snapshotBeforeFailure, service.GetRequired(registered.OnlineUserId));

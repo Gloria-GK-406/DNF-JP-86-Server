@@ -3,7 +3,9 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 
@@ -135,16 +137,106 @@ public sealed class CharacterEntryInventoryTests
         var previous = Character(501, 1);
         var selected = Character(502, 2);
         var active = new StatefulActiveCharacterService(accountId, previous);
-        var entry = new CharacterEntryService(
+        var entry = EntryServices.Create(
             new StubCharacterService(selected),
             new FailingInventoryEntryService(),
             new StubCharacterEntryStateService(EmptyCharacterEntry(selected.Identity.CharacterId)),
             new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
-            active,
-            TimeProvider.System);
+            active);
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
-            await entry.EnterAsync(accountId, 2, CancellationToken.None));
+            await entry.EnterAsync(accountId, 2, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None));
+
+        Assert.Same(previous, active.GetRequired(accountId));
+    }
+
+    /// <remarks>
+    /// A refusal must leave no trace. Publication is the observable that matters, because a
+    /// published character is what every later stage reads.
+    /// </remarks>
+    [Fact]
+    public async Task CharacterEntry_RefusedByTheChannelPublishesNothing()
+    {
+        var accountId = new AccountId(44);
+        var previous = Character(601, 1);
+        var selected = Character(602, 2);
+        var active = new StatefulActiveCharacterService(accountId, previous);
+        var refusal = new ChannelAdmissionRefusal(0xFD, "level too low");
+        var entry = EntryServices.Create(
+            new StubCharacterService(selected),
+            new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
+            new StubCharacterEntryStateService(EmptyCharacterEntry(selected.Identity.CharacterId)),
+            new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
+            active,
+            channels: new StubChannelEntryPolicy(refusal));
+
+        var error = await Assert.ThrowsAsync<ChannelAdmissionRefusedException>(async () =>
+            await entry.EnterAsync(
+                accountId,
+                2,
+                StubChannelEntryPolicy.RestrictedChannel,
+                CancellationToken.None));
+
+        Assert.Equal(refusal, error.Refusal);
+        Assert.Equal(StubChannelEntryPolicy.RestrictedChannel, error.Channel);
+        Assert.Same(previous, active.GetRequired(accountId));
+    }
+
+    [Fact]
+    public async Task CharacterEntry_AdmittedByTheChannelPublishesTheSelectedCharacter()
+    {
+        var accountId = new AccountId(45);
+        var selected = Character(603, 3);
+        var active = new StatefulActiveCharacterService(accountId, Character(604, 1));
+        var entry = EntryServices.Create(
+            new StubCharacterService(selected),
+            new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
+            new StubCharacterEntryStateService(EmptyCharacterEntry(selected.Identity.CharacterId)),
+            new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
+            active);
+
+        var result = await entry.EnterAsync(
+            accountId,
+            3,
+            StubChannelEntryPolicy.RestrictedChannel,
+            CancellationToken.None);
+
+        Assert.Same(selected, result.Character);
+        Assert.Same(selected, active.GetRequired(accountId));
+    }
+
+    /// <remarks>
+    /// One per required source class added by this work. A source that failed after
+    /// publication would leave a character published with an incomplete entry, and every
+    /// later stage would read that entry as complete.
+    /// </remarks>
+    public static TheoryData<string> FailingSources => ["content", "placement", "session"];
+
+    [Theory]
+    [MemberData(nameof(FailingSources))]
+    public async Task CharacterEntry_FailsBeforePublicationWhenARequiredSourceIsUnavailable(
+        string failingSource)
+    {
+        var accountId = new AccountId(46);
+        var previous = Character(701, 1);
+        var selected = Character(702, 2);
+        var active = new StatefulActiveCharacterService(accountId, previous);
+        var entry = EntryServices.Create(
+            new StubCharacterService(selected),
+            new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
+            new StubCharacterEntryStateService(EmptyCharacterEntry(selected.Identity.CharacterId)),
+            new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
+            active,
+            worldContent: failingSource is "content" ? new FailingWorldContentEntryService() : null,
+            placement: failingSource is "placement" ? new FailingEntryPlacementService() : null,
+            sessionAdjacent: failingSource is "session" ? new FailingSessionAdjacentEntryService() : null);
+
+        await Assert.ThrowsAnyAsync<Exception>(async () =>
+            await entry.EnterAsync(
+                accountId,
+                2,
+                StubChannelEntryPolicy.GeneralChannel,
+                CancellationToken.None));
 
         Assert.Same(previous, active.GetRequired(accountId));
     }
@@ -156,15 +248,14 @@ public sealed class CharacterEntryInventoryTests
         var selected = Character(503, 3);
         var inventory = EmptyInventory(accountId, selected.Identity.CharacterId);
         var active = new StatefulActiveCharacterService();
-        var entry = new CharacterEntryService(
+        var entry = EntryServices.Create(
             new StubCharacterService(selected),
             new StubInventoryEntryService(inventory),
             new StubCharacterEntryStateService(EmptyCharacterEntry(selected.Identity.CharacterId)),
             new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
-            active,
-            TimeProvider.System);
+            active);
 
-        var result = await entry.EnterAsync(accountId, 3, CancellationToken.None);
+        var result = await entry.EnterAsync(accountId, 3, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None);
 
         Assert.Same(selected, result.Character);
         Assert.Equal(selected.Identity.CharacterId, result.CharacterEntry.CharacterId);
@@ -181,16 +272,15 @@ public sealed class CharacterEntryInventoryTests
         var previous = Character(504, 4);
         var selected = Character(505, 5);
         var active = new StatefulActiveCharacterService(accountId, previous);
-        var entry = new CharacterEntryService(
+        var entry = EntryServices.Create(
             new StubCharacterService(selected),
             new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
             new FailingCharacterEntryStateService(),
             new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
-            active,
-            TimeProvider.System);
+            active);
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
-            await entry.EnterAsync(accountId, 5, CancellationToken.None));
+            await entry.EnterAsync(accountId, 5, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None));
 
         Assert.Same(previous, active.GetRequired(accountId));
     }
@@ -202,16 +292,15 @@ public sealed class CharacterEntryInventoryTests
         var previous = Character(506, 5);
         var selected = Character(507, 6);
         var active = new StatefulActiveCharacterService(accountId, previous);
-        var entry = new CharacterEntryService(
+        var entry = EntryServices.Create(
             new StubCharacterService(selected),
             new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
             new StubCharacterEntryStateService(EmptyCharacterEntry(selected.Identity.CharacterId)),
             new FailingAccountEntryStateService(),
-            active,
-            TimeProvider.System);
+            active);
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
-            await entry.EnterAsync(accountId, 6, CancellationToken.None));
+            await entry.EnterAsync(accountId, 6, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None));
 
         Assert.Same(previous, active.GetRequired(accountId));
     }

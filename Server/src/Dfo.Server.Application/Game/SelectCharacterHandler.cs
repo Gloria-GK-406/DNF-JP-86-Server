@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application.Commands;
@@ -8,6 +9,7 @@ namespace Dfo.Server.Application.Game;
 
 public sealed class SelectCharacterHandler(
     IOnlineUserQueryService onlineUsers,
+    IChannelEntryPolicy channels,
     INetworkMessageSender sender,
     ICommandBus commandBus) : ClientMessageHandler<SelectCharacterRequest>
 {
@@ -23,8 +25,14 @@ public sealed class SelectCharacterHandler(
                 $"Game connection '{context.Connection.ConnectionId}' is not authenticated.");
         }
 
+        // Resolved here so the listener stays a transport detail and the command states the
+        // channel as a fact it was given rather than one it goes looking for.
+        var channel = await channels
+            .ResolveAsync(context.Connection.ListenerPort, cancellationToken)
+            .ConfigureAwait(false);
+
         var result = await commandBus.SendAsync(
-            new SelectCharacterCommand(accountId, message.SlotIndex),
+            new SelectCharacterCommand(accountId, message.SlotIndex, channel),
             cancellationToken).ConfigureAwait(false);
         await sender.SendAsync(
             context.Connection.ConnectionId,

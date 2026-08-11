@@ -1,5 +1,6 @@
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Data.Characters;
 
@@ -50,11 +51,15 @@ public sealed record ActiveCharacterState(
     DateTimeOffset CreatedAt,
     DarkKnightComboState? DarkKnightCombo);
 
-public sealed record GameWorldEntryState(DateTimeOffset PreparedAt);
+public sealed record GameWorldEntryState(
+    DateTimeOffset PreparedAt,
+    WorldContentEntryState Content,
+    ChannelEntryPolicyState Channel);
 
 public sealed record CharacterSessionEntryState(
     AccountId AccountId,
-    CharacterId CharacterId);
+    CharacterId CharacterId,
+    SessionAdjacentEntryState Adjacent);
 
 public sealed record CharacterAppearanceCompatibilityState(
     byte FormatVersion,

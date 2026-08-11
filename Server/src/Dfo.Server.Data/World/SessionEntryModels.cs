@@ -1,0 +1,146 @@
+using Dfo.Server.Data.Characters;
+
+namespace Dfo.Server.Data.World;
+
+/// <summary>Another character who is present somewhere the entering character can see.</summary>
+/// <remarks>
+/// Identified by character, not by the wire identifier the client uses. Assigning and
+/// encoding that identifier is the projection's job, not this view's.
+/// </remarks>
+public sealed record PresentCharacterState(CharacterId CharacterId, byte TownId, byte AreaId);
+
+/// <summary>
+/// Migration matrix X-18: who else is standing where the entering character arrives.
+/// </summary>
+/// <remarks>
+/// An empty list means the area was consulted and nobody else is in it, which is an
+/// ordinary state on a quiet server.
+/// </remarks>
+public sealed record TownPresenceEntryState(
+    byte TownId,
+    byte AreaId,
+    IReadOnlyList<PresentCharacterState> Others)
+{
+    public static TownPresenceEntryState Empty { get; } = new(0, 0, Array.Empty<PresentCharacterState>());
+}
+
+/// <summary>
+/// Migration matrix X-17: the expert-store situation where the character arrives.
+/// </summary>
+/// <param name="OwnsOpenStore">
+/// Whether the entering character has a store of their own standing open. It is the only
+/// thing that decides whether a close is announced at all, and whether it reaches the
+/// owner as well as the onlookers.
+/// </param>
+/// <remarks>
+/// Who would see the announcement is not restated here. The legacy handler broadcasts to
+/// the other sessions in the store area, and the store is where its owner is, so that
+/// audience is exactly <see cref="TownPresenceEntryState.Others"/>. Carrying it twice
+/// would create two lists that can disagree.
+/// </remarks>
+public sealed record ExpertStoreEntryState(bool OwnsOpenStore)
+{
+    public static ExpertStoreEntryState None { get; } = new(false);
+}
+
+/// <summary>A duel room currently offered in the lobby.</summary>
+/// <param name="NameType">
+/// Which of the client's preset room names is shown. Rooms are named by selection rather
+/// than free text.
+/// </param>
+public sealed record PvpRoomState(
+    ushort RoomId,
+    CharacterId OwnerCharacterId,
+    byte NameType,
+    short MapIndex,
+    bool HasPassword,
+    byte BattleMode);
+
+/// <summary>Someone waiting in the duelling lobby.</summary>
+/// <remarks>
+/// Carries no location. A lobby participant is in the lobby, not standing anywhere, and
+/// reusing the presence record here would have forced a town and area to be invented for
+/// anyone the presence registry did not also hold.
+/// </remarks>
+public sealed record PvpLobbyParticipantState(CharacterId CharacterId);
+
+/// <summary>
+/// Migration matrix X-09 and X-10: the duelling lobby as the entering character finds it.
+/// </summary>
+/// <remarks>
+/// A null lobby on the composed state means duelling does not apply to this entry at all,
+/// which is different from a lobby that applies and happens to be empty. Only the second
+/// is a lobby the character could join.
+/// </remarks>
+public sealed record PvpLobbyEntryState(
+    IReadOnlyList<PvpLobbyParticipantState> Participants,
+    IReadOnlyList<PvpRoomState> Rooms)
+{
+    public static PvpLobbyEntryState Empty { get; } = new(
+        Array.Empty<PvpLobbyParticipantState>(),
+        Array.Empty<PvpRoomState>());
+}
+
+/// <summary>How a character's interrupted dungeon run stands when they come back.</summary>
+public enum DungeonRejoinOutcome
+{
+    /// <summary>Nothing is recorded for this character. The ordinary case.</summary>
+    NoOffer,
+
+    /// <summary>Something is recorded, but it belongs to a different identity.</summary>
+    IdentityMismatch,
+
+    /// <summary>A run is recorded and still attached, so there is nothing to rejoin.</summary>
+    NotDetached,
+
+    /// <summary>A run is recorded but its party cannot be addressed.</summary>
+    PartyUnavailable,
+
+    /// <summary>A run is recorded but the window to return to it has passed.</summary>
+    Expired,
+
+    /// <summary>The character may return to their run.</summary>
+    Available,
+}
+
+/// <summary>
+/// Migration matrix X-15 and X-16: the interrupted run a character may return to.
+/// </summary>
+/// <remarks>
+/// The outcomes are kept apart rather than collapsed into "offer or not". Only
+/// <see cref="DungeonRejoinOutcome.NoOffer"/> is ordinary; the rest describe a record that
+/// exists but cannot be used, and flattening them would hide a registry going wrong behind
+/// a quiet, plausible silence.
+/// </remarks>
+public sealed record DungeonRejoinEntryState(
+    DungeonRejoinOutcome Outcome,
+    int PartyId,
+    IReadOnlyList<ushort> ParticipantUserIds)
+{
+    public static DungeonRejoinEntryState NoOffer { get; } = new(
+        DungeonRejoinOutcome.NoOffer,
+        PartyId: 0,
+        Array.Empty<ushort>());
+
+    public bool IsAvailable => Outcome is DungeonRejoinOutcome.Available;
+}
+
+/// <summary>
+/// The runtime state adjacent to a character's entry: who is nearby and what they are
+/// doing, as of the moment the entry was composed.
+/// </summary>
+/// <param name="PvpLobby">
+/// The duelling lobby, or null when duelling does not apply to this entry.
+/// </param>
+public sealed record SessionAdjacentEntryState(
+    TownPresenceEntryState TownPresence,
+    ExpertStoreEntryState ExpertStore,
+    PvpLobbyEntryState? PvpLobby,
+    DungeonRejoinEntryState DungeonRejoin)
+{
+    public static SessionAdjacentEntryState Empty { get; } = new(
+        TownPresenceEntryState.Empty,
+        ExpertStoreEntryState.None,
+        PvpLobby: null,
+        DungeonRejoinEntryState.NoOffer);
+}

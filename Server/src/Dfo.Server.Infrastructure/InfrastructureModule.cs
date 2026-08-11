@@ -43,6 +43,8 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<ICollectionBoxDefinitionSource, PvfCollectionBoxDefinitionSource>();
         services.TryAddSingleton<IDailyActivityDefinitionSource, PvfDailyActivityDefinitionSource>();
         services.TryAddSingleton<ICreatureDefinitionSource, PvfCreatureDefinitionSource>();
+        services.TryAddSingleton<ITownDefinitionSource, PvfTownDefinitionSource>();
+        services.TryAddSingleton(ReadChannelEntryOptions(configuration));
 
         var configuredDatabasePath = configuration["Database:Path"] ?? "Data/dfo-server.db";
         var databasePath = Path.IsPathRooted(configuredDatabasePath)
@@ -58,6 +60,39 @@ public sealed class InfrastructureModule : IServerModule
             _ => new SqliteInventoryEntryRepository(databasePath));
         services.TryAddSingleton<ICharacterEntryStateRepository>(
             _ => new SqliteCharacterEntryStateRepository(databasePath));
+    }
+
+    /// <summary>
+    /// Which channels carry special entry rules. Defaults reproduce the legacy server, so
+    /// a deployment that configures nothing behaves as it did before.
+    /// </summary>
+    private static ChannelEntryOptions ReadChannelEntryOptions(IConfiguration configuration)
+    {
+        var section = configuration.GetSection("ChannelEntry");
+        var defaults = ChannelEntryOptions.Legacy;
+
+        return new ChannelEntryOptions(
+            int.TryParse(section["LevelRestrictedChannelId"], out var restrictedId)
+                ? restrictedId
+                : defaults.LevelRestrictedChannelId,
+            int.TryParse(section["LevelRestrictedMinimumLevel"], out var minimumLevel)
+                ? minimumLevel
+                : defaults.LevelRestrictedMinimumLevel,
+            int.TryParse(section["FreeDuelChannelId"], out var freeDuelId)
+                ? freeDuelId
+                : defaults.FreeDuelChannelId,
+            bool.TryParse(section["FreeDuelEnabled"], out var freeDuelEnabled)
+                ? freeDuelEnabled
+                : defaults.FreeDuelEnabled,
+            int.TryParse(section["DefaultTownId"], out var defaultTownId)
+                ? defaultTownId
+                : defaults.DefaultTownId,
+            int.TryParse(section["LevelRestrictedTownId"], out var restrictedTownId)
+                ? restrictedTownId
+                : defaults.LevelRestrictedTownId,
+            int.TryParse(section["LevelRestrictedSpawnAreaId"], out var restrictedAreaId)
+                ? restrictedAreaId
+                : defaults.LevelRestrictedSpawnAreaId);
     }
 }
 
