@@ -36,7 +36,8 @@ internal sealed class CommandBus(
                 command.CommandType,
                 registration.HandlerType,
                 registration.ExecutionKind,
-                registration.OnlineUserAccessMode);
+                registration.OnlineUserAccessMode,
+                registration.AccountAccessMode);
             CommandExecutionDelegate next = () => handler.HandleAsync(context, command, cancellationToken);
 
             var behaviors = scope.ServiceProvider

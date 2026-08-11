@@ -12,14 +12,14 @@ public sealed class OnlineUserExecutionGateTests
         var gate = new OnlineUserExecutionGate();
         var userId = OnlineUserId.New();
         await using var firstShared = await gate.AcquireAsync(
-            userId, OnlineUserAccessMode.Shared, CancellationToken.None);
+            userId, UserAccessMode.Shared, CancellationToken.None);
         await using var secondShared = await gate.AcquireAsync(
-            userId, OnlineUserAccessMode.Shared, CancellationToken.None);
+            userId, UserAccessMode.Shared, CancellationToken.None);
 
         var exclusiveTask = gate.AcquireAsync(
-            userId, OnlineUserAccessMode.Exclusive, CancellationToken.None).AsTask();
+            userId, UserAccessMode.Exclusive, CancellationToken.None).AsTask();
         var laterSharedTask = gate.AcquireAsync(
-            userId, OnlineUserAccessMode.Shared, CancellationToken.None).AsTask();
+            userId, UserAccessMode.Shared, CancellationToken.None).AsTask();
 
         Assert.False(exclusiveTask.IsCompleted);
         Assert.False(laterSharedTask.IsCompleted);
@@ -41,17 +41,17 @@ public sealed class OnlineUserExecutionGateTests
         var gate = new OnlineUserExecutionGate();
         var userId = OnlineUserId.New();
         await using var exclusive = await gate.AcquireAsync(
-            userId, OnlineUserAccessMode.Exclusive, CancellationToken.None);
+            userId, UserAccessMode.Exclusive, CancellationToken.None);
         using var cancelled = new CancellationTokenSource();
         var waiting = gate.AcquireAsync(
-            userId, OnlineUserAccessMode.Shared, cancelled.Token).AsTask();
+            userId, UserAccessMode.Shared, cancelled.Token).AsTask();
 
         cancelled.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => waiting);
         await exclusive.DisposeAsync();
 
         await using var next = await gate.AcquireAsync(
-            userId, OnlineUserAccessMode.Exclusive, CancellationToken.None);
+            userId, UserAccessMode.Exclusive, CancellationToken.None);
     }
 
     [Fact]
@@ -59,10 +59,10 @@ public sealed class OnlineUserExecutionGateTests
     {
         var gate = new OnlineUserExecutionGate();
         await using var first = await gate.AcquireAsync(
-            OnlineUserId.New(), OnlineUserAccessMode.Exclusive, CancellationToken.None);
+            OnlineUserId.New(), UserAccessMode.Exclusive, CancellationToken.None);
 
         await using var second = await gate.AcquireAsync(
-            OnlineUserId.New(), OnlineUserAccessMode.Exclusive, CancellationToken.None);
+            OnlineUserId.New(), UserAccessMode.Exclusive, CancellationToken.None);
     }
 
     [Fact]
@@ -74,10 +74,10 @@ public sealed class OnlineUserExecutionGateTests
         for (var iteration = 0; iteration < 250; iteration++)
         {
             var active = await gate.AcquireAsync(
-                userId, OnlineUserAccessMode.Exclusive, CancellationToken.None);
+                userId, UserAccessMode.Exclusive, CancellationToken.None);
             using var cancellation = new CancellationTokenSource();
             var waiting = gate.AcquireAsync(
-                userId, OnlineUserAccessMode.Shared, cancellation.Token).AsTask();
+                userId, UserAccessMode.Shared, cancellation.Token).AsTask();
 
             await Task.WhenAll(
                 Task.Run(cancellation.Cancel),
@@ -92,7 +92,7 @@ public sealed class OnlineUserExecutionGateTests
             }
 
             await using var next = await gate.AcquireAsync(
-                userId, OnlineUserAccessMode.Exclusive, CancellationToken.None);
+                userId, UserAccessMode.Exclusive, CancellationToken.None);
         }
 
         Assert.Equal(0, gate.TrackedEntryCount);
@@ -111,7 +111,7 @@ public sealed class OnlineUserExecutionGateTests
             for (var iteration = 0; iteration < 25; iteration++)
             {
                 await using var lease = await gate.AcquireAsync(
-                    userId, OnlineUserAccessMode.Exclusive, CancellationToken.None);
+                    userId, UserAccessMode.Exclusive, CancellationToken.None);
                 var current = Interlocked.Increment(ref active);
                 InterlockedExtensions.Max(ref maximumActive, current);
                 await Task.Yield();

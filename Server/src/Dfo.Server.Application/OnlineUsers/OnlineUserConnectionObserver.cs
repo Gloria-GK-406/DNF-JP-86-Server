@@ -34,7 +34,7 @@ internal sealed class OnlineUserConnectionObserver(
 
         await using var lease = await executionGate.AcquireAsync(
             observed.OnlineUserId,
-            OnlineUserAccessMode.Exclusive,
+            UserAccessMode.Exclusive,
             cancellationToken).ConfigureAwait(false);
         if (onlineUsers.TryGetByConnection(connection.ConnectionId, out var current)
             && current is not null

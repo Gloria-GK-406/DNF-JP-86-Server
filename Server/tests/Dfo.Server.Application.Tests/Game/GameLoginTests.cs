@@ -25,7 +25,7 @@ public sealed class GameLoginTests
             command.CommandType,
             handler.GetType(),
             CommandExecutionKind.Direct,
-            OnlineUserAccessMode.Exclusive);
+            UserAccessMode.Exclusive);
 
         var result = await handler.HandleAsync(context, command, CancellationToken.None);
 
@@ -47,9 +47,7 @@ public sealed class GameLoginTests
             10011);
         var anonymous = onlineUsers.RegisterConnection(connection);
         var sender = new RecordingSender();
-        var bus = new RecordingCommandBus(new LoginGameUserResult(
-            anonymous.OnlineUserId,
-            new AccountId(7)));
+        var bus = new RecordingCommandBus(new LoginGameUserResult(new AccountId(7)));
         var handler = new GameLoginHandler(onlineUsers, sender, bus);
 
         await handler.HandleAsync(

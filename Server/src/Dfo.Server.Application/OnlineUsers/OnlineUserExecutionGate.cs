@@ -1,33 +1,34 @@
 using System.Collections.Concurrent;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.OnlineUsers;
 
 namespace Dfo.Server.Application.OnlineUsers;
 
-public sealed class OnlineUserExecutionGate
+public class UserExecutionGate<TKey> where TKey : notnull
 {
-    private readonly ConcurrentDictionary<OnlineUserId, Entry> entries = new();
+    private readonly ConcurrentDictionary<TKey, Entry> entries = new();
 
     internal int TrackedEntryCount => entries.Count;
 
     public ValueTask<IAsyncDisposable> AcquireAsync(
-        OnlineUserId onlineUserId,
-        OnlineUserAccessMode accessMode,
+        TKey userId,
+        UserAccessMode accessMode,
         CancellationToken cancellationToken)
     {
-        if (accessMode == OnlineUserAccessMode.Unscoped)
+        if (accessMode == UserAccessMode.Unscoped)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(accessMode),
                 accessMode,
-                "An online-user execution lease must be Shared or Exclusive.");
+                "A user execution lease must be Shared or Exclusive.");
         }
 
         cancellationToken.ThrowIfCancellationRequested();
         while (true)
         {
             var entry = entries.GetOrAdd(
-                onlineUserId,
+                userId,
                 static (id, owner) => new Entry(owner, id),
                 this);
             if (entry.TryAcquire(accessMode, cancellationToken, out var acquisition))
@@ -35,14 +36,14 @@ public sealed class OnlineUserExecutionGate
                 return acquisition;
             }
 
-            entries.TryRemove(new KeyValuePair<OnlineUserId, Entry>(onlineUserId, entry));
+            entries.TryRemove(new KeyValuePair<TKey, Entry>(userId, entry));
         }
     }
 
-    private void RemoveRetired(OnlineUserId onlineUserId, Entry entry) =>
-        entries.TryRemove(new KeyValuePair<OnlineUserId, Entry>(onlineUserId, entry));
+    private void RemoveRetired(TKey userId, Entry entry) =>
+        entries.TryRemove(new KeyValuePair<TKey, Entry>(userId, entry));
 
-    private sealed class Entry(OnlineUserExecutionGate owner, OnlineUserId onlineUserId)
+    private sealed class Entry(UserExecutionGate<TKey> owner, TKey userId)
     {
         private readonly object sync = new();
         private readonly LinkedList<Waiter> waiters = [];
@@ -52,7 +53,7 @@ public sealed class OnlineUserExecutionGate
         private bool retired;
 
         public bool TryAcquire(
-            OnlineUserAccessMode accessMode,
+            UserAccessMode accessMode,
             CancellationToken cancellationToken,
             out ValueTask<IAsyncDisposable> acquisition)
         {
@@ -92,14 +93,14 @@ public sealed class OnlineUserExecutionGate
             }
         }
 
-        private bool CanEnterImmediately(OnlineUserAccessMode accessMode) =>
+        private bool CanEnterImmediately(UserAccessMode accessMode) =>
             waiters.Count == 0
             && !activeExclusive
-            && (accessMode == OnlineUserAccessMode.Shared || activeShared == 0);
+            && (accessMode == UserAccessMode.Shared || activeShared == 0);
 
-        private void MarkEntered(OnlineUserAccessMode accessMode)
+        private void MarkEntered(UserAccessMode accessMode)
         {
-            if (accessMode == OnlineUserAccessMode.Shared)
+            if (accessMode == UserAccessMode.Shared)
             {
                 activeShared++;
             }
@@ -109,16 +110,16 @@ public sealed class OnlineUserExecutionGate
             }
         }
 
-        private void Release(OnlineUserAccessMode accessMode)
+        private void Release(UserAccessMode accessMode)
         {
             bool removeRetired;
             lock (sync)
             {
-                if (accessMode == OnlineUserAccessMode.Shared)
+                if (accessMode == UserAccessMode.Shared)
                 {
                     if (activeShared <= 0)
                     {
-                        throw new InvalidOperationException("No shared online-user execution is active.");
+                        throw new InvalidOperationException("No shared user execution is active.");
                     }
 
                     activeShared--;
@@ -127,7 +128,7 @@ public sealed class OnlineUserExecutionGate
                 {
                     if (!activeExclusive)
                     {
-                        throw new InvalidOperationException("No exclusive online-user execution is active.");
+                        throw new InvalidOperationException("No exclusive user execution is active.");
                     }
 
                     activeExclusive = false;
@@ -139,7 +140,7 @@ public sealed class OnlineUserExecutionGate
 
             if (removeRetired)
             {
-                owner.RemoveRetired(onlineUserId, this);
+                owner.RemoveRetired(userId, this);
             }
         }
 
@@ -163,7 +164,7 @@ public sealed class OnlineUserExecutionGate
 
             if (removeRetired)
             {
-                owner.RemoveRetired(onlineUserId, this);
+                owner.RemoveRetired(userId, this);
             }
         }
 
@@ -190,7 +191,7 @@ public sealed class OnlineUserExecutionGate
                 return;
             }
 
-            if (waiters.First.Value.AccessMode == OnlineUserAccessMode.Exclusive)
+            if (waiters.First.Value.AccessMode == UserAccessMode.Exclusive)
             {
                 if (activeShared != 0)
                 {
@@ -202,7 +203,7 @@ public sealed class OnlineUserExecutionGate
                 return;
             }
 
-            while (waiters.First is { Value.AccessMode: OnlineUserAccessMode.Shared } node)
+            while (waiters.First is { Value.AccessMode: UserAccessMode.Shared } node)
             {
                 Grant(node.Value);
                 activeShared++;
@@ -220,10 +221,10 @@ public sealed class OnlineUserExecutionGate
 
         private sealed class Waiter(
             Entry owner,
-            OnlineUserAccessMode accessMode,
+            UserAccessMode accessMode,
             CancellationToken cancellationToken)
         {
-            public OnlineUserAccessMode AccessMode { get; } = accessMode;
+            public UserAccessMode AccessMode { get; } = accessMode;
 
             public CancellationToken CancellationToken { get; } = cancellationToken;
 
@@ -239,7 +240,7 @@ public sealed class OnlineUserExecutionGate
             public void Cancel() => owner.Cancel(this);
         }
 
-        private sealed class Lease(Entry owner, OnlineUserAccessMode accessMode) : IAsyncDisposable
+        private sealed class Lease(Entry owner, UserAccessMode accessMode) : IAsyncDisposable
         {
             private Entry? owner = owner;
 
@@ -258,3 +259,7 @@ public sealed class OnlineUserExecutionGate
         }
     }
 }
+
+public sealed class OnlineUserExecutionGate : UserExecutionGate<OnlineUserId>;
+
+public sealed class AccountExecutionGate : UserExecutionGate<AccountId>;

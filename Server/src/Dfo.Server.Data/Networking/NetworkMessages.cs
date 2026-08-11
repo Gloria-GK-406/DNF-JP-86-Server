@@ -3,6 +3,7 @@ namespace Dfo.Server.Data.Networking;
 public enum ClientMessageType
 {
     GameLogin = 0x0001_0001,
+    GameGetAccountCharacterRoster = 0x0001_0208,
     ChannelScriptVersion = 0x05,
     ChannelScript = 0x09,
     ChannelConnect = 0x0B,
@@ -13,6 +14,7 @@ public enum ClientMessageType
 public enum ServerMessageType
 {
     GameLogin = 0x0001_0001,
+    GameAccountCharacterRoster = 0x0000_0002,
     ChannelScriptVersion = 0x06,
     ChannelScript = 0x0A,
     ChannelConnect = 0x0C,
@@ -105,6 +107,18 @@ public sealed record GameLoginRequest(
 public sealed record GameLoginResponse(bool Succeeded) : IServerNetworkMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameLogin;
+}
+
+public sealed record GetAccountCharacterRosterRequest(
+    GameMessageMetadata Metadata) : IClientNetworkMessage
+{
+    public ClientMessageType MessageType => ClientMessageType.GameGetAccountCharacterRoster;
+}
+
+public sealed record AccountCharacterRosterResponse(
+    Dfo.Server.Data.Characters.AccountCharacterRoster Roster) : IServerNetworkMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameAccountCharacterRoster;
 }
 
 public sealed record GameExitResponse(bool Succeeded) : IServerNetworkMessage

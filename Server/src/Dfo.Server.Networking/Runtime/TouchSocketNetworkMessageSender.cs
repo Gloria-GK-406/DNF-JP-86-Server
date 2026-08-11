@@ -36,6 +36,8 @@ internal sealed class TouchSocketNetworkMessageSender(
                 EncodeGameExit(response),
             GameLoginResponse response when connection.Context.EndpointKind == NetworkEndpointKind.Game =>
                 EncodeGameLogin(response, gameLoginOptions),
+            AccountCharacterRosterResponse response when connection.Context.EndpointKind == NetworkEndpointKind.Game =>
+                EncodeAccountCharacterRoster(response),
             _ => throw new InvalidOperationException(
                 $"Server message '{message.GetType().Name}' is not supported for endpoint " +
                 $"'{connection.Context.EndpointKind}'.")
@@ -109,6 +111,12 @@ internal sealed class TouchSocketNetworkMessageSender(
         GameLoginOptions options) => response.Succeeded
         ? GameLoginPayloadCodec.EncodeSuccess(options)
         : throw new InvalidOperationException("The observed Game LOGIN protocol has no failure body yet.");
+
+    private static byte[] EncodeAccountCharacterRoster(AccountCharacterRosterResponse response) =>
+        GameServerFrameEncoder.Encode(
+            command: 0x00,
+            GameProtocol.AccountCharacterRosterNotificationType,
+            AccountCharacterRosterPayloadCodec.Encode(response.Roster));
 
     private static byte[] EncodeEncrypted(
         byte messageNumber,

@@ -95,7 +95,7 @@ public sealed class UserServiceTests
         var registered = service.RegisterConnection(connection);
         await using var identityTransition = await gate.AcquireAsync(
             registered.OnlineUserId,
-            OnlineUserAccessMode.Exclusive,
+            UserAccessMode.Exclusive,
             CancellationToken.None);
 
         var disconnect = observer.DisconnectedAsync(connection, CancellationToken.None).AsTask();

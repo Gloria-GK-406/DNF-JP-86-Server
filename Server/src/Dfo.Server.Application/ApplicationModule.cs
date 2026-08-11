@@ -1,9 +1,11 @@
 using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Channel;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application.Channel;
+using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Commands.Channel;
 using Dfo.Server.Application.Commands.Game;
@@ -38,6 +40,11 @@ public sealed class ApplicationModule : IServerModule
             provider => provider.GetRequiredService<UserService>());
         services.TryAddSingleton<IOnlineUserQueryService>(
             provider => provider.GetRequiredService<UserService>());
+        services.TryAddSingleton(
+            provider => new CharacterService(
+                () => provider.GetRequiredService<ICharacterRepository>()));
+        services.TryAddSingleton<ICharacterService>(
+            provider => provider.GetRequiredService<CharacterService>());
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<INetworkConnectionObserver, OnlineUserConnectionObserver>());
         services.AddCommandDispatching();
@@ -59,7 +66,11 @@ public sealed class ApplicationModule : IServerModule
         services.RegisterCommandHandler<LoginGameUserCommandHandler>(
             ApplicationCommandType.LoginGameUser,
             CommandExecutionKind.Direct,
-            OnlineUserAccessMode.Exclusive);
+            UserAccessMode.Exclusive);
+        services.RegisterCommandHandler<GetAccountCharacterRosterCommandHandler>(
+            ApplicationCommandType.GetAccountCharacterRoster,
+            CommandExecutionKind.Direct,
+            accountAccessMode: UserAccessMode.Shared);
         services.AddNetworkMessageDispatching();
         services.RegisterMessageHandler<ChannelConnectHandler>(ClientMessageType.ChannelConnect);
         services.RegisterMessageHandler<ChannelScriptVersionHandler>(ClientMessageType.ChannelScriptVersion);
@@ -67,5 +78,7 @@ public sealed class ApplicationModule : IServerModule
         services.RegisterMessageHandler<ChannelInfoHandler>(ClientMessageType.ChannelInfo);
         services.RegisterMessageHandler<GameExitHandler>(ClientMessageType.GameExit);
         services.RegisterMessageHandler<GameLoginHandler>(ClientMessageType.GameLogin);
+        services.RegisterMessageHandler<GetAccountCharacterRosterHandler>(
+            ClientMessageType.GameGetAccountCharacterRoster);
     }
 }

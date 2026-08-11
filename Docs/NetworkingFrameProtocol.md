@@ -163,7 +163,9 @@ Message 建立强类型请求、Command 和响应编码：
 | 21 + N | 24 | 固定零 | 待确认 |
 
 当前阶段在 Game 连接建立时创建匿名 `OnlineUserId` 索引；LOGIN Command 以排他方式查询或
-创建账号，并把账号 ID 绑定到同一个在线用户聚合。内部索引和 generation 不写入协议帧。
+创建账号，并把账号 ID 绑定到同一个在线用户聚合。`OnlineUserId` 只用于登录前连接生命周期；
+登录后的业务 Message Handler 必须先解析出 `AccountId`，Command 和领域服务不再传递
+`OnlineUserId`。内部索引和 generation 不写入协议帧。
 账号设置、拍卖开放、荣誉等级、成长胶囊以及其他旧登录后通知尚未迁移，后续仍应作为各自
 的强类型 Message 处理，不能把它们误称为当前基础 LOGIN ACK 的一部分。
 
@@ -180,6 +182,24 @@ Message 建立强类型请求、Command 和响应编码：
 > 由哪一端关闭连接、请求 Body 是否始终为空，以及服务端是否还应执行退出副作用。
 > 在证据补齐前，迁移实现只能保持 ACK 行为；Session 保存和清理必须继续以连接断开
 > 生命周期为可靠入口，不得仅依赖该命令。
+
+### Game CMD `0x0008`（GET_USERINFO）
+
+旧实现将请求 Body 反推为 `{ uint16 LE targetUserId, byte mode }`。该 `mode` 是同一线路
+opcode 的协议判别字段，Networking 解码后按 mode 生成不同的强类型 Message，不把 mode
+继续传给业务 Handler。
+
+当前只迁移 `mode=2`，对应当前已认证账号的角色列表；`targetUserId` 在该模式下不参与账号
+定位。`mode=0/1/3` 属于查看其他在线角色的流程，尚未迁移，后续应分别定义独立 Message。
+
+`mode=2` 当前发送 `cmd=0x00/type=0x0002` 的角色列表通知。列表头和单角色基础字段沿用旧
+构造顺序，外观、荣誉和未确认尾部字段暂以保守默认值编码。旧实现随后还会发送
+`0x0286`、荣誉等级和成长胶囊通知，这些后续通知尚未迁移。
+
+> **TODO(protocol-capture): Game CMD `0x0008` (`GET_USERINFO`)**
+>
+> 需要确认各 mode 的真实业务语义、`targetUserId` 的协议身份含义、mode 2 的完整通知顺序、
+> 角色列表默认字段和外观数据格式。上述内容均由旧代码反推，不是抓包结论。
 
 ### 服务端到客户端
 
@@ -214,6 +234,8 @@ Networking 当前提供：
   成功 ACK 编码；身份变更通过按在线用户分区的排他 Command 执行。
 - Game `cmd=0x01/type=0x0003` 到 `GameExitRequest` 的解码，以及 Body 为 `0x01` 的
   `GameExitResponse` ACK 编码；当前实现不因该消息主动关闭连接或清理 Session。
+- Game `cmd=0x01/type=0x0008` 在 Networking 按 mode 分流；当前 `mode=2` 解码为独立的
+  `GetAccountCharacterRosterRequest`，并通过只携带 `AccountId` 的 Command 查询角色列表。
 
 这些类型属于 Networking 的传输协议层。完整帧形成后，还应由消息 decoder 将
 `msg_no/type + Body` 转换为共享业务数据类型，再通过 Abstractions 中的分发接口进入业务层。

@@ -116,7 +116,7 @@ public sealed class CommandBusTests
             services.RegisterCommandHandler<CountingHandler>(
                 ApplicationCommandType.EstablishChannelConnection,
                 CommandExecutionKind.Direct,
-                OnlineUserAccessMode.Shared));
+                UserAccessMode.Shared));
         var bus = provider.GetRequiredService<ICommandBus>();
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
@@ -129,7 +129,7 @@ public sealed class CommandBusTests
     public async Task SharedOnlineUserLease_IsReleasedWhenHandlerThrows()
     {
         await AssertOnlineUserLeaseReleasedAfterFailureAsync(
-            OnlineUserAccessMode.Shared,
+            UserAccessMode.Shared,
             new InvalidOperationException("shared failure"));
     }
 
@@ -137,7 +137,7 @@ public sealed class CommandBusTests
     public async Task ExclusiveOnlineUserLease_IsReleasedWhenHandlerIsCancelled()
     {
         await AssertOnlineUserLeaseReleasedAfterFailureAsync(
-            OnlineUserAccessMode.Exclusive,
+            UserAccessMode.Exclusive,
             new OperationCanceledException("exclusive cancellation"));
     }
 
@@ -210,7 +210,7 @@ public sealed class CommandBusTests
     }
 
     private static async Task AssertOnlineUserLeaseReleasedAfterFailureAsync(
-        OnlineUserAccessMode accessMode,
+        UserAccessMode accessMode,
         Exception failure)
     {
         var probe = new FailOnceProbe(failure);

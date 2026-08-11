@@ -12,7 +12,7 @@ public sealed record LoginGameUserCommand(
     public ApplicationCommandType CommandType => ApplicationCommandType.LoginGameUser;
 }
 
-public sealed record LoginGameUserResult(OnlineUserId OnlineUserId, AccountId AccountId);
+public sealed record LoginGameUserResult(AccountId AccountId);
 
 public sealed class LoginGameUserCommandHandler(
     IAccountService accounts) : CommandHandler<LoginGameUserCommand, LoginGameUserResult>
@@ -27,6 +27,6 @@ public sealed class LoginGameUserCommandHandler(
             command.LoginId,
             command.PasswordHash,
             cancellationToken).ConfigureAwait(false);
-        return new LoginGameUserResult(command.OnlineUserId, accountId);
+        return new LoginGameUserResult(accountId);
     }
 }

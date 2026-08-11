@@ -14,10 +14,13 @@ public static class CommandDispatchingExtensions
         services.TryAddSingleton<CommandHandlerRegistry>();
         services.TryAddSingleton<ICommandBus, CommandBus>();
         services.TryAddSingleton<OnlineUserExecutionGate>();
+        services.TryAddSingleton<AccountExecutionGate>();
         services.TryAddEnumerable(
             ServiceDescriptor.Scoped<ICommandPipelineBehavior, CommandLoggingBehavior>());
         services.TryAddEnumerable(
             ServiceDescriptor.Scoped<ICommandPipelineBehavior, OnlineUserExecutionBehavior>());
+        services.TryAddEnumerable(
+            ServiceDescriptor.Scoped<ICommandPipelineBehavior, AccountExecutionBehavior>());
         services.TryAddEnumerable(
             ServiceDescriptor.Scoped<ICommandPipelineBehavior, CommandExecutionPolicyBehavior>());
         services.TryAddEnumerable(
@@ -29,7 +32,8 @@ public static class CommandDispatchingExtensions
         this IServiceCollection services,
         ApplicationCommandType commandType,
         CommandExecutionKind executionKind,
-        OnlineUserAccessMode onlineUserAccessMode = OnlineUserAccessMode.Unscoped)
+        UserAccessMode onlineUserAccessMode = UserAccessMode.Unscoped,
+        UserAccessMode accountAccessMode = UserAccessMode.Unscoped)
         where THandler : class, ICommandHandler
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -38,7 +42,8 @@ public static class CommandDispatchingExtensions
             commandType,
             typeof(THandler),
             executionKind,
-            onlineUserAccessMode));
+            onlineUserAccessMode,
+            accountAccessMode));
         return services;
     }
 }

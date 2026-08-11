@@ -4,7 +4,8 @@ public sealed record CommandHandlerRegistration(
     ApplicationCommandType CommandType,
     Type HandlerType,
     CommandExecutionKind ExecutionKind,
-    OnlineUserAccessMode OnlineUserAccessMode);
+    UserAccessMode OnlineUserAccessMode,
+    UserAccessMode AccountAccessMode);
 
 public sealed class CommandHandlerRegistry
 {

@@ -13,7 +13,7 @@ internal sealed class OnlineUserExecutionBehavior(OnlineUserExecutionGate gate)
         CommandExecutionDelegate next,
         CancellationToken cancellationToken)
     {
-        if (context.OnlineUserAccessMode == OnlineUserAccessMode.Unscoped)
+        if (context.OnlineUserAccessMode == UserAccessMode.Unscoped)
         {
             return await next().ConfigureAwait(false);
         }
