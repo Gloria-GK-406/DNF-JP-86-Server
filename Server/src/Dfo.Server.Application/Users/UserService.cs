@@ -1,15 +1,36 @@
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 
-namespace Dfo.Server.Application.OnlineUsers;
+namespace Dfo.Server.Application.Users;
 
-public sealed class OnlineUserService : IOnlineUserService
+internal sealed class UserService(Func<IAccountRepository> accountRepository)
+    : IAccountService, IOnlineUserService
 {
     private readonly object sync = new();
     private readonly Dictionary<OnlineUserId, OnlineUser> byId = [];
     private readonly Dictionary<NetworkConnectionId, OnlineUserId> byConnection = [];
+
+    public async ValueTask<AccountId> LoginAsync(
+        OnlineUserId onlineUserId,
+        string loginId,
+        string passwordHash,
+        CancellationToken cancellationToken)
+    {
+        var account = await accountRepository().GetOrCreateAsync(
+            loginId,
+            passwordHash,
+            cancellationToken).ConfigureAwait(false);
+
+        lock (sync)
+        {
+            var onlineUser = GetRequiredAggregate(onlineUserId);
+            onlineUser.Authenticate(account.AccountId);
+            return account.AccountId;
+        }
+    }
 
     public OnlineUserSnapshot RegisterConnection(NetworkConnectionContext connection)
     {
@@ -24,16 +45,6 @@ public sealed class OnlineUserService : IOnlineUserService
             var onlineUser = new OnlineUser(OnlineUserId.New(), connection);
             byId.Add(onlineUser.Id, onlineUser);
             byConnection.Add(connection.ConnectionId, onlineUser.Id);
-            return onlineUser.Snapshot;
-        }
-    }
-
-    public OnlineUserSnapshot Authenticate(OnlineUserId onlineUserId, AccountId accountId)
-    {
-        lock (sync)
-        {
-            var onlineUser = GetRequiredAggregate(onlineUserId);
-            onlineUser.Authenticate(accountId);
             return onlineUser.Snapshot;
         }
     }

@@ -3,15 +3,17 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Application.Users;
 
 namespace Dfo.Server.Application.Tests.OnlineUsers;
 
-public sealed class OnlineUserServiceTests
+public sealed class UserServiceTests
 {
     [Fact]
     public void RegisterConnection_CreatesOneAnonymousUserResolvableByConnection()
     {
-        var service = new OnlineUserService();
+        var service = CreateService();
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:17"),
             NetworkEndpointKind.Game,
@@ -29,18 +31,21 @@ public sealed class OnlineUserServiceTests
     }
 
     [Fact]
-    public void Authenticate_BindsAccountAndAdvancesGeneration()
+    public async Task Login_BindsAccountAndAdvancesGeneration()
     {
-        var service = new OnlineUserService();
+        var service = CreateService(new AccountId(42));
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:18"),
             NetworkEndpointKind.Game,
             10011);
         var registered = service.RegisterConnection(connection);
 
-        var authenticated = service.Authenticate(
+        await service.LoginAsync(
             registered.OnlineUserId,
-            new AccountId(42));
+            "login-42",
+            "hash",
+            CancellationToken.None);
+        var authenticated = service.GetRequired(registered.OnlineUserId);
 
         Assert.Equal(OnlineUserState.Authenticated, authenticated.State);
         Assert.Equal(new AccountId(42), authenticated.AccountId);
@@ -48,17 +53,20 @@ public sealed class OnlineUserServiceTests
     }
 
     [Fact]
-    public void TryDisconnect_RejectsStaleGenerationAndPreservesCurrentUser()
+    public async Task TryDisconnect_RejectsStaleGenerationAndPreservesCurrentUser()
     {
-        var service = new OnlineUserService();
+        var service = CreateService(new AccountId(99));
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:19"),
             NetworkEndpointKind.Game,
             10011);
         var registered = service.RegisterConnection(connection);
-        var authenticated = service.Authenticate(
+        await service.LoginAsync(
             registered.OnlineUserId,
-            new AccountId(99));
+            "login-99",
+            "hash",
+            CancellationToken.None);
+        var authenticated = service.GetRequired(registered.OnlineUserId);
 
         Assert.False(service.TryDisconnect(
             registered.OnlineUserId,
@@ -77,7 +85,7 @@ public sealed class OnlineUserServiceTests
     [Fact]
     public async Task DisconnectObservedBeforeAuthentication_DoesNotRemoveNewerGeneration()
     {
-        var service = new OnlineUserService();
+        var service = CreateService(new AccountId(100));
         var gate = new OnlineUserExecutionGate();
         var observer = new OnlineUserConnectionObserver(service, gate);
         var connection = new NetworkConnectionContext(
@@ -93,12 +101,37 @@ public sealed class OnlineUserServiceTests
         var disconnect = observer.DisconnectedAsync(connection, CancellationToken.None).AsTask();
         await Task.Yield();
         Assert.False(disconnect.IsCompleted);
-        var authenticated = service.Authenticate(registered.OnlineUserId, new AccountId(100));
+        await service.LoginAsync(
+            registered.OnlineUserId,
+            "login-100",
+            "hash",
+            CancellationToken.None);
+        var authenticated = service.GetRequired(registered.OnlineUserId);
         await identityTransition.DisposeAsync();
         await disconnect;
 
         Assert.Equal(authenticated, service.GetRequired(registered.OnlineUserId));
         Assert.True(service.TryGetByConnection(connection.ConnectionId, out var current));
         Assert.Equal(authenticated, current);
+    }
+
+    private static UserService CreateService(AccountId accountId = default)
+    {
+        var repository = new StubAccountRepository(
+            accountId == default ? new AccountId(1) : accountId);
+        return new UserService(() => repository);
+    }
+
+    private sealed class StubAccountRepository(AccountId accountId) : IAccountRepository
+    {
+        public ValueTask<AccountRecord> GetOrCreateAsync(
+            string loginId,
+            string passwordHash,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult(new AccountRecord(
+                accountId,
+                loginId,
+                passwordHash,
+                DateTimeOffset.UtcNow));
     }
 }

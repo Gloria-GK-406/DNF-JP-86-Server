@@ -1,5 +1,4 @@
 using Dfo.Server.Abstractions.Accounts;
-using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.OnlineUsers;
 
@@ -16,19 +15,18 @@ public sealed record LoginGameUserCommand(
 public sealed record LoginGameUserResult(OnlineUserId OnlineUserId, AccountId AccountId);
 
 public sealed class LoginGameUserCommandHandler(
-    IAccountRepository accounts,
-    IOnlineUserService onlineUsers) : CommandHandler<LoginGameUserCommand, LoginGameUserResult>
+    IAccountService accounts) : CommandHandler<LoginGameUserCommand, LoginGameUserResult>
 {
     protected override async ValueTask<LoginGameUserResult> HandleCommandAsync(
         CommandExecutionContext context,
         LoginGameUserCommand command,
         CancellationToken cancellationToken)
     {
-        var account = await accounts.GetOrCreateAsync(
+        var accountId = await accounts.LoginAsync(
+            command.OnlineUserId,
             command.LoginId,
             command.PasswordHash,
             cancellationToken).ConfigureAwait(false);
-        onlineUsers.Authenticate(command.OnlineUserId, account.AccountId);
-        return new LoginGameUserResult(command.OnlineUserId, account.AccountId);
+        return new LoginGameUserResult(command.OnlineUserId, accountId);
     }
 }

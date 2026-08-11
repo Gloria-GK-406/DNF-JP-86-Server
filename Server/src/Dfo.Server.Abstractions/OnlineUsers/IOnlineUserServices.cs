@@ -1,4 +1,3 @@
-using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 
@@ -16,8 +15,6 @@ public interface IOnlineUserQueryService
 public interface IOnlineUserService : IOnlineUserQueryService
 {
     OnlineUserSnapshot RegisterConnection(NetworkConnectionContext connection);
-
-    OnlineUserSnapshot Authenticate(OnlineUserId onlineUserId, AccountId accountId);
 
     bool TryDisconnect(
         OnlineUserId onlineUserId,

@@ -4,6 +4,7 @@ using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Commands.Game;
 using Dfo.Server.Application.Game;
 using Dfo.Server.Application.OnlineUsers;
+using Dfo.Server.Application.Users;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
@@ -13,18 +14,12 @@ namespace Dfo.Server.Application.Tests.Game;
 public sealed class GameLoginTests
 {
     [Fact]
-    public async Task CommandHandler_ResolvesAccountAndAuthenticatesIndexedOnlineUser()
+    public async Task CommandHandler_DelegatesLoginToAccountService()
     {
-        var onlineUsers = new OnlineUserService();
-        var connection = new NetworkConnectionContext(
-            new NetworkConnectionId("Game:login-command"),
-            NetworkEndpointKind.Game,
-            10011);
-        var anonymous = onlineUsers.RegisterConnection(connection);
-        var repository = new StubAccountRepository(
-            new AccountRecord(new AccountId(42), "10038", "hash", DateTimeOffset.UtcNow));
-        var handler = new LoginGameUserCommandHandler(repository, onlineUsers);
-        var command = new LoginGameUserCommand(anonymous.OnlineUserId, "10038", "hash");
+        var onlineUserId = OnlineUserId.New();
+        var accounts = new StubAccountService(new AccountId(42));
+        var handler = new LoginGameUserCommandHandler(accounts);
+        var command = new LoginGameUserCommand(onlineUserId, "10038", "hash");
         var context = new CommandExecutionContext(
             Guid.NewGuid(),
             command.CommandType,
@@ -36,17 +31,16 @@ public sealed class GameLoginTests
 
         var typed = Assert.IsType<LoginGameUserResult>(result);
         Assert.Equal(new AccountId(42), typed.AccountId);
-        Assert.Equal("10038", repository.LoginId);
-        Assert.Equal("hash", repository.PasswordHash);
-        var authenticated = onlineUsers.GetRequired(anonymous.OnlineUserId);
-        Assert.Equal(new AccountId(42), authenticated.AccountId);
-        Assert.Equal(OnlineUserState.Authenticated, authenticated.State);
+        Assert.Equal(onlineUserId, accounts.OnlineUserId);
+        Assert.Equal("10038", accounts.LoginId);
+        Assert.Equal("hash", accounts.PasswordHash);
     }
 
     [Fact]
     public async Task MessageHandler_ResolvesConnectionAndSendsSuccessToSameConnection()
     {
-        var onlineUsers = new OnlineUserService();
+        var repository = new FixedAccountRepository(new AccountId(7));
+        var onlineUsers = new UserService(() => repository);
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:login-message"),
             NetworkEndpointKind.Game,
@@ -71,21 +65,38 @@ public sealed class GameLoginTests
         Assert.Equal(new GameLoginResponse(true), sender.Message);
     }
 
-    private sealed class StubAccountRepository(AccountRecord account) : IAccountRepository
+    private sealed class StubAccountService(AccountId accountId) : IAccountService
     {
+        public OnlineUserId OnlineUserId { get; private set; }
+
         public string? LoginId { get; private set; }
 
         public string? PasswordHash { get; private set; }
 
-        public ValueTask<AccountRecord> GetOrCreateAsync(
+        public ValueTask<AccountId> LoginAsync(
+            OnlineUserId onlineUserId,
             string loginId,
             string passwordHash,
             CancellationToken cancellationToken)
         {
+            OnlineUserId = onlineUserId;
             LoginId = loginId;
             PasswordHash = passwordHash;
-            return ValueTask.FromResult(account);
+            return ValueTask.FromResult(accountId);
         }
+    }
+
+    private sealed class FixedAccountRepository(AccountId accountId) : IAccountRepository
+    {
+        public ValueTask<AccountRecord> GetOrCreateAsync(
+            string loginId,
+            string passwordHash,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult(new AccountRecord(
+                accountId,
+                loginId,
+                passwordHash,
+                DateTimeOffset.UtcNow));
     }
 
     private sealed class RecordingCommandBus(LoginGameUserResult result) : ICommandBus

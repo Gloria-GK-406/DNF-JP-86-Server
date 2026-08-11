@@ -5,7 +5,7 @@ using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Infrastructure.Accounts;
 
-public sealed class SqliteAccountRepository : IAccountRepository
+internal sealed class SqliteAccountRepository : IAccountRepository
 {
     private readonly string connectionString;
 

@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions;
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
@@ -9,6 +10,7 @@ using Dfo.Server.Application.Commands.Game;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Application.Game;
 using Dfo.Server.Application.OnlineUsers;
+using Dfo.Server.Application.Users;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,11 +29,15 @@ public sealed class ApplicationModule : IServerModule
 
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<IChannelEncryptionKeyProvider, ChannelEncryptionKeyProvider>();
-        services.TryAddSingleton<OnlineUserService>();
+        services.TryAddSingleton(
+            provider => new UserService(
+                () => provider.GetRequiredService<IAccountRepository>()));
+        services.TryAddSingleton<IAccountService>(
+            provider => provider.GetRequiredService<UserService>());
         services.TryAddSingleton<IOnlineUserService>(
-            provider => provider.GetRequiredService<OnlineUserService>());
+            provider => provider.GetRequiredService<UserService>());
         services.TryAddSingleton<IOnlineUserQueryService>(
-            provider => provider.GetRequiredService<OnlineUserService>());
+            provider => provider.GetRequiredService<UserService>());
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<INetworkConnectionObserver, OnlineUserConnectionObserver>());
         services.AddCommandDispatching();

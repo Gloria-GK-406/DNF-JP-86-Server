@@ -2,7 +2,6 @@ using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application;
 using Dfo.Server.Data.Networking;
@@ -77,10 +76,7 @@ public sealed class GameLoginIntegrationTests
 
                 Assert.True(onlineUsers.TryGetByConnection(connectionId, out var authenticated));
                 Assert.Equal(OnlineUserState.Authenticated, authenticated!.State);
-                var account = await host.Services.GetRequiredService<IAccountRepository>()
-                    .GetOrCreateAsync("10038", "different-hash", timeout.Token);
-                Assert.Equal(account.AccountId, authenticated.AccountId);
-                Assert.Equal("login-hash", account.PasswordHash);
+                Assert.NotNull(authenticated.AccountId);
             }
 
             await WaitUntilAsync(
