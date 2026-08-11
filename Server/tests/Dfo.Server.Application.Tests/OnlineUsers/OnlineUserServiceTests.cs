@@ -173,6 +173,7 @@ public sealed class UserServiceTests
         var entry = new CharacterEntryService(
             new MissingCharacterService(),
             new NotReachedInventoryEntryService(),
+            new NotReachedCharacterEntryStateService(),
             service,
             TimeProvider.System);
 
@@ -257,6 +258,15 @@ public sealed class UserServiceTests
             CharacterId characterId,
             CancellationToken cancellationToken) =>
             throw new InvalidOperationException("Inventory must not load when character resolution fails.");
+    }
+
+    private sealed class NotReachedCharacterEntryStateService : ICharacterEntryStateService
+    {
+        public ValueTask<CharacterEntryState> LoadAsync(
+            AccountId accountId,
+            CharacterId characterId,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("Character entry state must not load when character resolution fails.");
     }
 
     private sealed class MissingCharacterService : ICharacterService

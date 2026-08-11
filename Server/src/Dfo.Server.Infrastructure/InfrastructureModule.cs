@@ -37,6 +37,8 @@ public sealed class InfrastructureModule : IServerModule
             _ => new SqliteCharacterRepository(databasePath));
         services.TryAddSingleton<IInventoryEntryRepository>(
             _ => new SqliteInventoryEntryRepository(databasePath));
+        services.TryAddSingleton<ICharacterEntryStateRepository>(
+            _ => new SqliteCharacterEntryStateRepository(databasePath));
     }
 }
 

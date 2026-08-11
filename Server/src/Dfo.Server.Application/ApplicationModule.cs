@@ -50,6 +50,11 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICharacterService>(
             provider => provider.GetRequiredService<CharacterService>());
         services.TryAddSingleton<IInventoryEntryService, InventoryEntryService>();
+        services.TryAddSingleton<ICharacterProfileEntryService, CharacterProfileEntryService>();
+        services.TryAddSingleton<ICharacterSkillQuestEntryService, CharacterSkillQuestEntryService>();
+        services.TryAddSingleton<ICharacterProgressionEntryService, CharacterProgressionEntryService>();
+        services.TryAddSingleton<ICharacterFeatureEntryService, CharacterFeatureEntryService>();
+        services.TryAddSingleton<ICharacterEntryStateService, CharacterEntryStateService>();
         services.TryAddSingleton<ICharacterEntryService, CharacterEntryService>();
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<INetworkConnectionObserver, OnlineUserConnectionObserver>());

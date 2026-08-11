@@ -137,6 +137,7 @@ public sealed class CharacterEntryInventoryTests
         var entry = new CharacterEntryService(
             new StubCharacterService(selected),
             new FailingInventoryEntryService(),
+            new StubCharacterEntryStateService(EmptyCharacterEntry(selected.Identity.CharacterId)),
             active,
             TimeProvider.System);
 
@@ -156,15 +157,37 @@ public sealed class CharacterEntryInventoryTests
         var entry = new CharacterEntryService(
             new StubCharacterService(selected),
             new StubInventoryEntryService(inventory),
+            new StubCharacterEntryStateService(EmptyCharacterEntry(selected.Identity.CharacterId)),
             active,
             TimeProvider.System);
 
         var result = await entry.EnterAsync(accountId, 3, CancellationToken.None);
 
         Assert.Same(selected, result.Character);
+        Assert.Equal(selected.Identity.CharacterId, result.CharacterEntry.CharacterId);
         Assert.Same(inventory.CharacterInventory, result.CharacterInventory);
         Assert.Same(inventory.AccountInventory, result.AccountInventory);
         Assert.Same(selected, active.GetRequired(accountId));
+    }
+
+    [Fact]
+    public async Task CharacterEntry_CharacterStateFailurePreservesPreviouslyPublishedCharacter()
+    {
+        var accountId = new AccountId(44);
+        var previous = Character(504, 4);
+        var selected = Character(505, 5);
+        var active = new StatefulActiveCharacterService(accountId, previous);
+        var entry = new CharacterEntryService(
+            new StubCharacterService(selected),
+            new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
+            new FailingCharacterEntryStateService(),
+            active,
+            TimeProvider.System);
+
+        await Assert.ThrowsAsync<InvalidDataException>(async () =>
+            await entry.EnterAsync(accountId, 5, CancellationToken.None));
+
+        Assert.Same(previous, active.GetRequired(accountId));
     }
 
     private static InventoryStorageItem StorageItem(
@@ -250,6 +273,29 @@ public sealed class CharacterEntryInventoryTests
                 0),
             []));
 
+    private static CharacterEntryState EmptyCharacterEntry(CharacterId characterId) => new(
+        characterId,
+        new CharacterPublicEntryState(
+            new CharacterSubtype0EntryState(
+                0, 0, false, false, 0, 0, false, false, 0, 0, 0, 0, 0,
+                CreatureBuffer: []),
+            new CharacterSubtype1EntryState(
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0,
+                Dimensions: [], DimensionFlags: new CharacterDimensionFlagsState(0, 0, 0, 0)),
+            new CharacterAppearanceCompatibilityState(1, []), 0, 0),
+        new CharacterSettingsEntryState([], [], 0),
+        new CharacterSkillsEntryState(
+            [], [], new CharacterSkillPointBasisState(0, 0), null, null),
+        new CharacterQuestEntryState([], [], [], new byte[30_000]),
+        new CharacterProgressionEntryState(
+            [], 0, 255, 0, 0, 0, 0, 0, 0, false, 1, [], new byte[6], [], [], [], 0),
+        new CharacterFeaturesEntryState(
+            [],
+            new CharacterCollectionsEntryState([], [], []),
+            new CharacterExpertJobEntryState(0, 0, 0, 0, 0, 0, []),
+            new CharacterMailboxEntryState(0, []),
+            []));
+
     private sealed class StubRepository(InventoryEntryStorageRecord record) : IInventoryEntryRepository
     {
         public ValueTask<InventoryEntryStorageRecord> LoadAsync(
@@ -285,6 +331,25 @@ public sealed class CharacterEntryInventoryTests
             CharacterId characterId,
             CancellationToken cancellationToken) =>
             ValueTask.FromException<InventoryEntryState>(new InvalidDataException("malformed inventory"));
+    }
+
+    private sealed class StubCharacterEntryStateService(CharacterEntryState state)
+        : ICharacterEntryStateService
+    {
+        public ValueTask<CharacterEntryState> LoadAsync(
+            AccountId accountId,
+            CharacterId characterId,
+            CancellationToken cancellationToken) => ValueTask.FromResult(state);
+    }
+
+    private sealed class FailingCharacterEntryStateService : ICharacterEntryStateService
+    {
+        public ValueTask<CharacterEntryState> LoadAsync(
+            AccountId accountId,
+            CharacterId characterId,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromException<CharacterEntryState>(
+                new InvalidDataException("character entry state is unavailable"));
     }
 
     private sealed class StatefulActiveCharacterService : IActiveCharacterService

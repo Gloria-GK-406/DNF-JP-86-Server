@@ -9,6 +9,7 @@ namespace Dfo.Server.Application.Characters;
 internal sealed class CharacterEntryService(
     ICharacterService characters,
     IInventoryEntryService inventory,
+    ICharacterEntryStateService characterEntries,
     IActiveCharacterService activeCharacters,
     TimeProvider timeProvider) : ICharacterEntryService
 {
@@ -27,10 +28,16 @@ internal sealed class CharacterEntryService(
             character.Identity.CharacterId,
             cancellationToken).ConfigureAwait(false);
 
+        var characterEntry = await characterEntries.LoadAsync(
+            accountId,
+            character.Identity.CharacterId,
+            cancellationToken).ConfigureAwait(false);
+
         activeCharacters.Publish(accountId, character);
         var preparedAt = timeProvider.GetUtcNow();
         return new SelectCharacterResult(
             character,
+            characterEntry,
             inventoryEntry.CharacterInventory,
             inventoryEntry.AccountInventory,
             new AccountEntryState(accountId),
