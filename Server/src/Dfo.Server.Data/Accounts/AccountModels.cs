@@ -1,3 +1,5 @@
+using Dfo.Server.Data.Characters;
+
 namespace Dfo.Server.Data.Accounts;
 
 public readonly record struct AccountId(int Value)
@@ -10,3 +12,64 @@ public sealed record AccountRecord(
     string LoginId,
     string PasswordHash,
     DateTimeOffset CreatedAt);
+
+public sealed record AccountSettingsEntryState(
+    byte[] MainGameOptions,
+    byte[] QuickChatBank0,
+    byte[] QuickChatBank1,
+    byte HotkeyKeyType,
+    ushort? AccountHotkeySlot);
+
+public sealed record AccountWalletEntryState(
+    int Cera,
+    int TokenCera,
+    int HappyTokenCera,
+    ushort LuckyStar);
+
+public sealed record AccountPremiumEntryState(int PremiumType, long ExpiresAtUnixSeconds);
+
+public sealed record AccountEntitlementEntryState(
+    IReadOnlyList<AccountPremiumEntryState> Premiums);
+
+public sealed record AccountAdventureEntryState(
+    IReadOnlyList<byte> CharacterLevels);
+
+public sealed record AccountLotteryProgressEntryState(
+    int ItemTemplateId,
+    IReadOnlyList<byte> ClaimedRewardIndexes);
+
+public sealed record AccountProgressionEntryState(
+    ulong HonorExperience,
+    uint GrowthCapsuleExperience,
+    AccountAdventureEntryState Adventure,
+    IReadOnlyList<AccountLotteryProgressEntryState> LotteryProgress);
+
+public sealed record AccountCharacterRelationEntryState(
+    CharacterId OwnerCharacterId,
+    byte Slot,
+    CharacterId SupportCharacterId,
+    int SkillId,
+    int StrikerSkillId);
+
+public sealed record AccountRosterReferenceEntryState(
+    CharacterId CharacterId,
+    ushort SlotIndex);
+
+public sealed record AccountCompatibilityEntryState(
+    int EntryId,
+    int SentinelOrValue,
+    int Flag);
+
+public sealed record AccountRelationCompatibilityEntryState(
+    IReadOnlyList<AccountRosterReferenceEntryState> RosterReferences,
+    IReadOnlyList<AccountCharacterRelationEntryState> CharacterRelations,
+    IReadOnlyList<AccountCompatibilityEntryState> Unknown730Entries,
+    byte PcRoomPlayTimeState);
+
+public sealed record AccountEntryState(
+    AccountId AccountId,
+    AccountSettingsEntryState Settings,
+    AccountWalletEntryState Wallet,
+    AccountEntitlementEntryState Entitlements,
+    AccountProgressionEntryState Progression,
+    AccountRelationCompatibilityEntryState Relations);

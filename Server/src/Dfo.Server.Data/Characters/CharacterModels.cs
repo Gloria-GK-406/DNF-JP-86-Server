@@ -50,8 +50,6 @@ public sealed record ActiveCharacterState(
     DateTimeOffset CreatedAt,
     DarkKnightComboState? DarkKnightCombo);
 
-public sealed record AccountEntryState(AccountId AccountId);
-
 public sealed record GameWorldEntryState(DateTimeOffset PreparedAt);
 
 public sealed record CharacterSessionEntryState(

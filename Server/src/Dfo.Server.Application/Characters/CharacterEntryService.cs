@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Inventory;
@@ -10,6 +11,7 @@ internal sealed class CharacterEntryService(
     ICharacterService characters,
     IInventoryEntryService inventory,
     ICharacterEntryStateService characterEntries,
+    IAccountEntryStateService accountEntries,
     IActiveCharacterService activeCharacters,
     TimeProvider timeProvider) : ICharacterEntryService
 {
@@ -33,6 +35,10 @@ internal sealed class CharacterEntryService(
             character.Identity.CharacterId,
             cancellationToken).ConfigureAwait(false);
 
+        var accountEntry = await accountEntries.LoadAsync(
+            accountId,
+            cancellationToken).ConfigureAwait(false);
+
         activeCharacters.Publish(accountId, character);
         var preparedAt = timeProvider.GetUtcNow();
         return new SelectCharacterResult(
@@ -40,7 +46,7 @@ internal sealed class CharacterEntryService(
             characterEntry,
             inventoryEntry.CharacterInventory,
             inventoryEntry.AccountInventory,
-            new AccountEntryState(accountId),
+            accountEntry,
             new GameWorldEntryState(preparedAt),
             new CharacterSessionEntryState(accountId, character.Identity.CharacterId));
     }

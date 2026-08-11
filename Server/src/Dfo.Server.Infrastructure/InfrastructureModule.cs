@@ -33,6 +33,8 @@ public sealed class InfrastructureModule : IServerModule
             : Path.Combine(AppContext.BaseDirectory, configuredDatabasePath);
         services.TryAddSingleton<IAccountRepository>(
             _ => new SqliteAccountRepository(databasePath));
+        services.TryAddSingleton<IAccountEntryStateRepository>(
+            _ => new SqliteAccountEntryStateRepository(databasePath));
         services.TryAddSingleton<ICharacterRepository>(
             _ => new SqliteCharacterRepository(databasePath));
         services.TryAddSingleton<IInventoryEntryRepository>(

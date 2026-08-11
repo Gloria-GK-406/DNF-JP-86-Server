@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Characters;
@@ -138,6 +139,7 @@ public sealed class CharacterEntryInventoryTests
             new StubCharacterService(selected),
             new FailingInventoryEntryService(),
             new StubCharacterEntryStateService(EmptyCharacterEntry(selected.Identity.CharacterId)),
+            new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
             active,
             TimeProvider.System);
 
@@ -158,6 +160,7 @@ public sealed class CharacterEntryInventoryTests
             new StubCharacterService(selected),
             new StubInventoryEntryService(inventory),
             new StubCharacterEntryStateService(EmptyCharacterEntry(selected.Identity.CharacterId)),
+            new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
             active,
             TimeProvider.System);
 
@@ -167,6 +170,7 @@ public sealed class CharacterEntryInventoryTests
         Assert.Equal(selected.Identity.CharacterId, result.CharacterEntry.CharacterId);
         Assert.Same(inventory.CharacterInventory, result.CharacterInventory);
         Assert.Same(inventory.AccountInventory, result.AccountInventory);
+        Assert.Equal(accountId, result.Account.AccountId);
         Assert.Same(selected, active.GetRequired(accountId));
     }
 
@@ -181,11 +185,33 @@ public sealed class CharacterEntryInventoryTests
             new StubCharacterService(selected),
             new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
             new FailingCharacterEntryStateService(),
+            new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
             active,
             TimeProvider.System);
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
             await entry.EnterAsync(accountId, 5, CancellationToken.None));
+
+        Assert.Same(previous, active.GetRequired(accountId));
+    }
+
+    [Fact]
+    public async Task CharacterEntry_AccountStateFailurePreservesPreviouslyPublishedCharacter()
+    {
+        var accountId = new AccountId(45);
+        var previous = Character(506, 5);
+        var selected = Character(507, 6);
+        var active = new StatefulActiveCharacterService(accountId, previous);
+        var entry = new CharacterEntryService(
+            new StubCharacterService(selected),
+            new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
+            new StubCharacterEntryStateService(EmptyCharacterEntry(selected.Identity.CharacterId)),
+            new FailingAccountEntryStateService(),
+            active,
+            TimeProvider.System);
+
+        await Assert.ThrowsAsync<InvalidDataException>(async () =>
+            await entry.EnterAsync(accountId, 6, CancellationToken.None));
 
         Assert.Same(previous, active.GetRequired(accountId));
     }
@@ -296,6 +322,14 @@ public sealed class CharacterEntryInventoryTests
             new CharacterMailboxEntryState(0, []),
             []));
 
+    private static AccountEntryState EmptyAccountEntry(AccountId accountId) => new(
+        accountId,
+        new AccountSettingsEntryState([], [], [], 0, null),
+        new AccountWalletEntryState(0, 0, 0, 0),
+        new AccountEntitlementEntryState([]),
+        new AccountProgressionEntryState(0, 0, new AccountAdventureEntryState([]), []),
+        new AccountRelationCompatibilityEntryState([], [], [], 0));
+
     private sealed class StubRepository(InventoryEntryStorageRecord record) : IInventoryEntryRepository
     {
         public ValueTask<InventoryEntryStorageRecord> LoadAsync(
@@ -350,6 +384,23 @@ public sealed class CharacterEntryInventoryTests
             CancellationToken cancellationToken) =>
             ValueTask.FromException<CharacterEntryState>(
                 new InvalidDataException("character entry state is unavailable"));
+    }
+
+    private sealed class StubAccountEntryStateService(AccountEntryState state)
+        : IAccountEntryStateService
+    {
+        public ValueTask<AccountEntryState> LoadAsync(
+            AccountId accountId,
+            CancellationToken cancellationToken) => ValueTask.FromResult(state);
+    }
+
+    private sealed class FailingAccountEntryStateService : IAccountEntryStateService
+    {
+        public ValueTask<AccountEntryState> LoadAsync(
+            AccountId accountId,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromException<AccountEntryState>(
+                new InvalidDataException("account entry state is unavailable"));
     }
 
     private sealed class StatefulActiveCharacterService : IActiveCharacterService

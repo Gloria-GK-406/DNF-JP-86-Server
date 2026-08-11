@@ -6,6 +6,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application.Channel;
+using Dfo.Server.Application.Accounts;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Commands.Channel;
@@ -55,6 +56,11 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICharacterProgressionEntryService, CharacterProgressionEntryService>();
         services.TryAddSingleton<ICharacterFeatureEntryService, CharacterFeatureEntryService>();
         services.TryAddSingleton<ICharacterEntryStateService, CharacterEntryStateService>();
+        services.TryAddSingleton<IAccountSettingsEntryService, AccountSettingsEntryService>();
+        services.TryAddSingleton<IAccountWalletEntitlementEntryService, AccountWalletEntitlementEntryService>();
+        services.TryAddSingleton<IAccountProgressionEntryService, AccountProgressionEntryService>();
+        services.TryAddSingleton<IAccountRelationCompatibilityEntryService, AccountRelationCompatibilityEntryService>();
+        services.TryAddSingleton<IAccountEntryStateService, AccountEntryStateService>();
         services.TryAddSingleton<ICharacterEntryService, CharacterEntryService>();
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<INetworkConnectionObserver, OnlineUserConnectionObserver>());
