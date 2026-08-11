@@ -12,6 +12,7 @@ public enum ApplicationCommandType
     AcknowledgeGameExit = 5,
     LoginGameUser = 6,
     GetAccountCharacterRoster = 7,
+    SelectCharacter = 8,
 }
 
 public enum CommandExecutionKind

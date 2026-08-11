@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 
@@ -71,6 +72,24 @@ internal sealed class UserService(Func<IAccountRepository> accountRepository)
         }
     }
 
+    public void BindCurrentCharacter(AccountId accountId, CharacterId characterId)
+    {
+        lock (sync)
+        {
+            var matches = byId.Values
+                .Where(user => user.AccountId == accountId)
+                .Take(2)
+                .ToArray();
+            if (matches.Length != 1)
+            {
+                throw new InvalidOperationException(
+                    $"Expected one online user for account '{accountId}', but found '{matches.Length}'.");
+            }
+
+            matches[0].BindCharacter(characterId);
+        }
+    }
+
     public OnlineUserSnapshot GetRequired(OnlineUserId onlineUserId)
     {
         lock (sync)
@@ -110,11 +129,19 @@ internal sealed class UserService(Func<IAccountRepository> accountRepository)
 
         public AccountId? AccountId { get; private set; }
 
+        public CharacterId? CurrentCharacterId { get; private set; }
+
         public OnlineUserState State { get; private set; } = OnlineUserState.Connected;
 
         public long Generation { get; private set; } = 1;
 
-        public OnlineUserSnapshot Snapshot => new(Id, Connection, AccountId, State, Generation);
+        public OnlineUserSnapshot Snapshot => new(
+            Id,
+            Connection,
+            AccountId,
+            CurrentCharacterId,
+            State,
+            Generation);
 
         public void Authenticate(AccountId accountId)
         {
@@ -131,6 +158,24 @@ internal sealed class UserService(Func<IAccountRepository> accountRepository)
 
             AccountId = accountId;
             State = OnlineUserState.Authenticated;
+            Generation++;
+        }
+
+        public void BindCharacter(CharacterId characterId)
+        {
+            if (AccountId is null)
+            {
+                throw new InvalidOperationException(
+                    $"Online user '{Id}' must authenticate before selecting a character.");
+            }
+
+            if (CurrentCharacterId == characterId)
+            {
+                return;
+            }
+
+            CurrentCharacterId = characterId;
+            State = OnlineUserState.CharacterActive;
             Generation++;
         }
     }

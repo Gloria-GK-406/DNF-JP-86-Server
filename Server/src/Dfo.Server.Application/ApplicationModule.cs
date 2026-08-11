@@ -45,6 +45,7 @@ public sealed class ApplicationModule : IServerModule
                 () => provider.GetRequiredService<ICharacterRepository>()));
         services.TryAddSingleton<ICharacterService>(
             provider => provider.GetRequiredService<CharacterService>());
+        services.TryAddSingleton<ICharacterEntryService, CharacterEntryService>();
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<INetworkConnectionObserver, OnlineUserConnectionObserver>());
         services.AddCommandDispatching();
@@ -71,6 +72,10 @@ public sealed class ApplicationModule : IServerModule
             ApplicationCommandType.GetAccountCharacterRoster,
             CommandExecutionKind.Direct,
             accountAccessMode: UserAccessMode.Shared);
+        services.RegisterCommandHandler<SelectCharacterCommandHandler>(
+            ApplicationCommandType.SelectCharacter,
+            CommandExecutionKind.Workflow,
+            accountAccessMode: UserAccessMode.Exclusive);
         services.AddNetworkMessageDispatching();
         services.RegisterMessageHandler<ChannelConnectHandler>(ClientMessageType.ChannelConnect);
         services.RegisterMessageHandler<ChannelScriptVersionHandler>(ClientMessageType.ChannelScriptVersion);
@@ -80,5 +85,6 @@ public sealed class ApplicationModule : IServerModule
         services.RegisterMessageHandler<GameLoginHandler>(ClientMessageType.GameLogin);
         services.RegisterMessageHandler<GetAccountCharacterRosterHandler>(
             ClientMessageType.GameGetAccountCharacterRoster);
+        services.RegisterMessageHandler<SelectCharacterHandler>(ClientMessageType.GameSelectCharacter);
     }
 }

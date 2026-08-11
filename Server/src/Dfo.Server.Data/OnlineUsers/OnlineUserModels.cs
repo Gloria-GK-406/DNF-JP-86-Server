@@ -1,4 +1,5 @@
 using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 
 namespace Dfo.Server.Data.OnlineUsers;
@@ -21,5 +22,6 @@ public sealed record OnlineUserSnapshot(
     OnlineUserId OnlineUserId,
     NetworkConnectionContext Connection,
     AccountId? AccountId,
+    CharacterId? CurrentCharacterId,
     OnlineUserState State,
     long Generation);

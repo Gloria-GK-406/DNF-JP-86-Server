@@ -69,6 +69,55 @@ internal sealed class SqliteCharacterRepository : ICharacterRepository
         return characters;
     }
 
+    public async ValueTask<ActiveCharacterState?> FindByAccountAndSlotAsync(
+        AccountId accountId,
+        ushort slotIndex,
+        CancellationToken cancellationToken)
+    {
+        if (accountId.Value <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(accountId), "Account ID must be positive.");
+        }
+
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT character_id,
+                   slot_index,
+                   COALESCE(name_bytes, CAST(name AS BLOB)),
+                   job,
+                   grow_type,
+                   level
+            FROM characters
+            WHERE account_id = @accountId
+              AND slot_index = @slotIndex
+              AND delete_flag = 0
+            LIMIT 1;
+            """;
+        command.Parameters.AddWithValue("@accountId", accountId.Value);
+        command.Parameters.AddWithValue("@slotIndex", slotIndex);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            return null;
+        }
+
+        var characterId = new CharacterId(reader.GetInt32(0));
+        return new ActiveCharacterState(
+            new CharacterIdentityState(
+                characterId,
+                checked((ushort)reader.GetInt32(1)),
+                reader.IsDBNull(2) ? [] : (byte[])reader.GetValue(2),
+                checked((byte)reader.GetInt32(3)),
+                checked((byte)reader.GetInt32(4))),
+            new CharacterProgressionState(checked((byte)reader.GetInt32(5)), 0),
+            new CharacterFatigueState(188, 0),
+            new CharacterPositionState(0, 0, 0, 0, 5),
+            DateTimeOffset.UnixEpoch,
+            DarkKnightCombo: null);
+    }
+
     private void EnsureSchema()
     {
         using var connection = new SqliteConnection(connectionString);

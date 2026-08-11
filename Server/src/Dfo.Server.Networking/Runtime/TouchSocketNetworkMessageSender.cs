@@ -22,29 +22,38 @@ internal sealed class TouchSocketNetworkMessageSender(
     {
         ArgumentNullException.ThrowIfNull(message);
         var connection = connections.Get(connectionId);
-        var frame = message switch
+        var frames = message switch
         {
             ChannelConnectResponse response when connection.Context.EndpointKind == NetworkEndpointKind.Channel =>
-                EncodeChannelConnect(response),
+                One(EncodeChannelConnect(response)),
             ChannelScriptVersionResponse response when connection.Context.EndpointKind == NetworkEndpointKind.Channel =>
-                EncodeChannelScriptVersion(response, keyProvider.GetCurrentKey()),
+                One(EncodeChannelScriptVersion(response, keyProvider.GetCurrentKey())),
             ChannelScriptResponse response when connection.Context.EndpointKind == NetworkEndpointKind.Channel =>
-                EncodeChannelScript(response, keyProvider.GetCurrentKey()),
+                One(EncodeChannelScript(response, keyProvider.GetCurrentKey())),
             ChannelInfoResponse response when connection.Context.EndpointKind == NetworkEndpointKind.Channel =>
-                EncodeChannelInfo(response, keyProvider.GetCurrentKey()),
+                One(EncodeChannelInfo(response, keyProvider.GetCurrentKey())),
             GameExitResponse response when connection.Context.EndpointKind == NetworkEndpointKind.Game =>
-                EncodeGameExit(response),
+                One(EncodeGameExit(response)),
             GameLoginResponse response when connection.Context.EndpointKind == NetworkEndpointKind.Game =>
-                EncodeGameLogin(response, gameLoginOptions),
+                One(EncodeGameLogin(response, gameLoginOptions)),
             AccountCharacterRosterResponse response when connection.Context.EndpointKind == NetworkEndpointKind.Game =>
-                EncodeAccountCharacterRoster(response),
+                One(EncodeAccountCharacterRoster(response)),
+            SelectCharacterResponse response when connection.Context.EndpointKind == NetworkEndpointKind.Game =>
+                SelectCharacterResponseComposer.Encode(response.Result),
             _ => throw new InvalidOperationException(
                 $"Server message '{message.GetType().Name}' is not supported for endpoint " +
                 $"'{connection.Context.EndpointKind}'.")
         };
 
-        await ((ISender)connection.Session).SendAsync(new ReadOnlySequence<byte>(frame), cancellationToken);
+        foreach (var frame in frames)
+        {
+            await ((ISender)connection.Session).SendAsync(
+                new ReadOnlySequence<byte>(frame),
+                cancellationToken);
+        }
     }
+
+    private static IReadOnlyList<byte[]> One(byte[] frame) => [frame];
 
     private static byte[] EncodeChannelConnect(ChannelConnectResponse response)
     {

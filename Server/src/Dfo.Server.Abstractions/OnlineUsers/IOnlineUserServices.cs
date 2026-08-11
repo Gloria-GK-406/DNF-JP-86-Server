@@ -1,3 +1,5 @@
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 
@@ -20,4 +22,6 @@ public interface IOnlineUserService : IOnlineUserQueryService
         OnlineUserId onlineUserId,
         NetworkConnectionId connectionId,
         long expectedGeneration);
+
+    void BindCurrentCharacter(AccountId accountId, CharacterId characterId);
 }

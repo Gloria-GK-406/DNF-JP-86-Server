@@ -8,6 +8,8 @@ internal static class GameProtocol
 
     public const ushort ExitType = 0x0003;
 
+    public const ushort SelectCharacterType = 0x0004;
+
     public const ushort GetUserInfoType = 0x0008;
 
     public const ushort AccountCharacterRosterNotificationType = 0x0002;

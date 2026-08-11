@@ -4,6 +4,7 @@ public enum ClientMessageType
 {
     GameLogin = 0x0001_0001,
     GameGetAccountCharacterRoster = 0x0001_0208,
+    GameSelectCharacter = 0x0001_0004,
     ChannelScriptVersion = 0x05,
     ChannelScript = 0x09,
     ChannelConnect = 0x0B,
@@ -15,6 +16,7 @@ public enum ServerMessageType
 {
     GameLogin = 0x0001_0001,
     GameAccountCharacterRoster = 0x0000_0002,
+    GameSelectCharacter = 0x0001_0004,
     ChannelScriptVersion = 0x06,
     ChannelScript = 0x0A,
     ChannelConnect = 0x0C,
@@ -119,6 +121,19 @@ public sealed record AccountCharacterRosterResponse(
     Dfo.Server.Data.Characters.AccountCharacterRoster Roster) : IServerNetworkMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameAccountCharacterRoster;
+}
+
+public sealed record SelectCharacterRequest(
+    GameMessageMetadata Metadata,
+    ushort SlotIndex) : IClientNetworkMessage
+{
+    public ClientMessageType MessageType => ClientMessageType.GameSelectCharacter;
+}
+
+public sealed record SelectCharacterResponse(
+    Dfo.Server.Data.Characters.SelectCharacterResult Result) : IServerNetworkMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameSelectCharacter;
 }
 
 public sealed record GameExitResponse(bool Succeeded) : IServerNetworkMessage

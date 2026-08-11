@@ -237,6 +237,23 @@ Networking 当前提供：
 - Game `cmd=0x01/type=0x0008` 在 Networking 按 mode 分流；当前 `mode=2` 解码为独立的
   `GetAccountCharacterRosterRequest`，并通过只携带 `AccountId` 的 Command 查询角色列表。
 
+### `SELECT_CHARACTER` (`CMD 0x0004`) migration status
+
+> This section is reverse-engineered from the legacy server code. It has not
+> yet been confirmed by packet capture.
+
+- The request body begins with a little-endian `u16` character slot index.
+- The refactored path resolves the exact `AccountId + SlotIndex`; it does not
+  preserve the legacy fallback to the first account character or seed data.
+- Business execution returns a composed `SelectCharacterResult` whose
+  character, account, world, and session views remain separate. Optional
+  character-only state such as Dark Knight combos is nullable only when the
+  feature does not apply.
+- Networking owns response ordering and conditional packet projection. The
+  initial `CMD 0x0004` acknowledgement is migrated. The remaining legacy
+  initialization sequence is not yet migrated and must not be represented by
+  fabricated empty domain state.
+
 这些类型属于 Networking 的传输协议层。完整帧形成后，还应由消息 decoder 将
 `msg_no/type + Body` 转换为共享业务数据类型，再通过 Abstractions 中的分发接口进入业务层。
 
