@@ -2,9 +2,11 @@ using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Infrastructure.Accounts;
 using Dfo.Server.Infrastructure.Characters;
+using Dfo.Server.Infrastructure.Inventory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -31,8 +33,14 @@ public sealed class InfrastructureModule : IServerModule
             : Path.Combine(AppContext.BaseDirectory, configuredDatabasePath);
         services.TryAddSingleton<IAccountRepository>(
             _ => new SqliteAccountRepository(databasePath));
+        services.TryAddSingleton<IAccountEntryStateRepository>(
+            _ => new SqliteAccountEntryStateRepository(databasePath));
         services.TryAddSingleton<ICharacterRepository>(
             _ => new SqliteCharacterRepository(databasePath));
+        services.TryAddSingleton<IInventoryEntryRepository>(
+            _ => new SqliteInventoryEntryRepository(databasePath));
+        services.TryAddSingleton<ICharacterEntryStateRepository>(
+            _ => new SqliteCharacterEntryStateRepository(databasePath));
     }
 }
 

@@ -3,14 +3,17 @@ using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application.Channel;
+using Dfo.Server.Application.Accounts;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Commands.Channel;
 using Dfo.Server.Application.Commands.Game;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Application.Game;
+using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Users;
 using Dfo.Server.Data.Networking;
@@ -40,11 +43,24 @@ public sealed class ApplicationModule : IServerModule
             provider => provider.GetRequiredService<UserService>());
         services.TryAddSingleton<IOnlineUserQueryService>(
             provider => provider.GetRequiredService<UserService>());
+        services.TryAddSingleton<IActiveCharacterService>(
+            provider => provider.GetRequiredService<UserService>());
         services.TryAddSingleton(
             provider => new CharacterService(
                 () => provider.GetRequiredService<ICharacterRepository>()));
         services.TryAddSingleton<ICharacterService>(
             provider => provider.GetRequiredService<CharacterService>());
+        services.TryAddSingleton<IInventoryEntryService, InventoryEntryService>();
+        services.TryAddSingleton<ICharacterProfileEntryService, CharacterProfileEntryService>();
+        services.TryAddSingleton<ICharacterSkillQuestEntryService, CharacterSkillQuestEntryService>();
+        services.TryAddSingleton<ICharacterProgressionEntryService, CharacterProgressionEntryService>();
+        services.TryAddSingleton<ICharacterFeatureEntryService, CharacterFeatureEntryService>();
+        services.TryAddSingleton<ICharacterEntryStateService, CharacterEntryStateService>();
+        services.TryAddSingleton<IAccountSettingsEntryService, AccountSettingsEntryService>();
+        services.TryAddSingleton<IAccountWalletEntitlementEntryService, AccountWalletEntitlementEntryService>();
+        services.TryAddSingleton<IAccountProgressionEntryService, AccountProgressionEntryService>();
+        services.TryAddSingleton<IAccountRelationCompatibilityEntryService, AccountRelationCompatibilityEntryService>();
+        services.TryAddSingleton<IAccountEntryStateService, AccountEntryStateService>();
         services.TryAddSingleton<ICharacterEntryService, CharacterEntryService>();
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<INetworkConnectionObserver, OnlineUserConnectionObserver>());

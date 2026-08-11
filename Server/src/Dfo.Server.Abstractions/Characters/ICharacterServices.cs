@@ -25,10 +25,13 @@ public interface ICharacterService
         AccountId accountId,
         ushort slotIndex,
         CancellationToken cancellationToken);
+}
 
-    void Activate(AccountId accountId, ActiveCharacterState character);
+public interface IActiveCharacterService
+{
+    void Publish(AccountId accountId, ActiveCharacterState character);
 
-    ActiveCharacterState GetRequiredActive(AccountId accountId);
+    ActiveCharacterState GetRequired(AccountId accountId);
 }
 
 public interface ICharacterEntryService
