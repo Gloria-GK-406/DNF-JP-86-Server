@@ -8,8 +8,6 @@ internal sealed class CharacterService(Func<ICharacterRepository> characterRepos
     : ICharacterService
 {
     private const ushort DefaultSlotLimit = 32;
-    private readonly object sync = new();
-    private readonly Dictionary<AccountId, ActiveCharacterState> activeByAccount = [];
 
     public async ValueTask<AccountCharacterRoster> GetAccountRosterAsync(
         AccountId accountId,
@@ -34,30 +32,4 @@ internal sealed class CharacterService(Func<ICharacterRepository> characterRepos
                 $"Account '{accountId}' has no character in slot '{slotIndex}'.");
     }
 
-    public void Activate(AccountId accountId, ActiveCharacterState character)
-    {
-        ArgumentNullException.ThrowIfNull(character);
-        lock (sync)
-        {
-            if (character.Identity.CharacterId.Value <= 0)
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(character),
-                    "An active character ID must be positive.");
-            }
-
-            activeByAccount[accountId] = character;
-        }
-    }
-
-    public ActiveCharacterState GetRequiredActive(AccountId accountId)
-    {
-        lock (sync)
-        {
-            return activeByAccount.TryGetValue(accountId, out var character)
-                ? character
-                : throw new KeyNotFoundException(
-                    $"Account '{accountId}' does not have an active character.");
-        }
-    }
 }

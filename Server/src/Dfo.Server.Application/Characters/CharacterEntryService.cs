@@ -7,7 +7,7 @@ namespace Dfo.Server.Application.Characters;
 
 internal sealed class CharacterEntryService(
     ICharacterService characters,
-    IOnlineUserService users,
+    IActiveCharacterService activeCharacters,
     TimeProvider timeProvider) : ICharacterEntryService
 {
     public async ValueTask<SelectCharacterResult> EnterAsync(
@@ -20,8 +20,7 @@ internal sealed class CharacterEntryService(
             slotIndex,
             cancellationToken).ConfigureAwait(false);
 
-        users.BindCurrentCharacter(accountId, character.Identity.CharacterId);
-        characters.Activate(accountId, character);
+        activeCharacters.Publish(accountId, character);
         var preparedAt = timeProvider.GetUtcNow();
         return new SelectCharacterResult(
             character,

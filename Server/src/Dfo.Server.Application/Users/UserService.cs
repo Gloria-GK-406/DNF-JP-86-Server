@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -8,11 +9,12 @@ using Dfo.Server.Data.OnlineUsers;
 namespace Dfo.Server.Application.Users;
 
 internal sealed class UserService(Func<IAccountRepository> accountRepository)
-    : IAccountService, IOnlineUserService
+    : IAccountService, IOnlineUserService, IActiveCharacterService
 {
     private readonly object sync = new();
     private readonly Dictionary<OnlineUserId, OnlineUser> byId = [];
     private readonly Dictionary<NetworkConnectionId, OnlineUserId> byConnection = [];
+    private readonly Dictionary<AccountId, ActiveCharacterRegistration> activeByAccount = [];
 
     public async ValueTask<AccountId> LoginAsync(
         OnlineUserId onlineUserId,
@@ -66,14 +68,29 @@ internal sealed class UserService(Func<IAccountRepository> accountRepository)
                 return false;
             }
 
+            if (onlineUser.AccountId is { } accountId
+                && activeByAccount.TryGetValue(accountId, out var active)
+                && active.OnlineUserId == onlineUserId)
+            {
+                activeByAccount.Remove(accountId);
+            }
+
             byConnection.Remove(connectionId);
             byId.Remove(onlineUserId);
             return true;
         }
     }
 
-    public void BindCurrentCharacter(AccountId accountId, CharacterId characterId)
+    public void Publish(AccountId accountId, ActiveCharacterState character)
     {
+        ArgumentNullException.ThrowIfNull(character);
+        if (character.Identity.CharacterId.Value <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(character),
+                "An active character ID must be positive.");
+        }
+
         lock (sync)
         {
             var matches = byId.Values
@@ -86,7 +103,20 @@ internal sealed class UserService(Func<IAccountRepository> accountRepository)
                     $"Expected one online user for account '{accountId}', but found '{matches.Length}'.");
             }
 
-            matches[0].BindCharacter(characterId);
+            var owner = matches[0];
+            owner.BindCharacter(character.Identity.CharacterId);
+            activeByAccount[accountId] = new ActiveCharacterRegistration(owner.Id, character);
+        }
+    }
+
+    public ActiveCharacterState GetRequired(AccountId accountId)
+    {
+        lock (sync)
+        {
+            return activeByAccount.TryGetValue(accountId, out var active)
+                ? active.Character
+                : throw new KeyNotFoundException(
+                    $"Account '{accountId}' does not have an active character.");
         }
     }
 
@@ -120,6 +150,10 @@ internal sealed class UserService(Func<IAccountRepository> accountRepository)
         byId.TryGetValue(onlineUserId, out var onlineUser)
             ? onlineUser
             : throw new KeyNotFoundException($"Online user '{onlineUserId}' is not registered.");
+
+    private sealed record ActiveCharacterRegistration(
+        OnlineUserId OnlineUserId,
+        ActiveCharacterState Character);
 
     private sealed class OnlineUser(OnlineUserId id, NetworkConnectionContext connection)
     {

@@ -40,6 +40,8 @@ public sealed class ApplicationModule : IServerModule
             provider => provider.GetRequiredService<UserService>());
         services.TryAddSingleton<IOnlineUserQueryService>(
             provider => provider.GetRequiredService<UserService>());
+        services.TryAddSingleton<IActiveCharacterService>(
+            provider => provider.GetRequiredService<UserService>());
         services.TryAddSingleton(
             provider => new CharacterService(
                 () => provider.GetRequiredService<ICharacterRepository>()));
