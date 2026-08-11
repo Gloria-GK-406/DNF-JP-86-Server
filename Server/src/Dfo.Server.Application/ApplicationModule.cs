@@ -13,6 +13,7 @@ using Dfo.Server.Application.Commands.Channel;
 using Dfo.Server.Application.Commands.Game;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Application.Game;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Users;
@@ -65,31 +66,23 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<INetworkConnectionObserver, OnlineUserConnectionObserver>());
         services.AddCommandDispatching();
-        services.RegisterCommandHandler<EstablishChannelConnectionCommandHandler>(
-            ApplicationCommandType.EstablishChannelConnection,
+        services.AddCommandHandler<EstablishChannelConnectionCommand, EstablishChannelConnectionResult, EstablishChannelConnectionCommandHandler>(
             CommandExecutionKind.Direct);
-        services.RegisterCommandHandler<GetChannelScriptVersionCommandHandler>(
-            ApplicationCommandType.GetChannelScriptVersion,
+        services.AddCommandHandler<GetChannelScriptVersionCommand, GetChannelScriptVersionResult, GetChannelScriptVersionCommandHandler>(
             CommandExecutionKind.Direct);
-        services.RegisterCommandHandler<GetChannelScriptCommandHandler>(
-            ApplicationCommandType.GetChannelScript,
+        services.AddCommandHandler<GetChannelScriptCommand, GetChannelScriptResult, GetChannelScriptCommandHandler>(
             CommandExecutionKind.Direct);
-        services.RegisterCommandHandler<GetChannelInfoCommandHandler>(
-            ApplicationCommandType.GetChannelInfo,
+        services.AddCommandHandler<GetChannelInfoCommand, GetChannelInfoResult, GetChannelInfoCommandHandler>(
             CommandExecutionKind.Direct);
-        services.RegisterCommandHandler<AcknowledgeGameExitCommandHandler>(
-            ApplicationCommandType.AcknowledgeGameExit,
+        services.AddCommandHandler<AcknowledgeGameExitCommand, AcknowledgeGameExitResult, AcknowledgeGameExitCommandHandler>(
             CommandExecutionKind.Direct);
-        services.RegisterCommandHandler<LoginGameUserCommandHandler>(
-            ApplicationCommandType.LoginGameUser,
+        services.AddCommandHandler<LoginGameUserCommand, LoginGameUserResult, LoginGameUserCommandHandler>(
             CommandExecutionKind.Direct,
             UserAccessMode.Exclusive);
-        services.RegisterCommandHandler<GetAccountCharacterRosterCommandHandler>(
-            ApplicationCommandType.GetAccountCharacterRoster,
+        services.AddCommandHandler<GetAccountCharacterRosterCommand, AccountCharacterRoster, GetAccountCharacterRosterCommandHandler>(
             CommandExecutionKind.Direct,
             accountAccessMode: UserAccessMode.Shared);
-        services.RegisterCommandHandler<SelectCharacterCommandHandler>(
-            ApplicationCommandType.SelectCharacter,
+        services.AddCommandHandler<SelectCharacterCommand, SelectCharacterResult, SelectCharacterCommandHandler>(
             CommandExecutionKind.Workflow,
             accountAccessMode: UserAccessMode.Exclusive);
         services.AddNetworkMessageDispatching();

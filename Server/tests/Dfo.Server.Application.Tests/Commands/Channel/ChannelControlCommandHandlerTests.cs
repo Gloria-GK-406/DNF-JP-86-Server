@@ -49,8 +49,8 @@ public sealed class ChannelControlCommandHandlerTests
         Assert.Equal(channels, typed.Channels);
     }
 
-    private static CommandExecutionContext CreateContext(ICommand command, ICommandHandler handler) =>
-        new(Guid.NewGuid(), command.CommandType, handler.GetType(), CommandExecutionKind.Direct);
+    private static CommandExecutionContext CreateContext(ICommand command, object handler) =>
+        new(Guid.NewGuid(), command.GetType(), handler.GetType(), CommandExecutionKind.Direct);
 
     private sealed class StubScriptSource(string version, byte[] content) : IChannelScriptSource
     {

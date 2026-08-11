@@ -12,7 +12,7 @@ public sealed class AcknowledgeGameExitCommandHandlerTests
         var command = new AcknowledgeGameExitCommand();
         var context = new CommandExecutionContext(
             Guid.NewGuid(),
-            command.CommandType,
+            command.GetType(),
             handler.GetType(),
             CommandExecutionKind.Direct);
 

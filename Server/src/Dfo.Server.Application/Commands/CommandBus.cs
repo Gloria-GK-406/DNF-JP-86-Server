@@ -24,25 +24,26 @@ internal sealed class CommandBus(
         try
         {
             await using var scope = scopeFactory.CreateAsyncScope();
-            var registration = registry.GetRegistration(command.CommandType);
-            var handler = (ICommandHandler)scope.ServiceProvider.GetRequiredService(registration.HandlerType);
-            if (!handler.CanHandle(command))
-            {
-                throw new InvalidOperationException(
-                    $"Handler '{registration.HandlerType.Name}' cannot handle command CLR type '{command.GetType().Name}'.");
-            }
+            var registration = registry.GetRegistration(command.GetType());
+
+            // Registration binds the command, its result and its handler together, and
+            // ICommand is invariant in its result, so TResult here is the command's own
+            // declared result and this invoker necessarily produces it.
+            var invoker = (ICommandInvoker<TResult>)scope.ServiceProvider
+                .GetRequiredService(registration.InvokerType);
 
             var context = new CommandExecutionContext(
                 Guid.NewGuid(),
-                command.CommandType,
+                registration.CommandType,
                 registration.HandlerType,
                 registration.ExecutionKind,
                 registration.OnlineUserAccessMode,
                 registration.AccountAccessMode);
-            CommandExecutionDelegate next = () => handler.HandleAsync(context, command, cancellationToken);
+            CommandExecutionDelegate<TResult> next = () =>
+                invoker.InvokeAsync(context, command, cancellationToken);
 
             var behaviors = scope.ServiceProvider
-                .GetServices<ICommandPipelineBehavior>()
+                .GetServices<ICommandPipelineBehavior<TResult>>()
                 .OrderBy(behavior => behavior.Order)
                 .ToArray();
             foreach (var behavior in behaviors.Reverse())
@@ -56,17 +57,7 @@ internal sealed class CommandBus(
                     cancellationToken);
             }
 
-            var result = await next().ConfigureAwait(false);
-            if (result is TResult typedResult)
-            {
-                return typedResult;
-            }
-
-            // TResult is constrained to notnull and the pipeline returns object, so a
-            // mismatch here is a wiring defect rather than a representable absence.
-            throw new InvalidOperationException(
-                $"Command '{command.CommandType}' returned '{result.GetType().Name}', " +
-                $"but '{typeof(TResult).Name}' was expected.");
+            return await next().ConfigureAwait(false);
         }
         finally
         {

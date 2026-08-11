@@ -3,51 +3,42 @@ using Dfo.Server.Data.Channel;
 
 namespace Dfo.Server.Application.Commands.Channel;
 
-public sealed record GetChannelScriptVersionCommand : ICommand<GetChannelScriptVersionResult>
-{
-    public ApplicationCommandType CommandType => ApplicationCommandType.GetChannelScriptVersion;
-}
+public sealed record GetChannelScriptVersionCommand : ICommand<GetChannelScriptVersionResult>;
 
 public sealed record GetChannelScriptVersionResult(string Version);
 
 public sealed class GetChannelScriptVersionCommandHandler(IChannelScriptSource source)
-    : CommandHandler<GetChannelScriptVersionCommand, GetChannelScriptVersionResult>
+    : ICommandHandler<GetChannelScriptVersionCommand, GetChannelScriptVersionResult>
 {
-    protected override ValueTask<GetChannelScriptVersionResult> HandleCommandAsync(
+    public ValueTask<GetChannelScriptVersionResult> HandleAsync(
         CommandExecutionContext context,
         GetChannelScriptVersionCommand command,
         CancellationToken cancellationToken) =>
         ValueTask.FromResult(new GetChannelScriptVersionResult(source.Version));
 }
 
-public sealed record GetChannelScriptCommand : ICommand<GetChannelScriptResult>
-{
-    public ApplicationCommandType CommandType => ApplicationCommandType.GetChannelScript;
-}
+public sealed record GetChannelScriptCommand : ICommand<GetChannelScriptResult>;
 
 public sealed record GetChannelScriptResult(byte[] Content);
 
 public sealed class GetChannelScriptCommandHandler(IChannelScriptSource source)
-    : CommandHandler<GetChannelScriptCommand, GetChannelScriptResult>
+    : ICommandHandler<GetChannelScriptCommand, GetChannelScriptResult>
 {
-    protected override async ValueTask<GetChannelScriptResult> HandleCommandAsync(
+    public async ValueTask<GetChannelScriptResult> HandleAsync(
         CommandExecutionContext context,
         GetChannelScriptCommand command,
         CancellationToken cancellationToken) =>
         new(await source.ReadAsync(cancellationToken).ConfigureAwait(false));
 }
 
-public sealed record GetChannelInfoCommand : ICommand<GetChannelInfoResult>
-{
-    public ApplicationCommandType CommandType => ApplicationCommandType.GetChannelInfo;
-}
+public sealed record GetChannelInfoCommand : ICommand<GetChannelInfoResult>;
 
 public sealed record GetChannelInfoResult(IReadOnlyList<ChannelServerInfo> Channels);
 
 public sealed class GetChannelInfoCommandHandler(IChannelCatalog catalog)
-    : CommandHandler<GetChannelInfoCommand, GetChannelInfoResult>
+    : ICommandHandler<GetChannelInfoCommand, GetChannelInfoResult>
 {
-    protected override async ValueTask<GetChannelInfoResult> HandleCommandAsync(
+    public async ValueTask<GetChannelInfoResult> HandleAsync(
         CommandExecutionContext context,
         GetChannelInfoCommand command,
         CancellationToken cancellationToken) =>

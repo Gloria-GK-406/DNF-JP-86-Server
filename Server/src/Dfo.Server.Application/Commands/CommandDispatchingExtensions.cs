@@ -15,32 +15,42 @@ public static class CommandDispatchingExtensions
         services.TryAddSingleton<ICommandBus, CommandBus>();
         services.TryAddSingleton<OnlineUserExecutionGate>();
         services.TryAddSingleton<AccountExecutionGate>();
-        services.TryAddEnumerable(
-            ServiceDescriptor.Scoped<ICommandPipelineBehavior, CommandLoggingBehavior>());
-        services.TryAddEnumerable(
-            ServiceDescriptor.Scoped<ICommandPipelineBehavior, OnlineUserExecutionBehavior>());
-        services.TryAddEnumerable(
-            ServiceDescriptor.Scoped<ICommandPipelineBehavior, AccountExecutionBehavior>());
-        services.TryAddEnumerable(
-            ServiceDescriptor.Scoped<ICommandPipelineBehavior, CommandExecutionPolicyBehavior>());
+        // Behaviours carry the command's result type, so they register as open generics
+        // and the container closes them per result type at resolution.
+        services.TryAddEnumerable(ServiceDescriptor.Scoped(
+            typeof(ICommandPipelineBehavior<>), typeof(CommandLoggingBehavior<>)));
+        services.TryAddEnumerable(ServiceDescriptor.Scoped(
+            typeof(ICommandPipelineBehavior<>), typeof(OnlineUserExecutionBehavior<>)));
+        services.TryAddEnumerable(ServiceDescriptor.Scoped(
+            typeof(ICommandPipelineBehavior<>), typeof(AccountExecutionBehavior<>)));
+        services.TryAddEnumerable(ServiceDescriptor.Scoped(
+            typeof(ICommandPipelineBehavior<>), typeof(CommandExecutionPolicyBehavior<>)));
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, CommandHandlerRegistryValidationService>());
         return services;
     }
 
-    public static IServiceCollection RegisterCommandHandler<THandler>(
+    /// <summary>
+    /// Registers the handler for a command. The three type arguments must agree: the
+    /// command must declare this result, and the handler must handle this command and
+    /// produce this result, or the call does not compile.
+    /// </summary>
+    public static IServiceCollection AddCommandHandler<TCommand, TResult, THandler>(
         this IServiceCollection services,
-        ApplicationCommandType commandType,
         CommandExecutionKind executionKind,
         UserAccessMode onlineUserAccessMode = UserAccessMode.Unscoped,
         UserAccessMode accountAccessMode = UserAccessMode.Unscoped)
-        where THandler : class, ICommandHandler
+        where TCommand : class, ICommand<TResult>
+        where TResult : notnull
+        where THandler : class, ICommandHandler<TCommand, TResult>
     {
         ArgumentNullException.ThrowIfNull(services);
-        services.AddScoped<THandler>();
+        services.AddScoped<ICommandHandler<TCommand, TResult>, THandler>();
+        services.AddScoped<CommandInvoker<TCommand, TResult>>();
         services.AddSingleton(new CommandHandlerRegistration(
-            commandType,
+            typeof(TCommand),
             typeof(THandler),
+            typeof(CommandInvoker<TCommand, TResult>),
             executionKind,
             onlineUserAccessMode,
             accountAccessMode));

@@ -3,15 +3,16 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.Commands.Pipeline;
 
-internal sealed class CommandLoggingBehavior(ILogger<CommandLoggingBehavior> logger)
-    : ICommandPipelineBehavior
+internal sealed class CommandLoggingBehavior<TResult>(ILogger<CommandLoggingBehavior<TResult>> logger)
+    : ICommandPipelineBehavior<TResult>
+    where TResult : notnull
 {
     public int Order => 0;
 
-    public async ValueTask<object> ExecuteAsync(
+    public async ValueTask<TResult> ExecuteAsync(
         CommandExecutionContext context,
         ICommand command,
-        CommandExecutionDelegate next,
+        CommandExecutionDelegate<TResult> next,
         CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -21,7 +22,7 @@ internal sealed class CommandLoggingBehavior(ILogger<CommandLoggingBehavior> log
             logger.LogInformation(
                 "Command {CommandType} handled by {HandlerType} as {ExecutionKind} " +
                 "with execution {ExecutionId} in {ElapsedMilliseconds} ms",
-                context.CommandType,
+                context.CommandType.Name,
                 context.HandlerType.Name,
                 context.ExecutionKind,
                 context.ExecutionId,
@@ -34,7 +35,7 @@ internal sealed class CommandLoggingBehavior(ILogger<CommandLoggingBehavior> log
                 exception,
                 "Command {CommandType} failed in handler {HandlerType} as {ExecutionKind} " +
                 "with execution {ExecutionId} after {ElapsedMilliseconds} ms",
-                context.CommandType,
+                context.CommandType.Name,
                 context.HandlerType.Name,
                 context.ExecutionKind,
                 context.ExecutionId,

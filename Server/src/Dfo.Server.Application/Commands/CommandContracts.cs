@@ -3,18 +3,6 @@ namespace Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.OnlineUsers;
 
-public enum ApplicationCommandType
-{
-    EstablishChannelConnection = 1,
-    GetChannelScriptVersion = 2,
-    GetChannelScript = 3,
-    GetChannelInfo = 4,
-    AcknowledgeGameExit = 5,
-    LoginGameUser = 6,
-    GetAccountCharacterRoster = 7,
-    SelectCharacter = 8,
-}
-
 public enum CommandExecutionKind
 {
     Direct = 0,
@@ -29,12 +17,16 @@ public enum UserAccessMode
     Exclusive = 2,
 }
 
-public interface ICommand
-{
-    ApplicationCommandType CommandType { get; }
-}
+/// <summary>A dispatchable command. Its CLR type is its identity.</summary>
+public interface ICommand;
 
-public interface ICommand<out TResult> : ICommand
+/// <summary>A command and the result its handler produces.</summary>
+/// <remarks>
+/// Deliberately invariant in <typeparamref name="TResult"/>. Covariance would let a
+/// command be widened to <c>ICommand&lt;object&gt;</c> and dispatched under a result type
+/// no handler is registered for, which the bus could only discover at runtime.
+/// </remarks>
+public interface ICommand<TResult> : ICommand
     where TResult : notnull;
 
 public interface IOnlineUserCommand : ICommand
@@ -57,57 +49,71 @@ public interface ICommandBus
 
 public sealed record CommandExecutionContext(
     Guid ExecutionId,
-    ApplicationCommandType CommandType,
+    Type CommandType,
     Type HandlerType,
     CommandExecutionKind ExecutionKind,
     UserAccessMode OnlineUserAccessMode = UserAccessMode.Unscoped,
     UserAccessMode AccountAccessMode = UserAccessMode.Unscoped);
 
-public delegate ValueTask<object> CommandExecutionDelegate();
+/// <summary>The remainder of the pipeline, carrying the command's own result type.</summary>
+public delegate ValueTask<TResult> CommandExecutionDelegate<TResult>()
+    where TResult : notnull;
 
-public interface ICommandPipelineBehavior
+public interface ICommandPipelineBehavior<TResult>
+    where TResult : notnull
 {
     int Order { get; }
 
-    ValueTask<object> ExecuteAsync(
+    ValueTask<TResult> ExecuteAsync(
         CommandExecutionContext context,
         ICommand command,
-        CommandExecutionDelegate next,
+        CommandExecutionDelegate<TResult> next,
         CancellationToken cancellationToken);
 }
 
-public interface ICommandHandler
-{
-    bool CanHandle(ICommand command);
-
-    ValueTask<object> HandleAsync(
-        CommandExecutionContext context,
-        ICommand command,
-        CancellationToken cancellationToken);
-}
-
-public abstract class CommandHandler<TCommand, TResult> : ICommandHandler
+/// <summary>
+/// Handles one command. The pairing is declared here, in the type arguments, and is
+/// checked where the handler is registered.
+/// </summary>
+public interface ICommandHandler<TCommand, TResult>
     where TCommand : class, ICommand<TResult>
     where TResult : notnull
 {
-    public bool CanHandle(ICommand command) => command is TCommand;
-
-    public async ValueTask<object> HandleAsync(
-        CommandExecutionContext context,
-        ICommand command,
-        CancellationToken cancellationToken)
-    {
-        if (command is not TCommand typedCommand)
-        {
-            throw new InvalidOperationException(
-                $"Handler '{GetType().Name}' cannot handle command CLR type '{command.GetType().Name}'.");
-        }
-
-        return await HandleCommandAsync(context, typedCommand, cancellationToken).ConfigureAwait(false);
-    }
-
-    protected abstract ValueTask<TResult> HandleCommandAsync(
+    ValueTask<TResult> HandleAsync(
         CommandExecutionContext context,
         TCommand command,
         CancellationToken cancellationToken);
+}
+
+/// <summary>
+/// Lets the bus reach a handler while knowing only the result type.
+/// </summary>
+/// <remarks>
+/// <see cref="ICommandBus.SendAsync{TResult}"/> receives its argument as
+/// <c>ICommand&lt;TResult&gt;</c>, so the command's own type is not a static type argument
+/// at the call site and the handler cannot be resolved directly. This adapter closes over
+/// the command type at registration, where it is known, and exposes only the result type.
+/// </remarks>
+internal interface ICommandInvoker<TResult>
+    where TResult : notnull
+{
+    ValueTask<TResult> InvokeAsync(
+        CommandExecutionContext context,
+        ICommand<TResult> command,
+        CancellationToken cancellationToken);
+}
+
+internal sealed class CommandInvoker<TCommand, TResult>(ICommandHandler<TCommand, TResult> handler)
+    : ICommandInvoker<TResult>
+    where TCommand : class, ICommand<TResult>
+    where TResult : notnull
+{
+    public ValueTask<TResult> InvokeAsync(
+        CommandExecutionContext context,
+        ICommand<TResult> command,
+        CancellationToken cancellationToken) =>
+        // The registry keys on the exact command type, so the only command that reaches
+        // this invoker is the one it was registered for. A command type that were
+        // subclassed would miss the lookup and fail there, never arriving here.
+        handler.HandleAsync(context, (TCommand)command, cancellationToken);
 }

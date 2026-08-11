@@ -2,15 +2,16 @@ using Dfo.Server.Application.OnlineUsers;
 
 namespace Dfo.Server.Application.Commands.Pipeline;
 
-internal sealed class OnlineUserExecutionBehavior(OnlineUserExecutionGate gate)
-    : ICommandPipelineBehavior
+internal sealed class OnlineUserExecutionBehavior<TResult>(OnlineUserExecutionGate gate)
+    : ICommandPipelineBehavior<TResult>
+    where TResult : notnull
 {
     public int Order => 50;
 
-    public async ValueTask<object> ExecuteAsync(
+    public async ValueTask<TResult> ExecuteAsync(
         CommandExecutionContext context,
         ICommand command,
-        CommandExecutionDelegate next,
+        CommandExecutionDelegate<TResult> next,
         CancellationToken cancellationToken)
     {
         if (context.OnlineUserAccessMode == UserAccessMode.Unscoped)
@@ -21,7 +22,7 @@ internal sealed class OnlineUserExecutionBehavior(OnlineUserExecutionGate gate)
         if (command is not IOnlineUserCommand onlineUserCommand)
         {
             throw new InvalidOperationException(
-                $"Command '{context.CommandType}' is registered as " +
+                $"Command '{context.CommandType.Name}' is registered as " +
                 $"'{context.OnlineUserAccessMode}' but does not implement " +
                 $"'{nameof(IOnlineUserCommand)}'.");
         }

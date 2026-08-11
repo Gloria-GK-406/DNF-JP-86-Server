@@ -22,7 +22,7 @@ public sealed class GameLoginTests
         var command = new LoginGameUserCommand(onlineUserId, "10038", "hash");
         var context = new CommandExecutionContext(
             Guid.NewGuid(),
-            command.CommandType,
+            command.GetType(),
             handler.GetType(),
             CommandExecutionKind.Direct,
             UserAccessMode.Exclusive);

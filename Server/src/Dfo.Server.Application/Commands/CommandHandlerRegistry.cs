@@ -1,15 +1,25 @@
 namespace Dfo.Server.Application.Commands;
 
 public sealed record CommandHandlerRegistration(
-    ApplicationCommandType CommandType,
+    Type CommandType,
     Type HandlerType,
+    Type InvokerType,
     CommandExecutionKind ExecutionKind,
     UserAccessMode OnlineUserAccessMode,
     UserAccessMode AccountAccessMode);
 
+/// <summary>
+/// Maps a command type to how it is executed.
+/// </summary>
+/// <remarks>
+/// Commands are keyed by their own CLR type. There is no completeness check: unlike a
+/// client message, which arrives off the wire and must always find a handler, a command
+/// only exists because code constructed it, so an unregistered one is a problem at
+/// dispatch rather than at startup.
+/// </remarks>
 public sealed class CommandHandlerRegistry
 {
-    private readonly IReadOnlyDictionary<ApplicationCommandType, CommandHandlerRegistration> registrations;
+    private readonly IReadOnlyDictionary<Type, CommandHandlerRegistration> registrations;
 
     public CommandHandlerRegistry(IEnumerable<CommandHandlerRegistration> registrations)
     {
@@ -22,21 +32,18 @@ public sealed class CommandHandlerRegistry
         if (duplicate is not null)
         {
             throw new InvalidOperationException(
-                $"Application command type '{duplicate.Key}' was registered more than once.");
-        }
-
-        var missing = Enum.GetValues<ApplicationCommandType>()
-            .Except(registrationList.Select(item => item.CommandType))
-            .ToArray();
-        if (missing.Length > 0)
-        {
-            throw new InvalidOperationException(
-                $"Application command types have no registered handler: {string.Join(", ", missing)}.");
+                $"Command '{duplicate.Key.Name}' was registered more than once.");
         }
 
         this.registrations = registrationList.ToDictionary(item => item.CommandType);
     }
 
-    public CommandHandlerRegistration GetRegistration(ApplicationCommandType commandType) =>
-        registrations[commandType];
+    public CommandHandlerRegistration GetRegistration(Type commandType)
+    {
+        ArgumentNullException.ThrowIfNull(commandType);
+        return registrations.TryGetValue(commandType, out var registration)
+            ? registration
+            : throw new InvalidOperationException(
+                $"Command '{commandType.Name}' has no registered handler.");
+    }
 }

@@ -14,7 +14,7 @@ public sealed class EstablishChannelConnectionCommandHandlerTests
         var command = new EstablishChannelConnectionCommand();
         var context = new CommandExecutionContext(
             Guid.NewGuid(),
-            command.CommandType,
+            command.GetType(),
             typeof(EstablishChannelConnectionCommandHandler),
             CommandExecutionKind.Direct);
 
@@ -29,7 +29,9 @@ public sealed class EstablishChannelConnectionCommandHandlerTests
     {
         var violations = typeof(EstablishChannelConnectionCommandHandler).Assembly
             .GetTypes()
-            .Where(type => !type.IsAbstract && typeof(ICommandHandler).IsAssignableFrom(type))
+            .Where(type => !type.IsAbstract && type.GetInterfaces().Any(contract =>
+                contract.IsGenericType
+                && contract.GetGenericTypeDefinition() == typeof(ICommandHandler<,>)))
             .Where(type => type.GetConstructors().Any(constructor =>
                 constructor.GetParameters().Any(parameter => parameter.ParameterType == typeof(ICommandBus))))
             .Select(type => type.FullName)

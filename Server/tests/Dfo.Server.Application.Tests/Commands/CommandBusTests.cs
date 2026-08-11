@@ -1,4 +1,6 @@
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Commands.Pipeline;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.OnlineUsers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -12,8 +14,7 @@ public sealed class CommandBusTests
     {
         CountingHandler.ExecutionCount = 0;
         await using var provider = BuildProvider(services =>
-            services.RegisterCommandHandler<CountingHandler>(
-                ApplicationCommandType.EstablishChannelConnection,
+            services.AddCommandHandler<TestCommand, TestResult, CountingHandler>(
                 CommandExecutionKind.Direct));
         var bus = provider.GetRequiredService<ICommandBus>();
 
@@ -25,29 +26,29 @@ public sealed class CommandBusTests
     }
 
     [Fact]
-    public async Task SendAsync_RejectsACommandWhoseClrTypeDoesNotMatchTheRegisteredHandler()
+    public async Task SendAsync_RejectsACommandThatHasNoRegisteredHandler()
     {
+        // Replaces the former CanHandle test. A handler can no longer be paired with the
+        // wrong command -- registration binds the two -- so the remaining failure is a
+        // command nobody registered.
         await using var provider = BuildProvider(services =>
-            services.RegisterCommandHandler<CountingHandler>(
-                ApplicationCommandType.EstablishChannelConnection,
+            services.AddCommandHandler<TestCommand, TestResult, CountingHandler>(
                 CommandExecutionKind.Direct));
         var bus = provider.GetRequiredService<ICommandBus>();
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await bus.SendAsync(new AlternativeCommand(), CancellationToken.None));
+            await bus.SendAsync(new UnregisteredCommand(), CancellationToken.None));
 
-        Assert.Contains(nameof(CountingHandler), exception.Message, StringComparison.Ordinal);
+        Assert.Contains(nameof(UnregisteredCommand), exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Registry_RejectsDuplicateCommandTypeRegistrations()
     {
         var services = CreateServices();
-        services.RegisterCommandHandler<CountingHandler>(
-            ApplicationCommandType.EstablishChannelConnection,
+        services.AddCommandHandler<TestCommand, TestResult, CountingHandler>(
             CommandExecutionKind.Direct);
-        services.RegisterCommandHandler<OtherHandler>(
-            ApplicationCommandType.EstablishChannelConnection,
+        services.AddCommandHandler<TestCommand, TestResult, OtherHandler>(
             CommandExecutionKind.Workflow);
         using var provider = services.BuildServiceProvider();
 
@@ -58,64 +59,15 @@ public sealed class CommandBusTests
     }
 
     [Fact]
-    public void Registry_RejectsMissingCommandTypeRegistrations()
-    {
-        var services = CreateServices();
-        using var provider = services.BuildServiceProvider();
-
-        var exception = Assert.Throws<InvalidOperationException>(
-            () => provider.GetRequiredService<CommandHandlerRegistry>());
-
-        Assert.Contains(
-            nameof(ApplicationCommandType.EstablishChannelConnection),
-            exception.Message,
-            StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task SendAsync_RejectsAPipelineResultOfTheWrongType()
-    {
-        // The pipeline seam is object, so a behavior can still short-circuit with a value
-        // of the wrong type. Null can no longer reach here -- the contract is non-nullable
-        // and a null literal does not compile -- so a mismatch is all that remains.
-        await using var provider = BuildProvider(services =>
-        {
-            services.AddSingleton<ICommandPipelineBehavior, WrongTypeBehavior>();
-            services.RegisterCommandHandler<CountingHandler>(
-                ApplicationCommandType.EstablishChannelConnection,
-                CommandExecutionKind.Direct);
-        });
-        var bus = provider.GetRequiredService<ICommandBus>();
-
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await bus.SendAsync(new TestCommand(), CancellationToken.None));
-
-        Assert.Contains(nameof(TestResult), error.Message, StringComparison.Ordinal);
-        Assert.Contains(nameof(String), error.Message, StringComparison.Ordinal);
-    }
-
-    private sealed class WrongTypeBehavior : ICommandPipelineBehavior
-    {
-        public int Order => -1000;
-
-        public ValueTask<object> ExecuteAsync(
-            CommandExecutionContext context,
-            ICommand command,
-            CommandExecutionDelegate next,
-            CancellationToken cancellationToken) => ValueTask.FromResult<object>("not a TestResult");
-    }
-
-    [Fact]
     public async Task Pipeline_ExecutesBehaviorsInOrderAroundTheTerminalHandler()
     {
         var events = new List<string>();
         await using var provider = BuildProvider(services =>
         {
             services.AddSingleton(events);
-            services.AddScoped<ICommandPipelineBehavior, OuterRecordingBehavior>();
-            services.AddScoped<ICommandPipelineBehavior, InnerRecordingBehavior>();
-            services.RegisterCommandHandler<RecordingHandler>(
-                ApplicationCommandType.EstablishChannelConnection,
+            services.AddScoped<ICommandPipelineBehavior<TestResult>, OuterRecordingBehavior>();
+            services.AddScoped<ICommandPipelineBehavior<TestResult>, InnerRecordingBehavior>();
+            services.AddCommandHandler<TestCommand, TestResult, RecordingHandler>(
                 CommandExecutionKind.Direct);
         });
         var bus = provider.GetRequiredService<ICommandBus>();
@@ -131,8 +83,7 @@ public sealed class CommandBusTests
     public async Task SendAsync_RejectsNestedCommandDispatch()
     {
         await using var provider = BuildProvider(services =>
-            services.RegisterCommandHandler<NestedDispatchHandler>(
-                ApplicationCommandType.EstablishChannelConnection,
+            services.AddCommandHandler<TestCommand, TestResult, NestedDispatchHandler>(
                 CommandExecutionKind.Direct));
         var bus = provider.GetRequiredService<ICommandBus>();
 
@@ -146,8 +97,7 @@ public sealed class CommandBusTests
     public async Task OnlineUserScopedRegistration_RequiresAnOnlineUserCommand()
     {
         await using var provider = BuildProvider(services =>
-            services.RegisterCommandHandler<CountingHandler>(
-                ApplicationCommandType.EstablishChannelConnection,
+            services.AddCommandHandler<TestCommand, TestResult, CountingHandler>(
                 CommandExecutionKind.Direct,
                 UserAccessMode.Shared));
         var bus = provider.GetRequiredService<ICommandBus>();
@@ -156,6 +106,73 @@ public sealed class CommandBusTests
             await bus.SendAsync(new TestCommand(), CancellationToken.None));
 
         Assert.Contains(nameof(IOnlineUserCommand), exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AccountScopedRegistration_RequiresAnAccountCommand()
+    {
+        await using var provider = BuildProvider(services =>
+            services.AddCommandHandler<TestCommand, TestResult, CountingHandler>(
+                CommandExecutionKind.Direct,
+                accountAccessMode: UserAccessMode.Exclusive));
+        var bus = provider.GetRequiredService<ICommandBus>();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await bus.SendAsync(new TestCommand(), CancellationToken.None));
+
+        Assert.Contains(nameof(IAccountCommand), exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ExclusiveAccountLease_IsReleasedWhenHandlerThrows()
+    {
+        var probe = new FailOnceProbe(new InvalidOperationException("account failure"));
+        await using var provider = BuildProvider(services =>
+        {
+            services.AddSingleton(probe);
+            services.AddCommandHandler<AccountTestCommand, TestResult, FailOnceAccountHandler>(
+                CommandExecutionKind.Direct,
+                accountAccessMode: UserAccessMode.Exclusive);
+        });
+        var bus = provider.GetRequiredService<ICommandBus>();
+        var command = new AccountTestCommand(new AccountId(7));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await bus.SendAsync(command, CancellationToken.None));
+
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        var result = await bus.SendAsync(command, timeout.Token);
+        Assert.NotEqual(Guid.Empty, result.ScopeId);
+    }
+
+    /// <summary>
+    /// Behaviours register as open generics and the container closes them per result type.
+    /// A behaviour that failed to resolve would leave the chain quietly shorter, so the set
+    /// is asserted directly rather than inferred from the tests that happen to need one.
+    /// </summary>
+    [Fact]
+    public void EveryProductionBehaviourResolvesForACommandResultType()
+    {
+        var services = CreateServices();
+        services.AddCommandHandler<TestCommand, TestResult, CountingHandler>(
+            CommandExecutionKind.Direct);
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+
+        var behaviours = scope.ServiceProvider
+            .GetServices<ICommandPipelineBehavior<TestResult>>()
+            .OrderBy(behaviour => behaviour.Order)
+            .ToArray();
+
+        Assert.Equal(
+            new[]
+            {
+                typeof(CommandLoggingBehavior<TestResult>),
+                typeof(OnlineUserExecutionBehavior<TestResult>),
+                typeof(AccountExecutionBehavior<TestResult>),
+                typeof(CommandExecutionPolicyBehavior<TestResult>),
+            },
+            behaviours.Select(behaviour => behaviour.GetType()).ToArray());
     }
 
     [Fact]
@@ -179,8 +196,7 @@ public sealed class CommandBusTests
     {
         CountingHandler.ExecutionCount = 0;
         await using var provider = BuildProvider(services =>
-            services.RegisterCommandHandler<CountingHandler>(
-                ApplicationCommandType.EstablishChannelConnection,
+            services.AddCommandHandler<TestCommand, TestResult, CountingHandler>(
                 CommandExecutionKind.Transactional));
         var bus = provider.GetRequiredService<ICommandBus>();
 
@@ -198,8 +214,7 @@ public sealed class CommandBusTests
         await using var directProvider = BuildProvider(services =>
         {
             services.AddLogging(builder => builder.AddProvider(logs));
-            services.RegisterCommandHandler<CountingHandler>(
-                ApplicationCommandType.EstablishChannelConnection,
+            services.AddCommandHandler<TestCommand, TestResult, CountingHandler>(
                 CommandExecutionKind.Direct);
         });
 
@@ -209,8 +224,7 @@ public sealed class CommandBusTests
         await using var transactionalProvider = BuildProvider(services =>
         {
             services.AddLogging(builder => builder.AddProvider(logs));
-            services.RegisterCommandHandler<CountingHandler>(
-                ApplicationCommandType.EstablishChannelConnection,
+            services.AddCommandHandler<TestCommand, TestResult, CountingHandler>(
                 CommandExecutionKind.Transactional);
         });
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
@@ -219,7 +233,7 @@ public sealed class CommandBusTests
 
         Assert.Contains(logs.Entries, entry =>
             entry.Level == LogLevel.Information &&
-            entry.Message.Contains(nameof(ApplicationCommandType.EstablishChannelConnection), StringComparison.Ordinal) &&
+            entry.Message.Contains(nameof(TestCommand), StringComparison.Ordinal) &&
             entry.Message.Contains(nameof(CommandExecutionKind.Direct), StringComparison.Ordinal));
         Assert.Contains(logs.Entries, entry =>
             entry.Level == LogLevel.Error &&
@@ -230,15 +244,6 @@ public sealed class CommandBusTests
     {
         var services = CreateServices();
         configure(services);
-        var registeredTypes = services
-            .Select(descriptor => descriptor.ImplementationInstance)
-            .OfType<CommandHandlerRegistration>()
-            .Select(registration => registration.CommandType)
-            .ToHashSet();
-        foreach (var commandType in Enum.GetValues<ApplicationCommandType>().Except(registeredTypes))
-        {
-            services.RegisterCommandHandler<OtherHandler>(commandType, CommandExecutionKind.Direct);
-        }
         return services.BuildServiceProvider();
     }
 
@@ -250,8 +255,7 @@ public sealed class CommandBusTests
         await using var provider = BuildProvider(services =>
         {
             services.AddSingleton(probe);
-            services.RegisterCommandHandler<FailOnceOnlineHandler>(
-                ApplicationCommandType.EstablishChannelConnection,
+            services.AddCommandHandler<OnlineTestCommand, TestResult, FailOnceOnlineHandler>(
                 CommandExecutionKind.Direct,
                 accessMode);
         });
@@ -277,35 +281,26 @@ public sealed class CommandBusTests
 
     private sealed record TestResult(Guid ScopeId);
 
-    private sealed record TestCommand : ICommand<TestResult>
-    {
-        public ApplicationCommandType CommandType =>
-            ApplicationCommandType.EstablishChannelConnection;
-    }
+    private sealed record TestCommand : ICommand<TestResult>;
 
-    private sealed record AlternativeCommand : ICommand<TestResult>
-    {
-        public ApplicationCommandType CommandType =>
-            ApplicationCommandType.EstablishChannelConnection;
-    }
+    private sealed record UnregisteredCommand : ICommand<TestResult>;
 
     private sealed record OnlineTestCommand(OnlineUserId OnlineUserId)
-        : ICommand<TestResult>, IOnlineUserCommand
-    {
-        public ApplicationCommandType CommandType =>
-            ApplicationCommandType.EstablishChannelConnection;
-    }
+        : ICommand<TestResult>, IOnlineUserCommand;
+
+    private sealed record AccountTestCommand(AccountId AccountId)
+        : ICommand<TestResult>, IAccountCommand;
 
     private sealed class ScopedProbe
     {
         public Guid Id { get; } = Guid.NewGuid();
     }
 
-    private sealed class CountingHandler(ScopedProbe probe) : CommandHandler<TestCommand, TestResult>
+    private sealed class CountingHandler(ScopedProbe probe) : ICommandHandler<TestCommand, TestResult>
     {
         public static int ExecutionCount { get; set; }
 
-        protected override ValueTask<TestResult> HandleCommandAsync(
+        public ValueTask<TestResult> HandleAsync(
             CommandExecutionContext context,
             TestCommand command,
             CancellationToken cancellationToken)
@@ -316,11 +311,24 @@ public sealed class CommandBusTests
     }
 
     private sealed class FailOnceOnlineHandler(ScopedProbe probe, FailOnceProbe failure)
-        : CommandHandler<OnlineTestCommand, TestResult>
+        : ICommandHandler<OnlineTestCommand, TestResult>
     {
-        protected override ValueTask<TestResult> HandleCommandAsync(
+        public ValueTask<TestResult> HandleAsync(
             CommandExecutionContext context,
             OnlineTestCommand command,
+            CancellationToken cancellationToken)
+        {
+            failure.ThrowIfPending();
+            return ValueTask.FromResult(new TestResult(probe.Id));
+        }
+    }
+
+    private sealed class FailOnceAccountHandler(ScopedProbe probe, FailOnceProbe failure)
+        : ICommandHandler<AccountTestCommand, TestResult>
+    {
+        public ValueTask<TestResult> HandleAsync(
+            CommandExecutionContext context,
+            AccountTestCommand command,
             CancellationToken cancellationToken)
         {
             failure.ThrowIfPending();
@@ -342,18 +350,18 @@ public sealed class CommandBusTests
         }
     }
 
-    private sealed class OtherHandler : CommandHandler<TestCommand, TestResult>
+    private sealed class OtherHandler : ICommandHandler<TestCommand, TestResult>
     {
-        protected override ValueTask<TestResult> HandleCommandAsync(
+        public ValueTask<TestResult> HandleAsync(
             CommandExecutionContext context,
             TestCommand command,
             CancellationToken cancellationToken) =>
             ValueTask.FromResult(new TestResult(Guid.Empty));
     }
 
-    private sealed class RecordingHandler(List<string> events) : CommandHandler<TestCommand, TestResult>
+    private sealed class RecordingHandler(List<string> events) : ICommandHandler<TestCommand, TestResult>
     {
-        protected override ValueTask<TestResult> HandleCommandAsync(
+        public ValueTask<TestResult> HandleAsync(
             CommandExecutionContext context,
             TestCommand command,
             CancellationToken cancellationToken)
@@ -363,23 +371,23 @@ public sealed class CommandBusTests
         }
     }
 
-    private sealed class NestedDispatchHandler(ICommandBus bus) : CommandHandler<TestCommand, TestResult>
+    private sealed class NestedDispatchHandler(ICommandBus bus) : ICommandHandler<TestCommand, TestResult>
     {
-        protected override ValueTask<TestResult> HandleCommandAsync(
+        public ValueTask<TestResult> HandleAsync(
             CommandExecutionContext context,
             TestCommand command,
             CancellationToken cancellationToken) =>
             bus.SendAsync(new TestCommand(), cancellationToken);
     }
 
-    private sealed class OuterRecordingBehavior(List<string> events) : ICommandPipelineBehavior
+    private sealed class OuterRecordingBehavior(List<string> events) : ICommandPipelineBehavior<TestResult>
     {
         public int Order => -100;
 
-        public async ValueTask<object> ExecuteAsync(
+        public async ValueTask<TestResult> ExecuteAsync(
             CommandExecutionContext context,
             ICommand command,
-            CommandExecutionDelegate next,
+            CommandExecutionDelegate<TestResult> next,
             CancellationToken cancellationToken)
         {
             events.Add("outer-before");
@@ -389,14 +397,14 @@ public sealed class CommandBusTests
         }
     }
 
-    private sealed class InnerRecordingBehavior(List<string> events) : ICommandPipelineBehavior
+    private sealed class InnerRecordingBehavior(List<string> events) : ICommandPipelineBehavior<TestResult>
     {
         public int Order => 50;
 
-        public async ValueTask<object> ExecuteAsync(
+        public async ValueTask<TestResult> ExecuteAsync(
             CommandExecutionContext context,
             ICommand command,
-            CommandExecutionDelegate next,
+            CommandExecutionDelegate<TestResult> next,
             CancellationToken cancellationToken)
         {
             events.Add("inner-before");

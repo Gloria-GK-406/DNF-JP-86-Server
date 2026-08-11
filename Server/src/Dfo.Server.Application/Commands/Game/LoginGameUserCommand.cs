@@ -7,17 +7,14 @@ namespace Dfo.Server.Application.Commands.Game;
 public sealed record LoginGameUserCommand(
     OnlineUserId OnlineUserId,
     string LoginId,
-    string PasswordHash) : ICommand<LoginGameUserResult>, IOnlineUserCommand
-{
-    public ApplicationCommandType CommandType => ApplicationCommandType.LoginGameUser;
-}
+    string PasswordHash) : ICommand<LoginGameUserResult>, IOnlineUserCommand;
 
 public sealed record LoginGameUserResult(AccountId AccountId);
 
 public sealed class LoginGameUserCommandHandler(
-    IAccountService accounts) : CommandHandler<LoginGameUserCommand, LoginGameUserResult>
+    IAccountService accounts) : ICommandHandler<LoginGameUserCommand, LoginGameUserResult>
 {
-    protected override async ValueTask<LoginGameUserResult> HandleCommandAsync(
+    public async ValueTask<LoginGameUserResult> HandleAsync(
         CommandExecutionContext context,
         LoginGameUserCommand command,
         CancellationToken cancellationToken)
