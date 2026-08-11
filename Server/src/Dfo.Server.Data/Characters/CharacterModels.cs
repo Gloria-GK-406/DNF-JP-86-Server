@@ -1,4 +1,5 @@
 using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Data.Characters;
 
@@ -59,6 +60,8 @@ public sealed record CharacterSessionEntryState(
 
 public sealed record SelectCharacterResult(
     ActiveCharacterState Character,
+    CharacterInventoryEntryState CharacterInventory,
+    AccountInventoryEntryState AccountInventory,
     AccountEntryState Account,
     GameWorldEntryState World,
     CharacterSessionEntryState Session);

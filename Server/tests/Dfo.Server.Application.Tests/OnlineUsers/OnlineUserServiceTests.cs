@@ -1,11 +1,13 @@
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Users;
 
@@ -170,6 +172,7 @@ public sealed class UserServiceTests
         var snapshotBeforeFailure = service.GetRequired(registered.OnlineUserId);
         var entry = new CharacterEntryService(
             new MissingCharacterService(),
+            new NotReachedInventoryEntryService(),
             service,
             TimeProvider.System);
 
@@ -245,6 +248,15 @@ public sealed class UserServiceTests
                 loginId,
                 passwordHash,
                 DateTimeOffset.UtcNow));
+    }
+
+    private sealed class NotReachedInventoryEntryService : IInventoryEntryService
+    {
+        public ValueTask<InventoryEntryState> LoadAsync(
+            AccountId accountId,
+            CharacterId characterId,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("Inventory must not load when character resolution fails.");
     }
 
     private sealed class MissingCharacterService : ICharacterService
