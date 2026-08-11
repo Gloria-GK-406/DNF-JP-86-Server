@@ -3,20 +3,19 @@ kind: rks-multi-spec-map
 contract:
   path: ./TaskContract.md
   revision: 1
-state: active
-phase: root_evaluation
-phase: child_disposition
-phase_state: pending
-active_attempt: spec-005
-last_transition: child-sealed
-transition_evidence: "spec-005 has a completed result, approved independent re-review after width/ownership remediation, fresh 118/118 tests, focused 15/15 checks, exact 16-ID G4 coverage, and observed uncommitted state ready for acceptance."
+state: blocked
+phase: blocked
+phase_state: completed
+active_attempt: none
+last_transition: no-safe-successor
+transition_evidence: "Spec-006 was sealed blocked and its classified product changes were rolled back exactly: HEAD remained accepted baseline b8e817c482795e805fb001bd5d0627d77848b987 and the Server product diff was empty. This controller update, durable spec-006 evidence and the user-requested incomplete-status document record the paused result. Root evaluation still has unmet G5 and downstream G6/G7 gaps. No safe successor exists because complete quest/activity/collection/pet definitions require the absent Script.pvf or an equivalent validated export, while live town/PvP/rejoin/expert-store state also has no normalized source in the workspace."
 workspace:
   repository_root: /Users/puxianguo/project/86JP-main
   task_root: /Users/puxianguo/project/86JP-main/.worktrees/select-character-domain-migration/.rks-agent/tasks/select-character-domain-migration
   code_root: /Users/puxianguo/project/86JP-main/.worktrees/select-character-domain-migration
   branch: codex/select-character-domain-migration
-  baseline: 927e6ed997c5b1b093060ab4334b41a6c1421c80
-  baseline_evidence: "Accepted spec-004 commit 927e6ed997c5b1b093060ab4334b41a6c1421c80 after final approved independent review, fresh 102/102 solution tests, focused 15/15 character-entry checks, exact 51/51 G3 coverage, clean task worktree, and unchanged source branch."
+  baseline: b8e817c482795e805fb001bd5d0627d77848b987
+  baseline_evidence: "Accepted spec-005 commit b8e817c482795e805fb001bd5d0627d77848b987 after approved re-review, fresh 118/118 solution tests, focused 15/15 account-entry checks, exact G4 coverage, clean task worktree, and unchanged source branch."
 ---
 
 # Multi-Spec Map
@@ -38,11 +37,11 @@ workspace:
 | SC | Requirement | Progress | Evidence | Remaining gap | Constraint |
 |---|---|---|---|---|---|
 | SC-1 | Complete legacy initialization migration matrix | satisfied | `fd39009` and `Docs/Refactor/SelectCharacterMigrationMatrix.md`: 58 static, 18 supplemental, 10 lifecycle rows; approved review and fresh verification | none | aligned |
-| SC-2 | Complete separated entry-result composition | in_progress | `fa51169`: separated inventory views; `927e6ed`: complete character-owned G3 `CharacterEntryState`, only class-inapplicable nulls | Implement account/world/session views | aligned |
-| SC-3 | Service-driven peripheral data access | in_progress | `3e70094`: active-character service; `fa51169`: inventory services; `927e6ed`: normalized G3 repository and four cohesive character services with SQLite confined to Infrastructure | Implement G4/G5 services and repositories | aligned |
+| SC-2 | Complete separated entry-result composition | in_progress | `fa51169`: inventory; `927e6ed`: G3 character state; `b8e817c`: complete G4 AccountId-owned state with inventory reuse | G5 is blocked by the absent PVF catalog and live session-adjacent source | at_risk |
+| SC-3 | Service-driven peripheral data access | in_progress | Accepted active-character, inventory, G3 and G4 normalized repository/service slices; SQLite remains confined to Infrastructure | G5 adapters cannot provide complete production data from current inputs | at_risk |
 | SC-4 | Exact and consistent account-exclusive selection | satisfied | `3e70094`: exact-slot load precedes one locked AccountId-indexed publication; stale disconnect and load-failure preservation verified; baseline command registration remains account-exclusive | none | aligned |
-| SC-5 | Result-only ordered Networking projection | not_started | Baseline `b0a3312` supplies one-to-many sender seam and ACK composer | Project all required packets without loaders or placeholders | aligned |
-| SC-6 | Integrated verification and honest documentation | in_progress | `fd39009`: reverse-engineering confidence documented; fresh solution tests pass 70/70 | Verify completed product migration, Host startup, and root review | aligned |
+| SC-5 | Result-only ordered Networking projection | not_started | Baseline `b0a3312` supplies one-to-many sender seam and ACK composer | Requires an accepted complete G5 result before G6/G7 projection | at_risk |
+| SC-6 | Integrated verification and honest documentation | in_progress | `fd39009`: reverse-engineering confidence documented; accepted checkpoint `b8e817c` remains intact | Root completion cannot be verified while G5 and downstream projection remain incomplete | at_risk |
 
 ## Spec Attempts
 
@@ -54,4 +53,5 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 | 2 | spec-002 | `attempts/spec-002-publish-active-character-consistently/TaskContract.md` | Publish active character consistently | SC-3, SC-4 | completed | `attempts/spec-002-publish-active-character-consistently/spec-result.md` | `3e70094` accepted |
 | 3 | spec-003 | `attempts/spec-003-load-inventory-entry-state/TaskContract.md` | Load inventory entry state | SC-2, SC-3 | completed | `attempts/spec-003-load-inventory-entry-state/spec-result.md` | `fa51169` accepted |
 | 4 | spec-004 | `attempts/spec-004-load-character-entry-state/TaskContract.md` | Load character entry state | SC-2, SC-3 | completed | `attempts/spec-004-load-character-entry-state/spec-result.md` | `927e6ed` accepted |
-| 5 | spec-005 | `attempts/spec-005-load-account-entry-state/TaskContract.md` | Load account entry state | SC-2, SC-3 | running | pending | active |
+| 5 | spec-005 | `attempts/spec-005-load-account-entry-state/TaskContract.md` | Load account entry state | SC-2, SC-3 | completed | `attempts/spec-005-load-account-entry-state/spec-result.md` | `b8e817c` accepted |
+| 6 | spec-006 | `attempts/spec-006-load-world-entry-state/TaskContract.md` | Load world/content entry state | SC-2, SC-3 | blocked | `attempts/spec-006-load-world-entry-state/spec-result.md` | rolled back to `b8e817c` |
