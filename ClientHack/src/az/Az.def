@@ -1,0 +1,12 @@
+LIBRARY Az
+EXPORTS
+    ClearRSInfo
+    CreateObj
+    PutRSInfo
+    Test
+    ijlErrorStr
+    ijlFree
+    ijlGetLibVersion
+    ijlInit
+    ijlRead
+    ijlWrite

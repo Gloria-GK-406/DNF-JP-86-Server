@@ -1,0 +1,62 @@
+kind: rks-sdd-execution
+controller: sdd-standard
+contract:
+  path: "./TaskContract.md"
+  revision: 2
+current_stage: verification
+state: accepted_with_user_waiver
+artifacts:
+  spec: "./spec.md"
+  plan: "./plan.md"
+  result: "./spec-result.md"
+  change_review: "./reviews/change-review.md"
+  completion_evidence: "./verification/completion-evidence.md"
+stages:
+- id: spec
+  reads:
+  - contract
+  skills:
+  - writing-specs
+  gate: none
+  done_when: spec covers the revised runtime-completion TaskContract
+  writes:
+  - spec
+- id: plan
+  reads:
+  - spec
+  skills:
+  - writing-plans
+  gate: none
+  done_when: plan orders clean capture, implementation, and isolated runtime verification
+  writes:
+  - plan
+- id: implementation
+  reads:
+  - plan
+  skills:
+  - executing-tasks
+  - systematic-debugging
+  - test-driven-development
+  gate: auto
+  done_when: runtime evidence is captured and required plugins initialize in the isolated copy
+- id: review
+  reads:
+  - contract
+  - spec
+  - plan
+  skills:
+  - reviewing-code
+  gate: auto
+  done_when: complete revised change is independently approved
+  writes:
+  - change_review
+- id: verification
+  reads:
+  - contract
+  - change_review
+  skills:
+  - verification-before-completion
+  gate: auto
+  done_when: fresh build, tests, capture consistency, lab startup, and source-client integrity pass
+  writes:
+  - completion_evidence
