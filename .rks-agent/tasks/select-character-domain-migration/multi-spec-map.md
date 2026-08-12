@@ -4,18 +4,18 @@ contract:
   path: ./TaskContract.md
   revision: 1
 state: active
-phase: child_execution
+phase: root_evaluation
 phase_state: pending
-active_attempt: spec-008
-last_transition: child-created
-transition_evidence: "Created and validated the contained ready child at attempts/spec-008-complete-quest-eligibility with contributes_to SC-2/SC-3/SC-6 and an empty dependency list. Exactly one running row exists, the accepted baseline remains 94616f4, and the child is the smallest stable outcome that closes the known over-broad G5 quest answer before G6."
+active_attempt: none
+last_transition: child-accepted
+transition_evidence: "Spec-008 completed, independently approved and freshly verified, then accepted as commit a7af583. G5 available-quest eligibility now classifies and applies the complete evidenced predicate with fail-closed malformed handling; full real-PVF verification is 378 passed, 2 expected skips, 0 failed. The worktree was clean after acceptance and the active child is cleared."
 workspace:
   repository_root: /Users/puxianguo/project/86JP-main
   task_root: /Users/puxianguo/project/86JP-main/.worktrees/select-character-domain-migration-completion/.rks-agent/tasks/select-character-domain-migration
   code_root: /Users/puxianguo/project/86JP-main/.worktrees/select-character-domain-migration-completion
   branch: codex/select-character-domain-migration-completion
-  baseline: 94616f4f360d9c9d82a55cd8d294dc26facfee6a
-  baseline_evidence: "HEAD 94616f4 on branch codex/select-character-domain-migration-completion in a clean linked worktree created from codex/architecture-refactor. The source worktree remains at the same accepted revision and clean. Fresh baseline after restore: 355 passed, 2 expected skips, 0 failed (PVF 60, Application 191, Infrastructure 74 + 2 skips, Networking 30). Drift review is aligned: the intervening accepted orchestration refactor preserves G1-G5 behavior and makes the command handler coordinate the separated domain services explicitly."
+  baseline: a7af583
+  baseline_evidence: "Accepted spec-008 commit a7af583 on codex/select-character-domain-migration-completion. Independent change review approved; fresh real-PVF solution verification: 378 passed, 2 expected skips, 0 failed; dependency and diff checks passed. Source codex/architecture-refactor remains unchanged at 94616f4."
   archive_input: "Script.pvf (58,781,889 bytes) is present as a gitignored copy at the root of this task worktree, copied from /Users/puxianguo/Downloads/Script.pvf. Dfo.Pvf tests execute 60/60 with the archive reachable; the two Infrastructure negative-path tests are expected to skip when an archive is deliberately present."
 ---
 
@@ -83,7 +83,7 @@ visible rather than inferred.
 | SC | Requirement | Progress | Evidence | Remaining gap | Constraint |
 |---|---|---|---|---|---|
 | SC-1 | Complete legacy initialization migration matrix | satisfied | `fd39009` and `Docs/Refactor/SelectCharacterMigrationMatrix.md`: 58 static, 18 supplemental, 10 lifecycle rows; approved review and fresh verification | none | aligned |
-| SC-2 | Complete separated entry-result composition | in_progress | `fa51169`: inventory; `927e6ed`: G3 character state; `b8e817c`: complete G4 AccountId-owned state with inventory reuse; `01cb491` + `21e5a1a`: G5 world/content and session-adjacent limbs; `94616f4`: explicit cross-domain command orchestration | G5 quest answers knowingly omit legacy eligibility predicates and can over-offer quests; session protocol identity/order and channel-catalog coherence also remain to be reconciled before the result is complete enough for G6 | at_risk |
+| SC-2 | Complete separated entry-result composition | satisfied | G1-G4 accepted slices; `01cb491` + `21e5a1a` G5 world/session state; `94616f4` explicit orchestration; `a7af583` complete G5 quest eligibility | none; protocol user identity and target ordering belong to G6/G7 projection/lifecycle | aligned |
 | SC-3 | Service-driven peripheral data access | satisfied | Accepted active-character, inventory, G3 and G4 slices; SQLite confined to Infrastructure. `01cb491` adds a fifth content source for town and map geometry, a channel entry policy, an entry placement service, and three runtime registries with their query service. Every one sits behind an Abstractions interface; `Pvf` appears zero times in Abstractions, Application, Networking and Data, and only the infrastructure project references the format library | none | aligned |
 | SC-4 | Exact and consistent account-exclusive selection | satisfied | `3e70094`: exact-slot load precedes one locked AccountId-indexed publication; stale disconnect and load-failure preservation verified. Re-confirmed at the new baseline: the typed-command-dispatch refactor (`86ba115`) rewrote command registration, and `SelectCharacterCommand` is still registered account-exclusive; that task added the first direct `AccountExecutionBehavior` coverage and mutation-verified that dropping its registration fails tests | none | aligned |
 | SC-5 | Result-only ordered Networking projection | not_started | `94616f4` supplies the one-to-many sender seam and one incomplete ACK composer | Rows 2-58, the complete mixed-domain ACK, X-01-X-18 projections, exact order, duplicates and target sets remain | at_risk |
@@ -113,4 +113,4 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 | 5 | spec-005 | `attempts/spec-005-load-account-entry-state/TaskContract.md` | Load account entry state | SC-2, SC-3 | completed | `attempts/spec-005-load-account-entry-state/spec-result.md` | `b8e817c` accepted |
 | 6 | spec-006 | `attempts/spec-006-load-world-entry-state/TaskContract.md` | Load world/content entry state | SC-2, SC-3 | blocked | `attempts/spec-006-load-world-entry-state/spec-result.md` | rolled back to `b8e817c` |
 | 7 | spec-007 | `attempts/spec-007-complete-world-and-session-entry-state/TaskContract.md` | Complete world, content and session entry state | SC-2, SC-3 | completed | `attempts/spec-007-complete-world-and-session-entry-state/spec-result.md` | `01cb491` + `21e5a1a` accepted |
-| 8 | spec-008 | `attempts/spec-008-complete-quest-eligibility/TaskContract.md` | Complete G5 quest eligibility semantics | SC-2, SC-3, SC-6 | running | pending | active |
+| 8 | spec-008 | `attempts/spec-008-complete-quest-eligibility/TaskContract.md` | Complete G5 quest eligibility semantics | SC-2, SC-3, SC-6 | completed | `attempts/spec-008-complete-quest-eligibility/spec-result.md` | `a7af583` accepted |
