@@ -9,6 +9,8 @@ namespace Dfo.Server.Application.Tests.Sessions;
 
 public sealed class PvpLobbyEntryTests
 {
+    private static readonly ExpertStoreRegistry Stores = new();
+
     /// <remarks>
     /// The distinction this pins is the one the Spec calls out: no lobby at all versus a
     /// lobby nobody is in. A consumer that cannot tell them apart would offer duelling on
@@ -155,7 +157,7 @@ public sealed class PvpLobbyEntryTests
     }
 
     private static SessionAdjacentEntryService Service(IPvpLobbyRegistry lobby) =>
-        new(new SessionPresenceRegistry(), lobby, new DungeonRejoinRegistry(), TimeProvider.System);
+        new(new SessionPresenceRegistry(), Stores, lobby, new DungeonRejoinRegistry(), TimeProvider.System);
 
     private static SessionAdjacentSubject Subject(ChannelEntryIdentity channel) =>
         new(new CharacterId(99), new AccountId(1), channel, TownId: 1, AreaId: 0);

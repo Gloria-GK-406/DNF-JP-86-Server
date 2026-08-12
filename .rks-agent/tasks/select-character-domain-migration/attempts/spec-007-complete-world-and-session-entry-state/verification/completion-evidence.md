@@ -2,12 +2,12 @@
 
 Verified on .NET 10 / linux-x64 / Release, warnings-as-errors, **0 warnings**.
 
-**322 passed, 2 skipped, 0 failed** (baseline `86ba115`: 204 passed, 1 skipped).
+**348 passed, 2 skipped, 0 failed** (baseline `86ba115`: 204 passed, 1 skipped).
 
 | Suite | Baseline | Now |
 |---|---:|---:|
-| `Dfo.Server.Application.Tests` | 55 | 164 |
-| `Dfo.Server.Infrastructure.Tests` | 60 (+1 skip) | 69 (+2 skip) |
+| `Dfo.Server.Application.Tests` | 55 | 188 |
+| `Dfo.Server.Infrastructure.Tests` | 60 (+1 skip) | 71 (+2 skip) |
 | `Dfo.Pvf.Tests` | 60 | 60 |
 | `Dfo.Server.Networking.Tests` | 29 | 29 |
 
@@ -50,17 +50,30 @@ agreement is meaningful rather than tautological.
 
 | Finding | Effect |
 |---|---|
+| Equipment and creature identifiers are disjoint — 408 creatures up to 20,041, 745 creature-equipment entries from 63,000, zero in common | The composition handed the equipped item straight to the creature lookup, so matrix row 58 could never fire for anyone. Found by the independent reviewer; no existing test could have caught it, because every pet test injected a creature identifier and skipped the failing step. Fixed with an equipment hop and tests driving real equipped items. |
+| Area kinds were read by position, and modifier markers sit before the real kind | 54 of 151 areas misclassified, with the modifier's own number taken as a spawn operand. The prior evidence had recorded this as a property of the archive. Found by the independent reviewer. |
 | The town area kind arrives as a quoted value, and a `[minimap rect]` block of four integers sits between the map path and it | First implementation read the rectangle's corner as the spawn position. Gates parsed to (45, 188) instead of (474, 234) — a plausible coordinate, silently wrong. Fixed and guarded. |
 | Row 18's "admission overlay" does not exist | `DungeonPermissionProjector` takes no channel or listener; the search returns nothing. RQ-008 withdrawn on evidence rather than satisfied by inventing the overlay. |
 | The legacy rejoin lookup writes while reading | Idle renewal and lapse retirement are lifecycle transitions, deliberately not reproduced. Two tests prove the read leaves the registry alone. |
-| 58 of 151 town areas are unrecognised, and 6 of 25 towns have no gate | Both are real content. Blanket assertions to the contrary were the test's error, not the code's, and the gateless towns make the explicit-failure path genuinely reachable. |
+| 6 of 25 towns have no gate | Real content, and it makes the explicit-failure path genuinely reachable. The blanket assertion to the contrary was the test's error. |
+| The offered quest list applied 4 of the legacy rule's ~13 filters | Repeatable quests were retired after one completion and no grade whitelist was applied. Both are now applied; the rest need content the source does not carry and are tabulated in the coverage document. |
+| Town presence filtered by listener, which legacy does not, and by nothing legacy does | A character who had walked into a dungeon would have been reported standing beside the arriving one, on their stale coordinates. |
+| The expert store was read off the entering character's presence record | That record does not exist when entry is composed, so the answer was always false. |
 | `Dfo.Server.Data` is a leaf project | The composed state cannot reference the content records, so Application maps between them — the same pattern the accepted entry states already use. |
+
+## How the review went
+
+A self-review reached *approved*. An independent reviewer with no prior context then
+**rejected** the change on two blocking findings, one of which falsified a claim this
+document had made. Both, plus three high findings, are fixed and covered; the rest are
+recorded. The lesson is worth more than the fixes: the self-review missed defects that were
+not subtle, because they rested on wrong facts about the archive that the implementer had
+already accepted.
 
 ## Not covered
 
-- **No independent reviewer.** The review was performed by the implementing agent. The
-  previous task used a fresh reviewer, which found a defect the implementer had missed; that
-  assurance is absent here.
+- **The offered quest list is narrower than the legacy rule.** Nine of its filters need
+  content the accepted source does not carry. Tabulated in the coverage document.
 - **The four runtime views are empty on the production path**, because nothing admits to
   their registries until the entry lifecycle is migrated. Their behaviour is proven by
   writing to the registries directly and by proving those registries are the ones the

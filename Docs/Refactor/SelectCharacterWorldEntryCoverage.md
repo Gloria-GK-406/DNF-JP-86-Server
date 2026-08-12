@@ -62,6 +62,47 @@ Row 18 therefore has no world or channel limb. Its requirement was withdrawn fro
 with the evidence recorded, rather than satisfied by implementing an overlay the legacy
 server does not have.
 
+## Row 12 offers a narrower set than the legacy rule
+
+The offered quest list applies the legacy grade whitelist, the repeatable exemption, the
+level band, the job family and the grow type. The legacy index applies more, and the rest
+need data the accepted content source does not carry:
+
+| Legacy filter | Status here |
+|---|---|
+| Selectable grade | applied |
+| Repeatable grades exempt from the cleared exclusion | applied |
+| Level band, job family, grow type | applied |
+| Exposed-by-NPC | not applied — the definition carries no exposure field |
+| Event flag | not applied — not modelled |
+| Expert-job requirement | not applied — not modelled |
+| Creature kind / pet-evolution eligibility | not applied — not modelled, and matrix row 12 names it as an input |
+| Target character | not applied — not modelled |
+| Prerequisite chain | not applied — no prerequisite catalogue exists here |
+| Job-change grow-type branch | not applied — the legacy branch masks the grow type, which this contract does not express |
+
+A character is therefore offered more quests than the legacy server offers them. Closing
+the gap needs the content source widened first, which is a separate outcome.
+
+Two details worth keeping straight, because both read the other way round at a glance: a
+*random* daily is offerable but **not** repeatable — the legacy exemption names only daily,
+normally-repeat and special-daily — and the system grade **is** offerable, despite sounding
+internal.
+
+## Town co-presence spans channels
+
+The legacy directory takes the listener as an optional filter, and the caller that announces
+arrivals and departures passes none. Town co-presence is therefore cross-channel there: two
+characters in town 1 area 0 on different channels see each other. That reads like an
+oversight, but it is the accepted behaviour and narrowing it here would silently change who
+sees whom, so it is reproduced and recorded instead.
+
+A character is only reported as present when they are actually standing where their record
+says. The legacy directory excludes anyone who has walked into a dungeon, because their town
+coordinates are left over from before they entered; it also requires arrival to have
+finished, no blocking user state, and a live connection. All of that is carried as a single
+flag on the presence record, which the lifecycle that admits a character owns keeping true.
+
 ## Scope of the identity check on returning to a dungeon
 
 The legacy registry checks ownership of an interrupted run on account, character and a wire
@@ -77,6 +118,29 @@ record as a side effect of being asked. Those are lifecycle transitions and are 
 not reproduced: composing an entry must not keep a stale run alive. The view notices that a
 deadline has passed and reports it, but leaves the record alone. Retiring it belongs to the
 entry lifecycle, which is not migrated yet.
+
+## The duelling lobby loses an ordering the protocol can see
+
+The legacy lobby orders its ready participants by the wire user identifier, and that order
+is visible in the roster the client receives. This layer identifies characters by
+`CharacterId` and leaves wire numbering to the projection, so the lobby is ordered by
+character instead — stable, but not the same sequence. The projection cannot restore the
+legacy order from what the view carries. Whether the client depends on it is unconfirmed.
+
+The legacy publish check also requires a constructed game session and a clear user state
+before a character counts as ready. Here, being marked ready *is* the condition; the finer
+checks belong to whoever marks them, which is the duelling flow and is not migrated.
+
+## Channel identity depends on two configuration sections agreeing
+
+The legacy check is a hardcoded port comparison and cannot fail. Here the listener is
+matched against the channel catalogue, and an unmatched listener resolves to an ordinary
+channel. Listeners come from the networking ports; the catalogue comes from the channel
+section when it is present. Configure a channel list that omits the restricted channel while
+still listening on its port, and an under-level character is admitted and their transient
+position persisted. The fallback is deliberate — refusing an unlisted listener would make an
+unconfigured deployment unplayable — but the coupling is a real trap. The legacy proxy port
+for the restricted channel has no analogue here either.
 
 ## What is empty because nothing writes to it yet
 

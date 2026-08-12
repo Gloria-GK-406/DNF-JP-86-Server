@@ -8,104 +8,144 @@ verdict: approved
 
 # Change Review: Complete World, Content and Session Entry State
 
-## Reviewer independence
+## How this review was conducted
 
-**This was a self-review by the implementing agent, not an independent one.** The prior
-task in this workspace used a fresh reviewer with no context, which caught a real defect the
-implementer had missed. No such reviewer was engaged here, so the assurance this review
-provides is weaker in exactly the way that comparison suggests: it cannot catch what the
-implementer's own model of the change is blind to. Recorded rather than glossed, because the
-verdict below should be read with that discount applied.
+Two passes. The first was a self-review by the implementing agent and reached *approved*.
+The operator then required an independent one, and a reviewer with no prior context on the
+work **rejected** the change on two blocking findings, one of which falsified a claim the
+self-review had signed off.
+
+That outcome is the review's most useful result and is recorded plainly: the self-review
+was not a substitute for an independent one, and the defects it missed were not subtle
+consequences of complex code — they were wrong facts about the archive that the implementer
+had already convinced himself of.
+
+The verdict below is for the state after every blocking and high finding was fixed and
+covered.
+
+## What the independent reviewer found
+
+### F-1 — the pet welcome could never fire. **Blocking. Fixed.**
+
+Equipment identifiers and creature identifiers are disjoint in this archive. Measured: 408
+creatures numbered 1 to 20,041; 745 creature-equipment entries numbered 63,000 upward; **zero
+values in common**. The composition read the equipped item out of the inventory and handed it
+straight to the creature lookup, which therefore returned nothing for every character alive.
+Because a missing creature is an ordinary "no welcome, skip the packet", the failure was
+silent: matrix row 58 would never have fired in production.
+
+The legacy resolver goes through the equipment definition — item identifier to equipment
+entry, entry's file name to creature list entry — and additionally requires the equipment to
+declare itself a creature.
+
+Worse than the bug: **no test could have caught it.** Every pet test injected a creature
+identifier taken from the creature source, bypassing the exact step that produced the wrong
+identifier. The row-58 evidence the self-review accepted was not evidence.
+
+Fixed by adding the equipment hop to the content source, renaming the subject field to say
+which identifier space it holds — the old name is how the confusion happened — and replacing
+the pet tests with ones driving real equipped items through real content. One new test
+equips item 63000 while creature 63000 also exists, so reading the item as a creature
+returns the wrong lines rather than none.
+
+### F-2 — area kinds read by position; a stated finding was false. **Blocking. Fixed.**
+
+The content puts modifier markers such as `[use private store]` between the minimap
+rectangle and the real kind. The parser took the second quoted value as the kind, so it read
+the modifier and then took the modifier's own number as a spawn operand.
+
+The completion evidence had stated that "58 of 151 town areas are unrecognised … both are
+real content". They were not: 54 were parser artifacts. The correct account is more
+embarrassing — the original code was accidentally right here, because it let the *last*
+quoted value win; the minimap fix changed it to first-wins and broke it. So a fix introduced
+the defect and the evidence then canonised it as a property of the archive.
+
+Fixed by recognising the kind by what it says rather than where it sits, and by counting
+only the numbers that follow it. Unclassified areas fall from 58 to 5, and town 2's walkable
+areas now read `Normal` with no operands, matching the legacy parser. No gate was affected
+today, which is exactly why nothing caught it.
+
+### F-3 — the offered quest list is a small subset of the legacy rule. **High. Partly fixed, remainder recorded.**
+
+The legacy index applies about thirteen filters; four were applied. Two were fixable from
+data already carried and are now applied:
+
+- **Repeatable quests were retired after one completion.** Daily, normally-repeat and
+  special-daily are exempt from the cleared-quest exclusion in the legacy rule.
+- **No grade whitelist**, so cracks, challenges, titles, schedules and the rest were being
+  offered where the legacy server never offers them.
+
+The reviewer's list of excluded grades was itself slightly wrong — it named `System`, which
+*is* on the legacy whitelist. The implementation follows the legacy source, not the review.
+
+The remaining filters need content the source does not carry and are tabulated in
+`SelectCharacterWorldEntryCoverage.md`.
+
+### F-4 — town presence had a filter legacy lacks and lacked every filter legacy has. **High. Fixed.**
+
+Two errors in one place. The view filtered by listener, which the legacy production path
+does not — and a comment asserted the opposite as legacy behaviour. And it carried none of
+the conditions the legacy directory requires, the important one being that a character who
+has walked into a dungeon keeps stale town coordinates; the legacy comment says so directly.
+Reporting them would stand someone who is in a dungeon beside the arriving character.
+
+Fixed: the listener scope is now optional and the town view spans listeners as legacy does,
+and presence carries whether the character is actually standing where the record says.
+
+### F-5 — the expert store asked the wrong registry. **High. Fixed.**
+
+It read the flag off the *entering* character's presence record, and by the design's own
+account that character has no presence record when their entry is composed — so the answer
+was always false. The legacy store lives in its own registry keyed by owner. Split out, with
+a test that deliberately admits no presence so the old shape cannot pass.
+
+### F-6 — refusals handed out the run's contents. **Medium. Fixed.**
+
+Party and participants were attached to every rejoin outcome. Combined with the narrowed
+ownership check, an identity mismatch answered with the other account's party. The legacy
+registry produces a snapshot only on success; refusals now carry nothing.
+
+### F-8 — one deadline modelled where legacy keeps two. **Medium. Fixed.**
+
+Idle and hard expiry are separate in the legacy registry, and touching a run pushes the idle
+one forward. Carrying only that would let a run long past its hard limit keep reading as
+available. Both are modelled and the earlier of the two decides.
+
+### F-11, F-12 — parser robustness. **Low. Fixed.**
+
+A nested block inside a movable-area section ended collection permanently, silently dropping
+every row after it. And unresolved tag offsets were passed through as a sentinel that
+matches nothing, yielding empty-but-present geometry that surfaced later as an accusation
+against the content. Nested blocks are now skipped without ending the section, and a missing
+tag fails loudly naming itself.
+
+### F-7, F-9, F-10 and the minor items — recorded, not fixed
+
+Documented in `SelectCharacterWorldEntryCoverage.md`: the expired-classification difference
+that follows from not mutating, the lobby ordering the projection can no longer restore, and
+the channel-identity configuration coupling. Each is a consequence of a decision rather than
+an oversight, and each is now stated where a reader of that document will find it.
+
+## What the independent reviewer confirmed
+
+Verified by running, not by reading: the archive is genuinely present so archive-backed
+tests execute; both hardcoded coordinates reproduce the legacy algorithm on real data,
+including the tie-break that picks (378, 278) over an equidistant candidate; the geometry
+port matches the legacy index for index with no axis or width/height swap; admission matches
+byte for byte and refuses before publication; layering holds with the format library reachable
+only from Infrastructure; the registries genuinely exist and a write is visible to the next
+read; no catch-and-swallow anywhere; no G1–G4 regression; and RQ-008's withdrawal is sound.
 
 ## Verdict
 
-**Approved**, after two defects found during review were fixed and covered.
+**Approved.** All blocking and high findings are fixed and covered by tests that fail
+without the fix. Medium findings are fixed or recorded. **348 passed, 2 skipped, 0 failed,
+0 warnings.**
 
-## Defects found and fixed
+## What remains unverified
 
-### F-1 — the transient arrival read whatever map the configured area pointed at
-
-The restricted channel computes its arrival point from the geometry of an area that leads
-out of town. The implementation looked the area up by identifier and went straight to its
-map without checking what kind of area it was.
-
-The legacy resolver requires the area to be a dungeon gate. Without that check, pointing the
-configuration at an ordinary area would still produce a coordinate — the map would parse,
-some rectangle would be found, an arrival would be computed — and the character would be
-placed somewhere they do not belong, with nothing downstream to question it. A wrong
-coordinate is not a visibly wrong coordinate.
-
-Fixed by requiring the area kind and naming the kind actually found in the failure, and
-covered by `An_area_that_does_not_lead_out_of_town_is_not_an_arrival_point`.
-
-### F-2 — the lobby view invented a location for participants
-
-The duelling-lobby view reused the town-presence record for its participants. That record
-carries a town and an area, which a lobby participant does not have, so the code filled them
-from the presence registry and fell back to zero when the participant was not in it.
-
-Zero is a real town and a real area. This is precisely the fabrication the Spec's central
-constraint forbids, arrived at not by carelessness but by reusing a type whose shape
-demanded a value that did not exist.
-
-Fixed by giving the lobby its own participant record carrying only the character, so there
-is no field to fill in. The type now makes the fabrication unrepresentable rather than
-merely avoided.
-
-## Requirements checked against the change
-
-| ID | Verdict | Evidence |
-|---|---|---|
-| RQ-001 | met | The composed content carries computed answers, not catalogs. Proven twice: rule tests against controlled definitions, and six tests running the real archive through the production registration. |
-| RQ-002 | met | `CharacterEntryService.EnterAsync` populates content before `activeCharacters.Publish`. Every failure test asserts the previously published character survives. |
-| RQ-003 | met | Spawn comes from the town source. `An_ordinary_arrival_resolves_against_the_real_archive` resolves town 1's gate to 474, 234 from the archive. |
-| RQ-004 | met | Absent town, absent gate, absent map, wrong area kind and no walkable neighbour each fail explicitly, and each names its input. |
-| RQ-005 | met | The handler resolves the channel from the listener before dispatch; the command carries it. |
-| RQ-006 | met | Refusal carries error code `0xFD` and the legacy message, and `CharacterEntry_RefusedByTheChannelPublishesNothing` asserts the previously published character is untouched. |
-| RQ-007 | met | Contrasting-channel tests cover transience, persistence, town-entry permission and duelling applicability. |
-| RQ-008 | withdrawn | See the Spec. The overlay it required does not exist in the legacy code. |
-| RQ-009 | met | Populated, empty, wrong-area and wrong-listener tests, plus self-exclusion and stable ordering. |
-| RQ-010 | met | Applicable-and-empty is distinct from inapplicable; unpublished rooms and other listeners are excluded. |
-| RQ-011 | met | Five distinct outcomes each have a test; `Consulting_the_registry_twice_leaves_it_unchanged` and `An_expired_run_is_still_recorded_after_being_reported_expired` prove the read does not write. |
-| RQ-012 | met | Own-store and someone-else's-store are distinguished. |
-| RQ-013 | met | `RegistryExistenceTests` resolves the production graph, consults all four views with nothing written, and proves a write is visible to the next read. |
-| RQ-014 | met | The coverage record classifies every listed row; reflection guards fail if a member is ever named after an unconfirmed slot or a protocol constant. |
-| RQ-015 | met | One failure test per required source class added here, each asserting nothing was published. |
-| RQ-016 | met | `Pvf` appears zero times in Abstractions, Application, Networking and Data. Only the infrastructure project references the format library. |
-| RQ-017 | met | World and session state are siblings on `SelectCharacterResult`, not fields of `ActiveCharacterState`. |
-
-## Deviations from the plan, and why
-
-- **Registries live in Application, not Infrastructure.** The plan placed them under
-  `Dfo.Server.Infrastructure/Sessions/`. The branch's own precedent is the opposite: the
-  accepted online-user and active-character registries are in Application, in `UserService`.
-  They hold no external technology. Following the plan here would have created a second,
-  contradictory convention.
-- **Test construction moved behind a factory.** The entry service reached ten constructor
-  parameters, and each new limb was breaking seven call sites. `EntryServices.Create`
-  defaults the collaborators a test is not about.
-- **Application's test project now references Infrastructure.** Without it the archive-to-rule
-  path could only be tested with a stub on each side, which is the gap that let the previous
-  attempt look complete. The Networking test project already pairs these references.
-
-## Observations not fixed
-
-- **`CharacterEntryService` takes ten constructor dependencies** and is now essentially a
-  composition script. It is coherent and each dependency is used exactly once, but it is at
-  the point where a further limb should prompt a split rather than an eleventh parameter.
-  Left alone because restructuring it is not this attempt's outcome.
-- **Overflow on malformed content is an `OverflowException`, not the task's own failure
-  type.** A town identifier or gate coordinate outside `byte`/`short` would surface as a
-  checked-arithmetic failure rather than `EntryPlacementUnavailableException`. Both fail
-  before publication, so no fabricated state escapes; only the message is less specific. No
-  town in the archive triggers it.
-- **The wire participant identifier is absent from the ownership check** on returning to a
-  dungeon, because this layer has no such identifier. Recorded in the coverage document.
-
-## Behaviour preservation
-
-The accepted G1 through G4 slices are untouched apart from `SelectCharacterResult` gaining
-content in two limbs that previously held placeholders, and `EnterAsync` gaining the channel
-it enters on. Their tests pass unchanged. The account-exclusive registration of
-`SelectCharacterCommand` is unchanged, and the command's new member is a record parameter,
-so the typed dispatch constraints added by the previous task still bind it at compile time.
+- No packet capture. Every protocol claim is code-reversed.
+- The offered quest list remains narrower than the legacy rule, by the amount tabulated in
+  the coverage document.
+- The four runtime views stay empty on the production path until the lifecycle writes to
+  them.

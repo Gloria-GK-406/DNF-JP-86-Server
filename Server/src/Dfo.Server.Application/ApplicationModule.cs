@@ -70,6 +70,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IChannelEntryPolicy, ChannelEntryPolicy>();
         services.TryAddSingleton<IEntryPlacementService, EntryPlacementService>();
         services.TryAddSingleton<ISessionPresenceRegistry, SessionPresenceRegistry>();
+        services.TryAddSingleton<IExpertStoreRegistry, ExpertStoreRegistry>();
         services.TryAddSingleton<IPvpLobbyRegistry, PvpLobbyRegistry>();
         services.TryAddSingleton<IDungeonRejoinRegistry, DungeonRejoinRegistry>();
         services.TryAddSingleton<ISessionAdjacentEntryService, SessionAdjacentEntryService>();

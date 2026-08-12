@@ -9,6 +9,8 @@ namespace Dfo.Server.Application.Tests.Sessions;
 
 public sealed class DungeonRejoinEntryTests
 {
+    private static readonly ExpertStoreRegistry Stores = new();
+
     private static readonly DateTimeOffset Now = new(2026, 8, 12, 0, 0, 0, TimeSpan.Zero);
 
     [Fact]
@@ -49,6 +51,9 @@ public sealed class DungeonRejoinEntryTests
         var result = await Service(registry).LoadAsync(Subject(), CancellationToken.None);
 
         Assert.Equal(DungeonRejoinOutcome.IdentityMismatch, result.DungeonRejoin.Outcome);
+        // A refusal must not hand out the other account's party or its members.
+        Assert.Equal(0, result.DungeonRejoin.PartyId);
+        Assert.Empty(result.DungeonRejoin.ParticipantUserIds);
     }
 
     [Fact]
@@ -80,7 +85,7 @@ public sealed class DungeonRejoinEntryTests
     public async Task A_run_whose_window_has_passed_is_reported_as_expired()
     {
         var registry = new DungeonRejoinRegistry();
-        registry.Attach(Attachment() with { ExpiresAt = Now.AddSeconds(-1) });
+        registry.Attach(Attachment() with { IdleExpiresAt = Now.AddSeconds(-1) });
 
         var result = await Service(registry).LoadAsync(Subject(), CancellationToken.None);
 
@@ -114,11 +119,32 @@ public sealed class DungeonRejoinEntryTests
     public async Task An_expired_run_is_still_recorded_after_being_reported_expired()
     {
         var registry = new DungeonRejoinRegistry();
-        registry.Attach(Attachment() with { ExpiresAt = Now.AddSeconds(-1) });
+        registry.Attach(Attachment() with { IdleExpiresAt = Now.AddSeconds(-1) });
 
         await Service(registry).LoadAsync(Subject(), CancellationToken.None);
 
         Assert.NotNull(registry.Find(new CharacterId(99)));
+    }
+
+    /// <remarks>
+    /// The legacy registry keeps two deadlines and treats whichever comes first as the
+    /// limit. Carrying only the idle one would let a run that has long outlived its hard
+    /// limit keep reading as available, because touching the run pushes the idle deadline
+    /// forward indefinitely.
+    /// </remarks>
+    [Fact]
+    public async Task A_run_past_its_hard_limit_is_expired_even_with_idle_time_left()
+    {
+        var registry = new DungeonRejoinRegistry();
+        registry.Attach(Attachment() with
+        {
+            IdleExpiresAt = Now.AddMinutes(5),
+            HardExpiresAt = Now.AddSeconds(-1),
+        });
+
+        var result = await Service(registry).LoadAsync(Subject(), CancellationToken.None);
+
+        Assert.Equal(DungeonRejoinOutcome.Expired, result.DungeonRejoin.Outcome);
     }
 
     [Fact]
@@ -134,6 +160,7 @@ public sealed class DungeonRejoinEntryTests
 
     private static SessionAdjacentEntryService Service(IDungeonRejoinRegistry rejoin) =>
         new(new SessionPresenceRegistry(),
+            Stores,
             new PvpLobbyRegistry(),
             rejoin,
             new FixedTime(Now));
@@ -157,5 +184,6 @@ public sealed class DungeonRejoinEntryTests
         PartyId: 42,
         ParticipantUserIds: [7, 8],
         IsDetached: true,
-        ExpiresAt: Now.AddMinutes(5));
+        IdleExpiresAt: Now.AddMinutes(5),
+        HardExpiresAt: Now.AddHours(1));
 }

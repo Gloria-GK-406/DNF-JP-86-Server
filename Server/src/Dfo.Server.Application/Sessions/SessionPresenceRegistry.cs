@@ -28,17 +28,22 @@ internal sealed class SessionPresenceRegistry : ISessionPresenceRegistry
         _byCharacter.TryGetValue(characterId, out var presence) ? presence : null;
 
     public IReadOnlyList<SessionPresence> InArea(
-        int listenerPort,
         byte townId,
         byte areaId,
-        CharacterId excluding)
+        CharacterId excluding,
+        int? listenerPort = null)
     {
         var occupants = new List<SessionPresence>();
         foreach (var presence in _byCharacter.Values)
         {
             if (presence.CharacterId == excluding)
                 continue;
-            if (presence.ListenerPort != listenerPort)
+            // A record whose owner is no longer standing there still holds their last
+            // coordinates. Reporting them would place someone in a dungeon next to the
+            // arriving character.
+            if (!presence.StandingInTown)
+                continue;
+            if (listenerPort is { } port && presence.ListenerPort != port)
                 continue;
             if (presence.TownId != townId || presence.AreaId != areaId)
                 continue;

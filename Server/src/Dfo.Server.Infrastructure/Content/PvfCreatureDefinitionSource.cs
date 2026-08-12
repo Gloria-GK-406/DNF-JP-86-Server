@@ -17,6 +17,10 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
     private const string ListPath = "creature/creature.lst";
     private const string CreatureDirectory = "creature";
     private const string ScriptDirectory = "creature/script";
+    private const string EquipmentListPath = "equipment/equipment.lst";
+    private const string EquipmentDirectory = "equipment";
+    private const string CreatureEquipmentPrefix = "creature/";
+    private const string CreatureEquipmentType = "[creature]";
 
     private readonly PvfArchiveProvider _provider;
     private readonly Lock _gate = new();
@@ -36,6 +40,18 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
         return ValueTask.FromResult(Load().ById.GetValueOrDefault(creatureId));
     }
 
+    public ValueTask<CreatureDefinition?> FindByEquipmentAsync(
+        int itemTemplateId,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var catalog = Load();
+        return ValueTask.FromResult(
+            catalog.CreatureIdByEquipment.TryGetValue(itemTemplateId, out var creatureId)
+                ? catalog.ById.GetValueOrDefault(creatureId)
+                : null);
+    }
+
     private Catalog Load()
     {
         if (_catalog is not null)
@@ -50,6 +66,7 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
         var tags = new CreatureTags(archive);
         var ordered = new List<CreatureDefinition>();
         var byId = new Dictionary<int, CreatureDefinition>();
+        var creatureIdByStem = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var (creatureId, relativePath) in PvfListFile.Read(archive, ListPath))
         {
@@ -61,12 +78,95 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
             var definition = Project(archive, tags, creatureId, fileIndex, ambient);
             ordered.Add(definition);
             byId.TryAdd(creatureId, definition);
+
+            // File names are not unique across the list — 408 entries share 332 stems — and
+            // the legacy index keeps the first. Keeping the last instead would silently
+            // reassign creatures whose name repeats.
+            var stem = StemOf(relativePath);
+            if (stem.Length > 0)
+                creatureIdByStem.TryAdd(stem, creatureId);
         }
 
         if (ordered.Count == 0)
             throw new InvalidOperationException($"{ListPath} yielded no creature definitions.");
 
-        return new Catalog(ordered, byId);
+        return new Catalog(ordered, byId, BuildEquipmentIndex(archive, tags, creatureIdByStem));
+    }
+
+    /// <summary>
+    /// Maps each creature-equipment identifier onto the creature it denotes.
+    /// </summary>
+    /// <remarks>
+    /// The two identifier spaces are disjoint, so this hop is the only thing that turns an
+    /// equipped item into a creature. The equipment list names a file; that file's name
+    /// matches a creature list entry. Both the directory and the declared equipment type
+    /// are checked, because the directory alone admits equipment that merely lives beside
+    /// creatures.
+    /// </remarks>
+    private static Dictionary<int, int> BuildEquipmentIndex(
+        PvfArchive archive,
+        CreatureTags tags,
+        Dictionary<string, int> creatureIdByStem)
+    {
+        var index = new Dictionary<int, int>();
+        var listIndex = archive.FindFile(EquipmentListPath);
+        if (listIndex < 0)
+            return index;
+
+        foreach (var (itemTemplateId, relativePath) in PvfListFile.Read(archive, EquipmentListPath))
+        {
+            if (!relativePath.StartsWith(CreatureEquipmentPrefix, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var stem = StemOf(relativePath);
+            if (stem.Length == 0 || !creatureIdByStem.TryGetValue(stem, out var creatureId))
+                continue;
+
+            var fileIndex = archive.FindFile($"{EquipmentDirectory}/{relativePath}");
+            if (fileIndex < 0 || !DeclaresCreatureType(archive, tags, fileIndex))
+                continue;
+
+            index.TryAdd(itemTemplateId, creatureId);
+        }
+
+        return index;
+    }
+
+    private static bool DeclaresCreatureType(PvfArchive archive, CreatureTags tags, int fileIndex)
+    {
+        if (!tags.EquipmentType.IsResolved)
+            return false;
+
+        var reader = archive.OpenScript(fileIndex);
+        var inEquipmentType = false;
+
+        while (reader.Read(out var token))
+        {
+            if (token.Kind == PvfTokenKind.Identifier)
+            {
+                inEquipmentType = token.Value == tags.EquipmentType.Offset;
+                continue;
+            }
+
+            if (inEquipmentType
+                && token.IsString
+                && archive.ResolveString(token.Value)
+                    .Contains(CreatureEquipmentType, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string StemOf(string relativePath)
+    {
+        var normalized = relativePath.Replace('\\', '/');
+        var lastSlash = normalized.LastIndexOf('/');
+        var name = lastSlash >= 0 ? normalized[(lastSlash + 1)..] : normalized;
+        var lastDot = name.LastIndexOf('.');
+        return lastDot > 0 ? name[..lastDot] : name;
     }
 
     private static CreatureDefinition Project(
@@ -185,6 +285,7 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
             EvolutionQuest = archive.GetTag("[evolution quest]").Offset;
             EvolutionCreatureId = archive.GetTag("[evolution creature id]").Offset;
             Ambient = archive.GetTag("[ambient]").Offset;
+            EquipmentType = archive.GetTag("[equipment type]");
             RoomList = archive.GetTag("[room list]").Offset;
         }
 
@@ -197,6 +298,7 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
         public int EvolutionQuest { get; }
         public int EvolutionCreatureId { get; }
         public int Ambient { get; }
+        public TagRef EquipmentType { get; }
         public int RoomList { get; }
 
         public bool HasAmbientTags => Ambient >= 0 && RoomList >= 0;
@@ -204,5 +306,6 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
 
     private sealed record Catalog(
         IReadOnlyList<CreatureDefinition> Ordered,
-        Dictionary<int, CreatureDefinition> ById);
+        Dictionary<int, CreatureDefinition> ById,
+        Dictionary<int, int> CreatureIdByEquipment);
 }

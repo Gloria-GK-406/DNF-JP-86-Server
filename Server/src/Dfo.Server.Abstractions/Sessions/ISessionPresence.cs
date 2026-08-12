@@ -5,13 +5,24 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Abstractions.Sessions;
 
-/// <summary>Where a character currently is, and what they currently have open.</summary>
+/// <summary>Where a character currently is.</summary>
+/// <param name="StandingInTown">
+/// Whether the character is actually standing where this record says.
+/// </param>
+/// <remarks>
+/// The distinction in <paramref name="StandingInTown"/> matters more than it looks. A
+/// character who walks into a dungeon keeps their last town coordinates, and the legacy
+/// directory excludes them for exactly that reason — its own comment calls those fields
+/// leftovers from before they entered. It covers the legacy conjunction: the character has
+/// finished arriving, is not inside a dungeon, carries no blocking state, and their
+/// connection is still up. The lifecycle that admits them owns keeping it true.
+/// </remarks>
 public sealed record SessionPresence(
     CharacterId CharacterId,
     int ListenerPort,
     byte TownId,
     byte AreaId,
-    bool HasOpenExpertStore);
+    bool StandingInTown);
 
 /// <summary>
 /// The server's record of who is present and where.
@@ -37,17 +48,39 @@ public interface ISessionPresenceRegistry
     SessionPresence? Find(CharacterId characterId);
 
     /// <summary>
-    /// Everyone else on the same listener and in the same area.
+    /// Everyone else standing in the same area.
     /// </summary>
-    /// <remarks>
-    /// Scoped by listener as well as area because two channels can both have a town 1
-    /// area 0, and their occupants cannot see each other.
-    /// </remarks>
+    /// <param name="listenerPort">
+    /// Restricts the answer to one listener. Null spans every listener, which is what the
+    /// legacy town-presence path does — its directory takes the port as an optional filter
+    /// and the caller that announces arrivals and departures supplies none.
+    /// </param>
     IReadOnlyList<SessionPresence> InArea(
-        int listenerPort,
         byte townId,
         byte areaId,
-        CharacterId excluding);
+        CharacterId excluding,
+        int? listenerPort = null);
+}
+
+/// <summary>
+/// The server's record of which characters have an expert store standing open.
+/// </summary>
+/// <remarks>
+/// Deliberately separate from presence. A store outlives the moment its owner is standing
+/// somewhere, and the legacy runtime keeps it in its own registry keyed by owner; reading
+/// it off a presence record would answer "no store" for anyone the presence registry has
+/// not yet admitted — including, at composition time, the character entering.
+/// </remarks>
+public interface IExpertStoreRegistry
+{
+    /// <summary>Records that a character has a store open.</summary>
+    void Open(CharacterId ownerCharacterId);
+
+    /// <summary>Records that a character's store is closed. False when none was open.</summary>
+    bool Close(CharacterId ownerCharacterId);
+
+    /// <summary>Whether this character has a store standing open.</summary>
+    bool HasOpenStore(CharacterId ownerCharacterId);
 }
 
 /// <summary>A character who has signalled they are ready in the duelling lobby.</summary>
@@ -105,14 +138,27 @@ public interface IPvpLobbyRegistry
 /// Whether the run is currently running without them. A run they are still attached to is
 /// not something to return to.
 /// </param>
-/// <param name="ExpiresAt">When the chance to return lapses.</param>
+/// <param name="IdleExpiresAt">
+/// When the chance to return lapses through inactivity. The legacy registry pushes this
+/// forward each time the run is touched.
+/// </param>
+/// <param name="HardExpiresAt">
+/// When the chance to return lapses outright, however active the run has been. The legacy
+/// registry keeps both and treats whichever comes first as the deadline; carrying only the
+/// idle one would let a run that has long outlived its hard limit still read as available.
+/// </param>
 public sealed record DungeonAttachment(
     CharacterId CharacterId,
     AccountId AccountId,
     int PartyId,
     IReadOnlyList<ushort> ParticipantUserIds,
     bool IsDetached,
-    DateTimeOffset ExpiresAt);
+    DateTimeOffset IdleExpiresAt,
+    DateTimeOffset HardExpiresAt)
+{
+    /// <summary>The moment the run stops being returnable, whichever limit arrives first.</summary>
+    public DateTimeOffset ExpiresAt => IdleExpiresAt <= HardExpiresAt ? IdleExpiresAt : HardExpiresAt;
+}
 
 /// <summary>
 /// The server's record of interrupted dungeon runs.

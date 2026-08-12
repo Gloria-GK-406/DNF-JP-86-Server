@@ -7,7 +7,7 @@ state: completed
 
 G5 is implemented. The selection result's world and session-adjacent limbs, which held a
 timestamp and an identity pair, now carry the content answers, entry policy and runtime
-views the migration matrix assigns to that group. **322 passed, 2 skipped, 0 failed, 0
+views the migration matrix assigns to that group. **348 passed, 2 skipped, 0 failed, 0
 warnings**, from a baseline of 204 passed.
 
 ## What was delivered
@@ -54,21 +54,36 @@ a contradictory second convention.
 
 ## Defects the work surfaced
 
-Three were real bugs in code written here, each producing a plausible wrong answer rather
-than a failure:
+Every one produced a plausible answer rather than a failure, which is why they needed
+finding rather than debugging.
 
-1. **A minimap rectangle read as spawn coordinates.** The area kind arrives as a quoted
-   value, and a four-integer presentation block sits before it. Gates parsed to (45, 188)
-   instead of (474, 234). Nothing downstream would have flagged it.
-2. **The transient arrival read any area's map.** The area kind was not checked, so pointing
-   the configuration at an ordinary area would still have produced a coordinate.
-3. **The lobby view invented a location.** Reusing the presence record forced a town and
-   area onto participants who have neither, defaulting to zero — a real town and a real
-   area. Fixed by giving the lobby its own record, making the fabrication unrepresentable.
+Found by the self-review:
 
-Two test assertions were mine, not the code's: 58 of 151 town areas are legitimately
-unrecognised, and 6 of 25 towns declare no gate. The second makes the explicit-failure path
-genuinely reachable rather than theoretical.
+1. **A minimap rectangle read as spawn coordinates.** Gates parsed to (45, 188) instead of
+   (474, 234).
+2. **The transient arrival read any area's map**, without checking the area leads out of
+   town.
+3. **The lobby view invented a location** for participants, defaulting to town 0 area 0 —
+   both real values. Fixed by giving the lobby a record with no location to fill in.
+
+Found by the independent reviewer, after the self-review had approved:
+
+4. **The pet welcome could never fire.** Equipment and creature identifiers are disjoint —
+   zero values in common — and the equipped item was handed straight to the creature lookup.
+   No test could have caught it: every pet test injected a creature identifier and skipped
+   the failing step.
+5. **Area kinds were read by position**, so modifier markers were taken as kinds and their
+   numbers as spawn operands. 54 of 151 areas misclassified. The completion evidence had
+   already recorded that number as a property of the archive.
+6. **Repeatable quests were retired after one completion**, and no grade whitelist was
+   applied, so quests the legacy server never offers were being offered.
+7. **Town presence filtered by listener where legacy does not**, and omitted the condition
+   that keeps characters who have walked into a dungeon off the list.
+8. **The expert store was read off a presence record the entering character does not have**,
+   so it always answered false.
+
+One test assertion was mine, not the code's: 6 of 25 towns declare no gate, which makes the
+explicit-failure path genuinely reachable.
 
 ## What this does not deliver
 
@@ -77,9 +92,12 @@ genuinely reachable rather than theoretical.
   and is distinguished from the previous attempt's emptiness, which had no registry behind
   it. Proven by resolving the production graph and by showing a write is visible to the next
   read.
-- **The review was not independent.** The prior task used a fresh reviewer, which caught a
-  defect the implementer had missed. That assurance is absent here and the verdict should be
-  read with that discount.
+- **The offered quest list stays narrower than the legacy rule.** Nine filters need content
+  the accepted source does not carry, including the pet-evolution eligibility matrix row 12
+  names as an input. Tabulated in the coverage document.
+- **The self-review was not a substitute for an independent one.** It approved a change with
+  two blocking defects in it. Worth carrying forward as a fact about the process, not just
+  this change.
 - **`CharacterEntryService` now takes ten constructor dependencies.** Coherent, each used
   once, but at the point where a further limb should prompt a split.
 - **No packet capture.** Every protocol claim is reversed from the legacy code.

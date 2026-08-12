@@ -49,4 +49,20 @@ public interface ICreatureDefinitionSource
 
     /// <summary>One creature, or null when the content does not define it.</summary>
     ValueTask<CreatureDefinition?> GetAsync(int creatureId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The creature a piece of equipment denotes, or null when it denotes none.
+    /// </summary>
+    /// <remarks>
+    /// Equipment and creatures are numbered in disjoint spaces — the creature list runs to
+    /// about twenty thousand, creature equipment starts above sixty-three thousand, and no
+    /// identifier appears in both. An equipped creature is therefore an equipment
+    /// identifier, and turning it into a creature means going through the equipment
+    /// definition and matching on the file it names, exactly as the legacy resolver does.
+    /// Passing an equipment identifier to <see cref="GetAsync"/> silently finds nothing.
+    /// </remarks>
+    /// <param name="itemTemplateId">The equipment identifier held in the creature slot.</param>
+    ValueTask<CreatureDefinition?> FindByEquipmentAsync(
+        int itemTemplateId,
+        CancellationToken cancellationToken);
 }

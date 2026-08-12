@@ -14,9 +14,11 @@ public sealed record CollectionBoxProgressSubject(int BoxIndex, IReadOnlyCollect
 /// catalogs. It deliberately names no storage and no archive concept: it is the question,
 /// expressed in domain terms.
 /// </remarks>
-/// <param name="EquippedCreatureId">
-/// The creature the character has equipped, or zero when none is. Zero is not an error; it
-/// is why the welcome is absent rather than empty.
+/// <param name="EquippedCreatureItemId">
+/// The equipment identifier sitting in the character's creature slot, or zero when the slot
+/// is empty. This is an <em>equipment</em> identifier, not a creature one: the two spaces
+/// are disjoint, and reading it as a creature identifier finds nothing at all. Zero is not
+/// an error; it is why the welcome is absent rather than empty.
 /// </param>
 public sealed record WorldContentSubject(
     int Level,
@@ -25,7 +27,7 @@ public sealed record WorldContentSubject(
     IReadOnlyCollection<int> ClearedQuestIds,
     IReadOnlyCollection<int> ClaimedDailyChallengeGroupIds,
     IReadOnlyList<CollectionBoxProgressSubject> CollectionBoxes,
-    int EquippedCreatureId);
+    int EquippedCreatureItemId);
 
 /// <summary>
 /// Resolves the static content of a character's entry into answers that need no further

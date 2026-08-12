@@ -41,7 +41,12 @@ internal sealed class WorldContentEntryService(
 
         foreach (var quest in catalog)
         {
-            if (subject.ClearedQuestIds.Contains(quest.QuestId))
+            if (!IsOfferableGrade(quest.Grade))
+                continue;
+            // A repeatable quest is offered again once cleared; that is what repeatable
+            // means. Excluding every cleared quest would retire the dailies permanently
+            // after their first completion.
+            if (!IsRepeatable(quest.Grade) && subject.ClearedQuestIds.Contains(quest.QuestId))
                 continue;
             if (!quest.RequiredLevel.Includes(subject.Level))
                 continue;
@@ -55,6 +60,45 @@ internal sealed class WorldContentEntryService(
 
         return new AvailableQuestEntryState(offerable);
     }
+
+    /// <summary>
+    /// Whether the content's classification of a quest makes it offerable at all.
+    /// </summary>
+    /// <remarks>
+    /// Reverse-engineered from the legacy quest index's selectable-grade list. The grades
+    /// left out — cracks, challenges, titles, schedules, urgent, wedding and village-attack
+    /// revenge — are reached some other way, and offering them in the entry list would put
+    /// quests in front of characters the legacy server never shows them to.
+    /// <para>
+    /// <see cref="QuestGrade.Unrecognized"/> is offerable because the legacy list admits a
+    /// quest that states no grade, and in this archive that is the only thing it can mean:
+    /// the content source's own vocabulary test fails if the archive ever yields a grade
+    /// token the enumeration does not model. Were that test to start failing, this
+    /// treatment would have to be revisited before the enumeration is widened.
+    /// </para>
+    /// </remarks>
+    private static bool IsOfferableGrade(QuestGrade grade) => grade is
+        QuestGrade.Unrecognized
+        or QuestGrade.Side
+        or QuestGrade.Sub
+        or QuestGrade.Epic
+        or QuestGrade.Achievement
+        or QuestGrade.CommonUnique
+        or QuestGrade.System
+        or QuestGrade.Daily
+        or QuestGrade.DailyRandom
+        or QuestGrade.NormallyRepeat
+        or QuestGrade.SpecialDaily;
+
+    /// <remarks>
+    /// The legacy exemption names three grades. A random daily is <em>not</em> among them,
+    /// even though it is offerable, so it is excluded here too rather than grouped with the
+    /// other dailies on the strength of its name.
+    /// </remarks>
+    private static bool IsRepeatable(QuestGrade grade) => grade is
+        QuestGrade.Daily
+        or QuestGrade.NormallyRepeat
+        or QuestGrade.SpecialDaily;
 
     /// <summary>
     /// Maps a character's job number onto the job family the content names.
@@ -179,11 +223,14 @@ internal sealed class WorldContentEntryService(
         WorldContentSubject subject,
         CancellationToken cancellationToken)
     {
-        if (subject.EquippedCreatureId <= 0)
+        if (subject.EquippedCreatureItemId <= 0)
             return null;
 
+        // Resolved through the equipment hop, not by identifier. An equipped creature is an
+        // equipment identifier and the two numbering spaces do not overlap, so looking it up
+        // as a creature would find nothing and read as "this character has no pet".
         var creature = await creatures
-            .GetAsync(subject.EquippedCreatureId, cancellationToken)
+            .FindByEquipmentAsync(subject.EquippedCreatureItemId, cancellationToken)
             .ConfigureAwait(false);
 
         // No creature and a creature with no script are the same outcome for the consumer:

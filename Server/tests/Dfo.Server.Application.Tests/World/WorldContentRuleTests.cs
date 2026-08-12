@@ -29,6 +29,77 @@ public sealed class WorldContentRuleTests
         Assert.Equal([1, 3], result.AvailableQuests.Quests.Select(quest => quest.QuestId));
     }
 
+    /// <remarks>
+    /// A repeatable quest is offered again after it is cleared; that is what makes it
+    /// repeatable. Excluding every cleared quest retires the dailies permanently after one
+    /// completion, and the character simply stops being offered them with no error anywhere.
+    /// </remarks>
+    [Theory]
+    [InlineData(QuestGrade.Daily)]
+    [InlineData(QuestGrade.NormallyRepeat)]
+    [InlineData(QuestGrade.SpecialDaily)]
+    public async Task A_repeatable_quest_is_offered_again_once_cleared(QuestGrade grade)
+    {
+        var service = Service(quests: [Quest(1, grade: grade)]);
+
+        var result = await service.LoadAsync(Subject(clearedQuestIds: [1]), CancellationToken.None);
+
+        Assert.Equal([1], result.AvailableQuests.Quests.Select(quest => quest.QuestId));
+    }
+
+    /// <remarks>
+    /// The legacy exemption names three grades and a random daily is not one of them, so it
+    /// follows the ordinary cleared rule despite reading like a daily.
+    /// </remarks>
+    [Fact]
+    public async Task A_random_daily_is_not_treated_as_repeatable()
+    {
+        var service = Service(quests: [Quest(1, grade: QuestGrade.DailyRandom)]);
+
+        var result = await service.LoadAsync(Subject(clearedQuestIds: [1]), CancellationToken.None);
+
+        Assert.Empty(result.AvailableQuests.Quests);
+    }
+
+    /// <remarks>
+    /// The content classifies quests that the entry list never carries — cracks, challenges,
+    /// titles and the like are reached some other way. Offering them puts quests in front of
+    /// a character the legacy server never shows them to.
+    /// </remarks>
+    [Theory]
+    [InlineData(QuestGrade.Crack)]
+    [InlineData(QuestGrade.Challenge)]
+    [InlineData(QuestGrade.Title)]
+    [InlineData(QuestGrade.Schedule)]
+    [InlineData(QuestGrade.Urgent)]
+    [InlineData(QuestGrade.Wedding)]
+    [InlineData(QuestGrade.VillageAttackRevenge)]
+    public async Task A_grade_the_entry_list_never_carries_is_not_offered(QuestGrade grade)
+    {
+        var service = Service(quests: [Quest(1, grade: grade), Quest(2, grade: QuestGrade.Side)]);
+
+        var result = await service.LoadAsync(Subject(), CancellationToken.None);
+
+        Assert.Equal([2], result.AvailableQuests.Quests.Select(quest => quest.QuestId));
+    }
+
+    [Theory]
+    [InlineData(QuestGrade.Unrecognized)]
+    [InlineData(QuestGrade.Side)]
+    [InlineData(QuestGrade.Sub)]
+    [InlineData(QuestGrade.Epic)]
+    [InlineData(QuestGrade.Achievement)]
+    [InlineData(QuestGrade.CommonUnique)]
+    [InlineData(QuestGrade.System)]
+    public async Task A_grade_the_entry_list_carries_is_offered(QuestGrade grade)
+    {
+        var service = Service(quests: [Quest(1, grade: grade)]);
+
+        var result = await service.LoadAsync(Subject(), CancellationToken.None);
+
+        Assert.Equal([1], result.AvailableQuests.Quests.Select(quest => quest.QuestId));
+    }
+
     [Fact]
     public async Task Available_quests_respect_the_level_band()
     {
@@ -241,13 +312,26 @@ public sealed class WorldContentRuleTests
         Assert.Single(box.Cells);
     }
 
+    /// <remarks>
+    /// Equipment and creature identifiers are disjoint in the archive — the creature list
+    /// tops out near twenty thousand and creature equipment starts above sixty-three
+    /// thousand, with no overlap at all. Every case below therefore equips an item
+    /// identifier, because that is what the inventory holds, and an implementation that
+    /// looked it up as a creature identifier would report "no pet" for everyone.
+    /// </remarks>
+    private const int FarasItem = 63000;
+    private const int SilentItem = 63001;
+    private const int UnlistedItem = 63999;
+
     [Fact]
-    public async Task No_equipped_creature_means_no_welcome_rather_than_an_empty_one()
+    public async Task An_empty_creature_slot_means_no_welcome_rather_than_an_empty_one()
     {
-        var service = Service(creatures: [Creature(10, ["hello"])]);
+        var service = Service(
+            creatures: [Creature(10, ["hello"])],
+            creatureIdByEquipment: new Dictionary<int, int> { [FarasItem] = 10 });
 
         var result = await service.LoadAsync(
-            Subject(equippedCreatureId: 0),
+            Subject(equippedCreatureItemId: 0),
             CancellationToken.None);
 
         Assert.Null(result.PetWelcome);
@@ -256,34 +340,46 @@ public sealed class WorldContentRuleTests
     [Fact]
     public async Task An_equipped_creature_with_no_script_means_no_welcome()
     {
-        var service = Service(creatures: [Creature(10, [])]);
+        var service = Service(
+            creatures: [Creature(10, [])],
+            creatureIdByEquipment: new Dictionary<int, int> { [SilentItem] = 10 });
 
         var result = await service.LoadAsync(
-            Subject(equippedCreatureId: 10),
+            Subject(equippedCreatureItemId: SilentItem),
             CancellationToken.None);
 
         Assert.Null(result.PetWelcome);
     }
 
     [Fact]
-    public async Task An_equipped_creature_the_content_does_not_define_means_no_welcome()
+    public async Task An_equipped_item_that_denotes_no_creature_means_no_welcome()
     {
-        var service = Service(creatures: [Creature(10, ["hello"])]);
+        var service = Service(
+            creatures: [Creature(10, ["hello"])],
+            creatureIdByEquipment: new Dictionary<int, int> { [FarasItem] = 10 });
 
         var result = await service.LoadAsync(
-            Subject(equippedCreatureId: 999),
+            Subject(equippedCreatureItemId: UnlistedItem),
             CancellationToken.None);
 
         Assert.Null(result.PetWelcome);
     }
 
+    /// <remarks>
+    /// The regression this pins: an implementation that passes the equipped item straight to
+    /// the creature lookup finds nothing, and the nothing is indistinguishable from an
+    /// ordinary character with no pet. Equipping item 63000 while creature 10 exists would
+    /// pass under that implementation only if the test also confused the two spaces.
+    /// </remarks>
     [Fact]
-    public async Task An_equipped_creature_with_a_script_carries_its_lines()
+    public async Task An_equipped_creature_item_resolves_through_the_equipment_hop_to_its_lines()
     {
-        var service = Service(creatures: [Creature(10, ["hello", "again"])]);
+        var service = Service(
+            creatures: [Creature(10, ["hello", "again"])],
+            creatureIdByEquipment: new Dictionary<int, int> { [FarasItem] = 10 });
 
         var result = await service.LoadAsync(
-            Subject(equippedCreatureId: 10),
+            Subject(equippedCreatureItemId: FarasItem),
             CancellationToken.None);
 
         Assert.NotNull(result.PetWelcome);
@@ -292,15 +388,32 @@ public sealed class WorldContentRuleTests
         Assert.Equal(["hello", "again"], welcome.Lines);
     }
 
+    [Fact]
+    public async Task An_equipped_item_is_never_read_as_a_creature_identifier()
+    {
+        // Creature 63000 exists, and item 63000 denotes creature 10. Reading the item as a
+        // creature identifier would return creature 63000's lines instead of creature 10's.
+        var service = Service(
+            creatures: [Creature(10, ["correct"]), Creature(FarasItem, ["wrong"])],
+            creatureIdByEquipment: new Dictionary<int, int> { [FarasItem] = 10 });
+
+        var result = await service.LoadAsync(
+            Subject(equippedCreatureItemId: FarasItem),
+            CancellationToken.None);
+
+        Assert.Equal(["correct"], result.PetWelcome!.Lines);
+    }
+
     private static WorldContentEntryService Service(
         IReadOnlyList<QuestDefinition>? quests = null,
         IReadOnlyList<DailyActivityGroupDefinition>? dailyActivities = null,
         IReadOnlyList<CollectionBoxDefinition>? collectionBoxes = null,
-        IReadOnlyList<CreatureDefinition>? creatures = null) =>
+        IReadOnlyList<CreatureDefinition>? creatures = null,
+        IReadOnlyDictionary<int, int>? creatureIdByEquipment = null) =>
         new(new StubQuestSource(quests ?? []),
             new StubDailyActivitySource(dailyActivities ?? []),
             new StubCollectionBoxSource(collectionBoxes ?? []),
-            new StubCreatureSource(creatures ?? []));
+            new StubCreatureSource(creatures ?? [], creatureIdByEquipment));
 
     private static WorldContentSubject Subject(
         int level = 1,
@@ -309,23 +422,24 @@ public sealed class WorldContentRuleTests
         IReadOnlyCollection<int>? clearedQuestIds = null,
         IReadOnlyCollection<int>? claimedDailyChallengeGroupIds = null,
         IReadOnlyList<CollectionBoxProgressSubject>? collectionBoxes = null,
-        int equippedCreatureId = 0) =>
+        int equippedCreatureItemId = 0) =>
         new(level,
             job,
             growType,
             clearedQuestIds ?? [],
             claimedDailyChallengeGroupIds ?? [],
             collectionBoxes ?? [],
-            equippedCreatureId);
+            equippedCreatureItemId);
 
     private static QuestDefinition Quest(
         int questId,
         LevelRange? level = null,
         QuestJobRequirement job = QuestJobRequirement.Any,
-        int growType = QuestDefinition.AnyGrowType) =>
+        int growType = QuestDefinition.AnyGrowType,
+        QuestGrade grade = QuestGrade.Side) =>
         new(questId,
             $"quest-{questId}",
-            QuestGrade.Side,
+            grade,
             job,
             level ?? LevelRange.Any,
             growType,
@@ -381,13 +495,29 @@ public sealed class WorldContentRuleTests
             ValueTask.FromResult(boxes.FirstOrDefault(box => box.BoxIndex == boxIndex));
     }
 
-    private sealed class StubCreatureSource(IReadOnlyList<CreatureDefinition> creatures)
-        : ICreatureDefinitionSource
+    /// <remarks>
+    /// The equipment index is kept deliberately separate from the creature identifiers, and
+    /// the two use disjoint number ranges, mirroring the archive. A stub that resolved
+    /// equipment by creature identifier would let the id-space confusion this models pass
+    /// unnoticed.
+    /// </remarks>
+    private sealed class StubCreatureSource(
+        IReadOnlyList<CreatureDefinition> creatures,
+        IReadOnlyDictionary<int, int>? creatureIdByEquipment = null) : ICreatureDefinitionSource
     {
         public ValueTask<IReadOnlyList<CreatureDefinition>> GetAllAsync(CancellationToken cancellationToken) =>
             ValueTask.FromResult(creatures);
 
         public ValueTask<CreatureDefinition?> GetAsync(int creatureId, CancellationToken cancellationToken) =>
             ValueTask.FromResult(creatures.FirstOrDefault(creature => creature.CreatureId == creatureId));
+
+        public ValueTask<CreatureDefinition?> FindByEquipmentAsync(
+            int itemTemplateId,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult(
+                creatureIdByEquipment is not null
+                && creatureIdByEquipment.TryGetValue(itemTemplateId, out var creatureId)
+                    ? creatures.FirstOrDefault(creature => creature.CreatureId == creatureId)
+                    : null);
     }
 }

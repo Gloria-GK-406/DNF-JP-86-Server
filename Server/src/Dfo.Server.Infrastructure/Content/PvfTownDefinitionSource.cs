@@ -163,33 +163,54 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
         if (fileIndex < 0)
             return null;
 
-        var transitOpen = archive.GetTag("[town movable area]").Offset;
-        var transitClose = archive.GetTag("[/town movable area]").Offset;
-        var walkableOpen = archive.GetTag("[virtual movable area]").Offset;
-        var walkableClose = archive.GetTag("[/virtual movable area]").Offset;
+        var transit = RequireTag(archive, "[town movable area]");
+        var transitClose = RequireTag(archive, "[/town movable area]");
+        var walkable = RequireTag(archive, "[virtual movable area]");
+        var walkableClose = RequireTag(archive, "[/virtual movable area]");
 
         var transitValues = new List<int>();
         var walkableValues = new List<int>();
         List<int>? active = null;
+        var nested = 0;
         var reader = archive.OpenScript(fileIndex);
 
         while (reader.Read(out var token))
         {
             if (token.Kind == PvfTokenKind.Identifier)
             {
-                if (token.Value == transitOpen)
+                if (token.Value == transit)
+                {
                     active = transitValues;
-                else if (token.Value == walkableOpen)
+                    nested = 0;
+                }
+                else if (token.Value == walkable)
+                {
                     active = walkableValues;
+                    nested = 0;
+                }
                 else if (token.Value == transitClose || token.Value == walkableClose)
+                {
                     active = null;
-                else
-                    active = null;
+                    nested = 0;
+                }
+                else if (active is not null)
+                {
+                    // A section can contain a nested block, such as a condition on one row.
+                    // Its integers are not coordinates, but the section continues after it,
+                    // so the block is skipped rather than treated as the section's end. An
+                    // earlier version ended collection here and silently dropped every row
+                    // that followed.
+                    nested += archive.ResolveString(token.Value)
+                        .StartsWith("[/", StringComparison.Ordinal)
+                        ? -1
+                        : 1;
+                    nested = Math.Max(0, nested);
+                }
 
                 continue;
             }
 
-            if (active is not null && token.Kind == PvfTokenKind.Int32)
+            if (active is not null && nested == 0 && token.Kind == PvfTokenKind.Int32)
                 active.Add(token.Value);
         }
 
@@ -219,6 +240,24 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
         return new MapGeometry(transits, walkables);
     }
 
+    /// <summary>
+    /// The name-table offset of a tag this parser depends on.
+    /// </summary>
+    /// <remarks>
+    /// An unresolved tag means the archive does not use that name anywhere, so this parser's
+    /// assumption about its shape is wrong. Passing the unresolved sentinel through would
+    /// match nothing, yield an empty-but-present geometry, and surface later as an accusation
+    /// that the content states no arrival point — blaming the archive for a parser fault.
+    /// </remarks>
+    private static int RequireTag(PvfArchive archive, string tag)
+    {
+        var resolved = archive.GetTag(tag);
+        return resolved.IsResolved
+            ? resolved.Offset
+            : throw new InvalidOperationException(
+                $"The archive contains no '{tag}' tag, so map geometry cannot be read from it.");
+    }
+
     private sealed class AreaDraft
     {
         private const string MinimapOpen = "[minimap rect]";
@@ -227,8 +266,9 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
         private readonly List<int> _operands = [];
         private int _areaId = TownAreaDefinition.NoOperand;
         private string _mapPath = string.Empty;
-        private string _kindText = string.Empty;
+        private TownAreaKind _kind = TownAreaKind.Unrecognized;
         private bool _haveAreaId;
+        private bool _haveKind;
         private bool _inMinimapRect;
 
         public void Accept(PvfArchive archive, in PvfToken token)
@@ -245,8 +285,11 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
                     _areaId = token.Value;
                     _haveAreaId = true;
                 }
-                else
+                else if (_haveKind)
                 {
+                    // Only the numbers following the kind are its operands. Modifier markers
+                    // carry their own numbers, and counting those would shift a gate's spawn
+                    // position onto whatever the modifier happened to state.
                     _operands.Add(token.Value);
                 }
 
@@ -268,32 +311,48 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource
             }
 
             if (_mapPath.Length == 0)
+            {
                 _mapPath = value.Replace('\\', '/');
-            else if (_kindText.Length == 0)
-                _kindText = value;
+                return;
+            }
+
+            // The kind is recognised by what it says, not by where it sits. The content puts
+            // modifier markers such as `[use private store]` between the minimap rectangle
+            // and the kind, so taking the next quoted value would classify 54 of the
+            // archive's 151 areas by a modifier instead of by their kind.
+            if (!_haveKind && TryParseKind(value, out var kind))
+            {
+                _kind = kind;
+                _haveKind = true;
+            }
         }
 
         public TownAreaDefinition ToDefinition() => new(
             _areaId,
             _mapPath,
-            ParseKind(_kindText),
+            _kind,
             _operands.Count > 0 ? _operands[0] : TownAreaDefinition.NoOperand,
             _operands.Count > 1 ? _operands[1] : TownAreaDefinition.NoOperand);
 
         /// <remarks>
         /// The kinds modelled here are the ones entry policy acts on. The content declares
-        /// others, such as the PvP safe zones, which are left
-        /// <see cref="TownAreaKind.Unrecognized"/> rather than guessed at: no entry rule
-        /// currently depends on them, and naming them would assert a meaning this work has
+        /// others, such as the PvP safe zones and the private-store modifier, which leave
+        /// the area <see cref="TownAreaKind.Unrecognized"/> rather than being guessed at: no
+        /// entry rule depends on them, and naming them would assert a meaning this work has
         /// not confirmed.
         /// </remarks>
-        private static TownAreaKind ParseKind(string value) => value switch
+        private static bool TryParseKind(string value, out TownAreaKind kind)
         {
-            "[normal]" => TownAreaKind.Normal,
-            "[gate]" => TownAreaKind.Gate,
-            "[dungeon gate]" => TownAreaKind.DungeonGate,
-            _ => TownAreaKind.Unrecognized,
-        };
+            kind = value switch
+            {
+                "[normal]" => TownAreaKind.Normal,
+                "[gate]" => TownAreaKind.Gate,
+                "[dungeon gate]" => TownAreaKind.DungeonGate,
+                _ => TownAreaKind.Unrecognized,
+            };
+
+            return kind is not TownAreaKind.Unrecognized;
+        }
     }
 
     private readonly struct TownTags

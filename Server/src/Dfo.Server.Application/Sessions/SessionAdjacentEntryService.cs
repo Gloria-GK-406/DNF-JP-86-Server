@@ -12,6 +12,7 @@ namespace Dfo.Server.Application.Sessions;
 /// </remarks>
 internal sealed class SessionAdjacentEntryService(
     ISessionPresenceRegistry presence,
+    IExpertStoreRegistry expertStores,
     IPvpLobbyRegistry lobby,
     IDungeonRejoinRegistry rejoin,
     TimeProvider timeProvider) : ISessionAdjacentEntryService
@@ -32,8 +33,9 @@ internal sealed class SessionAdjacentEntryService(
         ArgumentNullException.ThrowIfNull(subject);
         cancellationToken.ThrowIfCancellationRequested();
 
+        // No listener scope: the legacy town-presence path spans listeners, because the
+        // caller that announces arrivals and departures passes none to its directory.
         var occupants = presence.InArea(
-            subject.Channel.ListenerPort,
             subject.TownId,
             subject.AreaId,
             subject.CharacterId);
@@ -42,11 +44,9 @@ internal sealed class SessionAdjacentEntryService(
         foreach (var occupant in occupants)
             others.Add(new PresentCharacterState(occupant.CharacterId, occupant.TownId, occupant.AreaId));
 
-        var self = presence.Find(subject.CharacterId);
-
         return ValueTask.FromResult(new SessionAdjacentEntryState(
             new TownPresenceEntryState(subject.TownId, subject.AreaId, others),
-            new ExpertStoreEntryState(self?.HasOpenExpertStore ?? false),
+            new ExpertStoreEntryState(expertStores.HasOpenStore(subject.CharacterId)),
             ResolveLobby(subject),
             ResolveRejoin(subject)));
     }
@@ -63,6 +63,14 @@ internal sealed class SessionAdjacentEntryService(
     /// no such identifier yet, so ownership is checked on account and character only — a
     /// subset of the legacy check, recorded rather than silently widened.
     /// </para>
+    /// <para>
+    /// One classification differs from the legacy steady state, as a consequence of not
+    /// mutating. The legacy lookup retires a lapsed record as it reports it, so it answers
+    /// <see cref="DungeonRejoinOutcome.Expired"/> at most once and everything afterwards
+    /// reads as an unexpected attachment state. This path reports it as expired every time,
+    /// which is the more truthful answer to the question asked; the retirement that would
+    /// change it belongs to the lifecycle.
+    /// </para>
     /// </remarks>
     private DungeonRejoinEntryState ResolveRejoin(SessionAdjacentSubject subject)
     {
@@ -71,25 +79,34 @@ internal sealed class SessionAdjacentEntryService(
             return DungeonRejoinEntryState.NoOffer;
 
         if (attachment.AccountId != subject.AccountId)
-            return Outcome(DungeonRejoinOutcome.IdentityMismatch, attachment);
+            return Refused(DungeonRejoinOutcome.IdentityMismatch);
 
         if (!attachment.IsDetached)
-            return Outcome(DungeonRejoinOutcome.NotDetached, attachment);
+            return Refused(DungeonRejoinOutcome.NotDetached);
 
         if (attachment.PartyId <= 0 || attachment.PartyId > MaximumAddressablePartyId)
-            return Outcome(DungeonRejoinOutcome.PartyUnavailable, attachment);
+            return Refused(DungeonRejoinOutcome.PartyUnavailable);
 
         // Noticing that a deadline has passed is a reading. Retiring the record because of
         // it is a lifecycle transition, and is deliberately left undone here.
         return attachment.ExpiresAt <= timeProvider.GetUtcNow()
-            ? Outcome(DungeonRejoinOutcome.Expired, attachment)
-            : Outcome(DungeonRejoinOutcome.Available, attachment);
+            ? Refused(DungeonRejoinOutcome.Expired)
+            : new DungeonRejoinEntryState(
+                DungeonRejoinOutcome.Available,
+                attachment.PartyId,
+                attachment.ParticipantUserIds);
     }
 
-    private static DungeonRejoinEntryState Outcome(
-        DungeonRejoinOutcome outcome,
-        DungeonAttachment attachment) =>
-        new(outcome, attachment.PartyId, attachment.ParticipantUserIds);
+    /// <summary>
+    /// An outcome the character cannot act on, carrying nothing about the run.
+    /// </summary>
+    /// <remarks>
+    /// The legacy registry produces a snapshot only on success. Attaching the party and its
+    /// members to a refusal would hand them out on the very path that says this run is not
+    /// yours — an identity mismatch would answer with the other account's party.
+    /// </remarks>
+    private static DungeonRejoinEntryState Refused(DungeonRejoinOutcome outcome) =>
+        new(outcome, PartyId: 0, Array.Empty<ushort>());
 
     /// <summary>
     /// The lobby as it stands on this listener, or null when duelling does not apply.

@@ -128,16 +128,19 @@ internal sealed class CharacterEntryService(
             entry.Quests.ClearedQuestIds,
             claimedGroups,
             boxes,
-            ResolveEquippedCreatureId(characterInventory));
+            ResolveEquippedCreatureItemId(characterInventory));
     }
 
     /// <summary>
-    /// The creature the character has equipped, or zero when none is.
+    /// The equipment identifier in the character's creature slot, or zero when it is empty.
     /// </summary>
     /// <remarks>
-    /// Zero is an ordinary outcome, not a failure: it is why the welcome packet is skipped.
+    /// This is an equipment identifier. Turning it into a creature is the content source's
+    /// job and takes a hop through the equipment definition, because the two numbering
+    /// spaces are disjoint. Zero is an ordinary outcome, not a failure: it is why the
+    /// welcome packet is skipped.
     /// </remarks>
-    private static int ResolveEquippedCreatureId(CharacterInventoryEntryState characterInventory)
+    private static int ResolveEquippedCreatureItemId(CharacterInventoryEntryState characterInventory)
     {
         foreach (var container in characterInventory.Containers)
         {

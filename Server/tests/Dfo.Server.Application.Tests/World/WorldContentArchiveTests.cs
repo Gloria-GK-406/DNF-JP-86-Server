@@ -107,27 +107,69 @@ public sealed class WorldContentArchiveTests
         Assert.Equal(collected.Length, box.FilledCount);
     }
 
+    /// <remarks>
+    /// This is the test that would have caught the id-space defect. Equipment identifiers and
+    /// creature identifiers are disjoint in this archive — 408 creatures numbered up to about
+    /// twenty thousand, 745 creature-equipment entries starting at 63000, and zero values in
+    /// common — so an implementation that hands the equipped item to the creature lookup
+    /// returns null for every character alive. Driving a real equipped item through the real
+    /// content is the only way to see that; injecting a creature identifier taken from the
+    /// creature source, as the earlier version of this test did, bypasses the bug entirely.
+    /// </remarks>
     [SkippableFact]
-    public async Task A_creature_with_a_script_yields_a_welcome_and_one_without_yields_none()
+    public async Task A_real_equipped_creature_item_resolves_to_its_welcome_lines()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var scope = ContentArchive.CreateContentProvider();
         var creatures = scope.GetRequiredService<ICreatureDefinitionSource>();
-        var all = await creatures.GetAllAsync(CancellationToken.None);
-        var scripted = all.First(creature => creature.HasAmbientLines);
-        var unscripted = all.First(creature => !creature.HasAmbientLines);
+
+        // Faras: the first creature-equipment entry in the archive, denoting creature 1.
+        const int FarasItem = 63000;
+        var byEquipment = await creatures.FindByEquipmentAsync(FarasItem, CancellationToken.None);
+        Assert.NotNull(byEquipment);
+        Assert.NotEqual(FarasItem, byEquipment!.CreatureId);
 
         var service = CreateService(scope);
-        var withScript = await service.LoadAsync(
-            Subject(equippedCreatureId: scripted.CreatureId),
-            CancellationToken.None);
-        var withoutScript = await service.LoadAsync(
-            Subject(equippedCreatureId: unscripted.CreatureId),
+        var result = await service.LoadAsync(
+            Subject(equippedCreatureItemId: FarasItem),
             CancellationToken.None);
 
-        Assert.NotNull(withScript.PetWelcome);
-        Assert.NotEmpty(withScript.PetWelcome!.Lines);
-        Assert.Null(withoutScript.PetWelcome);
+        Assert.NotNull(result.PetWelcome);
+        Assert.Equal(byEquipment.CreatureId, result.PetWelcome!.CreatureId);
+        Assert.NotEmpty(result.PetWelcome.Lines);
+    }
+
+    [SkippableFact]
+    public async Task A_creature_identifier_is_not_accepted_where_an_equipment_identifier_belongs()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var scope = ContentArchive.CreateContentProvider();
+        var creatures = scope.GetRequiredService<ICreatureDefinitionSource>();
+        var scripted = (await creatures.GetAllAsync(CancellationToken.None))
+            .First(creature => creature.HasAmbientLines);
+
+        // A creature identifier is not an equipment identifier, and the archive shares none
+        // between the two spaces, so this must resolve to nothing rather than to itself.
+        Assert.Null(await creatures.FindByEquipmentAsync(scripted.CreatureId, CancellationToken.None));
+
+        var result = await CreateService(scope).LoadAsync(
+            Subject(equippedCreatureItemId: scripted.CreatureId),
+            CancellationToken.None);
+
+        Assert.Null(result.PetWelcome);
+    }
+
+    [SkippableFact]
+    public async Task An_item_that_is_not_creature_equipment_yields_no_welcome()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var scope = ContentArchive.CreateContentProvider();
+
+        var result = await CreateService(scope).LoadAsync(
+            Subject(equippedCreatureItemId: 1),
+            CancellationToken.None);
+
+        Assert.Null(result.PetWelcome);
     }
 
     /// <remarks>
@@ -190,14 +232,14 @@ public sealed class WorldContentArchiveTests
         byte growType = 0,
         IReadOnlyCollection<int>? clearedQuestIds = null,
         IReadOnlyList<CollectionBoxProgressSubject>? collectionBoxes = null,
-        int equippedCreatureId = 0) =>
+        int equippedCreatureItemId = 0) =>
         new(level,
             job,
             growType,
             clearedQuestIds ?? [],
             [],
             collectionBoxes ?? [],
-            equippedCreatureId);
+            equippedCreatureItemId);
 }
 
 /// <summary>

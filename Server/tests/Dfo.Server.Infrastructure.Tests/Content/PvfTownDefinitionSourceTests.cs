@@ -61,6 +61,52 @@ public sealed class PvfTownDefinitionSourceTests
     }
 
     /// <remarks>
+    /// The content places modifier markers between the minimap rectangle and the real kind,
+    /// so an area's kind cannot be found by position. Reading the marker as the kind leaves
+    /// the area unclassified and takes the marker's own number as a spawn operand: town 2's
+    /// walkable areas came out unclassified with operand 0, where the legacy parser — which
+    /// matches the kind wherever it appears — yields Normal with no operands.
+    /// </remarks>
+    [SkippableFact]
+    public async Task An_area_carrying_a_modifier_is_classified_by_its_kind_not_the_modifier()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfTownDefinitionSource(provider);
+
+        var town = await source.GetAsync(2, CancellationToken.None);
+        var area = town!.AreaAt(12);
+
+        Assert.NotNull(area);
+        Assert.Equal(TownAreaKind.Normal, area!.Kind);
+        Assert.Equal(TownAreaDefinition.NoOperand, area.Operand1);
+        Assert.Equal(TownAreaDefinition.NoOperand, area.Operand2);
+    }
+
+    /// <remarks>
+    /// A blanket count guards the same defect in bulk: misreading modifiers as kinds pushed
+    /// unclassified areas from a handful to 58 of 151 while every other assertion here still
+    /// passed.
+    /// </remarks>
+    [SkippableFact]
+    public async Task Almost_every_area_classifies_to_a_modelled_kind()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfTownDefinitionSource(provider);
+
+        var areas = (await source.GetAllAsync(CancellationToken.None))
+            .SelectMany(town => town.Areas)
+            .ToList();
+        var unrecognised = areas.Count(area => area.Kind is TownAreaKind.Unrecognized);
+
+        Assert.True(
+            unrecognised * 10 < areas.Count,
+            $"{unrecognised} of {areas.Count} areas are unclassified; the content declares only "
+            + "a few kinds this contract does not model, so a large share means a parse fault.");
+    }
+
+    /// <remarks>
     /// A minimap rectangle is four integers of presentation data that sit between the map
     /// path and the area kind. Counting them as operands yields a spawn at a rectangle
     /// corner, which is wrong in a way nothing downstream would flag, so every gate is

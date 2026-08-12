@@ -25,6 +25,7 @@ public sealed class RegistryExistenceTests
         using var provider = BuildProductionGraph();
 
         Assert.NotNull(provider.GetRequiredService<ISessionPresenceRegistry>());
+        Assert.NotNull(provider.GetRequiredService<IExpertStoreRegistry>());
         Assert.NotNull(provider.GetRequiredService<IPvpLobbyRegistry>());
         Assert.NotNull(provider.GetRequiredService<IDungeonRejoinRegistry>());
         Assert.NotNull(provider.GetRequiredService<ISessionAdjacentEntryService>());
@@ -63,7 +64,7 @@ public sealed class RegistryExistenceTests
     {
         using var provider = BuildProductionGraph();
         provider.GetRequiredService<ISessionPresenceRegistry>().Admit(
-            new SessionPresence(new CharacterId(2), 10011, 1, 0, HasOpenExpertStore: false));
+            new SessionPresence(new CharacterId(2), 10011, 1, 0, StandingInTown: true));
 
         var result = await provider.GetRequiredService<ISessionAdjacentEntryService>().LoadAsync(
             new SessionAdjacentSubject(
