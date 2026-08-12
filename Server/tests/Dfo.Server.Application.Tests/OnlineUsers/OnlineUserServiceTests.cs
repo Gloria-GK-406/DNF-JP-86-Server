@@ -252,9 +252,15 @@ public sealed class UserServiceTests
                 DateTimeOffset.UtcNow));
     }
 
-    private sealed class NotReachedInventoryEntryService : IInventoryEntryService
+    private sealed class NotReachedInventoryEntryService : ITestInventoryEntryServices
     {
-        public ValueTask<InventoryEntryState> LoadAsync(
+        ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryService.LoadAsync(
+            AccountId accountId,
+            CharacterId characterId,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("Inventory must not load when character resolution fails.");
+
+        ValueTask<AccountInventoryEntryState> IAccountInventoryEntryService.LoadAsync(
             AccountId accountId,
             CharacterId characterId,
             CancellationToken cancellationToken) =>

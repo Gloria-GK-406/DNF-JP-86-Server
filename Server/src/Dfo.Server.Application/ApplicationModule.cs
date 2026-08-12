@@ -15,12 +15,13 @@ using Dfo.Server.Application.Commands.Channel;
 using Dfo.Server.Application.Commands.Game;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Application.Game;
-using Dfo.Server.Data.Characters;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Users;
 using Dfo.Server.Application.World;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -55,7 +56,11 @@ public sealed class ApplicationModule : IServerModule
                 () => provider.GetRequiredService<ICharacterRepository>()));
         services.TryAddSingleton<ICharacterService>(
             provider => provider.GetRequiredService<CharacterService>());
-        services.TryAddSingleton<IInventoryEntryService, InventoryEntryService>();
+        services.TryAddSingleton<IEquipmentEligibilityCharacterReader>(
+            provider => provider.GetRequiredService<CharacterService>());
+        services.TryAddSingleton<ICharacterInventoryEntryService, CharacterInventoryEntryService>();
+        services.TryAddSingleton<IAccountInventoryEntryService, AccountInventoryEntryService>();
+        services.TryAddSingleton<IEquippedCreatureQuery, EquippedCreatureQuery>();
         services.TryAddSingleton<ICharacterProfileEntryService, CharacterProfileEntryService>();
         services.TryAddSingleton<ICharacterSkillQuestEntryService, CharacterSkillQuestEntryService>();
         services.TryAddSingleton<ICharacterProgressionEntryService, CharacterProgressionEntryService>();
@@ -74,7 +79,6 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IPvpLobbyRegistry, PvpLobbyRegistry>();
         services.TryAddSingleton<IDungeonRejoinRegistry, DungeonRejoinRegistry>();
         services.TryAddSingleton<ISessionAdjacentEntryService, SessionAdjacentEntryService>();
-        services.TryAddSingleton<ICharacterEntryService, CharacterEntryService>();
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<INetworkConnectionObserver, OnlineUserConnectionObserver>());
         services.AddCommandDispatching();

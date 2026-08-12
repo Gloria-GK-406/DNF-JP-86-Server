@@ -1,4 +1,4 @@
-using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
 
 namespace Dfo.Server.Networking.Framing;
 

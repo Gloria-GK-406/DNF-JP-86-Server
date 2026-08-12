@@ -14,6 +14,29 @@ namespace Dfo.Server.Application.Tests.Characters;
 public sealed class CharacterEntryInventoryTests
 {
     [Fact]
+    public void EquippedCreatureQuery_UsesTheInventoryOwnedCreatureSlotAndItemKind()
+    {
+        var characterId = new CharacterId(50);
+        var inventory = new CharacterInventoryEntryState(
+            characterId,
+            [
+                new InventoryContainerState(
+                    InventoryContainerType.Equipment,
+                    0,
+                    [new InventoryItemState(1, 24, Core(9001, 1, itemKind: 5))]),
+            ],
+            [],
+            new CharacterItemValueEntryState([], []),
+            [],
+            new CharacterRentalEntryState([]),
+            new InventoryGoldLimitState(0, 0));
+
+        var itemId = new EquippedCreatureQuery().GetItemId(inventory);
+
+        Assert.Equal(9001, itemId);
+    }
+
+    [Fact]
     public async Task InventoryEntry_LoadsExplicitOrderedCharacterContainersAndSeparateAccountCargo()
     {
         var accountId = new AccountId(41);
@@ -59,33 +82,43 @@ public sealed class CharacterEntryInventoryTests
             InventoryContainerType.AccountCargo,
             3,
             itemId: 203);
-        var repository = new StubRepository(new InventoryEntryStorageRecord(
+        var repository = new StubRepository(
+            new CharacterInventoryEntryStorageRecord(
+                accountId,
+                characterId,
+                [equipment, mainLater, runtime, mainEarlier],
+                [new InventoryContainerParameter(characterId, InventoryContainerType.PersonalCargo, 48)],
+                [new InventoryRuntimeValueState(1, 1, 77)],
+                [
+                    new InventoryItemValueStorageRecord(
+                        characterId, InventoryItemValueListType.Effect, 2, 9002, 92),
+                    new InventoryItemValueStorageRecord(
+                        characterId, InventoryItemValueListType.Cooldown, 3, 8003, 83),
+                    new InventoryItemValueStorageRecord(
+                        characterId, InventoryItemValueListType.Cooldown, 1, 8001, 81),
+                ],
+                [
+                    new InventoryEquipmentLockStorageRecord(
+                        characterId, 9, InventoryContainerType.Equipment, 8, 1, 0),
+                ],
+                [new CharacterRentalStorageRecord(characterId, 9001, 1001, 1900000000)],
+                new InventoryGoldLimitState(400_000_000, 500_000_000)),
+            new AccountInventoryEntryStorageRecord(
+                accountId,
+                characterId,
+                [cargo],
+                new AccountCargoStorageState(accountId, 16, 1234, 1),
+                [new InventoryRuntimeValueState(356, 3035, 99)],
+                [
+                    new InventoryEquipmentLockStorageRecord(
+                        characterId, 10, InventoryContainerType.AccountCargo, 3, 2, 600),
+                ]));
+
+        var characterResult = await new CharacterInventoryEntryService(repository).LoadAsync(
             accountId,
             characterId,
-            [equipment, mainLater, runtime, mainEarlier],
-            [cargo],
-            [new InventoryContainerParameter(characterId, InventoryContainerType.PersonalCargo, 48)],
-            new AccountCargoStorageState(accountId, 16, 1234, 1),
-            [new InventoryRuntimeValueState(1, 1, 77)],
-            [new InventoryRuntimeValueState(356, 3035, 99)],
-            [
-                new InventoryItemValueStorageRecord(
-                    characterId, InventoryItemValueListType.Effect, 2, 9002, 92),
-                new InventoryItemValueStorageRecord(
-                    characterId, InventoryItemValueListType.Cooldown, 3, 8003, 83),
-                new InventoryItemValueStorageRecord(
-                    characterId, InventoryItemValueListType.Cooldown, 1, 8001, 81),
-            ],
-            [
-                new InventoryEquipmentLockStorageRecord(
-                    characterId, 10, InventoryContainerType.AccountCargo, 3, 2, 600),
-                new InventoryEquipmentLockStorageRecord(
-                    characterId, 9, InventoryContainerType.Equipment, 8, 1, 0),
-            ],
-            [new CharacterRentalStorageRecord(characterId, 9001, 1001, 1900000000)],
-            new InventoryGoldLimitState(400_000_000, 500_000_000)));
-
-        var result = await new InventoryEntryService(repository).LoadAsync(
+            CancellationToken.None);
+        var accountResult = await new AccountInventoryEntryService(repository).LoadAsync(
             accountId,
             characterId,
             CancellationToken.None);
@@ -98,36 +131,36 @@ public sealed class CharacterEntryInventoryTests
                 InventoryContainerType.Equipment,
                 InventoryContainerType.Pet,
             ],
-            result.CharacterInventory.Containers.Select(container => container.ContainerType));
-        Assert.Equal([1, 4, 9], result.CharacterInventory.Containers[0].Items.Select(item => item.SlotIndex));
-        Assert.Empty(result.CharacterInventory.Containers[1].Items);
-        Assert.Equal((ushort)48, result.CharacterInventory.Containers[2].Parameter);
-        Assert.Equal([8], result.CharacterInventory.Containers[3].Items.Select(item => item.SlotIndex));
-        Assert.Empty(result.CharacterInventory.Containers[4].Items);
-        var runtimeValue = Assert.Single(result.CharacterInventory.VirtualResources);
+            characterResult.Containers.Select(container => container.ContainerType));
+        Assert.Equal([1, 4, 9], characterResult.Containers[0].Items.Select(item => item.SlotIndex));
+        Assert.Empty(characterResult.Containers[1].Items);
+        Assert.Equal((ushort)48, characterResult.Containers[2].Parameter);
+        Assert.Equal([8], characterResult.Containers[3].Items.Select(item => item.SlotIndex));
+        Assert.Empty(characterResult.Containers[4].Items);
+        var runtimeValue = Assert.Single(characterResult.VirtualResources);
         Assert.Equal(new InventoryRuntimeValueState(1, 1, 77), runtimeValue);
-        Assert.Equal([1, 3], result.CharacterInventory.ItemValues.Cooldowns.Select(item => item.SortOrder));
-        Assert.Equal([2], result.CharacterInventory.ItemValues.Effects.Select(item => item.SortOrder));
+        Assert.Equal([1, 3], characterResult.ItemValues.Cooldowns.Select(item => item.SortOrder));
+        Assert.Equal([2], characterResult.ItemValues.Effects.Select(item => item.SortOrder));
         Assert.Equal(
             [new InventoryEquipmentLockState(9, InventoryContainerType.Equipment, 8, 1, 0)],
-            result.CharacterInventory.EquipmentLocks);
+            characterResult.EquipmentLocks);
         Assert.Equal(
             new CharacterRentalItemState(9001, 1001, 1900000000),
-            Assert.Single(result.CharacterInventory.Rentals.Items));
-        Assert.Equal(new InventoryGoldLimitState(400_000_000, 500_000_000), result.CharacterInventory.GoldLimits);
+            Assert.Single(characterResult.Rentals.Items));
+        Assert.Equal(new InventoryGoldLimitState(400_000_000, 500_000_000), characterResult.GoldLimits);
 
-        Assert.Equal(accountId, result.AccountInventory.AccountId);
-        Assert.Equal(InventoryContainerType.AccountCargo, result.AccountInventory.Cargo.Container.ContainerType);
-        Assert.Equal([3], result.AccountInventory.Cargo.Container.Items.Select(item => item.SlotIndex));
+        Assert.Equal(accountId, accountResult.AccountId);
+        Assert.Equal(InventoryContainerType.AccountCargo, accountResult.Cargo.Container.ContainerType);
+        Assert.Equal([3], accountResult.Cargo.Container.Items.Select(item => item.SlotIndex));
         Assert.Equal(
             [new InventoryEquipmentLockState(10, InventoryContainerType.AccountCargo, 3, 2, 600)],
-            result.AccountInventory.Cargo.EquipmentLocks);
-        Assert.Equal((ushort)16, result.AccountInventory.Cargo.SelectionKey);
-        Assert.Equal(1234, result.AccountInventory.Cargo.Value32);
-        Assert.Equal((ushort)1, result.AccountInventory.Cargo.StoredItemCount);
+            accountResult.Cargo.EquipmentLocks);
+        Assert.Equal((ushort)16, accountResult.Cargo.SelectionKey);
+        Assert.Equal(1234, accountResult.Cargo.Value32);
+        Assert.Equal((ushort)1, accountResult.Cargo.StoredItemCount);
         Assert.Equal(
             new InventoryRuntimeValueState(356, 3035, 99),
-            Assert.Single(result.AccountInventory.VirtualResources));
+            Assert.Single(accountResult.VirtualResources));
     }
 
     [Fact]
@@ -164,7 +197,7 @@ public sealed class CharacterEntryInventoryTests
         var refusal = new ChannelAdmissionRefusal(0xFD, "level too low");
         var entry = EntryServices.Create(
             new StubCharacterService(selected),
-            new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
+            new NotReachedInventoryEntryService(),
             new StubCharacterEntryStateService(EmptyCharacterEntry(selected.Identity.CharacterId)),
             new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
             active,
@@ -180,6 +213,7 @@ public sealed class CharacterEntryInventoryTests
         Assert.Equal(refusal, error.Refusal);
         Assert.Equal(StubChannelEntryPolicy.RestrictedChannel, error.Channel);
         Assert.Same(previous, active.GetRequired(accountId));
+        Assert.Equal(0, active.PublishCount);
     }
 
     [Fact]
@@ -203,6 +237,33 @@ public sealed class CharacterEntryInventoryTests
 
         Assert.Same(selected, result.Character);
         Assert.Same(selected, active.GetRequired(accountId));
+        Assert.Equal(1, active.PublishCount);
+    }
+
+    [Fact]
+    public async Task CharacterEntry_FinalResultFailurePreservesPreviouslyPublishedCharacter()
+    {
+        var accountId = new AccountId(47);
+        var previous = Character(605, 1);
+        var selected = Character(606, 3);
+        var active = new StatefulActiveCharacterService(accountId, previous);
+        var entry = EntryServices.Create(
+            new StubCharacterService(selected),
+            new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
+            new StubCharacterEntryStateService(EmptyCharacterEntry(selected.Identity.CharacterId)),
+            new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
+            active,
+            timeProvider: new FailingTimeProvider());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await entry.EnterAsync(
+                accountId,
+                3,
+                StubChannelEntryPolicy.GeneralChannel,
+                CancellationToken.None));
+
+        Assert.Same(previous, active.GetRequired(accountId));
+        Assert.Equal(0, active.PublishCount);
     }
 
     /// <remarks>
@@ -323,8 +384,8 @@ public sealed class CharacterEntryInventoryTests
             slot,
             Core(itemId, value));
 
-    private static InventoryItemCoreState Core(int itemId, int value) => new(
-        1,
+    private static InventoryItemCoreState Core(int itemId, int value, byte itemKind = 1) => new(
+        itemKind,
         itemId,
         value,
         0,
@@ -368,7 +429,7 @@ public sealed class CharacterEntryInventoryTests
         DateTimeOffset.UnixEpoch,
         null);
 
-    private static InventoryEntryState EmptyInventory(AccountId accountId, CharacterId characterId) => new(
+    private static TestInventoryEntryState EmptyInventory(AccountId accountId, CharacterId characterId) => new(
         new CharacterInventoryEntryState(
             characterId,
             [],
@@ -419,12 +480,20 @@ public sealed class CharacterEntryInventoryTests
         new AccountProgressionEntryState(0, 0, new AccountAdventureEntryState([]), []),
         new AccountRelationCompatibilityEntryState([], [], [], 0));
 
-    private sealed class StubRepository(InventoryEntryStorageRecord record) : IInventoryEntryRepository
+    private sealed class StubRepository(
+        CharacterInventoryEntryStorageRecord characterRecord,
+        AccountInventoryEntryStorageRecord accountRecord)
+        : ICharacterInventoryEntryRepository, IAccountInventoryEntryRepository
     {
-        public ValueTask<InventoryEntryStorageRecord> LoadAsync(
+        public ValueTask<CharacterInventoryEntryStorageRecord> LoadCharacterAsync(
             AccountId accountId,
             CharacterId characterId,
-            CancellationToken cancellationToken) => ValueTask.FromResult(record);
+            CancellationToken cancellationToken) => ValueTask.FromResult(characterRecord);
+
+        public ValueTask<AccountInventoryEntryStorageRecord> LoadAccountAsync(
+            AccountId accountId,
+            CharacterId characterId,
+            CancellationToken cancellationToken) => ValueTask.FromResult(accountRecord);
     }
 
     private sealed class StubCharacterService(ActiveCharacterState state) : ICharacterService
@@ -439,21 +508,59 @@ public sealed class CharacterEntryInventoryTests
             CancellationToken cancellationToken) => ValueTask.FromResult(state);
     }
 
-    private sealed class StubInventoryEntryService(InventoryEntryState state) : IInventoryEntryService
+    private sealed class StubInventoryEntryService(TestInventoryEntryState state)
+        : ITestInventoryEntryServices
     {
-        public ValueTask<InventoryEntryState> LoadAsync(
+        ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryService.LoadAsync(
             AccountId accountId,
             CharacterId characterId,
-            CancellationToken cancellationToken) => ValueTask.FromResult(state);
+            CancellationToken cancellationToken) => ValueTask.FromResult(state.CharacterInventory);
+
+        ValueTask<AccountInventoryEntryState> IAccountInventoryEntryService.LoadAsync(
+            AccountId accountId,
+            CharacterId characterId,
+            CancellationToken cancellationToken) => ValueTask.FromResult(state.AccountInventory);
     }
 
-    private sealed class FailingInventoryEntryService : IInventoryEntryService
+    private sealed class FailingInventoryEntryService : ITestInventoryEntryServices
     {
-        public ValueTask<InventoryEntryState> LoadAsync(
+        ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryService.LoadAsync(
             AccountId accountId,
             CharacterId characterId,
             CancellationToken cancellationToken) =>
-            ValueTask.FromException<InventoryEntryState>(new InvalidDataException("malformed inventory"));
+            ValueTask.FromException<CharacterInventoryEntryState>(
+                new InvalidDataException("malformed inventory"));
+
+        ValueTask<AccountInventoryEntryState> IAccountInventoryEntryService.LoadAsync(
+            AccountId accountId,
+            CharacterId characterId,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("Account inventory must not load after character inventory failure.");
+    }
+
+    private sealed class NotReachedInventoryEntryService : ITestInventoryEntryServices
+    {
+        ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryService.LoadAsync(
+            AccountId accountId,
+            CharacterId characterId,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("Inventory must not load after channel refusal.");
+
+        ValueTask<AccountInventoryEntryState> IAccountInventoryEntryService.LoadAsync(
+            AccountId accountId,
+            CharacterId characterId,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("Inventory must not load after channel refusal.");
+    }
+
+    private sealed record TestInventoryEntryState(
+        CharacterInventoryEntryState CharacterInventory,
+        AccountInventoryEntryState AccountInventory);
+
+    private sealed class FailingTimeProvider : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() =>
+            throw new InvalidOperationException("Clock is unavailable.");
     }
 
     private sealed class StubCharacterEntryStateService(CharacterEntryState state)
@@ -503,8 +610,13 @@ public sealed class CharacterEntryInventoryTests
         public StatefulActiveCharacterService(AccountId accountId, ActiveCharacterState state) =>
             states.Add(accountId, state);
 
-        public void Publish(AccountId accountId, ActiveCharacterState character) =>
+        public int PublishCount { get; private set; }
+
+        public void Publish(AccountId accountId, ActiveCharacterState character)
+        {
             states[accountId] = character;
+            PublishCount++;
+        }
 
         public ActiveCharacterState GetRequired(AccountId accountId) => states[accountId];
     }

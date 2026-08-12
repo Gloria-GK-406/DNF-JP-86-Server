@@ -4,25 +4,29 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
-using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Commands.Game;
+using Dfo.Server.Application.Inventory;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Channel;
+using Dfo.Server.Data.Game;
 
 namespace Dfo.Server.Application.Tests.Support;
 
 /// <summary>
-/// Builds a <see cref="CharacterEntryService"/> for tests, defaulting every collaborator a
-/// test is not interested in.
+/// Builds a <see cref="SelectCharacterCommandHandler"/> for tests, defaulting every
+/// collaborator a test is not interested in.
 /// </summary>
 /// <remarks>
-/// The entry service composes many limbs, so its constructor grows as limbs are added.
-/// Funnelling construction through here means a new limb changes one line rather than
-/// every test that ever built one, and it keeps each test's argument list down to the
-/// collaborators that test is actually about.
+/// The handler intentionally exposes every participating domain. Funnelling test-only
+/// defaults through here keeps unrelated behavior tests focused without hiding the
+/// production dependency boundary.
 /// </remarks>
 internal static class EntryServices
 {
-    public static CharacterEntryService Create(
+    public static SelectCharacterCommandHandler Create(
         ICharacterService characters,
-        IInventoryEntryService inventory,
+        ITestInventoryEntryServices inventory,
         ICharacterEntryStateService characterEntries,
         IAccountEntryStateService accountEntries,
         IActiveCharacterService activeCharacters,
@@ -33,12 +37,33 @@ internal static class EntryServices
         TimeProvider? timeProvider = null) =>
         new(characters,
             inventory,
+            inventory,
             characterEntries,
             accountEntries,
+            new EquippedCreatureQuery(),
             worldContent ?? new StubWorldContentEntryService(),
             channels ?? new StubChannelEntryPolicy(),
             placement ?? new StubEntryPlacementService(),
             sessionAdjacent ?? new StubSessionAdjacentEntryService(),
             activeCharacters,
             timeProvider ?? TimeProvider.System);
+
+    public static ValueTask<SelectCharacterResult> EnterAsync(
+        this SelectCharacterCommandHandler handler,
+        AccountId accountId,
+        ushort slotIndex,
+        ChannelEntryIdentity channel,
+        CancellationToken cancellationToken) =>
+        handler.HandleAsync(
+            new CommandExecutionContext(
+                Guid.NewGuid(),
+                typeof(SelectCharacterCommand),
+                typeof(SelectCharacterCommandHandler),
+                CommandExecutionKind.Workflow,
+                AccountAccessMode: UserAccessMode.Exclusive),
+            new SelectCharacterCommand(accountId, slotIndex, channel),
+            cancellationToken);
 }
+
+internal interface ITestInventoryEntryServices
+    : ICharacterInventoryEntryService, IAccountInventoryEntryService;

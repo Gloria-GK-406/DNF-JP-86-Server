@@ -51,12 +51,17 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 ("@characterCore", characterCore),
                 ("@cargoCore", cargoCore));
 
-            var result = await new SqliteInventoryEntryRepository(databasePath).LoadAsync(
+            var repository = new SqliteInventoryEntryRepository(databasePath);
+            var characterResult = await repository.LoadCharacterAsync(
+                new AccountId(11),
+                new CharacterId(21),
+                CancellationToken.None);
+            var accountResult = await repository.LoadAccountAsync(
                 new AccountId(11),
                 new CharacterId(21),
                 CancellationToken.None);
 
-            var characterItem = Assert.Single(result.CharacterItems);
+            var characterItem = Assert.Single(characterResult.CharacterItems);
             Assert.Equal(InventoryOwnerType.Character, characterItem.OwnerType);
             Assert.Equal(21, characterItem.OwnerId);
             Assert.Equal(new CharacterId(21), characterItem.CharacterId);
@@ -64,22 +69,22 @@ public sealed class SqliteInventoryEntryRepositoryTests
             Assert.Equal(7, characterItem.SlotIndex);
             AssertCore(characterItem.Core, 1001, 17);
 
-            var cargoItem = Assert.Single(result.AccountCargoItems);
+            var cargoItem = Assert.Single(accountResult.AccountCargoItems);
             Assert.Equal(InventoryOwnerType.Account, cargoItem.OwnerType);
             Assert.Equal(11, cargoItem.OwnerId);
             Assert.Equal(InventoryContainerType.AccountCargo, cargoItem.ContainerType);
             Assert.Equal(4, cargoItem.SlotIndex);
             AssertCore(cargoItem.Core, 2002, 23);
-            Assert.Equal((ushort)48, Assert.Single(result.CharacterContainerParameters).Value);
-            Assert.Equal((ushort)16, result.AccountCargoState.SelectionKey);
-            Assert.Equal(3456, result.AccountCargoState.Value32);
-            Assert.Equal((ushort)1, result.AccountCargoState.StoredItemCount);
+            Assert.Equal((ushort)48, Assert.Single(characterResult.CharacterContainerParameters).Value);
+            Assert.Equal((ushort)16, accountResult.AccountCargoState.SelectionKey);
+            Assert.Equal(3456, accountResult.AccountCargoState.Value32);
+            Assert.Equal((ushort)1, accountResult.AccountCargoState.StoredItemCount);
             Assert.Equal(
                 new InventoryRuntimeValueState(356, 3035, 99),
-                Assert.Single(result.AccountVirtualResources));
-            Assert.Empty(result.CharacterVirtualResources);
+                Assert.Single(accountResult.AccountVirtualResources));
+            Assert.Empty(characterResult.CharacterVirtualResources);
             Assert.Collection(
-                result.CharacterItemValues,
+                characterResult.CharacterItemValues,
                 item => Assert.Equal(
                     new InventoryItemValueStorageRecord(
                         new CharacterId(21), InventoryItemValueListType.Cooldown, 0, 7000, 70),
@@ -97,18 +102,20 @@ public sealed class SqliteInventoryEntryRepositoryTests
                     new CharacterRentalStorageRecord(new CharacterId(21), 9001, 1001, 1900000000),
                     new CharacterRentalStorageRecord(new CharacterId(21), 9002, 1002, 1900000100),
                 ],
-                result.CharacterRentals);
+                characterResult.CharacterRentals);
             Assert.Collection(
-                result.EquipmentLocks,
+                characterResult.EquipmentLocks,
                 item => Assert.Equal(
                     new InventoryEquipmentLockStorageRecord(
                         new CharacterId(21), 9, InventoryContainerType.Equipment, 7, 1, 0),
-                    item),
+                    item));
+            Assert.Collection(
+                accountResult.EquipmentLocks,
                 item => Assert.Equal(
                     new InventoryEquipmentLockStorageRecord(
                         new CharacterId(21), 10, InventoryContainerType.AccountCargo, 4, 2, 3600),
                     item));
-            Assert.Equal(new InventoryGoldLimitState(400000000, 500000000), result.GoldLimits);
+            Assert.Equal(new InventoryGoldLimitState(400000000, 500000000), characterResult.GoldLimits);
         }
         finally
         {
@@ -129,21 +136,27 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 INSERT INTO accounts(account_id) VALUES(12);
                 """);
 
-            var result = await new SqliteInventoryEntryRepository(databasePath).LoadAsync(
+            var repository = new SqliteInventoryEntryRepository(databasePath);
+            var characterResult = await repository.LoadCharacterAsync(
+                new AccountId(12),
+                new CharacterId(22),
+                CancellationToken.None);
+            var accountResult = await repository.LoadAccountAsync(
                 new AccountId(12),
                 new CharacterId(22),
                 CancellationToken.None);
 
-            Assert.Empty(result.CharacterItems);
-            Assert.Empty(result.AccountCargoItems);
-            Assert.Empty(result.CharacterContainerParameters);
-            Assert.Empty(result.CharacterVirtualResources);
-            Assert.Empty(result.AccountVirtualResources);
-            Assert.Empty(result.CharacterItemValues);
-            Assert.Empty(result.EquipmentLocks);
-            Assert.Empty(result.CharacterRentals);
-            Assert.Equal(new AccountCargoStorageState(new AccountId(12), 0, 0, 0), result.AccountCargoState);
-            Assert.Equal(new InventoryGoldLimitState(0, 0), result.GoldLimits);
+            Assert.Empty(characterResult.CharacterItems);
+            Assert.Empty(accountResult.AccountCargoItems);
+            Assert.Empty(characterResult.CharacterContainerParameters);
+            Assert.Empty(characterResult.CharacterVirtualResources);
+            Assert.Empty(accountResult.AccountVirtualResources);
+            Assert.Empty(characterResult.CharacterItemValues);
+            Assert.Empty(characterResult.EquipmentLocks);
+            Assert.Empty(accountResult.EquipmentLocks);
+            Assert.Empty(characterResult.CharacterRentals);
+            Assert.Equal(new AccountCargoStorageState(new AccountId(12), 0, 0, 0), accountResult.AccountCargoState);
+            Assert.Equal(new InventoryGoldLimitState(0, 0), characterResult.GoldLimits);
         }
         finally
         {
@@ -192,7 +205,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
             await ExecuteAsync(databasePath, commandText);
 
             await Assert.ThrowsAsync<InvalidDataException>(async () =>
-                await new SqliteInventoryEntryRepository(databasePath).LoadAsync(
+                await new SqliteInventoryEntryRepository(databasePath).LoadCharacterAsync(
                     new AccountId(15),
                     new CharacterId(25),
                     CancellationToken.None));
@@ -232,11 +245,20 @@ public sealed class SqliteInventoryEntryRepositoryTests
                     """);
             }
 
+            var repository = new SqliteInventoryEntryRepository(databasePath);
             var error = await Assert.ThrowsAsync<InvalidDataException>(async () =>
-                await new SqliteInventoryEntryRepository(databasePath).LoadAsync(
-                    new AccountId(16),
-                    new CharacterId(26),
-                    CancellationToken.None));
+            {
+                if (ownerKind == "character")
+                {
+                    await repository.LoadCharacterAsync(
+                        new AccountId(16), new CharacterId(26), CancellationToken.None);
+                }
+                else
+                {
+                    await repository.LoadAccountAsync(
+                        new AccountId(16), new CharacterId(26), CancellationToken.None);
+                }
+            });
             Assert.Contains("migration required", error.Message, StringComparison.OrdinalIgnoreCase);
         }
         finally
@@ -285,7 +307,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
             await ExecuteAsync(databasePath, commandText);
 
             await Assert.ThrowsAsync<InvalidDataException>(async () =>
-                await new SqliteInventoryEntryRepository(databasePath).LoadAsync(
+                await new SqliteInventoryEntryRepository(databasePath).LoadCharacterAsync(
                     new AccountId(14),
                     new CharacterId(24),
                     CancellationToken.None));
@@ -333,9 +355,54 @@ public sealed class SqliteInventoryEntryRepositoryTests
             }
 
             await Assert.ThrowsAsync<InvalidDataException>(async () =>
-                await new SqliteInventoryEntryRepository(databasePath).LoadAsync(
+                await new SqliteInventoryEntryRepository(databasePath).LoadCharacterAsync(
                     new AccountId(13),
                     new CharacterId(23),
+                    CancellationToken.None));
+        }
+        finally
+        {
+            File.Delete(databasePath);
+        }
+    }
+
+    [Theory]
+    [InlineData("malformed")]
+    [InlineData("wrong-container")]
+    [InlineData("duplicate")]
+    public async Task LoadAccountAsync_RejectsInvalidStoredAccountCargo(string invalidCase)
+    {
+        var databasePath = CreateDatabase();
+        try
+        {
+            await SeedSchemaAsync(databasePath);
+            await ExecuteAsync(databasePath, """
+                INSERT INTO characters(character_id, account_id) VALUES(27, 17);
+                INSERT INTO accounts(account_id) VALUES(17);
+                """);
+            var validCore = CreateCore(1, 4004, 41);
+            var firstCore = invalidCase == "malformed" ? new byte[81] : validCore;
+            var listType = invalidCase == "wrong-container" ? 3 : 12;
+            await ExecuteAsync(databasePath, """
+                INSERT INTO account_cargo_new_items(
+                    item_uid, account_id, character_id, list_type, slot_index, item_core)
+                VALUES(401, 17, 27, @listType, 5, @core);
+                """,
+                ("@listType", listType),
+                ("@core", firstCore));
+            if (invalidCase == "duplicate")
+            {
+                await ExecuteAsync(databasePath, """
+                    INSERT INTO account_cargo_new_items(
+                        item_uid, account_id, character_id, list_type, slot_index, item_core)
+                    VALUES(402, 17, 27, 12, 5, @core);
+                    """, ("@core", validCore));
+            }
+
+            await Assert.ThrowsAsync<InvalidDataException>(async () =>
+                await new SqliteInventoryEntryRepository(databasePath).LoadAccountAsync(
+                    new AccountId(17),
+                    new CharacterId(27),
                     CancellationToken.None));
         }
         finally

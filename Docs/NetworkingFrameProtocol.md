@@ -245,7 +245,7 @@ Networking 当前提供：
 - The request body begins with a little-endian `u16` character slot index.
 - The refactored path resolves the exact `AccountId + SlotIndex`; it does not
   preserve the legacy fallback to the first account character or seed data.
-- Business execution returns a composed `SelectCharacterResult` whose
+- The application command use case returns a composed `SelectCharacterResult` whose
   character, account, world, and session views remain separate. Optional
   character-only state such as Dark Knight combos is nullable only when the
   feature does not apply.

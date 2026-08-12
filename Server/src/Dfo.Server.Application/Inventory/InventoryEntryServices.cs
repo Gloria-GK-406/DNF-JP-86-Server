@@ -5,8 +5,35 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
-internal sealed class InventoryEntryService(IInventoryEntryRepository repository)
-    : IInventoryEntryService
+internal sealed class CharacterInventoryEntryService(ICharacterInventoryEntryRepository repository)
+    : ICharacterInventoryEntryService
+{
+    public async ValueTask<CharacterInventoryEntryState> LoadAsync(
+        AccountId accountId,
+        CharacterId characterId,
+        CancellationToken cancellationToken)
+    {
+        var stored = await repository.LoadCharacterAsync(accountId, characterId, cancellationToken)
+            .ConfigureAwait(false);
+        return InventoryEntryProjection.ProjectCharacter(stored, accountId, characterId);
+    }
+}
+
+internal sealed class AccountInventoryEntryService(IAccountInventoryEntryRepository repository)
+    : IAccountInventoryEntryService
+{
+    public async ValueTask<AccountInventoryEntryState> LoadAsync(
+        AccountId accountId,
+        CharacterId characterId,
+        CancellationToken cancellationToken)
+    {
+        var stored = await repository.LoadAccountAsync(accountId, characterId, cancellationToken)
+            .ConfigureAwait(false);
+        return InventoryEntryProjection.ProjectAccount(stored, accountId, characterId);
+    }
+}
+
+internal static class InventoryEntryProjection
 {
     private static readonly InventoryContainerType[] CharacterContainerOrder =
     [
@@ -17,26 +44,19 @@ internal sealed class InventoryEntryService(IInventoryEntryRepository repository
         InventoryContainerType.Pet,
     ];
 
-    public async ValueTask<InventoryEntryState> LoadAsync(
+    public static CharacterInventoryEntryState ProjectCharacter(
+        CharacterInventoryEntryStorageRecord stored,
         AccountId accountId,
-        CharacterId characterId,
-        CancellationToken cancellationToken)
+        CharacterId characterId)
     {
-        var stored = await repository.LoadAsync(accountId, characterId, cancellationToken)
-            .ConfigureAwait(false);
         if (stored.AccountId != accountId || stored.CharacterId != characterId)
         {
-            throw new InvalidDataException("Inventory storage result does not match the requested owner.");
+            throw new InvalidDataException(
+                "Character inventory storage result does not match the requested owner.");
         }
 
         var parameters = NormalizeParameters(stored.CharacterContainerParameters, characterId);
         var characterItems = NormalizeCharacterItems(stored.CharacterItems, characterId);
-        var accountCargoItems = NormalizeAccountCargoItems(stored.AccountCargoItems, accountId);
-        if (stored.AccountCargoState.AccountId != accountId)
-        {
-            throw new InvalidDataException("Account cargo state does not match the requested account.");
-        }
-
         var containers = CharacterContainerOrder
             .Select(containerType => new InventoryContainerState(
                 containerType,
@@ -46,39 +66,65 @@ internal sealed class InventoryEntryService(IInventoryEntryRepository repository
                 characterItems.TryGetValue(containerType, out var items) ? items : []))
             .ToArray();
         var characterVirtualResources = NormalizeRuntimeValues(stored.CharacterVirtualResources);
-        var accountVirtualResources = NormalizeRuntimeValues(stored.AccountVirtualResources);
         var itemValues = NormalizeItemValues(stored.CharacterItemValues, characterId);
         var equipmentLocks = NormalizeEquipmentLocks(stored.EquipmentLocks, characterId);
         var rentals = NormalizeRentals(stored.CharacterRentals, characterId);
-        var characterEquipmentLocks = equipmentLocks
-            .Where(item => item.ContainerType != InventoryContainerType.AccountCargo)
-            .ToArray();
-        var accountCargoEquipmentLocks = equipmentLocks
-            .Where(item => item.ContainerType == InventoryContainerType.AccountCargo)
-            .ToArray();
+        if (equipmentLocks.Any(item => item.ContainerType == InventoryContainerType.AccountCargo))
+        {
+            throw new InvalidDataException(
+                "Character inventory storage contains an account cargo equipment lock.");
+        }
+
+        return new CharacterInventoryEntryState(
+            characterId,
+            containers,
+            characterVirtualResources,
+            itemValues,
+            equipmentLocks,
+            rentals,
+            stored.GoldLimits);
+    }
+
+    public static AccountInventoryEntryState ProjectAccount(
+        AccountInventoryEntryStorageRecord stored,
+        AccountId accountId,
+        CharacterId characterId)
+    {
+        if (stored.AccountId != accountId || stored.CharacterId != characterId)
+        {
+            throw new InvalidDataException(
+                "Account inventory storage result does not match the requested owner.");
+        }
+
+        var accountCargoItems = NormalizeAccountCargoItems(stored.AccountCargoItems, accountId);
+        if (stored.AccountCargoState.AccountId != accountId)
+        {
+            throw new InvalidDataException("Account cargo state does not match the requested account.");
+        }
+
+        var accountVirtualResources = NormalizeRuntimeValues(stored.AccountVirtualResources);
+        var accountCargoEquipmentLocks = NormalizeEquipmentLocks(stored.EquipmentLocks, characterId);
+        if (accountCargoEquipmentLocks.Any(
+                item => item.ContainerType != InventoryContainerType.AccountCargo))
+        {
+            throw new InvalidDataException(
+                "Account inventory storage contains a non-cargo equipment lock.");
+        }
+
         var cargoContainer = new InventoryContainerState(
             InventoryContainerType.AccountCargo,
             stored.AccountCargoState.SelectionKey,
             accountCargoItems);
-        return new InventoryEntryState(
-            new CharacterInventoryEntryState(
-                characterId,
-                containers,
-                characterVirtualResources,
-                itemValues,
-                characterEquipmentLocks,
-                rentals,
-                stored.GoldLimits),
-            new AccountInventoryEntryState(
+        return new AccountInventoryEntryState(
+            accountId,
+            new AccountCargoEntryState(
                 accountId,
-                new AccountCargoEntryState(
-                    accountId,
-                    cargoContainer,
-                    accountCargoEquipmentLocks,
-                    stored.AccountCargoState.SelectionKey,
-                    stored.AccountCargoState.Value32,
-                    stored.AccountCargoState.StoredItemCount),
-                accountVirtualResources));
+                cargoContainer,
+                accountCargoEquipmentLocks,
+                stored.AccountCargoState.SelectionKey,
+                stored.AccountCargoState.Value32,
+                stored.AccountCargoState.StoredItemCount),
+            accountVirtualResources);
     }
 
     private static IReadOnlyDictionary<InventoryContainerType, ushort> NormalizeParameters(
@@ -282,4 +328,32 @@ internal sealed class InventoryEntryService(IInventoryEntryRepository repository
 
     private static ushort GetDefaultParameter(InventoryContainerType containerType) =>
         containerType == InventoryContainerType.PersonalCargo ? (ushort)8 : (ushort)0;
+}
+
+internal sealed class EquippedCreatureQuery : IEquippedCreatureQuery
+{
+    /// <summary>Where an equipped creature sits in the equipment container.</summary>
+    private const int CreatureEquipSlot = 24;
+
+    /// <summary>The item kind the legacy inventory uses for creatures.</summary>
+    private const byte CreatureItemKind = 5;
+
+    public int GetItemId(CharacterInventoryEntryState inventory)
+    {
+        ArgumentNullException.ThrowIfNull(inventory);
+
+        foreach (var container in inventory.Containers)
+        {
+            if (container.ContainerType is not InventoryContainerType.Equipment)
+                continue;
+
+            foreach (var item in container.Items)
+            {
+                if (item.SlotIndex == CreatureEquipSlot && item.Core.ItemKind == CreatureItemKind)
+                    return item.Core.ItemId;
+            }
+        }
+
+        return 0;
+    }
 }

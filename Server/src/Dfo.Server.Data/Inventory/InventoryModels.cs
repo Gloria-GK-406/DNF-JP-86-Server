@@ -144,6 +144,12 @@ public sealed record AccountInventoryEntryState(
     AccountCargoEntryState Cargo,
     IReadOnlyList<InventoryRuntimeValueState> VirtualResources);
 
-public sealed record InventoryEntryState(
-    CharacterInventoryEntryState CharacterInventory,
-    AccountInventoryEntryState AccountInventory);
+/// <summary>
+/// The intrinsic character facts equipment rules may inspect without gaining access to
+/// character mutation or entry orchestration.
+/// </summary>
+public sealed record EquipmentEligibilityCharacterFacts(
+    CharacterId CharacterId,
+    byte Level,
+    byte Job,
+    byte GrowType);

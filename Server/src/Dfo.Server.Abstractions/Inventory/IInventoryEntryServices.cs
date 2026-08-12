@@ -45,31 +45,69 @@ public sealed record CharacterRentalStorageRecord(
     long InventoryTemplateId,
     long ExpireTime);
 
-public sealed record InventoryEntryStorageRecord(
+public sealed record CharacterInventoryEntryStorageRecord(
     AccountId AccountId,
     CharacterId CharacterId,
     IReadOnlyList<InventoryStorageItem> CharacterItems,
-    IReadOnlyList<InventoryStorageItem> AccountCargoItems,
     IReadOnlyList<InventoryContainerParameter> CharacterContainerParameters,
-    AccountCargoStorageState AccountCargoState,
     IReadOnlyList<InventoryRuntimeValueState> CharacterVirtualResources,
-    IReadOnlyList<InventoryRuntimeValueState> AccountVirtualResources,
     IReadOnlyList<InventoryItemValueStorageRecord> CharacterItemValues,
     IReadOnlyList<InventoryEquipmentLockStorageRecord> EquipmentLocks,
     IReadOnlyList<CharacterRentalStorageRecord> CharacterRentals,
     InventoryGoldLimitState GoldLimits);
 
-public interface IInventoryEntryRepository
+public sealed record AccountInventoryEntryStorageRecord(
+    AccountId AccountId,
+    CharacterId CharacterId,
+    IReadOnlyList<InventoryStorageItem> AccountCargoItems,
+    AccountCargoStorageState AccountCargoState,
+    IReadOnlyList<InventoryRuntimeValueState> AccountVirtualResources,
+    IReadOnlyList<InventoryEquipmentLockStorageRecord> EquipmentLocks);
+
+public interface ICharacterInventoryEntryRepository
 {
-    ValueTask<InventoryEntryStorageRecord> LoadAsync(
+    ValueTask<CharacterInventoryEntryStorageRecord> LoadCharacterAsync(
         AccountId accountId,
         CharacterId characterId,
         CancellationToken cancellationToken);
 }
 
-public interface IInventoryEntryService
+public interface IAccountInventoryEntryRepository
 {
-    ValueTask<InventoryEntryState> LoadAsync(
+    ValueTask<AccountInventoryEntryStorageRecord> LoadAccountAsync(
+        AccountId accountId,
+        CharacterId characterId,
+        CancellationToken cancellationToken);
+}
+
+public interface ICharacterInventoryEntryService
+{
+    ValueTask<CharacterInventoryEntryState> LoadAsync(
+        AccountId accountId,
+        CharacterId characterId,
+        CancellationToken cancellationToken);
+}
+
+public interface IAccountInventoryEntryService
+{
+    ValueTask<AccountInventoryEntryState> LoadAsync(
+        AccountId accountId,
+        CharacterId characterId,
+        CancellationToken cancellationToken);
+}
+
+/// <summary>Reads equipment layout facts from a loaded character inventory.</summary>
+public interface IEquippedCreatureQuery
+{
+    int GetItemId(CharacterInventoryEntryState inventory);
+}
+
+/// <summary>
+/// Purpose-limited view of character facts required by equipment eligibility rules.
+/// </summary>
+public interface IEquipmentEligibilityCharacterReader
+{
+    ValueTask<EquipmentEligibilityCharacterFacts> GetAsync(
         AccountId accountId,
         CharacterId characterId,
         CancellationToken cancellationToken);

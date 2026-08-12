@@ -7,7 +7,8 @@ using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Infrastructure.Inventory;
 
-internal sealed class SqliteInventoryEntryRepository : IInventoryEntryRepository
+internal sealed class SqliteInventoryEntryRepository
+    : ICharacterInventoryEntryRepository, IAccountInventoryEntryRepository
 {
     private const int ItemCoreSize = 82;
     private readonly string connectionString;
@@ -26,20 +27,12 @@ internal sealed class SqliteInventoryEntryRepository : IInventoryEntryRepository
         EnsureSchema();
     }
 
-    public async ValueTask<InventoryEntryStorageRecord> LoadAsync(
+    public async ValueTask<CharacterInventoryEntryStorageRecord> LoadCharacterAsync(
         AccountId accountId,
         CharacterId characterId,
         CancellationToken cancellationToken)
     {
-        if (accountId.Value <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(accountId), "Account ID must be positive.");
-        }
-
-        if (characterId.Value <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(characterId), "Character ID must be positive.");
-        }
+        ValidateIdentifiers(accountId, characterId);
 
         await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
@@ -48,26 +41,16 @@ internal sealed class SqliteInventoryEntryRepository : IInventoryEntryRepository
 
         var characterItems = await LoadCharacterItemsAsync(connection, characterId, cancellationToken)
             .ConfigureAwait(false);
-        var accountCargoItems = await LoadAccountCargoItemsAsync(connection, accountId, cancellationToken)
-            .ConfigureAwait(false);
-        await RejectUnmigratedLegacyInventoryAsync(
+        await RejectUnmigratedLegacyCharacterInventoryAsync(
             connection,
-            accountId,
             characterId,
             characterItems.Count,
-            accountCargoItems.Count,
             cancellationToken).ConfigureAwait(false);
         var containerParameters = await LoadContainerParametersAsync(
             connection,
             characterId,
             cancellationToken).ConfigureAwait(false);
-        var cargoState = await LoadAccountCargoStateAsync(connection, accountId, cancellationToken)
-            .ConfigureAwait(false);
         var characterVirtualResources = LoadCharacterVirtualResources(characterItems);
-        var accountVirtualResources = await LoadAccountVirtualResourcesAsync(
-            connection,
-            accountId,
-            cancellationToken).ConfigureAwait(false);
         var itemValues = await LoadItemValuesAsync(connection, characterId, cancellationToken)
             .ConfigureAwait(false);
         var equipmentLocks = await LoadEquipmentLocksAsync(connection, characterId, cancellationToken)
@@ -78,20 +61,71 @@ internal sealed class SqliteInventoryEntryRepository : IInventoryEntryRepository
             .ConfigureAwait(false);
 
         ValidateUniqueSlots(characterItems, "character inventory");
-        ValidateUniqueSlots(accountCargoItems, "account cargo");
-        return new InventoryEntryStorageRecord(
+        return new CharacterInventoryEntryStorageRecord(
             accountId,
             characterId,
             characterItems,
-            accountCargoItems,
             containerParameters,
-            cargoState,
             characterVirtualResources,
-            accountVirtualResources,
             itemValues,
-            equipmentLocks,
+            equipmentLocks
+                .Where(item => item.ContainerType != InventoryContainerType.AccountCargo)
+                .ToArray(),
             rentals,
             goldLimits);
+    }
+
+    public async ValueTask<AccountInventoryEntryStorageRecord> LoadAccountAsync(
+        AccountId accountId,
+        CharacterId characterId,
+        CancellationToken cancellationToken)
+    {
+        ValidateIdentifiers(accountId, characterId);
+
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await VerifyCharacterOwnershipAsync(connection, accountId, characterId, cancellationToken)
+            .ConfigureAwait(false);
+
+        var accountCargoItems = await LoadAccountCargoItemsAsync(connection, accountId, cancellationToken)
+            .ConfigureAwait(false);
+        await RejectUnmigratedLegacyAccountInventoryAsync(
+            connection,
+            accountId,
+            accountCargoItems.Count,
+            cancellationToken).ConfigureAwait(false);
+        var cargoState = await LoadAccountCargoStateAsync(connection, accountId, cancellationToken)
+            .ConfigureAwait(false);
+        var accountVirtualResources = await LoadAccountVirtualResourcesAsync(
+            connection,
+            accountId,
+            cancellationToken).ConfigureAwait(false);
+        var equipmentLocks = await LoadEquipmentLocksAsync(connection, characterId, cancellationToken)
+            .ConfigureAwait(false);
+
+        ValidateUniqueSlots(accountCargoItems, "account cargo");
+        return new AccountInventoryEntryStorageRecord(
+            accountId,
+            characterId,
+            accountCargoItems,
+            cargoState,
+            accountVirtualResources,
+            equipmentLocks
+                .Where(item => item.ContainerType == InventoryContainerType.AccountCargo)
+                .ToArray());
+    }
+
+    private static void ValidateIdentifiers(AccountId accountId, CharacterId characterId)
+    {
+        if (accountId.Value <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(accountId), "Account ID must be positive.");
+        }
+
+        if (characterId.Value <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(characterId), "Character ID must be positive.");
+        }
     }
 
     private static async ValueTask VerifyCharacterOwnershipAsync(
@@ -510,47 +544,52 @@ internal sealed class SqliteInventoryEntryRepository : IInventoryEntryRepository
             .ToArray();
     }
 
-    private static async ValueTask RejectUnmigratedLegacyInventoryAsync(
+    private static async ValueTask RejectUnmigratedLegacyCharacterInventoryAsync(
         SqliteConnection connection,
-        AccountId accountId,
         CharacterId characterId,
         int characterNewItemCount,
+        CancellationToken cancellationToken)
+    {
+        if (characterNewItemCount != 0)
+            return;
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT EXISTS(
+                SELECT 1
+                FROM character_items
+                WHERE character_id = @characterId
+                   OR (owner_scope = 'character' AND owner_id = @characterId));
+            """;
+        command.Parameters.AddWithValue("@characterId", characterId.Value);
+        if (Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false)) != 0)
+        {
+            throw new InvalidDataException(
+                $"Legacy character inventory exists for character {characterId.Value}; migration required before entry loading.");
+        }
+    }
+
+    private static async ValueTask RejectUnmigratedLegacyAccountInventoryAsync(
+        SqliteConnection connection,
+        AccountId accountId,
         int accountCargoNewItemCount,
         CancellationToken cancellationToken)
     {
-        if (characterNewItemCount == 0)
-        {
-            await using var command = connection.CreateCommand();
-            command.CommandText = """
-                SELECT EXISTS(
-                    SELECT 1
-                    FROM character_items
-                    WHERE character_id = @characterId
-                       OR (owner_scope = 'character' AND owner_id = @characterId));
-                """;
-            command.Parameters.AddWithValue("@characterId", characterId.Value);
-            if (Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false)) != 0)
-            {
-                throw new InvalidDataException(
-                    $"Legacy character inventory exists for character {characterId.Value}; migration required before entry loading.");
-            }
-        }
+        if (accountCargoNewItemCount != 0)
+            return;
 
-        if (accountCargoNewItemCount == 0)
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT EXISTS(
+                SELECT 1
+                FROM account_cargo_items
+                WHERE account_id = @accountId);
+            """;
+        command.Parameters.AddWithValue("@accountId", accountId.Value);
+        if (Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false)) != 0)
         {
-            await using var command = connection.CreateCommand();
-            command.CommandText = """
-                SELECT EXISTS(
-                    SELECT 1
-                    FROM account_cargo_items
-                    WHERE account_id = @accountId);
-                """;
-            command.Parameters.AddWithValue("@accountId", accountId.Value);
-            if (Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false)) != 0)
-            {
-                throw new InvalidDataException(
-                    $"Legacy account cargo exists for account {accountId.Value}; migration required before entry loading.");
-            }
+            throw new InvalidDataException(
+                $"Legacy account cargo exists for account {accountId.Value}; migration required before entry loading.");
         }
     }
 
