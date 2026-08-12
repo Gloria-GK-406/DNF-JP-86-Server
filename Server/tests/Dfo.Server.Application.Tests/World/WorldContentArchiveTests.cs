@@ -57,18 +57,36 @@ public sealed class WorldContentArchiveTests
     }
 
     [SkippableFact]
-    public async Task Two_jobs_are_offered_different_quest_sets()
+    public async Task Real_job_restrictions_change_the_offered_set_for_a_supported_subject()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var scope = ContentArchive.CreateContentProvider();
         var service = CreateService(scope);
 
-        var swordman = await service.LoadAsync(Subject(level: 40, job: 0), CancellationToken.None);
-        var mage = await service.LoadAsync(Subject(level: 40, job: 3), CancellationToken.None);
+        (int Level, byte GrowType)? differingSubject = null;
+        for (var level = 1; level <= 99; level++)
+        {
+            for (byte growType = 0; growType <= 15; growType++)
+            {
+                var swordman = await service.LoadAsync(
+                    Subject(level: level, job: 0, growType: growType),
+                    CancellationToken.None);
+                var mage = await service.LoadAsync(
+                    Subject(level: level, job: 3, growType: growType),
+                    CancellationToken.None);
+                if (!swordman.AvailableQuests.Quests.Select(quest => quest.QuestId)
+                        .SequenceEqual(mage.AvailableQuests.Quests.Select(quest => quest.QuestId)))
+                {
+                    differingSubject = (level, growType);
+                    break;
+                }
+            }
 
-        Assert.NotEqual(
-            swordman.AvailableQuests.Quests.Select(quest => quest.QuestId),
-            mage.AvailableQuests.Quests.Select(quest => quest.QuestId));
+            if (differingSubject is not null)
+                break;
+        }
+
+        Assert.NotNull(differingSubject);
     }
 
     [SkippableFact]
@@ -236,10 +254,11 @@ public sealed class WorldContentArchiveTests
         new(level,
             job,
             growType,
-            clearedQuestIds ?? [],
+            (clearedQuestIds ?? []).ToDictionary(questId => questId, _ => 1),
             [],
             collectionBoxes ?? [],
-            equippedCreatureItemId);
+            equippedCreatureItemId,
+            EquippedCreatureLevel: 0);
 }
 
 /// <summary>

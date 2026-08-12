@@ -36,29 +36,162 @@ internal sealed class WorldContentEntryService(
         CancellationToken cancellationToken)
     {
         var catalog = await quests.GetAllAsync(cancellationToken).ConfigureAwait(false);
+        var trainingAvailability = await quests
+            .GetTrainingAvailabilityAsync(cancellationToken)
+            .ConfigureAwait(false);
+        var equippedCreature = subject.EquippedCreatureItemId > 0
+            ? await creatures.FindByEquipmentAsync(
+                subject.EquippedCreatureItemId,
+                cancellationToken).ConfigureAwait(false)
+            : null;
         var requirement = QuestJobRequirementFor(subject.Job);
         var offerable = new List<OfferableQuestState>();
+        var seenQuestIds = new HashSet<int>();
 
         foreach (var quest in catalog)
         {
+            if (quest.QuestId is <= 0 or > 29_999 || !seenQuestIds.Add(quest.QuestId))
+                continue;
+            if (quest.IsExposedByNpc == false || quest.IsEventOnly == true)
+                continue;
+            if (quest.ExpertJobRequirement is not null)
+                continue;
+            if (!MatchesTargetCharacter(quest.TargetCharacterRestriction, requirement))
+                continue;
+            if (!MatchesTrainingAvailability(quest, subject.Level, trainingAvailability))
+                continue;
+            if (!await MatchesCreatureRestrictionAsync(
+                    quest,
+                    subject,
+                    equippedCreature,
+                    cancellationToken).ConfigureAwait(false))
+                continue;
+            if (!MatchesQuestProgress(quest, subject.ClearedQuestFlags))
+                continue;
             if (!IsOfferableGrade(quest.Grade))
                 continue;
             // A repeatable quest is offered again once cleared; that is what repeatable
             // means. Excluding every cleared quest would retire the dailies permanently
             // after their first completion.
-            if (!IsRepeatable(quest.Grade) && subject.ClearedQuestIds.Contains(quest.QuestId))
+            if (!IsRepeatable(quest.Grade) && subject.ClearedQuestFlags.ContainsKey(quest.QuestId))
                 continue;
-            if (!quest.RequiredLevel.Includes(subject.Level))
+            if (quest.RequiredLevel is { } requiredLevel && !requiredLevel.Includes(subject.Level))
                 continue;
-            if (quest.JobRequirement is not QuestJobRequirement.Any && quest.JobRequirement != requirement)
+            if (quest.JobRestriction is { } jobRestriction
+                && (!jobRestriction.IsValid
+                    || !jobRestriction.IsExactAll
+                    && !jobRestriction.JobFamilies.Contains(requirement)))
                 continue;
-            if (!quest.AppliesToAnyGrowType && quest.GrowTypeRequirement != subject.GrowType)
+            if (!MatchesGrowType(quest, subject.GrowType))
                 continue;
 
-            offerable.Add(new OfferableQuestState(quest.QuestId, quest.Name, quest.GrowTypeRequirement));
+            offerable.Add(new OfferableQuestState(
+                quest.QuestId,
+                quest.Name,
+                quest.GrowTypeRequirement ?? QuestDefinition.AnyGrowType));
         }
 
         return new AvailableQuestEntryState(offerable);
+    }
+
+    private static bool MatchesTargetCharacter(
+        QuestTargetCharacterRestriction? restriction,
+        QuestJobRequirement characterJob) =>
+        restriction is null
+        || restriction.IsValid
+            && characterJob is not QuestJobRequirement.Unrecognized
+            && restriction.JobFamilies.Contains(characterJob);
+
+    private static bool MatchesTrainingAvailability(
+        QuestDefinition quest,
+        int characterLevel,
+        IReadOnlyList<TrainingQuestAvailability> availability)
+    {
+        if (quest.Grade is not QuestGrade.Training)
+            return true;
+        if (quest.NpcIndex is not > 0)
+            return false;
+
+        return availability.Any(level =>
+            level.CharacterLevel == characterLevel
+            && level.NpcIndexes.Contains(quest.NpcIndex.Value));
+    }
+
+    private async ValueTask<bool> MatchesCreatureRestrictionAsync(
+        QuestDefinition quest,
+        WorldContentSubject subject,
+        CreatureDefinition? equippedCreature,
+        CancellationToken cancellationToken)
+    {
+        if (quest.CreatureKindRequirement is null)
+            return true;
+        if (equippedCreature is null
+            || equippedCreature.CreatureId != quest.CreatureKindRequirement
+            || subject.EquippedCreatureLevel <= 0)
+        {
+            return false;
+        }
+
+        foreach (var evolution in equippedCreature.Evolutions)
+        {
+            if (evolution.RequiredQuestId is not > 0
+                || evolution.RequiredLevel is not > 0
+                || subject.EquippedCreatureLevel < evolution.RequiredLevel)
+            {
+                continue;
+            }
+
+            // The target must itself resolve to creature equipment. A positive target ID
+            // alone is not viable: the legacy evolution catalogue rejects that declaration
+            // before it adds the current creature kind to the allowed set.
+            return await creatures.CanResolveEvolutionEquipmentAsync(
+                subject.EquippedCreatureItemId,
+                evolution.EvolvesIntoCreatureId,
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        return false;
+    }
+
+    private static bool MatchesGrowType(QuestDefinition quest, byte characterGrowType)
+    {
+        if (quest.GrowTypeRequirement is not { } requiredGrowType)
+            return true;
+
+        return quest.JobChangeQuestCode switch
+        {
+            2 or 3 => requiredGrowType == (characterGrowType & 0xF),
+            1 or 10 or 20 => true,
+            _ => requiredGrowType == characterGrowType,
+        };
+    }
+
+    private static bool MatchesQuestProgress(
+        QuestDefinition quest,
+        IReadOnlyDictionary<int, int> clearedFlags)
+    {
+        if (quest.CompletedQuestPrerequisiteGroups.Count > 0
+            && !quest.CompletedQuestPrerequisiteGroups.Any(
+                group => group.All(clearedFlags.ContainsKey)))
+        {
+            return false;
+        }
+
+        foreach (var requiredAnswer in quest.RequiredQuestAnswers)
+        {
+            if (!clearedFlags.TryGetValue(requiredAnswer.QuestId, out var actualFlag)
+                || actualFlag != requiredAnswer.AnswerIndex + 1)
+            {
+                return false;
+            }
+        }
+
+        if (quest.CollisionQuestIds.Any(clearedFlags.ContainsKey))
+            return false;
+
+        // This standalone entry composition has no complete account-cleared quest state.
+        // A declared account collision therefore cannot be decided and must fail closed.
+        return quest.AccountCollisionQuestIds.Count == 0;
     }
 
     /// <summary>
@@ -70,15 +203,15 @@ internal sealed class WorldContentEntryService(
     /// revenge — are reached some other way, and offering them in the entry list would put
     /// quests in front of characters the legacy server never shows them to.
     /// <para>
-    /// <see cref="QuestGrade.Unrecognized"/> is offerable because the legacy list admits a
-    /// quest that states no grade, and in this archive that is the only thing it can mean:
-    /// the content source's own vocabulary test fails if the archive ever yields a grade
-    /// token the enumeration does not model. Were that test to start failing, this
-    /// treatment would have to be revisited before the enumeration is widened.
+    /// A null grade is the content's explicit optional absence and is offerable. An
+    /// <see cref="QuestGrade.Unrecognized"/> value, by contrast, is a declared value the
+    /// neutral contract cannot decide and therefore fails closed.
     /// </para>
     /// </remarks>
-    private static bool IsOfferableGrade(QuestGrade grade) => grade is
-        QuestGrade.Unrecognized
+    private static bool IsOfferableGrade(QuestGrade? grade) => grade is
+        null
+        or QuestGrade.Normal
+        or QuestGrade.Training
         or QuestGrade.Side
         or QuestGrade.Sub
         or QuestGrade.Epic
@@ -95,7 +228,7 @@ internal sealed class WorldContentEntryService(
     /// even though it is offerable, so it is excluded here too rather than grouped with the
     /// other dailies on the strength of its name.
     /// </remarks>
-    private static bool IsRepeatable(QuestGrade grade) => grade is
+    private static bool IsRepeatable(QuestGrade? grade) => grade is
         QuestGrade.Daily
         or QuestGrade.NormallyRepeat
         or QuestGrade.SpecialDaily;

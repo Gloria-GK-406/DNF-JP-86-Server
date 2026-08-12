@@ -15,6 +15,71 @@ namespace Dfo.Server.Application.Tests.World;
 public sealed class WorldContentRuleTests
 {
     [Fact]
+    public async Task Declared_entry_restrictions_require_their_complete_matching_state()
+    {
+        var service = Service(
+            quests:
+            [
+                Quest(1),
+                Quest(2, exposedByNpc: false),
+                Quest(3, eventOnly: true),
+                Quest(4, creatureKind: 11, creatureLevel: 5),
+                Quest(5, expertJob: new ExpertJobRequirement(1, 1)),
+                Quest(6, targetCharacter: new QuestTargetCharacterRestriction([QuestJobRequirement.Mage])),
+                Quest(7, grade: QuestGrade.Training, npcIndex: 200),
+                Quest(8, targetCharacter: new QuestTargetCharacterRestriction([QuestJobRequirement.Swordman])),
+                Quest(9, grade: QuestGrade.Training, npcIndex: 201),
+                Quest(10, creatureKind: 10, creatureLevel: 99),
+            ],
+            trainingAvailability: [new TrainingQuestAvailability(10, [201])],
+            creatures:
+            [
+                Creature(10, [], [new CreatureEvolution(5, 999, 11)]),
+            ],
+            creatureIdByEquipment: new Dictionary<int, int> { [FarasItem] = 10 });
+
+        var result = await service.LoadAsync(
+            Subject(
+                level: 10,
+                job: 0,
+                equippedCreatureItemId: FarasItem,
+                equippedCreatureLevel: 5),
+            CancellationToken.None);
+
+        Assert.Equal([1, 8, 9], result.AvailableQuests.Quests.Select(quest => quest.QuestId));
+    }
+
+    [Fact]
+    public async Task Creature_evolution_quest_requires_the_target_creatures_equipment_mapping()
+    {
+        var quest = Quest(10, creatureKind: 10, creatureLevel: 99);
+        var currentCreature = Creature(10, [], [new CreatureEvolution(5, 999, 11)]);
+        var targetCreature = Creature(11, []);
+        var subject = Subject(
+            level: 10,
+            equippedCreatureItemId: FarasItem,
+            equippedCreatureLevel: 5);
+
+        var unresolved = await Service(
+            quests: [quest],
+            creatures: [currentCreature, targetCreature],
+            creatureIdByEquipment: new Dictionary<int, int> { [FarasItem] = 10 })
+            .LoadAsync(subject, CancellationToken.None);
+        var resolved = await Service(
+            quests: [quest],
+            creatures: [currentCreature, targetCreature],
+            creatureIdByEquipment: new Dictionary<int, int>
+            {
+                [FarasItem] = 10,
+                [SilentItem] = 11,
+            })
+            .LoadAsync(subject, CancellationToken.None);
+
+        Assert.Empty(unresolved.AvailableQuests.Quests);
+        Assert.Equal([10], resolved.AvailableQuests.Quests.Select(candidate => candidate.QuestId));
+    }
+
+    [Fact]
     public async Task Available_quests_exclude_the_ones_the_character_has_cleared()
     {
         var service = Service(quests: new[]
@@ -61,6 +126,36 @@ public sealed class WorldContentRuleTests
         Assert.Empty(result.AvailableQuests.Quests);
     }
 
+    [Fact]
+    public async Task Prerequisites_answers_and_collisions_use_the_complete_cleared_flag_map()
+    {
+        var service = Service(quests:
+        [
+            Quest(1),
+            Quest(2, prerequisites: [[10, 11]]),
+            Quest(3, prerequisites: [[10, 99], [12]]),
+            Quest(4, prerequisites: [[10, 99], [98]]),
+            Quest(5, requiredAnswers: [new QuestAnswerRequirement(11, 1)]),
+            Quest(6, requiredAnswers: [new QuestAnswerRequirement(11, 0)]),
+            Quest(7, collisions: [12]),
+            Quest(8, collisions: [99]),
+            Quest(9, accountCollisions: [10]),
+            Quest(10),
+            Quest(11, grade: QuestGrade.Daily),
+        ]);
+
+        var result = await service.LoadAsync(
+            Subject(clearedQuestFlags: new Dictionary<int, int>
+            {
+                [10] = 1,
+                [11] = 2,
+                [12] = 1,
+            }),
+            CancellationToken.None);
+
+        Assert.Equal([1, 2, 3, 5, 8, 11], result.AvailableQuests.Quests.Select(quest => quest.QuestId));
+    }
+
     /// <remarks>
     /// The content classifies quests that the entry list never carries — cracks, challenges,
     /// titles and the like are reached some other way. Offering them puts quests in front of
@@ -84,7 +179,7 @@ public sealed class WorldContentRuleTests
     }
 
     [Theory]
-    [InlineData(QuestGrade.Unrecognized)]
+    [InlineData(QuestGrade.Normal)]
     [InlineData(QuestGrade.Side)]
     [InlineData(QuestGrade.Sub)]
     [InlineData(QuestGrade.Epic)]
@@ -94,6 +189,20 @@ public sealed class WorldContentRuleTests
     public async Task A_grade_the_entry_list_carries_is_offered(QuestGrade grade)
     {
         var service = Service(quests: [Quest(1, grade: grade)]);
+
+        var result = await service.LoadAsync(Subject(), CancellationToken.None);
+
+        Assert.Equal([1], result.AvailableQuests.Quests.Select(quest => quest.QuestId));
+    }
+
+    [Fact]
+    public async Task An_absent_grade_is_unrestricted_but_an_unrecognized_declaration_is_rejected()
+    {
+        var service = Service(quests:
+        [
+            Quest(1, grade: null),
+            Quest(2, grade: QuestGrade.Unrecognized),
+        ]);
 
         var result = await service.LoadAsync(Subject(), CancellationToken.None);
 
@@ -117,6 +226,24 @@ public sealed class WorldContentRuleTests
     }
 
     [Fact]
+    public async Task Available_quests_keep_first_authoritative_client_range_order()
+    {
+        var service = Service(quests:
+        [
+            Quest(7),
+            Quest(0),
+            Quest(3),
+            Quest(7),
+            Quest(30_000),
+            Quest(9),
+        ]);
+
+        var result = await service.LoadAsync(Subject(), CancellationToken.None);
+
+        Assert.Equal([7, 3, 9], result.AvailableQuests.Quests.Select(quest => quest.QuestId));
+    }
+
+    [Fact]
     public async Task A_quest_open_to_any_job_is_offered_regardless_of_the_characters_job()
     {
         var service = Service(quests: new[]
@@ -128,6 +255,46 @@ public sealed class WorldContentRuleTests
         var result = await service.LoadAsync(Subject(job: 0), CancellationToken.None);
 
         Assert.Equal([1], result.AvailableQuests.Quests.Select(quest => quest.QuestId));
+    }
+
+    [Fact]
+    public async Task Mixed_all_and_specific_job_declaration_retains_the_specific_family_restriction()
+    {
+        var service = Service(quests:
+        [
+            Quest(1, jobRestriction: new QuestJobRestriction(
+                IsExactAll: false,
+                [QuestJobRequirement.Swordman])),
+        ]);
+
+        var swordman = await service.LoadAsync(Subject(job: 0), CancellationToken.None);
+        var mage = await service.LoadAsync(Subject(job: 3), CancellationToken.None);
+
+        Assert.Equal([1], swordman.AvailableQuests.Quests.Select(quest => quest.QuestId));
+        Assert.Empty(mage.AvailableQuests.Quests);
+    }
+
+    [Fact]
+    public async Task Job_restrictions_distinguish_optional_exact_all_specific_and_invalid_states()
+    {
+        var service = Service(quests:
+        [
+            Quest(1),
+            Quest(2, jobRestriction: new QuestJobRestriction(IsExactAll: true, [])),
+            Quest(3, jobRestriction: new QuestJobRestriction(
+                IsExactAll: false,
+                [QuestJobRequirement.Swordman])),
+            Quest(4, jobRestriction: new QuestJobRestriction(IsExactAll: false, [])),
+            Quest(5, jobRestriction: new QuestJobRestriction(
+                IsExactAll: false,
+                [QuestJobRequirement.Mage])),
+        ]);
+
+        var swordman = await service.LoadAsync(Subject(job: 0), CancellationToken.None);
+        var mage = await service.LoadAsync(Subject(job: 3), CancellationToken.None);
+
+        Assert.Equal([1, 2, 3], swordman.AvailableQuests.Quests.Select(quest => quest.QuestId));
+        Assert.Equal([1, 2, 5], mage.AvailableQuests.Quests.Select(quest => quest.QuestId));
     }
 
     /// <remarks>
@@ -188,6 +355,26 @@ public sealed class WorldContentRuleTests
 
         Assert.Equal([1, 2], matching.AvailableQuests.Quests.Select(quest => quest.QuestId));
         Assert.Equal([1], other.AvailableQuests.Quests.Select(quest => quest.QuestId));
+    }
+
+    [Fact]
+    public async Task Job_change_quests_preserve_masked_exempt_and_ordinary_grow_branches()
+    {
+        var service = Service(quests:
+        [
+            Quest(1),
+            Quest(2, growType: 3, jobChangeQuestCode: 2),
+            Quest(3, growType: 0x23, jobChangeQuestCode: 2),
+            Quest(4, growType: 99, jobChangeQuestCode: 1),
+            Quest(5, growType: 99, jobChangeQuestCode: 10),
+            Quest(6, growType: 99, jobChangeQuestCode: 20),
+            Quest(7, growType: 0x23),
+            Quest(8, growType: 3),
+        ]);
+
+        var result = await service.LoadAsync(Subject(growType: 0x23), CancellationToken.None);
+
+        Assert.Equal([1, 2, 4, 5, 6, 7], result.AvailableQuests.Quests.Select(quest => quest.QuestId));
     }
 
     [Fact]
@@ -406,11 +593,12 @@ public sealed class WorldContentRuleTests
 
     private static WorldContentEntryService Service(
         IReadOnlyList<QuestDefinition>? quests = null,
+        IReadOnlyList<TrainingQuestAvailability>? trainingAvailability = null,
         IReadOnlyList<DailyActivityGroupDefinition>? dailyActivities = null,
         IReadOnlyList<CollectionBoxDefinition>? collectionBoxes = null,
         IReadOnlyList<CreatureDefinition>? creatures = null,
         IReadOnlyDictionary<int, int>? creatureIdByEquipment = null) =>
-        new(new StubQuestSource(quests ?? []),
+        new(new StubQuestSource(quests ?? [], trainingAvailability ?? []),
             new StubDailyActivitySource(dailyActivities ?? []),
             new StubCollectionBoxSource(collectionBoxes ?? []),
             new StubCreatureSource(creatures ?? [], creatureIdByEquipment));
@@ -420,55 +608,92 @@ public sealed class WorldContentRuleTests
         byte job = 0,
         byte growType = 0,
         IReadOnlyCollection<int>? clearedQuestIds = null,
+        IReadOnlyDictionary<int, int>? clearedQuestFlags = null,
         IReadOnlyCollection<int>? claimedDailyChallengeGroupIds = null,
         IReadOnlyList<CollectionBoxProgressSubject>? collectionBoxes = null,
-        int equippedCreatureItemId = 0) =>
+        int equippedCreatureItemId = 0,
+        int equippedCreatureLevel = 0) =>
         new(level,
             job,
             growType,
-            clearedQuestIds ?? [],
+            clearedQuestFlags ?? (clearedQuestIds ?? []).ToDictionary(questId => questId, _ => 1),
             claimedDailyChallengeGroupIds ?? [],
             collectionBoxes ?? [],
-            equippedCreatureItemId);
+            equippedCreatureItemId,
+            equippedCreatureLevel);
 
     private static QuestDefinition Quest(
         int questId,
         LevelRange? level = null,
         QuestJobRequirement job = QuestJobRequirement.Any,
+        QuestJobRestriction? jobRestriction = null,
         int growType = QuestDefinition.AnyGrowType,
-        QuestGrade grade = QuestGrade.Side) =>
+        QuestGrade? grade = QuestGrade.Side,
+        bool? exposedByNpc = null,
+        bool? eventOnly = null,
+        int? creatureKind = null,
+        int? creatureLevel = null,
+        ExpertJobRequirement? expertJob = null,
+        QuestTargetCharacterRestriction? targetCharacter = null,
+        int? jobChangeQuestCode = null,
+        IReadOnlyList<IReadOnlyList<int>>? prerequisites = null,
+        IReadOnlyList<QuestAnswerRequirement>? requiredAnswers = null,
+        IReadOnlyList<int>? collisions = null,
+        IReadOnlyList<int>? accountCollisions = null,
+        int? npcIndex = 0) =>
         new(questId,
             $"quest-{questId}",
             grade,
-            job,
+            jobRestriction ?? (job is QuestJobRequirement.Any
+                ? null
+                : new QuestJobRestriction(IsExactAll: false, [job])),
             level ?? LevelRange.Any,
-            growType,
-            NpcIndex: 0,
+            growType == QuestDefinition.AnyGrowType ? null : growType,
+            NpcIndex: npcIndex,
             CompleteNpcIndex: 0,
             Rewards: [],
             ObjectiveTypeCode: "seeking",
-            DifficultyCode: "a");
+            DifficultyCode: "a",
+            IsExposedByNpc: exposedByNpc,
+            IsEventOnly: eventOnly,
+            CreatureKindRequirement: creatureKind,
+            CreatureLevelRequirement: creatureLevel,
+            ExpertJobRequirement: expertJob,
+            TargetCharacterRestriction: targetCharacter,
+            JobChangeQuestCode: jobChangeQuestCode,
+            CompletedQuestPrerequisiteGroups: prerequisites ?? [],
+            RequiredQuestAnswers: requiredAnswers ?? [],
+            CollisionQuestIds: collisions ?? [],
+            AccountCollisionQuestIds: accountCollisions ?? []);
 
     private static DailyActivityGroupDefinition Group(int groupId, LevelRange level) =>
         new(groupId, level, [], [], []);
 
-    private static CreatureDefinition Creature(int creatureId, IReadOnlyList<string> ambientLines) =>
+    private static CreatureDefinition Creature(
+        int creatureId,
+        IReadOnlyList<string> ambientLines,
+        IReadOnlyList<CreatureEvolution>? evolutions = null) =>
         new(creatureId,
             $"creature-{creatureId}",
             StartLevel: 1,
             PermissionLevel: 1,
             MaximumLevel: 10,
             ArtifactSlots: [],
-            Evolutions: [],
+            Evolutions: evolutions ?? [],
             AmbientLines: ambientLines);
 
-    private sealed class StubQuestSource(IReadOnlyList<QuestDefinition> quests) : IQuestDefinitionSource
+    private sealed class StubQuestSource(
+        IReadOnlyList<QuestDefinition> quests,
+        IReadOnlyList<TrainingQuestAvailability> trainingAvailability) : IQuestDefinitionSource
     {
         public ValueTask<IReadOnlyList<QuestDefinition>> GetAllAsync(CancellationToken cancellationToken) =>
             ValueTask.FromResult(quests);
 
         public ValueTask<QuestDefinition?> GetAsync(int questId, CancellationToken cancellationToken) =>
             ValueTask.FromResult(quests.FirstOrDefault(quest => quest.QuestId == questId));
+
+        public ValueTask<IReadOnlyList<TrainingQuestAvailability>> GetTrainingAvailabilityAsync(
+            CancellationToken cancellationToken) => ValueTask.FromResult(trainingAvailability);
     }
 
     private sealed class StubDailyActivitySource(IReadOnlyList<DailyActivityGroupDefinition> groups)
@@ -519,5 +744,12 @@ public sealed class WorldContentRuleTests
                 && creatureIdByEquipment.TryGetValue(itemTemplateId, out var creatureId)
                     ? creatures.FirstOrDefault(creature => creature.CreatureId == creatureId)
                     : null);
+
+        public ValueTask<bool> CanResolveEvolutionEquipmentAsync(
+            int currentEquipmentItemId,
+            int targetCreatureId,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult(
+                creatureIdByEquipment?.Values.Contains(targetCreatureId) is true);
     }
 }

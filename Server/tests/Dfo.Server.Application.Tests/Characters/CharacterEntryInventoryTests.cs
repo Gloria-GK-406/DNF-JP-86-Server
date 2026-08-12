@@ -300,6 +300,7 @@ public sealed class CharacterEntryInventoryTests
                 CancellationToken.None));
 
         Assert.Same(previous, active.GetRequired(accountId));
+        Assert.Equal(0, active.PublishCount);
     }
 
     [Fact]

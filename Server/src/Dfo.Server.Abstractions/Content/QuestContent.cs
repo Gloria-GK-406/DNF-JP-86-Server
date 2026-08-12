@@ -34,12 +34,17 @@ public enum QuestJobRequirement
     AwakenedFighter,
     AwakenedGunner,
     AwakenedMage,
+    AwakenedPriest,
+    AwakenedThief,
+    AwakenedKnight,
 }
 
 /// <summary>The content's own classification of a quest.</summary>
 public enum QuestGrade
 {
     Unrecognized = 0,
+    Normal,
+    Training,
     Epic,
     Achievement,
     Crack,
@@ -57,6 +62,18 @@ public enum QuestGrade
     Urgent,
     Wedding,
     VillageAttackRevenge,
+}
+
+/// <summary>A declared quest job restriction after archive spelling is removed.</summary>
+public sealed record QuestJobRestriction(
+    bool IsExactAll,
+    IReadOnlyList<QuestJobRequirement> JobFamilies)
+{
+    public bool IsValid => IsExactAll
+        ? JobFamilies.Count == 0
+        : JobFamilies.Count > 0
+            && JobFamilies.All(family => family is not (
+                QuestJobRequirement.Any or QuestJobRequirement.Unrecognized));
 }
 
 /// <summary>What a quest hands out on completion.</summary>
@@ -79,6 +96,25 @@ public enum QuestRewardKind
 
 /// <summary>One reward the quest grants, with the content's own operands.</summary>
 public sealed record QuestReward(QuestRewardKind Kind, IReadOnlyList<int> Values);
+
+/// <summary>A quest restriction on one expert-job type and its minimum level.</summary>
+public sealed record ExpertJobRequirement(int ExpertJobType, int MinimumLevel);
+
+/// <summary>A required answer to a prior question quest.</summary>
+public sealed record QuestAnswerRequirement(int QuestId, int AnswerIndex);
+
+/// <summary>
+/// A declared target-character restriction. An empty family list is an explicitly
+/// malformed declaration, distinct from the nullable field's unrestricted absence.
+/// </summary>
+public sealed record QuestTargetCharacterRestriction(
+    IReadOnlyList<QuestJobRequirement> JobFamilies)
+{
+    public bool IsValid => JobFamilies.Count > 0;
+}
+
+/// <summary>NPCs that can offer training quests at one character level.</summary>
+public sealed record TrainingQuestAvailability(int CharacterLevel, IReadOnlyList<int> NpcIndexes);
 
 /// <summary>
 /// A quest as the content defines it, with no character progress mixed in.
@@ -103,20 +139,31 @@ public sealed record QuestReward(QuestRewardKind Kind, IReadOnlyList<int> Values
 public sealed record QuestDefinition(
     int QuestId,
     string Name,
-    QuestGrade Grade,
-    QuestJobRequirement JobRequirement,
-    LevelRange RequiredLevel,
-    int GrowTypeRequirement,
-    int NpcIndex,
-    int CompleteNpcIndex,
+    QuestGrade? Grade,
+    QuestJobRestriction? JobRestriction,
+    LevelRange? RequiredLevel,
+    int? GrowTypeRequirement,
+    int? NpcIndex,
+    int? CompleteNpcIndex,
     IReadOnlyList<QuestReward> Rewards,
     string ObjectiveTypeCode,
-    string DifficultyCode)
+    string DifficultyCode,
+    bool? IsExposedByNpc,
+    bool? IsEventOnly,
+    int? CreatureKindRequirement,
+    int? CreatureLevelRequirement,
+    ExpertJobRequirement? ExpertJobRequirement,
+    QuestTargetCharacterRestriction? TargetCharacterRestriction,
+    int? JobChangeQuestCode,
+    IReadOnlyList<IReadOnlyList<int>> CompletedQuestPrerequisiteGroups,
+    IReadOnlyList<QuestAnswerRequirement> RequiredQuestAnswers,
+    IReadOnlyList<int> CollisionQuestIds,
+    IReadOnlyList<int> AccountCollisionQuestIds)
 {
     /// <summary>A quest offered regardless of grow type.</summary>
     public const int AnyGrowType = -1;
 
-    public bool AppliesToAnyGrowType => GrowTypeRequirement == AnyGrowType;
+    public bool AppliesToAnyGrowType => GrowTypeRequirement is null;
 }
 
 /// <summary>Static quest definitions, keyed by the identifiers the client uses.</summary>
@@ -127,4 +174,8 @@ public interface IQuestDefinitionSource
 
     /// <summary>One quest, or null when the content does not define it.</summary>
     ValueTask<QuestDefinition?> GetAsync(int questId, CancellationToken cancellationToken);
+
+    /// <summary>Training-quest NPC availability in authoritative level order.</summary>
+    ValueTask<IReadOnlyList<TrainingQuestAvailability>> GetTrainingAvailabilityAsync(
+        CancellationToken cancellationToken);
 }

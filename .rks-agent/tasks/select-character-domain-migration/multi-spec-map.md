@@ -4,19 +4,19 @@ contract:
   path: ./TaskContract.md
   revision: 1
 state: active
-phase: root_evaluation
+phase: child_execution
 phase_state: pending
-active_attempt: none
-last_transition: child-accepted
-transition_evidence: "Child spec-007 completed and was accepted after two review passes. A self-review approved it; an independent reviewer with no prior context then rejected it on two blocking findings, one of which falsified a claim the completion evidence had made. The blocking findings were a pet-welcome path that could never fire because equipment and creature identifiers are disjoint and the wrong space was queried, and town area kinds read by position such that 54 of 151 areas were misclassified. Both, plus three high findings, are fixed and covered by tests that fail without the fix; the remainder are recorded in Docs/Refactor/SelectCharacterWorldEntryCoverage.md. Two gated commits carry the accepted result on the prior baseline 86ba115: 01cb491 and 21e5a1a. The worktree is clean afterwards. Fresh verification: 348 passed, 2 skipped, 0 failed, 0 warnings, up from the baseline 204 passed and 1 skipped, with no existing test deleted and no assertion weakened. The row is sealed completed, the baseline advances, SC-2 and SC-3 progress is updated, and the active child is cleared."
+active_attempt: spec-008
+last_transition: child-created
+transition_evidence: "Created and validated the contained ready child at attempts/spec-008-complete-quest-eligibility with contributes_to SC-2/SC-3/SC-6 and an empty dependency list. Exactly one running row exists, the accepted baseline remains 94616f4, and the child is the smallest stable outcome that closes the known over-broad G5 quest answer before G6."
 workspace:
-  repository_root: /workspace/DNF-JP-86-Server
-  task_root: /workspace/DNF-JP-86-Server-pvf/.rks-agent/tasks/select-character-domain-migration
-  code_root: /workspace/DNF-JP-86-Server-pvf
-  branch: codex/pvf-content-infrastructure
-  baseline: 21e5a1a569a4ab60c36b772371ffc8101ccfe626
-  baseline_evidence: "HEAD 21e5a1a569a4ab60c36b772371ffc8101ccfe626 on branch codex/pvf-content-infrastructure in a clean worktree. This root's accepted spec-007 result spans two commits: 01cb491 delivered it, and 21e5a1a corrected the defects an independent review found afterwards. Both sit on the prior baseline 86ba115, which has b8e817c (the accepted G4 baseline) as a proven ancestor. The six commits between b8e817c and 86ba115 came from two separately authorized task contracts and are NOT this root's progress. Fresh verification at this baseline: 348 passed, 2 skipped, 0 failed (Application 188, Infrastructure 71 + 2 skips, Dfo.Pvf 60, Networking 29), Release, warnings-as-errors, 0 warnings."
-  archive_input: "Script.pvf (58,781,889 bytes) is present at the root of this worktree, where the parent-directory search finds it with no configuration. It was copied from the main worktree because the archive is gitignored (.gitignore:26 '*.pvf') and therefore absent from a fresh worktree; git status confirms it stays untracked. This matters for evidence integrity: when the archive is NOT reachable, archive-backed tests skip rather than fail, so a run without it is misleadingly green. Verified after the copy with no environment variable set: 204 passed, 1 skipped, 0 failed. The one skip is the missing-archive test, which by construction cannot run where an archive is reachable."
+  repository_root: /Users/puxianguo/project/86JP-main
+  task_root: /Users/puxianguo/project/86JP-main/.worktrees/select-character-domain-migration-completion/.rks-agent/tasks/select-character-domain-migration
+  code_root: /Users/puxianguo/project/86JP-main/.worktrees/select-character-domain-migration-completion
+  branch: codex/select-character-domain-migration-completion
+  baseline: 94616f4f360d9c9d82a55cd8d294dc26facfee6a
+  baseline_evidence: "HEAD 94616f4 on branch codex/select-character-domain-migration-completion in a clean linked worktree created from codex/architecture-refactor. The source worktree remains at the same accepted revision and clean. Fresh baseline after restore: 355 passed, 2 expected skips, 0 failed (PVF 60, Application 191, Infrastructure 74 + 2 skips, Networking 30). Drift review is aligned: the intervening accepted orchestration refactor preserves G1-G5 behavior and makes the command handler coordinate the separated domain services explicitly."
+  archive_input: "Script.pvf (58,781,889 bytes) is present as a gitignored copy at the root of this task worktree, copied from /Users/puxianguo/Downloads/Script.pvf. Dfo.Pvf tests execute 60/60 with the archive reachable; the two Infrastructure negative-path tests are expected to skip when an archive is deliberately present."
 ---
 
 # Multi-Spec Map
@@ -83,11 +83,11 @@ visible rather than inferred.
 | SC | Requirement | Progress | Evidence | Remaining gap | Constraint |
 |---|---|---|---|---|---|
 | SC-1 | Complete legacy initialization migration matrix | satisfied | `fd39009` and `Docs/Refactor/SelectCharacterMigrationMatrix.md`: 58 static, 18 supplemental, 10 lifecycle rows; approved review and fresh verification | none | aligned |
-| SC-2 | Complete separated entry-result composition | in_progress | `fa51169`: inventory; `927e6ed`: G3 character state; `b8e817c`: complete G4 AccountId-owned state with inventory reuse; `01cb491`: complete G5 world/content and session-adjacent limbs, composed before publication and carrying computed answers rather than catalogs | The composition itself is now complete for G1-G5. What remains is not composition but the groups that consume it: G6 has no projection and G7 no lifecycle | at_risk |
+| SC-2 | Complete separated entry-result composition | in_progress | `fa51169`: inventory; `927e6ed`: G3 character state; `b8e817c`: complete G4 AccountId-owned state with inventory reuse; `01cb491` + `21e5a1a`: G5 world/content and session-adjacent limbs; `94616f4`: explicit cross-domain command orchestration | G5 quest answers knowingly omit legacy eligibility predicates and can over-offer quests; session protocol identity/order and channel-catalog coherence also remain to be reconciled before the result is complete enough for G6 | at_risk |
 | SC-3 | Service-driven peripheral data access | satisfied | Accepted active-character, inventory, G3 and G4 slices; SQLite confined to Infrastructure. `01cb491` adds a fifth content source for town and map geometry, a channel entry policy, an entry placement service, and three runtime registries with their query service. Every one sits behind an Abstractions interface; `Pvf` appears zero times in Abstractions, Application, Networking and Data, and only the infrastructure project references the format library | none | aligned |
 | SC-4 | Exact and consistent account-exclusive selection | satisfied | `3e70094`: exact-slot load precedes one locked AccountId-indexed publication; stale disconnect and load-failure preservation verified. Re-confirmed at the new baseline: the typed-command-dispatch refactor (`86ba115`) rewrote command registration, and `SelectCharacterCommand` is still registered account-exclusive; that task added the first direct `AccountExecutionBehavior` coverage and mutation-verified that dropping its registration fails tests | none | aligned |
-| SC-5 | Result-only ordered Networking projection | not_started | Baseline `b0a3312` supplies one-to-many sender seam and ACK composer | Requires an accepted complete G5 result before G6/G7 projection | at_risk |
-| SC-6 | Integrated verification and honest documentation | in_progress | `fd39009`: reverse-engineering confidence documented; accepted checkpoint `b8e817c` remains a proven ancestor of the current baseline; `Docs/Refactor/SelectCharacterMigrationIncomplete.md` records the paused state honestly | Root completion cannot be verified while G5 and downstream projection remain incomplete. The incomplete-status document is now partly stale: its "Immediate priority" and "Required PVF Resolution" sections describe a blocker that is resolved | at_risk |
+| SC-5 | Result-only ordered Networking projection | not_started | `94616f4` supplies the one-to-many sender seam and one incomplete ACK composer | Rows 2-58, the complete mixed-domain ACK, X-01-X-18 projections, exact order, duplicates and target sets remain | at_risk |
+| SC-6 | Integrated verification and honest documentation | in_progress | `fd39009`: reverse-engineering confidence documented; accepted G1-G5 and orchestration checkpoints are ancestors of `94616f4`; fresh resumed baseline is 355 passed, 2 expected skips, 0 failed with real PVF | G5 fidelity, G6, G7, Host/client-facing verification and the stale paused-status document remain | at_risk |
 
 ### Constraint classification at this baseline
 
@@ -113,3 +113,4 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 | 5 | spec-005 | `attempts/spec-005-load-account-entry-state/TaskContract.md` | Load account entry state | SC-2, SC-3 | completed | `attempts/spec-005-load-account-entry-state/spec-result.md` | `b8e817c` accepted |
 | 6 | spec-006 | `attempts/spec-006-load-world-entry-state/TaskContract.md` | Load world/content entry state | SC-2, SC-3 | blocked | `attempts/spec-006-load-world-entry-state/spec-result.md` | rolled back to `b8e817c` |
 | 7 | spec-007 | `attempts/spec-007-complete-world-and-session-entry-state/TaskContract.md` | Complete world, content and session entry state | SC-2, SC-3 | completed | `attempts/spec-007-complete-world-and-session-entry-state/spec-result.md` | `01cb491` + `21e5a1a` accepted |
+| 8 | spec-008 | `attempts/spec-008-complete-quest-eligibility/TaskContract.md` | Complete G5 quest eligibility semantics | SC-2, SC-3, SC-6 | running | pending | active |

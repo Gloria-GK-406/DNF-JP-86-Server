@@ -20,14 +20,25 @@ public sealed record CollectionBoxProgressSubject(int BoxIndex, IReadOnlyCollect
 /// are disjoint, and reading it as a creature identifier finds nothing at all. Zero is not
 /// an error; it is why the welcome is absent rather than empty.
 /// </param>
+/// <param name="ClearedQuestFlags">
+/// The non-zero value stored for each cleared quest. The keys are the complete cleared set;
+/// the values additionally retain question answers, whose required value is not merely a
+/// boolean clear marker.
+/// </param>
+/// <param name="EquippedCreatureLevel">
+/// The level of the creature in the equipped creature slot, or zero when unavailable.
+/// Together with the equipment identifier this decides whether a declared evolution quest
+/// is currently eligible; it is not a general pet context.
+/// </param>
 public sealed record WorldContentSubject(
     int Level,
     byte Job,
     byte GrowType,
-    IReadOnlyCollection<int> ClearedQuestIds,
+    IReadOnlyDictionary<int, int> ClearedQuestFlags,
     IReadOnlyCollection<int> ClaimedDailyChallengeGroupIds,
     IReadOnlyList<CollectionBoxProgressSubject> CollectionBoxes,
-    int EquippedCreatureItemId);
+    int EquippedCreatureItemId,
+    int EquippedCreatureLevel);
 
 /// <summary>
 /// Resolves the static content of a character's entry into answers that need no further

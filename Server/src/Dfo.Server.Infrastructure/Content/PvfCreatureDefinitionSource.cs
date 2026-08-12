@@ -52,6 +52,27 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
                 : null);
     }
 
+    public ValueTask<bool> CanResolveEvolutionEquipmentAsync(
+        int currentEquipmentItemId,
+        int targetCreatureId,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var catalog = Load();
+        if (catalog.OutputEquipmentByEquipment.TryGetValue(
+                currentEquipmentItemId,
+                out var outputItemId)
+            && outputItemId > 0
+            && outputItemId != currentEquipmentItemId
+            && catalog.CreatureIdByEquipment.ContainsKey(outputItemId))
+        {
+            return ValueTask.FromResult(true);
+        }
+
+        return ValueTask.FromResult(
+            catalog.CreatureIdsWithEquipment.Contains(targetCreatureId));
+    }
+
     private Catalog Load()
     {
         if (_catalog is not null)
@@ -90,7 +111,13 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
         if (ordered.Count == 0)
             throw new InvalidOperationException($"{ListPath} yielded no creature definitions.");
 
-        return new Catalog(ordered, byId, BuildEquipmentIndex(archive, tags, creatureIdByStem));
+        var equipment = BuildEquipmentIndex(archive, tags, creatureIdByStem);
+        return new Catalog(
+            ordered,
+            byId,
+            equipment.CreatureIdByEquipment,
+            equipment.CreatureIdByEquipment.Values.ToHashSet(),
+            equipment.OutputEquipmentByEquipment);
     }
 
     /// <summary>
@@ -103,15 +130,16 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
     /// are checked, because the directory alone admits equipment that merely lives beside
     /// creatures.
     /// </remarks>
-    private static Dictionary<int, int> BuildEquipmentIndex(
+    private static EquipmentIndex BuildEquipmentIndex(
         PvfArchive archive,
         CreatureTags tags,
         Dictionary<string, int> creatureIdByStem)
     {
         var index = new Dictionary<int, int>();
+        var outputs = new Dictionary<int, int>();
         var listIndex = archive.FindFile(EquipmentListPath);
         if (listIndex < 0)
-            return index;
+            return new EquipmentIndex(index, outputs);
 
         foreach (var (itemTemplateId, relativePath) in PvfListFile.Read(archive, EquipmentListPath))
         {
@@ -123,41 +151,52 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
                 continue;
 
             var fileIndex = archive.FindFile($"{EquipmentDirectory}/{relativePath}");
-            if (fileIndex < 0 || !DeclaresCreatureType(archive, tags, fileIndex))
+            if (fileIndex < 0
+                || !TryReadCreatureEquipment(archive, tags, fileIndex, out var outputItemId))
                 continue;
 
             index.TryAdd(itemTemplateId, creatureId);
+            if (outputItemId > 0)
+                outputs.TryAdd(itemTemplateId, outputItemId);
         }
 
-        return index;
+        return new EquipmentIndex(index, outputs);
     }
 
-    private static bool DeclaresCreatureType(PvfArchive archive, CreatureTags tags, int fileIndex)
+    private static bool TryReadCreatureEquipment(
+        PvfArchive archive,
+        CreatureTags tags,
+        int fileIndex,
+        out int outputItemId)
     {
+        outputItemId = 0;
         if (!tags.EquipmentType.IsResolved)
             return false;
 
         var reader = archive.OpenScript(fileIndex);
-        var inEquipmentType = false;
+        var section = -1;
+        var declaresCreatureType = false;
 
         while (reader.Read(out var token))
         {
             if (token.Kind == PvfTokenKind.Identifier)
             {
-                inEquipmentType = token.Value == tags.EquipmentType.Offset;
+                section = token.Value;
                 continue;
             }
 
-            if (inEquipmentType
+            if (section == tags.EquipmentType.Offset
                 && token.IsString
                 && archive.ResolveString(token.Value)
                     .Contains(CreatureEquipmentType, StringComparison.OrdinalIgnoreCase))
             {
-                return true;
+                declaresCreatureType = true;
             }
+            else if (section == tags.OutputIndex && token.Kind == PvfTokenKind.Int32)
+                outputItemId = token.Value;
         }
 
-        return false;
+        return declaresCreatureType;
     }
 
     private static string StemOf(string relativePath)
@@ -286,6 +325,7 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
             EvolutionCreatureId = archive.GetTag("[evolution creature id]").Offset;
             Ambient = archive.GetTag("[ambient]").Offset;
             EquipmentType = archive.GetTag("[equipment type]");
+            OutputIndex = archive.GetTag("[output index]").Offset;
             RoomList = archive.GetTag("[room list]").Offset;
         }
 
@@ -299,6 +339,7 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
         public int EvolutionCreatureId { get; }
         public int Ambient { get; }
         public TagRef EquipmentType { get; }
+        public int OutputIndex { get; }
         public int RoomList { get; }
 
         public bool HasAmbientTags => Ambient >= 0 && RoomList >= 0;
@@ -307,5 +348,11 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
     private sealed record Catalog(
         IReadOnlyList<CreatureDefinition> Ordered,
         Dictionary<int, CreatureDefinition> ById,
-        Dictionary<int, int> CreatureIdByEquipment);
+        Dictionary<int, int> CreatureIdByEquipment,
+        HashSet<int> CreatureIdsWithEquipment,
+        Dictionary<int, int> OutputEquipmentByEquipment);
+
+    private sealed record EquipmentIndex(
+        Dictionary<int, int> CreatureIdByEquipment,
+        Dictionary<int, int> OutputEquipmentByEquipment);
 }

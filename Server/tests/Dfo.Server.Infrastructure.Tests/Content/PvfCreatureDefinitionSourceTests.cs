@@ -97,6 +97,64 @@ public sealed class PvfCreatureDefinitionSourceTests
     }
 
     [SkippableFact]
+    public async Task Evolution_target_equipment_resolvability_comes_from_the_creature_equipment_index()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfCreatureDefinitionSource(provider);
+        var creatures = await source.GetAllAsync(CancellationToken.None);
+
+        var resolvedTarget = 0;
+        foreach (var targetCreatureId in creatures
+                     .SelectMany(creature => creature.Evolutions)
+                     .Select(evolution => evolution.EvolvesIntoCreatureId)
+                     .Distinct())
+        {
+            if (await source.CanResolveEvolutionEquipmentAsync(
+                    currentEquipmentItemId: 0,
+                    targetCreatureId: targetCreatureId,
+                    cancellationToken: CancellationToken.None))
+            {
+                resolvedTarget = targetCreatureId;
+                break;
+            }
+        }
+
+        Assert.True(resolvedTarget > 0);
+        Assert.False(await source.CanResolveEvolutionEquipmentAsync(
+            currentEquipmentItemId: 0,
+            targetCreatureId: int.MaxValue,
+            cancellationToken: CancellationToken.None));
+    }
+
+    [SkippableFact]
+    public async Task Distinct_equipment_output_resolves_even_when_the_target_creature_is_unmapped()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfCreatureDefinitionSource(provider);
+        var outputBackedCurrentItemId = 0;
+
+        foreach (var (itemTemplateId, _) in PvfListFile.Read(
+                     provider.Archive,
+                     "equipment/equipment.lst"))
+        {
+            if (await source.CanResolveEvolutionEquipmentAsync(
+                    itemTemplateId,
+                    targetCreatureId: int.MaxValue,
+                    cancellationToken: CancellationToken.None))
+            {
+                outputBackedCurrentItemId = itemTemplateId;
+                break;
+            }
+        }
+
+        // int.MaxValue is deliberately absent from the creature-equipment map, so a true
+        // answer can only come from a distinct valid output on the current equipment.
+        Assert.True(outputBackedCurrentItemId > 0);
+    }
+
+    [SkippableFact]
     public async Task An_undefined_creature_returns_null()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);

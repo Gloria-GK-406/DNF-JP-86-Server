@@ -123,14 +123,19 @@ public sealed class SelectCharacterCommandHandler(
                 box.BoxIndex,
                 box.Slots.Select(slot => slot.ItemId).ToArray()))
             .ToArray();
+        var clearedQuestFlags = entry.Quests.VisibilityFlags
+            .Select((value, questId) => (questId, value))
+            .Where(pair => pair.value != 0)
+            .ToDictionary(pair => pair.questId, pair => checked((int)pair.value));
 
         return new WorldContentSubject(
             character.Progression.Level,
             character.Identity.Job,
             character.Identity.GrowType,
-            entry.Quests.ClearedQuestIds,
+            clearedQuestFlags,
             claimedGroups,
             boxes,
-            equippedCreature.GetItemId(characterInventory));
+            equippedCreature.GetItemId(characterInventory),
+            entry.Public.Subtype1.EquippedCreatureLevel);
     }
 }

@@ -65,4 +65,15 @@ public interface ICreatureDefinitionSource
     ValueTask<CreatureDefinition?> FindByEquipmentAsync(
         int itemTemplateId,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Whether the equipped creature item can resolve a viable evolution item, either
+    /// through its explicit equipment output or through equipment mapped to the target
+    /// creature. This is the narrow viability fact an evolution needs; it exposes neither
+    /// general item metadata nor equipment mutation.
+    /// </summary>
+    ValueTask<bool> CanResolveEvolutionEquipmentAsync(
+        int currentEquipmentItemId,
+        int targetCreatureId,
+        CancellationToken cancellationToken);
 }

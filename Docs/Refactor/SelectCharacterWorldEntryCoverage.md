@@ -62,32 +62,55 @@ Row 18 therefore has no world or channel limb. Its requirement was withdrawn fro
 with the evidence recorded, rather than satisfied by implementing an overlay the legacy
 server does not have.
 
-## Row 12 offers a narrower set than the legacy rule
+## Row 12 selectable-quest predicate matrix
 
-The offered quest list applies the legacy grade whitelist, the repeatable exemption, the
-level band, the job family and the grow type. The legacy index applies more, and the rest
-need data the accepted content source does not carry:
+This is the complete decision set reversed from
+`GameWorld/QuestRelationIndex.ComputeAcceptableQuests`, including the evaluator it calls in
+`GameWorld/QuestPrerequisiteDefinition`. Definition fields come from `n_quest/quest.lst`
+and its `.qst` files unless another file is named. Character values are the already-loaded
+entry state; no repository or archive type crosses into the application rule.
 
-| Legacy filter | Status here |
-|---|---|
-| Selectable grade | applied |
-| Repeatable grades exempt from the cleared exclusion | applied |
-| Level band, job family, grow type | applied |
-| Exposed-by-NPC | not applied — the definition carries no exposure field |
-| Event flag | not applied — not modelled |
-| Expert-job requirement | not applied — not modelled |
-| Creature kind / pet-evolution eligibility | not applied — not modelled, and matrix row 12 names it as an input |
-| Target character | not applied — not modelled |
-| Prerequisite chain | not applied — no prerequisite catalogue exists here |
-| Job-change grow-type branch | not applied — the legacy branch masks the grow type, which this contract does not express |
+Predicate category index for the completeness check: exposed, event, creature, expert,
+training, target, prerequisite, collision, question, and job-change.
 
-A character is therefore offered more quests than the legacy server offers them. Closing
-the gap needs the content source widened first, which is a separate outcome.
+“Apply” below is the required G5 disposition. “Reject” means omit that one definition, not
+return a partial placeholder. Failure to read the authoritative quest catalogue fails
+composition, so selection cannot be published. This is stricter failure signalling than the
+legacy catalogue's log-and-empty fallback, but it preserves the legacy property that missing
+definitions never make more quests visible.
 
-Two details worth keeping straight, because both read the other way round at a glance: a
-*random* daily is offerable but **not** repeatable — the legacy exemption names only daily,
-normally-repeat and special-daily — and the system grade **is** offerable, despite sounding
-internal.
+| # | Legacy predicate | Definition source | Character/server source | G5 disposition and uncertainty |
+|---:|---|---|---|---|
+| 1 | First authoritative, client-representable identity | `quest.lst` order and quest ID | none | Apply: retain the first occurrence of each ID in list order; reject IDs outside `1..29999`, a missing quest file, or a malformed mandatory definition. A catalogue/list read failure aborts composition. |
+| 2 | Exposed by NPC | `[exposed by npc]` | none | Apply: numeric `0` is hidden. Absence is an optional unrestricted value; a declared non-integer is malformed and rejected rather than inheriting the legacy parser's accidental `-1` permission. |
+| 3 | Not event-only | `[event]` | standalone server feature set | Apply: a non-zero event declaration is excluded. The standalone entry path has no event authority that could make it offerable. |
+| 4 | Creature-evolution kind | `[creature kind]`, with `[creature level]` used to establish the equipped creature's eligible evolution state | equipped creature definition, identity and level | Apply: a declared kind must be in the eligible-kind set derived from the equipped creature; absent creature state is not a match. Missing declaration is unrestricted. |
+| 5 | Expert-job gate | `[expertjob level]` type/level pair | selected character expert-job facts, if an evidenced level can be established | Conservatively reject every declared expert-job restriction, matching the complete legacy selectable loop. That loop receives no expert-job subject and rejects all six such definitions; current expert-job persistence does not by itself prove a different offerability rule. |
+| 6 | Daily training availability | `[grade] == [training]`, quest `[npc index]`, plus `n_quest/TrainingQuest.lst` level-to-NPC pairs | character level and server training catalogue | Apply: the exact `(level, NPC)` pair must exist. The supplied `TrainingQuest.lst` contains only one scalar in each `[level]` block and no NPC operands; running the exact legacy loading algorithm therefore produces no level-to-NPC mapping. Production truthfully loads an empty mapping, so every training quest fails closed on this archive. Missing or malformed training data is likewise no match; focused fixtures preserve the exact-pair rule for other valid archives. |
+| 7 | Selectable grade | `[grade]` | none | Apply the exact whitelist: absent, `[normal]`, `[side]`, `[sub]`, `[epic]`, `[training]`, `[achievement]`, `[daily]`, `[daily random]`, `[normaly repeat]`, `[special daily]`, `[common unique]`, `[system]`. Reject other or malformed declarations. |
+| 8 | Target character | `[target character]` | character numeric job mapped through the legacy base/AT family table | Apply the legacy family-name containment test. Absence is unrestricted; an unknown job or a declared target with no matching family is rejected. The embedded grow-number tuples are not a separate predicate in the legacy loop. |
+| 9 | Inclusive level band | `[level]`, default `1..99` in the legacy loop | character level | Apply inclusive minimum/maximum. Absence is optional and unrestricted under the legacy default; a malformed declared band is rejected. |
+| 10 | Job family | `[job]` | the same legacy base/AT job mapping | Apply: absent/empty and `[all]` are unrestricted; otherwise the declaration must contain the mapped family token. Unknown character job or malformed/unknown declaration is no match. |
+| 11 | Job-change grow-type branch | `[grow type]` and `[job change quest]` | character grow type | Apply three distinct branches: values `2`/`3` always compare a declared quest grow type to `characterGrowType & 0xF`, including when the character value is negative; values `1`/`10`/`20` exempt the grow restriction; otherwise a declared quest grow type is compared exactly only when `characterGrowType >= 0`. A negative character value therefore does not exclude an ordinary-branch quest in the legacy loop. G5 must not use that permissive sentinel for missing mandatory character state: failure to establish the selected character's grow type fails composition before this predicate. Missing quest grow type (`-1`) remains unrestricted in every branch. |
+| 12 | Cleared non-repeatable exclusion | quest ID and `[grade]` | complete character cleared-quest IDs | Apply: exclude a cleared quest unless its grade is exactly `[daily]`, `[normaly repeat]`, or `[special daily]`. `[daily random]` is selectable but not repeatable. |
+| 13 | Completed-quest prerequisites | every `[pre required quest]` occurrence | complete character cleared-quest IDs | Apply: IDs within one occurrence are AND; repeated occurrences are OR alternatives. An empty declaration contributes no restriction. A candidate group containing an unknown quest is discarded; if no declared group remains valid, reject the owner definition. Other malformed/self/non-positive references reject it. |
+| 14 | Question-answer prerequisite | every `[pre required quest answer]` quest/zero-based-answer pair | complete character cleared-flag map; the stored required value is `answerIndex + 1` | Apply: all pairs must match exactly. Odd, negative, unknown, self-referential or otherwise malformed pairs reject the owner definition. The question quest's `[type]` is descriptive; the actual offerability predicate is this flag comparison. |
+| 15 | Character collision | every `[collision quest]` occurrence | complete character cleared IDs; active quest IDs only where that caller supplies them | Apply: any known collision already cleared or active rejects the quest. The select-character legacy caller supplies no active set, so its observed entry answer tests cleared collisions only. Unknown collision references are ignored as legacy diagnostics; malformed/self/non-positive declarations reject the owner definition. |
+| 16 | Account collision | every `[account collision quest]` occurrence | account-cleared quest IDs | Apply fail-closed when declared: without complete account state the definition is rejected. The supplied archive declares none, so this branch is presently inapplicable rather than silently implemented as character collision. |
+
+The supplied `Script.pvf` was scanned through the production source rather than selected
+text samples. `quest.lst` has 2,740 unique in-range, file-backed entries; validation retains
+2,719 definitions after rejecting eight combined/non-selectable grade declarations and
+thirteen prerequisite owners with no valid alternative. The retained catalogue has 341
+explicit exposure values, 306 event declarations, 15 creature restrictions, six expert-job
+restrictions and 156 target-character restrictions. Answer and collision relationships are
+populated and validated, and no retained definition declares an account collision.
+
+A direct legacy-parser execution against the same `TrainingQuest.lst` confirms zero exact
+level-to-NPC mappings; level scalars are not NPC identifiers. These facts establish the
+production rule inputs but do not prove the client expects row 12's bytes. As with every
+protocol statement in this document, packet shape and client interpretation remain
+code-reversed, not capture-confirmed.
 
 ## Town co-presence spans channels
 
