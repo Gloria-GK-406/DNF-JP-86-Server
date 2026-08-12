@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Application.Characters;
 
@@ -99,13 +100,25 @@ internal sealed class CharacterProfileEntryService : ICharacterProfileEntryServi
                         checked((byte)storage.DimensionFlags.Flag1),
                         checked((byte)storage.DimensionFlags.Flag2),
                         checked((byte)storage.DimensionFlags.Flag3),
-                        checked((byte)storage.DimensionFlags.Flag4))),
+                        checked((byte)storage.DimensionFlags.Flag4)),
+                    checked((byte)storage.Subtype1.ManageLevel),
+                    (storage.Subtype1.PvpResults
+                        ?? throw new InvalidDataException("Subtype-1 PvP results were not loaded."))
+                        .Select(value => new CharacterPvpResultState(
+                            checked((uint)value.Value32), checked((ushort)value.Value16A),
+                            checked((ushort)value.Value16B)))
+                        .ToArray(),
+                    []),
                 new CharacterAppearanceCompatibilityState(1, [.. storage.AppearanceBlob]),
                 checked((uint)storage.Subtype0.UserStateBits),
-                storage.CloneTitleItemId),
+                storage.CloneTitleItemId,
+                new CharacterPublicIdentityEntryState(
+                    storage.PvpGrade,
+                    storage.PvpRatingGrade,
+                    storage.UserState)),
             new CharacterSettingsEntryState(
                 [.. storage.HotkeySlots],
-                [.. storage.CharacterOptionBlob],
+                storage.CharacterOptionBlob is null ? null : [.. storage.CharacterOptionBlob],
                 checked((uint)storage.Subtype0.UserStateBits)));
 }
 
@@ -209,7 +222,9 @@ internal sealed class CharacterProgressionEntryService : ICharacterProgressionEn
                 .Select(value => new CharacterDungeonProgressState(
                     value.DungeonId, checked((byte)value.ClearState)))
                 .ToArray(),
-            storage.CharacterPremiumUsage);
+            storage.PremiumUsageSlots.OrderBy(value => value.SlotIndex)
+                .Select(value => new CharacterPremiumUsageSlotState(value.SlotIndex, value.UsedCount))
+                .ToArray());
     }
 }
 
@@ -268,8 +283,42 @@ internal sealed class CharacterFeatureEntryService : ICharacterFeatureEntryServi
                 storage.ExpertJob.EnchanterEndurance,
                 storage.ExpertJob.RecipeIds.Order().ToArray()),
             new CharacterMailboxEntryState(
-                Math.Max(0, storage.Mailbox.TotalCount - storage.Mailbox.PageMessageIds.Count),
-                storage.Mailbox.PageMessageIds.OrderDescending().ToArray()),
+                Math.Max(0, storage.Mailbox.TotalCount - storage.Mailbox.PageMessages.Count),
+                storage.Mailbox.PageMessages.OrderByDescending(value => value.MessageId)
+                    .Select(value => new CharacterMailboxMessageEntryState(
+                        value.MessageId,
+                        value.SenderCharacterId,
+                        System.Text.Encoding.UTF8.GetBytes(value.SenderName),
+                        value.MailType,
+                        value.SourceProtocol,
+                        System.Text.Encoding.UTF8.GetBytes(value.Title),
+                        System.Text.Encoding.UTF8.GetBytes(value.Body),
+                        value.Gold,
+                        value.RemainingSeconds,
+                        value.CreatedAtUnixSeconds,
+                        checked((byte)value.LetterState),
+                        value.Attachments.OrderBy(attachment => attachment.Ordinal)
+                            .Select(attachment => new CharacterMailboxAttachmentEntryState(
+                                attachment.AttachmentId,
+                                attachment.Ordinal,
+                                checked((byte)attachment.ItemType),
+                                attachment.SourceListType,
+                                attachment.SourceSlotIndex,
+                                attachment.SourceItemUid,
+                                attachment.ItemTemplateId,
+                                attachment.ItemKind,
+                                attachment.ItemCount,
+                                attachment.InstanceValue,
+                                attachment.Durability,
+                                attachment.SealFlag,
+                                attachment.OptionValue,
+                                attachment.ExpireTime,
+                                attachment.Marker16,
+                                attachment.PetSerialOrHandle,
+                                [.. attachment.ItemCore],
+                                attachment.DetailJson))
+                            .ToArray()))
+                    .ToArray()),
             storage.PvpMissions.OrderBy(value => value.SortOrder)
                 .Select(value => new CharacterPvpMissionEntryState(value.MissionId, value.Progress))
                 .ToArray());
@@ -295,6 +344,7 @@ internal sealed class CharacterFeatureEntryService : ICharacterFeatureEntryServi
 
 internal sealed class CharacterEntryStateService(
     ICharacterEntryStateRepository repository,
+    IQuestDefinitionSource questDefinitions,
     ICharacterProfileEntryService profiles,
     ICharacterSkillQuestEntryService skillQuests,
     ICharacterProgressionEntryService progression,
@@ -314,9 +364,24 @@ internal sealed class CharacterEntryStateService(
 
         var profile = profiles.Build(storage.Profile);
         var skillQuest = skillQuests.Build(storage.Skill, storage.Quest);
+        var specialRewardQuestIds = new List<uint>();
+        foreach (var clearFlag in storage.Quest.ClearFlags.Where(value => value.Value != 0))
+        {
+            var definition = await questDefinitions.GetAsync(clearFlag.SlotIndex, cancellationToken)
+                .ConfigureAwait(false);
+            if (definition?.HasSpecialRewardStatus == true)
+                specialRewardQuestIds.Add(checked((uint)clearFlag.SlotIndex));
+        }
+        var publicState = profile.Public with
+        {
+            Subtype1 = profile.Public.Subtype1 with
+            {
+                SpecialRewardQuestIds = specialRewardQuestIds,
+            },
+        };
         return new CharacterEntryState(
             characterId,
-            profile.Public,
+            publicState,
             profile.Settings,
             skillQuest.Skills,
             skillQuest.Quests,

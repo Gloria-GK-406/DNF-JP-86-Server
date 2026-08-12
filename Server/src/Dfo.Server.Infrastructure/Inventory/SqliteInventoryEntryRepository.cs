@@ -41,6 +41,8 @@ internal sealed class SqliteInventoryEntryRepository
 
         var characterItems = await LoadCharacterItemsAsync(connection, characterId, cancellationToken)
             .ConfigureAwait(false);
+        characterItems = await LoadAvatarDetailsAsync(connection, characterItems, cancellationToken)
+            .ConfigureAwait(false);
         await RejectUnmigratedLegacyCharacterInventoryAsync(
             connection,
             characterId,
@@ -240,6 +242,50 @@ internal sealed class SqliteInventoryEntryRepository
         }
 
         return items;
+    }
+
+    private static async ValueTask<IReadOnlyList<InventoryStorageItem>> LoadAvatarDetailsAsync(
+        SqliteConnection connection,
+        IReadOnlyList<InventoryStorageItem> items,
+        CancellationToken cancellationToken)
+    {
+        var result = new List<InventoryStorageItem>(items.Count);
+        foreach (var item in items)
+        {
+            if (item.Core.ItemKind != 8)
+            {
+                result.Add(item);
+                continue;
+            }
+            if (item.Core.Value <= 0)
+                throw new InvalidDataException($"Avatar inventory row {item.StorageEntryId} has no avatar UID.");
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                SELECT owner_id,character_id,item_id,expire_date,clear_avatar_id,jewel_socket,
+                       color1,color2,delete_date
+                FROM character_avatar_detail WHERE item_uid=@avatarUid LIMIT 2
+                """;
+            command.Parameters.AddWithValue("@avatarUid", item.Core.Value);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                throw new InvalidDataException($"Avatar detail {item.Core.Value} is unavailable.");
+            var socket = (byte[])reader.GetValue(5);
+            if (reader.GetInt32(0) != item.OwnerId
+                || reader.GetInt32(1) != item.CharacterId?.Value
+                || reader.GetInt32(2) != item.Core.ItemId
+                || socket.Length != 30
+                || reader.GetInt64(6) is < 0 or > ushort.MaxValue
+                || reader.GetInt64(7) is < 0 or > ushort.MaxValue)
+                throw new InvalidDataException($"Avatar detail {item.Core.Value} is malformed or has the wrong owner.");
+            result.Add(item with
+            {
+                AvatarDetail = new InventoryAvatarDetailState(
+                    checked((int)reader.GetInt64(3)), checked((int)reader.GetInt64(4)), [.. socket],
+                    checked((ushort)reader.GetInt64(6)), checked((ushort)reader.GetInt64(7)),
+                    checked((int)reader.GetInt64(8))),
+            });
+        }
+        return result;
     }
 
     private static async ValueTask<IReadOnlyList<InventoryContainerParameter>> LoadContainerParametersAsync(
@@ -753,6 +799,14 @@ internal sealed class SqliteInventoryEntryRepository
 
             CREATE INDEX IF NOT EXISTS idx_character_new_items_character_space
                 ON character_new_items(character_id, list_type, slot_index);
+
+            CREATE TABLE IF NOT EXISTS character_avatar_detail (
+                item_uid INTEGER PRIMARY KEY, owner_id INTEGER NOT NULL DEFAULT 0,
+                character_id INTEGER NOT NULL DEFAULT 0, item_id INTEGER NOT NULL DEFAULT 0,
+                expire_date INTEGER NOT NULL DEFAULT 0, clear_avatar_id INTEGER NOT NULL DEFAULT 0,
+                jewel_socket BLOB NOT NULL CHECK(length(jewel_socket)=30),
+                color1 INTEGER NOT NULL DEFAULT 0, color2 INTEGER NOT NULL DEFAULT 0,
+                delete_date INTEGER NOT NULL DEFAULT 0);
 
             CREATE TABLE IF NOT EXISTS account_cargo_new_items (
                 item_uid INTEGER PRIMARY KEY AUTOINCREMENT,

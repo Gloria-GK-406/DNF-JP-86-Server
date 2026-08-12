@@ -208,7 +208,7 @@ internal static class InventoryEntryProjection
     }
 
     private static InventoryItemState ToItemState(InventoryStorageItem item) =>
-        new(item.StorageEntryId, item.SlotIndex, item.Core);
+        new(item.StorageEntryId, item.SlotIndex, item.Core, item.AvatarDetail);
 
     private static IReadOnlyList<InventoryRuntimeValueState> NormalizeRuntimeValues(
         IReadOnlyList<InventoryRuntimeValueState> source)

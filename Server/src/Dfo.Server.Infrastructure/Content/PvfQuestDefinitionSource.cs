@@ -217,6 +217,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         var requiredAnswerGroups = new List<IReadOnlyList<int>>();
         var collisionGroups = new List<IReadOnlyList<int>>();
         var accountCollisionGroups = new List<IReadOnlyList<int>>();
+        var hasSpecialRewardStatus = false;
         List<int>? currentRelationshipGroup = null;
 
         var reader = archive.OpenScript(fileIndex);
@@ -226,6 +227,8 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             if (token.Kind == PvfTokenKind.Identifier)
             {
                 section = token.Value;
+                if (section == tags.SpecialRewardStatus)
+                    hasSpecialRewardStatus = true;
                 if (section == tags.TargetCharacter)
                     targetCharacterDeclared = true;
                 currentRelationshipGroup = StartRelationshipGroup(
@@ -330,7 +333,8 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             [],
             [],
             [],
-            []);
+            [],
+            hasSpecialRewardStatus);
 
         return new RawQuestDefinition(
             definition,
@@ -682,6 +686,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             PreRequiredQuestAnswer = Offset(archive, "[pre required quest answer]");
             CollisionQuest = Offset(archive, "[collision quest]");
             AccountCollisionQuest = Offset(archive, "[account collision quest]");
+            SpecialRewardStatus = Offset(archive, "[special reward status]");
             TrainingLevel = Level;
         }
 
@@ -707,6 +712,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         public int PreRequiredQuestAnswer { get; }
         public int CollisionQuest { get; }
         public int AccountCollisionQuest { get; }
+        public int SpecialRewardStatus { get; }
         public int TrainingLevel { get; }
 
         private static int Offset(PvfArchive archive, string tag) => archive.GetTag(tag).Offset;

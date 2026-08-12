@@ -31,4 +31,5 @@ public sealed record SelectCharacterResult(
     AccountInventoryEntryState AccountInventory,
     AccountEntryState Account,
     GameWorldEntryState World,
-    CharacterSessionEntryState Session);
+    CharacterSessionEntryState Session,
+    AccountCharacterRoster? Roster = null);

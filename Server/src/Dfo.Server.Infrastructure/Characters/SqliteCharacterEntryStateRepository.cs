@@ -83,7 +83,8 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
                    s1.stat_hit_recovery, s1.stat_jump_power, s1.stat_weight, s1.stat_level,
                    s1.name_tag_item_id, s1.name_tag_expire_time, s1.equipped_creature_level,
                    s1.equip_list_trailing, s1.flag_byte, s1.guild_power_war,
-                   s1.server_timestamp, s1.quest_shop_count, c.exp, c.ex_equip_slot_stat
+                   s1.server_timestamp, s1.quest_shop_count, c.exp, c.ex_equip_slot_stat,
+                   c.pvp_grade, c.pvp_rating_grade, c.user_state, s1.manage_level
             FROM characters c
             JOIN character_subtype0_fields s0 ON s0.character_id=c.character_id
             JOIN character_subtype1_fields s1 ON s1.character_id=c.character_id
@@ -103,7 +104,7 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
         }
 
         var appearance = ReadBoundedBlob(reader, 4, AppearanceMaximumBytes, "appearance", allowNull: true);
-        var option = ReadBoundedBlob(reader, 31, OptionMaximumBytes, "character option", allowNull: true);
+        var option = ReadOptionalBoundedBlob(reader, 31, OptionMaximumBytes, "character option");
         var hotkeys = await ReadIntListAsync(connection, transaction,
             "SELECT hotkey_value FROM character_hotkey_slots WHERE character_id=@cid ORDER BY slot_index",
             characterId, cancellationToken).ConfigureAwait(false);
@@ -135,7 +136,8 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
             reader.GetInt32(68), reader.GetInt32(69), reader.GetInt32(70), reader.GetInt32(71),
             reader.GetInt64(72), reader.GetInt32(73), reader.GetInt64(74), reader.GetInt64(75),
             reader.GetInt32(76), reader.GetInt32(77), reader.GetInt32(78), reader.GetInt64(79),
-            reader.GetInt64(80), reader.GetInt32(81));
+            reader.GetInt64(80), reader.GetInt32(81), reader.GetInt32(87),
+            PvpResults: LoadRetiredPvpResults());
         ValidateProfile(s0, s1);
         var dimensions = new List<(int, long, int, int)>();
         await using (var dimensionCommand = CreateCommand(connection, transaction,
@@ -162,8 +164,15 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
             checked((uint)reader.GetInt64(3)), appearance, s0, s1,
             hotkeys.Select(value => checked((ushort)value)).ToArray(), option,
             reader.GetInt64(82), reader.GetInt32(83), dimensions,
-            (dimensionFlags[0], dimensionFlags[1], dimensionFlags[2], dimensionFlags[3]));
+            (dimensionFlags[0], dimensionFlags[1], dimensionFlags[2], dimensionFlags[3]),
+            checked((byte)reader.GetInt32(84)), checked((byte)reader.GetInt32(85)),
+            checked((byte)reader.GetInt32(86)));
     }
+
+    // The normalized character_pvp_results table was retired by the replay-removal
+    // migration after proving it had no writer and was empty. Until a new authoritative
+    // PvP persistence source exists, row 9's PvP collection is explicitly loaded-empty.
+    private static IReadOnlyList<CharacterPvpResultStorageRow> LoadRetiredPvpResults() => [];
 
     private static async ValueTask<CharacterSkillStorageRecord> LoadSkillsAsync(
         SqliteConnection connection,
@@ -385,7 +394,8 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
             throw new InvalidDataException("Character premium usage cannot be negative.");
         return new CharacterProgressionStorageRecord(
             level, growth, cubeType, cubeGrade, init[0], init[1], init[2], goldLevel,
-            groups, tails, schedules, dungeons, premiumUsage, claimedRevive);
+            groups, tails, schedules, dungeons,
+            [((byte)1, premiumUsage)], claimedRevive);
     }
 
     private static async ValueTask<CharacterFeatureStorageRecord> LoadFeaturesAsync(
@@ -476,24 +486,8 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
             || expertValues.Skip(3).Any(value => value < 0)
             || recipes.Any(value => value <= 0))
             throw new InvalidDataException("Expert job state is out of range.");
-        var mailbox = await ReadLongListAsync(connection, transaction, """
-            WITH oldest_inbox_page AS (
-                SELECT m.message_id, m.created_at
-                FROM mailbox_recipients r
-                JOIN mailbox_messages m ON m.message_id=r.message_id
-                WHERE r.character_id=@cid
-                  AND r.folder=0
-                  AND r.saved_flag=0
-                  AND r.deleted_flag=0
-                  AND (m.unlimited_flag != 0 OR datetime(m.expire_at) > CURRENT_TIMESTAMP)
-                GROUP BY m.message_id, m.created_at
-                ORDER BY datetime(m.created_at) ASC, m.message_id ASC
-                LIMIT 20
-            )
-            SELECT message_id
-            FROM oldest_inbox_page
-            ORDER BY datetime(created_at) DESC, message_id DESC
-            """, characterId, cancellationToken).ConfigureAwait(false);
+        var mailbox = await LoadMailboxMessagesAsync(connection, transaction, characterId, cancellationToken)
+            .ConfigureAwait(false);
         var mailboxTotal = await ReadScalarIntAsync(connection, transaction, """
             SELECT COUNT(DISTINCT m.message_id)
             FROM mailbox_recipients r
@@ -524,6 +518,93 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
             new CharacterMailboxStorageRecord(mailboxTotal, mailbox), pvp);
     }
 
+    private static async ValueTask<IReadOnlyList<CharacterMailboxMessageStorageRow>> LoadMailboxMessagesAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        CharacterId characterId,
+        CancellationToken cancellationToken)
+    {
+        var messages = new List<CharacterMailboxMessageStorageRow>();
+        var values = new List<(long Id, int SenderId, string SenderName, int MailType,
+            int SourceProtocol, string Title, string Body, int Gold, int Remaining,
+            int Created, int State)>();
+        await using var command = CreateCommand(connection, transaction, """
+            WITH oldest_inbox_page AS (
+                SELECT m.message_id, m.created_at
+                FROM mailbox_recipients r
+                JOIN mailbox_messages m ON m.message_id=r.message_id
+                WHERE r.character_id=@cid
+                  AND r.folder=0
+                  AND r.saved_flag=0
+                  AND r.deleted_flag=0
+                  AND (m.unlimited_flag != 0 OR datetime(m.expire_at) > CURRENT_TIMESTAMP)
+                GROUP BY m.message_id, m.created_at
+                ORDER BY datetime(m.created_at) ASC, m.message_id ASC
+                LIMIT 20
+            )
+            SELECT m.message_id, m.sender_character_id, m.sender_name, m.mail_type,
+                   m.source_protocol, m.title, m.body,
+                   CASE WHEN r.received_gold_flag=0 THEN m.gold ELSE 0 END,
+                   CASE WHEN m.unlimited_flag!=0 OR m.expire_at >= '9999-01-01 00:00:00' THEN 0
+                        ELSE MIN(2147483647, MAX(0, CAST(strftime('%s',m.expire_at) AS INTEGER)-CAST(strftime('%s','now') AS INTEGER))) END,
+                   CAST(strftime('%s',m.created_at) AS INTEGER),
+                   CASE WHEN r.saved_flag!=0 THEN 3 WHEN r.read_flag!=0 THEN 2 ELSE 1 END
+            FROM oldest_inbox_page p
+            JOIN mailbox_messages m ON m.message_id=p.message_id
+            JOIN mailbox_recipients r ON r.message_id=m.message_id AND r.character_id=@cid AND r.folder=0
+            ORDER BY datetime(p.created_at) DESC, p.message_id DESC
+            """, characterId);
+        await using (var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
+        {
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                values.Add((reader.GetInt64(0), reader.GetInt32(1), reader.GetString(2),
+                    reader.GetInt32(3), reader.GetInt32(4), reader.GetString(5), reader.GetString(6),
+                    reader.GetInt32(7), reader.GetInt32(8), reader.GetInt32(9), reader.GetInt32(10)));
+            }
+        }
+        foreach (var value in values)
+        {
+            var attachments = await LoadMailboxAttachmentsAsync(
+                connection, transaction, value.Id, cancellationToken).ConfigureAwait(false);
+            messages.Add(new CharacterMailboxMessageStorageRow(
+                value.Id, value.SenderId, value.SenderName, value.MailType, value.SourceProtocol,
+                value.Title, value.Body, value.Gold, value.Remaining, value.Created, value.State,
+                attachments));
+        }
+        return messages;
+    }
+
+    private static async ValueTask<IReadOnlyList<CharacterMailboxAttachmentStorageRow>> LoadMailboxAttachmentsAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        long messageId,
+        CancellationToken cancellationToken)
+    {
+        var rows = new List<CharacterMailboxAttachmentStorageRow>();
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            SELECT attachment_id,ordinal,item_type,source_list_type,source_slot_index,
+                   source_item_uid,item_template_id,item_kind,item_count,instance_value,
+                   durability,seal_flag,option_value,expire_time,marker_16,
+                   pet_serial_or_handle,COALESCE(item_core,X''),detail_json
+            FROM mailbox_attachments WHERE message_id=@messageId ORDER BY ordinal
+            """;
+        command.Parameters.AddWithValue("@messageId", messageId);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            rows.Add(new CharacterMailboxAttachmentStorageRow(
+                reader.GetInt64(0), reader.GetInt32(1), reader.GetInt32(2), reader.GetInt32(3),
+                reader.GetInt32(4), reader.GetInt64(5), reader.GetInt32(6), reader.GetString(7),
+                reader.GetInt32(8), reader.GetInt32(9), reader.GetInt32(10), reader.GetInt32(11),
+                reader.GetInt32(12), reader.GetInt32(13), reader.GetInt32(14), reader.GetInt32(15),
+                (byte[])reader.GetValue(16), reader.GetString(17)));
+        }
+        return rows;
+    }
+
     private void EnsureSchema()
     {
         using var connection = new SqliteConnection(connectionString);
@@ -532,6 +613,50 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
         using var command = connection.CreateCommand();
         command.CommandText = SchemaSql;
         command.ExecuteNonQuery();
+        EnsureProjectionColumns(connection);
+    }
+
+    private static void EnsureProjectionColumns(SqliteConnection connection)
+    {
+        EnsureColumns(connection, "character_subtype1_fields",
+            [("manage_level", "INTEGER NOT NULL DEFAULT 0")]);
+        EnsureColumns(connection, "mailbox_messages",
+        [
+            ("sender_character_id", "INTEGER NOT NULL DEFAULT 0"),
+            ("sender_name", "TEXT NOT NULL DEFAULT ''"),
+            ("title", "TEXT NOT NULL DEFAULT ''"),
+            ("body", "TEXT NOT NULL DEFAULT ''"),
+            ("gold", "INTEGER NOT NULL DEFAULT 0"),
+            ("mail_type", "INTEGER NOT NULL DEFAULT 0"),
+            ("source_protocol", "INTEGER NOT NULL DEFAULT 0"),
+        ]);
+        EnsureColumns(connection, "mailbox_recipients",
+        [
+            ("read_flag", "INTEGER NOT NULL DEFAULT 0"),
+            ("received_gold_flag", "INTEGER NOT NULL DEFAULT 0"),
+        ]);
+    }
+
+    private static void EnsureColumns(
+        SqliteConnection connection,
+        string table,
+        IReadOnlyList<(string Name, string Definition)> required)
+    {
+        var existing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        using (var inspect = connection.CreateCommand())
+        {
+            inspect.CommandText = $"PRAGMA table_info('{table}');";
+            using var reader = inspect.ExecuteReader();
+            while (reader.Read()) existing.Add(reader.GetString(1));
+        }
+
+        foreach (var (name, definition) in required)
+        {
+            if (existing.Contains(name)) continue;
+            using var alter = connection.CreateCommand();
+            alter.CommandText = $"ALTER TABLE {table} ADD COLUMN {name} {definition};";
+            alter.ExecuteNonQuery();
+        }
     }
 
     private static void EnsureCharacterColumns(SqliteConnection connection)
@@ -553,7 +678,9 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
                     level INTEGER NOT NULL DEFAULT 1, clone_title_item_id INTEGER NOT NULL DEFAULT 0,
                     appearance_blob BLOB, delete_flag INTEGER NOT NULL DEFAULT 0,
                     bonus_sp INTEGER NOT NULL DEFAULT 0, bonus_tp INTEGER NOT NULL DEFAULT 0,
-                    exp INTEGER NOT NULL DEFAULT 0, ex_equip_slot_stat INTEGER NOT NULL DEFAULT 0);
+                    exp INTEGER NOT NULL DEFAULT 0, ex_equip_slot_stat INTEGER NOT NULL DEFAULT 0,
+                    pvp_grade INTEGER NOT NULL DEFAULT 0, pvp_rating_grade INTEGER NOT NULL DEFAULT 0,
+                    user_state INTEGER NOT NULL DEFAULT 0);
                 """;
             create.ExecuteNonQuery();
             return;
@@ -566,6 +693,9 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
             ("bonus_sp", "INTEGER NOT NULL DEFAULT 0"), ("bonus_tp", "INTEGER NOT NULL DEFAULT 0"),
             ("exp", "INTEGER NOT NULL DEFAULT 0"),
             ("ex_equip_slot_stat", "INTEGER NOT NULL DEFAULT 0"),
+            ("pvp_grade", "INTEGER NOT NULL DEFAULT 0"),
+            ("pvp_rating_grade", "INTEGER NOT NULL DEFAULT 0"),
+            ("user_state", "INTEGER NOT NULL DEFAULT 0"),
         })
         {
             if (columns.Contains(name)) continue;
@@ -593,6 +723,16 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
             if (allowNull) return [];
             throw new InvalidDataException($"Character {name} is unavailable.");
         }
+        var value = (byte[])reader.GetValue(ordinal);
+        if (value.Length > maximum)
+            throw new InvalidDataException($"Character {name} exceeds {maximum} bytes.");
+        return value;
+    }
+
+    private static byte[]? ReadOptionalBoundedBlob(
+        SqliteDataReader reader, int ordinal, int maximum, string name)
+    {
+        if (reader.IsDBNull(ordinal)) return null;
         var value = (byte[])reader.GetValue(ordinal);
         if (value.Length > maximum)
             throw new InvalidDataException($"Character {name} exceeds {maximum} bytes.");
@@ -632,6 +772,7 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
                 s1.QuestShopCount }.Any(value => value is < 0 or > ushort.MaxValue)
             || new[] { s1.StatLevel, s1.EquippedCreatureLevel, s1.FlagByte }
                 .Any(value => value is < 0 or > byte.MaxValue)
+            || s1.ManageLevel is < 0 or > byte.MaxValue
             || s1.Weight is < 0 or > uint.MaxValue || s1.NameTagItemId is < 0 or > uint.MaxValue
             || s1.NameTagExpireTime is < 0 or > uint.MaxValue
             || s1.GuildPowerWar is < 0 or > uint.MaxValue
@@ -753,7 +894,8 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
             name_tag_item_id INTEGER NOT NULL DEFAULT 0, name_tag_expire_time INTEGER NOT NULL DEFAULT 0,
             equipped_creature_level INTEGER NOT NULL DEFAULT 0, equip_list_trailing INTEGER NOT NULL DEFAULT 0,
             flag_byte INTEGER NOT NULL DEFAULT 0, guild_power_war INTEGER NOT NULL DEFAULT 0,
-            server_timestamp INTEGER NOT NULL DEFAULT 0, quest_shop_count INTEGER NOT NULL DEFAULT 0);
+            server_timestamp INTEGER NOT NULL DEFAULT 0, quest_shop_count INTEGER NOT NULL DEFAULT 0,
+            manage_level INTEGER NOT NULL DEFAULT 0);
         CREATE TABLE IF NOT EXISTS character_init_flags(
             character_id INTEGER PRIMARY KEY, champion_break_key_id INTEGER NOT NULL DEFAULT 0,
             champion_break_mode INTEGER NOT NULL DEFAULT 0, champion_break_value INTEGER NOT NULL DEFAULT 0,
@@ -783,7 +925,11 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
         CREATE TABLE IF NOT EXISTS character_expert_job_recipes(character_id INTEGER, recipe_id INTEGER, PRIMARY KEY(character_id,recipe_id));
         CREATE TABLE IF NOT EXISTS mailbox_messages(
             message_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sender_character_id INTEGER NOT NULL DEFAULT 0,
+            sender_name TEXT NOT NULL DEFAULT '',
             receiver_character_id INTEGER NOT NULL,
+            title TEXT NOT NULL DEFAULT '', body TEXT NOT NULL DEFAULT '', gold INTEGER NOT NULL DEFAULT 0,
+            mail_type INTEGER NOT NULL DEFAULT 0, source_protocol INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             unlimited_flag INTEGER NOT NULL DEFAULT 0,
             expire_at TEXT NOT NULL DEFAULT '9999-12-31 23:59:59',
@@ -793,10 +939,23 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
             message_id INTEGER NOT NULL,
             character_id INTEGER NOT NULL,
             folder INTEGER NOT NULL DEFAULT 0,
+            read_flag INTEGER NOT NULL DEFAULT 0,
             saved_flag INTEGER NOT NULL DEFAULT 0,
             deleted_flag INTEGER NOT NULL DEFAULT 0,
+            received_gold_flag INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(message_id,character_id,folder));
+        CREATE TABLE IF NOT EXISTS mailbox_attachments(
+            attachment_id INTEGER PRIMARY KEY AUTOINCREMENT, message_id INTEGER NOT NULL,
+            ordinal INTEGER NOT NULL DEFAULT 0, item_type INTEGER NOT NULL DEFAULT 0,
+            source_list_type INTEGER NOT NULL DEFAULT 0, source_slot_index INTEGER NOT NULL DEFAULT 0,
+            source_item_uid INTEGER NOT NULL DEFAULT 0, item_template_id INTEGER NOT NULL,
+            item_kind TEXT NOT NULL DEFAULT 'unknown', item_count INTEGER NOT NULL DEFAULT 1,
+            instance_value INTEGER NOT NULL DEFAULT 0, durability INTEGER NOT NULL DEFAULT 0,
+            seal_flag INTEGER NOT NULL DEFAULT 0, option_value INTEGER NOT NULL DEFAULT 0,
+            expire_time INTEGER NOT NULL DEFAULT 0, marker_16 INTEGER NOT NULL DEFAULT -1,
+            pet_serial_or_handle INTEGER NOT NULL DEFAULT 0, item_core BLOB,
+            detail_json TEXT NOT NULL DEFAULT '');
         CREATE TABLE IF NOT EXISTS character_pvp_missions(character_id INTEGER, sort_order INTEGER, mission_id INTEGER, progress_value INTEGER, PRIMARY KEY(character_id,sort_order));
         CREATE TABLE IF NOT EXISTS character_dimensions(character_id INTEGER, sort_order INTEGER, dim_key INTEGER, val1 INTEGER, val2 INTEGER, PRIMARY KEY(character_id,sort_order));
         CREATE TABLE IF NOT EXISTS character_dimension_flags(character_id INTEGER PRIMARY KEY, flag1 INTEGER, flag2 INTEGER, flag3 INTEGER, flag4 INTEGER);

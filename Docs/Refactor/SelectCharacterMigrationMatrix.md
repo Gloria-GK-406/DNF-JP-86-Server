@@ -4,6 +4,17 @@
 > packet capture was performed for this document. A code-explicit packet shape
 > is not automatically a confirmed client-protocol meaning.
 
+## Successor status (2026-08-12)
+
+G6 result-only projection coverage is implemented for static rows 1–58 and
+supplemental identities X-01–X-18. The exact successor sources, codec seams,
+conditions and remaining G7 responsibilities are recorded in
+[`SelectCharacterG6Coverage.md`](SelectCharacterG6Coverage.md).
+
+This status does not change the confidence labels below: all protocol statements
+remain code-reversed and unconfirmed by packet capture. G7 lifecycle triggering,
+recipient discovery, preparation mutation and rollback are not claimed complete.
+
 ## Reading the matrix
 
 - `C` confidence means that the source, condition, or ownership is explicit in

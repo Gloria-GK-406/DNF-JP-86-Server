@@ -38,13 +38,14 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
             var repository = new SqliteCharacterEntryStateRepository(path);
             var core = ItemCore(1001, 17);
             await ExecuteAsync(path, """
-                INSERT INTO characters(character_id, account_id, name, job, level, clone_title_item_id, appearance_blob)
-                VALUES(22, 12, 'loaded', 1, 60, 77, X'0102');
+                INSERT INTO characters(character_id, account_id, name, job, level, clone_title_item_id,
+                    appearance_blob,pvp_grade,pvp_rating_grade,user_state)
+                VALUES(22, 12, 'loaded', 1, 60, 77, X'0102',8,9,10);
                 INSERT INTO character_subtype0_fields(character_id,stamina,fatigue_penalty,
                     expert_job_type,expert_job_exp,user_state_bits,pvp_rank_point)
                     VALUES(22,7,8,2,30,5,99);
                 INSERT INTO character_subtype1_fields(character_id,stat_hp_max,stat_physical_attack,
-                    skill_tree_index,progress1,progress2) VALUES(22,100,123,0,11,12);
+                    skill_tree_index,progress1,progress2,manage_level) VALUES(22,100,123,0,11,12,13);
                 INSERT INTO character_dimensions VALUES(22,0,9,1,2);
                 INSERT INTO character_dimension_flags VALUES(22,1,2,3,4);
                 INSERT INTO character_init_flags(character_id,champion_break_key_id,
@@ -65,6 +66,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                 INSERT INTO character_daily_schedule_states VALUES(22,0,1,2,3,4),(22,1,5,6,7,8),(22,2,9,10,11,12);
                 INSERT INTO character_dungeon_permissions VALUES(22,0,300,2);
                 INSERT INTO character_daily_counters VALUES(22,'revive_coin_daily_claim','day',1);
+                INSERT INTO character_daily_counters VALUES(22,'lottery_double_reward_used','day',6);
                 INSERT INTO character_creatures VALUES(22,0,400,1,2,3,4,5,6,X'07',8);
                 INSERT INTO character_new_titlebook(character_id,category,slot_index,item_core)
                     VALUES(22,0,1,@core);
@@ -72,8 +74,12 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                 INSERT INTO character_collectbox_slots VALUES(22,3,0,700);
                 INSERT INTO character_expert_job VALUES(22,1,3,4,5);
                 INSERT INTO character_expert_job_recipes VALUES(22,70);
-                INSERT INTO mailbox_messages(message_id,receiver_character_id,expire_at) VALUES(800,22,'9999-12-31 23:59:59');
-                INSERT INTO mailbox_recipients(message_id,character_id) VALUES(800,22);
+                INSERT INTO mailbox_messages(message_id,sender_character_id,sender_name,receiver_character_id,
+                    title,body,gold,mail_type,source_protocol,expire_at)
+                    VALUES(800,77,'sender',22,'title','body',123,4,5,'9999-12-31 23:59:59');
+                INSERT INTO mailbox_recipients(message_id,character_id,read_flag) VALUES(800,22,1);
+                INSERT INTO mailbox_attachments(message_id,ordinal,item_type,item_template_id,item_kind,item_count,
+                    item_core,detail_json) VALUES(800,0,2,1001,'equipment',3,@core,'detail');
                 INSERT INTO character_pvp_missions VALUES(22,0,900,12);
                 """, ("@core", core));
 
@@ -81,13 +87,19 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                 new AccountId(12), new CharacterId(22), CancellationToken.None);
 
             Assert.Equal([1, 2], result.Profile.AppearanceBlob);
+            Assert.Equal((byte)8, result.Profile.PvpGrade);
+            Assert.Equal((byte)9, result.Profile.PvpRatingGrade);
+            Assert.Equal((byte)10, result.Profile.UserState);
             Assert.Equal(123, result.Profile.Subtype1.PhysicalAttack);
+            Assert.Equal(13, result.Profile.Subtype1.ManageLevel);
+            Assert.Empty(result.Profile.Subtype1.PvpResults);
             Assert.Equal(9, Assert.Single(result.Profile.Dimensions).Key);
             Assert.Equal(4, result.Profile.DimensionFlags.Flag4);
             var skill = Assert.Single(result.Skill.Skills);
             Assert.Equal((short)4, skill.Slot);
             Assert.Equal([9, 8], skill.ExtraValues);
             Assert.Equal(6, Assert.Single(result.Quest.ActiveQuests).TriggerValue);
+            Assert.Equal((200, (byte)1), Assert.Single(result.Quest.ClearFlags));
             var daily = Assert.Single(result.Progression.DailyChallenges);
             Assert.Equal(20, Assert.Single(daily.Entries).ValueB);
             Assert.True(daily.Claimed);
@@ -99,8 +111,15 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
             Assert.Equal([70], result.Features.ExpertJob.RecipeIds);
             Assert.Equal([20, 10], result.Profile.HotkeySlots);
             Assert.Equal(-1234, result.Progression.ChampionBreakKey);
+            Assert.Equal(((byte)1, 6), Assert.Single(result.Progression.PremiumUsageSlots));
             Assert.Equal(1, result.Features.Mailbox.TotalCount);
-            Assert.Equal([800L], result.Features.Mailbox.PageMessageIds);
+            var message = Assert.Single(result.Features.Mailbox.PageMessages);
+            Assert.Equal(800L, message.MessageId);
+            Assert.Equal("sender", message.SenderName);
+            Assert.Equal("body", message.Body);
+            Assert.Equal(123, message.Gold);
+            Assert.Equal(2, message.LetterState);
+            Assert.Equal(1001, Assert.Single(message.Attachments).ItemTemplateId);
         }
         finally
         {
@@ -151,7 +170,77 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
             Assert.Equal(23, result.Features.Mailbox.TotalCount);
             Assert.Equal(
                 Enumerable.Range(101, 20).Reverse().Select(value => (long)value),
-                result.Features.Mailbox.PageMessageIds);
+                result.Features.Mailbox.PageMessages.Select(value => value.MessageId));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task CharacterEntryState_UpgradesPreProjectionNormalizedSchemaIdempotently()
+    {
+        var path = CreateDatabase();
+        try
+        {
+            await ExecuteAsync(path, """
+                CREATE TABLE characters(
+                    character_id INTEGER PRIMARY KEY, account_id INTEGER NOT NULL,
+                    name TEXT NOT NULL, job INTEGER NOT NULL DEFAULT 0,
+                    level INTEGER NOT NULL DEFAULT 1);
+                CREATE TABLE character_subtype1_fields(
+                    character_id INTEGER PRIMARY KEY, stat_hp_max INTEGER NOT NULL DEFAULT 0,
+                    stat_mp_max INTEGER NOT NULL DEFAULT 0, stat_physical_attack INTEGER NOT NULL DEFAULT 0,
+                    stat_physical_defense INTEGER NOT NULL DEFAULT 0, stat_magical_attack INTEGER NOT NULL DEFAULT 0,
+                    stat_magical_defense INTEGER NOT NULL DEFAULT 0, stat_move_speed INTEGER NOT NULL DEFAULT 0,
+                    stat_attack_speed INTEGER NOT NULL DEFAULT 0, stat_cast_speed INTEGER NOT NULL DEFAULT 0,
+                    stat_inventory_limit INTEGER NOT NULL DEFAULT 0, skill_tree_index INTEGER NOT NULL DEFAULT -1,
+                    progress1 INTEGER NOT NULL DEFAULT 0, progress2 INTEGER NOT NULL DEFAULT 0,
+                    stat_fire_resistance INTEGER NOT NULL DEFAULT 0, stat_water_resistance INTEGER NOT NULL DEFAULT 0,
+                    stat_dark_resistance INTEGER NOT NULL DEFAULT 0, stat_light_resistance INTEGER NOT NULL DEFAULT 0,
+                    stat_hp_regen_speed INTEGER NOT NULL DEFAULT 0, stat_mp_regen_speed INTEGER NOT NULL DEFAULT 0,
+                    stat_hit_recovery INTEGER NOT NULL DEFAULT 0, stat_jump_power INTEGER NOT NULL DEFAULT 0,
+                    stat_weight INTEGER NOT NULL DEFAULT 0, stat_level INTEGER NOT NULL DEFAULT 0,
+                    name_tag_item_id INTEGER NOT NULL DEFAULT 0, name_tag_expire_time INTEGER NOT NULL DEFAULT 0,
+                    equipped_creature_level INTEGER NOT NULL DEFAULT 0, equip_list_trailing INTEGER NOT NULL DEFAULT 0,
+                    flag_byte INTEGER NOT NULL DEFAULT 0, guild_power_war INTEGER NOT NULL DEFAULT 0,
+                    server_timestamp INTEGER NOT NULL DEFAULT 0, quest_shop_count INTEGER NOT NULL DEFAULT 0);
+                CREATE TABLE mailbox_messages(
+                    message_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    receiver_character_id INTEGER NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    unlimited_flag INTEGER NOT NULL DEFAULT 0,
+                    expire_at TEXT NOT NULL DEFAULT '9999-12-31 23:59:59',
+                    deleted_by_sender INTEGER NOT NULL DEFAULT 0);
+                CREATE TABLE mailbox_recipients(
+                    recipient_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    message_id INTEGER NOT NULL, character_id INTEGER NOT NULL,
+                    folder INTEGER NOT NULL DEFAULT 0, saved_flag INTEGER NOT NULL DEFAULT 0,
+                    deleted_flag INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(message_id,character_id,folder));
+                """);
+
+            _ = new SqliteCharacterEntryStateRepository(path);
+            _ = new SqliteCharacterEntryStateRepository(path);
+            await ExecuteAsync(path, """
+                INSERT INTO characters(character_id,account_id,name,job,level) VALUES(25,15,'upgrade',1,60);
+                INSERT INTO character_subtype0_fields(character_id) VALUES(25);
+                INSERT INTO character_subtype1_fields(character_id) VALUES(25);
+                INSERT INTO character_init_flags(character_id) VALUES(25);
+                INSERT INTO mailbox_messages(message_id,receiver_character_id) VALUES(900,25);
+                INSERT INTO mailbox_recipients(message_id,character_id) VALUES(900,25);
+                """);
+
+            var result = await new SqliteCharacterEntryStateRepository(path).LoadAsync(
+                new AccountId(15), new CharacterId(25), CancellationToken.None);
+
+            Assert.Equal(0, result.Profile.Subtype1.ManageLevel);
+            var message = Assert.Single(result.Features.Mailbox.PageMessages);
+            Assert.Equal(900, message.MessageId);
+            Assert.Equal(string.Empty, message.SenderName);
+            Assert.Equal(1, message.LetterState);
         }
         finally
         {

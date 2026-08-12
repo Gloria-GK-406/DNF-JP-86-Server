@@ -4,18 +4,18 @@ contract:
   path: ./TaskContract.md
   revision: 1
 state: active
-phase: root_evaluation
+phase: child_execution
 phase_state: pending
-active_attempt: none
-last_transition: child-accepted
-transition_evidence: "Spec-008 completed, independently approved and freshly verified, then accepted as commit a7af583. G5 available-quest eligibility now classifies and applies the complete evidenced predicate with fail-closed malformed handling; full real-PVF verification is 378 passed, 2 expected skips, 0 failed. The worktree was clean after acceptance and the active child is cleared."
+active_attempt: spec-009-project-complete-entry-stream
+last_transition: child-created
+transition_evidence: "The ready child contract and routing decision at attempts/spec-009-project-complete-entry-stream bind one independently acceptable G6 outcome: a complete result-only ordered projection with no lifecycle mutation. The parent-managed task workspace is reused at accepted baseline 501c2ca; row 9 is the sole running attempt and all earlier attempts are terminal."
 workspace:
   repository_root: /Users/puxianguo/project/86JP-main
   task_root: /Users/puxianguo/project/86JP-main/.worktrees/select-character-domain-migration-completion/.rks-agent/tasks/select-character-domain-migration
   code_root: /Users/puxianguo/project/86JP-main/.worktrees/select-character-domain-migration-completion
   branch: codex/select-character-domain-migration-completion
-  baseline: a7af583
-  baseline_evidence: "Accepted spec-008 commit a7af583 on codex/select-character-domain-migration-completion. Independent change review approved; fresh real-PVF solution verification: 378 passed, 2 expected skips, 0 failed; dependency and diff checks passed. Source codex/architecture-refactor remains unchanged at 94616f4."
+  baseline: 501c2ca330fc6f506261dc9016e82327dccc73fe
+  baseline_evidence: "HEAD 501c2ca on codex/select-character-domain-migration-completion in a clean linked worktree; it contains accepted spec-008 product commit a7af583 and its controller acceptance record. Independent review approved; fresh real-PVF verification: 378 passed, 2 expected skips, 0 failed. Source codex/architecture-refactor remains unchanged at 94616f4."
   archive_input: "Script.pvf (58,781,889 bytes) is present as a gitignored copy at the root of this task worktree, copied from /Users/puxianguo/Downloads/Script.pvf. Dfo.Pvf tests execute 60/60 with the archive reachable; the two Infrastructure negative-path tests are expected to skip when an archive is deliberately present."
 ---
 
@@ -114,3 +114,4 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 | 6 | spec-006 | `attempts/spec-006-load-world-entry-state/TaskContract.md` | Load world/content entry state | SC-2, SC-3 | blocked | `attempts/spec-006-load-world-entry-state/spec-result.md` | rolled back to `b8e817c` |
 | 7 | spec-007 | `attempts/spec-007-complete-world-and-session-entry-state/TaskContract.md` | Complete world, content and session entry state | SC-2, SC-3 | completed | `attempts/spec-007-complete-world-and-session-entry-state/spec-result.md` | `01cb491` + `21e5a1a` accepted |
 | 8 | spec-008 | `attempts/spec-008-complete-quest-eligibility/TaskContract.md` | Complete G5 quest eligibility semantics | SC-2, SC-3, SC-6 | completed | `attempts/spec-008-complete-quest-eligibility/spec-result.md` | `a7af583` accepted |
+| 9 | spec-009 | `attempts/spec-009-project-complete-entry-stream/TaskContract.md` | Project complete Select Character entry stream | SC-5, SC-6 | running | pending | active |

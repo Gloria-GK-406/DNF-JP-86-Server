@@ -158,7 +158,8 @@ public sealed record QuestDefinition(
     IReadOnlyList<IReadOnlyList<int>> CompletedQuestPrerequisiteGroups,
     IReadOnlyList<QuestAnswerRequirement> RequiredQuestAnswers,
     IReadOnlyList<int> CollisionQuestIds,
-    IReadOnlyList<int> AccountCollisionQuestIds)
+    IReadOnlyList<int> AccountCollisionQuestIds,
+    bool HasSpecialRewardStatus = false)
 {
     /// <summary>A quest offered regardless of grow type.</summary>
     public const int AnyGrowType = -1;

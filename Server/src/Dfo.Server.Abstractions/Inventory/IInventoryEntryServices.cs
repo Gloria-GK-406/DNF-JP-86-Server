@@ -11,7 +11,8 @@ public sealed record InventoryStorageItem(
     CharacterId? CharacterId,
     InventoryContainerType ContainerType,
     int SlotIndex,
-    InventoryItemCoreState Core);
+    InventoryItemCoreState Core,
+    InventoryAvatarDetailState? AvatarDetail = null);
 
 public sealed record InventoryContainerParameter(
     CharacterId CharacterId,

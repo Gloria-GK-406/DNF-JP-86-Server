@@ -44,6 +44,7 @@ public sealed class NetworkingModule : IServerModule
         services.AddSingleton(options);
         services.AddSingleton(GameLoginOptions.FromConfiguration(configuration));
         services.TryAddSingleton<TouchSocketConnectionRegistry>();
+        services.TryAddSingleton<ISelectCharacterProjectionComposer, SelectCharacterProjectionComposer>();
         services.TryAddSingleton<INetworkMessageSender, TouchSocketNetworkMessageSender>();
         services.TryAddSingleton<ChannelNetworkPlugin>();
         services.TryAddSingleton<GameNetworkPlugin>();

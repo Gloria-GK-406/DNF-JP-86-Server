@@ -1,4 +1,5 @@
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Data.Accounts;
 
@@ -49,7 +50,13 @@ public sealed record AccountCharacterRelationEntryState(
     byte Slot,
     CharacterId SupportCharacterId,
     int SkillId,
-    int StrikerSkillId);
+    int StrikerSkillId,
+    AccountSupportCharacterEntryState? SupportProjection = null);
+
+public sealed record AccountSupportCharacterEntryState(
+    ActiveCharacterState Character,
+    CharacterEntryState Entry,
+    CharacterInventoryEntryState Inventory);
 
 public sealed record AccountRosterReferenceEntryState(
     CharacterId CharacterId,

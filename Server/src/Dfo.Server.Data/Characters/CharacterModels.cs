@@ -53,6 +53,12 @@ public sealed record CharacterAppearanceCompatibilityState(
     byte FormatVersion,
     byte[] EncodedEntries);
 
+/// <summary>Persisted public identity fields that are separate from entry visibility bits.</summary>
+public sealed record CharacterPublicIdentityEntryState(
+    byte PvpGrade,
+    byte PvpRatingGrade,
+    byte UserState);
+
 public sealed record CharacterSubtype0EntryState(
     byte Stamina,
     uint FatiguePenalty,
@@ -135,18 +141,24 @@ public sealed record CharacterSubtype1EntryState(
     uint CharacterExperience = 0,
     byte ExtraEquipmentSlotState = 0,
     IReadOnlyList<CharacterDimensionEntryState> Dimensions = null!,
-    CharacterDimensionFlagsState DimensionFlags = null!);
+    CharacterDimensionFlagsState DimensionFlags = null!,
+    byte ManageLevel = 0,
+    IReadOnlyList<CharacterPvpResultState> PvpResults = null!,
+    IReadOnlyList<uint> SpecialRewardQuestIds = null!);
 
 public sealed record CharacterDimensionEntryState(uint Key, byte Value1, byte Value2);
 
 public sealed record CharacterDimensionFlagsState(byte Flag1, byte Flag2, byte Flag3, byte Flag4);
+
+public sealed record CharacterPvpResultState(uint Value32, ushort Value16A, ushort Value16B);
 
 public sealed record CharacterPublicEntryState(
     CharacterSubtype0EntryState Subtype0,
     CharacterSubtype1EntryState Subtype1,
     CharacterAppearanceCompatibilityState Appearance,
     uint VisibilityBits,
-    uint CloneTitleItemId);
+    uint CloneTitleItemId,
+    CharacterPublicIdentityEntryState? Identity = null);
 
 public sealed record CharacterSkillState(
     short Slot,
@@ -162,6 +174,12 @@ public sealed record CharacterSkillPointSlotState(byte SlotIndex, int Value);
 
 public sealed record CharacterSkillPointBasisState(int BonusSp, int BonusTp);
 
+public sealed record CharacterSkillProtocolMirrorState(
+    ushort Page0Sp,
+    ushort Page1Sp,
+    ushort Page0Tp,
+    ushort Page1Tp);
+
 public sealed record DarkKnightComboEntryState(
     byte PageIndex,
     byte[] EncodedBody);
@@ -171,7 +189,8 @@ public sealed record CharacterSkillsEntryState(
     IReadOnlyList<CharacterSkillPointSlotState> SkillPointSlots,
     CharacterSkillPointBasisState SkillPointBasis,
     IReadOnlyList<DarkKnightComboEntryState>? DarkKnightCombos,
-    IReadOnlyList<int>? KnightShieldDeck);
+    IReadOnlyList<int>? KnightShieldDeck,
+    CharacterSkillProtocolMirrorState? ProtocolMirror = null);
 
 public sealed record CharacterQuestProgressState(
     short Slot,
@@ -206,6 +225,8 @@ public sealed record CharacterScheduleCompatibilityState(
     int Value2,
     int Value3);
 
+public sealed record CharacterPremiumUsageSlotState(byte SlotIndex, int UsedCount);
+
 public sealed record CharacterProgressionEntryState(
     IReadOnlyList<byte> GrowthWeaponStages,
     byte CubeType,
@@ -223,11 +244,11 @@ public sealed record CharacterProgressionEntryState(
     IReadOnlyList<uint> DailyChallengeTailIds,
     IReadOnlyList<CharacterScheduleCompatibilityState> ScheduleCompatibility,
     IReadOnlyList<CharacterDungeonProgressState> Dungeons,
-    int CharacterPremiumUsage);
+    IReadOnlyList<CharacterPremiumUsageSlotState> PremiumUsageSlots);
 
 public sealed record CharacterSettingsEntryState(
     IReadOnlyList<ushort> HotkeySlots,
-    byte[] OptionBitmap,
+    byte[]? OptionBitmap,
     uint VisibilityBits);
 
 public sealed record CharacterPetRuntimeState(
@@ -272,7 +293,12 @@ public sealed record CharacterCollectionBoxSlotState(
 
 public sealed record CharacterCollectionBoxProgressState(
     byte BoxIndex,
-    IReadOnlyList<CharacterCollectionBoxSlotState> Slots);
+    IReadOnlyList<CharacterCollectionBoxSlotState> Slots,
+    CharacterCollectionBoxProtocolState? Protocol = null);
+
+public sealed record CharacterCollectionBoxProtocolState(
+    uint RemainingSeconds,
+    byte StatusFlags);
 
 public sealed record CharacterCollectionsEntryState(
     IReadOnlyList<CharacterTitleBookCategoryState> TitleBooks,
@@ -286,9 +312,50 @@ public sealed record CharacterExpertJobEntryState(
     int DisjointMachineGrade,
     int DisjointMachineEndurance,
     int EnchanterEndurance,
-    IReadOnlyList<int> LearnedRecipeIds);
+    IReadOnlyList<int> LearnedRecipeIds,
+    CharacterExpertProtocolState? Protocol = null);
 
-public sealed record CharacterMailboxEntryState(int NotLoadedCount, IReadOnlyList<long> MessageIds);
+public sealed record CharacterExpertProtocolState(
+    IReadOnlyList<byte> CardQualificationLevels,
+    int EnchanterLevel);
+
+public sealed record CharacterMailboxAttachmentEntryState(
+    long AttachmentId,
+    int Ordinal,
+    byte ItemType,
+    int SourceListType,
+    int SourceSlotIndex,
+    long SourceItemUid,
+    int ItemTemplateId,
+    string ItemKind,
+    int ItemCount,
+    int InstanceValue,
+    int Durability,
+    int SealFlag,
+    int OptionValue,
+    int ExpireTime,
+    int Marker16,
+    int PetSerialOrHandle,
+    byte[] ItemCore,
+    string DetailJson);
+
+public sealed record CharacterMailboxMessageEntryState(
+    long MessageId,
+    int SenderCharacterId,
+    byte[] SenderName,
+    int MailType,
+    int SourceProtocol,
+    byte[] Title,
+    byte[] Body,
+    int Gold,
+    int RemainingSeconds,
+    int CreatedAtUnixSeconds,
+    byte LetterState,
+    IReadOnlyList<CharacterMailboxAttachmentEntryState> Attachments);
+
+public sealed record CharacterMailboxEntryState(
+    int NotLoadedCount,
+    IReadOnlyList<CharacterMailboxMessageEntryState> Messages);
 
 public sealed record CharacterPvpMissionEntryState(int MissionId, int Progress);
 

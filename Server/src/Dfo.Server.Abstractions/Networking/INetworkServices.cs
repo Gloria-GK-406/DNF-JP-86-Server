@@ -16,6 +16,19 @@ public interface INetworkMessageSender
         NetworkConnectionId connectionId,
         IServerNetworkMessage message,
         CancellationToken cancellationToken);
+
+    ValueTask SendProjectionAsync(
+        NetworkConnectionId requiredDirectConnectionId,
+        SelectCharacterProjectionDelivery delivery,
+        CancellationToken cancellationToken) =>
+        SendAsync(requiredDirectConnectionId, delivery, cancellationToken);
+}
+
+/// <summary>Networking-owned framing boundary for ordered typed post-selection projections.</summary>
+public interface ISelectCharacterProjectionComposer
+{
+    IReadOnlyList<byte[]> Compose(
+        IReadOnlyList<Dfo.Server.Data.Game.ISelectCharacterSupplementalProjection> projections);
 }
 
 public interface INetworkConnectionObserver

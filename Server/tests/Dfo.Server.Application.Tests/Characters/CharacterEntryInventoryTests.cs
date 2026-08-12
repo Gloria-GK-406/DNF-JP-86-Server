@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Tests.Support;
@@ -236,6 +237,7 @@ public sealed class CharacterEntryInventoryTests
             CancellationToken.None);
 
         Assert.Same(selected, result.Character);
+        Assert.Contains(result.Roster!.Characters, value => value.CharacterId == selected.Identity.CharacterId);
         Assert.Same(selected, active.GetRequired(accountId));
         Assert.Equal(1, active.PublishCount);
     }
@@ -325,6 +327,35 @@ public sealed class CharacterEntryInventoryTests
         Assert.Same(inventory.AccountInventory, result.AccountInventory);
         Assert.Equal(accountId, result.Account.AccountId);
         Assert.Same(selected, active.GetRequired(accountId));
+    }
+
+    [Fact]
+    public async Task CharacterEntry_CompletesSkillMirrorFromTypedLedgerDefinitions()
+    {
+        var accountId = new AccountId(48);
+        var selected = Character(508, 3) with
+        {
+            Identity = Character(508, 3).Identity with { GrowType = 0x11 },
+        };
+        var characterEntry = EmptyCharacterEntry(selected.Identity.CharacterId) with
+        {
+            Skills = new CharacterSkillsEntryState(
+                [new CharacterSkillPageState(0, [new CharacterSkillState(1, 100, 3, [])])],
+                [], new CharacterSkillPointBasisState(5, 0), null, null),
+        };
+        var entry = EntryServices.Create(
+            new StubCharacterService(selected),
+            new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
+            new StubCharacterEntryStateService(characterEntry),
+            new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
+            new StatefulActiveCharacterService(),
+            skillPoints: new PopulatedSkillPointDefinitionSource());
+
+        var result = await entry.EnterAsync(
+            accountId, 3, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None);
+
+        Assert.Equal(new CharacterSkillProtocolMirrorState(85, 105, 0, 0),
+            result.CharacterEntry.Skills.ProtocolMirror);
     }
 
     [Fact]
@@ -465,7 +496,7 @@ public sealed class CharacterEntryInventoryTests
             [], [], new CharacterSkillPointBasisState(0, 0), null, null),
         new CharacterQuestEntryState([], [], [], new byte[30_000]),
         new CharacterProgressionEntryState(
-            [], 0, 255, 0, 0, 0, 0, 0, 0, false, 1, [], new byte[6], [], [], [], 0),
+            [], 0, 255, 0, 0, 0, 0, 0, 0, false, 1, [], new byte[6], [], [], [], []),
         new CharacterFeaturesEntryState(
             [],
             new CharacterCollectionsEntryState([], [], []),
@@ -501,7 +532,17 @@ public sealed class CharacterEntryInventoryTests
     {
         public ValueTask<AccountCharacterRoster> GetAccountRosterAsync(
             AccountId accountId,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
+            CancellationToken cancellationToken) => ValueTask.FromResult(new AccountCharacterRoster(
+                accountId,
+                24,
+                [new CharacterSummary(
+                    state.Identity.CharacterId,
+                    state.Identity.SlotIndex,
+                    state.Identity.Name,
+                    state.Identity.Job,
+                    state.Identity.GrowType,
+                    state.Progression.Level,
+                    0)]));
 
         public ValueTask<ActiveCharacterState> LoadForSelectionAsync(
             AccountId accountId,
@@ -571,6 +612,24 @@ public sealed class CharacterEntryInventoryTests
             AccountId accountId,
             CharacterId characterId,
             CancellationToken cancellationToken) => ValueTask.FromResult(state);
+    }
+
+    private sealed class PopulatedSkillPointDefinitionSource : ISkillPointDefinitionSource
+    {
+        public ValueTask<SkillPointDefinitionSet> GetAsync(
+            byte job, byte packedGrowType, byte characterLevel,
+            IReadOnlyCollection<int> learnedSkillIds, CancellationToken cancellationToken)
+        {
+            Assert.Equal((byte)0x11, packedGrowType);
+            Assert.Equal([100], learnedSkillIds);
+            return ValueTask.FromResult(new SkillPointDefinitionSet(
+                100, 0,
+                [new SkillPointGrantDefinition(100, 1)],
+                new Dictionary<int, SkillPointCostDefinition>
+                {
+                    [100] = new(100, false, [10], false, 1, 10, 0, 1, 1),
+                }));
+        }
     }
 
     private sealed class FailingCharacterEntryStateService : ICharacterEntryStateService

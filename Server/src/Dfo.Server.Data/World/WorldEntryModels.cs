@@ -55,7 +55,8 @@ public sealed record CollectionBoxEntryState(
     int BoxIndex,
     int Columns,
     int Rows,
-    IReadOnlyList<CollectionBoxCellState> Cells)
+    IReadOnlyList<CollectionBoxCellState> Cells,
+    DateTimeOffset? MaximumExpiresAt = null)
 {
     public int FilledCount
     {

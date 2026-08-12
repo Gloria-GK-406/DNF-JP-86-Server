@@ -151,6 +151,8 @@ public sealed class PvfQuestDefinitionSourceTests
         Assert.Contains(quests, quest => quest.RequiredQuestAnswers.Count > 0);
         Assert.Contains(quests, quest => quest.CollisionQuestIds.Count > 0);
         Assert.DoesNotContain(quests, quest => quest.AccountCollisionQuestIds.Count > 0);
+        Assert.True((await source.GetAsync(13_502, CancellationToken.None))?.HasSpecialRewardStatus);
+        Assert.False((await source.GetAsync(13_501, CancellationToken.None))?.HasSpecialRewardStatus);
         Assert.All(
             quests.SelectMany(quest => quest.CompletedQuestPrerequisiteGroups).SelectMany(group => group),
             prerequisiteId => Assert.InRange(prerequisiteId, 1, 29_999));

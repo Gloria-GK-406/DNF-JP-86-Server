@@ -76,7 +76,21 @@ public sealed record InventoryItemCoreState(
 public sealed record InventoryItemState(
     long StorageEntryId,
     int SlotIndex,
-    InventoryItemCoreState Core);
+    InventoryItemCoreState Core,
+    InventoryAvatarDetailState? AvatarDetail = null,
+    uint? Noti2CreatureMarker = null);
+
+/// <summary>
+/// Avatar-instance facts stored beside an inventory item. A null value means the item is
+/// not an avatar; an avatar item always carries a value, including an all-zero loaded row.
+/// </summary>
+public sealed record InventoryAvatarDetailState(
+    int ExpireDate,
+    int ClearAvatarId,
+    byte[] JewelSocket,
+    ushort Color1,
+    ushort Color2,
+    int DeleteDate);
 
 public sealed record InventoryContainerState(
     InventoryContainerType ContainerType,

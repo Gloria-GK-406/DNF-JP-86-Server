@@ -11,11 +11,14 @@ public sealed record CharacterProfileStorageRecord(
     CharacterSubtype0StorageRecord Subtype0,
     CharacterSubtype1StorageRecord Subtype1,
     IReadOnlyList<ushort> HotkeySlots,
-    byte[] CharacterOptionBlob,
+    byte[]? CharacterOptionBlob,
     long CharacterExperience,
     int ExtraEquipmentSlotState,
     IReadOnlyList<(int SortOrder, long Key, int Value1, int Value2)> Dimensions,
-    (int Flag1, int Flag2, int Flag3, int Flag4) DimensionFlags);
+    (int Flag1, int Flag2, int Flag3, int Flag4) DimensionFlags,
+    byte PvpGrade = 0,
+    byte PvpRatingGrade = 0,
+    byte UserState = 0);
 
 public sealed record CharacterSubtype0StorageRecord(
     int Stamina,
@@ -95,7 +98,11 @@ public sealed record CharacterSubtype1StorageRecord(
     int FlagByte = 0,
     long GuildPowerWar = 0,
     long ServerTimestamp = 0,
-    int QuestShopCount = 0);
+    int QuestShopCount = 0,
+    int ManageLevel = 0,
+    IReadOnlyList<CharacterPvpResultStorageRow> PvpResults = null!);
+
+public sealed record CharacterPvpResultStorageRow(long Value32, int Value16A, int Value16B);
 
 public sealed record CharacterSkillStorageRow(
     byte PageIndex,
@@ -138,7 +145,7 @@ public sealed record CharacterProgressionStorageRecord(
     IReadOnlyList<int> DailyChallengeTailIds,
     IReadOnlyList<(int SortOrder, int ParamA, int ModeOrState, int ContentId, int ParamB)> Schedules,
     IReadOnlyList<(int SortOrder, int DungeonId, int ClearState)> Dungeons,
-    int CharacterPremiumUsage,
+    IReadOnlyList<(byte SlotIndex, int UsedCount)> PremiumUsageSlots,
     bool DailyReviveCoinClaimed);
 
 public sealed record CharacterPetStorageRow(
@@ -165,7 +172,41 @@ public sealed record CharacterAchievementStorageRow(
 
 public sealed record CharacterMailboxStorageRecord(
     int TotalCount,
-    IReadOnlyList<long> PageMessageIds);
+    IReadOnlyList<CharacterMailboxMessageStorageRow> PageMessages);
+
+public sealed record CharacterMailboxAttachmentStorageRow(
+    long AttachmentId,
+    int Ordinal,
+    int ItemType,
+    int SourceListType,
+    int SourceSlotIndex,
+    long SourceItemUid,
+    int ItemTemplateId,
+    string ItemKind,
+    int ItemCount,
+    int InstanceValue,
+    int Durability,
+    int SealFlag,
+    int OptionValue,
+    int ExpireTime,
+    int Marker16,
+    int PetSerialOrHandle,
+    byte[] ItemCore,
+    string DetailJson);
+
+public sealed record CharacterMailboxMessageStorageRow(
+    long MessageId,
+    int SenderCharacterId,
+    string SenderName,
+    int MailType,
+    int SourceProtocol,
+    string Title,
+    string Body,
+    int Gold,
+    int RemainingSeconds,
+    int CreatedAtUnixSeconds,
+    int LetterState,
+    IReadOnlyList<CharacterMailboxAttachmentStorageRow> Attachments);
 
 public sealed record CharacterFeatureStorageRecord(
     IReadOnlyList<CharacterPetStorageRow> Pets,

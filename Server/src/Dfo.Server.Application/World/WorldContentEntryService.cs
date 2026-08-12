@@ -335,7 +335,8 @@ internal sealed class WorldContentEntryService(
                 definition.BoxIndex,
                 definition.Columns,
                 definition.Rows,
-                cells));
+                cells,
+                definition.MaximumExpiresAt));
         }
 
         return resolved;
