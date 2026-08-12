@@ -780,6 +780,8 @@ internal static partial class SelectCharacterStaticPayloadCodec
         writer.Write(t.PvpStatA); writer.Write(t.PvpWinStreak); writer.Write(t.PvpLoseStreak); writer.Write(t.PvpRankPoint); writer.Write(t.TrailingByte); return stream.ToArray();
     }
 
+    internal static byte[] EncodePvpSubtype0(SelectCharacterResult result) => EncodeUserInfoSubtype0(result);
+
     private static byte[] EncodeUserInfoSubtype1(SelectCharacterResult result)
     {
         var character = result.Character; var value = result.CharacterEntry.Public.Subtype1; var skills = result.CharacterEntry.Skills;

@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Sessions;
 
@@ -17,6 +18,11 @@ internal sealed class PvpLobbyRegistry : IPvpLobbyRegistry
     }
 
     public bool ClearReady(CharacterId characterId) => _ready.TryRemove(characterId, out _);
+
+    public bool ClearReadyExact(SelectedSessionIdentity session) =>
+        _ready.TryGetValue(session.CharacterId, out var current)
+        && current.Session == session
+        && _ready.TryRemove(new KeyValuePair<CharacterId, PvpLobbyParticipant>(session.CharacterId, current));
 
     public void Offer(PvpRoom room)
     {

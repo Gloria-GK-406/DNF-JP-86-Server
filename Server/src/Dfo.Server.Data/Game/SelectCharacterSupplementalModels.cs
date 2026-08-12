@@ -25,13 +25,18 @@ public sealed record SelectCharacterGrowthCapsuleProjection(
     uint HonorLevel,
     uint HonorExperience) : ISelectCharacterSupplementalProjection;
 
-/// <summary>An owner-produced UPDATE_ITEM_LIST body; framing and batch order remain Networking concerns.</summary>
-public sealed record SelectCharacterInventoryUpdateProjection(byte[] Body) : ISelectCharacterSupplementalProjection;
+/// <summary>Committed inventory facts for one UPDATE_ITEM_LIST group; Networking owns body encoding.</summary>
+public sealed record SelectCharacterInventoryUpdateProjection(
+    Inventory.InventoryContainerType ContainerType,
+    IReadOnlyList<Inventory.InventoryItemState> Items,
+    DateTimeOffset PreparedAt) : ISelectCharacterSupplementalProjection;
 
 public sealed record SelectCharacterAdmissionRejectionProjection(byte ErrorCode, string Message, byte NoticeMode = 0) : ISelectCharacterSupplementalProjection;
 
-/// <summary>A complete subtype-0 USERINFO body for one PvP wire identity.</summary>
-public sealed record SelectCharacterPvpIdentityProjection(ushort UserId, byte[] Subtype0Body) : ISelectCharacterSupplementalProjection;
+/// <summary>A PvP wire identity whose subtype-0 body is encoded by Networking.</summary>
+public sealed record SelectCharacterPvpIdentityProjection(
+    ushort UserId,
+    SelectCharacterResult Result) : ISelectCharacterSupplementalProjection;
 
 public sealed record SelectCharacterPvpRoomSeatProjection(byte State, ushort UserId);
 

@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Infrastructure.Accounts;
 using Dfo.Server.Infrastructure.Characters;
@@ -45,6 +46,11 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IDailyActivityDefinitionSource, PvfDailyActivityDefinitionSource>();
         services.TryAddSingleton<ICreatureDefinitionSource, PvfCreatureDefinitionSource>();
         services.TryAddSingleton<ICreatureEquipmentLifetimeSource, PvfCreatureEquipmentLifetimeSource>();
+        services.TryAddSingleton<IEntryLifecycleContentSource, PvfEntryLifecycleContentSource>();
+        services.TryAddSingleton<IDungeonExperienceProgressionPolicySource,
+            PvfDungeonExperienceProgressionPolicySource>();
+        services.TryAddSingleton<IExpertSkillContractDefinitionSource,
+            PvfExpertSkillContractDefinitionSource>();
         services.TryAddSingleton<ITownDefinitionSource, PvfTownDefinitionSource>();
         services.TryAddSingleton(ReadChannelEntryOptions(configuration));
 
@@ -64,8 +70,23 @@ public sealed class InfrastructureModule : IServerModule
             provider => provider.GetRequiredService<SqliteInventoryEntryRepository>());
         services.TryAddSingleton<IAccountInventoryEntryRepository>(
             provider => provider.GetRequiredService<SqliteInventoryEntryRepository>());
+        services.TryAddSingleton<IEntryInventoryLeasePersistence>(
+            provider => provider.GetRequiredService<SqliteInventoryEntryRepository>());
         services.TryAddSingleton<ICharacterEntryStateRepository>(
             _ => new SqliteCharacterEntryStateRepository(databasePath));
+        services.TryAddSingleton<ICharacterPvpSkillProfileRepository>(
+            _ => new SqliteCharacterPvpSkillProfileRepository(databasePath));
+        services.TryAddSingleton<IDungeonPersistentEffectRecoveryRepository>(
+            provider => new SqliteDungeonPersistentEffectRecoveryRepository(databasePath,
+                provider.GetRequiredService<IDungeonExperienceProgressionPolicySource>()));
+        services.TryAddSingleton<IExpertSkillContractReconciliationRepository>(
+            _ => new SqliteExpertSkillContractReconciliationRepository(databasePath));
+        services.TryAddSingleton<IEntryInventoryMutationRepository>(
+            _ => new SqliteEntryInventoryMutationRepository(databasePath));
+        services.TryAddSingleton<ICharacterEntryMutationRepository>(
+            _ => new SqliteCharacterEntryMutationRepository(databasePath));
+        services.TryAddSingleton<ISelectedSessionPositionPersistence>(
+            _ => new SqliteSelectedSessionPositionPersistence(databasePath));
     }
 
     /// <summary>

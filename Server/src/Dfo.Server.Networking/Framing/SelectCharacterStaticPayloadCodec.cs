@@ -160,7 +160,7 @@ internal static partial class SelectCharacterStaticPayloadCodec
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, "No observed constant body exists."),
     };
 
-    private static void WriteInventoryItem(
+    internal static void WriteInventoryItem(
         BinaryWriter writer,
         InventoryItemState item,
         DateTimeOffset preparedAt)

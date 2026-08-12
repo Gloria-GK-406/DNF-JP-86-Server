@@ -7,13 +7,14 @@
 ## Successor status (2026-08-12)
 
 G6 result-only projection coverage is implemented for static rows 1–58 and
-supplemental identities X-01–X-18. The exact successor sources, codec seams,
-conditions and remaining G7 responsibilities are recorded in
-[`SelectCharacterG6Coverage.md`](SelectCharacterG6Coverage.md).
+supplemental identities X-01–X-18. G7 lifecycle coverage is implemented for X-07,
+X-09–X-18 and L-01–L-10. Exact sources/codecs and lifecycle ownership are recorded in
+[`SelectCharacterG6Coverage.md`](SelectCharacterG6Coverage.md) and
+[`SelectCharacterG7Coverage.md`](SelectCharacterG7Coverage.md).
 
 This status does not change the confidence labels below: all protocol statements
-remain code-reversed and unconfirmed by packet capture. G7 lifecycle triggering,
-recipient discovery, preparation mutation and rollback are not claimed complete.
+remain code-reversed and unconfirmed by packet capture. Implementation completeness
+does not constitute real-client compatibility evidence.
 
 ## Reading the matrix
 

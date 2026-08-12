@@ -21,4 +21,6 @@ public interface IOnlineUserService : IOnlineUserQueryService
         OnlineUserId onlineUserId,
         NetworkConnectionId connectionId,
         long expectedGeneration);
+
+    bool TryDisconnectConnection(NetworkConnectionId connectionId);
 }

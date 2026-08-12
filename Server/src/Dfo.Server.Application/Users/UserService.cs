@@ -5,6 +5,7 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
+using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Users;
 
@@ -105,7 +106,57 @@ internal sealed class UserService(Func<IAccountRepository> accountRepository)
 
             var owner = matches[0];
             owner.BindCharacter(character.Identity.CharacterId);
-            activeByAccount[accountId] = new ActiveCharacterRegistration(owner.Id, character);
+            activeByAccount[accountId] = new ActiveCharacterRegistration(owner.Id, null, character);
+        }
+    }
+
+    public void Publish(SelectedSessionIdentity session, ActiveCharacterState character)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(character);
+        if (character.Identity.CharacterId != session.CharacterId)
+            throw new InvalidDataException("Active character does not match the selected session.");
+        lock (sync)
+        {
+            var owner = byId.Values.SingleOrDefault(value =>
+                value.AccountId == session.AccountId
+                && value.Connection.ConnectionId == session.ConnectionId
+                && value.Generation == session.ConnectionGeneration)
+                ?? throw new InvalidOperationException("Selected connection generation is no longer current.");
+            owner.BindCharacter(character.Identity.CharacterId);
+            // Binding increments the online snapshot generation, while selected-session
+            // ownership remains the immutable generation validated before publication.
+            activeByAccount[session.AccountId] = new ActiveCharacterRegistration(owner.Id, session, character);
+        }
+    }
+
+    public bool ClearExact(SelectedSessionIdentity session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        lock (sync)
+        {
+            if (!activeByAccount.TryGetValue(session.AccountId, out var active)
+                || active.Session != session)
+                return false;
+            if (byId.TryGetValue(active.OnlineUserId, out var owner)
+                && owner.Connection.ConnectionId == session.ConnectionId)
+                owner.UnbindCharacter(session.CharacterId);
+            return activeByAccount.Remove(session.AccountId);
+        }
+    }
+
+    public bool TryDisconnectConnection(NetworkConnectionId connectionId)
+    {
+        lock (sync)
+        {
+            if (!byConnection.TryGetValue(connectionId, out var id)
+                || !byId.TryGetValue(id, out var user)) return false;
+            if (user.AccountId is { } accountId
+                && activeByAccount.TryGetValue(accountId, out var active)
+                && active.OnlineUserId == id) activeByAccount.Remove(accountId);
+            byConnection.Remove(connectionId);
+            byId.Remove(id);
+            return true;
         }
     }
 
@@ -153,6 +204,7 @@ internal sealed class UserService(Func<IAccountRepository> accountRepository)
 
     private sealed record ActiveCharacterRegistration(
         OnlineUserId OnlineUserId,
+        SelectedSessionIdentity? Session,
         ActiveCharacterState Character);
 
     private sealed class OnlineUser(OnlineUserId id, NetworkConnectionContext connection)
@@ -193,6 +245,14 @@ internal sealed class UserService(Func<IAccountRepository> accountRepository)
             AccountId = accountId;
             State = OnlineUserState.Authenticated;
             Generation++;
+        }
+
+        public void UnbindCharacter(CharacterId expected)
+        {
+            if (CurrentCharacterId != expected) return;
+            CurrentCharacterId = null;
+            State = AccountId is null ? OnlineUserState.Connected : OnlineUserState.Authenticated;
+            Generation = checked(Generation + 1);
         }
 
         public void BindCharacter(CharacterId characterId)

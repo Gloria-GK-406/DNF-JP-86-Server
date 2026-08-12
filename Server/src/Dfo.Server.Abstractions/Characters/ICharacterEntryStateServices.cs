@@ -119,7 +119,71 @@ public sealed record CharacterSkillStorageRecord(
     IReadOnlyList<(byte PageIndex, byte[] Body)> DarkKnightComboPages,
     IReadOnlyList<(byte SlotIndex, int ShieldItemId)> KnightShieldSlots);
 
+/// <summary>
+/// Loads the independently persisted fair-PvP skill profile.  Absence is distinct from
+/// an initialized empty profile and must therefore remain observable to entry policy.
+/// </summary>
+public interface ICharacterPvpSkillProfileRepository
+{
+    ValueTask<CharacterSkillsEntryState> LoadOrInitializeAsync(
+        AccountId accountId,
+        CharacterId characterId,
+        CharacterSkillsEntryState initialProfile,
+        CancellationToken cancellationToken);
+}
+
+public sealed record DungeonPersistentEffectRecoveryOutcome(
+    int CommittedCount,
+    int DeadLetterCount,
+    int FailedCount,
+    int RemainingCount)
+{
+    public bool RequiresReload => CommittedCount > 0;
+}
+
+/// <summary>Recovers only the legacy typed dungeon-effect outbox for one owned character.</summary>
+public interface IDungeonPersistentEffectRecoveryRepository
+{
+    ValueTask<DungeonPersistentEffectRecoveryOutcome> RecoverAsync(
+        AccountId accountId,
+        CharacterId characterId,
+        CancellationToken cancellationToken);
+}
+
+public interface IExpertSkillContractReconciliationRepository
+{
+    ValueTask<bool> ReconcileAsync(AccountId accountId, CharacterId characterId,
+        IReadOnlySet<int> overSkillPremiumTypes,
+        IReadOnlyDictionary<int, Dfo.Server.Abstractions.Content.SkillPointCostDefinition> definitions,
+        IReadOnlyDictionary<int, byte> freeBaseline,
+        CancellationToken cancellationToken);
+}
+
 public sealed record CharacterActiveQuestStorageRow(short Slot, int QuestId, int TriggerValue);
+
+public sealed record SeekingQuestTriggerUpdate(short Slot, int QuestId, int Before, int After);
+
+public sealed record PetRevivalMutation(long CreatureKey, int Before, int After);
+
+public interface ICharacterEntryMutationRepository
+{
+    ValueTask<IReadOnlyList<SeekingQuestTriggerUpdate>> UpdateSeekingQuestTriggersAsync(
+        AccountId accountId,
+        CharacterId characterId,
+        IReadOnlyList<SeekingQuestTriggerUpdate> updates,
+        CancellationToken cancellationToken);
+
+    ValueTask<PetRevivalMutation?> ReviveEquippedCreatureAsync(
+        AccountId accountId,
+        CharacterId characterId,
+        CancellationToken cancellationToken);
+
+    ValueTask PersistPositionAsync(
+        AccountId accountId,
+        CharacterId characterId,
+        CharacterPositionState position,
+        CancellationToken cancellationToken);
+}
 
 public sealed record CharacterQuestStorageRecord(
     IReadOnlyList<CharacterActiveQuestStorageRow> ActiveQuests,

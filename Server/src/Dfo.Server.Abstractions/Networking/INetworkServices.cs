@@ -24,6 +24,11 @@ public interface INetworkMessageSender
         SendAsync(requiredDirectConnectionId, delivery, cancellationToken);
 }
 
+public interface INetworkConnectionCloser
+{
+    ValueTask CloseAsync(NetworkConnectionId connectionId, CancellationToken cancellationToken);
+}
+
 /// <summary>Networking-owned framing boundary for ordered typed post-selection projections.</summary>
 public interface ISelectCharacterProjectionComposer
 {

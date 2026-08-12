@@ -14,6 +14,7 @@ public static class CommandDispatchingExtensions
         services.TryAddSingleton<CommandHandlerRegistry>();
         services.TryAddSingleton<ICommandBus, CommandBus>();
         services.TryAddSingleton<OnlineUserExecutionGate>();
+        services.TryAddSingleton<SelectedSessionTransitionGate>();
         services.TryAddSingleton<AccountExecutionGate>();
         // Behaviours carry the command's result type, so they register as open generics
         // and the container closes them per result type at resolution.

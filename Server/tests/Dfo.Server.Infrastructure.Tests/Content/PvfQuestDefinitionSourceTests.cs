@@ -48,6 +48,18 @@ internal static class ContentArchive
 public sealed class PvfQuestDefinitionSourceTests
 {
     [Fact]
+    public void Seeking_operands_preserve_gold_and_seek_meet_uses_only_item_pair()
+    {
+        Assert.Equal(
+            [new SeekingItemRequirement(0, 100), new SeekingItemRequirement(123, 2)],
+            PvfQuestDefinitionSource.ProjectSeekingItems("seeking", [0, 100, 123, 2, -1, 9]));
+        Assert.Equal(
+            [new SeekingItemRequirement(77, 3)],
+            PvfQuestDefinitionSource.ProjectSeekingItems("seek n meet npc", [77, 3, 99]));
+        Assert.Empty(PvfQuestDefinitionSource.ProjectSeekingItems("meet npc", [77, 3]));
+    }
+
+    [Fact]
     public void Job_restriction_preserves_exact_all_and_rejects_malformed_declarations()
     {
         var exactAll = PvfQuestDefinitionSource.ProjectJobRestriction("[all]", 1);
@@ -171,6 +183,22 @@ public sealed class PvfQuestDefinitionSourceTests
         // legacy parser therefore yields no exact level/NPC mapping, and so does this
         // neutral source; treating the level itself as an NPC would fabricate permission.
         Assert.Empty(training);
+    }
+
+    [SkippableFact]
+    public async Task Real_archive_projects_populated_seeking_operands()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var quests = await new PvfQuestDefinitionSource(provider).GetAllAsync(CancellationToken.None);
+
+        var seeking = quests.Where(quest => quest.SeekingItems is { Count: > 0 }).ToArray();
+        Assert.NotEmpty(seeking);
+        Assert.All(seeking.SelectMany(quest => quest.SeekingItems!), requirement =>
+        {
+            Assert.True(requirement.ItemId >= 0);
+            Assert.True(requirement.RequiredCount > 0);
+        });
     }
 
     [Fact]

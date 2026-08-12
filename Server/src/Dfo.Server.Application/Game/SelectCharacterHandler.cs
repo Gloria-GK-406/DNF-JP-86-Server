@@ -10,7 +10,6 @@ namespace Dfo.Server.Application.Game;
 public sealed class SelectCharacterHandler(
     IOnlineUserQueryService onlineUsers,
     IChannelEntryPolicy channels,
-    INetworkMessageSender sender,
     ICommandBus commandBus) : ClientMessageHandler<SelectCharacterRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -32,11 +31,10 @@ public sealed class SelectCharacterHandler(
             .ConfigureAwait(false);
 
         var result = await commandBus.SendAsync(
-            new SelectCharacterCommand(accountId, message.SlotIndex, channel),
+            new SelectCharacterCommand(
+                accountId, message.SlotIndex, channel,
+                context.Connection.ConnectionId, onlineUser.Generation),
             cancellationToken).ConfigureAwait(false);
-        await sender.SendAsync(
-            context.Connection.ConnectionId,
-            new SelectCharacterResponse(result),
-            cancellationToken).ConfigureAwait(false);
+        _ = result; // The lifecycle command owns ordered delivery and publication.
     }
 }

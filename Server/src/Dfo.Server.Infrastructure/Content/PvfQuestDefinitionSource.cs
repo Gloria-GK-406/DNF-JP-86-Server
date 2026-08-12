@@ -211,6 +211,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         var expertJobValues = new List<int>();
         var jobChangeValues = new List<int>();
         var objectiveType = string.Empty;
+        var objectiveIntData = new List<int>();
         var difficulty = string.Empty;
         var rewards = new List<QuestReward>();
         var completedGroups = new List<IReadOnlyList<int>>();
@@ -261,6 +262,8 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
                     ReadString(archive, token, questId, "target character"));
             else if (section == tags.Type)
                 objectiveType = StripBrackets(ReadString(archive, token, questId, "type"));
+            else if (section == tags.IntData)
+                AddInteger(objectiveIntData, token, questId, "int data");
             else if (section == tags.Difficulty)
                 difficulty = ReadString(archive, token, questId, "difficulty");
             else if (section == tags.RewardType)
@@ -334,7 +337,8 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             [],
             [],
             [],
-            hasSpecialRewardStatus);
+            hasSpecialRewardStatus,
+            ProjectSeekingItems(objectiveType, objectiveIntData));
 
         return new RawQuestDefinition(
             definition,
@@ -342,6 +346,30 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             requiredAnswerGroups,
             collisionGroups,
             accountCollisionGroups);
+    }
+
+    internal static IReadOnlyList<SeekingItemRequirement> ProjectSeekingItems(
+        string objectiveType,
+        IReadOnlyList<int> values)
+    {
+        var normalized = objectiveType.Trim().Trim('[', ']').ToLowerInvariant();
+        var result = new List<SeekingItemRequirement>();
+        if (normalized == "seek n meet npc")
+        {
+            if (values.Count >= 2 && values[0] > 0 && values[1] > 0)
+                result.Add(new SeekingItemRequirement(values[0], values[1]));
+            return result;
+        }
+        if (normalized != "seeking")
+            return result;
+
+        for (var index = 0; index + 1 < values.Count; index += 2)
+        {
+            if (values[index] < 0 || values[index + 1] <= 0)
+                continue;
+            result.Add(new SeekingItemRequirement(values[index], values[index + 1]));
+        }
+        return result;
     }
 
     internal static RelationshipProjection? NormalizeRelationships(
@@ -672,6 +700,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             NpcIndex = Offset(archive, "[npc index]");
             CompleteNpcIndex = Offset(archive, "[complete npc index]");
             Type = Offset(archive, "[type]");
+            IntData = Offset(archive, "[int data]");
             Difficulty = Offset(archive, "[difficulty]");
             RewardType = Offset(archive, "[reward type]");
             RewardIntData = Offset(archive, "[reward int data]");
@@ -698,6 +727,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         public int NpcIndex { get; }
         public int CompleteNpcIndex { get; }
         public int Type { get; }
+        public int IntData { get; }
         public int Difficulty { get; }
         public int RewardType { get; }
         public int RewardIntData { get; }

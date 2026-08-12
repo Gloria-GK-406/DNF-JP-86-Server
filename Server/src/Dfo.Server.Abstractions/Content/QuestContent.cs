@@ -103,6 +103,9 @@ public sealed record ExpertJobRequirement(int ExpertJobType, int MinimumLevel);
 /// <summary>A required answer to a prior question quest.</summary>
 public sealed record QuestAnswerRequirement(int QuestId, int AnswerIndex);
 
+/// <summary>One inventory quantity that contributes to an item-seeking quest.</summary>
+public sealed record SeekingItemRequirement(int ItemId, int RequiredCount);
+
 /// <summary>
 /// A declared target-character restriction. An empty family list is an explicitly
 /// malformed declaration, distinct from the nullable field's unrestricted absence.
@@ -159,7 +162,8 @@ public sealed record QuestDefinition(
     IReadOnlyList<QuestAnswerRequirement> RequiredQuestAnswers,
     IReadOnlyList<int> CollisionQuestIds,
     IReadOnlyList<int> AccountCollisionQuestIds,
-    bool HasSpecialRewardStatus = false)
+    bool HasSpecialRewardStatus = false,
+    IReadOnlyList<SeekingItemRequirement>? SeekingItems = null)
 {
     /// <summary>A quest offered regardless of grow type.</summary>
     public const int AnyGrowType = -1;

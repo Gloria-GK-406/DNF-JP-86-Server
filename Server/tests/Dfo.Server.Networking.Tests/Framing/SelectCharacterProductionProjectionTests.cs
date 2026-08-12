@@ -24,29 +24,31 @@ public sealed class SelectCharacterProductionProjectionTests
     {
         var seed = SelectCharacterPayloadTestData.CreateComplete();
         var sources = new Sources(seed);
-        var handler = new SelectCharacterCommandHandler(
+        var handler = new SelectCharacterPreparationService(
             sources, sources, sources, sources, sources, sources, sources, sources,
-            sources, sources, sources, sources, sources, new FixedTimeProvider(seed.World.PreparedAt));
+            sources, sources, sources, sources, sources, sources, sources, sources,
+            new FixedTimeProvider(seed.World.PreparedAt));
         var channel = new ChannelEntryIdentity(1, 10011, ChannelEntryKind.General);
 
-        var result = await handler.HandleAsync(
-            new CommandExecutionContext(Guid.NewGuid(), typeof(SelectCharacterCommand),
-                typeof(SelectCharacterCommandHandler), CommandExecutionKind.Workflow),
-            new SelectCharacterCommand(seed.Account.AccountId, seed.Character.Identity.SlotIndex, channel),
-            CancellationToken.None);
+        var selected = await handler.PreflightAsync(seed.Account.AccountId,
+            seed.Character.Identity.SlotIndex, channel, CancellationToken.None);
+        var result = await handler.PrepareAsync(
+            selected, seed.Account.AccountId, channel, CancellationToken.None);
         var frames = SelectCharacterResponseComposer.Encode(result);
 
         Assert.NotNull(result.CharacterEntry.Skills.ProtocolMirror);
         Assert.All(result.CharacterEntry.Features.Collections.CollectionBoxes,
             value => Assert.NotNull(value.Protocol));
         Assert.Equal(57, frames.Count); // Knight-only row 10 is the sole skipped static row.
-        Assert.True(sources.Published);
+        Assert.False(sources.Published);
     }
 
     private sealed class Sources(SelectCharacterResult seed) :
         ICharacterService, ICharacterInventoryEntryService, IAccountInventoryEntryService,
         ICharacterEntryStateService, IAccountEntryStateService, IEquippedCreatureQuery,
         IWorldContentEntryService, ISkillPointDefinitionSource, IChannelEntryPolicy,
+        ICharacterPvpSkillProfileRepository, IDungeonPersistentEffectRecoveryRepository,
+        IExpertSkillContractDefinitionSource, IExpertSkillContractReconciliationRepository,
         ICreatureEquipmentLifetimeSource, IEntryPlacementService,
         ISessionAdjacentEntryService, IActiveCharacterService
     {
@@ -92,6 +94,18 @@ public sealed class SelectCharacterProductionProjectionTests
             IReadOnlyCollection<int> ids, CancellationToken ct) => ValueTask.FromResult(
                 new SkillPointDefinitionSet(200, 20, [], ids.ToDictionary(id => id,
                     id => new SkillPointCostDefinition(id, false, [10], false, 1, 100, 0, 1, 1))));
+
+        ValueTask<CharacterSkillsEntryState> ICharacterPvpSkillProfileRepository.LoadOrInitializeAsync(
+            AccountId accountId, CharacterId characterId, CharacterSkillsEntryState initialProfile,
+            CancellationToken cancellationToken) => ValueTask.FromResult(seed.CharacterEntry.Skills);
+        public ValueTask<DungeonPersistentEffectRecoveryOutcome> RecoverAsync(
+            AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(new DungeonPersistentEffectRecoveryOutcome(0, 0, 0, 0));
+        public IReadOnlySet<int> GetOverSkillPremiumTypes() => new HashSet<int>();
+        public ValueTask<bool> ReconcileAsync(AccountId accountId, CharacterId characterId,
+            IReadOnlySet<int> premiumTypes, IReadOnlyDictionary<int, SkillPointCostDefinition> definitions,
+            IReadOnlyDictionary<int, byte> freeBaseline, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(false);
         public ValueTask<CreatureEquipmentLifetime> GetAsync(
             int itemTemplateId, DateTimeOffset preparedAt, CancellationToken ct) =>
             ValueTask.FromResult(default(CreatureEquipmentLifetime));
@@ -105,6 +119,8 @@ public sealed class SelectCharacterProductionProjectionTests
         public ValueTask<SessionAdjacentEntryState> LoadAsync(SessionAdjacentSubject subject, CancellationToken ct) =>
             ValueTask.FromResult(SessionAdjacentEntryState.Empty);
         public void Publish(AccountId id, ActiveCharacterState character) => Published = true;
+        public void Publish(SelectedSessionIdentity session, ActiveCharacterState character) => Published = true;
+        public bool ClearExact(SelectedSessionIdentity session) => Published = false;
         public ActiveCharacterState GetRequired(AccountId id) => seed.Character;
     }
 

@@ -8,12 +8,27 @@ using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Tests.Characters;
 
 public sealed class CharacterEntryInventoryTests
 {
+    internal static async ValueTask<SelectCharacterResult> CreateLifecycleResultAsync(
+        AccountId accountId, int characterId, ushort slotIndex)
+    {
+        var selected = Character(characterId, slotIndex);
+        return await EntryServices.Create(
+                new StubCharacterService(selected),
+                new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
+                new StubCharacterEntryStateService(EmptyCharacterEntry(selected.Identity.CharacterId)),
+                new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
+                new StatefulActiveCharacterService())
+            .EnterAsync(accountId, slotIndex, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None);
+    }
+
     [Fact]
     public void EquippedCreatureQuery_UsesTheInventoryOwnedCreatureSlotAndItemKind()
     {
@@ -218,6 +233,101 @@ public sealed class CharacterEntryInventoryTests
     }
 
     [Fact]
+    public async Task CharacterEntry_FreeDuelUsesIndependentSkillsWhileOrdinaryKeepsNormalProfile()
+    {
+        var accountId = new AccountId(440);
+        var selected = Character(6020, 2);
+        var normal = EmptyCharacterEntry(selected.Identity.CharacterId) with
+        {
+            Skills = new CharacterSkillsEntryState(
+                [new CharacterSkillPageState(0, [new CharacterSkillState(3, 777, 2, [])])],
+                [new CharacterSkillPointSlotState(4, 55)],
+                new CharacterSkillPointBasisState(6, 7),
+                [new DarkKnightComboEntryState(0, [1, 2, 3])], [11, 12]),
+        };
+        var pvp = normal.Skills with
+        {
+            Pages = [new CharacterSkillPageState(0, [new CharacterSkillState(9, 888, 4, [])]),
+                new CharacterSkillPageState(1, [])],
+            ProtocolMirror = new CharacterSkillProtocolMirrorState(
+                ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue),
+        };
+        var entry = EntryServices.Create(
+            new StubCharacterService(selected),
+            new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
+            new StubCharacterEntryStateService(normal), new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
+            new StatefulActiveCharacterService(), skillPoints: new NormalSkillSource(),
+            pvpSkills: new FixedPvpSkills(pvp), placement: new DuelAwarePlacement());
+
+        var ordinary = await entry.EnterAsync(
+            accountId, 2, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None);
+        var duel = await entry.EnterAsync(
+            accountId, 2, StubChannelEntryPolicy.FreeDuelChannel, CancellationToken.None);
+
+        Assert.Equal((ushort)777, Assert.Single(ordinary.CharacterEntry.Skills.Pages[0].Skills).SkillId);
+        Assert.NotNull(ordinary.CharacterEntry.Skills.ProtocolMirror);
+        Assert.Equal((ushort)888, Assert.Single(duel.CharacterEntry.Skills.Pages[0].Skills).SkillId);
+        Assert.Equal(ushort.MaxValue, duel.CharacterEntry.Skills.ProtocolMirror!.Page0Sp);
+        Assert.Equal(normal.Skills.SkillPointSlots, duel.CharacterEntry.Skills.SkillPointSlots);
+        Assert.Equal(normal.Skills.SkillPointBasis, duel.CharacterEntry.Skills.SkillPointBasis);
+        Assert.Equal(normal.Skills.DarkKnightCombos, duel.CharacterEntry.Skills.DarkKnightCombos);
+        Assert.Equal(normal.Skills.KnightShieldDeck, duel.CharacterEntry.Skills.KnightShieldDeck);
+    }
+
+    [Fact]
+    public async Task CharacterEntry_OrdinarySelectionReconcilesExpiredExpertSkillsAndReloadsTypedTruth()
+    {
+        var accountId = new AccountId(441);
+        var selected = Character(6022, 2);
+        var before = EmptyCharacterEntry(selected.Identity.CharacterId) with
+        {
+            Skills = new CharacterSkillsEntryState(
+                [new CharacterSkillPageState(0, [new CharacterSkillState(3, 777, 4, [])])], [],
+                new CharacterSkillPointBasisState(0, 0), null, null),
+        };
+        var after = before with
+        {
+            Skills = before.Skills with
+            {
+                Pages = [new CharacterSkillPageState(0, [new CharacterSkillState(3, 777, 2, [])])]
+            }
+        };
+        var reconciliation = new ChangedExpertReconciliation();
+        var entry = EntryServices.Create(
+            new StubCharacterService(selected),
+            new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
+            new ReloadingCharacterEntryStateService(before, after),
+            new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
+            new StatefulActiveCharacterService(), skillPoints: new NormalSkillSource(),
+            expertContracts: new FixedExpertContracts(), expertSkillReconciliation: reconciliation);
+
+        var result = await entry.EnterAsync(
+            accountId, 2, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None);
+
+        Assert.Equal(1, reconciliation.Calls);
+        Assert.Equal((byte)2, Assert.Single(result.CharacterEntry.Skills.Pages[0].Skills).Level);
+    }
+
+    [Fact]
+    public async Task PvpInitializer_PreservesInitialOrderAndUsesDarkKnightGroupAllocation()
+    {
+        var darkKnight = Character(6021, 3) with
+        {
+            Identity = Character(6021, 3).Identity with { Job = 9 },
+        };
+        var result = await Dfo.Server.Application.Commands.Game.SelectCharacterPreparationService
+            .BuildInitialPvpSkillProfileAsync(
+                darkKnight, EmptyCharacterEntry(darkKnight.Identity.CharacterId).Skills,
+                new AllocationSkillSource(), CancellationToken.None);
+
+        Assert.Equal([(short)0, (short)102, (short)150],
+            result.Pages[0].Skills.Select(value => value.Slot));
+        Assert.Equal([(ushort)100, (ushort)101, (ushort)102],
+            result.Pages[0].Skills.Select(value => value.SkillId));
+        Assert.Equal(result.Pages[0].Skills, result.Pages[1].Skills);
+    }
+
+    [Fact]
     public async Task CharacterEntry_AdmittedByTheChannelPublishesTheSelectedCharacter()
     {
         var accountId = new AccountId(45);
@@ -238,8 +348,8 @@ public sealed class CharacterEntryInventoryTests
 
         Assert.Same(selected, result.Character);
         Assert.Contains(result.Roster!.Characters, value => value.CharacterId == selected.Identity.CharacterId);
-        Assert.Same(selected, active.GetRequired(accountId));
-        Assert.Equal(1, active.PublishCount);
+        Assert.Equal(new CharacterId(604), active.GetRequired(accountId).Identity.CharacterId);
+        Assert.Equal(0, active.PublishCount);
     }
 
     [Fact]
@@ -326,7 +436,7 @@ public sealed class CharacterEntryInventoryTests
         Assert.Same(inventory.CharacterInventory, result.CharacterInventory);
         Assert.Same(inventory.AccountInventory, result.AccountInventory);
         Assert.Equal(accountId, result.Account.AccountId);
-        Assert.Same(selected, active.GetRequired(accountId));
+        Assert.Equal(0, active.PublishCount);
     }
 
     [Fact]
@@ -605,6 +715,72 @@ public sealed class CharacterEntryInventoryTests
             throw new InvalidOperationException("Clock is unavailable.");
     }
 
+    private sealed class NormalSkillSource : ISkillPointDefinitionSource
+    {
+        public ValueTask<SkillPointDefinitionSet> GetAsync(byte job, byte packedGrowType,
+            byte characterLevel, IReadOnlyCollection<int> learnedSkillIds,
+            CancellationToken cancellationToken) => ValueTask.FromResult(new SkillPointDefinitionSet(
+                100, 10, [], learnedSkillIds.ToDictionary(id => id,
+                    id => new SkillPointCostDefinition(id, false, [10], false, 1, 100, 0, 1, 1))));
+    }
+
+    private sealed class AllocationSkillSource : ISkillPointDefinitionSource
+    {
+        public ValueTask<SkillPointDefinitionSet> GetAsync(byte job, byte packedGrowType,
+            byte characterLevel, IReadOnlyCollection<int> learnedSkillIds,
+            CancellationToken cancellationToken) => ValueTask.FromResult(new SkillPointDefinitionSet(
+                0, 0,
+                [new SkillPointGrantDefinition(100, 1, true),
+                    new SkillPointGrantDefinition(101, 1, true),
+                    new SkillPointGrantDefinition(102, 1, false)],
+                new Dictionary<int, SkillPointCostDefinition>
+                {
+                    [100] = new(100, false, [], false, 0, 1, 0, 1, 1, IsActive: true),
+                    [101] = new(101, false, [], false, 0, 1, 0, 1, 1, IsActive: false),
+                    [102] = new(102, false, [], false, 0, 1, 0, 1, 1,
+                        IsActive: true, RawGroup: 3, NumberOfGrowTypes: 4),
+                }));
+    }
+
+    private sealed class FixedPvpSkills(CharacterSkillsEntryState state)
+        : ICharacterPvpSkillProfileRepository
+    {
+        public ValueTask<CharacterSkillsEntryState> LoadOrInitializeAsync(
+            AccountId accountId, CharacterId characterId, CharacterSkillsEntryState initialProfile,
+            CancellationToken cancellationToken) => ValueTask.FromResult(state);
+    }
+
+    private sealed class FixedExpertContracts : IExpertSkillContractDefinitionSource
+    {
+        public IReadOnlySet<int> GetOverSkillPremiumTypes() => new HashSet<int> { 580 };
+    }
+
+    private sealed class ChangedExpertReconciliation : IExpertSkillContractReconciliationRepository
+    {
+        public int Calls { get; private set; }
+        public ValueTask<bool> ReconcileAsync(
+            AccountId accountId, CharacterId characterId, IReadOnlySet<int> premiumTypes,
+            IReadOnlyDictionary<int, SkillPointCostDefinition> definitions,
+            IReadOnlyDictionary<int, byte> freeBaseline, CancellationToken cancellationToken)
+        {
+            Calls++;
+            Assert.Contains(580, premiumTypes);
+            Assert.Contains(777, definitions.Keys);
+            return ValueTask.FromResult(true);
+        }
+    }
+
+    private sealed class DuelAwarePlacement : Dfo.Server.Abstractions.World.IEntryPlacementService
+    {
+        public ValueTask<ChannelEntryPolicyState> ResolveAsync(ChannelEntryIdentity channel,
+            int persistedTownId, CancellationToken cancellationToken) => ValueTask.FromResult(
+                new ChannelEntryPolicyState(channel.ChannelId,
+                    new EntrySpawnState(1, 1, 10, 20, 5, 3, channel.IsTransient),
+                    !channel.IsTransient, channel.IsFreeDuel));
+        public ValueTask<bool> CanEnterTownAsync(ChannelEntryIdentity channel, int townId,
+            CancellationToken cancellationToken) => ValueTask.FromResult(true);
+    }
+
     private sealed class StubCharacterEntryStateService(CharacterEntryState state)
         : ICharacterEntryStateService
     {
@@ -612,6 +788,15 @@ public sealed class CharacterEntryInventoryTests
             AccountId accountId,
             CharacterId characterId,
             CancellationToken cancellationToken) => ValueTask.FromResult(state);
+    }
+
+    private sealed class ReloadingCharacterEntryStateService(
+        CharacterEntryState before, CharacterEntryState after) : ICharacterEntryStateService
+    {
+        private int calls;
+        public ValueTask<CharacterEntryState> LoadAsync(
+            AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(Interlocked.Increment(ref calls) == 1 ? before : after);
     }
 
     private sealed class PopulatedSkillPointDefinitionSource : ISkillPointDefinitionSource
@@ -677,6 +862,12 @@ public sealed class CharacterEntryInventoryTests
             states[accountId] = character;
             PublishCount++;
         }
+
+        public void Publish(SelectedSessionIdentity session, ActiveCharacterState character) =>
+            Publish(session.AccountId, character);
+
+        public bool ClearExact(SelectedSessionIdentity session) =>
+            states.Remove(session.AccountId);
 
         public ActiveCharacterState GetRequired(AccountId accountId) => states[accountId];
     }

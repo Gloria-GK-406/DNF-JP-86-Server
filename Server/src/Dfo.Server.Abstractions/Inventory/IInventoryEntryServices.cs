@@ -1,6 +1,8 @@
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Game;
+using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Abstractions.Inventory;
 
@@ -101,6 +103,80 @@ public interface IAccountInventoryEntryService
 public interface IEquippedCreatureQuery
 {
     int GetItemId(CharacterInventoryEntryState inventory);
+}
+
+public sealed record DailyRefillCommittedGrant(
+    InventoryContainerType ContainerType,
+    int SlotIndex,
+    int ItemId,
+    int GrantedCount,
+    int CommittedCount);
+
+public sealed record DailyRefillMutationResult(
+    IReadOnlyList<DailyRefillCommittedGrant> Grants);
+
+public interface IEntryInventoryMutationRepository
+{
+    ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
+        AccountId accountId,
+        CharacterId characterId,
+        IReadOnlyList<Dfo.Server.Abstractions.Content.DailyRefillRule> rules,
+        DateTimeOffset preparedAt,
+        CancellationToken cancellationToken);
+}
+
+public sealed record EntryInventoryPreparation(
+    SelectCharacterResult Result,
+    IReadOnlyList<SelectCharacterInventoryUpdateProjection> CommittedUpdates);
+
+public interface ISelectCharacterEntryInventoryService
+{
+    ValueTask SaveExistingLeaseAsync(
+        SelectedSessionIdentity previousSession,
+        CancellationToken cancellationToken);
+
+    ValueTask<SelectCharacterResult> PrepareLeaseAsync(
+        SelectedSessionIdentity session,
+        SelectCharacterResult result,
+        CancellationToken cancellationToken);
+
+    ValueTask<EntryInventoryPreparation> ApplyDailyRefillAsync(
+        SelectedSessionIdentity session,
+        SelectCharacterResult result,
+        CancellationToken cancellationToken);
+
+}
+
+/// <summary>
+/// Pure in-memory ownership seam for the selected session's prepared inventory.
+/// Keeping it separate prevents disconnect cleanup from resolving PVF or persistence services.
+/// </summary>
+public interface IEntryInventoryLeaseRegistry
+{
+    EntryInventoryLeaseSnapshot? Find(AccountId accountId);
+    bool TryMarkDirtyExact(SelectedSessionIdentity session, CharacterItemLeaseState inventory);
+    void Replace(SelectedSessionIdentity session, CharacterInventoryEntryState inventory);
+    bool ReleaseExact(SelectedSessionIdentity session);
+}
+
+/// <summary>
+/// The mutable selected-session lease is deliberately limited to item containers. Item
+/// values, locks, rentals, virtual resources and gold limits have independent mutation
+/// owners and are not implied to be persisted when this lease is marked dirty.
+/// </summary>
+public sealed record CharacterItemLeaseState(
+    CharacterId CharacterId,
+    IReadOnlyList<InventoryContainerState> Containers);
+
+public sealed record EntryInventoryLeaseSnapshot(
+    SelectedSessionIdentity Session,
+    CharacterItemLeaseState Inventory,
+    long Version,
+    bool IsDirty);
+
+public interface IEntryInventoryLeasePersistence
+{
+    ValueTask SaveAsync(EntryInventoryLeaseSnapshot lease, CancellationToken cancellationToken);
 }
 
 /// <summary>

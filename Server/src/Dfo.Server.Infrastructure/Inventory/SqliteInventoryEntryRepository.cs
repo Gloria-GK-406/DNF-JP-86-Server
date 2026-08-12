@@ -8,7 +8,7 @@ using Microsoft.Data.Sqlite;
 namespace Dfo.Server.Infrastructure.Inventory;
 
 internal sealed class SqliteInventoryEntryRepository
-    : ICharacterInventoryEntryRepository, IAccountInventoryEntryRepository
+    : ICharacterInventoryEntryRepository, IAccountInventoryEntryRepository, IEntryInventoryLeasePersistence
 {
     private const int ItemCoreSize = 82;
     private readonly string connectionString;
@@ -116,6 +116,139 @@ internal sealed class SqliteInventoryEntryRepository
                 .Where(item => item.ContainerType == InventoryContainerType.AccountCargo)
                 .ToArray());
     }
+
+    public async ValueTask SaveAsync(
+        EntryInventoryLeaseSnapshot lease, CancellationToken cancellationToken)
+    {
+        if (!lease.IsDirty || lease.Inventory.CharacterId != lease.Session.CharacterId)
+            throw new InvalidDataException("Only an exact dirty character inventory lease can be saved.");
+        if (lease.Inventory.Containers.Any(value => value.ContainerType == InventoryContainerType.AccountCargo))
+            throw new InvalidDataException("A character item lease cannot contain account cargo.");
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken)
+            .ConfigureAwait(false);
+        await VerifyCharacterOwnershipAsync(
+            connection, lease.Session.AccountId, lease.Session.CharacterId, cancellationToken).ConfigureAwait(false);
+        var presentIds = lease.Inventory.Containers
+            .Where(value => value.ContainerType != InventoryContainerType.AccountCargo)
+            .SelectMany(value => value.Items).Where(value => value.StorageEntryId > 0)
+            .Select(value => value.StorageEntryId).Distinct().ToArray();
+        await using (var delete = connection.CreateCommand())
+        {
+            delete.Transaction = transaction;
+            delete.CommandText = presentIds.Length == 0
+                ? "DELETE FROM character_new_items WHERE character_id=@cid AND owner_scope='character' AND owner_id=@cid"
+                : $"DELETE FROM character_new_items WHERE character_id=@cid AND owner_scope='character' AND owner_id=@cid AND item_uid NOT IN ({string.Join(',', presentIds.Select((_, index) => $"@p{index}"))})";
+            delete.Parameters.AddWithValue("@cid", lease.Session.CharacterId.Value);
+            for (var index = 0; index < presentIds.Length; index++)
+                delete.Parameters.AddWithValue($"@p{index}", presentIds[index]);
+            await delete.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+        var avatars = lease.Inventory.Containers.SelectMany(value => value.Items)
+            .Where(value => value.Core.ItemKind == 8).ToArray();
+        if (avatars.Any(value => value.Core.Value <= 0 || value.AvatarDetail is null
+                                 || value.AvatarDetail.JewelSocket.Length != 30))
+            throw new InvalidDataException("A dirty avatar lease requires its exact 30-byte detail row.");
+        await using (var deleteDetails = connection.CreateCommand())
+        {
+            deleteDetails.Transaction = transaction;
+            deleteDetails.CommandText = avatars.Length == 0
+                ? "DELETE FROM character_avatar_detail WHERE character_id=@cid AND owner_id=@cid"
+                : $"DELETE FROM character_avatar_detail WHERE character_id=@cid AND owner_id=@cid AND item_uid NOT IN ({string.Join(',', avatars.Select((_, index) => $"@avatar{index}"))})";
+            deleteDetails.Parameters.AddWithValue("@cid", lease.Session.CharacterId.Value);
+            for (var index = 0; index < avatars.Length; index++)
+                deleteDetails.Parameters.AddWithValue($"@avatar{index}", avatars[index].Core.Value);
+            await deleteDetails.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+        foreach (var container in lease.Inventory.Containers.Where(value =>
+                     value.ContainerType != InventoryContainerType.AccountCargo))
+        foreach (var item in container.Items)
+        {
+            await using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = item.StorageEntryId > 0 ? """
+                UPDATE character_new_items SET list_type=@list, slot_index=@slot,
+                    item_core=@core, updated_at=CURRENT_TIMESTAMP
+                WHERE item_uid=@uid AND character_id=@cid AND owner_scope='character' AND owner_id=@cid
+                """ : """
+                INSERT INTO character_new_items(owner_scope,owner_id,character_id,list_type,slot_index,item_core)
+                VALUES('character',@cid,@cid,@list,@slot,@core)
+                """;
+            command.Parameters.AddWithValue("@list", (byte)container.ContainerType);
+            command.Parameters.AddWithValue("@slot", item.SlotIndex);
+            command.Parameters.AddWithValue("@core", EncodeItemCore(item.Core));
+            if (item.StorageEntryId > 0) command.Parameters.AddWithValue("@uid", item.StorageEntryId);
+            command.Parameters.AddWithValue("@cid", lease.Session.CharacterId.Value);
+            if (await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) != 1)
+                throw new InvalidDataException($"Dirty inventory item {item.StorageEntryId} is stale or missing.");
+            if (item.Core.ItemKind == 8)
+            {
+                var detail = item.AvatarDetail!;
+                await using var avatar = connection.CreateCommand(); avatar.Transaction = transaction;
+                avatar.CommandText = """
+                    INSERT INTO character_avatar_detail(item_uid,owner_id,character_id,item_id,expire_date,
+                      clear_avatar_id,jewel_socket,color1,color2,delete_date)
+                    VALUES(@uid,@cid,@cid,@item,@expire,@clear,@socket,@color1,@color2,@delete)
+                    ON CONFLICT(item_uid) DO UPDATE SET owner_id=excluded.owner_id,
+                      character_id=excluded.character_id,item_id=excluded.item_id,expire_date=excluded.expire_date,
+                      clear_avatar_id=excluded.clear_avatar_id,jewel_socket=excluded.jewel_socket,
+                      color1=excluded.color1,color2=excluded.color2,delete_date=excluded.delete_date
+                    WHERE character_avatar_detail.owner_id=@cid
+                      AND character_avatar_detail.character_id=@cid
+                    """;
+                avatar.Parameters.AddWithValue("@uid", item.Core.Value); avatar.Parameters.AddWithValue("@cid", lease.Session.CharacterId.Value);
+                avatar.Parameters.AddWithValue("@item", item.Core.ItemId); avatar.Parameters.AddWithValue("@expire", detail.ExpireDate);
+                avatar.Parameters.AddWithValue("@clear", detail.ClearAvatarId); avatar.Parameters.AddWithValue("@socket", detail.JewelSocket);
+                avatar.Parameters.AddWithValue("@color1", detail.Color1); avatar.Parameters.AddWithValue("@color2", detail.Color2);
+                avatar.Parameters.AddWithValue("@delete", detail.DeleteDate);
+                if (await avatar.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) != 1)
+                    throw new InvalidDataException("Dirty avatar detail was not persisted.");
+            }
+        }
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private static byte[] EncodeItemCore(InventoryItemCoreState value)
+    {
+        var core = new byte[ItemCoreSize];
+        core[0] = value.ItemKind;
+        BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(1), value.ItemId);
+        BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(5), value.Value);
+        core[9] = value.Attribute;
+        BinaryPrimitives.WriteUInt16LittleEndian(core.AsSpan(10), value.Durability);
+        core[12] = value.SealFlag;
+        BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(13), value.EnchantCardId);
+        core[17] = value.EnchantUpgradeCount; core[18] = value.AmplifyType;
+        BinaryPrimitives.WriteUInt16LittleEndian(core.AsSpan(19), value.AmplifyValue);
+        BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(21), value.Marker16);
+        WriteChronicle(core.AsSpan(25), value.ChronicleOption0);
+        WriteChronicle(core.AsSpan(33), value.ChronicleOption1);
+        BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(41), value.ExpireTime);
+        core[45] = value.EmblemSocketCount;
+        BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(46), value.EmblemId1);
+        BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(50), value.EmblemId2);
+        BinaryPrimitives.WriteUInt16LittleEndian(core.AsSpan(54), value.Rune);
+        WriteRandom(core.AsSpan(56), value.RandomOption0); WriteRandom(core.AsSpan(59), value.RandomOption1);
+        WriteRandom(core.AsSpan(62), value.RandomOption2); core[65] = value.RandomOptionState;
+        core[66] = value.RandomOptionChangedIndex; core[67] = value.RandomOptionChangeState;
+        WriteRandom(core.AsSpan(68), value.RandomOptionChange);
+        core[71] = value.GenuineUpgrade; core[72] = value.EmancipateEquipmentLevel;
+        core[73] = value.TradeRestriction; BinaryPrimitives.WriteUInt16LittleEndian(core.AsSpan(74), value.TailUnknown0);
+        core[76] = value.TailUnknown1; core[77] = value.TailUnknown2; core[78] = value.TailUnknown3;
+        core[79] = value.RemainUseCount; core[80] = value.SortLockFlag; core[81] = value.EquipmentLockId;
+        return core;
+    }
+
+    private static void WriteChronicle(Span<byte> target, ChronicleOptionState value)
+    {
+        BinaryPrimitives.WriteInt32LittleEndian(target, value.Id);
+        target[4] = value.CharacterJob; target[5] = value.FirstGrowType;
+        target[6] = value.EquipmentType; target[7] = value.OptionNumber;
+    }
+
+    private static void WriteRandom(Span<byte> target, RandomOptionState value)
+    { target[0] = value.Type; target[1] = value.Value1; target[2] = value.Value2; }
 
     private static void ValidateIdentifiers(AccountId accountId, CharacterId characterId)
     {

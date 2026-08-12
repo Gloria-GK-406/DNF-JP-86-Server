@@ -32,4 +32,5 @@ public sealed record SelectCharacterResult(
     AccountEntryState Account,
     GameWorldEntryState World,
     CharacterSessionEntryState Session,
-    AccountCharacterRoster? Roster = null);
+    AccountCharacterRoster? Roster = null,
+    SelectCharacterRosterProjection? RosterProjection = null);

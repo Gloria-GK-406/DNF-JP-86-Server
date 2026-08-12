@@ -1,6 +1,6 @@
 namespace Dfo.Server.Abstractions.Content;
 
-public sealed record SkillPointGrantDefinition(int SkillId, byte Level);
+public sealed record SkillPointGrantDefinition(int SkillId, byte Level, bool IsInitial = false);
 
 public sealed record SkillPointCostDefinition(
     int SkillId,
@@ -11,7 +11,18 @@ public sealed record SkillPointCostDefinition(
     int MaximumLevel,
     int FixedLevelBase,
     int FixedLevelInterval,
-    int FixedLevelAddPerInterval);
+    int FixedLevelAddPerInterval,
+    bool IsActive = false,
+    int RawGroup = 0,
+    int NumberOfGrowTypes = 0,
+    // null means this advancement cannot learn the skill. Zero is a real, applicable
+    // level-derived cap and therefore removes an expired-contract-only learned row.
+    int? OrdinaryMaximumLevel = null);
+
+public interface IExpertSkillContractDefinitionSource
+{
+    IReadOnlySet<int> GetOverSkillPremiumTypes();
+}
 
 public sealed record SkillPointDefinitionSet(
     int TotalSp,

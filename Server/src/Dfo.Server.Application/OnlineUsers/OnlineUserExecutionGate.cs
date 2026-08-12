@@ -263,3 +263,6 @@ public class UserExecutionGate<TKey> where TKey : notnull
 public sealed class OnlineUserExecutionGate : UserExecutionGate<OnlineUserId>;
 
 public sealed class AccountExecutionGate : UserExecutionGate<AccountId>;
+
+/// <summary>Serializes selected-session transition/teardown independently of command execution.</summary>
+public sealed class SelectedSessionTransitionGate : UserExecutionGate<AccountId>;

@@ -25,7 +25,7 @@ namespace Dfo.Server.Application.Tests.Support;
 /// </remarks>
 internal static class EntryServices
 {
-    public static SelectCharacterCommandHandler Create(
+    public static SelectCharacterPreparationService Create(
         ICharacterService characters,
         ITestInventoryEntryServices inventory,
         ICharacterEntryStateService characterEntries,
@@ -33,6 +33,10 @@ internal static class EntryServices
         IActiveCharacterService activeCharacters,
         IWorldContentEntryService? worldContent = null,
         ISkillPointDefinitionSource? skillPoints = null,
+        ICharacterPvpSkillProfileRepository? pvpSkills = null,
+        IDungeonPersistentEffectRecoveryRepository? dungeonEffects = null,
+        IExpertSkillContractDefinitionSource? expertContracts = null,
+        IExpertSkillContractReconciliationRepository? expertSkillReconciliation = null,
         ICreatureEquipmentLifetimeSource? creatureLifetimes = null,
         IChannelEntryPolicy? channels = null,
         IEntryPlacementService? placement = null,
@@ -46,28 +50,48 @@ internal static class EntryServices
             new EquippedCreatureQuery(),
             worldContent ?? new StubWorldContentEntryService(),
             skillPoints ?? new StubSkillPointDefinitionSource(),
+            pvpSkills ?? new StubPvpSkillProfileRepository(),
+            dungeonEffects ?? new StubDungeonEffectRecoveryRepository(),
+            expertContracts ?? new StubExpertContractDefinitionSource(),
+            expertSkillReconciliation ?? new StubExpertSkillReconciliationRepository(),
             creatureLifetimes ?? new StubCreatureEquipmentLifetimeSource(),
             channels ?? new StubChannelEntryPolicy(),
             placement ?? new StubEntryPlacementService(),
             sessionAdjacent ?? new StubSessionAdjacentEntryService(),
-            activeCharacters,
             timeProvider ?? TimeProvider.System);
 
-    public static ValueTask<SelectCharacterResult> EnterAsync(
-        this SelectCharacterCommandHandler handler,
+    public static async ValueTask<SelectCharacterResult> EnterAsync(
+        this SelectCharacterPreparationService handler,
         AccountId accountId,
         ushort slotIndex,
         ChannelEntryIdentity channel,
         CancellationToken cancellationToken) =>
-        handler.HandleAsync(
-            new CommandExecutionContext(
-                Guid.NewGuid(),
-                typeof(SelectCharacterCommand),
-                typeof(SelectCharacterCommandHandler),
-                CommandExecutionKind.Workflow,
-                AccountAccessMode: UserAccessMode.Exclusive),
-            new SelectCharacterCommand(accountId, slotIndex, channel),
-            cancellationToken);
+        await handler.PrepareAsync(
+            await handler.PreflightAsync(accountId, slotIndex, channel, cancellationToken),
+            accountId, channel, cancellationToken);
+}
+
+internal sealed class StubPvpSkillProfileRepository : ICharacterPvpSkillProfileRepository
+{
+    public ValueTask<Dfo.Server.Data.Characters.CharacterSkillsEntryState> LoadOrInitializeAsync(
+        AccountId accountId, Dfo.Server.Data.Characters.CharacterId characterId,
+        Dfo.Server.Data.Characters.CharacterSkillsEntryState initialProfile,
+        CancellationToken cancellationToken) => ValueTask.FromResult(initialProfile);
+}
+
+internal sealed class StubDungeonEffectRecoveryRepository : IDungeonPersistentEffectRecoveryRepository
+{
+    public ValueTask<DungeonPersistentEffectRecoveryOutcome> RecoverAsync(
+        AccountId accountId, Dfo.Server.Data.Characters.CharacterId characterId,
+        CancellationToken cancellationToken) => ValueTask.FromResult(new DungeonPersistentEffectRecoveryOutcome(0,0,0,0));
+}
+internal sealed class StubExpertContractDefinitionSource : IExpertSkillContractDefinitionSource
+{ public IReadOnlySet<int> GetOverSkillPremiumTypes() => new HashSet<int>(); }
+internal sealed class StubExpertSkillReconciliationRepository : IExpertSkillContractReconciliationRepository
+{
+    public ValueTask<bool> ReconcileAsync(AccountId accountId, Dfo.Server.Data.Characters.CharacterId characterId,
+        IReadOnlySet<int> premiumTypes, IReadOnlyDictionary<int, SkillPointCostDefinition> definitions,
+        IReadOnlyDictionary<int, byte> freeBaseline, CancellationToken cancellationToken) => ValueTask.FromResult(false);
 }
 
 internal sealed class StubCreatureEquipmentLifetimeSource : ICreatureEquipmentLifetimeSource

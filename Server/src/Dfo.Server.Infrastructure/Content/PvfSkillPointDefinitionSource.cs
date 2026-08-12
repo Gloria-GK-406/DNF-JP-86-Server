@@ -21,10 +21,10 @@ internal sealed class PvfSkillPointDefinitionSource(PvfArchiveProvider provider)
         var grants = ReadFreeGrants(archive, job, packedGrowType);
         var paths = ReadSkillPaths(archive, job);
         var skills = new Dictionary<int, SkillPointCostDefinition>();
-        foreach (var skillId in learnedSkillIds.Distinct())
+        foreach (var skillId in learnedSkillIds.Concat(grants.Select(value => value.SkillId)).Distinct())
         {
             if (paths.TryGetValue(skillId, out var path))
-                skills[skillId] = ReadSkill(archive, job, skillId, path);
+                skills[skillId] = ReadSkill(archive, job, skillId, path, packedGrowType, characterLevel);
         }
         return ValueTask.FromResult(new SkillPointDefinitionSet(totalSp, totalTp, grants, skills));
     }
@@ -51,7 +51,8 @@ internal sealed class PvfSkillPointDefinitionSource(PvfArchiveProvider provider)
         var currentAwakening = 0;
         var accepting = false;
         var operands = new List<int>();
-        var grants = new Dictionary<int, byte>();
+        var grants = new Dictionary<int, (byte Level, bool Initial)>();
+        var grantOrder = new List<int>();
         while (reader.Read(out var token))
         {
             if (token.Kind == PvfTokenKind.Identifier)
@@ -80,8 +81,9 @@ internal sealed class PvfSkillPointDefinitionSource(PvfArchiveProvider provider)
                 operands.Add(token.Value);
         }
         Flush();
-        return grants.OrderBy(value => value.Key)
-            .Select(value => new SkillPointGrantDefinition(value.Key, value.Value)).ToArray();
+        return grantOrder.Select(skillId => grants[skillId])
+            .Select((value, index) => new SkillPointGrantDefinition(
+                grantOrder[index], value.Level, value.Initial)).ToArray();
 
         void Flush()
         {
@@ -90,8 +92,10 @@ internal sealed class PvfSkillPointDefinitionSource(PvfArchiveProvider provider)
                 {
                     var skillId = operands[index];
                     var grantLevel = checked((byte)operands[index + 1]);
-                    if (!grants.TryGetValue(skillId, out var existing) || grantLevel > existing)
-                        grants[skillId] = grantLevel;
+                    var initial = currentGrow < 0;
+                    if (!grants.ContainsKey(skillId)) grantOrder.Add(skillId);
+                    if (!grants.TryGetValue(skillId, out var existing) || grantLevel > existing.Level)
+                        grants[skillId] = (grantLevel, initial);
                 }
             operands.Clear();
         }
@@ -106,7 +110,8 @@ internal sealed class PvfSkillPointDefinitionSource(PvfArchiveProvider provider)
             .GroupBy(value => value.Id).ToDictionary(group => group.Key, group => group.First().RelativePath);
     }
 
-    private static SkillPointCostDefinition ReadSkill(PvfArchive archive, byte job, int skillId, string relative)
+    private static SkillPointCostDefinition ReadSkill(PvfArchive archive, byte job, int skillId, string relative,
+        byte packedGrowType, byte characterLevel)
     {
         var sections = ReadAllIntSections(archive, "skill/" + relative);
         var feature = sections.GetValueOrDefault("[feature skill type]") ?? [];
@@ -114,16 +119,48 @@ internal sealed class PvfSkillPointDefinitionSource(PvfArchiveProvider provider)
             ? sections.GetValueOrDefault("[special purchase cost]") ?? []
             : sections.GetValueOrDefault("[purchase cost]") ?? [];
         var fixedValues = sections.GetValueOrDefault("[fixed level skill]") ?? [];
+        var type = ReadStringSection(archive, "skill/" + relative, "[type]");
+        var fitness = sections.GetValueOrDefault("[skill fitness growtype]") ?? [];
+        var grow = packedGrowType & 0x0F; var second = packedGrowType >> 4;
+        var growMax = sections.GetValueOrDefault("[growtype maximum level]") ?? [];
+        var secondMax = sections.GetValueOrDefault("[second growtype maximum level]") ?? [];
+        var directionMax = second > 0 && grow * 2 + second - 1 < secondMax.Count
+            && secondMax[grow * 2 + second - 1] > 0
+            ? secondMax[grow * 2 + second - 1]
+            : growMax.Count > 0 ? grow < growMax.Count ? growMax[grow] : 0
+            : Math.Max(1, First(sections, "[maximum level]", 1));
+        var staticMaximum = Math.Min(
+            Math.Max(1, First(sections, "[maximum level]", 1)), directionMax);
+        var required = First(sections, "[required level]");
+        var interval = Math.Max(1, First(sections, "[required level range]", 1));
+        int? ordinaryMaximum = directionMax <= 0 ? null
+            : characterLevel < required ? 0
+            : Math.Min(staticMaximum,
+                required <= 0 ? staticMaximum : 1 + (characterLevel - required) / interval);
         return new SkillPointCostDefinition(
             skillId,
             feature.Any(value => value != 0),
             costs,
             fixedValues.Count > 0,
-            First(sections, "[required level]"),
+            required,
             Math.Max(1, First(sections, "[maximum level]", 1)),
             fixedValues.Count > 0 ? fixedValues[0] : 0,
             fixedValues.Count > 1 ? Math.Max(1, fixedValues[1]) : 1,
-            fixedValues.Count > 2 ? fixedValues[2] : 1);
+            fixedValues.Count > 2 ? fixedValues[2] : 1,
+            type.Contains("active", StringComparison.OrdinalIgnoreCase),
+            First(sections, "[skill class]"), fitness.Count, ordinaryMaximum);
+    }
+
+    private static string ReadStringSection(PvfArchive archive, string path, string tag)
+    {
+        var reader = archive.OpenScript(path); var accepting = false;
+        while (reader.Read(out var token))
+        {
+            if (token.Kind == PvfTokenKind.Identifier)
+                accepting = archive.ResolveString(token.Value).Equals(tag, StringComparison.OrdinalIgnoreCase);
+            else if (accepting && token.IsString) return archive.ResolveString(token.Value);
+        }
+        return string.Empty;
     }
 
     private static IReadOnlyList<int> ReadSectionInts(PvfArchive archive, string path, string tag) =>

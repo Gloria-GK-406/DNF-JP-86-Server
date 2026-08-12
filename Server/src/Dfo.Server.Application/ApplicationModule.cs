@@ -56,16 +56,21 @@ public sealed class ApplicationModule : IServerModule
                 () => provider.GetRequiredService<ICharacterRepository>()));
         services.TryAddSingleton<ICharacterService>(
             provider => provider.GetRequiredService<CharacterService>());
+        services.TryAddSingleton<ISelectCharacterPreparationService, SelectCharacterPreparationService>();
         services.TryAddSingleton<IEquipmentEligibilityCharacterReader>(
             provider => provider.GetRequiredService<CharacterService>());
         services.TryAddSingleton<ICharacterInventoryEntryService, CharacterInventoryEntryService>();
         services.TryAddSingleton<IAccountInventoryEntryService, AccountInventoryEntryService>();
         services.TryAddSingleton<IEquippedCreatureQuery, EquippedCreatureQuery>();
+        services.TryAddSingleton<IEntryInventoryLeaseRegistry, EntryInventoryLeaseRegistry>();
+        services.TryAddSingleton<ISelectCharacterEntryInventoryService, SelectCharacterEntryInventoryService>();
         services.TryAddSingleton<ICharacterProfileEntryService, CharacterProfileEntryService>();
         services.TryAddSingleton<ICharacterSkillQuestEntryService, CharacterSkillQuestEntryService>();
         services.TryAddSingleton<ICharacterProgressionEntryService, CharacterProgressionEntryService>();
         services.TryAddSingleton<ICharacterFeatureEntryService, CharacterFeatureEntryService>();
         services.TryAddSingleton<ICharacterEntryStateService, CharacterEntryStateService>();
+        services.TryAddSingleton<ISelectCharacterQuestEntryService, SelectCharacterQuestEntryService>();
+        services.TryAddSingleton<ISelectCharacterPetEntryService, SelectCharacterPetEntryService>();
         services.TryAddSingleton<IAccountSettingsEntryService, AccountSettingsEntryService>();
         services.TryAddSingleton<IAccountWalletEntitlementEntryService, AccountWalletEntitlementEntryService>();
         services.TryAddSingleton<IAccountProgressionEntryService, AccountProgressionEntryService>();
@@ -75,10 +80,14 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IChannelEntryPolicy, ChannelEntryPolicy>();
         services.TryAddSingleton<IEntryPlacementService, EntryPlacementService>();
         services.TryAddSingleton<ISessionPresenceRegistry, SessionPresenceRegistry>();
+        services.TryAddSingleton<ISelectedSessionDirectory, SelectedSessionDirectory>();
+        services.TryAddSingleton<ISelectedSessionRuntimeDirectory, SelectedSessionRuntimeDirectory>();
         services.TryAddSingleton<IExpertStoreRegistry, ExpertStoreRegistry>();
         services.TryAddSingleton<IPvpLobbyRegistry, PvpLobbyRegistry>();
         services.TryAddSingleton<IDungeonRejoinRegistry, DungeonRejoinRegistry>();
         services.TryAddSingleton<ISessionAdjacentEntryService, SessionAdjacentEntryService>();
+        services.TryAddSingleton<ISelectedSessionCleanupService, SelectedSessionCleanupService>();
+        services.TryAddSingleton<ISelectCharacterSessionEntryService, SelectCharacterSessionEntryService>();
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<INetworkConnectionObserver, OnlineUserConnectionObserver>());
         services.AddCommandDispatching();

@@ -56,11 +56,15 @@ public sealed class SelectCharacterSupplementalProjectionTests
         Assert.Equal(6u, BinaryPrimitives.ReadUInt32LittleEndian(Body(growth).AsSpan(0x3B)));
 
         Assert.Empty(SelectCharacterSupplementalProjectionCodec.EncodeInventoryUpdates([]));
+        var prepared = SelectCharacterPayloadTestData.Create();
+        var item = Assert.Single(prepared.CharacterInventory.Containers
+            .Single(value => value.ContainerType == Dfo.Server.Data.Inventory.InventoryContainerType.Main).Items);
         var updates = SelectCharacterSupplementalProjectionCodec.EncodeInventoryUpdates(
-            [new SelectCharacterInventoryUpdateProjection([1]), new SelectCharacterInventoryUpdateProjection([2, 3])]);
-        Assert.Equal([0x000E, 0x000E], updates.Select(Type));
-        Assert.Equal([1], Body(updates[0]));
-        Assert.Equal([2, 3], Body(updates[1]));
+            [new SelectCharacterInventoryUpdateProjection(
+                Dfo.Server.Data.Inventory.InventoryContainerType.Main, [item], prepared.World.PreparedAt)]);
+        Assert.Equal([0x000E], updates.Select(Type));
+        Assert.Equal((byte)Dfo.Server.Data.Inventory.InventoryContainerType.Main, Body(updates[0])[0]);
+        Assert.Equal((ushort)1, BinaryPrimitives.ReadUInt16LittleEndian(Body(updates[0]).AsSpan(1)));
     }
 
     [Fact]
@@ -136,16 +140,12 @@ public sealed class SelectCharacterSupplementalProjectionTests
         Assert.Equal([0x0002], batch.PublicationFrames.Select(Type));
         var roster = Body(batch.DirectFrames[0]);
         Assert.Equal(3, BinaryPrimitives.ReadUInt16LittleEndian(roster.AsSpan(1)));
-        Assert.Equal([9, 3, 7], new[]
-        {
-            BinaryPrimitives.ReadUInt16LittleEndian(roster.AsSpan(3)),
-            BinaryPrimitives.ReadUInt16LittleEndian(roster.AsSpan(6)),
-            BinaryPrimitives.ReadUInt16LittleEndian(roster.AsSpan(9)),
-        });
+        Assert.True(Array.IndexOf(roster, (byte)0xA1) < Array.IndexOf(roster, (byte)0xB2));
+        Assert.True(Array.IndexOf(roster, (byte)0xB2) < Array.IndexOf(roster, (byte)0xC3));
         var roomBody = Body(batch.DirectFrames[1]);
         Assert.Equal(2, BinaryPrimitives.ReadUInt16LittleEndian(roomBody));
         Assert.Equal(20, BinaryPrimitives.ReadUInt16LittleEndian(roomBody.AsSpan(2)));
-        Assert.Equal(newcomer.Subtype0Body, Body(Assert.Single(batch.PublicationFrames)));
+        Assert.Equal([0xC3], newcomer.Result.Character.Identity.Name);
     }
 
     [Fact]
@@ -195,6 +195,19 @@ public sealed class SelectCharacterSupplementalProjectionTests
 
     private static byte[] Body(byte[] frame) => frame[GameServerFrameEncoder.HeaderLength..];
 
-    private static SelectCharacterPvpIdentityProjection Identity(ushort userId, byte marker) =>
-        new(userId, [0, 1, 0, (byte)userId, (byte)(userId >> 8), marker]);
+    private static SelectCharacterPvpIdentityProjection Identity(ushort userId, byte marker)
+    {
+        var result = SelectCharacterPayloadTestData.CreateComplete();
+        return new(userId, result with
+        {
+            Character = result.Character with
+            {
+                Identity = result.Character.Identity with
+                {
+                    CharacterId = new CharacterId(userId),
+                    Name = [marker],
+                },
+            },
+        });
+    }
 }

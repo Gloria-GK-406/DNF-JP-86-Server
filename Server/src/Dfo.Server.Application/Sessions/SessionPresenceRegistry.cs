@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Sessions;
 
@@ -23,6 +24,11 @@ internal sealed class SessionPresenceRegistry : ISessionPresenceRegistry
     }
 
     public bool Withdraw(CharacterId characterId) => _byCharacter.TryRemove(characterId, out _);
+
+    public bool WithdrawExact(SelectedSessionIdentity session) =>
+        _byCharacter.TryGetValue(session.CharacterId, out var current)
+        && current.Session == session
+        && _byCharacter.TryRemove(new KeyValuePair<CharacterId, SessionPresence>(session.CharacterId, current));
 
     public SessionPresence? Find(CharacterId characterId) =>
         _byCharacter.TryGetValue(characterId, out var presence) ? presence : null;

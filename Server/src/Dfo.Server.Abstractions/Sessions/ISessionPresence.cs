@@ -1,6 +1,8 @@
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Game;
 using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Abstractions.Sessions;
@@ -22,7 +24,8 @@ public sealed record SessionPresence(
     int ListenerPort,
     byte TownId,
     byte AreaId,
-    bool StandingInTown);
+    bool StandingInTown,
+    SelectedSessionIdentity? Session = null);
 
 /// <summary>
 /// The server's record of who is present and where.
@@ -44,6 +47,8 @@ public interface ISessionPresenceRegistry
     /// <summary>Removes a character's presence. Returns false when they were not recorded.</summary>
     bool Withdraw(CharacterId characterId);
 
+    bool WithdrawExact(SelectedSessionIdentity session);
+
     /// <summary>The presence recorded for a character, or null when none is.</summary>
     SessionPresence? Find(CharacterId characterId);
 
@@ -62,6 +67,40 @@ public interface ISessionPresenceRegistry
         int? listenerPort = null);
 }
 
+/// <summary>Generation-safe directory of currently selected sessions.</summary>
+public interface ISelectedSessionDirectory
+{
+    SelectedSessionIdentity? RegisterReplacing(SelectedSessionIdentity session);
+    bool TryRemoveExact(SelectedSessionIdentity session);
+    SelectedSessionIdentity? Find(AccountId accountId);
+    SelectedSessionIdentity? FindByCharacter(CharacterId characterId);
+    SelectedSessionIdentity? FindByWireUserId(ushort wireUserId);
+    SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId);
+    IReadOnlyList<SelectedSessionIdentity> Current();
+}
+
+public interface ISelectedSessionRuntimeDirectory
+{
+    void Publish(SelectedSessionIdentity session, SelectCharacterResult result, bool shouldPersistPosition);
+    void ReplaceExact(SelectedSessionIdentity session, SelectCharacterResult result);
+    SelectCharacterResult GetRequired(SelectedSessionIdentity session);
+    bool TryGet(
+        SelectedSessionIdentity session,
+        out SelectCharacterResult? result,
+        out bool shouldPersistPosition);
+    bool RemoveExact(SelectedSessionIdentity session);
+}
+
+/// <summary>Narrow peripheral seam used to save the last exact runtime position during cleanup.</summary>
+public interface ISelectedSessionPositionPersistence
+{
+    ValueTask PersistAsync(
+        AccountId accountId,
+        CharacterId characterId,
+        Dfo.Server.Data.Characters.CharacterPositionState position,
+        CancellationToken cancellationToken);
+}
+
 /// <summary>
 /// The server's record of which characters have an expert store standing open.
 /// </summary>
@@ -76,15 +115,22 @@ public interface IExpertStoreRegistry
     /// <summary>Records that a character has a store open.</summary>
     void Open(CharacterId ownerCharacterId);
 
+    void Open(SelectedSessionIdentity session);
+
     /// <summary>Records that a character's store is closed. False when none was open.</summary>
     bool Close(CharacterId ownerCharacterId);
+
+    bool CloseExact(SelectedSessionIdentity session);
 
     /// <summary>Whether this character has a store standing open.</summary>
     bool HasOpenStore(CharacterId ownerCharacterId);
 }
 
 /// <summary>A character who has signalled they are ready in the duelling lobby.</summary>
-public sealed record PvpLobbyParticipant(CharacterId CharacterId, int ListenerPort);
+public sealed record PvpLobbyParticipant(
+    CharacterId CharacterId,
+    int ListenerPort,
+    SelectedSessionIdentity? Session = null);
 
 /// <summary>
 /// A duel room the lobby knows about.
@@ -101,7 +147,12 @@ public sealed record PvpRoom(
     short MapIndex,
     bool HasPassword,
     byte BattleMode,
-    bool Published);
+    bool Published,
+    byte[]? Name = null,
+    byte RoomState = 0,
+    byte ManagerSeat = 0,
+    IReadOnlyList<SelectCharacterPvpRoomSeatProjection>? Seats = null,
+    int MatchingType = 0);
 
 /// <summary>
 /// The server's record of who is waiting to duel and which rooms are on offer.
@@ -117,6 +168,8 @@ public interface IPvpLobbyRegistry
 
     /// <summary>Removes a character's readiness. Returns false when they were not recorded.</summary>
     bool ClearReady(CharacterId characterId);
+
+    bool ClearReadyExact(SelectedSessionIdentity session);
 
     /// <summary>Records a room, replacing any earlier record with the same identifier.</summary>
     void Offer(PvpRoom room);
@@ -154,7 +207,8 @@ public sealed record DungeonAttachment(
     IReadOnlyList<ushort> ParticipantUserIds,
     bool IsDetached,
     DateTimeOffset IdleExpiresAt,
-    DateTimeOffset HardExpiresAt)
+    DateTimeOffset HardExpiresAt,
+    SelectedSessionIdentity? Session = null)
 {
     /// <summary>The moment the run stops being returnable, whichever limit arrives first.</summary>
     public DateTimeOffset ExpiresAt => IdleExpiresAt <= HardExpiresAt ? IdleExpiresAt : HardExpiresAt;
@@ -175,6 +229,15 @@ public interface IDungeonRejoinRegistry
 
     /// <summary>Removes a character's record. Returns false when none was held.</summary>
     bool Release(CharacterId characterId);
+
+    bool ReleaseExact(SelectedSessionIdentity session);
+
+    /// <summary>Ends/detaches only the dungeon runtime owned by this exact selected session.</summary>
+    bool EndSessionExact(SelectedSessionIdentity session);
+
+    bool ReleaseAttachmentExact(DungeonAttachment attachment);
+
+    bool TryReplaceExact(DungeonAttachment expected, DungeonAttachment replacement);
 
     /// <summary>The record held for a character, or null when none is.</summary>
     DungeonAttachment? Find(CharacterId characterId);

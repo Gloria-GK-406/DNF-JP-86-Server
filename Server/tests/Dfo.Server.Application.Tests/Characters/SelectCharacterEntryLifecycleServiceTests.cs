@@ -1,0 +1,290 @@
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Sessions;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.World;
+
+namespace Dfo.Server.Application.Tests.Characters;
+
+public sealed class SelectCharacterEntryLifecycleServiceTests
+{
+    [Fact]
+    public async Task DirtyExactLease_IsSavedBeforeFreshInventoryIsLoadedAndRegistered()
+    {
+        var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(new AccountId(600), 600, 1);
+        var previous = Session(result);
+        var next = previous with { ConnectionGeneration = previous.ConnectionGeneration + 1 };
+        var dirty = new CharacterItemLeaseState(result.CharacterInventory.CharacterId,
+            result.CharacterInventory.Containers);
+        var leases = new EntryInventoryLeaseRegistry();
+        leases.Replace(previous, result.CharacterInventory);
+        Assert.True(leases.TryMarkDirtyExact(previous, dirty));
+        var persistence = new RecordingLeasePersistence();
+        var loader = new InventoryLoader(result.CharacterInventory);
+        var service = new SelectCharacterEntryInventoryService(
+            new RefillContent(), new RefillMutation(), loader, persistence, leases);
+
+        await service.SaveExistingLeaseAsync(previous, CancellationToken.None);
+        var updated = await service.PrepareLeaseAsync(next, result, CancellationToken.None);
+
+        Assert.Equal(dirty, Assert.Single(persistence.Saved).Inventory);
+        Assert.Equal(result.CharacterInventory, updated.CharacterInventory);
+        Assert.Equal(next, leases.Find(next.AccountId)!.Session);
+        Assert.False(leases.TryMarkDirtyExact(previous, dirty));
+    }
+
+    [Fact]
+    public async Task InventoryPreparation_ReloadsCommittedGroupsAndOwnsExactLease()
+    {
+        var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(new AccountId(601), 601, 1);
+        var session = Session(result);
+        var reloaded = result.CharacterInventory with
+        {
+            Containers = [new InventoryContainerState(InventoryContainerType.Main, 0,
+                [new InventoryItemState(1, 65, Core(itemKind: 4, itemId: 9001, value: 2))])]
+        };
+        var leases = new EntryInventoryLeaseRegistry();
+        var service = new SelectCharacterEntryInventoryService(
+            new RefillContent(), new RefillMutation(), new InventoryLoader(reloaded),
+            new NoopLeasePersistence(), leases);
+        _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
+
+        var prepared = await service.ApplyDailyRefillAsync(session, result, CancellationToken.None);
+
+        Assert.Equal(reloaded, prepared.Result.CharacterInventory);
+        var update = Assert.Single(prepared.CommittedUpdates);
+        Assert.Equal(InventoryContainerType.Main, update.ContainerType);
+        Assert.Equal(65, Assert.Single(update.Items).SlotIndex);
+        Assert.True(leases.ReleaseExact(session));
+        Assert.False(leases.ReleaseExact(session));
+    }
+
+    [Fact]
+    public async Task InventoryPreparation_MutationFailureReloadsATrustworthyLease()
+    {
+        var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(new AccountId(605), 605, 1);
+        var session = Session(result);
+        var loader = new InventoryLoader(result.CharacterInventory);
+        var leases = new EntryInventoryLeaseRegistry();
+        var service = new SelectCharacterEntryInventoryService(
+            new RefillContent(), new FailingRefillMutation(), loader, new NoopLeasePersistence(), leases);
+        _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
+
+        await Assert.ThrowsAsync<IOException>(async () =>
+            await service.ApplyDailyRefillAsync(session, result, CancellationToken.None));
+
+        Assert.Equal(2, loader.LoadCount);
+        Assert.True(leases.ReleaseExact(session));
+    }
+
+    [Fact]
+    public async Task QuestSynchronization_UsesVirtualGoldAndCountsCreatureAsOneInstance()
+    {
+        var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(new AccountId(602), 602, 1);
+        result = result with
+        {
+            CharacterEntry = result.CharacterEntry with
+            {
+                Quests = result.CharacterEntry.Quests with
+                {
+                    ActiveQuests = [new CharacterQuestProgressState(0, 100, 0),
+                        new CharacterQuestProgressState(1, 101, 0)]
+                }
+            },
+            CharacterInventory = result.CharacterInventory with
+            {
+                VirtualResources = [new InventoryRuntimeValueState(0, 0, 7)],
+                Containers = [new InventoryContainerState(InventoryContainerType.Main, 0,
+                    [new InventoryItemState(1, 65, Core(itemKind: 5, itemId: 99, value: 999_999))])]
+            }
+        };
+        var mutations = new RecordingMutations();
+        var service = new SelectCharacterQuestEntryService(
+            new QuestSource(new Dictionary<int, IReadOnlyList<SeekingItemRequirement>>
+            {
+                [100] = [new SeekingItemRequirement(0, 10)],
+                [101] = [new SeekingItemRequirement(99, 2)],
+            }), mutations);
+
+        var projection = await service.SynchronizeAsync(Session(result), result, CancellationToken.None);
+
+        Assert.Equal([3, 1], mutations.QuestUpdates.Select(value => value.After));
+        Assert.Equal([3u, 1u], projection!.Projection.Quests.Select(value => value.TriggerValue));
+        Assert.Equal([3, 1], projection.Result.CharacterEntry.Quests.ActiveQuests
+            .Select(value => value.TriggerValue));
+    }
+
+    [Fact]
+    public async Task PetRevival_EmitsOnlyTheCommittedDeadToAliveTransition()
+    {
+        var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(new AccountId(603), 603, 1);
+        result = result with
+        {
+            CharacterEntry = result.CharacterEntry with
+            {
+                Features = result.CharacterEntry.Features with
+                {
+                    Pets = [new CharacterPetRuntimeState(77, 0, 0, 0, 0, 0, 0, [], 0)]
+                }
+            }
+        };
+        var mutations = new RecordingMutations { Revival = new PetRevivalMutation(77, 0, 1) };
+        var service = new SelectCharacterPetEntryService(mutations);
+
+        var changed = await service.ReviveAsync(Session(result), result, CancellationToken.None);
+        mutations.Revival = null;
+        var unchanged = await service.ReviveAsync(Session(result), result, CancellationToken.None);
+
+        Assert.Equal(new SelectCharacterPetRevivalProjection(603, 77, 1), changed!.Projection);
+        Assert.Equal(1, Assert.Single(changed.Result.CharacterEntry.Features.Pets).Field04);
+        Assert.Null(unchanged);
+    }
+
+    [Fact]
+    public async Task Rejoin_ReleasesInvalidAttachmentAndPreservesValidParticipantOrder()
+    {
+        var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(new AccountId(604), 604, 1);
+        var session = Session(result);
+        var rejoin = new DungeonRejoinRegistry();
+        var service = new SelectCharacterSessionEntryService(
+            new SelectedSessionDirectory(), new SelectedSessionRuntimeDirectory(),
+            new SessionPresenceRegistry(), new PvpLobbyRegistry(), rejoin,
+            new FixedTimeProvider(DateTimeOffset.UnixEpoch));
+        rejoin.Attach(new DungeonAttachment(session.CharacterId, session.AccountId, 0, [3, 2, 1], true,
+            DateTimeOffset.MaxValue, DateTimeOffset.MaxValue));
+
+        Assert.Null(service.PlanRejoin(session, result));
+        Assert.Null(rejoin.Find(session.CharacterId));
+
+        rejoin.Attach(new DungeonAttachment(session.CharacterId, session.AccountId, 7, [3, 2, 1], true,
+            DateTimeOffset.MaxValue, DateTimeOffset.MaxValue));
+        var projection = service.PlanRejoin(session, result);
+        Assert.Equal([3, 2, 1], projection!.ParticipantUserIds);
+        Assert.Equal(session, rejoin.Find(session.CharacterId)!.Session);
+
+        var stale = rejoin.Find(session.CharacterId)!;
+        var replacement = stale with { PartyId = 8 };
+        rejoin.Attach(replacement);
+        Assert.False(rejoin.TryReplaceExact(stale, stale with { PartyId = 9 }));
+        Assert.Equal(8, rejoin.Find(session.CharacterId)!.PartyId);
+    }
+
+    private static SelectedSessionIdentity Session(SelectCharacterResult result) =>
+        SelectedSessionIdentity.Create(result.Account.AccountId, result.Character.Identity.CharacterId,
+            new NetworkConnectionId("Game:entry-service"), 1, 10011);
+
+    private static InventoryItemCoreState Core(byte itemKind, int itemId, int value) => new(
+        itemKind, itemId, value, 0, 0, 0, 0, 0, 0, 0, -1,
+        new ChronicleOptionState(0, 0, 0, 0, 0), new ChronicleOptionState(0, 0, 0, 0, 0),
+        0, 0, 0, 0, 0,
+        new RandomOptionState(0, 0, 0), new RandomOptionState(0, 0, 0),
+        new RandomOptionState(0, 0, 0), 0, 0xFF, 0,
+        new RandomOptionState(0, 0, 0), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+    private sealed class RefillContent : IEntryLifecycleContentSource
+    {
+        public ValueTask<IReadOnlyList<DailyRefillRule>> GetDailyRefillRulesAsync(
+            DateTimeOffset preparedAt, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<DailyRefillRule>>(
+                [new(9001, 2, DateTimeOffset.MaxValue, DailyRefillMode.RefillToTarget, 10, 4, 177, 232)]);
+    }
+
+    private sealed class RefillMutation : IEntryInventoryMutationRepository
+    {
+        public ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
+            AccountId accountId, CharacterId characterId, IReadOnlyList<DailyRefillRule> rules,
+            DateTimeOffset preparedAt, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(new DailyRefillMutationResult(
+                [new DailyRefillCommittedGrant(InventoryContainerType.Main, 65, 9001, 2, 2)]));
+    }
+
+    private sealed class FailingRefillMutation : IEntryInventoryMutationRepository
+    {
+        public ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
+            AccountId accountId, CharacterId characterId, IReadOnlyList<DailyRefillRule> rules,
+            DateTimeOffset preparedAt, CancellationToken cancellationToken) =>
+            ValueTask.FromException<DailyRefillMutationResult>(new IOException("transaction failed"));
+    }
+
+    private sealed class InventoryLoader(CharacterInventoryEntryState inventory)
+        : ICharacterInventoryEntryService
+    {
+        public int LoadCount { get; private set; }
+
+        public ValueTask<CharacterInventoryEntryState> LoadAsync(
+            AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)
+        {
+            LoadCount++;
+            return ValueTask.FromResult(inventory);
+        }
+    }
+
+    private sealed class RecordingMutations : ICharacterEntryMutationRepository
+    {
+        public IReadOnlyList<SeekingQuestTriggerUpdate> QuestUpdates { get; private set; } = [];
+        public PetRevivalMutation? Revival { get; set; }
+
+        public ValueTask<IReadOnlyList<SeekingQuestTriggerUpdate>> UpdateSeekingQuestTriggersAsync(
+            AccountId accountId, CharacterId characterId,
+            IReadOnlyList<SeekingQuestTriggerUpdate> updates, CancellationToken cancellationToken)
+        {
+            QuestUpdates = updates;
+            return ValueTask.FromResult(updates);
+        }
+
+        public ValueTask<PetRevivalMutation?> ReviveEquippedCreatureAsync(
+            AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(Revival);
+
+        public ValueTask PersistPositionAsync(AccountId accountId, CharacterId characterId,
+            CharacterPositionState position, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+    }
+
+    private sealed class QuestSource(
+        IReadOnlyDictionary<int, IReadOnlyList<SeekingItemRequirement>> requirements)
+        : IQuestDefinitionSource
+    {
+        public ValueTask<IReadOnlyList<QuestDefinition>> GetAllAsync(CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<QuestDefinition>>([]);
+
+        public ValueTask<QuestDefinition?> GetAsync(int questId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(requirements.TryGetValue(questId, out var values)
+                ? new QuestDefinition(questId, "", null, null, null, null, null, null, [], "", "",
+                    null, null, null, null, null, null, null, [], [], [], [], SeekingItems: values)
+                : null);
+
+        public ValueTask<IReadOnlyList<TrainingQuestAvailability>> GetTrainingAvailabilityAsync(
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<TrainingQuestAvailability>>([]);
+    }
+
+    private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
+    }
+
+    private sealed class NoopLeasePersistence : IEntryInventoryLeasePersistence
+    {
+        public ValueTask SaveAsync(EntryInventoryLeaseSnapshot lease,
+            CancellationToken cancellationToken) => ValueTask.CompletedTask;
+    }
+
+    private sealed class RecordingLeasePersistence : IEntryInventoryLeasePersistence
+    {
+        public List<EntryInventoryLeaseSnapshot> Saved { get; } = [];
+        public ValueTask SaveAsync(EntryInventoryLeaseSnapshot lease,
+            CancellationToken cancellationToken)
+        {
+            Saved.Add(lease);
+            return ValueTask.CompletedTask;
+        }
+    }
+}

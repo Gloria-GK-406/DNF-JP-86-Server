@@ -131,8 +131,15 @@ internal static class SelectCharacterSupplementalProjectionCodec
             return [];
         return values.Select(value =>
         {
-            var body = value?.Body ?? throw Missing("InventoryUpdate.Body");
-            return Frame(0, 0x000E, body);
+            ArgumentNullException.ThrowIfNull(value);
+            ArgumentNullException.ThrowIfNull(value.Items);
+            using var stream = new MemoryStream();
+            using var writer = new BinaryWriter(stream);
+            writer.Write((byte)value.ContainerType);
+            writer.Write(checked((ushort)value.Items.Count));
+            foreach (var item in value.Items)
+                SelectCharacterStaticPayloadCodec.WriteInventoryItem(writer, item, value.PreparedAt);
+            return Frame(0, 0x000E, stream.ToArray());
         }).ToArray();
     }
 
@@ -244,7 +251,8 @@ internal static class SelectCharacterSupplementalProjectionCodec
         foreach (var identity in identities)
         {
             ValidatePvpIdentity(identity, seen);
-            writer.Write(identity.Subtype0Body, 3, identity.Subtype0Body.Length - 3);
+            var body = SelectCharacterStaticPayloadCodec.EncodePvpSubtype0(identity.Result);
+            writer.Write(body, 3, body.Length - 3);
         }
         return Frame(0, 0x0002, stream.ToArray());
     }
@@ -252,14 +260,15 @@ internal static class SelectCharacterSupplementalProjectionCodec
     private static byte[] EncodeSinglePvpIdentity(SelectCharacterPvpIdentityProjection identity)
     {
         ValidatePvpIdentity(identity, null);
-        return Frame(0, 0x0002, identity.Subtype0Body);
+        return Frame(0, 0x0002, SelectCharacterStaticPayloadCodec.EncodePvpSubtype0(identity.Result));
     }
 
     private static void ValidatePvpIdentity(SelectCharacterPvpIdentityProjection? identity, HashSet<ushort>? seen)
     {
         if (identity is null || identity.UserId == 0)
             throw Missing("Pvp.Identity");
-        var body = identity.Subtype0Body ?? throw Missing("Pvp.Identity.Subtype0Body");
+        var body = SelectCharacterStaticPayloadCodec.EncodePvpSubtype0(
+            identity.Result ?? throw Missing("Pvp.Identity.Result"));
         if (body.Length < 5 || body[0] != 0 || BitConverter.ToUInt16(body, 1) != 1 ||
             BitConverter.ToUInt16(body, 3) != identity.UserId)
             throw new InvalidDataException("PvP identity is not a matching subtype-0 USERINFO body.");
