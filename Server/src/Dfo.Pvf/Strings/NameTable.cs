@@ -24,7 +24,7 @@ public sealed class NameTable
 
     private readonly byte[] _utf8Pool;
     private readonly byte[] _utf16Pool;
-    private Dictionary<ulong, List<int>>? _reverseUtf8Index;
+    private Dictionary<ulong, List<int>>? _reverseUtf8TagIndex;
 
     private NameTable(byte[] utf8Pool, byte[] utf16Pool)
     {
@@ -107,20 +107,21 @@ public sealed class NameTable
     public static bool IsUtf8(int encodedOffset) => encodedOffset >= 0 && (encodedOffset & 1) == 0;
 
     /// <summary>
-    /// Finds the encoded offset of an exact UTF-8 string, so a caller can resolve a tag
-    /// name once and then match it by integer comparison.
+    /// Finds the encoded offset of an exact bracket-delimited UTF-8 tag, so a caller can
+    /// resolve the tag once and then match it by integer comparison.
     /// </summary>
     /// <remarks>
-    /// The reverse index is built on first use only. Archives whose caller never resolves
-    /// a tag never pay for it.
+    /// The reverse index is built on first use only and contains bracket-delimited tags,
+    /// not the hundreds of thousands of file and resource names in the same string pool.
+    /// Archives whose caller never resolves a tag never pay for it.
     /// </remarks>
     public bool TryFindUtf8(ReadOnlySpan<byte> text, out int encodedOffset)
     {
         encodedOffset = -1;
-        if (text.IsEmpty)
+        if (text.Length < 2 || text[0] != (byte)'[' || text[^1] != (byte)']')
             return false;
 
-        var index = _reverseUtf8Index ?? BuildReverseUtf8Index();
+        var index = _reverseUtf8TagIndex ?? BuildReverseUtf8TagIndex();
 
         var hash = FnvOffsetBasis;
         foreach (var b in text)
@@ -141,7 +142,7 @@ public sealed class NameTable
         return false;
     }
 
-    private Dictionary<ulong, List<int>> BuildReverseUtf8Index()
+    private Dictionary<ulong, List<int>> BuildReverseUtf8TagIndex()
     {
         var index = new Dictionary<ulong, List<int>>();
         var position = 0;
@@ -151,7 +152,9 @@ public sealed class NameTable
             var terminator = Array.IndexOf(_utf8Pool, (byte)0, position);
             var end = terminator < 0 ? _utf8Pool.Length : terminator;
 
-            if (end > position)
+            if (end - position >= 2 &&
+                _utf8Pool[position] == (byte)'[' &&
+                _utf8Pool[end - 1] == (byte)']')
             {
                 var hash = FnvOffsetBasis;
                 for (var i = position; i < end; i++)
@@ -167,7 +170,7 @@ public sealed class NameTable
             position = terminator + 1;
         }
 
-        _reverseUtf8Index = index;
+        _reverseUtf8TagIndex = index;
         return index;
     }
 
