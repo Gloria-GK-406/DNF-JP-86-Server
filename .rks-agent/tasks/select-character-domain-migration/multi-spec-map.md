@@ -3,19 +3,19 @@ kind: rks-multi-spec-map
 contract:
   path: ./TaskContract.md
   revision: 1
-state: active
-phase: child_execution
-phase_state: pending
-active_attempt: spec-010-integrate-entry-lifecycle
-last_transition: child-created
-transition_evidence: "The contained ready child contract and completed routing decision at attempts/spec-010-integrate-entry-lifecycle define the one bounded G7 outcome authorized by the root: generation-safe phased entry and rollback consuming accepted G6 typed seams. Dependency linkage is valid with an empty unresolved-external list, row 10 is the sole running attempt, all older rows are terminal, and baseline 1ab5f0d is clean."
+state: completed
+phase: completed
+phase_state: completed
+active_attempt: null
+last_transition: verification-passed
+transition_evidence: "Independent root review is approved. On accepted baseline 248abac, fresh root verification passed 488 tests with two intentional skips, Host build/start/shutdown, mechanical 58 static + 18 supplemental + 10 lifecycle coverage, accepted-checkpoint ancestry, dependency/identity/nested-command scans and diff checks. All SC-1..SC-6 are satisfied, every root constraint is aligned, no running row or active child remains, and terminal evidence is sealed."
 workspace:
   repository_root: /Users/puxianguo/project/86JP-main
   task_root: /Users/puxianguo/project/86JP-main/.worktrees/select-character-domain-migration-completion/.rks-agent/tasks/select-character-domain-migration
   code_root: /Users/puxianguo/project/86JP-main/.worktrees/select-character-domain-migration-completion
   branch: codex/select-character-domain-migration-completion
-  baseline: 1ab5f0dd95ff03816a87ce55edc1fc03665b23e6
-  baseline_evidence: "HEAD 1ab5f0d on codex/select-character-domain-migration-completion in a clean linked worktree. It is the single accepted Spec-009 result commit based on 501c2ca and contains the complete product, tests, review and verification evidence. Independent review approved; fresh real-PVF verification: 429 passed, 2 expected skips, 0 failed. Source codex/architecture-refactor remains unchanged at 94616f4."
+  baseline: 248abac2356a4a5275f00dde2134ae9da5782e22
+  baseline_evidence: "HEAD 248abac on codex/select-character-domain-migration-completion in a clean linked worktree. It is the single accepted Spec-010 result commit based exactly on 1ab5f0d and contains the complete G7 product, tests, approved review, aligned drift review, verification and child result. Fresh real-PVF verification: 488 passed, 2 expected skips, 0 failed; Host reached Application started and shut down cleanly. Source codex/architecture-refactor remains unchanged at 94616f4."
   archive_input: "Script.pvf (58,781,889 bytes) is present as a gitignored copy at the root of this task worktree, copied from /Users/puxianguo/Downloads/Script.pvf. Dfo.Pvf tests execute 60/60 with the archive reachable; the two Infrastructure negative-path tests are expected to skip when an archive is deliberately present."
 ---
 
@@ -87,18 +87,18 @@ visible rather than inferred.
 | SC-3 | Service-driven peripheral data access | satisfied | Accepted active-character, inventory, G3 and G4 slices; SQLite confined to Infrastructure. `01cb491` adds a fifth content source for town and map geometry, a channel entry policy, an entry placement service, and three runtime registries with their query service. Every one sits behind an Abstractions interface; `Pvf` appears zero times in Abstractions, Application, Networking and Data, and only the infrastructure project references the format library | none | aligned |
 | SC-4 | Exact and consistent account-exclusive selection | satisfied | `3e70094`: exact-slot load precedes one locked AccountId-indexed publication; stale disconnect and load-failure preservation verified. Re-confirmed at the new baseline: the typed-command-dispatch refactor (`86ba115`) rewrote command registration, and `SelectCharacterCommand` is still registered account-exclusive; that task added the first direct `AccountExecutionBehavior` coverage and mutation-verified that dropping its registration fails tests | none | aligned |
 | SC-5 | Result-only ordered Networking projection | satisfied | `1ab5f0d`: descriptor-driven rows 1-58 and typed X-01-X-18 seams; approved review, mechanical 58/18 coverage and fresh 429-pass real-PVF verification | none; lifecycle chooses triggers and recipients without returning frame construction to Application | aligned |
-| SC-6 | Integrated verification and honest documentation | in_progress | Accepted G1-G6 checkpoints through `1ab5f0d`; real-PVF full verification is 429 passed, 2 expected skips, 0 failed; G6 docs remain explicitly code-reversed | G7 lifecycle integration, Host startup and client-facing follow-up remain | at_risk |
+| SC-6 | Integrated verification and honest documentation | satisfied | `248abac`: accepted G7 lifecycle with approved review and aligned drift; fresh real-PVF full verification is 488 passed, 2 expected skips, 0 failed; Host starts and shuts down cleanly; G1-G7 docs remain explicitly code-reversed | none; real-client execution is an authorized post-completion validation activity, not an implementation gap | aligned |
 
 ### Constraint classification at this baseline
 
 | Root constraint | Class | Basis |
 |---|---|---|
-| Networking may not query repositories, call services to fill gaps, or mutate business state | aligned | No G5/G6 projection exists yet to violate it; the accepted G1-G4 slices keep Networking result-only |
-| Handlers coordinate one workflow, no nested commands | aligned | `SendAsync_RejectsNestedCommandDispatch` still passes at this baseline; the `AsyncLocal` depth guard is byte-identical through `86ba115` |
-| No fabricated empty domain state; `null` means inapplicable, empty means loaded-and-empty, load failure stays an error | at_risk | This is the exact constraint that sealed spec-006. It governs the successor directly: an empty runtime registry that exists and has no entries is honest loaded-empty, but an absent registry rendered as an empty view would violate it |
-| Account, world/content and session data stay outside `ActiveCharacterState` | aligned | `SelectCharacterResult` already holds World and Session as sibling limbs rather than character fields |
-| Repository/SQLite details stay out of Application and Networking | aligned | Verified during the pvf-content-infrastructure task: `Dfo.Server.Application` contains no PVF reference and `Dfo.Server.Abstractions` takes no dependency on `Dfo.Pvf` |
-| Existing accepted behavior is the baseline unless the matrix shows a correction is required | aligned | No accepted behavior was altered by the two intervening tasks; 204/1/0 at the new baseline |
+| Networking may not query repositories, call services to fill gaps, or mutate business state | aligned | Accepted G6/G7 use typed result and explicit-target projections; fresh scans find no repository, SQLite or PVF dependency in Networking and no recipient discovery or lifecycle mutation there |
+| Handlers coordinate one workflow, no nested commands | aligned | Select Character is one explicit application coordinator over narrow services; command-boundary regressions remain green and the final source contains no nested command dispatch |
+| No fabricated empty domain state; `null` means inapplicable, empty means loaded-and-empty, load failure stays an error | aligned | Accepted G5-G7 sources distinguish unavailable, inapplicable and loaded-empty state; outbox/content poison fails or dead-letters, and final expert-cap reconciliation explicitly distinguishes null from applicable zero |
+| Account, world/content and session data stay outside `ActiveCharacterState` | aligned | `SelectCharacterResult` keeps Account, World and Session as sibling limbs; exact session identity lives in lifecycle directories rather than character state |
+| Repository/SQLite details stay out of Application and Networking | aligned | Fresh accepted-baseline scans find no concrete SQLite/PVF dependency in Application or Networking; all peripheral adapters remain in Infrastructure behind abstractions |
+| Existing accepted behavior is the baseline unless the matrix shows a correction is required | aligned | Spec-010 consumes the accepted G1-G6 baseline and only applies review-proven lifecycle/fidelity corrections traced to the legacy matrix; full regression verification is green |
 
 ## Spec Attempts
 
@@ -115,4 +115,24 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 | 7 | spec-007 | `attempts/spec-007-complete-world-and-session-entry-state/TaskContract.md` | Complete world, content and session entry state | SC-2, SC-3 | completed | `attempts/spec-007-complete-world-and-session-entry-state/spec-result.md` | `01cb491` + `21e5a1a` accepted |
 | 8 | spec-008 | `attempts/spec-008-complete-quest-eligibility/TaskContract.md` | Complete G5 quest eligibility semantics | SC-2, SC-3, SC-6 | completed | `attempts/spec-008-complete-quest-eligibility/spec-result.md` | `a7af583` accepted |
 | 9 | spec-009 | `attempts/spec-009-project-complete-entry-stream/TaskContract.md` | Project complete Select Character entry stream | SC-5, SC-6 | completed | `attempts/spec-009-project-complete-entry-stream/spec-result.md` | `1ab5f0d` accepted |
-| 10 | spec-010 | `attempts/spec-010-integrate-entry-lifecycle/TaskContract.md` | Integrate the Select Character lifecycle | SC-4, SC-6 | running | pending | active |
+| 10 | spec-010 | `attempts/spec-010-integrate-entry-lifecycle/TaskContract.md` | Integrate the Select Character lifecycle | SC-4, SC-6 | completed | `attempts/spec-010-integrate-entry-lifecycle/spec-result.md` | `248abac` accepted |
+
+## Root Review
+
+- Decision: `approved`.
+- Artifact: `reviews/root-review.md`.
+- Scope: complete accepted G1-G7 baseline, root SC-1 through SC-6, all root constraints,
+  Networking projection boundary, domain ownership, peripheral isolation and documentation
+  honesty.
+- Result: no unresolved blocking finding.
+
+## Root Verification
+
+- Decision: `pass`.
+- Artifact: `verification/root-completion-evidence.md`.
+- Accepted baseline: `248abac2356a4a5275f00dde2134ae9da5782e22`.
+- Fresh evidence: 488 passed, 2 intentional skips, 0 failed; Host build/start/shutdown;
+  58 static, 18 supplemental and 10 lifecycle identities; clean dependency, ancestry and
+  diff checks.
+- Remaining boundary: real-client and packet-capture confirmation is explicitly deferred
+  validation, not an unmet implementation condition.
