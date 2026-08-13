@@ -46,6 +46,8 @@ internal sealed class TouchSocketNetworkMessageSender(
                 One(EncodeChannelInfo(response, keyProvider.GetCurrentKey())),
             GameExitResponse response when connection.Context.EndpointKind == NetworkEndpointKind.Game =>
                 One(EncodeGameExit(response)),
+            GameInitialConnectionNotice response when connection.Context.EndpointKind == NetworkEndpointKind.Game =>
+                One(GameInitialConnectionPayloadCodec.Encode(response, gameLoginOptions)),
             GameLoginResponse response when connection.Context.EndpointKind == NetworkEndpointKind.Game =>
                 One(EncodeGameLogin(response, gameLoginOptions)),
             AccountCharacterRosterResponse response when connection.Context.EndpointKind == NetworkEndpointKind.Game =>

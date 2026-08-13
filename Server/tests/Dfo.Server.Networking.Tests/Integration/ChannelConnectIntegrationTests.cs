@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 using Dfo.Server.Application;
+using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Networking.Framing;
 using Dfo.Server.Networking.Runtime;
 using Microsoft.Extensions.Configuration;
@@ -30,6 +31,8 @@ public sealed class ChannelConnectIntegrationTests
         });
         builder.Services.AddSingleton<TimeProvider>(
             new FixedTimeProvider(new DateTimeOffset(2026, 8, 10, 12, 0, 0, TimeSpan.FromHours(8))));
+        builder.Services.AddSingleton<IChannelCatalog>(StaticChannelCatalog.ForGamePort(gamePort));
+        builder.Services.AddSingleton(ChannelEntryOptions.Legacy);
         new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
         new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
 

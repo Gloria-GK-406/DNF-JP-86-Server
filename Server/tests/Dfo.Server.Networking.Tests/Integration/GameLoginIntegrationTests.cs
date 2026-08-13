@@ -44,6 +44,8 @@ public sealed class GameLoginIntegrationTests
                 ["GameLogin:LoginChannelPort"] = "10128",
                 ["GameLogin:UnknownPort"] = "17200",
             });
+            var preparedAt = new DateTimeOffset(2026, 8, 13, 2, 30, 0, TimeSpan.Zero);
+            builder.Services.AddSingleton<TimeProvider>(new FixedTimeProvider(preparedAt));
             new InfrastructureModule().ConfigureServices(builder.Services, builder.Configuration);
             new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
             new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
@@ -66,6 +68,10 @@ public sealed class GameLoginIntegrationTests
                     timeout.Token);
                 Assert.True(onlineUsers.TryGetByConnection(connectionId, out var anonymous));
                 Assert.Equal(OnlineUserState.Connected, anonymous!.State);
+
+                Assert.Equal(
+                    BuildExpectedInitialConnectionNotice(preparedAt, channelId: 11),
+                    await ReadFrameAsync(client.GetStream(), timeout.Token));
 
                 var requestBody = EncodeDStrings("10038", "login-hash");
                 var request = EncodeClientFrame(0x01, 0x0001, requestBody);
@@ -129,6 +135,44 @@ public sealed class GameLoginIntegrationTests
         return GameServerFrameEncoder.Encode(0x01, 0x0001, body);
     }
 
+    private static byte[] BuildExpectedInitialConnectionNotice(
+        DateTimeOffset preparedAt,
+        byte channelId)
+    {
+        using var body = new MemoryStream();
+        body.WriteByte(0x01);
+        WriteDString(body, $"ch.{channelId}");
+        WriteInt32(body, 0);
+        WriteInt32(body, 0);
+        body.WriteByte(0x01);
+        body.WriteByte(channelId);
+        body.WriteByte(0x00);
+        WriteInt32(body, checked((int)preparedAt.ToUnixTimeSeconds()));
+        WriteInt32(body, 1);
+        WriteDString(body, "192.0.2.20");
+        WriteInt32(body, 12311);
+        WriteInt32(body, 12312);
+        body.WriteByte(0x00);
+        body.WriteByte(0x00);
+        WriteInt32(body, 1086);
+        WriteInt32(body, 1036);
+        return GameServerFrameEncoder.Encode(0x00, 0x0001, body.ToArray());
+    }
+
+    private static void WriteDString(Stream stream, string value)
+    {
+        var bytes = Encoding.ASCII.GetBytes(value);
+        WriteInt32(stream, bytes.Length);
+        stream.Write(bytes);
+    }
+
+    private static void WriteInt32(Stream stream, int value)
+    {
+        Span<byte> bytes = stackalloc byte[sizeof(int)];
+        BinaryPrimitives.WriteInt32LittleEndian(bytes, value);
+        stream.Write(bytes);
+    }
+
     private static async Task<byte[]> ReadFrameAsync(
         NetworkStream stream,
         CancellationToken cancellationToken)
@@ -159,5 +203,10 @@ public sealed class GameLoginIntegrationTests
         var port = ((IPEndPoint)listener.LocalEndpoint).Port;
         listener.Stop();
         return port;
+    }
+
+    private sealed class FixedTimeProvider(DateTimeOffset value) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => value;
     }
 }

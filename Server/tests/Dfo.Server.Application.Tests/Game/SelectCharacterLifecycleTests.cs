@@ -107,7 +107,8 @@ public sealed class SelectCharacterLifecycleTests
             fixture.AccountId, UserAccessMode.Exclusive, CancellationToken.None);
         var observer = new OnlineUserConnectionObserver(
             fixture.Users, new OnlineUserExecutionGate(), fixture.TransitionGate,
-            fixture.Directory, fixture.Cleanup);
+            fixture.Directory, fixture.Cleanup, new StubChannelEntryPolicy(),
+            fixture.Sender, TimeProvider.System);
         var connection = new NetworkConnectionContext(
             fixture.ConnectionId, NetworkEndpointKind.Game,
             StubChannelEntryPolicy.GeneralChannel.ListenerPort);
@@ -133,7 +134,8 @@ public sealed class SelectCharacterLifecycleTests
         Assert.NotNull(fixture.Directory.Find(fixture.AccountId));
         var observer = new OnlineUserConnectionObserver(
             fixture.Users, new OnlineUserExecutionGate(), fixture.TransitionGate,
-            fixture.Directory, fixture.Cleanup);
+            fixture.Directory, fixture.Cleanup, new StubChannelEntryPolicy(),
+            fixture.Sender, TimeProvider.System);
         var disconnect = observer.DisconnectedAsync(
             new NetworkConnectionContext(fixture.ConnectionId, NetworkEndpointKind.Game,
                 StubChannelEntryPolicy.GeneralChannel.ListenerPort), CancellationToken.None).AsTask();
@@ -158,7 +160,8 @@ public sealed class SelectCharacterLifecycleTests
         await fixture.Sender.StaticEntered.Task.WaitAsync(TimeSpan.FromSeconds(2));
         var observer = new OnlineUserConnectionObserver(
             fixture.Users, new OnlineUserExecutionGate(), fixture.TransitionGate,
-            fixture.Directory, fixture.Cleanup);
+            fixture.Directory, fixture.Cleanup, new StubChannelEntryPolicy(),
+            fixture.Sender, TimeProvider.System);
         var disconnect = observer.DisconnectedAsync(
             new NetworkConnectionContext(fixture.ConnectionId, NetworkEndpointKind.Game,
                 StubChannelEntryPolicy.GeneralChannel.ListenerPort), CancellationToken.None).AsTask();

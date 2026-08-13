@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Abstractions.Sessions;
@@ -12,18 +13,44 @@ internal sealed class OnlineUserConnectionObserver(
     OnlineUserExecutionGate executionGate,
     SelectedSessionTransitionGate lifecycleGate,
     ISelectedSessionDirectory selectedSessions,
-    ISelectedSessionCleanupService cleanup) : INetworkConnectionObserver
+    ISelectedSessionCleanupService cleanup,
+    IChannelEntryPolicy channels,
+    INetworkMessageSender sender,
+    TimeProvider timeProvider) : INetworkConnectionObserver
 {
-    public ValueTask ConnectedAsync(
+    public async ValueTask ConnectedAsync(
         NetworkConnectionContext connection,
         CancellationToken cancellationToken)
     {
-        if (connection.EndpointKind == NetworkEndpointKind.Game)
+        if (connection.EndpointKind != NetworkEndpointKind.Game)
         {
-            onlineUsers.RegisterConnection(connection);
+            return;
         }
 
-        return ValueTask.CompletedTask;
+        var registered = onlineUsers.RegisterConnection(connection);
+        try
+        {
+            var channel = await channels.ResolveAsync(connection.ListenerPort, cancellationToken)
+                .ConfigureAwait(false);
+            if (channel.ChannelId is < 1 or > byte.MaxValue)
+            {
+                throw new InvalidOperationException(
+                    $"Game listener '{connection.ListenerPort}' does not resolve to a wire channel ID.");
+            }
+
+            await sender.SendAsync(
+                connection.ConnectionId,
+                new GameInitialConnectionNotice(channel.ChannelId, timeProvider.GetUtcNow()),
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            onlineUsers.TryDisconnect(
+                registered.OnlineUserId,
+                connection.ConnectionId,
+                registered.Generation);
+            throw;
+        }
     }
 
     public async ValueTask DisconnectedAsync(

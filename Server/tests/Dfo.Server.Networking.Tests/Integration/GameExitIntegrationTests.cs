@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;
 using Dfo.Server.Application;
+using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Networking.Framing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -29,6 +30,8 @@ public sealed class GameExitIntegrationTests
             ["Networking:GamePorts:0"] = gamePort.ToString()
         });
         builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
+        builder.Services.AddSingleton<IChannelCatalog>(StaticChannelCatalog.ForGamePort(gamePort));
+        builder.Services.AddSingleton(ChannelEntryOptions.Legacy);
         new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
         new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
 
@@ -39,6 +42,9 @@ public sealed class GameExitIntegrationTests
         using var client = new TcpClient();
         await client.ConnectAsync(IPAddress.Loopback, gamePort, timeout.Token);
         var stream = client.GetStream();
+        var initialNotice = await ReadResponseAsync(stream, timeout.Token);
+        Assert.Equal(0x00, initialNotice[0]);
+        Assert.Equal(0x0001, BinaryPrimitives.ReadUInt16LittleEndian(initialNotice.AsSpan(1, 2)));
         var request = EncodeClientFrame(command: 0x01, type: 0x0003, checksum: 0, sequence: 7);
         var expected = GameServerFrameEncoder.Encode(0x01, 0x0003, [0x01]);
 

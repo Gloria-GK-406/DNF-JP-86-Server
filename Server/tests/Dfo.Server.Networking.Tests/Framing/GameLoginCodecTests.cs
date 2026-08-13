@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Text;
+using Dfo.Server.Data.Networking;
 using Dfo.Server.Networking.Configuration;
 using Dfo.Server.Networking.Framing;
 
@@ -58,6 +59,28 @@ public sealed class GameLoginCodecTests
         Assert.Equal(17200, BinaryPrimitives.ReadInt32LittleEndian(body[27..31]));
         Assert.All(body[31..].ToArray(), value => Assert.Equal(0, value));
         Assert.Equal(55, body.Length);
+    }
+
+    [Fact]
+    public void EncodeInitialConnection_RejectsAnUnrepresentableChannel()
+    {
+        var notice = new GameInitialConnectionNotice(256, DateTimeOffset.UnixEpoch);
+
+        Assert.Throws<InvalidDataException>(() =>
+            GameInitialConnectionPayloadCodec.Encode(notice, new GameLoginOptions()));
+    }
+
+    [Theory]
+    [InlineData("not-an-address")]
+    [InlineData("2001:db8::1")]
+    public void EncodeInitialConnection_RejectsANonIpv4AdvertisedAddress(string address)
+    {
+        var notice = new GameInitialConnectionNotice(11, DateTimeOffset.UnixEpoch);
+
+        Assert.Throws<InvalidDataException>(() =>
+            GameInitialConnectionPayloadCodec.Encode(
+                notice,
+                new GameLoginOptions { ServerIp = address }));
     }
 
     private static byte[] EncodeDStrings(params string[] values)

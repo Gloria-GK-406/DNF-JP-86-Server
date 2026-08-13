@@ -14,6 +14,7 @@ public enum ClientMessageType
 
 public enum ServerMessageType
 {
+    GameInitialConnection = 0x0000_0001,
     GameLogin = 0x0001_0001,
     GameAccountCharacterRoster = 0x0000_0002,
     GameSelectCharacter = 0x0001_0004,
@@ -109,6 +110,13 @@ public sealed record GameLoginRequest(
 public sealed record GameLoginResponse(bool Succeeded) : IServerNetworkMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameLogin;
+}
+
+public sealed record GameInitialConnectionNotice(
+    int ChannelId,
+    DateTimeOffset PreparedAt) : IServerNetworkMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameInitialConnection;
 }
 
 public sealed record GetAccountCharacterRosterRequest(

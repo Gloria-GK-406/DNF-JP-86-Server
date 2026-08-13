@@ -7,18 +7,113 @@ using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Application.Users;
 using Dfo.Server.Data.World;
+using Dfo.Server.Data.Channel;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application.Sessions;
 
 namespace Dfo.Server.Application.Tests.OnlineUsers;
 
 public sealed class UserServiceTests
 {
+    [Fact]
+    public async Task ConnectedGame_RegistersIdentityBeforeSendingInitialNotice()
+    {
+        var service = CreateService();
+        var connection = new NetworkConnectionContext(
+            new NetworkConnectionId("Game:initial"), NetworkEndpointKind.Game, 10011);
+        var preparedAt = new DateTimeOffset(2026, 8, 13, 3, 0, 0, TimeSpan.Zero);
+        var sender = new RecordingInitialSender(() =>
+            Assert.True(service.TryGetByConnection(connection.ConnectionId, out _)));
+        var observer = CreateObserver(
+            service, new EmptySelectedSessions(), new NoopCleanup(), sender,
+            new FixedTimeProvider(preparedAt));
+
+        await observer.ConnectedAsync(connection, CancellationToken.None);
+
+        var sent = Assert.IsType<GameInitialConnectionNotice>(Assert.Single(sender.Messages));
+        Assert.Equal(11, sent.ChannelId);
+        Assert.Equal(preparedAt, sent.PreparedAt);
+    }
+
+    [Fact]
+    public async Task ConnectedChannel_DoesNotRegisterOrSendGameNotice()
+    {
+        var service = CreateService();
+        var connection = new NetworkConnectionContext(
+            new NetworkConnectionId("Channel:initial"), NetworkEndpointKind.Channel, 7001);
+        var sender = new RecordingInitialSender();
+        var observer = CreateObserver(
+            service, new EmptySelectedSessions(), new NoopCleanup(), sender,
+            TimeProvider.System);
+
+        await observer.ConnectedAsync(connection, CancellationToken.None);
+
+        Assert.False(service.TryGetByConnection(connection.ConnectionId, out _));
+        Assert.Empty(sender.Messages);
+    }
+
+    [Fact]
+    public async Task FailedInitialNotice_RemovesExactRegisteredIdentity()
+    {
+        var service = CreateService();
+        var connection = new NetworkConnectionContext(
+            new NetworkConnectionId("Game:failed-initial"), NetworkEndpointKind.Game, 10011);
+        var observer = CreateObserver(
+            service, new EmptySelectedSessions(), new NoopCleanup(),
+            new RecordingInitialSender(fail: true), TimeProvider.System);
+
+        await Assert.ThrowsAsync<IOException>(async () =>
+            await observer.ConnectedAsync(connection, CancellationToken.None));
+
+        Assert.False(service.TryGetByConnection(connection.ConnectionId, out _));
+    }
+
+    [Fact]
+    public async Task ConnectedGame_UsesTheChannelResolvedFromItsExactListener()
+    {
+        var service = CreateService();
+        var connection = new NetworkConnectionContext(
+            new NetworkConnectionId("Game:restricted-initial"), NetworkEndpointKind.Game, 10161);
+        var sender = new RecordingInitialSender();
+        var observer = CreateObserver(
+            service, new EmptySelectedSessions(), new NoopCleanup(), sender,
+            TimeProvider.System,
+            new FixedChannelEntryPolicy(StubChannelEntryPolicy.RestrictedChannel));
+
+        await observer.ConnectedAsync(connection, CancellationToken.None);
+
+        var sent = Assert.IsType<GameInitialConnectionNotice>(Assert.Single(sender.Messages));
+        Assert.Equal(100, sent.ChannelId);
+    }
+
+    [Fact]
+    public async Task ConnectedGame_WithUnresolvedListener_RemovesRegisteredIdentityAndSendsNothing()
+    {
+        var service = CreateService();
+        var connection = new NetworkConnectionContext(
+            new NetworkConnectionId("Game:unresolved-initial"), NetworkEndpointKind.Game, 19999);
+        var sender = new RecordingInitialSender();
+        var observer = CreateObserver(
+            service, new EmptySelectedSessions(), new NoopCleanup(), sender,
+            TimeProvider.System,
+            new FixedChannelEntryPolicy(
+                new ChannelEntryIdentity(0, connection.ListenerPort, ChannelEntryKind.General)));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await observer.ConnectedAsync(connection, CancellationToken.None));
+
+        Assert.False(service.TryGetByConnection(connection.ConnectionId, out _));
+        Assert.Empty(sender.Messages);
+    }
+
     [Fact]
     public void RegisterConnection_CreatesOneAnonymousUserResolvableByConnection()
     {
@@ -228,7 +323,8 @@ public sealed class UserServiceTests
         var gate = new OnlineUserExecutionGate();
         var observer = new OnlineUserConnectionObserver(
             service, gate, new SelectedSessionTransitionGate(),
-            new EmptySelectedSessions(), new NoopCleanup());
+            new EmptySelectedSessions(), new NoopCleanup(), new StubChannelEntryPolicy(),
+            new RecordingInitialSender(), TimeProvider.System);
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:20"),
             NetworkEndpointKind.Game,
@@ -265,7 +361,8 @@ public sealed class UserServiceTests
         var sessions = new SelectedSessionDirectory();
         var cleanup = new ClearingCleanup(service);
         var observer = new OnlineUserConnectionObserver(
-            service, gate, new SelectedSessionTransitionGate(), sessions, cleanup);
+            service, gate, new SelectedSessionTransitionGate(), sessions, cleanup,
+            new StubChannelEntryPolicy(), new RecordingInitialSender(), TimeProvider.System);
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:24"), NetworkEndpointKind.Game, 10011);
         var registered = service.RegisterConnection(connection);
@@ -289,7 +386,8 @@ public sealed class UserServiceTests
         var lifecycleGate = new SelectedSessionTransitionGate();
         var observer = new OnlineUserConnectionObserver(
             service, new OnlineUserExecutionGate(), lifecycleGate,
-            new EmptySelectedSessions(), new NoopCleanup());
+            new EmptySelectedSessions(), new NoopCleanup(), new StubChannelEntryPolicy(),
+            new RecordingInitialSender(), TimeProvider.System);
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:25"), NetworkEndpointKind.Game, 10011);
         var registered = service.RegisterConnection(connection);
@@ -309,6 +407,59 @@ public sealed class UserServiceTests
         var repository = new StubAccountRepository(
             accountId == default ? new AccountId(1) : accountId);
         return new UserService(() => repository);
+    }
+
+    private static OnlineUserConnectionObserver CreateObserver(
+        IOnlineUserService service,
+        ISelectedSessionDirectory sessions,
+        ISelectedSessionCleanupService cleanup,
+        INetworkMessageSender sender,
+        TimeProvider timeProvider,
+        IChannelEntryPolicy? channelPolicy = null) =>
+        new(
+            service,
+            new OnlineUserExecutionGate(),
+            new SelectedSessionTransitionGate(),
+            sessions,
+            cleanup,
+            channelPolicy ?? new StubChannelEntryPolicy(),
+            sender,
+            timeProvider);
+
+    private sealed class FixedChannelEntryPolicy(ChannelEntryIdentity channel) : IChannelEntryPolicy
+    {
+        public ValueTask<ChannelEntryIdentity> ResolveAsync(
+            int listenerPort,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult(channel with { ListenerPort = listenerPort });
+
+        public ChannelAdmissionRefusal? Refuse(
+            ChannelEntryIdentity channel,
+            int characterLevel) => null;
+    }
+
+    private sealed class RecordingInitialSender(
+        Action? beforeSend = null,
+        bool fail = false) : INetworkMessageSender
+    {
+        public List<IServerNetworkMessage> Messages { get; } = [];
+
+        public ValueTask SendAsync(
+            NetworkConnectionId connectionId,
+            IServerNetworkMessage message,
+            CancellationToken cancellationToken)
+        {
+            beforeSend?.Invoke();
+            if (fail)
+                return ValueTask.FromException(new IOException("initial notice failed"));
+            Messages.Add(message);
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class FixedTimeProvider(DateTimeOffset value) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => value;
     }
 
     private static ActiveCharacterState CreateCharacter(int characterId, ushort slotIndex) =>
