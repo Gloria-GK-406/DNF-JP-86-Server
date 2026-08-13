@@ -10,6 +10,7 @@ typedef struct ch_required_identity {
 } ch_required_identity;
 
 static const ch_required_identity required_plugins[CH_REQUIRED_PLUGIN_COUNT] = {
+    { L"0005_AntiAntiDebug.dll", "AntiAntiDebug" },
     { L"0010_DisableGameGuard.dll", "DisableGameGuard" },
     { L"0020_ClientCompatibility.dll", "ClientCompatibility" },
     { L"0100_NetworkHook.dll", "NetworkHook" },

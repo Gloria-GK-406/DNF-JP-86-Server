@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <wchar.h>
 
-#define CH_REQUIRED_PLUGIN_COUNT 5u
+#define CH_REQUIRED_PLUGIN_COUNT 6u
 
 typedef struct ch_required_plugin_state {
     uint32_t initialized_mask;

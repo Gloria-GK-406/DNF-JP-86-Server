@@ -127,6 +127,9 @@ function(clienthack_plugin target source output_name descriptor_name)
         RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CLIENTHACK_STAGE_DIR}/plugins")
 endfunction()
 
+clienthack_plugin(plugin_anti_anti_debug
+    plugins/0005_anti_anti_debug/anti_anti_debug.c
+    "0005_AntiAntiDebug" "AntiAntiDebug")
 clienthack_plugin(plugin_disable_gameguard
     plugins/0010_disable_gameguard/disable_gameguard.c
     "0010_DisableGameGuard" "DisableGameGuard")
@@ -145,6 +148,7 @@ clienthack_plugin(plugin_prevent_minimize
     "0900_PreventMinimize" "PreventMinimize")
 
 add_custom_target(clienthack_plugins DEPENDS
+    plugin_anti_anti_debug
     plugin_disable_gameguard
     plugin_client_compatibility
     plugin_network_hook

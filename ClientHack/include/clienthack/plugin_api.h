@@ -61,6 +61,12 @@ typedef struct ch_host_api {
     ch_status (CH_CALL *hook_create)(const ch_hook_request* request);
     ch_status (CH_CALL *service_publish)(const char* name, const void* service, uint32_t service_size);
     const void* (CH_CALL *service_query)(const char* name, uint32_t minimum_size);
+    /* Install a trampoline hook at an ABSOLUTE address, resolved by the plugin
+     * (e.g. an ntdll/kernel32 export from GetProcAddress). Unlike hook_create,
+     * the target is not DNF-relative and not byte-validated by the host: the
+     * caller owns correctness of `target`. Backed by the same MinHook instance
+     * and tracked for rollback. Added in ABI 2. */
+    ch_status (CH_CALL *hook_create_absolute)(void* target, void* detour, void** original);
 } ch_host_api;
 
 typedef ch_status (CH_CALL *ch_plugin_initialize_fn)(const ch_host_api* host);

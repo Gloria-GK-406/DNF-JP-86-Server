@@ -167,10 +167,26 @@ ch_status ch_host_rollback_to(const ch_host_checkpoint* checkpoint)
     return CH_STATUS_OK;
 }
 
+/* Install and enable a MinHook trampoline at an already-validated target, and
+ * record it for rollback. Caller must hold g_lock. */
+static ch_status ch_install_hook_locked(void* target, void* detour, void** original)
+{
+    MH_STATUS status;
+    if (g_hook_count == CH_MAX_HOOKS) return CH_STATUS_SYSTEM_ERROR;
+    status = MH_CreateHook(target, detour, original);
+    if (status == MH_OK) status = MH_EnableHook(target);
+    if (status != MH_OK) {
+        MH_RemoveHook(target);
+        return CH_STATUS_SYSTEM_ERROR;
+    }
+    g_hooks[g_hook_count++].target = target;
+    return CH_STATUS_OK;
+}
+
 static ch_status CH_CALL ch_hook_create_impl(const ch_hook_request* request)
 {
     void* target;
-    MH_STATUS status;
+    ch_status status;
     MEMORY_BASIC_INFORMATION memory;
     if (request == NULL || request->struct_size < sizeof(*request) ||
         request->expected == NULL || request->expected_length < 5 ||
@@ -188,20 +204,34 @@ static ch_status CH_CALL ch_hook_create_impl(const ch_hook_request* request)
         return CH_STATUS_INCOMPATIBLE_MEMORY;
     }
     EnterCriticalSection(&g_lock);
-    if (g_hook_count == CH_MAX_HOOKS) {
-        LeaveCriticalSection(&g_lock);
-        return CH_STATUS_SYSTEM_ERROR;
-    }
-    status = MH_CreateHook(target, request->detour, request->original);
-    if (status == MH_OK) status = MH_EnableHook(target);
-    if (status != MH_OK) {
-        MH_RemoveHook(target);
-        LeaveCriticalSection(&g_lock);
-        return CH_STATUS_SYSTEM_ERROR;
-    }
-    g_hooks[g_hook_count++].target = target;
+    status = ch_install_hook_locked(target, request->detour, request->original);
     LeaveCriticalSection(&g_lock);
-    return CH_STATUS_OK;
+    return status;
+}
+
+/* Absolute-address hook (ABI 2). The target is resolved by the plugin, so the
+ * host does not byte-validate it, but it still verifies the address is in
+ * committed, executable memory before letting MinHook write a trampoline. */
+static ch_status CH_CALL ch_hook_create_absolute_impl(
+    void* target, void* detour, void** original)
+{
+    ch_status status;
+    MEMORY_BASIC_INFORMATION memory;
+    const DWORD executable = PAGE_EXECUTE | PAGE_EXECUTE_READ |
+        PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
+    if (target == NULL || detour == NULL || original == NULL) {
+        return CH_STATUS_INVALID_ARGUMENT;
+    }
+    if (VirtualQuery(target, &memory, sizeof(memory)) != sizeof(memory) ||
+        memory.State != MEM_COMMIT ||
+        (memory.Protect & (PAGE_NOACCESS | PAGE_GUARD)) != 0 ||
+        (memory.Protect & executable) == 0) {
+        return CH_STATUS_INCOMPATIBLE_MEMORY;
+    }
+    EnterCriticalSection(&g_lock);
+    status = ch_install_hook_locked(target, detour, original);
+    LeaveCriticalSection(&g_lock);
+    return status;
 }
 
 static ch_status CH_CALL ch_service_publish_impl(
@@ -250,7 +280,8 @@ static const void* CH_CALL ch_service_query_impl(const char* name, uint32_t mini
 ch_host_api g_ch_host_api = {
     sizeof(ch_host_api), CLIENTHACK_ABI_VERSION, 0,
     ch_log, ch_patch_apply_impl, ch_patch_rollback_all_impl,
-    ch_hook_create_impl, ch_service_publish_impl, ch_service_query_impl
+    ch_hook_create_impl, ch_service_publish_impl, ch_service_query_impl,
+    ch_hook_create_absolute_impl
 };
 
 int ch_host_services_initialize(void)
