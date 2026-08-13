@@ -21,9 +21,27 @@ typedef enum ch_iat_policy_state {
 
 typedef int (*ch_iat_write_fn)(void* context, size_t index, uintptr_t value);
 
+/* Evaluates an IAT slot without reference to any captured absolute address.
+ *
+ * The packer leaves arbitrary intermediate values in IAT slots at the startup
+ * gate (stale stubs, template pointers, partial resolutions) that are neither
+ * enumerable nor stable across boots, so the slot's prior value is never used
+ * as an acceptance or rejection criterion. Matches the reference S4A12
+ * RepairIAT semantics:
+ *  - resolved != 0, actual == resolved   -> RESOLVED (idempotent)
+ *  - resolved != 0, actual != resolved   -> NEEDS_REPAIR (write resolved)
+ *  - resolved == 0, is_data_export,
+ *    actual == module_base + export_rva  -> RETAIN_UNRESOLVED (DNF data export)
+ *  - otherwise (unresolvable, not data
+ *    export)                             -> REJECTED (fail closed)
+ *
+ * Fail-closed is preserved at the meaningful boundary: a slot whose export
+ * cannot be resolved and is not the declared DNF data export is rejected and
+ * aborts repair with rollback. The repair position itself is constrained to
+ * the fixed iat_table.h slot list at the caller. */
 ch_iat_policy_state ch_iat_policy_evaluate(
-    uintptr_t actual, uintptr_t resolved, uintptr_t captured,
-    uintptr_t module_base, int captured_is_module_rva);
+    uintptr_t actual, uintptr_t resolved,
+    uintptr_t module_base, int is_data_export, uintptr_t data_export_rva);
 
 int ch_iat_repair_transaction(
     const uintptr_t* original, const uintptr_t* resolved,

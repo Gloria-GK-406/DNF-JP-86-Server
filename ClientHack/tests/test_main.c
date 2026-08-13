@@ -88,15 +88,25 @@ static void test_iat_policy_and_transaction(void)
     const uint8_t no_repairs[4] = { 0, 0, 0, 0 };
     fake_iat_writer writer;
 
-    CHECK(ch_iat_policy_evaluate(0x1111u, 0xAAAAu, 0x1111u, 0, 0) ==
-        CH_IAT_POLICY_NEEDS_REPAIR);
-    CHECK(ch_iat_policy_evaluate(0xAAAAu, 0xAAAAu, 0x1111u, 0, 0) ==
+    /* resolved non-zero, already equal -> idempotent RESOLVED */
+    CHECK(ch_iat_policy_evaluate(0xAAAAu, 0xAAAAu, 0, 0, 0) ==
         CH_IAT_POLICY_RESOLVED);
-    CHECK(ch_iat_policy_evaluate(0x9999u, 0xAAAAu, 0x1111u, 0, 0) ==
-        CH_IAT_POLICY_REJECTED);
-    CHECK(ch_iat_policy_evaluate(0x5060F0u, 0, 0x60F0u, 0x500000u, 1) ==
+    /* resolved non-zero, any prior value -> NEEDS_REPAIR (unconditional repair).
+     * The prior value is a pack-time intermediate and is not a criterion. */
+    CHECK(ch_iat_policy_evaluate(0u, 0xAAAAu, 0, 0, 0) ==
+        CH_IAT_POLICY_NEEDS_REPAIR);
+    CHECK(ch_iat_policy_evaluate(0x07184EAEu, 0x75EEEF60u, 0, 0, 0) ==
+        CH_IAT_POLICY_NEEDS_REPAIR);
+    CHECK(ch_iat_policy_evaluate(0x77999999u, 0xAAAAu, 0, 0, 0) ==
+        CH_IAT_POLICY_NEEDS_REPAIR);
+    /* data export by module base + RVA -> retained */
+    CHECK(ch_iat_policy_evaluate(0x5060F0u, 0u, 0x500000u, 1, 0x60F0u) ==
         CH_IAT_POLICY_RETAIN_UNRESOLVED);
-    CHECK(ch_iat_policy_evaluate(0x5060F1u, 0, 0x60F0u, 0x500000u, 1) ==
+    /* resolved is 0 and not a data export -> REJECTED (fail closed) */
+    CHECK(ch_iat_policy_evaluate(0x9999u, 0u, 0, 0, 0) ==
+        CH_IAT_POLICY_REJECTED);
+    /* data export slot but wrong RVA -> REJECTED */
+    CHECK(ch_iat_policy_evaluate(0x5060F1u, 0u, 0x500000u, 1, 0x60F0u) ==
         CH_IAT_POLICY_REJECTED);
 
     memset(&writer, 0, sizeof(writer));
@@ -123,39 +133,42 @@ static void test_iat_policy_and_transaction(void)
 
 static void test_production_iat_gate_policy(void)
 {
-    const uintptr_t module_base = 0x500000u;
+    /* Relocated resolved destinations: deliberately unlike any value that ever
+     * appeared in the removed exact table, to prove the policy no longer
+     * depends on captured absolute addresses. Every resolvable slot is repaired
+     * to whatever its current resolved export is, regardless of the arbitrary
+     * pack-time value currently sitting in the slot. */
+    const uintptr_t data_export_base = 0x67CE0000u;
     size_t index;
     for (index = 0; index < CH_IAT_GATE_ENTRY_COUNT; ++index) {
-        const uintptr_t resolved = index == CH_IAT_GATE_RELATIVE_INDEX
-            ? 0u : 0x10000000u + index;
-        uintptr_t captured;
-        int relative = 0;
-        ch_iat_policy_state state;
+        /* Current resolved destination for this slot on this (relocated) boot. */
+        const uintptr_t resolved = (index == CH_IAT_GATE_DATA_EXPORT_INDEX)
+            ? 0u : 0x6F120000u + index * 4u;
 
-        if (index < CH_IAT_GATE_EXACT_COUNT) {
-            captured = g_ch_iat_gate_exact[index];
-        } else if (index == CH_IAT_GATE_RELATIVE_INDEX) {
-            captured = CH_IAT_GATE_RELATIVE_RVA;
-            relative = 1;
-        } else if (index == CH_IAT_GATE_EXTRA_EXACT_INDEX) {
-            captured = CH_IAT_GATE_EXTRA_EXACT_VALUE;
-        } else {
-            captured = resolved;
+        if (index == CH_IAT_GATE_DATA_EXPORT_INDEX) {
+            /* DNF data export retained by module base + RVA */
+            CHECK(ch_iat_policy_evaluate(
+                data_export_base + CH_IAT_GATE_DATA_EXPORT_RVA, 0u,
+                data_export_base, 1, CH_IAT_GATE_DATA_EXPORT_RVA) ==
+                CH_IAT_POLICY_RETAIN_UNRESOLVED);
+            /* wrong RVA rejected */
+            CHECK(ch_iat_policy_evaluate(
+                data_export_base + (CH_IAT_GATE_DATA_EXPORT_RVA + 1u), 0u,
+                data_export_base, 1, CH_IAT_GATE_DATA_EXPORT_RVA) ==
+                CH_IAT_POLICY_REJECTED);
+            continue;
         }
 
-        if (index == CH_IAT_GATE_RELATIVE_INDEX) {
-            state = ch_iat_policy_evaluate(module_base + captured, resolved,
-                captured, module_base, relative);
-            CHECK(state == CH_IAT_POLICY_RETAIN_UNRESOLVED);
-        } else {
-            const uintptr_t actual = (index & 1u) != 0 ? resolved : captured;
-            state = ch_iat_policy_evaluate(actual, resolved, captured,
-                module_base, relative);
-            CHECK(state == (actual == resolved
-                ? CH_IAT_POLICY_RESOLVED : CH_IAT_POLICY_NEEDS_REPAIR));
-            CHECK(ch_iat_policy_evaluate(resolved, resolved, captured,
-                module_base, relative) == CH_IAT_POLICY_RESOLVED);
-        }
+        /* already equal -> idempotent RESOLVED */
+        CHECK(ch_iat_policy_evaluate(resolved, resolved, 0, 0, 0) ==
+            CH_IAT_POLICY_RESOLVED);
+        /* any pack-time intermediate value -> repaired to resolved */
+        CHECK(ch_iat_policy_evaluate(0u, resolved, 0, 0, 0) ==
+            CH_IAT_POLICY_NEEDS_REPAIR);
+        CHECK(ch_iat_policy_evaluate(0x07184EAEu, resolved, 0, 0, 0) ==
+            CH_IAT_POLICY_NEEDS_REPAIR);
+        CHECK(ch_iat_policy_evaluate(0xDEADBEEFu, resolved, 0, 0, 0) ==
+            CH_IAT_POLICY_NEEDS_REPAIR);
     }
 }
 

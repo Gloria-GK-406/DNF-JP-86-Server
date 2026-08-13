@@ -52,13 +52,11 @@ int ch_repair_client_iat(void)
     for (index = 0; index < CH_IAT_ENTRY_COUNT; ++index) {
         const ch_iat_entry* entry = &g_ch_iat_table[index];
         HMODULE module = NULL;
-        uintptr_t captured;
         uintptr_t rva;
         const uintptr_t* slot;
         MEMORY_BASIC_INFORMATION memory;
         ch_iat_policy_state state;
         size_t module_index;
-        int captured_is_module_rva = 0;
 
         if (entry->preferred_va < 0x00400000u) return 0;
         rva = entry->preferred_va - 0x00400000u;
@@ -78,13 +76,13 @@ int ch_repair_client_iat(void)
             }
         }
         if (module == NULL) {
+            if (module_count == sizeof(modules) / sizeof(modules[0])) return 0;
             module = GetModuleHandleA(entry->module_name);
             if (module == NULL) {
                 module = LoadLibraryExA(entry->module_name, NULL,
                     LOAD_LIBRARY_SEARCH_APPLICATION_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32);
             }
-            if (module == NULL ||
-                module_count == sizeof(modules) / sizeof(modules[0])) return 0;
+            if (module == NULL) return 0;
             modules[module_count].name = entry->module_name;
             modules[module_count].module = module;
             ++module_count;
@@ -92,24 +90,22 @@ int ch_repair_client_iat(void)
 
         resolved[index] = (uintptr_t)GetProcAddress(module, entry->function_name);
         original[index] = *slot;
-        if (index < CH_IAT_GATE_EXACT_COUNT) {
-            captured = g_ch_iat_gate_exact[index];
-        } else if (index == CH_IAT_GATE_RELATIVE_INDEX) {
-            captured = CH_IAT_GATE_RELATIVE_RVA;
-            captured_is_module_rva = 1;
-        } else if (index == CH_IAT_GATE_EXTRA_EXACT_INDEX) {
-            captured = CH_IAT_GATE_EXTRA_EXACT_VALUE;
-        } else {
-            captured = resolved[index];
-        }
 
-        state = ch_iat_policy_evaluate(original[index], resolved[index], captured,
-            (uintptr_t)module, captured_is_module_rva);
+        /* The slot is repaired to its current resolved export without matching
+         * the prior pack-time value against any captured absolute address.
+         * Only the DNF data-export slot (resolved == 0) is retained by RVA. */
+        if (index == CH_IAT_GATE_DATA_EXPORT_INDEX) {
+            state = ch_iat_policy_evaluate(original[index], resolved[index],
+                (uintptr_t)module, 1, CH_IAT_GATE_DATA_EXPORT_RVA);
+        } else {
+            state = ch_iat_policy_evaluate(original[index], resolved[index],
+                0, 0, 0);
+        }
         if (state == CH_IAT_POLICY_REJECTED) {
             char detail[128];
             _snprintf_s(detail, sizeof(detail), _TRUNCATE,
-                "IAT slot %lu does not match captured or resolved state",
-                (unsigned long)index);
+                "IAT slot %lu export %s!%s could not be resolved",
+                (unsigned long)index, entry->module_name, entry->function_name);
             ch_log(0, "iat", detail);
             return 0;
         }

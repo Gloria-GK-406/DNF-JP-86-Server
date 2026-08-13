@@ -7,17 +7,16 @@ ch_iat_slot_state ch_iat_slot_evaluate(uintptr_t actual, uintptr_t resolved)
 }
 
 ch_iat_policy_state ch_iat_policy_evaluate(
-    uintptr_t actual, uintptr_t resolved, uintptr_t captured,
-    uintptr_t module_base, int captured_is_module_rva)
+    uintptr_t actual, uintptr_t resolved,
+    uintptr_t module_base, int is_data_export, uintptr_t data_export_rva)
 {
     if (resolved != 0) {
-        if (actual == resolved) return CH_IAT_POLICY_RESOLVED;
-        return actual == captured
-            ? CH_IAT_POLICY_NEEDS_REPAIR
-            : CH_IAT_POLICY_REJECTED;
+        return actual == resolved
+            ? CH_IAT_POLICY_RESOLVED
+            : CH_IAT_POLICY_NEEDS_REPAIR;
     }
-    if (captured_is_module_rva && module_base != 0 && actual >= module_base &&
-        actual - module_base == captured) {
+    if (is_data_export && module_base != 0 && actual >= module_base &&
+        actual - module_base == data_export_rva) {
         return CH_IAT_POLICY_RETAIN_UNRESOLVED;
     }
     return CH_IAT_POLICY_REJECTED;
