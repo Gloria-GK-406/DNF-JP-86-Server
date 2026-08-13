@@ -8,26 +8,64 @@ enum {
     STAGE_OFFSET = 0x15E218u,
     STAGE_SIZE = 0x0AF000u,
     STAGE_WPOS_OFFSET = STAGE_OFFSET + STAGE_SIZE,
-    STAGE_CS_OFFSET = STAGE_OFFSET + STAGE_SIZE + 8u
+    STAGE_CS_OFFSET = STAGE_OFFSET + STAGE_SIZE + 8u,
+    /* The 13-byte packet header sits immediately before the cipher body.
+     * totalLength (body + 13) is stored at header offset 3 as a little-endian
+     * DWORD; MakePacket/TCP_SEND leave a stale value here and expect
+     * Cipher::Encrypt to finalize it once the body length is known. */
+    HEADER_SIZE = 13u,
+    HEADER_TOTALLENGTH_OFFSET = 3u
 };
 
 static void* g_original_encrypt;
 static void* g_original_decrypt;
 static void* g_original_socket_write;
 
-static int __fastcall cipher_passthrough(
+/* Cipher::Encrypt passthrough. The original applies a fixed-key XOR; the
+ * server speaks plaintext, so the body is memcpy'd unchanged. We also
+ * finalize the packet header totalLength = body + 13 unconditionally. The
+ * write must not be skipped for short bodies: MakePacket leaves a stale
+ * totalLength from a previous packet, and a wrong value misframes the packet
+ * on the peer (the connection drops after the first short login follow-up).
+ * Matches the reference S4A12 Proxy_CipherEncrypt, which has no size guard. */
+static int __fastcall cipher_encrypt_passthrough(
     void* self, void* edx_value, int packet_type, const char* input,
     int input_size, char* output, int* output_size)
 {
     (void)self;
     (void)edx_value;
     (void)packet_type;
-    if (input == NULL || output == NULL || output_size == NULL || input_size < 0) return 0;
+    if (input == NULL || output == NULL || output_size == NULL || input_size < 0)
+        return 0;
+    *(int*)(input - HEADER_SIZE + HEADER_TOTALLENGTH_OFFSET) =
+        input_size + HEADER_SIZE;
     if (input_size != 0) memcpy(output, input, (size_t)input_size);
     *output_size = input_size;
     return 1;
 }
 
+/* Cipher::Decrypt passthrough. Server sends plaintext, so decrypt is a
+ * memcpy. Kept separate from encrypt so the two hook targets stay
+ * independently identifiable. */
+static int __fastcall cipher_decrypt_passthrough(
+    void* self, void* edx_value, int packet_type, const char* input,
+    int input_size, char* output, int* output_size)
+{
+    (void)self;
+    (void)edx_value;
+    (void)packet_type;
+    if (input == NULL || output == NULL || output_size == NULL || input_size < 0)
+        return 0;
+    if (input_size != 0) memcpy(output, input, (size_t)input_size);
+    *output_size = input_size;
+    return 1;
+}
+
+/* ISocket::Write appends to the per-socket packet staging buffer; it does not
+ * touch the send ring or the socket. MakePacket writes the 13-byte header,
+ * wrappers append body bytes, then TCP_SEND pops the staged packet, calls
+ * Cipher::Encrypt, and hands the result to the flush ring/thread that send()s.
+ * Reversed from the reference S4A12 GameGaurd implementation. */
 static int __fastcall socket_write(
     void* self, void* edx_value, const char* buffer, int size)
 {
@@ -89,11 +127,11 @@ ch_status CH_CALL ch_plugin_initialize(const ch_host_api* host)
 #pragma warning(disable: 4055)
 #endif
     status = create_hook(host, 0x01C11360u, CH_SIG_CIPHER_ENCRYPT,
-        sizeof(CH_SIG_CIPHER_ENCRYPT), (void*)cipher_passthrough,
+        sizeof(CH_SIG_CIPHER_ENCRYPT), (void*)cipher_encrypt_passthrough,
         &g_original_encrypt, "cipher-encrypt-passthrough");
     if (status == CH_STATUS_OK) {
         status = create_hook(host, 0x01C11420u, CH_SIG_CIPHER_DECRYPT,
-            sizeof(CH_SIG_CIPHER_DECRYPT), (void*)cipher_passthrough,
+            sizeof(CH_SIG_CIPHER_DECRYPT), (void*)cipher_decrypt_passthrough,
             &g_original_decrypt, "cipher-decrypt-passthrough");
     }
     if (status == CH_STATUS_OK) {
