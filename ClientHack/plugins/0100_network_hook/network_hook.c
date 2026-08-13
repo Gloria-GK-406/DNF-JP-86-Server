@@ -84,8 +84,10 @@ ch_status CH_CALL ch_plugin_initialize(const ch_host_api* host)
     }
     status = apply_network_xor_patch(host);
     if (status != CH_STATUS_OK) return status;
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable: 4055)
+#endif
     status = create_hook(host, 0x01C11360u, CH_SIG_CIPHER_ENCRYPT,
         sizeof(CH_SIG_CIPHER_ENCRYPT), (void*)cipher_passthrough,
         &g_original_encrypt, "cipher-encrypt-passthrough");
@@ -99,6 +101,8 @@ ch_status CH_CALL ch_plugin_initialize(const ch_host_api* host)
             sizeof(CH_SIG_SOCKET_WRITE), (void*)socket_write,
             &g_original_socket_write, "socket-write-staging");
     }
+#if defined(_MSC_VER)
 #pragma warning(pop)
+#endif
     return status;
 }

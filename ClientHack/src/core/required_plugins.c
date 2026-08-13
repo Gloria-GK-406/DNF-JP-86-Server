@@ -13,6 +13,7 @@ static const ch_required_identity required_plugins[CH_REQUIRED_PLUGIN_COUNT] = {
     { L"0010_DisableGameGuard.dll", "DisableGameGuard" },
     { L"0020_ClientCompatibility.dll", "ClientCompatibility" },
     { L"0100_NetworkHook.dll", "NetworkHook" },
+    { L"0110_ServerRedirect.dll", "ServerRedirect" },
     { L"0900_PreventMinimize.dll", "PreventMinimize" }
 };
 

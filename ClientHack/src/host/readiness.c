@@ -2,9 +2,17 @@
 
 #include "clienthack/runtime_signatures.h"
 
-#include <intrin.h>
 #include <limits.h>
 #include <string.h>
+
+#if defined(_MSC_VER)
+#include <intrin.h>
+#define CH_NOINLINE __declspec(noinline)
+#elif defined(__GNUC__)
+#define CH_NOINLINE __attribute__((noinline, optimize("no-omit-frame-pointer")))
+#else
+#error Unsupported compiler
+#endif
 
 static HANDLE g_startup_gate_entered;
 static HANDLE g_startup_gate_release;
@@ -41,9 +49,16 @@ int ch_wait_for_client_ready(DWORD timeout_ms)
     return 0;
 }
 
-static __declspec(noinline) void __cdecl ch_startup_gate_handler(void)
+static CH_NOINLINE void __cdecl ch_startup_gate_handler(void)
 {
+#if defined(_MSC_VER)
     void** return_address = (void**)_AddressOfReturnAddress();
+#else
+    /* The GCC function attribute above preserves EBP, so EBP+pointer-size is
+     * the CALL return slot that the startup gate must redirect. */
+    void** return_address = (void**)((uint8_t*)__builtin_frame_address(0) +
+        sizeof(void*));
+#endif
     DWORD old_protection;
     int restored = 0;
 

@@ -19,6 +19,18 @@
       "generator": "Visual Studio 18 2026",
       "architecture": "Win32",
       "binaryDir": "${sourceDir}/out/win32-release"
+    },
+    {
+      "name": "mingw32-release",
+      "displayName": "MinGW Win32 Cross Release",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/out/mingw32-release",
+      "cacheVariables": {
+        "CMAKE_SYSTEM_NAME": "Windows",
+        "CMAKE_C_COMPILER": "i686-w64-mingw32-gcc",
+        "CMAKE_RC_COMPILER": "i686-w64-mingw32-windres",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
     }
   ],
   "buildPresets": [
@@ -31,6 +43,10 @@
       "name": "win32-release",
       "configurePreset": "win32-release",
       "configuration": "Release"
+    },
+    {
+      "name": "mingw32-release",
+      "configurePreset": "mingw32-release"
     }
   ],
   "testPresets": [

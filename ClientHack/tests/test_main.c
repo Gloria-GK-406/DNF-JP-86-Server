@@ -163,10 +163,12 @@ static void test_required_plugins(void)
 {
     static const wchar_t* files[CH_REQUIRED_PLUGIN_COUNT] = {
         L"0010_DisableGameGuard.dll", L"0020_ClientCompatibility.dll",
-        L"0100_NetworkHook.dll", L"0900_PreventMinimize.dll"
+        L"0100_NetworkHook.dll", L"0110_ServerRedirect.dll",
+        L"0900_PreventMinimize.dll"
     };
     static const char* names[CH_REQUIRED_PLUGIN_COUNT] = {
-        "DisableGameGuard", "ClientCompatibility", "NetworkHook", "PreventMinimize"
+        "DisableGameGuard", "ClientCompatibility", "NetworkHook", "ServerRedirect",
+        "PreventMinimize"
     };
     ch_required_plugin_state state;
     uint32_t i;
@@ -283,10 +285,12 @@ static void test_staged_plugin_metadata(void)
         L"0010_DisableGameGuard.dll",
         L"0020_ClientCompatibility.dll",
         L"0100_NetworkHook.dll",
+        L"0110_ServerRedirect.dll",
         L"0900_PreventMinimize.dll"
     };
     static const char* names[] = {
-        "DisableGameGuard", "ClientCompatibility", "NetworkHook", "PreventMinimize"
+        "DisableGameGuard", "ClientCompatibility", "NetworkHook", "ServerRedirect",
+        "PreventMinimize"
     };
     size_t i;
     for (i = 0; i < sizeof(filenames) / sizeof(filenames[0]); ++i) {

@@ -26,6 +26,10 @@ static const capture_target targets[] = {
     { "n5_check_3", 0x00D8B1D0u, 32 },
     { "cipher_encrypt", 0x01C11360u, 64 },
     { "cipher_decrypt", 0x01C11420u, 64 },
+    { "game_log_1", 0x01CF9700u, 64 },
+    { "game_log_2", 0x01CF9800u, 64 },
+    { "legacy_edit_update", 0x01D1D190u, 64 },
+    { "character_name_filter", 0x01DB3800u, 64 },
     { "socket_write", 0x048FF9ABu, 64 },
     { "protection_005F80FD", 0x005F80FDu, 16 },
     { "protection_00914B81", 0x00914B81u, 16 },
@@ -223,8 +227,10 @@ static int __stdcall ts_return_one(int a) { (void)a; return 1; }
 /* The legacy CreateObj ABI exposes untyped vtable slots. On Win32, code and
  * data pointers have the same representation; keep the compatibility table
  * explicit and confine MSVC's non-standard conversion warning here. */
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable: 4152)
+#endif
 static void* g_vtable_a[10] = {
     ts_noop_3, ts_noop_cdecl, ts_noop_2, ts_noop_cdecl, ts_noop_cdecl,
     ts_noop_cdecl, ts_noop_cdecl, ts_noop_cdecl, ts_out_zero, NULL
@@ -236,7 +242,9 @@ static void* g_vtable_b[20] = {
     ts_noop_cdecl, ts_noop_2, ts_noop_cdecl, ts_noop_cdecl, ts_noop_cdecl,
     ts_noop_cdecl, ts_return_one, g_vtable_b_data, ts_noop_3, ts_noop_cdecl
 };
+#if defined(_MSC_VER)
 #pragma warning(pop)
+#endif
 static void* g_tersafe_object[9];
 static INIT_ONCE g_tersafe_once = INIT_ONCE_STATIC_INIT;
 static BOOL CALLBACK ts_initialize(PINIT_ONCE once, PVOID parameter, PVOID* context)

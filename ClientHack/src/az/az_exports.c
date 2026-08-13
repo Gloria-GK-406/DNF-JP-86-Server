@@ -1,7 +1,9 @@
 #include <windows.h>
 
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable: 4152)
+#endif
 
 static void __cdecl ts_noop_cdecl(void) {}
 static void __stdcall ts_noop_2(int a, int b) { (void)a; (void)b; }
@@ -54,4 +56,6 @@ int __cdecl ijlInit(void* value) { (void)value; return 0; }
 int __cdecl ijlRead(void* value, int flags) { (void)value; (void)flags; return 0; }
 int __cdecl ijlWrite(void* value, int flags) { (void)value; (void)flags; return 0; }
 
+#if defined(_MSC_VER)
 #pragma warning(pop)
+#endif

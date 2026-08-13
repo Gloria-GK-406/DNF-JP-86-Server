@@ -18,14 +18,18 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 set(CLIENTHACK_STAGE_DIR "${CMAKE_BINARY_DIR}/stage")
 
 function(clienthack_warnings target)
+    target_compile_definitions(${target} PRIVATE WIN32_LEAN_AND_MEAN)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4 /utf-8)
-        target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS WIN32_LEAN_AND_MEAN)
+        target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)
+    elseif(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(${target} PRIVATE -Wall -Wextra -Werror)
     endif()
 endfunction()
 
 add_library(clienthack_core STATIC
     src/core/abi.c
+    src/core/endpoint_redirect.c
     src/core/gate.c
     src/core/iat_state.c
     src/core/patch_state.c
@@ -49,6 +53,11 @@ target_link_libraries(clienthack_tests PRIVATE clienthack_core)
 target_include_directories(clienthack_tests PRIVATE src/az)
 clienthack_warnings(clienthack_tests)
 add_test(NAME clienthack_tests COMMAND clienthack_tests)
+
+add_executable(clienthack_endpoint_redirect_tests tests/test_endpoint_redirect.c)
+target_link_libraries(clienthack_endpoint_redirect_tests PRIVATE clienthack_core)
+clienthack_warnings(clienthack_endpoint_redirect_tests)
+add_test(NAME clienthack_endpoint_redirect_tests COMMAND clienthack_endpoint_redirect_tests)
 
 add_library(minhook STATIC
     third_party/minhook/src/buffer.c
@@ -127,6 +136,10 @@ clienthack_plugin(plugin_client_compatibility
 clienthack_plugin(plugin_network_hook
     plugins/0100_network_hook/network_hook.c
     "0100_NetworkHook" "NetworkHook")
+clienthack_plugin(plugin_server_redirect
+    plugins/0110_server_redirect/server_redirect.c
+    "0110_ServerRedirect" "ServerRedirect")
+target_link_libraries(plugin_server_redirect PRIVATE clienthack_core ws2_32)
 clienthack_plugin(plugin_prevent_minimize
     plugins/0900_prevent_minimize/prevent_minimize.c
     "0900_PreventMinimize" "PreventMinimize")
@@ -135,9 +148,15 @@ add_custom_target(clienthack_plugins DEPENDS
     plugin_disable_gameguard
     plugin_client_compatibility
     plugin_network_hook
+    plugin_server_redirect
     plugin_prevent_minimize)
 
 add_custom_target(clienthack_stage ALL DEPENDS Az ijl15 clienthack_plugins)
+
+add_custom_command(TARGET Az POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/ClientHack.ini"
+        "${CLIENTHACK_STAGE_DIR}/ClientHack.ini")
 
 add_dependencies(clienthack_tests clienthack_stage)
 target_compile_definitions(clienthack_tests PRIVATE
