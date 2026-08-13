@@ -13,6 +13,7 @@ using Dfo.Server.Infrastructure.Inventory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 
 namespace Dfo.Server.Infrastructure;
 
@@ -26,8 +27,12 @@ public sealed class InfrastructureModule : IServerModule
         ArgumentNullException.ThrowIfNull(configuration);
 
         var options = ChannelSourceOptions.FromConfiguration(configuration);
+        services.TryAddSingleton(options);
+        services.TryAddSingleton(new FileChannelScriptSource(options.ScriptVersion, options.ScriptPath));
         services.TryAddSingleton<IChannelScriptSource>(
-            new FileChannelScriptSource(options.ScriptVersion, options.ScriptPath));
+            provider => provider.GetRequiredService<FileChannelScriptSource>());
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IHostedService, ChannelScriptStartupService>());
         services.TryAddSingleton<IChannelCatalog>(
             new ConfigurationChannelCatalog(options.Channels));
         // Static game content. The archive opens lazily, so a server that never reads
@@ -123,19 +128,20 @@ public sealed class InfrastructureModule : IServerModule
     }
 }
 
-internal sealed record ChannelSourceOptions(
+public sealed record ChannelSourceOptions(
     string ScriptVersion,
     string ScriptPath,
+    string PublicServerIp,
     IReadOnlyList<ChannelServerInfo> Channels)
 {
     public static ChannelSourceOptions FromConfiguration(IConfiguration configuration)
     {
         var section = configuration.GetSection("Channel");
         var scriptVersion = section["ScriptVersion"] ?? "66";
-        var configuredPath = section["ScriptPath"] ?? "channel_info.etc";
+        var configuredPath = section["ScriptPath"] ?? "Resources/Channel/channel_info.etc";
         var scriptPath = Path.IsPathRooted(configuredPath)
-            ? configuredPath
-            : Path.Combine(AppContext.BaseDirectory, configuredPath);
+            ? Path.GetFullPath(configuredPath)
+            : Path.GetFullPath(configuredPath, AppContext.BaseDirectory);
         var publicServerIp = section["PublicServerIp"] ?? "127.0.0.1";
 
         var channels = section.GetSection("Channels")
@@ -156,7 +162,7 @@ internal sealed record ChannelSourceOptions(
             channels = [new ChannelServerInfo(11, "#ch.11", 500, 0, publicServerIp, 10011)];
         }
 
-        return new ChannelSourceOptions(scriptVersion, scriptPath, channels);
+        return new ChannelSourceOptions(scriptVersion, scriptPath, publicServerIp, channels);
     }
 
     private static ChannelServerInfo ParseChannel(
@@ -215,10 +221,59 @@ internal sealed record ChannelSourceOptions(
 
 internal sealed class FileChannelScriptSource(string version, string path) : IChannelScriptSource
 {
+    private readonly object _gate = new();
+    private byte[]? _content;
+
     public string Version { get; } = version;
 
-    public async ValueTask<byte[]> ReadAsync(CancellationToken cancellationToken) =>
-        await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
+    public ValueTask<byte[]> ReadAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        EnsureLoaded();
+        lock (_gate)
+        {
+            return ValueTask.FromResult(_content!.ToArray());
+        }
+    }
+
+    public void EnsureLoaded()
+    {
+        lock (_gate)
+        {
+            if (_content is not null) return;
+
+            byte[] content;
+            try
+            {
+                content = File.ReadAllBytes(path);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                throw new InvalidOperationException(
+                    $"Required channel script '{path}' could not be read.", exception);
+            }
+
+            if (content.Length == 0)
+            {
+                throw new InvalidOperationException(
+                    $"Required channel script '{path}' is empty.");
+            }
+
+            _content = content;
+        }
+    }
+}
+
+internal sealed class ChannelScriptStartupService(FileChannelScriptSource source) : IHostedService
+{
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        source.EnsureLoaded();
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }
 
 internal sealed class ConfigurationChannelCatalog(IReadOnlyList<ChannelServerInfo> channels)

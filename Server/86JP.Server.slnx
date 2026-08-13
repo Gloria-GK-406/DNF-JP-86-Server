@@ -12,6 +12,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/Dfo.Pvf.Tests/Dfo.Pvf.Tests.csproj" />
     <Project Path="tests/Dfo.Server.Application.Tests/Dfo.Server.Application.Tests.csproj" />
+    <Project Path="tests/Dfo.Server.Host.Tests/Dfo.Server.Host.Tests.csproj" />
     <Project Path="tests/Dfo.Server.Infrastructure.Tests/Dfo.Server.Infrastructure.Tests.csproj" />
     <Project Path="tests/Dfo.Server.Networking.Tests/Dfo.Server.Networking.Tests.csproj" />
   </Folder>

@@ -25,6 +25,8 @@ public sealed class GameLoginIntegrationTests
         Directory.CreateDirectory(directory);
         try
         {
+            var channelScriptPath = Path.Combine(directory, "channel_info.etc");
+            await File.WriteAllBytesAsync(channelScriptPath, [0x01]);
             var channelPort = GetAvailablePort();
             var gamePort = GetAvailablePort();
             while (gamePort == channelPort)
@@ -39,6 +41,7 @@ public sealed class GameLoginIntegrationTests
                 ["Networking:ChannelPort"] = channelPort.ToString(),
                 ["Networking:GamePorts:0"] = gamePort.ToString(),
                 ["Database:Path"] = Path.Combine(directory, "login.db"),
+                ["Channel:ScriptPath"] = channelScriptPath,
                 ["GameLogin:ServerIp"] = "192.0.2.20",
                 ["GameLogin:Environment"] = "1",
                 ["GameLogin:LoginChannelPort"] = "10128",
