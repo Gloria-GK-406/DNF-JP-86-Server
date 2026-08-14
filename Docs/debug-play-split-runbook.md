@@ -32,7 +32,7 @@ The old `codex/*` branches were renamed/cleaned; the debug lineage is now
 ## 2. Folder layout (runtime, outside the repo)
 
 ```
-D:\project\DNF-AntiDebug-Isolated-Root-20260813\
+D:\project\DNF\
 ├─ DNFClient-ClientHackLab-20260812\   <- DATA ROOT + archive (real game data,
 │                                          original DNF.exe, dumps, old logs)
 ├─ DNFClient-play\                      <- PLAY: packed DNF.exe + play Az + 5 plugins
@@ -62,26 +62,39 @@ Healthy boot log ends with: `IAT policy accepted`, 5 `plugin initialized`,
 
 ## 4. Run DEBUG
 
-### 4a. After a reboot (or first setup) — re-stand-up the runtime
+### 4a. After a reboot — one click to rebuild the B1 exe
 
 ```
-powershell -File DNF-JP-86-Server\ClientHack\tools\prepare_b1_runtime.ps1
+DNFClient-debug\重建debug-exe.bat      then      DNFClient-debug\启动DNF-debug.bat
 ```
 
-Copies + **rebases the 7 non-KnownDLL DLLs to their fixed dump bases** and deploys
-Az + 6 plugins + the `DNF.exe` SHA-identity hardlink into `DNFClient-debug`. Add
-`-Launch` to also start it. Verify the 7 bases with the check in §6.
+**A reboot DOES break the old B1 exe — this is confirmed, not hypothetical.** The
+dump replay bakes absolute pointers to KnownDLLs (kernel32/ntdll/**shell32**/...)
+whose ASLR base changes every boot; after a reboot the old exe crashes in real
+client code (e.g. a baked shell32 pointer lands in `int 3` padding, seen as
+`call dword ptr [eax+54h]` → dead). The 7 app-local DLLs survive (fixed rebased
+bases, `DYNAMICBASE:NO`), but KnownDLLs cannot be pinned that way.
 
-Rebased bases are fixed and persist across reboots, so a reboot usually needs only
-a relaunch; the script re-applies them to be safe. **The one unscriptable risk is
-inline KnownDLL (kernel32/ntdll/...) addresses baked into the dump** — if B1 ever
-faults on a kernel32/ntdll address after a reboot, the dump must be retaken in the
-new boot. (Not yet observed; confirm on the first real reboot.)
+`重建debug-exe.bat` fixes it in ~10-15 s, fully automated (self-contained in
+`DNFClient-debug\_rebuild\`, path-relative so a folder rename doesn't break it):
+
+1. self-heals the 7 game-data junctions (a folder rename/move breaks them);
+2. drops the `0000_MemoryDump` plugin in, runs the **packed** `DNF.exe` (non-B1) so
+   it self-dumps **this boot's** KnownDLL bases (< 5 s), removes the plugin again;
+3. runs `rebuild_runnable_pe.py` on the fresh dump → new `DNF.unpacked-b1-debug.exe`;
+4. keeps only the newest dump (~107 MB each).
+
+It reuses the rebased DLLs already on disk (they persist across reboots), so no
+recompile / editbin / `prepare_b1_runtime.ps1` is needed after a reboot.
+
+First-time setup only (not per reboot): `prepare_b1_runtime.ps1` rebases the 7
+DLLs to their fixed dump bases and deploys Az + 6 plugins + the `DNF.exe`
+SHA-identity hardlink into `DNFClient-debug`. Verify the 7 bases with §6.
 
 ### 4b. Launch + attach
 
 ```
-DNFClient-debug\启动DNF.bat          (sets CLIENTHACK_B1_MODE=1, runs the B1 exe)
+DNFClient-debug\启动DNF-debug.bat     (sets CLIENTHACK_B1_MODE=1, runs the B1 exe)
 ```
 
 Then attach a debugger to `DNF.unpacked-b1-debug.exe`. The `0005_AntiAntiDebug`

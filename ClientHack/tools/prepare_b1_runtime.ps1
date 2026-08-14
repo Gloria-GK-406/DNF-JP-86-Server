@@ -28,12 +28,12 @@
 #>
 param(
   # Source of the original (non-rebased) game DLLs to copy+rebase from.
-  [string]$Client  = "D:\project\DNF-AntiDebug-Isolated-Root-20260813\DNFClient-ClientHackLab-20260812",
+  [string]$Client  = "D:\project\DNF\DNFClient-ClientHackLab-20260812",
   # The B1 DEBUG runtime folder to (re)build. Formerly <Client>\rebuilt; now a
   # clean sibling. This is the folder 启动DNF.bat / a debugger launches from.
-  [string]$Debug   = "D:\project\DNF-AntiDebug-Isolated-Root-20260813\DNFClient-debug",
+  [string]$Debug   = "D:\project\DNF\DNFClient-debug",
   # Debug-config ClientHack build stage (branch: client-debug-lab).
-  [string]$Stage   = "D:\project\DNF-AntiDebug-Isolated-Root-20260813\DNF-JP-86-Server\ClientHack\out\build-trace\stage",
+  [string]$Stage   = "D:\project\DNF\DNF-JP-86-Server\ClientHack\out\build-trace\stage",
   [string]$Editbin = "C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.50.35717\bin\Hostx86\x86\editbin.exe",
   [string]$Python  = "C:\Users\10239\AppData\Local\Programs\Python\Python314\python.exe",
   [switch]$Launch
