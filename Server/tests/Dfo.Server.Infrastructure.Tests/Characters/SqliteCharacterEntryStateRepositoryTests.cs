@@ -25,6 +25,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
         }
         finally
         {
+            SqliteConnection.ClearAllPools();
             File.Delete(path);
         }
     }
@@ -123,6 +124,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
         }
         finally
         {
+            SqliteConnection.ClearAllPools();
             File.Delete(path);
         }
     }
@@ -174,6 +176,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
         }
         finally
         {
+            SqliteConnection.ClearAllPools();
             File.Delete(path);
         }
     }
@@ -244,6 +247,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
         }
         finally
         {
+            SqliteConnection.ClearAllPools();
             File.Delete(path);
         }
     }
@@ -283,6 +287,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
         }
         finally
         {
+            SqliteConnection.ClearAllPools();
             File.Delete(path);
         }
     }

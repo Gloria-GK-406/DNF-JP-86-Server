@@ -557,6 +557,7 @@ public sealed class SelectCharacterPayloadCodecTests
         }
         finally
         {
+            SqliteConnection.ClearAllPools();
             File.Delete(path);
         }
     }

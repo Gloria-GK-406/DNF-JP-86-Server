@@ -36,7 +36,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
             Assert.Equal([200], profile.Pages[1].Skills.Select(value => (int)value.SkillId));
             Assert.Equal(ushort.MaxValue, profile.ProtocolMirror!.Page0Sp);
         }
-        finally { File.Delete(path); }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
             Assert.Equal(0, retry.CommittedCount);
             Assert.Equal(5L, await ScalarAsync(path, "SELECT lucky_star FROM accounts WHERE account_id=3"));
         }
-        finally { File.Delete(path); }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }
 
     [Fact]
@@ -93,7 +93,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
             Assert.Equal("{\"granted\":false,\"newTotal\":999}", await ScalarStringAsync(path,
                 "SELECT result_json FROM dungeon_persistent_effect_outbox"));
         }
-        finally { File.Delete(path); }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }
 
     [Fact]
@@ -116,7 +116,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
             Assert.Equal(1L, await ScalarAsync(path,
                 "SELECT attempt_count FROM dungeon_persistent_effect_outbox"));
         }
-        finally { File.Delete(path); }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
             Assert.Equal(2L, await ScalarAsync(path,
                 "SELECT COUNT(*) FROM dungeon_persistent_effect_outbox WHERE state=4"));
         }
-        finally { File.Delete(path); }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }
 
     [Fact]
@@ -199,7 +199,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
                 new Dictionary<int, byte>(), CancellationToken.None));
             Assert.Equal(4L, await ScalarAsync(path, "SELECT level FROM character_skills"));
         }
-        finally { File.Delete(path); }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }
 
     [Fact]
@@ -237,7 +237,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
             Assert.Equal(4L, await ScalarAsync(path, "SELECT state FROM dungeon_persistent_effect_outbox WHERE source_event_id='bad'"));
             Assert.Equal(2L, await ScalarAsync(path, "SELECT state FROM dungeon_persistent_effect_outbox WHERE source_event_id='xp'"));
         }
-        finally { File.Delete(path); }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }
 
     [Fact]
@@ -277,7 +277,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
             Assert.Equal("{\"rawGain\":25,\"honorExpGain\":15,\"normalExpGain\":10,\"previousLevel\":85,\"previousExp\":84990,\"newLevel\":86,\"newExp\":85000,\"normalizedMaxLevelExp\":false,\"persisted\":true,\"growthCapsuleExpGain\":15,\"totalHonorExp\":20,\"totalGrowthCapsuleExp\":17}",
                 await ScalarStringAsync(path, "SELECT result_json FROM dungeon_persistent_effect_outbox"));
         }
-        finally { File.Delete(path); }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }
 
     private static string TempPath() => Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");

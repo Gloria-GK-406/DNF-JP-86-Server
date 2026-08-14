@@ -119,6 +119,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
         }
         finally
         {
+            SqliteConnection.ClearAllPools();
             File.Delete(databasePath);
         }
     }
@@ -160,6 +161,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
         }
         finally
         {
+            SqliteConnection.ClearAllPools();
             File.Delete(databasePath);
         }
     }
@@ -212,6 +214,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
         }
         finally
         {
+            SqliteConnection.ClearAllPools();
             File.Delete(databasePath);
         }
     }
@@ -263,6 +266,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
         }
         finally
         {
+            SqliteConnection.ClearAllPools();
             File.Delete(databasePath);
         }
     }
@@ -314,6 +318,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
         }
         finally
         {
+            SqliteConnection.ClearAllPools();
             File.Delete(databasePath);
         }
     }
@@ -362,6 +367,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
         }
         finally
         {
+            SqliteConnection.ClearAllPools();
             File.Delete(databasePath);
         }
     }
@@ -407,6 +413,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
         }
         finally
         {
+            SqliteConnection.ClearAllPools();
             File.Delete(databasePath);
         }
     }

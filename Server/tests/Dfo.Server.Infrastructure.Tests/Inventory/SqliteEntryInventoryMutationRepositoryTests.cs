@@ -78,7 +78,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
                 new AccountId(7), new CharacterId(70), CancellationToken.None);
             Assert.Equal(15, Assert.Single(other.CharacterItems).AvatarDetail!.DeleteDate);
         }
-        finally { File.Delete(path); }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }
 
     [Fact]
@@ -118,7 +118,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             Assert.Equal(2, (await repository.LoadCharacterAsync(
                 new AccountId(6), new CharacterId(60), CancellationToken.None)).CharacterItems.Count);
         }
-        finally { File.Delete(path); }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             Assert.Equal(1L, await ScalarAsync(connection,
                 "SELECT value FROM character_daily_counters WHERE character_id=70 AND counter_key='pvf_daily_refill_item_1234'"));
         }
-        finally { File.Delete(path); }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }
 
     private static async Task<string> ScalarStringAsync(SqliteConnection connection, string sql)
@@ -191,7 +191,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             Assert.Equal(0L, await ScalarAsync(connection,
                 "SELECT COUNT(*) FROM character_daily_counters WHERE counter_key='pvf_daily_refill_item_3333'"));
         }
-        finally { File.Delete(path); }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }
 
     private static readonly DateTimeOffset PreparedAt =

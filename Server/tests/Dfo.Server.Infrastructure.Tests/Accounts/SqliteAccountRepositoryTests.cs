@@ -1,4 +1,5 @@
 using Dfo.Server.Infrastructure.Accounts;
+using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Infrastructure.Tests.Accounts;
 
@@ -27,6 +28,7 @@ public sealed class SqliteAccountRepositoryTests
         }
         finally
         {
+            SqliteConnection.ClearAllPools();
             Directory.Delete(directory, recursive: true);
         }
     }

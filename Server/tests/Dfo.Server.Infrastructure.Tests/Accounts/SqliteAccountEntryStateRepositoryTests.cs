@@ -49,6 +49,7 @@ public sealed class SqliteAccountEntryStateRepositoryTests
         }
         finally
         {
+            SqliteConnection.ClearAllPools();
             File.Delete(path);
         }
     }
@@ -77,6 +78,7 @@ public sealed class SqliteAccountEntryStateRepositoryTests
         }
         finally
         {
+            SqliteConnection.ClearAllPools();
             File.Delete(path);
         }
     }
@@ -121,6 +123,7 @@ public sealed class SqliteAccountEntryStateRepositoryTests
         }
         finally
         {
+            SqliteConnection.ClearAllPools();
             File.Delete(path);
         }
     }

@@ -13,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TouchSocketSessionClient = TouchSocket.Sockets.ITcpSessionClient;
+using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Networking.Tests.Integration;
 
@@ -95,6 +96,7 @@ public sealed class GameLoginIntegrationTests
         }
         finally
         {
+            SqliteConnection.ClearAllPools();
             Directory.Delete(directory, recursive: true);
         }
     }

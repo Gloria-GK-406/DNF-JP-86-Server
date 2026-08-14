@@ -11,6 +11,7 @@ using Dfo.Server.Networking.Framing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Networking.Tests.Integration;
 
@@ -86,6 +87,7 @@ public sealed class ChannelControlMessagesIntegrationTests
         }
         finally
         {
+            SqliteConnection.ClearAllPools();
             File.Delete(scriptPath);
         }
     }

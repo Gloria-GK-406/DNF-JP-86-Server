@@ -49,7 +49,11 @@ public sealed class ChannelHostStartupTests
             var startupOutput = Snapshot(output);
             Assert.Contains($"ContentRoot={Path.GetDirectoryName(typeof(Program).Assembly.Location)}", startupOutput);
             Assert.Contains("ChannelScript=", startupOutput);
-            Assert.Contains("Resources/Channel/channel_info.etc", startupOutput);
+            // ChannelSourceOptions resolves the configured path to an absolute path whose
+            // separators follow the OS, so match the resolved tail instead of a literal forward-slash path.
+            Assert.Contains(
+                $"Resources{Path.DirectorySeparatorChar}Channel{Path.DirectorySeparatorChar}channel_info.etc",
+                startupOutput);
             Assert.Contains("ChannelAddress=127.0.0.1", startupOutput);
             Assert.Contains("GameAddress=127.0.0.1", startupOutput);
             Assert.Contains($"ChannelPort={channelPort}", startupOutput);
