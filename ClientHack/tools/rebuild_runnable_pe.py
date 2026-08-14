@@ -189,9 +189,13 @@ def load_iat_runs(csv_path):
     return runs
 
 
-# DLLs excluded from the merged standard imports for B1: importing them would
-# drag ClientHack (Az via ijl15) into the already-unpacked rebuild.
-B1_EXCLUDED_IMPORT_DLLS = {"az.dll", "ijl15.dll"}
+# DLLs excluded from the merged standard imports for B1. Empty by default: the
+# client statically imports az.dll!PutRSInfo, and loading ClientHack's Az.dll is
+# exactly how B1 gets the server redirect + client-check bypasses (it runs with
+# CLIENTHACK_B1_MODE=1 so the host skips the now-pointless anti-debug/IAT repair).
+# ijl15.dll is a harmless compatibility stub. Set this to exclude them for a
+# ClientHack-free bring-up run.
+B1_EXCLUDED_IMPORT_DLLS = set()
 
 
 def parse_standard_imports(memory, imp_rva, exclude=None):

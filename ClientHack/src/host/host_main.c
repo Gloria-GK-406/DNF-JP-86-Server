@@ -93,12 +93,31 @@ void ch_fatal(const wchar_t* detail)
     TerminateProcess(GetCurrentProcess(), ERROR_BAD_EXE_FORMAT);
 }
 
+/* B1 mode: the client runs from a rebuilt, already-unpacked PE whose entry
+ * never executes the Themida AEP. There is therefore no protector anti-debug to
+ * defeat (the process is debuggable as-is) and the Windows loader has already
+ * resolved the client IAT, so the host's early anti-debug and IAT repair are
+ * both unnecessary. Everything else (startup gate, feature-ready wait, plugins)
+ * still applies -- the plugins carry the server redirect and client-check
+ * bypasses the login path needs. */
+static int ch_b1_mode(void)
+{
+    wchar_t value[8];
+    DWORD length = GetEnvironmentVariableW(L"CLIENTHACK_B1_MODE", value,
+        sizeof(value) / sizeof(value[0]));
+    return length == 1 && value[0] == L'1';
+}
+
 static int ch_continue_startup(void* context)
 {
     const wchar_t* root = (const wchar_t*)context;
     ch_early_antidebug_state early;
+    const int b1_mode = ch_b1_mode();
     g_ch_dnf_base = (uintptr_t)GetModuleHandleW(NULL);
-    if (g_ch_dnf_base == 0 || !ch_startup_gate_install(120000u)) return 0;
+    if (g_ch_dnf_base == 0) return 0;
+    /* In B1 the gate is armed synchronously in DllMain (see the race note
+     * there); here we only install it for the normal AEP-unpack path. */
+    if (!b1_mode && !ch_startup_gate_install(120000u)) return 0;
     ch_log(3, "host", "startup gate installed");
     if (!ch_startup_gate_wait(120000u)) return 0;
     ch_log(3, "host", "startup gate intercepted the client thread");
@@ -106,6 +125,7 @@ static int ch_continue_startup(void* context)
      * before any later step can perturb it. No-op unless CLIENTHACK_STARTUP_TRACE
      * is set, so ordinary launches are unaffected. */
     (void)ch_startup_trace_write();
+    if (!b1_mode) {
     ch_early_antidebug_snapshot(&early);
     {
         char message[192];
@@ -242,6 +262,7 @@ static int ch_continue_startup(void* context)
         ch_log(3, "AntiAntiDebugEarly", stack_message);
     }
     if (!ch_repair_client_iat()) return 0;
+    }  /* end !b1_mode: skip host anti-debug snapshot + IAT repair in B1 */
     if (!ch_wait_for_feature_ready(30000u)) {
         ch_log(0, "host", "feature runtime signatures did not become ready");
         return 0;
@@ -302,8 +323,19 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, void* reserved)
     if (reason == DLL_PROCESS_ATTACH) {
         HANDLE thread;
         g_ch_module = instance;
-        if (!ch_early_antidebug_install()) return FALSE;
-        if (!ch_early_antidebug_start_monitor()) return FALSE;
+        if (!ch_b1_mode()) {
+            /* No Themida AEP runs in B1, so there is no anti-attach to defeat. */
+            if (!ch_early_antidebug_install()) return FALSE;
+            if (!ch_early_antidebug_start_monitor()) return FALSE;
+        } else {
+            /* B1's image is already unpacked, so XCookie is patchable now. The
+             * AEP-free entry stub calls XCookie almost immediately after load,
+             * long before the worker finishes the SHA identity check -- so the
+             * gate MUST be armed here, synchronously, or the main thread races
+             * past it unblocked and no plugin patches ever apply. */
+            g_ch_dnf_base = (uintptr_t)GetModuleHandleW(NULL);
+            if (g_ch_dnf_base == 0 || !ch_startup_gate_install(5000u)) return FALSE;
+        }
         if (!ch_native_trace_mapping()) return FALSE;
         if (!ch_debug_attach_handshake()) return FALSE;
         DisableThreadLibraryCalls(instance);
