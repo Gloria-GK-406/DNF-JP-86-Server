@@ -20,6 +20,21 @@
 `CLIENTHACK_STARTUP_TRACE=1`，普通启动零影响）；隔离客户端新增 `采集启动栈.bat`；已部署新
 Az.dll（见第 3 节身份记录）。
 
+## 0b. 阶段 2 已完成（2026-08-14 追加）
+
+入口目标与所需机器状态已确定，详见 `Docs/entry-recovery-phase2.md`。要点：
+
+- 采集已扩展记录 XCookie 拦截点全部 GP 寄存器。关键：`edi=0x06576731`（== 原始 AEP），变形 CRT
+  以 EDI 为基址读取 `.j`-` 内 Themida 数据；`ebx=0x0034C000` 为非固定堆地址。
+- 干净应用本体（C++/thiscall）已部分测绘：WndProc `0x02199640`、UI/消息泵线程过程 `0x02199780`
+  （建 800×600 主窗、唯一 `DispatchMessageW` 泵）、UI 线程 spawner `0x02199900`；只有 CRT 启动被变形。
+- 入口设计两候选：**策略 C（推荐，=B1）** 极小桩 `edi=AEP → call cookie(0x0253BBBF) → jmp 0x04ED6E75`
+  续跑真实变形 CRT；**策略 A（回退）** 合成干净 CRT + 定位真实 WinMain。核心风险：变形 CRT 是否依赖
+  AEP 建立的新鲜 Themida 运行期状态（堆/`[ebx]`），只能靠阶段 3 分级候选 B0/B0.5/B1 实测收敛。
+- 现有 `rebuild_analysis_pe.py` 为 analysis-only，阶段 3 需扩展为可运行 rebuilder（导入/TLS/入口桩）。
+
+阶段 2 部署的 Az.dll（含寄存器采集）：`84AFEB6E3BD7D0272F56F5AB3FC537478CD140CE7B7369C82C26C5106FAA1C8E`。
+
 ## 1. 目标与当前结论
 
 当前工作的首要目标已经从“继续逐条对抗 Themida/SecureEngine 的反调试检测”切换为：

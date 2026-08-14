@@ -55,6 +55,16 @@ typedef struct ch_startup_gate_capture {
     uint32_t eflags;
     uint32_t esp;             /* handler ESP after prologue */
     uint32_t ebp;             /* handler EBP after prologue */
+    /* Client GP registers as seen at handler entry. eax/ecx/edx are clobbered
+     * by __security_init_cookie, but ebx/esi/edi/ebp are callee-saved, so they
+     * still hold the caller's values at the cookie continuation (client_return)
+     * -- the state a synthesized "restore regs; jmp continuation" entry needs. */
+    uint32_t eax;
+    uint32_t ecx;
+    uint32_t edx;
+    uint32_t ebx;
+    uint32_t esi;
+    uint32_t edi;
     uint32_t return_slot_va;  /* address of return_address[0] on the stack */
     uint32_t xcookie_return;  /* return_address[0]: XCookie+5 (temp CALL) */
     uint32_t client_return;   /* return_address[1]: caller of XCookie */

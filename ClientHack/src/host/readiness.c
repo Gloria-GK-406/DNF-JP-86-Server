@@ -8,8 +8,12 @@
 #if defined(_MSC_VER)
 #include <intrin.h>
 #define CH_NOINLINE __declspec(noinline)
+/* The gate handler captures the client's GP registers at entry, so it must not
+ * carry a /GS cookie prologue (which would clobber EAX before the capture). */
+#define CH_GATE_HANDLER __declspec(noinline) __declspec(safebuffers)
 #elif defined(__GNUC__)
 #define CH_NOINLINE __attribute__((noinline, optimize("no-omit-frame-pointer")))
+#define CH_GATE_HANDLER CH_NOINLINE
 #else
 #error Unsupported compiler
 #endif
@@ -37,16 +41,24 @@ const ch_startup_gate_capture* ch_startup_gate_capture_get(void)
  *
  * esp/ebp/eflags are the handler frame's registers; the client's ESP just
  * before it executed CALL XCookie is return_slot_va + sizeof(void*) (the slot
- * the original CALL pushed client_return into), recoverable offline. */
+ * the original CALL pushed client_return into), recoverable offline. The eax..edi
+ * values are the client GP registers as seen at handler entry. */
 static void ch_startup_gate_snapshot(void** return_address,
-    uint32_t eflags, uint32_t esp, uint32_t ebp)
+    const uint32_t regs[8], uint32_t eflags)
 {
     ch_startup_gate_capture* cap = &g_startup_gate_capture;
     size_t i;
     cap->thread_id = GetCurrentThreadId();
     cap->eflags = eflags;
-    cap->esp = esp;
-    cap->ebp = ebp;
+    /* regs order: eax, ecx, edx, ebx, esp, ebp, esi, edi (pushad order). */
+    cap->eax = regs[0];
+    cap->ecx = regs[1];
+    cap->edx = regs[2];
+    cap->ebx = regs[3];
+    cap->esp = regs[4];
+    cap->ebp = regs[5];
+    cap->esi = regs[6];
+    cap->edi = regs[7];
     cap->return_slot_va = (uint32_t)(uintptr_t)return_address;
     cap->xcookie_return = (uint32_t)(uintptr_t)return_address[0];
     cap->client_return = (uint32_t)(uintptr_t)return_address[1];
@@ -86,33 +98,39 @@ int ch_wait_for_client_ready(DWORD timeout_ms)
     return 0;
 }
 
-static CH_NOINLINE void __cdecl ch_startup_gate_handler(void)
+static CH_GATE_HANDLER void __cdecl ch_startup_gate_handler(void)
 {
-#if defined(_MSC_VER)
-    void** return_address = (void**)_AddressOfReturnAddress();
-#else
-    /* The GCC function attribute above preserves EBP, so EBP+pointer-size is
-     * the CALL return slot that the startup gate must redirect. */
-    void** return_address = (void**)((uint8_t*)__builtin_frame_address(0) +
-        sizeof(void*));
-#endif
+    /* regs order matches pushad: eax, ecx, edx, ebx, esp, ebp, esi, edi. */
+    uint32_t regs[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+    uint32_t captured_eflags = 0;
+    void** return_address;
     DWORD old_protection;
     int restored = 0;
-    uint32_t captured_eflags = 0;
-    uint32_t captured_esp = 0;
-    uint32_t captured_ebp = 0;
 
 #if defined(_MSC_VER) && defined(_M_IX86)
     __asm {
+        mov regs[0], eax
+        mov regs[4], ecx
+        mov regs[8], edx
+        mov regs[12], ebx
+        mov regs[16], esp
+        mov regs[20], ebp
+        mov regs[24], esi
+        mov regs[28], edi
         pushfd
         pop eax
         mov captured_eflags, eax
-        mov captured_esp, esp
-        mov captured_ebp, ebp
     }
+    return_address = (void**)_AddressOfReturnAddress();
+#elif defined(_MSC_VER)
+    return_address = (void**)_AddressOfReturnAddress();
+#else
+    /* The GCC function attribute above preserves EBP, so EBP+pointer-size is
+     * the CALL return slot that the startup gate must redirect. */
+    return_address = (void**)((uint8_t*)__builtin_frame_address(0) +
+        sizeof(void*));
 #endif
-    ch_startup_gate_snapshot(return_address, captured_eflags, captured_esp,
-        captured_ebp);
+    ch_startup_gate_snapshot(return_address, regs, captured_eflags);
     *return_address = g_startup_gate_target;
     if (VirtualProtect(g_startup_gate_target, sizeof(g_startup_gate_original),
         PAGE_EXECUTE_READWRITE, &old_protection)) {

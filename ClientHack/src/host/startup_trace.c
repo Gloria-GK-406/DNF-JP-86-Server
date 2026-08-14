@@ -203,6 +203,17 @@ int ch_startup_trace_write(void)
         (unsigned long)cap->client_return);
     if (!ch_trace_write_text(file, line)) goto fail;
 
+    /* Client GP registers at the XCookie intercept. ebx/esi/edi/ebp survive the
+     * cookie call unchanged, so they are the register state at client_return. */
+    _snprintf_s(line, sizeof(line), _TRUNCATE,
+        "  \"regs_at_xcookie\": { \"eax\": \"0x%08lX\", \"ecx\": \"0x%08lX\", "
+        "\"edx\": \"0x%08lX\", \"ebx\": \"0x%08lX\", \"esi\": \"0x%08lX\", "
+        "\"edi\": \"0x%08lX\" },\r\n",
+        (unsigned long)cap->eax, (unsigned long)cap->ecx,
+        (unsigned long)cap->edx, (unsigned long)cap->ebx,
+        (unsigned long)cap->esi, (unsigned long)cap->edi);
+    if (!ch_trace_write_text(file, line)) goto fail;
+
     if (!ch_trace_write_text(file, "  \"sections\": [\r\n")) goto fail;
     for (i = 0; i < section_count; ++i) {
         char name[16];
