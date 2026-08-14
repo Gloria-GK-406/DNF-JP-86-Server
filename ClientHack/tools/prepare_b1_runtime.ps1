@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Prepare the B1 debuggable-client runtime under <client>\rebuilt.
+  Prepare the B1 debuggable-client runtime under the DNFClient-debug folder.
 
 .DESCRIPTION
   B1 is the runnable, unpacked, AEP-free rebuild of DNF.exe (see
@@ -11,10 +11,10 @@
   non-fixed-base DLLs below actually move; KnownDLLs (kernel32/ntdll/...) share a
   per-boot base and are handled by the loader.
 
-  This script rebases those 7 DLLs into <client>\rebuilt and deploys the
-  ClientHack files (run with CLIENTHACK_B1_MODE=1 so the host skips the now
+  This script rebases those 7 DLLs into the DNFClient-debug folder and deploys
+  the ClientHack files (run with CLIENTHACK_B1_MODE=1 so the host skips the now
   pointless anti-debug + IAT repair). It assumes the B1 exe and the game-data
-  junctions/hardlinks are already present in <client>\rebuilt (one-time setup;
+  junctions/hardlinks are already present in DNFClient-debug (one-time setup;
   they persist across reboots).
 
   Reboot note: the rebased DLLs keep their fixed bases across reboots, so a
@@ -27,7 +27,12 @@
   powershell -File prepare_b1_runtime.ps1 -Launch
 #>
 param(
+  # Source of the original (non-rebased) game DLLs to copy+rebase from.
   [string]$Client  = "D:\project\DNF-AntiDebug-Isolated-Root-20260813\DNFClient-ClientHackLab-20260812",
+  # The B1 DEBUG runtime folder to (re)build. Formerly <Client>\rebuilt; now a
+  # clean sibling. This is the folder 启动DNF.bat / a debugger launches from.
+  [string]$Debug   = "D:\project\DNF-AntiDebug-Isolated-Root-20260813\DNFClient-debug",
+  # Debug-config ClientHack build stage (branch: client-debug-lab).
   [string]$Stage   = "D:\project\DNF-AntiDebug-Isolated-Root-20260813\DNF-JP-86-Server\ClientHack\out\build-trace\stage",
   [string]$Editbin = "C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.50.35717\bin\Hostx86\x86\editbin.exe",
   [string]$Python  = "C:\Users\10239\AppData\Local\Programs\Python\Python314\python.exe",
@@ -35,9 +40,9 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$rb = Join-Path $Client "rebuilt"
+$rb = $Debug
 $strip = Join-Path $PSScriptRoot "strip_sig.py"
-if (-not (Test-Path $rb)) { throw "rebuilt dir not found: $rb (run the one-time B1 setup first)" }
+if (-not (Test-Path $rb)) { throw "debug runtime dir not found: $rb (run the one-time B1 setup first)" }
 
 # name, source path, dump-time base (from the dump; see phase3 doc)
 $dlls = @(
