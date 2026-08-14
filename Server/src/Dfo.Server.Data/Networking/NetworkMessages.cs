@@ -11,6 +11,7 @@ public enum ClientMessageType
     ChannelInfo = 0x11,
     GameExit = 0x0001_0003,
     GameClientSpecStatistic = 0x0001_00AB,
+    GameClientHardwareDetail = 0x0001_01DD,
 }
 
 public enum ServerMessageType
@@ -184,4 +185,29 @@ public sealed record ClientSpecStatisticReportRequest(
     IReadOnlyList<ClientSpecStatisticSlot> Slots) : IClientNetworkMessage
 {
     public ClientMessageType MessageType => ClientMessageType.GameClientSpecStatistic;
+}
+
+/// <summary>
+/// CLIENT_HARDWARE_DETAIL report (cmd 0x01/type 0x01DD). Fire-and-forget telemetry the client
+/// sends immediately after CLIENT_SPEC_STATISTIC (0x00AB) and before GET_USERINFO; no response
+/// exists on the wire. Where 0x00AB reports bucketed values, this carries the raw ones plus the
+/// OS bitness that 0x00AB omits. Field names mirror the instruction-confirmed wire layout in
+/// protocol/game/client-to-server/0x01DD-client-hardware-detail; widths are the wire widths.
+///
+/// Unlike 0x00AB this report is conditional: the client skips it entirely when its system-info
+/// provider or its IsWow64Process pointer is null, so a session may legitimately never send it.
+/// </summary>
+public sealed record ClientHardwareDetailReportRequest(
+    GameMessageMetadata Metadata,
+    byte CpuVendorBucket,
+    byte CpuLogicalCores,
+    uint CpuClockMhz,
+    ushort TotalMemoryMegabytes,
+    ushort GpuPciVendorId,
+    ushort GpuPciDeviceId,
+    ushort VideoMemoryMegabytes,
+    byte OperatingSystemKind,
+    byte OperatingSystemBitness) : IClientNetworkMessage
+{
+    public ClientMessageType MessageType => ClientMessageType.GameClientHardwareDetail;
 }

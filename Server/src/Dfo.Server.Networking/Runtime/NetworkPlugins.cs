@@ -120,32 +120,20 @@ internal sealed class GameNetworkPlugin(
             frame.Type,
             frame.Checksum,
             frame.Sequence);
-        if (frame.Type == GameProtocol.LoginType
-            && GameLoginPayloadCodec.TryDecode(
+        return frame.Type switch
+        {
+            GameProtocol.LoginType => GameLoginPayloadCodec.TryDecode(
                 frame.Body.Span,
                 out var loginId,
-                out var passwordHash))
-        {
-            return new GameLoginRequest(metadata, loginId, passwordHash);
-        }
-
-        if (frame.Type == GameProtocol.GetUserInfoType)
-        {
-            return GetUserInfoPayloadCodec.Decode(metadata, frame.Body.Span);
-        }
-
-        if (frame.Type == GameProtocol.SelectCharacterType)
-        {
-            return SelectCharacterPayloadCodec.Decode(metadata, frame.Body.Span);
-        }
-
-        if (frame.Type == GameProtocol.ClientSpecStatisticType)
-        {
-            return ClientSpecStatisticPayloadCodec.Decode(metadata, frame.Body.Span);
-        }
-
-        return frame.Type == GameProtocol.ExitType
-            ? new GameExitRequest(metadata)
-            : null;
+                out var passwordHash)
+                ? new GameLoginRequest(metadata, loginId, passwordHash)
+                : null,
+            GameProtocol.GetUserInfoType => GetUserInfoPayloadCodec.Decode(metadata, frame.Body.Span),
+            GameProtocol.SelectCharacterType => SelectCharacterPayloadCodec.Decode(metadata, frame.Body.Span),
+            GameProtocol.ClientSpecStatisticType => ClientSpecStatisticPayloadCodec.Decode(metadata, frame.Body.Span),
+            GameProtocol.ClientHardwareDetailType => ClientHardwareDetailPayloadCodec.Decode(metadata, frame.Body.Span),
+            GameProtocol.ExitType => new GameExitRequest(metadata),
+            _ => null,
+        };
     }
 }
