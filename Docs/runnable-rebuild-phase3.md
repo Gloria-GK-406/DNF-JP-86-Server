@@ -90,7 +90,54 @@ tbbmalloc=0x60820000、dinput8=0x608A0000（互不重叠，与 dump 布局一致
 能跑完真实客户端启动直到创建主窗口。** 到登录界面所差的是 ClientHack 集成（TenProxy/服务端重定向/
 PutRSInfo 等由 Az 负责），属于 handoff 第 14 节“B1 保留 ClientHack 功能”的既定用法。
 
-## 下一阶段：把 B1 与 ClientHack(Az) 集成
+## 结果：B1 + 精简 ClientHack 进入选频道（已过登录）
+
+B1 与 ClientHack 集成成功，重建 EXE（不执行 AEP、可 attach）跑出**可见 800×600 的
+`地下城与勇士` 主窗口 + `DNF_WND_CHAT` 聊天窗**，并通过 ServerRedirect 连上
+100.100.51.178:7001，进入**选频道界面**（普通/公共频道、频道列表如“ch11 厄运之城 顺畅”），
+工作集约 613MB、持续渲染。即已越过登录界面到达频道选择（post-login）。
+
+### 关键修复
+
+1. **精简 ClientHack（`CLIENTHACK_B1_MODE=1`）**：host 跳过 early anti-debug（B1 无 AEP，
+   无反 attach 可打，进程本就可调试）与 IAT 修复（Loader 已解析 B1 导入）。6 个插件照常加载，
+   携带服务端重定向与客户端检查绕过。
+2. **gate 在 DllMain 同步安装（竞态修复）**：原来 worker 线程安装 gate，会和 B1 无 AEP 的入口桩
+   （加载后几乎立刻 `call XCookie`）抢跑——worker 还在算 SHA 身份时主线程已越过 XCookie，gate 没拦到，
+   插件补丁没生效（现象：gate installed 但从不 intercepted，客户端撞 R6002）。B1 映像已解包，XCookie
+   加载时即可打补丁，故在 DllMain 同步 arm gate，主线程必然阻塞在 gate、插件在其阻塞时初始化。
+3. **导入重新包含 az.dll/ijl15.dll**：客户端静态导入 `az.dll!PutRSInfo`，加载 ClientHack 的 Az 正是
+   B1 拿到插件的途径。
+
+### 7 个移位 DLL 全部重定基到 dump 基址（app-local + `editbin /REBASE /DYNAMICBASE:NO`）
+
+只有非 KnownDLL/非固定基址的 DLL 需要处理，逐个从导出表算精确 dump 基址后重定基：
+
+| DLL | dump 基址 | 备注 |
+| --- | --- | --- |
+| msvcp60 | 0x607A0000 | 系统 DLL（签名，先剥） |
+| tbbmalloc | 0x60820000 | app-local，签名，先剥 |
+| fmodex | 0x60390000 | app-local |
+| d3dx9_43 | 0x604E0000 | app-local，签名，先剥 |
+| dinput8 | 0x608A0000 | 系统 DLL |
+| az | 0x60860000 | ClientHack 自身；PutRSInfo 恰在 RVA 0x1000，与 dump 一致 |
+| logoncli | 0x60350000 | netapi32 `#59` 转发到 `LOGONCLI.I_NetServerAuthenticate3`；签名，先剥 |
+
+`netapi32` 本身不用重定基（其槽经 Loader 跟随转发解析正确）；卡点是转发目标 logoncli 的内联引用陈旧。
+签名 DLL 先清 Security 目录 + 截断证书再 editbin。所有基址互不重叠（沿用 dump 布局）。
+
+### 运行环境
+
+exe 与全部重定基 DLL、Az.dll、ijl15.dll、6 个插件、DNF.exe(硬链接，供 Az 身份校验) 都在 `rebuilt\`；
+游戏数据用 junction/硬链接从客户端目录挂入；`set CLIENTHACK_B1_MODE=1` 后从 `rebuilt\` 启动。
+
+### 尚未做
+
+- 实际登录（账号输入）需用户操作 + 服务端在线；本次到达选频道即证明登录前+服务端重定向链路通。
+- 硬件/软件断点在登录后的稳定性验证（handoff 阶段 5 矩阵）。
+- 把 DLL 重定基与目录准备脚本化，便于复现。
+
+## 附：原下一阶段设想（已实现）——把 B1 与 ClientHack(Az) 集成
 
 真实客户端经 `ijl15.dll` 劫持加载 Az，Az 在 XCookie 处装 startup gate。B1 保留 `.text` 里完整的
 XCookie(0x0253BBBF)，入口桩正是 `call 0x0253BBBF`。若在 B1 导入里重新包含 ClientHack 的
