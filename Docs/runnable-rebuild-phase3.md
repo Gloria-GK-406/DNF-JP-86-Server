@@ -14,7 +14,50 @@
 | --- | --- | --- |
 | **B0** `DNF.unpacked-b0-loader.exe` | 物化全部节；`.idat2` 仅含 kernel32!ExitProcess；`.chstub` = `push 0xB000; call [ExitProcess]`；入口指向桩 | **通过**：退出码 0xB000 |
 | **B0.5** `DNF.unpacked-b05-crt.exe` | 重建 406 项导入（4 段外部 FirstThunk）+ TLS(dir9→0x06230018) + 桩解析 9 孤立槽 + msvcp60 数据指针 + `call __security_init_cookie` + `ExitProcess(0xB005)` | **通过**：退出码 0xB005 |
-| **B1** `DNF.unpacked-b1-debug.exe` | B0.5 基础上：合并原标准导入(40 项)、`edi=AEP → call cookie → jmp 0x04ED6E75` | 进行中 |
+| **B1** `DNF.unpacked-b1-debug.exe` | B0.5 基础上：合并原标准导入(40 项，排除 az/ijl15)、`edi=AEP → call cookie → jmp 0x04ED6E75` | **续跑成功**；卡在陈旧内联导入 |
+
+## B1 结果：策略 C 续跑成功，但卡在陈旧内联导入
+
+用 cdb 运行 B1（不执行 AEP，可正常被调试器 attach）。调用栈证明**策略 C 续跑成功**：
+
+```text
+ntdll!RtlUserThreadStart -> KERNEL32!BaseThreadInitThunk
+  -> 变形 CRT (重建映像 0x04D13AD8/0x04D45B40)
+  -> msvcr71!_initterm            <-- 正在跑 C++ 静态构造函数
+  -> [某 ctor] -> CRASH 调用 0x607CB6C0
+```
+
+即：`edi=AEP → call cookie(0x0253BBBF) → jmp 0x04ED6E75` 顺利跑过 cookie、变形 CRT，进入
+`_initterm` 执行 C++ 全局构造。**阶段 2 担心的 Themida 运行期状态（edi/ebx）耦合并未阻断续跑。**
+
+崩溃根因是**陈旧内联导入**，不是续跑失败：
+- 崩在某 C++ ctor 调用 `0x607CB6C0` = 0x607A0000(dump 时 msvcp60 基址) + 0x2B6C0。
+- msvcp60 是非 KnownDLL，本机 ASLR 把它加载到 0x5EBD0000（dump 时是 0x607A0000）。
+- 保护器的 IAT 修复把大量 DLL 绝对地址**内联**写进了客户端代码/数据（按 dump 时基址）。
+  这些内联引用在新进程里陈旧。扫描：msvcp60 内联引用 .text=148/.code=34/.,_W=47…（近 900 处）。
+- KnownDLL（kernel32/ntdll/user32/gdi32…）按 boot 一致基址加载，同 boot 内内联引用仍有效——
+  所以 B1 能跑过 cookie 与 msvcr71（msvcr71 固定基址 0x7C340000，同 dump）。问题只在
+  **非 KnownDLL 且非固定基址**的 DLL（首个是 msvcp60）。
+
+把 app-local `msvcp60.dll` 用 `editbin /REBASE:BASE=0x607A0000 /DYNAMICBASE:NO` 重定基后，
+msvcp60 确实加载到 0x607A0000，iostream ctor 前进，但**下一处崩在 0x60832410**——已越过当前
+msvcp60 末尾(0x60816000)，说明 dump 时要么是更大/不同版本的 msvcp60，要么紧邻其后还有另一个
+非 KnownDLL。陈旧内联导入在非 KnownDLL 间**级联**。
+
+### 结论与待决策
+
+- **策略 C 的入口机制已验证可行**：重建 PE 能加载、不执行 AEP、续跑真实变形 CRT 到 C++ ctor。
+- 新的根本障碍：保护器把非 KnownDLL 的导入**内联绝对化**，dump 快照把它们钉在了 dump 时的
+  基址/版本上；新进程要让所有这类 DLL 落到相同基址且相同版本，脆弱且可能是长尾（d3d9/d3dx9/
+  fmodex/ddraw/dinput8/msvcp60…）。这对**任何**基于此 dump 的可运行重建都成立（策略 A 也躲不开，
+  因为客户端代码本身带这些内联引用）。
+
+可选方向（需决策）：
+1. 逐个把涉事非 KnownDLL 重定基到 dump 基址并匹配版本（脆弱、需精确版本、长尾）；
+2. 采集保护器/ClientHack IAT 修复时解析的**完整内联导入映射**（site→dll!func），在新进程重解析
+   （改造 ClientHack 采集，较系统但工作量大）；
+3. 重新采集一份 dump：系统级关闭 ASLR/bottom-up，使非 KnownDLL 基址在采集与运行间一致；
+4. 接受部分子系统（iostream 等）需要精确 DLL，先让不依赖它们的路径跑起来。
 
 ## B0 / B0.5 已验证的事实
 

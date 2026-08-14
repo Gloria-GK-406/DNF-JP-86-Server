@@ -189,6 +189,46 @@ def load_iat_runs(csv_path):
     return runs
 
 
+# DLLs excluded from the merged standard imports for B1: importing them would
+# drag ClientHack (Az via ijl15) into the already-unpacked rebuild.
+B1_EXCLUDED_IMPORT_DLLS = {"az.dll", "ijl15.dll"}
+
+
+def parse_standard_imports(memory, imp_rva, exclude=None):
+    """Parse the original standard Import Directory out of the memory image.
+
+    Returns a list of {"dll", "funcs" (names or "#ord"), "firstthunk_rva"} in
+    original order, skipping DLLs in `exclude`.
+    """
+    exclude = {d.lower() for d in (exclude or set())}
+    out = []
+    idx = 0
+    while True:
+        oft, tds, fc, nameptr, ft = struct.unpack_from("<IIIII", memory,
+                                                        imp_rva + idx * 20)
+        if oft == 0 and nameptr == 0 and ft == 0:
+            break
+        end = memory.index(b"\0", nameptr)
+        dll = memory[nameptr:end].decode("ascii", "replace")
+        thunk_rva = oft if oft else ft
+        funcs = []
+        k = 0
+        while True:
+            t = struct.unpack_from("<I", memory, thunk_rva + k * 4)[0]
+            if t == 0:
+                break
+            if t & 0x80000000:
+                funcs.append(f"#{t & 0xFFFF}")
+            else:
+                ne = memory.index(b"\0", t + 2)
+                funcs.append(memory[t + 2:ne].decode("ascii", "replace"))
+            k += 1
+        if dll.lower() not in exclude:
+            out.append({"dll": dll, "funcs": funcs, "firstthunk_rva": ft})
+        idx += 1
+    return out
+
+
 def build_import_blob(base_rva, imports):
     """Build an import directory blob to be placed at RVA base_rva.
 
@@ -230,9 +270,11 @@ def build_import_blob(base_rva, imports):
             ft_off[i] = len(blob)
             blob += b"\0" * ((cnt + 1) * 4)
 
-    # Pass B: emit IBN entries.
+    # Pass B: emit IBN entries (skip ordinal imports "#N").
     for i, imp in enumerate(imports):
         for fn in imp["funcs"]:
+            if fn.startswith("#"):
+                continue
             if len(blob) & 1:
                 blob += b"\0"
             ibn_off[(i, fn)] = len(blob)
@@ -244,9 +286,13 @@ def build_import_blob(base_rva, imports):
         name_off[i] = len(blob)
         blob += _c_string(imp["dll"])
 
-    # Pass D: fill OFT and internal FT arrays with IBN RVAs.
+    # Pass D: fill OFT and internal FT arrays with thunk values.
+    def thunk(i, fn):
+        if fn.startswith("#"):
+            return 0x80000000 | (int(fn[1:]) & 0xFFFF)   # import by ordinal
+        return base_rva + ibn_off[(i, fn)]
     for i, imp in enumerate(imports):
-        entries = [base_rva + ibn_off[(i, fn)] for fn in imp["funcs"]] + [0]
+        entries = [thunk(i, fn) for fn in imp["funcs"]] + [0]
         struct.pack_into("<%dI" % len(entries), blob, oft_off[i], *entries)
         if i in ft_off:
             struct.pack_into("<%dI" % len(entries), blob, ft_off[i], *entries)
@@ -404,6 +450,14 @@ def rebuild(original_path, memory_path, output_path, stage="b0", iat_csv=None):
         for r in runs:
             imports.append({"dll": r["mod"], "funcs": r["funcs"],
                             "firstthunk_rva": r["start"]})
+        if stage == "b1":
+            # Merge the original standard imports so the loader loads every DLL
+            # the client startup needs (d3d9/fmodex/gdi32/...). Exclude
+            # az.dll/ijl15.dll to avoid injecting ClientHack.
+            orig_imp_rva = _u32(original, opt + OPT_DIR0 + DIR_IMPORT * 8)
+            std = parse_standard_imports(memory, orig_imp_rva,
+                                         exclude=B1_EXCLUDED_IMPORT_DLLS)
+            imports.extend(std)
 
     idata_blob, ft_slots, _ = build_import_blob(idata_va, imports)
     import_dir_size = (len(imports) + 1) * 20
