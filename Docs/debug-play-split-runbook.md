@@ -17,7 +17,7 @@ Reverse a protocol on **Debug**, then play it on **Play**.
 | Branch | Role | ClientHack shape |
 |---|---|---|
 | `main` (`ca7feb3`+) | **Play** config | 5 required plugins, `CH_REQUIRED_PLUGIN_COUNT=5`, no `0005`, no `startup_trace.c`/`early_antidebug.c`. Static CRT (`/MT`). |
-| `client-debug-lab` (`6d4a542`+) | **Debug** config | 6 required plugins (adds `0005_AntiAntiDebug`), B1 PE-rebuild toolchain, gate-in-DllMain, 00AB capture + startup trace. |
+| `client-debug-lab` (`6d4a542`+) | **Debug** config | 6 required plugins (adds `0005_AntiAntiDebug`), B1 PE-rebuild toolchain, gate-in-DllMain, frame capture + startup trace. |
 
 `client-debug-lab` was branched from `main`, so every play patch is already in the
 debug branch. The reverse is **not** true — the debug apparatus stays off `main`.
@@ -114,7 +114,36 @@ ba e1 0x020d1120 ".echo GOT_00AB_ECX; dd @ecx L14; gc"
 
 On channel login this hits once, dumps the `this` state-report object (4 slots),
 and auto-continues; the client survives. `NetworkHook` independently logs
-`00ab-capture: send type=0x00AB ...` to `clienthack-00ab-capture.log`.
+`frame-capture: send type=0x00AB ...` to `clienthack-frame-capture.log`.
+
+### 4d. Frame capture ([FrameCapture] in ClientHack.ini)
+
+`NetworkHook` records one JSON line per Game packet, both directions, to
+`clienthack-frame-capture.log` next to the exe. Defaults capture every type
+with call stacks, which is what a first pass on an unknown message needs;
+narrow `Types=` once the message of interest is known.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `Enabled` | `1` | Master switch for the recorder |
+| `Types` | `*` | Hex type list (`00AB,01DD`) or `*`; empty stays `*` |
+| `Stack` | `*` | Hex type list to capture call stacks for; empty = none |
+| `MaxBodyBytes` | `4096` | Hex-dump cap per frame; `0` = unlimited |
+| `WriteTrace` | `0` | Also trace `ISocket::Write` staging to `clienthack-write-trace.log` |
+| `LogFile` | `clienthack-frame-capture.log` | Capture log file name |
+
+The two directions record different fields, because they see different memory:
+
+- `send` (`Cipher::Encrypt`): `hdr:1`, full 13-byte header + body in `hex`, with
+  `cmd`/`type`/`length`/`seq` read from that header. `totalLength` is finalized
+  before the dump, so the bytes match the wire.
+- `recv` (`Cipher::Decrypt`): `hdr:0`, body only. The decrypt input is **not**
+  preceded by the frame header, so the identity comes from the `packet_type`
+  argument alone (recorded as both `arg_type` and `type`). Never read behind
+  that pointer — an earlier version did and corrupted client behavior.
+
+`dumped` reports how many bytes the `hex` field actually contains; it is lower
+than `body_len` (recv) or `length` (send) when `MaxBodyBytes` truncated it.
 
 ## 5. Rebuild an Az from source (only when the branch changes)
 
