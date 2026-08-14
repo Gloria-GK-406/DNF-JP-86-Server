@@ -43,7 +43,7 @@ public sealed class ClientSpecStatisticHandler(
 
 /// <summary>
 /// Semantic decode of the four CLIENT_SPEC_STATISTIC slots, per
-/// protocol/game/client-to-server/0x00AB-client-spec-statistic (instruction-confirmed).
+/// protocol/game/client-to-server/0x00AB.md (instruction-confirmed).
 /// </summary>
 internal static class ClientSpecStatisticSlotDescriptor
 {

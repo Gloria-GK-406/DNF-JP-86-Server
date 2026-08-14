@@ -41,7 +41,7 @@ public sealed class ClientHardwareDetailHandler(
 
 /// <summary>
 /// Semantic decode of the CLIENT_HARDWARE_DETAIL fields, per
-/// protocol/game/client-to-server/0x01DD-client-hardware-detail.
+/// protocol/game/client-to-server/0x01DD.md.
 /// The vendor bucket and OS enum share their value domains with 0x00AB; the video memory field
 /// is reported as raw megabytes because its exact source API is not yet confirmed.
 /// </summary>

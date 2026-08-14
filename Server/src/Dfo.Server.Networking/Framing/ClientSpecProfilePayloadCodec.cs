@@ -9,7 +9,7 @@ namespace Dfo.Server.Networking.Framing;
 /// then a u8 entry count followed by that many 3-byte entries.
 /// Body length is therefore <c>361 + 3 * count</c> with count in 0..6.
 /// Layout is instruction-confirmed from serializer RVA 0x01CD6260; see
-/// protocol/game/client-to-server/0x00C2-client-spec-profile.
+/// protocol/game/client-to-server/0x00C2.md.
 /// </summary>
 internal static class ClientSpecProfilePayloadCodec
 {

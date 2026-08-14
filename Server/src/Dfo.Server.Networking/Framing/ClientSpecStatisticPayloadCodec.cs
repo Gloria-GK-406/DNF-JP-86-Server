@@ -6,7 +6,7 @@ namespace Dfo.Server.Networking.Framing;
 /// <summary>
 /// Decodes the fixed 39-byte CLIENT_SPEC_STATISTIC (0x00AB) body:
 /// u8 trigger + u8 reported + u8 count(=4) + 4 x (u8 tag, u32 v1, u32 v2).
-/// Layout is instruction-confirmed; see protocol/game/client-to-server/0x00AB-client-spec-statistic.
+/// Layout is instruction-confirmed; see protocol/game/client-to-server/0x00AB.md.
 /// </summary>
 internal static class ClientSpecStatisticPayloadCodec
 {

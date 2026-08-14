@@ -242,7 +242,7 @@ opcode 的协议判别字段，Networking 解码后按 mode 生成不同的强�
 
 ### Game CMD `0x0001`/type `0x00AB`（HARDWARE_REPORT，客户端硬件规格上报）
 
-> 完整记录见 `protocol/game/client-to-server/0x00AB-client-spec-statistic/README.md`
+> 完整记录见 `protocol/game/client-to-server/0x00AB.md`
 >（反汇编 + cdb 动态双重验证，含详细工作日志）。
 
 客户端→服务端，`cmd=0x01/type=0x00AB`。登录早期一次性上报（实测在 LOGIN 之后、

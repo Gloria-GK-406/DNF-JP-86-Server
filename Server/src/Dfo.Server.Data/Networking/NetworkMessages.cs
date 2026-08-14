@@ -170,7 +170,7 @@ public sealed record GameExitResponse(bool Succeeded) : IServerNetworkMessage
 
 /// <summary>
 /// One fixed slot of the CLIENT_SPEC_STATISTIC (0x00AB) hardware report.
-/// Slot semantics by tag (see protocol/game/client-to-server/0x00AB-client-spec-statistic):
+/// Slot semantics by tag (see protocol/game/client-to-server/0x00AB.md):
 /// 0 = CPU, 1 = graphics adapter, 2 = operating system, 3 = physical memory.
 /// </summary>
 public sealed record ClientSpecStatisticSlot(byte Tag, uint Value1, uint Value2);
@@ -193,7 +193,7 @@ public sealed record ClientSpecStatisticReportRequest(
 /// sends immediately after CLIENT_SPEC_STATISTIC (0x00AB) and before GET_USERINFO; no response
 /// exists on the wire. Where 0x00AB reports bucketed values, this carries the raw ones plus the
 /// OS bitness that 0x00AB omits. Field names mirror the instruction-confirmed wire layout in
-/// protocol/game/client-to-server/0x01DD-client-hardware-detail; widths are the wire widths.
+/// protocol/game/client-to-server/0x01DD.md; widths are the wire widths.
 ///
 /// Unlike 0x00AB this report is conditional: the client skips it entirely when its system-info
 /// provider or its IsWow64Process pointer is null, so a session may legitimately never send it.
@@ -235,7 +235,7 @@ public sealed record ClientSpecProfileEntry(byte Kind, ushort Value);
 /// passed through a normalizing filter, so they are comparable but not byte-identical.
 ///
 /// Fields with no confirmed meaning are named for their body offset rather than guessed at; see
-/// protocol/game/client-to-server/0x00C2-client-spec-profile.
+/// protocol/game/client-to-server/0x00C2.md.
 /// </summary>
 public sealed record ClientSpecProfileReportRequest(
     GameMessageMetadata Metadata,

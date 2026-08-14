@@ -43,7 +43,7 @@ public sealed class ClientSpecProfileHandler(
 
 /// <summary>
 /// Semantic decode of the CLIENT_SPEC_PROFILE fields that have confirmed meaning, per
-/// protocol/game/client-to-server/0x00C2-client-spec-profile. Everything else is reported as
+/// protocol/game/client-to-server/0x00C2.md. Everything else is reported as
 /// raw values so the log never asserts more than the protocol record does.
 /// </summary>
 internal static class ClientSpecProfileDescriptor

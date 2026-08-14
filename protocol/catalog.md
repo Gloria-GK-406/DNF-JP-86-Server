@@ -1,53 +1,90 @@
-# 协议目录
+# 协议清单
 
-状态含义：
+本页是唯一的协议索引：有哪些协议、各自处于哪一阶段、细节在哪个文档。
+细节不写在这里——每行链接到该协议自己的文档。
 
-- `Observed`：仅有实机报文。
-- `Reversing`：正在定位客户端构包/解包逻辑。
-- `LayoutKnown`：布局和行为已有直接证据。
-- `Implemented`：服务端已实现且自动验证通过。
-- `ClientVerified`：真实客户端功能验证通过。
+## 阶段
 
-| Endpoint | Direction | Command | Type | Name | Role | Status | Record |
-|---|---|---:|---:|---|---|---|---|
-| Game | Client → Server | `0x01` | `0x00AB` | `CLIENT_SPEC_STATISTIC` | Report / no response | ClientVerified | [记录](game/client-to-server/0x00AB-client-spec-statistic/README.md) |
-| Game | Client → Server | `0x01` | `0x01DD` | `CLIENT_HARDWARE_DETAIL`（描述性命名） | Report / no response | ClientVerified | [记录](game/client-to-server/0x01DD-client-hardware-detail/README.md) |
-| Game | Client → Server | `0x01` | `0x00C2` | `CLIENT_SPEC_PROFILE`（描述性命名） | Report / no response | ClientVerified | [记录](game/client-to-server/0x00C2-client-spec-profile/README.md) |
+| 阶段 | 含义 |
+|---|---|
+| `未知` | 已在线观察到报文，但布局或语义尚未确立。可能只有长度、方向和出现时机。 |
+| `确定语义` | 布局、字段宽度、条件分支与编码方式已有直接（指令级）证据，且至少一个真实样本可被无损解释。 |
+| `实现服务端功能` | 服务端已解码为 typed message 并有消费者，parser/codec 与 handler 有回归测试。 |
+| `双向验证结束` | 真实客户端端到端验证通过，双向行为（含"是否需要响应"）已用可观察结果确认。 |
 
-当同一 type 在另一方向或端点出现时，必须新增独立行和独立记录，不能覆盖已有含义。
+进入 `双向验证结束` 需同时满足：
 
-名称来源不同必须写明：`CLIENT_SPEC_STATISTIC` 出自旧服枚举；`CLIENT_HARDWARE_DETAIL` 与
-`CLIENT_SPEC_PROFILE` 是本资料库的描述性命名，取得枚举证据后应改名并保留旧名映射。
+1. 方向、触发时机、是否需要响应均已确认；
+2. 客户端构包或解包路径有指令级证据；
+3. 字段顺序、宽度、条件分支和编码方式已记录；
+4. 至少一个真实样本可由记录的布局无损解释；
+5. 服务端 parser/codec 与 typed message 有回归测试；
+6. 实机客户端验证通过，并记录可观察结果。
 
-三条已建记录的协议都携带同一批硬件数据的不同编码（分桶 / 原始 / 归一化+表），读自同一个
-上报对象；但触发时机不同：`0x00AB` 与 `0x01DD` 属登录握手，`0x00C2` 属**客户端退出 flush**。
-详见各记录的交叉对照表。
+## Game / Client → Server
 
-## 已观察但未建记录
+| Command | Type | 名称 | 角色 | 阶段 | 文档 |
+|---:|---:|---|---|---|---|
+| `0x01` | `0x0001` | LOGIN | Query | 未知 | — |
+| `0x01` | `0x0002` | — | 未知 | 未知 | — |
+| `0x01` | `0x0003` | EXIT | Query | 未知 | — |
+| `0x01` | `0x0008` | GET_USERINFO | Query | 未知 | — |
+| `0x01` | `0x008F` | — | 未知 | 未知 | — |
+| `0x01` | `0x00AB` | `CLIENT_SPEC_STATISTIC` | Report / 无响应 | 双向验证结束 | [0x00AB.md](game/client-to-server/0x00AB.md) |
+| `0x01` | `0x00C2` | `CLIENT_SPEC_PROFILE` | Report / 无响应 | 双向验证结束 | [0x00C2.md](game/client-to-server/0x00C2.md) |
+| `0x01` | `0x00FA` | — | 未知 | 未知 | — |
+| `0x01` | `0x0117` | — | 未知 | 未知 | — |
+| `0x01` | `0x01DD` | `CLIENT_HARDWARE_DETAIL` | Report / 无响应 | 双向验证结束 | [0x01DD.md](game/client-to-server/0x01DD.md) |
+| `0x01` | `0x02A8` | — | 未知 | 未知 | — |
 
-下列 type 已在 2026-08-14 全量抓包中直接观察到，尚未逆向；列出以免重复发现，
-并作为后续排序依据。**方向是实测的**，不是推断：
+## Game / Server → Client
 
-| Endpoint | Direction | Command | Type | Body | 场景 |
-|---|---|---:|---:|---:|---|
-| Game | Client → Server | `0x01` | `0x0001` | 73 | LOGIN（服务端已实现，未建记录） |
-| Game | Server → Client | — | `0x0001` | 54 | LOGIN response（服务端已实现，字段含魔数，未建记录） |
-| Game | Client → Server | `0x01` | `0x0008` | 3 | GET_USERINFO（服务端已实现，前 2 字节未解释） |
-| Game | Server → Client | — | `0x0002` | 18 | 角色列表（空名单样本） |
-| Game | Client → Server | `0x01` | `0x02A8` | 2 | `FFFF`，角色列表之后 |
-| Game | Client → Server | `0x01` | `0x0002` | 31 | 与 S→C `0x0002` 同 type 反方向，须独立建记录 |
-| Game | Client → Server | `0x01` | `0x00FA` | 50 | 形如 8 × 6 字节的索引表（`00…00`、`01…00`… `07…00`）+ 2 字节尾，疑似槽位/选项枚举 |
-| Game | Client → Server | `0x01` | `0x0117` | 12 | `01 06 A1C98A48 E12A0A49 0500`，含两个疑似时间戳/浮点的 4 字节量 |
-| Game | Client → Server | `0x01` | `0x0003` | 1 | EXIT 请求（`00`），服务端已实现 |
-| Game | Server → Client | — | `0x0003` | 1 | EXIT 响应（`01`），服务端已实现；本表首个已观察到的**有响应**对 |
-| Game | Client → Server | `0x01` | `0x008F` | 5 | `1F000000 01`，EXIT 之后仍发出 |
+| Command | Type | 名称 | 角色 | 阶段 | 文档 |
+|---:|---:|---|---|---|---|
+| — | `0x0001` | LOGIN response | Response | 未知 | — |
+| — | `0x0002` | 角色列表 | Notification | 未知 | — |
+| — | `0x0003` | EXIT response | Response | 未知 | — |
 
-采样场景：2026-08-14 三次实机会话（登录 → 角色列表 → 退出）。`0x00FA`/`0x0117`/`0x008F`
-与已建记录的 `0x00C2` 同属**客户端退出 flush**（Confirmed，两次会话逐帧一致）：
+## 命名与身份
+
+- 名称来源必须可区分：`CLIENT_SPEC_STATISTIC` 出自旧服枚举；`CLIENT_HARDWARE_DETAIL` 与
+  `CLIENT_SPEC_PROFILE` 是本资料库的**描述性命名**，取得枚举证据后应改名并保留旧名映射。
+- 同一 type 在另一方向或端点出现时，必须新增独立行和独立文档，不能覆盖已有含义。
+  `0x0001`、`0x0002`、`0x0003` 都已在两个方向观察到，即为此例。
+- `未知` 行没有文档链接。它们的已知观察（长度、时机、字节片段）记在下方"未知协议的现有
+  观察"里，避免重复发现；一旦开始逆向，就为它建独立文档并把观察搬进去。
+
+## 未知协议的现有观察
+
+采样自 2026-08-14 三次实机会话（登录 → 角色列表 → 退出），使用
+`[FrameCapture]` 全量双向抓包。**方向与长度是实测的**，语义均未确认。
+
+### 登录握手段
+
+| Type | 方向 | Body | 观察 |
+|---:|---|---:|---|
+| `0x0001` | C→S | 73 | LOGIN。服务端已实现，含账号凭证与启动参数 auth hash（样本不得入库） |
+| `0x0001` | S→C | 54 | LOGIN response。服务端已实现，但 `EncodeSuccess` 内多个字段是旧服移植的魔数，未经抓包确认 |
+| `0x0008` | C→S | 3 | GET_USERINFO（`FFFF02`）。服务端已实现，前 2 字节被丢弃、未解释 |
+| `0x0002` | S→C | 18 | 角色列表；样本为空名单 |
+| `0x02A8` | C→S | 2 | `FFFF`，角色列表之后 |
+| `0x0002` | C→S | 31 | 与 S→C `0x0002` 同 type 反方向 |
+
+### 退出 flush 段
+
+客户端**正常退出**时按固定顺序发出（Confirmed，两次会话逐帧一致）：
 
 ```text
 0x0002(31B) → 0x00C2(361B) → 0x00FA(50B) → 0x0117(12B) → 0x0003 EXIT ⇄ → 0x008F(5B)
 ```
 
-只进频道并停留在角色列表的会话到 `0x0002`（seq 7）就结束；强制结束进程也不会触发 flush。
-要采样退出序列的协议，必须走**游戏内正常退出**。
+| Type | 方向 | Body | 观察 |
+|---:|---|---:|---|
+| `0x00FA` | C→S | 50 | 形如 8 × 6 字节的索引表（`00…00`、`01…00` … `07…00`）+ 2 字节尾 |
+| `0x0117` | C→S | 12 | `01 06 A1C98A48 E12A0A49 0500`，含两个疑似时间戳/浮点的 4 字节量 |
+| `0x0003` | C→S | 1 | EXIT 请求（`00`）。服务端已实现 |
+| `0x0003` | S→C | 1 | EXIT 响应（`01`）。服务端已实现；目前唯一已观察到的**有响应**对 |
+| `0x008F` | C→S | 5 | `1F000000 01`，EXIT 交换之后仍发出 |
+
+只进频道并停留在角色列表的会话到 `0x0002`（seq 7）就结束；**强制结束进程不会触发 flush**。
+要采样退出序列的协议，必须走游戏内正常退出。

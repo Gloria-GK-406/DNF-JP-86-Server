@@ -7,7 +7,7 @@ namespace Dfo.Server.Networking.Framing;
 /// Decodes the fixed 16-byte CLIENT_HARDWARE_DETAIL (0x01DD) body:
 /// u8 vendorBucket + u8 cores + u32 clockMhz + u16 memoryMb + u16 gpuVendor + u16 gpuDevice
 /// + u16 videoMemoryMb + u8 osKind + u8 osBitness.
-/// Layout is instruction-confirmed; see protocol/game/client-to-server/0x01DD-client-hardware-detail.
+/// Layout is instruction-confirmed; see protocol/game/client-to-server/0x01DD.md.
 ///
 /// The body carries no count, tag or checksum field, so length is the only structural invariant
 /// there is to enforce -- every 16-byte body is well-formed by definition. Out-of-range values
