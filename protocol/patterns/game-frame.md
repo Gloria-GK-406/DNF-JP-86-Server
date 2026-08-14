@@ -39,6 +39,7 @@ BodyLength = TotalLength - 13
 | `0x1C90550` | `WriteU8` | `movzx reg, byte [this+X]` → push → `GetWriter` → call |
 | `0x1C90580` | `WriteU16` | `movzx reg, word [this+X]` → push → `GetWriter` → call |
 | `0x1C905B0` | `WriteU32` | `mov reg, dword [this+X]` → push → `GetWriter` → call |
+| `0x1C8FAC0` | `WriteBytes(ptr, len)` | `push <len>` → `push <ptr>` → `GetWriter` → call；用于浮点等非整型字段 |
 | `0x1C8FDD0` | `Finalize()` | 所有字段写完后调一次，随后函数返回 |
 
 典型形状（`GetWriter` 的返回值即 `WriteXX` 的 `this`）：
@@ -59,7 +60,9 @@ call 0x1C90550/80/B0    ; WriteU8 / WriteU16 / WriteU32
   （`u8+u8+u8 + 4×(u8,u32,u32)` = 39，序列化器 `0x1CD1120`）。
 - `0x1C90580`（u16）：由 `0x01DD` 确定（四次调用对应四个 u16，长度算术与实测 16 字节唯一
   自洽，其中两值为已知 u16 量 PCI `8086`/`A7A8`），构包器 `0x00C375B0`。
-- `0x1C90460` / `0x1C8FDD0`：两条协议共用，分别传入各自 type 并在末尾收尾。
+- `0x1C90460` / `0x1C8FDD0`：三条协议共用，分别传入各自 type 并在末尾收尾。
+- `0x1C8FAC0`（`WriteBytes`）：由 `0x00C2` 确定（`push 4; push &float` 写 IEEE-754 单精度），
+  长度由第二个参数显式给出，因此宽度不必推断。
 - 支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`。
 
 尚未识别宽度的原语（字符串、数组、u64、变长）出现时，必须先在新协议记录里确定其宽度，
@@ -67,18 +70,39 @@ call 0x1C90550/80/B0    ; WriteU8 / WriteU16 / WriteU32
 
 ## 调用栈标定构包器
 
-抓包插件（`[FrameCapture] Stack=`）对出站帧记录 16 层调用栈 RVA。用一条**已确认**的协议做
-标定，即可读出未知协议的构包器位置：
+抓包插件（`[FrameCapture] Stack=`）对出站帧记录 16 层调用栈 RVA。
 
 ```text
 00AB: 01C9007C  01CD11B0  01CD12CA  00D8566E  ...   ← 序列化器 + wrapper 两层
 01DD: 01C9007C  00C37683            00D8566E  ...   ← 构包器一层（序列化内联）
+00C2: 01C9007C  01CD65D7  01CD6C77  01CD138F  ...   ← 另一条派发路径
 ```
 
+- **第 1 帧恒为 `Finalize` 调用的返回地址**（`0x00AB` 的 `0x01CD11AB → 0x01CD11B0`、
+  `0x00C2` 的 `0x01CD65D2 → 0x01CD65D7`）。它落在序列化器内，但通常不是函数入口。
 - 第 0 帧是共享写入 helper 的返回地址，对所有协议相同，不含信息。
-- 第 1 帧起才是业务构包代码；层数差异反映"wrapper + 序列化器"还是"单函数内联"。
-- `0x00D8566E → 0x00D89C36 → 0x01C90D3B → 0x00C601BA` 是登录握手期两条协议共用的上层
-  派发链，可作为"这是登录阶段自动上报"的旁证。
+- 层数差异反映"wrapper + 序列化器"还是"单函数内联"。
+- `0x00D8566E → 0x00D89C36 → 0x01C90D3B → 0x00C601BA` 是 `0x00AB`/`0x01DD` 共用的登录期
+  派发链；`0x00C2` 走的是另一条（`0x01CD6C77 → 0x01CD138F → …`），与它较晚发送相符。
+
+### 从返回地址求函数入口
+
+**首选方法**：栈上相邻两帧即可直接得到入口——结束于外层帧返回地址的那条 `call`，
+其目标就是内层函数的入口。
+
+```text
+call 结束于 0x01CD6C77 (frame2)  →  目标 0x01CD6260  =  frame1 所在函数入口
+```
+
+**次选方法**（只有一帧可用时）：向后扫描 `CC`/`90` 填充后的第一个 prologue，并要求从该
+候选开始的线性反汇编能精确落在目标地址上。使用时注意两个坑，两者本次都真实发生过：
+
+- **不要把函数内部的 `ret` 当作函数结尾**。提前返回（守卫失败即 `ret`）很常见，
+  在第一个 `ret` 处停止扫描会让正确的入口被判为"到不了目标"。
+- **该启发法会给出假阳性**。`0x00C2` 的序列化器上它返回了 `0x01CD65AC`，从那里反汇编
+  出的是错位垃圾（`sti`、`dec [ebx-0x60341738]`）。**判据**：真入口应以正常 prologue
+  开头（`push ebp; mov ebp,esp` 或 `push esi/ebx; mov reg,ecx`），且很快能看到
+  `push <type>` → `GetWriter` → `MakeHeader`。看到无意义指令就说明对齐错了，换首选方法。
 
 ## Current patterns
 

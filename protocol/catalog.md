@@ -12,11 +12,16 @@
 |---|---|---:|---:|---|---|---|---|
 | Game | Client → Server | `0x01` | `0x00AB` | `CLIENT_SPEC_STATISTIC` | Report / no response | ClientVerified | [记录](game/client-to-server/0x00AB-client-spec-statistic/README.md) |
 | Game | Client → Server | `0x01` | `0x01DD` | `CLIENT_HARDWARE_DETAIL`（描述性命名） | Report / no response | ClientVerified | [记录](game/client-to-server/0x01DD-client-hardware-detail/README.md) |
+| Game | Client → Server | `0x01` | `0x00C2` | `CLIENT_SPEC_PROFILE`（描述性命名） | Report / no response | ClientVerified | [记录](game/client-to-server/0x00C2-client-spec-profile/README.md) |
 
 当同一 type 在另一方向或端点出现时，必须新增独立行和独立记录，不能覆盖已有含义。
 
-名称来源不同必须写明：`CLIENT_SPEC_STATISTIC` 出自旧服枚举，`CLIENT_HARDWARE_DETAIL`
-是本资料库的描述性命名，取得枚举证据后应改名并保留旧名映射。
+名称来源不同必须写明：`CLIENT_SPEC_STATISTIC` 出自旧服枚举；`CLIENT_HARDWARE_DETAIL` 与
+`CLIENT_SPEC_PROFILE` 是本资料库的描述性命名，取得枚举证据后应改名并保留旧名映射。
+
+三条已建记录的协议都携带同一批硬件数据的不同编码（分桶 / 原始 / 归一化+表），读自同一个
+上报对象；但触发时机不同：`0x00AB` 与 `0x01DD` 属登录握手，`0x00C2` 属**客户端退出 flush**。
+详见各记录的交叉对照表。
 
 ## 已观察但未建记录
 
@@ -31,12 +36,18 @@
 | Game | Server → Client | — | `0x0002` | 18 | 角色列表（空名单样本） |
 | Game | Client → Server | `0x01` | `0x02A8` | 2 | `FFFF`，角色列表之后 |
 | Game | Client → Server | `0x01` | `0x0002` | 31 | 与 S→C `0x0002` 同 type 反方向，须独立建记录 |
-| Game | Client → Server | `0x01` | `0x00C2` | 361 | 角色列表界面停留期间。body 前 12 字节是 `330A0000 0C00 8680 A7A8`，即与 `0x00AB`/`0x01DD` 相同的 MHz/核心数/GPU PCI ID，**疑似第三份（详细版）硬件上报**（Hypothesis）；其余多为 0 与定长块，未见字符串 |
 | Game | Client → Server | `0x01` | `0x00FA` | 50 | 形如 8 × 6 字节的索引表（`00…00`、`01…00`… `07…00`）+ 2 字节尾，疑似槽位/选项枚举 |
 | Game | Client → Server | `0x01` | `0x0117` | 12 | `01 06 A1C98A48 E12A0A49 0500`，含两个疑似时间戳/浮点的 4 字节量 |
 | Game | Client → Server | `0x01` | `0x0003` | 1 | EXIT 请求（`00`），服务端已实现 |
 | Game | Server → Client | — | `0x0003` | 1 | EXIT 响应（`01`），服务端已实现；本表首个已观察到的**有响应**对 |
 | Game | Client → Server | `0x01` | `0x008F` | 5 | `1F000000 01`，EXIT 之后仍发出 |
 
-采样场景：2026-08-14 两次实机会话（登录 → 角色列表 → 关闭客户端）。`0x00C2` 之后的四条
-出现在客户端退出流程中，尚未确认它们属于退出序列还是与退出无关的定时上报。
+采样场景：2026-08-14 三次实机会话（登录 → 角色列表 → 退出）。`0x00FA`/`0x0117`/`0x008F`
+与已建记录的 `0x00C2` 同属**客户端退出 flush**（Confirmed，两次会话逐帧一致）：
+
+```text
+0x0002(31B) → 0x00C2(361B) → 0x00FA(50B) → 0x0117(12B) → 0x0003 EXIT ⇄ → 0x008F(5B)
+```
+
+只进频道并停留在角色列表的会话到 `0x0002`（seq 7）就结束；强制结束进程也不会触发 flush。
+要采样退出序列的协议，必须走**游戏内正常退出**。

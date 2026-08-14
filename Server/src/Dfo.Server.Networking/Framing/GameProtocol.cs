@@ -16,5 +16,7 @@ internal static class GameProtocol
 
     public const ushort ClientHardwareDetailType = 0x01DD;
 
+    public const ushort ClientSpecProfileType = 0x00C2;
+
     public const ushort AccountCharacterRosterNotificationType = 0x0002;
 }
