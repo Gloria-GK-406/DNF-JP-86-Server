@@ -44,6 +44,7 @@ clienthack_warnings(clienthack_core)
 
 enable_testing()
 find_program(CLIENTHACK_POWERSHELL_EXECUTABLE NAMES powershell pwsh REQUIRED)
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
 add_test(NAME clienthack_capture_evidence
     COMMAND "${CLIENTHACK_POWERSHELL_EXECUTABLE}"
         -NoProfile -ExecutionPolicy Bypass
@@ -65,6 +66,9 @@ add_executable(clienthack_anti_debug_tests tests/test_anti_debug.c)
 target_include_directories(clienthack_anti_debug_tests PRIVATE include plugins)
 clienthack_warnings(clienthack_anti_debug_tests)
 add_test(NAME clienthack_anti_debug_tests COMMAND clienthack_anti_debug_tests)
+add_test(NAME clienthack_rebuild_analysis_pe_tests
+    COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_rebuild_analysis_pe.py" -v)
 
 add_library(minhook STATIC
     third_party/minhook/src/buffer.c
@@ -134,6 +138,24 @@ function(clienthack_plugin target source output_name descriptor_name)
         RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CLIENTHACK_STAGE_DIR}/plugins"
         RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CLIENTHACK_STAGE_DIR}/plugins")
 endfunction()
+
+add_library(plugin_memory_dump SHARED EXCLUDE_FROM_ALL
+    plugins/0000_memory_dump/memory_dump.c
+    plugins/plugin_entry.c
+    plugins/plugin.def)
+target_include_directories(plugin_memory_dump PRIVATE include plugins src/az)
+target_compile_definitions(plugin_memory_dump PRIVATE
+    CLIENTHACK_PLUGIN_NAME="MemoryDump"
+    CLIENTHACK_PLUGIN_FLAGS=0u)
+clienthack_warnings(plugin_memory_dump)
+set_target_properties(plugin_memory_dump PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "0000_MemoryDump"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/diagnostics/plugins"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/diagnostics/plugins"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/diagnostics/plugins")
+
+add_custom_target(clienthack_memory_dump DEPENDS plugin_memory_dump)
 
 clienthack_plugin(plugin_anti_anti_debug
     plugins/0005_anti_anti_debug/anti_anti_debug.c
