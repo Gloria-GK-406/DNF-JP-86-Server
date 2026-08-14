@@ -120,5 +120,6 @@ public sealed class ApplicationModule : IServerModule
         services.RegisterMessageHandler<GetAccountCharacterRosterHandler>(
             ClientMessageType.GameGetAccountCharacterRoster);
         services.RegisterMessageHandler<SelectCharacterHandler>(ClientMessageType.GameSelectCharacter);
+        services.RegisterMessageHandler<ClientSpecStatisticHandler>(ClientMessageType.GameClientSpecStatistic);
     }
 }

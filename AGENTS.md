@@ -139,7 +139,9 @@ SelectedSessionTransitionGate 独占、入场前置（频道拒绝 → 发拒绝
 
 ### 其他与主设计的偏差（诚实清单）
 
-- 存在水命令：`AcknowledgeGameExitCommand` 返回常量；Channel 系命令是单行
+- `CLIENT_SPEC_STATISTIC`(0x00AB) 的 handler 直接打语义化日志，**不经过命令总线**
+  （纯遥测、无领域变更、无响应；见 protocol 记录的 Implementation mapping）。
+  存在水命令：`AcknowledgeGameExitCommand` 返回常量；Channel 系命令是单行
   转发——为的是统一日志/作用域，不是业务复杂度。
 - 登录失败目前**无法编码**（sender 对失败体直接抛异常），失败以服务器内部
   异常形态存在，客户端看不到错误。

@@ -11,10 +11,10 @@
 | Role | Report（客户端硬件规格上报，fire-and-forget） |
 | Trigger | 进入频道后的 Game 登录早期：LOGIN 响应之后、GET_USERINFO(`0x0008`) 之前，一次性发送（同会话仅一次，重复登录字节一致） |
 | Expected response | None（Confirmed：发送后无等待/轮询逻辑，客户端用本地 reported 标志防重发） |
-| Catalog status | LayoutKnown |
+| Catalog status | Implemented |
 
 客户端在登录握手阶段向服务端上报本机硬件画像：CPU / GPU / 操作系统 / 物理内存。
-服务器应解析为 typed report 落库；无 ACK。
+服务端已实现：解码为 typed report 并以语义化日志记录（暂无存储消费者）；无 ACK。
 
 ## Observed sequence
 
@@ -145,17 +145,20 @@ This proves compatibility with no response for the observed login path. It does 
 
 | Layer | Type/path | Responsibility |
 |---|---|---|
-| Data | `ClientSpecStatisticReport`（CPU/GPU/OS/RAM 具名槽位 + 原始 u32 保留） | 结构化报告 DTO |
-| Networking | 精确长度校验（39）+ LE 解码 + 槽位数/tag 校验 | typed message |
-| Application | 消费报告（落库/诊断），不产生任何响应 | 无 `ServerMessageType` |
+| Data | `ClientSpecStatisticReportRequest` + `ClientSpecStatisticSlot`（`Dfo.Server.Data/Networking/NetworkMessages.cs`） | 中性槽位 DTO（tag/v1/v2），语义解读留在消费侧 |
+| Networking | `ClientSpecStatisticPayloadCodec`（严格 39 字节 + count=4 + tag 顺序校验）、`GameProtocol.ClientSpecStatisticType`、`GameNetworkPlugin` 接线 | typed message；无出站路径 |
+| Application | `ClientSpecStatisticHandler` + `ClientSpecStatisticSlotDescriptor`：语义化日志（含账号归属），**不经过命令总线**（纯遥测、无领域变更；见 AGENTS.md 偏差清单） | 无 `ServerMessageType`、无响应 |
 | Domain/Infrastructure | 暂无消费者前不引入持久化 | — |
 
 ## Verification
 
-- Parser/codec vectors：待实现（用 E-001 样本字节做 exact-vector 测试）
-- Boundary cases：`count != 4`、tag 非连续、长度 ≠ 39 → 拒绝或降级记录
-- Response count/order：恒 0（E-003/E-006 双重证明）
-- Real-client result：无响应时客户端正常走到角色列表（E-001 六次 + 2026-08-14 一次）
+- Parser/codec vectors：✅ `ClientSpecStatisticPayloadCodecTests` 用 E-001 真实样本逐字段断言，
+  另覆盖厂商桶编码、长度/count/tag 异常拒绝
+- Boundary cases：✅ 长度 ≠ 39、`count != 4`、tag 非连续均抛 `InvalidDataException`
+- Handler：✅ `ClientSpecStatisticHandlerTests` 覆盖账号归属日志与无归属容错（不抛错断连）
+- Response count/order：恒 0（E-003/E-006 双重证明 + 实现无发送路径）
+- Real-client result：无响应时客户端正常走到角色列表（E-001 六次 + 2026-08-14 一次）；
+  本地服务端上的实机日志验证待做（ClientVerified 的最后一项）
 
 ## Unknowns and next evidence
 

@@ -12,5 +12,7 @@ internal static class GameProtocol
 
     public const ushort GetUserInfoType = 0x0008;
 
+    public const ushort ClientSpecStatisticType = 0x00AB;
+
     public const ushort AccountCharacterRosterNotificationType = 0x0002;
 }

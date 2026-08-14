@@ -139,6 +139,11 @@ internal sealed class GameNetworkPlugin(
             return SelectCharacterPayloadCodec.Decode(metadata, frame.Body.Span);
         }
 
+        if (frame.Type == GameProtocol.ClientSpecStatisticType)
+        {
+            return ClientSpecStatisticPayloadCodec.Decode(metadata, frame.Body.Span);
+        }
+
         return frame.Type == GameProtocol.ExitType
             ? new GameExitRequest(metadata)
             : null;
