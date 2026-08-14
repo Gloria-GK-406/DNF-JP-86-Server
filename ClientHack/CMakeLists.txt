@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.25)
 
 project(ClientHack VERSION 0.1.0 LANGUAGES C)
 
+option(CLIENTHACK_PROTECT_DRX "Hide hardware debug registers from the client" ON)
+
 if(NOT WIN32)
     message(FATAL_ERROR "ClientHack supports Windows only")
 endif()
@@ -59,6 +61,11 @@ target_link_libraries(clienthack_endpoint_redirect_tests PRIVATE clienthack_core
 clienthack_warnings(clienthack_endpoint_redirect_tests)
 add_test(NAME clienthack_endpoint_redirect_tests COMMAND clienthack_endpoint_redirect_tests)
 
+add_executable(clienthack_anti_debug_tests tests/test_anti_debug.c)
+target_include_directories(clienthack_anti_debug_tests PRIVATE include plugins)
+clienthack_warnings(clienthack_anti_debug_tests)
+add_test(NAME clienthack_anti_debug_tests COMMAND clienthack_anti_debug_tests)
+
 add_library(minhook STATIC
     third_party/minhook/src/buffer.c
     third_party/minhook/src/hook.c
@@ -73,6 +80,7 @@ add_library(Az SHARED
     src/az/iat_repair.c
     src/az/Az.def
     src/host/file_hash.c
+    src/host/early_antidebug.c
     src/host/host_main.c
     src/host/host_services.c
     src/host/plugin_loader.c
@@ -130,6 +138,11 @@ endfunction()
 clienthack_plugin(plugin_anti_anti_debug
     plugins/0005_anti_anti_debug/anti_anti_debug.c
     "0005_AntiAntiDebug" "AntiAntiDebug")
+if(CLIENTHACK_PROTECT_DRX)
+    target_compile_definitions(plugin_anti_anti_debug PRIVATE CLIENTHACK_PROTECT_DRX=1)
+else()
+    target_compile_definitions(plugin_anti_anti_debug PRIVATE CLIENTHACK_PROTECT_DRX=0)
+endif()
 clienthack_plugin(plugin_disable_gameguard
     plugins/0010_disable_gameguard/disable_gameguard.c
     "0010_DisableGameGuard" "DisableGameGuard")
