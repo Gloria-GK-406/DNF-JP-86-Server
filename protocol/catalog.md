@@ -10,6 +10,6 @@
 
 | Endpoint | Direction | Command | Type | Name | Role | Status | Record |
 |---|---|---:|---:|---|---|---|---|
-| Game | Client → Server | `0x01` | `0x00AB` | `CLIENT_SPEC_STATISTIC` | Report / no response | Reversing | [记录](game/client-to-server/0x00AB-client-spec-statistic/README.md) |
+| Game | Client → Server | `0x01` | `0x00AB` | `CLIENT_SPEC_STATISTIC` | Report / no response | LayoutKnown | [记录](game/client-to-server/0x00AB-client-spec-statistic/README.md) |
 
 当同一 type 在另一方向或端点出现时，必须新增独立行和独立记录，不能覆盖已有含义。

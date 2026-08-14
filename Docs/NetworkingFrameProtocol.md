@@ -240,6 +240,36 @@ opcode 的协议判别字段，Networking 解码后按 mode 生成不同的强�
 > 需要确认各 mode 的真实业务语义、`targetUserId` 的协议身份含义、mode 2 的完整通知顺序、
 > 角色列表默认字段和外观数据格式。上述内容均由旧代码反推，不是抓包结论。
 
+### Game CMD `0x0001`/type `0x00AB`（HARDWARE_REPORT，客户端硬件规格上报）
+
+> 完整记录见 `protocol/game/client-to-server/0x00AB-client-spec-statistic/README.md`
+>（反汇编 + cdb 动态双重验证，含详细工作日志）。
+
+客户端→服务端，`cmd=0x01/type=0x00AB`。登录早期一次性上报（实测在 LOGIN 之后、
+GET_USERINFO 之前；触发于进入频道），fire-and-forget，**服务端无需 ACK**，
+客户端以本地 `[0x34]` 标志防重发。Body 39 字节，结构闭合：
+
+```
+u8  trigger      ; 序列化路径标志：0x80=主路径（push 0 wrapper），0x81=条件路径
+u8  reported     ; 上报时的已上报标志（样本为 0，发送后置 1）
+u8  count        ; 常量 4
+4 × {
+    u8  tag      ; 0..3 槽位编号（定长）
+    u32 v1
+    u32 v2
+}
+```
+
+| 槽位 | v1 | v2 |
+|---|---|---|
+| tag=0 CPU | 逻辑处理器数 & 0x80FFFFFF + 厂商桶×0x1000000（0=Intel/1=AMD/2=其他） | 主频桶：0≤1050MHz，1≤1650，2≤2450，3>2450 |
+| tag=1 GPU | PCI Vendor ID（u16 扩展） | PCI Device ID（u16 扩展） |
+| tag=2 OS | OS 枚举：1=98,3=ME,4=95/NT4,6=2000,7=XP,9=Vista,0xA=7SP1,0xC=8,0xD=8.1,0xE=10/11 | Service Pack 值 |
+| tag=3 RAM | 常量 0 | 物理内存桶（ullTotalPhys>>20）：0≤136MB … 6≤2056MB，7>2056MB |
+
+实测样本（Win11/12 线程/16GB/Intel 核显）：`(12,3) (0x8086,0xA7A8) (14,0) (0,7)`。
+服务端实现建议：按结构解析落库即可。
+
 ### 服务端到客户端
 
 旧发送实现构造 15 字节包头，而不是复用 13 字节入站包头：
