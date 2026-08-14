@@ -59,6 +59,46 @@ msvcp60 末尾(0x60816000)，说明 dump 时要么是更大/不同版本的 msvc
 3. 重新采集一份 dump：系统级关闭 ASLR/bottom-up，使非 KnownDLL 基址在采集与运行间一致；
 4. 接受部分子系统（iostream 等）需要精确 DLL，先让不依赖它们的路径跑起来。
 
+## 陈旧内联导入：实测工作量远小于预期，已用 6-DLL 重定基走通
+
+对 dump 时标准 IAT 与 B1 运行时解析值逐项对比：整个客户端里**只有 6 个 DLL 因 ASLR 移位**：
+`msvcp60、tbbmalloc、fmodex、d3dx9_43、dinput8、netapi32`。其余 ~20 个都是 KnownDLL/固定基址，
+同 boot 内基址一致，内联引用本就有效（所以 B1 能跑过 cookie 与全部 C++ ctor）。
+
+因此修复**不需要枚举每个内联导入**（那才是原以为的“大”），只需让这 6 个 DLL 落到 dump 基址。做法：
+从各 DLL 导出表算精确 dump 基址（`dump_base = dump_addr − func_rva`），`editbin /REBASE:BASE=<base>
+/DYNAMICBASE:NO` 生成 app-local 副本放进 `rebuilt\`。签名 DLL（tbbmalloc/d3dx9_43）需先剥签名
+（清 Security 目录 + 截断尾部证书）再 editbin。netapi32 当前版本与 dump 不一致（基址不对齐），
+暂不处理（网络信息用，登录前用不到）。
+
+各 DLL dump 基址：msvcp60=0x607A0000、fmodex=0x60390000、d3dx9_43=0x604E0000、
+tbbmalloc=0x60820000、dinput8=0x608A0000（互不重叠，与 dump 布局一致）。
+
+## B1 结果：跑通真实客户端启动，创建主窗口，止于 TenProxy 反作弊
+
+6 个移位 DLL 全部重定基到位后，B1（从 `rebuilt\`，游戏数据用 junction/hardlink 挂进来）：
+
+- 越过 C++ ctor、全部子系统/DLL 初始化；
+- 加载游戏数据（`dstr.dat`、`Script.pvf`…）；
+- **创建了 DNF 主窗口，窗口类 `地下城与勇士`**（工作集涨到 62MB）；
+- 止于客户端自身弹出的 **“Run Error: TenProxy.dll load Failed”**（腾讯反作弊 DLL）。
+
+`TenProxy.dll` 在整个隔离客户端里根本不存在——即真实客户端也不直接加载它，是由 ClientHack/Az
+处理/桩掉。B1 排除了 az.dll/ijl15.dll（避免 ClientHack 注入），所以撞上原始检查。
+
+**结论：可运行重建机制 + 6-DLL 重定基已完全验证——重建 EXE 不执行 AEP、可被调试器 attach、
+能跑完真实客户端启动直到创建主窗口。** 到登录界面所差的是 ClientHack 集成（TenProxy/服务端重定向/
+PutRSInfo 等由 Az 负责），属于 handoff 第 14 节“B1 保留 ClientHack 功能”的既定用法。
+
+## 下一阶段：把 B1 与 ClientHack(Az) 集成
+
+真实客户端经 `ijl15.dll` 劫持加载 Az，Az 在 XCookie 处装 startup gate。B1 保留 `.text` 里完整的
+XCookie(0x0253BBBF)，入口桩正是 `call 0x0253BBBF`。若在 B1 导入里重新包含 ClientHack 的
+`ijl15`（进而加载 Az），Az 的 DllMain 会在入口桩之前装好 gate，我方桩调用 cookie 时正好被 Az 拦截，
+Az 完成 ClientHack 启动（含 TenProxy 处理、服务端重定向、IAT/插件），释放后桩再 `jmp 0x04ED6E75`
+续跑——等于用 B1 入口替代 AEP 跑通完整 ClientHack 流程。需处理 Az 的 IAT 修复/就绪等待与已解包状态
+的潜在重复/冲突。
+
 ## B0 / B0.5 已验证的事实
 
 - 重建 PE 能被 Windows Loader 映射到固定基址 0x00400000（重定位已剥离），17 个节全部映射，
