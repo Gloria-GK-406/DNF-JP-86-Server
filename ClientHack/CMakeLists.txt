@@ -88,7 +88,8 @@ add_library(Az SHARED
     src/host/host_main.c
     src/host/host_services.c
     src/host/plugin_loader.c
-    src/host/readiness.c)
+    src/host/readiness.c
+    src/host/startup_trace.c)
 target_include_directories(Az PRIVATE include src/host)
 target_link_libraries(Az PRIVATE clienthack_core minhook user32)
 clienthack_warnings(Az)
@@ -204,7 +205,8 @@ target_compile_definitions(clienthack_tests PRIVATE
 add_executable(clienthack_host_tests
     tests/test_host_services.c
     src/host/host_services.c
-    src/host/readiness.c)
+    src/host/readiness.c
+    src/host/startup_trace.c)
 target_include_directories(clienthack_host_tests PRIVATE include src/host)
 target_link_libraries(clienthack_host_tests PRIVATE clienthack_core minhook)
 clienthack_warnings(clienthack_host_tests)

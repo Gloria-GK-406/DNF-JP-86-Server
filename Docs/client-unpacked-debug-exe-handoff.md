@@ -2,6 +2,24 @@
 
 更新时间：2026-08-14
 
+## 0. 阶段 1 已完成（2026-08-14 追加）
+
+启动边界栈采集（第 9/10 节的阶段 1）已实现、构建、部署并采集完成，详见
+`Docs/startup-boundary-capture-phase1.md`。关键结论：
+
+- 真实启动链已钉住：`RtlUserThreadStart -> BaseThreadInitThunk -> AEP 0x06576731 (.j`-`)
+  -> 变形启动 -> 变形 OEP (.,_W) -> 调用 __security_init_cookie`。
+- `client_return = 0x04ED6E75`（RVA `0x04AD6E75`）落在**变形节 `.,_W`**，不是普通 `.text`；
+  整段有效栈没有任何普通 `.text` 调用者。
+- OEP 及其后启动流程已被 **Themida 变形为高熵原生代码**，且有进入寄存器依赖，无法直接跳入续点，
+  也无法可靠定位变形 OEP 起点。`__security_init_cookie` 本身在 `.text` 完整无损。
+- 因此按第 9.2 节规则转入“合成干净启动桩 + 定位 cookie 之后的真实客户端入口（`WinMain`）”。
+  在定位真实 `WinMain`/首个干净 `.text` 客户端入口前，不要开始阶段 3 离线可运行 PE 重建。
+
+阶段 1 引入的变更：`ClientHack` host 新增 `src/host/startup_trace.c` 与 gate 快照（env 门控
+`CLIENTHACK_STARTUP_TRACE=1`，普通启动零影响）；隔离客户端新增 `采集启动栈.bat`；已部署新
+Az.dll（见第 3 节身份记录）。
+
 ## 1. 目标与当前结论
 
 当前工作的首要目标已经从“继续逐条对抗 Themida/SecureEngine 的反调试检测”切换为：
@@ -126,6 +144,15 @@ DNFClient-ClientHackLab-20260812\plugins-disabled\0000_MemoryDump.dll
 ```
 
 因此普通启动不会再次写入约 100 MiB 的 dump。需要重新采集时才临时恢复，并在采集完成后再次禁用。
+
+阶段 1 部署的 Az.dll 身份（2026-08-14）：
+
+```text
+旧 Az.dll  52ADEF6954942F3E0FED0FB6852B68BE917A1631FA5C3F21EF1C83F58438A0D9  (备份 Az.dll.bak-20260814-103900)
+新 Az.dll  BCF4E1CA0EFAC4F2E033A61D2E3C59D27FA7B0721F9DE1F3D6CBF6CDE308F644  (含 startup_trace，env 门控)
+```
+
+新 Az.dll 仅在 `CLIENTHACK_STARTUP_TRACE=1` 时写出 `dumps\startup-stack-*.json`，普通启动零影响。
 
 ## 4. 最关键的时序认识
 

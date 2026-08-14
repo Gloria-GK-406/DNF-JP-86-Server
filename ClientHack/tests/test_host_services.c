@@ -97,6 +97,32 @@ int main(void)
         CHECK(!ch_wait_for_client_ready(20));
         VirtualFree(readiness_memory, 0, MEM_RELEASE);
     }
+
+    {
+        static const ch_image_section sections[] = {
+            { ".text", 0x00001000u, 0x00010000u, 0x60000020u },
+            { ".data", 0x00020000u, 0x00001000u, 0xC0000040u },
+            { ".empty", 0x00030000u, 0x00000000u, 0x40000040u },
+            { ".j`-", 0x06000000u, 0x00522000u, 0xE0000020u }
+        };
+        const uint32_t count = (uint32_t)(sizeof(sections) / sizeof(sections[0]));
+        /* Below the first section, in the header gap. */
+        CHECK(ch_section_index_for_rva(sections, count, 0x00000500u) == -1);
+        /* Start, middle, and last byte of .text. */
+        CHECK(ch_section_index_for_rva(sections, count, 0x00001000u) == 0);
+        CHECK(ch_section_index_for_rva(sections, count, 0x00008000u) == 0);
+        CHECK(ch_section_index_for_rva(sections, count, 0x00010FFFu) == 0);
+        /* One past .text is not in any section (gap before .data). */
+        CHECK(ch_section_index_for_rva(sections, count, 0x00011000u) == -1);
+        CHECK(ch_section_index_for_rva(sections, count, 0x00020000u) == 1);
+        /* Zero-size sections never match. */
+        CHECK(ch_section_index_for_rva(sections, count, 0x00030000u) == -1);
+        /* Inside the protected section. */
+        CHECK(ch_section_index_for_rva(sections, count, 0x06176731u) == 3);
+        CHECK(ch_section_index_for_rva(sections, count, 0x06522000u) == -1);
+        CHECK(ch_section_index_for_rva(NULL, count, 0x00001000u) == -1);
+    }
+
     if (failures != 0) return 1;
     puts("all host service tests passed");
     return 0;

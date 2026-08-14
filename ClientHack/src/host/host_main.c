@@ -102,6 +102,10 @@ static int ch_continue_startup(void* context)
     ch_log(3, "host", "startup gate installed");
     if (!ch_startup_gate_wait(120000u)) return 0;
     ch_log(3, "host", "startup gate intercepted the client thread");
+    /* Phase 1 startup-boundary capture: serialize the intercepted call stack
+     * before any later step can perturb it. No-op unless CLIENTHACK_STARTUP_TRACE
+     * is set, so ordinary launches are unaffected. */
+    (void)ch_startup_trace_write();
     ch_early_antidebug_snapshot(&early);
     {
         char message[192];

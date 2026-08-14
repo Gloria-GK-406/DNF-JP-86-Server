@@ -19,6 +19,43 @@ static HANDLE g_startup_gate_release;
 static uint8_t* g_startup_gate_target;
 static uint8_t g_startup_gate_original[5];
 static volatile LONG g_startup_gate_restored;
+static ch_startup_gate_capture g_startup_gate_capture;
+
+const ch_startup_gate_capture* ch_startup_gate_capture_get(void)
+{
+    return InterlockedCompareExchange(&g_startup_gate_capture.valid, 1, 1) != 0
+        ? &g_startup_gate_capture
+        : NULL;
+}
+
+/* Snapshot the incoming call stack before the gate rewrites the return slot.
+ * return_address[0] is the temporary CALL's return (XCookie+5) and
+ * return_address[1] is the original client's return address into the caller of
+ * XCookie -- the Phase 1 anchor for recovering the real startup chain. Reading
+ * upward from the return slot stays inside already-committed stack, so no
+ * VirtualQuery or fault handling is needed in this sensitive window.
+ *
+ * esp/ebp/eflags are the handler frame's registers; the client's ESP just
+ * before it executed CALL XCookie is return_slot_va + sizeof(void*) (the slot
+ * the original CALL pushed client_return into), recoverable offline. */
+static void ch_startup_gate_snapshot(void** return_address,
+    uint32_t eflags, uint32_t esp, uint32_t ebp)
+{
+    ch_startup_gate_capture* cap = &g_startup_gate_capture;
+    size_t i;
+    cap->thread_id = GetCurrentThreadId();
+    cap->eflags = eflags;
+    cap->esp = esp;
+    cap->ebp = ebp;
+    cap->return_slot_va = (uint32_t)(uintptr_t)return_address;
+    cap->xcookie_return = (uint32_t)(uintptr_t)return_address[0];
+    cap->client_return = (uint32_t)(uintptr_t)return_address[1];
+    cap->stack_count = CH_GATE_STACK_DWORDS;
+    for (i = 0; i < CH_GATE_STACK_DWORDS; ++i) {
+        cap->stack[i] = (uint32_t)(uintptr_t)return_address[i];
+    }
+    InterlockedExchange(&cap->valid, 1);
+}
 
 static int ch_bytes_match(uintptr_t rva, const uint8_t* expected, size_t length)
 {
@@ -61,7 +98,21 @@ static CH_NOINLINE void __cdecl ch_startup_gate_handler(void)
 #endif
     DWORD old_protection;
     int restored = 0;
+    uint32_t captured_eflags = 0;
+    uint32_t captured_esp = 0;
+    uint32_t captured_ebp = 0;
 
+#if defined(_MSC_VER) && defined(_M_IX86)
+    __asm {
+        pushfd
+        pop eax
+        mov captured_eflags, eax
+        mov captured_esp, esp
+        mov captured_ebp, ebp
+    }
+#endif
+    ch_startup_gate_snapshot(return_address, captured_eflags, captured_esp,
+        captured_ebp);
     *return_address = g_startup_gate_target;
     if (VirtualProtect(g_startup_gate_target, sizeof(g_startup_gate_original),
         PAGE_EXECUTE_READWRITE, &old_protection)) {

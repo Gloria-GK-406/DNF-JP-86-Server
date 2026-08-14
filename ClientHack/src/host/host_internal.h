@@ -42,6 +42,46 @@ extern HMODULE g_ch_module;
 extern uintptr_t g_ch_dnf_base;
 extern ch_host_api g_ch_host_api;
 
+/* Phase 1 startup-boundary capture. The startup gate handler runs in the
+ * blocked client thread and snapshots the raw call stack into this buffer
+ * before it rewrites the temporary CALL return slot. The worker thread later
+ * classifies and serializes it. Keep this POD and free of pointers so it can be
+ * memcpy'd and inspected without ownership concerns. */
+#define CH_GATE_STACK_DWORDS 256u
+
+typedef struct ch_startup_gate_capture {
+    volatile LONG valid;
+    DWORD thread_id;
+    uint32_t eflags;
+    uint32_t esp;             /* handler ESP after prologue */
+    uint32_t ebp;             /* handler EBP after prologue */
+    uint32_t return_slot_va;  /* address of return_address[0] on the stack */
+    uint32_t xcookie_return;  /* return_address[0]: XCookie+5 (temp CALL) */
+    uint32_t client_return;   /* return_address[1]: caller of XCookie */
+    uint32_t stack_count;     /* number of valid entries in stack[] */
+    uint32_t stack[CH_GATE_STACK_DWORDS];
+} ch_startup_gate_capture;
+
+/* Returns the capture buffer once the handler has marked it valid, else NULL. */
+const ch_startup_gate_capture* ch_startup_gate_capture_get(void);
+
+/* One parsed DNF section header, sufficient to classify an RVA. */
+typedef struct ch_image_section {
+    char name[9];
+    uint32_t va;              /* section RVA */
+    uint32_t size;            /* virtual size */
+    uint32_t characteristics;
+} ch_image_section;
+
+/* Pure: index of the section whose [va, va+size) contains rva, or -1. */
+int ch_section_index_for_rva(const ch_image_section* sections,
+    uint32_t count, uint32_t rva);
+
+/* Serializes the startup-gate capture to a JSON report under <exe>\dumps when
+ * CLIENTHACK_STARTUP_TRACE=1. A no-op that returns 1 when the trace is
+ * disabled or no capture is available. Runs on the worker thread. */
+int ch_startup_trace_write(void);
+
 void ch_log(uint32_t level, const char* component, const char* message);
 void ch_log_reset(void);
 void ch_fatal(const wchar_t* detail);
