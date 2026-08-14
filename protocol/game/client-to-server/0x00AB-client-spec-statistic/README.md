@@ -11,7 +11,7 @@
 | Role | Report（客户端硬件规格上报，fire-and-forget） |
 | Trigger | 进入频道后的 Game 登录早期：LOGIN 响应之后、GET_USERINFO(`0x0008`) 之前，一次性发送（同会话仅一次，重复登录字节一致） |
 | Expected response | None（Confirmed：发送后无等待/轮询逻辑，客户端用本地 reported 标志防重发） |
-| Catalog status | Implemented |
+| Catalog status | ClientVerified |
 
 客户端在登录握手阶段向服务端上报本机硬件画像：CPU / GPU / 操作系统 / 物理内存。
 服务端已实现：解码为 typed report 并以语义化日志记录（暂无存储消费者）；无 ACK。
@@ -90,6 +90,7 @@ struct Body00AB {
 | `E-007` | Filler disassembly (static) | RVA `0x20D0E80`（上报对象填充器）、`0x21985A0`（CPU 检测） | slot0 语义：厂商桶编码、主频桶阈值、核心数来源 |
 | `E-008` | SystemInfo collector disassembly | RVA `0x216B340` + `0x2168ED0` + `0x2169400/40/50` + IAT 注释（GetSystemInfo/cpuid/GlobalMemoryStatusEx） | slot1/2/3 数据来源与全部阈值 |
 | `E-009` | Live debugger verification | cdb attach `DNF.unpacked-b1-debug.exe`，断点 `0x20D1120`，2026-08-14（现场日志见 workspace `analysis/cdb-00ab-live3.log`） | 运行时对象值、SystemInfo 全局、`"Intel"` 厂商串、15.93GB `ullTotalPhys` 全部吻合 |
+| `E-010` | Real-client end-to-end | 2026-08-14 本地服务端（重构版）实机会话：客户端 NetworkHook 抓到出站帧与 E-001 逐字节一致，服务端解码并输出语义日志，客户端随即发出 GET_USERINFO | 完整 ClientVerified 证据：方向、触发、无响应兼容、解码正确性 |
 
 The supported DNF executable is:
 
@@ -157,8 +158,10 @@ This proves compatibility with no response for the observed login path. It does 
 - Boundary cases：✅ 长度 ≠ 39、`count != 4`、tag 非连续均抛 `InvalidDataException`
 - Handler：✅ `ClientSpecStatisticHandlerTests` 覆盖账号归属日志与无归属容错（不抛错断连）
 - Response count/order：恒 0（E-003/E-006 双重证明 + 实现无发送路径）
-- Real-client result：无响应时客户端正常走到角色列表（E-001 六次 + 2026-08-14 一次）；
-  本地服务端上的实机日志验证待做（ClientVerified 的最后一项）
+- Real-client result：✅ **2026-08-14 本地服务端实机验证通过**：客户端连入本地服务端，
+  进入频道后依次发出 LOGIN → 00AB → GET_USERINFO；服务端日志输出语义化报告
+  （`cpu=cores=12 vendor=Intel clock=>2450MHz gpu=pci=8086:A7A8 os=Windows10/11 sp=0
+  memory=bucket=7 (>2056MB)`，含账号归属），客户端未等待直接继续（`E-010`）
 
 ## Unknowns and next evidence
 
