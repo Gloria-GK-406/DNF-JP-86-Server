@@ -101,8 +101,9 @@ internal static class ClientSpecProfilePayloadCodec
             body[14],
             BinaryPrimitives.ReadUInt32LittleEndian(body.Slice(15, 4)),
             body[19],
-            BinaryPrimitives.ReadUInt16LittleEndian(body.Slice(20, 2)),
-            BinaryPrimitives.ReadUInt16LittleEndian(body.Slice(22, 2)),
+            // Signed: the client logs both timings as "-1s" when unmeasured, i.e. 0xFFFF.
+            BinaryPrimitives.ReadInt16LittleEndian(body.Slice(20, 2)),
+            BinaryPrimitives.ReadInt16LittleEndian(body.Slice(22, 2)),
             table,
             entries);
     }

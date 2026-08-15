@@ -33,7 +33,9 @@ public sealed class ClientSpecProfileHandlerTests
         Assert.Contains("pci=8086:A7A8", entry.Message);
         Assert.Contains("Windows10/11", entry.Message);
         Assert.Contains("video=4096MB total=8192MB", entry.Message);
-        Assert.Contains("off15=00090000 off19=6 off20=FFFF off22=FFFF", entry.Message);
+        Assert.Contains("directX=9.0.0", entry.Message);
+        Assert.Contains("startLoading=unmeasured returnVillage=unmeasured", entry.Message);
+        Assert.Contains("off19=6", entry.Message);
         Assert.Contains("6rows all-zero", entry.Message);
         Assert.Contains("entries=none", entry.Message);
     }
@@ -72,6 +74,23 @@ public sealed class ClientSpecProfileHandlerTests
         Assert.Contains("entries=3:1200,1:40", entry.Message);
     }
 
+    [Fact]
+    public async Task HandleAsync_ReportsMeasuredTimingsAsDurations()
+    {
+        // Every sample so far carries -1 for both timings because the session never entered the
+        // game. A session that did would carry real seconds, which must not read as "unmeasured".
+        var context = new NetworkDispatchContext(
+            new NetworkConnectionContext(new NetworkConnectionId("game-11"), NetworkEndpointKind.Game, 10011));
+        var logger = new RecordingLogger();
+        var handler = new ClientSpecProfileHandler(new StubOnlineUserQueryService(snapshot: null), logger);
+        var report = CreateReport() with { StartLoadingSeconds = 23, ReturnVillageSeconds = 0 };
+
+        await handler.HandleAsync(context, report, CancellationToken.None);
+
+        var entry = Assert.Single(logger.Entries);
+        Assert.Contains("startLoading=23s returnVillage=0s", entry.Message);
+    }
+
     private static ClientSpecProfileRow[] CreateTable() =>
         [.. Enumerable.Range(0, 6).Select(_ => new ClientSpecProfileRow(
             new ushort[4],
@@ -86,10 +105,10 @@ public sealed class ClientSpecProfileHandlerTests
         NormalizedVideoMemoryMegabytes: 4096,
         NormalizedTotalMemoryMegabytes: 8192,
         OperatingSystemKind: 0x0E,
-        Unknown15: 0x00090000,
+        DirectXVersion: 0x00090000,
         Unknown19: 6,
-        Unknown20: 0xFFFF,
-        Unknown22: 0xFFFF,
+        StartLoadingSeconds: -1,
+        ReturnVillageSeconds: -1,
         Table: CreateTable(),
         Entries: []);
 

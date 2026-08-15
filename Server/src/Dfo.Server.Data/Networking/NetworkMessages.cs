@@ -236,8 +236,11 @@ public sealed record ClientSpecProfileEntry(byte Kind, ushort Value);
 /// Its first 15 bytes come from the same report object those two use, with the two memory figures
 /// passed through a normalizing filter, so they are comparable but not byte-identical.
 ///
-/// Fields with no confirmed meaning are named for their body offset rather than guessed at; see
-/// protocol/game/client-to-server/0x00C2.md.
+/// Most header names come from the client's own plaintext LagLog.txt, which dumps the same
+/// statistics at exit and lines up with the wire field for field. <paramref name="Unknown19"/>
+/// keeps its offset name: it occupies the position LagLog calls TING, but the two disagree in
+/// value and it is supplied by the serializer's caller rather than read from the report object.
+/// See protocol/game/client-to-server/0x00C2.md.
 /// </summary>
 public sealed record ClientSpecProfileReportRequest(
     GameMessageMetadata Metadata,
@@ -248,10 +251,10 @@ public sealed record ClientSpecProfileReportRequest(
     ushort NormalizedVideoMemoryMegabytes,
     ushort NormalizedTotalMemoryMegabytes,
     byte OperatingSystemKind,
-    uint Unknown15,
+    uint DirectXVersion,
     byte Unknown19,
-    ushort Unknown20,
-    ushort Unknown22,
+    short StartLoadingSeconds,
+    short ReturnVillageSeconds,
     IReadOnlyList<ClientSpecProfileRow> Table,
     IReadOnlyList<ClientSpecProfileEntry> Entries) : IClientNetworkMessage
 {

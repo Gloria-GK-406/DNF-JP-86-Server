@@ -44,10 +44,12 @@ public sealed class ClientSpecProfilePayloadCodecTests
         Assert.Equal(4096, request.NormalizedVideoMemoryMegabytes);
         Assert.Equal(8192, request.NormalizedTotalMemoryMegabytes);
         Assert.Equal(0x0E, request.OperatingSystemKind);
-        Assert.Equal(0x00090000u, request.Unknown15);
+        // 0x00090000 is DirectX 9.0.0; the client's own LagLog.txt prints it as hex "90000".
+        Assert.Equal(0x00090000u, request.DirectXVersion);
         Assert.Equal(6, request.Unknown19);
-        Assert.Equal(0xFFFF, request.Unknown20);
-        Assert.Equal(0xFFFF, request.Unknown22);
+        // Both timings are 0xFFFF on the wire, which the client logs as "-1s" -- unmeasured.
+        Assert.Equal(-1, request.StartLoadingSeconds);
+        Assert.Equal(-1, request.ReturnVillageSeconds);
         Assert.Equal(6, request.Table.Count);
         Assert.All(request.Table, row =>
         {

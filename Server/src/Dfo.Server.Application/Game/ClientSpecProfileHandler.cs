@@ -26,14 +26,18 @@ public sealed class ClientSpecProfileHandler(
 
         logger.LogInformation(
             "Client spec profile {ConnectionId} {Attribution}: cpu={Cpu} gpu={Gpu} os={OperatingSystem} "
-            + "normalized={Normalized} unknown={Unknown} table={Table} entries={Entries}",
+            + "normalized={Normalized} directX={DirectX} timings={Timings} unknown={Unknown} "
+            + "table={Table} entries={Entries}",
             context.Connection.ConnectionId,
             attributed ? $"account={onlineUser!.AccountId} onlineUser={onlineUser.OnlineUserId}" : "unattributed",
             $"cores={message.CpuLogicalCores} clock={message.CpuClockMhz}MHz",
             $"pci={message.GpuPciVendorId:X4}:{message.GpuPciDeviceId:X4}",
             ClientSpecProfileDescriptor.DescribeOperatingSystem(message.OperatingSystemKind),
             $"video={message.NormalizedVideoMemoryMegabytes}MB total={message.NormalizedTotalMemoryMegabytes}MB",
-            $"off15={message.Unknown15:X8} off19={message.Unknown19} off20={message.Unknown20:X4} off22={message.Unknown22:X4}",
+            ClientSpecProfileDescriptor.DescribeDirectXVersion(message.DirectXVersion),
+            $"startLoading={ClientSpecProfileDescriptor.DescribeSeconds(message.StartLoadingSeconds)}"
+            + $" returnVillage={ClientSpecProfileDescriptor.DescribeSeconds(message.ReturnVillageSeconds)}",
+            $"off19={message.Unknown19}",
             ClientSpecProfileDescriptor.DescribeTable(message.Table),
             ClientSpecProfileDescriptor.DescribeEntries(message.Entries));
 
@@ -62,6 +66,16 @@ internal static class ClientSpecProfileDescriptor
         0xE => "Windows10/11",
         _ => $"unknown({kind})",
     };
+
+    /// <summary>Formats the DirectX version the way the client's own LagLog.txt does: the value is
+    /// the standard major-in-high-word encoding, so 0x00090000 reads as 9.0.0.</summary>
+    internal static string DescribeDirectXVersion(uint version) =>
+        $"{version >> 16}.{(version >> 8) & 0xFF}.{version & 0xFF}";
+
+    /// <summary>The client writes -1 for a timing it never measured; report that as unmeasured
+    /// rather than as a negative duration.</summary>
+    internal static string DescribeSeconds(short seconds) =>
+        seconds < 0 ? "unmeasured" : $"{seconds}s";
 
     /// <summary>Reports how many of the fixed rows carry any non-zero value, so a populated table
     /// becomes visible in the log without dumping 60 numbers per report.</summary>
