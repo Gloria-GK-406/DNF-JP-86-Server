@@ -224,21 +224,25 @@ DString 仍是 `int32 LE` 字节长度后紧跟 ASCII 字节，不带零终止�
 
 ### Game CMD `0x0008`（GET_USERINFO）
 
-旧实现将请求 Body 反推为 `{ uint16 LE targetUserId, byte mode }`。该 `mode` 是同一线路
-opcode 的协议判别字段，Networking 解码后按 mode 生成不同的强类型 Message，不把 mode
-继续传给业务 Handler。
+> 请求侧的完整记录见 `protocol/game/client-to-server/0x0008.md`（5 个构包点全部反汇编，
+> 布局与 mode 值域已确认）。
 
-当前只迁移 `mode=2`，对应当前已认证账号的角色列表；`targetUserId` 在该模式下不参与账号
-定位。`mode=0/1/3` 属于查看其他在线角色的流程，尚未迁移，后续应分别定义独立 Message。
+请求 Body `{ uint16 LE target, byte mode }`——旧实现的反推，现已由客户端指令**独立确认**。
+`mode` 是同一线路 opcode 的协议判别字段，Networking 解码后按 mode 生成不同的强类型
+Message，不把 mode 继续传给业务 Handler。
+
+已确认的修正：客户端只存在 `mode=2` 与 `mode=3`，**不存在 `mode=0/1`**；`target` 的
+`0xFFFF` 是"无目标"哨兵（客户端把合法目标限制在 `0..0xFFFE`），`mode=2` 固定写该哨兵，
+因此该模式下它确实不参与账号定位。`mode=3` 携带运行时目标 id，尚未迁移。
 
 `mode=2` 当前发送 `cmd=0x00/type=0x0002` 的角色列表通知。列表头和单角色基础字段沿用旧
 构造顺序，外观、荣誉和未确认尾部字段暂以保守默认值编码。旧实现随后还会发送
 `0x0286`、荣誉等级和成长胶囊通知，这些后续通知尚未迁移。
 
-> **TODO(protocol-capture): Game CMD `0x0008` (`GET_USERINFO`)**
+> **TODO(protocol-capture): Game CMD `0x0008` 的响应侧**
 >
-> 需要确认各 mode 的真实业务语义、`targetUserId` 的协议身份含义、mode 2 的完整通知顺序、
-> 角色列表默认字段和外观数据格式。上述内容均由旧代码反推，不是抓包结论。
+> 请求侧已确认。仍未确认的是：`mode=2` 的完整通知顺序、角色列表默认字段和外观数据格式
+> （即 S→C `0x0002` 的 body 编码，当前仍是旧代码反推）、以及 `mode=3` 的响应身份。
 
 ### Game CMD `0x0001`/type `0x00AB`（HARDWARE_REPORT，客户端硬件规格上报）
 

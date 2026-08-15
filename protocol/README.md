@@ -12,6 +12,7 @@
 | 某条协议的全部细节 | 清单里该行链接的协议文档 |
 | 从未知报文到实现完成的工作流 | [逆向与验证方法](methodology.md) |
 | 跨协议共享的帧结构、构包原语、定位技巧 | [patterns/game-frame.md](patterns/game-frame.md) |
+| 客户端支持的 C→S type 全集与各自构包点地址 | [patterns/data/client-to-server-builder-sites.tsv](patterns/data/client-to-server-builder-sites.tsv) |
 | 新增一条协议 | 复制 [记录模板](templates/message.md) |
 
 ## 目录组织
@@ -21,6 +22,7 @@ protocol/
 ├── catalog.md              唯一的协议清单：身份、阶段、文档链接
 ├── methodology.md          工作流
 ├── patterns/               跨协议共享的事实与技巧
+│   └── data/               机器产出的普查/索引数据，及产出它们的脚本
 ├── templates/message.md    协议文档模板
 └── <endpoint>/<direction>/
     ├── <type>.md           一条协议 = 一个文档，细节全部在内

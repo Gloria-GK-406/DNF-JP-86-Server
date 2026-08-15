@@ -28,7 +28,7 @@
 | `0x01` | `0x0001` | LOGIN | Query | 未知 | — |
 | `0x01` | `0x0002` | — | 未知 | 未知 | — |
 | `0x01` | `0x0003` | EXIT | Query | 未知 | — |
-| `0x01` | `0x0008` | GET_USERINFO | Query | 未知 | — |
+| `0x01` | `0x0008` | GET_USERINFO | Query / 有响应 | 实现服务端功能 | [0x0008.md](game/client-to-server/0x0008.md) |
 | `0x01` | `0x008F` | — | 未知 | 未知 | — |
 | `0x01` | `0x00AB` | `CLIENT_SPEC_STATISTIC` | Report / 无响应 | 双向验证结束 | [0x00AB.md](game/client-to-server/0x00AB.md) |
 | `0x01` | `0x00C2` | `CLIENT_SPEC_PROFILE` | Report / 无响应 | 双向验证结束 | [0x00C2.md](game/client-to-server/0x00C2.md) |
@@ -44,6 +44,16 @@
 | — | `0x0001` | LOGIN response | Response | 未知 | — |
 | — | `0x0002` | 角色列表 | Notification | 未知 | — |
 | — | `0x0003` | EXIT response | Response | 未知 | — |
+
+## 清单的完整性
+
+上面两张表只列**已在线观察到**的协议，不是客户端支持的全集。客户端 `.text` 的构包点普查
+显示 C→S 至少有 **604 个不同 type**（范围 `0x0000`–`0x043D`），逐 type 的构包点地址见
+[patterns/data/client-to-server-builder-sites.tsv](patterns/data/client-to-server-builder-sites.tsv)。
+604 仍是下限：被混淆到第二代码区的构包器扫不到（已观察到的 C→S `0x0002` 就是其一）。
+
+因此本清单的作用是"哪些协议已经在做/做完"，不是"客户端有哪些协议"；后者查普查表。
+挑下一条协议时应先查普查表拿到构包点，再决定是否需要抓包。
 
 ## 命名与身份
 
@@ -65,8 +75,7 @@
 |---:|---|---:|---|
 | `0x0001` | C→S | 73 | LOGIN。服务端已实现，含账号凭证与启动参数 auth hash（样本不得入库） |
 | `0x0001` | S→C | 54 | LOGIN response。服务端已实现，但 `EncodeSuccess` 内多个字段是旧服移植的魔数，未经抓包确认 |
-| `0x0008` | C→S | 3 | GET_USERINFO（`FFFF02`）。服务端已实现，前 2 字节被丢弃、未解释 |
-| `0x0002` | S→C | 18 | 角色列表；样本为空名单 |
+| `0x0002` | S→C | 18 | 角色列表；样本为空名单。`0x0008` `mode=2` 的响应；服务端编码器含旧服移植的字面量尾部，未验证 |
 | `0x02A8` | C→S | 2 | `FFFF`，角色列表之后 |
 | `0x0002` | C→S | 31 | 与 S→C `0x0002` 同 type 反方向 |
 
