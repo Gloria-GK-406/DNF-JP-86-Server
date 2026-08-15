@@ -1,6 +1,6 @@
 using Dfo.Server.Abstractions.Networking;
-using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol.Channel;
 using Dfo.Server.Protocol.Channel.Connect;
 
 namespace Dfo.Server.Application.Tests.Channel;
@@ -11,9 +11,9 @@ public sealed class ChannelConnectHandlerTests
     public async Task HandleAsync_SendsTheDateBasedConnectKeyToTheSameConnection()
     {
         var sender = new RecordingSender();
-        var commandBus = new RecordingCommandBus(
-            new EstablishChannelConnectionResult("20260810000006"));
-        var handler = new ChannelConnectHandler(sender, commandBus);
+        var keyProvider = new ChannelProtocolKeyProvider(
+            new FixedTimeProvider(new DateTimeOffset(2026, 8, 10, 12, 0, 0, TimeSpan.FromHours(8))));
+        var handler = new ChannelConnectHandler(sender, keyProvider);
         var connectionId = new NetworkConnectionId("channel-42");
         var context = new NetworkDispatchContext(
             new NetworkConnectionContext(connectionId, NetworkEndpointKind.Channel, 7001));
@@ -24,7 +24,6 @@ public sealed class ChannelConnectHandlerTests
             CancellationToken.None);
 
         Assert.Equal(connectionId, sender.ConnectionId);
-        Assert.IsType<EstablishChannelConnectionCommand>(commandBus.Command);
         var response = Assert.IsType<ChannelConnectResponse>(sender.Message);
         Assert.Equal("20260810000006", response.EncryptionKey);
     }
@@ -52,17 +51,15 @@ public sealed class ChannelConnectHandlerTests
             throw new InvalidOperationException("This handler does not use explicit-recipient delivery.");
     }
 
-    private sealed class RecordingCommandBus(EstablishChannelConnectionResult result) : ICommandBus
+    private sealed class FixedTimeProvider(DateTimeOffset value) : TimeProvider
     {
-        public ICommand? Command { get; private set; }
+        public override DateTimeOffset GetUtcNow() => value.ToUniversalTime();
 
-        public ValueTask<TResult> SendAsync<TResult>(
-            ICommand<TResult> command,
-            CancellationToken cancellationToken = default)
-            where TResult : notnull
-        {
-            Command = command;
-            return ValueTask.FromResult((TResult)(object)result);
-        }
+        public override TimeZoneInfo LocalTimeZone { get; } =
+            TimeZoneInfo.CreateCustomTimeZone(
+                "Test/UTC+8",
+                TimeSpan.FromHours(8),
+                "Test/UTC+8",
+                "Test/UTC+8");
     }
 }

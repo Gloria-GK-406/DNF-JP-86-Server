@@ -15,11 +15,6 @@ public interface IChannelCatalog
         CancellationToken cancellationToken);
 }
 
-public interface IChannelEncryptionKeyProvider
-{
-    string GetCurrentKey();
-}
-
 /// <summary>
 /// Which channels carry special entry rules, and what those rules require.
 /// </summary>

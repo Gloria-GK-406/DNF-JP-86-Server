@@ -31,7 +31,6 @@ public sealed class ApplicationModule : IServerModule
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.TryAddSingleton(TimeProvider.System);
-        services.TryAddSingleton<IChannelEncryptionKeyProvider, ChannelEncryptionKeyProvider>();
         services.TryAddSingleton(
             provider => new UserService(
                 () => provider.GetRequiredService<IAccountRepository>()));

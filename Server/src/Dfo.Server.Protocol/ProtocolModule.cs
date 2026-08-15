@@ -49,6 +49,7 @@ public sealed class ProtocolModule : IServerModule
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        services.TryAddSingleton<ChannelProtocolKeyProvider>();
         services.TryAddSingleton<ISelectedCharacterStateMessageFactory, SelectedCharacterStateMessageFactoryService>();
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<INetworkConnectionObserver, OnlineUserConnectionObserver>());
@@ -61,8 +62,6 @@ public sealed class ProtocolModule : IServerModule
     /// <summary>The commands a protocol slice owns, with their execution kind and access modes.</summary>
     private static void RegisterCommands(IServiceCollection services)
     {
-        services.AddCommandHandler<EstablishChannelConnectionCommand, EstablishChannelConnectionResult, EstablishChannelConnectionCommandHandler>(
-            CommandExecutionKind.Direct);
         services.AddCommandHandler<GetChannelScriptVersionCommand, GetChannelScriptVersionResult, GetChannelScriptVersionCommandHandler>(
             CommandExecutionKind.Direct);
         services.AddCommandHandler<GetChannelScriptCommand, GetChannelScriptResult, GetChannelScriptCommandHandler>(

@@ -74,7 +74,7 @@ TCP 字节
 
 ### 1) 领域服务编排业务（Application）
 
-领域按目录组织：`Accounts/`（账号 entry 状态）、`Channel/`（入场策略 + 密钥）、
+领域按目录组织：`Accounts/`（账号 entry 状态）、`Channel/`（入场策略）、
 `Characters/`（花名册/entry 状态/入场后修正）、`Inventory/`（入场租约、每日补货）、
 `OnlineUsers/`（在线聚合 + 执行门）、`Sessions/`（在场注册表、选中会话目录、
 PvP 大厅、副本重进、专家商店）、`World/`（出生点策略、世界内容）、`Users/`
@@ -109,7 +109,7 @@ PvP 大厅、副本重进、专家商店）、`World/`（出生点策略、世�
   LoginGameUser = Direct+OnlineUser Exclusive；GetAccountCharacterRoster =
   Direct+Account Shared；SelectCharacter 的 Prepare、DailyRefill、Publish、PvpReady、
   Quests、Pet、Rejoin、Compensate 八个阶段命令均为 Workflow+Account Exclusive；
-  AcknowledgeGameExit 与 Channel 系四个 = Direct。
+  AcknowledgeGameExit 与 Channel 的 ScriptVersion、Script、Info = Direct。
   `ApplicationModule` 只留 `AddCommandDispatching()`：机制在 Application，
   具体命令在切片。
 - 命令注册表**没有**启动完备性检查（未知命令 dispatch 时才报错）——与消息
@@ -129,7 +129,8 @@ PvP 大厅、副本重进、专家商店）、`World/`（出生点策略、世�
   解包器声明能产出的消息类型，必须有已注册的 handler，否则启动即抛。
   解包成功却没人接的消息才是接线错误。
 - handler 统一模式：解析连接身份 →（可选）`IChannelEntryPolicy` 解析频道 →
-  发命令 → 用 `INetworkMessageSender` 回响应。
+  发命令 → 用 `INetworkMessageSender` 回响应。没有领域状态或领域决策的纯协议交互
+  可以直接发送，例如 Channel Connect 直接返回 Protocol 所有的当日密钥。
   **handler 不得承载业务语义**：见下面的"handler 业务语义规则"。
 - 发送器按端点校验（Channel 消息只能发往 Channel 连接），Channel 载荷走
   AES-128-ECB + zlib + 当日密钥；Game 出站 15 字节头。
@@ -169,13 +170,15 @@ PvP 大厅、副本重进、专家商店）、`World/`（出生点策略、世�
 理由是防一类隐性 bug：handler 直接改了状态，而领域服务层对此一无所知，
 于是并发门、执行次序、补偿与日志全部绕过。
 
-普通 handler 里允许出现的只有三类：
+普通 handler 里允许出现的只有四类：
 
 1. 从 `NetworkDispatchContext` 解出连接身份，取不到就抛；
 2. 只读查询与端点解析（`IOnlineUserQueryService`、`IChannelEntryPolicy`）；
-3. `commandBus.SendAsync(...)` 与 sender 的单连接或显式收件人发送方法。
+3. 不含领域状态或领域决策的确定性协议能力，例如 Channel Connect 读取
+   Protocol 所有的当日密钥；
+4. `commandBus.SendAsync(...)` 与 sender 的单连接或显式收件人发送方法。
 
-`SelectCharacterHandler` 是批准的多阶段协议工作流例外：除上述三类外，它可以获取并
+`SelectCharacterHandler` 是批准的多阶段协议工作流例外：除上述四类外，它可以获取并
 释放 `SelectedSessionTransitionGate`、用只读目录/在线查询检查 session 仍为 current、
 维护待关闭连接集合，并在失败时派发专用补偿命令；实际关闭必须在 gate lease 释放后
 执行。这个例外只授权生命周期**协调**，不授权 handler 直接修改领域状态；所有准备、
@@ -217,8 +220,8 @@ PVP、任务、宠物、重连与补偿等顶层命令，并在阶段之间发�
 
 - `CLIENT_SPEC_STATISTIC`(0x00AB) 的 handler 直接打语义化日志，**不经过命令总线**
   （纯遥测、无领域变更、无响应；见 protocol 记录的 Implementation mapping）。
-  存在水命令：`AcknowledgeGameExitCommand` 返回常量；Channel 系命令是单行
-  转发——为的是统一日志/作用域，不是业务复杂度。
+  存在水命令：`AcknowledgeGameExitCommand` 返回常量；Channel Connect 已改为纯协议
+  直接响应，ScriptVersion、Script、Info 命令仍负责读取基础设施内容源。
 - 登录失败目前**无法编码**（sender 对失败体直接抛异常），失败以服务器内部
   异常形态存在，客户端看不到错误。
 - `Dfo.Server.Utilities` 是空项目占位。

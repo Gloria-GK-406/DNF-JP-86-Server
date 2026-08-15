@@ -1,10 +1,9 @@
-using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 
 namespace Dfo.Server.Protocol.Channel.Script;
 
-internal sealed class ChannelScriptResponseEncoder(IChannelEncryptionKeyProvider keyProvider)
+internal sealed class ChannelScriptResponseEncoder(ChannelProtocolKeyProvider keyProvider)
     : ServerMessageEncoder<ChannelScriptResponse>
 {
     protected override IReadOnlyList<byte[]> EncodeMessage(ChannelScriptResponse message) =>

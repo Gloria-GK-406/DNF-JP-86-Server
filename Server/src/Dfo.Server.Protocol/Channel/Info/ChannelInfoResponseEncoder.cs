@@ -1,12 +1,11 @@
 using System.Buffers.Binary;
 using System.Text;
-using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 
 namespace Dfo.Server.Protocol.Channel.Info;
 
-internal sealed class ChannelInfoResponseEncoder(IChannelEncryptionKeyProvider keyProvider)
+internal sealed class ChannelInfoResponseEncoder(ChannelProtocolKeyProvider keyProvider)
     : ServerMessageEncoder<ChannelInfoResponse>
 {
     protected override IReadOnlyList<byte[]> EncodeMessage(ChannelInfoResponse message)
