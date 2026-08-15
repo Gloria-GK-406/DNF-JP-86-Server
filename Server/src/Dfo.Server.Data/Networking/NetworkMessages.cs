@@ -195,8 +195,10 @@ public sealed record ClientSpecStatisticReportRequest(
 /// OS bitness that 0x00AB omits. Field names mirror the instruction-confirmed wire layout in
 /// protocol/game/client-to-server/0x01DD.md; widths are the wire widths.
 ///
-/// Unlike 0x00AB this report is conditional: the client skips it entirely when its system-info
-/// provider or its IsWow64Process pointer is null, so a session may legitimately never send it.
+/// Unlike 0x00AB this report is conditional, and strongly so: the client only builds it when a
+/// "CrashDNF2.cra" crash file exists in its working directory, and skips it when its system-info
+/// provider or its IsWow64Process pointer is null. A freshly installed client that has never
+/// crashed therefore never sends it, so nothing may depend on its arrival.
 /// </summary>
 public sealed record ClientHardwareDetailReportRequest(
     GameMessageMetadata Metadata,

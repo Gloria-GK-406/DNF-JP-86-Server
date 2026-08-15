@@ -47,13 +47,19 @@
 
 ## 清单的完整性
 
-上面两张表只列**已在线观察到**的协议，不是客户端支持的全集。客户端 `.text` 的构包点普查
-显示 C→S 至少有 **604 个不同 type**（范围 `0x0000`–`0x043D`），逐 type 的构包点地址见
-[patterns/data/client-to-server-builder-sites.tsv](patterns/data/client-to-server-builder-sites.tsv)。
-604 仍是下限：被混淆到第二代码区的构包器扫不到（已观察到的 C→S `0x0002` 就是其一）。
+上面两张表只列**已在线观察到**的协议，不是客户端支持的全集。两个方向都已做过全量普查：
+
+| 方向 | 锚点 | 结果 | 数据 |
+|---|---|---|---|
+| C→S | `MakeHeader` 构包点 | 1082 点 / **604 type**（`0x0000`–`0x043D`） | [client-to-server-builder-sites.tsv](patterns/data/client-to-server-builder-sites.tsv) |
+| S→C | `Register` 注册点 | 832 点 / **608 type**（`0x0000`–`0x03F8`） | [server-to-client-handlers.tsv](patterns/data/server-to-client-handlers.tsv) |
+
+方法见 [game-frame](patterns/game-frame.md) 与 [game-receive](patterns/game-receive.md)。
+两个数字都是**下限**：C→S 有被混淆到第二代码区、扫不到的构包器（已观察到的 C→S `0x0002`
+就是其一）；S→C 的 handler 拿不到 body，真正的解析入口还没逆向。
 
 因此本清单的作用是"哪些协议已经在做/做完"，不是"客户端有哪些协议"；后者查普查表。
-挑下一条协议时应先查普查表拿到构包点，再决定是否需要抓包。
+挑下一条协议时应先查普查表拿到构包点/handler 入口，再决定是否需要抓包。
 
 ## 命名与身份
 

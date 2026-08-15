@@ -11,8 +11,9 @@
 | 有哪些协议、各自到哪一步了 | [协议清单](catalog.md) |
 | 某条协议的全部细节 | 清单里该行链接的协议文档 |
 | 从未知报文到实现完成的工作流 | [逆向与验证方法](methodology.md) |
-| 跨协议共享的帧结构、构包原语、定位技巧 | [patterns/game-frame.md](patterns/game-frame.md) |
-| 客户端支持的 C→S type 全集与各自构包点地址 | [patterns/data/client-to-server-builder-sites.tsv](patterns/data/client-to-server-builder-sites.tsv) |
+| 跨协议共享的帧结构、构包原语、定位技巧（**含 RVA/VA 约定，先读**） | [patterns/game-frame.md](patterns/game-frame.md) |
+| S→C 接收链、分发器、handler 注册表 | [patterns/game-receive.md](patterns/game-receive.md) |
+| 客户端支持的 type 全集（两个方向） | [patterns/data/](patterns/data/) 下的两个 `.tsv` |
 | 新增一条协议 | 复制 [记录模板](templates/message.md) |
 
 ## 目录组织
