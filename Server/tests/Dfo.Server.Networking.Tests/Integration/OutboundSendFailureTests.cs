@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -128,6 +129,7 @@ public sealed class OutboundSendFailureTests
             builder.Services.AddSingleton(ChannelEntryOptions.Legacy);
             new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
             new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
+            new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
             var capture = new ConnectionCapture(channelPort, gamePort);
             builder.Services.AddSingleton<INetworkConnectionObserver>(capture);
 

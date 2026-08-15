@@ -100,7 +100,7 @@ internal sealed class GameNetworkPlugin(
 
     /// <remarks>
     /// The command byte is no longer checked here. Every Game decoder registers under command
-    /// <see cref="GameProtocol.Command"/>, so a frame carrying any other command cannot match a
+    /// <c>0x01</c>, so a frame carrying any other command cannot match a
     /// registered wire key and is dropped by the lookup itself -- the same observable outcome the
     /// explicit check produced.
     /// </remarks>

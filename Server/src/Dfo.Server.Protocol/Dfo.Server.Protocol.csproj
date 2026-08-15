@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Dfo.Server.Abstractions\Dfo.Server.Abstractions.csproj" />
+    <ProjectReference Include="..\Dfo.Server.Data\Dfo.Server.Data.csproj" />
+    <ProjectReference Include="..\Dfo.Server.Networking\Dfo.Server.Networking.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Dfo.Server.Protocol.Tests" />
+  </ItemGroup>
+</Project>

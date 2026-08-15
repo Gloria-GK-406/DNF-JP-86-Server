@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using Dfo.Server.Application;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Networking.Framing;
+using Dfo.Server.Protocol;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -34,6 +35,7 @@ public sealed class GameExitIntegrationTests
         builder.Services.AddSingleton(ChannelEntryOptions.Legacy);
         new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
         new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
+        new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
 
         using var host = builder.Build();
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));

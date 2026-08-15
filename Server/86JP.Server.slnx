@@ -7,6 +7,7 @@
     <Project Path="src/Dfo.Server.Host/Dfo.Server.Host.csproj" />
     <Project Path="src/Dfo.Server.Infrastructure/Dfo.Server.Infrastructure.csproj" />
     <Project Path="src/Dfo.Server.Networking/Dfo.Server.Networking.csproj" />
+    <Project Path="src/Dfo.Server.Protocol/Dfo.Server.Protocol.csproj" />
     <Project Path="src/Dfo.Server.Utilities/Dfo.Server.Utilities.csproj" />
   </Folder>
   <Folder Name="/tests/">
@@ -15,5 +16,6 @@
     <Project Path="tests/Dfo.Server.Host.Tests/Dfo.Server.Host.Tests.csproj" />
     <Project Path="tests/Dfo.Server.Infrastructure.Tests/Dfo.Server.Infrastructure.Tests.csproj" />
     <Project Path="tests/Dfo.Server.Networking.Tests/Dfo.Server.Networking.Tests.csproj" />
+    <Project Path="tests/Dfo.Server.Protocol.Tests/Dfo.Server.Protocol.Tests.csproj" />
   </Folder>
 </Solution>

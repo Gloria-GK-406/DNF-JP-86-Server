@@ -4,6 +4,7 @@ using Dfo.Server.Host.Modules;
 using Dfo.Server.Infrastructure;
 using Dfo.Server.Networking;
 using Dfo.Server.Networking.Configuration;
+using Dfo.Server.Protocol;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -17,7 +18,8 @@ var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
 builder.AddServerModules(
     new InfrastructureModule(),
     new ApplicationModule(),
-    new NetworkingModule());
+    new NetworkingModule(),
+    new ProtocolModule());
 
 using var host = builder.Build();
 var logger = host.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Dfo.Server.Host");
