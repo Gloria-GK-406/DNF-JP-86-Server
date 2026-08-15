@@ -5,12 +5,13 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.Commands.Game;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Game;
+using Dfo.Server.Protocol.Game.SelectCharacter;
 
 namespace Dfo.Server.Application.Tests.Support;
 

@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol.Channel.Connect;
 
 namespace Dfo.Server.Application.Tests.Dispatching;
 

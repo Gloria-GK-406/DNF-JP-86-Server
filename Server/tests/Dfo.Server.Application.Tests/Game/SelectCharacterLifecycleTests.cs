@@ -5,7 +5,6 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.Commands.Game;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Tests.Characters;
@@ -18,6 +17,8 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game.SelectCharacter;
+using Dfo.Server.Protocol.Game;
 
 namespace Dfo.Server.Application.Tests.Game;
 

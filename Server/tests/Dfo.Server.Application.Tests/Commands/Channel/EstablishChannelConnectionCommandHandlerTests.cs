@@ -1,6 +1,6 @@
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.Commands.Channel;
+using Dfo.Server.Protocol.Channel.Connect;
 
 namespace Dfo.Server.Application.Tests.Commands.Channel;
 

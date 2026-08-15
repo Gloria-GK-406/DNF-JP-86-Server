@@ -16,8 +16,9 @@ public sealed record ExplicitProjectionTarget(
     IReadOnlyList<Dfo.Server.Data.Game.ISelectCharacterSupplementalProjection> OrderedProjections);
 
 /// <summary>
-/// Typed Select Character projections. Networking frames them; required direct values are delivered first;
-/// targets are already selected by the caller and are attempted best-effort afterwards.
+/// Typed Select Character projections. <see cref="ISelectCharacterProjectionComposer"/> turns them
+/// into frames; required direct values are delivered first; targets are already selected by the
+/// caller and are attempted best-effort afterwards.
 /// </summary>
 /// <remarks>
 /// This is a delivery plan, not a message. It carries no wire fields -- its payload is domain
@@ -49,7 +50,11 @@ public interface INetworkConnectionCloser
     ValueTask CloseAsync(NetworkConnectionId connectionId, CancellationToken cancellationToken);
 }
 
-/// <summary>Networking-owned framing boundary for ordered typed post-selection projections.</summary>
+/// <summary>
+/// The framing boundary for ordered typed post-selection projections: domain projections in,
+/// ready-to-send frame bodies out. Declared here so the sender can ask for frames without knowing
+/// which protocol produces them; the implementation lives with that protocol.
+/// </summary>
 public interface ISelectCharacterProjectionComposer
 {
     IReadOnlyList<byte[]> Compose(

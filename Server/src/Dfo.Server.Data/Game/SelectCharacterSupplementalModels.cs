@@ -25,7 +25,8 @@ public sealed record SelectCharacterGrowthCapsuleProjection(
     uint HonorLevel,
     uint HonorExperience) : ISelectCharacterSupplementalProjection;
 
-/// <summary>Committed inventory facts for one UPDATE_ITEM_LIST group; Networking owns body encoding.</summary>
+/// <summary>Committed inventory facts for one UPDATE_ITEM_LIST group. Domain facts only: the body
+/// encoding belongs to whoever composes the projection, not to this record.</summary>
 public sealed record SelectCharacterInventoryUpdateProjection(
     Inventory.InventoryContainerType ContainerType,
     IReadOnlyList<Inventory.InventoryItemState> Items,
@@ -33,7 +34,8 @@ public sealed record SelectCharacterInventoryUpdateProjection(
 
 public sealed record SelectCharacterAdmissionRejectionProjection(byte ErrorCode, string Message, byte NoticeMode = 0) : ISelectCharacterSupplementalProjection;
 
-/// <summary>A PvP wire identity whose subtype-0 body is encoded by Networking.</summary>
+/// <summary>A PvP wire identity. This record carries the identity only; its subtype-0 body is
+/// produced by the projection composer, not here.</summary>
 public sealed record SelectCharacterPvpIdentityProjection(
     ushort UserId,
     SelectCharacterResult Result) : ISelectCharacterSupplementalProjection;

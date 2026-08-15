@@ -18,6 +18,8 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application.Sessions;
+using Dfo.Server.Protocol.Game.InitialConnection;
+using Dfo.Server.Protocol.Game;
 
 namespace Dfo.Server.Application.Tests.OnlineUsers;
 

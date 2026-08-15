@@ -1,7 +1,9 @@
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.Commands.Channel;
 using Dfo.Server.Data.Channel;
+using Dfo.Server.Protocol.Channel.Info;
+using Dfo.Server.Protocol.Channel.Script;
+using Dfo.Server.Protocol.Channel.ScriptVersion;
 
 namespace Dfo.Server.Application.Tests.Commands.Channel;
 

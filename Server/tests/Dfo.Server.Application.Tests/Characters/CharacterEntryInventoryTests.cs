@@ -315,7 +315,7 @@ public sealed class CharacterEntryInventoryTests
         {
             Identity = Character(6021, 3).Identity with { Job = 9 },
         };
-        var result = await Dfo.Server.Application.Commands.Game.SelectCharacterPreparationService
+        var result = await Dfo.Server.Application.Characters.SelectCharacterPreparationService
             .BuildInitialPvpSkillProfileAsync(
                 darkKnight, EmptyCharacterEntry(darkKnight.Identity.CharacterId).Skills,
                 new AllocationSkillSource(), CancellationToken.None);

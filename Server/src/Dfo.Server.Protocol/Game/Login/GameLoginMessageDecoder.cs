@@ -11,7 +11,8 @@ namespace Dfo.Server.Protocol.Game.Login;
 /// Its shape is deliberately left alone. Normalising it to a nullable return would mean rewriting
 /// the failure path that currently decides, for a malformed login body, that the frame is dropped
 /// rather than raised -- and that decision is behaviour, not shape. Assembling the message here
-/// keeps the codec byte-for-byte as it was and reproduces exactly what the plugin used to do.
+/// leaves the codec byte-for-byte as it is: a failed decode returns null, which is how this
+/// interface says "no message", so the frame is dropped by the caller rather than raised.
 /// </remarks>
 internal sealed class GameLoginMessageDecoder : IGameMessageDecoder
 {

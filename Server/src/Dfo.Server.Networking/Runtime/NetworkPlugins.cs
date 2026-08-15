@@ -99,10 +99,10 @@ internal sealed class GameNetworkPlugin(
     }
 
     /// <remarks>
-    /// The command byte is no longer checked here. Every Game decoder registers under command
-    /// <c>0x01</c>, so a frame carrying any other command cannot match a
-    /// registered wire key and is dropped by the lookup itself -- the same observable outcome the
-    /// explicit check produced.
+    /// The command byte is not checked here. It is part of the wire key, so a frame whose command
+    /// no decoder registered under cannot match and is dropped by the lookup itself -- the same
+    /// observable outcome an explicit check produced. Which commands are in use is a protocol fact
+    /// and is stated where the decoders are registered.
     /// </remarks>
     private IClientNetworkMessage? Decode(GameClientFrameRequestInfo frame)
     {

@@ -2,7 +2,6 @@ using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
-using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
@@ -11,18 +10,11 @@ using Dfo.Server.Application.Channel;
 using Dfo.Server.Application.Accounts;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.Commands.Channel;
-using Dfo.Server.Application.Commands.Game;
 using Dfo.Server.Application.Dispatching;
-using Dfo.Server.Application.Game;
 using Dfo.Server.Application.Inventory;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Users;
 using Dfo.Server.Application.World;
-using Dfo.Server.Data.Characters;
-using Dfo.Server.Data.Game;
-using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -88,43 +80,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ISessionAdjacentEntryService, SessionAdjacentEntryService>();
         services.TryAddSingleton<ISelectedSessionCleanupService, SelectedSessionCleanupService>();
         services.TryAddSingleton<ISelectCharacterSessionEntryService, SelectCharacterSessionEntryService>();
-        services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<INetworkConnectionObserver, OnlineUserConnectionObserver>());
         services.AddCommandDispatching();
-        services.AddCommandHandler<EstablishChannelConnectionCommand, EstablishChannelConnectionResult, EstablishChannelConnectionCommandHandler>(
-            CommandExecutionKind.Direct);
-        services.AddCommandHandler<GetChannelScriptVersionCommand, GetChannelScriptVersionResult, GetChannelScriptVersionCommandHandler>(
-            CommandExecutionKind.Direct);
-        services.AddCommandHandler<GetChannelScriptCommand, GetChannelScriptResult, GetChannelScriptCommandHandler>(
-            CommandExecutionKind.Direct);
-        services.AddCommandHandler<GetChannelInfoCommand, GetChannelInfoResult, GetChannelInfoCommandHandler>(
-            CommandExecutionKind.Direct);
-        services.AddCommandHandler<AcknowledgeGameExitCommand, AcknowledgeGameExitResult, AcknowledgeGameExitCommandHandler>(
-            CommandExecutionKind.Direct);
-        services.AddCommandHandler<LoginGameUserCommand, LoginGameUserResult, LoginGameUserCommandHandler>(
-            CommandExecutionKind.Direct,
-            UserAccessMode.Exclusive);
-        services.AddCommandHandler<GetAccountCharacterRosterCommand, AccountCharacterRoster, GetAccountCharacterRosterCommandHandler>(
-            CommandExecutionKind.Direct,
-            accountAccessMode: UserAccessMode.Shared);
-        services.AddCommandHandler<SelectCharacterCommand, SelectCharacterResult, SelectCharacterCommandHandler>(
-            CommandExecutionKind.Workflow,
-            accountAccessMode: UserAccessMode.Exclusive);
         services.AddNetworkMessageDispatching();
-        services.RegisterMessageHandler<ChannelConnectHandler>(ClientMessageType.ChannelConnect);
-        services.RegisterMessageHandler<ChannelScriptVersionHandler>(ClientMessageType.ChannelScriptVersion);
-        services.RegisterMessageHandler<ChannelScriptHandler>(ClientMessageType.ChannelScript);
-        services.RegisterMessageHandler<ChannelInfoHandler>(ClientMessageType.ChannelInfo);
-        services.RegisterMessageHandler<GameExitHandler>(ClientMessageType.GameExit);
-        services.RegisterMessageHandler<GameLoginHandler>(ClientMessageType.GameLogin);
-        services.RegisterMessageHandler<GetAccountCharacterRosterHandler>(
-            ClientMessageType.GameGetAccountCharacterRoster);
-        services.RegisterMessageHandler<SelectCharacterHandler>(ClientMessageType.GameSelectCharacter);
-        services.RegisterMessageHandler<ClientSpecStatisticHandler>(ClientMessageType.GameClientSpecStatistic);
-        services.RegisterMessageHandler<ClientHardwareDetailHandler>(ClientMessageType.GameClientHardwareDetail);
-        services.RegisterMessageHandler<ClientSpecProfileHandler>(ClientMessageType.GameClientSpecProfile);
-        services.RegisterMessageHandler<SessionMetricsHandler>(ClientMessageType.GameSessionMetrics);
-        services.RegisterMessageHandler<TaggedIdReportHandler>(ClientMessageType.GameTaggedIdReport);
-        services.RegisterMessageHandler<RosterFollowUpHandler>(ClientMessageType.GameRosterFollowUp);
     }
 }

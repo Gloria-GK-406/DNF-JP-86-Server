@@ -1,6 +1,8 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Networking.Runtime;
+using Dfo.Server.Protocol.Game.Exit;
+using Dfo.Server.Protocol.Game.Login;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Networking.Tests.Runtime;

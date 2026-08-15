@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol.Channel.Connect;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.Dispatching;

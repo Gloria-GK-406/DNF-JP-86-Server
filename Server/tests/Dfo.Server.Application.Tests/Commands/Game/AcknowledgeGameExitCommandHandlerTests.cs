@@ -1,5 +1,5 @@
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.Commands.Game;
+using Dfo.Server.Protocol.Game.Exit;
 
 namespace Dfo.Server.Application.Tests.Commands.Game;
 

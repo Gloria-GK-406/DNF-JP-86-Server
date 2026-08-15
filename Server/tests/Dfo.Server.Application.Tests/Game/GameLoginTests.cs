@@ -1,13 +1,12 @@
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.Commands.Game;
-using Dfo.Server.Application.Game;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Users;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
+using Dfo.Server.Protocol.Game.Login;
 
 namespace Dfo.Server.Application.Tests.Game;
 

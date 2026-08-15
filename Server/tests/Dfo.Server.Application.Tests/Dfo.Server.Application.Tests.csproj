@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Dfo.Server.Application\Dfo.Server.Application.csproj" />
+    <ProjectReference Include="..\..\src\Dfo.Server.Protocol\Dfo.Server.Protocol.csproj" />
     <!--
       Infrastructure is referenced so the entry rules can run against the real archive
       rather than only against stub definitions. Stubbing both sides of the content

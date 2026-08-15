@@ -1,5 +1,9 @@
 using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Dispatching;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Channel;
 using Dfo.Server.Protocol.Channel.Connect;
@@ -29,8 +33,10 @@ namespace Dfo.Server.Protocol;
 /// message that can be encoded.
 /// </summary>
 /// <remarks>
-/// This module is the only place a protocol is wired. It carries the two routing tables that
-/// used to live in the networking module, which now owns transport alone.
+/// This module is the only place a protocol is wired. Every artifact a protocol needs -- its
+/// messages, its decoder, its encoder, its message handler, its command and that command's
+/// handler -- lives in that protocol's own folder, and the tables below are where those artifacts
+/// become reachable.
 /// </remarks>
 public sealed class ProtocolModule : IServerModule
 {
@@ -42,8 +48,56 @@ public sealed class ProtocolModule : IServerModule
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.TryAddSingleton<ISelectCharacterProjectionComposer, SelectCharacterProjectionComposer>();
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<INetworkConnectionObserver, OnlineUserConnectionObserver>());
         RegisterInboundDecoders(services);
         RegisterOutboundEncoders(services);
+        RegisterCommands(services);
+        RegisterMessageHandlers(services);
+    }
+
+    /// <summary>The commands a protocol slice owns, with their execution kind and access modes.</summary>
+    private static void RegisterCommands(IServiceCollection services)
+    {
+        services.AddCommandHandler<EstablishChannelConnectionCommand, EstablishChannelConnectionResult, EstablishChannelConnectionCommandHandler>(
+            CommandExecutionKind.Direct);
+        services.AddCommandHandler<GetChannelScriptVersionCommand, GetChannelScriptVersionResult, GetChannelScriptVersionCommandHandler>(
+            CommandExecutionKind.Direct);
+        services.AddCommandHandler<GetChannelScriptCommand, GetChannelScriptResult, GetChannelScriptCommandHandler>(
+            CommandExecutionKind.Direct);
+        services.AddCommandHandler<GetChannelInfoCommand, GetChannelInfoResult, GetChannelInfoCommandHandler>(
+            CommandExecutionKind.Direct);
+        services.AddCommandHandler<AcknowledgeGameExitCommand, AcknowledgeGameExitResult, AcknowledgeGameExitCommandHandler>(
+            CommandExecutionKind.Direct);
+        services.AddCommandHandler<LoginGameUserCommand, LoginGameUserResult, LoginGameUserCommandHandler>(
+            CommandExecutionKind.Direct,
+            UserAccessMode.Exclusive);
+        services.AddCommandHandler<GetAccountCharacterRosterCommand, AccountCharacterRoster, GetAccountCharacterRosterCommandHandler>(
+            CommandExecutionKind.Direct,
+            accountAccessMode: UserAccessMode.Shared);
+        services.AddCommandHandler<SelectCharacterCommand, SelectCharacterResult, SelectCharacterCommandHandler>(
+            CommandExecutionKind.Workflow,
+            accountAccessMode: UserAccessMode.Exclusive);
+    }
+
+    /// <summary>Binds each catalogue member to the handler that consumes it.</summary>
+    private static void RegisterMessageHandlers(IServiceCollection services)
+    {
+        services.RegisterMessageHandler<ChannelConnectHandler>(ClientMessageType.ChannelConnect);
+        services.RegisterMessageHandler<ChannelScriptVersionHandler>(ClientMessageType.ChannelScriptVersion);
+        services.RegisterMessageHandler<ChannelScriptHandler>(ClientMessageType.ChannelScript);
+        services.RegisterMessageHandler<ChannelInfoHandler>(ClientMessageType.ChannelInfo);
+        services.RegisterMessageHandler<GameExitHandler>(ClientMessageType.GameExit);
+        services.RegisterMessageHandler<GameLoginHandler>(ClientMessageType.GameLogin);
+        services.RegisterMessageHandler<GetAccountCharacterRosterHandler>(
+            ClientMessageType.GameGetAccountCharacterRoster);
+        services.RegisterMessageHandler<SelectCharacterHandler>(ClientMessageType.GameSelectCharacter);
+        services.RegisterMessageHandler<ClientSpecStatisticHandler>(ClientMessageType.GameClientSpecStatistic);
+        services.RegisterMessageHandler<ClientHardwareDetailHandler>(ClientMessageType.GameClientHardwareDetail);
+        services.RegisterMessageHandler<ClientSpecProfileHandler>(ClientMessageType.GameClientSpecProfile);
+        services.RegisterMessageHandler<SessionMetricsHandler>(ClientMessageType.GameSessionMetrics);
+        services.RegisterMessageHandler<TaggedIdReportHandler>(ClientMessageType.GameTaggedIdReport);
+        services.RegisterMessageHandler<RosterFollowUpHandler>(ClientMessageType.GameRosterFollowUp);
     }
 
     /// <summary>
@@ -57,6 +111,11 @@ public sealed class ProtocolModule : IServerModule
     /// Most lines declare the one catalogue member named after their wire key. GET_USERINFO does
     /// not: type 0x0008 produces the account roster request, which carries a synthesised catalogue
     /// value with no wire number of its own.
+    ///
+    /// Every Game line below registers under <see cref="Game.GameProtocol.Command"/>, so that is
+    /// currently the only Game command byte any wire key here carries. The command is part of the
+    /// key rather than a separate condition, so a frame carrying another command matches nothing
+    /// registered here.
     /// </remarks>
     private static void RegisterInboundDecoders(IServiceCollection services)
     {

@@ -1,8 +1,7 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.Commands.Game;
-using Dfo.Server.Application.Game;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol.Game.Exit;
 
 namespace Dfo.Server.Application.Tests.Game;
 

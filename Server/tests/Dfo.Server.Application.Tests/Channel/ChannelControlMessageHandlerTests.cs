@@ -1,9 +1,10 @@
 using Dfo.Server.Abstractions.Networking;
-using Dfo.Server.Application.Channel;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.Commands.Channel;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol.Channel.Info;
+using Dfo.Server.Protocol.Channel.Script;
+using Dfo.Server.Protocol.Channel.ScriptVersion;
 
 namespace Dfo.Server.Application.Tests.Channel;
 
