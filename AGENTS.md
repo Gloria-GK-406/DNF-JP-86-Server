@@ -29,7 +29,7 @@ Docs/        帧协议基线、客户端逆向系列文档、业务接入规范
 | `Dfo.Server.Abstractions` | Data | 接缝层：`IServerModule` + 各领域服务/仓储/内容源/网络契约 |
 | `Dfo.Server.Application` | Abstractions, Data | **领域编排核心**：命令总线与管线、消息分发机制、领域服务 |
 | `Dfo.Server.Infrastructure` | Dfo.Pvf, Abstractions, Data | SQLite 仓储 + PVF 内容源 + 频道脚本 |
-| `Dfo.Server.Networking` | Abstractions, Data | TouchSocket **传输**：帧适配/解析、TCP 服务、插件、发送器、注册表。收发路径上不含任何单个协议的知识——**唯一例外是 SelectCharacter 的投影投递**（`TouchSocketNetworkMessageSender.SendProjectionAsync` 及其校验与补偿），见 `Docs/ProtocolSliceArchitectureNotes.md` 第 13 条 |
+| `Dfo.Server.Networking` | Abstractions, Data | TouchSocket **传输**：帧适配/解析、TCP 服务、插件、发送器、注册表。收发路径上不含任何单个协议的知识；显式多收件人投递也只表达必达顺序和逐目标失败隔离 |
 | `Dfo.Server.Protocol` | Abstractions, Application, Data, Networking | **协议切片**：一个协议一个目录，含其消息、解包器、编码器、消息 handler、命令与命令 handler；`ProtocolModule` 是唯一接线点 |
 | `Dfo.Server.Host` | 全部 | 组合根：模块注册顺序 + appsettings + channel_info.etc |
 | `Dfo.Server.Utilities` | — | 空占位 |
@@ -89,7 +89,9 @@ PvP 大厅、副本重进、专家商店）、`World/`（出生点策略、世�
   `UserAccessMode` = Unscoped / Shared / Exclusive。
 - `CommandBus`：每次 `SendAsync` 开新 DI scope → 查 `CommandHandlerRegistry` →
   按 `Order` 排序管线行为、从外到内包装 → 执行。
-  **禁止嵌套 dispatch**（handler 里不能再发命令；共享逻辑抽成应用服务）。
+  协议 handler 可以按顺序调用多次 `SendAsync`；**命令处理器禁止嵌套
+  dispatch**，不得在 `ICommandHandler` 内递归或间接调用 `ICommandBus`。
+  共享业务逻辑抽成应用服务，由命令处理器直接调用。
 - 管线（`Pipeline/`，Order 从小到大为外到内）：
   1. `CommandLoggingBehavior`（0）：计时 + 成功/失败日志
   2. `OnlineUserExecutionBehavior`（50）：按 OnlineUserId 取共享/独占租约
@@ -99,13 +101,14 @@ PvP 大厅、副本重进、专家商店）、`World/`（出生点策略、世�
      由各 SQLite 仓储自己的事务负责，无生产命令使用它）
 - 执行门（`OnlineUsers/UserExecutionGate.cs`）：按 key 的读写锁 + FIFO 等待队列；
   三个实例：OnlineUserExecutionGate、AccountExecutionGate、
-  SelectedSessionTransitionGate（第三个由 SelectCharacter 命令手工获取，
+  SelectedSessionTransitionGate（第三个由 `SelectCharacterHandler` 手工获取，
   串行化会话切换/拆除）。
-- 错误语义：异常直接上抛，**总线级无回滚**；补偿由命令 handler 自理
-  （见 `SelectCharacterCommandHandler` 的失败路径）。
+- 错误语义：异常直接上抛，**总线级无回滚**；跨阶段补偿由协议 handler
+  派发专用补偿命令，命令 handler 只执行单一领域动作。
 - 注册（`ProtocolModule.cs`，与协议接线同处）：现有命令
   LoginGameUser = Direct+OnlineUser Exclusive；GetAccountCharacterRoster =
-  Direct+Account Shared；SelectCharacter = Workflow+Account Exclusive；
+  Direct+Account Shared；SelectCharacter 的 Prepare、DailyRefill、Publish、PvpReady、
+  Quests、Pet、Rejoin、Compensate 八个阶段命令均为 Workflow+Account Exclusive；
   AcknowledgeGameExit 与 Channel 系四个 = Direct。
   `ApplicationModule` 只留 `AddCommandDispatching()`：机制在 Application，
   具体命令在切片。
@@ -166,13 +169,21 @@ PvP 大厅、副本重进、专家商店）、`World/`（出生点策略、世�
 理由是防一类隐性 bug：handler 直接改了状态，而领域服务层对此一无所知，
 于是并发门、执行次序、补偿与日志全部绕过。
 
-handler 里允许出现的只有三类：
+普通 handler 里允许出现的只有三类：
 
 1. 从 `NetworkDispatchContext` 解出连接身份，取不到就抛；
 2. 只读查询与端点解析（`IOnlineUserQueryService`、`IChannelEntryPolicy`）；
-3. `commandBus.SendAsync(...)` 与 `sender.SendAsync(...)`。
+3. `commandBus.SendAsync(...)` 与 sender 的单连接或显式收件人发送方法。
 
-**禁止嵌套 dispatch**：handler 里不能再发第二条命令；共享逻辑抽成应用服务。
+`SelectCharacterHandler` 是批准的多阶段协议工作流例外：除上述三类外，它可以获取并
+释放 `SelectedSessionTransitionGate`、用只读目录/在线查询检查 session 仍为 current、
+维护待关闭连接集合，并在失败时派发专用补偿命令；实际关闭必须在 gate lease 释放后
+执行。这个例外只授权生命周期**协调**，不授权 handler 直接修改领域状态；所有准备、
+补货、发布、PVP、任务、宠物、重连与补偿动作仍分别由阶段命令处理器完成。
+
+**禁止命令处理器嵌套 dispatch**：协议 handler 可以为一个入站工作流按顺序派发
+多条命令；但 `ICommandHandler` 内部不得通过 `ICommandBus` 递归或间接派发另一条
+命令。命令之间需要共享的业务逻辑应抽成应用服务，由各命令处理器直接调用。
 纯遥测协议（无领域变更、无响应）可以只打日志不发命令，这是有意的例外，
 必须在协议记录的 Implementation mapping 里写明。
 
@@ -192,15 +203,15 @@ handler 里允许出现的只有三类：
 集成测试 `Dfo.Server.Networking.Tests/Integration/GameLoginIntegrationTests.cs`
 用真实 TouchSocket host + SQLite 断言逐字节行为。
 
-### SelectCharacter：最大的例外（要牢记）
+### SelectCharacter：接受与状态同步工作流
 
-`SelectCharacterHandler` **不发响应**——`SelectCharacterCommandHandler`
-（约 200 行编排器）拥有全部次序：generation 防陈旧检查、手工
-SelectedSessionTransitionGate 独占、入场前置（频道拒绝 → 发拒绝投影再抛）、
-旧会话租约保存与精确清理、`PrepareAsync`（700 行准备服务：背包/技能/世界
-内容/出生点/PvP 合并…）、59 帧静态 G6 流 + 补充投影的**有序投递**、
-每日补货、在场发布、PvP 计划、副本重进邀请；失败路径执行补偿清理后重抛。
-这里"编排者"是**命令**而非服务——服务只准备状态，命令拥有次序、投递与回滚。
+`SelectCharacterHandler` 是协议工作流协调者：它持有
+`SelectedSessionTransitionGate`，在同一 lease 内顺序派发准备、每日补货、发布、
+PVP、任务、宠物、重连与补偿等顶层命令，并在阶段之间发送具体状态同步消息。
+`01/0004` 只表示接受进入，后续消息是可复用的生命周期状态同步。发送前会先验证
+已准备的全部必达接受/前置状态可编码；失败时派发 exact-session 补偿命令，lease
+释放后再尽力关闭连接。每个命令 handler 只执行单一领域动作，禁止持有
+`ICommandBus` 递归编排；Networking 只执行通用传输与显式收件人失败隔离。
 
 ### 其他与主设计的偏差（诚实清单）
 

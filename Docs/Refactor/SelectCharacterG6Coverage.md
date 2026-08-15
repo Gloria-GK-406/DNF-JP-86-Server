@@ -1,33 +1,34 @@
-# SELECT_CHARACTER G6 projection coverage
+# SELECT_CHARACTER G6 state-synchronization coverage
 
-> Status: implementation coverage audited on 2026-08-12. The protocol identities,
+> Status: implementation coverage refactor-audited on 2026-08-15. The protocol identities,
 > layouts and conditions in this document were reverse-engineered from server code;
 > they have not been confirmed by packet capture or a real 86JP client.
 
-This document records the G6 boundary: typed result values are converted into
-deterministic frames, static occurrence order is preserved, and already-addressed
-typed projection batches can be delivered without discovering recipients. It does **not** claim
-that G7 entry lifecycle orchestration is complete.
+This document preserves the row-by-row reverse-engineering evidence behind G6. The
+current implementation no longer models the result as a SelectCharacter projection
+stream: concrete semantic messages convert narrow state inputs into deterministic
+frames, while the handler preserves the reviewed compatibility order. See
+[`SelectCharacterStateSynchronizationRefactor.md`](SelectCharacterStateSynchronizationRefactor.md)
+for the current structure.
 
 ## Implementation seams
 
-- `SelectCharacterResult` combines owner-correct character, character-inventory,
-  account-inventory, account, world/content/channel and session-adjacent results.
-- `SelectCharacterStaticPayloadCodec` and its body-family partial encode static
-  bodies; required data is validated rather than silently replaced.
-- `SelectCharacterStaticSequence` is the authoritative successor list of 58 static
-  descriptors. `SelectCharacterResponseComposer` preserves its order, duplicates,
-  conditions and the X-01 injection immediately after row 11.
-- `ISelectCharacterProjectionComposer` is the public trigger-neutral X-01–X-18
-  framing boundary; the internal supplemental codec remains Networking-owned.
-  Optional presence and all lifecycle decisions remain caller-owned.
-- `SelectCharacterProjectionDelivery` and `INetworkMessageSender.SendProjectionAsync`
-  carry ordered typed required-direct projections and explicit typed best-effort
-  recipient batches; the runtime sender composes their frames. The
-  sender neither enumerates sessions nor calls back into business services.
+- `SelectedCharacterStateMessageFactory` constructs the reviewed static compatibility
+  sequence as concrete `GameStateSynchronizationMessage` instances and validates each
+  body before delivery.
+- `StateSynchronizationPayloadCodec` is split by domain family. It accepts only the
+  state required by each concrete message; no encoder consumes `SelectCharacterResult`.
+- `SupplementalSynchronizationMessage` covers X-02–X-18 concrete events and fixed
+  adjacent batches. X-01 is `DarkKnightComboStateMessage` beside the normal skill
+  synchronization message.
+- `ExplicitMessageDelivery` carries already-constructed messages and explicit
+  recipients. `TouchSocketNetworkMessageSender` knows only required-direct order,
+  endpoint validation and per-target best-effort isolation.
+- `SelectCharacterHandler` owns compatibility placement and sequentially dispatches
+  cohesive commands. Its command handlers contain neither `ICommandBus` nor a sender.
 
-`Static.Ack`, `Static.Inventory`, `Static.Premium`, `Static.Notification`, and
-`Supplemental.*` below abbreviate the corresponding methods on those codecs.
+The `Static.*` labels in the historical table below identify audited compatibility
+positions; they are not current code symbols or a runtime occurrence-routing API.
 
 ## Static rows 1–58
 
@@ -97,28 +98,28 @@ Rows 10 and 58 are the only conditional static descriptors. Row 38 remains one
 unconditional occurrence. X-01 is outside this count and, on the accepted static
 path, is injected at most once immediately after row 11.
 
-## Supplemental projections X-01–X-18
+## Supplemental state synchronization X-01–X-18
 
 | ID | Wire identity | Explicit G6 input | G6 codec / batch guarantee | Presence condition at codec boundary | Remaining G7 / caller responsibility |
 |---|---|---|---|---|---|
-| X-01 | NOTI `00/01C0` | optional `SelectCharacterDarkKnightComboProjection.Body` | `Supplemental.EncodeDarkKnightCombo`; one frame | Null = absent; supplied body = present | Resolve class/applicability and supply body. Accepted static path already preserves row-11 adjacency |
-| X-02 | NOTI `00/0165` | wire user ID and visibility bits | `EncodeVisibility` | Supplied value | Invoke after the completed static stream at the lifecycle-defined point |
-| X-03 | CMD `01/0239` | clone-title item ID | `EncodeCloneTitle` | Supplied value | Rebuild/resolve current appearance and choose invocation point |
-| X-04 | NOTI `00/0002`, routed subtype 2 | complete `SelectCharacterRosterProjection`, including every character appearance | `EncodeRoster`; route byte 2 | Supplied value; missing appearance collection/entry data fails | Compose the current account roster/appearance/progression value and invoke it |
-| X-05 | NOTI `00/0289` | honor level and current-level experience | `EncodeHonor` | Supplied value | Obtain current account progression and invoke after roster |
-| X-06 | NOTI `00/0025` | complete growth/skill/honor protocol state | `EncodeGrowthCapsule`; zero or one frame | Null = absent; supplied value = present | Decide max-level/account applicability and supply current values |
-| X-07 | NOTI `00/000E`, zero-or-more grouped updates | ordered owner-produced update bodies | `EncodeInventoryUpdates`; preserves group order | Null/empty = none | Perform daily refill transaction, rollback/reload on failure, then supply only committed groups |
-| X-08 | CMD `01/0004` rejection then NOTI `00/01F7` server notice | rejection code, notice mode/text | `EncodeRejection`; exactly ordered pair | Supplied rejection | Admission owner decides rejection before preparation; command workflow stops after required pair |
-| X-09 | NOTI `00/0002`, PvP identity roster | ordered validated subtype-0 identity bodies | `EncodePvpLobby` direct frame 1 | Supplied lobby projection | Validate selected generation/free-duel applicability and build ordered wire identities |
-| X-10 | NOTI `00/0029`, then NOTI `00/0002` publication | ordered room values plus newcomer identity | `EncodePvpLobby` direct frame 2 and separate publication frame | Supplied lobby projection | Discover explicit publication targets only after direct handshake; deliver through explicit-target capability |
-| X-11 | NOTI `00/00FB`, trailing occurrence | completed lock result | `EncodeTrailingEquipmentLocks`; distinct frame seam | Supplied completed result | Invoke after session/PvP preparation at the lifecycle-defined trailing point |
-| X-12 | NOTI `00/023F` | optional loaded quest list | `EncodeAcceptedQuests`; null none, empty emits zero-count body | Caller supplies null/empty/populated distinction | Run item-seeking synchronization/mutation and emit only its successful projection |
-| X-13 | NOTI `00/006B` | optional revival user/key/state result | `EncodePetRevival` frame 1 | Null = no transition | Validate current generation/town/lease and perform revival mutation |
-| X-14 | NOTI `00/0067` | same successful revival result | `EncodePetRevival` frame 2 immediately after X-13 | Cannot be independently emitted by this batch | Recheck generation between transition and delivery as required by lifecycle |
-| X-15 | NOTI `00/02A7` | optional accepted party ID and ordered participants | `EncodeDungeonRejoin` first frame | Null = no offer | Query/validate registry candidate and maintain session offer state |
-| X-16 | NOTI `00/02A8`, one per participant | participant user IDs in registry order | `EncodeDungeonRejoin` remaining frames | Zero-or-more only after X-15 | Supply exact accepted participant order; later rejoin mutation is outside G6 |
-| X-17 | NOTI `00/021C`, expert-store close | store-owner wire user ID | `EncodeExpertStoreClose` body | Supplied value | Close store state, decide include-owner mode and discover explicit area targets for normal/displaced/rollback paths |
-| X-18 | NOTI `00/0006`, one per eligible area target | leaving wire user ID | `EncodeTownLeave` body | Supplied value | Unregister the exact generation, discover eligible area targets and invoke on leave/displacement/rollback |
+| X-01 | NOTI `00/01C0` | optional loaded Dark Knight combo state | `DarkKnightComboStateMessage`; one frame | Job 9 plus loaded combo state | Factory preserves row-11 adjacency |
+| X-02 | NOTI `00/0165` | wire user ID and visibility bits | `UserVisibilityMessage` | Concrete message present | Handler places it after the static compatibility stream |
+| X-03 | CMD `01/0239` | clone-title item ID | `CloneTitleStateMessage` | Concrete message present | Handler rebuilds current appearance before construction |
+| X-04 | NOTI `00/0002`, routed subtype 2 | `CharacterRosterEntryState` with ordered appearance state | `AccountRosterStateMessage`; route byte 2 | Missing roster/appearance fails | Application prepares roster facts; Protocol encodes them |
+| X-05 | NOTI `00/0289` | honor level and current-level experience | `HonorProgressStateMessage` | Concrete message present | Handler obtains current progression values |
+| X-06 | NOTI `00/0025` | growth, skill-point and honor values | `GrowthCapsuleStateMessage` | Message presence is the applicability decision | Protocol message owns the wire-shaped combination; Data has no packet-ready record |
+| X-07 | NOTI `00/000E`, zero-or-more grouped updates | `CommittedInventoryUpdateState` groups | one `InventoryDeltaMessage` per committed group | Empty result = none | Command owns transaction/rollback; handler preserves group order |
+| X-08 | CMD `01/0004` rejection then NOTI `00/01F7` server notice | rejection code, notice mode/text | `EntryAdmissionRejectedMessage`; fixed ordered pair | Admission refusal only | Refusal stops before accepted preparation |
+| X-09 | NOTI `00/0002`, PvP identity roster | ordered `PvpParticipantEntryState` facts | `PvpLobbySnapshotMessage` direct frame 1 | Applicable lobby only | Command validates current sessions and builds identities without `SelectCharacterResult` in the message input |
+| X-10 | NOTI `00/0029`, then NOTI `00/0002` publication | ordered rooms, newcomer and explicit peer targets | lobby direct frame 2; `PvpParticipantPublicationMessage` per peer | Applicable lobby; peer set may be empty | Mark-ready happens after direct success; peer delivery is best effort |
+| X-11 | NOTI `00/00FB`, trailing occurrence | character/account equipment-lock state | `TrailingEquipmentLockSnapshotMessage` | Required accepted continuation | Handler preserves the distinct trailing placement |
+| X-12 | NOTI `00/023F` | committed accepted-quest progress | `AcceptedQuestProgressMessage` | No committed change = no message; loaded empty can encode count zero | Quest command owns mutation and returns state facts |
+| X-13 | NOTI `00/006B` | committed revival user/key/state | `PetRevivalStateMessage` frame 1 | No transition = no message | Pet command validates and commits the transition |
+| X-14 | NOTI `00/0067` | same committed revival state | same message frame 2 immediately after X-13 | Cannot be emitted independently | Fixed batch preserves adjacency |
+| X-15 | NOTI `00/02A7` | accepted party ID and ordered participants | `DungeonRejoinStateMessage` frame 1 | No valid candidate = no message | Rejoin command validates and reattaches the candidate |
+| X-16 | NOTI `00/02A8`, one per participant | participant user IDs in registry order | same message remaining frames | Zero-or-more only after X-15 | Fixed batch preserves multiplicity and order |
+| X-17 | NOTI `00/021C`, expert-store close | cleanup notice fact | `ExpertStoreClosedMessage` | Open store in captured exact cleanup state | Application returns notice plan; Protocol creates the message |
+| X-18 | NOTI `00/0006`, one per eligible area target | cleanup notice fact and explicit targets | `TownDepartureMessage` | Captured eligible peer set may be empty | Generic delivery performs target-independent best effort |
 
 Supplemental identity result: **18 entries**, X-01 through X-18 exactly once in
 this audit. X-08 ordering, X-09/X-10 direct/publication separation, X-13/X-14
@@ -127,16 +128,17 @@ bodies are behavior-tested.
 
 ## G6/G7 handoff
 
-G6 is complete only as a **result-to-wire capability**:
+G6 is implemented as a **domain-state-to-concrete-message capability**:
 
-- Rows 1–58 have implemented sources, deterministic bodies and one explicit static
-  occurrence sequence.
-- X-01–X-18 have packet-ready inputs and deterministic body/batch encoders.
-- Required-direct and already-addressed best-effort batches have transport semantics.
+- Rows 1–58 have implemented sources, deterministic concrete messages and a tested
+  compatibility sequence.
+- X-01–X-18 have narrow domain/workflow facts and deterministic concrete messages or
+  fixed adjacent batches.
+- Required-direct and already-addressed best-effort behavior is protocol-neutral.
 
 G7 remains responsible for the integrated entry workflow, especially:
 
-- choosing when optional supplemental projections exist;
+- choosing when optional supplemental state exists;
 - X-07 inventory mutation/rollback;
 - X-09/X-10 selected-generation and PvP target discovery;
 - X-11/X-12 post-publication preparation ordering;

@@ -7,6 +7,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Protocol.Game.InitialConnection;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 
 namespace Dfo.Server.Protocol.Game;
 
@@ -83,8 +84,27 @@ public sealed class OnlineUserConnectionObserver(
                 cleanedSelected = true;
                 try
                 {
-                    await cleanup.CleanupAsync(selected, includeOwner: false, CancellationToken.None)
-                        .ConfigureAwait(false);
+                    var notifications = await cleanup.CleanupAsync(
+                        selected, includeOwner: false, CancellationToken.None).ConfigureAwait(false);
+                    await sender.SendExplicitAsync(
+                        notifications.OwnerConnectionId,
+                        CleanupSynchronizationDelivery.Create(notifications),
+                        CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (SelectedSessionCleanupFailure cleanupFailure)
+                {
+                    try
+                    {
+                        await sender.SendExplicitAsync(
+                            cleanupFailure.NotificationPlan.OwnerConnectionId,
+                            CleanupSynchronizationDelivery.Create(
+                                cleanupFailure.NotificationPlan),
+                            CancellationToken.None).ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                        // The cleanup failure remains primary; peer delivery stays best effort.
+                    }
                 }
                 catch
                 {

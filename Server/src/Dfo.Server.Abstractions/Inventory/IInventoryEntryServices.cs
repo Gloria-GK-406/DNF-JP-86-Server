@@ -127,7 +127,7 @@ public interface IEntryInventoryMutationRepository
 
 public sealed record EntryInventoryPreparation(
     SelectCharacterResult Result,
-    IReadOnlyList<SelectCharacterInventoryUpdateProjection> CommittedUpdates);
+    IReadOnlyList<CommittedInventoryUpdateState> CommittedUpdates);
 
 public interface ISelectCharacterEntryInventoryService
 {

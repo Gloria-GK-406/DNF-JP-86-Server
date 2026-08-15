@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
@@ -20,6 +21,7 @@ using Dfo.Server.Protocol.Game.InitialConnection;
 using Dfo.Server.Protocol.Game.Login;
 using Dfo.Server.Protocol.Game.RosterFollowUp;
 using Dfo.Server.Protocol.Game.SelectCharacter;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.SessionMetrics;
 using Dfo.Server.Protocol.Game.TaggedIdReport;
 using Microsoft.Extensions.Configuration;
@@ -47,7 +49,7 @@ public sealed class ProtocolModule : IServerModule
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        services.TryAddSingleton<ISelectCharacterProjectionComposer, SelectCharacterProjectionComposer>();
+        services.TryAddSingleton<ISelectedCharacterStateMessageFactory, SelectedCharacterStateMessageFactoryService>();
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<INetworkConnectionObserver, OnlineUserConnectionObserver>());
         RegisterInboundDecoders(services);
@@ -75,7 +77,28 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<GetAccountCharacterRosterCommand, AccountCharacterRoster, GetAccountCharacterRosterCommandHandler>(
             CommandExecutionKind.Direct,
             accountAccessMode: UserAccessMode.Shared);
-        services.AddCommandHandler<SelectCharacterCommand, SelectCharacterResult, SelectCharacterCommandHandler>(
+        services.AddCommandHandler<PrepareSelectedCharacterSessionCommand, PreparedSelectedCharacterSession, PrepareSelectedCharacterSessionCommandHandler>(
+            CommandExecutionKind.Workflow,
+            accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<ApplySelectedCharacterDailyRefillCommand, EntryInventoryPreparation, ApplySelectedCharacterDailyRefillCommandHandler>(
+            CommandExecutionKind.Workflow,
+            accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<PublishSelectedCharacterSessionCommand, PublishedSelectedCharacterSession, PublishSelectedCharacterSessionCommandHandler>(
+            CommandExecutionKind.Workflow,
+            accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<MarkSelectedCharacterPvpReadyCommand, SelectedCharacterPvpPublication, MarkSelectedCharacterPvpReadyCommandHandler>(
+            CommandExecutionKind.Workflow,
+            accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<SynchronizeSelectedCharacterQuestsCommand, SynchronizedSelectedCharacterQuests, SynchronizeSelectedCharacterQuestsCommandHandler>(
+            CommandExecutionKind.Workflow,
+            accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<ReviveSelectedCharacterPetCommand, RevivedSelectedCharacterPet, ReviveSelectedCharacterPetCommandHandler>(
+            CommandExecutionKind.Workflow,
+            accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<PlanSelectedCharacterRejoinCommand, PlannedSelectedCharacterRejoin, PlanSelectedCharacterRejoinCommandHandler>(
+            CommandExecutionKind.Workflow,
+            accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<CompensateSelectedCharacterSessionCommand, CompensatedSelectedCharacterSession, CompensateSelectedCharacterSessionCommandHandler>(
             CommandExecutionKind.Workflow,
             accountAccessMode: UserAccessMode.Exclusive);
     }
@@ -155,15 +178,15 @@ public sealed class ProtocolModule : IServerModule
     /// </summary>
     /// <remarks>
     /// Keyed by message CLR type rather than by catalogue member. An outbound message is built by
-    /// server code, so its type is known at the call site; and the catalogue could not key this
-    /// table anyway, because the select-character response and its projection delivery share one
-    /// catalogue value.
+    /// server code, so its type is known at the call site.
     ///
     /// The endpoint column is the whole endpoint rule. It used to be nine `when` clauses spliced
     /// into the encoding switch, where no reader could check the routing without reading the bytes.
     /// </remarks>
     private static void RegisterOutboundEncoders(IServiceCollection services)
     {
+        StateSynchronizationEncoderRegistration.AddStateSynchronizationEncoders(services);
+        SupplementalSynchronizationEncoderRegistration.AddSupplementalSynchronizationEncoders(services);
         services.AddServerMessageEncoder<ChannelConnectResponse, ChannelConnectResponseEncoder>(
             NetworkEndpointKind.Channel);
         services.AddServerMessageEncoder<ChannelScriptVersionResponse, ChannelScriptVersionResponseEncoder>(
@@ -179,8 +202,6 @@ public sealed class ProtocolModule : IServerModule
         services.AddServerMessageEncoder<GameLoginResponse, GameLoginResponseEncoder>(
             NetworkEndpointKind.Game);
         services.AddServerMessageEncoder<AccountCharacterRosterResponse, AccountCharacterRosterResponseEncoder>(
-            NetworkEndpointKind.Game);
-        services.AddServerMessageEncoder<SelectCharacterResponse, SelectCharacterResponseEncoder>(
             NetworkEndpointKind.Game);
     }
 }

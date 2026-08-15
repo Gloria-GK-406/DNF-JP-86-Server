@@ -14,7 +14,7 @@ public interface ISelectCharacterQuestEntryService
 
 public sealed record SelectCharacterQuestSynchronization(
     SelectCharacterResult Result,
-    SelectCharacterAcceptedQuestsProjection Projection);
+    AcceptedQuestSynchronizationState State);
 
 public interface ISelectCharacterPetEntryService
 {
@@ -24,7 +24,7 @@ public interface ISelectCharacterPetEntryService
 
 public sealed record SelectCharacterPetRevival(
     SelectCharacterResult Result,
-    SelectCharacterPetRevivalProjection Projection);
+    PetRevivalState State);
 
 internal sealed class SelectCharacterQuestEntryService(
     IQuestDefinitionSource quests,
@@ -61,8 +61,8 @@ internal sealed class SelectCharacterQuestEntryService(
             CharacterEntry = result.CharacterEntry with { Quests = updatedQuests }
         };
         return new SelectCharacterQuestSynchronization(updated,
-            new SelectCharacterAcceptedQuestsProjection(bySlot.Values.OrderBy(value => value.Slot)
-            .Select(value => new SelectCharacterAcceptedQuestProjection(
+            new AcceptedQuestSynchronizationState(bySlot.Values.OrderBy(value => value.Slot)
+            .Select(value => new AcceptedQuestProgressState(
                 checked((ushort)value.QuestId), unchecked((uint)value.TriggerValue))).ToArray()));
     }
 
@@ -104,7 +104,7 @@ internal sealed class SelectCharacterPetEntryService(ICharacterEntryMutationRepo
             }
         };
         return new SelectCharacterPetRevival(updated,
-            new SelectCharacterPetRevivalProjection(
+            new PetRevivalState(
                 session.WireUserId, checked((int)mutation.CreatureKey), mutation.After));
     }
 }

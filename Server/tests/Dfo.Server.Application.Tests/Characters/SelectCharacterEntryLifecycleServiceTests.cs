@@ -117,7 +117,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var projection = await service.SynchronizeAsync(Session(result), result, CancellationToken.None);
 
         Assert.Equal([3, 1], mutations.QuestUpdates.Select(value => value.After));
-        Assert.Equal([3u, 1u], projection!.Projection.Quests.Select(value => value.TriggerValue));
+        Assert.Equal([3u, 1u], projection!.State.Quests.Select(value => value.TriggerValue));
         Assert.Equal([3, 1], projection.Result.CharacterEntry.Quests.ActiveQuests
             .Select(value => value.TriggerValue));
     }
@@ -143,7 +143,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         mutations.Revival = null;
         var unchanged = await service.ReviveAsync(Session(result), result, CancellationToken.None);
 
-        Assert.Equal(new SelectCharacterPetRevivalProjection(603, 77, 1), changed!.Projection);
+        Assert.Equal(new PetRevivalState(603, 77, 1), changed!.State);
         Assert.Equal(1, Assert.Single(changed.Result.CharacterEntry.Features.Pets).Field04);
         Assert.Null(unchanged);
     }

@@ -160,7 +160,7 @@ public sealed class SelectCharacterPreparationService(
             cancellationToken).ConfigureAwait(false);
 
         characterEntry = CompleteCollectionBoxProjection(characterEntry, content, preparedAt);
-        var rosterProjection = await BuildRosterProjectionAsync(
+        var rosterEntry = await BuildRosterEntryAsync(
             accountId, roster, character.Identity.CharacterId, characterEntry,
             characterEntries, cancellationToken).ConfigureAwait(false);
 
@@ -176,7 +176,7 @@ public sealed class SelectCharacterPreparationService(
                 character.Identity.CharacterId,
                 adjacent),
             roster,
-            rosterProjection);
+            rosterEntry);
 
         return result;
     }
@@ -189,7 +189,7 @@ public sealed class SelectCharacterPreparationService(
             ?? throw new InvalidDataException("PvP skill protocol mirror is unavailable."),
     };
 
-    private static async ValueTask<SelectCharacterRosterProjection> BuildRosterProjectionAsync(
+    private static async ValueTask<CharacterRosterEntryState> BuildRosterEntryAsync(
         AccountId accountId,
         AccountCharacterRoster roster,
         CharacterId selectedId,
@@ -197,13 +197,13 @@ public sealed class SelectCharacterPreparationService(
         ICharacterEntryStateService entries,
         CancellationToken cancellationToken)
     {
-        var characters = new List<SelectCharacterRosterCharacterProjection>(roster.Characters.Count);
+        var characters = new List<CharacterRosterMemberState>(roster.Characters.Count);
         foreach (var summary in roster.Characters.OrderBy(value => value.SlotIndex))
         {
             var entry = summary.CharacterId == selectedId
                 ? selectedEntry
                 : await entries.LoadAsync(accountId, summary.CharacterId, cancellationToken).ConfigureAwait(false);
-            characters.Add(new SelectCharacterRosterCharacterProjection(
+            characters.Add(new CharacterRosterMemberState(
                 summary.CharacterId, summary.SlotIndex, summary.Name, summary.Job, summary.GrowType,
                 summary.Level,
                 checked((uint)Math.Max(0, entry.Public.Subtype1.Progress1)),
@@ -212,23 +212,23 @@ public sealed class SelectCharacterPreparationService(
                 DecodeAppearances(entry.Public.Appearance.EncodedEntries),
                 summary.CloneTitleItemId));
         }
-        return new SelectCharacterRosterProjection(
+        return new CharacterRosterEntryState(
             roster.SlotLimit, roster.SlotLimit, selectedEntry.Public.Subtype1.ManageLevel,
             0, 0, 0, characters);
     }
 
-    internal static IReadOnlyList<SelectCharacterRosterAppearanceProjection> DecodeAppearances(byte[] blob)
+    internal static IReadOnlyList<CharacterRosterAppearanceState> DecodeAppearances(byte[] blob)
     {
         if (blob is null || blob.Length == 0) return [];
         using var stream = new MemoryStream(blob, writable: false);
         using var reader = new BinaryReader(stream);
         var count = reader.ReadByte();
-        var appearances = new List<SelectCharacterRosterAppearanceProjection>(count);
+        var appearances = new List<CharacterRosterAppearanceState>(count);
         for (var index = 0; index < count; index++)
         {
             if (stream.Length - stream.Position < 23)
                 throw new InvalidDataException("Character appearance blob is truncated.");
-            appearances.Add(new SelectCharacterRosterAppearanceProjection(
+            appearances.Add(new CharacterRosterAppearanceState(
                 reader.ReadByte(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadBytes(4),
                 reader.ReadByte(), reader.ReadInt32(), reader.ReadUInt32(), reader.ReadByte()));
         }

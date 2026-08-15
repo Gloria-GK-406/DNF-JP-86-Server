@@ -45,11 +45,11 @@ public sealed class ChannelConnectHandlerTests
             return ValueTask.CompletedTask;
         }
 
-        public ValueTask SendProjectionAsync(
+        public ValueTask SendExplicitAsync(
             NetworkConnectionId requiredDirectConnectionId,
-            SelectCharacterProjectionDelivery delivery,
+            ExplicitMessageDelivery delivery,
             CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("This handler does not deliver projections.");
+            throw new InvalidOperationException("This handler does not use explicit-recipient delivery.");
     }
 
     private sealed class RecordingCommandBus(EstablishChannelConnectionResult result) : ICommandBus

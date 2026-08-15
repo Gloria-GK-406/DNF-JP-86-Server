@@ -55,12 +55,47 @@ public sealed class SessionGenerationOwnershipTests
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(),
             new ThrowingActive(), new SessionPresenceRegistry(), new ExpertStoreRegistry(),
-            new PvpLobbyRegistry(), new DungeonRejoinRegistry(), [], new NoopSender());
+            new PvpLobbyRegistry(), new DungeonRejoinRegistry(), []);
 
-        await Assert.ThrowsAsync<AggregateException>(async () =>
+        await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
             await service.CleanupAsync(session, includeOwner: false, CancellationToken.None));
 
         Assert.Null(directory.Find(session.AccountId));
+    }
+
+    [Fact]
+    public async Task CleanupFailure_PreservesAlreadyResolvedOwnerAndPeerNotifications()
+    {
+        var owner = Session("cleanup-owner", 9);
+        var peer = SelectedSessionIdentity.Create(
+            new AccountId(8), new CharacterId(80), new NetworkConnectionId("cleanup-peer"),
+            1, 10011);
+        var directory = new SelectedSessionDirectory();
+        directory.RegisterReplacing(owner);
+        directory.RegisterReplacing(peer);
+        var presence = new SessionPresenceRegistry();
+        presence.Admit(new SessionPresence(owner.CharacterId, 10011, 1, 2, true, owner));
+        presence.Admit(new SessionPresence(peer.CharacterId, 10011, 1, 2, true, peer));
+        var stores = new ExpertStoreRegistry();
+        stores.Open(owner);
+        var service = new SelectedSessionCleanupService(
+            directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(),
+            new ThrowingActive(), presence, stores, new PvpLobbyRegistry(),
+            new DungeonRejoinRegistry(), []);
+
+        var failure = await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
+            await service.CleanupAsync(owner, includeOwner: true, CancellationToken.None));
+
+        Assert.Equal(
+            [SelectedSessionCleanupNoticeKind.ExpertStoreClosed],
+            failure.NotificationPlan.RequiredOwnerNotices.Select(value => value.Kind));
+        var target = Assert.Single(failure.NotificationPlan.BestEffortTargets);
+        Assert.Equal(peer.ConnectionId, target.ConnectionId);
+        Assert.Equal(
+            [SelectedSessionCleanupNoticeKind.ExpertStoreClosed,
+                SelectedSessionCleanupNoticeKind.TownDeparture],
+            target.OrderedNotices.Select(value => value.Kind));
+        Assert.Null(directory.Find(owner.AccountId));
     }
 
     [Theory]
@@ -88,23 +123,24 @@ public sealed class SessionGenerationOwnershipTests
             otherListener.CharacterId, 10012, 1, 2, true, otherListener));
         var stores = new ExpertStoreRegistry();
         stores.Open(owner);
-        var sender = new RecordingSender();
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(),
             new PassiveActive(), presence, stores, new PvpLobbyRegistry(),
-            new DungeonRejoinRegistry(), [], sender);
+            new DungeonRejoinRegistry(), []);
 
-        await service.CleanupAsync(owner, includeOwner, CancellationToken.None);
+        var delivery = await service.CleanupAsync(owner, includeOwner, CancellationToken.None);
 
-        var delivery = Assert.Single(sender.Deliveries);
-        Assert.Equal(includeOwner ? 1 : 0, delivery.RequiredDirectProjections.Count);
+        Assert.Equal(includeOwner ? 1 : 0, delivery.RequiredOwnerNotices.Count);
         if (includeOwner)
-            Assert.IsType<SelectCharacterExpertStoreCloseProjection>(delivery.RequiredDirectProjections[0]);
+            Assert.Equal(
+                SelectedSessionCleanupNoticeKind.ExpertStoreClosed,
+                delivery.RequiredOwnerNotices[0].Kind);
         Assert.Equal([peer1.ConnectionId, peer2.ConnectionId],
             delivery.BestEffortTargets.Select(value => value.ConnectionId));
-        Assert.All(delivery.BestEffortTargets, target => Assert.Collection(target.OrderedProjections,
-            value => Assert.IsType<SelectCharacterExpertStoreCloseProjection>(value),
-            value => Assert.IsType<SelectCharacterTownLeaveProjection>(value)));
+        Assert.All(delivery.BestEffortTargets, target => Assert.Equal(
+            [SelectedSessionCleanupNoticeKind.ExpertStoreClosed,
+                SelectedSessionCleanupNoticeKind.TownDeparture],
+            target.OrderedNotices.Select(value => value.Kind)));
     }
 
     [Theory]
@@ -124,7 +160,7 @@ public sealed class SessionGenerationOwnershipTests
         var service = new SelectedSessionCleanupService(
             directory, runtimes, new EmptyInventoryLease(), new PassiveActive(),
             new SessionPresenceRegistry(), new ExpertStoreRegistry(), new PvpLobbyRegistry(),
-            new DungeonRejoinRegistry(), [persistence], new NoopSender());
+            new DungeonRejoinRegistry(), [persistence]);
 
         await service.CleanupAsync(session, false, CancellationToken.None);
 
@@ -142,15 +178,16 @@ public sealed class SessionGenerationOwnershipTests
         presence.Admit(new SessionPresence(replacement.CharacterId, 10011, 1, 2, true, replacement));
         var stores = new ExpertStoreRegistry();
         stores.Open(replacement);
-        var sender = new RecordingSender();
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(),
             new PassiveActive(), presence, stores, new PvpLobbyRegistry(),
-            new DungeonRejoinRegistry(), [], sender);
+            new DungeonRejoinRegistry(), []);
 
-        await service.CleanupAsync(stale, includeOwner: true, CancellationToken.None);
+        var delivery = await service.CleanupAsync(
+            stale, includeOwner: true, CancellationToken.None);
 
-        Assert.Empty(sender.Deliveries);
+        Assert.Empty(delivery.RequiredOwnerNotices);
+        Assert.Empty(delivery.BestEffortTargets);
         Assert.Equal(replacement, directory.Find(replacement.AccountId));
         Assert.Equal(replacement, presence.Find(replacement.CharacterId)!.Session);
         Assert.True(stores.HasOpenStore(replacement.CharacterId));
@@ -191,18 +228,18 @@ public sealed class SessionGenerationOwnershipTests
     {
         public ValueTask SendAsync(NetworkConnectionId connectionId, IServerNetworkMessage message,
             CancellationToken cancellationToken) => ValueTask.CompletedTask;
-        public ValueTask SendProjectionAsync(NetworkConnectionId requiredDirectConnectionId,
-            SelectCharacterProjectionDelivery delivery, CancellationToken cancellationToken) =>
+        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId,
+            ExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
             ValueTask.CompletedTask;
     }
 
     private sealed class RecordingSender : INetworkMessageSender
     {
-        public List<SelectCharacterProjectionDelivery> Deliveries { get; } = [];
+        public List<ExplicitMessageDelivery> Deliveries { get; } = [];
         public ValueTask SendAsync(NetworkConnectionId connectionId, IServerNetworkMessage message,
             CancellationToken cancellationToken) => ValueTask.CompletedTask;
-        public ValueTask SendProjectionAsync(NetworkConnectionId requiredDirectConnectionId,
-            SelectCharacterProjectionDelivery delivery, CancellationToken cancellationToken)
+        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId,
+            ExplicitMessageDelivery delivery, CancellationToken cancellationToken)
         {
             Deliveries.Add(delivery);
             return ValueTask.CompletedTask;

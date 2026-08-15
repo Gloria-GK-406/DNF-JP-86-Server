@@ -151,7 +151,7 @@ public sealed record PvpRoom(
     byte[]? Name = null,
     byte RoomState = 0,
     byte ManagerSeat = 0,
-    IReadOnlyList<SelectCharacterPvpRoomSeatProjection>? Seats = null,
+    IReadOnlyList<PvpRoomSeatState>? Seats = null,
     int MatchingType = 0);
 
 /// <summary>

@@ -10,27 +10,23 @@ public interface INetworkMessageDispatcher
         CancellationToken cancellationToken);
 }
 
-/// <summary>An explicitly addressed best-effort projection batch for one connection.</summary>
-public sealed record ExplicitProjectionTarget(
+/// <summary>An explicitly addressed best-effort message batch for one connection.</summary>
+public sealed record ExplicitMessageTarget(
     NetworkConnectionId ConnectionId,
-    IReadOnlyList<Dfo.Server.Data.Game.ISelectCharacterSupplementalProjection> OrderedProjections);
+    IReadOnlyList<IServerNetworkMessage> OrderedMessages);
 
 /// <summary>
-/// Typed Select Character projections. <see cref="ISelectCharacterProjectionComposer"/> turns them
-/// into frames; required direct values are delivered first; targets are already selected by the
-/// caller and are attempted best-effort afterwards.
+/// A protocol-neutral explicit-recipient delivery plan. Required messages are delivered first to
+/// the direct connection; secondary targets are already selected by the caller and are attempted
+/// best-effort afterwards.
 /// </summary>
 /// <remarks>
-/// This is a delivery plan, not a message. It carries no wire fields -- its payload is domain
-/// projections -- and unlike every message it names its own recipients. It therefore lives beside
-/// the seam that consumes it rather than among the message contracts, and it deliberately does not
-/// implement <see cref="IServerNetworkMessage"/>: there is no encoder that could turn a fan-out
-/// plan into one frame, so passing it to <see cref="INetworkMessageSender.SendAsync"/> must fail to
-/// compile rather than fail at runtime.
+/// This is a delivery plan, not a message. Each contained message still resolves through its own
+/// CLR-type encoder; the plan adds only recipient order and failure isolation.
 /// </remarks>
-public sealed record SelectCharacterProjectionDelivery(
-    IReadOnlyList<Dfo.Server.Data.Game.ISelectCharacterSupplementalProjection> RequiredDirectProjections,
-    IReadOnlyList<ExplicitProjectionTarget> BestEffortTargets);
+public sealed record ExplicitMessageDelivery(
+    IReadOnlyList<IServerNetworkMessage> RequiredDirectMessages,
+    IReadOnlyList<ExplicitMessageTarget> BestEffortTargets);
 
 public interface INetworkMessageSender
 {
@@ -39,26 +35,15 @@ public interface INetworkMessageSender
         IServerNetworkMessage message,
         CancellationToken cancellationToken);
 
-    ValueTask SendProjectionAsync(
+    ValueTask SendExplicitAsync(
         NetworkConnectionId requiredDirectConnectionId,
-        SelectCharacterProjectionDelivery delivery,
+        ExplicitMessageDelivery delivery,
         CancellationToken cancellationToken);
 }
 
 public interface INetworkConnectionCloser
 {
     ValueTask CloseAsync(NetworkConnectionId connectionId, CancellationToken cancellationToken);
-}
-
-/// <summary>
-/// The framing boundary for ordered typed post-selection projections: domain projections in,
-/// ready-to-send frame bodies out. Declared here so the sender can ask for frames without knowing
-/// which protocol produces them; the implementation lives with that protocol.
-/// </summary>
-public interface ISelectCharacterProjectionComposer
-{
-    IReadOnlyList<byte[]> Compose(
-        IReadOnlyList<Dfo.Server.Data.Game.ISelectCharacterSupplementalProjection> projections);
 }
 
 public interface INetworkConnectionObserver

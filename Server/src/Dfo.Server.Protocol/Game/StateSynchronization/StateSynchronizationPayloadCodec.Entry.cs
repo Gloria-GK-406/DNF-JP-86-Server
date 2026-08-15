@@ -1,70 +1,27 @@
 using System.Text;
 using System.Text.Json;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
-using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.World;
 
-namespace Dfo.Server.Protocol.Game.SelectCharacter;
+namespace Dfo.Server.Protocol.Game.StateSynchronization;
 
-internal static partial class SelectCharacterStaticPayloadCodec
+internal static partial class StateSynchronizationPayloadCodec
 {
-    public static byte[] EncodeNotification(SelectCharacterResult result, ushort type, int occurrence = 0) =>
-        type switch
-        {
-            0x0002 => EncodeUserInfo(result, occurrence),
-            0x0005 => EncodeDungeonPermissions(result),
-            0x000D => throw new ArgumentException("Inventory notification requires an explicit container type."),
-            0x0013 => EncodeSkills(result),
-            0x0015 => EncodeAvailableQuests(result),
-            0x0016 => EncodePosition(result),
-            0x0035 => EncodeCera(result),
-            0x0061 => EncodeMailbox(result),
-            0x0069 => EncodeCreatures(result),
-            0x006C or 0x017B or 0x021F or 0x007C or 0x0111 => EncodeObservedConstant(type),
-            0x00AC => EncodeItemValues(result.CharacterInventory.ItemValues.Cooldowns),
-            0x00AD => EncodeGameOptions(result),
-            0x00AE => EncodeItemValues(result.CharacterInventory.ItemValues.Effects),
-            0x00B1 => [result.CharacterEntry.Progression.DailyReviveCoinClaimed ? (byte)1 : (byte)0],
-            0x00CD => EncodeExpert(result),
-            0x00FB => EncodeEquipmentLocks(result),
-            0x0158 => EncodePvpMissions(result),
-            0x015F => EncodeSkillPointSlots(result),
-            0x0164 => EncodeQuestVisibility(result),
-            0x0166 => EncodeTitleBook(result, occurrence),
-            0x0167 => EncodeAchievements(result),
-            0x0187 => EncodeCharacterOption(result),
-            0x019D => U32(result.Account.Wallet.LuckyStar),
-            0x019F => EncodeSupportCharacter(result),
-            0x01A8 => [result.Account.Relations.PcRoomPlayTimeState],
-            0x01B9 => EncodeGrowthWeapon(result),
-            0x01C7 => EncodeHotkeys(result),
-            0x01EB => EncodeFatigueAcceleration(result),
-            0x0245 => EncodeKnightShieldDeck(result),
-            0x025B => EncodeChampionBreak(result),
-            0x0286 => EncodeDailyChallenge(result),
-            0x02D5 => EncodeDailySchedule(result, occurrence),
-            0x02DA => EncodeCompatibilityEntries(result),
-            0x0300 => [result.CharacterEntry.Progression.CubeType, result.CharacterEntry.Progression.CubeGrade],
-            0x0331 => [result.CharacterEntry.Progression.GoldLimitUpgradeLevel],
-            0x0357 => EncodeRentals(result),
-            0x0381 => EncodeCollectionBox(result, occurrence),
-            0x03D8 => EncodeLotteryProgress(result),
-            0x01C0 => EncodeDarkKnightCombos(result),
-            0x0077 => EncodePetWelcome(result),
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported static notification body."),
-        };
-
-    public static byte[] EncodePremiumService(SelectCharacterResult result)
+    public static byte[] EncodePremiumService(
+        AccountEntitlementEntryState entitlements,
+        IReadOnlyList<CharacterPremiumUsageSlotState> usageSlots)
     {
         var data = new byte[74];
-        foreach (var premium in result.Account.Entitlements.Premiums)
+        foreach (var premium in entitlements.Premiums)
         {
             var slot = premium.PremiumType - 580;
             if (slot is < 0 or >= 8) continue;
             WriteInt32(data, 6 + slot * 9,
                 checked((int)Math.Min(premium.ExpiresAtUnixSeconds, int.MaxValue)));
         }
-        foreach (var usage in result.CharacterEntry.Progression.PremiumUsageSlots)
+        foreach (var usage in usageSlots)
         {
             if (usage.SlotIndex >= 8 || usage.UsedCount < 0)
                 throw new InvalidDataException("Premium usage slot is outside the observed 8-slot layout.");
@@ -78,9 +35,8 @@ internal static partial class SelectCharacterStaticPayloadCodec
         return stream.ToArray();
     }
 
-    private static byte[] EncodeCreatures(SelectCharacterResult result)
+    public static byte[] EncodeCreatures(IReadOnlyList<CharacterPetRuntimeState> pets)
     {
-        var pets = result.CharacterEntry.Features.Pets;
         if (pets.Count > byte.MaxValue) throw CountError("creature", "u8");
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         writer.Write(checked((byte)pets.Count));
@@ -94,14 +50,14 @@ internal static partial class SelectCharacterStaticPayloadCodec
         return stream.ToArray();
     }
 
-    private static byte[] EncodeLotteryProgress(SelectCharacterResult result)
+    public static byte[] EncodeLotteryProgress(AccountProgressionEntryState progression)
     {
         const int bodyLength = 204;
         const int recordCount = 8;
         const int recordLength = 24;
         const int claimCapacity = 20;
-        var records = result.Account.Progression.LotteryProgress
-            ?? throw Missing("Account.Progression.LotteryProgress");
+        var records = progression.LotteryProgress
+            ?? throw Missing("Progression.LotteryProgress");
         var normalized = records.Where(value => value.ItemTemplateId > 0)
             .Take(recordCount).ToArray();
         var body = new byte[bodyLength];
@@ -127,21 +83,23 @@ internal static partial class SelectCharacterStaticPayloadCodec
         return body;
     }
 
-    private static byte[] EncodeSupportCharacter(SelectCharacterResult result)
+    public static byte[] EncodeSupportCharacter(
+        CharacterId ownerCharacterId,
+        IReadOnlyList<AccountCharacterRelationEntryState> characterRelations,
+        DateTimeOffset preparedAt)
     {
-        var ownerId = result.Character.Identity.CharacterId;
-        if (result.Account.Relations.CharacterRelations.Any(value =>
-                value.SupportProjection is not null && value.OwnerCharacterId != ownerId))
+        if (characterRelations.Any(value =>
+                value.SupportProjection is not null && value.OwnerCharacterId != ownerCharacterId))
             throw new InvalidDataException("Support-character projection belongs to a different selected owner.");
-        var relations = result.Account.Relations.CharacterRelations
-            .Where(value => value.OwnerCharacterId == ownerId).ToArray();
+        var relations = characterRelations
+            .Where(value => value.OwnerCharacterId == ownerCharacterId).ToArray();
         if (relations.Length == 0)
             return new byte[2];
         if (relations.Length != 1 || relations[0].Slot != 0)
             throw new InvalidDataException("Support-character projection requires one owner relation in slot zero.");
         var relation = relations[0];
         var projection = relation.SupportProjection ?? throw Missing("Account.Relations.SupportProjection");
-        if (relation.OwnerCharacterId != ownerId
+        if (relation.OwnerCharacterId != ownerCharacterId
             || projection.Character.Identity.CharacterId != relation.SupportCharacterId
             || projection.Entry.CharacterId != relation.SupportCharacterId
             || projection.Inventory.CharacterId != relation.SupportCharacterId)
@@ -159,7 +117,7 @@ internal static partial class SelectCharacterStaticPayloadCodec
 
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);
-        writer.Write(checked((ushort)ownerId.Value));
+        writer.Write(checked((ushort)ownerCharacterId.Value));
         WriteDstr(writer, projection.Character.Identity.Name);
         writer.Write(projection.Character.Progression.Level);
         writer.Write(projection.Character.Identity.Job);
@@ -169,7 +127,7 @@ internal static partial class SelectCharacterStaticPayloadCodec
         writer.Write(EncodeSupportStats(stats));
         writer.Write(checked((byte)equipment.Length));
         foreach (var item in equipment)
-            WriteNoti2EquippedItem(writer, item, result.World.PreparedAt);
+            WriteNoti2EquippedItem(writer, item, preparedAt);
         writer.Write(projection.Entry.Public.CloneTitleItemId);
         writer.Write(checked((byte)skills.Length));
         writer.Write(checked((byte)stats.SkillTreeIndex));
@@ -336,9 +294,8 @@ internal static partial class SelectCharacterStaticPayloadCodec
         return stream.ToArray();
     }
 
-    private static byte[] EncodeSkills(SelectCharacterResult result)
+    public static byte[] EncodeSkills(CharacterSkillsEntryState skills)
     {
-        var skills = result.CharacterEntry.Skills;
         var mirror = skills.ProtocolMirror ?? throw Missing("Skills.ProtocolMirror");
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         for (byte pageIndex = 0; pageIndex < 2; pageIndex++)
@@ -358,26 +315,26 @@ internal static partial class SelectCharacterStaticPayloadCodec
         writer.Write(mirror.Page0Tp); writer.Write(mirror.Page1Tp); return stream.ToArray();
     }
 
-    private static byte[] EncodeAvailableQuests(SelectCharacterResult result)
+    public static byte[] EncodeAvailableQuests(
+        byte characterLevel,
+        AvailableQuestEntryState availableQuests)
     {
-        var quests = result.World.Content.AvailableQuests.Quests;
+        var quests = availableQuests.Quests;
         if (quests.Count > ushort.MaxValue) throw CountError("available quest", "u16");
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
-        writer.Write(result.Character.Progression.Level); writer.Write(checked((ushort)quests.Count));
+        writer.Write(characterLevel); writer.Write(checked((ushort)quests.Count));
         foreach (var quest in quests) writer.Write(checked((ushort)quest.QuestId)); return stream.ToArray();
     }
 
-    private static byte[] EncodeQuestVisibility(SelectCharacterResult result)
+    public static byte[] EncodeQuestVisibility(byte[] flags)
     {
-        var flags = result.CharacterEntry.Quests.VisibilityFlags;
         if (flags.Length != 30_000) throw new InvalidDataException("Quest visibility bitmap must contain exactly 30000 bytes.");
         using var stream = new MemoryStream(30_004); using var writer = new BinaryWriter(stream);
         writer.Write(flags.Length); writer.Write(flags); return stream.ToArray();
     }
 
-    private static byte[] EncodeDailyChallenge(SelectCharacterResult result)
+    public static byte[] EncodeDailyChallenge(CharacterProgressionEntryState state)
     {
-        var state = result.CharacterEntry.Progression;
         if (state.DailyChallengeClaimFlags.Length != 6) throw new InvalidDataException("Daily challenge claim flags must contain exactly 6 bytes.");
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         writer.Write(Math.Max(1u, state.DailyChallengeCharacterLevel)); writer.Write(checked((uint)state.DailyChallenges.Count));
@@ -390,49 +347,45 @@ internal static partial class SelectCharacterStaticPayloadCodec
         foreach (var id in state.DailyChallengeTailIds) writer.Write(id); return stream.ToArray();
     }
 
-    private static byte[] EncodeGameOptions(SelectCharacterResult result)
+    public static byte[] EncodeGameOptions(AccountSettingsEntryState settings)
     {
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
-        WriteBlob(writer, result.Account.Settings.MainGameOptions); WriteBlob(writer, result.Account.Settings.QuickChatBank0);
-        WriteBlob(writer, result.Account.Settings.QuickChatBank1); return stream.ToArray();
+        WriteBlob(writer, settings.MainGameOptions); WriteBlob(writer, settings.QuickChatBank0);
+        WriteBlob(writer, settings.QuickChatBank1); return stream.ToArray();
     }
 
-    private static byte[] EncodeHotkeys(SelectCharacterResult result)
+    public static byte[] EncodeHotkeys(
+        AccountSettingsEntryState accountSettings,
+        CharacterSettingsEntryState characterSettings)
     {
-        var slots = result.CharacterEntry.Settings.HotkeySlots;
+        var slots = characterSettings.HotkeySlots;
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
-        writer.Write(result.Account.Settings.HotkeyKeyType); writer.Write(checked(slots.Count * 2));
+        writer.Write(accountSettings.HotkeyKeyType); writer.Write(checked(slots.Count * 2));
         foreach (var slot in slots) writer.Write(slot); return stream.ToArray();
     }
 
-    private static byte[] EncodeDungeonPermissions(SelectCharacterResult result)
+    public static byte[] EncodeDungeonPermissions(IReadOnlyList<CharacterDungeonProgressState> entries)
     {
-        var entries = result.CharacterEntry.Progression.Dungeons;
         if (entries.Count > ushort.MaxValue) throw CountError("dungeon", "u16");
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         writer.Write(checked((ushort)entries.Count)); foreach (var entry in entries) { writer.Write(checked((ushort)entry.DungeonId)); writer.Write(entry.State); }
         return stream.ToArray();
     }
 
-    private static byte[] EncodeCharacterOption(SelectCharacterResult result)
+    public static byte[] EncodeCharacterOption(byte[]? option)
     {
-        var option = result.CharacterEntry.Settings.OptionBitmap;
         if (option is not null) return [.. option];
         return new byte[4];
     }
 
-    private static byte[] EncodeGrowthWeapon(SelectCharacterResult result)
+    public static byte[] EncodeGrowthWeapon(IReadOnlyList<byte> values)
     {
-        var values = result.CharacterEntry.Progression.GrowthWeaponStages;
         if (values.Count > byte.MaxValue) throw CountError("growth weapon", "u8");
         return [checked((byte)values.Count), .. values];
     }
 
-    private static byte[] EncodeTitleBook(SelectCharacterResult result, int occurrence)
+    public static byte[] EncodeTitleBook(CharacterTitleBookCategoryState category)
     {
-        var categories = result.CharacterEntry.Features.Collections.TitleBooks.OrderBy(value => value.Category).ToArray();
-        if (occurrence < 0 || occurrence >= categories.Length) throw Missing($"TitleBooks[{occurrence}]");
-        var category = categories[occurrence];
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         writer.Write(category.InfoType); writer.Write(category.OwnerId16); writer.Write((int)category.Category); writer.Write(category.Entries.Count);
         foreach (var entry in category.Entries)
@@ -444,41 +397,36 @@ internal static partial class SelectCharacterStaticPayloadCodec
         return stream.ToArray();
     }
 
-    private static byte[] EncodeAchievements(SelectCharacterResult result)
+    public static byte[] EncodeAchievements(IReadOnlyList<CharacterAchievementProgressState> entries)
     {
-        var entries = result.CharacterEntry.Features.Collections.Achievements;
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream); writer.Write(entries.Count);
         foreach (var e in entries) { writer.Write(e.AchievementId); writer.Write(e.P1); writer.Write(e.P2); writer.Write(e.P3); writer.Write(e.P4); }
         return stream.ToArray();
     }
 
-    private static byte[] EncodeSkillPointSlots(SelectCharacterResult result)
+    public static byte[] EncodeSkillPointSlots(IReadOnlyList<CharacterSkillPointSlotState> entries)
     {
-        var entries = result.CharacterEntry.Skills.SkillPointSlots;
         if (entries.Count > byte.MaxValue) throw CountError("skill point slot", "u8");
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream); writer.Write(checked((byte)entries.Count));
         foreach (var entry in entries) { writer.Write(entry.SlotIndex); writer.Write(checked((ushort)entry.Value)); } return stream.ToArray();
     }
 
-    private static byte[] EncodeItemValues(IReadOnlyList<InventoryItemValueState> entries)
+    public static byte[] EncodeItemValues(IReadOnlyList<InventoryItemValueState> entries)
     {
         if (entries.Count > byte.MaxValue) throw CountError("item value", "u8");
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream); writer.Write(checked((byte)entries.Count));
         foreach (var entry in entries.OrderBy(value => value.SortOrder)) { writer.Write(entry.ItemId); writer.Write(entry.Value); } return stream.ToArray();
     }
 
-    private static byte[] EncodeCompatibilityEntries(SelectCharacterResult result)
+    public static byte[] EncodeCompatibilityEntries(IReadOnlyList<AccountCompatibilityEntryState> entries)
     {
-        var entries = result.Account.Relations.Unknown730Entries;
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream); writer.Write(entries.Count);
         foreach (var e in entries) { writer.Write(e.EntryId); writer.Write(e.SentinelOrValue); writer.Write(e.Flag); } return stream.ToArray();
     }
 
-    private static byte[] EncodeCollectionBox(SelectCharacterResult result, int occurrence)
+    public static byte[] EncodeCollectionBox(CharacterCollectionBoxProgressState box)
     {
-        var boxes = result.CharacterEntry.Features.Collections.CollectionBoxes.OrderBy(value => value.BoxIndex).ToArray();
-        if (occurrence < 0 || occurrence >= boxes.Length) throw Missing($"CollectionBoxes[{occurrence}]");
-        var box = boxes[occurrence]; var protocol = box.Protocol ?? throw Missing($"CollectionBoxes[{occurrence}].Protocol");
+        var protocol = box.Protocol ?? throw Missing($"CollectionBoxes[{box.BoxIndex}].Protocol");
         if (box.Slots.Count > byte.MaxValue) throw CountError("collection box", "u8");
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         writer.Write(box.BoxIndex); writer.Write((byte)1); writer.Write(protocol.RemainingSeconds); writer.Write(protocol.StatusFlags);
@@ -486,18 +434,23 @@ internal static partial class SelectCharacterStaticPayloadCodec
         return stream.ToArray();
     }
 
-    private static byte[] EncodeRentals(SelectCharacterResult result)
+    public static byte[] EncodeRentals(
+        CharacterRentalEntryState rentals,
+        ushort luckyStar,
+        DateTimeOffset preparedAt)
     {
-        var items = result.CharacterInventory.Rentals.Items.Where(value => value.ExpireTime > result.World.PreparedAt.ToUnixTimeSeconds()).ToArray();
+        var items = rentals.Items.Where(value => value.ExpireTime > preparedAt.ToUnixTimeSeconds()).ToArray();
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
-        writer.Write((uint)result.Account.Wallet.LuckyStar); writer.Write(checked((uint)items.Length));
+        writer.Write((uint)luckyStar); writer.Write(checked((uint)items.Length));
         foreach (var item in items) { writer.Write(item.InventoryTemplateId != 0 ? item.InventoryTemplateId : item.ItemId); writer.Write(item.ExpireTime); }
         return stream.ToArray();
     }
 
-    private static byte[] EncodeEquipmentLocks(SelectCharacterResult result)
+    public static byte[] EncodeEquipmentLocks(
+        IReadOnlyList<InventoryEquipmentLockState> characterLocks,
+        IReadOnlyList<InventoryEquipmentLockState> accountLocks)
     {
-        var locks = result.CharacterInventory.EquipmentLocks.Concat(result.AccountInventory.Cargo.EquipmentLocks).OrderBy(value => value.EquipmentLockId).ToArray();
+        var locks = characterLocks.Concat(accountLocks).OrderBy(value => value.EquipmentLockId).ToArray();
         if (locks.Length > ushort.MaxValue) throw CountError("equipment lock", "u16");
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream); writer.Write(checked((ushort)locks.Length));
         foreach (var value in locks)
@@ -508,9 +461,8 @@ internal static partial class SelectCharacterStaticPayloadCodec
         return stream.ToArray();
     }
 
-    private static byte[] EncodeExpert(SelectCharacterResult result)
+    public static byte[] EncodeExpert(CharacterExpertJobEntryState expert)
     {
-        var expert = result.CharacterEntry.Features.ExpertJob;
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         writer.Write(checked((byte)expert.GiveupCount)); writer.Write(expert.ProfessionType);
         if (expert.ProfessionType is 1 or 2 or 4)
@@ -529,71 +481,65 @@ internal static partial class SelectCharacterStaticPayloadCodec
         return stream.ToArray();
     }
 
-    private static byte[] EncodeFatigueAcceleration(SelectCharacterResult result)
+    public static byte[] EncodeFatigueAcceleration(ushort value, byte state)
     {
         using var stream = new MemoryStream(3); using var writer = new BinaryWriter(stream);
-        writer.Write(result.CharacterEntry.Progression.FatigueAccelerationValue); writer.Write(result.CharacterEntry.Progression.FatigueAccelerationState); return stream.ToArray();
+        writer.Write(value); writer.Write(state); return stream.ToArray();
     }
 
-    private static byte[] EncodeChampionBreak(SelectCharacterResult result)
+    public static byte[] EncodeChampionBreak(CharacterProgressionEntryState state)
     {
-        var state = result.CharacterEntry.Progression; using var stream = new MemoryStream(9); using var writer = new BinaryWriter(stream);
+        using var stream = new MemoryStream(9); using var writer = new BinaryWriter(stream);
         writer.Write(state.ChampionBreakKey); writer.Write(state.ChampionBreakMode); writer.Write(state.ChampionBreakValue); return stream.ToArray();
     }
 
-    private static byte[] EncodePvpMissions(SelectCharacterResult result)
+    public static byte[] EncodePvpMissions(IReadOnlyList<CharacterPvpMissionEntryState> entries)
     {
-        var entries = result.CharacterEntry.Features.PvpMissions; if (entries.Count > byte.MaxValue) throw CountError("PvP mission", "u8");
+        if (entries.Count > byte.MaxValue) throw CountError("PvP mission", "u8");
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream); writer.Write(checked((byte)entries.Count));
         foreach (var entry in entries) { writer.Write(entry.MissionId); writer.Write(entry.Progress); } return stream.ToArray();
     }
 
-    private static byte[] EncodeDailySchedule(SelectCharacterResult result, int occurrence)
+    public static byte[] EncodeDailySchedule(CharacterScheduleCompatibilityState e)
     {
-        var entries = result.CharacterEntry.Progression.ScheduleCompatibility.OrderBy(value => value.SlotIndex).ToArray();
-        if (occurrence < 0 || occurrence >= entries.Length) throw Missing($"ScheduleCompatibility[{occurrence}]"); var e = entries[occurrence];
         using var stream = new MemoryStream(16); using var writer = new BinaryWriter(stream); writer.Write(e.Value0); writer.Write(e.Value1); writer.Write(e.Value2); writer.Write(e.Value3); return stream.ToArray();
     }
 
-    private static byte[] EncodeCera(SelectCharacterResult result)
+    public static byte[] EncodeCera(AccountWalletEntryState wallet)
     {
-        var wallet = result.Account.Wallet; using var stream = new MemoryStream(13); using var writer = new BinaryWriter(stream);
+        using var stream = new MemoryStream(13); using var writer = new BinaryWriter(stream);
         writer.Write((byte)1); writer.Write(wallet.Cera); writer.Write(wallet.TokenCera); writer.Write(wallet.HappyTokenCera); return stream.ToArray();
     }
 
-    private static byte[] EncodePosition(SelectCharacterResult result)
+    public static byte[] EncodePosition(CharacterId characterId, EntrySpawnState spawn)
     {
-        var spawn = result.World.Channel.Spawn; using var stream = new MemoryStream(11); using var writer = new BinaryWriter(stream);
-        writer.Write(checked((ushort)result.Character.Identity.CharacterId.Value)); writer.Write(checked((ushort)spawn.X)); writer.Write(checked((ushort)spawn.Y)); writer.Write(spawn.Direction); writer.Write((ushort)100); return stream.ToArray();
+        using var stream = new MemoryStream(11); using var writer = new BinaryWriter(stream);
+        writer.Write(checked((ushort)characterId.Value)); writer.Write(checked((ushort)spawn.X)); writer.Write(checked((ushort)spawn.Y)); writer.Write(spawn.Direction); writer.Write((ushort)100); return stream.ToArray();
     }
 
-    private static byte[] EncodeKnightShieldDeck(SelectCharacterResult result)
+    public static byte[] EncodeKnightShieldDeck(IReadOnlyList<int> deck)
     {
-        var deck = result.CharacterEntry.Skills.KnightShieldDeck ?? throw Missing("Skills.KnightShieldDeck");
         if (deck.Count != 5) throw new InvalidDataException("Knight shield deck must contain exactly five slots.");
         using var stream = new MemoryStream(20); using var writer = new BinaryWriter(stream); foreach (var item in deck) writer.Write(item); return stream.ToArray();
     }
 
-    private static byte[] EncodeDarkKnightCombos(SelectCharacterResult result)
+    public static byte[] EncodeDarkKnightCombos(IReadOnlyList<DarkKnightComboEntryState> combos)
     {
-        var combos = result.CharacterEntry.Skills.DarkKnightCombos ?? throw Missing("Skills.DarkKnightCombos");
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         foreach (var combo in combos.OrderBy(value => value.PageIndex)) writer.Write(combo.EncodedBody); return stream.ToArray();
     }
 
-    private static byte[] EncodePetWelcome(SelectCharacterResult result)
+    public static byte[] EncodePetWelcome(CharacterId characterId, PetWelcomeEntryState welcome)
     {
-        var welcome = result.World.Content.PetWelcome ?? throw Missing("World.Content.PetWelcome");
         if (welcome.Lines.Count == 0) throw Missing("World.Content.PetWelcome.Lines");
-        var index = (int)((uint)(result.Character.Identity.CharacterId.Value * 397) ^ (uint)welcome.CreatureId) % welcome.Lines.Count;
+        var index = (int)((uint)(characterId.Value * 397) ^ (uint)welcome.CreatureId) % welcome.Lines.Count;
         var text = Encoding.UTF8.GetBytes(welcome.Lines[index]);
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
-        writer.Write((byte)3); writer.Write(checked((ushort)result.Character.Identity.CharacterId.Value)); writer.Write((byte)0); WriteDstr(writer, text); return stream.ToArray();
+        writer.Write((byte)3); writer.Write(checked((ushort)characterId.Value)); writer.Write((byte)0); WriteDstr(writer, text); return stream.ToArray();
     }
 
-    private static byte[] EncodeMailbox(SelectCharacterResult result)
+    public static byte[] EncodeMailbox(CharacterMailboxEntryState mailbox)
     {
-        var mailbox = result.CharacterEntry.Features.Mailbox;
         if (mailbox.Messages.Count > ushort.MaxValue || mailbox.NotLoadedCount is < 0 or > ushort.MaxValue)
             throw CountError("mailbox", "u16");
         var summaries = new List<(CharacterMailboxMessageEntryState Message, CharacterMailboxAttachmentEntryState? Attachment, bool IncludeGold, bool SeedOnly)>();
@@ -740,23 +686,18 @@ internal static partial class SelectCharacterStaticPayloadCodec
         WriteDstr(writer, bytes);
     }
 
-    private static byte[] EncodeUserInfo(SelectCharacterResult result, int occurrence) => occurrence switch
+    public static byte[] EncodeCurrentUserState(
+        ActiveCharacterState character,
+        CharacterPublicEntryState entry,
+        IReadOnlyList<InventoryItemState> equipment,
+        IReadOnlyList<CharacterPetRuntimeState> pets)
     {
-        0 or 2 => EncodeUserInfoSubtype0(result),
-        1 => EncodeUserInfoSubtype1(result),
-        _ => throw new ArgumentOutOfRangeException(nameof(occurrence)),
-    };
-
-    private static byte[] EncodeUserInfoSubtype0(SelectCharacterResult result)
-    {
-        var character = result.Character; var entry = result.CharacterEntry.Public;
         var identity = entry.Identity ?? throw Missing("CharacterEntry.Public.Identity");
         var t = entry.Subtype0; var s1 = entry.Subtype1;
-        var equipment = result.CharacterInventory.Containers.SingleOrDefault(c => c.ContainerType == InventoryContainerType.Equipment)?.Items ?? [];
         var appearance = equipment.Where(item => item.SlotIndex <= 12 || item.SlotIndex == 23).OrderBy(item => item.SlotIndex).ToArray();
         if (appearance.Length > byte.MaxValue) throw CountError("appearance", "u8");
         var creature = equipment.SingleOrDefault(item => item.SlotIndex == 24 && item.Core.ItemKind == 5);
-        var pet = creature is null ? null : result.CharacterEntry.Features.Pets.SingleOrDefault(value => value.PetKey == creature.Core.Value);
+        var pet = creature is null ? null : pets.SingleOrDefault(value => value.PetKey == creature.Core.Value);
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         writer.Write((byte)0); writer.Write((ushort)1); writer.Write(checked((ushort)character.Identity.CharacterId.Value)); WriteDstr(writer, character.Identity.Name);
         writer.Write(character.Identity.Job); writer.Write(character.Identity.GrowType); writer.Write(character.Progression.Level);
@@ -780,21 +721,23 @@ internal static partial class SelectCharacterStaticPayloadCodec
         writer.Write(t.PvpStatA); writer.Write(t.PvpWinStreak); writer.Write(t.PvpLoseStreak); writer.Write(t.PvpRankPoint); writer.Write(t.TrailingByte); return stream.ToArray();
     }
 
-    internal static byte[] EncodePvpSubtype0(SelectCharacterResult result) => EncodeUserInfoSubtype0(result);
-
-    private static byte[] EncodeUserInfoSubtype1(SelectCharacterResult result)
+    public static byte[] EncodeExtendedUserState(
+        ActiveCharacterState character,
+        CharacterPublicEntryState publicState,
+        CharacterSkillsEntryState skills,
+        IReadOnlyList<InventoryItemState> equipment,
+        DateTimeOffset preparedAt)
     {
-        var character = result.Character; var value = result.CharacterEntry.Public.Subtype1; var skills = result.CharacterEntry.Skills;
+        var value = publicState.Subtype1;
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         writer.Write((byte)1); writer.Write((ushort)1); writer.Write(checked((ushort)character.Identity.CharacterId.Value)); writer.Write(value.CharacterExperience);
         writer.Write(83); writer.Write(checked((uint)value.HpMaximum)); writer.Write(checked((uint)value.MpMaximum)); writer.Write(checked((short)value.PhysicalAttack)); writer.Write(checked((short)value.PhysicalDefense));
         writer.Write(checked((short)value.MagicalAttack)); writer.Write(checked((short)value.MagicalDefense)); writer.Write(value.FireResistance); writer.Write(value.WaterResistance); writer.Write(value.DarkResistance); writer.Write(value.LightResistance);
         writer.Write(new byte[34]); writer.Write(checked((uint)value.InventoryLimit)); writer.Write(value.HpRegenSpeed); writer.Write(value.MpRegenSpeed); writer.Write(checked((uint)value.MoveSpeed));
         writer.Write(checked((ushort)value.AttackSpeed)); writer.Write(checked((ushort)value.CastSpeed)); writer.Write(value.HitRecovery); writer.Write(value.JumpPower); writer.Write(value.Weight); writer.Write(value.StatLevel); writer.Write(value.ExtraEquipmentSlotState);
-        var equipment = result.CharacterInventory.Containers.SingleOrDefault(c => c.ContainerType == InventoryContainerType.Equipment)?.Items ?? [];
         if (equipment.Count > byte.MaxValue) throw CountError("equipped item", "u8"); writer.Write(checked((byte)equipment.Count));
-        foreach (var item in equipment.OrderBy(item => item.SlotIndex)) WriteNoti2Item(writer, item, result.World.PreparedAt);
-        writer.Write(result.CharacterEntry.Public.CloneTitleItemId); writer.Write(value.NameTagItemId); writer.Write(value.NameTagExpireTime); writer.Write(checked((byte)value.SkillTreeIndex));
+        foreach (var item in equipment.OrderBy(item => item.SlotIndex)) WriteNoti2Item(writer, item, preparedAt);
+        writer.Write(publicState.CloneTitleItemId); writer.Write(value.NameTagItemId); writer.Write(value.NameTagExpireTime); writer.Write(checked((byte)value.SkillTreeIndex));
         for (byte page = 0; page < 2; page++)
         {
             var learned = skills.Pages.SingleOrDefault(p => p.PageIndex == page)?.Skills.Where(s => s.Level > 0).ToArray() ?? [];
@@ -837,7 +780,7 @@ internal static partial class SelectCharacterStaticPayloadCodec
     private static void WriteRandomDynamic(BinaryWriter writer, RandomOptionState value) { writer.Write(value.Type); writer.Write(value.Value1); writer.Write(value.Value2); }
     private static void WriteBlob(BinaryWriter writer, byte[] value) { writer.Write(value.Length); writer.Write(value); }
     private static void WriteDstr(BinaryWriter writer, byte[] value) { writer.Write(value.Length); writer.Write(value); }
-    private static byte[] U32(uint value) { var body = new byte[4]; WriteInt32(body, 0, checked((int)value)); return body; }
+    public static byte[] EncodeUnsigned32(uint value) { var body = new byte[4]; WriteInt32(body, 0, checked((int)value)); return body; }
     private static void WriteInt32(byte[] target, int offset, int value) => System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(target.AsSpan(offset, 4), value);
     private static InvalidDataException CountError(string name, string width) => new($"{name} count cannot be represented as {width}.");
 }

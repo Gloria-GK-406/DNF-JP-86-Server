@@ -10,19 +10,59 @@ namespace Dfo.Server.Application.Sessions;
 
 public interface ISelectedSessionCleanupService
 {
-    ValueTask CleanupAsync(
+    ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
         SelectedSessionIdentity session, bool includeOwner, CancellationToken cancellationToken);
+}
+
+public enum SelectedSessionCleanupNoticeKind
+{
+    ExpertStoreClosed = 1,
+    TownDeparture = 2,
+}
+
+public sealed record SelectedSessionCleanupNotice(
+    SelectedSessionCleanupNoticeKind Kind,
+    ushort UserId);
+
+public sealed record SelectedSessionCleanupNotificationTarget(
+    NetworkConnectionId ConnectionId,
+    IReadOnlyList<SelectedSessionCleanupNotice> OrderedNotices);
+
+public sealed record SelectedSessionCleanupNotificationPlan(
+    NetworkConnectionId OwnerConnectionId,
+    IReadOnlyList<SelectedSessionCleanupNotice> RequiredOwnerNotices,
+    IReadOnlyList<SelectedSessionCleanupNotificationTarget> BestEffortTargets)
+{
+    public static SelectedSessionCleanupNotificationPlan Empty(SelectedSessionIdentity session) =>
+        new(session.ConnectionId, [], []);
+}
+
+/// <summary>
+/// Exact cleanup completed with one or more failures after its notification targets were resolved.
+/// The plan remains deliverable so a cleanup failure does not silently suppress peer state changes.
+/// </summary>
+public sealed class SelectedSessionCleanupFailure(
+    SelectedSessionCleanupNotificationPlan notificationPlan,
+    IReadOnlyCollection<Exception> failures)
+    : AggregateException("Selected-session cleanup completed with failures.", failures)
+{
+    public SelectedSessionCleanupNotificationPlan NotificationPlan { get; } = notificationPlan;
 }
 
 public interface ISelectCharacterSessionEntryService
 {
-    SelectCharacterPvpLobbyProjection? PlanPvp(SelectedSessionIdentity session, SelectCharacterResult result);
-    IReadOnlyList<ExplicitProjectionTarget> PlanPvpPublication(SelectedSessionIdentity session, SelectCharacterResult result);
+    PvpLobbySynchronizationState? PlanPvp(SelectedSessionIdentity session, SelectCharacterResult result);
+    IReadOnlyList<PvpParticipantPublicationTarget> PlanPvpPublication(
+        SelectedSessionIdentity session, SelectCharacterResult result);
     void Publish(SelectedSessionIdentity session, SelectCharacterResult result);
     void ReplaceRuntimeExact(SelectedSessionIdentity session, SelectCharacterResult result);
     void MarkPvpReady(SelectedSessionIdentity session, SelectCharacterResult result);
-    SelectCharacterDungeonRejoinProjection? PlanRejoin(SelectedSessionIdentity session, SelectCharacterResult result);
+    DungeonRejoinSynchronizationState? PlanRejoin(SelectedSessionIdentity session, SelectCharacterResult result);
 }
+
+public sealed record PvpParticipantPublicationTarget(
+    NetworkConnectionId ConnectionId,
+    PvpParticipantEntryState Participant);
 
 internal sealed class SelectedSessionCleanupService(
     ISelectedSessionDirectory sessions,
@@ -33,16 +73,15 @@ internal sealed class SelectedSessionCleanupService(
     IExpertStoreRegistry expertStores,
     IPvpLobbyRegistry pvp,
     IDungeonRejoinRegistry rejoin,
-    IEnumerable<ISelectedSessionPositionPersistence> positionPersistence,
-    INetworkMessageSender sender) : ISelectedSessionCleanupService
+    IEnumerable<ISelectedSessionPositionPersistence> positionPersistence) : ISelectedSessionCleanupService
 {
-    public async ValueTask CleanupAsync(
+    public async ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
         SelectedSessionIdentity session, bool includeOwner, CancellationToken cancellationToken)
     {
         var failures = new List<Exception>();
         var currentPresence = presence.Find(session.CharacterId);
-        var targets = new List<ExplicitProjectionTarget>();
-        var required = new List<ISelectCharacterSupplementalProjection>();
+        var targets = new List<SelectedSessionCleanupNotificationTarget>();
+        var required = new List<SelectedSessionCleanupNotice>();
         if (currentPresence?.Session == session)
         {
             foreach (var peer in presence.InArea(
@@ -51,23 +90,18 @@ internal sealed class SelectedSessionCleanupService(
             {
                 var peerSession = peer.Session ?? sessions.FindByCharacter(peer.CharacterId);
                 if (peerSession is null) continue;
-                var values = new List<ISelectCharacterSupplementalProjection>();
+                var values = new List<SelectedSessionCleanupNotice>();
                 if (expertStores.HasOpenStore(session.CharacterId))
-                    values.Add(new SelectCharacterExpertStoreCloseProjection(session.WireUserId));
-                values.Add(new SelectCharacterTownLeaveProjection(session.WireUserId));
-                targets.Add(new ExplicitProjectionTarget(peerSession.ConnectionId, values));
+                    values.Add(new SelectedSessionCleanupNotice(
+                        SelectedSessionCleanupNoticeKind.ExpertStoreClosed, session.WireUserId));
+                values.Add(new SelectedSessionCleanupNotice(
+                    SelectedSessionCleanupNoticeKind.TownDeparture, session.WireUserId));
+                targets.Add(new SelectedSessionCleanupNotificationTarget(
+                    peerSession.ConnectionId, values));
             }
             if (includeOwner && expertStores.HasOpenStore(session.CharacterId))
-                required.Add(new SelectCharacterExpertStoreCloseProjection(session.WireUserId));
-        }
-        if (targets.Count > 0 || required.Count > 0)
-        {
-            try
-            {
-                await sender.SendProjectionAsync(session.ConnectionId,
-                    new SelectCharacterProjectionDelivery(required, targets), cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception error) { failures.Add(error); }
+                required.Add(new SelectedSessionCleanupNotice(
+                    SelectedSessionCleanupNoticeKind.ExpertStoreClosed, session.WireUserId));
         }
 
         // Every mutation is exact and isolated; a stale session can attempt all safely.
@@ -91,8 +125,11 @@ internal sealed class SelectedSessionCleanupService(
         Run(() => runtimes.RemoveExact(session));
         Run(() => activeCharacters.ClearExact(session));
         Run(() => sessions.TryRemoveExact(session));
+        var notificationPlan = new SelectedSessionCleanupNotificationPlan(
+            session.ConnectionId, required, targets);
         if (failures.Count != 0)
-            throw new AggregateException("Selected-session cleanup completed with failures.", failures);
+            throw new SelectedSessionCleanupFailure(notificationPlan, failures);
+        return notificationPlan;
 
         void Run(Func<bool> action)
         {
@@ -117,7 +154,7 @@ internal sealed class SelectCharacterSessionEntryService(
     IDungeonRejoinRegistry rejoin,
     TimeProvider timeProvider) : ISelectCharacterSessionEntryService
 {
-    public SelectCharacterPvpLobbyProjection? PlanPvp(
+    public PvpLobbySynchronizationState? PlanPvp(
         SelectedSessionIdentity session, SelectCharacterResult result)
     {
         var lobby = result.Session.Adjacent.PvpLobby;
@@ -126,14 +163,14 @@ internal sealed class SelectCharacterSessionEntryService(
         {
             var owner = value.Session ?? sessions.FindByCharacter(value.CharacterId)
                 ?? throw new InvalidDataException("PvP participant session is unavailable.");
-            return new SelectCharacterPvpIdentityProjection(owner.WireUserId, runtimes.GetRequired(owner));
+            return CreatePvpParticipant(runtimes.GetRequired(owner));
         }).ToArray();
         var offeredRooms = pvp.OfferedOn(session.ListenerPort).ToDictionary(value => value.RoomId);
         var rooms = lobby.Rooms.Select(room =>
         {
             if (!offeredRooms.TryGetValue(room.RoomId, out var source))
                 throw new InvalidDataException($"PvP room {room.RoomId} is unavailable.");
-            return new SelectCharacterPvpRoomProjection(
+            return new PvpRoomSnapshotState(
             room.RoomId, room.NameType,
             (source.Name
                 ?? throw new InvalidDataException("PvP room name is unavailable.")),
@@ -145,18 +182,18 @@ internal sealed class SelectCharacterSessionEntryService(
             room.HasPassword,
             source.MatchingType);
         }).ToArray();
-        return new SelectCharacterPvpLobbyProjection(
-            identities, rooms, new SelectCharacterPvpIdentityProjection(session.WireUserId, result));
+        return new PvpLobbySynchronizationState(
+            identities, rooms, CreatePvpParticipant(result));
     }
 
-    public IReadOnlyList<ExplicitProjectionTarget> PlanPvpPublication(
+    public IReadOnlyList<PvpParticipantPublicationTarget> PlanPvpPublication(
         SelectedSessionIdentity session, SelectCharacterResult result)
     {
-        var newcomer = new SelectCharacterPvpIdentityProjection(session.WireUserId, result);
+        var newcomer = CreatePvpParticipant(result);
         return pvp.ReadyOn(session.ListenerPort, session.CharacterId)
             .Select(value => value.Session ?? sessions.FindByCharacter(value.CharacterId))
             .Where(value => value is not null)
-            .Select(value => new ExplicitProjectionTarget(value!.ConnectionId, [newcomer]))
+            .Select(value => new PvpParticipantPublicationTarget(value!.ConnectionId, newcomer))
             .ToArray();
     }
 
@@ -178,7 +215,7 @@ internal sealed class SelectCharacterSessionEntryService(
         pvp.MarkReady(new PvpLobbyParticipant(session.CharacterId, session.ListenerPort, session));
     }
 
-    public SelectCharacterDungeonRejoinProjection? PlanRejoin(
+    public DungeonRejoinSynchronizationState? PlanRejoin(
         SelectedSessionIdentity session, SelectCharacterResult result)
     {
         var attachment = rejoin.Find(session.CharacterId);
@@ -193,7 +230,20 @@ internal sealed class SelectCharacterSessionEntryService(
         var rebound = attachment with { Session = session };
         if (!rejoin.TryReplaceExact(attachment, rebound))
             return null;
-        return new SelectCharacterDungeonRejoinProjection(
+        return new DungeonRejoinSynchronizationState(
             rebound.PartyId, rebound.ParticipantUserIds);
+    }
+
+    private static PvpParticipantEntryState CreatePvpParticipant(SelectCharacterResult result)
+    {
+        var equipment = result.CharacterInventory.Containers
+            .SingleOrDefault(value =>
+                value.ContainerType == Dfo.Server.Data.Inventory.InventoryContainerType.Equipment)
+            ?.Items ?? [];
+        return new PvpParticipantEntryState(
+            result.Character,
+            result.CharacterEntry.Public,
+            equipment,
+            result.CharacterEntry.Features.Pets);
     }
 }

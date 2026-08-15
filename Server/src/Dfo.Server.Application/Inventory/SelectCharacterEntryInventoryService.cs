@@ -51,15 +51,15 @@ internal sealed class SelectCharacterEntryInventoryService(
                 session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false);
             var updated = result with { CharacterInventory = reloaded };
             leases.Replace(session, reloaded);
-            var projections = committed.Grants
+            var updates = committed.Grants
                 .GroupBy(value => value.ContainerType)
                 .OrderBy(group => (byte)group.Key)
-                .Select(group => new SelectCharacterInventoryUpdateProjection(
+                .Select(group => new CommittedInventoryUpdateState(
                     group.Key,
                     ResolveCommittedItems(reloaded, group.Key, group.Select(value => value.SlotIndex)),
                     result.World.PreparedAt))
                 .ToArray();
-            return new EntryInventoryPreparation(updated, projections);
+            return new EntryInventoryPreparation(updated, updates);
         }
         catch
         {

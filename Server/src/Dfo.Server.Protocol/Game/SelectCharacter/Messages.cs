@@ -8,9 +8,3 @@ public sealed record SelectCharacterRequest(
 {
     public ClientMessageType MessageType => ClientMessageType.GameSelectCharacter;
 }
-
-public sealed record SelectCharacterResponse(
-    Dfo.Server.Data.Game.SelectCharacterResult Result) : IServerNetworkMessage
-{
-    public ServerMessageType MessageType => ServerMessageType.GameSelectCharacter;
-}

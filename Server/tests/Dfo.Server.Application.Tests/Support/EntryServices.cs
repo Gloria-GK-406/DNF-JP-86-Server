@@ -16,7 +16,7 @@ using Dfo.Server.Protocol.Game.SelectCharacter;
 namespace Dfo.Server.Application.Tests.Support;
 
 /// <summary>
-/// Builds a <see cref="SelectCharacterCommandHandler"/> for tests, defaulting every
+/// Builds a <see cref="SelectCharacterPreparationService"/> for tests, defaulting every
 /// collaborator a test is not interested in.
 /// </summary>
 /// <remarks>

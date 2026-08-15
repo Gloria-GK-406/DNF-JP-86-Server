@@ -9,6 +9,7 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Application;
 using Dfo.Server.Infrastructure;
 using Dfo.Server.Protocol.Game.SelectCharacter;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,7 +23,7 @@ public sealed class SelectCharacterPayloadCodecTests
     {
         var result = SelectCharacterPayloadTestData.Create();
 
-        var body = SelectCharacterStaticPayloadCodec.EncodeAcknowledgement(result);
+        var body = EncodeAcknowledgement(result);
 
         Assert.Equal(271, body.Length);
         Assert.Equal(1, body[0]);
@@ -42,9 +43,9 @@ public sealed class SelectCharacterPayloadCodecTests
     {
         var result = SelectCharacterPayloadTestData.Create();
 
-        var main = SelectCharacterStaticPayloadCodec.EncodeInventory(
+        var main = EncodeInventory(
             result, InventoryContainerType.Main);
-        var avatar = SelectCharacterStaticPayloadCodec.EncodeInventory(
+        var avatar = EncodeInventory(
             result, InventoryContainerType.Avatar);
 
         Assert.Equal(5 + (10 * 84), main.Length);
@@ -67,7 +68,7 @@ public sealed class SelectCharacterPayloadCodecTests
         ushort type,
         int length)
     {
-        Assert.Equal(length, SelectCharacterStaticPayloadCodec.EncodeObservedConstant(type).Length);
+        Assert.Equal(length, EncodeObservedConstant(type).Length);
     }
 
     [Fact]
@@ -89,8 +90,8 @@ public sealed class SelectCharacterPayloadCodecTests
             },
         };
 
-        var populated = SelectCharacterStaticPayloadCodec.EncodeNotification(source, 0x03D8);
-        var empty = SelectCharacterStaticPayloadCodec.EncodeNotification(
+        var populated = EncodeSelectedStateBody(source, 0x03D8);
+        var empty = EncodeSelectedStateBody(
             source with
             {
                 Account = source.Account with
@@ -174,8 +175,8 @@ public sealed class SelectCharacterPayloadCodecTests
             },
         };
 
-        var populated = SelectCharacterStaticPayloadCodec.EncodeNotification(source, 0x019F);
-        var empty = SelectCharacterStaticPayloadCodec.EncodeNotification(
+        var populated = EncodeSelectedStateBody(source, 0x019F);
+        var empty = EncodeSelectedStateBody(
             source with
             {
                 Account = source.Account with
@@ -218,7 +219,7 @@ public sealed class SelectCharacterPayloadCodecTests
         Assert.Equal(444, BinaryPrimitives.ReadInt32LittleEndian(populated.AsSpan(259)));
         Assert.Equal(555u, BinaryPrimitives.ReadUInt32LittleEndian(populated.AsSpan(282)));
         Assert.Equal([0, 0], empty);
-        Assert.Throws<InvalidDataException>(() => SelectCharacterStaticPayloadCodec.EncodeNotification(
+        Assert.Throws<InvalidDataException>(() => EncodeSelectedStateBody(
             source with
             {
                 Account = source.Account with
@@ -230,7 +231,7 @@ public sealed class SelectCharacterPayloadCodecTests
                 },
             },
             0x019F));
-        Assert.Throws<InvalidDataException>(() => SelectCharacterStaticPayloadCodec.EncodeNotification(
+        Assert.Throws<InvalidDataException>(() => EncodeSelectedStateBody(
             source with
             {
                 Account = source.Account with
@@ -247,7 +248,7 @@ public sealed class SelectCharacterPayloadCodecTests
                     },
                 },
             }, 0x019F));
-        Assert.Throws<InvalidDataException>(() => SelectCharacterStaticPayloadCodec.EncodeNotification(
+        Assert.Throws<InvalidDataException>(() => EncodeSelectedStateBody(
             source with
             {
                 Account = source.Account with
@@ -264,7 +265,7 @@ public sealed class SelectCharacterPayloadCodecTests
                     },
                 },
             }, 0x019F));
-        Assert.Throws<InvalidDataException>(() => SelectCharacterStaticPayloadCodec.EncodeNotification(
+        Assert.Throws<InvalidDataException>(() => EncodeSelectedStateBody(
             source with
             {
                 Account = source.Account with
@@ -302,10 +303,10 @@ public sealed class SelectCharacterPayloadCodecTests
         };
 
         foreach (var @case in cases)
-            Assert.NotNull(SelectCharacterStaticPayloadCodec.EncodeNotification(
+            Assert.NotNull(EncodeSelectedStateBody(
                 result, @case.Type, @case.Occurrence));
 
-        Assert.Equal(77, SelectCharacterStaticPayloadCodec.EncodePremiumService(result).Length);
+        Assert.Equal(77, EncodePremiumService(result).Length);
     }
 
     [Fact]
@@ -313,8 +314,8 @@ public sealed class SelectCharacterPayloadCodecTests
     {
         var result = SelectCharacterPayloadTestData.CreateComplete();
 
-        Assert.Equal([9, 8], SelectCharacterStaticPayloadCodec.EncodeNotification(result, 0x0187));
-        Assert.Throws<InvalidDataException>(() => SelectCharacterStaticPayloadCodec.EncodeNotification(
+        Assert.Equal([9, 8], EncodeSelectedStateBody(result, 0x0187));
+        Assert.Throws<InvalidDataException>(() => EncodeSelectedStateBody(
             result with
             {
                 CharacterEntry = result.CharacterEntry with
@@ -323,7 +324,7 @@ public sealed class SelectCharacterPayloadCodecTests
                 },
             },
             0x0013));
-        Assert.Throws<InvalidDataException>(() => SelectCharacterStaticPayloadCodec.EncodeNotification(
+        Assert.Throws<InvalidDataException>(() => EncodeSelectedStateBody(
             result with
             {
                 CharacterEntry = result.CharacterEntry with
@@ -339,7 +340,7 @@ public sealed class SelectCharacterPayloadCodecTests
                 },
             },
             0x0381));
-        Assert.Throws<InvalidDataException>(() => SelectCharacterStaticPayloadCodec.EncodeInventory(
+        Assert.Throws<InvalidDataException>(() => EncodeInventory(
             result with
             {
                 CharacterInventory = result.CharacterInventory with
@@ -354,7 +355,7 @@ public sealed class SelectCharacterPayloadCodecTests
                 },
             },
             InventoryContainerType.Avatar));
-        Assert.Throws<InvalidDataException>(() => SelectCharacterStaticPayloadCodec.EncodeNotification(
+        Assert.Throws<InvalidDataException>(() => EncodeSelectedStateBody(
             result with
             {
                 CharacterEntry = result.CharacterEntry with
@@ -372,7 +373,7 @@ public sealed class SelectCharacterPayloadCodecTests
     [Fact]
     public void SelectCharacterPayload_AcknowledgementUsesObservedLowBytePremiumType()
     {
-        var body = SelectCharacterStaticPayloadCodec.EncodeAcknowledgement(
+        var body = EncodeAcknowledgement(
             SelectCharacterPayloadTestData.CreateComplete());
 
         Assert.Equal(unchecked((byte)581), body[18]);
@@ -404,7 +405,7 @@ public sealed class SelectCharacterPayloadCodecTests
             },
         };
 
-        var body = SelectCharacterStaticPayloadCodec.EncodeNotification(result, 0x0002, 0);
+        var body = EncodeSelectedStateBody(result, 0x0002, 0);
         var petName = new byte[] { 1, 0, 0, 0, 0x50 };
         var offset = body.AsSpan().IndexOf(petName);
 
@@ -437,7 +438,7 @@ public sealed class SelectCharacterPayloadCodecTests
             },
         };
 
-        var body = SelectCharacterStaticPayloadCodec.EncodeNotification(result, 0x0061);
+        var body = EncodeSelectedStateBody(result, 0x0061);
 
         Assert.Equal(1, body[0]);
         Assert.Equal(0x40000001, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(2, 4)));
@@ -477,9 +478,9 @@ public sealed class SelectCharacterPayloadCodecTests
             };
         }
 
-        var clean = SelectCharacterStaticPayloadCodec.EncodeNotification(
+        var clean = EncodeSelectedStateBody(
             WithAttachment(SelectCharacterPayloadTestData.CreateComplete(), cleanCore), 0x0061);
-        var stale = SelectCharacterStaticPayloadCodec.EncodeNotification(
+        var stale = EncodeSelectedStateBody(
             WithAttachment(SelectCharacterPayloadTestData.CreateComplete(), staleCore), 0x0061);
 
         Assert.Equal(clean, stale);
@@ -490,7 +491,7 @@ public sealed class SelectCharacterPayloadCodecTests
     {
         var result = SelectCharacterPayloadTestData.CreateComplete();
 
-        var body = SelectCharacterStaticPayloadCodec.EncodeNotification(result, 0x0002, 1);
+        var body = EncodeSelectedStateBody(result, 0x0002, 1);
         byte[] expectedTail =
         [
             2,
@@ -549,7 +550,7 @@ public sealed class SelectCharacterPayloadCodecTests
                 CharacterEntry = typed,
             };
 
-            var body = SelectCharacterStaticPayloadCodec.EncodeNotification(result, 0x0002, 1);
+            var body = EncodeSelectedStateBody(result, 0x0002, 1);
 
             Assert.Equal([13502u], typed.Public.Subtype1.SpecialRewardQuestIds);
             Assert.Empty(typed.Public.Subtype1.PvpResults);
@@ -588,6 +589,75 @@ public sealed class SelectCharacterPayloadCodecTests
             CancellationToken cancellationToken) =>
             ValueTask.FromResult<IReadOnlyList<TrainingQuestAvailability>>([]);
     }
+
+    private static byte[] EncodeAcknowledgement(SelectCharacterResult result) =>
+        new CharacterEntryAcceptedMessage(
+            result.Character,
+            result.Account,
+            result.CharacterEntry.Quests,
+            result.World.PreparedAt).EncodeBody();
+
+    private static byte[] EncodeInventory(
+        SelectCharacterResult result,
+        InventoryContainerType containerType)
+    {
+        var container = containerType == InventoryContainerType.AccountCargo
+            ? result.AccountInventory.Cargo.Container
+            : result.CharacterInventory.Containers.Single(
+                value => value.ContainerType == containerType);
+        return new InventorySnapshotMessage(
+            container,
+            result.CharacterInventory.VirtualResources,
+            result.AccountInventory.VirtualResources,
+            result.AccountInventory.Cargo.SelectionKey,
+            result.AccountInventory.Cargo.Value32,
+            result.World.PreparedAt).EncodeBody();
+    }
+
+    private static byte[] EncodeObservedConstant(ushort type) => type switch
+    {
+        0x006C => new ServerEventBaselineMessage().EncodeBody(),
+        0x017B => new ClientEffectBaselineMessage().EncodeBody(),
+        0x021F => new BossTowerBaselineMessage().EncodeBody(),
+        0x007C => new EntryMarkerMessage().EncodeBody(),
+        0x0111 => new CrossServerFriendBaselineMessage().EncodeBody(),
+        _ => throw new ArgumentOutOfRangeException(nameof(type)),
+    };
+
+    private static byte[] EncodeSelectedStateBody(
+        SelectCharacterResult result,
+        ushort type,
+        int occurrence = 0)
+    {
+        GameStateSynchronizationMessage message;
+        if (type == 0x0245)
+        {
+            message = new KnightShieldDeckMessage(
+                result.CharacterEntry.Skills.KnightShieldDeck
+                ?? throw new InvalidDataException("Knight shield deck is unavailable."));
+        }
+        else if (type == 0x01C0)
+        {
+            message = new DarkKnightComboStateMessage(
+                result.CharacterEntry.Skills.DarkKnightCombos
+                ?? throw new InvalidDataException("Dark Knight combo state is unavailable."));
+        }
+        else
+        {
+            var matches = SelectedCharacterStateMessageFactory.Create(result)
+                .Where(value => value.Command == 0 && value.Type == type)
+                .ToArray();
+            if (occurrence < 0 || occurrence >= matches.Length)
+                throw new ArgumentOutOfRangeException(nameof(occurrence));
+            message = matches[occurrence];
+        }
+        return message.EncodeBody();
+    }
+
+    private static byte[] EncodePremiumService(SelectCharacterResult result) =>
+        new PremiumServiceStateMessage(
+            result.Account.Entitlements,
+            result.CharacterEntry.Progression.PremiumUsageSlots).EncodeBody();
 
     private static InventoryItemCoreState CoreForTest(byte kind, int itemId, int value) => new(
         kind, itemId, value, 4, 50, 1, 6, 7, 8, 9, -1,

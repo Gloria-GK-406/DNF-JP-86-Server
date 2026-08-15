@@ -1,20 +1,23 @@
 using System.Buffers.Binary;
-using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 
-namespace Dfo.Server.Protocol.Game.SelectCharacter;
+namespace Dfo.Server.Protocol.Game.StateSynchronization;
 
-internal static partial class SelectCharacterStaticPayloadCodec
+internal static partial class StateSynchronizationPayloadCodec
 {
     private const int CommonItemEntryLength = 84;
 
-    public static byte[] EncodeAcknowledgement(SelectCharacterResult result)
+    public static byte[] EncodeEntryAccepted(
+        ActiveCharacterState character,
+        AccountEntryState account,
+        CharacterQuestEntryState quests,
+        DateTimeOffset preparedAt)
     {
-        ArgumentNullException.ThrowIfNull(result);
-        var character = result.Character ?? throw Missing(nameof(result.Character));
-        var account = result.Account ?? throw Missing(nameof(result.Account));
-        var quests = result.CharacterEntry?.Quests ?? throw Missing("CharacterEntry.Quests");
-        var preparedAt = result.World?.PreparedAt ?? throw Missing("World.PreparedAt");
+        ArgumentNullException.ThrowIfNull(character);
+        ArgumentNullException.ThrowIfNull(account);
+        ArgumentNullException.ThrowIfNull(quests);
         var characterId = checked((ushort)character.Identity.CharacterId.Value);
         if (character.Identity.SlotIndex > byte.MaxValue)
             throw new InvalidDataException("Selected character slot cannot be represented as u8.");
@@ -79,19 +82,18 @@ internal static partial class SelectCharacterStaticPayloadCodec
         return stream.ToArray();
     }
 
-    public static byte[] EncodeInventory(
-        SelectCharacterResult result,
-        InventoryContainerType containerType)
+    public static byte[] EncodeInventorySnapshot(
+        InventoryContainerState container,
+        IReadOnlyList<InventoryRuntimeValueState> characterVirtualResources,
+        IReadOnlyList<InventoryRuntimeValueState> accountVirtualResources,
+        ushort accountSelectionKey,
+        int accountValue32,
+        DateTimeOffset preparedAt)
     {
-        ArgumentNullException.ThrowIfNull(result);
-        InventoryContainerState container;
-        if (containerType is InventoryContainerType.AccountCargo)
-            container = result.AccountInventory?.Cargo?.Container
-                ?? throw Missing("AccountInventory.Cargo.Container");
-        else
-            container = result.CharacterInventory?.Containers
-                .SingleOrDefault(value => value.ContainerType == containerType)
-                ?? throw Missing($"CharacterInventory.{containerType}");
+        ArgumentNullException.ThrowIfNull(container);
+        ArgumentNullException.ThrowIfNull(characterVirtualResources);
+        ArgumentNullException.ThrowIfNull(accountVirtualResources);
+        var containerType = container.ContainerType;
 
         var items = container.Items.OrderBy(value => value.SlotIndex).ToArray();
         var mainVirtualCount = containerType == InventoryContainerType.Main ? 9 : 0;
@@ -102,8 +104,8 @@ internal static partial class SelectCharacterStaticPayloadCodec
         writer.Write((byte)containerType);
         if (containerType is InventoryContainerType.AccountCargo)
         {
-            writer.Write(result.AccountInventory.Cargo.SelectionKey);
-            writer.Write(result.AccountInventory.Cargo.Value32);
+            writer.Write(accountSelectionKey);
+            writer.Write(accountValue32);
             writer.Write(checked((ushort)(items.Length + mainVirtualCount)));
         }
         else if (containerType is InventoryContainerType.Pet)
@@ -116,13 +118,13 @@ internal static partial class SelectCharacterStaticPayloadCodec
 
         if (containerType == InventoryContainerType.Main)
         {
-            var values = result.CharacterInventory.VirtualResources
-                .Concat(result.AccountInventory.VirtualResources)
+            var values = characterVirtualResources
+                .Concat(accountVirtualResources)
                 .ToDictionary(value => value.SlotIndex);
             for (short slot = 0; slot <= 2; slot++)
                 WriteVirtualInventoryItem(writer, values, slot, slot);
             foreach (var item in items)
-                WriteInventoryItem(writer, item, result.World.PreparedAt);
+                WriteInventoryItem(writer, item, preparedAt);
             int[] cubeItemIds = [3033, 3034, 3035, 3036, 3037, 3262];
             for (short slot = 354; slot <= 359; slot++)
                 WriteVirtualInventoryItem(writer, values, slot, cubeItemIds[slot - 354]);
@@ -130,8 +132,25 @@ internal static partial class SelectCharacterStaticPayloadCodec
         else
         {
             foreach (var item in items)
-                WriteInventoryItem(writer, item, result.World.PreparedAt);
+                WriteInventoryItem(writer, item, preparedAt);
         }
+        return stream.ToArray();
+    }
+
+    public static byte[] EncodeInventoryDelta(
+        InventoryContainerType containerType,
+        IReadOnlyList<InventoryItemState> items,
+        DateTimeOffset preparedAt)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+        if (items.Count > ushort.MaxValue)
+            throw new InvalidDataException("Inventory delta item count cannot be represented as u16.");
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream);
+        writer.Write((byte)containerType);
+        writer.Write(checked((ushort)items.Count));
+        foreach (var item in items)
+            WriteInventoryItem(writer, item, preparedAt);
         return stream.ToArray();
     }
 
@@ -149,16 +168,6 @@ internal static partial class SelectCharacterStaticPayloadCodec
         writer.Write(count);
         writer.Write(new byte[CommonItemEntryLength - 10]);
     }
-
-    public static byte[] EncodeObservedConstant(ushort type) => type switch
-    {
-        0x006C => new byte[3],
-        0x017B => [2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0],
-        0x021F => new byte[4],
-        0x007C => [],
-        0x0111 => new byte[8],
-        _ => throw new ArgumentOutOfRangeException(nameof(type), type, "No observed constant body exists."),
-    };
 
     internal static void WriteInventoryItem(
         BinaryWriter writer,
@@ -242,5 +251,5 @@ internal static partial class SelectCharacterStaticPayloadCodec
     }
 
     private static InvalidDataException Missing(string name) =>
-        new($"Required select-character projection value '{name}' is unavailable.");
+        new($"Required inventory synchronization value '{name}' is unavailable.");
 }

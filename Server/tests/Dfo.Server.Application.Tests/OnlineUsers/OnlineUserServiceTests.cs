@@ -382,6 +382,47 @@ public sealed class UserServiceTests
     }
 
     [Fact]
+    public async Task DisconnectSelectedSession_AttemptsResolvedNotificationsWhenCleanupFails()
+    {
+        var accountId = new AccountId(106);
+        var service = CreateService(accountId);
+        var sessions = new SelectedSessionDirectory();
+        var connection = new NetworkConnectionContext(
+            new NetworkConnectionId("Game:cleanup-failure"), NetworkEndpointKind.Game, 10011);
+        var registered = service.RegisterConnection(connection);
+        await service.LoginAsync(
+            registered.OnlineUserId, "login-106", "hash", CancellationToken.None);
+        var authenticated = service.GetRequired(registered.OnlineUserId);
+        var selected = SelectedSessionIdentity.Create(
+            accountId, new CharacterId(1006), connection.ConnectionId,
+            authenticated.Generation, 10011);
+        sessions.RegisterReplacing(selected);
+        var peerConnection = new NetworkConnectionId("Game:cleanup-peer");
+        var plan = new SelectedSessionCleanupNotificationPlan(
+            connection.ConnectionId,
+            [new SelectedSessionCleanupNotice(
+                SelectedSessionCleanupNoticeKind.ExpertStoreClosed, selected.WireUserId)],
+            [new SelectedSessionCleanupNotificationTarget(
+                peerConnection,
+                [new SelectedSessionCleanupNotice(
+                    SelectedSessionCleanupNoticeKind.TownDeparture, selected.WireUserId)])]);
+        var sender = new RecordingExplicitSender();
+        var observer = CreateObserver(
+            service, sessions, new FailingCleanup(plan), sender, TimeProvider.System);
+
+        await observer.DisconnectedAsync(connection, CancellationToken.None);
+
+        var delivery = Assert.Single(sender.Deliveries);
+        Assert.Equal(connection.ConnectionId, delivery.ConnectionId);
+        Assert.Equal("ExpertStoreClosedMessage",
+            Assert.Single(delivery.Delivery.RequiredDirectMessages).GetType().Name);
+        var target = Assert.Single(delivery.Delivery.BestEffortTargets);
+        Assert.Equal(peerConnection, target.ConnectionId);
+        Assert.Equal("TownDepartureMessage", Assert.Single(target.OrderedMessages).GetType().Name);
+        Assert.False(service.TryGetByConnection(connection.ConnectionId, out _));
+    }
+
+    [Fact]
     public async Task DisconnectWithoutSelectedSession_DoesNotWaitForAccountLifecycleGate()
     {
         var service = CreateService(new AccountId(105));
@@ -458,11 +499,12 @@ public sealed class UserServiceTests
             return ValueTask.CompletedTask;
         }
 
-        public ValueTask SendProjectionAsync(
+        public ValueTask SendExplicitAsync(
             NetworkConnectionId requiredDirectConnectionId,
-            SelectCharacterProjectionDelivery delivery,
+            ExplicitMessageDelivery delivery,
             CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("The initial notice path does not deliver projections.");
+            throw new InvalidOperationException(
+                "The initial notice path does not use explicit-recipient delivery.");
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset value) : TimeProvider
@@ -510,20 +552,53 @@ public sealed class UserServiceTests
 
     private sealed class NoopCleanup : ISelectedSessionCleanupService
     {
-        public ValueTask CleanupAsync(SelectedSessionIdentity session, bool includeOwner,
+        public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
+            SelectedSessionIdentity session, bool includeOwner,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult(SelectedSessionCleanupNotificationPlan.Empty(session));
+    }
+
+    private sealed class FailingCleanup(SelectedSessionCleanupNotificationPlan plan)
+        : ISelectedSessionCleanupService
+    {
+        public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
+            SelectedSessionIdentity session, bool includeOwner,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromException<SelectedSessionCleanupNotificationPlan>(
+                new SelectedSessionCleanupFailure(plan, [new IOException("cleanup failed")]));
+    }
+
+    private sealed class RecordingExplicitSender : INetworkMessageSender
+    {
+        public List<(NetworkConnectionId ConnectionId, ExplicitMessageDelivery Delivery)> Deliveries
+            { get; } = [];
+
+        public ValueTask SendAsync(
+            NetworkConnectionId connectionId,
+            IServerNetworkMessage message,
             CancellationToken cancellationToken) => ValueTask.CompletedTask;
+
+        public ValueTask SendExplicitAsync(
+            NetworkConnectionId requiredDirectConnectionId,
+            ExplicitMessageDelivery delivery,
+            CancellationToken cancellationToken)
+        {
+            Deliveries.Add((requiredDirectConnectionId, delivery));
+            return ValueTask.CompletedTask;
+        }
     }
 
     private sealed class ClearingCleanup(IActiveCharacterService active) : ISelectedSessionCleanupService
     {
         public SelectedSessionIdentity? Cleaned { get; private set; }
 
-        public ValueTask CleanupAsync(SelectedSessionIdentity session, bool includeOwner,
+        public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
+            SelectedSessionIdentity session, bool includeOwner,
             CancellationToken cancellationToken)
         {
             Cleaned = session;
             Assert.True(active.ClearExact(session));
-            return ValueTask.CompletedTask;
+            return ValueTask.FromResult(SelectedSessionCleanupNotificationPlan.Empty(session));
         }
     }
 

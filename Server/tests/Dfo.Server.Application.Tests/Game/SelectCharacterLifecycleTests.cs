@@ -29,19 +29,29 @@ public sealed class SelectCharacterLifecycleTests
     {
         var fixture = await Fixture.CreateAsync();
 
-        var result = await fixture.Handler.HandleAsync(
+        await fixture.Handler.HandleAsync(
             fixture.Context, fixture.Command, CancellationToken.None);
+        var result = fixture.Bus.State!;
 
         var spawn = fixture.Result.World.Channel.Spawn;
         Assert.Equal(
             new CharacterPositionState(spawn.TownId, spawn.AreaId, spawn.X, spawn.Y, spawn.Direction),
             result.Character.Position);
         Assert.Equal(result.Character.Position, fixture.Mutations.PersistedPosition);
-        Assert.Equal(result.Character.Position, fixture.Sender.StaticResult!.Character.Position);
         Assert.Equal(
             ["prepare", "position", "static", "pre", "inventory", "active", "publish",
                 "plan-pvp", "x11", "quest", "pet", "rejoin"],
             fixture.Ledger);
+        Assert.Equal(
+            [
+                typeof(PrepareSelectedCharacterSessionCommand),
+                typeof(ApplySelectedCharacterDailyRefillCommand),
+                typeof(PublishSelectedCharacterSessionCommand),
+                typeof(SynchronizeSelectedCharacterQuestsCommand),
+                typeof(ReviveSelectedCharacterPetCommand),
+                typeof(PlanSelectedCharacterRejoinCommand),
+            ],
+            fixture.Bus.DispatchedCommands);
         Assert.NotNull(fixture.Directory.Find(fixture.AccountId));
         Assert.Equal(result.Character, fixture.Active.GetRequired(fixture.AccountId));
         Assert.Empty(fixture.Closer.Closed);
@@ -78,12 +88,30 @@ public sealed class SelectCharacterLifecycleTests
         Assert.Equal(0, fixture.Inventory.Claims);
 
         fixture.Sender.FailStatic = false;
-        Assert.True(fixture.Users.TryGetByConnection(fixture.ConnectionId, out var retryUser));
         await fixture.Handler.HandleAsync(
             fixture.Context,
-            fixture.Command with { ExpectedConnectionGeneration = retryUser!.Generation },
+            fixture.Command,
             CancellationToken.None);
         Assert.Equal(1, fixture.Inventory.Claims);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task MissingRequiredPrePublicationState_EmitsNoAcceptedOutput(
+        bool missingRoster)
+    {
+        var fixture = await Fixture.CreateAsync(
+            missingRoster: missingRoster,
+            missingSkillMirror: !missingRoster);
+
+        await Assert.ThrowsAsync<InvalidDataException>(async () =>
+            await fixture.Handler.HandleAsync(
+                fixture.Context, fixture.Command, CancellationToken.None));
+
+        Assert.Equal(0, fixture.Sender.StateMessageCount);
+        Assert.DoesNotContain("pre", fixture.Ledger);
+        Assert.Equal(["prepare", "position", "cleanup", "close"], fixture.Ledger);
     }
 
     [Fact]
@@ -91,8 +119,9 @@ public sealed class SelectCharacterLifecycleTests
     {
         var fixture = await Fixture.CreateAsync(changeQuest: true, revivePet: true);
 
-        var result = await fixture.Handler.HandleAsync(
+        await fixture.Handler.HandleAsync(
             fixture.Context, fixture.Command, CancellationToken.None);
+        var result = fixture.Bus.State!;
 
         Assert.Equal(3, Assert.Single(result.CharacterEntry.Quests.ActiveQuests).TriggerValue);
         Assert.Equal(1, Assert.Single(result.CharacterEntry.Features.Pets).Field04);
@@ -197,8 +226,8 @@ public sealed class SelectCharacterLifecycleTests
         var fixture = await Fixture.CreateAsync(refuseAdmission: true);
         var previous = SelectedSessionIdentity.Create(
             fixture.AccountId, fixture.Result.Character.Identity.CharacterId,
-            fixture.ConnectionId, fixture.Command.ExpectedConnectionGeneration,
-            fixture.Command.Channel.ListenerPort);
+            fixture.ConnectionId, fixture.AuthenticatedGeneration,
+            StubChannelEntryPolicy.GeneralChannel.ListenerPort);
         fixture.Directory.RegisterReplacing(previous);
 
         await Assert.ThrowsAsync<Dfo.Server.Data.Channel.ChannelAdmissionRefusedException>(async () =>
@@ -289,11 +318,10 @@ public sealed class SelectCharacterLifecycleTests
         Assert.True(fixture.Users.TryGetByConnection(fixture.ConnectionId, out var selected));
 
         await fixture.Handler.HandleAsync(
-            fixture.Context, fixture.Command with { ExpectedConnectionGeneration = selected!.Generation },
-            CancellationToken.None);
+            fixture.Context, fixture.Command, CancellationToken.None);
 
         var current = fixture.Directory.Find(fixture.AccountId)!;
-        Assert.True(current.ConnectionGeneration > selected.Generation);
+        Assert.True(current.ConnectionGeneration > selected!.Generation);
         Assert.Equal([(old, true)], fixture.Cleanup.Calls);
         Assert.DoesNotContain(fixture.ConnectionId, fixture.Closer.Closed);
         Assert.False(fixture.Directory.TryRemoveExact(old));
@@ -357,8 +385,10 @@ public sealed class SelectCharacterLifecycleTests
             SessionEntry sessionEntry,
             Preparation? preparation,
             SelectedSessionTransitionGate transitionGate,
-            SelectCharacterCommandHandler handler,
-            SelectCharacterCommand command)
+            RecordingCommandBus bus,
+            SelectCharacterHandler handler,
+            SelectCharacterRequest command,
+            long authenticatedGeneration)
         {
             AccountId = accountId;
             ConnectionId = connectionId;
@@ -375,10 +405,14 @@ public sealed class SelectCharacterLifecycleTests
             SessionEntry = sessionEntry;
             Preparation = preparation;
             TransitionGate = transitionGate;
+            Bus = bus;
             Handler = handler;
             Command = command;
-            Context = new CommandExecutionContext(
-                Guid.NewGuid(), command.GetType(), handler.GetType(), CommandExecutionKind.Workflow);
+            AuthenticatedGeneration = authenticatedGeneration;
+            Context = new NetworkDispatchContext(new NetworkConnectionContext(
+                connectionId,
+                NetworkEndpointKind.Game,
+                StubChannelEntryPolicy.GeneralChannel.ListenerPort));
         }
 
         public AccountId AccountId { get; }
@@ -396,9 +430,11 @@ public sealed class SelectCharacterLifecycleTests
         public SessionEntry SessionEntry { get; }
         public Preparation? Preparation { get; }
         public SelectedSessionTransitionGate TransitionGate { get; }
-        public SelectCharacterCommandHandler Handler { get; }
-        public SelectCharacterCommand Command { get; }
-        public CommandExecutionContext Context { get; }
+        public RecordingCommandBus Bus { get; }
+        public SelectCharacterHandler Handler { get; }
+        public SelectCharacterRequest Command { get; }
+        public long AuthenticatedGeneration { get; }
+        public NetworkDispatchContext Context { get; }
 
         public static async ValueTask<Fixture> CreateAsync(
             bool failTrailingLocks = false,
@@ -411,7 +447,9 @@ public sealed class SelectCharacterLifecycleTests
             bool revivePet = false,
             bool blockStatic = false,
             bool invalidWireIdentity = false,
-            bool failPreparation = false)
+            bool failPreparation = false,
+            bool missingRoster = false,
+            bool missingSkillMirror = false)
         {
             var accountId = new AccountId(501);
             var connectionId = new NetworkConnectionId("Game:lifecycle");
@@ -424,6 +462,16 @@ public sealed class SelectCharacterLifecycleTests
                         Identity = result.Character.Identity with
                         { CharacterId = new CharacterId(ushort.MaxValue + 1) }
                     }
+                };
+            if (missingRoster)
+                result = result with { RosterEntry = null };
+            if (missingSkillMirror)
+                result = result with
+                {
+                    CharacterEntry = result.CharacterEntry with
+                    {
+                        Skills = result.CharacterEntry.Skills with { ProtocolMirror = null },
+                    },
                 };
             var ledger = new List<string>();
             var users = new UserService(() => new AccountRepository(accountId));
@@ -443,27 +491,126 @@ public sealed class SelectCharacterLifecycleTests
             var sessionEntry = new SessionEntry(ledger, planPvp);
             var transitionGate = new SelectedSessionTransitionGate();
             var preparation = refuseAdmission ? null : new Preparation(result, ledger, failPreparation);
-            var handler = new SelectCharacterCommandHandler(
+            var prepareHandler = new PrepareSelectedCharacterSessionCommandHandler(
                 users,
                 refuseAdmission ? new RefusingPreparation(ledger) : preparation!,
                 directory,
                 cleanup,
                 inventory,
-                sessionEntry,
-                new QuestEntry(ledger, changeQuest),
-                new PetEntry(ledger, revivePet),
-                active,
-                mutations,
+                mutations);
+            var bus = new RecordingCommandBus(
+                prepareHandler,
+                new ApplySelectedCharacterDailyRefillCommandHandler(inventory),
+                new PublishSelectedCharacterSessionCommandHandler(active, sessionEntry),
+                new MarkSelectedCharacterPvpReadyCommandHandler(sessionEntry),
+                new SynchronizeSelectedCharacterQuestsCommandHandler(
+                    new QuestEntry(ledger, changeQuest), sessionEntry),
+                new ReviveSelectedCharacterPetCommandHandler(
+                    new PetEntry(ledger, revivePet), sessionEntry),
+                new PlanSelectedCharacterRejoinCommandHandler(sessionEntry),
+                new CompensateSelectedCharacterSessionCommandHandler(cleanup, directory));
+            var handler = new SelectCharacterHandler(
+                users,
+                new StubChannelEntryPolicy(),
+                bus,
+                new StubStateMessageFactory(),
                 transitionGate,
+                directory,
                 sender,
                 closer);
-            var command = new SelectCharacterCommand(
-                accountId, 3, StubChannelEntryPolicy.GeneralChannel,
-                connectionId, authenticated.Generation);
+            var command = new SelectCharacterRequest(GameMessageMetadata.Empty, 3);
             return new Fixture(
                 accountId, connectionId, result, ledger, directory, active, closer,
                 users, cleanup, mutations, inventory, sender, sessionEntry,
-                preparation, transitionGate, handler, command);
+                preparation, transitionGate, bus, handler, command, authenticated.Generation);
+        }
+    }
+
+    private sealed class RecordingCommandBus(
+        PrepareSelectedCharacterSessionCommandHandler prepare,
+        ApplySelectedCharacterDailyRefillCommandHandler refill,
+        PublishSelectedCharacterSessionCommandHandler publish,
+        MarkSelectedCharacterPvpReadyCommandHandler markPvpReady,
+        SynchronizeSelectedCharacterQuestsCommandHandler quests,
+        ReviveSelectedCharacterPetCommandHandler pet,
+        PlanSelectedCharacterRejoinCommandHandler rejoin,
+        CompensateSelectedCharacterSessionCommandHandler compensate) : ICommandBus
+    {
+        public SelectCharacterResult? State { get; private set; }
+        public List<Type> DispatchedCommands { get; } = [];
+
+        public async ValueTask<TResult> SendAsync<TResult>(
+            ICommand<TResult> command,
+            CancellationToken cancellationToken = default)
+            where TResult : notnull
+        {
+            DispatchedCommands.Add(command.GetType());
+            object result = command switch
+            {
+                PrepareSelectedCharacterSessionCommand value =>
+                    await RunAsync(prepare, value, cancellationToken),
+                ApplySelectedCharacterDailyRefillCommand value =>
+                    await RunAsync(refill, value, cancellationToken),
+                PublishSelectedCharacterSessionCommand value =>
+                    await RunAsync(publish, value, cancellationToken),
+                MarkSelectedCharacterPvpReadyCommand value =>
+                    await RunAsync(markPvpReady, value, cancellationToken),
+                SynchronizeSelectedCharacterQuestsCommand value =>
+                    await RunAsync(quests, value, cancellationToken),
+                ReviveSelectedCharacterPetCommand value =>
+                    await RunAsync(pet, value, cancellationToken),
+                PlanSelectedCharacterRejoinCommand value =>
+                    await RunAsync(rejoin, value, cancellationToken),
+                CompensateSelectedCharacterSessionCommand value =>
+                    await RunAsync(compensate, value, cancellationToken),
+                _ => throw new InvalidOperationException(
+                    $"Unexpected command '{command.GetType().Name}'."),
+            };
+
+            switch (result)
+            {
+                case PreparedSelectedCharacterSession value:
+                    State = value.State;
+                    break;
+                case EntryInventoryPreparation value:
+                    State = value.Result;
+                    break;
+                case SynchronizedSelectedCharacterQuests { Change: { } value }:
+                    State = value.Result;
+                    break;
+                case RevivedSelectedCharacterPet { Change: { } value }:
+                    State = value.Result;
+                    break;
+            }
+
+            return (TResult)result;
+        }
+
+        private static ValueTask<TResult> RunAsync<TCommand, TResult>(
+            ICommandHandler<TCommand, TResult> handler,
+            TCommand command,
+            CancellationToken cancellationToken)
+            where TCommand : class, ICommand<TResult>
+            where TResult : notnull =>
+            handler.HandleAsync(
+                new CommandExecutionContext(
+                    Guid.NewGuid(),
+                    command.GetType(),
+                    handler.GetType(),
+                    CommandExecutionKind.Workflow,
+                    AccountAccessMode: UserAccessMode.Exclusive),
+                command,
+                cancellationToken);
+    }
+
+    private sealed class StubStateMessageFactory : ISelectedCharacterStateMessageFactory
+    {
+        public IReadOnlyList<IServerNetworkMessage> CreateValidated(SelectCharacterResult result) =>
+            [new StubStateMessage()];
+
+        private sealed record StubStateMessage : IServerNetworkMessage
+        {
+            public ServerMessageType MessageType => ServerMessageType.GameStateSynchronization;
         }
     }
 
@@ -540,20 +687,21 @@ public sealed class SelectCharacterLifecycleTests
         : ISelectCharacterSessionEntryService
     {
         public SelectCharacterResult? RuntimeResult { get; private set; }
-        public SelectCharacterPvpLobbyProjection? PlanPvp(
+        public PvpLobbySynchronizationState? PlanPvp(
             SelectedSessionIdentity session, SelectCharacterResult result)
         {
             ledger.Add("plan-pvp");
             return planPvp
-                ? new SelectCharacterPvpLobbyProjection(
-                    [], [], new SelectCharacterPvpIdentityProjection(session.WireUserId, result))
+                ? new PvpLobbySynchronizationState(
+                    [], [], Participant(result))
                 : null;
         }
 
-        public IReadOnlyList<ExplicitProjectionTarget> PlanPvpPublication(
+        public IReadOnlyList<PvpParticipantPublicationTarget> PlanPvpPublication(
             SelectedSessionIdentity session, SelectCharacterResult result) => planPvp
-            ? [new ExplicitProjectionTarget(new NetworkConnectionId("Game:peer"),
-                [new SelectCharacterPvpIdentityProjection(session.WireUserId, result)])]
+            ? [new PvpParticipantPublicationTarget(
+                new NetworkConnectionId("Game:peer"),
+                Participant(result))]
             : [];
 
         public void Publish(SelectedSessionIdentity session, SelectCharacterResult result)
@@ -571,11 +719,23 @@ public sealed class SelectCharacterLifecycleTests
         public void MarkPvpReady(SelectedSessionIdentity session, SelectCharacterResult result) =>
             ledger.Add("ready");
 
-        public SelectCharacterDungeonRejoinProjection? PlanRejoin(
+        public DungeonRejoinSynchronizationState? PlanRejoin(
             SelectedSessionIdentity session, SelectCharacterResult result)
         {
             ledger.Add("rejoin");
             return null;
+        }
+
+        private static PvpParticipantEntryState Participant(SelectCharacterResult result)
+        {
+            var equipment = result.CharacterInventory.Containers
+                .SingleOrDefault(value => value.ContainerType == InventoryContainerType.Equipment)
+                ?.Items ?? [];
+            return new(
+                result.Character,
+                result.CharacterEntry.Public,
+                equipment,
+                result.CharacterEntry.Features.Pets);
         }
     }
 
@@ -597,8 +757,8 @@ public sealed class SelectCharacterLifecycleTests
                     }
                 };
                 return ValueTask.FromResult<SelectCharacterQuestSynchronization?>(new(
-                    updated, new SelectCharacterAcceptedQuestsProjection(
-                        [new SelectCharacterAcceptedQuestProjection(77, 3)])));
+                    updated, new AcceptedQuestSynchronizationState(
+                        [new AcceptedQuestProgressState(77, 3)])));
             }
             return ValueTask.FromResult<SelectCharacterQuestSynchronization?>(null);
         }
@@ -622,7 +782,7 @@ public sealed class SelectCharacterLifecycleTests
                     }
                 };
                 return ValueTask.FromResult<SelectCharacterPetRevival?>(new(
-                    updated, new SelectCharacterPetRevivalProjection(session.WireUserId, 88, 1)));
+                    updated, new PetRevivalState(session.WireUserId, 88, 1)));
             }
             return ValueTask.FromResult<SelectCharacterPetRevival?>(null);
         }
@@ -673,16 +833,17 @@ public sealed class SelectCharacterLifecycleTests
         public List<(SelectedSessionIdentity Session, bool IncludeOwner)> Calls { get; } = [];
         public SelectedSessionIdentity? FailureSession { get; set; }
 
-        public ValueTask CleanupAsync(
+        public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
             SelectedSessionIdentity session, bool includeOwner, CancellationToken cancellationToken)
         {
             ledger.Add("cleanup");
             Calls.Add((session, includeOwner));
             if (FailureSession == session)
-                return ValueTask.FromException(new IOException("cleanup failed"));
+                return ValueTask.FromException<SelectedSessionCleanupNotificationPlan>(
+                    new IOException("cleanup failed"));
             _ = active.ClearExact(session);
             _ = directory.TryRemoveExact(session);
-            return ValueTask.CompletedTask;
+            return ValueTask.FromResult(SelectedSessionCleanupNotificationPlan.Empty(session));
         }
     }
 
@@ -697,23 +858,26 @@ public sealed class SelectCharacterLifecycleTests
         public TaskCompletionSource StaticEntered { get; } = new(
             TaskCreationOptions.RunContinuationsAsynchronously);
         public void ReleaseStatic() => staticRelease.TrySetResult();
-        public SelectCharacterResult? StaticResult { get; private set; }
+        public int StateMessageCount { get; private set; }
 
         public ValueTask SendAsync(
             NetworkConnectionId connectionId, IServerNetworkMessage message,
             CancellationToken cancellationToken)
         {
-            if (message is SelectCharacterResponse response)
+            if (message.MessageType == ServerMessageType.GameStateSynchronization)
             {
-                StaticResult = response.Result;
-                ledger.Add("static");
-                if (blockStatic)
+                StateMessageCount++;
+                if (StateMessageCount == 1)
                 {
-                    StaticEntered.TrySetResult();
-                    return AwaitStaticReleaseAsync();
+                    ledger.Add("static");
+                    if (blockStatic)
+                    {
+                        StaticEntered.TrySetResult();
+                        return AwaitStaticReleaseAsync();
+                    }
+                    if (FailStatic)
+                        return ValueTask.FromException(new IOException("static delivery failed"));
                 }
-                if (FailStatic)
-                    return ValueTask.FromException(new IOException("static delivery failed"));
             }
             else ledger.Add("message");
             return ValueTask.CompletedTask;
@@ -726,16 +890,17 @@ public sealed class SelectCharacterLifecycleTests
             }
         }
 
-        public ValueTask SendProjectionAsync(
-            NetworkConnectionId connectionId, SelectCharacterProjectionDelivery delivery,
+        public ValueTask SendExplicitAsync(
+            NetworkConnectionId connectionId, ExplicitMessageDelivery delivery,
             CancellationToken cancellationToken)
         {
-            var trailing = delivery.RequiredDirectProjections
-                .OfType<SelectCharacterTrailingEquipmentLocksProjection>().Any();
-            var pvp = delivery.RequiredDirectProjections
-                .OfType<SelectCharacterPvpLobbyProjection>().Any();
-            var rejection = delivery.RequiredDirectProjections
-                .OfType<SelectCharacterAdmissionRejectionProjection>().Any();
+            if (delivery.RequiredDirectMessages.Count == 0
+                && delivery.BestEffortTargets.Count == 0)
+                return ValueTask.CompletedTask;
+            var messageName = delivery.RequiredDirectMessages.FirstOrDefault()?.GetType().Name;
+            var trailing = messageName == "TrailingEquipmentLockSnapshotMessage";
+            var pvp = messageName == "PvpLobbySnapshotMessage";
+            var rejection = messageName == "EntryAdmissionRejectedMessage";
             var target = delivery.BestEffortTargets.Count > 0;
             ledger.Add(rejection ? "x08" : pvp ? "pvp" : target ? "target" : trailing ? "x11" : "pre");
             if (pvp && failPvp)

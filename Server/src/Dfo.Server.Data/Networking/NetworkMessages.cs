@@ -23,7 +23,7 @@ public enum ServerMessageType
     GameInitialConnection = 0x0000_0001,
     GameLogin = 0x0001_0001,
     GameAccountCharacterRoster = 0x0000_0002,
-    GameSelectCharacter = 0x0001_0004,
+    GameStateSynchronization = 0x7FFF_0001,
     ChannelScriptVersion = 0x06,
     ChannelScript = 0x0A,
     ChannelConnect = 0x0C,

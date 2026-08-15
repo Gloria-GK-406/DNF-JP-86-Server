@@ -1,11 +1,10 @@
 using Dfo.Server.Data.Networking;
-using Dfo.Server.Data.Game;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Networking.Runtime;
 
 namespace Dfo.Server.Networking.Tests.Integration;
 
-public sealed class TouchSocketNetworkMessageSenderProjectionTests
+public sealed class TouchSocketNetworkMessageSenderExplicitDeliveryTests
 {
     [Fact]
     public async Task TouchSocketNetworkMessageSender_PreservesRequiredAndPerTargetOrderAndExcludesOwner()
@@ -13,22 +12,21 @@ public sealed class TouchSocketNetworkMessageSenderProjectionTests
         var owner = Id("owner");
         var targetA = Id("a");
         var targetB = Id("b");
-        var delivery = new SelectCharacterProjectionDelivery(
+        var delivery = new ExplicitMessageDelivery(
             [P(1), P(2)],
             [
-                new ExplicitProjectionTarget(owner, [P(99)]),
-                new ExplicitProjectionTarget(targetA, [P(3), P(4)]),
-                new ExplicitProjectionTarget(targetB, [P(5)]),
+                new ExplicitMessageTarget(owner, [P(99)]),
+                new ExplicitMessageTarget(targetA, [P(3), P(4)]),
+                new ExplicitMessageTarget(targetB, [P(5)]),
             ]);
         var sent = new List<string>();
 
-        await TouchSocketNetworkMessageSender.DeliverProjectionAsync(
+        await TouchSocketNetworkMessageSender.DeliverExplicitAsync(
             owner,
             delivery,
-            new TestComposer(),
-            (connectionId, frame, _) =>
+            (connectionId, message, _) =>
             {
-                sent.Add($"{connectionId.Value}:{frame.Span[0]}");
+                sent.Add($"{connectionId.Value}:{((TestMessage)message).Value}");
                 return ValueTask.CompletedTask;
             },
             CancellationToken.None);
@@ -41,19 +39,19 @@ public sealed class TouchSocketNetworkMessageSenderProjectionTests
     {
         var owner = Id("owner");
         var attempts = new List<string>();
-        var delivery = new SelectCharacterProjectionDelivery(
+        var delivery = new ExplicitMessageDelivery(
             [P(1), P(2), P(3)],
-            [new ExplicitProjectionTarget(Id("a"), [P(4)])]);
+            [new ExplicitMessageTarget(Id("a"), [P(4)])]);
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await TouchSocketNetworkMessageSender.DeliverProjectionAsync(
+            await TouchSocketNetworkMessageSender.DeliverExplicitAsync(
                 owner,
                 delivery,
-                new TestComposer(),
-                (connectionId, frame, _) =>
+                (connectionId, message, _) =>
                 {
-                    attempts.Add($"{connectionId.Value}:{frame.Span[0]}");
-                    return frame.Span[0] == 2
+                    var value = ((TestMessage)message).Value;
+                    attempts.Add($"{connectionId.Value}:{value}");
+                    return value == 2
                         ? ValueTask.FromException(new InvalidOperationException("direct"))
                         : ValueTask.CompletedTask;
                 },
@@ -69,22 +67,22 @@ public sealed class TouchSocketNetworkMessageSenderProjectionTests
         var owner = Id("owner");
         var targetA = Id("a");
         var attempts = new List<string>();
-        var delivery = new SelectCharacterProjectionDelivery(
+        var delivery = new ExplicitMessageDelivery(
             [P(1)],
             [
-                new ExplicitProjectionTarget(targetA, [P(2), P(3), P(4)]),
-                new ExplicitProjectionTarget(Id("disconnected"), [P(5)]),
-                new ExplicitProjectionTarget(Id("b"), [P(6), P(7)]),
+                new ExplicitMessageTarget(targetA, [P(2), P(3), P(4)]),
+                new ExplicitMessageTarget(Id("disconnected"), [P(5)]),
+                new ExplicitMessageTarget(Id("b"), [P(6), P(7)]),
             ]);
 
-        await TouchSocketNetworkMessageSender.DeliverProjectionAsync(
+        await TouchSocketNetworkMessageSender.DeliverExplicitAsync(
             owner,
             delivery,
-            new TestComposer(),
-            (connectionId, frame, _) =>
+            (connectionId, message, _) =>
             {
-                attempts.Add($"{connectionId.Value}:{frame.Span[0]}");
-                if ((connectionId == targetA && frame.Span[0] == 3) ||
+                var value = ((TestMessage)message).Value;
+                attempts.Add($"{connectionId.Value}:{value}");
+                if ((connectionId == targetA && value == 3) ||
                     connectionId.Value == "disconnected")
                 {
                     return ValueTask.FromException(new InvalidOperationException("gone"));
@@ -98,11 +96,9 @@ public sealed class TouchSocketNetworkMessageSenderProjectionTests
     }
 
     private static NetworkConnectionId Id(string value) => new(value);
-    private static TestProjection P(byte value) => new(value);
-    private sealed record TestProjection(byte Value) : ISelectCharacterSupplementalProjection;
-    private sealed class TestComposer : ISelectCharacterProjectionComposer
+    private static TestMessage P(byte value) => new(value);
+    private sealed record TestMessage(byte Value) : IServerNetworkMessage
     {
-        public IReadOnlyList<byte[]> Compose(IReadOnlyList<ISelectCharacterSupplementalProjection> projections) =>
-            projections.Cast<TestProjection>().Select(value => new[] { value.Value }).ToArray();
+        public ServerMessageType MessageType => ServerMessageType.GameStateSynchronization;
     }
 }

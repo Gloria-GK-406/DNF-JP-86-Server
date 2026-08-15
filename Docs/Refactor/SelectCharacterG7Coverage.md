@@ -1,13 +1,14 @@
 # SELECT_CHARACTER G7 lifecycle coverage
 
-> Status: implemented and code-audited on 2026-08-12. All packet identities,
+> Status: implemented and refactor-audited on 2026-08-15. All packet identities,
 > lifecycle ordering and business meanings remain reverse-engineered from server code;
 > they are not confirmed by an 86JP client or packet capture.
 
-The application command handler is the visible coordinator. It validates the authenticated
-connection generation and prepares admission before mutation, registers one exact
-`SelectedSessionIdentity`, drives cohesive inventory/quest/pet/session services, and gives
-Networking only typed messages, explicit targets and an exact connection to close.
+The Protocol `SelectCharacterHandler` is the visible workflow coordinator. It validates the
+authenticated connection, holds one selected-session transition lease, sequentially dispatches
+cohesive Application commands, and sends concrete messages. Command handlers own domain work but
+contain neither a command bus nor a sender. Networking receives only messages, explicit targets
+and connection IDs.
 
 ## Supplemental lifecycle ledger
 
@@ -19,7 +20,7 @@ Networking only typed messages, explicit targets and an exact connection to clos
 | X-11 | Every accepted continuation after PvP phase | Prepared character/account equipment-lock result | Required owner trailing duplicate | Failure invokes full exact compensation and closes that connection |
 | X-12 | Changed item-seeking quest trigger | PVF seeking operands, current inventory and owner-validated SQLite CAS | Required owner; absent when no committed change | No fabricated update; exact session compensation on send failure |
 | X-13 | Equipped slot-24 creature transitions from dead to alive | Owner-validated SQLite mutation sets state to exactly 1 | Required owner revival identity; absent for already-alive/missing pet | Exact session compensation on required delivery failure |
-| X-14 | Same committed revival | Typed projection retains creature key and state | Codec emits immediately after X-13 and cannot emit it independently | Same required batch/compensation as X-13 |
+| X-14 | Same committed revival | Domain state retains creature key and state | Codec emits immediately after X-13 and cannot emit it independently | Same required batch/compensation as X-13 |
 | X-15 | Valid detached dungeon candidate | Exact candidate validation/CAS reattachment | Required owner offer; invalid/expired candidate emits nothing | Invalid/expired candidate released exactly; delivery failure compensates session |
 | X-16 | Same accepted candidate | Participant IDs retain registry order | One required participant body per entry, only after X-15 | Same required batch/compensation as X-15 |
 | X-17 | Cleanup of a session owning an expert store | Capture area targets before exact close | Owner is required only for previous-character cleanup; peers are explicit best effort | All cleanup mutations run even when delivery/cancellation fails |
@@ -44,13 +45,14 @@ Networking only typed messages, explicit targets and an exact connection to clos
 
 - `AccountId` remains the business identity. Connection ID and the pre-bind online
   generation exist only in `SelectedSessionIdentity` and exact session registries.
-- `UserService.Publish(session, character)` binds the current character only after static
-  and pre-publication required delivery. `ClearExact` unbinds only that identity.
+- `PublishSelectedCharacterSessionCommand` publishes the current runtime only after static
+  and pre-publication required delivery. Exact cleanup unbinds only that session identity.
 - Disconnect captures the selected identity by connection, performs non-cancellable exact
   cleanup, then removes the same online connection. A late old disconnect cannot remove a
   replacement session or a newer authenticated generation.
 - Required owner sends propagate failure. `TouchSocketNetworkMessageSender` isolates each
-  already-addressed peer batch; Networking never discovers sessions, content or storage.
+  already-addressed peer batch; Networking never discovers sessions, content or storage and
+  contains no SelectCharacter-specific branch.
 
 This is implementation coverage, not real-client compatibility evidence. Client execution
 and packet capture are still required before any inferred protocol meaning can be promoted.

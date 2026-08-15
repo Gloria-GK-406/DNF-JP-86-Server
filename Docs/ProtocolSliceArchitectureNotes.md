@@ -156,44 +156,32 @@ codec 的常量。这是纯化简，无行为变化。
 
 ## 9. handler 在总线之外持有应用层协作者
 
-**现象**：14 个 handler 里有 9 个在总线之外直接调应用层服务。
+**现象**：普通协议 handler 通常只在总线之外读取连接身份；
+`SelectCharacterHandler` 则是显式批准的多阶段协议工作流协调者。除
+`IOnlineUserQueryService`、`IChannelEntryPolicy` 和 `ICommandBus` 外，它还持有
+`SelectedSessionTransitionGate`、`ISelectedSessionDirectory`、
+`INetworkMessageSender` 与 `INetworkConnectionCloser`。
 
-- 8 个调 `IOnlineUserQueryService.TryGetByConnection` 解连接身份
-  （`GameLoginHandler`、`GetAccountCharacterRosterHandler`、`SelectCharacterHandler`
-  与六个遥测 handler）。这是只读查询接口——会改状态的
-  `RegisterConnection` / `TryDisconnect` / `TryDisconnectConnection` 在另一个接口
-  `IOnlineUserService` 上，未注入任何 handler。
-- 第 9 个是 `SelectCharacterHandler`，它额外调 `IChannelEntryPolicy.ResolveAsync`。
-  这是**除身份解析之外**唯一一处 handler 直接调应用服务。这也是**只读**的
-（`ChannelEntryPolicy.ResolveAsync` 只读频道目录并构造一个 `ChannelEntryIdentity`，
-判定用的 `Refuse` 刻意没在这里调），所以按"翻译 + 纯读取"的口径它是合规的。
+**位置**：`Dfo.Server.Protocol/Game/SelectCharacter/SelectCharacterHandler.cs`。
 
-**位置**：`Dfo.Server.Protocol/Game/SelectCharacter/SelectCharacterHandler.cs`
-第 28-29 行；`Dfo.Server.Application/Channel/ChannelEntryPolicy.cs` 第 18 行
-（`ResolveAsync`，只读）与第 34 行（`Refuse`，判定，未被 handler 调用）。
+**为什么这样设计**：`01/0004` 接受之后需要按既有顺序发送多组可复用状态消息，
+而每日补货、发布、PVP、任务、宠物和重连又各自属于不同领域阶段。handler 因而在
+一个 transition-gate lease 内顺序派发多个顶层命令、检查 session 仍为 current，
+并协调具体协议消息的发送和失败补偿；命令 handler 仍禁止嵌套 dispatch，也不持有
+sender、closer 或 socket。连接关闭刻意在 lease 释放后执行，避免 disconnect callback
+与同一 gate 互等。
 
-**为什么记下来**：如果"handler 不碰业务语义"要收紧成"handler 只认识
-`ICommandBus` 和 sender"，上面 9 处都要重新处理——8 处身份解析会变成必须由
-dispatcher 预先解好并放进 `NetworkDispatchContext`，而
-`IChannelEntryPolicy.ResolveAsync` 这一处得另想办法。现在的写法有明确理由
-（`SelectCharacterHandler.cs` 第 26-27 行注释）：让监听端口留在传输侧，
-命令把频道当作既定事实接收。
-
-按当前口径（翻译 + 纯读取 + 派发）这 9 处全部合规，本条只是标出这条规则的
-实际边界在哪里。
+这条边界不应推广成所有 handler 的默认形态；它是 SelectCharacter 一入站对应多阶段
+状态同步的明确工作流职责，不是 Networking 或 Data 应承载的协议例外。
 
 ---
 
-## 10. `SelectCharacterStaticBodyFamilies` 是一张约 843 行的静态字节表
+## 10. ~~`SelectCharacterStaticBodyFamilies` 巨型静态字节表~~（已处理）
 
-**现象**：一个巨大的静态数组常量文件，混在 `SelectCharacter` 切片里，
-和该切片的其余制品完全不是一类东西。
-
-**位置**：`Dfo.Server.Protocol/Game/SelectCharacter/SelectCharacterStaticBodyFamilies.cs`。
-
-**为什么没动**：它是逆向出来的线级数据，搬迁不改内容。
-
-**可选处置**：改为资源文件或生成物，让切片目录只剩代码。
+2026-08-15 的状态同步重构已删除该文件。原 58 位兼容序列现在由具体
+`GameStateSynchronizationMessage` 实例组成，body 编码按领域拆入
+`Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.*.cs`；完整帧
+hash 与顺序测试保留了原行为。这里保留条目用于说明历史问题已关闭。
 
 ---
 
@@ -220,50 +208,20 @@ dispatcher 预先解好并放进 `NetworkDispatchContext`，而
 
 ---
 
-## 13. SelectCharacter 的投影投递仍横跨三个编译单元
+## 13. ~~SelectCharacter 投影投递横跨三个编译单元~~（已处理）
 
-**这是唯一一个制品没有完全收进自己切片的协议**，由根级复核独立发现——
-本文档前 12 条漏了它。
-
-**现象**：SelectCharacter 的投影投递链路分布在三处：
-
-- `Abstractions/Networking/INetworkServices.cs`：`ExplicitProjectionTarget`、
-  `SelectCharacterProjectionDelivery`、`INetworkMessageSender.SendProjectionAsync`、
-  `ISelectCharacterProjectionComposer`——四个以 SelectCharacter 命名的成员
-  待在本应通用的接缝里；
-- `Networking/Runtime/TouchSocketNetworkMessageSender.cs`：约 90 行
-  `SendProjectionAsync` / `DeliverProjectionAsync` / `ValidateProjectionDelivery`，
-  含"必投先于尽力投"的次序、逐目标遇错即停的补偿、以及 22 行结构校验——
-  全部是 SelectCharacter 独有的逻辑；
-- 切片内只有 `SelectCharacterProjectionComposer` 与其 codec。
-
-因此 `AGENTS.md` 项目表里"传输侧不含任何单个协议的知识"这句话，
-必须带上这一个例外才成立（该行已相应改写）。
-
-**为什么没动**：它先于本分支存在（基线上同样如此，且当时还多一个 9 分支
-switch）。spec-005 已把投递指令重新归类为"不是消息"并迁入 Abstractions，
-理由写在接缝处。把这条链路整体收进切片是一次接缝改动，需要重新决定
-"sender 如何在不认识具体协议的前提下执行有序多目标投递"，属新设计。
-
-**可选处置**：把有序投递抽象成与协议无关的能力（例如"一批已成帧的字节 +
-一组收件人 + 投递策略"），让 sender 只认识这个抽象，SelectCharacter 特有的
-次序与补偿规则回到切片里。
+2026-08-15 已用 `ExplicitMessageDelivery` / `ExplicitMessageTarget` 替换专用接缝。
+调用者提交具体 `IServerNetworkMessage` 和已解析的连接 ID；Networking 只执行
+必达顺序、endpoint 校验、owner 排除和逐目标尽力隔离。源码扫描要求
+`Dfo.Server.Networking` 与 `Dfo.Server.Abstractions/Networking` 中不存在
+`SelectCharacter` 或 `Projection`。协议特有的消息构造、PVP/清理含义和收件人发现
+均留在 Application/Protocol。
 
 ---
 
-## 14. 投影组合器内部是一个 16 分支的类型 switch
+## 14. ~~投影组合器内部 16 分支类型 switch~~（已处理）
 
-**现象**：`SelectCharacterProjectionComposer.Compose` 用一个 16 分支的
-`switch` 按投影的 CLR 类型选 codec 方法，默认分支抛异常——**形状恰是本次
-重构要消除的那种**。
-
-**位置**：`Dfo.Server.Protocol/Game/SelectCharacter/SelectCharacterProjectionComposer.cs`
-第 16-52 行。
-
-**为什么没动**：它是切片内部的，且分支的对象是**帧片段**而非消息——
-消息级的分支确实已全部消除。它随 spec-003 原样搬迁，不是本分支引入的。
-真要 DI 化，键空间是 `ISelectCharacterSupplementalProjection` 的实现类型，
-与消息注册表是两套东西。
-
-**已顺带修正**：该默认分支的异常文案原为 "has no Networking codec"，
-是跨程序集的失真引用（第 7 条那一类），已改为 "has no codec in this slice"。
+`ISelectCharacterSupplementalProjection`、`SelectCharacterProjectionComposer` 和类型
+switch 已删除。X-02–X-18 由具体 `SupplementalSynchronizationMessage` 子类型表达，
+每个 CLR 消息类型恰好注册一个 Game encoder。可选性由“是否创建消息”表达；一项
+语义本来就包含相邻多帧时，单个具体消息可以返回固定有序帧组。

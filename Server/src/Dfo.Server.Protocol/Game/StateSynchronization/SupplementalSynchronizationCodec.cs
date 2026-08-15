@@ -1,46 +1,36 @@
 using System.Text;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Networking.Framing;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 
-namespace Dfo.Server.Protocol.Game.SelectCharacter;
+namespace Dfo.Server.Protocol.Game.StateSynchronization;
 
-internal sealed record SelectCharacterPvpProjectionBatch(
+internal sealed record PvpSynchronizationBatch(
     IReadOnlyList<byte[]> DirectFrames,
     IReadOnlyList<byte[]> PublicationFrames);
 
 /// <summary>Pure framing for X-01 through X-18. Callers own applicability, recipients and mutations.</summary>
-internal static class SelectCharacterSupplementalProjectionCodec
+internal static class SupplementalSynchronizationCodec
 {
-    public static IReadOnlyList<byte[]> EncodeDarkKnightCombo(
-        SelectCharacterDarkKnightComboProjection? value)
+    public static byte[] EncodeVisibility(ushort userId, byte userStateBits)
     {
-        if (value is null)
-            return [];
-        var body = value.Body ?? throw Missing("DarkKnightCombo.Body");
-        return [Frame(0, 0x01C0, body)];
-    }
-
-    public static byte[] EncodeVisibility(SelectCharacterVisibilityProjection value)
-    {
-        ArgumentNullException.ThrowIfNull(value);
         using var stream = new MemoryStream(3);
         using var writer = new BinaryWriter(stream);
-        writer.Write(value.UserId);
-        writer.Write(value.UserStateBits);
+        writer.Write(userId);
+        writer.Write(userStateBits);
         return Frame(0, 0x0165, stream.ToArray());
     }
 
-    public static byte[] EncodeCloneTitle(SelectCharacterCloneTitleProjection value)
+    public static byte[] EncodeCloneTitle(uint itemId)
     {
-        ArgumentNullException.ThrowIfNull(value);
         using var stream = new MemoryStream(5);
         using var writer = new BinaryWriter(stream);
         writer.Write((byte)1);
-        writer.Write(value.ItemId);
+        writer.Write(itemId);
         return Frame(1, 0x0239, stream.ToArray());
     }
 
-    public static byte[] EncodeRoster(SelectCharacterRosterProjection value)
+    public static byte[] EncodeRoster(CharacterRosterEntryState value)
     {
         ArgumentNullException.ThrowIfNull(value);
         var characters = value.Characters ?? throw Missing("Roster.Characters");
@@ -78,87 +68,77 @@ internal static class SelectCharacterSupplementalProjectionCodec
         return frame;
     }
 
-    public static byte[] EncodeHonor(SelectCharacterHonorProjection value)
+    public static byte[] EncodeHonor(uint level, uint experience)
     {
-        ArgumentNullException.ThrowIfNull(value);
         using var stream = new MemoryStream(8);
         using var writer = new BinaryWriter(stream);
-        writer.Write(value.Level);
-        writer.Write(value.Experience);
+        writer.Write(level);
+        writer.Write(experience);
         return Frame(0, 0x0289, stream.ToArray());
     }
 
-    public static IReadOnlyList<byte[]> EncodeGrowthCapsule(SelectCharacterGrowthCapsuleProjection? value)
+    public static byte[] EncodeGrowthCapsule(
+        byte level,
+        uint totalExperience,
+        ushort page0Sp,
+        ushort page1Sp,
+        ushort page0Tp,
+        ushort page1Tp,
+        uint pvpVictoryPoints,
+        uint growthCapsuleExperience,
+        uint honorLevel,
+        uint honorExperience)
     {
-        if (value is null)
-            return [];
         using var stream = new MemoryStream(95);
         using var writer = new BinaryWriter(stream);
-        writer.Write(value.Level);
-        writer.Write(value.TotalExperience);
+        writer.Write(level);
+        writer.Write(totalExperience);
         writer.Write(0u);
         writer.Write(0u);
-        writer.Write(value.Page0Sp);
-        writer.Write(value.Page1Sp);
-        writer.Write(value.Page0Tp);
-        writer.Write(value.Page1Tp);
-        writer.Write(value.PvpVictoryPoints);
-        writer.Write(0u);
-        writer.Write((byte)0);
-        writer.Write(0u);
-        writer.Write(0u);
-        writer.Write(0u);
-        writer.Write(0u);
+        writer.Write(page0Sp);
+        writer.Write(page1Sp);
+        writer.Write(page0Tp);
+        writer.Write(page1Tp);
+        writer.Write(pvpVictoryPoints);
         writer.Write(0u);
         writer.Write((byte)0);
         writer.Write(0u);
         writer.Write(0u);
-        writer.Write(value.GrowthCapsuleExperience);
-        writer.Write(value.HonorLevel);
-        writer.Write(value.HonorExperience);
+        writer.Write(0u);
+        writer.Write(0u);
+        writer.Write(0u);
+        writer.Write((byte)0);
+        writer.Write(0u);
+        writer.Write(0u);
+        writer.Write(growthCapsuleExperience);
+        writer.Write(honorLevel);
+        writer.Write(honorExperience);
         writer.Write(0u);
         writer.Write(0u);
         writer.Write(0u);
         writer.Write(0u);
         writer.Write(0u);
         writer.Write(0u);
-        return [Frame(0, 0x0025, stream.ToArray())];
+        return Frame(0, 0x0025, stream.ToArray());
     }
 
-    public static IReadOnlyList<byte[]> EncodeInventoryUpdates(
-        IReadOnlyList<SelectCharacterInventoryUpdateProjection>? values)
+    public static IReadOnlyList<byte[]> EncodeRejection(
+        byte errorCode,
+        string message,
+        byte noticeMode)
     {
-        if (values is null || values.Count == 0)
-            return [];
-        return values.Select(value =>
-        {
-            ArgumentNullException.ThrowIfNull(value);
-            ArgumentNullException.ThrowIfNull(value.Items);
-            using var stream = new MemoryStream();
-            using var writer = new BinaryWriter(stream);
-            writer.Write((byte)value.ContainerType);
-            writer.Write(checked((ushort)value.Items.Count));
-            foreach (var item in value.Items)
-                SelectCharacterStaticPayloadCodec.WriteInventoryItem(writer, item, value.PreparedAt);
-            return Frame(0, 0x000E, stream.ToArray());
-        }).ToArray();
-    }
-
-    public static IReadOnlyList<byte[]> EncodeRejection(SelectCharacterAdmissionRejectionProjection value)
-    {
-        ArgumentNullException.ThrowIfNull(value);
         using var notice = new MemoryStream();
         using var writer = new BinaryWriter(notice);
-        writer.Write(value.NoticeMode);
-        WriteDstr(writer, Encoding.UTF8.GetBytes(value.Message ?? string.Empty));
+        writer.Write(noticeMode);
+        WriteDstr(writer, Encoding.UTF8.GetBytes(message ?? string.Empty));
         return
         [
-            Frame(1, 0x0004, [0, value.ErrorCode]),
+            Frame(1, 0x0004, [0, errorCode]),
             Frame(0, 0x01F7, notice.ToArray()),
         ];
     }
 
-    public static SelectCharacterPvpProjectionBatch EncodePvpLobby(SelectCharacterPvpLobbyProjection value)
+    public static PvpSynchronizationBatch EncodePvpLobby(PvpLobbySynchronizationState value)
     {
         ArgumentNullException.ThrowIfNull(value);
         var identities = value.OrderedIdentities ?? throw Missing("Pvp.OrderedIdentities");
@@ -167,20 +147,25 @@ internal static class SelectCharacterSupplementalProjectionCodec
         var roster = EncodePvpIdentityRoster([.. identities, newcomer]);
         var roomSnapshot = EncodePvpRoomSnapshot(rooms);
         var publication = EncodeSinglePvpIdentity(newcomer);
-        return new SelectCharacterPvpProjectionBatch([roster, roomSnapshot], [publication]);
+        return new PvpSynchronizationBatch([roster, roomSnapshot], [publication]);
     }
 
-    public static byte[] EncodePvpIdentity(SelectCharacterPvpIdentityProjection value) =>
+    public static byte[] EncodePvpIdentity(PvpParticipantEntryState value) =>
         EncodeSinglePvpIdentity(value);
 
-    public static byte[] EncodeTrailingEquipmentLocks(SelectCharacterResult result)
+    public static byte[] EncodeTrailingEquipmentLocks(
+        Dfo.Server.Data.Inventory.CharacterInventoryEntryState characterInventory,
+        Dfo.Server.Data.Inventory.AccountInventoryEntryState accountInventory)
     {
-        ArgumentNullException.ThrowIfNull(result);
-        return Frame(0, 0x00FB, SelectCharacterStaticPayloadCodec.EncodeNotification(result, 0x00FB));
+        ArgumentNullException.ThrowIfNull(characterInventory);
+        ArgumentNullException.ThrowIfNull(accountInventory);
+        return Frame(0, 0x00FB, StateSynchronizationPayloadCodec.EncodeEquipmentLocks(
+            characterInventory.EquipmentLocks,
+            accountInventory.Cargo.EquipmentLocks));
     }
 
     public static IReadOnlyList<byte[]> EncodeAcceptedQuests(
-        IReadOnlyList<SelectCharacterAcceptedQuestProjection>? quests)
+        IReadOnlyList<AcceptedQuestProgressState>? quests)
     {
         if (quests is null)
             return [];
@@ -195,7 +180,7 @@ internal static class SelectCharacterSupplementalProjectionCodec
         return [Frame(0, 0x023F, stream.ToArray())];
     }
 
-    public static IReadOnlyList<byte[]> EncodePetRevival(SelectCharacterPetRevivalProjection? value)
+    public static IReadOnlyList<byte[]> EncodePetRevival(PetRevivalState? value)
     {
         if (value is null)
             return [];
@@ -211,7 +196,7 @@ internal static class SelectCharacterSupplementalProjectionCodec
         return [Frame(0, 0x006B, revival.ToArray()), Frame(0, 0x0067, state.ToArray())];
     }
 
-    public static IReadOnlyList<byte[]> EncodeDungeonRejoin(SelectCharacterDungeonRejoinProjection? value)
+    public static IReadOnlyList<byte[]> EncodeDungeonRejoin(DungeonRejoinSynchronizationState? value)
     {
         if (value is null)
             return [];
@@ -240,7 +225,7 @@ internal static class SelectCharacterSupplementalProjectionCodec
     public static byte[] EncodeTownLeave(ushort userId) =>
         Frame(0, 0x0006, BitConverter.GetBytes(userId));
 
-    private static byte[] EncodePvpIdentityRoster(IReadOnlyList<SelectCharacterPvpIdentityProjection> identities)
+    private static byte[] EncodePvpIdentityRoster(IReadOnlyList<PvpParticipantEntryState> identities)
     {
         if (identities.Count > ushort.MaxValue)
             throw new InvalidDataException("PvP identity count cannot be represented as u16.");
@@ -252,32 +237,44 @@ internal static class SelectCharacterSupplementalProjectionCodec
         foreach (var identity in identities)
         {
             ValidatePvpIdentity(identity, seen);
-            var body = SelectCharacterStaticPayloadCodec.EncodePvpSubtype0(identity.Result);
+            var body = EncodePvpSubtype0(identity);
             writer.Write(body, 3, body.Length - 3);
         }
         return Frame(0, 0x0002, stream.ToArray());
     }
 
-    private static byte[] EncodeSinglePvpIdentity(SelectCharacterPvpIdentityProjection identity)
+    private static byte[] EncodeSinglePvpIdentity(PvpParticipantEntryState identity)
     {
         ValidatePvpIdentity(identity, null);
-        return Frame(0, 0x0002, SelectCharacterStaticPayloadCodec.EncodePvpSubtype0(identity.Result));
+        return Frame(0, 0x0002, EncodePvpSubtype0(identity));
     }
 
-    private static void ValidatePvpIdentity(SelectCharacterPvpIdentityProjection? identity, HashSet<ushort>? seen)
+    private static ushort ValidatePvpIdentity(
+        PvpParticipantEntryState? identity,
+        HashSet<ushort>? seen)
     {
-        if (identity is null || identity.UserId == 0)
+        if (identity?.Character?.Identity is null)
             throw Missing("Pvp.Identity");
-        var body = SelectCharacterStaticPayloadCodec.EncodePvpSubtype0(
-            identity.Result ?? throw Missing("Pvp.Identity.Result"));
+        var userId = checked((ushort)identity.Character.Identity.CharacterId.Value);
+        if (userId == 0)
+            throw Missing("Pvp.Identity.CharacterId");
+        var body = EncodePvpSubtype0(identity);
         if (body.Length < 5 || body[0] != 0 || BitConverter.ToUInt16(body, 1) != 1 ||
-            BitConverter.ToUInt16(body, 3) != identity.UserId)
+            BitConverter.ToUInt16(body, 3) != userId)
             throw new InvalidDataException("PvP identity is not a matching subtype-0 USERINFO body.");
-        if (seen is not null && !seen.Add(identity.UserId))
+        if (seen is not null && !seen.Add(userId))
             throw new InvalidDataException("PvP identity order contains a duplicate user id.");
+        return userId;
     }
 
-    private static byte[] EncodePvpRoomSnapshot(IReadOnlyList<SelectCharacterPvpRoomProjection> rooms)
+    private static byte[] EncodePvpSubtype0(PvpParticipantEntryState participant) =>
+        StateSynchronizationPayloadCodec.EncodeCurrentUserState(
+            participant.Character,
+            participant.Public,
+            participant.Equipment,
+            participant.Pets);
+
+    private static byte[] EncodePvpRoomSnapshot(IReadOnlyList<PvpRoomSnapshotState> rooms)
     {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);
@@ -307,7 +304,7 @@ internal static class SelectCharacterSupplementalProjectionCodec
         return Frame(0, 0x0029, stream.ToArray());
     }
 
-    private static void WriteAppearance(BinaryWriter writer, SelectCharacterRosterAppearanceProjection value)
+    private static void WriteAppearance(BinaryWriter writer, CharacterRosterAppearanceState value)
     {
         var expansion = value.ExpansionData ?? throw Missing("Roster.Appearance.ExpansionData");
         if (expansion.Length != 4 || value.ExpansionLength != 4)
@@ -344,5 +341,5 @@ internal static class SelectCharacterSupplementalProjectionCodec
         GameServerFrameEncoder.Encode(command, type, body);
 
     private static InvalidDataException Missing(string name) =>
-        new($"Required supplemental projection '{name}' is unavailable.");
+        new($"Required supplemental synchronization value '{name}' is unavailable.");
 }

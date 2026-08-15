@@ -7,8 +7,7 @@ namespace Dfo.Server.Networking.Runtime;
 
 internal sealed class TouchSocketNetworkMessageSender(
     TouchSocketConnectionRegistry connections,
-    ServerMessageEncoderRegistry encoders,
-    ISelectCharacterProjectionComposer projectionComposer) : INetworkMessageSender
+    ServerMessageEncoderRegistry encoders) : INetworkMessageSender
 {
     public async ValueTask SendAsync(
         NetworkConnectionId connectionId,
@@ -39,48 +38,39 @@ internal sealed class TouchSocketNetworkMessageSender(
         }
     }
 
-    /// <remarks>
-    /// A delivery names its own recipients and may reach several connections, so it has no single
-    /// frame and no encoder. It travels this path rather than <see cref="SendAsync"/>.
-    /// </remarks>
-    public ValueTask SendProjectionAsync(
+    public ValueTask SendExplicitAsync(
         NetworkConnectionId requiredDirectConnectionId,
-        SelectCharacterProjectionDelivery delivery,
+        ExplicitMessageDelivery delivery,
         CancellationToken cancellationToken) =>
-        DeliverProjectionAsync(
+        DeliverExplicitAsync(
             requiredDirectConnectionId,
             delivery,
-            projectionComposer,
-            SendFrameAsync,
+            SendAsync,
             cancellationToken);
 
-    internal static async ValueTask DeliverProjectionAsync(
+    internal static async ValueTask DeliverExplicitAsync(
         NetworkConnectionId requiredDirectConnectionId,
-        SelectCharacterProjectionDelivery delivery,
-        ISelectCharacterProjectionComposer composer,
-        Func<NetworkConnectionId, ReadOnlyMemory<byte>, CancellationToken, ValueTask> sendFrame,
+        ExplicitMessageDelivery delivery,
+        Func<NetworkConnectionId, IServerNetworkMessage, CancellationToken, ValueTask> sendMessage,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(delivery);
-        ArgumentNullException.ThrowIfNull(sendFrame);
-        ArgumentNullException.ThrowIfNull(composer);
-        ValidateProjectionDelivery(delivery);
+        ArgumentNullException.ThrowIfNull(sendMessage);
+        ValidateExplicitDelivery(delivery);
 
-        foreach (var frame in composer.Compose(delivery.RequiredDirectProjections))
-        {
-            await sendFrame(requiredDirectConnectionId, frame, cancellationToken);
-        }
+        foreach (var message in delivery.RequiredDirectMessages)
+            await sendMessage(requiredDirectConnectionId, message, cancellationToken);
 
         foreach (var target in delivery.BestEffortTargets)
         {
             if (target.ConnectionId == requiredDirectConnectionId)
                 continue;
 
-            foreach (var frame in composer.Compose(target.OrderedProjections))
+            foreach (var message in target.OrderedMessages)
             {
                 try
                 {
-                    await sendFrame(target.ConnectionId, frame, cancellationToken);
+                    await sendMessage(target.ConnectionId, message, cancellationToken);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -96,42 +86,25 @@ internal sealed class TouchSocketNetworkMessageSender(
         }
     }
 
-    private async ValueTask SendFrameAsync(
-        NetworkConnectionId connectionId,
-        ReadOnlyMemory<byte> frame,
-        CancellationToken cancellationToken)
+    private static void ValidateExplicitDelivery(ExplicitMessageDelivery delivery)
     {
-        var connection = connections.Get(connectionId);
-        if (connection.Context.EndpointKind != NetworkEndpointKind.Game)
-        {
-            throw new InvalidOperationException(
-                $"Projection delivery requires a game endpoint, not '{connection.Context.EndpointKind}'.");
-        }
-
-        await ((ISender)connection.Session).SendAsync(
-            new ReadOnlySequence<byte>(frame),
-            cancellationToken);
-    }
-
-    private static void ValidateProjectionDelivery(SelectCharacterProjectionDelivery delivery)
-    {
-        if (delivery.RequiredDirectProjections is null)
-            throw new InvalidDataException("Required direct projections are unavailable.");
+        if (delivery.RequiredDirectMessages is null)
+            throw new InvalidDataException("Required direct messages are unavailable.");
         if (delivery.BestEffortTargets is null)
-            throw new InvalidDataException("Best-effort projection targets are unavailable.");
-        foreach (var projection in delivery.RequiredDirectProjections)
+            throw new InvalidDataException("Best-effort message targets are unavailable.");
+        foreach (var message in delivery.RequiredDirectMessages)
         {
-            if (projection is null)
-                throw new InvalidDataException("A required direct projection is unavailable.");
+            if (message is null)
+                throw new InvalidDataException("A required direct message is unavailable.");
         }
         foreach (var target in delivery.BestEffortTargets)
         {
-            if (target is null || target.OrderedProjections is null)
-                throw new InvalidDataException("An explicit projection target is unavailable.");
-            foreach (var projection in target.OrderedProjections)
+            if (target is null || target.OrderedMessages is null)
+                throw new InvalidDataException("An explicit message target is unavailable.");
+            foreach (var message in target.OrderedMessages)
             {
-                if (projection is null)
-                    throw new InvalidDataException("A best-effort projection is unavailable.");
+                if (message is null)
+                    throw new InvalidDataException("A best-effort message is unavailable.");
             }
         }
     }

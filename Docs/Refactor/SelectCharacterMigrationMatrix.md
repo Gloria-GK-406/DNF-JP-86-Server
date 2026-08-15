@@ -4,11 +4,14 @@
 > packet capture was performed for this document. A code-explicit packet shape
 > is not automatically a confirmed client-protocol meaning.
 
-## Successor status (2026-08-12)
+## Successor status (2026-08-15)
 
-G6 result-only projection coverage is implemented for static rows 1–58 and
-supplemental identities X-01–X-18. G7 lifecycle coverage is implemented for X-07,
-X-09–X-18 and L-01–L-10. Exact sources/codecs and lifecycle ownership are recorded in
+G6 concrete state-message coverage is implemented for static rows 1–58 and
+supplemental identities X-01–X-18. G7 now uses Protocol-handler coordination with
+sequential top-level commands for X-07 and X-09–X-18 plus L-01–L-10. The former
+SelectCharacter projection stream/composer and transport exception have been removed.
+Exact current structure, sources/codecs and lifecycle ownership are recorded in
+[`SelectCharacterStateSynchronizationRefactor.md`](SelectCharacterStateSynchronizationRefactor.md),
 [`SelectCharacterG6Coverage.md`](SelectCharacterG6Coverage.md) and
 [`SelectCharacterG7Coverage.md`](SelectCharacterG7Coverage.md).
 
@@ -178,7 +181,7 @@ The following behaviors are evidence of defects, not compatibility targets:
 | G3 | Character-owned current state services: public/detail state, fatigue, skills, quests, settings, appearance, pets, collections, expert job, progression, dungeon/PvP/mail/daily state and optional class features | rows 7–14, 16, 18–27, 32–40, 41 character portion, 44–51, 54, 57–58; X-01–X-03, X-06 character portion, X-12–X-14, X-17; L-02, L-04, L-06–L-09 | G1; inventory outputs from G2 where referenced |
 | G4 | Account-owned entry services: settings, wallet, premium, honor/adventure/growth, lottery, purchase restrictions, cross-character support and account cargo | rows 1 account portion, 6, 9 account portion, 15–16, 30, 35, 38, 41–43, 52, 55; X-04–X-06 | G1; roster baseline; G2 account cargo |
 | G5 | World/content/session-adjacent query services and honest constants: quest/activity/collection definitions, events, channel policy, schedules, social/town state and unresolved fixed protocol baselines | rows 12, 14, 17–18, 31–34, 49–53, 56, 58 content portion; X-08–X-10, X-15–X-18; L-04, L-06 | G1; unresolved meanings remain explicit |
-| G6 | Pure Networking response composition for static order, duplicates, conditional packets, mixed-domain ACKs and trailing projections | all rows 1–58 and X-01–X-18 | Accepted G1–G5 business results |
+| G6 | Protocol-owned concrete state messages/encoders for static order, duplicates, conditional packets, mixed-domain ACKs and trailing synchronization; generic explicit-recipient transport | all rows 1–58 and X-01–X-18 | Accepted G1–G5 business results |
 | G7 | Integrated entry workflow for preparation mutations, session publication, post-entry synchronization and rollback | X-07, X-09–X-18 and L-01–L-10 | Accepted G1–G6 |
 
 The groups are coverage boundaries, not pre-created implementation Specs. The

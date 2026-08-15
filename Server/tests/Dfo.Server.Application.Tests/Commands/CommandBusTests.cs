@@ -10,7 +10,7 @@ namespace Dfo.Server.Application.Tests.Commands;
 public sealed class CommandBusTests
 {
     [Fact]
-    public async Task SendAsync_ExecutesOneHandlerAndReturnsItsTypedResultInANewScope()
+    public async Task SendAsync_AllowsSequentialTopLevelDispatchesAndCreatesANewScopeForEach()
     {
         CountingHandler.ExecutionCount = 0;
         await using var provider = BuildProvider(services =>

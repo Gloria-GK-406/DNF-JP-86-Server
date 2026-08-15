@@ -17,7 +17,7 @@ using Dfo.Server.Protocol.Game.SelectCharacter;
 
 namespace Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 
-public sealed class SelectCharacterProductionProjectionTests
+public sealed class SelectCharacterProductionStateTests
 {
     [Fact]
     public async Task ApplicationProducedResult_EncodesTheCompleteStaticStream()
@@ -34,12 +34,12 @@ public sealed class SelectCharacterProductionProjectionTests
             seed.Character.Identity.SlotIndex, channel, CancellationToken.None);
         var result = await handler.PrepareAsync(
             selected, seed.Account.AccountId, channel, CancellationToken.None);
-        var frames = SelectCharacterResponseComposer.Encode(result);
+        var messages = new SelectedCharacterStateMessageFactoryService().CreateValidated(result);
 
         Assert.NotNull(result.CharacterEntry.Skills.ProtocolMirror);
         Assert.All(result.CharacterEntry.Features.Collections.CollectionBoxes,
             value => Assert.NotNull(value.Protocol));
-        Assert.Equal(57, frames.Count); // Knight-only row 10 is the sole skipped static row.
+        Assert.Equal(57, messages.Count); // Knight-only row 10 is the sole skipped static row.
         Assert.False(sources.Published);
     }
 
