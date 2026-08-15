@@ -8,6 +8,7 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Application;
 using Dfo.Server.Infrastructure;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.SelectCharacter;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Data.Sqlite;
@@ -645,7 +646,7 @@ public sealed class SelectCharacterPayloadCodecTests
         else
         {
             var matches = SelectedCharacterStateMessageFactory.Create(result)
-                .Where(value => value.Command == 0 && value.Type == type)
+                .Where(value => value is IGameNotiMessage && value.Type == type)
                 .ToArray();
             if (occurrence < 0 || occurrence >= matches.Length)
                 throw new ArgumentOutOfRangeException(nameof(occurrence));

@@ -5,7 +5,7 @@ using Dfo.Server.Data.Networking;
 namespace Dfo.Server.Protocol.Game.Exit;
 
 public sealed class GameExitHandler(
-    INetworkMessageSender sender,
+    IGameMessageSender sender,
     ICommandBus commandBus) : ClientMessageHandler<GameExitRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -15,7 +15,7 @@ public sealed class GameExitHandler(
     {
         var result = await commandBus.SendAsync(
             new AcknowledgeGameExitCommand(), cancellationToken).ConfigureAwait(false);
-        await sender.SendAsync(
+        await sender.SendCmdAsync(
             context.Connection.ConnectionId,
             new GameExitResponse(result.Succeeded),
             cancellationToken).ConfigureAwait(false);

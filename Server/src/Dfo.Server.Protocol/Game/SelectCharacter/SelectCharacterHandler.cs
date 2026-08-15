@@ -21,7 +21,7 @@ public sealed class SelectCharacterHandler(
     ISelectedCharacterStateMessageFactory stateMessages,
     SelectedSessionTransitionGate lifecycleGate,
     ISelectedSessionDirectory selectedSessions,
-    INetworkMessageSender sender,
+    IGameMessageSender sender,
     INetworkConnectionCloser closer) : ClientMessageHandler<SelectCharacterRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -72,10 +72,11 @@ public sealed class SelectCharacterHandler(
             {
                 await sender.SendExplicitAsync(
                     context.Connection.ConnectionId,
-                    new ExplicitMessageDelivery(
-                        [new EntryAdmissionRejectedMessage(
-                            refusal.Refusal.ErrorCode,
-                            refusal.Refusal.Message)],
+                    new GameExplicitMessageDelivery(
+                        [
+                            new EntryAdmissionRejectedCommandMessage(refusal.Refusal.ErrorCode),
+                            new EntryAdmissionNoticeMessage(refusal.Refusal.Message),
+                        ],
                         []),
                     cancellationToken).ConfigureAwait(false);
                 failure = ExceptionDispatchInfo.Capture(refusal);
@@ -178,14 +179,14 @@ public sealed class SelectCharacterHandler(
         foreach (var message in messages)
         {
             EnsureCurrent(session);
-            await sender.SendAsync(session.ConnectionId, message, cancellationToken)
+            await SendClassifiedAsync(session.ConnectionId, message, cancellationToken)
                 .ConfigureAwait(false);
         }
 
         EnsureCurrent(session);
         await sender.SendExplicitAsync(
             session.ConnectionId,
-            new ExplicitMessageDelivery(
+            new GameExplicitMessageDelivery(
                 prePublicationMessages,
                 []),
             cancellationToken).ConfigureAwait(false);
@@ -200,8 +201,8 @@ public sealed class SelectCharacterHandler(
         {
             await sender.SendExplicitAsync(
                 session.ConnectionId,
-                new ExplicitMessageDelivery(
-                    inventory.CommittedUpdates.Select(value => (IServerNetworkMessage)
+                new GameExplicitMessageDelivery(
+                    inventory.CommittedUpdates.Select(value => (IGameServerMessage)
                         new InventoryDeltaMessage(
                             value.ContainerType, value.Items, value.PreparedAt)).ToArray(),
                     []),
@@ -217,7 +218,7 @@ public sealed class SelectCharacterHandler(
         {
             await sender.SendExplicitAsync(
                 session.ConnectionId,
-                new ExplicitMessageDelivery([new PvpLobbySnapshotMessage(pvp)], []),
+                new GameExplicitMessageDelivery([new PvpLobbySnapshotMessage(pvp)], []),
                 cancellationToken).ConfigureAwait(false);
             EnsureCurrent(session);
             var pvpPublication = await commandBus.SendAsync(
@@ -228,10 +229,10 @@ public sealed class SelectCharacterHandler(
             {
                 await sender.SendExplicitAsync(
                     session.ConnectionId,
-                    new ExplicitMessageDelivery([], pvpPublication.Targets.Select(target =>
-                        new ExplicitMessageTarget(
+                    new GameExplicitMessageDelivery([], pvpPublication.Targets.Select(target =>
+                        new GameExplicitMessageTarget(
                             target.ConnectionId,
-                            [(IServerNetworkMessage)new PvpParticipantPublicationMessage(
+                            [(IGameServerMessage)new PvpParticipantPublicationMessage(
                                 target.Participant)]))
                         .ToArray()),
                     cancellationToken).ConfigureAwait(false);
@@ -240,7 +241,7 @@ public sealed class SelectCharacterHandler(
 
         await sender.SendExplicitAsync(
             session.ConnectionId,
-            new ExplicitMessageDelivery(
+            new GameExplicitMessageDelivery(
                 [new TrailingEquipmentLockSnapshotMessage(
                     prepared.CharacterInventory, prepared.AccountInventory)],
                 []),
@@ -256,7 +257,7 @@ public sealed class SelectCharacterHandler(
             prepared = questChange.Result;
             await sender.SendExplicitAsync(
                 session.ConnectionId,
-                new ExplicitMessageDelivery(
+                new GameExplicitMessageDelivery(
                     [new AcceptedQuestProgressMessage(questChange.State.Quests)], []),
                 cancellationToken).ConfigureAwait(false);
         }
@@ -271,7 +272,7 @@ public sealed class SelectCharacterHandler(
             prepared = petChange.Result;
             await sender.SendExplicitAsync(
                 session.ConnectionId,
-                new ExplicitMessageDelivery(
+                new GameExplicitMessageDelivery(
                     [new PetRevivalStateMessage(petChange.State)], []),
                 cancellationToken).ConfigureAwait(false);
         }
@@ -284,7 +285,7 @@ public sealed class SelectCharacterHandler(
         {
             await sender.SendExplicitAsync(
                 session.ConnectionId,
-                new ExplicitMessageDelivery([new DungeonRejoinStateMessage(state)], []),
+                new GameExplicitMessageDelivery([new DungeonRejoinStateMessage(state)], []),
                 cancellationToken).ConfigureAwait(false);
         }
     }
@@ -325,8 +326,22 @@ public sealed class SelectCharacterHandler(
         IEnumerable<SupplementalSynchronizationMessage> messages)
     {
         foreach (var message in messages)
-            _ = message.EncodeFrames();
+            _ = message.EncodePayloads();
     }
+
+    private ValueTask SendClassifiedAsync(
+        NetworkConnectionId connectionId,
+        IGameServerMessage message,
+        CancellationToken cancellationToken) =>
+        message switch
+        {
+            IGameCmdMessage command =>
+                sender.SendCmdAsync(connectionId, command, cancellationToken),
+            IGameNotiMessage notification =>
+                sender.SendNotiAsync(connectionId, notification, cancellationToken),
+            _ => throw new InvalidDataException(
+                $"Game message '{message.GetType().Name}' has no CMD/NOTI classification."),
+        };
 
     private void EnsureCurrent(SelectedSessionIdentity session)
     {

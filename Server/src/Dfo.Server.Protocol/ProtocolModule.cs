@@ -49,6 +49,7 @@ public sealed class ProtocolModule : IServerModule
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        services.AddGameMessageSending();
         services.TryAddSingleton<ChannelProtocolKeyProvider>();
         services.TryAddSingleton<ISelectedCharacterStateMessageFactory, SelectedCharacterStateMessageFactoryService>();
         services.TryAddEnumerable(
@@ -134,33 +135,31 @@ public sealed class ProtocolModule : IServerModule
     /// not: type 0x0008 produces the account roster request, which carries a synthesised catalogue
     /// value with no wire number of its own.
     ///
-    /// Every Game line below registers under <see cref="Game.GameProtocol.Command"/>, so that is
-    /// currently the only Game command byte any wire key here carries. The command is part of the
-    /// key rather than a separate condition, so a frame carrying another command matches nothing
-    /// registered here.
+    /// Every client-originated Game line below is explicitly CMD. The selector remains part of the
+    /// wire key, so an unregistered selector/type pair matches nothing and is silently ignored.
     /// </remarks>
     private static void RegisterInboundDecoders(IServiceCollection services)
     {
-        services.AddGameMessageDecoder<GameLoginMessageDecoder>(
-            GameProtocol.Command, GameProtocol.LoginType, ClientMessageType.GameLogin);
-        services.AddGameMessageDecoder<GameExitMessageDecoder>(
-            GameProtocol.Command, GameProtocol.ExitType, ClientMessageType.GameExit);
-        services.AddGameMessageDecoder<SelectCharacterMessageDecoder>(
-            GameProtocol.Command, GameProtocol.SelectCharacterType, ClientMessageType.GameSelectCharacter);
-        services.AddGameMessageDecoder<GetUserInfoMessageDecoder>(
-            GameProtocol.Command, GameProtocol.GetUserInfoType, ClientMessageType.GameGetAccountCharacterRoster);
-        services.AddGameMessageDecoder<ClientSpecStatisticMessageDecoder>(
-            GameProtocol.Command, GameProtocol.ClientSpecStatisticType, ClientMessageType.GameClientSpecStatistic);
-        services.AddGameMessageDecoder<ClientHardwareDetailMessageDecoder>(
-            GameProtocol.Command, GameProtocol.ClientHardwareDetailType, ClientMessageType.GameClientHardwareDetail);
-        services.AddGameMessageDecoder<ClientSpecProfileMessageDecoder>(
-            GameProtocol.Command, GameProtocol.ClientSpecProfileType, ClientMessageType.GameClientSpecProfile);
-        services.AddGameMessageDecoder<SessionMetricsMessageDecoder>(
-            GameProtocol.Command, GameProtocol.SessionMetricsType, ClientMessageType.GameSessionMetrics);
-        services.AddGameMessageDecoder<TaggedIdReportMessageDecoder>(
-            GameProtocol.Command, GameProtocol.TaggedIdReportType, ClientMessageType.GameTaggedIdReport);
-        services.AddGameMessageDecoder<RosterFollowUpMessageDecoder>(
-            GameProtocol.Command, GameProtocol.RosterFollowUpType, ClientMessageType.GameRosterFollowUp);
+        services.AddGameCmdMessageDecoder<GameLoginMessageDecoder>(
+            GameProtocol.LoginType, ClientMessageType.GameLogin);
+        services.AddGameCmdMessageDecoder<GameExitMessageDecoder>(
+            GameProtocol.ExitType, ClientMessageType.GameExit);
+        services.AddGameCmdMessageDecoder<SelectCharacterMessageDecoder>(
+            GameProtocol.SelectCharacterType, ClientMessageType.GameSelectCharacter);
+        services.AddGameCmdMessageDecoder<GetUserInfoMessageDecoder>(
+            GameProtocol.GetUserInfoType, ClientMessageType.GameGetAccountCharacterRoster);
+        services.AddGameCmdMessageDecoder<ClientSpecStatisticMessageDecoder>(
+            GameProtocol.ClientSpecStatisticType, ClientMessageType.GameClientSpecStatistic);
+        services.AddGameCmdMessageDecoder<ClientHardwareDetailMessageDecoder>(
+            GameProtocol.ClientHardwareDetailType, ClientMessageType.GameClientHardwareDetail);
+        services.AddGameCmdMessageDecoder<ClientSpecProfileMessageDecoder>(
+            GameProtocol.ClientSpecProfileType, ClientMessageType.GameClientSpecProfile);
+        services.AddGameCmdMessageDecoder<SessionMetricsMessageDecoder>(
+            GameProtocol.SessionMetricsType, ClientMessageType.GameSessionMetrics);
+        services.AddGameCmdMessageDecoder<TaggedIdReportMessageDecoder>(
+            GameProtocol.TaggedIdReportType, ClientMessageType.GameTaggedIdReport);
+        services.AddGameCmdMessageDecoder<RosterFollowUpMessageDecoder>(
+            GameProtocol.RosterFollowUpType, ClientMessageType.GameRosterFollowUp);
         services.AddChannelMessageDecoder<ChannelScriptVersionMessageDecoder>(
             ChannelProtocol.ScriptVersionMessageNumber, ClientMessageType.ChannelScriptVersion);
         services.AddChannelMessageDecoder<ChannelScriptMessageDecoder>(
@@ -194,13 +193,9 @@ public sealed class ProtocolModule : IServerModule
             NetworkEndpointKind.Channel);
         services.AddServerMessageEncoder<ChannelInfoResponse, ChannelInfoResponseEncoder>(
             NetworkEndpointKind.Channel);
-        services.AddServerMessageEncoder<GameExitResponse, GameExitResponseEncoder>(
-            NetworkEndpointKind.Game);
-        services.AddServerMessageEncoder<GameInitialConnectionNotice, GameInitialConnectionNoticeEncoder>(
-            NetworkEndpointKind.Game);
-        services.AddServerMessageEncoder<GameLoginResponse, GameLoginResponseEncoder>(
-            NetworkEndpointKind.Game);
-        services.AddServerMessageEncoder<AccountCharacterRosterResponse, AccountCharacterRosterResponseEncoder>(
-            NetworkEndpointKind.Game);
+        services.AddGameCmdMessageEncoder<GameExitResponse, GameExitResponseEncoder>();
+        services.AddGameNotiMessageEncoder<GameInitialConnectionNotice, GameInitialConnectionNoticeEncoder>();
+        services.AddGameCmdMessageEncoder<GameLoginResponse, GameLoginResponseEncoder>();
+        services.AddGameNotiMessageEncoder<AccountCharacterRosterResponse, AccountCharacterRosterResponseEncoder>();
     }
 }

@@ -605,10 +605,10 @@ public sealed class SelectCharacterLifecycleTests
 
     private sealed class StubStateMessageFactory : ISelectedCharacterStateMessageFactory
     {
-        public IReadOnlyList<IServerNetworkMessage> CreateValidated(SelectCharacterResult result) =>
+        public IReadOnlyList<IGameServerMessage> CreateValidated(SelectCharacterResult result) =>
             [new StubStateMessage()];
 
-        private sealed record StubStateMessage : IServerNetworkMessage
+        private sealed record StubStateMessage : IGameNotiMessage
         {
             public ServerMessageType MessageType => ServerMessageType.GameStateSynchronization;
         }
@@ -850,7 +850,7 @@ public sealed class SelectCharacterLifecycleTests
     private sealed class RecordingSender(
         List<string> ledger, bool failTrailingLocks, bool failPvp,
         bool failPvpTarget, bool failStatic, bool blockStatic)
-        : INetworkMessageSender
+        : IGameMessageSender
     {
         public bool FailStatic { get; set; } = failStatic;
         private readonly TaskCompletionSource staticRelease = new(
@@ -860,9 +860,17 @@ public sealed class SelectCharacterLifecycleTests
         public void ReleaseStatic() => staticRelease.TrySetResult();
         public int StateMessageCount { get; private set; }
 
-        public ValueTask SendAsync(
-            NetworkConnectionId connectionId, IServerNetworkMessage message,
-            CancellationToken cancellationToken)
+        public ValueTask SendCmdAsync(
+            NetworkConnectionId connectionId, IGameCmdMessage message,
+            CancellationToken cancellationToken) =>
+            SendClassifiedAsync(message);
+
+        public ValueTask SendNotiAsync(
+            NetworkConnectionId connectionId, IGameNotiMessage message,
+            CancellationToken cancellationToken) =>
+            SendClassifiedAsync(message);
+
+        private ValueTask SendClassifiedAsync(IGameServerMessage message)
         {
             if (message.MessageType == ServerMessageType.GameStateSynchronization)
             {
@@ -891,7 +899,7 @@ public sealed class SelectCharacterLifecycleTests
         }
 
         public ValueTask SendExplicitAsync(
-            NetworkConnectionId connectionId, ExplicitMessageDelivery delivery,
+            NetworkConnectionId connectionId, GameExplicitMessageDelivery delivery,
             CancellationToken cancellationToken)
         {
             if (delivery.RequiredDirectMessages.Count == 0
@@ -900,7 +908,7 @@ public sealed class SelectCharacterLifecycleTests
             var messageName = delivery.RequiredDirectMessages.FirstOrDefault()?.GetType().Name;
             var trailing = messageName == "TrailingEquipmentLockSnapshotMessage";
             var pvp = messageName == "PvpLobbySnapshotMessage";
-            var rejection = messageName == "EntryAdmissionRejectedMessage";
+            var rejection = messageName == "EntryAdmissionRejectedCommandMessage";
             var target = delivery.BestEffortTargets.Count > 0;
             ledger.Add(rejection ? "x08" : pvp ? "pvp" : target ? "target" : trailing ? "x11" : "pre");
             if (pvp && failPvp)

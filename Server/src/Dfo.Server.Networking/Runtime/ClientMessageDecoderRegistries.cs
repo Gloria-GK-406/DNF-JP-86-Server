@@ -14,7 +14,7 @@ namespace Dfo.Server.Networking.Runtime;
 /// </remarks>
 internal sealed class GameMessageDecoderRegistry
 {
-    private readonly IReadOnlyDictionary<(byte Command, ushort Type), IGameMessageDecoder> decoders;
+    private readonly IReadOnlyDictionary<(byte Selector, ushort Type), IGameMessageDecoder> decoders;
 
     public GameMessageDecoderRegistry(
         IEnumerable<GameMessageDecoderRegistration> registrations,
@@ -24,23 +24,23 @@ internal sealed class GameMessageDecoderRegistry
         ArgumentNullException.ThrowIfNull(provider);
         var registrationList = registrations.ToArray();
         var duplicate = registrationList
-            .GroupBy(item => (item.Command, item.Type))
+            .GroupBy(item => (item.Selector, item.Type))
             .FirstOrDefault(group => group.Count() > 1);
 
         if (duplicate is not null)
         {
             throw new InvalidOperationException(
-                $"Game wire key 0x{duplicate.Key.Command:X2}/0x{duplicate.Key.Type:X4} " +
+                $"Game wire key 0x{duplicate.Key.Selector:X2}/0x{duplicate.Key.Type:X4} " +
                 "was registered more than once.");
         }
 
         decoders = registrationList.ToDictionary(
-            item => (item.Command, item.Type),
+            item => (item.Selector, item.Type),
             item => (IGameMessageDecoder)provider.GetRequiredService(item.DecoderType));
     }
 
-    public IGameMessageDecoder? Find(byte command, ushort type) =>
-        decoders.TryGetValue((command, type), out var decoder) ? decoder : null;
+    public IGameMessageDecoder? Find(byte selector, ushort type) =>
+        decoders.TryGetValue((selector, type), out var decoder) ? decoder : null;
 }
 
 /// <summary>

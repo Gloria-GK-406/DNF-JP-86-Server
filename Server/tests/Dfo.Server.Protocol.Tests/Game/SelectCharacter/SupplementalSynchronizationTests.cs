@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Networking.Framing;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.SelectCharacter;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 
@@ -12,12 +13,16 @@ public sealed class SupplementalSynchronizationTests
     [Fact]
     public void ConcreteMessages_EncodeWithoutATypeSwitch()
     {
-        var frames = new SupplementalSynchronizationMessage[]
+        var payloads = new SupplementalSynchronizationMessage[]
             { new UserVisibilityMessage(7, 3), new TownDepartureMessage(9) }
-            .SelectMany(value => value.EncodeFrames())
+            .SelectMany(value => value.EncodePayloads())
             .ToArray();
 
-        Assert.Equal([0x0165, 0x0006], frames.Select(Type));
+        Assert.Equal([0x0165, 0x0006], payloads.Select(Type));
+        Assert.All(
+            new IGameServerMessage[]
+                { new UserVisibilityMessage(7, 3), new TownDepartureMessage(9) },
+            message => Assert.IsAssignableFrom<IGameNotiMessage>(message));
     }
 
     [Fact]
@@ -48,7 +53,8 @@ public sealed class SupplementalSynchronizationTests
             .Single(value => value.ContainerType == Dfo.Server.Data.Inventory.InventoryContainerType.Main).Items);
         var update = new InventoryDeltaMessage(
             Dfo.Server.Data.Inventory.InventoryContainerType.Main, [item], prepared.World.PreparedAt);
-        var updateFrame = GameServerFrameEncoder.Encode(update.Command, update.Type, update.EncodeBody());
+        var updateFrame = Assert.Single(
+            new GameNotiStateSynchronizationEncoder<InventoryDeltaMessage>().Encode(update));
         Assert.Equal((ushort)0x000E, Type(updateFrame));
         Assert.Equal((byte)Dfo.Server.Data.Inventory.InventoryContainerType.Main, Body(updateFrame)[0]);
         Assert.Equal((ushort)1, BinaryPrimitives.ReadUInt16LittleEndian(Body(updateFrame).AsSpan(1)));
@@ -57,7 +63,15 @@ public sealed class SupplementalSynchronizationTests
     [Fact]
     public void SelectCharacterRejection_EncodesOrderedCommandAndNoticePair()
     {
-        var frames = SupplementalSynchronizationCodec.EncodeRejection(0xFD, "level gate", 0);
+        var frames = new[]
+        {
+            Assert.Single(new SupplementalCmdSynchronizationEncoder<
+                EntryAdmissionRejectedCommandMessage>().Encode(
+                    new EntryAdmissionRejectedCommandMessage(0xFD))),
+            Assert.Single(new SupplementalNotiSynchronizationEncoder<
+                EntryAdmissionNoticeMessage>().Encode(
+                    new EntryAdmissionNoticeMessage("level gate"))),
+        };
 
         Assert.Equal([(byte)1, (byte)0], frames.Select(frame => frame[0]));
         Assert.Equal([0x0004, 0x01F7], frames.Select(Type));
@@ -123,13 +137,13 @@ public sealed class SupplementalSynchronizationTests
         var batch = SupplementalSynchronizationCodec.EncodePvpLobby(
             new PvpLobbySynchronizationState([existingA, existingB], rooms, newcomer));
 
-        Assert.Equal([0x0002, 0x0029], batch.DirectFrames.Select(Type));
-        Assert.Equal([0x0002], batch.PublicationFrames.Select(Type));
-        var roster = Body(batch.DirectFrames[0]);
+        Assert.Equal([0x0002, 0x0029], batch.DirectPayloads.Select(Type));
+        Assert.Equal([0x0002], batch.PublicationPayloads.Select(Type));
+        var roster = Body(batch.DirectPayloads[0]);
         Assert.Equal(3, BinaryPrimitives.ReadUInt16LittleEndian(roster.AsSpan(1)));
         Assert.True(Array.IndexOf(roster, (byte)0xA1) < Array.IndexOf(roster, (byte)0xB2));
         Assert.True(Array.IndexOf(roster, (byte)0xB2) < Array.IndexOf(roster, (byte)0xC3));
-        var roomBody = Body(batch.DirectFrames[1]);
+        var roomBody = Body(batch.DirectPayloads[1]);
         Assert.Equal(2, BinaryPrimitives.ReadUInt16LittleEndian(roomBody));
         Assert.Equal(20, BinaryPrimitives.ReadUInt16LittleEndian(roomBody.AsSpan(2)));
         Assert.Equal([0xC3], newcomer.Character.Identity.Name);
@@ -165,11 +179,18 @@ public sealed class SupplementalSynchronizationTests
                 [new CharacterRosterAppearanceState(7, 1000, 4, [1, 2, 3, 4], 8, 2000, 9, 10)],
                 3000)]);
 
-        var frame = SupplementalSynchronizationCodec.EncodeRoster(roster);
-        var body = Body(frame);
-        Assert.Equal((ushort)0x0002, Type(frame));
+        var payload = SupplementalSynchronizationCodec.EncodeRoster(roster);
+        var body = Body(payload);
+        Assert.Equal((ushort)0x0002, Type(payload));
         Assert.Equal(2, body[0]);
         Assert.Contains(BitConverter.GetBytes(1000), body);
+
+        var frame = Assert.Single(
+            new SupplementalNotiSynchronizationEncoder<AccountRosterStateMessage>().Encode(
+                new AccountRosterStateMessage(roster)));
+        Assert.Equal((byte)GameMessageClass.Noti, frame[0]);
+        Assert.Equal(2u, BinaryPrimitives.ReadUInt32LittleEndian(frame.AsSpan(7, 4)));
+        Assert.Equal(body, Body(frame));
 
         Assert.Throws<InvalidDataException>(() =>
             SupplementalSynchronizationCodec.EncodeRoster(roster with
@@ -189,6 +210,10 @@ public sealed class SupplementalSynchronizationTests
     private static ushort Type(byte[] frame) => BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1));
 
     private static byte[] Body(byte[] frame) => frame[GameServerFrameEncoder.HeaderLength..];
+
+    private static ushort Type(GameMessagePayload payload) => payload.Type;
+
+    private static byte[] Body(GameMessagePayload payload) => payload.Body.ToArray();
 
     private static PvpParticipantEntryState Identity(ushort userId, byte marker)
     {

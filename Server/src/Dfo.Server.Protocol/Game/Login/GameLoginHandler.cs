@@ -7,7 +7,7 @@ namespace Dfo.Server.Protocol.Game.Login;
 
 public sealed class GameLoginHandler(
     IOnlineUserQueryService onlineUsers,
-    INetworkMessageSender sender,
+    IGameMessageSender sender,
     ICommandBus commandBus) : ClientMessageHandler<GameLoginRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -28,7 +28,7 @@ public sealed class GameLoginHandler(
                 message.LoginId,
                 message.PasswordHash),
             cancellationToken).ConfigureAwait(false);
-        await sender.SendAsync(
+        await sender.SendCmdAsync(
             context.Connection.ConnectionId,
             new GameLoginResponse(true),
             cancellationToken).ConfigureAwait(false);

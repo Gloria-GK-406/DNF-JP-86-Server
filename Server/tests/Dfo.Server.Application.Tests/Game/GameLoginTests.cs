@@ -7,6 +7,7 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Protocol.Game.Login;
+using Dfo.Server.Protocol.Game;
 
 namespace Dfo.Server.Application.Tests.Game;
 
@@ -110,15 +111,15 @@ public sealed class GameLoginTests
         }
     }
 
-    private sealed class RecordingSender : INetworkMessageSender
+    private sealed class RecordingSender : IGameMessageSender
     {
         public NetworkConnectionId ConnectionId { get; private set; }
 
-        public IServerNetworkMessage? Message { get; private set; }
+        public IGameServerMessage? Message { get; private set; }
 
-        public ValueTask SendAsync(
+        public ValueTask SendCmdAsync(
             NetworkConnectionId connectionId,
-            IServerNetworkMessage message,
+            IGameCmdMessage message,
             CancellationToken cancellationToken)
         {
             ConnectionId = connectionId;
@@ -128,8 +129,14 @@ public sealed class GameLoginTests
 
         public ValueTask SendExplicitAsync(
             NetworkConnectionId requiredDirectConnectionId,
-            ExplicitMessageDelivery delivery,
+            GameExplicitMessageDelivery delivery,
             CancellationToken cancellationToken) =>
             throw new InvalidOperationException("This handler does not use explicit-recipient delivery.");
+
+        public ValueTask SendNotiAsync(
+            NetworkConnectionId connectionId,
+            IGameNotiMessage message,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("Login sends a CMD response.");
     }
 }

@@ -43,7 +43,7 @@ public sealed class FrameRequestInfoTests
 
         Assert.True(request.OnParsingHeader(header));
         Assert.True(request.OnParsingBody(body));
-        Assert.Equal(0x01, request.Command);
+        Assert.Equal(0x01, request.Selector);
         Assert.Equal(0x2345, request.Type);
         Assert.Equal(0x89ABCDEFu, request.Checksum);
         Assert.Equal(0x6789, request.Sequence);

@@ -18,7 +18,7 @@ public sealed class OnlineUserConnectionObserver(
     ISelectedSessionDirectory selectedSessions,
     ISelectedSessionCleanupService cleanup,
     IChannelEntryPolicy channels,
-    INetworkMessageSender sender,
+    IGameMessageSender gameSender,
     TimeProvider timeProvider) : INetworkConnectionObserver
 {
     public async ValueTask ConnectedAsync(
@@ -41,7 +41,7 @@ public sealed class OnlineUserConnectionObserver(
                     $"Game listener '{connection.ListenerPort}' does not resolve to a wire channel ID.");
             }
 
-            await sender.SendAsync(
+            await gameSender.SendNotiAsync(
                 connection.ConnectionId,
                 new GameInitialConnectionNotice(channel.ChannelId, timeProvider.GetUtcNow()),
                 cancellationToken).ConfigureAwait(false);
@@ -86,7 +86,7 @@ public sealed class OnlineUserConnectionObserver(
                 {
                     var notifications = await cleanup.CleanupAsync(
                         selected, includeOwner: false, CancellationToken.None).ConfigureAwait(false);
-                    await sender.SendExplicitAsync(
+                    await gameSender.SendExplicitAsync(
                         notifications.OwnerConnectionId,
                         CleanupSynchronizationDelivery.Create(notifications),
                         CancellationToken.None).ConfigureAwait(false);
@@ -95,7 +95,7 @@ public sealed class OnlineUserConnectionObserver(
                 {
                     try
                     {
-                        await sender.SendExplicitAsync(
+                        await gameSender.SendExplicitAsync(
                             cleanupFailure.NotificationPlan.OwnerConnectionId,
                             CleanupSynchronizationDelivery.Create(
                                 cleanupFailure.NotificationPlan),

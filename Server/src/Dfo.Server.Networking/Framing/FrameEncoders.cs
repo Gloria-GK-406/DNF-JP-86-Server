@@ -32,7 +32,12 @@ public static class GameServerFrameEncoder
 {
     public const int HeaderLength = 15;
 
-    public static byte[] Encode(byte command, ushort type, ReadOnlySpan<byte> body)
+    public static byte[] Encode(
+        byte selector,
+        ushort type,
+        ReadOnlySpan<byte> body,
+        uint checksum = 0,
+        uint reserved = 0)
     {
         var totalLength = checked(HeaderLength + body.Length);
         if (totalLength > DnfFrameProtocol.MaximumFrameLength)
@@ -41,9 +46,11 @@ public static class GameServerFrameEncoder
         }
 
         var frame = new byte[totalLength];
-        frame[0] = command;
+        frame[0] = selector;
         BinaryPrimitives.WriteUInt16LittleEndian(frame.AsSpan(1), type);
         BinaryPrimitives.WriteUInt32LittleEndian(frame.AsSpan(3), (uint)totalLength);
+        BinaryPrimitives.WriteUInt32LittleEndian(frame.AsSpan(7), checksum);
+        BinaryPrimitives.WriteUInt32LittleEndian(frame.AsSpan(11), reserved);
         body.CopyTo(frame.AsSpan(HeaderLength));
         return frame;
     }

@@ -1,9 +1,6 @@
 using System.Buffers.Binary;
 using System.Text;
-using Dfo.Server.Abstractions.Networking;
-using Dfo.Server.Data.Networking;
 using Dfo.Server.Networking.Configuration;
-using Dfo.Server.Networking.Framing;
 
 namespace Dfo.Server.Protocol.Game.Login;
 
@@ -13,15 +10,15 @@ namespace Dfo.Server.Protocol.Game.Login;
 /// transport configuration, and that dependency lived entirely in this encoding.
 /// </summary>
 internal sealed class GameLoginResponseEncoder(GameLoginOptions options)
-    : ServerMessageEncoder<GameLoginResponse>
+    : GameCmdMessageEncoder<GameLoginResponse>
 {
-    protected override IReadOnlyList<byte[]> EncodeMessage(GameLoginResponse message) =>
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(GameLoginResponse message) =>
         message.Succeeded
-            ? One(EncodeSuccess(options))
+            ? OnePayload(GameProtocol.LoginType, EncodeSuccessBody(options))
             : throw new InvalidOperationException(
                 "The observed Game LOGIN protocol has no failure body yet.");
 
-    internal static byte[] EncodeSuccess(GameLoginOptions options)
+    internal static byte[] EncodeSuccessBody(GameLoginOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
         var serverIp = Encoding.ASCII.GetBytes(options.ServerIp);
@@ -37,6 +34,6 @@ internal sealed class GameLoginResponseEncoder(GameLoginOptions options)
         var offset = 13 + serverIp.Length;
         BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(offset, 4), options.UnknownPort);
         BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(offset + 4, 4), options.UnknownPort);
-        return GameServerFrameEncoder.Encode(GameProtocol.Command, GameProtocol.LoginType, body);
+        return body;
     }
 }

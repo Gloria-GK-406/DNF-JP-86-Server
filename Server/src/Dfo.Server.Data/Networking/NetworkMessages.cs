@@ -51,7 +51,7 @@ public sealed record ChannelMessageMetadata(
 }
 
 public sealed record GameMessageMetadata(
-    byte Command,
+    byte Selector,
     ushort Type,
     uint Checksum,
     ushort Sequence)

@@ -7,7 +7,7 @@ namespace Dfo.Server.Abstractions.Networking;
 /// Decodes the body of one Game endpoint wire type into a typed client message.
 /// </summary>
 /// <remarks>
-/// The two endpoints do not share a frame header -- Game carries a command and a type, Channel a
+/// The two endpoints do not share a frame header -- Game carries a selector and a type, Channel a
 /// classification and a message number -- so each gets its own seam. A merged seam would hand every
 /// implementer fields that are meaningless for its own endpoint.
 ///
@@ -32,7 +32,7 @@ public interface IChannelMessageDecoder
 }
 
 /// <summary>Binds one Game wire key to the decoder that owns it.</summary>
-public sealed record GameMessageDecoderRegistration(byte Command, ushort Type, Type DecoderType);
+public sealed record GameMessageDecoderRegistration(byte Selector, ushort Type, Type DecoderType);
 
 /// <summary>Binds one Channel message number to the decoder that owns it.</summary>
 public sealed record ChannelMessageDecoderRegistration(byte MessageNumber, Type DecoderType);
@@ -55,7 +55,7 @@ public static class ClientMessageDecodingExtensions
     /// </summary>
     public static IServiceCollection AddGameMessageDecoder<TDecoder>(
         this IServiceCollection services,
-        byte command,
+        byte selector,
         ushort type,
         params ClientMessageType[] produces)
         where TDecoder : class, IGameMessageDecoder
@@ -63,7 +63,7 @@ public static class ClientMessageDecodingExtensions
         ArgumentNullException.ThrowIfNull(services);
         RequireDeclaredProductions<TDecoder>(produces);
         services.AddSingleton<TDecoder>();
-        services.AddSingleton(new GameMessageDecoderRegistration(command, type, typeof(TDecoder)));
+        services.AddSingleton(new GameMessageDecoderRegistration(selector, type, typeof(TDecoder)));
         return AddProductions<TDecoder>(services, produces);
     }
 

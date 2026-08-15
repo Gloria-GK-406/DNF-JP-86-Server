@@ -1,36 +1,34 @@
 using System.Text;
 using Dfo.Server.Data.Game;
-using Dfo.Server.Networking.Framing;
-using Dfo.Server.Protocol.Game.StateSynchronization;
 
 namespace Dfo.Server.Protocol.Game.StateSynchronization;
 
 internal sealed record PvpSynchronizationBatch(
-    IReadOnlyList<byte[]> DirectFrames,
-    IReadOnlyList<byte[]> PublicationFrames);
+    IReadOnlyList<GameMessagePayload> DirectPayloads,
+    IReadOnlyList<GameMessagePayload> PublicationPayloads);
 
 /// <summary>Pure framing for X-01 through X-18. Callers own applicability, recipients and mutations.</summary>
 internal static class SupplementalSynchronizationCodec
 {
-    public static byte[] EncodeVisibility(ushort userId, byte userStateBits)
+    public static GameMessagePayload EncodeVisibility(ushort userId, byte userStateBits)
     {
         using var stream = new MemoryStream(3);
         using var writer = new BinaryWriter(stream);
         writer.Write(userId);
         writer.Write(userStateBits);
-        return Frame(0, 0x0165, stream.ToArray());
+        return Payload(0x0165, stream.ToArray());
     }
 
-    public static byte[] EncodeCloneTitle(uint itemId)
+    public static GameMessagePayload EncodeCloneTitle(uint itemId)
     {
         using var stream = new MemoryStream(5);
         using var writer = new BinaryWriter(stream);
         writer.Write((byte)1);
         writer.Write(itemId);
-        return Frame(1, 0x0239, stream.ToArray());
+        return Payload(0x0239, stream.ToArray());
     }
 
-    public static byte[] EncodeRoster(CharacterRosterEntryState value)
+    public static GameMessagePayload EncodeRoster(CharacterRosterEntryState value)
     {
         ArgumentNullException.ThrowIfNull(value);
         var characters = value.Characters ?? throw Missing("Roster.Characters");
@@ -63,21 +61,19 @@ internal static class SupplementalSynchronizationCodec
             WriteRosterTail(writer, character.CloneTitleItemId);
         }
 
-        var frame = Frame(0, 0x0002, stream.ToArray());
-        frame[7] = 2;
-        return frame;
+        return new GameMessagePayload(0x0002, stream.ToArray(), Checksum: 2);
     }
 
-    public static byte[] EncodeHonor(uint level, uint experience)
+    public static GameMessagePayload EncodeHonor(uint level, uint experience)
     {
         using var stream = new MemoryStream(8);
         using var writer = new BinaryWriter(stream);
         writer.Write(level);
         writer.Write(experience);
-        return Frame(0, 0x0289, stream.ToArray());
+        return Payload(0x0289, stream.ToArray());
     }
 
-    public static byte[] EncodeGrowthCapsule(
+    public static GameMessagePayload EncodeGrowthCapsule(
         byte level,
         uint totalExperience,
         ushort page0Sp,
@@ -119,23 +115,19 @@ internal static class SupplementalSynchronizationCodec
         writer.Write(0u);
         writer.Write(0u);
         writer.Write(0u);
-        return Frame(0, 0x0025, stream.ToArray());
+        return Payload(0x0025, stream.ToArray());
     }
 
-    public static IReadOnlyList<byte[]> EncodeRejection(
-        byte errorCode,
-        string message,
-        byte noticeMode)
+    public static GameMessagePayload EncodeRejectionCommand(byte errorCode) =>
+        Payload(0x0004, new byte[] { 0, errorCode });
+
+    public static GameMessagePayload EncodeRejectionNotice(string message, byte noticeMode)
     {
         using var notice = new MemoryStream();
         using var writer = new BinaryWriter(notice);
         writer.Write(noticeMode);
         WriteDstr(writer, Encoding.UTF8.GetBytes(message ?? string.Empty));
-        return
-        [
-            Frame(1, 0x0004, [0, errorCode]),
-            Frame(0, 0x01F7, notice.ToArray()),
-        ];
+        return Payload(0x01F7, notice.ToArray());
     }
 
     public static PvpSynchronizationBatch EncodePvpLobby(PvpLobbySynchronizationState value)
@@ -150,21 +142,21 @@ internal static class SupplementalSynchronizationCodec
         return new PvpSynchronizationBatch([roster, roomSnapshot], [publication]);
     }
 
-    public static byte[] EncodePvpIdentity(PvpParticipantEntryState value) =>
+    public static GameMessagePayload EncodePvpIdentity(PvpParticipantEntryState value) =>
         EncodeSinglePvpIdentity(value);
 
-    public static byte[] EncodeTrailingEquipmentLocks(
+    public static GameMessagePayload EncodeTrailingEquipmentLocks(
         Dfo.Server.Data.Inventory.CharacterInventoryEntryState characterInventory,
         Dfo.Server.Data.Inventory.AccountInventoryEntryState accountInventory)
     {
         ArgumentNullException.ThrowIfNull(characterInventory);
         ArgumentNullException.ThrowIfNull(accountInventory);
-        return Frame(0, 0x00FB, StateSynchronizationPayloadCodec.EncodeEquipmentLocks(
+        return Payload(0x00FB, StateSynchronizationPayloadCodec.EncodeEquipmentLocks(
             characterInventory.EquipmentLocks,
             accountInventory.Cargo.EquipmentLocks));
     }
 
-    public static IReadOnlyList<byte[]> EncodeAcceptedQuests(
+    public static IReadOnlyList<GameMessagePayload> EncodeAcceptedQuests(
         IReadOnlyList<AcceptedQuestProgressState>? quests)
     {
         if (quests is null)
@@ -177,10 +169,10 @@ internal static class SupplementalSynchronizationCodec
             writer.Write(quest.QuestId);
             writer.Write(quest.TriggerValue);
         }
-        return [Frame(0, 0x023F, stream.ToArray())];
+        return [Payload(0x023F, stream.ToArray())];
     }
 
-    public static IReadOnlyList<byte[]> EncodePetRevival(PetRevivalState? value)
+    public static IReadOnlyList<GameMessagePayload> EncodePetRevival(PetRevivalState? value)
     {
         if (value is null)
             return [];
@@ -193,10 +185,10 @@ internal static class SupplementalSynchronizationCodec
             writer.Write(value.CreatureKey);
             writer.Write(value.StateValue);
         }
-        return [Frame(0, 0x006B, revival.ToArray()), Frame(0, 0x0067, state.ToArray())];
+        return [Payload(0x006B, revival.ToArray()), Payload(0x0067, state.ToArray())];
     }
 
-    public static IReadOnlyList<byte[]> EncodeDungeonRejoin(DungeonRejoinSynchronizationState? value)
+    public static IReadOnlyList<GameMessagePayload> EncodeDungeonRejoin(DungeonRejoinSynchronizationState? value)
     {
         if (value is null)
             return [];
@@ -208,24 +200,28 @@ internal static class SupplementalSynchronizationCodec
             writer.Write(0);
             writer.Write((byte)0);
         }
-        var frames = new List<byte[]>(participants.Count + 1) { Frame(0, 0x02A7, offer.ToArray()) };
+        var payloads = new List<GameMessagePayload>(participants.Count + 1)
+        {
+            Payload(0x02A7, offer.ToArray()),
+        };
         foreach (var participant in participants)
         {
             using var body = new MemoryStream(2);
             using (var writer = new BinaryWriter(body, Encoding.UTF8, leaveOpen: true))
                 writer.Write(participant);
-            frames.Add(Frame(0, 0x02A8, body.ToArray()));
+            payloads.Add(Payload(0x02A8, body.ToArray()));
         }
-        return frames;
+        return payloads;
     }
 
-    public static byte[] EncodeExpertStoreClose(ushort ownerUserId) =>
-        Frame(0, 0x021C, BitConverter.GetBytes(ownerUserId));
+    public static GameMessagePayload EncodeExpertStoreClose(ushort ownerUserId) =>
+        Payload(0x021C, BitConverter.GetBytes(ownerUserId));
 
-    public static byte[] EncodeTownLeave(ushort userId) =>
-        Frame(0, 0x0006, BitConverter.GetBytes(userId));
+    public static GameMessagePayload EncodeTownLeave(ushort userId) =>
+        Payload(0x0006, BitConverter.GetBytes(userId));
 
-    private static byte[] EncodePvpIdentityRoster(IReadOnlyList<PvpParticipantEntryState> identities)
+    private static GameMessagePayload EncodePvpIdentityRoster(
+        IReadOnlyList<PvpParticipantEntryState> identities)
     {
         if (identities.Count > ushort.MaxValue)
             throw new InvalidDataException("PvP identity count cannot be represented as u16.");
@@ -240,13 +236,13 @@ internal static class SupplementalSynchronizationCodec
             var body = EncodePvpSubtype0(identity);
             writer.Write(body, 3, body.Length - 3);
         }
-        return Frame(0, 0x0002, stream.ToArray());
+        return Payload(0x0002, stream.ToArray());
     }
 
-    private static byte[] EncodeSinglePvpIdentity(PvpParticipantEntryState identity)
+    private static GameMessagePayload EncodeSinglePvpIdentity(PvpParticipantEntryState identity)
     {
         ValidatePvpIdentity(identity, null);
-        return Frame(0, 0x0002, EncodePvpSubtype0(identity));
+        return Payload(0x0002, EncodePvpSubtype0(identity));
     }
 
     private static ushort ValidatePvpIdentity(
@@ -274,7 +270,8 @@ internal static class SupplementalSynchronizationCodec
             participant.Equipment,
             participant.Pets);
 
-    private static byte[] EncodePvpRoomSnapshot(IReadOnlyList<PvpRoomSnapshotState> rooms)
+    private static GameMessagePayload EncodePvpRoomSnapshot(
+        IReadOnlyList<PvpRoomSnapshotState> rooms)
     {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);
@@ -301,7 +298,7 @@ internal static class SupplementalSynchronizationCodec
             writer.Write(room.HasPassword ? (byte)1 : (byte)0);
             writer.Write(room.MatchingType);
         }
-        return Frame(0, 0x0029, stream.ToArray());
+        return Payload(0x0029, stream.ToArray());
     }
 
     private static void WriteAppearance(BinaryWriter writer, CharacterRosterAppearanceState value)
@@ -337,8 +334,8 @@ internal static class SupplementalSynchronizationCodec
         writer.Write(value);
     }
 
-    private static byte[] Frame(byte command, ushort type, ReadOnlySpan<byte> body) =>
-        GameServerFrameEncoder.Encode(command, type, body);
+    private static GameMessagePayload Payload(ushort type, ReadOnlyMemory<byte> body) =>
+        new(type, body);
 
     private static InvalidDataException Missing(string name) =>
         new($"Required supplemental synchronization value '{name}' is unavailable.");

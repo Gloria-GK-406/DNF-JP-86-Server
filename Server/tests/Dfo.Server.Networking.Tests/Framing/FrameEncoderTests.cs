@@ -30,7 +30,7 @@ public sealed class FrameEncoderTests
     public void Game_server_encoder_keeps_the_observed_fifteen_byte_header()
     {
         var actual = GameServerFrameEncoder.Encode(
-            command: 0x01,
+            selector: 0x01,
             type: 0x2345,
             body: new byte[] { 0xAA, 0xBB });
 
@@ -43,6 +43,29 @@ public sealed class FrameEncoderTests
                 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00,
                 0xAA, 0xBB
+            },
+            actual);
+    }
+
+    [Fact]
+    public void Game_server_encoder_writes_opaque_header_values()
+    {
+        var actual = GameServerFrameEncoder.Encode(
+            selector: 0x00,
+            type: 0x0002,
+            body: new byte[] { 0xAA },
+            checksum: 0x11223344,
+            reserved: 0x55667788);
+
+        Assert.Equal(
+            new byte[]
+            {
+                0x00,
+                0x02, 0x00,
+                0x10, 0x00, 0x00, 0x00,
+                0x44, 0x33, 0x22, 0x11,
+                0x88, 0x77, 0x66, 0x55,
+                0xAA,
             },
             actual);
     }

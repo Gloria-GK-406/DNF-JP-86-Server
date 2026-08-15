@@ -9,7 +9,7 @@ public sealed record GetAccountCharacterRosterRequest(
 }
 
 public sealed record AccountCharacterRosterResponse(
-    Dfo.Server.Data.Characters.AccountCharacterRoster Roster) : IServerNetworkMessage
+    Dfo.Server.Data.Characters.AccountCharacterRoster Roster) : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameAccountCharacterRoster;
 }

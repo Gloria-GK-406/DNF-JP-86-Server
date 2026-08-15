@@ -7,7 +7,7 @@ public sealed record GameExitRequest(GameMessageMetadata Metadata) : IClientNetw
     public ClientMessageType MessageType => ClientMessageType.GameExit;
 }
 
-public sealed record GameExitResponse(bool Succeeded) : IServerNetworkMessage
+public sealed record GameExitResponse(bool Succeeded) : IGameCmdMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameExit;
 }

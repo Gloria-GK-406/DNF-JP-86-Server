@@ -68,8 +68,9 @@ TCP 字节
       鉴权门（IOnlineUserQueryService）→ commandBus.SendAsync(...) → 发响应
   → CommandBus 管线（机制在 Application）→ ICommandHandler（在切片内）
       → 领域服务（Application）→ 仓储/内容源（Infrastructure）
-  → INetworkMessageSender（TouchSocketNetworkMessageSender）：按消息 CLR 类型查
-      编码器注册表 → IServerMessageEncoder（Protocol 切片内）产出帧体 → 出站
+  → Game 由 IGameMessageSender 约束 CMD/NOTI，Channel 直接用 INetworkMessageSender；
+      最终均委托 TouchSocketNetworkMessageSender 按消息 CLR 类型查编码器注册表
+      → IServerMessageEncoder（Protocol 切片内）产出完整帧 → 出站
 ```
 
 ### 1) 领域服务编排业务（Application）
@@ -119,7 +120,7 @@ PvP 大厅、副本重进、专家商店）、`World/`（出生点策略、世�
 
 - Networking 只做传输：`ChannelNetworkPlugin`/`GameNetworkPlugin` 把帧交给
   注册表查出的解包器，拿到类型化消息后丢给 dispatcher。**传输侧没有任何
-  `switch`，也不认识任何具体协议**：线级键（Game 是 command+type，Channel 是
+  `switch`，也不认识任何具体协议**：线级键（Game 是 selector+type，Channel 是
   消息号）查不到就是未注册，帧被静默丢弃。
 - 解包与编码都由 DI 注册表驱动，注册表在 `ProtocolModule` 里被填满：
   入站按线级键注册并**声明该解包器能产出哪些目录成员**，出站按消息 CLR 类型
@@ -129,7 +130,7 @@ PvP 大厅、副本重进、专家商店）、`World/`（出生点策略、世�
   解包器声明能产出的消息类型，必须有已注册的 handler，否则启动即抛。
   解包成功却没人接的消息才是接线错误。
 - handler 统一模式：解析连接身份 →（可选）`IChannelEntryPolicy` 解析频道 →
-  发命令 → 用 `INetworkMessageSender` 回响应。没有领域状态或领域决策的纯协议交互
+  发命令 → 用端点对应 sender 回响应。没有领域状态或领域决策的纯协议交互
   可以直接发送，例如 Channel Connect 直接返回 Protocol 所有的当日密钥。
   **handler 不得承载业务语义**：见下面的"handler 业务语义规则"。
 - 发送器按端点校验（Channel 消息只能发往 Channel 连接），Channel 载荷走
@@ -178,6 +179,13 @@ PvP 大厅、副本重进、专家商店）、`World/`（出生点策略、世�
    Protocol 所有的当日密钥；
 4. `commandBus.SendAsync(...)` 与 sender 的单连接或显式收件人发送方法。
 
+Game 出站还必须遵守一条协议边界：`0x01` 是 CMD，`0x00` 是 NOTI，二者由客户端的
+两张独立注册表接收。这个语义只属于 Protocol。每个 Game 出站 message 必须且只能实现
+`IGameCmdMessage` 或 `IGameNotiMessage` 之一；编码器分别继承对应的固定类别基类，handler
+分别调用 `IGameMessageSender.SendCmdAsync` / `SendNotiAsync`。批量或显式收件人发送使用
+`GameExplicitMessageDelivery`，其中每条消息仍携带自身类别，调用方不能覆盖首字节。
+Networking 只把该字节当作不透明 `Selector` 做拆帧、查表与写帧，不解释 CMD/NOTI。
+
 `SelectCharacterHandler` 是批准的多阶段协议工作流例外：除上述四类外，它可以获取并
 释放 `SelectedSessionTransitionGate`、用只读目录/在线查询检查 session 仍为 current、
 维护待关闭连接集合，并在失败时派发专用补偿命令；实际关闭必须在 gate lease 释放后
@@ -193,14 +201,16 @@ PvP 大厅、副本重进、专家商店）、`World/`（出生点策略、世�
 ### 端到端示例：GameLogin
 
 1. 13B 头帧 → `GameClientFrameDataHandlingAdapter` → `GameNetworkPlugin`
-   识别 cmd 0x01/type 0x0001，`GameLoginPayloadCodec` 解出 loginId + 密码哈希
+   按不透明 selector 0x01/type 0x0001 查表；Protocol 将所有 C→S Game 注册固定为 CMD，
+   `GameLoginPayloadCodec` 解出 loginId + 密码哈希
 2. dispatcher → `GameLoginHandler`：要求该连接已有匿名在线注册
    （TCP 连上时由 `OnlineUserConnectionObserver` 创建并推送初始连接通知）
 3. `commandBus.SendAsync(LoginGameUserCommand)` → 管线：日志 →
    OnlineUser 独占租约 → Direct 放行 → `LoginGameUserCommandHandler` →
    `IAccountService.LoginAsync` → SQLite `GetOrCreate` → `OnlineUser.Authenticate`
    （generation +1）
-4. handler 发 `GameLoginResponse(true)` → 编码成功体（服务器 IP、环境字节、
+4. handler 通过 `SendCmdAsync` 发 `GameLoginResponse(true)` → CMD 编码器固定首字节 0x01，
+   再编码成功体（服务器 IP、环境字节、
    LoginChannelPort 10128、UnknownPort 17200）→ 15B 头出站
 
 集成测试 `Dfo.Server.Networking.Tests/Integration/GameLoginIntegrationTests.cs`
@@ -214,7 +224,9 @@ PVP、任务、宠物、重连与补偿等顶层命令，并在阶段之间发�
 `01/0004` 只表示接受进入，后续消息是可复用的生命周期状态同步。发送前会先验证
 已准备的全部必达接受/前置状态可编码；失败时派发 exact-session 补偿命令，lease
 释放后再尽力关闭连接。每个命令 handler 只执行单一领域动作，禁止持有
-`ICommandBus` 递归编排；Networking 只执行通用传输与显式收件人失败隔离。
+`ICommandBus` 递归编排。同步消息按自身协议身份分类，不按工作流位置猜测：进入接受、
+PremiumService、CloneTitle 是 CMD，其余当前状态推送是 NOTI；拒绝保持相邻的 CMD
+`01/0004` 与 NOTI `00/01F7` 两条消息。Networking 只执行通用传输与显式收件人失败隔离。
 
 ### 其他与主设计的偏差（诚实清单）
 

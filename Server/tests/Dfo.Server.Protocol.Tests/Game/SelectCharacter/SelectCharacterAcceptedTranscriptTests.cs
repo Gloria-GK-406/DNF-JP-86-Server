@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.SelectCharacter;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Configuration;
@@ -75,7 +76,7 @@ public sealed class SelectCharacterAcceptedTranscriptTests
         "F3BDDC10EE2DD1DEE773A611FBF41C7D22E4F1C6274F35A93260438218A4990B",
     ];
 
-    private static readonly (byte Command, ushort Type)[] AcceptedStaticIdentities =
+    private static readonly (byte Selector, ushort Type)[] AcceptedStaticIdentities =
     [
         (1, 0x0004), (0, 0x000D), (0, 0x000D), (0, 0x000D),
         (0, 0x000D), (0, 0x000D), (0, 0x0069), (0, 0x0002),
@@ -283,6 +284,65 @@ public sealed class SelectCharacterAcceptedTranscriptTests
             Assert.Single(registrations, value => value.MessageType == messageType));
     }
 
+    [Fact]
+    public void RegisteredGameMessages_HaveExactlyOneCmdOrNotiClassification()
+    {
+        var services = new ServiceCollection();
+        new ProtocolModule().ConfigureServices(
+            services,
+            new ConfigurationBuilder().Build());
+        var registrations = services
+            .Where(value => value.ServiceType == typeof(ServerMessageEncoderRegistration))
+            .Select(value => Assert.IsType<ServerMessageEncoderRegistration>(
+                value.ImplementationInstance))
+            .Where(value => value.Endpoint == NetworkEndpointKind.Game)
+            .ToArray();
+        var messageTypes = typeof(IGameServerMessage).Assembly.GetTypes()
+            .Where(type => !type.IsAbstract
+                && !type.IsInterface
+                && typeof(IGameServerMessage).IsAssignableFrom(type))
+            .OrderBy(type => type.FullName)
+            .ToArray();
+
+        Assert.NotEmpty(registrations);
+        Assert.Equal(
+            messageTypes,
+            registrations.Select(registration => registration.MessageType)
+                .OrderBy(type => type.FullName)
+                .ToArray());
+        Assert.All(registrations, registration =>
+        {
+            Assert.True(typeof(IGameServerMessage).IsAssignableFrom(registration.MessageType));
+            var isCmd = typeof(IGameCmdMessage).IsAssignableFrom(registration.MessageType);
+            var isNoti = typeof(IGameNotiMessage).IsAssignableFrom(registration.MessageType);
+            Assert.True(isCmd ^ isNoti,
+                $"{registration.MessageType.Name} must be exactly one of CMD or NOTI.");
+        });
+    }
+
+    [Fact]
+    public void RegisteredGameClientDecoders_AreCmdOnly()
+    {
+        var services = new ServiceCollection();
+        new ProtocolModule().ConfigureServices(
+            services,
+            new ConfigurationBuilder().Build());
+        var registrations = services
+            .Where(value => value.ServiceType == typeof(GameMessageDecoderRegistration))
+            .Select(value => Assert.IsType<GameMessageDecoderRegistration>(
+                value.ImplementationInstance))
+            .ToArray();
+
+        Assert.NotEmpty(registrations);
+        Assert.All(registrations, registration =>
+            Assert.Equal((byte)GameMessageClass.Cmd, registration.Selector));
+        Assert.Equal(
+            registrations.Length,
+            registrations.Select(registration => (registration.Selector, registration.Type))
+                .Distinct()
+                .Count());
+    }
+
     private static bool IsStateSynchronizationMessage(Type type) =>
         typeof(GameStateSynchronizationMessage).IsAssignableFrom(type)
         || typeof(SupplementalSynchronizationMessage).IsAssignableFrom(type);
@@ -317,7 +377,7 @@ public sealed class SelectCharacterAcceptedTranscriptTests
     private static string Sha256(byte[] frame) =>
         Convert.ToHexString(SHA256.HashData(frame));
 
-    private static (byte Command, ushort Type)[] Identities(IReadOnlyList<byte[]> frames) =>
+    private static (byte Selector, ushort Type)[] Identities(IReadOnlyList<byte[]> frames) =>
         frames.Select(frame =>
         {
             Assert.Equal(frame.Length, BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(3, 4)));

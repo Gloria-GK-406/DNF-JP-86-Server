@@ -127,14 +127,14 @@ Message 建立强类型请求、Command 和响应编码：
 
 | Offset | 长度 | 类型 | 旧字段名 | 当前解释 | 状态 |
 |---:|---:|---|---|---|---|
-| 0 | 1 | `byte` | `cmd` | 命令分类 | 待确认 |
+| 0 | 1 | `byte` | `cmd` | 不透明 selector；Protocol 解释为 CMD=`0x01` / NOTI=`0x00` | 客户端反编译确认 |
 | 1 | 2 | `uint16 LE` | `type` | 业务消息类型 | 代码事实 |
 | 3 | 4 | `uint32 LE` | `length` | 包含 13 字节包头的总帧长度 | 代码事实 |
 | 7 | 4 | `uint32 LE` | `checksum` | 校验值 | 待确认 |
 | 11 | 2 | `uint16 LE` | `seq` | 序号 | 待确认 |
 | 13 | `length - 13` | bytes | Body | 消息负载 | 代码事实 |
 
-### Game 初始连接通知 `cmd=0x00/type=0x0001`
+### Game 初始连接通知 `NOTI 0x00/type=0x0001`
 
 Game TCP 连接建立后，服务端必须先发送一次初始连接通知；客户端在收到它之前不需要先发送
 LOGIN 或其他 Game 帧。当前实现先登记匿名在线连接，再根据接受连接的精确监听端口解析频道，
@@ -280,10 +280,10 @@ u8  count        ; 常量 4
 
 | Offset | 长度 | 类型 | 当前解释 | 状态 |
 |---:|---:|---|---|---|
-| 0 | 1 | `byte` | 命令分类 | 代码事实 |
+| 0 | 1 | `byte` | 不透明 selector；Protocol 解释为 CMD/NOTI | 客户端反编译确认 |
 | 1 | 2 | `uint16 LE` | 业务消息类型 | 代码事实 |
 | 3 | 4 | `uint32 LE` | 包含 15 字节包头的总帧长度 | 代码事实 |
-| 7 | 4 | bytes | 旧实现固定写零，推测为 checksum | 待确认 |
+| 7 | 4 | bytes | 通常为零；补充角色列表 `00/0002` 写 `2`，字段暂称 checksum | 代码事实，语义待确认 |
 | 11 | 4 | bytes | 旧实现固定写零，语义未知 | 待确认 |
 | 15 | `length - 15` | bytes | Body | 代码事实 |
 
@@ -301,11 +301,20 @@ Networking 当前提供：
 - `GameClientFrameDataHandlingAdapter`：TouchSocket Game 入站流适配器。
 - `ChannelFrameEncoder`：生成观察到的 11 字节 Channel 帧。
 - `GameServerFrameEncoder`：生成观察到的 15 字节 Game 服务端帧。
+- `GameServerFrameEncoder` 以不透明数值写入 offset 7 checksum 与 offset 11 reserved；
+  默认均为零，Protocol 可保留已确认的非零既有值（当前为补充角色列表的 checksum `2`）。
+- Game 拆帧、解码注册表和帧编码器只把首字节命名为 `Selector` 并按原值搬运；
+  Networking 不定义也不解释 CMD/NOTI。
 - `ChannelPayloadCipher`：兼容旧实现的 Channel AES-128-ECB、零填充和 zlib 顺序。
 - Channel `0x05/0x09/0x0B/0x11` 到强类型 Message 的解码，以及对应响应编码。
-- Game 连接建立时先登记匿名在线连接，根据精确 Game 监听端口产生强类型初始通知意图，
-  再由 Networking 编码并发送 `cmd=0x00/type=0x0001`；发送失败会撤销该在线身份。
-- Game `cmd=0x01/type=0x0001` LOGIN DString 解码、强类型 Message、账号绑定以及基础
+- Protocol 为每个 Game 出站 message 固定且唯一地标记 `IGameCmdMessage` 或
+  `IGameNotiMessage`，由对应编码器基类写入 selector；`IGameMessageSender` 的
+  `SendCmdAsync` / `SendNotiAsync` 在调用点约束类别，再委托通用 Networking sender。
+- Game 连接建立时先登记匿名在线连接，根据精确 Game 监听端口产生强类型 NOTI 初始通知，
+  再发送 `00/0001`；发送失败会撤销该在线身份。
+- 所有 C→S Game 解码注册通过 Protocol 的 CMD helper 固定为 selector `0x01`，Networking
+  仍以 `(selector,type)` 为不透明路由键；不存在客户端 NOTI 注册路径。
+- Game `CMD 0x01/type=0x0001` LOGIN DString 解码、强类型 Message、账号绑定以及基础
   成功 ACK 编码；身份变更通过按在线用户分区的排他 Command 执行。
 - Game `cmd=0x01/type=0x0003` 到 `GameExitRequest` 的解码，以及 Body 为 `0x01` 的
   `GameExitResponse` ACK 编码；当前实现不因该消息主动关闭连接或清理 Session。
@@ -324,10 +333,10 @@ Networking 当前提供：
   character, account, world, and session views remain separate. Optional
   character-only state such as Dark Knight combos is nullable only when the
   feature does not apply.
-- Networking owns response ordering and conditional packet projection. The
-  initial `CMD 0x0004` acknowledgement is migrated. The remaining legacy
-  initialization sequence is not yet migrated and must not be represented by
-  fabricated empty domain state.
+- Protocol 的 `SelectCharacterHandler` 协调响应顺序和条件状态投影；Networking 只执行
+  通用传输及显式收件人失败隔离。当前接受与状态同步序列均已迁移，并按消息固有类别编码：
+  接受、PremiumService、CloneTitle 为 CMD，其余已实现状态推送为 NOTI。拒绝路径保持
+  相邻的 CMD `01/0004` 与 NOTI `00/01F7`，但由两个独立强类型消息表达。
 
 这些类型属于 Networking 的传输协议层。完整帧形成后，还应由消息 decoder 将
 `msg_no/type + Body` 转换为共享业务数据类型，再通过 Abstractions 中的分发接口进入业务层。

@@ -7,7 +7,7 @@ public sealed class GameClientFrameRequestInfo : IFixedHeaderRequestInfo
 {
     public const int HeaderLength = 13;
 
-    public byte Command { get; private set; }
+    public byte Selector { get; private set; }
 
     public ushort Type { get; private set; }
 
@@ -28,7 +28,7 @@ public sealed class GameClientFrameRequestInfo : IFixedHeaderRequestInfo
             return false;
         }
 
-        Command = header[0];
+        Selector = header[0];
         Type = BinaryPrimitives.ReadUInt16LittleEndian(header[1..3]);
         TotalLength = BinaryPrimitives.ReadUInt32LittleEndian(header[3..7]);
         Checksum = BinaryPrimitives.ReadUInt32LittleEndian(header[7..11]);

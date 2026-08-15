@@ -1,19 +1,18 @@
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
-using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 
 namespace Dfo.Server.Protocol.Game.SelectCharacter;
 
 public interface ISelectedCharacterStateMessageFactory
 {
-    IReadOnlyList<IServerNetworkMessage> CreateValidated(SelectCharacterResult result);
+    IReadOnlyList<IGameServerMessage> CreateValidated(SelectCharacterResult result);
 }
 
 internal sealed class SelectedCharacterStateMessageFactoryService
     : ISelectedCharacterStateMessageFactory
 {
-    public IReadOnlyList<IServerNetworkMessage> CreateValidated(SelectCharacterResult result)
+    public IReadOnlyList<IGameServerMessage> CreateValidated(SelectCharacterResult result)
     {
         var messages = SelectedCharacterStateMessageFactory.Create(result);
         foreach (var message in messages)

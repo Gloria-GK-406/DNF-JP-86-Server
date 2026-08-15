@@ -10,7 +10,7 @@ public sealed record GameLoginRequest(
     public ClientMessageType MessageType => ClientMessageType.GameLogin;
 }
 
-public sealed record GameLoginResponse(bool Succeeded) : IServerNetworkMessage
+public sealed record GameLoginResponse(bool Succeeded) : IGameCmdMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameLogin;
 }

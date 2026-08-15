@@ -4,7 +4,6 @@ using System.Net.Sockets;
 using System.Text;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Networking.Configuration;
-using Dfo.Server.Networking.Framing;
 
 namespace Dfo.Server.Protocol.Game.InitialConnection;
 
@@ -16,7 +15,7 @@ public static class GameInitialConnectionPayloadCodec
     private const int CommandPacketCount = 1086;
     private const int NotificationPacketCount = 1036;
 
-    public static byte[] Encode(
+    public static byte[] EncodeBody(
         GameInitialConnectionNotice notice,
         GameLoginOptions options)
     {
@@ -52,7 +51,7 @@ public static class GameInitialConnectionPayloadCodec
         body.WriteByte(0x00);
         WriteInt32(body, CommandPacketCount);
         WriteInt32(body, NotificationPacketCount);
-        return GameServerFrameEncoder.Encode(0x00, GameProtocol.LoginType, body.ToArray());
+        return body.ToArray();
     }
 
     private static void WriteDString(Stream stream, string value)

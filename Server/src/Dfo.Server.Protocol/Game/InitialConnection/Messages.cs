@@ -4,7 +4,7 @@ namespace Dfo.Server.Protocol.Game.InitialConnection;
 
 public sealed record GameInitialConnectionNotice(
     int ChannelId,
-    DateTimeOffset PreparedAt) : IServerNetworkMessage
+    DateTimeOffset PreparedAt) : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameInitialConnection;
 }

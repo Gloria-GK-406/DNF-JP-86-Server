@@ -99,17 +99,16 @@ internal sealed class GameNetworkPlugin(
     }
 
     /// <remarks>
-    /// The command byte is not checked here. It is part of the wire key, so a frame whose command
-    /// no decoder registered under cannot match and is dropped by the lookup itself -- the same
-    /// observable outcome an explicit check produced. Which commands are in use is a protocol fact
-    /// and is stated where the decoders are registered.
+    /// The first-byte selector is not interpreted here. It is part of the wire key, so a frame whose
+    /// selector no decoder registered under cannot match and is dropped by the lookup itself. Its
+    /// protocol meaning is stated where the decoders are registered.
     /// </remarks>
     private IClientNetworkMessage? Decode(GameClientFrameRequestInfo frame)
     {
-        var decoder = decoders.Find(frame.Command, frame.Type);
+        var decoder = decoders.Find(frame.Selector, frame.Type);
         return decoder?.Decode(
             new GameMessageMetadata(
-                frame.Command,
+                frame.Selector,
                 frame.Type,
                 frame.Checksum,
                 frame.Sequence),

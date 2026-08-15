@@ -7,7 +7,7 @@ namespace Dfo.Server.Protocol.Game.AccountRoster;
 
 public sealed class GetAccountCharacterRosterHandler(
     IOnlineUserQueryService onlineUsers,
-    INetworkMessageSender sender,
+    IGameMessageSender sender,
     ICommandBus commandBus) : ClientMessageHandler<GetAccountCharacterRosterRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -25,7 +25,7 @@ public sealed class GetAccountCharacterRosterHandler(
         var roster = await commandBus.SendAsync(
             new GetAccountCharacterRosterCommand(accountId),
             cancellationToken).ConfigureAwait(false);
-        await sender.SendAsync(
+        await sender.SendNotiAsync(
             context.Connection.ConnectionId,
             new AccountCharacterRosterResponse(roster),
             cancellationToken).ConfigureAwait(false);

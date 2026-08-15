@@ -3,6 +3,7 @@ using System.Text;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Networking.Configuration;
 using Dfo.Server.Networking.Framing;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.InitialConnection;
 using Dfo.Server.Protocol.Game.Login;
 
@@ -47,7 +48,8 @@ public sealed class GameLoginCodecTests
             UnknownPort = 17200,
         };
 
-        var frame = GameLoginResponseEncoder.EncodeSuccess(options);
+        var frame = Assert.Single(
+            new GameLoginResponseEncoder(options).Encode(new GameLoginResponse(true)));
 
         Assert.Equal(0x01, frame[0]);
         Assert.Equal(0x0001, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1, 2)));
@@ -64,12 +66,28 @@ public sealed class GameLoginCodecTests
     }
 
     [Fact]
+    public void SharedType0001_UsesCmdForLoginAndNotiForInitialConnection()
+    {
+        var options = new GameLoginOptions { ServerIp = "192.0.2.20" };
+        var login = Assert.Single(
+            new GameLoginResponseEncoder(options).Encode(new GameLoginResponse(true)));
+        var initial = Assert.Single(
+            new GameInitialConnectionNoticeEncoder(options).Encode(
+                new GameInitialConnectionNotice(11, DateTimeOffset.UnixEpoch)));
+
+        Assert.Equal((byte)GameMessageClass.Cmd, login[0]);
+        Assert.Equal((byte)GameMessageClass.Noti, initial[0]);
+        Assert.Equal((ushort)0x0001, BinaryPrimitives.ReadUInt16LittleEndian(login.AsSpan(1, 2)));
+        Assert.Equal((ushort)0x0001, BinaryPrimitives.ReadUInt16LittleEndian(initial.AsSpan(1, 2)));
+    }
+
+    [Fact]
     public void EncodeInitialConnection_RejectsAnUnrepresentableChannel()
     {
         var notice = new GameInitialConnectionNotice(256, DateTimeOffset.UnixEpoch);
 
         Assert.Throws<InvalidDataException>(() =>
-            GameInitialConnectionPayloadCodec.Encode(notice, new GameLoginOptions()));
+            GameInitialConnectionPayloadCodec.EncodeBody(notice, new GameLoginOptions()));
     }
 
     [Theory]
@@ -80,7 +98,7 @@ public sealed class GameLoginCodecTests
         var notice = new GameInitialConnectionNotice(11, DateTimeOffset.UnixEpoch);
 
         Assert.Throws<InvalidDataException>(() =>
-            GameInitialConnectionPayloadCodec.Encode(
+            GameInitialConnectionPayloadCodec.EncodeBody(
                 notice,
                 new GameLoginOptions { ServerIp = address }));
     }

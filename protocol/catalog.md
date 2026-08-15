@@ -50,6 +50,11 @@ S→C 的 command 取自服务端编码器（`GameLoginResponseEncoder` / `Accou
 字节零信息**，日志里的 `hdr` 是证据强度标志而非 command，详见
 [game-receive](patterns/game-receive.md#抓包对-sc-的-command-字节零信息)。
 
+服务端实现映射：CMD/NOTI 语义位于 `Dfo.Server.Protocol.Game`。每个出站 Game message
+只属于 `IGameCmdMessage` 或 `IGameNotiMessage`，专属 encoder 固定写入 `0x01` 或 `0x00`，
+专属 sender 方法在调用点约束类别。`Dfo.Server.Networking` 仅以不透明 `Selector + Type`
+拆帧、路由和编码；全部 C→S Game decoder 由 Protocol 的 CMD helper 注册。
+
 ## 清单的完整性
 
 上面两张表只列**已在线观察到**的协议，不是客户端支持的全集。两个方向都已做过全量普查：
