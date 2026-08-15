@@ -1,7 +1,9 @@
 using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Networking.Configuration;
+using Dfo.Server.Data.Networking;
 using Dfo.Server.Networking.Framing;
+using Dfo.Server.Networking.Framing.Decoders;
 using Dfo.Server.Networking.Runtime;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -49,6 +51,9 @@ public sealed class NetworkingModule : IServerModule
         services.TryAddSingleton<INetworkConnectionCloser, TouchSocketNetworkConnectionCloser>();
         services.TryAddSingleton<ChannelNetworkPlugin>();
         services.TryAddSingleton<GameNetworkPlugin>();
+        services.TryAddSingleton<GameMessageDecoderRegistry>();
+        services.TryAddSingleton<ChannelMessageDecoderRegistry>();
+        RegisterInboundDecoders(services);
 
         if (!options.Enabled)
         {
@@ -64,6 +69,51 @@ public sealed class NetworkingModule : IServerModule
             .SetListenIPHosts(options.GamePorts.Select(port => new IPHost(port)).ToArray())
             .SetSingleStreamDataHandlingAdapter(() => new GameClientFrameDataHandlingAdapter())
             .ConfigurePlugins(plugins => plugins.Add<GameNetworkPlugin>()));
+    }
+
+    /// <summary>
+    /// The inbound routing table: one line per protocol, binding its wire key to its decoder and
+    /// declaring which catalogue members that decoder can produce.
+    /// </summary>
+    /// <remarks>
+    /// Registration happens before the <c>Enabled</c> check on purpose. The declared set is what
+    /// the startup coverage check reads, and that check must hold whether or not this process is
+    /// listening.
+    ///
+    /// Most lines declare the one catalogue member named after their wire key. GET_USERINFO does
+    /// not: type 0x0008 produces the account roster request, which carries a synthesised catalogue
+    /// value with no wire number of its own.
+    /// </remarks>
+    private static void RegisterInboundDecoders(IServiceCollection services)
+    {
+        services.AddGameMessageDecoder<GameLoginMessageDecoder>(
+            GameProtocol.Command, GameProtocol.LoginType, ClientMessageType.GameLogin);
+        services.AddGameMessageDecoder<GameExitMessageDecoder>(
+            GameProtocol.Command, GameProtocol.ExitType, ClientMessageType.GameExit);
+        services.AddGameMessageDecoder<SelectCharacterMessageDecoder>(
+            GameProtocol.Command, GameProtocol.SelectCharacterType, ClientMessageType.GameSelectCharacter);
+        services.AddGameMessageDecoder<GetUserInfoMessageDecoder>(
+            GameProtocol.Command, GameProtocol.GetUserInfoType, ClientMessageType.GameGetAccountCharacterRoster);
+        services.AddGameMessageDecoder<ClientSpecStatisticMessageDecoder>(
+            GameProtocol.Command, GameProtocol.ClientSpecStatisticType, ClientMessageType.GameClientSpecStatistic);
+        services.AddGameMessageDecoder<ClientHardwareDetailMessageDecoder>(
+            GameProtocol.Command, GameProtocol.ClientHardwareDetailType, ClientMessageType.GameClientHardwareDetail);
+        services.AddGameMessageDecoder<ClientSpecProfileMessageDecoder>(
+            GameProtocol.Command, GameProtocol.ClientSpecProfileType, ClientMessageType.GameClientSpecProfile);
+        services.AddGameMessageDecoder<SessionMetricsMessageDecoder>(
+            GameProtocol.Command, GameProtocol.SessionMetricsType, ClientMessageType.GameSessionMetrics);
+        services.AddGameMessageDecoder<TaggedIdReportMessageDecoder>(
+            GameProtocol.Command, GameProtocol.TaggedIdReportType, ClientMessageType.GameTaggedIdReport);
+        services.AddGameMessageDecoder<RosterFollowUpMessageDecoder>(
+            GameProtocol.Command, GameProtocol.RosterFollowUpType, ClientMessageType.GameRosterFollowUp);
+        services.AddChannelMessageDecoder<ChannelScriptVersionMessageDecoder>(
+            ChannelProtocol.ScriptVersionMessageNumber, ClientMessageType.ChannelScriptVersion);
+        services.AddChannelMessageDecoder<ChannelScriptMessageDecoder>(
+            ChannelProtocol.ScriptMessageNumber, ClientMessageType.ChannelScript);
+        services.AddChannelMessageDecoder<ChannelConnectMessageDecoder>(
+            ChannelProtocol.ConnectMessageNumber, ClientMessageType.ChannelConnect);
+        services.AddChannelMessageDecoder<ChannelInfoMessageDecoder>(
+            ChannelProtocol.InfoMessageNumber, ClientMessageType.ChannelInfo);
     }
 
     private static void ValidatePort(int port, string settingName)

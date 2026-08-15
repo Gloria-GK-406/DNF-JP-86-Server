@@ -44,20 +44,14 @@ internal abstract class NetworkPluginBase(
 internal sealed class ChannelNetworkPlugin(
     TouchSocketConnectionRegistry connections,
     IEnumerable<INetworkConnectionObserver> observers,
-    INetworkMessageDispatcher dispatcher)
+    INetworkMessageDispatcher dispatcher,
+    ChannelMessageDecoderRegistry decoders)
     : NetworkPluginBase(connections, observers, NetworkEndpointKind.Channel), ITcpReceivedPlugin
 {
     public async Task OnTcpReceived(ITcpSession client, ReceivedDataEventArgs e)
     {
-        if (e.RequestInfo is ChannelFrameRequestInfo frame)
+        if (e.RequestInfo is ChannelFrameRequestInfo frame && Decode(frame) is { } message)
         {
-            var message = CreateMessage(frame);
-            if (message is null)
-            {
-                await e.InvokeNext();
-                return;
-            }
-
             var connectionId = TouchSocketConnectionRegistry.CreateConnectionId(client, NetworkEndpointKind.Channel);
             var connection = Connections.Get(connectionId).Context;
             await dispatcher.DispatchAsync(
@@ -69,33 +63,29 @@ internal sealed class ChannelNetworkPlugin(
         await e.InvokeNext();
     }
 
-    private static IClientNetworkMessage? CreateMessage(ChannelFrameRequestInfo frame)
+    private IClientNetworkMessage? Decode(ChannelFrameRequestInfo frame)
     {
-        var metadata = new ChannelMessageMetadata(
-            frame.Classification,
-            frame.MessageNumber,
-            frame.Checksum,
-            frame.Acknowledgement);
-        return (ClientMessageType)frame.MessageNumber switch
-        {
-            ClientMessageType.ChannelScriptVersion => new ChannelScriptVersionRequest(metadata),
-            ClientMessageType.ChannelScript => new ChannelScriptRequest(metadata),
-            ClientMessageType.ChannelConnect => new ChannelConnectRequest(metadata),
-            ClientMessageType.ChannelInfo => new ChannelInfoRequest(metadata),
-            _ => null,
-        };
+        var decoder = decoders.Find(frame.MessageNumber);
+        return decoder?.Decode(
+            new ChannelMessageMetadata(
+                frame.Classification,
+                frame.MessageNumber,
+                frame.Checksum,
+                frame.Acknowledgement),
+            frame.Body.Span);
     }
 }
 
 internal sealed class GameNetworkPlugin(
     TouchSocketConnectionRegistry connections,
     IEnumerable<INetworkConnectionObserver> observers,
-    INetworkMessageDispatcher dispatcher)
+    INetworkMessageDispatcher dispatcher,
+    GameMessageDecoderRegistry decoders)
     : NetworkPluginBase(connections, observers, NetworkEndpointKind.Game), ITcpReceivedPlugin
 {
     public async Task OnTcpReceived(ITcpSession client, ReceivedDataEventArgs e)
     {
-        if (e.RequestInfo is GameClientFrameRequestInfo frame && CreateMessage(frame) is { } message)
+        if (e.RequestInfo is GameClientFrameRequestInfo frame && Decode(frame) is { } message)
         {
             var connectionId = TouchSocketConnectionRegistry.CreateConnectionId(client, NetworkEndpointKind.Game);
             var connection = Connections.Get(connectionId).Context;
@@ -108,36 +98,21 @@ internal sealed class GameNetworkPlugin(
         await e.InvokeNext();
     }
 
-    private static IClientNetworkMessage? CreateMessage(GameClientFrameRequestInfo frame)
+    /// <remarks>
+    /// The command byte is no longer checked here. Every Game decoder registers under command
+    /// <see cref="GameProtocol.Command"/>, so a frame carrying any other command cannot match a
+    /// registered wire key and is dropped by the lookup itself -- the same observable outcome the
+    /// explicit check produced.
+    /// </remarks>
+    private IClientNetworkMessage? Decode(GameClientFrameRequestInfo frame)
     {
-        if (frame.Command != GameProtocol.Command)
-        {
-            return null;
-        }
-
-        var metadata = new GameMessageMetadata(
-            frame.Command,
-            frame.Type,
-            frame.Checksum,
-            frame.Sequence);
-        return frame.Type switch
-        {
-            GameProtocol.LoginType => GameLoginPayloadCodec.TryDecode(
-                frame.Body.Span,
-                out var loginId,
-                out var passwordHash)
-                ? new GameLoginRequest(metadata, loginId, passwordHash)
-                : null,
-            GameProtocol.GetUserInfoType => GetUserInfoPayloadCodec.Decode(metadata, frame.Body.Span),
-            GameProtocol.SelectCharacterType => SelectCharacterPayloadCodec.Decode(metadata, frame.Body.Span),
-            GameProtocol.ClientSpecStatisticType => ClientSpecStatisticPayloadCodec.Decode(metadata, frame.Body.Span),
-            GameProtocol.ClientHardwareDetailType => ClientHardwareDetailPayloadCodec.Decode(metadata, frame.Body.Span),
-            GameProtocol.ClientSpecProfileType => ClientSpecProfilePayloadCodec.Decode(metadata, frame.Body.Span),
-            GameProtocol.SessionMetricsType => SessionMetricsPayloadCodec.Decode(metadata, frame.Body.Span),
-            GameProtocol.TaggedIdReportType => TaggedIdReportPayloadCodec.Decode(metadata, frame.Body.Span),
-            GameProtocol.RosterFollowUpType => RosterFollowUpPayloadCodec.Decode(metadata, frame.Body.Span),
-            GameProtocol.ExitType => new GameExitRequest(metadata),
-            _ => null,
-        };
+        var decoder = decoders.Find(frame.Command, frame.Type);
+        return decoder?.Decode(
+            new GameMessageMetadata(
+                frame.Command,
+                frame.Type,
+                frame.Checksum,
+                frame.Sequence),
+            frame.Body.Span);
     }
 }

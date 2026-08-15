@@ -54,17 +54,40 @@ public sealed class NetworkMessageDispatcherTests
         Assert.Contains("more than once", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// The catalogue registers protocols; it does not claim they are all wired. Every member other
+    /// than ChannelConnect here has neither decoder nor handler, and that is a normal state.
+    /// </summary>
     [Fact]
-    public void BuildRegistry_RejectsMissingMessageTypeRegistrations()
+    public void BuildRegistry_AcceptsCataloguedMessageTypesThatAreNotWired()
     {
         var services = new ServiceCollection();
         services.AddNetworkMessageDispatching();
+        services.RegisterMessageHandler<CountingHandler>(ClientMessageType.ChannelConnect);
+        services.AddSingleton(new ClientMessageProductionRegistration(
+            ClientMessageType.ChannelConnect, typeof(StubDecoder)));
+        using var provider = services.BuildServiceProvider();
+
+        var registry = provider.GetRequiredService<MessageHandlerRegistry>();
+
+        Assert.Equal(typeof(CountingHandler), registry.GetHandlerType(ClientMessageType.ChannelConnect));
+    }
+
+    [Fact]
+    public void BuildRegistry_RejectsADecoderProductionThatNoHandlerConsumes()
+    {
+        var services = new ServiceCollection();
+        services.AddNetworkMessageDispatching();
+        services.RegisterMessageHandler<CountingHandler>(ClientMessageType.ChannelConnect);
+        services.AddSingleton(new ClientMessageProductionRegistration(
+            ClientMessageType.GameLogin, typeof(StubDecoder)));
         using var provider = services.BuildServiceProvider();
 
         var exception = Assert.Throws<InvalidOperationException>(
             () => provider.GetRequiredService<MessageHandlerRegistry>());
 
-        Assert.Contains(nameof(ClientMessageType.ChannelConnect), exception.Message, StringComparison.Ordinal);
+        Assert.Contains(nameof(ClientMessageType.GameLogin), exception.Message, StringComparison.Ordinal);
+        Assert.Contains(nameof(StubDecoder), exception.Message, StringComparison.Ordinal);
     }
 
     private static ServiceProvider BuildProvider(Action<IServiceCollection> configure)
@@ -72,16 +95,12 @@ public sealed class NetworkMessageDispatcherTests
         var services = new ServiceCollection();
         services.AddNetworkMessageDispatching();
         configure(services);
-        var registeredTypes = services
-            .Select(descriptor => descriptor.ImplementationInstance)
-            .OfType<MessageHandlerRegistration>()
-            .Select(registration => registration.MessageType)
-            .ToHashSet();
-        foreach (var messageType in Enum.GetValues<ClientMessageType>().Except(registeredTypes))
-        {
-            services.RegisterMessageHandler<OtherHandler>(messageType);
-        }
         return services.BuildServiceProvider();
+    }
+
+    private sealed class StubDecoder : IGameMessageDecoder
+    {
+        public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) => null;
     }
 
     private sealed class CountingHandler : ClientMessageHandler<ChannelConnectRequest>
