@@ -35,10 +35,15 @@ public sealed class SelectCharacterProjectionContractTests
         public SelectCharacterProjectionDelivery? Delivery { get; private set; }
 
         public ValueTask SendAsync(NetworkConnectionId connectionId, IServerNetworkMessage message,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException(
+                "Projection delivery must not travel through the message send path.");
+
+        public ValueTask SendProjectionAsync(NetworkConnectionId requiredDirectConnectionId,
+            SelectCharacterProjectionDelivery delivery, CancellationToken cancellationToken)
         {
-            ConnectionId = connectionId;
-            Delivery = Assert.IsType<SelectCharacterProjectionDelivery>(message);
+            ConnectionId = requiredDirectConnectionId;
+            Delivery = delivery;
             return ValueTask.CompletedTask;
         }
     }

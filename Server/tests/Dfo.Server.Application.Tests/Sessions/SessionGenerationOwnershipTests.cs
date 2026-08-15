@@ -191,6 +191,9 @@ public sealed class SessionGenerationOwnershipTests
     {
         public ValueTask SendAsync(NetworkConnectionId connectionId, IServerNetworkMessage message,
             CancellationToken cancellationToken) => ValueTask.CompletedTask;
+        public ValueTask SendProjectionAsync(NetworkConnectionId requiredDirectConnectionId,
+            SelectCharacterProjectionDelivery delivery, CancellationToken cancellationToken) =>
+            ValueTask.CompletedTask;
     }
 
     private sealed class RecordingSender : INetworkMessageSender

@@ -150,22 +150,6 @@ public sealed record SelectCharacterResponse(
     public ServerMessageType MessageType => ServerMessageType.GameSelectCharacter;
 }
 
-/// <summary>An explicitly addressed best-effort projection batch for one connection.</summary>
-public sealed record ExplicitProjectionTarget(
-    NetworkConnectionId ConnectionId,
-    IReadOnlyList<Dfo.Server.Data.Game.ISelectCharacterSupplementalProjection> OrderedProjections);
-
-/// <summary>
-/// Typed Select Character projections. Networking frames them; required direct values are delivered first;
-/// targets are already selected by the caller and are attempted best-effort afterwards.
-/// </summary>
-public sealed record SelectCharacterProjectionDelivery(
-    IReadOnlyList<Dfo.Server.Data.Game.ISelectCharacterSupplementalProjection> RequiredDirectProjections,
-    IReadOnlyList<ExplicitProjectionTarget> BestEffortTargets) : IServerNetworkMessage
-{
-    public ServerMessageType MessageType => ServerMessageType.GameSelectCharacter;
-}
-
 public sealed record GameExitResponse(bool Succeeded) : IServerNetworkMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameExit;

@@ -45,6 +45,12 @@ public sealed class ChannelConnectHandlerTests
             Message = message;
             return ValueTask.CompletedTask;
         }
+
+        public ValueTask SendProjectionAsync(
+            NetworkConnectionId requiredDirectConnectionId,
+            SelectCharacterProjectionDelivery delivery,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("This handler does not deliver projections.");
     }
 
     private sealed class RecordingCommandBus(EstablishChannelConnectionResult result) : ICommandBus

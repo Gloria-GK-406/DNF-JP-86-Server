@@ -5,12 +5,9 @@ namespace Dfo.Server.Abstractions.Networking;
 
 /// <summary>Encodes one outbound message into the frames that carry it.</summary>
 /// <remarks>
-/// Encoders are keyed by the message's CLR type rather than by its catalogue member, for two
-/// reasons. An outbound message is constructed by server code, so its type is statically known at
-/// the call site and no dynamic key is needed -- the same reasoning that keys commands by their own
-/// type. And the catalogue could not serve as the key even if that were wanted:
-/// <c>SelectCharacterResponse</c> and <c>SelectCharacterProjectionDelivery</c> both report
-/// <c>ServerMessageType.GameSelectCharacter</c>, so one catalogue value covers two messages.
+/// Encoders are keyed by the message's CLR type rather than by its catalogue member. An outbound
+/// message is constructed by server code, so its type is statically known at the call site and no
+/// dynamic key is needed -- the same reasoning that keys commands by their own type.
 ///
 /// One message may need more than one frame, so the seam returns a list. The order it returns is
 /// the order the frames go out.

@@ -5,7 +5,7 @@ contract:
   revision: 1
 parent_controller: "../../multi-spec-map.md"
 current_stage: verification
-state: in_progress
+state: completed
 artifacts:
   spec: "./spec.md"
   plan: "./plan.md"

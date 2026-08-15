@@ -40,9 +40,8 @@ internal sealed class TouchSocketNetworkMessageSender(
     }
 
     /// <remarks>
-    /// Implemented explicitly rather than left to the interface default. The default forwards to
-    /// <see cref="SendAsync"/>, which is why that method used to need a type test for the delivery
-    /// message; taking the method over removes the reason for the test.
+    /// A delivery names its own recipients and may reach several connections, so it has no single
+    /// frame and no encoder. It travels this path rather than <see cref="SendAsync"/>.
     /// </remarks>
     public ValueTask SendProjectionAsync(
         NetworkConnectionId requiredDirectConnectionId,

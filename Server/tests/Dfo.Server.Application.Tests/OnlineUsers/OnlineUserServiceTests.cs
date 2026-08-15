@@ -455,6 +455,12 @@ public sealed class UserServiceTests
             Messages.Add(message);
             return ValueTask.CompletedTask;
         }
+
+        public ValueTask SendProjectionAsync(
+            NetworkConnectionId requiredDirectConnectionId,
+            SelectCharacterProjectionDelivery delivery,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("The initial notice path does not deliver projections.");
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset value) : TimeProvider
