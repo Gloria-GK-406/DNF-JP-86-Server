@@ -52,11 +52,18 @@
 | 方向 | 锚点 | 结果 | 数据 |
 |---|---|---|---|
 | C→S | `MakeHeader` 构包点 | 1082 点 / **604 type**（`0x0000`–`0x043D`） | [client-to-server-builder-sites.tsv](patterns/data/client-to-server-builder-sites.tsv) |
-| S→C | `Register` 注册点 | 832 点 / **608 type**（`0x0000`–`0x03F8`） | [server-to-client-handlers.tsv](patterns/data/server-to-client-handlers.tsv) |
+| S→C | `Register` 注册点 | 832 点 / 608 type（`0x0000`–`0x03F8`），**按 command 分属两张表** | [server-to-client-handlers.tsv](patterns/data/server-to-client-handlers.tsv) |
+
+**S→C 的 608 是两张表合并计数，不可直接使用。** 客户端有两张并存的接收注册表，接收函数按
+帧头第 0 字节（command）二选一分流：command `0x01` → 表 A（**331 type**），
+command `0x00` → 表 B（**499 type**）；222 个 type 两张表都有，其中 218 个 handler 不同。
+已抓到的实帧全部是 command `0x01`，**因此与当前工作相关的 S→C 全集是表 A 的 331 个**。
+分表依据与证据见 [game-receive 的两张注册表](patterns/game-receive.md#两张注册表按-command-分流)。
 
 方法见 [game-frame](patterns/game-frame.md) 与 [game-receive](patterns/game-receive.md)。
 两个数字都是**下限**：C→S 有被混淆到第二代码区、扫不到的构包器（已观察到的 C→S `0x0002`
-就是其一）；S→C 的 handler 拿不到 body，真正的解析入口还没逆向。
+就是其一）；S→C 除 handler 拿不到 body、解析入口未逆向外，还有 **439 个运行时注册点**
+（两个转发器 `0x00D855C0` / `0x00D85680`）从未进过普查表。
 
 因此本清单的作用是"哪些协议已经在做/做完"，不是"客户端有哪些协议"；后者查普查表。
 挑下一条协议时应先查普查表拿到构包点/handler 入口，再决定是否需要抓包。
