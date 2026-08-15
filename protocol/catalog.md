@@ -41,9 +41,14 @@
 
 | Command | Type | 名称 | 角色 | 阶段 | 文档 |
 |---:|---:|---|---|---|---|
-| — | `0x0001` | LOGIN response | Response | 未知 | — |
-| — | `0x0002` | 角色列表 | Notification | 未知 | — |
-| — | `0x0003` | EXIT response | Response | 未知 | — |
+| `0x01` CMD | `0x0001` | LOGIN response | Response | 未知 | — |
+| `0x00` NOTI | `0x0002` | 角色列表 | Notification | 未知 | — |
+| `0x01` CMD | `0x0003` | EXIT response | Response | 未知 | — |
+
+S→C 的 command 取自服务端编码器（`GameLoginResponseEncoder` / `AccountCharacterRosterResponseEncoder`
+/ `GameExitResponseEncoder`），并与客户端注册表归属交叉核对一致——**抓包对 S→C 的 command
+字节零信息**，日志里的 `hdr` 是证据强度标志而非 command，详见
+[game-receive](patterns/game-receive.md#抓包对-sc-的-command-字节零信息)。
 
 ## 清单的完整性
 
@@ -52,18 +57,27 @@
 | 方向 | 锚点 | 结果 | 数据 |
 |---|---|---|---|
 | C→S | `MakeHeader` 构包点 | 1082 点 / **604 type**（`0x0000`–`0x043D`） | [client-to-server-builder-sites.tsv](patterns/data/client-to-server-builder-sites.tsv) |
-| S→C | `Register` 注册点 | 832 点 / 608 type（`0x0000`–`0x03F8`），**按 command 分属两张表** | [server-to-client-handlers.tsv](patterns/data/server-to-client-handlers.tsv) |
+| S→C | `Register` 注册点 | 1271 点 / **1266 个 `(command,type)` 对**（TSV 内仅静态的 832 点 / 608 type） | [server-to-client-handlers.tsv](patterns/data/server-to-client-handlers.tsv) |
 
-**S→C 的 608 是两张表合并计数，不可直接使用。** 客户端有两张并存的接收注册表，接收函数按
-帧头第 0 字节（command）二选一分流：command `0x01` → 表 A（**331 type**），
-command `0x00` → 表 B（**499 type**）；222 个 type 两张表都有，其中 218 个 handler 不同。
-已抓到的实帧全部是 command `0x01`，**因此与当前工作相关的 S→C 全集是表 A 的 331 个**。
-分表依据与证据见 [game-receive 的两张注册表](patterns/game-receive.md#两张注册表按-command-分流)。
+**S→C 不能只看一个 type 数字。** 客户端按帧头第 0 字节
+（command）把入站帧分给两张互不相干的注册表，它们对应两个**协议族**：
+
+| 协议族 | command | 方向 | 客户端注册表 | 已普查 type | 空间容量 |
+|---|---|---|---|---:|---:|
+| **CMD** | `0x01` | 双向（C→S 请求 / S→C 响应） | 表 A | 538 | 1086 |
+| **NOTI** | `0x00` | **仅 S→C**（服务端推送） | 表 B | 728 | 1036 |
+
+**客户端只发 CMD**——`MakeHeader`（所有出站帧唯一必经点）把 command 写死成 `1`。
+所以 C→S 的 604 个 type 全部属于 CMD 族，其最大值 `0x043D` = 1085 正好用满 1086 的容量。
+
+证据、分表依据与三条独立佐证见
+[game-receive 的 CMD 与 NOTI](patterns/game-receive.md#两张注册表--cmd-与-noti)。
 
 方法见 [game-frame](patterns/game-frame.md) 与 [game-receive](patterns/game-receive.md)。
-两个数字都是**下限**：C→S 有被混淆到第二代码区、扫不到的构包器（已观察到的 C→S `0x0002`
-就是其一）；S→C 除 handler 拿不到 body、解析入口未逆向外，还有 **439 个运行时注册点**
-（两个转发器 `0x00D855C0` / `0x00D85680`）从未进过普查表。
+所有数字仍是**下限**：C→S 有被混淆到第二代码区、扫不到的构包器（已观察到的 C→S `0x0002`
+就是其一）；S→C 的 handler 拿不到帧缓冲，body 解析入口 `0x00D89620` 尚未展开。
+上表的 538 / 728 已包含此前遗漏的 439 个运行时注册点，但**尚未写回**
+[server-to-client-handlers.tsv](patterns/data/server-to-client-handlers.tsv)（该文件仍是静态的 832 行）。
 
 因此本清单的作用是"哪些协议已经在做/做完"，不是"客户端有哪些协议"；后者查普查表。
 挑下一条协议时应先查普查表拿到构包点/handler 入口，再决定是否需要抓包。
