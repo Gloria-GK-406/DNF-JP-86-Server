@@ -48,7 +48,7 @@ internal sealed class SelectCharacterProjectionComposer : ISelectCharacterProjec
                 SelectCharacterTownLeaveProjection value =>
                     [SelectCharacterSupplementalProjectionCodec.EncodeTownLeave(value.UserId)],
                 _ => throw new InvalidOperationException(
-                    $"Supplemental projection '{projection.GetType().Name}' has no Networking codec."),
+                    $"Supplemental projection '{projection.GetType().Name}' has no codec in this slice."),
             });
         }
         return frames;

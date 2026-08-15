@@ -29,7 +29,7 @@ Docs/        帧协议基线、客户端逆向系列文档、业务接入规范
 | `Dfo.Server.Abstractions` | Data | 接缝层：`IServerModule` + 各领域服务/仓储/内容源/网络契约 |
 | `Dfo.Server.Application` | Abstractions, Data | **领域编排核心**：命令总线与管线、消息分发机制、领域服务 |
 | `Dfo.Server.Infrastructure` | Dfo.Pvf, Abstractions, Data | SQLite 仓储 + PVF 内容源 + 频道脚本 |
-| `Dfo.Server.Networking` | Abstractions, Data | TouchSocket **传输**：帧适配/解析、TCP 服务、插件、发送器、注册表。不含任何单个协议的知识 |
+| `Dfo.Server.Networking` | Abstractions, Data | TouchSocket **传输**：帧适配/解析、TCP 服务、插件、发送器、注册表。收发路径上不含任何单个协议的知识——**唯一例外是 SelectCharacter 的投影投递**（`TouchSocketNetworkMessageSender.SendProjectionAsync` 及其校验与补偿），见 `Docs/ProtocolSliceArchitectureNotes.md` 第 13 条 |
 | `Dfo.Server.Protocol` | Abstractions, Application, Data, Networking | **协议切片**：一个协议一个目录，含其消息、解包器、编码器、消息 handler、命令与命令 handler；`ProtocolModule` 是唯一接线点 |
 | `Dfo.Server.Host` | 全部 | 组合根：模块注册顺序 + appsettings + channel_info.etc |
 | `Dfo.Server.Utilities` | — | 空占位 |
@@ -59,7 +59,8 @@ TCP 字节
   → TouchSocket 适配器（Networking/Framing，13B Game 头 / 11B Channel 头）
   → NetworkPlugin.OnTcpReceived（Networking/Runtime/NetworkPlugins.cs）
       按线级键查解包器注册表；查不到即丢弃。传输侧到此为止，不认识任何具体协议
-  → IClientMessageDecoder（Protocol/<Endpoint>/<Protocol>/*MessageDecoder.cs）
+  → IGameMessageDecoder / IChannelMessageDecoder
+      （Protocol/<Endpoint>/<Protocol>/*MessageDecoder.cs）
       调本切片的 payload codec → 强类型 IClientNetworkMessage
   → INetworkMessageDispatcher（Abstractions 接缝，实现在 Application）
   → NetworkMessageDispatcher：按 ClientMessageType 查注册表 → 每 message 新 DI scope

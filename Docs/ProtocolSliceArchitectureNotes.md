@@ -217,3 +217,53 @@ dispatcher 预先解好并放进 `NetworkDispatchContext`，而
 
 **为什么没动**：这是既有形态，`AGENTS.md` 已记录。命令的键空间是封闭的
 （服务器自己选），性质上和线级键不同，是否需要同等强度的启动检查是个待定问题。
+
+---
+
+## 13. SelectCharacter 的投影投递仍横跨三个编译单元
+
+**这是唯一一个制品没有完全收进自己切片的协议**，由根级复核独立发现——
+本文档前 12 条漏了它。
+
+**现象**：SelectCharacter 的投影投递链路分布在三处：
+
+- `Abstractions/Networking/INetworkServices.cs`：`ExplicitProjectionTarget`、
+  `SelectCharacterProjectionDelivery`、`INetworkMessageSender.SendProjectionAsync`、
+  `ISelectCharacterProjectionComposer`——四个以 SelectCharacter 命名的成员
+  待在本应通用的接缝里；
+- `Networking/Runtime/TouchSocketNetworkMessageSender.cs`：约 90 行
+  `SendProjectionAsync` / `DeliverProjectionAsync` / `ValidateProjectionDelivery`，
+  含"必投先于尽力投"的次序、逐目标遇错即停的补偿、以及 22 行结构校验——
+  全部是 SelectCharacter 独有的逻辑；
+- 切片内只有 `SelectCharacterProjectionComposer` 与其 codec。
+
+因此 `AGENTS.md` 项目表里"传输侧不含任何单个协议的知识"这句话，
+必须带上这一个例外才成立（该行已相应改写）。
+
+**为什么没动**：它先于本分支存在（基线上同样如此，且当时还多一个 9 分支
+switch）。spec-005 已把投递指令重新归类为"不是消息"并迁入 Abstractions，
+理由写在接缝处。把这条链路整体收进切片是一次接缝改动，需要重新决定
+"sender 如何在不认识具体协议的前提下执行有序多目标投递"，属新设计。
+
+**可选处置**：把有序投递抽象成与协议无关的能力（例如"一批已成帧的字节 +
+一组收件人 + 投递策略"），让 sender 只认识这个抽象，SelectCharacter 特有的
+次序与补偿规则回到切片里。
+
+---
+
+## 14. 投影组合器内部是一个 16 分支的类型 switch
+
+**现象**：`SelectCharacterProjectionComposer.Compose` 用一个 16 分支的
+`switch` 按投影的 CLR 类型选 codec 方法，默认分支抛异常——**形状恰是本次
+重构要消除的那种**。
+
+**位置**：`Dfo.Server.Protocol/Game/SelectCharacter/SelectCharacterProjectionComposer.cs`
+第 16-52 行。
+
+**为什么没动**：它是切片内部的，且分支的对象是**帧片段**而非消息——
+消息级的分支确实已全部消除。它随 spec-003 原样搬迁，不是本分支引入的。
+真要 DI 化，键空间是 `ISelectCharacterSupplementalProjection` 的实现类型，
+与消息注册表是两套东西。
+
+**已顺带修正**：该默认分支的异常文案原为 "has no Networking codec"，
+是跨程序集的失真引用（第 7 条那一类），已改为 "has no codec in this slice"。
