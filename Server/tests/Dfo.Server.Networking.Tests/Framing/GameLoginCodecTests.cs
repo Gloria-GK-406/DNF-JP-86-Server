@@ -3,6 +3,7 @@ using System.Text;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Networking.Configuration;
 using Dfo.Server.Networking.Framing;
+using Dfo.Server.Networking.Framing.Encoders;
 
 namespace Dfo.Server.Networking.Tests.Framing;
 
@@ -45,7 +46,7 @@ public sealed class GameLoginCodecTests
             UnknownPort = 17200,
         };
 
-        var frame = GameLoginPayloadCodec.EncodeSuccess(options);
+        var frame = GameLoginResponseEncoder.EncodeSuccess(options);
 
         Assert.Equal(0x01, frame[0]);
         Assert.Equal(0x0001, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1, 2)));

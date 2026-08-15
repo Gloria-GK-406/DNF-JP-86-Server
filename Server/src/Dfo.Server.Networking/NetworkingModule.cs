@@ -4,6 +4,7 @@ using Dfo.Server.Networking.Configuration;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Networking.Framing;
 using Dfo.Server.Networking.Framing.Decoders;
+using Dfo.Server.Networking.Framing.Encoders;
 using Dfo.Server.Networking.Runtime;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -53,7 +54,9 @@ public sealed class NetworkingModule : IServerModule
         services.TryAddSingleton<GameNetworkPlugin>();
         services.TryAddSingleton<GameMessageDecoderRegistry>();
         services.TryAddSingleton<ChannelMessageDecoderRegistry>();
+        services.TryAddSingleton<ServerMessageEncoderRegistry>();
         RegisterInboundDecoders(services);
+        RegisterOutboundEncoders(services);
 
         if (!options.Enabled)
         {
@@ -114,6 +117,41 @@ public sealed class NetworkingModule : IServerModule
             ChannelProtocol.ConnectMessageNumber, ClientMessageType.ChannelConnect);
         services.AddChannelMessageDecoder<ChannelInfoMessageDecoder>(
             ChannelProtocol.InfoMessageNumber, ClientMessageType.ChannelInfo);
+    }
+
+    /// <summary>
+    /// The outbound routing table: one line per message, binding it to its encoder and to the
+    /// endpoint allowed to receive it.
+    /// </summary>
+    /// <remarks>
+    /// Keyed by message CLR type rather than by catalogue member. An outbound message is built by
+    /// server code, so its type is known at the call site; and the catalogue could not key this
+    /// table anyway, because the select-character response and its projection delivery share one
+    /// catalogue value.
+    ///
+    /// The endpoint column is the whole endpoint rule. It used to be nine `when` clauses spliced
+    /// into the encoding switch, where no reader could check the routing without reading the bytes.
+    /// </remarks>
+    private static void RegisterOutboundEncoders(IServiceCollection services)
+    {
+        services.AddServerMessageEncoder<ChannelConnectResponse, ChannelConnectResponseEncoder>(
+            NetworkEndpointKind.Channel);
+        services.AddServerMessageEncoder<ChannelScriptVersionResponse, ChannelScriptVersionResponseEncoder>(
+            NetworkEndpointKind.Channel);
+        services.AddServerMessageEncoder<ChannelScriptResponse, ChannelScriptResponseEncoder>(
+            NetworkEndpointKind.Channel);
+        services.AddServerMessageEncoder<ChannelInfoResponse, ChannelInfoResponseEncoder>(
+            NetworkEndpointKind.Channel);
+        services.AddServerMessageEncoder<GameExitResponse, GameExitResponseEncoder>(
+            NetworkEndpointKind.Game);
+        services.AddServerMessageEncoder<GameInitialConnectionNotice, GameInitialConnectionNoticeEncoder>(
+            NetworkEndpointKind.Game);
+        services.AddServerMessageEncoder<GameLoginResponse, GameLoginResponseEncoder>(
+            NetworkEndpointKind.Game);
+        services.AddServerMessageEncoder<AccountCharacterRosterResponse, AccountCharacterRosterResponseEncoder>(
+            NetworkEndpointKind.Game);
+        services.AddServerMessageEncoder<SelectCharacterResponse, SelectCharacterResponseEncoder>(
+            NetworkEndpointKind.Game);
     }
 
     private static void ValidatePort(int port, string settingName)

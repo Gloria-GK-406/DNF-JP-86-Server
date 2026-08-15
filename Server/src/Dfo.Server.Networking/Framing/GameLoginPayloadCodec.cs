@@ -1,9 +1,15 @@
 using System.Buffers.Binary;
 using System.Text;
-using Dfo.Server.Networking.Configuration;
 
 namespace Dfo.Server.Networking.Framing;
 
+/// <summary>
+/// Decodes the Game LOGIN request body: two length-prefixed ASCII strings.
+/// </summary>
+/// <remarks>
+/// Inbound only. The success-body encoding that used to live here moved to the login encoder,
+/// which is where its dependency on transport configuration belongs.
+/// </remarks>
 public static class GameLoginPayloadCodec
 {
     private const int MaximumStringLength = 256;
@@ -24,25 +30,6 @@ public static class GameLoginPayloadCodec
         }
 
         return true;
-    }
-
-    public static byte[] EncodeSuccess(GameLoginOptions options)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        var serverIp = Encoding.ASCII.GetBytes(options.ServerIp);
-        var body = new byte[checked(45 + serverIp.Length)];
-        body[0] = 0x01;
-        body[1] = 18;
-        body[2] = 0x00;
-        body[3] = options.Environment;
-        body[4] = 0x00;
-        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(5, 4), options.LoginChannelPort);
-        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(9, 4), serverIp.Length);
-        serverIp.CopyTo(body, 13);
-        var offset = 13 + serverIp.Length;
-        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(offset, 4), options.UnknownPort);
-        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(offset + 4, 4), options.UnknownPort);
-        return GameServerFrameEncoder.Encode(GameProtocol.Command, GameProtocol.LoginType, body);
     }
 
     private static bool TryReadDString(
