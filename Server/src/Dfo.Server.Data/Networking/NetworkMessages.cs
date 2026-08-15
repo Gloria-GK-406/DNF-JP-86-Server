@@ -13,6 +13,9 @@ public enum ClientMessageType
     GameClientSpecStatistic = 0x0001_00AB,
     GameClientHardwareDetail = 0x0001_01DD,
     GameClientSpecProfile = 0x0001_00C2,
+    GameSessionMetrics = 0x0001_00FA,
+    GameTaggedIdReport = 0x0001_008F,
+    GameRosterFollowUp = 0x0001_02A8,
 }
 
 public enum ServerMessageType
@@ -259,4 +262,70 @@ public sealed record ClientSpecProfileReportRequest(
     IReadOnlyList<ClientSpecProfileEntry> Entries) : IClientNetworkMessage
 {
     public ClientMessageType MessageType => ClientMessageType.GameClientSpecProfile;
+}
+
+/// <summary>
+/// One of the seven fixed metric sections of SESSION_METRICS (0x00FA). The value is a mean the
+/// client already computed as total/samples, truncated toward zero, and written as 0 when it had
+/// no samples -- so 0 means "nothing measured", not "measured zero".
+/// Which metric each tag denotes is unconfirmed; see protocol/game/client-to-server/0x00FA.md.
+/// </summary>
+public sealed record SessionMetricMean(ushort Tag, uint Mean);
+
+/// <summary>
+/// One record of a SESSION_METRICS (0x00FA) counted section. Nine wire bytes drawn from a
+/// ten-byte source record, so the source's padding byte is absent here. No field has a confirmed
+/// meaning, so all five are named for their offset and width.
+/// </summary>
+public sealed record SessionMetricRecord(
+    ushort Word0,
+    byte Byte2,
+    ushort Word3,
+    ushort Word5,
+    ushort Word7);
+
+/// <summary>
+/// SESSION_METRICS report (cmd 0x01/type 0x00FA). Fire-and-forget; the second frame of the
+/// client's normal-exit flush. Seven tagged means followed by two counted sections that share a
+/// record shape. Nothing depends on its arrival: a force-killed client never sends it.
+/// </summary>
+public sealed record SessionMetricsReportRequest(
+    GameMessageMetadata Metadata,
+    IReadOnlyList<SessionMetricMean> Means,
+    IReadOnlyList<SessionMetricRecord> Section7,
+    IReadOnlyList<SessionMetricRecord> Section8) : IClientNetworkMessage
+{
+    public ClientMessageType MessageType => ClientMessageType.GameSessionMetrics;
+}
+
+/// <summary>
+/// A five-byte report (cmd 0x01/type 0x008F) carrying an id and a flag. All fourteen client
+/// builder sites write the same two fields with no branches; twelve hard-code the flag to 1 and
+/// two hard-code the id to an enum value, so the id is an enum member rather than a handle.
+/// Neither field's meaning is confirmed, hence the offset-based names.
+///
+/// The client sends it while handling the inbound EXIT response, so it arrives after the server
+/// has already answered EXIT -- possibly while the connection is closing. See
+/// protocol/game/client-to-server/0x008F.md.
+/// </summary>
+public sealed record TaggedIdReportRequest(
+    GameMessageMetadata Metadata,
+    uint Id,
+    byte Flag) : IClientNetworkMessage
+{
+    public ClientMessageType MessageType => ClientMessageType.GameTaggedIdReport;
+}
+
+/// <summary>
+/// A two-byte report (cmd 0x01/type 0x02A8) carrying a single u16, sent right after the character
+/// roster arrives. All three client builder sites write one runtime u16 and nothing else. The
+/// observed value is 0xFFFF, which is the same no-target sentinel GET_USERINFO uses, so the field
+/// is modelled as a raw u16 rather than as an index. See
+/// protocol/game/client-to-server/0x02A8.md.
+/// </summary>
+public sealed record RosterFollowUpRequest(
+    GameMessageMetadata Metadata,
+    ushort Value) : IClientNetworkMessage
+{
+    public ClientMessageType MessageType => ClientMessageType.GameRosterFollowUp;
 }

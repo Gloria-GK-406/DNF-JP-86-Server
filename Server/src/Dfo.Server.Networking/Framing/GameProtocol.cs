@@ -18,5 +18,11 @@ internal static class GameProtocol
 
     public const ushort ClientSpecProfileType = 0x00C2;
 
+    public const ushort SessionMetricsType = 0x00FA;
+
+    public const ushort TaggedIdReportType = 0x008F;
+
+    public const ushort RosterFollowUpType = 0x02A8;
+
     public const ushort AccountCharacterRosterNotificationType = 0x0002;
 }

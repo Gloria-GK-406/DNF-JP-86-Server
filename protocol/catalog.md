@@ -29,13 +29,13 @@
 | `0x01` | `0x0002` | — | 未知 | 未知 | — |
 | `0x01` | `0x0003` | EXIT | Query | 未知 | — |
 | `0x01` | `0x0008` | GET_USERINFO | Query / 有响应 | 双向验证结束 | [0x0008.md](game/client-to-server/0x0008.md) |
-| `0x01` | `0x008F` | — | Report / 无响应 | 确定语义 | [0x008F.md](game/client-to-server/0x008F.md) |
+| `0x01` | `0x008F` | — | Report / 无响应 | 实现服务端功能 | [0x008F.md](game/client-to-server/0x008F.md) |
 | `0x01` | `0x00AB` | `CLIENT_SPEC_STATISTIC` | Report / 无响应 | 双向验证结束 | [0x00AB.md](game/client-to-server/0x00AB.md) |
 | `0x01` | `0x00C2` | `CLIENT_SPEC_PROFILE` | Report / 无响应 | 双向验证结束 | [0x00C2.md](game/client-to-server/0x00C2.md) |
-| `0x01` | `0x00FA` | —（分段指标流） | Report / 无响应 | 确定语义 | [0x00FA.md](game/client-to-server/0x00FA.md) |
+| `0x01` | `0x00FA` | —（分段指标流） | Report / 无响应 | 实现服务端功能 | [0x00FA.md](game/client-to-server/0x00FA.md) |
 | `0x01` | `0x0117` | —（多态信封） | Report / 无响应 | 未知 | [0x0117.md](game/client-to-server/0x0117.md) |
 | `0x01` | `0x01DD` | `CLIENT_HARDWARE_DETAIL` | Report / 无响应 | 双向验证结束 | [0x01DD.md](game/client-to-server/0x01DD.md) |
-| `0x01` | `0x02A8` | — | 未知 | 未知 | — |
+| `0x01` | `0x02A8` | — | Report / 无响应 | 实现服务端功能 | [0x02A8.md](game/client-to-server/0x02A8.md) |
 
 ## Game / Server → Client
 
@@ -82,7 +82,6 @@
 | `0x0001` | C→S | 73 | LOGIN。服务端已实现，含账号凭证与启动参数 auth hash（样本不得入库） |
 | `0x0001` | S→C | 54 | LOGIN response。服务端已实现，但 `EncodeSuccess` 内多个字段是旧服移植的魔数，未经抓包确认 |
 | `0x0002` | S→C | 18 | 角色列表；样本为空名单。`0x0008` `mode=2` 的响应；服务端编码器含旧服移植的字面量尾部，未验证 |
-| `0x02A8` | C→S | 2 | `FFFF`，角色列表之后 |
 | `0x0002` | C→S | 31 | 与 S→C `0x0002` 同 type 反方向。四次会话中**只有一个 u32 变化**（offset 12，`0x0005C0E2`/`0x0005C022`，像计数或时间戳），其余恒定，含 `0C000000` + 12 字节 ASCII 十六进制串 `30e3a448ed0f`。构包器在**被混淆的第二代码区**（抓包 stack[1] = `RVA 0x04876980`），`.text` 普查查不到 |
 
 ### 退出 flush 段
@@ -93,7 +92,7 @@
 0x0002(31B) → 0x00C2(361B) → 0x00FA(50B) → 0x0117(12B) → 0x0003 EXIT ⇄ → 0x008F(5B)
 ```
 
-四条都已建独立文档：`0x00C2` 双向验证结束，`0x00FA` / `0x008F` 确定语义，`0x0117` 仍为未知。
+四条都已建独立文档：`0x00C2` 双向验证结束，`0x00FA` / `0x008F` 已实现服务端功能，`0x0117` 仍为未知。
 `0x008F` 严格说不属于 flush——它是 EXIT **响应**的反应，详见其文档。
 
 | Type | 方向 | Body | 观察 |

@@ -133,6 +133,9 @@ internal sealed class GameNetworkPlugin(
             GameProtocol.ClientSpecStatisticType => ClientSpecStatisticPayloadCodec.Decode(metadata, frame.Body.Span),
             GameProtocol.ClientHardwareDetailType => ClientHardwareDetailPayloadCodec.Decode(metadata, frame.Body.Span),
             GameProtocol.ClientSpecProfileType => ClientSpecProfilePayloadCodec.Decode(metadata, frame.Body.Span),
+            GameProtocol.SessionMetricsType => SessionMetricsPayloadCodec.Decode(metadata, frame.Body.Span),
+            GameProtocol.TaggedIdReportType => TaggedIdReportPayloadCodec.Decode(metadata, frame.Body.Span),
+            GameProtocol.RosterFollowUpType => RosterFollowUpPayloadCodec.Decode(metadata, frame.Body.Span),
             GameProtocol.ExitType => new GameExitRequest(metadata),
             _ => null,
         };
