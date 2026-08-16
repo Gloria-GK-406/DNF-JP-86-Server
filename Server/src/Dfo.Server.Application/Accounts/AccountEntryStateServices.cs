@@ -148,4 +148,10 @@ internal sealed class AccountEntryStateService(
             progression.Build(storage.Progression),
             relations.Build(storage.Relations, storage.Progression.Roster));
     }
+
+    public async ValueTask<AccountSettingsEntryState> LoadSettingsAsync(
+        AccountId accountId,
+        CancellationToken cancellationToken) =>
+        settings.Build(
+            await repository.LoadSettingsAsync(accountId, cancellationToken).ConfigureAwait(false));
 }

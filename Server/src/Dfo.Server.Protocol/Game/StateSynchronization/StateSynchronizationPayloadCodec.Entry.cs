@@ -364,25 +364,32 @@ internal static partial class StateSynchronizationPayloadCodec
         foreach (var slot in slots) writer.Write(slot); return stream.ToArray();
     }
 
+    /// <summary>The client's account-scoped hotkey slot when the account has none stored.</summary>
+    /// <remarks>
+    /// The first slot of the legacy default hotkey table. An account that has never saved its
+    /// hotkeys still has to be told what they are, and a slot count of zero is not the same
+    /// statement -- the legacy server substituted its default table here rather than sending an
+    /// empty list, so a fresh account receives the same bytes it would from a working server.
+    /// </remarks>
+    private const ushort DefaultAccountHotkeySlot = 0x0002;
+
     /// <summary>The same 0x01C7 layout, carrying only the account-scoped slot.</summary>
     /// <remarks>
     /// Sent at login, where no character is selected and the per-character slots therefore do not
     /// exist yet. Exactly one slot is account scoped, which is why
     /// <see cref="AccountSettingsEntryState.AccountHotkeySlot"/> is a single value rather than a
     /// list -- the legacy server took the same one slot off the front of its hotkey array.
+    ///
+    /// A null slot means "never stored", a distinction the domain deliberately keeps. Choosing what
+    /// to put on the wire in that case is a wire concern and is therefore decided here, which is
+    /// also where the legacy server decided it.
     /// </remarks>
     public static byte[] EncodeAccountHotkeys(AccountSettingsEntryState accountSettings)
     {
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         writer.Write(accountSettings.HotkeyKeyType);
-        if (accountSettings.AccountHotkeySlot is not { } slot)
-        {
-            writer.Write(0);
-            return stream.ToArray();
-        }
-
         writer.Write(sizeof(ushort));
-        writer.Write(slot);
+        writer.Write(accountSettings.AccountHotkeySlot ?? DefaultAccountHotkeySlot);
         return stream.ToArray();
     }
 

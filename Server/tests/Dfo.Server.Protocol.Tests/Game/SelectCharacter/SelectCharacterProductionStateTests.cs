@@ -87,6 +87,8 @@ public sealed class SelectCharacterProductionStateTests
             });
         ValueTask<AccountEntryState> IAccountEntryStateService.LoadAsync(AccountId id, CancellationToken ct) =>
             ValueTask.FromResult(seed.Account);
+        ValueTask<AccountSettingsEntryState> IAccountEntryStateService.LoadSettingsAsync(
+            AccountId id, CancellationToken ct) => ValueTask.FromResult(seed.Account.Settings);
         public int GetItemId(CharacterInventoryEntryState inventory) => 0;
         public ValueTask<WorldContentEntryState> LoadAsync(WorldContentSubject subject, CancellationToken ct) =>
             ValueTask.FromResult(seed.World.Content with

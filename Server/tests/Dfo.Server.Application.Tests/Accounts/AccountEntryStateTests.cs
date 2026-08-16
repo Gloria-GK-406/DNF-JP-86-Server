@@ -117,5 +117,9 @@ public sealed class AccountEntryStateTests
         public ValueTask<AccountEntryStorageRecord> LoadAsync(
             AccountId accountId,
             CancellationToken cancellationToken) => ValueTask.FromResult(storage);
+
+        public ValueTask<AccountSettingsStorageRecord> LoadSettingsAsync(
+            AccountId accountId,
+            CancellationToken cancellationToken) => ValueTask.FromResult(storage.Settings);
     }
 }

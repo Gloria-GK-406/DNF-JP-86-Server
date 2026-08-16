@@ -40,6 +40,16 @@ public interface IAccountEntryStateRepository
     ValueTask<AccountEntryStorageRecord> LoadAsync(
         AccountId accountId,
         CancellationToken cancellationToken);
+
+    /// <summary>Loads only the account settings, with no roster requirement.</summary>
+    /// <remarks>
+    /// <see cref="LoadAsync"/> serves character entry and demands a selectable roster: it throws
+    /// when the account owns no character. Login has to read settings before any character exists,
+    /// so it needs a path that treats an empty account as ordinary rather than as corruption.
+    /// </remarks>
+    ValueTask<AccountSettingsStorageRecord> LoadSettingsAsync(
+        AccountId accountId,
+        CancellationToken cancellationToken);
 }
 
 public interface IAccountSettingsEntryService
@@ -68,6 +78,11 @@ public interface IAccountRelationCompatibilityEntryService
 public interface IAccountEntryStateService
 {
     ValueTask<AccountEntryState> LoadAsync(
+        AccountId accountId,
+        CancellationToken cancellationToken);
+
+    /// <summary>Account settings alone, valid before the account owns any character.</summary>
+    ValueTask<AccountSettingsEntryState> LoadSettingsAsync(
         AccountId accountId,
         CancellationToken cancellationToken);
 }

@@ -174,22 +174,29 @@ public sealed class GameLoginTests
         }
     }
 
+    /// <remarks>
+    /// <c>LoadAsync</c> throws on purpose. The real one demands a selectable roster and throws for
+    /// an account that owns no character -- which is every account logging in for the first time --
+    /// and login reaching for it silently cost the connection. Throwing here keeps that mistake
+    /// from being reintroduced quietly.
+    /// </remarks>
     private sealed class StubAccountEntryStateService : IAccountEntryStateService
     {
         public AccountId? RequestedAccountId { get; private set; }
 
         public ValueTask<AccountEntryState> LoadAsync(
             AccountId accountId,
+            CancellationToken cancellationToken) =>
+            throw new InvalidDataException(
+                $"Account {accountId} has no selectable roster state.");
+
+        public ValueTask<AccountSettingsEntryState> LoadSettingsAsync(
+            AccountId accountId,
             CancellationToken cancellationToken)
         {
             RequestedAccountId = accountId;
-            return ValueTask.FromResult(new AccountEntryState(
-                accountId,
-                new AccountSettingsEntryState([0x01], [0x02], [0x03], HotkeyKeyType: 1, AccountHotkeySlot: 0x0042),
-                new AccountWalletEntryState(0, 0, 0, 0),
-                new AccountEntitlementEntryState([]),
-                new AccountProgressionEntryState(0, 0, new AccountAdventureEntryState([]), []),
-                new AccountRelationCompatibilityEntryState([], [], [], 0)));
+            return ValueTask.FromResult(new AccountSettingsEntryState(
+                [0x01], [0x02], [0x03], HotkeyKeyType: 1, AccountHotkeySlot: 0x0042));
         }
     }
 }

@@ -646,6 +646,11 @@ public sealed class UserServiceTests
             AccountId accountId,
             CancellationToken cancellationToken) =>
             throw new InvalidOperationException("Account entry state must not load when character resolution fails.");
+
+        public ValueTask<AccountSettingsEntryState> LoadSettingsAsync(
+            AccountId accountId,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("Account settings must not load when character resolution fails.");
     }
 
     private sealed class MissingCharacterService : ICharacterService

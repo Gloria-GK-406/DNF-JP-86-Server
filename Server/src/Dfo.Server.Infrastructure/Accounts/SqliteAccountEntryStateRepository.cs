@@ -63,6 +63,23 @@ internal sealed class SqliteAccountEntryStateRepository : IAccountEntryStateRepo
             new AccountRelationCompatibilityStorageRecord(relations, unknown730, pcRoom));
     }
 
+    public async ValueTask<AccountSettingsStorageRecord> LoadSettingsAsync(
+        AccountId accountId,
+        CancellationToken cancellationToken)
+    {
+        if (accountId.Value <= 0)
+            throw new ArgumentOutOfRangeException(nameof(accountId), "Account ID must be positive.");
+
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction = (SqliteTransaction)await connection
+            .BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        var settings = await LoadSettingsAsync(connection, transaction, accountId, cancellationToken)
+            .ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        return settings;
+    }
+
     private static async ValueTask<(long Cera, long TokenCera, long HappyTokenCera, long LuckyStar,
         long HonorExperience, long GrowthCapsuleExperience)> LoadWalletAsync(
         SqliteConnection connection, SqliteTransaction transaction, AccountId accountId,

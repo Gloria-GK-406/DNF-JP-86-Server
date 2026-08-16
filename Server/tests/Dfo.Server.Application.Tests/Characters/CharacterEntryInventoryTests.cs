@@ -850,6 +850,10 @@ public sealed class CharacterEntryInventoryTests
         public ValueTask<AccountEntryState> LoadAsync(
             AccountId accountId,
             CancellationToken cancellationToken) => ValueTask.FromResult(state);
+
+        public ValueTask<AccountSettingsEntryState> LoadSettingsAsync(
+            AccountId accountId,
+            CancellationToken cancellationToken) => ValueTask.FromResult(state.Settings);
     }
 
     private sealed class FailingAccountEntryStateService : IAccountEntryStateService
@@ -859,6 +863,12 @@ public sealed class CharacterEntryInventoryTests
             CancellationToken cancellationToken) =>
             ValueTask.FromException<AccountEntryState>(
                 new InvalidDataException("account entry state is unavailable"));
+
+        public ValueTask<AccountSettingsEntryState> LoadSettingsAsync(
+            AccountId accountId,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromException<AccountSettingsEntryState>(
+                new InvalidDataException("account settings are unavailable"));
     }
 
     private sealed class StatefulActiveCharacterService : IActiveCharacterService

@@ -68,15 +68,18 @@ public sealed class GameLoginHandler(
         Dfo.Server.Data.Accounts.AccountId accountId,
         CancellationToken cancellationToken)
     {
-        var account = await accountEntryState.LoadAsync(accountId, cancellationToken)
+        // Settings only. The full account entry load demands a selectable roster and throws for an
+        // account that owns no character, which is exactly the account that is logging in for the
+        // first time -- and that throw silently cost the connection.
+        var settings = await accountEntryState.LoadSettingsAsync(accountId, cancellationToken)
             .ConfigureAwait(false);
         await sender.SendNotiAsync(
             connectionId,
-            new AccountGameOptionsMessage(account.Settings),
+            new AccountGameOptionsMessage(settings),
             cancellationToken).ConfigureAwait(false);
         await sender.SendNotiAsync(
             connectionId,
-            new LoginHotkeyStateMessage(account.Settings),
+            new LoginHotkeyStateMessage(settings),
             cancellationToken).ConfigureAwait(false);
     }
 }
