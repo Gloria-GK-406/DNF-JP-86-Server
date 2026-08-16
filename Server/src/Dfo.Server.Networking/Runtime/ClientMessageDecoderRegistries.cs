@@ -9,8 +9,9 @@ namespace Dfo.Server.Networking.Runtime;
 /// <remarks>
 /// Unlike the message handler registry there is no completeness check to run here: the wire key
 /// space is open, because the client picks the bytes. An unregistered key is an ordinary fact
-/// about traffic, not a configuration error, so lookup reports a miss and the caller drops the
-/// frame. Duplicate registration is the only thing that can be wrong at startup, and it is.
+/// about traffic, not a configuration error, so lookup reports a miss and the caller logs the
+/// frame and drops it. Duplicate registration is the only thing that can be wrong at startup,
+/// and it is.
 /// </remarks>
 internal sealed class GameMessageDecoderRegistry
 {
