@@ -7,8 +7,9 @@ internal sealed class AccountCharacterRosterResponseEncoder
     /// <remarks>
     /// Every other frame this server sends carries zero here, and the field is named Checksum in
     /// the framing layer. The reference server writes a roster query answer's header by hand purely
-    /// so it can set this byte -- nobody hand-rolls a header for a byte with no effect -- and uses
-    /// its ordinary builder, which leaves it zero, for refreshes.
+    /// so it can set this byte, and uses its ordinary builder, which leaves it zero, for refreshes.
+    /// That a working server bothers to distinguish the two is the whole of the evidence; no
+    /// observed client behaviour has been traced to this byte.
     ///
     /// Carried as the checksum value because byte 7 is that field's low byte and the other three
     /// stay zero, which reproduces the reference layout exactly.

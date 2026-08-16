@@ -13,18 +13,21 @@ public sealed record GetAccountCharacterRosterRequest(
 /// it is an unsolicited refresh after the roster changed.
 /// </param>
 /// <remarks>
-/// The distinction is carried in header byte 7 -- 1 for a query answer, 0 for a refresh -- and it
-/// is not cosmetic. The reference server builds the two with different code paths for exactly this
-/// reason: it hand-rolls the header to set the byte on query answers and uses its ordinary envelope
-/// builder, which leaves the byte zero, for refreshes.
+/// The distinction is carried in header byte 7 -- 1 for a query answer, 0 for a refresh. The
+/// reference server builds the two with different code paths: it hand-rolls the header to set the
+/// byte when answering a query and uses its ordinary envelope builder, which leaves the byte zero,
+/// for refreshes. Four call sites, two of each kind.
 ///
-/// Sending 1 on a refresh is what made character creation work exactly once. The first creation
-/// succeeded, the refresh that followed carried the query-answer byte, and from then on the roster
-/// screen never accepted another creation.
+/// That split is the entire justification. This distinction was originally introduced with a
+/// causal story attached -- that sending 1 on a refresh was why character creation worked exactly
+/// once per session -- and that story was wrong. The real cause was a client-side cursor
+/// desynchronisation on the confirmation dialog: the focus had already moved to the create button
+/// while the UI still drew it on the confirm button, so clicks landed nowhere. Nothing on the wire
+/// was involved.
 ///
-/// What the byte means to the client is still unknown; "routing byte" is the legacy author's name
-/// for it. What is established is that the two cases differ and that using one value for both
-/// breaks the screen.
+/// The change is kept because matching a reference implementation that demonstrably works is worth
+/// doing on its own. But no observed client behaviour is known to depend on it, and if it is ever
+/// simplified back to one value, the thing to check is whether the client cares at all.
 /// </remarks>
 public sealed record AccountCharacterRosterResponse(
     Dfo.Server.Data.Characters.AccountCharacterRoster Roster,
