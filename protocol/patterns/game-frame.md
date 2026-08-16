@@ -70,6 +70,7 @@ RVA = VA - 0x00400000
 | `0x1C90580` | `WriteU16` | `movzx reg, word [this+X]` → push → `GetWriter` → call |
 | `0x1C905B0` | `WriteU32` | `mov reg, dword [this+X]` → push → `GetWriter` → call |
 | `0x1C8FAC0` | `WriteBytes(ptr, len)` | `push <len>` → `push <ptr>` → `GetWriter` → call；用于浮点等非整型字段 |
+| `0x1C90710` | `WriteDString(str)` | 写 `i32 长度 + 字节`；长度不由调用点决定 |
 | `0x1C8FDD0` | `Finalize()` | 所有字段写完后调一次，随后函数返回 |
 
 典型形状（`GetWriter` 的返回值即 `WriteXX` 的 `this`）：
@@ -109,12 +110,33 @@ call 0x1C90550/80/B0    ; WriteU8 / WriteU16 / WriteU32
   长度由第二个参数显式给出，因此宽度不必推断。
 - 支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`。
 
-尚未识别宽度的原语（字符串、数组、u64、变长）出现时，必须先在新协议记录里确定其宽度，
+尚未识别宽度的原语（数组、u64 等）出现时，必须先在新协议记录里确定其宽度，
 再回写本页；不要按调用序号推断宽度。
 
-已见但未确认的原语：`0x1C90710`，出现在被混淆区（见下）构包 C→S `0x0002` 的路径上，
-紧邻 `Finalize`。该帧 body 尾部是 `0C000000` + 12 字节 ASCII 十六进制串，长度前缀与串长
-吻合，因此它**很可能**是"写长度前缀字节串"。未确认，不得据此解析。
+### `0x1C90710` = `WriteDString`（2026-08-16 由假设升级为已确认）
+
+此前本页记录它"出现在被混淆区构包 C→S `0x0002` 的路径上，**很可能**是写长度前缀字节串，
+未确认，不得据此解析"。全量构包点提取后，三条**已实机双向验证**的协议独立钉死了它：
+
+| 协议 | 手写文档记载的长度规则 | 机械提取出的字段序列 |
+|---|---|---|
+| `0x0005` `CREATE_CHARACTER` | `1 + 4 + nameLength + 4` | `u8` + **本原语** + `u8×4` |
+| `0x0006` `DELETE_CHARACTER` | `2 + 4 + nameLength` | `u16` + **本原语** |
+| `0x02B5` `CHECK_DOUBLE_CHARACTER_NAME` | `4 + nameLength` | **本原语** |
+
+三份文档里的 `4 + nameLength` 正是 `i32 长度前缀 + 名字字节`，而提取器在同一位置只看到
+**一次**本原语调用——即它自己写掉了长度和内容。三条协议的构包器互不相干，
+结论一致，且与最初那条 `0C000000` + 12 字节串的观察相符。
+
+**因此本原语可用于解析**，但它的宽度**仍不由调用点决定**：解析时必须先读 `i32` 长度。
+含它的协议在文档里记为「布局部分可得 / 使用了宽度不由调用点决定的原语」，这是正确的——
+形状已知，总长仍需样本或运行时长度字段。
+
+### 空 body 是已知布局，不是未知
+
+构包器写完 header 直接 `Finalize`、一个字段都不写，说明该协议的 **body 长度为 0**。
+这是**确定的**结论，不该记为"结构未知"。实测佐证：`0x0286` 与 `0x01BA` 在抓包里
+（seq 4 / seq 6）body 长度都确实是 0。
 
 ## 抓包的覆盖边界
 
@@ -140,9 +162,11 @@ call 0x1C90550/80/B0    ; WriteU8 / WriteU16 / WriteU32
 
 工具与结果已入库：
 
-- [`data/builder-census.py`](data/builder-census.py)：普查脚本（capstone，跑一遍约 4 秒）
-- [`data/client-to-server-builder-sites.tsv`](data/client-to-server-builder-sites.tsv)：
-  `type` / 构包点数 / 质量标记 / 全部构包点 RVA
+- [`data/census-identity.py`](data/census-identity.py)：统一身份普查（capstone，含 S→C 两族）
+- [`data/protocol-identity.tsv`](data/protocol-identity.tsv)：
+  `direction` / `family` / `type` / 构包点数 / 所在区 / 全部构包点 RVA
+- [`data/extract-layout.py`](data/extract-layout.py)：由构包指令机械读出 body 字段序列
+- 全部协议的文档与索引见 [Game 协议全量索引](../game/index.md)
 
 当前客户端（SHA `F78F0AEA…C04C`）的结果：
 

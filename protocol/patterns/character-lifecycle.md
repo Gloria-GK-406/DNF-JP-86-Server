@@ -10,7 +10,7 @@
 | `0x02B5` | `CHECK_DOUBLE_CHARACTER_NAME` | C→S + 同 type 响应 | [0x02B5.md](../game/client-to-server/0x02B5.md) |
 | `0x0005` | `CREATE_CHARACTER` | C→S + 同 type 响应 | [0x0005.md](../game/client-to-server/0x0005.md) |
 | `0x0006` | `DELETE_CHARACTER` | C→S + 同 type 响应 | [0x0006.md](../game/client-to-server/0x0006.md) |
-| `0x0289` | 荣誉等级 | S→C NOTI | [0x0289.md](../game/server-to-client/0x0289.md) |
+| `0x0289` | 荣誉等级 | S→C NOTI | [NOTI-0x0289.md](../game/server-to-client/NOTI-0x0289.md) |
 
 ## 为什么请求和响应写在同一个文档里
 
@@ -104,7 +104,7 @@ reason 由**各 type 的 handler** 逐个 `cmp` 匹配，表外的值静默丢�
 凡是能独立佐证的地方都做了佐证，佐证不了的地方在下面「未解问题」里列明。
 
 独立佐证（客户端普查表
-[server-to-client-handlers.tsv](data/server-to-client-handlers.tsv)）：五条 CMD
+[protocol-identity.tsv](data/protocol-identity.tsv)）：五条 CMD
 在客户端**都注册了接收 handler**，说明客户端确实等这些响应。
 
 | Type | client handler | 注册点 | 是否读 body |

@@ -1,0 +1,77 @@
+family	type	offset	meaning	confidence	source
+NOTI	0x0005	0	后续副本权限条目数 count；body 长度恒为 2+count*3	Confirmed	上游 Network/Builders/Init/DungeonPermissionBodyBuilder.cs:26-27 以 new byte[2+count*3] 建包并把 (ushort)count 写入 body[0..2)
+NOTI	0x0005	g1:0	该条目的副本 id DungeonId	Confirmed	上游 DungeonPermissionBodyBuilder.cs:30-31 在 off=2+i*3 处写 persistent[i].DungeonId
+NOTI	0x0005	g1:2	该副本的通关/难度解锁状态 ClearState；上游按"只增不减、取更大值"单调累积保存	Confirmed	上游 DungeonPermissionBodyBuilder.cs:32 body[off+2] = persistent[i].ClearState；单调累积见 Game/CharacterData/SqliteCharacterStateRepository.cs:252-253 与 :345
+NOTI	0x025B	0	顺序副本（安徒恩普通征服序列）的配置 key ConfigKey	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:318 BuildSequentialDungeonInfo 第一个 WriteInt32(configKey)；调用点 Network/Handlers/Dungeon/AntonNormalConquestNotificationSender.cs:45-49 传 state.Sequence.ConfigKey
+NOTI	0x025B	4	该序列的当前进度序号 ProgressIndex	Confirmed	上游 DungeonNotificationBuilder.cs:319 WriteByte(progressIndex)；调用点 AntonNormalConquestNotificationSender.cs:48 传 state.ProgressIndex
+NOTI	0x025B	5	路线掩码 routeMask；上游恒写常量 0	High	上游 DungeonNotificationBuilder.cs:320 WriteInt32(routeMask)；AntonNormalConquestNotificationSender.cs:12 const int SequentialRouteMask = 0，:49 传该常量
+CMD	0x0047	0	卡片类别 cardType：0=免费卡、1=付费卡；上游只接受 0/1，大于 1 直接丢弃该请求	Confirmed	上游 Network/Handlers/Dungeon/CardRewardCoordinator.cs:145 cardType = body[0]；:172 cardType > 1 时 return；:200-202 cardType==0 走 CardRewardSide.Free 否则 Paid
+CMD	0x0047	1	卡片位序号 cardIndex：上游只接受 0..3；只有 cardIndex==0 那次翻牌才真正发奖	Confirmed	上游 CardRewardCoordinator.cs:146 cardIndex = body[1]；:173 cardIndex > 3 时 return；:189 TrySelectCardSlot(run, cardType, cardIndex)；:195-203 cardIndex==0 才 DeliverCardRewards
+CMD	0x0048	0	命令状态 state：上游只把 state==1 判定为"退出副本回城"，其余值不触发回城	Confirmed	上游 CardRewardCoordinator.cs:250 state = body[0]；:258 与 :283 return state == 1 决定是否回城；Network/Parsers/Dungeon/DeathTowerEplpCommandParser.cs:20 同样以 body[0] 构造 DeathTowerEplpCommand.State
+CMD	0x0048	1	命令选项 option：与 state 组合使用；上游按 (state, option) 组合解析回城延迟，不识别的组合按 unsupported_option 拒绝	Confirmed	上游 CardRewardCoordinator.cs:251 option = body[1]，:257 与 :282 原样回显进 0x0048 应答；DeathTowerEplpCommandParser.cs:20-29 body[1] 作 Option 并经 TryResolveReturnDelay 校验
+NOTI	0x01E8	0	其后 buff 记录的条数；上游恒写 1，且只跟一条 16 字节记录	Hypothesis	上游 Network/Builders/Dungeon/SpecialDungeonNotificationBuilder.cs:38 WriteByte(1)，:39-42 随后只写一条 buffId + 3 个 i32
+NOTI	0x01E8	1	buff id（副本临时 buff 的编号）	Confirmed	上游 SpecialDungeonNotificationBuilder.cs:39 WriteInt32(buffId)；唯一调用点 Network/Handlers/Dungeon/DungeonBuffNotificationSender.cs:28-32 传 addedBuffIds[i]
+NOTI	0x01E8	5	builder 形参 field1；上游唯一调用点恒传 0，语义未知	Confirmed	上游 SpecialDungeonNotificationBuilder.cs:35,40 WriteInt32(field1)；唯一调用点 DungeonBuffNotificationSender.cs:28-32 三个 field 均传 0
+NOTI	0x01E8	9	builder 形参 field2；上游唯一调用点恒传 0，语义未知	Confirmed	上游 SpecialDungeonNotificationBuilder.cs:35,41 WriteInt32(field2)；唯一调用点 DungeonBuffNotificationSender.cs:28-32 三个 field 均传 0
+NOTI	0x01E8	13	builder 形参 field3；上游唯一调用点恒传 0，语义未知	Confirmed	上游 SpecialDungeonNotificationBuilder.cs:35,42 WriteInt32(field3)；唯一调用点 DungeonBuffNotificationSender.cs:28-32 三个 field 均传 0
+NOTI	0x01E9	0	要移除的 buff 条数 count = buffIds.Count	Confirmed	上游 SpecialDungeonNotificationBuilder.cs:51-52 BuildCharacterRemoveBuff 先算 count = buffIds.Count 再 WriteByte((byte)count)；调用点 DungeonBuffNotificationSender.cs:51-52
+NOTI	0x01E9	g1:0	被移除的 buff id	Confirmed	上游 SpecialDungeonNotificationBuilder.cs:53-54 循环 WriteInt32(buffIds[i])；调用点 DungeonBuffNotificationSender.cs:51-52 传 buffIds
+NOTI	0x01EA	0	本包携带的"生效中"buff 数量 count = buffIds.Count；上游每次都发完整生效列表，清空时发 count=0 的空列表	Confirmed	上游 SpecialDungeonNotificationBuilder.cs:24-25 BuildCharacterBuffDungeon 先算 count 再 WriteUInt16((ushort)count)；调用点 DungeonBuffNotificationSender.cs:39-40 传 activeBuffIds、:58-59 传 Array.Empty<int>()
+NOTI	0x01EA	g1:0	生效中的 buff id	Confirmed	上游 SpecialDungeonNotificationBuilder.cs:26-27 循环 WriteInt32(buffIds[i])；调用点 DungeonBuffNotificationSender.cs:39-40 传 activeBuffIds
+NOTI	0x001A	0	上游恒写常量 0x00，无任何参数参与；唯一构造点名为 BuildUnavailable，疑为"是否提供 UDP 主机"的标志	Hypothesis	上游 Network/Builders/Service/UdpHostBuilder.cs:7-12 body 只有一句 WriteByte(0x00)；唯一调用点 Network/Handlers/Dungeon/DungeonEntryHandler.cs:115
+NOTI	0x001B	0	上游恒写常量 1，无任何参数参与	Confirmed	上游 Network/Builders/Dungeon/EnterSelectDungeonStateBuilder.cs:42 BuildEnterSelectDungeon 第一个 WriteInt32(0x01)；调用点 Network/Handlers/Dungeon/DungeonEntryHandler.cs:129-134
+NOTI	0x001C	0	副本 id dungeonId（上游按有符号 i16 写出）	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:38 WriteInt16((short)dungeonId)；调用点 Network/Handlers/Dungeon/DungeonEntryHandler.cs:741-742 传 req.DungeonId
+NOTI	0x001C	2	副本难度 difficulty	Confirmed	上游 DungeonNotificationBuilder.cs:39 WriteByte(difficulty)；调用点 DungeonEntryHandler.cs:743 传 req.Difficulty
+NOTI	0x001C	3	本次选中的迷宫序号（builder 形参名 modeFlag，调用点传的是 selection.Index）	Confirmed	上游 DungeonNotificationBuilder.cs:40 WriteByte(modeFlag)；调用点 DungeonEntryHandler.cs:744 传 mazeModeFlag，其值由 :508 的 (byte)selection.Index 得到
+NOTI	0x001C	4	Boss 房在迷宫格子中的 X 坐标；无 boss 位置时写 0	Confirmed	上游 DungeonNotificationBuilder.cs:41 WriteByte(bossX)；调用点 DungeonEntryHandler.cs:745 传 bossPos[0]，bossPos 由 :439 RandomizeBossPosition 产生
+NOTI	0x001C	5	Boss 房在迷宫格子中的 Y 坐标；无 boss 位置时写 0	Confirmed	上游 DungeonNotificationBuilder.cs:42 WriteByte(bossY)；调用点 DungeonEntryHandler.cs:746 传 bossPos[1]
+NOTI	0x001D	0	当前房间在迷宫格子中的 X 坐标（maze.X）	Confirmed	上游 DungeonNotificationBuilder.cs:110 BuildStartMap 首字节 WriteByte((byte)maze.X)；重访构造 :194 同位置同值
+NOTI	0x001D	1	当前房间在迷宫格子中的 Y 坐标（maze.Y）	Confirmed	上游 DungeonNotificationBuilder.cs:111 WriteByte((byte)maze.Y)；重访构造 :195 同位置同值
+NOTI	0x001D	2	分层房间标记 layeredRoomFlag	Confirmed	上游 DungeonNotificationBuilder.cs:112 WriteByte(layeredRoomFlag)；重访构造 :196 该位置恒写 0 并注明"分层房间标记"
+NOTI	0x001D	3	本房间的随机种子 randomSeed（i32）	Confirmed	上游 DungeonNotificationBuilder.cs:113 WriteInt32(randomSeed)；重访构造 :197 同位置写 run.Seed
+NOTI	0x001D	7	深渊派对（Hell Party）模式 hellPartyMode	Confirmed	上游 DungeonNotificationBuilder.cs:114 WriteByte(hellPartyMode)；重访构造 :198 该位置恒写 0 并注明"深渊模式"；取值来源见 Network/Handlers/Dungeon/DungeonEntryHandler.cs:1243 run.HellPartyMode
+NOTI	0x001D	9	房间状态值 roomStateValue（u32）	Confirmed	上游 DungeonNotificationBuilder.cs:116 WriteInt32(unchecked((int)roomStateValue))，形参默认值见 :101 roomStateValue = 1；重访构造 :200 该位置恒写 1 并注明"房间状态值"
+NOTI	0x001D	13	房间状态标记 roomStateFlag：首次进入写 1，重访写 0	Confirmed	上游 DungeonNotificationBuilder.cs:117 WriteByte(roomStateFlag)，形参默认值见 :102 roomStateFlag = 1；重访构造 :201 该位置恒写 0 并注明"重访为 0"
+NOTI	0x015B	0	塔层数 layer：上游对同一次 START_MAP 连发两包，第一包写 0（基准层），第二包写当前层数	Confirmed	上游 Network/Builders/Dungeon/TowerOfDespairApcInfoBuilder.cs:39 BuildBody 首字节 WriteByte(layer)；:31-32 分别以 0 与 (byte)floor 调用；发包点 Network/Handlers/Dungeon/DungeonMapHandler.cs:592-599
+NOTI	0x015B	1	角色名 player.Name（dstr）	Confirmed	上游 TowerOfDespairApcInfoBuilder.cs:40 WriteDstr(player.Name)
+NOTI	0x015B	256	角色等级 player.Level	Confirmed	上游 TowerOfDespairApcInfoBuilder.cs:41 WriteByte(player.Level)
+NOTI	0x015B	257	职业 player.Job	Confirmed	上游 TowerOfDespairApcInfoBuilder.cs:42 WriteByte(player.Job)
+NOTI	0x015B	258	转职/成长类型 player.GrowType	Confirmed	上游 TowerOfDespairApcInfoBuilder.cs:43 WriteByte(player.GrowType)
+NOTI	0x015B	259	公会名（dstr）；上游恒写空串	Confirmed	上游 TowerOfDespairApcInfoBuilder.cs:44 WriteDstr(Array.Empty<byte>()) 并注释 guild name
+NOTI	0x015B	514	公会 id；上游恒写 0	Confirmed	上游 TowerOfDespairApcInfoBuilder.cs:45 WriteInt32(0) 并注释 guild id
+NOTI	0x0183	0	决斗/锦标赛副本 id（上游按有符号 i16 写出）	Confirmed	上游 Network/Builders/Dungeon/TournamentPacketBuilder.cs:15 BuildTournamentInfo 第一个 WriteInt16((short)runtime.Definition.DungeonId)
+NOTI	0x0183	2	副本难度 difficulty	Confirmed	上游 TournamentPacketBuilder.cs:16 WriteByte(difficulty)；发包点 Network/Handlers/Dungeon/DungeonMapHandler.cs:638-641 传 run.Difficulty
+NOTI	0x0183	3	每队人数上限 PartyLimit	Confirmed	上游 TournamentPacketBuilder.cs:17 WriteByte((byte)runtime.Definition.PartyLimit)
+NOTI	0x0183	4	第 1 轮的轮次号 round.Number	High	上游 TournamentPacketBuilder.cs:20 rounds 循环内 WriteByte(round.Number)（提取到的平坦偏移把循环展开一次，需按"首轮首队"推导）
+NOTI	0x0183	5	该轮的参赛队伍数 round.Teams.Count	High	上游 TournamentPacketBuilder.cs:21 WriteByte((byte)round.Teams.Count)（在 rounds 循环内，偏移需展开首轮推导）
+NOTI	0x0183	6	该队伍的位置 team.Position	High	上游 TournamentPacketBuilder.cs:24 WriteByte(team.Position)（在 teams 循环内，偏移需展开首队推导）
+NOTI	0x0183	7	第二段（路径 actor 段）的轮次号 round.Number	High	上游 TournamentPacketBuilder.cs:39 第二个 rounds 循环的 WriteByte(round.Number)；提取到的平坦偏移把两段循环各展开一次，故落在 7
+NOTI	0x0183	8	该路径 actor 的怪物序列号，自房间起始序列号递增	High	上游 TournamentPacketBuilder.cs:45 WriteUInt16(sequence++)，起始值 :35 sequence = firstMonsterSequence；发包点 DungeonMapHandler.cs:641 传 run.RoomStartSequence
+NOTI	0x0183	10	该路径 actor 的怪物 code	High	上游 TournamentPacketBuilder.cs:46 WriteInt32(actor.Code)
+NOTI	0x0183	14	该路径 actor 的等级	High	上游 TournamentPacketBuilder.cs:47 WriteByte(actor.Level)
+NOTI	0x0183	15	该路径 actor 的类别 Type	High	上游 TournamentPacketBuilder.cs:48 WriteByte(actor.Type)
+NOTI	0x0183	g1:0	该参赛队伍成员的怪物 code	High	上游 TournamentPacketBuilder.cs:26-27 teams/members 嵌套循环内 WriteInt32(member.Code)
+NOTI	0x0183	g1:4	该成员的强度 Strength（上游钳到 0..65535）	High	上游 TournamentPacketBuilder.cs:28-30 WriteUInt16((ushort)Math.Max(0, Math.Min(ushort.MaxValue, member.Strength)))
+NOTI	0x0184	g1:0	该 P2P 端点的角色/槽位号；上游写队伍成员的 SlotIndex	High	上游 Network/Builders/Party/DungeonRoomP2pBuilder.cs:37 w.WriteByte(m.SlotIndex)；该 builder 的 18 字节/条重复组与本协议提取到的重复组逐字段吻合
+NOTI	0x0184	g1:1	该端点所属成员的 UserId（u16，小端）	High	上游 DungeonRoomP2pBuilder.cs:38 w.WriteUInt16(m.UserId)
+NOTI	0x0184	g1:3	该成员的内网 IP，4 个原始字节（不是数值 u32）；成员无 IP 时上游填 127.0.0.1	High	上游 DungeonRoomP2pBuilder.cs:39-40 ip = m.IpBytes（长度非 4 时用 {127,0,0,1}）后 w.WriteBytes(ip)
+NOTI	0x0184	g1:7	该成员的外网 IP，4 个原始字节；上游与内网 IP 写同一份	High	上游 DungeonRoomP2pBuilder.cs:41 w.WriteBytes(ip) 第二次写同一个 ip
+NOTI	0x0184	g1:11	该成员的 P2P 端口；上游按大端拆成两个字节写（先高后低），与本字段被提取为 u16 的读法字节序相反	High	上游 DungeonRoomP2pBuilder.cs:42-43 w.WriteByte((byte)(m.P2pPort >> 8)) 后 w.WriteByte((byte)(m.P2pPort & 0xFF))
+NOTI	0x0184	g1:13	NAT 类型；上游恒写 0	Hypothesis	上游 DungeonRoomP2pBuilder.cs:44 w.WriteByte(0) 并注释 nat_type = 0(open/LAN)
+NOTI	0x0184	g1:14	builder 注释名 extra1；上游恒写 0	Hypothesis	上游 DungeonRoomP2pBuilder.cs:45 w.WriteUInt16(0) 并注释 extra1
+NOTI	0x0184	g1:16	builder 注释名 extra2；上游恒写 0	Hypothesis	上游 DungeonRoomP2pBuilder.cs:46 w.WriteUInt16(0) 并注释 extra2
+NOTI	0x0184	25	其后 18 字节/条重复组的条目数，等于队伍成员数	High	上游 DungeonRoomP2pBuilder.cs:34 w.WriteByte((byte)members.Count) 紧接 :35-47 的 foreach 写 18 字节条目；平坦偏移 25 由提取器把前一个 14 字节条目展开一次得到
+NOTI	0x02A6	0	条目数 count = actorLevels.Count	Confirmed	上游 DungeonNotificationBuilder.cs:82-83 BuildHellPartyMonsterInfo 先算 count 再 WriteInt32(count)
+NOTI	0x02A6	g1:0	该条目的怪物 code	Confirmed	上游 DungeonNotificationBuilder.cs:86 循环写 actorLevels[i].Key；Key 的取值见 Network/Handlers/Dungeon/DungeonMapHandler.cs:754 new KeyValuePair<int,int>(monster.Code, ...)
+NOTI	0x02A6	g1:4	该怪物的等级（上游取 max(1, monster.Level)）	Confirmed	上游 DungeonNotificationBuilder.cs:87 WriteInt32(actorLevels[i].Value)；取值见 DungeonMapHandler.cs:754 Math.Max(1, (int)monster.Level)
+NOTI	0x0138	0	上游恒写常量 0，构造函数无任何参数	Confirmed	上游 Network/Builders/Dungeon/SpecialDungeonNotificationBuilder.cs:81-86 BuildCompleteConditionPassGateTrigger 无参，:84 WriteInt32(0)；唯一发包点 Network/Handlers/Dungeon/DungeonMechanismNotificationSender.cs:56-61
+NOTI	0x0138	4	上游恒写常量 0，构造函数无任何参数	Confirmed	上游 SpecialDungeonNotificationBuilder.cs:85 WriteByte(0)；唯一发包点 DungeonMechanismNotificationSender.cs:56-61
+NOTI	0x0015	0	角色等级 level	Confirmed	上游 Network/Builders/Init/QuestListBodyBuilder.cs:61 BuildBody 首字节 WriteByte((byte)level)
+NOTI	0x0015	1	可接任务条数 count = questIds.Count	Confirmed	上游 QuestListBodyBuilder.cs:62 WriteUInt16((ushort)questIds.Count)，其后 :63-64 才写 questId 列表
+NOTI	0x0015	g1:0	一条可接任务的 questId	Confirmed	上游 QuestListBodyBuilder.cs:63-64 循环 WriteUInt16(questId)，questIds 由 :52-58 ComputeAcceptableQuests 按等级/职业/已清标记算出
+NOTI	0x02A7	0	可重连副本所属的队伍 id PartyId	Confirmed	上游 Network/Builders/Dungeon/DungeonRejoinNotificationBuilder.cs:11 WriteInt32(partyId)；调用点 Network/Handlers/Dungeon/DungeonRejoinCoordinator.cs:100-104 传 candidate.PartyId
+NOTI	0x02A7	4	保留字段：上游恒写常量 0，不绑定任何数据	Confirmed	上游 DungeonRejoinNotificationBuilder.cs:12 WriteInt32(reservedInt32)；DungeonRejoinCoordinator.cs:26 const int ReservedInt32 = 0，:103 传该常量
+NOTI	0x02A7	8	重连 UI 初始状态 rejoinUiState；上游投递重连候选时恒写 0	Confirmed	上游 DungeonRejoinNotificationBuilder.cs:13 WriteByte(rejoinUiState)；DungeonRejoinCoordinator.cs:27 const byte InitialRejoinUiState = 0，:104 传该常量
+NOTI	0x02A8	0	该可重连副本实例中一名参与者的 UserId；上游对候选实例的每个参与者各发一包	Confirmed	上游 DungeonRejoinNotificationBuilder.cs:17-22 BuildParticipant 只写 WriteUInt16(participantUserId)；调用点 DungeonRejoinCoordinator.cs:105-112 遍历 candidate.ParticipantUserIds
+NOTI	0x02A9	0	被取消重连的参与者 UserId	Confirmed	上游 DungeonRejoinNotificationBuilder.cs:17-22 BuildParticipant 只写 WriteUInt16(participantUserId)；调用点 DungeonRejoinCoordinator.cs:310-314 传 cancelled.ParticipantUserId
+NOTI	0x02AA	0	本次重连请求所针对的队伍 id PartyId	Confirmed	上游 DungeonRejoinNotificationBuilder.cs:24-29 BuildRejoinableDungeon 只写 WriteInt32(partyId)；调用点 DungeonRejoinCoordinator.cs:181-183 与 :243-245 传 request.PartyId

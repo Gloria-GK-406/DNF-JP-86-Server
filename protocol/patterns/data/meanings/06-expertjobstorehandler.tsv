@@ -1,0 +1,34 @@
+family	type	offset	meaning	confidence	source
+CMD	0x00EB	0	摊主 UserId（u16，非 CharacterId）：上游要求非 0，并与该玩家已进入的摊位 store.OwnerUserId 比对	Confirmed	上游 DisjointMachineRequest.cs:20,27 读 BitConverter.ToUInt16(body,0) 作 OwnerUserId；ExpertJobStoreHandler.cs:249 与 store.OwnerUserId 比对。注：本 type 双用途，未进入摊位时走 HELLPARTY_START（GameProtocolHandler.cs:997-999），该路径不读 body（DungeonMapHandler.cs:922-941），故本行只对拆解机变体成立
+CMD	0x00EB	2	待拆解物品的背包槽位索引（int16，上游要求 >= 0）	Confirmed	上游 DisjointMachineRequest.cs:19,28 读 BitConverter.ToInt16(body,2) 作 TargetSlotIndex；ExpertJobStoreHandler.cs:281,301 传给 DisjointMachineService.TryDisjoint
+CMD	0x00EB	4	物品所在背包列表类型 InventoryListType：上游只接受 Main(=0)，其余值直接拒绝	Confirmed	上游 DisjointMachineRequest.cs:18,22 读 body[4] 作 InventoryListType 并要求 == Main；InventoryListType.cs:5 Main = 0
+CMD	0x0257	0	摊位类型 kind：上游 0=拆解机(DisjointMachine)，3=附魔店(EnchantShop)	Confirmed	上游 CreateExpertJobStoreRequest.cs:29 读 body[0] 作 ExpertJobStoreKind；ExpertJobStoreKind.cs:5-6 定义 0/3
+CMD	0x0257	1	摊位使用费（金币，int32）：非摊主使用摊位时从使用者扣除并转入摊主	High	上游 CreateExpertJobStoreRequest.cs:31 读 Cost=ToInt32(body, 5+nameLen)；上游 body 在 kind 之后还有一段 dstr 摊位名（同文件 17,22-26），提取层未识别该段，故按写序逐一对上：提取到的第 2 字段(u32)=Cost。费用用途见 DisjointMachineService.cs:95-96
+CMD	0x0257	5	摊位摆放坐标 X（int16）：上游据此做摆摊位置合法性校验	High	上游 CreateExpertJobStoreRequest.cs:32 PositionX=ToInt16(body, 5+nameLen+4)，按写序为第 3 字段；ExpertJobStoreHandler.cs:129-134 传入 _placement.TryValidate
+CMD	0x0257	7	摊位摆放坐标 Y（int16）	High	上游 CreateExpertJobStoreRequest.cs:33 PositionY=ToInt16(body, 5+nameLen+6)，按写序为第 4 字段；ExpertJobStoreHandler.cs:129-134
+CMD	0x0257	9	摊位朝向 Direction（int16）	High	上游 CreateExpertJobStoreRequest.cs:34 Direction=ToInt16(body, 5+nameLen+8)，按写序为第 5 字段（body 最后一个字段）
+CMD	0x0258	0	要进入的摊位的摊主 UserId（u16，上游要求非 0）：服务端据此在当前城镇/区域内定位摊位	Confirmed	上游 EnterExpertJobStoreRequest.cs:17,19 读 ToUInt16(body,0) 作 OwnerUserId；ExpertJobStoreHandler.cs:203-209 传入 _stores.TryEnter
+CMD	0x025A	0	摊主 UserId（u16，非 0）：与该玩家已进入的附魔摊 store.OwnerUserId 比对	Confirmed	上游 EnchanterStoreUseRequest.cs:15,22 读 ToUInt16(body,0)；ExpertJobStoreHandler.cs:398 比对 store.OwnerUserId
+CMD	0x025A	2	附魔配方物品 id（int32，上游要求 > 0）：按它查配方表取资格等级与需求等级	Confirmed	上游 EnchanterStoreUseRequest.cs:16,23 读 ToInt32(body,2) 作 RecipeItemId；EnchanterStoreUseService.cs:45 用 CardRecipesByItemId 查表
+CMD	0x025A	6	操作模式 Mode（u8）：上游只接受值 2，其余值一律拒绝	Confirmed	上游 EnchanterStoreUseRequest.cs:17,24 读 body[6] 作 Mode 并要求 == 2；EnchanterStoreUseService.cs:30 再校验一次
+CMD	0x025A	7	被附魔装备所在的背包列表类型（u8）：上游只接受 Main(=0)	Confirmed	上游 EnchanterStoreUseRequest.cs:18,25 读 body[7] 作 TargetListType 并要求 == Main；InventoryListType.cs:5
+CMD	0x025A	8	被附魔装备的槽位索引（int16，>= 0，且不得与卡槽位相同）	Confirmed	上游 EnchanterStoreUseRequest.cs:19,27,29 读 ToInt16(body,8) 作 TargetSlotIndex；EnchanterStoreUseService.cs:62 按它取被附魔装备
+CMD	0x025A	10	附魔卡所在的背包列表类型（u8）：上游只接受 Main(=0)	Confirmed	上游 EnchanterStoreUseRequest.cs:20,26 读 body[10] 作 CardListType 并要求 == Main
+CMD	0x025A	11	附魔卡的槽位索引（int16，>= 0）	Confirmed	上游 EnchanterStoreUseRequest.cs:21,28 读 ToInt16(body,11) 作 CardSlotIndex；EnchanterStoreUseService.cs:61 按它取卡片
+NOTI	0x00CB	0	常量 1：上游 builder 在本 NOTI 首字节恒写 1，不随运行时数据变化（失败不走本 NOTI，走同 type 的 CMD 响应）	Confirmed	上游 ExpertJobStorePacketBuilder.cs:138 BuildOwnerDisjointNotification 首字节 WriteByte(1)；失败路径见同文件 110-116 BuildDisjointError（发给请求者的 CMD 0x00EB 响应）
+NOTI	0x00CB	1	摊主结算后的金币余额（int32）：非自用拆解时已把 store.Cost 加进来	Confirmed	上游 ExpertJobStorePacketBuilder.cs:139 WriteInt32(ownerGold)；ExpertJobStoreHandler.cs:341 传 result.OwnerGold；DisjointMachineService.cs:95-96,119
+NOTI	0x00CB	5	拆解机本次扣减后的剩余耐久（int32）：<= 0 时上游随即关闭该摊位	Confirmed	上游 ExpertJobStorePacketBuilder.cs:140 WriteInt32(endurance)；ExpertJobStoreHandler.cs:342 传 result.Endurance；DisjointMachineService.cs:113,120；关摊见 ExpertJobStoreHandler.cs:359-366
+NOTI	0x0216	0	摊主结算后的金币余额（int32）：非自用附魔时已把 store.Cost 加进来	Confirmed	上游 ExpertJobStorePacketBuilder.cs:149 BuildOwnerEnchantNotification WriteInt32(ownerGold)；ExpertJobStoreHandler.cs:512 传 result.OwnerGold；EnchanterStoreUseService.cs:125-126,155
+NOTI	0x0216	4	附魔机本次扣减后的剩余耐久（int32）：<= 0 时上游随即关闭该摊位	Confirmed	上游 ExpertJobStorePacketBuilder.cs:150 WriteInt32(endurance)；ExpertJobStoreHandler.cs:513 传 result.Endurance；EnchanterStoreUseService.cs:137,156；关摊见 ExpertJobStoreHandler.cs:544-549
+NOTI	0x021B	0	摊位类型 kind：0=拆解机(DisjointMachine)，3=附魔店(EnchantShop)；只有 kind=3 才写出尾部计数与重复组	Confirmed	上游 ExpertJobStorePacketBuilder.cs:31 WriteByte((byte)store.Kind) 为 body 首字节；ExpertJobStoreKind.cs:5-6 定义 0/3；分支见同文件 40-51
+NOTI	0x021B	1	摊主 UserId（u16）：与 CLOSE 通知 NOTI 0x021C 用的是同一个 id	Confirmed	上游 ExpertJobStorePacketBuilder.cs:32 WriteUInt16(store.OwnerUserId)；同文件 58 关摊通知写同一字段
+NOTI	0x021B	3	摊位名（dstr = int32 长度 + 原始字节）：内容原样来自 CREATE 命令里的名字字节，服务端不做转码	Confirmed	上游 ExpertJobStorePacketBuilder.cs:33 WriteDstr(store.NameBytes)；GamePacketWriter.cs:59-64 定义 dstr；NameBytes 源头见 CreateExpertJobStoreRequest.cs:22-30
+NOTI	0x021B	259	摊位所在城镇 id TownId（u8）	High	上游 ExpertJobStorePacketBuilder.cs:34 WriteByte(store.TownId)，位于变长 name dstr 之后，按写序与提取到的字段逐一对上（提取层把 dstr 按 256 字节定长记账，故绝对偏移是记账值而非实测值）
+NOTI	0x021B	260	摊位所在区域 id AreaId（u8）	High	上游 ExpertJobStorePacketBuilder.cs:35 WriteByte(store.AreaId)，name dstr 之后按写序第 2 个字段
+NOTI	0x021B	261	摊位坐标 X（int16）	High	上游 ExpertJobStorePacketBuilder.cs:36 WriteInt16(store.PositionX)，name dstr 之后按写序第 3 个字段
+NOTI	0x021B	263	摊位坐标 Y（int16）	High	上游 ExpertJobStorePacketBuilder.cs:37 WriteInt16(store.PositionY)，name dstr 之后按写序第 4 个字段
+NOTI	0x021B	265	摊位使用费（金币，int32）	High	上游 ExpertJobStorePacketBuilder.cs:38 WriteInt32(store.Cost)，name dstr 之后按写序第 5 个字段；费用用途见 DisjointMachineService.cs:95-96
+NOTI	0x021B	269	常量 1（上游命名 PlayerAttachedStoreMode）：builder 恒写 1，不随运行时数据变化	High	上游 ExpertJobStorePacketBuilder.cs:39 WriteByte(PlayerAttachedStoreMode)，常量定义在同文件 8；name dstr 之后按写序第 6 个字段
+NOTI	0x021B	270	后续重复组的元素个数 n（u8）：仅当 kind=3（附魔店）时才写出，kind=0 时 body 到上一字段为止	High	上游 ExpertJobStorePacketBuilder.cs:40-44 仅在 store.Kind == EnchantShop 分支里 WriteByte(CardQualificationLevels.Count)，随后 45-50 按该计数循环
+NOTI	0x021B	g1:0	单个元素：一个附魔卡资格等级（u8），整组即该附魔师当前可处理的资格等级表	High	上游 ExpertJobStorePacketBuilder.cs:45-50 按计数循环 WriteByte(store.Enchanter.CardQualificationLevels[index])；该表由专家职业经验换算而来（EnchanterConfigProvider.cs:95 GetCardQualificationLevels）；用途见 EnchanterStoreUseService.cs:47 校验配方资格
+NOTI	0x021C	0	被关闭摊位的摊主 UserId（u16）	Confirmed	上游 ExpertJobStorePacketBuilder.cs:57-58 BuildCloseNotification 只写这一个 WriteUInt16(ownerUserId)；调用点 ExpertJobStoreHandler.cs:842-848 传 store.OwnerUserId

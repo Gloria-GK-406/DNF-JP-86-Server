@@ -1,0 +1,69 @@
+family	type	offset	meaning	confidence	source
+CMD	0x010F	0	成长券（票据）所在背包槽位 TicketSlotIndex，i16	Confirmed	上游 Network/Parsers/Inventory/ChronicleGrowthRequest.cs:18 BitConverter.ToInt16(body, 0) 作 TicketSlotIndex
+CMD	0x010F	2	成长券物品模板 ID TicketItemTemplateId，i32	Confirmed	上游 Network/Parsers/Inventory/ChronicleGrowthRequest.cs:19 BitConverter.ToInt32(body, 2) 作 TicketItemTemplateId
+CMD	0x010F	6	被成长的目标装备槽位 TargetSlotIndex，i16；成功后进入刷新槽位集合	Confirmed	上游 Network/Parsers/Inventory/ChronicleGrowthRequest.cs:20 BitConverter.ToInt16(body, 6) 作 TargetSlotIndex；InventoryHandler.ChronicleGrowth.cs:54 用它拼刷新槽位
+CMD	0x010F	8	目标装备物品模板 ID TargetItemTemplateId，i32	Confirmed	上游 Network/Parsers/Inventory/ChronicleGrowthRequest.cs:21 BitConverter.ToInt32(body, 8) 作 TargetItemTemplateId
+CMD	0x010F	13	材料（碎片）所在槽位 Materials[0].SlotIndex，i16	Confirmed	上游 Network/Parsers/Inventory/ChronicleGrowthRequest.cs:26 BitConverter.ToInt16(body, 13) 作 ChronicleGrowthMaterialRequest.SlotIndex
+CMD	0x010F	15	材料（碎片）物品模板 ID Materials[0].ItemTemplateId，i32	Confirmed	上游 Network/Parsers/Inventory/ChronicleGrowthRequest.cs:27 BitConverter.ToInt32(body, 15) 作 ChronicleGrowthMaterialRequest.ItemTemplateId
+CMD	0x001A	0	被分解的目标物品槽位 TargetSlotIndex，i16；上游要求 >= 0 否则整包拒收	Confirmed	上游 Network/Parsers/Inventory/DisjointItemRequestParser.cs:16 BitConverter.ToInt16(body, 0) 作 TargetSlotIndex，:22 校验 >= 0
+CMD	0x001A	2	目标物品所在背包列表类型 ItemSpace，按 InventoryListType 解释（0=Main 1=Avatar 2=PersonalCargo 3=Equipment 7=Pet 12=AccountCargo）	Confirmed	上游 Network/Parsers/Inventory/DisjointItemRequestParser.cs:17 (InventoryListType)body[2] 作 ItemSpace；枚举取值见 Game/Inventory/InventoryListType.cs:5-18
+CMD	0x001A	3	分解机（分解道具）所在槽位 DisjointItemSlotIndex，i16	Confirmed	上游 Network/Parsers/Inventory/DisjointItemRequestParser.cs:18 BitConverter.ToInt16(body, 3) 作 DisjointItemSlotIndex
+CMD	0x0100	0	待合成的纹章条目数 count；上游校验 2 <= count <= 5 且 body 长度须严格等于 1 + count*6，据此循环解析后续重复组	Confirmed	上游 Network/Parsers/Inventory/EmblemCompoundRequestParser.cs:14 var count = body[0]，:15 校验区间与总长，:19-21 以 offset = 1 + index*6 循环
+CMD	0x0100	g1:0	该纹章的物品模板 ID ItemTemplateId，i32，上游要求 > 0	Confirmed	上游 Network/Parsers/Inventory/EmblemCompoundRequestParser.cs:22 BitConverter.ToInt32(body, offset) 作 ItemTemplateId，:24 校验 > 0
+CMD	0x0100	g1:4	该纹章所在背包槽位 SlotIndex，i16，上游要求 >= 0	Confirmed	上游 Network/Parsers/Inventory/EmblemCompoundRequestParser.cs:23 BitConverter.ToInt16(body, offset + 4) 作 SlotIndex，:24 校验 >= 0
+CMD	0x0050	0	强化方式 ItemUpgradeMethod 的低字节；上游按 u16 读 body[0..1]，值 > AdvancedReinforce 直接拒收，等于 Amplify 时整包转为增幅模式	High	上游 Network/Parsers/Inventory/ItemUpgradeRequest.cs:23 BitConverter.ToUInt16(body, 0) 作 rawMethod，:24-25 上限校验，:33-36 定 Method/Mode（本字段宽度 1，上游按 2 字节整体读，需一步推导）
+CMD	0x0050	1	同一个 ItemUpgradeMethod u16 的高字节；上游的 ToUInt16(body, 0) 覆盖 body[0..1]，本字节即其 MSB	High	上游 Network/Parsers/Inventory/ItemUpgradeRequest.cs:23 BitConverter.ToUInt16(body, 0) 覆盖 body[0] 与 body[1]（提取的字段边界把这 2 字节切成两个 u8，需一步推导）
+CMD	0x0050	2	被强化的目标装备槽位 TargetSlotIndex，i16	Confirmed	上游 Network/Parsers/Inventory/ItemUpgradeRequest.cs:37 BitConverter.ToInt16(body, 2) 作 TargetSlotIndex
+CMD	0x0050	4	目标装备物品模板 ID TargetItemTemplateId，i32	Confirmed	上游 Network/Parsers/Inventory/ItemUpgradeRequest.cs:38 BitConverter.ToInt32(body, 4) 作 TargetItemTemplateId
+CMD	0x0050	8	强化材料所在槽位 MaterialSlotIndex，i16	Confirmed	上游 Network/Parsers/Inventory/ItemUpgradeRequest.cs:39 BitConverter.ToInt16(body, 8) 作 MaterialSlotIndex
+CMD	0x0050	10	可选券（保护券一类的附加道具）槽位 OptionalTicketSlotIndex，i16，上游默认值为 -1	Confirmed	上游 Network/Parsers/Inventory/ItemUpgradeRequest.cs:40 BitConverter.ToInt16(body, 10) 作 OptionalTicketSlotIndex，:14 默认 -1
+CMD	0x0050	12	长度前缀字符串区：body[12..15] 为 i32 名称字节数（上游要求 >= 0 且 16+len <= 总长），随后 body[16..] 为该长度的 UTF-8 目标物品名 TargetItemName	High	上游 Network/Parsers/Inventory/ItemUpgradeRequest.cs:27-29 读 nameLength 并校验，:41 Encoding.UTF8.GetString(body, 16, nameLength)（提取器把 12 起的 128 字节整体记为一个 lenprefixed 字段，需一步推导）
+CMD	0x00CE	0	被开孔的目标时装槽位 targetSlot，i16	Confirmed	上游 Network/Handlers/InventoryHandler.Equipment.cs:418 BitConverter.ToInt16(body, 0) 作 targetSlot（Handle_AVATAR_SOCKET_OPEN:322 经 TryParseSocketOpenBody 解析）
+CMD	0x00CE	2	目标时装物品模板 ID targetItemId，i32	Confirmed	上游 Network/Handlers/InventoryHandler.Equipment.cs:419 BitConverter.ToInt32(body, 2) 作 targetItemId
+CMD	0x00CE	6	开孔材料所在槽位 materialSlot，i16；成功后上游按此槽扣材料并单独刷新	Confirmed	上游 Network/Handlers/InventoryHandler.Equipment.cs:420 BitConverter.ToInt16(body, 6) 作 materialSlot，:334 传入 TryOpenAvatarSocket，:350-351 据结果刷新材料槽
+CMD	0x0110	0	宝珠所在背包列表类型 BeadListType，按 InventoryListType 解释	Confirmed	上游 Network/Parsers/Inventory/EnchantByBeadRequest.cs:26 (InventoryListType)body[0] 作 BeadListType；枚举取值见 Game/Inventory/InventoryListType.cs:5-18
+CMD	0x0110	1	宝珠所在槽位 BeadSlotIndex，i16	Confirmed	上游 Network/Parsers/Inventory/EnchantByBeadRequest.cs:27 BitConverter.ToInt16(body, 1) 作 BeadSlotIndex
+CMD	0x0110	3	被附魔的目标所在背包列表类型 TargetListType；上游在其等于 Pet(7) 时改走宠物/魔宠附魔分支	Confirmed	上游 Network/Parsers/Inventory/EnchantByBeadRequest.cs:28 (InventoryListType)body[3] 作 TargetListType；分支见 Network/Handlers/InventoryHandler.Equipment.cs:82-86
+CMD	0x0110	4	被附魔的目标装备槽位 TargetSlotIndex，i16	Confirmed	上游 Network/Parsers/Inventory/EnchantByBeadRequest.cs:29 BitConverter.ToInt16(body, 4) 作 TargetSlotIndex
+CMD	0x031C	0	背包列表类型前缀；上游只有在 body[0] == InventoryListType.Avatar(1) 时才按本包这套 8+n*7 布局（首字节 + 后移 1 字节）解析纹章镶嵌请求	High	上游 Network/Handlers/InventoryHandler.Equipment.cs:461-462 判 body[0]==Avatar 后调 TryParseEmblemAttachBodyAt(body, 1, ...)；注意 0x031C 自身 handler(:283) 走的是无此前缀的 7+n*7 变体 TryParseEmblemAttachBody(:432-434)
+CMD	0x031C	g1:0	该纹章来源槽位 EmblemSlot，i16	High	上游 Network/Handlers/InventoryHandler.Equipment.cs:487 BitConverter.ToInt16(body, offset) 作 EmblemSlot（组内偏移 0）
+CMD	0x031C	g1:2	该纹章物品模板 ID EmblemItemTemplateId，i32	High	上游 Network/Handlers/InventoryHandler.Equipment.cs:488 BitConverter.ToInt32(body, offset + 2) 作 EmblemItemTemplateId
+CMD	0x031C	g1:6	目标装备上的孔位序号 SocketIndex，u8	High	上游 Network/Handlers/InventoryHandler.Equipment.cs:489 body[offset + 6] 作 SocketIndex
+CMD	0x031D	0	被开孔的目标装备槽位 targetSlot，i16	Confirmed	上游 Network/Handlers/InventoryHandler.Equipment.cs:418 BitConverter.ToInt16(body, 0) 作 targetSlot（Handle_EQUIPMENT_SOCKET_OPEN:241 经 TryParseSocketOpenBody 解析）
+CMD	0x031D	2	目标装备物品模板 ID targetItemId，i32	Confirmed	上游 Network/Handlers/InventoryHandler.Equipment.cs:419 BitConverter.ToInt32(body, 2) 作 targetItemId
+CMD	0x031D	6	开孔材料所在槽位 materialSlot，i16；成功后上游按此槽扣材料并单独刷新	Confirmed	上游 Network/Handlers/InventoryHandler.Equipment.cs:420 BitConverter.ToInt16(body, 6) 作 materialSlot，:253 传入 TryOpenEquipmentSocket，:270-271 据结果刷新材料槽
+CMD	0x001E	0	要使用的经验/属性道具在 Main 背包中的槽位 SlotIndex，i16；上游拒收负值，并以 InventoryListType.Main 定位	Confirmed	上游 Network/Parsers/Inventory/IncreaseStatusRequest.cs:19 BitConverter.ToInt16(body, 0) 作 slotIndex，:20-21 拒负值；Network/Handlers/InventoryHandler.Experience.cs:50-54 以 InventoryListType.Main + request.SlotIndex 取道具
+CMD	0x00CD	0	操作类型 InvestItemAmplifyOptionAction；上游只接受 Invest/Twist/PureGold 三个枚举值，其余直接拒收	Confirmed	上游 Network/Parsers/Inventory/InvestItemAmplifyOptionRequestParser.cs:14 actionRaw = body[0]，:15-18 白名单校验，:22 转 InvestItemAmplifyOptionAction
+CMD	0x00CD	1	目标装备槽位 TargetSlotIndex，i16	Confirmed	上游 Network/Parsers/Inventory/InvestItemAmplifyOptionRequestParser.cs:23 BitConverter.ToInt16(body, 1) 作 TargetSlotIndex
+CMD	0x00CD	3	目标装备物品模板 ID TargetItemTemplateId，i32	Confirmed	上游 Network/Parsers/Inventory/InvestItemAmplifyOptionRequestParser.cs:24 BitConverter.ToInt32(body, 3) 作 TargetItemTemplateId
+CMD	0x00CD	7	材料所在槽位 MaterialSlotIndex，i16	Confirmed	上游 Network/Parsers/Inventory/InvestItemAmplifyOptionRequestParser.cs:25 BitConverter.ToInt16(body, 7) 作 MaterialSlotIndex
+CMD	0x00CD	9	材料物品模板 ID MaterialItemTemplateId，i32	Confirmed	上游 Network/Parsers/Inventory/InvestItemAmplifyOptionRequestParser.cs:26 BitConverter.ToInt32(body, 9) 作 MaterialItemTemplateId
+CMD	0x00CD	13	本次选定的选项 SelectedOption，u8	Confirmed	上游 Network/Parsers/Inventory/InvestItemAmplifyOptionRequestParser.cs:27 body[13] 作 SelectedOption
+CMD	0x010B	0	目标装备所在背包列表类型，按 InventoryListType 解释	Confirmed	上游 Network/Handlers/InventoryHandler.ItemLock.cs:182 (InventoryListType)body[0] 作 listType（TryParseEquipmentItemLockRequest，由 Handle_ENUM_CMDPACKET_REQUEST_ITEM_LOCK:13 调用）
+CMD	0x010B	1	待上锁的装备槽位 slotIndex，i16	Confirmed	上游 Network/Handlers/InventoryHandler.ItemLock.cs:183 BitConverter.ToInt16(body, 1) 作 slotIndex，:25 传入 TryLockEquipmentItem
+NOTI	0x00FB	0	锁定条目数 count，u16；上游按条目数量写出，后续为等量重复组	Confirmed	上游 Network/Builders/Inventory/EquipmentItemLockBuilder.cs:59 BuildLockList 首个 WriteUInt16 写 entries.Count
+NOTI	0x00FB	g1:0	该条目所在背包列表类型 ListType，按 InventoryListType 解释	Confirmed	上游 Network/Builders/Inventory/EquipmentItemLockBuilder.cs:64 WriteByte((byte)entry.ListType)
+NOTI	0x00FB	g1:1	该条目的装备槽位 SlotIndex，i16	Confirmed	上游 Network/Builders/Inventory/EquipmentItemLockBuilder.cs:65 WriteInt16(entry.SlotIndex)
+NOTI	0x00FB	g1:3	锁定状态 State，u8；上锁与取消解锁两条路径都写 1，写 2 时表示处于解锁倒计时	Confirmed	上游 Network/Builders/Inventory/EquipmentItemLockBuilder.cs:66 WriteByte(entry.State)，:67 以 State==2 决定是否追加倒计时；调用点 Network/Handlers/InventoryHandler.ItemLock.cs:54/139 传 state=1，:150-151 State==2 才带 RemainingSeconds
+NOTI	0x00FB	g1:4	解锁剩余秒数 RemainingSeconds，i32；上游仅在 State==2 时写出，故单条目实际为 4 字节或 8 字节变长	Confirmed	上游 Network/Builders/Inventory/EquipmentItemLockBuilder.cs:67-68 if (entry.State == 2) WriteInt32(entry.RemainingSeconds)
+NOTI	0x00FC	0	被解锁装备所在背包列表类型 ListType，按 InventoryListType 解释	Confirmed	上游 Network/Builders/Inventory/EquipmentItemLockBuilder.cs:51 BuildUnlockNotice WriteByte((byte)listType)；发出点 Network/Handlers/InventoryHandler.ItemLock.cs:94-95 以 NOTI 0x00FC 送出
+NOTI	0x00FC	1	被解锁的装备槽位 SlotIndex，i16	Confirmed	上游 Network/Builders/Inventory/EquipmentItemLockBuilder.cs:52 BuildUnlockNotice WriteInt16(slotIndex)
+CMD	0x02CA	0	要切换整理锁的背包列表类型，按 InventoryListType 解释	High	上游 Network/Handlers/InventoryHandler.Move.cs:223 (InventoryListType)body[0] 作 listType（Handle_ENUM_CMDPACKET_TOGGLE_SORT_ITEM_LOCK）；注意上游 :220 要求 body 至少 3 字节，与本包提取到的 BodyLength=1 不一致，故按一步推导计
+CMD	0x00CC	0	目标物品槽位 TargetSlotIndex，i16	Confirmed	上游 Network/Parsers/Inventory/PurifyItemRequestParser.cs:16 BitConverter.ToInt16(body, 0) 作 TargetSlotIndex
+CMD	0x00CC	2	目标物品模板 ID TargetItemTemplateId，i32	Confirmed	上游 Network/Parsers/Inventory/PurifyItemRequestParser.cs:17 BitConverter.ToInt32(body, 2) 作 TargetItemTemplateId
+CMD	0x00CC	6	材料所在槽位 MaterialSlotIndex，i16	Confirmed	上游 Network/Parsers/Inventory/PurifyItemRequestParser.cs:18 BitConverter.ToInt16(body, 6) 作 MaterialSlotIndex
+CMD	0x00CC	8	材料物品模板 ID MaterialItemTemplateId，i32	Confirmed	上游 Network/Parsers/Inventory/PurifyItemRequestParser.cs:19 BitConverter.ToInt32(body, 8) 作 MaterialItemTemplateId
+CMD	0x0191	0	要解封随机属性的目标装备槽位 targetSlot，i16	Confirmed	上游 Network/Handlers/InventoryHandler.RandomOption.cs:20 BitConverter.ToInt16(body, 0) 作 targetSlot，:28 传入 TryUnsealRandomOption
+CMD	0x0191	2	可能是解封用卷轴/材料的槽位 scrollSlot，i16	Hypothesis	上游 Network/Handlers/InventoryHandler.RandomOption.cs:11 注释标注 body = slot(i16) + scrollSlot(i16)，但 :28 对应实参写死常量 0，handler 全程未读 body[2..3]
+CMD	0x01B6	0	要更换随机属性的目标装备槽位 targetSlot，i16	Confirmed	上游 Network/Handlers/InventoryHandler.RandomOption.cs:64 BitConverter.ToInt16(body, 0) 作 targetSlot，:73 传入 TryChangeRandomOption
+CMD	0x01B6	2	可能是更换用材料的槽位 materialSlot，i16	Hypothesis	上游 Network/Handlers/InventoryHandler.RandomOption.cs:55 注释标注 body = slot(i16) + materialSlot(i16) + optionIndex(u8)，但 :73 对应实参写死常量 0，handler 全程未读 body[2..3]
+CMD	0x01B6	4	要替换掉的随机属性条目序号 optionIndex，u8	Confirmed	上游 Network/Handlers/InventoryHandler.RandomOption.cs:65 body[4] 作 optionIndex，:73 传入 TryChangeRandomOption
+CMD	0x0017	0	背包列表类型 invenType；上游只映射 0=Main（背包/快捷栏）、2=PersonalCargo（货柜）、3=Equipment（穿戴装备），其余值直接以错误码 0x11 拒绝	Confirmed	上游 Network/Handlers/InventoryHandler.Repair.cs:24 invenType = body[0]，:34-38 经 MapInvenTypeToListType(:69-78) 映射，无法映射即回错误
+CMD	0x0017	1	待修理装备槽位 slot，i16；上游对 slot == -1 走全身修理分支（遍历 Equipment 11..22 与 Main 3..8），ACK 回写 0xFFFF	Confirmed	上游 Network/Handlers/InventoryHandler.Repair.cs:25 BitConverter.ToInt16(body, 1) 作 slot，:62 slot==-1 时 ackSlot 置 0xFFFF；Game/Inventory/Services/InventoryRepairService.cs:23 slotIndex==-1 转全身修理，:91-95 遍历范围
+CMD	0x0017	3	可能是修理道具所在槽位 repair_item_slot，i16	Hypothesis	上游 Network/Handlers/InventoryHandler.Repair.cs:10 注释把 body 记为 [inven_type:1][slot:2][repair_item_slot:2][auto:1][pad:1][quick:1]，但 handler 全程未读 body[3..4]
+CMD	0x0017	5	自动修理触发标志：上游读 body[5]==1 判为魔王契约自动修理触发（再叠加账号契约校验才免费）；本字段宽 2 字节，仅低字节被使用，上游注释把高字节标为 pad	High	上游 Network/Handlers/InventoryHandler.Repair.cs:26 autoRepair = body.Length >= 6 && body[5] == 1，:31 与 PremiumService.HasActiveAutoRepairForAccount 双重校验；:10-14 注释标 body[6] 为 pad（上游按 1 字节读，字段宽 2，需一步推导）
+CMD	0x0015	0	要购买的商品物品模板 ID itemTemplateId，i32	Confirmed	上游 Network/Handlers/InventoryHandler.Trade.cs:162 BitConverter.ToInt32(body, 0) 作 itemTemplateId，:173 传入 TryBuyNpcItem
+CMD	0x0015	4	购买数量 buyCount，i32；上游对 <= 0 的值一律改判为 1	Confirmed	上游 Network/Handlers/InventoryHandler.Trade.cs:163 BitConverter.ToInt32(body, 4) 作 buyCount，:164 buyCount <= 0 时置 1
+CMD	0x0016	0	待出售物品所在背包列表类型，按 InventoryListType 解释；上游要求它是已定义的枚举值，否则退回无类型前缀的旧布局解析	Confirmed	上游 Network/Handlers/InventoryHandler.cs:101 Enum.IsDefined 判 body[0]，:103 (InventoryListType)body[0] 作 listType（TryParseDeleteOrSellRequest，由 InventoryHandler.Trade.cs:234 调用）
+CMD	0x0016	1	待出售物品槽位 slotIndex，i16	Confirmed	上游 Network/Handlers/InventoryHandler.cs:104 BitConverter.ToInt16(body, 1) 作 slotIndex；InventoryHandler.Trade.cs:245-250 传入 TrySellItem
+CMD	0x0016	3	出售数量 itemCount，i16	Confirmed	上游 Network/Handlers/InventoryHandler.cs:105 BitConverter.ToInt16(body, 3) 作 itemCount；InventoryHandler.Trade.cs:245-250 作 sellCount 传入 TrySellItem

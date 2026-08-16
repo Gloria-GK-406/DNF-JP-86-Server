@@ -1,0 +1,104 @@
+family	type	offset	meaning	confidence	source
+NOTI	0x0022	0	结算评级档位下标 rankIndex（来自 settlement.PresentationRankBonusIndex）	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:337 BuildPlayResult 首个 WriteByte(rankIndex)；调用点 Network/Handlers/Dungeon/DungeonSettlementHandler.cs:163
+NOTI	0x0022	1	通关耗时 clearTimeMs（毫秒）	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:338 WriteInt32(clearTimeMs)；调用点 DungeonSettlementHandler.cs:162 传入 settlement.ClearTimeMilliseconds
+NOTI	0x0022	5	时间奖励分 timeBonusPoint（上游 clamp 到 0..255）	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:339 WriteByte(timeBonusPoint)；调用点 DungeonSettlementHandler.cs:165-167
+NOTI	0x0022	6	客户端展示用评分 clientRankPoint（settlement.ClientRankPoint）	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:340 WriteByte(clientRankPoint)；调用点 DungeonSettlementHandler.cs:168-169
+NOTI	0x0022	7	questMaze 标记（任务迷宫结算标志；BuildPlayResult 的 questMaze 参数，默认 false→0）	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:341 WriteByte(questMaze ? 1 : 0)
+NOTI	0x0022	8	后续成员记录条数（上游恒写 0x01，只投影自己一条）	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:342 WriteByte(0x01) 并注释 member count
+NOTI	0x0022	9	成员的 UserId（session.Player.UserId）	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:343 WriteUInt16(userId)；调用点 DungeonSettlementHandler.cs:161
+NOTI	0x0022	11	该成员的通关耗时（毫秒，与 offset 1 写同一个 clearTimeMs）	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:344 WriteInt32(clearTimeMs)
+NOTI	0x0022	15	newBestClearTime 标记（是否刷新最佳通关时间；参数默认 false→0）	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:345 WriteByte(newBestClearTime ? 1 : 0)
+NOTI	0x0023	0	通关基础经验 clearBaseExp	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:369 WriteUInt32(clearBaseExp)；调用点 Network/Handlers/Dungeon/DungeonSettlementHandler.cs:191
+NOTI	0x0023	4	评分加成经验 scoreBonusExp	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:370 WriteInt32(scoreBonusExp)；调用点 DungeonSettlementHandler.cs:192-193
+NOTI	0x0023	8	组队通关经验明细 partyClearBreakdownExp	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:371 WriteUInt32(partyClearBreakdownExp)；调用点 DungeonSettlementHandler.cs:194-195
+NOTI	0x0023	12	装扮（时装）通关奖励经验 avatarExp	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:372 WriteInt32(avatarExp) 注释「装扮通关奖励」；调用点 DungeonSettlementHandler.cs:196-197
+NOTI	0x0023	17	结算额外经验槽位数组第 1 项（i=0）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
+NOTI	0x0023	21	结算额外经验槽位数组第 2 项（i=1）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
+NOTI	0x0023	25	黑钻加成经验 blackDiamondExp（槽位 i=2）	High	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:377 循环内 i==2 写 blackDiamondExp，偏移 = 17 + 4×2
+NOTI	0x0023	29	结算额外经验槽位数组第 4 项（i=3）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
+NOTI	0x0023	33	结算额外经验槽位数组第 5 项（i=4）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
+NOTI	0x0023	37	宠物（creature）通关奖励经验 creatureExp（槽位 i=5）	High	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:378 循环内 i==5 写 creatureExp，偏移 = 17 + 4×5
+NOTI	0x0023	41	结算额外经验槽位数组第 7 项（i=6）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
+NOTI	0x0023	45	冒险团通关奖励经验 adventureGroupExp（槽位 i=7）	High	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:379 循环内 i==7 写 adventureGroupExp，偏移 = 17 + 4×7
+NOTI	0x0023	49	结算额外经验槽位数组第 9 项（i=8）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
+NOTI	0x0023	53	成长之契约加成经验 growthContractExp（槽位 i=9）	High	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:380 循环内 i==9 写 growthContractExp，偏移 = 17 + 4×9
+NOTI	0x0023	57	结算额外经验槽位数组第 11 项（i=10）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
+NOTI	0x0023	61	结算额外经验槽位数组第 12 项（i=11）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
+NOTI	0x0023	65	结算额外经验槽位数组第 13 项（i=12）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
+NOTI	0x0023	69	结算额外经验槽位数组第 14 项（i=13）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
+NOTI	0x0023	73	结算额外经验槽位数组第 15 项（i=14）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
+NOTI	0x0023	77	结算额外经验槽位数组第 16 项（i=15）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
+NOTI	0x0023	81	结算额外经验槽位数组第 17 项（i=16）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
+NOTI	0x0023	85	结算额外经验槽位数组第 18 项（i=17）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
+NOTI	0x0023	89	杀怪成长之契约加成经验 monsterGrowthContractExp（槽位 i=18）	High	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:381 循环内 i==18 写 monsterGrowthContractExp，偏移 = 17 + 4×18
+NOTI	0x0023	93	结算额外经验槽位数组第 20 项（i=19）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
+NOTI	0x0023	97	结算额外经验槽位数组第 21 项（i=20）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
+NOTI	0x0023	101	结算额外经验槽位数组第 22 项（i=21）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
+NOTI	0x0023	105	结算额外经验槽位数组第 23 项（i=22）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
+NOTI	0x0023	109	频道奖励经验 channelExp（槽位 i=23）	High	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:382 循环内 i==23 写 channelExp，偏移 = 17 + 4×23
+NOTI	0x0023	113	结算额外经验槽位数组第 25 项（i=24）；本服务端恒写 0	Hypothesis	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:374-384 25 次 WriteInt32 循环，偏移 = 17 + 4×i
+NOTI	0x0023	155	冠军怪总经验 championExp	High	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:396 WriteInt32(championExp)；按 366-396 写入序列累加得偏移 155
+NOTI	0x0023	159	超级冠军怪经验 superChampionExp（DungeonSettlementHandler.cs:215 恒传 0）	High	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:397 WriteInt32(superChampionExp)；按 366-397 写入序列累加得偏移 159
+NOTI	0x0023	163	BOSS 总经验 bossExp	High	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:398 WriteInt32(bossExp)；按 366-398 写入序列累加得偏移 163
+NOTI	0x015C	0	通关耗时 clearTimeMilliseconds（毫秒）	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:288 WriteUInt32(clearTimeMilliseconds)；调用点 Network/Handlers/Dungeon/DungeonSettlementHandler.cs:1052
+NOTI	0x015C	4	层数 floor（上游 Math.Clamp(floor, 1, 100)，由 DungeonData.TryGetTowerOfDespairFloor 解析出）	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:289 WriteUInt16；来源 DungeonSettlementHandler.cs:1048
+NOTI	0x015C	6	奖励槽位数 rewardSlotCount（常量 10）	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:286,290 const rewardSlotCount = 10 + WriteByte
+NOTI	0x015C	7	第 1 个奖励槽的 itemId（空槽写 -1）	High	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:298,303 循环首次迭代 WriteInt32(itemId) / WriteInt32(-1)
+NOTI	0x015C	11	第 1 个奖励槽的堆叠数 stackCount（空槽写 0）	High	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:299,304 循环首次迭代 WriteInt32(stackCount) / WriteInt32(0)
+NOTI	0x0282	0	下一个连锁副本的 dungeonId（run.LinkedDungeonNextId）	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:276 WriteInt32(nextDungeonId)；调用点 Network/Handlers/Dungeon/DungeonSettlementHandler.cs:2370
+NOTI	0x0282	4	连锁副本难度 difficulty（上游 Math.Min(4, run.Difficulty)）	Confirmed	上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:277 WriteInt32(difficulty)；取值 DungeonSettlementHandler.cs:2368
+CMD	0x008F	0	教程标志下标 flagIndex（上游按值分支：31 表示教程完成，77 表示置全部标志）	Confirmed	上游 Network/Handlers/Dungeon/DungeonTutorialHandler.cs:61 BitConverter.ToUInt32(body, 0)
+CMD	0x008F	4	是否发放该标志对应教程奖励 rewardFlag（非 0 时走 TutorialRewardProvider.GetRewards）	Confirmed	上游 Network/Handlers/Dungeon/DungeonTutorialHandler.cs:62 body[4]，判定见 :80
+NOTI	0x00AA	0	玩家 UserId（session.Player.UserId）	Confirmed	上游 Network/Handlers/Dungeon/DungeonTutorialHandler.cs:39 w.WriteUInt16(session.Player.UserId)
+NOTI	0x00AA	2	pauseFlag（原样回送客户端 CMD 0x00AA 的 body[0]）	Confirmed	上游 Network/Handlers/Dungeon/DungeonTutorialHandler.cs:33,40 byte pauseFlag = body[0] → w.WriteByte(pauseFlag)
+NOTI	0x00AA	3	requestType（原样回送客户端 CMD 0x00AA 的 body[1]）	Confirmed	上游 Network/Handlers/Dungeon/DungeonTutorialHandler.cs:34,41 byte requestType = body[1] → w.WriteByte(requestType)
+CMD	0x0211	0	机制条件类型 conditionalType	Confirmed	上游 Network/Parsers/Dungeon/DungeonCommandParser.cs:156 BitConverter.ToUInt16(body, 0) → SummonMonsterDungeonCommand.ConditionalType（Game/Dungeon/DungeonMechanismCommand.cs:20,38）
+CMD	0x0211	2	怪物代码 monsterCode（上游校验 > 0）	Confirmed	上游 Network/Parsers/Dungeon/DungeonCommandParser.cs:157 BitConverter.ToInt32(body, 2) → MonsterCode，校验见 :163
+CMD	0x0211	6	机制状态 ID stateId（上游校验 > 0）	Confirmed	上游 Network/Parsers/Dungeon/DungeonCommandParser.cs:158 BitConverter.ToInt32(body, 6) → StateId，校验见 :164
+CMD	0x0211	10	地图 ID mapId（上游校验 > 0）	Confirmed	上游 Network/Parsers/Dungeon/DungeonCommandParser.cs:159 BitConverter.ToInt32(body, 10) → MapId，校验见 :165
+CMD	0x0211	14	机制条件参数 0 conditionalParam0	Confirmed	上游 Network/Parsers/Dungeon/DungeonCommandParser.cs:160 BitConverter.ToUInt16(body, 14) → ConditionalParam0
+CMD	0x0211	16	机制条件参数 1 conditionalParam1	Confirmed	上游 Network/Parsers/Dungeon/DungeonCommandParser.cs:161 BitConverter.ToUInt16(body, 16) → ConditionalParam1
+CMD	0x0211	18	条件匹配计数 matchCount（上游校验 != 0）	Confirmed	上游 Network/Parsers/Dungeon/DungeonCommandParser.cs:162 body[18] → MatchCount，校验见 :166
+NOTI	0x022D	0	特殊副本计量槽（gauge）当前值	Confirmed	上游 Network/Builders/Dungeon/SpecialDungeonNotificationBuilder.cs:13 WriteInt32(value)；调用链 Network/Handlers/Dungeon/SpecialDungeonNotificationSender.cs:37,93 传 SpecialDungeonEffectKind.GaugeChanged 的 Value（Game/Dungeon/SpecialDungeonMechanismApplicationService.cs:447-449）
+NOTI	0x022F	0	小地图图标条目数 count	Confirmed	上游 Network/Builders/Dungeon/SpecialDungeonNotificationBuilder.cs:66 WriteUInt16((ushort)count)
+NOTI	0x022F	2	第 1 个图标的 X 坐标（小地图格子坐标）	High	上游 Network/Builders/Dungeon/SpecialDungeonNotificationBuilder.cs:69 循环首次迭代 WriteByte(entries[i].X)
+NOTI	0x022F	3	第 1 个图标的 Y 坐标（小地图格子坐标）	High	上游 Network/Builders/Dungeon/SpecialDungeonNotificationBuilder.cs:70 循环首次迭代 WriteByte(entries[i].Y)
+NOTI	0x022F	4	第 1 个图标对应的怪物代码 monsterCode	High	上游 Network/Builders/Dungeon/SpecialDungeonNotificationBuilder.cs:71 循环首次迭代 WriteInt32(entries[i].MonsterCode)
+CMD	0x01CB	0	卡片类型 cardType（上游校验必须 < 2）	Confirmed	上游 Network/Parsers/Dungeon/DungeonCommandParser.cs:74,83 body[0] → TournamentRewardSelectDungeonCommand.CardType；消费见 Network/Handlers/Dungeon/TournamentDungeonCoordinator.cs:262
+CMD	0x01CB	1	卡片下标 cardIndex（上游校验必须 < 2）	Confirmed	上游 Network/Parsers/Dungeon/DungeonCommandParser.cs:74,84 body[1] → TournamentRewardSelectDungeonCommand.CardIndex；消费见 Network/Handlers/Dungeon/TournamentDungeonCoordinator.cs:263
+NOTI	0x0185	0	已完成回合数 CompletedRounds	Confirmed	上游 Network/Builders/Dungeon/TournamentPacketBuilder.cs:85 WriteByte(rewards.CompletedRounds)；调用点 Network/Handlers/Dungeon/TournamentDungeonCoordinator.cs:660
+NOTI	0x0185	1	锦标赛通关奖励经验 RewardExperience	Confirmed	上游 Network/Builders/Dungeon/TournamentPacketBuilder.cs:84,86 WriteUInt32(rewards.RewardExperience)
+NOTI	0x0185	6	卡片类型 0 的卡片数量 cardCount（其后跟该类型的卡片记录；上游 CardTypeCount=2，故整包为 2 组）	High	上游 Network/Builders/Dungeon/TournamentPacketBuilder.cs:88-93 外层按 CardTypeCount 循环写 WriteByte(cardCount)；常量见 Game/Dungeon/Tournament/TournamentParticipantRewardState.cs:22
+NOTI	0x0185	g2:0	卡片奖励的物品 ID（金币奖励时写 0）	High	上游 Network/Builders/Dungeon/TournamentPacketBuilder.cs:97 WriteInt32(reward.IsGold ? 0 : reward.ItemId)；本包内唯一的重复结构就是这条 10 字节卡片记录
+NOTI	0x0185	g2:4	金币奖励时为金币数量 GoldAmount，物品奖励时为堆叠数 StackCount	High	上游 Network/Builders/Dungeon/TournamentPacketBuilder.cs:98-100 WriteInt32(reward.IsGold ? reward.GoldAmount : reward.StackCount)
+NOTI	0x0185	g2:8	卡片记录尾部保留 u16（上游恒写 0）	High	上游 Network/Builders/Dungeon/TournamentPacketBuilder.cs:101 WriteUInt16(0)
+NOTI	0x0185	g3:0	卡片奖励的物品 ID（金币奖励时写 0）；与 g2 同为卡片类型循环产生的记录	High	上游 Network/Builders/Dungeon/TournamentPacketBuilder.cs:97 WriteInt32(reward.IsGold ? 0 : reward.ItemId)，外层按 CardTypeCount=2 循环
+NOTI	0x0185	g3:4	金币奖励时为金币数量 GoldAmount，物品奖励时为堆叠数 StackCount	High	上游 Network/Builders/Dungeon/TournamentPacketBuilder.cs:98-100 WriteInt32(reward.IsGold ? reward.GoldAmount : reward.StackCount)
+NOTI	0x0185	g3:8	卡片记录尾部保留 u16（上游恒写 0）	High	上游 Network/Builders/Dungeon/TournamentPacketBuilder.cs:101 WriteUInt16(0)
+CMD	0x01DE	0	副本场景唯一 ID（上游取低 16 位存为 Player.DungeonSceneUniqueId，为 0 时忽略）	Confirmed	上游 Network/Handlers/DungeonHandler.cs:249-255 BitConverter.ToUInt32(body, 0) & 0xFFFF；派发见 Network/Protocol/GameProtocolHandler.cs:941
+CMD	0x00EE	0	配方物品 ID recipeItemId（上游校验 > 0）	Confirmed	上游 Network/Parsers/ExpertJob/ExpertJobCompoundRequest.cs:14,17 BitConverter.ToInt32(body, 0)；消费见 Network/Handlers/ExpertJobCompoundHandler.cs:171
+CMD	0x00EE	4	请求合成数量 requestedCount（上游校验 != 0）	Confirmed	上游 Network/Parsers/ExpertJob/ExpertJobCompoundRequest.cs:15,17 BitConverter.ToUInt16(body, 4)
+CMD	0x00EE	6	卡片槽位下标 cardSlotIndex（int16，上游校验 >= -1，-1 表示不使用卡片）	Confirmed	上游 Network/Parsers/ExpertJob/ExpertJobCompoundRequest.cs:16,17 BitConverter.ToInt16(body, 6)
+NOTI	0x00CD	0	专家职业放弃次数 GiveUpCount（clamp 到 0..255）	Confirmed	上游 Network/Builders/Init/ExpertJobInfoBodyBuilder.cs:34 WriteByte(info.State0)；State0 赋值见 Game/ExpertJob/ExpertJobStateCodec.cs:23
+NOTI	0x00CD	1	专家职业类型 expertJobType（0 表示无）；上游按该值分支决定可变尾部：1/2/4 写配方条目列表，3 写分解机等级与耐久	Confirmed	上游 Network/Builders/Init/ExpertJobInfoBodyBuilder.cs:35 WriteByte(info.Mode) 与 :37,56 分支；Mode 赋值见 Game/ExpertJob/ExpertJobStateCodec.cs:24-26
+CMD	0x01A0	0	分解机 / 专家职业类型 ExtractorType（上游要求与角色 Subtype0Tail.ExpertJobType 一致）	Confirmed	上游 Network/Parsers/ExpertJob/ExpertJobExtractionRequest.cs:17 body[0]；校验见 Network/Handlers/ExpertJobExtractionHandler.cs:53
+CMD	0x01A0	1	分解机所在槽位 ExtractorSlotIndex（int16）	Confirmed	上游 Network/Parsers/ExpertJob/ExpertJobExtractionRequest.cs:18 BitConverter.ToInt16(body, 1)
+CMD	0x01A0	3	待分解物品所在的物品列表类型 TargetListType（InventoryListType）	Confirmed	上游 Network/Parsers/ExpertJob/ExpertJobExtractionRequest.cs:19 (InventoryListType)body[3]
+CMD	0x01A0	4	待分解物品槽位 TargetSlotIndex（int16）	Confirmed	上游 Network/Parsers/ExpertJob/ExpertJobExtractionRequest.cs:20 BitConverter.ToInt16(body, 4)
+NOTI	0x0013	0	第 1 个技能页的页头值 HeaderValue（上游只保存原值，未进一步解析语义）	Hypothesis	上游 Network/Builders/Init/SkillInfoBodyBuilder.cs:21 WriteUInt16(page.HeaderValue)；字段定义 Game/SelectCharacter/Snapshots/SkillInfoSnapshot.cs:18
+NOTI	0x0013	2	该技能页的技能条目数（page.Entries.Count）	High	上游 Network/Builders/Init/SkillInfoBodyBuilder.cs:22 WriteByte((byte)page.Entries.Count)
+NOTI	0x0013	3	第 1 个技能条目的槽位 Slot	High	上游 Network/Builders/Init/SkillInfoBodyBuilder.cs:25 循环首次迭代 WriteByte(entry.Slot)
+NOTI	0x0013	4	第 1 个技能条目的技能 ID SkillId	High	上游 Network/Builders/Init/SkillInfoBodyBuilder.cs:26 循环首次迭代 WriteUInt16(entry.SkillId)
+NOTI	0x0013	6	第 1 个技能条目的技能等级 Level	High	上游 Network/Builders/Init/SkillInfoBodyBuilder.cs:27 循环首次迭代 WriteByte(entry.Level)
+NOTI	0x0013	7	该技能条目附带的额外字节数 ExtraValues.Count	High	上游 Network/Builders/Init/SkillInfoBodyBuilder.cs:28 WriteByte((byte)entry.ExtraValues.Count)
+NOTI	0x0013	8	该技能条目的第 1 个额外字节 ExtraValues[0]（上游只透传原值）	High	上游 Network/Builders/Init/SkillInfoBodyBuilder.cs:29-30 foreach WriteByte(extraValue)
+NOTI	0x0013	9	所有技能页写完之后的尾部 u16 之一 Tail0（上游只保存原值，未进一步解析语义）	Hypothesis	上游 Network/Builders/Init/SkillInfoBodyBuilder.cs:33 WriteUInt16(skill.Tail0)；字段定义 Game/SelectCharacter/Snapshots/SkillInfoSnapshot.cs:27
+NOTI	0x0013	11	所有技能页写完之后的尾部 u16 之二 Tail1（上游只保存原值，未进一步解析语义）	Hypothesis	上游 Network/Builders/Init/SkillInfoBodyBuilder.cs:34 WriteUInt16(skill.Tail1)；字段定义 Game/SelectCharacter/Snapshots/SkillInfoSnapshot.cs:29
+NOTI	0x0331	0	金币携带上限的扩充等级 UpgradeLevel	Confirmed	上游 Network/Handlers/GoldLimitHandler.cs:39-40 SendPacketAsync(Build(0x00, 0x0331, new[] { result.Limits.UpgradeLevel }))
+CMD	0x00CA	0	待分解时装所在槽位 SlotIndex（int16，上游校验 >= 0）	Confirmed	上游 Network/Parsers/Inventory/AvatarDisjointRequestParser.cs:15-21 BitConverter.ToInt16(body, 0)
+CMD	0x00CA	2	客户端附带的物品模板 ID ExpectedItemTemplateId（仅当 body 长度 >= 6 时读取，否则记 0）	Confirmed	上游 Network/Parsers/Inventory/AvatarDisjointRequestParser.cs:22 body.Length >= 6 ? BitConverter.ToInt32(body, 2) : 0
+CMD	0x01CC	0	源物品（属性调整箱）槽位 SourceSlotIndex（int16）	Confirmed	上游 Network/Parsers/Inventory/AvatarOptionChangeRequestParser.cs:16 BitConverter.ToInt16(body, 0)
+CMD	0x01CC	2	源物品 ID SourceItemId	Confirmed	上游 Network/Parsers/Inventory/AvatarOptionChangeRequestParser.cs:17 BitConverter.ToInt32(body, 2)
+CMD	0x01CC	6	目标时装槽位 TargetSlotIndex（int16）	Confirmed	上游 Network/Parsers/Inventory/AvatarOptionChangeRequestParser.cs:18 BitConverter.ToInt16(body, 6)
+CMD	0x01CC	8	目标时装物品 ID TargetItemId	Confirmed	上游 Network/Parsers/Inventory/AvatarOptionChangeRequestParser.cs:19 BitConverter.ToInt32(body, 8)
+CMD	0x01CC	12	要调整成的属性编号 AbilityNo	Confirmed	上游 Network/Parsers/Inventory/AvatarOptionChangeRequestParser.cs:20 body[12]；结果回写见 Network/Handlers/InventoryHandler.AvatarOptionChange.cs:52-54

@@ -215,5 +215,5 @@ GamePacketEnvelopeBuilder.Build(0x00, 0x01C7, BuildHotkeyOptionBody(keyType, acc
 单看一个 `push 0x86` 只知道"这次写了 134 字节"，可能是截断也可能是子集；
 而相邻字段的偏移差恰好等于长度，说明 134 就是这块缓冲区的**全长**。
 
-这个技巧在 [`0x0001`](../game/server-to-client/0x0001.md) 判定 host 数组长度时也用过
+这个技巧在 [`0x0001`](../game/server-to-client/CMD-0x0001.md) 判定 host 数组长度时也用过
 （`0x94C + 260×2 = 0xB54`），可以当成通用手法：**先找相邻成员，用偏移差反推数组上界**。

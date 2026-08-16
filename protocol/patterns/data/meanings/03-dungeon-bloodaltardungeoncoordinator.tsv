@@ -1,0 +1,29 @@
+family	type	offset	meaning	confidence	source
+NOTI	0x00D0	0	本次血之祭坛通关用时，毫秒	Confirmed	上游 BloodAltarPacketBuilder.cs:99 BuildRanking 第一个 WriteUInt32 写 playTimeMilliseconds；调用点 BloodAltarDungeonCoordinator.cs:636 传 plan.ClearTimeMilliseconds
+NOTI	0x00D0	4	本次已完成的轮数 currentRound	Confirmed	上游 BloodAltarPacketBuilder.cs:100 写 currentRound；调用点 BloodAltarDungeonCoordinator.cs:637 传 plan.CompletedRounds
+NOTI	0x00D0	8	历史最佳用时槽位 bestTimeMilliseconds，毫秒；上游没有历史记录，直接回填本次通关用时	Confirmed	上游 BloodAltarPacketBuilder.cs:101 写 bestTimeMilliseconds；调用点 BloodAltarDungeonCoordinator.cs:638 第二次传同一个 plan.ClearTimeMilliseconds
+NOTI	0x00D0	12	历史最佳轮数槽位 bestRound；上游没有历史记录，直接回填本次完成轮数	Confirmed	上游 BloodAltarPacketBuilder.cs:102 写 bestRound；调用点 BloodAltarDungeonCoordinator.cs:639 第二次传同一个 plan.CompletedRounds
+NOTI	0x00D0	16	本副本的最大轮数 maxRound	Confirmed	上游 BloodAltarPacketBuilder.cs:103 写 maxRound；调用点 BloodAltarDungeonCoordinator.cs:640 传 plan.MaxRounds
+NOTI	0x00D0	20	本次结算发放的经验值 rewardExperience	Confirmed	上游 BloodAltarPacketBuilder.cs:104 写 rewardExperience；调用点 BloodAltarDungeonCoordinator.cs:641 传 plan.RewardExperience
+NOTI	0x00D1	0	平坦字段（重复组之前的 u8）：本次已完成的轮数 currentRound。重复组内同偏移字段的含义未知：上游 BuildReward 的循环体只写 2 个 int32（无组内 u8），与本协议提取到的 9 字节组不吻合，故不为组内字段下结论	Confirmed	上游 BloodAltarPacketBuilder.cs:114 BuildReward 写 (byte)currentRound；调用点 BloodAltarDungeonCoordinator.cs:748 传 plan.CompletedRounds；组结构不吻合见 BloodAltarPacketBuilder.cs:119-138
+NOTI	0x00D1	1	平坦字段（重复组之前的 u8）：本副本的最大轮数 maxRound。重复组内同偏移字段的含义未知，理由同 offset 0	Confirmed	上游 BloodAltarPacketBuilder.cs:115 写 (byte)maxRound；调用点 BloodAltarDungeonCoordinator.cs:749 传 plan.MaxRounds；组结构不吻合见 BloodAltarPacketBuilder.cs:119-138
+NOTI	0x00D2	0	平坦字段（重复组之前的 u16）：本波怪物数量 n，等于 wave.Monsters.Count 截断到 ushort。重复组内同偏移的 u8：BloodAltarSpawn.Variant，上游恒写常量 19	Confirmed	上游 BloodAltarPacketBuilder.cs:40-41 BuildMonsterSpawn 先算 count 再 WriteUInt16((ushort)count)；组内 Variant 见 :45 写 spawn.Variant，取值见 BloodAltarDungeonRuntime.cs:92 DefaultMonsterVariant=19 与 :382 唯一赋值处
+NOTI	0x00D2	2	重复组之后的尾部 u16：本波怪物的生成间隔毫秒；最终地图波固定写 0	High	上游 BloodAltarPacketBuilder.cs:55 在循环之后写 wave.TailValue；取值见 BloodAltarDungeonRuntime.cs:405-408 IsFinalMapWave ? 0 : Monster.SpawnIntervalMilliseconds
+NOTI	0x00D2	g1:1	怪物实例序列号 SequenceId（u16，运行时自增）；即客户端上报 DIE_BLOOD_MONSTER 时回传的 id	Confirmed	上游 BloodAltarPacketBuilder.cs:46 写 spawn.SequenceId；BloodAltarDungeonRuntime.cs:383 以 _nextSequence++ 赋值；上游 DungeonCommandParser.cs:202-207 从死亡命令 body 逐个读 u16 sequence，BloodAltarDungeonCoordinator.cs:91-103 按此 id 结算击杀
+NOTI	0x00D2	g1:3	怪物代码 MonsterCode（u32）	Confirmed	上游 BloodAltarPacketBuilder.cs:47 写 (uint)spawn.MonsterCode；取值见 BloodAltarDungeonRuntime.cs:384 scheduled.Monster.MonsterCode
+NOTI	0x00D2	g1:7	怪物类别 MonsterType；上游在最终地图的最后一轮波次写 3，其余一律写 0	Confirmed	上游 BloodAltarPacketBuilder.cs:48 写 spawn.MonsterType；取值见 BloodAltarDungeonRuntime.cs:385-388
+NOTI	0x00D2	g1:8	怪物等级 Level	Confirmed	上游 BloodAltarPacketBuilder.cs:49 写 spawn.Level；取值见 BloodAltarDungeonRuntime.cs:389 Definition.BasisLevel
+NOTI	0x00D2	g1:9	怪物体型缩放 Scale（u16），单位为百分比，等于阶段 Scale × 100 四舍五入	Confirmed	上游 BloodAltarPacketBuilder.cs:50 写 spawn.Scale；取值见 BloodAltarDungeonRuntime.cs:390-391 Math.Round(scheduled.Phase.Scale * 100f)
+NOTI	0x00D2	g1:11	怪物生成坐标 X（u16）	Confirmed	上游 BloodAltarPacketBuilder.cs:51 写 spawn.X；取值见 BloodAltarDungeonRuntime.cs:392 scheduled.Monster.X
+NOTI	0x00D2	g1:13	怪物生成坐标 Y（u16）	Confirmed	上游 BloodAltarPacketBuilder.cs:52 写 spawn.Y；取值见 BloodAltarDungeonRuntime.cs:393 scheduled.Monster.Y
+NOTI	0x00D2	g1:15	怪物生成坐标 Z（u16）	Confirmed	上游 BloodAltarPacketBuilder.cs:53 写 spawn.Z；取值见 BloodAltarDungeonRuntime.cs:394 scheduled.Monster.Z
+NOTI	0x00D3	0	地图格子坐标 X（迷宫 MazeSumInfo.X 钳位截断为 byte）	Confirmed	上游 BloodAltarPacketBuilder.cs:21 BuildStartMap 写 x；调用点 DungeonMapHandler.cs:569 传 sentMapX（DungeonMapHandler.cs:297 sentMapX = maze.X），BloodAltarDungeonCoordinator.cs:1212 传 room.RoomKey.X
+NOTI	0x00D3	1	地图格子坐标 Y（迷宫 MazeSumInfo.Y 钳位截断为 byte）	Confirmed	上游 BloodAltarPacketBuilder.cs:22 写 y；调用点 DungeonMapHandler.cs:570 传 sentMapY（DungeonMapHandler.cs:298 sentMapY = maze.Y），BloodAltarDungeonCoordinator.cs:1213 传 room.RoomKey.Y
+NOTI	0x00D3	2	房间随机种子 seed（u32）	Confirmed	上游 BloodAltarPacketBuilder.cs:23 写 unchecked((int)seed)；调用点 DungeonMapHandler.cs:571 传 run.Seed，BloodAltarDungeonCoordinator.cs:1214 传 room.RoomState.Seed
+NOTI	0x00D3	6	上游恒写常量 0，无任何参数参与	Confirmed	上游 BloodAltarPacketBuilder.cs:24 writer.WriteByte(0)
+NOTI	0x00D3	7	首次进入该房间写 1、重访写 0；写 1 时其后还接 mapId(u16) + 3 个 0 字节，body 变成 13 字节，因此该字节同时是尾部存在与否的判别位	Confirmed	上游 BloodAltarPacketBuilder.cs:25 写 revisit ? 0 : 1，:26-32 仅在 !revisit 分支追加 mapId 与 3 个 0 字节；revisit 取值见 DungeonMapHandler.cs:301 初值 false 与 :317-319 命中已有 RoomStates 时置 true
+NOTI	0x00D7	0	轮次编号，1 基（上游把内部 0 基轮次加 1 后写出）	Confirmed	上游 BloodAltarPacketBuilder.cs:64-66 BuildRoundInterval 写 zeroBasedRound + 1 并钳到 byte；调用点 BloodAltarDungeonCoordinator.cs:199 传 schedule.RoundNumber
+NOTI	0x00D7	1	距下一波刷怪的间隔毫秒（u32）	Confirmed	上游 BloodAltarPacketBuilder.cs:67 写 intervalMilliseconds；调用点 BloodAltarDungeonCoordinator.cs:200 传 schedule.InitialIntervalMilliseconds，:1229-1239 重连投影时传剩余毫秒
+NOTI	0x0129	0	变体判别字节：难度提示变体恒写 0，其后才是轮数与倒计时；难度已由服务端定下时上游改发只有 1 字节的 body，那一字节直接是难度值 1 或 2	High	上游 BloodAltarPacketBuilder.cs:76 BuildUltimateDifficultyPrompt 首字节写 0；:84-85 BuildUltimateDifficultyResolved 只返回 1 字节难度，经 BloodAltarDungeonCoordinator.cs:415-417 以同一个 ULTIMATE_DIFFICULTY_UI 发出，难度取值见 :403 ServerRandom.Next(2)+1
+NOTI	0x0129	1	已完成轮数 round	Confirmed	上游 BloodAltarPacketBuilder.cs:77 写 round 并钳到 byte；调用点 BloodAltarDungeonCoordinator.cs:361 取 runtime.CompletedRounds 后 :366 传入，重连路径 :1274 同样传 runtime.CompletedRounds
+NOTI	0x0129	2	难度选择的倒计时秒数（u16）；上游默认 10 秒，重连投影时改为定时器剩余秒数	Confirmed	上游 BloodAltarPacketBuilder.cs:78-80 写 timeoutSeconds；调用点 BloodAltarDungeonCoordinator.cs:367 传 DifficultyTimeoutSeconds（:16 定义为 10），:1264-1275 重连时传定时器剩余秒

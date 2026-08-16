@@ -1,0 +1,157 @@
+family	type	offset	meaning	confidence	source
+NOTI	0x0025	0	角色等级（构造参数 level）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:30 顺序写 WriteByte(level) 为 body 首字节
+NOTI	0x0025	1	角色累计经验（构造参数 totalExp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:31 WriteUInt32(totalExp)
+NOTI	0x0025	5	队伍奖励 EXP（构造参数 partyRewardExp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:32 WriteUInt32(partyRewardExp)
+NOTI	0x0025	9	队员奖励 EXP（构造参数 memberRewardExp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:33 WriteUInt32(memberRewardExp)
+NOTI	0x0025	13	技能页 0 剩余 SP（skillPoints.Page0Sp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:34 WriteUInt16(skillPoints.Page0Sp)
+NOTI	0x0025	15	技能页 1 剩余 SP（skillPoints.Page1Sp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:35 WriteUInt16(skillPoints.Page1Sp)
+NOTI	0x0025	17	技能页 0 剩余 TP（skillPoints.Page0Tp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:36 WriteUInt16(skillPoints.Page0Tp)
+NOTI	0x0025	19	技能页 1 剩余 TP（skillPoints.Page1Tp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:37 WriteUInt16(skillPoints.Page1Tp)
+NOTI	0x0025	21	决斗胜点绝对值快照（pvpVictoryPointSnapshot）	Confirmed	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:8 定义 PvpVictoryPointOffset = 0x15，:41 在该位置写 pvpVictoryPointSnapshot
+NOTI	0x0025	25	疲劳值 Buff 加成 EXP（fatigueBuffBonusExp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:43 WriteUInt32(fatigueBuffBonusExp)
+NOTI	0x0025	29	EXP 表现模式，普通经验路径恒写 0	Hypothesis	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:44 WriteByte(0) 并注明 +0x1D 为 EXP 表现模式
+NOTI	0x0025	30	赛丽亚的祝福加成 EXP（seriaBlessingBonusExp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:45 WriteUInt32(seriaBlessingBonusExp)
+NOTI	0x0025	34	成长之契约加成 EXP（growthContractBonusExp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:46 WriteUInt32(growthContractBonusExp)
+NOTI	0x0025	42	疲劳值燃烧加成 EXP（fatigueBurnBonusExp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:48 WriteUInt32(fatigueBurnBonusExp)
+NOTI	0x0025	46	网吧奖励加成 EXP（internetCafeBonusExp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:49 WriteUInt32(internetCafeBonusExp)
+NOTI	0x0025	50	可变项数量 N，其后每项 8B；构造器恒写 0	Confirmed	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:9 定义 VariableEntryCountOffset = 0x32，:54 在该位置写 0
+NOTI	0x0025	51	精英怪击杀加成 EXP（eliteMonsterKillBonusExp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:55 WriteUInt32(eliteMonsterKillBonusExp)
+NOTI	0x0025	59	成长胶囊 EXP（growthCapsuleExp）	Confirmed	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:10 定义 GrowthCapsuleExpOffset = 0x3B，:57 在该位置写 growthCapsuleExp
+NOTI	0x0025	63	荣誉等级（HonorLevelSummary.HonorLevel）	Confirmed	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:11 定义 HonorLevelOffset = 0x3F，:58 在该位置写 honorLevel.HonorLevel
+NOTI	0x0025	67	当前荣誉段内经验（HonorLevelSummary.HonorExp）	Confirmed	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:12 定义 HonorExpOffset = 0x43，:59 在该位置写 honorLevel.HonorExp
+NOTI	0x0025	71	极速成长 Buff 加成 EXP；构造器恒写 0	Hypothesis	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:60 WriteUInt32(0) 注明 +0x47 为极速成长 Buff EXP
+NOTI	0x0025	79	频道奖励加成 EXP（channelBonusExp）	High	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:62 WriteUInt32(channelBonusExp)
+NOTI	0x0025	83	赛丽亚的欢迎加成 EXP；构造器恒写 0	Hypothesis	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:63 WriteUInt32(0) 注明 +0x53 为赛丽亚的欢迎 EXP
+NOTI	0x0025	g1:0	可变 EXP 分量的类型标识；上游固定 N=0 从未产出该条目	Hypothesis	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:51-53 记可变项结构为 [u32 类型, u32 EXP]，循环地址与本组提取地址 0x921BB0..0x921C06 一致
+NOTI	0x0025	g1:4	该可变分量对应的 EXP 值；上游固定 N=0 从未产出该条目	Hypothesis	上游 Network/Builders/Dungeon/ExpNotificationBuilder.cs:51-53 记可变项结构为 [u32 类型, u32 EXP]
+NOTI	0x0289	0	荣誉等级（HonorLevelSummary.HonorLevel）	Confirmed	上游 Network/Builders/HonorLevelPacketBuilder.cs:10 取 summary.HonorLevel，:15 作为 8B body 的首个 u32 写出
+NOTI	0x0289	4	荣誉经验（HonorLevelSummary.HonorExp）	Confirmed	上游 Network/Builders/HonorLevelPacketBuilder.cs:11 取 summary.HonorExp，:16 作为 8B body 的第二个 u32 写出
+NOTI	0x0042	0	上游恒写常量 2 的前导 u16（其后跟 u8 高级服务类型与 i64 剩余秒数，超出本表 2B 边界）	Hypothesis	上游 Game/Premium/PremiumService.cs:107 WriteUInt16(2) 为 body 首字段，:108-109 续写 premiumType 与 remaining
+NOTI	0x01C7	0	热键键位方案类型 keyType（AccountSettings.HotkeyKeyType）	Confirmed	上游 Network/Builders/AccountSettingsPacketBuilder.cs:40 body[0] = keyType
+NOTI	0x00B7	0	拍卖服务子类型；上游按 0x00 与 0x01 各发一包	Confirmed	上游 Network/Builders/Auction/AuctionServiceNotificationBuilder.cs:7-8 定义 ServiceType0/1，:23 WriteByte(serviceType) 为 body 首字节
+NOTI	0x00B7	1	服务开放状态，上游恒写 0x01（OpenState）	Confirmed	上游 Network/Builders/Auction/AuctionServiceNotificationBuilder.cs:9 定义 OpenState = 0x01，:24 WriteByte(OpenState)
+NOTI	0x0002	0	USERINFO 子类型；本构造路径恒写 0（subtype 0 外观/最小信息）	High	上游 Game/Appearance/AppearanceService.cs:357 WriteByte(0x00) 为 body 首字节
+NOTI	0x0002	1	上游恒写常量 0x0001	High	上游 Game/Appearance/AppearanceService.cs:358 WriteUInt16(0x0001)
+NOTI	0x0002	3	角色 UserId（会话内 16 位角色标识）	High	上游 Game/Appearance/AppearanceService.cs:359 WriteUInt16(player.UserId)
+NOTI	0x0002	5	角色名 dstr（i32 长度 + 原始字节）	High	上游 Game/Appearance/AppearanceService.cs:360 WriteDstr(player.Name)
+NOTI	0x0002	36	职业 Job	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:47 WriteByte(record.Job)
+NOTI	0x0002	37	转职/成长类型 GrowType	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:48 WriteByte(record.GrowType)
+NOTI	0x0002	38	角色等级 Level	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:49 WriteByte(record.Level)
+NOTI	0x0002	39	决斗段位 PvpGrade	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:50 WriteByte(record.PvpGrade)
+NOTI	0x0002	40	决斗评级 PvpRatingGrade	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:51 WriteByte(record.PvpRatingGrade)
+NOTI	0x0002	41	用户状态 UserState	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:52 WriteByte(record.UserState)
+NOTI	0x0002	42	外观 entry 数量 N；上游在此处紧接写出 N 条各 23B 的外观 entry，其后所有字段随 N 顺延（本表按 N=0 排布）	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:56 WriteByte(appearances.Count)，:57-58 紧随写出各 entry，:169-180 每条 entry 为 23B
+NOTI	0x0002	43	称号克隆 item id（Subtype0Tail.CloneTitleItemId）	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:76 WriteUInt32(t.CloneTitleItemId)
+NOTI	0x0002	47	锻造值 Forging	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:77 WriteByte(t.Forging) 注为锻造
+NOTI	0x0002	48	宠物相关字段 2（Subtype0Tail.CreatureField2）	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:78 WriteByte(t.CreatureField2)
+NOTI	0x0002	49	宠物相关字段 3（Subtype0Tail.CreatureField3）	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:79 WriteByte(t.CreatureField3)
+NOTI	0x0002	50	宠物相关字段 4（Subtype0Tail.CreatureField4）	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:80 WriteByte(t.CreatureField4)
+NOTI	0x0002	51	名称装饰卡 item id（u32）+ 名称装饰卡到期时间戳（u32），本 8B 由两个字段拼成	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:81-82 连续 WriteUInt32(t.NameTagItemId) 与 WriteUInt32(t.NameTagExpireTime)
+NOTI	0x0002	59	体力/耐力 Stamina	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:83 WriteByte(t.Stamina)
+NOTI	0x0002	60	疲劳惩罚 FatiguePenalty	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:84 WriteUInt32(t.FatiguePenalty)
+NOTI	0x0002	64	是否活动角色 IsEventCharacter	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:85 WriteByte(t.IsEventCharacter)
+NOTI	0x0002	65	已装备宠物 item id	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:86 WriteUInt32(t.EquippedCreatureItemId) 注为宠物ID
+NOTI	0x0002	69	宠物名称 dstr（i32 长度 + 原始字节）	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:87 WriteDstr(t.EquippedCreatureNameBytes) 注为宠物名称
+NOTI	0x0002	100	宠物存活状态	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:88 WriteByte(t.EquippedCreatureAliveState) 注为宠物存活状态
+NOTI	0x0002	101	是否高级网吧 IsPremiumPcRoom	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:89 WriteByte(t.IsPremiumPcRoom)
+NOTI	0x0002	102	服务器组 ID ServerGroupId	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:90 WriteByte(t.ServerGroupId)
+NOTI	0x0002	103	黑名单/黑暗计数 BlackCount	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:91 WriteUInt32(t.BlackCount)
+NOTI	0x0002	107	公会等级 GuildLevel	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:92 WriteByte(t.GuildLevel)
+NOTI	0x0002	108	公会名称 dstr（i32 长度 + 原始字节）	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:93 WriteDstr(t.GuildNameBytes) 注为工会名称
+NOTI	0x0002	172	混乱值 ChaosPoint	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:94 WriteUInt32(t.ChaosPoint)
+NOTI	0x0002	176	上游恒写常量 1	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:95 WriteByte(1)
+NOTI	0x0002	177	变身种类 DisguiseKind	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:96 WriteByte(t.DisguiseKind)
+NOTI	0x0002	178	是否处于变身 IsDisguised	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:97 WriteByte(t.IsDisguised)
+NOTI	0x0002	179	专家职业类型 ExpertJobType	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:98 WriteByte(t.ExpertJobType)
+NOTI	0x0002	180	专家职业经验 ExpertJobExp	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:99 WriteUInt32(t.ExpertJobExp)
+NOTI	0x0002	184	上游恒写 0	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:100 WriteByte(0)
+NOTI	0x0002	185	上游恒写 0	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:101 WriteUInt32(0)
+NOTI	0x0002	189	上游恒写 0	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:102 WriteUInt16(0)
+NOTI	0x0002	191	是否硬核模式 IsHardcoreMode	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:103 WriteByte(t.IsHardcoreMode)
+NOTI	0x0002	192	硬核角色是否已死亡 IsHardcoreDead	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:104 WriteByte(t.IsHardcoreDead)
+NOTI	0x0002	193	硬核死亡次数 HardcoreDeathCount	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:105 WriteUInt16(t.HardcoreDeathCount)
+NOTI	0x0002	195	进度值 A（Subtype0Tail.ProgressA）	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:106 WriteUInt32(t.ProgressA)
+NOTI	0x0002	199	进度值 B（Subtype0Tail.ProgressB）	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:107 WriteUInt32(t.ProgressB)
+NOTI	0x0002	g1:0	外观槽位 Slot	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:171 WriteByte(e.Slot) 为每条外观 entry 首字节
+NOTI	0x0002	g1:1	外观显示 item id（DisplayItemId）	High	上游 Network/Builders/Init/UserInfoSubtype0Builder.cs:172 WriteInt32(e.DisplayItemId) 紧随 Slot
+NOTI	0x0166	0	称号书信息类型 InfoType（自身初始化与他人查看使用不同值）	High	上游 Network/Builders/Init/TitleBookListBodyBuilder.cs:32 WriteByte(category.InfoType)；:103 他人查看路径传 infoType=2
+NOTI	0x0166	1	所属角色的 16 位 id（OwnerId16）	High	上游 Network/Builders/Init/TitleBookListBodyBuilder.cs:33 WriteUInt16(category.OwnerId16)
+NOTI	0x0166	3	称号书分类索引 Category（上游按 0..3 共 4 类各发一包）	High	上游 Network/Builders/Init/TitleBookListBodyBuilder.cs:34 WriteInt32(category.Category)；Network/Builders/Init/OtherUserInfoResponseBuilder.cs:16,291-303 按 4 个分类逐个投影
+NOTI	0x0166	7	本分类的条目数量 Entries.Count	High	上游 Network/Builders/Init/TitleBookListBodyBuilder.cs:35 WriteInt32(category.Entries.Count)
+NOTI	0x0166	g1:0	条目槽位索引 SlotIndex	High	上游 Network/Builders/Init/TitleBookListBodyBuilder.cs:38 WriteUInt16(entry.SlotIndex)
+NOTI	0x0166	g1:2	条目 item id	High	上游 Network/Builders/Init/TitleBookListBodyBuilder.cs:39 WriteInt32(entry.ItemId)
+NOTI	0x0166	g1:6	条目数值 Value	High	上游 Network/Builders/Init/TitleBookListBodyBuilder.cs:40 WriteInt32(entry.Value)
+NOTI	0x0166	g1:10	条目属性 Attr	High	上游 Network/Builders/Init/TitleBookListBodyBuilder.cs:41 WriteByte(entry.Attr)
+NOTI	0x0166	g1:11	耐久 Durability	High	上游 Network/Builders/Init/TitleBookListBodyBuilder.cs:42 WriteUInt16(entry.Durability)
+NOTI	0x0166	g1:13	封印标志 SealFlag	High	上游 Network/Builders/Init/TitleBookListBodyBuilder.cs:43 WriteByte(entry.SealFlag)
+NOTI	0x0166	g1:14	附魔索引 EnchantIndex	High	上游 Network/Builders/Init/TitleBookListBodyBuilder.cs:44 WriteInt32(entry.EnchantIndex)
+NOTI	0x0166	g1:18	强化次数 EnchantUpgradeCount	High	上游 Network/Builders/Init/TitleBookListBodyBuilder.cs:45 WriteByte(entry.EnchantUpgradeCount)
+NOTI	0x0166	g1:19	增幅类型 AmplifyType	High	上游 Network/Builders/Init/TitleBookListBodyBuilder.cs:46 WriteByte(entry.AmplifyType)
+NOTI	0x0166	g1:20	增幅数值 AmplifyValue	High	上游 Network/Builders/Init/TitleBookListBodyBuilder.cs:47 WriteUInt16(entry.AmplifyValue)
+NOTI	0x019F	0	record 数量：有支援兵时写 1，空 body 写 0	High	上游 Network/Builders/Init/StrikerSupportTagCharacterPacketBuilder.cs:130 WriteUInt16(1) 为 body 首字段；Network/Builders/Init/StrikerSupportTagCharacterBodyBuilder.cs:27 空 body 为 {0x00,0x00}
+NOTI	0x019F	2	映射后的角色 id（mappedCharacterId，取当前激活角色 id 低 16 位）	High	上游 Network/Builders/Init/StrikerSupportTagCharacterPacketBuilder.cs:119 传 checked((ushort)activeCharacterId)，:158 WriteUInt16(mappedCharacterId) 为 record 首字段
+NOTI	0x019F	4	支援兵角色名 dstr（i32 长度 + 原始字节）	High	上游 Network/Builders/Init/StrikerSupportTagCharacterPacketBuilder.cs:159 WriteDstr(supportName)
+NOTI	0x019F	35	支援兵等级 level	High	上游 Network/Builders/Init/StrikerSupportTagCharacterPacketBuilder.cs:160 WriteByte(level)
+NOTI	0x019F	36	支援兵职业 job	High	上游 Network/Builders/Init/StrikerSupportTagCharacterPacketBuilder.cs:161 WriteByte(job)
+NOTI	0x019F	37	打包的成长上下文 packedGrowContext（转职位与觉醒阶段位同字节）	High	上游 Network/Builders/Init/StrikerSupportTagCharacterPacketBuilder.cs:163 WriteByte(packedGrowContext)
+NOTI	0x019F	38	所选支援技能 id（MercenarySupportState.SkillId）	High	上游 Network/Builders/Init/StrikerSupportTagCharacterPacketBuilder.cs:124 传 state.SkillId，:164 WriteUInt16(selectedSkillId)
+NOTI	0x019F	g1:0	技能快捷槽位 Slot	High	上游 Network/Builders/Init/StrikerSupportTagCharacterPacketBuilder.cs:182 WriteByte(skill.Slot) 为每条技能项首字节
+NOTI	0x019F	g1:1	技能 id	High	上游 Network/Builders/Init/StrikerSupportTagCharacterPacketBuilder.cs:183 WriteUInt16(skill.SkillId)
+NOTI	0x019F	g1:3	技能等级	High	上游 Network/Builders/Init/StrikerSupportTagCharacterPacketBuilder.cs:184 WriteByte(skill.Level)
+NOTI	0x01C0	0	通知头，上游恒写 0	Confirmed	上游 Game/Skills/DarkKnightComboSkillInfoCodec.cs:79 output.Add(0) 为 body 首字节
+NOTI	0x01C0	1	技能页块数量（normalizedBlocks.Count）	Confirmed	上游 Game/Skills/DarkKnightComboSkillInfoCodec.cs:80 output.Add((byte)normalizedBlocks.Count) 为 body 第二字节
+NOTI	0x01C0	2	第 1 个块的技能页索引 pageIndex（合法值 0/1）	High	上游 Game/Skills/DarkKnightComboSkillInfoCodec.cs:81-82 紧随头部追加块；块内 :22 output.Add(pageIndex)，:140-141 解析同一字节为 pageIndex 且限制 <= 1
+NOTI	0x01C0	3	该页的连招根技能条目数量 rootCount	High	上游 Game/Skills/DarkKnightComboSkillInfoCodec.cs:23 output.Add((byte)roots.Count)，:144 解析为 rootCount
+NOTI	0x01C0	4	第 1 个根技能 id（RootSkillId）	High	上游 Game/Skills/DarkKnightComboSkillInfoCodec.cs:27 WriteUInt16(root.RootSkillId)，:154 解析为 RootSkillId
+NOTI	0x01C0	6	该根技能的子技能数量 childCount	High	上游 Game/Skills/DarkKnightComboSkillInfoCodec.cs:41 output.Add((byte)children.Count)，:158 解析为 childCount
+NOTI	0x01C0	7	第 1 个子（连招衔接）技能 id	High	上游 Game/Skills/DarkKnightComboSkillInfoCodec.cs:43 WriteUInt16(child)，:164 解析为 ChildSkillIds 元素
+CMD	0x0292	g1:0	骑士盾 deck 槽位的盾牌 item id，第 i 项对应槽位 i（槽 0 为主盾，其余为备用盾）	Confirmed	上游 Network/Handlers/KnightShieldHandler.cs:126-128 对 5 个槽位读 BitConverter.ToInt32(body, slotIndex * 4)，:120 校验 body 长度恰为 SlotCount*4
+NOTI	0x0245	g1:0	骑士盾 deck 槽位的盾牌 item id，第 i 项对应槽位 i（槽 0 为主盾，其余为备用盾）	Confirmed	上游 Network/Builders/KnightShieldDeckBodyBuilder.cs:22-23 按 slotIndex 循环 WriteInt32(snapshot.GetShieldItemId(slotIndex))
+NOTI	0x0117	0	神秘商店 NPC id（SecretShopOffer.NpcId）	Confirmed	上游 Network/Builders/SecretShopClearPacketBuilder.cs:22 body 即 BitConverter.GetBytes(offer.NpcId)
+NOTI	0x0118	0	商品条目数量	Confirmed	上游 Network/Builders/SecretShopItemListBodyBuilder.cs:11 WriteInt32(items.Count) 为 body 首字段
+NOTI	0x0118	g1:0	商品 item id	High	上游 Network/Builders/SecretShopItemListBodyBuilder.cs:19 WriteInt32(item.ItemId) 为每条商品首字段
+NOTI	0x0118	g1:4	计价模式 RawFlag：0 = 用金币价，1 = 用道具货币；上游只接受 0/1	High	上游 Network/Builders/SecretShopItemListBodyBuilder.cs:14-18,20 校验 RawFlag 仅 0/1 并写出
+NOTI	0x0118	g1:5	金币价格；计价模式为道具货币时写 0	High	上游 Network/Builders/SecretShopItemListBodyBuilder.cs:21 WriteInt32(usesItemCurrency ? 0 : item.Price)
+NOTI	0x0118	g1:9	剩余可购买数量 RemainingCount	High	上游 Network/Builders/SecretShopItemListBodyBuilder.cs:22 WriteInt32(item.RemainingCount)
+NOTI	0x0118	g1:13	作为货币的道具 item id；计价模式为金币时写 0	High	上游 Network/Builders/SecretShopItemListBodyBuilder.cs:23 WriteInt32(usesItemCurrency ? item.RequiredItemId : 0)
+NOTI	0x0118	g1:17	道具货币价格；计价模式为金币时写 0	High	上游 Network/Builders/SecretShopItemListBodyBuilder.cs:24 WriteInt32(usesItemCurrency ? item.Price : 0)
+NOTI	0x0118	g1:21	上游恒写 0	High	上游 Network/Builders/SecretShopItemListBodyBuilder.cs:25 WriteByte(0) 为每条商品末字节
+NOTI	0x0017	0	角色 UserId	High	上游 Network/Builders/Town/TownAreaNotificationBuilder.cs:27 WriteUInt16(snapshot.UserId) 为 10B body 首字段
+NOTI	0x0017	2	城镇 id TownId	High	上游 Network/Builders/Town/TownAreaNotificationBuilder.cs:28 WriteByte(snapshot.TownId)
+NOTI	0x0017	3	区域 id AreaId	High	上游 Network/Builders/Town/TownAreaNotificationBuilder.cs:29 WriteByte(snapshot.AreaId)
+NOTI	0x0017	4	坐标 X（i16）	High	上游 Network/Builders/Town/TownAreaNotificationBuilder.cs:30 WriteInt16(snapshot.PosX)
+NOTI	0x0017	6	坐标 Y（i16）	High	上游 Network/Builders/Town/TownAreaNotificationBuilder.cs:31 WriteInt16(snapshot.PosY)
+NOTI	0x0017	8	朝向 Direction	High	上游 Network/Builders/Town/TownAreaNotificationBuilder.cs:32 WriteByte(snapshot.Direction)
+NOTI	0x0017	9	区域内状态 State	High	上游 Network/Builders/Town/TownAreaNotificationBuilder.cs:33 WriteByte(snapshot.State)
+NOTI	0x01F7	0	公告显示模式 mode；上游各调用点均取默认值 0	Confirmed	上游 Network/Builders/ServerNoticeMessageBuilder.cs:5,8 WriteByte(mode) 为 body 首字节，:9 其后为 UTF-8 dstr 正文
+CMD	0x0004	0	角色槽位索引 slot（按账号角色列表下标，越界回落 0）	Confirmed	上游 Network/Handlers/CharacterSessionLifecycleCoordinator.cs:513-514 BitConverter.ToUInt16(body, 0)，:523-525 用作 ListByAccount 结果下标
+NOTI	0x000C	0	聊天模式 mode（决定投递范围：私聊/组队/区域等）	High	上游 Network/Handlers/ChatHandler.cs:526 WriteByte(mode) 为 body 首字节；:117-165 按同一 mode 值选择收件人
+NOTI	0x000C	1	发送者 UserId	High	上游 Network/Handlers/ChatHandler.cs:527 WriteUInt16(senderUniqueId)，:89 实参为 session.Player.UserId
+NOTI	0x000C	3	服务器组 serverGroup；上游调用点恒传 0	High	上游 Network/Handlers/ChatHandler.cs:528 WriteByte(serverGroup)，:90 实参 serverGroup: 0
+NOTI	0x000C	4	消息正文 dstr（i32 长度 + 原始字节）	High	上游 Network/Handlers/ChatHandler.cs:529 WriteDstr(messageBytes)
+NOTI	0x016A	0	结果码；上游成功路径恒写 0	High	上游 Network/Handlers/ChatHandler.cs:296 WriteByte(0) 并注为 success
+NOTI	0x016A	1	会话（一对一聊天组）id，由服务端分配	High	上游 Network/Handlers/ChatHandler.cs:248 AllocateConversationIdLocked()，:297 WriteUInt32(conversationId)
+NOTI	0x016A	5	成员名数量；上游恒写 2 并紧接写出 2 个名字 dstr	High	上游 Network/Handlers/ChatHandler.cs:298 WriteByte(2)，:299-300 随后两次 WriteDstr
+NOTI	0x016A	g1:0	成员角色名 dstr（第 1 个为接收方本人，第 2 个为对端）	High	上游 Network/Handlers/ChatHandler.cs:299-300 WriteDstr(recipientName) 后 WriteDstr(peerName)
+NOTI	0x016F	0	会话（一对一聊天组）id	High	上游 Network/Handlers/ChatHandler.cs:539 WriteUInt32(conversationId) 为 body 首字段
+NOTI	0x016F	4	发送者角色名 dstr（i32 长度 + 原始字节）	High	上游 Network/Handlers/ChatHandler.cs:540 WriteDstr(senderNameBytes)
+NOTI	0x016F	132	消息正文 dstr（i32 长度 + 原始字节）	High	上游 Network/Handlers/ChatHandler.cs:541 WriteDstr(messageBytes)
+CMD	0x0012	0	背包列表类型 listType（InventoryListType）	Confirmed	上游 Network/Handlers/InventoryHandler.Trade.cs:41 (InventoryListType)body[0]
+CMD	0x0012	1	条目数量 arrayCount；服务端要求 1..100 才走扩展多条目分支	Confirmed	上游 Network/Handlers/InventoryHandler.Trade.cs:39,42 body[1] 取值检查与赋值
+CMD	0x0012	2	条目 1 的操作类型 opType	Confirmed	上游 Network/Handlers/InventoryHandler.Trade.cs:46 注明条目结构 opType(u16)+slotIndex(u16)+itemId(i32)+deleteCount(i32)，:49 BitConverter.ToInt16(body, 2)
+CMD	0x0012	4	条目 1 的槽位索引 slotIndex	Confirmed	上游 Network/Handlers/InventoryHandler.Trade.cs:50 BitConverter.ToInt16(body, offset + 2)（offset 起始为 2）
+CMD	0x0012	6	条目 1 的 item id	Confirmed	上游 Network/Handlers/InventoryHandler.Trade.cs:51 BitConverter.ToInt32(body, offset + 4)（offset 起始为 2）
+CMD	0x0012	10	条目 1 的删除数量 deleteCount	Confirmed	上游 Network/Handlers/InventoryHandler.Trade.cs:52 BitConverter.ToInt32(body, offset + 8)（offset 起始为 2）
+NOTI	0x0381	0	收集箱索引 boxIndex（CollectBoxEntry.Index）	Confirmed	上游 Network/Builders/Init/CollectionBoxBodyBuilder.cs:92 body[0] = (byte)entry.Index
+NOTI	0x0381	1	上游恒写 1	Confirmed	上游 Network/Builders/Init/CollectionBoxBodyBuilder.cs:93 body[1] = 1
+NOTI	0x0381	2	距最大有效期的剩余秒数；无有效期配置写 0，已过期写 0xFFFFFFFF	Confirmed	上游 Network/Builders/Init/CollectionBoxBodyBuilder.cs:72-88 计算 remainingSeconds，:94 写入 body 偏移 2
+NOTI	0x0381	6	状态标志：配置了有效期写 0，未配置写 1	Confirmed	上游 Network/Builders/Init/CollectionBoxBodyBuilder.cs:73,81,86 设置 statusFlags，:95 body[6] = statusFlags
+NOTI	0x0381	7	已收集道具条目数量 itemCount	Confirmed	上游 Network/Builders/Init/CollectionBoxBodyBuilder.cs:90,96 body[7] = (byte)itemCount
+NOTI	0x0381	8	第 1 个已收集道具的 item id（其后每项 4B）	Confirmed	上游 Network/Builders/Init/CollectionBoxBodyBuilder.cs:97-98 循环写 body 偏移 8 + i*4 为 savedSlots[i].ItemId
+CMD	0x01E6	0	娃娃机 id machineId	Confirmed	上游 Network/Handlers/CraneMiniGameHandler.cs:37 BitConverter.ToUInt16(body, 0)，:31 校验 body 长度恰为 2
+CMD	0x01E7	0	展示槽位 displaySlot	Confirmed	上游 Network/Handlers/CraneMiniGameHandler.cs:77 BitConverter.ToUInt16(body, 0)，:71 校验 body 长度恰为 6
+CMD	0x01E7	2	请求抓取的 item id（requestedItemId，服务端与本次开启的展示列表比对）	Confirmed	上游 Network/Handlers/CraneMiniGameHandler.cs:78 BitConverter.ToInt32(body, 2)，:80-84 交给 TryResolveSelection 校验
+CMD	0x0021	0	服务端不解析的前导 2B；QuestManager.StripEcho 丢弃后才开始解析任务字段	High	上游 Game/Quests/QuestManager.cs:98-104 StripEcho 从 body+2 起复制，:202 SET_TRIGGER 路径先调用 StripEcho
+CMD	0x0021	2	任务 id questId	High	上游 Game/Quests/QuestService.cs:133 对去头 body 取 BitConverter.ToUInt16(body, 0)；Game/Quests/DailyChallengeService.cs:34 同一位置同样解析
+CMD	0x0021	4	触发类型 triggerType	High	上游 Game/Quests/QuestService.cs:134 对去头 body 取 body[2]；Game/Quests/DailyChallengeService.cs:38 同一位置同样解析
+CMD	0x0021	5	增量标志，非 0 表示按增量方式应用触发	High	上游 Game/Quests/QuestService.cs:135 对去头 body 取 body[3] != 0；Game/Quests/DailyChallengeService.cs:39 同一位置同样解析

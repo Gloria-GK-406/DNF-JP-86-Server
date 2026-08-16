@@ -1,0 +1,40 @@
+family	type	offset	meaning	confidence	source
+CMD	0x000B	0	邀请者 A 的 uid（u16 LE）：应答方回填 REQUEST_PEER 里带来的邀请者 uid，上游据此定位邀请者在线会话	Confirmed	上游 PartyHandler.cs:1177 BitConverter.ToUInt16(body,0) 读作 inviterUid；:1200 按该 uid 查在线会话
+CMD	0x000B	2	ENUM_PEER_REQUEST_TYPE：0=组队邀请应答（入队并广播 PARTY_INFO）、1=交易应答（上游只记日志、绝不组队）、2=PvP 房间邀请应答；上游只接受 0/1/2，其余直接丢弃	Confirmed	上游 PartyHandler.cs:1181 reqType=body[2]；:1192-1199 白名单；:1218/:1243/:1248 三条分支
+CMD	0x000B	3	仅 reqType==2（PvP 房间）路径被读：上游按 int32 读 body+3 作房间邀请令牌 peer；该形态上游要求 body 恰好 7 字节。注意上游按 4 字节读，跨过本表 offset 3/5 的 u16 边界	High	上游 PartyHandler.cs:1233 BitConverter.ToInt32(body,3)；:1220 body.Length != 7 即拒
+CMD	0x000C	0	上游解析为 titleIndex（队名索引；上游注明 86jp 实测恒为 00，且 titleIndex==0 时 body 不携带队名串）；handler 随后忽略该值、把 party.TitleIndex 写死 0	High	上游 SetPartyInfoRequest.cs:25 req.TitleIndex=body[0] 与 :6-8 注释；PartyHandler.cs:464 party.TitleIndex=0
+CMD	0x000C	1	上游解析为 userMax（队伍人数上限），但同处注明该字节实测随「创建队伍」对话框的选择在 01~06 变化、精确语义未证实；handler 丢弃该值并写死 userMax=4	Hypothesis	上游 SetPartyInfoRequest.cs:27 req.UserMax=body[1] 与 :6-8 注释；PartyHandler.cs:470 party.UserMax=4
+CMD	0x000C	2	上游在此按 u16 读 dungIndex、按 body[4] 读 dungDiffi，但 handler 丢弃这两个值（恒置 0）；且上游注明 86jp 实测该请求为定长 7 字节（例 00 XX 04 YY 00 05 00）、不携带队名串，与本表此处的变长串模型不一致，故上游的字段切分未必落在真实边界上	Hypothesis	上游 SetPartyInfoRequest.cs:28-29 与 :6-8 注释；PartyHandler.cs:471-472 party.DungIndex/DungDiffi 恒置 0
+CMD	0x000E	0	被踢成员的队内槽位 SlotIndex（服务端按加入顺序分配 0..3）；上游在名册里找 SlotIndex==body[0] 的成员作踢出目标，找不到则回错误码 0x13	Confirmed	上游 PartyHandler.cs:755 与 :785 m.SlotIndex == body[0]；:765/:806/:812 失败回 0x13；槽位定义 Game/Party/Party.cs:25-26
+NOTI	0x0007	0	请求发起者 A 的 uid（u16 LE）；组队邀请、交易请求、PvP 房间邀请三种形态上游都在此写发起者 uid	Confirmed	上游 PartyHandler.cs:1149（组队）、:1063（交易）与 PvpRoomHandler.cs:295（PvP 房间）
+NOTI	0x0007	2	ENUM_PEER_REQUEST_TYPE：0=组队邀请、1=交易请求、2=PvP 房间邀请；值由 CMD 0x000A 的 body[2] 透传而来，并决定其后尾部的形态	Confirmed	上游 PartyHandler.cs:1150 写 0、:1064 写 1、PvpRoomHandler.cs:296 写 2；来源 PartyHandler.cs:1009 reqType=body[2]
+NOTI	0x0007	3	peer id（int32）：原样回传 CMD 0x000A 请求 body+3 的 int32；PvP 房间形态此处为房间邀请令牌 peerToken	Confirmed	上游 PartyHandler.cs:1151 与 :1065 WriteInt32(peerInt)（peerInt 取自 :1010 ToInt32(body,3)）；PvpRoomHandler.cs:297 写 peerToken
+NOTI	0x0007	7	交易形态（type=1，共 11 字节，与本表模型一致）此处为 A.createTime（int32，上游阶段一恒写 0）；组队形态（type=0）上游在同一位置改写三个 u16（注为疲劳/体力/未知，均恒写 0）、body 共 13 字节，与本表 11 字节模型不同	High	上游 PartyHandler.cs:1066 WriteInt32(0) 注为 A.createTime；组队形态见 :1152-1154 三个 WriteUInt16(0)
+NOTI	0x0008	0	应答者 B 的 uid（u16 LE）：接受组队邀请的一方	Confirmed	上游 PartyHandler.cs:1356 w08.WriteUInt16(accepterUid)
+NOTI	0x0008	2	上游恒写 0；位置与 REQUEST_PEER(NOTI 0x0007) 及 RES_PEER(CMD 0x000B) 的 ENUM_PEER_REQUEST_TYPE 同域，而该回执只在组队（type=0）路径发出，故疑为同一请求类型域	Hypothesis	上游 PartyHandler.cs:1357 w08.WriteByte(0)；同域参照 :1150 与 :1181；发出条件见 :1243-1247 提前返回
+NOTI	0x0008	3	邀请者 A 的 uid，按 u32 LE 写（值域仍是 u16 uid，上游从 ushort 强转）	Confirmed	上游 PartyHandler.cs:1358 w08.WriteInt32((int)inviterUid)
+NOTI	0x0009	0	队伍块计数（u16）：上游恒写 1，其后为该数量个队伍块	Confirmed	上游 PartyInfoNotiBuilder.cs:20 w.WriteUInt16(1)
+NOTI	0x0009	2	partyId（u16）：服务端队伍实例 ID。换队长走「解散+重建」，重建后 partyId 变成新值	Confirmed	上游 PartyInfoNotiBuilder.cs:21 写 (ushort)party.PartyId；重建换 ID 见 PartyManager.cs:380-385 CreateReplacementPartyLocked
+NOTI	0x0009	4	块类型 type，决定其后携带哪些块：0=信息块+名册块、1=仅信息块、2=仅名册块、3=两块都不带（body 只剩计数+partyId+type 共 5 字节；上游在离队者、被踢者、原队迁出者以及换队长重建前的全体成员上发这一形态）	Confirmed	上游 PartyInfoNotiBuilder.cs:22 写 type，并在 :24/:37/:53/:56 按 type 选块；type=0 见 PartyHandler.cs:483 与 :1460，type=3 见 :199、:215、:924
+NOTI	0x0009	5	titleIndex：队名索引，紧接其后是队名串；上游恒写 0	Confirmed	上游 PartyInfoNotiBuilder.cs:28 写 party.TitleIndex；PartyHandler.cs:464 恒置 0
+NOTI	0x0009	6	队名串：上游按 int32 长度前缀 + 原始字节写（空串即 4 字节 0），内容取自 SET_PARTY_INFO 带来的 title，为空则回落为队长角色名。上游实际宽度是 4+len（空串时整个信息块 11 字节），与本表 64 字节定宽模型不同	High	上游 PartyInfoNotiBuilder.cs:29 WriteRawDstr(party.TitleBytes)（WriteRawDstr = int32 长度+字节，见 Network/Core/GamePacketWriter.cs:74-79）；TitleBytes 赋值见 PartyHandler.cs:465-469
+NOTI	0x0009	70	上游写作 IsReturnUserParty 标志、恒写 0。本表把队名串按 64 字节定宽建模，故此 offset 非真实字节位置；此处按上游信息块写序对位=队名串之后的第 1 个 u8	Hypothesis	上游 PartyInfoNotiBuilder.cs:30
+NOTI	0x0009	71	userMax：队伍人数上限（取 Party.UserMax，为 0 时回落写 4；SET_PARTY_INFO 路径把它恒置为 4）。按上游信息块写序对位=队名串之后的第 2 个 u8	High	上游 PartyInfoNotiBuilder.cs:31；PartyHandler.cs:470 party.UserMax=4
+NOTI	0x0009	72	dungIndex：副本索引（u16，取 Party.DungIndex；SET_PARTY_INFO 路径恒置 0）。按上游信息块写序对位=队名串之后的 u16	High	上游 PartyInfoNotiBuilder.cs:32；PartyHandler.cs:471 party.DungIndex=0
+NOTI	0x0009	74	dungDiffi：副本难度（取 Party.DungDiffi；SET_PARTY_INFO 路径恒置 0）。按上游信息块写序对位=dungIndex 之后的 u8	High	上游 PartyInfoNotiBuilder.cs:33；PartyHandler.cs:472 party.DungDiffi=0
+NOTI	0x0009	75	上游写作 IsEventCharacParty 标志、恒写 0，是信息块（空队名时共 11 字节）的最后一个字节	Hypothesis	上游 PartyInfoNotiBuilder.cs:34
+NOTI	0x0009	g1:0	该槽位的成员 uid（u16），空槽写 0xFFFF。上游固定写满 8 个槽（本组重复 8 次），而服务端队伍上限 4 人、槽位按加入顺序分配且离队不重排，故槽 4..7 恒为空	Confirmed	上游 PartyInfoNotiBuilder.cs:40-43 for i<8 写 SlotIndex==i 的成员 uid 否则 0xFFFF；槽位定义 Game/Party/Party.cs:25-26 与 :96-110
+NOTI	0x000B	0	成员记录数 n（u8）：其后按此数量重复 22 字节的成员端点记录	Confirmed	上游 PartyIpInfoBuilder.cs:25 写 members.Count；PvpPeerInfoBuilder.cs:74 写 count（PvP 房间用同一结构）
+NOTI	0x000B	g1:0	该成员的 uid（u16 LE）	Confirmed	上游 PartyIpInfoBuilder.cs:28 写 m.UserId；PvpPeerInfoBuilder.cs:91 写 member.Player.UserId
+NOTI	0x000B	g1:2	内网 IPv4：4 个点分字节 a.b.c.d 直写（不是整数字节序）。组队路径填该会话 TCP 远端的 IPv4；中继模式下对端记录改填中继服务器公网 IP	Confirmed	上游 PartyIpInfoBuilder.cs:29-30（中继分支 :91-95）；取值来源 PartyHandler.cs:344-345 TCP 远端 octets；PvP 侧 PvpPeerInfoBuilder.cs:122 与 :144
+NOTI	0x000B	g1:6	外网 IPv4：同样是 4 个点分字节。组队路径与内网同值；PvP 路径填经认证的 TCP 远端地址，取不到则写 4 字节 0（连同端口一并置 0）	Confirmed	上游 PartyIpInfoBuilder.cs:31；PvpPeerInfoBuilder.cs:126-140 与 :145
+NOTI	0x000B	g1:10	UDP P2P 端口，按大端（网络序）写：高字节在前、低字节在后。中继模式下写的是「收包人→该对端」这条有序中继腿的端口	Confirmed	上游 PartyIpInfoBuilder.cs:32-33 先写 port>>8 再写 port&0xFF（中继腿 :81-98）；PvpPeerInfoBuilder.cs:146-147
+NOTI	0x000B	g1:12	acc_id：账号 ID（u32 LE）。组队路径用 characterId 充当，PvP 路径优先用真实 AccountId、否则回落 characterId	Confirmed	上游 PartyIpInfoBuilder.cs:34 写 m.AccId（来源 PartyHandler.cs:359 AccId=(uint)cid）；PvpPeerInfoBuilder.cs:149-153
+NOTI	0x000B	g1:16	nat_type：NAT 类型。组队路径恒写 0（open/LAN）；PvP 路径写客户端经 CMD 0x0002 SET_UDP_IP_PORT 上报的值，中继腿则恒写 0	Confirmed	上游 PartyIpInfoBuilder.cs:35；PvpPeerInfoBuilder.cs:141 与 :154（中继腿 :114）；上报入口 PartyHandler.cs:98-103
+NOTI	0x000B	g1:17	mtu（u32 LE）：组队路径恒写 1500；PvP 路径写客户端上报的 MTU，无上报则 0	Confirmed	上游 PartyIpInfoBuilder.cs:36 WriteUInt32(1500)；PvpPeerInfoBuilder.cs:155 endpoint?.Mtu ?? 0
+NOTI	0x000B	g1:21	char_attr（角色属性字节）：两条独立构造路径都恒写 0，只有名称、没有服务端取值	High	上游 PartyIpInfoBuilder.cs:37；PvpPeerInfoBuilder.cs:156
+NOTI	0x0099	0	成员数（u8）：等于在队成员数（不是 PARTY_INFO 名册那种固定 8 槽），其后按此数量重复 5 字节记录	Confirmed	上游 PartyRealtimeInfoBuilder.cs:14 写 members.Count（members = party.MembersBySlot()）
+NOTI	0x0099	g1:0	该成员的 uid（u16 LE）	Confirmed	上游 PartyRealtimeInfoBuilder.cs:17 写 m.UserId
+NOTI	0x0099	g1:2	HP 百分比（0~100，满血=100）；上游恒写 100，未接入真实血量	High	上游 PartyRealtimeInfoBuilder.cs:18 WriteByte(100)，注为 HP 百分比
+NOTI	0x0099	g1:3	isHelpAbuseParty 标志；上游恒写 0，只有名称、没有服务端取值	High	上游 PartyRealtimeInfoBuilder.cs:19
+NOTI	0x0099	g1:4	该成员的队内槽位 SlotIndex，与 PARTY_INFO(NOTI 0x0009) 名册块的槽位编号是同一套（0..3，按加入顺序分配）	Confirmed	上游 PartyRealtimeInfoBuilder.cs:20 WriteByte(m.SlotIndex)；槽位定义 Game/Party/Party.cs:25-26

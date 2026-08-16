@@ -1,0 +1,19 @@
+family	type	offset	meaning	confidence	source
+CMD	0x0040	2	本次购买的商品条目数 totalCount；上游据此按 15 字节/条（ItemStride）循环解析条目区，值为 0 时按 1 处理	Confirmed	上游 Network/Parsers/CeraShop/CeraShopPurchaseRequest.cs:39-41 读 body[2] 作 totalCount，:48-50 以 HeaderSize=4 + i*ItemStride=15 定位每条
+CMD	0x0040	3	购买券使用标志：非 0 表示本次购买选用了购买券，上游仅在此值非 0 时才去解析券字段	Confirmed	上游 CeraShopPurchaseRequest.cs:45 CouponSelected = body[3] != 0；:69-81 据此才读券 id/槽位
+CMD	0x0040	4	支付方式 PaymentMode：上游只接受 0=正常扣点券/金币、1=用时装券购买（该分支把点券花费清零），其他值直接拒绝该次购买	Confirmed	上游 CeraShopPurchaseRequest.cs:46 PaymentMode = body[4]；取值分支见 Game/Inventory/Services/InventoryCeraShopRuntimeService.cs:134-144
+CMD	0x0040	5	第 1 条商品的属性值 attributeValue；上游对时装类商品把它当作 AvatarAbilityNo（时装附加能力编号）写入新建物品	High	上游 CeraShopPurchaseRequest.cs:60 读 body[itemBase+1]，itemBase=HeaderSize=4 故即 body[5]；用途见 InventoryCeraShopRuntimeService.cs:1288-1298
+CMD	0x0040	7	第 1 条商品的商城商品号 commodityNo（商城商品表主键，不是 itemTemplateId；上游用它查表得到实际物品）	High	上游 CeraShopPurchaseRequest.cs:55 BitConverter.ToInt32(body, itemBase+CommodityOffsetInItem)，即 body[4+3]=body[7]；查表见 InventoryCeraShopRuntimeService.cs:82-85
+CMD	0x0040	11	单商品购买（body[2] 解析为 1）时的商品选项区起点：上游把此字节读作 avatar 选择项数量 avatarCount，为 0 时同一字节又被读作 selectionCount，即无任何选项	High	上游 CeraShopPurchaseRequest.cs:61-63 以 commodityOffset+4=11 调 ParseItemOptions；:94-96 与 :113-119 在该偏移读两个计数
+CMD	0x0040	13	仅当 body[3] 非 0 时有效：所用购买券的物品模板 id（CouponItemId），上游校验它必须是购买券类物品	High	上游 CeraShopPurchaseRequest.cs:73-77 以 body.Length-6 定位读 Int32，19 字节 body 即 offset 13；校验见 InventoryCeraShopRuntimeService.cs:146-154
+CMD	0x0040	17	仅当 body[3] 非 0 时有效：该购买券在主背包中的槽位 CouponSlot（有符号 16 位，小于 0 视为非法）	High	上游 CeraShopPurchaseRequest.cs:78-80 读 body.Length-6+4 处的 Int16，19 字节 body 即 offset 17
+NOTI	0x000D	0	物品列表类型 listType / 物品空间 id；上游枚举 InventoryListType：0=主背包 1=时装 2=个人仓库 3=装备 7=宠物 12=账号金库	Confirmed	上游 Network/Builders/Init/ItemListPacketBuilder.cs:227、:106、:147 三条构造路径首字节都写 (byte)listType；枚举值见 Game/Inventory/InventoryListType.cs:5-10
+NOTI	0x000D	1	紧随 listType 的列表级 u16，含义随 listType 分支而异：普通列表写 listParam16（该列表的容量参数），账号金库写 AccountCargo.SelectionKey，宠物列表此处写的却是条目数 count	High	上游 ItemListPacketBuilder.cs:228 写 listParam16、:148 写 SelectionKey、:107 宠物分支在同一位置写 count
+NOTI	0x000D	3	普通列表分支（主背包/时装/个人仓库/装备）在此写 u16 条目数 count，其后即条目区；账号金库分支此处起是 4 字节 Money（金库内金币），与 offset 5 合起来构成该 u32	High	上游 ItemListPacketBuilder.cs:220-231 普通分支 u8+u16+u16(count)；:146-152 账号金库分支 u8+u16+u32(Money)+u16
+NOTI	0x000D	5	账号金库分支下属于 body[3..6] 的 Money(u32) 的后半——该 u32 在客户端被拆成两次 u16 读，故此处出现字段边界；普通列表分支此偏移已进入条目区	Hypothesis	上游 ItemListPacketBuilder.cs:149 在 listType+SelectionKey 之后写 4 字节 Money，恰好占 body[3..6]
+NOTI	0x000D	7	账号金库分支的条目数 count：上游头部为 u8 listType + u16 SelectionKey + u32 Money，count 正落在 offset 7，其后紧跟条目区	High	上游 ItemListPacketBuilder.cs:146-152 依次 WriteByte/WriteUInt16/WriteInt32/WriteUInt16(count)/WriteBytes(entries)
+NOTI	0x000D	9	物品条目数据区起点，普通物品条目固定 84 字节/条（时装条目为 126 字节）；账号金库分支头部恰好 9 字节，故首条条目正从 body[9] 开始	High	上游 Network/Builders/Inventory/ItemListProtocolWriter.cs:9 Entry84Size=84、:128-153 WriteEntry84；头部长度见 ItemListPacketBuilder.cs:146-151
+NOTI	0x0035	0	上游恒写常量 1（CeraUpdateBuilder 无分支，所有调用点该字节都是 1）	Confirmed	上游 Network/Builders/CeraUpdateBuilder.cs:8 writer.WriteByte(1)
+NOTI	0x0035	1	更新后的点券余额 cera（上游传 InventoryMutationResult.UpdatedCoin，其值为扣费后的 payment.NewCera）	High	上游 CeraUpdateBuilder.cs:5,9 第 1 个 Int32 紧随首字节；调用点 Network/Handlers/CeraShopHandler.cs:241-244 传 last.UpdatedCoin，赋值见 Game/Inventory/Services/InventoryCeraShopRuntimeService.cs:292
+NOTI	0x0035	5	更新后的代币点券余额 tokenCera（上游传 UpdatedTokenCera，其值为 payment.NewTokenCera）	High	上游 CeraUpdateBuilder.cs:5,10 第 2 个 Int32，偏移 1+4=5；调用点 CeraShopHandler.cs:241-244 传 last.UpdatedTokenCera，赋值见 InventoryCeraShopRuntimeService.cs:293
+NOTI	0x0063	0	新邮件数量 count（u16）：上游取该会话累积的待通知邮件数（下限 1）；商城购买因背包满改走邮件时固定传 1	Confirmed	上游 Network/Handlers/MailboxHandler.cs:606-611 body 只有一个 WriteUInt16(count)；:581-585 count=PendingCount 且下限为 1；CeraShopHandler.cs:209-212 以该 NOTI 传 1

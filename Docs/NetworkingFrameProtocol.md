@@ -201,7 +201,7 @@ DString 仍是 `int32 LE` 字节长度后紧跟 ASCII 字节，不带零终止�
 | 20 + N | 24 | 当前实测全零的尾部 | 字段布局未解完 |
 
 完整读取序列、消费者证据、A/B 实机对照和剩余未知项以
-[`protocol/game/server-to-client/0x0001.md`](../protocol/game/server-to-client/0x0001.md)
+[`protocol/game/server-to-client/CMD-0x0001.md`](../protocol/game/server-to-client/CMD-0x0001.md)
 为准；本文件不再维护一份独立的字段语义结论。
 
 当前阶段在 Game 连接建立时创建匿名 `OnlineUserId` 索引；LOGIN Command 以排他方式查询或

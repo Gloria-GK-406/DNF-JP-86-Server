@@ -1,7 +1,11 @@
 # 协议清单
 
-本页是唯一的协议索引：有哪些协议、各自处于哪一阶段、细节在哪个文档。
+本页记录**已在线观察到、正在做或已做完**的协议：各自处于哪一阶段、细节在哪个文档。
 细节不写在这里——每行链接到该协议自己的文档。
+
+> **找一条这里没有的协议？** 去 [Game 协议全量索引](game/index.md)。
+> 那里覆盖静态普查可见的全部 1410 条协议身份，每条都有官方名与静态分析得出的 body 初稿；
+> 它是**地图**，本页是**进度**。两者的关系见[清单的完整性](#清单的完整性)。
 
 ## 阶段
 
@@ -31,25 +35,25 @@
 | `0x01` | `0x0005` | `CREATE_CHARACTER` | Mutation / 有响应 | 实现服务端功能 | [0x0005.md](game/client-to-server/0x0005.md) |
 | `0x01` | `0x0006` | `DELETE_CHARACTER` | Mutation / 有响应 | 实现服务端功能 | [0x0006.md](game/client-to-server/0x0006.md) |
 | `0x01` | `0x0008` | GET_USERINFO | Query / 有响应 | 双向验证结束 | [0x0008.md](game/client-to-server/0x0008.md) |
-| `0x01` | `0x008F` | — | Report / 无响应 | 双向验证结束 | [0x008F.md](game/client-to-server/0x008F.md) |
+| `0x01` | `0x008F` | `CHANGE_TUTORIAL_FLAG` | Report / 无响应 | 双向验证结束 | [0x008F.md](game/client-to-server/0x008F.md) |
 | `0x01` | `0x00AB` | `CLIENT_SPEC_STATISTIC` | Report / 无响应 | 双向验证结束 | [0x00AB.md](game/client-to-server/0x00AB.md) |
-| `0x01` | `0x00C2` | `CLIENT_SPEC_PROFILE` | Report / 无响应 | 双向验证结束 | [0x00C2.md](game/client-to-server/0x00C2.md) |
-| `0x01` | `0x00FA` | —（分段指标流） | Report / 无响应 | 双向验证结束 | [0x00FA.md](game/client-to-server/0x00FA.md) |
-| `0x01` | `0x0117` | —（多态信封） | Report / 无响应 | 未知 | [0x0117.md](game/client-to-server/0x0117.md) |
+| `0x01` | `0x00C2` | `FRAME_LAG_STATISTICS` | Report / 无响应 | 双向验证结束 | [0x00C2.md](game/client-to-server/0x00C2.md) |
+| `0x01` | `0x00FA` | `LODING_TIME_REPORT`（分段指标流） | Report / 无响应 | 双向验证结束 | [0x00FA.md](game/client-to-server/0x00FA.md) |
+| `0x01` | `0x0117` | `LAG_STATISTICS`（多态信封） | Report / 无响应 | 未知 | [0x0117.md](game/client-to-server/0x0117.md) |
 | `0x01` | `0x01BA` | `MERCENARY_INFO` | Query / 有响应 | 实现服务端功能 | [0x01BA.md](game/client-to-server/0x01BA.md) |
-| `0x01` | `0x01DD` | `CLIENT_HARDWARE_DETAIL` | Report / 无响应 | 双向验证结束 | [0x01DD.md](game/client-to-server/0x01DD.md) |
+| `0x01` | `0x01DD` | `COMPATIBILITY_INDEX` | Report / 无响应 | 双向验证结束 | [0x01DD.md](game/client-to-server/0x01DD.md) |
 | `0x01` | `0x0286` | `CHARAC_VIEW_HIDDEN_CHARAC_INFO` | Query / 有响应 | 实现服务端功能 | [0x0286.md](game/client-to-server/0x0286.md) |
-| `0x01` | `0x02A8` | — | Report / 无响应 | 双向验证结束 | [0x02A8.md](game/client-to-server/0x02A8.md) |
+| `0x01` | `0x02A8` | `LOAD_EXTEND_CHARACS` | Report / 无响应 | 双向验证结束 | [0x02A8.md](game/client-to-server/0x02A8.md) |
 | `0x01` | `0x02B5` | `CHECK_DOUBLE_CHARACTER_NAME` | Query / 有响应 | 实现服务端功能 | [0x02B5.md](game/client-to-server/0x02B5.md) |
 
 ## Game / Server → Client
 
 | Command | Type | 名称 | 角色 | 阶段 | 文档 |
 |---:|---:|---|---|---|---|
-| `0x01` CMD | `0x0001` | LOGIN response | Response | 确定语义 | [0x0001.md](game/server-to-client/0x0001.md) |
+| `0x01` CMD | `0x0001` | LOGIN response | Response | 确定语义 | [CMD-0x0001.md](game/server-to-client/CMD-0x0001.md) |
 | `0x00` NOTI | `0x0002` | 角色列表 | Notification | 未知 | — |
 | `0x01` CMD | `0x0003` | EXIT response | Response | 未知 | — |
-| `0x00` NOTI | `0x0289` | 荣誉等级下发 | Notification | 实现服务端功能 | [0x0289.md](game/server-to-client/0x0289.md) |
+| `0x00` NOTI | `0x0289` | `HONOR_LEVEL_INFO` | Notification | 实现服务端功能 | [NOTI-0x0289.md](game/server-to-client/NOTI-0x0289.md) |
 
 角色生命周期五条 CMD 的响应与其请求同 type、同属一次交换，因此记在各自的 C→S 文档内而不另建
 S→C 文档；理由见
@@ -67,12 +71,19 @@ S→C 的 command 取自服务端编码器（`GameLoginResponseEncoder` / `Accou
 
 ## 清单的完整性
 
-上面两张表只列**已在线观察到**的协议，不是客户端支持的全集。两个方向都已做过全量普查：
+上面两张表只列**已在线观察到**的协议，不是客户端支持的全集。两个方向都已做过全量普查，
+且**每一条普查到的身份现在都有自己的文档**——见 [Game 协议全量索引](game/index.md)：
 
 | 方向 | 锚点 | 结果 | 数据 |
 |---|---|---|---|
-| C→S | `MakeHeader` 构包点 | 1082 点 / **604 type**（`0x0000`–`0x043D`） | [client-to-server-builder-sites.tsv](patterns/data/client-to-server-builder-sites.tsv) |
-| S→C | `Register` 注册点 | 1271 点 / **1266 个 `(command,type)` 对**（TSV 内仅静态的 832 点 / 608 type） | [server-to-client-handlers.tsv](patterns/data/server-to-client-handlers.tsv) |
+| C→S | `MakeHeader` 构包点 | 1082 点 / **604 type**（`0x0000`–`0x043D`） | [protocol-identity.tsv](patterns/data/protocol-identity.tsv) |
+| S→C | `Register` 注册点 + 两个运行时转发器 | 1271 点 / **1266 个 `(command,type)` 对**（CMD 538 + NOTI 728，**零未解析**） | 同上 |
+
+> **2026-08-16**：普查已重建为单一的[身份普查](patterns/data/census-identity.py)，
+> 补上了此前缺的两样东西——每条记录的**族归属**（CMD 表 / NOTI 表），以及 439 个
+> **运行时转发器**注册点。旧的两份 TSV 记载"尚未写回动态注册点"的缺口至此闭合。
+> 新普查复现了旧记载的全部数字（604 / 538 / 728 / 两表共有 389），并把唯一一个
+> 未解析注册点也解出了——它的首个 `push` 落在调用点前 67 字节，超出了旧脚本 64 字节的窗口。
 
 **S→C 不能只看一个 type 数字。** 客户端按帧头第 0 字节
 （command）把入站帧分给两张互不相干的注册表，它们对应两个**协议族**：
@@ -100,11 +111,12 @@ NOTI 没有信封。
 就是其一）；S→C 的 handler 虽然拿不到帧缓冲，但会从全局入站流里取字段（读取原语见
 [game-receive](patterns/game-receive.md#入站流与读取原语sc-的取字段方式)），
 约 25% 的 handler 完全不读 body，这部分布局无法从指令推出。
-上表的 538 / 728 已包含此前遗漏的 439 个运行时注册点，但**尚未写回**
-[server-to-client-handlers.tsv](patterns/data/server-to-client-handlers.tsv)（该文件仍是静态的 832 行）。
+上表的 538 / 728 已包含此前遗漏的 439 个运行时注册点，且**已写回**
+[protocol-identity.tsv](patterns/data/protocol-identity.tsv)。
 
-因此本清单的作用是"哪些协议已经在做/做完"，不是"客户端有哪些协议"；后者查普查表。
-挑下一条协议时应先查普查表拿到构包点/handler 入口，再决定是否需要抓包。
+因此本清单的作用是"哪些协议已经在做/做完"，不是"客户端有哪些协议"；后者查
+[Game 协议全量索引](game/index.md)。挑下一条协议时应先在索引里查它的构包点/handler 入口
+与 body 初稿，再决定是否需要抓包。
 
 ### 已定语义但尚无实机样本
 
@@ -123,8 +135,20 @@ NOTI 没有信封。
 
 ## 命名与身份
 
-- 名称来源必须可区分：`CLIENT_SPEC_STATISTIC` 出自旧服枚举；`CLIENT_HARDWARE_DETAIL` 与
-  `CLIENT_SPEC_PROFILE` 是本资料库的**描述性命名**，取得枚举证据后应改名并保留旧名映射。
+- 名称来源必须可区分。**2026-08-16 起本清单内已无描述性命名**：上游源码树进入工作区后，
+  `CmdPacketType`（1086 条）与 `NotiPacketType`（1036 条）覆盖了两族的全部 type 空间，
+  此前的三个描述性命名均已换成官方名并在各自文档保留旧名映射：
+
+  | 旧的描述性命名 | 官方名 | 文档 |
+  |---|---|---|
+  | `CLIENT_SPEC_PROFILE` | `FRAME_LAG_STATISTICS` | [0x00C2.md](game/client-to-server/0x00C2.md) |
+  | `CLIENT_HARDWARE_DETAIL` | `COMPATIBILITY_INDEX` | [0x01DD.md](game/client-to-server/0x01DD.md) |
+  | 荣誉等级下发 | `HONOR_LEVEL_INFO` | [NOTI-0x0289.md](game/server-to-client/NOTI-0x0289.md) |
+
+  另有四条此前记为"未命名"的协议取得官方名：`0x008F` `CHANGE_TUTORIAL_FLAG`、
+  `0x00FA` `LODING_TIME_REPORT`、`0x0117` `LAG_STATISTICS`、`0x02A8` `LOAD_EXTEND_CHARACS`。
+  枚举值即 wire type——该映射经本清单中 16 条已双向验证协议交叉核对，含同号异义样例，零错位。
+  **名称到位不等于字段到位**：官方名说明协议整体是什么，不说明每个字段是什么。
 - 同一 type 在另一方向或端点出现时，必须新增独立行和独立文档，不能覆盖已有含义。
   `0x0001`、`0x0002`、`0x0003` 都已在两个方向观察到，即为此例。
 - `未知` 行没有文档链接。它们的已知观察（长度、时机、字节片段）记在下方"未知协议的现有

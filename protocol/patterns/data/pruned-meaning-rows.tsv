@@ -1,0 +1,4 @@
+shard	line	identity	reason	original_row
+17-mixed.tsv	29	CMD:0x031C	matches no scope	CMD	0x031C	1	目标装备槽位 targetSlot，i16	High	上游 Network/Handlers/InventoryHandler.Equipment.cs:475 TryParseEmblemAttachBodyAt 在 startOffset=1 时 BitConverter.ToInt16(body, 1) 作 targetSlot（对应本包 8+n*7 布局；0x031C handler 的另一变体在 offset 0 读同一语义）
+17-mixed.tsv	30	CMD:0x031C	matches no scope	CMD	0x031C	3	目标装备物品模板 ID targetItemId，i32	High	上游 Network/Handlers/InventoryHandler.Equipment.cs:476 startOffset=1 时 BitConverter.ToInt32(body, 3) 作 targetItemId
+17-mixed.tsv	31	CMD:0x031C	matches no scope	CMD	0x031C	7	后续纹章条目数 count，u8；上游据此循环，每条固定 7 字节，不足则整包拒收	High	上游 Network/Handlers/InventoryHandler.Equipment.cs:477-483 startOffset=1 时 count = body[7]，offset 从 8 起每轮 +7 并校验 offset+7 <= body.Length

@@ -1,0 +1,48 @@
+family	type	offset	meaning	confidence	source
+CMD	0x007A	0	脚本消息模式 mode（u8）；上游按 mode==1 或 7 决定尾部是否再跟一个 int32 长度前缀的名字字段	Confirmed	上游 Game/Inventory/Pets/PetCreatureScript.cs:40 读 body[0] 作 mode，:52-59 按 mode 分支校验尾部
+CMD	0x007A	1	目标对象 uniqueId（u16）	Confirmed	上游 Game/Inventory/Pets/PetCreatureScript.cs:41 读 BitConverter.ToUInt16(body,1) 作 targetUniqueId
+CMD	0x007A	3	角色 ID characterId（u32）	Confirmed	上游 Game/Inventory/Pets/PetCreatureScript.cs:42 读 BitConverter.ToUInt32(body,3) 作 characterId
+CMD	0x007A	7	脚本消息长度前缀（int32，上限 256），其后紧跟该长度的消息正文字节	Confirmed	上游 Game/Inventory/Pets/PetCreatureScript.cs:43-49 读 int32@7 作 messageLength 并从 body+11 拷贝 messageBytes
+CMD	0x0086	0	邮件 messageId（int32）	Confirmed	上游 Network/Handlers/MailboxHandler.cs:452 读 BitConverter.ToInt32(body,0) 作 messageId
+CMD	0x0086	4	邮件操作码 action（u16）：0=删除、2=标记已读、3=保存；其他值按无效请求拒绝	Confirmed	上游 Network/Handlers/MailboxHandler.cs:453 读 u16@4 作 action，:456/:478/:493/:500 按该值分支
+CMD	0x009F	0	死亡塔阶段命令类型 commandType（u8）：1=开始战斗、2=本层通关（最后一层则触发结算）	Confirmed	上游 Network/Handlers/Dungeon/DeathTowerCoordinator.cs:142-158 读 body[0] 作 commandType 并按 1/2 分支
+CMD	0x00BF	0	剧情暂停标志 pauseFlag（u8），被原样回写进 NOTI 0x00AA	Confirmed	上游 Network/Handlers/Dungeon/DungeonTutorialHandler.cs:33 读 body[0] 作 pauseFlag，:40 原样写回
+CMD	0x00BF	1	请求类型 requestType（u8），被原样回写进 NOTI 0x00AA	Confirmed	上游 Network/Handlers/Dungeon/DungeonTutorialHandler.cs:34 读 body[1] 作 requestType，:41 原样写回
+CMD	0x00C9	0	背包列表类型判别字节（u8）：等于 InventoryListType.Avatar 时其后所有字段整体后移 1 字节解析	Confirmed	上游 Network/Handlers/InventoryHandler.Equipment.cs:461-462 判 body[0]==InventoryListType.Avatar 后以 startOffset=1 解析
+CMD	0x00C9	1	目标时装槽位 targetSlot（int16）	Confirmed	上游 Network/Handlers/InventoryHandler.Equipment.cs:475 在 startOffset(=1) 读 int16 作 targetSlot
+CMD	0x00C9	3	目标时装物品模板 ID targetItemId（int32）	Confirmed	上游 Network/Handlers/InventoryHandler.Equipment.cs:476 在 startOffset+2 读 int32 作 targetItemId
+CMD	0x00C9	7	后续徽章条目数 count（u8），决定重复组个数	Confirmed	上游 Network/Handlers/InventoryHandler.Equipment.cs:477 在 startOffset+6 读 body 作 count，:480 以其为循环次数
+CMD	0x00C9	g1:0	[重复组] 徽章所在槽位 EmblemSlot（int16）	Confirmed	上游 Network/Handlers/InventoryHandler.Equipment.cs:487 读 int16@offset 作 EmblemSlot（每项步长 7 字节，见 :491）
+CMD	0x00C9	g1:2	[重复组] 徽章物品模板 ID EmblemItemTemplateId（int32）	Confirmed	上游 Network/Handlers/InventoryHandler.Equipment.cs:488 读 int32@offset+2 作 EmblemItemTemplateId
+CMD	0x00C9	g1:6	[重复组] 徽章插入的插槽序号 socketIndex（u8）	Confirmed	上游 Network/Handlers/InventoryHandler.Equipment.cs:489 读 body[offset+6] 作 SocketIndex
+CMD	0x00FE	0	心情/表情值 moodValue（u16）；落库为角色 mood 并回推 NOTI 0x0002 外观	Confirmed	上游 Network/Handlers/SettingsHandler.cs:130-131 读 u16@0 作 moodValue 并调用 SaveMoodValue
+CMD	0x0104	0	客户端上报的当前技能树页索引（u8，仅接受 0/1）；上游只把它当回退取值，实际按库中值取反切换	Confirmed	上游 Network/Handlers/SkillHandler.cs:451-455 在 body.Length==1 时读 body[0]，经 TryNormalizeSkillTreeIndex(:474-479 要求 raw<=1) 归一
+CMD	0x0129	0	秘密商店开关标志（u8，仅接受 0/1）：1=打开、0=关闭	Confirmed	上游 Network/Parsers/SecretShopOpenCloseRequest.cs:8-10 校验 body.Length==1 且 body[0]<=1，open = body[0]==1
+CMD	0x0133	0	存入金库的金币数量 amount（int32，必须 > 0）	Confirmed	上游 Network/Handlers/InventoryHandler.Trade.cs:488-489 读 int32@0 作 amount，:505 传入 TryDepositCargoGold
+CMD	0x0134	0	从金库取出的金币数量 amount（int32，必须 > 0）	Confirmed	上游 Network/Handlers/InventoryHandler.Trade.cs:488-489 读 int32@0 作 amount，:511 传入 TryWithdrawCargoGold
+CMD	0x0144	0	收件人角色名：int32 长度前缀 + 该长度的 UTF-8 名字字节	Confirmed	上游 Network/Handlers/MailboxHandler.cs:1396-1400 读 int32@0 作 length 并从 body+4 取 length 字节解 UTF-8，:130/:143 用作 GetByName 查询键
+CMD	0x0152	0	目标物品所在主背包槽位 TargetSlotIndex（int16，须 >= 0）	Confirmed	上游 Network/Parsers/Inventory/LimitedCubeUseRequestParser.cs:25 读 int16@0 作 TargetSlotIndex
+CMD	0x0152	2	目标物品模板 ID TargetItemId（int32，须 > 0）；上游用它与该槽位实际物品比对，不一致即拒绝	Confirmed	上游 Network/Parsers/Inventory/LimitedCubeUseRequestParser.cs:26 读 int32@2 作 TargetItemId，Network/Handlers/InventoryHandler.LimitedCube.cs:43 与槽位实物比对
+CMD	0x0152	6	受限变更箱（cube）所在主背包槽位 CubeSlotIndex（int16，须 >= 0 且不等于目标槽位）	Confirmed	上游 Network/Parsers/Inventory/LimitedCubeUseRequestParser.cs:27,32-33 读 int16@6 作 CubeSlotIndex
+CMD	0x0170	0	快捷聊天库索引 bankIndex（u8，仅接受 0/1）；其后为 int32 长度前缀 + 该长度的配置 blob	Confirmed	上游 Network/Handlers/SettingsHandler.cs:108-117 读 body[0] 作 bankIndex（>1 直接返回）并调用 SaveQuickchatBank(aid, bankIndex, blob)
+CMD	0x0197	0	源装备所在主背包槽位 SourceSlotIndex（int16）	Confirmed	上游 Network/Handlers/InventoryHandler.EquipmentRegeneration.cs:25 读 int16@0 作 SourceSlotIndex
+CMD	0x0197	2	重铸模式 Mode（u16）	Confirmed	上游 Network/Handlers/InventoryHandler.EquipmentRegeneration.cs:26 读 u16@2 作 Mode
+CMD	0x0197	4	目标部位 Part（u16）	Confirmed	上游 Network/Handlers/InventoryHandler.EquipmentRegeneration.cs:27 读 u16@4 作 Part
+CMD	0x019E	0	合成器（绑定器）所在主背包槽位 binderSlot（int16）。注意上游按固定 6 字节读取 body+0/+2/+4 三个 int16 槽位，并未按 count+重复组解析	Confirmed	上游 Network/Handlers/InventoryHandler.MonsterCardBind.cs:12-20 校验 body.Length==6 并读 int16@0 作 binderSlot、int16@2 作 firstSlot、int16@4 作 secondSlot
+CMD	0x019E	g1:0	[重复组] 参与合成的素材卡片所在主背包槽位（int16）；上游固定读取两个，分别位于 body+2 与 body+4	High	上游 Network/Handlers/InventoryHandler.MonsterCardBind.cs:19-20 读 int16@2 作 firstSlot、int16@4 作 secondSlot（重复组第 k 项落在 body+2+2k，组内偏移 0 逐一对上）
+CMD	0x01A1	0	成就（称号任务）questId（int32）	Confirmed	上游 Network/Handlers/InventoryHandler.Trade.cs:385 读 int32@0 作 questId
+CMD	0x01A1	4	成就进度计数器 1 的完成增量 delta1（u16）；服务端从剩余数 P1 饱和减去	Confirmed	上游 Network/Handlers/InventoryHandler.Trade.cs:386 读 u16@4 作 delta1，Game/TitleBook/TitleBookMutationService.cs:204 执行 entry.P1 = SaturatingSubtract(entry.P1, delta1)
+CMD	0x01A1	6	成就进度计数器 2 的完成增量 delta2（u16）；服务端从剩余数 P2 饱和减去	Confirmed	上游 Network/Handlers/InventoryHandler.Trade.cs:387 读 u16@6 作 delta2，Game/TitleBook/TitleBookMutationService.cs:205 执行 entry.P2 = SaturatingSubtract(entry.P2, delta2)
+CMD	0x01A1	8	成就进度计数器 3 的完成增量 delta3（u16）；服务端从剩余数 P3 饱和减去	Confirmed	上游 Network/Handlers/InventoryHandler.Trade.cs:388 读 u16@8 作 delta3，Game/TitleBook/TitleBookMutationService.cs:206 执行 entry.P3 = SaturatingSubtract(entry.P3, delta3)
+CMD	0x01A3	0	目标角色名：int32 长度前缀（1..30）+ 该长度的名字字节，且 body 总长必须恰为 4+length、名字内不得含 0 字节	Confirmed	上游 Network/Handlers/ChatHandler.cs:398-404 读 int32@0 作 length 并从 body+4 拷贝 nameBytes，:223 用于按名查找在线会话
+CMD	0x01A8	0	被查看目标的 userId（u16，同频道在线唯一 ID）；0xFFFF 被当作空请求直接忽略	Confirmed	上游 Network/Handlers/CharacterSelectHandler.cs:601-610 读 u16@0 作 requestedUserId 并交给 FindInspectableOnlineByUserId
+CMD	0x01B3	0	目标城镇 ID townId（u8）	Confirmed	上游 Network/Parsers/Town/PartyTeleportRequest.cs:39 读 body[0] 作 TownId
+CMD	0x01B3	1	目标区域 ID areaId（u8）	Confirmed	上游 Network/Parsers/Town/PartyTeleportRequest.cs:40 读 body[1] 作 AreaId
+CMD	0x01B3	2	目标坐标 X（int16）	Confirmed	上游 Network/Parsers/Town/PartyTeleportRequest.cs:41-42 读 int16@2 作 X
+CMD	0x01B3	4	目标坐标 Y（int16）	Confirmed	上游 Network/Parsers/Town/PartyTeleportRequest.cs:43-44 读 int16@4 作 Y
+CMD	0x01B3	6	朝向 direction（u8）	Confirmed	上游 Network/Parsers/Town/PartyTeleportRequest.cs:45 读 body[6] 作 Direction
+CMD	0x01B7	0	目标物品所在背包列表类型（u8，仅接受 InventoryListType.Equipment 或 Main，其余直接拒绝）	Confirmed	上游 Network/Parsers/Inventory/SeparateUpgradeRequest.cs:20-27 读 body[0] 作 rawListType 并只映射 Equipment/Main
+CMD	0x01B7	1	目标物品槽位 TargetSlotIndex（int16）	Confirmed	上游 Network/Parsers/Inventory/SeparateUpgradeRequest.cs:40 读 int16@1 作 TargetSlotIndex
+CMD	0x01B7	3	目标物品模板 ID TargetItemTemplateId（int32）	Confirmed	上游 Network/Parsers/Inventory/SeparateUpgradeRequest.cs:41 读 int32@3 作 TargetItemTemplateId
+CMD	0x01B7	7	材料（强化券）所在主背包槽位 MaterialSlotIndex（int16）	Confirmed	上游 Network/Parsers/Inventory/SeparateUpgradeRequest.cs:42 读 int16@7 作 MaterialSlotIndex，Network/Handlers/InventoryHandler.SeparateUpgrade.cs:49 以其从主背包取物
+CMD	0x01B7	9	int32 长度前缀 nameLength（须 > 0，且 13+nameLength+1 必须等于 body 总长），其后为该长度的字节串；上游只用它校验长度，不解码内容	Confirmed	上游 Network/Parsers/Inventory/SeparateUpgradeRequest.cs:29-35 读 int32@9 作 nameLength 并据此校验 body 总长

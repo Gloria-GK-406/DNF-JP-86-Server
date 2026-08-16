@@ -8,33 +8,48 @@
 
 | 目的 | 去处 |
 |---|---|
-| 有哪些协议、各自到哪一步了 | [协议清单](catalog.md) |
+| **客户端到底有哪些协议**（静态可见的全部 1410 条，含官方名与 body 初稿） | [Game 协议全量索引](game/index.md) |
+| 有哪些协议**正在做/已做完** | [协议清单](catalog.md) |
 | 某条协议的全部细节 | 清单里该行链接的协议文档 |
 | 从未知报文到实现完成的工作流 | [逆向与验证方法](methodology.md) |
 | 跨协议共享的帧结构、构包原语、定位技巧（**含 RVA/VA 约定，先读**） | [patterns/game-frame.md](patterns/game-frame.md) |
 | S→C 接收链、分发器、handler 注册表 | [patterns/game-receive.md](patterns/game-receive.md) |
 | 设置类协议族（上传/下发的 7 个 type 及其不对称） | [patterns/game-settings.md](patterns/game-settings.md) |
 | 角色生命周期协议族（建/删角色、重名检查及其回复约定） | [patterns/character-lifecycle.md](patterns/character-lifecycle.md) |
-| 客户端支持的 type 全集（两个方向） | [patterns/data/](patterns/data/) 下的两个 `.tsv` |
-| 新增一条协议 | 复制 [记录模板](templates/message.md) |
+| 客户端支持的 type 全集（两个方向、两个族） | [patterns/data/protocol-identity.tsv](patterns/data/protocol-identity.tsv) |
+| 开始做一条协议 | 它的文档**已经存在**（见全量索引），直接在其人工区往下写 |
+| 手写一篇全新记录（非 Game 端点等） | 复制 [记录模板](templates/message.md) |
 
 ## 目录组织
 
 ```text
 protocol/
-├── catalog.md              唯一的协议清单：身份、阶段、文档链接
+├── catalog.md              进度清单：正在做/已做完的协议
 ├── methodology.md          工作流
 ├── patterns/               跨协议共享的事实与技巧
 │   └── data/               机器产出的普查/索引数据，及产出它们的脚本
+│       └── meanings/       字段含义分片（生成器的输入，不是产物）
 ├── templates/message.md    协议文档模板
-└── <endpoint>/<direction>/
-    ├── <type>.md           一条协议 = 一个文档，细节全部在内
-    └── samples/            去敏后的原始 body 样本
+└── game/
+    ├── index.md            全量索引：静态可见的每一条协议
+    ├── client-to-server/
+    │   ├── <type>.md       CMD 请求（含其响应），如 `0x00AB.md`
+    │   └── samples/
+    └── server-to-client/
+        ├── NOTI-<type>.md  NOTI 推送，如 `NOTI-0x0289.md`
+        └── samples/
 ```
 
-- **一条协议一个文档。** 文档以协议号命名（`0x00AB.md`），因为号是稳定的，而名字往往是
-  本资料库的临时描述性命名。文档内含该协议的身份、布局、样本、证据、服务端实现映射、
-  验证结果、未解问题以及逆向工作日志——查一条协议只需要打开一个文件。
+- **一条协议一个文档。** 文档以协议号命名，因为号是稳定的而名字未必。文档内含该协议的
+  身份、布局、样本、证据、服务端实现映射、验证结果、未解问题以及逆向工作日志——
+  查一条协议只需要打开一个文件。
+- **文件名必须能表达身份。** C→S 全部是 CMD（客户端的出站帧构造点把 command 写死为
+  `0x01`），所以裸类型号就够。S→C 同时承载 CMD 响应与 NOTI 推送，两族共用一套 type 编号，
+  文件名因此带族前缀——否则 NOTI `0x0001` 与 CMD `0x0001` 的响应会抢同一个文件。
+- **机器区与人工区。** 生成的文档以 `<!-- rks:machine:begin -->` / `end` 圈出机器区，
+  重新生成只覆盖该区，区外的一切都是人工领地。**要改字段含义请改
+  `patterns/data/meanings/*.tsv`**，那是生成器的输入，会被带进下一次生成；直接改机器区会丢。
+  完全手写的文档没有机器区，生成器永不触碰它们。
 - **协议身份 = endpoint + direction + command + type**，四者缺一不可。相同 type 在不同方向
   或端点可能是完全不同的消息，必须各自建行、各自建文档，不得覆盖已有含义。文档路径本身
   携带 endpoint 与 direction。

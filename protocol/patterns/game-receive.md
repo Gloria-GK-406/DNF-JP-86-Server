@@ -249,9 +249,9 @@ multimap、不是链表、不是回调栈。同表内真正被重复注册的 ty
 
 工具与结果已入库：
 
-- [`data/handler-census.py`](data/handler-census.py)
-- [`data/server-to-client-handlers.tsv`](data/server-to-client-handlers.tsv)：
-  `type` / handler RVA / handler VA / context / 注册点 RVA
+- [`data/census-identity.py`](data/census-identity.py)：两个方向、两个协议族的统一身份普查
+- [`data/protocol-identity.tsv`](data/protocol-identity.tsv)：
+  `direction` / `family` / `type` / 注册点数 / handler RVA / context / 所在区 / 全部注册点 / 注册路径
 
 ### 注册有两条路径：启动期批量 + 运行时转发器
 
@@ -274,7 +274,7 @@ mov   ecx, eax
 call  0x00D855C0 / 0x00D85680
 ```
 
-`handler-census.py` 的投票规则遇到 `call` 就清空候选，所以这 439 个点原本全部落空
+前向对齐投票的规则遇到 `call` 就清空候选，所以这 439 个点原本全部落空
 （只在 TSV 里留下 `0x00D855D6` / `0x00D85696` 两行 `no-3-pushes`）。放行该 thunk 后
 **439 个点全部解出**，没有一个未解析。
 
@@ -301,8 +301,10 @@ S→C 合计 **1266** 个不同的 `(command, type)` 对。
 **rebind（重绑定）**，不是"换表"。这些重注册**是否发生在客户端状态迁移时**目前无证据——
 静态只能看到调用点位置。要确认必须在两个转发器上下断点跑一遍登录 → 选角 → 进图。
 
-> 上表的动态部分尚未写回 [`data/server-to-client-handlers.tsv`](data/server-to-client-handlers.tsv)，
-> `handler-census.py` 也还没加表归属列与 thunk 放行规则。TSV 目前只含静态的 832 行。
+> **2026-08-16 缺口已闭合。** 此前这里记着"动态部分尚未写回 TSV、脚本也没加表归属列与
+> thunk 放行规则"。统一普查 [`data/census-identity.py`](data/census-identity.py) 两项都补上了：
+> 每条记录带 `family` 列（由所属批量函数或转发器身份决定），439 个运行时转发器注册点
+> 全部解出，**零未解析**。产出为 [`data/protocol-identity.tsv`](data/protocol-identity.tsv)。
 
 ### 分发前还有一道门
 

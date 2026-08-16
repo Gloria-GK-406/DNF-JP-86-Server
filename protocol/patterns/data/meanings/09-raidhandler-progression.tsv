@@ -1,0 +1,22 @@
+family	type	offset	meaning	confidence	source
+NOTI	0x0248	0	顶层此处=符号条目数；重复组内此处=符号 ID（团本攻略进度符号编号，编号常量表见 RaidHandler.AntonDefinitions.cs:23-59）	Confirmed	上游 RaidPacketBuilder.cs:305 写 symbols.Count，:308 写 symbol.Key（BuildSetSymbols）
+NOTI	0x0248	g1:4	重复组内此处=该符号的新值；上游用法含 0/1 开关、进度计数（RaidHandler.Progression.cs:335 写通关次数）与 0..10000 的黑火山护盾量（Progression.cs:605-607 上限钳制）	Confirmed	上游 RaidPacketBuilder.cs:309 写 symbol.Value（BuildSetSymbols）
+NOTI	0x0249	0	固定常量 1；上游构造器写死、不接受参数，其后的 targetId/op/成员数 构成一条记录	Confirmed	上游 RaidPacketBuilder.cs:366 BuildRaidDungeonParticipationInfo 首个 u32 恒写 1
+NOTI	0x0249	4	targetId：安徒恩子副本 ID（所有调用点均传 dungeonId，取值 210..216 / 218..224）	Confirmed	上游 RaidPacketBuilder.cs:367 写 targetId；调用点 RaidHandler.Progression.cs:201、RaidHandler.Situation.cs:462 传 dungeonId
+NOTI	0x0249	8	op 操作码；上游发送取值：0=进入副本前先发一次、以及中途放弃副本时（RaidHandler.Situation.cs:462、RaidHandler.cs:150），1=进入副本（Situation.cs:466），2=状态窗刷新时的第二发（Situation.cs:490），4=副本通关（Progression.cs:201）	Confirmed	上游 RaidPacketBuilder.cs:368 写 op
+NOTI	0x0249	12	成员数：其后 u32 数组的元素个数	Confirmed	上游 RaidPacketBuilder.cs:369 写 memberUserIds.Count
+NOTI	0x0249	16	成员 userId（u32 数组的首个元素；数组长度由 offset 12 给出，静态提取按 n=1 展平成定长）	High	上游 RaidPacketBuilder.cs:370-371 循环写 memberUserId；成员集合为 RaidSituationGroup.MemberKeys，按 ushort userId 匹配（RaidHandler.Situation.cs:474）
+NOTI	0x024A	0	顶层此处=固定常量 0（上游写死）；重复组内此处=副本 ID	Confirmed	上游 RaidPacketBuilder.cs:337 恒写 0，:341 写 dungeonState.Key（BuildDungeonState）
+NOTI	0x024A	4	顶层此处=副本状态条目数；重复组内此处=该副本的状态值，上游取值 0=开放（Progression.cs:720 孵化场开启、:839 孵化场恢复）、2=未开放（AntonDefinitions.cs:61-70、117-126 两阶段初始表）、3=已通关（Progression.cs:525）	Confirmed	上游 RaidPacketBuilder.cs:338 写 dungeonStates.Count，:342 写 dungeonState.Value
+NOTI	0x024A	8	infectionDungeonId：被感染的孵化场副本 ID，0 表示无（构造器默认值）。注意线格式上该字段位于重复组之后，本表把定长字段前置排列，故此 offset 非真实字节位置	High	上游 RaidPacketBuilder.cs:344 在循环之后写 infectionDungeonId（默认 0，见 :331）；调用点 Progression.cs:720/525/839 传 _infectionDungeonByRaid 中经 SelectAntonInfectionHatchery（:754-762）选出的孵化场 ID
+NOTI	0x024E	0	团本成员 userId（RaidMember.UserId，ushort）	Confirmed	上游 RaidPacketBuilder.cs:378 写 userId；调用点 RaidHandler.Progression.cs:259 传 deadMember.UserId、:272 传 revivedMember.UserId
+NOTI	0x024E	2	成员存活状态；上游只发两个值：1=存活（复活处理，Progression.cs:272）、2=死亡（角色死亡处理，Progression.cs:259）	Confirmed	上游 RaidPacketBuilder.cs:379 写 state；常量 RaidHandler.AntonDefinitions.cs:20-21（Alive=1 / Dead=2）
+NOTI	0x0255	0	计时器类型 key0；上游取值 0=团本整体准备/进攻计时（Progression.cs:22/67/103/131，AntonDefinitions.cs:15 AttackTimerType=0）、1=副本活跃倒计时（Runtime.cs:104）、2=副本恢复倒计时（Runtime.cs:6）、3=副本特效/被动倒计时（Runtime.cs:50/77）	High	上游 RaidPacketBuilder.cs:223 写 key0；RaidHandler.Runtime.cs:127-129 SendTimerAsync(type, dungeonId, seconds) 直接映射为 BuildSetTimer(type, dungeonId, seconds)
+NOTI	0x0255	4	计时器归属的副本 ID key1；上游经 SendTimerAsync 传 dungeonId，团本整体计时传 0	High	上游 RaidPacketBuilder.cs:224 写 key1；RaidHandler.Runtime.cs:127-129 传 dungeonId；整体计时常量 AntonDefinitions.cs:16 AttackTimerDungeonId=0
+NOTI	0x0255	8	计时结束的绝对时间戳（Unix UTC 秒）= 发包时刻 + 时长	Confirmed	上游 RaidPacketBuilder.cs:216 endTimestamp = UtcNow.ToUnixTimeSeconds() + durationSeconds，:225 写出
+NOTI	0x0255	12	计时总时长（秒）	Confirmed	上游 RaidPacketBuilder.cs:226 写 durationSeconds
+NOTI	0x0256	0	计时器类型（u8）；上游只发 0=准备/进攻计时（Progression.cs:24/69/105/133）与 1=阶段间休整计时（RaidHandler.Rewards.cs:606）	Confirmed	上游 RaidPacketBuilder.cs:233 写 timerType（BuildRemainTime）
+NOTI	0x0256	1	剩余秒数	Confirmed	上游 RaidPacketBuilder.cs:234 写 remainSeconds
+NOTI	0x0257	0	顶层此处=条目数（团本每名成员一条）；重复组内此处=成员 userId（u16）	Confirmed	上游 RaidPacketBuilder.cs:389 写 statuses.Count、:394 写 status.UserId；自检 SelfTests/RaidProtocolSelfTest.cs:254-255 断言 [0..4)=1、[4..6)=userId
+NOTI	0x0257	g1:2	入场材料就绪标志：1=就绪 0=未就绪；上游取值为 (raid.State != 0 || 持有数 >= 1)	Confirmed	上游 RaidPacketBuilder.cs:395 写 Ready?1u:0u；Ready 计算见 RaidHandler.Admission.cs:98
+NOTI	0x0257	g1:6	该成员持有的入场材料数量（主背包 itemId=10096296 的计数）	Confirmed	上游 RaidPacketBuilder.cs:396 写 OwnedCount；来源 RaidHandler.Admission.cs:92 CountMainItem(10096296)，:99 赋给 OwnedCount

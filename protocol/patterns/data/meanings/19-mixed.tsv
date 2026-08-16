@@ -1,0 +1,46 @@
+family	type	offset	meaning	confidence	source
+NOTI	0x027B	0	小队(situation)条目数，其后按该数量重复小队块	High	上游 RaidHandler.Situation.cs:420 Build(0, 635=0x027B, RaidPacketBuilder.BuildRaidMonsterHp(statuses)) 为直接构造点；RaidPacketBuilder.cs:437 WriteByte((byte)dungeons.Count)
+NOTI	0x027B	1	小队索引 SituationIndex，取自该组的 PartyIndex	High	上游 RaidPacketBuilder.cs:443 WriteUInt16(dungeon.SituationIndex)；RaidHandler.Situation.cs:367 SituationIndex = group.PartyIndex
+NOTI	0x027B	3	该小队成员数，决定其后连续 u16 成员 userId 的个数	High	上游 RaidPacketBuilder.cs:444 WriteByte((byte)dungeon.MemberIds.Count)
+NOTI	0x027B	4	第 1 个成员的 userId（本布局固定段 11 字节对应成员数=1）	High	上游 RaidPacketBuilder.cs:445-446 foreach memberId WriteUInt16；RaidHandler.Situation.cs:368 MemberIds = group.MemberKeys
+NOTI	0x027B	6	该小队已消耗的复活币数 UsedCoinCount	High	上游 RaidPacketBuilder.cs:447 WriteUInt32(dungeon.UsedCoinCount)；RaidHandler.Situation.cs:369 GetAntonReportedUsedCoinCount
+NOTI	0x027B	10	尾部运行时数值个数，即 11+n×4 中的 n	High	上游 RaidPacketBuilder.cs:448 WriteByte((byte)dungeon.RuntimeValues.Count)；:449-450 随后写 n 个 u32
+NOTI	0x027B	g1:0	该小队的一个运行时数值 RuntimeValues[i]（本包名为 RAID_MONSTER_HP；上游把客户端上报的同名 CMD 数值缓存后原样广播）	High	上游 RaidPacketBuilder.cs:449-450 foreach runtimeValue WriteUInt32；RaidHandler.Situation.cs:370-372 RuntimeValues 取自 _raidMonsterRuntimeValues 缓存；:168 该缓存由 RAID_MONSTER_HP 请求写入
+CMD	0x0372	0	整条 21 字节租赁请求：上游按 u32@0=商店条目ID、u32@13=背包物品模板ID、u8@17=租赁天数(<=90)、u8@18=星币价的一半(<=50)、u8@19=价格档位(<=30) 解析	High	上游 RentalWeaponRequestCodec.cs:14-19 偏移常量 + :38-48 逐字段读取与取值范围校验；MinBodyLength=21 与本布局 21 字节一致
+CMD	0x0128	0	购买的物品模板 ID（上游 ItemId，要求 >0）	High	上游 SecretShopBuyRequest.cs:22 ToInt32(body,0)->ItemId；SecretShopHandler.cs:58 传入 TryPurchase。注意上游 :19 要求 body.Length==8，与本布局 20 字节(conditional-fields)不一致
+CMD	0x0128	4	购买数量（上游 RequestedCount，要求 >=0）	High	上游 SecretShopBuyRequest.cs:23 ToInt32(body,4)->RequestedCount；SecretShopHandler.cs:59 传入 TryPurchase。长度不一致同上
+NOTI	0x00B1	0	复活币当日领取标记：1=已领取，0=未领取	Confirmed	上游 InitPacketBuilderRegistry.cs:32 SimpleByteBodyBuilder(0x00B1, s=>s.ShopCoinEventFlag)；SqliteSelectCharacterDataSource.cs:266 IsClaimed?1:0；ShopCoinEventHandler.cs:35 领取成功后写 1
+CMD	0x001C	0	技能快捷栏页索引，上游只区分 1->1、其余->0	Confirmed	上游 SkillHandler.cs:105 int page = body[0]==1 ? 1 : 0
+CMD	0x001C	1	参与交换的槽位之一（SwapSkillSlot 的 slot1）	Confirmed	上游 SkillHandler.cs:121 repo.SwapSkillSlot(cid, page, body[1], body[2])；SqliteCharacterProgressRepository.cs:260-273 交换 slot1/slot2
+CMD	0x001C	2	参与交换的另一槽位（SwapSkillSlot 的 slot2）	Confirmed	上游 SkillHandler.cs:121 repo.SwapSkillSlot(cid, page, body[1], body[2])；SqliteCharacterProgressRepository.cs:260-273 交换 slot1/slot2
+CMD	0x001D	0	技能树索引，仅 0/1；请求 1 需角色已解锁扩展技能树，否则整包按 ErrorCode=3 拒绝	Confirmed	上游 SkillHandler.cs:241 NormalizeSkillTreeIndexForBuy(body[0])；:275-291 解锁校验
+CMD	0x001D	1	后续技能条目数 count	Confirmed	上游 SkillHandler.cs:244 int count = body[1]；:246-248 循环 off = 2 + 4*i
+CMD	0x001D	2	第 1 个技能条目的技能编号 SkillIndex（u16，上游明确按双字节读，只读低位会把编号>255 的技能学错）	Confirmed	上游 SkillHandler.cs:248 off = 2 + 4*i；:255 SkillIndex = (ushort)(body[off] | (body[off+1]<<8))
+CMD	0x001D	4	第 1 个技能条目的 IsRefund：0=学习/加点，非 0 走返还(洗点)分支	Confirmed	上游 SkillHandler.cs:256 IsRefund = body[off+2]（off=2）；Game/Skills/BuySkillService.cs:219 if (req.IsRefund == 0) 进入加点分支
+CMD	0x001D	5	第 1 个技能条目的 Level：本次加/退的等级数，上游 <=0 时按 1 处理	Confirmed	上游 SkillHandler.cs:257 Level = body[off+3]（off=2）；Game/Skills/BuySkillService.cs:215 levels = req.Level <= 0 ? 1 : req.Level
+CMD	0x014B	0	技能快捷栏页索引，上游只区分 1->1、其余->0	Confirmed	上游 SkillHandler.cs:410 int page = body[0]==1 ? 1 : 0
+CMD	0x014B	g1:0	该条目的技能 ID；上游只取其低字节（body[offset+1] 作首条、body[offset] 作其后各条），未读高字节	High	上游 SkillHandler.cs:419 skillId = first ? body[offset+1] : body[offset]，该地址即本重复组条目起点；:53 repo.UpdateSkillCommand(cid, skillId, commandBytes)
+CMD	0x014B	g1:2	该条目的指令字节数；上游按 (body[lenPos]<<8)|body[lenPos+1] 读长度，lenPos 落在技能 ID 高字节上，实际生效的是本字节，对 5 字节定长条目其值为 2	High	上游 SkillHandler.cs:420-421 lenPos/cmdLen 计算；:425-428 随后拷贝 cmdLen 字节，条目总长 header(4/3)+cmdLen 与本重复组 5 字节一致
+CMD	0x014B	g1:3	技能指令内容第 1 字节，上游原样持久化为该技能的 skill command	High	上游 SkillHandler.cs:427-428 从 header(首条 4 字节/其后各条 3 字节)之后拷贝 cmdLen 字节为 commandBytes；:53 repo.UpdateSkillCommand(cid, skillId, commandBytes)
+CMD	0x014B	g1:4	技能指令内容第 2 字节	High	上游 SkillHandler.cs:427-428 commandBytes 的第 2 字节（cmdLen=2 时）；:53 repo.UpdateSkillCommand
+NOTI	0x0021	0	上游在虚弱恢复成功后固定写常量 100；同文件把体力/虚弱按 0-100 刻度换算(100-stamina*9)，Stamina 清零正对应满值 100，故可能是恢复后的体力刻度值	Hypothesis	上游 StaminaHandler.cs:100 Build(0x00, 0x0021, new[]{(byte)100})，为唯一构造点且无变量绑定；刻度公式见 StaminaHandler.cs:120
+CMD	0x00ED	0	上游解析为 i16 Type（请求类型），读出后未参与任何校验或后续逻辑	High	上游 ItemTeleportRequest.cs:36-37 ReadInt16LittleEndian(body[0..2])->Type
+CMD	0x00ED	2	所用传送消耗品的物品模板 ID，要求 >0	Confirmed	上游 ItemTeleportRequest.cs:38-39 ReadInt32LittleEndian(body[2..6])->ItemTemplateId；TownHandler.cs:416 CountMainItem、:426 TeleportConsumableDefinitionProvider.TryResolve
+CMD	0x00ED	6	上游解析为 Reserved，读出后未参与任何校验或后续逻辑	High	上游 ItemTeleportRequest.cs:40 body[6]->Reserved；:42 的返回校验不含该字段
+CMD	0x00ED	7	目标城镇 ID	Confirmed	上游 ItemTeleportRequest.cs:41 body[7]->TargetTownId；TownHandler.cs:440-442 GameChannelSpawnPolicy.CanEnterTown、:457 Town.GetCeraRoomInfo
+NOTI	0x0006	0	离开区域的玩家 userId	High	上游 TownAreaNotificationBuilder.cs:85-89 BuildUserLeave 写 u16 userId（总长 2 与本布局一致）；TownHandler.cs:383 广播。该 builder 注释自述布局未经实机抓包验证
+NOTI	0x0016	0	移动玩家的 userId	High	上游 TownAreaNotificationBuilder.cs:73 WriteUInt16(snapshot.UserId)；TownHandler.cs:175 广播。该 builder 注释自述布局未经实机抓包验证
+NOTI	0x0016	2	玩家 X 坐标（上游 i16 PosX）	High	上游 TownAreaNotificationBuilder.cs:74 WriteInt16(snapshot.PosX)；TownHandler.cs:175 广播。该 builder 注释自述布局未经实机抓包验证
+NOTI	0x0016	4	玩家 Y 坐标（上游 i16 PosY）	High	上游 TownAreaNotificationBuilder.cs:75 WriteInt16(snapshot.PosY)；TownHandler.cs:175 广播。该 builder 注释自述布局未经实机抓包验证
+NOTI	0x0016	6	朝向 Direction	High	上游 TownAreaNotificationBuilder.cs:76 WriteByte(snapshot.Direction)；TownHandler.cs:175 广播。该 builder 注释自述布局未经实机抓包验证
+NOTI	0x0016	7	区域状态 State；上游只写 1 字节(总长 8)，本布局此处为 u16(总长 9)，宽度不一致	Hypothesis	上游 TownAreaNotificationBuilder.cs:77 WriteByte(snapshot.State)；TownHandler.cs:175 广播。该 builder 注释自述布局未经实机抓包验证
+CMD	0x00FF	0	后续怪物序号条目数 count；上游校验 body.Length == 1 + count*2 且 count>0	Confirmed	上游 DungeonCommandParser.cs:192-194 count = body[0]，expectedLength = 1 + count * sizeof(ushort)
+CMD	0x00FF	g1:0	一只已死亡的血之祭坛怪物的场上序号 sequence，上游拒绝 0	Confirmed	上游 DungeonCommandParser.cs:205-213 sequences[index] = ToUInt16(body, 1 + index*2)，为 0 则整包拒绝；:216 传入 BloodAltarMonsterDeathsDungeonCommand
+CMD	0x013D	0	血之祭坛选择的难度，上游只接受 1 或 2	Confirmed	上游 DungeonCommandParser.cs:107-123 校验 body.Length==1 且 body[0] 属于 {1,2}，传入 BloodAltarSelectDifficultyDungeonCommand
+CMD	0x026D	0	海上追击小游戏结果（i32）；上游以非 0 为成功、0 为失败，据此发不同 buff	Confirmed	上游 DungeonCommandParser.cs:43 ToInt32(body,0)->SeaChaseResultDungeonCommand.Result；SpecialDungeonMechanismApplicationService.cs:277 succeeded = command.Result != 0
+CMD	0x0172	0	材料物品所在背包槽位 MaterialSlotIndex（i16，要求 >=0）	Confirmed	上游 ChronicleRefineRequest.cs:23 要求 body.Length==14（与本布局一致）；:28 ToInt16(body,0)->MaterialSlotIndex；:36 校验 >=0
+CMD	0x0172	2	材料物品模板 ID MaterialItemTemplateId（i32，要求 >0）	Confirmed	上游 ChronicleRefineRequest.cs:23 要求 body.Length==14（与本布局一致）；:29 ToInt32(body,2)->MaterialItemTemplateId；:37 校验 >0
+CMD	0x0172	6	填充字节 MaterialPadding，上游强制要求为 0，否则整包拒绝	Confirmed	上游 ChronicleRefineRequest.cs:23 要求 body.Length==14（与本布局一致）；:30 body[6]->MaterialPadding；:38 校验 == 0
+CMD	0x0172	7	目标装备所在背包槽位 TargetSlotIndex（i16，要求 >=0）	Confirmed	上游 ChronicleRefineRequest.cs:23 要求 body.Length==14（与本布局一致）；:31 ToInt16(body,7)->TargetSlotIndex；:39 校验 >=0
+CMD	0x0172	9	目标装备模板 ID TargetItemTemplateId（i32，要求 >0）	Confirmed	上游 ChronicleRefineRequest.cs:23 要求 body.Length==14（与本布局一致）；:32 ToInt32(body,9)->TargetItemTemplateId；:40 校验 >0
+CMD	0x0172	13	要精炼的编年史选项序号 OptionNo	Confirmed	上游 ChronicleRefineRequest.cs:23 要求 body.Length==14（与本布局一致）；:33 body[13]->OptionNo；InventoryHandler.Equipment.cs:27 传入 ChronicleRefineCommand.OptionNo

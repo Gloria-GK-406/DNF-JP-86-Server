@@ -1,0 +1,29 @@
+family	type	offset	meaning	confidence	source
+CMD	0x0029	0	复活目标的 actorId（要被复活币救起的角色 UserId）	Confirmed	上游 DungeonCombatHandler.cs:523 `BitConverter.ToUInt16(body, 0)` 读作 targetId，并在 545/558/569 行原样回写进失败 ACK、DIE_STATE 通知与成功 ACK
+CMD	0x002B	0	要拾取的地面掉落物槽位 srcSlot	Confirmed	上游 GetItemRequest.cs:19 读 body[0..2) 作 SrcSlot；DungeonCombatHandler.cs:592-595 把它当拾取目标传给 ItemAcquisition.AcquireGroundDrop
+NOTI	0x0003	0	本包携带的用户条目数 count（副本死亡回城投影走单人重载，恒为 1）	Confirmed	上游 EnterSelectDungeonStateBuilder.cs:19 `WriteByte((byte)count)`；DungeonCombatHandler.cs:462-463 调用单人重载 BuildUserState(session.Player)
+NOTI	0x0003	1	第 1 个条目的 userId（角色在本频道的 actor id）	Confirmed	上游 EnterSelectDungeonStateBuilder.cs:22 `WriteUInt16(userIds[i])`，单人重载在 :10 传 player.UserId
+NOTI	0x0003	3	第 1 个条目的用户状态 userState；副本死亡回城投影前被置为 0x00	Confirmed	上游 EnterSelectDungeonStateBuilder.cs:23 `WriteByte(userState)`；DungeonCombatHandler.cs:458 发包前先 `session.Player.UserState = 0x00`
+NOTI	0x0018	0	城镇 id（townId）	Confirmed	上游 TownAreaNotificationBuilder.cs:52 `WriteByte(townId)`，值取自 :14 snapshot.TownId = player.CurTownId
+NOTI	0x0018	1	区域 id（areaId）	Confirmed	上游 TownAreaNotificationBuilder.cs:53 `WriteByte(areaId)`，值取自 :15 snapshot.AreaId = player.CurAreaId
+NOTI	0x0018	2	本区域内的玩家条目数 count（单人重载恒为 1，且包含自己）	Confirmed	上游 TownAreaNotificationBuilder.cs:54 `WriteUInt16((ushort)users.Count)`；:38-41 单人重载传 new[]{snapshot}
+NOTI	0x0018	4	第 1 个玩家条目的 userId（actor id）	Confirmed	上游 TownAreaNotificationBuilder.cs:57 per-user 块首字段 `WriteUInt16(u.UserId)`
+NOTI	0x0018	6	第 1 个玩家条目的坐标 X（上游按有符号 i16 写）	Confirmed	上游 TownAreaNotificationBuilder.cs:58 `WriteInt16(u.PosX)`，值取自 :16 player.CurPosX
+NOTI	0x0018	8	第 1 个玩家条目的坐标 Y（上游按有符号 i16 写）	Confirmed	上游 TownAreaNotificationBuilder.cs:59 `WriteInt16(u.PosY)`，值取自 :17 player.CurPosY
+NOTI	0x0018	10	第 1 个玩家条目的朝向 direction	Confirmed	上游 TownAreaNotificationBuilder.cs:60 `WriteByte(u.Direction)`，值取自 :18 player.CurDirection
+NOTI	0x0018	11	第 1 个玩家条目的区域状态 state	Confirmed	上游 TownAreaNotificationBuilder.cs:61 `WriteByte(u.State)`，值取自 :19 player.CurAreaState
+NOTI	0x0020	0	目标角色的 actorId	Confirmed	上游 DungeonCombatHandler.cs:228 死亡广播写 session.Player.UserId；:558 复活广播写 USE_COIN 请求里的 targetId
+NOTI	0x0020	2	生死状态：0 = 死亡，1 = 复活	Confirmed	上游 DungeonCombatHandler.cs:229 死亡路径写 0x00，:559 复活币成功路径写 0x01
+NOTI	0x0028	0	掉落发起者的 actorId（谁丢出/掉出这件物品）	Confirmed	上游 DropItemBuilder.cs:17 `WriteUInt16(dropperActorId)`；调用点 DungeonCombatHandler.cs:670 传 session.Player.UserId
+NOTI	0x0028	2	掉落落地坐标 X	Confirmed	上游 DropItemBuilder.cs:18 `WriteUInt16(positionX)`；调用点 DungeonCombatHandler.cs:671 传 DROP_ITEM 请求里的 request.PositionX
+NOTI	0x0028	4	掉落落地坐标 Y	Confirmed	上游 DropItemBuilder.cs:19 `WriteUInt16(positionY)`；调用点 DungeonCombatHandler.cs:672 传 request.PositionY
+NOTI	0x0028	6	该掉落物的场景槽位 SceneSlot；本次副本内唯一，后续 GET_ITEM 用同一编号来拾取	Confirmed	上游 DropItemBuilder.cs:20 `WriteUInt16(drop.SceneSlot)`；DropService.cs:57,62 以 SceneSlot 为键写入 run.Drops
+NOTI	0x0028	8	物品模板 id（TemplateId）；为 0 表示这堆掉落是金币	Confirmed	上游 DropItemBuilder.cs:21 `WriteUInt32(drop.TemplateId)`；DropInfo.cs:16 `IsGold => TemplateId == 0`
+NOTI	0x0028	12	强化等级 UpgradeLevel	Confirmed	上游 DropItemBuilder.cs:22 `WriteByte(drop.UpgradeLevel)`；DropInfo.cs:65 该字段取自 ItemCore.Upgrade
+NOTI	0x0028	13	数值槽 PacketValue：可堆叠物写堆叠数量 StackCount，不可堆叠物写 ItemCore.Value；金币掉落写金币数量	High	上游 DropItemBuilder.cs:23 `WriteUInt32(drop.PacketValue)`；语义定义在 DropInfo.cs:18-28 的 PacketValue getter，金币走 DropInfo.cs:31-38 CreateGold 把金额放进 StackCount
+NOTI	0x0028	17	耐久度 Endurance	Confirmed	上游 DropItemBuilder.cs:24 `WriteUInt16(drop.Endurance)`；DropInfo.cs:64,72 该字段取自 ItemCore.Durability 或物品元数据 Durability
+NOTI	0x0028	19	封印标记 SealFlag（无 ItemCore 时写 0）	Confirmed	上游 DropItemBuilder.cs:27 `WriteUInt32(core != null ? core.SealFlag : 0u)`
+NOTI	0x0028	23	真锻等级 GenuineUpgrade（无 ItemCore 时写 0）	High	上游 DropItemBuilder.cs:28 `WriteByte(core.GenuineUpgrade)`；Noti2InventoryProjectionBuilder.cs:176 把同一属性映射为 snapshot.Forging（锻造）
+NOTI	0x0028	24	交易限制标记 TradeRestriction（无 ItemCore 时写 0）	Confirmed	上游 DropItemBuilder.cs:29 `WriteByte(core.TradeRestriction)`
+NOTI	0x0028	25	增幅值 AmplifyValue（无 ItemCore 时写 0）	Confirmed	上游 DropItemBuilder.cs:30 `WriteUInt16(core.AmplifyValue)`
+NOTI	0x0028	27	ItemCore.Marker16：按物品类型复用的 4 字节标记位（宠物剩余秒数 / 宠物石附加值），无 ItemCore 时写 0	High	上游 DropItemBuilder.cs:31 `WriteUInt32((uint)core.Marker16)`；MakeEquipListCodec.cs:122-124 同一字段被 PetRemainSeconds / CreatureExtra 两个别名复用

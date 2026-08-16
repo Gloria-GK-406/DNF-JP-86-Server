@@ -1,0 +1,45 @@
+family	type	offset	meaning	confidence	source
+CMD	0x0008	0	被查询目标的 uid(user id);mode!=2 时按此 uid 在同频道在线会话里查找目标	Confirmed	上游 CharacterSelectHandler.cs:459 读 BitConverter.ToUInt16(body,0) 作 reqUid
+CMD	0x0008	2	查询模式 mode:0/1/3 为查看目标玩家(target-relative),2 为返回请求者自己账号的角色名单;其余值直接拒绝	Confirmed	上游 CharacterSelectHandler.cs:460-471 读 body[2] 作 mode 并按 0/1/2/3 分支
+CMD	0x000A	0	邀请目标的 uid(user id),用于在会话目录中定位目标会话	Confirmed	上游 PartyHandler.cs:1008 读 BitConverter.ToUInt16(body,0) 作 targetUid
+CMD	0x000A	2	请求类型 reqType:0=组队邀请,1=交易邀请,2=PvP 房间邀请	Confirmed	上游 PartyHandler.cs:1009 读 body[2] 作 reqType,并在 1034/1052/1084 按值分支
+CMD	0x000A	3	peer 标识(int32);reqType=2 时作为房间参数传给 HandleRoomInviteRequestAsync,reqType=1 时原样回传给被邀请方	Confirmed	上游 PartyHandler.cs:1010 读 BitConverter.ToInt32(body,3) 作 peerInt,1048/1065 处使用
+CMD	0x0010	0	副本 id (DungeonId)	Confirmed	上游 SelectDungeonRequest.cs:27 读 BitConverter.ToUInt16(body,0) 作 DungeonId
+CMD	0x0010	2	难度 Difficulty	Confirmed	上游 SelectDungeonRequest.cs:28 取 body[2] 作 Difficulty
+CMD	0x0010	3	深渊(hell party)请求标志:非 0 且该副本是深渊副本时置 run.HellMode	Confirmed	上游 SelectDungeonRequest.cs:28 取 body[3] 作 Flag1/HellPartyRequestFlag;DungeonEntryHandler.cs:418,422 据此开启深渊
+CMD	0x0010	4	深渊难度标志:用于解析深渊模式(HellPartyMode)	Confirmed	上游 SelectDungeonRequest.cs:28 取 body[4] 作 Flag2/HellPartyDifficultyFlag;DungeonEntryHandler.cs:1174 传入 ResolveHellPartyMode
+CMD	0x0011	0	聊天模式 mode:2=队伍频道,3=同区域频道,45=1对1会话;未识别的值只回给发送者自己	Confirmed	上游 ChatHandler.cs:454 读 body[0] 作 mode;19-22 定义 2/3/45 常量,133/155/167 按值分流
+CMD	0x0011	1	目标 uid(user id),私聊类模式下用于定位收信会话	Confirmed	上游 ChatHandler.cs:455 读 BitConverter.ToUInt16(body,1) 作 targetUniqueId
+CMD	0x0011	3	目标角色 id;mode=45 时同一字段被复用为会话 id(ConversationId)	Confirmed	上游 ChatHandler.cs:456 读 BitConverter.ToUInt32(body,3) 作 targetCharacterId,509-513 在 mode==45 时复用为 ConversationId
+CMD	0x0011	7	消息正文的 int32 长度前缀(上限 256,正文不得含 0 字节);正文字节自 offset 11 起	Confirmed	上游 ChatHandler.cs:457-466 读 BitConverter.ToInt32(body,7) 作 messageLength 并自 body+11 拷贝正文
+CMD	0x0019	0	配方来源值 SourceValue:offset 4 为 1 时是道具模板 id,否则是背包槽位号	Confirmed	上游 InventoryHandler.CompoundItem.cs:79 读 BitConverter.ToInt32(body,0) 作 SourceValue
+CMD	0x0019	4	来源类型标志:==1 表示 offset 0 存的是道具 id	Confirmed	上游 InventoryHandler.CompoundItem.cs:80 读 body[4]==1 作 SourceIsItemId
+CMD	0x0019	5	合成请求数量 RequestedCount,为 0 直接判为非法请求	Confirmed	上游 InventoryHandler.CompoundItem.cs:73-75 读 BitConverter.ToUInt16(body,5) 作 requestedCount 并拒绝 0
+CMD	0x001F	0	上游在解析前无条件丢弃的 2 字节前缀;任务命令解析自 offset 2 开始	High	上游 QuestManager.cs:98-104 StripEcho 丢掉 body[0..1],111 起才把剩余部分交给解析器
+CMD	0x001F	2	任务 id (questId)	High	上游 QuestManager.cs:111 StripEcho 后 QuestCommandParser.cs:25 读 ToUInt16(qBody,0),对应原 body offset 2
+CMD	0x0020	0	上游在解析前无条件丢弃的 2 字节前缀;任务命令解析自 offset 2 开始	High	上游 QuestManager.cs:98-104 StripEcho 丢掉 body[0..1],171 起才把剩余部分交给解析器
+CMD	0x0020	2	任务 id (questId)	High	上游 QuestManager.cs:171 StripEcho 后 QuestCommandParser.cs:36 读 ToUInt16(qBody,0),对应原 body offset 2
+CMD	0x0022	0	上游在解析前无条件丢弃的 2 字节前缀;任务命令解析自 offset 2 开始(剩余 8 字节恰为 FinishBodyLength)	High	上游 QuestManager.cs:98-104,283 StripEcho 丢掉 body[0..1];QuestCommandParser.cs:8,45 要求剩余长度恰为 8
+CMD	0x0022	2	任务 id (questId)	High	上游 QuestCommandParser.cs:48 读 ToUInt16(qBody,0),经 QuestManager.cs:283 StripEcho 对应原 body offset 2
+CMD	0x0022	4	奖励选择索引 rewardSelection;0xFFFF 表示不选择奖励	High	上游 QuestCommandParser.cs:49,57-58 读 ToUInt16(qBody,2) 并以 !=0xFFFF 判定"已选奖励",对应原 body offset 4
+CMD	0x0022	6	完成次数 completionCount	High	上游 QuestCommandParser.cs:50 读 ToUInt16(qBody,4),对应原 body offset 6
+CMD	0x0022	8	哨兵字段:必须为 0xFFFF,否则整包被拒	High	上游 QuestCommandParser.cs:51-53 读 ToUInt16(qBody,6) 作 sentinel 并要求 ==0xFFFF,对应原 body offset 8
+CMD	0x0023	0	目标位置 X(int16),写入 Player.CurPosX	Confirmed	上游 TownHandler.cs:163,165 读 BitConverter.ToInt16(body,0) 作 gotoPosX
+CMD	0x0023	2	目标位置 Y(int16),写入 Player.CurPosY	Confirmed	上游 TownHandler.cs:164,166 读 BitConverter.ToInt16(body,2) 作 gotoPosY
+CMD	0x0024	0	目标城镇 id (gotoTownId)	Confirmed	上游 TownHandler.cs:196 读 body[0] 作 gotoTownId
+CMD	0x0024	1	目标区域 id (gotoAreaId)	Confirmed	上游 TownHandler.cs:197 读 body[1] 作 gotoAreaId
+CMD	0x0024	2	目标位置 X(int16)	Confirmed	上游 TownHandler.cs:198 读 BitConverter.ToInt16(body,2) 作 gotoPosX
+CMD	0x0024	4	目标位置 Y(int16)	Confirmed	上游 TownHandler.cs:199 读 BitConverter.ToInt16(body,4) 作 gotoPosY
+CMD	0x0027	0	被击杀怪物/被破坏物件的局内索引 LocalIndex	Confirmed	上游 DieMonsterRequest.cs:47 读 BitConverter.ToUInt16(body,0) 作 localIndex;DungeonCombatHandler.cs:65,138,142 用作 actor code
+CMD	0x0027	2	击杀者 uid(user id)	Confirmed	上游 DieMonsterRequest.cs:48 读 BitConverter.ToUInt16(body,2) 作 userId
+CMD	0x0027	20	尾部 10 字节重复组的条目数(攻击记录数)	High	上游 DieMonsterRequest.cs:55-56 读 body[20] 作 atkCount 并按 21+atkCount*10 推进;步长 10 与提取到的重复组一致,但上游认为该组自 21 起而提取结果为 33 起
+CMD	0x002D	0	目标地图格 X (NextX),与当前房间坐标一起解析移动目标	Confirmed	上游 MoveMapRequest.cs:53 读 body[0] 作 nextX;DungeonMapHandler.cs:76 传入 TryResolveMoveTarget
+CMD	0x002D	1	目标地图格 Y (NextY)	Confirmed	上游 MoveMapRequest.cs:54 读 body[1] 作 nextY;DungeonMapHandler.cs:77 传入 TryResolveMoveTarget
+CMD	0x002D	2	路径落点坐标 X (PathPositionX, u32 LE)	Confirmed	上游 MoveMapRequest.cs:55 自 offset 2 读 UInt32 LE 作 pathPositionX
+CMD	0x002D	6	路径落点坐标 Y (PathPositionY, u32 LE)	Confirmed	上游 MoveMapRequest.cs:56 自 offset 6 读 UInt32 LE 作 pathPositionY
+CMD	0x002F	0	丢弃落点位置 X,用于广播 DROP_ITEM 通知	Confirmed	上游 DropItemRequest.cs:44 读 BitConverter.ToUInt16(body,0) 作 PositionX;DungeonCombatHandler.cs:671 作为广播落点
+CMD	0x005F	0	要领取的邮件对象 id (claimObjectId)	Confirmed	上游 MailboxHandler.cs:332 读 BitConverter.ToInt32(body,0) 作 claimObjectId 并传给 ClaimMail
+CMD	0x0064	0	宠物所在槽位 SourceSlotIndex(int16)	Confirmed	上游 PetCreatureHandler.cs:304 读 BitConverter.ToInt16(body,0) 作 sourceSlot
+CMD	0x0064	2	宠物所在背包列表类型 SourceListType(InventoryListType)	Confirmed	上游 PetCreatureHandler.cs:305 读 body[2] 转 InventoryListType
+CMD	0x0064	3	新名字的 int32 长度前缀(0..13);名字字节自 offset 7 起	Confirmed	上游 PetCreatureHandler.cs:306-312 读 BitConverter.ToInt32(body,3) 作 nameLength 并自 body+7 拷贝名字
+CMD	0x0079	0	目标队伍槽位号(委托队长的目标槽,按 SlotIndex 而非列表下标匹配)	Confirmed	上游 PartyHandler.cs:870 读 body[0] 作 slot,891 与成员 SlotIndex 逐一匹配
