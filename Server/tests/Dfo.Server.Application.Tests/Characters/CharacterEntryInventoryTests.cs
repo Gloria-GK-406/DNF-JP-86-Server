@@ -658,6 +658,23 @@ public sealed class CharacterEntryInventoryTests
             AccountId accountId,
             ushort slotIndex,
             CancellationToken cancellationToken) => ValueTask.FromResult(state);
+
+        // Entry inventory never creates or removes characters.
+        public ValueTask<CharacterNameStatus> CheckNameAsync(
+            byte[] rawName,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        public ValueTask<CharacterCreationResult> CreateCharacterAsync(
+            AccountId accountId,
+            byte job,
+            byte[] rawName,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        public ValueTask<CharacterDeletionResult> DeleteCharacterAsync(
+            AccountId accountId,
+            ushort slotIndex,
+            byte[] rawName,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 
     private sealed class StubInventoryEntryService(TestInventoryEntryState state)

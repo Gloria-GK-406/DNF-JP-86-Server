@@ -21,6 +21,59 @@ public sealed record AccountCharacterRoster(
     ushort SlotLimit,
     IReadOnlyList<CharacterSummary> Characters);
 
+/// <summary>What the roster screen asked for when it proposed a name.</summary>
+/// <remarks>
+/// Kept separate from <see cref="CharacterCreationStatus"/> even though the two overlap. The name
+/// check runs on its own protocol and can succeed while creation later fails, so collapsing them
+/// would force one of the two wire mappings to invent a status it never receives.
+/// </remarks>
+public enum CharacterNameStatus
+{
+    Available,
+    TooShort,
+    TooLong,
+    Malformed,
+    AlreadyTaken,
+}
+
+public enum CharacterCreationStatus
+{
+    Created,
+    MalformedRequest,
+    InvalidName,
+    NameTaken,
+    NoFreeSlot,
+}
+
+public enum CharacterDeletionStatus
+{
+    Deleted,
+    MalformedRequest,
+    SlotEmpty,
+    NameMismatch,
+}
+
+/// <summary>The fields a brand new character is born with.</summary>
+public sealed record NewCharacterSpec(
+    AccountId AccountId,
+    byte[] Name,
+    byte Job,
+    ushort SlotIndex);
+
+public sealed record CharacterCreationResult(
+    CharacterCreationStatus Status,
+    CharacterId? CharacterId);
+
+public sealed record CharacterDeletionResult(
+    CharacterDeletionStatus Status,
+    CharacterId? CharacterId);
+
+/// <summary>Account-wide honour standing, shown on the roster screen.</summary>
+public sealed record AccountHonorLevel(uint Level, uint Experience)
+{
+    public static AccountHonorLevel None { get; } = new(0, 0);
+}
+
 public sealed record CharacterIdentityState(
     CharacterId CharacterId,
     ushort SlotIndex,

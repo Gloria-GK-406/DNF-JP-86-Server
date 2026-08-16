@@ -22,5 +22,17 @@ internal static class GameProtocol
 
     public const ushort RosterFollowUpType = 0x02A8;
 
+    public const ushort CreateCharacterType = 0x0005;
+
+    public const ushort DeleteCharacterType = 0x0006;
+
+    public const ushort MercenaryInfoType = 0x01BA;
+
+    public const ushort HiddenCharacterInfoType = 0x0286;
+
+    public const ushort CheckCharacterNameType = 0x02B5;
+
     public const ushort AccountCharacterRosterNotificationType = 0x0002;
+
+    public const ushort HonorLevelNotificationType = 0x0289;
 }

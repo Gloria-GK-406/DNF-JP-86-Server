@@ -13,12 +13,18 @@ using Dfo.Server.Protocol.Channel.Script;
 using Dfo.Server.Protocol.Channel.ScriptVersion;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.AccountRoster;
+using Dfo.Server.Protocol.Game.CharacterName;
 using Dfo.Server.Protocol.Game.ClientHardwareDetail;
 using Dfo.Server.Protocol.Game.ClientSpecProfile;
 using Dfo.Server.Protocol.Game.ClientSpecStatistic;
+using Dfo.Server.Protocol.Game.CreateCharacter;
+using Dfo.Server.Protocol.Game.DeleteCharacter;
 using Dfo.Server.Protocol.Game.Exit;
+using Dfo.Server.Protocol.Game.HiddenCharacterInfo;
+using Dfo.Server.Protocol.Game.HonorLevel;
 using Dfo.Server.Protocol.Game.InitialConnection;
 using Dfo.Server.Protocol.Game.Login;
+using Dfo.Server.Protocol.Game.MercenaryInfo;
 using Dfo.Server.Protocol.Game.RosterFollowUp;
 using Dfo.Server.Protocol.Game.SelectCharacter;
 using Dfo.Server.Protocol.Game.StateSynchronization;
@@ -77,6 +83,19 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<GetAccountCharacterRosterCommand, AccountCharacterRoster, GetAccountCharacterRosterCommandHandler>(
             CommandExecutionKind.Direct,
             accountAccessMode: UserAccessMode.Shared);
+        services.AddCommandHandler<CheckCharacterNameCommand, CharacterNameStatus, CheckCharacterNameCommandHandler>(
+            CommandExecutionKind.Direct,
+            accountAccessMode: UserAccessMode.Shared);
+
+        // Creation and deletion both derive a slot from the account's current roster and then write
+        // against it, so they take the account exclusively. Two concurrent creations sharing access
+        // would compute the same next slot.
+        services.AddCommandHandler<CreateCharacterCommand, CharacterCreationResult, CreateCharacterCommandHandler>(
+            CommandExecutionKind.Direct,
+            accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<DeleteCharacterCommand, CharacterDeletionResult, DeleteCharacterCommandHandler>(
+            CommandExecutionKind.Direct,
+            accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<PrepareSelectedCharacterSessionCommand, PreparedSelectedCharacterSession, PrepareSelectedCharacterSessionCommandHandler>(
             CommandExecutionKind.Workflow,
             accountAccessMode: UserAccessMode.Exclusive);
@@ -121,6 +140,11 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<SessionMetricsHandler>(ClientMessageType.GameSessionMetrics);
         services.RegisterMessageHandler<TaggedIdReportHandler>(ClientMessageType.GameTaggedIdReport);
         services.RegisterMessageHandler<RosterFollowUpHandler>(ClientMessageType.GameRosterFollowUp);
+        services.RegisterMessageHandler<CheckCharacterNameHandler>(ClientMessageType.GameCheckCharacterName);
+        services.RegisterMessageHandler<CreateCharacterHandler>(ClientMessageType.GameCreateCharacter);
+        services.RegisterMessageHandler<DeleteCharacterHandler>(ClientMessageType.GameDeleteCharacter);
+        services.RegisterMessageHandler<MercenaryInfoHandler>(ClientMessageType.GameMercenaryInfo);
+        services.RegisterMessageHandler<HiddenCharacterInfoHandler>(ClientMessageType.GameHiddenCharacterInfo);
     }
 
     /// <summary>
@@ -160,6 +184,16 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.TaggedIdReportType, ClientMessageType.GameTaggedIdReport);
         services.AddGameCmdMessageDecoder<RosterFollowUpMessageDecoder>(
             GameProtocol.RosterFollowUpType, ClientMessageType.GameRosterFollowUp);
+        services.AddGameCmdMessageDecoder<CheckCharacterNameMessageDecoder>(
+            GameProtocol.CheckCharacterNameType, ClientMessageType.GameCheckCharacterName);
+        services.AddGameCmdMessageDecoder<CreateCharacterMessageDecoder>(
+            GameProtocol.CreateCharacterType, ClientMessageType.GameCreateCharacter);
+        services.AddGameCmdMessageDecoder<DeleteCharacterMessageDecoder>(
+            GameProtocol.DeleteCharacterType, ClientMessageType.GameDeleteCharacter);
+        services.AddGameCmdMessageDecoder<MercenaryInfoMessageDecoder>(
+            GameProtocol.MercenaryInfoType, ClientMessageType.GameMercenaryInfo);
+        services.AddGameCmdMessageDecoder<HiddenCharacterInfoMessageDecoder>(
+            GameProtocol.HiddenCharacterInfoType, ClientMessageType.GameHiddenCharacterInfo);
         services.AddChannelMessageDecoder<ChannelScriptVersionMessageDecoder>(
             ChannelProtocol.ScriptVersionMessageNumber, ClientMessageType.ChannelScriptVersion);
         services.AddChannelMessageDecoder<ChannelScriptMessageDecoder>(
@@ -197,5 +231,11 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<GameInitialConnectionNotice, GameInitialConnectionNoticeEncoder>();
         services.AddGameCmdMessageEncoder<GameLoginResponse, GameLoginResponseEncoder>();
         services.AddGameNotiMessageEncoder<AccountCharacterRosterResponse, AccountCharacterRosterResponseEncoder>();
+        services.AddGameNotiMessageEncoder<HonorLevelInfoNotice, HonorLevelInfoNoticeEncoder>();
+        services.AddGameCmdMessageEncoder<CheckCharacterNameResponse, CheckCharacterNameResponseEncoder>();
+        services.AddGameCmdMessageEncoder<CreateCharacterResponse, CreateCharacterResponseEncoder>();
+        services.AddGameCmdMessageEncoder<DeleteCharacterResponse, DeleteCharacterResponseEncoder>();
+        services.AddGameCmdMessageEncoder<MercenaryInfoResponse, MercenaryInfoResponseEncoder>();
+        services.AddGameCmdMessageEncoder<HiddenCharacterInfoResponse, HiddenCharacterInfoResponseEncoder>();
     }
 }

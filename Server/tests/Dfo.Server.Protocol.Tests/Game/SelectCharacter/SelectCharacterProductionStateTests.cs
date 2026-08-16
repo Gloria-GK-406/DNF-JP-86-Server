@@ -61,6 +61,13 @@ public sealed class SelectCharacterProductionStateTests
                     seed.Character.Progression.Level, seed.CharacterEntry.Public.CloneTitleItemId)]));
         public ValueTask<ActiveCharacterState> LoadForSelectionAsync(AccountId id, ushort slot, CancellationToken ct) =>
             ValueTask.FromResult(seed.Character);
+        // Roster mutation plays no part in selecting an already existing character.
+        public ValueTask<CharacterNameStatus> CheckNameAsync(byte[] name, CancellationToken ct) =>
+            throw new NotSupportedException();
+        public ValueTask<CharacterCreationResult> CreateCharacterAsync(
+            AccountId id, byte job, byte[] name, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<CharacterDeletionResult> DeleteCharacterAsync(
+            AccountId id, ushort slot, byte[] name, CancellationToken ct) => throw new NotSupportedException();
         ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryService.LoadAsync(
             AccountId id, CharacterId cid, CancellationToken ct) => ValueTask.FromResult(seed.CharacterInventory);
         ValueTask<AccountInventoryEntryState> IAccountInventoryEntryService.LoadAsync(

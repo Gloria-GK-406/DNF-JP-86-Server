@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -116,6 +118,95 @@ internal sealed class SqliteCharacterRepository : ICharacterRepository
             new CharacterPositionState(0, 0, 0, 0, 5),
             DateTimeOffset.UnixEpoch,
             DarkKnightCombo: null);
+    }
+
+    public async ValueTask<bool> NameExistsAsync(byte[] name, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+
+        // Compared as a blob, not as text. A name is whatever bytes the client sent, and two
+        // distinct byte sequences can share a decoded form; matching on TEXT would let one of them
+        // masquerade as the other.
+        command.CommandText = """
+            SELECT 1
+            FROM characters
+            WHERE COALESCE(name_bytes, CAST(name AS BLOB)) = @name
+              AND delete_flag = 0
+            LIMIT 1;
+            """;
+        command.Parameters.AddWithValue("@name", name);
+        var found = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+        return found is not null and not DBNull;
+    }
+
+    public async ValueTask<CharacterId> CreateAsync(
+        NewCharacterSpec spec,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(spec);
+        if (spec.AccountId.Value <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(spec), "Account ID must be positive.");
+        }
+
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+
+        // name and name_bytes are both written: name_bytes is the authority every read path uses
+        // through COALESCE, while name stays populated because the column is NOT NULL and remains
+        // the only human-readable handle when inspecting the database by hand.
+        command.CommandText = """
+            INSERT INTO characters (account_id, name, name_bytes, job, grow_type, level, slot_index)
+            VALUES (@accountId, @name, @nameBytes, @job, 0, 1, @slotIndex)
+            RETURNING character_id;
+            """;
+        command.Parameters.AddWithValue("@accountId", spec.AccountId.Value);
+        command.Parameters.AddWithValue("@name", DecodeForDisplay(spec.Name));
+        command.Parameters.AddWithValue("@nameBytes", spec.Name);
+        command.Parameters.AddWithValue("@job", spec.Job);
+        command.Parameters.AddWithValue("@slotIndex", spec.SlotIndex);
+        var created = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException("Character insert returned no identifier.");
+        return new CharacterId(Convert.ToInt32(created, CultureInfo.InvariantCulture));
+    }
+
+    public async ValueTask<bool> SoftDeleteAsync(
+        CharacterId characterId,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE characters
+            SET delete_flag = 1
+            WHERE character_id = @characterId AND delete_flag = 0;
+            """;
+        command.Parameters.AddWithValue("@characterId", characterId.Value);
+        var affected = await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        return affected > 0;
+    }
+
+    /// <summary>Best-effort text form for the NOT NULL <c>name</c> column.</summary>
+    /// <remarks>
+    /// Never used for matching. Undecodable bytes fall back to hex so the row stays inspectable
+    /// instead of carrying replacement characters that look like real content.
+    /// </remarks>
+    private static string DecodeForDisplay(byte[] name)
+    {
+        try
+        {
+            return new UTF8Encoding(false, true).GetString(name);
+        }
+        catch (DecoderFallbackException)
+        {
+            return Convert.ToHexString(name);
+        }
     }
 
     private void EnsureSchema()

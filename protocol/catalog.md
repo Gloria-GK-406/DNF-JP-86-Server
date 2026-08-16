@@ -28,14 +28,19 @@
 | `0x01` | `0x0001` | LOGIN | Query | 未知 | — |
 | `0x01` | `0x0002` | — | 未知 | 未知 | — |
 | `0x01` | `0x0003` | EXIT | Query | 未知 | — |
+| `0x01` | `0x0005` | `CREATE_CHARACTER` | Mutation / 有响应 | 实现服务端功能 | [0x0005.md](game/client-to-server/0x0005.md) |
+| `0x01` | `0x0006` | `DELETE_CHARACTER` | Mutation / 有响应 | 实现服务端功能 | [0x0006.md](game/client-to-server/0x0006.md) |
 | `0x01` | `0x0008` | GET_USERINFO | Query / 有响应 | 双向验证结束 | [0x0008.md](game/client-to-server/0x0008.md) |
 | `0x01` | `0x008F` | — | Report / 无响应 | 双向验证结束 | [0x008F.md](game/client-to-server/0x008F.md) |
 | `0x01` | `0x00AB` | `CLIENT_SPEC_STATISTIC` | Report / 无响应 | 双向验证结束 | [0x00AB.md](game/client-to-server/0x00AB.md) |
 | `0x01` | `0x00C2` | `CLIENT_SPEC_PROFILE` | Report / 无响应 | 双向验证结束 | [0x00C2.md](game/client-to-server/0x00C2.md) |
 | `0x01` | `0x00FA` | —（分段指标流） | Report / 无响应 | 双向验证结束 | [0x00FA.md](game/client-to-server/0x00FA.md) |
 | `0x01` | `0x0117` | —（多态信封） | Report / 无响应 | 未知 | [0x0117.md](game/client-to-server/0x0117.md) |
+| `0x01` | `0x01BA` | `MERCENARY_INFO` | Query / 有响应 | 实现服务端功能 | [0x01BA.md](game/client-to-server/0x01BA.md) |
 | `0x01` | `0x01DD` | `CLIENT_HARDWARE_DETAIL` | Report / 无响应 | 双向验证结束 | [0x01DD.md](game/client-to-server/0x01DD.md) |
+| `0x01` | `0x0286` | `CHARAC_VIEW_HIDDEN_CHARAC_INFO` | Query / 有响应 | 实现服务端功能 | [0x0286.md](game/client-to-server/0x0286.md) |
 | `0x01` | `0x02A8` | — | Report / 无响应 | 双向验证结束 | [0x02A8.md](game/client-to-server/0x02A8.md) |
+| `0x01` | `0x02B5` | `CHECK_DOUBLE_CHARACTER_NAME` | Query / 有响应 | 实现服务端功能 | [0x02B5.md](game/client-to-server/0x02B5.md) |
 
 ## Game / Server → Client
 
@@ -44,6 +49,11 @@
 | `0x01` CMD | `0x0001` | LOGIN response | Response | 确定语义 | [0x0001.md](game/server-to-client/0x0001.md) |
 | `0x00` NOTI | `0x0002` | 角色列表 | Notification | 未知 | — |
 | `0x01` CMD | `0x0003` | EXIT response | Response | 未知 | — |
+| `0x00` NOTI | `0x0289` | 荣誉等级下发 | Notification | 实现服务端功能 | [0x0289.md](game/server-to-client/0x0289.md) |
+
+角色生命周期五条 CMD 的响应与其请求同 type、同属一次交换，因此记在各自的 C→S 文档内而不另建
+S→C 文档；理由见
+[角色生命周期协议族](patterns/character-lifecycle.md#为什么请求和响应写在同一个文档里)。
 
 S→C 的 command 取自服务端编码器（`GameLoginResponseEncoder` / `AccountCharacterRosterResponseEncoder`
 / `GameExitResponseEncoder`），并与客户端注册表归属交叉核对一致——**抓包对 S→C 的 command
@@ -145,7 +155,7 @@ S→C 的 command 取自服务端编码器（`GameLoginResponseEncoder` / `Accou
 只进频道并停留在角色列表的会话不会出现 flush 段；**强制结束进程也不会触发 flush**。
 要采样退出序列的协议，必须走游戏内正常退出。
 
-### 抓包并不完整：seq 6 恒缺
+### 抓包并不完整：seq 4 与 seq 6（**已解决**）
 
 五次会话的发送 seq 全部形如 `0…3, 5, 7, 8, …`——**seq 4 与 seq 6 从未被抓到**。
 seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq 都相应下移一位，证明了这一点），
@@ -155,3 +165,19 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 影响范围：可以断言"某两帧之间没有**入站**帧"（入站有独立的 Decrypt 钩子），
 但**不能**断言"客户端只发了这些帧"。各协议记录里的"无响应"结论不受影响，
 "发送序列完整"这类表述则必须留有余地。
+
+**2026-08-16 补上了缺的那一半仪器。** 服务端此前对没有 decoder 的入站帧是静默丢弃——
+不记日志、不回字节；补上「未识别入站帧」日志后，这两帧当场现形：
+
+| seq | Type | Body | 文档 |
+|---:|---:|---:|---|
+| 4 | `0x0286` | 0 | [0x0286.md](game/client-to-server/0x0286.md) |
+| 6 | `0x01BA` | 0 | [0x01BA.md](game/client-to-server/0x01BA.md) |
+| 7 | `0x0002` | 31 | 见上「登录握手段」 |
+
+客户端侧仍只记到 `0,1,2,3,5`，两边拼起来正好连续 `0–7`。
+
+上面关于抓包的限制**依然成立**，但现在有了互补的第二个仪器：**服务端入站日志记录一切实际到达
+的字节，不管发送方走没走加密**。两者盲区不重叠，合起来才能断言"客户端确实什么都没发"。
+方法上的推论见
+[角色生命周期协议族](patterns/character-lifecycle.md#顺带解决的旧悬案seq-4-与-seq-6)。

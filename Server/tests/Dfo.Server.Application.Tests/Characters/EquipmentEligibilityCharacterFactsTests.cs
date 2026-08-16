@@ -43,5 +43,17 @@ public sealed class EquipmentEligibilityCharacterFactsTests
             AccountId accountId,
             ushort slotIndex,
             CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        public ValueTask<bool> NameExistsAsync(
+            byte[] name,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        public ValueTask<CharacterId> CreateAsync(
+            NewCharacterSpec spec,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        public ValueTask<bool> SoftDeleteAsync(
+            CharacterId characterId,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }

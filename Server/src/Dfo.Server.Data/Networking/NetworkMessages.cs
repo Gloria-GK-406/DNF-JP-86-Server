@@ -16,6 +16,11 @@ public enum ClientMessageType
     GameSessionMetrics = 0x0001_00FA,
     GameTaggedIdReport = 0x0001_008F,
     GameRosterFollowUp = 0x0001_02A8,
+    GameCheckCharacterName = 0x0001_02B5,
+    GameCreateCharacter = 0x0001_0005,
+    GameDeleteCharacter = 0x0001_0006,
+    GameMercenaryInfo = 0x0001_01BA,
+    GameHiddenCharacterInfo = 0x0001_0286,
 }
 
 public enum ServerMessageType
@@ -29,6 +34,12 @@ public enum ServerMessageType
     ChannelConnect = 0x0C,
     ChannelInfo = 0x12,
     GameExit = 0x0001_0003,
+    GameCheckCharacterName = 0x0001_02B5,
+    GameCreateCharacter = 0x0001_0005,
+    GameDeleteCharacter = 0x0001_0006,
+    GameMercenaryInfo = 0x0001_01BA,
+    GameHiddenCharacterInfo = 0x0001_0286,
+    GameHonorLevelInfo = 0x0000_0289,
 }
 
 public interface IClientNetworkMessage
