@@ -13,44 +13,52 @@ namespace Dfo.Server.Protocol.Game.DeleteCharacter;
 
 internal static class DeleteCharacterPayloadCodec
 {
-    /// <summary>Layout: <c>u8 slotIndex</c>, <c>i32 nameLength</c>, name bytes.</summary>
+    /// <summary>Layout: <c>u16 slotIndex</c>, <c>i32 nameLength</c>, name bytes.</summary>
+    /// <remarks>
+    /// A captured request reads <c>06 00 | 04 00 00 00 | "00a6"</c>. Taking the slot as one byte
+    /// puts the length field one byte early, over <c>00 04 00 00</c>, and every deletion is refused
+    /// as malformed.
+    /// </remarks>
     public static DeleteCharacterRequest Decode(
         GameMessageMetadata metadata,
         ReadOnlySpan<byte> body)
     {
-        if (body.IsEmpty)
+        if (body.Length < sizeof(ushort))
         {
             return new DeleteCharacterRequest(metadata, 0, null);
         }
 
-        var slotIndex = body[0];
-        return CharacterNameField.TryRead(body, offset: 1, out var name)
+        var slotIndex = BinaryPrimitives.ReadUInt16LittleEndian(body);
+        return CharacterNameField.TryRead(body, offset: sizeof(ushort), out var name)
             ? new DeleteCharacterRequest(metadata, slotIndex, name)
             : new DeleteCharacterRequest(metadata, slotIndex, null);
     }
 
     /// <summary>
-    /// Deletion inverts the convention the rest of this batch uses.
+    /// Always three bytes: a status <c>u8</c> then the character id as a <c>u16</c>.
     /// </summary>
     /// <remarks>
-    /// Success is <c>0x00</c> followed by the deleted character id as a <c>u16</c> -- a leading
-    /// zero, which everywhere else in this batch means refusal. Failures are bare non-zero codes:
-    /// 0x02 malformed or empty slot, 0x15 the confirmation name did not match.
+    /// Deletion inverts the convention the rest of this batch uses -- <c>0x00</c> is success here,
+    /// where everywhere else it introduces a refusal. The client's handler settles why: it reads
+    /// the status, branches to an error path when it is non-zero, and then **both branches read the
+    /// u16** and drop that character from the roster view.
     ///
-    /// This is not a transcription slip. The legacy server wrote exactly this, and the leading byte
-    /// is evidently a discriminator rather than a success flag: the client has to read the id that
-    /// follows, so the zero is what tells it there is one. Reproduced as observed; if a real client
-    /// ever contradicts it, this remark is the place the disagreement gets recorded.
+    /// So the id is not optional. The reference server answered failures with a bare code and no
+    /// id, which this server copied, and the result was a client that reported the deletion,
+    /// read a nonexistent id as zero, removed nothing, and left the character on screen. Failures
+    /// now carry an explicit zero id so the client reads what it is going to read anyway.
+    ///
+    /// Codes: 0x15 the confirmation name did not match, 0x02 malformed or empty slot.
     /// </remarks>
     public static byte[] Encode(CharacterDeletionStatus status, CharacterId? characterId)
     {
-        if (status != CharacterDeletionStatus.Deleted)
-        {
-            return status == CharacterDeletionStatus.NameMismatch ? [0x15] : [0x02];
-        }
-
         var body = new byte[3];
-        body[0] = 0x00;
+        body[0] = status switch
+        {
+            CharacterDeletionStatus.Deleted => 0x00,
+            CharacterDeletionStatus.NameMismatch => 0x15,
+            _ => 0x02,
+        };
         BinaryPrimitives.WriteUInt16LittleEndian(
             body.AsSpan(1),
             unchecked((ushort)(characterId?.Value ?? 0)));

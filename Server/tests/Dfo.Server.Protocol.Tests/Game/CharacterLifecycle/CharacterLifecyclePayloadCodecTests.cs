@@ -1,4 +1,4 @@
-using System.Buffers.Binary;
+﻿using System.Buffers.Binary;
 using System.Text;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -12,10 +12,13 @@ namespace Dfo.Server.Protocol.Tests.Game.CharacterLifecycle;
 /// Wire behaviour of the three character-lifecycle requests and their replies.
 /// </summary>
 /// <remarks>
-/// No captured sample backs these layouts yet -- they are read off the legacy server, which is
-/// evidence but not proof. What these tests pin down is therefore narrower than usual: that the
-/// codec reproduces the layout we decided on, and above all that a hostile length cannot make it
-/// read past the body. The second part holds regardless of whether the layout turns out correct.
+/// Creation and deletion now have captured requests behind them; the name check still rests on the
+/// reference server alone. That difference matters, because where a capture existed it contradicted
+/// the reference: deletion's slot is a u16, not the byte both servers read, which made every
+/// deletion decode as malformed.
+///
+/// The bounds cases are the part that holds regardless of whether any layout is right -- a hostile
+/// length must not read past the body no matter what the fields turn out to mean.
 /// </remarks>
 public sealed class CharacterLifecyclePayloadCodecTests
 {
@@ -64,12 +67,23 @@ public sealed class CharacterLifecyclePayloadCodecTests
     [Fact]
     public void Delete_ReadsSlotThenName()
     {
-        var body = new byte[] { 0x03 }.Concat(NameField("Gone")).ToArray();
+        // Slot is a u16. A captured request is 06 00 | 04 00 00 00 | "00a6"; reading the slot as
+        // one byte puts the length field over 00 04 00 00 and refuses every deletion.
+        var body = new byte[] { 0x06, 0x00 }.Concat(NameField("00a6")).ToArray();
 
         var request = DeleteCharacterPayloadCodec.Decode(GameMessageMetadata.Empty, body);
 
-        Assert.Equal(3, request.SlotIndex);
-        Assert.Equal("Gone"u8.ToArray(), request.RawName);
+        Assert.Equal(6, request.SlotIndex);
+        Assert.Equal("00a6"u8.ToArray(), request.RawName);
+    }
+
+    [Fact]
+    public void Delete_ReadsASlotAboveAByte()
+    {
+        var body = new byte[] { 0x01, 0x02 }.Concat(NameField("Far")).ToArray();
+
+        Assert.Equal(0x0201, DeleteCharacterPayloadCodec
+            .Decode(GameMessageMetadata.Empty, body).SlotIndex);
     }
 
     [Theory]
@@ -134,9 +148,11 @@ public sealed class CharacterLifecyclePayloadCodecTests
     }
 
     [Theory]
-    [InlineData(CharacterDeletionStatus.NameMismatch, new byte[] { 0x15 })]
-    [InlineData(CharacterDeletionStatus.SlotEmpty, new byte[] { 0x02 })]
-    [InlineData(CharacterDeletionStatus.MalformedRequest, new byte[] { 0x02 })]
-    public void DeleteFailuresAreBareNonZeroCodes(CharacterDeletionStatus status, byte[] expected) =>
+    [InlineData(CharacterDeletionStatus.NameMismatch, new byte[] { 0x15, 0x00, 0x00 })]
+    [InlineData(CharacterDeletionStatus.SlotEmpty, new byte[] { 0x02, 0x00, 0x00 })]
+    [InlineData(CharacterDeletionStatus.MalformedRequest, new byte[] { 0x02, 0x00, 0x00 })]
+    public void DeleteFailuresStillCarryAnId(CharacterDeletionStatus status, byte[] expected) =>
+        // Three bytes even on failure: the client's handler reads the u16 on both branches, so a
+        // one-byte refusal leaves it reading a nonexistent id and removing nothing.
         Assert.Equal(expected, DeleteCharacterPayloadCodec.Encode(status, null));
 }
