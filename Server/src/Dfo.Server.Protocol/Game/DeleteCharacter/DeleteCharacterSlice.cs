@@ -6,7 +6,6 @@ using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
-using Dfo.Server.Protocol.Game.AccountRoster;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.DeleteCharacter;
@@ -122,22 +121,17 @@ public sealed class DeleteCharacterHandler(
             result.Status,
             result.CharacterId?.Value ?? 0);
 
+        // The acknowledgement is the whole reply. Deletion does not refresh the roster, and
+        // creation does, because their acknowledgements differ: creation's carries no character,
+        // so only a roster tells the client what was made and where, while deletion's carries the
+        // id and the client removes that entry from its own view on receipt.
+        //
+        // Sending a roster anyway crashed the client. It had already dropped the entry, and the
+        // full roster arriving behind that left it indexing a list it had just mutated. The
+        // reference server sends the acknowledgement and stops; so does this.
         await sender.SendCmdAsync(
             context.Connection.ConnectionId,
             new DeleteCharacterResponse(result.Status, result.CharacterId),
-            cancellationToken).ConfigureAwait(false);
-
-        if (result.Status != CharacterDeletionStatus.Deleted)
-        {
-            return;
-        }
-
-        var roster = await commandBus.SendAsync(
-            new GetAccountCharacterRosterCommand(accountId),
-            cancellationToken).ConfigureAwait(false);
-        await sender.SendNotiAsync(
-            context.Connection.ConnectionId,
-            new AccountCharacterRosterResponse(roster, AnswersRosterQuery: false),
             cancellationToken).ConfigureAwait(false);
     }
 }
