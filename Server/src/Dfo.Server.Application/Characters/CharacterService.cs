@@ -88,12 +88,22 @@ internal sealed class CharacterService(Func<ICharacterRepository> characterRepos
             return new CharacterCreationResult(CharacterCreationStatus.NameTaken, null);
         }
 
-        // The roster is ordered by slot, and the client addresses a character by its slot index in
-        // that order. Reusing a freed slot would silently renumber every character after it, so the
-        // new one always goes past the highest slot currently in use.
-        var slotIndex = existing.Count == 0
-            ? (ushort)0
-            : checked((ushort)(existing.Max(character => character.SlotIndex) + 1));
+        // The lowest free slot, so the roster stays packed: slot i is always the i-th entry and the
+        // highest slot is always Count - 1.
+        //
+        // This used to be "one past the highest slot in use", to avoid renumbering characters after
+        // a reused slot. That reasoning does not hold -- the client rebuilds its list from the
+        // roster it is sent and keeps no numbering across refreshes, so a deletion renumbers the
+        // entries after it no matter which slot the next character takes. What the old policy did
+        // do was let slots drift above the count and, after enough delete/create cycles, above the
+        // slot limit this same method advertises: the guard below counts characters, while the
+        // slot it handed out counted deletions too.
+        var taken = existing.Select(character => character.SlotIndex).ToHashSet();
+        ushort slotIndex = 0;
+        while (taken.Contains(slotIndex))
+        {
+            slotIndex++;
+        }
 
         var characterId = await repository.CreateAsync(
             new NewCharacterSpec(accountId, rawName, job, slotIndex),
@@ -115,22 +125,29 @@ internal sealed class CharacterService(Func<ICharacterRepository> characterRepos
         var repository = characterRepository();
         var existing = await repository.ListByAccountAsync(accountId, cancellationToken)
             .ConfigureAwait(false);
-        var target = existing.FirstOrDefault(character => character.SlotIndex == slotIndex);
+
+        // The name decides which character goes, not the index. The index the request carries is a
+        // position in the client's own character vector, and whether that equals the slot depends
+        // on how the client sizes the vector -- unsettled, and indistinguishable while the roster
+        // has no gaps, which every observed sample has been. The name has none of that ambiguity:
+        // the player typed it, the client itself compares it against the entry before sending, and
+        // it is unique among an account's live characters because NameExistsAsync only counts rows
+        // with delete_flag = 0.
+        var target = existing.FirstOrDefault(
+            character => character.Name.AsSpan().SequenceEqual(rawName));
         if (target is null)
         {
-            return new CharacterDeletionResult(CharacterDeletionStatus.SlotEmpty, null);
-        }
-
-        // The client echoes the name back as confirmation. Requiring it to match is what stops a
-        // stale roster on the client from deleting whoever now occupies that slot.
-        if (!target.Name.AsSpan().SequenceEqual(rawName))
-        {
-            return new CharacterDeletionResult(CharacterDeletionStatus.NameMismatch, null);
+            // Nothing on this account answers to that name. From the player's side this is the same
+            // situation the confirmation field exists to catch, so it keeps that reason code.
+            return existing.Any(character => character.SlotIndex == slotIndex)
+                ? new CharacterDeletionResult(CharacterDeletionStatus.NameMismatch, null)
+                : new CharacterDeletionResult(CharacterDeletionStatus.SlotEmpty, null);
         }
 
         return await repository.SoftDeleteAsync(target.CharacterId, cancellationToken)
             .ConfigureAwait(false)
-            ? new CharacterDeletionResult(CharacterDeletionStatus.Deleted, target.CharacterId)
+            ? new CharacterDeletionResult(
+                CharacterDeletionStatus.Deleted, target.CharacterId, target.SlotIndex)
             : new CharacterDeletionResult(CharacterDeletionStatus.SlotEmpty, null);
     }
 

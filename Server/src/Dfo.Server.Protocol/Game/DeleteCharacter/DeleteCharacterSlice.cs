@@ -12,9 +12,9 @@ namespace Dfo.Server.Protocol.Game.DeleteCharacter;
 
 internal static class DeleteCharacterPayloadCodec
 {
-    /// <summary>Layout: <c>u16 slotIndex</c>, <c>i32 nameLength</c>, name bytes.</summary>
+    /// <summary>Layout: <c>u16 rosterIndex</c>, <c>i32 nameLength</c>, name bytes.</summary>
     /// <remarks>
-    /// A captured request reads <c>06 00 | 04 00 00 00 | "00a6"</c>. Taking the slot as one byte
+    /// A captured request reads <c>06 00 | 04 00 00 00 | "00a6"</c>. Taking the index as one byte
     /// puts the length field one byte early, over <c>00 04 00 00</c>, and every deletion is refused
     /// as malformed.
     /// </remarks>
@@ -27,41 +27,59 @@ internal static class DeleteCharacterPayloadCodec
             return new DeleteCharacterRequest(metadata, 0, null);
         }
 
-        var slotIndex = BinaryPrimitives.ReadUInt16LittleEndian(body);
+        var rosterIndex = BinaryPrimitives.ReadUInt16LittleEndian(body);
         return CharacterNameField.TryRead(body, offset: sizeof(ushort), out var name)
-            ? new DeleteCharacterRequest(metadata, slotIndex, name)
-            : new DeleteCharacterRequest(metadata, slotIndex, null);
+            ? new DeleteCharacterRequest(metadata, rosterIndex, name)
+            : new DeleteCharacterRequest(metadata, rosterIndex, null);
     }
 
     /// <summary>
-    /// Always three bytes: a status <c>u8</c> then the character id as a <c>u16</c>.
+    /// Success is the <see cref="GameCmdEnvelope"/> acceptance, a <c>u8</c> flag and the request's
+    /// own index echoed back as a <c>u16</c>; a refusal is the envelope alone.
     /// </summary>
     /// <remarks>
-    /// Deletion inverts the convention the rest of this batch uses -- <c>0x00</c> is success here,
-    /// where everywhere else it introduces a refusal. The client's handler settles why: it reads
-    /// the status, branches to an error path when it is non-zero, and then **both branches read the
-    /// u16** and drop that character from the roster view.
+    /// The handler at <c>RVA 0x008C5C60</c> reads nothing until the envelope says the deletion
+    /// succeeded. Its success path is <c>ReadU8</c>, an optional UI call when that byte is
+    /// non-zero, then <c>ReadU16</c> -- the id it removes from the roster view, after which it
+    /// shows string <c>0x2B0</c> and answers with CMD 0x0286. Its refusal path reads nothing at
+    /// all and switches on the envelope's reason byte instead.
     ///
-    /// So the id is not optional. The reference server answered failures with a bare code and no
-    /// id, which this server copied, and the result was a client that reported the deletion,
-    /// read a nonexistent id as zero, removed nothing, and left the character on screen. Failures
-    /// now carry an explicit zero id so the client reads what it is going to read anyway.
+    /// This is the whole reason deletion appeared to do nothing. The reply used to open with a
+    /// status byte of its own, so the receive layer read <c>0x00</c> as "failed", took the id's low
+    /// byte as the reason code, found no case for it and returned -- no message, no removal, while
+    /// the server had already deleted the row. The inverted-looking convention was an artifact of
+    /// mistaking the envelope for a payload field; deletion follows the same rule as everything
+    /// else.
     ///
-    /// Codes: 0x15 the confirmation name did not match, 0x02 malformed or empty slot.
+    /// The <c>u16</c> is the request's index echoed back, not the character id. Sending the id
+    /// removed the wrong row from the roster view: the client indexes its own 936-byte character
+    /// vector with it (<c>0x0203ECC0</c> bounds-checks against that vector's element count), and it
+    /// is the same index the request builder used to look up the confirmation name
+    /// (<c>0x01D60B31</c> pushes <c>[esi+0x138]</c> straight into <c>0x020332A0</c>, which returns
+    /// <c>begin + index * 0x3A8</c>). Request and reply share one index space, so echoing is
+    /// correct whatever that space turns out to be numbered by.
+    ///
+    /// The middle <c>u8</c> is sent as zero, which takes the shorter of the two success paths. Its
+    /// non-zero branch calls into UI scene 0 before the index is read; nothing yet says when the
+    /// server is supposed to ask for that.
+    ///
+    /// Reason codes the handler acts on: <c>0x02</c>, <c>0x13</c>, <c>0x15</c>, <c>0x16</c>,
+    /// <c>0x24</c>, <c>0x28</c>, <c>0x76</c>, <c>0x9C</c>. Anything else is ignored in silence.
     /// </remarks>
-    public static byte[] Encode(CharacterDeletionStatus status, CharacterId? characterId)
+    public static byte[] Encode(CharacterDeletionStatus status, ushort rosterIndex)
     {
-        var body = new byte[3];
-        body[0] = status switch
+        if (status is not CharacterDeletionStatus.Deleted)
         {
-            CharacterDeletionStatus.Deleted => 0x00,
-            CharacterDeletionStatus.NameMismatch => 0x15,
-            _ => 0x02,
-        };
-        BinaryPrimitives.WriteUInt16LittleEndian(
-            body.AsSpan(1),
-            unchecked((ushort)(characterId?.Value ?? 0)));
-        return body;
+            return GameCmdEnvelope.Refuse(status switch
+            {
+                CharacterDeletionStatus.NameMismatch => 0x15,
+                _ => 0x02,
+            });
+        }
+
+        var payload = new byte[1 + sizeof(ushort)];
+        BinaryPrimitives.WriteUInt16LittleEndian(payload.AsSpan(1), rosterIndex);
+        return GameCmdEnvelope.Accept(payload);
     }
 }
 
@@ -71,7 +89,7 @@ internal sealed class DeleteCharacterMessageDecoder : IGameMessageDecoder
         DeleteCharacterPayloadCodec.Decode(metadata, body);
 }
 
-public sealed record DeleteCharacterCommand(AccountId AccountId, ushort SlotIndex, byte[] RawName)
+public sealed record DeleteCharacterCommand(AccountId AccountId, ushort RosterIndex, byte[] RawName)
     : ICommand<CharacterDeletionResult>, IAccountCommand;
 
 public sealed class DeleteCharacterCommandHandler(ICharacterService characters)
@@ -83,7 +101,7 @@ public sealed class DeleteCharacterCommandHandler(ICharacterService characters)
         CancellationToken cancellationToken) =>
         characters.DeleteCharacterAsync(
             command.AccountId,
-            command.SlotIndex,
+            command.RosterIndex,
             command.RawName,
             cancellationToken);
 }
@@ -110,16 +128,22 @@ public sealed class DeleteCharacterHandler(
         var result = message.RawName is null
             ? new CharacterDeletionResult(CharacterDeletionStatus.MalformedRequest, null)
             : await commandBus.SendAsync(
-                new DeleteCharacterCommand(accountId, message.SlotIndex, message.RawName),
+                new DeleteCharacterCommand(accountId, message.RosterIndex, message.RawName),
                 cancellationToken).ConfigureAwait(false);
 
+        // RequestIndex against ResolvedSlot is the open question in one line: they agree on every
+        // gap-free roster, and the first disagreement proves the index is a position in the roster
+        // the server sent rather than a slot. Logged on every deletion so the answer arrives on its
+        // own rather than needing a staged experiment.
         logger.LogInformation(
-            "Delete character {ConnectionId} account={AccountId} slot={Slot}: {Status} character={CharacterId}",
+            "Delete character {ConnectionId} account={AccountId} requestIndex={RequestIndex}: "
+                + "{Status} character={CharacterId} resolvedSlot={ResolvedSlot}",
             context.Connection.ConnectionId,
             accountId,
-            message.SlotIndex,
+            message.RosterIndex,
             result.Status,
-            result.CharacterId?.Value ?? 0);
+            result.CharacterId?.Value ?? 0,
+            result.SlotIndex);
 
         // The acknowledgement is the whole reply. Deletion does not refresh the roster, and
         // creation does, because their acknowledgements differ: creation's carries no character,
@@ -131,7 +155,7 @@ public sealed class DeleteCharacterHandler(
         // reference server sends the acknowledgement and stops; so does this.
         await sender.SendCmdAsync(
             context.Connection.ConnectionId,
-            new DeleteCharacterResponse(result.Status, result.CharacterId),
+            new DeleteCharacterResponse(result.Status, message.RosterIndex),
             cancellationToken).ConfigureAwait(false);
     }
 }
@@ -143,5 +167,5 @@ internal sealed class DeleteCharacterResponseEncoder
         DeleteCharacterResponse message) =>
         OnePayload(
             GameProtocol.DeleteCharacterType,
-            DeleteCharacterPayloadCodec.Encode(message.Status, message.CharacterId));
+            DeleteCharacterPayloadCodec.Encode(message.Status, message.RosterIndex));
 }

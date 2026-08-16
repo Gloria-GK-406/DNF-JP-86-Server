@@ -65,25 +65,25 @@ public sealed class CharacterLifecyclePayloadCodecTests
     }
 
     [Fact]
-    public void Delete_ReadsSlotThenName()
+    public void Delete_ReadsTheRosterIndexThenName()
     {
-        // Slot is a u16. A captured request is 06 00 | 04 00 00 00 | "00a6"; reading the slot as
-        // one byte puts the length field over 00 04 00 00 and refuses every deletion.
+        // The index is a u16. A captured request is 06 00 | 04 00 00 00 | "00a6"; reading it as one
+        // byte puts the length field over 00 04 00 00 and refuses every deletion.
         var body = new byte[] { 0x06, 0x00 }.Concat(NameField("00a6")).ToArray();
 
         var request = DeleteCharacterPayloadCodec.Decode(GameMessageMetadata.Empty, body);
 
-        Assert.Equal(6, request.SlotIndex);
+        Assert.Equal(6, request.RosterIndex);
         Assert.Equal("00a6"u8.ToArray(), request.RawName);
     }
 
     [Fact]
-    public void Delete_ReadsASlotAboveAByte()
+    public void Delete_ReadsAnIndexAboveAByte()
     {
         var body = new byte[] { 0x01, 0x02 }.Concat(NameField("Far")).ToArray();
 
         Assert.Equal(0x0201, DeleteCharacterPayloadCodec
-            .Decode(GameMessageMetadata.Empty, body).SlotIndex);
+            .Decode(GameMessageMetadata.Empty, body).RosterIndex);
     }
 
     [Theory]
@@ -132,27 +132,34 @@ public sealed class CharacterLifecyclePayloadCodecTests
     [InlineData(CharacterCreationStatus.Created, new byte[] { 0x01 })]
     [InlineData(CharacterCreationStatus.NameTaken, new byte[] { 0x00, 0x18 })]
     [InlineData(CharacterCreationStatus.InvalidName, new byte[] { 0x00, 0x9F })]
-    [InlineData(CharacterCreationStatus.NoFreeSlot, new byte[] { 0x04 })]
-    [InlineData(CharacterCreationStatus.MalformedRequest, new byte[] { 0x04 })]
-    public void CreateRepliesKeepTheLegacyShapes(CharacterCreationStatus status, byte[] expected) =>
+    [InlineData(CharacterCreationStatus.NoFreeSlot, new byte[] { 0x00, 0x04 })]
+    [InlineData(CharacterCreationStatus.MalformedRequest, new byte[] { 0x00, 0x04 })]
+    public void CreateRepliesCarryTheEnvelopeThenTheLegacyCode(
+        CharacterCreationStatus status,
+        byte[] expected) =>
+        // 0x04 used to be sent bare, on the reading that any non-success status could lead. The
+        // envelope byte is what says "failed"; a bare 0x04 reads as a success whose reason happens
+        // to be four.
         Assert.Equal(expected, CreateCharacterPayloadCodec.Encode(status));
 
     [Fact]
-    public void DeleteSuccessLeadsWithZeroAndCarriesTheCharacterId()
+    public void DeleteSuccessEchoesTheRequestIndex()
     {
-        // Deliberately inverted against every other reply in this batch, where 0x00 leads a
-        // refusal. Here the zero is a discriminator announcing that an id follows.
+        // 01 = the envelope's success, then the flag the handler tests, then the request's own
+        // index. Not the character id: the client indexes its character vector with this, so an id
+        // removes whatever entry happens to sit at that position.
         Assert.Equal(
-            [0x00, 0x2A, 0x00],
-            DeleteCharacterPayloadCodec.Encode(CharacterDeletionStatus.Deleted, new CharacterId(42)));
+            [0x01, 0x00, 0x2A, 0x00],
+            DeleteCharacterPayloadCodec.Encode(CharacterDeletionStatus.Deleted, 42));
     }
 
     [Theory]
-    [InlineData(CharacterDeletionStatus.NameMismatch, new byte[] { 0x15, 0x00, 0x00 })]
-    [InlineData(CharacterDeletionStatus.SlotEmpty, new byte[] { 0x02, 0x00, 0x00 })]
-    [InlineData(CharacterDeletionStatus.MalformedRequest, new byte[] { 0x02, 0x00, 0x00 })]
-    public void DeleteFailuresStillCarryAnId(CharacterDeletionStatus status, byte[] expected) =>
-        // Three bytes even on failure: the client's handler reads the u16 on both branches, so a
-        // one-byte refusal leaves it reading a nonexistent id and removing nothing.
-        Assert.Equal(expected, DeleteCharacterPayloadCodec.Encode(status, null));
+    [InlineData(CharacterDeletionStatus.NameMismatch, new byte[] { 0x00, 0x15 })]
+    [InlineData(CharacterDeletionStatus.SlotEmpty, new byte[] { 0x00, 0x02 })]
+    [InlineData(CharacterDeletionStatus.MalformedRequest, new byte[] { 0x00, 0x02 })]
+    public void DeleteRefusalsAreTheEnvelopeAlone(CharacterDeletionStatus status, byte[] expected) =>
+        // Nothing after the envelope on a refusal: the handler's failure path reads nothing from
+        // the stream, it only switches on the reason byte. Appending an index here would leave two
+        // stray bytes in a stream that refills across frames.
+        Assert.Equal(expected, DeleteCharacterPayloadCodec.Encode(status, 7));
 }

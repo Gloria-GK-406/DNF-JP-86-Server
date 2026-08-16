@@ -45,10 +45,17 @@ public sealed class MercenaryInfoHandler(
 
 internal sealed class MercenaryInfoResponseEncoder : GameCmdMessageEncoder<MercenaryInfoResponse>
 {
-    /// <summary>status=1, manageLevel=0, managePoint=0 (u32), recordCount=0.</summary>
-    private static readonly byte[] EmptyRoster = [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+    /// <summary>
+    /// The <see cref="GameCmdEnvelope"/> acceptance, then manageLevel=0, managePoint=0 (u32) and
+    /// recordCount=0.
+    /// </summary>
+    /// <remarks>
+    /// The leading byte was previously described as a status of this message. It is not: it is the
+    /// family-wide envelope, and the payload proper starts at manageLevel.
+    /// </remarks>
+    private static readonly byte[] EmptyRoster = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
 
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         MercenaryInfoResponse message) =>
-        OnePayload(GameProtocol.MercenaryInfoType, EmptyRoster);
+        OnePayload(GameProtocol.MercenaryInfoType, GameCmdEnvelope.Accept(EmptyRoster));
 }

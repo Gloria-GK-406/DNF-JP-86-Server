@@ -46,9 +46,7 @@ public sealed class HiddenCharacterInfoHandler(
 internal sealed class HiddenCharacterInfoResponseEncoder
     : GameCmdMessageEncoder<HiddenCharacterInfoResponse>
 {
-    private static readonly byte[] ConstantRefusal = [0x00, 0x04];
-
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         HiddenCharacterInfoResponse message) =>
-        OnePayload(GameProtocol.HiddenCharacterInfoType, ConstantRefusal);
+        OnePayload(GameProtocol.HiddenCharacterInfoType, GameCmdEnvelope.Refuse(0x04));
 }

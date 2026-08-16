@@ -88,6 +88,13 @@ S→C 的 command 取自服务端编码器（`GameLoginResponseEncoder` / `Accou
 证据、分表依据与三条独立佐证见
 [game-receive 的 CMD 与 NOTI](patterns/game-receive.md#两张注册表--cmd-与-noti)。
 
+**写 S→C 的 CMD 响应前必读**：每一条 CMD 的 body 都以两字节结果信封开头
+（`u8 ok`，`ok == 0` 时再加 `u8 reason`），由客户端接收层在分发之前读掉，各 type 的载荷从
+第 2 或第 3 字节才开始。把状态码直接放首字节会被读成"成功"，拒绝时漏掉 reason 字节会
+**吃掉下一帧的首字节**。规则与指令见
+[game-receive 的两字节结果信封](patterns/game-receive.md#cmd-body-的两字节结果信封每一条-cmd-都有)。
+NOTI 没有信封。
+
 方法见 [game-frame](patterns/game-frame.md) 与 [game-receive](patterns/game-receive.md)。
 所有数字仍是**下限**：C→S 有被混淆到第二代码区、扫不到的构包器（已观察到的 C→S `0x0002`
 就是其一）；S→C 的 handler 虽然拿不到帧缓冲，但会从全局入站流里取字段（读取原语见

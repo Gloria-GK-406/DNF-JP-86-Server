@@ -49,11 +49,16 @@ public sealed class RosterFollowUpHandler(
 
 internal sealed class RosterFollowUpResponseEncoder : GameCmdMessageEncoder<RosterFollowUpResponse>
 {
-    private static readonly byte[] Acknowledgement = [0x00, 0x00];
-
+    /// <remarks>
+    /// A refusal, deliberately, and the only reply in the family whose handler is inverted: at
+    /// <c>RVA 0x008C6C60</c> it is <c>cmp byte [ebp+0x0C], 0 / jne return</c>, so the readiness call
+    /// happens on the failure branch and an acceptance would return without doing anything. That is
+    /// also why the reference server's <c>00 00</c> works -- it is not a two-byte acknowledgement,
+    /// it is the envelope saying "failed, reason 0", and the reason is unused.
+    /// </remarks>
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         RosterFollowUpResponse message) =>
-        OnePayload(GameProtocol.RosterFollowUpType, Acknowledgement);
+        OnePayload(GameProtocol.RosterFollowUpType, GameCmdEnvelope.Refuse(0x00));
 }
 
 internal static class RosterFollowUpDescriptor

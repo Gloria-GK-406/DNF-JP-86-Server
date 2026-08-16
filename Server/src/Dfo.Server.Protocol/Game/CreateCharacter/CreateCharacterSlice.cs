@@ -35,22 +35,27 @@ internal static class CreateCharacterPayloadCodec
     }
 
     /// <summary>
-    /// Success is a lone <c>0x01</c>. Refusals reproduce the legacy codes exactly.
+    /// The <see cref="GameCmdEnvelope"/> and nothing else: creation reports no payload of its own,
+    /// which is why the roster has to follow a success.
     /// </summary>
     /// <remarks>
-    /// The legacy server was not internally consistent here: a malformed request or a full account
-    /// got the bare byte <c>0x04</c>, while a rejected name got the two-byte <c>00 xx</c> form. Both
-    /// shapes are reproduced as they were. Under the convention that the leading byte is a status,
-    /// a bare <c>0x04</c> still reads as a non-success status, so the two forms do not conflict --
-    /// but the inconsistency is the legacy author's, not a simplification of ours, and normalising
-    /// it would be inventing wire behaviour we have never observed.
+    /// The legacy server answered a full account or a malformed request with the bare byte
+    /// <c>0x04</c>, and this server reproduced it on the reading that a leading non-zero byte was
+    /// simply a non-success status. That reading was wrong. <c>0x04</c> is a reason code -- the
+    /// handler at <c>RVA 0x008CB460</c> compares it against <c>0x02</c>, <c>0x04</c>, <c>0x12</c>,
+    /// <c>0x13</c>, <c>0x16</c>, <c>0x17</c>, <c>0x18</c>, <c>0x9F</c> on its refusal path and
+    /// prints string <c>0x2AA</c> for it -- and the envelope byte in front of it is what says the
+    /// request failed. Sent bare, it was read as "succeeded", and the client ran the whole
+    /// post-creation path for a character that does not exist.
+    ///
+    /// The legacy inconsistency was therefore a legacy bug, not a second wire shape.
     /// </remarks>
     public static byte[] Encode(CharacterCreationStatus status) => status switch
     {
-        CharacterCreationStatus.Created => [0x01],
-        CharacterCreationStatus.NameTaken => [0x00, 0x18],
-        CharacterCreationStatus.InvalidName => [0x00, 0x9F],
-        _ => [0x04],
+        CharacterCreationStatus.Created => GameCmdEnvelope.Accept(),
+        CharacterCreationStatus.NameTaken => GameCmdEnvelope.Refuse(0x18),
+        CharacterCreationStatus.InvalidName => GameCmdEnvelope.Refuse(0x9F),
+        _ => GameCmdEnvelope.Refuse(0x04),
     };
 }
 

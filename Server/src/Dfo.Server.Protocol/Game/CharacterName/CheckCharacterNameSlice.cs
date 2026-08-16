@@ -18,20 +18,21 @@ internal static class CheckCharacterNamePayloadCodec
         ReadOnlySpan<byte> body) =>
         new(metadata, CharacterNameField.TryRead(body, offset: 0, out var name) ? name : null);
 
-    /// <summary>
-    /// Success is a lone <c>0x01</c>; every refusal is <c>0x00</c> followed by a reason code.
-    /// </summary>
+    /// <summary>The <see cref="GameCmdEnvelope"/> and nothing else.</summary>
     /// <remarks>
     /// Codes carried over from the legacy server: 0x14 for a length the wire itself rejects, 0x18
     /// for a name already in use, 0x9F for text the rules refuse. They are the only evidence we
     /// have for what the client prints, so they are reproduced rather than renumbered.
+    ///
+    /// This is the one reply in the family the legacy server shaped correctly, and only because its
+    /// per-message status convention happened to coincide with the envelope's.
     /// </remarks>
     public static byte[] Encode(CharacterNameStatus status) => status switch
     {
-        CharacterNameStatus.Available => [0x01],
-        CharacterNameStatus.AlreadyTaken => [0x00, 0x18],
-        CharacterNameStatus.TooShort or CharacterNameStatus.TooLong => [0x00, 0x14],
-        _ => [0x00, 0x9F],
+        CharacterNameStatus.Available => GameCmdEnvelope.Accept(),
+        CharacterNameStatus.AlreadyTaken => GameCmdEnvelope.Refuse(0x18),
+        CharacterNameStatus.TooShort or CharacterNameStatus.TooLong => GameCmdEnvelope.Refuse(0x14),
+        _ => GameCmdEnvelope.Refuse(0x9F),
     };
 }
 

@@ -89,18 +89,34 @@ public sealed class CharacterLifecycleServiceTests
     }
 
     [Fact]
-    public async Task CreationTakesTheSlotAfterTheHighestInUse()
+    public async Task CreationFillsTheLowestFreeSlot()
     {
-        // Not the lowest free slot. The client addresses a character by its position in the
-        // slot-ordered roster, so filling a gap would renumber everyone after it.
+        // Was "one past the highest in use", to avoid renumbering entries after a reused slot. The
+        // client keeps no numbering across roster refreshes, so that bought nothing and let slots
+        // drift above the count -- and eventually above the advertised limit, since the fullness
+        // guard counts characters while the slot counted deletions too.
         var (service, repository) = Build(Existing(0, "A"), Existing(3, "B"));
 
         var result = await service.CreateCharacterAsync(
             Account, 2, "Cid"u8.ToArray(), CancellationToken.None);
 
         Assert.Equal(CharacterCreationStatus.Created, result.Status);
-        Assert.Equal(4, repository.LastSpec!.SlotIndex);
+        Assert.Equal(1, repository.LastSpec!.SlotIndex);
         Assert.Equal(2, repository.LastSpec.Job);
+    }
+
+    [Fact]
+    public async Task SlotsStayInsideTheAdvertisedLimitAfterDeleteAndCreateCycles()
+    {
+        // The old policy handed out slot 32 here -- past the 32-slot limit the roster header
+        // advertises -- because only one character was left to count.
+        var (service, repository) = Build(Existing(31, "Survivor"));
+
+        var result = await service.CreateCharacterAsync(
+            Account, 0, "Next"u8.ToArray(), CancellationToken.None);
+
+        Assert.Equal(CharacterCreationStatus.Created, result.Status);
+        Assert.Equal(0, repository.LastSpec!.SlotIndex);
     }
 
     [Fact]
@@ -130,14 +146,32 @@ public sealed class CharacterLifecycleServiceTests
     }
 
     [Fact]
-    public async Task DeletingAnEmptySlotReportsItEmptyInsteadOfThrowing()
+    public async Task AnIndexThatMatchesNothingReportsItEmptyInsteadOfThrowing()
     {
         var (service, _) = Build(Existing(0, "Only"));
 
         var result = await service.DeleteCharacterAsync(
-            Account, 5, "Only"u8.ToArray(), CancellationToken.None);
+            Account, 5, "Nobody"u8.ToArray(), CancellationToken.None);
 
         Assert.Equal(CharacterDeletionStatus.SlotEmpty, result.Status);
+    }
+
+    [Fact]
+    public async Task TheNameDecidesWhenTheIndexDoesNotLineUpWithASlot()
+    {
+        // The index the client sends is a position in its own character vector, which equals the
+        // slot only while the roster has no gaps. Refusing here would make deletion impossible on
+        // any account that has ever deleted a middle character -- and the name is the stronger
+        // field anyway: the player typed it and the client checked it against the entry before
+        // sending, so it cannot name a character the player did not point at.
+        var (service, repository) = Build(Existing(0, "Only"));
+
+        var result = await service.DeleteCharacterAsync(
+            Account, 5, "Only"u8.ToArray(), CancellationToken.None);
+
+        Assert.Equal(CharacterDeletionStatus.Deleted, result.Status);
+        Assert.Equal(0, result.SlotIndex);
+        Assert.Single(repository.Deleted);
     }
 
     [Fact]

@@ -64,9 +64,15 @@ public sealed record CharacterCreationResult(
     CharacterCreationStatus Status,
     CharacterId? CharacterId);
 
+/// <param name="SlotIndex">
+/// The deleted character's slot, or <c>0</c> when nothing was deleted. Carried so the caller can
+/// compare it against the index the request arrived with; see
+/// <c>protocol/game/client-to-server/0x0006.md</c> for why that comparison is the open question.
+/// </param>
 public sealed record CharacterDeletionResult(
     CharacterDeletionStatus Status,
-    CharacterId? CharacterId);
+    CharacterId? CharacterId,
+    ushort SlotIndex = 0);
 
 /// <summary>Account-wide honour standing, shown on the roster screen.</summary>
 public sealed record AccountHonorLevel(uint Level, uint Experience)
