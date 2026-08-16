@@ -1,4 +1,4 @@
-using Dfo.Server.Abstractions.Networking;
+﻿using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Characters;
@@ -30,7 +30,7 @@ public sealed class GetAccountCharacterRosterHandler(
             cancellationToken).ConfigureAwait(false);
         await sender.SendNotiAsync(
             context.Connection.ConnectionId,
-            new AccountCharacterRosterResponse(roster),
+            new AccountCharacterRosterResponse(roster, AnswersRosterQuery: true),
             cancellationToken).ConfigureAwait(false);
 
         // Pushed, not awaited. The client does send its own 0x0286 request and this server answers

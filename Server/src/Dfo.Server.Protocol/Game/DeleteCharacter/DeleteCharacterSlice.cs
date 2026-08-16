@@ -1,4 +1,4 @@
-using System.Buffers.Binary;
+﻿using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
@@ -129,7 +129,7 @@ public sealed class DeleteCharacterHandler(
             cancellationToken).ConfigureAwait(false);
         await sender.SendNotiAsync(
             context.Connection.ConnectionId,
-            new AccountCharacterRosterResponse(roster),
+            new AccountCharacterRosterResponse(roster, AnswersRosterQuery: false),
             cancellationToken).ConfigureAwait(false);
     }
 }

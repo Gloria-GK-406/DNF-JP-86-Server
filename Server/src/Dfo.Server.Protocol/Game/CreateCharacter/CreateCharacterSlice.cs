@@ -1,4 +1,4 @@
-using Dfo.Server.Abstractions.Characters;
+﻿using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application.Commands;
@@ -134,7 +134,7 @@ public sealed class CreateCharacterHandler(
             cancellationToken).ConfigureAwait(false);
         await sender.SendNotiAsync(
             context.Connection.ConnectionId,
-            new AccountCharacterRosterResponse(roster),
+            new AccountCharacterRosterResponse(roster, AnswersRosterQuery: false),
             cancellationToken).ConfigureAwait(false);
     }
 }

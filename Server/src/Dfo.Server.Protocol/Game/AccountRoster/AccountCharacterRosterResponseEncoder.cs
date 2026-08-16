@@ -3,19 +3,18 @@ namespace Dfo.Server.Protocol.Game.AccountRoster;
 internal sealed class AccountCharacterRosterResponseEncoder
     : GameNotiMessageEncoder<AccountCharacterRosterResponse>
 {
-    /// <summary>Header byte 7, which the roster notification does not leave at zero.</summary>
+    /// <summary>Header byte 7: 1 answers a roster query, 0 is an unsolicited refresh.</summary>
     /// <remarks>
     /// Every other frame this server sends carries zero here, and the field is named Checksum in
-    /// the framing layer. The reference server writes the roster's header by hand purely so it can
-    /// set this one byte to 1, reading the value from a seeded <c>get_userinfo_template</c> row --
-    /// evidence that the client reads it rather than ignoring it, since nobody hand-rolls a header
-    /// for a byte with no effect.
+    /// the framing layer. The reference server writes a roster query answer's header by hand purely
+    /// so it can set this byte -- nobody hand-rolls a header for a byte with no effect -- and uses
+    /// its ordinary builder, which leaves it zero, for refreshes.
     ///
-    /// Sent as a checksum value of 1 because byte 7 is that field's low byte and the remaining
-    /// three stay zero, which reproduces the reference layout exactly. Its actual meaning is
-    /// unknown -- "routing byte" is the legacy author's name for it, not an established fact.
+    /// Carried as the checksum value because byte 7 is that field's low byte and the other three
+    /// stay zero, which reproduces the reference layout exactly.
     /// </remarks>
-    private const uint RosterRoutingByte = 1;
+    private const uint QueryAnswer = 1;
+    private const uint UnsolicitedRefresh = 0;
 
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         AccountCharacterRosterResponse message) =>
@@ -23,6 +22,6 @@ internal sealed class AccountCharacterRosterResponseEncoder
             new GameMessagePayload(
                 GameProtocol.AccountCharacterRosterNotificationType,
                 AccountCharacterRosterPayloadCodec.Encode(message.Roster),
-                Checksum: RosterRoutingByte),
+                Checksum: message.AnswersRosterQuery ? QueryAnswer : UnsolicitedRefresh),
         ];
 }
