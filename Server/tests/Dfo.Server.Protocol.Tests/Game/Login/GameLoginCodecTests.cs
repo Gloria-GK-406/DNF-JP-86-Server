@@ -54,15 +54,17 @@ public sealed class GameLoginCodecTests
         Assert.Equal(0x01, frame[0]);
         Assert.Equal(0x0001, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1, 2)));
         Assert.Equal(frame.Length, BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(3, 4)));
+        // Offsets follow the client's read order: four u8, a raw 4-byte port, a length-prefixed
+        // host string, then the two u32 the client passes to SetEndpoint.
         var body = frame.AsSpan(GameServerFrameEncoder.HeaderLength);
-        Assert.Equal(new byte[] { 0x01, 18, 0x00, 0x01, 0x00 }, body[..5].ToArray());
-        Assert.Equal(10128, BinaryPrimitives.ReadInt32LittleEndian(body[5..9]));
-        Assert.Equal(10, BinaryPrimitives.ReadInt32LittleEndian(body[9..13]));
-        Assert.Equal("192.0.2.20", Encoding.ASCII.GetString(body[13..23]));
-        Assert.Equal(17200, BinaryPrimitives.ReadInt32LittleEndian(body[23..27]));
-        Assert.Equal(17200, BinaryPrimitives.ReadInt32LittleEndian(body[27..31]));
-        Assert.All(body[31..].ToArray(), value => Assert.Equal(0, value));
-        Assert.Equal(55, body.Length);
+        Assert.Equal(new byte[] { 0x01, 18, 0x00, 0x01 }, body[..4].ToArray());
+        Assert.Equal(10128, BinaryPrimitives.ReadInt32LittleEndian(body[4..8]));
+        Assert.Equal(10, BinaryPrimitives.ReadInt32LittleEndian(body[8..12]));
+        Assert.Equal("192.0.2.20", Encoding.ASCII.GetString(body[12..22]));
+        Assert.Equal(17200, BinaryPrimitives.ReadInt32LittleEndian(body[22..26]));
+        Assert.Equal(17200, BinaryPrimitives.ReadInt32LittleEndian(body[26..30]));
+        Assert.All(body[30..].ToArray(), value => Assert.Equal(0, value));
+        Assert.Equal(54, body.Length);
     }
 
     [Fact]

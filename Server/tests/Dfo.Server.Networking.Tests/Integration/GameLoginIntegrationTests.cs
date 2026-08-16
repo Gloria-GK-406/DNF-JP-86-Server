@@ -131,12 +131,12 @@ public sealed class GameLoginIntegrationTests
     private static byte[] BuildExpectedLoginResponse()
     {
         var serverIp = "192.0.2.20"u8.ToArray();
-        var body = new byte[45 + serverIp.Length];
-        new byte[] { 0x01, 18, 0x00, 0x01, 0x00 }.CopyTo(body, 0);
-        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(5), 10128);
-        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(9), serverIp.Length);
-        serverIp.CopyTo(body, 13);
-        var offset = 13 + serverIp.Length;
+        var body = new byte[44 + serverIp.Length];
+        new byte[] { 0x01, 18, 0x00, 0x01 }.CopyTo(body, 0);
+        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(4), 10128);
+        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(8), serverIp.Length);
+        serverIp.CopyTo(body, 12);
+        var offset = 12 + serverIp.Length;
         BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(offset), 17200);
         BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(offset + 4), 17200);
         return GameServerFrameEncoder.Encode(0x01, 0x0001, body);
