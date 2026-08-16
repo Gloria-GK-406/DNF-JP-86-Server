@@ -40,6 +40,8 @@ public enum ServerMessageType
     GameMercenaryInfo = 0x0001_01BA,
     GameHiddenCharacterInfo = 0x0001_0286,
     GameHonorLevelInfo = 0x0000_0289,
+    GameAuctionServiceState = 0x0000_00B7,
+    GameInformNotice = 0x0000_01A1,
 }
 
 public interface IClientNetworkMessage

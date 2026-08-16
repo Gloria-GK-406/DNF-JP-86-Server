@@ -35,4 +35,8 @@ internal static class GameProtocol
     public const ushort AccountCharacterRosterNotificationType = 0x0002;
 
     public const ushort HonorLevelNotificationType = 0x0289;
+
+    public const ushort AuctionServiceStateNotificationType = 0x00B7;
+
+    public const ushort InformNoticeNotificationType = 0x01A1;
 }

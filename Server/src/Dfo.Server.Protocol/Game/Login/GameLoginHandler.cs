@@ -3,7 +3,11 @@ using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol.Game.AuctionService;
+using Dfo.Server.Protocol.Game.HonorLevel;
+using Dfo.Server.Protocol.Game.InformNotice;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 
 namespace Dfo.Server.Protocol.Game.Login;
@@ -51,17 +55,21 @@ public sealed class GameLoginHandler(
     }
 
     /// <summary>
-    /// Pushes the account-scoped game options and hotkeys immediately after the login response.
+    /// Pushes the account-scoped state the client expects before the roster screen.
     /// </summary>
     /// <remarks>
-    /// These two are also sent in the select-character batch, and for a long time that was the only
-    /// place this server sent them. That turned out to be too late: the client needs its
-    /// account-level input state before the roster screen, and without it the roster screen will
-    /// not open character creation at all. The legacy server sent them from here for the same
-    /// reason, and its own comment says so -- the select-character copy restores the UI checkboxes
-    /// but not the runtime state.
+    /// Six notifications in the reference server's exact order: game options, hotkeys, both auction
+    /// service states, honour standing, then the inform notice. Sending only some of them is what
+    /// this server did for a long time, and the roster screen answered by refusing to open
+    /// character creation -- the client evidently treats this batch as a unit.
     ///
-    /// The ordering is deliberate and matches the legacy server: login response first, then these.
+    /// Which member the client actually requires has not been isolated, and the batch is reproduced
+    /// whole rather than trimmed to a guess. Narrowing it down means removing one at a time and
+    /// re-testing, which is cheap but has not been done; until then the honest statement is that
+    /// the batch works, not that every member is load-bearing.
+    ///
+    /// Honour standing is also sent with the roster. Both are kept: the reference server sends it
+    /// in both places too, and the second one carries the value computed from the roster.
     /// </remarks>
     private async ValueTask SendAccountSettingsAsync(
         NetworkConnectionId connectionId,
@@ -73,13 +81,21 @@ public sealed class GameLoginHandler(
         // first time -- and that throw silently cost the connection.
         var settings = await accountEntryState.LoadSettingsAsync(accountId, cancellationToken)
             .ConfigureAwait(false);
-        await sender.SendNotiAsync(
-            connectionId,
+
+        IGameNotiMessage[] batch =
+        [
             new AccountGameOptionsMessage(settings),
-            cancellationToken).ConfigureAwait(false);
-        await sender.SendNotiAsync(
-            connectionId,
             new LoginHotkeyStateMessage(settings),
-            cancellationToken).ConfigureAwait(false);
+            new AuctionServiceStateNotice(0x00, Open: true),
+            new AuctionServiceStateNotice(0x01, Open: true),
+            new HonorLevelInfoNotice(AccountHonorLevel.None),
+            InformNoticeNotice.Empty,
+        ];
+
+        foreach (var message in batch)
+        {
+            await sender.SendNotiAsync(connectionId, message, cancellationToken)
+                .ConfigureAwait(false);
+        }
     }
 }

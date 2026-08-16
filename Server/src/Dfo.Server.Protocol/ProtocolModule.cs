@@ -13,7 +13,9 @@ using Dfo.Server.Protocol.Channel.Script;
 using Dfo.Server.Protocol.Channel.ScriptVersion;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.AccountRoster;
+using Dfo.Server.Protocol.Game.AuctionService;
 using Dfo.Server.Protocol.Game.CharacterName;
+using Dfo.Server.Protocol.Game.InformNotice;
 using Dfo.Server.Protocol.Game.ClientHardwareDetail;
 using Dfo.Server.Protocol.Game.ClientSpecProfile;
 using Dfo.Server.Protocol.Game.ClientSpecStatistic;
@@ -232,6 +234,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<GameLoginResponse, GameLoginResponseEncoder>();
         services.AddGameNotiMessageEncoder<AccountCharacterRosterResponse, AccountCharacterRosterResponseEncoder>();
         services.AddGameNotiMessageEncoder<HonorLevelInfoNotice, HonorLevelInfoNoticeEncoder>();
+        services.AddGameNotiMessageEncoder<AuctionServiceStateNotice, AuctionServiceStateNoticeEncoder>();
+        services.AddGameNotiMessageEncoder<InformNoticeNotice, InformNoticeNoticeEncoder>();
         services.AddGameCmdMessageEncoder<CheckCharacterNameResponse, CheckCharacterNameResponseEncoder>();
         services.AddGameCmdMessageEncoder<CreateCharacterResponse, CreateCharacterResponseEncoder>();
         services.AddGameCmdMessageEncoder<DeleteCharacterResponse, DeleteCharacterResponseEncoder>();

@@ -63,11 +63,11 @@ public sealed class GameLoginTests
         Assert.Equal("login", command.LoginId);
         Assert.Equal("password-hash", command.PasswordHash);
 
-        // Three sends, all to the connection the request arrived on, in this exact order. The
-        // order is load-bearing rather than incidental: the client needs its account-level input
-        // state before the roster screen, and sending these only in the select-character batch
-        // left the roster screen unable to open character creation at all.
-        Assert.Equal(3, sender.Sends.Count);
+        // The login response followed by the whole account-state batch, all to the connection the
+        // request arrived on. The batch is asserted as a unit because the client treats it as one:
+        // sending part of it left the roster screen unable to open character creation, and which
+        // member is actually required has never been isolated.
+        Assert.Equal(7, sender.Sends.Count);
         Assert.All(sender.Sends, send => Assert.Equal(connection.ConnectionId, send.ConnectionId));
 
         Assert.True(sender.Sends[0].IsCmd);
@@ -75,11 +75,17 @@ public sealed class GameLoginTests
             new GameLoginResponse(true, 1, 10128, "192.0.2.20", 17200, 17200),
             sender.Sends[0].Message);
 
-        Assert.All(sender.Sends.Skip(1), send =>
-        {
-            Assert.False(send.IsCmd);
-            Assert.Equal(ServerMessageType.GameStateSynchronization, send.Message.MessageType);
-        });
+        Assert.All(sender.Sends.Skip(1), send => Assert.False(send.IsCmd));
+        Assert.Equal(
+            [
+                ServerMessageType.GameStateSynchronization,   // 0x00AD game options
+                ServerMessageType.GameStateSynchronization,   // 0x01C7 hotkeys
+                ServerMessageType.GameAuctionServiceState,
+                ServerMessageType.GameAuctionServiceState,
+                ServerMessageType.GameHonorLevelInfo,
+                ServerMessageType.GameInformNotice,
+            ],
+            sender.Sends.Skip(1).Select(send => send.Message.MessageType));
 
         Assert.Equal(new AccountId(7), accountEntryState.RequestedAccountId);
     }
