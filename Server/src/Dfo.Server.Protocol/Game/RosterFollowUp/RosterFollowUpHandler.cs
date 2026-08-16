@@ -35,6 +35,11 @@ public sealed class RosterFollowUpHandler(
                 ? $"0x{message.Value:X4} (sentinel)"
                 : $"0x{message.Value:X4}");
 
+        // Not optional, and not merely "what the reference server happens to do". The client clears
+        // a readiness flag on the roster screen immediately before sending this request and only
+        // this reply sets it back; eighteen sites on that screen skip their work while it is clear.
+        // Withholding the reply leaves the screen permanently inert -- which is exactly what an A/B
+        // with this line removed produced. See protocol/game/client-to-server/0x02A8.md.
         await sender.SendCmdAsync(
             context.Connection.ConnectionId,
             new RosterFollowUpResponse(),
