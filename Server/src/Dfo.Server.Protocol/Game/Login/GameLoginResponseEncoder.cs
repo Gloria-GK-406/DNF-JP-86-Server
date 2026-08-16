@@ -1,20 +1,13 @@
 using System.Buffers.Binary;
 using System.Text;
-using Dfo.Server.Networking.Configuration;
 
 namespace Dfo.Server.Protocol.Game.Login;
 
-/// <summary>
-/// Encodes the Game LOGIN response. The success body moved here from the payload codec so that the
-/// codec is left holding only the inbound direction; it was the one inbound codec that depended on
-/// transport configuration, and that dependency lived entirely in this encoding.
-/// </summary>
-internal sealed class GameLoginResponseEncoder(GameLoginOptions options)
-    : GameCmdMessageEncoder<GameLoginResponse>
+internal sealed class GameLoginResponseEncoder : GameCmdMessageEncoder<GameLoginResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(GameLoginResponse message) =>
         message.Succeeded
-            ? OnePayload(GameProtocol.LoginType, EncodeSuccessBody(options))
+            ? OnePayload(GameProtocol.LoginType, EncodeSuccessBody(message))
             : throw new InvalidOperationException(
                 "The observed Game LOGIN protocol has no failure body yet.");
 
@@ -26,21 +19,40 @@ internal sealed class GameLoginResponseEncoder(GameLoginOptions options)
     /// read the host length as 0x00000900, failed ReadDString's bounds check (RVA 0x01C92000) and
     /// configured no endpoint at all.
     /// </summary>
-    internal static byte[] EncodeSuccessBody(GameLoginOptions options)
+    internal static byte[] EncodeSuccessBody(GameLoginResponse message)
     {
-        ArgumentNullException.ThrowIfNull(options);
-        var serverIp = Encoding.ASCII.GetBytes(options.ServerIp);
-        var body = new byte[checked(44 + serverIp.Length)];
+        ArgumentNullException.ThrowIfNull(message);
+        var endpointHost = Encoding.ASCII.GetBytes(message.EndpointHost);
+        if (endpointHost.Length > 256)
+        {
+            throw new InvalidDataException(
+                "The Game LOGIN endpoint host cannot exceed 256 ASCII bytes.");
+        }
+
+        ValidatePort(message.ConnectionPort, nameof(message.ConnectionPort));
+        ValidatePort(message.EndpointPortA, nameof(message.EndpointPortA));
+        ValidatePort(message.EndpointPortB, nameof(message.EndpointPortB));
+
+        var body = new byte[checked(44 + endpointHost.Length)];
         body[0] = 0x01;
         body[1] = 18;
         body[2] = 0x00;
-        body[3] = options.Environment;
-        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(4, 4), options.LoginChannelPort);
-        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(8, 4), serverIp.Length);
-        serverIp.CopyTo(body, 12);
-        var offset = 12 + serverIp.Length;
-        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(offset, 4), options.UnknownPort);
-        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(offset + 4, 4), options.UnknownPort);
+        body[3] = message.Environment;
+        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(4, 4), message.ConnectionPort);
+        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(8, 4), endpointHost.Length);
+        endpointHost.CopyTo(body, 12);
+        var offset = 12 + endpointHost.Length;
+        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(offset, 4), message.EndpointPortA);
+        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(offset + 4, 4), message.EndpointPortB);
         return body;
+    }
+
+    private static void ValidatePort(int port, string fieldName)
+    {
+        if (port is < 1 or > ushort.MaxValue)
+        {
+            throw new InvalidDataException(
+                $"Game LOGIN field '{fieldName}' must be a valid TCP port.");
+        }
     }
 }

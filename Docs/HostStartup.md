@@ -59,7 +59,7 @@ Host 启动时记录以下非敏感值：
 PVF_ARCHIVE_PATH=/absolute/path/Script.pvf \
 Networking__Enabled=true \
 Channel__PublicServerIp=100.100.51.178 \
-GameLogin__ServerIp=100.100.51.178 \
+Game__EndpointHost=100.100.51.178 \
 dotnet /absolute/path/to/Dfo.Server.Host.dll
 ```
 
@@ -69,7 +69,7 @@ dotnet /absolute/path/to/Dfo.Server.Host.dll
 PVF_ARCHIVE_PATH=/absolute/path/Script.pvf \
 Networking__Enabled=true \
 Channel__PublicServerIp=100.100.51.178 \
-GameLogin__ServerIp=100.100.51.178 \
+Game__EndpointHost=100.100.51.178 \
 dotnet run --project /absolute/path/to/Dfo.Server.Host.csproj
 ```
 

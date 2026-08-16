@@ -138,7 +138,7 @@ public sealed class SelectCharacterLifecycleTests
         var observer = new OnlineUserConnectionObserver(
             fixture.Users, new OnlineUserExecutionGate(), fixture.TransitionGate,
             fixture.Directory, fixture.Cleanup, new StubChannelEntryPolicy(),
-            fixture.Sender, TimeProvider.System);
+            new StubServerConfigService(), fixture.Sender, TimeProvider.System);
         var connection = new NetworkConnectionContext(
             fixture.ConnectionId, NetworkEndpointKind.Game,
             StubChannelEntryPolicy.GeneralChannel.ListenerPort);
@@ -165,7 +165,7 @@ public sealed class SelectCharacterLifecycleTests
         var observer = new OnlineUserConnectionObserver(
             fixture.Users, new OnlineUserExecutionGate(), fixture.TransitionGate,
             fixture.Directory, fixture.Cleanup, new StubChannelEntryPolicy(),
-            fixture.Sender, TimeProvider.System);
+            new StubServerConfigService(), fixture.Sender, TimeProvider.System);
         var disconnect = observer.DisconnectedAsync(
             new NetworkConnectionContext(fixture.ConnectionId, NetworkEndpointKind.Game,
                 StubChannelEntryPolicy.GeneralChannel.ListenerPort), CancellationToken.None).AsTask();
@@ -191,7 +191,7 @@ public sealed class SelectCharacterLifecycleTests
         var observer = new OnlineUserConnectionObserver(
             fixture.Users, new OnlineUserExecutionGate(), fixture.TransitionGate,
             fixture.Directory, fixture.Cleanup, new StubChannelEntryPolicy(),
-            fixture.Sender, TimeProvider.System);
+            new StubServerConfigService(), fixture.Sender, TimeProvider.System);
         var disconnect = observer.DisconnectedAsync(
             new NetworkConnectionContext(fixture.ConnectionId, NetworkEndpointKind.Game,
                 StubChannelEntryPolicy.GeneralChannel.ListenerPort), CancellationToken.None).AsTask();

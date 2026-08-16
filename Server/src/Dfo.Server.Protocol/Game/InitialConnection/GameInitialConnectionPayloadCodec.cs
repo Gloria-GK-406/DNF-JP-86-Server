@@ -3,7 +3,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using Dfo.Server.Data.Networking;
-using Dfo.Server.Networking.Configuration;
 
 namespace Dfo.Server.Protocol.Game.InitialConnection;
 
@@ -15,23 +14,20 @@ public static class GameInitialConnectionPayloadCodec
     private const int CommandPacketCount = 1086;
     private const int NotificationPacketCount = 1036;
 
-    public static byte[] EncodeBody(
-        GameInitialConnectionNotice notice,
-        GameLoginOptions options)
+    public static byte[] EncodeBody(GameInitialConnectionNotice notice)
     {
         ArgumentNullException.ThrowIfNull(notice);
-        ArgumentNullException.ThrowIfNull(options);
         if (notice.ChannelId is < 1 or > byte.MaxValue)
         {
             throw new InvalidDataException(
                 $"Channel ID '{notice.ChannelId}' cannot be represented by the initial connection notice.");
         }
 
-        if (!IPAddress.TryParse(options.ServerIp, out var serverAddress)
+        if (!IPAddress.TryParse(notice.EndpointHost, out var serverAddress)
             || serverAddress.AddressFamily != AddressFamily.InterNetwork)
         {
             throw new InvalidDataException(
-                $"Game server address '{options.ServerIp}' is not a usable IPv4 address.");
+                $"Game server address '{notice.EndpointHost}' is not a usable IPv4 address.");
         }
 
         using var body = new MemoryStream();
@@ -44,7 +40,7 @@ public static class GameInitialConnectionPayloadCodec
         body.WriteByte(0x00);
         WriteInt32(body, checked((int)notice.PreparedAt.ToUnixTimeSeconds()));
         WriteInt32(body, 1);
-        WriteDString(body, options.ServerIp);
+        WriteDString(body, notice.EndpointHost);
         WriteInt32(body, InitialUdpPort1);
         WriteInt32(body, InitialUdpPort2);
         body.WriteByte(0x00);

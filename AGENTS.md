@@ -26,9 +26,9 @@ Docs/        帧协议基线、客户端逆向系列文档、业务接入规范
 |---|---|---|
 | `Dfo.Pvf` | — | 只读 PVF 档案库（cipher/zlib/索引/token），无游戏概念 |
 | `Dfo.Server.Data` | — | 纯模型：领域记录 + 协议身份契约（`Networking/NetworkMessages.cs` 只留两个枚举、两个消息接口、两个帧元数据 record） |
-| `Dfo.Server.Abstractions` | Data | 接缝层：`IServerModule` + 各领域服务/仓储/内容源/网络契约 |
+| `Dfo.Server.Abstractions` | Data | 接缝层：`IServerModule` + 各领域服务/仓储/内容源/网络契约 + 通用只读服务器配置契约 |
 | `Dfo.Server.Application` | Abstractions, Data | **领域编排核心**：命令总线与管线、消息分发机制、领域服务 |
-| `Dfo.Server.Infrastructure` | Dfo.Pvf, Abstractions, Data | SQLite 仓储 + PVF 内容源 + 频道脚本 |
+| `Dfo.Server.Infrastructure` | Dfo.Pvf, Abstractions, Data | SQLite 仓储 + PVF 内容源 + 频道脚本 + 启动配置内存快照 |
 | `Dfo.Server.Networking` | Abstractions, Data | TouchSocket **传输**：帧适配/解析、TCP 服务、插件、发送器、注册表。收发路径上不含任何单个协议的知识；显式多收件人投递也只表达必达顺序和逐目标失败隔离 |
 | `Dfo.Server.Protocol` | Abstractions, Application, Data, Networking | **协议切片**：一个协议一个目录，含其消息、解包器、编码器、消息 handler、命令与命令 handler；`ProtocolModule` 是唯一接线点 |
 | `Dfo.Server.Host` | 全部 | 组合根：模块注册顺序 + appsettings + channel_info.etc |
@@ -176,7 +176,7 @@ PvP 大厅、副本重进、专家商店）、`World/`（出生点策略、世�
 1. 从 `NetworkDispatchContext` 解出连接身份，取不到就抛；
 2. 只读查询与端点解析（`IOnlineUserQueryService`、`IChannelEntryPolicy`）；
 3. 不含领域状态或领域决策的确定性协议能力，例如 Channel Connect 读取
-   Protocol 所有的当日密钥；
+   Protocol 所有的当日密钥，或 LOGIN 从 `IServerConfigService` 读取端点配置并构造响应；
 4. `commandBus.SendAsync(...)` 与 sender 的单连接或显式收件人发送方法。
 
 Game 出站还必须遵守一条协议边界：`0x01` 是 CMD，`0x00` 是 NOTI，二者由客户端的
@@ -209,9 +209,9 @@ Networking 只把该字节当作不透明 `Selector` 做拆帧、查表与写帧
    OnlineUser 独占租约 → Direct 放行 → `LoginGameUserCommandHandler` →
    `IAccountService.LoginAsync` → SQLite `GetOrCreate` → `OnlineUser.Authenticate`
    （generation +1）
-4. handler 通过 `SendCmdAsync` 发 `GameLoginResponse(true)` → CMD 编码器固定首字节 0x01，
-   再编码成功体（服务器 IP、环境字节、
-   LoginChannelPort 10128、UnknownPort 17200）→ 15B 头出站
+4. handler 从通用 `IServerConfigService` 的内存快照读取环境、公开 host 与三个端口，
+   构造完整 `GameLoginResponse` 后通过 `SendCmdAsync` 发出；CMD 编码器只按消息字段编码，
+   固定首字节 0x01，再由 15B Game 头出站
 
 集成测试 `Dfo.Server.Networking.Tests/Integration/GameLoginIntegrationTests.cs`
 用真实 TouchSocket host + SQLite 断言逐字节行为。

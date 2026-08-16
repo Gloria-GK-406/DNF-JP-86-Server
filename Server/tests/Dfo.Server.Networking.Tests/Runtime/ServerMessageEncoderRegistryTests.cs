@@ -53,7 +53,8 @@ public sealed class ServerMessageEncoderRegistryTests
         IServerMessageEncoder encoder = new StubExitEncoder();
 
         var exception = Assert.Throws<InvalidOperationException>(
-            () => encoder.Encode(new GameLoginResponse(true)));
+            () => encoder.Encode(
+                new GameLoginResponse(true, 1, 10128, "192.0.2.20", 17200, 17200)));
 
         Assert.Contains(nameof(StubExitEncoder), exception.Message, StringComparison.Ordinal);
         Assert.Contains(nameof(GameLoginResponse), exception.Message, StringComparison.Ordinal);

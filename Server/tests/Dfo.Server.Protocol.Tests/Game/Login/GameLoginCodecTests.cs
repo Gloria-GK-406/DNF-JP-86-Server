@@ -1,7 +1,6 @@
 using System.Buffers.Binary;
 using System.Text;
 using Dfo.Server.Data.Networking;
-using Dfo.Server.Networking.Configuration;
 using Dfo.Server.Networking.Framing;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.InitialConnection;
@@ -40,16 +39,8 @@ public sealed class GameLoginCodecTests
     [Fact]
     public void EncodeSuccess_PreservesLegacyLoginBody()
     {
-        var options = new GameLoginOptions
-        {
-            ServerIp = "192.0.2.20",
-            Environment = 0x01,
-            LoginChannelPort = 10128,
-            UnknownPort = 17200,
-        };
-
         var frame = Assert.Single(
-            new GameLoginResponseEncoder(options).Encode(new GameLoginResponse(true)));
+            new GameLoginResponseEncoder().Encode(CreateLoginResponse()));
 
         Assert.Equal(0x01, frame[0]);
         Assert.Equal(0x0001, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1, 2)));
@@ -70,12 +61,12 @@ public sealed class GameLoginCodecTests
     [Fact]
     public void SharedType0001_UsesCmdForLoginAndNotiForInitialConnection()
     {
-        var options = new GameLoginOptions { ServerIp = "192.0.2.20" };
         var login = Assert.Single(
-            new GameLoginResponseEncoder(options).Encode(new GameLoginResponse(true)));
+            new GameLoginResponseEncoder().Encode(CreateLoginResponse()));
         var initial = Assert.Single(
-            new GameInitialConnectionNoticeEncoder(options).Encode(
-                new GameInitialConnectionNotice(11, DateTimeOffset.UnixEpoch)));
+            new GameInitialConnectionNoticeEncoder().Encode(
+                new GameInitialConnectionNotice(
+                    11, DateTimeOffset.UnixEpoch, "192.0.2.20")));
 
         Assert.Equal((byte)GameMessageClass.Cmd, login[0]);
         Assert.Equal((byte)GameMessageClass.Noti, initial[0]);
@@ -86,10 +77,11 @@ public sealed class GameLoginCodecTests
     [Fact]
     public void EncodeInitialConnection_RejectsAnUnrepresentableChannel()
     {
-        var notice = new GameInitialConnectionNotice(256, DateTimeOffset.UnixEpoch);
+        var notice = new GameInitialConnectionNotice(
+            256, DateTimeOffset.UnixEpoch, "192.0.2.20");
 
         Assert.Throws<InvalidDataException>(() =>
-            GameInitialConnectionPayloadCodec.EncodeBody(notice, new GameLoginOptions()));
+            GameInitialConnectionPayloadCodec.EncodeBody(notice));
     }
 
     [Theory]
@@ -97,13 +89,15 @@ public sealed class GameLoginCodecTests
     [InlineData("2001:db8::1")]
     public void EncodeInitialConnection_RejectsANonIpv4AdvertisedAddress(string address)
     {
-        var notice = new GameInitialConnectionNotice(11, DateTimeOffset.UnixEpoch);
+        var notice = new GameInitialConnectionNotice(
+            11, DateTimeOffset.UnixEpoch, address);
 
         Assert.Throws<InvalidDataException>(() =>
-            GameInitialConnectionPayloadCodec.EncodeBody(
-                notice,
-                new GameLoginOptions { ServerIp = address }));
+            GameInitialConnectionPayloadCodec.EncodeBody(notice));
     }
+
+    private static GameLoginResponse CreateLoginResponse() =>
+        new(true, 0x01, 10128, "192.0.2.20", 17200, 17200);
 
     private static byte[] EncodeDStrings(params string[] values)
     {

@@ -43,6 +43,7 @@ public sealed class UserServiceTests
         var sent = Assert.IsType<GameInitialConnectionNotice>(Assert.Single(sender.Messages));
         Assert.Equal(11, sent.ChannelId);
         Assert.Equal(preparedAt, sent.PreparedAt);
+        Assert.Equal("192.0.2.20", sent.EndpointHost);
     }
 
     [Fact]
@@ -326,7 +327,7 @@ public sealed class UserServiceTests
         var observer = new OnlineUserConnectionObserver(
             service, gate, new SelectedSessionTransitionGate(),
             new EmptySelectedSessions(), new NoopCleanup(), new StubChannelEntryPolicy(),
-            new RecordingInitialSender(), TimeProvider.System);
+            new StubServerConfigService(), new RecordingInitialSender(), TimeProvider.System);
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:20"),
             NetworkEndpointKind.Game,
@@ -364,7 +365,8 @@ public sealed class UserServiceTests
         var cleanup = new ClearingCleanup(service);
         var observer = new OnlineUserConnectionObserver(
             service, gate, new SelectedSessionTransitionGate(), sessions, cleanup,
-            new StubChannelEntryPolicy(), new RecordingInitialSender(), TimeProvider.System);
+            new StubChannelEntryPolicy(), new StubServerConfigService(),
+            new RecordingInitialSender(), TimeProvider.System);
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:24"), NetworkEndpointKind.Game, 10011);
         var registered = service.RegisterConnection(connection);
@@ -430,7 +432,7 @@ public sealed class UserServiceTests
         var observer = new OnlineUserConnectionObserver(
             service, new OnlineUserExecutionGate(), lifecycleGate,
             new EmptySelectedSessions(), new NoopCleanup(), new StubChannelEntryPolicy(),
-            new RecordingInitialSender(), TimeProvider.System);
+            new StubServerConfigService(), new RecordingInitialSender(), TimeProvider.System);
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:25"), NetworkEndpointKind.Game, 10011);
         var registered = service.RegisterConnection(connection);
@@ -466,6 +468,7 @@ public sealed class UserServiceTests
             sessions,
             cleanup,
             channelPolicy ?? new StubChannelEntryPolicy(),
+            new StubServerConfigService(),
             sender,
             timeProvider);
 

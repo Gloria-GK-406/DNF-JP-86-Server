@@ -44,10 +44,11 @@ public sealed class GameLoginIntegrationTests
                 ["Networking:GamePorts:0"] = gamePort.ToString(),
                 ["Database:Path"] = Path.Combine(directory, "login.db"),
                 ["Channel:ScriptPath"] = channelScriptPath,
-                ["GameLogin:ServerIp"] = "192.0.2.20",
+                ["Game:EndpointHost"] = "192.0.2.20",
                 ["GameLogin:Environment"] = "1",
-                ["GameLogin:LoginChannelPort"] = "10128",
-                ["GameLogin:UnknownPort"] = "17200",
+                ["GameLogin:ConnectionPort"] = "10128",
+                ["GameLogin:EndpointPortA"] = "17200",
+                ["GameLogin:EndpointPortB"] = "17201",
             });
             var preparedAt = new DateTimeOffset(2026, 8, 13, 2, 30, 0, TimeSpan.Zero);
             builder.Services.AddSingleton<TimeProvider>(new FixedTimeProvider(preparedAt));
@@ -138,7 +139,7 @@ public sealed class GameLoginIntegrationTests
         serverIp.CopyTo(body, 12);
         var offset = 12 + serverIp.Length;
         BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(offset), 17200);
-        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(offset + 4), 17200);
+        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(offset + 4), 17201);
         return GameServerFrameEncoder.Encode(0x01, 0x0001, body);
     }
 

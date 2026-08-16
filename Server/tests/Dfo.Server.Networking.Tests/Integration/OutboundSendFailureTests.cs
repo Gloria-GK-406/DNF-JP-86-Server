@@ -1,9 +1,11 @@
 using System.Net;
 using System.Net.Sockets;
 using Dfo.Server.Abstractions.Channel;
+using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Infrastructure.Configuration;
 using Dfo.Server.Protocol.Channel.Connect;
 using Dfo.Server.Protocol.Game.Exit;
 using Dfo.Server.Protocol.Game.Login;
@@ -77,7 +79,9 @@ public sealed class OutboundSendFailureTests
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await fixture.Sender.SendAsync(
-                gameConnection, new GameLoginResponse(false), fixture.Token));
+                gameConnection,
+                new GameLoginResponse(false, 1, 10128, "192.0.2.20", 17200, 17200),
+                fixture.Token));
 
         Assert.Contains("failure body", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -125,9 +129,12 @@ public sealed class OutboundSendFailureTests
             {
                 ["Networking:Enabled"] = "true",
                 ["Networking:ChannelPort"] = channelPort.ToString(),
-                ["Networking:GamePorts:0"] = gamePort.ToString()
+                ["Networking:GamePorts:0"] = gamePort.ToString(),
+                ["Game:EndpointHost"] = "127.0.0.1",
             });
             builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
+            builder.Services.AddSingleton<IServerConfigService>(
+                new ServerConfigService(builder.Configuration));
             builder.Services.AddSingleton<IChannelCatalog>(StaticChannelCatalog.ForGamePort(gamePort));
             builder.Services.AddSingleton(ChannelEntryOptions.Legacy);
             new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);

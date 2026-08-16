@@ -10,7 +10,13 @@ public sealed record GameLoginRequest(
     public ClientMessageType MessageType => ClientMessageType.GameLogin;
 }
 
-public sealed record GameLoginResponse(bool Succeeded) : IGameCmdMessage
+public sealed record GameLoginResponse(
+    bool Succeeded,
+    byte Environment,
+    int ConnectionPort,
+    string EndpointHost,
+    int EndpointPortA,
+    int EndpointPortB) : IGameCmdMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameLogin;
 }

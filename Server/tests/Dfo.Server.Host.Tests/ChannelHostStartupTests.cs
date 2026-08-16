@@ -137,7 +137,7 @@ public sealed class ChannelHostStartupTests
         startInfo.Environment["Networking__ChannelPort"] = channelPort.ToString();
         startInfo.Environment["Networking__GamePorts__0"] = gamePort.ToString();
         startInfo.Environment["Channel__PublicServerIp"] = "127.0.0.1";
-        startInfo.Environment["GameLogin__ServerIp"] = "127.0.0.1";
+        startInfo.Environment["Game__EndpointHost"] = "127.0.0.1";
         startInfo.Environment["Database__Path"] = Path.Combine(workingDirectory, "host.db");
         if (scriptPath is not null)
         {

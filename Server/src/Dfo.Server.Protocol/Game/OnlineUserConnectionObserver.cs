@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Channel;
+using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Networking;
@@ -18,6 +19,7 @@ public sealed class OnlineUserConnectionObserver(
     ISelectedSessionDirectory selectedSessions,
     ISelectedSessionCleanupService cleanup,
     IChannelEntryPolicy channels,
+    IServerConfigService serverConfig,
     IGameMessageSender gameSender,
     TimeProvider timeProvider) : INetworkConnectionObserver
 {
@@ -43,7 +45,10 @@ public sealed class OnlineUserConnectionObserver(
 
             await gameSender.SendNotiAsync(
                 connection.ConnectionId,
-                new GameInitialConnectionNotice(channel.ChannelId, timeProvider.GetUtcNow()),
+                new GameInitialConnectionNotice(
+                    channel.ChannelId,
+                    timeProvider.GetUtcNow(),
+                    serverConfig.GetConfig<string>(GameInitialConnectionConfigKeys.EndpointHost)),
                 cancellationToken).ConfigureAwait(false);
         }
         catch

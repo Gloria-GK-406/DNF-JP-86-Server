@@ -3,11 +3,13 @@ using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Infrastructure.Accounts;
 using Dfo.Server.Infrastructure.Characters;
+using Dfo.Server.Infrastructure.Configuration;
 using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Infrastructure.Inventory;
 using Microsoft.Extensions.Configuration;
@@ -26,6 +28,7 @@ public sealed class InfrastructureModule : IServerModule
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        services.TryAddSingleton<IServerConfigService, ServerConfigService>();
         var options = ChannelSourceOptions.FromConfiguration(configuration);
         services.TryAddSingleton(options);
         services.TryAddSingleton(new FileChannelScriptSource(options.ScriptVersion, options.ScriptPath));

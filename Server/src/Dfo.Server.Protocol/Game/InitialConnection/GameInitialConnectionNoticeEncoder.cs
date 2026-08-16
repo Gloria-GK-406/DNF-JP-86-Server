@@ -1,13 +1,11 @@
-using Dfo.Server.Networking.Configuration;
-
 namespace Dfo.Server.Protocol.Game.InitialConnection;
 
-internal sealed class GameInitialConnectionNoticeEncoder(GameLoginOptions options)
+internal sealed class GameInitialConnectionNoticeEncoder
     : GameNotiMessageEncoder<GameInitialConnectionNotice>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         GameInitialConnectionNotice message) =>
         OnePayload(
             GameProtocol.LoginType,
-            GameInitialConnectionPayloadCodec.EncodeBody(message, options));
+            GameInitialConnectionPayloadCodec.EncodeBody(message));
 }

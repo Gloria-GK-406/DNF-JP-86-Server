@@ -8,6 +8,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Protocol.Game.Login;
 using Dfo.Server.Protocol.Game;
+using Dfo.Server.Application.Tests.Support;
 
 namespace Dfo.Server.Application.Tests.Game;
 
@@ -48,7 +49,8 @@ public sealed class GameLoginTests
         var anonymous = onlineUsers.RegisterConnection(connection);
         var sender = new RecordingSender();
         var bus = new RecordingCommandBus(new LoginGameUserResult(new AccountId(7)));
-        var handler = new GameLoginHandler(onlineUsers, sender, bus);
+        var handler = new GameLoginHandler(
+            onlineUsers, sender, bus, new StubServerConfigService());
 
         await handler.HandleAsync(
             new NetworkDispatchContext(connection),
@@ -60,7 +62,9 @@ public sealed class GameLoginTests
         Assert.Equal("login", command.LoginId);
         Assert.Equal("password-hash", command.PasswordHash);
         Assert.Equal(connection.ConnectionId, sender.ConnectionId);
-        Assert.Equal(new GameLoginResponse(true), sender.Message);
+        Assert.Equal(
+            new GameLoginResponse(true, 1, 10128, "192.0.2.20", 17200, 17200),
+            sender.Message);
     }
 
     private sealed class StubAccountService(AccountId accountId) : IAccountService

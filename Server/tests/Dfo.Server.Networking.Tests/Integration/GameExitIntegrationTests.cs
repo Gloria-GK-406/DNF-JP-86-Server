@@ -3,6 +3,8 @@ using System.Net;
 using System.Net.Sockets;
 using Dfo.Server.Application;
 using Dfo.Server.Abstractions.Channel;
+using Dfo.Server.Abstractions.Configuration;
+using Dfo.Server.Infrastructure.Configuration;
 using Dfo.Server.Networking.Framing;
 using Dfo.Server.Protocol;
 using Microsoft.Extensions.Configuration;
@@ -28,9 +30,12 @@ public sealed class GameExitIntegrationTests
         {
             ["Networking:Enabled"] = "true",
             ["Networking:ChannelPort"] = channelPort.ToString(),
-            ["Networking:GamePorts:0"] = gamePort.ToString()
+            ["Networking:GamePorts:0"] = gamePort.ToString(),
+            ["Game:EndpointHost"] = "127.0.0.1",
         });
         builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
+        builder.Services.AddSingleton<IServerConfigService>(
+            new ServerConfigService(builder.Configuration));
         builder.Services.AddSingleton<IChannelCatalog>(StaticChannelCatalog.ForGamePort(gamePort));
         builder.Services.AddSingleton(ChannelEntryOptions.Legacy);
         new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);

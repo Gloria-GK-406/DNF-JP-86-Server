@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions;
+using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Application;
 using Dfo.Server.Host.Modules;
 using Dfo.Server.Infrastructure;
@@ -25,7 +26,7 @@ using var host = builder.Build();
 var logger = host.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Dfo.Server.Host");
 var channel = host.Services.GetRequiredService<ChannelSourceOptions>();
 var networking = host.Services.GetRequiredService<NetworkingOptions>();
-var gameLogin = host.Services.GetRequiredService<GameLoginOptions>();
+var serverConfig = host.Services.GetRequiredService<IServerConfigService>();
 
 logger.LogInformation(
     "Starting DFO server with modules: {Modules}",
@@ -37,7 +38,7 @@ logger.LogInformation(
     builder.Environment.ContentRootPath,
     channel.ScriptPath,
     channel.PublicServerIp,
-    gameLogin.ServerIp,
+    serverConfig.GetConfig<string>("Game:EndpointHost"),
     networking.ChannelPort,
     string.Join(",", networking.GamePorts));
 
