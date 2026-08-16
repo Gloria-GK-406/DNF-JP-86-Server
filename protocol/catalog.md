@@ -41,7 +41,7 @@
 
 | Command | Type | 名称 | 角色 | 阶段 | 文档 |
 |---:|---:|---|---|---|---|
-| `0x01` CMD | `0x0001` | LOGIN response | Response | 未知 | — |
+| `0x01` CMD | `0x0001` | LOGIN response | Response | 确定语义 | [0x0001.md](game/server-to-client/0x0001.md) |
 | `0x00` NOTI | `0x0002` | 角色列表 | Notification | 未知 | — |
 | `0x01` CMD | `0x0003` | EXIT response | Response | 未知 | — |
 
@@ -108,7 +108,6 @@ S→C 的 command 取自服务端编码器（`GameLoginResponseEncoder` / `Accou
 | Type | 方向 | Body | 观察 |
 |---:|---|---:|---|
 | `0x0001` | C→S | 73 | LOGIN。服务端已实现，含账号凭证与启动参数 auth hash（样本不得入库） |
-| `0x0001` | S→C | 54 | LOGIN response。服务端已实现，但 `EncodeSuccess` 内多个字段是旧服移植的魔数，未经抓包确认 |
 | `0x0002` | S→C | 18 | 角色列表；样本为空名单。`0x0008` `mode=2` 的响应；服务端编码器含旧服移植的字面量尾部，未验证 |
 | `0x0002` | C→S | 31 | 与 S→C `0x0002` 同 type 反方向。**条件发送**：五次会话中出现四次，2026-08-15 第五次会话完全没发（其后所有 seq 相应下移一位）。出现时只有一个 u32 变化（offset 12，`0x0005C0E2`/`0x0005C022`，像计数或时间戳），其余恒定，含 `0C000000` + 12 字节 ASCII 十六进制串 `30e3a448ed0f`。构包器在**被混淆的第二代码区**（抓包 stack[1] = `RVA 0x04876980`），`.text` 普查查不到 |
 
