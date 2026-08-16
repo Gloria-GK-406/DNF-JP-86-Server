@@ -15,3 +15,16 @@ public sealed record RosterFollowUpRequest(
 {
     public ClientMessageType MessageType => ClientMessageType.GameRosterFollowUp;
 }
+
+/// <summary>The two zero bytes the reference server answers 0x02A8 with.</summary>
+/// <remarks>
+/// This protocol was recorded as expecting no response, and that was wrong in an instructive way:
+/// the evidence was that no inbound frame followed it in five captured sessions -- sessions served
+/// by this server, which never replied. Observing our own silence and concluding the client wanted
+/// silence is circular. The reference server replies, and the difference showed up only when both
+/// servers were driven through the same sequence and diffed.
+/// </remarks>
+public sealed record RosterFollowUpResponse : IGameCmdMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameRosterFollowUp;
+}

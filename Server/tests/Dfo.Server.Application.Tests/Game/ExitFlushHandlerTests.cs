@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.RosterFollowUp;
 using Dfo.Server.Protocol.Game.SessionMetrics;
 using Dfo.Server.Protocol.Game.TaggedIdReport;
@@ -103,7 +104,8 @@ public sealed class ExitFlushHandlerTests
     public async Task RosterFollowUp_FlagsTheSentinelButNotOtherValues()
     {
         var logger = new RecordingLogger<RosterFollowUpHandler>();
-        var handler = new RosterFollowUpHandler(Attributed(out var context), logger);
+        var sender = new CountingGameMessageSender();
+        var handler = new RosterFollowUpHandler(Attributed(out var context), sender, logger);
 
         await handler.HandleAsync(
             context,
@@ -118,6 +120,36 @@ public sealed class ExitFlushHandlerTests
         Assert.Contains("0xFFFF (sentinel)", logger.Entries[0].Message);
         Assert.Contains("0x1234", logger.Entries[1].Message);
         Assert.DoesNotContain("sentinel", logger.Entries[1].Message);
+
+        // Answered, not merely logged. Both values get a reply: the reference server's handler
+        // does not look at the body at all.
+        Assert.Equal(2, sender.CmdCount);
+    }
+
+    private sealed class CountingGameMessageSender : IGameMessageSender
+    {
+        public int CmdCount { get; private set; }
+
+        public ValueTask SendCmdAsync(
+            NetworkConnectionId connectionId,
+            IGameCmdMessage message,
+            CancellationToken cancellationToken)
+        {
+            CmdCount++;
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask SendNotiAsync(
+            NetworkConnectionId connectionId,
+            IGameNotiMessage message,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("The roster follow-up answers with a CMD.");
+
+        public ValueTask SendExplicitAsync(
+            NetworkConnectionId requiredDirectConnectionId,
+            GameExplicitMessageDelivery delivery,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("This handler does not use explicit delivery.");
     }
 
     private static SessionMetricsReportRequest AllZeroMetrics() => new(

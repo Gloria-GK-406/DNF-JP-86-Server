@@ -1,4 +1,4 @@
-using Dfo.Server.Abstractions.Networking;
+﻿using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.Logging;
 
@@ -25,22 +25,21 @@ internal sealed class HiddenCharacterInfoMessageDecoder : IGameMessageDecoder
 /// and the legacy server shipped this exact constant while character creation worked.
 /// </remarks>
 public sealed class HiddenCharacterInfoHandler(
-    IGameMessageSender sender,
     ILogger<HiddenCharacterInfoHandler> logger)
     : ClientMessageHandler<HiddenCharacterInfoRequest>
 {
-    protected override async ValueTask HandleMessageAsync(
+    protected override ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
         HiddenCharacterInfoRequest message,
         CancellationToken cancellationToken)
     {
+        // Deliberately silent. The reply is pushed with the roster, before this request is even
+        // sent, and the reference server leaves the request itself unanswered -- answering it too
+        // put a second copy on the wire that no working server sends.
         logger.LogInformation(
-            "Hidden character info {ConnectionId}: replying with the constant refusal",
+            "Hidden character info {ConnectionId}: already answered with the roster, not replying again",
             context.Connection.ConnectionId);
-        await sender.SendCmdAsync(
-            context.Connection.ConnectionId,
-            new HiddenCharacterInfoResponse(),
-            cancellationToken).ConfigureAwait(false);
+        return ValueTask.CompletedTask;
     }
 }
 

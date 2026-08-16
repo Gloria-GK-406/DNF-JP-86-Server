@@ -1,4 +1,4 @@
-namespace Dfo.Server.Data.Networking;
+﻿namespace Dfo.Server.Data.Networking;
 
 public enum ClientMessageType
 {
@@ -42,6 +42,7 @@ public enum ServerMessageType
     GameHonorLevelInfo = 0x0000_0289,
     GameAuctionServiceState = 0x0000_00B7,
     GameInformNotice = 0x0000_01A1,
+    GameRosterFollowUp = 0x0001_02A8,
 }
 
 public interface IClientNetworkMessage

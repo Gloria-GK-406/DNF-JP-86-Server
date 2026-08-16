@@ -6,14 +6,20 @@ using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Protocol.Game.RosterFollowUp;
 
 /// <summary>
-/// Consumes the two-byte 0x02A8 report and logs it. Fire-and-forget: no response, no domain
-/// change, no command bus. The client sends it immediately after receiving the character roster.
+/// Consumes the two-byte 0x02A8 report, logs it and answers it. No domain change, no command bus.
+/// The client sends it immediately after receiving the character roster.
 /// </summary>
+/// <remarks>
+/// It was treated as fire-and-forget until the reference server was driven through the same
+/// sequence and diffed: it answers with two zero bytes. See <see cref="RosterFollowUpResponse"/>
+/// for why the earlier "no response" reading was circular.
+/// </remarks>
 public sealed class RosterFollowUpHandler(
     IOnlineUserQueryService onlineUsers,
+    IGameMessageSender sender,
     ILogger<RosterFollowUpHandler> logger) : ClientMessageHandler<RosterFollowUpRequest>
 {
-    protected override ValueTask HandleMessageAsync(
+    protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
         RosterFollowUpRequest message,
         CancellationToken cancellationToken)
@@ -29,8 +35,20 @@ public sealed class RosterFollowUpHandler(
                 ? $"0x{message.Value:X4} (sentinel)"
                 : $"0x{message.Value:X4}");
 
-        return ValueTask.CompletedTask;
+        await sender.SendCmdAsync(
+            context.Connection.ConnectionId,
+            new RosterFollowUpResponse(),
+            cancellationToken).ConfigureAwait(false);
     }
+}
+
+internal sealed class RosterFollowUpResponseEncoder : GameCmdMessageEncoder<RosterFollowUpResponse>
+{
+    private static readonly byte[] Acknowledgement = [0x00, 0x00];
+
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
+        RosterFollowUpResponse message) =>
+        OnePayload(GameProtocol.RosterFollowUpType, Acknowledgement);
 }
 
 internal static class RosterFollowUpDescriptor
