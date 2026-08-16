@@ -13,6 +13,7 @@
 | 从未知报文到实现完成的工作流 | [逆向与验证方法](methodology.md) |
 | 跨协议共享的帧结构、构包原语、定位技巧（**含 RVA/VA 约定，先读**） | [patterns/game-frame.md](patterns/game-frame.md) |
 | S→C 接收链、分发器、handler 注册表 | [patterns/game-receive.md](patterns/game-receive.md) |
+| 设置类协议族（上传/下发的 7 个 type 及其不对称） | [patterns/game-settings.md](patterns/game-settings.md) |
 | 客户端支持的 type 全集（两个方向） | [patterns/data/](patterns/data/) 下的两个 `.tsv` |
 | 新增一条协议 | 复制 [记录模板](templates/message.md) |
 
