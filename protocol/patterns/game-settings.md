@@ -145,13 +145,35 @@ d[0x01C0] = Handle_SAVE_CHARACTER_OPTION; // 角色级，不是账号级
 [`SelectedCharacterStateMessageFactory.cs`](../../Server/src/Dfo.Server.Protocol/Game/SelectCharacter/SelectedCharacterStateMessageFactory.cs)
 第 55–56 行加入选角色状态批次。
 
-### 待定的架构分歧：下发时机
+### 下发时机（**分歧已判定：旧服是对的**）
 
 旧服作者曾特意把 `0x00AD` / `0x01C7` 从选角色阶段挪到**登录之后**（提交 `1034904`），
 理由写在 `AccountSettingsPacketBuilder` 的注释里。重构后的实现又把两条放回了选角色批次。
+本页此前只记录分歧、不改代码，等一次能判定的实机证据。
 
-对 `0x00AD` 无所谓（反正不读），但 **`0x01C7` 是真读的**，时机可能真有影响。
-本页只记录分歧，不改代码——选角色协议能实机跑通后 A/B 一次即可判定。
+**2026-08-16 证据到了，而且判得很干脆。**把上游服务端（`gitgud.io/rewio/86JP`，HEAD
+`ebec883`）跑起来、用同一个客户端连上去，**建角色 UI 打得开**；连我们的服务端则打不开。
+两边逐条比对，登录阶段唯一的差别就是这两个包：
+
+```csharp
+// 上游 LoginHandler.SendAccountSettingsOnLoginAsync，在 LOGIN 响应之后立即发
+GamePacketEnvelopeBuilder.Build(0x00, 0x00AD, BuildGameOptionBody(main, quick0, quick1)),
+GamePacketEnvelopeBuilder.Build(0x00, 0x01C7, BuildHotkeyOptionBody(keyType, accountHotkeys)),
+```
+
+旧服注释里的原话是「**必须在登录成功后、GET_USERINFO/选角前下发**」。它没说错，只是低估了
+后果：不是"UI 勾选恢复了但运行态没应用"，而是**角色列表屏根本不让你进创建角色**。
+
+所以这不是风格之争，是功能依赖。当前实现已把两条改为**登录响应之后立即下发**，
+选角色批次里的那两条保留不动（选完角色后带上角色级热键，是另一件事）。
+
+登录期的 `0x01C7` 只带**账号级**热键槽：那时还没选角色，角色级槽位不存在。旧服的
+`AccountScopedHotkeySlotCount = 1`，与我们 `AccountSettingsEntryState.AccountHotkeySlot`
+是单个 `ushort?` 正好对上，不是巧合——两边描述的是同一个槽。
+
+**方法上的教训**：这条分歧当初被判定为"证据不足，只记录不改"，事后看是对的决定——
+真去猜的话，猜中也是运气。真正解决它的不是更多静态分析，而是**把已知能工作的旧服跑起来做对照**。
+一份可运行的参照实现，抵得上一堆推断。
 
 ## 未解问题
 

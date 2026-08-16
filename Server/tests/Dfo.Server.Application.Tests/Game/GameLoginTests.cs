@@ -49,8 +49,9 @@ public sealed class GameLoginTests
         var anonymous = onlineUsers.RegisterConnection(connection);
         var sender = new RecordingSender();
         var bus = new RecordingCommandBus(new LoginGameUserResult(new AccountId(7)));
+        var accountEntryState = new StubAccountEntryStateService();
         var handler = new GameLoginHandler(
-            onlineUsers, sender, bus, new StubServerConfigService());
+            onlineUsers, sender, bus, new StubServerConfigService(), accountEntryState);
 
         await handler.HandleAsync(
             new NetworkDispatchContext(connection),
@@ -61,10 +62,26 @@ public sealed class GameLoginTests
         Assert.Equal(anonymous.OnlineUserId, command.OnlineUserId);
         Assert.Equal("login", command.LoginId);
         Assert.Equal("password-hash", command.PasswordHash);
-        Assert.Equal(connection.ConnectionId, sender.ConnectionId);
+
+        // Three sends, all to the connection the request arrived on, in this exact order. The
+        // order is load-bearing rather than incidental: the client needs its account-level input
+        // state before the roster screen, and sending these only in the select-character batch
+        // left the roster screen unable to open character creation at all.
+        Assert.Equal(3, sender.Sends.Count);
+        Assert.All(sender.Sends, send => Assert.Equal(connection.ConnectionId, send.ConnectionId));
+
+        Assert.True(sender.Sends[0].IsCmd);
         Assert.Equal(
             new GameLoginResponse(true, 1, 10128, "192.0.2.20", 17200, 17200),
-            sender.Message);
+            sender.Sends[0].Message);
+
+        Assert.All(sender.Sends.Skip(1), send =>
+        {
+            Assert.False(send.IsCmd);
+            Assert.Equal(ServerMessageType.GameStateSynchronization, send.Message.MessageType);
+        });
+
+        Assert.Equal(new AccountId(7), accountEntryState.RequestedAccountId);
     }
 
     private sealed class StubAccountService(AccountId accountId) : IAccountService
@@ -115,19 +132,29 @@ public sealed class GameLoginTests
         }
     }
 
+    private sealed record RecordedSend(
+        NetworkConnectionId ConnectionId,
+        IGameServerMessage Message,
+        bool IsCmd);
+
+    /// <summary>
+    /// Records the whole ordered sequence, not just the last message.
+    /// </summary>
+    /// <remarks>
+    /// It used to keep only the most recent send and throw from <c>SendNotiAsync</c> on the grounds
+    /// that "login sends a CMD response". Login now sends a CMD response followed by two NOTIs, and
+    /// their order is the point, so the sequence has to be observable.
+    /// </remarks>
     private sealed class RecordingSender : IGameMessageSender
     {
-        public NetworkConnectionId ConnectionId { get; private set; }
-
-        public IGameServerMessage? Message { get; private set; }
+        public List<RecordedSend> Sends { get; } = [];
 
         public ValueTask SendCmdAsync(
             NetworkConnectionId connectionId,
             IGameCmdMessage message,
             CancellationToken cancellationToken)
         {
-            ConnectionId = connectionId;
-            Message = message;
+            Sends.Add(new RecordedSend(connectionId, message, IsCmd: true));
             return ValueTask.CompletedTask;
         }
 
@@ -140,7 +167,29 @@ public sealed class GameLoginTests
         public ValueTask SendNotiAsync(
             NetworkConnectionId connectionId,
             IGameNotiMessage message,
-            CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("Login sends a CMD response.");
+            CancellationToken cancellationToken)
+        {
+            Sends.Add(new RecordedSend(connectionId, message, IsCmd: false));
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class StubAccountEntryStateService : IAccountEntryStateService
+    {
+        public AccountId? RequestedAccountId { get; private set; }
+
+        public ValueTask<AccountEntryState> LoadAsync(
+            AccountId accountId,
+            CancellationToken cancellationToken)
+        {
+            RequestedAccountId = accountId;
+            return ValueTask.FromResult(new AccountEntryState(
+                accountId,
+                new AccountSettingsEntryState([0x01], [0x02], [0x03], HotkeyKeyType: 1, AccountHotkeySlot: 0x0042),
+                new AccountWalletEntryState(0, 0, 0, 0),
+                new AccountEntitlementEntryState([]),
+                new AccountProgressionEntryState(0, 0, new AccountAdventureEntryState([]), []),
+                new AccountRelationCompatibilityEntryState([], [], [], 0)));
+        }
     }
 }

@@ -364,6 +364,28 @@ internal static partial class StateSynchronizationPayloadCodec
         foreach (var slot in slots) writer.Write(slot); return stream.ToArray();
     }
 
+    /// <summary>The same 0x01C7 layout, carrying only the account-scoped slot.</summary>
+    /// <remarks>
+    /// Sent at login, where no character is selected and the per-character slots therefore do not
+    /// exist yet. Exactly one slot is account scoped, which is why
+    /// <see cref="AccountSettingsEntryState.AccountHotkeySlot"/> is a single value rather than a
+    /// list -- the legacy server took the same one slot off the front of its hotkey array.
+    /// </remarks>
+    public static byte[] EncodeAccountHotkeys(AccountSettingsEntryState accountSettings)
+    {
+        using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
+        writer.Write(accountSettings.HotkeyKeyType);
+        if (accountSettings.AccountHotkeySlot is not { } slot)
+        {
+            writer.Write(0);
+            return stream.ToArray();
+        }
+
+        writer.Write(sizeof(ushort));
+        writer.Write(slot);
+        return stream.ToArray();
+    }
+
     public static byte[] EncodeDungeonPermissions(IReadOnlyList<CharacterDungeonProgressState> entries)
     {
         if (entries.Count > ushort.MaxValue) throw CountError("dungeon", "u16");

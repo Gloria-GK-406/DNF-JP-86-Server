@@ -154,6 +154,21 @@ internal sealed record HotkeyStateMessage(
         StateSynchronizationPayloadCodec.EncodeHotkeys(AccountSettings, CharacterSettings);
 }
 
+/// <summary>0x01C7 as sent at login, before any character exists to contribute slots.</summary>
+/// <remarks>
+/// A separate record rather than a nullable character argument on <see cref="HotkeyStateMessage"/>:
+/// the two are sent at different points for different reasons, and letting one message mean
+/// "with character" or "without character" depending on a null would hide which one a call site
+/// intended.
+/// </remarks>
+internal sealed record LoginHotkeyStateMessage(
+    AccountSettingsEntryState AccountSettings) : GameStateSynchronizationMessage, IGameNotiMessage
+{
+    internal override ushort Type => 0x01C7;
+    internal override byte[] EncodeBody() =>
+        StateSynchronizationPayloadCodec.EncodeAccountHotkeys(AccountSettings);
+}
+
 internal sealed record ServerEventBaselineMessage : GameStateSynchronizationMessage, IGameNotiMessage
 {
     internal override ushort Type => 0x006C;
@@ -413,6 +428,7 @@ internal static class StateSynchronizationEncoderRegistration
         AddNoti<DailyChallengeStateMessage>(services);
         AddNoti<AccountGameOptionsMessage>(services);
         AddNoti<HotkeyStateMessage>(services);
+        AddNoti<LoginHotkeyStateMessage>(services);
         AddNoti<ServerEventBaselineMessage>(services);
         AddNoti<DungeonPermissionStateMessage>(services);
         AddNoti<CharacterOptionStateMessage>(services);
