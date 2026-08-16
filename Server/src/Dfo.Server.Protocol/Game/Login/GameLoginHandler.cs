@@ -88,7 +88,7 @@ public sealed class GameLoginHandler(
             new LoginHotkeyStateMessage(settings),
             new AuctionServiceStateNotice(0x00, Open: true),
             new AuctionServiceStateNotice(0x01, Open: true),
-            new HonorLevelInfoNotice(AccountHonorLevel.None),
+            new HonorLevelInfoNotice(AccountHonorLevel.Initial),
             InformNoticeNotice.Empty,
         ];
 

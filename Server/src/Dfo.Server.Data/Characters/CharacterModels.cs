@@ -71,7 +71,13 @@ public sealed record CharacterDeletionResult(
 /// <summary>Account-wide honour standing, shown on the roster screen.</summary>
 public sealed record AccountHonorLevel(uint Level, uint Experience)
 {
-    public static AccountHonorLevel None { get; } = new(0, 0);
+    /// <summary>What a brand new account has.</summary>
+    /// <remarks>
+    /// Level 1, not 0. The reference server derives honour level from experience and returns 1 for
+    /// a fresh account with no characters -- level 0 never appears on the wire there, so sending it
+    /// would be a state the client has no reason to expect.
+    /// </remarks>
+    public static AccountHonorLevel Initial { get; } = new(1, 0);
 }
 
 public sealed record CharacterIdentityState(
