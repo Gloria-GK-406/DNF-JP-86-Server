@@ -24,7 +24,7 @@ S→C 是**另一套机制**，本页记录它。地址约定（RVA / VA）见
 ```text
 接收函数 RVA 0x00D8977C
   ├─ sub   ecx, 0x0F                     ← S→C header 15 字节（与既有结论一致）
-  ├─ call  0x00D89620                    ← body 解析入口（尚未展开）
+  ├─ call  0x00D89620                    ← 不是 body 解析：只特判 type 0x02/0x09/0x57
   ├─ movzx ecx, byte [ebx]               ← 0x00D89ABC：读 header 第 0 字节 = command
   │    sub eax, 0 / je  0x00D89C62       ← command 0x00 → 分支 B
   │    dec eax     / je  0x00D89B16       ← command 0x01 → 分支 A
@@ -62,9 +62,40 @@ push  ecx / push arg3 / push arg2 / push esi
 call  edx                   ; ← 返回地址 0x00D8566E
 ```
 
-**重要：handler 拿不到帧缓冲。** 它的四个参数是 `(type, arg2, arg3, context)`，
-帧内容不在其中。所以这张注册表是**"某 type 到达了"的通知钩子**，不是 body 解析器；
-body 解析在更早的 `0x00D89620` 里，那里才是读字段的地方（**尚未逆向，这是 S→C 的下一步**）。
+**handler 拿不到帧缓冲**——它的四个参数是 `(type, arg2, arg3, context)`，帧内容不在其中。
+但这不代表它读不到 body：handler 从**一个全局入站流**里自己拉字段，见下节。
+
+> 早期记录曾把 `0x00D89620` 写成"body 解析入口"，**是错的**。该函数只按 type 做特判
+> （`cmp eax,0x57 / jg`，另特判 `0x02`、`0x09`、`0x57`），其余直接 `mov al,1; ret`，
+> 不碰 body。两个分发器里都调的 `0x0122B910` 也曾被当成日志函数，它是个**纯 `ret` 空桩**。
+
+### 入站流与读取原语（S→C 的取字段方式）
+
+全局结构位于 `VA 0x031C7E00`，与 C→S 的写入原语完全对称：
+
+| 偏移 | 含义 |
+|---|---|
+| `+0x00` | 读游标 |
+| `+0x04` | 剩余字节（减到负数触发回填） |
+| `+0x08` | refill 回调（唯一装填点 `0x01CFFD59`） |
+| `+0x0C` | 回调上下文 |
+| `+0x20` | 回填抑制标志 |
+
+| RVA | 语义 | 调用形态 |
+|---|---|---|
+| `0x01D00420` | `ReadU8(dest)` | `push 1` → `push &dest` |
+| `0x01D00490` | `ReadU16(dest)` | `push &dest` |
+| `0x01D00500` | `ReadU32(dest)` | `push &dest` |
+| `0x01D00570` | `ReadBytes(dest, len)` | `push <len>` → `push &dest` |
+
+`ReadU8` 一家共 1667 个调用点。**因此 S→C 的 body 布局可以像 C→S 一样从 handler 指令机械
+读出，不必先抓包**——这是此前记为"S→C 的下一步"的那一环。
+
+对游标的全部 5 处写入都是原语自身的步进，没有"每帧把游标指向 body"的地方；`+0x08` 的
+refill 回调才是装填入口，所以它是**带回填的流**，不是一次性缓冲区。
+
+抽样统计：表 B（NOTI）28 个 handler 中 21 个会读入站流，表 A（CMD）24 个中 18 个——
+**读字段是常态（约 75%）**，完全不读的 handler 属于少数，通常是纯触发型。
 
 ## 两张注册表 = CMD 与 NOTI
 
@@ -257,6 +288,7 @@ S→C 合计 **1266** 个不同的 `(command, type)` 对。
 | 协议族 | 全部是 CMD（`MakeHeader` 写死 command 1） | CMD 表 A + NOTI 表 B |
 | 规模 | 1082 点 / 604 type | 1271 点 / 1266 个 `(command,type)` 对（A 538 + B 728） |
 | 一对多 | 一个 type 多个构包点（平均 1.79） | 同表内 type → handler 唯一（覆盖语义）；389 个 type 在两张表各有一份 |
-| 盲区 | 被混淆的第二代码区扫不到 | handler 拿不到帧缓冲；body 解析入口 `0x00D89620` 未展开 |
+| 取字段 | 写入原语 + `MakeHeader`/`Finalize` | 读取原语 + 全局入站流 `0x031C7E00` |
+| 盲区 | 被混淆的第二代码区扫不到 | 约 25% 的 handler 不读 body，无法从指令推出布局 |
 
 两者都用同一套「前向对齐投票」取立即数，理由见 game-frame。

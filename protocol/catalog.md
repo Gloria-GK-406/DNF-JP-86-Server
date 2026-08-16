@@ -80,7 +80,9 @@ S→C 的 command 取自服务端编码器（`GameLoginResponseEncoder` / `Accou
 
 方法见 [game-frame](patterns/game-frame.md) 与 [game-receive](patterns/game-receive.md)。
 所有数字仍是**下限**：C→S 有被混淆到第二代码区、扫不到的构包器（已观察到的 C→S `0x0002`
-就是其一）；S→C 的 handler 拿不到帧缓冲，body 解析入口 `0x00D89620` 尚未展开。
+就是其一）；S→C 的 handler 虽然拿不到帧缓冲，但会从全局入站流里取字段（读取原语见
+[game-receive](patterns/game-receive.md#入站流与读取原语sc-的取字段方式)），
+约 25% 的 handler 完全不读 body，这部分布局无法从指令推出。
 上表的 538 / 728 已包含此前遗漏的 439 个运行时注册点，但**尚未写回**
 [server-to-client-handlers.tsv](patterns/data/server-to-client-handlers.tsv)（该文件仍是静态的 832 行）。
 
