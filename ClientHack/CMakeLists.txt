@@ -166,6 +166,28 @@ if(CLIENTHACK_PROTECT_DRX)
 else()
     target_compile_definitions(plugin_anti_anti_debug PRIVATE CLIENTHACK_PROTECT_DRX=0)
 endif()
+# Debug-branch only, and deliberately NOT registered in required_plugins.c: the
+# guard is a mitigation for the B1 replay's startup ordering hole, so a signature
+# mismatch must leave the client startable (unguarded) instead of aborting the
+# host. That needs CLIENTHACK_PLUGIN_FLAGS=0u, which clienthack_plugin() hardcodes
+# to CH_PLUGIN_REQUIRED -- hence the explicit target.
+add_library(plugin_b1_startup_guard SHARED
+    plugins/0006_b1_startup_guard/b1_startup_guard.c
+    plugins/plugin_entry.c
+    plugins/plugin.def)
+target_include_directories(plugin_b1_startup_guard PRIVATE include plugins)
+target_compile_definitions(plugin_b1_startup_guard PRIVATE
+    CLIENTHACK_PLUGIN_NAME="B1StartupGuard"
+    CLIENTHACK_PLUGIN_FLAGS=0u
+    CLIENTHACK_PLUGIN_HAS_SHUTDOWN=1)
+clienthack_warnings(plugin_b1_startup_guard)
+set_target_properties(plugin_b1_startup_guard PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "0006_B1StartupGuard"
+    RUNTIME_OUTPUT_DIRECTORY "${CLIENTHACK_STAGE_DIR}/plugins"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CLIENTHACK_STAGE_DIR}/plugins"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CLIENTHACK_STAGE_DIR}/plugins")
+
 clienthack_plugin(plugin_disable_gameguard
     plugins/0010_disable_gameguard/disable_gameguard.c
     "0010_DisableGameGuard" "DisableGameGuard")
@@ -185,6 +207,7 @@ clienthack_plugin(plugin_prevent_minimize
 
 add_custom_target(clienthack_plugins DEPENDS
     plugin_anti_anti_debug
+    plugin_b1_startup_guard
     plugin_disable_gameguard
     plugin_client_compatibility
     plugin_network_hook
