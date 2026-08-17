@@ -4,7 +4,7 @@ using Dfo.Server.Protocol.Game.MapEntryReports;
 namespace Dfo.Server.Protocol.Tests.Game.RosterScreenQueries;
 
 /// <summary>
-/// The six map-entry reports, each pinned by the body the client actually sent on 2026-08-17.
+/// The five map-entry reports, each pinned by the body the client actually sent on 2026-08-17.
 /// </summary>
 public sealed class MapEntryReportCodecTests
 {
@@ -40,15 +40,6 @@ public sealed class MapEntryReportCodecTests
     }
 
     [Fact]
-    public void SetUserPosition_AcceptsTheSevenByteBodyTheClientSends()
-    {
-        var request = (SetUserPositionReport)new SetUserPositionDecoder()
-            .Decode(GameMessageMetadata.Empty, Hex("DA01EA00056800"))!;
-
-        Assert.Equal(7, request.Body.Length);
-    }
-
-    [Fact]
     public void SecurityStatus_AcceptsEightBytesEvenThoughTheCensusSaysTwelve()
     {
         // The static census reports "at least 12" for this type; the capture is eight. A decoder
@@ -67,12 +58,4 @@ public sealed class MapEntryReportCodecTests
 
         Assert.Equal(0, request.Value);
     }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(6)]
-    public void SetUserPosition_RefusesABodyShorterThanObserved(int length) =>
-        Assert.Throws<InvalidDataException>(
-            () => new SetUserPositionDecoder().Decode(
-                GameMessageMetadata.Empty, new byte[length]));
 }

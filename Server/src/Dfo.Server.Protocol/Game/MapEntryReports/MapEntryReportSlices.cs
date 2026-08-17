@@ -1,4 +1,4 @@
-﻿using System.Buffers.Binary;
+using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Data.Networking;
@@ -11,11 +11,11 @@ namespace Dfo.Server.Protocol.Game.MapEntryReports;
 /// begins loading into a town.
 /// </summary>
 /// <remarks>
-/// Grouped as a family rather than split into six folders. They share a trigger (the map-entry
+/// Grouped as a family rather than split into five folders. They share a trigger (the map-entry
 /// handshake), none carries domain semantics, none is answered -- the client registers no CMD
 /// receive handler for any of them -- and most have a body whose fields are still unknown. The
-/// two protocols in that same handshake that the client *does* wait on, ENTER_SELECT_DUNGEON and
-/// SELECT_DUNGEON, are a real feature and live on their own.
+/// protocols in that same handshake that carry real state -- ENTER_SELECT_DUNGEON, SELECT_DUNGEON
+/// and SET_USER_POSITION, whose coordinates the server has to keep -- live on their own.
 ///
 /// Every layout below is pinned by a capture taken 2026-08-17; see
 /// protocol/game/client-to-server/ for the per-protocol documents and samples.
@@ -80,23 +80,6 @@ public sealed record CeraQueryReport(GameMessageMetadata Metadata) : IMapEntryRe
 }
 
 /// <summary>
-/// CMD 0x0023 <c>SET_USER_POSITION</c>: seven bytes in the capture (<c>DA01EA00056800</c>).
-/// </summary>
-/// <remarks>
-/// Kept raw. The static extraction says "at least 7" and stops at a branch, and the reference
-/// server's own builder for the notification counterpart writes eight -- a disagreement recorded
-/// in Docs/ProtocolScaffoldDissonances.md. Splitting seven bytes into fields on that basis would
-/// be a guess; the position only matters once the server owns map state, and it can be decoded
-/// then against a capture that varies the character's position.
-/// </remarks>
-public sealed record SetUserPositionReport(
-    GameMessageMetadata Metadata,
-    byte[] Body) : IMapEntryReport
-{
-    public ClientMessageType MessageType => ClientMessageType.GameSetUserPosition;
-}
-
-/// <summary>
 /// CMD 0x0252 <c>SECURITY_STATUS</c>: eight bytes in the capture (<c>0F0000007F000001</c>).
 /// </summary>
 /// <remarks>
@@ -144,15 +127,6 @@ internal sealed class CeraQueryDecoder : IGameMessageDecoder
     }
 }
 
-internal sealed class SetUserPositionDecoder : IGameMessageDecoder
-{
-    public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
-    {
-        MapEntryReportFamily.RequireAtLeast("SET_USER_POSITION", body, 7);
-        return new SetUserPositionReport(metadata, body.ToArray());
-    }
-}
-
 internal sealed class SecurityStatusDecoder : IGameMessageDecoder
 {
     public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
@@ -172,8 +146,8 @@ internal sealed class RuntimeTingStatisticDecoder : IGameMessageDecoder
 }
 
 /// <summary>
-/// Consumes the six map-entry reports and logs them. One handler for the family: none of them has
-/// a response, a domain effect or a command, so six near-identical classes would carry no
+/// Consumes the five map-entry reports and logs them. One handler for the family: none of them has
+/// a response, a domain effect or a command, so five near-identical classes would carry no
 /// information that this one does not.
 /// </summary>
 public sealed class MapEntryReportHandler(
@@ -193,7 +167,6 @@ public sealed class MapEntryReportHandler(
             SetUdpIpPortReport report => $"SET_UDP_IP_PORT {Convert.ToHexString(report.Body)}",
             InformNoticeSecondReport report => $"INFORM_NOTICE_2ND value={report.Value}",
             CeraQueryReport => "CERA (empty body)",
-            SetUserPositionReport report => $"SET_USER_POSITION {Convert.ToHexString(report.Body)}",
             SecurityStatusReport report => $"SECURITY_STATUS {Convert.ToHexString(report.Body)}",
             RuntimeTingStatisticReport report => $"STATICS_RUNTIME_TING value={report.Value}",
             _ => message.GetType().Name,

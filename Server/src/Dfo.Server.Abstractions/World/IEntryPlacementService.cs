@@ -36,4 +36,17 @@ public interface IEntryPlacementService
         ChannelEntryIdentity channel,
         int townId,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Whether the content declares this area of this town, and so whether a character can stand
+    /// there at all.
+    /// </summary>
+    /// <remarks>
+    /// Separate from <see cref="CanEnterTownAsync"/>, which answers a channel-policy question about
+    /// a town the content is already known to declare. This one answers the prior question, and it
+    /// is asked wherever the client proposes a destination: the town byte the entry acknowledgement
+    /// carries is a lookup key the client dereferences unchecked, so an undeclared town accepted
+    /// here becomes a crash on the next login rather than an error now.
+    /// </remarks>
+    ValueTask<bool> DeclaresAreaAsync(int townId, int areaId, CancellationToken cancellationToken);
 }

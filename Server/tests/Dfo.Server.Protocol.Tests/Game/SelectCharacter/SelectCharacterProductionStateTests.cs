@@ -128,6 +128,8 @@ public sealed class SelectCharacterProductionStateTests
             ChannelEntryIdentity channel, int town, CancellationToken ct) => ValueTask.FromResult(seed.World.Channel);
         public ValueTask<bool> CanEnterTownAsync(ChannelEntryIdentity channel, int town, CancellationToken ct) =>
             ValueTask.FromResult(true);
+        public ValueTask<bool> DeclaresAreaAsync(int town, int area, CancellationToken ct) =>
+            ValueTask.FromResult(true);
         public ValueTask<SessionAdjacentEntryState> LoadAsync(SessionAdjacentSubject subject, CancellationToken ct) =>
             ValueTask.FromResult(SessionAdjacentEntryState.Empty);
         public void Publish(AccountId id, ActiveCharacterState character) => Published = true;

@@ -62,6 +62,18 @@ internal sealed class EntryPlacementService(
         return ValueTask.FromResult(!channel.IsTransient || townId == options.LevelRestrictedTownId);
     }
 
+    public async ValueTask<bool> DeclaresAreaAsync(
+        int townId,
+        int areaId,
+        CancellationToken cancellationToken)
+    {
+        if (townId <= 0 || areaId < 0)
+            return false;
+
+        var town = await towns.GetAsync(townId, cancellationToken).ConfigureAwait(false);
+        return town?.AreaAt(areaId) is not null;
+    }
+
     private async ValueTask<EntrySpawnState> ResolveTownGateSpawnAsync(
         int persistedTownId,
         CancellationToken cancellationToken)

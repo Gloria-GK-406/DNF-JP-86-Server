@@ -139,6 +139,34 @@ C→S  CMD  0x0010  SELECT_DUNGEON         body 9B，布局已闭合 ← 我们�
 **命令与帧是分开的**：被抑制的只是发送，`PublishSelectedCharacterSessionCommand` 等仍然执行，
 否则会话不会发布，阶段二的 handler 就读不到它。
 
+## 城镇的持久化
+
+登录要落在"上次离开的那个镇"，这条链有四环：
+
+| 环 | 载体 | 状态 |
+|---|---|---|
+| 客户端换镇/换区 | CMD [`0x0024`](../game/client-to-server/0x0024.md) `SET_USER_AREA` | **已实现**（尚无实机样本） |
+| 客户端上报镇内移动 | CMD [`0x0023`](../game/client-to-server/0x0023.md) `SET_USER_POSITION` | 已实现 |
+| 写库 | 会话清理时写 `characters.town_id/area_id/pos_*` | 已实现 |
+| 登录读回 | `EntryPlacementService`：`persistedTownId > 0 ? persistedTownId : DefaultTownId` | 已实现 |
+
+**只恢复镇，不恢复镇内位置。** 读回的只有镇号，落点一律重算为该镇 `[gate]` 区域——
+参照实现同构（`GameChannelSpawnPolicy.Resolve` 拿 `GetCeraRoomInfo(townId)` 覆盖 area 与坐标，
+并把找不到 `[gate]` 的镇当错误抛出，异常信息里就叫它 *Seria-room*）。所以库里存的
+area/pos 至今只被写、不被读；它们服务的是同屏与断线重连，不是登录落点。
+
+**写库只在会话结束时发生一次**，写的是运行时会话当时的位置。参照实现额外做了按步节流的
+写穿（`set_user_position` 节流、`set_user_area` 强制、teleport / 断线 / 返回选人各一次），
+差别只在"客户端被硬杀、socket 没关"时会丢掉最后一次移动。等真的观察到丢失再补。
+
+### 这条链曾经是空转的
+
+2026-08-17 之前，第三、四环都齐了，前两环却都没有输入：`0x0024` 完全未实现，`0x0023` 被
+当成[进图上报族](../game/client-to-server/0x0023.md)整段收下丢弃。于是运行时位置永远是入场
+spawn，清理时把同一个值写回去——**"回到上次离开的城镇"既不会失败，也不会生效**。
+
+这类缺陷不会报错：每一环单独看都是对的，只有把链走通才看得出中间断了。
+
 ## 未解
 
 - 那 7 组被抑制的帧**本该在什么时候发**。它们承载真实数据（装备锁、任务进度、宠物），

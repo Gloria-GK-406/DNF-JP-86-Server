@@ -1,4 +1,4 @@
-﻿using Dfo.Server.Abstractions;
+using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
@@ -34,6 +34,7 @@ using Dfo.Server.Protocol.Game.RosterFollowUp;
 using Dfo.Server.Protocol.Game.SaveGameOption;
 using Dfo.Server.Protocol.Game.SelectCharacter;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Game.SessionMetrics;
 using Dfo.Server.Protocol.Game.TaggedIdReport;
 using Microsoft.Extensions.Configuration;
@@ -158,11 +159,15 @@ public sealed class ProtocolModule : IServerModule
         // One handler, six wire keys: the map-entry report family.
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameSetUdpIpPort);
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameCeraQuery);
-        services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameSetUserPosition);
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameInformNoticeSecond);
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameSecurityStatus);
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameRuntimeTingStatistic);
         services.RegisterMessageHandler<EnterSelectDungeonHandler>(ClientMessageType.GameEnterSelectDungeon);
+
+        // Position and area: the only inputs that move a published character, and so the only
+        // way the town its next entry reports can change.
+        services.RegisterMessageHandler<SetUserPositionHandler>(ClientMessageType.GameSetUserPosition);
+        services.RegisterMessageHandler<SetUserAreaHandler>(ClientMessageType.GameSetUserArea);
     }
 
     /// <summary>
@@ -220,6 +225,8 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.CeraQueryType, ClientMessageType.GameCeraQuery);
         services.AddGameCmdMessageDecoder<SetUserPositionDecoder>(
             GameProtocol.SetUserPositionType, ClientMessageType.GameSetUserPosition);
+        services.AddGameCmdMessageDecoder<SetUserAreaDecoder>(
+            GameProtocol.SetUserAreaType, ClientMessageType.GameSetUserArea);
         services.AddGameCmdMessageDecoder<InformNoticeSecondDecoder>(
             GameProtocol.InformNoticeSecondType, ClientMessageType.GameInformNoticeSecond);
         services.AddGameCmdMessageDecoder<SecurityStatusDecoder>(

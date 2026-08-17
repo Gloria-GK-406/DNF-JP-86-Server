@@ -801,6 +801,8 @@ public sealed class CharacterEntryInventoryTests
                     !channel.IsTransient, channel.IsFreeDuel));
         public ValueTask<bool> CanEnterTownAsync(ChannelEntryIdentity channel, int townId,
             CancellationToken cancellationToken) => ValueTask.FromResult(true);
+        public ValueTask<bool> DeclaresAreaAsync(int townId, int areaId,
+            CancellationToken cancellationToken) => ValueTask.FromResult(true);
     }
 
     private sealed class StubCharacterEntryStateService(CharacterEntryState state)

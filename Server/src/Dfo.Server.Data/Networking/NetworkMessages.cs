@@ -28,11 +28,14 @@ public enum ClientMessageType
     // loading a town. None is answered. See Game/MapEntryReports.
     GameSetUdpIpPort = 0x0001_0002,
     GameCeraQuery = 0x0001_003F,
-    GameSetUserPosition = 0x0001_0023,
     GameInformNoticeSecond = 0x0001_01F8,
     GameSecurityStatus = 0x0001_0252,
     GameRuntimeTingStatistic = 0x0001_02B3,
     GameEnterSelectDungeon = 0x0001_000F,
+
+    // Where the character is standing, and where it walks to. See Game/TownProjection.
+    GameSetUserPosition = 0x0001_0023,
+    GameSetUserArea = 0x0001_0024,
 }
 
 public enum ServerMessageType
