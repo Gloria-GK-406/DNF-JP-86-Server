@@ -23,14 +23,27 @@ public sealed class DungeonSelectionCodecTests
         var request = (EnterSelectDungeonRequest)new EnterSelectDungeonDecoder()
             .Decode(GameMessageMetadata.Empty, Convert.FromHexString("10270000"))!;
 
-        Assert.Equal(10000u, request.Selection);
+        Assert.Equal((ushort)10000, request.Selection);
+    }
+
+    /// <summary>
+    /// The selection stops at two bytes. Reading four would fold the paired 0x0010's difficulty and
+    /// hell-party flags into the id, which the observed tutorial frame hides by leaving them zero.
+    /// </summary>
+    [Fact]
+    public void EnterSelectDungeon_StopsAtTheWordEvenWhenTheNextBytesAreSet()
+    {
+        var request = (EnterSelectDungeonRequest)new EnterSelectDungeonDecoder()
+            .Decode(GameMessageMetadata.Empty, Convert.FromHexString("10270101"))!;
+
+        Assert.Equal((ushort)10000, request.Selection);
     }
 
     [Fact]
     public void EnterSelectDungeon_RefusesABodyTooShortForTheWord() =>
         Assert.Throws<InvalidDataException>(
             () => new EnterSelectDungeonDecoder().Decode(
-                GameMessageMetadata.Empty, [0x10, 0x27, 0x00]));
+                GameMessageMetadata.Empty, [0x10]));
 
     [Fact]
     public void UserArea_SubstitutesTheSelectionScreenAreaForTheRealOne()

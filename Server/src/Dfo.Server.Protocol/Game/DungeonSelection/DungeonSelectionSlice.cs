@@ -21,23 +21,30 @@ namespace Dfo.Server.Protocol.Game.DungeonSelection;
 /// </remarks>
 public sealed record EnterSelectDungeonRequest(
     GameMessageMetadata Metadata,
-    uint Selection) : IClientNetworkMessage
+    ushort Selection) : IClientNetworkMessage
 {
     public ClientMessageType MessageType => ClientMessageType.GameEnterSelectDungeon;
 }
 
 internal sealed class EnterSelectDungeonDecoder : IGameMessageDecoder
 {
+    /// <remarks>
+    /// The selection is a <c>u16</c>, not a <c>u32</c>: the client's own builder writes two bytes at
+    /// offset 0, and the paired CMD 0x0010 has a closed layout that puts a difficulty byte at offset
+    /// 2. Reading four bytes happened to yield the right number only because the observed dungeon is
+    /// the tutorial at difficulty zero, which leaves bytes 2 and 3 clear. Those two bytes carry no
+    /// evidenced meaning on this type and are not consumed.
+    /// </remarks>
     public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
-        if (body.Length < sizeof(uint))
+        if (body.Length < sizeof(ushort))
         {
             throw new InvalidDataException(
-                $"ENTER_SELECT_DUNGEON requires at least four body bytes; received '{body.Length}'.");
+                $"ENTER_SELECT_DUNGEON requires at least two body bytes; received '{body.Length}'.");
         }
 
         return new EnterSelectDungeonRequest(
-            metadata, BinaryPrimitives.ReadUInt32LittleEndian(body));
+            metadata, BinaryPrimitives.ReadUInt16LittleEndian(body));
     }
 }
 
