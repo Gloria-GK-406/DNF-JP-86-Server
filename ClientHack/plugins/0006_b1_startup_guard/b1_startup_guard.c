@@ -33,29 +33,45 @@
  * full session and dies during startup. The packed client does not expose the
  * window: the replay changes startup timing.
  *
- * Measured on 2026-08-17 with an earlier revision that merely skipped the call:
- * the guard fired on exactly the runs that died (2-3 s) and stayed silent on the
- * runs that played normally and exited 0, which confirms the race. The recorded
- * stack also names both sides -- below the caller sits RVA 0x00CA4CF6 and then
- * ntdll/kernel32 thread-entry frames, so the consumer runs on a WORKER THREAD
- * while the single writer runs on the client thread.
+ * IMPORTANT -- this fault is SECONDARY. Runtime evidence from 2026-08-17 traced
+ * the caller: the recorded stack is [0x01CD160D, 0x00CA4CF6, kernel32, ntdll],
+ * and the site at 0x00CA4CF6 is the return of an INDIRECT call:
  *
- * Skipping alone was not enough: the singleton has 48 readers, so the worker
- * thread went on to dereference it somewhere else and the game's own top-level
- * exception filter exited the process with 0xC0000005 (no WER report, which is
- * how a self-terminate is distinguishable from an unhandled fault).
+ *     0x00CA4CDB  cmp  dword ptr [0x0307C39C], 0
+ *     0x00CA4CE3  je   0x00CA4CF9         ; no callback registered -> skip
+ *     0x00CA4CF0  call dword ptr [0x0307C39C]
+ *     0x00CA4CF6  add  esp, 4
+ *     0x00CA4CF9  mov  eax, 1
+ *     0x00CA4CFF  ret  4
  *
- * So this does not skip by default. When `this` is NULL it WAITS, bounded, for
- * the writer to publish the singleton and then forwards the call with the
- * recovered pointer -- restoring the ordering the packed client had instead of
- * dropping a startup notification. Only if the wait times out does it fall back
- * to skipping, which is still better than faulting. Every outcome is recorded in
- * clienthack-b1-guard.log with the call stack and the wait duration.
+ * `LONG WINAPI f(void*)` returning 1 is EXCEPTION_EXECUTE_HANDLER: 0x00CA4Cxx is
+ * the client's UNHANDLED-EXCEPTION FILTER, and 0x01CD15E0 is the crash-reporting
+ * callback it invokes (its tail formats three strings plus the literal 740 and
+ * calls a 5-argument logger). The deliberate abort stub `mov dword ptr [0],0` at
+ * 0x00CA4D10 sits in the same block.
  *
- * The wait is bounded because the writer runs on another thread that could in
- * principle be blocked on this one; a timeout degrades to the old skip behaviour
- * rather than hanging the client. Tune it with [B1Guard] SingletonWaitMs in
- * ClientHack.ini (0 disables waiting entirely).
+ * So the order of events on a bad run is:
+ *   1. some PRIMARY fault happens ~2 s into startup;
+ *   2. the client's filter runs and invokes its reporting callback;
+ *   3. the reporter dereferences a singleton that startup never constructed,
+ *      producing the SECONDARY fault at 0x01CD12F0 -- the one WER recorded,
+ *      because it faults inside the filter before it can return.
+ *
+ * Guarding step 3 works and is worth keeping: it stops the reporter from
+ * crashing. But it cannot save the process, because the filter then returns
+ * EXECUTE_HANDLER and the client exits with the PRIMARY exception code -- which
+ * is why WER logs no APPCRASH once the guard is in (a deliberate exit, not an
+ * unhandled fault) and why the earlier 11-12 s lifetimes were the same ~2 s
+ * fault plus WER collection time.
+ *
+ * Waiting for the singleton is therefore pointless: the process is already
+ * dying and startup will never construct it. [B1Guard] SingletonWaitMs defaults
+ * to 0 (skip immediately) and is kept only as a knob.
+ *
+ * The primary fault is invisible to WER because the client's own filter swallows
+ * it, so this plugin also installs a first-chance exception recorder to capture
+ * it at its origin. That record -- not the secondary fault -- is what identifies
+ * the actual startup failure.
  *
  * Deliberately NOT a required plugin (CLIENTHACK_PLUGIN_FLAGS=0u): if the byte
  * signature ever stops matching, the client must still start unguarded rather
@@ -80,10 +96,15 @@ enum {
      * The counters keep accumulating past the cap. */
     GUARD_MAX_LOGGED = 16,
 
-    /* How long to wait for the client thread to publish the singleton, and how
-     * often to re-read it while waiting. */
-    GUARD_DEFAULT_WAIT_MS = 5000,
-    GUARD_POLL_MS = 1
+    /* Waiting is off by default: by the time the reporter runs, the process is
+     * already unwinding a primary fault and the singleton will never appear.
+     * Kept as a knob only. */
+    GUARD_DEFAULT_WAIT_MS = 0,
+    GUARD_POLL_MS = 1,
+
+    /* First-chance records to keep. The interesting one is the earliest fatal
+     * exception, so a small cap is enough and keeps the handler cheap. */
+    GUARD_MAX_EXCEPTIONS = 12
 };
 
 static const uint8_t GUARD_SIG_THUNK[13] = {
@@ -100,9 +121,11 @@ static const ch_host_api* g_host;
 static guard_thunk_fn g_original_thunk;
 static wchar_t g_log_path[MAX_PATH];
 static DWORD g_wait_ms = GUARD_DEFAULT_WAIT_MS;
+static PVOID g_veh_handle;
 static volatile LONG g_recovered_hits;   /* waited, then forwarded normally */
-static volatile LONG g_skipped_hits;     /* wait timed out, call dropped */
+static volatile LONG g_skipped_hits;     /* singleton absent, call dropped */
 static volatile LONG g_pass_hits;        /* singleton already published */
+static volatile LONG g_exceptions;       /* fatal first-chance exceptions seen */
 
 /* Build "<game dir>\<file_name>". Falls back to the bare file name (current
  * directory) when the game directory does not fit. */
@@ -240,12 +263,13 @@ static int __fastcall guard_thunk(void* self, void* edx_value)
         {
             LONG hits = InterlockedIncrement(&g_skipped_hits);
             if (hits <= GUARD_MAX_LOGGED)
-                report_hit("skipped-after-timeout", self, waited);
+                report_hit("skipped-no-singleton", self, waited);
             if (hits == 1) {
-                guard_log(1u,
-                    "singleton 0x03091FB8 stayed NULL: skipped the call that "
-                    "used to fault at 0x01CD12F0 -- the client may still die in "
-                    "another reader (clienthack-b1-guard.log has the stack)");
+                guard_log(2u,
+                    "crash reporter ran before startup built its singleton: "
+                    "skipped the call that used to fault at 0x01CD12F0. The "
+                    "client is already handling a PRIMARY fault -- see the "
+                    "first-chance records in clienthack-b1-guard.log");
             }
         }
         return 0;
@@ -255,6 +279,74 @@ static int __fastcall guard_thunk(void* self, void* edx_value)
                       "guard passing calls through");
     }
     return g_original_thunk(self, edx_value);
+}
+
+/* Record fatal first-chance exceptions at their origin. The client's own
+ * unhandled-exception filter returns EXECUTE_HANDLER, so the PRIMARY fault never
+ * reaches WER; this is the only place it is observable.
+ *
+ * Diagnostics only: always returns EXCEPTION_CONTINUE_SEARCH, so game code that
+ * relies on exceptions (including its anti-debug paths) is unaffected. Benign
+ * codes the runtime raises constantly -- C++ EH, thread naming, breakpoints --
+ * are skipped so the earliest genuine fault stays easy to find. */
+static int is_fatal_code(DWORD code)
+{
+    switch (code) {
+    case 0xE06D7363u:   /* C++ EH  */
+    case 0x406D1388u:   /* SetThreadName */
+    case 0x80000003u:   /* breakpoint */
+    case 0x80000004u:   /* single step */
+    case 0x4001000Au:   /* debug string */
+        return 0;
+    default:
+        return (code & 0xC0000000u) == 0xC0000000u;
+    }
+}
+
+static LONG CALLBACK first_chance_recorder(PEXCEPTION_POINTERS info)
+{
+    static volatile LONG reentry;
+    EXCEPTION_RECORD* rec;
+    uintptr_t base;
+    FILE* f = NULL;
+    LONG seen;
+
+    if (info == NULL || info->ExceptionRecord == NULL)
+        return EXCEPTION_CONTINUE_SEARCH;
+    rec = info->ExceptionRecord;
+    if (!is_fatal_code(rec->ExceptionCode)) return EXCEPTION_CONTINUE_SEARCH;
+
+    seen = InterlockedIncrement(&g_exceptions);
+    if (seen > GUARD_MAX_EXCEPTIONS) return EXCEPTION_CONTINUE_SEARCH;
+    /* A fault raised while writing the record would recurse; bail instead. */
+    if (InterlockedCompareExchange(&reentry, 1, 0) != 0)
+        return EXCEPTION_CONTINUE_SEARCH;
+
+    base = (g_host != NULL) ? g_host->dnf_base : 0u;
+    if (_wfopen_s(&f, g_log_path, L"a") == 0 && f != NULL) {
+        uintptr_t at = (uintptr_t)rec->ExceptionAddress;
+        int in_image = (base != 0u && at >= base);
+        fprintf(f,
+            "{\"event\":\"first-chance\",\"code\":\"0x%08lX\",\"at\":\"0x%08lX\","
+            "\"at_is_rva\":%d,\"thread\":%lu,\"nth\":%ld",
+            (unsigned long)rec->ExceptionCode,
+            (unsigned long)(in_image ? at - base : at),
+            in_image,
+            (unsigned long)GetCurrentThreadId(),
+            (long)seen);
+        if (rec->ExceptionCode == (DWORD)EXCEPTION_ACCESS_VIOLATION &&
+            rec->NumberParameters >= 2) {
+            static const char* kind[3] = { "read", "write", "execute" };
+            ULONG_PTR op = rec->ExceptionInformation[0];
+            fprintf(f, ",\"access\":\"%s\",\"target\":\"0x%08lX\"",
+                (op <= 2u) ? kind[op] : "?",
+                (unsigned long)rec->ExceptionInformation[1]);
+        }
+        fputs("}\n", f);
+        fclose(f);
+    }
+    InterlockedExchange(&reentry, 0);
+    return EXCEPTION_CONTINUE_SEARCH;
 }
 
 ch_status CH_CALL ch_plugin_initialize(const ch_host_api* host)
@@ -271,6 +363,14 @@ ch_status CH_CALL ch_plugin_initialize(const ch_host_api* host)
     build_log_path(g_log_path, MAX_PATH, L"clienthack-b1-guard.log");
     load_guard_config();
     reset_log();
+
+    /* Install the recorder before the hook: the primary fault it exists to
+     * capture happens after the gate releases the client thread, but installing
+     * first keeps the ordering obvious and costs nothing. A failure here is not
+     * fatal -- the guard is still worth having on its own. */
+    g_veh_handle = AddVectoredExceptionHandler(1UL, first_chance_recorder);
+    if (g_veh_handle == NULL)
+        guard_log(1u, "could not install the first-chance exception recorder");
 
     request.struct_size = sizeof(request);
     request.target_rva = GUARD_THUNK_RVA;
@@ -298,14 +398,22 @@ ch_status CH_CALL ch_plugin_initialize(const ch_host_api* host)
 
 void CH_CALL ch_plugin_shutdown(void)
 {
-    char message[160];
-    if (g_recovered_hits == 0 && g_skipped_hits == 0 && g_pass_hits == 0) {
-        guard_log(3u, "guard never hit: the startup path did not run");
+    char message[192];
+
+    if (g_veh_handle != NULL) {
+        RemoveVectoredExceptionHandler(g_veh_handle);
+        g_veh_handle = NULL;
+    }
+    if (g_recovered_hits == 0 && g_skipped_hits == 0 && g_pass_hits == 0 &&
+        g_exceptions == 0) {
+        guard_log(3u, "guard never hit and no fatal exception seen: "
+                      "this run started cleanly");
         return;
     }
     _snprintf_s(message, sizeof(message), _TRUNCATE,
-        "guard totals: %ld recovered by waiting, %ld skipped after timeout, "
-        "%ld already published",
-        (long)g_recovered_hits, (long)g_skipped_hits, (long)g_pass_hits);
-    guard_log(g_skipped_hits > 0 ? 1u : 3u, message);
+        "guard totals: %ld forwarded after waiting, %ld skipped, %ld passed "
+        "through; %ld fatal first-chance exception(s) recorded",
+        (long)g_recovered_hits, (long)g_skipped_hits, (long)g_pass_hits,
+        (long)g_exceptions);
+    guard_log((g_skipped_hits > 0 || g_exceptions > 0) ? 2u : 3u, message);
 }
