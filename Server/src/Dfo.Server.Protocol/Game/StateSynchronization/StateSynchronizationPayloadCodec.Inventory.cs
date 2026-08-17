@@ -9,18 +9,30 @@ internal static partial class StateSynchronizationPayloadCodec
 {
     private const int CommonItemEntryLength = 84;
 
+    /// <param name="townId">
+    /// The town this entry places the character in -- the same value NOTI 0x0017 carries. It is a
+    /// lookup key on the client, not a display field: the byte is handed to a keyed town manager
+    /// and the object that comes back is dereferenced without a null check, so a town the content
+    /// does not declare terminates the client. See protocol/game/client-to-server/0x0004.md.
+    /// </param>
     public static byte[] EncodeEntryAccepted(
         ActiveCharacterState character,
         AccountEntryState account,
         CharacterQuestEntryState quests,
+        byte townId,
         DateTimeOffset preparedAt)
     {
         ArgumentNullException.ThrowIfNull(character);
         ArgumentNullException.ThrowIfNull(account);
         ArgumentNullException.ThrowIfNull(quests);
         var characterId = checked((ushort)character.Identity.CharacterId.Value);
-        if (character.Identity.SlotIndex > byte.MaxValue)
-            throw new InvalidDataException("Selected character slot cannot be represented as u8.");
+        if (townId == 0)
+        {
+            throw new InvalidDataException(
+                "Entry town cannot be zero: the client resolves this byte to a town object and "
+                + "dereferences the result unchecked.");
+        }
+
         if (account.Entitlements.Premiums.Count > byte.MaxValue)
             throw new InvalidDataException("Premium count cannot be represented as u8.");
 
@@ -62,7 +74,9 @@ internal static partial class StateSynchronizationPayloadCodec
                 ? quests.NotificationQuestIds[index]
                 : 0);
 
-        writer.Write(checked((byte)character.Identity.SlotIndex));
+        // Offset 218. The reference server fills this from the character's stored town while calling
+        // the field AckCharSlotIndex; the name is its own misnomer and the value is what matters.
+        writer.Write(townId);
         writer.Write((byte)0);
         if (character.Progression.Level <= 1)
             writer.Write((byte)0);

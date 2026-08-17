@@ -29,7 +29,8 @@ internal static class SelectedCharacterStateMessageFactory
         var messages = new List<GameStateSynchronizationMessage>(59)
         {
             new CharacterEntryAcceptedMessage(
-                result.Character, result.Account, result.CharacterEntry.Quests, result.World.PreparedAt),
+                result.Character, result.Account, result.CharacterEntry.Quests,
+                result.World.Channel.Spawn.TownId, result.World.PreparedAt),
         };
 
         AddInventorySnapshots(messages, result);

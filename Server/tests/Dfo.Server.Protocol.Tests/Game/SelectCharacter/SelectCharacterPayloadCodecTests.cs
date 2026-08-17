@@ -39,6 +39,41 @@ public sealed class SelectCharacterPayloadCodecTests
         Assert.Equal(77, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(211, 4)));
     }
 
+    /// <summary>
+    /// The byte the reference server calls <c>AckCharSlotIndex</c> carries the entry town, not the
+    /// roster slot. The client resolves it against a keyed town manager and dereferences the result
+    /// without a null check, so a slot that is not also a declared town id terminates it -- which is
+    /// why a character in slot 0 crashed on entry while slots 1, 2 and 5 did not.
+    /// </summary>
+    [Fact]
+    public void SelectCharacterPayload_AcknowledgementCarriesTheEntryTownRatherThanTheSlot()
+    {
+        var result = SelectCharacterPayloadTestData.Create();
+        Assert.NotEqual(AcknowledgementTownId, result.Character.Identity.SlotIndex);
+
+        var body = EncodeAcknowledgement(result);
+
+        // Offset 218 of the live 261-byte body; this fixture's premium entry and non-tutorial level
+        // shift the tail by nine bytes.
+        Assert.Equal(AcknowledgementTownId, body[227]);
+    }
+
+    [Fact]
+    public void SelectCharacterPayload_AcknowledgementRefusesATownTheClientCannotResolve()
+    {
+        var result = SelectCharacterPayloadTestData.Create();
+
+        var error = Assert.Throws<InvalidDataException>(
+            () => new CharacterEntryAcceptedMessage(
+                result.Character,
+                result.Account,
+                result.CharacterEntry.Quests,
+                0,
+                result.World.PreparedAt).EncodeBody());
+
+        Assert.Contains("town", error.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public void SelectCharacterPayload_InventoryPreservesCommonAndAvatarEntryShapes()
     {
@@ -597,11 +632,15 @@ public sealed class SelectCharacterPayloadCodecTests
             ValueTask.FromResult<IReadOnlyList<TrainingQuestAvailability>>([]);
     }
 
+    /// <summary>The entry town these layout tests encode. Deliberately not the fixture's slot.</summary>
+    private const byte AcknowledgementTownId = 1;
+
     private static byte[] EncodeAcknowledgement(SelectCharacterResult result) =>
         new CharacterEntryAcceptedMessage(
             result.Character,
             result.Account,
             result.CharacterEntry.Quests,
+            AcknowledgementTownId,
             result.World.PreparedAt).EncodeBody();
 
     private static byte[] EncodeInventory(

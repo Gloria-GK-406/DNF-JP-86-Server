@@ -34,11 +34,13 @@ internal sealed record CharacterEntryAcceptedMessage(
     ActiveCharacterState Character,
     AccountEntryState Account,
     CharacterQuestEntryState Quests,
+    byte TownId,
     DateTimeOffset PreparedAt) : GameStateSynchronizationMessage, IGameCmdMessage
 {
     internal override ushort Type => 0x0004;
     internal override byte[] EncodeBody() =>
-        StateSynchronizationPayloadCodec.EncodeEntryAccepted(Character, Account, Quests, PreparedAt);
+        StateSynchronizationPayloadCodec.EncodeEntryAccepted(
+            Character, Account, Quests, TownId, PreparedAt);
 }
 
 internal sealed record InventorySnapshotMessage(
