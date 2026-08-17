@@ -11,8 +11,33 @@ using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.SelectCharacter;
+
+/// <summary>
+/// Whether the frames that follow the entry batch are put on the wire.
+/// </summary>
+/// <remarks>
+/// The entry batch ends with NOTI 0x007C <c>ENTER_GAMEWORLD_COMPLETE</c>, a zero-length signal
+/// telling the client that world entry is over. The reference server's entry sequence stops there
+/// -- 53 templates, nothing after. This server kept going: pre-publication state, inventory deltas,
+/// a trailing equipment-lock snapshot, quest, pet and rejoin frames, and an account character
+/// roster, all delivered after the completion signal. The client dies while reading that tail.
+///
+/// Off in production while that is under test, on in the tests that assert the delivery contract,
+/// so suppressing the frames does not quietly delete the coverage that describes them. The commands
+/// run either way -- they do the domain work, and publication in particular is what makes the
+/// session readable to the dungeon-selection handler. Only the frames are withheld.
+/// </remarks>
+public sealed record SelectCharacterDeliveryOptions(bool SendsFramesAfterTheCompletionMarker)
+{
+    /// <summary>Matches the reference server: nothing after the completion marker.</summary>
+    public static SelectCharacterDeliveryOptions ReferenceSequence { get; } = new(false);
+
+    /// <summary>Everything this server historically sent, marker or not.</summary>
+    public static SelectCharacterDeliveryOptions Everything { get; } = new(true);
+}
 
 public sealed class SelectCharacterHandler(
     IOnlineUserQueryService onlineUsers,
@@ -22,8 +47,13 @@ public sealed class SelectCharacterHandler(
     SelectedSessionTransitionGate lifecycleGate,
     ISelectedSessionDirectory selectedSessions,
     IGameMessageSender sender,
-    INetworkConnectionCloser closer) : ClientMessageHandler<SelectCharacterRequest>
+    INetworkConnectionCloser closer,
+    ILogger<SelectCharacterHandler> logger,
+    SelectCharacterDeliveryOptions delivery) : ClientMessageHandler<SelectCharacterRequest>
 {
+    private bool SendsFramesAfterTheCompletionMarker =>
+        delivery.SendsFramesAfterTheCompletionMarker;
+
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
         SelectCharacterRequest message,
@@ -49,7 +79,7 @@ public sealed class SelectCharacterHandler(
             var prepared = await commandBus.SendAsync(
                 new PrepareSelectedCharacterSessionCommand(
                     accountId,
-                    message.SlotIndex,
+                    message.RosterIndex,
                     channel,
                     context.Connection.ConnectionId,
                     onlineUser.Generation),
@@ -148,6 +178,22 @@ public sealed class SelectCharacterHandler(
             await lifecycleLease.DisposeAsync().ConfigureAwait(false);
         }
 
+        // Logged where it is known to have happened. Every phase of this handler that can fail
+        // funnels into `failure`, and the command pipeline only reports failures of commands --
+        // a phase that throws after its commands succeeded left no trace at all, which is how six
+        // runs in a row produced a bare "connection closed" and an empty log.
+        if (failure is not null)
+        {
+            logger.LogError(
+                failure.SourceException,
+                "Select character failed {ConnectionId} account={AccountId} rosterIndex={RosterIndex} "
+                    + "session={Session}",
+                context.Connection.ConnectionId,
+                accountId,
+                message.RosterIndex,
+                session?.ConnectionId.ToString() ?? "none");
+        }
+
         foreach (var connectionId in pendingCloses.Distinct())
         {
             try
@@ -184,12 +230,16 @@ public sealed class SelectCharacterHandler(
         }
 
         EnsureCurrent(session);
-        await sender.SendExplicitAsync(
-            session.ConnectionId,
-            new GameExplicitMessageDelivery(
-                prePublicationMessages,
-                []),
-            cancellationToken).ConfigureAwait(false);
+        if (SendsFramesAfterTheCompletionMarker)
+        {
+            await sender.SendExplicitAsync(
+                session.ConnectionId,
+                new GameExplicitMessageDelivery(
+                    prePublicationMessages,
+                    []),
+                cancellationToken).ConfigureAwait(false);
+        }
+
         EnsureCurrent(session);
 
         var inventory = await commandBus.SendAsync(
@@ -197,7 +247,7 @@ public sealed class SelectCharacterHandler(
             cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
         prepared = inventory.Result;
-        if (inventory.CommittedUpdates.Count > 0)
+        if (SendsFramesAfterTheCompletionMarker && inventory.CommittedUpdates.Count > 0)
         {
             await sender.SendExplicitAsync(
                 session.ConnectionId,
@@ -214,7 +264,7 @@ public sealed class SelectCharacterHandler(
             new PublishSelectedCharacterSessionCommand(session, prepared),
             cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
-        if (publication.PvpLobby is { } pvp)
+        if (SendsFramesAfterTheCompletionMarker && publication.PvpLobby is { } pvp)
         {
             await sender.SendExplicitAsync(
                 session.ConnectionId,
@@ -239,13 +289,17 @@ public sealed class SelectCharacterHandler(
             }
         }
 
-        await sender.SendExplicitAsync(
-            session.ConnectionId,
-            new GameExplicitMessageDelivery(
-                [new TrailingEquipmentLockSnapshotMessage(
-                    prepared.CharacterInventory, prepared.AccountInventory)],
-                []),
-            cancellationToken).ConfigureAwait(false);
+        if (SendsFramesAfterTheCompletionMarker)
+        {
+            await sender.SendExplicitAsync(
+                session.ConnectionId,
+                new GameExplicitMessageDelivery(
+                    [new TrailingEquipmentLockSnapshotMessage(
+                        prepared.CharacterInventory, prepared.AccountInventory)],
+                    []),
+                cancellationToken).ConfigureAwait(false);
+        }
+
         EnsureCurrent(session);
 
         var quests = await commandBus.SendAsync(
@@ -255,7 +309,8 @@ public sealed class SelectCharacterHandler(
         if (quests.Change is { } questChange)
         {
             prepared = questChange.Result;
-            await sender.SendExplicitAsync(
+            if (SendsFramesAfterTheCompletionMarker)
+                await sender.SendExplicitAsync(
                 session.ConnectionId,
                 new GameExplicitMessageDelivery(
                     [new AcceptedQuestProgressMessage(questChange.State.Quests)], []),
@@ -270,7 +325,8 @@ public sealed class SelectCharacterHandler(
         if (pet.Change is { } petChange)
         {
             prepared = petChange.Result;
-            await sender.SendExplicitAsync(
+            if (SendsFramesAfterTheCompletionMarker)
+                await sender.SendExplicitAsync(
                 session.ConnectionId,
                 new GameExplicitMessageDelivery(
                     [new PetRevivalStateMessage(petChange.State)], []),
@@ -281,7 +337,7 @@ public sealed class SelectCharacterHandler(
         var rejoin = await commandBus.SendAsync(
             new PlanSelectedCharacterRejoinCommand(session, prepared),
             cancellationToken).ConfigureAwait(false);
-        if (rejoin.State is { } state)
+        if (SendsFramesAfterTheCompletionMarker && rejoin.State is { } state)
         {
             await sender.SendExplicitAsync(
                 session.ConnectionId,

@@ -299,6 +299,22 @@ internal sealed class SqliteAccountEntryStateRepository : IAccountEntryStateRepo
     {
         using var connection = new SqliteConnection(connectionString);
         connection.Open();
+        EnsureSchema(connection);
+    }
+
+    /// <summary>
+    /// Applies the account entry-state schema on a caller's connection.
+    /// </summary>
+    /// <remarks>
+    /// <c>character_init_flags.pc_room_state</c> belongs to this schema even though the rest of
+    /// that table belongs to <see cref="Characters.SqliteCharacterEntryStateRepository"/>; both
+    /// declare the table and the one that runs second patches the difference by ALTER. Character
+    /// creation writes that column, so it has to be able to ensure this schema too -- otherwise
+    /// creation works or fails depending on which repository happened to be constructed first.
+    /// </remarks>
+    internal static void EnsureSchema(SqliteConnection connection)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
         using (var command = connection.CreateCommand())
         {
             command.CommandText = SchemaSql;

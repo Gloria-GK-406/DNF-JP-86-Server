@@ -130,7 +130,7 @@ internal static partial class StateSynchronizationPayloadCodec
             WriteNoti2EquippedItem(writer, item, preparedAt);
         writer.Write(projection.Entry.Public.CloneTitleItemId);
         writer.Write(checked((byte)skills.Length));
-        writer.Write(checked((byte)stats.SkillTreeIndex));
+        writer.Write(SkillTreeIndexOnTheWire(stats.SkillTreeIndex));
         foreach (var skill in skills)
         {
             writer.Write(checked((byte)skill.Slot));
@@ -745,7 +745,7 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write((byte)0); writer.Write(0u); writer.Write((ushort)0); writer.Write(t.HardcoreMode ? (byte)1 : (byte)0); writer.Write(t.HardcoreDead ? (byte)1 : (byte)0);
         writer.Write(t.HardcoreDeathCount); writer.Write(checked((uint)s1.Progress1)); writer.Write(checked((uint)s1.Progress2)); writer.Write(checked((byte)t.UserStateBits)); writer.Write(t.ChatBanEndTime);
         writer.Write((byte)100); writer.Write(t.FatigueUpdate); writer.Write(t.ReturnUserFlag); writer.Write(t.ChannelDisplayMode); writer.Write(t.ChannelType); writer.Write(t.MoodValue);
-        writer.Write(checked((byte)s1.SkillTreeIndex)); writer.Write(t.ReturnUser ? (byte)1 : (byte)0); writer.Write(t.LinkSlotEnabled ? (byte)1 : (byte)0); writer.Write(t.LinkTypeA); writer.Write(t.LinkTypeB);
+        writer.Write(SkillTreeIndexOnTheWire(s1.SkillTreeIndex)); writer.Write(t.ReturnUser ? (byte)1 : (byte)0); writer.Write(t.LinkSlotEnabled ? (byte)1 : (byte)0); writer.Write(t.LinkTypeA); writer.Write(t.LinkTypeB);
         writer.Write(t.EmotionIndex); writer.Write(t.ActionByte); writer.Write(t.FatigueDisplayUpdate); writer.Write(t.CostumeFlag); writer.Write(t.AuraFlag); writer.Write(t.PetDisplayFlag); writer.Write(t.TitleDisplayFlag);
         writer.Write(t.PvpStatA); writer.Write(t.PvpWinStreak); writer.Write(t.PvpLoseStreak); writer.Write(t.PvpRankPoint); writer.Write(t.TrailingByte); return stream.ToArray();
     }
@@ -763,10 +763,10 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(83); writer.Write(checked((uint)value.HpMaximum)); writer.Write(checked((uint)value.MpMaximum)); writer.Write(checked((short)value.PhysicalAttack)); writer.Write(checked((short)value.PhysicalDefense));
         writer.Write(checked((short)value.MagicalAttack)); writer.Write(checked((short)value.MagicalDefense)); writer.Write(value.FireResistance); writer.Write(value.WaterResistance); writer.Write(value.DarkResistance); writer.Write(value.LightResistance);
         writer.Write(new byte[34]); writer.Write(checked((uint)value.InventoryLimit)); writer.Write(value.HpRegenSpeed); writer.Write(value.MpRegenSpeed); writer.Write(checked((uint)value.MoveSpeed));
-        writer.Write(checked((ushort)value.AttackSpeed)); writer.Write(checked((ushort)value.CastSpeed)); writer.Write(value.HitRecovery); writer.Write(value.JumpPower); writer.Write(value.Weight); writer.Write(value.StatLevel); writer.Write(value.ExtraEquipmentSlotState);
+        writer.Write(checked((ushort)value.AttackSpeed)); writer.Write(checked((ushort)value.CastSpeed)); writer.Write(value.HitRecovery); writer.Write(value.JumpPower); writer.Write(value.Weight); writer.Write(value.CurrentHpMpPercent); writer.Write(value.ExtraEquipmentSlotState);
         if (equipment.Count > byte.MaxValue) throw CountError("equipped item", "u8"); writer.Write(checked((byte)equipment.Count));
         foreach (var item in equipment.OrderBy(item => item.SlotIndex)) WriteNoti2Item(writer, item, preparedAt);
-        writer.Write(publicState.CloneTitleItemId); writer.Write(value.NameTagItemId); writer.Write(value.NameTagExpireTime); writer.Write(checked((byte)value.SkillTreeIndex));
+        writer.Write(publicState.CloneTitleItemId); writer.Write(value.NameTagItemId); writer.Write(value.NameTagExpireTime); writer.Write(SkillTreeIndexOnTheWire(value.SkillTreeIndex));
         for (byte page = 0; page < 2; page++)
         {
             var learned = skills.Pages.SingleOrDefault(p => p.PageIndex == page)?.Skills.Where(s => s.Level > 0).ToArray() ?? [];
@@ -808,6 +808,25 @@ internal static partial class StateSynchronizationPayloadCodec
     private static void WriteChronicleDynamic(BinaryWriter writer, ChronicleOptionState value) { writer.Write(value.Id); writer.Write(value.CharacterJob); writer.Write(value.FirstGrowType); writer.Write(value.EquipmentType); writer.Write(value.OptionNumber); }
     private static void WriteRandomDynamic(BinaryWriter writer, RandomOptionState value) { writer.Write(value.Type); writer.Write(value.Value1); writer.Write(value.Value2); }
     private static void WriteBlob(BinaryWriter writer, byte[] value) { writer.Write(value.Length); writer.Write(value); }
+    /// <summary>
+    /// The skill-tree index as the client's one-byte field carries it.
+    /// </summary>
+    /// <remarks>
+    /// Storage and wire do not share an encoding. In storage the field is signed: <c>0</c> and
+    /// <c>1</c> are the purchased second skill page and which of the two is current, while
+    /// <c>-1</c> means the page was never bought. On the wire the byte is <c>0xFF</c> for the
+    /// unbought case. The reference server states both halves and maps between them in
+    /// <c>Game/Skills/SkillTreeExpansionState.cs</c>.
+    ///
+    /// Encoding used to be <c>checked((byte)index)</c>, which threw <see cref="OverflowException"/>
+    /// on <c>-1</c>. Since -1 is the state of every character that has not bought the page --
+    /// including every newly created one -- the entry batch could not be encoded for any of them.
+    /// The storage validator has always admitted the full -1..1 range, so the two sides disagreed
+    /// about the same field.
+    /// </remarks>
+    private static byte SkillTreeIndexOnTheWire(int storedIndex) =>
+        storedIndex is 0 or 1 ? (byte)storedIndex : (byte)0xFF;
+
     private static void WriteDstr(BinaryWriter writer, byte[] value) { writer.Write(value.Length); writer.Write(value); }
     public static byte[] EncodeUnsigned32(uint value) { var body = new byte[4]; WriteInt32(body, 0, checked((int)value)); return body; }
     private static void WriteInt32(byte[] target, int offset, int value) => System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(target.AsSpan(offset, 4), value);

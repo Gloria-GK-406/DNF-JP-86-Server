@@ -204,7 +204,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                     stat_dark_resistance INTEGER NOT NULL DEFAULT 0, stat_light_resistance INTEGER NOT NULL DEFAULT 0,
                     stat_hp_regen_speed INTEGER NOT NULL DEFAULT 0, stat_mp_regen_speed INTEGER NOT NULL DEFAULT 0,
                     stat_hit_recovery INTEGER NOT NULL DEFAULT 0, stat_jump_power INTEGER NOT NULL DEFAULT 0,
-                    stat_weight INTEGER NOT NULL DEFAULT 0, stat_level INTEGER NOT NULL DEFAULT 0,
+                    stat_weight INTEGER NOT NULL DEFAULT 0, current_hp_mp_percent INTEGER NOT NULL DEFAULT 0,
                     name_tag_item_id INTEGER NOT NULL DEFAULT 0, name_tag_expire_time INTEGER NOT NULL DEFAULT 0,
                     equipped_creature_level INTEGER NOT NULL DEFAULT 0, equip_list_trailing INTEGER NOT NULL DEFAULT 0,
                     flag_byte INTEGER NOT NULL DEFAULT 0, guild_power_war INTEGER NOT NULL DEFAULT 0,

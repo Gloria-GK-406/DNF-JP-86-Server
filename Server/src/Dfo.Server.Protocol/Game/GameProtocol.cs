@@ -32,6 +32,32 @@ internal static class GameProtocol
 
     public const ushort CheckCharacterNameType = 0x02B5;
 
+    public const ushort SaveGameOption1Type = 0x00C5;
+
+    public const ushort ContentsPlayInfoType = 0x02C1;
+
+    public const ushort SetUdpIpPortType = 0x0002;
+
+    public const ushort CeraQueryType = 0x003F;
+
+    public const ushort SetUserPositionType = 0x0023;
+
+    public const ushort InformNoticeSecondType = 0x01F8;
+
+    public const ushort SecurityStatusType = 0x0252;
+
+    public const ushort RuntimeTingStatisticType = 0x02B3;
+
+    public const ushort EnterSelectDungeonType = 0x000F;
+
+    public const ushort UserStateNotificationType = 0x0003;
+
+    public const ushort UserAreaNotificationType = 0x0017;
+
+    public const ushort UdpHostNotificationType = 0x001A;
+
+    public const ushort EnterSelectDungeonNotificationType = 0x001B;
+
     public const ushort AccountCharacterRosterNotificationType = 0x0002;
 
     public const ushort HonorLevelNotificationType = 0x0289;

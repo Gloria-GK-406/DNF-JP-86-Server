@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -6,7 +7,9 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Characters;
 
-internal sealed class CharacterService(Func<ICharacterRepository> characterRepository)
+internal sealed class CharacterService(
+    Func<ICharacterRepository> characterRepository,
+    ICharacterStatDefinitionSource characterStats)
     : ICharacterService, IEquipmentEligibilityCharacterReader
 {
     private const ushort DefaultSlotLimit = 32;
@@ -40,6 +43,38 @@ internal sealed class CharacterService(Func<ICharacterRepository> characterRepos
             cancellationToken).ConfigureAwait(false)
             ?? throw new KeyNotFoundException(
                 $"Account '{accountId}' has no character in slot '{slotIndex}'.");
+    }
+
+    /// <summary>
+    /// Resolves a roster position to a character. The client indexes its own character vector,
+    /// which it fills from the roster notification in the order that notification listed them, so
+    /// position N is the N-th entry of <see cref="ICharacterRepository.ListByAccountAsync"/> -- the
+    /// same ordering the roster encoder walks.
+    /// </summary>
+    /// <remarks>
+    /// Position is not the slot. They agree only while the roster has no gaps, which is why this
+    /// went unnoticed: every earlier sample happened to be gap-free. The 2026-08-16 capture settles
+    /// it -- the roster carried slots 0/2/3, the player picked the second entry, and the client
+    /// sent 1, a slot that holds no live character. See
+    /// protocol/game/client-to-server/0x0004.md.
+    /// </remarks>
+    public async ValueTask<ActiveCharacterState> LoadByRosterPositionAsync(
+        AccountId accountId,
+        ushort rosterIndex,
+        CancellationToken cancellationToken)
+    {
+        var roster = await characterRepository().ListByAccountAsync(accountId, cancellationToken)
+            .ConfigureAwait(false);
+        if (rosterIndex >= roster.Count)
+        {
+            throw new KeyNotFoundException(
+                $"Account '{accountId}' has no character at roster position '{rosterIndex}'.");
+        }
+
+        return await LoadForSelectionAsync(
+            accountId,
+            roster[rosterIndex].SlotIndex,
+            cancellationToken).ConfigureAwait(false);
     }
 
     public async ValueTask<CharacterNameStatus> CheckNameAsync(
@@ -105,8 +140,13 @@ internal sealed class CharacterService(Func<ICharacterRepository> characterRepos
             slotIndex++;
         }
 
+        // Resolved here rather than inside the repository: what a character is born with is a rule
+        // about characters, and the repository's job is to store what it is handed. It is resolved
+        // before the insert because the two have to land in one transaction -- a character row
+        // without its stats is the half-built state the entry profile query rejects outright.
+        var stats = await characterStats.GetInitialAsync(job, cancellationToken).ConfigureAwait(false);
         var characterId = await repository.CreateAsync(
-            new NewCharacterSpec(accountId, rawName, job, slotIndex),
+            new NewCharacterSpec(accountId, rawName, job, slotIndex, stats),
             cancellationToken).ConfigureAwait(false);
         return new CharacterCreationResult(CharacterCreationStatus.Created, characterId);
     }

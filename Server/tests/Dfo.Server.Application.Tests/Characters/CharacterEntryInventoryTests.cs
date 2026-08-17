@@ -659,6 +659,11 @@ public sealed class CharacterEntryInventoryTests
             ushort slotIndex,
             CancellationToken cancellationToken) => ValueTask.FromResult(state);
 
+        public ValueTask<ActiveCharacterState> LoadByRosterPositionAsync(
+            AccountId accountId,
+            ushort rosterIndex,
+            CancellationToken cancellationToken) => ValueTask.FromResult(state);
+
         // Entry inventory never creates or removes characters.
         public ValueTask<CharacterNameStatus> CheckNameAsync(
             byte[] rawName,

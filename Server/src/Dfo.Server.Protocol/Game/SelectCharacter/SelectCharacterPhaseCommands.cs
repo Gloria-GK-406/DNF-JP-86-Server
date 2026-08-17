@@ -17,7 +17,7 @@ namespace Dfo.Server.Protocol.Game.SelectCharacter;
 
 public sealed record PrepareSelectedCharacterSessionCommand(
     AccountId AccountId,
-    ushort SlotIndex,
+    ushort RosterIndex,
     ChannelEntryIdentity Channel,
     NetworkConnectionId ConnectionId,
     long ExpectedConnectionGeneration)
@@ -45,7 +45,7 @@ public sealed class PrepareSelectedCharacterSessionCommandHandler(
     {
         EnsureExpectedConnection(command);
         var selected = await preparation.PreflightAsync(
-            command.AccountId, command.SlotIndex, command.Channel, cancellationToken)
+            command.AccountId, command.RosterIndex, command.Channel, cancellationToken)
             .ConfigureAwait(false);
 
         // This must precede every lifecycle side effect. A selected character that cannot be

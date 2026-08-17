@@ -29,6 +29,26 @@ internal sealed class SqliteCharacterRepository : ICharacterRepository
         EnsureSchema();
     }
 
+    /// <summary>
+    /// A new character enters at full health. Written explicitly because the column's schema
+    /// default is zero, which the client renders as an empty bar under a full maximum.
+    /// </summary>
+    private const int FullHpMpPercent = 100;
+
+    private static void EnsureEntryStateSchema(SqliteConnection connection)
+    {
+        // Creation writes the character row and its required entry-state rows in one transaction,
+        // so those schemas must exist before the first create -- including in a fresh database
+        // where this repository happens to be constructed first.
+        //
+        // Both are needed: character_init_flags is declared by the character entry-state schema,
+        // but its pc_room_state column comes from the account entry-state schema. Ensuring only
+        // the first leaves creation working against an existing database and failing against a
+        // fresh one, which is exactly how this was found.
+        SqliteCharacterEntryStateRepository.EnsureSchema(connection);
+        Accounts.SqliteAccountEntryStateRepository.EnsureSchema(connection);
+    }
+
     public async ValueTask<IReadOnlyList<CharacterSummary>> ListByAccountAsync(
         AccountId accountId,
         CancellationToken cancellationToken)
@@ -155,7 +175,10 @@ internal sealed class SqliteCharacterRepository : ICharacterRepository
 
         await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction = (SqliteTransaction)await connection
+            .BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
         await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
 
         // name and name_bytes are both written: name_bytes is the authority every read path uses
         // through COALESCE, while name stays populated because the column is NOT NULL and remains
@@ -172,7 +195,106 @@ internal sealed class SqliteCharacterRepository : ICharacterRepository
         command.Parameters.AddWithValue("@slotIndex", spec.SlotIndex);
         var created = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidOperationException("Character insert returned no identifier.");
-        return new CharacterId(Convert.ToInt32(created, CultureInfo.InvariantCulture));
+        var characterId = Convert.ToInt32(created, CultureInfo.InvariantCulture);
+
+        await InsertRequiredEntryStateAsync(
+            connection, transaction, characterId, spec.Stats, cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        return new CharacterId(characterId);
+    }
+
+    /// <summary>
+    /// Writes the three entry-state rows without which the character cannot be entered.
+    /// </summary>
+    /// <remarks>
+    /// The entry profile query inner-joins <c>character_subtype0_fields</c>,
+    /// <c>character_subtype1_fields</c> and <c>character_init_flags</c>, and reports their absence
+    /// as "incomplete required profile state". That is an assertion about corruption, not a
+    /// tolerated case, so a character row must never exist without them -- which is why this runs
+    /// inside the same transaction as the character insert rather than as a second step. Two
+    /// connections cannot share a SQLite transaction, so a follow-up call from the service layer
+    /// could leave exactly the half-built character the assertion is meant to catch.
+    ///
+    /// Every NOT NULL column carries a schema default, so those need no values here -- and the
+    /// defaults are not all zero (<c>user_state_bits</c> 3, <c>pc_room_id</c> 65537,
+    /// <c>return_user_flag</c> 1, <c>skill_tree_index</c> -1), which is why they are left to the
+    /// schema rather than restated at the insert.
+    ///
+    /// <c>pc_room_state</c> is the exception and must be written. It is the one nullable column
+    /// whose reader refuses NULL: <c>SqliteAccountEntryStateRepository.LoadPcRoomStatesAsync</c>
+    /// left-joins this table for every live character on the account and throws "PC-room
+    /// compatibility state is unavailable" on a null. The other two nullable columns
+    /// (<c>character_option_blob</c> here, <c>creature_buffer</c> in subtype0) are read through
+    /// helpers that accept null explicitly. Upstream declares this column NOT NULL DEFAULT 0; our
+    /// schema does not, so the value is supplied here instead of relying on a default we do not
+    /// have. Zero means "not in a PC room", which is what a fresh character is.
+    ///
+    /// The combat stats are the other exception. They have schema defaults, but the default is
+    /// zero and a character with zero maximum HP cannot act, so they are written from the job's
+    /// archive entry that <paramref name="stats"/> carries. Nothing recomputes them afterwards:
+    /// a character is created at level one and no path advances a level yet.
+    ///
+    /// <c>current_hp_mp_percent</c> is the third, and its default of zero is the worst of the
+    /// three: it is the percentage of maximum HP/MP the character enters holding, so a zero
+    /// presents full maxima alongside an empty bar.
+    /// </remarks>
+    private static async ValueTask InsertRequiredEntryStateAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        int characterId,
+        CharacterBaseStats stats,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            INSERT INTO character_subtype0_fields (character_id) VALUES (@characterId)
+                ON CONFLICT(character_id) DO NOTHING;
+            INSERT INTO character_subtype1_fields (
+                character_id, stat_hp_max, stat_mp_max,
+                stat_physical_attack, stat_physical_defense,
+                stat_magical_attack, stat_magical_defense,
+                stat_fire_resistance, stat_water_resistance,
+                stat_dark_resistance, stat_light_resistance,
+                stat_inventory_limit, stat_hp_regen_speed, stat_mp_regen_speed,
+                stat_move_speed, stat_attack_speed, stat_cast_speed,
+                stat_hit_recovery, stat_jump_power, stat_weight, current_hp_mp_percent)
+                VALUES (
+                    @characterId, @hpMax, @mpMax,
+                    @physicalAttack, @physicalDefense,
+                    @magicalAttack, @magicalDefense,
+                    @fireResistance, @waterResistance,
+                    @darkResistance, @lightResistance,
+                    @inventoryLimit, @hpRegenSpeed, @mpRegenSpeed,
+                    @moveSpeed, @attackSpeed, @castSpeed,
+                    @hitRecovery, @jumpPower, @weight, @currentHpMpPercent)
+                ON CONFLICT(character_id) DO NOTHING;
+            INSERT INTO character_init_flags (character_id, pc_room_state)
+                VALUES (@characterId, 0)
+                ON CONFLICT(character_id) DO NOTHING;
+            """;
+        command.Parameters.AddWithValue("@characterId", characterId);
+        command.Parameters.AddWithValue("@hpMax", stats.HpMax);
+        command.Parameters.AddWithValue("@mpMax", stats.MpMax);
+        command.Parameters.AddWithValue("@physicalAttack", stats.PhysicalAttack);
+        command.Parameters.AddWithValue("@physicalDefense", stats.PhysicalDefense);
+        command.Parameters.AddWithValue("@magicalAttack", stats.MagicalAttack);
+        command.Parameters.AddWithValue("@magicalDefense", stats.MagicalDefense);
+        command.Parameters.AddWithValue("@fireResistance", stats.FireResistance);
+        command.Parameters.AddWithValue("@waterResistance", stats.WaterResistance);
+        command.Parameters.AddWithValue("@darkResistance", stats.DarkResistance);
+        command.Parameters.AddWithValue("@lightResistance", stats.LightResistance);
+        command.Parameters.AddWithValue("@inventoryLimit", stats.InventoryLimit);
+        command.Parameters.AddWithValue("@hpRegenSpeed", stats.HpRegenSpeed);
+        command.Parameters.AddWithValue("@mpRegenSpeed", stats.MpRegenSpeed);
+        command.Parameters.AddWithValue("@moveSpeed", stats.MoveSpeed);
+        command.Parameters.AddWithValue("@attackSpeed", stats.AttackSpeed);
+        command.Parameters.AddWithValue("@castSpeed", stats.CastSpeed);
+        command.Parameters.AddWithValue("@hitRecovery", stats.HitRecovery);
+        command.Parameters.AddWithValue("@jumpPower", stats.JumpPower);
+        command.Parameters.AddWithValue("@weight", stats.Weight);
+        command.Parameters.AddWithValue("@currentHpMpPercent", FullHpMpPercent);
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async ValueTask<bool> SoftDeleteAsync(
@@ -232,5 +354,6 @@ internal sealed class SqliteCharacterRepository : ICharacterRepository
                 ON characters(account_id, delete_flag, slot_index);
             """;
         command.ExecuteNonQuery();
+        EnsureEntryStateSchema(connection);
     }
 }

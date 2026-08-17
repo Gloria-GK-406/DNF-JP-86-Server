@@ -19,6 +19,7 @@ using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.SelectCharacter;
 using Dfo.Server.Protocol.Game;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Dfo.Server.Application.Tests.Game;
 
@@ -517,7 +518,11 @@ public sealed class SelectCharacterLifecycleTests
                 transitionGate,
                 directory,
                 sender,
-                closer);
+                closer,
+                NullLogger<SelectCharacterHandler>.Instance,
+                // These tests describe the full delivery contract, including everything that
+                // follows the entry batch. Production runs the reference sequence instead.
+                SelectCharacterDeliveryOptions.Everything);
             var command = new SelectCharacterRequest(GameMessageMetadata.Empty, 3);
             return new Fixture(
                 accountId, connectionId, result, ledger, directory, active, closer,

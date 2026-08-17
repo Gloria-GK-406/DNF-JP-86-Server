@@ -21,6 +21,18 @@ public enum ClientMessageType
     GameDeleteCharacter = 0x0001_0006,
     GameMercenaryInfo = 0x0001_01BA,
     GameHiddenCharacterInfo = 0x0001_0286,
+    GameSaveGameOption1 = 0x0001_00C5,
+    GameContentsPlayInfo = 0x0001_02C1,
+
+    // The map-entry report family: sent once the entry batch is accepted and the client starts
+    // loading a town. None is answered. See Game/MapEntryReports.
+    GameSetUdpIpPort = 0x0001_0002,
+    GameCeraQuery = 0x0001_003F,
+    GameSetUserPosition = 0x0001_0023,
+    GameInformNoticeSecond = 0x0001_01F8,
+    GameSecurityStatus = 0x0001_0252,
+    GameRuntimeTingStatistic = 0x0001_02B3,
+    GameEnterSelectDungeon = 0x0001_000F,
 }
 
 public enum ServerMessageType
@@ -43,6 +55,13 @@ public enum ServerMessageType
     GameAuctionServiceState = 0x0000_00B7,
     GameInformNotice = 0x0000_01A1,
     GameRosterFollowUp = 0x0001_02A8,
+    GameContentsPlayInfo = 0x0001_02C1,
+
+    // Pushed when the dungeon-selection screen opens. See Game/DungeonSelection.
+    GameUserState = 0x0000_0003,
+    GameUserArea = 0x0000_0017,
+    GameUdpHost = 0x0000_001A,
+    GameEnterSelectDungeonState = 0x0000_001B,
 }
 
 public interface IClientNetworkMessage

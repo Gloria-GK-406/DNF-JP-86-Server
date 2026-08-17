@@ -12,7 +12,7 @@ internal static class SelectCharacterPayloadCodec
         if (body.Length < sizeof(ushort))
         {
             throw new InvalidDataException(
-                $"SELECT_CHARACTER requires a two-byte slot index; received '{body.Length}' bytes.");
+                $"SELECT_CHARACTER requires a two-byte roster index; received '{body.Length}' bytes.");
         }
 
         return new SelectCharacterRequest(

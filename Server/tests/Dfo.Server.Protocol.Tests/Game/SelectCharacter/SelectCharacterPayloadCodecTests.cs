@@ -534,6 +534,12 @@ public sealed class SelectCharacterPayloadCodecTests
                     INSERT INTO character_init_flags(character_id) VALUES(22);
                     INSERT INTO character_invisible_falgs(character_id,slot_index,flag_value)
                     VALUES(22,13502,1);
+                    -- Two collect-box rows because the entry batch sends two box frames. The
+                    -- boxes a character has now come from its stored progress rather than from a
+                    -- hard-coded pair, so a fixture that omits them describes a character the
+                    -- factory cannot encode.
+                    INSERT INTO character_collectbox_slots(character_id,box_index,slot_index,item_id)
+                    VALUES(22,1,0,10007322),(22,2,0,10007322);
                     """;
                 await command.ExecuteNonQueryAsync();
             }

@@ -1,5 +1,6 @@
 using System.Text;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -15,11 +16,16 @@ public sealed class CharacterLifecycleServiceTests
     private static readonly AccountId Account = new(1);
 
     private static (ICharacterService Service, FakeRepository Repository) Build(
+        params CharacterSummary[] existing) => BuildWith(new FakeStatSource(), existing);
+
+    private static (ICharacterService Service, FakeRepository Repository) BuildWith(
+        ICharacterStatDefinitionSource stats,
         params CharacterSummary[] existing)
     {
         var repository = new FakeRepository(existing);
         var services = new ServiceCollection();
         services.AddSingleton<ICharacterRepository>(repository);
+        services.AddSingleton(stats);
         new ApplicationModule().ConfigureServices(
             services,
             new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
@@ -187,6 +193,79 @@ public sealed class CharacterLifecycleServiceTests
         Assert.Equal([101], repository.Deleted.Select(id => id.Value));
     }
 
+    [Fact]
+    public async Task TheSelectionIndexIsARosterPositionNotASlot()
+    {
+        // The client indexes its own character vector, filled from the roster in the order the
+        // roster listed. Position and slot agree only on a gap-free roster -- which every earlier
+        // sample happened to be, which is why this went unnoticed until a roster with a hole.
+        var (service, repository) = Build(
+            Existing(0, "First"), Existing(2, "Second"), Existing(3, "Third"));
+
+        await Assert.ThrowsAsync<KeyNotFoundException>(
+            async () => await service.LoadByRosterPositionAsync(Account, 1, CancellationToken.None));
+
+        Assert.Equal((ushort)2, repository.RequestedSlot);
+    }
+
+    [Fact]
+    public async Task APositionPastTheEndOfTheRosterNeverReachesTheSlotLookup()
+    {
+        var (service, repository) = Build(Existing(0, "Only"));
+
+        await Assert.ThrowsAsync<KeyNotFoundException>(
+            async () => await service.LoadByRosterPositionAsync(Account, 3, CancellationToken.None));
+
+        Assert.Null(repository.RequestedSlot);
+    }
+
+    [Fact]
+    public async Task ACreatedCharacterIsBornWithTheStatsItsJobDeclares()
+    {
+        // Without this the character reaches storage with every stat at zero, which the schema
+        // accepts and the player then meets as a character that cannot act.
+        var stats = new FakeStatSource();
+        var (service, repository) = BuildWith(stats);
+
+        var result = await service.CreateCharacterAsync(
+            Account, 4, "Cleric"u8.ToArray(), CancellationToken.None);
+
+        Assert.Equal(CharacterCreationStatus.Created, result.Status);
+        Assert.Equal([(byte)4], stats.Requested);
+        Assert.Equal(FakeStatSource.For(4), repository.LastSpec!.Stats);
+    }
+
+    [Fact]
+    public async Task ARefusedCreationNeverReachesTheArchive()
+    {
+        // The stat lookup opens the archive, so it belongs after the cheap rejections rather than
+        // before them: a bad name or a full roster should not need static content to be present.
+        var stats = new FakeStatSource();
+        var (service, _) = BuildWith(stats);
+
+        await service.CreateCharacterAsync(Account, 13, "Valid"u8.ToArray(), CancellationToken.None);
+        await service.CreateCharacterAsync(Account, 0, "x"u8.ToArray(), CancellationToken.None);
+
+        Assert.Empty(stats.Requested);
+    }
+
+    private sealed class FakeStatSource : ICharacterStatDefinitionSource
+    {
+        public List<byte> Requested { get; } = [];
+
+        /// <summary>Distinct per job, so a lookup for the wrong one is visible.</summary>
+        public static CharacterBaseStats For(byte job) =>
+            new(HpMax: 1000 + job, MpMax: 2000 + job, MoveSpeed: 8500);
+
+        public ValueTask<CharacterBaseStats> GetInitialAsync(
+            byte job,
+            CancellationToken cancellationToken)
+        {
+            Requested.Add(job);
+            return ValueTask.FromResult(For(job));
+        }
+    }
+
     private sealed class FakeRepository(CharacterSummary[] existing) : ICharacterRepository
     {
         public NewCharacterSpec? LastSpec { get; private set; }
@@ -198,10 +277,18 @@ public sealed class CharacterLifecycleServiceTests
             CancellationToken cancellationToken) =>
             ValueTask.FromResult<IReadOnlyList<CharacterSummary>>(existing);
 
+        public ushort? RequestedSlot { get; private set; }
+
+        // Records the slot the position was translated into. Returning null makes the load fail,
+        // which is fine: the translation has already happened by then and is what is under test.
         public ValueTask<ActiveCharacterState?> FindByAccountAndSlotAsync(
             AccountId accountId,
             ushort slotIndex,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
+            CancellationToken cancellationToken)
+        {
+            RequestedSlot = slotIndex;
+            return ValueTask.FromResult<ActiveCharacterState?>(null);
+        }
 
         public ValueTask<bool> NameExistsAsync(byte[] name, CancellationToken cancellationToken) =>
             ValueTask.FromResult(existing.Any(item => item.Name.AsSpan().SequenceEqual(name)));

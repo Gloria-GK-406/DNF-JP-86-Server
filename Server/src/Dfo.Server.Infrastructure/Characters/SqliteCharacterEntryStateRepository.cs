@@ -80,7 +80,7 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
                    s0.pvp_win_streak, s0.pvp_lose_streak, s0.trailing_byte
                    ,s1.stat_fire_resistance, s1.stat_water_resistance, s1.stat_dark_resistance,
                    s1.stat_light_resistance, s1.stat_hp_regen_speed, s1.stat_mp_regen_speed,
-                   s1.stat_hit_recovery, s1.stat_jump_power, s1.stat_weight, s1.stat_level,
+                   s1.stat_hit_recovery, s1.stat_jump_power, s1.stat_weight, s1.current_hp_mp_percent,
                    s1.name_tag_item_id, s1.name_tag_expire_time, s1.equipped_creature_level,
                    s1.equip_list_trailing, s1.flag_byte, s1.guild_power_war,
                    s1.server_timestamp, s1.quest_shop_count, c.exp, c.ex_equip_slot_stat,
@@ -465,7 +465,12 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
             while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             {
                 var row = (reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2));
-                if (row.Item1 is not (3 or 4) || row.Item2 < 0 || row.Item3 <= 0)
+
+                // The index is bounded by the wire width, not by a fixed pair. This used to admit
+                // only 3 and 4, which is a claim about the content archive rather than about the
+                // row: the archive in use declares boxes 1 and 2, so every legitimate row it could
+                // ever hold was rejected here.
+                if (row.Item1 is < 0 or > byte.MaxValue || row.Item2 < 0 || row.Item3 <= 0)
                     throw new InvalidDataException("Collection box state is out of range.");
                 collection.Add(row);
             }
@@ -609,6 +614,21 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
     {
         using var connection = new SqliteConnection(connectionString);
         connection.Open();
+        EnsureSchema(connection);
+    }
+
+    /// <summary>
+    /// Applies the entry-state schema on a caller's connection.
+    /// </summary>
+    /// <remarks>
+    /// Exposed because <see cref="SqliteCharacterRepository"/> writes a new character's three
+    /// required entry-state rows in the same transaction as the character row, and therefore has
+    /// to know those tables exist before its first create. Keeping one definition of the DDL here
+    /// leaves ownership with this repository; a second copy in the caller would drift.
+    /// </remarks>
+    internal static void EnsureSchema(SqliteConnection connection)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
         EnsureCharacterColumns(connection);
         using var command = connection.CreateCommand();
         command.CommandText = SchemaSql;
@@ -770,7 +790,7 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
                 .Any(value => value is < short.MinValue or > short.MaxValue)
             || new[] { s1.HpRegenSpeed, s1.MpRegenSpeed, s1.HitRecovery, s1.JumpPower,
                 s1.QuestShopCount }.Any(value => value is < 0 or > ushort.MaxValue)
-            || new[] { s1.StatLevel, s1.EquippedCreatureLevel, s1.FlagByte }
+            || new[] { s1.CurrentHpMpPercent, s1.EquippedCreatureLevel, s1.FlagByte }
                 .Any(value => value is < 0 or > byte.MaxValue)
             || s1.ManageLevel is < 0 or > byte.MaxValue
             || s1.Weight is < 0 or > uint.MaxValue || s1.NameTagItemId is < 0 or > uint.MaxValue
@@ -890,7 +910,7 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
             stat_dark_resistance INTEGER NOT NULL DEFAULT 0, stat_light_resistance INTEGER NOT NULL DEFAULT 0,
             stat_hp_regen_speed INTEGER NOT NULL DEFAULT 0, stat_mp_regen_speed INTEGER NOT NULL DEFAULT 0,
             stat_hit_recovery INTEGER NOT NULL DEFAULT 0, stat_jump_power INTEGER NOT NULL DEFAULT 0,
-            stat_weight INTEGER NOT NULL DEFAULT 0, stat_level INTEGER NOT NULL DEFAULT 0,
+            stat_weight INTEGER NOT NULL DEFAULT 0, current_hp_mp_percent INTEGER NOT NULL DEFAULT 0,
             name_tag_item_id INTEGER NOT NULL DEFAULT 0, name_tag_expire_time INTEGER NOT NULL DEFAULT 0,
             equipped_creature_level INTEGER NOT NULL DEFAULT 0, equip_list_trailing INTEGER NOT NULL DEFAULT 0,
             flag_byte INTEGER NOT NULL DEFAULT 0, guild_power_war INTEGER NOT NULL DEFAULT 0,

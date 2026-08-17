@@ -53,12 +53,55 @@ public enum CharacterDeletionStatus
     NameMismatch,
 }
 
+/// <summary>A character's combat stats, in the fixed-point form the wire and the database use.</summary>
+/// <remarks>
+/// <para>
+/// Every value is the archive's number multiplied by ten: the swordman declares
+/// <c>[HP MAX] 180</c> and the client is sent 1800. The scale is the same for all of them,
+/// including the ones that read as percentages in the panel.
+/// </para>
+/// <para>
+/// A stat the job does not declare is zero, and that is a real value rather than a gap: the
+/// swordman lists neither fire nor water resistance, while the knight lists all four.
+/// </para>
+/// </remarks>
+public sealed record CharacterBaseStats(
+    int HpMax = 0,
+    int MpMax = 0,
+    int PhysicalAttack = 0,
+    int PhysicalDefense = 0,
+    int MagicalAttack = 0,
+    int MagicalDefense = 0,
+    int FireResistance = 0,
+    int WaterResistance = 0,
+    int DarkResistance = 0,
+    int LightResistance = 0,
+    int InventoryLimit = 0,
+    int HpRegenSpeed = 0,
+    int MpRegenSpeed = 0,
+    int MoveSpeed = 0,
+    int AttackSpeed = 0,
+    int CastSpeed = 0,
+    int HitRecovery = 0,
+    int JumpPower = 0,
+    int Weight = 0)
+{
+    /// <summary>No stats at all, for callers that are not exercising them.</summary>
+    public static CharacterBaseStats Zero { get; } = new();
+}
+
 /// <summary>The fields a brand new character is born with.</summary>
+/// <param name="Stats">
+/// What the job's archive entry says a level-one character of this job starts with. Required
+/// rather than defaulted: a character whose stats are all zero cannot act, and that was the
+/// state every character created before this parameter existed was born in.
+/// </param>
 public sealed record NewCharacterSpec(
     AccountId AccountId,
     byte[] Name,
     byte Job,
-    ushort SlotIndex);
+    ushort SlotIndex,
+    CharacterBaseStats Stats);
 
 public sealed record CharacterCreationResult(
     CharacterCreationStatus Status,
@@ -194,7 +237,7 @@ public sealed record CharacterSubtype1EntryState(
     ushort HitRecovery = 0,
     ushort JumpPower = 0,
     uint Weight = 0,
-    byte StatLevel = 0,
+    byte CurrentHpMpPercent = 0,
     uint NameTagItemId = 0,
     uint NameTagExpireTime = 0,
     byte EquippedCreatureLevel = 0,

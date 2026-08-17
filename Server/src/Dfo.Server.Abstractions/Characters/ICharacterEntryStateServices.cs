@@ -90,7 +90,7 @@ public sealed record CharacterSubtype1StorageRecord(
     int HitRecovery = 0,
     int JumpPower = 0,
     long Weight = 0,
-    int StatLevel = 0,
+    int CurrentHpMpPercent = 0,
     long NameTagItemId = 0,
     long NameTagExpireTime = 0,
     int EquippedCreatureLevel = 0,

@@ -24,7 +24,7 @@ namespace Dfo.Server.Application.Characters;
 public interface ISelectCharacterPreparationService
 {
     ValueTask<ActiveCharacterState> PreflightAsync(
-        AccountId accountId, ushort slotIndex, ChannelEntryIdentity channel,
+        AccountId accountId, ushort rosterIndex, ChannelEntryIdentity channel,
         CancellationToken cancellationToken);
     ValueTask<SelectCharacterResult> PrepareAsync(
         ActiveCharacterState selected,
@@ -53,14 +53,15 @@ public sealed class SelectCharacterPreparationService(
     TimeProvider timeProvider) : ISelectCharacterPreparationService
 {
     public async ValueTask<ActiveCharacterState> PreflightAsync(
-        AccountId accountId, ushort slotIndex, ChannelEntryIdentity channel,
+        AccountId accountId, ushort rosterIndex, ChannelEntryIdentity channel,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(channel);
 
-        var character = await characters.LoadForSelectionAsync(
+        // The wire index is a position in the roster the client was sent, not a slot.
+        var character = await characters.LoadByRosterPositionAsync(
             accountId,
-            slotIndex,
+            rosterIndex,
             cancellationToken).ConfigureAwait(false);
 
         // Admission depends only on minimum character facts. Refuse before loading any
@@ -242,11 +243,19 @@ public sealed class SelectCharacterPreparationService(
         WorldContentEntryState content,
         DateTimeOffset preparedAt)
     {
-        var definitions = content.CollectionBoxes.ToDictionary(value => value.BoxIndex);
-        var boxes = entry.Features.Collections.CollectionBoxes.Select(box =>
+        // Content decides which boxes exist; character storage only supplies progress within them.
+        // This used to run the other way round -- the entry state invented a fixed pair of box
+        // indices and this projection demanded a definition for each -- which made entry fail
+        // outright on any archive that did not happen to declare those two. The archive in use
+        // declares boxes 1 and 2 while the hard-coded pair was 3 and 4, so it never could have
+        // resolved. The reference server derives the set the same way, from its collect-box table.
+        var stored = entry.Features.Collections.CollectionBoxes.ToDictionary(value => value.BoxIndex);
+        var boxes = content.CollectionBoxes.OrderBy(value => value.BoxIndex).Select(definition =>
         {
-            if (!definitions.TryGetValue(box.BoxIndex, out var definition))
-                throw new InvalidDataException($"Collection-box definition {box.BoxIndex} was not resolved.");
+            var index = checked((byte)definition.BoxIndex);
+            var box = stored.TryGetValue(index, out var progress)
+                ? progress
+                : new CharacterCollectionBoxProgressState(index, []);
 
             uint remainingSeconds;
             byte statusFlags;

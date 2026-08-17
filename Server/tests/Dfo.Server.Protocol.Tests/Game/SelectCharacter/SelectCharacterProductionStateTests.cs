@@ -61,6 +61,9 @@ public sealed class SelectCharacterProductionStateTests
                     seed.Character.Progression.Level, seed.CharacterEntry.Public.CloneTitleItemId)]));
         public ValueTask<ActiveCharacterState> LoadForSelectionAsync(AccountId id, ushort slot, CancellationToken ct) =>
             ValueTask.FromResult(seed.Character);
+        public ValueTask<ActiveCharacterState> LoadByRosterPositionAsync(
+            AccountId id, ushort rosterIndex, CancellationToken ct) =>
+            ValueTask.FromResult(seed.Character);
         // Roster mutation plays no part in selecting an already existing character.
         public ValueTask<CharacterNameStatus> CheckNameAsync(byte[] name, CancellationToken ct) =>
             throw new NotSupportedException();

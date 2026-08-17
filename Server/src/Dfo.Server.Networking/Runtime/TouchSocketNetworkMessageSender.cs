@@ -1,13 +1,15 @@
 using System.Buffers;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
+using Microsoft.Extensions.Logging;
 using TouchSocket.Sockets;
 
 namespace Dfo.Server.Networking.Runtime;
 
 internal sealed class TouchSocketNetworkMessageSender(
     TouchSocketConnectionRegistry connections,
-    ServerMessageEncoderRegistry encoders) : INetworkMessageSender
+    ServerMessageEncoderRegistry encoders,
+    ILogger<TouchSocketNetworkMessageSender> logger) : INetworkMessageSender
 {
     public async ValueTask SendAsync(
         NetworkConnectionId connectionId,
@@ -32,6 +34,22 @@ internal sealed class TouchSocketNetworkMessageSender(
 
         foreach (var frame in entry.Encoder.Encode(message))
         {
+            // One line per outbound frame, at Debug. The client-side capture records no selector
+            // for inbound frames, so without this the CMD/NOTI family of everything the server
+            // sends can only be inferred -- and inference is wrong precisely where it matters,
+            // because the same type number is two unrelated protocols in the two families.
+            if (logger.IsEnabled(LogLevel.Debug) && connection.Context.EndpointKind == NetworkEndpointKind.Game
+                && frame.Length >= 3)
+            {
+                logger.LogDebug(
+                    "S->C {ConnectionId} selector=0x{Selector:X2} type=0x{Type:X4} frame={Length} {Message}",
+                    connectionId,
+                    frame[0],
+                    (ushort)(frame[1] | (frame[2] << 8)),
+                    frame.Length,
+                    message.GetType().Name);
+            }
+
             await ((ISender)connection.Session).SendAsync(
                 new ReadOnlySequence<byte>(frame),
                 cancellationToken);

@@ -58,10 +58,24 @@ internal sealed class ChannelNetworkPlugin(
             if (Decode(frame, connectionId) is { } message)
             {
                 var connection = Connections.Get(connectionId).Context;
-                await dispatcher.DispatchAsync(
-                    new NetworkDispatchContext(connection),
-                    message,
-                    CancellationToken.None);
+                try
+                {
+                    await dispatcher.DispatchAsync(
+                        new NetworkDispatchContext(connection),
+                        message,
+                        CancellationToken.None);
+                }
+                catch (Exception error)
+                {
+                    logger.LogError(
+                        error,
+                        "Channel handler failed {ConnectionId}: message=0x{MessageNumber:X2} "
+                            + "handler={Message}",
+                        connectionId,
+                        frame.MessageNumber,
+                        message.GetType().Name);
+                    throw;
+                }
             }
         }
 
@@ -123,10 +137,30 @@ internal sealed class GameNetworkPlugin(
             if (Decode(frame, connectionId) is { } message)
             {
                 var connection = Connections.Get(connectionId).Context;
-                await dispatcher.DispatchAsync(
-                    new NetworkDispatchContext(connection),
-                    message,
-                    CancellationToken.None);
+                try
+                {
+                    await dispatcher.DispatchAsync(
+                        new NetworkDispatchContext(connection),
+                        message,
+                        CancellationToken.None);
+                }
+                catch (Exception error)
+                {
+                    // Logged and rethrown, not handled. Without this the frame simply stops being
+                    // processed and the connection drops with nothing written anywhere: command
+                    // failures are logged by the command pipeline, but a handler that throws after
+                    // its commands succeeded had no reporting path at all. Rethrowing keeps the
+                    // existing behaviour exactly; only the silence is removed.
+                    logger.LogError(
+                        error,
+                        "Game handler failed {ConnectionId}: selector=0x{Selector:X2} "
+                            + "type=0x{Type:X4} message={Message}",
+                        connectionId,
+                        frame.Selector,
+                        frame.Type,
+                        message.GetType().Name);
+                    throw;
+                }
             }
         }
 

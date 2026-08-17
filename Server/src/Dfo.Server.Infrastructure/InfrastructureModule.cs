@@ -51,6 +51,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IQuestDefinitionSource, PvfQuestDefinitionSource>();
         services.TryAddSingleton<ICollectionBoxDefinitionSource, PvfCollectionBoxDefinitionSource>();
         services.TryAddSingleton<ISkillPointDefinitionSource, PvfSkillPointDefinitionSource>();
+        services.TryAddSingleton<ICharacterStatDefinitionSource, PvfCharacterStatDefinitionSource>();
         services.TryAddSingleton<IDailyActivityDefinitionSource, PvfDailyActivityDefinitionSource>();
         services.TryAddSingleton<ICreatureDefinitionSource, PvfCreatureDefinitionSource>();
         services.TryAddSingleton<ICreatureEquipmentLifetimeSource, PvfCreatureEquipmentLifetimeSource>();

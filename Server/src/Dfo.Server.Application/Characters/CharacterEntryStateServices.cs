@@ -81,7 +81,7 @@ internal sealed class CharacterProfileEntryService : ICharacterProfileEntryServi
                     checked((ushort)storage.Subtype1.HitRecovery),
                     checked((ushort)storage.Subtype1.JumpPower),
                     checked((uint)storage.Subtype1.Weight),
-                    checked((byte)storage.Subtype1.StatLevel),
+                    checked((byte)storage.Subtype1.CurrentHpMpPercent),
                     checked((uint)storage.Subtype1.NameTagItemId),
                     checked((uint)storage.Subtype1.NameTagExpireTime),
                     checked((byte)storage.Subtype1.EquippedCreatureLevel),
@@ -242,11 +242,16 @@ internal sealed class CharacterFeatureEntryService : ICharacterFeatureEntryServi
                     .Select(DecodeTitleBookEntry)
                     .ToArray()))
             .ToArray();
-        var boxes = new[] { 3, 4 }
-            .Select(box => new CharacterCollectionBoxProgressState(
-                checked((byte)box),
-                storage.CollectionSlots.Where(value => value.BoxIndex == box)
-                    .OrderBy(value => value.SlotIndex)
+        // Whatever boxes this character has stored progress for. Which boxes *exist* is a content
+        // question and is settled later, in SelectCharacterPreparationService, against the archive's
+        // collect-box table; inventing an index set here cannot know that and previously produced a
+        // pair the archive does not declare.
+        var boxes = storage.CollectionSlots
+            .GroupBy(value => value.BoxIndex)
+            .OrderBy(group => group.Key)
+            .Select(group => new CharacterCollectionBoxProgressState(
+                checked((byte)group.Key),
+                group.OrderBy(value => value.SlotIndex)
                     .Select(value => new CharacterCollectionBoxSlotState(value.SlotIndex, value.ItemId))
                     .ToArray()))
             .ToArray();

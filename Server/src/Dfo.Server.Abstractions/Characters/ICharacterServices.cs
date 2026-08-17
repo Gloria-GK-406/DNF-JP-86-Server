@@ -39,6 +39,15 @@ public interface ICharacterService
         ushort slotIndex,
         CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Loads the character the client points at by its position in the roster the server sent,
+    /// not by slot. SELECT_CHARACTER and DELETE_CHARACTER both carry a position.
+    /// </summary>
+    ValueTask<ActiveCharacterState> LoadByRosterPositionAsync(
+        AccountId accountId,
+        ushort rosterIndex,
+        CancellationToken cancellationToken);
+
     ValueTask<CharacterNameStatus> CheckNameAsync(
         byte[] rawName,
         CancellationToken cancellationToken);

@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
@@ -44,7 +45,8 @@ public sealed class ApplicationModule : IServerModule
             provider => provider.GetRequiredService<UserService>());
         services.TryAddSingleton(
             provider => new CharacterService(
-                () => provider.GetRequiredService<ICharacterRepository>()));
+                () => provider.GetRequiredService<ICharacterRepository>(),
+                provider.GetRequiredService<ICharacterStatDefinitionSource>()));
         services.TryAddSingleton<ICharacterService>(
             provider => provider.GetRequiredService<CharacterService>());
         services.TryAddSingleton<ISelectCharacterPreparationService, SelectCharacterPreparationService>();

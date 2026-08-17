@@ -667,6 +667,13 @@ public sealed class UserServiceTests
             ValueTask.FromException<ActiveCharacterState>(
                 new KeyNotFoundException($"Missing slot '{slotIndex}'."));
 
+        public ValueTask<ActiveCharacterState> LoadByRosterPositionAsync(
+            AccountId accountId,
+            ushort rosterIndex,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromException<ActiveCharacterState>(
+                new KeyNotFoundException($"Missing roster position '{rosterIndex}'."));
+
         public ValueTask<CharacterNameStatus> CheckNameAsync(
             byte[] rawName,
             CancellationToken cancellationToken) => throw new NotSupportedException();

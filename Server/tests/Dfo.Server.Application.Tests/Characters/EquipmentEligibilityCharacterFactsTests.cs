@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Data.Accounts;
@@ -21,8 +22,10 @@ public sealed class EquipmentEligibilityCharacterFactsTests
             GrowType: 3,
             Level: 86,
             CloneTitleItemId: 0);
+        // Reading eligibility facts must not reach for static content: only creation needs it.
         IEquipmentEligibilityCharacterReader reader = new CharacterService(
-            () => new StubCharacterRepository(summary));
+            () => new StubCharacterRepository(summary),
+            new UnusedStatSource());
 
         var facts = await reader.GetAsync(
             accountId,
@@ -30,6 +33,14 @@ public sealed class EquipmentEligibilityCharacterFactsTests
             CancellationToken.None);
 
         Assert.Equal(new EquipmentEligibilityCharacterFacts(summary.CharacterId, 86, 7, 3), facts);
+    }
+
+    private sealed class UnusedStatSource : ICharacterStatDefinitionSource
+    {
+        public ValueTask<CharacterBaseStats> GetInitialAsync(
+            byte job,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("Eligibility facts do not need job stats.");
     }
 
     private sealed class StubCharacterRepository(CharacterSummary summary) : ICharacterRepository
