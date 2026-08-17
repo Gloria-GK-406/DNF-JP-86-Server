@@ -1,0 +1,141 @@
+# 副本入场：信息收集笔记
+
+`0x0010 SELECT_DUNGEON` 至今未实现，因此 1 级角色走不完新手教程。本页收集实现它所需的事实，
+**不下实现结论**。协议字段与样本在 `protocol/`，本页只记服务端要建什么模型、依据是什么。
+
+调查日期 2026-08-17。上游 = `.worktrees/legacy-reference`，归档 = `DNFClient-debug/Script.pvf`
+（前 1 MiB SHA-256 `e8d8523f…`）。
+
+## 一、归档里**没有**一份副本类型表
+
+这是本次收集最重要的一条，它直接否掉了"按 `[dungeon type]` 建枚举"这个起点。
+
+`[dungeon type]` 只出现在 **284 / 839** 个副本上，取值只有六种，而且它标记的是特例家族，
+不是常规情况：
+
+| `[dungeon type]` | 数量 | 备注 |
+|---|---:|---|
+| （无此标签） | **555** | 含教程副本与全部 Act 副本 |
+| `village attack` | 266 | id 20000 起 |
+| `advance altar` | 13 | |
+| `tower of death` | 2 | id 11000 / 11001 |
+| `lost land` / `tower of boss` / `wedding couple` | 各 1 | |
+
+**绝望之塔不在这张表里**——它由另一个标签 `[tower of despair]` 标记（100 个副本），
+`[tower of despair sao]` 同样 100 个。
+
+上游据此把"类型"拆成**四种彼此无关的判据**：
+
+| 类型 | 判据 | 来源 |
+|---|---|---|
+| 死亡之塔 | `[dungeon type] == "tower of death"` | 归档标签 |
+| 绝望之塔 | `[tower of despair]` + 角色进度表改写入场 id | 归档标签 + 存档 |
+| 特殊副本（海上追击 / 时空裂缝 / 夺金 / 封印森林 / 根特潜入） | **匹配资源路径子串**（`SeaChase`、`TimeBreak`、`Seizemoney`、`SealForest`、`GentInfiltrate`） | 文件路径 |
+| 互动训练室 | 路径含 `*trainingroom*` **且**结构满足（经验倍率 `0.001`、队伍上限 1、有 `[designate dungeon difficulty]`） | 路径 + 结构 |
+
+**所以"副本类型"是服务端的业务分类，不是内容里的声明。** 任何按单一枚举建模的设计，
+建的都是一个归档里不存在的东西。
+
+## 二、真正的分界是**结构家族**，不是类型名
+
+比较三个副本的标签集合就能看出来：
+
+| 副本 | 标签数 | 有迷宫字段？ |
+|---|---:|---|
+| 10000 教程（`Tutorial/Tutorial.dgn`，卡利丛林） | 19 | **有**：`[maze info]` `[size]` `[greed]` `[map specification]` `[start map]` `[boss map]` `[pathgate object]` |
+| 1 洛兰（`Act1/Lorien.dgn`） | 27 | 有，另加难度、事件怪、`[schedule]`、`[revision table]` |
+| 11000 死亡之塔（`Towers/TowerOfDeath.dgn`） | 25 | **没有**。用 `[death tower map indexes]`，另有 `[tower dialog]` `[tower recovery]` `[tower fp cubepiece]` |
+
+`[maze info]` 覆盖 **836 / 839**。所以绝大多数副本属于同一个结构家族，
+而死亡之塔是**结构上另一种东西**——它没有迷宫可选，这正是上游给它单开一条
+不走普通 `START_MAP` 的路的原因，而不是因为它"类型不同"。
+
+组队相关的标签也不是类型，是修饰：`[recommend party]` 180、`[limit party count]` 49、
+`[raid dungeon]` 14、`[necessary party]` 6。
+
+## 三、教程副本是最朴素的那一个
+
+19 个标签里没有难度、没有事件怪、没有 `[revision table]`、没有任何队伍标签，
+`[minimum required level] 1`、`[no fatigue]`。迷宫是单个 5×3 网格：
+
+```text
+[size] 5 3
+[greed] AAAAAAIIAA / BBFFFFPPEE / AAAAAACCAA     ← 每格 2 字符
+[map specification] (0,1)=61000 (1,1)=61001 (2,1)=61002 (3,1)=61003
+                    (4,1)=61005 (3,2)=61004 (3,0)=61006
+[start map] 0 1        [boss map] 3 0
+```
+
+**意义**：把教程跑通不需要任何类型建模，它走的就是默认的迷宫家族路径。
+
+## 四、上游 `0x0010` 的成功路径
+
+`DungeonEntryHandler.HandleSelectDungeonCore`（`Network/Handlers/Dungeon/`，1336 行中的一段）：
+
+1. 解析请求（副本 id / 难度 / 两个深渊标志）
+2. **绝望之塔改写入场 id**：`TowerOfDespairProgress.ResolveEntryDungeonId(cid, requestedId)` 可以把
+   请求的 id 换成另一个
+3. 连锁副本来源解析
+4. **运行槽未变检查**（并发守卫，全程反复做：每次 await 之后都重验 `IsCurrentDungeonRun`）
+5. 载入进行中与已通关任务
+6. **入场资格**：`WorldMap.EvaluateDungeonAdmission(dungeonId, activeQuestIds, clearedQuestIds)`
+   —— 任务门禁；不通过则回 `DungeonAdmissionReject.DungeonUnavailable`
+7. 队伍查询 + 人数（1–4）
+8. **奖励策略** → `DungeonInteractionPolicy` 决定是否允许组队状态入场
+9. 经验加成快照
+10. **类型分流**：死亡之塔走 `BeginTowerRun` + 专属入场帧，然后 return
+11. 否则 `BeginRun` → 深渊模式判定 → 任务快照 → **选迷宫** → 随机 boss 位置 → 随机出生点 →
+    解析起始房间 map id → 随机化对象 → 通关条件 → 竞技场/血色祭坛准备 → 冻结选择快照 →
+    激活运行 → 发帧 → **把同队队员也拉进同一实例**
+
+### 客户端要的帧
+
+`SendDungeonSelectPacketsTo`：
+
+| 帧 | 内容 |
+|---|---|
+| NOTI `0x001C` DUNGEON_INFO | 副本 id、难度、迷宫序号、boss 格坐标、深渊房坐标、附加小地图图标组 |
+| 选择态 | `DungeonMechanismCoordinator.SendSelectionStateAsync` |
+| **START_MAP** | `DungeonMapHandler.SendStartMapAsync` —— 把角色放进第一个房间 |
+| NOTI `0x019F` | 助战标签（无则发空 body） |
+
+`START_MAP` 自身还按家族分叉：血色祭坛发 `START_BLOOD_MAP`、绝望之塔追加两条
+`USER_APC_INFO_TOD`、竞技场追加 `TOURNAMENT_INFO` + `TOURNAMENT_MAP_INFO`、
+深渊追加 `0x02A6` 怪物信息。
+
+## 五、我们这边现有什么
+
+**副本运行状态：没有。** 没有 run、没有实例、没有房间、没有迷宫模型。
+`Abstractions/Content/DungeonExperienceContent.cs` 只是一条经验曲线端口，
+`SqliteDungeonPersistentEffectRecoveryRepository` 与 `DungeonRejoinRegistry` 都只服务入场投影，
+不含运行本身。
+
+已有可复用的：
+
+| 已有 | 位置 | 与副本入场的关系 |
+|---|---|---|
+| 内容源模式（端口在 `Abstractions.Content`、`Pvf*` 适配器在 `Infrastructure.Content`） | 10 个端口 | 副本定义源应照此建 |
+| `IEntryPlacementService` | `Abstractions/World` | 已有"内容声明了这个区域吗"的判断，副本落点可以类推 |
+| 运行时会话目录 + `ReplaceExact` | `Abstractions/Sessions` | 运行状态挂在哪的现成接缝 |
+| 任务入场状态 `CharacterQuestEntryState` | 已在入场批次里加载 | 第 6 步的任务门禁要用它 |
+
+## 六、待决与风险
+
+- **并发守卫是上游那段代码里最密的东西**：每个 await 之后都重验运行槽与房间身份。
+  它防的是"选本过程中被挤号/换本"。我们的命令总线已有账号级独占锁，是否足以替代这一整套
+  重验，需要单独判断——两者防的不是同一件事（锁防并发进入，重验防中途失效）。
+- **上游的 `0x0010` 成功路径里没有 CMD 响应**；客户端为它注册了 handler `0x008C56F0`，
+  按已有判据"注册不等于必须回"，但这一条尚无实机对照。
+- 第 2 步（绝望之塔改写 id）会让"客户端请求的副本"与"实际进入的副本"不同。
+  这不是教程需要的，但它说明**入场 id 不能当成不可变输入**。
+- 迷宫选择在有多个 `[maze info]` 时才有分支；教程只有一个。多迷宫与难度分支的规则
+  （`SelectDungeonMaze` 用任务 id 与难度做筛选）尚未细读。
+
+## 七、引用
+
+- 归档探针：`protocol/patterns/data/probes/` 下的 `pvf-dungeon-list-20260817.md`
+- 协议侧：`protocol/game/client-to-server/0x0010.md`、`0x000F.md`、
+  `protocol/patterns/flow-dungeon-entry.md`
+- 上游文件：`Network/Handlers/Dungeon/DungeonEntryHandler.cs`、`DungeonMapHandler.cs`、
+  `DungeonRunLifecycle.cs`、`Game/DeathTower/DeathTowerData.cs`、
+  `GameWorld/SpecialDungeonDefinitionCatalog.cs`、`GameWorld/DungeonRewardPolicyData.cs`
