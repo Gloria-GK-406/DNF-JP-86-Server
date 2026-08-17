@@ -26,6 +26,10 @@ internal static partial class StateSynchronizationPayloadCodec
         ArgumentNullException.ThrowIfNull(account);
         ArgumentNullException.ThrowIfNull(quests);
         var characterId = checked((ushort)character.Identity.CharacterId.Value);
+        // A backstop, not the guarantee. Zero is the value the old defect produced and the one the
+        // content can never declare; the towns that do exist are not a contiguous range, so only
+        // EntryPlacementService's lookup can tell a real town from a plausible number, and it
+        // already refuses to resolve a spawn in a town the archive does not define.
         if (townId == 0)
         {
             throw new InvalidDataException(
