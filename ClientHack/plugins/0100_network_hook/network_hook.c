@@ -6,6 +6,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#if defined(_MSC_VER)
+#include <intrin.h>
+/* MSVC has no __builtin_return_address; GCC has no _ReturnAddress. Both compile
+ * this file (see CMakePresets: win32-* use MSVC, mingw32-release uses GCC). */
+#define CH_RETURN_ADDRESS() _ReturnAddress()
+#else
+#define CH_RETURN_ADDRESS() __builtin_return_address(0)
+#endif
 
 enum {
     STAGE_OFFSET = 0x15E218u,
@@ -23,6 +31,7 @@ enum {
 static void* g_original_encrypt;
 static void* g_original_decrypt;
 static void* g_original_socket_write;
+
 
 /* Frame capture: every Game packet that passes the [FrameCapture] filter is
  * hex-dumped as one JSON line to clienthack-frame-capture.log next to the game
@@ -73,6 +82,88 @@ static int g_write_trace_enabled;
 static int g_capture_max_body = CAPTURE_DEFAULT_MAX_BODY;
 static wchar_t g_capture_log_path[MAX_PATH];
 static wchar_t g_trace_log_path[MAX_PATH];
+
+/* Read trace: field-level decomposition of inbound frames.
+ *
+ * The frame capture above answers "what bytes arrived". It cannot answer "where
+ * are the field boundaries", and for S->C that is the blocking question: the
+ * static walk from a handler entry dies wherever the call graph enters the
+ * packed region, which is most of the notification handlers.
+ *
+ * Every S->C field extraction goes through exactly four functions that pull
+ * from one global stream (see protocol/patterns/game-receive.md). Packed code
+ * is no obstacle -- it still has to call them to obtain bytes. Hooking the four
+ * therefore yields the exact field sequence of any frame at runtime: width,
+ * order, value, and the call site that asked for it.
+ *
+ * Offsets need a frame origin, and the stream cursor is a raw pointer rather
+ * than an offset. SetRemaining is called in the receive function immediately
+ * before the command byte is read and dispatched, so the cursor at that moment
+ * is the body origin. That model validates itself: a CMD frame must then report
+ * its result envelope at offset 0, and a known layout must line up field for
+ * field. If the offsets come out shifted, the origin is wrong -- not the reads.
+ *
+ * There are two SetRemaining call sites inside the receive function, so a frame
+ * boundary is taken only when reads have accumulated; back-to-back calls just
+ * move the origin. Every call is logged with its argument either way, so the
+ * trace shows what actually happened rather than what this comment assumes. */
+enum {
+    /* VA 0x031C7E00 in the disassembly; stored as an RVA so a relocated image
+     * still resolves. +0x00 is the read cursor, +0x04 the remaining count. */
+    INBOUND_STREAM_RVA = 0x02DC7E00u,
+    /* Records buffered per frame. The entry batch's largest body is ~30 KB of
+     * quest flags, which is read in bulk rather than field by field; 512 covers
+     * every frame observed so far and truncation is reported in the line. */
+    READ_TRACE_MAX_RECORDS = 512,
+    /* Leading bytes kept for a ReadBytes call, enough to recognise the content
+     * without turning the trace into a second hex dump. */
+    READ_TRACE_PEEK = 8
+};
+
+/* One primitive call. `width` is 1/2/4 for the scalar reads and the requested
+ * length for ReadBytes, which is distinguished by `is_bytes`. */
+typedef struct {
+    int32_t offset;
+    int32_t width;
+    uint32_t value;
+    uint32_t ret_rva;
+    uint8_t peek[READ_TRACE_PEEK];
+    uint8_t peek_length;
+    uint8_t is_bytes;
+} ch_read_record;
+
+static int g_read_trace_enabled;
+static uint16_t g_read_trace_types[CAPTURE_MAX_TYPES];
+static int g_read_trace_type_count = CAPTURE_TYPES_ALL;
+static wchar_t g_read_trace_log_path[MAX_PATH];
+
+static void* g_original_read_u8;
+static void* g_original_read_u16;
+static void* g_original_read_u32;
+static void* g_original_read_bytes;
+static void* g_original_set_remaining;
+
+/* Current frame under trace. `origin` is the cursor snapshot taken at the last
+ * SetRemaining; `active` gates the read detours so an untraced frame costs one
+ * comparison. */
+static uintptr_t g_read_frame_origin;
+static int32_t g_read_frame_remaining;
+/* Snapshot of the frame's type, taken when the frame opens. The live
+ * g_last_decrypt_type cannot be used at flush time: a frame is written out when
+ * the NEXT one begins, and by then that next frame has already been decrypted.
+ * The first trace mislabelled every line by one frame for exactly this reason
+ * -- the filter was right, only the recorded name was stale. */
+static long g_read_frame_type = -1;
+static int g_read_frame_active;
+static int g_read_frame_records;
+static int g_read_frame_dropped;
+static int g_read_frame_resets;
+static ch_read_record g_read_frame[READ_TRACE_MAX_RECORDS];
+/* Type of the most recent body handed to Cipher::Decrypt. The receive function
+ * decrypts before it dispatches, so at SetRemaining time this is the frame
+ * about to be parsed. It is the only identity available on this path: the read
+ * primitives see nothing but the stream. */
+static volatile long g_last_decrypt_type = -1;
 
 /* Build "<game dir>\<file_name>". Falls back to the bare file name (current
  * directory) when the game directory does not fit. */
@@ -174,6 +265,133 @@ static void load_capture_config(void)
             "max_body=%d", g_capture_enabled, g_capture_type_count,
             g_stack_type_count, g_write_trace_enabled, g_capture_max_body);
         g_host->log(3, "NetworkHook", msg);
+    }
+}
+
+/* Resolve [ReadTrace]. Disabled by default, and deliberately so: the scalar
+ * reads have well over a thousand call sites between them, so the hooks are not
+ * even installed unless this is on. A normal capture session therefore carries
+ * none of this cost and none of its risk. */
+static void load_read_trace_config(void)
+{
+    wchar_t ini[MAX_PATH];
+    wchar_t buffer[512];
+    wchar_t name[MAX_PATH];
+
+    build_log_path(ini, MAX_PATH, L"ClientHack.ini");
+    g_read_trace_enabled = GetPrivateProfileIntW(
+        L"ReadTrace", L"Enabled", 0, ini) != 0;
+
+    /* Same fail-open rule as [FrameCapture].Types: an empty filter records
+     * everything rather than silently recording nothing. */
+    GetPrivateProfileStringW(L"ReadTrace", L"Types", L"*",
+        buffer, (DWORD)(sizeof(buffer) / sizeof(buffer[0])), ini);
+    g_read_trace_type_count =
+        parse_type_list(buffer, g_read_trace_types, CAPTURE_MAX_TYPES);
+    if (g_read_trace_type_count == 0)
+        g_read_trace_type_count = CAPTURE_TYPES_ALL;
+
+    if (GetPrivateProfileStringW(L"ReadTrace", L"LogFile",
+            L"clienthack-read-trace.log", name,
+            (DWORD)(sizeof(name) / sizeof(name[0])), ini) == 0) {
+        wcscpy_s(name, MAX_PATH, L"clienthack-read-trace.log");
+    }
+    build_log_path(g_read_trace_log_path, MAX_PATH, name);
+
+    if (g_host && g_host->log) {
+        char msg[128];
+        snprintf(msg, sizeof(msg), "read-trace: enabled=%d types=%d",
+            g_read_trace_enabled, g_read_trace_type_count);
+        g_host->log(3, "NetworkHook", msg);
+    }
+}
+
+/* Base of the inbound stream structure, or 0 before the host reports the module
+ * base. Returning 0 makes every read detour fall straight through. */
+static uint8_t* inbound_stream(void)
+{
+    if (g_host == NULL || g_host->dnf_base == 0) return NULL;
+    return (uint8_t*)(g_host->dnf_base + INBOUND_STREAM_RVA);
+}
+
+static uintptr_t inbound_cursor(void)
+{
+    uint8_t* stream = inbound_stream();
+    return stream ? *(uintptr_t*)stream : 0;
+}
+
+/* Emit the buffered frame as one JSON line and clear the buffer. Called from
+ * the SetRemaining detour, so a frame is written when the next one starts; the
+ * final frame of a session stays buffered, which costs one trailing frame and
+ * avoids guessing where a frame ends. */
+static void flush_read_frame(void)
+{
+    FILE* f;
+
+    if (g_read_frame_records <= 0) { g_read_frame_dropped = 0; return; }
+    if (_wfopen_s(&f, g_read_trace_log_path, L"a") == 0 && f != NULL) {
+        fprintf(f, "{\"type\":%ld,\"body_len\":%ld,\"reads\":%d,"
+            "\"dropped\":%d,\"resets\":%d,\"fields\":[",
+            g_read_frame_type, (long)g_read_frame_remaining,
+            g_read_frame_records, g_read_frame_dropped, g_read_frame_resets);
+        for (int i = 0; i < g_read_frame_records; ++i) {
+            const ch_read_record* r = &g_read_frame[i];
+            fprintf(f, "%s{\"off\":%ld,\"w\":%ld,\"ret\":%lu",
+                (i == 0 ? "" : ","), (long)r->offset, (long)r->width,
+                (unsigned long)r->ret_rva);
+            if (r->is_bytes) {
+                fputs(",\"peek\":\"", f);
+                for (int j = 0; j < r->peek_length; ++j)
+                    fprintf(f, "%02X", r->peek[j]);
+                fputs("\"}", f);
+            } else {
+                fprintf(f, ",\"v\":%lu}", (unsigned long)r->value);
+            }
+        }
+        fputs("]}\n", f);
+        fclose(f);
+    }
+    g_read_frame_records = 0;
+    g_read_frame_dropped = 0;
+    g_read_frame_resets = 0;
+}
+
+/* Return address of the game code that called the detour, as an RVA. Under
+ * MinHook the detour is entered directly from the original call site, so this
+ * identifies the reading handler -- the one thing the static walk loses when it
+ * reaches the packed region. */
+static uint32_t caller_rva(void* return_address)
+{
+    uintptr_t a = (uintptr_t)return_address;
+    uintptr_t base = g_host ? g_host->dnf_base : 0;
+    return (uint32_t)((base && a >= base) ? (a - base) : a);
+}
+
+/* Append one primitive call. Offsets are relative to the frame origin, so a
+ * negative value means the origin model is wrong for this frame; it is recorded
+ * rather than clamped so that shows up in the trace instead of hiding. */
+static void record_read(uintptr_t cursor, int32_t width, uint32_t value,
+    const uint8_t* bytes, void* return_address)
+{
+    ch_read_record* r;
+
+    if (!g_read_frame_active) return;
+    if (g_read_frame_records >= READ_TRACE_MAX_RECORDS) {
+        ++g_read_frame_dropped;
+        return;
+    }
+    r = &g_read_frame[g_read_frame_records++];
+    r->offset = (int32_t)(cursor - g_read_frame_origin);
+    r->width = width;
+    r->value = value;
+    r->ret_rva = caller_rva(return_address);
+    r->peek_length = 0;
+    r->is_bytes = (bytes != NULL) ? 1u : 0u;
+    if (bytes != NULL) {
+        int n = width < READ_TRACE_PEEK ? width : READ_TRACE_PEEK;
+        if (n < 0) n = 0;
+        for (int i = 0; i < n; ++i) r->peek[i] = bytes[i];
+        r->peek_length = (uint8_t)n;
     }
 }
 
@@ -382,6 +600,10 @@ static int __fastcall cipher_decrypt_passthrough(
     (void)edx_value;
     if (input == NULL || output == NULL || output_size == NULL || input_size < 0)
         return 0;
+    /* The read trace has no other way to name the frame it is about to see:
+     * the primitives are handed a stream, not a message. Recording the opcode
+     * here works because the receive function decrypts before it dispatches. */
+    g_last_decrypt_type = (long)packet_type;
     if (should_capture(packet_type)) {
         dump_received_body(packet_type, (const uint8_t*)input, input_size);
     }
@@ -421,6 +643,66 @@ static int __fastcall socket_write(
     return 0;
 }
 
+/* The four read primitives, all __cdecl with a bare `ret`. The cursor is
+ * sampled before the original runs -- that is the field's offset -- and the
+ * value after it, because the original is what writes through `dest`. */
+typedef void(__cdecl* ch_read_scalar_fn)(void* dest);
+typedef void(__cdecl* ch_read_bytes_fn)(void* dest, int length);
+typedef void(__cdecl* ch_set_remaining_fn)(int remaining);
+
+static void __cdecl read_u8_trace(void* dest)
+{
+    uintptr_t cursor = inbound_cursor();
+    void* ret = CH_RETURN_ADDRESS();
+    ((ch_read_scalar_fn)g_original_read_u8)(dest);
+    if (dest) record_read(cursor, 1, *(uint8_t*)dest, NULL, ret);
+}
+
+static void __cdecl read_u16_trace(void* dest)
+{
+    uintptr_t cursor = inbound_cursor();
+    void* ret = CH_RETURN_ADDRESS();
+    ((ch_read_scalar_fn)g_original_read_u16)(dest);
+    if (dest) record_read(cursor, 2, *(uint16_t*)dest, NULL, ret);
+}
+
+static void __cdecl read_u32_trace(void* dest)
+{
+    uintptr_t cursor = inbound_cursor();
+    void* ret = CH_RETURN_ADDRESS();
+    ((ch_read_scalar_fn)g_original_read_u32)(dest);
+    if (dest) record_read(cursor, 4, *(uint32_t*)dest, NULL, ret);
+}
+
+static void __cdecl read_bytes_trace(void* dest, int length)
+{
+    uintptr_t cursor = inbound_cursor();
+    void* ret = CH_RETURN_ADDRESS();
+    ((ch_read_bytes_fn)g_original_read_bytes)(dest, length);
+    if (dest && length > 0)
+        record_read(cursor, length, 0, (const uint8_t*)dest, ret);
+}
+
+/* Frame boundary. Two call sites inside the receive function share this
+ * function, so a boundary is only taken once reads have accumulated; otherwise
+ * the origin is simply moved to the later of the two, which is the one that
+ * immediately precedes dispatch. */
+static void __cdecl set_remaining_trace(int remaining)
+{
+    if (g_read_frame_records > 0) flush_read_frame();
+    else if (g_read_frame_active) ++g_read_frame_resets;
+
+    ((ch_set_remaining_fn)g_original_set_remaining)(remaining);
+
+    g_read_frame_origin = inbound_cursor();
+    g_read_frame_remaining = (int32_t)remaining;
+    g_read_frame_type = g_last_decrypt_type;
+    g_read_frame_active = (g_last_decrypt_type >= 0
+        && g_last_decrypt_type <= 0xFFFF
+        && type_selected(g_read_trace_types, g_read_trace_type_count,
+            (uint16_t)g_last_decrypt_type)) ? 1 : 0;
+}
+
 static ch_status apply_network_xor_patch(const ch_host_api* host)
 {
     static const uint8_t nops[5] = { 0x90, 0x90, 0x90, 0x90, 0x90 };
@@ -452,6 +734,7 @@ ch_status CH_CALL ch_plugin_initialize(const ch_host_api* host)
         return CH_STATUS_UNSUPPORTED_ABI;
     }
     load_capture_config();
+    load_read_trace_config();
     status = apply_network_xor_patch(host);
     if (status != CH_STATUS_OK) return status;
 #if defined(_MSC_VER)
@@ -470,6 +753,36 @@ ch_status CH_CALL ch_plugin_initialize(const ch_host_api* host)
         status = create_hook(host, 0x048FF9ABu, CH_SIG_SOCKET_WRITE,
             sizeof(CH_SIG_SOCKET_WRITE), (void*)socket_write,
             &g_original_socket_write, "socket-write-staging");
+    }
+    /* Installed only when asked for. These sit on the hottest path in the
+     * receive layer, and an always-present trampoline on it would make every
+     * session pay for a diagnostic that most sessions do not want.
+     * SetRemaining goes on last: it is what arms the read detours, so the four
+     * reads must already be in place when the first frame boundary arrives. */
+    if (status == CH_STATUS_OK && g_read_trace_enabled) {
+        status = create_hook(host, 0x01D00420u, CH_SIG_READ_U8,
+            sizeof(CH_SIG_READ_U8), (void*)read_u8_trace,
+            &g_original_read_u8, "inbound-read-u8");
+        if (status == CH_STATUS_OK) {
+            status = create_hook(host, 0x01D00490u, CH_SIG_READ_U16,
+                sizeof(CH_SIG_READ_U16), (void*)read_u16_trace,
+                &g_original_read_u16, "inbound-read-u16");
+        }
+        if (status == CH_STATUS_OK) {
+            status = create_hook(host, 0x01D00500u, CH_SIG_READ_U32,
+                sizeof(CH_SIG_READ_U32), (void*)read_u32_trace,
+                &g_original_read_u32, "inbound-read-u32");
+        }
+        if (status == CH_STATUS_OK) {
+            status = create_hook(host, 0x01D00570u, CH_SIG_READ_BYTES,
+                sizeof(CH_SIG_READ_BYTES), (void*)read_bytes_trace,
+                &g_original_read_bytes, "inbound-read-bytes");
+        }
+        if (status == CH_STATUS_OK) {
+            status = create_hook(host, 0x01CFF6A0u, CH_SIG_SET_REMAINING,
+                sizeof(CH_SIG_SET_REMAINING), (void*)set_remaining_trace,
+                &g_original_set_remaining, "inbound-set-remaining");
+        }
     }
 #if defined(_MSC_VER)
 #pragma warning(pop)

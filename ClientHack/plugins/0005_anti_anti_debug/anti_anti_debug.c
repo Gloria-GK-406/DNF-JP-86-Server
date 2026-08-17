@@ -132,6 +132,25 @@ static volatile LONG g_log_events;
 static volatile LONG g_context_log_events;
 #define CH_MAX_LOG_EVENTS 2048
 
+/* Every ch_log_* below is reached from ntdll/kernel32 detours that fire on
+ * arbitrary client threads with no ordering. Concurrent _wfopen_s/fclose on the
+ * shared CRT stdio stream table from those threads races and faults -- observed
+ * as a startup-flaky access violation inside the CRT stream-table walk. Serialize
+ * all diagnostic file I/O behind one lock. The CRITICAL_SECTION is recursive on
+ * the owning thread, so a detour that re-enters logging on the same thread cannot
+ * self-deadlock. */
+static CRITICAL_SECTION g_log_lock;
+static volatile LONG g_log_lock_ready;
+
+/* The CRT stdio machinery (_wfopen_s/_getstream walking __piob) faults from these
+ * detours -- observed crashing inside _wfopen_s even single-threaded under the
+ * lock above, i.e. the stdio stream table itself is invalid (freed during CRT
+ * teardown while a hook thread still logs, or never initialized in this loaded
+ * DLL). The forensic anti-debug log is not needed to run or debug the client, so
+ * it is OFF unless CLIENTHACK_ANTIDEBUG_LOG=1 is set in the environment. This
+ * removes the crash source without touching any anti-debug behavior. */
+static volatile LONG g_log_enabled;
+
 static void ch_build_log_path(wchar_t* out, size_t cap)
 {
     DWORD n = GetModuleFileNameW(NULL, out, (DWORD)cap);
@@ -145,11 +164,33 @@ static void ch_build_log_path(wchar_t* out, size_t cap)
     wcscat_s(out, cap, L"clienthack-antidebug.log");
 }
 
+/* Open the shared log with the diagnostic lock held. Returns NULL WITHOUT the
+ * lock held on failure (or before the lock is initialized); on success the caller
+ * owns the lock and must release it via ch_log_unlock_close(). */
+static FILE* ch_log_lock_open(void)
+{
+    wchar_t path[MAX_PATH];
+    FILE* f;
+    if (!g_log_lock_ready || !g_log_enabled) return NULL;
+    EnterCriticalSection(&g_log_lock);
+    ch_build_log_path(path, MAX_PATH);
+    if (_wfopen_s(&f, path, L"a") != 0 || f == NULL) {
+        LeaveCriticalSection(&g_log_lock);
+        return NULL;
+    }
+    return f;
+}
+
+static void ch_log_unlock_close(FILE* f)
+{
+    fclose(f);
+    LeaveCriticalSection(&g_log_lock);
+}
+
 /* Record one debug-class query and its caller. caller_rva is relative to the
  * DNF module so it maps straight onto the reverse-engineering notes. */
 static void ch_log_detection(unsigned info_class, void* caller)
 {
-    wchar_t path[MAX_PATH];
     FILE* f;
     uintptr_t rva;
     if (InterlockedIncrement(&g_log_events) > CH_MAX_LOG_EVENTS) return;
@@ -157,18 +198,17 @@ static void ch_log_detection(unsigned info_class, void* caller)
     if (g_host != NULL && g_host->dnf_base != 0 && rva >= g_host->dnf_base) {
         rva -= g_host->dnf_base;
     }
-    ch_build_log_path(path, MAX_PATH);
-    if (_wfopen_s(&f, path, L"a") != 0 || f == NULL) return;
+    f = ch_log_lock_open();
+    if (f == NULL) return;
     fprintf(f, "{\"class\":\"0x%02X\",\"caller_rva\":\"0x%08zX\"}\n",
         info_class, (size_t)rva);
-    fclose(f);
+    ch_log_unlock_close(f);
 }
 
 static void ch_log_context(
     const char* api, HANDLE thread, DWORD flags, NTSTATUS_ status,
     const CONTEXT* ctx, void* caller)
 {
-    wchar_t path[MAX_PATH];
     FILE* f;
     uintptr_t address = (uintptr_t)caller;
     DWORD thread_id = thread == (HANDLE)(LONG_PTR)-2
@@ -179,8 +219,8 @@ static void ch_log_context(
     if (g_host != NULL && g_host->dnf_base != 0 && address >= g_host->dnf_base) {
         address -= g_host->dnf_base;
     }
-    ch_build_log_path(path, MAX_PATH);
-    if (_wfopen_s(&f, path, L"a") != 0 || f == NULL) return;
+    f = ch_log_lock_open();
+    if (f == NULL) return;
     fprintf(f,
         "{\"api\":\"%s\",\"thread_id\":%lu,\"flags\":\"0x%08lX\","
         "\"debug_requested\":%s,\"status\":\"0x%08lX\","
@@ -193,12 +233,11 @@ static void ch_log_context(
         (unsigned long)(ctx != NULL ? ctx->Dr0 : 0),
         (unsigned long)(ctx != NULL ? ctx->Dr7 : 0),
         (size_t)address);
-    fclose(f);
+    ch_log_unlock_close(f);
 }
 
 static void ch_log_exit(const char* api, NTSTATUS_ status, void* caller)
 {
-    wchar_t path[MAX_PATH];
     FILE* f;
     void* frames[16];
     USHORT count;
@@ -220,8 +259,8 @@ static void ch_log_exit(const char* api, NTSTATUS_ status, void* caller)
         }
     }
     count = RtlCaptureStackBackTrace(1, 16, frames, NULL);
-    ch_build_log_path(path, MAX_PATH);
-    if (_wfopen_s(&f, path, L"a") != 0 || f == NULL) return;
+    f = ch_log_lock_open();
+    if (f == NULL) return;
     fprintf(f,
         "{\"api\":\"%s\",\"exit_status\":\"0x%08lX\","
         "\"caller_va\":\"0x%08zX\",\"caller_dnf_rva\":",
@@ -246,18 +285,17 @@ static void ch_log_exit(const char* api, NTSTATUS_ status, void* caller)
         (unsigned long)g_last_exception_thread_id,
         (long)g_last_exception_handled,
         (long)g_last_exception_first_chance);
-    fclose(f);
+    ch_log_unlock_close(f);
 }
 
 static void ch_log_thread_create(
     ULONG original_flags, ULONG effective_flags, PVOID start_routine,
     NTSTATUS_ status, void* caller)
 {
-    wchar_t path[MAX_PATH];
     FILE* f;
     uintptr_t caller_address = (uintptr_t)caller;
-    ch_build_log_path(path, MAX_PATH);
-    if (_wfopen_s(&f, path, L"a") != 0 || f == NULL) return;
+    f = ch_log_lock_open();
+    if (f == NULL) return;
     fprintf(f,
         "{\"api\":\"NtCreateThreadEx\","
         "\"original_flags\":\"0x%08lX\","
@@ -268,19 +306,18 @@ static void ch_log_thread_create(
         original_flags != effective_flags ? "true" : "false",
         (size_t)(uintptr_t)start_routine, (unsigned long)status,
         (size_t)caller_address);
-    fclose(f);
+    ch_log_unlock_close(f);
 }
 
 static void ch_log_thread_hide(
     const char* source, HANDLE thread, void* service_return, void* caller)
 {
-    wchar_t path[MAX_PATH];
     FILE* f;
     DWORD thread_id = thread == (HANDLE)(LONG_PTR)-2
         ? GetCurrentThreadId() : GetThreadId(thread);
     if (InterlockedCompareExchange(&g_hide_log_active, 1, 0) != 0) return;
-    ch_build_log_path(path, MAX_PATH);
-    if (_wfopen_s(&f, path, L"a") == 0 && f != NULL) {
+    f = ch_log_lock_open();
+    if (f != NULL) {
         fprintf(f,
             "{\"api\":\"ThreadHideFromDebugger\","
             "\"source\":\"%s\",\"blocked\":true,"
@@ -291,7 +328,7 @@ static void ch_log_thread_hide(
             source, (unsigned long)GetCurrentThreadId(),
             (unsigned long)thread_id, (size_t)(uintptr_t)thread,
             (size_t)(uintptr_t)service_return, (size_t)(uintptr_t)caller);
-        fclose(f);
+        ch_log_unlock_close(f);
     }
     InterlockedExchange(&g_hide_log_active, 0);
 }
@@ -347,7 +384,6 @@ static void ch_log_target_single_step(
     const EXCEPTION_RECORD* record, const CONTEXT* context,
     DWORD eflags_before)
 {
-    wchar_t path[MAX_PATH];
     FILE* f;
     DWORD stack_words[24];
     DWORD frame_returns[16];
@@ -370,8 +406,8 @@ static void ch_log_target_single_step(
     ecx_count = ch_read_context_words(
         context->Ecx, ecx_words, sizeof(ecx_words) / sizeof(ecx_words[0]));
 
-    ch_build_log_path(path, MAX_PATH);
-    if (_wfopen_s(&f, path, L"a") == 0 && f != NULL) {
+    f = ch_log_lock_open();
+    if (f != NULL) {
         fprintf(f,
             "{\"api\":\"VEH_SINGLE_STEP_CONSUMED\","
             "\"thread_id\":%lu,\"target_rva\":\"0x%08lX\","
@@ -405,7 +441,7 @@ static void ch_log_target_single_step(
             fprintf(f, "\"0x%08lX\"", (unsigned long)ecx_words[i]);
         }
         fputs("]}\n", f);
-        fclose(f);
+        ch_log_unlock_close(f);
     }
     InterlockedExchange(&g_exception_log_active, 0);
 }
@@ -887,6 +923,17 @@ ch_status CH_CALL ch_plugin_initialize(const ch_host_api* host)
         return CH_STATUS_UNSUPPORTED_ABI;
     }
     g_host = host;
+
+    /* Ready the diagnostic-log lock before installing any detour, so the first
+     * hook hit from a foreign thread already finds it initialized. The forensic
+     * file log stays off unless explicitly opted in (see g_log_enabled). */
+    {
+        wchar_t opt[8];
+        DWORD n = GetEnvironmentVariableW(L"CLIENTHACK_ANTIDEBUG_LOG", opt, 8);
+        g_log_enabled = (n > 0 && n < 8 && opt[0] == L'1') ? 1 : 0;
+    }
+    InitializeCriticalSection(&g_log_lock);
+    g_log_lock_ready = 1;
 
     ntdll = GetModuleHandleW(L"ntdll.dll");
     kernel32 = GetModuleHandleW(L"kernel32.dll");
