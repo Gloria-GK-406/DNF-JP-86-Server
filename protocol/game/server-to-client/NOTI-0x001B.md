@@ -1,4 +1,4 @@
-# NOTI `0x001B` `ENTER_SELECT_DUNGEON`
+﻿# NOTI `0x001B` `ENTER_SELECT_DUNGEON`
 
 <!-- rks:machine:begin -->
 
@@ -42,7 +42,6 @@ BodyLength = 未知（字段集合已知不完整）
 | handler 所在区 | text |
 | 注册路径 | batch:batch |
 
-NOTI 的 body **没有**结果信封，整个 body 归 handler——这与 CMD 相反，见 [game-receive](../../patterns/game-receive.md#cmd-body-的两字节结果信封每一条-cmd-都有)。
 
 支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`
 
@@ -52,19 +51,41 @@ NOTI 的 body **没有**结果信封，整个 body 归 handler——这与 CMD �
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-尚无实机样本。取得后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，并在此说明产生它的客户端动作。
+进图选择界面自身的状态。转录自参照实现的
+`EnterSelectDungeonStateBuilder.BuildEnterSelectDungeon`，单人 19 字节：
+
+```text
+i32 1
+u16 0
+u8  count = 1
+  per user: u16 userId, u8 0
+i32 0
+u16 towerOfDespairFloor    ← 单人时位于 body 偏移 14
+3 个零字节
+```
+
+参照实现在注释里明确说明"单人时客户端从 body 偏移 14 读这个 u16，每多一名队员后移 3 字节"。
+我们只产出单人形状。绝望之塔层数暂固定为 1。
 
 ## 服务端实现映射
 
-尚未实现。
+同 [`DungeonSelectionSlice.cs`](../../../Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionSlice.cs)。
 
 ## 待实机补全
 
-- [ ] 触发时机（什么玩家动作/服务端状态导致它出现）
-- [ ] 响应流程（是否有响应、响应身份与顺序）
-- [ ] 字段真实含义（把上表中的 `unknown` 逐个换成有证据的结论）
-- [ ] 用真实样本校验 `BodyLength` 规则是否闭合
+- [ ] 开头 `i32 1` 与 `u16 0` 的含义
+- [ ] 绝望之塔层数的真实来源（参照实现有 `TowerOfDespairProgress`）
+- [ ] 多人形状
 
 ## 逆向工作日志
+
+**2026-08-17**：随进入世界流程打通而记录。机制背景见[进入世界](../../patterns/world-entry.md)。
+
+> **本条尚无任何客户端侧证据，不要按"已确认"读。** 布局全部转录自参照实现的 builder；
+> 同批的 [`0x0017`](NOTI-0x0017.md) / [`0x0003`](NOTI-0x0003.md) / [`0x001A`](NOTI-0x001A.md)
+> 都出现在运行时读取跟踪里（客户端确实读了它们），**本条没有**——这与
+> [进入世界](../../patterns/world-entry.md)记载的"`0x000F` 那条路径至今没被实机执行过"
+> 一致：那三条另有别的投递路径，而只在 `ENTER_SELECT_DUNGEON` 上出现的本条一次也没发出去。
+> 因此"首次发出/确认"这个说法在本条上不成立。
 
 <!-- 走过的死胡同也要写：它能避免下一个人重复同样的尝试。 -->

@@ -320,10 +320,6 @@ def render(entry, row, meanings):
         if row["handler_rva"]:
             L.append("客户端为本 type 注册了 CMD 表 handler，"
                      "说明服务端**会**对它回一帧同 type 的 CMD 响应。")
-            L.append("每条 CMD 响应 body 都以两字节结果信封开头"
-                     "（`u8 ok`，`ok == 0` 时再加 `u8 reason`），"
-                     "由接收层在分发前读掉——详见"
-                     "[game-receive](../../patterns/game-receive.md#cmd-body-的两字节结果信封每一条-cmd-都有)。")
         else:
             L.append("客户端**未**为本 type 注册 CMD 表 handler，"
                      "因此它很可能是 fire-and-forget 的上报，服务端不必回帧。")
@@ -334,9 +330,6 @@ def render(entry, row, meanings):
         L.append("| handler 所在区 | %s |" % (row["handler_region"] or "—"))
         L.append("| 注册路径 | %s |" % (row["handler_path"] or "—"))
         L.append("")
-        L.append("NOTI 的 body **没有**结果信封，整个 body 归 handler——"
-                 "这与 CMD 相反，见 "
-                 "[game-receive](../../patterns/game-receive.md#cmd-body-的两字节结果信封每一条-cmd-都有)。")
     L.append("")
     L.append("支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`")
     L.append("")
@@ -345,20 +338,13 @@ def render(entry, row, meanings):
 
 
 HUMAN_STUB = """
-## 证据与样本
-
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-尚无实机样本。取得后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，并在此说明产生它的客户端动作。
-
-## 服务端实现映射
-
-尚未实现。
+本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
+并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
 
 ## 待实机补全
 
-- [ ] 触发时机（什么玩家动作/服务端状态导致它出现）
-- [ ] 响应流程（是否有响应、响应身份与顺序）
 - [ ] 字段真实含义（把上表中的 `unknown` 逐个换成有证据的结论）
 - [ ] 用真实样本校验 `BodyLength` 规则是否闭合
 

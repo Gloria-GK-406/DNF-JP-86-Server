@@ -42,7 +42,7 @@ import struct
 import collections
 from capstone import Cs, CS_ARCH_X86, CS_MODE_32
 
-DUMP = r"D:\project\DNF\DNFClient-debug\dumps\dnf-dump-20260814-184532-552-3888\DNF-memory-rva.bin"
+DUMP = r"D:\project\DNF\DNFClient-debug\dumps\dnf-dump-20260817-100117-955-7824\DNF-memory-rva.bin"
 IMAGE_BASE = 0x00400000
 TEXT_HI = 0x01D10000
 OPAQUE_LO = 0x02300000          # beyond here the image is packed; calls are unfollowable

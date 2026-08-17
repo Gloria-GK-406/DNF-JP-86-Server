@@ -17,14 +17,16 @@
 | Command | `<hex>` |
 | Type | `<hex>` |
 | Role | `<Report/Query/Mutation/Session side effect/Notification>` |
-| Trigger | `<可观察的客户端或服务端动作>` |
-| Expected response | `<none 或确切的响应身份与顺序>` |
 | 阶段 | `<未知/确定语义/实现服务端功能/双向验证结束>` |
+
+**这里没有 Trigger 和 Expected response 两行，是有意的。** "什么时候触发""响应顺序如何"
+属于**流程层**，写在 `patterns/flow-*.md`；本文档只回答"这些字节是什么，凭什么这么说"。
+四层分界见 [协议资料库 README](../README.md#四层每种事实各有一个归处)。
 
 ## Wire layout
 
 帧结构链接到共享 pattern（从 `<endpoint>/<direction>/` 下写作
-`[game-frame.md](../../patterns/game-frame.md)`），这里只写 body。先给长度规则，再给字段表。
+`[game-frame.md](../patterns/game-frame.md)`），这里只写 body。先给长度规则，再给字段表。
 
 ```text
 BodyLength = <常量，或含 count 的算术式>
@@ -54,6 +56,9 @@ BodyLength = <常量，或含 count 的算术式>
 旧服 handler、当前实现路径、持久化行为，以及"历史上是否确实没有 handler"是否验证过。
 
 ## Implementation mapping
+
+只放**指向代码或 `Docs/` 的链接**。我们服务端该建什么表、怎么算、什么时候重算，属于
+仓库根的 `Docs/`——写在这里会让协议文档在客户端换版本时牵动一份与客户端无关的记述。
 
 | Layer | Type/path | Responsibility |
 |---|---|---|

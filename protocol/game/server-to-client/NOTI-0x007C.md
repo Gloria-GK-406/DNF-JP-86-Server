@@ -1,4 +1,4 @@
-# NOTI `0x007C` `ENTER_GAMEWORLD_COMPLETE`
+﻿# NOTI `0x007C` `ENTER_GAMEWORLD_COMPLETE`
 
 <!-- rks:machine:begin -->
 
@@ -36,7 +36,6 @@
 | handler 所在区 | text |
 | 注册路径 | batch:batch |
 
-NOTI 的 body **没有**结果信封，整个 body 归 handler——这与 CMD 相反，见 [game-receive](../../patterns/game-receive.md#cmd-body-的两字节结果信封每一条-cmd-都有)。
 
 支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`
 
@@ -46,19 +45,27 @@ NOTI 的 body **没有**结果信封，整个 body 归 handler——这与 CMD �
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-尚无实机样本。取得后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，并在此说明产生它的客户端动作。
+**这是进入世界流程的阶段闸点。** 详见[进入世界：阶段、闸点与"不能多"](../../patterns/world-entry.md)。
+
+body 长度为 **0**——它不携带数据，只是一个信号。正因如此它不适用"NOTI 可以少发"那条宽容：
+缺了数据帧客户端有默认值兜底，缺了这一条客户端的状态机不会跳。
+
+**抓包里看不到它。** `clienthack-frame-capture.log` 不记录零长度 body 的帧，所以这条闸点在
+客户端侧的记录中始终隐形；它是靠服务端发送侧逐帧日志确认的（2026-08-17，第 67 帧）。
+
+**它不是最后一帧**：参照实现的进场序列里它排在第 47/53 位。它之后还能出现哪些帧、
+为什么"多发致命"，属于流程层，见[进入世界](../../patterns/world-entry.md)。
 
 ## 服务端实现映射
 
-尚未实现。
+[`EntryMarkerMessage`](../../../Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationMessages.cs) —— 零长度 body，随入场批次发出。
 
 ## 待实机补全
 
-- [ ] 触发时机（什么玩家动作/服务端状态导致它出现）
-- [ ] 响应流程（是否有响应、响应身份与顺序）
-- [ ] 字段真实含义（把上表中的 `unknown` 逐个换成有证据的结论）
-- [ ] 用真实样本校验 `BodyLength` 规则是否闭合
+- [ ] 客户端 handler（`RVA 0x0093B150`）除跳状态外还做了什么
 
 ## 逆向工作日志
+
+**2026-08-17**：随进入世界流程打通而首次发出/确认。机制背景见[进入世界](../../patterns/world-entry.md)。
 
 <!-- 走过的死胡同也要写：它能避免下一个人重复同样的尝试。 -->

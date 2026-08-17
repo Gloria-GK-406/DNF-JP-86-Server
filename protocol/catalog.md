@@ -1,4 +1,4 @@
-# 协议清单
+﻿# 协议清单
 
 本页记录**已在线观察到、正在做或已做完**的协议：各自处于哪一阶段、细节在哪个文档。
 细节不写在这里——每行链接到该协议自己的文档。
@@ -6,6 +6,11 @@
 > **找一条这里没有的协议？** 去 [Game 协议全量索引](game/index.md)。
 > 那里覆盖静态普查可见的全部 1410 条协议身份，每条都有官方名与静态分析得出的 body 初稿；
 > 它是**地图**，本页是**进度**。两者的关系见[清单的完整性](#清单的完整性)。
+>
+> **想知道这些协议怎么被串起来用的？** 那是**流程层**，不在本页也不在单条协议文档里：
+> [world-entry](patterns/world-entry.md)（选角色到站进城里）、`patterns/flow-*.md`。
+> 本页按 type 排列，回答"有哪些、做到哪一步"；流程层按业务顺序排列，回答"怎么用"。
+> 四层分界见 [README](README.md#四层每种事实各有一个归处)。
 
 ## 阶段
 
@@ -18,7 +23,8 @@
 
 进入 `双向验证结束` 需同时满足：
 
-1. 方向、触发时机、是否需要响应均已确认；
+1. 方向、触发时机、是否需要响应均已确认（**触发时机与响应顺序记在流程层文档里**，
+   不写进协议文档——协议文档只回答"这些字节是什么"）；
 2. 客户端构包或解包路径有指令级证据；
 3. 字段顺序、宽度、条件分支和编码方式已记录；
 4. 至少一个真实样本可由记录的布局无损解释；
@@ -30,21 +36,31 @@
 | Command | Type | 名称 | 角色 | 阶段 | 文档 |
 |---:|---:|---|---|---|---|
 | `0x01` | `0x0001` | LOGIN | Query | 未知 | — |
-| `0x01` | `0x0002` | — | 未知 | 未知 | — |
+| `0x01` | `0x0002` | `SET_UDP_IP_PORT` | Report / 无响应 | 实现服务端功能 | [0x0002.md](game/client-to-server/0x0002.md) |
 | `0x01` | `0x0003` | EXIT | Query | 未知 | — |
+| `0x01` | `0x0004` | `SELECT_CHARACTER` | Mutation / 有响应 | 实现服务端功能 | [0x0004.md](game/client-to-server/0x0004.md) |
 | `0x01` | `0x0005` | `CREATE_CHARACTER` | Mutation / 有响应 | 实现服务端功能 | [0x0005.md](game/client-to-server/0x0005.md) |
 | `0x01` | `0x0006` | `DELETE_CHARACTER` | Mutation / 有响应 | 实现服务端功能 | [0x0006.md](game/client-to-server/0x0006.md) |
 | `0x01` | `0x0008` | GET_USERINFO | Query / 有响应 | 双向验证结束 | [0x0008.md](game/client-to-server/0x0008.md) |
+| `0x01` | `0x000F` | `ENTER_SELECT_DUNGEON` | Query / 推 NOTI | 实现服务端功能 | [0x000F.md](game/client-to-server/0x000F.md) |
+| `0x01` | `0x0010` | `SELECT_DUNGEON` | Query / 有响应 | **已观察，未实现**（开副本运行） | [0x0010.md](game/client-to-server/0x0010.md) |
+| `0x01` | `0x0023` | `SET_USER_POSITION` | Report / 无响应 | 实现服务端功能 | [0x0023.md](game/client-to-server/0x0023.md) |
+| `0x01` | `0x003F` | `CERA` | Report / 无响应 | 实现服务端功能 | [0x003F.md](game/client-to-server/0x003F.md) |
 | `0x01` | `0x008F` | `CHANGE_TUTORIAL_FLAG` | Report / 无响应 | 双向验证结束 | [0x008F.md](game/client-to-server/0x008F.md) |
 | `0x01` | `0x00AB` | `CLIENT_SPEC_STATISTIC` | Report / 无响应 | 双向验证结束 | [0x00AB.md](game/client-to-server/0x00AB.md) |
 | `0x01` | `0x00C2` | `FRAME_LAG_STATISTICS` | Report / 无响应 | 双向验证结束 | [0x00C2.md](game/client-to-server/0x00C2.md) |
+| `0x01` | `0x00C5` | `SAVE_GAME_OPTION_1` | Report / 无响应 | 实现服务端功能 | [0x00C5.md](game/client-to-server/0x00C5.md) |
 | `0x01` | `0x00FA` | `LODING_TIME_REPORT`（分段指标流） | Report / 无响应 | 双向验证结束 | [0x00FA.md](game/client-to-server/0x00FA.md) |
 | `0x01` | `0x0117` | `LAG_STATISTICS`（多态信封） | Report / 无响应 | 未知 | [0x0117.md](game/client-to-server/0x0117.md) |
 | `0x01` | `0x01BA` | `MERCENARY_INFO` | Query / 有响应 | 实现服务端功能 | [0x01BA.md](game/client-to-server/0x01BA.md) |
 | `0x01` | `0x01DD` | `COMPATIBILITY_INDEX` | Report / 无响应 | 双向验证结束 | [0x01DD.md](game/client-to-server/0x01DD.md) |
+| `0x01` | `0x01F8` | `INFORM_NOTICE_2ND` | Report / 无响应 | 实现服务端功能 | [0x01F8.md](game/client-to-server/0x01F8.md) |
+| `0x01` | `0x0252` | `SECURITY_STATUS` | Report / 无响应 | 实现服务端功能 | [0x0252.md](game/client-to-server/0x0252.md) |
 | `0x01` | `0x0286` | `CHARAC_VIEW_HIDDEN_CHARAC_INFO` | Query / 有响应 | 实现服务端功能 | [0x0286.md](game/client-to-server/0x0286.md) |
 | `0x01` | `0x02A8` | `LOAD_EXTEND_CHARACS` | Report / 无响应 | 双向验证结束 | [0x02A8.md](game/client-to-server/0x02A8.md) |
+| `0x01` | `0x02B3` | `STATICS_RUNTIME_TING` | Report / 无响应 | 实现服务端功能 | [0x02B3.md](game/client-to-server/0x02B3.md) |
 | `0x01` | `0x02B5` | `CHECK_DOUBLE_CHARACTER_NAME` | Query / 有响应 | 实现服务端功能 | [0x02B5.md](game/client-to-server/0x02B5.md) |
+| `0x01` | `0x02C1` | `CONTENTS_PLAY_INFO` | Query / 有响应 | 实现服务端功能 | [0x02C1.md](game/client-to-server/0x02C1.md) |
 
 ## Game / Server → Client
 
@@ -54,6 +70,11 @@
 | `0x00` NOTI | `0x0002` | 角色列表 | Notification | 未知 | — |
 | `0x01` CMD | `0x0003` | EXIT response | Response | 未知 | — |
 | `0x00` NOTI | `0x0289` | `HONOR_LEVEL_INFO` | Notification | 实现服务端功能 | [NOTI-0x0289.md](game/server-to-client/NOTI-0x0289.md) |
+| `0x00` NOTI | `0x0003` | `USER_STATE` | Notification | 实现服务端功能 | [NOTI-0x0003.md](game/server-to-client/NOTI-0x0003.md) |
+| `0x00` NOTI | `0x0017` | `USER_AREA` | Notification | 实现服务端功能 | [NOTI-0x0017.md](game/server-to-client/NOTI-0x0017.md) |
+| `0x00` NOTI | `0x001A` | UDP 主机通告 | Notification | 实现服务端功能 | [NOTI-0x001A.md](game/server-to-client/NOTI-0x001A.md) |
+| `0x00` NOTI | `0x001B` | 进图选择状态 | Notification | 实现服务端功能 | [NOTI-0x001B.md](game/server-to-client/NOTI-0x001B.md) |
+| `0x00` NOTI | `0x007C` | `ENTER_GAMEWORLD_COMPLETE` | **阶段闸点** | 双向验证结束 | [NOTI-0x007C.md](game/server-to-client/NOTI-0x007C.md) |
 
 角色生命周期五条 CMD 的响应与其请求同 type、同属一次交换，因此记在各自的 C→S 文档内而不另建
 S→C 文档；理由见

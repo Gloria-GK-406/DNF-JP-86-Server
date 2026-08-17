@@ -30,7 +30,7 @@ Usage:  python readreach.py <max_depth> <entry_rva> [<entry_rva> ...]
 import sys, struct, collections
 from capstone import Cs, CS_ARCH_X86, CS_MODE_32
 
-DUMP = r"D:\project\DNF\DNFClient-debug\dumps\dnf-dump-20260814-184532-552-3888\DNF-memory-rva.bin"
+DUMP = r"D:\project\DNF\DNFClient-debug\dumps\dnf-dump-20260817-100117-955-7824\DNF-memory-rva.bin"
 data = open(DUMP, "rb").read()
 md = Cs(CS_ARCH_X86, CS_MODE_32)
 
