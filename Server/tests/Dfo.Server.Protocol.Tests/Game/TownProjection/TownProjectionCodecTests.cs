@@ -71,4 +71,34 @@ public sealed class TownProjectionCodecTests
         Assert.Throws<InvalidDataException>(
             () => new SetUserAreaDecoder().Decode(
                 GameMessageMetadata.Empty, new byte[length]));
+
+    /// <summary>
+    /// The roster the client needs before it will settle into the new area. Answering 0x0024 with
+    /// 0x0017 alone made it resend the same frame eight times, so the solo case is a one-entry list
+    /// rather than an omission.
+    /// </summary>
+    [Fact]
+    public void AreaUsers_CountsTheRosterAndCarriesEachCharactersPlace()
+    {
+        var body = TownProjectionPayloadCodec.EncodeAreaUsers(
+            1, 1, [new AreaUserPresence(0x0102, 1854, -2, 5, 3)]);
+
+        // u8 town, u8 area, u16 count, then u16 user, i16 x, i16 y, u8 direction, u8 state
+        Assert.Equal("01010100" + "0201" + "3E07" + "FEFF" + "0503", Convert.ToHexString(body));
+        Assert.Equal(12, body.Length);
+    }
+
+    [Fact]
+    public void AreaUsers_LengthGrowsWithTheRoster()
+    {
+        var body = TownProjectionPayloadCodec.EncodeAreaUsers(
+            2, 3,
+            [
+                new AreaUserPresence(1, 10, 20, 5, 3),
+                new AreaUserPresence(2, 30, 40, 5, 3),
+            ]);
+
+        Assert.Equal(2, BitConverter.ToUInt16(body, 2));
+        Assert.Equal(4 + (2 * 8), body.Length);
+    }
 }

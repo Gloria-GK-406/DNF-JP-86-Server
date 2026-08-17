@@ -44,6 +44,8 @@ internal static class GameProtocol
 
     public const ushort SetUserAreaType = 0x0024;
 
+    public const ushort AreaUsersNotificationType = 0x0018;
+
     public const ushort InformNoticeSecondType = 0x01F8;
 
     public const ushort SecurityStatusType = 0x0252;

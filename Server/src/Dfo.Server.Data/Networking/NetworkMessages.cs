@@ -1,4 +1,4 @@
-﻿namespace Dfo.Server.Data.Networking;
+namespace Dfo.Server.Data.Networking;
 
 public enum ClientMessageType
 {
@@ -59,6 +59,9 @@ public enum ServerMessageType
     GameInformNotice = 0x0000_01A1,
     GameRosterFollowUp = 0x0001_02A8,
     GameContentsPlayInfo = 0x0001_02C1,
+
+    // Pushed on every area change. See Game/TownProjection.
+    GameAreaUsers = 0x0000_0018,
 
     // Pushed when the dungeon-selection screen opens. See Game/DungeonSelection.
     GameUserState = 0x0000_0003,

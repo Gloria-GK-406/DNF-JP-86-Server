@@ -283,6 +283,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<MercenaryInfoResponse, MercenaryInfoResponseEncoder>();
         services.AddGameCmdMessageEncoder<ContentsPlayInfoResponse, ContentsPlayInfoResponseEncoder>();
         services.AddGameNotiMessageEncoder<UserAreaNotification, UserAreaEncoder>();
+        services.AddGameNotiMessageEncoder<AreaUsersNotification, AreaUsersEncoder>();
         services.AddGameNotiMessageEncoder<UserStateNotification, UserStateEncoder>();
         services.AddGameNotiMessageEncoder<UdpHostNotification, UdpHostEncoder>();
         services.AddGameNotiMessageEncoder<EnterSelectDungeonNotification, EnterSelectDungeonEncoder>();

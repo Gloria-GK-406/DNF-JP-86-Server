@@ -52,6 +52,69 @@ public sealed record SetUserPositionRequest(
     public ClientMessageType MessageType => ClientMessageType.GameSetUserPosition;
 }
 
+/// <summary>One character standing in an area, as NOTI 0x0018 reports it.</summary>
+public sealed record AreaUserPresence(
+    ushort WireUserId,
+    short X,
+    short Y,
+    byte Direction,
+    byte AreaState);
+
+/// <summary>
+/// NOTI 0x0018 <c>AREA_USERS</c>: everyone standing in the area, the mover included.
+/// </summary>
+/// <remarks>
+/// Sent alongside 0x0017 on every area change, and required even when the mover is alone: the
+/// 2026-08-17 session answered 0x0024 with 0x0017 only, and the client resent the same 0x0024
+/// eight times before giving up and sending a bare 0x0060. The reference server builds its roster
+/// as <c>{ self } + others</c>, so the solo case is a one-entry list rather than a special case.
+/// </remarks>
+internal sealed record AreaUsersNotification(
+    byte TownId,
+    byte AreaId,
+    IReadOnlyList<AreaUserPresence> Users) : IGameNotiMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameAreaUsers;
+}
+
+internal static class TownProjectionPayloadCodec
+{
+    /// <summary>
+    /// <c>u8 town, u8 area, u16 count</c>, then <c>u16 user, i16 x, i16 y, u8 direction, u8 state</c>
+    /// per character. The count is a real prefix, not a fixed one.
+    /// </summary>
+    public static byte[] EncodeAreaUsers(
+        byte townId,
+        byte areaId,
+        IReadOnlyList<AreaUserPresence> users)
+    {
+        using var stream = new MemoryStream(4 + (users.Count * 8));
+        using var writer = new BinaryWriter(stream);
+        writer.Write(townId);
+        writer.Write(areaId);
+        writer.Write(checked((ushort)users.Count));
+        foreach (var user in users)
+        {
+            writer.Write(user.WireUserId);
+            writer.Write(user.X);
+            writer.Write(user.Y);
+            writer.Write(user.Direction);
+            writer.Write(user.AreaState);
+        }
+
+        return stream.ToArray();
+    }
+}
+
+internal sealed class AreaUsersEncoder : GameNotiMessageEncoder<AreaUsersNotification>
+{
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(AreaUsersNotification message) =>
+        OnePayload(
+            GameProtocol.AreaUsersNotificationType,
+            TownProjectionPayloadCodec.EncodeAreaUsers(
+                message.TownId, message.AreaId, message.Users));
+}
+
 internal sealed class SetUserAreaDecoder : IGameMessageDecoder
 {
     /// <summary>Six bytes are read of the fifteen the client sends; the rest carry no meaning yet.</summary>
@@ -197,10 +260,23 @@ public sealed class SetUserAreaHandler(
             X = moved.X,
             Y = moved.Y,
         };
+        // Both frames, in this order. 0x0017 places the character; 0x0018 is the area's roster and
+        // the client will not settle into the new area without it -- answering with 0x0017 alone made
+        // it resend the same 0x0024 eight times.
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(
-                [new UserAreaNotification(session.WireUserId, spawn, moved.AreaId)],
+                [
+                    new UserAreaNotification(session.WireUserId, spawn, moved.AreaId),
+                    new AreaUsersNotification(
+                        moved.TownId,
+                        moved.AreaId,
+                        [
+                            new AreaUserPresence(
+                                session.WireUserId, moved.X, moved.Y,
+                                moved.Direction, spawn.AreaState),
+                        ]),
+                ],
                 []),
             cancellationToken).ConfigureAwait(false);
     }
