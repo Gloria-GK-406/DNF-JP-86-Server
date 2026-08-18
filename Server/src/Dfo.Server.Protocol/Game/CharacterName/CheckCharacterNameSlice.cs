@@ -45,7 +45,7 @@ internal sealed class CheckCharacterNameMessageDecoder : IGameMessageDecoder
 public sealed record CheckCharacterNameCommand(AccountId AccountId, byte[] RawName)
     : ICommand<CharacterNameStatus>, IAccountCommand;
 
-public sealed class CheckCharacterNameCommandHandler(ICharacterService characters)
+public sealed class CheckCharacterNameCommandHandler(ICharacterDomainService characters)
     : ICommandHandler<CheckCharacterNameCommand, CharacterNameStatus>
 {
     public ValueTask<CharacterNameStatus> HandleAsync(
@@ -56,7 +56,7 @@ public sealed class CheckCharacterNameCommandHandler(ICharacterService character
 }
 
 public sealed class CheckCharacterNameHandler(
-    IOnlineUserQueryService onlineUsers,
+    IOnlineUserQueryDomainService onlineUsers,
     IGameMessageSender sender,
     ICommandBus commandBus,
     ILogger<CheckCharacterNameHandler> logger)

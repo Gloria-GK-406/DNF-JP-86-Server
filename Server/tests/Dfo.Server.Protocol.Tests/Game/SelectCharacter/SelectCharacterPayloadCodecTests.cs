@@ -585,7 +585,7 @@ public sealed class SelectCharacterPayloadCodecTests
             new ApplicationModule().ConfigureServices(
                 services, new ConfigurationBuilder().Build());
             await using var provider = services.BuildServiceProvider();
-            var typed = await provider.GetRequiredService<ICharacterEntryStateService>().LoadAsync(
+            var typed = await provider.GetRequiredService<ICharacterEntryStateDomainService>().LoadAsync(
                 new AccountId(12), new CharacterId(22), CancellationToken.None);
             var result = SelectCharacterPayloadTestData.CreateComplete() with
             {

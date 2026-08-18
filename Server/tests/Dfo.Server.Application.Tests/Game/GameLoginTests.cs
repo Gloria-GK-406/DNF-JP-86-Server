@@ -15,10 +15,10 @@ namespace Dfo.Server.Application.Tests.Game;
 public sealed class GameLoginTests
 {
     [Fact]
-    public async Task CommandHandler_DelegatesLoginToAccountService()
+    public async Task CommandHandler_DelegatesLoginToAccountDomainService()
     {
         var onlineUserId = OnlineUserId.New();
-        var accounts = new StubAccountService(new AccountId(42));
+        var accounts = new StubAccountDomainService(new AccountId(42));
         var handler = new LoginGameUserCommandHandler(accounts);
         var command = new LoginGameUserCommand(onlineUserId, "10038", "hash");
         var context = new CommandExecutionContext(
@@ -41,7 +41,7 @@ public sealed class GameLoginTests
     public async Task MessageHandler_ResolvesConnectionAndSendsSuccessToSameConnection()
     {
         var repository = new FixedAccountRepository(new AccountId(7));
-        var onlineUsers = new UserService(() => repository);
+        var onlineUsers = new UserDomainServices(() => repository);
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:login-message"),
             NetworkEndpointKind.Game,
@@ -49,7 +49,7 @@ public sealed class GameLoginTests
         var anonymous = onlineUsers.RegisterConnection(connection);
         var sender = new RecordingSender();
         var bus = new RecordingCommandBus(new LoginGameUserResult(new AccountId(7)));
-        var accountEntryState = new StubAccountEntryStateService();
+        var accountEntryState = new StubAccountEntryStateDomainService();
         var handler = new GameLoginHandler(
             onlineUsers, sender, bus, new StubServerConfigService(), accountEntryState);
 
@@ -90,7 +90,7 @@ public sealed class GameLoginTests
         Assert.Equal(new AccountId(7), accountEntryState.RequestedAccountId);
     }
 
-    private sealed class StubAccountService(AccountId accountId) : IAccountService
+    private sealed class StubAccountDomainService(AccountId accountId) : IAccountDomainService
     {
         public OnlineUserId OnlineUserId { get; private set; }
 
@@ -186,7 +186,7 @@ public sealed class GameLoginTests
     /// and login reaching for it silently cost the connection. Throwing here keeps that mistake
     /// from being reintroduced quietly.
     /// </remarks>
-    private sealed class StubAccountEntryStateService : IAccountEntryStateService
+    private sealed class StubAccountEntryStateDomainService : IAccountEntryStateDomainService
     {
         public AccountId? RequestedAccountId { get; private set; }
 

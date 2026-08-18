@@ -252,7 +252,7 @@ public sealed record SessionAdjacentSubject(
     byte AreaId);
 
 /// <summary>Projects runtime presence into the views a character's entry carries.</summary>
-public interface ISessionAdjacentEntryService
+public interface ISessionAdjacentEntryDomainService
 {
     ValueTask<SessionAdjacentEntryState> LoadAsync(
         SessionAdjacentSubject subject,

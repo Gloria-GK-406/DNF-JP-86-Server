@@ -13,7 +13,7 @@ namespace Dfo.Server.Protocol.Game.ClientSpecStatistic;
 /// not go through the command bus.
 /// </summary>
 public sealed class ClientSpecStatisticHandler(
-    IOnlineUserQueryService onlineUsers,
+    IOnlineUserQueryDomainService onlineUsers,
     ILogger<ClientSpecStatisticHandler> logger) : ClientMessageHandler<ClientSpecStatisticReportRequest>
 {
     protected override ValueTask HandleMessageAsync(

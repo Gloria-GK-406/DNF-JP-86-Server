@@ -158,7 +158,7 @@ public sealed class DungeonRejoinEntryTests
         Assert.Null(registry.Find(new CharacterId(99)));
     }
 
-    private static SessionAdjacentEntryService Service(IDungeonRejoinRegistry rejoin) =>
+    private static SessionAdjacentEntryDomainService Service(IDungeonRejoinRegistry rejoin) =>
         new(new SessionPresenceRegistry(),
             Stores,
             new PvpLobbyRegistry(),

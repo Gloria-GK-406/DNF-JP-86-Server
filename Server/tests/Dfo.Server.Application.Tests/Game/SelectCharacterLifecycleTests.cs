@@ -378,7 +378,7 @@ public sealed class SelectCharacterLifecycleTests
             ISelectedSessionDirectory directory,
             RecordingActive active,
             RecordingCloser closer,
-            UserService users,
+            UserDomainServices users,
             RecordingCleanup cleanup,
             CharacterMutations mutations,
             InventoryPreparation inventory,
@@ -423,7 +423,7 @@ public sealed class SelectCharacterLifecycleTests
         public ISelectedSessionDirectory Directory { get; }
         public RecordingActive Active { get; }
         public RecordingCloser Closer { get; }
-        public UserService Users { get; }
+        public UserDomainServices Users { get; }
         public RecordingCleanup Cleanup { get; }
         public CharacterMutations Mutations { get; }
         public InventoryPreparation Inventory { get; }
@@ -475,7 +475,7 @@ public sealed class SelectCharacterLifecycleTests
                     },
                 };
             var ledger = new List<string>();
-            var users = new UserService(() => new AccountRepository(accountId));
+            var users = new UserDomainServices(() => new AccountRepository(accountId));
             var registered = users.RegisterConnection(new NetworkConnectionContext(
                 connectionId, NetworkEndpointKind.Game, StubChannelEntryPolicy.GeneralChannel.ListenerPort));
             await users.LoginAsync(
@@ -664,7 +664,7 @@ public sealed class SelectCharacterLifecycleTests
     }
 
     private sealed class InventoryPreparation(SelectCharacterResult result, List<string> ledger)
-        : ISelectCharacterEntryInventoryService
+        : ISelectCharacterEntryInventoryDomainService
     {
         public int Claims { get; private set; }
         public int Saves { get; private set; }
@@ -815,8 +815,8 @@ public sealed class SelectCharacterLifecycleTests
         }
     }
 
-    private sealed class RecordingActive(IActiveCharacterService inner, List<string> ledger)
-        : IActiveCharacterService
+    private sealed class RecordingActive(IActiveCharacterDomainService inner, List<string> ledger)
+        : IActiveCharacterDomainService
     {
         public void Publish(AccountId accountId, ActiveCharacterState character) =>
             inner.Publish(accountId, character);
@@ -832,7 +832,7 @@ public sealed class SelectCharacterLifecycleTests
     }
 
     private sealed class RecordingCleanup(
-        ISelectedSessionDirectory directory, IActiveCharacterService active, List<string> ledger)
+        ISelectedSessionDirectory directory, IActiveCharacterDomainService active, List<string> ledger)
         : ISelectedSessionCleanupService
     {
         public List<(SelectedSessionIdentity Session, bool IncludeOwner)> Calls { get; } = [];

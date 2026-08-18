@@ -8,7 +8,7 @@ namespace Dfo.Server.Protocol.Game.AccountRoster;
 public sealed record GetAccountCharacterRosterCommand(AccountId AccountId)
     : ICommand<AccountCharacterRoster>, IAccountCommand;
 
-public sealed class GetAccountCharacterRosterCommandHandler(ICharacterService characters)
+public sealed class GetAccountCharacterRosterCommandHandler(ICharacterDomainService characters)
     : ICommandHandler<GetAccountCharacterRosterCommand, AccountCharacterRoster>
 {
     public ValueTask<AccountCharacterRoster> HandleAsync(

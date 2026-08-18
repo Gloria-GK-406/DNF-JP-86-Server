@@ -7,8 +7,8 @@ namespace Dfo.Server.Application.Tests.Support;
 /// <summary>
 /// Stands in for placement in tests whose subject is something else.
 /// </summary>
-internal sealed class StubEntryPlacementService(ChannelEntryPolicyState? state = null)
-    : IEntryPlacementService
+internal sealed class StubEntryPlacementRuleService(ChannelEntryPolicyState? state = null)
+    : IEntryPlacementRuleService
 {
     /// <summary>A plain arrival at the default town's gate.</summary>
     public static ChannelEntryPolicyState DefaultPlacement { get; } = new(
@@ -35,7 +35,7 @@ internal sealed class StubEntryPlacementService(ChannelEntryPolicyState? state =
 }
 
 /// <summary>Placement that cannot resolve, for proving entry fails before publication.</summary>
-internal sealed class FailingEntryPlacementService : IEntryPlacementService
+internal sealed class FailingEntryPlacementRuleService : IEntryPlacementRuleService
 {
     public ValueTask<ChannelEntryPolicyState> ResolveAsync(
         ChannelEntryIdentity channel,

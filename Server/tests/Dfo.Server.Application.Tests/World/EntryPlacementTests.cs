@@ -160,7 +160,7 @@ public sealed class EntryPlacementTests
             });
 
         var error = await Assert.ThrowsAsync<EntryPlacementUnavailableException>(async () =>
-            await new EntryPlacementService(towns, ChannelEntryOptions.Legacy).ResolveAsync(
+            await new EntryPlacementRuleService(towns, ChannelEntryOptions.Legacy).ResolveAsync(
                 StubChannelEntryPolicy.RestrictedChannel,
                 persistedTownId: 1,
                 CancellationToken.None));
@@ -186,7 +186,7 @@ public sealed class EntryPlacementTests
             });
 
         var error = await Assert.ThrowsAsync<EntryPlacementUnavailableException>(async () =>
-            await new EntryPlacementService(towns, ChannelEntryOptions.Legacy).ResolveAsync(
+            await new EntryPlacementRuleService(towns, ChannelEntryOptions.Legacy).ResolveAsync(
                 StubChannelEntryPolicy.RestrictedChannel,
                 persistedTownId: 1,
                 CancellationToken.None));
@@ -207,13 +207,13 @@ public sealed class EntryPlacementTests
             });
 
         await Assert.ThrowsAsync<EntryPlacementUnavailableException>(async () =>
-            await new EntryPlacementService(towns, ChannelEntryOptions.Legacy).ResolveAsync(
+            await new EntryPlacementRuleService(towns, ChannelEntryOptions.Legacy).ResolveAsync(
                 StubChannelEntryPolicy.RestrictedChannel,
                 persistedTownId: 1,
                 CancellationToken.None));
     }
 
-    private static EntryPlacementService Placement() =>
+    private static EntryPlacementRuleService Placement() =>
         new(new StubTownSource(
             [
                 Town(1, [Area(0, "silver.map", TownAreaKind.Gate, 474, 234)]),

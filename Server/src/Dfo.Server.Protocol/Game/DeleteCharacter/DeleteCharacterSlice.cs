@@ -92,7 +92,7 @@ internal sealed class DeleteCharacterMessageDecoder : IGameMessageDecoder
 public sealed record DeleteCharacterCommand(AccountId AccountId, ushort RosterIndex, byte[] RawName)
     : ICommand<CharacterDeletionResult>, IAccountCommand;
 
-public sealed class DeleteCharacterCommandHandler(ICharacterService characters)
+public sealed class DeleteCharacterCommandHandler(ICharacterDomainService characters)
     : ICommandHandler<DeleteCharacterCommand, CharacterDeletionResult>
 {
     public ValueTask<CharacterDeletionResult> HandleAsync(
@@ -107,7 +107,7 @@ public sealed class DeleteCharacterCommandHandler(ICharacterService characters)
 }
 
 public sealed class DeleteCharacterHandler(
-    IOnlineUserQueryService onlineUsers,
+    IOnlineUserQueryDomainService onlineUsers,
     IGameMessageSender sender,
     ICommandBus commandBus,
     ILogger<DeleteCharacterHandler> logger)

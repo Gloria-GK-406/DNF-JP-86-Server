@@ -5,7 +5,7 @@ using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.Accounts;
 
-internal sealed class AccountSettingsEntryService : IAccountSettingsEntryService
+internal sealed class AccountSettingsEntryProjection : IAccountSettingsEntryProjection
 {
     private static readonly byte[] DefaultMainGameOptions =
     [
@@ -36,7 +36,7 @@ internal sealed class AccountSettingsEntryService : IAccountSettingsEntryService
     }
 }
 
-internal sealed class AccountWalletEntitlementEntryService : IAccountWalletEntitlementEntryService
+internal sealed class AccountWalletEntitlementEntryProjection : IAccountWalletEntitlementEntryProjection
 {
     public (AccountWalletEntryState Wallet, AccountEntitlementEntryState Entitlements) Build(
         AccountWalletEntitlementStorageRecord storage) =>
@@ -54,7 +54,7 @@ internal sealed class AccountWalletEntitlementEntryService : IAccountWalletEntit
         );
 }
 
-internal sealed class AccountProgressionEntryService : IAccountProgressionEntryService
+internal sealed class AccountProgressionEntryProjection : IAccountProgressionEntryProjection
 {
     public AccountProgressionEntryState Build(AccountProgressionStorageRecord storage) =>
         new(
@@ -74,8 +74,8 @@ internal sealed class AccountProgressionEntryService : IAccountProgressionEntryS
                 .ToArray());
 }
 
-internal sealed class AccountRelationCompatibilityEntryService
-    : IAccountRelationCompatibilityEntryService
+internal sealed class AccountRelationCompatibilityEntryProjection
+    : IAccountRelationCompatibilityEntryProjection
 {
     public AccountRelationCompatibilityEntryState Build(
         AccountRelationCompatibilityStorageRecord storage,
@@ -125,12 +125,12 @@ internal sealed class AccountRelationCompatibilityEntryService
     }
 }
 
-internal sealed class AccountEntryStateService(
+internal sealed class AccountEntryStateDomainService(
     IAccountEntryStateRepository repository,
-    IAccountSettingsEntryService settings,
-    IAccountWalletEntitlementEntryService walletEntitlements,
-    IAccountProgressionEntryService progression,
-    IAccountRelationCompatibilityEntryService relations) : IAccountEntryStateService
+    IAccountSettingsEntryProjection settings,
+    IAccountWalletEntitlementEntryProjection walletEntitlements,
+    IAccountProgressionEntryProjection progression,
+    IAccountRelationCompatibilityEntryProjection relations) : IAccountEntryStateDomainService
 {
     public async ValueTask<AccountEntryState> LoadAsync(
         AccountId accountId,

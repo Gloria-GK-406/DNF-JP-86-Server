@@ -52,30 +52,30 @@ public interface IAccountEntryStateRepository
         CancellationToken cancellationToken);
 }
 
-public interface IAccountSettingsEntryService
+public interface IAccountSettingsEntryProjection
 {
     AccountSettingsEntryState Build(AccountSettingsStorageRecord storage);
 }
 
-public interface IAccountWalletEntitlementEntryService
+public interface IAccountWalletEntitlementEntryProjection
 {
     (AccountWalletEntryState Wallet, AccountEntitlementEntryState Entitlements) Build(
         AccountWalletEntitlementStorageRecord storage);
 }
 
-public interface IAccountProgressionEntryService
+public interface IAccountProgressionEntryProjection
 {
     AccountProgressionEntryState Build(AccountProgressionStorageRecord storage);
 }
 
-public interface IAccountRelationCompatibilityEntryService
+public interface IAccountRelationCompatibilityEntryProjection
 {
     AccountRelationCompatibilityEntryState Build(
         AccountRelationCompatibilityStorageRecord storage,
         IReadOnlyList<(int CharacterId, int SlotIndex, int Level)> roster);
 }
 
-public interface IAccountEntryStateService
+public interface IAccountEntryStateDomainService
 {
     ValueTask<AccountEntryState> LoadAsync(
         AccountId accountId,

@@ -13,7 +13,7 @@ public sealed record LoginGameUserCommand(
 public sealed record LoginGameUserResult(AccountId AccountId);
 
 public sealed class LoginGameUserCommandHandler(
-    IAccountService accounts) : ICommandHandler<LoginGameUserCommand, LoginGameUserResult>
+    IAccountDomainService accounts) : ICommandHandler<LoginGameUserCommand, LoginGameUserResult>
 {
     public async ValueTask<LoginGameUserResult> HandleAsync(
         CommandExecutionContext context,

@@ -156,7 +156,7 @@ public sealed class PvpLobbyEntryTests
         Assert.Empty(lobby.ReadyOn(10068, new CharacterId(99)));
     }
 
-    private static SessionAdjacentEntryService Service(IPvpLobbyRegistry lobby) =>
+    private static SessionAdjacentEntryDomainService Service(IPvpLobbyRegistry lobby) =>
         new(new SessionPresenceRegistry(), Stores, lobby, new DungeonRejoinRegistry(), TimeProvider.System);
 
     private static SessionAdjacentSubject Subject(ChannelEntryIdentity channel) =>

@@ -14,7 +14,7 @@ public sealed class ClientSpecProfileHandlerTests
     {
         var context = new NetworkDispatchContext(
             new NetworkConnectionContext(new NetworkConnectionId("game-42"), NetworkEndpointKind.Game, 10011));
-        var onlineUsers = new StubOnlineUserQueryService(new OnlineUserSnapshot(
+        var onlineUsers = new StubOnlineUserQueryDomainService(new OnlineUserSnapshot(
             new OnlineUserId(Guid.NewGuid()),
             context.Connection,
             new AccountId(12),
@@ -46,7 +46,7 @@ public sealed class ClientSpecProfileHandlerTests
         var context = new NetworkDispatchContext(
             new NetworkConnectionContext(new NetworkConnectionId("game-7"), NetworkEndpointKind.Game, 10011));
         var handler = new ClientSpecProfileHandler(
-            new StubOnlineUserQueryService(snapshot: null), new RecordingLogger());
+            new StubOnlineUserQueryDomainService(snapshot: null), new RecordingLogger());
 
         await handler.HandleAsync(context, CreateReport(), CancellationToken.None);
     }
@@ -57,7 +57,7 @@ public sealed class ClientSpecProfileHandlerTests
         var context = new NetworkDispatchContext(
             new NetworkConnectionContext(new NetworkConnectionId("game-9"), NetworkEndpointKind.Game, 10011));
         var logger = new RecordingLogger();
-        var handler = new ClientSpecProfileHandler(new StubOnlineUserQueryService(snapshot: null), logger);
+        var handler = new ClientSpecProfileHandler(new StubOnlineUserQueryDomainService(snapshot: null), logger);
         var rows = CreateTable();
         rows[2] = new ClientSpecProfileRow([0, 7, 0, 0], rows[2].Pairs);
         rows[4] = new ClientSpecProfileRow(rows[4].Words, [.. rows[4].Pairs.Take(5), new ClientSpecProfilePair(0, 2.5f)]);
@@ -82,7 +82,7 @@ public sealed class ClientSpecProfileHandlerTests
         var context = new NetworkDispatchContext(
             new NetworkConnectionContext(new NetworkConnectionId("game-11"), NetworkEndpointKind.Game, 10011));
         var logger = new RecordingLogger();
-        var handler = new ClientSpecProfileHandler(new StubOnlineUserQueryService(snapshot: null), logger);
+        var handler = new ClientSpecProfileHandler(new StubOnlineUserQueryDomainService(snapshot: null), logger);
         var report = CreateReport() with { StartLoadingSeconds = 23, ReturnVillageSeconds = 0 };
 
         await handler.HandleAsync(context, report, CancellationToken.None);
@@ -112,7 +112,7 @@ public sealed class ClientSpecProfileHandlerTests
         Table: CreateTable(),
         Entries: []);
 
-    private sealed class StubOnlineUserQueryService(OnlineUserSnapshot? snapshot) : IOnlineUserQueryService
+    private sealed class StubOnlineUserQueryDomainService(OnlineUserSnapshot? snapshot) : IOnlineUserQueryDomainService
     {
         public OnlineUserSnapshot GetRequired(OnlineUserId onlineUserId) =>
             snapshot ?? throw new InvalidOperationException("No online user registered.");

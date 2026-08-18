@@ -149,7 +149,7 @@ C→S  CMD  0x0010  SELECT_DUNGEON         body 9B，布局已闭合 ← 我们�
 | 客户端换镇 | 同上 | 实现同一条，但**换镇至今没有实机样本**，见下 |
 | 客户端上报镇内移动 | CMD [`0x0023`](../game/client-to-server/0x0023.md) `SET_USER_POSITION` | 已实现，坐标与朝向已确认随移动改变 |
 | 写库 | 会话清理时写 `characters.town_id/area_id/pos_*` | 已实现 |
-| 登录读回 | `EntryPlacementService`：`persistedTownId > 0 ? persistedTownId : DefaultTownId` | 已实现 |
+| 登录读回 | `EntryPlacementRuleService`：`persistedTownId > 0 ? persistedTownId : DefaultTownId` | 已实现 |
 
 **换区答两条 NOTI，缺一条就卡住**：`0x0017` 定位 + [`0x0018`](../game/server-to-client/NOTI-0x0018.md)
 区域名册。只答 `0x0017` 时客户端把同一帧 `0x0024` 重发八次，角色停在原地。

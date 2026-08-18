@@ -10,7 +10,7 @@ namespace Dfo.Server.Protocol.Game.SessionMetrics;
 /// telemetry: no response, no domain change, no command bus.
 /// </summary>
 public sealed class SessionMetricsHandler(
-    IOnlineUserQueryService onlineUsers,
+    IOnlineUserQueryDomainService onlineUsers,
     ILogger<SessionMetricsHandler> logger) : ClientMessageHandler<SessionMetricsReportRequest>
 {
     protected override ValueTask HandleMessageAsync(

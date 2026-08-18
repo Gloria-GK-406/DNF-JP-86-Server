@@ -34,13 +34,13 @@ public interface ISelectCharacterPreparationService
 }
 
 public sealed class SelectCharacterPreparationService(
-    ICharacterService characters,
-    ICharacterInventoryEntryService characterInventoryEntries,
-    IAccountInventoryEntryService accountInventoryEntries,
-    ICharacterEntryStateService characterEntries,
-    IAccountEntryStateService accountEntries,
+    ICharacterDomainService characters,
+    ICharacterInventoryEntryDomainService characterInventoryEntries,
+    IAccountInventoryEntryDomainService accountInventoryEntries,
+    ICharacterEntryStateDomainService characterEntries,
+    IAccountEntryStateDomainService accountEntries,
     IEquippedCreatureQuery equippedCreature,
-    IWorldContentEntryService worldContent,
+    IWorldContentEntryRuleService worldContent,
     ISkillPointDefinitionSource skillPoints,
     ICharacterPvpSkillProfileRepository pvpSkills,
     IDungeonPersistentEffectRecoveryRepository dungeonEffects,
@@ -48,8 +48,8 @@ public sealed class SelectCharacterPreparationService(
     IExpertSkillContractReconciliationRepository expertSkillReconciliation,
     ICreatureEquipmentLifetimeSource creatureLifetimes,
     IChannelEntryPolicy channels,
-    IEntryPlacementService placement,
-    ISessionAdjacentEntryService sessionAdjacent,
+    IEntryPlacementRuleService placement,
+    ISessionAdjacentEntryDomainService sessionAdjacent,
     TimeProvider timeProvider) : ISelectCharacterPreparationService
 {
     public async ValueTask<ActiveCharacterState> PreflightAsync(
@@ -195,7 +195,7 @@ public sealed class SelectCharacterPreparationService(
         AccountCharacterRoster roster,
         CharacterId selectedId,
         CharacterEntryState selectedEntry,
-        ICharacterEntryStateService entries,
+        ICharacterEntryStateDomainService entries,
         CancellationToken cancellationToken)
     {
         var characters = new List<CharacterRosterMemberState>(roster.Characters.Count);
@@ -398,9 +398,9 @@ public sealed class SelectCharacterPreparationService(
         ActiveCharacterState selected,
         AccountCharacterRoster roster,
         AccountEntryState account,
-        ICharacterService characters,
-        ICharacterInventoryEntryService inventories,
-        ICharacterEntryStateService entries,
+        ICharacterDomainService characters,
+        ICharacterInventoryEntryDomainService inventories,
+        ICharacterEntryStateDomainService entries,
         ICreatureEquipmentLifetimeSource creatureLifetimes,
         DateTimeOffset preparedAt,
         CancellationToken cancellationToken)

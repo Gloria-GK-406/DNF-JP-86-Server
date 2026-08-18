@@ -16,7 +16,7 @@ namespace Dfo.Server.Protocol.Game.TownProjection;
 /// <remarks>
 /// This is the only command that moves a character between towns, so it is the only input that can
 /// change the town the entry acknowledgement reports on the next login. The restore half of that
-/// round trip was already complete -- EntryPlacementService reads the stored town and falls back to
+/// round trip was already complete -- EntryPlacementRuleService reads the stored town and falls back to
 /// the default only when it is absent -- but nothing ever wrote a different value, so "resume in the
 /// town you left" could not fail and could not work either.
 ///
@@ -177,7 +177,7 @@ public sealed class SetUserAreaHandler(
     ISelectedSessionDirectory selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IChannelEntryPolicy channels,
-    IEntryPlacementService placement,
+    IEntryPlacementRuleService placement,
     IGameMessageSender sender,
     ILogger<SetUserAreaHandler> logger) : ClientMessageHandler<SetUserAreaRequest>
 {

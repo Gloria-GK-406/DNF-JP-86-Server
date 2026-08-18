@@ -9,7 +9,7 @@ using Dfo.Server.Protocol.Game.HonorLevel;
 namespace Dfo.Server.Protocol.Game.AccountRoster;
 
 public sealed class GetAccountCharacterRosterHandler(
-    IOnlineUserQueryService onlineUsers,
+    IOnlineUserQueryDomainService onlineUsers,
     IGameMessageSender sender,
     ICommandBus commandBus) : ClientMessageHandler<GetAccountCharacterRosterRequest>
 {

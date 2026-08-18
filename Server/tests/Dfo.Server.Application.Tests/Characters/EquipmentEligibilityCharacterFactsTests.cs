@@ -23,7 +23,7 @@ public sealed class EquipmentEligibilityCharacterFactsTests
             Level: 86,
             CloneTitleItemId: 0);
         // Reading eligibility facts must not reach for static content: only creation needs it.
-        IEquipmentEligibilityCharacterReader reader = new CharacterService(
+        IEquipmentEligibilityCharacterReader reader = new CharacterDomainService(
             () => new StubCharacterRepository(summary),
             new UnusedStatSource());
 

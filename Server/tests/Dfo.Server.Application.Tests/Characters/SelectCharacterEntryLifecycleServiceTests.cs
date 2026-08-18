@@ -29,7 +29,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         Assert.True(leases.TryMarkDirtyExact(previous, dirty));
         var persistence = new RecordingLeasePersistence();
         var loader = new InventoryLoader(result.CharacterInventory);
-        var service = new SelectCharacterEntryInventoryService(
+        var service = new SelectCharacterEntryInventoryDomainService(
             new RefillContent(), new RefillMutation(), loader, persistence, leases);
 
         await service.SaveExistingLeaseAsync(previous, CancellationToken.None);
@@ -52,7 +52,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
                 [new InventoryItemState(1, 65, Core(itemKind: 4, itemId: 9001, value: 2))])]
         };
         var leases = new EntryInventoryLeaseRegistry();
-        var service = new SelectCharacterEntryInventoryService(
+        var service = new SelectCharacterEntryInventoryDomainService(
             new RefillContent(), new RefillMutation(), new InventoryLoader(reloaded),
             new NoopLeasePersistence(), leases);
         _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
@@ -74,7 +74,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var session = Session(result);
         var loader = new InventoryLoader(result.CharacterInventory);
         var leases = new EntryInventoryLeaseRegistry();
-        var service = new SelectCharacterEntryInventoryService(
+        var service = new SelectCharacterEntryInventoryDomainService(
             new RefillContent(), new FailingRefillMutation(), loader, new NoopLeasePersistence(), leases);
         _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
 
@@ -215,7 +215,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
     }
 
     private sealed class InventoryLoader(CharacterInventoryEntryState inventory)
-        : ICharacterInventoryEntryService
+        : ICharacterInventoryEntryDomainService
     {
         public int LoadCount { get; private set; }
 

@@ -27,12 +27,12 @@ namespace Dfo.Server.Application.Tests.Support;
 internal static class EntryServices
 {
     public static SelectCharacterPreparationService Create(
-        ICharacterService characters,
+        ICharacterDomainService characters,
         ITestInventoryEntryServices inventory,
-        ICharacterEntryStateService characterEntries,
-        IAccountEntryStateService accountEntries,
-        IActiveCharacterService activeCharacters,
-        IWorldContentEntryService? worldContent = null,
+        ICharacterEntryStateDomainService characterEntries,
+        IAccountEntryStateDomainService accountEntries,
+        IActiveCharacterDomainService activeCharacters,
+        IWorldContentEntryRuleService? worldContent = null,
         ISkillPointDefinitionSource? skillPoints = null,
         ICharacterPvpSkillProfileRepository? pvpSkills = null,
         IDungeonPersistentEffectRecoveryRepository? dungeonEffects = null,
@@ -40,8 +40,8 @@ internal static class EntryServices
         IExpertSkillContractReconciliationRepository? expertSkillReconciliation = null,
         ICreatureEquipmentLifetimeSource? creatureLifetimes = null,
         IChannelEntryPolicy? channels = null,
-        IEntryPlacementService? placement = null,
-        ISessionAdjacentEntryService? sessionAdjacent = null,
+        IEntryPlacementRuleService? placement = null,
+        ISessionAdjacentEntryDomainService? sessionAdjacent = null,
         TimeProvider? timeProvider = null) =>
         new(characters,
             inventory,
@@ -49,7 +49,7 @@ internal static class EntryServices
             characterEntries,
             accountEntries,
             new EquippedCreatureQuery(),
-            worldContent ?? new StubWorldContentEntryService(),
+            worldContent ?? new StubWorldContentEntryRuleService(),
             skillPoints ?? new StubSkillPointDefinitionSource(),
             pvpSkills ?? new StubPvpSkillProfileRepository(),
             dungeonEffects ?? new StubDungeonEffectRecoveryRepository(),
@@ -57,8 +57,8 @@ internal static class EntryServices
             expertSkillReconciliation ?? new StubExpertSkillReconciliationRepository(),
             creatureLifetimes ?? new StubCreatureEquipmentLifetimeSource(),
             channels ?? new StubChannelEntryPolicy(),
-            placement ?? new StubEntryPlacementService(),
-            sessionAdjacent ?? new StubSessionAdjacentEntryService(),
+            placement ?? new StubEntryPlacementRuleService(),
+            sessionAdjacent ?? new StubSessionAdjacentEntryDomainService(),
             timeProvider ?? TimeProvider.System);
 
     public static async ValueTask<SelectCharacterResult> EnterAsync(
@@ -112,4 +112,4 @@ internal sealed class StubSkillPointDefinitionSource : ISkillPointDefinitionSour
 }
 
 internal interface ITestInventoryEntryServices
-    : ICharacterInventoryEntryService, IAccountInventoryEntryService;
+    : ICharacterInventoryEntryDomainService, IAccountInventoryEntryDomainService;

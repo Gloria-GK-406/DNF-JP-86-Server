@@ -40,7 +40,7 @@ public sealed record SelectCharacterDeliveryOptions(bool SendsFramesAfterTheComp
 }
 
 public sealed class SelectCharacterHandler(
-    IOnlineUserQueryService onlineUsers,
+    IOnlineUserQueryDomainService onlineUsers,
     IChannelEntryPolicy channels,
     ICommandBus commandBus,
     ISelectedCharacterStateMessageFactory stateMessages,

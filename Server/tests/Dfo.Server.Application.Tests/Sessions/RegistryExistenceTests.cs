@@ -28,14 +28,14 @@ public sealed class RegistryExistenceTests
         Assert.NotNull(provider.GetRequiredService<IExpertStoreRegistry>());
         Assert.NotNull(provider.GetRequiredService<IPvpLobbyRegistry>());
         Assert.NotNull(provider.GetRequiredService<IDungeonRejoinRegistry>());
-        Assert.NotNull(provider.GetRequiredService<ISessionAdjacentEntryService>());
+        Assert.NotNull(provider.GetRequiredService<ISessionAdjacentEntryDomainService>());
     }
 
     [Fact]
     public async Task Every_view_answers_explicitly_when_nothing_has_been_written()
     {
         using var provider = BuildProductionGraph();
-        var service = provider.GetRequiredService<ISessionAdjacentEntryService>();
+        var service = provider.GetRequiredService<ISessionAdjacentEntryDomainService>();
 
         var result = await service.LoadAsync(
             new SessionAdjacentSubject(
@@ -66,7 +66,7 @@ public sealed class RegistryExistenceTests
         provider.GetRequiredService<ISessionPresenceRegistry>().Admit(
             new SessionPresence(new CharacterId(2), 10011, 1, 0, StandingInTown: true));
 
-        var result = await provider.GetRequiredService<ISessionAdjacentEntryService>().LoadAsync(
+        var result = await provider.GetRequiredService<ISessionAdjacentEntryDomainService>().LoadAsync(
             new SessionAdjacentSubject(
                 new CharacterId(1),
                 new AccountId(1),

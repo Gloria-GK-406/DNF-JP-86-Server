@@ -13,13 +13,13 @@ public sealed class CharacterEntryStateTests
     {
         var accountId = new AccountId(61);
         var characterId = new CharacterId(71);
-        var service = new CharacterEntryStateService(
+        var service = new CharacterEntryStateDomainService(
             new StubRepository(Storage(accountId, characterId)),
             new StubQuestDefinitions([200]),
-            new CharacterProfileEntryService(),
-            new CharacterSkillQuestEntryService(),
-            new CharacterProgressionEntryService(),
-            new CharacterFeatureEntryService());
+            new CharacterProfileEntryProjection(),
+            new CharacterSkillQuestEntryProjection(),
+            new CharacterProgressionEntryProjection(),
+            new CharacterFeatureEntryProjection());
 
         var result = await service.LoadAsync(accountId, characterId, CancellationToken.None);
 

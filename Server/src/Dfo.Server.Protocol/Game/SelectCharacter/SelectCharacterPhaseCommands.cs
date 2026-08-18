@@ -30,11 +30,11 @@ public sealed record PreparedSelectedCharacterSession(
     IReadOnlyList<NetworkConnectionId> ConnectionsToClose);
 
 public sealed class PrepareSelectedCharacterSessionCommandHandler(
-    IOnlineUserQueryService onlineUsers,
+    IOnlineUserQueryDomainService onlineUsers,
     ISelectCharacterPreparationService preparation,
     ISelectedSessionDirectory selectedSessions,
     ISelectedSessionCleanupService cleanup,
-    ISelectCharacterEntryInventoryService inventoryEntry,
+    ISelectCharacterEntryInventoryDomainService inventoryEntry,
     ICharacterEntryMutationRepository characterMutations)
     : ICommandHandler<PrepareSelectedCharacterSessionCommand, PreparedSelectedCharacterSession>
 {
@@ -181,7 +181,7 @@ public sealed record ApplySelectedCharacterDailyRefillCommand(
 }
 
 public sealed class ApplySelectedCharacterDailyRefillCommandHandler(
-    ISelectCharacterEntryInventoryService inventoryEntry)
+    ISelectCharacterEntryInventoryDomainService inventoryEntry)
     : ICommandHandler<ApplySelectedCharacterDailyRefillCommand, EntryInventoryPreparation>
 {
     public ValueTask<EntryInventoryPreparation> HandleAsync(
@@ -203,7 +203,7 @@ public sealed record PublishedSelectedCharacterSession(
     PvpLobbySynchronizationState? PvpLobby);
 
 public sealed class PublishSelectedCharacterSessionCommandHandler(
-    IActiveCharacterService activeCharacters,
+    IActiveCharacterDomainService activeCharacters,
     ISelectCharacterSessionEntryService sessionEntry)
     : ICommandHandler<PublishSelectedCharacterSessionCommand, PublishedSelectedCharacterSession>
 {

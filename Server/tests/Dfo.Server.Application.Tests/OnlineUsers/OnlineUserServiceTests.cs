@@ -306,10 +306,10 @@ public sealed class UserServiceTests
         service.Publish(accountId, previous);
         var snapshotBeforeFailure = service.GetRequired(registered.OnlineUserId);
         var entry = EntryServices.Create(
-            new MissingCharacterService(),
+            new MissingCharacterDomainService(),
             new NotReachedInventoryEntryService(),
-            new NotReachedCharacterEntryStateService(),
-            new NotReachedAccountEntryStateService(),
+            new NotReachedCharacterEntryStateDomainService(),
+            new NotReachedAccountEntryStateDomainService(),
             service);
 
         await Assert.ThrowsAsync<KeyNotFoundException>(async () =>
@@ -447,15 +447,15 @@ public sealed class UserServiceTests
         Assert.False(service.TryGetByConnection(connection.ConnectionId, out _));
     }
 
-    private static UserService CreateService(AccountId accountId = default)
+    private static UserDomainServices CreateService(AccountId accountId = default)
     {
         var repository = new StubAccountRepository(
             accountId == default ? new AccountId(1) : accountId);
-        return new UserService(() => repository);
+        return new UserDomainServices(() => repository);
     }
 
     private static OnlineUserConnectionObserver CreateObserver(
-        IOnlineUserService service,
+        IOnlineUserDomainService service,
         ISelectedSessionDirectory sessions,
         ISelectedSessionCleanupService cleanup,
         IGameMessageSender sender,
@@ -602,7 +602,7 @@ public sealed class UserServiceTests
         }
     }
 
-    private sealed class ClearingCleanup(IActiveCharacterService active) : ISelectedSessionCleanupService
+    private sealed class ClearingCleanup(IActiveCharacterDomainService active) : ISelectedSessionCleanupService
     {
         public SelectedSessionIdentity? Cleaned { get; private set; }
 
@@ -618,20 +618,20 @@ public sealed class UserServiceTests
 
     private sealed class NotReachedInventoryEntryService : ITestInventoryEntryServices
     {
-        ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryService.LoadAsync(
+        ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryDomainService.LoadAsync(
             AccountId accountId,
             CharacterId characterId,
             CancellationToken cancellationToken) =>
             throw new InvalidOperationException("Inventory must not load when character resolution fails.");
 
-        ValueTask<AccountInventoryEntryState> IAccountInventoryEntryService.LoadAsync(
+        ValueTask<AccountInventoryEntryState> IAccountInventoryEntryDomainService.LoadAsync(
             AccountId accountId,
             CharacterId characterId,
             CancellationToken cancellationToken) =>
             throw new InvalidOperationException("Inventory must not load when character resolution fails.");
     }
 
-    private sealed class NotReachedCharacterEntryStateService : ICharacterEntryStateService
+    private sealed class NotReachedCharacterEntryStateDomainService : ICharacterEntryStateDomainService
     {
         public ValueTask<CharacterEntryState> LoadAsync(
             AccountId accountId,
@@ -640,7 +640,7 @@ public sealed class UserServiceTests
             throw new InvalidOperationException("Character entry state must not load when character resolution fails.");
     }
 
-    private sealed class NotReachedAccountEntryStateService : IAccountEntryStateService
+    private sealed class NotReachedAccountEntryStateDomainService : IAccountEntryStateDomainService
     {
         public ValueTask<AccountEntryState> LoadAsync(
             AccountId accountId,
@@ -653,7 +653,7 @@ public sealed class UserServiceTests
             throw new InvalidOperationException("Account settings must not load when character resolution fails.");
     }
 
-    private sealed class MissingCharacterService : ICharacterService
+    private sealed class MissingCharacterDomainService : ICharacterDomainService
     {
         public ValueTask<AccountCharacterRoster> GetAccountRosterAsync(
             AccountId accountId,

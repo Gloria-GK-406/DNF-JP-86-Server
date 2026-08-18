@@ -3,7 +3,7 @@ using Dfo.Server.Data.OnlineUsers;
 
 namespace Dfo.Server.Abstractions.Accounts;
 
-public interface IAccountService
+public interface IAccountDomainService
 {
     ValueTask<AccountId> LoginAsync(
         OnlineUserId onlineUserId,

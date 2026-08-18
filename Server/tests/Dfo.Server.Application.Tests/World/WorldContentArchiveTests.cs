@@ -200,7 +200,7 @@ public sealed class WorldContentArchiveTests
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var scope = ContentArchive.CreateContentProvider();
-        var placement = new EntryPlacementService(
+        var placement = new EntryPlacementRuleService(
             scope.GetRequiredService<ITownDefinitionSource>(),
             ChannelEntryOptions.Legacy);
 
@@ -222,7 +222,7 @@ public sealed class WorldContentArchiveTests
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var scope = ContentArchive.CreateContentProvider();
-        var placement = new EntryPlacementService(
+        var placement = new EntryPlacementRuleService(
             scope.GetRequiredService<ITownDefinitionSource>(),
             ChannelEntryOptions.Legacy);
 
@@ -238,7 +238,7 @@ public sealed class WorldContentArchiveTests
         Assert.Equal(234, result.Spawn.Y);
     }
 
-    private static WorldContentEntryService CreateService(IServiceProvider provider) =>
+    private static WorldContentEntryRuleService CreateService(IServiceProvider provider) =>
         new(provider.GetRequiredService<IQuestDefinitionSource>(),
             provider.GetRequiredService<IDailyActivityDefinitionSource>(),
             provider.GetRequiredService<ICollectionBoxDefinitionSource>(),

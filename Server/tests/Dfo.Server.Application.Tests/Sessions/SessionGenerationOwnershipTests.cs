@@ -208,7 +208,7 @@ public sealed class SessionGenerationOwnershipTests
         public bool ReleaseExact(SelectedSessionIdentity session) => false;
     }
 
-    private sealed class ThrowingActive : IActiveCharacterService
+    private sealed class ThrowingActive : IActiveCharacterDomainService
     {
         public void Publish(AccountId accountId, ActiveCharacterState character) { }
         public void Publish(SelectedSessionIdentity session, ActiveCharacterState character) { }
@@ -216,7 +216,7 @@ public sealed class SessionGenerationOwnershipTests
         public bool ClearExact(SelectedSessionIdentity session) => throw new InvalidOperationException("fault");
     }
 
-    private sealed class PassiveActive : IActiveCharacterService
+    private sealed class PassiveActive : IActiveCharacterDomainService
     {
         public void Publish(AccountId accountId, ActiveCharacterState character) { }
         public void Publish(SelectedSessionIdentity session, ActiveCharacterState character) { }

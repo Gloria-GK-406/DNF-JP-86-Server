@@ -28,7 +28,7 @@ public interface ICharacterRepository
     ValueTask<bool> SoftDeleteAsync(CharacterId characterId, CancellationToken cancellationToken);
 }
 
-public interface ICharacterService
+public interface ICharacterDomainService
 {
     ValueTask<AccountCharacterRoster> GetAccountRosterAsync(
         AccountId accountId,
@@ -65,7 +65,7 @@ public interface ICharacterService
         CancellationToken cancellationToken);
 }
 
-public interface IActiveCharacterService
+public interface IActiveCharacterDomainService
 {
     void Publish(AccountId accountId, ActiveCharacterState character);
 

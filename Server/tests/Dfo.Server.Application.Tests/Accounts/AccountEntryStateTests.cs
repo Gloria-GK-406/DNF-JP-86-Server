@@ -10,12 +10,12 @@ public sealed class AccountEntryStateTests
     public async Task AccountEntryState_MapsAllFourPopulatedSlicesWithoutWidthLoss()
     {
         var accountId = new AccountId(71);
-        var service = new AccountEntryStateService(
+        var service = new AccountEntryStateDomainService(
             new StubRepository(Storage(accountId)),
-            new AccountSettingsEntryService(),
-            new AccountWalletEntitlementEntryService(),
-            new AccountProgressionEntryService(),
-            new AccountRelationCompatibilityEntryService());
+            new AccountSettingsEntryProjection(),
+            new AccountWalletEntitlementEntryProjection(),
+            new AccountProgressionEntryProjection(),
+            new AccountRelationCompatibilityEntryProjection());
 
         var result = await service.LoadAsync(accountId, CancellationToken.None);
 
@@ -36,12 +36,12 @@ public sealed class AccountEntryStateTests
     [Fact]
     public async Task AccountEntryState_RejectsRepositoryOwnerMismatch()
     {
-        var service = new AccountEntryStateService(
+        var service = new AccountEntryStateDomainService(
             new StubRepository(Storage(new AccountId(72))),
-            new AccountSettingsEntryService(),
-            new AccountWalletEntitlementEntryService(),
-            new AccountProgressionEntryService(),
-            new AccountRelationCompatibilityEntryService());
+            new AccountSettingsEntryProjection(),
+            new AccountWalletEntitlementEntryProjection(),
+            new AccountProgressionEntryProjection(),
+            new AccountRelationCompatibilityEntryProjection());
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
             await service.LoadAsync(new AccountId(71), CancellationToken.None));
@@ -50,7 +50,7 @@ public sealed class AccountEntryStateTests
     [Fact]
     public void AccountSettings_UsesDemonstratedLegacyDefaultWithoutInventingQuickChatState()
     {
-        var result = new AccountSettingsEntryService().Build(
+        var result = new AccountSettingsEntryProjection().Build(
             new AccountSettingsStorageRecord(null, [], [], 0, []));
 
         Assert.Equal(134, result.MainGameOptions.Length);
@@ -63,7 +63,7 @@ public sealed class AccountEntryStateTests
     public void AccountSettings_RejectsOneByteAccountHotkeyPrefix()
     {
         Assert.Throws<InvalidDataException>(() =>
-            new AccountSettingsEntryService().Build(
+            new AccountSettingsEntryProjection().Build(
                 new AccountSettingsStorageRecord([1, 0], [], [], 0, [0x34])));
     }
 
@@ -83,12 +83,12 @@ public sealed class AccountEntryStateTests
                 ],
             },
         };
-        var service = new AccountEntryStateService(
+        var service = new AccountEntryStateDomainService(
             new StubRepository(storage),
-            new AccountSettingsEntryService(),
-            new AccountWalletEntitlementEntryService(),
-            new AccountProgressionEntryService(),
-            new AccountRelationCompatibilityEntryService());
+            new AccountSettingsEntryProjection(),
+            new AccountWalletEntitlementEntryProjection(),
+            new AccountProgressionEntryProjection(),
+            new AccountRelationCompatibilityEntryProjection());
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
             await service.LoadAsync(accountId, CancellationToken.None));

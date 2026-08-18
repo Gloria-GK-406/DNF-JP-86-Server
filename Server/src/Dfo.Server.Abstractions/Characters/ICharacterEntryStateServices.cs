@@ -300,30 +300,30 @@ public interface ICharacterEntryStateRepository
         CancellationToken cancellationToken);
 }
 
-public interface ICharacterProfileEntryService
+public interface ICharacterProfileEntryProjection
 {
     (CharacterPublicEntryState Public, CharacterSettingsEntryState Settings) Build(
         CharacterProfileStorageRecord storage);
 }
 
-public interface ICharacterSkillQuestEntryService
+public interface ICharacterSkillQuestEntryProjection
 {
     (CharacterSkillsEntryState Skills, CharacterQuestEntryState Quests) Build(
         CharacterSkillStorageRecord skills,
         CharacterQuestStorageRecord quests);
 }
 
-public interface ICharacterProgressionEntryService
+public interface ICharacterProgressionEntryProjection
 {
     CharacterProgressionEntryState Build(CharacterProgressionStorageRecord storage);
 }
 
-public interface ICharacterFeatureEntryService
+public interface ICharacterFeatureEntryProjection
 {
     CharacterFeaturesEntryState Build(CharacterFeatureStorageRecord storage);
 }
 
-public interface ICharacterEntryStateService
+public interface ICharacterEntryStateDomainService
 {
     ValueTask<CharacterEntryState> LoadAsync(
         AccountId accountId,

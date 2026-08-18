@@ -6,12 +6,12 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Inventory;
 
-internal sealed class SelectCharacterEntryInventoryService(
+internal sealed class SelectCharacterEntryInventoryDomainService(
     IEntryLifecycleContentSource content,
     IEntryInventoryMutationRepository mutations,
-    ICharacterInventoryEntryService inventories,
+    ICharacterInventoryEntryDomainService inventories,
     IEntryInventoryLeasePersistence persistence,
-    IEntryInventoryLeaseRegistry leases) : ISelectCharacterEntryInventoryService
+    IEntryInventoryLeaseRegistry leases) : ISelectCharacterEntryInventoryDomainService
 {
     public async ValueTask SaveExistingLeaseAsync(
         SelectedSessionIdentity previousSession, CancellationToken cancellationToken)

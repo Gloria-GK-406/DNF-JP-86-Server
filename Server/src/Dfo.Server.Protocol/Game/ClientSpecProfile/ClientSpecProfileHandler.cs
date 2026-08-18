@@ -13,7 +13,7 @@ namespace Dfo.Server.Protocol.Game.ClientSpecProfile;
 /// of pretending to interpret it.
 /// </summary>
 public sealed class ClientSpecProfileHandler(
-    IOnlineUserQueryService onlineUsers,
+    IOnlineUserQueryDomainService onlineUsers,
     ILogger<ClientSpecProfileHandler> logger) : ClientMessageHandler<ClientSpecProfileReportRequest>
 {
     protected override ValueTask HandleMessageAsync(

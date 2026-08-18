@@ -68,7 +68,7 @@ internal sealed class SelectedSessionCleanupService(
     ISelectedSessionDirectory sessions,
     ISelectedSessionRuntimeDirectory runtimes,
     IEntryInventoryLeaseRegistry inventoryLeases,
-    IActiveCharacterService activeCharacters,
+    IActiveCharacterDomainService activeCharacters,
     ISessionPresenceRegistry presence,
     IExpertStoreRegistry expertStores,
     IPvpLobbyRegistry pvp,

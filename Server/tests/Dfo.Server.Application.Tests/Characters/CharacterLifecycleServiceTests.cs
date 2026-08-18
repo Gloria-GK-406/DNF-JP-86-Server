@@ -15,10 +15,10 @@ public sealed class CharacterLifecycleServiceTests
 {
     private static readonly AccountId Account = new(1);
 
-    private static (ICharacterService Service, FakeRepository Repository) Build(
+    private static (ICharacterDomainService Service, FakeRepository Repository) Build(
         params CharacterSummary[] existing) => BuildWith(new FakeStatSource(), existing);
 
-    private static (ICharacterService Service, FakeRepository Repository) BuildWith(
+    private static (ICharacterDomainService Service, FakeRepository Repository) BuildWith(
         ICharacterStatDefinitionSource stats,
         params CharacterSummary[] existing)
     {
@@ -29,7 +29,7 @@ public sealed class CharacterLifecycleServiceTests
         new ApplicationModule().ConfigureServices(
             services,
             new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
-        return (services.BuildServiceProvider().GetRequiredService<ICharacterService>(), repository);
+        return (services.BuildServiceProvider().GetRequiredService<ICharacterDomainService>(), repository);
     }
 
     private static CharacterSummary Existing(ushort slot, string name) =>

@@ -7,10 +7,10 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Characters;
 
-internal sealed class CharacterService(
+internal sealed class CharacterDomainService(
     Func<ICharacterRepository> characterRepository,
     ICharacterStatDefinitionSource characterStats)
-    : ICharacterService, IEquipmentEligibilityCharacterReader
+    : ICharacterDomainService, IEquipmentEligibilityCharacterReader
 {
     private const ushort DefaultSlotLimit = 32;
 

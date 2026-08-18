@@ -16,9 +16,9 @@ namespace Dfo.Server.Application.World;
 /// local exit, and does not write the position back, so leaving returns them to wherever
 /// they were.
 /// </remarks>
-internal sealed class EntryPlacementService(
+internal sealed class EntryPlacementRuleService(
     ITownDefinitionSource towns,
-    ChannelEntryOptions options) : IEntryPlacementService
+    ChannelEntryOptions options) : IEntryPlacementRuleService
 {
     /// <summary>The facing and area state the legacy server assigns to every arrival.</summary>
     private const byte ArrivalDirection = 5;

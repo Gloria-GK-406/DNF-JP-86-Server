@@ -13,7 +13,7 @@ namespace Dfo.Server.Protocol.Game.ClientHardwareDetail;
 /// through the command bus.
 /// </summary>
 public sealed class ClientHardwareDetailHandler(
-    IOnlineUserQueryService onlineUsers,
+    IOnlineUserQueryDomainService onlineUsers,
     ILogger<ClientHardwareDetailHandler> logger) : ClientMessageHandler<ClientHardwareDetailReportRequest>
 {
     protected override ValueTask HandleMessageAsync(

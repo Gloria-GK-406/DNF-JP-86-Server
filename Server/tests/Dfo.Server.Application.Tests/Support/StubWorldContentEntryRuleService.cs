@@ -10,8 +10,8 @@ namespace Dfo.Server.Application.Tests.Support;
 /// It records the subject it was asked about, so a test that cares can assert the character
 /// facts the entry composition passed inward without also asserting content rules.
 /// </remarks>
-internal sealed class StubWorldContentEntryService(WorldContentEntryState? content = null)
-    : IWorldContentEntryService
+internal sealed class StubWorldContentEntryRuleService(WorldContentEntryState? content = null)
+    : IWorldContentEntryRuleService
 {
     /// <summary>Content with nothing in it, which is a legitimate answer for a fresh character.</summary>
     public static WorldContentEntryState EmptyContent { get; } = new(
@@ -32,7 +32,7 @@ internal sealed class StubWorldContentEntryService(WorldContentEntryState? conte
 }
 
 /// <summary>A content service that fails, for proving entry does not publish on failure.</summary>
-internal sealed class FailingWorldContentEntryService : IWorldContentEntryService
+internal sealed class FailingWorldContentEntryRuleService : IWorldContentEntryRuleService
 {
     public ValueTask<WorldContentEntryState> LoadAsync(
         WorldContentSubject subject,

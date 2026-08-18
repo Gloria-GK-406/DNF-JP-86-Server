@@ -65,7 +65,7 @@ TCP 字节
   → INetworkMessageDispatcher（Abstractions 接缝，实现在 Application）
   → NetworkMessageDispatcher：按 ClientMessageType 查注册表 → 每 message 新 DI scope
   → ClientMessageHandler<TMessage>（Protocol/<Endpoint>/<Protocol>/*Handler.cs）
-      鉴权门（IOnlineUserQueryService）→ commandBus.SendAsync(...) → 发响应
+      鉴权门（IOnlineUserQueryDomainService）→ commandBus.SendAsync(...) → 发响应
   → CommandBus 管线（机制在 Application）→ ICommandHandler（在切片内）
       → 领域服务（Application）→ 仓储/内容源（Infrastructure）
   → Game 由 IGameMessageSender 约束 CMD/NOTI，Channel 直接用 INetworkMessageSender；
@@ -79,8 +79,14 @@ TCP 字节
 `Characters/`（花名册/entry 状态/入场后修正）、`Inventory/`（入场租约、每日补货）、
 `OnlineUsers/`（在线聚合 + 执行门）、`Sessions/`（在场注册表、选中会话目录、
 PvP 大厅、副本重进、专家商店）、`World/`（出生点策略、世界内容）、`Users/`
-（`UserService` 一个类实现 4 个账号/在线接口，带 generation 计数）。
+（`OnlineStateStore` 持三张字典与唯一那把锁，`AccountDomainService`、
+`OnlineUserDomainService`、`ActiveCharacterDomainService` 三个门面各取其一）。
 服务只做业务；`Infrastructure` 提供仓储与 PVF 内容源实现。
+
+**在线状态那把锁不能拆成三把。** 三张字典是同一个不变量的三种读法——一个账号至多一个活跃
+角色，且该角色的 session 属于活着的连接。断线要同时删连接和该账号的活跃角色，发布要先读在线
+用户再写活跃角色表；各自一把锁会开出"账号绑在一个已经没了的连接上"的窗口。所以责任拆成三个
+服务类型，它们共享的状态留在 `OnlineStateStore` 的单锁后面。
 
 ### 2) 命令执行总线（Application/Commands）
 
@@ -174,7 +180,7 @@ PvP 大厅、副本重进、专家商店）、`World/`（出生点策略、世�
 普通 handler 里允许出现的只有四类：
 
 1. 从 `NetworkDispatchContext` 解出连接身份，取不到就抛；
-2. 只读查询与端点解析（`IOnlineUserQueryService`、`IChannelEntryPolicy`）；
+2. 只读查询与端点解析（`IOnlineUserQueryDomainService`、`IChannelEntryPolicy`）；
 3. 不含领域状态或领域决策的确定性协议能力，例如 Channel Connect 读取
    Protocol 所有的当日密钥，或 LOGIN 从 `IServerConfigService` 读取端点配置并构造响应；
 4. `commandBus.SendAsync(...)` 与 sender 的单连接或显式收件人发送方法。
@@ -207,7 +213,7 @@ Networking 只把该字节当作不透明 `Selector` 做拆帧、查表与写帧
    （TCP 连上时由 `OnlineUserConnectionObserver` 创建并推送初始连接通知）
 3. `commandBus.SendAsync(LoginGameUserCommand)` → 管线：日志 →
    OnlineUser 独占租约 → Direct 放行 → `LoginGameUserCommandHandler` →
-   `IAccountService.LoginAsync` → SQLite `GetOrCreate` → `OnlineUser.Authenticate`
+   `IAccountDomainService.LoginAsync` → SQLite `GetOrCreate` → `OnlineUser.Authenticate`
    （generation +1）
 4. handler 从通用 `IServerConfigService` 的内存快照读取环境、公开 host 与三个端口，
    构造完整 `GameLoginResponse` 后通过 `SendCmdAsync` 发出；CMD 编码器只按消息字段编码，
@@ -274,6 +280,36 @@ PremiumService、CloneTitle 是 CMD，其余当前状态推送是 NOTI；拒绝�
    注意测试仍按功能组织，尚未跟随切片重排。
 
 ## 约定
+
+### 接口后缀标明类别
+
+`Abstractions` 里的接口后缀就是它的类别，不需要打开实现才知道调用它意味着什么：
+
+| 后缀 | 含义 | 调用它意味着 |
+|---|---|---|
+| `*DomainService` | 领域服务 | 读写世界状态，**次序与并发有意义** |
+| `*RuleService` | 规则服务 | 内容 + 传入的 facts + 显式种子 → 值/决定，无状态 |
+| `*Projection` | 投影 | 单个 `Build(存储记录) → 领域值`，无依赖、无 I/O |
+| `*Rules`（静态类） | 纯规则 | 纯函数，不碰 I/O |
+| `*Repository` / `*Registry` / `*Directory` / `*Persistence` | 持久化与运行时注册表 | 各自后缀已表明 |
+| `*DefinitionSource` / `*ContentSource` / `*Catalog` | 内容源 | 读归档，确定性、可缓存 |
+| `*Policy` | 策略 | 规则服务的一种，回答"允不允许"；`IChannelEntryPolicy` 即此类 |
+| `*Query` / `*Reader` | 只读投影/查询 | 只读，不改世界状态 |
+| `*Decoder` / `*Encoder` / `*Sender` / `*Dispatcher` / `*Handler` / `*Observer` / `*Closer` | 传输与协议 | 各自后缀已表明 |
+| `*Module` | 组合根接线 | `IServerModule`，只注册不执行业务 |
+
+判据：**这块状态参不参与别的聚合的不变量**——参与就放进那个聚合，不参与才自己一个服务。
+规则服务**不许自己查世界状态**，只能接收 facts；一旦它自己去查，它就成了世界的第二个所有者。
+
+唯一的例外是 `IServerConfigService`（`T GetConfig<T>(string key)`）：它是宿主配置访问，
+三类都不属于，**刻意保留原名**。
+
+**本约定的范围是 `Dfo.Server.Abstractions`。** `Application` 内部还有五个自用的 `I*Service`
+（`ISelectedSessionCleanupService`、`ISelectCharacterSessionEntryService`、
+`ISelectCharacterPreparationService`、`ISelectCharacterQuestEntryService`、
+`ISelectCharacterPetEntryService`），它们不跨层暴露，尚未纳入分类法——新增跨层接缝时按上表命名。
+
+设计依据与推导过程见 `Docs/领域结构重构设计.md`。
 
 - `ValueTask` 全覆盖；sealed handler + 主构造器 DI；命令与 handler 同文件共置。
 - 逆向出来的 legacy 行为在代码里用 XML doc remarks 说明来源，不凭记忆。

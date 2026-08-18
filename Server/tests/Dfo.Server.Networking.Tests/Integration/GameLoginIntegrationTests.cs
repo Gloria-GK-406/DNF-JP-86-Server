@@ -60,7 +60,7 @@ public sealed class GameLoginIntegrationTests
             using var host = builder.Build();
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             await host.StartAsync(timeout.Token);
-            var onlineUsers = host.Services.GetRequiredService<IOnlineUserQueryService>();
+            var onlineUsers = host.Services.GetRequiredService<IOnlineUserQueryDomainService>();
             var gameService = host.Services.GetRequiredService<IGameTcpService>();
 
             NetworkConnectionId connectionId;

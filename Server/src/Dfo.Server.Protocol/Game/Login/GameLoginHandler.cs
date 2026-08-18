@@ -13,11 +13,11 @@ using Dfo.Server.Protocol.Game.StateSynchronization;
 namespace Dfo.Server.Protocol.Game.Login;
 
 public sealed class GameLoginHandler(
-    IOnlineUserQueryService onlineUsers,
+    IOnlineUserQueryDomainService onlineUsers,
     IGameMessageSender sender,
     ICommandBus commandBus,
     IServerConfigService serverConfig,
-    IAccountEntryStateService accountEntryState) : ClientMessageHandler<GameLoginRequest>
+    IAccountEntryStateDomainService accountEntryState) : ClientMessageHandler<GameLoginRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,

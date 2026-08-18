@@ -15,7 +15,7 @@ public sealed class EntryPlacementUnavailableException(string message)
     : InvalidOperationException(message);
 
 /// <summary>Decides where a character stands and what the channel permits.</summary>
-public interface IEntryPlacementService
+public interface IEntryPlacementRuleService
 {
     /// <summary>
     /// Resolves the placement and permissions for a character entering on a channel.

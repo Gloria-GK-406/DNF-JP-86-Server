@@ -4,7 +4,7 @@ using Dfo.Server.Data.OnlineUsers;
 
 namespace Dfo.Server.Abstractions.OnlineUsers;
 
-public interface IOnlineUserQueryService
+public interface IOnlineUserQueryDomainService
 {
     OnlineUserSnapshot GetRequired(OnlineUserId onlineUserId);
 
@@ -13,7 +13,7 @@ public interface IOnlineUserQueryService
         out OnlineUserSnapshot? onlineUser);
 }
 
-public interface IOnlineUserService : IOnlineUserQueryService
+public interface IOnlineUserDomainService : IOnlineUserQueryDomainService
 {
     OnlineUserSnapshot RegisterConnection(NetworkConnectionContext connection);
 

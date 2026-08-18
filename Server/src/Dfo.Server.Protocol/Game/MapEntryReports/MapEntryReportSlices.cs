@@ -151,7 +151,7 @@ internal sealed class RuntimeTingStatisticDecoder : IGameMessageDecoder
 /// information that this one does not.
 /// </summary>
 public sealed class MapEntryReportHandler(
-    IOnlineUserQueryService onlineUsers,
+    IOnlineUserQueryDomainService onlineUsers,
     ILogger<MapEntryReportHandler> logger)
     : ClientMessageHandler<IMapEntryReport>
 {

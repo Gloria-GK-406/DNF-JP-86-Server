@@ -44,13 +44,13 @@ public sealed class SelectCharacterProductionStateTests
     }
 
     private sealed class Sources(SelectCharacterResult seed) :
-        ICharacterService, ICharacterInventoryEntryService, IAccountInventoryEntryService,
-        ICharacterEntryStateService, IAccountEntryStateService, IEquippedCreatureQuery,
-        IWorldContentEntryService, ISkillPointDefinitionSource, IChannelEntryPolicy,
+        ICharacterDomainService, ICharacterInventoryEntryDomainService, IAccountInventoryEntryDomainService,
+        ICharacterEntryStateDomainService, IAccountEntryStateDomainService, IEquippedCreatureQuery,
+        IWorldContentEntryRuleService, ISkillPointDefinitionSource, IChannelEntryPolicy,
         ICharacterPvpSkillProfileRepository, IDungeonPersistentEffectRecoveryRepository,
         IExpertSkillContractDefinitionSource, IExpertSkillContractReconciliationRepository,
-        ICreatureEquipmentLifetimeSource, IEntryPlacementService,
-        ISessionAdjacentEntryService, IActiveCharacterService
+        ICreatureEquipmentLifetimeSource, IEntryPlacementRuleService,
+        ISessionAdjacentEntryDomainService, IActiveCharacterDomainService
     {
         public bool Published { get; private set; }
         public ValueTask<AccountCharacterRoster> GetAccountRosterAsync(AccountId id, CancellationToken ct) =>
@@ -71,9 +71,9 @@ public sealed class SelectCharacterProductionStateTests
             AccountId id, byte job, byte[] name, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<CharacterDeletionResult> DeleteCharacterAsync(
             AccountId id, ushort slot, byte[] name, CancellationToken ct) => throw new NotSupportedException();
-        ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryService.LoadAsync(
+        ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryDomainService.LoadAsync(
             AccountId id, CharacterId cid, CancellationToken ct) => ValueTask.FromResult(seed.CharacterInventory);
-        ValueTask<AccountInventoryEntryState> IAccountInventoryEntryService.LoadAsync(
+        ValueTask<AccountInventoryEntryState> IAccountInventoryEntryDomainService.LoadAsync(
             AccountId id, CharacterId cid, CancellationToken ct) => ValueTask.FromResult(seed.AccountInventory);
         public ValueTask<CharacterEntryState> LoadAsync(AccountId id, CharacterId cid, CancellationToken ct) =>
             ValueTask.FromResult(seed.CharacterEntry with
@@ -88,9 +88,9 @@ public sealed class SelectCharacterProductionStateTests
                     },
                 },
             });
-        ValueTask<AccountEntryState> IAccountEntryStateService.LoadAsync(AccountId id, CancellationToken ct) =>
+        ValueTask<AccountEntryState> IAccountEntryStateDomainService.LoadAsync(AccountId id, CancellationToken ct) =>
             ValueTask.FromResult(seed.Account);
-        ValueTask<AccountSettingsEntryState> IAccountEntryStateService.LoadSettingsAsync(
+        ValueTask<AccountSettingsEntryState> IAccountEntryStateDomainService.LoadSettingsAsync(
             AccountId id, CancellationToken ct) => ValueTask.FromResult(seed.Account.Settings);
         public int GetItemId(CharacterInventoryEntryState inventory) => 0;
         public ValueTask<WorldContentEntryState> LoadAsync(WorldContentSubject subject, CancellationToken ct) =>

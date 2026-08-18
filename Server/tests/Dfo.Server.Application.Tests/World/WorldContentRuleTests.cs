@@ -591,7 +591,7 @@ public sealed class WorldContentRuleTests
         Assert.Equal(["correct"], result.PetWelcome!.Lines);
     }
 
-    private static WorldContentEntryService Service(
+    private static WorldContentEntryRuleService Service(
         IReadOnlyList<QuestDefinition>? quests = null,
         IReadOnlyList<TrainingQuestAvailability>? trainingAvailability = null,
         IReadOnlyList<DailyActivityGroupDefinition>? dailyActivities = null,

@@ -21,11 +21,11 @@ public sealed class CharacterEntryInventoryTests
     {
         var selected = Character(characterId, slotIndex);
         return await EntryServices.Create(
-                new StubCharacterService(selected),
+                new StubCharacterDomainService(selected),
                 new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
-                new StubCharacterEntryStateService(EmptyCharacterEntry(selected.Identity.CharacterId)),
-                new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
-                new StatefulActiveCharacterService())
+                new StubCharacterEntryStateDomainService(EmptyCharacterEntry(selected.Identity.CharacterId)),
+                new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
+                new StatefulActiveCharacterDomainService())
             .EnterAsync(accountId, slotIndex, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None);
     }
 
@@ -130,11 +130,11 @@ public sealed class CharacterEntryInventoryTests
                         characterId, 10, InventoryContainerType.AccountCargo, 3, 2, 600),
                 ]));
 
-        var characterResult = await new CharacterInventoryEntryService(repository).LoadAsync(
+        var characterResult = await new CharacterInventoryEntryDomainService(repository).LoadAsync(
             accountId,
             characterId,
             CancellationToken.None);
-        var accountResult = await new AccountInventoryEntryService(repository).LoadAsync(
+        var accountResult = await new AccountInventoryEntryDomainService(repository).LoadAsync(
             accountId,
             characterId,
             CancellationToken.None);
@@ -185,12 +185,12 @@ public sealed class CharacterEntryInventoryTests
         var accountId = new AccountId(42);
         var previous = Character(501, 1);
         var selected = Character(502, 2);
-        var active = new StatefulActiveCharacterService(accountId, previous);
+        var active = new StatefulActiveCharacterDomainService(accountId, previous);
         var entry = EntryServices.Create(
-            new StubCharacterService(selected),
+            new StubCharacterDomainService(selected),
             new FailingInventoryEntryService(),
-            new StubCharacterEntryStateService(EmptyCharacterEntry(selected.Identity.CharacterId)),
-            new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
+            new StubCharacterEntryStateDomainService(EmptyCharacterEntry(selected.Identity.CharacterId)),
+            new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
             active);
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
@@ -209,13 +209,13 @@ public sealed class CharacterEntryInventoryTests
         var accountId = new AccountId(44);
         var previous = Character(601, 1);
         var selected = Character(602, 2);
-        var active = new StatefulActiveCharacterService(accountId, previous);
+        var active = new StatefulActiveCharacterDomainService(accountId, previous);
         var refusal = new ChannelAdmissionRefusal(0xFD, "level too low");
         var entry = EntryServices.Create(
-            new StubCharacterService(selected),
+            new StubCharacterDomainService(selected),
             new NotReachedInventoryEntryService(),
-            new StubCharacterEntryStateService(EmptyCharacterEntry(selected.Identity.CharacterId)),
-            new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
+            new StubCharacterEntryStateDomainService(EmptyCharacterEntry(selected.Identity.CharacterId)),
+            new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
             active,
             channels: new StubChannelEntryPolicy(refusal));
 
@@ -253,10 +253,10 @@ public sealed class CharacterEntryInventoryTests
                 ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue),
         };
         var entry = EntryServices.Create(
-            new StubCharacterService(selected),
+            new StubCharacterDomainService(selected),
             new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
-            new StubCharacterEntryStateService(normal), new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
-            new StatefulActiveCharacterService(), skillPoints: new NormalSkillSource(),
+            new StubCharacterEntryStateDomainService(normal), new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
+            new StatefulActiveCharacterDomainService(), skillPoints: new NormalSkillSource(),
             pvpSkills: new FixedPvpSkills(pvp), placement: new DuelAwarePlacement());
 
         var ordinary = await entry.EnterAsync(
@@ -294,11 +294,11 @@ public sealed class CharacterEntryInventoryTests
         };
         var reconciliation = new ChangedExpertReconciliation();
         var entry = EntryServices.Create(
-            new StubCharacterService(selected),
+            new StubCharacterDomainService(selected),
             new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
-            new ReloadingCharacterEntryStateService(before, after),
-            new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
-            new StatefulActiveCharacterService(), skillPoints: new NormalSkillSource(),
+            new ReloadingCharacterEntryStateDomainService(before, after),
+            new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
+            new StatefulActiveCharacterDomainService(), skillPoints: new NormalSkillSource(),
             expertContracts: new FixedExpertContracts(), expertSkillReconciliation: reconciliation);
 
         var result = await entry.EnterAsync(
@@ -332,12 +332,12 @@ public sealed class CharacterEntryInventoryTests
     {
         var accountId = new AccountId(45);
         var selected = Character(603, 3);
-        var active = new StatefulActiveCharacterService(accountId, Character(604, 1));
+        var active = new StatefulActiveCharacterDomainService(accountId, Character(604, 1));
         var entry = EntryServices.Create(
-            new StubCharacterService(selected),
+            new StubCharacterDomainService(selected),
             new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
-            new StubCharacterEntryStateService(EmptyCharacterEntry(selected.Identity.CharacterId)),
-            new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
+            new StubCharacterEntryStateDomainService(EmptyCharacterEntry(selected.Identity.CharacterId)),
+            new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
             active);
 
         var result = await entry.EnterAsync(
@@ -358,12 +358,12 @@ public sealed class CharacterEntryInventoryTests
         var accountId = new AccountId(47);
         var previous = Character(605, 1);
         var selected = Character(606, 3);
-        var active = new StatefulActiveCharacterService(accountId, previous);
+        var active = new StatefulActiveCharacterDomainService(accountId, previous);
         var entry = EntryServices.Create(
-            new StubCharacterService(selected),
+            new StubCharacterDomainService(selected),
             new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
-            new StubCharacterEntryStateService(EmptyCharacterEntry(selected.Identity.CharacterId)),
-            new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
+            new StubCharacterEntryStateDomainService(EmptyCharacterEntry(selected.Identity.CharacterId)),
+            new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
             active,
             timeProvider: new FailingTimeProvider());
 
@@ -393,16 +393,16 @@ public sealed class CharacterEntryInventoryTests
         var accountId = new AccountId(46);
         var previous = Character(701, 1);
         var selected = Character(702, 2);
-        var active = new StatefulActiveCharacterService(accountId, previous);
+        var active = new StatefulActiveCharacterDomainService(accountId, previous);
         var entry = EntryServices.Create(
-            new StubCharacterService(selected),
+            new StubCharacterDomainService(selected),
             new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
-            new StubCharacterEntryStateService(EmptyCharacterEntry(selected.Identity.CharacterId)),
-            new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
+            new StubCharacterEntryStateDomainService(EmptyCharacterEntry(selected.Identity.CharacterId)),
+            new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
             active,
-            worldContent: failingSource is "content" ? new FailingWorldContentEntryService() : null,
-            placement: failingSource is "placement" ? new FailingEntryPlacementService() : null,
-            sessionAdjacent: failingSource is "session" ? new FailingSessionAdjacentEntryService() : null);
+            worldContent: failingSource is "content" ? new FailingWorldContentEntryRuleService() : null,
+            placement: failingSource is "placement" ? new FailingEntryPlacementRuleService() : null,
+            sessionAdjacent: failingSource is "session" ? new FailingSessionAdjacentEntryDomainService() : null);
 
         await Assert.ThrowsAnyAsync<Exception>(async () =>
             await entry.EnterAsync(
@@ -421,12 +421,12 @@ public sealed class CharacterEntryInventoryTests
         var accountId = new AccountId(43);
         var selected = Character(503, 3);
         var inventory = EmptyInventory(accountId, selected.Identity.CharacterId);
-        var active = new StatefulActiveCharacterService();
+        var active = new StatefulActiveCharacterDomainService();
         var entry = EntryServices.Create(
-            new StubCharacterService(selected),
+            new StubCharacterDomainService(selected),
             new StubInventoryEntryService(inventory),
-            new StubCharacterEntryStateService(EmptyCharacterEntry(selected.Identity.CharacterId)),
-            new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
+            new StubCharacterEntryStateDomainService(EmptyCharacterEntry(selected.Identity.CharacterId)),
+            new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
             active);
 
         var result = await entry.EnterAsync(accountId, 3, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None);
@@ -454,11 +454,11 @@ public sealed class CharacterEntryInventoryTests
                 [], new CharacterSkillPointBasisState(5, 0), null, null),
         };
         var entry = EntryServices.Create(
-            new StubCharacterService(selected),
+            new StubCharacterDomainService(selected),
             new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
-            new StubCharacterEntryStateService(characterEntry),
-            new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
-            new StatefulActiveCharacterService(),
+            new StubCharacterEntryStateDomainService(characterEntry),
+            new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
+            new StatefulActiveCharacterDomainService(),
             skillPoints: new PopulatedSkillPointDefinitionSource());
 
         var result = await entry.EnterAsync(
@@ -474,12 +474,12 @@ public sealed class CharacterEntryInventoryTests
         var accountId = new AccountId(44);
         var previous = Character(504, 4);
         var selected = Character(505, 5);
-        var active = new StatefulActiveCharacterService(accountId, previous);
+        var active = new StatefulActiveCharacterDomainService(accountId, previous);
         var entry = EntryServices.Create(
-            new StubCharacterService(selected),
+            new StubCharacterDomainService(selected),
             new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
-            new FailingCharacterEntryStateService(),
-            new StubAccountEntryStateService(EmptyAccountEntry(accountId)),
+            new FailingCharacterEntryStateDomainService(),
+            new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
             active);
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
@@ -494,12 +494,12 @@ public sealed class CharacterEntryInventoryTests
         var accountId = new AccountId(45);
         var previous = Character(506, 5);
         var selected = Character(507, 6);
-        var active = new StatefulActiveCharacterService(accountId, previous);
+        var active = new StatefulActiveCharacterDomainService(accountId, previous);
         var entry = EntryServices.Create(
-            new StubCharacterService(selected),
+            new StubCharacterDomainService(selected),
             new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
-            new StubCharacterEntryStateService(EmptyCharacterEntry(selected.Identity.CharacterId)),
-            new FailingAccountEntryStateService(),
+            new StubCharacterEntryStateDomainService(EmptyCharacterEntry(selected.Identity.CharacterId)),
+            new FailingAccountEntryStateDomainService(),
             active);
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
@@ -638,7 +638,7 @@ public sealed class CharacterEntryInventoryTests
             CancellationToken cancellationToken) => ValueTask.FromResult(accountRecord);
     }
 
-    private sealed class StubCharacterService(ActiveCharacterState state) : ICharacterService
+    private sealed class StubCharacterDomainService(ActiveCharacterState state) : ICharacterDomainService
     {
         public ValueTask<AccountCharacterRoster> GetAccountRosterAsync(
             AccountId accountId,
@@ -685,12 +685,12 @@ public sealed class CharacterEntryInventoryTests
     private sealed class StubInventoryEntryService(TestInventoryEntryState state)
         : ITestInventoryEntryServices
     {
-        ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryService.LoadAsync(
+        ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryDomainService.LoadAsync(
             AccountId accountId,
             CharacterId characterId,
             CancellationToken cancellationToken) => ValueTask.FromResult(state.CharacterInventory);
 
-        ValueTask<AccountInventoryEntryState> IAccountInventoryEntryService.LoadAsync(
+        ValueTask<AccountInventoryEntryState> IAccountInventoryEntryDomainService.LoadAsync(
             AccountId accountId,
             CharacterId characterId,
             CancellationToken cancellationToken) => ValueTask.FromResult(state.AccountInventory);
@@ -698,14 +698,14 @@ public sealed class CharacterEntryInventoryTests
 
     private sealed class FailingInventoryEntryService : ITestInventoryEntryServices
     {
-        ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryService.LoadAsync(
+        ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryDomainService.LoadAsync(
             AccountId accountId,
             CharacterId characterId,
             CancellationToken cancellationToken) =>
             ValueTask.FromException<CharacterInventoryEntryState>(
                 new InvalidDataException("malformed inventory"));
 
-        ValueTask<AccountInventoryEntryState> IAccountInventoryEntryService.LoadAsync(
+        ValueTask<AccountInventoryEntryState> IAccountInventoryEntryDomainService.LoadAsync(
             AccountId accountId,
             CharacterId characterId,
             CancellationToken cancellationToken) =>
@@ -714,13 +714,13 @@ public sealed class CharacterEntryInventoryTests
 
     private sealed class NotReachedInventoryEntryService : ITestInventoryEntryServices
     {
-        ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryService.LoadAsync(
+        ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryDomainService.LoadAsync(
             AccountId accountId,
             CharacterId characterId,
             CancellationToken cancellationToken) =>
             throw new InvalidOperationException("Inventory must not load after channel refusal.");
 
-        ValueTask<AccountInventoryEntryState> IAccountInventoryEntryService.LoadAsync(
+        ValueTask<AccountInventoryEntryState> IAccountInventoryEntryDomainService.LoadAsync(
             AccountId accountId,
             CharacterId characterId,
             CancellationToken cancellationToken) =>
@@ -792,7 +792,7 @@ public sealed class CharacterEntryInventoryTests
         }
     }
 
-    private sealed class DuelAwarePlacement : Dfo.Server.Abstractions.World.IEntryPlacementService
+    private sealed class DuelAwarePlacement : Dfo.Server.Abstractions.World.IEntryPlacementRuleService
     {
         public ValueTask<ChannelEntryPolicyState> ResolveAsync(ChannelEntryIdentity channel,
             int persistedTownId, CancellationToken cancellationToken) => ValueTask.FromResult(
@@ -805,8 +805,8 @@ public sealed class CharacterEntryInventoryTests
             CancellationToken cancellationToken) => ValueTask.FromResult(true);
     }
 
-    private sealed class StubCharacterEntryStateService(CharacterEntryState state)
-        : ICharacterEntryStateService
+    private sealed class StubCharacterEntryStateDomainService(CharacterEntryState state)
+        : ICharacterEntryStateDomainService
     {
         public ValueTask<CharacterEntryState> LoadAsync(
             AccountId accountId,
@@ -814,8 +814,8 @@ public sealed class CharacterEntryInventoryTests
             CancellationToken cancellationToken) => ValueTask.FromResult(state);
     }
 
-    private sealed class ReloadingCharacterEntryStateService(
-        CharacterEntryState before, CharacterEntryState after) : ICharacterEntryStateService
+    private sealed class ReloadingCharacterEntryStateDomainService(
+        CharacterEntryState before, CharacterEntryState after) : ICharacterEntryStateDomainService
     {
         private int calls;
         public ValueTask<CharacterEntryState> LoadAsync(
@@ -841,7 +841,7 @@ public sealed class CharacterEntryInventoryTests
         }
     }
 
-    private sealed class FailingCharacterEntryStateService : ICharacterEntryStateService
+    private sealed class FailingCharacterEntryStateDomainService : ICharacterEntryStateDomainService
     {
         public ValueTask<CharacterEntryState> LoadAsync(
             AccountId accountId,
@@ -851,8 +851,8 @@ public sealed class CharacterEntryInventoryTests
                 new InvalidDataException("character entry state is unavailable"));
     }
 
-    private sealed class StubAccountEntryStateService(AccountEntryState state)
-        : IAccountEntryStateService
+    private sealed class StubAccountEntryStateDomainService(AccountEntryState state)
+        : IAccountEntryStateDomainService
     {
         public ValueTask<AccountEntryState> LoadAsync(
             AccountId accountId,
@@ -863,7 +863,7 @@ public sealed class CharacterEntryInventoryTests
             CancellationToken cancellationToken) => ValueTask.FromResult(state.Settings);
     }
 
-    private sealed class FailingAccountEntryStateService : IAccountEntryStateService
+    private sealed class FailingAccountEntryStateDomainService : IAccountEntryStateDomainService
     {
         public ValueTask<AccountEntryState> LoadAsync(
             AccountId accountId,
@@ -878,15 +878,15 @@ public sealed class CharacterEntryInventoryTests
                 new InvalidDataException("account settings are unavailable"));
     }
 
-    private sealed class StatefulActiveCharacterService : IActiveCharacterService
+    private sealed class StatefulActiveCharacterDomainService : IActiveCharacterDomainService
     {
         private readonly Dictionary<AccountId, ActiveCharacterState> states = [];
 
-        public StatefulActiveCharacterService()
+        public StatefulActiveCharacterDomainService()
         {
         }
 
-        public StatefulActiveCharacterService(AccountId accountId, ActiveCharacterState state) =>
+        public StatefulActiveCharacterDomainService(AccountId accountId, ActiveCharacterState state) =>
             states.Add(accountId, state);
 
         public int PublishCount { get; private set; }

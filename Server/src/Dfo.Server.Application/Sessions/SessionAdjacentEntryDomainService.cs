@@ -10,12 +10,12 @@ namespace Dfo.Server.Application.Sessions;
 /// Every answer here is a read. Registering the entering character, and telling anyone
 /// about their arrival, belong to the entry lifecycle.
 /// </remarks>
-internal sealed class SessionAdjacentEntryService(
+internal sealed class SessionAdjacentEntryDomainService(
     ISessionPresenceRegistry presence,
     IExpertStoreRegistry expertStores,
     IPvpLobbyRegistry lobby,
     IDungeonRejoinRegistry rejoin,
-    TimeProvider timeProvider) : ISessionAdjacentEntryService
+    TimeProvider timeProvider) : ISessionAdjacentEntryDomainService
 {
     /// <summary>
     /// The largest party identifier the protocol can carry.

@@ -72,7 +72,7 @@ internal sealed class SaveGameOption1MessageDecoder : IGameMessageDecoder
 /// frozen. Recorded as an open item in the protocol document rather than half-implemented here.
 /// </summary>
 public sealed class SaveGameOption1Handler(
-    IOnlineUserQueryService onlineUsers,
+    IOnlineUserQueryDomainService onlineUsers,
     ILogger<SaveGameOption1Handler> logger) : ClientMessageHandler<SaveGameOption1Request>
 {
     protected override ValueTask HandleMessageAsync(

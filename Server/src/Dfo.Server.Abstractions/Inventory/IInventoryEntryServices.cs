@@ -83,7 +83,7 @@ public interface IAccountInventoryEntryRepository
         CancellationToken cancellationToken);
 }
 
-public interface ICharacterInventoryEntryService
+public interface ICharacterInventoryEntryDomainService
 {
     ValueTask<CharacterInventoryEntryState> LoadAsync(
         AccountId accountId,
@@ -91,7 +91,7 @@ public interface ICharacterInventoryEntryService
         CancellationToken cancellationToken);
 }
 
-public interface IAccountInventoryEntryService
+public interface IAccountInventoryEntryDomainService
 {
     ValueTask<AccountInventoryEntryState> LoadAsync(
         AccountId accountId,
@@ -129,7 +129,7 @@ public sealed record EntryInventoryPreparation(
     SelectCharacterResult Result,
     IReadOnlyList<CommittedInventoryUpdateState> CommittedUpdates);
 
-public interface ISelectCharacterEntryInventoryService
+public interface ISelectCharacterEntryInventoryDomainService
 {
     ValueTask SaveExistingLeaseAsync(
         SelectedSessionIdentity previousSession,

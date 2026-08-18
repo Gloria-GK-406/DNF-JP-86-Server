@@ -68,7 +68,7 @@ internal sealed class CreateCharacterMessageDecoder : IGameMessageDecoder
 public sealed record CreateCharacterCommand(AccountId AccountId, byte Job, byte[] RawName)
     : ICommand<CharacterCreationResult>, IAccountCommand;
 
-public sealed class CreateCharacterCommandHandler(ICharacterService characters)
+public sealed class CreateCharacterCommandHandler(ICharacterDomainService characters)
     : ICommandHandler<CreateCharacterCommand, CharacterCreationResult>
 {
     public ValueTask<CharacterCreationResult> HandleAsync(
@@ -92,7 +92,7 @@ public sealed class CreateCharacterCommandHandler(ICharacterService characters)
 /// sequence.
 /// </remarks>
 public sealed class CreateCharacterHandler(
-    IOnlineUserQueryService onlineUsers,
+    IOnlineUserQueryDomainService onlineUsers,
     IGameMessageSender sender,
     ICommandBus commandBus,
     ILogger<CreateCharacterHandler> logger)

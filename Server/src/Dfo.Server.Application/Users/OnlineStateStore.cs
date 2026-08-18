@@ -1,6 +1,3 @@
-using Dfo.Server.Abstractions.Accounts;
-using Dfo.Server.Abstractions.Characters;
-using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -9,30 +6,32 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Users;
 
-internal sealed class UserService(Func<IAccountRepository> accountRepository)
-    : IAccountService, IOnlineUserService, IActiveCharacterService
+/// <summary>
+/// The connected users, the account each has authenticated as, and the character each account has
+/// active — one state, one lock.
+/// </summary>
+/// <remarks>
+/// The three collections are separate readings of one invariant rather than three independent
+/// tables: an account has at most one active character, and that character's session belongs to a
+/// live connection. Several operations only preserve it while they update more than one collection
+/// together — disconnecting removes the connection and the account's active character, and
+/// publishing reads the online user before writing the active-character entry. Giving each
+/// responsibility its own lock would open a window in which an account is bound to a connection
+/// that is already gone, so the responsibilities are separated into their own service types while
+/// the state they share stays behind this single lock.
+/// </remarks>
+internal sealed class OnlineStateStore
 {
     private readonly object sync = new();
     private readonly Dictionary<OnlineUserId, OnlineUser> byId = [];
     private readonly Dictionary<NetworkConnectionId, OnlineUserId> byConnection = [];
     private readonly Dictionary<AccountId, ActiveCharacterRegistration> activeByAccount = [];
 
-    public async ValueTask<AccountId> LoginAsync(
-        OnlineUserId onlineUserId,
-        string loginId,
-        string passwordHash,
-        CancellationToken cancellationToken)
+    public void Authenticate(OnlineUserId onlineUserId, AccountId accountId)
     {
-        var account = await accountRepository().GetOrCreateAsync(
-            loginId,
-            passwordHash,
-            cancellationToken).ConfigureAwait(false);
-
         lock (sync)
         {
-            var onlineUser = GetRequiredAggregate(onlineUserId);
-            onlineUser.Authenticate(account.AccountId);
-            return account.AccountId;
+            GetRequiredAggregate(onlineUserId).Authenticate(accountId);
         }
     }
 
@@ -160,7 +159,7 @@ internal sealed class UserService(Func<IAccountRepository> accountRepository)
         }
     }
 
-    public ActiveCharacterState GetRequired(AccountId accountId)
+    public ActiveCharacterState GetRequiredCharacter(AccountId accountId)
     {
         lock (sync)
         {
@@ -171,7 +170,7 @@ internal sealed class UserService(Func<IAccountRepository> accountRepository)
         }
     }
 
-    public OnlineUserSnapshot GetRequired(OnlineUserId onlineUserId)
+    public OnlineUserSnapshot GetRequiredUser(OnlineUserId onlineUserId)
     {
         lock (sync)
         {

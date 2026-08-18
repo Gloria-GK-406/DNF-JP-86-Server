@@ -15,7 +15,7 @@ public sealed class ClientSpecStatisticHandlerTests
         var connectionId = new NetworkConnectionId("game-42");
         var context = new NetworkDispatchContext(
             new NetworkConnectionContext(connectionId, NetworkEndpointKind.Game, 10011));
-        var onlineUsers = new StubOnlineUserQueryService(new OnlineUserSnapshot(
+        var onlineUsers = new StubOnlineUserQueryDomainService(new OnlineUserSnapshot(
             new OnlineUserId(Guid.NewGuid()),
             context.Connection,
             new AccountId(12),
@@ -44,7 +44,7 @@ public sealed class ClientSpecStatisticHandlerTests
         var context = new NetworkDispatchContext(
             new NetworkConnectionContext(connectionId, NetworkEndpointKind.Game, 10011));
         var handler = new ClientSpecStatisticHandler(
-            new StubOnlineUserQueryService(snapshot: null), new RecordingLogger());
+            new StubOnlineUserQueryDomainService(snapshot: null), new RecordingLogger());
 
         await handler.HandleAsync(context, CreateReport(), CancellationToken.None);
     }
@@ -61,7 +61,7 @@ public sealed class ClientSpecStatisticHandlerTests
             new ClientSpecStatisticSlot(3, 0, 7),
         ]);
 
-    private sealed class StubOnlineUserQueryService(OnlineUserSnapshot? snapshot) : IOnlineUserQueryService
+    private sealed class StubOnlineUserQueryDomainService(OnlineUserSnapshot? snapshot) : IOnlineUserQueryDomainService
     {
         public OnlineUserSnapshot GetRequired(OnlineUserId onlineUserId) =>
             snapshot ?? throw new InvalidOperationException("No online user registered.");

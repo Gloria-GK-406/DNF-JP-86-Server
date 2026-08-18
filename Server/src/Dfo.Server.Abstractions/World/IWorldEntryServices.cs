@@ -44,7 +44,7 @@ public sealed record WorldContentSubject(
 /// Resolves the static content of a character's entry into answers that need no further
 /// combination with progress.
 /// </summary>
-public interface IWorldContentEntryService
+public interface IWorldContentEntryRuleService
 {
     ValueTask<WorldContentEntryState> LoadAsync(
         WorldContentSubject subject,

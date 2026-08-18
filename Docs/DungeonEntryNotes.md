@@ -115,7 +115,7 @@
 | 已有 | 位置 | 与副本入场的关系 |
 |---|---|---|
 | 内容源模式（端口在 `Abstractions.Content`、`Pvf*` 适配器在 `Infrastructure.Content`） | 10 个端口 | 副本定义源应照此建 |
-| `IEntryPlacementService` | `Abstractions/World` | 已有"内容声明了这个区域吗"的判断，副本落点可以类推 |
+| `IEntryPlacementRuleService` | `Abstractions/World` | 已有"内容声明了这个区域吗"的判断，副本落点可以类推 |
 | 运行时会话目录 + `ReplaceExact` | `Abstractions/Sessions` | 运行状态挂在哪的现成接缝 |
 | 任务入场状态 `CharacterQuestEntryState` | 已在入场批次里加载 | 第 6 步的任务门禁要用它 |
 

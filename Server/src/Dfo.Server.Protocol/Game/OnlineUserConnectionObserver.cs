@@ -13,7 +13,7 @@ using Dfo.Server.Protocol.Game.StateSynchronization;
 namespace Dfo.Server.Protocol.Game;
 
 public sealed class OnlineUserConnectionObserver(
-    IOnlineUserService onlineUsers,
+    IOnlineUserDomainService onlineUsers,
     OnlineUserExecutionGate executionGate,
     SelectedSessionTransitionGate lifecycleGate,
     ISelectedSessionDirectory selectedSessions,

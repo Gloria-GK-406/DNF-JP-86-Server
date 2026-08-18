@@ -158,11 +158,11 @@ public sealed class ExitFlushHandlerTests
         [],
         []);
 
-    private static IOnlineUserQueryService Attributed(out NetworkDispatchContext context)
+    private static IOnlineUserQueryDomainService Attributed(out NetworkDispatchContext context)
     {
         context = new NetworkDispatchContext(
             new NetworkConnectionContext(new NetworkConnectionId("game-42"), NetworkEndpointKind.Game, 10011));
-        return new StubOnlineUserQueryService(new OnlineUserSnapshot(
+        return new StubOnlineUserQueryDomainService(new OnlineUserSnapshot(
             new OnlineUserId(Guid.NewGuid()),
             context.Connection,
             new AccountId(12),
@@ -171,14 +171,14 @@ public sealed class ExitFlushHandlerTests
             Generation: 1));
     }
 
-    private static IOnlineUserQueryService Unattributed(out NetworkDispatchContext context)
+    private static IOnlineUserQueryDomainService Unattributed(out NetworkDispatchContext context)
     {
         context = new NetworkDispatchContext(
             new NetworkConnectionContext(new NetworkConnectionId("game-7"), NetworkEndpointKind.Game, 10011));
-        return new StubOnlineUserQueryService(snapshot: null);
+        return new StubOnlineUserQueryDomainService(snapshot: null);
     }
 
-    private sealed class StubOnlineUserQueryService(OnlineUserSnapshot? snapshot) : IOnlineUserQueryService
+    private sealed class StubOnlineUserQueryDomainService(OnlineUserSnapshot? snapshot) : IOnlineUserQueryDomainService
     {
         public OnlineUserSnapshot GetRequired(OnlineUserId onlineUserId) =>
             snapshot ?? throw new InvalidOperationException("No online user registered.");

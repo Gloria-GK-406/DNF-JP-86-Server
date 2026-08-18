@@ -6,7 +6,7 @@ using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Application.Characters;
 
-internal sealed class CharacterProfileEntryService : ICharacterProfileEntryService
+internal sealed class CharacterProfileEntryProjection : ICharacterProfileEntryProjection
 {
     public (CharacterPublicEntryState Public, CharacterSettingsEntryState Settings) Build(
         CharacterProfileStorageRecord storage) =>
@@ -122,7 +122,7 @@ internal sealed class CharacterProfileEntryService : ICharacterProfileEntryServi
                 checked((uint)storage.Subtype0.UserStateBits)));
 }
 
-internal sealed class CharacterSkillQuestEntryService : ICharacterSkillQuestEntryService
+internal sealed class CharacterSkillQuestEntryProjection : ICharacterSkillQuestEntryProjection
 {
     public (CharacterSkillsEntryState Skills, CharacterQuestEntryState Quests) Build(
         CharacterSkillStorageRecord skills,
@@ -178,7 +178,7 @@ internal sealed class CharacterSkillQuestEntryService : ICharacterSkillQuestEntr
     }
 }
 
-internal sealed class CharacterProgressionEntryService : ICharacterProgressionEntryService
+internal sealed class CharacterProgressionEntryProjection : ICharacterProgressionEntryProjection
 {
     public CharacterProgressionEntryState Build(CharacterProgressionStorageRecord storage)
     {
@@ -228,7 +228,7 @@ internal sealed class CharacterProgressionEntryService : ICharacterProgressionEn
     }
 }
 
-internal sealed class CharacterFeatureEntryService : ICharacterFeatureEntryService
+internal sealed class CharacterFeatureEntryProjection : ICharacterFeatureEntryProjection
 {
     public CharacterFeaturesEntryState Build(CharacterFeatureStorageRecord storage)
     {
@@ -347,13 +347,13 @@ internal sealed class CharacterFeatureEntryService : ICharacterFeatureEntryServi
     }
 }
 
-internal sealed class CharacterEntryStateService(
+internal sealed class CharacterEntryStateDomainService(
     ICharacterEntryStateRepository repository,
     IQuestDefinitionSource questDefinitions,
-    ICharacterProfileEntryService profiles,
-    ICharacterSkillQuestEntryService skillQuests,
-    ICharacterProgressionEntryService progression,
-    ICharacterFeatureEntryService features) : ICharacterEntryStateService
+    ICharacterProfileEntryProjection profiles,
+    ICharacterSkillQuestEntryProjection skillQuests,
+    ICharacterProgressionEntryProjection progression,
+    ICharacterFeatureEntryProjection features) : ICharacterEntryStateDomainService
 {
     public async ValueTask<CharacterEntryState> LoadAsync(
         AccountId accountId,

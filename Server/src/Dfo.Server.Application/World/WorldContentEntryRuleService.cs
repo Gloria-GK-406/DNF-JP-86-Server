@@ -12,11 +12,11 @@ namespace Dfo.Server.Application.World;
 /// the content declares, and deciding who qualifies for it is a rule that can change without
 /// the content changing.
 /// </remarks>
-internal sealed class WorldContentEntryService(
+internal sealed class WorldContentEntryRuleService(
     IQuestDefinitionSource quests,
     IDailyActivityDefinitionSource dailyActivities,
     ICollectionBoxDefinitionSource collectionBoxes,
-    ICreatureDefinitionSource creatures) : IWorldContentEntryService
+    ICreatureDefinitionSource creatures) : IWorldContentEntryRuleService
 {
     public async ValueTask<WorldContentEntryState> LoadAsync(
         WorldContentSubject subject,

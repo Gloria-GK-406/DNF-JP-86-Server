@@ -5,8 +5,8 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
-internal sealed class CharacterInventoryEntryService(ICharacterInventoryEntryRepository repository)
-    : ICharacterInventoryEntryService
+internal sealed class CharacterInventoryEntryDomainService(ICharacterInventoryEntryRepository repository)
+    : ICharacterInventoryEntryDomainService
 {
     public async ValueTask<CharacterInventoryEntryState> LoadAsync(
         AccountId accountId,
@@ -19,8 +19,8 @@ internal sealed class CharacterInventoryEntryService(ICharacterInventoryEntryRep
     }
 }
 
-internal sealed class AccountInventoryEntryService(IAccountInventoryEntryRepository repository)
-    : IAccountInventoryEntryService
+internal sealed class AccountInventoryEntryDomainService(IAccountInventoryEntryRepository repository)
+    : IAccountInventoryEntryDomainService
 {
     public async ValueTask<AccountInventoryEntryState> LoadAsync(
         AccountId accountId,

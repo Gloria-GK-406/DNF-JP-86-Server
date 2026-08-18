@@ -32,53 +32,59 @@ public sealed class ApplicationModule : IServerModule
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.TryAddSingleton(TimeProvider.System);
+        // One store, three services. The store keeps the collections whose invariant spans them
+        // behind a single lock; the services are the three responsibilities read off it.
+        services.TryAddSingleton<OnlineStateStore>();
+        services.TryAddSingleton<IAccountDomainService>(
+            provider => new AccountDomainService(
+                () => provider.GetRequiredService<IAccountRepository>(),
+                provider.GetRequiredService<OnlineStateStore>()));
         services.TryAddSingleton(
-            provider => new UserService(
-                () => provider.GetRequiredService<IAccountRepository>()));
-        services.TryAddSingleton<IAccountService>(
-            provider => provider.GetRequiredService<UserService>());
-        services.TryAddSingleton<IOnlineUserService>(
-            provider => provider.GetRequiredService<UserService>());
-        services.TryAddSingleton<IOnlineUserQueryService>(
-            provider => provider.GetRequiredService<UserService>());
-        services.TryAddSingleton<IActiveCharacterService>(
-            provider => provider.GetRequiredService<UserService>());
+            provider => new OnlineUserDomainService(
+                provider.GetRequiredService<OnlineStateStore>()));
+        services.TryAddSingleton<IOnlineUserDomainService>(
+            provider => provider.GetRequiredService<OnlineUserDomainService>());
+        services.TryAddSingleton<IOnlineUserQueryDomainService>(
+            provider => provider.GetRequiredService<OnlineUserDomainService>());
+        services.TryAddSingleton<IActiveCharacterDomainService>(
+            provider => new ActiveCharacterDomainService(
+                provider.GetRequiredService<OnlineStateStore>()));
         services.TryAddSingleton(
-            provider => new CharacterService(
+            provider => new CharacterDomainService(
                 () => provider.GetRequiredService<ICharacterRepository>(),
                 provider.GetRequiredService<ICharacterStatDefinitionSource>()));
-        services.TryAddSingleton<ICharacterService>(
-            provider => provider.GetRequiredService<CharacterService>());
+        services.TryAddSingleton<ICharacterDomainService>(
+            provider => provider.GetRequiredService<CharacterDomainService>());
         services.TryAddSingleton<ISelectCharacterPreparationService, SelectCharacterPreparationService>();
         services.TryAddSingleton<IEquipmentEligibilityCharacterReader>(
-            provider => provider.GetRequiredService<CharacterService>());
-        services.TryAddSingleton<ICharacterInventoryEntryService, CharacterInventoryEntryService>();
-        services.TryAddSingleton<IAccountInventoryEntryService, AccountInventoryEntryService>();
+            provider => provider.GetRequiredService<CharacterDomainService>());
+        services.TryAddSingleton<ICharacterInventoryEntryDomainService, CharacterInventoryEntryDomainService>();
+        services.TryAddSingleton<IAccountInventoryEntryDomainService, AccountInventoryEntryDomainService>();
         services.TryAddSingleton<IEquippedCreatureQuery, EquippedCreatureQuery>();
         services.TryAddSingleton<IEntryInventoryLeaseRegistry, EntryInventoryLeaseRegistry>();
-        services.TryAddSingleton<ISelectCharacterEntryInventoryService, SelectCharacterEntryInventoryService>();
-        services.TryAddSingleton<ICharacterProfileEntryService, CharacterProfileEntryService>();
-        services.TryAddSingleton<ICharacterSkillQuestEntryService, CharacterSkillQuestEntryService>();
-        services.TryAddSingleton<ICharacterProgressionEntryService, CharacterProgressionEntryService>();
-        services.TryAddSingleton<ICharacterFeatureEntryService, CharacterFeatureEntryService>();
-        services.TryAddSingleton<ICharacterEntryStateService, CharacterEntryStateService>();
+        services.TryAddSingleton<ISelectCharacterEntryInventoryDomainService, SelectCharacterEntryInventoryDomainService>();
+        services.TryAddSingleton<ICharacterProfileEntryProjection, CharacterProfileEntryProjection>();
+        services.TryAddSingleton<ICharacterSkillQuestEntryProjection, CharacterSkillQuestEntryProjection>();
+        services.TryAddSingleton<ICharacterProgressionEntryProjection, CharacterProgressionEntryProjection>();
+        services.TryAddSingleton<ICharacterFeatureEntryProjection, CharacterFeatureEntryProjection>();
+        services.TryAddSingleton<ICharacterEntryStateDomainService, CharacterEntryStateDomainService>();
         services.TryAddSingleton<ISelectCharacterQuestEntryService, SelectCharacterQuestEntryService>();
         services.TryAddSingleton<ISelectCharacterPetEntryService, SelectCharacterPetEntryService>();
-        services.TryAddSingleton<IAccountSettingsEntryService, AccountSettingsEntryService>();
-        services.TryAddSingleton<IAccountWalletEntitlementEntryService, AccountWalletEntitlementEntryService>();
-        services.TryAddSingleton<IAccountProgressionEntryService, AccountProgressionEntryService>();
-        services.TryAddSingleton<IAccountRelationCompatibilityEntryService, AccountRelationCompatibilityEntryService>();
-        services.TryAddSingleton<IAccountEntryStateService, AccountEntryStateService>();
-        services.TryAddSingleton<IWorldContentEntryService, WorldContentEntryService>();
+        services.TryAddSingleton<IAccountSettingsEntryProjection, AccountSettingsEntryProjection>();
+        services.TryAddSingleton<IAccountWalletEntitlementEntryProjection, AccountWalletEntitlementEntryProjection>();
+        services.TryAddSingleton<IAccountProgressionEntryProjection, AccountProgressionEntryProjection>();
+        services.TryAddSingleton<IAccountRelationCompatibilityEntryProjection, AccountRelationCompatibilityEntryProjection>();
+        services.TryAddSingleton<IAccountEntryStateDomainService, AccountEntryStateDomainService>();
+        services.TryAddSingleton<IWorldContentEntryRuleService, WorldContentEntryRuleService>();
         services.TryAddSingleton<IChannelEntryPolicy, ChannelEntryPolicy>();
-        services.TryAddSingleton<IEntryPlacementService, EntryPlacementService>();
+        services.TryAddSingleton<IEntryPlacementRuleService, EntryPlacementRuleService>();
         services.TryAddSingleton<ISessionPresenceRegistry, SessionPresenceRegistry>();
         services.TryAddSingleton<ISelectedSessionDirectory, SelectedSessionDirectory>();
         services.TryAddSingleton<ISelectedSessionRuntimeDirectory, SelectedSessionRuntimeDirectory>();
         services.TryAddSingleton<IExpertStoreRegistry, ExpertStoreRegistry>();
         services.TryAddSingleton<IPvpLobbyRegistry, PvpLobbyRegistry>();
         services.TryAddSingleton<IDungeonRejoinRegistry, DungeonRejoinRegistry>();
-        services.TryAddSingleton<ISessionAdjacentEntryService, SessionAdjacentEntryService>();
+        services.TryAddSingleton<ISessionAdjacentEntryDomainService, SessionAdjacentEntryDomainService>();
         services.TryAddSingleton<ISelectedSessionCleanupService, SelectedSessionCleanupService>();
         services.TryAddSingleton<ISelectCharacterSessionEntryService, SelectCharacterSessionEntryService>();
         services.AddCommandDispatching();

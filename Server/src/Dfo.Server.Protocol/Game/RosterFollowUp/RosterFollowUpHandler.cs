@@ -15,7 +15,7 @@ namespace Dfo.Server.Protocol.Game.RosterFollowUp;
 /// for why the earlier "no response" reading was circular.
 /// </remarks>
 public sealed class RosterFollowUpHandler(
-    IOnlineUserQueryService onlineUsers,
+    IOnlineUserQueryDomainService onlineUsers,
     IGameMessageSender sender,
     ILogger<RosterFollowUpHandler> logger) : ClientMessageHandler<RosterFollowUpRequest>
 {

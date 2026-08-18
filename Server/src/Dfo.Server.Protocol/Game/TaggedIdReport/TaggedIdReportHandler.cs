@@ -14,7 +14,7 @@ namespace Dfo.Server.Protocol.Game.TaggedIdReport;
 /// tolerates an unattributed connection rather than treating it as an error.
 /// </summary>
 public sealed class TaggedIdReportHandler(
-    IOnlineUserQueryService onlineUsers,
+    IOnlineUserQueryDomainService onlineUsers,
     ILogger<TaggedIdReportHandler> logger) : ClientMessageHandler<TaggedIdReportRequest>
 {
     protected override ValueTask HandleMessageAsync(
