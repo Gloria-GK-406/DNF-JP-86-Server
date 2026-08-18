@@ -62,6 +62,14 @@ internal static class GameProtocol
 
     public const ushort EnterSelectDungeonNotificationType = 0x001B;
 
+    public const ushort SelectDungeonType = 0x0010;
+
+    public const ushort DungeonInfoNotificationType = 0x001C;
+
+    public const ushort StartMapNotificationType = 0x001D;
+
+    public const ushort SupportTagNotificationType = 0x019F;
+
     public const ushort AccountCharacterRosterNotificationType = 0x0002;
 
     public const ushort HonorLevelNotificationType = 0x0289;

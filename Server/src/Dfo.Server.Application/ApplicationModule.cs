@@ -54,6 +54,7 @@ public sealed class ApplicationModule : IServerModule
         // The gate is keyed on the character rather than the account because the operations
         // that need it span accounts: a party pays an entry cost together.
         services.TryAddSingleton<UserExecutionGate<CharacterId>>();
+        services.TryAddSingleton<IDungeonLayoutRuleService, DungeonLayoutRuleService>();
         services.TryAddSingleton<IActiveCharacterAccessDomainService>(
             provider => new ActiveCharacterAccessDomainService(
                 provider.GetRequiredService<OnlineStateStore>(),

@@ -33,6 +33,10 @@ public enum ClientMessageType
     GameRuntimeTingStatistic = 0x0001_02B3,
     GameEnterSelectDungeon = 0x0001_000F,
 
+    // Committing to a dungeon and asking to be put in its first room.
+    // See Game/DungeonEntry.
+    GameSelectDungeon = 0x0001_0010,
+
     // Where the character is standing, and where it walks to. See Game/TownProjection.
     GameSetUserPosition = 0x0001_0023,
     GameSetUserArea = 0x0001_0024,
@@ -68,6 +72,12 @@ public enum ServerMessageType
     GameUserArea = 0x0000_0017,
     GameUdpHost = 0x0000_001A,
     GameEnterSelectDungeonState = 0x0000_001B,
+
+    // The dungeon-entry answer: the run's shape, the room it opens in, and the support
+    // roster. See Game/DungeonEntry.
+    GameDungeonInfo = 0x0000_001C,
+    GameStartMap = 0x0000_001D,
+    GameSupportTag = 0x0000_019F,
 }
 
 public interface IClientNetworkMessage
