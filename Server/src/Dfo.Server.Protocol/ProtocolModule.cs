@@ -207,6 +207,7 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.SessionMetricsType, ClientMessageType.GameSessionMetrics);
         services.AddGameCmdMessageDecoder<TaggedIdReportMessageDecoder>(
             GameProtocol.TaggedIdReportType, ClientMessageType.GameTaggedIdReport);
+        services.AddGameCmdMessageEncoder<TutorialFlagAcknowledgement, TutorialFlagAcknowledgementEncoder>();
         services.AddGameCmdMessageDecoder<RosterFollowUpMessageDecoder>(
             GameProtocol.RosterFollowUpType, ClientMessageType.GameRosterFollowUp);
         services.AddGameCmdMessageDecoder<CheckCharacterNameMessageDecoder>(

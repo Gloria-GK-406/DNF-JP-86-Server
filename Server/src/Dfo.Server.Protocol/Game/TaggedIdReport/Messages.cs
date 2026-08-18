@@ -19,3 +19,19 @@ public sealed record TaggedIdReportRequest(
 {
     public ClientMessageType MessageType => ClientMessageType.GameTaggedIdReport;
 }
+
+/// <summary>
+/// The acknowledgement for 0x008F, carrying whatever the tutorial step handed over.
+/// </summary>
+/// <remarks>
+/// The reference server answers every flag change with this, and the count is zero for the flags
+/// that give nothing -- which, in the archive shipped here, is every flag but one.
+/// </remarks>
+public sealed record TutorialFlagAcknowledgement(
+    IReadOnlyList<GrantedTutorialItem> Granted) : IGameCmdMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameTaggedIdReport;
+}
+
+/// <summary>One item actually placed in the character's inventory, and where it went.</summary>
+public sealed record GrantedTutorialItem(ushort Slot, uint ItemId, uint Count);

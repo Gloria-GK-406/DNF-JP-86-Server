@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Networking;
@@ -70,11 +72,18 @@ public sealed class ExitFlushHandlerTests
         Assert.Contains("section8=9/8/7/6/5;0/0/0/0/1", entry.Message);
     }
 
+    /// <remarks>
+    /// Answered, not merely logged. The reference server acknowledges every flag change, and that
+    /// acknowledgement is where a tutorial step's rewards travel; a flag that gives nothing is
+    /// still answered, with a count of zero.
+    /// </remarks>
     [Fact]
-    public async Task TaggedIdReport_LogsIdAndFlag()
+    public async Task TaggedIdReport_AcknowledgesAndLogsIdAndFlag()
     {
         var logger = new RecordingLogger<TaggedIdReportHandler>();
-        var handler = new TaggedIdReportHandler(Attributed(out var context), logger);
+        var sender = new RecordingExplicitSender();
+        var handler = new TaggedIdReportHandler(
+            Attributed(out var context), new NoRewards(), sender, logger);
 
         await handler.HandleAsync(
             context,
@@ -83,6 +92,31 @@ public sealed class ExitFlushHandlerTests
 
         var entry = Assert.Single(logger.Entries);
         Assert.Contains("id=31 flag=1", entry.Message);
+        var acknowledgement = Assert.IsType<TutorialFlagAcknowledgement>(Assert.Single(sender.Sent));
+        Assert.Empty(acknowledgement.Granted);
+    }
+
+    /// <remarks>
+    /// A flag the archive gives items for is still acknowledged with what was actually granted.
+    /// Nothing can be granted yet -- no seam inserts an arbitrary item -- and reporting the
+    /// declared items anyway would tell the client to draw what the server does not hold.
+    /// </remarks>
+    [Fact]
+    public async Task TaggedIdReport_ReportsWhatWasGrantedRatherThanWhatWasDeclared()
+    {
+        var logger = new RecordingLogger<TaggedIdReportHandler>();
+        var sender = new RecordingExplicitSender();
+        var handler = new TaggedIdReportHandler(
+            Attributed(out var context), new OneReward(), sender, logger);
+
+        await handler.HandleAsync(
+            context,
+            new TaggedIdReportRequest(GameMessageMetadata.Empty, 38, 1),
+            CancellationToken.None);
+
+        var acknowledgement = Assert.IsType<TutorialFlagAcknowledgement>(Assert.Single(sender.Sent));
+        Assert.Empty(acknowledgement.Granted);
+        Assert.Contains(logger.Entries, e => e.Message.Contains("cannot be granted yet"));
     }
 
     [Fact]
@@ -90,7 +124,8 @@ public sealed class ExitFlushHandlerTests
     {
         // It arrives after the server has answered EXIT, so the online user may already be gone.
         var logger = new RecordingLogger<TaggedIdReportHandler>();
-        var handler = new TaggedIdReportHandler(Unattributed(out var context), logger);
+        var handler = new TaggedIdReportHandler(
+            Unattributed(out var context), new NoRewards(), new RecordingExplicitSender(), logger);
 
         await handler.HandleAsync(
             context,
@@ -124,6 +159,47 @@ public sealed class ExitFlushHandlerTests
         // Answered, not merely logged. Both values get a reply: the reference server's handler
         // does not look at the body at all.
         Assert.Equal(2, sender.CmdCount);
+    }
+
+    private sealed class NoRewards : ITutorialRewardDefinitionSource
+    {
+        public ValueTask<IReadOnlyList<TutorialRewardItem>> GetAsync(
+            uint tutorialFlag, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<TutorialRewardItem>>([]);
+    }
+
+    private sealed class OneReward : ITutorialRewardDefinitionSource
+    {
+        public ValueTask<IReadOnlyList<TutorialRewardItem>> GetAsync(
+            uint tutorialFlag, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<TutorialRewardItem>>(
+                [new TutorialRewardItem(8474, 1)]);
+    }
+
+    private sealed class RecordingExplicitSender : IGameMessageSender
+    {
+        public List<IGameServerMessage> Sent { get; } = [];
+
+        public ValueTask SendCmdAsync(
+            NetworkConnectionId connectionId,
+            IGameCmdMessage message,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("The tutorial acknowledgement is sent explicitly.");
+
+        public ValueTask SendNotiAsync(
+            NetworkConnectionId connectionId,
+            IGameNotiMessage message,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("The tutorial acknowledgement is a CMD.");
+
+        public ValueTask SendExplicitAsync(
+            NetworkConnectionId requiredDirectConnectionId,
+            GameExplicitMessageDelivery delivery,
+            CancellationToken cancellationToken)
+        {
+            Sent.AddRange(delivery.RequiredDirectMessages);
+            return ValueTask.CompletedTask;
+        }
     }
 
     private sealed class CountingGameMessageSender : IGameMessageSender
