@@ -98,6 +98,14 @@ internal sealed class PvfEntryLifecycleContentSource(PvfArchiveProvider provider
         return values;
     }
 
+    /// <summary>The same resolution, reachable by anything that has to place an item.</summary>
+    internal static RefillItemMetadata ResolveItemMetadataFor(
+        PvfArchive archive,
+        int itemId,
+        IReadOnlyDictionary<int, (int Id, string RelativePath)> stackables,
+        IReadOnlySet<int> equipment) =>
+        ResolveItemMetadata(archive, itemId, stackables, equipment);
+
     private static RefillItemMetadata ResolveItemMetadata(
         PvfArchive archive,
         int itemId,

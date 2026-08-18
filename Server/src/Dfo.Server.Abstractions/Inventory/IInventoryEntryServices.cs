@@ -115,8 +115,32 @@ public sealed record DailyRefillCommittedGrant(
 public sealed record DailyRefillMutationResult(
     IReadOnlyList<DailyRefillCommittedGrant> Grants);
 
+/// <summary>An item that reached the inventory, and the slot it went to.</summary>
+public sealed record GrantedInventoryItem(int SlotIndex, int ItemId, int Count);
+
 public interface IEntryInventoryMutationRepository
 {
+    /// <summary>
+    /// Puts an item into the character's main inventory, or answers null when there is nowhere for
+    /// it to go.
+    /// </summary>
+    /// <param name="placement">
+    /// Where this item belongs, resolved from content by the caller. Storage is handed the answer
+    /// rather than looking it up: which band an item occupies is a fact about the item, and a
+    /// repository that read content would be deciding as well as recording.
+    /// </param>
+    /// <remarks>
+    /// Answers null rather than throwing when the item's band is full. A full inventory is an
+    /// ordinary state of the world and the caller has to say something to the player about it;
+    /// an exception would make it indistinguishable from storage being broken.
+    /// </remarks>
+    ValueTask<GrantedInventoryItem?> GrantItemAsync(
+        CharacterId characterId,
+        int itemId,
+        int count,
+        Dfo.Server.Abstractions.Content.ItemPlacement placement,
+        CancellationToken cancellationToken);
+
     ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
         AccountId accountId,
         CharacterId characterId,

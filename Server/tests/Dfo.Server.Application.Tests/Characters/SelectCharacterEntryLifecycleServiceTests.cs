@@ -170,6 +170,15 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
 
     private sealed class RefillMutation : IEntryInventoryMutationRepository
     {
+        /// <summary>Not exercised here: this fixture covers the daily refill only.</summary>
+        public ValueTask<GrantedInventoryItem?> GrantItemAsync(
+            CharacterId characterId,
+            int itemId,
+            int count,
+            ItemPlacement placement,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("The refill fixture does not grant arbitrary items.");
+
         public ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
             AccountId accountId, CharacterId characterId, IReadOnlyList<DailyRefillRule> rules,
             DateTimeOffset preparedAt, CancellationToken cancellationToken) =>
@@ -179,6 +188,15 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
 
     private sealed class FailingRefillMutation : IEntryInventoryMutationRepository
     {
+        /// <summary>Not exercised here: this fixture covers the daily refill only.</summary>
+        public ValueTask<GrantedInventoryItem?> GrantItemAsync(
+            CharacterId characterId,
+            int itemId,
+            int count,
+            ItemPlacement placement,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("The refill fixture does not grant arbitrary items.");
+
         public ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
             AccountId accountId, CharacterId characterId, IReadOnlyList<DailyRefillRule> rules,
             DateTimeOffset preparedAt, CancellationToken cancellationToken) =>

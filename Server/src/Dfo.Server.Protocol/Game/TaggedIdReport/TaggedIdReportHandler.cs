@@ -1,6 +1,8 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.Logging;
 
@@ -24,7 +26,10 @@ namespace Dfo.Server.Protocol.Game.TaggedIdReport;
 /// </remarks>
 public sealed class TaggedIdReportHandler(
     IOnlineUserQueryDomainService onlineUsers,
+    ISelectedSessionDirectory selectedSessions,
     ITutorialRewardDefinitionSource rewards,
+    IItemPlacementDefinitionSource placements,
+    IEntryInventoryMutationRepository inventory,
     IGameMessageSender sender,
     ILogger<TaggedIdReportHandler> logger) : ClientMessageHandler<TaggedIdReportRequest>
 {
@@ -38,20 +43,49 @@ public sealed class TaggedIdReportHandler(
 
         var declared = await rewards.GetAsync(message.Id, cancellationToken).ConfigureAwait(false);
 
-        // Nothing is granted yet: there is no seam that inserts an arbitrary item into a
-        // character's inventory, only the daily refill's own path. The acknowledgement reports
-        // what was granted rather than what was declared, so an empty list here is accurate rather
-        // than optimistic -- and it is the correct answer for every flag observed so far, none of
-        // which declares a reward. The one flag that does has never been seen to fire.
-        var granted = Array.Empty<GrantedTutorialItem>();
-        if (declared.Count > 0)
+        // The acknowledgement reports what reached the inventory, not what the archive declares.
+        // An item that was refused -- unknown to the archive, or its band already full -- is left
+        // out, because naming it here would tell the client to draw something the server does not
+        // hold.
+        var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        var granted = new List<GrantedTutorialItem>(declared.Count);
+        foreach (var item in declared)
         {
-            logger.LogWarning(
-                "Tagged id report {ConnectionId}: tutorial flag {Flag} declares {Count} reward "
-                    + "item(s) that cannot be granted yet; acknowledging with none",
-                context.Connection.ConnectionId,
-                message.Id,
-                declared.Count);
+            if (session is null)
+            {
+                logger.LogWarning(
+                    "Tagged id report {ConnectionId}: flag {Flag} gives item {ItemId} but no "
+                        + "character is selected, skipping",
+                    context.Connection.ConnectionId, message.Id, item.ItemId);
+                continue;
+            }
+
+            var placement = await placements.GetAsync(item.ItemId, cancellationToken)
+                .ConfigureAwait(false);
+            if (placement is null)
+            {
+                logger.LogWarning(
+                    "Tagged id report {ConnectionId}: flag {Flag} gives item {ItemId}, which the "
+                        + "archive declares nowhere to put, skipping",
+                    context.Connection.ConnectionId, message.Id, item.ItemId);
+                continue;
+            }
+
+            var placed = await inventory.GrantItemAsync(
+                    session.CharacterId, item.ItemId, item.Count, placement, cancellationToken)
+                .ConfigureAwait(false);
+            if (placed is null)
+            {
+                logger.LogWarning(
+                    "Tagged id report {ConnectionId}: flag {Flag} gives item {ItemId} but slots "
+                        + "{Start}-{End} are full, skipping",
+                    context.Connection.ConnectionId, message.Id, item.ItemId,
+                    placement.SlotStart, placement.SlotEnd);
+                continue;
+            }
+
+            granted.Add(new GrantedTutorialItem(
+                checked((ushort)placed.SlotIndex), (uint)placed.ItemId, (uint)placed.Count));
         }
 
         logger.LogInformation(
@@ -61,7 +95,7 @@ public sealed class TaggedIdReportHandler(
             message.Id,
             message.Flag,
             declared.Count,
-            granted.Length);
+            granted.Count);
 
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,

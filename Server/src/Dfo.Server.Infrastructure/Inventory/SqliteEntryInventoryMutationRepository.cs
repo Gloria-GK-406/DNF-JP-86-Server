@@ -127,6 +127,74 @@ internal sealed class SqliteEntryInventoryMutationRepository : IEntryInventoryMu
             throw new InvalidDataException("Daily refill claim was not persisted.");
     }
 
+    /// <summary>
+    /// Places one item in the character's main inventory.
+    /// </summary>
+    /// <remarks>
+    /// Stacked onto an existing pile when the item's own stack limit allows it and a pile has
+    /// room, otherwise placed in the first free slot of its band. That order is the daily refill's
+    /// and is kept deliberately: a player who receives a second potion expects the count on the
+    /// first to go up, not a second entry beside it.
+    ///
+    /// One transaction covers the search and the write, so two grants arriving together cannot
+    /// both decide the same slot is free.
+    /// </remarks>
+    public async ValueTask<GrantedInventoryItem?> GrantItemAsync(
+        CharacterId characterId,
+        int itemId,
+        int count,
+        ItemPlacement placement,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(placement);
+        if (count <= 0)
+            throw new ArgumentOutOfRangeException(nameof(count), "A granted count must be positive.");
+
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction = (SqliteTransaction)await connection
+            .BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+
+        if (placement.StackLimit > 1)
+        {
+            var existing = await LoadMatchingAsync(
+                connection, transaction, characterId, itemId, cancellationToken).ConfigureAwait(false);
+            foreach (var row in existing)
+            {
+                var current = ReadCount(row.Core);
+                if (current >= placement.StackLimit)
+                    continue;
+                var added = Math.Min(count, placement.StackLimit - current);
+                WriteCount(row.Core, current + added);
+                await UpdateAsync(connection, transaction, row.Uid, row.Core, cancellationToken)
+                    .ConfigureAwait(false);
+                await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+                return new GrantedInventoryItem(row.Slot, itemId, added);
+            }
+        }
+
+        int slot;
+        try
+        {
+            slot = await NextMainSlotAsync(
+                connection, transaction, characterId,
+                placement.SlotStart, placement.SlotEnd, cancellationToken).ConfigureAwait(false);
+        }
+        catch (InvalidDataException)
+        {
+            // The band is full. Nothing is written and the caller is told so.
+            return null;
+        }
+
+        var placed = placement.StackLimit > 0 ? Math.Min(count, placement.StackLimit) : count;
+        await InsertAsync(
+            connection, transaction, characterId, slot,
+            CreateStackableCore(itemId, placed, placement.ItemKind), cancellationToken)
+            .ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        return new GrantedInventoryItem(slot, itemId, placed);
+    }
+
     private static async ValueTask<List<ItemRow>> LoadMatchingAsync(SqliteConnection connection,
         SqliteTransaction transaction, CharacterId characterId, int itemId, CancellationToken cancellationToken)
     {

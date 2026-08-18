@@ -1,4 +1,8 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Data.Accounts;
@@ -83,7 +87,8 @@ public sealed class ExitFlushHandlerTests
         var logger = new RecordingLogger<TaggedIdReportHandler>();
         var sender = new RecordingExplicitSender();
         var handler = new TaggedIdReportHandler(
-            Attributed(out var context), new NoRewards(), sender, logger);
+            Attributed(out var context), new NoSessions(), new NoRewards(),
+            new NoPlacement(), new RecordingInventory(), sender, logger);
 
         await handler.HandleAsync(
             context,
@@ -102,21 +107,26 @@ public sealed class ExitFlushHandlerTests
     /// declared items anyway would tell the client to draw what the server does not hold.
     /// </remarks>
     [Fact]
-    public async Task TaggedIdReport_ReportsWhatWasGrantedRatherThanWhatWasDeclared()
+    public async Task TaggedIdReport_AcknowledgesTheSlotAnItemActuallyReached()
     {
         var logger = new RecordingLogger<TaggedIdReportHandler>();
         var sender = new RecordingExplicitSender();
+        var stored = new RecordingInventory();
         var handler = new TaggedIdReportHandler(
-            Attributed(out var context), new OneReward(), sender, logger);
+            Attributed(out var context), new OneSession(), new OneReward(),
+            new KnownPlacement(), stored, sender, logger);
 
         await handler.HandleAsync(
             context,
             new TaggedIdReportRequest(GameMessageMetadata.Empty, 38, 1),
             CancellationToken.None);
 
-        var acknowledgement = Assert.IsType<TutorialFlagAcknowledgement>(Assert.Single(sender.Sent));
-        Assert.Empty(acknowledgement.Granted);
-        Assert.Contains(logger.Entries, e => e.Message.Contains("cannot be granted yet"));
+        var item = Assert.Single(
+            Assert.IsType<TutorialFlagAcknowledgement>(Assert.Single(sender.Sent)).Granted);
+        Assert.Equal(121, item.Slot);
+        Assert.Equal(8474u, item.ItemId);
+        Assert.Equal(1u, item.Count);
+        Assert.Equal((8474, 1), Assert.Single(stored.Granted));
     }
 
     [Fact]
@@ -125,7 +135,8 @@ public sealed class ExitFlushHandlerTests
         // It arrives after the server has answered EXIT, so the online user may already be gone.
         var logger = new RecordingLogger<TaggedIdReportHandler>();
         var handler = new TaggedIdReportHandler(
-            Unattributed(out var context), new NoRewards(), new RecordingExplicitSender(), logger);
+            Unattributed(out var context), new NoSessions(), new NoRewards(),
+            new NoPlacement(), new RecordingInventory(), new RecordingExplicitSender(), logger);
 
         await handler.HandleAsync(
             context,
@@ -159,6 +170,64 @@ public sealed class ExitFlushHandlerTests
         // Answered, not merely logged. Both values get a reply: the reference server's handler
         // does not look at the body at all.
         Assert.Equal(2, sender.CmdCount);
+    }
+
+    private sealed class NoPlacement : IItemPlacementDefinitionSource
+    {
+        public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ItemPlacement?>(null);
+    }
+
+    /// <summary>A consumable band, as the archive resolves one.</summary>
+    private sealed class KnownPlacement : IItemPlacementDefinitionSource
+    {
+        public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(3, 100, 121, 176));
+    }
+
+    private sealed class RecordingInventory : IEntryInventoryMutationRepository
+    {
+        public List<(int ItemId, int Count)> Granted { get; } = [];
+
+        public ValueTask<GrantedInventoryItem?> GrantItemAsync(
+            CharacterId characterId, int itemId, int count,
+            ItemPlacement placement, CancellationToken cancellationToken)
+        {
+            Granted.Add((itemId, count));
+            return ValueTask.FromResult<GrantedInventoryItem?>(
+                new GrantedInventoryItem(placement.SlotStart, itemId, count));
+        }
+
+        public ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
+            AccountId accountId, CharacterId characterId,
+            IReadOnlyList<DailyRefillRule> rules, DateTimeOffset preparedAt,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("The tutorial acknowledgement does not refill.");
+    }
+
+    private sealed class NoSessions : ISelectedSessionDirectory
+    {
+        public SelectedSessionIdentity? RegisterReplacing(SelectedSessionIdentity session) => null;
+        public bool TryRemoveExact(SelectedSessionIdentity session) => false;
+        public SelectedSessionIdentity? Find(AccountId accountId) => null;
+        public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => null;
+        public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) => null;
+        public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => null;
+        public IReadOnlyList<SelectedSessionIdentity> Current() => [];
+    }
+
+    private sealed class OneSession : ISelectedSessionDirectory
+    {
+        private static readonly SelectedSessionIdentity Session = SelectedSessionIdentity.Create(
+            new AccountId(1), new CharacterId(1), new NetworkConnectionId("Game:tutorial"), 1, 10011);
+
+        public SelectedSessionIdentity? RegisterReplacing(SelectedSessionIdentity session) => null;
+        public bool TryRemoveExact(SelectedSessionIdentity session) => false;
+        public SelectedSessionIdentity? Find(AccountId accountId) => Session;
+        public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => Session;
+        public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) => Session;
+        public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => Session;
+        public IReadOnlyList<SelectedSessionIdentity> Current() => [Session];
     }
 
     private sealed class NoRewards : ITutorialRewardDefinitionSource
