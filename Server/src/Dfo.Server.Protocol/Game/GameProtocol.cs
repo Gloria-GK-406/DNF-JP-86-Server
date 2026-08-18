@@ -76,6 +76,8 @@ internal static class GameProtocol
 
     public const ushort MoveItemSpaceType = 0x0013;
 
+    public const ushort UseStackableType = 0x002C;
+
     public const ushort StoryPauseType = 0x00BF;
 
     public const ushort StoryPauseNotificationType = 0x00AA;

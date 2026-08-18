@@ -43,6 +43,9 @@ public enum ClientMessageType
     // Walking through a door into an adjoining room. See Game/DungeonEntry.
     GameMoveMap = 0x0001_002D,
 
+    // Consuming one item off a pile. See Game/UseStackable.
+    GameUseStackable = 0x0001_002C,
+
     // An item changing slots, the quick-slot bar included. See Game/MoveItemSpace.
     GameMoveItemSpace = 0x0001_0013,
 
@@ -99,6 +102,9 @@ public enum ServerMessageType
     // Acknowledges a tutorial flag change and carries what the step gave.
     // See Game/TaggedIdReport.
     GameTaggedIdReport = 0x0001_008F,
+
+    // Whether the item was consumed. See Game/UseStackable.
+    GameUseStackable = 0x0001_002C,
 
     // Where a moved item ended up, or why it did not move. See Game/MoveItemSpace.
     GameMoveItemSpace = 0x0001_0013,

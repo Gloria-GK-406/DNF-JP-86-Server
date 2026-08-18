@@ -126,6 +126,58 @@ public sealed class MainInventoryMoveTests
         Assert.Equal([(65, 8474, 1)], await fixture.ReadAllAsync());
     }
 
+    [Fact]
+    public async Task Consuming_one_leaves_the_rest_of_the_pile()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        await fixture.SeedAsync(3, itemId: 8474, count: 2);
+        var item = await fixture.Repository.ReadMainSlotAsync(Character, 3, CancellationToken.None);
+
+        var consumed = await fixture.Repository.ConsumeMainItemAsync(
+            Character, item!.StorageEntryId, 1, CancellationToken.None);
+
+        Assert.Equal(new ConsumedInventoryItem(3, 8474, 1), consumed);
+        Assert.Equal([(3, 8474, 1)], await fixture.ReadAllAsync());
+    }
+
+    /// <remarks>
+    /// An empty pile left behind would be a slot the client draws as occupied and the server
+    /// answers as empty.
+    /// </remarks>
+    [Fact]
+    public async Task Consuming_the_last_one_removes_the_row()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        await fixture.SeedAsync(3, itemId: 8474, count: 1);
+        var item = await fixture.Repository.ReadMainSlotAsync(Character, 3, CancellationToken.None);
+
+        var consumed = await fixture.Repository.ConsumeMainItemAsync(
+            Character, item!.StorageEntryId, 1, CancellationToken.None);
+
+        Assert.Equal(0, consumed!.RemainingCount);
+        Assert.Empty(await fixture.ReadAllAsync());
+    }
+
+    [Fact]
+    public async Task Consuming_more_than_the_pile_holds_changes_nothing()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        await fixture.SeedAsync(3, itemId: 8474, count: 1);
+        var item = await fixture.Repository.ReadMainSlotAsync(Character, 3, CancellationToken.None);
+
+        Assert.Null(await fixture.Repository.ConsumeMainItemAsync(
+            Character, item!.StorageEntryId, 2, CancellationToken.None));
+        Assert.Equal([(3, 8474, 1)], await fixture.ReadAllAsync());
+    }
+
+    [Fact]
+    public async Task An_empty_slot_reads_as_nothing()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+
+        Assert.Null(await fixture.Repository.ReadMainSlotAsync(Character, 3, CancellationToken.None));
+    }
+
     private sealed class Fixture : IAsyncDisposable
     {
         private Fixture(string path, SqliteEntryInventoryMutationRepository repository)

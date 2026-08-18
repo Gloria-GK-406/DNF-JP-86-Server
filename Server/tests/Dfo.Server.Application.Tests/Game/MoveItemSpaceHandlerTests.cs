@@ -192,6 +192,17 @@ public sealed class MoveItemSpaceHandlerTests
 
     private sealed class FakeInventory : IEntryInventoryMutationRepository
     {
+
+        /// <summary>Not exercised here: this fixture does not consume items.</summary>
+        public ValueTask<MainInventoryOccupant?> ReadMainSlotAsync(
+            CharacterId characterId, int slotIndex, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("This fixture covers moves only.");
+
+        /// <summary>Not exercised here: this fixture does not consume items.</summary>
+        public ValueTask<ConsumedInventoryItem?> ConsumeMainItemAsync(
+            CharacterId characterId, long storageEntryId, int count,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("This fixture covers moves only.");
         private readonly Dictionary<int, (int ItemId, int Count)> slots = [];
         private readonly Dictionary<long, int> entries = [];
         private long nextEntryId = 1;

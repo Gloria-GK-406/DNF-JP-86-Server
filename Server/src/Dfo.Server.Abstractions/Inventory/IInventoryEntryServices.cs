@@ -126,6 +126,10 @@ public sealed record MainInventoryOccupant(
 public sealed record MainInventorySlotPair(
     MainInventoryOccupant? Source, MainInventoryOccupant? Destination);
 
+/// <summary>What one slot held after something was taken out of it.</summary>
+/// <param name="RemainingCount">Zero when the last of the pile went and the slot is now empty.</param>
+public sealed record ConsumedInventoryItem(int SlotIndex, int ItemId, int RemainingCount);
+
 /// <summary>How a decided move rearranges the two slots.</summary>
 public enum MainInventoryMoveKind
 {
@@ -178,6 +182,26 @@ public interface IEntryInventoryMutationRepository
         int itemId,
         int count,
         Dfo.Server.Abstractions.Content.ItemPlacement placement,
+        CancellationToken cancellationToken);
+
+    /// <summary>Reads what one slot of the character's main inventory holds.</summary>
+    ValueTask<MainInventoryOccupant?> ReadMainSlotAsync(
+        CharacterId characterId,
+        int slotIndex,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Takes a number of items out of one pile, or answers null when that pile is no longer the
+    /// one the caller read.
+    /// </summary>
+    /// <remarks>
+    /// The row goes when the last of the pile does. An empty pile left behind would be a slot the
+    /// client draws as occupied and the server answers as empty.
+    /// </remarks>
+    ValueTask<ConsumedInventoryItem?> ConsumeMainItemAsync(
+        CharacterId characterId,
+        long storageEntryId,
+        int count,
         CancellationToken cancellationToken);
 
     /// <summary>Reads what two slots of the character's main inventory hold.</summary>

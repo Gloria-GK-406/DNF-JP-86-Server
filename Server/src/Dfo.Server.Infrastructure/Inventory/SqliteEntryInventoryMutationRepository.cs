@@ -217,6 +217,51 @@ internal sealed class SqliteEntryInventoryMutationRepository : IEntryInventoryMu
     }
 
 
+    /// <summary>Reads what one slot of the main inventory holds.</summary>
+    public async ValueTask<MainInventoryOccupant?> ReadMainSlotAsync(
+        CharacterId characterId,
+        int slotIndex,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        return await ReadMainSlotAsync(connection, null, characterId, slotIndex, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>Takes items out of one pile, deleting the row when the last of it goes.</summary>
+    public async ValueTask<ConsumedInventoryItem?> ConsumeMainItemAsync(
+        CharacterId characterId,
+        long storageEntryId,
+        int count,
+        CancellationToken cancellationToken)
+    {
+        if (count <= 0)
+            throw new ArgumentOutOfRangeException(nameof(count), "A consumed count must be positive.");
+
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction = (SqliteTransaction)await connection
+            .BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+
+        var item = await ReadMainEntryAsync(
+            connection, transaction, characterId, storageEntryId, cancellationToken).ConfigureAwait(false);
+        if (item is null || count > item.Count)
+            return null;
+
+        var remaining = item.Count - count;
+        if (remaining == 0)
+            await DeleteEntryAsync(connection, transaction, storageEntryId, cancellationToken)
+                .ConfigureAwait(false);
+        else
+            await WriteEntryCountAsync(
+                connection, transaction, storageEntryId, remaining, cancellationToken)
+                .ConfigureAwait(false);
+
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        return new ConsumedInventoryItem(item.SlotIndex, item.ItemId, remaining);
+    }
+
     /// <summary>Reads what two slots of the main inventory hold.</summary>
     public async ValueTask<MainInventorySlotPair> ReadMainSlotsAsync(
         CharacterId characterId,

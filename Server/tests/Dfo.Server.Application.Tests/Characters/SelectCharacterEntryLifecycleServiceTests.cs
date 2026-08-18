@@ -171,6 +171,17 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
     private sealed class RefillMutation : IEntryInventoryMutationRepository
     {
 
+        /// <summary>Not exercised here: this fixture does not consume items.</summary>
+        public ValueTask<MainInventoryOccupant?> ReadMainSlotAsync(
+            CharacterId characterId, int slotIndex, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("The refill fixture does not consume items.");
+
+        /// <summary>Not exercised here: this fixture does not consume items.</summary>
+        public ValueTask<ConsumedInventoryItem?> ConsumeMainItemAsync(
+            CharacterId characterId, long storageEntryId, int count,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("The refill fixture does not consume items.");
+
         /// <summary>Not exercised here: this fixture does not move items between slots.</summary>
         public ValueTask<MainInventorySlotPair> ReadMainSlotsAsync(
             CharacterId characterId, int sourceSlotIndex, int destinationSlotIndex,
@@ -200,6 +211,17 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
 
     private sealed class FailingRefillMutation : IEntryInventoryMutationRepository
     {
+
+        /// <summary>Not exercised here: this fixture does not consume items.</summary>
+        public ValueTask<MainInventoryOccupant?> ReadMainSlotAsync(
+            CharacterId characterId, int slotIndex, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("The refill fixture does not consume items.");
+
+        /// <summary>Not exercised here: this fixture does not consume items.</summary>
+        public ValueTask<ConsumedInventoryItem?> ConsumeMainItemAsync(
+            CharacterId characterId, long storageEntryId, int count,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("The refill fixture does not consume items.");
 
         /// <summary>Not exercised here: this fixture does not move items between slots.</summary>
         public ValueTask<MainInventorySlotPair> ReadMainSlotsAsync(
