@@ -72,6 +72,7 @@ internal sealed class PvfInitialSkillDefinitionSource : IInitialSkillDefinitionS
             return [];
 
         var tags = new CharacterTags(archive);
+        var skillPaths = SkillPaths(archive, job);
         var grants = new List<InitialSkillGrant>();
         var inInitialValue = false;
         var inSkill = false;
@@ -115,12 +116,107 @@ internal sealed class PvfInitialSkillDefinitionSource : IInitialSkillDefinitionS
             }
 
             if (pendingSkillId >= 0 && token.Value is >= 0 and <= byte.MaxValue)
-                grants.Add(new InitialSkillGrant((uint)pendingSkillId.Value, (byte)token.Value));
+            {
+                grants.Add(new InitialSkillGrant(
+                    (uint)pendingSkillId.Value,
+                    (byte)token.Value,
+                    IsActiveSkill(archive, skillPaths, pendingSkillId.Value)));
+            }
+
             pendingSkillId = null;
         }
 
         return grants;
     }
+
+    /// <summary>
+    /// Whether the skill's own definition marks it <c>[active]</c>.
+    /// </summary>
+    /// <remarks>
+    /// Read from the skill rather than guessed from the grant. Nothing in the character file
+    /// distinguishes the skills a player can put on a key from the passives and sub-profession
+    /// skills that are held invisibly -- every entry requires level one, and the identifiers carry
+    /// no pattern -- so the answer has to come from the skill itself.
+    /// </remarks>
+    private static bool IsActiveSkill(
+        PvfArchive archive,
+        IReadOnlyDictionary<int, string> skillPaths,
+        int skillId)
+    {
+        if (!skillPaths.TryGetValue(skillId, out var relativePath))
+            return false;
+        var fileIndex = archive.FindFile($"skill/{relativePath}");
+        if (fileIndex < 0)
+            return false;
+
+        var typeTag = archive.GetTag("[type]").Offset;
+        var reader = archive.OpenScript(fileIndex);
+        var expecting = false;
+        while (reader.Read(out var token))
+        {
+            if (token.Kind == PvfTokenKind.Identifier)
+            {
+                var name = archive.ResolveString(token.Value);
+                if (name.StartsWith('['))
+                {
+                    expecting = token.Value == typeTag;
+                    continue;
+                }
+            }
+
+            if (expecting && token.IsString)
+            {
+                return archive.ResolveString(token.Value)
+                    .Contains("active", StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>The job's skill index, mapping identifiers to their definition files.</summary>
+    /// <remarks>
+    /// Named after the job rather than shared: skill identifiers are per job, so 5 is one skill
+    /// for the swordman and another for the mage.
+    /// </remarks>
+    private static IReadOnlyDictionary<int, string> SkillPaths(PvfArchive archive, byte job)
+    {
+        var listPath = $"skill/{JobSkillListName(archive, job)}";
+        if (archive.FindFile(listPath) < 0)
+            return new Dictionary<int, string>();
+        var paths = new Dictionary<int, string>();
+        foreach (var (skillId, relative) in PvfListFile.Read(archive, listPath))
+            paths.TryAdd(skillId, relative);
+        return paths;
+    }
+
+    /// <summary>
+    /// The skill list belonging to a job, found by the directory its character file lives in.
+    /// </summary>
+    /// <remarks>
+    /// The lists are named after that directory with "skill" appended -- Swordman/Swordman.chr
+    /// alongside swordmanskill.lst -- with the knight as the archive's own exception, whose list
+    /// carries no suffix.
+    /// </remarks>
+    private static string JobSkillListName(PvfArchive archive, byte job) =>
+        job == KnightJob ? "knight.lst" : $"{JobDirectory(archive, job)}skill.lst";
+
+    private static string JobDirectory(PvfArchive archive, byte job)
+    {
+        foreach (var (candidate, relative) in PvfListFile.Read(archive, ListPath))
+        {
+            if (candidate != job)
+                continue;
+            var name = relative.Split('/')[^1];
+            return name.EndsWith(".chr", StringComparison.OrdinalIgnoreCase)
+                ? name[..^4].ToLowerInvariant()
+                : name.ToLowerInvariant();
+        }
+
+        return string.Empty;
+    }
+
+    private const byte KnightJob = 12;
 
     private readonly struct CharacterTags
     {

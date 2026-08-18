@@ -147,19 +147,24 @@ internal sealed class CharacterDomainService(
         // without its stats is the half-built state the entry profile query rejects outright.
         var stats = await characterStats.GetInitialAsync(job, cancellationToken).ConfigureAwait(false);
 
-        // The whole declared set, not a filtered one. The job's [initial value] [skill] block is
-        // already the answer to "what does a level-one character of this job hold": the three
-        // actives and the five passives and life skills are all part of it, and neither the
-        // required level nor the active/passive mark distinguishes a subset -- every entry requires
-        // level one, and there are three actives rather than the two that occupy the attack keys.
+        // Only the actives, and the reason is measured rather than assumed. Everything written to
+        // the character's first skill page reaches the skill bar in slot order: granting all eight
+        // put the three actives on A, S and D and then two passives on F and G, where a player
+        // cannot use them and would not expect them. Ordering the actives first was not enough,
+        // because the passives still occupied slots after them.
         //
-        // Slots follow the archive's order, which puts the two attack skills first. That order is
-        // the only thing available to bind them to the keys the client highlights, so it is
-        // preserved rather than sorted.
+        // The cost is that passives are not held at all, which is wrong in the long run -- 基础精通
+        // is a real passive with real effects. It is acceptable now because none of those effects
+        // is implemented, so a passive that is held and one that is not are indistinguishable, and
+        // holding it would break something visible today. Holding them without binding them needs
+        // a place to put them that the bar does not read, and no such place has been located.
+        //
+        // Among the actives the archive's order is kept: it is the only ordering available.
         var grants = await initialSkills.GetAsync(job, cancellationToken).ConfigureAwait(false);
-        var skills = new List<NewCharacterSkill>(grants.Count);
-        for (var index = 0; index < grants.Count; index++)
-            skills.Add(new NewCharacterSkill((short)index, grants[index].SkillId, grants[index].Level));
+        var skills = new List<NewCharacterSkill>();
+        short slot = 0;
+        foreach (var grant in grants.Where(value => value.IsActive))
+            skills.Add(new NewCharacterSkill(slot++, grant.SkillId, grant.Level));
 
         var characterId = await repository.CreateAsync(
             new NewCharacterSpec(accountId, rawName, job, slotIndex, stats, skills),

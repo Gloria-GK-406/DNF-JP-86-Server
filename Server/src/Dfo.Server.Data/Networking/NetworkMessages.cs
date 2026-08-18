@@ -43,6 +43,9 @@ public enum ClientMessageType
     // Walking through a door into an adjoining room. See Game/DungeonEntry.
     GameMoveMap = 0x0001_002D,
 
+    // Pausing and resuming a scripted moment inside a dungeon. See Game/StoryPause.
+    GameStoryPause = 0x0001_00BF,
+
     // Where the character is standing, and where it walks to. See Game/TownProjection.
     GameSetUserPosition = 0x0001_0023,
     GameSetUserArea = 0x0001_0024,
@@ -93,6 +96,10 @@ public enum ServerMessageType
     // Acknowledges a tutorial flag change and carries what the step gave.
     // See Game/TaggedIdReport.
     GameTaggedIdReport = 0x0001_008F,
+
+    // Confirms a scripted pause. Answers CMD 0x00BF under a different type.
+    // See Game/StoryPause.
+    GameStoryPauseState = 0x0000_00AA,
 }
 
 public interface IClientNetworkMessage

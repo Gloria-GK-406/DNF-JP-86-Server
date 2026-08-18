@@ -24,6 +24,7 @@ using Dfo.Server.Protocol.Game.CreateCharacter;
 using Dfo.Server.Protocol.Game.DeleteCharacter;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.FinishLoading;
+using Dfo.Server.Protocol.Game.StoryPause;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.Exit;
 using Dfo.Server.Protocol.Game.HiddenCharacterInfo;
@@ -165,6 +166,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<SelectDungeonHandler>(ClientMessageType.GameSelectDungeon);
         services.RegisterMessageHandler<FinishLoadingHandler>(ClientMessageType.GameFinishLoading);
         services.RegisterMessageHandler<MoveMapHandler>(ClientMessageType.GameMoveMap);
+        services.RegisterMessageHandler<StoryPauseHandler>(ClientMessageType.GameStoryPause);
 
         // Position and area: the only inputs that move a published character, and so the only
         // way the town its next entry reports can change.
@@ -208,6 +210,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<TaggedIdReportMessageDecoder>(
             GameProtocol.TaggedIdReportType, ClientMessageType.GameTaggedIdReport);
         services.AddGameCmdMessageEncoder<TutorialFlagAcknowledgement, TutorialFlagAcknowledgementEncoder>();
+        services.AddGameNotiMessageEncoder<StoryPauseNotification, StoryPauseEncoder>();
         services.AddGameCmdMessageDecoder<RosterFollowUpMessageDecoder>(
             GameProtocol.RosterFollowUpType, ClientMessageType.GameRosterFollowUp);
         services.AddGameCmdMessageDecoder<CheckCharacterNameMessageDecoder>(
@@ -244,6 +247,8 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.FinishLoadingType, ClientMessageType.GameFinishLoading);
         services.AddGameCmdMessageDecoder<MoveMapDecoder>(
             GameProtocol.MoveMapType, ClientMessageType.GameMoveMap);
+        services.AddGameCmdMessageDecoder<StoryPauseDecoder>(
+            GameProtocol.StoryPauseType, ClientMessageType.GameStoryPause);
         services.AddGameCmdMessageDecoder<HiddenCharacterInfoMessageDecoder>(
             GameProtocol.HiddenCharacterInfoType, ClientMessageType.GameHiddenCharacterInfo);
         services.AddChannelMessageDecoder<ChannelScriptVersionMessageDecoder>(

@@ -27,14 +27,14 @@ public sealed class PvfInitialSkillDefinitionSourceTests
 
         Assert.Equal(
             [
-                new InitialSkillGrant(181, 2), // 精工
-                new InitialSkillGrant(182, 2), // 纺织
-                new InitialSkillGrant(184, 1), // 炼金
-                new InitialSkillGrant(179, 7), // 物品分解
-                new InitialSkillGrant(5, 1),   // 鬼斩
-                new InitialSkillGrant(46, 1),  // 上挑
-                new InitialSkillGrant(169, 1), // 后跳
-                new InitialSkillGrant(174, 1), // 基础精通
+                new InitialSkillGrant(181, 2, IsActive: false), // 精工
+                new InitialSkillGrant(182, 2, IsActive: false), // 纺织
+                new InitialSkillGrant(184, 1, IsActive: false), // 炼金
+                new InitialSkillGrant(179, 7, IsActive: false), // 物品分解
+                new InitialSkillGrant(5, 1, IsActive: true),    // 鬼斩
+                new InitialSkillGrant(46, 1, IsActive: true),   // 上挑
+                new InitialSkillGrant(169, 1, IsActive: true),  // 后跳
+                new InitialSkillGrant(174, 1, IsActive: false), // 基础精通
             ],
             grants);
     }

@@ -1,7 +1,11 @@
 namespace Dfo.Server.Abstractions.Content;
 
-/// <summary>One skill a job starts with, and the level it starts at.</summary>
-public readonly record struct InitialSkillGrant(uint SkillId, byte Level);
+/// <summary>One skill a job starts with, the level it starts at, and whether it can be used.</summary>
+/// <param name="IsActive">
+/// Whether the archive marks it <c>[active]</c>. Passives and the sub-profession skills are held
+/// the same way but are never placed on the skill bar, so this is what separates the two.
+/// </param>
+public readonly record struct InitialSkillGrant(uint SkillId, byte Level, bool IsActive);
 
 /// <summary>The skills a job's characters are created holding.</summary>
 public interface IInitialSkillDefinitionSource

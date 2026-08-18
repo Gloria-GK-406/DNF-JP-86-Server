@@ -255,12 +255,12 @@ public sealed class CharacterLifecycleServiceTests
             Account, 4, "Cleric"u8.ToArray(), CancellationToken.None);
 
         Assert.Equal(CharacterCreationStatus.Created, result.Status);
+        // Only the active is written, and it takes slot zero even though the archive declares it
+        // second. Everything on the first skill page reaches the skill bar in slot order, so a
+        // passive written here would occupy a key the player cannot use.
         var declared = FakeInitialSkillSource.For(4);
         Assert.Equal(
-            [
-                new NewCharacterSkill(0, declared[0].SkillId, declared[0].Level),
-                new NewCharacterSkill(1, declared[1].SkillId, declared[1].Level),
-            ],
+            [new NewCharacterSkill(0, declared[1].SkillId, declared[1].Level)],
             repository.LastSpec!.InitialSkills);
     }
 
@@ -282,7 +282,10 @@ public sealed class CharacterLifecycleServiceTests
     private sealed class FakeInitialSkillSource : IInitialSkillDefinitionSource
     {
         public static IReadOnlyList<InitialSkillGrant> For(byte job) =>
-            [new InitialSkillGrant((uint)(500 + job), 1), new InitialSkillGrant((uint)(600 + job), 2)];
+            [
+                new InitialSkillGrant((uint)(500 + job), 1, IsActive: false),
+                new InitialSkillGrant((uint)(600 + job), 2, IsActive: true),
+            ];
 
         public ValueTask<IReadOnlyList<InitialSkillGrant>> GetAsync(
             byte job,
