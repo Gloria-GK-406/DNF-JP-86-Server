@@ -9,6 +9,8 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.UseStackable;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Application.Inventory;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Tests.Game;
 
@@ -150,11 +152,26 @@ public sealed class UseStackableHandlerTests
         return (
             new UseStackableHandler(
                 new OneSession(),
-                inventory,
+                Containers(inventory),
                 new KindFromInventory(inventory),
                 sender,
                 NullLogger<UseStackableHandler>.Instance),
             sender);
+    }
+
+
+    /// <summary>Binds the fixture's storage to the session's character as its main container.</summary>
+    private static ICharacterContainerDomainService Containers(
+        IEntryInventoryMutationRepository storage)
+    {
+        var characterId = new CharacterId(60);
+        var containers = new CharacterContainerDomainService();
+        containers.Register(characterId, new PersistentItemContainer(
+            new ContainerId("character:60:Main"),
+            characterId,
+            new ContainerShape(InventoryContainerType.Main, 0),
+            storage));
+        return containers;
     }
 
     /// <summary>Reports the placement of whatever the fixture holds, so the two cannot disagree.</summary>
@@ -175,6 +192,10 @@ public sealed class UseStackableHandlerTests
         public byte ItemKind => itemKind;
 
         public bool IsEmpty => Count == 0;
+
+        public ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
+            CharacterId characterId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("This fixture covers use only.");
 
         public ValueTask<MainInventoryOccupant?> ReadMainSlotAsync(
             CharacterId characterId, int slotIndex, CancellationToken cancellationToken) =>

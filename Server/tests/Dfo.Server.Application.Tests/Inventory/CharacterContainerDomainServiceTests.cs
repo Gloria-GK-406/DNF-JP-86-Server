@@ -1,0 +1,157 @@
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Application.Inventory;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Protocol.Game.MoveItemSpace;
+using Dfo.Server.Protocol.Game.UseStackable;
+
+namespace Dfo.Server.Application.Tests.Inventory;
+
+/// <summary>
+/// Which containers a character holds, and which one of them its items come from.
+/// </summary>
+/// <remarks>
+/// The binding is what makes a second inventory possible at all: a dungeon registers its own
+/// container and switches to it, and every rule about moving and using items carries on without
+/// knowing a switch happened.
+/// </remarks>
+public sealed class CharacterContainerDomainServiceTests
+{
+    private static readonly CharacterId Character = new(60);
+
+    [Fact]
+    public void A_container_answers_for_itself()
+    {
+        var shape = new ContainerShape(InventoryContainerType.Main, 42);
+        var container = new TransientItemContainer(new ContainerId("dungeon"), shape);
+
+        Assert.Equal(new ContainerId("dungeon"), container.Id);
+        Assert.Equal(InventoryContainerType.Main, container.Type);
+        Assert.Equal(shape, container.Shape);
+        Assert.True(container.IsRemovable);
+    }
+
+    [Fact]
+    public void The_first_container_registered_is_the_one_in_use()
+    {
+        var containers = new CharacterContainerDomainService();
+        var first = Container("first");
+        var second = Container("second");
+
+        containers.Register(Character, first);
+        containers.Register(Character, second);
+
+        Assert.Equal(
+            [first, second], containers.GetContainers(Character, InventoryContainerType.Main));
+        Assert.Same(first, containers.GetContainer(Character, InventoryContainerType.Main));
+    }
+
+    [Fact]
+    public void Switching_changes_the_binding_and_nothing_else()
+    {
+        var containers = new CharacterContainerDomainService();
+        var first = Container("first");
+        var second = Container("second");
+        containers.Register(Character, first);
+        containers.Register(Character, second);
+
+        Assert.True(containers.UseContainer(Character, second.Id));
+
+        Assert.Same(second, containers.GetContainer(Character, InventoryContainerType.Main));
+        Assert.Equal(
+            [first, second], containers.GetContainers(Character, InventoryContainerType.Main));
+    }
+
+    /// <remarks>
+    /// Leaving a dungeon, in one call: the run's container goes and the character is back on its
+    /// own without anything having to name which container that was.
+    /// </remarks>
+    [Fact]
+    public void Removing_the_container_in_use_falls_back_to_the_one_that_cannot_be_removed()
+    {
+        var containers = new CharacterContainerDomainService();
+        var own = Container("own", removable: false);
+        var dungeon = Container("dungeon");
+        containers.Register(Character, own);
+        containers.Register(Character, dungeon);
+        Assert.True(containers.UseContainer(Character, dungeon.Id));
+
+        Assert.True(containers.Remove(Character, dungeon.Id));
+
+        Assert.Same(own, containers.GetContainer(Character, InventoryContainerType.Main));
+        Assert.Equal([own], containers.GetContainers(Character, InventoryContainerType.Main));
+    }
+
+    /// <remarks>
+    /// A character bound to nothing has no way back, so this is raised rather than represented --
+    /// and raised before anything is removed, so the character is left exactly as it was.
+    /// </remarks>
+    [Fact]
+    public void Removing_the_only_container_leaves_the_character_bound_where_it_was()
+    {
+        var containers = new CharacterContainerDomainService();
+        var only = Container("only");
+        containers.Register(Character, only);
+
+        Assert.Throws<InvalidOperationException>(() => containers.Remove(Character, only.Id));
+
+        Assert.Same(only, containers.GetContainer(Character, InventoryContainerType.Main));
+        Assert.Equal([only], containers.GetContainers(Character, InventoryContainerType.Main));
+    }
+
+    /// <remarks>
+    /// The two protocols that read and write items name no storage of their own. That is the whole
+    /// of the seam: what a dungeon replaces is the container, and these keep working across it.
+    /// </remarks>
+    [Fact]
+    public void The_item_protocols_reach_storage_only_through_a_container()
+    {
+        foreach (var handler in new[] { typeof(MoveItemSpaceHandler), typeof(UseStackableHandler) })
+        {
+            var parameters = handler.GetConstructors().Single().GetParameters();
+            Assert.DoesNotContain(
+                parameters, value => value.ParameterType == typeof(IEntryInventoryMutationRepository));
+            Assert.Contains(
+                parameters, value => value.ParameterType == typeof(ICharacterContainerDomainService));
+        }
+    }
+
+    private static IItemContainer Container(string id, bool removable = true) =>
+        removable
+            ? new TransientItemContainer(
+                new ContainerId(id), new ContainerShape(InventoryContainerType.Main, 0))
+            : new FixedContainer(
+                new ContainerId(id), new ContainerShape(InventoryContainerType.Main, 0));
+
+    /// <summary>A container that refuses removal, standing in for the character's own.</summary>
+    private sealed class FixedContainer(ContainerId id, ContainerShape shape) : IItemContainer
+    {
+        public ContainerId Id => id;
+
+        public InventoryContainerType Type => shape.ContainerType;
+
+        public ContainerShape Shape => shape;
+
+        public bool IsRemovable => false;
+
+        public ValueTask<ContainerSlotItem?> ReadSlotAsync(
+            int slotIndex, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ContainerSlotItem?>(null);
+
+        public ValueTask<ContainerSlotPair> ReadSlotsAsync(
+            int firstSlotIndex, int secondSlotIndex, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(new ContainerSlotPair(null, null));
+
+        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<InventoryItemState>>([]);
+
+        public ValueTask<bool> ApplyMoveAsync(
+            ContainerMovePlan plan, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(false);
+
+        public ValueTask<ContainerConsumption?> ConsumeAsync(
+            long storageEntryId, int count, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ContainerConsumption?>(null);
+    }
+}

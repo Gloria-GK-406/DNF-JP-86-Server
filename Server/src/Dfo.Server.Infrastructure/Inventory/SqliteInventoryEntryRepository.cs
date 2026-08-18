@@ -830,7 +830,7 @@ internal sealed class SqliteInventoryEntryRepository
         return core;
     }
 
-    private static InventoryItemCoreState DecodeItemCore(ReadOnlySpan<byte> core) => new(
+    internal static InventoryItemCoreState DecodeItemCore(ReadOnlySpan<byte> core) => new(
         core[0],
         BinaryPrimitives.ReadInt32LittleEndian(core[1..]),
         BinaryPrimitives.ReadInt32LittleEndian(core[5..]),

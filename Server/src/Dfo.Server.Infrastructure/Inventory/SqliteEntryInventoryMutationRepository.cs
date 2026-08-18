@@ -217,6 +217,31 @@ internal sealed class SqliteEntryInventoryMutationRepository : IEntryInventoryMu
     }
 
 
+    /// <summary>Reads every occupied slot of the main inventory, in the order the client draws them.</summary>
+    public async ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
+        CharacterId characterId,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT item_uid,slot_index,item_core FROM character_new_items WHERE character_id=@cid AND list_type=0 ORDER BY slot_index,item_uid";
+        command.Parameters.AddWithValue("@cid", characterId.Value);
+        var items = new List<InventoryItemState>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var storageEntryId = reader.GetInt64(0);
+            var core = (byte[])reader.GetValue(2);
+            if (core.Length != 82)
+                throw new InvalidDataException("Inventory item core is malformed.");
+            items.Add(new InventoryItemState(
+                storageEntryId, reader.GetInt32(1), SqliteInventoryEntryRepository.DecodeItemCore(core)));
+        }
+
+        return items;
+    }
+
     /// <summary>Reads what one slot of the main inventory holds.</summary>
     public async ValueTask<MainInventoryOccupant?> ReadMainSlotAsync(
         CharacterId characterId,

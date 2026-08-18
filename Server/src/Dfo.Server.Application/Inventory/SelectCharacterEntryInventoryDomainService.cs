@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
@@ -11,7 +12,8 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
     IEntryInventoryMutationRepository mutations,
     ICharacterInventoryEntryDomainService inventories,
     IEntryInventoryLeasePersistence persistence,
-    IEntryInventoryLeaseRegistry leases) : ISelectCharacterEntryInventoryDomainService
+    IEntryInventoryLeaseRegistry leases,
+    ICharacterContainerDomainService containers) : ISelectCharacterEntryInventoryDomainService
 {
     public async ValueTask SaveExistingLeaseAsync(
         SelectedSessionIdentity previousSession, CancellationToken cancellationToken)
@@ -27,7 +29,37 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
         var reloaded = await inventories.LoadAsync(
             session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false);
         leases.Replace(session, reloaded);
+        BindContainers(session.CharacterId, reloaded);
         return result with { CharacterInventory = reloaded };
+    }
+
+    /// <summary>
+    /// Gives the character the container its items already live in.
+    /// </summary>
+    /// <remarks>
+    /// Entry is where a character acquires the container it falls back to, so everything registered
+    /// afterwards -- a dungeon's own inventory, and whatever comes after that -- has somewhere to
+    /// return to. Rebinding from scratch keeps a re-entry from inheriting the previous one's
+    /// registrations.
+    ///
+    /// A loaded inventory with no main container is refused rather than passed over. Entry is the
+    /// only place the binding is made, and the entry snapshot does not come from the container, so
+    /// a character that got past here unbound would be shown a full inventory whose every drag came
+    /// back refused -- with an error code a dozen legitimate refusals also use.
+    /// </remarks>
+    private void BindContainers(CharacterId characterId, CharacterInventoryEntryState inventory)
+    {
+        var main = inventory.Containers.SingleOrDefault(
+                value => value.ContainerType == InventoryContainerType.Main)
+            ?? throw new InvalidDataException(
+                "Entry inventory has no main container to bind the character to.");
+
+        containers.Clear(characterId);
+        containers.Register(characterId, new PersistentItemContainer(
+            new ContainerId($"character:{characterId.Value}:{main.ContainerType}"),
+            characterId,
+            new ContainerShape(main.ContainerType, main.Parameter),
+            mutations));
     }
 
     public async ValueTask<EntryInventoryPreparation> ApplyDailyRefillAsync(

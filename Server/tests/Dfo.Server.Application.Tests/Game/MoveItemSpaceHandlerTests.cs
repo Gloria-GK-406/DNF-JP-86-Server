@@ -11,6 +11,7 @@ using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Tests.Game;
 
@@ -175,12 +176,27 @@ public sealed class MoveItemSpaceHandlerTests
         return (
             new MoveItemSpaceHandler(
                 new OneSession(),
-                inventory,
+                Containers(inventory),
                 new ConsumablePlacements(),
                 new ItemSlotRuleService(),
                 sender,
                 NullLogger<MoveItemSpaceHandler>.Instance),
             sender);
+    }
+
+
+    /// <summary>Binds the fixture's storage to the session's character as its main container.</summary>
+    private static ICharacterContainerDomainService Containers(
+        IEntryInventoryMutationRepository storage)
+    {
+        var characterId = new CharacterId(60);
+        var containers = new CharacterContainerDomainService();
+        containers.Register(characterId, new PersistentItemContainer(
+            new ContainerId("character:60:Main"),
+            characterId,
+            new ContainerShape(InventoryContainerType.Main, 0),
+            storage));
+        return containers;
     }
 
     /// <summary>Every item here is an ordinary consumable: kind 2, band 65 to 120.</summary>
@@ -192,6 +208,10 @@ public sealed class MoveItemSpaceHandlerTests
 
     private sealed class FakeInventory : IEntryInventoryMutationRepository
     {
+
+        public ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
+            CharacterId characterId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("This fixture covers moves only.");
 
         /// <summary>Not exercised here: this fixture does not consume items.</summary>
         public ValueTask<MainInventoryOccupant?> ReadMainSlotAsync(

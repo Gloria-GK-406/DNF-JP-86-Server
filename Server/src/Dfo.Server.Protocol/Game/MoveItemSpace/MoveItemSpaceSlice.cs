@@ -137,7 +137,7 @@ internal sealed class MoveItemSpaceResponseEncoder : GameCmdMessageEncoder<MoveI
 /// </remarks>
 public sealed class MoveItemSpaceHandler(
     ISelectedSessionDirectory selectedSessions,
-    IEntryInventoryMutationRepository inventory,
+    ICharacterContainerDomainService containers,
     IItemPlacementDefinitionSource placements,
     IItemSlotRuleService slotRules,
     IGameMessageSender sender,
@@ -186,13 +186,23 @@ public sealed class MoveItemSpaceHandler(
         if (message.SourceSlotIndex == message.DestinationSlotIndex)
             return MoveItemSpaceResponse.Success(message, 0, message.DestinationSlotIndex);
 
-        var slots = await inventory.ReadMainSlotsAsync(
-            session.CharacterId, message.SourceSlotIndex, message.DestinationSlotIndex, cancellationToken)
+        var container = containers.FindContainer(session.CharacterId, InventoryContainerType.Main);
+        if (container is null)
+        {
+            logger.LogWarning(
+                "Move item space {ConnectionId} character={CharacterId}: no bound main container",
+                context.Connection.ConnectionId,
+                session.CharacterId.Value);
+            return MoveItemSpaceResponse.Failure(message, MoveItemSpaceResponse.Rejected);
+        }
+
+        var slots = await container.ReadSlotsAsync(
+            message.SourceSlotIndex, message.DestinationSlotIndex, cancellationToken)
             .ConfigureAwait(false);
 
-        var (moving, displaced, targetSlot) = slots.Source is not null
-            ? (slots.Source, slots.Destination, message.DestinationSlotIndex)
-            : (slots.Destination, null, message.SourceSlotIndex);
+        var (moving, displaced, targetSlot) = slots.First is not null
+            ? (slots.First, slots.Second, message.DestinationSlotIndex)
+            : (slots.Second, null, message.SourceSlotIndex);
 
         if (moving is null)
         {
@@ -211,8 +221,7 @@ public sealed class MoveItemSpaceHandler(
         if (plan is null)
             return MoveItemSpaceResponse.Failure(message, MoveItemSpaceResponse.InvalidOperation);
 
-        if (!await inventory.ApplyMainMoveAsync(session.CharacterId, plan, cancellationToken)
-                .ConfigureAwait(false))
+        if (!await container.ApplyMoveAsync(plan, cancellationToken).ConfigureAwait(false))
         {
             logger.LogWarning(
                 "Move item space {ConnectionId} character={CharacterId}: slots changed under the "
@@ -247,9 +256,9 @@ public sealed class MoveItemSpaceHandler(
     /// field at zero for a plain drag and only fills it in when a split dialog asked the player for
     /// a number.
     /// </remarks>
-    private async ValueTask<MainInventoryMovePlan?> PlanAsync(
-        MainInventoryOccupant moving,
-        MainInventoryOccupant? displaced,
+    private async ValueTask<ContainerMovePlan?> PlanAsync(
+        ContainerSlotItem moving,
+        ContainerSlotItem? displaced,
         short targetSlot,
         int requestedCount,
         CancellationToken cancellationToken)
@@ -264,11 +273,11 @@ public sealed class MoveItemSpaceHandler(
 
         if (displaced is null)
         {
-            return new MainInventoryMovePlan(
+            return new ContainerMovePlan(
                 moving.StorageEntryId, targetSlot, moveCount, null,
                 moveCount == moving.Count
-                    ? MainInventoryMoveKind.Relocate
-                    : MainInventoryMoveKind.Split);
+                    ? ContainerMoveKind.Relocate
+                    : ContainerMoveKind.Split);
         }
 
         // Two piles of the same item merge; anything else trades places. A merge that would burst
@@ -277,9 +286,9 @@ public sealed class MoveItemSpaceHandler(
         if (displaced.ItemId == moving.ItemId)
         {
             return placement.StackLimit > 1 && displaced.Count + moveCount <= placement.StackLimit
-                ? new MainInventoryMovePlan(
+                ? new ContainerMovePlan(
                     moving.StorageEntryId, targetSlot, moveCount, displaced.StorageEntryId,
-                    MainInventoryMoveKind.Merge)
+                    ContainerMoveKind.Merge)
                 : null;
         }
 
@@ -294,8 +303,8 @@ public sealed class MoveItemSpaceHandler(
             || !slotRules.CanOccupyMainSlot(displacedPlacement, moving.SlotIndex))
             return null;
 
-        return new MainInventoryMovePlan(
+        return new ContainerMovePlan(
             moving.StorageEntryId, targetSlot, moveCount, displaced.StorageEntryId,
-            MainInventoryMoveKind.Swap);
+            ContainerMoveKind.Swap);
     }
 }

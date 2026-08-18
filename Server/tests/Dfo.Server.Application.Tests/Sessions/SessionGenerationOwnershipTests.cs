@@ -9,6 +9,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Application.Tests.Characters;
+using Dfo.Server.Application.Inventory;
 
 namespace Dfo.Server.Application.Tests.Sessions;
 
@@ -46,7 +47,7 @@ public sealed class SessionGenerationOwnershipTests
         var directory = new SelectedSessionDirectory();
         directory.RegisterReplacing(session);
         var service = new SelectedSessionCleanupService(
-            directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(),
+            directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(), new CharacterContainerDomainService(),
             new ThrowingActive(), new SessionPresenceRegistry(), new ExpertStoreRegistry(),
             new PvpLobbyRegistry(), []);
 
@@ -72,7 +73,7 @@ public sealed class SessionGenerationOwnershipTests
         var stores = new ExpertStoreRegistry();
         stores.Open(owner);
         var service = new SelectedSessionCleanupService(
-            directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(),
+            directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(), new CharacterContainerDomainService(),
             new ThrowingActive(), presence, stores, new PvpLobbyRegistry(),
             []);
 
@@ -117,7 +118,7 @@ public sealed class SessionGenerationOwnershipTests
         var stores = new ExpertStoreRegistry();
         stores.Open(owner);
         var service = new SelectedSessionCleanupService(
-            directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(),
+            directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(), new CharacterContainerDomainService(),
             new PassiveActive(), presence, stores, new PvpLobbyRegistry(),
             []);
 
@@ -151,7 +152,8 @@ public sealed class SessionGenerationOwnershipTests
         directory.RegisterReplacing(session);
         var persistence = new RecordingPositionPersistence();
         var service = new SelectedSessionCleanupService(
-            directory, runtimes, new EmptyInventoryLease(), new PassiveActive(),
+            directory, runtimes, new EmptyInventoryLease(), new CharacterContainerDomainService(),
+            new PassiveActive(),
             new SessionPresenceRegistry(), new ExpertStoreRegistry(), new PvpLobbyRegistry(),
             [persistence]);
 
@@ -172,7 +174,7 @@ public sealed class SessionGenerationOwnershipTests
         var stores = new ExpertStoreRegistry();
         stores.Open(replacement);
         var service = new SelectedSessionCleanupService(
-            directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(),
+            directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(), new CharacterContainerDomainService(),
             new PassiveActive(), presence, stores, new PvpLobbyRegistry(),
             []);
 

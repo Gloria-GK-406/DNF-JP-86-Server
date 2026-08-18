@@ -13,6 +13,7 @@ using Dfo.Server.Protocol.Game.RosterFollowUp;
 using Dfo.Server.Protocol.Game.SessionMetrics;
 using Dfo.Server.Protocol.Game.TaggedIdReport;
 using Microsoft.Extensions.Logging;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Tests.Game;
 
@@ -189,6 +190,10 @@ public sealed class ExitFlushHandlerTests
     {
 
         /// <summary>Not exercised here: this fixture does not consume items.</summary>
+        public ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
+            CharacterId characterId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("This fixture does not read the main inventory.");
+
         public ValueTask<MainInventoryOccupant?> ReadMainSlotAsync(
             CharacterId characterId, int slotIndex, CancellationToken cancellationToken) =>
             throw new NotSupportedException("The tutorial acknowledgement does not consume items.");

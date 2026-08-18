@@ -134,7 +134,7 @@ internal sealed class UseStackableResponseEncoder : GameCmdMessageEncoder<UseSta
 /// </remarks>
 public sealed class UseStackableHandler(
     ISelectedSessionDirectory selectedSessions,
-    IEntryInventoryMutationRepository inventory,
+    ICharacterContainerDomainService containers,
     IItemPlacementDefinitionSource placements,
     IGameMessageSender sender,
     ILogger<UseStackableHandler> logger) : ClientMessageHandler<UseStackableRequest>
@@ -170,8 +170,18 @@ public sealed class UseStackableHandler(
             return UseStackableResponse.Failure(message, UseStackableResponse.InvalidItem);
         }
 
-        var item = await inventory.ReadMainSlotAsync(
-            session.CharacterId, message.SlotIndex, cancellationToken).ConfigureAwait(false);
+        var container = containers.FindContainer(session.CharacterId, InventoryContainerType.Main);
+        if (container is null)
+        {
+            logger.LogWarning(
+                "Use stackable {ConnectionId} character={CharacterId}: no bound main container",
+                context.Connection.ConnectionId,
+                session.CharacterId.Value);
+            return UseStackableResponse.Failure(message, UseStackableResponse.InvalidItem);
+        }
+
+        var item = await container.ReadSlotAsync(message.SlotIndex, cancellationToken)
+            .ConfigureAwait(false);
 
         // The client names what it believes it is using. A slot that holds something else means
         // the two disagree about the inventory, and deleting from it anyway would resolve that
@@ -196,8 +206,8 @@ public sealed class UseStackableHandler(
         if (placement is null || placement.ItemKind == EquipmentItemKind)
             return UseStackableResponse.Failure(message, UseStackableResponse.InvalidItem);
 
-        var consumed = await inventory.ConsumeMainItemAsync(
-            session.CharacterId, item.StorageEntryId, 1, cancellationToken).ConfigureAwait(false);
+        var consumed = await container.ConsumeAsync(item.StorageEntryId, 1, cancellationToken)
+            .ConfigureAwait(false);
         if (consumed is null)
         {
             logger.LogWarning(
