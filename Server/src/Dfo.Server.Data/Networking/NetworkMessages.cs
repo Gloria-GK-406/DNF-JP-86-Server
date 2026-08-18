@@ -43,6 +43,9 @@ public enum ClientMessageType
     // Walking through a door into an adjoining room. See Game/DungeonEntry.
     GameMoveMap = 0x0001_002D,
 
+    // An item changing slots, the quick-slot bar included. See Game/MoveItemSpace.
+    GameMoveItemSpace = 0x0001_0013,
+
     // Pausing and resuming a scripted moment inside a dungeon. See Game/StoryPause.
     GameStoryPause = 0x0001_00BF,
 
@@ -96,6 +99,9 @@ public enum ServerMessageType
     // Acknowledges a tutorial flag change and carries what the step gave.
     // See Game/TaggedIdReport.
     GameTaggedIdReport = 0x0001_008F,
+
+    // Where a moved item ended up, or why it did not move. See Game/MoveItemSpace.
+    GameMoveItemSpace = 0x0001_0013,
 
     // Confirms a scripted pause. Answers CMD 0x00BF under a different type.
     // See Game/StoryPause.

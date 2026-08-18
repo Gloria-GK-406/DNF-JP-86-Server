@@ -118,6 +118,45 @@ public sealed record DailyRefillMutationResult(
 /// <summary>An item that reached the inventory, and the slot it went to.</summary>
 public sealed record GrantedInventoryItem(int SlotIndex, int ItemId, int Count);
 
+/// <summary>What one slot of the main inventory holds.</summary>
+public sealed record MainInventoryOccupant(
+    long StorageEntryId, int SlotIndex, byte ItemKind, int ItemId, int Count);
+
+/// <summary>What the two slots named by a move request hold right now.</summary>
+public sealed record MainInventorySlotPair(
+    MainInventoryOccupant? Source, MainInventoryOccupant? Destination);
+
+/// <summary>How a decided move rearranges the two slots.</summary>
+public enum MainInventoryMoveKind
+{
+    /// <summary>The whole stack goes to an empty slot.</summary>
+    Relocate,
+
+    /// <summary>Part of the stack goes to an empty slot; the rest stays behind.</summary>
+    Split,
+
+    /// <summary>The two slots trade places.</summary>
+    Swap,
+
+    /// <summary>The stack is poured into a pile of the same item.</summary>
+    Merge,
+}
+
+/// <summary>
+/// A move the caller has already decided on, for storage to apply as one transaction.
+/// </summary>
+/// <param name="DisplacedEntryId">
+/// What the caller saw in the target slot, or null when it saw the slot empty. Storage rechecks it
+/// and refuses the move when the slot has since changed, so a decision taken outside the
+/// transaction cannot be applied against a world that has moved on.
+/// </param>
+public sealed record MainInventoryMovePlan(
+    long MovingEntryId,
+    int TargetSlotIndex,
+    int MoveCount,
+    long? DisplacedEntryId,
+    MainInventoryMoveKind Kind);
+
 public interface IEntryInventoryMutationRepository
 {
     /// <summary>
@@ -139,6 +178,26 @@ public interface IEntryInventoryMutationRepository
         int itemId,
         int count,
         Dfo.Server.Abstractions.Content.ItemPlacement placement,
+        CancellationToken cancellationToken);
+
+    /// <summary>Reads what two slots of the character's main inventory hold.</summary>
+    ValueTask<MainInventorySlotPair> ReadMainSlotsAsync(
+        CharacterId characterId,
+        int sourceSlotIndex,
+        int destinationSlotIndex,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Applies a decided move, or answers false when the slots no longer hold what the caller read.
+    /// </summary>
+    /// <remarks>
+    /// False is an ordinary answer, not a fault: the caller decided the move from a read taken
+    /// outside this transaction, and the honest response to a slot that changed underneath is to
+    /// tell the client the move did not happen rather than to force it.
+    /// </remarks>
+    ValueTask<bool> ApplyMainMoveAsync(
+        CharacterId characterId,
+        MainInventoryMovePlan plan,
         CancellationToken cancellationToken);
 
     ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(

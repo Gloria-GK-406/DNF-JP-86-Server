@@ -170,6 +170,18 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
 
     private sealed class RefillMutation : IEntryInventoryMutationRepository
     {
+
+        /// <summary>Not exercised here: this fixture does not move items between slots.</summary>
+        public ValueTask<MainInventorySlotPair> ReadMainSlotsAsync(
+            CharacterId characterId, int sourceSlotIndex, int destinationSlotIndex,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("The refill fixture does not move items.");
+
+        /// <summary>Not exercised here: this fixture does not move items between slots.</summary>
+        public ValueTask<bool> ApplyMainMoveAsync(
+            CharacterId characterId, MainInventoryMovePlan plan,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("The refill fixture does not move items.");
         /// <summary>Not exercised here: this fixture covers the daily refill only.</summary>
         public ValueTask<GrantedInventoryItem?> GrantItemAsync(
             CharacterId characterId,
@@ -188,6 +200,18 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
 
     private sealed class FailingRefillMutation : IEntryInventoryMutationRepository
     {
+
+        /// <summary>Not exercised here: this fixture does not move items between slots.</summary>
+        public ValueTask<MainInventorySlotPair> ReadMainSlotsAsync(
+            CharacterId characterId, int sourceSlotIndex, int destinationSlotIndex,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("The refill fixture does not move items.");
+
+        /// <summary>Not exercised here: this fixture does not move items between slots.</summary>
+        public ValueTask<bool> ApplyMainMoveAsync(
+            CharacterId characterId, MainInventoryMovePlan plan,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("The refill fixture does not move items.");
         /// <summary>Not exercised here: this fixture covers the daily refill only.</summary>
         public ValueTask<GrantedInventoryItem?> GrantItemAsync(
             CharacterId characterId,

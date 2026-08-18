@@ -187,6 +187,18 @@ public sealed class ExitFlushHandlerTests
 
     private sealed class RecordingInventory : IEntryInventoryMutationRepository
     {
+
+        /// <summary>Not exercised here: this fixture does not move items between slots.</summary>
+        public ValueTask<MainInventorySlotPair> ReadMainSlotsAsync(
+            CharacterId characterId, int sourceSlotIndex, int destinationSlotIndex,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("The tutorial acknowledgement does not move items.");
+
+        /// <summary>Not exercised here: this fixture does not move items between slots.</summary>
+        public ValueTask<bool> ApplyMainMoveAsync(
+            CharacterId characterId, MainInventoryMovePlan plan,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("The tutorial acknowledgement does not move items.");
         public List<(int ItemId, int Count)> Granted { get; } = [];
 
         public ValueTask<GrantedInventoryItem?> GrantItemAsync(

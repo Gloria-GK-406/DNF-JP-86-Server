@@ -1,0 +1,43 @@
+using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Inventory;
+
+namespace Dfo.Server.Application.Inventory;
+
+/// <summary>
+/// The item's own band, plus the quick slots that sit in front of every band.
+/// </summary>
+/// <remarks>
+/// The quick-slot range is 3 to 8 -- six slots, ahead of the equipment band that starts at 9.
+/// Measured from the reference server, which names the same range in three independent places
+/// (insert, move and slot-bound resolution), and confirmed live on 2026-08-18: the tutorial's
+/// potion arrived in slot 65, the first slot of the consumable band, and the client immediately
+/// asked to move it to slot 3.
+///
+/// The exclusions are the kinds whose home is another list entirely -- creatures and their gear,
+/// avatars and their emblems. Everything else may sit on the bar, which is why the range is
+/// expressed as an allowance with holes rather than as a list of permitted kinds.
+/// </remarks>
+public sealed class ItemSlotRuleService : IItemSlotRuleService
+{
+    internal const int QuickSlotStart = 3;
+    internal const int QuickSlotEnd = 8;
+
+    private const byte KindCreature = 5;
+    private const byte KindCreatureEquipment = 6;
+    private const byte KindCreatureConsumable = 7;
+    private const byte KindAvatar = 8;
+    private const byte KindAvatarEmblem = 9;
+
+    public bool CanOccupyMainSlot(ItemPlacement placement, int slotIndex)
+    {
+        ArgumentNullException.ThrowIfNull(placement);
+
+        if (slotIndex >= placement.SlotStart && slotIndex <= placement.SlotEnd)
+            return true;
+
+        return slotIndex >= QuickSlotStart
+            && slotIndex <= QuickSlotEnd
+            && placement.ItemKind is not (KindCreature or KindCreatureEquipment
+                or KindCreatureConsumable or KindAvatar or KindAvatarEmblem);
+    }
+}

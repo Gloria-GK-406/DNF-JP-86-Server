@@ -24,6 +24,7 @@ using Dfo.Server.Protocol.Game.CreateCharacter;
 using Dfo.Server.Protocol.Game.DeleteCharacter;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.FinishLoading;
+using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Dfo.Server.Protocol.Game.StoryPause;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.Exit;
@@ -167,6 +168,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<FinishLoadingHandler>(ClientMessageType.GameFinishLoading);
         services.RegisterMessageHandler<MoveMapHandler>(ClientMessageType.GameMoveMap);
         services.RegisterMessageHandler<StoryPauseHandler>(ClientMessageType.GameStoryPause);
+        services.RegisterMessageHandler<MoveItemSpaceHandler>(ClientMessageType.GameMoveItemSpace);
 
         // Position and area: the only inputs that move a published character, and so the only
         // way the town its next entry reports can change.
@@ -249,6 +251,8 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.MoveMapType, ClientMessageType.GameMoveMap);
         services.AddGameCmdMessageDecoder<StoryPauseDecoder>(
             GameProtocol.StoryPauseType, ClientMessageType.GameStoryPause);
+        services.AddGameCmdMessageDecoder<MoveItemSpaceDecoder>(
+            GameProtocol.MoveItemSpaceType, ClientMessageType.GameMoveItemSpace);
         services.AddGameCmdMessageDecoder<HiddenCharacterInfoMessageDecoder>(
             GameProtocol.HiddenCharacterInfoType, ClientMessageType.GameHiddenCharacterInfo);
         services.AddChannelMessageDecoder<ChannelScriptVersionMessageDecoder>(
@@ -305,6 +309,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<StartMapNotification, StartMapEncoder>();
         services.AddGameNotiMessageEncoder<SupportTagNotification, SupportTagEncoder>();
         services.AddGameCmdMessageEncoder<FinishLoadingResponse, FinishLoadingResponseEncoder>();
+        services.AddGameCmdMessageEncoder<MoveItemSpaceResponse, MoveItemSpaceResponseEncoder>();
         services.AddGameNotiMessageEncoder<LoadingCompleteNotification, LoadingCompleteEncoder>();
         services.AddGameCmdMessageEncoder<HiddenCharacterInfoResponse, HiddenCharacterInfoResponseEncoder>();
         services.AddGameCmdMessageEncoder<RosterFollowUpResponse, RosterFollowUpResponseEncoder>();

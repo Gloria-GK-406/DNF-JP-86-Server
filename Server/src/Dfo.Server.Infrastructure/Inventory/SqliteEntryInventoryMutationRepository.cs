@@ -12,6 +12,9 @@ namespace Dfo.Server.Infrastructure.Inventory;
 internal sealed class SqliteEntryInventoryMutationRepository : IEntryInventoryMutationRepository
 {
     private const string CounterPrefix = "pvf_daily_refill_item_";
+
+    /// <summary>Where a swapped row waits while the slot it came from is refilled.</summary>
+    private const int ParkedSlotIndex = -1;
     private readonly string connectionString;
 
     public SqliteEntryInventoryMutationRepository(string databasePath)
@@ -211,6 +214,176 @@ internal sealed class SqliteEntryInventoryMutationRepository : IEntryInventoryMu
                 rows.Add(new ItemRow(reader.GetInt64(0), reader.GetInt32(1), core));
         }
         return rows;
+    }
+
+
+    /// <summary>Reads what two slots of the main inventory hold.</summary>
+    public async ValueTask<MainInventorySlotPair> ReadMainSlotsAsync(
+        CharacterId characterId,
+        int sourceSlotIndex,
+        int destinationSlotIndex,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        return new MainInventorySlotPair(
+            await ReadMainSlotAsync(connection, null, characterId, sourceSlotIndex, cancellationToken)
+                .ConfigureAwait(false),
+            await ReadMainSlotAsync(connection, null, characterId, destinationSlotIndex, cancellationToken)
+                .ConfigureAwait(false));
+    }
+
+    /// <summary>
+    /// Applies a decided move as one transaction.
+    /// </summary>
+    /// <remarks>
+    /// A swap cannot write both rows straight across: the slot is part of a unique key, so the
+    /// first update would collide with the row it is about to displace. The moving row is parked
+    /// on a negative slot for the length of the transaction instead -- a value no real slot takes,
+    /// and one no reader ever sees because it never outlives the transaction that wrote it.
+    /// </remarks>
+    public async ValueTask<bool> ApplyMainMoveAsync(
+        CharacterId characterId,
+        MainInventoryMovePlan plan,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction = (SqliteTransaction)await connection
+            .BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+
+        var moving = await ReadMainEntryAsync(
+            connection, transaction, characterId, plan.MovingEntryId, cancellationToken).ConfigureAwait(false);
+        if (moving is null || plan.MoveCount <= 0 || plan.MoveCount > moving.Count)
+            return false;
+
+        var displaced = await ReadMainSlotAsync(
+            connection, transaction, characterId, plan.TargetSlotIndex, cancellationToken).ConfigureAwait(false);
+        if (displaced?.StorageEntryId != plan.DisplacedEntryId)
+            return false;
+
+        switch (plan.Kind)
+        {
+            case MainInventoryMoveKind.Relocate when displaced is null && plan.MoveCount == moving.Count:
+                await MoveSlotAsync(
+                    connection, transaction, moving.StorageEntryId, plan.TargetSlotIndex, cancellationToken)
+                    .ConfigureAwait(false);
+                break;
+
+            case MainInventoryMoveKind.Split when displaced is null && plan.MoveCount < moving.Count:
+                await WriteEntryCountAsync(
+                    connection, transaction, moving.StorageEntryId, moving.Count - plan.MoveCount,
+                    cancellationToken).ConfigureAwait(false);
+                await InsertAsync(
+                    connection, transaction, characterId, plan.TargetSlotIndex,
+                    CreateStackableCore(moving.ItemId, plan.MoveCount, moving.ItemKind), cancellationToken)
+                    .ConfigureAwait(false);
+                break;
+
+            case MainInventoryMoveKind.Swap when displaced is not null && plan.MoveCount == moving.Count:
+                await MoveSlotAsync(
+                    connection, transaction, moving.StorageEntryId, ParkedSlotIndex, cancellationToken)
+                    .ConfigureAwait(false);
+                await MoveSlotAsync(
+                    connection, transaction, displaced.StorageEntryId, moving.SlotIndex, cancellationToken)
+                    .ConfigureAwait(false);
+                await MoveSlotAsync(
+                    connection, transaction, moving.StorageEntryId, plan.TargetSlotIndex, cancellationToken)
+                    .ConfigureAwait(false);
+                break;
+
+            case MainInventoryMoveKind.Merge when displaced is not null && displaced.ItemId == moving.ItemId:
+                await WriteEntryCountAsync(
+                    connection, transaction, displaced.StorageEntryId,
+                    checked(displaced.Count + plan.MoveCount), cancellationToken).ConfigureAwait(false);
+                if (plan.MoveCount == moving.Count)
+                    await DeleteEntryAsync(connection, transaction, moving.StorageEntryId, cancellationToken)
+                        .ConfigureAwait(false);
+                else
+                    await WriteEntryCountAsync(
+                        connection, transaction, moving.StorageEntryId, moving.Count - plan.MoveCount,
+                        cancellationToken).ConfigureAwait(false);
+                break;
+
+            default:
+                return false;
+        }
+
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        return true;
+    }
+
+    private static async ValueTask<MainInventoryOccupant?> ReadMainSlotAsync(
+        SqliteConnection connection, SqliteTransaction? transaction, CharacterId characterId,
+        int slotIndex, CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand(); command.Transaction = transaction;
+        command.CommandText = "SELECT item_uid,slot_index,item_core FROM character_new_items WHERE character_id=@cid AND list_type=0 AND slot_index=@slot";
+        command.Parameters.AddWithValue("@cid", characterId.Value);
+        command.Parameters.AddWithValue("@slot", slotIndex);
+        return await ReadOccupantAsync(command, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async ValueTask<MainInventoryOccupant?> ReadMainEntryAsync(
+        SqliteConnection connection, SqliteTransaction transaction, CharacterId characterId,
+        long storageEntryId, CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand(); command.Transaction = transaction;
+        command.CommandText = "SELECT item_uid,slot_index,item_core FROM character_new_items WHERE character_id=@cid AND list_type=0 AND item_uid=@uid";
+        command.Parameters.AddWithValue("@cid", characterId.Value);
+        command.Parameters.AddWithValue("@uid", storageEntryId);
+        return await ReadOccupantAsync(command, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async ValueTask<MainInventoryOccupant?> ReadOccupantAsync(
+        SqliteCommand command, CancellationToken cancellationToken)
+    {
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            return null;
+        var core = (byte[])reader.GetValue(2);
+        if (core.Length != 82)
+            throw new InvalidDataException("Inventory item core is malformed.");
+        return new MainInventoryOccupant(
+            reader.GetInt64(0),
+            reader.GetInt32(1),
+            core[0],
+            BinaryPrimitives.ReadInt32LittleEndian(core.AsSpan(1, 4)),
+            ReadCount(core));
+    }
+
+    private static async ValueTask MoveSlotAsync(SqliteConnection connection, SqliteTransaction transaction,
+        long uid, int slotIndex, CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand(); command.Transaction = transaction;
+        command.CommandText = "UPDATE character_new_items SET slot_index=@slot,updated_at=CURRENT_TIMESTAMP WHERE item_uid=@uid";
+        command.Parameters.AddWithValue("@slot", slotIndex); command.Parameters.AddWithValue("@uid", uid);
+        if (await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) != 1)
+            throw new InvalidDataException("Inventory slot update failed.");
+    }
+
+    private static async ValueTask WriteEntryCountAsync(SqliteConnection connection,
+        SqliteTransaction transaction, long uid, int count, CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand(); command.Transaction = transaction;
+        command.CommandText = "SELECT item_core FROM character_new_items WHERE item_uid=@uid";
+        command.Parameters.AddWithValue("@uid", uid);
+        if (await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) is not byte[] core)
+            throw new InvalidDataException("Inventory item disappeared mid-move.");
+        WriteCount(core, count);
+        await UpdateAsync(connection, transaction, uid, core, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async ValueTask DeleteEntryAsync(SqliteConnection connection,
+        SqliteTransaction transaction, long uid, CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand(); command.Transaction = transaction;
+        command.CommandText = "DELETE FROM character_new_items WHERE item_uid=@uid";
+        command.Parameters.AddWithValue("@uid", uid);
+        if (await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) != 1)
+            throw new InvalidDataException("Inventory item delete failed.");
     }
 
     private static async ValueTask<int> NextMainSlotAsync(SqliteConnection connection, SqliteTransaction transaction,
