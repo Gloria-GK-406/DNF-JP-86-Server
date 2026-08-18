@@ -13,9 +13,11 @@ using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Users;
 using Dfo.Server.Application.World;
+using Dfo.Server.Data.Characters;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -49,6 +51,14 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IActiveCharacterDomainService>(
             provider => new ActiveCharacterDomainService(
                 provider.GetRequiredService<OnlineStateStore>()));
+        // The gate is keyed on the character rather than the account because the operations
+        // that need it span accounts: a party pays an entry cost together.
+        services.TryAddSingleton<UserExecutionGate<CharacterId>>();
+        services.TryAddSingleton<IActiveCharacterAccessDomainService>(
+            provider => new ActiveCharacterAccessDomainService(
+                provider.GetRequiredService<OnlineStateStore>(),
+                provider.GetRequiredService<UserExecutionGate<CharacterId>>(),
+                TimeSpan.FromSeconds(10)));
         services.TryAddSingleton(
             provider => new CharacterDomainService(
                 () => provider.GetRequiredService<ICharacterRepository>(),

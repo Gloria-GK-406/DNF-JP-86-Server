@@ -26,6 +26,10 @@ internal sealed class OnlineStateStore
     private readonly Dictionary<OnlineUserId, OnlineUser> byId = [];
     private readonly Dictionary<NetworkConnectionId, OnlineUserId> byConnection = [];
     private readonly Dictionary<AccountId, ActiveCharacterRegistration> activeByAccount = [];
+    // A fourth reading of the same invariant, for the same reason as the other three: an account
+    // has at most one active character, so the reverse lookup is derived state and must move with
+    // the forward one. Every writer goes through SetActive/RemoveActive so it cannot drift.
+    private readonly Dictionary<CharacterId, AccountId> byCharacter = [];
 
     public void Authenticate(OnlineUserId onlineUserId, AccountId accountId)
     {
@@ -72,7 +76,7 @@ internal sealed class OnlineStateStore
                 && activeByAccount.TryGetValue(accountId, out var active)
                 && active.OnlineUserId == onlineUserId)
             {
-                activeByAccount.Remove(accountId);
+                RemoveActive(accountId);
             }
 
             byConnection.Remove(connectionId);
@@ -105,7 +109,7 @@ internal sealed class OnlineStateStore
 
             var owner = matches[0];
             owner.BindCharacter(character.Identity.CharacterId);
-            activeByAccount[accountId] = new ActiveCharacterRegistration(owner.Id, null, character);
+            SetActive(accountId, new ActiveCharacterRegistration(owner.Id, null, character));
         }
     }
 
@@ -125,7 +129,7 @@ internal sealed class OnlineStateStore
             owner.BindCharacter(character.Identity.CharacterId);
             // Binding increments the online snapshot generation, while selected-session
             // ownership remains the immutable generation validated before publication.
-            activeByAccount[session.AccountId] = new ActiveCharacterRegistration(owner.Id, session, character);
+            SetActive(session.AccountId, new ActiveCharacterRegistration(owner.Id, session, character));
         }
     }
 
@@ -140,7 +144,7 @@ internal sealed class OnlineStateStore
             if (byId.TryGetValue(active.OnlineUserId, out var owner)
                 && owner.Connection.ConnectionId == session.ConnectionId)
                 owner.UnbindCharacter(session.CharacterId);
-            return activeByAccount.Remove(session.AccountId);
+            return RemoveActive(session.AccountId);
         }
     }
 
@@ -152,7 +156,7 @@ internal sealed class OnlineStateStore
                 || !byId.TryGetValue(id, out var user)) return false;
             if (user.AccountId is { } accountId
                 && activeByAccount.TryGetValue(accountId, out var active)
-                && active.OnlineUserId == id) activeByAccount.Remove(accountId);
+                && active.OnlineUserId == id) RemoveActive(accountId);
             byConnection.Remove(connectionId);
             byId.Remove(id);
             return true;
@@ -194,6 +198,97 @@ internal sealed class OnlineStateStore
             onlineUser = null;
             return false;
         }
+    }
+
+    /// <summary>The state of one active character, or null when it is not active.</summary>
+    public ActiveCharacterState? ReadCharacter(CharacterId characterId)
+    {
+        lock (sync)
+        {
+            return byCharacter.TryGetValue(characterId, out var accountId)
+                && activeByAccount.TryGetValue(accountId, out var active)
+                ? active.Character
+                : null;
+        }
+    }
+
+    /// <summary>
+    /// Several characters read under one lock, so the answers cannot describe different moments.
+    /// </summary>
+    public IReadOnlyDictionary<CharacterId, ActiveCharacterState> ReadCharacters(
+        IReadOnlyCollection<CharacterId> characterIds)
+    {
+        ArgumentNullException.ThrowIfNull(characterIds);
+        var result = new Dictionary<CharacterId, ActiveCharacterState>(characterIds.Count);
+        lock (sync)
+        {
+            foreach (var characterId in characterIds)
+            {
+                if (byCharacter.TryGetValue(characterId, out var accountId)
+                    && activeByAccount.TryGetValue(accountId, out var active))
+                {
+                    result[characterId] = active.Character;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Replaces every named character, or none of them.
+    /// </summary>
+    /// <remarks>
+    /// Verified and applied inside one lock and with no await between the two halves, so this is a
+    /// real all-or-nothing step rather than a hopeful one. A character can stop being its account's
+    /// active character while a write scope holds it -- a second login for the same account
+    /// displaces it, and that path does not take the scope's lease -- and applying to a displaced
+    /// character would write the departed session's state over the arriving one.
+    /// </remarks>
+    public bool TryApplyCharacters(
+        IReadOnlyDictionary<CharacterId, ActiveCharacterState> staged,
+        out CharacterId rejected)
+    {
+        ArgumentNullException.ThrowIfNull(staged);
+        lock (sync)
+        {
+            foreach (var (characterId, character) in staged)
+            {
+                if (character.Identity.CharacterId != characterId
+                    || !byCharacter.TryGetValue(characterId, out var accountId)
+                    || !activeByAccount.TryGetValue(accountId, out var active)
+                    || active.Character.Identity.CharacterId != characterId)
+                {
+                    rejected = characterId;
+                    return false;
+                }
+            }
+
+            foreach (var (characterId, character) in staged)
+            {
+                var accountId = byCharacter[characterId];
+                activeByAccount[accountId] = activeByAccount[accountId] with { Character = character };
+            }
+
+            rejected = default;
+            return true;
+        }
+    }
+
+    private void SetActive(AccountId accountId, ActiveCharacterRegistration registration)
+    {
+        if (activeByAccount.TryGetValue(accountId, out var previous))
+            byCharacter.Remove(previous.Character.Identity.CharacterId);
+        activeByAccount[accountId] = registration;
+        byCharacter[registration.Character.Identity.CharacterId] = accountId;
+    }
+
+    private bool RemoveActive(AccountId accountId)
+    {
+        if (!activeByAccount.Remove(accountId, out var removed))
+            return false;
+        byCharacter.Remove(removed.Character.Identity.CharacterId);
+        return true;
     }
 
     private OnlineUser GetRequiredAggregate(OnlineUserId onlineUserId) =>
