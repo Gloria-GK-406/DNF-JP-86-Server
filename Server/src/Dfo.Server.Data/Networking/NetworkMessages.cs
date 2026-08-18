@@ -37,6 +37,12 @@ public enum ClientMessageType
     // See Game/DungeonEntry.
     GameSelectDungeon = 0x0001_0010,
 
+    // The gate at the end of the loading bar. See Game/FinishLoading.
+    GameFinishLoading = 0x0001_0025,
+
+    // Walking through a door into an adjoining room. See Game/DungeonEntry.
+    GameMoveMap = 0x0001_002D,
+
     // Where the character is standing, and where it walks to. See Game/TownProjection.
     GameSetUserPosition = 0x0001_0023,
     GameSetUserArea = 0x0001_0024,
@@ -78,6 +84,11 @@ public enum ServerMessageType
     GameDungeonInfo = 0x0000_001C,
     GameStartMap = 0x0000_001D,
     GameSupportTag = 0x0000_019F,
+
+    // The acknowledgement and the notification that release a loading screen.
+    // See Game/FinishLoading.
+    GameFinishLoading = 0x0001_0025,
+    GameLoadingComplete = 0x0000_001E,
 }
 
 public interface IClientNetworkMessage

@@ -50,5 +50,16 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+本帧尚无 recv 侧抓包，但**已由服务端实际发出并生效**（实机 2026-08-18）。
+
+## 它是加载条的闸门
+
+客户端发 [`0x0025 FINISH_LOADING`](../client-to-server/0x0025.md) 后，服务端回一个 CMD ACK
+再推本帧，加载条才走满。缺本帧的实机表现是：进度条停在最后一小格，数秒后客户端报连接失败。
+
+body 为 **5 字节全零**（上游 `Network/Builders/Town/FinishLoadingBuilder.cs`：
+`WriteInt32(0x00000000)` + `WriteByte(0x00)`）。两个字段都恒为常量，无可变部分。
+
+## 服务端实现映射
+
+`Server/src/Dfo.Server.Protocol/Game/FinishLoading/FinishLoadingSlice.cs`。已实现并实机验证。

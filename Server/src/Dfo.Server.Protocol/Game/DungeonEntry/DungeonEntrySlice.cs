@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
@@ -41,7 +42,12 @@ internal sealed record DungeonInfoNotification(DungeonLayout Layout, byte Diffic
 /// <summary>
 /// NOTI 0x001D <c>START_MAP</c>: the frame that actually puts the character into a room.
 /// </summary>
-internal sealed record StartMapNotification(DungeonLayout Layout) : IGameNotiMessage
+/// <param name="FirstEntry">
+/// False when the character has stood in this room before. The reference builder has a separate
+/// revisit path that differs in this flag alone for an ordinary room.
+/// </param>
+internal sealed record StartMapNotification(
+    DungeonRunState Run, bool FirstEntry) : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameStartMap;
 }
@@ -110,19 +116,25 @@ internal static class DungeonEntryPayloadCodec
     ///
     /// The seed is the layout's, not a fresh one: the client draws on the same value.
     /// </remarks>
-    public static byte[] EncodeStartMap(DungeonLayout layout)
+    public static byte[] EncodeStartMap(DungeonRunState run, bool firstEntry)
     {
+        var layout = run.Layout;
         using var stream = new MemoryStream(21);
         using var writer = new BinaryWriter(stream);
-        writer.Write(layout.StartCell.X);
-        writer.Write(layout.StartCell.Y);
+        writer.Write(run.CurrentCell.X);
+        writer.Write(run.CurrentCell.Y);
         writer.Write((byte)0); // not a layered room
         writer.Write(layout.Seed);
         writer.Write((byte)0); // abyss mode
         writer.Write((byte)0); // unnamed byte the builder writes after it
         writer.Write(1); // room state value, the builder's default
-        writer.Write((byte)1); // first entry rather than a revisit
-        writer.Write(checked((ushort)layout.MazeIndex));
+        writer.Write(firstEntry ? (byte)1 : (byte)0);
+        // The room's map identifier, not the maze index. The reference type calls this field
+        // Index on a per-room record, which reads like a maze number and is not one: its blood
+        // altar path passes the resolved map id into the same slot, and its abyss logging prints
+        // it beside another map id. Sending the maze index here told the client to load map 0,
+        // which it answered with a black screen and a crash a few seconds later (2026-08-18).
+        writer.Write(checked((ushort)run.CurrentRoomMapId));
         writer.Write((byte)0); // monsters
         writer.Write((byte)0); // pre-generated drops
         writer.Write((byte)0); // abyss fog
@@ -150,7 +162,7 @@ internal sealed class StartMapEncoder : GameNotiMessageEncoder<StartMapNotificat
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(StartMapNotification message) =>
         OnePayload(
             GameProtocol.StartMapNotificationType,
-            DungeonEntryPayloadCodec.EncodeStartMap(message.Layout));
+            DungeonEntryPayloadCodec.EncodeStartMap(message.Run, message.FirstEntry));
 }
 
 internal sealed class SupportTagEncoder : GameNotiMessageEncoder<SupportTagNotification>
@@ -201,6 +213,7 @@ public sealed class SelectDungeonHandler(
     ISelectedSessionDirectory selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IDungeonLayoutRuleService layouts,
+    IDungeonRunDomainService runs,
     IGameMessageSender sender,
     ILogger<SelectDungeonHandler> logger) : ClientMessageHandler<SelectDungeonRequest>
 {
@@ -246,6 +259,10 @@ public sealed class SelectDungeonHandler(
             return;
         }
 
+        // Remembered from here on. The layout was chosen from quest state as it stood at this
+        // moment, so it cannot be recomputed later and still describe the run the client is in.
+        var run = runs.Begin(session.CharacterId, layout);
+
         logger.LogInformation(
             "Select dungeon {ConnectionId} user={WireUserId}: dungeon={DungeonId} difficulty={Difficulty} "
                 + "maze={MazeIndex} start=({StartX},{StartY}) room={RoomId} boss=({BossX},{BossY}) seed={Seed}",
@@ -268,10 +285,136 @@ public sealed class SelectDungeonHandler(
             new GameExplicitMessageDelivery(
                 [
                     new DungeonInfoNotification(layout, message.Difficulty),
-                    new StartMapNotification(layout),
+                    new StartMapNotification(run, FirstEntry: true),
                     new SupportTagNotification(),
                 ],
                 []),
+            cancellationToken).ConfigureAwait(false);
+    }
+}
+
+/// <summary>
+/// CMD 0x002D <c>MOVE_MAP</c>: the character walking through a door into an adjoining room.
+/// </summary>
+/// <remarks>
+/// Observed live on 2026-08-18: with the room entered and its doors shown as usable, walking into
+/// one produced this frame and, because nothing answered it, no movement at all -- no indicator
+/// over the character, no transition, and no disconnection either. A door that does nothing is
+/// what an unanswered MOVE_MAP looks like.
+///
+/// The captured body was a hundred bytes, of which the first ten are evidenced and the rest sit
+/// behind three runtime-counted repeat groups the static census could not expand. The evidenced
+/// ten are enough: the target cell, and where in it the character lands.
+/// </remarks>
+public sealed record MoveMapRequest(
+    GameMessageMetadata Metadata,
+    byte NextX,
+    byte NextY,
+    uint PathPositionX,
+    uint PathPositionY) : IClientNetworkMessage
+{
+    public ClientMessageType MessageType => ClientMessageType.GameMoveMap;
+}
+
+internal sealed class MoveMapDecoder : IGameMessageDecoder
+{
+    /// <summary>Ten bytes are read of the hundred observed; the rest have no evidenced meaning.</summary>
+    public const int MinimumBodyLength = 10;
+
+    public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
+    {
+        if (body.Length < MinimumBodyLength)
+        {
+            throw new InvalidDataException(
+                $"MOVE_MAP requires at least ten body bytes; received '{body.Length}'.");
+        }
+
+        return new MoveMapRequest(
+            metadata,
+            body[0],
+            body[1],
+            BinaryPrimitives.ReadUInt32LittleEndian(body[2..]),
+            BinaryPrimitives.ReadUInt32LittleEndian(body[6..]));
+    }
+}
+
+/// <summary>
+/// Moves the run into the requested room and describes it.
+/// </summary>
+/// <remarks>
+/// The answer is another START_MAP. The reference server resolves the target against the maze and
+/// then calls the same send path it used for entry, so a room change and an entry are the same
+/// frame differing in one flag.
+///
+/// A cell the maze declares no room for is refused in silence, as the reference server refuses it.
+/// The client only offers doors it can see, so a request for a cell we have no room for means the
+/// two sides disagree about the maze; answering with some other room would bury that disagreement
+/// somewhere harder to find.
+/// </remarks>
+public sealed class MoveMapHandler(
+    ISelectedSessionDirectory selectedSessions,
+    IDungeonRunDomainService runs,
+    IGameMessageSender sender,
+    ILogger<MoveMapHandler> logger) : ClientMessageHandler<MoveMapRequest>
+{
+    protected override async ValueTask HandleMessageAsync(
+        NetworkDispatchContext context,
+        MoveMapRequest message,
+        CancellationToken cancellationToken)
+    {
+        var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        if (session is null)
+        {
+            logger.LogWarning(
+                "Move map {ConnectionId}: no published session, ignoring ({X},{Y})",
+                context.Connection.ConnectionId, message.NextX, message.NextY);
+            return;
+        }
+
+        var current = runs.Find(session.CharacterId);
+        if (current is null)
+        {
+            logger.LogWarning(
+                "Move map {ConnectionId}: no run in progress, ignoring ({X},{Y})",
+                context.Connection.ConnectionId, message.NextX, message.NextY);
+            return;
+        }
+
+        var target = new MazeCell(message.NextX, message.NextY);
+        var firstEntry = !current.VisitedCells.Contains(target);
+        var moved = runs.TryMove(session.CharacterId, target);
+        if (moved is null)
+        {
+            logger.LogWarning(
+                "Move map {ConnectionId}: maze {MazeIndex} of dungeon {DungeonId} declares no room "
+                    + "at ({X},{Y}), staying in ({FromX},{FromY})",
+                context.Connection.ConnectionId,
+                current.Layout.MazeIndex,
+                current.Layout.DungeonId,
+                message.NextX,
+                message.NextY,
+                current.CurrentCell.X,
+                current.CurrentCell.Y);
+            return;
+        }
+
+        logger.LogInformation(
+            "Move map {ConnectionId} user={WireUserId}: ({FromX},{FromY}) -> ({ToX},{ToY}) "
+                + "room={RoomId} first={FirstEntry} path=({PathX},{PathY})",
+            context.Connection.ConnectionId,
+            session.WireUserId,
+            current.CurrentCell.X,
+            current.CurrentCell.Y,
+            moved.CurrentCell.X,
+            moved.CurrentCell.Y,
+            moved.CurrentRoomMapId,
+            firstEntry,
+            message.PathPositionX,
+            message.PathPositionY);
+
+        await sender.SendExplicitAsync(
+            context.Connection.ConnectionId,
+            new GameExplicitMessageDelivery([new StartMapNotification(moved, firstEntry)], []),
             cancellationToken).ConfigureAwait(false);
     }
 }

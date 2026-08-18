@@ -70,6 +70,12 @@ internal static class GameProtocol
 
     public const ushort SupportTagNotificationType = 0x019F;
 
+    public const ushort FinishLoadingType = 0x0025;
+
+    public const ushort MoveMapType = 0x002D;
+
+    public const ushort LoadingCompleteNotificationType = 0x001E;
+
     public const ushort AccountCharacterRosterNotificationType = 0x0002;
 
     public const ushort HonorLevelNotificationType = 0x0289;

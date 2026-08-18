@@ -23,6 +23,7 @@ using Dfo.Server.Protocol.Game.ContentsPlayInfo;
 using Dfo.Server.Protocol.Game.CreateCharacter;
 using Dfo.Server.Protocol.Game.DeleteCharacter;
 using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.FinishLoading;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.Exit;
 using Dfo.Server.Protocol.Game.HiddenCharacterInfo;
@@ -162,6 +163,8 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameRuntimeTingStatistic);
         services.RegisterMessageHandler<EnterSelectDungeonHandler>(ClientMessageType.GameEnterSelectDungeon);
         services.RegisterMessageHandler<SelectDungeonHandler>(ClientMessageType.GameSelectDungeon);
+        services.RegisterMessageHandler<FinishLoadingHandler>(ClientMessageType.GameFinishLoading);
+        services.RegisterMessageHandler<MoveMapHandler>(ClientMessageType.GameMoveMap);
 
         // Position and area: the only inputs that move a published character, and so the only
         // way the town its next entry reports can change.
@@ -236,6 +239,10 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.EnterSelectDungeonType, ClientMessageType.GameEnterSelectDungeon);
         services.AddGameCmdMessageDecoder<SelectDungeonDecoder>(
             GameProtocol.SelectDungeonType, ClientMessageType.GameSelectDungeon);
+        services.AddGameCmdMessageDecoder<FinishLoadingDecoder>(
+            GameProtocol.FinishLoadingType, ClientMessageType.GameFinishLoading);
+        services.AddGameCmdMessageDecoder<MoveMapDecoder>(
+            GameProtocol.MoveMapType, ClientMessageType.GameMoveMap);
         services.AddGameCmdMessageDecoder<HiddenCharacterInfoMessageDecoder>(
             GameProtocol.HiddenCharacterInfoType, ClientMessageType.GameHiddenCharacterInfo);
         services.AddChannelMessageDecoder<ChannelScriptVersionMessageDecoder>(
@@ -291,6 +298,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<DungeonInfoNotification, DungeonInfoEncoder>();
         services.AddGameNotiMessageEncoder<StartMapNotification, StartMapEncoder>();
         services.AddGameNotiMessageEncoder<SupportTagNotification, SupportTagEncoder>();
+        services.AddGameCmdMessageEncoder<FinishLoadingResponse, FinishLoadingResponseEncoder>();
+        services.AddGameNotiMessageEncoder<LoadingCompleteNotification, LoadingCompleteEncoder>();
         services.AddGameCmdMessageEncoder<HiddenCharacterInfoResponse, HiddenCharacterInfoResponseEncoder>();
         services.AddGameCmdMessageEncoder<RosterFollowUpResponse, RosterFollowUpResponseEncoder>();
     }

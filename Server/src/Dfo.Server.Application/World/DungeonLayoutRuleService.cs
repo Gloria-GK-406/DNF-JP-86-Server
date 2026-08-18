@@ -53,7 +53,8 @@ internal sealed class DungeonLayoutRuleService(IDungeonDefinitionSource dungeons
             startCell,
             bossCell,
             startRoomMapId,
-            seed);
+            seed,
+            maze.Rooms);
     }
 
     /// <remarks>

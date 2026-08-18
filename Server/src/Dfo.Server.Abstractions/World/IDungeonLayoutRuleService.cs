@@ -37,6 +37,12 @@ public sealed record DungeonEntryFacts(
 /// the client was told about.
 /// </para>
 /// </remarks>
+/// <param name="Rooms">
+/// Every cell that carries a room, and the map each resolves to. Carried here rather than looked
+/// up again when a character walks between rooms: the maze was chosen from quest state as it stood
+/// at entry, and reading the archive again later would answer for whichever maze the rule would
+/// pick now.
+/// </param>
 public sealed record DungeonLayout(
     int DungeonId,
     int MazeIndex,
@@ -45,7 +51,8 @@ public sealed record DungeonLayout(
     MazeCell StartCell,
     MazeCell BossCell,
     int StartRoomMapId,
-    int Seed);
+    int Seed,
+    IReadOnlyDictionary<MazeCell, int> Rooms);
 
 /// <summary>Turns dungeon content, entry facts and an explicit seed into a run's maze.</summary>
 public interface IDungeonLayoutRuleService

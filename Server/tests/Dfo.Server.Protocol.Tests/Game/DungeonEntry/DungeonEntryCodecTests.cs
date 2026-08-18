@@ -27,7 +27,20 @@ public sealed class DungeonEntryCodecTests
         StartCell: new MazeCell(0, 1),
         BossCell: new MazeCell(3, 0),
         StartRoomMapId: 61000,
-        Seed: 0x0BADF00D);
+        Seed: 0x0BADF00D,
+        Rooms: new Dictionary<MazeCell, int>
+        {
+            [new MazeCell(0, 1)] = 61000,
+            [new MazeCell(1, 1)] = 61001,
+            [new MazeCell(3, 0)] = 61006,
+        });
+
+    /// <summary>The run as it stands on entry: in the start room, having seen only it.</summary>
+    private static readonly DungeonRunState AtStart = new(
+        Tutorial,
+        Tutorial.StartCell,
+        Tutorial.StartRoomMapId,
+        new HashSet<MazeCell> { Tutorial.StartCell });
 
     /// <remarks>
     /// The captured body, byte for byte: <c>102700000000000000</c>, identical across all eight
@@ -93,14 +106,27 @@ public sealed class DungeonEntryCodecTests
     [Fact]
     public void Start_map_opens_the_run_in_the_layouts_start_cell()
     {
-        var body = DungeonEntryPayloadCodec.EncodeStartMap(Tutorial);
+        var body = DungeonEntryPayloadCodec.EncodeStartMap(AtStart, firstEntry: true);
 
         Assert.Equal(21, body.Length);
         Assert.Equal(0, body[0]);
         Assert.Equal(1, body[1]);
         Assert.Equal(0, body[2]);
         Assert.Equal(0, body[7]);
-        Assert.Equal(0, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(14)));
+    }
+
+    /// <remarks>
+    /// The map, not the maze. The reference server names this field Index on a per-room record,
+    /// which reads like a maze number; it is the room's map identifier, and sending the maze
+    /// index instead made the client load map 0 -- a black screen, then a crash (2026-08-18).
+    /// </remarks>
+    [Fact]
+    public void Start_map_names_the_room_to_load_and_not_the_maze_it_belongs_to()
+    {
+        var body = DungeonEntryPayloadCodec.EncodeStartMap(AtStart, firstEntry: true);
+
+        Assert.Equal(61000, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(14)));
+        Assert.NotEqual(Tutorial.MazeIndex, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(14)));
     }
 
     /// <remarks>
@@ -111,7 +137,7 @@ public sealed class DungeonEntryCodecTests
     [Fact]
     public void Start_map_carries_the_layouts_own_seed()
     {
-        var body = DungeonEntryPayloadCodec.EncodeStartMap(Tutorial);
+        var body = DungeonEntryPayloadCodec.EncodeStartMap(AtStart, firstEntry: true);
 
         Assert.Equal(0x0BADF00D, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(3)));
     }
@@ -123,7 +149,7 @@ public sealed class DungeonEntryCodecTests
     [Fact]
     public void Start_map_marks_a_first_entry_rather_than_a_revisit()
     {
-        var body = DungeonEntryPayloadCodec.EncodeStartMap(Tutorial);
+        var body = DungeonEntryPayloadCodec.EncodeStartMap(AtStart, firstEntry: true);
 
         Assert.Equal(1, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(9)));
         Assert.Equal(1, body[13]);
@@ -137,12 +163,65 @@ public sealed class DungeonEntryCodecTests
     [Fact]
     public void Start_map_declares_an_empty_room()
     {
-        var body = DungeonEntryPayloadCodec.EncodeStartMap(Tutorial);
+        var body = DungeonEntryPayloadCodec.EncodeStartMap(AtStart, firstEntry: true);
 
         Assert.Equal(0, body[16]);
         Assert.Equal(0, body[17]);
         Assert.Equal(0, body[18]);
         Assert.Equal(0, body[19]);
+    }
+
+    /// <remarks>
+    /// A room change is the same frame as an entry, differing in this flag alone. The reference
+    /// server has a separate revisit builder whose only difference for an ordinary room is that it
+    /// writes zero here.
+    /// </remarks>
+    [Fact]
+    public void A_revisited_room_is_marked_as_one()
+    {
+        var revisit = AtStart with
+        {
+            CurrentCell = new MazeCell(1, 1),
+            CurrentRoomMapId = 61001,
+        };
+
+        var body = DungeonEntryPayloadCodec.EncodeStartMap(revisit, firstEntry: false);
+
+        Assert.Equal(0, body[13]);
+        Assert.Equal(1, body[0]);
+        Assert.Equal(1, body[1]);
+        Assert.Equal(61001, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(14)));
+    }
+
+    /// <remarks>
+    /// The captured body, first ten bytes: the client asked for cell (1,1), which the tutorial's
+    /// maze declares as room 61001 -- the room to the right of the one it was standing in. The
+    /// request and the archive agree, which is what makes these two offsets more than transcription.
+    /// </remarks>
+    [Fact]
+    public void The_captured_move_names_the_cell_the_maze_puts_next_door()
+    {
+        byte[] body =
+        [
+            0x01, 0x01, 0xC3, 0x02, 0x00, 0x00, 0x14, 0x01, 0x00, 0x00,
+            0x00, 0x11, 0x40, 0x0F, 0x00, 0x00,
+        ];
+
+        var request = (MoveMapRequest)new MoveMapDecoder()
+            .Decode(GameMessageMetadata.Empty, body)!;
+
+        Assert.Equal(1, request.NextX);
+        Assert.Equal(1, request.NextY);
+        Assert.Equal(707u, request.PathPositionX);
+        Assert.Equal(276u, request.PathPositionY);
+        Assert.Equal(61001, Tutorial.Rooms[new MazeCell(request.NextX, request.NextY)]);
+    }
+
+    [Fact]
+    public void A_move_body_shorter_than_its_evidenced_fields_is_refused()
+    {
+        Assert.Throws<InvalidDataException>(() =>
+            new MoveMapDecoder().Decode(GameMessageMetadata.Empty, new byte[9]));
     }
 
     [Fact]

@@ -53,5 +53,40 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+本帧尚无 recv 侧抓包，但**已由服务端实际发出并被客户端接受**（实机 2026-08-18），
+与 [`0x001D`](NOTI-0x001D.md)、[`0x019F`](NOTI-0x019F.md) 三帧一同作为
+[`0x0010`](../client-to-server/0x0010.md) 的应答。
+
+## 机器区之外：偏移 6 起还有这些
+
+机器区的"已读出字段合计 = 6"是静态分析停下的位置，不是体长。上游
+`DungeonNotificationBuilder.BuildDungeonInfo` 在 bossY 之后继续写：
+
+| Offset | Size | Enc | 含义 |
+|---:|---:|---|---|
+| 6 | 1 | `u8` | 深渊房格 X；**非深渊写 `0xFF`** |
+| 7 | 1 | `u8` | 深渊房格 Y；同上 |
+| 8 | 1 | `u8` | dungeonMode（调用点恒传 0） |
+| 9 | 1 | `u8` | 附加坐标对**分组数** g |
+| 10 | 变长 | | 每组：`u8 本组对数` + 每对 `u8` `u8`（小地图图标，普通副本通常为空） |
+| — | 2 | `u16` | 深渊是否开启 |
+| — | 2 | `u16` | value1 |
+| — | 1 | `u8` | value2（深渊时 `0x0B`） |
+| — | 1 | `u8` | flagA（有图标分组时 1） |
+| — | 4 | `i32` | packetSeed，builder 默认 `0xFFFFFFFF` |
+| — | 3 | `u8`×3 | paramA / paramB / paramC |
+| — | 3 | `u8`×3 | tailFlag0 / 1 / 2 |
+| — | 4 | `i32` | tailReserved |
+
+无图标分组时体长为 **30 字节**。
+
+`0xFF` 而不是 0 是有意的：`(0,0)` 是普通迷宫可以占用的格子，用它表示"没有深渊房"会与真实坐标混淆。
+
+偏移 3 的 `modeFlag` 是**迷宫序号**（`(byte)selection.Index`），与 [`0x001D`](NOTI-0x001D.md)
+偏移 14 的**房间地图 id** 是两回事，别互换——后者写错会崩。
+
+## 服务端实现映射
+
+`Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntrySlice.cs`。
+无实机对照的字段一律按 builder 的**默认值**写出，而不是写 0：
+上游选定的默认值是证据，我们自选的 0 不是。
