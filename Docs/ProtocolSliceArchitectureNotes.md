@@ -165,7 +165,7 @@ codec 的常量。这是纯化简，无行为变化。
 **位置**：`Dfo.Server.Protocol/Game/SelectCharacter/SelectCharacterHandler.cs`。
 
 **为什么这样设计**：`01/0004` 接受之后需要按既有顺序发送多组可复用状态消息，
-而每日补货、发布、PVP、任务、宠物和重连又各自属于不同领域阶段。handler 因而在
+而每日补货、发布、PVP、任务和宠物又各自属于不同领域阶段。handler 因而在
 一个 transition-gate lease 内顺序派发多个顶层命令、检查 session 仍为 current，
 并协调具体协议消息的发送和失败补偿；命令 handler 仍禁止嵌套 dispatch，也不持有
 sender、closer 或 socket。连接关闭刻意在 lease 释放后执行，避免 disconnect callback

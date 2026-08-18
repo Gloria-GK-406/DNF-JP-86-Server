@@ -26,7 +26,7 @@ into typed application-facing facts. G6 now represents the reviewed 58-position 
 X01–X18 state synchronization as concrete protocol messages without repository/PVF access.
 G7 uses a Protocol handler to sequentially dispatch cohesive top-level commands and coordinate
 session replacement, dungeon-effect recovery, dirty inventory lease persistence/reload,
-position policy, daily refill, publication, quest/pet transitions, PvP/rejoin flows,
+position policy, daily refill, publication, quest/pet transitions, PvP flows,
 cleanup, rollback and connection close ordering.
 
 All protocol descriptions remain honest reverse engineering from legacy code. Passing

@@ -184,65 +184,6 @@ public interface IPvpLobbyRegistry
     IReadOnlyList<PvpRoom> OfferedOn(int listenerPort);
 }
 
-/// <summary>
-/// A dungeon run a character was detached from and may return to.
-/// </summary>
-/// <param name="IsDetached">
-/// Whether the run is currently running without them. A run they are still attached to is
-/// not something to return to.
-/// </param>
-/// <param name="IdleExpiresAt">
-/// When the chance to return lapses through inactivity. The legacy registry pushes this
-/// forward each time the run is touched.
-/// </param>
-/// <param name="HardExpiresAt">
-/// When the chance to return lapses outright, however active the run has been. The legacy
-/// registry keeps both and treats whichever comes first as the deadline; carrying only the
-/// idle one would let a run that has long outlived its hard limit still read as available.
-/// </param>
-public sealed record DungeonAttachment(
-    CharacterId CharacterId,
-    AccountId AccountId,
-    int PartyId,
-    IReadOnlyList<ushort> ParticipantUserIds,
-    bool IsDetached,
-    DateTimeOffset IdleExpiresAt,
-    DateTimeOffset HardExpiresAt,
-    SelectedSessionIdentity? Session = null)
-{
-    /// <summary>The moment the run stops being returnable, whichever limit arrives first.</summary>
-    public DateTimeOffset ExpiresAt => IdleExpiresAt <= HardExpiresAt ? IdleExpiresAt : HardExpiresAt;
-}
-
-/// <summary>
-/// The server's record of interrupted dungeon runs.
-/// </summary>
-/// <remarks>
-/// Reading it changes nothing. The legacy lookup renews an idle deadline and can retire a
-/// lapsed record as a side effect of being asked; those are lifecycle transitions and do
-/// not belong to a question.
-/// </remarks>
-public interface IDungeonRejoinRegistry
-{
-    /// <summary>Records a run, replacing any earlier record for the same character.</summary>
-    void Attach(DungeonAttachment attachment);
-
-    /// <summary>Removes a character's record. Returns false when none was held.</summary>
-    bool Release(CharacterId characterId);
-
-    bool ReleaseExact(SelectedSessionIdentity session);
-
-    /// <summary>Ends/detaches only the dungeon runtime owned by this exact selected session.</summary>
-    bool EndSessionExact(SelectedSessionIdentity session);
-
-    bool ReleaseAttachmentExact(DungeonAttachment attachment);
-
-    bool TryReplaceExact(DungeonAttachment expected, DungeonAttachment replacement);
-
-    /// <summary>The record held for a character, or null when none is.</summary>
-    DungeonAttachment? Find(CharacterId characterId);
-}
-
 /// <summary>What the session-adjacent views are being asked about.</summary>
 public sealed record SessionAdjacentSubject(
     CharacterId CharacterId,

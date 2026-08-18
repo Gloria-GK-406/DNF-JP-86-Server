@@ -21,7 +21,7 @@ performed, and nothing below should be read as capture-confirmed.
 | X-18 | Who else is in the arrival area on the same listener | `SessionAdjacentEntryState.TownPresence` |
 | X-17 | Whether the entering character owns an open expert store | `SessionAdjacentEntryState.ExpertStore` |
 | X-09, X-10 | The duelling lobby's ready characters and offered rooms, or nothing when duelling does not apply | `SessionAdjacentEntryState.PvpLobby` |
-| X-15, X-16 | The interrupted run the character may return to, and why they may not when they cannot | `SessionAdjacentEntryState.DungeonRejoin` |
+| X-15, X-16 | The interrupted run the character may return to | **Not modelled.** This game has no rejoin, so the transcribed machinery was removed on 2026-08-18. See `Docs/领域结构重构设计.md` section 7. |
 
 ## Not modelled: protocol constants
 

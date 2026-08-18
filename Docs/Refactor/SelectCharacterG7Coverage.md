@@ -21,8 +21,8 @@ and connection IDs.
 | X-12 | Changed item-seeking quest trigger | PVF seeking operands, current inventory and owner-validated SQLite CAS | Required owner; absent when no committed change | No fabricated update; exact session compensation on send failure |
 | X-13 | Equipped slot-24 creature transitions from dead to alive | Owner-validated SQLite mutation sets state to exactly 1 | Required owner revival identity; absent for already-alive/missing pet | Exact session compensation on required delivery failure |
 | X-14 | Same committed revival | Domain state retains creature key and state | Codec emits immediately after X-13 and cannot emit it independently | Same required batch/compensation as X-13 |
-| X-15 | Valid detached dungeon candidate | Exact candidate validation/CAS reattachment | Required owner offer; invalid/expired candidate emits nothing | Invalid/expired candidate released exactly; delivery failure compensates session |
-| X-16 | Same accepted candidate | Participant IDs retain registry order | One required participant body per entry, only after X-15 | Same required batch/compensation as X-15 |
+| X-15 | — | **removed 2026-08-18** | Never reachable: no candidate was ever written | This game has no rejoin; see `Docs/领域结构重构设计.md` section 7 |
+| X-16 | — | **removed 2026-08-18** | Unreachable without X-15 | Same |
 | X-17 | Cleanup of a session owning an expert store | Capture area targets before exact close | Owner is required only for previous-character cleanup; peers are explicit best effort | All cleanup mutations run even when delivery/cancellation fails |
 | X-18 | Same captured town-presence cleanup plan | Exact presence withdrawal after target resolution | One leave body to each eligible peer; owner is not a town peer | Stale cleanup cannot withdraw replacement identity |
 
@@ -38,7 +38,7 @@ and connection IDs.
 | L-06 | Preparation derives current skill protocol facts from PVF before the required static stream; free-duel applicability remains session-owned. |
 | L-07 | Static and X-02–X-07 are required before publication; PvP direct precedes ready/peer publication; X-11 follows. |
 | L-08 | Changed-only quest synchronization occurs after X-11 and emits X-12 only for committed changes. |
-| L-09 | Pet transition precedes rejoin planning; X-13/X-14 and X-15/X-16 preserve codec-owned adjacency/order. |
+| L-09 | Pet transition is the last staged phase since rejoin planning was removed; X-13/X-14 preserve codec-owned adjacency/order. |
 | L-10 | Any exception after registration attempts every exact cleanup action and closes only the failed connection; admission refusal stops after required X-08. |
 
 ## Identity, ordering and rollback boundary

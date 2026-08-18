@@ -17,7 +17,7 @@ Command/CommandHandler 内部：它们不得持有 `ICommandBus` 并递归或间
 
 | 层 | 负责 | 不负责 |
 |---|---|---|
-| Data / Application | 角色、账号、背包、任务、宠物、PVP、重连和清理事实；事务与状态变更；显式目标事实 | wire command/type、frame、encoder、socket、sender |
+| Data / Application | 角色、账号、背包、任务、宠物、PVP 和清理事实；事务与状态变更；显式目标事实 | wire command/type、frame、encoder、socket、sender |
 | Protocol | 把领域事实构造成具体消息；编码 body/frame；保持兼容顺序；协调命令和发送 | 数据库存取、领域事务、连接实现 |
 | Networking | 按消息 CLR 类型查 encoder；校验 endpoint；向一个连接发送；执行通用显式收件人投递 | SelectCharacter、PVP、任务、宠物等协议/领域语义 |
 
@@ -40,8 +40,9 @@ Command/CommandHandler 内部：它们不得持有 `ICommandBus` 并递归或间
    `InventoryDeltaMessage` (`00/000E`)。
 6. `PublishSelectedCharacterSessionCommand`；如适用，发送 PVP lobby 快照，再由
    `MarkSelectedCharacterPvpReadyCommand` 产生显式 peer 目标并尽力发布参与者状态。
-7. 发送尾部装备锁全量状态；随后顺序执行任务同步、宠物复活和地下城重连命令，
-   只在命令返回实际变化/候选时发送对应消息。
+7. 发送尾部装备锁全量状态；随后顺序执行任务同步与宠物复活命令，
+   只在命令返回实际变化时发送对应消息。（地下城重连命令已于 2026-08-18 删除，
+   见 `Docs/领域结构重构设计.md` 第 7 节：本作没有重连。）
 8. 任一步失败后执行 exact-session 补偿；连接关闭在 lifecycle lease 释放后尽力执行，
    避免 close callback 与同一 gate 互等。若 exact cleanup 自身部分失败，异常携带在
    mutation 前已经解析好的通知计划，Protocol 仍尝试投递该计划，同时保留原失败。

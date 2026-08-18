@@ -57,7 +57,6 @@ public interface ISelectCharacterSessionEntryService
     void Publish(SelectedSessionIdentity session, SelectCharacterResult result);
     void ReplaceRuntimeExact(SelectedSessionIdentity session, SelectCharacterResult result);
     void MarkPvpReady(SelectedSessionIdentity session, SelectCharacterResult result);
-    DungeonRejoinSynchronizationState? PlanRejoin(SelectedSessionIdentity session, SelectCharacterResult result);
 }
 
 public sealed record PvpParticipantPublicationTarget(
@@ -72,7 +71,6 @@ internal sealed class SelectedSessionCleanupService(
     ISessionPresenceRegistry presence,
     IExpertStoreRegistry expertStores,
     IPvpLobbyRegistry pvp,
-    IDungeonRejoinRegistry rejoin,
     IEnumerable<ISelectedSessionPositionPersistence> positionPersistence) : ISelectedSessionCleanupService
 {
     public async ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
@@ -120,7 +118,6 @@ internal sealed class SelectedSessionCleanupService(
         Run(() => expertStores.CloseExact(session));
         Run(() => presence.WithdrawExact(session));
         Run(() => pvp.ClearReadyExact(session));
-        Run(() => rejoin.EndSessionExact(session));
         Run(() => inventoryLeases.ReleaseExact(session));
         Run(() => runtimes.RemoveExact(session));
         Run(() => activeCharacters.ClearExact(session));
@@ -150,9 +147,7 @@ internal sealed class SelectCharacterSessionEntryService(
     ISelectedSessionDirectory sessions,
     ISelectedSessionRuntimeDirectory runtimes,
     ISessionPresenceRegistry presence,
-    IPvpLobbyRegistry pvp,
-    IDungeonRejoinRegistry rejoin,
-    TimeProvider timeProvider) : ISelectCharacterSessionEntryService
+    IPvpLobbyRegistry pvp) : ISelectCharacterSessionEntryService
 {
     public PvpLobbySynchronizationState? PlanPvp(
         SelectedSessionIdentity session, SelectCharacterResult result)
@@ -213,25 +208,6 @@ internal sealed class SelectCharacterSessionEntryService(
         if (result.Session.Adjacent.PvpLobby is null)
             throw new InvalidOperationException("PvP readiness does not apply to this session.");
         pvp.MarkReady(new PvpLobbyParticipant(session.CharacterId, session.ListenerPort, session));
-    }
-
-    public DungeonRejoinSynchronizationState? PlanRejoin(
-        SelectedSessionIdentity session, SelectCharacterResult result)
-    {
-        var attachment = rejoin.Find(session.CharacterId);
-        if (attachment is null) return null;
-        if (attachment.AccountId != session.AccountId || !attachment.IsDetached
-            || attachment.PartyId is <= 0 or > ushort.MaxValue
-            || attachment.ExpiresAt <= timeProvider.GetUtcNow())
-        {
-            rejoin.ReleaseAttachmentExact(attachment);
-            return null;
-        }
-        var rebound = attachment with { Session = session };
-        if (!rejoin.TryReplaceExact(attachment, rebound))
-            return null;
-        return new DungeonRejoinSynchronizationState(
-            rebound.PartyId, rebound.ParticipantUserIds);
     }
 
     private static PvpParticipantEntryState CreatePvpParticipant(SelectCharacterResult result)

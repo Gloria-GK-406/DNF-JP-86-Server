@@ -95,20 +95,6 @@ public sealed class SupplementalSynchronizationTests
     }
 
     [Fact]
-    public void SelectCharacterSupplemental_RejoinPreservesParticipantMultiplicityAndOrder()
-    {
-        Assert.Empty(SupplementalSynchronizationCodec.EncodeDungeonRejoin(null));
-
-        var frames = SupplementalSynchronizationCodec.EncodeDungeonRejoin(
-            new DungeonRejoinSynchronizationState(42, [9, 3, 7]));
-
-        Assert.Equal([0x02A7, 0x02A8, 0x02A8, 0x02A8], frames.Select(Type));
-        Assert.Equal([9, 3, 7], frames.Skip(1).Select(frame => BinaryPrimitives.ReadUInt16LittleEndian(Body(frame))));
-        Assert.Equal(42, BinaryPrimitives.ReadInt32LittleEndian(Body(frames[0])));
-        Assert.Equal(9, Body(frames[0]).Length);
-    }
-
-    [Fact]
     public void SelectCharacterSupplemental_TrailingLockIsDistinctFromStaticRow36()
     {
         var result = SelectCharacterPayloadTestData.CreateComplete();

@@ -41,7 +41,7 @@ public sealed class SelectCharacterLifecycleTests
         Assert.Equal(result.Character.Position, fixture.Mutations.PersistedPosition);
         Assert.Equal(
             ["prepare", "position", "static", "pre", "inventory", "active", "publish",
-                "plan-pvp", "x11", "quest", "pet", "rejoin"],
+                "plan-pvp", "x11", "quest", "pet"],
             fixture.Ledger);
         Assert.Equal(
             [
@@ -50,7 +50,6 @@ public sealed class SelectCharacterLifecycleTests
                 typeof(PublishSelectedCharacterSessionCommand),
                 typeof(SynchronizeSelectedCharacterQuestsCommand),
                 typeof(ReviveSelectedCharacterPetCommand),
-                typeof(PlanSelectedCharacterRejoinCommand),
             ],
             fixture.Bus.DispatchedCommands);
         Assert.NotNull(fixture.Directory.Find(fixture.AccountId));
@@ -296,7 +295,7 @@ public sealed class SelectCharacterLifecycleTests
 
         Assert.Equal(
             ["prepare", "position", "static", "pre", "inventory", "active", "publish",
-                "plan-pvp", "pvp", "ready", "target", "x11", "quest", "pet", "rejoin"],
+                "plan-pvp", "pvp", "ready", "target", "x11", "quest", "pet"],
             fixture.Ledger);
         Assert.NotNull(fixture.Directory.Find(fixture.AccountId));
         Assert.Empty(fixture.Closer.Closed);
@@ -508,7 +507,6 @@ public sealed class SelectCharacterLifecycleTests
                     new QuestEntry(ledger, changeQuest), sessionEntry),
                 new ReviveSelectedCharacterPetCommandHandler(
                     new PetEntry(ledger, revivePet), sessionEntry),
-                new PlanSelectedCharacterRejoinCommandHandler(sessionEntry),
                 new CompensateSelectedCharacterSessionCommandHandler(cleanup, directory));
             var handler = new SelectCharacterHandler(
                 users,
@@ -538,7 +536,6 @@ public sealed class SelectCharacterLifecycleTests
         MarkSelectedCharacterPvpReadyCommandHandler markPvpReady,
         SynchronizeSelectedCharacterQuestsCommandHandler quests,
         ReviveSelectedCharacterPetCommandHandler pet,
-        PlanSelectedCharacterRejoinCommandHandler rejoin,
         CompensateSelectedCharacterSessionCommandHandler compensate) : ICommandBus
     {
         public SelectCharacterResult? State { get; private set; }
@@ -564,8 +561,6 @@ public sealed class SelectCharacterLifecycleTests
                     await RunAsync(quests, value, cancellationToken),
                 ReviveSelectedCharacterPetCommand value =>
                     await RunAsync(pet, value, cancellationToken),
-                PlanSelectedCharacterRejoinCommand value =>
-                    await RunAsync(rejoin, value, cancellationToken),
                 CompensateSelectedCharacterSessionCommand value =>
                     await RunAsync(compensate, value, cancellationToken),
                 _ => throw new InvalidOperationException(
@@ -723,13 +718,6 @@ public sealed class SelectCharacterLifecycleTests
 
         public void MarkPvpReady(SelectedSessionIdentity session, SelectCharacterResult result) =>
             ledger.Add("ready");
-
-        public DungeonRejoinSynchronizationState? PlanRejoin(
-            SelectedSessionIdentity session, SelectCharacterResult result)
-        {
-            ledger.Add("rejoin");
-            return null;
-        }
 
         private static PvpParticipantEntryState Participant(SelectCharacterResult result)
         {

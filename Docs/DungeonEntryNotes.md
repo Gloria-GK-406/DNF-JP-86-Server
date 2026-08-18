@@ -107,8 +107,9 @@
 
 **副本运行状态：没有。** 没有 run、没有实例、没有房间、没有迷宫模型。
 `Abstractions/Content/DungeonExperienceContent.cs` 只是一条经验曲线端口，
-`SqliteDungeonPersistentEffectRecoveryRepository` 与 `DungeonRejoinRegistry` 都只服务入场投影，
-不含运行本身。
+`SqliteDungeonPersistentEffectRecoveryRepository` 只服务入场投影，不含运行本身。
+本节初稿还提到过 `DungeonRejoinRegistry`，它已于 2026-08-18 删除——本作没有重连，
+那套从上游转录来的机制从未被填过，副本入场不必去对接它。
 
 已有可复用的：
 

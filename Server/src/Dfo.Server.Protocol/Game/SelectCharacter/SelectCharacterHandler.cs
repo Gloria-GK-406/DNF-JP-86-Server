@@ -22,7 +22,7 @@ namespace Dfo.Server.Protocol.Game.SelectCharacter;
 /// The entry batch ends with NOTI 0x007C <c>ENTER_GAMEWORLD_COMPLETE</c>, a zero-length signal
 /// telling the client that world entry is over. The reference server's entry sequence stops there
 /// -- 53 templates, nothing after. This server kept going: pre-publication state, inventory deltas,
-/// a trailing equipment-lock snapshot, quest, pet and rejoin frames, and an account character
+/// a trailing equipment-lock snapshot, quest and pet frames, and an account character
 /// roster, all delivered after the completion signal. The client dies while reading that tail.
 ///
 /// Off in production while that is under test, on in the tests that assert the delivery contract,
@@ -333,17 +333,6 @@ public sealed class SelectCharacterHandler(
                 cancellationToken).ConfigureAwait(false);
         }
         EnsureCurrent(session);
-
-        var rejoin = await commandBus.SendAsync(
-            new PlanSelectedCharacterRejoinCommand(session, prepared),
-            cancellationToken).ConfigureAwait(false);
-        if (SendsFramesAfterTheCompletionMarker && rejoin.State is { } state)
-        {
-            await sender.SendExplicitAsync(
-                session.ConnectionId,
-                new GameExplicitMessageDelivery([new DungeonRejoinStateMessage(state)], []),
-                cancellationToken).ConfigureAwait(false);
-        }
     }
 
     private static IReadOnlyList<SupplementalSynchronizationMessage> BuildPrePublicationMessages(

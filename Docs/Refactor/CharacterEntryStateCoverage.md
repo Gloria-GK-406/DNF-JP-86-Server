@@ -42,7 +42,7 @@ Published compatibility bytes are source-specific and bounded: versioned `charac
 | X-12, L-08 | active quest source state | quest tables above | synchronization mutation/sending (G7) |
 | X-13-X-14, L-09 pet portion | exact creature runtime source state | creature table above plus G2 equipped pet | revival/session mutation (G7) |
 | X-17 | typed expert persistence state | expert tables above | open-store area/session runtime (G7) |
-| L-02, L-09 dungeon portion | dungeon permission/progress source state | dungeon table above | persistent-effect recovery/rejoin mutation (G7) |
+| L-02, L-09 dungeon portion | dungeon permission/progress source state | dungeon table above | persistent-effect recovery (G7); rejoin mutation removed 2026-08-18 |
 | L-04 character portion | G1 position plus typed appearance | characters/profile sources above | channel policy (G5/G7) |
 | L-06 | learned skill state and optional combo | skill tables above | channel/PvP preparation (G5/G7) |
 | L-07 | no distinct G3 non-inventory state | G1 session and accepted G2 equipment locks already own its inputs | PvP/session projection (G7) |

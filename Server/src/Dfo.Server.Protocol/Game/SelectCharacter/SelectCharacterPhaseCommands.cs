@@ -302,29 +302,6 @@ public sealed class ReviveSelectedCharacterPetCommandHandler(
     }
 }
 
-public sealed record PlanSelectedCharacterRejoinCommand(
-    SelectedSessionIdentity Session,
-    SelectCharacterResult State)
-    : ICommand<PlannedSelectedCharacterRejoin>, IAccountCommand
-{
-    public AccountId AccountId => Session.AccountId;
-}
-
-public sealed record PlannedSelectedCharacterRejoin(
-    DungeonRejoinSynchronizationState? State);
-
-public sealed class PlanSelectedCharacterRejoinCommandHandler(
-    ISelectCharacterSessionEntryService sessionEntry)
-    : ICommandHandler<PlanSelectedCharacterRejoinCommand, PlannedSelectedCharacterRejoin>
-{
-    public ValueTask<PlannedSelectedCharacterRejoin> HandleAsync(
-        CommandExecutionContext context,
-        PlanSelectedCharacterRejoinCommand command,
-        CancellationToken cancellationToken) =>
-        ValueTask.FromResult(new PlannedSelectedCharacterRejoin(
-            sessionEntry.PlanRejoin(command.Session, command.State)));
-}
-
 public sealed record CompensateSelectedCharacterSessionCommand(
     SelectedSessionIdentity Session)
     : ICommand<CompensatedSelectedCharacterSession>, IAccountCommand

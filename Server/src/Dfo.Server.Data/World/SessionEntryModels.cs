@@ -81,50 +81,6 @@ public sealed record PvpLobbyEntryState(
         Array.Empty<PvpRoomState>());
 }
 
-/// <summary>How a character's interrupted dungeon run stands when they come back.</summary>
-public enum DungeonRejoinOutcome
-{
-    /// <summary>Nothing is recorded for this character. The ordinary case.</summary>
-    NoOffer,
-
-    /// <summary>Something is recorded, but it belongs to a different identity.</summary>
-    IdentityMismatch,
-
-    /// <summary>A run is recorded and still attached, so there is nothing to rejoin.</summary>
-    NotDetached,
-
-    /// <summary>A run is recorded but its party cannot be addressed.</summary>
-    PartyUnavailable,
-
-    /// <summary>A run is recorded but the window to return to it has passed.</summary>
-    Expired,
-
-    /// <summary>The character may return to their run.</summary>
-    Available,
-}
-
-/// <summary>
-/// Migration matrix X-15 and X-16: the interrupted run a character may return to.
-/// </summary>
-/// <remarks>
-/// The outcomes are kept apart rather than collapsed into "offer or not". Only
-/// <see cref="DungeonRejoinOutcome.NoOffer"/> is ordinary; the rest describe a record that
-/// exists but cannot be used, and flattening them would hide a registry going wrong behind
-/// a quiet, plausible silence.
-/// </remarks>
-public sealed record DungeonRejoinEntryState(
-    DungeonRejoinOutcome Outcome,
-    int PartyId,
-    IReadOnlyList<ushort> ParticipantUserIds)
-{
-    public static DungeonRejoinEntryState NoOffer { get; } = new(
-        DungeonRejoinOutcome.NoOffer,
-        PartyId: 0,
-        Array.Empty<ushort>());
-
-    public bool IsAvailable => Outcome is DungeonRejoinOutcome.Available;
-}
-
 /// <summary>
 /// The runtime state adjacent to a character's entry: who is nearby and what they are
 /// doing, as of the moment the entry was composed.
@@ -132,15 +88,19 @@ public sealed record DungeonRejoinEntryState(
 /// <param name="PvpLobby">
 /// The duelling lobby, or null when duelling does not apply to this entry.
 /// </param>
+/// <remarks>
+/// Migration matrix X-15 and X-16 -- the interrupted run a character may return to -- were
+/// carried here and are gone again. This game has no rejoin: a character who drops in a
+/// dungeon is in town and weakened on their next login, so there is no run to be offered
+/// back. See Docs/领域结构重构设计.md section 7.
+/// </remarks>
 public sealed record SessionAdjacentEntryState(
     TownPresenceEntryState TownPresence,
     ExpertStoreEntryState ExpertStore,
-    PvpLobbyEntryState? PvpLobby,
-    DungeonRejoinEntryState DungeonRejoin)
+    PvpLobbyEntryState? PvpLobby)
 {
     public static SessionAdjacentEntryState Empty { get; } = new(
         TownPresenceEntryState.Empty,
         ExpertStoreEntryState.None,
-        PvpLobby: null,
-        DungeonRejoinEntryState.NoOffer);
+        PvpLobby: null);
 }

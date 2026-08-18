@@ -83,7 +83,6 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ISelectedSessionRuntimeDirectory, SelectedSessionRuntimeDirectory>();
         services.TryAddSingleton<IExpertStoreRegistry, ExpertStoreRegistry>();
         services.TryAddSingleton<IPvpLobbyRegistry, PvpLobbyRegistry>();
-        services.TryAddSingleton<IDungeonRejoinRegistry, DungeonRejoinRegistry>();
         services.TryAddSingleton<ISessionAdjacentEntryDomainService, SessionAdjacentEntryDomainService>();
         services.TryAddSingleton<ISelectedSessionCleanupService, SelectedSessionCleanupService>();
         services.TryAddSingleton<ISelectCharacterSessionEntryService, SelectCharacterSessionEntryService>();

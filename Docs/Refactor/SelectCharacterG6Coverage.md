@@ -116,15 +116,15 @@ path, is injected at most once immediately after row 11.
 | X-12 | NOTI `00/023F` | committed accepted-quest progress | `AcceptedQuestProgressMessage` | No committed change = no message; loaded empty can encode count zero | Quest command owns mutation and returns state facts |
 | X-13 | NOTI `00/006B` | committed revival user/key/state | `PetRevivalStateMessage` frame 1 | No transition = no message | Pet command validates and commits the transition |
 | X-14 | NOTI `00/0067` | same committed revival state | same message frame 2 immediately after X-13 | Cannot be emitted independently | Fixed batch preserves adjacency |
-| X-15 | NOTI `00/02A7` | accepted party ID and ordered participants | `DungeonRejoinStateMessage` frame 1 | No valid candidate = no message | Rejoin command validates and reattaches the candidate |
-| X-16 | NOTI `00/02A8`, one per participant | participant user IDs in registry order | same message remaining frames | Zero-or-more only after X-15 | Fixed batch preserves multiplicity and order |
+| X-15 | NOTI `00/02A7` | — | **removed 2026-08-18** | Never sent: nothing ever wrote a candidate | This game has no rejoin; see `Docs/领域结构重构设计.md` section 7 |
+| X-16 | NOTI `00/02A8`, one per participant | — | **removed 2026-08-18** | Unreachable without X-15 | Same |
 | X-17 | NOTI `00/021C`, expert-store close | cleanup notice fact | `ExpertStoreClosedMessage` | Open store in captured exact cleanup state | Application returns notice plan; Protocol creates the message |
 | X-18 | NOTI `00/0006`, one per eligible area target | cleanup notice fact and explicit targets | `TownDepartureMessage` | Captured eligible peer set may be empty | Generic delivery performs target-independent best effort |
 
-Supplemental identity result: **18 entries**, X-01 through X-18 exactly once in
-this audit. X-08 ordering, X-09/X-10 direct/publication separation, X-13/X-14
-adjacency, X-15/X-16 participant multiplicity and X-17/X-18 target-independent
-bodies are behavior-tested.
+Supplemental identity result at the time of this audit: **18 entries**, X-01 through
+X-18 exactly once. X-08 ordering, X-09/X-10 direct/publication separation, X-13/X-14
+adjacency and X-17/X-18 target-independent bodies are behavior-tested. X-15/X-16 were
+removed on 2026-08-18 together with their encoder and its test, leaving 16 entries.
 
 ## G6/G7 handoff
 
@@ -143,7 +143,6 @@ G7 remains responsible for the integrated entry workflow, especially:
 - X-09/X-10 selected-generation and PvP target discovery;
 - X-11/X-12 post-publication preparation ordering;
 - X-13/X-14 pet transition and generation checks;
-- X-15/X-16 rejoin registry/offer lifecycle;
 - X-17/X-18 cleanup mutation, explicit recipient discovery and rollback;
 - the legacy lifecycle constraints L-01 through L-10 recorded in the migration
   matrix.

@@ -122,9 +122,6 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<ReviveSelectedCharacterPetCommand, RevivedSelectedCharacterPet, ReviveSelectedCharacterPetCommandHandler>(
             CommandExecutionKind.Workflow,
             accountAccessMode: UserAccessMode.Exclusive);
-        services.AddCommandHandler<PlanSelectedCharacterRejoinCommand, PlannedSelectedCharacterRejoin, PlanSelectedCharacterRejoinCommandHandler>(
-            CommandExecutionKind.Workflow,
-            accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<CompensateSelectedCharacterSessionCommand, CompensatedSelectedCharacterSession, CompensateSelectedCharacterSessionCommandHandler>(
             CommandExecutionKind.Workflow,
             accountAccessMode: UserAccessMode.Exclusive);

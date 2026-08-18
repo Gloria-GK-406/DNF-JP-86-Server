@@ -137,13 +137,6 @@ internal sealed record PetRevivalStateMessage(
         SupplementalSynchronizationCodec.EncodePetRevival(State);
 }
 
-internal sealed record DungeonRejoinStateMessage(
-    DungeonRejoinSynchronizationState State) : SupplementalSynchronizationMessage, IGameNotiMessage
-{
-    internal override IReadOnlyList<GameMessagePayload> EncodePayloads() =>
-        SupplementalSynchronizationCodec.EncodeDungeonRejoin(State);
-}
-
 internal sealed record ExpertStoreClosedMessage(ushort OwnerUserId)
     : SupplementalSynchronizationMessage, IGameNotiMessage
 {
@@ -174,7 +167,6 @@ internal static class SupplementalSynchronizationEncoderRegistration
         AddNoti<TrailingEquipmentLockSnapshotMessage>(services);
         AddNoti<AcceptedQuestProgressMessage>(services);
         AddNoti<PetRevivalStateMessage>(services);
-        AddNoti<DungeonRejoinStateMessage>(services);
         AddNoti<ExpertStoreClosedMessage>(services);
         AddNoti<TownDepartureMessage>(services);
     }

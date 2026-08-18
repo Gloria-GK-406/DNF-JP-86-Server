@@ -13,19 +13,8 @@ namespace Dfo.Server.Application.Sessions;
 internal sealed class SessionAdjacentEntryDomainService(
     ISessionPresenceRegistry presence,
     IExpertStoreRegistry expertStores,
-    IPvpLobbyRegistry lobby,
-    IDungeonRejoinRegistry rejoin,
-    TimeProvider timeProvider) : ISessionAdjacentEntryDomainService
+    IPvpLobbyRegistry lobby) : ISessionAdjacentEntryDomainService
 {
-    /// <summary>
-    /// The largest party identifier the protocol can carry.
-    /// </summary>
-    /// <remarks>
-    /// A recorded run whose party falls outside this cannot be announced, which the legacy
-    /// registry treats as its own failure rather than as an absent offer.
-    /// </remarks>
-    private const int MaximumAddressablePartyId = ushort.MaxValue;
-
     public ValueTask<SessionAdjacentEntryState> LoadAsync(
         SessionAdjacentSubject subject,
         CancellationToken cancellationToken)
@@ -47,66 +36,8 @@ internal sealed class SessionAdjacentEntryDomainService(
         return ValueTask.FromResult(new SessionAdjacentEntryState(
             new TownPresenceEntryState(subject.TownId, subject.AreaId, others),
             new ExpertStoreEntryState(expertStores.HasOpenStore(subject.CharacterId)),
-            ResolveLobby(subject),
-            ResolveRejoin(subject)));
+            ResolveLobby(subject)));
     }
-
-    /// <summary>
-    /// Classifies the interrupted run this character could return to, without touching it.
-    /// </summary>
-    /// <remarks>
-    /// Every branch is a distinct answer. Collapsing the anomalies into "no offer" would
-    /// make a registry holding the wrong owner, an unusable party or a stuck attachment
-    /// indistinguishable from an ordinary character who simply was not in a dungeon.
-    /// <para>
-    /// The legacy owner check also compares a wire participant identifier. This layer has
-    /// no such identifier yet, so ownership is checked on account and character only — a
-    /// subset of the legacy check, recorded rather than silently widened.
-    /// </para>
-    /// <para>
-    /// One classification differs from the legacy steady state, as a consequence of not
-    /// mutating. The legacy lookup retires a lapsed record as it reports it, so it answers
-    /// <see cref="DungeonRejoinOutcome.Expired"/> at most once and everything afterwards
-    /// reads as an unexpected attachment state. This path reports it as expired every time,
-    /// which is the more truthful answer to the question asked; the retirement that would
-    /// change it belongs to the lifecycle.
-    /// </para>
-    /// </remarks>
-    private DungeonRejoinEntryState ResolveRejoin(SessionAdjacentSubject subject)
-    {
-        var attachment = rejoin.Find(subject.CharacterId);
-        if (attachment is null)
-            return DungeonRejoinEntryState.NoOffer;
-
-        if (attachment.AccountId != subject.AccountId)
-            return Refused(DungeonRejoinOutcome.IdentityMismatch);
-
-        if (!attachment.IsDetached)
-            return Refused(DungeonRejoinOutcome.NotDetached);
-
-        if (attachment.PartyId <= 0 || attachment.PartyId > MaximumAddressablePartyId)
-            return Refused(DungeonRejoinOutcome.PartyUnavailable);
-
-        // Noticing that a deadline has passed is a reading. Retiring the record because of
-        // it is a lifecycle transition, and is deliberately left undone here.
-        return attachment.ExpiresAt <= timeProvider.GetUtcNow()
-            ? Refused(DungeonRejoinOutcome.Expired)
-            : new DungeonRejoinEntryState(
-                DungeonRejoinOutcome.Available,
-                attachment.PartyId,
-                attachment.ParticipantUserIds);
-    }
-
-    /// <summary>
-    /// An outcome the character cannot act on, carrying nothing about the run.
-    /// </summary>
-    /// <remarks>
-    /// The legacy registry produces a snapshot only on success. Attaching the party and its
-    /// members to a refusal would hand them out on the very path that says this run is not
-    /// yours — an identity mismatch would answer with the other account's party.
-    /// </remarks>
-    private static DungeonRejoinEntryState Refused(DungeonRejoinOutcome outcome) =>
-        new(outcome, PartyId: 0, Array.Empty<ushort>());
 
     /// <summary>
     /// The lobby as it stands on this listener, or null when duelling does not apply.

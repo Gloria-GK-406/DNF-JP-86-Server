@@ -27,7 +27,6 @@ public sealed class RegistryExistenceTests
         Assert.NotNull(provider.GetRequiredService<ISessionPresenceRegistry>());
         Assert.NotNull(provider.GetRequiredService<IExpertStoreRegistry>());
         Assert.NotNull(provider.GetRequiredService<IPvpLobbyRegistry>());
-        Assert.NotNull(provider.GetRequiredService<IDungeonRejoinRegistry>());
         Assert.NotNull(provider.GetRequiredService<ISessionAdjacentEntryDomainService>());
     }
 
@@ -51,7 +50,6 @@ public sealed class RegistryExistenceTests
         Assert.NotNull(result.PvpLobby);
         Assert.Empty(result.PvpLobby!.Participants);
         Assert.Empty(result.PvpLobby.Rooms);
-        Assert.Equal(DungeonRejoinOutcome.NoOffer, result.DungeonRejoin.Outcome);
     }
 
     /// <remarks>

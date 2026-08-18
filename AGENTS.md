@@ -78,7 +78,7 @@ TCP 字节
 领域按目录组织：`Accounts/`（账号 entry 状态）、`Channel/`（入场策略）、
 `Characters/`（花名册/entry 状态/入场后修正）、`Inventory/`（入场租约、每日补货）、
 `OnlineUsers/`（在线聚合 + 执行门）、`Sessions/`（在场注册表、选中会话目录、
-PvP 大厅、副本重进、专家商店）、`World/`（出生点策略、世界内容）、`Users/`
+PvP 大厅、专家商店）、`World/`（出生点策略、世界内容）、`Users/`
 （`OnlineStateStore` 持三张字典与唯一那把锁，`AccountDomainService`、
 `OnlineUserDomainService`、`ActiveCharacterDomainService` 三个门面各取其一）。
 服务只做业务；`Infrastructure` 提供仓储与 PVF 内容源实现。
@@ -115,7 +115,7 @@ PvP 大厅、副本重进、专家商店）、`World/`（出生点策略、世�
 - 注册（`ProtocolModule.cs`，与协议接线同处）：现有命令
   LoginGameUser = Direct+OnlineUser Exclusive；GetAccountCharacterRoster =
   Direct+Account Shared；SelectCharacter 的 Prepare、DailyRefill、Publish、PvpReady、
-  Quests、Pet、Rejoin、Compensate 八个阶段命令均为 Workflow+Account Exclusive；
+  Quests、Pet、Compensate 七个阶段命令均为 Workflow+Account Exclusive；
   AcknowledgeGameExit 与 Channel 的 ScriptVersion、Script、Info = Direct。
   `ApplicationModule` 只留 `AddCommandDispatching()`：机制在 Application，
   具体命令在切片。
@@ -196,7 +196,7 @@ Networking 只把该字节当作不透明 `Selector` 做拆帧、查表与写帧
 释放 `SelectedSessionTransitionGate`、用只读目录/在线查询检查 session 仍为 current、
 维护待关闭连接集合，并在失败时派发专用补偿命令；实际关闭必须在 gate lease 释放后
 执行。这个例外只授权生命周期**协调**，不授权 handler 直接修改领域状态；所有准备、
-补货、发布、PVP、任务、宠物、重连与补偿动作仍分别由阶段命令处理器完成。
+补货、发布、PVP、任务、宠物与补偿动作仍分别由阶段命令处理器完成。
 
 **禁止命令处理器嵌套 dispatch**：协议 handler 可以为一个入站工作流按顺序派发
 多条命令；但 `ICommandHandler` 内部不得通过 `ICommandBus` 递归或间接派发另一条
@@ -226,7 +226,7 @@ Networking 只把该字节当作不透明 `Selector` 做拆帧、查表与写帧
 
 `SelectCharacterHandler` 是协议工作流协调者：它持有
 `SelectedSessionTransitionGate`，在同一 lease 内顺序派发准备、每日补货、发布、
-PVP、任务、宠物、重连与补偿等顶层命令，并在阶段之间发送具体状态同步消息。
+PVP、任务、宠物与补偿等顶层命令，并在阶段之间发送具体状态同步消息。
 `01/0004` 只表示接受进入，后续消息是可复用的生命周期状态同步。发送前会先验证
 已准备的全部必达接受/前置状态可编码；失败时派发 exact-session 补偿命令，lease
 释放后再尽力关闭连接。每个命令 handler 只执行单一领域动作，禁止持有

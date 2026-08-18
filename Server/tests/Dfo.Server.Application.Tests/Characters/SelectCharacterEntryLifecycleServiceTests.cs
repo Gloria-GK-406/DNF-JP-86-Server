@@ -148,35 +148,6 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         Assert.Null(unchanged);
     }
 
-    [Fact]
-    public async Task Rejoin_ReleasesInvalidAttachmentAndPreservesValidParticipantOrder()
-    {
-        var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(new AccountId(604), 604, 1);
-        var session = Session(result);
-        var rejoin = new DungeonRejoinRegistry();
-        var service = new SelectCharacterSessionEntryService(
-            new SelectedSessionDirectory(), new SelectedSessionRuntimeDirectory(),
-            new SessionPresenceRegistry(), new PvpLobbyRegistry(), rejoin,
-            new FixedTimeProvider(DateTimeOffset.UnixEpoch));
-        rejoin.Attach(new DungeonAttachment(session.CharacterId, session.AccountId, 0, [3, 2, 1], true,
-            DateTimeOffset.MaxValue, DateTimeOffset.MaxValue));
-
-        Assert.Null(service.PlanRejoin(session, result));
-        Assert.Null(rejoin.Find(session.CharacterId));
-
-        rejoin.Attach(new DungeonAttachment(session.CharacterId, session.AccountId, 7, [3, 2, 1], true,
-            DateTimeOffset.MaxValue, DateTimeOffset.MaxValue));
-        var projection = service.PlanRejoin(session, result);
-        Assert.Equal([3, 2, 1], projection!.ParticipantUserIds);
-        Assert.Equal(session, rejoin.Find(session.CharacterId)!.Session);
-
-        var stale = rejoin.Find(session.CharacterId)!;
-        var replacement = stale with { PartyId = 8 };
-        rejoin.Attach(replacement);
-        Assert.False(rejoin.TryReplaceExact(stale, stale with { PartyId = 9 }));
-        Assert.Equal(8, rejoin.Find(session.CharacterId)!.PartyId);
-    }
-
     private static SelectedSessionIdentity Session(SelectCharacterResult result) =>
         SelectedSessionIdentity.Create(result.Account.AccountId, result.Character.Identity.CharacterId,
             new NetworkConnectionId("Game:entry-service"), 1, 10011);
@@ -264,11 +235,6 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         public ValueTask<IReadOnlyList<TrainingQuestAvailability>> GetTrainingAvailabilityAsync(
             CancellationToken cancellationToken) =>
             ValueTask.FromResult<IReadOnlyList<TrainingQuestAvailability>>([]);
-    }
-
-    private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => now;
     }
 
     private sealed class NoopLeasePersistence : IEntryInventoryLeasePersistence

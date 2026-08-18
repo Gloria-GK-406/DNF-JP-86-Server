@@ -157,7 +157,7 @@ public sealed class PvpLobbyEntryTests
     }
 
     private static SessionAdjacentEntryDomainService Service(IPvpLobbyRegistry lobby) =>
-        new(new SessionPresenceRegistry(), Stores, lobby, new DungeonRejoinRegistry(), TimeProvider.System);
+        new(new SessionPresenceRegistry(), Stores, lobby);
 
     private static SessionAdjacentSubject Subject(ChannelEntryIdentity channel) =>
         new(new CharacterId(99), new AccountId(1), channel, TownId: 1, AreaId: 0);

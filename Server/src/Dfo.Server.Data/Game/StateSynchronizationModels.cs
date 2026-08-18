@@ -42,8 +42,6 @@ public sealed record AcceptedQuestSynchronizationState(
 
 public sealed record PetRevivalState(ushort UserId, int CreatureKey, int StateValue);
 
-public sealed record DungeonRejoinSynchronizationState(int PartyId, IReadOnlyList<ushort> ParticipantUserIds);
-
 public sealed record CharacterRosterAppearanceState(
     byte Slot,
     int DisplayItemId,

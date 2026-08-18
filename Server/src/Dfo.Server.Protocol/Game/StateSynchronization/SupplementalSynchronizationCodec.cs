@@ -188,32 +188,6 @@ internal static class SupplementalSynchronizationCodec
         return [Payload(0x006B, revival.ToArray()), Payload(0x0067, state.ToArray())];
     }
 
-    public static IReadOnlyList<GameMessagePayload> EncodeDungeonRejoin(DungeonRejoinSynchronizationState? value)
-    {
-        if (value is null)
-            return [];
-        var participants = value.ParticipantUserIds ?? throw Missing("DungeonRejoin.ParticipantUserIds");
-        using var offer = new MemoryStream(9);
-        using (var writer = new BinaryWriter(offer, Encoding.UTF8, leaveOpen: true))
-        {
-            writer.Write(value.PartyId);
-            writer.Write(0);
-            writer.Write((byte)0);
-        }
-        var payloads = new List<GameMessagePayload>(participants.Count + 1)
-        {
-            Payload(0x02A7, offer.ToArray()),
-        };
-        foreach (var participant in participants)
-        {
-            using var body = new MemoryStream(2);
-            using (var writer = new BinaryWriter(body, Encoding.UTF8, leaveOpen: true))
-                writer.Write(participant);
-            payloads.Add(Payload(0x02A8, body.ToArray()));
-        }
-        return payloads;
-    }
-
     public static GameMessagePayload EncodeExpertStoreClose(ushort ownerUserId) =>
         Payload(0x021C, BitConverter.GetBytes(ownerUserId));
 

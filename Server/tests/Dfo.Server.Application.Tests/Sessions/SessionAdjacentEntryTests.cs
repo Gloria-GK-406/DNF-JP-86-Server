@@ -19,7 +19,7 @@ public sealed class SessionAdjacentEntryTests
     [Fact]
     public async Task An_unwritten_registry_reports_an_empty_area_rather_than_failing()
     {
-        var service = new SessionAdjacentEntryDomainService(new SessionPresenceRegistry(), Stores, new PvpLobbyRegistry(), new DungeonRejoinRegistry(), TimeProvider.System);
+        var service = new SessionAdjacentEntryDomainService(new SessionPresenceRegistry(), Stores, new PvpLobbyRegistry());
 
         var result = await service.LoadAsync(Subject(), CancellationToken.None);
 
@@ -33,7 +33,7 @@ public sealed class SessionAdjacentEntryTests
         var registry = new SessionPresenceRegistry();
         registry.Admit(Presence(10));
         registry.Admit(Presence(11));
-        var service = new SessionAdjacentEntryDomainService(registry, Stores, new PvpLobbyRegistry(), new DungeonRejoinRegistry(), TimeProvider.System);
+        var service = new SessionAdjacentEntryDomainService(registry, Stores, new PvpLobbyRegistry());
 
         var result = await service.LoadAsync(Subject(characterId: 99), CancellationToken.None);
 
@@ -48,7 +48,7 @@ public sealed class SessionAdjacentEntryTests
         var registry = new SessionPresenceRegistry();
         registry.Admit(Presence(10));
         registry.Admit(Presence(99));
-        var service = new SessionAdjacentEntryDomainService(registry, Stores, new PvpLobbyRegistry(), new DungeonRejoinRegistry(), TimeProvider.System);
+        var service = new SessionAdjacentEntryDomainService(registry, Stores, new PvpLobbyRegistry());
 
         var result = await service.LoadAsync(Subject(characterId: 99), CancellationToken.None);
 
@@ -62,7 +62,7 @@ public sealed class SessionAdjacentEntryTests
         registry.Admit(Presence(10));
         registry.Admit(Presence(11, areaId: 5));
         registry.Admit(Presence(12, townId: 2));
-        var service = new SessionAdjacentEntryDomainService(registry, Stores, new PvpLobbyRegistry(), new DungeonRejoinRegistry(), TimeProvider.System);
+        var service = new SessionAdjacentEntryDomainService(registry, Stores, new PvpLobbyRegistry());
 
         var result = await service.LoadAsync(Subject(characterId: 99), CancellationToken.None);
 
@@ -81,7 +81,7 @@ public sealed class SessionAdjacentEntryTests
         var registry = new SessionPresenceRegistry();
         registry.Admit(Presence(10));
         registry.Admit(Presence(11, listenerPort: 10161));
-        var service = new SessionAdjacentEntryDomainService(registry, Stores, new PvpLobbyRegistry(), new DungeonRejoinRegistry(), TimeProvider.System);
+        var service = new SessionAdjacentEntryDomainService(registry, Stores, new PvpLobbyRegistry());
 
         var result = await service.LoadAsync(Subject(characterId: 99), CancellationToken.None);
 
@@ -100,7 +100,7 @@ public sealed class SessionAdjacentEntryTests
         var registry = new SessionPresenceRegistry();
         registry.Admit(Presence(10));
         registry.Admit(Presence(11, standingInTown: false));
-        var service = new SessionAdjacentEntryDomainService(registry, Stores, new PvpLobbyRegistry(), new DungeonRejoinRegistry(), TimeProvider.System);
+        var service = new SessionAdjacentEntryDomainService(registry, Stores, new PvpLobbyRegistry());
 
         var result = await service.LoadAsync(Subject(characterId: 99), CancellationToken.None);
 
@@ -119,7 +119,7 @@ public sealed class SessionAdjacentEntryTests
         var stores = new ExpertStoreRegistry();
         stores.Open(new CharacterId(99));
         var presence = new SessionPresenceRegistry();
-        var service = new SessionAdjacentEntryDomainService(presence, stores, new PvpLobbyRegistry(), new DungeonRejoinRegistry(), TimeProvider.System);
+        var service = new SessionAdjacentEntryDomainService(presence, stores, new PvpLobbyRegistry());
 
         var result = await service.LoadAsync(Subject(characterId: 99), CancellationToken.None);
 
@@ -134,7 +134,7 @@ public sealed class SessionAdjacentEntryTests
         stores.Open(new CharacterId(10));
         var registry = new SessionPresenceRegistry();
         registry.Admit(Presence(10));
-        var service = new SessionAdjacentEntryDomainService(registry, stores, new PvpLobbyRegistry(), new DungeonRejoinRegistry(), TimeProvider.System);
+        var service = new SessionAdjacentEntryDomainService(registry, stores, new PvpLobbyRegistry());
 
         var result = await service.LoadAsync(Subject(characterId: 99), CancellationToken.None);
 
@@ -163,7 +163,7 @@ public sealed class SessionAdjacentEntryTests
         var registry = new SessionPresenceRegistry();
         foreach (var id in new[] { 30, 10, 20 })
             registry.Admit(Presence(id));
-        var service = new SessionAdjacentEntryDomainService(registry, Stores, new PvpLobbyRegistry(), new DungeonRejoinRegistry(), TimeProvider.System);
+        var service = new SessionAdjacentEntryDomainService(registry, Stores, new PvpLobbyRegistry());
 
         var result = await service.LoadAsync(Subject(characterId: 99), CancellationToken.None);
 

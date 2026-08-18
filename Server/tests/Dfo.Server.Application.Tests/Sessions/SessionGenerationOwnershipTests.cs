@@ -22,28 +22,21 @@ public sealed class SessionGenerationOwnershipTests
         var presence = new SessionPresenceRegistry();
         var stores = new ExpertStoreRegistry();
         var lobby = new PvpLobbyRegistry();
-        var rejoin = new DungeonRejoinRegistry();
 
         presence.Admit(new SessionPresence(current.CharacterId, 10011, 1, 2, true, current));
         stores.Open(current);
         lobby.MarkReady(new PvpLobbyParticipant(current.CharacterId, 10011, current));
-        rejoin.Attach(new DungeonAttachment(
-            current.CharacterId, current.AccountId, 7, [current.WireUserId], true,
-            DateTimeOffset.MaxValue, DateTimeOffset.MaxValue, current));
 
         Assert.False(presence.WithdrawExact(oldSession));
         Assert.False(stores.CloseExact(oldSession));
         Assert.False(lobby.ClearReadyExact(oldSession));
-        Assert.False(rejoin.ReleaseExact(oldSession));
         Assert.NotNull(presence.Find(current.CharacterId));
         Assert.True(stores.HasOpenStore(current.CharacterId));
         Assert.Single(lobby.ReadyOn(10011, new CharacterId(999)));
-        Assert.NotNull(rejoin.Find(current.CharacterId));
 
         Assert.True(presence.WithdrawExact(current));
         Assert.True(stores.CloseExact(current));
         Assert.True(lobby.ClearReadyExact(current));
-        Assert.True(rejoin.ReleaseExact(current));
     }
 
     [Fact]
@@ -55,7 +48,7 @@ public sealed class SessionGenerationOwnershipTests
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(),
             new ThrowingActive(), new SessionPresenceRegistry(), new ExpertStoreRegistry(),
-            new PvpLobbyRegistry(), new DungeonRejoinRegistry(), []);
+            new PvpLobbyRegistry(), []);
 
         await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
             await service.CleanupAsync(session, includeOwner: false, CancellationToken.None));
@@ -81,7 +74,7 @@ public sealed class SessionGenerationOwnershipTests
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(),
             new ThrowingActive(), presence, stores, new PvpLobbyRegistry(),
-            new DungeonRejoinRegistry(), []);
+            []);
 
         var failure = await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
             await service.CleanupAsync(owner, includeOwner: true, CancellationToken.None));
@@ -126,7 +119,7 @@ public sealed class SessionGenerationOwnershipTests
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(),
             new PassiveActive(), presence, stores, new PvpLobbyRegistry(),
-            new DungeonRejoinRegistry(), []);
+            []);
 
         var delivery = await service.CleanupAsync(owner, includeOwner, CancellationToken.None);
 
@@ -160,7 +153,7 @@ public sealed class SessionGenerationOwnershipTests
         var service = new SelectedSessionCleanupService(
             directory, runtimes, new EmptyInventoryLease(), new PassiveActive(),
             new SessionPresenceRegistry(), new ExpertStoreRegistry(), new PvpLobbyRegistry(),
-            new DungeonRejoinRegistry(), [persistence]);
+            [persistence]);
 
         await service.CleanupAsync(session, false, CancellationToken.None);
 
@@ -181,7 +174,7 @@ public sealed class SessionGenerationOwnershipTests
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(),
             new PassiveActive(), presence, stores, new PvpLobbyRegistry(),
-            new DungeonRejoinRegistry(), []);
+            []);
 
         var delivery = await service.CleanupAsync(
             stale, includeOwner: true, CancellationToken.None);

@@ -53,7 +53,6 @@ public sealed class UnconfirmedVocabularyTests
         typeof(TownPresenceEntryState),
         typeof(ExpertStoreEntryState),
         typeof(PvpLobbyEntryState),
-        typeof(DungeonRejoinEntryState),
     ];
 
     [Theory]
