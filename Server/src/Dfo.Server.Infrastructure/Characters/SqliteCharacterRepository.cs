@@ -197,6 +197,10 @@ internal sealed class SqliteCharacterRepository : ICharacterRepository
             ?? throw new InvalidOperationException("Character insert returned no identifier.");
         var characterId = Convert.ToInt32(created, CultureInfo.InvariantCulture);
 
+        await InsertInitialSkillsAsync(
+            connection, transaction, characterId, spec.InitialSkills, cancellationToken)
+            .ConfigureAwait(false);
+
         await InsertRequiredEntryStateAsync(
             connection, transaction, characterId, spec.Stats, cancellationToken).ConfigureAwait(false);
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
@@ -238,6 +242,46 @@ internal sealed class SqliteCharacterRepository : ICharacterRepository
     /// three: it is the percentage of maximum HP/MP the character enters holding, so a zero
     /// presents full maxima alongside an empty bar.
     /// </remarks>
+    /// <summary>
+    /// Writes the character's starting skills onto page zero.
+    /// </summary>
+    /// <remarks>
+    /// In the creating transaction, alongside the rows the entry query joins against. This project
+    /// has already paid once for splitting a character's creation across transactions: a character
+    /// was created with only its <c>characters</c> row and could not enter the game, because the
+    /// entry profile inner-joins three further tables. A character whose skills were written
+    /// separately would fail in the same shape, and only for the characters whose second write
+    /// failed.
+    /// </remarks>
+    private static async ValueTask InsertInitialSkillsAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        int characterId,
+        IReadOnlyList<NewCharacterSkill>? skills,
+        CancellationToken cancellationToken)
+    {
+        if (skills is null || skills.Count == 0)
+            return;
+
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            INSERT INTO character_skills (character_id, page_index, slot, skill_id, level, extra_values)
+            VALUES (@characterId, 0, @slot, @skillId, @level, NULL);
+            """;
+        command.Parameters.AddWithValue("@characterId", characterId);
+        var slot = command.Parameters.Add("@slot", SqliteType.Integer);
+        var skillId = command.Parameters.Add("@skillId", SqliteType.Integer);
+        var level = command.Parameters.Add("@level", SqliteType.Integer);
+        foreach (var skill in skills)
+        {
+            slot.Value = skill.Slot;
+            skillId.Value = skill.SkillId;
+            level.Value = skill.Level;
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
     private static async ValueTask InsertRequiredEntryStateAsync(
         SqliteConnection connection,
         SqliteTransaction transaction,

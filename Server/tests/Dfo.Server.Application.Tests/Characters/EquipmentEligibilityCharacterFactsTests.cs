@@ -25,7 +25,8 @@ public sealed class EquipmentEligibilityCharacterFactsTests
         // Reading eligibility facts must not reach for static content: only creation needs it.
         IEquipmentEligibilityCharacterReader reader = new CharacterDomainService(
             () => new StubCharacterRepository(summary),
-            new UnusedStatSource());
+            new UnusedStatSource(),
+            new UnusedInitialSkillSource());
 
         var facts = await reader.GetAsync(
             accountId,
@@ -41,6 +42,14 @@ public sealed class EquipmentEligibilityCharacterFactsTests
             byte job,
             CancellationToken cancellationToken) =>
             throw new InvalidOperationException("Eligibility facts do not need job stats.");
+    }
+
+    private sealed class UnusedInitialSkillSource : IInitialSkillDefinitionSource
+    {
+        public ValueTask<IReadOnlyList<InitialSkillGrant>> GetAsync(
+            byte job,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("Eligibility facts do not need starting skills.");
     }
 
     private sealed class StubCharacterRepository(CharacterSummary summary) : ICharacterRepository

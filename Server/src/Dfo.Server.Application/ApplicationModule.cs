@@ -64,7 +64,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton(
             provider => new CharacterDomainService(
                 () => provider.GetRequiredService<ICharacterRepository>(),
-                provider.GetRequiredService<ICharacterStatDefinitionSource>()));
+                provider.GetRequiredService<ICharacterStatDefinitionSource>(),
+                provider.GetRequiredService<IInitialSkillDefinitionSource>()));
         services.TryAddSingleton<ICharacterDomainService>(
             provider => provider.GetRequiredService<CharacterDomainService>());
         services.TryAddSingleton<ISelectCharacterPreparationService, SelectCharacterPreparationService>();

@@ -9,7 +9,8 @@ namespace Dfo.Server.Application.Characters;
 
 internal sealed class CharacterDomainService(
     Func<ICharacterRepository> characterRepository,
-    ICharacterStatDefinitionSource characterStats)
+    ICharacterStatDefinitionSource characterStats,
+    IInitialSkillDefinitionSource initialSkills)
     : ICharacterDomainService, IEquipmentEligibilityCharacterReader
 {
     private const ushort DefaultSlotLimit = 32;
@@ -145,8 +146,23 @@ internal sealed class CharacterDomainService(
         // before the insert because the two have to land in one transaction -- a character row
         // without its stats is the half-built state the entry profile query rejects outright.
         var stats = await characterStats.GetInitialAsync(job, cancellationToken).ConfigureAwait(false);
+
+        // The whole declared set, not a filtered one. The job's [initial value] [skill] block is
+        // already the answer to "what does a level-one character of this job hold": the three
+        // actives and the five passives and life skills are all part of it, and neither the
+        // required level nor the active/passive mark distinguishes a subset -- every entry requires
+        // level one, and there are three actives rather than the two that occupy the attack keys.
+        //
+        // Slots follow the archive's order, which puts the two attack skills first. That order is
+        // the only thing available to bind them to the keys the client highlights, so it is
+        // preserved rather than sorted.
+        var grants = await initialSkills.GetAsync(job, cancellationToken).ConfigureAwait(false);
+        var skills = new List<NewCharacterSkill>(grants.Count);
+        for (var index = 0; index < grants.Count; index++)
+            skills.Add(new NewCharacterSkill((short)index, grants[index].SkillId, grants[index].Level));
+
         var characterId = await repository.CreateAsync(
-            new NewCharacterSpec(accountId, rawName, job, slotIndex, stats),
+            new NewCharacterSpec(accountId, rawName, job, slotIndex, stats, skills),
             cancellationToken).ConfigureAwait(false);
         return new CharacterCreationResult(CharacterCreationStatus.Created, characterId);
     }

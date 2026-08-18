@@ -26,6 +26,7 @@ public sealed class CharacterLifecycleServiceTests
         var services = new ServiceCollection();
         services.AddSingleton<ICharacterRepository>(repository);
         services.AddSingleton(stats);
+        services.AddSingleton<IInitialSkillDefinitionSource>(new FakeInitialSkillSource());
         new ApplicationModule().ConfigureServices(
             services,
             new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
@@ -235,6 +236,34 @@ public sealed class CharacterLifecycleServiceTests
         Assert.Equal(FakeStatSource.For(4), repository.LastSpec!.Stats);
     }
 
+    /// <remarks>
+    /// Its skills travel with it in the same specification, and therefore into the same
+    /// transaction. A character created without them meets the player as an empty skill bar, which
+    /// is how this was noticed: the tutorial highlights the attack keys in one of its rooms and
+    /// there was nothing on them.
+    /// <para>
+    /// The slots follow the archive's declared order rather than the skill identifiers, because
+    /// that order is the only thing that puts the two attack skills where the client expects them.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task ACreatedCharacterIsBornHoldingTheSkillsItsJobDeclares()
+    {
+        var (service, repository) = Build();
+
+        var result = await service.CreateCharacterAsync(
+            Account, 4, "Cleric"u8.ToArray(), CancellationToken.None);
+
+        Assert.Equal(CharacterCreationStatus.Created, result.Status);
+        var declared = FakeInitialSkillSource.For(4);
+        Assert.Equal(
+            [
+                new NewCharacterSkill(0, declared[0].SkillId, declared[0].Level),
+                new NewCharacterSkill(1, declared[1].SkillId, declared[1].Level),
+            ],
+            repository.LastSpec!.InitialSkills);
+    }
+
     [Fact]
     public async Task ARefusedCreationNeverReachesTheArchive()
     {
@@ -247,6 +276,18 @@ public sealed class CharacterLifecycleServiceTests
         await service.CreateCharacterAsync(Account, 0, "x"u8.ToArray(), CancellationToken.None);
 
         Assert.Empty(stats.Requested);
+    }
+
+    /// <summary>Two grants per job, distinct per job so a lookup for the wrong one is visible.</summary>
+    private sealed class FakeInitialSkillSource : IInitialSkillDefinitionSource
+    {
+        public static IReadOnlyList<InitialSkillGrant> For(byte job) =>
+            [new InitialSkillGrant((uint)(500 + job), 1), new InitialSkillGrant((uint)(600 + job), 2)];
+
+        public ValueTask<IReadOnlyList<InitialSkillGrant>> GetAsync(
+            byte job,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult(For(job));
     }
 
     private sealed class FakeStatSource : ICharacterStatDefinitionSource

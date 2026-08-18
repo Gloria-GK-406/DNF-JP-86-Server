@@ -96,12 +96,21 @@ public sealed record CharacterBaseStats(
 /// rather than defaulted: a character whose stats are all zero cannot act, and that was the
 /// state every character created before this parameter existed was born in.
 /// </param>
+/// <param name="InitialSkills">
+/// The skills the character is created holding, in the order they are to occupy page zero's slots.
+/// Resolved from the job's archive definition by the caller rather than here, so that storage
+/// stays a place that records decisions instead of one that makes them.
+/// </param>
 public sealed record NewCharacterSpec(
     AccountId AccountId,
     byte[] Name,
     byte Job,
     ushort SlotIndex,
-    CharacterBaseStats Stats);
+    CharacterBaseStats Stats,
+    IReadOnlyList<NewCharacterSkill>? InitialSkills = null);
+
+/// <summary>One skill a character is created holding.</summary>
+public sealed record NewCharacterSkill(short Slot, uint SkillId, byte Level);
 
 public sealed record CharacterCreationResult(
     CharacterCreationStatus Status,
