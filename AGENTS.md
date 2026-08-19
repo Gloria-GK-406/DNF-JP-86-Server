@@ -104,15 +104,28 @@ PvP 大厅、专家商店）、`World/`（出生点策略、世界内容）、`U
   1. `CommandLoggingBehavior`（0）：计时 + 成功/失败日志
   2. `OnlineUserExecutionBehavior`（50）：按 OnlineUserId 取共享/独占租约
   3. `AccountExecutionBehavior`（55）：按 AccountId 取租约
-  4. `CommandExecutionPolicyBehavior`（100）：Direct/Workflow 放行；
-     **Transactional 一律抛异常**（设计占位，未接 unit-of-work；原子性目前
-     由各 SQLite 仓储自己的事务负责，无生产命令使用它）
+  4. `UnitOfWorkBehavior`（60）：Transactional 命令在此开领域事务，命令正常返回
+     后提交，任何其他出路回滚；其余执行方式原样放行。**Order 必须严格落在
+     55 与 100 之间**，事务才整个待在账号租约之内（对**声明了**账号访问方式的
+     命令而言——未声明的命令 `AccountExecutionBehavior` 直接放行，不取租约，
+     道具移动与道具使用两条即是如此）、又整个包住 handler
+  5. `CommandExecutionPolicyBehavior`（100）：Direct/Workflow/Transactional 均放行；
+     未知执行方式抛异常
 - 执行门（`OnlineUsers/UserExecutionGate.cs`）：按 key 的读写锁 + FIFO 等待队列；
   三个实例：OnlineUserExecutionGate、AccountExecutionGate、
   SelectedSessionTransitionGate（第三个由 `SelectCharacterHandler` 手工获取，
   串行化会话切换/拆除）。
-- 错误语义：异常直接上抛，**总线级无回滚**；跨阶段补偿由协议 handler
-  派发专用补偿命令，命令 handler 只执行单一领域动作。
+- 错误语义：异常直接上抛。Direct/Workflow **总线级无回滚**；Transactional 由
+  `UnitOfWorkBehavior` 回滚本次登记的全部参与者，但只回滚参与者，不回滚
+  参与者之外的副作用。跨阶段补偿仍由协议 handler 派发专用补偿命令，
+  命令 handler 只执行单一领域动作。
+- 领域事务（`Abstractions/Transactions/`、`Application/Transactions/`）：参与者声明
+  `CommitCanFail`；提交分三段——全体 `PrepareAsync` → 唯一可失败者 `CommitAsync`
+  → 其余 `CommitAsync`。**一次事务只收一个 `CommitCanFail` 参与者**，第二个在
+  `Enlist` 时抛；这是「不做两阶段提交」的代价与前提。登记按 identity 去重，
+  所以一个存储在一次用例里只参与一次、其读能看见自己未提交的写。
+  环境事务经 `IDomainTransactionAccessor` 暴露（`AsyncLocal`），因为存储是单例、
+  容器按角色持有，两者都拿不到注入。
 - 注册（`ProtocolModule.cs`，与协议接线同处）：现有命令
   LoginGameUser = Direct+OnlineUser Exclusive；GetAccountCharacterRoster =
   Direct+Account Shared；SelectCharacter 的 Prepare、DailyRefill、Publish、PvpReady、

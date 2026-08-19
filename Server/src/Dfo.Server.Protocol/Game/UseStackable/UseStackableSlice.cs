@@ -253,15 +253,13 @@ public sealed class UseStackableCommandHandler(
         if (verdict is not ItemUsability.Allowed)
             return ItemUseResult.Refused(StatusFor(verdict), item.ItemId);
 
-        var planned = await effects.PlanAsync(item.ItemId, item.StorageEntryId, cancellationToken)
+        var planned = await effects.PlanAsync(item.ItemId, item.SlotIndex, cancellationToken)
             .ConfigureAwait(false);
         var applied = await effects
             .ApplyAsync(command.CharacterId, container, item, planned, cancellationToken)
             .ConfigureAwait(false);
 
-        return applied is null
-            ? ItemUseResult.Refused(ItemUseStatus.SlotChanged, item.ItemId)
-            : new ItemUseResult(ItemUseStatus.Used, applied.ItemId, applied.RemainingCount);
+        return new ItemUseResult(ItemUseStatus.Used, applied.ItemId, applied.RemainingCount);
     }
 
     /// <summary>

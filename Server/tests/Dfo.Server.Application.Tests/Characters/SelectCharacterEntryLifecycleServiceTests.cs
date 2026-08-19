@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Transactions;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -32,7 +33,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var loader = new InventoryLoader(result.CharacterInventory);
         var service = new SelectCharacterEntryInventoryDomainService(
             new RefillContent(), new RefillMutation(), loader, persistence, leases,
-            new CharacterContainerDomainService());
+            new CharacterContainerDomainService(), new MemoryItemStore(), new DomainTransactionScope());
 
         await service.SaveExistingLeaseAsync(previous, CancellationToken.None);
         var updated = await service.PrepareLeaseAsync(next, result, CancellationToken.None);
@@ -56,7 +57,8 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var leases = new EntryInventoryLeaseRegistry();
         var service = new SelectCharacterEntryInventoryDomainService(
             new RefillContent(), new RefillMutation(), new InventoryLoader(reloaded),
-            new NoopLeasePersistence(), leases, new CharacterContainerDomainService());
+            new NoopLeasePersistence(), leases, new CharacterContainerDomainService(),
+            new MemoryItemStore(), new DomainTransactionScope());
         _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
 
         var prepared = await service.ApplyDailyRefillAsync(session, result, CancellationToken.None);
@@ -79,7 +81,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var leases = new EntryInventoryLeaseRegistry();
         var service = new SelectCharacterEntryInventoryDomainService(
             new RefillContent(), new FailingRefillMutation(), loader, new NoopLeasePersistence(), leases,
-            new CharacterContainerDomainService());
+            new CharacterContainerDomainService(), new MemoryItemStore(), new DomainTransactionScope());
         _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
 
         await Assert.ThrowsAsync<IOException>(async () =>
@@ -176,7 +178,8 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var service = new SelectCharacterEntryInventoryDomainService(
             new RefillContent(), new RefillMutation(),
             new InventoryLoader(expanded), new NoopLeasePersistence(),
-            new EntryInventoryLeaseRegistry(), containers);
+            new EntryInventoryLeaseRegistry(), containers,
+            new MemoryItemStore(), new DomainTransactionScope());
 
         var prepared = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
 
@@ -236,35 +239,9 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
             CharacterId characterId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("This fixture does not read the main inventory.");
 
-        public ValueTask<MainInventoryOccupant?> ReadMainSlotAsync(
-            CharacterId characterId, int slotIndex, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("The refill fixture does not consume items.");
 
-        /// <summary>Not exercised here: this fixture does not consume items.</summary>
-        public ValueTask<ConsumedInventoryItem?> ConsumeMainItemAsync(
-            CharacterId characterId, long storageEntryId, int count,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException("The refill fixture does not consume items.");
 
-        /// <summary>Not exercised here: this fixture does not move items between slots.</summary>
-        public ValueTask<MainInventorySlotPair> ReadMainSlotsAsync(
-            CharacterId characterId, int sourceSlotIndex, int destinationSlotIndex,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException("The refill fixture does not move items.");
 
-        /// <summary>Not exercised here: this fixture does not move items between slots.</summary>
-        public ValueTask<bool> ApplyMainMoveAsync(
-            CharacterId characterId, MainInventoryMovePlan plan,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException("The refill fixture does not move items.");
-        /// <summary>Not exercised here: this fixture covers the daily refill only.</summary>
-        public ValueTask<GrantedInventoryItem?> GrantItemAsync(
-            CharacterId characterId,
-            int itemId,
-            int count,
-            ItemPlacement placement,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException("The refill fixture does not grant arbitrary items.");
 
         public ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
             AccountId accountId, CharacterId characterId, IReadOnlyList<DailyRefillRule> rules,
@@ -281,35 +258,9 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
             CharacterId characterId, CancellationToken cancellationToken) =>
             throw new NotSupportedException("This fixture does not read the main inventory.");
 
-        public ValueTask<MainInventoryOccupant?> ReadMainSlotAsync(
-            CharacterId characterId, int slotIndex, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("The refill fixture does not consume items.");
 
-        /// <summary>Not exercised here: this fixture does not consume items.</summary>
-        public ValueTask<ConsumedInventoryItem?> ConsumeMainItemAsync(
-            CharacterId characterId, long storageEntryId, int count,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException("The refill fixture does not consume items.");
 
-        /// <summary>Not exercised here: this fixture does not move items between slots.</summary>
-        public ValueTask<MainInventorySlotPair> ReadMainSlotsAsync(
-            CharacterId characterId, int sourceSlotIndex, int destinationSlotIndex,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException("The refill fixture does not move items.");
 
-        /// <summary>Not exercised here: this fixture does not move items between slots.</summary>
-        public ValueTask<bool> ApplyMainMoveAsync(
-            CharacterId characterId, MainInventoryMovePlan plan,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException("The refill fixture does not move items.");
-        /// <summary>Not exercised here: this fixture covers the daily refill only.</summary>
-        public ValueTask<GrantedInventoryItem?> GrantItemAsync(
-            CharacterId characterId,
-            int itemId,
-            int count,
-            ItemPlacement placement,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException("The refill fixture does not grant arbitrary items.");
 
         public ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
             AccountId accountId, CharacterId characterId, IReadOnlyList<DailyRefillRule> rules,

@@ -268,7 +268,7 @@ public sealed class UseStackableHandlerTests
         var sender = new RecordingSender();
 
         var commandHandler = new UseStackableCommandHandler(
-            Containers(inventory),
+            inventory.Containers(),
             new ItemUsabilityDomainService(
                 content,
                 cooldowns,
@@ -280,74 +280,28 @@ public sealed class UseStackableHandlerTests
         return (
             new UseStackableHandler(
                 sessions,
-                new DirectCommandBus(use: commandHandler),
+                new DirectCommandBus(use: commandHandler, scope: inventory.Scope),
                 sender,
                 NullLogger<UseStackableHandler>.Instance),
             sender);
     }
 
 
-    /// <summary>Binds the fixture's storage to the session's character as its main container.</summary>
-    private static ICharacterContainerDomainService Containers(
-        IEntryInventoryMutationRepository storage)
+    /// <summary>The character's main container, holding one pile in one slot.</summary>
+    private sealed class FakeInventory : FakeMainInventory
     {
-        var characterId = new CharacterId(60);
-        var containers = new CharacterContainerDomainService();
-        containers.Register(characterId, new PersistentItemContainer(
-            new ContainerId("character:60:Main"),
-            characterId,
-            new ContainerShape(InventoryContainerType.Main, 0),
-            storage));
-        return containers;
-    }
+        private readonly int slot;
 
-    private sealed class FakeInventory(int slot, int itemId, int count, byte itemKind)
-        : IEntryInventoryMutationRepository
-    {
-        public int Count { get; private set; } = count;
-
-        public bool IsEmpty => Count == 0;
-
-        public ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
-            CharacterId characterId, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture covers use only.");
-
-        public ValueTask<MainInventoryOccupant?> ReadMainSlotAsync(
-            CharacterId characterId, int slotIndex, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(
-                slotIndex == slot && Count > 0
-                    ? new MainInventoryOccupant(1, slot, itemKind, itemId, Count)
-                    : null);
-
-        public ValueTask<ConsumedInventoryItem?> ConsumeMainItemAsync(
-            CharacterId characterId, long storageEntryId, int consumed,
-            CancellationToken cancellationToken)
+        public FakeInventory(int slot, int itemId, int count, byte itemKind)
         {
-            if (storageEntryId != 1 || consumed > Count)
-                return ValueTask.FromResult<ConsumedInventoryItem?>(null);
-            Count -= consumed;
-            return ValueTask.FromResult<ConsumedInventoryItem?>(
-                new ConsumedInventoryItem(slot, itemId, Count));
+            this.slot = slot;
+            if (count > 0)
+                this.Seed(slot, itemId, count, itemKind);
         }
 
-        public ValueTask<MainInventorySlotPair> ReadMainSlotsAsync(
-            CharacterId characterId, int sourceSlotIndex, int destinationSlotIndex,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture covers use only.");
+        public int Count => this.CountIn(this.slot);
 
-        public ValueTask<bool> ApplyMainMoveAsync(
-            CharacterId characterId, MainInventoryMovePlan plan, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture covers use only.");
-
-        public ValueTask<GrantedInventoryItem?> GrantItemAsync(
-            CharacterId characterId, int grantedItemId, int grantedCount, ItemPlacement placement,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture covers use only.");
-
-        public ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
-            AccountId accountId, CharacterId characterId, IReadOnlyList<DailyRefillRule> rules,
-            DateTimeOffset preparedAt, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture covers use only.");
+        public bool IsEmpty => this.Count == 0;
     }
 
     private sealed class OneSession : ISelectedSessionDirectory

@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
@@ -88,7 +89,8 @@ public sealed class ContainerInventoryProjectionTests
         {
             Path = path;
             Entries = new SqliteInventoryEntryRepository(path);
-            Mutations = new SqliteEntryInventoryMutationRepository(path);
+            Mutations = new SqliteEntryInventoryMutationRepository(
+                path, new DailyRefillRuleService(), new ItemArrivalRuleService());
         }
 
         public string Path { get; }
@@ -114,9 +116,11 @@ public sealed class ContainerInventoryProjectionTests
         /// <summary>The container the two readers are compared over, at the loader's own shape.</summary>
         public IItemContainer OpenContainer(ushort parameter) =>
             new PersistentItemContainer(
-                new ContainerId("character:60:Main"),
+                ContainerId.ForCharacter(Character, InventoryContainerType.Main),
                 Character,
                 new ContainerShape(InventoryContainerType.Main, parameter),
+                new SqliteItemStore(Path),
+                new DomainTransactionScope(),
                 Mutations);
 
         public async Task<InventoryContainerState> LoadContainerAsync(

@@ -21,7 +21,7 @@ internal sealed class ItemUseEffectDomainService(
 
     public async ValueTask<IReadOnlyList<IItemUseEffect>> PlanAsync(
         int itemId,
-        long storageEntryId,
+        int slotIndex,
         CancellationToken cancellationToken)
     {
         var rule = await rules.GetAsync(itemId, cancellationToken).ConfigureAwait(false);
@@ -30,7 +30,7 @@ internal sealed class ItemUseEffectDomainService(
 
         var effects = new List<IItemUseEffect>(2);
         if (rule.IsConsumedOnUse)
-            effects.Add(new ConsumeFromContainerEffect(storageEntryId, ConsumedPerUse));
+            effects.Add(new ConsumeFromContainerEffect(slotIndex, ConsumedPerUse));
 
         if (rule.CooldownMilliseconds > 0)
         {
@@ -42,7 +42,7 @@ internal sealed class ItemUseEffectDomainService(
         return effects;
     }
 
-    public async ValueTask<ItemUseApplication?> ApplyAsync(
+    public async ValueTask<ItemUseApplication> ApplyAsync(
         CharacterId characterId,
         IItemContainer container,
         ContainerSlotItem item,
@@ -53,9 +53,10 @@ internal sealed class ItemUseEffectDomainService(
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(effects);
 
-        // The container goes first. It is the only effect that can be refused, and starting a
-        // cooldown for a use that never happened would lock the player out of an item they still
-        // hold.
+        // The container goes first, as it did when it could still refuse. It no longer can -- the
+        // slot was read inside this same use case and nothing outside can have moved it since -- but
+        // starting a cooldown before taking the item would still be the wrong order to leave lying
+        // around for the next effect somebody adds.
         //
         // Only the consumption of the item being used decides the count reported back. An effect
         // set that also consumed something else -- a reagent, a charge -- would otherwise pair that
@@ -64,14 +65,23 @@ internal sealed class ItemUseEffectDomainService(
         var remaining = item.Count;
         foreach (var consumption in effects.OfType<ConsumeFromContainerEffect>())
         {
-            var applied = await container
-                .ConsumeAsync(consumption.StorageEntryId, consumption.Count, cancellationToken)
-                .ConfigureAwait(false);
-            if (applied is null)
-                return null;
+            // Today an effect set names only the slot the used item came from, which was read in
+            // this same use case and so cannot be empty. An effect naming some other slot -- a
+            // reagent, a charge -- would be a decision taken against something never read, and
+            // passing over it silently would take the item and skip its cost.
+            var taken = consumption.SlotIndex == item.SlotIndex
+                ? item
+                : await container.ReadSlotAsync(consumption.SlotIndex, cancellationToken)
+                    .ConfigureAwait(false)
+                ?? throw new InvalidOperationException(
+                    $"Using item {item.ItemId} was to consume from slot {consumption.SlotIndex}, "
+                    + "which holds nothing.");
 
-            if (consumption.StorageEntryId == item.StorageEntryId)
-                remaining = applied.RemainingCount;
+            var left = await ItemContainerOperations
+                .ConsumeAsync(container, taken, consumption.Count, cancellationToken)
+                .ConfigureAwait(false);
+            if (consumption.SlotIndex == item.SlotIndex)
+                remaining = left;
         }
 
         foreach (var cooldown in effects.OfType<StartItemCooldownEffect>())

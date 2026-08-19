@@ -10,6 +10,9 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.RosterFollowUp;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Protocol.Game.SessionMetrics;
 using Dfo.Server.Protocol.Game.TaggedIdReport;
 using Microsoft.Extensions.Logging;
@@ -89,7 +92,7 @@ public sealed class ExitFlushHandlerTests
         var sender = new RecordingExplicitSender();
         var handler = new TaggedIdReportHandler(
             Attributed(out var context), new NoSessions(), new NoRewards(),
-            new NoPlacement(), new RecordingInventory(), sender, logger);
+            Rewarding(new RecordingInventory(), new NoPlacement()), sender, logger);
 
         await handler.HandleAsync(
             context,
@@ -115,7 +118,7 @@ public sealed class ExitFlushHandlerTests
         var stored = new RecordingInventory();
         var handler = new TaggedIdReportHandler(
             Attributed(out var context), new OneSession(), new OneReward(),
-            new KnownPlacement(), stored, sender, logger);
+            Rewarding(stored, new KnownPlacement()), sender, logger);
 
         await handler.HandleAsync(
             context,
@@ -130,6 +133,36 @@ public sealed class ExitFlushHandlerTests
         Assert.Equal((8474, 1), Assert.Single(stored.Granted));
     }
 
+    /// <summary>
+    /// A step that gives two of one item settles them together, and the second sees the first.
+    /// </summary>
+    /// <remarks>
+    /// This is what the step being one command buys. Under the previous shape each item was its own
+    /// transaction, so the second could not see where the first had gone; here the pile the first
+    /// opened is the pile the second joins, and both are acknowledged from the same slot.
+    /// </remarks>
+    [Fact]
+    public async Task TaggedIdReport_SettlesEveryItemOfOneStepTogether()
+    {
+        var sender = new RecordingExplicitSender();
+        var stored = new RecordingInventory();
+        var handler = new TaggedIdReportHandler(
+            Attributed(out var context), new OneSession(), new TwoOfOneReward(),
+            Rewarding(stored, new KnownPlacement()), sender,
+            new RecordingLogger<TaggedIdReportHandler>());
+
+        await handler.HandleAsync(
+            context,
+            new TaggedIdReportRequest(GameMessageMetadata.Empty, 38, 1),
+            CancellationToken.None);
+
+        // One pile of two, not two piles of one.
+        Assert.Equal([(121, 8474, 2)], stored.Rows());
+        var granted = Assert.IsType<TutorialFlagAcknowledgement>(Assert.Single(sender.Sent)).Granted;
+        Assert.Equal(2, granted.Count);
+        Assert.All(granted, item => Assert.Equal(121, item.Slot));
+    }
+
     [Fact]
     public async Task TaggedIdReport_ToleratesAnUnattributedConnection()
     {
@@ -137,7 +170,8 @@ public sealed class ExitFlushHandlerTests
         var logger = new RecordingLogger<TaggedIdReportHandler>();
         var handler = new TaggedIdReportHandler(
             Unattributed(out var context), new NoSessions(), new NoRewards(),
-            new NoPlacement(), new RecordingInventory(), new RecordingExplicitSender(), logger);
+            Rewarding(new RecordingInventory(), new NoPlacement()), new RecordingExplicitSender(),
+            logger);
 
         await handler.HandleAsync(
             context,
@@ -186,51 +220,26 @@ public sealed class ExitFlushHandlerTests
             ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(3, 100, 121, 176));
     }
 
-    private sealed class RecordingInventory : IEntryInventoryMutationRepository
+    /// <summary>
+    /// The bus the acknowledgement dispatches through, wired to the real reward command.
+    /// </summary>
+    /// <remarks>
+    /// The command is transactional, so the boundary comes with it -- the container it writes
+    /// through refuses a change made outside one.
+    /// </remarks>
+    private static ICommandBus Rewarding(
+        RecordingInventory inventory, IItemPlacementDefinitionSource placements) =>
+        new DirectCommandBus(
+            scope: inventory.Scope,
+            reward: new GrantTutorialRewardCommandHandler(
+                inventory.Containers(), placements, new ItemArrivalRuleService()));
+
+    /// <summary>The character's main container, and what reached it.</summary>
+    private sealed class RecordingInventory() : FakeMainInventory(characterId: 1)
     {
-
-        /// <summary>Not exercised here: this fixture does not consume items.</summary>
-        public ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
-            CharacterId characterId, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture does not read the main inventory.");
-
-        public ValueTask<MainInventoryOccupant?> ReadMainSlotAsync(
-            CharacterId characterId, int slotIndex, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("The tutorial acknowledgement does not consume items.");
-
-        /// <summary>Not exercised here: this fixture does not consume items.</summary>
-        public ValueTask<ConsumedInventoryItem?> ConsumeMainItemAsync(
-            CharacterId characterId, long storageEntryId, int count,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException("The tutorial acknowledgement does not consume items.");
-
-        /// <summary>Not exercised here: this fixture does not move items between slots.</summary>
-        public ValueTask<MainInventorySlotPair> ReadMainSlotsAsync(
-            CharacterId characterId, int sourceSlotIndex, int destinationSlotIndex,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException("The tutorial acknowledgement does not move items.");
-
-        /// <summary>Not exercised here: this fixture does not move items between slots.</summary>
-        public ValueTask<bool> ApplyMainMoveAsync(
-            CharacterId characterId, MainInventoryMovePlan plan,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException("The tutorial acknowledgement does not move items.");
-        public List<(int ItemId, int Count)> Granted { get; } = [];
-
-        public ValueTask<GrantedInventoryItem?> GrantItemAsync(
-            CharacterId characterId, int itemId, int count,
-            ItemPlacement placement, CancellationToken cancellationToken)
-        {
-            Granted.Add((itemId, count));
-            return ValueTask.FromResult<GrantedInventoryItem?>(
-                new GrantedInventoryItem(placement.SlotStart, itemId, count));
-        }
-
-        public ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
-            AccountId accountId, CharacterId characterId,
-            IReadOnlyList<DailyRefillRule> rules, DateTimeOffset preparedAt,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException("The tutorial acknowledgement does not refill.");
+        /// <summary>What the inventory ended up holding, as (item, count) pairs.</summary>
+        public List<(int ItemId, int Count)> Granted =>
+            [.. this.Rows().Select(row => (row.ItemId, row.Count))];
     }
 
     private sealed class NoSessions : ISelectedSessionDirectory
@@ -271,6 +280,15 @@ public sealed class ExitFlushHandlerTests
             uint tutorialFlag, CancellationToken cancellationToken) =>
             ValueTask.FromResult<IReadOnlyList<TutorialRewardItem>>(
                 [new TutorialRewardItem(8474, 1)]);
+    }
+
+    /// <summary>A step that hands over the same item twice.</summary>
+    private sealed class TwoOfOneReward : ITutorialRewardDefinitionSource
+    {
+        public ValueTask<IReadOnlyList<TutorialRewardItem>> GetAsync(
+            uint tutorialFlag, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<TutorialRewardItem>>(
+                [new TutorialRewardItem(8474, 1), new TutorialRewardItem(8474, 1)]);
     }
 
     private sealed class RecordingExplicitSender : IGameMessageSender
