@@ -50,7 +50,7 @@ contract:
   「会话解析 + 原因翻译」，不再对道具下任何判断。
 - 两处 `ErrorCodeFor` 与一处 `StatusFor` 逐条列举全部原因，未列举者抛出。兜底会让下一个被加进来的
   拒绝原因悄悄变成静默，而遍历枚举的用例仍然全绿。
-- `SelectedSessionCleanupService` 在会话目录条目移除后清理冷却记录，与容器注册同一条件
+- `SelectedSessionCleanupService` 在会话目录条目移除后清理冷却记录，与容器清理同一条件
   ——先确认该角色没有别的活动会话。
 
 顺手拆掉两处既有重复，二者都是本成果需要的：`[usable job]` 的词表原本只在 `PvfQuestDefinitionSource`
