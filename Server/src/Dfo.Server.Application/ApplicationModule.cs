@@ -76,6 +76,11 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IAccountInventoryEntryDomainService, AccountInventoryEntryDomainService>();
         services.TryAddSingleton<IEquippedCreatureQuery, EquippedCreatureQuery>();
         services.TryAddSingleton<IEntryInventoryLeaseRegistry, EntryInventoryLeaseRegistry>();
+        services.TryAddSingleton<ICharacterContainerDomainService, CharacterContainerDomainService>();
+        services.TryAddSingleton<IItemContainerFactory, ItemContainerFactory>();
+        services.TryAddSingleton<ICharacterItemCooldownDomainService, CharacterItemCooldownDomainService>();
+        services.TryAddSingleton<IItemUsabilityDomainService, ItemUsabilityDomainService>();
+        services.TryAddSingleton<IItemUseEffectDomainService, ItemUseEffectDomainService>();
         services.TryAddSingleton<ISelectCharacterEntryInventoryDomainService, SelectCharacterEntryInventoryDomainService>();
         services.TryAddSingleton<ICharacterProfileEntryProjection, CharacterProfileEntryProjection>();
         services.TryAddSingleton<ICharacterSkillQuestEntryProjection, CharacterSkillQuestEntryProjection>();

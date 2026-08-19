@@ -1,8 +1,9 @@
 using System.Buffers.Binary;
-using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.Logging;
@@ -40,8 +41,42 @@ public sealed record UseStackableResponse(
     int InstanceValue,
     int ItemCode) : IGameCmdMessage
 {
-    /// <summary>The reference server's code for "that is not an item you can use".</summary>
-    public const byte InvalidItem = 23;
+    /// <summary>
+    /// The client's own word for each refusal, read out of its string table rather than guessed.
+    /// </summary>
+    /// <remarks>
+    /// The table is archived at
+    /// <c>protocol/patterns/data/probes/cmd-reason-messages-20260818.md</c>. Its point for this
+    /// type is that the client can already say four different things, so answering everything with
+    /// one code throws away information the player could act on.
+    /// <para>
+    /// Cooldown and place share <c>19</c> because the client has no sentence for either of them
+    /// separately; "目前无法使用物品" is the closest true thing it can say. Fatigue's <c>95</c> is
+    /// left alone -- this server has no fatigue model, and a code for a rule that is not enforced
+    /// would be a lie in the other direction.
+    /// </para>
+    /// </remarks>
+    public const byte NotConsumable = 23;
+
+    /// <summary>「Lv过低， 无法使用该物品」</summary>
+    public const byte LevelTooLow = 14;
+
+    /// <summary>「该物品与当前职业不符， 无法使用」</summary>
+    public const byte JobMismatch = 8;
+
+    /// <summary>「目前无法使用物品」 -- the cooldown and the place both land here.</summary>
+    public const byte CurrentlyUnusable = 19;
+
+    /// <summary>
+    /// A code the client shows nothing for.
+    /// </summary>
+    /// <remarks>
+    /// It appears in neither this type's branch chain nor the shared fallback table every handler
+    /// consults, so the frame arrives and no text is drawn. That is the honest answer when the
+    /// player did nothing wrong -- a lost race, a server fault -- because every sentence the client
+    /// owns would blame them for it.
+    /// </remarks>
+    public const byte Silent = 2;
 
     public ServerMessageType MessageType => ServerMessageType.GameUseStackable;
 
@@ -116,32 +151,156 @@ internal sealed class UseStackableResponseEncoder : GameCmdMessageEncoder<UseSta
         OnePayload(GameProtocol.UseStackableType, UseStackablePayloadCodec.Encode(message));
 }
 
+/// <summary>Why a use did not happen, in the server's own terms.</summary>
+/// <remarks>
+/// Named separately from the client's codes because the two are not the same vocabulary. Several
+/// of these refusals share a code, and two of them have no code at all; collapsing them at the
+/// point of decision would leave the log unable to say which one occurred.
+/// </remarks>
+public enum ItemUseStatus
+{
+    Used = 0,
+
+    /// <summary>No published session for the connection that asked.</summary>
+    NoSession,
+
+    /// <summary>The request named a list this server does not serve.</summary>
+    ListNotServed,
+
+    /// <summary>The slot is empty, or holds something other than what the client named.</summary>
+    SlotDisagrees,
+
+    /// <summary>The archive declares nothing usable under that identifier.</summary>
+    NotAUsableItem,
+
+    LevelTooLow,
+    JobMismatch,
+    OnCooldown,
+    PlaceNotAllowed,
+
+    /// <summary>The character is not bound to a main container.</summary>
+    NoBoundContainer,
+
+    /// <summary>The slot changed between the decision and the write.</summary>
+    SlotChanged,
+
+    /// <summary>The character's own state could not be read.</summary>
+    CharacterStateUnavailable,
+}
+
+/// <summary>What a use did, or why it did not.</summary>
+public sealed record ItemUseResult(ItemUseStatus Status, int ItemId, int RemainingCount)
+{
+    public static ItemUseResult Refused(ItemUseStatus status, int itemId = 0) =>
+        new(status, itemId, 0);
+}
+
+/// <summary>One character using one item out of one slot.</summary>
+public sealed record UseStackableCommand(
+    CharacterId CharacterId,
+    short SlotIndex,
+    byte ListType,
+    int ItemCode) : ICommand<ItemUseResult>;
+
 /// <summary>
-/// Takes one item off the pile the client named.
+/// Decides whether the item may be used, and applies what using it changes.
 /// </summary>
 /// <remarks>
-/// Exactly one, whatever the pile holds: the client draws the recovery and decrements its own
-/// count by one before the answer arrives, so consuming any other number would leave the two
-/// disagreeing about a slot.
+/// Exactly one is taken off the pile when the item is consumed at all: the client draws the
+/// recovery and decrements its own count before the answer arrives, so consuming any other number
+/// would leave the two disagreeing about a slot.
 ///
-/// Equipment is refused. The request can name any slot of the list and the reference server
-/// requires the item to be stackable before it will delete from it; without that check a drag onto
-/// a quick slot followed by a key press would destroy a piece of gear one press at a time.
+/// The eighty-four items whose <c>[stackable type]</c> begins with <c>unlimited</c> are consumed
+/// zero times, and that is expressed by their effect set containing no consumption rather than by
+/// a test in front of the decrement.
 ///
-/// The recovery itself is not the server's to send here. The reference server's use path mutates
-/// the inventory and nothing else -- health follows from the item's own effect, which the client
+/// The recovery itself is not the server's to send. The reference server's use path mutates the
+/// inventory and nothing else -- health follows from the item's own effect, which the client has
 /// already applied.
+/// </remarks>
+public sealed class UseStackableCommandHandler(
+    ICharacterContainerDomainService containers,
+    IItemUsabilityDomainService usability,
+    IItemUseEffectDomainService effects) : ICommandHandler<UseStackableCommand, ItemUseResult>
+{
+    private const byte MainListType = (byte)InventoryContainerType.Main;
+
+    public async ValueTask<ItemUseResult> HandleAsync(
+        CommandExecutionContext context,
+        UseStackableCommand command,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        if (command.ListType != MainListType)
+            return ItemUseResult.Refused(ItemUseStatus.ListNotServed);
+
+        var container = containers.FindContainer(command.CharacterId, InventoryContainerType.Main);
+        if (container is null)
+            return ItemUseResult.Refused(ItemUseStatus.NoBoundContainer);
+
+        var item = await container.ReadSlotAsync(command.SlotIndex, cancellationToken)
+            .ConfigureAwait(false);
+
+        // The client names what it believes it is using. A slot that holds something else means the
+        // two disagree about the inventory, and deleting from it anyway would resolve that
+        // disagreement in favour of whichever one is wrong.
+        if (item is null || command.ItemCode > 0 && item.ItemId != command.ItemCode)
+            return ItemUseResult.Refused(ItemUseStatus.SlotDisagrees);
+
+        var verdict = await usability.CanUseAsync(command.CharacterId, item.ItemId, cancellationToken)
+            .ConfigureAwait(false);
+        if (verdict is not ItemUsability.Allowed)
+            return ItemUseResult.Refused(StatusFor(verdict), item.ItemId);
+
+        var planned = await effects.PlanAsync(item.ItemId, item.StorageEntryId, cancellationToken)
+            .ConfigureAwait(false);
+        var applied = await effects
+            .ApplyAsync(command.CharacterId, container, item, planned, cancellationToken)
+            .ConfigureAwait(false);
+
+        return applied is null
+            ? ItemUseResult.Refused(ItemUseStatus.SlotChanged, item.ItemId)
+            : new ItemUseResult(ItemUseStatus.Used, applied.ItemId, applied.RemainingCount);
+    }
+
+    /// <summary>
+    /// The refusal the judgement gave, in this protocol's own terms.
+    /// </summary>
+    /// <remarks>
+    /// Listed rather than defaulted, for the same reason the code translation is: a verdict nobody
+    /// mapped would otherwise arrive as "not a usable item" and be read out to the player as
+    /// 「非消耗品， 无法使用」 -- a sentence about the item, for a judgement the server never made.
+    /// </remarks>
+    internal static ItemUseStatus StatusFor(ItemUsability usability) => usability switch
+    {
+        ItemUsability.NotAUsableItem => ItemUseStatus.NotAUsableItem,
+        ItemUsability.LevelTooLow => ItemUseStatus.LevelTooLow,
+        ItemUsability.JobMismatch => ItemUseStatus.JobMismatch,
+        ItemUsability.OnCooldown => ItemUseStatus.OnCooldown,
+        ItemUsability.PlaceNotAllowed => ItemUseStatus.PlaceNotAllowed,
+        ItemUsability.CharacterStateUnavailable => ItemUseStatus.CharacterStateUnavailable,
+        ItemUsability.Allowed => throw new ArgumentOutOfRangeException(
+            nameof(usability), usability, "An allowed use is not a refusal."),
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(usability), usability, "No refusal was decided for this verdict."),
+    };
+}
+
+/// <summary>
+/// Turns the request into a command and the command's answer into something the client can read.
+/// </summary>
+/// <remarks>
+/// The refusal reason is decided once, inside the command, and translated here. The translation is
+/// the only place that knows about client codes, and the decision is the only place that knows
+/// about items -- which is why a refusal can gain a better sentence without the rules moving.
 /// </remarks>
 public sealed class UseStackableHandler(
     ISelectedSessionDirectory selectedSessions,
-    IEntryInventoryMutationRepository inventory,
-    IItemPlacementDefinitionSource placements,
+    ICommandBus commandBus,
     IGameMessageSender sender,
     ILogger<UseStackableHandler> logger) : ClientMessageHandler<UseStackableRequest>
 {
-    private const byte MainListType = (byte)InventoryContainerType.Main;
-    private const byte EquipmentItemKind = 1;
-
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
         UseStackableRequest message,
@@ -160,65 +319,78 @@ public sealed class UseStackableHandler(
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null || message.ListType != MainListType)
-        {
-            logger.LogInformation(
-                "Use stackable {ConnectionId}: list {List} slot {Slot} is not served",
-                context.Connection.ConnectionId,
-                message.ListType,
-                message.SlotIndex);
-            return UseStackableResponse.Failure(message, UseStackableResponse.InvalidItem);
-        }
-
-        var item = await inventory.ReadMainSlotAsync(
-            session.CharacterId, message.SlotIndex, cancellationToken).ConfigureAwait(false);
-
-        // The client names what it believes it is using. A slot that holds something else means
-        // the two disagree about the inventory, and deleting from it anyway would resolve that
-        // disagreement in favour of whichever one is wrong.
-        if (item is null
-            || (message.ItemCode > 0 && item.ItemId != message.ItemCode)
-            || item.ItemKind == EquipmentItemKind)
-        {
-            logger.LogInformation(
-                "Use stackable {ConnectionId} character={CharacterId}: slot {Slot} does not hold a "
-                    + "usable item {ItemCode}",
-                context.Connection.ConnectionId,
-                session.CharacterId.Value,
-                message.SlotIndex,
-                message.ItemCode);
-            return UseStackableResponse.Failure(message, UseStackableResponse.InvalidItem);
-        }
-
-        // Content has the last word on whether this identifier is something the archive declares
-        // as holdable at all. An item nobody can place is one nobody can use.
-        var placement = await placements.GetAsync(item.ItemId, cancellationToken).ConfigureAwait(false);
-        if (placement is null || placement.ItemKind == EquipmentItemKind)
-            return UseStackableResponse.Failure(message, UseStackableResponse.InvalidItem);
-
-        var consumed = await inventory.ConsumeMainItemAsync(
-            session.CharacterId, item.StorageEntryId, 1, cancellationToken).ConfigureAwait(false);
-        if (consumed is null)
+        if (session is null)
         {
             logger.LogWarning(
-                "Use stackable {ConnectionId} character={CharacterId}: slot {Slot} changed under "
-                    + "the decision, item {ItemId} not consumed",
+                "Use stackable {ConnectionId}: no published session",
+                context.Connection.ConnectionId);
+            return UseStackableResponse.Failure(message, UseStackableResponse.Silent);
+        }
+
+        var result = await commandBus.SendAsync(
+            new UseStackableCommand(
+                session.CharacterId, message.SlotIndex, message.ListType, message.ItemCode),
+            cancellationToken).ConfigureAwait(false);
+
+        if (result.Status is ItemUseStatus.Used)
+        {
+            logger.LogInformation(
+                "Use stackable {ConnectionId} character={CharacterId}: used item {ItemId} from "
+                    + "slot {Slot}, {Remaining} left",
                 context.Connection.ConnectionId,
                 session.CharacterId.Value,
+                result.ItemId,
                 message.SlotIndex,
-                item.ItemId);
-            return UseStackableResponse.Failure(message, UseStackableResponse.InvalidItem);
+                result.RemainingCount);
+            return UseStackableResponse.Success(message, result.ItemId);
         }
 
         logger.LogInformation(
-            "Use stackable {ConnectionId} character={CharacterId}: consumed 1 of item {ItemId} "
-                + "from slot {Slot}, {Remaining} left",
+            "Use stackable {ConnectionId} character={CharacterId}: slot {Slot} refused as {Status}",
             context.Connection.ConnectionId,
             session.CharacterId.Value,
-            consumed.ItemId,
-            consumed.SlotIndex,
-            consumed.RemainingCount);
-
-        return UseStackableResponse.Success(message, consumed.ItemId);
+            message.SlotIndex,
+            result.Status);
+        return UseStackableResponse.Failure(message, ErrorCodeFor(result.Status));
     }
+
+    /// <summary>
+    /// The client sentence that is true of this refusal, or silence when it owns none.
+    /// </summary>
+    /// <remarks>
+    /// Silence is chosen over the nearest available sentence on purpose. A lost race, a missing
+    /// binding, a character whose state has not been published yet -- these are the server's
+    /// problems, and every code the client draws for this type tells the player they did something
+    /// wrong.
+    /// <para>
+    /// Every refusal is listed. A fall-through would turn the next refusal someone adds into
+    /// silence without anyone choosing it, and the test that walks this enum would stay green while
+    /// the player stopped being told anything.
+    /// </para>
+    /// <para>
+    /// Raising is not free: the dispatcher does not catch, so the plugin logs and rethrows and the
+    /// player's connection drops. That is the right trade only because the raise is unreachable
+    /// except through a coding mistake, and because the tests that walk these enums are what keep
+    /// it unreachable. Those tests and this method are one mechanism; neither is worth keeping
+    /// alone.
+    /// </para>
+    /// </remarks>
+    internal static byte ErrorCodeFor(ItemUseStatus status) => status switch
+    {
+        ItemUseStatus.ListNotServed => UseStackableResponse.NotConsumable,
+        ItemUseStatus.NotAUsableItem => UseStackableResponse.NotConsumable,
+        ItemUseStatus.LevelTooLow => UseStackableResponse.LevelTooLow,
+        ItemUseStatus.JobMismatch => UseStackableResponse.JobMismatch,
+        ItemUseStatus.OnCooldown => UseStackableResponse.CurrentlyUnusable,
+        ItemUseStatus.PlaceNotAllowed => UseStackableResponse.CurrentlyUnusable,
+        ItemUseStatus.NoSession => UseStackableResponse.Silent,
+        ItemUseStatus.NoBoundContainer => UseStackableResponse.Silent,
+        ItemUseStatus.SlotDisagrees => UseStackableResponse.Silent,
+        ItemUseStatus.SlotChanged => UseStackableResponse.Silent,
+        ItemUseStatus.CharacterStateUnavailable => UseStackableResponse.Silent,
+        ItemUseStatus.Used => throw new ArgumentOutOfRangeException(
+            nameof(status), status, "A use that happened has no error code."),
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(status), status, "No client code was decided for this refusal."),
+    };
 }

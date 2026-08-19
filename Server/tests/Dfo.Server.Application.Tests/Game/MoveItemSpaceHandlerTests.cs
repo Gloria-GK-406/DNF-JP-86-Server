@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Inventory;
@@ -11,6 +12,7 @@ using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Tests.Game;
 
@@ -107,13 +109,18 @@ public sealed class MoveItemSpaceHandlerTests
 
         Assert.Equal([(65, 8474, 1)], inventory.Rows());
         Assert.Equal(
-            MoveItemSpaceResponse.InvalidOperation,
+            MoveItemSpaceResponse.NotMovable,
             ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
     }
 
     /// <remarks>
     /// Cargo, equipment, pets and the rest each carry their own rules about what may enter them.
     /// Answering for them without those rules would open a door that should have stayed shut.
+    /// <para>
+    /// 「无法移动该物品」, which is what the Japanese table spells out as "an item of a kind that
+    /// cannot be moved". The refusal used to send code 2, which the client draws nothing for at
+    /// all -- a drag into the cargo looked exactly like a dropped frame.
+    /// </para>
     /// </remarks>
     [Fact]
     public async Task A_list_other_than_the_main_one_is_refused()
@@ -128,7 +135,7 @@ public sealed class MoveItemSpaceHandlerTests
 
         Assert.Equal([(65, 8474, 1)], inventory.Rows());
         Assert.Equal(
-            MoveItemSpaceResponse.InvalidOperation,
+            MoveItemSpaceResponse.NotMovable,
             ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
     }
 
@@ -149,16 +156,86 @@ public sealed class MoveItemSpaceHandlerTests
         Assert.Null(((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
     }
 
+    /// <remarks>
+    /// Answered without a message. Code 4, which this used to send, says 「金库空间不足， 无法放入
+    /// 物品」 -- and two empty slots are not a space problem, they are the client and the server
+    /// disagreeing about an inventory. The client owns no sentence for that, and every sentence it
+    /// does own would blame the player for it.
+    /// </remarks>
     [Fact]
-    public async Task Two_empty_slots_are_refused()
+    public async Task Two_empty_slots_are_refused_without_a_message()
     {
         var (handler, sender) = Build(new FakeInventory());
 
         await handler.HandleAsync(Context, Request(65, 66, 0, 0), CancellationToken.None);
 
         Assert.Equal(
-            MoveItemSpaceResponse.Rejected,
+            MoveItemSpaceResponse.Silent,
             ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+    }
+
+    /// <remarks>
+    /// 「物品栏已有同类物品」 -- the Japanese table spells it "the inventory already holds an item
+    /// at the same stack limit". It is the one refusal on this path the client can name exactly,
+    /// and it used to be folded in with everything else under a code that showed nothing.
+    /// </remarks>
+    [Fact]
+    public async Task A_merge_past_the_stack_limit_says_the_pile_is_full()
+    {
+        var inventory = new FakeInventory { [65] = (8474, 60), [66] = (8474, 60) };
+        var (handler, sender) = Build(inventory);
+
+        await handler.HandleAsync(Context, Request(65, 66, 8474, 8474), CancellationToken.None);
+
+        Assert.Equal([(65, 8474, 60), (66, 8474, 60)], inventory.Rows());
+        Assert.Equal(
+            MoveItemSpaceResponse.StackLimitReached,
+            ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+    }
+
+    /// <remarks>
+    /// A swap has to satisfy both ends. Here the item being moved may go where it is aimed, but the
+    /// one it would displace may not go where it would land, so nothing moves. The client is told
+    /// 「无法移动该物品」 rather than nothing: the player did aim at a slot that cannot take the
+    /// trade, and that is something they can act on.
+    /// </remarks>
+    [Fact]
+    public async Task A_swap_whose_other_end_cannot_land_says_the_item_will_not_move()
+    {
+        var inventory = new FakeInventory
+        {
+            [65] = (TwoBandPlacements.Consumable, 1),
+            [100] = (TwoBandPlacements.Equipment, 1),
+        };
+        var (handler, sender) = Build(inventory, new TwoBandPlacements());
+
+        await handler.HandleAsync(
+            Context,
+            Request(65, 100, TwoBandPlacements.Consumable, TwoBandPlacements.Equipment),
+            CancellationToken.None);
+
+        Assert.Equal(
+            [(65, TwoBandPlacements.Consumable, 1), (100, TwoBandPlacements.Equipment, 1)],
+            inventory.Rows());
+        Assert.Equal(
+            MoveItemSpaceResponse.NotMovable,
+            ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+    }
+
+    /// <remarks>
+    /// A merge that fits is still a merge; the refusal above must not be reachable by every pair
+    /// of like piles.
+    /// </remarks>
+    [Fact]
+    public async Task A_merge_within_the_stack_limit_still_happens()
+    {
+        var inventory = new FakeInventory { [65] = (8474, 10), [66] = (8474, 10) };
+        var (handler, sender) = Build(inventory);
+
+        await handler.HandleAsync(Context, Request(65, 66, 8474, 8474), CancellationToken.None);
+
+        Assert.Equal([(66, 8474, 20)], inventory.Rows());
+        Assert.Null(((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
     }
 
     private static readonly NetworkDispatchContext Context = new(
@@ -169,18 +246,37 @@ public sealed class MoveItemSpaceHandlerTests
         new(GameMessageMetadata.Empty, 0, sourceSlot, sourceInstance, 0, 0, destinationSlot,
             destinationInstance);
 
-    private static (MoveItemSpaceHandler Handler, RecordingSender Sender) Build(FakeInventory inventory)
+    private static (MoveItemSpaceHandler Handler, RecordingSender Sender) Build(
+        FakeInventory inventory, IItemPlacementDefinitionSource? placements = null)
     {
         var sender = new RecordingSender();
+        var commandHandler = new MoveItemSpaceCommandHandler(
+            Containers(inventory),
+            placements ?? new ConsumablePlacements(),
+            new ItemSlotRuleService());
+
         return (
             new MoveItemSpaceHandler(
                 new OneSession(),
-                inventory,
-                new ConsumablePlacements(),
-                new ItemSlotRuleService(),
+                new DirectCommandBus(move: commandHandler),
                 sender,
                 NullLogger<MoveItemSpaceHandler>.Instance),
             sender);
+    }
+
+
+    /// <summary>Binds the fixture's storage to the session's character as its main container.</summary>
+    private static ICharacterContainerDomainService Containers(
+        IEntryInventoryMutationRepository storage)
+    {
+        var characterId = new CharacterId(60);
+        var containers = new CharacterContainerDomainService();
+        containers.Register(characterId, new PersistentItemContainer(
+            new ContainerId("character:60:Main"),
+            characterId,
+            new ContainerShape(InventoryContainerType.Main, 0),
+            storage));
+        return containers;
     }
 
     /// <summary>Every item here is an ordinary consumable: kind 2, band 65 to 120.</summary>
@@ -190,8 +286,28 @@ public sealed class MoveItemSpaceHandlerTests
             ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(2, 100, 65, 120));
     }
 
+    /// <summary>
+    /// One item in the consumable band and one in the equipment band, so a swap can fail on the
+    /// end that is being displaced rather than the end being moved.
+    /// </summary>
+    private sealed class TwoBandPlacements : IItemPlacementDefinitionSource
+    {
+        public const int Consumable = 8474;
+        public const int Equipment = 10000;
+
+        public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ItemPlacement?>(
+                itemId == Equipment
+                    ? new ItemPlacement(1, 1, 9, 64)
+                    : new ItemPlacement(2, 100, 65, 120));
+    }
+
     private sealed class FakeInventory : IEntryInventoryMutationRepository
     {
+
+        public ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
+            CharacterId characterId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("This fixture covers moves only.");
 
         /// <summary>Not exercised here: this fixture does not consume items.</summary>
         public ValueTask<MainInventoryOccupant?> ReadMainSlotAsync(

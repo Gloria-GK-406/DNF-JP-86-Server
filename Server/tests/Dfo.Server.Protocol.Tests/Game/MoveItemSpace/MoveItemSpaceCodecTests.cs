@@ -105,7 +105,7 @@ public sealed class MoveItemSpaceCodecTests
     public void A_refusal_carries_the_code_and_the_two_lists()
     {
         var response = MoveItemSpaceResponse.Failure(
-            Decode(ObservedBody), MoveItemSpaceResponse.InvalidOperation);
+            Decode(ObservedBody), MoveItemSpaceResponse.Silent);
 
         Assert.Equal([0x00, 0x02, 0x00, 0x00], MoveItemSpacePayloadCodec.Encode(response));
     }

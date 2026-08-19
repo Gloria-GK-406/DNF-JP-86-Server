@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Accounts;
@@ -9,6 +10,9 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.UseStackable;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Sessions;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Tests.Game;
 
@@ -64,9 +68,13 @@ public sealed class UseStackableHandlerTests
     /// <remarks>
     /// The client names what it believes it is using. A slot holding something else means the two
     /// disagree, and deleting anyway would settle that in favour of whichever one is wrong.
+    /// <para>
+    /// Answered with a code the client draws nothing for. Every sentence it owns for this type
+    /// blames the player, and a disagreement about what is in a slot is not something they did.
+    /// </para>
     /// </remarks>
     [Fact]
-    public async Task A_slot_holding_a_different_item_is_refused()
+    public async Task A_slot_holding_a_different_item_is_refused_without_a_message()
     {
         var inventory = new FakeInventory(slot: 3, itemId: 9000, count: 1, itemKind: 2);
         var (handler, sender) = Build(inventory);
@@ -75,37 +83,39 @@ public sealed class UseStackableHandlerTests
 
         Assert.Equal(1, inventory.Count);
         Assert.Equal(
-            UseStackableResponse.InvalidItem,
+            UseStackableResponse.Silent,
             ((UseStackableResponse)sender.Sent.Single()).ErrorCode);
     }
 
     [Fact]
-    public async Task An_empty_slot_is_refused()
+    public async Task An_empty_slot_is_refused_without_a_message()
     {
         var (handler, sender) = Build(new FakeInventory(slot: 3, itemId: 8474, count: 0, itemKind: 2));
 
         await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
 
         Assert.Equal(
-            UseStackableResponse.InvalidItem,
+            UseStackableResponse.Silent,
             ((UseStackableResponse)sender.Sent.Single()).ErrorCode);
     }
 
     /// <remarks>
-    /// Gear can be dragged onto a quick slot like anything else. Without this check a key press
-    /// there would destroy it one press at a time.
+    /// Gear can be dragged onto a quick slot like anything else, and a key press there used to
+    /// destroy it one press at a time. It is turned away because the archive lists no usable item
+    /// under its identifier -- equipment is not in the stackable index at all -- and the client's
+    /// own sentence for code 23 is 「非消耗品， 无法使用」.
     /// </remarks>
     [Fact]
-    public async Task Equipment_is_refused()
+    public async Task Equipment_is_refused_as_not_consumable()
     {
-        var inventory = new FakeInventory(slot: 3, itemId: 1000, count: 1, itemKind: 1);
+        var inventory = new FakeInventory(slot: 3, itemId: 10000, count: 1, itemKind: 1);
         var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(Context, Request(3, 1000), CancellationToken.None);
+        await handler.HandleAsync(Context, Request(3, 10000), CancellationToken.None);
 
         Assert.Equal(1, inventory.Count);
         Assert.Equal(
-            UseStackableResponse.InvalidItem,
+            UseStackableResponse.NotConsumable,
             ((UseStackableResponse)sender.Sent.Single()).ErrorCode);
     }
 
@@ -120,7 +130,106 @@ public sealed class UseStackableHandlerTests
 
         Assert.Equal(1, inventory.Count);
         Assert.Equal(
-            UseStackableResponse.InvalidItem,
+            UseStackableResponse.NotConsumable,
+            ((UseStackableResponse)sender.Sent.Single()).ErrorCode);
+    }
+
+    /// <remarks>
+    /// Sixty-four <c>[unlimited waste]</c>, eighteen <c>[unlimited town and dungeon]</c> and two
+    /// <c>[unlimited etc]</c>: eighty-four items the server used to destroy one press at a time.
+    /// They are not exempted from the decrement -- they produce no decrement to be exempted from.
+    /// </remarks>
+    [Fact]
+    public async Task An_unlimited_item_is_used_without_leaving_the_pile()
+    {
+        var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 1, itemKind: 2);
+        var (handler, sender) = Build(inventory, (8474, ItemUseRules.Unlimited()));
+
+        await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+
+        Assert.Equal(1, inventory.Count);
+        Assert.Null(((UseStackableResponse)sender.Sent.Single()).ErrorCode);
+    }
+
+    /// <remarks>
+    /// 6,254 items declare a <c>[cool time]</c> and none of them was ever enforced, so a potion
+    /// could be drained by holding the key down.
+    /// </remarks>
+    [Fact]
+    public async Task A_second_use_inside_the_cooldown_is_refused()
+    {
+        var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 5, itemKind: 2);
+        var (handler, sender) = Build(inventory, (8474, ItemUseRules.Potion()));
+
+        await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+        await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+
+        Assert.Equal(4, inventory.Count);
+        Assert.Equal(
+            UseStackableResponse.CurrentlyUnusable,
+            ((UseStackableResponse)sender.Sent.Last()).ErrorCode);
+    }
+
+    /// <remarks>
+    /// The cooldown belongs to the effects, which run after the use is allowed. Started by the
+    /// judgement instead, a refused press would lock the player out of an item they still hold.
+    /// </remarks>
+    [Fact]
+    public async Task A_refused_use_does_not_start_the_cooldown()
+    {
+        var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 5, itemKind: 2);
+        var (handler, sender) = Build(inventory, (8474, ItemUseRules.RequiringLevel(99)));
+
+        await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+        await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+
+        Assert.Equal(5, inventory.Count);
+        Assert.All(
+            sender.Sent,
+            message => Assert.Equal(
+                UseStackableResponse.LevelTooLow, ((UseStackableResponse)message).ErrorCode));
+    }
+
+    /// <remarks>
+    /// The client can say four different things. Answering every refusal with one of them, which
+    /// is what the server used to do, throws away the part the player could act on.
+    /// </remarks>
+    [Fact]
+    public async Task A_wrong_job_and_too_low_a_level_are_told_apart()
+    {
+        var wrongJob = Build(
+            new FakeInventory(slot: 3, itemId: 8474, count: 1, itemKind: 2),
+            (8474, ItemUseRules.RequiringJob(QuestJobRequirement.Priest)));
+        var tooLow = Build(
+            new FakeInventory(slot: 3, itemId: 8474, count: 1, itemKind: 2),
+            (8474, ItemUseRules.RequiringLevel(99)));
+
+        await wrongJob.Handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+        await tooLow.Handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+
+        Assert.Equal(
+            UseStackableResponse.JobMismatch,
+            ((UseStackableResponse)wrongJob.Sender.Sent.Single()).ErrorCode);
+        Assert.Equal(
+            UseStackableResponse.LevelTooLow,
+            ((UseStackableResponse)tooLow.Sender.Sent.Single()).ErrorCode);
+    }
+
+    /// <remarks>
+    /// The client owns no sentence for either the cooldown or the place, so both land on 19,
+    /// 「目前无法使用物品」 -- which is true of both and is the closest true thing it can say.
+    /// </remarks>
+    [Fact]
+    public async Task An_item_only_usable_underground_is_refused_in_town()
+    {
+        var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 1, itemKind: 2);
+        var (handler, sender) = Build(inventory, (8474, ItemUseRules.UsableIn(ItemUsePlace.Dungeon)));
+
+        await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+
+        Assert.Equal(1, inventory.Count);
+        Assert.Equal(
+            UseStackableResponse.CurrentlyUnusable,
             ((UseStackableResponse)sender.Sent.Single()).ErrorCode);
     }
 
@@ -144,27 +253,52 @@ public sealed class UseStackableHandlerTests
     private static UseStackableRequest Request(short slot, int itemCode) =>
         new(GameMessageMetadata.Empty, slot, 0, 25333, itemCode);
 
-    private static (UseStackableHandler Handler, RecordingSender Sender) Build(FakeInventory inventory)
+    private static (UseStackableHandler Handler, RecordingSender Sender) Build(
+        FakeInventory inventory,
+        params (int ItemId, ItemUseRule Rule)[] rules)
     {
+        var declared = rules.Length == 0
+            ? [(8474, ItemUseRules.Potion(cooldownMilliseconds: 0))]
+            : rules;
+        var content = new FakeItemUseRules(declared);
+        var clock = new AdvanceableTimeProvider(
+            new DateTimeOffset(2026, 8, 18, 12, 0, 0, TimeSpan.Zero));
+        var cooldowns = new CharacterItemCooldownDomainService(clock);
+        var sessions = new OneSession();
         var sender = new RecordingSender();
+
+        var commandHandler = new UseStackableCommandHandler(
+            Containers(inventory),
+            new ItemUsabilityDomainService(
+                content,
+                cooldowns,
+                sessions,
+                new FixedRuntimeSessions(level: 50, job: 0),
+                new SessionPresenceRegistry()),
+            new ItemUseEffectDomainService(content, cooldowns));
+
         return (
             new UseStackableHandler(
-                new OneSession(),
-                inventory,
-                new KindFromInventory(inventory),
+                sessions,
+                new DirectCommandBus(use: commandHandler),
                 sender,
                 NullLogger<UseStackableHandler>.Instance),
             sender);
     }
 
-    /// <summary>Reports the placement of whatever the fixture holds, so the two cannot disagree.</summary>
-    private sealed class KindFromInventory(FakeInventory inventory) : IItemPlacementDefinitionSource
+
+    /// <summary>Binds the fixture's storage to the session's character as its main container.</summary>
+    private static ICharacterContainerDomainService Containers(
+        IEntryInventoryMutationRepository storage)
     {
-        public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ItemPlacement?>(
-                inventory.ItemKind == 1
-                    ? new ItemPlacement(1, 1, 9, 64)
-                    : new ItemPlacement(2, 100, 65, 120));
+        var characterId = new CharacterId(60);
+        var containers = new CharacterContainerDomainService();
+        containers.Register(characterId, new PersistentItemContainer(
+            new ContainerId("character:60:Main"),
+            characterId,
+            new ContainerShape(InventoryContainerType.Main, 0),
+            storage));
+        return containers;
     }
 
     private sealed class FakeInventory(int slot, int itemId, int count, byte itemKind)
@@ -172,9 +306,11 @@ public sealed class UseStackableHandlerTests
     {
         public int Count { get; private set; } = count;
 
-        public byte ItemKind => itemKind;
-
         public bool IsEmpty => Count == 0;
+
+        public ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
+            CharacterId characterId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("This fixture covers use only.");
 
         public ValueTask<MainInventoryOccupant?> ReadMainSlotAsync(
             CharacterId characterId, int slotIndex, CancellationToken cancellationToken) =>

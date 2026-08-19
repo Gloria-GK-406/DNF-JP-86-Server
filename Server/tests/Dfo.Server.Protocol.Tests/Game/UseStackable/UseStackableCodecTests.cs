@@ -87,7 +87,7 @@ public sealed class UseStackableCodecTests
     public void A_refusal_replaces_the_slot_with_the_code()
     {
         var response = UseStackableResponse.Failure(
-            Decode(ObservedBody), UseStackableResponse.InvalidItem);
+            Decode(ObservedBody), UseStackableResponse.NotConsumable);
 
         Assert.Equal(
             [0x00, 0x17, 0x00, 0xF5, 0x62, 0x00, 0x00, 0x1A, 0x21, 0x00, 0x00],

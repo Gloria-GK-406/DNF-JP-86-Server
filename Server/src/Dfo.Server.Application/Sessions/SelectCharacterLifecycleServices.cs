@@ -67,6 +67,8 @@ internal sealed class SelectedSessionCleanupService(
     ISelectedSessionDirectory sessions,
     ISelectedSessionRuntimeDirectory runtimes,
     IEntryInventoryLeaseRegistry inventoryLeases,
+    ICharacterContainerDomainService containers,
+    ICharacterItemCooldownDomainService cooldowns,
     IActiveCharacterDomainService activeCharacters,
     ISessionPresenceRegistry presence,
     IExpertStoreRegistry expertStores,
@@ -122,6 +124,19 @@ internal sealed class SelectedSessionCleanupService(
         Run(() => runtimes.RemoveExact(session));
         Run(() => activeCharacters.ClearExact(session));
         Run(() => sessions.TryRemoveExact(session));
+
+        // After the directory entry is gone: a character that already re-entered on another
+        // connection owns the registration now, and dropping it would unbind a live session.
+        Run(() =>
+        {
+            if (sessions.FindByCharacter(session.CharacterId) is null)
+            {
+                containers.Clear(session.CharacterId);
+                cooldowns.Clear(session.CharacterId);
+            }
+
+            return true;
+        });
         var notificationPlan = new SelectedSessionCleanupNotificationPlan(
             session.ConnectionId, required, targets);
         if (failures.Count != 0)

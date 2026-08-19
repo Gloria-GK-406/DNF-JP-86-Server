@@ -19,7 +19,8 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
     [Fact]
     public async Task DirtyExactLease_IsSavedBeforeFreshInventoryIsLoadedAndRegistered()
     {
-        var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(new AccountId(600), 600, 1);
+        var result = WithMainContainer(
+            await CharacterEntryInventoryTests.CreateLifecycleResultAsync(new AccountId(600), 600, 1));
         var previous = Session(result);
         var next = previous with { ConnectionGeneration = previous.ConnectionGeneration + 1 };
         var dirty = new CharacterItemLeaseState(result.CharacterInventory.CharacterId,
@@ -30,7 +31,8 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var persistence = new RecordingLeasePersistence();
         var loader = new InventoryLoader(result.CharacterInventory);
         var service = new SelectCharacterEntryInventoryDomainService(
-            new RefillContent(), new RefillMutation(), loader, persistence, leases);
+            new RefillContent(), new RefillMutation(), loader, persistence, leases,
+            new CharacterContainerDomainService());
 
         await service.SaveExistingLeaseAsync(previous, CancellationToken.None);
         var updated = await service.PrepareLeaseAsync(next, result, CancellationToken.None);
@@ -54,7 +56,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var leases = new EntryInventoryLeaseRegistry();
         var service = new SelectCharacterEntryInventoryDomainService(
             new RefillContent(), new RefillMutation(), new InventoryLoader(reloaded),
-            new NoopLeasePersistence(), leases);
+            new NoopLeasePersistence(), leases, new CharacterContainerDomainService());
         _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
 
         var prepared = await service.ApplyDailyRefillAsync(session, result, CancellationToken.None);
@@ -70,12 +72,14 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
     [Fact]
     public async Task InventoryPreparation_MutationFailureReloadsATrustworthyLease()
     {
-        var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(new AccountId(605), 605, 1);
+        var result = WithMainContainer(
+            await CharacterEntryInventoryTests.CreateLifecycleResultAsync(new AccountId(605), 605, 1));
         var session = Session(result);
         var loader = new InventoryLoader(result.CharacterInventory);
         var leases = new EntryInventoryLeaseRegistry();
         var service = new SelectCharacterEntryInventoryDomainService(
-            new RefillContent(), new FailingRefillMutation(), loader, new NoopLeasePersistence(), leases);
+            new RefillContent(), new FailingRefillMutation(), loader, new NoopLeasePersistence(), leases,
+            new CharacterContainerDomainService());
         _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
 
         await Assert.ThrowsAsync<IOException>(async () =>
@@ -148,6 +152,62 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         Assert.Null(unchanged);
     }
 
+    /// <summary>
+    /// Entry is where a character acquires the container its items come from.
+    /// </summary>
+    /// <remarks>
+    /// The shape comes from the inventory that was just loaded rather than from the container type,
+    /// because capacity is a fact about this character: a player who paid to expand their bag would
+    /// otherwise be told it is the size everyone else's is. Nothing else in the run re-derives it,
+    /// so a wrong value here reaches the client and nothing fails.
+    /// </remarks>
+    [Fact]
+    public async Task Entry_binds_the_character_to_its_own_main_container()
+    {
+        var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(
+            new AccountId(606), 606, 1);
+        var session = Session(result);
+        // An expanded bag: the parameter is this character's, not the container type's.
+        var expanded = result.CharacterInventory with
+        {
+            Containers = [new InventoryContainerState(InventoryContainerType.Main, 156, [])],
+        };
+        var containers = new CharacterContainerDomainService();
+        var service = new SelectCharacterEntryInventoryDomainService(
+            new RefillContent(), new RefillMutation(),
+            new InventoryLoader(expanded), new NoopLeasePersistence(),
+            new EntryInventoryLeaseRegistry(), containers);
+
+        var prepared = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
+
+        var loaded = prepared.CharacterInventory.Containers.Single(
+            value => value.ContainerType == InventoryContainerType.Main);
+        var bound = containers.GetContainer(session.CharacterId, InventoryContainerType.Main);
+        Assert.Equal(InventoryContainerType.Main, bound.Type);
+        Assert.Equal(loaded.Parameter, bound.Shape.Parameter);
+        Assert.Equal(156, bound.Shape.Parameter);
+        Assert.False(bound.IsRemovable);
+        Assert.Equal([bound], containers.GetContainers(
+            session.CharacterId, InventoryContainerType.Main));
+    }
+
+    /// <summary>
+    /// Gives the fixture's result the main container a loaded inventory always has.
+    /// </summary>
+    /// <remarks>
+    /// The entry projection emits every container type, empty ones included, so entry binds the
+    /// character to the main one. The shared fixture builds its state by hand and leaves the list
+    /// empty, which is a shape no load produces.
+    /// </remarks>
+    private static SelectCharacterResult WithMainContainer(SelectCharacterResult result) =>
+        result with
+        {
+            CharacterInventory = result.CharacterInventory with
+            {
+                Containers = [new InventoryContainerState(InventoryContainerType.Main, 0, [])],
+            },
+        };
+
     private static SelectedSessionIdentity Session(SelectCharacterResult result) =>
         SelectedSessionIdentity.Create(result.Account.AccountId, result.Character.Identity.CharacterId,
             new NetworkConnectionId("Game:entry-service"), 1, 10011);
@@ -172,6 +232,10 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
     {
 
         /// <summary>Not exercised here: this fixture does not consume items.</summary>
+        public ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
+            CharacterId characterId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("This fixture does not read the main inventory.");
+
         public ValueTask<MainInventoryOccupant?> ReadMainSlotAsync(
             CharacterId characterId, int slotIndex, CancellationToken cancellationToken) =>
             throw new NotSupportedException("The refill fixture does not consume items.");
@@ -213,6 +277,10 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
     {
 
         /// <summary>Not exercised here: this fixture does not consume items.</summary>
+        public ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
+            CharacterId characterId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("This fixture does not read the main inventory.");
+
         public ValueTask<MainInventoryOccupant?> ReadMainSlotAsync(
             CharacterId characterId, int slotIndex, CancellationToken cancellationToken) =>
             throw new NotSupportedException("The refill fixture does not consume items.");

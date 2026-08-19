@@ -184,6 +184,15 @@ public interface IEntryInventoryMutationRepository
         Dfo.Server.Abstractions.Content.ItemPlacement placement,
         CancellationToken cancellationToken);
 
+    /// <summary>Reads every occupied slot of the character's main inventory.</summary>
+    /// <remarks>
+    /// Full item rows rather than the occupant summary the slot reads answer with: this is what a
+    /// container projects to the client, and the client draws the whole of an item.
+    /// </remarks>
+    ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
+        CharacterId characterId,
+        CancellationToken cancellationToken);
+
     /// <summary>Reads what one slot of the character's main inventory holds.</summary>
     ValueTask<MainInventoryOccupant?> ReadMainSlotAsync(
         CharacterId characterId,
