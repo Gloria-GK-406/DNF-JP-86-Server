@@ -68,6 +68,7 @@ internal sealed class SelectedSessionCleanupService(
     ISelectedSessionRuntimeDirectory runtimes,
     IEntryInventoryLeaseRegistry inventoryLeases,
     ICharacterContainerDomainService containers,
+    ICharacterItemCooldownDomainService cooldowns,
     IActiveCharacterDomainService activeCharacters,
     ISessionPresenceRegistry presence,
     IExpertStoreRegistry expertStores,
@@ -129,7 +130,11 @@ internal sealed class SelectedSessionCleanupService(
         Run(() =>
         {
             if (sessions.FindByCharacter(session.CharacterId) is null)
+            {
                 containers.Clear(session.CharacterId);
+                cooldowns.Clear(session.CharacterId);
+            }
+
             return true;
         });
         var notificationPlan = new SelectedSessionCleanupNotificationPlan(

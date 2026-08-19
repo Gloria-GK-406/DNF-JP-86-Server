@@ -65,6 +65,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IInitialSkillDefinitionSource, PvfInitialSkillDefinitionSource>();
         services.TryAddSingleton<ITutorialRewardDefinitionSource, PvfTutorialRewardDefinitionSource>();
         services.TryAddSingleton<IItemPlacementDefinitionSource, PvfItemPlacementDefinitionSource>();
+        services.TryAddSingleton<IItemUseRuleDefinitionSource, PvfItemUseRuleDefinitionSource>();
         services.TryAddSingleton(ReadChannelEntryOptions(configuration));
 
         var configuredDatabasePath = configuration["Database:Path"] ?? "Data/dfo-server.db";

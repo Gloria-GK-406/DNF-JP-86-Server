@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Application.Characters;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.World;
 
@@ -44,7 +45,7 @@ internal sealed class WorldContentEntryRuleService(
                 subject.EquippedCreatureItemId,
                 cancellationToken).ConfigureAwait(false)
             : null;
-        var requirement = QuestJobRequirementFor(subject.Job);
+        var requirement = CharacterJobFamilies.Resolve(subject.Job);
         var offerable = new List<OfferableQuestState>();
         var seenQuestIds = new HashSet<int>();
 
@@ -232,37 +233,6 @@ internal sealed class WorldContentEntryRuleService(
         QuestGrade.Daily
         or QuestGrade.NormallyRepeat
         or QuestGrade.SpecialDaily;
-
-    /// <summary>
-    /// Maps a character's job number onto the job family the content names.
-    /// </summary>
-    /// <remarks>
-    /// Reverse-engineered from the legacy quest index, which resolves a job number to one of
-    /// seven base families and separately decides whether the awakened spelling applies.
-    /// Two pairs collapse: job 8 and job 10 are both the awakened mage, and job 9 and job 11
-    /// are both the awakened swordman.
-    /// <para>
-    /// <see cref="QuestJobRequirement.DemonicSwordman"/> is deliberately unreachable here.
-    /// The content declares it, but no job number maps to it in the legacy table, so no
-    /// character is currently offered a quest restricted to it. Inventing a mapping would be
-    /// a behaviour change dressed as a port, so the gap is left visible instead.
-    /// </para>
-    /// </remarks>
-    private static QuestJobRequirement QuestJobRequirementFor(byte job) => job switch
-    {
-        0 => QuestJobRequirement.Swordman,
-        1 => QuestJobRequirement.Fighter,
-        2 => QuestJobRequirement.Gunner,
-        3 => QuestJobRequirement.Mage,
-        4 => QuestJobRequirement.Priest,
-        5 => QuestJobRequirement.AwakenedGunner,
-        6 => QuestJobRequirement.Thief,
-        7 => QuestJobRequirement.AwakenedFighter,
-        8 or 10 => QuestJobRequirement.AwakenedMage,
-        9 or 11 => QuestJobRequirement.AwakenedSwordman,
-        12 => QuestJobRequirement.Knight,
-        _ => QuestJobRequirement.Unrecognized,
-    };
 
     private async ValueTask<DailyChallengeEntryState> ResolveDailyChallengeAsync(
         WorldContentSubject subject,

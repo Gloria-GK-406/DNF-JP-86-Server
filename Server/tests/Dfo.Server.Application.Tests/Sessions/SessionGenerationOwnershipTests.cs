@@ -48,6 +48,7 @@ public sealed class SessionGenerationOwnershipTests
         directory.RegisterReplacing(session);
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(), new CharacterContainerDomainService(),
+            new CharacterItemCooldownDomainService(TimeProvider.System),
             new ThrowingActive(), new SessionPresenceRegistry(), new ExpertStoreRegistry(),
             new PvpLobbyRegistry(), []);
 
@@ -74,6 +75,7 @@ public sealed class SessionGenerationOwnershipTests
         stores.Open(owner);
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(), new CharacterContainerDomainService(),
+            new CharacterItemCooldownDomainService(TimeProvider.System),
             new ThrowingActive(), presence, stores, new PvpLobbyRegistry(),
             []);
 
@@ -119,6 +121,7 @@ public sealed class SessionGenerationOwnershipTests
         stores.Open(owner);
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(), new CharacterContainerDomainService(),
+            new CharacterItemCooldownDomainService(TimeProvider.System),
             new PassiveActive(), presence, stores, new PvpLobbyRegistry(),
             []);
 
@@ -153,6 +156,7 @@ public sealed class SessionGenerationOwnershipTests
         var persistence = new RecordingPositionPersistence();
         var service = new SelectedSessionCleanupService(
             directory, runtimes, new EmptyInventoryLease(), new CharacterContainerDomainService(),
+            new CharacterItemCooldownDomainService(TimeProvider.System),
             new PassiveActive(),
             new SessionPresenceRegistry(), new ExpertStoreRegistry(), new PvpLobbyRegistry(),
             [persistence]);
@@ -175,6 +179,7 @@ public sealed class SessionGenerationOwnershipTests
         stores.Open(replacement);
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(), new CharacterContainerDomainService(),
+            new CharacterItemCooldownDomainService(TimeProvider.System),
             new PassiveActive(), presence, stores, new PvpLobbyRegistry(),
             []);
 
@@ -186,6 +191,56 @@ public sealed class SessionGenerationOwnershipTests
         Assert.Equal(replacement, directory.Find(replacement.AccountId));
         Assert.Equal(replacement, presence.Find(replacement.CharacterId)!.Session);
         Assert.True(stores.HasOpenStore(replacement.CharacterId));
+    }
+
+    /// <remarks>
+    /// The cooldown record is memory the character owns, and its own contract says a relog clears
+    /// every cooldown. Nothing but this wiring makes that true: without it a thirty-minute summon
+    /// stays on cooldown across a re-entry, and the entries are never reclaimed.
+    /// </remarks>
+    [Fact]
+    public async Task Cleanup_ClearsTheCharactersCooldowns()
+    {
+        var session = Session("cleanup-cooldown", 11);
+        var directory = new SelectedSessionDirectory();
+        directory.RegisterReplacing(session);
+        var cooldowns = new CharacterItemCooldownDomainService(TimeProvider.System);
+        cooldowns.Start(session.CharacterId, ItemCooldownKey.ForGroup(70), TimeSpan.FromMinutes(30));
+        var service = new SelectedSessionCleanupService(
+            directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(),
+            new CharacterContainerDomainService(), cooldowns,
+            new PassiveActive(), new SessionPresenceRegistry(), new ExpertStoreRegistry(),
+            new PvpLobbyRegistry(), []);
+
+        await service.CleanupAsync(session, includeOwner: false, CancellationToken.None);
+
+        Assert.False(
+            cooldowns.IsCoolingDown(session.CharacterId, ItemCooldownKey.ForGroup(70)));
+    }
+
+    /// <remarks>
+    /// A character who re-entered on another connection owns the record now, so the departing
+    /// session must not clear it out from under them.
+    /// </remarks>
+    [Fact]
+    public async Task Cleanup_LeavesTheCooldownsOfACharacterWhoAlreadyReturned()
+    {
+        var departing = Session("cooldown-departing", 12);
+        var returned = Session("cooldown-returned", 13);
+        var directory = new SelectedSessionDirectory();
+        directory.RegisterReplacing(returned);
+        var cooldowns = new CharacterItemCooldownDomainService(TimeProvider.System);
+        cooldowns.Start(returned.CharacterId, ItemCooldownKey.ForGroup(70), TimeSpan.FromMinutes(30));
+        var service = new SelectedSessionCleanupService(
+            directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(),
+            new CharacterContainerDomainService(), cooldowns,
+            new PassiveActive(), new SessionPresenceRegistry(), new ExpertStoreRegistry(),
+            new PvpLobbyRegistry(), []);
+
+        await service.CleanupAsync(departing, includeOwner: false, CancellationToken.None);
+
+        Assert.True(
+            cooldowns.IsCoolingDown(returned.CharacterId, ItemCooldownKey.ForGroup(70)));
     }
 
     private static SelectedSessionIdentity Session(string connection, long generation) =>

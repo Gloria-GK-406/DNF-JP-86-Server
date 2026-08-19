@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
@@ -102,17 +103,38 @@ public sealed class CharacterContainerDomainServiceTests
     /// <remarks>
     /// The two protocols that read and write items name no storage of their own. That is the whole
     /// of the seam: what a dungeon replaces is the container, and these keep working across it.
+    /// <para>
+    /// The container is now held one layer down, by the command each protocol dispatches. The
+    /// protocol handlers name neither storage nor container -- they turn a frame into a command and
+    /// the answer into a code -- which is what makes a refusal reason something the command decides
+    /// rather than something the acknowledgement invents.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void The_item_protocols_reach_storage_only_through_a_container()
+    public void The_item_commands_reach_storage_only_through_a_container()
     {
-        foreach (var handler in new[] { typeof(MoveItemSpaceHandler), typeof(UseStackableHandler) })
+        foreach (var handler in
+                 new[] { typeof(MoveItemSpaceCommandHandler), typeof(UseStackableCommandHandler) })
         {
             var parameters = handler.GetConstructors().Single().GetParameters();
             Assert.DoesNotContain(
                 parameters, value => value.ParameterType == typeof(IEntryInventoryMutationRepository));
             Assert.Contains(
                 parameters, value => value.ParameterType == typeof(ICharacterContainerDomainService));
+        }
+    }
+
+    [Fact]
+    public void The_item_protocol_handlers_decide_nothing_about_items()
+    {
+        foreach (var handler in new[] { typeof(MoveItemSpaceHandler), typeof(UseStackableHandler) })
+        {
+            var parameters = handler.GetConstructors().Single().GetParameters();
+            Assert.DoesNotContain(
+                parameters, value => value.ParameterType == typeof(IEntryInventoryMutationRepository));
+            Assert.DoesNotContain(
+                parameters, value => value.ParameterType == typeof(ICharacterContainerDomainService));
+            Assert.Contains(parameters, value => value.ParameterType == typeof(ICommandBus));
         }
     }
 

@@ -130,6 +130,13 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<CompensateSelectedCharacterSessionCommand, CompensatedSelectedCharacterSession, CompensateSelectedCharacterSessionCommandHandler>(
             CommandExecutionKind.Workflow,
             accountAccessMode: UserAccessMode.Exclusive);
+
+        // Both act on one character's own container, which the registry already keeps per
+        // character; neither reads or writes anything the account owns, so neither takes it.
+        services.AddCommandHandler<MoveItemSpaceCommand, ItemMoveResult, MoveItemSpaceCommandHandler>(
+            CommandExecutionKind.Direct);
+        services.AddCommandHandler<UseStackableCommand, ItemUseResult, UseStackableCommandHandler>(
+            CommandExecutionKind.Direct);
     }
 
     /// <summary>Binds each catalogue member to the handler that consumes it.</summary>

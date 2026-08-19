@@ -13,27 +13,6 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
     private const int MinimumClientQuestId = 1;
     private const int MaximumClientQuestId = 29_999;
 
-    private static readonly Dictionary<string, QuestJobRequirement> JobTokens =
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            ["[all]"] = QuestJobRequirement.Any,
-            ["[swordman]"] = QuestJobRequirement.Swordman,
-            ["[fighter]"] = QuestJobRequirement.Fighter,
-            ["[gunner]"] = QuestJobRequirement.Gunner,
-            ["[mage]"] = QuestJobRequirement.Mage,
-            ["[priest]"] = QuestJobRequirement.Priest,
-            ["[thief]"] = QuestJobRequirement.Thief,
-            ["[knight]"] = QuestJobRequirement.Knight,
-            ["[demonic swordman]"] = QuestJobRequirement.DemonicSwordman,
-            ["[at swordman]"] = QuestJobRequirement.AwakenedSwordman,
-            ["[at fighter]"] = QuestJobRequirement.AwakenedFighter,
-            ["[at gunner]"] = QuestJobRequirement.AwakenedGunner,
-            ["[at mage]"] = QuestJobRequirement.AwakenedMage,
-            ["[at priest]"] = QuestJobRequirement.AwakenedPriest,
-            ["[at thief]"] = QuestJobRequirement.AwakenedThief,
-            ["[at knight]"] = QuestJobRequirement.AwakenedKnight,
-        };
-
     private static readonly Dictionary<string, QuestGrade> GradeTokens =
         new(StringComparer.OrdinalIgnoreCase)
         {
@@ -521,7 +500,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         if (targetCharacterText is null)
             return new QuestTargetCharacterRestriction([]);
 
-        var jobFamilies = JobTokens
+        var jobFamilies = ArchiveJobFamilyTokens.All
             .Where(pair => targetCharacterText.Contains(pair.Key, StringComparison.OrdinalIgnoreCase))
             .Select(pair => pair.Value)
             .Distinct()
@@ -572,7 +551,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             if (end < 0)
                 throw Invalid(questId, "job contains an unterminated family token");
             var token = normalized[index..(end + 1)];
-            if (!JobTokens.TryGetValue(token, out var requirement))
+            if (!ArchiveJobFamilyTokens.TryResolve(token, out var requirement))
                 throw Invalid(questId, $"job contains unrecognized token '{token}'");
             requirements.Add(requirement);
             index = end + 1;
