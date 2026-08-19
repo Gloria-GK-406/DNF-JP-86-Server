@@ -170,6 +170,7 @@ public sealed class CommandBusTests
                 typeof(CommandLoggingBehavior<TestResult>),
                 typeof(OnlineUserExecutionBehavior<TestResult>),
                 typeof(AccountExecutionBehavior<TestResult>),
+                typeof(UnitOfWorkBehavior<TestResult>),
                 typeof(CommandExecutionPolicyBehavior<TestResult>),
             },
             behaviours.Select(behaviour => behaviour.GetType()).ToArray());
@@ -191,8 +192,14 @@ public sealed class CommandBusTests
             new OperationCanceledException("exclusive cancellation"));
     }
 
+    /// <summary>
+    /// Replaces the former test that asserted a transactional command failed for want of a
+    /// unit-of-work policy. That policy is now registered, so the condition its name described
+    /// no longer holds; what remains worth asserting here is that the kind reaches its handler.
+    /// What the transaction then guarantees is asserted in <c>UnitOfWorkBehaviorTests</c>.
+    /// </summary>
     [Fact]
-    public async Task TransactionalCommand_FailsClearlyUntilAUnitOfWorkPolicyIsRegistered()
+    public async Task TransactionalCommand_ReachesItsHandler()
     {
         CountingHandler.ExecutionCount = 0;
         await using var provider = BuildProvider(services =>
@@ -200,11 +207,10 @@ public sealed class CommandBusTests
                 CommandExecutionKind.Transactional));
         var bus = provider.GetRequiredService<ICommandBus>();
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await bus.SendAsync(new TestCommand(), CancellationToken.None));
+        var result = await bus.SendAsync(new TestCommand(), CancellationToken.None);
 
-        Assert.Contains(nameof(CommandExecutionKind.Transactional), exception.Message, StringComparison.Ordinal);
-        Assert.Equal(0, CountingHandler.ExecutionCount);
+        Assert.Equal(1, CountingHandler.ExecutionCount);
+        Assert.NotEqual(Guid.Empty, result.ScopeId);
     }
 
     [Fact]
@@ -221,10 +227,14 @@ public sealed class CommandBusTests
         await directProvider.GetRequiredService<ICommandBus>()
             .SendAsync(new TestCommand(), CancellationToken.None);
 
+        // The failing side used to be produced by the transactional kind itself, which threw for
+        // want of a unit-of-work policy. That policy now exists, so the failure comes from the
+        // handler instead; the kind still has to appear in the error the behaviour logs.
         await using var transactionalProvider = BuildProvider(services =>
         {
             services.AddLogging(builder => builder.AddProvider(logs));
-            services.AddCommandHandler<TestCommand, TestResult, CountingHandler>(
+            services.AddSingleton(new FailOnceProbe(new InvalidOperationException("handler failure")));
+            services.AddCommandHandler<TestCommand, TestResult, FailOnceHandler>(
                 CommandExecutionKind.Transactional);
         });
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
@@ -306,6 +316,19 @@ public sealed class CommandBusTests
             CancellationToken cancellationToken)
         {
             ExecutionCount++;
+            return ValueTask.FromResult(new TestResult(probe.Id));
+        }
+    }
+
+    private sealed class FailOnceHandler(ScopedProbe probe, FailOnceProbe failure)
+        : ICommandHandler<TestCommand, TestResult>
+    {
+        public ValueTask<TestResult> HandleAsync(
+            CommandExecutionContext context,
+            TestCommand command,
+            CancellationToken cancellationToken)
+        {
+            failure.ThrowIfPending();
             return ValueTask.FromResult(new TestResult(probe.Id));
         }
     }

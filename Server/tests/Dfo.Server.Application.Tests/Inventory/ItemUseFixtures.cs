@@ -2,10 +2,14 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Transactions;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
+using Dfo.Server.Protocol.Game.TaggedIdReport;
 using Dfo.Server.Protocol.Game.UseStackable;
 
 namespace Dfo.Server.Application.Tests.Inventory;
@@ -116,34 +120,110 @@ internal sealed class FixedRuntimeSessions(byte level, byte job, bool published 
 }
 
 /// <summary>
-/// Runs a command on the handler that owns it, without the pipeline in between.
+/// Runs a command on the handler that owns it, with a use case boundary and nothing else.
 /// </summary>
 /// <remarks>
-/// The pipeline's behaviours -- execution kind, user access scoping -- are the bus's own subject
-/// and are covered where the bus is. What these tests need from it is only that the protocol
-/// handler no longer decides anything the command decides.
+/// The pipeline's other behaviours -- user access scoping, logging -- are the bus's own subject and
+/// are covered where the bus is. The boundary is here because both of these commands are
+/// transactional now: a container that keeps its items refuses a change with no boundary around it,
+/// so a bus that opened none would be testing the handler against a container it can never meet.
 /// </remarks>
 internal sealed class DirectCommandBus(
     ICommandHandler<UseStackableCommand, ItemUseResult>? use = null,
-    ICommandHandler<MoveItemSpaceCommand, ItemMoveResult>? move = null) : ICommandBus
+    ICommandHandler<MoveItemSpaceCommand, ItemMoveResult>? move = null,
+    DomainTransactionScope? scope = null,
+    ICommandHandler<GrantTutorialRewardCommand, TutorialRewardResult>? reward = null) : ICommandBus
 {
+    private readonly DomainTransactionScope scope = scope ?? new DomainTransactionScope();
+
     public async ValueTask<TResult> SendAsync<TResult>(
         ICommand<TResult> command,
         CancellationToken cancellationToken = default)
         where TResult : notnull
     {
         var context = new CommandExecutionContext(
-            Guid.Empty, command.GetType(), typeof(DirectCommandBus), CommandExecutionKind.Direct);
+            Guid.Empty, command.GetType(), typeof(DirectCommandBus),
+            CommandExecutionKind.Transactional);
 
+        await using var transaction = this.scope.Begin();
         object dispatched = command switch
         {
             UseStackableCommand value => await use!
                 .HandleAsync(context, value, cancellationToken).ConfigureAwait(false),
             MoveItemSpaceCommand value => await move!
                 .HandleAsync(context, value, cancellationToken).ConfigureAwait(false),
+            GrantTutorialRewardCommand value => await reward!
+                .HandleAsync(context, value, cancellationToken).ConfigureAwait(false),
             _ => throw new NotSupportedException($"No handler registered for {command.GetType()}."),
         };
 
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
         return (TResult)dispatched;
+    }
+}
+
+/// <summary>
+/// One character's main container, over a store that keeps nothing past the test.
+/// </summary>
+/// <remarks>
+/// The container is the persistent one, which is the point: it is the one that refuses a change
+/// made outside a use case boundary, so wiring it here is what keeps these tests honest about the
+/// boundary the real path has. What sits behind it does not have to be a database for that.
+/// </remarks>
+internal abstract class FakeMainInventory(int characterId = 60)
+{
+    private readonly CharacterId character = new(characterId);
+
+    private readonly MemoryItemStore store = new();
+
+    private ContainerId Main => ContainerId.ForCharacter(this.character, InventoryContainerType.Main);
+
+    public DomainTransactionScope Scope { get; } = new();
+
+    public ICharacterContainerDomainService Containers()
+    {
+        var containers = new CharacterContainerDomainService();
+        containers.Register(this.character, new PersistentItemContainer(
+            this.Main,
+            this.character,
+            new ContainerShape(InventoryContainerType.Main, 0),
+            this.store,
+            this.Scope,
+            null!));
+        return containers;
+    }
+
+    /// <summary>What the container holds of one item, in slot order.</summary>
+    public List<(int Slot, int ItemId, int Count)> PilesOf(int itemId) =>
+        [.. this.Rows().Where(row => row.ItemId == itemId)];
+
+    public void Seed(int slotIndex, int itemId, int count, byte itemKind = 2) =>
+        this.Settle(session => session.Write(
+            this.Main, new StoredItem(slotIndex, StackableItemCore.Create(itemKind, itemId, count))));
+
+    public List<(int Slot, int ItemId, int Count)> Rows()
+    {
+        var alone = new DomainTransaction();
+        var read = this.store.SessionIn(alone).ReadAllAsync(this.Main, CancellationToken.None);
+        var items = read.IsCompleted ? read.Result : read.AsTask().GetAwaiter().GetResult();
+        return [.. items
+            .OrderBy(item => item.SlotIndex)
+            .Select(item => (item.SlotIndex, item.Core.ItemId, item.Core.Value))];
+    }
+
+    public int CountIn(int slotIndex) =>
+        this.Rows().FirstOrDefault(row => row.Slot == slotIndex).Count;
+
+    /// <remarks>
+    /// The memory store settles without waiting for anything, so nothing here can block; this is
+    /// what lets a fixture seed itself from a property initialiser.
+    /// </remarks>
+    private void Settle(Action<IItemStoreSession> write)
+    {
+        var alone = new DomainTransaction();
+        write(this.store.SessionIn(alone));
+        var settling = alone.CommitAsync(CancellationToken.None);
+        if (!settling.IsCompleted)
+            settling.AsTask().GetAwaiter().GetResult();
     }
 }

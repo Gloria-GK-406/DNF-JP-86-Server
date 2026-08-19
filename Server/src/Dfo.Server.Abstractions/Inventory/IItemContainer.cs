@@ -1,3 +1,5 @@
+using System.Globalization;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Abstractions.Inventory;
@@ -10,6 +12,54 @@ namespace Dfo.Server.Abstractions.Inventory;
 /// </remarks>
 public readonly record struct ContainerId(string Value)
 {
+    private const string CharacterScope = "character";
+
+    /// <summary>The identifier of a character's own container of one type.</summary>
+    public static ContainerId ForCharacter(CharacterId characterId, InventoryContainerType type) =>
+        new($"{CharacterScope}:{characterId.Value}:{type}");
+
+    /// <summary>
+    /// Reads back the owner of an identifier minted by <see cref="ForCharacter"/>, or answers false
+    /// for one minted anywhere else.
+    /// </summary>
+    /// <remarks>
+    /// Kept beside the minting so the two cannot drift apart. A persistent store has to get from an
+    /// identifier to the rows it names, and the alternative -- a registry the store is told about
+    /// as containers appear -- would put a per-character lifetime inside a singleton for a fact
+    /// that is already written down here.
+    ///
+    /// Only what <see cref="ForCharacter"/> would have produced is accepted, which is stricter than
+    /// reading the parts back. Identifiers are compared as written wherever containers are held, so
+    /// two spellings of one container -- a numeric container type, a padded or signed number, the
+    /// comma list that <see cref="Enum"/> parsing is willing to add together -- would be two
+    /// containers to everything upstream while being one container here. A caller holding one is
+    /// told it is not a character's, rather than handed a second view of a container it already has.
+    /// </remarks>
+    public bool TryGetCharacterOwner(out CharacterId characterId, out InventoryContainerType type)
+    {
+        characterId = default;
+        type = default;
+        if (Value is null)
+        {
+            return false;
+        }
+
+        var parts = Value.Split(':');
+        if (parts.Length != 3
+            || parts[0] != CharacterScope
+            || !int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var owner)
+            || owner.ToString(CultureInfo.InvariantCulture) != parts[1]
+            || !Enum.TryParse(parts[2], out type)
+            || !Enum.IsDefined(type)
+            || Enum.GetName(type) != parts[2])
+        {
+            return false;
+        }
+
+        characterId = new CharacterId(owner);
+        return true;
+    }
+
     public override string ToString() => Value;
 }
 
@@ -33,10 +83,11 @@ public sealed record ContainerShape(InventoryContainerType ContainerType, ushort
 /// instance that served several characters would have to be trusted to keep them apart, and every
 /// caller would have to keep passing the one fact the container already knows.
 ///
-/// Compound operations live here rather than above, because the container owns its own storage
-/// semantics. A move that displaces another item is one change to the world, and only the
-/// container knows how to make it atomic -- a caller composing reads and writes from outside could
-/// not.
+/// Reads and writes are all there is. A move, a split, a swap, a merge and a consumption are each
+/// some of these put together, and the putting-together belongs above -- the container that offered
+/// a "move" would be a container that had to be told what one is, and the store beneath it would
+/// have to be told too. What makes that safe to say is the use case boundary: everything one
+/// request does settles together, so an operation made of four writes is still one change.
 /// </remarks>
 public interface IItemContainer
 {
@@ -69,66 +120,48 @@ public interface IItemContainer
     ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken cancellationToken);
 
     /// <summary>
-    /// Applies a decided move, or answers false when the slots no longer hold what the caller read.
+    /// Everything this container holds, in slot order.
     /// </summary>
     /// <remarks>
-    /// False, never an exception, for a plan this container will not carry out -- whether because
-    /// the world moved on or because the plan asks for something it does not do. Every container
-    /// refuses the same plans, which is what lets one be exchanged for another.
+    /// Deciding where an arriving item goes needs to know which slots are taken and what piles of
+    /// it are already there, and neither is a question about one slot. Unlike
+    /// <see cref="SnapshotAsync"/> this is the container's own contents, so inside a use case it
+    /// sees what that use case has already written.
     /// </remarks>
-    ValueTask<bool> ApplyMoveAsync(ContainerMovePlan plan, CancellationToken cancellationToken);
+    ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(CancellationToken cancellationToken);
 
     /// <summary>
-    /// Takes items out of one pile, or answers null when that pile is no longer the one the caller
-    /// read.
+    /// Puts this exact item in the slot, replacing whatever was there.
     /// </summary>
-    ValueTask<ContainerConsumption?> ConsumeAsync(
-        long storageEntryId,
-        int count,
-        CancellationToken cancellationToken);
+    /// <remarks>
+    /// A container whose contents outlive the process refuses this outside a use case boundary,
+    /// because a change with no boundary is a change nothing can take back. One whose contents do
+    /// not outlive the process has nothing to take back and so accepts it either way.
+    /// </remarks>
+    ValueTask PutAsync(int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken);
+
+    /// <summary>Leaves the slot empty, under the same rule as <see cref="PutAsync"/>.</summary>
+    ValueTask ClearAsync(int slotIndex, CancellationToken cancellationToken);
 }
 
 /// <summary>What one slot of a container holds.</summary>
-public sealed record ContainerSlotItem(
-    long StorageEntryId, int SlotIndex, byte ItemKind, int ItemId, int Count);
+/// <remarks>
+/// The whole of it, because that is what a write takes: an item read out of one slot and written
+/// into another has to arrive with its enchantments, its rolled options and its avatar link intact,
+/// and the only thing that carries all of those is the core itself.
+/// </remarks>
+public sealed record ContainerSlotItem(int SlotIndex, InventoryItemCoreState Core)
+{
+    public byte ItemKind => Core.ItemKind;
+
+    public int ItemId => Core.ItemId;
+
+    /// <summary>How many the slot holds. For anything that does not stack, one.</summary>
+    public int Count => Core.Value;
+}
 
 /// <summary>What the two slots named by a move request hold right now.</summary>
 public sealed record ContainerSlotPair(ContainerSlotItem? First, ContainerSlotItem? Second);
-
-/// <summary>How a decided move rearranges the two slots.</summary>
-public enum ContainerMoveKind
-{
-    /// <summary>The whole stack goes to an empty slot.</summary>
-    Relocate,
-
-    /// <summary>Part of the stack goes to an empty slot; the rest stays behind.</summary>
-    Split,
-
-    /// <summary>The two slots trade places.</summary>
-    Swap,
-
-    /// <summary>The stack is poured into a pile of the same item.</summary>
-    Merge,
-}
-
-/// <summary>
-/// A move the caller has already decided on, for the container to apply as one change.
-/// </summary>
-/// <param name="DisplacedEntryId">
-/// What the caller saw in the target slot, or null when it saw the slot empty. The container
-/// rechecks it and refuses the move when the slot has since changed, so a decision taken from an
-/// earlier read cannot be applied against a world that has moved on.
-/// </param>
-public sealed record ContainerMovePlan(
-    long MovingEntryId,
-    int TargetSlotIndex,
-    int MoveCount,
-    long? DisplacedEntryId,
-    ContainerMoveKind Kind);
-
-/// <summary>What one slot held after something was taken out of it.</summary>
-/// <param name="RemainingCount">Zero when the last of the pile went and the slot is now empty.</param>
-public sealed record ContainerConsumption(int SlotIndex, int ItemId, int RemainingCount);
 
 /// <summary>Builds a container that holds nothing and outlives nothing.</summary>
 /// <remarks>

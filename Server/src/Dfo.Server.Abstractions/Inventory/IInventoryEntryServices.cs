@@ -115,122 +115,12 @@ public sealed record DailyRefillCommittedGrant(
 public sealed record DailyRefillMutationResult(
     IReadOnlyList<DailyRefillCommittedGrant> Grants);
 
-/// <summary>An item that reached the inventory, and the slot it went to.</summary>
-public sealed record GrantedInventoryItem(int SlotIndex, int ItemId, int Count);
-
-/// <summary>What one slot of the main inventory holds.</summary>
-public sealed record MainInventoryOccupant(
-    long StorageEntryId, int SlotIndex, byte ItemKind, int ItemId, int Count);
-
-/// <summary>What the two slots named by a move request hold right now.</summary>
-public sealed record MainInventorySlotPair(
-    MainInventoryOccupant? Source, MainInventoryOccupant? Destination);
-
-/// <summary>What one slot held after something was taken out of it.</summary>
-/// <param name="RemainingCount">Zero when the last of the pile went and the slot is now empty.</param>
-public sealed record ConsumedInventoryItem(int SlotIndex, int ItemId, int RemainingCount);
-
-/// <summary>How a decided move rearranges the two slots.</summary>
-public enum MainInventoryMoveKind
-{
-    /// <summary>The whole stack goes to an empty slot.</summary>
-    Relocate,
-
-    /// <summary>Part of the stack goes to an empty slot; the rest stays behind.</summary>
-    Split,
-
-    /// <summary>The two slots trade places.</summary>
-    Swap,
-
-    /// <summary>The stack is poured into a pile of the same item.</summary>
-    Merge,
-}
-
-/// <summary>
-/// A move the caller has already decided on, for storage to apply as one transaction.
-/// </summary>
-/// <param name="DisplacedEntryId">
-/// What the caller saw in the target slot, or null when it saw the slot empty. Storage rechecks it
-/// and refuses the move when the slot has since changed, so a decision taken outside the
-/// transaction cannot be applied against a world that has moved on.
-/// </param>
-public sealed record MainInventoryMovePlan(
-    long MovingEntryId,
-    int TargetSlotIndex,
-    int MoveCount,
-    long? DisplacedEntryId,
-    MainInventoryMoveKind Kind);
 
 public interface IEntryInventoryMutationRepository
 {
-    /// <summary>
-    /// Puts an item into the character's main inventory, or answers null when there is nowhere for
-    /// it to go.
-    /// </summary>
-    /// <param name="placement">
-    /// Where this item belongs, resolved from content by the caller. Storage is handed the answer
-    /// rather than looking it up: which band an item occupies is a fact about the item, and a
-    /// repository that read content would be deciding as well as recording.
-    /// </param>
-    /// <remarks>
-    /// Answers null rather than throwing when the item's band is full. A full inventory is an
-    /// ordinary state of the world and the caller has to say something to the player about it;
-    /// an exception would make it indistinguishable from storage being broken.
-    /// </remarks>
-    ValueTask<GrantedInventoryItem?> GrantItemAsync(
-        CharacterId characterId,
-        int itemId,
-        int count,
-        Dfo.Server.Abstractions.Content.ItemPlacement placement,
-        CancellationToken cancellationToken);
-
-    /// <summary>Reads every occupied slot of the character's main inventory.</summary>
-    /// <remarks>
-    /// Full item rows rather than the occupant summary the slot reads answer with: this is what a
-    /// container projects to the client, and the client draws the whole of an item.
-    /// </remarks>
+    /// <summary>Every occupied slot of the character's main inventory, in the order it is drawn.</summary>
     ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
         CharacterId characterId,
-        CancellationToken cancellationToken);
-
-    /// <summary>Reads what one slot of the character's main inventory holds.</summary>
-    ValueTask<MainInventoryOccupant?> ReadMainSlotAsync(
-        CharacterId characterId,
-        int slotIndex,
-        CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Takes a number of items out of one pile, or answers null when that pile is no longer the
-    /// one the caller read.
-    /// </summary>
-    /// <remarks>
-    /// The row goes when the last of the pile does. An empty pile left behind would be a slot the
-    /// client draws as occupied and the server answers as empty.
-    /// </remarks>
-    ValueTask<ConsumedInventoryItem?> ConsumeMainItemAsync(
-        CharacterId characterId,
-        long storageEntryId,
-        int count,
-        CancellationToken cancellationToken);
-
-    /// <summary>Reads what two slots of the character's main inventory hold.</summary>
-    ValueTask<MainInventorySlotPair> ReadMainSlotsAsync(
-        CharacterId characterId,
-        int sourceSlotIndex,
-        int destinationSlotIndex,
-        CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Applies a decided move, or answers false when the slots no longer hold what the caller read.
-    /// </summary>
-    /// <remarks>
-    /// False is an ordinary answer, not a fault: the caller decided the move from a read taken
-    /// outside this transaction, and the honest response to a slot that changed underneath is to
-    /// tell the client the move did not happen rather than to force it.
-    /// </remarks>
-    ValueTask<bool> ApplyMainMoveAsync(
-        CharacterId characterId,
-        MainInventoryMovePlan plan,
         CancellationToken cancellationToken);
 
     ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(

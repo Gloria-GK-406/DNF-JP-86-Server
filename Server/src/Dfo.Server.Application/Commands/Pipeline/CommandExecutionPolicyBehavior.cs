@@ -13,9 +13,9 @@ internal sealed class CommandExecutionPolicyBehavior<TResult> : ICommandPipeline
         {
             CommandExecutionKind.Direct => next(),
             CommandExecutionKind.Workflow => next(),
-            CommandExecutionKind.Transactional => throw new InvalidOperationException(
-                $"Command '{context.CommandType.Name}' requires {nameof(CommandExecutionKind.Transactional)} " +
-                "execution, but no unit-of-work policy has been registered."),
+            // The transaction was opened further out, by the unit-of-work behaviour, so by the
+            // time execution reaches here the command is already inside it.
+            CommandExecutionKind.Transactional => next(),
             _ => throw new InvalidOperationException(
                 $"Unsupported command execution kind '{context.ExecutionKind}'."),
         };

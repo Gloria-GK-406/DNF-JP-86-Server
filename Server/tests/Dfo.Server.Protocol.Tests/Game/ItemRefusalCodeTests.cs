@@ -197,8 +197,5 @@ public sealed class ItemRefusalCodeTests
         Assert.Equal(
             MoveItemSpaceResponse.Silent,
             MoveItemSpaceHandler.ErrorCodeFor(ItemMoveStatus.BothSlotsEmpty));
-        Assert.Equal(
-            MoveItemSpaceResponse.Silent,
-            MoveItemSpaceHandler.ErrorCodeFor(ItemMoveStatus.SlotsChanged));
     }
 }

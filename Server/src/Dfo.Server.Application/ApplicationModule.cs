@@ -56,6 +56,10 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<UserExecutionGate<CharacterId>>();
         services.TryAddSingleton<IDungeonLayoutRuleService, DungeonLayoutRuleService>();
         services.TryAddSingleton<IItemSlotRuleService, ItemSlotRuleService>();
+        // Where an arriving item goes, and which day a refill belongs to. Both were decisions the
+        // database used to make about itself.
+        services.TryAddSingleton<IItemArrivalRuleService, ItemArrivalRuleService>();
+        services.TryAddSingleton<IDailyRefillRuleService, DailyRefillRuleService>();
         services.TryAddSingleton<IDungeonRunDomainService, DungeonRunDomainService>();
         services.TryAddSingleton<IActiveCharacterAccessDomainService>(
             provider => new ActiveCharacterAccessDomainService(
@@ -77,6 +81,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IEquippedCreatureQuery, EquippedCreatureQuery>();
         services.TryAddSingleton<IEntryInventoryLeaseRegistry, EntryInventoryLeaseRegistry>();
         services.TryAddSingleton<ICharacterContainerDomainService, CharacterContainerDomainService>();
+        // Whatever a run hands the player, kept only as long as the process is.
+        services.TryAddSingleton<MemoryItemStore>();
         services.TryAddSingleton<IItemContainerFactory, ItemContainerFactory>();
         services.TryAddSingleton<ICharacterItemCooldownDomainService, CharacterItemCooldownDomainService>();
         services.TryAddSingleton<IItemUsabilityDomainService, ItemUsabilityDomainService>();

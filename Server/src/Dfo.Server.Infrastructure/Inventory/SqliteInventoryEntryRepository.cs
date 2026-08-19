@@ -209,7 +209,7 @@ internal sealed class SqliteInventoryEntryRepository
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private static byte[] EncodeItemCore(InventoryItemCoreState value)
+    internal static byte[] EncodeItemCore(InventoryItemCoreState value)
     {
         var core = new byte[ItemCoreSize];
         core[0] = value.ItemKind;

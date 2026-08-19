@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -189,9 +190,6 @@ public enum ItemMoveStatus
 
     /// <summary>The item being displaced may not occupy the slot being vacated.</summary>
     DisplacedCannotOccupySlot,
-
-    /// <summary>The slots changed between the decision and the write.</summary>
-    SlotsChanged,
 }
 
 /// <summary>Where the item ended up, or why it stayed.</summary>
@@ -261,12 +259,44 @@ public sealed class MoveItemSpaceCommandHandler(
 
         var planned = await PlanAsync(
             moving, displaced, targetSlot, command.MoveCount, cancellationToken).ConfigureAwait(false);
-        if (planned.Plan is null)
+        if (planned.Plan is not { } plan)
             return ItemMoveResult.Refused(planned.Status);
 
-        return await container.ApplyMoveAsync(planned.Plan, cancellationToken).ConfigureAwait(false)
-            ? new ItemMoveResult(ItemMoveStatus.Moved, planned.Plan.MoveCount, moving.ItemId)
-            : ItemMoveResult.Refused(ItemMoveStatus.SlotsChanged);
+        // The move is carried out here as the clears and writes it is made of. Everything they
+        // touch settles together, because the command is transactional and the boundary around it
+        // is what makes four writes one change.
+        switch (plan.Kind)
+        {
+            case ContainerMoveKind.Relocate:
+                await ItemContainerOperations
+                    .RelocateAsync(container, moving, plan.TargetSlotIndex, cancellationToken)
+                    .ConfigureAwait(false);
+                break;
+            case ContainerMoveKind.Split:
+                await ItemContainerOperations
+                    .SplitAsync(
+                        container, moving, plan.TargetSlotIndex, plan.MoveCount, cancellationToken)
+                    .ConfigureAwait(false);
+                break;
+            case ContainerMoveKind.Swap:
+                await ItemContainerOperations
+                    .SwapAsync(container, moving, displaced!, cancellationToken)
+                    .ConfigureAwait(false);
+                break;
+            case ContainerMoveKind.Merge:
+                await ItemContainerOperations
+                    .MergeAsync(container, moving, displaced!, plan.MoveCount, cancellationToken)
+                    .ConfigureAwait(false);
+                break;
+            default:
+                // Listed rather than defaulted, for the same reason `ErrorCodeFor` is: a kind
+                // nobody mapped is a coding mistake, and answering it with "that item cannot go
+                // there" would read the player a sentence about something they did not do.
+                throw new ArgumentOutOfRangeException(
+                    nameof(command), plan.Kind, "No move was decided for this kind.");
+        }
+
+        return new ItemMoveResult(ItemMoveStatus.Moved, plan.MoveCount, moving.ItemId);
     }
 
     /// <summary>
@@ -280,7 +310,7 @@ public sealed class MoveItemSpaceCommandHandler(
     /// The refusals are told apart rather than folded into one answer, because the client has a
     /// different sentence for a full stack than for an item that cannot go where it was dropped.
     /// </remarks>
-    private async ValueTask<(ContainerMovePlan? Plan, ItemMoveStatus Status)> PlanAsync(
+    private async ValueTask<(DecidedMove? Plan, ItemMoveStatus Status)> PlanAsync(
         ContainerSlotItem moving,
         ContainerSlotItem? displaced,
         short targetSlot,
@@ -297,8 +327,9 @@ public sealed class MoveItemSpaceCommandHandler(
 
         if (displaced is null)
         {
-            return (new ContainerMovePlan(
-                    moving.StorageEntryId, targetSlot, moveCount, null,
+            return (new DecidedMove(
+                    targetSlot,
+                    moveCount,
                     moveCount == moving.Count
                         ? ContainerMoveKind.Relocate
                         : ContainerMoveKind.Split),
@@ -311,9 +342,7 @@ public sealed class MoveItemSpaceCommandHandler(
         if (displaced.ItemId == moving.ItemId)
         {
             return placement.StackLimit > 1 && displaced.Count + moveCount <= placement.StackLimit
-                ? (new ContainerMovePlan(
-                        moving.StorageEntryId, targetSlot, moveCount, displaced.StorageEntryId,
-                        ContainerMoveKind.Merge),
+                ? (new DecidedMove(targetSlot, moveCount, ContainerMoveKind.Merge),
                     ItemMoveStatus.Moved)
                 : (null, ItemMoveStatus.MergeExceedsStackLimit);
         }
@@ -329,12 +358,35 @@ public sealed class MoveItemSpaceCommandHandler(
             || !slotRules.CanOccupyMainSlot(displacedPlacement, moving.SlotIndex))
             return (null, ItemMoveStatus.DisplacedCannotOccupySlot);
 
-        return (new ContainerMovePlan(
-                moving.StorageEntryId, targetSlot, moveCount, displaced.StorageEntryId,
-                ContainerMoveKind.Swap),
+        return (new DecidedMove(targetSlot, moveCount, ContainerMoveKind.Swap),
             ItemMoveStatus.Moved);
     }
 }
+
+/// <summary>How a decided move rearranges the two slots.</summary>
+public enum ContainerMoveKind
+{
+    /// <summary>The whole stack goes to an empty slot.</summary>
+    Relocate,
+
+    /// <summary>Part of the stack goes to an empty slot; the rest stays behind.</summary>
+    Split,
+
+    /// <summary>The two slots trade places.</summary>
+    Swap,
+
+    /// <summary>The stack is poured into a pile of the same item.</summary>
+    Merge,
+}
+
+/// <summary>
+/// What the move was decided to be, before it is said as reads and writes.
+/// </summary>
+/// <remarks>
+/// It names no item and no storage row, only where the move is going and how much of the pile goes.
+/// The two items are the ones already read, which is why they do not need naming twice.
+/// </remarks>
+public sealed record DecidedMove(int TargetSlotIndex, int MoveCount, ContainerMoveKind Kind);
 
 /// <summary>
 /// Turns the request into a command and the command's answer into something the client can read.
@@ -414,10 +466,16 @@ public sealed class MoveItemSpaceHandler(
     /// The client sentence that is true of this refusal, or silence when it owns none.
     /// </summary>
     /// <remarks>
-    /// Two empty slots, a lost race, a missing session and a missing binding each take silence.
-    /// None of them is something the player did, and the client has no sentence for "we disagree
-    /// about your inventory" -- so the drag simply springs back, which is what it would do if the
-    /// frame had been lost.
+    /// Two empty slots, a missing session and a missing binding each take silence. None of them is
+    /// something the player did, and the client has no sentence for "we disagree about your
+    /// inventory" -- so the drag simply springs back, which is what it would do if the frame had
+    /// been lost.
+    /// <para>
+    /// A lost race used to be on that list. It is not any more, because it can no longer happen:
+    /// a move reads and writes inside one use case boundary and has no second read to disagree with
+    /// the first. Two moves arriving at once now both go through, the later settling over the
+    /// earlier, which `MoveItemSpaceHandlerTests` records as the attempt to construct it.
+    /// </para>
     /// <para>
     /// Every refusal is listed rather than falling through, so the next one someone adds cannot
     /// become silence by default while the test that walks this enum stays green.
@@ -439,7 +497,6 @@ public sealed class MoveItemSpaceHandler(
         ItemMoveStatus.NoSession => MoveItemSpaceResponse.Silent,
         ItemMoveStatus.NoBoundContainer => MoveItemSpaceResponse.Silent,
         ItemMoveStatus.BothSlotsEmpty => MoveItemSpaceResponse.Silent,
-        ItemMoveStatus.SlotsChanged => MoveItemSpaceResponse.Silent,
         ItemMoveStatus.Moved or ItemMoveStatus.Unchanged => throw new ArgumentOutOfRangeException(
             nameof(status), status, "A move that happened has no error code."),
         _ => throw new ArgumentOutOfRangeException(

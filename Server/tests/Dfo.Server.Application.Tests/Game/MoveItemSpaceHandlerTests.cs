@@ -238,6 +238,49 @@ public sealed class MoveItemSpaceHandlerTests
         Assert.Null(((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
     }
 
+    /// <summary>
+    /// Two moves of one character's inventory arriving at once, which is what a lost race is.
+    /// </summary>
+    /// <remarks>
+    /// This is the attempt to construct the refusal that used to be called `SlotsChanged`, and it
+    /// is recorded here because it does not succeed. Storage used to re-read the displaced slot
+    /// inside its own transaction and answer false when it had changed; a move is now a read and
+    /// some writes inside one use case boundary, and there is no second read to disagree with the
+    /// first. Two of them therefore both go through, the later one settling over the earlier.
+    ///
+    /// Nothing is asserted here about which of the two wins -- that is a race and has no answer.
+    /// What is asserted is that neither is refused, which is the fact the removal of that refusal
+    /// rests on.
+    /// </remarks>
+    [Fact]
+    public async Task Two_moves_arriving_at_once_are_both_carried_out_and_neither_is_refused()
+    {
+        var inventory = new FakeInventory { [65] = (8474, 1), [66] = (9000, 1) };
+        var handler = new MoveItemSpaceCommandHandler(
+            inventory.Containers(), new ConsumablePlacements(), new ItemSlotRuleService());
+
+        var results = await Task.WhenAll(
+            Dispatch(handler, inventory, sourceSlot: 65, destinationSlot: 3),
+            Dispatch(handler, inventory, sourceSlot: 66, destinationSlot: 3));
+
+        Assert.All(results, result => Assert.Equal(ItemMoveStatus.Moved, result.Status));
+        Assert.Single(inventory.Rows(), row => row.Slot == 3);
+    }
+
+    /// <summary>One command, in its own use case boundary, on its own flow.</summary>
+    private static Task<ItemMoveResult> Dispatch(
+        MoveItemSpaceCommandHandler handler,
+        FakeInventory inventory,
+        short sourceSlot,
+        short destinationSlot) =>
+        Task.Run(async () =>
+        {
+            var bus = new DirectCommandBus(move: handler, scope: inventory.Scope);
+            return await bus.SendAsync(
+                new MoveItemSpaceCommand(new CharacterId(60), 0, sourceSlot, 0, 0, destinationSlot),
+                CancellationToken.None);
+        });
+
     private static readonly NetworkDispatchContext Context = new(
         new NetworkConnectionContext(new NetworkConnectionId("game-move"), NetworkEndpointKind.Game, 10011));
 
@@ -251,33 +294,19 @@ public sealed class MoveItemSpaceHandlerTests
     {
         var sender = new RecordingSender();
         var commandHandler = new MoveItemSpaceCommandHandler(
-            Containers(inventory),
+            inventory.Containers(),
             placements ?? new ConsumablePlacements(),
             new ItemSlotRuleService());
 
         return (
             new MoveItemSpaceHandler(
                 new OneSession(),
-                new DirectCommandBus(move: commandHandler),
+                new DirectCommandBus(move: commandHandler, scope: inventory.Scope),
                 sender,
                 NullLogger<MoveItemSpaceHandler>.Instance),
             sender);
     }
 
-
-    /// <summary>Binds the fixture's storage to the session's character as its main container.</summary>
-    private static ICharacterContainerDomainService Containers(
-        IEntryInventoryMutationRepository storage)
-    {
-        var characterId = new CharacterId(60);
-        var containers = new CharacterContainerDomainService();
-        containers.Register(characterId, new PersistentItemContainer(
-            new ContainerId("character:60:Main"),
-            characterId,
-            new ContainerShape(InventoryContainerType.Main, 0),
-            storage));
-        return containers;
-    }
 
     /// <summary>Every item here is an ordinary consumable: kind 2, band 65 to 120.</summary>
     private sealed class ConsumablePlacements : IItemPlacementDefinitionSource
@@ -302,111 +331,13 @@ public sealed class MoveItemSpaceHandlerTests
                     : new ItemPlacement(2, 100, 65, 120));
     }
 
-    private sealed class FakeInventory : IEntryInventoryMutationRepository
+    /// <summary>The character's main container, seeded by slot.</summary>
+    private sealed class FakeInventory : FakeMainInventory
     {
-
-        public ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
-            CharacterId characterId, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture covers moves only.");
-
-        /// <summary>Not exercised here: this fixture does not consume items.</summary>
-        public ValueTask<MainInventoryOccupant?> ReadMainSlotAsync(
-            CharacterId characterId, int slotIndex, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture covers moves only.");
-
-        /// <summary>Not exercised here: this fixture does not consume items.</summary>
-        public ValueTask<ConsumedInventoryItem?> ConsumeMainItemAsync(
-            CharacterId characterId, long storageEntryId, int count,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture covers moves only.");
-        private readonly Dictionary<int, (int ItemId, int Count)> slots = [];
-        private readonly Dictionary<long, int> entries = [];
-        private long nextEntryId = 1;
-
         public (int ItemId, int Count) this[int slotIndex]
         {
-            set
-            {
-                slots[slotIndex] = value;
-                entries[nextEntryId++] = slotIndex;
-            }
+            set => this.Seed(slotIndex, value.ItemId, value.Count);
         }
-
-        public List<(int Slot, int ItemId, int Count)> Rows() =>
-            [.. slots.OrderBy(pair => pair.Key)
-                .Select(pair => (pair.Key, pair.Value.ItemId, pair.Value.Count))];
-
-        public ValueTask<MainInventorySlotPair> ReadMainSlotsAsync(
-            CharacterId characterId, int sourceSlotIndex, int destinationSlotIndex,
-            CancellationToken cancellationToken) =>
-            ValueTask.FromResult(new MainInventorySlotPair(
-                Occupant(sourceSlotIndex), Occupant(destinationSlotIndex)));
-
-        public ValueTask<bool> ApplyMainMoveAsync(
-            CharacterId characterId, MainInventoryMovePlan plan, CancellationToken cancellationToken)
-        {
-            if (!entries.TryGetValue(plan.MovingEntryId, out var fromSlot))
-                return ValueTask.FromResult(false);
-
-            var moving = slots[fromSlot];
-            var displaced = slots.TryGetValue(plan.TargetSlotIndex, out var value)
-                ? value
-                : ((int ItemId, int Count)?)null;
-
-            switch (plan.Kind)
-            {
-                case MainInventoryMoveKind.Relocate:
-                    slots.Remove(fromSlot);
-                    slots[plan.TargetSlotIndex] = moving;
-                    entries[plan.MovingEntryId] = plan.TargetSlotIndex;
-                    break;
-                case MainInventoryMoveKind.Split:
-                    slots[fromSlot] = (moving.ItemId, moving.Count - plan.MoveCount);
-                    slots[plan.TargetSlotIndex] = (moving.ItemId, plan.MoveCount);
-                    entries[nextEntryId++] = plan.TargetSlotIndex;
-                    break;
-                case MainInventoryMoveKind.Swap:
-                    slots[fromSlot] = displaced!.Value;
-                    slots[plan.TargetSlotIndex] = moving;
-                    entries[plan.MovingEntryId] = plan.TargetSlotIndex;
-                    entries[plan.DisplacedEntryId!.Value] = fromSlot;
-                    break;
-                case MainInventoryMoveKind.Merge:
-                    slots[plan.TargetSlotIndex] =
-                        (displaced!.Value.ItemId, displaced.Value.Count + plan.MoveCount);
-                    if (plan.MoveCount == moving.Count)
-                    {
-                        slots.Remove(fromSlot);
-                        entries.Remove(plan.MovingEntryId);
-                    }
-                    else
-                    {
-                        slots[fromSlot] = (moving.ItemId, moving.Count - plan.MoveCount);
-                    }
-                    break;
-                default:
-                    return ValueTask.FromResult(false);
-            }
-
-            return ValueTask.FromResult(true);
-        }
-
-        private MainInventoryOccupant? Occupant(int slotIndex) =>
-            slots.TryGetValue(slotIndex, out var item)
-                ? new MainInventoryOccupant(
-                    entries.First(pair => pair.Value == slotIndex).Key, slotIndex, 2,
-                    item.ItemId, item.Count)
-                : null;
-
-        public ValueTask<GrantedInventoryItem?> GrantItemAsync(
-            CharacterId characterId, int itemId, int count, ItemPlacement placement,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture covers moves only.");
-
-        public ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(
-            AccountId accountId, CharacterId characterId, IReadOnlyList<DailyRefillRule> rules,
-            DateTimeOffset preparedAt, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This fixture covers moves only.");
     }
 
     private sealed class OneSession : ISelectedSessionDirectory

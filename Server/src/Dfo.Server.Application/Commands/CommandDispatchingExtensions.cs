@@ -1,5 +1,7 @@
+using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands.Pipeline;
 using Dfo.Server.Application.OnlineUsers;
+using Dfo.Server.Application.Transactions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -16,6 +18,12 @@ public static class CommandDispatchingExtensions
         services.TryAddSingleton<OnlineUserExecutionGate>();
         services.TryAddSingleton<SelectedSessionTransitionGate>();
         services.TryAddSingleton<AccountExecutionGate>();
+        // The scope holds the open transaction for the flow the command runs on. Stores are
+        // singletons and containers are held per character, so neither can be handed the
+        // transaction by injection; both ask this accessor for it instead.
+        services.TryAddSingleton<DomainTransactionScope>();
+        services.TryAddSingleton<IDomainTransactionAccessor>(
+            provider => provider.GetRequiredService<DomainTransactionScope>());
         // Behaviours carry the command's result type, so they register as open generics
         // and the container closes them per result type at resolution.
         services.TryAddEnumerable(ServiceDescriptor.Scoped(
@@ -24,6 +32,8 @@ public static class CommandDispatchingExtensions
             typeof(ICommandPipelineBehavior<>), typeof(OnlineUserExecutionBehavior<>)));
         services.TryAddEnumerable(ServiceDescriptor.Scoped(
             typeof(ICommandPipelineBehavior<>), typeof(AccountExecutionBehavior<>)));
+        services.TryAddEnumerable(ServiceDescriptor.Scoped(
+            typeof(ICommandPipelineBehavior<>), typeof(UnitOfWorkBehavior<>)));
         services.TryAddEnumerable(ServiceDescriptor.Scoped(
             typeof(ICommandPipelineBehavior<>), typeof(CommandExecutionPolicyBehavior<>)));
         services.TryAddEnumerable(

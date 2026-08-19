@@ -34,7 +34,12 @@ public interface IItemUseEffect
 }
 
 /// <summary>Takes items off the pile they were used from.</summary>
-public sealed record ConsumeFromContainerEffect(long StorageEntryId, int Count) : IItemUseEffect
+/// <remarks>
+/// The pile is named by the slot it sits in, the same way everything else names one. An effect that
+/// carried a storage row number instead would be an effect only one kind of container could carry
+/// out, and the one a dungeon hands the player has no rows.
+/// </remarks>
+public sealed record ConsumeFromContainerEffect(int SlotIndex, int Count) : IItemUseEffect
 {
     public ItemEffectTarget Target => ItemEffectTarget.Container;
 }
@@ -61,14 +66,11 @@ public interface IItemUseEffectDomainService
     /// <summary>The effects using this item produces. Empty is a valid answer.</summary>
     ValueTask<IReadOnlyList<IItemUseEffect>> PlanAsync(
         int itemId,
-        long storageEntryId,
+        int slotIndex,
         CancellationToken cancellationToken);
 
-    /// <summary>
-    /// Applies the effects, or answers null when the container refused because the slot changed
-    /// under the decision.
-    /// </summary>
-    ValueTask<ItemUseApplication?> ApplyAsync(
+    /// <summary>Applies the effects and answers what the slot holds afterwards.</summary>
+    ValueTask<ItemUseApplication> ApplyAsync(
         CharacterId characterId,
         IItemContainer container,
         ContainerSlotItem item,

@@ -6,6 +6,7 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Application.Inventory;
 using Dfo.Server.Infrastructure.Inventory;
 using Dfo.Server.Infrastructure.Characters;
 using Microsoft.Data.Sqlite;
@@ -130,7 +131,8 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             _ = new SqliteInventoryEntryRepository(path);
             _ = new SqliteCharacterRepository(path);
             await SeedCharacterAsync(path, accountId: 7, characterId: 70);
-            var repository = new SqliteEntryInventoryMutationRepository(path);
+            var repository = new SqliteEntryInventoryMutationRepository(
+                path, new DailyRefillRuleService(), new ItemArrivalRuleService());
             var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
                 DailyRefillMode.RefillToTarget, 100, 2, 65, 120);
 
@@ -173,7 +175,8 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             _ = new SqliteCharacterRepository(path);
             await SeedCharacterAsync(path, 8, 80);
             await SeedItemAsync(path, 80, 0, 2222, 5);
-            var repository = new SqliteEntryInventoryMutationRepository(path);
+            var repository = new SqliteEntryInventoryMutationRepository(
+                path, new DailyRefillRuleService(), new ItemArrivalRuleService());
             var rule = new DailyRefillRule(2222, 2, DateTimeOffset.MaxValue,
                 DailyRefillMode.RefillToTarget, 100, 2, 65, 120);
 
@@ -190,6 +193,189 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
                 "SELECT value FROM character_daily_counters WHERE character_id=80 AND counter_key='pvf_daily_refill_item_2222'"));
             Assert.Equal(0L, await ScalarAsync(connection,
                 "SELECT COUNT(*) FROM character_daily_counters WHERE counter_key='pvf_daily_refill_item_3333'"));
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    /// <summary>
+    /// The day a refill belongs to is the one in UTC+8, not the one in UTC.
+    /// </summary>
+    /// <remarks>
+    /// Two entries an hour apart across midnight in Seoul are two days and refill twice; two
+    /// entries either side of midnight in UTC are one day and refill once. Nothing else in the
+    /// suite pins which of the two the server means, so a boundary quietly moved to UTC would give
+    /// every player a second refill at 16:00 local and nothing would go red.
+    /// </remarks>
+    [Fact]
+    public async Task DailyRefill_TurnsOverAtMidnightInUtcPlusEight()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
+        try
+        {
+            _ = new SqliteInventoryEntryRepository(path);
+            _ = new SqliteCharacterRepository(path);
+            await SeedCharacterAsync(path, accountId: 7, characterId: 70);
+            var repository = new SqliteEntryInventoryMutationRepository(
+                path, new DailyRefillRuleService(), new ItemArrivalRuleService());
+            // Adding up to the stack limit rather than refilling to a target, so that a second
+            // day grants again -- a refill-to-target rule would grant nothing the second day
+            // whatever the boundary did, and the test could not tell the two apart.
+            var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
+                DailyRefillMode.AddUpToStackLimit, 100, 2, 65, 120);
+
+            // 23:30 and 00:30 in UTC+8: one hour apart, and two different days.
+            var lateOnDayOne = new DateTimeOffset(2026, 8, 12, 23, 30, 0, TimeSpan.FromHours(8));
+            var earlyOnDayTwo = new DateTimeOffset(2026, 8, 13, 0, 30, 0, TimeSpan.FromHours(8));
+            var first = await repository.ApplyDailyRefillAsync(
+                new AccountId(7), new CharacterId(70), [rule], lateOnDayOne, CancellationToken.None);
+            var second = await repository.ApplyDailyRefillAsync(
+                new AccountId(7), new CharacterId(70), [rule], earlyOnDayTwo, CancellationToken.None);
+
+            Assert.Single(first.Grants);
+            Assert.Single(second.Grants);
+
+            // The same two instants written as UTC straddle midnight in UTC as well -- but the
+            // other way round, so a server that used UTC would see one day where this sees two.
+            Assert.Equal(12, lateOnDayOne.UtcDateTime.Day);
+            Assert.Equal(12, earlyOnDayTwo.UtcDateTime.Day);
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    /// <remarks>
+    /// The pair to the one above: an entry late in the UTC+8 day and one early the next morning in
+    /// UTC are the same UTC+8 day, and refill once between them.
+    /// </remarks>
+    [Fact]
+    public async Task DailyRefill_TreatsOneUtcPlusEightDayAsOneDayHoweverUtcFalls()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
+        try
+        {
+            _ = new SqliteInventoryEntryRepository(path);
+            _ = new SqliteCharacterRepository(path);
+            await SeedCharacterAsync(path, accountId: 7, characterId: 70);
+            var repository = new SqliteEntryInventoryMutationRepository(
+                path, new DailyRefillRuleService(), new ItemArrivalRuleService());
+            var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
+                DailyRefillMode.AddUpToStackLimit, 100, 2, 65, 120);
+
+            // 07:30 and 08:30 in UTC+8 on one day: 23:30 and 00:30 in UTC, so two UTC days.
+            var beforeUtcMidnight = new DateTimeOffset(2026, 8, 13, 7, 30, 0, TimeSpan.FromHours(8));
+            var afterUtcMidnight = new DateTimeOffset(2026, 8, 13, 8, 30, 0, TimeSpan.FromHours(8));
+            Assert.Equal(12, beforeUtcMidnight.UtcDateTime.Day);
+            Assert.Equal(13, afterUtcMidnight.UtcDateTime.Day);
+
+            var first = await repository.ApplyDailyRefillAsync(
+                new AccountId(7), new CharacterId(70), [rule], beforeUtcMidnight, CancellationToken.None);
+            var second = await repository.ApplyDailyRefillAsync(
+                new AccountId(7), new CharacterId(70), [rule], afterUtcMidnight, CancellationToken.None);
+
+            Assert.Single(first.Grants);
+            Assert.Empty(second.Grants);
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    /// <summary>
+    /// A character who already holds some is topped up in place; one who holds none gets a slot.
+    /// </summary>
+    /// <remarks>
+    /// The two branches end in different rows and different acknowledgements, and only the count in
+    /// the existing pile tells them apart. A decision that always opened a new slot would leave the
+    /// player with two piles of potions and the client drawing both.
+    /// </remarks>
+    [Fact]
+    public async Task DailyRefill_AddsToAPileThatExistsRatherThanOpeningASecond()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
+        try
+        {
+            _ = new SqliteInventoryEntryRepository(path);
+            _ = new SqliteCharacterRepository(path);
+            await SeedCharacterAsync(path, accountId: 7, characterId: 70);
+            await SeedItemAsync(path, characterId: 70, slot: 70, itemId: 1234, count: 2);
+            var repository = new SqliteEntryInventoryMutationRepository(
+                path, new DailyRefillRuleService(), new ItemArrivalRuleService());
+            var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
+                DailyRefillMode.RefillToTarget, 100, 2, 65, 120);
+
+            var result = await repository.ApplyDailyRefillAsync(
+                new AccountId(7), new CharacterId(70), [rule], PreparedAt, CancellationToken.None);
+
+            var grant = Assert.Single(result.Grants);
+            Assert.Equal(70, grant.SlotIndex);
+            Assert.Equal(3, grant.GrantedCount);
+            Assert.Equal(5, grant.CommittedCount);
+            await using var connection = Open(path);
+            Assert.Equal(1L, await ScalarAsync(connection,
+                "SELECT COUNT(*) FROM character_new_items WHERE character_id=70"));
+            Assert.Equal(5, await ReadItemCountAsync(connection, 70, 1234));
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    /// <summary>
+    /// A new pile goes to the first free slot of the rule's own band, not to the first free slot.
+    /// </summary>
+    /// <remarks>
+    /// Slots below the band belong to equipment and the quick bar. An item placed there is one the
+    /// client draws somewhere the player does not look for it, and the search skipping occupied
+    /// slots is what keeps two refills on one entry from landing on each other.
+    /// </remarks>
+    [Fact]
+    public async Task DailyRefill_TakesTheFirstFreeSlotOfTheRulesOwnBand()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
+        try
+        {
+            _ = new SqliteInventoryEntryRepository(path);
+            _ = new SqliteCharacterRepository(path);
+            await SeedCharacterAsync(path, accountId: 7, characterId: 70);
+            // Slot 3 is free and below the band; 65 and 66 are taken, so 67 is the answer.
+            await SeedItemAsync(path, characterId: 70, slot: 65, itemId: 9001, count: 1);
+            await SeedItemAsync(path, characterId: 70, slot: 66, itemId: 9002, count: 1);
+            var repository = new SqliteEntryInventoryMutationRepository(
+                path, new DailyRefillRuleService(), new ItemArrivalRuleService());
+            var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
+                DailyRefillMode.RefillToTarget, 100, 2, 65, 120);
+
+            var result = await repository.ApplyDailyRefillAsync(
+                new AccountId(7), new CharacterId(70), [rule], PreparedAt, CancellationToken.None);
+
+            Assert.Equal(67, Assert.Single(result.Grants).SlotIndex);
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    /// <remarks>
+    /// A band with nothing free is refused rather than spilling into the next one. The refusal
+    /// takes the whole entry with it, which is the loud failure the alternative -- an item quietly
+    /// placed outside its band -- would not be.
+    /// </remarks>
+    [Fact]
+    public async Task DailyRefill_RefusesWhenTheBandIsFull()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
+        try
+        {
+            _ = new SqliteInventoryEntryRepository(path);
+            _ = new SqliteCharacterRepository(path);
+            await SeedCharacterAsync(path, accountId: 7, characterId: 70);
+            await SeedItemAsync(path, characterId: 70, slot: 65, itemId: 9001, count: 1);
+            await SeedItemAsync(path, characterId: 70, slot: 66, itemId: 9002, count: 1);
+            var repository = new SqliteEntryInventoryMutationRepository(
+                path, new DailyRefillRuleService(), new ItemArrivalRuleService());
+            var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
+                DailyRefillMode.RefillToTarget, 100, 2, 65, 66);
+
+            await Assert.ThrowsAsync<InvalidDataException>(async () =>
+                await repository.ApplyDailyRefillAsync(
+                    new AccountId(7), new CharacterId(70), [rule], PreparedAt, CancellationToken.None));
+
+            await using var connection = Open(path);
+            Assert.Equal(0L, await ScalarAsync(connection,
+                "SELECT COUNT(*) FROM character_daily_counters WHERE character_id=70"));
         }
         finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }

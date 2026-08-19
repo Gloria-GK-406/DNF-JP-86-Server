@@ -63,21 +63,6 @@ internal sealed class PvfEntryLifecycleContentSource(PvfArchiveProvider provider
         return result;
     }
 
-    internal static int CalculateGrant(DailyRefillRule rule, int currentCount)
-    {
-        if (rule.StackLimit <= 0)
-            return 0;
-        currentCount = Math.Max(0, currentCount);
-        return rule.Mode switch
-        {
-            DailyRefillMode.RefillToTarget =>
-                Math.Max(0, Math.Min(rule.Quantity, rule.StackLimit) - currentCount),
-            DailyRefillMode.AddUpToStackLimit =>
-                Math.Min(rule.Quantity, Math.Max(0, rule.StackLimit - currentCount)),
-            _ => throw new InvalidDataException($"Daily refill mode {(int)rule.Mode} is invalid."),
-        };
-    }
-
     private static IReadOnlyList<string> ReadSectionValues(PvfArchive archive, string path, string tag)
     {
         var section = archive.GetTag(tag);

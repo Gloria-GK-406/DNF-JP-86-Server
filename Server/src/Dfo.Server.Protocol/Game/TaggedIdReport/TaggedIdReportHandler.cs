@@ -1,8 +1,8 @@
 using Dfo.Server.Abstractions.Content;
-using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.Logging;
 
@@ -28,8 +28,7 @@ public sealed class TaggedIdReportHandler(
     IOnlineUserQueryDomainService onlineUsers,
     ISelectedSessionDirectory selectedSessions,
     ITutorialRewardDefinitionSource rewards,
-    IItemPlacementDefinitionSource placements,
-    IEntryInventoryMutationRepository inventory,
+    ICommandBus commandBus,
     IGameMessageSender sender,
     ILogger<TaggedIdReportHandler> logger) : ClientMessageHandler<TaggedIdReportRequest>
 {
@@ -49,43 +48,37 @@ public sealed class TaggedIdReportHandler(
         // hold.
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
         var granted = new List<GrantedTutorialItem>(declared.Count);
-        foreach (var item in declared)
+        if (session is null)
         {
-            if (session is null)
+            if (declared.Count > 0)
             {
                 logger.LogWarning(
-                    "Tagged id report {ConnectionId}: flag {Flag} gives item {ItemId} but no "
+                    "Tagged id report {ConnectionId}: flag {Flag} gives {Declared} item(s) but no "
                         + "character is selected, skipping",
-                    context.Connection.ConnectionId, message.Id, item.ItemId);
-                continue;
+                    context.Connection.ConnectionId, message.Id, declared.Count);
             }
+        }
+        else
+        {
+            // One command for the whole step, so its items settle together rather than one at a
+            // time -- and so each placement sees the ones before it.
+            var result = await commandBus.SendAsync(
+                new GrantTutorialRewardCommand(
+                    session.CharacterId,
+                    [.. declared.Select(item => new DeclaredRewardItem(item.ItemId, item.Count))]),
+                cancellationToken).ConfigureAwait(false);
 
-            var placement = await placements.GetAsync(item.ItemId, cancellationToken)
-                .ConfigureAwait(false);
-            if (placement is null)
+            granted.AddRange(result.Placed.Select(item => new GrantedTutorialItem(
+                checked((ushort)item.SlotIndex), (uint)item.ItemId, (uint)item.Count)));
+
+            if (result.Placed.Count < declared.Count)
             {
                 logger.LogWarning(
-                    "Tagged id report {ConnectionId}: flag {Flag} gives item {ItemId}, which the "
-                        + "archive declares nowhere to put, skipping",
-                    context.Connection.ConnectionId, message.Id, item.ItemId);
-                continue;
+                    "Tagged id report {ConnectionId}: flag {Flag} declared {Declared} item(s) but "
+                        + "only {Granted} reached the inventory",
+                    context.Connection.ConnectionId, message.Id, declared.Count,
+                    result.Placed.Count);
             }
-
-            var placed = await inventory.GrantItemAsync(
-                    session.CharacterId, item.ItemId, item.Count, placement, cancellationToken)
-                .ConfigureAwait(false);
-            if (placed is null)
-            {
-                logger.LogWarning(
-                    "Tagged id report {ConnectionId}: flag {Flag} gives item {ItemId} but slots "
-                        + "{Start}-{End} are full, skipping",
-                    context.Connection.ConnectionId, message.Id, item.ItemId,
-                    placement.SlotStart, placement.SlotEnd);
-                continue;
-            }
-
-            granted.Add(new GrantedTutorialItem(
-                checked((ushort)placed.SlotIndex), (uint)placed.ItemId, (uint)placed.Count));
         }
 
         logger.LogInformation(

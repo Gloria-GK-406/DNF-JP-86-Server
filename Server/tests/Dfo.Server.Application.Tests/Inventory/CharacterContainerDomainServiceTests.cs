@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
@@ -24,7 +25,8 @@ public sealed class CharacterContainerDomainServiceTests
     public void A_container_answers_for_itself()
     {
         var shape = new ContainerShape(InventoryContainerType.Main, 42);
-        var container = new TransientItemContainer(new ContainerId("dungeon"), shape);
+        var container = new TransientItemContainer(
+            new ContainerId("dungeon"), shape, new MemoryItemStore(), new DomainTransactionScope());
 
         Assert.Equal(new ContainerId("dungeon"), container.Id);
         Assert.Equal(InventoryContainerType.Main, container.Type);
@@ -141,7 +143,10 @@ public sealed class CharacterContainerDomainServiceTests
     private static IItemContainer Container(string id, bool removable = true) =>
         removable
             ? new TransientItemContainer(
-                new ContainerId(id), new ContainerShape(InventoryContainerType.Main, 0))
+                new ContainerId(id),
+                new ContainerShape(InventoryContainerType.Main, 0),
+                new MemoryItemStore(),
+                new DomainTransactionScope())
             : new FixedContainer(
                 new ContainerId(id), new ContainerShape(InventoryContainerType.Main, 0));
 
@@ -168,12 +173,15 @@ public sealed class CharacterContainerDomainServiceTests
             CancellationToken cancellationToken) =>
             ValueTask.FromResult<IReadOnlyList<InventoryItemState>>([]);
 
-        public ValueTask<bool> ApplyMoveAsync(
-            ContainerMovePlan plan, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(false);
+        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<ContainerSlotItem>>([]);
 
-        public ValueTask<ContainerConsumption?> ConsumeAsync(
-            long storageEntryId, int count, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ContainerConsumption?>(null);
+        public ValueTask PutAsync(
+            int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken) =>
+            ValueTask.CompletedTask;
+
+        public ValueTask ClearAsync(int slotIndex, CancellationToken cancellationToken) =>
+            ValueTask.CompletedTask;
     }
 }

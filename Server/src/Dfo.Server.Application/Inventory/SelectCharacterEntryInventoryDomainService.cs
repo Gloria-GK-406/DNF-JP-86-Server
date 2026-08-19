@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
@@ -13,7 +14,9 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
     ICharacterInventoryEntryDomainService inventories,
     IEntryInventoryLeasePersistence persistence,
     IEntryInventoryLeaseRegistry leases,
-    ICharacterContainerDomainService containers) : ISelectCharacterEntryInventoryDomainService
+    ICharacterContainerDomainService containers,
+    IItemStore itemStore,
+    IDomainTransactionAccessor transactions) : ISelectCharacterEntryInventoryDomainService
 {
     public async ValueTask SaveExistingLeaseAsync(
         SelectedSessionIdentity previousSession, CancellationToken cancellationToken)
@@ -56,9 +59,11 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
 
         containers.Clear(characterId);
         containers.Register(characterId, new PersistentItemContainer(
-            new ContainerId($"character:{characterId.Value}:{main.ContainerType}"),
+            ContainerId.ForCharacter(characterId, main.ContainerType),
             characterId,
             new ContainerShape(main.ContainerType, main.Parameter),
+            itemStore,
+            transactions,
             mutations));
     }
 

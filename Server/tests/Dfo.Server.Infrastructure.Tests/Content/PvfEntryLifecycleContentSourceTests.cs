@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Application.Inventory;
 using Dfo.Server.Infrastructure.Content;
 
 namespace Dfo.Server.Infrastructure.Tests.Content;
@@ -23,8 +24,9 @@ public sealed class PvfEntryLifecycleContentSourceTests
             _ => new PvfEntryLifecycleContentSource.RefillItemMetadata(100, 2, 65, 120));
 
         Assert.Equal([2680738, 690001556], rules.Select(value => value.ItemId));
-        Assert.Equal(2, PvfEntryLifecycleContentSource.CalculateGrant(rules[0], 0));
-        Assert.Equal(1, PvfEntryLifecycleContentSource.CalculateGrant(rules[1], 99));
+        // How many a rule grants is no longer the content source's judgement to make.
+        Assert.Equal(2, new DailyRefillRuleService().GrantFor(rules[0], 0));
+        Assert.Equal(1, new DailyRefillRuleService().GrantFor(rules[1], 99));
         Assert.Throws<FormatException>(() => PvfEntryLifecycleContentSource.Parse(
             ["1", "2", "2030-01-01 06:00:00"], PreparedAt,
             _ => new PvfEntryLifecycleContentSource.RefillItemMetadata(100, 2, 65, 120)));
