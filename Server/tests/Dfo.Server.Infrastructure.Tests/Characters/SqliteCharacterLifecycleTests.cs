@@ -1,6 +1,7 @@
 using System.Text;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Application.Characters;
 using Dfo.Server.Infrastructure.Accounts;
 using Dfo.Server.Infrastructure.Characters;
 using Microsoft.Data.Sqlite;
@@ -50,7 +51,7 @@ public sealed class SqliteCharacterLifecycleTests
                 new NewCharacterSpec(Account, "Nagisa"u8.ToArray(), Job: 3, SlotIndex: 0, CharacterBaseStats.Zero),
                 CancellationToken.None);
 
-            var entryState = new SqliteCharacterEntryStateRepository(databasePath);
+            var entryState = new SqliteCharacterEntryStateRepository(databasePath, new GoldLimitRuleService());
             var record = await entryState.LoadAsync(Account, id, CancellationToken.None);
 
             Assert.Equal(id, record.CharacterId);
@@ -96,7 +97,7 @@ public sealed class SqliteCharacterLifecycleTests
                 new NewCharacterSpec(Account, "Nagisa"u8.ToArray(), Job: 0, SlotIndex: 0, stats),
                 CancellationToken.None);
 
-            var stored = (await new SqliteCharacterEntryStateRepository(databasePath)
+            var stored = (await new SqliteCharacterEntryStateRepository(databasePath, new GoldLimitRuleService())
                 .LoadAsync(Account, id, CancellationToken.None)).Profile.Subtype1;
 
             Assert.Equal(stats.HpMax, stored.HpMaximum);

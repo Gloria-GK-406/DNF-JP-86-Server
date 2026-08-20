@@ -165,26 +165,6 @@ public sealed record SeekingQuestTriggerUpdate(short Slot, int QuestId, int Befo
 
 public sealed record PetRevivalMutation(long CreatureKey, int Before, int After);
 
-public interface ICharacterEntryMutationRepository
-{
-    ValueTask<IReadOnlyList<SeekingQuestTriggerUpdate>> UpdateSeekingQuestTriggersAsync(
-        AccountId accountId,
-        CharacterId characterId,
-        IReadOnlyList<SeekingQuestTriggerUpdate> updates,
-        CancellationToken cancellationToken);
-
-    ValueTask<PetRevivalMutation?> ReviveEquippedCreatureAsync(
-        AccountId accountId,
-        CharacterId characterId,
-        CancellationToken cancellationToken);
-
-    ValueTask PersistPositionAsync(
-        AccountId accountId,
-        CharacterId characterId,
-        CharacterPositionState position,
-        CancellationToken cancellationToken);
-}
-
 public sealed record CharacterQuestStorageRecord(
     IReadOnlyList<CharacterActiveQuestStorageRow> ActiveQuests,
     IReadOnlyList<int> NotificationQuestIds,

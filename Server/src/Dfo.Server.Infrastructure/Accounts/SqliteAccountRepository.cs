@@ -1,6 +1,7 @@
 using System.Globalization;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Data.Accounts;
+using Dfo.Server.Infrastructure.Schema;
 using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Infrastructure.Accounts;
@@ -89,20 +90,7 @@ internal sealed class SqliteAccountRepository : IAccountRepository
 
     private void EnsureSchema()
     {
-        using var connection = new SqliteConnection(connectionString);
-        connection.Open();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            CREATE TABLE IF NOT EXISTS accounts (
-                account_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                m_id TEXT NOT NULL UNIQUE,
-                password_hash TEXT NOT NULL DEFAULT '',
-                last_login_ip TEXT NOT NULL DEFAULT '',
-                last_login_at TEXT,
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-            );
-            """;
-        command.ExecuteNonQuery();
+        CharacterDatabaseSchema.Ensure(connectionString);
     }
 
     private static DateTimeOffset ParseCreatedAt(string value) =>

@@ -87,27 +87,29 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IEntryInventoryLeasePersistence>(
             provider => provider.GetRequiredService<SqliteInventoryEntryRepository>());
         services.TryAddSingleton<ICharacterEntryStateRepository>(
-            _ => new SqliteCharacterEntryStateRepository(databasePath));
+            provider => new SqliteCharacterEntryStateRepository(
+                databasePath, provider.GetRequiredService<IGoldLimitRuleService>()));
         services.TryAddSingleton<ICharacterPvpSkillProfileRepository>(
             _ => new SqliteCharacterPvpSkillProfileRepository(databasePath));
         services.TryAddSingleton<IDungeonPersistentEffectRecoveryRepository>(
             provider => new SqliteDungeonPersistentEffectRecoveryRepository(databasePath,
-                provider.GetRequiredService<IDungeonExperienceProgressionPolicySource>()));
+                provider.GetRequiredService<IDungeonExperienceProgressionPolicySource>(),
+                provider.GetRequiredService<IDungeonEffectRuleService>()));
         services.TryAddSingleton<IExpertSkillContractReconciliationRepository>(
-            _ => new SqliteExpertSkillContractReconciliationRepository(databasePath));
+            provider => new SqliteExpertSkillContractReconciliationRepository(
+                databasePath, provider.GetRequiredService<IExpertSkillContractRuleService>()));
         services.TryAddSingleton<IEntryInventoryMutationRepository>(
             provider => new SqliteEntryInventoryMutationRepository(
                 databasePath,
                 provider.GetRequiredService<IDailyRefillRuleService>(),
                 provider.GetRequiredService<IItemArrivalRuleService>()));
-        services.TryAddSingleton<ICharacterEntryMutationRepository>(
-            _ => new SqliteCharacterEntryMutationRepository(databasePath));
-        services.TryAddSingleton<ISelectedSessionPositionPersistence>(
-            _ => new SqliteSelectedSessionPositionPersistence(databasePath));
         // The one store whose commit can still fail, and so the one a use case may hold. It is
         // registered as the item store without qualification because it is the one that keeps
         // things; the store that does not is asked for by its own name.
         services.TryAddSingleton(_ => new SqliteItemStore(databasePath));
+        // The character's own rows, kept in the same database and therefore settled by the same
+        // participant as the items it owns.
+        services.TryAddSingleton<ICharacterStore>(_ => new SqliteCharacterStore(databasePath));
         services.TryAddSingleton<IItemStore>(
             provider => provider.GetRequiredService<SqliteItemStore>());
     }

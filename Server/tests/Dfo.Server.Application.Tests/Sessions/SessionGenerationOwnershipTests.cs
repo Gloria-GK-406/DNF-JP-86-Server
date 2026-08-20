@@ -307,17 +307,4 @@ public sealed class SessionGenerationOwnershipTests
             return ValueTask.CompletedTask;
         }
     }
-
-    private sealed class NoopMutations : ICharacterEntryMutationRepository
-    {
-        public ValueTask<IReadOnlyList<SeekingQuestTriggerUpdate>> UpdateSeekingQuestTriggersAsync(
-            AccountId accountId, CharacterId characterId, IReadOnlyList<SeekingQuestTriggerUpdate> updates,
-            CancellationToken cancellationToken) => ValueTask.FromResult(updates);
-        public ValueTask<PetRevivalMutation?> ReviveEquippedCreatureAsync(
-            AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<PetRevivalMutation?>(null);
-        public ValueTask PersistPositionAsync(AccountId accountId, CharacterId characterId,
-            Dfo.Server.Data.Characters.CharacterPositionState position,
-            CancellationToken cancellationToken) => ValueTask.CompletedTask;
-    }
 }

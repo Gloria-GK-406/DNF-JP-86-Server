@@ -1,5 +1,6 @@
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Application.Characters;
 using Dfo.Server.Infrastructure.Characters;
 using Microsoft.Data.Sqlite;
 
@@ -13,7 +14,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
         var path = CreateDatabase();
         try
         {
-            var repository = new SqliteCharacterEntryStateRepository(path);
+            var repository = new SqliteCharacterEntryStateRepository(path, new GoldLimitRuleService());
             await ExecuteAsync(path, """
                 INSERT INTO characters(character_id, account_id, name, job, level)
                 VALUES(21, 11, 'new', 1, 1);
@@ -36,7 +37,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
         var path = CreateDatabase();
         try
         {
-            var repository = new SqliteCharacterEntryStateRepository(path);
+            var repository = new SqliteCharacterEntryStateRepository(path, new GoldLimitRuleService());
             var core = ItemCore(1001, 17);
             await ExecuteAsync(path, """
                 INSERT INTO characters(character_id, account_id, name, job, level, clone_title_item_id,
@@ -59,7 +60,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                 INSERT INTO character_invisible_falgs VALUES(22,200,1);
                 INSERT INTO character_growth_weapon_stages VALUES(22,0,2);
                 INSERT INTO character_crystal_contract VALUES(22,1,255);
-                INSERT INTO character_gold_limits VALUES(22,600000000,600000000);
+                INSERT INTO character_gold_limits(character_id,gold_carry_limit,auction_gold_limit) VALUES(22,600000000,600000000);
                 INSERT INTO character_daily_challenge_groups VALUES(22,0,900);
                 INSERT INTO character_daily_challenge_entries VALUES(22,0,0,901,10,20);
                 INSERT INTO character_daily_challenge_claims(character_id,group_index) VALUES(22,0);
@@ -129,13 +130,93 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
         }
     }
 
+    /// <summary>
+    /// The gold upgrade level is worked out from the two limits rather than stored, and that
+    /// working-out lives in the persistence implementation today.
+    /// </summary>
+    /// <remarks>
+    /// Pinned here before the rule is moved, so that the move can be shown to change nothing. What
+    /// was covered before was a single point -- both limits at six hundred million -- which fixed
+    /// one of the five bands and could say nothing at all about the lower of the two deciding,
+    /// because the two were equal. The rows below fix every band, both boundaries around each, and
+    /// each of the two limits being the lower one.
+    /// </remarks>
+    [Theory]
+    [InlineData(499_999_999, 900_000_000, 0)]
+    [InlineData(500_000_000, 900_000_000, 1)]
+    [InlineData(599_999_999, 900_000_000, 1)]
+    [InlineData(600_000_000, 900_000_000, 2)]
+    [InlineData(699_999_999, 900_000_000, 2)]
+    [InlineData(700_000_000, 900_000_000, 3)]
+    [InlineData(799_999_999, 900_000_000, 3)]
+    [InlineData(800_000_000, 900_000_000, 4)]
+    [InlineData(900_000_000, 499_999_999, 0)]
+    [InlineData(900_000_000, 700_000_000, 3)]
+    [InlineData(0, 0, 0)]
+    public async Task CharacterEntryState_GoldUpgradeLevelFollowsTheLowerOfTheTwoLimits(
+        int carry, int auction, int expected)
+    {
+        var path = CreateDatabase();
+        try
+        {
+            var repository = new SqliteCharacterEntryStateRepository(path, new GoldLimitRuleService());
+            await ExecuteAsync(path, $"""
+                INSERT INTO characters(character_id,account_id,name,job,level) VALUES(30,15,'gold',1,60);
+                INSERT INTO character_subtype0_fields(character_id) VALUES(30);
+                INSERT INTO character_subtype1_fields(character_id) VALUES(30);
+                INSERT INTO character_init_flags(character_id) VALUES(30);
+                INSERT INTO character_gold_limits(character_id,gold_carry_limit,auction_gold_limit) VALUES(30,{carry},{auction});
+                """);
+
+            var result = await repository.LoadAsync(
+                new AccountId(15), new CharacterId(30), CancellationToken.None);
+
+            Assert.Equal(expected, result.Progression.GoldLimitUpgradeLevel);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            File.Delete(path);
+        }
+    }
+
+    /// <remarks>
+    /// A character with no limits row at all reads as the lowest level rather than failing. Pinned
+    /// alongside the rule because moving the rule out also moves what it is handed.
+    /// </remarks>
+    [Fact]
+    public async Task CharacterEntryState_GoldUpgradeLevelIsLowestWhenNoLimitsAreRecorded()
+    {
+        var path = CreateDatabase();
+        try
+        {
+            var repository = new SqliteCharacterEntryStateRepository(path, new GoldLimitRuleService());
+            await ExecuteAsync(path, """
+                INSERT INTO characters(character_id,account_id,name,job,level) VALUES(31,16,'nogold',1,60);
+                INSERT INTO character_subtype0_fields(character_id) VALUES(31);
+                INSERT INTO character_subtype1_fields(character_id) VALUES(31);
+                INSERT INTO character_init_flags(character_id) VALUES(31);
+                """);
+
+            var result = await repository.LoadAsync(
+                new AccountId(16), new CharacterId(31), CancellationToken.None);
+
+            Assert.Equal(0, result.Progression.GoldLimitUpgradeLevel);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            File.Delete(path);
+        }
+    }
+
     [Fact]
     public async Task CharacterEntryState_MailboxUsesOldestActiveInboxPageAndDistinctCount()
     {
         var path = CreateDatabase();
         try
         {
-            var repository = new SqliteCharacterEntryStateRepository(path);
+            var repository = new SqliteCharacterEntryStateRepository(path, new GoldLimitRuleService());
             await ExecuteAsync(path, """
                 INSERT INTO characters(character_id,account_id,name,job,level) VALUES(24,14,'mail',1,60);
                 INSERT INTO character_subtype0_fields(character_id) VALUES(24);
@@ -225,8 +306,8 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                     UNIQUE(message_id,character_id,folder));
                 """);
 
-            _ = new SqliteCharacterEntryStateRepository(path);
-            _ = new SqliteCharacterEntryStateRepository(path);
+            _ = new SqliteCharacterEntryStateRepository(path, new GoldLimitRuleService());
+            _ = new SqliteCharacterEntryStateRepository(path, new GoldLimitRuleService());
             await ExecuteAsync(path, """
                 INSERT INTO characters(character_id,account_id,name,job,level) VALUES(25,15,'upgrade',1,60);
                 INSERT INTO character_subtype0_fields(character_id) VALUES(25);
@@ -236,7 +317,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                 INSERT INTO mailbox_recipients(message_id,character_id) VALUES(900,25);
                 """);
 
-            var result = await new SqliteCharacterEntryStateRepository(path).LoadAsync(
+            var result = await new SqliteCharacterEntryStateRepository(path, new GoldLimitRuleService()).LoadAsync(
                 new AccountId(15), new CharacterId(25), CancellationToken.None);
 
             Assert.Equal(0, result.Profile.Subtype1.ManageLevel);
@@ -264,7 +345,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
         var path = CreateDatabase();
         try
         {
-            var repository = new SqliteCharacterEntryStateRepository(path);
+            var repository = new SqliteCharacterEntryStateRepository(path, new GoldLimitRuleService());
             await ExecuteAsync(path, """
                 INSERT INTO characters(character_id,account_id,name,job,level) VALUES(23,13,'bad',1,60);
                 INSERT INTO character_subtype0_fields(character_id) VALUES(23);

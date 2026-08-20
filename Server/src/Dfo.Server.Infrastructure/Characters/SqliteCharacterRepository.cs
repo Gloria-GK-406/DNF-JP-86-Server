@@ -3,6 +3,7 @@ using System.Text;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Infrastructure.Schema;
 using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Infrastructure.Characters;
@@ -34,20 +35,6 @@ internal sealed class SqliteCharacterRepository : ICharacterRepository
     /// default is zero, which the client renders as an empty bar under a full maximum.
     /// </summary>
     private const int FullHpMpPercent = 100;
-
-    private static void EnsureEntryStateSchema(SqliteConnection connection)
-    {
-        // Creation writes the character row and its required entry-state rows in one transaction,
-        // so those schemas must exist before the first create -- including in a fresh database
-        // where this repository happens to be constructed first.
-        //
-        // Both are needed: character_init_flags is declared by the character entry-state schema,
-        // but its pc_room_state column comes from the account entry-state schema. Ensuring only
-        // the first leaves creation working against an existing database and failing against a
-        // fresh one, which is exactly how this was found.
-        SqliteCharacterEntryStateRepository.EnsureSchema(connection);
-        Accounts.SqliteAccountEntryStateRepository.EnsureSchema(connection);
-    }
 
     public async ValueTask<IReadOnlyList<CharacterSummary>> ListByAccountAsync(
         AccountId accountId,
@@ -377,27 +364,6 @@ internal sealed class SqliteCharacterRepository : ICharacterRepository
 
     private void EnsureSchema()
     {
-        using var connection = new SqliteConnection(connectionString);
-        connection.Open();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            CREATE TABLE IF NOT EXISTS characters (
-                character_id INTEGER PRIMARY KEY,
-                account_id INTEGER NOT NULL,
-                name TEXT NOT NULL,
-                name_bytes BLOB,
-                job INTEGER NOT NULL DEFAULT 0,
-                grow_type INTEGER NOT NULL DEFAULT 0,
-                level INTEGER NOT NULL DEFAULT 1,
-                clone_title_item_id INTEGER NOT NULL DEFAULT 0,
-                delete_flag INTEGER NOT NULL DEFAULT 0,
-                slot_index INTEGER NOT NULL DEFAULT 0
-            );
-
-            CREATE INDEX IF NOT EXISTS idx_characters_account
-                ON characters(account_id, delete_flag, slot_index);
-            """;
-        command.ExecuteNonQuery();
-        EnsureEntryStateSchema(connection);
+        CharacterDatabaseSchema.Ensure(connectionString);
     }
 }

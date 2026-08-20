@@ -121,11 +121,15 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<MarkSelectedCharacterPvpReadyCommand, SelectedCharacterPvpPublication, MarkSelectedCharacterPvpReadyCommandHandler>(
             CommandExecutionKind.Workflow,
             accountAccessMode: UserAccessMode.Exclusive);
+        // These two change a character's stored state, so they are the phases that need a
+        // boundary: the unit of work opens one for Transactional commands and for nothing else.
+        // Without it the store would have no transaction to join and the change would land
+        // outside any outcome that could take it back.
         services.AddCommandHandler<SynchronizeSelectedCharacterQuestsCommand, SynchronizedSelectedCharacterQuests, SynchronizeSelectedCharacterQuestsCommandHandler>(
-            CommandExecutionKind.Workflow,
+            CommandExecutionKind.Transactional,
             accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<ReviveSelectedCharacterPetCommand, RevivedSelectedCharacterPet, ReviveSelectedCharacterPetCommandHandler>(
-            CommandExecutionKind.Workflow,
+            CommandExecutionKind.Transactional,
             accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<CompensateSelectedCharacterSessionCommand, CompensatedSelectedCharacterSession, CompensateSelectedCharacterSessionCommandHandler>(
             CommandExecutionKind.Workflow,

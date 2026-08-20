@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Application.Sessions;
@@ -112,17 +113,17 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
                     [new InventoryItemState(1, 65, Core(itemKind: 5, itemId: 99, value: 999_999))])]
             }
         };
-        var mutations = new RecordingMutations();
+        var characters = new RecordingCharacterStore();
         var service = new SelectCharacterQuestEntryService(
             new QuestSource(new Dictionary<int, IReadOnlyList<SeekingItemRequirement>>
             {
                 [100] = [new SeekingItemRequirement(0, 10)],
                 [101] = [new SeekingItemRequirement(99, 2)],
-            }), mutations);
+            }), characters, new AmbientStoreAccess(new OpenTransactionAccessor()));
 
         var projection = await service.SynchronizeAsync(Session(result), result, CancellationToken.None);
 
-        Assert.Equal([3, 1], mutations.QuestUpdates.Select(value => value.After));
+        Assert.Equal([3, 1], characters.QuestWrites.Select(value => value.TriggerValue));
         Assert.Equal([3u, 1u], projection!.State.Quests.Select(value => value.TriggerValue));
         Assert.Equal([3, 1], projection.Result.CharacterEntry.Quests.ActiveQuests
             .Select(value => value.TriggerValue));
@@ -142,11 +143,17 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
                 }
             }
         };
-        var mutations = new RecordingMutations { Revival = new PetRevivalMutation(77, 0, 1) };
-        var service = new SelectCharacterPetEntryService(mutations);
+        var characters = new RecordingCharacterStore();
+        characters.Creatures[(603, 77)] = new StoredCreature(77, 0);
+        var accessor = new OpenTransactionAccessor();
+        var items = new MemoryItemStore();
+        items.SessionIn(accessor.Current!).Write(
+            ContainerId.ForCharacter(new CharacterId(603), InventoryContainerType.Equipment),
+            new StoredItem(24, Core(itemKind: 5, itemId: 1, value: 77)));
+        var service = new SelectCharacterPetEntryService(
+            characters, items, new AmbientStoreAccess(accessor));
 
         var changed = await service.ReviveAsync(Session(result), result, CancellationToken.None);
-        mutations.Revival = null;
         var unchanged = await service.ReviveAsync(Session(result), result, CancellationToken.None);
 
         Assert.Equal(new PetRevivalState(603, 77, 1), changed!.State);
@@ -279,27 +286,6 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
             LoadCount++;
             return ValueTask.FromResult(inventory);
         }
-    }
-
-    private sealed class RecordingMutations : ICharacterEntryMutationRepository
-    {
-        public IReadOnlyList<SeekingQuestTriggerUpdate> QuestUpdates { get; private set; } = [];
-        public PetRevivalMutation? Revival { get; set; }
-
-        public ValueTask<IReadOnlyList<SeekingQuestTriggerUpdate>> UpdateSeekingQuestTriggersAsync(
-            AccountId accountId, CharacterId characterId,
-            IReadOnlyList<SeekingQuestTriggerUpdate> updates, CancellationToken cancellationToken)
-        {
-            QuestUpdates = updates;
-            return ValueTask.FromResult(updates);
-        }
-
-        public ValueTask<PetRevivalMutation?> ReviveEquippedCreatureAsync(
-            AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(Revival);
-
-        public ValueTask PersistPositionAsync(AccountId accountId, CharacterId characterId,
-            CharacterPositionState position, CancellationToken cancellationToken) => ValueTask.CompletedTask;
     }
 
     private sealed class QuestSource(

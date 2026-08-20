@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Infrastructure.Schema;
 using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Infrastructure.Characters;
@@ -14,29 +15,7 @@ internal sealed class SqliteCharacterPvpSkillProfileRepository : ICharacterPvpSk
         var fullPath = Path.GetFullPath(databasePath);
         Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
         connectionString = new SqliteConnectionStringBuilder { DataSource = fullPath }.ToString();
-        using var connection = new SqliteConnection(connectionString);
-        connection.Open();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            CREATE TABLE IF NOT EXISTS character_pvp_skill_state (
-                character_id INTEGER PRIMARY KEY,
-                initialized_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (character_id) REFERENCES characters(character_id) ON DELETE CASCADE
-            );
-            CREATE TABLE IF NOT EXISTS character_pvp_skills (
-                character_id INTEGER NOT NULL,
-                page_index INTEGER NOT NULL CHECK (page_index BETWEEN 0 AND 1),
-                slot INTEGER NOT NULL,
-                skill_id INTEGER NOT NULL,
-                level INTEGER NOT NULL,
-                extra_values BLOB,
-                PRIMARY KEY (character_id, page_index, slot),
-                UNIQUE (character_id, page_index, skill_id),
-                FOREIGN KEY (character_id) REFERENCES characters(character_id) ON DELETE CASCADE
-            );
-            """;
-        command.ExecuteNonQuery();
+        CharacterDatabaseSchema.Ensure(connectionString);
     }
 
     public async ValueTask<CharacterSkillsEntryState> LoadOrInitializeAsync(
