@@ -1,0 +1,920 @@
+using System.Buffers.Binary;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Persistence.Schema;
+using Microsoft.Data.Sqlite;
+
+namespace Dfo.Server.Persistence.Inventory;
+
+internal sealed class SqliteInventoryEntryRepository
+    : ICharacterInventoryEntryRepository, IAccountInventoryEntryRepository, IEntryInventoryLeasePersistence
+{
+    private const int ItemCoreSize = 82;
+    private readonly string connectionString;
+
+    public SqliteInventoryEntryRepository(string databasePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(databasePath);
+        var fullPath = Path.GetFullPath(databasePath);
+        var directory = Path.GetDirectoryName(fullPath);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        connectionString = new SqliteConnectionStringBuilder { DataSource = fullPath }.ToString();
+        EnsureSchema();
+    }
+
+    public async ValueTask<CharacterInventoryEntryStorageRecord> LoadCharacterAsync(
+        AccountId accountId,
+        CharacterId characterId,
+        CancellationToken cancellationToken)
+    {
+        ValidateIdentifiers(accountId, characterId);
+
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await VerifyCharacterOwnershipAsync(connection, accountId, characterId, cancellationToken)
+            .ConfigureAwait(false);
+
+        var characterItems = await LoadCharacterItemsAsync(connection, characterId, cancellationToken)
+            .ConfigureAwait(false);
+        characterItems = await LoadAvatarDetailsAsync(connection, characterItems, cancellationToken)
+            .ConfigureAwait(false);
+        await RejectUnmigratedLegacyCharacterInventoryAsync(
+            connection,
+            characterId,
+            characterItems.Count,
+            cancellationToken).ConfigureAwait(false);
+        var containerParameters = await LoadContainerParametersAsync(
+            connection,
+            characterId,
+            cancellationToken).ConfigureAwait(false);
+        var characterVirtualResources = LoadCharacterVirtualResources(characterItems);
+        var itemValues = await LoadItemValuesAsync(connection, characterId, cancellationToken)
+            .ConfigureAwait(false);
+        var equipmentLocks = await LoadEquipmentLocksAsync(connection, characterId, cancellationToken)
+            .ConfigureAwait(false);
+        var rentals = await LoadRentalsAsync(connection, characterId, cancellationToken)
+            .ConfigureAwait(false);
+        var goldLimits = await LoadGoldLimitsAsync(connection, characterId, cancellationToken)
+            .ConfigureAwait(false);
+
+        ValidateUniqueSlots(characterItems, "character inventory");
+        return new CharacterInventoryEntryStorageRecord(
+            accountId,
+            characterId,
+            characterItems,
+            containerParameters,
+            characterVirtualResources,
+            itemValues,
+            equipmentLocks
+                .Where(item => item.ContainerType != InventoryContainerType.AccountCargo)
+                .ToArray(),
+            rentals,
+            goldLimits);
+    }
+
+    public async ValueTask<AccountInventoryEntryStorageRecord> LoadAccountAsync(
+        AccountId accountId,
+        CharacterId characterId,
+        CancellationToken cancellationToken)
+    {
+        ValidateIdentifiers(accountId, characterId);
+
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await VerifyCharacterOwnershipAsync(connection, accountId, characterId, cancellationToken)
+            .ConfigureAwait(false);
+
+        var accountCargoItems = await LoadAccountCargoItemsAsync(connection, accountId, cancellationToken)
+            .ConfigureAwait(false);
+        await RejectUnmigratedLegacyAccountInventoryAsync(
+            connection,
+            accountId,
+            accountCargoItems.Count,
+            cancellationToken).ConfigureAwait(false);
+        var cargoState = await LoadAccountCargoStateAsync(connection, accountId, cancellationToken)
+            .ConfigureAwait(false);
+        var accountVirtualResources = await LoadAccountVirtualResourcesAsync(
+            connection,
+            accountId,
+            cancellationToken).ConfigureAwait(false);
+        var equipmentLocks = await LoadEquipmentLocksAsync(connection, characterId, cancellationToken)
+            .ConfigureAwait(false);
+
+        ValidateUniqueSlots(accountCargoItems, "account cargo");
+        return new AccountInventoryEntryStorageRecord(
+            accountId,
+            characterId,
+            accountCargoItems,
+            cargoState,
+            accountVirtualResources,
+            equipmentLocks
+                .Where(item => item.ContainerType == InventoryContainerType.AccountCargo)
+                .ToArray());
+    }
+
+    public async ValueTask SaveAsync(
+        EntryInventoryLeaseSnapshot lease, CancellationToken cancellationToken)
+    {
+        if (!lease.IsDirty || lease.Inventory.CharacterId != lease.Session.CharacterId)
+            throw new InvalidDataException("Only an exact dirty character inventory lease can be saved.");
+        if (lease.Inventory.Containers.Any(value => value.ContainerType == InventoryContainerType.AccountCargo))
+            throw new InvalidDataException("A character item lease cannot contain account cargo.");
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken)
+            .ConfigureAwait(false);
+        await VerifyCharacterOwnershipAsync(
+            connection, lease.Session.AccountId, lease.Session.CharacterId, cancellationToken).ConfigureAwait(false);
+        var presentIds = lease.Inventory.Containers
+            .Where(value => value.ContainerType != InventoryContainerType.AccountCargo)
+            .SelectMany(value => value.Items).Where(value => value.StorageEntryId > 0)
+            .Select(value => value.StorageEntryId).Distinct().ToArray();
+        await using (var delete = connection.CreateCommand())
+        {
+            delete.Transaction = transaction;
+            delete.CommandText = presentIds.Length == 0
+                ? "DELETE FROM character_new_items WHERE character_id=@cid AND owner_scope='character' AND owner_id=@cid"
+                : $"DELETE FROM character_new_items WHERE character_id=@cid AND owner_scope='character' AND owner_id=@cid AND item_uid NOT IN ({string.Join(',', presentIds.Select((_, index) => $"@p{index}"))})";
+            delete.Parameters.AddWithValue("@cid", lease.Session.CharacterId.Value);
+            for (var index = 0; index < presentIds.Length; index++)
+                delete.Parameters.AddWithValue($"@p{index}", presentIds[index]);
+            await delete.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+        var avatars = lease.Inventory.Containers.SelectMany(value => value.Items)
+            .Where(value => value.Core.ItemKind == 8).ToArray();
+        if (avatars.Any(value => value.Core.Value <= 0 || value.AvatarDetail is null
+                                 || value.AvatarDetail.JewelSocket.Length != 30))
+            throw new InvalidDataException("A dirty avatar lease requires its exact 30-byte detail row.");
+        await using (var deleteDetails = connection.CreateCommand())
+        {
+            deleteDetails.Transaction = transaction;
+            deleteDetails.CommandText = avatars.Length == 0
+                ? "DELETE FROM character_avatar_detail WHERE character_id=@cid AND owner_id=@cid"
+                : $"DELETE FROM character_avatar_detail WHERE character_id=@cid AND owner_id=@cid AND item_uid NOT IN ({string.Join(',', avatars.Select((_, index) => $"@avatar{index}"))})";
+            deleteDetails.Parameters.AddWithValue("@cid", lease.Session.CharacterId.Value);
+            for (var index = 0; index < avatars.Length; index++)
+                deleteDetails.Parameters.AddWithValue($"@avatar{index}", avatars[index].Core.Value);
+            await deleteDetails.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+        foreach (var container in lease.Inventory.Containers.Where(value =>
+                     value.ContainerType != InventoryContainerType.AccountCargo))
+        foreach (var item in container.Items)
+        {
+            await using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = item.StorageEntryId > 0 ? """
+                UPDATE character_new_items SET list_type=@list, slot_index=@slot,
+                    item_core=@core, updated_at=CURRENT_TIMESTAMP
+                WHERE item_uid=@uid AND character_id=@cid AND owner_scope='character' AND owner_id=@cid
+                """ : """
+                INSERT INTO character_new_items(owner_scope,owner_id,character_id,list_type,slot_index,item_core)
+                VALUES('character',@cid,@cid,@list,@slot,@core)
+                """;
+            command.Parameters.AddWithValue("@list", (byte)container.ContainerType);
+            command.Parameters.AddWithValue("@slot", item.SlotIndex);
+            command.Parameters.AddWithValue("@core", EncodeItemCore(item.Core));
+            if (item.StorageEntryId > 0) command.Parameters.AddWithValue("@uid", item.StorageEntryId);
+            command.Parameters.AddWithValue("@cid", lease.Session.CharacterId.Value);
+            if (await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) != 1)
+                throw new InvalidDataException($"Dirty inventory item {item.StorageEntryId} is stale or missing.");
+            if (item.Core.ItemKind == 8)
+            {
+                var detail = item.AvatarDetail!;
+                await using var avatar = connection.CreateCommand(); avatar.Transaction = transaction;
+                avatar.CommandText = """
+                    INSERT INTO character_avatar_detail(item_uid,owner_id,character_id,item_id,expire_date,
+                      clear_avatar_id,jewel_socket,color1,color2,delete_date)
+                    VALUES(@uid,@cid,@cid,@item,@expire,@clear,@socket,@color1,@color2,@delete)
+                    ON CONFLICT(item_uid) DO UPDATE SET owner_id=excluded.owner_id,
+                      character_id=excluded.character_id,item_id=excluded.item_id,expire_date=excluded.expire_date,
+                      clear_avatar_id=excluded.clear_avatar_id,jewel_socket=excluded.jewel_socket,
+                      color1=excluded.color1,color2=excluded.color2,delete_date=excluded.delete_date
+                    WHERE character_avatar_detail.owner_id=@cid
+                      AND character_avatar_detail.character_id=@cid
+                    """;
+                avatar.Parameters.AddWithValue("@uid", item.Core.Value); avatar.Parameters.AddWithValue("@cid", lease.Session.CharacterId.Value);
+                avatar.Parameters.AddWithValue("@item", item.Core.ItemId); avatar.Parameters.AddWithValue("@expire", detail.ExpireDate);
+                avatar.Parameters.AddWithValue("@clear", detail.ClearAvatarId); avatar.Parameters.AddWithValue("@socket", detail.JewelSocket);
+                avatar.Parameters.AddWithValue("@color1", detail.Color1); avatar.Parameters.AddWithValue("@color2", detail.Color2);
+                avatar.Parameters.AddWithValue("@delete", detail.DeleteDate);
+                if (await avatar.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) != 1)
+                    throw new InvalidDataException("Dirty avatar detail was not persisted.");
+            }
+        }
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    internal static byte[] EncodeItemCore(InventoryItemCoreState value)
+    {
+        var core = new byte[ItemCoreSize];
+        core[0] = value.ItemKind;
+        BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(1), value.ItemId);
+        BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(5), value.Value);
+        core[9] = value.Attribute;
+        BinaryPrimitives.WriteUInt16LittleEndian(core.AsSpan(10), value.Durability);
+        core[12] = value.SealFlag;
+        BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(13), value.EnchantCardId);
+        core[17] = value.EnchantUpgradeCount; core[18] = value.AmplifyType;
+        BinaryPrimitives.WriteUInt16LittleEndian(core.AsSpan(19), value.AmplifyValue);
+        BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(21), value.Marker16);
+        WriteChronicle(core.AsSpan(25), value.ChronicleOption0);
+        WriteChronicle(core.AsSpan(33), value.ChronicleOption1);
+        BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(41), value.ExpireTime);
+        core[45] = value.EmblemSocketCount;
+        BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(46), value.EmblemId1);
+        BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(50), value.EmblemId2);
+        BinaryPrimitives.WriteUInt16LittleEndian(core.AsSpan(54), value.Rune);
+        WriteRandom(core.AsSpan(56), value.RandomOption0); WriteRandom(core.AsSpan(59), value.RandomOption1);
+        WriteRandom(core.AsSpan(62), value.RandomOption2); core[65] = value.RandomOptionState;
+        core[66] = value.RandomOptionChangedIndex; core[67] = value.RandomOptionChangeState;
+        WriteRandom(core.AsSpan(68), value.RandomOptionChange);
+        core[71] = value.GenuineUpgrade; core[72] = value.EmancipateEquipmentLevel;
+        core[73] = value.TradeRestriction; BinaryPrimitives.WriteUInt16LittleEndian(core.AsSpan(74), value.TailUnknown0);
+        core[76] = value.TailUnknown1; core[77] = value.TailUnknown2; core[78] = value.TailUnknown3;
+        core[79] = value.RemainUseCount; core[80] = value.SortLockFlag; core[81] = value.EquipmentLockId;
+        return core;
+    }
+
+    private static void WriteChronicle(Span<byte> target, ChronicleOptionState value)
+    {
+        BinaryPrimitives.WriteInt32LittleEndian(target, value.Id);
+        target[4] = value.CharacterJob; target[5] = value.FirstGrowType;
+        target[6] = value.EquipmentType; target[7] = value.OptionNumber;
+    }
+
+    private static void WriteRandom(Span<byte> target, RandomOptionState value)
+    { target[0] = value.Type; target[1] = value.Value1; target[2] = value.Value2; }
+
+    private static void ValidateIdentifiers(AccountId accountId, CharacterId characterId)
+    {
+        if (accountId.Value <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(accountId), "Account ID must be positive.");
+        }
+
+        if (characterId.Value <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(characterId), "Character ID must be positive.");
+        }
+    }
+
+    private static async ValueTask VerifyCharacterOwnershipAsync(
+        SqliteConnection connection,
+        AccountId accountId,
+        CharacterId characterId,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT 1
+            FROM characters
+            WHERE character_id = @characterId AND account_id = @accountId
+            LIMIT 1;
+            """;
+        command.Parameters.AddWithValue("@characterId", characterId.Value);
+        command.Parameters.AddWithValue("@accountId", accountId.Value);
+        var found = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+        if (found is null or DBNull)
+        {
+            throw new InvalidDataException(
+                $"Character {characterId.Value} does not belong to account {accountId.Value}.");
+        }
+    }
+
+    private static async ValueTask<IReadOnlyList<InventoryStorageItem>> LoadCharacterItemsAsync(
+        SqliteConnection connection,
+        CharacterId characterId,
+        CancellationToken cancellationToken)
+    {
+        var items = new List<InventoryStorageItem>();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT item_uid, owner_scope, owner_id, character_id,
+                   list_type, slot_index, item_core
+            FROM character_new_items
+            WHERE character_id = @characterId
+            ORDER BY list_type, slot_index, item_uid;
+            """;
+        command.Parameters.AddWithValue("@characterId", characterId.Value);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var ownerType = ParseOwnerType(reader.GetString(1));
+            var ownerId = reader.GetInt32(2);
+            var storedCharacterId = reader.IsDBNull(3)
+                ? (CharacterId?)null
+                : new CharacterId(reader.GetInt32(3));
+            var containerType = ParseContainerType(reader.GetInt32(4), allowAccountCargo: false);
+            var slotIndex = reader.GetInt32(5);
+            if (ownerType != InventoryOwnerType.Character
+                || ownerId != characterId.Value
+                || storedCharacterId != characterId)
+            {
+                throw new InvalidDataException(
+                    $"Inventory row {reader.GetInt64(0)} has invalid character ownership.");
+            }
+
+            ValidateSlot(slotIndex, reader.GetInt64(0));
+            items.Add(new InventoryStorageItem(
+                reader.GetInt64(0),
+                ownerType,
+                ownerId,
+                storedCharacterId,
+                containerType,
+                slotIndex,
+                DecodeItemCore(ReadCore(reader, 6, reader.GetInt64(0)))));
+        }
+
+        return items;
+    }
+
+    private static async ValueTask<IReadOnlyList<InventoryStorageItem>> LoadAccountCargoItemsAsync(
+        SqliteConnection connection,
+        AccountId accountId,
+        CancellationToken cancellationToken)
+    {
+        var items = new List<InventoryStorageItem>();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT item_uid, account_id, character_id, list_type, slot_index, item_core
+            FROM account_cargo_new_items
+            WHERE account_id = @accountId
+            ORDER BY list_type, slot_index, item_uid;
+            """;
+        command.Parameters.AddWithValue("@accountId", accountId.Value);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var storageEntryId = reader.GetInt64(0);
+            var ownerId = reader.GetInt32(1);
+            var storedCharacterId = reader.IsDBNull(2)
+                ? (CharacterId?)null
+                : new CharacterId(reader.GetInt32(2));
+            var containerType = ParseContainerType(reader.GetInt32(3), allowAccountCargo: true);
+            var slotIndex = reader.GetInt32(4);
+            if (ownerId != accountId.Value || containerType != InventoryContainerType.AccountCargo)
+            {
+                throw new InvalidDataException(
+                    $"Inventory row {storageEntryId} has invalid account cargo ownership.");
+            }
+
+            ValidateSlot(slotIndex, storageEntryId);
+            items.Add(new InventoryStorageItem(
+                storageEntryId,
+                InventoryOwnerType.Account,
+                ownerId,
+                storedCharacterId,
+                containerType,
+                slotIndex,
+                DecodeItemCore(ReadCore(reader, 5, storageEntryId))));
+        }
+
+        return items;
+    }
+
+    private static async ValueTask<IReadOnlyList<InventoryStorageItem>> LoadAvatarDetailsAsync(
+        SqliteConnection connection,
+        IReadOnlyList<InventoryStorageItem> items,
+        CancellationToken cancellationToken)
+    {
+        var result = new List<InventoryStorageItem>(items.Count);
+        foreach (var item in items)
+        {
+            if (item.Core.ItemKind != 8)
+            {
+                result.Add(item);
+                continue;
+            }
+            if (item.Core.Value <= 0)
+                throw new InvalidDataException($"Avatar inventory row {item.StorageEntryId} has no avatar UID.");
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                SELECT owner_id,character_id,item_id,expire_date,clear_avatar_id,jewel_socket,
+                       color1,color2,delete_date
+                FROM character_avatar_detail WHERE item_uid=@avatarUid LIMIT 2
+                """;
+            command.Parameters.AddWithValue("@avatarUid", item.Core.Value);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                throw new InvalidDataException($"Avatar detail {item.Core.Value} is unavailable.");
+            var socket = (byte[])reader.GetValue(5);
+            if (reader.GetInt32(0) != item.OwnerId
+                || reader.GetInt32(1) != item.CharacterId?.Value
+                || reader.GetInt32(2) != item.Core.ItemId
+                || socket.Length != 30
+                || reader.GetInt64(6) is < 0 or > ushort.MaxValue
+                || reader.GetInt64(7) is < 0 or > ushort.MaxValue)
+                throw new InvalidDataException($"Avatar detail {item.Core.Value} is malformed or has the wrong owner.");
+            result.Add(item with
+            {
+                AvatarDetail = new InventoryAvatarDetailState(
+                    checked((int)reader.GetInt64(3)), checked((int)reader.GetInt64(4)), [.. socket],
+                    checked((ushort)reader.GetInt64(6)), checked((ushort)reader.GetInt64(7)),
+                    checked((int)reader.GetInt64(8))),
+            });
+        }
+        return result;
+    }
+
+    private static async ValueTask<IReadOnlyList<InventoryContainerParameter>> LoadContainerParametersAsync(
+        SqliteConnection connection,
+        CharacterId characterId,
+        CancellationToken cancellationToken)
+    {
+        var parameters = new List<InventoryContainerParameter>();
+        var seen = new HashSet<InventoryContainerType>();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT character_id, list_type, list_param16
+            FROM character_container_state
+            WHERE character_id = @characterId
+            ORDER BY list_type;
+            """;
+        command.Parameters.AddWithValue("@characterId", characterId.Value);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var storedCharacterId = new CharacterId(reader.GetInt32(0));
+            var containerType = ParseContainerType(reader.GetInt32(1), allowAccountCargo: false);
+            if (storedCharacterId != characterId || !seen.Add(containerType))
+            {
+                throw new InvalidDataException("Character container metadata is duplicated or has the wrong owner.");
+            }
+
+            parameters.Add(new InventoryContainerParameter(
+                storedCharacterId,
+                containerType,
+                ReadUInt16(reader, 2, "container parameter")));
+        }
+
+        return parameters;
+    }
+
+    private static async ValueTask<AccountCargoStorageState> LoadAccountCargoStateAsync(
+        SqliteConnection connection,
+        AccountId accountId,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT account_id, selection_key, value32, item_count
+            FROM account_cargo_state
+            WHERE account_id = @accountId
+            LIMIT 2;
+            """;
+        command.Parameters.AddWithValue("@accountId", accountId.Value);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            return new AccountCargoStorageState(accountId, 0, 0, 0);
+        }
+
+        var storedAccountId = new AccountId(reader.GetInt32(0));
+        if (storedAccountId != accountId)
+        {
+            throw new InvalidDataException("Account cargo metadata has the wrong owner.");
+        }
+
+        var result = new AccountCargoStorageState(
+            storedAccountId,
+            ReadUInt16(reader, 1, "account cargo selection key"),
+            reader.GetInt32(2),
+            ReadUInt16(reader, 3, "account cargo item count"));
+        if (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            throw new InvalidDataException("Account cargo metadata is duplicated.");
+        }
+
+        return result;
+    }
+
+    private static async ValueTask<InventoryGoldLimitState> LoadGoldLimitsAsync(
+        SqliteConnection connection,
+        CharacterId characterId,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT gold_carry_limit, auction_gold_limit
+            FROM character_gold_limits
+            WHERE character_id = @characterId
+            LIMIT 1;
+            """;
+        command.Parameters.AddWithValue("@characterId", characterId.Value);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            return new InventoryGoldLimitState(0, 0);
+        }
+
+        var carryLimit = reader.GetInt32(0);
+        var auctionLimit = reader.GetInt32(1);
+        if (carryLimit < 0 || auctionLimit < 0)
+        {
+            throw new InvalidDataException("Character gold limits cannot be negative.");
+        }
+
+        return new InventoryGoldLimitState(carryLimit, auctionLimit);
+    }
+
+    private static IReadOnlyList<InventoryRuntimeValueState> LoadCharacterVirtualResources(
+        IReadOnlyList<InventoryStorageItem> characterItems)
+    {
+        return characterItems
+            .Where(item => item.ContainerType == InventoryContainerType.Main
+                && item.SlotIndex is >= 0 and <= 2)
+            .Select(item => new InventoryRuntimeValueState(
+                item.SlotIndex,
+                item.Core.ItemId,
+                Math.Max(0, item.Core.Value)))
+            .OrderBy(value => value.SlotIndex)
+            .ToArray();
+    }
+
+    private static async ValueTask<IReadOnlyList<InventoryRuntimeValueState>>
+        LoadAccountVirtualResourcesAsync(
+            SqliteConnection connection,
+            AccountId accountId,
+            CancellationToken cancellationToken)
+    {
+        var values = new List<InventoryRuntimeValueState>();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT cube_black, cube_white, cube_red, cube_blue, cube_clear, cube_gold
+            FROM accounts
+            WHERE account_id = @accountId
+            LIMIT 1;
+            """;
+        command.Parameters.AddWithValue("@accountId", accountId.Value);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            throw new InvalidDataException($"Account {accountId.Value} is missing while loading inventory values.");
+        }
+
+        var itemIds = new[] { 3033, 3034, 3035, 3036, 3037, 3262 };
+        for (var index = 0; index < itemIds.Length; index++)
+        {
+            var count = reader.GetInt32(index);
+            if (count < 0)
+            {
+                throw new InvalidDataException("Account cube fragment counts cannot be negative.");
+            }
+
+            if (count > 0)
+            {
+                values.Add(new InventoryRuntimeValueState(354 + index, itemIds[index], count));
+            }
+        }
+
+        return values.OrderBy(value => value.SlotIndex).ToArray();
+    }
+
+    private static async ValueTask<IReadOnlyList<InventoryItemValueStorageRecord>> LoadItemValuesAsync(
+        SqliteConnection connection,
+        CharacterId characterId,
+        CancellationToken cancellationToken)
+    {
+        var values = new List<InventoryItemValueStorageRecord>();
+        var seen = new HashSet<(InventoryItemValueListType ListType, int SortOrder)>();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT character_id, list_kind, sort_order, item_id, value
+            FROM character_item_values
+            WHERE character_id = @characterId
+            ORDER BY CASE list_kind WHEN 'cooltime' THEN 0 WHEN 'effect' THEN 1 ELSE 2 END,
+                     sort_order;
+            """;
+        command.Parameters.AddWithValue("@characterId", characterId.Value);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var storedCharacterId = new CharacterId(reader.GetInt32(0));
+            var listType = reader.GetString(1) switch
+            {
+                "cooltime" => InventoryItemValueListType.Cooldown,
+                "effect" => InventoryItemValueListType.Effect,
+                var value => throw new InvalidDataException(
+                    $"Character item value list kind '{value}' is invalid."),
+            };
+            var sortOrder = reader.GetInt32(2);
+            if (storedCharacterId != characterId
+                || sortOrder < 0
+                || !seen.Add((listType, sortOrder)))
+            {
+                throw new InvalidDataException(
+                    "Character item values have invalid ownership, order, or duplicate entries.");
+            }
+
+            values.Add(new InventoryItemValueStorageRecord(
+                storedCharacterId,
+                listType,
+                sortOrder,
+                reader.GetInt32(3),
+                reader.GetInt32(4)));
+        }
+
+        return values;
+    }
+
+    private static async ValueTask<IReadOnlyList<InventoryEquipmentLockStorageRecord>>
+        LoadEquipmentLocksAsync(
+            SqliteConnection connection,
+            CharacterId characterId,
+            CancellationToken cancellationToken)
+    {
+        var locks = new List<InventoryEquipmentLockStorageRecord>();
+        var lockIds = new HashSet<int>();
+        var slots = new HashSet<(InventoryContainerType ContainerType, int SlotIndex)>();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT character_id, equipment_lock_id, inventory_list_type,
+                   slot, state, COALESCE(remaining_seconds, 0)
+            FROM character_item_locks
+            WHERE character_id = @characterId
+            ORDER BY equipment_lock_id;
+            """;
+        command.Parameters.AddWithValue("@characterId", characterId.Value);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var storedCharacterId = new CharacterId(reader.GetInt32(0));
+            var equipmentLockId = reader.GetInt32(1);
+            var containerType = ParseLockContainerType(reader.GetInt32(2));
+            var slotIndex = reader.GetInt32(3);
+            var state = reader.GetInt32(4);
+            var remainingSeconds = reader.GetInt32(5);
+            if (storedCharacterId != characterId
+                || equipmentLockId is < 1 or > byte.MaxValue
+                || slotIndex < 0
+                || state is < byte.MinValue or > byte.MaxValue
+                || remainingSeconds < 0
+                || !lockIds.Add(equipmentLockId)
+                || !slots.Add((containerType, slotIndex)))
+            {
+                throw new InvalidDataException(
+                    "Character equipment locks have invalid ownership, identity, slot, or runtime state.");
+            }
+
+            locks.Add(new InventoryEquipmentLockStorageRecord(
+                storedCharacterId,
+                equipmentLockId,
+                containerType,
+                slotIndex,
+                state,
+                remainingSeconds));
+        }
+
+        return locks;
+    }
+
+    private static async ValueTask<IReadOnlyList<CharacterRentalStorageRecord>> LoadRentalsAsync(
+        SqliteConnection connection,
+        CharacterId characterId,
+        CancellationToken cancellationToken)
+    {
+        var rentals = new List<CharacterRentalStorageRecord>();
+        var itemIds = new HashSet<long>();
+        var inventoryTemplateIds = new HashSet<long>();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT character_id, shop_entry_id, inventory_template_id, expire_time
+            FROM character_rental_items
+            WHERE character_id = @characterId
+            UNION ALL
+            SELECT character_id, item_id, inventory_template_id, expire_time
+            FROM rental_items
+            WHERE character_id = @characterId;
+            """;
+        command.Parameters.AddWithValue("@characterId", characterId.Value);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var storedCharacterId = new CharacterId(reader.GetInt32(0));
+            var itemId = reader.GetInt64(1);
+            var inventoryTemplateId = reader.GetInt64(2);
+            var expireTime = reader.GetInt64(3);
+            if (storedCharacterId != characterId
+                || itemId is < 1 or > uint.MaxValue
+                || inventoryTemplateId is < 0 or > uint.MaxValue
+                || expireTime is < 1 or > uint.MaxValue
+                || !itemIds.Add(itemId)
+                || (inventoryTemplateId != 0 && !inventoryTemplateIds.Add(inventoryTemplateId)))
+            {
+                throw new InvalidDataException(
+                    "Character rental state has invalid ownership, identity, expiration, or duplicates.");
+            }
+
+            rentals.Add(new CharacterRentalStorageRecord(
+                storedCharacterId,
+                itemId,
+                inventoryTemplateId,
+                expireTime));
+        }
+
+        return rentals
+            .OrderBy(item => item.ItemId)
+            .ThenBy(item => item.InventoryTemplateId)
+            .ToArray();
+    }
+
+    private static async ValueTask RejectUnmigratedLegacyCharacterInventoryAsync(
+        SqliteConnection connection,
+        CharacterId characterId,
+        int characterNewItemCount,
+        CancellationToken cancellationToken)
+    {
+        if (characterNewItemCount != 0)
+            return;
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT EXISTS(
+                SELECT 1
+                FROM character_items
+                WHERE character_id = @characterId
+                   OR (owner_scope = 'character' AND owner_id = @characterId));
+            """;
+        command.Parameters.AddWithValue("@characterId", characterId.Value);
+        if (Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false)) != 0)
+        {
+            throw new InvalidDataException(
+                $"Legacy character inventory exists for character {characterId.Value}; migration required before entry loading.");
+        }
+    }
+
+    private static async ValueTask RejectUnmigratedLegacyAccountInventoryAsync(
+        SqliteConnection connection,
+        AccountId accountId,
+        int accountCargoNewItemCount,
+        CancellationToken cancellationToken)
+    {
+        if (accountCargoNewItemCount != 0)
+            return;
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT EXISTS(
+                SELECT 1
+                FROM account_cargo_items
+                WHERE account_id = @accountId);
+            """;
+        command.Parameters.AddWithValue("@accountId", accountId.Value);
+        if (Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false)) != 0)
+        {
+            throw new InvalidDataException(
+                $"Legacy account cargo exists for account {accountId.Value}; migration required before entry loading.");
+        }
+    }
+
+    private static InventoryOwnerType ParseOwnerType(string value) => value switch
+    {
+        "character" => InventoryOwnerType.Character,
+        "account" => InventoryOwnerType.Account,
+        _ => throw new InvalidDataException($"Inventory owner scope '{value}' is invalid."),
+    };
+
+    private static InventoryContainerType ParseContainerType(int value, bool allowAccountCargo)
+    {
+        var result = value switch
+        {
+            0 => InventoryContainerType.Main,
+            1 => InventoryContainerType.Avatar,
+            2 => InventoryContainerType.PersonalCargo,
+            3 => InventoryContainerType.Equipment,
+            7 => InventoryContainerType.Pet,
+            12 when allowAccountCargo => InventoryContainerType.AccountCargo,
+            _ => throw new InvalidDataException($"Inventory container type {value} is not an entry container."),
+        };
+        return result;
+    }
+
+    private static InventoryContainerType ParseLockContainerType(int value) => value switch
+    {
+        0 => InventoryContainerType.Main,
+        1 => InventoryContainerType.Avatar,
+        2 => InventoryContainerType.PersonalCargo,
+        3 => InventoryContainerType.Equipment,
+        7 => InventoryContainerType.Pet,
+        12 => InventoryContainerType.AccountCargo,
+        19 => InventoryContainerType.TitleBookGeneral,
+        20 => InventoryContainerType.TitleBookSpecific,
+        21 => InventoryContainerType.TitleBookPvp,
+        22 => InventoryContainerType.TitleBookDespair,
+        23 => InventoryContainerType.TitleBookEvent,
+        29 => InventoryContainerType.QuickSlot,
+        33 => InventoryContainerType.KnightShieldEquipped,
+        34 => InventoryContainerType.KnightShieldCatalog,
+        _ => throw new InvalidDataException($"Equipment lock container type {value} is invalid."),
+    };
+
+    private static byte[] ReadCore(SqliteDataReader reader, int ordinal, long storageEntryId)
+    {
+        if (reader.IsDBNull(ordinal))
+        {
+            throw new InvalidDataException($"Inventory row {storageEntryId} has no item core.");
+        }
+
+        var core = (byte[])reader.GetValue(ordinal);
+        if (core.Length != ItemCoreSize)
+        {
+            throw new InvalidDataException(
+                $"Inventory row {storageEntryId} item core length is {core.Length}; expected {ItemCoreSize}.");
+        }
+
+        return core;
+    }
+
+    internal static InventoryItemCoreState DecodeItemCore(ReadOnlySpan<byte> core) => new(
+        core[0],
+        BinaryPrimitives.ReadInt32LittleEndian(core[1..]),
+        BinaryPrimitives.ReadInt32LittleEndian(core[5..]),
+        core[9],
+        BinaryPrimitives.ReadUInt16LittleEndian(core[10..]),
+        core[12],
+        BinaryPrimitives.ReadInt32LittleEndian(core[13..]),
+        core[17],
+        core[18],
+        BinaryPrimitives.ReadUInt16LittleEndian(core[19..]),
+        BinaryPrimitives.ReadInt32LittleEndian(core[21..]),
+        DecodeChronicleOption(core[25..]),
+        DecodeChronicleOption(core[33..]),
+        BinaryPrimitives.ReadInt32LittleEndian(core[41..]),
+        core[45],
+        BinaryPrimitives.ReadInt32LittleEndian(core[46..]),
+        BinaryPrimitives.ReadInt32LittleEndian(core[50..]),
+        BinaryPrimitives.ReadUInt16LittleEndian(core[54..]),
+        DecodeRandomOption(core[56..]),
+        DecodeRandomOption(core[59..]),
+        DecodeRandomOption(core[62..]),
+        core[65],
+        core[66],
+        core[67],
+        DecodeRandomOption(core[68..]),
+        core[71],
+        core[72],
+        core[73],
+        BinaryPrimitives.ReadUInt16LittleEndian(core[74..]),
+        core[76],
+        core[77],
+        core[78],
+        core[79],
+        core[80],
+        core[81]);
+
+    private static ChronicleOptionState DecodeChronicleOption(ReadOnlySpan<byte> option) => new(
+        BinaryPrimitives.ReadInt32LittleEndian(option),
+        option[4],
+        option[5],
+        option[6],
+        option[7]);
+
+    private static RandomOptionState DecodeRandomOption(ReadOnlySpan<byte> option) =>
+        new(option[0], option[1], option[2]);
+
+    private static ushort ReadUInt16(SqliteDataReader reader, int ordinal, string name)
+    {
+        var value = reader.GetInt32(ordinal);
+        if (value is < ushort.MinValue or > ushort.MaxValue)
+        {
+            throw new InvalidDataException($"Stored {name} {value} is outside the unsigned 16-bit range.");
+        }
+
+        return (ushort)value;
+    }
+
+    private static void ValidateSlot(int slotIndex, long storageEntryId)
+    {
+        if (slotIndex < 0)
+        {
+            throw new InvalidDataException($"Inventory row {storageEntryId} has negative slot {slotIndex}.");
+        }
+    }
+
+    private static void ValidateUniqueSlots(
+        IReadOnlyList<InventoryStorageItem> items,
+        string source)
+    {
+        var seen = new HashSet<(InventoryContainerType ContainerType, int SlotIndex)>();
+        foreach (var item in items)
+        {
+            if (!seen.Add((item.ContainerType, item.SlotIndex)))
+            {
+                throw new InvalidDataException(
+                    $"The {source} contains duplicate slot {item.ContainerType}/{item.SlotIndex}.");
+            }
+        }
+    }
+
+    private void EnsureSchema()
+    {
+        CharacterDatabaseSchema.Ensure(connectionString);
+    }
+
+}

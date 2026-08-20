@@ -7,6 +7,7 @@ using System.Text;
 using Dfo.Server.Application;
 using Dfo.Server.Infrastructure;
 using Dfo.Server.Networking;
+using Dfo.Server.Persistence;
 using Dfo.Server.Networking.Framing;
 using Dfo.Server.Protocol;
 using Microsoft.Extensions.Configuration;
@@ -49,6 +50,7 @@ public sealed class ChannelControlMessagesIntegrationTests
             builder.Services.AddSingleton<TimeProvider>(
                 new FixedTimeProvider(new DateTimeOffset(2026, 8, 10, 12, 0, 0, TimeSpan.FromHours(8))));
             new InfrastructureModule().ConfigureServices(builder.Services, builder.Configuration);
+            new PersistenceModule().ConfigureServices(builder.Services, builder.Configuration);
             new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
             new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
             new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);

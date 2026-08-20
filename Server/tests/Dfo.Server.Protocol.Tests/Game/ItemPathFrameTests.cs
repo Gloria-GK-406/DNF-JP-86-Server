@@ -5,7 +5,7 @@ using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
-using Dfo.Server.Infrastructure.Inventory;
+using Dfo.Server.Persistence.Inventory;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Microsoft.Data.Sqlite;
 

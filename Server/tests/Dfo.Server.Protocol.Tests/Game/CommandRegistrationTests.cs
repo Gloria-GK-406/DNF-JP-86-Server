@@ -1,6 +1,7 @@
 using Dfo.Server.Application;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Infrastructure;
+using Dfo.Server.Persistence;
 using Dfo.Server.Protocol;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Dfo.Server.Protocol.Game.UseStackable;
@@ -76,6 +77,7 @@ public sealed class CommandRegistrationTests
         var configuration = new ConfigurationBuilder().Build();
         new ApplicationModule().ConfigureServices(services, configuration);
         new InfrastructureModule().ConfigureServices(services, configuration);
+        new PersistenceModule().ConfigureServices(services, configuration);
         new ProtocolModule().ConfigureServices(services, configuration);
         return services.BuildServiceProvider();
     }

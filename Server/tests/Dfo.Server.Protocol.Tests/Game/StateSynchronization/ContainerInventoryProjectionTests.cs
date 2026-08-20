@@ -5,8 +5,8 @@ using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
-using Dfo.Server.Infrastructure.Characters;
-using Dfo.Server.Infrastructure.Inventory;
+using Dfo.Server.Persistence.Characters;
+using Dfo.Server.Persistence.Inventory;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Data.Sqlite;
 

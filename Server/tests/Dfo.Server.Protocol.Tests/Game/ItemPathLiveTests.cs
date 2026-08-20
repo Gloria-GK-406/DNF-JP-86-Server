@@ -13,8 +13,9 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Infrastructure;
-using Dfo.Server.Infrastructure.Inventory;
+using Dfo.Server.Persistence.Inventory;
 using Dfo.Server.Networking;
+using Dfo.Server.Persistence;
 using Dfo.Server.Networking.Framing;
 using Dfo.Server.Networking.Runtime;
 using Microsoft.Data.Sqlite;
@@ -84,6 +85,7 @@ public sealed class ItemPathLiveTests
                 ["Game:EndpointHost"] = "192.0.2.20",
             });
             new InfrastructureModule().ConfigureServices(builder.Services, builder.Configuration);
+            new PersistenceModule().ConfigureServices(builder.Services, builder.Configuration);
             new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
             new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
             new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);

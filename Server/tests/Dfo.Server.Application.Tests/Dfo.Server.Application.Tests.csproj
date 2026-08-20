@@ -30,5 +30,6 @@
       against Server/src, not against test projects.
     -->
     <ProjectReference Include="..\..\src\Dfo.Server.Infrastructure\Dfo.Server.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Dfo.Server.Persistence\Dfo.Server.Persistence.csproj" />
   </ItemGroup>
 </Project>
