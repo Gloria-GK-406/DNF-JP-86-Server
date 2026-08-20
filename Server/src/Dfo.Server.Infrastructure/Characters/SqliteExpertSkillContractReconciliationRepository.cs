@@ -6,12 +6,18 @@ using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Infrastructure.Characters;
 
-internal sealed class SqliteExpertSkillContractReconciliationRepository(string databasePath)
+internal sealed class SqliteExpertSkillContractReconciliationRepository(
+    string databasePath, IExpertSkillContractRuleService rules)
     : IExpertSkillContractReconciliationRepository
 {
     private readonly string connectionString = new SqliteConnectionStringBuilder
         { DataSource = Path.GetFullPath(databasePath) }.ToString();
 
+    /// <remarks>
+    /// This reads, asks, and writes. What comes down and to what is decided by the rule service,
+    /// which never sees a connection; what remains here is the reading, the writing, and the one
+    /// transaction that makes them a single outcome.
+    /// </remarks>
     public async ValueTask<bool> ReconcileAsync(AccountId accountId, CharacterId characterId,
         IReadOnlySet<int> overSkillPremiumTypes,
         IReadOnlyDictionary<int, SkillPointCostDefinition> definitions,
@@ -22,21 +28,18 @@ internal sealed class SqliteExpertSkillContractReconciliationRepository(string d
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
         await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken)
             .ConfigureAwait(false);
-        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds(); var expired = false;
-        await using (var premiums = connection.CreateCommand())
+        var premiums = new List<(int PremiumType, long EndTimeUnixSeconds)>();
+        await using (var command = connection.CreateCommand())
         {
-            premiums.Transaction = transaction;
-            premiums.CommandText = "SELECT premium_type,end_time FROM account_premiums WHERE account_id=@aid";
-            premiums.Parameters.AddWithValue("@aid", accountId.Value);
-            await using var reader = await premiums.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            command.Transaction = transaction;
+            command.CommandText = "SELECT premium_type,end_time FROM account_premiums WHERE account_id=@aid";
+            command.Parameters.AddWithValue("@aid", accountId.Value);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-            {
-                if (!overSkillPremiumTypes.Contains(reader.GetInt32(0))) continue;
-                if (reader.GetInt64(1) > now) { await transaction.CommitAsync(cancellationToken); return false; }
-                expired = true;
-            }
+                premiums.Add((reader.GetInt32(0), reader.GetInt64(1)));
         }
-        if (!expired) { await transaction.CommitAsync(cancellationToken); return false; }
+        if (!rules.HasRunOut(premiums, overSkillPremiumTypes, DateTimeOffset.UtcNow))
+        { await transaction.CommitAsync(cancellationToken); return false; }
 
         await using (var owner = connection.CreateCommand())
         {
@@ -46,23 +49,18 @@ internal sealed class SqliteExpertSkillContractReconciliationRepository(string d
             if (await owner.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) is null)
                 throw new InvalidDataException("Expert-contract skill owner is unavailable.");
         }
-        var changes = new List<(byte Page, short Slot, int? Level)>();
-        await using (var skills = connection.CreateCommand())
+        var skills = new List<(int Page, int Slot, int SkillId, int Level)>();
+        await using (var command = connection.CreateCommand())
         {
-            skills.Transaction = transaction;
-            skills.CommandText = "SELECT page_index,slot,skill_id,level FROM character_skills WHERE character_id=@cid";
-            skills.Parameters.AddWithValue("@cid", characterId.Value);
-            await using var reader = await skills.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            command.Transaction = transaction;
+            command.CommandText = "SELECT page_index,slot,skill_id,level FROM character_skills WHERE character_id=@cid";
+            command.Parameters.AddWithValue("@cid", characterId.Value);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-            {
-                var id = reader.GetInt32(2); if (!definitions.TryGetValue(id, out var definition) || definition.IsFixedLevel) continue;
-                if (definition.OrdinaryMaximumLevel is not { } maximum) continue;
-                if (freeBaseline.TryGetValue(id, out var free) && free > maximum) maximum = free;
-                var level = reader.GetInt32(3); if (level <= maximum) continue;
-                changes.Add((checked((byte)reader.GetInt32(0)), checked((short)reader.GetInt32(1)),
-                    maximum <= 0 ? null : maximum));
-            }
+                skills.Add((reader.GetInt32(0), reader.GetInt32(1),
+                    reader.GetInt32(2), reader.GetInt32(3)));
         }
+        var changes = rules.CapsFor(skills, definitions, freeBaseline);
         foreach (var change in changes)
         {
             await using var command = connection.CreateCommand(); command.Transaction = transaction;

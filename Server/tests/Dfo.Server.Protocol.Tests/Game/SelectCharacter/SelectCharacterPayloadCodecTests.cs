@@ -7,6 +7,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Application;
+using Dfo.Server.Application.Characters;
 using Dfo.Server.Infrastructure;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.SelectCharacter;
@@ -556,7 +557,8 @@ public sealed class SelectCharacterPayloadCodecTests
         {
             var repositoryType = typeof(InfrastructureModule).Assembly.GetType(
                 "Dfo.Server.Infrastructure.Characters.SqliteCharacterEntryStateRepository", true)!;
-            var repository = (ICharacterEntryStateRepository)Activator.CreateInstance(repositoryType, path)!;
+            var repository = (ICharacterEntryStateRepository)Activator.CreateInstance(
+                repositoryType, path, new GoldLimitRuleService())!;
             await using (var connection = new SqliteConnection($"Data Source={path}"))
             {
                 await connection.OpenAsync();

@@ -9,19 +9,19 @@ namespace Dfo.Server.Infrastructure.Characters;
 
 internal sealed class SqliteDungeonPersistentEffectRecoveryRepository : IDungeonPersistentEffectRecoveryRepository
 {
-    private const string LuckyStarKind = "suitable-dungeon-lucky-star";
-    private const string ExperienceKind = "settlement-experience-grant";
-    private const string ScoreExperienceKind = "settlement-score-experience-adjustment";
     private readonly string connectionString;
     private readonly IDungeonExperienceProgressionPolicySource progression;
+    private readonly IDungeonEffectRuleService rules;
 
     public SqliteDungeonPersistentEffectRecoveryRepository(
-        string databasePath, IDungeonExperienceProgressionPolicySource progression)
+        string databasePath, IDungeonExperienceProgressionPolicySource progression,
+        IDungeonEffectRuleService rules)
     {
         var fullPath = Path.GetFullPath(databasePath);
         Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
         connectionString = new SqliteConnectionStringBuilder { DataSource = fullPath }.ToString();
         this.progression = progression;
+        this.rules = rules;
     }
 
     public async ValueTask<DungeonPersistentEffectRecoveryOutcome> RecoverAsync(
@@ -75,9 +75,8 @@ internal sealed class SqliteDungeonPersistentEffectRecoveryRepository : IDungeon
                 if (await claim.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) != 1)
                 { await transaction.RollbackAsync(cancellationToken); continue; }
             }
-            if (record.Version != 1 || record.Aid != accountId.Value
-                || record.Scope != 3 || record.Target != characterId.Value
-                || record.Kind is not (LuckyStarKind or ExperienceKind or ScoreExperienceKind))
+            if (!this.rules.CanCarryOut(record.Version, record.Aid, record.Scope, record.Target,
+                record.Kind, accountId.Value, characterId.Value))
             {
                 await SetStateAsync(connection, transaction, record, 4,
                     "Unsupported persistent effect kind, version, scope, target, or owner.",
@@ -89,7 +88,7 @@ internal sealed class SqliteDungeonPersistentEffectRecoveryRepository : IDungeon
             try
             {
                 var resultJson = "{}";
-                if (record.Kind == LuckyStarKind)
+                if (record.Kind == DungeonEffectKinds.LuckyStar)
                 {
                     var payload = JsonSerializer.Deserialize<LuckyStarPayload>(record.Json,
                         new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
@@ -101,8 +100,7 @@ internal sealed class SqliteDungeonPersistentEffectRecoveryRepository : IDungeon
                     wallet.CommandText = "SELECT lucky_star FROM accounts WHERE account_id=@aid";
                     wallet.Parameters.AddWithValue("@aid", accountId.Value);
                     var current = Convert.ToInt32(await wallet.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false));
-                    var granted = current < 999;
-                    var newTotal = Math.Min(999, current + (granted ? 1 : 0));
+                    var (granted, newTotal) = this.rules.GrantLuckyStar(current);
                     if (granted)
                         await ExecuteAsync(connection, transaction,
                             "UPDATE accounts SET lucky_star=@total WHERE account_id=@aid",
@@ -111,7 +109,7 @@ internal sealed class SqliteDungeonPersistentEffectRecoveryRepository : IDungeon
                 }
                 else
                     resultJson = await ApplyExperienceAsync(connection, transaction, record, accountId, characterId,
-                        progression.Load(), cancellationToken)
+                        progression.Load(), this.rules, cancellationToken)
                         .ConfigureAwait(false);
                 await SetStateAsync(connection, transaction, record, 2, "", cancellationToken,
                     resultJson, leaseId).ConfigureAwait(false);
@@ -141,7 +139,7 @@ internal sealed class SqliteDungeonPersistentEffectRecoveryRepository : IDungeon
     private static async ValueTask<string> ApplyExperienceAsync(SqliteConnection connection, SqliteTransaction transaction,
         (string EventId, string Kind, int Scope, long Target, int Aid, int Version, string Json) record,
         AccountId accountId, CharacterId characterId, DungeonExperienceProgressionPolicy policy,
-        CancellationToken cancellationToken)
+        IDungeonEffectRuleService rules, CancellationToken cancellationToken)
     {
         var payload = JsonSerializer.Deserialize<ExperiencePayload>(record.Json,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
@@ -161,21 +159,15 @@ internal sealed class SqliteDungeonPersistentEffectRecoveryRepository : IDungeon
         // The persisted pair above is solely the stale-write guard. Settlement carries
         // the authoritative in-dungeon progress separately; calculating from the DB pair
         // would discard experience accumulated in the live dungeon session.
-        var settlementLevel = payload.PreviousLevel;
-        var settlementExp = payload.PreviousExp;
-        var maxEntry = policy.LevelThresholds[84];
-        var saturated = Math.Min(uint.MaxValue, (ulong)settlementExp + payload.RawGain);
-        var honor = settlementLevel >= 86 ? payload.RawGain
-            : saturated <= maxEntry ? 0U
-            : checked((uint)(saturated - Math.Max((ulong)settlementExp, maxEntry)));
-        var normal = payload.RawGain - honor;
-        var newExp = Math.Min(uint.MaxValue, (ulong)settlementExp + normal);
-        if (settlementLevel >= 86 && payload.NormalizeMaxLevelExp) newExp = maxEntry;
-        var normalizedMaximum = settlementLevel >= 86
-            && payload.NormalizeMaxLevelExp && settlementExp != maxEntry;
-        var newLevel = (int)settlementLevel;
-        while (newLevel < 86 && newLevel <= policy.LevelThresholds.Count
-               && newExp >= policy.LevelThresholds[newLevel - 1]) newLevel++;
+        var split = rules.SplitExperience(
+            new DungeonExperienceSettlement(payload.PreviousLevel, payload.PreviousExp,
+                payload.RawGain, payload.NormalizeMaxLevelExp),
+            policy);
+        var honor = split.HonorGain;
+        var normal = split.NormalGain;
+        var newExp = split.NewExp;
+        var newLevel = split.NewLevel;
+        var normalizedMaximum = split.NormalizedMaxLevelExp;
         ulong oldHonor = 0;
         uint oldCapsule = 0;
         if (honor > 0)
@@ -199,12 +191,10 @@ internal sealed class SqliteDungeonPersistentEffectRecoveryRepository : IDungeon
         ulong totalHonor = 0; uint totalCapsule = 0; uint appliedCapsule = 0;
         if (honor > 0)
         {
-            totalHonor = Math.Min(policy.MaximumHonorExperience, oldHonor + honor);
-            var capsuleGain = checked((uint)Math.Min(uint.MaxValue,
-                Math.Max(honor > 0 && policy.GrowthCapsuleRatePercent > 0 ? 1UL : 0UL,
-                    (ulong)honor * (uint)policy.GrowthCapsuleRatePercent / 100UL)));
-            totalCapsule = Math.Min(policy.GrowthCapsuleMaximum, checked(oldCapsule + capsuleGain));
-            appliedCapsule = totalCapsule - Math.Min(oldCapsule, policy.GrowthCapsuleMaximum);
+            var accrued = rules.AccumulateHonour(honor, oldHonor, oldCapsule, policy);
+            totalHonor = accrued.TotalHonor;
+            totalCapsule = accrued.TotalCapsule;
+            appliedCapsule = accrued.AppliedCapsule;
             await ExecuteAsync(connection, transaction,
                 "UPDATE accounts SET honor_exp=@honor,growth_capsule_exp=@capsule WHERE account_id=@aid",
                 [("@honor", checked((long)totalHonor)), ("@capsule", (long)totalCapsule), ("@aid", accountId.Value)],
@@ -215,7 +205,7 @@ internal sealed class SqliteDungeonPersistentEffectRecoveryRepository : IDungeon
             rawGain = payload.RawGain, honorExpGain = honor, normalExpGain = normal,
             previousLevel = payload.PreviousLevel, previousExp = payload.PreviousExp,
             newLevel, newExp, normalizedMaxLevelExp = normalizedMaximum,
-            persisted = normal > 0 || newLevel != settlementLevel || normalizedMaximum,
+            persisted = split.Persisted,
             growthCapsuleExpGain = appliedCapsule,
             totalHonorExp = totalHonor, totalGrowthCapsuleExp = totalCapsule,
         });

@@ -29,7 +29,7 @@ Docs/        帧协议基线、业务接入规范、客户端逆向系列文档
 | `Dfo.Server.Data` | — | 纯模型：领域记录 + 协议身份契约（`Networking/NetworkMessages.cs` 只留两个枚举、两个消息接口、两个帧元数据 record） |
 | `Dfo.Server.Abstractions` | Data | 接缝层：`IServerModule` + 各领域服务/仓储/内容源/网络契约 + 通用只读服务器配置契约 |
 | `Dfo.Server.Application` | Abstractions, Data | **领域编排核心**：命令总线与管线、消息分发机制、领域服务 |
-| `Dfo.Server.Infrastructure` | Dfo.Pvf, Abstractions, Data | SQLite 仓储 + PVF 内容源 + 频道脚本 + 启动配置内存快照 |
+| `Dfo.Server.Infrastructure` | Dfo.Pvf, Abstractions, Data | SQLite 仓储与存储 + `Schema/` 唯一建表归属者 + PVF 内容源 + 频道脚本 + 启动配置内存快照 |
 | `Dfo.Server.Networking` | Abstractions, Data | TouchSocket **传输**：帧适配/解析、TCP 服务、插件、发送器、注册表。收发路径上不含任何单个协议的知识；显式多收件人投递也只表达必达顺序和逐目标失败隔离 |
 | `Dfo.Server.Protocol` | Abstractions, Application, Data, Networking | **协议切片**：一个协议一个目录，含其消息、解包器、编码器、消息 handler、命令与命令 handler；`ProtocolModule` 是唯一接线点 |
 | `Dfo.Server.Host` | 全部 | 组合根：模块注册顺序 + appsettings + channel_info.etc |
@@ -123,13 +123,28 @@ PvP 大厅、专家商店）、`World/`（出生点策略、世界内容）、`U
   `CommitCanFail`；提交分三段——全体 `PrepareAsync` → 唯一可失败者 `CommitAsync`
   → 其余 `CommitAsync`。**一次事务只收一个 `CommitCanFail` 参与者**，第二个在
   `Enlist` 时抛；这是「不做两阶段提交」的代价与前提。登记按 identity 去重，
-  所以一个存储在一次用例里只参与一次、其读能看见自己未提交的写。
+  而 SQLite 侧的 identity 是**连接字符串**，即**一个数据库一个参与者**——物品与
+  人物是同一个参与者的两个面（`ISqliteStoreFacet`），不是两个参与者。这是被上一条
+  逼出来的：若各自入伙，第二个可失败参与者会被拒，一次用例就永远无法同时改物品与
+  人物。同一数据库在一次用例里因此只参与一次，其读能看见自己未提交的写。
   环境事务经 `IDomainTransactionAccessor` 暴露（`AsyncLocal`），因为存储是单例、
   容器按角色持有，两者都拿不到注入。
+- 载体协议（`Abstractions/Transactions/DomainStores.cs`）：`IDomainStore<TSession>`
+  给出载体身份、是否持久、以事务换取会话；`IStoreSession<TPlace,TKey,TValue>` 是
+  「按位置读、按位置写、按位置清空」的共享词汇。`IItemStoreSession` 直接就是它的
+  一个具名实例；`ICharacterStoreSession` 不是——人物不像容器那样是一张齐次的表，
+  所以它是若干具名分区的组合，`Quests` 与 `Creatures` 各自是钉死类型参数的
+  `IStoreSession`，而一角色一行的位置分区另给三个成员。两种形状共享同一套词汇，
+  类型一个不丢。业务代码经
+  `AmbientStoreAccess` 触达：边界内用环境事务，边界外读放行、持久写拒绝、易失写
+  自开一次性边界并当场落定。
 - 注册（`ProtocolModule.cs`，与协议接线同处）：现有命令
   LoginGameUser = Direct+OnlineUser Exclusive；GetAccountCharacterRoster =
   Direct+Account Shared；SelectCharacter 的 Prepare、DailyRefill、Publish、PvpReady、
-  Quests、Pet、Compensate 七个阶段命令均为 Workflow+Account Exclusive；
+  Compensate 五个阶段命令为 Workflow+Account Exclusive，Quests 与 Pet 两条为
+  **Transactional**+Account Exclusive——它们改动人物的持久状态，而只有
+  `Transactional` 会让 `UnitOfWorkBehavior` 开领域事务；没有那个事务，人物存储
+  就没有边界可加入；
   AcknowledgeGameExit 与 Channel 的 ScriptVersion、Script、Info = Direct。
   `ApplicationModule` 只留 `AddCommandDispatching()`：机制在 Application，
   具体命令在切片。
@@ -306,6 +321,7 @@ PremiumService、CloneTitle 是 CMD，其余当前状态推送是 NOTI；拒绝�
 | `*Projection` | 投影 | 单个 `Build(存储记录) → 领域值`，无依赖、无 I/O |
 | `*Rules`（静态类） | 纯规则 | 纯函数，不碰 I/O |
 | `*Repository` / `*Registry` / `*Directory` / `*Persistence` | 持久化与运行时注册表 | 各自后缀已表明 |
+| `*Store` | 存储载体 | 按位置读写，入事务；载体是内存还是数据库对调用方无差别 |
 | `*DefinitionSource` / `*ContentSource` / `*Catalog` | 内容源 | 读归档，确定性、可缓存 |
 | `*Policy` | 策略 | 规则服务的一种，回答"允不允许"；`IChannelEntryPolicy` 即此类 |
 | `*Query` / `*Reader` | 只读投影/查询 | 只读，不改世界状态 |

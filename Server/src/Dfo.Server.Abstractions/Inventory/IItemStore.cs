@@ -11,26 +11,15 @@ namespace Dfo.Server.Abstractions.Inventory;
 /// same store share one outcome because they share one session, and a store asked repeatedly
 /// during one use case takes part exactly once -- which is also what lets its reads see its own
 /// uncommitted writes.
+///
+/// Items are one kind of state among several, so the store contract itself is
+/// <see cref="IDomainStore{TSession}"/>; what is particular to items is only the session's
+/// vocabulary below.
 /// </remarks>
-public interface IItemStore
-{
-    /// <summary>What the transaction keys enlistment on. Equal identities are the same store.</summary>
-    object StoreIdentity { get; }
-
-    /// <summary>
-    /// Whether what this store holds outlives the process, and with it whether its commit can
-    /// still fail. A transaction admits at most one store for which this is true.
-    /// </summary>
-    bool IsDurable { get; }
-
-    /// <summary>
-    /// This store's session in the given transaction, joining it on first use.
-    /// </summary>
-    IItemStoreSession SessionIn(IDomainTransaction transaction);
-}
+public interface IItemStore : IDomainStore<IItemStoreSession>;
 
 /// <summary>
-/// One use case's reads and writes against one store.
+/// One use case's reads and writes against one store of items.
 /// </summary>
 /// <remarks>
 /// Everything is addressed by container and slot. There is no identifier for an item, which is
@@ -46,22 +35,7 @@ public interface IItemStore
 /// The writes are staged, not applied. They become visible to this session's own reads at once and
 /// to everyone else only when the transaction settles.
 /// </remarks>
-public interface IItemStoreSession
-{
-    /// <summary>Every occupied slot of one container, in slot order.</summary>
-    ValueTask<IReadOnlyList<StoredItem>> ReadAllAsync(
-        ContainerId containerId, CancellationToken cancellationToken);
-
-    /// <summary>What one slot holds, or null when it is empty.</summary>
-    ValueTask<StoredItem?> ReadAsync(
-        ContainerId containerId, int slotIndex, CancellationToken cancellationToken);
-
-    /// <summary>Puts this exact item in its slot, replacing whatever was there.</summary>
-    void Write(ContainerId containerId, StoredItem item);
-
-    /// <summary>Leaves the slot empty.</summary>
-    void Clear(ContainerId containerId, int slotIndex);
-}
+public interface IItemStoreSession : IStoreSession<ContainerId, int, StoredItem>;
 
 /// <summary>The whole of what one slot of a store holds.</summary>
 public sealed record StoredItem(int SlotIndex, InventoryItemCoreState Core);

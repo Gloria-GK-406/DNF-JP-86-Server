@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Infrastructure.Schema;
 using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Infrastructure.Inventory;
@@ -28,15 +29,7 @@ internal sealed class SqliteEntryInventoryMutationRepository : IEntryInventoryMu
         var fullPath = Path.GetFullPath(databasePath);
         Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
         connectionString = new SqliteConnectionStringBuilder { DataSource = fullPath }.ToString();
-        using var connection = new SqliteConnection(connectionString);
-        connection.Open();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            CREATE TABLE IF NOT EXISTS character_daily_counters(
-                character_id INTEGER, counter_key TEXT, period TEXT, value INTEGER,
-                PRIMARY KEY(character_id,counter_key));
-            """;
-        command.ExecuteNonQuery();
+        CharacterDatabaseSchema.Ensure(connectionString);
     }
 
     public async ValueTask<DailyRefillMutationResult> ApplyDailyRefillAsync(

@@ -781,19 +781,11 @@ public sealed class SelectCharacterLifecycleTests
         }
     }
 
-    private sealed class CharacterMutations(List<string> ledger) : ICharacterEntryMutationRepository
+    private sealed class CharacterMutations(List<string> ledger) : ISelectedSessionPositionPersistence
     {
         public CharacterPositionState? PersistedPosition { get; private set; }
-        public ValueTask<IReadOnlyList<SeekingQuestTriggerUpdate>> UpdateSeekingQuestTriggersAsync(
-            AccountId accountId, CharacterId characterId,
-            IReadOnlyList<SeekingQuestTriggerUpdate> updates, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(updates);
 
-        public ValueTask<PetRevivalMutation?> ReviveEquippedCreatureAsync(
-            AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<PetRevivalMutation?>(null);
-
-        public ValueTask PersistPositionAsync(
+        public ValueTask PersistAsync(
             AccountId accountId, CharacterId characterId, CharacterPositionState position,
             CancellationToken cancellationToken)
         {

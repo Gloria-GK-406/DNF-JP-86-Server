@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
@@ -28,7 +29,8 @@ public sealed record SelectCharacterPetRevival(
 
 internal sealed class SelectCharacterQuestEntryService(
     IQuestDefinitionSource quests,
-    ICharacterEntryMutationRepository mutations) : ISelectCharacterQuestEntryService
+    ICharacterStore characters,
+    AmbientStoreAccess stores) : ISelectCharacterQuestEntryService
 {
     public async ValueTask<SelectCharacterQuestSynchronization?> SynchronizeAsync(
         SelectedSessionIdentity session, SelectCharacterResult result, CancellationToken cancellationToken)
@@ -46,8 +48,22 @@ internal sealed class SelectCharacterQuestEntryService(
                 planned.Add(new SeekingQuestTriggerUpdate(active.Slot, active.QuestId, active.TriggerValue, after));
         }
         if (planned.Count == 0) return null;
-        var committed = await mutations.UpdateSeekingQuestTriggersAsync(
-            session.AccountId, session.CharacterId, planned, cancellationToken).ConfigureAwait(false);
+        // Each write carries the value this entry snapshot was built from, so a slot that has
+        // moved since fails rather than being overwritten with a decision made about the old one.
+        var place = new OwnedCharacterId(session.AccountId, session.CharacterId);
+        var committed = new List<SeekingQuestTriggerUpdate>();
+        await stores.ChangeAsync(characters, rows =>
+        {
+            foreach (var update in planned.OrderBy(value => value.Slot))
+            {
+                if (update.After == update.Before) continue;
+                rows.Quests.Write(place, new StoredActiveQuest(
+                    update.Slot, update.QuestId, update.After, update.Before));
+                committed.Add(update);
+            }
+
+            return ValueTask.CompletedTask;
+        }, cancellationToken).ConfigureAwait(false);
         if (committed.Count == 0) return null;
         var bySlot = result.CharacterEntry.Quests.ActiveQuests.ToDictionary(value => value.Slot);
         foreach (var change in committed)
@@ -81,15 +97,51 @@ internal sealed class SelectCharacterQuestEntryService(
     }
 }
 
-internal sealed class SelectCharacterPetEntryService(ICharacterEntryMutationRepository mutations)
-    : ISelectCharacterPetEntryService
+/// <remarks>
+/// Reviving reaches two kinds of state: which creature is equipped, which is an item, and what
+/// condition that creature is in, which is the character's. Both are kept in the same database and
+/// settle together, so a revival that cannot be written leaves nothing half done.
+/// </remarks>
+internal sealed class SelectCharacterPetEntryService(
+    ICharacterStore characters,
+    IItemStore items,
+    AmbientStoreAccess stores) : ISelectCharacterPetEntryService
 {
+    /// <summary>The equipment slot the equipped creature sits in.</summary>
+    private const int EquippedCreatureSlot = 24;
+
+    /// <summary>What an item core says it is when it is a creature.</summary>
+    private const byte CreatureItemKind = 5;
+
     public async ValueTask<SelectCharacterPetRevival?> ReviveAsync(
         SelectedSessionIdentity session, SelectCharacterResult result, CancellationToken cancellationToken)
     {
-        var mutation = await mutations.ReviveEquippedCreatureAsync(
-            session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false);
-        if (mutation is null) return null;
+        var place = new OwnedCharacterId(session.AccountId, session.CharacterId);
+        // Asked first, so a pairing that does not hold fails here rather than only if a write
+        // happens to be staged further down.
+        if (!await stores.ReadAsync(characters, rows => rows.HoldsAsync(place, cancellationToken))
+                .ConfigureAwait(false))
+            throw new InvalidDataException("Entry mutation character ownership does not match.");
+
+        var equipment = ContainerId.ForCharacter(
+            session.CharacterId, InventoryContainerType.Equipment);
+        var equipped = await stores.ReadAsync(
+            items, held => held.ReadAsync(equipment, EquippedCreatureSlot, cancellationToken))
+            .ConfigureAwait(false);
+        if (equipped?.Core is not { ItemKind: CreatureItemKind } core || core.Value <= 0) return null;
+
+        var creatureKey = (long)core.Value;
+        var creature = await stores.ReadAsync(
+            characters, rows => rows.Creatures.ReadAsync(place, creatureKey, cancellationToken))
+            .ConfigureAwait(false);
+        if (creature is null || creature.Field04 > 0) return null;
+        await stores.ChangeAsync(characters, rows =>
+        {
+            rows.Creatures.Write(place, new StoredCreature(creatureKey, 1, OnlyWhenAtMostZero: true));
+            return ValueTask.CompletedTask;
+        }, cancellationToken).ConfigureAwait(false);
+        var mutation = new PetRevivalMutation(
+            creatureKey, Math.Clamp(creature.Field04, 0, byte.MaxValue), 1);
         var pets = result.CharacterEntry.Features.Pets
             .Select(value => value.PetKey == mutation.CreatureKey
                 ? value with { Field04 = mutation.After } : value)

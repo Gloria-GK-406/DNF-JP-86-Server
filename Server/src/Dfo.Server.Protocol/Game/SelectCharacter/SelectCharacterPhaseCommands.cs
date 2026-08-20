@@ -35,7 +35,7 @@ public sealed class PrepareSelectedCharacterSessionCommandHandler(
     ISelectedSessionDirectory selectedSessions,
     ISelectedSessionCleanupService cleanup,
     ISelectCharacterEntryInventoryDomainService inventoryEntry,
-    ICharacterEntryMutationRepository characterMutations)
+    ISelectedSessionPositionPersistence positions)
     : ICommandHandler<PrepareSelectedCharacterSessionCommand, PreparedSelectedCharacterSession>
 {
     public async ValueTask<PreparedSelectedCharacterSession> HandleAsync(
@@ -119,7 +119,7 @@ public sealed class PrepareSelectedCharacterSessionCommandHandler(
                 .ConfigureAwait(false);
             if (prepared.World.Channel.PersistsPosition)
             {
-                await characterMutations.PersistPositionAsync(
+                await positions.PersistAsync(
                     command.AccountId,
                     session.CharacterId,
                     resolvedPosition,

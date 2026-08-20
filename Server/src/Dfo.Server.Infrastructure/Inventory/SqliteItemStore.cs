@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Infrastructure.Persistence;
 using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Infrastructure.Inventory;
@@ -9,12 +10,18 @@ namespace Dfo.Server.Infrastructure.Inventory;
 /// The store whose items are rows in the character's own database.
 /// </summary>
 /// <remarks>
-/// Uses the tables the inventory repositories already create; it defines none of its own. Its
-/// session is the one participant in a use case whose commit can still fail, which is what limits
-/// a transaction to one of these.
+/// Uses the tables the inventory repositories already create; it defines none of its own.
+///
+/// What takes part in the transaction is the database, not this store. Items are one of several
+/// kinds of state kept there, and a transaction admits only one participant whose commit can still
+/// fail -- so a use case that changed items and something else would be refused if each joined
+/// separately. This store therefore contributes a facet to the database's participation.
 /// </remarks>
 internal sealed class SqliteItemStore : IItemStore
 {
+    /// <summary>What the database registers this store's session under.</summary>
+    private static readonly object FacetKey = typeof(SqliteItemStoreSession);
+
     private readonly string connectionString;
 
     public SqliteItemStore(string databasePath)
@@ -30,44 +37,38 @@ internal sealed class SqliteItemStore : IItemStore
     public IItemStoreSession SessionIn(IDomainTransaction transaction)
     {
         ArgumentNullException.ThrowIfNull(transaction);
-        return transaction.Enlist(
+        var database = transaction.Enlist(
             this.StoreIdentity,
-            () => new SqliteItemStoreSession(this.connectionString));
+            () => new SqliteDatabaseParticipant(this.connectionString));
+        return database.Facet(FacetKey, owner => new SqliteItemStoreSession(owner));
     }
 }
 
-/// <summary>One use case's reads and writes against the character database.</summary>
+/// <summary>One use case's reads and writes against the items in the character database.</summary>
 /// <remarks>
-/// Writes are held here until the transaction prepares, so that everything the use case decided
-/// reaches the database as one statement batch inside one database transaction. Reads consult the
-/// held writes first, which is what lets the use case read back what it has just decided without
+/// Writes are held here until the database prepares, so that everything the use case decided
+/// reaches it as one statement batch inside one database transaction. Reads consult the held
+/// writes first, which is what lets the use case read back what it has just decided without
 /// anyone outside seeing it.
 ///
 /// A slot is written by removing whatever row held it and inserting the new one. That gives the
 /// item a new row identity, which is deliberate and safe: nothing outside these tables is keyed on
 /// it, and the one satellite table there is hangs off the avatar UID carried inside the item core.
 /// </remarks>
-internal sealed class SqliteItemStoreSession(string connectionString)
-    : IItemStoreSession, ITransactionParticipant
+internal sealed class SqliteItemStoreSession(SqliteDatabaseParticipant owner)
+    : IItemStoreSession, ISqliteStoreFacet
 {
     /// <summary>What each named slot will hold, or null where it will be left empty.</summary>
     private readonly Dictionary<ContainerId, Dictionary<int, StoredItem?>> staged = [];
 
-    private SqliteConnection? connection;
-
-    private SqliteTransaction? pending;
-
-    private bool prepared;
-
-    public bool CommitCanFail => true;
+    public bool HasStagedWork => this.staged.Count > 0;
 
     public async ValueTask<IReadOnlyList<StoredItem>> ReadAllAsync(
         ContainerId containerId, CancellationToken cancellationToken)
     {
-        var owner = OwnerOf(containerId);
+        var place = OwnerOf(containerId);
         var items = new SortedDictionary<int, StoredItem>();
-        var link = await this.OpenAsync(cancellationToken).ConfigureAwait(false);
-        await using (var command = this.Command(link))
+        await using (var command = await owner.CommandAsync(cancellationToken).ConfigureAwait(false))
         {
             command.CommandText = """
                 SELECT slot_index, item_core
@@ -75,8 +76,8 @@ internal sealed class SqliteItemStoreSession(string connectionString)
                 WHERE owner_scope = 'character' AND owner_id = @owner
                   AND character_id = @owner AND list_type = @list;
                 """;
-            command.Parameters.AddWithValue("@owner", owner.Character);
-            command.Parameters.AddWithValue("@list", owner.ListType);
+            command.Parameters.AddWithValue("@owner", place.Character);
+            command.Parameters.AddWithValue("@list", place.ListType);
             await using var reader = await command.ExecuteReaderAsync(cancellationToken)
                 .ConfigureAwait(false);
             while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
@@ -113,17 +114,16 @@ internal sealed class SqliteItemStoreSession(string connectionString)
             return held;
         }
 
-        var owner = OwnerOf(containerId);
-        var link = await this.OpenAsync(cancellationToken).ConfigureAwait(false);
-        await using var command = this.Command(link);
+        var place = OwnerOf(containerId);
+        await using var command = await owner.CommandAsync(cancellationToken).ConfigureAwait(false);
         command.CommandText = """
             SELECT item_core
             FROM character_new_items
             WHERE owner_scope = 'character' AND owner_id = @owner
               AND character_id = @owner AND list_type = @list AND slot_index = @slot;
             """;
-        command.Parameters.AddWithValue("@owner", owner.Character);
-        command.Parameters.AddWithValue("@list", owner.ListType);
+        command.Parameters.AddWithValue("@owner", place.Character);
+        command.Parameters.AddWithValue("@list", place.ListType);
         command.Parameters.AddWithValue("@slot", slotIndex);
         await using var reader = await command.ExecuteReaderAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -148,118 +148,35 @@ internal sealed class SqliteItemStoreSession(string connectionString)
     }
 
     /// <remarks>
-    /// Every held write is applied here, inside a database transaction that is left open. What
-    /// remains for the commit is the one act that can still fail on its own.
-    ///
     /// Every slot named here is emptied before any is filled. Each insert then lands on a slot this
     /// same batch has already cleared, whatever the writes happen to be -- so no write can meet the
     /// row it is replacing, and a swap needs nowhere to park.
-    ///
-    /// The marker is set last: a prepare that threw partway must leave a commit unable to stand in
-    /// for it, and the coordinator's rollback is what undoes the statements already applied.
     /// </remarks>
-    public async ValueTask PrepareAsync(CancellationToken cancellationToken)
+    public async ValueTask FlushAsync(CancellationToken cancellationToken)
     {
-        if (this.staged.Count == 0)
-        {
-            this.prepared = true;
-            return;
-        }
-
-        var link = await this.OpenAsync(cancellationToken).ConfigureAwait(false);
-        this.pending = (SqliteTransaction)await link
-            .BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
-
         foreach (var (containerId, slots) in this.staged)
         {
-            var owner = OwnerOf(containerId);
+            var place = OwnerOf(containerId);
             foreach (var slot in slots.Keys)
             {
-                await this.EmptyAsync(link, owner, slot, cancellationToken).ConfigureAwait(false);
+                await this.EmptyAsync(place, slot, cancellationToken).ConfigureAwait(false);
             }
         }
 
         foreach (var (containerId, slots) in this.staged)
         {
-            var owner = OwnerOf(containerId);
+            var place = OwnerOf(containerId);
             foreach (var item in slots.Values)
             {
                 if (item is not null)
                 {
-                    await this.FillAsync(link, owner, item, cancellationToken).ConfigureAwait(false);
+                    await this.FillAsync(place, item, cancellationToken).ConfigureAwait(false);
                 }
             }
         }
-
-        this.prepared = true;
     }
 
-    /// <remarks>
-    /// A commit reached without a prepare is refused rather than quietly carrying out the writes
-    /// itself. Doing them here would make this the second act of the use case that can fail, which
-    /// is what the one-fallible-participant rule exists to prevent, and dropping them silently
-    /// would surface as lost items rather than as an exception.
-    /// </remarks>
-    public async ValueTask CommitAsync(CancellationToken cancellationToken)
-    {
-        if (!this.prepared && this.staged.Count > 0)
-        {
-            await this.SettleAsync().ConfigureAwait(false);
-            throw new InvalidOperationException(
-                "The item store was committed before it was prepared, so it wrote nothing.");
-        }
-
-        try
-        {
-            if (this.pending is not null)
-            {
-                await this.pending.CommitAsync(cancellationToken).ConfigureAwait(false);
-            }
-        }
-        finally
-        {
-            await this.SettleAsync().ConfigureAwait(false);
-        }
-    }
-
-    public async ValueTask RollbackAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            if (this.pending is not null)
-            {
-                await this.pending.RollbackAsync(cancellationToken).ConfigureAwait(false);
-            }
-        }
-        finally
-        {
-            await this.SettleAsync().ConfigureAwait(false);
-        }
-    }
-
-    /// <summary>Lets go of everything this session held, however it ended.</summary>
-    /// <remarks>
-    /// Disposing an uncompleted transaction rolls it back, which can itself fail on a connection
-    /// that has already broken. The connection is closed regardless, because a session that cannot
-    /// tidy up is exactly the one whose handle must not be left held.
-    /// </remarks>
-    private async ValueTask SettleAsync()
-    {
-        try
-        {
-            if (this.pending is not null)
-            {
-                await this.pending.DisposeAsync().ConfigureAwait(false);
-            }
-        }
-        finally
-        {
-            this.pending = null;
-            this.staged.Clear();
-            this.prepared = false;
-            await this.CloseAsync().ConfigureAwait(false);
-        }
-    }
+    public void Discard() => this.staged.Clear();
 
     private Dictionary<int, StoredItem?> Staged(ContainerId containerId)
     {
@@ -273,12 +190,11 @@ internal sealed class SqliteItemStoreSession(string connectionString)
     }
 
     private async ValueTask EmptyAsync(
-        SqliteConnection link,
-        (int Character, int ListType) owner,
+        (int Character, int ListType) place,
         int slotIndex,
         CancellationToken cancellationToken)
     {
-        await using var command = this.Command(link);
+        await using var command = await owner.CommandAsync(cancellationToken).ConfigureAwait(false);
         // Named exactly as the table's unique key, so nothing the insert could collide with is
         // left behind -- a narrower predicate would spare such a row and fail the insert instead.
         command.CommandText = """
@@ -286,61 +202,29 @@ internal sealed class SqliteItemStoreSession(string connectionString)
             WHERE owner_scope = 'character' AND owner_id = @owner
               AND list_type = @list AND slot_index = @slot;
             """;
-        command.Parameters.AddWithValue("@owner", owner.Character);
-        command.Parameters.AddWithValue("@list", owner.ListType);
+        command.Parameters.AddWithValue("@owner", place.Character);
+        command.Parameters.AddWithValue("@list", place.ListType);
         command.Parameters.AddWithValue("@slot", slotIndex);
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private async ValueTask FillAsync(
-        SqliteConnection link,
-        (int Character, int ListType) owner,
+        (int Character, int ListType) place,
         StoredItem item,
         CancellationToken cancellationToken)
     {
-        await using var command = this.Command(link);
+        await using var command = await owner.CommandAsync(cancellationToken).ConfigureAwait(false);
         command.CommandText = """
             INSERT INTO character_new_items(
                 owner_scope, owner_id, character_id, list_type, slot_index, item_core)
             VALUES('character', @owner, @owner, @list, @slot, @core);
             """;
-        command.Parameters.AddWithValue("@owner", owner.Character);
-        command.Parameters.AddWithValue("@list", owner.ListType);
+        command.Parameters.AddWithValue("@owner", place.Character);
+        command.Parameters.AddWithValue("@list", place.ListType);
         command.Parameters.AddWithValue("@slot", item.SlotIndex);
         command.Parameters.AddWithValue(
             "@core", SqliteInventoryEntryRepository.EncodeItemCore(item.Core));
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-    }
-
-    private async ValueTask<SqliteConnection> OpenAsync(CancellationToken cancellationToken)
-    {
-        if (this.connection is not null)
-        {
-            return this.connection;
-        }
-
-        var link = new SqliteConnection(connectionString);
-        await link.OpenAsync(cancellationToken).ConfigureAwait(false);
-        this.connection = link;
-        return link;
-    }
-
-    private async ValueTask CloseAsync()
-    {
-        if (this.connection is null)
-        {
-            return;
-        }
-
-        await this.connection.DisposeAsync().ConfigureAwait(false);
-        this.connection = null;
-    }
-
-    private SqliteCommand Command(SqliteConnection link)
-    {
-        var command = link.CreateCommand();
-        command.Transaction = this.pending;
-        return command;
     }
 
     private static InventoryItemCoreState DecodeCore(SqliteDataReader reader, int ordinal) =>

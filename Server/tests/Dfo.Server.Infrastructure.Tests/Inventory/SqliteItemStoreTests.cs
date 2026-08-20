@@ -233,15 +233,19 @@ public sealed class SqliteItemStoreTests
     /// <remarks>
     /// The two flags below are what the coordinator reads to enforce that. Nothing else in this
     /// file would fail if they were wrong, and a use case would then be quietly non-atomic.
+    ///
+    /// The participant is read off the transaction rather than by casting the session, because
+    /// what joins is the database this store writes to; the session is one facet of it.
     /// </remarks>
     [Fact]
     public async Task Store_IsTheDurableParticipantWhoseCommitCanFail()
     {
         await using var store = await NewStoreAsync();
-        var session = store.Value.SessionIn(new StubTransaction());
+        var transaction = new StubTransaction();
+        _ = store.Value.SessionIn(transaction);
 
         Assert.True(store.Value.IsDurable);
-        Assert.True(Assert.IsAssignableFrom<ITransactionParticipant>(session).CommitCanFail);
+        Assert.True(Assert.Single(transaction.Participants).CommitCanFail);
     }
 
     /// <remarks>
@@ -332,7 +336,7 @@ public sealed class SqliteItemStoreTests
         await using var store = await NewStoreAsync((65, Potion(5)));
         var transaction = new StubTransaction();
         var session = store.Value.SessionIn(transaction);
-        var participant = Assert.IsAssignableFrom<ITransactionParticipant>(session);
+        var participant = Assert.Single(transaction.Participants);
 
         session.Write(Main, new StoredItem(3, Potion(1)));
 

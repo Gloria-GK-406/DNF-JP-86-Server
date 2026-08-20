@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Infrastructure.Schema;
 using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Infrastructure.Characters;
@@ -13,10 +14,13 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
     private const int ComboMaximumBytes = 64 * 1024;
     private const int CreatureTextMaximumBytes = 4 * 1024;
     private readonly string connectionString;
+    private readonly IGoldLimitRuleService goldLimits;
 
-    public SqliteCharacterEntryStateRepository(string databasePath)
+    public SqliteCharacterEntryStateRepository(string databasePath, IGoldLimitRuleService goldLimits)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(databasePath);
+        ArgumentNullException.ThrowIfNull(goldLimits);
+        this.goldLimits = goldLimits;
         var fullPath = Path.GetFullPath(databasePath);
         Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
         connectionString = new SqliteConnectionStringBuilder { DataSource = fullPath }.ToString();
@@ -44,7 +48,8 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
         var quests = await LoadQuestsAsync(connection, transaction, characterId, cancellationToken)
             .ConfigureAwait(false);
         var progression = await LoadProgressionAsync(
-            connection, transaction, characterId, profile.Level, cancellationToken).ConfigureAwait(false);
+            connection, transaction, characterId, profile.Level, this.goldLimits, cancellationToken)
+            .ConfigureAwait(false);
         var features = await LoadFeaturesAsync(connection, transaction, characterId, cancellationToken)
             .ConfigureAwait(false);
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
@@ -305,6 +310,7 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
         SqliteTransaction transaction,
         CharacterId characterId,
         byte level,
+        IGoldLimitRuleService goldLimits,
         CancellationToken cancellationToken)
     {
         var growth = await ReadIntListAsync(connection, transaction,
@@ -319,7 +325,7 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
         var gold = await ReadPairOrDefaultAsync(connection, transaction,
             "SELECT gold_carry_limit, auction_gold_limit FROM character_gold_limits WHERE character_id=@cid",
             characterId, 0, 0, cancellationToken).ConfigureAwait(false);
-        var goldLevel = ResolveGoldUpgradeLevel(gold.Item1, gold.Item2);
+        var goldLevel = goldLimits.UpgradeLevel(gold.Item1, gold.Item2);
 
         var groups = new List<CharacterDailyChallengeStorageGroup>();
         var groupRows = new List<(int Index, int Id)>();
@@ -612,117 +618,7 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
 
     private void EnsureSchema()
     {
-        using var connection = new SqliteConnection(connectionString);
-        connection.Open();
-        EnsureSchema(connection);
-    }
-
-    /// <summary>
-    /// Applies the entry-state schema on a caller's connection.
-    /// </summary>
-    /// <remarks>
-    /// Exposed because <see cref="SqliteCharacterRepository"/> writes a new character's three
-    /// required entry-state rows in the same transaction as the character row, and therefore has
-    /// to know those tables exist before its first create. Keeping one definition of the DDL here
-    /// leaves ownership with this repository; a second copy in the caller would drift.
-    /// </remarks>
-    internal static void EnsureSchema(SqliteConnection connection)
-    {
-        ArgumentNullException.ThrowIfNull(connection);
-        EnsureCharacterColumns(connection);
-        using var command = connection.CreateCommand();
-        command.CommandText = SchemaSql;
-        command.ExecuteNonQuery();
-        EnsureProjectionColumns(connection);
-    }
-
-    private static void EnsureProjectionColumns(SqliteConnection connection)
-    {
-        EnsureColumns(connection, "character_subtype1_fields",
-            [("manage_level", "INTEGER NOT NULL DEFAULT 0")]);
-        EnsureColumns(connection, "mailbox_messages",
-        [
-            ("sender_character_id", "INTEGER NOT NULL DEFAULT 0"),
-            ("sender_name", "TEXT NOT NULL DEFAULT ''"),
-            ("title", "TEXT NOT NULL DEFAULT ''"),
-            ("body", "TEXT NOT NULL DEFAULT ''"),
-            ("gold", "INTEGER NOT NULL DEFAULT 0"),
-            ("mail_type", "INTEGER NOT NULL DEFAULT 0"),
-            ("source_protocol", "INTEGER NOT NULL DEFAULT 0"),
-        ]);
-        EnsureColumns(connection, "mailbox_recipients",
-        [
-            ("read_flag", "INTEGER NOT NULL DEFAULT 0"),
-            ("received_gold_flag", "INTEGER NOT NULL DEFAULT 0"),
-        ]);
-    }
-
-    private static void EnsureColumns(
-        SqliteConnection connection,
-        string table,
-        IReadOnlyList<(string Name, string Definition)> required)
-    {
-        var existing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        using (var inspect = connection.CreateCommand())
-        {
-            inspect.CommandText = $"PRAGMA table_info('{table}');";
-            using var reader = inspect.ExecuteReader();
-            while (reader.Read()) existing.Add(reader.GetString(1));
-        }
-
-        foreach (var (name, definition) in required)
-        {
-            if (existing.Contains(name)) continue;
-            using var alter = connection.CreateCommand();
-            alter.CommandText = $"ALTER TABLE {table} ADD COLUMN {name} {definition};";
-            alter.ExecuteNonQuery();
-        }
-    }
-
-    private static void EnsureCharacterColumns(SqliteConnection connection)
-    {
-        var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        using (var command = connection.CreateCommand())
-        {
-            command.CommandText = "PRAGMA table_info(characters);";
-            using var reader = command.ExecuteReader();
-            while (reader.Read()) columns.Add(reader.GetString(1));
-        }
-        if (columns.Count == 0)
-        {
-            using var create = connection.CreateCommand();
-            create.CommandText = """
-                CREATE TABLE characters(
-                    character_id INTEGER PRIMARY KEY, account_id INTEGER NOT NULL,
-                    name TEXT NOT NULL, job INTEGER NOT NULL DEFAULT 0,
-                    level INTEGER NOT NULL DEFAULT 1, clone_title_item_id INTEGER NOT NULL DEFAULT 0,
-                    appearance_blob BLOB, delete_flag INTEGER NOT NULL DEFAULT 0,
-                    bonus_sp INTEGER NOT NULL DEFAULT 0, bonus_tp INTEGER NOT NULL DEFAULT 0,
-                    exp INTEGER NOT NULL DEFAULT 0, ex_equip_slot_stat INTEGER NOT NULL DEFAULT 0,
-                    pvp_grade INTEGER NOT NULL DEFAULT 0, pvp_rating_grade INTEGER NOT NULL DEFAULT 0,
-                    user_state INTEGER NOT NULL DEFAULT 0);
-                """;
-            create.ExecuteNonQuery();
-            return;
-        }
-        foreach (var (name, definition) in new[]
-        {
-            ("appearance_blob", "BLOB"), ("clone_title_item_id", "INTEGER NOT NULL DEFAULT 0"),
-            ("delete_flag", "INTEGER NOT NULL DEFAULT 0"), ("job", "INTEGER NOT NULL DEFAULT 0"),
-            ("level", "INTEGER NOT NULL DEFAULT 1"),
-            ("bonus_sp", "INTEGER NOT NULL DEFAULT 0"), ("bonus_tp", "INTEGER NOT NULL DEFAULT 0"),
-            ("exp", "INTEGER NOT NULL DEFAULT 0"),
-            ("ex_equip_slot_stat", "INTEGER NOT NULL DEFAULT 0"),
-            ("pvp_grade", "INTEGER NOT NULL DEFAULT 0"),
-            ("pvp_rating_grade", "INTEGER NOT NULL DEFAULT 0"),
-            ("user_state", "INTEGER NOT NULL DEFAULT 0"),
-        })
-        {
-            if (columns.Contains(name)) continue;
-            using var alter = connection.CreateCommand();
-            alter.CommandText = $"ALTER TABLE characters ADD COLUMN {name} {definition};";
-            alter.ExecuteNonQuery();
-        }
+        CharacterDatabaseSchema.Ensure(connectionString);
     }
 
     private static SqliteCommand CreateCommand(
@@ -862,122 +758,4 @@ internal sealed class SqliteCharacterEntryStateRepository : ICharacterEntryState
         var value = await command.ExecuteScalarAsync(token).ConfigureAwait(false);
         return value is null or DBNull ? fallback : Convert.ToInt32(value);
     }
-
-    private static int ResolveGoldUpgradeLevel(int carry, int auction)
-    {
-        var value = Math.Min(carry, auction);
-        if (value >= 800_000_000) return 4;
-        if (value >= 700_000_000) return 3;
-        if (value >= 600_000_000) return 2;
-        if (value >= 500_000_000) return 1;
-        return 0;
-    }
-
-    private const string SchemaSql = """
-        CREATE TABLE IF NOT EXISTS character_subtype0_fields(
-            character_id INTEGER PRIMARY KEY, stamina INTEGER NOT NULL DEFAULT 0,
-            fatigue_penalty INTEGER NOT NULL DEFAULT 0, is_event_character INTEGER NOT NULL DEFAULT 0,
-            is_private_store INTEGER NOT NULL DEFAULT 0, expert_job_type INTEGER NOT NULL DEFAULT 0,
-            expert_job_exp INTEGER NOT NULL DEFAULT 0, is_hardcore_mode INTEGER NOT NULL DEFAULT 0,
-            is_hardcore_dead INTEGER NOT NULL DEFAULT 0, hardcore_death_count INTEGER NOT NULL DEFAULT 0,
-            user_state_bits INTEGER NOT NULL DEFAULT 3, chat_ban_end_time INTEGER NOT NULL DEFAULT 0,
-            mood_value INTEGER NOT NULL DEFAULT 0, pvp_rank_point INTEGER NOT NULL DEFAULT 0,
-            creature_field1 INTEGER NOT NULL DEFAULT 0, creature_field2 INTEGER NOT NULL DEFAULT 0,
-            creature_field3 INTEGER NOT NULL DEFAULT 0, creature_field4 INTEGER NOT NULL DEFAULT 0,
-            creature_buffer BLOB, pc_room_id INTEGER NOT NULL DEFAULT 65537,
-            is_premium_pc_room INTEGER NOT NULL DEFAULT 0, server_group_id INTEGER NOT NULL DEFAULT 0,
-            black_count INTEGER NOT NULL DEFAULT 0, guild_level INTEGER NOT NULL DEFAULT 0,
-            chaos_point INTEGER NOT NULL DEFAULT 0, disguise_kind INTEGER NOT NULL DEFAULT 0,
-            is_disguised INTEGER NOT NULL DEFAULT 0, fatigue_update INTEGER NOT NULL DEFAULT 0,
-            return_user_flag INTEGER NOT NULL DEFAULT 1, channel_display_mode INTEGER NOT NULL DEFAULT 0,
-            channel_type INTEGER NOT NULL DEFAULT 0, is_return_user INTEGER NOT NULL DEFAULT 0,
-            link_slot_enabled INTEGER NOT NULL DEFAULT 0, link_type_a INTEGER NOT NULL DEFAULT 0,
-            link_type_b INTEGER NOT NULL DEFAULT 0, emotion_index INTEGER NOT NULL DEFAULT 0,
-            action_byte INTEGER NOT NULL DEFAULT 0, fatigue_display_update INTEGER NOT NULL DEFAULT 0,
-            costume_flag INTEGER NOT NULL DEFAULT 0, aura_flag INTEGER NOT NULL DEFAULT 0,
-            pet_display_flag INTEGER NOT NULL DEFAULT 0, title_display_flag INTEGER NOT NULL DEFAULT 0,
-            pvp_stat_a INTEGER NOT NULL DEFAULT 0, pvp_win_streak INTEGER NOT NULL DEFAULT 0,
-            pvp_lose_streak INTEGER NOT NULL DEFAULT 0, trailing_byte INTEGER NOT NULL DEFAULT 0);
-        CREATE TABLE IF NOT EXISTS character_subtype1_fields(
-            character_id INTEGER PRIMARY KEY, stat_hp_max INTEGER NOT NULL DEFAULT 0,
-            stat_mp_max INTEGER NOT NULL DEFAULT 0, stat_physical_attack INTEGER NOT NULL DEFAULT 0,
-            stat_physical_defense INTEGER NOT NULL DEFAULT 0, stat_magical_attack INTEGER NOT NULL DEFAULT 0,
-            stat_magical_defense INTEGER NOT NULL DEFAULT 0, stat_move_speed INTEGER NOT NULL DEFAULT 0,
-            stat_attack_speed INTEGER NOT NULL DEFAULT 0, stat_cast_speed INTEGER NOT NULL DEFAULT 0,
-            stat_inventory_limit INTEGER NOT NULL DEFAULT 0, skill_tree_index INTEGER NOT NULL DEFAULT -1,
-            progress1 INTEGER NOT NULL DEFAULT 0, progress2 INTEGER NOT NULL DEFAULT 0,
-            stat_fire_resistance INTEGER NOT NULL DEFAULT 0, stat_water_resistance INTEGER NOT NULL DEFAULT 0,
-            stat_dark_resistance INTEGER NOT NULL DEFAULT 0, stat_light_resistance INTEGER NOT NULL DEFAULT 0,
-            stat_hp_regen_speed INTEGER NOT NULL DEFAULT 0, stat_mp_regen_speed INTEGER NOT NULL DEFAULT 0,
-            stat_hit_recovery INTEGER NOT NULL DEFAULT 0, stat_jump_power INTEGER NOT NULL DEFAULT 0,
-            stat_weight INTEGER NOT NULL DEFAULT 0, current_hp_mp_percent INTEGER NOT NULL DEFAULT 0,
-            name_tag_item_id INTEGER NOT NULL DEFAULT 0, name_tag_expire_time INTEGER NOT NULL DEFAULT 0,
-            equipped_creature_level INTEGER NOT NULL DEFAULT 0, equip_list_trailing INTEGER NOT NULL DEFAULT 0,
-            flag_byte INTEGER NOT NULL DEFAULT 0, guild_power_war INTEGER NOT NULL DEFAULT 0,
-            server_timestamp INTEGER NOT NULL DEFAULT 0, quest_shop_count INTEGER NOT NULL DEFAULT 0,
-            manage_level INTEGER NOT NULL DEFAULT 0);
-        CREATE TABLE IF NOT EXISTS character_init_flags(
-            character_id INTEGER PRIMARY KEY, champion_break_key_id INTEGER NOT NULL DEFAULT 0,
-            champion_break_mode INTEGER NOT NULL DEFAULT 0, champion_break_value INTEGER NOT NULL DEFAULT 0,
-            character_option_blob BLOB);
-        CREATE TABLE IF NOT EXISTS character_hotkey_slots(character_id INTEGER, slot_index INTEGER, hotkey_value INTEGER, PRIMARY KEY(character_id,slot_index));
-        CREATE TABLE IF NOT EXISTS character_skills(character_id INTEGER, page_index INTEGER, slot INTEGER, skill_id INTEGER, level INTEGER, extra_values BLOB, PRIMARY KEY(character_id,page_index,slot));
-        CREATE TABLE IF NOT EXISTS character_dark_knight_combo_skill_pages(character_id INTEGER, page_index INTEGER, body BLOB NOT NULL, PRIMARY KEY(character_id,page_index));
-        CREATE TABLE IF NOT EXISTS character_knight_shield_deck(character_id INTEGER, slot_index INTEGER, shield_item_id INTEGER, PRIMARY KEY(character_id,slot_index));
-        CREATE TABLE IF NOT EXISTS character_active_quests(character_id INTEGER, slot INTEGER, quest_id INTEGER, trigger_value INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(character_id,slot));
-        CREATE TABLE IF NOT EXISTS character_quest_notify_selections(character_id INTEGER, slot_index INTEGER, quest_id INTEGER, PRIMARY KEY(character_id,slot_index));
-        CREATE TABLE IF NOT EXISTS character_invisible_falgs(character_id INTEGER, slot_index INTEGER, flag_value INTEGER, PRIMARY KEY(character_id,slot_index));
-        CREATE TABLE IF NOT EXISTS character_growth_weapon_stages(character_id INTEGER, sort_order INTEGER, stage_id INTEGER, PRIMARY KEY(character_id,sort_order));
-        CREATE TABLE IF NOT EXISTS character_crystal_contract(character_id INTEGER PRIMARY KEY, cube_type INTEGER NOT NULL DEFAULT 0, cube_grade INTEGER NOT NULL DEFAULT 255);
-        CREATE TABLE IF NOT EXISTS character_gold_limits(character_id INTEGER PRIMARY KEY, gold_carry_limit INTEGER NOT NULL, auction_gold_limit INTEGER NOT NULL);
-        CREATE TABLE IF NOT EXISTS character_daily_challenge_groups(character_id INTEGER, group_index INTEGER, group_id INTEGER, PRIMARY KEY(character_id,group_index));
-        CREATE TABLE IF NOT EXISTS character_daily_challenge_entries(character_id INTEGER, group_index INTEGER, entry_index INTEGER, track_like_id INTEGER, value_a INTEGER, value_b INTEGER, PRIMARY KEY(character_id,group_index,entry_index));
-        CREATE TABLE IF NOT EXISTS character_daily_challenge_claims(character_id INTEGER, group_index INTEGER, claimed_at TEXT, PRIMARY KEY(character_id,group_index));
-        CREATE TABLE IF NOT EXISTS character_daily_challenge_tail_ids(character_id INTEGER, sort_order INTEGER, id_value INTEGER, PRIMARY KEY(character_id,sort_order));
-        CREATE TABLE IF NOT EXISTS character_daily_schedule_states(character_id INTEGER, sort_order INTEGER, param_a INTEGER, mode_or_state INTEGER, content_id INTEGER, param_b INTEGER, PRIMARY KEY(character_id,sort_order));
-        CREATE TABLE IF NOT EXISTS character_dungeon_permissions(character_id INTEGER, sort_order INTEGER, dungeon_id INTEGER, clear_state INTEGER, PRIMARY KEY(character_id,sort_order));
-        CREATE TABLE IF NOT EXISTS character_daily_counters(character_id INTEGER, counter_key TEXT, period TEXT, value INTEGER, PRIMARY KEY(character_id,counter_key));
-        CREATE TABLE IF NOT EXISTS character_creatures(character_id INTEGER, sort_order INTEGER, creature_key INTEGER, field04 INTEGER, mode_flag INTEGER, progress_value INTEGER, mode1_field0a INTEGER, mode1_field0b INTEGER, field_after_value INTEGER, creature_text BLOB, tail_flag INTEGER, PRIMARY KEY(character_id,sort_order));
-        CREATE TABLE IF NOT EXISTS character_new_titlebook(character_id INTEGER, category INTEGER, slot_index INTEGER, item_core BLOB NOT NULL, PRIMARY KEY(character_id,category,slot_index));
-        CREATE TABLE IF NOT EXISTS character_achievement_complete(character_id INTEGER, sort_order INTEGER, achievement_id INTEGER, p1 INTEGER, p2 INTEGER, p3 INTEGER, p4 INTEGER, PRIMARY KEY(character_id,achievement_id));
-        CREATE TABLE IF NOT EXISTS character_collectbox_slots(character_id INTEGER, box_index INTEGER, slot_index INTEGER, item_id INTEGER, PRIMARY KEY(character_id,box_index,slot_index));
-        CREATE TABLE IF NOT EXISTS character_expert_job(character_id INTEGER PRIMARY KEY, giveup_count INTEGER, disjoint_machine_grade INTEGER, disjoint_machine_endurance INTEGER, enchanter_endurance INTEGER);
-        CREATE TABLE IF NOT EXISTS character_expert_job_recipes(character_id INTEGER, recipe_id INTEGER, PRIMARY KEY(character_id,recipe_id));
-        CREATE TABLE IF NOT EXISTS mailbox_messages(
-            message_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sender_character_id INTEGER NOT NULL DEFAULT 0,
-            sender_name TEXT NOT NULL DEFAULT '',
-            receiver_character_id INTEGER NOT NULL,
-            title TEXT NOT NULL DEFAULT '', body TEXT NOT NULL DEFAULT '', gold INTEGER NOT NULL DEFAULT 0,
-            mail_type INTEGER NOT NULL DEFAULT 0, source_protocol INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            unlimited_flag INTEGER NOT NULL DEFAULT 0,
-            expire_at TEXT NOT NULL DEFAULT '9999-12-31 23:59:59',
-            deleted_by_sender INTEGER NOT NULL DEFAULT 0);
-        CREATE TABLE IF NOT EXISTS mailbox_recipients(
-            recipient_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            message_id INTEGER NOT NULL,
-            character_id INTEGER NOT NULL,
-            folder INTEGER NOT NULL DEFAULT 0,
-            read_flag INTEGER NOT NULL DEFAULT 0,
-            saved_flag INTEGER NOT NULL DEFAULT 0,
-            deleted_flag INTEGER NOT NULL DEFAULT 0,
-            received_gold_flag INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(message_id,character_id,folder));
-        CREATE TABLE IF NOT EXISTS mailbox_attachments(
-            attachment_id INTEGER PRIMARY KEY AUTOINCREMENT, message_id INTEGER NOT NULL,
-            ordinal INTEGER NOT NULL DEFAULT 0, item_type INTEGER NOT NULL DEFAULT 0,
-            source_list_type INTEGER NOT NULL DEFAULT 0, source_slot_index INTEGER NOT NULL DEFAULT 0,
-            source_item_uid INTEGER NOT NULL DEFAULT 0, item_template_id INTEGER NOT NULL,
-            item_kind TEXT NOT NULL DEFAULT 'unknown', item_count INTEGER NOT NULL DEFAULT 1,
-            instance_value INTEGER NOT NULL DEFAULT 0, durability INTEGER NOT NULL DEFAULT 0,
-            seal_flag INTEGER NOT NULL DEFAULT 0, option_value INTEGER NOT NULL DEFAULT 0,
-            expire_time INTEGER NOT NULL DEFAULT 0, marker_16 INTEGER NOT NULL DEFAULT -1,
-            pet_serial_or_handle INTEGER NOT NULL DEFAULT 0, item_core BLOB,
-            detail_json TEXT NOT NULL DEFAULT '');
-        CREATE TABLE IF NOT EXISTS character_pvp_missions(character_id INTEGER, sort_order INTEGER, mission_id INTEGER, progress_value INTEGER, PRIMARY KEY(character_id,sort_order));
-        CREATE TABLE IF NOT EXISTS character_dimensions(character_id INTEGER, sort_order INTEGER, dim_key INTEGER, val1 INTEGER, val2 INTEGER, PRIMARY KEY(character_id,sort_order));
-        CREATE TABLE IF NOT EXISTS character_dimension_flags(character_id INTEGER PRIMARY KEY, flag1 INTEGER, flag2 INTEGER, flag3 INTEGER, flag4 INTEGER);
-        """;
 }

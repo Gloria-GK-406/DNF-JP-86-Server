@@ -1,4 +1,3 @@
-using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
@@ -6,9 +5,11 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.World;
-using Dfo.Server.Application.Channel;
+using Dfo.Server.Abstractions;
 using Dfo.Server.Application.Accounts;
+using Dfo.Server.Application.Channel;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
@@ -19,8 +20,8 @@ using Dfo.Server.Application.Users;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Characters;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application;
 
@@ -60,6 +61,21 @@ public sealed class ApplicationModule : IServerModule
         // database used to make about itself.
         services.TryAddSingleton<IItemArrivalRuleService, ItemArrivalRuleService>();
         services.TryAddSingleton<IDailyRefillRuleService, DailyRefillRuleService>();
+
+        // The rules a character's entry turns on, kept out of whatever reads or writes the rows
+        // they apply to, so each can be checked without a database in reach.
+        services.TryAddSingleton<AmbientStoreAccess>();
+        // The store is looked up rather than demanded, because a host may be assembled without
+        // persistence at all and this seam is built eagerly by the cleanup service. Asking for it
+        // outright would make such a host fail to start; asking for it optionally lets it start
+        // and fail loudly only if it ever actually tries to save a position.
+        services.TryAddSingleton<ISelectedSessionPositionPersistence>(
+            provider => new SelectedSessionPositionPersistence(
+                provider.GetService<ICharacterStore>(),
+                provider.GetRequiredService<IDomainTransactionAccessor>()));
+        services.TryAddSingleton<IGoldLimitRuleService, GoldLimitRuleService>();
+        services.TryAddSingleton<IExpertSkillContractRuleService, ExpertSkillContractRuleService>();
+        services.TryAddSingleton<IDungeonEffectRuleService, DungeonEffectRuleService>();
         services.TryAddSingleton<IDungeonRunDomainService, DungeonRunDomainService>();
         services.TryAddSingleton<IActiveCharacterAccessDomainService>(
             provider => new ActiveCharacterAccessDomainService(

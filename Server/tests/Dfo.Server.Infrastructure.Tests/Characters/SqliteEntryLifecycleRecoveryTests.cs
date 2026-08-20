@@ -1,6 +1,7 @@
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Application.Characters;
 using Dfo.Server.Infrastructure.Characters;
 using Microsoft.Data.Sqlite;
 
@@ -61,7 +62,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
                 VALUES('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa','suitable-dungeon-lucky-star',3,7,7,3,1,
                  '{"characterId":7,"accountId":3,"dungeonId":1,"clearLevel":2,"amount":1}',0,1,1);
                 """);
-            var repository = new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy());
+            var repository = new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy(), new DungeonEffectRuleService());
             var outcome = await repository.RecoverAsync(
                 new AccountId(3), new CharacterId(7), CancellationToken.None);
 
@@ -85,7 +86,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
         {
             await SeedLuckyStarOutboxAsync(path, luckyStar: 999, payloadJson:
                 "{\"characterId\":7,\"accountId\":3,\"dungeonId\":1,\"clearLevel\":2,\"amount\":1}");
-            var outcome = await new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy())
+            var outcome = await new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy(), new DungeonEffectRuleService())
                 .RecoverAsync(new AccountId(3), new CharacterId(7), CancellationToken.None);
 
             Assert.Equal(1, outcome.CommittedCount);
@@ -103,8 +104,8 @@ public sealed class SqliteEntryLifecycleRecoveryTests
         try
         {
             await SeedLuckyStarOutboxAsync(path, luckyStar: 4, payloadJson: "{");
-            var first = new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy());
-            var second = new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy());
+            var first = new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy(), new DungeonEffectRuleService());
+            var second = new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy(), new DungeonEffectRuleService());
 
             var outcomes = await Task.WhenAll(
                 first.RecoverAsync(new AccountId(3), new CharacterId(7), CancellationToken.None).AsTask(),
@@ -144,7 +145,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
                   '{"characterId":7,"accountId":3,"dungeonId":1,"clearLevel":2,"amount":1}',0,2,2);
                 """);
 
-            var outcome = await new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy())
+            var outcome = await new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy(), new DungeonEffectRuleService())
                 .RecoverAsync(new AccountId(3), new CharacterId(7), CancellationToken.None);
 
             Assert.Equal(2, outcome.DeadLetterCount);
@@ -174,7 +175,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
                 INSERT INTO character_skills VALUES(7,0,1,100,4,NULL),
                   (7,0,2,101,1,NULL),(7,0,3,102,5,NULL),(7,0,4,103,3,NULL);
                 """);
-            var repository = new SqliteExpertSkillContractReconciliationRepository(path);
+            var repository = new SqliteExpertSkillContractReconciliationRepository(path, new ExpertSkillContractRuleService());
             var definitions = new Dictionary<int, SkillPointCostDefinition>
             {
                 [100] = new(100, false, [10], false, 1, 10, 0, 1, 1, OrdinaryMaximumLevel: 2),
@@ -228,7 +229,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
                  ('xp','settlement-experience-grant',3,7,7,3,1,
                  '{"characterId":7,"accountId":3,"previousLevel":85,"previousExp":100,"rawGain":25,"normalizeMaxLevelExp":true,"expectedDatabaseLevel":85,"expectedDatabaseExp":100}',1,0,2,2);
                 """);
-            var result = await new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy()).RecoverAsync(
+            var result = await new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy(), new DungeonEffectRuleService()).RecoverAsync(
                 new AccountId(3), new CharacterId(7), CancellationToken.None);
 
             Assert.Equal(1, result.CommittedCount);
@@ -266,7 +267,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
                  '{"characterId":7,"accountId":3,"previousLevel":85,"previousExp":84990,"rawGain":25,"normalizeMaxLevelExp":true,"expectedDatabaseLevel":85,"expectedDatabaseExp":84000}',0,1,1);
                 """);
 
-            var outcome = await new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy())
+            var outcome = await new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy(), new DungeonEffectRuleService())
                 .RecoverAsync(new AccountId(3), new CharacterId(7), CancellationToken.None);
 
             Assert.Equal(1, outcome.CommittedCount);
@@ -280,7 +281,86 @@ public sealed class SqliteEntryLifecycleRecoveryTests
         finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }
 
+    /// <summary>
+    /// At and above the last level, the whole gain becomes honour rather than experience.
+    /// </summary>
+    /// <remarks>
+    /// Pinned before the experience rule is moved out of persistence. The case above crosses into
+    /// the last level and so exercises the other side of the same branch; nothing exercised this
+    /// one, which meant the boundary itself -- at the level rather than past it -- was free to
+    /// move without any test noticing.
+    /// </remarks>
+    [Fact]
+    public async Task DungeonExperienceRecovery_AtTheLastLevelTurnsTheWholeGainIntoHonour()
+    {
+        var path = TempPath();
+        try
+        {
+            await SeedExperienceOutboxAsync(path, level: 86, exp: 84000,
+                """{"characterId":7,"accountId":3,"previousLevel":86,"previousExp":84000,"rawGain":25,"normalizeMaxLevelExp":true,"expectedDatabaseLevel":86,"expectedDatabaseExp":84000}""");
+
+            var outcome = await new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy(), new DungeonEffectRuleService())
+                .RecoverAsync(new AccountId(3), new CharacterId(7), CancellationToken.None);
+
+            Assert.Equal(1, outcome.CommittedCount);
+            Assert.Equal(86L, await ScalarAsync(path, "SELECT level FROM characters WHERE character_id=7"));
+            Assert.Equal(85000L, await ScalarAsync(path, "SELECT exp FROM characters WHERE character_id=7"));
+            Assert.Equal(30L, await ScalarAsync(path, "SELECT honor_exp FROM accounts WHERE account_id=3"));
+            Assert.Equal(27L, await ScalarAsync(path, "SELECT growth_capsule_exp FROM accounts WHERE account_id=3"));
+            Assert.Equal("{\"rawGain\":25,\"honorExpGain\":25,\"normalExpGain\":0,\"previousLevel\":86,\"previousExp\":84000,\"newLevel\":86,\"newExp\":85000,\"normalizedMaxLevelExp\":true,\"persisted\":true,\"growthCapsuleExpGain\":25,\"totalHonorExp\":30,\"totalGrowthCapsuleExp\":27}",
+                await ScalarStringAsync(path, "SELECT result_json FROM dungeon_persistent_effect_outbox"));
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    /// <remarks>
+    /// Below the last level and staying below it, the gain is ordinary experience and no honour is
+    /// produced at all -- so the account is not touched. Pinned for the same reason as above.
+    /// </remarks>
+    [Fact]
+    public async Task DungeonExperienceRecovery_BelowTheLastLevelProducesNoHonourAndLeavesTheAccountAlone()
+    {
+        var path = TempPath();
+        try
+        {
+            await SeedExperienceOutboxAsync(path, level: 85, exp: 80000,
+                """{"characterId":7,"accountId":3,"previousLevel":85,"previousExp":80000,"rawGain":25,"normalizeMaxLevelExp":false,"expectedDatabaseLevel":85,"expectedDatabaseExp":80000}""");
+
+            var outcome = await new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy(), new DungeonEffectRuleService())
+                .RecoverAsync(new AccountId(3), new CharacterId(7), CancellationToken.None);
+
+            Assert.Equal(1, outcome.CommittedCount);
+            Assert.Equal(85L, await ScalarAsync(path, "SELECT level FROM characters WHERE character_id=7"));
+            Assert.Equal(80025L, await ScalarAsync(path, "SELECT exp FROM characters WHERE character_id=7"));
+            Assert.Equal(5L, await ScalarAsync(path, "SELECT honor_exp FROM accounts WHERE account_id=3"));
+            Assert.Equal(2L, await ScalarAsync(path, "SELECT growth_capsule_exp FROM accounts WHERE account_id=3"));
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
     private static string TempPath() => Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
+
+    private static Task SeedExperienceOutboxAsync(string path, int level, long exp, string payloadJson) =>
+        ExecuteAsync(path, $"""
+            CREATE TABLE accounts(account_id INTEGER PRIMARY KEY,lucky_star INTEGER NOT NULL DEFAULT 0,
+              honor_exp INTEGER NOT NULL DEFAULT 0,growth_capsule_exp INTEGER NOT NULL DEFAULT 0);
+            CREATE TABLE characters(character_id INTEGER PRIMARY KEY,account_id INTEGER NOT NULL,
+              level INTEGER NOT NULL,exp INTEGER NOT NULL,delete_flag INTEGER NOT NULL DEFAULT 0);
+            INSERT INTO accounts VALUES(3,0,5,2); INSERT INTO characters VALUES(7,3,{level},{exp},0);
+            CREATE TABLE dungeon_persistent_effect_outbox(
+              source_event_id TEXT,effect_kind TEXT,effect_scope INTEGER,scope_target INTEGER,
+              character_id INTEGER,account_id INTEGER,payload_version INTEGER,payload_json TEXT,
+              state INTEGER,lease_id TEXT,lease_owner TEXT,lease_expires_at INTEGER DEFAULT 0,
+              attempt_count INTEGER DEFAULT 0,last_error TEXT DEFAULT '',result_version INTEGER,
+              result_json TEXT,created_at INTEGER,updated_at INTEGER,committed_at INTEGER,
+              PRIMARY KEY(source_event_id,effect_kind,effect_scope,scope_target));
+            INSERT INTO dungeon_persistent_effect_outbox
+            (source_event_id,effect_kind,effect_scope,scope_target,character_id,account_id,payload_version,
+             payload_json,state,created_at,updated_at)
+            VALUES('xp-delta','settlement-experience-grant',3,7,7,3,1,
+             '{payloadJson.Replace("'", "''")}',0,1,1);
+            """);
+
     private static Task SeedLuckyStarOutboxAsync(string path, int luckyStar, string payloadJson) =>
         ExecuteAsync(path, $"""
             CREATE TABLE accounts(account_id INTEGER PRIMARY KEY,lucky_star INTEGER NOT NULL DEFAULT 0);

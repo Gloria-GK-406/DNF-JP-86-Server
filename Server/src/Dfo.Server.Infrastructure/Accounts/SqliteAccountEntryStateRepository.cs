@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Data.Accounts;
+using Dfo.Server.Infrastructure.Schema;
 using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Infrastructure.Accounts;
@@ -297,59 +298,6 @@ internal sealed class SqliteAccountEntryStateRepository : IAccountEntryStateRepo
 
     private void EnsureSchema()
     {
-        using var connection = new SqliteConnection(connectionString);
-        connection.Open();
-        EnsureSchema(connection);
+        CharacterDatabaseSchema.Ensure(connectionString);
     }
-
-    /// <summary>
-    /// Applies the account entry-state schema on a caller's connection.
-    /// </summary>
-    /// <remarks>
-    /// <c>character_init_flags.pc_room_state</c> belongs to this schema even though the rest of
-    /// that table belongs to <see cref="Characters.SqliteCharacterEntryStateRepository"/>; both
-    /// declare the table and the one that runs second patches the difference by ALTER. Character
-    /// creation writes that column, so it has to be able to ensure this schema too -- otherwise
-    /// creation works or fails depending on which repository happened to be constructed first.
-    /// </remarks>
-    internal static void EnsureSchema(SqliteConnection connection)
-    {
-        ArgumentNullException.ThrowIfNull(connection);
-        using (var command = connection.CreateCommand())
-        {
-            command.CommandText = SchemaSql;
-            command.ExecuteNonQuery();
-        }
-        EnsureColumn(connection, "accounts", "cera", "INTEGER NOT NULL DEFAULT 0");
-        EnsureColumn(connection, "accounts", "token_cera", "INTEGER NOT NULL DEFAULT 0");
-        EnsureColumn(connection, "accounts", "happy_token_cera", "INTEGER NOT NULL DEFAULT 0");
-        EnsureColumn(connection, "accounts", "lucky_star", "INTEGER NOT NULL DEFAULT 0");
-        EnsureColumn(connection, "accounts", "honor_exp", "INTEGER NOT NULL DEFAULT 0");
-        EnsureColumn(connection, "accounts", "growth_capsule_exp", "INTEGER NOT NULL DEFAULT 0");
-        EnsureColumn(connection, "character_init_flags", "pc_room_state", "INTEGER");
-    }
-
-    private static void EnsureColumn(SqliteConnection connection, string table, string column, string declaration)
-    {
-        using var info = connection.CreateCommand();
-        info.CommandText = $"PRAGMA table_info({table});";
-        using var reader = info.ExecuteReader();
-        while (reader.Read())
-            if (string.Equals(reader.GetString(1), column, StringComparison.OrdinalIgnoreCase)) return;
-        reader.Close();
-        using var alter = connection.CreateCommand();
-        alter.CommandText = $"ALTER TABLE {table} ADD COLUMN {column} {declaration};";
-        alter.ExecuteNonQuery();
-    }
-
-    private const string SchemaSql = """
-        CREATE TABLE IF NOT EXISTS accounts(account_id INTEGER PRIMARY KEY AUTOINCREMENT,m_id TEXT NOT NULL UNIQUE,password_hash TEXT NOT NULL DEFAULT '',last_login_ip TEXT NOT NULL DEFAULT '',last_login_at TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,cera INTEGER NOT NULL DEFAULT 0,token_cera INTEGER NOT NULL DEFAULT 0,happy_token_cera INTEGER NOT NULL DEFAULT 0,lucky_star INTEGER NOT NULL DEFAULT 0,honor_exp INTEGER NOT NULL DEFAULT 0,growth_capsule_exp INTEGER NOT NULL DEFAULT 0);
-        CREATE TABLE IF NOT EXISTS account_settings(account_id INTEGER PRIMARY KEY,main_game_option BLOB,quickchat_bank0 BLOB,quickchat_bank1 BLOB,hotkey_key_type INTEGER NOT NULL DEFAULT 0,hotkey_slots BLOB);
-        CREATE TABLE IF NOT EXISTS account_premiums(account_id INTEGER NOT NULL,premium_type INTEGER NOT NULL,end_time INTEGER NOT NULL DEFAULT 0,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(account_id,premium_type));
-        CREATE TABLE IF NOT EXISTS characters(character_id INTEGER PRIMARY KEY,account_id INTEGER NOT NULL,name TEXT NOT NULL,name_bytes BLOB,job INTEGER NOT NULL DEFAULT 0,grow_type INTEGER NOT NULL DEFAULT 0,level INTEGER NOT NULL DEFAULT 1,clone_title_item_id INTEGER NOT NULL DEFAULT 0,slot_index INTEGER NOT NULL DEFAULT 0,delete_flag INTEGER NOT NULL DEFAULT 0);
-        CREATE TABLE IF NOT EXISTS account_increase_chance_lottery_progress(account_id INTEGER NOT NULL,item_template_id INTEGER NOT NULL,reward_index INTEGER NOT NULL,PRIMARY KEY(account_id,item_template_id,reward_index));
-        CREATE TABLE IF NOT EXISTS character_mercenary_support(owner_character_id INTEGER NOT NULL,slot INTEGER NOT NULL,support_character_id INTEGER NOT NULL,skill_id INTEGER NOT NULL,striker_skill_id INTEGER NOT NULL DEFAULT 0,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(owner_character_id,slot));
-        CREATE TABLE IF NOT EXISTS character_buy_restrict_items(character_id INTEGER NOT NULL,sort_order INTEGER NOT NULL,entry_id INTEGER NOT NULL,sentinel_or_value INTEGER NOT NULL,flag INTEGER NOT NULL,PRIMARY KEY(character_id,sort_order));
-        CREATE TABLE IF NOT EXISTS character_init_flags(character_id INTEGER PRIMARY KEY,champion_break_key_id INTEGER NOT NULL DEFAULT 0,champion_break_mode INTEGER NOT NULL DEFAULT 0,champion_break_value INTEGER NOT NULL DEFAULT 0,character_option_blob BLOB,pc_room_state INTEGER);
-        """;
 }
