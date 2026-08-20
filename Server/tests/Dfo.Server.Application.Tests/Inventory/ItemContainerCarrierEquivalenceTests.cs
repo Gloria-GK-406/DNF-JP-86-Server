@@ -5,8 +5,8 @@ using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
-using Dfo.Server.Infrastructure.Characters;
-using Dfo.Server.Infrastructure.Inventory;
+using Dfo.Server.Persistence.Characters;
+using Dfo.Server.Persistence.Inventory;
 using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Application.Tests.Inventory;

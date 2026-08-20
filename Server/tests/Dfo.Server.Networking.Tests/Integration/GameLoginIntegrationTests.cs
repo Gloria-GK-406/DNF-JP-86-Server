@@ -7,6 +7,7 @@ using Dfo.Server.Application;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Infrastructure;
+using Dfo.Server.Persistence;
 using Dfo.Server.Networking.Framing;
 using Dfo.Server.Networking.Runtime;
 using Dfo.Server.Protocol;
@@ -53,6 +54,7 @@ public sealed class GameLoginIntegrationTests
             var preparedAt = new DateTimeOffset(2026, 8, 13, 2, 30, 0, TimeSpan.Zero);
             builder.Services.AddSingleton<TimeProvider>(new FixedTimeProvider(preparedAt));
             new InfrastructureModule().ConfigureServices(builder.Services, builder.Configuration);
+            new PersistenceModule().ConfigureServices(builder.Services, builder.Configuration);
             new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
             new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
             new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);

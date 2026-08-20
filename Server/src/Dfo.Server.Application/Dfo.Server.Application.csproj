@@ -13,5 +13,6 @@
     <InternalsVisibleTo Include="Dfo.Server.Application.Tests" />
     <InternalsVisibleTo Include="Dfo.Server.Protocol.Tests" />
     <InternalsVisibleTo Include="Dfo.Server.Infrastructure.Tests" />
+    <InternalsVisibleTo Include="Dfo.Server.Persistence.Tests" />
   </ItemGroup>
 </Project>

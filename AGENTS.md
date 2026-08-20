@@ -29,7 +29,8 @@ Docs/        帧协议基线、业务接入规范、客户端逆向系列文档
 | `Dfo.Server.Data` | — | 纯模型：领域记录 + 协议身份契约（`Networking/NetworkMessages.cs` 只留两个枚举、两个消息接口、两个帧元数据 record） |
 | `Dfo.Server.Abstractions` | Data | 接缝层：`IServerModule` + 各领域服务/仓储/内容源/网络契约 + 通用只读服务器配置契约 |
 | `Dfo.Server.Application` | Abstractions, Data | **领域编排核心**：命令总线与管线、消息分发机制、领域服务 |
-| `Dfo.Server.Infrastructure` | Dfo.Pvf, Abstractions, Data | SQLite 仓储与存储 + `Schema/` 唯一建表归属者 + PVF 内容源 + 频道脚本 + 启动配置内存快照 |
+| `Dfo.Server.Infrastructure` | Dfo.Pvf, Abstractions, Data | PVF 内容源 + 频道脚本 + 启动配置内存快照 |
+| `Dfo.Server.Persistence` | Abstractions, Data | SQLite 仓储与存储 + `Schema/` 唯一建表归属者 + `Database/` 事务参与者。**全部类型 `internal`**，对外只经 Abstractions 契约 |
 | `Dfo.Server.Networking` | Abstractions, Data | TouchSocket **传输**：帧适配/解析、TCP 服务、插件、发送器、注册表。收发路径上不含任何单个协议的知识；显式多收件人投递也只表达必达顺序和逐目标失败隔离 |
 | `Dfo.Server.Protocol` | Abstractions, Application, Data, Networking | **协议切片**：一个协议一个目录，含其消息、解包器、编码器、消息 handler、命令与命令 handler；`ProtocolModule` 是唯一接线点 |
 | `Dfo.Server.Host` | 全部 | 组合根：模块注册顺序 + appsettings + channel_info.etc |
@@ -43,12 +44,19 @@ Docs/        帧协议基线、业务接入规范、客户端逆向系列文档
 - `Protocol` 引用其余四个。方向单向：`Protocol → Application`，因此
   **`Application` 永远不能引用 `Protocol`**。任何要同时看到"某个具体消息"和
   "某个领域服务"的代码，只能落在 `Protocol` 里。
-- `Application` 不引用 `Infrastructure`/`Networking`。
+- `Application` 不引用 `Infrastructure`/`Persistence`/`Networking`。
+- `Persistence` 与 `Infrastructure` **互不引用**，且 `Persistence` 不引用 `Dfo.Pvf`。
+  持久化要的三处内容侧事实（地下城经验策略、技能点表、物品到达规则）是 `Abstractions`
+  里的接口，由组合根注入实现。这是两者能各自成项目的原因。
+- 但 `PersistenceModule` 与 `InfrastructureModule` **必须同时注册**：前者有三处注册
+  要后者提供的内容源，只装其一的容器解析不出可用服务。二者是并列不是可选。
 
 注意：测试项目的 csproj 注释声称"有分层断言测试"，实际不存在；
-`Dfo.Server.Application.Tests` 引用 Infrastructure 是刻意的测试例外
-（entry 规则要跑真实 PVF），它同时引用 `Protocol` 是因为测试仍按功能组织，
-尚未跟随源码切片重排。
+`Dfo.Server.Application.Tests` 引用 Infrastructure 与 Persistence 是刻意的测试例外
+（entry 规则要跑真实 PVF、载体等价性要跑真实 SQLite），它同时引用 `Protocol`
+是因为测试仍按功能组织，尚未跟随源码切片重排。
+`Dfo.Server.Persistence.Tests` 与 `Dfo.Server.Infrastructure.Tests` 按同一条线切开：
+前者是 SQLite 与建表，后者是 PVF 内容、频道脚本与配置。
 
 ## 架构设计
 
@@ -68,7 +76,7 @@ TCP 字节
   → ClientMessageHandler<TMessage>（Protocol/<Endpoint>/<Protocol>/*Handler.cs）
       鉴权门（IOnlineUserQueryDomainService）→ commandBus.SendAsync(...) → 发响应
   → CommandBus 管线（机制在 Application）→ ICommandHandler（在切片内）
-      → 领域服务（Application）→ 仓储/内容源（Infrastructure）
+      → 领域服务（Application）→ 仓储与存储（Persistence）/内容源（Infrastructure）
   → Game 由 IGameMessageSender 约束 CMD/NOTI，Channel 直接用 INetworkMessageSender；
       最终均委托 TouchSocketNetworkMessageSender 按消息 CLR 类型查编码器注册表
       → IServerMessageEncoder（Protocol 切片内）产出完整帧 → 出站
@@ -82,7 +90,7 @@ TCP 字节
 PvP 大厅、专家商店）、`World/`（出生点策略、世界内容）、`Users/`
 （`OnlineStateStore` 持三张字典与唯一那把锁，`AccountDomainService`、
 `OnlineUserDomainService`、`ActiveCharacterDomainService` 三个门面各取其一）。
-服务只做业务；`Infrastructure` 提供仓储与 PVF 内容源实现。
+服务只做业务；`Persistence` 提供仓储与存储实现，`Infrastructure` 提供 PVF 内容源实现。
 
 **在线状态那把锁不能拆成三把。** 三张字典是同一个不变量的三种读法——一个账号至多一个活跃
 角色，且该角色的 session 属于活着的连接。断线要同时删连接和该账号的活跃角色，发布要先读在线
@@ -290,6 +298,11 @@ PremiumService、CloneTitle 是 CMD，其余当前状态推送是 NOTI；拒绝�
   `ChannelEntry:*`（受限频道/等级门槛等 legacy 默认）。
 - 测试：`dotnet test`；PVF 相关用 SkippableFact（无档案时跳过）；
   Host.Tests 会拉起打包后的 exe 做真实 TCP 验证。
+- **拉真实进程或真实 socket 的用例在满载全量下会假红。** `Host.Tests` 与
+  `Networking.Tests/Integration/` 各条都用 10 秒预算等进程退出或等连接就绪，
+  机器被占满时会撞线，报的是 `TaskCanceledException`/`OperationCanceledException`
+  而非断言不符。判据是单独跑该项目：隔离下 `Networking.Tests` 46 条 1 秒跑完，
+  全量下同样 46 条要 10 秒。看到这个形状先隔离复跑，不要当缺陷查。
 
 ## 快速开发：新增一个协议的固定动作
 

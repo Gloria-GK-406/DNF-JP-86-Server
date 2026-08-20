@@ -15,6 +15,7 @@
     <ProjectReference Include="..\Dfo.Server.Abstractions\Dfo.Server.Abstractions.csproj" />
     <ProjectReference Include="..\Dfo.Server.Application\Dfo.Server.Application.csproj" />
     <ProjectReference Include="..\Dfo.Server.Infrastructure\Dfo.Server.Infrastructure.csproj" />
+    <ProjectReference Include="..\Dfo.Server.Persistence\Dfo.Server.Persistence.csproj" />
     <ProjectReference Include="..\Dfo.Server.Networking\Dfo.Server.Networking.csproj" />
     <ProjectReference Include="..\Dfo.Server.Protocol\Dfo.Server.Protocol.csproj" />
   </ItemGroup>

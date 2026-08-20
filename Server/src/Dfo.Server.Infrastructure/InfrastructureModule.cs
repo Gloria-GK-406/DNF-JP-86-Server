@@ -1,17 +1,11 @@
 using Dfo.Server.Abstractions;
-using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Content;
-using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Configuration;
-using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Channel;
-using Dfo.Server.Infrastructure.Accounts;
-using Dfo.Server.Infrastructure.Characters;
 using Dfo.Server.Infrastructure.Configuration;
 using Dfo.Server.Infrastructure.Content;
-using Dfo.Server.Infrastructure.Inventory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -67,51 +61,6 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IItemPlacementDefinitionSource, PvfItemPlacementDefinitionSource>();
         services.TryAddSingleton<IItemUseRuleDefinitionSource, PvfItemUseRuleDefinitionSource>();
         services.TryAddSingleton(ReadChannelEntryOptions(configuration));
-
-        var configuredDatabasePath = configuration["Database:Path"] ?? "Data/dfo-server.db";
-        var databasePath = Path.IsPathRooted(configuredDatabasePath)
-            ? configuredDatabasePath
-            : Path.Combine(AppContext.BaseDirectory, configuredDatabasePath);
-        services.TryAddSingleton<IAccountRepository>(
-            _ => new SqliteAccountRepository(databasePath));
-        services.TryAddSingleton<IAccountEntryStateRepository>(
-            _ => new SqliteAccountEntryStateRepository(databasePath));
-        services.TryAddSingleton<ICharacterRepository>(
-            _ => new SqliteCharacterRepository(databasePath));
-        services.TryAddSingleton(
-            _ => new SqliteInventoryEntryRepository(databasePath));
-        services.TryAddSingleton<ICharacterInventoryEntryRepository>(
-            provider => provider.GetRequiredService<SqliteInventoryEntryRepository>());
-        services.TryAddSingleton<IAccountInventoryEntryRepository>(
-            provider => provider.GetRequiredService<SqliteInventoryEntryRepository>());
-        services.TryAddSingleton<IEntryInventoryLeasePersistence>(
-            provider => provider.GetRequiredService<SqliteInventoryEntryRepository>());
-        services.TryAddSingleton<ICharacterEntryStateRepository>(
-            provider => new SqliteCharacterEntryStateRepository(
-                databasePath, provider.GetRequiredService<IGoldLimitRuleService>()));
-        services.TryAddSingleton<ICharacterPvpSkillProfileRepository>(
-            _ => new SqliteCharacterPvpSkillProfileRepository(databasePath));
-        services.TryAddSingleton<IDungeonPersistentEffectRecoveryRepository>(
-            provider => new SqliteDungeonPersistentEffectRecoveryRepository(databasePath,
-                provider.GetRequiredService<IDungeonExperienceProgressionPolicySource>(),
-                provider.GetRequiredService<IDungeonEffectRuleService>()));
-        services.TryAddSingleton<IExpertSkillContractReconciliationRepository>(
-            provider => new SqliteExpertSkillContractReconciliationRepository(
-                databasePath, provider.GetRequiredService<IExpertSkillContractRuleService>()));
-        services.TryAddSingleton<IEntryInventoryMutationRepository>(
-            provider => new SqliteEntryInventoryMutationRepository(
-                databasePath,
-                provider.GetRequiredService<IDailyRefillRuleService>(),
-                provider.GetRequiredService<IItemArrivalRuleService>()));
-        // The one store whose commit can still fail, and so the one a use case may hold. It is
-        // registered as the item store without qualification because it is the one that keeps
-        // things; the store that does not is asked for by its own name.
-        services.TryAddSingleton(_ => new SqliteItemStore(databasePath));
-        // The character's own rows, kept in the same database and therefore settled by the same
-        // participant as the items it owns.
-        services.TryAddSingleton<ICharacterStore>(_ => new SqliteCharacterStore(databasePath));
-        services.TryAddSingleton<IItemStore>(
-            provider => provider.GetRequiredService<SqliteItemStore>());
     }
 
     /// <summary>
