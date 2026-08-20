@@ -9,7 +9,8 @@
   —— **完全数据驱动，已有 5 万+ 文件在跑**
 
 脚本运行时侧（Lua VM 现状、地址表、`[ai pattern]` 分派）见
-[ScriptRuntimes.md](ScriptRuntimes.md)。
+[ScriptRuntimes.md](ScriptRuntimes.md)；把这套模型当成扩展手段来用能走多远，
+见 [ExtensionSurface.md](ExtensionSurface.md)。
 
 ## 取证基线
 
