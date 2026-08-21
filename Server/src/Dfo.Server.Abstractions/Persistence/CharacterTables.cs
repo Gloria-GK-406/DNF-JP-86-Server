@@ -25,10 +25,6 @@ public sealed record CharacterMercenarySupportRow(
 /// <summary>One row of <c>character_skills</c>, as far as levelling is concerned.</summary>
 public sealed record CharacterSkillLevelRow(int PageIndex, int Slot, int SkillId, int Level);
 
-/// <summary>One row of <c>character_pvp_skills</c>.</summary>
-public sealed record CharacterPvpSkillRow(
-    int PageIndex, int Slot, int SkillId, int Level, byte[] ExtraValues);
-
 /// <summary>
 /// The <c>characters</c> table.
 /// </summary>
@@ -106,13 +102,23 @@ public interface ICharacterMercenarySupportTable
 }
 
 /// <summary>One skill of a character, with whatever else was stored beside it.</summary>
+/// <remarks>
+/// One row type for both kinds of page. The duel pages used to have a type of their own with the
+/// same five fields, which said nothing the table did not.
+/// </remarks>
 public sealed record CharacterSkillEntryRow(
     int PageIndex, int Slot, int SkillId, int Level, byte[] ExtraValues);
 
 /// <summary>The <c>character_skills</c> table.</summary>
+/// <remarks>
+/// One table with two sets of pages in it, and one interface over it. Which set a row belongs to is
+/// a column, not a table, and the two sets never share a row: the ordinary pages are written by
+/// spending skill points, the duel pages by seeding them when a duel channel asks. Every method
+/// here names the set it works on, because a read that forgot would hand one set the other's rows.
+/// </remarks>
 public interface ICharacterSkillTable
 {
-    /// <summary>Every skill the character has, and at what level.</summary>
+    /// <summary>Every ordinary skill the character has, and at what level.</summary>
     ValueTask<IReadOnlyList<CharacterSkillLevelRow>> ReadLevelsAsync(
         CharacterId characterId, CancellationToken cancellationToken);
 
@@ -123,22 +129,20 @@ public interface ICharacterSkillTable
     ValueTask InsertAsync(
         CharacterId characterId, int slot, int skillId, int level, CancellationToken cancellationToken);
 
-    /// <summary>Puts one skill at that level. Says how many rows that touched.</summary>
+    /// <summary>Puts one ordinary skill at that level. Says how many rows that touched.</summary>
     ValueTask<int> SetLevelAsync(
         CharacterId characterId, int pageIndex, int slot, int level, CancellationToken cancellationToken);
 
-    /// <summary>Takes one skill away. Says how many rows that touched.</summary>
+    /// <summary>Takes one ordinary skill away. Says how many rows that touched.</summary>
     ValueTask<int> RemoveAsync(
         CharacterId characterId, int pageIndex, int slot, CancellationToken cancellationToken);
-}
 
-/// <summary>The <c>character_pvp_skills</c> table.</summary>
-public interface ICharacterPvpSkillTable
-{
-    ValueTask<IReadOnlyList<CharacterPvpSkillRow>> ReadAsync(
+    /// <summary>The duel pages, in the order they are read.</summary>
+    ValueTask<IReadOnlyList<CharacterSkillEntryRow>> ReadDuelSkillsAsync(
         CharacterId characterId, CancellationToken cancellationToken);
 
-    ValueTask InsertAsync(
+    /// <summary>Puts one skill on a duel page.</summary>
+    ValueTask InsertDuelSkillAsync(
         CharacterId characterId,
         int pageIndex,
         int slot,

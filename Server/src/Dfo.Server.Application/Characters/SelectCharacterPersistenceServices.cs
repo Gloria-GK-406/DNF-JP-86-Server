@@ -16,7 +16,7 @@ namespace Dfo.Server.Application.Characters;
 /// </remarks>
 internal sealed class PvpSkillProfileService(
     ICharacterTable characters,
-    ICharacterPvpSkillTable pvpSkills,
+    ICharacterSkillTable skills,
     ICharacterPvpTable pvp) : ICharacterPvpSkillProfileRepository
 {
     public async ValueTask<CharacterSkillsEntryState> LoadOrInitializeAsync(
@@ -42,7 +42,7 @@ internal sealed class PvpSkillProfileService(
             {
                 foreach (var skill in page.Skills)
                 {
-                    await pvpSkills.InsertAsync(
+                    await skills.InsertDuelSkillAsync(
                         characterId, page.PageIndex, skill.Slot, (int)skill.SkillId, skill.Level,
                         [.. skill.ExtraValues], cancellationToken).ConfigureAwait(false);
                 }
@@ -53,7 +53,7 @@ internal sealed class PvpSkillProfileService(
         }
 
         var pages = new[] { new List<CharacterSkillState>(), new List<CharacterSkillState>() };
-        foreach (var row in await pvpSkills.ReadAsync(characterId, cancellationToken)
+        foreach (var row in await skills.ReadDuelSkillsAsync(characterId, cancellationToken)
                      .ConfigureAwait(false))
         {
             if (row.PageIndex is < 0 or > 1

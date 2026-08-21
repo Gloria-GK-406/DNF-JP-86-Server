@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Accounts;
@@ -40,9 +41,12 @@ internal sealed class CharacterSide
         new SqliteCharacterSettingsTable(this.database),
         new SqliteCharacterExpertJobTable(this.database));
 
+    /// <summary>The skill table itself, for the tests that are about what a statement touches.</summary>
+    public ICharacterSkillTable Skills => new SqliteCharacterSkillTable(this.database);
+
     public ICharacterPvpSkillProfileRepository PvpProfile => new PvpSkillProfileService(
         new SqliteCharacterTable(this.database),
-        new SqliteCharacterPvpSkillTable(this.database),
+        new SqliteCharacterSkillTable(this.database),
         new SqliteCharacterPvpTable(this.database));
 
     public IExpertSkillContractReconciliationRepository ExpertContracts(

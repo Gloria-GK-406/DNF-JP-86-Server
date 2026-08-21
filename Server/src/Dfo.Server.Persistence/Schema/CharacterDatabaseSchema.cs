@@ -26,6 +26,12 @@ namespace Dfo.Server.Persistence.Schema;
 /// Applying it is idempotent, so any number of components may ask for it and the first to do so
 /// settles the shape for all of them. Nothing else declares a table.
 ///
+/// One table is deliberately absent from it: <c>character_skills</c>. Its <c>mode</c> column is
+/// <c>NOT NULL</c> with no default, and there is no value the reconciler could put in it for rows
+/// that predate it -- the whole point of the column is that a row's mode is not derivable from the
+/// row. A database carrying the older two-table shape is therefore not reconciled into this one; it
+/// is replaced, which is what this stage of the project does with databases anyway.
+///
 /// One column is here that reading the shape back could not have found: <c>character_gold_limits</c>
 /// was declared in two places with different shapes and, alone among such tables, had no patcher
 /// reconciling them -- so the shape a database ended up with was whichever declaration ran first,
@@ -190,10 +196,9 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS character_mercenary_support(owner_character_id INTEGER NOT NULL,slot INTEGER NOT NULL,support_character_id INTEGER NOT NULL,skill_id INTEGER NOT NULL,striker_skill_id INTEGER NOT NULL DEFAULT 0,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(owner_character_id,slot));
         CREATE TABLE IF NOT EXISTS character_pvp ( character_id INTEGER PRIMARY KEY, pvp_grade INTEGER NOT NULL DEFAULT 0, pvp_lose_streak INTEGER NOT NULL DEFAULT 0, pvp_rank_point INTEGER NOT NULL DEFAULT 0, pvp_rating_grade INTEGER NOT NULL DEFAULT 0, pvp_stat_a INTEGER NOT NULL DEFAULT 0, pvp_win_streak INTEGER NOT NULL DEFAULT 0, skills_initialized INTEGER NOT NULL DEFAULT 0, FOREIGN KEY (character_id) REFERENCES characters(character_id) ON DELETE CASCADE );
         CREATE TABLE IF NOT EXISTS character_pvp_missions(character_id INTEGER, sort_order INTEGER, mission_id INTEGER, progress_value INTEGER, PRIMARY KEY(character_id,sort_order));
-        CREATE TABLE IF NOT EXISTS character_pvp_skills ( character_id INTEGER NOT NULL, page_index INTEGER NOT NULL CHECK (page_index BETWEEN 0 AND 1), slot INTEGER NOT NULL, skill_id INTEGER NOT NULL, level INTEGER NOT NULL, extra_values BLOB, PRIMARY KEY (character_id, page_index, slot), UNIQUE (character_id, page_index, skill_id), FOREIGN KEY (character_id) REFERENCES characters(character_id) ON DELETE CASCADE );
+        CREATE TABLE IF NOT EXISTS character_skills ( character_id INTEGER NOT NULL, mode TEXT NOT NULL CHECK (mode IN ('pve', 'pvp')), page_index INTEGER NOT NULL, slot INTEGER NOT NULL, skill_id INTEGER NOT NULL, level INTEGER NOT NULL, extra_values BLOB, PRIMARY KEY (character_id, mode, page_index, slot), UNIQUE (character_id, mode, page_index, skill_id), CHECK (mode <> 'pvp' OR page_index BETWEEN 0 AND 1), FOREIGN KEY (character_id) REFERENCES characters(character_id) ON DELETE CASCADE );
         CREATE TABLE IF NOT EXISTS character_quest_notify_selections(character_id INTEGER, slot_index INTEGER, quest_id INTEGER, PRIMARY KEY(character_id,slot_index));
         CREATE TABLE IF NOT EXISTS character_settings ( character_id INTEGER PRIMARY KEY, character_option_blob BLOB, user_state_bits INTEGER NOT NULL DEFAULT 3 );
-        CREATE TABLE IF NOT EXISTS character_skills(character_id INTEGER, page_index INTEGER, slot INTEGER, skill_id INTEGER, level INTEGER, extra_values BLOB, PRIMARY KEY(character_id,page_index,slot));
         CREATE TABLE IF NOT EXISTS character_stats ( auction_gold_limit INTEGER NOT NULL DEFAULT 0, character_id INTEGER PRIMARY KEY, current_hp_mp_percent INTEGER NOT NULL DEFAULT 0, equip_list_trailing INTEGER NOT NULL DEFAULT 0, equipped_creature_level INTEGER NOT NULL DEFAULT 0, flag_byte INTEGER NOT NULL DEFAULT 0, gold_carry_limit INTEGER NOT NULL DEFAULT 0, progress1 INTEGER NOT NULL DEFAULT 0, progress2 INTEGER NOT NULL DEFAULT 0, quest_shop_count INTEGER NOT NULL DEFAULT 0, server_timestamp INTEGER NOT NULL DEFAULT 0, stat_attack_speed INTEGER NOT NULL DEFAULT 0, stat_cast_speed INTEGER NOT NULL DEFAULT 0, stat_dark_resistance INTEGER NOT NULL DEFAULT 0, stat_fire_resistance INTEGER NOT NULL DEFAULT 0, stat_hit_recovery INTEGER NOT NULL DEFAULT 0, stat_hp_max INTEGER NOT NULL DEFAULT 0, stat_hp_regen_speed INTEGER NOT NULL DEFAULT 0, stat_inventory_limit INTEGER NOT NULL DEFAULT 0, stat_jump_power INTEGER NOT NULL DEFAULT 0, stat_light_resistance INTEGER NOT NULL DEFAULT 0, stat_magical_attack INTEGER NOT NULL DEFAULT 0, stat_magical_defense INTEGER NOT NULL DEFAULT 0, stat_move_speed INTEGER NOT NULL DEFAULT 0, stat_mp_max INTEGER NOT NULL DEFAULT 0, stat_mp_regen_speed INTEGER NOT NULL DEFAULT 0, stat_physical_attack INTEGER NOT NULL DEFAULT 0, stat_physical_defense INTEGER NOT NULL DEFAULT 0, stat_water_resistance INTEGER NOT NULL DEFAULT 0, stat_weight INTEGER NOT NULL DEFAULT 0 );
         CREATE TABLE IF NOT EXISTS characters ( account_id INTEGER NOT NULL, appearance_blob BLOB, area_id INTEGER NOT NULL DEFAULT 0, area_state INTEGER NOT NULL DEFAULT 3, bonus_sp INTEGER NOT NULL DEFAULT 0, bonus_tp INTEGER NOT NULL DEFAULT 0, character_id INTEGER PRIMARY KEY, clone_title_item_id INTEGER NOT NULL DEFAULT 0, delete_flag INTEGER NOT NULL DEFAULT 0, direction INTEGER NOT NULL DEFAULT 5, ex_equip_slot_stat INTEGER NOT NULL DEFAULT 0, exp INTEGER NOT NULL DEFAULT 0, grow_type INTEGER NOT NULL DEFAULT 0, guild_level INTEGER NOT NULL DEFAULT 0, guild_power_war INTEGER NOT NULL DEFAULT 0, job INTEGER NOT NULL DEFAULT 0, level INTEGER NOT NULL DEFAULT 1, manage_level INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL, name_bytes BLOB, name_tag_expire_time INTEGER NOT NULL DEFAULT 0, name_tag_item_id INTEGER NOT NULL DEFAULT 0, pos_x INTEGER NOT NULL DEFAULT 0, pos_y INTEGER NOT NULL DEFAULT 0, skill_tree_index INTEGER NOT NULL DEFAULT -1, slot_index INTEGER NOT NULL DEFAULT 0, town_id INTEGER NOT NULL DEFAULT 0, user_state INTEGER NOT NULL DEFAULT 0 );
         CREATE TABLE IF NOT EXISTS dungeon_persistent_effect_outbox( source_event_id TEXT NOT NULL, effect_kind TEXT NOT NULL, effect_scope INTEGER NOT NULL, scope_target INTEGER NOT NULL, character_id INTEGER NOT NULL, account_id INTEGER NOT NULL, payload_version INTEGER NOT NULL DEFAULT 1, payload_json TEXT NOT NULL DEFAULT '{}', state INTEGER NOT NULL DEFAULT 0, lease_id TEXT, lease_owner TEXT, lease_expires_at INTEGER NOT NULL DEFAULT 0, attempt_count INTEGER NOT NULL DEFAULT 0, last_error TEXT NOT NULL DEFAULT '', result_version INTEGER, result_json TEXT, created_at INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL DEFAULT 0, committed_at INTEGER, PRIMARY KEY(source_event_id,effect_kind,effect_scope,scope_target));
@@ -309,16 +314,9 @@ internal static class CharacterDatabaseSchema
         character_pvp_missions|sort_order|INTEGER
         character_pvp_missions|mission_id|INTEGER
         character_pvp_missions|progress_value|INTEGER
-        character_pvp_skills|extra_values|BLOB
         character_quest_notify_selections|character_id|INTEGER
         character_quest_notify_selections|slot_index|INTEGER
         character_quest_notify_selections|quest_id|INTEGER
-        character_skills|character_id|INTEGER
-        character_skills|page_index|INTEGER
-        character_skills|slot|INTEGER
-        character_skills|skill_id|INTEGER
-        character_skills|level|INTEGER
-        character_skills|extra_values|BLOB
         mailbox_attachments|ordinal|INTEGER NOT NULL DEFAULT 0
         mailbox_attachments|item_type|INTEGER NOT NULL DEFAULT 0
         mailbox_attachments|source_list_type|INTEGER NOT NULL DEFAULT 0

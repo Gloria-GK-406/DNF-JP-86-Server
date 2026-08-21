@@ -60,9 +60,6 @@ public sealed class PersistenceModule : IServerModule
         services.TryAddSingleton<ICharacterSkillTable>(
             provider => new SqliteCharacterSkillTable(
                 provider.GetRequiredService<SqliteDatabase>()));
-        services.TryAddSingleton<ICharacterPvpSkillTable>(
-            provider => new SqliteCharacterPvpSkillTable(
-                provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<IDungeonEffectOutboxTable>(
             provider => new SqliteDungeonEffectOutboxTable(
                 provider.GetRequiredService<SqliteDatabase>()));

@@ -1096,6 +1096,16 @@ skill_id)`, `CHECK (page_index BETWEEN 0 AND 1)` for PvP rows, `NOT NULL` on the
 columns plus `mode`, and the cascading foreign key — all carried over from `character_pvp_skills`,
 which declares every one of them where `character_skills` declares none.
 
+**Three of the four now bind PvE rows as well, which is a tightening, and the third of them rests
+on a fact outside this database.** The `NOT NULL` and the cascade are safe for the reason given
+above. The `UNIQUE` is the one worth writing down: a character's ordinary skills are written only
+at creation and all land on page zero, so the constraint says no character may be created holding
+the same skill twice. That holds because no job declares the same active skill twice in its archive
+entry — checked for every declared job and pinned as
+`PvfInitialSkillDefinitionSourceTests.No_job_declares_the_same_active_skill_twice`, which is where
+it must stay pinned: if a future job declared a duplicate, creating a character of that job would
+fail at the second row and nothing else would notice first.
+
 ### `character_daily_challenges` — 4 columns
 
 | Column | From |

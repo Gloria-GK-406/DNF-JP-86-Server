@@ -63,7 +63,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                     VALUES(22,100,123,11,12,600000000,600000000);
                 INSERT INTO character_dimensions VALUES(22,0,9,1,2);
                 INSERT INTO character_hotkey_slots VALUES(22,0,20),(22,1,10);
-                INSERT INTO character_skills VALUES(22,0,4,100,5,X'0908');
+                INSERT INTO character_skills VALUES(22,'pve',0,4,100,5,X'0908');
                 INSERT INTO character_active_quests VALUES(22,2,200,6);
                 INSERT INTO character_quest_notify_selections VALUES(22,0,201);
                 INSERT INTO character_invisible_flags VALUES(22,200,1);
@@ -359,7 +359,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
             {
                 "wrong-owner" => "UPDATE characters SET account_id=99 WHERE character_id=23;",
                 "missing-required" => "DELETE FROM character_stats WHERE character_id=23;",
-                "invalid-skill" => "INSERT INTO character_skills VALUES(23,0,0,-1,1,NULL);",
+                "invalid-skill" => "INSERT INTO character_skills VALUES(23,'pve',0,0,-1,1,NULL);",
                 "oversized-appearance" => "UPDATE characters SET appearance_blob=zeroblob(16385) WHERE character_id=23;",
                 "group-out-of-range" => "INSERT INTO character_daily_challenges(character_id,group_index,group_id) VALUES(23,9,1);",
                 _ => "INSERT INTO character_daily_schedule_states VALUES(23,0,0,0,0,0);",

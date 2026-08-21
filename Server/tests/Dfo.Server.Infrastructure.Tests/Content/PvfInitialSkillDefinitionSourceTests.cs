@@ -65,6 +65,38 @@ public sealed class PvfInitialSkillDefinitionSourceTests
             "every job answered with the same list, so the job is not being used");
     }
 
+    /// <summary>
+    /// No job is created holding the same active skill twice.
+    /// </summary>
+    /// <remarks>
+    /// Written down because a constraint now depends on it. The PvP skills table has always
+    /// declared <c>UNIQUE (character_id, page_index, skill_id)</c> and the PvE one declared
+    /// nothing; merging the two into one table carries that uniqueness onto page zero, which is
+    /// where these grants land in the order they are read. If a job ever declared one of its
+    /// actives twice, creating a character of that job would fail at the second row -- and it would
+    /// fail in the game rather than here, because nothing else looks.
+    ///
+    /// The check is on the actives alone, because only the actives are written; a passive declared
+    /// twice is held nowhere and cannot collide with anything.
+    /// </remarks>
+    [SkippableFact]
+    public async Task No_job_declares_the_same_active_skill_twice()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfInitialSkillDefinitionSource(provider);
+
+        for (byte job = 0; job <= 12; job++)
+        {
+            var actives = (await source.GetAsync(job, CancellationToken.None))
+                .Where(grant => grant.IsActive)
+                .Select(grant => grant.SkillId)
+                .ToArray();
+
+            Assert.Equal(actives.Length, actives.Distinct().Count());
+        }
+    }
+
     [SkippableFact]
     public async Task A_job_the_archive_does_not_declare_has_no_grants()
     {

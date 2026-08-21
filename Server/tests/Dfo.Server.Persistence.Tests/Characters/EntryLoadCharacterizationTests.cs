@@ -107,7 +107,7 @@ public sealed class EntryLoadCharacterizationTests
                 VALUES(22,X'00A2',1011);
             INSERT INTO character_dimensions VALUES(22,0,9,1,2);
             INSERT INTO character_hotkey_slots VALUES(22,0,20),(22,1,10);
-            INSERT INTO character_skills VALUES(22,0,4,100,5,X'0908');
+            INSERT INTO character_skills VALUES(22,'pve',0,4,100,5,X'0908');
             INSERT INTO character_active_quests VALUES(22,2,200,6);
             INSERT INTO character_quest_notify_selections VALUES(22,0,201);
             INSERT INTO character_invisible_flags VALUES(22,200,1);
