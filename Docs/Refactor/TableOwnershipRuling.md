@@ -623,7 +623,7 @@ time under a sentence claiming the rest had nothing. A table with no candidate s
 | `character_stats` | — | Every column is a number in its own right. |
 | `characters` | — | No column whose value could change what another means. |
 | `dungeon_persistent_effect_outbox` | `effect_kind` | **Clear by kind.** It is a work queue, and a queue row's payload is polymorphic by definition; `payload_json` and `result_json` are declared opaque rather than reinterpreted. A queue is not a place where a concept lives. |
-| `items` | `owner_scope` | **Clear.** It decides which table `owner_id` points at, and nothing else. `slot_index` and `item_core` mean the same thing for a character, a cargo and a title book, and `list_type` does too once the title book's `category` is transformed into its container type (M-1). The sparse columns — `deposited_by_character_id` and the six `avatar_*` — are absent-or-present, not reinterpreted. |
+| `items` | `owner_scope` | **Clear.** It decides which table `owner_id` points at, and nothing else. `slot_index` and `item_core` mean the same thing for a character, a cargo and a title book, and `list_type` does too once the title book's `category` is transformed into its container type (M-1). The sparse columns — `cargo_character_id` and the seven `avatar_*` — are absent-or-present, not reinterpreted. |
 | `mailbox_attachments` | `item_type`, `item_kind` | **Unresolved.** This is the older decomposed item shape, with `instance_value`, `option_value`, `pet_serial_or_handle` and `marker_16` beside a nullable `item_core`. Whether `item_kind` reinterprets those cannot be settled while the table has no writer. Already the subject of [D-1](#deferred). |
 | `mailbox_messages` | `mail_type` | **Clear.** A title, a body and an amount, for every kind of mail. |
 | `mailbox_recipients` | — | A recipient, a folder and four flags. |
@@ -642,9 +642,9 @@ Recorded, not resolved. Each names who resolves it.
 | D-2 | Five equipped-creature columns (`creature_field1`..`4` and `creature_buffer`) sit in `character_condition` though they belong with creatures. They cannot move to `character_creatures`, whose key is `(character_id, sort_order)` (S-10). | A later cut, if a one-row-per-character equipped-creature concept earns its own table. |
 | D-3 | `account_settings.hotkey_slots` is a BLOB while `character_hotkey_slots` is one row per slot — the same idea stored two ways. This ruling changes neither. | A later cut on the account side. |
 | D-4 | Thirteen columns land where they are read from rather than where their meaning puts them, because their meaning is not settled. Seven into `character_stats`: `progress1`, `progress2`, `equip_list_trailing`, `flag_byte`, `server_timestamp`, `quest_shop_count`, `equipped_creature_level`. Five into `character_condition`: `trailing_byte`, `black_count`, and the three `champion_break_*` columns, whose names do not say what they count or break. One into `character_pvp`: `pvp_stat_a`, whose name says only that it is a statistic. Every one of these homes is provisional, not ruled. | Whoever settles what those packet fields mean. The character-side implementation carries the provisional homes in the meantime. |
-| D-5 | `account_cargo_new_items.character_id` becomes `items.deposited_by_character_id`. The name is a reading, not a fact: the code carries the nullable value into `InventoryStorageItem.CharacterId` without interpreting it. If it turns out to mean something else, the column keeps its place and changes its name. | The item-side implementation. |
-| D-6 | `character_new_items.character_id` is retired on the premise that it always equals `owner_id`. Proven for all three insert paths and both updates. Two things go with it and are mechanical only because the equality holds: the column is still **read** — it is in a `SELECT` list and in a `WHERE character_id = @cid AND list_type = 0` — and there is an index `idx_character_new_items_character_space(character_id, list_type, slot_index)` that must be rebuilt on `owner_id`. The implementation should confirm no fourth writer has appeared before relying on the equality for either. | The item-side implementation. |
-| D-7 | Retiring `character_avatar_detail`'s `owner_id`, `character_id` and `item_id` removes three agreement checks the load performs today. The merge makes disagreement unrepresentable, which is the argument for removing them — the implementation must confirm that claim on the merged shape rather than assume it, and must keep the checks that are about the value rather than the wiring: a jewel socket of exactly 30 bytes, and both colours within 0..65535. | The item-side implementation. |
+| D-5 | `account_cargo_new_items.character_id` becomes `items.deposited_by_character_id`. The name is a reading, not a fact: the code carries the nullable value into `InventoryStorageItem.CharacterId` without interpreting it. If it turns out to mean something else, the column keeps its place and changes its name. | **Resolved** by the item-side implementation — see [the resolutions](#resolved-by-the-item-side-implementation). |
+| D-6 | `character_new_items.character_id` is retired on the premise that it always equals `owner_id`. Proven for all three insert paths and both updates. Two things go with it and are mechanical only because the equality holds: the column is still **read** — it is in a `SELECT` list and in a `WHERE character_id = @cid AND list_type = 0` — and there is an index `idx_character_new_items_character_space(character_id, list_type, slot_index)` that must be rebuilt on `owner_id`. The implementation should confirm no fourth writer has appeared before relying on the equality for either. | **Resolved** by the item-side implementation — see [the resolutions](#resolved-by-the-item-side-implementation). |
+| D-7 | Retiring `character_avatar_detail`'s `owner_id`, `character_id` and `item_id` removes three agreement checks the load performs today. The merge makes disagreement unrepresentable, which is the argument for removing them — the implementation must confirm that claim on the merged shape rather than assume it, and must keep the checks that are about the value rather than the wiring: a jewel socket of exactly 30 bytes, and both colours within 0..65535. | **Resolved** by the item-side implementation — see [the resolutions](#resolved-by-the-item-side-implementation). |
 | D-8 | M-5 rests on an observed key with an inferred lifetime and writer. A daily-challenge generation path that rebuilds groups on a different cycle from the one that expires claims would disprove it and revert the merge. | Whoever builds daily challenges. |
 | D-9 | Two pairs are refused for want of evidence rather than against it: `character_active_quests` / `character_quest_notify_selections` (S-8), and `character_daily_challenges` / `character_daily_challenge_tail_ids` (S-9). Both would merge if their slot spaces turn out to be one coordinate. | Whoever builds quests and daily challenges. |
 | D-10 | Two unchanged tables may carry a discriminator that reinterprets its neighbours, and nothing in the code settles either: `character_dimensions.dim_key` over `val1`/`val2`, and `character_daily_challenge_entries.track_like_id` over `value_a`/`value_b`. If either does, that table needs the same split as X-1. | Whoever settles what the dimension feature and the daily challenges store. |
@@ -652,8 +652,130 @@ Recorded, not resolved. Each names who resolves it.
 | D-12 | `character_daily_schedule_states.mode_or_state` may be a discriminator that reinterprets `param_a` and `param_b`; nothing in the code settles it. If it is, the table needs the same split as X-1. | Whoever settles what the daily schedule stores. |
 | D-13 | `character_settings` rests on `user_state_bits`, and that column is also read into the character's public state and written to the wire from subtype-0. If it is ruled public state rather than a setting, `character_settings` holds the client option block alone and should be reconsidered — either kept as a one-column table or folded back. | The character-side implementation. |
 | D-14 | Two more unchanged tables carry a column that may reinterpret its neighbours and nothing settles it: `character_achievement_complete.achievement_id` over `p1`..`p4`, and `character_buy_restrict_items.entry_id`/`flag` over `sentinel_or_value`. If either does, that table needs the same split as X-1. | Whoever settles what achievements and buy restrictions store. |
-| D-15 | `character_avatar_detail`'s `PRIMARY KEY (item_uid)` has no successor: after the merge nothing stops two item rows carrying the same avatar UID in their cores. Offset 5..8 is a general-purpose field with no allocator and no uniqueness check, so the loss cannot be argued away. Either something upstream makes duplicates impossible, or `items` needs a stored avatar-UID column and a partial unique index. | The item-side implementation. |
-| D-16 | `items` inherits a weaker uniqueness than `account_cargo_new_items` declared: `UNIQUE(account_id, slot_index)` becomes, for account rows, `UNIQUE(account_id, list_type, slot_index)`. Harmless while the cargo has one list type. A partial unique index on `(owner_id, slot_index) WHERE owner_scope = 'account'` restores it. | The item-side implementation. |
+| D-15 | `character_avatar_detail`'s `PRIMARY KEY (item_uid)` has no successor: after the merge nothing stops two item rows carrying the same avatar UID in their cores. Offset 5..8 is a general-purpose field with no allocator and no uniqueness check, so the loss cannot be argued away. Either something upstream makes duplicates impossible, or `items` needs a stored avatar-UID column and a partial unique index. | **Resolved** by the item-side implementation — see [the resolutions](#resolved-by-the-item-side-implementation). |
+| D-16 | `items` inherits a weaker uniqueness than `account_cargo_new_items` declared: `UNIQUE(account_id, slot_index)` becomes, for account rows, `UNIQUE(account_id, list_type, slot_index)`. Harmless while the cargo has one list type. A partial unique index on `(owner_id, slot_index) WHERE owner_scope = 'account'` restores it. | **Resolved** by the item-side implementation — see [the resolutions](#resolved-by-the-item-side-implementation). |
+
+## Resolved by the item-side implementation
+
+The five entries above that name the item-side implementation as their owner are answered here.
+Each says what was checked and where it can be checked again.
+
+### D-6 — the retired `character_id` holds
+
+Re-counted every write statement under `Server/src` that names `character_new_items`: three inserts
+(`InsertOwnAsync` and `InsertStackAsync` in `InventoryItemTables.cs`, `FillAsync` in
+`SqliteItemStore.cs`), three deletes (`DeleteOwnExceptAsync`'s two statement forms and
+`SqliteItemStore.EmptyAsync`) and two updates (`UpdateOwnAsync`, `SetStackCountAsync`). All three
+inserts write `owner_scope='character', owner_id=@cid, character_id=@cid`; neither update names
+either column. **No fourth writer has appeared.** The two reads that name the column become reads
+of `owner_id`, and `idx_character_new_items_character_space` is rebuilt as
+`items(owner_id, list_type, slot_index)`.
+
+### D-5 — the cargo's character id keeps its place and loses the reading
+
+The column is carried into `InventoryStorageItem.CharacterId` and, for a cargo row, **never
+checked and never written to the wire**: `NormalizeAccountCargoItems` validates owner type, owner id
+and container type and not this value, and `ToItemState` drops it before the item reaches the
+protocol. So the code supports two facts and no more — it is a character id, and only a cargo row
+ever has one. `deposited_by_character_id` claims a third thing the code does not say.
+
+The column is therefore named **`cargo_character_id`**. It survives because dropping it would change
+what the whole-record characterization dumps, and it is named for what is observable. Whoever builds
+depositing into the cargo learns what it means and renames it then.
+
+### D-7 — the three agreement checks lose their subject, and two value checks stay
+
+The load today refuses a detail row whose `owner_id`, `character_id` or `item_id` disagrees with its
+item. Confirmed on the merged shape: after the merge the avatar columns *are* columns of the item
+row, so "the detail's owner" and "the item's owner" are one value, and the detail's `item_id` is the
+core's own `ItemId`. There is no second row to disagree, and no place for a disagreement to be
+stored. The checks are not dropped; the state they test cannot be represented.
+
+Four checks are about the value rather than the wiring and **must survive**, and two of them are
+easy to lose because their source changes shape:
+
+- a jewel socket of exactly 30 bytes — now `CHECK (avatar_jewel_socket IS NULL OR
+  length(avatar_jewel_socket) = 30)` in the declaration and still checked on the way out;
+- both colours within 0..65535;
+- an item of kind 8 whose `item_core[5..9]` is zero or negative is refused;
+- an item of kind 8 belonging to a character with no avatar columns is refused, while the same item
+  in the account cargo is carried with none.
+
+### D-16 — the cargo's slot uniqueness is restored
+
+`account_cargo_new_items` declares `UNIQUE(account_id, slot_index)`, which `items`' four-part
+constraint weakens for account rows. Restoring it costs one partial unique index and takes the
+merged table back to exactly today's strength — no tighter, no looser:
+
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS idx_items_account_slot
+    ON items(owner_id, slot_index) WHERE owner_scope = 'account';
+```
+
+**Restored.**
+
+### D-15 — the avatar detail's primary key is restored, because a test already constructs the case
+
+The first working of this said not to restore it: `character_avatar_detail`'s
+`PRIMARY KEY (item_uid)` guarantees at most one *description* per avatar UID rather than at most one
+*item*, and a unique index on a stored avatar-UID column would be strictly stronger — refusing a
+state today's database accepts. Taking the census of what the item side's rules are covered by found
+the case already built and already required to fail:
+
+`SqliteEntryInventoryMutationRepositoryTests.DirtyLeaseSave_PersistsAvatarDetailsAuthoritativelyAndRollsBackUidCollision`
+gives character 70 an avatar of UID 9000, then has character 60's lease try to insert an item
+carrying the same UID. Today that reaches `UpsertOwnAsync`, whose `ON CONFLICT (item_uid)` update is
+conditioned on the row belonging to the writer, so it touches nothing, the save throws, the whole
+lease rolls back, and the test then asserts that **character 70's avatar is untouched**.
+
+So the guarantee is neither theoretical nor unreachable: one character claiming another's avatar UID
+is a state the server refuses today, and a covered one. Merging without a successor would make that
+insert succeed — a behaviour change, and a covered assertion lost. The contract forbids both.
+
+**Restored**, by the means D-15 itself named:
+
+- `items.avatar_uid`, nullable, non-null in exactly the rows that carry avatar columns;
+- `CREATE UNIQUE INDEX IF NOT EXISTS idx_items_avatar_uid ON items(avatar_uid)
+  WHERE avatar_uid IS NOT NULL;`
+
+This reproduces today's strength on the case that matters and is stricter on one that does not.
+An avatar in the account cargo has no detail row today and gets no `avatar_uid` after the merge, so
+it stays outside the index — a cargo avatar sharing a UID with a character's avatar is permitted
+today and stays permitted. Two *different* characters claiming one UID are refused today and stay
+refused, which is the case the test builds.
+
+The one it tightens: **one character holding two item rows that carry the same UID**. Today both
+resolve to the single detail row and the load succeeds; afterwards the second row is refused. That
+is a real difference and worth stating rather than glossing, because the first working of this
+section claimed the restoration was exact and it is not. It is accepted deliberately — the two rows
+would be two items each claiming to be the same avatar, nothing needs them, and the alternative is
+to drop a refusal a test relies on.
+
+The cost is the column [M-2](#m-2-items--character_avatar_detail) retires, put back on purpose. M-2
+retires it because the value is already inside `item_core`; that is true and irrelevant to this,
+because a value inside a BLOB cannot be indexed. `items` therefore has **16** columns, not 15, and
+`character_avatar_detail.item_uid` lands rather than retiring.
+
+### Two consequences carried over from the merge itself
+
+Neither is a ruling; both are things M-2 makes true and did not say.
+
+**A row updated out of being an avatar must lose its avatar columns.** Today a stale detail is swept
+away by `DeleteOwnExceptAsync` when the character stops holding that avatar. After the merge the
+avatar columns travel with the item row, so a row *updated* from an avatar core to a non-avatar core
+would keep them. That is not a cosmetic leftover: the protocol encoder throws when an item of a kind
+other than 8 arrives carrying avatar detail. The item write must therefore set the avatar columns
+from what the caller holds and null them otherwise, rather than leaving them alone.
+
+**Moving an item through the item store must carry its avatar columns with it.** M-2 says the detail
+lives exactly as long as the item, which is true of the item *concept* and not of the item *row*:
+`SqliteItemStoreSession` writes a slot by deleting whatever row held it and inserting a new one, and
+says so outright — "that gives the item a new row identity, which is deliberate and safe: nothing
+outside these tables is keyed on it, and the one satellite table there is hangs off the avatar UID
+carried inside the item core." After the merge the avatar facts are keyed on the row, so the reason
+that made it safe is gone. `SqliteItemStoreTests.Relocate_KeepsAnAvatarsDetailsBecauseTheLinkIsInsideTheCore`
+asserts an avatar keeps its facts across a move, so the store must read them by avatar UID before it
+deletes and write them back on the insert.
 
 ## Where this ruling differs from the task contract
 
@@ -761,7 +883,11 @@ rather than repeated per table, so that the lists are enough to write the declar
   `idx_character_rental_items_char` and `idx_rental_items_char` both become
   `character_rentals(character_id)` — one index, not two, and it is a prefix of that table's new key,
   so it may simply be dropped. `idx_account_cargo_items_owner` and `idx_character_items_character` go
-  with the two retired tables they index.
+  with the two retired tables they index. One index is added rather than carried:
+  `idx_items_account_slot`, a partial unique index restoring the cargo's own slot uniqueness
+  ([D-16](#d-16--the-cargos-slot-uniqueness-is-restored)), and `idx_items_avatar_uid`, another
+  restoring the avatar detail's primary key
+  ([D-15](#d-15--the-avatar-detail-s-primary-key-is-restored-because-a-test-already-constructs-the-case)).
 
 ### The four columns with no source
 
@@ -814,7 +940,7 @@ gold limits, the four dimension flags and the sub-job's four.
 
 | Table | Key | Other constraints it must carry |
 |---|---|---|
-| `items` | `item_uid`, autoincrementing | `UNIQUE(owner_scope, owner_id, list_type, slot_index)`, from `character_new_items` and now covering cargo and the title book; `CHECK (owner_scope IN ('character', 'account'))`; `CHECK (length(item_core) = 82)`; and the avatar columns relaxed to nullable by the sparseness rule, with `CHECK (avatar_jewel_socket IS NULL OR length(avatar_jewel_socket) = 30)` in place of `character_avatar_detail`'s unconditional 30-byte check. `deposited_by_character_id` is nullable, as its source is. `owner_id`, `list_type` and `slot_index` are `NOT NULL`, the strictest of their sources. **Two things do not survive: `character_avatar_detail`'s `PRIMARY KEY (item_uid)` and `account_cargo_new_items`'s `UNIQUE(account_id, slot_index)`** — see below |
+| `items` | `item_uid`, autoincrementing | `UNIQUE(owner_scope, owner_id, list_type, slot_index)`, from `character_new_items` and now covering cargo and the title book; `CHECK (owner_scope IN ('character', 'account'))`; `CHECK (length(item_core) = 82)`; and the avatar columns relaxed to nullable by the sparseness rule, with `CHECK (avatar_jewel_socket IS NULL OR length(avatar_jewel_socket) = 30)` in place of `character_avatar_detail`'s unconditional 30-byte check. `cargo_character_id` is nullable, as its source is. `owner_id`, `list_type` and `slot_index` are `NOT NULL`, the strictest of their sources. **Two source constraints have no direct successor, and each is settled in [the resolutions](#resolved-by-the-item-side-implementation): `account_cargo_new_items`'s `UNIQUE(account_id, slot_index)` is restored as a partial unique index (D-16), and `character_avatar_detail`'s `PRIMARY KEY (item_uid)` is restored as one too, over a stored `avatar_uid` (D-15).** |
 | `character_rentals` | `(character_id, item_id)` | declared for the first time; neither source declares a key, and the domain already refuses duplicates on this pair |
 | `characters` | `character_id` | as today |
 | `character_stats` | `character_id` | none beyond the key; subtype-1 declares none |
@@ -828,7 +954,7 @@ gold limits, the four dimension flags and the sub-job's four.
 | `character_item_cooldowns` | `(character_id, sort_order)` | none beyond the key |
 | `character_item_effects` | `(character_id, sort_order)` | none beyond the key |
 
-### `items` — 15 columns
+### `items` — 16 columns
 
 | Column | From |
 |---|---|
@@ -838,9 +964,10 @@ gold limits, the four dimension flags and the sub-job's four.
 | `list_type` | `character_new_items.list_type`; also `account_cargo_new_items.list_type`, and `character_new_titlebook.category` **transformed to `19 + category`** — the title-book container types, without which a title-book row collides with a main-inventory row |
 | `slot_index` | `character_new_items.slot_index`; also `account_cargo_new_items.slot_index`, `character_new_titlebook.slot_index` |
 | `item_core` | `character_new_items.item_core`; also `account_cargo_new_items.item_core`, `character_new_titlebook.item_core` |
-| `deposited_by_character_id` | `account_cargo_new_items.character_id`; NULL elsewhere. Name provisional — see [D-5](#deferred) |
+| `cargo_character_id` | `account_cargo_new_items.character_id`; NULL elsewhere. Named for what the code supports and no more — see [D-5](#d-5--the-cargos-character-id-keeps-its-place-and-loses-the-reading) |
 | `created_at` | `character_new_items.created_at`; also `account_cargo_new_items.created_at` |
 | `updated_at` | `character_new_items.updated_at`; also `account_cargo_new_items.updated_at` |
+| `avatar_uid` | `character_avatar_detail.item_uid` — the avatar UID, stored rather than read out of `item_core` because only a stored column can be indexed ([D-15](#d-15--the-avatar-detail-s-primary-key-is-restored-because-a-test-already-constructs-the-case)) |
 | `avatar_expire_date` | `character_avatar_detail.expire_date` |
 | `avatar_clear_id` | `character_avatar_detail.clear_avatar_id` |
 | `avatar_jewel_socket` | `character_avatar_detail.jewel_socket` |
@@ -850,7 +977,8 @@ gold limits, the four dimension flags and the sub-job's four.
 
 Key: `item_uid`, with `UNIQUE(owner_scope, owner_id, list_type, slot_index)` — the constraint
 `character_new_items` already carries, now covering cargo and the title book as well. The avatar
-columns are reached through the avatar UID inside `item_core`, never through `item_uid`.
+columns are reached through the avatar UID inside `item_core`, never through `item_uid`;
+`avatar_uid` repeats that value so a unique index can name it, and the two must agree.
 
 ### `character_rentals` — 4 columns
 
@@ -1032,20 +1160,19 @@ single target column still has a destination; it is not lost.
 | Reallocated by the rulings above | 229 |
 | **Total** | **420** |
 
-Of the 229 reallocated, **184 land somewhere** and **45 retire**. The target shape's 165 columns are
-those 184 sources resolved into 161 target columns — merged where several sources become one column,
+Of the 229 reallocated, **185 land somewhere** and **44 retire**. The target shape's 166 columns are
+those 185 sources resolved into 162 target columns — merged where several sources become one column,
 doubled where the split sends one source into both halves — plus 4 that have no source
 (`character_pvp.character_id`, `character_pvp.skills_initialized`,
 `character_settings.character_id`, `character_skills.mode`).
 
-### Retired columns — 45
+### Retired columns — 44
 
 | Column(s) | Count | Why |
 |---|---:|---|
 | all of `character_items` | 20 | Previous-generation decomposed storage. No production write path; read only by an emptiness probe. |
 | all of `account_cargo_items` | 15 | The same, for the cargo. |
 | `character_new_items.character_id` | 1 | All three insert paths write it equal to `owner_id`; neither update touches it. |
-| `character_avatar_detail.item_uid` | 1 | The avatar UID, already inside the item's `item_core` at offset 5..8. |
 | `character_avatar_detail.owner_id`, `.character_id` | 2 | Both written as the same character id; `items` already records the owner. |
 | `character_avatar_detail.item_id` | 1 | The avatar's template id, already inside `item_core`; the load itself asserts the two are equal. |
 | `character_gold_limits.updated_at` | 1 | Named by no production statement. |
@@ -1187,7 +1314,7 @@ Four target columns have no row below because no source column becomes them:
 | `character_new_items.updated_at` | `items.updated_at` |
 | `account_cargo_new_items.item_uid` | `items.item_uid` |
 | `account_cargo_new_items.account_id` | `items.owner_id` |
-| `account_cargo_new_items.character_id` | `items.deposited_by_character_id` |
+| `account_cargo_new_items.character_id` | `items.cargo_character_id` |
 | `account_cargo_new_items.list_type` | `items.list_type` |
 | `account_cargo_new_items.slot_index` | `items.slot_index` |
 | `account_cargo_new_items.item_core` | `items.item_core` |
@@ -1197,7 +1324,7 @@ Four target columns have no row below because no source column becomes them:
 | `character_new_titlebook.category` | `items.list_type` |
 | `character_new_titlebook.slot_index` | `items.slot_index` |
 | `character_new_titlebook.item_core` | `items.item_core` |
-| `character_avatar_detail.item_uid` | retired |
+| `character_avatar_detail.item_uid` | `items.avatar_uid` |
 | `character_avatar_detail.owner_id` | retired |
 | `character_avatar_detail.character_id` | retired |
 | `character_avatar_detail.item_id` | retired |

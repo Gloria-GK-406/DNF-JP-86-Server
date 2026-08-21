@@ -21,6 +21,13 @@ namespace Dfo.Server.Persistence.Tests.Inventory;
 /// every column gets a distinct number, and the rows are laid out so that id order, slot order and
 /// insertion order all differ. A golden over a seed of zeroes would pass through any permutation
 /// of the columns it covers.
+///
+/// Two numbers in the account golden were changed once, and only these two: the cargo's storage
+/// entry ids, from 1 and 2 to 5 and 6. A character's items and an account's cargo used to be two
+/// tables with an autoincrementing key each, so both counted from one; they are one table now and
+/// there is one count. Nothing else moved -- the id is a surrogate this server never sends, and
+/// appears in no frame, only in the text of a refusal. The two key spaces could not both be kept,
+/// so the one that had to give way is the one nothing outside the database can see.
 /// </remarks>
 public sealed class InventoryLoadCharacterizationTests
 {
@@ -70,12 +77,12 @@ public sealed class InventoryLoadCharacterizationTests
     }
 
     /// <summary>
-    /// An avatar sitting in the account's cargo is carried with no detail row.
+    /// An avatar sitting in the account's cargo is carried with none of an avatar's facts.
     /// </summary>
     /// <remarks>
-    /// The detail table's owner is always a character, and a cargo row's owner is an account, so
-    /// there is nothing in it that could ever match one. The load has never looked, and looking
-    /// would not find a detail row -- it would refuse the whole cargo.
+    /// An avatar's facts were only ever a character's, and a cargo row's owner is an account, so a
+    /// cargo row has never had any. The load has never looked, and looking would not find them --
+    /// it would refuse the whole cargo.
     ///
     /// The golden above cannot say this, because the cargo it seeds holds no avatar: both a load
     /// that looks and one that does not print the same absent detail for an ordinary item. So it
@@ -396,7 +403,7 @@ public sealed class InventoryLoadCharacterizationTests
     private const string ExpectedAccount = """
         AccountId.Value = 41
         CharacterId.Value = 57
-        AccountCargoItems[0].StorageEntryId = 2
+        AccountCargoItems[0].StorageEntryId = 6
         AccountCargoItems[0].OwnerType = Account
         AccountCargoItems[0].OwnerId = 41
         AccountCargoItems[0].CharacterId.Value = 57
@@ -454,7 +461,7 @@ public sealed class InventoryLoadCharacterizationTests
         AccountCargoItems[0].Core.SortLockFlag = 160
         AccountCargoItems[0].Core.EquipmentLockId = 161
         AccountCargoItems[0].AvatarDetail = null
-        AccountCargoItems[1].StorageEntryId = 1
+        AccountCargoItems[1].StorageEntryId = 5
         AccountCargoItems[1].OwnerType = Account
         AccountCargoItems[1].OwnerId = 41
         AccountCargoItems[1].CharacterId.Value = 57
@@ -566,19 +573,19 @@ public sealed class InventoryLoadCharacterizationTests
             INSERT INTO character_stats(character_id,gold_carry_limit,auction_gold_limit)
             VALUES({Character},7777,8888);
 
-            INSERT INTO character_item_values(character_id,list_kind,sort_order,item_id,value)
-            VALUES({Character},'effect',0,5101,5102),
-                  ({Character},'cooltime',1,5201,5202),
-                  ({Character},'cooltime',0,5301,5302);
+            INSERT INTO character_item_cooldowns(character_id,sort_order,item_id,value)
+            VALUES({Character},1,5201,5202),
+                  ({Character},0,5301,5302);
+            INSERT INTO character_item_effects(character_id,sort_order,item_id,value)
+            VALUES({Character},0,5101,5102);
 
             INSERT INTO character_item_locks(character_id,equipment_lock_id,inventory_list_type,slot,state,remaining_seconds)
             VALUES({Character},2,1,61,71,81),
                   ({Character},1,12,62,72,NULL);
 
-            INSERT INTO character_rental_items(character_id,shop_entry_id,inventory_template_id,expire_time)
-            VALUES({Character},9001,9101,9201);
-            INSERT INTO rental_items(character_id,item_id,inventory_template_id,expire_time)
-            VALUES({Character},9002,9102,9202);
+            INSERT INTO character_rentals(character_id,item_id,inventory_template_id,expire_time)
+            VALUES({Character},9001,9101,9201),
+                  ({Character},9002,9102,9202);
 
             INSERT INTO account_cargo_state(account_id,selection_key,value32,item_count)
             VALUES({Account},6001,6002,6003);
@@ -589,11 +596,13 @@ public sealed class InventoryLoadCharacterizationTests
         await InsertCharacterItemAsync(path, listType: 0, slot: 2, from: 100, itemKind: 1, itemId: 2003, value: 31);
         await InsertCharacterItemAsync(path, listType: 0, slot: 0, from: 130, itemKind: 1, itemId: 2001, value: 33);
         await InsertCharacterItemAsync(path, listType: 0, slot: 1, from: 160, itemKind: 1, itemId: 2002, value: -5);
-        await InsertCharacterItemAsync(path, listType: 1, slot: 9, from: 40, itemKind: 8, itemId: 2500, value: 4242);
+        // The avatar and what it carries are one row now, so they go in as one statement.
         await ExecuteAsync(path, $"""
-            INSERT INTO character_avatar_detail(item_uid,owner_id,character_id,item_id,expire_date,
-              clear_avatar_id,jewel_socket,color1,color2,delete_date)
-            VALUES(4242,{Character},{Character},2500,7001,7002,{Socket()},7003,7004,7005);
+            INSERT INTO items(owner_scope,owner_id,list_type,slot_index,item_core,avatar_uid,
+              avatar_expire_date,avatar_clear_id,avatar_jewel_socket,avatar_color1,avatar_color2,
+              avatar_delete_date)
+            VALUES('character',{Character},1,9,{Core(40, 8, 2500, 4242)},4242,
+              7001,7002,{Socket()},7003,7004,7005);
             """);
 
         await InsertCargoItemAsync(path, slot: 4, from: 60, itemId: 2600, value: 61);
@@ -629,22 +638,22 @@ public sealed class InventoryLoadCharacterizationTests
     private static Task InsertCharacterItemAsync(
         string path, int listType, int slot, int from, byte itemKind, int itemId, int value) =>
         ExecuteAsync(path, $"""
-            INSERT INTO character_new_items(owner_scope,owner_id,character_id,list_type,slot_index,item_core)
-            VALUES('character',{Character},{Character},{listType},{slot},{Core(from, itemKind, itemId, value)});
+            INSERT INTO items(owner_scope,owner_id,list_type,slot_index,item_core)
+            VALUES('character',{Character},{listType},{slot},{Core(from, itemKind, itemId, value)});
             """);
 
     private static Task InsertCargoAvatarAsync(
         string path, int slot, int from, int itemId, int avatarUid) =>
         ExecuteAsync(path, $"""
-            INSERT INTO account_cargo_new_items(account_id,character_id,list_type,slot_index,item_core)
-            VALUES({Account},{Character},12,{slot},{Core(from, 8, itemId, avatarUid)});
+            INSERT INTO items(owner_scope,owner_id,cargo_character_id,list_type,slot_index,item_core)
+            VALUES('account',{Account},{Character},12,{slot},{Core(from, 8, itemId, avatarUid)});
             """);
 
     private static Task InsertCargoItemAsync(
         string path, int slot, int from, int itemId, int value) =>
         ExecuteAsync(path, $"""
-            INSERT INTO account_cargo_new_items(account_id,character_id,list_type,slot_index,item_core)
-            VALUES({Account},{Character},12,{slot},{Core(from, 1, itemId, value)});
+            INSERT INTO items(owner_scope,owner_id,cargo_character_id,list_type,slot_index,item_core)
+            VALUES('account',{Account},{Character},12,{slot},{Core(from, 1, itemId, value)});
             """);
 
     private static string TempPath() =>

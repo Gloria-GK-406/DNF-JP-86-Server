@@ -143,7 +143,7 @@ public sealed class ContainerInventoryProjectionTests
             BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(21, 4), -1);
             await using var connection = Open(Path);
             await using var command = connection.CreateCommand();
-            command.CommandText = "INSERT INTO character_new_items(owner_scope,owner_id,character_id,list_type,slot_index,item_core) VALUES('character',60,60,@list,@slot,@core)";
+            command.CommandText = "INSERT INTO items(owner_scope,owner_id,list_type,slot_index,item_core) VALUES('character',60,@list,@slot,@core)";
             command.Parameters.AddWithValue("@list", listType);
             command.Parameters.AddWithValue("@slot", slot);
             command.Parameters.AddWithValue("@core", core);

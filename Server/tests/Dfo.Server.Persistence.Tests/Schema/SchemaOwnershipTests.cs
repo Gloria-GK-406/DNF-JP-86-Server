@@ -55,9 +55,9 @@ public sealed class SchemaOwnershipTests
 
         // Counted rather than sampled: naming a handful of tables would stay green while forty of
         // the declarations went missing.
-        Assert.Equal(49, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
+        Assert.Equal(44, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
         Assert.Contains("characters(", shape, StringComparison.Ordinal);
-        Assert.Contains("character_new_items(", shape, StringComparison.Ordinal);
+        Assert.Contains("items(", shape, StringComparison.Ordinal);
         Assert.Contains("accounts(", shape, StringComparison.Ordinal);
         Assert.Contains("character_active_quests(", shape, StringComparison.Ordinal);
         Assert.Contains("character_creatures(", shape, StringComparison.Ordinal);
@@ -89,7 +89,7 @@ public sealed class SchemaOwnershipTests
             await using var command = connection.CreateCommand();
             command.CommandText =
                 "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN "
-                + "('characters','character_new_items','accounts','character_active_quests')";
+                + "('characters','items','accounts','character_active_quests')";
 
             Assert.Equal(4L, Convert.ToInt64(await command.ExecuteScalarAsync()));
         }

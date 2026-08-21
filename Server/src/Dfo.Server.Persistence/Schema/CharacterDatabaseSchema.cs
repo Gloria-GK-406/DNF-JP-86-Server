@@ -156,8 +156,10 @@ internal static class CharacterDatabaseSchema
 
     /// <remarks>The order is the one the database reported and carries no meaning.</remarks>
     private const string TableDeclarations = """
-        CREATE TABLE IF NOT EXISTS account_cargo_items ( item_uid INTEGER PRIMARY KEY AUTOINCREMENT, account_id INTEGER NOT NULL, slot_index INTEGER NOT NULL, item_template_id INTEGER NOT NULL, item_kind TEXT NOT NULL DEFAULT 'unknown', stack_count INTEGER NOT NULL DEFAULT 0, instance_value INTEGER NOT NULL DEFAULT 0, durability INTEGER NOT NULL DEFAULT 0, seal_flag INTEGER NOT NULL DEFAULT 0, option_value INTEGER NOT NULL DEFAULT 0, expire_time INTEGER NOT NULL DEFAULT 0, marker_16 INTEGER NOT NULL DEFAULT 0, extra_json TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP );
-        CREATE TABLE IF NOT EXISTS account_cargo_new_items ( item_uid INTEGER PRIMARY KEY AUTOINCREMENT, account_id INTEGER NOT NULL, character_id INTEGER, list_type INTEGER NOT NULL, slot_index INTEGER NOT NULL, item_core BLOB NOT NULL CHECK(length(item_core) = 82), created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(account_id, slot_index) );
+        CREATE TABLE IF NOT EXISTS items ( item_uid INTEGER PRIMARY KEY AUTOINCREMENT, owner_scope TEXT NOT NULL CHECK (owner_scope IN ('character', 'account')), owner_id INTEGER NOT NULL, list_type INTEGER NOT NULL, slot_index INTEGER NOT NULL, item_core BLOB NOT NULL CHECK (length(item_core) = 82), cargo_character_id INTEGER, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, avatar_uid INTEGER, avatar_expire_date INTEGER, avatar_clear_id INTEGER, avatar_jewel_socket BLOB CHECK (avatar_jewel_socket IS NULL OR length(avatar_jewel_socket) = 30), avatar_color1 INTEGER, avatar_color2 INTEGER, avatar_delete_date INTEGER, UNIQUE(owner_scope, owner_id, list_type, slot_index) );
+        CREATE TABLE IF NOT EXISTS character_rentals ( character_id INTEGER NOT NULL, item_id INTEGER NOT NULL, inventory_template_id INTEGER NOT NULL DEFAULT 0, expire_time INTEGER NOT NULL, PRIMARY KEY (character_id, item_id) );
+        CREATE TABLE IF NOT EXISTS character_item_cooldowns ( character_id INTEGER NOT NULL, sort_order INTEGER NOT NULL, item_id INTEGER NOT NULL, value INTEGER NOT NULL, PRIMARY KEY (character_id, sort_order) );
+        CREATE TABLE IF NOT EXISTS character_item_effects ( character_id INTEGER NOT NULL, sort_order INTEGER NOT NULL, item_id INTEGER NOT NULL, value INTEGER NOT NULL, PRIMARY KEY (character_id, sort_order) );
         CREATE TABLE IF NOT EXISTS account_cargo_state ( account_id INTEGER PRIMARY KEY, selection_key INTEGER NOT NULL DEFAULT 0, value32 INTEGER NOT NULL DEFAULT 0, item_count INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP );
         CREATE TABLE IF NOT EXISTS account_increase_chance_lottery_progress(account_id INTEGER NOT NULL,item_template_id INTEGER NOT NULL,reward_index INTEGER NOT NULL,PRIMARY KEY(account_id,item_template_id,reward_index));
         CREATE TABLE IF NOT EXISTS account_premiums(account_id INTEGER NOT NULL,premium_type INTEGER NOT NULL,end_time INTEGER NOT NULL DEFAULT 0,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(account_id,premium_type));
@@ -165,7 +167,6 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS accounts ( account_id INTEGER PRIMARY KEY AUTOINCREMENT, m_id TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL DEFAULT '', last_login_ip TEXT NOT NULL DEFAULT '', last_login_at TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP , cera INTEGER NOT NULL DEFAULT 0, token_cera INTEGER NOT NULL DEFAULT 0, happy_token_cera INTEGER NOT NULL DEFAULT 0, lucky_star INTEGER NOT NULL DEFAULT 0, honor_exp INTEGER NOT NULL DEFAULT 0, growth_capsule_exp INTEGER NOT NULL DEFAULT 0, cube_black INTEGER NOT NULL DEFAULT 0, cube_white INTEGER NOT NULL DEFAULT 0, cube_red INTEGER NOT NULL DEFAULT 0, cube_blue INTEGER NOT NULL DEFAULT 0, cube_clear INTEGER NOT NULL DEFAULT 0, cube_gold INTEGER NOT NULL DEFAULT 0);
         CREATE TABLE IF NOT EXISTS character_achievement_complete(character_id INTEGER, sort_order INTEGER, achievement_id INTEGER, p1 INTEGER, p2 INTEGER, p3 INTEGER, p4 INTEGER, PRIMARY KEY(character_id,achievement_id));
         CREATE TABLE IF NOT EXISTS character_active_quests(character_id INTEGER, slot INTEGER, quest_id INTEGER, trigger_value INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(character_id,slot));
-        CREATE TABLE IF NOT EXISTS character_avatar_detail ( item_uid INTEGER PRIMARY KEY, owner_id INTEGER NOT NULL DEFAULT 0, character_id INTEGER NOT NULL DEFAULT 0, item_id INTEGER NOT NULL DEFAULT 0, expire_date INTEGER NOT NULL DEFAULT 0, clear_avatar_id INTEGER NOT NULL DEFAULT 0, jewel_socket BLOB NOT NULL CHECK(length(jewel_socket)=30), color1 INTEGER NOT NULL DEFAULT 0, color2 INTEGER NOT NULL DEFAULT 0, delete_date INTEGER NOT NULL DEFAULT 0);
         CREATE TABLE IF NOT EXISTS character_buy_restrict_items(character_id INTEGER NOT NULL,sort_order INTEGER NOT NULL,entry_id INTEGER NOT NULL,sentinel_or_value INTEGER NOT NULL,flag INTEGER NOT NULL,PRIMARY KEY(character_id,sort_order));
         CREATE TABLE IF NOT EXISTS character_collectbox_slots(character_id INTEGER, box_index INTEGER, slot_index INTEGER, item_id INTEGER, PRIMARY KEY(character_id,box_index,slot_index));
         CREATE TABLE IF NOT EXISTS character_condition ( action_byte INTEGER NOT NULL DEFAULT 0, aura_flag INTEGER NOT NULL DEFAULT 0, black_count INTEGER NOT NULL DEFAULT 0, champion_break_key_id INTEGER NOT NULL DEFAULT 0, champion_break_mode INTEGER NOT NULL DEFAULT 0, champion_break_value INTEGER NOT NULL DEFAULT 0, channel_display_mode INTEGER NOT NULL DEFAULT 0, channel_type INTEGER NOT NULL DEFAULT 0, chaos_point INTEGER NOT NULL DEFAULT 0, character_id INTEGER PRIMARY KEY, chat_ban_end_time INTEGER NOT NULL DEFAULT 0, costume_flag INTEGER NOT NULL DEFAULT 0, creature_buffer BLOB, creature_field1 INTEGER NOT NULL DEFAULT 0, creature_field2 INTEGER NOT NULL DEFAULT 0, creature_field3 INTEGER NOT NULL DEFAULT 0, creature_field4 INTEGER NOT NULL DEFAULT 0, crystal_cube_grade INTEGER NOT NULL DEFAULT 255, crystal_cube_type INTEGER NOT NULL DEFAULT 0, dimension_flag1 INTEGER NOT NULL DEFAULT 0, dimension_flag2 INTEGER NOT NULL DEFAULT 0, dimension_flag3 INTEGER NOT NULL DEFAULT 0, dimension_flag4 INTEGER NOT NULL DEFAULT 0, disguise_kind INTEGER NOT NULL DEFAULT 0, emotion_index INTEGER NOT NULL DEFAULT 0, fatigue_display_update INTEGER NOT NULL DEFAULT 0, fatigue_penalty INTEGER NOT NULL DEFAULT 0, fatigue_update INTEGER NOT NULL DEFAULT 0, hardcore_death_count INTEGER NOT NULL DEFAULT 0, is_disguised INTEGER NOT NULL DEFAULT 0, is_event_character INTEGER NOT NULL DEFAULT 0, is_hardcore_dead INTEGER NOT NULL DEFAULT 0, is_hardcore_mode INTEGER NOT NULL DEFAULT 0, is_premium_pc_room INTEGER NOT NULL DEFAULT 0, is_private_store INTEGER NOT NULL DEFAULT 0, is_return_user INTEGER NOT NULL DEFAULT 0, link_slot_enabled INTEGER NOT NULL DEFAULT 0, link_type_a INTEGER NOT NULL DEFAULT 0, link_type_b INTEGER NOT NULL DEFAULT 0, mood_value INTEGER NOT NULL DEFAULT 0, pc_room_id INTEGER NOT NULL DEFAULT 65537, pc_room_state INTEGER, pet_display_flag INTEGER NOT NULL DEFAULT 0, return_user_flag INTEGER NOT NULL DEFAULT 1, server_group_id INTEGER NOT NULL DEFAULT 0, stamina INTEGER NOT NULL DEFAULT 0, title_display_flag INTEGER NOT NULL DEFAULT 0, trailing_byte INTEGER NOT NULL DEFAULT 0 );
@@ -185,17 +186,12 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS character_hotkey_slots(character_id INTEGER, slot_index INTEGER, hotkey_value INTEGER, PRIMARY KEY(character_id,slot_index));
         CREATE TABLE IF NOT EXISTS character_invisible_flags ( character_id INTEGER, slot_index INTEGER, flag_value INTEGER, PRIMARY KEY(character_id,slot_index) );
         CREATE TABLE IF NOT EXISTS character_item_locks ( character_id INTEGER NOT NULL, equipment_lock_id INTEGER NOT NULL, inventory_list_type INTEGER NOT NULL, slot INTEGER NOT NULL, state INTEGER NOT NULL, remaining_seconds INTEGER, PRIMARY KEY (character_id, equipment_lock_id) );
-        CREATE TABLE IF NOT EXISTS character_item_values ( character_id INTEGER NOT NULL, list_kind TEXT NOT NULL, sort_order INTEGER NOT NULL, item_id INTEGER NOT NULL, value INTEGER NOT NULL, PRIMARY KEY (character_id, list_kind, sort_order) );
-        CREATE TABLE IF NOT EXISTS character_items ( item_uid INTEGER PRIMARY KEY AUTOINCREMENT, owner_scope TEXT NOT NULL CHECK (owner_scope IN ('character', 'account')), owner_id INTEGER NOT NULL, character_id INTEGER, list_type INTEGER NOT NULL, slot_index INTEGER NOT NULL, item_template_id INTEGER NOT NULL, item_kind TEXT NOT NULL DEFAULT 'unknown', stack_count INTEGER NOT NULL DEFAULT 0, instance_value INTEGER NOT NULL DEFAULT 0, durability INTEGER NOT NULL DEFAULT 0, seal_flag INTEGER NOT NULL DEFAULT 0, option_value INTEGER NOT NULL DEFAULT 0, equipment_lock_id INTEGER NOT NULL DEFAULT 0, expire_time INTEGER NOT NULL DEFAULT 0, marker_16 INTEGER NOT NULL DEFAULT 0, pet_serial_or_handle INTEGER NOT NULL DEFAULT 0, extra_json TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP );
         CREATE TABLE IF NOT EXISTS character_knight_shield_deck(character_id INTEGER, slot_index INTEGER, shield_item_id INTEGER, PRIMARY KEY(character_id,slot_index));
         CREATE TABLE IF NOT EXISTS character_mercenary_support(owner_character_id INTEGER NOT NULL,slot INTEGER NOT NULL,support_character_id INTEGER NOT NULL,skill_id INTEGER NOT NULL,striker_skill_id INTEGER NOT NULL DEFAULT 0,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(owner_character_id,slot));
-        CREATE TABLE IF NOT EXISTS character_new_items ( item_uid INTEGER PRIMARY KEY AUTOINCREMENT, owner_scope TEXT NOT NULL CHECK (owner_scope IN ('character', 'account')), owner_id INTEGER NOT NULL, character_id INTEGER, list_type INTEGER NOT NULL, slot_index INTEGER NOT NULL, item_core BLOB NOT NULL CHECK(length(item_core) = 82), created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(owner_scope, owner_id, list_type, slot_index) );
-        CREATE TABLE IF NOT EXISTS character_new_titlebook(character_id INTEGER, category INTEGER, slot_index INTEGER, item_core BLOB NOT NULL, PRIMARY KEY(character_id,category,slot_index));
         CREATE TABLE IF NOT EXISTS character_pvp ( character_id INTEGER PRIMARY KEY, pvp_grade INTEGER NOT NULL DEFAULT 0, pvp_lose_streak INTEGER NOT NULL DEFAULT 0, pvp_rank_point INTEGER NOT NULL DEFAULT 0, pvp_rating_grade INTEGER NOT NULL DEFAULT 0, pvp_stat_a INTEGER NOT NULL DEFAULT 0, pvp_win_streak INTEGER NOT NULL DEFAULT 0, skills_initialized INTEGER NOT NULL DEFAULT 0, FOREIGN KEY (character_id) REFERENCES characters(character_id) ON DELETE CASCADE );
         CREATE TABLE IF NOT EXISTS character_pvp_missions(character_id INTEGER, sort_order INTEGER, mission_id INTEGER, progress_value INTEGER, PRIMARY KEY(character_id,sort_order));
         CREATE TABLE IF NOT EXISTS character_pvp_skills ( character_id INTEGER NOT NULL, page_index INTEGER NOT NULL CHECK (page_index BETWEEN 0 AND 1), slot INTEGER NOT NULL, skill_id INTEGER NOT NULL, level INTEGER NOT NULL, extra_values BLOB, PRIMARY KEY (character_id, page_index, slot), UNIQUE (character_id, page_index, skill_id), FOREIGN KEY (character_id) REFERENCES characters(character_id) ON DELETE CASCADE );
         CREATE TABLE IF NOT EXISTS character_quest_notify_selections(character_id INTEGER, slot_index INTEGER, quest_id INTEGER, PRIMARY KEY(character_id,slot_index));
-        CREATE TABLE IF NOT EXISTS character_rental_items ( character_id INTEGER NOT NULL, shop_entry_id INTEGER NOT NULL, inventory_template_id INTEGER NOT NULL DEFAULT 0, expire_time INTEGER NOT NULL );
         CREATE TABLE IF NOT EXISTS character_settings ( character_id INTEGER PRIMARY KEY, character_option_blob BLOB, user_state_bits INTEGER NOT NULL DEFAULT 3 );
         CREATE TABLE IF NOT EXISTS character_skills(character_id INTEGER, page_index INTEGER, slot INTEGER, skill_id INTEGER, level INTEGER, extra_values BLOB, PRIMARY KEY(character_id,page_index,slot));
         CREATE TABLE IF NOT EXISTS character_stats ( auction_gold_limit INTEGER NOT NULL DEFAULT 0, character_id INTEGER PRIMARY KEY, current_hp_mp_percent INTEGER NOT NULL DEFAULT 0, equip_list_trailing INTEGER NOT NULL DEFAULT 0, equipped_creature_level INTEGER NOT NULL DEFAULT 0, flag_byte INTEGER NOT NULL DEFAULT 0, gold_carry_limit INTEGER NOT NULL DEFAULT 0, progress1 INTEGER NOT NULL DEFAULT 0, progress2 INTEGER NOT NULL DEFAULT 0, quest_shop_count INTEGER NOT NULL DEFAULT 0, server_timestamp INTEGER NOT NULL DEFAULT 0, stat_attack_speed INTEGER NOT NULL DEFAULT 0, stat_cast_speed INTEGER NOT NULL DEFAULT 0, stat_dark_resistance INTEGER NOT NULL DEFAULT 0, stat_fire_resistance INTEGER NOT NULL DEFAULT 0, stat_hit_recovery INTEGER NOT NULL DEFAULT 0, stat_hp_max INTEGER NOT NULL DEFAULT 0, stat_hp_regen_speed INTEGER NOT NULL DEFAULT 0, stat_inventory_limit INTEGER NOT NULL DEFAULT 0, stat_jump_power INTEGER NOT NULL DEFAULT 0, stat_light_resistance INTEGER NOT NULL DEFAULT 0, stat_magical_attack INTEGER NOT NULL DEFAULT 0, stat_magical_defense INTEGER NOT NULL DEFAULT 0, stat_move_speed INTEGER NOT NULL DEFAULT 0, stat_mp_max INTEGER NOT NULL DEFAULT 0, stat_mp_regen_speed INTEGER NOT NULL DEFAULT 0, stat_physical_attack INTEGER NOT NULL DEFAULT 0, stat_physical_defense INTEGER NOT NULL DEFAULT 0, stat_water_resistance INTEGER NOT NULL DEFAULT 0, stat_weight INTEGER NOT NULL DEFAULT 0 );
@@ -204,30 +200,17 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS mailbox_attachments( attachment_id INTEGER PRIMARY KEY AUTOINCREMENT, message_id INTEGER NOT NULL, ordinal INTEGER NOT NULL DEFAULT 0, item_type INTEGER NOT NULL DEFAULT 0, source_list_type INTEGER NOT NULL DEFAULT 0, source_slot_index INTEGER NOT NULL DEFAULT 0, source_item_uid INTEGER NOT NULL DEFAULT 0, item_template_id INTEGER NOT NULL, item_kind TEXT NOT NULL DEFAULT 'unknown', item_count INTEGER NOT NULL DEFAULT 1, instance_value INTEGER NOT NULL DEFAULT 0, durability INTEGER NOT NULL DEFAULT 0, seal_flag INTEGER NOT NULL DEFAULT 0, option_value INTEGER NOT NULL DEFAULT 0, expire_time INTEGER NOT NULL DEFAULT 0, marker_16 INTEGER NOT NULL DEFAULT -1, pet_serial_or_handle INTEGER NOT NULL DEFAULT 0, item_core BLOB, detail_json TEXT NOT NULL DEFAULT '');
         CREATE TABLE IF NOT EXISTS mailbox_messages( message_id INTEGER PRIMARY KEY AUTOINCREMENT, sender_character_id INTEGER NOT NULL DEFAULT 0, sender_name TEXT NOT NULL DEFAULT '', receiver_character_id INTEGER NOT NULL, title TEXT NOT NULL DEFAULT '', body TEXT NOT NULL DEFAULT '', gold INTEGER NOT NULL DEFAULT 0, mail_type INTEGER NOT NULL DEFAULT 0, source_protocol INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, unlimited_flag INTEGER NOT NULL DEFAULT 0, expire_at TEXT NOT NULL DEFAULT '9999-12-31 23:59:59', deleted_by_sender INTEGER NOT NULL DEFAULT 0);
         CREATE TABLE IF NOT EXISTS mailbox_recipients( recipient_id INTEGER PRIMARY KEY AUTOINCREMENT, message_id INTEGER NOT NULL, character_id INTEGER NOT NULL, folder INTEGER NOT NULL DEFAULT 0, read_flag INTEGER NOT NULL DEFAULT 0, saved_flag INTEGER NOT NULL DEFAULT 0, deleted_flag INTEGER NOT NULL DEFAULT 0, received_gold_flag INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(message_id,character_id,folder));
-        CREATE TABLE IF NOT EXISTS rental_items ( character_id INTEGER NOT NULL, item_id INTEGER NOT NULL, inventory_template_id INTEGER NOT NULL DEFAULT 0, expire_time INTEGER NOT NULL );
         """;
 
     private const string IndexDeclarations = """
-        CREATE INDEX IF NOT EXISTS idx_account_cargo_items_owner ON account_cargo_items(account_id, slot_index);
-        CREATE INDEX IF NOT EXISTS idx_character_items_character ON character_items(character_id, list_type, slot_index);
-        CREATE INDEX IF NOT EXISTS idx_character_new_items_character_space ON character_new_items(character_id, list_type, slot_index);
-        CREATE INDEX IF NOT EXISTS idx_character_rental_items_char ON character_rental_items(character_id);
+        CREATE INDEX IF NOT EXISTS idx_items_owner_space ON items(owner_id, list_type, slot_index);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_items_account_slot ON items(owner_id, slot_index) WHERE owner_scope = 'account';
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_items_avatar_uid ON items(avatar_uid) WHERE avatar_uid IS NOT NULL;
         CREATE INDEX IF NOT EXISTS idx_characters_account ON characters(account_id, delete_flag, slot_index);
-        CREATE INDEX IF NOT EXISTS idx_rental_items_char ON rental_items(character_id);
         """;
 
     /// <summary>Table, column and declaration, one per line.</summary>
     private const string ReconcilableColumns = """
-        account_cargo_items|item_kind|TEXT NOT NULL DEFAULT 'unknown'
-        account_cargo_items|stack_count|INTEGER NOT NULL DEFAULT 0
-        account_cargo_items|instance_value|INTEGER NOT NULL DEFAULT 0
-        account_cargo_items|durability|INTEGER NOT NULL DEFAULT 0
-        account_cargo_items|seal_flag|INTEGER NOT NULL DEFAULT 0
-        account_cargo_items|option_value|INTEGER NOT NULL DEFAULT 0
-        account_cargo_items|expire_time|INTEGER NOT NULL DEFAULT 0
-        account_cargo_items|marker_16|INTEGER NOT NULL DEFAULT 0
-        account_cargo_items|extra_json|TEXT NOT NULL DEFAULT '{}'
-        account_cargo_new_items|character_id|INTEGER
         account_cargo_state|selection_key|INTEGER NOT NULL DEFAULT 0
         account_cargo_state|value32|INTEGER NOT NULL DEFAULT 0
         account_cargo_state|item_count|INTEGER NOT NULL DEFAULT 0
@@ -263,14 +246,6 @@ internal static class CharacterDatabaseSchema
         character_active_quests|slot|INTEGER
         character_active_quests|quest_id|INTEGER
         character_active_quests|trigger_value|INTEGER NOT NULL DEFAULT 0
-        character_avatar_detail|owner_id|INTEGER NOT NULL DEFAULT 0
-        character_avatar_detail|character_id|INTEGER NOT NULL DEFAULT 0
-        character_avatar_detail|item_id|INTEGER NOT NULL DEFAULT 0
-        character_avatar_detail|expire_date|INTEGER NOT NULL DEFAULT 0
-        character_avatar_detail|clear_avatar_id|INTEGER NOT NULL DEFAULT 0
-        character_avatar_detail|color1|INTEGER NOT NULL DEFAULT 0
-        character_avatar_detail|color2|INTEGER NOT NULL DEFAULT 0
-        character_avatar_detail|delete_date|INTEGER NOT NULL DEFAULT 0
         character_collectbox_slots|character_id|INTEGER
         character_collectbox_slots|box_index|INTEGER
         character_collectbox_slots|slot_index|INTEGER
@@ -326,26 +301,10 @@ internal static class CharacterDatabaseSchema
         character_hotkey_slots|slot_index|INTEGER
         character_hotkey_slots|hotkey_value|INTEGER
         character_item_locks|remaining_seconds|INTEGER
-        character_items|character_id|INTEGER
-        character_items|item_kind|TEXT NOT NULL DEFAULT 'unknown'
-        character_items|stack_count|INTEGER NOT NULL DEFAULT 0
-        character_items|instance_value|INTEGER NOT NULL DEFAULT 0
-        character_items|durability|INTEGER NOT NULL DEFAULT 0
-        character_items|seal_flag|INTEGER NOT NULL DEFAULT 0
-        character_items|option_value|INTEGER NOT NULL DEFAULT 0
-        character_items|equipment_lock_id|INTEGER NOT NULL DEFAULT 0
-        character_items|expire_time|INTEGER NOT NULL DEFAULT 0
-        character_items|marker_16|INTEGER NOT NULL DEFAULT 0
-        character_items|pet_serial_or_handle|INTEGER NOT NULL DEFAULT 0
-        character_items|extra_json|TEXT NOT NULL DEFAULT '{}'
         character_knight_shield_deck|character_id|INTEGER
         character_knight_shield_deck|slot_index|INTEGER
         character_knight_shield_deck|shield_item_id|INTEGER
         character_mercenary_support|striker_skill_id|INTEGER NOT NULL DEFAULT 0
-        character_new_items|character_id|INTEGER
-        character_new_titlebook|character_id|INTEGER
-        character_new_titlebook|category|INTEGER
-        character_new_titlebook|slot_index|INTEGER
         character_pvp_missions|character_id|INTEGER
         character_pvp_missions|sort_order|INTEGER
         character_pvp_missions|mission_id|INTEGER
@@ -354,7 +313,6 @@ internal static class CharacterDatabaseSchema
         character_quest_notify_selections|character_id|INTEGER
         character_quest_notify_selections|slot_index|INTEGER
         character_quest_notify_selections|quest_id|INTEGER
-        character_rental_items|inventory_template_id|INTEGER NOT NULL DEFAULT 0
         character_skills|character_id|INTEGER
         character_skills|page_index|INTEGER
         character_skills|slot|INTEGER
@@ -392,7 +350,6 @@ internal static class CharacterDatabaseSchema
         mailbox_recipients|saved_flag|INTEGER NOT NULL DEFAULT 0
         mailbox_recipients|deleted_flag|INTEGER NOT NULL DEFAULT 0
         mailbox_recipients|received_gold_flag|INTEGER NOT NULL DEFAULT 0
-        rental_items|inventory_template_id|INTEGER NOT NULL DEFAULT 0
         characters|appearance_blob|BLOB
         characters|area_id|INTEGER NOT NULL DEFAULT 0
         characters|area_state|INTEGER NOT NULL DEFAULT 3

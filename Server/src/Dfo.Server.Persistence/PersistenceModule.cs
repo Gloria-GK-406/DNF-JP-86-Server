@@ -76,8 +76,6 @@ public sealed class PersistenceModule : IServerModule
             provider => new SqliteCharacterItemTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<IAccountCargoItemTable>(
             provider => new SqliteAccountCargoItemTable(provider.GetRequiredService<SqliteDatabase>()));
-        services.TryAddSingleton<ICharacterAvatarDetailTable>(
-            provider => new SqliteCharacterAvatarDetailTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<ICharacterContainerStateTable>(
             provider => new SqliteCharacterContainerStateTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<IAccountCargoStateTable>(
@@ -96,18 +94,14 @@ public sealed class PersistenceModule : IServerModule
             provider => new SqliteCharacterDailyChallengeTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<ICharacterGoldLimitTable>(
             provider => new SqliteCharacterGoldLimitTable(provider.GetRequiredService<SqliteDatabase>()));
-        services.TryAddSingleton<ICharacterItemValueTable>(
-            provider => new SqliteCharacterItemValueTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterItemCooldownTable>(
+            provider => new SqliteCharacterItemCooldownTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterItemEffectTable>(
+            provider => new SqliteCharacterItemEffectTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<ICharacterItemLockTable>(
             provider => new SqliteCharacterItemLockTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<ICharacterRentalTable>(
             provider => new SqliteCharacterRentalTable(provider.GetRequiredService<SqliteDatabase>()));
-        services.TryAddSingleton<ILegacyRentalTable>(
-            provider => new SqliteLegacyRentalTable(provider.GetRequiredService<SqliteDatabase>()));
-        services.TryAddSingleton<ILegacyCharacterItemTable>(
-            provider => new SqliteLegacyCharacterItemTable(provider.GetRequiredService<SqliteDatabase>()));
-        services.TryAddSingleton<ILegacyAccountCargoTable>(
-            provider => new SqliteLegacyAccountCargoTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<ICharacterDailyCounterTable>(
             provider => new SqliteCharacterDailyCounterTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<ICharacterEntryTable>(

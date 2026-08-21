@@ -52,8 +52,11 @@ internal sealed class SqliteItemStore : IItemStore
 /// anyone outside seeing it.
 ///
 /// A slot is written by removing whatever row held it and inserting the new one. That gives the
-/// item a new row identity, which is deliberate and safe: nothing outside these tables is keyed on
-/// it, and the one satellite table there is hangs off the avatar UID carried inside the item core.
+/// item a new row identity, which is deliberate: nothing outside this table is keyed on it. It used
+/// to be safe for a second reason as well -- an avatar's facts hung off the avatar UID inside the
+/// core, in a table of their own -- and that reason is gone now that they are columns of the row
+/// being replaced. So the facts are read before the deletes and written back with the insert; see
+/// <see cref="CarriedAvatarsAsync"/>.
 /// </remarks>
 internal sealed class SqliteItemStoreSession(SqliteDatabaseParticipant owner)
     : IItemStoreSession, ISqliteStoreFacet
@@ -72,9 +75,8 @@ internal sealed class SqliteItemStoreSession(SqliteDatabaseParticipant owner)
         {
             command.CommandText = """
                 SELECT slot_index, item_core
-                FROM character_new_items
-                WHERE owner_scope = 'character' AND owner_id = @owner
-                  AND character_id = @owner AND list_type = @list;
+                FROM items
+                WHERE owner_scope = 'character' AND owner_id = @owner AND list_type = @list;
                 """;
             command.Parameters.AddWithValue("@owner", place.Character);
             command.Parameters.AddWithValue("@list", place.ListType);
@@ -118,9 +120,9 @@ internal sealed class SqliteItemStoreSession(SqliteDatabaseParticipant owner)
         await using var command = await owner.CommandAsync(cancellationToken).ConfigureAwait(false);
         command.CommandText = """
             SELECT item_core
-            FROM character_new_items
-            WHERE owner_scope = 'character' AND owner_id = @owner
-              AND character_id = @owner AND list_type = @list AND slot_index = @slot;
+            FROM items
+            WHERE owner_scope = 'character' AND owner_id = @owner AND list_type = @list
+              AND slot_index = @slot;
             """;
         command.Parameters.AddWithValue("@owner", place.Character);
         command.Parameters.AddWithValue("@list", place.ListType);
@@ -151,9 +153,13 @@ internal sealed class SqliteItemStoreSession(SqliteDatabaseParticipant owner)
     /// Every slot named here is emptied before any is filled. Each insert then lands on a slot this
     /// same batch has already cleared, whatever the writes happen to be -- so no write can meet the
     /// row it is replacing, and a swap needs nowhere to park.
+    ///
+    /// What an avatar carries is read before the first delete, because the row that holds it is
+    /// about to go and the row that replaces it has to be given the same facts back.
     /// </remarks>
     public async ValueTask FlushAsync(CancellationToken cancellationToken)
     {
+        var carried = await this.CarriedAvatarsAsync(cancellationToken).ConfigureAwait(false);
         foreach (var (containerId, slots) in this.staged)
         {
             var place = OwnerOf(containerId);
@@ -170,10 +176,56 @@ internal sealed class SqliteItemStoreSession(SqliteDatabaseParticipant owner)
             {
                 if (item is not null)
                 {
-                    await this.FillAsync(place, item, cancellationToken).ConfigureAwait(false);
+                    await this.FillAsync(place, item, carried, cancellationToken)
+                        .ConfigureAwait(false);
                 }
             }
         }
+    }
+
+    /// <summary>What each avatar about to be written already carries, by its UID.</summary>
+    /// <remarks>
+    /// An avatar is an item of kind 8, and the UID its facts are found under is the value inside
+    /// its core. This store moves an item by replacing its row, so without this the move would
+    /// leave the facts on the row it deleted -- which is to say, would throw them away.
+    ///
+    /// Only avatars are looked up, and only the ones being written. An item that is not one has
+    /// nothing to carry, and asking would cost a statement per slot to learn that.
+    /// </remarks>
+    private async ValueTask<IReadOnlyDictionary<int, object?[]>> CarriedAvatarsAsync(
+        CancellationToken cancellationToken)
+    {
+        var carried = new Dictionary<int, object?[]>();
+        foreach (var uid in this.staged.Values
+                     .SelectMany(slots => slots.Values)
+                     .Where(item => item is { Core.ItemKind: AvatarKind })
+                     .Select(item => item!.Core.Value)
+                     .Distinct())
+        {
+            await using var command = await owner.CommandAsync(cancellationToken)
+                .ConfigureAwait(false);
+            command.CommandText = """
+                SELECT avatar_expire_date, avatar_clear_id, avatar_jewel_socket,
+                       avatar_color1, avatar_color2, avatar_delete_date
+                FROM items
+                WHERE avatar_uid = @uid;
+                """;
+            command.Parameters.AddWithValue("@uid", uid);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken)
+                .ConfigureAwait(false);
+            if (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                var facts = new object?[6];
+                for (var index = 0; index < facts.Length; index++)
+                {
+                    facts[index] = reader.IsDBNull(index) ? null : reader.GetValue(index);
+                }
+
+                carried[uid] = facts;
+            }
+        }
+
+        return carried;
     }
 
     public void Discard() => this.staged.Clear();
@@ -198,7 +250,7 @@ internal sealed class SqliteItemStoreSession(SqliteDatabaseParticipant owner)
         // Named exactly as the table's unique key, so nothing the insert could collide with is
         // left behind -- a narrower predicate would spare such a row and fail the insert instead.
         command.CommandText = """
-            DELETE FROM character_new_items
+            DELETE FROM items
             WHERE owner_scope = 'character' AND owner_id = @owner
               AND list_type = @list AND slot_index = @slot;
             """;
@@ -211,21 +263,46 @@ internal sealed class SqliteItemStoreSession(SqliteDatabaseParticipant owner)
     private async ValueTask FillAsync(
         (int Character, int ListType) place,
         StoredItem item,
+        IReadOnlyDictionary<int, object?[]> carried,
         CancellationToken cancellationToken)
     {
+        var facts = item.Core.ItemKind == AvatarKind
+                    && carried.TryGetValue(item.Core.Value, out var held)
+            ? held
+            : null;
         await using var command = await owner.CommandAsync(cancellationToken).ConfigureAwait(false);
         command.CommandText = """
-            INSERT INTO character_new_items(
-                owner_scope, owner_id, character_id, list_type, slot_index, item_core)
-            VALUES('character', @owner, @owner, @list, @slot, @core);
+            INSERT INTO items(
+                owner_scope, owner_id, list_type, slot_index, item_core, avatar_uid,
+                avatar_expire_date, avatar_clear_id, avatar_jewel_socket, avatar_color1,
+                avatar_color2, avatar_delete_date)
+            VALUES('character', @owner, @list, @slot, @core, @avatarUid, @expire, @clear,
+                @socket, @color1, @color2, @delete);
             """;
         command.Parameters.AddWithValue("@owner", place.Character);
         command.Parameters.AddWithValue("@list", place.ListType);
         command.Parameters.AddWithValue("@slot", item.SlotIndex);
         command.Parameters.AddWithValue(
             "@core", InventoryItemCore.Encode(item.Core));
+        command.Parameters.AddWithValue(
+            "@avatarUid", facts is null ? DBNull.Value : item.Core.Value);
+        foreach (var (name, index) in AvatarColumns)
+        {
+            command.Parameters.AddWithValue(name, facts?[index] ?? DBNull.Value);
+        }
+
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>The kind byte an avatar's core carries.</summary>
+    private const byte AvatarKind = 8;
+
+    /// <summary>The avatar facts an insert binds, in the order they are read back.</summary>
+    private static readonly (string Name, int Index)[] AvatarColumns =
+    [
+        ("@expire", 0), ("@clear", 1), ("@socket", 2),
+        ("@color1", 3), ("@color2", 4), ("@delete", 5),
+    ];
 
     private static InventoryItemCoreState DecodeCore(SqliteDataReader reader, int ordinal) =>
         InventoryItemCore.Decode((byte[])reader.GetValue(ordinal));

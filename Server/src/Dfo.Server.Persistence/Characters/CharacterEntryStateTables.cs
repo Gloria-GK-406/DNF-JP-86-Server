@@ -283,26 +283,6 @@ internal sealed class SqliteCharacterCreatureTable(SqliteDatabase database)
             cancellationToken);
 }
 
-/// <summary>The <c>character_new_titlebook</c> table.</summary>
-internal sealed class SqliteCharacterTitleBookTable(SqliteDatabase database)
-    : ICharacterTitleBookTable
-{
-    public ValueTask<IReadOnlyList<TitleBookRow>> ReadAsync(
-        CharacterId characterId, CancellationToken cancellationToken) =>
-        database.ReadAllAsync(
-            "SELECT category, slot_index, item_core FROM character_new_titlebook "
-            + "WHERE character_id=@cid ORDER BY category, slot_index",
-            parameters => parameters.AddWithValue("@cid", characterId.Value),
-            reader => new TitleBookRow(
-                // Handed up as read. The category narrows to a byte only after it has been found
-                // to fit, so an out-of-range one reaches the refusal that names it rather than
-                // failing as a conversion on the way there.
-                reader.GetInt32(0),
-                reader.GetInt32(1),
-                EntryBlob.Bounded(reader, 2, 82, "title book item core", false)),
-            cancellationToken);
-}
-
 /// <summary>The <c>character_achievement_complete</c> table.</summary>
 internal sealed class SqliteCharacterAchievementTable(SqliteDatabase database)
     : ICharacterAchievementTable

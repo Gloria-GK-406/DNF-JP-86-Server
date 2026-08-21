@@ -66,29 +66,48 @@ internal sealed class SqliteCharacterGoldLimitTable(SqliteDatabase database)
             cancellationToken);
 }
 
-/// <summary>The <c>character_item_values</c> table.</summary>
+/// <summary>The <c>character_item_cooldowns</c> table.</summary>
 /// <remarks>
-/// The order is the one the client expects to receive these in -- cooldowns, then effects, then
-/// by position within each. It is expressed in the statement because it is a property of the
-/// list, and sorting it afterwards would read the rows twice to no purpose.
+/// The client expects cooldowns before effects and each by position within its own list. Half of
+/// that order used to be a CASE over a column whose value said which kind of thing a row was; the
+/// half that is about position stays in the statement, and the half that was about kind is now the
+/// order the two reads are made in.
 /// </remarks>
-internal sealed class SqliteCharacterItemValueTable(SqliteDatabase database)
-    : ICharacterItemValueTable
+internal sealed class SqliteCharacterItemCooldownTable(SqliteDatabase database)
+    : ICharacterItemCooldownTable
 {
     public ValueTask<IReadOnlyList<ItemValueRow>> ReadByCharacterAsync(
         CharacterId characterId, CancellationToken cancellationToken) =>
         database.ReadAllAsync(
             """
-            SELECT character_id, list_kind, sort_order, item_id, value
-            FROM character_item_values
+            SELECT character_id, sort_order, item_id, value
+            FROM character_item_cooldowns
             WHERE character_id = @characterId
-            ORDER BY CASE list_kind WHEN 'cooltime' THEN 0 WHEN 'effect' THEN 1 ELSE 2 END,
-                     sort_order;
+            ORDER BY sort_order;
             """,
             parameters => parameters.AddWithValue("@characterId", characterId.Value),
-            reader => new ItemValueRow(
-                reader.GetInt32(0), reader.GetString(1), reader.GetInt32(2),
-                reader.GetInt32(3), reader.GetInt32(4)),
+            ItemValue,
+            cancellationToken);
+
+    internal static ItemValueRow ItemValue(Microsoft.Data.Sqlite.SqliteDataReader reader) => new(
+        reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2), reader.GetInt32(3));
+}
+
+/// <summary>The <c>character_item_effects</c> table.</summary>
+internal sealed class SqliteCharacterItemEffectTable(SqliteDatabase database)
+    : ICharacterItemEffectTable
+{
+    public ValueTask<IReadOnlyList<ItemValueRow>> ReadByCharacterAsync(
+        CharacterId characterId, CancellationToken cancellationToken) =>
+        database.ReadAllAsync(
+            """
+            SELECT character_id, sort_order, item_id, value
+            FROM character_item_effects
+            WHERE character_id = @characterId
+            ORDER BY sort_order;
+            """,
+            parameters => parameters.AddWithValue("@characterId", characterId.Value),
+            SqliteCharacterItemCooldownTable.ItemValue,
             cancellationToken);
 }
 
@@ -113,76 +132,27 @@ internal sealed class SqliteCharacterItemLockTable(SqliteDatabase database)
             cancellationToken);
 }
 
-/// <summary>The <c>character_rental_items</c> table.</summary>
+/// <summary>The <c>character_rentals</c> table.</summary>
+/// <remarks>
+/// One table where there were two, whose columns said the same things under different names and
+/// which the load already read into one list. The order is stated because a single table can no
+/// longer get it from which of the two a row came out of.
+/// </remarks>
 internal sealed class SqliteCharacterRentalTable(SqliteDatabase database) : ICharacterRentalTable
 {
     public ValueTask<IReadOnlyList<RentalRow>> ReadByCharacterAsync(
         CharacterId characterId, CancellationToken cancellationToken) =>
         database.ReadAllAsync(
             """
-            SELECT character_id, shop_entry_id, inventory_template_id, expire_time
-            FROM character_rental_items
-            WHERE character_id = @characterId;
-            """,
-            parameters => parameters.AddWithValue("@characterId", characterId.Value),
-            Rental,
-            cancellationToken);
-
-    internal static RentalRow Rental(Microsoft.Data.Sqlite.SqliteDataReader reader) => new(
-        reader.GetInt32(0), reader.GetInt64(1), reader.GetInt64(2), reader.GetInt64(3));
-}
-
-/// <summary>The <c>rental_items</c> table.</summary>
-internal sealed class SqliteLegacyRentalTable(SqliteDatabase database) : ILegacyRentalTable
-{
-    public ValueTask<IReadOnlyList<RentalRow>> ReadByCharacterAsync(
-        CharacterId characterId, CancellationToken cancellationToken) =>
-        database.ReadAllAsync(
-            """
             SELECT character_id, item_id, inventory_template_id, expire_time
-            FROM rental_items
-            WHERE character_id = @characterId;
+            FROM character_rentals
+            WHERE character_id = @characterId
+            ORDER BY item_id;
             """,
             parameters => parameters.AddWithValue("@characterId", characterId.Value),
-            SqliteCharacterRentalTable.Rental,
+            reader => new RentalRow(
+                reader.GetInt32(0), reader.GetInt64(1), reader.GetInt64(2), reader.GetInt64(3)),
             cancellationToken);
-}
-
-/// <summary>The <c>character_items</c> table, asked only whether it holds anything.</summary>
-internal sealed class SqliteLegacyCharacterItemTable(SqliteDatabase database)
-    : ILegacyCharacterItemTable
-{
-    public async ValueTask<bool> AnyAsync(
-        CharacterId characterId, CancellationToken cancellationToken) =>
-        await database.ReadFirstAsync(
-            """
-            SELECT EXISTS(
-                SELECT 1
-                FROM character_items
-                WHERE character_id = @characterId
-                   OR (owner_scope = 'character' AND owner_id = @characterId));
-            """,
-            parameters => parameters.AddWithValue("@characterId", characterId.Value),
-            reader => (object)(reader.GetInt32(0) != 0),
-            cancellationToken).ConfigureAwait(false) is true;
-}
-
-/// <summary>The <c>account_cargo_items</c> table, asked only whether it holds anything.</summary>
-internal sealed class SqliteLegacyAccountCargoTable(SqliteDatabase database)
-    : ILegacyAccountCargoTable
-{
-    public async ValueTask<bool> AnyAsync(
-        AccountId accountId, CancellationToken cancellationToken) =>
-        await database.ReadFirstAsync(
-            """
-            SELECT EXISTS(
-                SELECT 1
-                FROM account_cargo_items
-                WHERE account_id = @accountId);
-            """,
-            parameters => parameters.AddWithValue("@accountId", accountId.Value),
-            reader => (object)(reader.GetInt32(0) != 0),
-            cancellationToken).ConfigureAwait(false) is true;
 }
 
 /// <summary>The <c>character_daily_counters</c> table.</summary>

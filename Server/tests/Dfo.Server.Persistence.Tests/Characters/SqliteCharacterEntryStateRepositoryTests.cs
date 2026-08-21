@@ -77,8 +77,8 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                 INSERT INTO character_daily_counters VALUES(22,'revive_coin_daily_claim','day',1);
                 INSERT INTO character_daily_counters VALUES(22,'lottery_double_reward_used','day',6);
                 INSERT INTO character_creatures VALUES(22,0,400,1,2,3,4,5,6,X'07',8);
-                INSERT INTO character_new_titlebook(character_id,category,slot_index,item_core)
-                    VALUES(22,0,1,@core);
+                INSERT INTO items(owner_scope,owner_id,list_type,slot_index,item_core)
+                    VALUES('character',22,19,1,@core);
                 INSERT INTO character_achievement_complete VALUES(22,0,500,1,2,3,4);
                 INSERT INTO character_collectbox_slots VALUES(22,3,0,700);
                 UPDATE character_expert_job SET giveup_count=1, disjoint_machine_grade=3,
