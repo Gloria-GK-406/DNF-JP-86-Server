@@ -18,7 +18,13 @@ public sealed class SqliteEntryLifecycleRecoveryTests
         {
             await ExecuteAsync(path, """
                 CREATE TABLE characters(character_id INTEGER PRIMARY KEY,account_id INTEGER NOT NULL,delete_flag INTEGER NOT NULL DEFAULT 0);
+                CREATE TABLE character_pvp(character_id INTEGER PRIMARY KEY,
+                  pvp_grade INTEGER NOT NULL DEFAULT 0, pvp_rating_grade INTEGER NOT NULL DEFAULT 0,
+                  pvp_rank_point INTEGER NOT NULL DEFAULT 0, pvp_stat_a INTEGER NOT NULL DEFAULT 0,
+                  pvp_win_streak INTEGER NOT NULL DEFAULT 0, pvp_lose_streak INTEGER NOT NULL DEFAULT 0,
+                  skills_initialized INTEGER NOT NULL DEFAULT 0);
                 INSERT INTO characters VALUES(7,3,0);
+                INSERT INTO character_pvp(character_id) VALUES(7);
             """);
             var side = new CharacterSide(path);
             var empty = new CharacterSkillsEntryState(

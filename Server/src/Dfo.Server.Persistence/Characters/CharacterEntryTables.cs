@@ -202,46 +202,6 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
     }
 }
 
-/// <summary>The <c>character_init_flags</c> table.</summary>
-internal sealed class SqliteCharacterInitFlagTable(SqliteDatabase database)
-    : ICharacterInitFlagTable
-{
-    public ValueTask<IReadOnlyList<CharacterPcRoomRow>> ReadByCharactersAsync(
-        IReadOnlyList<int> characterIds, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(characterIds);
-        return characterIds.Count == 0
-            ? ValueTask.FromResult<IReadOnlyList<CharacterPcRoomRow>>([])
-            : database.ReadAllAsync(
-                "SELECT character_id,pc_room_state FROM character_init_flags "
-                + $"WHERE character_id IN ({CharacterIdList.Placeholders(characterIds)})",
-                parameters => CharacterIdList.Bind(parameters, characterIds),
-                Row,
-                cancellationToken);
-    }
-
-    public async ValueTask InsertIfAbsentAsync(
-        CharacterId characterId, CancellationToken cancellationToken) =>
-        _ = await database.ExecuteAsync(
-            "INSERT INTO character_init_flags (character_id, pc_room_state) VALUES (@cid, 0) "
-            + "ON CONFLICT(character_id) DO NOTHING;",
-            parameters => parameters.AddWithValue("@cid", characterId.Value),
-            cancellationToken).ConfigureAwait(false);
-
-    private static CharacterPcRoomRow Row(SqliteDataReader reader)
-    {
-        if (reader.IsDBNull(1))
-        {
-            throw new InvalidDataException("PC-room compatibility state is unavailable.");
-        }
-
-        var row = new CharacterPcRoomRow(reader.GetInt32(0), reader.GetInt32(1));
-        return row.PcRoomState is >= 0 and <= byte.MaxValue
-            ? row
-            : throw new InvalidDataException("PC-room compatibility state is out of range.");
-    }
-}
-
 /// <summary>The <c>character_buy_restrict_items</c> table.</summary>
 internal sealed class SqliteCharacterBuyRestrictTable(SqliteDatabase database)
     : ICharacterBuyRestrictTable

@@ -2,27 +2,27 @@
 kind: rks-multi-spec-map
 contract:
   path: ./TaskContract.md
-  revision: 1
+  revision: 2
 state: active
-phase: child_disposition
-phase_state: in_progress
-active_attempt: spec-001
-last_transition: child-sealed
+phase: child_execution
+phase_state: pending
+active_attempt: spec-002
+last_transition: child-created
 transition_evidence: >-
-  子 Spec 返回终态 completed，其 spec-result.md 已封存于
-  attempts/spec-001-table-by-table-ruling/spec-result.md。
-  评审十轮，末两轮判定 passed 且阻塞级为零，记录在 reviews/change-review.md；
-  新鲜验证 decision: pass，记录在 verification/completion-evidence.md，
-  七条子成功条件各有当前证据、四条约束均成立。
-  观察到的仓库状态：HEAD 仍为 fc6467af30eb42bfca8319da8fc238082e00116f，
-  工作区仅有两处未跟踪内容——.rks-agent/tasks/schema-cut-by-domain/ 与
-  Docs/Refactor/TableOwnershipRuling.md，无任何已跟踪文件被修改，未产生任务级提交。
+  身份与路径按确定规则计算：最大已封存尝试号为 1，故编号 spec-002，
+  子标识 spec-002-character-body-cut-by-concept，目录经解析后证明包含于
+  D:/project/DNF/DNF-JP-86-Server/.worktrees/schema-cut-by-domain/.rks-agent/tasks/schema-cut-by-domain。
+  子 TaskContract 已写为 state: ready，parent 指向 ../../TaskContract.md，
+  contributes_to 为 [SC-3, SC-4, SC-8, SC-9, SC-10]，depends_on 为空序列——
+  依赖联结校验通过（空列表合法；spec-001 的成果由 workspace.baseline 表示而非依赖边）。
+  子路由决定已写在同目录，四节完整（含 Controller Selection：sdd-standard / code-refactor）。
+  激活前证明无活动子任务、无 running/active 行；随后追加恰好一行并置 active_attempt。
 workspace:
   repository_root: D:/project/DNF/DNF-JP-86-Server
   task_root: D:/project/DNF/DNF-JP-86-Server/.worktrees/schema-cut-by-domain/.rks-agent/tasks/schema-cut-by-domain
   code_root: D:/project/DNF/DNF-JP-86-Server/.worktrees/schema-cut-by-domain
   branch: schema-cut-by-domain
-  baseline: fc6467af30eb42bfca8319da8fc238082e00116f
+  baseline: 9c535a9715ebd142fd197026c80d711a3036abcc
   baseline_evidence: >-
     源分支 main @ fc6467af30eb42bfca8319da8fc238082e00116f，源工作树 git status --short 为空；
     任务工作树 HEAD 与之相同，工作区除声明的两份持久工件外无改动；
@@ -61,7 +61,7 @@ SC-7 至 SC-10 是贯穿性验收，任何单个子成果都无法独占证明�
 | SC-4 | 每角色至多一行的状态不再单独成表 | not_started | none | 六处至多一行的状态仍各自成表 | aligned |
 | SC-5 | 技能不因 PVE 与 PVP 分表；职业专属技能页不因职业分表且非本职业持有仍被拒绝 | not_started | none | 技能仍分两表，职业专属页仍分两表 | aligned |
 | SC-6 | 账号侧至多一行的设置并入账号本体，计时权益与一次性进度各自只有一处 | not_started | none | 账号设置仍单独成表 | aligned |
-| SC-7 | 每处合并与每处「相近但未合并」都有判据裁定，邮件附件归属有明确结论 | not_started | none | 尚无逐表裁定记录 | aligned |
+| SC-7 | 每处合并与每处「相近但未合并」都有判据裁定，邮件附件归属有明确结论 | satisfied | `Docs/Refactor/TableOwnershipRuling.md`（提交 9c535a9）；spec-001 的 verification/completion-evidence.md 判 pass，十轮评审末两轮 passed 且阻塞级为零 | 无 | aligned |
 | SC-8 | 对外协议行为一字不变 | not_started | none | 尚未产生改动，无可比对的下发帧 | aligned |
 | SC-9 | 今天由整记录表征用例守住的列在新形状下仍被守住 | not_started | none | 三份表征 golden 仍针对旧形状 | aligned |
 | SC-10 | 上一轮确立的形状未回退 | not_started | none | 基线上成立，改动后需重新举证 | aligned |
@@ -72,4 +72,5 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 
 | # | Attempt | TaskContract | Outcome | Affects | State | Result | Git result |
 |---:|---|---|---|---|---|---|---|
-| `1` | `spec-001` | `attempts/spec-001-table-by-table-ruling/TaskContract.md` | 对改动前的 53 张表与 420 列逐一裁定归属，合成目标形状，并定下邮件附件与金币上限两处归属及由此确定的实施先后 | `SC-7` | `running` | `pending` | `active` |
+| `1` | `spec-001` | `attempts/spec-001-table-by-table-ruling/TaskContract.md` | 对改动前的 53 张表与 420 列逐一裁定归属，合成目标形状，并定下邮件附件与金币上限两处归属及由此确定的实施先后 | `SC-7` | `sealed` | `completed` | `accepted as 9c535a9` |
+| `2` | `spec-002` | `attempts/spec-002-character-body-cut-by-concept/TaskContract.md` | 按裁定的目标形状重切角色本体：三张本体表与五张至多一行的表变为六张概念表，另完成两处已授权的超范围变更 | `SC-3`, `SC-4` | `running` | `pending` | `active` |

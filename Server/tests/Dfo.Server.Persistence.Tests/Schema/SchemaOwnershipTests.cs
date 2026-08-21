@@ -55,13 +55,18 @@ public sealed class SchemaOwnershipTests
 
         // Counted rather than sampled: naming a handful of tables would stay green while forty of
         // the declarations went missing.
-        Assert.Equal(53, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
+        Assert.Equal(49, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
         Assert.Contains("characters(", shape, StringComparison.Ordinal);
         Assert.Contains("character_new_items(", shape, StringComparison.Ordinal);
         Assert.Contains("accounts(", shape, StringComparison.Ordinal);
         Assert.Contains("character_active_quests(", shape, StringComparison.Ordinal);
         Assert.Contains("character_creatures(", shape, StringComparison.Ordinal);
-        Assert.Contains("character_gold_limits(auction_gold_limit:INTEGER,character_id:INTEGER,gold_carry_limit:INTEGER,updated_at:TEXT)",
+        // One table spelled out column by column, so that a declaration quietly losing one fails
+        // here rather than only wherever it happens to be read. The gold limits used to be a table
+        // of their own; they are caps derived from level, so they sit with the other derived
+        // numbers now, and this is where that shows.
+        Assert.Contains(
+            "character_settings(character_id:INTEGER,character_option_blob:BLOB,user_state_bits:INTEGER)",
             shape, StringComparison.Ordinal);
     }
 

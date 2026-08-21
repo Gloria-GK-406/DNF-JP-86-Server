@@ -12,9 +12,13 @@ public sealed record CharacterEntryRow(
     byte[] Appearance,
     long Experience,
     int ExtraEquipSlotStat,
-    int PvpGrade,
-    int PvpRatingGrade,
-    int UserState);
+    int UserState,
+    int SkillTreeIndex,
+    long NameTagItemId,
+    long NameTagExpireTime,
+    int ManageLevel,
+    long GuildPowerWar,
+    int GuildLevel);
 
 /// <summary>One row of <c>character_dimensions</c>.</summary>
 public sealed record DimensionRow(int SortOrder, long Key, int Value1, int Value2);
@@ -28,11 +32,8 @@ public sealed record ShieldSlotRow(int SlotIndex, int ShieldItemId);
 /// <summary>One row of <c>character_active_quests</c>.</summary>
 public sealed record ActiveQuestRow(int Slot, int QuestId, int TriggerValue);
 
-/// <summary>One row of <c>character_invisible_falgs</c>, which is where quest clears are kept.</summary>
+/// <summary>One row of <c>character_invisible_flags</c>, which is where quest clears are kept.</summary>
 public sealed record QuestClearFlagRow(int SlotIndex, int FlagValue);
-
-/// <summary>One row of <c>character_daily_challenge_groups</c>.</summary>
-public sealed record DailyChallengeGroupRow(int GroupIndex, int GroupId);
 
 /// <summary>One row of <c>character_daily_challenge_entries</c>.</summary>
 public sealed record DailyChallengeEntryRow(
@@ -51,18 +52,8 @@ public sealed record TitleBookRow(int Category, int SlotIndex, byte[] Core);
 /// <summary>One row of <c>character_collectbox_slots</c>.</summary>
 public sealed record CollectionBoxRow(int BoxIndex, int SlotIndex, int ItemId);
 
-/// <summary>One row of <c>character_expert_job</c>.</summary>
-public sealed record ExpertJobRow(
-    int GiveUpCount, int DisjointMachineGrade, int DisjointMachineEndurance, int EnchanterEndurance);
-
 /// <summary>One row of <c>character_pvp_missions</c>.</summary>
 public sealed record PvpMissionRow(int SortOrder, int MissionId, int ProgressValue);
-
-/// <summary>What <c>character_crystal_contract</c> holds, or its absence.</summary>
-public sealed record CrystalContractRow(int CubeType, int CubeGrade);
-
-/// <summary>The three champion-break columns of <c>character_init_flags</c>.</summary>
-public sealed record ChampionBreakRow(int KeyId, int Mode, int Value);
 
 /// <summary>The two bonus point columns of <c>characters</c>.</summary>
 public sealed record BonusPointRow(int BonusSp, int BonusTp);
@@ -112,35 +103,6 @@ public interface ICharacterEntryTable
         CharacterId characterId, CancellationToken cancellationToken);
 }
 
-/// <summary>The rest of <c>character_subtype0_fields</c>, beyond what a roster needs.</summary>
-public interface ICharacterSubtype0EntryTable
-{
-    ValueTask<CharacterSubtype0StorageRecord?> FindAsync(
-        CharacterId characterId, CancellationToken cancellationToken);
-
-    /// <summary>The two expert-job columns, read on their own as the feature load reads them.</summary>
-    ValueTask<(int Type, int Experience)?> FindExpertJobAsync(
-        CharacterId characterId, CancellationToken cancellationToken);
-}
-
-/// <summary>The rest of <c>character_subtype1_fields</c>.</summary>
-public interface ICharacterSubtype1EntryTable
-{
-    ValueTask<CharacterSubtype1StorageRecord?> FindAsync(
-        CharacterId characterId, CancellationToken cancellationToken);
-}
-
-/// <summary>The entry-load reads of <c>character_init_flags</c>.</summary>
-public interface ICharacterInitFlagEntryTable
-{
-    /// <summary>Whether the row is there, and the option blob it carries.</summary>
-    ValueTask<(byte[]? Option, bool Present)> FindOptionAsync(
-        CharacterId characterId, CancellationToken cancellationToken);
-
-    ValueTask<ChampionBreakRow?> FindChampionBreakAsync(
-        CharacterId characterId, CancellationToken cancellationToken);
-}
-
 /// <summary>The <c>character_hotkey_slots</c> table.</summary>
 public interface ICharacterHotkeyTable
 {
@@ -152,14 +114,6 @@ public interface ICharacterHotkeyTable
 public interface ICharacterDimensionTable
 {
     ValueTask<IReadOnlyList<DimensionRow>> ReadAsync(
-        CharacterId characterId, CancellationToken cancellationToken);
-}
-
-/// <summary>The <c>character_dimension_flags</c> table.</summary>
-public interface ICharacterDimensionFlagTable
-{
-    /// <summary>The four flags, all zero when there is no row.</summary>
-    ValueTask<(int, int, int, int)> ReadAsync(
         CharacterId characterId, CancellationToken cancellationToken);
 }
 
@@ -191,7 +145,7 @@ public interface ICharacterQuestNotifyTable
         CharacterId characterId, CancellationToken cancellationToken);
 }
 
-/// <summary>The <c>character_invisible_falgs</c> table.</summary>
+/// <summary>The <c>character_invisible_flags</c> table.</summary>
 public interface ICharacterQuestClearFlagTable
 {
     ValueTask<IReadOnlyList<QuestClearFlagRow>> ReadAsync(
@@ -200,27 +154,6 @@ public interface ICharacterQuestClearFlagTable
 
 /// <summary>The <c>character_growth_weapon_stages</c> table.</summary>
 public interface ICharacterGrowthWeaponTable
-{
-    ValueTask<IReadOnlyList<int>> ReadAsync(
-        CharacterId characterId, CancellationToken cancellationToken);
-}
-
-/// <summary>The <c>character_crystal_contract</c> table.</summary>
-public interface ICharacterCrystalContractTable
-{
-    ValueTask<CrystalContractRow?> FindAsync(
-        CharacterId characterId, CancellationToken cancellationToken);
-}
-
-/// <summary>The <c>character_daily_challenge_groups</c> table.</summary>
-public interface ICharacterDailyChallengeGroupTable
-{
-    ValueTask<IReadOnlyList<DailyChallengeGroupRow>> ReadAsync(
-        CharacterId characterId, CancellationToken cancellationToken);
-}
-
-/// <summary>The <c>character_daily_challenge_claims</c> table.</summary>
-public interface ICharacterDailyChallengeClaimTable
 {
     ValueTask<IReadOnlyList<int>> ReadAsync(
         CharacterId characterId, CancellationToken cancellationToken);
@@ -279,13 +212,6 @@ public interface ICharacterAchievementTable
 public interface ICharacterCollectionBoxTable
 {
     ValueTask<IReadOnlyList<CollectionBoxRow>> ReadAsync(
-        CharacterId characterId, CancellationToken cancellationToken);
-}
-
-/// <summary>The <c>character_expert_job</c> table.</summary>
-public interface ICharacterExpertJobTable
-{
-    ValueTask<ExpertJobRow?> FindAsync(
         CharacterId characterId, CancellationToken cancellationToken);
 }
 

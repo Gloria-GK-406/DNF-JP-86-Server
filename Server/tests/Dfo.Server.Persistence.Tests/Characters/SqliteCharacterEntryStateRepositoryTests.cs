@@ -45,29 +45,32 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
             var core = ItemCore(1001, 17);
             await ExecuteAsync(path, """
                 INSERT INTO characters(character_id, account_id, name, job, level, clone_title_item_id,
-                    appearance_blob,pvp_grade,pvp_rating_grade,user_state)
-                VALUES(22, 12, 'loaded', 1, 60, 77, X'0102',8,9,10);
-                INSERT INTO character_subtype0_fields(character_id,stamina,fatigue_penalty,
-                    expert_job_type,expert_job_exp,user_state_bits,pvp_rank_point)
-                    VALUES(22,7,8,2,30,5,99);
-                INSERT INTO character_subtype1_fields(character_id,stat_hp_max,stat_physical_attack,
-                    skill_tree_index,progress1,progress2,manage_level) VALUES(22,100,123,0,11,12,13);
+                    appearance_blob,user_state,skill_tree_index,manage_level)
+                VALUES(22, 12, 'loaded', 1, 60, 77, X'0102',10,0,13);
+                INSERT INTO character_condition(character_id,stamina,fatigue_penalty,
+                    champion_break_key_id,champion_break_mode,champion_break_value,
+                    crystal_cube_type,crystal_cube_grade,
+                    dimension_flag1,dimension_flag2,dimension_flag3,dimension_flag4,pc_room_state)
+                    VALUES(22,7,8,-1234,1,99,1,255,1,2,3,4,0);
+                INSERT INTO character_settings(character_id,user_state_bits,character_option_blob)
+                    VALUES(22,5,X'0304');
+                INSERT INTO character_pvp(character_id,pvp_grade,pvp_rating_grade,pvp_rank_point)
+                    VALUES(22,8,9,99);
+                INSERT INTO character_expert_job(character_id,expert_job_type,expert_job_exp)
+                    VALUES(22,2,30);
+                INSERT INTO character_stats(character_id,stat_hp_max,stat_physical_attack,
+                    progress1,progress2,gold_carry_limit,auction_gold_limit)
+                    VALUES(22,100,123,11,12,600000000,600000000);
                 INSERT INTO character_dimensions VALUES(22,0,9,1,2);
-                INSERT INTO character_dimension_flags VALUES(22,1,2,3,4);
-                INSERT INTO character_init_flags(character_id,champion_break_key_id,
-                    champion_break_mode,champion_break_value,character_option_blob)
-                    VALUES(22,-1234,1,99,X'0304');
                 INSERT INTO character_hotkey_slots VALUES(22,0,20),(22,1,10);
                 INSERT INTO character_skills VALUES(22,0,4,100,5,X'0908');
                 INSERT INTO character_active_quests VALUES(22,2,200,6);
                 INSERT INTO character_quest_notify_selections VALUES(22,0,201);
-                INSERT INTO character_invisible_falgs VALUES(22,200,1);
+                INSERT INTO character_invisible_flags VALUES(22,200,1);
                 INSERT INTO character_growth_weapon_stages VALUES(22,0,2);
-                INSERT INTO character_crystal_contract VALUES(22,1,255);
-                INSERT INTO character_gold_limits(character_id,gold_carry_limit,auction_gold_limit) VALUES(22,600000000,600000000);
-                INSERT INTO character_daily_challenge_groups VALUES(22,0,900);
+                INSERT INTO character_daily_challenges(character_id,group_index,group_id,claimed_at)
+                    VALUES(22,0,900,'2020-01-02 03:04:05');
                 INSERT INTO character_daily_challenge_entries VALUES(22,0,0,901,10,20);
-                INSERT INTO character_daily_challenge_claims(character_id,group_index) VALUES(22,0);
                 INSERT INTO character_daily_challenge_tail_ids VALUES(22,0,902);
                 INSERT INTO character_daily_schedule_states VALUES(22,0,1,2,3,4),(22,1,5,6,7,8),(22,2,9,10,11,12);
                 INSERT INTO character_dungeon_permissions VALUES(22,0,300,2);
@@ -78,7 +81,8 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                     VALUES(22,0,1,@core);
                 INSERT INTO character_achievement_complete VALUES(22,0,500,1,2,3,4);
                 INSERT INTO character_collectbox_slots VALUES(22,3,0,700);
-                INSERT INTO character_expert_job VALUES(22,1,3,4,5);
+                UPDATE character_expert_job SET giveup_count=1, disjoint_machine_grade=3,
+                    disjoint_machine_endurance=4, enchanter_endurance=5 WHERE character_id=22;
                 INSERT INTO character_expert_job_recipes VALUES(22,70);
                 INSERT INTO mailbox_messages(message_id,sender_character_id,sender_name,receiver_character_id,
                     title,body,gold,mail_type,source_protocol,expire_at)
@@ -166,10 +170,12 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
             var repository = new CharacterSide(path).EntryState(new GoldLimitRuleService());
             await ExecuteAsync(path, $"""
                 INSERT INTO characters(character_id,account_id,name,job,level) VALUES(30,15,'gold',1,60);
-                INSERT INTO character_subtype0_fields(character_id) VALUES(30);
-                INSERT INTO character_subtype1_fields(character_id) VALUES(30);
-                INSERT INTO character_init_flags(character_id) VALUES(30);
-                INSERT INTO character_gold_limits(character_id,gold_carry_limit,auction_gold_limit) VALUES(30,{carry},{auction});
+                INSERT INTO character_condition(character_id,pc_room_state) VALUES(30,0);
+                INSERT INTO character_stats(character_id) VALUES(30);
+                INSERT INTO character_pvp(character_id) VALUES(30);
+                INSERT INTO character_settings(character_id) VALUES(30);
+                INSERT INTO character_expert_job(character_id) VALUES(30);
+                UPDATE character_stats SET gold_carry_limit={carry}, auction_gold_limit={auction} WHERE character_id=30;
                 """);
 
             var result = await repository.LoadAsync(
@@ -197,9 +203,11 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
             var repository = new CharacterSide(path).EntryState(new GoldLimitRuleService());
             await ExecuteAsync(path, """
                 INSERT INTO characters(character_id,account_id,name,job,level) VALUES(31,16,'nogold',1,60);
-                INSERT INTO character_subtype0_fields(character_id) VALUES(31);
-                INSERT INTO character_subtype1_fields(character_id) VALUES(31);
-                INSERT INTO character_init_flags(character_id) VALUES(31);
+                INSERT INTO character_condition(character_id,pc_room_state) VALUES(31,0);
+                INSERT INTO character_stats(character_id) VALUES(31);
+                INSERT INTO character_pvp(character_id) VALUES(31);
+                INSERT INTO character_settings(character_id) VALUES(31);
+                INSERT INTO character_expert_job(character_id) VALUES(31);
                 """);
 
             var result = await repository.LoadAsync(
@@ -223,9 +231,11 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
             var repository = new CharacterSide(path).EntryState(new GoldLimitRuleService());
             await ExecuteAsync(path, """
                 INSERT INTO characters(character_id,account_id,name,job,level) VALUES(24,14,'mail',1,60);
-                INSERT INTO character_subtype0_fields(character_id) VALUES(24);
-                INSERT INTO character_subtype1_fields(character_id) VALUES(24);
-                INSERT INTO character_init_flags(character_id) VALUES(24);
+                INSERT INTO character_condition(character_id,pc_room_state) VALUES(24,0);
+                INSERT INTO character_stats(character_id) VALUES(24);
+                INSERT INTO character_pvp(character_id) VALUES(24);
+                INSERT INTO character_settings(character_id) VALUES(24);
+                INSERT INTO character_expert_job(character_id) VALUES(24);
 
                 WITH RECURSIVE seq(n) AS (VALUES(1) UNION ALL SELECT n+1 FROM seq WHERE n<22)
                 INSERT INTO mailbox_messages(message_id,receiver_character_id,created_at,expire_at)
@@ -277,23 +287,6 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                     character_id INTEGER PRIMARY KEY, account_id INTEGER NOT NULL,
                     name TEXT NOT NULL, job INTEGER NOT NULL DEFAULT 0,
                     level INTEGER NOT NULL DEFAULT 1);
-                CREATE TABLE character_subtype1_fields(
-                    character_id INTEGER PRIMARY KEY, stat_hp_max INTEGER NOT NULL DEFAULT 0,
-                    stat_mp_max INTEGER NOT NULL DEFAULT 0, stat_physical_attack INTEGER NOT NULL DEFAULT 0,
-                    stat_physical_defense INTEGER NOT NULL DEFAULT 0, stat_magical_attack INTEGER NOT NULL DEFAULT 0,
-                    stat_magical_defense INTEGER NOT NULL DEFAULT 0, stat_move_speed INTEGER NOT NULL DEFAULT 0,
-                    stat_attack_speed INTEGER NOT NULL DEFAULT 0, stat_cast_speed INTEGER NOT NULL DEFAULT 0,
-                    stat_inventory_limit INTEGER NOT NULL DEFAULT 0, skill_tree_index INTEGER NOT NULL DEFAULT -1,
-                    progress1 INTEGER NOT NULL DEFAULT 0, progress2 INTEGER NOT NULL DEFAULT 0,
-                    stat_fire_resistance INTEGER NOT NULL DEFAULT 0, stat_water_resistance INTEGER NOT NULL DEFAULT 0,
-                    stat_dark_resistance INTEGER NOT NULL DEFAULT 0, stat_light_resistance INTEGER NOT NULL DEFAULT 0,
-                    stat_hp_regen_speed INTEGER NOT NULL DEFAULT 0, stat_mp_regen_speed INTEGER NOT NULL DEFAULT 0,
-                    stat_hit_recovery INTEGER NOT NULL DEFAULT 0, stat_jump_power INTEGER NOT NULL DEFAULT 0,
-                    stat_weight INTEGER NOT NULL DEFAULT 0, current_hp_mp_percent INTEGER NOT NULL DEFAULT 0,
-                    name_tag_item_id INTEGER NOT NULL DEFAULT 0, name_tag_expire_time INTEGER NOT NULL DEFAULT 0,
-                    equipped_creature_level INTEGER NOT NULL DEFAULT 0, equip_list_trailing INTEGER NOT NULL DEFAULT 0,
-                    flag_byte INTEGER NOT NULL DEFAULT 0, guild_power_war INTEGER NOT NULL DEFAULT 0,
-                    server_timestamp INTEGER NOT NULL DEFAULT 0, quest_shop_count INTEGER NOT NULL DEFAULT 0);
                 CREATE TABLE mailbox_messages(
                     message_id INTEGER PRIMARY KEY AUTOINCREMENT,
                     receiver_character_id INTEGER NOT NULL,
@@ -316,9 +309,11 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
             _ = new SqliteDatabase(path, new DomainTransactionScope());
             await ExecuteAsync(path, """
                 INSERT INTO characters(character_id,account_id,name,job,level) VALUES(25,15,'upgrade',1,60);
-                INSERT INTO character_subtype0_fields(character_id) VALUES(25);
-                INSERT INTO character_subtype1_fields(character_id) VALUES(25);
-                INSERT INTO character_init_flags(character_id) VALUES(25);
+                INSERT INTO character_condition(character_id,pc_room_state) VALUES(25,0);
+                INSERT INTO character_stats(character_id) VALUES(25);
+                INSERT INTO character_pvp(character_id) VALUES(25);
+                INSERT INTO character_settings(character_id) VALUES(25);
+                INSERT INTO character_expert_job(character_id) VALUES(25);
                 INSERT INTO mailbox_messages(message_id,receiver_character_id) VALUES(900,25);
                 INSERT INTO mailbox_recipients(message_id,character_id) VALUES(900,25);
                 """);
@@ -344,7 +339,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
     [InlineData("missing-required")]
     [InlineData("invalid-skill")]
     [InlineData("oversized-appearance")]
-    [InlineData("orphan-claim")]
+    [InlineData("group-out-of-range")]
     [InlineData("incomplete-schedule")]
     public async Task CharacterEntryState_RejectsInvalidNormalizedState(string invalidCase)
     {
@@ -354,17 +349,19 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
             var repository = new CharacterSide(path).EntryState(new GoldLimitRuleService());
             await ExecuteAsync(path, """
                 INSERT INTO characters(character_id,account_id,name,job,level) VALUES(23,13,'bad',1,60);
-                INSERT INTO character_subtype0_fields(character_id) VALUES(23);
-                INSERT INTO character_subtype1_fields(character_id) VALUES(23);
-                INSERT INTO character_init_flags(character_id) VALUES(23);
+                INSERT INTO character_condition(character_id,pc_room_state) VALUES(23,0);
+                INSERT INTO character_stats(character_id) VALUES(23);
+                INSERT INTO character_pvp(character_id) VALUES(23);
+                INSERT INTO character_settings(character_id) VALUES(23);
+                INSERT INTO character_expert_job(character_id) VALUES(23);
                 """);
             var sql = invalidCase switch
             {
                 "wrong-owner" => "UPDATE characters SET account_id=99 WHERE character_id=23;",
-                "missing-required" => "DELETE FROM character_subtype1_fields WHERE character_id=23;",
+                "missing-required" => "DELETE FROM character_stats WHERE character_id=23;",
                 "invalid-skill" => "INSERT INTO character_skills VALUES(23,0,0,-1,1,NULL);",
                 "oversized-appearance" => "UPDATE characters SET appearance_blob=zeroblob(16385) WHERE character_id=23;",
-                "orphan-claim" => "INSERT INTO character_daily_challenge_claims(character_id,group_index) VALUES(23,0);",
+                "group-out-of-range" => "INSERT INTO character_daily_challenges(character_id,group_index,group_id) VALUES(23,9,1);",
                 _ => "INSERT INTO character_daily_schedule_states VALUES(23,0,0,0,0,0);",
             };
             await ExecuteAsync(path, sql);

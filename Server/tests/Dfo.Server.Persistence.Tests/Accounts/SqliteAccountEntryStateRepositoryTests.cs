@@ -30,7 +30,7 @@ public sealed class SqliteAccountEntryStateRepositoryTests
                 INSERT INTO character_buy_restrict_items(character_id,sort_order,entry_id,sentinel_or_value,flag)
                     VALUES(501,0,8001,-1,1),(501,1,8002,2147483647,0),
                           (502,0,8001,-1,1),(502,1,8002,2147483647,0);
-                INSERT INTO character_init_flags(character_id,pc_room_state) VALUES(501,7),(502,7);
+                INSERT INTO character_condition(character_id,pc_room_state) VALUES(501,7),(502,7);
                 """);
 
             var result = await repository.LoadAsync(new AccountId(51), CancellationToken.None);
@@ -66,7 +66,7 @@ public sealed class SqliteAccountEntryStateRepositoryTests
                 INSERT INTO accounts(account_id,m_id,password_hash) VALUES(52,'account-52','');
                 INSERT INTO characters(character_id,account_id,name,level,slot_index,delete_flag)
                     VALUES(521,52,'one',1,0,0);
-                INSERT INTO character_init_flags(character_id,pc_room_state) VALUES(521,0);
+                INSERT INTO character_condition(character_id,pc_room_state) VALUES(521,0);
                 """);
 
             var result = await repository.LoadAsync(new AccountId(52), CancellationToken.None);
@@ -104,7 +104,7 @@ public sealed class SqliteAccountEntryStateRepositoryTests
                 INSERT INTO account_settings(account_id,main_game_option) VALUES(53,X'0100');
                 INSERT INTO characters(character_id,account_id,name,level,slot_index,delete_flag)
                     VALUES(531,53,'one',1,0,0),(532,53,'two',1,1,0),(541,54,'other',1,0,0);
-                INSERT INTO character_init_flags(character_id,pc_room_state) VALUES(531,1),(532,1),(541,1);
+                INSERT INTO character_condition(character_id,pc_room_state) VALUES(531,1),(532,1),(541,1);
                 """);
             var sql = invalidCase switch
             {
@@ -115,7 +115,7 @@ public sealed class SqliteAccountEntryStateRepositoryTests
                 "wrong-owner-relation" => "INSERT INTO character_mercenary_support(owner_character_id,slot,support_character_id,skill_id,striker_skill_id) VALUES(531,0,541,1,2);",
                 "missing-relation-target" => "INSERT INTO character_mercenary_support(owner_character_id,slot,support_character_id,skill_id,striker_skill_id) VALUES(531,0,999,1,2);",
                 "invalid-lottery" => "INSERT INTO account_increase_chance_lottery_progress VALUES(53,10,20);",
-                _ => "UPDATE character_init_flags SET pc_room_state=2 WHERE character_id=532;",
+                _ => "UPDATE character_condition SET pc_room_state=2 WHERE character_id=532;",
             };
             await ExecuteAsync(path, sql);
 

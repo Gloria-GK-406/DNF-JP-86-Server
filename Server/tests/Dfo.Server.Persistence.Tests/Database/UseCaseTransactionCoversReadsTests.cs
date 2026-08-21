@@ -32,7 +32,7 @@ public sealed class UseCaseTransactionCoversReadsTests : IAsyncDisposable
         this.Execute(
             "INSERT INTO characters(character_id,account_id,name,level) VALUES(1,1,'reader',10)");
         this.Execute(
-            "INSERT INTO character_gold_limits(character_id,gold_carry_limit,auction_gold_limit) "
+            "INSERT INTO character_stats(character_id,gold_carry_limit,auction_gold_limit) "
             + "VALUES(1,700,800)");
     }
 
@@ -57,10 +57,10 @@ public sealed class UseCaseTransactionCoversReadsTests : IAsyncDisposable
         var level = await ScalarAsync(database, "SELECT level FROM characters WHERE character_id=1");
 
         // Someone else's use case finishes entirely while this one is still reading.
-        this.Execute("UPDATE character_gold_limits SET gold_carry_limit=999 WHERE character_id=1");
+        this.Execute("UPDATE character_stats SET gold_carry_limit=999 WHERE character_id=1");
 
         var limit = await ScalarAsync(
-            database, "SELECT gold_carry_limit FROM character_gold_limits WHERE character_id=1");
+            database, "SELECT gold_carry_limit FROM character_stats WHERE character_id=1");
         await transaction.CommitAsync(CancellationToken.None);
 
         Assert.Equal(10L, level);

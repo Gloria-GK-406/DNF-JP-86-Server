@@ -3,8 +3,11 @@
 Where every table and every column of the character database goes when the database is cut by
 concept instead of by protocol segment, and what each ruling rests on.
 
-The shape being ruled on is the one declared in
-`Server/src/Dfo.Server.Persistence/Schema/CharacterDatabaseSchema.cs`: **53 tables, 420 columns**.
+The shape being ruled on is the one the database had when this was written — 53 tables and 420
+columns, declared in `Server/src/Dfo.Server.Persistence/Schema/CharacterDatabaseSchema.cs` as of
+commit `9c535a9`. That is a starting point, not a description of the database today: as each block
+of work lands, the declaration moves toward the target shape given below, and the counts here stop
+matching it. Read the counts as history and the target shape as the destination.
 Counting a table means counting `CREATE TABLE IF NOT EXISTS` in `TableDeclarations`; counting a
 column means splitting one declaration on its top-level commas and dropping the `PRIMARY KEY`,
 `UNIQUE`, `FOREIGN KEY` and `CHECK` lines. (A plain `grep` of the file finds 54 — the extra one is
@@ -323,6 +326,16 @@ that way, this merge reverts. Recorded as [D-8](#deferred).
 
 A group with no claim keeps `claimed_at` NULL, which reads the way a missing claims row reads
 today: not claimed.
+
+One thing that needs saying, because implementing the merge found it. Today the claim is carried by
+the claims **row existing**; `claimed_at` is nullable and no production statement ever writes it, and
+the only read asks for `group_index` alone. After the merge the claim is carried by `claimed_at`
+being present. The two agree on every row a writer would produce, but they disagree on a row that
+already exists with a NULL `claimed_at` — such a row means claimed today and would read as unclaimed
+afterwards. Under the project's wipe-don't-migrate rule no such row survives the change, so nothing
+is lost; what matters is the other end, and it is a requirement rather than an observation:
+**whatever comes to write a claim must set `claimed_at`**, because after this merge that column is
+the claim rather than a note beside it.
 
 ### M-6 The character's own three tables become five, cut by concept
 

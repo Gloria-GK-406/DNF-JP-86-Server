@@ -68,9 +68,11 @@ public sealed class EntryLoadCharacterizationTests
                 path,
                 "INSERT INTO characters(character_id,account_id,name,job,level) "
                 + $"VALUES(22,12,'job',{job},60);"
-                + "INSERT INTO character_subtype0_fields(character_id) VALUES(22);"
-                + "INSERT INTO character_subtype1_fields(character_id) VALUES(22);"
-                + "INSERT INTO character_init_flags(character_id) VALUES(22);"
+                + "INSERT INTO character_stats(character_id) VALUES(22);"
+                + "INSERT INTO character_condition(character_id,pc_room_state) VALUES(22,0);"
+                + "INSERT INTO character_pvp(character_id) VALUES(22);"
+                + "INSERT INTO character_settings(character_id) VALUES(22);"
+                + "INSERT INTO character_expert_job(character_id) VALUES(22);"
                 + row);
 
             var loaded = await repository.LoadAsync(
@@ -93,28 +95,26 @@ public sealed class EntryLoadCharacterizationTests
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            INSERT INTO characters(character_id,account_id,name,name_bytes,job,grow_type,level,clone_title_item_id,slot_index,delete_flag,town_id,area_id,pos_x,pos_y,direction,area_state,appearance_blob,bonus_sp,bonus_tp,exp,ex_equip_slot_stat,pvp_grade,pvp_rating_grade,user_state)
-                VALUES(22,12,'loaded',X'00A0',8,1,60,1001,0,0,101,102,1002,1003,103,104,X'00A1',1004,1005,1006,1007,105,106,107);
-            INSERT INTO character_subtype0_fields(character_id,stamina,fatigue_penalty,is_event_character,is_private_store,expert_job_type,expert_job_exp,is_hardcore_mode,is_hardcore_dead,hardcore_death_count,user_state_bits,chat_ban_end_time,mood_value,pvp_rank_point,creature_field1,creature_field2,creature_field3,creature_field4,creature_buffer,pc_room_id,is_premium_pc_room,server_group_id,black_count,guild_level,chaos_point,disguise_kind,is_disguised,fatigue_update,return_user_flag,channel_display_mode,channel_type,is_return_user,link_slot_enabled,link_type_a,link_type_b,emotion_index,action_byte,fatigue_display_update,costume_flag,aura_flag,pet_display_flag,title_display_flag,pvp_stat_a,pvp_win_streak,pvp_lose_streak,trailing_byte)
-                VALUES(22,108,1008,0,1,109,1009,0,1,1010,1011,1012,1013,1014,110,111,112,113,X'0102030405060708',1015,0,114,1016,115,1017,116,1,1018,117,1019,118,0,1,119,120,1020,121,1021,122,123,124,125,1022,126,127,128);
-            INSERT INTO character_subtype1_fields(character_id,stat_hp_max,stat_mp_max,stat_physical_attack,stat_physical_defense,stat_magical_attack,stat_magical_defense,stat_move_speed,stat_attack_speed,stat_cast_speed,stat_inventory_limit,skill_tree_index,progress1,progress2,stat_fire_resistance,stat_water_resistance,stat_dark_resistance,stat_light_resistance,stat_hp_regen_speed,stat_mp_regen_speed,stat_hit_recovery,stat_jump_power,stat_weight,current_hp_mp_percent,name_tag_item_id,name_tag_expire_time,equipped_creature_level,equip_list_trailing,flag_byte,guild_power_war,server_timestamp,quest_shop_count,manage_level)
-                VALUES(22,1023,1024,1025,1026,1027,1028,1029,1030,1031,1032,-1,1033,1034,1035,1036,1037,1038,1039,1040,1041,1042,1043,129,1044,1045,130,1046,131,1047,1048,1049,132);
+            INSERT INTO characters(character_id,account_id,name,name_bytes,job,grow_type,level,clone_title_item_id,slot_index,delete_flag,town_id,area_id,pos_x,pos_y,direction,area_state,appearance_blob,bonus_sp,bonus_tp,exp,ex_equip_slot_stat,user_state,skill_tree_index,name_tag_item_id,name_tag_expire_time,manage_level,guild_power_war,guild_level)
+                VALUES(22,12,'loaded',X'00A0',8,1,60,1001,0,0,101,102,1002,1003,103,104,X'00A1',1004,1005,1006,1007,107,-1,1044,1045,132,1047,115);
+            INSERT INTO character_stats(character_id,stat_hp_max,stat_mp_max,stat_physical_attack,stat_physical_defense,stat_magical_attack,stat_magical_defense,stat_move_speed,stat_attack_speed,stat_cast_speed,stat_inventory_limit,stat_fire_resistance,stat_water_resistance,stat_dark_resistance,stat_light_resistance,stat_hp_regen_speed,stat_mp_regen_speed,stat_hit_recovery,stat_jump_power,stat_weight,progress1,progress2,current_hp_mp_percent,equipped_creature_level,equip_list_trailing,flag_byte,server_timestamp,quest_shop_count,gold_carry_limit,auction_gold_limit)
+                VALUES(22,1023,1024,1025,1026,1027,1028,1029,1030,1031,1032,1035,1036,1037,1038,1039,1040,1041,1042,1043,1033,1034,129,130,1046,131,1048,1049,600000000,600000000);
+            INSERT INTO character_condition(character_id,stamina,fatigue_penalty,fatigue_update,fatigue_display_update,is_event_character,is_hardcore_mode,is_hardcore_dead,hardcore_death_count,is_private_store,chat_ban_end_time,mood_value,black_count,chaos_point,trailing_byte,creature_field1,creature_field2,creature_field3,creature_field4,creature_buffer,pc_room_id,is_premium_pc_room,server_group_id,channel_display_mode,channel_type,is_return_user,return_user_flag,disguise_kind,is_disguised,emotion_index,action_byte,costume_flag,aura_flag,pet_display_flag,title_display_flag,link_slot_enabled,link_type_a,link_type_b,pc_room_state,champion_break_key_id,champion_break_mode,champion_break_value,crystal_cube_type,crystal_cube_grade,dimension_flag1,dimension_flag2,dimension_flag3,dimension_flag4)
+                VALUES(22,108,1008,1018,1021,0,0,1,1010,1,1012,1013,1016,1017,128,110,111,112,113,X'0102030405060708',1015,0,114,1019,118,0,117,116,1,1020,121,122,123,124,125,1,119,120,1053,1050,1051,1052,1,7,1,2,3,4);
+            INSERT INTO character_pvp(character_id,skills_initialized,pvp_grade,pvp_rating_grade,pvp_rank_point,pvp_stat_a,pvp_win_streak,pvp_lose_streak)
+                VALUES(22,0,105,106,1014,1022,126,127);
+            INSERT INTO character_settings(character_id,character_option_blob,user_state_bits)
+                VALUES(22,X'00A2',1011);
             INSERT INTO character_dimensions VALUES(22,0,9,1,2);
-            INSERT INTO character_dimension_flags VALUES(22,1,2,3,4);
-            INSERT INTO character_init_flags(character_id,champion_break_key_id,champion_break_mode,champion_break_value,character_option_blob,pc_room_state)
-                VALUES(22,1050,1051,1052,X'00A2',1053);
             INSERT INTO character_hotkey_slots VALUES(22,0,20),(22,1,10);
             INSERT INTO character_skills VALUES(22,0,4,100,5,X'0908');
             INSERT INTO character_active_quests VALUES(22,2,200,6);
             INSERT INTO character_quest_notify_selections VALUES(22,0,201);
-            INSERT INTO character_invisible_falgs VALUES(22,200,1);
+            INSERT INTO character_invisible_flags VALUES(22,200,1);
             INSERT INTO character_growth_weapon_stages VALUES(22,0,2);
-            INSERT INTO character_crystal_contract VALUES(22,1,7);
-            INSERT INTO character_gold_limits(character_id,gold_carry_limit,auction_gold_limit)
-                VALUES(22,600000000,600000000);
-            INSERT INTO character_daily_challenge_groups VALUES(22,0,900);
+            INSERT INTO character_daily_challenges(character_id,group_index,group_id,claimed_at)
+                VALUES(22,0,900,'2020-01-02 03:04:05');
             INSERT INTO character_daily_challenge_entries VALUES(22,0,0,901,10,20);
-            INSERT INTO character_daily_challenge_claims(character_id,group_index) VALUES(22,0);
             INSERT INTO character_daily_challenge_tail_ids VALUES(22,0,902);
             INSERT INTO character_daily_schedule_states
                 VALUES(22,0,1,2,3,4),(22,1,5,6,7,8),(22,2,9,10,11,12);
@@ -126,7 +126,8 @@ public sealed class EntryLoadCharacterizationTests
                 VALUES(22,0,1,@core);
             INSERT INTO character_achievement_complete VALUES(22,0,500,1,2,3,4);
             INSERT INTO character_collectbox_slots VALUES(22,3,0,700);
-            INSERT INTO character_expert_job VALUES(22,1,3,4,5);
+            INSERT INTO character_expert_job(character_id,giveup_count,disjoint_machine_grade,disjoint_machine_endurance,enchanter_endurance,expert_job_type,expert_job_exp)
+                VALUES(22,1,3,4,5,109,1009);
             INSERT INTO character_expert_job_recipes VALUES(22,70);
             INSERT INTO mailbox_messages(message_id,sender_character_id,sender_name,
                 receiver_character_id,title,body,gold,mail_type,source_protocol,expire_at,created_at)

@@ -563,7 +563,7 @@ public sealed class InventoryLoadCharacterizationTests
             INSERT INTO character_container_state(character_id,list_type,list_param16)
             VALUES({Character},1,4444),({Character},0,3333);
 
-            INSERT INTO character_gold_limits(character_id,gold_carry_limit,auction_gold_limit)
+            INSERT INTO character_stats(character_id,gold_carry_limit,auction_gold_limit)
             VALUES({Character},7777,8888);
 
             INSERT INTO character_item_values(character_id,list_kind,sort_order,item_id,value)

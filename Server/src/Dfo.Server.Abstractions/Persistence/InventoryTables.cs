@@ -60,7 +60,7 @@ public sealed record ContainerStateRow(int CharacterId, int ListType, int Value)
 public sealed record AccountCargoStateRow(
     int AccountId, int SelectionKey, int Value32, int ItemCount);
 
-/// <summary>One row of <c>character_gold_limits</c>.</summary>
+/// <summary>A character's two gold caps, which live with its other derived numbers.</summary>
 public sealed record GoldLimitRow(int CarryLimit, int AuctionLimit);
 
 /// <summary>One row of <c>character_item_values</c>.</summary>

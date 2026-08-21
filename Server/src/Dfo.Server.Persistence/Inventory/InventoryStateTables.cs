@@ -48,7 +48,7 @@ internal sealed class SqliteAccountCargoStateTable(SqliteDatabase database)
             cancellationToken);
 }
 
-/// <summary>The <c>character_gold_limits</c> table.</summary>
+/// <summary>The gold caps, read from <c>character_stats</c> where they now live.</summary>
 internal sealed class SqliteCharacterGoldLimitTable(SqliteDatabase database)
     : ICharacterGoldLimitTable
 {
@@ -57,7 +57,7 @@ internal sealed class SqliteCharacterGoldLimitTable(SqliteDatabase database)
         database.ReadFirstAsync(
             """
             SELECT gold_carry_limit, auction_gold_limit
-            FROM character_gold_limits
+            FROM character_stats
             WHERE character_id = @characterId
             LIMIT 1;
             """,

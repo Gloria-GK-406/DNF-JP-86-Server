@@ -21,9 +21,11 @@ namespace Dfo.Server.Application.Characters;
 internal sealed class CharacterRosterService(
     ICharacterTable characters,
     ICharacterSkillTable skills,
-    ICharacterSubtype0Table subtype0,
-    ICharacterSubtype1Table subtype1,
-    ICharacterInitFlagTable initFlags) : ICharacterRepository
+    ICharacterConditionTable condition,
+    ICharacterStatsTable stats,
+    ICharacterPvpTable pvp,
+    ICharacterSettingsTable settings,
+    ICharacterExpertJobTable expertJob) : ICharacterRepository
 {
     /// <summary>
     /// A new character enters at full health. Written explicitly because the column's schema
@@ -101,11 +103,14 @@ internal sealed class CharacterRosterService(
                 .ConfigureAwait(false);
         }
 
-        // The three rows without which the character cannot be entered.
-        await subtype0.InsertIfAbsentAsync(characterId, cancellationToken).ConfigureAwait(false);
-        await subtype1.InsertIfAbsentAsync(characterId, spec.Stats, FullHpMpPercent, cancellationToken)
+        // The rows without which the character cannot be entered. Each of the five holds one
+        // row per character for as long as the character exists, so this is where they begin.
+        await condition.InsertIfAbsentAsync(characterId, cancellationToken).ConfigureAwait(false);
+        await stats.InsertIfAbsentAsync(characterId, spec.Stats, FullHpMpPercent, cancellationToken)
             .ConfigureAwait(false);
-        await initFlags.InsertIfAbsentAsync(characterId, cancellationToken).ConfigureAwait(false);
+        await pvp.InsertIfAbsentAsync(characterId, cancellationToken).ConfigureAwait(false);
+        await settings.InsertIfAbsentAsync(characterId, cancellationToken).ConfigureAwait(false);
+        await expertJob.InsertIfAbsentAsync(characterId, cancellationToken).ConfigureAwait(false);
         return characterId;
     }
 

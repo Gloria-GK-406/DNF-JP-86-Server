@@ -160,7 +160,7 @@ public sealed class AccountEntryLoadCharacterizationTests
             new SqliteAccountPremiumTable(database),
             new SqliteAccountLotteryProgressTable(database),
             new SqliteCharacterTable(database),
-            new SqliteCharacterInitFlagTable(database),
+            new SqliteCharacterConditionTable(database),
             new SqliteCharacterBuyRestrictTable(database),
             new SqliteCharacterMercenarySupportTable(database));
     }
@@ -193,7 +193,7 @@ public sealed class AccountEntryLoadCharacterizationTests
                 VALUES(31,12,'earlier',1,102,5,0);
             INSERT INTO characters(character_id,account_id,name,job,level,slot_index,delete_flag)
                 VALUES(30,12,'later',1,103,7,0);
-            INSERT INTO character_init_flags(character_id,pc_room_state) VALUES(30,104),(31,104);
+            INSERT INTO character_condition(character_id,pc_room_state) VALUES(30,104),(31,104);
             INSERT INTO character_buy_restrict_items(character_id,sort_order,entry_id,
                 sentinel_or_value,flag)
                 VALUES(31,1013,1014,1015,1016),(30,1017,1018,1019,1020);

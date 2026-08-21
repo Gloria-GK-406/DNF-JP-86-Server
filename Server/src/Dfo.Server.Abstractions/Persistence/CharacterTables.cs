@@ -14,9 +14,6 @@ public sealed record CharacterSummaryRow(
 /// <summary>How far along a character is.</summary>
 public sealed record CharacterProgressRow(int Level, long Experience);
 
-/// <summary>One row of <c>character_init_flags</c>, for the part an account cares about.</summary>
-public sealed record CharacterPcRoomRow(int CharacterId, int PcRoomState);
-
 /// <summary>One row of <c>character_buy_restrict_items</c>.</summary>
 public sealed record CharacterBuyRestrictRow(
     int CharacterId, int SortOrder, int EntryId, int SentinelOrValue, int Flag);
@@ -94,20 +91,6 @@ public interface ICharacterTable
     ValueTask<bool> MarkDeletedAsync(CharacterId characterId, CancellationToken cancellationToken);
 }
 
-/// <summary>The <c>character_init_flags</c> table.</summary>
-public interface ICharacterInitFlagTable
-{
-    /// <summary>
-    /// One row per named character that has one. A character with no row is simply absent, which
-    /// is a fact the caller decides what to make of.
-    /// </summary>
-    ValueTask<IReadOnlyList<CharacterPcRoomRow>> ReadByCharactersAsync(
-        IReadOnlyList<int> characterIds, CancellationToken cancellationToken);
-
-    /// <summary>Gives the character a row unless it has one.</summary>
-    ValueTask InsertIfAbsentAsync(CharacterId characterId, CancellationToken cancellationToken);
-}
-
 /// <summary>What each character may not buy.</summary>
 public interface ICharacterBuyRestrictTable
 {
@@ -165,30 +148,3 @@ public interface ICharacterPvpSkillTable
         CancellationToken cancellationToken);
 }
 
-/// <summary>
-/// The <c>character_pvp_skill_state</c> table.
-/// </summary>
-/// <remarks>
-/// One row per character, and the row's presence is the whole of what it says: this character's
-/// duelling skills have been set up. It holds nothing else.
-/// </remarks>
-public interface ICharacterPvpSkillStateTable
-{
-    ValueTask<bool> ExistsAsync(CharacterId characterId, CancellationToken cancellationToken);
-
-    ValueTask InsertAsync(CharacterId characterId, CancellationToken cancellationToken);
-}
-
-/// <summary>The <c>character_subtype0_fields</c> table.</summary>
-public interface ICharacterSubtype0Table
-{
-    ValueTask InsertIfAbsentAsync(CharacterId characterId, CancellationToken cancellationToken);
-}
-
-/// <summary>The <c>character_subtype1_fields</c> table.</summary>
-public interface ICharacterSubtype1Table
-{
-    ValueTask InsertIfAbsentAsync(
-        CharacterId characterId, CharacterBaseStats stats, int currentHpMpPercent,
-        CancellationToken cancellationToken);
-}

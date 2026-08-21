@@ -17,7 +17,7 @@ namespace Dfo.Server.Application.Characters;
 internal sealed class PvpSkillProfileService(
     ICharacterTable characters,
     ICharacterPvpSkillTable pvpSkills,
-    ICharacterPvpSkillStateTable pvpSkillState) : ICharacterPvpSkillProfileRepository
+    ICharacterPvpTable pvp) : ICharacterPvpSkillProfileRepository
 {
     public async ValueTask<CharacterSkillsEntryState> LoadOrInitializeAsync(
         AccountId accountId,
@@ -33,7 +33,10 @@ internal sealed class PvpSkillProfileService(
             throw new InvalidDataException("PvP skill profile owner does not match the account.");
         }
 
-        if (!await pvpSkillState.ExistsAsync(characterId, cancellationToken).ConfigureAwait(false))
+        var pvpRow = await pvp.FindAsync(characterId, cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidDataException(
+                $"Character {characterId.Value} has no duel-arena row to seed skills against.");
+        if (pvpRow.SkillsInitialized == 0)
         {
             foreach (var page in initialProfile.Pages)
             {
@@ -45,7 +48,8 @@ internal sealed class PvpSkillProfileService(
                 }
             }
 
-            await pvpSkillState.InsertAsync(characterId, cancellationToken).ConfigureAwait(false);
+            await pvp.MarkSkillsInitializedAsync(characterId, cancellationToken)
+                .ConfigureAwait(false);
         }
 
         var pages = new[] { new List<CharacterSkillState>(), new List<CharacterSkillState>() };

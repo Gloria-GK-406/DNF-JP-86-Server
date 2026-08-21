@@ -35,7 +35,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 VALUES(21, 2, 48);
                 INSERT INTO account_cargo_state(account_id, selection_key, value32, item_count)
                 VALUES(11, 16, 3456, 1);
-                INSERT INTO character_gold_limits(character_id, gold_carry_limit, auction_gold_limit)
+                INSERT INTO character_stats(character_id, gold_carry_limit, auction_gold_limit)
                 VALUES(21, 400000000, 500000000);
                 INSERT INTO character_item_values(character_id, list_kind, sort_order, item_id, value)
                 VALUES(21, 'cooltime', 2, 7002, 72),
@@ -534,7 +534,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 selection_key INTEGER NOT NULL,
                 value32 INTEGER NOT NULL,
                 item_count INTEGER NOT NULL);
-            CREATE TABLE character_gold_limits(
+            CREATE TABLE character_stats(
                 character_id INTEGER PRIMARY KEY,
                 gold_carry_limit INTEGER NOT NULL,
                 auction_gold_limit INTEGER NOT NULL);
