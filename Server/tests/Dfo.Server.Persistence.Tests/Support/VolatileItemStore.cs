@@ -1,17 +1,23 @@
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Transactions;
 
-namespace Dfo.Server.Application.Inventory;
+namespace Dfo.Server.Persistence.Tests.Support;
 
 /// <summary>
-/// The store whose items do not outlive the process.
+/// A store whose items do not outlive the process, for the tests that need one.
 /// </summary>
 /// <remarks>
-/// What a dungeon hands the player is kept here. Because nothing is written anywhere, its session
-/// commits by swapping state it already holds, which cannot fail -- so any number of these may take
-/// part in one transaction beside the single durable one.
+/// It used to be production, kept against the day a dungeon would hand the player an inventory of
+/// its own. No dungeon ever did, and nothing ever asked for it, so it is no longer part of the
+/// server. It is still here because two rules the server really has are about stores that are not
+/// durable -- a change to one is allowed outside a use case, and any number of them may settle
+/// beside the single durable one -- and every store the server actually has is durable. Without
+/// one of these, neither rule could be tested at all.
+///
+/// Because nothing is written anywhere, its session commits by swapping state it already holds,
+/// which cannot fail.
 /// </remarks>
-internal sealed class MemoryItemStore : IItemStore
+internal sealed class VolatileItemStore : IItemStore
 {
     private readonly Dictionary<ContainerId, Dictionary<int, StoredItem>> containers = [];
 
@@ -26,7 +32,7 @@ internal sealed class MemoryItemStore : IItemStore
         ArgumentNullException.ThrowIfNull(transaction);
         return transaction.Enlist(
             this.StoreIdentity,
-            () => new MemoryItemStoreSession(this.containers, this.sync));
+            () => new VolatileItemStoreSession(this.containers, this.sync));
     }
 }
 
@@ -36,7 +42,7 @@ internal sealed class MemoryItemStore : IItemStore
 /// committing is one assignment per touched container and has nothing left in it that could fail.
 /// That is what lets any number of these sit beside the single participant whose commit still can.
 /// </remarks>
-internal sealed class MemoryItemStoreSession(
+internal sealed class VolatileItemStoreSession(
     Dictionary<ContainerId, Dictionary<int, StoredItem>> containers,
     object sync) : IItemStoreSession, ITransactionParticipant
 {

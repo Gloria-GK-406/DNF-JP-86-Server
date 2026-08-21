@@ -1,8 +1,9 @@
-using Dfo.Server.Data.Accounts;
-using Dfo.Server.Data.Characters;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Application.Characters;
-using Dfo.Server.Persistence.Characters;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Persistence.Tests.Support;
 using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Persistence.Tests.Characters;
@@ -19,20 +20,22 @@ public sealed class SqliteEntryLifecycleRecoveryTests
                 CREATE TABLE characters(character_id INTEGER PRIMARY KEY,account_id INTEGER NOT NULL,delete_flag INTEGER NOT NULL DEFAULT 0);
                 INSERT INTO characters VALUES(7,3,0);
             """);
-            var repository = new SqliteCharacterPvpSkillProfileRepository(path);
+            var side = new CharacterSide(path);
             var empty = new CharacterSkillsEntryState(
                 [new CharacterSkillPageState(0, []), new CharacterSkillPageState(1, [])], [],
                 new CharacterSkillPointBasisState(0, 0), [], null);
-            var initializedEmpty = await repository.LoadOrInitializeAsync(
-                new AccountId(3), new CharacterId(7), empty, CancellationToken.None);
+            var initializedEmpty = await side.InUseCaseAsync(token =>
+                side.PvpProfile.LoadOrInitializeAsync(
+                    new AccountId(3), new CharacterId(7), empty, token));
             Assert.Empty(initializedEmpty.Pages[0].Skills);
             await ExecuteAsync(path, """
                 INSERT INTO character_pvp_skills(character_id,page_index,slot,skill_id,level,extra_values)
                 VALUES(7,0,4,100,2,X'0102'),(7,1,9,200,3,NULL);
                 """);
 
-            var profile = Assert.IsType<CharacterSkillsEntryState>(await repository.LoadOrInitializeAsync(
-                new AccountId(3), new CharacterId(7), empty, CancellationToken.None));
+            var profile = Assert.IsType<CharacterSkillsEntryState>(
+                await side.InUseCaseAsync(token => side.PvpProfile.LoadOrInitializeAsync(
+                    new AccountId(3), new CharacterId(7), empty, token)));
             Assert.Equal([100], profile.Pages[0].Skills.Select(value => (int)value.SkillId));
             Assert.Equal([200], profile.Pages[1].Skills.Select(value => (int)value.SkillId));
             Assert.Equal(ushort.MaxValue, profile.ProtocolMirror!.Page0Sp);
@@ -62,16 +65,19 @@ public sealed class SqliteEntryLifecycleRecoveryTests
                 VALUES('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa','suitable-dungeon-lucky-star',3,7,7,3,1,
                  '{"characterId":7,"accountId":3,"dungeonId":1,"clearLevel":2,"amount":1}',0,1,1);
                 """);
-            var repository = new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy(), new DungeonEffectRuleService());
-            var outcome = await repository.RecoverAsync(
-                new AccountId(3), new CharacterId(7), CancellationToken.None);
+            var side = new CharacterSide(path);
+            var outcome = await side.InUseCaseAsync(token => side.DungeonRecovery(
+                new ProgressionPolicy(), new DungeonEffectRuleService())
+                .RecoverAsync(new AccountId(3), new CharacterId(7), token));
 
             Assert.Equal(1, outcome.CommittedCount);
             Assert.Equal(5L, await ScalarAsync(path, "SELECT lucky_star FROM accounts WHERE account_id=3"));
             Assert.Equal(2L, await ScalarAsync(path, "SELECT state FROM dungeon_persistent_effect_outbox"));
             Assert.Equal("{\"granted\":true,\"newTotal\":5}", await ScalarStringAsync(path,
                 "SELECT result_json FROM dungeon_persistent_effect_outbox"));
-            var retry = await repository.RecoverAsync(new AccountId(3), new CharacterId(7), CancellationToken.None);
+            var retry = await side.InUseCaseAsync(token => side.DungeonRecovery(
+                new ProgressionPolicy(), new DungeonEffectRuleService())
+                .RecoverAsync(new AccountId(3), new CharacterId(7), token));
             Assert.Equal(0, retry.CommittedCount);
             Assert.Equal(5L, await ScalarAsync(path, "SELECT lucky_star FROM accounts WHERE account_id=3"));
         }
@@ -86,8 +92,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
         {
             await SeedLuckyStarOutboxAsync(path, luckyStar: 999, payloadJson:
                 "{\"characterId\":7,\"accountId\":3,\"dungeonId\":1,\"clearLevel\":2,\"amount\":1}");
-            var outcome = await new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy(), new DungeonEffectRuleService())
-                .RecoverAsync(new AccountId(3), new CharacterId(7), CancellationToken.None);
+            var outcome = await RecoverAsync(path);
 
             Assert.Equal(1, outcome.CommittedCount);
             Assert.Equal(999L, await ScalarAsync(path, "SELECT lucky_star FROM accounts WHERE account_id=3"));
@@ -104,14 +109,16 @@ public sealed class SqliteEntryLifecycleRecoveryTests
         try
         {
             await SeedLuckyStarOutboxAsync(path, luckyStar: 4, payloadJson: "{");
-            var first = new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy(), new DungeonEffectRuleService());
-            var second = new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy(), new DungeonEffectRuleService());
-
+            // Two recoveries, each its own use case, which on one file is two connections. One of
+            // them may be turned away by the database rather than returning an outcome; that is
+            // the same refusal any two concurrent use cases meet, and it is not what this is
+            // about. What it is about is that the record is finished exactly once either way.
             var outcomes = await Task.WhenAll(
-                first.RecoverAsync(new AccountId(3), new CharacterId(7), CancellationToken.None).AsTask(),
-                second.RecoverAsync(new AccountId(3), new CharacterId(7), CancellationToken.None).AsTask());
+                AttemptAsync(path), AttemptAsync(path));
 
-            Assert.Equal(1, outcomes.Sum(value => value.DeadLetterCount));
+            Assert.Contains(outcomes, outcome => outcome is not null);
+            Assert.Equal(1, outcomes.Where(outcome => outcome is not null)
+                .Sum(outcome => outcome!.DeadLetterCount));
             Assert.Equal(4L, await ScalarAsync(path, "SELECT state FROM dungeon_persistent_effect_outbox"));
             Assert.Equal(4L, await ScalarAsync(path, "SELECT lucky_star FROM accounts WHERE account_id=3"));
             Assert.Equal(1L, await ScalarAsync(path,
@@ -145,8 +152,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
                   '{"characterId":7,"accountId":3,"dungeonId":1,"clearLevel":2,"amount":1}',0,2,2);
                 """);
 
-            var outcome = await new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy(), new DungeonEffectRuleService())
-                .RecoverAsync(new AccountId(3), new CharacterId(7), CancellationToken.None);
+            var outcome = await RecoverAsync(path);
 
             Assert.Equal(2, outcome.DeadLetterCount);
             Assert.Equal(0, outcome.CommittedCount);
@@ -175,7 +181,8 @@ public sealed class SqliteEntryLifecycleRecoveryTests
                 INSERT INTO character_skills VALUES(7,0,1,100,4,NULL),
                   (7,0,2,101,1,NULL),(7,0,3,102,5,NULL),(7,0,4,103,3,NULL);
                 """);
-            var repository = new SqliteExpertSkillContractReconciliationRepository(path, new ExpertSkillContractRuleService());
+            var side = new CharacterSide(path);
+            var repository = side.ExpertContracts(new ExpertSkillContractRuleService());
             var definitions = new Dictionary<int, SkillPointCostDefinition>
             {
                 [100] = new(100, false, [10], false, 1, 10, 0, 1, 1, OrdinaryMaximumLevel: 2),
@@ -183,21 +190,24 @@ public sealed class SqliteEntryLifecycleRecoveryTests
                 [102] = new(102, false, [10], false, 1, 10, 0, 1, 1, OrdinaryMaximumLevel: null),
                 [103] = new(103, false, [10], false, 10, 10, 0, 1, 1, OrdinaryMaximumLevel: 0),
             };
-            Assert.False(await repository.ReconcileAsync(new AccountId(3), new CharacterId(7),
-                new HashSet<int> { 580 }, definitions, new Dictionary<int, byte>(), CancellationToken.None));
+            Assert.False(await side.InUseCaseAsync(token => repository.ReconcileAsync(
+                new AccountId(3), new CharacterId(7), new HashSet<int> { 580 }, definitions,
+                new Dictionary<int, byte>(), token)));
             Assert.Equal(4L, await ScalarAsync(path, "SELECT level FROM character_skills"));
 
             await ExecuteAsync(path, "UPDATE account_premiums SET end_time=1");
-            Assert.True(await repository.ReconcileAsync(new AccountId(3), new CharacterId(7),
-                new HashSet<int> { 580 }, definitions, new Dictionary<int, byte> { [103] = 1 }, CancellationToken.None));
+            Assert.True(await side.InUseCaseAsync(token => repository.ReconcileAsync(
+                new AccountId(3), new CharacterId(7), new HashSet<int> { 580 }, definitions,
+                new Dictionary<int, byte> { [103] = 1 }, token)));
             Assert.Equal(2L, await ScalarAsync(path, "SELECT level FROM character_skills"));
             Assert.Equal(0L, await ScalarAsync(path, "SELECT COUNT(*) FROM character_skills WHERE skill_id=101"));
             Assert.Equal(5L, await ScalarAsync(path, "SELECT level FROM character_skills WHERE skill_id=102"));
             Assert.Equal(1L, await ScalarAsync(path, "SELECT level FROM character_skills WHERE skill_id=103"));
             await ExecuteAsync(path, "UPDATE characters SET account_id=4; UPDATE character_skills SET level=4");
-            await Assert.ThrowsAsync<InvalidDataException>(async () => await repository.ReconcileAsync(
-                new AccountId(3), new CharacterId(7), new HashSet<int> { 580 }, definitions,
-                new Dictionary<int, byte>(), CancellationToken.None));
+            await Assert.ThrowsAsync<InvalidDataException>(async () => await side.InUseCaseAsync(
+                token => repository.ReconcileAsync(
+                    new AccountId(3), new CharacterId(7), new HashSet<int> { 580 }, definitions,
+                    new Dictionary<int, byte>(), token)));
             Assert.Equal(4L, await ScalarAsync(path, "SELECT level FROM character_skills"));
         }
         finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
@@ -229,8 +239,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
                  ('xp','settlement-experience-grant',3,7,7,3,1,
                  '{"characterId":7,"accountId":3,"previousLevel":85,"previousExp":100,"rawGain":25,"normalizeMaxLevelExp":true,"expectedDatabaseLevel":85,"expectedDatabaseExp":100}',1,0,2,2);
                 """);
-            var result = await new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy(), new DungeonEffectRuleService()).RecoverAsync(
-                new AccountId(3), new CharacterId(7), CancellationToken.None);
+            var result = await RecoverAsync(path);
 
             Assert.Equal(1, result.CommittedCount);
             Assert.Equal(1, result.DeadLetterCount);
@@ -267,8 +276,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
                  '{"characterId":7,"accountId":3,"previousLevel":85,"previousExp":84990,"rawGain":25,"normalizeMaxLevelExp":true,"expectedDatabaseLevel":85,"expectedDatabaseExp":84000}',0,1,1);
                 """);
 
-            var outcome = await new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy(), new DungeonEffectRuleService())
-                .RecoverAsync(new AccountId(3), new CharacterId(7), CancellationToken.None);
+            var outcome = await RecoverAsync(path);
 
             Assert.Equal(1, outcome.CommittedCount);
             Assert.Equal(86L, await ScalarAsync(path, "SELECT level FROM characters WHERE character_id=7"));
@@ -299,8 +307,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
             await SeedExperienceOutboxAsync(path, level: 86, exp: 84000,
                 """{"characterId":7,"accountId":3,"previousLevel":86,"previousExp":84000,"rawGain":25,"normalizeMaxLevelExp":true,"expectedDatabaseLevel":86,"expectedDatabaseExp":84000}""");
 
-            var outcome = await new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy(), new DungeonEffectRuleService())
-                .RecoverAsync(new AccountId(3), new CharacterId(7), CancellationToken.None);
+            var outcome = await RecoverAsync(path);
 
             Assert.Equal(1, outcome.CommittedCount);
             Assert.Equal(86L, await ScalarAsync(path, "SELECT level FROM characters WHERE character_id=7"));
@@ -326,8 +333,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
             await SeedExperienceOutboxAsync(path, level: 85, exp: 80000,
                 """{"characterId":7,"accountId":3,"previousLevel":85,"previousExp":80000,"rawGain":25,"normalizeMaxLevelExp":false,"expectedDatabaseLevel":85,"expectedDatabaseExp":80000}""");
 
-            var outcome = await new SqliteDungeonPersistentEffectRecoveryRepository(path, new ProgressionPolicy(), new DungeonEffectRuleService())
-                .RecoverAsync(new AccountId(3), new CharacterId(7), CancellationToken.None);
+            var outcome = await RecoverAsync(path);
 
             Assert.Equal(1, outcome.CommittedCount);
             Assert.Equal(85L, await ScalarAsync(path, "SELECT level FROM characters WHERE character_id=7"));
@@ -336,6 +342,63 @@ public sealed class SqliteEntryLifecycleRecoveryTests
             Assert.Equal(2L, await ScalarAsync(path, "SELECT growth_capsule_exp FROM accounts WHERE account_id=3"));
         }
         finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    /// <summary>SQLITE_BUSY: another connection holds what this one wants.</summary>
+    private const int SqliteBusy = 5;
+
+    /// <summary>SQLITE_LOCKED: the same file, held within this process.</summary>
+    private const int SqliteLocked = 6;
+
+    /// <summary>One recovery that reports nothing when the database turns it away.</summary>
+    private static async Task<DungeonPersistentEffectRecoveryOutcome?> AttemptAsync(string path)
+    {
+        try
+        {
+            return await RecoverAsync(path);
+        }
+        catch (SqliteException error) when (
+            error.SqliteErrorCode is SqliteBusy or SqliteLocked)
+        {
+            // Only the database saying someone else is writing. Any other SQL error is a defect
+            // and is left to fail the test.
+            return null;
+        }
+    }
+
+    /// <remarks>
+    /// The account the effect names is gone. Nothing about the update says so on its own -- it
+    /// matches no row and reports no error -- so without the guard the outbox would call the
+    /// effect carried out and record that the player was given a lucky star.
+    /// </remarks>
+    [Fact]
+    public async Task DungeonLuckyStarRecovery_AnAccountThatIsNotThereIsADeadLetterRatherThanAGrant()
+    {
+        var path = TempPath();
+        try
+        {
+            await SeedLuckyStarOutboxAsync(path, luckyStar: 4, payloadJson:
+                "{\"characterId\":7,\"accountId\":3,\"dungeonId\":1,\"clearLevel\":2,\"amount\":1}");
+            await ExecuteAsync(path, "DELETE FROM accounts WHERE account_id=3");
+
+            var outcome = await RecoverAsync(path);
+
+            Assert.Equal(0, outcome.CommittedCount);
+            Assert.Equal(1, outcome.DeadLetterCount);
+            Assert.Equal(4L, await ScalarAsync(path, "SELECT state FROM dungeon_persistent_effect_outbox"));
+            Assert.Equal("Dungeon persistent effect mutation did not affect its exact owner.",
+                await ScalarStringAsync(path, "SELECT last_error FROM dungeon_persistent_effect_outbox"));
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    /// <summary>One recovery, in one use case, the way the entry command runs it.</summary>
+    private static Task<DungeonPersistentEffectRecoveryOutcome> RecoverAsync(string path)
+    {
+        var side = new CharacterSide(path);
+        return side.InUseCaseAsync(token => side
+            .DungeonRecovery(new ProgressionPolicy(), new DungeonEffectRuleService())
+            .RecoverAsync(new AccountId(3), new CharacterId(7), token));
     }
 
     private static string TempPath() => Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");

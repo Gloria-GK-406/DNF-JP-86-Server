@@ -1,4 +1,4 @@
-using Dfo.Server.Persistence.Accounts;
+using Dfo.Server.Persistence.Tests.Support;
 using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Persistence.Tests.Accounts;
@@ -13,13 +13,13 @@ public sealed class SqliteAccountRepositoryTests
         var databasePath = Path.Combine(directory, "accounts.db");
         try
         {
-            var firstRepository = new SqliteAccountRepository(databasePath);
-            var created = await firstRepository.GetOrCreateAsync(
-                "10038", "first-hash", CancellationToken.None);
+            var created = await new AccountSide(databasePath)
+                .GetOrCreateAsync("10038", "first-hash");
 
-            var secondRepository = new SqliteAccountRepository(databasePath);
-            var reused = await secondRepository.GetOrCreateAsync(
-                "10038", "replacement-hash", CancellationToken.None);
+            // A second one over the same file, so that reuse is decided by what is stored rather
+            // than by anything the first left in memory.
+            var reused = await new AccountSide(databasePath)
+                .GetOrCreateAsync("10038", "replacement-hash");
 
             Assert.Equal(created.AccountId, reused.AccountId);
             Assert.Equal("10038", reused.LoginId);

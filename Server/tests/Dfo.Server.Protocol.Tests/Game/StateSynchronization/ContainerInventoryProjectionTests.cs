@@ -6,7 +6,9 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Persistence.Characters;
+using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
+using Dfo.Server.Persistence.Tests.Support;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Data.Sqlite;
 
@@ -88,22 +90,22 @@ public sealed class ContainerInventoryProjectionTests
         private SqliteStorage(string path)
         {
             Path = path;
-            Entries = new SqliteInventoryEntryRepository(path);
-            Mutations = new SqliteEntryInventoryMutationRepository(
-                path, new DailyRefillRuleService(), new ItemArrivalRuleService());
+            var side = new InventorySide(path);
+            Entries = side.PerCall;
+            Mutations = side.MutationsPerCall;
         }
 
         public string Path { get; }
 
-        private SqliteInventoryEntryRepository Entries { get; }
+        private ICharacterInventoryEntryRepository Entries { get; }
 
-        private SqliteEntryInventoryMutationRepository Mutations { get; }
+        private IEntryInventoryMutationRepository Mutations { get; }
 
         public static async Task<SqliteStorage> CreateAsync()
         {
             var path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(), $"dfo-projection-{Guid.NewGuid():N}.db");
-            _ = new SqliteCharacterRepository(path);
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
             var storage = new SqliteStorage(path);
             await using var connection = Open(path);
             await using var command = connection.CreateCommand();

@@ -6,7 +6,7 @@ Declared G3 IDs (51): `1, 7, 8, 9, 10, 11, 12, 13, 14, 16, 18, 19, 20, 21, 22, 2
 
 ## Persistence boundary
 
-`SqliteCharacterEntryStateRepository` reads the normalized legacy tables in one ownership-validated SQLite transaction. It does not persist or deserialize a precomposed domain snapshot. The three mandatory one-to-one rows (`character_subtype0_fields`, `character_subtype1_fields`, `character_init_flags`) must be written by character creation; the entry reader neither backfills nor fabricates them. Collection absence remains an explicit loaded-empty state. Malformed or missing required rows fail before active-character publication.
+`CharacterEntryAssembly` (Application/Characters) reads the normalized legacy tables through one repository per table, all of them sharing the running use case's single transaction, and validates ownership itself. It does not persist or deserialize a precomposed domain snapshot. The three mandatory one-to-one rows (`character_subtype0_fields`, `character_subtype1_fields`, `character_init_flags`) must be written by character creation; the entry reader neither backfills nor fabricates them. Collection absence remains an explicit loaded-empty state. Malformed or missing required rows fail before active-character publication.
 
 Published compatibility bytes are source-specific and bounded: versioned `characters.appearance_blob` is limited to 16 KiB, the subtype-0 creature buffer is absent or exactly 8 bytes, Dark Knight page bodies are limited to 64 KiB, and creature text is limited to 4 KiB. Title item cores are accepted only at exactly 82 bytes and decoded into typed fields before publication. None is a cross-domain snapshot.
 

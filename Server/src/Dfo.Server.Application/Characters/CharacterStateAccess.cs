@@ -96,13 +96,16 @@ internal sealed class AmbientStoreAccess(IDomainTransactionAccessor transactions
 /// Saves the exact place a character was standing when their session was torn down.
 /// </summary>
 /// <remarks>
-/// This runs on connection teardown, which the server deliberately does not model as a command --
-/// so there is no use case boundary around it. Rather than exempting the write from needing one,
-/// it opens a boundary of its own and settles it. The guarantee that matters is that a change to a
-/// character's stored state is settled by a transaction, not that a command was dispatched.
+/// It is reached two ways. Inside a use case -- a session starting, or one ending because another
+/// displaced it -- it writes through that use case. On connection teardown there is no use case at
+/// all, because the server deliberately does not model teardown as a command, and rather than
+/// exempting the write from needing a boundary it opens one of its own. The guarantee that matters
+/// is that a change to a character's stored state is settled by a transaction, not that a command
+/// was dispatched.
 ///
-/// It lives beside the domain rather than in the persistence implementation because opening that
-/// boundary is what it does; the persistence side is only asked to hold the place.
+/// It lives beside the domain rather than in the persistence implementation because deciding which
+/// of those two it is doing is the whole of its job; the persistence side is only asked to hold
+/// the place.
 /// </remarks>
 internal sealed class SelectedSessionPositionPersistence(
     ICharacterStore? store, IDomainTransactionAccessor transactions)
@@ -115,16 +118,6 @@ internal sealed class SelectedSessionPositionPersistence(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(position);
-        if (transactions.Current is not null)
-        {
-            // This exists to open a boundary where there is none. Settling one of its own beside
-            // an open one would put the same database on a second connection and leave the two to
-            // finish independently -- which is the thing the boundary exists to prevent.
-            throw new InvalidOperationException(
-                "Where a character was standing is saved outside a use case; a use case is open, "
-                + "so it should be saved through that instead.");
-        }
-
         if (store is null)
         {
             throw new InvalidOperationException(
@@ -132,11 +125,26 @@ internal sealed class SelectedSessionPositionPersistence(
                 + "standing cannot be saved.");
         }
 
+        var owned = new OwnedCharacterId(accountId, characterId);
+        if (transactions.Current is { } ambient)
+        {
+            // The use case settles this one. Opening a second boundary beside it would put the
+            // same database on another connection and leave the two to finish independently --
+            // the very thing a boundary exists to prevent.
+            store.SessionIn(ambient).WritePosition(owned, position);
+            return;
+        }
+
+        await this.AloneAsync(owned, position, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async ValueTask AloneAsync(
+        OwnedCharacterId owned, CharacterPositionState position, CancellationToken cancellationToken)
+    {
         var alone = new DomainTransaction();
         try
         {
-            store.SessionIn(alone)
-                .WritePosition(new OwnedCharacterId(accountId, characterId), position);
+            store!.SessionIn(alone).WritePosition(owned, position);
             await alone.CommitAsync(cancellationToken).ConfigureAwait(false);
         }
         catch

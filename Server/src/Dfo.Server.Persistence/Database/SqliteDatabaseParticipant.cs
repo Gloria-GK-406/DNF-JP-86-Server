@@ -64,16 +64,27 @@ internal sealed class SqliteDatabaseParticipant(string connectionString) : ITran
 
     /// <summary>
     /// A command on this use case's connection, inside its database transaction, opening the
-    /// connection on first use.
+    /// connection and beginning the transaction on first use.
     /// </summary>
     /// <remarks>
     /// Facets are given commands rather than the connection, so that a statement cannot be issued
     /// outside the transaction this participant is holding open. Handing out the connection would
     /// leave every facet responsible for remembering to attach it.
+    ///
+    /// The transaction begins here rather than at prepare because reads need it too. A use case
+    /// that reads several tables is asking one question in several statements; without a
+    /// transaction spanning them, someone else's commit can land in the middle and the answer
+    /// describes two different worlds with nothing to say which parts came from which.
+    ///
+    /// It is deferred on purpose. The default takes the database's one write lock at once, which
+    /// would make every use case -- including a character entering the game, which only reads --
+    /// stop everyone else from writing for as long as it ran. Deferred takes only what each
+    /// statement needs, so a use case that never writes never blocks a use case that does.
     /// </remarks>
     internal async ValueTask<SqliteCommand> CommandAsync(CancellationToken cancellationToken)
     {
         var link = await this.OpenAsync(cancellationToken).ConfigureAwait(false);
+        this.pending ??= link.BeginTransaction(deferred: true);
         var command = link.CreateCommand();
         command.Transaction = this.pending;
         return command;
@@ -118,8 +129,10 @@ internal sealed class SqliteDatabaseParticipant(string connectionString) : ITran
         }
 
         var link = await this.OpenAsync(cancellationToken).ConfigureAwait(false);
-        this.pending = (SqliteTransaction)await link
-            .BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        // Whoever read first already began it, and beginning a second one on the same connection
+        // is not a thing SQLite offers. Deferred like the reads' one: the write lock is taken by
+        // the first statement below that needs it, not by the act of starting.
+        this.pending ??= link.BeginTransaction(deferred: true);
 
         foreach (var facet in this.order)
         {

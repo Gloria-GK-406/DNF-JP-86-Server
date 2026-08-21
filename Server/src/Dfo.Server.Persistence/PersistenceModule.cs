@@ -1,10 +1,13 @@
 using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Persistence;
+using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Persistence.Accounts;
 using Dfo.Server.Persistence.Characters;
+using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,37 +40,138 @@ public sealed class PersistenceModule : IServerModule
         var databasePath = Path.IsPathRooted(configuredDatabasePath)
             ? configuredDatabasePath
             : Path.Combine(AppContext.BaseDirectory, configuredDatabasePath);
-        services.TryAddSingleton<IAccountRepository>(
-            _ => new SqliteAccountRepository(databasePath));
-        services.TryAddSingleton<IAccountEntryStateRepository>(
-            _ => new SqliteAccountEntryStateRepository(databasePath));
-        services.TryAddSingleton<ICharacterRepository>(
-            _ => new SqliteCharacterRepository(databasePath));
-        services.TryAddSingleton(
-            _ => new SqliteInventoryEntryRepository(databasePath));
-        services.TryAddSingleton<ICharacterInventoryEntryRepository>(
-            provider => provider.GetRequiredService<SqliteInventoryEntryRepository>());
-        services.TryAddSingleton<IAccountInventoryEntryRepository>(
-            provider => provider.GetRequiredService<SqliteInventoryEntryRepository>());
-        services.TryAddSingleton<IEntryInventoryLeasePersistence>(
-            provider => provider.GetRequiredService<SqliteInventoryEntryRepository>());
-        services.TryAddSingleton<ICharacterEntryStateRepository>(
-            provider => new SqliteCharacterEntryStateRepository(
-                databasePath, provider.GetRequiredService<IGoldLimitRuleService>()));
-        services.TryAddSingleton<ICharacterPvpSkillProfileRepository>(
-            _ => new SqliteCharacterPvpSkillProfileRepository(databasePath));
-        services.TryAddSingleton<IDungeonPersistentEffectRecoveryRepository>(
-            provider => new SqliteDungeonPersistentEffectRecoveryRepository(databasePath,
-                provider.GetRequiredService<IDungeonExperienceProgressionPolicySource>(),
-                provider.GetRequiredService<IDungeonEffectRuleService>()));
-        services.TryAddSingleton<IExpertSkillContractReconciliationRepository>(
-            provider => new SqliteExpertSkillContractReconciliationRepository(
-                databasePath, provider.GetRequiredService<IExpertSkillContractRuleService>()));
-        services.TryAddSingleton<IEntryInventoryMutationRepository>(
-            provider => new SqliteEntryInventoryMutationRepository(
-                databasePath,
-                provider.GetRequiredService<IDailyRefillRuleService>(),
-                provider.GetRequiredService<IItemArrivalRuleService>()));
+        // The database first: it is what every table below reaches through, and it is what
+        // puts the file in shape.
+        services.TryAddSingleton(provider => new SqliteDatabase(
+            databasePath, provider.GetRequiredService<IDomainTransactionAccessor>()));
+        services.TryAddSingleton<IAccountTable>(
+            provider => new SqliteAccountTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<IAccountSettingsTable>(
+            provider => new SqliteAccountSettingsTable(
+                provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<IAccountPremiumTable>(
+            provider => new SqliteAccountPremiumTable(
+                provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<IAccountLotteryProgressTable>(
+            provider => new SqliteAccountLotteryProgressTable(
+                provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterTable>(
+            provider => new SqliteCharacterTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterInitFlagTable>(
+            provider => new SqliteCharacterInitFlagTable(
+                provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterSkillTable>(
+            provider => new SqliteCharacterSkillTable(
+                provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterPvpSkillTable>(
+            provider => new SqliteCharacterPvpSkillTable(
+                provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterPvpSkillStateTable>(
+            provider => new SqliteCharacterPvpSkillStateTable(
+                provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterSubtype0Table>(
+            provider => new SqliteCharacterSubtype0Table(
+                provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterSubtype1Table>(
+            provider => new SqliteCharacterSubtype1Table(
+                provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<IDungeonEffectOutboxTable>(
+            provider => new SqliteDungeonEffectOutboxTable(
+                provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterBuyRestrictTable>(
+            provider => new SqliteCharacterBuyRestrictTable(
+                provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterMercenarySupportTable>(
+            provider => new SqliteCharacterMercenarySupportTable(
+                provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterItemTable>(
+            provider => new SqliteCharacterItemTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<IAccountCargoItemTable>(
+            provider => new SqliteAccountCargoItemTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterAvatarDetailTable>(
+            provider => new SqliteCharacterAvatarDetailTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterContainerStateTable>(
+            provider => new SqliteCharacterContainerStateTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<IAccountCargoStateTable>(
+            provider => new SqliteAccountCargoStateTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterGoldLimitTable>(
+            provider => new SqliteCharacterGoldLimitTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterItemValueTable>(
+            provider => new SqliteCharacterItemValueTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterItemLockTable>(
+            provider => new SqliteCharacterItemLockTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterRentalTable>(
+            provider => new SqliteCharacterRentalTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ILegacyRentalTable>(
+            provider => new SqliteLegacyRentalTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ILegacyCharacterItemTable>(
+            provider => new SqliteLegacyCharacterItemTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ILegacyAccountCargoTable>(
+            provider => new SqliteLegacyAccountCargoTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterDailyCounterTable>(
+            provider => new SqliteCharacterDailyCounterTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterEntryTable>(
+            provider => new SqliteCharacterEntryTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterSubtype0EntryTable>(
+            provider => new SqliteCharacterSubtype0EntryTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterSubtype1EntryTable>(
+            provider => new SqliteCharacterSubtype1EntryTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterInitFlagEntryTable>(
+            provider => new SqliteCharacterInitFlagEntryTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterHotkeyTable>(
+            provider => new SqliteCharacterHotkeyTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterDimensionTable>(
+            provider => new SqliteCharacterDimensionTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterDimensionFlagTable>(
+            provider => new SqliteCharacterDimensionFlagTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterComboPageTable>(
+            provider => new SqliteCharacterComboPageTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterShieldDeckTable>(
+            provider => new SqliteCharacterShieldDeckTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterActiveQuestTable>(
+            provider => new SqliteCharacterActiveQuestTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterQuestNotifyTable>(
+            provider => new SqliteCharacterQuestNotifyTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterQuestClearFlagTable>(
+            provider => new SqliteCharacterQuestClearFlagTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterGrowthWeaponTable>(
+            provider => new SqliteCharacterGrowthWeaponTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterCrystalContractTable>(
+            provider => new SqliteCharacterCrystalContractTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterDailyChallengeGroupTable>(
+            provider => new SqliteCharacterDailyChallengeGroupTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterDailyChallengeClaimTable>(
+            provider => new SqliteCharacterDailyChallengeClaimTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterDailyChallengeEntryTable>(
+            provider => new SqliteCharacterDailyChallengeEntryTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterDailyChallengeTailTable>(
+            provider => new SqliteCharacterDailyChallengeTailTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterDailyScheduleTable>(
+            provider => new SqliteCharacterDailyScheduleTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterDungeonPermissionTable>(
+            provider => new SqliteCharacterDungeonPermissionTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterDailyCounterValueTable>(
+            provider => new SqliteCharacterDailyCounterValueTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterCreatureTable>(
+            provider => new SqliteCharacterCreatureTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterTitleBookTable>(
+            provider => new SqliteCharacterTitleBookTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterAchievementTable>(
+            provider => new SqliteCharacterAchievementTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterCollectionBoxTable>(
+            provider => new SqliteCharacterCollectionBoxTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterExpertJobTable>(
+            provider => new SqliteCharacterExpertJobTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterExpertRecipeTable>(
+            provider => new SqliteCharacterExpertRecipeTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<ICharacterPvpMissionTable>(
+            provider => new SqliteCharacterPvpMissionTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<IMailboxRecipientTable>(
+            provider => new SqliteMailboxRecipientTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<IMailboxMessageTable>(
+            provider => new SqliteMailboxMessageTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<IMailboxAttachmentTable>(
+            provider => new SqliteMailboxAttachmentTable(provider.GetRequiredService<SqliteDatabase>()));
         // The one store whose commit can still fail, and so the one a use case may hold. It is
         // registered as the item store without qualification because it is the one that keeps
         // things; the store that does not is asked for by its own name.

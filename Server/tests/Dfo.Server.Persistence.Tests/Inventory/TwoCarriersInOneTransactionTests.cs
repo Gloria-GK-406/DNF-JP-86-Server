@@ -5,7 +5,9 @@ using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Persistence.Characters;
+using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
+using Dfo.Server.Persistence.Tests.Support;
 using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Persistence.Tests.Inventory;
@@ -88,7 +90,7 @@ public sealed class TwoCarriersInOneTransactionTests
 
         public SqliteItemStore SecondDurable { get; }
 
-        public MemoryItemStore Volatile { get; } = new();
+        public VolatileItemStore Volatile { get; } = new();
 
         public static async Task<Fixture> CreateAsync()
         {
@@ -163,8 +165,8 @@ public sealed class TwoCarriersInOneTransactionTests
         {
             var path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(), $"dfo-both-{Guid.NewGuid():N}.db");
-            _ = new SqliteInventoryEntryRepository(path);
-            _ = new SqliteCharacterRepository(path);
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
             return path;
         }
 

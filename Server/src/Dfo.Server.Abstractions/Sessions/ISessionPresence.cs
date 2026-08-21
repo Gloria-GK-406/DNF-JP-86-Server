@@ -94,6 +94,21 @@ public interface ISelectedSessionRuntimeDirectory
 /// <summary>Narrow peripheral seam used to save the last exact runtime position during cleanup.</summary>
 public interface ISelectedSessionPositionPersistence
 {
+    /// <summary>
+    /// Saves it through the use case that is running, or on its own when none is.
+    /// </summary>
+    /// <remarks>
+    /// A session can end while something else is under way -- selecting a character displaces the
+    /// account's previous one, and that one's teardown happens inside the new selection. It joins
+    /// that use case rather than settling beside it. Settling beside it would mean a second
+    /// connection to the same database while the first is holding a view of it, and once the
+    /// repositories on this path reach the database through the use case, the first one can no
+    /// longer write: what it is looking at is no longer what is there.
+    ///
+    /// The cost is that a selection which fails takes the displaced character's last position with
+    /// it, leaving the one stored before. That is a small and bounded loss, and the alternative is
+    /// a selection that cannot happen at all.
+    /// </remarks>
     ValueTask PersistAsync(
         AccountId accountId,
         CharacterId characterId,

@@ -13,16 +13,16 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Infrastructure;
-using Dfo.Server.Persistence.Inventory;
 using Dfo.Server.Networking;
-using Dfo.Server.Persistence;
 using Dfo.Server.Networking.Framing;
 using Dfo.Server.Networking.Runtime;
+using Dfo.Server.Persistence;
+using Dfo.Server.Persistence.Inventory;
+using Dfo.Server.Protocol.Game;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Dfo.Server.Protocol.Game;
 using TouchSocketSessionClient = TouchSocket.Sockets.ITcpSessionClient;
 
 namespace Dfo.Server.Protocol.Tests.Game;
@@ -220,7 +220,7 @@ public sealed class ItemPathLiveTests
             "INSERT INTO character_new_items(owner_scope,owner_id,character_id,list_type,"
             + "slot_index,item_core) VALUES('character',60,60,0,65,@core)";
         item.Parameters.AddWithValue(
-            "@core", SqliteInventoryEntryRepository.EncodeItemCore(Core()));
+            "@core", InventoryItemCore.Encode(Core()));
         await item.ExecuteNonQueryAsync();
     }
 
@@ -235,7 +235,7 @@ public sealed class ItemPathLiveTests
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var core = SqliteInventoryEntryRepository.DecodeItemCore((byte[])reader.GetValue(1));
+            var core = InventoryItemCore.Decode((byte[])reader.GetValue(1));
             rows.Add((reader.GetInt32(0), core.ItemId, core.Value));
         }
 

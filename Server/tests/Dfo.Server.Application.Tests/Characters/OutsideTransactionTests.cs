@@ -3,11 +3,14 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Persistence.Characters;
+using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
+using Dfo.Server.Persistence.Tests.Support;
 using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Application.Tests.Characters;
@@ -65,7 +68,7 @@ public sealed class OutsideTransactionTests
     public async Task ChangingSomethingThatOutlivesNothingIsAllowedOutsideAUseCase()
     {
         var access = new AmbientStoreAccess(new ClosedTransactionAccessor());
-        var run = new MemoryItemStore();
+        var run = new VolatileItemStore();
         var dungeon = new ContainerId("dungeon");
 
         await access.ChangeAsync(
@@ -94,6 +97,99 @@ public sealed class OutsideTransactionTests
             new RandomOptionState(0, 0, 0), 0, byte.MaxValue, 0, new RandomOptionState(0, 0, 0),
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
+    /// <summary>
+    /// Where a character was standing, saved from inside a use case and from outside one.
+    /// </summary>
+    /// <remarks>
+    /// This seam is reached both ways and has to behave differently in each. Inside a use case it
+    /// must write through that one, or the place a character is standing would settle on a second
+    /// connection independently of everything else the use case decided. Outside one -- connection
+    /// teardown, which is not a command -- it must open a boundary rather than skip having one.
+    /// </remarks>
+    [Fact]
+    public async Task WhereACharacterWasStandingIsSavedThroughAnOpenUseCase()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var scope = new DomainTransactionScope();
+        var persistence = new SelectedSessionPositionPersistence(fixture.Characters, scope);
+        var moved = new CharacterPositionState(11, 22, 33, 44, 1);
+
+        await using (var lease = scope.Begin())
+        {
+            await persistence.PersistAsync(
+                Owned.Account, Owned.Character, moved, CancellationToken.None);
+
+            // Still inside the use case, so nothing outside it can see the change yet. The row
+            // exists either way, so what is asserted is that it still says where it said before.
+            Assert.NotEqual(moved, await ReadPositionAsync(fixture));
+            await lease.CommitAsync(CancellationToken.None);
+        }
+
+        Assert.Equal(moved, await ReadPositionAsync(fixture));
+    }
+
+    [Fact]
+    public async Task WhereACharacterWasStandingIsSavedWhenNoUseCaseIsOpen()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var persistence = new SelectedSessionPositionPersistence(
+            fixture.Characters, new ClosedTransactionAccessor());
+        var moved = new CharacterPositionState(11, 22, 33, 44, 1);
+
+        await persistence.PersistAsync(
+            Owned.Account, Owned.Character, moved, CancellationToken.None);
+
+        Assert.Equal(moved, await ReadPositionAsync(fixture));
+    }
+
+    /// <summary>A session ending inside another use case settles with that use case.</summary>
+    /// <remarks>
+    /// Selecting a character displaces whatever the account had selected before, and that session's
+    /// teardown happens inside the new selection. It writes through that selection rather than
+    /// beside it, so a selection that fails takes the departing character's last position with it.
+    ///
+    /// That is a deliberate trade. Settling beside it would put a second connection on the same
+    /// database while the selection is holding a view of it, and once the repositories on this path
+    /// reach the database through the use case, the selection can no longer write at all -- what it
+    /// is looking at is no longer what is there. A rare failure that leaves a slightly older stored
+    /// position is a smaller cost than a selection that cannot happen.
+    /// </remarks>
+    [Fact]
+    public async Task ASessionEndingInsideAnotherUseCaseSettlesWithIt()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var scope = new DomainTransactionScope();
+        var persistence = new SelectedSessionPositionPersistence(fixture.Characters, scope);
+        var departed = new CharacterPositionState(11, 22, 33, 44, 1);
+
+        await using (var failing = scope.Begin())
+        {
+            await persistence.PersistAsync(
+                Owned.Account, Owned.Character, departed, CancellationToken.None);
+            _ = failing;
+        }
+
+        Assert.NotEqual(departed, await ReadPositionAsync(fixture));
+
+        await using (var succeeding = scope.Begin())
+        {
+            await persistence.PersistAsync(
+                Owned.Account, Owned.Character, departed, CancellationToken.None);
+            await succeeding.CommitAsync(CancellationToken.None);
+        }
+
+        Assert.Equal(departed, await ReadPositionAsync(fixture));
+    }
+
+    private static async ValueTask<CharacterPositionState?> ReadPositionAsync(Fixture fixture)
+    {
+        var reading = new DomainTransaction();
+        var position = await fixture.Characters.SessionIn(reading)
+            .ReadPositionAsync(Owned, CancellationToken.None);
+        await reading.CommitAsync(CancellationToken.None);
+        return position;
+    }
+
     private sealed class ClosedTransactionAccessor : IDomainTransactionAccessor
     {
         public IDomainTransaction? Current => null;
@@ -115,7 +211,7 @@ public sealed class OutsideTransactionTests
         {
             var path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(), $"dfo-outside-{Guid.NewGuid():N}.db");
-            _ = new SqliteCharacterRepository(path);
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
             var fixture = new Fixture(path);
             await using var connection = new SqliteConnection(
                 new SqliteConnectionStringBuilder { DataSource = path }.ToString());

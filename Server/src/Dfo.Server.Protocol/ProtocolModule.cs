@@ -90,8 +90,13 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Direct);
         services.AddCommandHandler<AcknowledgeGameExitCommand, AcknowledgeGameExitResult, AcknowledgeGameExitCommandHandler>(
             CommandExecutionKind.Direct);
+        // Every command below reaches a write that outlives the process, so every one of them
+        // opens a use case boundary. A write with no boundary settles on its own: it looks like it
+        // worked, it is not taken back by whatever else the command was doing, and no test shows
+        // it, because a lone write does succeed. The kind decides only that -- the pipeline treats
+        // Direct, Workflow and Transactional identically everywhere else.
         services.AddCommandHandler<LoginGameUserCommand, LoginGameUserResult, LoginGameUserCommandHandler>(
-            CommandExecutionKind.Direct,
+            CommandExecutionKind.Transactional,
             UserAccessMode.Exclusive);
         services.AddCommandHandler<GetAccountCharacterRosterCommand, AccountCharacterRoster, GetAccountCharacterRosterCommandHandler>(
             CommandExecutionKind.Direct,
@@ -104,16 +109,16 @@ public sealed class ProtocolModule : IServerModule
         // against it, so they take the account exclusively. Two concurrent creations sharing access
         // would compute the same next slot.
         services.AddCommandHandler<CreateCharacterCommand, CharacterCreationResult, CreateCharacterCommandHandler>(
-            CommandExecutionKind.Direct,
+            CommandExecutionKind.Transactional,
             accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<DeleteCharacterCommand, CharacterDeletionResult, DeleteCharacterCommandHandler>(
-            CommandExecutionKind.Direct,
+            CommandExecutionKind.Transactional,
             accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<PrepareSelectedCharacterSessionCommand, PreparedSelectedCharacterSession, PrepareSelectedCharacterSessionCommandHandler>(
-            CommandExecutionKind.Workflow,
+            CommandExecutionKind.Transactional,
             accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<ApplySelectedCharacterDailyRefillCommand, EntryInventoryPreparation, ApplySelectedCharacterDailyRefillCommandHandler>(
-            CommandExecutionKind.Workflow,
+            CommandExecutionKind.Transactional,
             accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<PublishSelectedCharacterSessionCommand, PublishedSelectedCharacterSession, PublishSelectedCharacterSessionCommandHandler>(
             CommandExecutionKind.Workflow,
@@ -131,6 +136,10 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<ReviveSelectedCharacterPetCommand, RevivedSelectedCharacterPet, ReviveSelectedCharacterPetCommandHandler>(
             CommandExecutionKind.Transactional,
             accountAccessMode: UserAccessMode.Exclusive);
+        // Not transactional, deliberately. Compensation is best effort: it collects what failed
+        // and carries on, and it ends by throwing what it collected. A boundary here would take
+        // back everything that had worked because something else did not -- the opposite of what
+        // it is for. Its one lasting write, where the character was standing, settles on its own.
         services.AddCommandHandler<CompensateSelectedCharacterSessionCommand, CompensatedSelectedCharacterSession, CompensateSelectedCharacterSessionCommandHandler>(
             CommandExecutionKind.Workflow,
             accountAccessMode: UserAccessMode.Exclusive);

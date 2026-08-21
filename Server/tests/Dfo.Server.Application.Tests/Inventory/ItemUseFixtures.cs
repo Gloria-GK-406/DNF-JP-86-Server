@@ -4,10 +4,11 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Transactions;
-using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Characters;
-using Dfo.Server.Data.World;
 using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.World;
+using Dfo.Server.Persistence.Tests.Support;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Dfo.Server.Protocol.Game.TaggedIdReport;
 using Dfo.Server.Protocol.Game.UseStackable;
@@ -174,7 +175,7 @@ internal abstract class FakeMainInventory(int characterId = 60)
 {
     private readonly CharacterId character = new(characterId);
 
-    private readonly MemoryItemStore store = new();
+    private readonly VolatileItemStore store = new();
 
     private ContainerId Main => ContainerId.ForCharacter(this.character, InventoryContainerType.Main);
 

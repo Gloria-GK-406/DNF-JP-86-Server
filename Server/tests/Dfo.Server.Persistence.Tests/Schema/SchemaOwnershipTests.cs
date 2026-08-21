@@ -1,9 +1,6 @@
 using System.Text;
-using Dfo.Server.Application.Characters;
-using Dfo.Server.Application.Inventory;
-using Dfo.Server.Persistence.Accounts;
-using Dfo.Server.Persistence.Characters;
-using Dfo.Server.Persistence.Inventory;
+using Dfo.Server.Application.Transactions;
+using Dfo.Server.Persistence.Database;
 using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Persistence.Tests.Schema;
@@ -12,29 +9,37 @@ namespace Dfo.Server.Persistence.Tests.Schema;
 /// What shape the database actually ends up in, and what decides it.
 /// </summary>
 /// <remarks>
-/// Tables are declared by whichever components happen to be constructed, several of them declare
-/// the same table differently, and <c>CREATE TABLE IF NOT EXISTS</c> means the first declaration
-/// to run wins while the rest are silently ignored. So the shape of a table has been a function of
-/// construction order rather than of anything written down.
+/// Tables used to be declared by whichever components happened to be constructed. Several of them
+/// declared the same table differently, and <c>CREATE TABLE IF NOT EXISTS</c> means the first
+/// declaration to run wins while the rest are silently ignored -- so the shape of a table was a
+/// function of construction order rather than of anything written down.
 ///
-/// These tests pin that shape before it is moved anywhere, so that moving it can be shown to
-/// change nothing, and ask the question the move exists to settle: does the order actually matter
-/// today?
+/// That question is settled: one component declares the tables and every repository is handed it,
+/// so there is no longer an order to get wrong. What is left to pin is the shape itself, that
+/// building the database is enough on its own, and that bringing an existing database into shape
+/// again leaves it as it was -- which is not free, because bringing it into shape also tops up
+/// columns on tables that are already there, and a top-up that stopped noticing they were there
+/// would fail on the second attempt.
 /// </remarks>
 public sealed class SchemaOwnershipTests
 {
     /// <remarks>
-    /// If this fails, the database has more than one possible shape and which one a server runs
-    /// with depends on the order its components happened to be built. That is the defect the whole
-    /// move exists to remove, and the failure message names every column that differs.
+    /// Bringing a database into shape happens every time one is opened, including one that has
+    /// been in shape for a long time. If this fails, doing it a second time changed something --
+    /// which for a database with players in it is a change nobody asked for, and the failure
+    /// message names every column that differs.
+    ///
+    /// A database built from nothing has every column already, so this exercises the guard on the
+    /// top-ups rather than the top-ups themselves. That is what it is for: a guard that stopped
+    /// working would make the second attempt fail, and nothing else here would notice.
     /// </remarks>
     [Fact]
-    public async Task TheShapeOfTheDatabaseDoesNotDependOnWhatIsBuiltFirst()
+    public async Task BringingADatabaseIntoShapeAgainLeavesItAsItWas()
     {
-        var forwards = await ShapeAsync(reversed: false);
-        var backwards = await ShapeAsync(reversed: true);
+        var once = await ShapeAsync(times: 1);
+        var again = await ShapeAsync(times: 2);
 
-        Assert.Equal(forwards, backwards);
+        Assert.Equal(once, again);
     }
 
     /// <remarks>
@@ -46,11 +51,11 @@ public sealed class SchemaOwnershipTests
     [Fact]
     public async Task EveryTableIsDeclaredSomewhereRatherThanByAccident()
     {
-        var shape = await ShapeAsync(reversed: false);
+        var shape = await ShapeAsync();
 
         // Counted rather than sampled: naming a handful of tables would stay green while forty of
         // the declarations went missing.
-        Assert.Equal(52, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
+        Assert.Equal(53, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
         Assert.Contains("characters(", shape, StringComparison.Ordinal);
         Assert.Contains("character_new_items(", shape, StringComparison.Ordinal);
         Assert.Contains("accounts(", shape, StringComparison.Ordinal);
@@ -71,7 +76,7 @@ public sealed class SchemaOwnershipTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-alone-{Guid.NewGuid():N}.db");
         try
         {
-            _ = new SqliteCharacterPvpSkillProfileRepository(path);
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
 
             await using var connection = new SqliteConnection(
                 new SqliteConnectionStringBuilder { DataSource = path }.ToString());
@@ -98,31 +103,14 @@ public sealed class SchemaOwnershipTests
     }
 
     /// <summary>Builds a database and reports every table and column it ended up with.</summary>
-    private static async Task<string> ShapeAsync(bool reversed)
+    private static async Task<string> ShapeAsync(int times = 1)
     {
         var path = Path.Combine(Path.GetTempPath(), $"dfo-schema-{Guid.NewGuid():N}.db");
         try
         {
-            var builders = new List<Action>
+            for (var attempt = 0; attempt < times; attempt++)
             {
-                () => _ = new SqliteAccountRepository(path),
-                () => _ = new SqliteAccountEntryStateRepository(path),
-                () => _ = new SqliteCharacterRepository(path),
-                () => _ = new SqliteCharacterEntryStateRepository(path, new GoldLimitRuleService()),
-                () => _ = new SqliteCharacterPvpSkillProfileRepository(path),
-                () => _ = new SqliteInventoryEntryRepository(path),
-                () => _ = new SqliteEntryInventoryMutationRepository(
-                    path, new DailyRefillRuleService(), new ItemArrivalRuleService()),
-            };
-
-            if (reversed)
-            {
-                builders.Reverse();
-            }
-
-            foreach (var build in builders)
-            {
-                build();
+                _ = new SqliteDatabase(path, new DomainTransactionScope());
             }
 
             return await DescribeAsync(path);
