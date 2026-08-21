@@ -5,6 +5,7 @@ using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Microsoft.Data.Sqlite;
@@ -101,7 +102,7 @@ public sealed class ItemPathFrameTests
         {
             var path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(), $"dfo-itemframe-{Guid.NewGuid():N}.db");
-            _ = new SqliteInventoryEntryRepository(path);
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
             var storage = new Storage(path);
             await using var connection = Open(path);
             await using (var character = connection.CreateCommand())
@@ -119,7 +120,7 @@ public sealed class ItemPathFrameTests
                     + "slot_index,item_core) VALUES('character',60,60,0,@slot,@core)";
                 item.Parameters.AddWithValue("@slot", slot);
                 item.Parameters.AddWithValue(
-                    "@core", SqliteInventoryEntryRepository.EncodeItemCore(Core(itemId, count)));
+                    "@core", InventoryItemCore.Encode(Core(itemId, count)));
                 await item.ExecuteNonQueryAsync();
             }
 
@@ -150,7 +151,7 @@ public sealed class ItemPathFrameTests
             await using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                var core = SqliteInventoryEntryRepository.DecodeItemCore((byte[])reader.GetValue(1));
+                var core = InventoryItemCore.Decode((byte[])reader.GetValue(1));
                 rows.Add((reader.GetInt32(0), core.ItemId, core.Value));
             }
 

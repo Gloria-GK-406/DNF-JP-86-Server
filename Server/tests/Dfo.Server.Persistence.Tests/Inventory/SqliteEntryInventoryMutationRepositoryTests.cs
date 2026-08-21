@@ -1,14 +1,17 @@
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
-using Dfo.Server.Abstractions.Inventory;
-using Dfo.Server.Application.Inventory;
-using Dfo.Server.Persistence.Inventory;
 using Dfo.Server.Persistence.Characters;
+using Dfo.Server.Persistence.Database;
+using Dfo.Server.Persistence.Inventory;
+using Dfo.Server.Persistence.Tests.Support;
 using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Persistence.Tests.Inventory;
@@ -21,8 +24,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
         try
         {
-            var repository = new SqliteInventoryEntryRepository(path);
-            _ = new SqliteCharacterRepository(path);
+            var repository = new InventorySide(path).PerCall;
             await SeedCharacterAsync(path, 6, 60);
             await SeedCharacterAsync(path, 7, 70);
             await SeedAvatarAsync(path, 60, 9, 100, 1000, new(1, 2, new byte[30], 3, 4, 5));
@@ -88,8 +90,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
         try
         {
-            var repository = new SqliteInventoryEntryRepository(path);
-            _ = new SqliteCharacterRepository(path);
+            var repository = new InventorySide(path).PerCall;
             await SeedCharacterAsync(path, 6, 60);
             await SeedItemAsync(path, 60, 65, 100, 1);
             await SeedItemAsync(path, 60, 66, 200, 2);
@@ -128,11 +129,9 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
         try
         {
-            _ = new SqliteInventoryEntryRepository(path);
-            _ = new SqliteCharacterRepository(path);
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
             await SeedCharacterAsync(path, accountId: 7, characterId: 70);
-            var repository = new SqliteEntryInventoryMutationRepository(
-                path, new DailyRefillRuleService(), new ItemArrivalRuleService());
+            var repository = new InventorySide(path).MutationsPerCall;
             var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
                 DailyRefillMode.RefillToTarget, 100, 2, 65, 120);
 
@@ -171,12 +170,10 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
         try
         {
-            _ = new SqliteInventoryEntryRepository(path);
-            _ = new SqliteCharacterRepository(path);
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
             await SeedCharacterAsync(path, 8, 80);
             await SeedItemAsync(path, 80, 0, 2222, 5);
-            var repository = new SqliteEntryInventoryMutationRepository(
-                path, new DailyRefillRuleService(), new ItemArrivalRuleService());
+            var repository = new InventorySide(path).MutationsPerCall;
             var rule = new DailyRefillRule(2222, 2, DateTimeOffset.MaxValue,
                 DailyRefillMode.RefillToTarget, 100, 2, 65, 120);
 
@@ -212,11 +209,9 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
         try
         {
-            _ = new SqliteInventoryEntryRepository(path);
-            _ = new SqliteCharacterRepository(path);
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
             await SeedCharacterAsync(path, accountId: 7, characterId: 70);
-            var repository = new SqliteEntryInventoryMutationRepository(
-                path, new DailyRefillRuleService(), new ItemArrivalRuleService());
+            var repository = new InventorySide(path).MutationsPerCall;
             // Adding up to the stack limit rather than refilling to a target, so that a second
             // day grants again -- a refill-to-target rule would grant nothing the second day
             // whatever the boundary did, and the test could not tell the two apart.
@@ -252,11 +247,9 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
         try
         {
-            _ = new SqliteInventoryEntryRepository(path);
-            _ = new SqliteCharacterRepository(path);
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
             await SeedCharacterAsync(path, accountId: 7, characterId: 70);
-            var repository = new SqliteEntryInventoryMutationRepository(
-                path, new DailyRefillRuleService(), new ItemArrivalRuleService());
+            var repository = new InventorySide(path).MutationsPerCall;
             var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
                 DailyRefillMode.AddUpToStackLimit, 100, 2, 65, 120);
 
@@ -291,12 +284,10 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
         try
         {
-            _ = new SqliteInventoryEntryRepository(path);
-            _ = new SqliteCharacterRepository(path);
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
             await SeedCharacterAsync(path, accountId: 7, characterId: 70);
             await SeedItemAsync(path, characterId: 70, slot: 70, itemId: 1234, count: 2);
-            var repository = new SqliteEntryInventoryMutationRepository(
-                path, new DailyRefillRuleService(), new ItemArrivalRuleService());
+            var repository = new InventorySide(path).MutationsPerCall;
             var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
                 DailyRefillMode.RefillToTarget, 100, 2, 65, 120);
 
@@ -329,14 +320,12 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
         try
         {
-            _ = new SqliteInventoryEntryRepository(path);
-            _ = new SqliteCharacterRepository(path);
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
             await SeedCharacterAsync(path, accountId: 7, characterId: 70);
             // Slot 3 is free and below the band; 65 and 66 are taken, so 67 is the answer.
             await SeedItemAsync(path, characterId: 70, slot: 65, itemId: 9001, count: 1);
             await SeedItemAsync(path, characterId: 70, slot: 66, itemId: 9002, count: 1);
-            var repository = new SqliteEntryInventoryMutationRepository(
-                path, new DailyRefillRuleService(), new ItemArrivalRuleService());
+            var repository = new InventorySide(path).MutationsPerCall;
             var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
                 DailyRefillMode.RefillToTarget, 100, 2, 65, 120);
 
@@ -359,13 +348,11 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
         try
         {
-            _ = new SqliteInventoryEntryRepository(path);
-            _ = new SqliteCharacterRepository(path);
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
             await SeedCharacterAsync(path, accountId: 7, characterId: 70);
             await SeedItemAsync(path, characterId: 70, slot: 65, itemId: 9001, count: 1);
             await SeedItemAsync(path, characterId: 70, slot: 66, itemId: 9002, count: 1);
-            var repository = new SqliteEntryInventoryMutationRepository(
-                path, new DailyRefillRuleService(), new ItemArrivalRuleService());
+            var repository = new InventorySide(path).MutationsPerCall;
             var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
                 DailyRefillMode.RefillToTarget, 100, 2, 65, 66);
 

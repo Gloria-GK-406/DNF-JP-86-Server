@@ -3,16 +3,17 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Characters;
-using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Application.Inventory;
-using Dfo.Server.Application.Transactions;
 using Dfo.Server.Application.Sessions;
+using Dfo.Server.Application.Tests.Support;
+using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
+using Dfo.Server.Persistence.Tests.Support;
 
 namespace Dfo.Server.Application.Tests.Characters;
 
@@ -34,7 +35,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var loader = new InventoryLoader(result.CharacterInventory);
         var service = new SelectCharacterEntryInventoryDomainService(
             new RefillContent(), new RefillMutation(), loader, persistence, leases,
-            new CharacterContainerDomainService(), new MemoryItemStore(), new DomainTransactionScope());
+            new CharacterContainerDomainService(), new VolatileItemStore(), new DomainTransactionScope());
 
         await service.SaveExistingLeaseAsync(previous, CancellationToken.None);
         var updated = await service.PrepareLeaseAsync(next, result, CancellationToken.None);
@@ -59,7 +60,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var service = new SelectCharacterEntryInventoryDomainService(
             new RefillContent(), new RefillMutation(), new InventoryLoader(reloaded),
             new NoopLeasePersistence(), leases, new CharacterContainerDomainService(),
-            new MemoryItemStore(), new DomainTransactionScope());
+            new VolatileItemStore(), new DomainTransactionScope());
         _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
 
         var prepared = await service.ApplyDailyRefillAsync(session, result, CancellationToken.None);
@@ -82,7 +83,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var leases = new EntryInventoryLeaseRegistry();
         var service = new SelectCharacterEntryInventoryDomainService(
             new RefillContent(), new FailingRefillMutation(), loader, new NoopLeasePersistence(), leases,
-            new CharacterContainerDomainService(), new MemoryItemStore(), new DomainTransactionScope());
+            new CharacterContainerDomainService(), new VolatileItemStore(), new DomainTransactionScope());
         _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
 
         await Assert.ThrowsAsync<IOException>(async () =>
@@ -146,7 +147,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var characters = new RecordingCharacterStore();
         characters.Creatures[(603, 77)] = new StoredCreature(77, 0);
         var accessor = new OpenTransactionAccessor();
-        var items = new MemoryItemStore();
+        var items = new VolatileItemStore();
         items.SessionIn(accessor.Current!).Write(
             ContainerId.ForCharacter(new CharacterId(603), InventoryContainerType.Equipment),
             new StoredItem(24, Core(itemKind: 5, itemId: 1, value: 77)));
@@ -186,7 +187,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
             new RefillContent(), new RefillMutation(),
             new InventoryLoader(expanded), new NoopLeasePersistence(),
             new EntryInventoryLeaseRegistry(), containers,
-            new MemoryItemStore(), new DomainTransactionScope());
+            new VolatileItemStore(), new DomainTransactionScope());
 
         var prepared = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
 

@@ -1,5 +1,6 @@
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Persistence.Accounts;
+using Dfo.Server.Persistence.Tests.Support;
 using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Persistence.Tests.Accounts;
@@ -12,7 +13,7 @@ public sealed class SqliteAccountEntryStateRepositoryTests
         var path = CreateDatabase();
         try
         {
-            var repository = new SqliteAccountEntryStateRepository(path);
+            var repository = new AccountSide(path).Entry;
             await ExecuteAsync(path, """
                 INSERT INTO accounts(account_id,m_id,password_hash,cera,token_cera,happy_token_cera,
                     lucky_star,honor_exp,growth_capsule_exp)
@@ -60,7 +61,7 @@ public sealed class SqliteAccountEntryStateRepositoryTests
         var path = CreateDatabase();
         try
         {
-            var repository = new SqliteAccountEntryStateRepository(path);
+            var repository = new AccountSide(path).Entry;
             await ExecuteAsync(path, """
                 INSERT INTO accounts(account_id,m_id,password_hash) VALUES(52,'account-52','');
                 INSERT INTO characters(character_id,account_id,name,level,slot_index,delete_flag)
@@ -97,7 +98,7 @@ public sealed class SqliteAccountEntryStateRepositoryTests
         var path = CreateDatabase();
         try
         {
-            var repository = new SqliteAccountEntryStateRepository(path);
+            var repository = new AccountSide(path).Entry;
             await ExecuteAsync(path, """
                 INSERT INTO accounts(account_id,m_id,password_hash) VALUES(53,'account-53',''),(54,'other','');
                 INSERT INTO account_settings(account_id,main_game_option) VALUES(53,X'0100');

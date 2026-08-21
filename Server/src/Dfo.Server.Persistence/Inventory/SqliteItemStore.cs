@@ -223,12 +223,12 @@ internal sealed class SqliteItemStoreSession(SqliteDatabaseParticipant owner)
         command.Parameters.AddWithValue("@list", place.ListType);
         command.Parameters.AddWithValue("@slot", item.SlotIndex);
         command.Parameters.AddWithValue(
-            "@core", SqliteInventoryEntryRepository.EncodeItemCore(item.Core));
+            "@core", InventoryItemCore.Encode(item.Core));
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private static InventoryItemCoreState DecodeCore(SqliteDataReader reader, int ordinal) =>
-        SqliteInventoryEntryRepository.DecodeItemCore((byte[])reader.GetValue(ordinal));
+        InventoryItemCore.Decode((byte[])reader.GetValue(ordinal));
 
     /// <summary>The slot numbers the table will accept.</summary>
     /// <remarks>

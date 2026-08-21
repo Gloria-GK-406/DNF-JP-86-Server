@@ -1,9 +1,11 @@
 using System.Text;
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Application.Characters;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
-using Dfo.Server.Application.Characters;
 using Dfo.Server.Persistence.Accounts;
 using Dfo.Server.Persistence.Characters;
+using Dfo.Server.Persistence.Tests.Support;
 using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Persistence.Tests.Characters;
@@ -13,13 +15,13 @@ public sealed class SqliteCharacterLifecycleTests
 {
     private static readonly AccountId Account = new(1);
 
-    private static async Task WithRepositoryAsync(Func<SqliteCharacterRepository, Task> body)
+    private static async Task WithRepositoryAsync(Func<ICharacterRepository, Task> body)
     {
         var directory = Path.Combine(Path.GetTempPath(), $"dfo-character-{Guid.NewGuid():N}");
         Directory.CreateDirectory(directory);
         try
         {
-            await body(new SqliteCharacterRepository(Path.Combine(directory, "characters.db")));
+            await body(new CharacterSide(Path.Combine(directory, "characters.db")).PerCall);
         }
         finally
         {
@@ -42,16 +44,15 @@ public sealed class SqliteCharacterLifecycleTests
         {
             // The account loader below reads a real account row, so create one first. Its id is
             // the autoincrement seed, which is the Account this test uses.
-            var accounts = new SqliteAccountRepository(databasePath);
-            var created = await accounts.GetOrCreateAsync("10038", "hash", CancellationToken.None);
+            var created = await new AccountSide(databasePath).GetOrCreateAsync("10038", "hash");
             Assert.Equal(Account, created.AccountId);
 
-            var repository = new SqliteCharacterRepository(databasePath);
+            var repository = new CharacterSide(databasePath).PerCall;
             var id = await repository.CreateAsync(
                 new NewCharacterSpec(Account, "Nagisa"u8.ToArray(), Job: 3, SlotIndex: 0, CharacterBaseStats.Zero),
                 CancellationToken.None);
 
-            var entryState = new SqliteCharacterEntryStateRepository(databasePath, new GoldLimitRuleService());
+            var entryState = new CharacterSide(databasePath).EntryState(new GoldLimitRuleService());
             var record = await entryState.LoadAsync(Account, id, CancellationToken.None);
 
             Assert.Equal(id, record.CharacterId);
@@ -62,8 +63,8 @@ public sealed class SqliteCharacterLifecycleTests
             // rows too. Asserting only the character loader is what let a null pc_room_state
             // through: the character profile never reads that column, while the account loader
             // left-joins it for every live character and refuses a null.
-            var accountState = new SqliteAccountEntryStateRepository(databasePath);
-            var account = await accountState.LoadAsync(Account, CancellationToken.None);
+            var account = await new AccountSide(databasePath)
+                .Entry.LoadAsync(Account, CancellationToken.None);
 
             Assert.Equal(Account, account.AccountId);
         });
@@ -81,8 +82,7 @@ public sealed class SqliteCharacterLifecycleTests
         var databasePath = Path.Combine(directory, "characters.db");
         return RunAndCleanUpAsync(directory, async () =>
         {
-            var accounts = new SqliteAccountRepository(databasePath);
-            await accounts.GetOrCreateAsync("10038", "hash", CancellationToken.None);
+            await new AccountSide(databasePath).GetOrCreateAsync("10038", "hash");
 
             var stats = new CharacterBaseStats(
                 HpMax: 1800, MpMax: 1400,
@@ -92,12 +92,12 @@ public sealed class SqliteCharacterLifecycleTests
                 InventoryLimit: 480000, MpRegenSpeed: 500,
                 MoveSpeed: 8500, AttackSpeed: 8500, CastSpeed: 7000,
                 HitRecovery: 6000, JumpPower: 4300, Weight: 500000);
-            var repository = new SqliteCharacterRepository(databasePath);
+            var repository = new CharacterSide(databasePath).PerCall;
             var id = await repository.CreateAsync(
                 new NewCharacterSpec(Account, "Nagisa"u8.ToArray(), Job: 0, SlotIndex: 0, stats),
                 CancellationToken.None);
 
-            var stored = (await new SqliteCharacterEntryStateRepository(databasePath, new GoldLimitRuleService())
+            var stored = (await new CharacterSide(databasePath).EntryState(new GoldLimitRuleService())
                 .LoadAsync(Account, id, CancellationToken.None)).Profile.Subtype1;
 
             Assert.Equal(stats.HpMax, stored.HpMaximum);
@@ -132,7 +132,7 @@ public sealed class SqliteCharacterLifecycleTests
         var databasePath = Path.Combine(directory, "characters.db");
         return RunAndCleanUpAsync(directory, async () =>
         {
-            var repository = new SqliteCharacterRepository(databasePath);
+            var repository = new CharacterSide(databasePath).PerCall;
             await using (var connection = new SqliteConnection(
                 new SqliteConnectionStringBuilder { DataSource = databasePath }.ToString()))
             {

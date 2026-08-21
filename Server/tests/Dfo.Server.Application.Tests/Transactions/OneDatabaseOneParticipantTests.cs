@@ -4,8 +4,8 @@ using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Persistence.Characters;
-using Dfo.Server.Persistence.Inventory;
 using Dfo.Server.Persistence.Database;
+using Dfo.Server.Persistence.Inventory;
 using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Application.Tests.Transactions;
@@ -210,7 +210,7 @@ public sealed class OneDatabaseOneParticipantTests
                 "INSERT INTO character_new_items(owner_scope,owner_id,character_id,list_type,"
                 + "slot_index,item_core) VALUES('character',60,60,0,65,@core)";
             item.Parameters.AddWithValue(
-                "@core", SqliteInventoryEntryRepository.EncodeItemCore(Potion(5)));
+                "@core", InventoryItemCore.Encode(Potion(5)));
             await item.ExecuteNonQueryAsync();
             return fixture;
         }
@@ -226,7 +226,7 @@ public sealed class OneDatabaseOneParticipantTests
             await using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                var core = SqliteInventoryEntryRepository.DecodeItemCore((byte[])reader.GetValue(1));
+                var core = InventoryItemCore.Decode((byte[])reader.GetValue(1));
                 rows.Add((reader.GetInt32(0), core.Value));
             }
 
@@ -246,8 +246,8 @@ public sealed class OneDatabaseOneParticipantTests
             var path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(), $"dfo-onedb-{Guid.NewGuid():N}.db");
             // The repositories own the schema; the stores only write into it.
-            _ = new SqliteInventoryEntryRepository(path);
-            _ = new SqliteCharacterRepository(path);
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
             return path;
         }
 

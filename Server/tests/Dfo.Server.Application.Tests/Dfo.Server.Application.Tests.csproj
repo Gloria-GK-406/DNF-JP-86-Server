@@ -32,4 +32,13 @@
     <ProjectReference Include="..\..\src\Dfo.Server.Infrastructure\Dfo.Server.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Dfo.Server.Persistence\Dfo.Server.Persistence.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Compiled in rather than copied: three test assemblies reach the inventory seam, and this
+         is the one description of how the server wires it. -->
+    <Compile Include="..\Dfo.Server.Persistence.Tests\Support\InventorySide.cs"
+             Link="Support\InventorySide.cs" />
+    <Compile Include="..\Dfo.Server.Persistence.Tests\Support\VolatileItemStore.cs"
+             Link="Support\VolatileItemStore.cs" />
+  </ItemGroup>
+
 </Project>

@@ -1,7 +1,11 @@
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
-using Dfo.Server.Application.Characters;
 using Dfo.Server.Persistence.Characters;
+using Dfo.Server.Persistence.Database;
+using Dfo.Server.Persistence.Tests.Support;
 using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Persistence.Tests.Characters;
@@ -14,7 +18,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
         var path = CreateDatabase();
         try
         {
-            var repository = new SqliteCharacterEntryStateRepository(path, new GoldLimitRuleService());
+            var repository = new CharacterSide(path).EntryState(new GoldLimitRuleService());
             await ExecuteAsync(path, """
                 INSERT INTO characters(character_id, account_id, name, job, level)
                 VALUES(21, 11, 'new', 1, 1);
@@ -37,7 +41,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
         var path = CreateDatabase();
         try
         {
-            var repository = new SqliteCharacterEntryStateRepository(path, new GoldLimitRuleService());
+            var repository = new CharacterSide(path).EntryState(new GoldLimitRuleService());
             var core = ItemCore(1001, 17);
             await ExecuteAsync(path, """
                 INSERT INTO characters(character_id, account_id, name, job, level, clone_title_item_id,
@@ -159,7 +163,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
         var path = CreateDatabase();
         try
         {
-            var repository = new SqliteCharacterEntryStateRepository(path, new GoldLimitRuleService());
+            var repository = new CharacterSide(path).EntryState(new GoldLimitRuleService());
             await ExecuteAsync(path, $"""
                 INSERT INTO characters(character_id,account_id,name,job,level) VALUES(30,15,'gold',1,60);
                 INSERT INTO character_subtype0_fields(character_id) VALUES(30);
@@ -190,7 +194,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
         var path = CreateDatabase();
         try
         {
-            var repository = new SqliteCharacterEntryStateRepository(path, new GoldLimitRuleService());
+            var repository = new CharacterSide(path).EntryState(new GoldLimitRuleService());
             await ExecuteAsync(path, """
                 INSERT INTO characters(character_id,account_id,name,job,level) VALUES(31,16,'nogold',1,60);
                 INSERT INTO character_subtype0_fields(character_id) VALUES(31);
@@ -216,7 +220,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
         var path = CreateDatabase();
         try
         {
-            var repository = new SqliteCharacterEntryStateRepository(path, new GoldLimitRuleService());
+            var repository = new CharacterSide(path).EntryState(new GoldLimitRuleService());
             await ExecuteAsync(path, """
                 INSERT INTO characters(character_id,account_id,name,job,level) VALUES(24,14,'mail',1,60);
                 INSERT INTO character_subtype0_fields(character_id) VALUES(24);
@@ -306,8 +310,10 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                     UNIQUE(message_id,character_id,folder));
                 """);
 
-            _ = new SqliteCharacterEntryStateRepository(path, new GoldLimitRuleService());
-            _ = new SqliteCharacterEntryStateRepository(path, new GoldLimitRuleService());
+            // Twice, because bringing the database into shape has to be able to happen again
+            // over a database already in it.
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
             await ExecuteAsync(path, """
                 INSERT INTO characters(character_id,account_id,name,job,level) VALUES(25,15,'upgrade',1,60);
                 INSERT INTO character_subtype0_fields(character_id) VALUES(25);
@@ -317,7 +323,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                 INSERT INTO mailbox_recipients(message_id,character_id) VALUES(900,25);
                 """);
 
-            var result = await new SqliteCharacterEntryStateRepository(path, new GoldLimitRuleService()).LoadAsync(
+            var result = await new CharacterSide(path).EntryState(new GoldLimitRuleService()).LoadAsync(
                 new AccountId(15), new CharacterId(25), CancellationToken.None);
 
             Assert.Equal(0, result.Profile.Subtype1.ManageLevel);
@@ -345,7 +351,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
         var path = CreateDatabase();
         try
         {
-            var repository = new SqliteCharacterEntryStateRepository(path, new GoldLimitRuleService());
+            var repository = new CharacterSide(path).EntryState(new GoldLimitRuleService());
             await ExecuteAsync(path, """
                 INSERT INTO characters(character_id,account_id,name,job,level) VALUES(23,13,'bad',1,60);
                 INSERT INTO character_subtype0_fields(character_id) VALUES(23);

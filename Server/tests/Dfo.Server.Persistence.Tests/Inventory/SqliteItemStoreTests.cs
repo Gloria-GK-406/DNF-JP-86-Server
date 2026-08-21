@@ -1,9 +1,11 @@
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Persistence.Characters;
+using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
 using Microsoft.Data.Sqlite;
 
@@ -373,8 +375,8 @@ public sealed class SqliteItemStoreTests
     {
         var path = Path.Combine(Path.GetTempPath(), $"dfo-itemstore-{Guid.NewGuid():N}.db");
         // The repositories own the schema; this store only writes into it.
-        _ = new SqliteInventoryEntryRepository(path);
-        _ = new SqliteCharacterRepository(path);
+        _ = new SqliteDatabase(path, new DomainTransactionScope());
+        _ = new SqliteDatabase(path, new DomainTransactionScope());
         await using (var connection = Open(path))
         {
             await using var character = connection.CreateCommand();

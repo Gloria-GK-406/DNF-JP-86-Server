@@ -1,9 +1,12 @@
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
+using Dfo.Server.Persistence.Tests.Support;
 using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Persistence.Tests.Inventory;
@@ -51,7 +54,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 ("@characterCore", characterCore),
                 ("@cargoCore", cargoCore));
 
-            var repository = new SqliteInventoryEntryRepository(databasePath);
+            var repository = new InventorySide(databasePath).PerCall;
             var characterResult = await repository.LoadCharacterAsync(
                 new AccountId(11),
                 new CharacterId(21),
@@ -137,7 +140,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 INSERT INTO accounts(account_id) VALUES(12);
                 """);
 
-            var repository = new SqliteInventoryEntryRepository(databasePath);
+            var repository = new InventorySide(databasePath).PerCall;
             var characterResult = await repository.LoadCharacterAsync(
                 new AccountId(12),
                 new CharacterId(22),
@@ -207,7 +210,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
             await ExecuteAsync(databasePath, commandText);
 
             await Assert.ThrowsAsync<InvalidDataException>(async () =>
-                await new SqliteInventoryEntryRepository(databasePath).LoadCharacterAsync(
+                await new InventorySide(databasePath).PerCall.LoadCharacterAsync(
                     new AccountId(15),
                     new CharacterId(25),
                     CancellationToken.None));
@@ -248,7 +251,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
                     """);
             }
 
-            var repository = new SqliteInventoryEntryRepository(databasePath);
+            var repository = new InventorySide(databasePath).PerCall;
             var error = await Assert.ThrowsAsync<InvalidDataException>(async () =>
             {
                 if (ownerKind == "character")
@@ -311,7 +314,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
             await ExecuteAsync(databasePath, commandText);
 
             await Assert.ThrowsAsync<InvalidDataException>(async () =>
-                await new SqliteInventoryEntryRepository(databasePath).LoadCharacterAsync(
+                await new InventorySide(databasePath).PerCall.LoadCharacterAsync(
                     new AccountId(14),
                     new CharacterId(24),
                     CancellationToken.None));
@@ -360,7 +363,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
             }
 
             await Assert.ThrowsAsync<InvalidDataException>(async () =>
-                await new SqliteInventoryEntryRepository(databasePath).LoadCharacterAsync(
+                await new InventorySide(databasePath).PerCall.LoadCharacterAsync(
                     new AccountId(13),
                     new CharacterId(23),
                     CancellationToken.None));
@@ -406,7 +409,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
             }
 
             await Assert.ThrowsAsync<InvalidDataException>(async () =>
-                await new SqliteInventoryEntryRepository(databasePath).LoadAccountAsync(
+                await new InventorySide(databasePath).PerCall.LoadAccountAsync(
                     new AccountId(17),
                     new CharacterId(27),
                     CancellationToken.None));

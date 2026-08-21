@@ -146,13 +146,17 @@ PvP 大厅、专家商店）、`World/`（出生点策略、世界内容）、`U
   类型一个不丢。业务代码经
   `AmbientStoreAccess` 触达：边界内用环境事务，边界外读放行、持久写拒绝、易失写
   自开一次性边界并当场落定。
-- 注册（`ProtocolModule.cs`，与协议接线同处）：现有命令
-  LoginGameUser = Direct+OnlineUser Exclusive；GetAccountCharacterRoster =
-  Direct+Account Shared；SelectCharacter 的 Prepare、DailyRefill、Publish、PvpReady、
-  Compensate 五个阶段命令为 Workflow+Account Exclusive，Quests 与 Pet 两条为
-  **Transactional**+Account Exclusive——它们改动人物的持久状态，而只有
-  `Transactional` 会让 `UnitOfWorkBehavior` 开领域事务；没有那个事务，人物存储
-  就没有边界可加入；
+- 注册（`ProtocolModule.cs`，与协议接线同处）：**凡能触达持久写的命令一律
+  `Transactional`**——只有它会让 `UnitOfWorkBehavior` 开领域事务，没有那个事务，
+  持久化就没有边界可加入，写会各自落定且无人能收回。据此：LoginGameUser、
+  CreateCharacter、DeleteCharacter，以及 SelectCharacter 的 Prepare、DailyRefill、
+  Quests、Pet，加上 MoveItemSpace、UseStackable、GrantTutorialReward，均为
+  **Transactional**。
+  仍为 Workflow 的只有两条只动内存注册表的（Publish、PvpReady）与 **Compensate**；
+  Compensate 是刻意的——补偿逐个收集失败并继续，最后把收集到的抛出，边界会把此前
+  每一处成功一并撤销，正是它的反面。它唯一的持久写（离场位置）经
+  `PersistOnTeardownAsync` 自开边界当场落定。
+  GetAccountCharacterRoster 与 CheckCharacterName = Direct+Account Shared；
   AcknowledgeGameExit 与 Channel 的 ScriptVersion、Script、Info = Direct。
   `ApplicationModule` 只留 `AddCommandDispatching()`：机制在 Application，
   具体命令在切片。
@@ -303,6 +307,15 @@ PremiumService、CloneTitle 是 CMD，其余当前状态推送是 NOTI；拒绝�
   机器被占满时会撞线，报的是 `TaskCanceledException`/`OperationCanceledException`
   而非断言不符。判据是单独跑该项目：隔离下 `Networking.Tests` 46 条 1 秒跑完，
   全量下同样 46 条要 10 秒。看到这个形状先隔离复跑，不要当缺陷查。
+- **两个用例同时「先读后写」同一个库，第二个会等满 30 秒再失败。** 一次用例一条连接、
+  一个 deferred 事务，这让用例内的多次读看到同一时刻，也让长读不挡写。代价是：
+  用例 A 与 B 都先读、A 先提交之后，B 再写时它手里那份视图已经过期，SQLite 拒绝在其上写。
+  等待帮不上忙——过期的是时刻不是锁——但从连接看这就是「库忙」，于是它按
+  `Microsoft.Data.Sqlite` 的默认 `Default Timeout` 等满 30 秒才抛。
+  今天没有任何地方设过这个超时，也没有任何地方在 BUSY 上重试。
+  真正的解法是「整条用例重来」，属于派发用例的那一层，不属于数据库。
+  单人调试撞不到；同账号有闸，跨账号（登录、建号这类先读后写的命令）能真实撞上。
+  在此之前，第二条用例的调用方会先卡 30 秒再收到失败。
 
 ## 快速开发：新增一个协议的固定动作
 

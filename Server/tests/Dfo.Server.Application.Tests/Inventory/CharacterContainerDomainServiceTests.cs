@@ -4,6 +4,7 @@ using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Persistence.Tests.Support;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Dfo.Server.Protocol.Game.UseStackable;
 
@@ -20,19 +21,6 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class CharacterContainerDomainServiceTests
 {
     private static readonly CharacterId Character = new(60);
-
-    [Fact]
-    public void A_container_answers_for_itself()
-    {
-        var shape = new ContainerShape(InventoryContainerType.Main, 42);
-        var container = new TransientItemContainer(
-            new ContainerId("dungeon"), shape, new MemoryItemStore(), new DomainTransactionScope());
-
-        Assert.Equal(new ContainerId("dungeon"), container.Id);
-        Assert.Equal(InventoryContainerType.Main, container.Type);
-        Assert.Equal(shape, container.Shape);
-        Assert.True(container.IsRemovable);
-    }
 
     [Fact]
     public void The_first_container_registered_is_the_one_in_use()
@@ -141,17 +129,19 @@ public sealed class CharacterContainerDomainServiceTests
     }
 
     private static IItemContainer Container(string id, bool removable = true) =>
-        removable
-            ? new TransientItemContainer(
-                new ContainerId(id),
-                new ContainerShape(InventoryContainerType.Main, 0),
-                new MemoryItemStore(),
-                new DomainTransactionScope())
-            : new FixedContainer(
-                new ContainerId(id), new ContainerShape(InventoryContainerType.Main, 0));
+        new StandInContainer(
+            new ContainerId(id), new ContainerShape(InventoryContainerType.Main, 0), removable);
 
-    /// <summary>A container that refuses removal, standing in for the character's own.</summary>
-    private sealed class FixedContainer(ContainerId id, ContainerShape shape) : IItemContainer
+    /// <summary>
+    /// A container that answers for itself and nothing more.
+    /// </summary>
+    /// <remarks>
+    /// What is under test here is the directory that holds containers -- which one is in use, what
+    /// happens when a second is registered, what may be removed. None of that asks a container to
+    /// hold anything, so this one does not.
+    /// </remarks>
+    private sealed class StandInContainer(ContainerId id, ContainerShape shape, bool removable)
+        : IItemContainer
     {
         public ContainerId Id => id;
 
@@ -159,7 +149,7 @@ public sealed class CharacterContainerDomainServiceTests
 
         public ContainerShape Shape => shape;
 
-        public bool IsRemovable => false;
+        public bool IsRemovable => removable;
 
         public ValueTask<ContainerSlotItem?> ReadSlotAsync(
             int slotIndex, CancellationToken cancellationToken) =>

@@ -1,0 +1,97 @@
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Transactions;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Persistence.Database;
+using Dfo.Server.Persistence.Inventory;
+
+namespace Dfo.Server.Application.Tests.Inventory;
+
+/// <summary>
+/// What a container whose items outlive the process will and will not do.
+/// </summary>
+/// <remarks>
+/// These used to be stated as the difference between two carriers, next to a second carrier that
+/// held nothing past the run. That second carrier is gone -- nothing ever asked for one -- but the
+/// rule was never about the comparison. It is about this container: a change it could not take
+/// back, and that nobody would see had happened, is refused; looking is not changing and is not
+/// refused; inside a use case the change is accepted and is there afterwards.
+///
+/// Kept when the carrier they were written beside was retired, because otherwise the refusal in
+/// `PersistentItemContainer` could be deleted and nothing would turn red.
+/// </remarks>
+public sealed class PersistentContainerBoundaryTests
+{
+    private static readonly ContainerId Main =
+        ContainerId.ForCharacter(new CharacterId(60), InventoryContainerType.Main);
+
+    [Fact]
+    public async Task ChangingItOutsideAUseCaseIsRefused()
+    {
+        var container = Persistent(new DomainTransactionScope());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await container.PutAsync(3, Core(1), CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await container.ClearAsync(3, CancellationToken.None));
+    }
+
+    /// <remarks>
+    /// Reading is not changing. A container is looked at in places that are not use cases at all,
+    /// and refusing that would make the boundary a rule about looking rather than about writing.
+    /// </remarks>
+    [Fact]
+    public async Task ReadingItOutsideAUseCaseIsAllowed()
+    {
+        var container = Persistent(new DomainTransactionScope());
+
+        Assert.Null(await container.ReadSlotAsync(3, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task InsideAUseCaseItAccepts()
+    {
+        var scope = new DomainTransactionScope();
+        var container = Persistent(scope);
+
+        await using (var transaction = scope.Begin())
+        {
+            await container.PutAsync(3, Core(2), CancellationToken.None);
+            await transaction.CommitAsync(CancellationToken.None);
+        }
+
+        Assert.Equal(2, (await container.ReadSlotAsync(3, CancellationToken.None))!.Count);
+    }
+
+    /// <remarks>
+    /// What the container hands back describes a place and its contents. There is no member on it
+    /// for an item's identity, so a caller could not carry one even if it wanted to -- which is the
+    /// form the requirement takes once the vocabulary is gone rather than merely unused.
+    /// </remarks>
+    [Fact]
+    public void WhatAContainerHandsBackNamesASlotAndWhatIsInIt()
+    {
+        Assert.DoesNotContain(
+            typeof(ContainerSlotItem).GetProperties(),
+            property => property.Name.Contains("Entry", StringComparison.Ordinal)
+                || property.Name.Contains("Uid", StringComparison.Ordinal)
+                || property.Name.Contains("RowId", StringComparison.Ordinal));
+    }
+
+    private static IItemContainer Persistent(DomainTransactionScope scope)
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"dfo-boundary-{Guid.NewGuid():N}.db");
+        _ = new SqliteDatabase(path, new DomainTransactionScope());
+        return new PersistentItemContainer(
+            Main,
+            new CharacterId(60),
+            new ContainerShape(InventoryContainerType.Main, 0),
+            new SqliteItemStore(path),
+            scope,
+            null!);
+    }
+
+    private static InventoryItemCoreState Core(int count) =>
+        StackableItemCore.Create(2, 8474, count);
+}

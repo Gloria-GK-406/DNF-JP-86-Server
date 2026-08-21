@@ -162,14 +162,3 @@ public sealed record ContainerSlotItem(int SlotIndex, InventoryItemCoreState Cor
 
 /// <summary>What the two slots named by a move request hold right now.</summary>
 public sealed record ContainerSlotPair(ContainerSlotItem? First, ContainerSlotItem? Second);
-
-/// <summary>Builds a container that holds nothing and outlives nothing.</summary>
-/// <remarks>
-/// Shape comes from an existing container rather than from the type, because capacity is a fact
-/// about the character. Handing it in also keeps the factory from having to know how any
-/// particular container type is sized.
-/// </remarks>
-public interface IItemContainerFactory
-{
-    IItemContainer CreateTransient(ContainerId id, ContainerShape shape);
-}

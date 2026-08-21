@@ -64,9 +64,41 @@ internal static class CharacterDatabaseSchema
     public static void Ensure(SqliteConnection connection)
     {
         ArgumentNullException.ThrowIfNull(connection);
+        KeepWritersAndReadersApart(connection);
         Apply(connection, Tables);
         Reconcile(connection);
         Apply(connection, Indexes);
+    }
+
+    /// <summary>
+    /// How the database keeps what is being written apart from what is being read.
+    /// </summary>
+    /// <remarks>
+    /// Set here because it is a property of the database file rather than of any connection: once
+    /// applied it stays, and this is the one place that decides what the file looks like.
+    ///
+    /// It is what makes a use case able to read several tables as one question. Under the default
+    /// journal, a reader holds the file until it finishes, so anyone wanting to write during a
+    /// long read is refused rather than delayed. Here a reader sees the database as it stood when
+    /// it began and a writer carries on regardless -- which is the whole point of giving reads a
+    /// transaction of their own.
+    ///
+    /// The answer is read back rather than discarded. Asking for this mode is a request the
+    /// database may decline, and a declined one leaves everything working except the guarantee it
+    /// was asked for: reads would go back to being able to see a change land in the middle of
+    /// them, with nothing anywhere saying so.
+    /// </remarks>
+    private static void KeepWritersAndReadersApart(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA journal_mode=WAL;";
+        var mode = command.ExecuteScalar() as string;
+        if (!string.Equals(mode, "wal", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"This database answered '{mode}' when asked to keep writers and readers apart, "
+                + "so a use case reading several tables could not see one moment.");
+        }
     }
 
     private static void Apply(SqliteConnection connection, string[] statements)
@@ -172,6 +204,7 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS character_subtype0_fields( character_id INTEGER PRIMARY KEY, stamina INTEGER NOT NULL DEFAULT 0, fatigue_penalty INTEGER NOT NULL DEFAULT 0, is_event_character INTEGER NOT NULL DEFAULT 0, is_private_store INTEGER NOT NULL DEFAULT 0, expert_job_type INTEGER NOT NULL DEFAULT 0, expert_job_exp INTEGER NOT NULL DEFAULT 0, is_hardcore_mode INTEGER NOT NULL DEFAULT 0, is_hardcore_dead INTEGER NOT NULL DEFAULT 0, hardcore_death_count INTEGER NOT NULL DEFAULT 0, user_state_bits INTEGER NOT NULL DEFAULT 3, chat_ban_end_time INTEGER NOT NULL DEFAULT 0, mood_value INTEGER NOT NULL DEFAULT 0, pvp_rank_point INTEGER NOT NULL DEFAULT 0, creature_field1 INTEGER NOT NULL DEFAULT 0, creature_field2 INTEGER NOT NULL DEFAULT 0, creature_field3 INTEGER NOT NULL DEFAULT 0, creature_field4 INTEGER NOT NULL DEFAULT 0, creature_buffer BLOB, pc_room_id INTEGER NOT NULL DEFAULT 65537, is_premium_pc_room INTEGER NOT NULL DEFAULT 0, server_group_id INTEGER NOT NULL DEFAULT 0, black_count INTEGER NOT NULL DEFAULT 0, guild_level INTEGER NOT NULL DEFAULT 0, chaos_point INTEGER NOT NULL DEFAULT 0, disguise_kind INTEGER NOT NULL DEFAULT 0, is_disguised INTEGER NOT NULL DEFAULT 0, fatigue_update INTEGER NOT NULL DEFAULT 0, return_user_flag INTEGER NOT NULL DEFAULT 1, channel_display_mode INTEGER NOT NULL DEFAULT 0, channel_type INTEGER NOT NULL DEFAULT 0, is_return_user INTEGER NOT NULL DEFAULT 0, link_slot_enabled INTEGER NOT NULL DEFAULT 0, link_type_a INTEGER NOT NULL DEFAULT 0, link_type_b INTEGER NOT NULL DEFAULT 0, emotion_index INTEGER NOT NULL DEFAULT 0, action_byte INTEGER NOT NULL DEFAULT 0, fatigue_display_update INTEGER NOT NULL DEFAULT 0, costume_flag INTEGER NOT NULL DEFAULT 0, aura_flag INTEGER NOT NULL DEFAULT 0, pet_display_flag INTEGER NOT NULL DEFAULT 0, title_display_flag INTEGER NOT NULL DEFAULT 0, pvp_stat_a INTEGER NOT NULL DEFAULT 0, pvp_win_streak INTEGER NOT NULL DEFAULT 0, pvp_lose_streak INTEGER NOT NULL DEFAULT 0, trailing_byte INTEGER NOT NULL DEFAULT 0);
         CREATE TABLE IF NOT EXISTS character_subtype1_fields( character_id INTEGER PRIMARY KEY, stat_hp_max INTEGER NOT NULL DEFAULT 0, stat_mp_max INTEGER NOT NULL DEFAULT 0, stat_physical_attack INTEGER NOT NULL DEFAULT 0, stat_physical_defense INTEGER NOT NULL DEFAULT 0, stat_magical_attack INTEGER NOT NULL DEFAULT 0, stat_magical_defense INTEGER NOT NULL DEFAULT 0, stat_move_speed INTEGER NOT NULL DEFAULT 0, stat_attack_speed INTEGER NOT NULL DEFAULT 0, stat_cast_speed INTEGER NOT NULL DEFAULT 0, stat_inventory_limit INTEGER NOT NULL DEFAULT 0, skill_tree_index INTEGER NOT NULL DEFAULT -1, progress1 INTEGER NOT NULL DEFAULT 0, progress2 INTEGER NOT NULL DEFAULT 0, stat_fire_resistance INTEGER NOT NULL DEFAULT 0, stat_water_resistance INTEGER NOT NULL DEFAULT 0, stat_dark_resistance INTEGER NOT NULL DEFAULT 0, stat_light_resistance INTEGER NOT NULL DEFAULT 0, stat_hp_regen_speed INTEGER NOT NULL DEFAULT 0, stat_mp_regen_speed INTEGER NOT NULL DEFAULT 0, stat_hit_recovery INTEGER NOT NULL DEFAULT 0, stat_jump_power INTEGER NOT NULL DEFAULT 0, stat_weight INTEGER NOT NULL DEFAULT 0, current_hp_mp_percent INTEGER NOT NULL DEFAULT 0, name_tag_item_id INTEGER NOT NULL DEFAULT 0, name_tag_expire_time INTEGER NOT NULL DEFAULT 0, equipped_creature_level INTEGER NOT NULL DEFAULT 0, equip_list_trailing INTEGER NOT NULL DEFAULT 0, flag_byte INTEGER NOT NULL DEFAULT 0, guild_power_war INTEGER NOT NULL DEFAULT 0, server_timestamp INTEGER NOT NULL DEFAULT 0, quest_shop_count INTEGER NOT NULL DEFAULT 0, manage_level INTEGER NOT NULL DEFAULT 0);
         CREATE TABLE IF NOT EXISTS characters(character_id INTEGER PRIMARY KEY,account_id INTEGER NOT NULL,name TEXT NOT NULL,name_bytes BLOB,job INTEGER NOT NULL DEFAULT 0,grow_type INTEGER NOT NULL DEFAULT 0,level INTEGER NOT NULL DEFAULT 1,clone_title_item_id INTEGER NOT NULL DEFAULT 0,slot_index INTEGER NOT NULL DEFAULT 0,delete_flag INTEGER NOT NULL DEFAULT 0, town_id INTEGER NOT NULL DEFAULT 0, area_id INTEGER NOT NULL DEFAULT 0, pos_x INTEGER NOT NULL DEFAULT 0, pos_y INTEGER NOT NULL DEFAULT 0, direction INTEGER NOT NULL DEFAULT 5, area_state INTEGER NOT NULL DEFAULT 3, appearance_blob BLOB, bonus_sp INTEGER NOT NULL DEFAULT 0, bonus_tp INTEGER NOT NULL DEFAULT 0, exp INTEGER NOT NULL DEFAULT 0, ex_equip_slot_stat INTEGER NOT NULL DEFAULT 0, pvp_grade INTEGER NOT NULL DEFAULT 0, pvp_rating_grade INTEGER NOT NULL DEFAULT 0, user_state INTEGER NOT NULL DEFAULT 0);
+        CREATE TABLE IF NOT EXISTS dungeon_persistent_effect_outbox( source_event_id TEXT NOT NULL, effect_kind TEXT NOT NULL, effect_scope INTEGER NOT NULL, scope_target INTEGER NOT NULL, character_id INTEGER NOT NULL, account_id INTEGER NOT NULL, payload_version INTEGER NOT NULL DEFAULT 1, payload_json TEXT NOT NULL DEFAULT '{}', state INTEGER NOT NULL DEFAULT 0, lease_id TEXT, lease_owner TEXT, lease_expires_at INTEGER NOT NULL DEFAULT 0, attempt_count INTEGER NOT NULL DEFAULT 0, last_error TEXT NOT NULL DEFAULT '', result_version INTEGER, result_json TEXT, created_at INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL DEFAULT 0, committed_at INTEGER, PRIMARY KEY(source_event_id,effect_kind,effect_scope,scope_target));
         CREATE TABLE IF NOT EXISTS mailbox_attachments( attachment_id INTEGER PRIMARY KEY AUTOINCREMENT, message_id INTEGER NOT NULL, ordinal INTEGER NOT NULL DEFAULT 0, item_type INTEGER NOT NULL DEFAULT 0, source_list_type INTEGER NOT NULL DEFAULT 0, source_slot_index INTEGER NOT NULL DEFAULT 0, source_item_uid INTEGER NOT NULL DEFAULT 0, item_template_id INTEGER NOT NULL, item_kind TEXT NOT NULL DEFAULT 'unknown', item_count INTEGER NOT NULL DEFAULT 1, instance_value INTEGER NOT NULL DEFAULT 0, durability INTEGER NOT NULL DEFAULT 0, seal_flag INTEGER NOT NULL DEFAULT 0, option_value INTEGER NOT NULL DEFAULT 0, expire_time INTEGER NOT NULL DEFAULT 0, marker_16 INTEGER NOT NULL DEFAULT -1, pet_serial_or_handle INTEGER NOT NULL DEFAULT 0, item_core BLOB, detail_json TEXT NOT NULL DEFAULT '');
         CREATE TABLE IF NOT EXISTS mailbox_messages( message_id INTEGER PRIMARY KEY AUTOINCREMENT, sender_character_id INTEGER NOT NULL DEFAULT 0, sender_name TEXT NOT NULL DEFAULT '', receiver_character_id INTEGER NOT NULL, title TEXT NOT NULL DEFAULT '', body TEXT NOT NULL DEFAULT '', gold INTEGER NOT NULL DEFAULT 0, mail_type INTEGER NOT NULL DEFAULT 0, source_protocol INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, unlimited_flag INTEGER NOT NULL DEFAULT 0, expire_at TEXT NOT NULL DEFAULT '9999-12-31 23:59:59', deleted_by_sender INTEGER NOT NULL DEFAULT 0);
         CREATE TABLE IF NOT EXISTS mailbox_recipients( recipient_id INTEGER PRIMARY KEY AUTOINCREMENT, message_id INTEGER NOT NULL, character_id INTEGER NOT NULL, folder INTEGER NOT NULL DEFAULT 0, read_flag INTEGER NOT NULL DEFAULT 0, saved_flag INTEGER NOT NULL DEFAULT 0, deleted_flag INTEGER NOT NULL DEFAULT 0, received_gold_flag INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(message_id,character_id,folder));

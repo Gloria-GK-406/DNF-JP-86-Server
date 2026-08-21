@@ -96,10 +96,20 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IAccountInventoryEntryDomainService, AccountInventoryEntryDomainService>();
         services.TryAddSingleton<IEquippedCreatureQuery, EquippedCreatureQuery>();
         services.TryAddSingleton<IEntryInventoryLeaseRegistry, EntryInventoryLeaseRegistry>();
+        // What used to be two SQL classes on the inventory side: fourteen tables between them,
+        // and the sequencing that made those tables one inventory.
+        services.TryAddSingleton<InventoryEntryAssembly>();
+        services.TryAddSingleton<ICharacterInventoryEntryRepository>(
+            provider => provider.GetRequiredService<InventoryEntryAssembly>());
+        services.TryAddSingleton<IAccountInventoryEntryRepository>(
+            provider => provider.GetRequiredService<InventoryEntryAssembly>());
+        services.TryAddSingleton<IEntryInventoryLeasePersistence>(
+            provider => provider.GetRequiredService<InventoryEntryAssembly>());
+        services.TryAddSingleton<IEntryInventoryMutationRepository, DailyRefillService>();
+        // What used to be one SQL class over thirty-three tables. The tables stayed; the order
+        // they are read in and everything that made them one character came here.
+        services.TryAddSingleton<ICharacterEntryStateRepository, CharacterEntryAssembly>();
         services.TryAddSingleton<ICharacterContainerDomainService, CharacterContainerDomainService>();
-        // Whatever a run hands the player, kept only as long as the process is.
-        services.TryAddSingleton<MemoryItemStore>();
-        services.TryAddSingleton<IItemContainerFactory, ItemContainerFactory>();
         services.TryAddSingleton<ICharacterItemCooldownDomainService, CharacterItemCooldownDomainService>();
         services.TryAddSingleton<IItemUsabilityDomainService, ItemUsabilityDomainService>();
         services.TryAddSingleton<IItemUseEffectDomainService, ItemUseEffectDomainService>();
@@ -115,6 +125,18 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IAccountWalletEntitlementEntryProjection, AccountWalletEntitlementEntryProjection>();
         services.TryAddSingleton<IAccountProgressionEntryProjection, AccountProgressionEntryProjection>();
         services.TryAddSingleton<IAccountRelationCompatibilityEntryProjection, AccountRelationCompatibilityEntryProjection>();
+        // What used to be two SQL classes: creating an account if its login name is new, and
+        // putting an account's eight tables together. Both are decisions, so both are here.
+        services.TryAddSingleton<IAccountRepository, AccountProvisioning>();
+        // What used to be four SQL classes on the character side. Each of them read, decided, and
+        // wrote; only the reading and writing stayed behind.
+        services.TryAddSingleton<ICharacterRepository, CharacterRosterService>();
+        services.TryAddSingleton<ICharacterPvpSkillProfileRepository, PvpSkillProfileService>();
+        services.TryAddSingleton<IExpertSkillContractReconciliationRepository,
+            ExpertSkillContractReconciliationService>();
+        services.TryAddSingleton<IDungeonPersistentEffectRecoveryRepository,
+            DungeonEffectRecoveryService>();
+        services.TryAddSingleton<IAccountEntryStateRepository, AccountEntryAssembly>();
         services.TryAddSingleton<IAccountEntryStateDomainService, AccountEntryStateDomainService>();
         services.TryAddSingleton<IWorldContentEntryRuleService, WorldContentEntryRuleService>();
         services.TryAddSingleton<IChannelEntryPolicy, ChannelEntryPolicy>();

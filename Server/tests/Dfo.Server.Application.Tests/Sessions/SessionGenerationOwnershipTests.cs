@@ -1,15 +1,15 @@
-using Dfo.Server.Abstractions.Sessions;
-using Dfo.Server.Application.Sessions;
-using Dfo.Server.Data.Accounts;
-using Dfo.Server.Data.Characters;
-using Dfo.Server.Data.Networking;
-using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
-using Dfo.Server.Data.Game;
-using Dfo.Server.Application.Tests.Characters;
+using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Sessions;
+using Dfo.Server.Application.Tests.Characters;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Tests.Sessions;
 
@@ -299,11 +299,12 @@ public sealed class SessionGenerationOwnershipTests
     private sealed class RecordingPositionPersistence : ISelectedSessionPositionPersistence
     {
         public int Writes { get; private set; }
+
         public ValueTask PersistAsync(AccountId accountId, CharacterId characterId,
             Dfo.Server.Data.Characters.CharacterPositionState position,
             CancellationToken cancellationToken)
         {
-            Writes++;
+            this.Writes++;
             return ValueTask.CompletedTask;
         }
     }

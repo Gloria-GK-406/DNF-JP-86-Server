@@ -20,4 +20,13 @@
     <ProjectReference Include="..\..\src\Dfo.Server.Persistence\Dfo.Server.Persistence.csproj" />
     <ProjectReference Include="..\..\src\Dfo.Server.Protocol\Dfo.Server.Protocol.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Compiled in rather than copied: three test assemblies reach the inventory seam, and this
+         is the one description of how the server wires it. -->
+    <Compile Include="..\Dfo.Server.Persistence.Tests\Support\InventorySide.cs"
+             Link="Support\InventorySide.cs" />
+    <Compile Include="..\Dfo.Server.Persistence.Tests\Support\CharacterSide.cs"
+             Link="Support\CharacterSide.cs" />
+  </ItemGroup>
+
 </Project>
