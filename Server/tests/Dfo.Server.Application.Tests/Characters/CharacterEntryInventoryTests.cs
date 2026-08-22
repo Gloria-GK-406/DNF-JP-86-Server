@@ -640,6 +640,9 @@ public sealed class CharacterEntryInventoryTests
 
     private sealed class StubCharacterDomainService(ActiveCharacterState state) : ICharacterDomainService
     {
+
+        public ICharacter Get(CharacterId characterId) =>
+            throw new NotSupportedException("This stand-in answers no questions about a character.");
         public ValueTask<AccountCharacterRoster> GetAccountRosterAsync(
             AccountId accountId,
             CancellationToken cancellationToken) => ValueTask.FromResult(new AccountCharacterRoster(

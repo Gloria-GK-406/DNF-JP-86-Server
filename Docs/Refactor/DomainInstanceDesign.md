@@ -144,16 +144,28 @@ on one class is a two-thousand-line object within a year.
 *Where the seams go.* The same places the tables were cut. Those concepts are already settled in the
 table ruling; a second set of boundaries here would mean two answers to one question.
 
-### R-4 — Instances are made when a character is selected, not when a command arrives
+### R-4 — An instance that has a registration is made when a character is selected; one that has none is made on demand
 
-*Why.* A repository that constructs instances has to hold every rule service those instances need —
-for the character, an estimated eight to ten. That cost is acceptable once per selection and
-wasteful once per command.
+A bag is registered. A character holds several bags of one type — its own, and whatever a dungeon
+hands it — and something has to say which one is in use, so the registry carries a fact that outlives
+any single call. That fact is established at selection and released when the session ends.
 
-*Rests on.* This is already how bags are made:
-`Server/src/Dfo.Server.Application/Inventory/SelectCharacterEntryInventoryDomainService.cs:61`
-constructs the container and registers it at selection time. The character instance goes in the same
-place at the same moment.
+A character has no such fact: one character, one instance, nothing to choose between. An instance
+that also holds no state (R-1) therefore has nothing to prepare at selection and nothing to release
+at the end, and a registry for it would buy one thing only — a way for the lookup to fail, in a case
+that cannot arise. So the character repository builds one when asked.
+
+*This rule was rewritten once.* It first read "instances are made when a character is selected", on
+the grounds that a repository holding eight to ten rule services should not rebuild an instance per
+command. That reason does not survive contact: the repository holds those services either way, and
+what is rebuilt is one small object — a cost the premise at the top of this document says is not the
+tiebreaker. What actually separates the two cases is registration, which is what the rule now says.
+
+*Rests on.* Bags are made this way already, at
+`Server/src/Dfo.Server.Application/Inventory/SelectCharacterEntryInventoryDomainService.cs:61`, and
+released in `SelectCharacterLifecycleServices`. The character instance is made by its repository and
+answers only while the character is selected — not because a lifecycle says so, but because what it
+reads exists only then.
 
 ### R-5 — A repository returns snapshots as well as instances, and a snapshot never decides anything
 
@@ -186,6 +198,11 @@ It takes the data it judges and returns a verdict.
 
 *Mechanical check.* **A rule service whose signature contains `CharacterId` or `AccountId` has not
 been separated.** It is performing a lookup as well as a judgement.
+
+The check is on those two types and not on identity-shaped data. `IDungeonEffectRuleService.CanCarryOut`
+takes a bare `int recordedAccountId` and stays pure, because that number is a value it compares
+against another value it was handed; nothing about it says go and find something. What the strong
+types carry is exactly that instruction, which is why they are the thing to look for.
 
 `IItemSlotRuleService.CanOccupyMainSlot(placement, slotIndex)` passes.
 `IItemUsabilityDomainService.CanUseAsync(characterId, itemId, ct)`
@@ -298,23 +315,59 @@ unchanged too, and it is now stated once for every caller instead of once for th
 R-2 was not exercised: a move within one bag spans no second instance. It stays a ruling about work
 that has not started.
 
+## Settled by the character-side implementation
+
+The second outcome (`spec-002`, the character instance) put steps 3 and 4 below into the code and
+settled the first of the three questions this document had left open.
+
+**The character instance is not the runtime session state; it reads it.** They stay separate, and the
+directory stays authoritative for what a character currently is. The reason is that merging them
+would move the authority, and moving the authority changes answers: whether a character may use an
+item is decided today from what the directory holds, not from what the database holds, and those two
+differ for as long as a session is in progress. That difference is the subject of the snapshot work,
+not of the instance. So the instance holds no state of its own (R-1 intact), reads the directory the
+way the service it replaced did, and gives the same answers.
+
+*What this rests on, and when to revisit it.* It rests on the directory being authoritative during a
+session, which is true today only because nothing writes a character's level or position to the
+database mid-session and expects to be believed. The day something does, the question reopens — and
+it reopens as "which of the two is authoritative", not as "should the instance hold state", because
+R-1 does not bend either way.
+
+**A rule that had a bad reason kept a good one.** R-4 said instances are made at selection, on a cost
+argument the premise at the top of this document disowns. Building the character instance made the
+real distinction visible: a bag is registered because a character holds several and something has to
+say which is in use; a character is not, so there is nothing to prepare and nothing to release. R-4
+now says that instead.
+
+**The census R-6 asks for came out clean, with one nuance.** Ten rule services; nine were already
+pure and the tenth — item usability — is now two halves, an instance that supplies identity and a
+judgement that could not find a character if it wanted to. The nuance is recorded in R-6: the check
+is on `CharacterId` and `AccountId`, not on identity-shaped numbers being compared as values.
+
+**The comparison order is part of the answer.** Permanent reasons before ones that expire. It moved
+into the judgement with the comparisons, and it is now checkable without constructing a character who
+is simultaneously under-levelled and mid-cooldown, because both facts arrive as values.
+
 ## What this implies, in order
 
-1. **`bag.AddAsync(itemId, count)`.** Collapses the duplicated `ItemArrival` switch into one place
-   and gives drops, purchases, mail and quest rewards something to call. Highest certainty of
-   benefit: the duplication already exists and is measurable.
-2. **`bag.MoveToAsync(…)`.** Moves `PlanAsync` out of `Dfo.Server.Protocol` into the bag; the
-   handler keeps only `ErrorCodeFor`.
-3. **The character instance.** The missing piece, made at selection alongside the bag.
-4. **Splitting `ItemUsabilityDomainService`** along R-6, once there is a character instance to hold
-   the identity.
+1. ~~`bag.AddAsync(itemId, count)`~~ — **done.** The duplicated `ItemArrival` switch is one place,
+   and drops, purchases, mail and quest rewards have something to call.
+2. ~~`bag.MoveToAsync(…)`~~ — **done.** `PlanAsync` left `Dfo.Server.Protocol`; the handler keeps
+   only `ErrorCodeFor`.
+3. ~~The character instance~~ — **done.** Built by its repository rather than registered, for the
+   reason R-4 now gives.
+4. ~~Splitting `ItemUsabilityDomainService` along R-6~~ — **done.** It is a character that supplies
+   identity and a judgement that cannot find one.
 5. **Reshaping the character snapshot** from one packet-shaped record into a set of domain records,
    and moving the segment layout to the handler. The largest single piece: `CharacterEntryAssembly`
    is 624 lines, `InventoryEntryAssembly` 578, and the three whole-record characterization tests pin
-   exactly what they produce today.
+   exactly what they produce today. It depends on none of the four above.
 
-Steps 1 and 2 do not depend on step 3 and can be done first. Step 5 depends on none of the others
-and should be its own piece of work rather than folded into one of them.
+Two things the first four turned up that belong to whoever does step 5 or comes after it:
+`ItemContainerOperations.ConsumeAsync` is a compound action that is not a verb and so is outside R-7;
+and `ItemUseEffectDomainService.ApplyAsync` still takes both a `CharacterId` and an `IItemContainer`,
+which is the last of this document's open questions.
 
 ## What this rests on, and what is still open
 
@@ -337,14 +390,8 @@ of the ones below" — but the transient one was retired and one concrete subcla
 stale comment rather than a second implementation. Worth correcting when the file is next touched,
 and worth knowing before assuming the abstraction is load-bearing.
 
-Three things this document deliberately does not decide:
+Two things this document deliberately does not decide:
 
-- **Whether the character instance is also the runtime session state.**
-  `ISelectedSessionRuntimeDirectory` already holds a per-selection in-memory `ActiveCharacterState`,
-  and `ItemUsabilityDomainService` reads the character out of it rather than out of the database.
-  R-1 says an instance holds no state; that directory plainly does. Whether the two merge, and which
-  is authoritative if they do, is the first question the character instance has to answer. It should
-  be answered where it can be judged against the packet path, not assumed here.
 - **How many rule services the character repository ends up holding.** Eight to ten is an estimate
   from the services today's character use cases name, not a count.
 - **What becomes of `ItemUseEffectDomainService.ApplyAsync`**, which takes both a `CharacterId` and

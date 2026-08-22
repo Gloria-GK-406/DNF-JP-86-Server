@@ -53,6 +53,9 @@ public sealed class SelectCharacterProductionStateTests
         ISessionAdjacentEntryDomainService, IActiveCharacterDomainService
     {
         public bool Published { get; private set; }
+
+        public ICharacter Get(CharacterId characterId) =>
+            throw new NotSupportedException("This stand-in answers no questions about a character.");
         public ValueTask<AccountCharacterRoster> GetAccountRosterAsync(AccountId id, CancellationToken ct) =>
             ValueTask.FromResult(new AccountCharacterRoster(id, 24,
                 [new CharacterSummary(seed.Character.Identity.CharacterId,
