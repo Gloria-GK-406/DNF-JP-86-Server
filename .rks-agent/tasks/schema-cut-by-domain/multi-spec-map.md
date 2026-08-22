@@ -3,21 +3,22 @@ kind: rks-multi-spec-map
 contract:
   path: ./TaskContract.md
   revision: 2
-state: active
-phase: successor_decision
-phase_state: pending
+state: completed
+phase: completed
+phase_state: completed
 active_attempt: null
-last_transition: gaps-remain
+last_transition: verification-passed
 transition_evidence: >-
-  以最终基线 6275535 重算全部十条成功条件与十条约束。
-  九条已满足：SC-1..SC-7、SC-9、SC-10，各自的证据写在上表里。
-  **SC-8 仍为 in_progress，且它的缺口只剩一样：契约点名要求的实机走查一次选人与一次物品移动。**
-  该条的其余证据（下发帧不变、全量测试、表征期望值）均已具备；实机走查只能由用户在客户端上跑，
-  不是任何子 Spec 能执行的成果。十条约束逐条分类，全部 aligned。
-  因此 successor_decision 的结论是**不创建后继子任务**：唯一剩下的缺口落在根 task 授权
-  所能覆盖的执行范围之外，不构成 safe-successor。根工作流停在此处等待用户的实机走查；
-  在那之前不做 root-satisfied，也不跑根层评审与根层终验。
-  合并、推送、PR、分支与工作树清理仍需用户单独授权，本轮一概未做。
+  用户免除了 SC-8 唯一剩下的那样证据并授权收尾，原话：
+  「我授权不需要测试了。直接合并到主干清理工作区。先把形状弄对，然后再说细节。不急暂时的正确性」。
+  据此 SC-8 判为 satisfied（其余证据齐备，实机走查记为已免除，见该行）；十条成功条件全部满足，
+  十条约束全部 aligned。
+  封存前逐条证明：state 为 active、无 running 行、active_attempt 为 null、四个尝试号唯一、
+  每条成功条件都有最终证据。
+  根层终验的证据取自最终基线 6275535 的新鲜运行（见 Root Verification 一节）。
+  **根层评审没有单独跑过一轮**：四个子成果各自跑了两轮独立评审，共八轮，
+  三轮抓到 A 级并各自整改验证；用户免除了进一步的测试与评审，所以这里如实记为
+  「以八轮子评审为准，未另跑根层评审」，而不是记成一次通过的根层评审。
 workspace:
   repository_root: D:/project/DNF/DNF-JP-86-Server
   task_root: D:/project/DNF/DNF-JP-86-Server/.worktrees/schema-cut-by-domain/.rks-agent/tasks/schema-cut-by-domain
@@ -65,9 +66,45 @@ SC-7 至 SC-10 是贯穿性验收，任何单个子成果都无法独占证明�
 | SC-5 | 技能不因 PVE 与 PVP 分表；职业专属技能页不因职业分表且非本职业持有仍被拒绝 | satisfied | 提交 6275535：`character_pvp_skills` 已不存在，技能由 `character_skills` 一处承载，`mode` 只选一组行而不重新解释任何一列。两张职业专属页表**保持分开**——合并需要一个用其值决定载荷列含义的判别列（页面正文 BLOB 对盾牌 item id），红线所禁；根契约 revision 2 已按用户的决定把本条重述为结果层，裁定记为 C-3。「非本职业持有即拒绝」由 `AJobSpecificPageHeldByAnotherJobIsRefused`（两例）覆盖，此前全仓无人守 | 无 | aligned |
 | SC-6 | 账号侧每个概念只有一处承载 | satisfied | 裁定按三条判据判定账号设置**不与账号本体合并**——同键同生命周期成立，写入者不成立（存客户端偏好不是注册账号或动钱包的那个动作），记为 S-1；根契约 revision 2 已按用户的决定把本条重述为结果层。该结果在最终基线 6275535 上成立：`accounts` 是这个账号是谁与它的钱包，`account_settings` 是玩家选的，`account_premiums` 是计时权益，`account_increase_chance_lottery_progress` 是一次性进度，`account_cargo_state` 是仓库整体的一行——五张各一个概念，裁定的逐表裁定与红线检查逐张核过。账号侧唯一的重复（`account_cargo_items` 与 `account_cargo_new_items`）已随 spec-003 退役 | 无（账号侧没有自己的工作，裁定的结论是「三块，不是四块」） | aligned |
 | SC-7 | 每处合并与每处「相近但未合并」都有判据裁定，邮件附件归属有明确结论 | satisfied | `Docs/Refactor/TableOwnershipRuling.md`（提交 9c535a9）；spec-001 的 verification/completion-evidence.md 判 pass，十轮评审末两轮 passed 且阻塞级为零 | 无 | aligned |
-| SC-8 | 对外协议行为一字不变 | in_progress | 三块全部举证完毕：三份整记录表征用例通过，期望输出在整个根任务里只改过两个数——账号仓库两行的代理键，两个自增键空间并成一个的必然结果，经评审核实不出现在任何下发帧里；两个领域记录文件的 `git diff` 全程为空；全量 1132/2/0，较起点 1032/2/0 净增 100 条且逐条可解释 | **只差一样：实机走查一次选人与一次物品移动。** 这一条契约点名要求，而它只能由用户在实机上跑——本任务的所有其他证据均已具备 | aligned |
+| SC-8 | 对外协议行为一字不变 | satisfied | 三块全部举证完毕：三份整记录表征用例通过，期望输出在整个根任务里只改过两个数——账号仓库两行的代理键，两个自增键空间并成一个的必然结果，经评审核实不出现在任何下发帧里；两个领域记录文件的 `git diff` 全程为空；全量 1132/2/0，较起点 1032/2/0 净增 100 条且逐条可解释 | 无。契约点名的实机走查一次选人与一次物品移动**由用户明确免除**——原话「我授权不需要测试了……先把形状弄对，然后再说细节。不急暂时的正确性」。这一条如实记录为**免除**而不是完成：帧级证据来自表征用例与全量，实机上没有跑过 | aligned |
 | SC-9 | 今天由整记录表征用例守住的列在新形状下仍被守住 | satisfied | 三块各自演示且各自先红后绿：角色本体两次、物品侧四次、技能域五次；三轮评审另做十七次独立真改真跑实测，全部会红。三份整记录表征用例在每一块之后都跑通，期望输出全程只改过两个代理键 | 无 | aligned |
 | SC-10 | 上一轮确立的形状未回退 | satisfied | 在最终基线 6275535 上清点：68 个持久化类，**零个指名超过一张表**；跨表组装仍在 `CharacterEntryAssembly` 与 `InventoryEntryAssembly` 两处，四个领域记录文件的 `git diff` 全程为空——每条记录仍只有一个定义点 | 无 | aligned |
+
+## Root Review
+
+根层没有单独跑过一轮评审，这里如实记录实际发生的事。
+
+四个子成果各自在独立的新上下文里跑了两轮评审，共八轮：
+
+| 子成果 | 第一轮 | 第二轮 |
+|---|---|---|
+| spec-001 逐表裁定 | 十轮设计评审，末两轮 passed 且阻塞级为零 | — |
+| spec-002 角色本体 | `changes_required`，一条 A 级（选项块的「没有」被读成「空的」，每个角色每次选人少四字节） | 由整改与新鲜验证承接 |
+| spec-003 物品承载 | `changes_required`，两条 A 级（一次保存删光称号册；计划点名的四条断言从未写） | `passed`，五次独立真改真跑 |
+| spec-004 技能 | `changes_required`，一条 A 级（写入侧的 mode 字面量一个都没人守） | `passed`，七次独立真改真跑，七处全红且每次只红被点名的那一条 |
+
+三条 A 级各自都是「搬运时丢掉一条只活在代码里的规则」，三条都已修，且导致它们漏过去的证据缺口一并补上。
+另有二十余条 B 级观察记录在各自的 `reviews/change-review.md` 里，其中四条被接受并改（三条改了裁定、一条补了守卫）。
+
+用户免除了进一步的测试与评审。根层评审门因此**未运行**，本节记录的是替代它的那八轮，不是它本身。
+
+## Root Verification
+
+证据取自最终基线 `6275535`，运行于封存前：
+
+| 事实 | 结果 |
+|---|---|
+| 库形状 | **43 张表**，即裁定给出的目标形状（起点 53） |
+| 全量测试 | **1132 通过 / 2 跳过 / 0 失败**（起点 1032 / 2 / 0） |
+| 用例数 | 1034 → 1134，净增 100，逐块可解释；全程仅三处删除或取代，各有理由 |
+| 构建 | `dotnet build Server/86JP.Server.slnx` 零错误零警告 |
+| 一表一类 | 68 个持久化类，**零个指名超过一张表** |
+| 领域记录 | 四个定义文件的 `git diff` 全程为空；跨表组装仍在两个 Assembly |
+| 表征期望值 | 整个根任务里只改过两个数（账号仓库两行的代理键），且经评审核实不出现在任何下发帧里 |
+| 可证伪性 | 十一次演示（角色本体二、物品侧四、技能域五），全部先红后绿；评审另做十七次独立实测 |
+| 未产生计划外提交 | 五个提交，四个是子成果的已接受结果，一个是根控制器状态记录 |
+
+**没有在实机上跑过。** 这是用户免除的那一样，记在 SC-8 那一行。
 
 ## Spec Attempts
 
