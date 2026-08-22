@@ -150,6 +150,23 @@ internal sealed class SqliteItemStoreSession(SqliteDatabaseParticipant owner)
     }
 
     /// <remarks>
+    /// The staged writes are let go of once applied, so that preparing finds nothing left to do
+    /// rather than replacing every one of those rows a second time. Replaying them would not
+    /// corrupt anything -- a batch clears every slot it names before filling any -- but it would
+    /// give each row yet another surrogate key for no reason.
+    /// </remarks>
+    public async ValueTask ApplyDecidedWritesAsync(CancellationToken cancellationToken)
+    {
+        if (!this.HasStagedWork)
+        {
+            return;
+        }
+
+        await this.FlushAsync(cancellationToken).ConfigureAwait(false);
+        this.staged.Clear();
+    }
+
+    /// <remarks>
     /// Every slot named here is emptied before any is filled. Each insert then lands on a slot this
     /// same batch has already cleared, whatever the writes happen to be -- so no write can meet the
     /// row it is replacing, and a swap needs nowhere to park.

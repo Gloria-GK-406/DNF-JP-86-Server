@@ -58,6 +58,18 @@ public interface ICharacterDomainService
         byte[] rawName,
         CancellationToken cancellationToken);
 
+    /// <summary>
+    /// The character as something to ask, rather than as the snapshot everything above reads.
+    /// </summary>
+    /// <remarks>
+    /// The two products of this repository. A snapshot is a set of records taken at one moment and
+    /// is what initialisation reads out; the character is what business acts through, and it holds
+    /// nothing, so it can be built when it is asked for. Nothing is prepared for it at selection
+    /// and nothing released afterwards -- what it reads exists only while the character is being
+    /// played, and it answers accordingly.
+    /// </remarks>
+    ICharacter Get(CharacterId characterId);
+
     ValueTask<CharacterDeletionResult> DeleteCharacterAsync(
         AccountId accountId,
         ushort slotIndex,

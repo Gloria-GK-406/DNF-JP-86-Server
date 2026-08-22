@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Characters;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
@@ -220,7 +221,7 @@ public sealed record UseStackableCommand(
 /// </remarks>
 public sealed class UseStackableCommandHandler(
     ICharacterContainerDomainService containers,
-    IItemUsabilityDomainService usability,
+    ICharacterDomainService characters,
     IItemUseEffectDomainService effects) : ICommandHandler<UseStackableCommand, ItemUseResult>
 {
     private const byte MainListType = (byte)InventoryContainerType.Main;
@@ -248,8 +249,8 @@ public sealed class UseStackableCommandHandler(
         if (item is null || command.ItemCode > 0 && item.ItemId != command.ItemCode)
             return ItemUseResult.Refused(ItemUseStatus.SlotDisagrees);
 
-        var verdict = await usability.CanUseAsync(command.CharacterId, item.ItemId, cancellationToken)
-            .ConfigureAwait(false);
+        var verdict = await characters.Get(command.CharacterId)
+            .CanUseAsync(item.ItemId, cancellationToken).ConfigureAwait(false);
         if (verdict is not ItemUsability.Allowed)
             return ItemUseResult.Refused(StatusFor(verdict), item.ItemId);
 

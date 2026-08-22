@@ -1,9 +1,11 @@
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Transactions;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
@@ -181,7 +183,14 @@ internal abstract class FakeMainInventory(int characterId = 60)
 
     public DomainTransactionScope Scope { get; } = new();
 
-    public ICharacterContainerDomainService Containers()
+    /// <remarks>
+    /// The archive is a parameter because the bag now reads it: what an item's band is, and how
+    /// large a pile of it may grow, are questions the bag asks before it places anything. A fixture
+    /// that fixed one answer here would make every test that needs a different band build its own
+    /// container instead.
+    /// </remarks>
+    public ICharacterContainerDomainService Containers(
+        IItemPlacementDefinitionSource? placements = null)
     {
         var containers = new CharacterContainerDomainService();
         containers.Register(this.character, new PersistentItemContainer(
@@ -190,8 +199,18 @@ internal abstract class FakeMainInventory(int characterId = 60)
             new ContainerShape(InventoryContainerType.Main, 0),
             this.store,
             this.Scope,
-            null!));
+            null!,
+            placements ?? new ConsumableBandPlacements(),
+            new ItemArrivalRuleService(),
+            new ItemSlotRuleService()));
         return containers;
+    }
+
+    /// <summary>Every item an ordinary consumable: kind 2, band 65 to 120, piles of a hundred.</summary>
+    private sealed class ConsumableBandPlacements : IItemPlacementDefinitionSource
+    {
+        public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(2, 100, 65, 120));
     }
 
     /// <summary>What the container holds of one item, in slot order.</summary>
@@ -227,4 +246,41 @@ internal abstract class FakeMainInventory(int characterId = 60)
         if (!settling.IsCompleted)
             settling.AsTask().GetAwaiter().GetResult();
     }
+}
+
+/// <summary>
+/// A character repository that knows exactly one character and answers nothing else.
+/// </summary>
+/// <remarks>
+/// The handler under test asks the repository for the character and then asks the character. What
+/// the rest of the repository does -- rosters, creation, deletion -- is its own subject and is
+/// covered where it lives, so a fixture that filled those in would hide the day one of them starts
+/// being read here.
+/// </remarks>
+internal sealed class OneCharacter(ICharacter character) : ICharacterDomainService
+{
+    public ICharacter Get(CharacterId characterId) => character;
+
+    public ValueTask<AccountCharacterRoster> GetAccountRosterAsync(
+        AccountId accountId, CancellationToken cancellationToken) => throw Unused();
+
+    public ValueTask<ActiveCharacterState> LoadForSelectionAsync(
+        AccountId accountId, ushort slotIndex, CancellationToken cancellationToken) => throw Unused();
+
+    public ValueTask<ActiveCharacterState> LoadByRosterPositionAsync(
+        AccountId accountId, ushort rosterIndex, CancellationToken cancellationToken) => throw Unused();
+
+    public ValueTask<CharacterNameStatus> CheckNameAsync(
+        byte[] rawName, CancellationToken cancellationToken) => throw Unused();
+
+    public ValueTask<CharacterCreationResult> CreateCharacterAsync(
+        AccountId accountId, byte job, byte[] rawName, CancellationToken cancellationToken) =>
+        throw Unused();
+
+    public ValueTask<CharacterDeletionResult> DeleteCharacterAsync(
+        AccountId accountId, ushort slotIndex, byte[] rawName, CancellationToken cancellationToken) =>
+        throw Unused();
+
+    private static NotSupportedException Unused() =>
+        new("This repository knows one character and nothing else about characters.");
 }

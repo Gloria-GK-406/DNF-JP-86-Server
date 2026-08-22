@@ -1,6 +1,9 @@
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Accounts;
@@ -8,10 +11,10 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
 using Dfo.Server.Data.Networking;
 
-namespace Dfo.Server.Application.Tests.Inventory;
+namespace Dfo.Server.Application.Tests.Characters;
 
 /// <summary>
-/// Whether a character may use an item, asked with nothing but the character and the item.
+/// Whether a character may use an item, asked of the character itself.
 /// </summary>
 /// <remarks>
 /// The archive declares four restrictions for a stackable item -- who, what level, where, and how
@@ -19,7 +22,7 @@ namespace Dfo.Server.Application.Tests.Inventory;
 /// own tags: <c>[usable job]</c> on 34,533 files, <c>[minimum level]</c> on 28,673,
 /// <c>[cool time]</c> on 6,254, and <c>[action usable place]</c> on 792.
 /// </remarks>
-public sealed class ItemUsabilityDomainServiceTests
+public sealed class CharacterItemUseTests
 {
     private static readonly CharacterId Character = new(60);
 
@@ -30,7 +33,7 @@ public sealed class ItemUsabilityDomainServiceTests
 
         Assert.Equal(
             ItemUsability.NotAUsableItem,
-            await usability.CanUseAsync(Character, itemId: 1000, CancellationToken.None));
+            await usability.CanUseAsync(itemId: 1000, CancellationToken.None));
     }
 
     /// <remarks>
@@ -47,7 +50,7 @@ public sealed class ItemUsabilityDomainServiceTests
 
         Assert.Equal(
             ItemUsability.NotAUsableItem,
-            await usability.CanUseAsync(Character, 8474, CancellationToken.None));
+            await usability.CanUseAsync(8474, CancellationToken.None));
     }
 
     [Fact]
@@ -57,7 +60,7 @@ public sealed class ItemUsabilityDomainServiceTests
 
         Assert.Equal(
             ItemUsability.LevelTooLow,
-            await usability.CanUseAsync(Character, 8474, CancellationToken.None));
+            await usability.CanUseAsync(8474, CancellationToken.None));
     }
 
     [Fact]
@@ -67,7 +70,7 @@ public sealed class ItemUsabilityDomainServiceTests
 
         Assert.Equal(
             ItemUsability.Allowed,
-            await usability.CanUseAsync(Character, 8474, CancellationToken.None));
+            await usability.CanUseAsync(8474, CancellationToken.None));
     }
 
     /// <remarks>
@@ -82,7 +85,7 @@ public sealed class ItemUsabilityDomainServiceTests
 
         Assert.Equal(
             ItemUsability.JobMismatch,
-            await usability.CanUseAsync(Character, 8474, CancellationToken.None));
+            await usability.CanUseAsync(8474, CancellationToken.None));
     }
 
     [Fact]
@@ -93,7 +96,7 @@ public sealed class ItemUsabilityDomainServiceTests
 
         Assert.Equal(
             ItemUsability.Allowed,
-            await usability.CanUseAsync(Character, 8474, CancellationToken.None));
+            await usability.CanUseAsync(8474, CancellationToken.None));
     }
 
     /// <remarks>
@@ -107,7 +110,7 @@ public sealed class ItemUsabilityDomainServiceTests
 
         Assert.Equal(
             ItemUsability.PlaceNotAllowed,
-            await usability.CanUseAsync(Character, 8474, CancellationToken.None));
+            await usability.CanUseAsync(8474, CancellationToken.None));
     }
 
     [Fact]
@@ -118,7 +121,7 @@ public sealed class ItemUsabilityDomainServiceTests
 
         Assert.Equal(
             ItemUsability.Allowed,
-            await usability.CanUseAsync(Character, 8474, CancellationToken.None));
+            await usability.CanUseAsync(8474, CancellationToken.None));
     }
 
     /// <remarks>
@@ -132,7 +135,7 @@ public sealed class ItemUsabilityDomainServiceTests
 
         Assert.Equal(
             ItemUsability.Allowed,
-            await usability.CanUseAsync(Character, 8474, CancellationToken.None));
+            await usability.CanUseAsync(8474, CancellationToken.None));
     }
 
     [Fact]
@@ -145,7 +148,7 @@ public sealed class ItemUsabilityDomainServiceTests
 
         Assert.Equal(
             ItemUsability.OnCooldown,
-            await usability.CanUseAsync(Character, 8474, CancellationToken.None));
+            await usability.CanUseAsync(8474, CancellationToken.None));
     }
 
     [Fact]
@@ -158,7 +161,7 @@ public sealed class ItemUsabilityDomainServiceTests
 
         Assert.Equal(
             ItemUsability.Allowed,
-            await usability.CanUseAsync(Character, 8474, CancellationToken.None));
+            await usability.CanUseAsync(8474, CancellationToken.None));
     }
 
     /// <remarks>
@@ -176,7 +179,7 @@ public sealed class ItemUsabilityDomainServiceTests
 
         Assert.Equal(
             ItemUsability.OnCooldown,
-            await usability.CanUseAsync(Character, 9000, CancellationToken.None));
+            await usability.CanUseAsync(9000, CancellationToken.None));
     }
 
     /// <remarks>
@@ -194,7 +197,7 @@ public sealed class ItemUsabilityDomainServiceTests
 
         Assert.Equal(
             ItemUsability.Allowed,
-            await usability.CanUseAsync(Character, 9000, CancellationToken.None));
+            await usability.CanUseAsync(9000, CancellationToken.None));
     }
 
     /// <remarks>
@@ -212,7 +215,7 @@ public sealed class ItemUsabilityDomainServiceTests
 
         Assert.Equal(
             ItemUsability.Allowed,
-            await usability.CanUseAsync(Character, 9000, CancellationToken.None));
+            await usability.CanUseAsync(9000, CancellationToken.None));
     }
 
     /// <remarks>
@@ -227,10 +230,10 @@ public sealed class ItemUsabilityDomainServiceTests
 
         Assert.Equal(
             ItemUsability.Allowed,
-            await usability.CanUseAsync(Character, 8474, CancellationToken.None));
+            await usability.CanUseAsync(8474, CancellationToken.None));
         Assert.Equal(
             ItemUsability.Allowed,
-            await usability.CanUseAsync(Character, 8474, CancellationToken.None));
+            await usability.CanUseAsync(8474, CancellationToken.None));
         Assert.False(fixture.Cooldowns.IsCoolingDown(Character, ItemCooldownKey.ForItem(8474)));
     }
 
@@ -260,8 +263,10 @@ public sealed class ItemUsabilityDomainServiceTests
     public async Task A_character_whose_state_is_not_published_yet_is_not_the_players_fault()
     {
         var clock = new AdvanceableTimeProvider(new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero));
-        var usability = new ItemUsabilityDomainService(
+        var usability = new PlayingCharacter(
+            Character,
             new FakeItemUseRules((8474, ItemUseRules.Potion())),
+            new ItemUseJudgementService(),
             new CharacterItemCooldownDomainService(clock),
             new OneSession(),
             FixedRuntimeSessions.Unpublished,
@@ -269,7 +274,7 @@ public sealed class ItemUsabilityDomainServiceTests
 
         Assert.Equal(
             ItemUsability.CharacterStateUnavailable,
-            await usability.CanUseAsync(Character, 8474, CancellationToken.None));
+            await usability.CanUseAsync(8474, CancellationToken.None));
     }
 
     /// <remarks>
@@ -290,14 +295,14 @@ public sealed class ItemUsabilityDomainServiceTests
 
         Assert.Equal(
             ItemUsability.LevelTooLow,
-            await usability.CanUseAsync(Character, 9000, CancellationToken.None));
+            await usability.CanUseAsync(9000, CancellationToken.None));
     }
 
     private sealed record Fixture(
         AdvanceableTimeProvider Clock,
         ICharacterItemCooldownDomainService Cooldowns);
 
-    private static IItemUsabilityDomainService Build(
+    private static ICharacter Build(
         out Fixture fixture,
         byte level,
         byte job,
@@ -306,15 +311,17 @@ public sealed class ItemUsabilityDomainServiceTests
         var clock = new AdvanceableTimeProvider(new DateTimeOffset(2026, 8, 18, 12, 0, 0, TimeSpan.Zero));
         var cooldowns = new CharacterItemCooldownDomainService(clock);
         fixture = new Fixture(clock, cooldowns);
-        return new ItemUsabilityDomainService(
+        return new PlayingCharacter(
+            Character,
             new FakeItemUseRules(rules),
+            new ItemUseJudgementService(),
             cooldowns,
             new OneSession(),
             new FixedRuntimeSessions(level, job),
             new SessionPresenceRegistry());
     }
 
-    private static IItemUsabilityDomainService Build(
+    private static ICharacter Build(
         out Fixture fixture,
         params (int ItemId, ItemUseRule Rule)[] rules) =>
         Build(out fixture, level: 50, job: 0, rules);

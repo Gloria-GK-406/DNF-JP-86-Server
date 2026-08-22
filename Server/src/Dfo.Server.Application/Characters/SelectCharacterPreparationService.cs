@@ -207,14 +207,14 @@ public sealed class SelectCharacterPreparationService(
             characters.Add(new CharacterRosterMemberState(
                 summary.CharacterId, summary.SlotIndex, summary.Name, summary.Job, summary.GrowType,
                 summary.Level,
-                checked((uint)Math.Max(0, entry.Public.Subtype1.Progress1)),
-                checked((uint)Math.Max(0, entry.Public.Subtype1.Progress2)),
+                checked((uint)Math.Max(0, entry.Public.DerivedStats.Progress1)),
+                checked((uint)Math.Max(0, entry.Public.DerivedStats.Progress2)),
                 0,
                 DecodeAppearances(entry.Public.Appearance.EncodedEntries),
                 summary.CloneTitleItemId));
         }
         return new CharacterRosterEntryState(
-            roster.SlotLimit, roster.SlotLimit, selectedEntry.Public.Subtype1.ManageLevel,
+            roster.SlotLimit, roster.SlotLimit, checked((byte)selectedEntry.Public.Extras.ManageLevel),
             0, 0, 0, characters);
     }
 
@@ -501,6 +501,6 @@ public sealed class SelectCharacterPreparationService(
             claimedGroups,
             boxes,
             equippedCreature.GetItemId(characterInventory),
-            entry.Public.Subtype1.EquippedCreatureLevel);
+            entry.Public.DerivedStats.EquippedCreatureLevel);
     }
 }

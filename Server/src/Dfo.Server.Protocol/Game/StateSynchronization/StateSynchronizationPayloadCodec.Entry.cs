@@ -104,13 +104,14 @@ internal static partial class StateSynchronizationPayloadCodec
             || projection.Entry.CharacterId != relation.SupportCharacterId
             || projection.Inventory.CharacterId != relation.SupportCharacterId)
             throw new InvalidDataException("Support-character projection does not match the owner relation.");
-        var stats = projection.Entry.Public.Subtype1;
+        var stats = projection.Entry.Public.DerivedStats;
+        var extras = projection.Entry.Public.Extras;
         var equipment = projection.Inventory.Containers
             .Where(value => value.ContainerType == InventoryContainerType.Equipment)
             .SelectMany(value => value.Items).Where(value => value.SlotIndex is >= 0 and <= 29)
             .OrderBy(value => value.SlotIndex).ToArray();
         var page = projection.Entry.Skills.Pages.SingleOrDefault(
-            value => value.PageIndex == stats.SkillTreeIndex);
+            value => value.PageIndex == extras.SkillTreeIndex);
         var skills = page?.Skills.OrderBy(value => value.Slot).ToArray() ?? [];
         if (equipment.Length > byte.MaxValue || skills.Length is 0 or > byte.MaxValue)
             throw new InvalidDataException("Support-character equipment or active skill page is invalid.");
@@ -124,13 +125,13 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(projection.Character.Identity.GrowType);
         writer.Write(checked((ushort)relation.SkillId));
         writer.Write(82u);
-        writer.Write(EncodeSupportStats(stats));
+        writer.Write(EncodeSupportStats(projection.Entry.Public));
         writer.Write(checked((byte)equipment.Length));
         foreach (var item in equipment)
             WriteNoti2EquippedItem(writer, item, preparedAt);
         writer.Write(projection.Entry.Public.CloneTitleItemId);
         writer.Write(checked((byte)skills.Length));
-        writer.Write(SkillTreeIndexOnTheWire(stats.SkillTreeIndex));
+        writer.Write(SkillTreeIndexOnTheWire(extras.SkillTreeIndex));
         foreach (var skill in skills)
         {
             writer.Write(checked((byte)skill.Slot));
@@ -267,30 +268,31 @@ internal static partial class StateSynchronizationPayloadCodec
         expiresAt <= 0 ? 0 : checked((int)Math.Clamp(
             (long)expiresAt - preparedAt.ToUnixTimeSeconds(), 0, int.MaxValue));
 
-    private static byte[] EncodeSupportStats(CharacterSubtype1EntryState value)
+    private static byte[] EncodeSupportStats(CharacterPublicEntryState entry)
     {
+        var stats = entry.DerivedStats; var extras = entry.Extras;
         using var stream = new MemoryStream(82);
         using var writer = new BinaryWriter(stream);
-        writer.Write(checked((uint)value.HpMaximum));
-        writer.Write(checked((uint)value.MpMaximum));
-        writer.Write(checked((short)value.PhysicalAttack));
-        writer.Write(checked((short)value.PhysicalDefense));
-        writer.Write(checked((short)value.MagicalAttack));
-        writer.Write(checked((short)value.MagicalDefense));
-        writer.Write(value.FireResistance);
-        writer.Write(value.WaterResistance);
-        writer.Write(value.DarkResistance);
-        writer.Write(value.LightResistance);
+        writer.Write(checked((uint)stats.HpMaximum));
+        writer.Write(checked((uint)stats.MpMaximum));
+        writer.Write(checked((short)stats.PhysicalAttack));
+        writer.Write(checked((short)stats.PhysicalDefense));
+        writer.Write(checked((short)stats.MagicalAttack));
+        writer.Write(checked((short)stats.MagicalDefense));
+        writer.Write(checked((short)stats.FireResistance));
+        writer.Write(checked((short)stats.WaterResistance));
+        writer.Write(checked((short)stats.DarkResistance));
+        writer.Write(checked((short)stats.LightResistance));
         writer.Write(new byte[34]);
-        writer.Write(checked((uint)value.InventoryLimit));
-        writer.Write(value.HpRegenSpeed);
-        writer.Write(value.MpRegenSpeed);
-        writer.Write(checked((uint)value.MoveSpeed));
-        writer.Write(checked((ushort)value.AttackSpeed));
-        writer.Write(checked((ushort)value.CastSpeed));
-        writer.Write(value.HitRecovery);
-        writer.Write(value.JumpPower);
-        writer.Write(value.Weight);
+        writer.Write(checked((uint)stats.InventoryLimit));
+        writer.Write(checked((ushort)stats.HpRegenSpeed));
+        writer.Write(checked((ushort)stats.MpRegenSpeed));
+        writer.Write(checked((uint)stats.MoveSpeed));
+        writer.Write(checked((ushort)stats.AttackSpeed));
+        writer.Write(checked((ushort)stats.CastSpeed));
+        writer.Write(checked((ushort)stats.HitRecovery));
+        writer.Write(checked((ushort)stats.JumpPower));
+        writer.Write(checked((uint)stats.Weight));
         return stream.ToArray();
     }
 
@@ -722,7 +724,9 @@ internal static partial class StateSynchronizationPayloadCodec
         IReadOnlyList<CharacterPetRuntimeState> pets)
     {
         var identity = entry.Identity ?? throw Missing("CharacterEntry.Public.Identity");
-        var t = entry.Subtype0; var s1 = entry.Subtype1;
+        var c = entry.Condition; var pvp = entry.Pvp; var job = entry.ExpertJob;
+        var guild = entry.Guild; var settings = entry.Settings;
+        var stats = entry.DerivedStats; var extras = entry.Extras;
         var appearance = equipment.Where(item => item.SlotIndex <= 12 || item.SlotIndex == 23).OrderBy(item => item.SlotIndex).ToArray();
         if (appearance.Length > byte.MaxValue) throw CountError("appearance", "u8");
         var creature = equipment.SingleOrDefault(item => item.SlotIndex == 24 && item.Core.ItemKind == 5);
@@ -737,17 +741,17 @@ internal static partial class StateSynchronizationPayloadCodec
             writer.Write(checked((byte)((item.Core.Attribute & 0x1F) * 2 + (item.Core.AmplifyType != 0 ? 1 : 0))));
             writer.Write(0); writer.Write(0u); writer.Write(item.Core.EnchantUpgradeCount);
         }
-        writer.Write(entry.CloneTitleItemId); writer.Write((byte)0); writer.Write(t.CreatureField2); writer.Write(t.CreatureField3); writer.Write(t.CreatureField4);
-        writer.Write(s1.NameTagItemId); writer.Write(s1.NameTagExpireTime); writer.Write(t.Stamina); writer.Write(t.FatiguePenalty); writer.Write(t.EventCharacter ? (byte)1 : (byte)0);
+        writer.Write(entry.CloneTitleItemId); writer.Write((byte)0); writer.Write(checked((byte)c.CreatureField2)); writer.Write(checked((byte)c.CreatureField3)); writer.Write(checked((byte)c.CreatureField4));
+        writer.Write(checked((uint)extras.NameTagItemId)); writer.Write(checked((uint)extras.NameTagExpireTime)); writer.Write(checked((byte)c.Stamina)); writer.Write(checked((uint)c.FatiguePenalty)); writer.Write(c.EventCharacter != 0 ? (byte)1 : (byte)0);
         writer.Write(creature is null ? 0u : checked((uint)creature.Core.ItemId)); WriteDstr(writer, pet?.CreatureText ?? []); writer.Write(pet?.Field04 > 0 ? (byte)1 : (byte)0);
-        writer.Write(t.PremiumPcRoom ? (byte)1 : (byte)0); writer.Write(t.ServerGroupId); writer.Write(t.BlackCount); writer.Write(t.GuildLevel); WriteDstr(writer, []);
-        writer.Write(t.ChaosPoint); writer.Write((byte)1); writer.Write(t.DisguiseKind); writer.Write(t.Disguised ? (byte)1 : (byte)0); writer.Write(t.ExpertJobType); writer.Write(t.ExpertJobExperience);
-        writer.Write((byte)0); writer.Write(0u); writer.Write((ushort)0); writer.Write(t.HardcoreMode ? (byte)1 : (byte)0); writer.Write(t.HardcoreDead ? (byte)1 : (byte)0);
-        writer.Write(t.HardcoreDeathCount); writer.Write(checked((uint)s1.Progress1)); writer.Write(checked((uint)s1.Progress2)); writer.Write(checked((byte)t.UserStateBits)); writer.Write(t.ChatBanEndTime);
-        writer.Write((byte)100); writer.Write(t.FatigueUpdate); writer.Write(t.ReturnUserFlag); writer.Write(t.ChannelDisplayMode); writer.Write(t.ChannelType); writer.Write(t.MoodValue);
-        writer.Write(SkillTreeIndexOnTheWire(s1.SkillTreeIndex)); writer.Write(t.ReturnUser ? (byte)1 : (byte)0); writer.Write(t.LinkSlotEnabled ? (byte)1 : (byte)0); writer.Write(t.LinkTypeA); writer.Write(t.LinkTypeB);
-        writer.Write(t.EmotionIndex); writer.Write(t.ActionByte); writer.Write(t.FatigueDisplayUpdate); writer.Write(t.CostumeFlag); writer.Write(t.AuraFlag); writer.Write(t.PetDisplayFlag); writer.Write(t.TitleDisplayFlag);
-        writer.Write(t.PvpStatA); writer.Write(t.PvpWinStreak); writer.Write(t.PvpLoseStreak); writer.Write(t.PvpRankPoint); writer.Write(t.TrailingByte); return stream.ToArray();
+        writer.Write(c.PremiumPcRoom != 0 ? (byte)1 : (byte)0); writer.Write(checked((byte)c.ServerGroupId)); writer.Write(checked((uint)c.BlackCount)); writer.Write(checked((byte)guild.Level)); WriteDstr(writer, []);
+        writer.Write(checked((uint)c.ChaosPoint)); writer.Write((byte)1); writer.Write(checked((byte)c.DisguiseKind)); writer.Write(c.Disguised != 0 ? (byte)1 : (byte)0); writer.Write(checked((byte)job.Type)); writer.Write(checked((uint)job.Experience));
+        writer.Write((byte)0); writer.Write(0u); writer.Write((ushort)0); writer.Write(c.HardcoreMode != 0 ? (byte)1 : (byte)0); writer.Write(c.HardcoreDead != 0 ? (byte)1 : (byte)0);
+        writer.Write(checked((ushort)c.HardcoreDeathCount)); writer.Write(checked((uint)stats.Progress1)); writer.Write(checked((uint)stats.Progress2)); writer.Write(checked((byte)checked((uint)settings.UserStateBits))); writer.Write(checked((uint)c.ChatBanEndTime));
+        writer.Write((byte)100); writer.Write(checked((ushort)c.FatigueUpdate)); writer.Write(checked((byte)c.ReturnUserFlag)); writer.Write(checked((ushort)c.ChannelDisplayMode)); writer.Write(checked((byte)c.ChannelType)); writer.Write(checked((ushort)c.MoodValue));
+        writer.Write(SkillTreeIndexOnTheWire(extras.SkillTreeIndex)); writer.Write(c.ReturnUser != 0 ? (byte)1 : (byte)0); writer.Write(c.LinkSlotEnabled != 0 ? (byte)1 : (byte)0); writer.Write(checked((byte)c.LinkTypeA)); writer.Write(checked((byte)c.LinkTypeB));
+        writer.Write(checked((ushort)c.EmotionIndex)); writer.Write(checked((byte)c.ActionByte)); writer.Write(checked((ushort)c.FatigueDisplayUpdate)); writer.Write(checked((byte)c.CostumeFlag)); writer.Write(checked((byte)c.AuraFlag)); writer.Write(checked((byte)c.PetDisplayFlag)); writer.Write(checked((byte)c.TitleDisplayFlag));
+        writer.Write(checked((uint)pvp.StatA)); writer.Write(checked((byte)pvp.WinStreak)); writer.Write(checked((byte)pvp.LoseStreak)); writer.Write(checked((uint)pvp.RankPoint)); writer.Write(checked((byte)c.TrailingByte)); return stream.ToArray();
     }
 
     public static byte[] EncodeExtendedUserState(
@@ -757,36 +761,44 @@ internal static partial class StateSynchronizationPayloadCodec
         IReadOnlyList<InventoryItemState> equipment,
         DateTimeOffset preparedAt)
     {
-        var value = publicState.Subtype1;
+        var stats = publicState.DerivedStats; var extras = publicState.Extras;
+        var pvp = publicState.Pvp; var guild = publicState.Guild;
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
-        writer.Write((byte)1); writer.Write((ushort)1); writer.Write(checked((ushort)character.Identity.CharacterId.Value)); writer.Write(value.CharacterExperience);
-        writer.Write(83); writer.Write(checked((uint)value.HpMaximum)); writer.Write(checked((uint)value.MpMaximum)); writer.Write(checked((short)value.PhysicalAttack)); writer.Write(checked((short)value.PhysicalDefense));
-        writer.Write(checked((short)value.MagicalAttack)); writer.Write(checked((short)value.MagicalDefense)); writer.Write(value.FireResistance); writer.Write(value.WaterResistance); writer.Write(value.DarkResistance); writer.Write(value.LightResistance);
-        writer.Write(new byte[34]); writer.Write(checked((uint)value.InventoryLimit)); writer.Write(value.HpRegenSpeed); writer.Write(value.MpRegenSpeed); writer.Write(checked((uint)value.MoveSpeed));
-        writer.Write(checked((ushort)value.AttackSpeed)); writer.Write(checked((ushort)value.CastSpeed)); writer.Write(value.HitRecovery); writer.Write(value.JumpPower); writer.Write(value.Weight); writer.Write(value.CurrentHpMpPercent); writer.Write(value.ExtraEquipmentSlotState);
+        writer.Write((byte)1); writer.Write((ushort)1); writer.Write(checked((ushort)character.Identity.CharacterId.Value)); writer.Write(checked((uint)extras.CharacterExperience));
+        writer.Write(83); writer.Write(checked((uint)stats.HpMaximum)); writer.Write(checked((uint)stats.MpMaximum)); writer.Write(checked((short)stats.PhysicalAttack)); writer.Write(checked((short)stats.PhysicalDefense));
+        writer.Write(checked((short)stats.MagicalAttack)); writer.Write(checked((short)stats.MagicalDefense)); writer.Write(checked((short)stats.FireResistance)); writer.Write(checked((short)stats.WaterResistance)); writer.Write(checked((short)stats.DarkResistance)); writer.Write(checked((short)stats.LightResistance));
+        writer.Write(new byte[34]); writer.Write(checked((uint)stats.InventoryLimit)); writer.Write(checked((ushort)stats.HpRegenSpeed)); writer.Write(checked((ushort)stats.MpRegenSpeed)); writer.Write(checked((uint)stats.MoveSpeed));
+        writer.Write(checked((ushort)stats.AttackSpeed)); writer.Write(checked((ushort)stats.CastSpeed)); writer.Write(checked((ushort)stats.HitRecovery)); writer.Write(checked((ushort)stats.JumpPower)); writer.Write(checked((uint)stats.Weight)); writer.Write(checked((byte)stats.CurrentHpMpPercent)); writer.Write(checked((byte)extras.ExtraEquipmentSlotState));
         if (equipment.Count > byte.MaxValue) throw CountError("equipped item", "u8"); writer.Write(checked((byte)equipment.Count));
         foreach (var item in equipment.OrderBy(item => item.SlotIndex)) WriteNoti2Item(writer, item, preparedAt);
-        writer.Write(publicState.CloneTitleItemId); writer.Write(value.NameTagItemId); writer.Write(value.NameTagExpireTime); writer.Write(SkillTreeIndexOnTheWire(value.SkillTreeIndex));
+        writer.Write(publicState.CloneTitleItemId); writer.Write(checked((uint)extras.NameTagItemId)); writer.Write(checked((uint)extras.NameTagExpireTime)); writer.Write(SkillTreeIndexOnTheWire(extras.SkillTreeIndex));
         for (byte page = 0; page < 2; page++)
         {
             var learned = skills.Pages.SingleOrDefault(p => p.PageIndex == page)?.Skills.Where(s => s.Level > 0).ToArray() ?? [];
             if (learned.Length > byte.MaxValue) throw CountError("subtype1 skill", "u8"); writer.Write(checked((byte)learned.Length));
             foreach (var skill in learned) { writer.Write(checked((ushort)skill.SkillId)); writer.Write(skill.Level); }
         }
-        writer.Write(value.EquippedCreatureLevel); writer.Write(checked((byte)value.Dimensions.Count)); foreach (var d in value.Dimensions) { writer.Write(d.Key); writer.Write(d.Value1); writer.Write(d.Value2); }
-        writer.Write(value.DimensionFlags.Flag1); writer.Write(value.DimensionFlags.Flag2); writer.Write(value.DimensionFlags.Flag3); writer.Write(value.DimensionFlags.Flag4);
-        var pvpResults = value.PvpResults ?? throw Missing("CharacterEntry.Public.Subtype1.PvpResults");
-        var specialRewards = value.SpecialRewardQuestIds ?? throw Missing("CharacterEntry.Public.Subtype1.SpecialRewardQuestIds");
+        writer.Write(checked((byte)stats.EquippedCreatureLevel)); writer.Write(checked((byte)extras.Dimensions.Count));
+        foreach (var d in extras.Dimensions.OrderBy(value => value.SortOrder))
+        {
+            writer.Write(checked((uint)d.Key)); writer.Write(checked((byte)d.Value1)); writer.Write(checked((byte)d.Value2));
+        }
+        writer.Write(checked((byte)extras.DimensionFlags.Flag1)); writer.Write(checked((byte)extras.DimensionFlags.Flag2));
+        writer.Write(checked((byte)extras.DimensionFlags.Flag3)); writer.Write(checked((byte)extras.DimensionFlags.Flag4));
+        var pvpResults = pvp.Results ?? throw Missing("CharacterEntry.Public.Pvp.Results");
+        var specialRewards = extras.SpecialRewardQuestIds ?? throw Missing("CharacterEntry.Public.Extras.SpecialRewardQuestIds");
         if (pvpResults.Count > byte.MaxValue) throw CountError("subtype1 PvP result", "u8");
         writer.Write(checked((byte)pvpResults.Count));
         foreach (var pvpResult in pvpResults)
         {
-            writer.Write(pvpResult.Value32); writer.Write(pvpResult.Value16A); writer.Write(pvpResult.Value16B);
+            writer.Write(checked((uint)pvpResult.Value32));
+            writer.Write(checked((ushort)pvpResult.Value16A));
+            writer.Write(checked((ushort)pvpResult.Value16B));
         }
-        writer.Write(value.ManageLevel); writer.Write(checked((uint)specialRewards.Count));
-        foreach (var questId in specialRewards) writer.Write(questId);
-        writer.Write(value.FlagByte); writer.Write(value.GuildPowerWar); writer.Write(value.ServerTimestamp); writer.Write(value.QuestShopCount);
-        writer.Write(checked((uint)value.Progress1)); writer.Write(checked((uint)value.Progress2)); return stream.ToArray();
+        writer.Write(checked((byte)extras.ManageLevel)); writer.Write(checked((uint)specialRewards.Count));
+        foreach (var questId in specialRewards) writer.Write(checked((uint)questId));
+        writer.Write(checked((byte)stats.FlagByte)); writer.Write(checked((uint)guild.PowerWar)); writer.Write(checked((uint)stats.ServerTimestamp)); writer.Write(checked((ushort)stats.QuestShopCount));
+        writer.Write(checked((uint)stats.Progress1)); writer.Write(checked((uint)stats.Progress2)); return stream.ToArray();
     }
 
     private static void WriteNoti2Item(BinaryWriter writer, InventoryItemState item, DateTimeOffset preparedAt)

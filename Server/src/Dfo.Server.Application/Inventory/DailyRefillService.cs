@@ -20,13 +20,19 @@ namespace Dfo.Server.Application.Inventory;
 /// All of it settles with the use case it runs inside. It used to be its own transaction; a
 /// failure now takes back the whole entry instead of only the refill, which is the same outcome
 /// the caller reached anyway by refusing an entry whose refill failed.
+///
+/// Where a grant lands is the bag's own business and is asked of it directly. This used to be
+/// carried out here, in a switch over the arrival that the tutorial reward had written out for
+/// itself as well; both now ask the same bag and read back what it did. Refill runs after the
+/// character is bound to its container -- entry binds before it dispatches this -- so an unbound
+/// character is a mistake rather than a case, and the bag repository says so by refusing.
 /// </remarks>
 internal sealed class DailyRefillService(
     ICharacterTable characters,
     ICharacterItemTable items,
     ICharacterDailyCounterTable counters,
     IDailyRefillRuleService refillRules,
-    IItemArrivalRuleService arrivalRules) : IEntryInventoryMutationRepository
+    ICharacterContainerDomainService containers) : IEntryInventoryMutationRepository
 {
     /// <summary>What a refill counter is called, with the item appended.</summary>
     private const string CounterPrefix = "pvf_daily_refill_item_";
@@ -58,13 +64,13 @@ internal sealed class DailyRefillService(
                 continue;
             }
 
-            var held = (await items.ReadMainStacksAsync(characterId, cancellationToken)
-                    .ConfigureAwait(false))
-                .Where(stack => stack.ItemId == rule.ItemId).ToArray();
-            var grant = refillRules.GrantFor(rule, held.Sum(stack => Math.Max(0, stack.Count)));
+            var bag = containers.GetContainer(characterId, InventoryContainerType.Main);
+            var held = (await bag.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+                .Where(item => item.ItemId == rule.ItemId).ToArray();
+            var grant = refillRules.GrantFor(rule, held.Sum(item => Math.Max(0, item.Count)));
             if (grant > 0)
             {
-                await GrantAsync(characterId, rule, held, grant, committed, cancellationToken)
+                await GrantAsync(bag, rule, grant, committed, cancellationToken)
                     .ConfigureAwait(false);
             }
 
@@ -87,58 +93,45 @@ internal sealed class DailyRefillService(
         [.. (await items.ReadMainAsync(characterId, cancellationToken).ConfigureAwait(false))
             .Select(row => new InventoryItemState(row.ItemUid, row.SlotIndex, row.Core))];
 
-    private async ValueTask GrantAsync(
-        CharacterId characterId,
+    /// <remarks>
+    /// Every answer the bag can give is read back into this entry's own terms. A band with no room
+    /// fails the whole entry rather than quietly leaving the player short -- an entry that skipped
+    /// the refill would look to the player exactly like a day that owed them nothing.
+    /// </remarks>
+    private static async ValueTask GrantAsync(
+        IItemContainer bag,
         DailyRefillRule rule,
-        IReadOnlyList<MainStackRow> held,
         int grant,
         List<DailyRefillCommittedGrant> committed,
         CancellationToken cancellationToken)
     {
-        var occupied = await items.ReadMainOccupiedSlotsAsync(characterId, cancellationToken)
-            .ConfigureAwait(false);
-        var arrival = arrivalRules.ForDailyRefill(
-            [.. held.Select(stack => new ItemPile(stack.SlotIndex, stack.Count))],
-            grant, rule.SlotStart, rule.SlotEnd, occupied);
-        switch (arrival)
+        var outcome = await bag.RefillAsync(
+            new ItemRefill(rule.ItemId, rule.ItemKind, grant, rule.SlotStart, rule.SlotEnd),
+            cancellationToken).ConfigureAwait(false);
+        switch (outcome)
         {
-            case ItemArrival.IntoEmptySlot opened:
-                if (rule.ItemKind == 0)
-                {
-                    throw new InvalidDataException(
-                        $"Daily refill item {rule.ItemId} has no authoritative PVF item kind.");
-                }
-
-                if (await items.InsertStackAsync(
-                        characterId, opened.SlotIndex, rule.ItemId, opened.Count, rule.ItemKind,
-                        cancellationToken).ConfigureAwait(false) != 1)
-                {
-                    throw new InvalidDataException("Daily refill item insert failed.");
-                }
-
-                committed.Add(new DailyRefillCommittedGrant(
-                    InventoryContainerType.Main, opened.SlotIndex, rule.ItemId,
-                    opened.Count, opened.Count));
-                return;
-
-            case ItemArrival.OntoExistingPile topped:
-                var stack = held.Single(value => value.SlotIndex == topped.SlotIndex);
-                if (await items.SetStackCountAsync(stack.ItemUid, topped.Total, cancellationToken)
-                        .ConfigureAwait(false) != 1)
-                {
-                    throw new InvalidDataException("Daily refill item update failed.");
-                }
-
+            case ItemPlacementOutcome.AddedToPile topped:
                 committed.Add(new DailyRefillCommittedGrant(
                     InventoryContainerType.Main, topped.SlotIndex, rule.ItemId,
                     topped.Added, topped.Total));
                 return;
 
-            default:
-                // The band is full. An entry that quietly skipped the refill would leave the
-                // player short with nothing said, so the whole entry fails instead.
+            case ItemPlacementOutcome.PutInEmptySlot opened:
+                committed.Add(new DailyRefillCommittedGrant(
+                    InventoryContainerType.Main, opened.SlotIndex, rule.ItemId,
+                    opened.Count, opened.Count));
+                return;
+
+            case ItemPlacementOutcome.NoRoom:
                 throw new InvalidDataException(
                     $"Daily refill inventory range {rule.SlotStart}-{rule.SlotEnd} is full.");
+
+            default:
+                // A refill names its own item, so the bag cannot answer that it does not know it;
+                // listed anyway, because an outcome nobody read would leave the counter claimed
+                // for a day the player was never given anything.
+                throw new ArgumentOutOfRangeException(
+                    nameof(rule), outcome, "No reading was decided for this outcome.");
         }
     }
 }

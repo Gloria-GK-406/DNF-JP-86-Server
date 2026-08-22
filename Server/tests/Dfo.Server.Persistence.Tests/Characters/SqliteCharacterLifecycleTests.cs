@@ -98,7 +98,7 @@ public sealed class SqliteCharacterLifecycleTests
                 CancellationToken.None);
 
             var stored = (await new CharacterSide(databasePath).EntryState(new GoldLimitRuleService())
-                .LoadAsync(Account, id, CancellationToken.None)).Profile.Subtype1;
+                .LoadAsync(Account, id, CancellationToken.None)).Profile.DerivedStats;
 
             Assert.Equal(stats.HpMax, stored.HpMaximum);
             Assert.Equal(stats.MpMax, stored.MpMaximum);

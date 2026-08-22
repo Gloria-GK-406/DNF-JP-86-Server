@@ -176,54 +176,80 @@ public sealed record CharacterPublicIdentityEntryState(
     byte PvpRatingGrade,
     byte UserState);
 
-public sealed record CharacterSubtype0EntryState(
-    byte Stamina,
-    uint FatiguePenalty,
-    bool EventCharacter,
-    bool PrivateStore,
-    byte ExpertJobType,
-    uint ExpertJobExperience,
-    bool HardcoreMode,
-    bool HardcoreDead,
-    ushort HardcoreDeathCount,
-    uint UserStateBits,
-    uint ChatBanEndTime,
-    ushort MoodValue,
-    uint PvpRankPoint,
-    byte CreatureField1 = 0,
-    byte CreatureField2 = 0,
-    byte CreatureField3 = 0,
-    byte CreatureField4 = 0,
-    byte[] CreatureBuffer = null!,
-    uint PcRoomId = 0x00010001,
-    bool PremiumPcRoom = false,
-    byte ServerGroupId = 0,
-    uint BlackCount = 0,
-    byte GuildLevel = 0,
-    uint ChaosPoint = 0,
-    byte DisguiseKind = 0,
-    bool Disguised = false,
-    ushort FatigueUpdate = 0,
-    byte ReturnUserFlag = 1,
-    ushort ChannelDisplayMode = 0,
-    byte ChannelType = 0,
-    bool ReturnUser = false,
-    bool LinkSlotEnabled = false,
-    byte LinkTypeA = 0,
-    byte LinkTypeB = 0,
-    ushort EmotionIndex = 0,
-    byte ActionByte = 0,
-    ushort FatigueDisplayUpdate = 0,
-    byte CostumeFlag = 0,
-    byte AuraFlag = 0,
-    byte PetDisplayFlag = 0,
-    byte TitleDisplayFlag = 0,
-    uint PvpStatA = 0,
-    byte PvpWinStreak = 0,
-    byte PvpLoseStreak = 0,
-    byte TrailingByte = 0);
+/// <summary>
+/// The character's operational state: what a session did to it and what an operator set on it.
+/// </summary>
+/// <remarks>
+/// These arrived as one flattened record named after a protocol segment, in the segment's own
+/// order, because the tables they came from were once cut that way too. The tables were re-cut by
+/// concept; this follows them. Which of these the packet carries, in what order, and narrowed to
+/// what width, is the encoder's business and is stated where the bytes are written.
+/// </remarks>
+public sealed record CharacterConditionStorageRecord(
+    int Stamina,
+    long FatiguePenalty,
+    int EventCharacter,
+    int PrivateStore,
+    int HardcoreMode,
+    int HardcoreDead,
+    int HardcoreDeathCount,
+    long ChatBanEndTime,
+    int MoodValue,
+    int CreatureField1 = 0,
+    int CreatureField2 = 0,
+    int CreatureField3 = 0,
+    int CreatureField4 = 0,
+    byte[]? CreatureBuffer = null,
+    long PcRoomId = 0x00010001,
+    int PremiumPcRoom = 0,
+    int ServerGroupId = 0,
+    long BlackCount = 0,
+    long ChaosPoint = 0,
+    int DisguiseKind = 0,
+    int Disguised = 0,
+    int FatigueUpdate = 0,
+    int ReturnUserFlag = 1,
+    int ChannelDisplayMode = 0,
+    int ChannelType = 0,
+    int ReturnUser = 0,
+    int LinkSlotEnabled = 0,
+    int LinkTypeA = 0,
+    int LinkTypeB = 0,
+    int EmotionIndex = 0,
+    int ActionByte = 0,
+    int FatigueDisplayUpdate = 0,
+    int CostumeFlag = 0,
+    int AuraFlag = 0,
+    int PetDisplayFlag = 0,
+    int TitleDisplayFlag = 0,
+    int TrailingByte = 0);
 
-public sealed record CharacterSubtype1EntryState(
+/// <summary>What the character has switched on for itself.</summary>
+public sealed record CharacterSettingsStorageRecord(long UserStateBits);
+
+/// <summary>One duel the character has on record.</summary>
+public sealed record CharacterPvpResultStorageRow(long Value32, int Value16A, int Value16B);
+
+/// <summary>Where the character stands in duelling.</summary>
+public sealed record CharacterPvpStandingStorageRecord(
+    long RankPoint,
+    long StatA,
+    int WinStreak,
+    int LoseStreak,
+    IReadOnlyList<CharacterPvpResultStorageRow> Results);
+
+/// <summary>The second trade a character has taken up, and how far along it is.</summary>
+public sealed record CharacterExpertJobStorageRecord(int Type, long Experience);
+
+/// <summary>
+/// The numbers worked out from everything else the character is.
+/// </summary>
+/// <remarks>
+/// A cache in the sense that they could be recomputed, and stored because recomputing them on
+/// every entry would mean reading the whole character to answer a packet that already says what
+/// they are.
+/// </remarks>
+public sealed record CharacterDerivedStatsStorageRecord(
     int HpMaximum,
     int MpMaximum,
     int PhysicalAttack,
@@ -234,46 +260,70 @@ public sealed record CharacterSubtype1EntryState(
     int AttackSpeed,
     int CastSpeed,
     int InventoryLimit,
-    int SkillTreeIndex,
     int Progress1,
     int Progress2,
-    short FireResistance = 0,
-    short WaterResistance = 0,
-    short DarkResistance = 0,
-    short LightResistance = 0,
-    ushort HpRegenSpeed = 0,
-    ushort MpRegenSpeed = 0,
-    ushort HitRecovery = 0,
-    ushort JumpPower = 0,
-    uint Weight = 0,
-    byte CurrentHpMpPercent = 0,
-    uint NameTagItemId = 0,
-    uint NameTagExpireTime = 0,
-    byte EquippedCreatureLevel = 0,
+    int FireResistance = 0,
+    int WaterResistance = 0,
+    int DarkResistance = 0,
+    int LightResistance = 0,
+    int HpRegenSpeed = 0,
+    int MpRegenSpeed = 0,
+    int HitRecovery = 0,
+    int JumpPower = 0,
+    long Weight = 0,
+    int CurrentHpMpPercent = 0,
+    int EquippedCreatureLevel = 0,
     int EquipListTrailing = 0,
-    byte FlagByte = 0,
-    uint GuildPowerWar = 0,
-    uint ServerTimestamp = 0,
-    ushort QuestShopCount = 0,
-    uint CharacterExperience = 0,
-    byte ExtraEquipmentSlotState = 0,
-    IReadOnlyList<CharacterDimensionEntryState> Dimensions = null!,
-    CharacterDimensionFlagsState DimensionFlags = null!,
-    byte ManageLevel = 0,
-    IReadOnlyList<CharacterPvpResultState> PvpResults = null!,
-    IReadOnlyList<uint> SpecialRewardQuestIds = null!);
+    int FlagByte = 0,
+    long ServerTimestamp = 0,
+    int QuestShopCount = 0);
 
-public sealed record CharacterDimensionEntryState(uint Key, byte Value1, byte Value2);
+/// <summary>Where the character stands in its guild.</summary>
+public sealed record CharacterGuildStandingStorageRecord(int Level, long PowerWar);
 
-public sealed record CharacterDimensionFlagsState(byte Flag1, byte Flag2, byte Flag3, byte Flag4);
+/// <summary>
+/// What a character carries into the game beyond the concepts above.
+/// </summary>
+/// <remarks>
+/// Not a concept of its own -- these are the odds and ends the entry packet asks for that belong
+/// to no single table: a couple of the character's own row, the dimensions, and the quests whose
+/// reward is still owed. They travel together because they arrive together, and they are kept in
+/// the widths they were stored in: what the wire gives each of them is decided where the bytes are
+/// written.
+/// </remarks>
+public sealed record CharacterEntryExtrasState(
+    int SkillTreeIndex,
+    long NameTagItemId,
+    long NameTagExpireTime,
+    int ManageLevel,
+    long CharacterExperience,
+    int ExtraEquipmentSlotState,
+    IReadOnlyList<(int SortOrder, long Key, int Value1, int Value2)> Dimensions,
+    (int Flag1, int Flag2, int Flag3, int Flag4) DimensionFlags,
+    IReadOnlyList<int> SpecialRewardQuestIds);
 
-public sealed record CharacterPvpResultState(uint Value32, ushort Value16A, ushort Value16B);
-
+/// <summary>
+/// Everything about a character that the entry packet shows, as the concepts it is made of.
+/// </summary>
+/// <remarks>
+/// This used to be two records named after the packet's own segments, filled by a forty-five-field
+/// positional copy out of two more records named the same way. Both ends were the packet's shape,
+/// so the copy did nothing but narrow each value to the width its field has on the wire -- a
+/// decision that belongs where the bytes are written, and has moved there.
+///
+/// What is left carries the concepts and the widths they were stored in. Which of them the packet
+/// mentions, in what order, and as how many bytes, is the encoder's alone.
+/// </remarks>
 public sealed record CharacterPublicEntryState(
-    CharacterSubtype0EntryState Subtype0,
-    CharacterSubtype1EntryState Subtype1,
+    CharacterConditionStorageRecord Condition,
+    CharacterSettingsStorageRecord Settings,
+    CharacterPvpStandingStorageRecord Pvp,
+    CharacterExpertJobStorageRecord ExpertJob,
+    CharacterDerivedStatsStorageRecord DerivedStats,
+    CharacterGuildStandingStorageRecord Guild,
+    CharacterEntryExtrasState Extras,
     CharacterAppearanceCompatibilityState Appearance,
-    uint VisibilityBits,
+    long VisibilityBits,
     uint CloneTitleItemId,
     CharacterPublicIdentityEntryState? Identity = null);
 
@@ -366,7 +416,7 @@ public sealed record CharacterProgressionEntryState(
 public sealed record CharacterSettingsEntryState(
     IReadOnlyList<ushort> HotkeySlots,
     byte[]? OptionBitmap,
-    uint VisibilityBits);
+    long VisibilityBits);
 
 public sealed record CharacterPetRuntimeState(
     long PetKey,

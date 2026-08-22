@@ -16,7 +16,10 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
     IEntryInventoryLeaseRegistry leases,
     ICharacterContainerDomainService containers,
     IItemStore itemStore,
-    IDomainTransactionAccessor transactions) : ISelectCharacterEntryInventoryDomainService
+    IDomainTransactionAccessor transactions,
+    IItemPlacementDefinitionSource placements,
+    IItemArrivalRuleService arrivals,
+    IItemSlotRuleService slotRules) : ISelectCharacterEntryInventoryDomainService
 {
     public async ValueTask SaveExistingLeaseAsync(
         SelectedSessionIdentity previousSession, CancellationToken cancellationToken)
@@ -64,7 +67,10 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
             new ContainerShape(main.ContainerType, main.Parameter),
             itemStore,
             transactions,
-            mutations));
+            mutations,
+            placements,
+            arrivals,
+            slotRules));
     }
 
     public async ValueTask<EntryInventoryPreparation> ApplyDailyRefillAsync(

@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
@@ -10,9 +11,22 @@ namespace Dfo.Server.Application.Characters;
 internal sealed class CharacterDomainService(
     Func<ICharacterRepository> characterRepository,
     ICharacterStatDefinitionSource characterStats,
-    IInitialSkillDefinitionSource initialSkills)
+    IInitialSkillDefinitionSource initialSkills,
+    Func<CharacterId, ICharacter> playingCharacter)
     : ICharacterDomainService, IEquipmentEligibilityCharacterReader
 {
+    /// <remarks>
+    /// Built rather than looked up. A character holds no state, so there is nothing a registry
+    /// could keep for it and nothing for its absence to mean; what is made per call is one small
+    /// object over services held elsewhere.
+    ///
+    /// Reached through a factory for the same reason the repository is: what a character needs in
+    /// order to answer questions -- the archive, the cooldowns, the session directories -- is a
+    /// great deal more than what a roster or a creation needs, and asking for all of it up front
+    /// would make every caller of this service depend on content it never reads.
+    /// </remarks>
+    public ICharacter Get(CharacterId characterId) => playingCharacter(characterId);
+
     private const ushort DefaultSlotLimit = 32;
 
     // Bounds and job ceiling carried over from the legacy server, which is the only evidence we

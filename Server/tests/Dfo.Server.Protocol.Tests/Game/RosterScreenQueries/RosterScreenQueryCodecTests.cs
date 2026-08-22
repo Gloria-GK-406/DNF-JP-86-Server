@@ -145,7 +145,7 @@ public sealed class RosterScreenQueryCodecTests
         {
             Public = source.CharacterEntry.Public with
             {
-                Subtype1 = source.CharacterEntry.Public.Subtype1 with
+                Extras = source.CharacterEntry.Public.Extras with
                 {
                     SkillTreeIndex = storedIndex,
                 },

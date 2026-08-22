@@ -6,6 +6,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -163,7 +164,10 @@ public sealed class ItemPathLiveTests
                 new ContainerShape(InventoryContainerType.Main, 0),
                 services.GetRequiredService<IItemStore>(),
                 services.GetRequiredService<IDomainTransactionAccessor>(),
-                null!));
+                null!,
+                services.GetRequiredService<IItemPlacementDefinitionSource>(),
+                services.GetRequiredService<IItemArrivalRuleService>(),
+                services.GetRequiredService<IItemSlotRuleService>()));
         services.GetRequiredService<ISelectedSessionDirectory>().RegisterReplacing(
             new SelectedSessionIdentity(
                 new AccountId(6), character, connectionId, 0, WireUserId: 60, ListenerPort: 0));

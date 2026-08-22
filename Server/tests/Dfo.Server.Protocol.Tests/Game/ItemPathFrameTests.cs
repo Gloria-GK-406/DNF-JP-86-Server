@@ -40,8 +40,7 @@ public sealed class ItemPathFrameTests
     public async Task AMoveOfARealRowAcknowledgesTheSameBytesAsBefore()
     {
         await using var storage = await Storage.CreateAsync((65, PotionId, 1));
-        var handler = new MoveItemSpaceCommandHandler(
-            storage.Containers(), new ConsumableBand(), new ItemSlotRuleService());
+        var handler = new MoveItemSpaceCommandHandler(storage.Containers());
 
         // The boundary the pipeline would have opened for a Transactional command. Without it the
         // container refuses the write outright, which is the guarantee working rather than a
@@ -68,8 +67,7 @@ public sealed class ItemPathFrameTests
     public async Task ARefusedMoveOfARealRowAcknowledgesTheSameBytesAsBefore()
     {
         await using var storage = await Storage.CreateAsync();
-        var handler = new MoveItemSpaceCommandHandler(
-            storage.Containers(), new ConsumableBand(), new ItemSlotRuleService());
+        var handler = new MoveItemSpaceCommandHandler(storage.Containers());
 
         await using var boundary = storage.Scope.Begin();
         var result = await handler.HandleAsync(
@@ -136,7 +134,10 @@ public sealed class ItemPathFrameTests
                 new ContainerShape(InventoryContainerType.Main, 0),
                 new SqliteItemStore(this.Path),
                 this.Scope,
-                null!));
+                null!,
+                new ConsumableBand(),
+                new ItemArrivalRuleService(),
+                new ItemSlotRuleService()));
             return containers;
         }
 

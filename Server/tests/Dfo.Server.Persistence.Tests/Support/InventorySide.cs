@@ -27,13 +27,27 @@ internal sealed class InventorySide
 {
     private readonly SqliteDatabase database;
 
+    private readonly string databasePath;
+
     public InventorySide(string databasePath)
     {
+        this.databasePath = databasePath;
         this.Scope = new DomainTransactionScope();
         this.database = new SqliteDatabase(databasePath, this.Scope);
     }
 
     public DomainTransactionScope Scope { get; }
+
+    /// <summary>
+    /// The containers characters are bound to, as entry leaves them.
+    /// </summary>
+    /// <remarks>
+    /// A refill places through the character's bag, and entry binds that bag before it dispatches
+    /// the refill. A fixture that skipped the binding would be exercising a state the server never
+    /// reaches, so tests call <see cref="BindMain"/> for the character they are about to refill --
+    /// which is the same one line entry does.
+    /// </remarks>
+    public CharacterContainerDomainService Containers { get; } = new();
 
     public ICharacterInventoryEntryRepository CharacterEntries => this.Assembly;
 
@@ -46,7 +60,44 @@ internal sealed class InventorySide
         new SqliteCharacterItemTable(this.database),
         new SqliteCharacterDailyCounterTable(this.database),
         new DailyRefillRuleService(),
-        new ItemArrivalRuleService());
+        this.Containers);
+
+    /// <summary>
+    /// Binds a character to its own main container, as entry does.
+    /// </summary>
+    /// <remarks>
+    /// The snapshot repository is left out: it answers only the projection the client is shown, and
+    /// nothing reached through here asks for one.
+    ///
+    /// A refill needs no archive -- its band and kind come from its own rule -- but a move does, so
+    /// one is supplied rather than left null. The default treats every item as an ordinary
+    /// consumable of the main band, which is what the tests that move things here are about; a test
+    /// with something else in mind passes its own.
+    /// </remarks>
+    public void BindMain(
+        int characterId,
+        ushort parameter = 0,
+        IItemPlacementDefinitionSource? placements = null)
+    {
+        var character = new CharacterId(characterId);
+        this.Containers.Register(character, new PersistentItemContainer(
+            ContainerId.ForCharacter(character, InventoryContainerType.Main),
+            character,
+            new ContainerShape(InventoryContainerType.Main, parameter),
+            new SqliteItemStore(this.databasePath),
+            this.Scope,
+            null!,
+            placements ?? new MainBandPlacements(),
+            new ItemArrivalRuleService(),
+            new ItemSlotRuleService()));
+    }
+
+    /// <summary>Every item an ordinary consumable: kind 2, the main band, piles of a hundred.</summary>
+    private sealed class MainBandPlacements : IItemPlacementDefinitionSource
+    {
+        public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(2, 100, 65, 120));
+    }
 
     /// <summary>
     /// The inventory with a use case around every call, which is how the server dispatches these.

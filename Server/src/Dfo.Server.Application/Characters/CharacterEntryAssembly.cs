@@ -101,42 +101,33 @@ internal sealed class CharacterEntryAssembly(
     /// the shape of the database.
     /// </remarks>
     /// <summary>
-    /// The subtype-0 record, from the four tables its columns were cut into.
+    /// Each table's row as the concept it holds.
     /// </summary>
     /// <remarks>
-    /// The record itself is untouched. What used to be one row of one table is now one row of each
-    /// of four, and this is the one place that knows how they go back together -- which is the
-    /// whole point of moving the assembly into the domain in the first place.
+    /// These used to be two methods, each flattening several rows into one record laid out in a
+    /// protocol segment's order -- an order this layer has no reason to know. Reading them apart
+    /// costs nothing here and means the encoder is the only thing that decides what goes into the
+    /// packet and in what sequence.
     /// </remarks>
-    private static CharacterSubtype0StorageRecord Subtype0(
-        CharacterConditionRow c,
-        CharacterSettingsRow settings,
-        CharacterPvpRow pvp,
-        CharacterExpertJobRow job,
-        int guildLevel) =>
+    private static CharacterConditionStorageRecord Condition(CharacterConditionRow c) =>
         new(c.Stamina, c.FatiguePenalty, c.EventCharacter, c.PrivateStore,
-            job.ExpertJobType, job.ExpertJobExperience,
             c.HardcoreMode, c.HardcoreDead, c.HardcoreDeathCount,
-            settings.UserStateBits, c.ChatBanEndTime, c.MoodValue, pvp.PvpRankPoint,
+            c.ChatBanEndTime, c.MoodValue,
             c.CreatureField1, c.CreatureField2, c.CreatureField3, c.CreatureField4,
             c.CreatureBuffer, c.PcRoomId, c.PremiumPcRoom, c.ServerGroupId, c.BlackCount,
-            guildLevel, c.ChaosPoint, c.DisguiseKind, c.Disguised, c.FatigueUpdate,
+            c.ChaosPoint, c.DisguiseKind, c.Disguised, c.FatigueUpdate,
             c.ReturnUserFlag, c.ChannelDisplayMode, c.ChannelType, c.ReturnUser,
             c.LinkSlotEnabled, c.LinkTypeA, c.LinkTypeB, c.EmotionIndex, c.ActionByte,
             c.FatigueDisplayUpdate, c.CostumeFlag, c.AuraFlag, c.PetDisplayFlag,
-            c.TitleDisplayFlag, pvp.PvpStatA, pvp.PvpWinStreak, pvp.PvpLoseStreak,
-            c.TrailingByte);
+            c.TitleDisplayFlag, c.TrailingByte);
 
-    /// <summary>The subtype-1 record, from the derived numbers and the character's own row.</summary>
-    private static CharacterSubtype1StorageRecord Subtype1(
-        CharacterStatsRow s, CharacterEntryRow row) =>
+    private static CharacterDerivedStatsStorageRecord DerivedStats(CharacterStatsRow s) =>
         new(s.HpMaximum, s.MpMaximum, s.PhysicalAttack, s.PhysicalDefense, s.MagicalAttack,
             s.MagicalDefense, s.MoveSpeed, s.AttackSpeed, s.CastSpeed, s.InventoryLimit,
-            row.SkillTreeIndex, s.Progress1, s.Progress2, s.FireResistance, s.WaterResistance,
+            s.Progress1, s.Progress2, s.FireResistance, s.WaterResistance,
             s.DarkResistance, s.LightResistance, s.HpRegenSpeed, s.MpRegenSpeed, s.HitRecovery,
-            s.JumpPower, s.Weight, s.CurrentHpMpPercent, row.NameTagItemId,
-            row.NameTagExpireTime, s.EquippedCreatureLevel, s.EquipListTrailing, s.FlagByte,
-            row.GuildPowerWar, s.ServerTimestamp, s.QuestShopCount, row.ManageLevel, []);
+            s.JumpPower, s.Weight, s.CurrentHpMpPercent, s.EquippedCreatureLevel,
+            s.EquipListTrailing, s.FlagByte, s.ServerTimestamp, s.QuestShopCount);
 
     private async ValueTask<CharacterProfileStorageRecord> LoadProfileAsync(
         AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)
@@ -167,8 +158,14 @@ internal sealed class CharacterEntryAssembly(
 
         // The two records the rest of the load already worked with, rebuilt from the tables the
         // ruling cut them into. Nothing above this line changes shape; only where it comes from.
-        var s0 = Subtype0(conditionRow, settingsRow, pvpRow, jobRow, row.GuildLevel);
-        var s1 = Subtype1(statsRow, row);
+        var conditionState = Condition(conditionRow);
+        var settingsState = new CharacterSettingsStorageRecord(settingsRow.UserStateBits);
+        var pvpState = new CharacterPvpStandingStorageRecord(
+            pvpRow.PvpRankPoint, pvpRow.PvpStatA, pvpRow.PvpWinStreak, pvpRow.PvpLoseStreak, []);
+        var expertJobState = new CharacterExpertJobStorageRecord(
+            jobRow.ExpertJobType, jobRow.ExpertJobExperience);
+        var statsState = DerivedStats(statsRow);
+        var guildState = new CharacterGuildStandingStorageRecord(row.GuildLevel, row.GuildPowerWar);
         var flags = (settingsRow.OptionBlob, true);
 
         if (row.AccountId != accountId.Value)
@@ -183,7 +180,9 @@ internal sealed class CharacterEntryAssembly(
             throw new InvalidDataException("Character hotkey state is out of range.");
         }
 
-        RequireProfileInRange(s0, s1);
+        RequireProfileInRange(conditionState, settingsState, pvpState, expertJobState,
+            statsState, guildState, row.SkillTreeIndex,
+            row.NameTagItemId, row.NameTagExpireTime, row.ManageLevel);
         var dimensionRows = new List<(int, long, int, int)>();
         foreach (var dimension in await dimensions.ReadAsync(characterId, cancellationToken)
                      .ConfigureAwait(false))
@@ -209,7 +208,9 @@ internal sealed class CharacterEntryAssembly(
 
         return new CharacterProfileStorageRecord(
             checked((byte)row.Job), checked((byte)row.Level),
-            checked((uint)row.CloneTitleItemId), row.Appearance, s0, s1,
+            checked((uint)row.CloneTitleItemId), row.Appearance,
+            conditionState, settingsState, pvpState, expertJobState, statsState, guildState,
+            row.SkillTreeIndex, row.NameTagItemId, row.NameTagExpireTime, row.ManageLevel,
             [.. slots.Select(value => checked((ushort)value))], flags.Item1,
             row.Experience, row.ExtraEquipSlotStat, dimensionRows, flagValues,
             checked((byte)pvpRow.PvpGrade), checked((byte)pvpRow.PvpRatingGrade),
@@ -575,48 +576,78 @@ internal sealed class CharacterEntryAssembly(
         await dailyCounters.FindValueAsync(characterId, key, cancellationToken)
             .ConfigureAwait(false) ?? 0;
 
-    /// <summary>What a character's two detail rows may hold.</summary>
+    /// <summary>
+    /// What a character's stored profile may hold, given the widths the packet gives each field.
+    /// </summary>
+    /// <remarks>
+    /// A row too wide for its field is refused here, at load, rather than at encode. That is
+    /// deliberate and predates the concepts these arguments are now grouped into: a character whose
+    /// stored state cannot be sent is refused entry with one message, instead of getting most of
+    /// the way in and failing while a packet is half written.
+    ///
+    /// It does mean this layer knows some widths. That is the one place it does, it is a refusal
+    /// rather than a conversion, and moving it to the encoder would change when the refusal
+    /// happens -- which is a decision for whoever moves it, not a side effect of regrouping.
+    ///
+    /// Four of these checks were lost once, in the change that regrouped these arguments: the four
+    /// fields that left the flattened record for somewhere else -- the name tag's two, the guild's
+    /// power war, and the manage level -- were the four whose checks had nothing left to hang off.
+    /// Nothing went red, because losing a refusal only shows when a value is out of range, and no
+    /// fixture has one. They are back, and each is now reachable from the arguments this takes.
+    /// </remarks>
     private static void RequireProfileInRange(
-        CharacterSubtype0StorageRecord s0, CharacterSubtype1StorageRecord s1)
+        CharacterConditionStorageRecord c,
+        CharacterSettingsStorageRecord settings,
+        CharacterPvpStandingStorageRecord pvp,
+        CharacterExpertJobStorageRecord job,
+        CharacterDerivedStatsStorageRecord stats,
+        CharacterGuildStandingStorageRecord guild,
+        int skillTreeIndex,
+        long nameTagItemId,
+        long nameTagExpireTime,
+        int manageLevel)
     {
-        if (s0.Stamina is < 0 or > byte.MaxValue || s0.FatiguePenalty is < 0 or > uint.MaxValue
-            || s0.ExpertJobType is < 0 or > byte.MaxValue || s0.ExpertJobExperience is < 0 or > uint.MaxValue
-            || s0.HardcoreDeathCount is < 0 or > ushort.MaxValue || s0.UserStateBits is < 0 or > uint.MaxValue
-            || s0.ChatBanEndTime is < 0 or > uint.MaxValue || s0.MoodValue is < 0 or > ushort.MaxValue
-            || s0.PvpRankPoint is < 0 or > uint.MaxValue
-            || new[] { s0.EventCharacter, s0.PrivateStore, s0.HardcoreMode, s0.HardcoreDead }
+        if (c.Stamina is < 0 or > byte.MaxValue || c.FatiguePenalty is < 0 or > uint.MaxValue
+            || job.Type is < 0 or > byte.MaxValue || job.Experience is < 0 or > uint.MaxValue
+            || c.HardcoreDeathCount is < 0 or > ushort.MaxValue
+            || settings.UserStateBits is < 0 or > uint.MaxValue
+            || c.ChatBanEndTime is < 0 or > uint.MaxValue || c.MoodValue is < 0 or > ushort.MaxValue
+            || pvp.RankPoint is < 0 or > uint.MaxValue
+            || new[] { c.EventCharacter, c.PrivateStore, c.HardcoreMode, c.HardcoreDead }
                 .Any(value => value is < 0 or > 1)
-            || new[] { s0.PremiumPcRoom, s0.Disguised, s0.ReturnUser, s0.LinkSlotEnabled }
+            || new[] { c.PremiumPcRoom, c.Disguised, c.ReturnUser, c.LinkSlotEnabled }
                 .Any(value => value is < 0 or > 1)
-            || (s0.CreatureBuffer?.Length ?? 0) is not (0 or 8)
-            || new[] { s0.CreatureField1, s0.CreatureField2, s0.CreatureField3, s0.CreatureField4,
-                s0.ServerGroupId, s0.GuildLevel, s0.DisguiseKind, s0.ReturnUserFlag, s0.ChannelType,
-                s0.LinkTypeA, s0.LinkTypeB, s0.ActionByte, s0.CostumeFlag, s0.AuraFlag,
-                s0.PetDisplayFlag, s0.TitleDisplayFlag, s0.PvpWinStreak, s0.PvpLoseStreak,
-                s0.TrailingByte }.Any(value => value is < 0 or > byte.MaxValue)
-            || new[] { s0.FatigueUpdate, s0.ChannelDisplayMode, s0.EmotionIndex,
-                s0.FatigueDisplayUpdate }.Any(value => value is < 0 or > ushort.MaxValue)
-            || s0.PcRoomId is < 0 or > uint.MaxValue || s0.BlackCount is < 0 or > uint.MaxValue
-            || s0.ChaosPoint is < 0 or > uint.MaxValue || s0.PvpStatA is < 0 or > uint.MaxValue
-            || new[] { s1.HpMaximum, s1.MpMaximum, s1.PhysicalAttack, s1.PhysicalDefense,
-                s1.MagicalAttack, s1.MagicalDefense, s1.MoveSpeed, s1.AttackSpeed,
-                s1.CastSpeed, s1.InventoryLimit, s1.Progress1, s1.Progress2 }.Any(value => value < 0)
-            || s1.SkillTreeIndex is < -1 or > 1)
+            || (c.CreatureBuffer?.Length ?? 0) is not (0 or 8)
+            || new[] { c.CreatureField1, c.CreatureField2, c.CreatureField3, c.CreatureField4,
+                c.ServerGroupId, guild.Level, c.DisguiseKind, c.ReturnUserFlag, c.ChannelType,
+                c.LinkTypeA, c.LinkTypeB, c.ActionByte, c.CostumeFlag, c.AuraFlag,
+                c.PetDisplayFlag, c.TitleDisplayFlag, pvp.WinStreak, pvp.LoseStreak,
+                c.TrailingByte }.Any(value => value is < 0 or > byte.MaxValue)
+            || new[] { c.FatigueUpdate, c.ChannelDisplayMode, c.EmotionIndex,
+                c.FatigueDisplayUpdate }.Any(value => value is < 0 or > ushort.MaxValue)
+            || c.PcRoomId is < 0 or > uint.MaxValue || c.BlackCount is < 0 or > uint.MaxValue
+            || c.ChaosPoint is < 0 or > uint.MaxValue || pvp.StatA is < 0 or > uint.MaxValue
+            || new[] { stats.HpMaximum, stats.MpMaximum, stats.PhysicalAttack,
+                stats.PhysicalDefense, stats.MagicalAttack, stats.MagicalDefense, stats.MoveSpeed,
+                stats.AttackSpeed, stats.CastSpeed, stats.InventoryLimit, stats.Progress1,
+                stats.Progress2 }.Any(value => value < 0)
+            || skillTreeIndex is < -1 or > 1)
         {
             throw new InvalidDataException("Character public profile state is out of range.");
         }
 
-        if (new[] { s1.FireResistance, s1.WaterResistance, s1.DarkResistance, s1.LightResistance }
-                .Any(value => value is < short.MinValue or > short.MaxValue)
-            || new[] { s1.HpRegenSpeed, s1.MpRegenSpeed, s1.HitRecovery, s1.JumpPower,
-                s1.QuestShopCount }.Any(value => value is < 0 or > ushort.MaxValue)
-            || new[] { s1.CurrentHpMpPercent, s1.EquippedCreatureLevel, s1.FlagByte }
+        if (new[] { stats.FireResistance, stats.WaterResistance, stats.DarkResistance,
+                stats.LightResistance }.Any(value => value is < short.MinValue or > short.MaxValue)
+            || new[] { stats.HpRegenSpeed, stats.MpRegenSpeed, stats.HitRecovery, stats.JumpPower,
+                stats.QuestShopCount }.Any(value => value is < 0 or > ushort.MaxValue)
+            || new[] { stats.CurrentHpMpPercent, stats.EquippedCreatureLevel, stats.FlagByte }
                 .Any(value => value is < 0 or > byte.MaxValue)
-            || s1.ManageLevel is < 0 or > byte.MaxValue
-            || s1.Weight is < 0 or > uint.MaxValue || s1.NameTagItemId is < 0 or > uint.MaxValue
-            || s1.NameTagExpireTime is < 0 or > uint.MaxValue
-            || s1.GuildPowerWar is < 0 or > uint.MaxValue
-            || s1.ServerTimestamp is < 0 or > uint.MaxValue)
+            || manageLevel is < 0 or > byte.MaxValue
+            || stats.Weight is < 0 or > uint.MaxValue
+            || nameTagItemId is < 0 or > uint.MaxValue
+            || nameTagExpireTime is < 0 or > uint.MaxValue
+            || guild.PowerWar is < 0 or > uint.MaxValue
+            || stats.ServerTimestamp is < 0 or > uint.MaxValue)
         {
             throw new InvalidDataException("Character extended detail state is out of range.");
         }

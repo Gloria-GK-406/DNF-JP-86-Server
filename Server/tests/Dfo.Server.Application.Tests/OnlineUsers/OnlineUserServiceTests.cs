@@ -655,6 +655,9 @@ public sealed class UserServiceTests
 
     private sealed class MissingCharacterDomainService : ICharacterDomainService
     {
+
+        public ICharacter Get(CharacterId characterId) =>
+            throw new NotSupportedException("This stand-in answers no questions about a character.");
         public ValueTask<AccountCharacterRoster> GetAccountRosterAsync(
             AccountId accountId,
             CancellationToken cancellationToken) =>

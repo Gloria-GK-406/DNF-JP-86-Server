@@ -222,6 +222,56 @@ public sealed class MoveItemSpaceHandlerTests
             ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
     }
 
+    /// <summary>
+    /// Dragging part of a pile onto an empty slot leaves the rest where it was.
+    /// </summary>
+    /// <remarks>
+    /// This is the split, and nothing asserted it before: making every move a whole relocation left
+    /// the suite green. The acknowledgement carries the part that moved, not the pile that was
+    /// dragged, because the client draws both slots from what it is told here.
+    /// </remarks>
+    [Fact]
+    public async Task Dragging_part_of_a_pile_onto_an_empty_slot_leaves_the_rest_behind()
+    {
+        var inventory = new FakeInventory { [65] = (8474, 5) };
+        var (handler, sender) = Build(inventory);
+
+        await handler.HandleAsync(
+            Context, Request(65, 66, 0, 0) with { MoveCount = 2 }, CancellationToken.None);
+
+        Assert.Equal([(65, 8474, 3), (66, 8474, 2)], inventory.Rows());
+        var response = (MoveItemSpaceResponse)sender.Sent.Single();
+        Assert.Null(response.ErrorCode);
+        Assert.Equal(2, response.MoveValue);
+    }
+
+    /// <summary>
+    /// Dragging part of a pile onto a slot holding something else is refused, not carried out as a
+    /// whole swap.
+    /// </summary>
+    /// <remarks>
+    /// A swap trades what two slots hold, and there is nowhere for the remainder of a split pile to
+    /// go: obeying the count would leave the other item nowhere, and ignoring it would move more
+    /// than the player asked for. The reference server refuses, and so does this.
+    ///
+    /// Nothing asserted this before. Deleting the refusal left the whole suite green, which is how
+    /// it came to be written down here.
+    /// </remarks>
+    [Fact]
+    public async Task Dragging_part_of_a_pile_onto_another_item_will_not_swap()
+    {
+        var inventory = new FakeInventory { [65] = (8474, 5), [66] = (9000, 1) };
+        var (handler, sender) = Build(inventory);
+
+        await handler.HandleAsync(
+            Context, Request(65, 66, 0, 0) with { MoveCount = 2 }, CancellationToken.None);
+
+        Assert.Equal([(65, 8474, 5), (66, 9000, 1)], inventory.Rows());
+        Assert.Equal(
+            MoveItemSpaceResponse.NotMovable,
+            ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+    }
+
     /// <remarks>
     /// A merge that fits is still a merge; the refusal above must not be reachable by every pair
     /// of like piles.
@@ -257,7 +307,7 @@ public sealed class MoveItemSpaceHandlerTests
     {
         var inventory = new FakeInventory { [65] = (8474, 1), [66] = (9000, 1) };
         var handler = new MoveItemSpaceCommandHandler(
-            inventory.Containers(), new ConsumablePlacements(), new ItemSlotRuleService());
+            inventory.Containers(new ConsumablePlacements()));
 
         var results = await Task.WhenAll(
             Dispatch(handler, inventory, sourceSlot: 65, destinationSlot: 3),
@@ -265,6 +315,12 @@ public sealed class MoveItemSpaceHandlerTests
 
         Assert.All(results, result => Assert.Equal(ItemMoveStatus.Moved, result.Status));
         Assert.Single(inventory.Rows(), row => row.Slot == 3);
+
+        // Which item moved is reported, not only how much of it. Nothing else asserts this: the
+        // identifier reaches the log rather than the acknowledgement, so a move that named the
+        // wrong item would read correctly to the player and wrongly to anyone reading the log.
+        Assert.All(results, result => Assert.Contains(result.ItemId, (int[])[8474, 9000]));
+        Assert.Equal(2, results.Select(result => result.ItemId).Distinct().Count());
     }
 
     /// <summary>One command, in its own use case boundary, on its own flow.</summary>
@@ -294,9 +350,7 @@ public sealed class MoveItemSpaceHandlerTests
     {
         var sender = new RecordingSender();
         var commandHandler = new MoveItemSpaceCommandHandler(
-            inventory.Containers(),
-            placements ?? new ConsumablePlacements(),
-            new ItemSlotRuleService());
+            inventory.Containers(placements ?? new ConsumablePlacements()));
 
         return (
             new MoveItemSpaceHandler(

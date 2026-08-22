@@ -86,7 +86,15 @@ public sealed class ApplicationModule : IServerModule
             provider => new CharacterDomainService(
                 () => provider.GetRequiredService<ICharacterRepository>(),
                 provider.GetRequiredService<ICharacterStatDefinitionSource>(),
-                provider.GetRequiredService<IInitialSkillDefinitionSource>()));
+                provider.GetRequiredService<IInitialSkillDefinitionSource>(),
+                characterId => new PlayingCharacter(
+                    characterId,
+                    provider.GetRequiredService<IItemUseRuleDefinitionSource>(),
+                    provider.GetRequiredService<IItemUseJudgementService>(),
+                    provider.GetRequiredService<ICharacterItemCooldownDomainService>(),
+                    provider.GetRequiredService<ISelectedSessionDirectory>(),
+                    provider.GetRequiredService<ISelectedSessionRuntimeDirectory>(),
+                    provider.GetRequiredService<ISessionPresenceRegistry>())));
         services.TryAddSingleton<ICharacterDomainService>(
             provider => provider.GetRequiredService<CharacterDomainService>());
         services.TryAddSingleton<ISelectCharacterPreparationService, SelectCharacterPreparationService>();
@@ -111,7 +119,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICharacterEntryStateRepository, CharacterEntryAssembly>();
         services.TryAddSingleton<ICharacterContainerDomainService, CharacterContainerDomainService>();
         services.TryAddSingleton<ICharacterItemCooldownDomainService, CharacterItemCooldownDomainService>();
-        services.TryAddSingleton<IItemUsabilityDomainService, ItemUsabilityDomainService>();
+        services.TryAddSingleton<IItemUseJudgementService, ItemUseJudgementService>();
         services.TryAddSingleton<IItemUseEffectDomainService, ItemUseEffectDomainService>();
         services.TryAddSingleton<ISelectCharacterEntryInventoryDomainService, SelectCharacterEntryInventoryDomainService>();
         services.TryAddSingleton<ICharacterProfileEntryProjection, CharacterProfileEntryProjection>();

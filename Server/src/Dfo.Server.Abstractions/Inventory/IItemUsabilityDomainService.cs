@@ -34,20 +34,3 @@ public enum ItemUsability
     /// </remarks>
     CharacterStateUnavailable,
 }
-
-/// <summary>
-/// Answers whether a character may use an item.
-/// </summary>
-/// <remarks>
-/// Read-only, and it gathers its own facts. A caller that had to assemble the cooldown record, the
-/// character's level and job, and where they are standing would be a caller that could assemble
-/// them wrongly -- and every new caller would assemble them again. The question a protocol handler
-/// has is exactly "may this character use this item"; that is the whole signature.
-/// </remarks>
-public interface IItemUsabilityDomainService
-{
-    ValueTask<ItemUsability> CanUseAsync(
-        CharacterId characterId,
-        int itemId,
-        CancellationToken cancellationToken);
-}

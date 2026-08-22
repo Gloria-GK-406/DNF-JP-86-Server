@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Characters;
@@ -15,6 +16,7 @@ namespace Dfo.Server.Application.Inventory;
 /// </remarks>
 internal sealed class ItemUseEffectDomainService(
     IItemUseRuleDefinitionSource rules,
+    IItemUseJudgementService judgement,
     ICharacterItemCooldownDomainService cooldowns) : IItemUseEffectDomainService
 {
     private const int ConsumedPerUse = 1;
@@ -35,7 +37,7 @@ internal sealed class ItemUseEffectDomainService(
         if (rule.CooldownMilliseconds > 0)
         {
             effects.Add(new StartItemCooldownEffect(
-                ItemUsabilityDomainService.CooldownKeyFor(itemId, rule),
+                judgement.CooldownKeyFor(itemId, rule),
                 TimeSpan.FromMilliseconds(rule.CooldownMilliseconds)));
         }
 

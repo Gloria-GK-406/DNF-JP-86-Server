@@ -348,8 +348,8 @@ public sealed class SelectCharacterHandler(
             new AccountRosterStateMessage(result.RosterEntry
                 ?? throw new InvalidDataException("Roster state is unavailable.")),
             new HonorProgressStateMessage(
-                checked((uint)Math.Max(0, result.CharacterEntry.Public.Subtype1.Progress1)),
-                checked((uint)Math.Max(0, result.CharacterEntry.Public.Subtype1.Progress2))),
+                checked((uint)Math.Max(0, result.CharacterEntry.Public.DerivedStats.Progress1)),
+                checked((uint)Math.Max(0, result.CharacterEntry.Public.DerivedStats.Progress2))),
         };
         var mirror = result.CharacterEntry.Skills.ProtocolMirror
             ?? throw new InvalidDataException("Skill protocol mirror is unavailable.");
@@ -360,10 +360,10 @@ public sealed class SelectCharacterHandler(
             mirror.Page1Sp,
             mirror.Page0Tp,
             mirror.Page1Tp,
-            result.CharacterEntry.Public.Subtype0.PvpRankPoint,
+            checked((uint)result.CharacterEntry.Public.Pvp.RankPoint),
             result.Account.Progression.GrowthCapsuleExperience,
-            checked((uint)Math.Max(0, result.CharacterEntry.Public.Subtype1.Progress1)),
-            checked((uint)Math.Max(0, result.CharacterEntry.Public.Subtype1.Progress2))));
+            checked((uint)Math.Max(0, result.CharacterEntry.Public.DerivedStats.Progress1)),
+            checked((uint)Math.Max(0, result.CharacterEntry.Public.DerivedStats.Progress2))));
         return messages;
     }
 

@@ -182,7 +182,7 @@ public sealed class SelectCharacterPayloadCodecTests
             CharacterId = supportId,
             Public = source.CharacterEntry.Public with
             {
-                Subtype1 = source.CharacterEntry.Public.Subtype1 with { SkillTreeIndex = 0 },
+                Extras = source.CharacterEntry.Public.Extras with { SkillTreeIndex = 0 },
             },
         };
         var supportInventory = source.CharacterInventory with
@@ -400,7 +400,7 @@ public sealed class SelectCharacterPayloadCodecTests
                 {
                     Public = result.CharacterEntry.Public with
                     {
-                        Subtype1 = result.CharacterEntry.Public.Subtype1 with { PvpResults = null! },
+                        Pvp = result.CharacterEntry.Public.Pvp with { Results = null! },
                     },
                 },
             },
@@ -597,8 +597,8 @@ public sealed class SelectCharacterPayloadCodecTests
 
             var body = EncodeSelectedStateBody(result, 0x0002, 1);
 
-            Assert.Equal([13502u], typed.Public.Subtype1.SpecialRewardQuestIds);
-            Assert.Empty(typed.Public.Subtype1.PvpResults);
+            Assert.Equal([13502], typed.Public.Extras.SpecialRewardQuestIds);
+            Assert.Empty(typed.Public.Pvp.Results);
             Assert.Equal(13502u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(body.Length - 23, 4)));
         }
         finally
@@ -798,17 +798,23 @@ internal static class SelectCharacterPayloadTestData
             Rentals = new CharacterRentalEntryState(
                 [new CharacterRentalItemState(40, 41, 1_700_000_900)]),
         };
-        var subtype1 = new CharacterSubtype1EntryState(
-            100, 90, 80, 70, 60, 50, 40, 30, 20, 120, 0, 11, 12,
-            CharacterExperience: 500,
-            Dimensions: [new CharacterDimensionEntryState(1, 2, 3)],
-            DimensionFlags: new CharacterDimensionFlagsState(4, 5, 6, 7),
-            ManageLevel: 8,
-            PvpResults:
+        var derivedStats = new CharacterDerivedStatsStorageRecord(
+            100, 90, 80, 70, 60, 50, 40, 30, 20, 120, 11, 12);
+        var duelling = new CharacterPvpStandingStorageRecord(
+            7, 0, 0, 0,
             [
-                new CharacterPvpResultState(0x11223344, 0x5566, 0x7788),
-                new CharacterPvpResultState(0x01020304, 0x0506, 0x0708),
-            ],
+                new CharacterPvpResultStorageRow(0x11223344, 0x5566, 0x7788),
+                new CharacterPvpResultStorageRow(0x01020304, 0x0506, 0x0708),
+            ]);
+        var extras = new CharacterEntryExtrasState(
+            SkillTreeIndex: 0,
+            NameTagItemId: 0,
+            NameTagExpireTime: 0,
+            ManageLevel: 8,
+            CharacterExperience: 500,
+            ExtraEquipmentSlotState: 0,
+            Dimensions: [(0, 1, 2, 3)],
+            DimensionFlags: (4, 5, 6, 7),
             SpecialRewardQuestIds: [0x0A0B0C0D, 0x11121314]);
         var collections = new CharacterCollectionsEntryState(
             Enumerable.Range(0, 5).Select(index => new CharacterTitleBookCategoryState(
@@ -834,10 +840,14 @@ internal static class SelectCharacterPayloadTestData
         var entry = new CharacterEntryState(
             characterId,
             new CharacterPublicEntryState(
-                new CharacterSubtype0EntryState(
-                    1, 2, false, false, 1, 3, false, false, 0, 4, 5, 6, 7,
-                    CreatureBuffer: []),
-                subtype1,
+                new CharacterConditionStorageRecord(
+                    1, 2, 0, 0, 0, 0, 0, 5, 6, CreatureBuffer: []),
+                new CharacterSettingsStorageRecord(4),
+                duelling,
+                new CharacterExpertJobStorageRecord(1, 3),
+                derivedStats,
+                new CharacterGuildStandingStorageRecord(0, 0),
+                extras,
                 new CharacterAppearanceCompatibilityState(1, [0]),
                 4,
                 5,

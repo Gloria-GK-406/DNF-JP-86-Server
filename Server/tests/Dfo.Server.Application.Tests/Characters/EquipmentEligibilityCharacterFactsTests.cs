@@ -23,10 +23,13 @@ public sealed class EquipmentEligibilityCharacterFactsTests
             Level: 86,
             CloneTitleItemId: 0);
         // Reading eligibility facts must not reach for static content: only creation needs it.
+        // The last is how a character instance would be built, and reading eligibility facts never
+        // builds one.
         IEquipmentEligibilityCharacterReader reader = new CharacterDomainService(
             () => new StubCharacterRepository(summary),
             new UnusedStatSource(),
-            new UnusedInitialSkillSource());
+            new UnusedInitialSkillSource(),
+            null!);
 
         var facts = await reader.GetAsync(
             accountId,

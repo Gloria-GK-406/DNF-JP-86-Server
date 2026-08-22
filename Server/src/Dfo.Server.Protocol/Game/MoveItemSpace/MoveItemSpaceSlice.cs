@@ -1,5 +1,4 @@
 using System.Buffers.Binary;
-using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
@@ -208,7 +207,7 @@ public sealed record MoveItemSpaceCommand(
     short DestinationSlotIndex) : ICommand<ItemMoveResult>;
 
 /// <summary>
-/// Works out what the move does and carries it out.
+/// Hands the move to the character's bag and reports what it answered.
 /// </summary>
 /// <remarks>
 /// Only the main list is served. The other containers this request can name -- avatar, cargo,
@@ -216,14 +215,12 @@ public sealed record MoveItemSpaceCommand(
 /// them, and answering for them without those rules would let an item through a door that should
 /// have been shut.
 ///
-/// The request may arrive with its two ends the other way round. When the source slot is empty the
-/// client is naming the slot it wants filled, and the item to put there is the one it described as
-/// the destination; the reference server carries the same reversal.
+/// Which slot may hold what, and whether a merge would burst a stack, are the bag's own questions
+/// now. What is left here is the two this layer owns: whether the request named a list this server
+/// serves, and whether the character is bound to a bag at all. Neither is a judgement about items.
 /// </remarks>
-public sealed class MoveItemSpaceCommandHandler(
-    ICharacterContainerDomainService containers,
-    IItemPlacementDefinitionSource placements,
-    IItemSlotRuleService slotRules) : ICommandHandler<MoveItemSpaceCommand, ItemMoveResult>
+public sealed class MoveItemSpaceCommandHandler(ICharacterContainerDomainService containers)
+    : ICommandHandler<MoveItemSpaceCommand, ItemMoveResult>
 {
     private const byte MainListType = (byte)InventoryContainerType.Main;
 
@@ -237,156 +234,48 @@ public sealed class MoveItemSpaceCommandHandler(
         if (command.SourceListType != MainListType || command.DestinationListType != MainListType)
             return ItemMoveResult.Refused(ItemMoveStatus.ListNotServed);
 
-        // Naming one slot twice is not a move. The client sends it while settling a drag that ended
-        // where it started, and it expects a success rather than a refusal.
-        if (command.SourceSlotIndex == command.DestinationSlotIndex)
-            return new ItemMoveResult(ItemMoveStatus.Unchanged, 0, 0);
-
         var container = containers.FindContainer(command.CharacterId, InventoryContainerType.Main);
         if (container is null)
             return ItemMoveResult.Refused(ItemMoveStatus.NoBoundContainer);
 
-        var slots = await container.ReadSlotsAsync(
-            command.SourceSlotIndex, command.DestinationSlotIndex, cancellationToken)
-            .ConfigureAwait(false);
+        // The move is carried out inside the bag as the clears and writes it is made of. Everything
+        // they touch settles together, because the command is transactional and the boundary around
+        // it is what makes four writes one change.
+        var outcome = await container.MoveToAsync(
+            command.SourceSlotIndex,
+            command.DestinationSlotIndex,
+            command.MoveCount,
+            cancellationToken).ConfigureAwait(false);
 
-        var (moving, displaced, targetSlot) = slots.First is not null
-            ? (slots.First, slots.Second, command.DestinationSlotIndex)
-            : (slots.Second, null, command.SourceSlotIndex);
-
-        if (moving is null)
-            return ItemMoveResult.Refused(ItemMoveStatus.BothSlotsEmpty);
-
-        var planned = await PlanAsync(
-            moving, displaced, targetSlot, command.MoveCount, cancellationToken).ConfigureAwait(false);
-        if (planned.Plan is not { } plan)
-            return ItemMoveResult.Refused(planned.Status);
-
-        // The move is carried out here as the clears and writes it is made of. Everything they
-        // touch settles together, because the command is transactional and the boundary around it
-        // is what makes four writes one change.
-        switch (plan.Kind)
+        return outcome switch
         {
-            case ContainerMoveKind.Relocate:
-                await ItemContainerOperations
-                    .RelocateAsync(container, moving, plan.TargetSlotIndex, cancellationToken)
-                    .ConfigureAwait(false);
-                break;
-            case ContainerMoveKind.Split:
-                await ItemContainerOperations
-                    .SplitAsync(
-                        container, moving, plan.TargetSlotIndex, plan.MoveCount, cancellationToken)
-                    .ConfigureAwait(false);
-                break;
-            case ContainerMoveKind.Swap:
-                await ItemContainerOperations
-                    .SwapAsync(container, moving, displaced!, cancellationToken)
-                    .ConfigureAwait(false);
-                break;
-            case ContainerMoveKind.Merge:
-                await ItemContainerOperations
-                    .MergeAsync(container, moving, displaced!, plan.MoveCount, cancellationToken)
-                    .ConfigureAwait(false);
-                break;
-            default:
-                // Listed rather than defaulted, for the same reason `ErrorCodeFor` is: a kind
-                // nobody mapped is a coding mistake, and answering it with "that item cannot go
-                // there" would read the player a sentence about something they did not do.
-                throw new ArgumentOutOfRangeException(
-                    nameof(command), plan.Kind, "No move was decided for this kind.");
-        }
-
-        return new ItemMoveResult(ItemMoveStatus.Moved, plan.MoveCount, moving.ItemId);
+            ItemMoveOutcome.Moved moved =>
+                new ItemMoveResult(ItemMoveStatus.Moved, moved.MoveCount, moved.ItemId),
+            ItemMoveOutcome.Unchanged => new ItemMoveResult(ItemMoveStatus.Unchanged, 0, 0),
+            ItemMoveOutcome.Refused refused => ItemMoveResult.Refused(StatusFor(refused.Reason)),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(command), outcome, "No reading was decided for this outcome."),
+        };
     }
 
     /// <summary>
-    /// Decides what the move does, or which refusal applies.
+    /// The bag's refusal, in this protocol's own terms.
     /// </summary>
     /// <remarks>
-    /// A count of zero, or one larger than the stack, means the whole stack: the client leaves the
-    /// field at zero for a plain drag and only fills it in when a split dialog asked the player for
-    /// a number.
-    ///
-    /// The refusals are told apart rather than folded into one answer, because the client has a
-    /// different sentence for a full stack than for an item that cannot go where it was dropped.
+    /// Listed rather than defaulted, for the same reason `ErrorCodeFor` is: a refusal nobody mapped
+    /// would fall through to a code that belongs to something the player did not do.
     /// </remarks>
-    private async ValueTask<(DecidedMove? Plan, ItemMoveStatus Status)> PlanAsync(
-        ContainerSlotItem moving,
-        ContainerSlotItem? displaced,
-        short targetSlot,
-        int requestedCount,
-        CancellationToken cancellationToken)
+    internal static ItemMoveStatus StatusFor(ItemMoveRefusal refusal) => refusal switch
     {
-        var placement = await placements.GetAsync(moving.ItemId, cancellationToken).ConfigureAwait(false);
-        if (placement is null || !slotRules.CanOccupyMainSlot(placement, targetSlot))
-            return (null, ItemMoveStatus.ItemCannotOccupySlot);
-
-        var moveCount = requestedCount <= 0 || requestedCount > moving.Count
-            ? moving.Count
-            : requestedCount;
-
-        if (displaced is null)
-        {
-            return (new DecidedMove(
-                    targetSlot,
-                    moveCount,
-                    moveCount == moving.Count
-                        ? ContainerMoveKind.Relocate
-                        : ContainerMoveKind.Split),
-                ItemMoveStatus.Moved);
-        }
-
-        // Two piles of the same item merge; anything else trades places. A merge that would burst
-        // the stack limit is refused rather than silently truncated, so the client keeps drawing
-        // the counts the server holds.
-        if (displaced.ItemId == moving.ItemId)
-        {
-            return placement.StackLimit > 1 && displaced.Count + moveCount <= placement.StackLimit
-                ? (new DecidedMove(targetSlot, moveCount, ContainerMoveKind.Merge),
-                    ItemMoveStatus.Moved)
-                : (null, ItemMoveStatus.MergeExceedsStackLimit);
-        }
-
-        // A swap has to satisfy both ends: the displaced item is going to the slot this one is
-        // leaving, and it has its own band.
-        if (moveCount != moving.Count)
-            return (null, ItemMoveStatus.PartialSwapNotAllowed);
-
-        var displacedPlacement = await placements.GetAsync(displaced.ItemId, cancellationToken)
-            .ConfigureAwait(false);
-        if (displacedPlacement is null
-            || !slotRules.CanOccupyMainSlot(displacedPlacement, moving.SlotIndex))
-            return (null, ItemMoveStatus.DisplacedCannotOccupySlot);
-
-        return (new DecidedMove(targetSlot, moveCount, ContainerMoveKind.Swap),
-            ItemMoveStatus.Moved);
-    }
+        ItemMoveRefusal.BothSlotsEmpty => ItemMoveStatus.BothSlotsEmpty,
+        ItemMoveRefusal.ItemCannotOccupySlot => ItemMoveStatus.ItemCannotOccupySlot,
+        ItemMoveRefusal.MergeExceedsStackLimit => ItemMoveStatus.MergeExceedsStackLimit,
+        ItemMoveRefusal.PartialSwapNotAllowed => ItemMoveStatus.PartialSwapNotAllowed,
+        ItemMoveRefusal.DisplacedCannotOccupySlot => ItemMoveStatus.DisplacedCannotOccupySlot,
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(refusal), refusal, "No status was decided for this refusal."),
+    };
 }
-
-/// <summary>How a decided move rearranges the two slots.</summary>
-public enum ContainerMoveKind
-{
-    /// <summary>The whole stack goes to an empty slot.</summary>
-    Relocate,
-
-    /// <summary>Part of the stack goes to an empty slot; the rest stays behind.</summary>
-    Split,
-
-    /// <summary>The two slots trade places.</summary>
-    Swap,
-
-    /// <summary>The stack is poured into a pile of the same item.</summary>
-    Merge,
-}
-
-/// <summary>
-/// What the move was decided to be, before it is said as reads and writes.
-/// </summary>
-/// <remarks>
-/// It names no item and no storage row, only where the move is going and how much of the pile goes.
-/// The two items are the ones already read, which is why they do not need naming twice.
-/// </remarks>
-public sealed record DecidedMove(int TargetSlotIndex, int MoveCount, ContainerMoveKind Kind);
 
 /// <summary>
 /// Turns the request into a command and the command's answer into something the client can read.

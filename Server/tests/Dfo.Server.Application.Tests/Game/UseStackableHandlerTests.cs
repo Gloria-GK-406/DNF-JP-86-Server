@@ -1,3 +1,5 @@
+using Dfo.Server.Application.Characters;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Tests.Inventory;
@@ -170,6 +172,34 @@ public sealed class UseStackableHandlerTests
             ((UseStackableResponse)sender.Sent.Last()).ErrorCode);
     }
 
+    /// <summary>
+    /// Using one member of a cooltime group makes the others wait.
+    /// </summary>
+    /// <remarks>
+    /// The key that starts a wait and the key that is checked for one are worked out in two
+    /// different places -- the effects start it, the judgement asks about it -- and they now come
+    /// from the same method on the same service. Nothing said so: the item's own identifier is the
+    /// key when a group is not declared, so an item-keyed test passes even if the two disagree
+    /// about groups entirely, and an item could then be drained through its own group.
+    /// </remarks>
+    [Fact]
+    public async Task Using_one_member_of_a_group_makes_the_others_wait()
+    {
+        var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 5, itemKind: 2);
+        var (handler, sender) = Build(
+            inventory,
+            (8474, ItemUseRules.Potion(3_000, cooltimeGroup: 70)),
+            (9000, ItemUseRules.Potion(3_000, cooltimeGroup: 70)));
+
+        await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+        inventory.Reseed(slot: 3, itemId: 9000, count: 5, itemKind: 2);
+        await handler.HandleAsync(Context, Request(3, 9000), CancellationToken.None);
+
+        Assert.Equal(
+            UseStackableResponse.CurrentlyUnusable,
+            ((UseStackableResponse)sender.Sent.Last()).ErrorCode);
+    }
+
     /// <remarks>
     /// The cooldown belongs to the effects, which run after the use is allowed. Started by the
     /// judgement instead, a refused press would lock the player out of an item they still hold.
@@ -267,15 +297,18 @@ public sealed class UseStackableHandlerTests
         var sessions = new OneSession();
         var sender = new RecordingSender();
 
+        var judgement = new ItemUseJudgementService();
         var commandHandler = new UseStackableCommandHandler(
             inventory.Containers(),
-            new ItemUsabilityDomainService(
+            new OneCharacter(new PlayingCharacter(
+                new CharacterId(60),
                 content,
+                judgement,
                 cooldowns,
                 sessions,
                 new FixedRuntimeSessions(level: 50, job: 0),
-                new SessionPresenceRegistry()),
-            new ItemUseEffectDomainService(content, cooldowns));
+                new SessionPresenceRegistry())),
+            new ItemUseEffectDomainService(content, judgement, cooldowns));
 
         return (
             new UseStackableHandler(
@@ -300,6 +333,10 @@ public sealed class UseStackableHandlerTests
         }
 
         public int Count => this.CountIn(this.slot);
+
+        /// <summary>Puts something else in the slot, for a test that uses two items in turn.</summary>
+        public void Reseed(int slot, int itemId, int count, byte itemKind) =>
+            this.Seed(slot, itemId, count, itemKind);
 
         public bool IsEmpty => this.Count == 0;
     }

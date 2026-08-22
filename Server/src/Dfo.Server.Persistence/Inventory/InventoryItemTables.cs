@@ -65,30 +65,6 @@ internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : IChara
                     PackedCore(reader, 2, "Inventory item core is malformed."))),
             cancellationToken);
 
-    public ValueTask<IReadOnlyList<MainStackRow>> ReadMainStacksAsync(
-        CharacterId characterId, CancellationToken cancellationToken) =>
-        database.ReadAllAsync(
-            "SELECT item_uid,slot_index,item_core FROM items "
-            + "WHERE owner_scope='character' AND owner_id=@cid AND list_type=0 ORDER BY slot_index",
-            parameters => parameters.AddWithValue("@cid", characterId.Value),
-            reader =>
-            {
-                var core = InventoryItemCore.Decode(
-                    PackedCore(reader, 2, "Daily refill item core is malformed."));
-                return new MainStackRow(
-                    reader.GetInt64(0), reader.GetInt32(1), core.ItemId, core.Value);
-            },
-            cancellationToken);
-
-    public async ValueTask<IReadOnlySet<int>> ReadMainOccupiedSlotsAsync(
-        CharacterId characterId, CancellationToken cancellationToken) =>
-        new HashSet<int>(await database.ReadAllAsync(
-            "SELECT slot_index FROM items "
-            + "WHERE owner_scope='character' AND owner_id=@cid AND list_type=0",
-            parameters => parameters.AddWithValue("@cid", characterId.Value),
-            reader => reader.GetInt32(0),
-            cancellationToken).ConfigureAwait(false));
-
     /// <remarks>
     /// What to keep goes into the statement text rather than into one parameter, because SQLite
     /// has no parameter that stands for a list. Each of them is still bound, so no value from
@@ -188,68 +164,6 @@ internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : IChara
                 BindAvatar(parameters, core, avatarDetail);
             },
             cancellationToken);
-
-    /// <remarks>
-    /// The stored form is read back before it is written, rather than composed afresh, so that
-    /// everything a stack carries besides how many of it there are survives untouched. Both
-    /// statements belong to the use case, so nothing can come between them.
-    /// </remarks>
-    public async ValueTask<int> SetStackCountAsync(
-        long itemUid, int count, CancellationToken cancellationToken)
-    {
-        var stored = await database.ReadFirstAsync(
-            "SELECT item_core FROM items WHERE item_uid=@uid",
-            parameters => parameters.AddWithValue("@uid", itemUid),
-            reader => PackedCore(reader, 0, "Daily refill item core is malformed."),
-            cancellationToken).ConfigureAwait(false);
-        if (stored is null)
-        {
-            return 0;
-        }
-
-        return await database.ExecuteAsync(
-            "UPDATE items SET item_core=@core,updated_at=CURRENT_TIMESTAMP WHERE item_uid=@uid",
-            parameters =>
-            {
-                parameters.AddWithValue(
-                    "@core",
-                    InventoryItemCore.Encode(
-                        InventoryItemCore.Decode(stored) with { Value = count }));
-                parameters.AddWithValue("@uid", itemUid);
-            },
-            cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <remarks>
-    /// The two values that are neither zero nor asked for -- a marker of minus one and a
-    /// changed-option index of 255 -- are what the stored form of a freshly made stack has always
-    /// looked like. They stay here beside the packing until an item is broken into columns.
-    /// </remarks>
-    public ValueTask<int> InsertStackAsync(
-        CharacterId characterId,
-        int slotIndex,
-        int itemId,
-        int count,
-        byte itemKind,
-        CancellationToken cancellationToken)
-    {
-        var core = new byte[InventoryItemCore.Size];
-        core[0] = itemKind;
-        BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(1, 4), itemId);
-        BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(5, 4), count);
-        BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(21, 4), -1);
-        core[66] = byte.MaxValue;
-        return database.ExecuteAsync(
-            "INSERT INTO items(owner_scope,owner_id,list_type,slot_index,item_core) "
-            + "VALUES('character',@cid,0,@slot,@core)",
-            parameters =>
-            {
-                parameters.AddWithValue("@cid", characterId.Value);
-                parameters.AddWithValue("@slot", slotIndex);
-                parameters.AddWithValue("@core", core);
-            },
-            cancellationToken);
-    }
 
     /// <summary>The avatar facts of the row being read, or nothing when it is not an avatar.</summary>
     internal static AvatarDetailRow? Avatar(SqliteDataReader reader, int ordinal) =>

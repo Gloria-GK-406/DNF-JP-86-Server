@@ -35,7 +35,25 @@ public interface IItemStore : IDomainStore<IItemStoreSession>;
 /// The writes are staged, not applied. They become visible to this session's own reads at once and
 /// to everyone else only when the transaction settles.
 /// </remarks>
-public interface IItemStoreSession : IStoreSession<ContainerId, int, StoredItem>;
+public interface IItemStoreSession : IStoreSession<ContainerId, int, StoredItem>
+{
+    /// <summary>
+    /// Turns everything this session has decided into the writes it calls for, still inside the
+    /// open use case.
+    /// </summary>
+    /// <remarks>
+    /// Ordinarily nothing needs this: a session's own reads already see what it has decided, and
+    /// nobody outside the use case may see it at all. It exists for the one shape that falls
+    /// between those two -- a use case that writes through this store and then reads the same rows
+    /// through the tables, which do not share this session and would otherwise be shown the state
+    /// before the writes.
+    ///
+    /// It does not settle anything and it does not widen what anyone outside the use case can see:
+    /// the rows land inside the same open transaction, and a rollback still takes them all back. It
+    /// is not a substitute for the boundary and grants no permission to write without one.
+    /// </remarks>
+    ValueTask ApplyDecidedWritesAsync(CancellationToken cancellationToken);
+}
 
 /// <summary>The whole of what one slot of a store holds.</summary>
 public sealed record StoredItem(int SlotIndex, InventoryItemCoreState Core);
