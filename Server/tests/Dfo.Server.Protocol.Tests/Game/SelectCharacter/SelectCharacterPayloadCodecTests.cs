@@ -564,10 +564,13 @@ public sealed class SelectCharacterPayloadCodecTests
                 command.CommandText = """
                     INSERT INTO characters(character_id,account_id,name,job,level)
                     VALUES(22,12,'row9',1,60);
-                    INSERT INTO character_subtype0_fields(character_id) VALUES(22);
-                    INSERT INTO character_subtype1_fields(character_id,manage_level,skill_tree_index) VALUES(22,8,0);
-                    INSERT INTO character_init_flags(character_id) VALUES(22);
-                    INSERT INTO character_invisible_falgs(character_id,slot_index,flag_value)
+                    INSERT INTO character_condition(character_id,pc_room_state) VALUES(22,0);
+                    INSERT INTO character_stats(character_id) VALUES(22);
+                    INSERT INTO character_pvp(character_id) VALUES(22);
+                    INSERT INTO character_settings(character_id) VALUES(22);
+                    INSERT INTO character_expert_job(character_id) VALUES(22);
+                    UPDATE characters SET manage_level=8, skill_tree_index=0 WHERE character_id=22;
+                    INSERT INTO character_invisible_flags(character_id,slot_index,flag_value)
                     VALUES(22,13502,1);
                     -- Two collect-box rows because the entry batch sends two box frames. The
                     -- boxes a character has now come from its stored progress rather than from a

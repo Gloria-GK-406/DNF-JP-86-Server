@@ -36,7 +36,7 @@ internal sealed class AccountSide
         new SqliteAccountPremiumTable(this.database),
         new SqliteAccountLotteryProgressTable(this.database),
         new SqliteCharacterTable(this.database),
-        new SqliteCharacterInitFlagTable(this.database),
+        new SqliteCharacterConditionTable(this.database),
         new SqliteCharacterBuyRestrictTable(this.database),
         new SqliteCharacterMercenarySupportTable(this.database));
 

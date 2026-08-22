@@ -62,7 +62,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
                 saved.CharacterItems.Single(value => value.Core.Value == 3000).AvatarDetail);
             await using (var connection = Open(path))
                 Assert.Equal(0L, await ScalarAsync(connection,
-                    "SELECT COUNT(*) FROM character_avatar_detail WHERE item_uid=2000"));
+                    "SELECT COUNT(*) FROM items WHERE avatar_uid=2000"));
 
             var collision = inserted with
             {
@@ -148,9 +148,9 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             await using var connection = Open(path);
             Assert.Equal(5, await ReadItemCountAsync(connection, 70, 1234));
             Assert.Equal(2L, await ScalarAsync(connection,
-                "SELECT hex(substr(item_core,1,1)) FROM character_new_items WHERE character_id=70 AND item_core IS NOT NULL"));
+                "SELECT hex(substr(item_core,1,1)) FROM items WHERE owner_id=70 AND item_core IS NOT NULL"));
             Assert.Equal("FFFFFFFF", await ScalarStringAsync(connection,
-                "SELECT hex(substr(item_core,22,4)) FROM character_new_items WHERE character_id=70"));
+                "SELECT hex(substr(item_core,22,4)) FROM items WHERE owner_id=70"));
             Assert.Equal(1L, await ScalarAsync(connection,
                 "SELECT value FROM character_daily_counters WHERE character_id=70 AND counter_key='pvf_daily_refill_item_1234'"));
         }
@@ -300,7 +300,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             Assert.Equal(5, grant.CommittedCount);
             await using var connection = Open(path);
             Assert.Equal(1L, await ScalarAsync(connection,
-                "SELECT COUNT(*) FROM character_new_items WHERE character_id=70"));
+                "SELECT COUNT(*) FROM items WHERE owner_id=70"));
             Assert.Equal(5, await ReadItemCountAsync(connection, 70, 1234));
         }
         finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
@@ -385,7 +385,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(1, 4), itemId);
         BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(5, 4), count);
         await using var connection = Open(path); await using var command = connection.CreateCommand();
-        command.CommandText = "INSERT INTO character_new_items(owner_scope,owner_id,character_id,list_type,slot_index,item_core) VALUES('character',@cid,@cid,0,@slot,@core)";
+        command.CommandText = "INSERT INTO items(owner_scope,owner_id,list_type,slot_index,item_core) VALUES('character',@cid,0,@slot,@core)";
         command.Parameters.AddWithValue("@cid", characterId); command.Parameters.AddWithValue("@slot", slot);
         command.Parameters.AddWithValue("@core", core); await command.ExecuteNonQueryAsync();
     }
@@ -406,17 +406,15 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         await using var connection = Open(path);
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            INSERT INTO character_new_items(owner_scope,owner_id,character_id,list_type,slot_index,item_core)
-            VALUES('character',@cid,@cid,0,@slot,@core);
-            INSERT INTO character_avatar_detail(item_uid,owner_id,character_id,item_id,expire_date,
-              clear_avatar_id,jewel_socket,color1,color2,delete_date)
-            VALUES(@uid,@cid,@cid,@item,@expire,@clear,@socket,@color1,@color2,@delete);
+            INSERT INTO items(owner_scope,owner_id,list_type,slot_index,item_core,avatar_uid,
+              avatar_expire_date,avatar_clear_id,avatar_jewel_socket,avatar_color1,avatar_color2,
+              avatar_delete_date)
+            VALUES('character',@cid,0,@slot,@core,@uid,@expire,@clear,@socket,@color1,@color2,@delete);
             """;
         command.Parameters.AddWithValue("@cid", characterId);
         command.Parameters.AddWithValue("@slot", slot);
         command.Parameters.AddWithValue("@core", core);
         command.Parameters.AddWithValue("@uid", avatarUid);
-        command.Parameters.AddWithValue("@item", itemId);
         command.Parameters.AddWithValue("@expire", detail.ExpireDate);
         command.Parameters.AddWithValue("@clear", detail.ClearAvatarId);
         command.Parameters.AddWithValue("@socket", detail.JewelSocket);
@@ -429,7 +427,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
     private static async Task<int> ReadItemCountAsync(SqliteConnection connection, int characterId, int itemId)
     {
         await using var command = connection.CreateCommand();
-        command.CommandText = "SELECT item_core FROM character_new_items WHERE character_id=@cid";
+        command.CommandText = "SELECT item_core FROM items WHERE owner_id=@cid";
         command.Parameters.AddWithValue("@cid", characterId);
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())

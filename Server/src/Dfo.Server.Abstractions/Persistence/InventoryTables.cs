@@ -4,22 +4,30 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Abstractions.Persistence;
 
-/// <summary>One row of <c>character_new_items</c>, as it is stored.</summary>
+/// <summary>One row of <c>items</c> belonging to a character, as it is stored.</summary>
 /// <remarks>
 /// Everything here is the column's own value, including the scope and owner that the load checks
 /// against the character it was asked for. A row that carries someone else's owner is a row this
 /// has to be able to describe, because refusing it is the load's job and not the table's.
+///
+/// <see cref="Avatar"/> is present on exactly the rows that are avatars, and absent on the rest.
+/// Absent is not the same as zeroed: an ordinary item has no avatar facts, and an avatar with none
+/// is an error.
 /// </remarks>
 public sealed record CharacterItemRow(
     long ItemUid,
     string OwnerScope,
     int OwnerId,
-    int? CharacterId,
     int ListType,
     int SlotIndex,
-    InventoryItemCoreState Core);
+    InventoryItemCoreState Core,
+    AvatarDetailRow? Avatar);
 
-/// <summary>One row of <c>account_cargo_new_items</c>, as it is stored.</summary>
+/// <summary>One row of <c>items</c> belonging to an account's cargo, as it is stored.</summary>
+/// <remarks>
+/// No avatar facts here, unlike the character's own rows: an avatar sitting in the cargo has never
+/// carried them and is loaded without.
+/// </remarks>
 public sealed record AccountCargoItemRow(
     long ItemUid,
     int AccountId,
@@ -41,11 +49,13 @@ public sealed record MainItemRow(long ItemUid, int SlotIndex, InventoryItemCoreS
 /// </remarks>
 public sealed record MainStackRow(long ItemUid, int SlotIndex, int ItemId, int Count);
 
-/// <summary>One row of <c>character_avatar_detail</c>.</summary>
+/// <summary>What an avatar carries beyond its core, from the columns of its own row.</summary>
+/// <remarks>
+/// The owner, the character and the template id used to be here as well, and each was checked
+/// against the item they belonged to. They are gone because the facts are now columns of the item
+/// row: there is no second row left to disagree with the first.
+/// </remarks>
 public sealed record AvatarDetailRow(
-    int OwnerId,
-    int CharacterId,
-    int ItemId,
     long ExpireDate,
     long ClearAvatarId,
     byte[] JewelSocket,
@@ -60,12 +70,15 @@ public sealed record ContainerStateRow(int CharacterId, int ListType, int Value)
 public sealed record AccountCargoStateRow(
     int AccountId, int SelectionKey, int Value32, int ItemCount);
 
-/// <summary>One row of <c>character_gold_limits</c>.</summary>
+/// <summary>A character's two gold caps, which live with its other derived numbers.</summary>
 public sealed record GoldLimitRow(int CarryLimit, int AuctionLimit);
 
-/// <summary>One row of <c>character_item_values</c>.</summary>
-public sealed record ItemValueRow(
-    int CharacterId, string ListKind, int SortOrder, int ItemId, int Value);
+/// <summary>One row of <c>character_item_cooldowns</c> or <c>character_item_effects</c>.</summary>
+/// <remarks>
+/// Which of the two it came from used to be a column of one table, and the value meant one thing or
+/// the other depending on it. Which table a row is in says that now.
+/// </remarks>
+public sealed record ItemValueRow(int CharacterId, int SortOrder, int ItemId, int Value);
 
 /// <summary>One row of <c>character_item_locks</c>.</summary>
 public sealed record ItemLockRow(
@@ -76,7 +89,7 @@ public sealed record ItemLockRow(
     int State,
     int RemainingSeconds);
 
-/// <summary>One rental, from either of the two tables that hold them.</summary>
+/// <summary>One rental.</summary>
 public sealed record RentalRow(
     int CharacterId, long ItemId, long InventoryTemplateId, long ExpireTime);
 
@@ -84,7 +97,7 @@ public sealed record RentalRow(
 public sealed record CubeFragmentRow(
     int Black, int White, int Red, int Blue, int Clear, int Gold);
 
-/// <summary>The items a character carries.</summary>
+/// <summary>The rows of <c>items</c> a character owns.</summary>
 public interface ICharacterItemTable
 {
     /// <summary>Every one of them, in the order the load reads them.</summary>
@@ -107,19 +120,27 @@ public interface ICharacterItemTable
     ValueTask<int> DeleteOwnExceptAsync(
         CharacterId characterId, IReadOnlyList<long> keep, CancellationToken cancellationToken);
 
+    /// <param name="avatarDetail">
+    /// What this item carries as an avatar, or null when it is not one. Null clears the avatar
+    /// columns rather than leaving them: an item updated out of being an avatar that kept them
+    /// would be refused by the encoder the next time it was sent.
+    /// </param>
     ValueTask<int> UpdateOwnAsync(
         long itemUid,
         CharacterId characterId,
         int listType,
         int slotIndex,
         InventoryItemCoreState core,
+        InventoryAvatarDetailState? avatarDetail,
         CancellationToken cancellationToken);
 
+    /// <param name="avatarDetail">As above; null for everything that is not an avatar.</param>
     ValueTask<int> InsertOwnAsync(
         CharacterId characterId,
         int listType,
         int slotIndex,
         InventoryItemCoreState core,
+        InventoryAvatarDetailState? avatarDetail,
         CancellationToken cancellationToken);
 
     /// <summary>Makes one stack hold this many, leaving everything else about it alone.</summary>
@@ -136,27 +157,11 @@ public interface ICharacterItemTable
         CancellationToken cancellationToken);
 }
 
-/// <summary>The items an account keeps in its cargo.</summary>
+/// <summary>The rows of <c>items</c> an account keeps in its cargo.</summary>
 public interface IAccountCargoItemTable
 {
     ValueTask<IReadOnlyList<AccountCargoItemRow>> ReadByAccountAsync(
         AccountId accountId, CancellationToken cancellationToken);
-}
-
-/// <summary>What an avatar is, beyond the item that stands for it.</summary>
-public interface ICharacterAvatarDetailTable
-{
-    ValueTask<AvatarDetailRow?> FindAsync(long itemUid, CancellationToken cancellationToken);
-
-    ValueTask<int> DeleteOwnExceptAsync(
-        CharacterId characterId, IReadOnlyList<int> keep, CancellationToken cancellationToken);
-
-    ValueTask<int> UpsertOwnAsync(
-        CharacterId characterId,
-        int itemUid,
-        int itemId,
-        InventoryAvatarDetailState detail,
-        CancellationToken cancellationToken);
 }
 
 /// <summary>What each of a character's containers is set to.</summary>
@@ -181,8 +186,15 @@ public interface ICharacterGoldLimitTable
         CharacterId characterId, CancellationToken cancellationToken);
 }
 
-/// <summary>The cooldowns and effects a character's items carry.</summary>
-public interface ICharacterItemValueTable
+/// <summary>How long until each of a character's items can be used again.</summary>
+public interface ICharacterItemCooldownTable
+{
+    ValueTask<IReadOnlyList<ItemValueRow>> ReadByCharacterAsync(
+        CharacterId characterId, CancellationToken cancellationToken);
+}
+
+/// <summary>How strong each of the effects a character's items are giving is.</summary>
+public interface ICharacterItemEffectTable
 {
     ValueTask<IReadOnlyList<ItemValueRow>> ReadByCharacterAsync(
         CharacterId characterId, CancellationToken cancellationToken);
@@ -200,30 +212,6 @@ public interface ICharacterRentalTable
 {
     ValueTask<IReadOnlyList<RentalRow>> ReadByCharacterAsync(
         CharacterId characterId, CancellationToken cancellationToken);
-}
-
-/// <summary>The older rentals table, read alongside the newer one.</summary>
-public interface ILegacyRentalTable
-{
-    ValueTask<IReadOnlyList<RentalRow>> ReadByCharacterAsync(
-        CharacterId characterId, CancellationToken cancellationToken);
-}
-
-/// <summary>The inventory shape that came before the packed one.</summary>
-/// <remarks>
-/// Nothing reads what is in it. All that is asked is whether anything is, because a character
-/// whose items are only here has not been brought across and must not be entered as though it
-/// had no items at all.
-/// </remarks>
-public interface ILegacyCharacterItemTable
-{
-    ValueTask<bool> AnyAsync(CharacterId characterId, CancellationToken cancellationToken);
-}
-
-/// <summary>The cargo shape that came before the packed one, asked the same question.</summary>
-public interface ILegacyAccountCargoTable
-{
-    ValueTask<bool> AnyAsync(AccountId accountId, CancellationToken cancellationToken);
 }
 
 /// <summary>What a character has already claimed today.</summary>

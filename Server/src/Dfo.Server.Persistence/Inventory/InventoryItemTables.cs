@@ -3,29 +3,41 @@ using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Persistence.Characters;
 using Dfo.Server.Persistence.Database;
 using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Persistence.Inventory;
 
-/// <summary>The <c>character_new_items</c> table.</summary>
+/// <summary>The rows of <c>items</c> a character owns.</summary>
 /// <remarks>
 /// Three reads rather than one, because three callers want three different orders and the order is
 /// part of what each of them means: the entry load reads every list by container and slot, the
 /// client's drawing order is slot then id within the main list, and a refill walks the main list by
 /// slot alone. Collapsing them into one read and sorting afterwards would move a decision about
 /// what the client sees into code that is only about rows.
+///
+/// A character's inventory stops short of the title-book containers. They are rows of this table
+/// like any other, but the load they feed parses a container type that admits only 0, 1, 2, 3 and
+/// 7, so one reaching it would be refused rather than ignored.
 /// </remarks>
 internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : ICharacterItemTable
 {
+    /// <summary>What the load reads, in the order it reads it.</summary>
+    /// <remarks>
+    /// The avatar columns come with the row now. Whether a row has them is decided by whether the
+    /// avatar UID is there, which is set on exactly the rows that are avatars.
+    /// </remarks>
     public ValueTask<IReadOnlyList<CharacterItemRow>> ReadByCharacterAsync(
         CharacterId characterId, CancellationToken cancellationToken) =>
         database.ReadAllAsync(
             """
-            SELECT item_uid, owner_scope, owner_id, character_id,
-                   list_type, slot_index, item_core
-            FROM character_new_items
-            WHERE character_id = @characterId
+            SELECT item_uid, owner_scope, owner_id, list_type, slot_index, item_core,
+                   avatar_uid, avatar_expire_date, avatar_clear_id, avatar_jewel_socket,
+                   avatar_color1, avatar_color2, avatar_delete_date
+            FROM items
+            WHERE owner_scope = 'character' AND owner_id = @characterId
+              AND list_type NOT BETWEEN 19 AND 23
             ORDER BY list_type, slot_index, item_uid;
             """,
             parameters => parameters.AddWithValue("@characterId", characterId.Value),
@@ -33,17 +45,18 @@ internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : IChara
                 reader.GetInt64(0),
                 reader.GetString(1),
                 reader.GetInt32(2),
-                reader.IsDBNull(3) ? null : reader.GetInt32(3),
+                reader.GetInt32(3),
                 reader.GetInt32(4),
-                reader.GetInt32(5),
-                InventoryItemCore.Decode(EntryCore(reader, 6, reader.GetInt64(0)))),
+                InventoryItemCore.Decode(EntryCore(reader, 5, reader.GetInt64(0))),
+                Avatar(reader, 6)),
             cancellationToken);
 
     public ValueTask<IReadOnlyList<MainItemRow>> ReadMainAsync(
         CharacterId characterId, CancellationToken cancellationToken) =>
         database.ReadAllAsync(
-            "SELECT item_uid,slot_index,item_core FROM character_new_items "
-            + "WHERE character_id=@cid AND list_type=0 ORDER BY slot_index,item_uid",
+            "SELECT item_uid,slot_index,item_core FROM items "
+            + "WHERE owner_scope='character' AND owner_id=@cid AND list_type=0 "
+            + "ORDER BY slot_index,item_uid",
             parameters => parameters.AddWithValue("@cid", characterId.Value),
             reader => new MainItemRow(
                 reader.GetInt64(0),
@@ -55,8 +68,8 @@ internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : IChara
     public ValueTask<IReadOnlyList<MainStackRow>> ReadMainStacksAsync(
         CharacterId characterId, CancellationToken cancellationToken) =>
         database.ReadAllAsync(
-            "SELECT item_uid,slot_index,item_core FROM character_new_items "
-            + "WHERE character_id=@cid AND list_type=0 ORDER BY slot_index",
+            "SELECT item_uid,slot_index,item_core FROM items "
+            + "WHERE owner_scope='character' AND owner_id=@cid AND list_type=0 ORDER BY slot_index",
             parameters => parameters.AddWithValue("@cid", characterId.Value),
             reader =>
             {
@@ -70,7 +83,8 @@ internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : IChara
     public async ValueTask<IReadOnlySet<int>> ReadMainOccupiedSlotsAsync(
         CharacterId characterId, CancellationToken cancellationToken) =>
         new HashSet<int>(await database.ReadAllAsync(
-            "SELECT slot_index FROM character_new_items WHERE character_id=@cid AND list_type=0",
+            "SELECT slot_index FROM items "
+            + "WHERE owner_scope='character' AND owner_id=@cid AND list_type=0",
             parameters => parameters.AddWithValue("@cid", characterId.Value),
             reader => reader.GetInt32(0),
             cancellationToken).ConfigureAwait(false));
@@ -79,6 +93,13 @@ internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : IChara
     /// What to keep goes into the statement text rather than into one parameter, because SQLite
     /// has no parameter that stands for a list. Each of them is still bound, so no value from
     /// outside ever reaches the statement itself.
+    ///
+    /// A row taken away here takes its avatar facts with it, because they are its own columns.
+    ///
+    /// The title-book containers are left out, exactly as the read above leaves them out. What is
+    /// kept comes from a caller that can only name the five containers an inventory has, so
+    /// without this every save would take a character's title book for something it no longer
+    /// holds and delete the lot.
     /// </remarks>
     public ValueTask<int> DeleteOwnExceptAsync(
         CharacterId characterId, IReadOnlyList<long> keep, CancellationToken cancellationToken)
@@ -86,10 +107,10 @@ internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : IChara
         ArgumentNullException.ThrowIfNull(keep);
         return database.ExecuteAsync(
             keep.Count == 0
-                ? "DELETE FROM character_new_items WHERE character_id=@cid "
-                  + "AND owner_scope='character' AND owner_id=@cid"
-                : "DELETE FROM character_new_items WHERE character_id=@cid "
-                  + "AND owner_scope='character' AND owner_id=@cid AND item_uid NOT IN ("
+                ? "DELETE FROM items WHERE owner_scope='character' AND owner_id=@cid "
+                  + "AND list_type NOT BETWEEN 19 AND 23"
+                : "DELETE FROM items WHERE owner_scope='character' AND owner_id=@cid "
+                  + "AND list_type NOT BETWEEN 19 AND 23 AND item_uid NOT IN ("
                   + string.Join(',', keep.Select((_, index) => $"@p{index}")) + ")",
             parameters =>
             {
@@ -102,24 +123,42 @@ internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : IChara
             cancellationToken);
     }
 
+    /// <remarks>
+    /// The avatar columns are written on every update rather than only when there are some, so an
+    /// item that stops being an avatar stops carrying them. Leaving them would not be a harmless
+    /// leftover: an item of another kind arriving with avatar facts is refused by the encoder, and
+    /// the refusal would surface a long way from the write that caused it.
+    ///
+    /// The condition on the avatar UID is what stops one character claiming an avatar another one
+    /// holds. It is written as a condition rather than left to the unique index so that the write
+    /// simply touches nothing, which the caller already reads as a refusal -- the index raising
+    /// would take the same decision out of the hands of the code that owns it.
+    /// </remarks>
     public ValueTask<int> UpdateOwnAsync(
         long itemUid,
         CharacterId characterId,
         int listType,
         int slotIndex,
         InventoryItemCoreState core,
+        InventoryAvatarDetailState? avatarDetail,
         CancellationToken cancellationToken) =>
         database.ExecuteAsync(
             """
-            UPDATE character_new_items SET list_type=@list, slot_index=@slot,
-                item_core=@core, updated_at=CURRENT_TIMESTAMP
-            WHERE item_uid=@uid AND character_id=@cid AND owner_scope='character' AND owner_id=@cid
+            UPDATE items SET list_type=@list, slot_index=@slot, item_core=@core,
+                avatar_uid=@avatarUid, avatar_expire_date=@expire, avatar_clear_id=@clear,
+                avatar_jewel_socket=@socket, avatar_color1=@color1, avatar_color2=@color2,
+                avatar_delete_date=@delete, updated_at=CURRENT_TIMESTAMP
+            WHERE item_uid=@uid AND owner_scope='character' AND owner_id=@cid
+              AND NOT EXISTS (
+                  SELECT 1 FROM items held
+                  WHERE held.avatar_uid = @avatarUid AND held.item_uid <> @uid)
             """,
             parameters =>
             {
                 parameters.AddWithValue("@list", listType);
                 parameters.AddWithValue("@slot", slotIndex);
                 parameters.AddWithValue("@core", InventoryItemCore.Encode(core));
+                BindAvatar(parameters, core, avatarDetail);
                 parameters.AddWithValue("@uid", itemUid);
                 parameters.AddWithValue("@cid", characterId.Value);
             },
@@ -130,17 +169,23 @@ internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : IChara
         int listType,
         int slotIndex,
         InventoryItemCoreState core,
+        InventoryAvatarDetailState? avatarDetail,
         CancellationToken cancellationToken) =>
         database.ExecuteAsync(
-            "INSERT INTO character_new_items"
-            + "(owner_scope,owner_id,character_id,list_type,slot_index,item_core) "
-            + "VALUES('character',@cid,@cid,@list,@slot,@core)",
+            "INSERT INTO items"
+            + "(owner_scope,owner_id,list_type,slot_index,item_core,avatar_uid,"
+            + "avatar_expire_date,avatar_clear_id,avatar_jewel_socket,avatar_color1,"
+            + "avatar_color2,avatar_delete_date) "
+            + "VALUES('character',@cid,@list,@slot,@core,@avatarUid,@expire,@clear,@socket,"
+            + "@color1,@color2,@delete) "
+            + "ON CONFLICT(avatar_uid) WHERE avatar_uid IS NOT NULL DO NOTHING",
             parameters =>
             {
                 parameters.AddWithValue("@cid", characterId.Value);
                 parameters.AddWithValue("@list", listType);
                 parameters.AddWithValue("@slot", slotIndex);
                 parameters.AddWithValue("@core", InventoryItemCore.Encode(core));
+                BindAvatar(parameters, core, avatarDetail);
             },
             cancellationToken);
 
@@ -153,7 +198,7 @@ internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : IChara
         long itemUid, int count, CancellationToken cancellationToken)
     {
         var stored = await database.ReadFirstAsync(
-            "SELECT item_core FROM character_new_items WHERE item_uid=@uid",
+            "SELECT item_core FROM items WHERE item_uid=@uid",
             parameters => parameters.AddWithValue("@uid", itemUid),
             reader => PackedCore(reader, 0, "Daily refill item core is malformed."),
             cancellationToken).ConfigureAwait(false);
@@ -163,8 +208,7 @@ internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : IChara
         }
 
         return await database.ExecuteAsync(
-            "UPDATE character_new_items SET item_core=@core,updated_at=CURRENT_TIMESTAMP "
-            + "WHERE item_uid=@uid",
+            "UPDATE items SET item_core=@core,updated_at=CURRENT_TIMESTAMP WHERE item_uid=@uid",
             parameters =>
             {
                 parameters.AddWithValue(
@@ -196,9 +240,8 @@ internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : IChara
         BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(21, 4), -1);
         core[66] = byte.MaxValue;
         return database.ExecuteAsync(
-            "INSERT INTO character_new_items"
-            + "(owner_scope,owner_id,character_id,list_type,slot_index,item_core) "
-            + "VALUES('character',@cid,@cid,0,@slot,@core)",
+            "INSERT INTO items(owner_scope,owner_id,list_type,slot_index,item_core) "
+            + "VALUES('character',@cid,0,@slot,@core)",
             parameters =>
             {
                 parameters.AddWithValue("@cid", characterId.Value);
@@ -206,6 +249,38 @@ internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : IChara
                 parameters.AddWithValue("@core", core);
             },
             cancellationToken);
+    }
+
+    /// <summary>The avatar facts of the row being read, or nothing when it is not an avatar.</summary>
+    internal static AvatarDetailRow? Avatar(SqliteDataReader reader, int ordinal) =>
+        reader.IsDBNull(ordinal)
+            ? null
+            : new AvatarDetailRow(
+                reader.GetInt64(ordinal + 1),
+                reader.GetInt64(ordinal + 2),
+                (byte[])reader.GetValue(ordinal + 3),
+                reader.GetInt64(ordinal + 4),
+                reader.GetInt64(ordinal + 5),
+                reader.GetInt64(ordinal + 6));
+
+    /// <summary>The avatar facts of the row being written, or seven nulls when there are none.</summary>
+    /// <remarks>
+    /// The UID is the one the core already carries, repeated as a column of its own so that it can
+    /// be indexed -- a value inside a BLOB cannot be. The two must agree, which is why it is taken
+    /// from the core here rather than from the caller.
+    /// </remarks>
+    private static void BindAvatar(
+        SqliteParameterCollection parameters,
+        InventoryItemCoreState core,
+        InventoryAvatarDetailState? detail)
+    {
+        parameters.AddWithValue("@avatarUid", detail is null ? DBNull.Value : core.Value);
+        parameters.AddWithValue("@expire", detail is null ? DBNull.Value : detail.ExpireDate);
+        parameters.AddWithValue("@clear", detail is null ? DBNull.Value : detail.ClearAvatarId);
+        parameters.AddWithValue("@socket", detail is null ? DBNull.Value : detail.JewelSocket);
+        parameters.AddWithValue("@color1", detail is null ? DBNull.Value : detail.Color1);
+        parameters.AddWithValue("@color2", detail is null ? DBNull.Value : detail.Color2);
+        parameters.AddWithValue("@delete", detail is null ? DBNull.Value : detail.DeleteDate);
     }
 
     /// <summary>The packed bytes, named by the row they came from when they are wrong.</summary>
@@ -233,16 +308,21 @@ internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : IChara
     }
 }
 
-/// <summary>The <c>account_cargo_new_items</c> table.</summary>
+/// <summary>The rows of <c>items</c> an account keeps in its cargo.</summary>
+/// <remarks>
+/// No avatar columns are read. An avatar in the cargo has never carried them -- the facts belonged
+/// to a character, and this row belongs to an account -- and the load depends on that: a character's
+/// avatar without them is an error, and one of these without them is ordinary.
+/// </remarks>
 internal sealed class SqliteAccountCargoItemTable(SqliteDatabase database) : IAccountCargoItemTable
 {
     public ValueTask<IReadOnlyList<AccountCargoItemRow>> ReadByAccountAsync(
         AccountId accountId, CancellationToken cancellationToken) =>
         database.ReadAllAsync(
             """
-            SELECT item_uid, account_id, character_id, list_type, slot_index, item_core
-            FROM account_cargo_new_items
-            WHERE account_id = @accountId
+            SELECT item_uid, owner_id, cargo_character_id, list_type, slot_index, item_core
+            FROM items
+            WHERE owner_scope = 'account' AND owner_id = @accountId
             ORDER BY list_type, slot_index, item_uid;
             """,
             parameters => parameters.AddWithValue("@accountId", accountId.Value),
@@ -257,89 +337,32 @@ internal sealed class SqliteAccountCargoItemTable(SqliteDatabase database) : IAc
             cancellationToken);
 }
 
-/// <summary>The <c>character_avatar_detail</c> table.</summary>
-internal sealed class SqliteCharacterAvatarDetailTable(SqliteDatabase database)
-    : ICharacterAvatarDetailTable
+/// <summary>The rows of <c>items</c> that sit in a character's title book.</summary>
+/// <remarks>
+/// A title book is a container like any other, and its five categories are five container types --
+/// 19 through 23. The category the caller works in is that number less nineteen, and it is
+/// translated here rather than upstream so that nothing outside this table has to know which
+/// numbers the containers were given.
+/// </remarks>
+internal sealed class SqliteCharacterTitleBookTable(SqliteDatabase database)
+    : ICharacterTitleBookTable
 {
-    public ValueTask<AvatarDetailRow?> FindAsync(
-        long itemUid, CancellationToken cancellationToken) =>
-        database.ReadFirstAsync(
-            """
-            SELECT owner_id,character_id,item_id,expire_date,clear_avatar_id,jewel_socket,
-                   color1,color2,delete_date
-            FROM character_avatar_detail WHERE item_uid=@avatarUid LIMIT 2
-            """,
-            parameters => parameters.AddWithValue("@avatarUid", itemUid),
-            reader => new AvatarDetailRow(
-                reader.GetInt32(0),
+    /// <summary>The container type the first title-book category is stored as.</summary>
+    private const int FirstTitleBookContainer = 19;
+
+    public ValueTask<IReadOnlyList<TitleBookRow>> ReadAsync(
+        CharacterId characterId, CancellationToken cancellationToken) =>
+        database.ReadAllAsync(
+            "SELECT list_type, slot_index, item_core FROM items "
+            + "WHERE owner_scope='character' AND owner_id=@cid AND list_type BETWEEN 19 AND 23 "
+            + "ORDER BY list_type, slot_index",
+            parameters => parameters.AddWithValue("@cid", characterId.Value),
+            reader => new TitleBookRow(
+                // Handed up as read. The category narrows to a byte only after it has been found
+                // to fit, so an out-of-range one reaches the refusal that names it rather than
+                // failing as a conversion on the way there.
+                reader.GetInt32(0) - FirstTitleBookContainer,
                 reader.GetInt32(1),
-                reader.GetInt32(2),
-                reader.GetInt64(3),
-                reader.GetInt64(4),
-                (byte[])reader.GetValue(5),
-                reader.GetInt64(6),
-                reader.GetInt64(7),
-                reader.GetInt64(8)),
+                EntryBlob.Bounded(reader, 2, 82, "title book item core", false)),
             cancellationToken);
-
-    public ValueTask<int> DeleteOwnExceptAsync(
-        CharacterId characterId, IReadOnlyList<int> keep, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(keep);
-        return database.ExecuteAsync(
-            keep.Count == 0
-                ? "DELETE FROM character_avatar_detail WHERE character_id=@cid AND owner_id=@cid"
-                : "DELETE FROM character_avatar_detail WHERE character_id=@cid AND owner_id=@cid "
-                  + "AND item_uid NOT IN ("
-                  + string.Join(',', keep.Select((_, index) => $"@avatar{index}")) + ")",
-            parameters =>
-            {
-                parameters.AddWithValue("@cid", characterId.Value);
-                for (var index = 0; index < keep.Count; index++)
-                {
-                    parameters.AddWithValue($"@avatar{index}", keep[index]);
-                }
-            },
-            cancellationToken);
-    }
-
-    /// <remarks>
-    /// The condition on the update half is what stops one character writing over another's
-    /// avatar: a conflicting row belonging to someone else matches nothing and is left alone,
-    /// which the caller sees as no row touched.
-    /// </remarks>
-    public ValueTask<int> UpsertOwnAsync(
-        CharacterId characterId,
-        int itemUid,
-        int itemId,
-        InventoryAvatarDetailState detail,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(detail);
-        return database.ExecuteAsync(
-            """
-            INSERT INTO character_avatar_detail(item_uid,owner_id,character_id,item_id,expire_date,
-              clear_avatar_id,jewel_socket,color1,color2,delete_date)
-            VALUES(@uid,@cid,@cid,@item,@expire,@clear,@socket,@color1,@color2,@delete)
-            ON CONFLICT(item_uid) DO UPDATE SET owner_id=excluded.owner_id,
-              character_id=excluded.character_id,item_id=excluded.item_id,expire_date=excluded.expire_date,
-              clear_avatar_id=excluded.clear_avatar_id,jewel_socket=excluded.jewel_socket,
-              color1=excluded.color1,color2=excluded.color2,delete_date=excluded.delete_date
-            WHERE character_avatar_detail.owner_id=@cid
-              AND character_avatar_detail.character_id=@cid
-            """,
-            parameters =>
-            {
-                parameters.AddWithValue("@uid", itemUid);
-                parameters.AddWithValue("@cid", characterId.Value);
-                parameters.AddWithValue("@item", itemId);
-                parameters.AddWithValue("@expire", detail.ExpireDate);
-                parameters.AddWithValue("@clear", detail.ClearAvatarId);
-                parameters.AddWithValue("@socket", detail.JewelSocket);
-                parameters.AddWithValue("@color1", detail.Color1);
-                parameters.AddWithValue("@color2", detail.Color2);
-                parameters.AddWithValue("@delete", detail.DeleteDate);
-            },
-            cancellationToken);
-    }
 }

@@ -26,12 +26,12 @@ namespace Dfo.Server.Application.Characters;
 /// </remarks>
 internal sealed class CharacterEntryAssembly(
     ICharacterEntryTable characters,
-    ICharacterSubtype0EntryTable subtype0,
-    ICharacterSubtype1EntryTable subtype1,
-    ICharacterInitFlagEntryTable initFlags,
+    ICharacterConditionTable condition,
+    ICharacterStatsTable statsRows,
+    ICharacterSettingsTable settings,
+    ICharacterPvpTable pvp,
     ICharacterHotkeyTable hotkeys,
     ICharacterDimensionTable dimensions,
-    ICharacterDimensionFlagTable dimensionFlags,
     ICharacterSkillTable skills,
     ICharacterComboPageTable comboPages,
     ICharacterShieldDeckTable shieldDeck,
@@ -39,10 +39,8 @@ internal sealed class CharacterEntryAssembly(
     ICharacterQuestNotifyTable questNotifications,
     ICharacterQuestClearFlagTable questClearFlags,
     ICharacterGrowthWeaponTable growthWeapons,
-    ICharacterCrystalContractTable crystalContract,
     ICharacterGoldLimitTable goldLimitRows,
-    ICharacterDailyChallengeGroupTable challengeGroups,
-    ICharacterDailyChallengeClaimTable challengeClaims,
+    ICharacterDailyChallengeTable challenges,
     ICharacterDailyChallengeEntryTable challengeEntries,
     ICharacterDailyChallengeTailTable challengeTails,
     ICharacterDailyScheduleTable dailySchedules,
@@ -102,25 +100,76 @@ internal sealed class CharacterEntryAssembly(
     /// them cannot be entered and saying which one is missing would tell a client something about
     /// the shape of the database.
     /// </remarks>
+    /// <summary>
+    /// The subtype-0 record, from the four tables its columns were cut into.
+    /// </summary>
+    /// <remarks>
+    /// The record itself is untouched. What used to be one row of one table is now one row of each
+    /// of four, and this is the one place that knows how they go back together -- which is the
+    /// whole point of moving the assembly into the domain in the first place.
+    /// </remarks>
+    private static CharacterSubtype0StorageRecord Subtype0(
+        CharacterConditionRow c,
+        CharacterSettingsRow settings,
+        CharacterPvpRow pvp,
+        CharacterExpertJobRow job,
+        int guildLevel) =>
+        new(c.Stamina, c.FatiguePenalty, c.EventCharacter, c.PrivateStore,
+            job.ExpertJobType, job.ExpertJobExperience,
+            c.HardcoreMode, c.HardcoreDead, c.HardcoreDeathCount,
+            settings.UserStateBits, c.ChatBanEndTime, c.MoodValue, pvp.PvpRankPoint,
+            c.CreatureField1, c.CreatureField2, c.CreatureField3, c.CreatureField4,
+            c.CreatureBuffer, c.PcRoomId, c.PremiumPcRoom, c.ServerGroupId, c.BlackCount,
+            guildLevel, c.ChaosPoint, c.DisguiseKind, c.Disguised, c.FatigueUpdate,
+            c.ReturnUserFlag, c.ChannelDisplayMode, c.ChannelType, c.ReturnUser,
+            c.LinkSlotEnabled, c.LinkTypeA, c.LinkTypeB, c.EmotionIndex, c.ActionByte,
+            c.FatigueDisplayUpdate, c.CostumeFlag, c.AuraFlag, c.PetDisplayFlag,
+            c.TitleDisplayFlag, pvp.PvpStatA, pvp.PvpWinStreak, pvp.PvpLoseStreak,
+            c.TrailingByte);
+
+    /// <summary>The subtype-1 record, from the derived numbers and the character's own row.</summary>
+    private static CharacterSubtype1StorageRecord Subtype1(
+        CharacterStatsRow s, CharacterEntryRow row) =>
+        new(s.HpMaximum, s.MpMaximum, s.PhysicalAttack, s.PhysicalDefense, s.MagicalAttack,
+            s.MagicalDefense, s.MoveSpeed, s.AttackSpeed, s.CastSpeed, s.InventoryLimit,
+            row.SkillTreeIndex, s.Progress1, s.Progress2, s.FireResistance, s.WaterResistance,
+            s.DarkResistance, s.LightResistance, s.HpRegenSpeed, s.MpRegenSpeed, s.HitRecovery,
+            s.JumpPower, s.Weight, s.CurrentHpMpPercent, row.NameTagItemId,
+            row.NameTagExpireTime, s.EquippedCreatureLevel, s.EquipListTrailing, s.FlagByte,
+            row.GuildPowerWar, s.ServerTimestamp, s.QuestShopCount, row.ManageLevel, []);
+
     private async ValueTask<CharacterProfileStorageRecord> LoadProfileAsync(
         AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)
     {
         var row = await characters.FindEntryAsync(characterId, cancellationToken)
             .ConfigureAwait(false);
-        var s0 = row is null
+        var conditionRow = row is null
             ? null
-            : await subtype0.FindAsync(characterId, cancellationToken).ConfigureAwait(false);
-        var s1 = s0 is null
+            : await condition.FindAsync(characterId, cancellationToken).ConfigureAwait(false);
+        var statsRow = conditionRow is null
             ? null
-            : await subtype1.FindAsync(characterId, cancellationToken).ConfigureAwait(false);
-        var flags = s1 is null
-            ? (null, false)
-            : await initFlags.FindOptionAsync(characterId, cancellationToken).ConfigureAwait(false);
-        if (row is null || s0 is null || s1 is null || !flags.Item2)
+            : await statsRows.FindAsync(characterId, cancellationToken).ConfigureAwait(false);
+        var settingsRow = statsRow is null
+            ? null
+            : await settings.FindAsync(characterId, cancellationToken).ConfigureAwait(false);
+        var pvpRow = settingsRow is null
+            ? null
+            : await pvp.FindAsync(characterId, cancellationToken).ConfigureAwait(false);
+        var jobRow = pvpRow is null
+            ? null
+            : await expertJob.FindAsync(characterId, cancellationToken).ConfigureAwait(false);
+        if (row is null || conditionRow is null || statsRow is null || settingsRow is null
+            || pvpRow is null || jobRow is null)
         {
             throw new InvalidDataException(
                 $"Character {characterId.Value} has incomplete required profile state.");
         }
+
+        // The two records the rest of the load already worked with, rebuilt from the tables the
+        // ruling cut them into. Nothing above this line changes shape; only where it comes from.
+        var s0 = Subtype0(conditionRow, settingsRow, pvpRow, jobRow, row.GuildLevel);
+        var s1 = Subtype1(statsRow, row);
+        var flags = (settingsRow.OptionBlob, true);
 
         if (row.AccountId != accountId.Value)
         {
@@ -150,8 +199,8 @@ internal sealed class CharacterEntryAssembly(
                 (dimension.SortOrder, dimension.Key, dimension.Value1, dimension.Value2));
         }
 
-        var flagValues = await dimensionFlags.ReadAsync(characterId, cancellationToken)
-            .ConfigureAwait(false);
+        var flagValues = (conditionRow.DimensionFlag1, conditionRow.DimensionFlag2,
+            conditionRow.DimensionFlag3, conditionRow.DimensionFlag4);
         if (new[] { flagValues.Item1, flagValues.Item2, flagValues.Item3, flagValues.Item4 }
             .Any(value => value is < 0 or > byte.MaxValue))
         {
@@ -163,7 +212,7 @@ internal sealed class CharacterEntryAssembly(
             checked((uint)row.CloneTitleItemId), row.Appearance, s0, s1,
             [.. slots.Select(value => checked((ushort)value))], flags.Item1,
             row.Experience, row.ExtraEquipSlotStat, dimensionRows, flagValues,
-            checked((byte)row.PvpGrade), checked((byte)row.PvpRatingGrade),
+            checked((byte)pvpRow.PvpGrade), checked((byte)pvpRow.PvpRatingGrade),
             checked((byte)row.UserState));
     }
 
@@ -269,19 +318,20 @@ internal sealed class CharacterEntryAssembly(
     {
         var growth = await growthWeapons.ReadAsync(characterId, cancellationToken)
             .ConfigureAwait(false);
-        var cube = await crystalContract.FindAsync(characterId, cancellationToken)
-            .ConfigureAwait(false) ?? new CrystalContractRow(0, 255);
-        var champion = await initFlags.FindChampionBreakAsync(characterId, cancellationToken)
+        var state = await condition.FindAsync(characterId, cancellationToken)
                 .ConfigureAwait(false)
             ?? throw new InvalidDataException("Required character state is unavailable.");
+        var cube = (CubeType: state.CrystalCubeType, CubeGrade: state.CrystalCubeGrade);
+        var champion = (KeyId: state.ChampionBreakKeyId, Mode: state.ChampionBreakMode,
+            Value: state.ChampionBreakValue);
         var gold = await goldLimitRows.FindAsync(characterId, cancellationToken)
             .ConfigureAwait(false) ?? new GoldLimitRow(0, 0);
         var goldLevel = goldLimits.UpgradeLevel(gold.CarryLimit, gold.AuctionLimit);
 
-        var groupRows = await challengeGroups.ReadAsync(characterId, cancellationToken)
+        var groupRows = await challenges.ReadAsync(characterId, cancellationToken)
             .ConfigureAwait(false);
-        var claimed = (await challengeClaims.ReadAsync(characterId, cancellationToken)
-            .ConfigureAwait(false)).ToHashSet();
+        var claimed = groupRows.Where(group => group.Claimed)
+            .Select(group => group.GroupIndex).ToHashSet();
         var groups = new List<CharacterDailyChallengeStorageGroup>();
         foreach (var group in groupRows)
         {
@@ -427,11 +477,13 @@ internal sealed class CharacterEntryAssembly(
             collection.Add((row.BoxIndex, row.SlotIndex, row.ItemId));
         }
 
-        var expert = await subtype0.FindExpertJobAsync(characterId, cancellationToken)
+        var workshop = await expertJob.FindAsync(characterId, cancellationToken)
                 .ConfigureAwait(false)
             ?? throw new InvalidDataException("Required character state is unavailable.");
-        var workshop = await expertJob.FindAsync(characterId, cancellationToken)
-            .ConfigureAwait(false) ?? new ExpertJobRow(0, 0, 0, 0);
+        // Read as a 32-bit value here as it always was, so an out-of-range experience still
+        // fails rather than being silently truncated.
+        var expert = (Type: workshop.ExpertJobType,
+            Experience: checked((int)workshop.ExpertJobExperience));
         var recipes = await expertRecipes.ReadAsync(characterId, cancellationToken)
             .ConfigureAwait(false);
         if (expert.Type is < 0 or > byte.MaxValue || expert.Experience < 0

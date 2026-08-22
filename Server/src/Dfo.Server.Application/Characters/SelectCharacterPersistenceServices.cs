@@ -16,8 +16,8 @@ namespace Dfo.Server.Application.Characters;
 /// </remarks>
 internal sealed class PvpSkillProfileService(
     ICharacterTable characters,
-    ICharacterPvpSkillTable pvpSkills,
-    ICharacterPvpSkillStateTable pvpSkillState) : ICharacterPvpSkillProfileRepository
+    ICharacterSkillTable skills,
+    ICharacterPvpTable pvp) : ICharacterPvpSkillProfileRepository
 {
     public async ValueTask<CharacterSkillsEntryState> LoadOrInitializeAsync(
         AccountId accountId,
@@ -33,23 +33,27 @@ internal sealed class PvpSkillProfileService(
             throw new InvalidDataException("PvP skill profile owner does not match the account.");
         }
 
-        if (!await pvpSkillState.ExistsAsync(characterId, cancellationToken).ConfigureAwait(false))
+        var pvpRow = await pvp.FindAsync(characterId, cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidDataException(
+                $"Character {characterId.Value} has no duel-arena row to seed skills against.");
+        if (pvpRow.SkillsInitialized == 0)
         {
             foreach (var page in initialProfile.Pages)
             {
                 foreach (var skill in page.Skills)
                 {
-                    await pvpSkills.InsertAsync(
+                    await skills.InsertDuelSkillAsync(
                         characterId, page.PageIndex, skill.Slot, (int)skill.SkillId, skill.Level,
                         [.. skill.ExtraValues], cancellationToken).ConfigureAwait(false);
                 }
             }
 
-            await pvpSkillState.InsertAsync(characterId, cancellationToken).ConfigureAwait(false);
+            await pvp.MarkSkillsInitializedAsync(characterId, cancellationToken)
+                .ConfigureAwait(false);
         }
 
         var pages = new[] { new List<CharacterSkillState>(), new List<CharacterSkillState>() };
-        foreach (var row in await pvpSkills.ReadAsync(characterId, cancellationToken)
+        foreach (var row in await skills.ReadDuelSkillsAsync(characterId, cancellationToken)
                      .ConfigureAwait(false))
         {
             if (row.PageIndex is < 0 or > 1

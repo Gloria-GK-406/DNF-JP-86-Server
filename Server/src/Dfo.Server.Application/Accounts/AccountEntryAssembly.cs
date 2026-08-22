@@ -26,7 +26,7 @@ internal sealed class AccountEntryAssembly(
     IAccountPremiumTable premiums,
     IAccountLotteryProgressTable lotteryProgress,
     ICharacterTable roster,
-    ICharacterInitFlagTable pcRooms,
+    ICharacterConditionTable condition,
     ICharacterBuyRestrictTable buyRestrictions,
     ICharacterMercenarySupportTable mercenarySupport) : IAccountEntryStateRepository
 {
@@ -146,7 +146,7 @@ internal sealed class AccountEntryAssembly(
     private async ValueTask<IReadOnlyList<int>> PcRoomStatesAsync(
         IReadOnlyList<CharacterRosterRow> characters, CancellationToken cancellationToken)
     {
-        var rows = await pcRooms.ReadByCharactersAsync(
+        var rows = await condition.ReadPcRoomStatesAsync(
                 [.. characters.Select(character => character.CharacterId)], cancellationToken)
             .ConfigureAwait(false);
         var stateOf = rows.ToDictionary(row => row.CharacterId, row => row.PcRoomState);

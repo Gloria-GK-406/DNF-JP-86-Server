@@ -14,9 +14,6 @@ public sealed record CharacterSummaryRow(
 /// <summary>How far along a character is.</summary>
 public sealed record CharacterProgressRow(int Level, long Experience);
 
-/// <summary>One row of <c>character_init_flags</c>, for the part an account cares about.</summary>
-public sealed record CharacterPcRoomRow(int CharacterId, int PcRoomState);
-
 /// <summary>One row of <c>character_buy_restrict_items</c>.</summary>
 public sealed record CharacterBuyRestrictRow(
     int CharacterId, int SortOrder, int EntryId, int SentinelOrValue, int Flag);
@@ -27,10 +24,6 @@ public sealed record CharacterMercenarySupportRow(
 
 /// <summary>One row of <c>character_skills</c>, as far as levelling is concerned.</summary>
 public sealed record CharacterSkillLevelRow(int PageIndex, int Slot, int SkillId, int Level);
-
-/// <summary>One row of <c>character_pvp_skills</c>.</summary>
-public sealed record CharacterPvpSkillRow(
-    int PageIndex, int Slot, int SkillId, int Level, byte[] ExtraValues);
 
 /// <summary>
 /// The <c>characters</c> table.
@@ -94,20 +87,6 @@ public interface ICharacterTable
     ValueTask<bool> MarkDeletedAsync(CharacterId characterId, CancellationToken cancellationToken);
 }
 
-/// <summary>The <c>character_init_flags</c> table.</summary>
-public interface ICharacterInitFlagTable
-{
-    /// <summary>
-    /// One row per named character that has one. A character with no row is simply absent, which
-    /// is a fact the caller decides what to make of.
-    /// </summary>
-    ValueTask<IReadOnlyList<CharacterPcRoomRow>> ReadByCharactersAsync(
-        IReadOnlyList<int> characterIds, CancellationToken cancellationToken);
-
-    /// <summary>Gives the character a row unless it has one.</summary>
-    ValueTask InsertIfAbsentAsync(CharacterId characterId, CancellationToken cancellationToken);
-}
-
 /// <summary>What each character may not buy.</summary>
 public interface ICharacterBuyRestrictTable
 {
@@ -123,13 +102,23 @@ public interface ICharacterMercenarySupportTable
 }
 
 /// <summary>One skill of a character, with whatever else was stored beside it.</summary>
+/// <remarks>
+/// One row type for both kinds of page. The duel pages used to have a type of their own with the
+/// same five fields, which said nothing the table did not.
+/// </remarks>
 public sealed record CharacterSkillEntryRow(
     int PageIndex, int Slot, int SkillId, int Level, byte[] ExtraValues);
 
 /// <summary>The <c>character_skills</c> table.</summary>
+/// <remarks>
+/// One table with two sets of pages in it, and one interface over it. Which set a row belongs to is
+/// a column, not a table, and the two sets never share a row: the ordinary pages are written by
+/// spending skill points, the duel pages by seeding them when a duel channel asks. Every method
+/// here names the set it works on, because a read that forgot would hand one set the other's rows.
+/// </remarks>
 public interface ICharacterSkillTable
 {
-    /// <summary>Every skill the character has, and at what level.</summary>
+    /// <summary>Every ordinary skill the character has, and at what level.</summary>
     ValueTask<IReadOnlyList<CharacterSkillLevelRow>> ReadLevelsAsync(
         CharacterId characterId, CancellationToken cancellationToken);
 
@@ -140,22 +129,20 @@ public interface ICharacterSkillTable
     ValueTask InsertAsync(
         CharacterId characterId, int slot, int skillId, int level, CancellationToken cancellationToken);
 
-    /// <summary>Puts one skill at that level. Says how many rows that touched.</summary>
+    /// <summary>Puts one ordinary skill at that level. Says how many rows that touched.</summary>
     ValueTask<int> SetLevelAsync(
         CharacterId characterId, int pageIndex, int slot, int level, CancellationToken cancellationToken);
 
-    /// <summary>Takes one skill away. Says how many rows that touched.</summary>
+    /// <summary>Takes one ordinary skill away. Says how many rows that touched.</summary>
     ValueTask<int> RemoveAsync(
         CharacterId characterId, int pageIndex, int slot, CancellationToken cancellationToken);
-}
 
-/// <summary>The <c>character_pvp_skills</c> table.</summary>
-public interface ICharacterPvpSkillTable
-{
-    ValueTask<IReadOnlyList<CharacterPvpSkillRow>> ReadAsync(
+    /// <summary>The duel pages, in the order they are read.</summary>
+    ValueTask<IReadOnlyList<CharacterSkillEntryRow>> ReadDuelSkillsAsync(
         CharacterId characterId, CancellationToken cancellationToken);
 
-    ValueTask InsertAsync(
+    /// <summary>Puts one skill on a duel page.</summary>
+    ValueTask InsertDuelSkillAsync(
         CharacterId characterId,
         int pageIndex,
         int slot,
@@ -165,30 +152,3 @@ public interface ICharacterPvpSkillTable
         CancellationToken cancellationToken);
 }
 
-/// <summary>
-/// The <c>character_pvp_skill_state</c> table.
-/// </summary>
-/// <remarks>
-/// One row per character, and the row's presence is the whole of what it says: this character's
-/// duelling skills have been set up. It holds nothing else.
-/// </remarks>
-public interface ICharacterPvpSkillStateTable
-{
-    ValueTask<bool> ExistsAsync(CharacterId characterId, CancellationToken cancellationToken);
-
-    ValueTask InsertAsync(CharacterId characterId, CancellationToken cancellationToken);
-}
-
-/// <summary>The <c>character_subtype0_fields</c> table.</summary>
-public interface ICharacterSubtype0Table
-{
-    ValueTask InsertIfAbsentAsync(CharacterId characterId, CancellationToken cancellationToken);
-}
-
-/// <summary>The <c>character_subtype1_fields</c> table.</summary>
-public interface ICharacterSubtype1Table
-{
-    ValueTask InsertIfAbsentAsync(
-        CharacterId characterId, CharacterBaseStats stats, int currentHpMpPercent,
-        CancellationToken cancellationToken);
-}

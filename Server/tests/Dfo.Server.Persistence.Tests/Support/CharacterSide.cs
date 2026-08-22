@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Accounts;
@@ -34,14 +35,19 @@ internal sealed class CharacterSide
     public ICharacterRepository Roster => new CharacterRosterService(
         new SqliteCharacterTable(this.database),
         new SqliteCharacterSkillTable(this.database),
-        new SqliteCharacterSubtype0Table(this.database),
-        new SqliteCharacterSubtype1Table(this.database),
-        new SqliteCharacterInitFlagTable(this.database));
+        new SqliteCharacterConditionTable(this.database),
+        new SqliteCharacterStatsTable(this.database),
+        new SqliteCharacterPvpTable(this.database),
+        new SqliteCharacterSettingsTable(this.database),
+        new SqliteCharacterExpertJobTable(this.database));
+
+    /// <summary>The skill table itself, for the tests that are about what a statement touches.</summary>
+    public ICharacterSkillTable Skills => new SqliteCharacterSkillTable(this.database);
 
     public ICharacterPvpSkillProfileRepository PvpProfile => new PvpSkillProfileService(
         new SqliteCharacterTable(this.database),
-        new SqliteCharacterPvpSkillTable(this.database),
-        new SqliteCharacterPvpSkillStateTable(this.database));
+        new SqliteCharacterSkillTable(this.database),
+        new SqliteCharacterPvpTable(this.database));
 
     public IExpertSkillContractReconciliationRepository ExpertContracts(
         IExpertSkillContractRuleService rules) =>
@@ -80,12 +86,12 @@ internal sealed class CharacterSide
     public ICharacterEntryStateRepository EntryState(IGoldLimitRuleService goldLimits) =>
         new CharacterEntryAssembly(
             new SqliteCharacterEntryTable(this.database),
-            new SqliteCharacterSubtype0EntryTable(this.database),
-            new SqliteCharacterSubtype1EntryTable(this.database),
-            new SqliteCharacterInitFlagEntryTable(this.database),
+            new SqliteCharacterConditionTable(this.database),
+            new SqliteCharacterStatsTable(this.database),
+            new SqliteCharacterSettingsTable(this.database),
+            new SqliteCharacterPvpTable(this.database),
             new SqliteCharacterHotkeyTable(this.database),
             new SqliteCharacterDimensionTable(this.database),
-            new SqliteCharacterDimensionFlagTable(this.database),
             new SqliteCharacterSkillTable(this.database),
             new SqliteCharacterComboPageTable(this.database),
             new SqliteCharacterShieldDeckTable(this.database),
@@ -93,10 +99,8 @@ internal sealed class CharacterSide
             new SqliteCharacterQuestNotifyTable(this.database),
             new SqliteCharacterQuestClearFlagTable(this.database),
             new SqliteCharacterGrowthWeaponTable(this.database),
-            new SqliteCharacterCrystalContractTable(this.database),
             new SqliteCharacterGoldLimitTable(this.database),
-            new SqliteCharacterDailyChallengeGroupTable(this.database),
-            new SqliteCharacterDailyChallengeClaimTable(this.database),
+            new SqliteCharacterDailyChallengeTable(this.database),
             new SqliteCharacterDailyChallengeEntryTable(this.database),
             new SqliteCharacterDailyChallengeTailTable(this.database),
             new SqliteCharacterDailyScheduleTable(this.database),

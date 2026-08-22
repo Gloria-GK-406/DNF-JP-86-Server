@@ -141,9 +141,10 @@ public sealed class SqliteItemStoreTests
     /// </summary>
     /// <remarks>
     /// This is the case that decided whether a store addressed by slot could be lossless. It can,
-    /// and not by carrying the details around: `character_avatar_detail` is keyed on the avatar UID
-    /// the item core carries, not on the inventory row, so the link travels inside the core exactly
-    /// as an enchantment does. A clear and a write move the item and leave the second table alone.
+    /// and not by leaving the facts where they were: they are columns of the row now, and this store
+    /// moves an item by replacing its row. So the facts are read back under the avatar UID the core
+    /// carries and written on again -- the link travels inside the core exactly as an enchantment
+    /// does, and the store is what makes that true rather than a second table.
     /// </remarks>
     [Fact]
     public async Task Relocate_KeepsAnAvatarsDetailsBecauseTheLinkIsInsideTheCore()
@@ -409,8 +410,8 @@ public sealed class SqliteItemStoreTests
         bytes[66] = byte.MaxValue;
         await using var command = connection.CreateCommand();
         command.CommandText =
-            "INSERT INTO character_new_items(owner_scope,owner_id,character_id,list_type,slot_index,item_core) "
-            + "VALUES('character',60,60,@list,@slot,@core)";
+            "INSERT INTO items(owner_scope,owner_id,list_type,slot_index,item_core) "
+            + "VALUES('character',60,@list,@slot,@core)";
         command.Parameters.AddWithValue("@list", listType);
         command.Parameters.AddWithValue("@slot", slot);
         command.Parameters.AddWithValue("@core", bytes);
@@ -422,12 +423,13 @@ public sealed class SqliteItemStoreTests
     {
         await using var connection = Open(path);
         await using var command = connection.CreateCommand();
+        // The facts belong to the row that is the avatar, so they are put on it. There is one.
         command.CommandText =
-            "INSERT INTO character_avatar_detail(item_uid,owner_id,character_id,item_id,expire_date,"
-            + "clear_avatar_id,jewel_socket,color1,color2,delete_date) "
-            + "VALUES(@uid,60,60,@item,@expire,@clear,@jewel,@color1,@color2,@delete)";
+            "UPDATE items SET avatar_uid=@uid,avatar_expire_date=@expire,avatar_clear_id=@clear,"
+            + "avatar_jewel_socket=@jewel,avatar_color1=@color1,avatar_color2=@color2,"
+            + "avatar_delete_date=@delete "
+            + "WHERE owner_scope='character' AND owner_id=60 AND substr(item_core,1,1)=X'08'";
         command.Parameters.AddWithValue("@uid", avatarUid);
-        command.Parameters.AddWithValue("@item", AvatarItemId);
         command.Parameters.AddWithValue("@expire", detail.ExpireDate);
         command.Parameters.AddWithValue("@clear", detail.ClearAvatarId);
         command.Parameters.AddWithValue("@jewel", detail.JewelSocket);
@@ -443,8 +445,9 @@ public sealed class SqliteItemStoreTests
         await using var connection = Open(path);
         await using var command = connection.CreateCommand();
         command.CommandText =
-            "SELECT expire_date,clear_avatar_id,jewel_socket,color1,color2,delete_date "
-            + "FROM character_avatar_detail WHERE item_uid=@uid";
+            "SELECT avatar_expire_date,avatar_clear_id,avatar_jewel_socket,avatar_color1,"
+            + "avatar_color2,avatar_delete_date "
+            + "FROM items WHERE avatar_uid=@uid";
         command.Parameters.AddWithValue("@uid", avatarUid);
         await using var reader = await command.ExecuteReaderAsync();
         if (!await reader.ReadAsync())
@@ -467,8 +470,9 @@ public sealed class SqliteItemStoreTests
         await using var connection = Open(path);
         await using var command = connection.CreateCommand();
         command.CommandText =
-            "SELECT slot_index,item_core FROM character_new_items "
-            + "WHERE character_id=60 AND list_type=@list ORDER BY slot_index";
+            "SELECT slot_index,item_core FROM items "
+            + "WHERE owner_scope='character' AND owner_id=60 AND list_type=@list "
+            + "ORDER BY slot_index";
         command.Parameters.AddWithValue("@list", listType);
         var rows = new List<(int, int, int)>();
         await using var reader = await command.ExecuteReaderAsync();

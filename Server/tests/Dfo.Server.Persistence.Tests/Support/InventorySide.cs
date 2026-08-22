@@ -16,7 +16,7 @@ namespace Dfo.Server.Persistence.Tests.Support;
 /// The inventory side of one database, put together the way the server puts it together.
 /// </summary>
 /// <remarks>
-/// Fourteen tables go into the entry loads and five into a refill, and naming all of them at every
+/// Nine tables go into the entry loads and five into a refill, and naming all of them at every
 /// call site would bury what each test is about. This is the same wiring the composition root does,
 /// in one place, so a test says which database and gets an inventory.
 ///
@@ -138,14 +138,11 @@ internal sealed class InventorySide
         new SqliteAccountTable(this.database),
         new SqliteCharacterItemTable(this.database),
         new SqliteAccountCargoItemTable(this.database),
-        new SqliteCharacterAvatarDetailTable(this.database),
         new SqliteCharacterContainerStateTable(this.database),
         new SqliteAccountCargoStateTable(this.database),
         new SqliteCharacterGoldLimitTable(this.database),
-        new SqliteCharacterItemValueTable(this.database),
+        new SqliteCharacterItemCooldownTable(this.database),
+        new SqliteCharacterItemEffectTable(this.database),
         new SqliteCharacterItemLockTable(this.database),
-        new SqliteCharacterRentalTable(this.database),
-        new SqliteLegacyRentalTable(this.database),
-        new SqliteLegacyCharacterItemTable(this.database),
-        new SqliteLegacyAccountCargoTable(this.database));
+        new SqliteCharacterRentalTable(this.database));
 }

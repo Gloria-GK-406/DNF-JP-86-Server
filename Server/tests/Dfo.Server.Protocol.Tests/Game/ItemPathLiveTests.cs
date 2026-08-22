@@ -217,8 +217,8 @@ public sealed class ItemPathLiveTests
 
         await using var item = connection.CreateCommand();
         item.CommandText =
-            "INSERT INTO character_new_items(owner_scope,owner_id,character_id,list_type,"
-            + "slot_index,item_core) VALUES('character',60,60,0,65,@core)";
+            "INSERT INTO items(owner_scope,owner_id,list_type,"
+            + "slot_index,item_core) VALUES('character',60,0,65,@core)";
         item.Parameters.AddWithValue(
             "@core", InventoryItemCore.Encode(Core()));
         await item.ExecuteNonQueryAsync();
@@ -229,8 +229,8 @@ public sealed class ItemPathLiveTests
         await using var connection = Open(databasePath);
         await using var command = connection.CreateCommand();
         command.CommandText =
-            "SELECT slot_index,item_core FROM character_new_items "
-            + "WHERE character_id=60 AND list_type=0 ORDER BY slot_index";
+            "SELECT slot_index,item_core FROM items "
+            + "WHERE owner_scope='character' AND owner_id=60 AND list_type=0 ORDER BY slot_index";
         var rows = new List<(int, int, int)>();
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())

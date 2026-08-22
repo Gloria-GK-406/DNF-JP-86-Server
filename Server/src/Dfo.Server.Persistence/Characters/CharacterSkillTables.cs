@@ -1,17 +1,34 @@
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Persistence.Database;
-using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Persistence.Characters;
 
 /// <summary>The <c>character_skills</c> table.</summary>
+/// <remarks>
+/// Both sets of pages are rows of this table, told apart by <c>mode</c>. Every statement names the
+/// mode it means -- there is no statement here that works on both, because no caller wants both:
+/// spending a skill point is about the ordinary pages and seeding a duel channel is about the duel
+/// pages, and a statement that served both would hand one of them rows it never asked for.
+///
+/// The column that says which is not a discriminator in the sense the red line forbids. Every other
+/// column means exactly the same thing in either mode; <c>mode</c> selects a set of rows, not a
+/// reading of its neighbours.
+/// </remarks>
 internal sealed class SqliteCharacterSkillTable(SqliteDatabase database) : ICharacterSkillTable
 {
+    /// <summary>How big a skill's extra values may be before the row is refused.</summary>
+    /// <remarks>
+    /// It was the ordinary pages' bound and is now both, because it is one column. A duel row past
+    /// it cannot be anything the seeding path wrote, for the same reason an ordinary one cannot.
+    /// </remarks>
+    private const int ExtraValuesBound = 1024;
+
     public ValueTask<IReadOnlyList<CharacterSkillLevelRow>> ReadLevelsAsync(
         CharacterId characterId, CancellationToken cancellationToken) =>
         database.ReadAllAsync(
-            "SELECT page_index,slot,skill_id,level FROM character_skills WHERE character_id=@cid",
+            "SELECT page_index,slot,skill_id,level FROM character_skills "
+            + "WHERE character_id=@cid AND mode='pve'",
             parameters => parameters.AddWithValue("@cid", characterId.Value),
             reader => new CharacterSkillLevelRow(
                 reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2), reader.GetInt32(3)),
@@ -21,19 +38,17 @@ internal sealed class SqliteCharacterSkillTable(SqliteDatabase database) : IChar
         CharacterId characterId, CancellationToken cancellationToken) =>
         database.ReadAllAsync(
             "SELECT page_index, slot, skill_id, level, extra_values FROM character_skills "
-            + "WHERE character_id=@cid ORDER BY page_index, slot",
+            + "WHERE character_id=@cid AND mode='pve' ORDER BY page_index, slot",
             parameters => parameters.AddWithValue("@cid", characterId.Value),
-            reader => new CharacterSkillEntryRow(
-                reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2), reader.GetInt32(3),
-                EntryBlob.Bounded(reader, 4, 1024, "skill extra values", allowNull: true)),
+            Skill,
             cancellationToken);
 
     public async ValueTask InsertAsync(
         CharacterId characterId, int slot, int skillId, int level, CancellationToken cancellationToken) =>
         _ = await database.ExecuteAsync(
             """
-            INSERT INTO character_skills (character_id, page_index, slot, skill_id, level, extra_values)
-            VALUES (@cid, 0, @slot, @skill, @level, NULL);
+            INSERT INTO character_skills (character_id, mode, page_index, slot, skill_id, level, extra_values)
+            VALUES (@cid, 'pve', 0, @slot, @skill, @level, NULL);
             """,
             parameters =>
             {
@@ -48,7 +63,7 @@ internal sealed class SqliteCharacterSkillTable(SqliteDatabase database) : IChar
         CharacterId characterId, int pageIndex, int slot, int level, CancellationToken cancellationToken) =>
         database.ExecuteAsync(
             "UPDATE character_skills SET level=@level "
-            + "WHERE character_id=@cid AND page_index=@page AND slot=@slot",
+            + "WHERE character_id=@cid AND mode='pve' AND page_index=@page AND slot=@slot",
             parameters =>
             {
                 parameters.AddWithValue("@cid", characterId.Value);
@@ -61,7 +76,8 @@ internal sealed class SqliteCharacterSkillTable(SqliteDatabase database) : IChar
     public ValueTask<int> RemoveAsync(
         CharacterId characterId, int pageIndex, int slot, CancellationToken cancellationToken) =>
         database.ExecuteAsync(
-            "DELETE FROM character_skills WHERE character_id=@cid AND page_index=@page AND slot=@slot",
+            "DELETE FROM character_skills "
+            + "WHERE character_id=@cid AND mode='pve' AND page_index=@page AND slot=@slot",
             parameters =>
             {
                 parameters.AddWithValue("@cid", characterId.Value);
@@ -69,36 +85,32 @@ internal sealed class SqliteCharacterSkillTable(SqliteDatabase database) : IChar
                 parameters.AddWithValue("@slot", slot);
             },
             cancellationToken);
-}
 
-/// <summary>The <c>character_pvp_skills</c> table.</summary>
-internal sealed class SqliteCharacterPvpSkillTable(SqliteDatabase database) : ICharacterPvpSkillTable
-{
-    public ValueTask<IReadOnlyList<CharacterPvpSkillRow>> ReadAsync(
+    public ValueTask<IReadOnlyList<CharacterSkillEntryRow>> ReadDuelSkillsAsync(
         CharacterId characterId, CancellationToken cancellationToken) =>
         database.ReadAllAsync(
             """
-            SELECT page_index, slot, skill_id, level, extra_values
-            FROM character_pvp_skills WHERE character_id=@cid ORDER BY page_index, slot
+            SELECT page_index, slot, skill_id, level, extra_values FROM character_skills
+            WHERE character_id=@cid AND mode='pvp' ORDER BY page_index, slot
             """,
             parameters => parameters.AddWithValue("@cid", characterId.Value),
-            reader => new CharacterPvpSkillRow(
-                reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2), reader.GetInt32(3),
-                reader.IsDBNull(4) ? [] : (byte[])reader.GetValue(4)),
+            Skill,
             cancellationToken);
 
-    public async ValueTask InsertAsync(
+    public async ValueTask InsertDuelSkillAsync(
         CharacterId characterId,
         int pageIndex,
         int slot,
         int skillId,
         int level,
         byte[] extraValues,
-        CancellationToken cancellationToken) =>
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(extraValues);
         _ = await database.ExecuteAsync(
             """
-            INSERT INTO character_pvp_skills(character_id,page_index,slot,skill_id,level,extra_values)
-            VALUES(@cid,@page,@slot,@skill,@level,@extra)
+            INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level,extra_values)
+            VALUES(@cid,'pvp',@page,@slot,@skill,@level,@extra)
             """,
             parameters =>
             {
@@ -111,92 +123,14 @@ internal sealed class SqliteCharacterPvpSkillTable(SqliteDatabase database) : IC
                     "@extra", extraValues.Length > 0 ? extraValues : DBNull.Value);
             },
             cancellationToken).ConfigureAwait(false);
-}
+    }
 
-/// <summary>The <c>character_pvp_skill_state</c> table.</summary>
-internal sealed class SqliteCharacterPvpSkillStateTable(SqliteDatabase database)
-    : ICharacterPvpSkillStateTable
-{
-    public ValueTask<bool> ExistsAsync(
-        CharacterId characterId, CancellationToken cancellationToken) =>
-        Present(database.ReadFirstAsync(
-            "SELECT 1 FROM character_pvp_skill_state WHERE character_id=@cid LIMIT 1",
-            parameters => parameters.AddWithValue("@cid", characterId.Value),
-            _ => Marker,
-            cancellationToken));
-
-    public async ValueTask InsertAsync(
-        CharacterId characterId, CancellationToken cancellationToken) =>
-        _ = await database.ExecuteAsync(
-            "INSERT INTO character_pvp_skill_state(character_id) VALUES(@cid)",
-            parameters => parameters.AddWithValue("@cid", characterId.Value),
-            cancellationToken).ConfigureAwait(false);
-
-    /// <summary>Stands in for the row, whose presence is all it says.</summary>
-    private static readonly object Marker = new();
-
-    private static async ValueTask<bool> Present(ValueTask<object?> row) =>
-        await row.ConfigureAwait(false) is not null;
-}
-
-/// <summary>The <c>character_subtype0_fields</c> table.</summary>
-internal sealed class SqliteCharacterSubtype0Table(SqliteDatabase database) : ICharacterSubtype0Table
-{
-    public async ValueTask InsertIfAbsentAsync(
-        CharacterId characterId, CancellationToken cancellationToken) =>
-        _ = await database.ExecuteAsync(
-            "INSERT INTO character_subtype0_fields (character_id) VALUES (@cid) "
-            + "ON CONFLICT(character_id) DO NOTHING;",
-            parameters => parameters.AddWithValue("@cid", characterId.Value),
-            cancellationToken).ConfigureAwait(false);
-}
-
-/// <summary>The <c>character_subtype1_fields</c> table.</summary>
-internal sealed class SqliteCharacterSubtype1Table(SqliteDatabase database) : ICharacterSubtype1Table
-{
-    public async ValueTask InsertIfAbsentAsync(
-        CharacterId characterId,
-        CharacterBaseStats stats,
-        int currentHpMpPercent,
-        CancellationToken cancellationToken) =>
-        _ = await database.ExecuteAsync(
-            """
-            INSERT INTO character_subtype1_fields (
-                character_id, stat_hp_max, stat_mp_max, stat_physical_attack, stat_physical_defense,
-                stat_magical_attack, stat_magical_defense, stat_fire_resistance, stat_water_resistance,
-                stat_dark_resistance, stat_light_resistance, stat_inventory_limit, stat_hp_regen_speed,
-                stat_mp_regen_speed, stat_move_speed, stat_attack_speed, stat_cast_speed,
-                stat_hit_recovery, stat_jump_power, stat_weight, current_hp_mp_percent)
-            VALUES (
-                @cid, @hpMax, @mpMax, @physicalAttack, @physicalDefense, @magicalAttack,
-                @magicalDefense, @fireResistance, @waterResistance, @darkResistance,
-                @lightResistance, @inventoryLimit, @hpRegenSpeed, @mpRegenSpeed, @moveSpeed,
-                @attackSpeed, @castSpeed, @hitRecovery, @jumpPower, @weight, @currentHpMpPercent)
-            ON CONFLICT(character_id) DO NOTHING;
-            """,
-            parameters =>
-            {
-                parameters.AddWithValue("@cid", characterId.Value);
-                parameters.AddWithValue("@hpMax", stats.HpMax);
-                parameters.AddWithValue("@mpMax", stats.MpMax);
-                parameters.AddWithValue("@physicalAttack", stats.PhysicalAttack);
-                parameters.AddWithValue("@physicalDefense", stats.PhysicalDefense);
-                parameters.AddWithValue("@magicalAttack", stats.MagicalAttack);
-                parameters.AddWithValue("@magicalDefense", stats.MagicalDefense);
-                parameters.AddWithValue("@fireResistance", stats.FireResistance);
-                parameters.AddWithValue("@waterResistance", stats.WaterResistance);
-                parameters.AddWithValue("@darkResistance", stats.DarkResistance);
-                parameters.AddWithValue("@lightResistance", stats.LightResistance);
-                parameters.AddWithValue("@inventoryLimit", stats.InventoryLimit);
-                parameters.AddWithValue("@hpRegenSpeed", stats.HpRegenSpeed);
-                parameters.AddWithValue("@mpRegenSpeed", stats.MpRegenSpeed);
-                parameters.AddWithValue("@moveSpeed", stats.MoveSpeed);
-                parameters.AddWithValue("@attackSpeed", stats.AttackSpeed);
-                parameters.AddWithValue("@castSpeed", stats.CastSpeed);
-                parameters.AddWithValue("@hitRecovery", stats.HitRecovery);
-                parameters.AddWithValue("@jumpPower", stats.JumpPower);
-                parameters.AddWithValue("@weight", stats.Weight);
-                parameters.AddWithValue("@currentHpMpPercent", currentHpMpPercent);
-            },
-            cancellationToken).ConfigureAwait(false);
+    /// <summary>One row, however the caller means to use it.</summary>
+    /// <remarks>
+    /// Nothing stored is read: a row with no extra values reads as an empty array, which is what
+    /// both reads answered before they were one.
+    /// </remarks>
+    private static CharacterSkillEntryRow Skill(Microsoft.Data.Sqlite.SqliteDataReader reader) =>
+        new(reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2), reader.GetInt32(3),
+            EntryBlob.Bounded(reader, 4, ExtraValuesBound, "skill extra values", allowNull: true));
 }

@@ -18,7 +18,13 @@ public sealed class SqliteEntryLifecycleRecoveryTests
         {
             await ExecuteAsync(path, """
                 CREATE TABLE characters(character_id INTEGER PRIMARY KEY,account_id INTEGER NOT NULL,delete_flag INTEGER NOT NULL DEFAULT 0);
+                CREATE TABLE character_pvp(character_id INTEGER PRIMARY KEY,
+                  pvp_grade INTEGER NOT NULL DEFAULT 0, pvp_rating_grade INTEGER NOT NULL DEFAULT 0,
+                  pvp_rank_point INTEGER NOT NULL DEFAULT 0, pvp_stat_a INTEGER NOT NULL DEFAULT 0,
+                  pvp_win_streak INTEGER NOT NULL DEFAULT 0, pvp_lose_streak INTEGER NOT NULL DEFAULT 0,
+                  skills_initialized INTEGER NOT NULL DEFAULT 0);
                 INSERT INTO characters VALUES(7,3,0);
+                INSERT INTO character_pvp(character_id) VALUES(7);
             """);
             var side = new CharacterSide(path);
             var empty = new CharacterSkillsEntryState(
@@ -29,8 +35,8 @@ public sealed class SqliteEntryLifecycleRecoveryTests
                     new AccountId(3), new CharacterId(7), empty, token));
             Assert.Empty(initializedEmpty.Pages[0].Skills);
             await ExecuteAsync(path, """
-                INSERT INTO character_pvp_skills(character_id,page_index,slot,skill_id,level,extra_values)
-                VALUES(7,0,4,100,2,X'0102'),(7,1,9,200,3,NULL);
+                INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level,extra_values)
+                VALUES(7,'pvp',0,4,100,2,X'0102'),(7,'pvp',1,9,200,3,NULL);
                 """);
 
             var profile = Assert.IsType<CharacterSkillsEntryState>(
@@ -174,12 +180,12 @@ public sealed class SqliteEntryLifecycleRecoveryTests
                 CREATE TABLE characters(character_id INTEGER PRIMARY KEY,account_id INTEGER,delete_flag INTEGER DEFAULT 0);
                 CREATE TABLE account_premiums(account_id INTEGER,premium_type INTEGER,end_time INTEGER,
                   PRIMARY KEY(account_id,premium_type));
-                CREATE TABLE character_skills(character_id INTEGER,page_index INTEGER,slot INTEGER,
-                  skill_id INTEGER,level INTEGER,extra_values BLOB,PRIMARY KEY(character_id,page_index,slot));
+                CREATE TABLE character_skills(character_id INTEGER,mode TEXT,page_index INTEGER,slot INTEGER,
+                  skill_id INTEGER,level INTEGER,extra_values BLOB,PRIMARY KEY(character_id,mode,page_index,slot));
                 INSERT INTO characters VALUES(7,3,0);
                 INSERT INTO account_premiums VALUES(3,580,{future});
-                INSERT INTO character_skills VALUES(7,0,1,100,4,NULL),
-                  (7,0,2,101,1,NULL),(7,0,3,102,5,NULL),(7,0,4,103,3,NULL);
+                INSERT INTO character_skills VALUES(7,'pve',0,1,100,4,NULL),
+                  (7,'pve',0,2,101,1,NULL),(7,'pve',0,3,102,5,NULL),(7,'pve',0,4,103,3,NULL);
                 """);
             var side = new CharacterSide(path);
             var repository = side.ExpertContracts(new ExpertSkillContractRuleService());

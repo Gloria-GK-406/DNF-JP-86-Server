@@ -138,7 +138,7 @@ public sealed class SqliteCharacterLifecycleTests
             {
                 await connection.OpenAsync(CancellationToken.None);
                 await using var drop = connection.CreateCommand();
-                drop.CommandText = "DROP TABLE character_init_flags;";
+                drop.CommandText = "DROP TABLE character_settings;";
                 await drop.ExecuteNonQueryAsync(CancellationToken.None);
             }
 

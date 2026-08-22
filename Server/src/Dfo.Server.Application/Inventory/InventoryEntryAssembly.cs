@@ -10,11 +10,10 @@ namespace Dfo.Server.Application.Inventory;
 /// What a character and its account are carrying, put together from the tables that hold it.
 /// </summary>
 /// <remarks>
-/// Fourteen tables between the two loads, and what makes them one inventory is not in any of them:
-/// which containers may appear where, that an avatar item without its detail row is not an avatar,
-/// that the locks table is read whole by both loads and then divided between them, that two
-/// rental tables are one list, and that a character with nothing in the packed tables but something
-/// in the old ones has not been brought across and must be refused rather than entered empty.
+/// Nine tables between the two loads, and what makes them one inventory is not in any of them:
+/// which containers may appear where, that an avatar item without its facts is not an avatar while
+/// one in the account cargo never had any, that the locks table is read whole by both loads and then
+/// divided between them, and that the cooldowns and the effects arrive as one list in that order.
 /// Every one of those is a decision about inventories, so all of them are here; each table only
 /// knows how to read its own rows.
 ///
@@ -26,16 +25,13 @@ internal sealed class InventoryEntryAssembly(
     IAccountTable accounts,
     ICharacterItemTable characterItems,
     IAccountCargoItemTable cargoItems,
-    ICharacterAvatarDetailTable avatarDetails,
     ICharacterContainerStateTable containerStates,
     IAccountCargoStateTable cargoStates,
     ICharacterGoldLimitTable goldLimits,
-    ICharacterItemValueTable itemValues,
+    ICharacterItemCooldownTable itemCooldowns,
+    ICharacterItemEffectTable itemEffects,
     ICharacterItemLockTable itemLocks,
-    ICharacterRentalTable rentals,
-    ILegacyRentalTable legacyRentals,
-    ILegacyCharacterItemTable legacyCharacterItems,
-    ILegacyAccountCargoTable legacyAccountCargo)
+    ICharacterRentalTable rentals)
     : ICharacterInventoryEntryRepository, IAccountInventoryEntryRepository,
         IEntryInventoryLeasePersistence
 {
@@ -54,15 +50,6 @@ internal sealed class InventoryEntryAssembly(
 
         var items = await ReadCharacterItemsAsync(characterId, cancellationToken)
             .ConfigureAwait(false);
-        if (items.Count == 0
-            && await legacyCharacterItems.AnyAsync(characterId, cancellationToken)
-                .ConfigureAwait(false))
-        {
-            throw new InvalidDataException(
-                $"Legacy character inventory exists for character {characterId.Value}; "
-                + "migration required before entry loading.");
-        }
-
         var containerParameters = await ReadContainerParametersAsync(characterId, cancellationToken)
             .ConfigureAwait(false);
         var virtualResources = CharacterVirtualResources(items);
@@ -93,14 +80,6 @@ internal sealed class InventoryEntryAssembly(
         await RequireOwnershipAsync(accountId, characterId, cancellationToken).ConfigureAwait(false);
 
         var items = await ReadCargoItemsAsync(accountId, cancellationToken).ConfigureAwait(false);
-        if (items.Count == 0
-            && await legacyAccountCargo.AnyAsync(accountId, cancellationToken).ConfigureAwait(false))
-        {
-            throw new InvalidDataException(
-                $"Legacy account cargo exists for account {accountId.Value}; "
-                + "migration required before entry loading.");
-        }
-
         var cargoState = await ReadCargoStateAsync(accountId, cancellationToken)
             .ConfigureAwait(false);
         var virtualResources = await AccountVirtualResourcesAsync(accountId, cancellationToken)
@@ -152,38 +131,31 @@ internal sealed class InventoryEntryAssembly(
                 "A dirty avatar lease requires its exact 30-byte detail row.");
         }
 
-        await avatarDetails.DeleteOwnExceptAsync(
-            characterId, [.. avatars.Select(value => value.Core.Value)], cancellationToken)
-            .ConfigureAwait(false);
-
         foreach (var container in lease.Inventory.Containers.Where(
                      value => value.ContainerType != InventoryContainerType.AccountCargo))
         {
             foreach (var item in container.Items)
             {
+                // The avatar facts go in with the row rather than after it. An item that is not
+                // an avatar sends none, which clears whatever the row held -- an item that stopped
+                // being an avatar and kept them would be refused by the encoder later on.
+                var avatarDetail = item.Core.ItemKind == 8 ? item.AvatarDetail : null;
                 var touched = item.StorageEntryId > 0
                     ? await characterItems.UpdateOwnAsync(
                         item.StorageEntryId, characterId, (byte)container.ContainerType,
-                        item.SlotIndex, item.Core, cancellationToken).ConfigureAwait(false)
+                        item.SlotIndex, item.Core, avatarDetail, cancellationToken)
+                        .ConfigureAwait(false)
                     : await characterItems.InsertOwnAsync(
                         characterId, (byte)container.ContainerType, item.SlotIndex,
-                        item.Core, cancellationToken).ConfigureAwait(false);
+                        item.Core, avatarDetail, cancellationToken).ConfigureAwait(false);
                 if (touched != 1)
                 {
-                    throw new InvalidDataException(
-                        $"Dirty inventory item {item.StorageEntryId} is stale or missing.");
-                }
-
-                if (item.Core.ItemKind != 8)
-                {
-                    continue;
-                }
-
-                if (await avatarDetails.UpsertOwnAsync(
-                        characterId, item.Core.Value, item.Core.ItemId, item.AvatarDetail!,
-                        cancellationToken).ConfigureAwait(false) != 1)
-                {
-                    throw new InvalidDataException("Dirty avatar detail was not persisted.");
+                    // An insert that lands on nothing is an avatar UID another row already holds;
+                    // there is no other condition an insert here can fail to meet. An update that
+                    // lands on nothing is that, or a row that is no longer the character's.
+                    throw new InvalidDataException(item.StorageEntryId > 0
+                        ? $"Dirty inventory item {item.StorageEntryId} is stale or missing."
+                        : $"Dirty inventory item in slot {item.SlotIndex} was not persisted.");
                 }
             }
         }
@@ -200,6 +172,12 @@ internal sealed class InventoryEntryAssembly(
         }
     }
 
+    /// <remarks>
+    /// The character a row belongs to used to be stored twice -- once as the owner and once beside
+    /// it -- and the two were checked against each other. Only the owner is stored now, so the
+    /// character the item names is the owner, and the disagreement the check refused has nowhere
+    /// left to happen.
+    /// </remarks>
     private async ValueTask<IReadOnlyList<InventoryStorageItem>> ReadCharacterItemsAsync(
         CharacterId characterId, CancellationToken cancellationToken)
     {
@@ -208,23 +186,20 @@ internal sealed class InventoryEntryAssembly(
                      .ConfigureAwait(false))
         {
             var ownerType = ParseOwnerType(row.OwnerScope);
-            var storedCharacterId = row.CharacterId is { } value ? new CharacterId(value) : (CharacterId?)null;
             var containerType = ParseContainerType(row.ListType, allowAccountCargo: false);
-            if (ownerType != InventoryOwnerType.Character
-                || row.OwnerId != characterId.Value
-                || storedCharacterId != characterId)
+            if (ownerType != InventoryOwnerType.Character || row.OwnerId != characterId.Value)
             {
                 throw new InvalidDataException(
                     $"Inventory row {row.ItemUid} has invalid character ownership.");
             }
 
             RequireSlot(row.SlotIndex, row.ItemUid);
-            items.Add(new InventoryStorageItem(
-                row.ItemUid, ownerType, row.OwnerId, storedCharacterId, containerType,
-                row.SlotIndex, row.Core));
+            items.Add(WithAvatarDetail(new InventoryStorageItem(
+                row.ItemUid, ownerType, row.OwnerId, characterId, containerType,
+                row.SlotIndex, row.Core), row.Avatar));
         }
 
-        return await WithAvatarDetailsAsync(items, cancellationToken).ConfigureAwait(false);
+        return items;
     }
 
     private async ValueTask<IReadOnlyList<InventoryStorageItem>> ReadCargoItemsAsync(
@@ -249,32 +224,24 @@ internal sealed class InventoryEntryAssembly(
                 containerType, row.SlotIndex, row.Core));
         }
 
-        // No avatar details here, unlike the character's own items. A detail row belongs to a
-        // character, and one of these belongs to an account, so there is nothing that could
-        // match: an avatar sitting in the cargo is carried with no detail at all.
+        // No avatar facts here, unlike the character's own items. They were only ever a
+        // character's, so a cargo row has never carried any: an avatar sitting in the cargo is
+        // carried with none at all, and that is not an error the way it would be for a character.
         return items;
     }
 
-    /// <summary>An avatar item is not one until its detail row is found and agrees with it.</summary>
+    /// <summary>An avatar item is not one until the facts on its row are found and are usable.</summary>
     /// <remarks>
-    /// Done over the whole list once it has been read, not row by row as it is read. Which of the
-    /// two problems a caller is told about when a list has both a row with the wrong owner and an
-    /// avatar with no detail depends on that, so it is kept as it was.
+    /// Three rules meet here, and none of them can be written as a constraint because each turns on
+    /// a byte inside the core. An item is an avatar when its kind is 8; a character's avatar must
+    /// name a usable UID and must carry its facts; and an item that is not an avatar must carry
+    /// none, which the encoder refuses rather than ignores.
+    ///
+    /// The checks that survive are about the values. The three that compared this row against a
+    /// second one -- the owner, the character and the template id -- are gone with the second row.
     /// </remarks>
-    private async ValueTask<IReadOnlyList<InventoryStorageItem>> WithAvatarDetailsAsync(
-        IReadOnlyList<InventoryStorageItem> items, CancellationToken cancellationToken)
-    {
-        var result = new List<InventoryStorageItem>(items.Count);
-        foreach (var item in items)
-        {
-            result.Add(await WithAvatarDetailAsync(item, cancellationToken).ConfigureAwait(false));
-        }
-
-        return result;
-    }
-
-    private async ValueTask<InventoryStorageItem> WithAvatarDetailAsync(
-        InventoryStorageItem item, CancellationToken cancellationToken)
+    private static InventoryStorageItem WithAvatarDetail(
+        InventoryStorageItem item, AvatarDetailRow? detail)
     {
         if (item.Core.ItemKind != 8)
         {
@@ -287,13 +254,12 @@ internal sealed class InventoryEntryAssembly(
                 $"Avatar inventory row {item.StorageEntryId} has no avatar UID.");
         }
 
-        var detail = await avatarDetails.FindAsync(item.Core.Value, cancellationToken)
-                .ConfigureAwait(false)
-            ?? throw new InvalidDataException($"Avatar detail {item.Core.Value} is unavailable.");
-        if (detail.OwnerId != item.OwnerId
-            || detail.CharacterId != item.CharacterId?.Value
-            || detail.ItemId != item.Core.ItemId
-            || detail.JewelSocket.Length != 30
+        if (detail is null)
+        {
+            throw new InvalidDataException($"Avatar detail {item.Core.Value} is unavailable.");
+        }
+
+        if (detail.JewelSocket.Length != 30
             || detail.Color1 is < 0 or > ushort.MaxValue
             || detail.Color2 is < 0 or > ushort.MaxValue)
         {
@@ -418,32 +384,41 @@ internal sealed class InventoryEntryAssembly(
         return [.. values.OrderBy(value => value.SlotIndex)];
     }
 
+    /// <summary>The cooldowns and then the effects, which is the order the client expects.</summary>
+    /// <remarks>
+    /// One table used to hold both, with a column saying which a row was and the value meaning one
+    /// thing or the other accordingly. Two tables say it now, and the order that used to come out
+    /// of that column comes out of the order they are read in.
+    /// </remarks>
     private async ValueTask<IReadOnlyList<InventoryItemValueStorageRecord>> ReadItemValuesAsync(
         CharacterId characterId, CancellationToken cancellationToken)
     {
         var values = new List<InventoryItemValueStorageRecord>();
         var seen = new HashSet<(InventoryItemValueListType ListType, int SortOrder)>();
-        foreach (var row in await itemValues.ReadByCharacterAsync(characterId, cancellationToken)
-                     .ConfigureAwait(false))
+        foreach (var (listType, rows) in new[]
+                 {
+                     (InventoryItemValueListType.Cooldown,
+                         await itemCooldowns.ReadByCharacterAsync(characterId, cancellationToken)
+                             .ConfigureAwait(false)),
+                     (InventoryItemValueListType.Effect,
+                         await itemEffects.ReadByCharacterAsync(characterId, cancellationToken)
+                             .ConfigureAwait(false)),
+                 })
         {
-            var storedCharacterId = new CharacterId(row.CharacterId);
-            var listType = row.ListKind switch
+            foreach (var row in rows)
             {
-                "cooltime" => InventoryItemValueListType.Cooldown,
-                "effect" => InventoryItemValueListType.Effect,
-                var value => throw new InvalidDataException(
-                    $"Character item value list kind '{value}' is invalid."),
-            };
-            if (storedCharacterId != characterId
-                || row.SortOrder < 0
-                || !seen.Add((listType, row.SortOrder)))
-            {
-                throw new InvalidDataException(
-                    "Character item values have invalid ownership, order, or duplicate entries.");
-            }
+                var storedCharacterId = new CharacterId(row.CharacterId);
+                if (storedCharacterId != characterId
+                    || row.SortOrder < 0
+                    || !seen.Add((listType, row.SortOrder)))
+                {
+                    throw new InvalidDataException(
+                        "Character item values have invalid ownership, order, or duplicate entries.");
+                }
 
-            values.Add(new InventoryItemValueStorageRecord(
-                storedCharacterId, listType, row.SortOrder, row.ItemId, row.Value));
+                values.Add(new InventoryItemValueStorageRecord(
+                    storedCharacterId, listType, row.SortOrder, row.ItemId, row.Value));
+            }
         }
 
         return values;
@@ -482,12 +457,13 @@ internal sealed class InventoryEntryAssembly(
     }
 
     /// <summary>
-    /// The two rental tables are one list of rentals.
+    /// What the character has rented.
     /// </summary>
     /// <remarks>
-    /// Read in this order and checked as they arrive, because the duplicate check spans both: an
-    /// item that appears in each of them is a duplicate, and reading them separately then merging
-    /// would let one of them through.
+    /// This used to read two tables and check for duplicates across both, because the same rental
+    /// could be written to either. One table holds them now, and the duplicate check it needed is
+    /// the key that table declares -- but the check stays, because it also refuses a second rental
+    /// sharing an inventory template, which no key expresses.
     /// </remarks>
     private async ValueTask<IReadOnlyList<CharacterRentalStorageRecord>> ReadRentalsAsync(
         CharacterId characterId, CancellationToken cancellationToken)
@@ -495,11 +471,8 @@ internal sealed class InventoryEntryAssembly(
         var accepted = new List<CharacterRentalStorageRecord>();
         var itemIds = new HashSet<long>();
         var templateIds = new HashSet<long>();
-        foreach (var row in
-                 (await rentals.ReadByCharacterAsync(characterId, cancellationToken)
+        foreach (var row in await rentals.ReadByCharacterAsync(characterId, cancellationToken)
                      .ConfigureAwait(false))
-                 .Concat(await legacyRentals.ReadByCharacterAsync(characterId, cancellationToken)
-                     .ConfigureAwait(false)))
         {
             var storedCharacterId = new CharacterId(row.CharacterId);
             if (storedCharacterId != characterId

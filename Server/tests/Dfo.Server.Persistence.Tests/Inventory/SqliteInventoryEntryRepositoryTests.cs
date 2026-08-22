@@ -25,31 +25,31 @@ public sealed class SqliteInventoryEntryRepositoryTests
             await ExecuteAsync(databasePath, """
                 INSERT INTO characters(character_id, account_id) VALUES(21, 11);
                 INSERT INTO accounts(account_id, cube_red) VALUES(11, 99);
-                INSERT INTO character_new_items(
-                    item_uid, owner_scope, owner_id, character_id, list_type, slot_index, item_core)
-                VALUES(101, 'character', 21, 21, 3, 7, @characterCore);
-                INSERT INTO account_cargo_new_items(
-                    item_uid, account_id, character_id, list_type, slot_index, item_core)
-                VALUES(202, 11, 21, 12, 4, @cargoCore);
+                INSERT INTO items(
+                    item_uid, owner_scope, owner_id, list_type, slot_index, item_core)
+                VALUES(101, 'character', 21, 3, 7, @characterCore);
+                INSERT INTO items(
+                    item_uid, owner_scope, owner_id, cargo_character_id, list_type, slot_index, item_core)
+                VALUES(202, 'account', 11, 21, 12, 4, @cargoCore);
                 INSERT INTO character_container_state(character_id, list_type, list_param16)
                 VALUES(21, 2, 48);
                 INSERT INTO account_cargo_state(account_id, selection_key, value32, item_count)
                 VALUES(11, 16, 3456, 1);
-                INSERT INTO character_gold_limits(character_id, gold_carry_limit, auction_gold_limit)
+                INSERT INTO character_stats(character_id, gold_carry_limit, auction_gold_limit)
                 VALUES(21, 400000000, 500000000);
-                INSERT INTO character_item_values(character_id, list_kind, sort_order, item_id, value)
-                VALUES(21, 'cooltime', 2, 7002, 72),
-                      (21, 'effect', 1, 8001, 81),
-                      (21, 'cooltime', 0, 7000, 70);
+                INSERT INTO character_item_cooldowns(character_id, sort_order, item_id, value)
+                VALUES(21, 2, 7002, 72),
+                      (21, 0, 7000, 70);
+                INSERT INTO character_item_effects(character_id, sort_order, item_id, value)
+                VALUES(21, 1, 8001, 81);
                 INSERT INTO character_item_locks(
                     character_id, equipment_lock_id, inventory_list_type, slot, state, remaining_seconds)
                 VALUES(21, 9, 3, 7, 1, 0),
                       (21, 10, 12, 4, 2, 3600);
-                INSERT INTO character_rental_items(
-                    character_id, shop_entry_id, inventory_template_id, expire_time)
-                VALUES(21, 9001, 1001, 1900000000);
-                INSERT INTO rental_items(character_id, item_id, inventory_template_id, expire_time)
-                VALUES(21, 9002, 1002, 1900000100);
+                INSERT INTO character_rentals(
+                    character_id, item_id, inventory_template_id, expire_time)
+                VALUES(21, 9001, 1001, 1900000000),
+                      (21, 9002, 1002, 1900000100);
                 """,
                 ("@characterCore", characterCore),
                 ("@cargoCore", cargoCore));
@@ -187,23 +187,23 @@ public sealed class SqliteInventoryEntryRepositoryTests
             var commandText = invalidCase switch
             {
                 "duplicate-item" => """
-                    INSERT INTO character_rental_items(
-                        character_id, shop_entry_id, inventory_template_id, expire_time)
+                    INSERT INTO character_rentals(
+                        character_id, item_id, inventory_template_id, expire_time)
                     VALUES(25, 1, 101, 1000), (25, 1, 102, 1001);
                     """,
                 "duplicate-template" => """
-                    INSERT INTO character_rental_items(
-                        character_id, shop_entry_id, inventory_template_id, expire_time)
+                    INSERT INTO character_rentals(
+                        character_id, item_id, inventory_template_id, expire_time)
                     VALUES(25, 1, 101, 1000), (25, 2, 101, 1001);
                     """,
                 "invalid-id" => """
-                    INSERT INTO character_rental_items(
-                        character_id, shop_entry_id, inventory_template_id, expire_time)
+                    INSERT INTO character_rentals(
+                        character_id, item_id, inventory_template_id, expire_time)
                     VALUES(25, 0, 101, 1000);
                     """,
                 _ => """
-                    INSERT INTO character_rental_items(
-                        character_id, shop_entry_id, inventory_template_id, expire_time)
+                    INSERT INTO character_rentals(
+                        character_id, item_id, inventory_template_id, expire_time)
                     VALUES(25, 1, 101, 0);
                     """,
             };
@@ -214,58 +214,6 @@ public sealed class SqliteInventoryEntryRepositoryTests
                     new AccountId(15),
                     new CharacterId(25),
                     CancellationToken.None));
-        }
-        finally
-        {
-            SqliteConnection.ClearAllPools();
-            File.Delete(databasePath);
-        }
-    }
-
-    [Theory]
-    [InlineData("character")]
-    [InlineData("account")]
-    public async Task LoadAsync_LegacyOnlyInventoryRequiresMigration(string ownerKind)
-    {
-        var databasePath = CreateDatabase();
-        try
-        {
-            await SeedSchemaAsync(databasePath);
-            await ExecuteAsync(databasePath, """
-                INSERT INTO characters(character_id, account_id) VALUES(26, 16);
-                INSERT INTO accounts(account_id) VALUES(16);
-                """);
-            if (ownerKind == "character")
-            {
-                await ExecuteAsync(databasePath, """
-                    INSERT INTO character_items(
-                        owner_scope, owner_id, character_id, list_type, slot_index, item_template_id)
-                    VALUES('character', 26, 26, 0, 5, 100);
-                    """);
-            }
-            else
-            {
-                await ExecuteAsync(databasePath, """
-                    INSERT INTO account_cargo_items(account_id, slot_index, item_template_id)
-                    VALUES(16, 5, 100);
-                    """);
-            }
-
-            var repository = new InventorySide(databasePath).PerCall;
-            var error = await Assert.ThrowsAsync<InvalidDataException>(async () =>
-            {
-                if (ownerKind == "character")
-                {
-                    await repository.LoadCharacterAsync(
-                        new AccountId(16), new CharacterId(26), CancellationToken.None);
-                }
-                else
-                {
-                    await repository.LoadAccountAsync(
-                        new AccountId(16), new CharacterId(26), CancellationToken.None);
-                }
-            });
-            Assert.Contains("migration required", error.Message, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {
@@ -292,8 +240,8 @@ public sealed class SqliteInventoryEntryRepositoryTests
             var commandText = invalidCase switch
             {
                 "duplicate-item-value" => """
-                    INSERT INTO character_item_values(character_id, list_kind, sort_order, item_id, value)
-                    VALUES(24, 'cooltime', 0, 1, 10), (24, 'cooltime', 0, 2, 20);
+                    INSERT INTO character_item_cooldowns(character_id, sort_order, item_id, value)
+                    VALUES(24, 0, 1, 10), (24, 0, 2, 20);
                     """,
                 "duplicate-lock-id" => """
                     INSERT INTO character_item_locks(
@@ -329,7 +277,6 @@ public sealed class SqliteInventoryEntryRepositoryTests
     [Theory]
     [InlineData("malformed")]
     [InlineData("duplicate")]
-    [InlineData("wrong-owner")]
     public async Task LoadAsync_RejectsInvalidStoredCharacterItems(string invalidCase)
     {
         var databasePath = CreateDatabase();
@@ -343,22 +290,18 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 """);
             var validCore = CreateCore(1, 3003, 31);
             var firstCore = invalidCase == "malformed" ? new byte[81] : validCore;
-            var ownerScope = invalidCase == "wrong-owner" ? "account" : "character";
-            var ownerId = invalidCase == "wrong-owner" ? 13 : 23;
             await ExecuteAsync(databasePath, """
-                INSERT INTO character_new_items(
-                    item_uid, owner_scope, owner_id, character_id, list_type, slot_index, item_core)
-                VALUES(301, @ownerScope, @ownerId, 23, 0, 5, @core);
+                INSERT INTO items(
+                    item_uid, owner_scope, owner_id, list_type, slot_index, item_core)
+                VALUES(301, 'character', 23, 0, 5, @core);
                 """,
-                ("@ownerScope", ownerScope),
-                ("@ownerId", ownerId),
                 ("@core", firstCore));
             if (invalidCase == "duplicate")
             {
                 await ExecuteAsync(databasePath, """
-                    INSERT INTO character_new_items(
-                        item_uid, owner_scope, owner_id, character_id, list_type, slot_index, item_core)
-                    VALUES(302, 'character', 23, 23, 0, 5, @core);
+                    INSERT INTO items(
+                        item_uid, owner_scope, owner_id, list_type, slot_index, item_core)
+                    VALUES(302, 'character', 23, 0, 5, @core);
                     """, ("@core", validCore));
             }
 
@@ -375,10 +318,91 @@ public sealed class SqliteInventoryEntryRepositoryTests
         }
     }
 
+    /// <summary>
+    /// Another owner's item is not this character's, and is not read as though it were.
+    /// </summary>
+    /// <remarks>
+    /// This replaces a case that asked what happens when a row the load reads names someone else as
+    /// its owner. One table holds every owner's items now and the read names the owner it wants, so
+    /// such a row is not read at all and there is nothing left to refuse. What matters instead is
+    /// that the read really does leave it out -- a filter that lost its owner would hand one
+    /// character another's inventory, and no refusal further on would notice.
+    /// </remarks>
+    [Fact]
+    public async Task LoadAsync_LeavesOutTheItemsOfEveryOwnerButTheOneAskedFor()
+    {
+        var databasePath = CreateDatabase();
+        try
+        {
+            await SeedSchemaAsync(databasePath);
+            await ExecuteAsync(databasePath, """
+                INSERT INTO characters(character_id, account_id) VALUES(23, 13);
+                INSERT INTO characters(character_id, account_id) VALUES(28, 13);
+                INSERT INTO accounts(account_id) VALUES(13);
+                """);
+            await ExecuteAsync(databasePath, """
+                INSERT INTO items(item_uid, owner_scope, owner_id, list_type, slot_index, item_core)
+                VALUES(301, 'character', 23, 0, 5, @mine),
+                      (302, 'character', 28, 0, 5, @theirs),
+                      (303, 'account', 13, 12, 5, @cargo);
+                """,
+                ("@mine", CreateCore(1, 3003, 31)),
+                ("@theirs", CreateCore(1, 4004, 41)),
+                ("@cargo", CreateCore(1, 5005, 51)));
+
+            var loaded = await new InventorySide(databasePath).PerCall.LoadCharacterAsync(
+                new AccountId(13), new CharacterId(23), CancellationToken.None);
+
+            var item = Assert.Single(loaded.CharacterItems);
+            Assert.Equal(301, item.StorageEntryId);
+            Assert.Equal(3003, item.Core.ItemId);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            File.Delete(databasePath);
+        }
+    }
+
+    /// <summary>
+    /// The cargo will not hold two things in one slot, and refuses the second where it stands.
+    /// </summary>
+    /// <remarks>
+    /// This replaces the cargo half of the duplicate-slot case. The cargo used to declare
+    /// <c>UNIQUE(account_id, slot_index)</c> of its own, which the merged table's four-part
+    /// constraint would have weakened for account rows; a partial unique index puts it back. So the
+    /// duplicate the load used to refuse cannot be written in the first place, and what is worth
+    /// asserting is that it cannot.
+    /// </remarks>
+    [Fact]
+    public async Task TheCargoRefusesASecondItemInASlotItAlreadyHolds()
+    {
+        var databasePath = CreateDatabase();
+        try
+        {
+            await SeedSchemaAsync(databasePath);
+            _ = new InventorySide(databasePath);
+            await ExecuteAsync(databasePath, """
+                INSERT INTO items(item_uid, owner_scope, owner_id, list_type, slot_index, item_core)
+                VALUES(401, 'account', 17, 12, 5, @core);
+                """, ("@core", CreateCore(1, 4004, 41)));
+
+            await Assert.ThrowsAsync<SqliteException>(async () =>
+                await ExecuteAsync(databasePath, """
+                    INSERT INTO items(item_uid, owner_scope, owner_id, list_type, slot_index, item_core)
+                    VALUES(402, 'account', 17, 12, 5, @core);
+                    """, ("@core", CreateCore(1, 4005, 42))));
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            File.Delete(databasePath);
+        }
+    }
+
     [Theory]
     [InlineData("malformed")]
     [InlineData("wrong-container")]
-    [InlineData("duplicate")]
     public async Task LoadAccountAsync_RejectsInvalidStoredAccountCargo(string invalidCase)
     {
         var databasePath = CreateDatabase();
@@ -389,24 +413,15 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 INSERT INTO characters(character_id, account_id) VALUES(27, 17);
                 INSERT INTO accounts(account_id) VALUES(17);
                 """);
-            var validCore = CreateCore(1, 4004, 41);
-            var firstCore = invalidCase == "malformed" ? new byte[81] : validCore;
+            var firstCore = invalidCase == "malformed" ? new byte[81] : CreateCore(1, 4004, 41);
             var listType = invalidCase == "wrong-container" ? 3 : 12;
             await ExecuteAsync(databasePath, """
-                INSERT INTO account_cargo_new_items(
-                    item_uid, account_id, character_id, list_type, slot_index, item_core)
-                VALUES(401, 17, 27, @listType, 5, @core);
+                INSERT INTO items(
+                    item_uid, owner_scope, owner_id, cargo_character_id, list_type, slot_index, item_core)
+                VALUES(401, 'account', 17, 27, @listType, 5, @core);
                 """,
                 ("@listType", listType),
                 ("@core", firstCore));
-            if (invalidCase == "duplicate")
-            {
-                await ExecuteAsync(databasePath, """
-                    INSERT INTO account_cargo_new_items(
-                        item_uid, account_id, character_id, list_type, slot_index, item_core)
-                    VALUES(402, 17, 27, 12, 5, @core);
-                    """, ("@core", validCore));
-            }
 
             await Assert.ThrowsAsync<InvalidDataException>(async () =>
                 await new InventorySide(databasePath).PerCall.LoadAccountAsync(
@@ -510,21 +525,21 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 cube_blue INTEGER NOT NULL DEFAULT 0,
                 cube_clear INTEGER NOT NULL DEFAULT 0,
                 cube_gold INTEGER NOT NULL DEFAULT 0);
-            CREATE TABLE character_new_items(
+            CREATE TABLE items(
                 item_uid INTEGER PRIMARY KEY,
                 owner_scope TEXT NOT NULL,
                 owner_id INTEGER NOT NULL,
-                character_id INTEGER,
                 list_type INTEGER NOT NULL,
                 slot_index INTEGER NOT NULL,
-                item_core BLOB NOT NULL);
-            CREATE TABLE account_cargo_new_items(
-                item_uid INTEGER PRIMARY KEY,
-                account_id INTEGER NOT NULL,
-                character_id INTEGER,
-                list_type INTEGER NOT NULL,
-                slot_index INTEGER NOT NULL,
-                item_core BLOB NOT NULL);
+                item_core BLOB NOT NULL,
+                cargo_character_id INTEGER,
+                avatar_uid INTEGER,
+                avatar_expire_date INTEGER,
+                avatar_clear_id INTEGER,
+                avatar_jewel_socket BLOB,
+                avatar_color1 INTEGER,
+                avatar_color2 INTEGER,
+                avatar_delete_date INTEGER);
             CREATE TABLE character_container_state(
                 character_id INTEGER NOT NULL,
                 list_type INTEGER NOT NULL,
@@ -534,13 +549,17 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 selection_key INTEGER NOT NULL,
                 value32 INTEGER NOT NULL,
                 item_count INTEGER NOT NULL);
-            CREATE TABLE character_gold_limits(
+            CREATE TABLE character_stats(
                 character_id INTEGER PRIMARY KEY,
                 gold_carry_limit INTEGER NOT NULL,
                 auction_gold_limit INTEGER NOT NULL);
-            CREATE TABLE character_item_values(
+            CREATE TABLE character_item_cooldowns(
                 character_id INTEGER NOT NULL,
-                list_kind TEXT NOT NULL,
+                sort_order INTEGER NOT NULL,
+                item_id INTEGER NOT NULL,
+                value INTEGER NOT NULL);
+            CREATE TABLE character_item_effects(
+                character_id INTEGER NOT NULL,
                 sort_order INTEGER NOT NULL,
                 item_id INTEGER NOT NULL,
                 value INTEGER NOT NULL);
@@ -551,49 +570,11 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 slot INTEGER NOT NULL,
                 state INTEGER NOT NULL,
                 remaining_seconds INTEGER);
-            CREATE TABLE character_rental_items(
-                character_id INTEGER NOT NULL,
-                shop_entry_id INTEGER NOT NULL,
-                inventory_template_id INTEGER NOT NULL DEFAULT 0,
-                expire_time INTEGER NOT NULL);
-            CREATE TABLE rental_items(
+            CREATE TABLE character_rentals(
                 character_id INTEGER NOT NULL,
                 item_id INTEGER NOT NULL,
                 inventory_template_id INTEGER NOT NULL DEFAULT 0,
                 expire_time INTEGER NOT NULL);
-            CREATE TABLE character_items(
-                item_uid INTEGER PRIMARY KEY AUTOINCREMENT,
-                owner_scope TEXT NOT NULL,
-                owner_id INTEGER NOT NULL,
-                character_id INTEGER,
-                list_type INTEGER NOT NULL,
-                slot_index INTEGER NOT NULL,
-                item_template_id INTEGER NOT NULL,
-                item_kind TEXT NOT NULL DEFAULT 'unknown',
-                stack_count INTEGER NOT NULL DEFAULT 0,
-                instance_value INTEGER NOT NULL DEFAULT 0,
-                durability INTEGER NOT NULL DEFAULT 0,
-                seal_flag INTEGER NOT NULL DEFAULT 0,
-                option_value INTEGER NOT NULL DEFAULT 0,
-                equipment_lock_id INTEGER NOT NULL DEFAULT 0,
-                expire_time INTEGER NOT NULL DEFAULT 0,
-                marker_16 INTEGER NOT NULL DEFAULT 0,
-                pet_serial_or_handle INTEGER NOT NULL DEFAULT 0,
-                extra_json TEXT NOT NULL DEFAULT '{}');
-            CREATE TABLE account_cargo_items(
-                item_uid INTEGER PRIMARY KEY AUTOINCREMENT,
-                account_id INTEGER NOT NULL,
-                slot_index INTEGER NOT NULL,
-                item_template_id INTEGER NOT NULL,
-                item_kind TEXT NOT NULL DEFAULT 'unknown',
-                stack_count INTEGER NOT NULL DEFAULT 0,
-                instance_value INTEGER NOT NULL DEFAULT 0,
-                durability INTEGER NOT NULL DEFAULT 0,
-                seal_flag INTEGER NOT NULL DEFAULT 0,
-                option_value INTEGER NOT NULL DEFAULT 0,
-                expire_time INTEGER NOT NULL DEFAULT 0,
-                marker_16 INTEGER NOT NULL DEFAULT 0,
-                extra_json TEXT NOT NULL DEFAULT '{}');
             """);
 
     private static async Task ExecuteAsync(
