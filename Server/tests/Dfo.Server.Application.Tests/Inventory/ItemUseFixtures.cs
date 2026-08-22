@@ -181,7 +181,14 @@ internal abstract class FakeMainInventory(int characterId = 60)
 
     public DomainTransactionScope Scope { get; } = new();
 
-    public ICharacterContainerDomainService Containers()
+    /// <remarks>
+    /// The archive is a parameter because the bag now reads it: what an item's band is, and how
+    /// large a pile of it may grow, are questions the bag asks before it places anything. A fixture
+    /// that fixed one answer here would make every test that needs a different band build its own
+    /// container instead.
+    /// </remarks>
+    public ICharacterContainerDomainService Containers(
+        IItemPlacementDefinitionSource? placements = null)
     {
         var containers = new CharacterContainerDomainService();
         containers.Register(this.character, new PersistentItemContainer(
@@ -190,8 +197,18 @@ internal abstract class FakeMainInventory(int characterId = 60)
             new ContainerShape(InventoryContainerType.Main, 0),
             this.store,
             this.Scope,
-            null!));
+            null!,
+            placements ?? new ConsumableBandPlacements(),
+            new ItemArrivalRuleService(),
+            new ItemSlotRuleService()));
         return containers;
+    }
+
+    /// <summary>Every item an ordinary consumable: kind 2, band 65 to 120, piles of a hundred.</summary>
+    private sealed class ConsumableBandPlacements : IItemPlacementDefinitionSource
+    {
+        public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(2, 100, 65, 120));
     }
 
     /// <summary>What the container holds of one item, in slot order.</summary>

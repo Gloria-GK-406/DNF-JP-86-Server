@@ -39,16 +39,6 @@ public sealed record AccountCargoItemRow(
 /// <summary>One item of the main list.</summary>
 public sealed record MainItemRow(long ItemUid, int SlotIndex, InventoryItemCoreState Core);
 
-/// <summary>
-/// One stack of the main list, reduced to what a refill is about.
-/// </summary>
-/// <remarks>
-/// A refill asks how many of a thing a character already has and makes it more. Which item and
-/// how many of it is all of that; the rest of what an item carries is neither read nor written,
-/// and is left where it is.
-/// </remarks>
-public sealed record MainStackRow(long ItemUid, int SlotIndex, int ItemId, int Count);
-
 /// <summary>What an avatar carries beyond its core, from the columns of its own row.</summary>
 /// <remarks>
 /// The owner, the character and the template id used to be here as well, and each was checked
@@ -108,14 +98,6 @@ public interface ICharacterItemTable
     ValueTask<IReadOnlyList<MainItemRow>> ReadMainAsync(
         CharacterId characterId, CancellationToken cancellationToken);
 
-    /// <summary>The main list in slot order, which is the order a refill fills.</summary>
-    ValueTask<IReadOnlyList<MainStackRow>> ReadMainStacksAsync(
-        CharacterId characterId, CancellationToken cancellationToken);
-
-    /// <summary>Which slots of the main list hold something.</summary>
-    ValueTask<IReadOnlySet<int>> ReadMainOccupiedSlotsAsync(
-        CharacterId characterId, CancellationToken cancellationToken);
-
     /// <summary>Removes this character's own items apart from the ones named.</summary>
     ValueTask<int> DeleteOwnExceptAsync(
         CharacterId characterId, IReadOnlyList<long> keep, CancellationToken cancellationToken);
@@ -141,19 +123,6 @@ public interface ICharacterItemTable
         int slotIndex,
         InventoryItemCoreState core,
         InventoryAvatarDetailState? avatarDetail,
-        CancellationToken cancellationToken);
-
-    /// <summary>Makes one stack hold this many, leaving everything else about it alone.</summary>
-    ValueTask<int> SetStackCountAsync(
-        long itemUid, int count, CancellationToken cancellationToken);
-
-    /// <summary>Puts a new stack of this many into an empty slot of the main list.</summary>
-    ValueTask<int> InsertStackAsync(
-        CharacterId characterId,
-        int slotIndex,
-        int itemId,
-        int count,
-        byte itemKind,
         CancellationToken cancellationToken);
 }
 

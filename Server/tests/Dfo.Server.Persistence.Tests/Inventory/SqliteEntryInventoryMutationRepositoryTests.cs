@@ -131,7 +131,9 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         {
             _ = new SqliteDatabase(path, new DomainTransactionScope());
             await SeedCharacterAsync(path, accountId: 7, characterId: 70);
-            var repository = new InventorySide(path).MutationsPerCall;
+            var side = new InventorySide(path);
+            side.BindMain(70);
+            var repository = side.MutationsPerCall;
             var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
                 DailyRefillMode.RefillToTarget, 100, 2, 65, 120);
 
@@ -157,6 +159,220 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }
 
+    /// <summary>
+    /// A move is readable through the tables inside the same use case, exactly as a placement is.
+    /// </summary>
+    /// <remarks>
+    /// The refill is the only caller that writes and then reads this way today, so it is the only
+    /// one whose loss would have shown up. A move goes through the same landing rule and would fail
+    /// the same way the first time anything read it back -- an inventory delta, a snapshot, a
+    /// second command in one use case -- so it is pinned here rather than left to whoever writes
+    /// that caller.
+    ///
+    /// A swap is used rather than a plain relocation because it is the verb with the most writes:
+    /// two slots cleared and two filled, all inside one batch.
+    /// </remarks>
+    [Fact]
+    public async Task AMoveIsVisibleToTheTablesInsideTheSameUseCase()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
+        try
+        {
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            await SeedCharacterAsync(path, accountId: 7, characterId: 70);
+            await SeedItemAsync(path, characterId: 70, slot: 65, itemId: 1234, count: 3);
+            await SeedItemAsync(path, characterId: 70, slot: 66, itemId: 5678, count: 1);
+            var side = new InventorySide(path);
+            side.BindMain(70);
+            var bag = side.Containers.GetContainer(
+                new CharacterId(70), InventoryContainerType.Main);
+            var repository = side.Mutations;
+
+            var seen = await side.InUseCaseAsync(async token =>
+            {
+                var outcome = await bag.MoveToAsync(65, 66, 0, token).ConfigureAwait(false);
+                Assert.IsType<ItemMoveOutcome.Moved>(outcome);
+                return await repository.ReadMainItemsAsync(new CharacterId(70), token)
+                    .ConfigureAwait(false);
+            });
+
+            Assert.Equal(
+                [(65, 5678, 1), (66, 1234, 3)],
+                seen.Select(item => (item.SlotIndex, item.Core.ItemId, item.Core.Value)).ToArray());
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    /// <summary>
+    /// Inside one use case, a reader that does not share the bag's session still sees what the
+    /// refill placed.
+    /// </summary>
+    /// <remarks>
+    /// This is the shape a real entry has and the one every other refill test here does not: the
+    /// server dispatches the refill as one command, and that same command reloads the inventory
+    /// through the tables so it can tell the client what changed. A bag holds its writes until the
+    /// use case settles, so without the refill saying that its decisions are to be applied, the
+    /// reload is handed the inventory as it stood before -- stale counts on a top-up day, and on a
+    /// day that opens a slot a reload that cannot find the row it was told about and fails the
+    /// whole entry.
+    ///
+    /// Every other test in this file drives the refill through `MutationsPerCall`, which puts a use
+    /// case around each call separately. Under that shape the two write channels were
+    /// indistinguishable, which is exactly why nothing went red when they stopped being so.
+    /// </remarks>
+    [Theory]
+    [InlineData(0, 65, 5)]
+    [InlineData(3, 65, 5)]
+    public async Task DailyRefill_IsVisibleToTheEntryReloadInsideTheSameUseCase(
+        int seeded, int expectedSlot, int expectedCount)
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
+        try
+        {
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            await SeedCharacterAsync(path, accountId: 7, characterId: 70);
+            if (seeded > 0)
+            {
+                await SeedItemAsync(path, characterId: 70, slot: 65, itemId: 1234, count: seeded);
+            }
+
+            var side = new InventorySide(path);
+            side.BindMain(70);
+            var repository = side.Mutations;
+            var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
+                DailyRefillMode.RefillToTarget, 100, 2, 65, 120);
+
+            var reloaded = await side.InUseCaseAsync(async token =>
+            {
+                await repository.ApplyDailyRefillAsync(
+                    new AccountId(7), new CharacterId(70), [rule], PreparedAt, token)
+                    .ConfigureAwait(false);
+                return await repository.ReadMainItemsAsync(new CharacterId(70), token)
+                    .ConfigureAwait(false);
+            });
+
+            var item = Assert.Single(reloaded);
+            Assert.Equal(expectedSlot, item.SlotIndex);
+            Assert.Equal(1234, item.Core.ItemId);
+            Assert.Equal(expectedCount, item.Core.Value);
+            Assert.True(item.StorageEntryId > 0, "the reloaded row must carry the key it was stored under");
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    /// <summary>
+    /// Topping a pile up may give its row a new surrogate key, and nothing outward moves when it
+    /// does.
+    /// </summary>
+    /// <remarks>
+    /// The refill used to update the row it had found by that key. It now writes through the bag,
+    /// which addresses a slot rather than a row -- the store deliberately hands out no identity for
+    /// an item, because a move is a clear and a write and a caller holding an identity would be
+    /// invited to address the thing instead of the place.
+    ///
+    /// So the key is free to change, and this pins that nothing depends on it. It reaches no frame:
+    /// in <c>Dfo.Server.Protocol</c> it appears only inside exception message strings. It is also a
+    /// secondary sort key in <c>InventoryEntryServices</c>, but the primary key there is the slot,
+    /// and a slot is unique within a container -- which the last assertion here states outright, so
+    /// that a schema change making slots repeatable would come back to this test.
+    /// </remarks>
+    [Fact]
+    public async Task DailyRefill_LeavesTheProjectionAloneEvenIfTheRowsSurrogateKeyMoves()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
+        try
+        {
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            await SeedCharacterAsync(path, accountId: 7, characterId: 70);
+            await SeedItemAsync(path, characterId: 70, slot: 65, itemId: 1234, count: 3);
+            var side = new InventorySide(path);
+            side.BindMain(70);
+            var repository = side.MutationsPerCall;
+            var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
+                DailyRefillMode.RefillToTarget, 100, 2, 65, 120);
+
+            long keyBefore;
+            await using (var before = Open(path))
+            {
+                keyBefore = await ScalarAsync(
+                    before, "SELECT item_uid FROM items WHERE owner_id=70 AND slot_index=65");
+            }
+
+            await repository.ApplyDailyRefillAsync(
+                new AccountId(7), new CharacterId(70), [rule], PreparedAt, CancellationToken.None);
+
+            var projected = await repository.ReadMainItemsAsync(
+                new CharacterId(70), CancellationToken.None);
+            var item = Assert.Single(projected);
+            Assert.Equal(65, item.SlotIndex);
+            Assert.Equal(1234, item.Core.ItemId);
+            Assert.Equal(5, item.Core.Value);
+            Assert.Equal(
+                projected.Select(value => value.SlotIndex).Distinct().Count(), projected.Count);
+
+            await using var after = Open(path);
+            var keyAfter = await ScalarAsync(
+                after, "SELECT item_uid FROM items WHERE owner_id=70 AND slot_index=65");
+            Assert.Equal(1L, await ScalarAsync(
+                after, "SELECT COUNT(*) FROM items WHERE owner_id=70"));
+            Assert.NotEqual(keyBefore, keyAfter);
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    /// <summary>
+    /// A rule whose archive entry declares no item kind cannot open a slot, and fails the entry
+    /// rather than storing a row the entry path cannot read back.
+    /// </summary>
+    /// <remarks>
+    /// Nothing asserted this before. The check lived in the refill, in the branch that opened a
+    /// slot, and it moved into the bag with the rest of the landing -- so it is exactly the kind of
+    /// rule a migration drops without anything going red.
+    ///
+    /// Only opening a slot needs the kind. Joining a pile does not, because the pile already
+    /// carries one, and that asymmetry is pinned by the second half of this test.
+    /// </remarks>
+    [Fact]
+    public async Task DailyRefill_RefusesToOpenASlotForARuleWithNoItemKindButStillJoinsAPile()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
+        try
+        {
+            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            await SeedCharacterAsync(path, accountId: 7, characterId: 70);
+            var side = new InventorySide(path);
+            side.BindMain(70);
+            var repository = side.MutationsPerCall;
+            var kindless = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
+                DailyRefillMode.RefillToTarget, 100, 0, 65, 120);
+
+            await Assert.ThrowsAsync<InvalidDataException>(async () =>
+                await repository.ApplyDailyRefillAsync(
+                    new AccountId(7), new CharacterId(70), [kindless], PreparedAt,
+                    CancellationToken.None));
+
+            await using (var refused = Open(path))
+            {
+                Assert.Equal(0L, await ScalarAsync(
+                    refused, "SELECT COUNT(*) FROM items WHERE owner_id=70"));
+                Assert.Equal(0L, await ScalarAsync(
+                    refused,
+                    "SELECT COUNT(*) FROM character_daily_counters WHERE character_id=70"));
+            }
+
+            await SeedItemAsync(path, characterId: 70, slot: 65, itemId: 1234, count: 3);
+            var joined = await repository.ApplyDailyRefillAsync(
+                new AccountId(7), new CharacterId(70), [kindless], PreparedAt,
+                CancellationToken.None);
+
+            var grant = Assert.Single(joined.Grants);
+            Assert.Equal(65, grant.SlotIndex);
+            Assert.Equal(2, grant.GrantedCount);
+            Assert.Equal(5, grant.CommittedCount);
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
     private static async Task<string> ScalarStringAsync(SqliteConnection connection, string sql)
     {
         await using var command = connection.CreateCommand();
@@ -173,7 +389,9 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             _ = new SqliteDatabase(path, new DomainTransactionScope());
             await SeedCharacterAsync(path, 8, 80);
             await SeedItemAsync(path, 80, 0, 2222, 5);
-            var repository = new InventorySide(path).MutationsPerCall;
+            var side = new InventorySide(path);
+            side.BindMain(80);
+            var repository = side.MutationsPerCall;
             var rule = new DailyRefillRule(2222, 2, DateTimeOffset.MaxValue,
                 DailyRefillMode.RefillToTarget, 100, 2, 65, 120);
 
@@ -211,7 +429,9 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         {
             _ = new SqliteDatabase(path, new DomainTransactionScope());
             await SeedCharacterAsync(path, accountId: 7, characterId: 70);
-            var repository = new InventorySide(path).MutationsPerCall;
+            var side = new InventorySide(path);
+            side.BindMain(70);
+            var repository = side.MutationsPerCall;
             // Adding up to the stack limit rather than refilling to a target, so that a second
             // day grants again -- a refill-to-target rule would grant nothing the second day
             // whatever the boundary did, and the test could not tell the two apart.
@@ -249,7 +469,9 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         {
             _ = new SqliteDatabase(path, new DomainTransactionScope());
             await SeedCharacterAsync(path, accountId: 7, characterId: 70);
-            var repository = new InventorySide(path).MutationsPerCall;
+            var side = new InventorySide(path);
+            side.BindMain(70);
+            var repository = side.MutationsPerCall;
             var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
                 DailyRefillMode.AddUpToStackLimit, 100, 2, 65, 120);
 
@@ -287,7 +509,9 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             _ = new SqliteDatabase(path, new DomainTransactionScope());
             await SeedCharacterAsync(path, accountId: 7, characterId: 70);
             await SeedItemAsync(path, characterId: 70, slot: 70, itemId: 1234, count: 2);
-            var repository = new InventorySide(path).MutationsPerCall;
+            var side = new InventorySide(path);
+            side.BindMain(70);
+            var repository = side.MutationsPerCall;
             var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
                 DailyRefillMode.RefillToTarget, 100, 2, 65, 120);
 
@@ -325,7 +549,9 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             // Slot 3 is free and below the band; 65 and 66 are taken, so 67 is the answer.
             await SeedItemAsync(path, characterId: 70, slot: 65, itemId: 9001, count: 1);
             await SeedItemAsync(path, characterId: 70, slot: 66, itemId: 9002, count: 1);
-            var repository = new InventorySide(path).MutationsPerCall;
+            var side = new InventorySide(path);
+            side.BindMain(70);
+            var repository = side.MutationsPerCall;
             var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
                 DailyRefillMode.RefillToTarget, 100, 2, 65, 120);
 
@@ -352,7 +578,9 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
             await SeedCharacterAsync(path, accountId: 7, characterId: 70);
             await SeedItemAsync(path, characterId: 70, slot: 65, itemId: 9001, count: 1);
             await SeedItemAsync(path, characterId: 70, slot: 66, itemId: 9002, count: 1);
-            var repository = new InventorySide(path).MutationsPerCall;
+            var side = new InventorySide(path);
+            side.BindMain(70);
+            var repository = side.MutationsPerCall;
             var rule = new DailyRefillRule(1234, 5, DateTimeOffset.MaxValue,
                 DailyRefillMode.RefillToTarget, 100, 2, 65, 66);
 

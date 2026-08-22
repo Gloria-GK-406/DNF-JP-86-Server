@@ -89,6 +89,9 @@ public sealed class PersistentContainerBoundaryTests
             new ContainerShape(InventoryContainerType.Main, 0),
             new SqliteItemStore(path),
             scope,
+            null!,
+            null!,
+            null!,
             null!);
     }
 

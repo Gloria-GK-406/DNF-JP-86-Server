@@ -83,11 +83,22 @@ public sealed record ContainerShape(InventoryContainerType ContainerType, ushort
 /// instance that served several characters would have to be trusted to keep them apart, and every
 /// caller would have to keep passing the one fact the container already knows.
 ///
-/// Reads and writes are all there is. A move, a split, a swap, a merge and a consumption are each
-/// some of these put together, and the putting-together belongs above -- the container that offered
-/// a "move" would be a container that had to be told what one is, and the store beneath it would
-/// have to be told too. What makes that safe to say is the use case boundary: everything one
-/// request does settles together, so an operation made of four writes is still one change.
+/// Two kinds of member sit here. The reads and writes are what a container is made of, and address
+/// one slot at a time. The verbs -- putting an arriving item away, topping a character up, moving
+/// something between two slots -- are what a container is asked to do, and each decides for itself
+/// whether it is allowed before carrying it out as some of those reads and writes.
+///
+/// The verbs used to live in the callers, which is what made "where does an arriving item go"
+/// something two of them had written out separately. Nothing beneath here learned anything by their
+/// moving in: the store is still told only to read and to write, and `ItemContainerOperations` --
+/// which composes a move without the store knowing what a move is -- is the standing proof that
+/// composition never needed the store's help. What makes a verb safe to express as several writes
+/// is the use case boundary: everything one request does settles together, so an operation made of
+/// four writes is still one change.
+///
+/// A verb answers with what happened rather than throwing, because "there was no room" and "the
+/// archive declares no such item" are ordinary answers that different callers treat differently --
+/// one leaves the item out of an acknowledgement, another fails the whole entry.
 /// </remarks>
 public interface IItemContainer
 {
@@ -124,9 +135,11 @@ public interface IItemContainer
     /// </summary>
     /// <remarks>
     /// Deciding where an arriving item goes needs to know which slots are taken and what piles of
-    /// it are already there, and neither is a question about one slot. Unlike
-    /// <see cref="SnapshotAsync"/> this is the container's own contents, so inside a use case it
-    /// sees what that use case has already written.
+    /// it are already there, and neither is a question about one slot. Inside a use case it sees
+    /// what that use case has already written -- as does <see cref="SnapshotAsync"/>, which reads
+    /// the same rows by another route and is only kept honest by every verb applying what it
+    /// decided before it answers. What still separates the two is what they carry: a snapshot
+    /// names facts the store's vocabulary does not, an avatar's details among them.
     /// </remarks>
     ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(CancellationToken cancellationToken);
 
@@ -142,6 +155,119 @@ public interface IItemContainer
 
     /// <summary>Leaves the slot empty, under the same rule as <see cref="PutAsync"/>.</summary>
     ValueTask ClearAsync(int slotIndex, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Puts an item the game is handing over wherever this container's rules send it.
+    /// </summary>
+    /// <remarks>
+    /// The container looks the item up for itself. A pile of it that has room takes as much as it
+    /// can hold and the rest is not placed; with no such pile, the first free slot of the item's
+    /// own band opens.
+    /// </remarks>
+    ValueTask<ItemPlacementOutcome> AddAsync(
+        int itemId, int count, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Tops the character up by what a daily rule owes them.
+    /// </summary>
+    /// <remarks>
+    /// Not the same as <see cref="AddAsync"/>, and neither can stand in for the other: a refill
+    /// joins whatever pile is there however large, because its quantity was already bounded by the
+    /// rule that produced it, while an ordinary grant fills piles only to the item's stack limit.
+    /// The band and the kind come from that rule rather than from the item's placement, which is
+    /// why they arrive as data instead of being looked up here.
+    /// </remarks>
+    ValueTask<ItemPlacementOutcome> RefillAsync(
+        ItemRefill refill, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Moves what one slot holds to another slot of this same container.
+    /// </summary>
+    /// <remarks>
+    /// A count of zero, or one larger than the pile, means the whole pile: a plain drag leaves the
+    /// field at zero and only a split dialog fills it in.
+    ///
+    /// The two ends may arrive the other way round. When the slot moved from is empty, the caller
+    /// is naming the slot it wants filled, and the pile to put there is the one at the other end;
+    /// the reference server reads it the same way. What the container answers is what was moved,
+    /// not where it ended up, because a caller that echoes ends back to a client echoes the ones it
+    /// was sent rather than the ones the move used.
+    /// </remarks>
+    ValueTask<ItemMoveOutcome> MoveToAsync(
+        int fromSlotIndex, int toSlotIndex, int count, CancellationToken cancellationToken);
+}
+
+/// <summary>What a daily rule owes, in the terms the container needs to place it.</summary>
+public sealed record ItemRefill(
+    int ItemId, byte ItemKind, int Count, int SlotStart, int SlotEnd);
+
+/// <summary>What became of an item offered to a container.</summary>
+/// <remarks>
+/// The two ways of succeeding are told apart rather than folded into one, because callers report
+/// them differently: a grant names how many it added, a refill names both that and what the slot
+/// holds afterwards, and one of them treats opening a slot as the moment a missing item kind
+/// becomes fatal.
+/// </remarks>
+public abstract record ItemPlacementOutcome
+{
+    private ItemPlacementOutcome()
+    {
+    }
+
+    /// <summary>It joined a pile the character already had.</summary>
+    /// <param name="Added">How many this call put in, which may be fewer than were offered.</param>
+    /// <param name="Total">What that slot holds afterwards.</param>
+    public sealed record AddedToPile(int SlotIndex, int Added, int Total) : ItemPlacementOutcome;
+
+    /// <summary>It opened a slot of its own band that was empty.</summary>
+    public sealed record PutInEmptySlot(int SlotIndex, int Count) : ItemPlacementOutcome;
+
+    /// <summary>The band has nothing free and no pile of it could take any more.</summary>
+    public sealed record NoRoom : ItemPlacementOutcome;
+
+    /// <summary>The archive declares no item that can be held under that identifier.</summary>
+    public sealed record UnknownItem : ItemPlacementOutcome;
+}
+
+/// <summary>Why a container would not carry a move out.</summary>
+/// <remarks>
+/// Only the judgements a container makes. Whether the request named a list this server serves, and
+/// whether the character is bound to a container at all, are decided before a container is reached
+/// and are not among these.
+/// </remarks>
+public enum ItemMoveRefusal
+{
+    /// <summary>Neither named slot holds anything.</summary>
+    BothSlotsEmpty,
+
+    /// <summary>The pile may not occupy the slot it was aimed at.</summary>
+    ItemCannotOccupySlot,
+
+    /// <summary>Pouring the two piles together would burst the item's stack limit.</summary>
+    MergeExceedsStackLimit,
+
+    /// <summary>A swap was asked for with only part of the pile.</summary>
+    PartialSwapNotAllowed,
+
+    /// <summary>The pile being displaced may not occupy the slot being vacated.</summary>
+    DisplacedCannotOccupySlot,
+}
+
+/// <summary>What became of a move.</summary>
+public abstract record ItemMoveOutcome
+{
+    private ItemMoveOutcome()
+    {
+    }
+
+    /// <param name="MoveCount">How much of the pile moved.</param>
+    /// <param name="ItemId">What moved, for the caller to report.</param>
+    public sealed record Moved(int MoveCount, int ItemId) : ItemMoveOutcome;
+
+    /// <summary>Both ends were the same slot: nothing happened and nothing is wrong.</summary>
+    public sealed record Unchanged : ItemMoveOutcome;
+
+    public sealed record Refused(ItemMoveRefusal Reason) : ItemMoveOutcome;
 }
 
 /// <summary>What one slot of a container holds.</summary>

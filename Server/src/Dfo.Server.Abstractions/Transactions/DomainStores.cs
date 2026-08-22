@@ -49,7 +49,9 @@ public interface IDomainStore<out TSession> : IDomainStore
 /// no value needs an identity of its own.
 ///
 /// The writes are staged, not applied. They become visible to this session's own reads at once and
-/// to everyone else only when the transaction settles.
+/// to everyone else only when the transaction settles -- including to any other reader inside the
+/// same use case that does not share this session. A use case that writes here and then reads the
+/// same state by another route has to say so; the item store names that operation.
 /// </remarks>
 public interface IStoreSession<in TPlace, in TKey, TValue>
     where TValue : class

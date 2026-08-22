@@ -56,6 +56,16 @@ internal sealed class VolatileItemStoreSession(
 
     public bool CommitCanFail => false;
 
+    /// <remarks>
+    /// Nothing reads what this store holds by any other route -- there are no tables behind it --
+    /// so there is nobody for whom the decided writes are not already visible.
+    /// </remarks>
+    public ValueTask ApplyDecidedWritesAsync(CancellationToken cancellationToken)
+    {
+        _ = cancellationToken;
+        return ValueTask.CompletedTask;
+    }
+
     public ValueTask<IReadOnlyList<StoredItem>> ReadAllAsync(
         ContainerId containerId, CancellationToken cancellationToken)
     {

@@ -123,7 +123,10 @@ public sealed class ContainerInventoryProjectionTests
                 new ContainerShape(InventoryContainerType.Main, parameter),
                 new SqliteItemStore(Path),
                 new DomainTransactionScope(),
-                Mutations);
+                Mutations,
+                null!,
+                null!,
+                null!);
 
         public async Task<InventoryContainerState> LoadContainerAsync(
             InventoryContainerType containerType)
