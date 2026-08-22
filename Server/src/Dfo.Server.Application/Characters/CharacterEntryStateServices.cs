@@ -12,105 +12,24 @@ internal sealed class CharacterProfileEntryProjection : ICharacterProfileEntryPr
         CharacterProfileStorageRecord storage) =>
         (
             new CharacterPublicEntryState(
-                new CharacterSubtype0EntryState(
-                    checked((byte)storage.Subtype0.Stamina),
-                    checked((uint)storage.Subtype0.FatiguePenalty),
-                    storage.Subtype0.EventCharacter != 0,
-                    storage.Subtype0.PrivateStore != 0,
-                    checked((byte)storage.Subtype0.ExpertJobType),
-                    checked((uint)storage.Subtype0.ExpertJobExperience),
-                    storage.Subtype0.HardcoreMode != 0,
-                    storage.Subtype0.HardcoreDead != 0,
-                    checked((ushort)storage.Subtype0.HardcoreDeathCount),
-                    checked((uint)storage.Subtype0.UserStateBits),
-                    checked((uint)storage.Subtype0.ChatBanEndTime),
-                    checked((ushort)storage.Subtype0.MoodValue),
-                    checked((uint)storage.Subtype0.PvpRankPoint),
-                    checked((byte)storage.Subtype0.CreatureField1),
-                    checked((byte)storage.Subtype0.CreatureField2),
-                    checked((byte)storage.Subtype0.CreatureField3),
-                    checked((byte)storage.Subtype0.CreatureField4),
-                    [.. storage.Subtype0.CreatureBuffer ?? []],
-                    checked((uint)storage.Subtype0.PcRoomId),
-                    storage.Subtype0.PremiumPcRoom != 0,
-                    checked((byte)storage.Subtype0.ServerGroupId),
-                    checked((uint)storage.Subtype0.BlackCount),
-                    checked((byte)storage.Subtype0.GuildLevel),
-                    checked((uint)storage.Subtype0.ChaosPoint),
-                    checked((byte)storage.Subtype0.DisguiseKind),
-                    storage.Subtype0.Disguised != 0,
-                    checked((ushort)storage.Subtype0.FatigueUpdate),
-                    checked((byte)storage.Subtype0.ReturnUserFlag),
-                    checked((ushort)storage.Subtype0.ChannelDisplayMode),
-                    checked((byte)storage.Subtype0.ChannelType),
-                    storage.Subtype0.ReturnUser != 0,
-                    storage.Subtype0.LinkSlotEnabled != 0,
-                    checked((byte)storage.Subtype0.LinkTypeA),
-                    checked((byte)storage.Subtype0.LinkTypeB),
-                    checked((ushort)storage.Subtype0.EmotionIndex),
-                    checked((byte)storage.Subtype0.ActionByte),
-                    checked((ushort)storage.Subtype0.FatigueDisplayUpdate),
-                    checked((byte)storage.Subtype0.CostumeFlag),
-                    checked((byte)storage.Subtype0.AuraFlag),
-                    checked((byte)storage.Subtype0.PetDisplayFlag),
-                    checked((byte)storage.Subtype0.TitleDisplayFlag),
-                    checked((uint)storage.Subtype0.PvpStatA),
-                    checked((byte)storage.Subtype0.PvpWinStreak),
-                    checked((byte)storage.Subtype0.PvpLoseStreak),
-                    checked((byte)storage.Subtype0.TrailingByte)),
-                new CharacterSubtype1EntryState(
-                    storage.Subtype1.HpMaximum,
-                    storage.Subtype1.MpMaximum,
-                    storage.Subtype1.PhysicalAttack,
-                    storage.Subtype1.PhysicalDefense,
-                    storage.Subtype1.MagicalAttack,
-                    storage.Subtype1.MagicalDefense,
-                    storage.Subtype1.MoveSpeed,
-                    storage.Subtype1.AttackSpeed,
-                    storage.Subtype1.CastSpeed,
-                    storage.Subtype1.InventoryLimit,
-                    storage.Subtype1.SkillTreeIndex,
-                    storage.Subtype1.Progress1,
-                    storage.Subtype1.Progress2,
-                    checked((short)storage.Subtype1.FireResistance),
-                    checked((short)storage.Subtype1.WaterResistance),
-                    checked((short)storage.Subtype1.DarkResistance),
-                    checked((short)storage.Subtype1.LightResistance),
-                    checked((ushort)storage.Subtype1.HpRegenSpeed),
-                    checked((ushort)storage.Subtype1.MpRegenSpeed),
-                    checked((ushort)storage.Subtype1.HitRecovery),
-                    checked((ushort)storage.Subtype1.JumpPower),
-                    checked((uint)storage.Subtype1.Weight),
-                    checked((byte)storage.Subtype1.CurrentHpMpPercent),
-                    checked((uint)storage.Subtype1.NameTagItemId),
-                    checked((uint)storage.Subtype1.NameTagExpireTime),
-                    checked((byte)storage.Subtype1.EquippedCreatureLevel),
-                    storage.Subtype1.EquipListTrailing,
-                    checked((byte)storage.Subtype1.FlagByte),
-                    checked((uint)storage.Subtype1.GuildPowerWar),
-                    checked((uint)storage.Subtype1.ServerTimestamp),
-                    checked((ushort)storage.Subtype1.QuestShopCount),
-                    checked((uint)storage.CharacterExperience),
-                    checked((byte)storage.ExtraEquipmentSlotState),
-                    storage.Dimensions.OrderBy(value => value.SortOrder)
-                        .Select(value => new CharacterDimensionEntryState(
-                            checked((uint)value.Key), checked((byte)value.Value1), checked((byte)value.Value2)))
-                        .ToArray(),
-                    new CharacterDimensionFlagsState(
-                        checked((byte)storage.DimensionFlags.Flag1),
-                        checked((byte)storage.DimensionFlags.Flag2),
-                        checked((byte)storage.DimensionFlags.Flag3),
-                        checked((byte)storage.DimensionFlags.Flag4)),
-                    checked((byte)storage.Subtype1.ManageLevel),
-                    (storage.Subtype1.PvpResults
-                        ?? throw new InvalidDataException("Subtype-1 PvP results were not loaded."))
-                        .Select(value => new CharacterPvpResultState(
-                            checked((uint)value.Value32), checked((ushort)value.Value16A),
-                            checked((ushort)value.Value16B)))
-                        .ToArray(),
+                storage.Condition,
+                storage.Settings,
+                storage.Pvp,
+                storage.ExpertJob,
+                storage.DerivedStats,
+                storage.Guild,
+                new CharacterEntryExtrasState(
+                    storage.SkillTreeIndex,
+                    storage.NameTagItemId,
+                    storage.NameTagExpireTime,
+                    storage.ManageLevel,
+                    storage.CharacterExperience,
+                    storage.ExtraEquipmentSlotState,
+                    storage.Dimensions,
+                    storage.DimensionFlags,
                     []),
                 new CharacterAppearanceCompatibilityState(1, [.. storage.AppearanceBlob]),
-                checked((uint)storage.Subtype0.UserStateBits),
+                storage.Settings.UserStateBits,
                 storage.CloneTitleItemId,
                 new CharacterPublicIdentityEntryState(
                     storage.PvpGrade,
@@ -119,7 +38,7 @@ internal sealed class CharacterProfileEntryProjection : ICharacterProfileEntryPr
             new CharacterSettingsEntryState(
                 [.. storage.HotkeySlots],
                 storage.CharacterOptionBlob is null ? null : [.. storage.CharacterOptionBlob],
-                checked((uint)storage.Subtype0.UserStateBits)));
+                storage.Settings.UserStateBits));
 }
 
 internal sealed class CharacterSkillQuestEntryProjection : ICharacterSkillQuestEntryProjection
@@ -369,17 +288,17 @@ internal sealed class CharacterEntryStateDomainService(
 
         var profile = profiles.Build(storage.Profile);
         var skillQuest = skillQuests.Build(storage.Skill, storage.Quest);
-        var specialRewardQuestIds = new List<uint>();
+        var specialRewardQuestIds = new List<int>();
         foreach (var clearFlag in storage.Quest.ClearFlags.Where(value => value.Value != 0))
         {
             var definition = await questDefinitions.GetAsync(clearFlag.SlotIndex, cancellationToken)
                 .ConfigureAwait(false);
             if (definition?.HasSpecialRewardStatus == true)
-                specialRewardQuestIds.Add(checked((uint)clearFlag.SlotIndex));
+                specialRewardQuestIds.Add(clearFlag.SlotIndex);
         }
         var publicState = profile.Public with
         {
-            Subtype1 = profile.Public.Subtype1 with
+            Extras = profile.Public.Extras with
             {
                 SpecialRewardQuestIds = specialRewardQuestIds,
             },

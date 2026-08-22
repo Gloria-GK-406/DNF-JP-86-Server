@@ -23,15 +23,15 @@ public sealed class CharacterEntryStateTests
 
         var result = await service.LoadAsync(accountId, characterId, CancellationToken.None);
 
-        Assert.Equal((byte)7, result.Public.Subtype0.Stamina);
+        Assert.Equal(7, result.Public.Condition.Stamina);
         Assert.Equal(new CharacterPublicIdentityEntryState(8, 9, 10), result.Public.Identity);
-        Assert.Equal(123, result.Public.Subtype1.PhysicalAttack);
-        Assert.Equal((byte)11, result.Public.Subtype1.ManageLevel);
-        Assert.Equal(new CharacterPvpResultState(101, 102, 103),
-            Assert.Single(result.Public.Subtype1.PvpResults));
-        Assert.Equal([200u], result.Public.Subtype1.SpecialRewardQuestIds);
-        Assert.Equal((uint)9, Assert.Single(result.Public.Subtype1.Dimensions!).Key);
-        Assert.Equal((byte)4, result.Public.Subtype1.DimensionFlags!.Flag4);
+        Assert.Equal(123, result.Public.DerivedStats.PhysicalAttack);
+        Assert.Equal(11, result.Public.Extras.ManageLevel);
+        Assert.Equal(new CharacterPvpResultStorageRow(101, 102, 103),
+            Assert.Single(result.Public.Pvp.Results));
+        Assert.Equal([200], result.Public.Extras.SpecialRewardQuestIds);
+        Assert.Equal(9L, Assert.Single(result.Public.Extras.Dimensions).Key);
+        Assert.Equal(4, result.Public.Extras.DimensionFlags.Flag4);
         Assert.Equal([20, 10], result.Settings.HotkeySlots);
         var skill = Assert.Single(Assert.Single(result.Skills.Pages).Skills);
         Assert.Equal((short)4, skill.Slot);
@@ -57,16 +57,57 @@ public sealed class CharacterEntryStateTests
         Assert.Equal([70], result.Features.ExpertJob.LearnedRecipeIds);
     }
 
+    /// <summary>
+    /// Every concept the profile holds reaches the entry state as it was stored.
+    /// </summary>
+    /// <remarks>
+    /// The projection used to be a forty-five-field positional copy, and it is now a pass-through;
+    /// what it can get wrong changed with it. A copy could put a value in the wrong field, and the
+    /// characterization pinned that. A pass-through can only drop or substitute a whole concept --
+    /// and nothing said so: zeroing a stat inside it left the entire suite green, because that
+    /// stat's journey from storage to the wire was pinned at neither end of the projection.
+    /// </remarks>
+    [Fact]
+    public void The_profile_projection_hands_every_concept_through_unchanged()
+    {
+        var storage = Storage(new AccountId(1), new CharacterId(2)).Profile;
+
+        var (entry, settings) = new CharacterProfileEntryProjection().Build(storage);
+
+        Assert.Same(storage.Condition, entry.Condition);
+        Assert.Same(storage.Settings, entry.Settings);
+        Assert.Same(storage.Pvp, entry.Pvp);
+        Assert.Same(storage.ExpertJob, entry.ExpertJob);
+        Assert.Same(storage.DerivedStats, entry.DerivedStats);
+        Assert.Same(storage.Guild, entry.Guild);
+        Assert.Equal(storage.SkillTreeIndex, entry.Extras.SkillTreeIndex);
+        Assert.Equal(storage.NameTagItemId, entry.Extras.NameTagItemId);
+        Assert.Equal(storage.NameTagExpireTime, entry.Extras.NameTagExpireTime);
+        Assert.Equal(storage.ManageLevel, entry.Extras.ManageLevel);
+        Assert.Equal(storage.CharacterExperience, entry.Extras.CharacterExperience);
+        Assert.Equal(storage.ExtraEquipmentSlotState, entry.Extras.ExtraEquipmentSlotState);
+        Assert.Same(storage.Dimensions, entry.Extras.Dimensions);
+        Assert.Equal(storage.DimensionFlags, entry.Extras.DimensionFlags);
+        Assert.Equal(storage.HotkeySlots, settings.HotkeySlots);
+    }
+
     private static CharacterEntryStorageRecord Storage(AccountId accountId, CharacterId characterId) => new(
         accountId,
         characterId,
         new CharacterProfileStorageRecord(
             1, 60, 44, [1, 2],
-            new CharacterSubtype0StorageRecord(7, 8, 1, 0, 2, 10, 0, 0, 0, 3, 0, 5, 99),
-            new CharacterSubtype1StorageRecord(
-                100, 90, 123, 50, 111, 40, 20, 30, 10, 120, 0, 1, 2, ManageLevel: 11,
-                PvpResults: [new CharacterPvpResultStorageRow(101, 102, 103)]),
-            [20, 10], [4], 1000, 1, [(0, 9L, 1, 2)], (1, 2, 3, 4), 8, 9, 10),
+            new CharacterConditionStorageRecord(7, 8, 1, 0, 0, 0, 0, 0, 5),
+            new CharacterSettingsStorageRecord(3),
+            new CharacterPvpStandingStorageRecord(
+                99, 0, 0, 0, [new CharacterPvpResultStorageRow(101, 102, 103)]),
+            new CharacterExpertJobStorageRecord(2, 10),
+            new CharacterDerivedStatsStorageRecord(
+                100, 90, 123, 50, 111, 40, 20, 30, 10, 120, 1, 2),
+            new CharacterGuildStandingStorageRecord(0, 0),
+            SkillTreeIndex: 0, NameTagItemId: 77, NameTagExpireTime: 88, ManageLevel: 11,
+            HotkeySlots: [20, 10], CharacterOptionBlob: [4], CharacterExperience: 1000,
+            ExtraEquipmentSlotState: 1, Dimensions: [(0, 9L, 1, 2)], DimensionFlags: (1, 2, 3, 4),
+            PvpGrade: 8, PvpRatingGrade: 9, UserState: 10),
         new CharacterSkillStorageRecord(
             1, 10, 20,
             [new CharacterSkillStorageRow(0, 4, 100, 5, [9, 8])],

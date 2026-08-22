@@ -594,12 +594,13 @@ public sealed class CharacterEntryInventoryTests
     private static CharacterEntryState EmptyCharacterEntry(CharacterId characterId) => new(
         characterId,
         new CharacterPublicEntryState(
-            new CharacterSubtype0EntryState(
-                0, 0, false, false, 0, 0, false, false, 0, 0, 0, 0, 0,
-                CreatureBuffer: []),
-            new CharacterSubtype1EntryState(
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0,
-                Dimensions: [], DimensionFlags: new CharacterDimensionFlagsState(0, 0, 0, 0)),
+            new CharacterConditionStorageRecord(0, 0, 0, 0, 0, 0, 0, 0, 0, CreatureBuffer: []),
+            new CharacterSettingsStorageRecord(0),
+            new CharacterPvpStandingStorageRecord(0, 0, 0, 0, []),
+            new CharacterExpertJobStorageRecord(0, 0),
+            new CharacterDerivedStatsStorageRecord(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+            new CharacterGuildStandingStorageRecord(0, 0),
+            new CharacterEntryExtrasState(-1, 0, 0, 0, 0, 0, [], (0, 0, 0, 0), []),
             new CharacterAppearanceCompatibilityState(1, []), 0, 0),
         new CharacterSettingsEntryState([], [], 0),
         new CharacterSkillsEntryState(

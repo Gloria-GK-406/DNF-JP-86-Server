@@ -179,13 +179,20 @@ notice the difference. Every decision reads through the instance, which under R-
 therefore sees the present.
 
 *A snapshot is a set of domain records, not one packet-shaped record.* This is the half of the rule
-that carries it. `ActiveCharacterState` today is one large record cut the way the packet is cut —
-its own comments call its halves "the subtype-0 record" and "the subtype-1 record"
-(`CharacterEntryAssembly.cs:104` and `:130`), and subtype-0 and subtype-1 are the names of protocol
-segments. A snapshot under this design is instead the same concepts the tables were cut into — body,
-derived numbers, operational state, items, skills — and choosing, ordering and packing them into
-segments is the handler's work, next to the encoder. The domain says what a character is; the
-protocol says how it is laid out in a packet.
+that carries it. Two families of record are cut the way the packet is cut, and they are not the one
+this document first named. `ActiveCharacterState` is already domain-shaped — identity, progression,
+fatigue, position. What is packet-shaped is `CharacterSubtype0StorageRecord` and its sibling, which
+`CharacterEntryAssembly` flattens out of four tables and two respectively
+(`CharacterEntryAssembly.cs:104` and `:130`, whose own comments call them "the subtype-0 record" and
+"the subtype-1 record"); and `CharacterSubtype0EntryState` and its sibling, which
+`CharacterProfileEntryProjection` produces from the first pair by a forty-five-field positional copy
+that exists only because both ends are the packet's shape.
+
+A snapshot under this design is instead the same concepts the tables were cut into — body, derived
+numbers, operational state, items, skills — and choosing, ordering, packing them into segments and
+narrowing each to the width the wire gives it is the protocol's work. Narrowing especially: it is
+where a value too large for its field is refused, and only something that knows the field's width
+can do it. The domain says what a character is; the protocol says how it is laid out in a packet.
 
 *Why the projection is not routed through instance calls instead.* It would work, and the premise
 above says it would be fast enough. But the instance would grow methods existing only to feed a
@@ -349,6 +356,51 @@ is on `CharacterId` and `AccountId`, not on identity-shaped numbers being compar
 into the judgement with the comparisons, and it is now checkable without constructing a character who
 is simultaneously under-levelled and mid-cooldown, because both facts arrive as values.
 
+## Settled by the snapshot-side implementation
+
+The third outcome (`spec-003`) took the packet's shape out of the domain. Four things it settled:
+
+**There was no intermediate to move — there was one to delete.** The plan was to relocate the
+segment-shaped records into the protocol project. What the work found is that two families existed:
+one on the storage side, flattened out of four tables and two into the segment's own order, and one
+on the entry side, produced from the first by a forty-five-field positional copy whose entire job
+was narrowing each value to its width on the wire. Both are gone. The concepts the tables were cut
+into now travel from the assembly to the encoder untouched, and the encoder narrows as it writes.
+The projection that remains is a pass-through.
+
+**Narrowing is the encoder's, and refusing is not.** A value too wide for its field is still refused
+at load, in `CharacterEntryAssembly`, and that stayed put on purpose: a character whose stored state
+cannot be sent is turned away with one message instead of failing halfway through a packet. So the
+domain still knows a few widths — as a refusal, never as a conversion. Whether that refusal should
+move to the encoder is a question about *when* an unsendable character is discovered, and is left
+open rather than decided as a side effect.
+
+**A pass-through can only fail in one way, and it was the way nothing watched.** While the projection
+was a positional copy, the risk was a value landing in the wrong field, and the whole-record
+characterization pinned that. Once it became a pass-through the only remaining failure is dropping
+or substituting a whole concept — and zeroing a stat inside it left the entire suite green, because
+that stat's journey through the projection was pinned at neither end.
+`The_profile_projection_hands_every_concept_through_unchanged` now pins it. The general lesson is
+that changing a thing's shape changes what it can get wrong, and the guards that covered the old
+shape do not automatically cover the new one.
+
+**Only the profile segment moved, and the excuse for the leftovers did not survive review.**
+Ninety-three narrowing casts were in `CharacterEntryStateServices`; twenty-seven remain, all of them
+in the skill, quest, progression and feature projections, which are the same species of work and
+were not in this outcome's scope. The profile projection itself has none.
+
+That was not the first answer. Four narrowings were left on the profile's path and written up here
+as unavoidable -- each supposedly forced by a destination type belonging to another projection. An
+independent review checked the claim and found it false for three of the four: the visibility bits
+are this projection's own output at both ends, and the equipped creature's level lands in a field
+declared `int`, so the cast into it was gratuitous and newly added. The reviewer removed all three,
+touching only this outcome's files, and the suite stayed green. They are gone now, and one survives:
+a manage level really does land in a `byte` on the roster projection.
+
+The lesson is worth more than the three casts. A reason offered for leaving something undone is a
+claim about the code, and it is checkable in exactly the way the code is; written into a design
+document it will be read as settled. Ask for it to be checked.
+
 ## What this implies, in order
 
 1. ~~`bag.AddAsync(itemId, count)`~~ — **done.** The duplicated `ItemArrival` switch is one place,
@@ -359,15 +411,16 @@ is simultaneously under-levelled and mid-cooldown, because both facts arrive as 
    reason R-4 now gives.
 4. ~~Splitting `ItemUsabilityDomainService` along R-6~~ — **done.** It is a character that supplies
    identity and a judgement that cannot find one.
-5. **Reshaping the character snapshot** from one packet-shaped record into a set of domain records,
-   and moving the segment layout to the handler. The largest single piece: `CharacterEntryAssembly`
-   is 624 lines, `InventoryEntryAssembly` 578, and the three whole-record characterization tests pin
-   exactly what they produce today. It depends on none of the four above.
+5. ~~Reshaping the character snapshot~~ — **done**, and it deleted more than it moved: both
+   segment-shaped families are gone and the encoder narrows as it writes.
 
-Two things the first four turned up that belong to whoever does step 5 or comes after it:
-`ItemContainerOperations.ConsumeAsync` is a compound action that is not a verb and so is outside R-7;
-and `ItemUseEffectDomainService.ApplyAsync` still takes both a `CharacterId` and an `IItemContainer`,
-which is the last of this document's open questions.
+What is left after those five, each named where it was found rather than planned for:
+the four other entry projections still narrow in the application layer; the load-time refusal of an
+unsendable character still lives in the domain, deliberately;
+
+`ItemContainerOperations.ConsumeAsync` is a compound action that is not a verb and so is outside
+R-7; and `ItemUseEffectDomainService.ApplyAsync` still takes both a `CharacterId` and an
+`IItemContainer`, which is the last of this document's open questions.
 
 ## What this rests on, and what is still open
 

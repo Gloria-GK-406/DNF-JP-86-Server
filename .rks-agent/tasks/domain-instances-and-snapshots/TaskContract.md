@@ -1,6 +1,6 @@
 ---
 kind: rks-task-contract
-revision: 1
+revision: 2
 state: ready
 ---
 
@@ -83,7 +83,7 @@ Agent 论证后建议改为「四个子成果、每个 accept 时绿、spec 内�
 | SC-3 | 判定物品移动是否允许的规则不在协议工程内 | `Dfo.Server.Protocol` 不再引用槽位、摆放或到货这三类规则服务；移动的命令处理器只剩转发与结果翻译 |
 | SC-4 | 存在人物实例，且人物侧至少一个业务用例经由它表达 | 能指出该类型、它的领域动词方法，以及一个改为经由它的用例 |
 | SC-5 | 规则服务不解析身份 | 逐个列出规则服务接口，其方法签名中不出现 `CharacterId` 或 `AccountId` |
-| SC-6 | 快照是一组领域记录；包的段布局发生在协议侧 | 领域侧不再有以协议段命名的记录类型；段的选取与排序可在 `Dfo.Server.Protocol` 中指出 |
+| SC-6 | 快照是一组领域记录；包的段布局发生在协议侧 | 领域侧不再有以协议段命名的记录类型；段的选取、排序与位宽收窄可在 `Dfo.Server.Protocol` 中指出 |
 | SC-7 | 对外协议行为一字不变 | 三份整记录表征用例的期望值 `git diff` 为空；全量测试通过；选人下发帧比对无差异 |
 | SC-8 | 每个子成果在被接受时是绿的 | 每个已接受提交处：`dotnet build` 零错误零警告，`dotnet test Server/86JP.Server.slnx -m:1` 全量通过 |
 | SC-9 | 上一轮确立的持久层形状未回退 | 43 张表；每个持久化类仍只指名一张表；跨表组装仍在领域层；四个领域记录定义文件仍各只有一个定义点 |
@@ -103,6 +103,15 @@ Agent 论证后建议改为「四个子成果、每个 accept 时绿、spec 内�
 
 - `Docs/Refactor/DomainInstanceDesign.md` 是本任务的设计权威。若实施中发现其中某条规则站不住，
   应修订该文档并记录理由，而不是绕过它执行。
+- **修订说明（revision 2）**：本契约 revision 1 的 SC-6 与设计文档 R-5 都把包形状的那个 record
+  说成了 `ActiveCharacterState`。建模第三块时逐一核实，**那是错的**：`ActiveCharacterState`
+  已经是领域形状（身份、进度、疲劳、位置、创建时间）。真正以协议段命名的是两族记录——
+  存储侧的 `CharacterSubtype0StorageRecord` / `CharacterSubtype1StorageRecord`
+  （由 `CharacterEntryAssembly` 从四张与两张表拍平而成），以及入场侧的
+  `CharacterSubtype0EntryState` / `CharacterSubtype1EntryState`
+  （由 `CharacterProfileEntryProjection` 以一段 45 字段的按位复制从前者转来）。
+  SC-6 的判据据此改为点名这两族，并把「位宽收窄」一并算进段布局——那是只有知道线上宽度的一侧
+  才该做的事。
 - 该文档「What this rests on, and what is still open」一节列出的三处未裁定项
   （人物实例是否即运行时会话态、人物仓库最终持有多少规则服务、`ItemUseEffectDomainService.ApplyAsync`
   的归属）由相应子成果在有实物可判时裁定，并写回文档。

@@ -100,9 +100,9 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
             Assert.Equal((byte)8, result.Profile.PvpGrade);
             Assert.Equal((byte)9, result.Profile.PvpRatingGrade);
             Assert.Equal((byte)10, result.Profile.UserState);
-            Assert.Equal(123, result.Profile.Subtype1.PhysicalAttack);
-            Assert.Equal(13, result.Profile.Subtype1.ManageLevel);
-            Assert.Empty(result.Profile.Subtype1.PvpResults);
+            Assert.Equal(123, result.Profile.DerivedStats.PhysicalAttack);
+            Assert.Equal(13, result.Profile.ManageLevel);
+            Assert.Empty(result.Profile.Pvp.Results);
             Assert.Equal(9, Assert.Single(result.Profile.Dimensions).Key);
             Assert.Equal(4, result.Profile.DimensionFlags.Flag4);
             var skill = Assert.Single(result.Skill.Skills);
@@ -321,7 +321,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
             var result = await new CharacterSide(path).EntryState(new GoldLimitRuleService()).LoadAsync(
                 new AccountId(15), new CharacterId(25), CancellationToken.None);
 
-            Assert.Equal(0, result.Profile.Subtype1.ManageLevel);
+            Assert.Equal(0, result.Profile.ManageLevel);
             var message = Assert.Single(result.Features.Mailbox.PageMessages);
             Assert.Equal(900, message.MessageId);
             Assert.Equal(string.Empty, message.SenderName);
@@ -375,6 +375,68 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
             File.Delete(path);
         }
     }
+
+    /// <summary>
+    /// A stored value too wide for the field the packet gives it is refused when the character is
+    /// loaded, not when the packet is being written.
+    /// </summary>
+    /// <remarks>
+    /// The refusal is the reason the encoder may narrow without fear, and it is deliberate that it
+    /// happens here: a character whose stored state cannot be sent is turned away with one message
+    /// rather than failing halfway through a packet that is already partly written.
+    ///
+    /// Nothing asserted it. That is how four of these checks came to be dropped in the change that
+    /// regrouped the profile by concept -- the four fields that moved out of the flattened record
+    /// were the four whose checks had nothing left to hang off, and losing a refusal shows only
+    /// when a value is out of range, which no fixture had. The four are the last four rows here.
+    /// </remarks>
+    [Theory]
+    [InlineData("UPDATE character_condition SET stamina=256 WHERE character_id=23;", Profile)]
+    [InlineData("UPDATE character_condition SET mood_value=65536 WHERE character_id=23;", Profile)]
+    [InlineData("UPDATE character_pvp SET pvp_rank_point=4294967296 WHERE character_id=23;", Profile)]
+    [InlineData("UPDATE characters SET manage_level=256 WHERE character_id=23;", Extended)]
+    [InlineData("UPDATE characters SET name_tag_item_id=4294967296 WHERE character_id=23;", Extended)]
+    [InlineData("UPDATE characters SET name_tag_expire_time=4294967296 WHERE character_id=23;", Extended)]
+    [InlineData("UPDATE characters SET guild_power_war=4294967296 WHERE character_id=23;", Extended)]
+    public async Task CharacterEntryState_RefusesAValueTooWideForItsFieldWhenItIsLoaded(
+        string overflow, string refusal)
+    {
+        var path = CreateDatabase();
+        try
+        {
+            var repository = new CharacterSide(path).EntryState(new GoldLimitRuleService());
+            await ExecuteAsync(path, """
+                INSERT INTO characters(character_id,account_id,name,job,level) VALUES(23,13,'wide',1,60);
+                INSERT INTO character_condition(character_id,pc_room_state) VALUES(23,0);
+                INSERT INTO character_stats(character_id) VALUES(23);
+                INSERT INTO character_pvp(character_id) VALUES(23);
+                INSERT INTO character_settings(character_id) VALUES(23);
+                INSERT INTO character_expert_job(character_id) VALUES(23);
+                """);
+
+            // The same character loads before the value is widened, so the refusal below is about
+            // the value and not about anything else this fixture leaves out.
+            await repository.LoadAsync(new AccountId(13), new CharacterId(23), CancellationToken.None);
+            await ExecuteAsync(path, overflow);
+
+            // Which of the two refusals fired is part of the answer: they are worded for two
+            // different halves of the profile, and a check moved into the wrong one would still
+            // refuse the character while telling the reader the wrong thing about why.
+            var refused = await Assert.ThrowsAsync<InvalidDataException>(async () =>
+                await repository.LoadAsync(
+                    new AccountId(13), new CharacterId(23), CancellationToken.None));
+            Assert.Equal(refusal, refused.Message);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            File.Delete(path);
+        }
+    }
+
+    private const string Profile = "Character public profile state is out of range.";
+
+    private const string Extended = "Character extended detail state is out of range.";
 
     private static byte[] ItemCore(int itemId, int value)
     {
