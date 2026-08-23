@@ -58,8 +58,12 @@ int ch_plugins_load_all(const wchar_t* root_directory)
 
     search = FindFirstFileW(pattern, &find_data);
     if (search == INVALID_HANDLE_VALUE) {
+        /* No plugins at all is a valid configuration precisely when this build
+         * requires none -- the state during a new client's bring-up, before any
+         * plugin has been ported to it. Deciding it here would duplicate that
+         * rule, so defer to the same check every other path ends at. */
         ch_log(2, "loader", "plugins directory is missing or empty");
-        return 0;
+        return ch_required_plugins_complete(&required_state);
     }
     do {
         if ((find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0) {
@@ -71,7 +75,10 @@ int ch_plugins_load_all(const wchar_t* root_directory)
         }
     } while (FindNextFileW(search, &find_data));
     FindClose(search);
-    if (candidate_count == 0 || overflow) return 0;
+    /* Overflow stays fatal: it means plugins were silently dropped, so what did
+     * load is not what the configuration asked for. An empty set does not. */
+    if (overflow) return 0;
+    if (candidate_count == 0) return ch_required_plugins_complete(&required_state);
     qsort(candidates, candidate_count, sizeof(candidates[0]), ch_plugin_candidate_compare);
 
     for (i = 0; i < candidate_count; ++i) {
