@@ -1,6 +1,7 @@
 #include "host_internal.h"
 
 #include "clienthack/runtime_signatures.h"
+#include "clienthack/client_profile.h"
 
 #include <limits.h>
 #include <string.h>
@@ -85,7 +86,7 @@ static int ch_bytes_match(uintptr_t rva, const uint8_t* expected, size_t length)
 
 int ch_wait_for_client_ready(DWORD timeout_ms)
 {
-    const uintptr_t readiness_rva = 0x0213BBBFu;
+    const uintptr_t readiness_rva = CH_CLIENT_COOKIE_RVA;
     const uint8_t signature[4] = { 0x8B, 0xFF, 0x55, 0x8B };
     DWORD elapsed = 0;
     while (elapsed < timeout_ms) {
@@ -150,8 +151,8 @@ static CH_GATE_HANDLER void __cdecl ch_startup_gate_handler(void)
 
 int ch_startup_gate_install(DWORD timeout_ms)
 {
-    static const uint8_t signature[5] = { 0x8B, 0xFF, 0x55, 0x8B, 0xEC };
-    const uintptr_t readiness_rva = 0x0213BBBFu;
+    static const uint8_t signature[5] = CH_CLIENT_COOKIE_PROLOGUE;
+    const uintptr_t readiness_rva = CH_CLIENT_COOKIE_RVA;
     ULONGLONG deadline;
     uint8_t call_patch[5];
     intptr_t relative;
@@ -198,8 +199,18 @@ void ch_startup_gate_release(void)
     if (g_startup_gate_release != NULL) SetEvent(g_startup_gate_release);
 }
 
+/* A second identity check layered on top of the SHA-256 gate: byte sequences
+ * only the expected build carries at these exact addresses. The addresses have
+ * not been measured on every supported client, and an UNMEASURED anchor is
+ * worse than none -- a wrong address either rejects the correct client or, if
+ * the bytes happen to match, asserts something untrue. A profile without
+ * anchors therefore relies on the hash gate alone. */
 int ch_wait_for_feature_ready(DWORD timeout_ms)
 {
+#if !defined(CH_CLIENT_HAS_FEATURE_ANCHORS)
+    (void)timeout_ms;
+    return 1;
+#else
     DWORD elapsed = 0;
     while (elapsed < timeout_ms) {
         if (ch_bytes_match(0x048FF9ABu, CH_SIG_SOCKET_WRITE,
@@ -212,4 +223,5 @@ int ch_wait_for_feature_ready(DWORD timeout_ms)
         elapsed += 10;
     }
     return 0;
+#endif
 }

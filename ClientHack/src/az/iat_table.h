@@ -1,13 +1,7 @@
 ﻿#ifndef CLIENTHACK_IAT_TABLE_H
 #define CLIENTHACK_IAT_TABLE_H
 
-#include <stdint.h>
-
-typedef struct ch_iat_entry {
-    uintptr_t preferred_va;
-    const char* module_name;
-    const char* function_name;
-} ch_iat_entry;
+#include "clienthack/iat_entry.h"
 
 static const ch_iat_entry g_ch_iat_table[] = {
     {0x027D30F0, "kernel32.dll", "FileTimeToSystemTime"},

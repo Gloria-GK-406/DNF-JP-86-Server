@@ -20,6 +20,7 @@ Staged candidates (handoff section 10):
 """
 
 import argparse
+import csv
 import json
 import struct
 from pathlib import Path
@@ -101,15 +102,89 @@ def _c_string(text):
     return text.encode("ascii") + b"\0"
 
 
-# Runtime landmarks (handoff docs).
-COOKIE_RVA = 0x0213BBBF                 # __security_init_cookie
-AEP_VA = 0x06576731                     # original Themida AEP (edi at cookie)
-CRT_CONTINUATION_VA = 0x04ED6E75        # mutated CRT resume point (client_return)
-TLS_DIR_RVA = 0x06230018                # IMAGE_TLS_DIRECTORY (callbacks empty)
+# Runtime landmarks, per client (handoff docs).
+#
+# Every one of these is a property of ONE packed DNF.exe. Selecting the wrong
+# profile produces a PE that jumps into unrelated code, so --client is required
+# to match the binary being rebuilt; the identity is checked against the PE's
+# own SizeOfImage/entry point before anything is written.
+#
+# How each is obtained:
+#   cookie_rva    __security_init_cookie -- the point at which the protector has
+#                 finished unpacking. Same five-byte prologue on both clients.
+#   aep_va        the packed PE's own entry point + IMAGE_BASE. Confirmed at
+#                 runtime: edi holds exactly this value when the startup gate
+#                 intercepts the cookie call.
+#   crt_cont_va   where the mutated CRT resumes after the cookie call. NOT
+#                 reverse-engineered: it is the return address on the client
+#                 stack at the gate intercept, reported as "client_return" by
+#                 the host's startup trace (CLIENTHACK_STARTUP_TRACE=1).
+#   tls_dir_rva   IMAGE_TLS_DIRECTORY, read from the PE's TLS data directory.
+#                 On both clients it sits inside the dropped container section,
+#                 so the descriptor is copied into .idat2 (callbacks empty).
 TLS_DIR_SIZE = 0x18
 
-# 9 orphan API slots embedded in protection data (handoff 8.1): (slot_va, dll, func)
-ORPHAN_SLOTS = [
+CLIENTS = {
+    "a12": {
+        "size_of_image": 0x06693000,
+        "cookie_rva": 0x0213BBBF,
+        "aep_va": 0x06576731,
+        "crt_cont_va": 0x04ED6E75,
+        "tls_dir_rva": 0x06230018,
+        "reloc_csv": "crossmodule-relocs.csv",
+        # msvcp60's run is a data pointer, not name-resolvable as a function;
+        # the stub resolves it through ORPHAN_SLOTS instead.
+        "iat_drop_modules": {"msvcp60.dll"},
+    },
+    "a21": {
+        "size_of_image": 0x0746E000,
+        "cookie_rva": 0x028865DE,
+        "aep_va": 0x07613FBC,
+        "crt_cont_va": 0x05D06329,
+        "tls_dir_rva": 0x06A673D8,
+        "reloc_csv": "crossmodule-relocs-a21.csv",
+        # This client's IAT is kernel32/msvcr71/ws2_32 only -- no data-pointer
+        # run to carve out.
+        "iat_drop_modules": set(),
+    },
+}
+
+# Filled by select_client(); the a12 values are the defaults so that importing
+# this module without choosing keeps the historical behaviour.
+COOKIE_RVA = CLIENTS["a12"]["cookie_rva"]
+AEP_VA = CLIENTS["a12"]["aep_va"]
+CRT_CONTINUATION_VA = CLIENTS["a12"]["crt_cont_va"]
+TLS_DIR_RVA = CLIENTS["a12"]["tls_dir_rva"]
+IAT_DROP_MODULES = CLIENTS["a12"]["iat_drop_modules"]
+DEFAULT_RELOC_CSV = CLIENTS["a12"]["reloc_csv"]
+CLIENT_NAME = "a12"
+
+# Cross-module fixup slots: pointers baked into the dump that the loader never
+# re-resolves, because they are NOT declared imports of the rebuilt PE.
+#
+# Measured by differential analysis over three dumps -- see
+# Docs/differential-crossmodule-fixups.md. The full verified surface is 472
+# sites; 449 of them are covered by the declared import runs, leaving these 24.
+# Every one resolves to a NAMED export, so this table is portable across
+# Windows/DLL versions (no module_base + offset guesswork).
+#
+#   0x027D3xxx  (.code)  9 isolated API slots embedded in protection data
+#   0x047122xx  (.tls)   msvcp60 C++ vftable / static-data exports used by the
+#                        C++ static constructors _initterm runs -- these were the
+#                        PRIMARY startup fault the B1 guard only saw second-hand
+#   0x047124xx  (.tls)   2 further isolated user32 slots
+#   0x04EEE12x  (.,_W)   3-entry TLS helper array the mutated CRT itself uses
+#
+# S4A21 has no counterpart list, and that is a decision rather than an omission.
+# Orphan slots exist to cover sites the relocation table missed, and the S4A12
+# table was built from a SAME-BOOT dump pair that could not see KnownDLL
+# pointers at all. The S4A21 table is built from a cross-reboot pair with
+# same-boot refinement, so every site that moves is already in it; adding a
+# stub-resolved slot on top would apply a base delta to an already-correct
+# value, which is precisely the double-application fault that made an early
+# S4A12 table crash. If a site ever turns out to need name resolution here,
+# it must simultaneously be excluded from the relocation table.
+ORPHAN_SLOTS_A12 = [
     (0x027D3000, "advapi32.dll", "ControlService"),
     (0x027D3430, "shlwapi.dll", "StrStrIW"),
     (0x027D3474, "user32.dll", "SetWindowLongW"),
@@ -119,11 +194,43 @@ ORPHAN_SLOTS = [
     (0x027D3560, "user32.dll", "SendMessageW"),
     (0x027D356C, "user32.dll", "wsprintfW"),
     (0x027D35F4, "winmm.dll", "timeGetTime"),
+    (0x04712280, "msvcp60.dll", "??_8?$basic_ostringstream@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@7B@"),
+    (0x04712288, "msvcp60.dll", "??_7?$basic_ios@DU?$char_traits@D@std@@@std@@6B@"),
+    (0x04712294, "msvcp60.dll", "??_7?$basic_ostringstream@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@6B@"),
+    (0x047122A4, "msvcp60.dll", "??_7?$basic_stringbuf@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@6B@"),
+    (0x047122AC, "msvcp60.dll", "??_7?$basic_streambuf@DU?$char_traits@D@std@@@std@@6B@"),
+    (0x047122B4, "msvcp60.dll", "??_7?$basic_ostream@DU?$char_traits@D@std@@@std@@6B@"),
+    (0x047122FC, "msvcp60.dll", "?npos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@2IB"),
+    (0x04712318, "msvcp60.dll", "?_C@?1??_Nullstr@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@CAPBDXZ@4DB"),
+    (0x0471231C, "msvcp60.dll", "?npos@?$basic_string@GU?$char_traits@G@std@@V?$allocator@G@2@@std@@2IB"),
+    (0x04712484, "user32.dll", "GetParent"),
+    (0x047124BC, "user32.dll", "IsWindowVisible"),
+    (0x04EEE124, "kernel32.dll", "TlsGetValue"),
+    (0x04EEE128, "kernel32.dll", "TlsSetValue"),
+    (0x04EEE12C, "kernel32.dll", "TlsFree"),
+    (0x04712340, "msvcp60.dll", "?_C@?1??_Nullstr@?$basic_string@GU?$char_traits@G@std@@V?$allocator@G@2@@std@@CAPBGXZ@4GB"),
 ]
-# msvcp60 data export (basic_string<wchar> vftable): resolve module_base + offset.
-MSVCP60_SLOT_VA = 0x04712340
-MSVCP60_MODULE = "msvcp60.dll"
-MSVCP60_OFFSET = 0x60F0
+
+ORPHAN_SLOTS_BY_CLIENT = {"a12": ORPHAN_SLOTS_A12, "a21": []}
+ORPHAN_SLOTS = ORPHAN_SLOTS_A12
+
+
+def select_client(name):
+    """Point every client-specific landmark at one client's profile."""
+    global COOKIE_RVA, AEP_VA, CRT_CONTINUATION_VA, TLS_DIR_RVA
+    global ORPHAN_SLOTS, IAT_DROP_MODULES, DEFAULT_RELOC_CSV, CLIENT_NAME
+    if name not in CLIENTS:
+        raise ValueError("unknown client %r (have: %s)"
+                         % (name, ", ".join(sorted(CLIENTS))))
+    p = CLIENTS[name]
+    COOKIE_RVA = p["cookie_rva"]
+    AEP_VA = p["aep_va"]
+    CRT_CONTINUATION_VA = p["crt_cont_va"]
+    TLS_DIR_RVA = p["tls_dir_rva"]
+    IAT_DROP_MODULES = p["iat_drop_modules"]
+    DEFAULT_RELOC_CSV = p["reloc_csv"]
+    ORPHAN_SLOTS = ORPHAN_SLOTS_BY_CLIENT[name]
+    CLIENT_NAME = name
 
 
 # --- tiny x86 assembler (fixed-base, absolute addressing) ---
@@ -163,9 +270,96 @@ def _jz_rel8(off):                      # jz rel8 (short)
     return b"\x74" + struct.pack("<b", off)
 
 
+def _sub_eax_imm32(v):
+    return bytes((0x2D,)) + struct.pack("<I", v & 0xFFFFFFFF)
+
+
+def _mov_ecx_moffs(abs_va):             # mov ecx, dword ptr [imm32]
+    return bytes((0x8B, 0x0D)) + struct.pack("<I", abs_va & 0xFFFFFFFF)
+
+
+def _add_ecx_eax():
+    return bytes((0x01, 0xC1))
+
+
+def _mov_moffs_ecx(abs_va):             # mov dword ptr [imm32], ecx
+    return bytes((0x89, 0x0D)) + struct.pack("<I", abs_va & 0xFFFFFFFF)
+
+
+def _jz_rel32(off):                     # jz rel32 (near)
+    return bytes((0x0F, 0x84)) + struct.pack("<i", off)
+
+
+def load_reloc_table(csv_path):
+    """Cross-module relocation sites measured by differential analysis.
+
+    Themida's API wrappers do not store a plain pointer: they store
+    ``api_address + K`` for a per-site constant K and undo K at call time.  That
+    is invisible to a "does this value point into a module" test, but it is
+    perfectly visible to a differential: adding a constant is transparent to
+    subtraction, so the value still moves by exactly the module's base delta
+    between two dumps.
+
+    The consequence is that K never has to be recovered.  Re-basing the stored
+    value by ``current_base - dump_base`` repairs plain and transformed forms
+    alike -- this is a relocation table, not an import table.
+    """
+    rows = []
+    with open(csv_path, newline="", encoding="utf-8-sig") as handle:
+        for row in csv.DictReader(handle):
+            rows.append((int(row["site_rva"], 16), row["module"].strip().lower()))
+    return rows
+
+
+def load_module_bases(csv_path):
+    """Module base addresses recorded by 0000_MemoryDump at capture time."""
+    bases = {}
+    with open(csv_path, newline="", encoding="utf-8-sig") as handle:
+        for row in csv.DictReader(handle):
+            name = row["name"].strip().strip('"').lower()
+            if name == "dnf.exe":
+                continue
+            bases.setdefault(name, int(row["base_va"], 16))
+    return bases
+
+
+def _emit_crossmodule_relocs(loadlib_va, str_va, relocs, bases):
+    """Re-base every recorded cross-module site by its module's load delta.
+
+    A module that fails to load leaves all of its sites untouched: the dumped
+    value is what the exe has today, so keeping it cannot be worse.
+    """
+    by_module = {}
+    for site_rva, module in relocs:
+        by_module.setdefault(module, []).append(site_rva)
+    code = bytearray()
+    skipped = []
+    for module in sorted(by_module):
+        dump_base = bases.get(module)
+        if dump_base is None:
+            skipped.append(module)
+            continue
+        body = bytearray()
+        body += _sub_eax_imm32(dump_base)          # eax = current_base - dump_base
+        for site_rva in sorted(by_module[module]):
+            site_va = IMAGE_BASE + site_rva
+            body += _mov_ecx_moffs(site_va)
+            body += _add_ecx_eax()
+            body += _mov_moffs_ecx(site_va)
+        code += _push_imm32(str_va(module))
+        code += _call_abs(loadlib_va)              # eax = HMODULE or NULL
+        code += _test_eax_eax()
+        code += _jz_rel32(len(body))               # module missing -> keep sites
+        code += body
+    return bytes(code), skipped
+
+
 def load_iat_runs(csv_path):
-    """Return contiguous same-module runs of the 406 IAT slots, excluding the
-    single msvcp60 data pointer (handled by the stub)."""
+    """Contiguous same-module runs of the client IAT slots.
+
+    Runs belonging to IAT_DROP_MODULES are left out: their entries are data
+    exports, which cannot be declared as imported functions. On S4A12 that is
+    the msvcp60 run, which the stub resolves by name instead."""
     import csv as _csv
     rows = []
     with open(csv_path, newline="") as f:
@@ -184,8 +378,7 @@ def load_iat_runs(csv_path):
             cur = {"start": rva, "end": rva, "mod": mod, "funcs": [fn]}
     if cur:
         runs.append(cur)
-    # drop the msvcp60 data-pointer run (not name-resolvable)
-    runs = [r for r in runs if r["mod"].lower() != "msvcp60.dll"]
+    runs = [r for r in runs if r["mod"].lower() not in IAT_DROP_MODULES]
     return runs
 
 
@@ -330,33 +523,36 @@ def build_stub_b0(exitprocess_slot_va, exit_code=0x0000B000):
 
 
 def _emit_orphan_resolution(loadlib_va, getproc_va, str_va):
-    """Resolve the 9 orphan slots + the msvcp60 data pointer.
+    """Resolve every cross-module fixup slot by name.
 
     str_va(name) -> VA of a C string for that dll/func name.
+
+    A failed lookup leaves the slot at its dumped value instead of writing NULL:
+    a stale pointer is what the exe has today, a NULL one faults immediately.
     """
     code = bytearray()
     for slot_va, dll, func in ORPHAN_SLOTS:
+        tail = (_push_imm32(0) + _push_eax() + _call_abs(getproc_va) +
+                _test_eax_eax() + _jz_rel8(0) + _mov_moffs_eax(0))
         code += _push_imm32(str_va(dll))
-        code += _call_abs(loadlib_va)         # eax = HMODULE
+        code += _call_abs(loadlib_va)         # eax = HMODULE or NULL
+        code += _test_eax_eax()
+        code += _jz_rel8(len(tail))           # module missing -> keep slot
         code += _push_imm32(str_va(func))
         code += _push_eax()
-        code += _call_abs(getproc_va)         # eax = proc
-        code += _mov_moffs_eax(slot_va)       # slot = proc
-    # msvcp60 data pointer: base + offset (skip write if not loaded)
-    code += _push_imm32(str_va(MSVCP60_MODULE))
-    code += _call_abs(loadlib_va)             # eax = msvcp60 base or 0
-    code += _test_eax_eax()
-    code += _jz_rel8(len(_add_eax_imm32(0)) + len(_mov_moffs_eax(0)))
-    code += _add_eax_imm32(MSVCP60_OFFSET)
-    code += _mov_moffs_eax(MSVCP60_SLOT_VA)
+        code += _call_abs(getproc_va)         # eax = export address or NULL
+        code += _test_eax_eax()
+        code += _jz_rel8(len(_mov_moffs_eax(0)))   # export missing -> keep slot
+        code += _mov_moffs_eax(slot_va)       # slot = resolved address
     return bytes(code)
 
 
-def build_stub_b05(stub_va, ft, str_va, exit_code=0x0000B005):
+def build_stub_b05(stub_va, ft, str_va, reloc_code=b"", exit_code=0x0000B005):
     """Resolve orphan slots + msvcp60, run cookie, ExitProcess(distinctive)."""
     code = bytearray()
     code += _emit_orphan_resolution(ft[(0, "LoadLibraryA")],
                                     ft[(0, "GetProcAddress")], str_va)
+    code += reloc_code
     # call __security_init_cookie (relative)
     call_off = len(code)
     rel = (COOKIE_RVA + IMAGE_BASE) - (stub_va + call_off + 5)
@@ -367,11 +563,12 @@ def build_stub_b05(stub_va, ft, str_va, exit_code=0x0000B005):
     return bytes(code)
 
 
-def build_stub_b1(stub_va, ft, str_va):
+def build_stub_b1(stub_va, ft, str_va, reloc_code=b""):
     """Strategy C: resolve imports, set edi=AEP, run cookie, jmp CRT continuation."""
     code = bytearray()
     code += _emit_orphan_resolution(ft[(0, "LoadLibraryA")],
                                     ft[(0, "GetProcAddress")], str_va)
+    code += reloc_code
     code += _mov_edi_imm32(AEP_VA)            # edi = original AEP (context ptr)
     code += _xor_esi_esi()                    # esi = 0 (matches capture)
     call_off = len(code)
@@ -383,10 +580,41 @@ def build_stub_b1(stub_va, ft, str_va):
     return bytes(code)
 
 
-def rebuild(original_path, memory_path, output_path, stage="b0", iat_csv=None):
+def rebuild(original_path, memory_path, output_path, stage="b0", iat_csv=None,
+            reloc_csv=None, modules_csv=None, drop_sections=None):
     original = Path(original_path).read_bytes()
     memory = Path(memory_path).read_bytes()
+    # Cross-module relocation table (differential measurement) plus the module
+    # bases recorded in the same capture the image comes from.  Both default to
+    # files that sit next to the tool / next to the dump.
+    relocs = []
+    module_bases = {}
+    reloc_skipped = []
+    if stage in ("b0.5", "b1"):
+        if reloc_csv is None:
+            reloc_csv = Path(__file__).with_name(DEFAULT_RELOC_CSV)
+        if modules_csv is None:
+            modules_csv = Path(memory_path).with_name("DNF-modules.csv")
+        if Path(reloc_csv).exists() and Path(modules_csv).exists():
+            relocs = load_reloc_table(reloc_csv)
+            module_bases = load_module_bases(modules_csv)
+        elif Path(reloc_csv).exists():
+            raise ValueError(
+                "cross-module relocations need the capture's DNF-modules.csv; "
+                "re-dump with a 0000_MemoryDump that records the module list")
     pe = _parse_pe32(original)
+    # Refuse a profile/binary mismatch before writing anything. Every landmark
+    # below is an absolute address in ONE client; used against the other they
+    # produce a PE that jumps into unrelated code and faults with no clue as to
+    # why. SizeOfImage and the entry point together identify the binary.
+    expect = CLIENTS[CLIENT_NAME]
+    if pe["size_of_image"] != expect["size_of_image"] or \
+            pe["entrypoint_rva"] + IMAGE_BASE != expect["aep_va"]:
+        raise ValueError(
+            "--client %s does not match this DNF.exe: profile expects "
+            "SizeOfImage %#x / AEP %#x, binary has %#x / %#x"
+            % (CLIENT_NAME, expect["size_of_image"], expect["aep_va"],
+               pe["size_of_image"], pe["entrypoint_rva"] + IMAGE_BASE))
     size_of_image = pe["size_of_image"]
     size_of_headers = pe["size_of_headers"]
     file_align = pe["file_alignment"]
@@ -412,15 +640,46 @@ def rebuild(original_path, memory_path, output_path, stage="b0", iat_csv=None):
     struct.pack_into("<I", rebuilt, opt + OPT_SIZE_OF_HEADERS, new_size_of_headers)
     cursor = len(rebuilt)
 
-    # Materialize original sections.
+    # Materialize original sections.  Anything named in --drop-sections keeps
+    # only a placeholder header: VirtualSize as before, but zero raw data and no
+    # MEM_READ/WRITE/EXECUTE, so the loader maps the window PAGE_NOACCESS.  The
+    # bytes leave the file entirely, and a surviving reference faults at a
+    # precise address instead of silently reading zeros.
+    #
+    # The window cannot simply be omitted: the image loader requires the section
+    # RVAs to be contiguous, and a hole makes the whole PE "not a valid
+    # application for this OS platform" before any code runs.  No other section
+    # moves, so every surviving RVA is unchanged.
+    drop = set(drop_sections or ())
+    kept = []
+    dropped = []
+    # The entry stub writes resolved addresses into ORPHAN_SLOTS and into the
+    # cross-module relocation sites. Some of those live in sections the original
+    # header marks read-execute (the mutated-code section .,_W holds a 3-entry
+    # TLS helper array), where the packer used VirtualProtect to write them at
+    # runtime. A stub store into such a page faults before the stub can even
+    # reach the cookie call, so grant WRITE to any section that owns a site.
+    writes = [slot - IMAGE_BASE for slot, _dll, _fn in ORPHAN_SLOTS]
+    writes += [site for site, _m in relocs]
     for index in range(pe["section_count"]):
         h = pe["section_offset"] + index * 40
+        name = original[h:h + 8]
         vsize = _u32(original, h + 8)
         vaddr = _u32(original, h + 12)
         orig_raw = _u32(original, h + 16)
+        chars = _u32(original, h + 36)
         materialized = max(vsize, orig_raw)
+        label = name.rstrip(b"\0").decode("latin1", "replace")
+        if index in drop or label in drop:
+            dropped.append({"index": index, "name": label, "vaddr": vaddr,
+                            "vsize": materialized})
+            kept.append({"name": ("$gap%d" % index).encode(), "vsize": materialized,
+                         "vaddr": vaddr, "raw_size": 0, "raw_ptr": 0,
+                         "characteristics": 0x00000080})   # UNINIT_DATA, no access
+            continue
         if materialized == 0:
-            struct.pack_into("<II", rebuilt, h + 16, 0, 0)
+            kept.append({"name": name, "vsize": vsize, "vaddr": vaddr,
+                         "raw_size": 0, "raw_ptr": 0, "characteristics": chars})
             continue
         if vaddr >= size_of_image:
             raise ValueError("section starts outside SizeOfImage")
@@ -431,8 +690,16 @@ def rebuild(original_path, memory_path, output_path, stage="b0", iat_csv=None):
             rebuilt.extend(b"\0" * (raw_ptr - len(rebuilt)))
         rebuilt.extend(b"\0" * raw_size)
         rebuilt[raw_ptr:raw_ptr + copy_size] = memory[vaddr:vaddr + copy_size]
-        struct.pack_into("<II", rebuilt, h + 16, raw_size, raw_ptr)
         cursor = raw_ptr + raw_size
+        if stage in ("b0.5", "b1") and any(
+                vaddr <= w < vaddr + materialized for w in writes):
+            chars |= 0x80000000
+        kept.append({"name": name, "vsize": vsize, "vaddr": vaddr,
+                     "raw_size": raw_size, "raw_ptr": raw_ptr,
+                     "characteristics": chars})
+    for spec in drop:
+        if not any(d["index"] == spec or d["name"] == spec for d in dropped):
+            raise ValueError(f"--drop-sections: no section matches {spec!r}")
 
     # --- Build new sections (import blob + stub) ---
     idata_va = _align_up(size_of_image, sect_align)
@@ -469,15 +736,25 @@ def rebuild(original_path, memory_path, output_path, stage="b0", iat_csv=None):
     # Append a string pool (dll/func names the stub resolves at runtime).
     idata_blob = bytearray(idata_blob)
     str_rva = {}
+    tls_rva = TLS_DIR_RVA
     if stage in ("b0.5", "b1"):
         names = set()
         for _slot, dll, func in ORPHAN_SLOTS:
             names.add(dll)
             names.add(func)
-        names.add(MSVCP60_MODULE)
+        for _site, module in relocs:
+            names.add(module)
         for s in sorted(names):
             str_rva[s] = idata_va + len(idata_blob)
             idata_blob += _c_string(s)
+        # Relocate the 24-byte IMAGE_TLS_DIRECTORY out of the protector section
+        # that holds it, so that section can be dropped.  Only the descriptor
+        # moves; its template (.lA0) and index slot (.data) stay put, and the
+        # callback list is empty (verified against the dump).
+        while len(idata_blob) % 4:
+            idata_blob += b"\0"
+        tls_rva = idata_va + len(idata_blob)
+        idata_blob += memory[TLS_DIR_RVA:TLS_DIR_RVA + TLS_DIR_SIZE]
     idata_blob = bytes(idata_blob)
 
     def str_va(name):
@@ -488,9 +765,15 @@ def rebuild(original_path, memory_path, output_path, stage="b0", iat_csv=None):
     if stage == "b0":
         stub = build_stub_b0(ft_slots[(0, "ExitProcess")])
     elif stage == "b0.5":
-        stub = build_stub_b05(IMAGE_BASE + stub_rva, ft_slots, str_va)
+        reloc_code, reloc_skipped = _emit_crossmodule_relocs(
+            ft_slots[(0, "LoadLibraryA")], str_va, relocs, module_bases)
+        stub = build_stub_b05(IMAGE_BASE + stub_rva, ft_slots, str_va,
+                              reloc_code)
     else:  # b1
-        stub = build_stub_b1(IMAGE_BASE + stub_rva, ft_slots, str_va)
+        reloc_code, reloc_skipped = _emit_crossmodule_relocs(
+            ft_slots[(0, "LoadLibraryA")], str_va, relocs, module_bases)
+        stub = build_stub_b1(IMAGE_BASE + stub_rva, ft_slots, str_va,
+                             reloc_code)
 
     def add_section(name, vaddr, vsize, characteristics, payload):
         nonlocal cursor
@@ -510,16 +793,23 @@ def rebuild(original_path, memory_path, output_path, stage="b0", iat_csv=None):
     sec_stub = add_section(b".chstub", stub_va, len(stub),
                            0x60000020, stub)          # CODE|EXECUTE|READ
 
-    # Write the two new section headers.
-    for slot, sec in enumerate((sec_idata, sec_stub)):
-        h = pe["section_offset"] + (pe["section_count"] + slot) * 40
+    # Rewrite the whole section header table: surviving originals in their
+    # original order, then the two new sections.  Wipe first so a dropped entry
+    # leaves no stale header behind.
+    table = kept + [sec_idata, sec_stub]
+    new_section_count = len(table)
+    hdr_base = pe["section_offset"]
+    wipe_end = min(hdr_base + (pe["section_count"] + 2) * 40, new_size_of_headers)
+    rebuilt[hdr_base:wipe_end] = b"\0" * (wipe_end - hdr_base)
+    for slot, sec in enumerate(table):
+        h = hdr_base + slot * 40
         name = sec["name"][:8].ljust(8, b"\0")
         struct.pack_into("<8sIIIIIIHHI", rebuilt, h,
                          name, sec["vsize"], sec["vaddr"],
                          sec["raw_size"], sec["raw_ptr"],
                          0, 0, 0, 0, sec["characteristics"])
 
-    # File header: bump NumberOfSections.
+    # File header: NumberOfSections.
     struct.pack_into("<H", rebuilt, pe["file_header"] + 2, new_section_count)
 
     # Optional header updates.
@@ -539,7 +829,7 @@ def rebuild(original_path, memory_path, output_path, stage="b0", iat_csv=None):
     if enable_tls:
         # TLS callbacks are empty (verified); the loader only allocates the slot
         # and copies the zero template -- no protection code runs.
-        set_dir(DIR_TLS, TLS_DIR_RVA, TLS_DIR_SIZE)
+        set_dir(DIR_TLS, tls_rva, TLS_DIR_SIZE)
     else:
         zero_dirs.append(DIR_TLS)
     for d in zero_dirs:
@@ -551,6 +841,7 @@ def rebuild(original_path, memory_path, output_path, stage="b0", iat_csv=None):
     return {
         "output": str(output_path),
         "stage": stage,
+        "client": CLIENT_NAME,
         "output_size": len(rebuilt),
         "image_base": IMAGE_BASE,
         "old_size_of_image": size_of_image,
@@ -559,6 +850,9 @@ def rebuild(original_path, memory_path, output_path, stage="b0", iat_csv=None):
         "idata_rva": idata_va,
         "stub_rva": stub_va,
         "section_count": new_section_count,
+        "tls_dir_rva": tls_rva,
+        "dropped_sections": dropped,
+        "dropped_bytes": sum(d["vsize"] for d in dropped),
     }
 
 
@@ -568,11 +862,31 @@ def main():
     ap.add_argument("--memory", required=True, type=Path)
     ap.add_argument("--output", required=True, type=Path)
     ap.add_argument("--stage", default="b0", choices=["b0", "b0.5", "b1"])
+    ap.add_argument("--client", default="a12", choices=sorted(CLIENTS),
+                    help="which packed client this DNF.exe is; selects the "
+                         "cookie/AEP/CRT landmarks and the relocation table. "
+                         "Checked against the binary before anything is written")
     ap.add_argument("--iat-csv", type=Path,
                     help="DNF-iat.csv (required for b0.5 and b1)")
+    ap.add_argument("--reloc-csv", type=Path,
+                    help="crossmodule-relocs.csv (defaults to the tool's own directory)")
+    ap.add_argument("--modules-csv", type=Path,
+                    help="DNF-modules.csv from the same capture (defaults next to --memory)")
+    ap.add_argument("--drop-sections", default="",
+                    help="comma-separated section indices and/or names to omit "
+                         "entirely, e.g. 13")
     args = ap.parse_args()
+    select_client(args.client)
+    drop = set()
+    for tok in args.drop_sections.split(","):
+        tok = tok.strip()
+        if not tok:
+            continue
+        drop.add(int(tok) if tok.isdigit() else tok)
     print(json.dumps(rebuild(args.original, args.memory, args.output,
-                             args.stage, args.iat_csv), indent=2))
+                             args.stage, args.iat_csv,
+                             args.reloc_csv, args.modules_csv,
+                             drop), indent=2))
 
 
 if __name__ == "__main__":

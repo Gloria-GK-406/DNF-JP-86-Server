@@ -9,6 +9,7 @@ typedef struct ch_required_identity {
     const char* descriptor_name;
 } ch_required_identity;
 
+#if CH_REQUIRED_PLUGIN_COUNT > 0u
 static const ch_required_identity required_plugins[CH_REQUIRED_PLUGIN_COUNT] = {
     { L"0005_AntiAntiDebug.dll", "AntiAntiDebug" },
     { L"0010_DisableGameGuard.dll", "DisableGameGuard" },
@@ -17,6 +18,7 @@ static const ch_required_identity required_plugins[CH_REQUIRED_PLUGIN_COUNT] = {
     { L"0110_ServerRedirect.dll", "ServerRedirect" },
     { L"0900_PreventMinimize.dll", "PreventMinimize" }
 };
+#endif
 
 void ch_required_plugin_state_init(ch_required_plugin_state* state)
 {
@@ -29,6 +31,10 @@ int ch_required_plugin_identify(
     uint32_t descriptor_flags,
     uint32_t* index)
 {
+#if CH_REQUIRED_PLUGIN_COUNT == 0u
+    (void)filename; (void)descriptor_name; (void)descriptor_flags; (void)index;
+    return 0;
+#else
     uint32_t i;
     if (filename == NULL) return 0;
     for (i = 0; i < CH_REQUIRED_PLUGIN_COUNT; ++i) {
@@ -41,6 +47,7 @@ int ch_required_plugin_identify(
         }
     }
     return 0;
+#endif
 }
 
 void ch_required_plugin_mark_initialized(ch_required_plugin_state* state, uint32_t index)

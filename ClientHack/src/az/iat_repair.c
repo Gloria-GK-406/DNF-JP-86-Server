@@ -1,8 +1,18 @@
 #include "host_internal.h"
 
 #include "clienthack/iat_state.h"
+#include "clienthack/client_profile.h"
 #include "iat_gate_policy.h"
+/* Which slots exist, and what each must point at, is a property of one packed
+ * binary. Selected by the same compile-time profile as every other
+ * client-specific address -- see clienthack/client_profile.h. */
+#if defined(CLIENTHACK_CLIENT_A21)
+#include "iat_table_a21.h"
+#define g_ch_iat_table g_ch_iat_table_a21
+#define CH_IAT_ENTRY_COUNT CH_IAT_ENTRY_COUNT_A21
+#else
 #include "iat_table.h"
+#endif
 
 #include <stdio.h>
 #include <string.h>
@@ -60,7 +70,7 @@ int ch_repair_client_iat(void)
 
         if (entry->preferred_va < 0x00400000u) return 0;
         rva = entry->preferred_va - 0x00400000u;
-        if (rva > 0x06693000u - sizeof(uintptr_t)) return 0;
+        if (rva > CH_CLIENT_SIZE_OF_IMAGE - sizeof(uintptr_t)) return 0;
         slot = (const uintptr_t*)(g_ch_dnf_base + rva);
         if (VirtualQuery(slot, &memory, sizeof(memory)) != sizeof(memory) ||
             memory.State != MEM_COMMIT ||
@@ -94,6 +104,7 @@ int ch_repair_client_iat(void)
         /* The slot is repaired to its current resolved export without matching
          * the prior pack-time value against any captured absolute address.
          * Only the DNF data-export slot (resolved == 0) is retained by RVA. */
+#if defined(CH_IAT_GATE_DATA_EXPORT_INDEX)
         if (index == CH_IAT_GATE_DATA_EXPORT_INDEX) {
             state = ch_iat_policy_evaluate(original[index], resolved[index],
                 (uintptr_t)module, 1, CH_IAT_GATE_DATA_EXPORT_RVA);
@@ -101,6 +112,10 @@ int ch_repair_client_iat(void)
             state = ch_iat_policy_evaluate(original[index], resolved[index],
                 0, 0, 0);
         }
+#else
+        state = ch_iat_policy_evaluate(original[index], resolved[index],
+            0, 0, 0);
+#endif
         if (state == CH_IAT_POLICY_REJECTED) {
             char detail[128];
             _snprintf_s(detail, sizeof(detail), _TRUNCATE,

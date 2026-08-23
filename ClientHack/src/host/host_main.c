@@ -3,6 +3,7 @@
 
 #include "clienthack/gate.h"
 #include "clienthack/startup.h"
+#include "clienthack/client_profile.h"
 
 #include <stdio.h>
 
@@ -67,12 +68,7 @@ static int ch_debug_attach_handshake(void)
     return 1;
 }
 
-static const uint8_t g_supported_dnf_hash[32] = {
-    0xF7, 0x8F, 0x0A, 0xEA, 0x51, 0x37, 0xDF, 0x06,
-    0xB6, 0x3E, 0xD0, 0xF7, 0x47, 0x0B, 0x66, 0xF3,
-    0xA2, 0x4D, 0x06, 0x1B, 0x69, 0xD4, 0xDA, 0x13,
-    0x75, 0x8E, 0x65, 0x57, 0x4A, 0x7F, 0xC0, 0x4C
-};
+static const uint8_t g_supported_dnf_hash[32] = CH_CLIENT_SHA256_BYTES;
 
 void ch_fatal(const wchar_t* detail)
 {
@@ -86,8 +82,9 @@ void ch_fatal(const wchar_t* detail)
     }
     _snwprintf_s(message, sizeof(message) / sizeof(message[0]), _TRUNCATE,
         L"ClientHack refused to start.\n\n%s\n\n"
-        L"This build only supports DNF.exe SHA-256:\n"
-        L"F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C\n\n"
+        L"This build only supports the " CH_CLIENT_NAME_W
+        L" client. Expected DNF.exe SHA-256:\n"
+        CH_CLIENT_SHA256_TEXT L"\n\n"
         L"The process will now close.", detail != NULL ? detail : L"Unknown error.");
     MessageBoxW(NULL, message, L"Unsupported DNF client", MB_OK | MB_ICONERROR | MB_SYSTEMMODAL);
     TerminateProcess(GetCurrentProcess(), ERROR_BAD_EXE_FORMAT);
