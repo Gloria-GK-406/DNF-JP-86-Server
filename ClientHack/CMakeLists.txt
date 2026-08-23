@@ -340,7 +340,17 @@ set_target_properties(plugin_fault_recorder_a21 PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CLIENTHACK_STAGE_DIR_A21}/plugins"
     RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CLIENTHACK_STAGE_DIR_A21}/plugins"
     RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CLIENTHACK_STAGE_DIR_A21}/plugins")
+clienthack_plugin_a21(plugin_network_hook_a21
+    plugins/0100_network_hook/network_hook.c
+    "0100_NetworkHook" "NetworkHook")
+clienthack_plugin_a21(plugin_server_redirect_a21
+    plugins/0110_server_redirect/server_redirect.c
+    "0110_ServerRedirect" "ServerRedirect")
+target_link_libraries(plugin_server_redirect_a21 PRIVATE clienthack_core_a21 ws2_32)
+
 add_custom_target(clienthack_plugins_a21 DEPENDS
+    plugin_network_hook_a21
+    plugin_server_redirect_a21
     plugin_disable_gameguard_a21
     plugin_client_compatibility_a21
     plugin_a21_runtime_fix)

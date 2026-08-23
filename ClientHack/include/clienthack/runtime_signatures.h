@@ -30,12 +30,46 @@ static const uint8_t CH_SIG_SOCKET_WRITE[16] = {
 };
 
 /* Inbound stream read primitives and the per-frame remaining-bytes setter.
- * Read from dnf-dump-20260817-100117-955-7824 (RVA-indexed). Every S->C field
- * extraction in the client funnels through these four reads, so hooking them
- * yields the field decomposition of any frame -- including handlers whose call
- * graph disappears into the packed region and cannot be walked statically.
- * All five are __cdecl with a bare `ret`: the caller cleans the stack.
- * See protocol/patterns/game-receive.md for the stream layout. */
+ * Every S->C field extraction in the client funnels through these four reads,
+ * so hooking them yields the field decomposition of any frame -- including
+ * handlers whose call graph disappears into the packed region and cannot be
+ * walked statically. All five are __cdecl with a bare `ret`: the caller cleans
+ * the stack. See protocol/patterns/game-receive.md for the stream layout.
+ *
+ * These five carry the inbound stream object's ABSOLUTE address inside them
+ * (`mov eax, [stream]` / `mov [stream+4], eax`), so the bytes differ per
+ * client and cannot be shared. The A21 set was located by masking that imm32
+ * and searching the A21 dump for the remaining shape: each of the four reads
+ * matched exactly once, all four agreeing on the same stream address, and at
+ * the same 0x70 spacing the A12 set has. SetRemaining's shape alone matches 53
+ * places -- it is just `mov [global], eax; ret` -- so it was disambiguated by
+ * requiring the write to land on stream+4, which leaves exactly one.
+ * A12 read from dnf-dump-20260817-100117-955-7824;
+ * A21 from dnf-dump-20260822-232754-263-26888. */
+#if defined(CLIENTHACK_CLIENT_A21)
+/* stream at VA 0x03BAAE38 */
+static const uint8_t CH_SIG_READ_U8[16] = {
+    0x55, 0x8B, 0xEC, 0xA1, 0x38, 0xAE, 0xBA, 0x03,
+    0x8A, 0x08, 0x8B, 0x55, 0x08, 0x40, 0xFF, 0x0D
+};
+static const uint8_t CH_SIG_READ_U16[16] = {
+    0x55, 0x8B, 0xEC, 0xA1, 0x38, 0xAE, 0xBA, 0x03,
+    0x66, 0x8B, 0x08, 0x8B, 0x55, 0x08, 0x83, 0xC0
+};
+static const uint8_t CH_SIG_READ_U32[16] = {
+    0x55, 0x8B, 0xEC, 0xA1, 0x38, 0xAE, 0xBA, 0x03,
+    0x8B, 0x08, 0x8B, 0x55, 0x08, 0x83, 0xC0, 0x04
+};
+static const uint8_t CH_SIG_READ_BYTES[16] = {
+    0x55, 0x8B, 0xEC, 0x8B, 0x45, 0x08, 0x56, 0x8B,
+    0x75, 0x0C, 0x57, 0x8B, 0x3D, 0x38, 0xAE, 0xBA
+};
+static const uint8_t CH_SIG_SET_REMAINING[13] = {
+    0x55, 0x8B, 0xEC, 0x8B, 0x45, 0x08, 0xA3, 0x3C,
+    0xAE, 0xBA, 0x03, 0x5D, 0xC3
+};
+#else
+/* stream at VA 0x031C7E00 */
 static const uint8_t CH_SIG_READ_U8[16] = {
     0x55, 0x8B, 0xEC, 0xA1, 0x00, 0x7E, 0x1C, 0x03,
     0x8A, 0x08, 0x8B, 0x55, 0x08, 0x40, 0xFF, 0x0D
@@ -56,6 +90,7 @@ static const uint8_t CH_SIG_SET_REMAINING[13] = {
     0x55, 0x8B, 0xEC, 0x8B, 0x45, 0x08, 0xA3, 0x04,
     0x7E, 0x1C, 0x03, 0x5D, 0xC3
 };
+#endif
 
 static const uint8_t CH_ORIG_PROTECTION_005F80FD[6] = {
     0x0F, 0x84, 0x8D, 0x06, 0x00, 0x00

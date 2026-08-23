@@ -10,7 +10,12 @@
 #include <wchar.h>
 
 enum {
+#if defined(CLIENTHACK_CLIENT_A21)
+    /* ws2_32!inet_addr, VA 0x0302962C in iat_table_a21.h */
+    DNF_INET_ADDR_IAT_RVA = 0x02C2962Cu
+#else
     DNF_INET_ADDR_IAT_RVA = 0x023D3630u
+#endif
 };
 
 typedef unsigned long (WSAAPI *inet_addr_fn)(const char* value);

@@ -108,9 +108,14 @@ static wchar_t g_trace_log_path[MAX_PATH];
  * move the origin. Every call is logged with its argument either way, so the
  * trace shows what actually happened rather than what this comment assumes. */
 enum {
-    /* VA 0x031C7E00 in the disassembly; stored as an RVA so a relocated image
-     * still resolves. +0x00 is the read cursor, +0x04 the remaining count. */
-    INBOUND_STREAM_RVA = 0x02DC7E00u,
+    /* Stored as an RVA so a relocated image still resolves. +0x00 is the read
+     * cursor, +0x04 the remaining count. The address is per client and was
+     * read back out of the signatures themselves -- see runtime_signatures.h. */
+#if defined(CLIENTHACK_CLIENT_A21)
+    INBOUND_STREAM_RVA = 0x037AAE38u,   /* VA 0x03BAAE38 */
+#else
+    INBOUND_STREAM_RVA = 0x02DC7E00u,   /* VA 0x031C7E00 */
+#endif
     /* Records buffered per frame. The entry batch's largest body is ~30 KB of
      * quest flags, which is read in bulk rather than field by field; 512 covers
      * every frame observed so far and truncation is reported in the line. */
@@ -703,6 +708,32 @@ static void __cdecl set_remaining_trace(int remaining)
             (uint16_t)g_last_decrypt_type)) ? 1 : 0;
 }
 
+/* Where each hooked routine lives, per client. The A21 column was located by
+ * signature search in an A21 dump, not transcribed: the two cipher entries and
+ * ISocket::Write came out identical to the addresses 0050_A21RuntimeFix had
+ * already established independently, which is the cross-check that makes the
+ * rest of the column trustworthy. */
+#if defined(CLIENTHACK_CLIENT_A21)
+#define RVA_CIPHER_ENCRYPT  0x022B7D90u
+#define RVA_CIPHER_DECRYPT  0x022B7E50u
+#define RVA_SOCKET_WRITE    0x05390FE9u
+#define RVA_READ_U8         0x023C5230u
+#define RVA_READ_U16        0x023C52A0u
+#define RVA_READ_U32        0x023C5310u
+#define RVA_READ_BYTES      0x023C5380u
+#define RVA_SET_REMAINING   0x023C4350u
+#else
+#define RVA_CIPHER_ENCRYPT  0x01C11360u
+#define RVA_CIPHER_DECRYPT  0x01C11420u
+#define RVA_SOCKET_WRITE    0x048FF9ABu
+#define RVA_READ_U8         0x01D00420u
+#define RVA_READ_U16        0x01D00490u
+#define RVA_READ_U32        0x01D00500u
+#define RVA_READ_BYTES      0x01D00570u
+#define RVA_SET_REMAINING   0x01CFF6A0u
+#endif
+
+#if !defined(CLIENTHACK_CLIENT_A21)
 static ch_status apply_network_xor_patch(const ch_host_api* host)
 {
     static const uint8_t nops[5] = { 0x90, 0x90, 0x90, 0x90, 0x90 };
@@ -712,6 +743,9 @@ static ch_status apply_network_xor_patch(const ch_host_api* host)
     };
     return host->patch_apply(&request);
 }
+#endif  /* the A21 build must not apply this: 0020_ClientCompatibility already
+         * NOPs the same fixed-key XOR at its own RVA, so a second attempt
+         * would read NOPs where it expects a call and fail the patch. */
 
 static ch_status create_hook(const ch_host_api* host, uintptr_t rva,
     const uint8_t* expected, uint32_t expected_length, void* detour,
@@ -735,22 +769,24 @@ ch_status CH_CALL ch_plugin_initialize(const ch_host_api* host)
     }
     load_capture_config();
     load_read_trace_config();
+#if !defined(CLIENTHACK_CLIENT_A21)
     status = apply_network_xor_patch(host);
     if (status != CH_STATUS_OK) return status;
+#endif
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable: 4055)
 #endif
-    status = create_hook(host, 0x01C11360u, CH_SIG_CIPHER_ENCRYPT,
+    status = create_hook(host, RVA_CIPHER_ENCRYPT, CH_SIG_CIPHER_ENCRYPT,
         sizeof(CH_SIG_CIPHER_ENCRYPT), (void*)cipher_encrypt_passthrough,
         &g_original_encrypt, "cipher-encrypt-passthrough");
     if (status == CH_STATUS_OK) {
-        status = create_hook(host, 0x01C11420u, CH_SIG_CIPHER_DECRYPT,
+        status = create_hook(host, RVA_CIPHER_DECRYPT, CH_SIG_CIPHER_DECRYPT,
             sizeof(CH_SIG_CIPHER_DECRYPT), (void*)cipher_decrypt_passthrough,
             &g_original_decrypt, "cipher-decrypt-passthrough");
     }
     if (status == CH_STATUS_OK) {
-        status = create_hook(host, 0x048FF9ABu, CH_SIG_SOCKET_WRITE,
+        status = create_hook(host, RVA_SOCKET_WRITE, CH_SIG_SOCKET_WRITE,
             sizeof(CH_SIG_SOCKET_WRITE), (void*)socket_write,
             &g_original_socket_write, "socket-write-staging");
     }
@@ -760,26 +796,26 @@ ch_status CH_CALL ch_plugin_initialize(const ch_host_api* host)
      * SetRemaining goes on last: it is what arms the read detours, so the four
      * reads must already be in place when the first frame boundary arrives. */
     if (status == CH_STATUS_OK && g_read_trace_enabled) {
-        status = create_hook(host, 0x01D00420u, CH_SIG_READ_U8,
+        status = create_hook(host, RVA_READ_U8, CH_SIG_READ_U8,
             sizeof(CH_SIG_READ_U8), (void*)read_u8_trace,
             &g_original_read_u8, "inbound-read-u8");
         if (status == CH_STATUS_OK) {
-            status = create_hook(host, 0x01D00490u, CH_SIG_READ_U16,
+            status = create_hook(host, RVA_READ_U16, CH_SIG_READ_U16,
                 sizeof(CH_SIG_READ_U16), (void*)read_u16_trace,
                 &g_original_read_u16, "inbound-read-u16");
         }
         if (status == CH_STATUS_OK) {
-            status = create_hook(host, 0x01D00500u, CH_SIG_READ_U32,
+            status = create_hook(host, RVA_READ_U32, CH_SIG_READ_U32,
                 sizeof(CH_SIG_READ_U32), (void*)read_u32_trace,
                 &g_original_read_u32, "inbound-read-u32");
         }
         if (status == CH_STATUS_OK) {
-            status = create_hook(host, 0x01D00570u, CH_SIG_READ_BYTES,
+            status = create_hook(host, RVA_READ_BYTES, CH_SIG_READ_BYTES,
                 sizeof(CH_SIG_READ_BYTES), (void*)read_bytes_trace,
                 &g_original_read_bytes, "inbound-read-bytes");
         }
         if (status == CH_STATUS_OK) {
-            status = create_hook(host, 0x01CFF6A0u, CH_SIG_SET_REMAINING,
+            status = create_hook(host, RVA_SET_REMAINING, CH_SIG_SET_REMAINING,
                 sizeof(CH_SIG_SET_REMAINING), (void*)set_remaining_trace,
                 &g_original_set_remaining, "inbound-set-remaining");
         }
