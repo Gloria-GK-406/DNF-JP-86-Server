@@ -924,6 +924,26 @@ ch_status CH_CALL ch_plugin_initialize(const ch_host_api* host)
     }
     g_host = host;
 
+    /* CLIENTHACK_ANTIDEBUG_DISABLE=1 initializes the plugin without installing
+     * a single detour. The plugin still has to load and report success: it is a
+     * required plugin, so refusing to initialize would stop the host from
+     * releasing the client thread at all.
+     *
+     * This exists to measure the rebuilt exe on its own. Every debug-matrix
+     * result so far was recorded with these hooks live, which answers "can we
+     * debug the client" but not "how much protection does the rebuild itself
+     * remove". Flipping this makes the second question measurable without
+     * touching Az.dll or the required-plugin roster. */
+    {
+        wchar_t off[8];
+        DWORD n = GetEnvironmentVariableW(L"CLIENTHACK_ANTIDEBUG_DISABLE", off, 8);
+        if (n > 0 && n < 8 && off[0] == L'1') {
+            host->log(2, "AntiAntiDebug",
+                "DISABLED by CLIENTHACK_ANTIDEBUG_DISABLE=1: no detours installed");
+            return CH_STATUS_OK;
+        }
+    }
+
     /* Ready the diagnostic-log lock before installing any detour, so the first
      * hook hit from a foreign thread already finds it initialized. The forensic
      * file log stays off unless explicitly opted in (see g_log_enabled). */

@@ -1,23 +1,45 @@
 #include "clienthack/plugin_api.h"
+#include "clienthack/client_profile.h"
+
+/* One dump plugin, two clients. The addresses that identify a client and the
+ * IAT table that describes its imports both come from the compile-time profile,
+ * so the difference between an S4A12 and an S4A21 build is data, not code. */
+#if defined(CLIENTHACK_CLIENT_A21)
+#include "iat_table_a21.h"
+#define g_ch_iat_table g_ch_iat_table_a21
+#define CH_IAT_ENTRY_COUNT CH_IAT_ENTRY_COUNT_A21
+#else
 #include "iat_table.h"
+#endif
 
 #include <stdio.h>
 #include <string.h>
 #include <wchar.h>
 #include <windows.h>
 
-#define DNF_PREFERRED_BASE 0x00400000u
-#define DNF_SIZE_OF_IMAGE 0x06693000u
-#define DNF_ENTRYPOINT_RVA 0x06176731u
-#define DNF_TIMESTAMP 0x5601674Eu
-#define DNF_SECTION_COUNT 15u
-#define DNF_XCOOKIE_RVA 0x0213BBBFu
-#define DNF_PROTECTED_CALL_RVA 0x04ECD542u
+#define DNF_PREFERRED_BASE CH_CLIENT_PREFERRED_BASE
+#define DNF_SIZE_OF_IMAGE CH_CLIENT_SIZE_OF_IMAGE
+#define DNF_ENTRYPOINT_RVA CH_CLIENT_ENTRYPOINT_RVA
+#define DNF_TIMESTAMP CH_CLIENT_TIMESTAMP
+#define DNF_SECTION_COUNT CH_CLIENT_SECTION_COUNT
+#define DNF_XCOOKIE_RVA CH_CLIENT_COOKIE_RVA
+/* Reported as 0 when the profile has no measured anchor, so a manifest never
+ * claims an address that was never checked. */
+#if defined(CH_CLIENT_PROTECTED_CALL_RVA)
+#define DNF_PROTECTED_CALL_RVA CH_CLIENT_PROTECTED_CALL_RVA
+#else
+#define DNF_PROTECTED_CALL_RVA 0u
+#endif
 #define DUMP_BLOCK_SIZE (64u * 1024u)
 #define DUMP_PAGE_SIZE 4096u
 
+#if defined(CLIENTHACK_CLIENT_A21)
+_Static_assert(CH_IAT_ENTRY_COUNT == 420u,
+    "MemoryDump requires the reviewed 420-entry S4A21 IAT table");
+#else
 _Static_assert(CH_IAT_ENTRY_COUNT == 406u,
-    "MemoryDump requires the reviewed 406-entry IAT table");
+    "MemoryDump requires the reviewed 406-entry S4A12 IAT table");
+#endif
 
 typedef struct dump_statistics {
     unsigned __int64 bytes_written;
@@ -27,6 +49,7 @@ typedef struct dump_statistics {
     unsigned long iat_matches;
     unsigned long iat_expected_unavailable;
     unsigned long iat_read_failures;
+    unsigned long loaded_modules;
 } dump_statistics;
 
 static const ch_host_api* g_host;
@@ -111,8 +134,10 @@ static int validate_image(uintptr_t image_base)
 {
     const IMAGE_DOS_HEADER* dos = (const IMAGE_DOS_HEADER*)image_base;
     const IMAGE_NT_HEADERS32* nt;
-    const uint8_t xcookie[5] = { 0x8B, 0xFF, 0x55, 0x8B, 0xEC };
+    const uint8_t xcookie[5] = CH_CLIENT_COOKIE_PROLOGUE;
+#if defined(CH_CLIENT_PROTECTED_CALL_RVA)
     const uint8_t protected_call[2] = { 0xFF, 0xD0 };
+#endif
     if (image_base != DNF_PREFERRED_BASE || dos->e_magic != IMAGE_DOS_SIGNATURE)
         return 0;
     nt = (const IMAGE_NT_HEADERS32*)(image_base + (uintptr_t)dos->e_lfanew);
@@ -125,9 +150,12 @@ static int validate_image(uintptr_t image_base)
         nt->OptionalHeader.SizeOfImage == DNF_SIZE_OF_IMAGE &&
         nt->OptionalHeader.AddressOfEntryPoint == DNF_ENTRYPOINT_RVA &&
         memcmp((const void*)(image_base + DNF_XCOOKIE_RVA),
-            xcookie, sizeof(xcookie)) == 0 &&
-        memcmp((const void*)(image_base + DNF_PROTECTED_CALL_RVA),
-            protected_call, sizeof(protected_call)) == 0;
+            xcookie, sizeof(xcookie)) == 0
+#if defined(CH_CLIENT_PROTECTED_CALL_RVA)
+        && memcmp((const void*)(image_base + CH_CLIENT_PROTECTED_CALL_RVA),
+            protected_call, sizeof(protected_call)) == 0
+#endif
+        ;
 }
 
 static int is_readable_region(const MEMORY_BASIC_INFORMATION* info)
@@ -343,6 +371,100 @@ static int dump_private_execute_inventory(const wchar_t* directory,
     return 1;
 }
 
+/*
+ * Loaded-module inventory.
+ *
+ * The differential measurement in Docs/differential-crossmodule-fixups.md
+ * identified 469 cross-module pointer sites baked into the image, but could
+ * only attribute the ones whose module happened to move between two dumps.
+ * Recording the loader's own module list at capture time removes the guessing:
+ * every candidate DWORD can be resolved to module + offset directly.
+ *
+ * Walked from the PEB loader list rather than psapi/toolhelp so this adds no
+ * import, allocates nothing, and cannot fail transiently at the startup gate.
+ * x86-only, which matches this project's only build target.
+ */
+typedef struct peb_unicode_string {
+    USHORT length;
+    USHORT maximum_length;
+    PWSTR buffer;
+} peb_unicode_string;
+
+typedef struct peb_ldr_entry {
+    LIST_ENTRY in_load_order_links;
+    LIST_ENTRY in_memory_order_links;
+    LIST_ENTRY in_initialization_order_links;
+    PVOID dll_base;
+    PVOID entry_point;
+    ULONG size_of_image;
+    peb_unicode_string full_dll_name;
+    peb_unicode_string base_dll_name;
+} peb_ldr_entry;
+
+static int write_csv_wide(HANDLE file, const peb_unicode_string* text)
+{
+    char narrow[MAX_PATH * 2];
+    int length;
+    if (text->buffer == NULL || text->length == 0) return write_text(file, "");
+    length = WideCharToMultiByte(CP_UTF8, 0, text->buffer,
+        (int)(text->length / sizeof(wchar_t)), narrow,
+        (int)sizeof(narrow) - 1, NULL, NULL);
+    if (length <= 0) return write_text(file, "");
+    narrow[length] = '\0';
+    return write_text(file, narrow);
+}
+
+static int dump_modules(const wchar_t* directory, dump_statistics* statistics)
+{
+    HANDLE file = create_output_file(directory, L"DNF-modules.csv");
+    const LIST_ENTRY* head;
+    const LIST_ENTRY* cursor;
+    unsigned long guard = 0;
+    PVOID peb = (PVOID)(uintptr_t)__readfsdword(0x30);
+    PVOID ldr;
+    if (file == INVALID_HANDLE_VALUE) return 0;
+    if (!write_text(file, "base_va,end_va,size,name,path\r\n")) {
+        CloseHandle(file);
+        return 0;
+    }
+    if (peb == NULL) {
+        CloseHandle(file);
+        return 0;
+    }
+    ldr = *(PVOID*)((uintptr_t)peb + 0x0C);
+    if (ldr == NULL) {
+        CloseHandle(file);
+        return 0;
+    }
+    head = (const LIST_ENTRY*)((uintptr_t)ldr + 0x0C);
+    for (cursor = head->Flink; cursor != head && guard < 512u;
+         cursor = cursor->Flink, ++guard) {
+        const peb_ldr_entry* entry = (const peb_ldr_entry*)cursor;
+        char line[256];
+        if (entry->dll_base == NULL || entry->size_of_image == 0) continue;
+        _snprintf_s(line, sizeof(line), _TRUNCATE,
+            "0x%08lX,0x%08lX,%lu,\"",
+            (unsigned long)(uintptr_t)entry->dll_base,
+            (unsigned long)((uintptr_t)entry->dll_base + entry->size_of_image),
+            (unsigned long)entry->size_of_image);
+        if (!write_text(file, line) ||
+            !write_csv_wide(file, &entry->base_dll_name) ||
+            !write_text(file, "\",\"") ||
+            !write_csv_wide(file, &entry->full_dll_name) ||
+            !write_text(file, "\"\r\n")) {
+            CloseHandle(file);
+            return 0;
+        }
+        ++statistics->loaded_modules;
+    }
+    if (!FlushFileBuffers(file)) {
+        CloseHandle(file);
+        return 0;
+    }
+    CloseHandle(file);
+    return 1;
+}
+
 static int write_manifest(const wchar_t* directory,
     const dump_statistics* statistics)
 {
@@ -352,6 +474,7 @@ static int write_manifest(const wchar_t* directory,
     _snprintf_s(json, sizeof(json), _TRUNCATE,
         "{\r\n"
         "  \"format\": \"clienthack-memory-dump-v1\",\r\n"
+        "  \"client\": \"" CH_CLIENT_NAME "\",\r\n"
         "  \"pid\": %lu,\r\n"
         "  \"image_base\": \"0x%08lX\",\r\n"
         "  \"size_of_image\": %lu,\r\n"
@@ -370,6 +493,7 @@ static int write_manifest(const wchar_t* directory,
         "  \"iat_expected_unavailable\": %lu,\r\n"
         "  \"iat_read_failures\": %lu,\r\n"
         "  \"private_execute_regions\": %lu,\r\n"
+        "  \"loaded_modules\": %lu,\r\n"
         "  \"post_clienthack_iat_repair\": true,\r\n"
         "  \"pre_feature_plugins\": true,\r\n"
         "  \"early_antidebug_active\": true,\r\n"
@@ -388,7 +512,8 @@ static int write_manifest(const wchar_t* directory,
         (unsigned)CH_IAT_ENTRY_COUNT, statistics->iat_matches,
         statistics->iat_expected_unavailable,
         statistics->iat_read_failures,
-        statistics->private_execute_regions);
+        statistics->private_execute_regions,
+        statistics->loaded_modules);
     if (!write_text(file, json) || !FlushFileBuffers(file)) {
         CloseHandle(file);
         return 0;
@@ -449,6 +574,7 @@ ch_status CH_CALL ch_plugin_initialize(const ch_host_api* host)
         !dump_iat(output_directory, image_base, &statistics) ||
         !dump_private_execute_inventory(output_directory, image_base,
             &statistics) ||
+        !dump_modules(output_directory, &statistics) ||
         !write_manifest(output_directory, &statistics) ||
         !write_dump_log(output_directory, &statistics) ||
         !write_complete_marker(output_directory)) {
