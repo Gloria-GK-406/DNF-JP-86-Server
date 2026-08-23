@@ -24,6 +24,11 @@ public enum ClientMessageType
     GameSaveGameOption1 = 0x0001_00C5,
     GameContentsPlayInfo = 0x0001_02C1,
 
+    // The client's own periodic liveness probe on the Game endpoint. It arrives with no body
+    // and keeps coming for the life of the connection whether or not it is answered.
+    // See Game/ConnectionCheck.
+    GameConnectionCheck = 0x0001_04DD,
+
     // The map-entry report family: sent once the entry batch is accepted and the client starts
     // loading a town. None is answered. See Game/MapEntryReports.
     GameSetUdpIpPort = 0x0001_0002,
@@ -78,6 +83,7 @@ public enum ServerMessageType
     GameInformNotice = 0x0000_01A1,
     GameRosterFollowUp = 0x0001_02A8,
     GameContentsPlayInfo = 0x0001_02C1,
+    GameConnectionCheck = 0x0001_04DD,
 
     // Pushed on every area change. See Game/TownProjection.
     GameAreaUsers = 0x0000_0018,

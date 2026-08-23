@@ -19,6 +19,7 @@ using Dfo.Server.Protocol.Game.InformNotice;
 using Dfo.Server.Protocol.Game.ClientHardwareDetail;
 using Dfo.Server.Protocol.Game.ClientSpecProfile;
 using Dfo.Server.Protocol.Game.ClientSpecStatistic;
+using Dfo.Server.Protocol.Game.ConnectionCheck;
 using Dfo.Server.Protocol.Game.ContentsPlayInfo;
 using Dfo.Server.Protocol.Game.CreateCharacter;
 using Dfo.Server.Protocol.Game.DeleteCharacter;
@@ -185,6 +186,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<HiddenCharacterInfoHandler>(ClientMessageType.GameHiddenCharacterInfo);
         services.RegisterMessageHandler<SaveGameOption1Handler>(ClientMessageType.GameSaveGameOption1);
         services.RegisterMessageHandler<ContentsPlayInfoHandler>(ClientMessageType.GameContentsPlayInfo);
+        services.RegisterMessageHandler<ConnectionCheckHandler>(ClientMessageType.GameConnectionCheck);
 
         // One handler, six wire keys: the map-entry report family.
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameSetUdpIpPort);
@@ -257,6 +259,8 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.SaveGameOption1Type, ClientMessageType.GameSaveGameOption1);
         services.AddGameCmdMessageDecoder<ContentsPlayInfoMessageDecoder>(
             GameProtocol.ContentsPlayInfoType, ClientMessageType.GameContentsPlayInfo);
+        services.AddGameCmdMessageDecoder<ConnectionCheckMessageDecoder>(
+            GameProtocol.ConnectionCheckType, ClientMessageType.GameConnectionCheck);
         services.AddGameCmdMessageDecoder<SetUdpIpPortDecoder>(
             GameProtocol.SetUdpIpPortType, ClientMessageType.GameSetUdpIpPort);
         services.AddGameCmdMessageDecoder<CeraQueryDecoder>(
@@ -332,6 +336,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<DeleteCharacterResponse, DeleteCharacterResponseEncoder>();
         services.AddGameCmdMessageEncoder<MercenaryInfoResponse, MercenaryInfoResponseEncoder>();
         services.AddGameCmdMessageEncoder<ContentsPlayInfoResponse, ContentsPlayInfoResponseEncoder>();
+        services.AddGameCmdMessageEncoder<ConnectionCheckResponse, ConnectionCheckResponseEncoder>();
         services.AddGameNotiMessageEncoder<UserAreaNotification, UserAreaEncoder>();
         services.AddGameNotiMessageEncoder<AreaUsersNotification, AreaUsersEncoder>();
         services.AddGameNotiMessageEncoder<UserStateNotification, UserStateEncoder>();

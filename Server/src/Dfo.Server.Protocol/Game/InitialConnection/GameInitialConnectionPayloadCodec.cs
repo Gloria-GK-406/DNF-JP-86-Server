@@ -11,8 +11,29 @@ public static class GameInitialConnectionPayloadCodec
     private const int ServerIndex = 1;
     private const int InitialUdpPort1 = 12311;
     private const int InitialUdpPort2 = 12312;
-    private const int CommandPacketCount = 1086;
-    private const int NotificationPacketCount = 1036;
+    /// <summary>The sizes of the client's two dispatch tables, which it checks against its own.</summary>
+    /// <remarks>
+    /// These are the A21 client's table sizes, read off a known-good session rather than counted
+    /// from an enum: the notice's last three 32-bit fields there are 1271, 1218 and zero. The
+    /// preceding client answered 1086 and 1036; sending those to A21 makes it drop the connection
+    /// a few seconds after the notice.
+    /// </remarks>
+    private const int CommandPacketCount = 1271;
+
+    private const int NotificationPacketCount = 1218;
+
+    /// <summary>How many further addresses follow the one above. Always none.</summary>
+    private const int ExtraAddressCount = 0;
+
+    /// <summary>
+    /// Two ASCII zero characters, not two zero bytes.
+    /// </summary>
+    /// <remarks>
+    /// The known-good session carries <c>0x30 0x30</c> here. Writing <c>0x00 0x00</c> -- which is
+    /// what this codec did while it targeted the older client -- leaves the frame the right length
+    /// but the wrong content, and the client stops after one further command.
+    /// </remarks>
+    private const byte MarkerCharacter = (byte)'0';
 
     public static byte[] EncodeBody(GameInitialConnectionNotice notice)
     {
@@ -43,10 +64,12 @@ public static class GameInitialConnectionPayloadCodec
         WriteDString(body, notice.EndpointHost);
         WriteInt32(body, InitialUdpPort1);
         WriteInt32(body, InitialUdpPort2);
-        body.WriteByte(0x00);
-        body.WriteByte(0x00);
+        WriteInt32(body, ExtraAddressCount);
+        body.WriteByte(MarkerCharacter);
+        body.WriteByte(MarkerCharacter);
         WriteInt32(body, CommandPacketCount);
         WriteInt32(body, NotificationPacketCount);
+        WriteInt32(body, 0);
         return body.ToArray();
     }
 

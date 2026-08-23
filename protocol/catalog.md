@@ -61,12 +61,15 @@
 | `0x01` | `0x02B3` | `STATICS_RUNTIME_TING` | Report / 无响应 | 实现服务端功能 | [0x02B3.md](game/client-to-server/0x02B3.md) |
 | `0x01` | `0x02B5` | `CHECK_DOUBLE_CHARACTER_NAME` | Query / 有响应 | 实现服务端功能 | [0x02B5.md](game/client-to-server/0x02B5.md) |
 | `0x01` | `0x02C1` | `CONTENTS_PLAY_INFO` | Query / 有响应 | 实现服务端功能 | [0x02C1.md](game/client-to-server/0x02C1.md) |
+| `0x01` | `0x04DD` | `CHECK_USER_CONNECTION` | Query / 有响应 | 实现服务端功能 | [0x04DD.md](game/client-to-server/0x04DD.md) |
 
 ## Game / Server → Client
 
 | Command | Type | 名称 | 角色 | 阶段 | 文档 |
 |---:|---:|---|---|---|---|
 | `0x01` CMD | `0x0001` | LOGIN response | Response | 确定语义 | [CMD-0x0001.md](game/server-to-client/CMD-0x0001.md) |
+| `0x00` NOTI | `0x0001` | `CHANNELINFO` 初始连接通知 | Notification | 实现服务端功能 | [NOTI-0x0001.md](game/server-to-client/NOTI-0x0001.md) |
+| `0x01` CMD | `0x04DD` | `CHECK_USER_CONNECTION` response | Response | 实现服务端功能 | [0x04DD.md](game/client-to-server/0x04DD.md) |
 | `0x00` NOTI | `0x0002` | 角色列表 | Notification | 未知 | — |
 | `0x01` CMD | `0x0003` | EXIT response | Response | 未知 | — |
 | `0x00` NOTI | `0x0289` | `HONOR_LEVEL_INFO` | Notification | 实现服务端功能 | [NOTI-0x0289.md](game/server-to-client/NOTI-0x0289.md) |

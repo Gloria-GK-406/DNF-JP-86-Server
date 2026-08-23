@@ -91,4 +91,6 @@ internal static class GameProtocol
     public const ushort AuctionServiceStateNotificationType = 0x00B7;
 
     public const ushort InformNoticeNotificationType = 0x01A1;
+
+    public const ushort ConnectionCheckType = 0x04DD;
 }

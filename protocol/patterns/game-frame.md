@@ -4,26 +4,58 @@
 
 ## Header
 
-当前客户端与服务端使用 13 字节小端 header：
+**入站 header 的长度随客户端版本变化，出站不变。** 先确认在跟哪个客户端说话，再读下表。
+
+### 客户端 → 服务端：A21 为 14 字节
 
 | Offset | Size | Field | Encoding |
 |---:|---:|---|---|
 | `0` | 1 | Command | `u8` |
 | `1` | 2 | Type | little-endian `u16` |
-| `3` | 4 | TotalLength | little-endian `u32`，包含 13 字节 header |
+| `3` | 4 | TotalLength | little-endian `u32`，包含 14 字节 header |
 | `7` | 4 | Checksum | little-endian `u32` |
-| `11` | 2 | Sequence | little-endian `u16` |
-
-因此：
+| `11` | 1 | 保留 | 观察到的每一帧都是零 |
+| `12` | 2 | Sequence | little-endian `u16` |
 
 ```text
-BodyLength = TotalLength - 13
+BodyLength = TotalLength - 14
 ```
+
+### 这条结论推翻了什么，凭什么
+
+本页此前记的是 13 字节，`Sequence` 在 offset `11`，没有保留字节。**那对 A12 客户端仍然成立**，
+是本资料库对该客户端的结论；A21 在同一位置多出一个字节，于是两条都为真而适用范围不同。
+
+两处证据各自独立：
+
+- **长度**：190 条入站帧逐条比对，`TotalLength` 字段与该帧的原始字节长度**精确相等**，
+  因此 14 是构造上确定的，不是统计推断。会话里 40 条帧并列最短——整帧 14 字节、body 为空，
+  分属 7 个 type，`0x04DD` 是其中之一。
+  按 13 字节读它不会抛错——它会变成"同一 type 带一字节 body"，于是被当作未注册协议
+  静默丢弃，服务端日志里只留一条看着像噪声的重复告警。这正是它长期没被发现的原因。
+- **切分**：一次已知良好会话的 190 条入站帧里，`[11]` 恒为零、`[12]` 从 0 单调走到 189、
+  `[13]` 恒为零。把 `Sequence` 读在 `11`（上游参考实现的做法）会得到 0、256、512……
+  ——189 步里**零步**是加一；读在 `12` 则 189 步**全部**是加一。
+
+**仍未证实的一点**：这 190 条样本里计数从未越过 255，所以 `[13]` 是否为该计数的高位字节
+并无实证；把它当作两字节计数是沿用上一版客户端的字段宽度，属于推断。要证实它，
+需要一次单连接内超过 256 帧的会话。
+
+### 服务端 → 客户端：15 字节（两个版本相同）
+
+出站 header 未随版本改变：`selector(1) + type(2) + totalLength(4) + checksum(4) + reserved(4)`，
+`BodyLength = TotalLength - 15`。字段级说明见 `Docs/NetworkingFrameProtocol.md`。
 
 ## Evidence
 
 - 当前服务端 parser 按上述 offset 解码：`Server/src/Dfo.Server.Networking/Framing/GameClientFrameRequestInfo.cs`。
-- 客户端 `Cipher::Encrypt` 的 body 指针前 13 字节是 header，并在发送前写入 `bodyLength + 13`：`ClientHack/plugins/0100_network_hook/network_hook.c`。
+- A21 入站长度与切分的实测记录：[`data/traces/a21-world-entry-20260823.log`](data/traces/a21-world-entry-20260823.log)
+  的 `[A]`/`[B]` 两节。该归档件摘自 `ServerS4A21` 跑通一整局的 458 帧会话（190 条入站），
+  以及本仓服务端经记录型中转产生的双向帧记录；两份原件的哈希写在归档件头部。
+- 本节结论绑定的客户端 SHA-256：`1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`
+  （A21，`DNFClient-A21-protocol/DNF.exe`）。**本页其余各节绑定的是 A12 客户端**，
+  其哈希在各节自行声明。
+- 客户端 `Cipher::Encrypt` 的 body 指针前是 header，并在发送前写入 `bodyLength + headerLength`：`ClientHack/plugins/0100_network_hook/network_hook.c`。
 - 客户端发送链的当前逆向结论：`MakePacket → ISocket::Write* → TCP_SEND → Cipher::Encrypt → flush/send`。
 - 支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`。
 

@@ -145,6 +145,16 @@ public sealed class GameLoginIntegrationTests
         return GameServerFrameEncoder.Encode(0x01, 0x0001, body);
     }
 
+    /// <summary>
+    /// The notice this test expects to arrive, rebuilt here rather than transcribed.
+    /// </summary>
+    /// <remarks>
+    /// Being a second implementation of the same layout, this cannot prove the layout: change the
+    /// codec and this in the same way and both agree on something wrong. It proves delivery -- that
+    /// a real socket receives the whole notice, in one frame, before anything else. The layout
+    /// itself is held by the codec test, whose expectation is transcribed from a session the
+    /// client accepted.
+    /// </remarks>
     private static byte[] BuildExpectedInitialConnectionNotice(
         DateTimeOffset preparedAt,
         byte channelId)
@@ -162,10 +172,12 @@ public sealed class GameLoginIntegrationTests
         WriteDString(body, "192.0.2.20");
         WriteInt32(body, 12311);
         WriteInt32(body, 12312);
-        body.WriteByte(0x00);
-        body.WriteByte(0x00);
-        WriteInt32(body, 1086);
-        WriteInt32(body, 1036);
+        WriteInt32(body, 0);
+        body.WriteByte((byte)'0');
+        body.WriteByte((byte)'0');
+        WriteInt32(body, 1271);
+        WriteInt32(body, 1218);
+        WriteInt32(body, 0);
         return GameServerFrameEncoder.Encode(0x00, 0x0001, body.ToArray());
     }
 

@@ -65,7 +65,8 @@ socket 层的 handler 驱动领域命令完成任务。**
 
 ```
 TCP 字节
-  → TouchSocket 适配器（Networking/Framing，13B Game 头 / 11B Channel 头）
+  → TouchSocket 适配器（Networking/Framing，入站 14B Game 头 / 11B Channel 头；
+     出站 Game 15B。入站长度是 A21 客户端的形状，A12 为 13B）
   → NetworkPlugin.OnTcpReceived（Networking/Runtime/NetworkPlugins.cs）
       按线级键查解包器注册表；查不到即丢弃。传输侧到此为止，不认识任何具体协议
   → IGameMessageDecoder / IChannelMessageDecoder
@@ -247,7 +248,7 @@ Networking 只把该字节当作不透明 `Selector` 做拆帧、查表与写帧
 
 ### 端到端示例：GameLogin
 
-1. 13B 头帧 → `GameClientFrameDataHandlingAdapter` → `GameNetworkPlugin`
+1. 14B 头帧 → `GameClientFrameDataHandlingAdapter` → `GameNetworkPlugin`
    按不透明 selector 0x01/type 0x0001 查表；Protocol 将所有 C→S Game 注册固定为 CMD，
    `GameLoginPayloadCodec` 解出 loginId + 密码哈希
 2. dispatcher → `GameLoginHandler`：要求该连接已有匿名在线注册
