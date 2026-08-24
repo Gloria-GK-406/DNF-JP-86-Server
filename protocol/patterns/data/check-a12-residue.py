@@ -80,7 +80,10 @@ def main():
         rel = os.path.relpath(p, root).replace(os.sep, '/')
         if t.count(BEGIN) != t.count(END):
             broken.append(rel)
-        if MACHINE_END in t and A12_CLIENT_SHA in t:
+        # Only the machine zone counts. The A12 banner quotes the same SHA, so scanning the
+        # whole file would count every page that is correctly marked as still holding A12
+        # scaffolding -- and the number would never fall however much got regenerated.
+        if MACHINE_END in t and A12_CLIENT_SHA in t.split(MACHINE_END, 1)[0]:
             machine_a12 += 1
         state = classify(t)
         counts[state] += 1

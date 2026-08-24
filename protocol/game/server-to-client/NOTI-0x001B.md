@@ -30,7 +30,7 @@ BodyLength = 未知（字段集合已知不完整）
 
 | Offset | Size | Enc | 可能含义 | 置信度 | 证据 |
 |---:|---:|---|---|---|---|
-| 0 | 4 | `u32` | 上游恒写常量 1，无任何参数参与 | Confirmed | 上游 Network/Builders/Dungeon/EnterSelectDungeonStateBuilder.cs:42 BuildEnterSelectDungeon 第一个 WriteInt32(0x01)；调用点 Network/Handlers/Dungeon/DungeonEntryHandler.cs:129-134，取自 `[ebp - 0x460]` |
+| 0 | 4 | `u32` | 上游恒写常量 1，无任何参数参与 | Confirmed | 上游 Network/Builders/Dungeon/EnterSelectDungeonStateBuilder.cs:42 BuildEnterSelectDungeon 第一个 WriteInt32(0x01)；调用点 Network/Handlers/Dungeon/DungeonEntryHandler.cs:129-134，取自 `[ebp - 0x480]` |
 
 `可能含义` 为 `unknown` 表示**字段边界已确定但含义无证据**——这类未知靠实机改值做差分即可解决，与上面的「结构未知」不是一回事。
 
@@ -38,12 +38,12 @@ BodyLength = 未知（字段集合已知不完整）
 
 | 项 | 值 |
 |---|---|
-| handler 入口 | `0x00937600` |
+| handler 入口 | `0x00D90190` |
 | handler 所在区 | text |
 | 注册路径 | batch:batch |
 
 
-支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`
+支持客户端 SHA-256：`1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`
 
 <!-- rks:machine:end -->
 

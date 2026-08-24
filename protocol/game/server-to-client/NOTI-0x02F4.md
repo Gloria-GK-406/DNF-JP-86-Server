@@ -14,28 +14,37 @@
 | Direction | Server → Client | 接收注册表普查 |
 | Command 族 | `0x00`（NOTI） | 客户端两张注册表的分表证据 |
 | Type | `0x02F4` | 同上 |
-| 名称 | `ADVANCE_ALTAR_UPDATE_STAGE_CLEAR` | upstream NotiPacketType |
+| 名称 | `RAID_MEMBER_CHANGE_STATE` | upstream NotiPacketType |
 | 身份说明 | notification (server push only) | 普查 |
 
 ## Body
 
-**状态：结构未知** — 静态分析无法得出字段边界。
+**状态：布局部分可得** — 已读出部分字段，但存在下列因素使其不完整。
 
-原因：走遍可达调用图未发现任何取字段原语调用；该 handler 很可能不读 body（纯触发型）。**这是否证，不是证明**——需要正对照与盲区清单才能支撑该结论，参见 [game-settings 的否证方法](../../patterns/game-settings.md)。
+原因：handler 的调用图上有跟不下去的地方——间接调用（经函数指针或虚表）、超出跟进深度、或递归重访。取字段可能就发生在跟不到的那一侧，因此本表**可能不完整**。**这不等于「载荷是多态的」**——它只说明静态走到此为止。
 
-本协议**没有可用的字段表**。上面的原因即其不可知的成因；
-要取得布局，需要运行时手段（断点、真实样本）而非更多静态分析。
+```text
+BodyLength = 未知（字段集合已知不完整）
+已读出字段合计 = 3   ← 下界，不是总长
+```
+
+| Offset | Size | Enc | 可能含义 | 置信度 | 证据 |
+|---:|---:|---|---|---|---|
+| 0 | 2 | `u16` | unknown | — | 接收指令，取自 `[ebp - 8]` |
+| 2 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 1]` |
+
+`可能含义` 为 `unknown` 表示**字段边界已确定但含义无证据**——这类未知靠实机改值做差分即可解决，与上面的「结构未知」不是一回事。
 
 ## 定位
 
 | 项 | 值 |
 |---|---|
-| handler 入口 | `0x0122B910` |
+| handler 入口 | `0x00D782D0` |
 | handler 所在区 | text |
 | 注册路径 | batch:batch |
 
 
-支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`
+支持客户端 SHA-256：`1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`
 
 <!-- rks:machine:end -->
 

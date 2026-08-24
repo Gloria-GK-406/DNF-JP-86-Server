@@ -19,11 +19,18 @@ usage: generate-docs.py <inventory.tsv> <layouts.json> <protocol-root>
 """
 import sys
 import os
+import time
 import json
 import glob
 import collections
 
 INVENTORY, LAYOUTS, ROOT = sys.argv[1], sys.argv[2], sys.argv[3]
+# The client every generated zone below is derived from. It is stamped into each page,
+# so getting it wrong makes 1600-odd pages claim a provenance they do not have.
+CLIENT = "A21"
+CLIENT_SHA = "1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD"
+# A12 was F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C
+
 BEGIN = "<!-- rks:machine:begin -->"
 END = "<!-- rks:machine:end -->"
 
@@ -331,7 +338,7 @@ def render(entry, row, meanings):
         L.append("| 注册路径 | %s |" % (row["handler_path"] or "—"))
         L.append("")
     L.append("")
-    L.append("支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`")
+    L.append("支持客户端 SHA-256：`%s`" % CLIENT_SHA)
     L.append("")
     L.append(END)
     return "\n".join(L)
@@ -369,7 +376,29 @@ def write_doc(path, body, name, ty, fam):
     else:
         new = title + "\n\n" + body + "\n" + HUMAN_STUB
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    open(path, "w", encoding="utf-8", newline="\n").write(new)
+    # Written to a sibling and moved into place, not opened for truncation. Writing ~1700
+    # files in a burst draws intermittent EINVAL on Windows -- a scanner holding a handle,
+    # a different file each run -- and `open(path, "w")` truncates before it fails, which
+    # would take the human zone of whatever page happened to be next with it. os.replace
+    # is atomic, so a failure leaves the old page intact and the retry has something to
+    # preserve. Five attempts: the contention is momentary, and a real permission problem
+    # should still surface rather than spin.
+    tmp = path + ".tmp"
+    for attempt in range(5):
+        try:
+            with open(tmp, "w", encoding="utf-8", newline="\n") as f:
+                f.write(new)
+            os.replace(tmp, path)
+            return "written"
+        except OSError:
+            if os.path.exists(tmp):
+                try:
+                    os.remove(tmp)
+                except OSError:
+                    pass
+            if attempt == 4:
+                raise
+            time.sleep(0.2 * (attempt + 1))
     return "written"
 
 

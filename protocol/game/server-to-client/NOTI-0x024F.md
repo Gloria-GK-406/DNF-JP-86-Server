@@ -25,28 +25,28 @@
 
 ```text
 BodyLength = 未知（字段集合已知不完整）
-已读出字段合计 = 559   ← 下界，不是总长
+已读出字段合计 = 4 + n×25   ← 下界，不是总长
 ```
 
 | Offset | Size | Enc | 可能含义 | 置信度 | 证据 |
 |---:|---:|---|---|---|---|
-| 0 | 4 | `u32` | unknown | — | 接收指令，取自 `[ebp - 0x10]` |
-| 4 | 4 | `u32` | unknown | — | 接收指令，取自 `[ebp + 8]` |
-| 8 | 256 | `dstringw` | unknown | — | 接收指令，取自 `[ebp - 0x204]` |
-| 264 | 4 | `u32` | unknown | — | 接收指令，取自 `[esi + 0x24]` |
-| 268 | 4 | `u32` | unknown | — | 接收指令，取自 `[esi + 0x28]` |
-| 272 | 4 | `u32` | unknown | — | 接收指令，取自 `[esi + 0x30]` |
-| 276 | 4 | `u32` | unknown | — | 接收指令，取自 `[esi + 0x34]` |
-| 280 | 2 | `u16` | unknown | — | 接收指令，取自 `[ebp + 8]` |
-| 282 | 4 | `u32` | unknown | — | 接收指令，取自 `[esi + 4]` |
-| 286 | 256 | `dstringw` | unknown | — | 接收指令，取自 `[ebp - 0x204]` |
-| 542 | 4 | `u32` | unknown | — | 接收指令，取自 `[ebp - 0x208]` |
-| 546 | 1 | `u8` | unknown | — | 接收指令，取自 `[esi + 0x28]` |
-| 547 | 2 | `u16` | unknown | — | 接收指令，取自 `[esi + 0x2e]` |
-| 549 | 4 | `u32` | unknown | — | 接收指令，取自 `[esi + 0x30]` |
-| 553 | 4 | `u32` | unknown | — | 接收指令，取自 `[esi + 0x34]` |
-| 557 | 1 | `u8` | unknown | — | 接收指令，取自 `[esi + 0x34]` |
-| 558 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 0x4d]` |
+| 0 | 4 | `u32` | unknown | — | 接收指令，取自 `[ebp - 0x18]` |
+| **重复组 g1 ×n** |  |  | *以下字段按运行时计数重复；其后字段的偏移随重复次数变化* |  |  |
+| &nbsp;&nbsp;↳&nbsp;0 | 4 | `u32` | unknown | — | 接收指令，取自 `[ebp + 8]` |
+| &nbsp;&nbsp;↳&nbsp;4 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 0x206]` |
+| &nbsp;&nbsp;↳&nbsp;5 | 1 | `u8` | unknown | — | 接收指令，取自 `[esi + 0x24]` |
+| &nbsp;&nbsp;↳&nbsp;6 | 1 | `u8` | unknown | — | 接收指令，取自 `[esi + 0x28]` |
+| &nbsp;&nbsp;↳&nbsp;7 | 4 | `u32` | unknown | — | 接收指令，取自 `[esi + 0x34]` |
+| &nbsp;&nbsp;↳&nbsp;11 | 2 | `u16` | unknown | — | 接收指令，取自 `[ebp + 8]` |
+| &nbsp;&nbsp;↳&nbsp;13 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 0x206]` |
+| &nbsp;&nbsp;↳&nbsp;14 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 0x205]` |
+| &nbsp;&nbsp;↳&nbsp;15 | 1 | `u8` | unknown | — | 接收指令，取自 `[esi + 0x28]` |
+| &nbsp;&nbsp;↳&nbsp;16 | 1 | `u8` | unknown | — | 接收指令，取自 `[esi + 0x2d]` |
+| &nbsp;&nbsp;↳&nbsp;17 | 1 | `u8` | unknown | — | 接收指令，取自 `[esi + 0x2e]` |
+| &nbsp;&nbsp;↳&nbsp;18 | 4 | `u32` | unknown | — | 接收指令，取自 `[esi + 0x30]` |
+| &nbsp;&nbsp;↳&nbsp;22 | 1 | `u8` | unknown | — | 接收指令，取自 `[esi + 0x34]` |
+| &nbsp;&nbsp;↳&nbsp;23 | 1 | `u8` | unknown | — | 接收指令 |
+| &nbsp;&nbsp;↳&nbsp;24 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 0xd]` |
 
 `可能含义` 为 `unknown` 表示**字段边界已确定但含义无证据**——这类未知靠实机改值做差分即可解决，与上面的「结构未知」不是一回事。
 
@@ -54,12 +54,12 @@ BodyLength = 未知（字段集合已知不完整）
 
 | 项 | 值 |
 |---|---|
-| handler 入口 | `0x0092CB40` |
+| handler 入口 | `0x00D834B0` |
 | handler 所在区 | text |
 | 注册路径 | batch:batch |
 
 
-支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`
+支持客户端 SHA-256：`1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`
 
 <!-- rks:machine:end -->
 

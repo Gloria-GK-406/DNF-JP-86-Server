@@ -30,11 +30,11 @@ BodyLength = 未知（字段集合已知不完整）
 
 | Offset | Size | Enc | 可能含义 | 置信度 | 证据 |
 |---:|---:|---|---|---|---|
-| 0 | 1 | `u8` | 其后 buff 记录的条数；上游恒写 1，且只跟一条 16 字节记录 | Hypothesis | 上游 Network/Builders/Dungeon/SpecialDungeonNotificationBuilder.cs:38 WriteByte(1)，:39-42 随后只写一条 buffId + 3 个 i32，取自 `[ebp - 0x811]` |
-| 1 | 4 | `u32` | buff id（副本临时 buff 的编号） | Confirmed | 上游 SpecialDungeonNotificationBuilder.cs:39 WriteInt32(buffId)；唯一调用点 Network/Handlers/Dungeon/DungeonBuffNotificationSender.cs:28-32 传 addedBuffIds[i]，取自 `[ebp - 0x818]` |
-| 5 | 4 | `u32` | builder 形参 field1；上游唯一调用点恒传 0，语义未知 | Confirmed | 上游 SpecialDungeonNotificationBuilder.cs:35,40 WriteInt32(field1)；唯一调用点 DungeonBuffNotificationSender.cs:28-32 三个 field 均传 0，取自 `[ebp - 0x838]` |
-| 9 | 4 | `u32` | builder 形参 field2；上游唯一调用点恒传 0，语义未知 | Confirmed | 上游 SpecialDungeonNotificationBuilder.cs:35,41 WriteInt32(field2)；唯一调用点 DungeonBuffNotificationSender.cs:28-32 三个 field 均传 0，取自 `[ebp - 0x834]` |
-| 13 | 4 | `u32` | builder 形参 field3；上游唯一调用点恒传 0，语义未知 | Confirmed | 上游 SpecialDungeonNotificationBuilder.cs:35,42 WriteInt32(field3)；唯一调用点 DungeonBuffNotificationSender.cs:28-32 三个 field 均传 0，取自 `[ebp - 0x83c]` |
+| 0 | 1 | `u8` | 其后 buff 记录的条数；上游恒写 1，且只跟一条 16 字节记录 | Hypothesis | 上游 Network/Builders/Dungeon/SpecialDungeonNotificationBuilder.cs:38 WriteByte(1)，:39-42 随后只写一条 buffId + 3 个 i32，取自 `[ebp - 0xd]` |
+| 1 | 4 | `u32` | buff id（副本临时 buff 的编号） | Confirmed | 上游 SpecialDungeonNotificationBuilder.cs:39 WriteInt32(buffId)；唯一调用点 Network/Handlers/Dungeon/DungeonBuffNotificationSender.cs:28-32 传 addedBuffIds[i]，取自 `[ebp - 0x14]` |
+| 5 | 4 | `u32` | builder 形参 field1；上游唯一调用点恒传 0，语义未知 | Confirmed | 上游 SpecialDungeonNotificationBuilder.cs:35,40 WriteInt32(field1)；唯一调用点 DungeonBuffNotificationSender.cs:28-32 三个 field 均传 0，取自 `[ebp - 0x18]` |
+| 9 | 4 | `u32` | builder 形参 field2；上游唯一调用点恒传 0，语义未知 | Confirmed | 上游 SpecialDungeonNotificationBuilder.cs:35,41 WriteInt32(field2)；唯一调用点 DungeonBuffNotificationSender.cs:28-32 三个 field 均传 0，取自 `[ebp - 0x1c]` |
+| 13 | 4 | `u32` | builder 形参 field3；上游唯一调用点恒传 0，语义未知 | Confirmed | 上游 SpecialDungeonNotificationBuilder.cs:35,42 WriteInt32(field3)；唯一调用点 DungeonBuffNotificationSender.cs:28-32 三个 field 均传 0，取自 `[ebp - 0x20]` |
 
 `可能含义` 为 `unknown` 表示**字段边界已确定但含义无证据**——这类未知靠实机改值做差分即可解决，与上面的「结构未知」不是一回事。
 
@@ -42,12 +42,12 @@ BodyLength = 未知（字段集合已知不完整）
 
 | 项 | 值 |
 |---|---|
-| handler 入口 | `0x0051B180` |
+| handler 入口 | `0x00908EF0` |
 | handler 所在区 | text |
 | 注册路径 | forwarder |
 
 
-支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`
+支持客户端 SHA-256：`1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`
 
 <!-- rks:machine:end -->
 

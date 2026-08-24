@@ -30,10 +30,10 @@ BodyLength = 未知（字段集合已知不完整）
 
 | Offset | Size | Enc | 可能含义 | 置信度 | 证据 |
 |---:|---:|---|---|---|---|
-| 0 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 0xd]` |
+| 0 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 0xcd]` |
 | **重复组 g1 ×n** |  |  | *以下字段按运行时计数重复；其后字段的偏移随重复次数变化* |  |  |
-| &nbsp;&nbsp;↳&nbsp;0 | 4 | `u32` | unknown | — | 接收指令，取自 `[ebp - 0x14]` |
-| &nbsp;&nbsp;↳&nbsp;4 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 0xe]` |
+| &nbsp;&nbsp;↳&nbsp;0 | 4 | `u32` | unknown | — | 接收指令，取自 `[ebp - 0xd4]` |
+| &nbsp;&nbsp;↳&nbsp;4 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 0xce]` |
 
 `可能含义` 为 `unknown` 表示**字段边界已确定但含义无证据**——这类未知靠实机改值做差分即可解决，与上面的「结构未知」不是一回事。
 
@@ -41,12 +41,12 @@ BodyLength = 未知（字段集合已知不完整）
 
 | 项 | 值 |
 |---|---|
-| handler 入口 | `0x0092D5A0` |
+| handler 入口 | `0x00D85740` |
 | handler 所在区 | text |
 | 注册路径 | batch:batch |
 
 
-支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`
+支持客户端 SHA-256：`1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`
 
 <!-- rks:machine:end -->
 

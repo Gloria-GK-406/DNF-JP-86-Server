@@ -308,10 +308,12 @@ internal sealed record ClientEffectBaselineMessage : GameStateSynchronizationMes
 internal sealed record CollectionBoxStateMessage(
     CharacterCollectionBoxProgressState Box) : GameStateSynchronizationMessage, IGameNotiMessage
 {
-    // A21 calls 0x0381 USER_BUY_RESTRICT_UPDATE_ITEM_LIST; the A12 table calls it COLLECT_BOX. The number is
-    // what the wire fixes, and a working A21 session sends this body here, so 0x0381 stays. Our type name
-    // is the A12 one -- it describes the same slot, not a different protocol.
-    internal override ushort Type => 0x0381;
+    // COLLECT_BOX is 0x0381 on A12 and 0x03EB on A21. This sat at 0x0381 for a while on the
+    // strength of a working A21 session sending a body of the same size there -- but that body
+    // is A21's USER_BUY_RESTRICT_UPDATE_ITEM_LIST, which is what 0x0381 means on A21, and the
+    // sizes merely coincided. A census of the A21 client settles it: the client registers no
+    // receive handler at 0x0381 at all, so everything sent there was discarded.
+    internal override ushort Type => 0x03EB;
     internal override byte[] EncodeBody() => StateSynchronizationPayloadCodec.EncodeCollectionBox(Box);
 }
 

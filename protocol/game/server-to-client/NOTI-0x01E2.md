@@ -33,7 +33,7 @@ BodyLength = 未知（字段集合已知不完整）
 | 0 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 0x1221]` |
 | 1 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 0x1212]` |
 | 2 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 0x1213]` |
-| 3 | 2 | `u16` | unknown | — | 接收指令，取自 `[ebp - 0x121c]` |
+| 3 | 2 | `u16` | unknown | — | 接收指令，取自 `[ebp - 0x1218]` |
 | 5 | 4 | `u32` | unknown | — | 接收指令，取自 `[ebp - 0x1234]` |
 | 9 | 2 | `u16` | unknown | — | 接收指令，取自 `[ebp - 0x1220]` |
 | 11 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 0x1211]` |
@@ -44,12 +44,12 @@ BodyLength = 未知（字段集合已知不完整）
 
 | 项 | 值 |
 |---|---|
-| handler 入口 | `0x00916C30` |
+| handler 入口 | `0x00D6B800` |
 | handler 所在区 | text |
 | 注册路径 | batch:batch |
 
 
-支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`
+支持客户端 SHA-256：`1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`
 
 <!-- rks:machine:end -->
 

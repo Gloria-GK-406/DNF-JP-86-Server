@@ -30,9 +30,9 @@ BodyLength = 未知（字段集合已知不完整）
 
 | Offset | Size | Enc | 可能含义 | 置信度 | 证据 |
 |---:|---:|---|---|---|---|
-| 0 | 4 | `u32` | 顺序副本（安徒恩普通征服序列）的配置 key ConfigKey | Confirmed | 上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:318 BuildSequentialDungeonInfo 第一个 WriteInt32(configKey)；调用点 Network/Handlers/Dungeon/AntonNormalConquestNotificationSender.cs:45-49 传 state.Sequence.ConfigKey，取自 `[ebp - 0xc]` |
+| 0 | 4 | `u32` | 顺序副本（安徒恩普通征服序列）的配置 key ConfigKey | Confirmed | 上游 Network/Builders/Dungeon/DungeonNotificationBuilder.cs:318 BuildSequentialDungeonInfo 第一个 WriteInt32(configKey)；调用点 Network/Handlers/Dungeon/AntonNormalConquestNotificationSender.cs:45-49 传 state.Sequence.ConfigKey，取自 `[ebp - 8]` |
 | 4 | 1 | `u8` | 该序列的当前进度序号 ProgressIndex | Confirmed | 上游 DungeonNotificationBuilder.cs:319 WriteByte(progressIndex)；调用点 AntonNormalConquestNotificationSender.cs:48 传 state.ProgressIndex，取自 `[ebp - 1]` |
-| 5 | 4 | `u32` | 路线掩码 routeMask；上游恒写常量 0 | High | 上游 DungeonNotificationBuilder.cs:320 WriteInt32(routeMask)；AntonNormalConquestNotificationSender.cs:12 const int SequentialRouteMask = 0，:49 传该常量，取自 `[ebp - 8]` |
+| 5 | 4 | `u32` | 路线掩码 routeMask；上游恒写常量 0 | High | 上游 DungeonNotificationBuilder.cs:320 WriteInt32(routeMask)；AntonNormalConquestNotificationSender.cs:12 const int SequentialRouteMask = 0，:49 传该常量，取自 `[ebp - 0xc]` |
 
 `可能含义` 为 `unknown` 表示**字段边界已确定但含义无证据**——这类未知靠实机改值做差分即可解决，与上面的「结构未知」不是一回事。
 
@@ -40,12 +40,12 @@ BodyLength = 未知（字段集合已知不完整）
 
 | 项 | 值 |
 |---|---|
-| handler 入口 | `0x0090ED70` |
+| handler 入口 | `0x00D62630` |
 | handler 所在区 | text |
 | 注册路径 | batch:batch |
 
 
-支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`
+支持客户端 SHA-256：`1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`
 
 <!-- rks:machine:end -->
 

@@ -14,7 +14,7 @@
 | Direction | Server → Client | 接收注册表普查 |
 | Command 族 | `0x00`（NOTI） | 客户端两张注册表的分表证据 |
 | Type | `0x02AA` | 同上 |
-| 名称 | `REJOINABLE_DUNGEON` | upstream NotiPacketType |
+| 名称 | `CANCEL_REJOIN_DUNGEON` | upstream NotiPacketType |
 | 身份说明 | notification (server push only) | 普查 |
 
 ## Body
@@ -25,13 +25,12 @@
 
 ```text
 BodyLength = 未知（字段集合已知不完整）
-已读出字段合计 = 259   ← 下界，不是总长
+已读出字段合计 = 2   ← 下界，不是总长
 ```
 
 | Offset | Size | Enc | 可能含义 | 置信度 | 证据 |
 |---:|---:|---|---|---|---|
-| 0 | 4 | `u32` | 本次重连请求所针对的队伍 id PartyId | Confirmed | 上游 DungeonRejoinNotificationBuilder.cs:24-29 BuildRejoinableDungeon 只写 WriteInt32(partyId)；调用点 DungeonRejoinCoordinator.cs:181-183 与 :243-245 传 request.PartyId，取自 `[ebp - 0x234]` |
-| 4 | 255 | `dstringw` | unknown | — | 接收指令，取自 `[ebp - 0x210]` |
+| 0 | 2 | `u16` | 本次重连请求所针对的队伍 id PartyId | Confirmed | 上游 DungeonRejoinNotificationBuilder.cs:24-29 BuildRejoinableDungeon 只写 WriteInt32(partyId)；调用点 DungeonRejoinCoordinator.cs:181-183 与 :243-245 传 request.PartyId，取自 `[ebp - 0x18]` |
 
 `可能含义` 为 `unknown` 表示**字段边界已确定但含义无证据**——这类未知靠实机改值做差分即可解决，与上面的「结构未知」不是一回事。
 
@@ -39,12 +38,12 @@ BodyLength = 未知（字段集合已知不完整）
 
 | 项 | 值 |
 |---|---|
-| handler 入口 | `0x0008FD70` |
+| handler 入口 | `0x003371E0` |
 | handler 所在区 | text |
 | 注册路径 | forwarder |
 
 
-支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`
+支持客户端 SHA-256：`1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`
 
 <!-- rks:machine:end -->
 

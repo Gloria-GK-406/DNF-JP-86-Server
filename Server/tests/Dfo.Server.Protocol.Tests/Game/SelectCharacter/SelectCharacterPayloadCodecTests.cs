@@ -342,7 +342,7 @@ public sealed class SelectCharacterPayloadCodecTests
             // and 0x0357. The other four in this list keep their numbers: A21's own server sends
             // those bodies at 0x02D5, 0x0331, 0x0381 and 0x03D8, whatever it calls them.
             (0x02D5, 2), (0x0344, 0), (0x036A, 0), (0x0331, 0),
-            (0x03C1, 0), (0x0381, 0), (0x0381, 1), (0x03D8, 0),
+            (0x03C1, 0), (0x03EB, 0), (0x03EB, 1), (0x03D8, 0),
             (0x007C, 0), (0x0111, 0), (0x01C0, 0), (0x0077, 0),
         };
 

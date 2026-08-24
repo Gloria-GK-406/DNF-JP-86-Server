@@ -23,7 +23,7 @@
 ## 与实机的关系
 
 2026-08-18 走完教程副本一圈，客户端发出的
-[`0x008F CHANGE_TUTORIAL_FLAG`](../../game/client-to-server/0x008F.md) 携带的 flag 依次是
+[`0x008F CHANGE_TUTORIAL_FLAG`](../../../game/client-to-server/0x008F.md) 携带的 flag 依次是
 **30**（进城突发里）、**1**、**2**、**3**（进副本后），**未出现 38**。
 
 所以"NPC 给小药瓶"这一步除了服务端要回 `0x008F` 的奖励 ACK 之外，

@@ -18,6 +18,7 @@ public sealed class SelectCharacterAcceptedTranscriptTests
     // ten that changed are all accounted for:
     //   0x0002 subtype 0 and subtype 1   bodies rebuilt for A21
     //   0x02DA / 0x0357 / 0x0300 / 0x0312 renumbered to 0x0344 / 0x03C1 / 0x036A / 0x036F
+    //   0x0381 renumbered to 0x03EB: the A21 client registers no handler on 0x0381
     //   0x019F, 0x019D                   withdrawn from the entry sequence
     //   0x007C                           body grew from empty to eight bytes
     //   the post-marker 0x0002           is now subtype 6, not a second subtype 0
@@ -59,8 +60,8 @@ public sealed class SelectCharacterAcceptedTranscriptTests
         "5FC962E013A18EBB8C30190BE5C209DF20C3B66414197CCC6D1BEB6DE82929DB",
         "E8A1FCB7C3C070BF24A3B21B486DDC625766209C007935C2924FB0D0B32FC606",
         "8D16A2778C9E88F3679F7EB0A22A17198CE5E0742CE322D8E8DBBD1A83B18918",
-        "5A64D5148AA2533F58E89315C7CE44BE3B4A001539571EDD90E237B73AA2D065",
-        "241A3E548B117531A1EC9C3BB7817B9C170541F30E947236A2183E2B2DF48C58",
+        "755CD12C18CC8F32B0324A33A63C50255A0A4A72AA56059E4BE51A42ADAA808D",
+        "1D1E1BE335680FF7A35AF40F89349A6D04F643226103CE614CCB59F1E68C52AD",
         "842F0380897E18C0ACAB21EFEEF11EF0819EE8B42C61CB252694FAC374477A1A",
         "AD2E7B23D26445BE988B32D51DE2170919261E893F688CA43D0D79DD72AD9251",
         "D94374797A1E19E12254E29B82E61FF6DCCED28D161513DD1BD30675407E0288",
@@ -106,7 +107,7 @@ public sealed class SelectCharacterAcceptedTranscriptTests
         (0, 0x000D), (0, 0x000D), (0, 0x0465), (0, 0x021E),
         (0, 0x0286), (0, 0x00AD), (0, 0x01C7), (0, 0x006C),
         (0, 0x0187), (0, 0x01B9), (0, 0x015F), (0, 0x00AC),
-        (0, 0x00AE), (0, 0x017B), (0, 0x0381), (0, 0x0381),
+        (0, 0x00AE), (0, 0x017B), (0, 0x03EB), (0, 0x03EB),
         (0, 0x021F), (0, 0x03C1), (0, 0x00FB), (0, 0x00CD),
         (0, 0x00B1), (0, 0x036A), (1, 0x036F), (0, 0x03D8),
         (0, 0x025B), (0, 0x0331), (0, 0x01EB), (0, 0x0061),

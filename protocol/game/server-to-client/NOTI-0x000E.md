@@ -25,14 +25,14 @@
 
 ```text
 BodyLength = 未知（字段集合已知不完整）
-已读出字段合计 = 87   ← 下界，不是总长
+已读出字段合计 = 104   ← 下界，不是总长
 ```
 
 | Offset | Size | Enc | 可能含义 | 置信度 | 证据 |
 |---:|---:|---|---|---|---|
-| 0 | 1 | `u8` | 物品空间/背包列表类型 itemSpace（InventoryListType：0=主背包 1=时装 2=个人仓库 3=装备 7=宠物 12=账号金库 29=快捷栏） | Confirmed | 上游 Network/Builders/Inventory/ItemListUpdateBuilder.cs:48 WriteByte((byte)itemSpace)（BuildItemSpaceUpdateBody）；空更新路径 :101 同位置同值；枚举见 Game/Inventory/InventoryListType.cs:5-18，取自 `[ebp - 0xe8]` |
-| 1 | 2 | `u16` | 其后条目区的条目数 count；上游每成功写入一条槽位条目就自增一次 | Confirmed | 上游 ItemListUpdateBuilder.cs:49 WriteUInt16(count)，count 由 :44-45 与 :69-78 每条自增；空更新路径 :102 写 slotIndexes.Count，取自 `[ebp - 0xe8]` |
-| 3 | 84 | `bytes` | 条目区：count 条槽位更新条目连续排列，单条长度随 offset 0 的列表类型而定（时装为 0x7E 字节等） | High | 上游 ItemListUpdateBuilder.cs:50 WriteBytes(entries)；单条长度表见 :114-123 GetUpdateEntrySize，取自 `[ebp - 0x8c]` |
+| 0 | 1 | `u8` | 物品空间/背包列表类型 itemSpace（InventoryListType：0=主背包 1=时装 2=个人仓库 3=装备 7=宠物 12=账号金库 29=快捷栏） | Confirmed | 上游 Network/Builders/Inventory/ItemListUpdateBuilder.cs:48 WriteByte((byte)itemSpace)（BuildItemSpaceUpdateBody）；空更新路径 :101 同位置同值；枚举见 Game/Inventory/InventoryListType.cs:5-18，取自 `[ebp - 0x268]` |
+| 1 | 2 | `u16` | 其后条目区的条目数 count；上游每成功写入一条槽位条目就自增一次 | Confirmed | 上游 ItemListUpdateBuilder.cs:49 WriteUInt16(count)，count 由 :44-45 与 :69-78 每条自增；空更新路径 :102 写 slotIndexes.Count，取自 `[ebp - 0x268]` |
+| 3 | 101 | `bytes` | 条目区：count 条槽位更新条目连续排列，单条长度随 offset 0 的列表类型而定（时装为 0x7E 字节等） | High | 上游 ItemListUpdateBuilder.cs:50 WriteBytes(entries)；单条长度表见 :114-123 GetUpdateEntrySize，取自 `[ebp - 0x218]` |
 
 `可能含义` 为 `unknown` 表示**字段边界已确定但含义无证据**——这类未知靠实机改值做差分即可解决，与上面的「结构未知」不是一回事。
 
@@ -40,12 +40,12 @@ BodyLength = 未知（字段集合已知不完整）
 
 | 项 | 值 |
 |---|---|
-| handler 入口 | `0x00926210` |
+| handler 入口 | `0x00D7D720` |
 | handler 所在区 | text |
 | 注册路径 | batch:batch |
 
 
-支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`
+支持客户端 SHA-256：`1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`
 
 <!-- rks:machine:end -->
 
