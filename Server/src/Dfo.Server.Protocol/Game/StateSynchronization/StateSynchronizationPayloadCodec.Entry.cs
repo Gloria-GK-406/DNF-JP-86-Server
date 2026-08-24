@@ -356,11 +356,39 @@ internal static partial class StateSynchronizationPayloadCodec
         WriteBlob(writer, settings.QuickChatBank1); return stream.ToArray();
     }
 
+    /// <summary>The 99-entry key binding table a character receives when it has stored none.</summary>
+    /// <remarks>
+    /// The table is positional: the index is the action and the value is the key bound to it, with
+    /// <c>0x0086</c> meaning unbound. A character that has never saved its keys still has to be told
+    /// what they are, and a slot count of zero is not the same statement -- it leaves the client
+    /// without the table the rest of the town session indexes. This mirrors the account-scoped
+    /// substitution above for the same reason.
+    ///
+    /// Transcribed from the entry batch of a working A21 session (see the trace archived under
+    /// <c>protocol/patterns/data/traces/</c>). That session sends 0x01C7 exactly once, at entry,
+    /// carrying these 99 values. Whether they are the stock defaults or that character's own
+    /// bindings is not established -- what the capture fixes is the table's length and layout.
+    /// </remarks>
+    private static readonly ushort[] DefaultCharacterHotkeyTable =
+    [
+        0x0002, 0x0000, 0x0003, 0x0001, 0x004E, 0x0039, 0x0050, 0x000D, 0x004C, 0x0043, 0x0041, 0x003F,
+        0x0045, 0x0052, 0x004B, 0x0055, 0x0044, 0x0056, 0x0054, 0x0051, 0x0037, 0x0049, 0x003A, 0x003C,
+        0x003D, 0x003E, 0x0047, 0x004D, 0x003B, 0x0048, 0x004A, 0x004F, 0x002E, 0x002F, 0x0030, 0x0031,
+        0x0032, 0x0033, 0x0086, 0x001C, 0x0053, 0x0057, 0x0086, 0x006C, 0x0086, 0x0086, 0x0086, 0x0086,
+        0x001A, 0x0046, 0x0068, 0x0069, 0x0042, 0x001B, 0x006A, 0x0086, 0x0086, 0x0086, 0x0038, 0x0086,
+        0x0086, 0x0086, 0x0086, 0x0086, 0x0086, 0x0086, 0x0007, 0x0086, 0x0086, 0x0086, 0x0086, 0x0086,
+        0x0086, 0x0086, 0x0059, 0x0086, 0x0086, 0x0086, 0x0086, 0x0058, 0x0086, 0x005A, 0x005B, 0x005C,
+        0x0086, 0x0086, 0x0086, 0x0086, 0x001F, 0x0086, 0x0086, 0x0086, 0x0086, 0x0086, 0x0086, 0x0015,
+        0x0086, 0x0018, 0x0086
+    ];
+
     public static byte[] EncodeHotkeys(
         AccountSettingsEntryState accountSettings,
         CharacterSettingsEntryState characterSettings)
     {
-        var slots = characterSettings.HotkeySlots;
+        var slots = characterSettings.HotkeySlots.Count > 0
+            ? characterSettings.HotkeySlots
+            : DefaultCharacterHotkeyTable;
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         writer.Write(accountSettings.HotkeyKeyType); writer.Write(checked(slots.Count * 2));
         foreach (var slot in slots) writer.Write(slot); return stream.ToArray();
@@ -717,6 +745,23 @@ internal static partial class StateSynchronizationPayloadCodec
         WriteDstr(writer, bytes);
     }
 
+    /// <summary>The zero block A21 carries between the subtype's version and the character id.</summary>
+    /// <remarks>
+    /// Measured, not derived: the known-good session's subtype-zero body has thirty-eight zero
+    /// bytes there and the older client had none. Nothing here knows what they are for -- only
+    /// that everything after them sits thirty-eight bytes further along, which is the part that
+    /// matters to a reader.
+    /// </remarks>
+    private const int EntrySubtypeZeroReservedBlock = 38;
+
+    /// <summary>Where the character id sits in a subtype-0 USERINFO body.</summary>
+    /// <remarks>
+    /// <c>subtype(1) + version(2) + reserved(38)</c>. Published because the PvP lobby codec reads
+    /// the same body and had the A12 offset (3) baked in; two copies of this number drift the day
+    /// the reserved block changes again, and the failure is a lobby that rejects every identity.
+    /// </remarks>
+    internal const int CurrentUserStateCharacterIdOffset = 3 + EntrySubtypeZeroReservedBlock;
+
     public static byte[] EncodeCurrentUserState(
         ActiveCharacterState character,
         CharacterPublicEntryState entry,
@@ -732,7 +777,11 @@ internal static partial class StateSynchronizationPayloadCodec
         var creature = equipment.SingleOrDefault(item => item.SlotIndex == 24 && item.Core.ItemKind == 5);
         var pet = creature is null ? null : pets.SingleOrDefault(value => value.PetKey == creature.Core.Value);
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
-        writer.Write((byte)0); writer.Write((ushort)1); writer.Write(checked((ushort)character.Identity.CharacterId.Value)); WriteDstr(writer, character.Identity.Name);
+        writer.Write((byte)0); writer.Write((ushort)1);
+        // A21 puts thirty-eight zero bytes between the version and the character id. The older
+        // client had none, and every field after this point is where it is because of them.
+        writer.Write(new byte[EntrySubtypeZeroReservedBlock]);
+        writer.Write(checked((ushort)character.Identity.CharacterId.Value)); WriteDstr(writer, character.Identity.Name);
         writer.Write(character.Identity.Job); writer.Write(character.Identity.GrowType); writer.Write(character.Progression.Level);
         writer.Write(identity.PvpGrade); writer.Write(identity.PvpRatingGrade); writer.Write(identity.UserState); writer.Write(checked((byte)appearance.Length));
         foreach (var item in appearance)
@@ -754,6 +803,41 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(checked((uint)pvp.StatA)); writer.Write(checked((byte)pvp.WinStreak)); writer.Write(checked((byte)pvp.LoseStreak)); writer.Write(checked((uint)pvp.RankPoint)); writer.Write(checked((byte)c.TrailingByte)); return stream.ToArray();
     }
 
+    /// <summary>The zero block A21 carries between subtype one's version and the character id.</summary>
+    /// <remarks>
+    /// Fifteen bytes, measured the same way as subtype zero's thirty-eight: with them in place the
+    /// fields that follow line up with the known-good session -- the character id at eighteen, the
+    /// stat-block length at twenty-four, maximum HP at twenty-eight -- and without them nothing
+    /// after the version does.
+    /// </remarks>
+    private const int ExtendedSubtypeReservedBlock = 15;
+
+    /// <summary>The length the derived-stat block declares about itself.</summary>
+    /// <remarks>Eighty-three on the older client, eighty-eight here. Read off the wire, not derived.</remarks>
+    private const int DerivedStatBlockLength = 88;
+
+    /// <summary>
+    /// The one non-zero value in the padding that follows the elemental resistances.
+    /// </summary>
+    /// <remarks>
+    /// The block is thirty-four bytes either way; the older client left all of it zero and A21
+    /// puts 5500 in the last sixteen-bit slot. What it means is unknown -- it is written because
+    /// that is what the session carried, and a reader deserves to know it is not a length or a
+    /// count that was worked out.
+    /// </remarks>
+    private const ushort UnnamedStatBeforeInventoryLimit = 5500;
+
+    /// <summary>
+    /// What A21 carries where the older client carried the current HP/MP percentage.
+    /// </summary>
+    /// <remarks>
+    /// The older client took one byte here. A21 takes a 32-bit hundred followed by a zero byte,
+    /// and the character's actual percentage is not in this frame at all on this client. Writing
+    /// the stored percentage into the first byte of a four-byte field would put a plausible number
+    /// in the wrong place and shift everything after it.
+    /// </remarks>
+    private const uint FullHpMpPercentOnTheWire = 100;
+
     public static byte[] EncodeExtendedUserState(
         ActiveCharacterState character,
         CharacterPublicEntryState publicState,
@@ -764,11 +848,15 @@ internal static partial class StateSynchronizationPayloadCodec
         var stats = publicState.DerivedStats; var extras = publicState.Extras;
         var pvp = publicState.Pvp; var guild = publicState.Guild;
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
-        writer.Write((byte)1); writer.Write((ushort)1); writer.Write(checked((ushort)character.Identity.CharacterId.Value)); writer.Write(checked((uint)extras.CharacterExperience));
-        writer.Write(83); writer.Write(checked((uint)stats.HpMaximum)); writer.Write(checked((uint)stats.MpMaximum)); writer.Write(checked((short)stats.PhysicalAttack)); writer.Write(checked((short)stats.PhysicalDefense));
+        writer.Write((byte)1); writer.Write((ushort)1);
+        writer.Write(new byte[ExtendedSubtypeReservedBlock]);
+        writer.Write(checked((ushort)character.Identity.CharacterId.Value)); writer.Write(checked((uint)extras.CharacterExperience));
+        writer.Write(DerivedStatBlockLength); writer.Write(checked((uint)stats.HpMaximum)); writer.Write(checked((uint)stats.MpMaximum)); writer.Write(checked((short)stats.PhysicalAttack)); writer.Write(checked((short)stats.PhysicalDefense));
         writer.Write(checked((short)stats.MagicalAttack)); writer.Write(checked((short)stats.MagicalDefense)); writer.Write(checked((short)stats.FireResistance)); writer.Write(checked((short)stats.WaterResistance)); writer.Write(checked((short)stats.DarkResistance)); writer.Write(checked((short)stats.LightResistance));
-        writer.Write(new byte[34]); writer.Write(checked((uint)stats.InventoryLimit)); writer.Write(checked((ushort)stats.HpRegenSpeed)); writer.Write(checked((ushort)stats.MpRegenSpeed)); writer.Write(checked((uint)stats.MoveSpeed));
-        writer.Write(checked((ushort)stats.AttackSpeed)); writer.Write(checked((ushort)stats.CastSpeed)); writer.Write(checked((ushort)stats.HitRecovery)); writer.Write(checked((ushort)stats.JumpPower)); writer.Write(checked((uint)stats.Weight)); writer.Write(checked((byte)stats.CurrentHpMpPercent)); writer.Write(checked((byte)extras.ExtraEquipmentSlotState));
+        writer.Write(new byte[32]); writer.Write(UnnamedStatBeforeInventoryLimit); writer.Write(checked((uint)stats.InventoryLimit)); writer.Write(checked((ushort)stats.HpRegenSpeed)); writer.Write(checked((ushort)stats.MpRegenSpeed)); writer.Write(checked((uint)stats.MoveSpeed));
+        writer.Write(checked((ushort)stats.AttackSpeed)); writer.Write(checked((ushort)stats.CastSpeed)); writer.Write(checked((ushort)stats.HitRecovery)); writer.Write(checked((ushort)stats.JumpPower)); writer.Write(checked((uint)stats.Weight));
+        writer.Write(FullHpMpPercentOnTheWire); writer.Write((byte)0);
+        writer.Write(checked((byte)extras.ExtraEquipmentSlotState)); writer.Write((byte)0);
         if (equipment.Count > byte.MaxValue) throw CountError("equipped item", "u8"); writer.Write(checked((byte)equipment.Count));
         foreach (var item in equipment.OrderBy(item => item.SlotIndex)) WriteNoti2Item(writer, item, preparedAt);
         writer.Write(publicState.CloneTitleItemId); writer.Write(checked((uint)extras.NameTagItemId)); writer.Write(checked((uint)extras.NameTagExpireTime)); writer.Write(SkillTreeIndexOnTheWire(extras.SkillTreeIndex));

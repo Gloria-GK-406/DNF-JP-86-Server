@@ -81,7 +81,10 @@ internal sealed class CharacterRosterService(
                 new CharacterProgressionState(checked((byte)row.Level), 0),
                 new CharacterFatigueState(188, 0),
                 new CharacterPositionState(0, 0, 0, 0, 5),
-                DateTimeOffset.UnixEpoch,
+                // The client reads this as the character's creation time and the entry ACK carries
+                // it; a working A21 session sends a real Unix timestamp here, so a fixed epoch is a
+                // zero on the wire rather than an unset field.
+                DateTimeOffset.FromUnixTimeSeconds(row.CreatedAtUnixSeconds),
                 DarkKnightCombo: null);
     }
 

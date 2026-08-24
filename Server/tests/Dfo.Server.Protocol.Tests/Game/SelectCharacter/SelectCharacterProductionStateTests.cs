@@ -39,7 +39,8 @@ public sealed class SelectCharacterProductionStateTests
         Assert.NotNull(result.CharacterEntry.Skills.ProtocolMirror);
         Assert.All(result.CharacterEntry.Features.Collections.CollectionBoxes,
             value => Assert.NotNull(value.Protocol));
-        Assert.Equal(57, messages.Count); // Knight-only row 10 is the sole skipped static row.
+        // 62 static rows on A21, less the knight-only row this job does not take.
+        Assert.Equal(61, messages.Count);
         Assert.False(sources.Published);
     }
 

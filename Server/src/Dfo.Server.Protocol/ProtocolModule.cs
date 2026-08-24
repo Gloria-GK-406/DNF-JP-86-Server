@@ -70,7 +70,7 @@ public sealed class ProtocolModule : IServerModule
 
         services.AddGameMessageSending();
         services.TryAddSingleton<ChannelProtocolKeyProvider>();
-        services.TryAddSingleton(SelectCharacterDeliveryOptions.ReferenceSequence);
+        services.TryAddSingleton(SelectCharacterDeliveryOptions.Everything);
         services.TryAddSingleton<ISelectedCharacterStateMessageFactory, SelectedCharacterStateMessageFactoryService>();
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<INetworkConnectionObserver, OnlineUserConnectionObserver>());
@@ -339,6 +339,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<ConnectionCheckResponse, ConnectionCheckResponseEncoder>();
         services.AddGameNotiMessageEncoder<UserAreaNotification, UserAreaEncoder>();
         services.AddGameNotiMessageEncoder<AreaUsersNotification, AreaUsersEncoder>();
+        services.AddGameNotiMessageEncoder<UserPositionNotification, UserPositionEncoder>();
         services.AddGameNotiMessageEncoder<UserStateNotification, UserStateEncoder>();
         services.AddGameNotiMessageEncoder<UdpHostNotification, UdpHostEncoder>();
         services.AddGameNotiMessageEncoder<EnterSelectDungeonNotification, EnterSelectDungeonEncoder>();

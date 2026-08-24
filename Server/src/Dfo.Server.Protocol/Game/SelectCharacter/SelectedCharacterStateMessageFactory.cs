@@ -33,15 +33,27 @@ internal static class SelectedCharacterStateMessageFactory
                 result.World.Channel.Spawn.TownId, result.World.PreparedAt),
         };
 
-        AddInventorySnapshots(messages, result);
+        // The order is the A21 reference sequence, frame for frame. It is not cosmetic: the
+        // reference opens with the character record and only then sends the inventory, and this
+        // server had it the other way round -- item lists arriving before the character they hang
+        // off. Everything below is ordered against a captured A21 entry sequence rather than
+        // against what reads well.
         var equipment = result.CharacterInventory.Containers
             .SingleOrDefault(value => value.ContainerType == InventoryContainerType.Equipment)?.Items ?? [];
-        messages.Add(new CreatureListMessage(result.CharacterEntry.Features.Pets));
         messages.Add(new CurrentUserStateMessage(
             result.Character, result.CharacterEntry.Public, equipment, result.CharacterEntry.Features.Pets));
-        messages.Add(new ExtendedUserStateMessage(
-            result.Character, result.CharacterEntry.Public, result.CharacterEntry.Skills,
-            equipment, result.World.PreparedAt));
+
+        var titleBooks = result.CharacterEntry.Features.Collections.TitleBooks
+            .OrderBy(value => value.Category).ToArray();
+        RequireAtLeast(titleBooks, 5, "title-book categories");
+        messages.AddRange(titleBooks.Take(5).Select(value => new TitleBookStateMessage(value)));
+        messages.Add(new AchievementStateMessage(result.CharacterEntry.Features.Collections.Achievements));
+        messages.Add(new AvailableQuestListMessage(
+            result.Character.Progression.Level, result.World.Content.AvailableQuests));
+        messages.Add(new QuestVisibilityMessage(result.CharacterEntry.Quests.VisibilityFlags));
+        // The captured sequence carries neither of these job-specific frames, so their position
+        // relative to the skill block is left exactly where it already was rather than moved on
+        // no evidence.
         if (result.Character.Identity.Job == 12
             && result.CharacterEntry.Skills.KnightShieldDeck is { } knightDeck)
             messages.Add(new KnightShieldDeckMessage(knightDeck));
@@ -49,26 +61,25 @@ internal static class SelectedCharacterStateMessageFactory
         if (result.Character.Identity.Job == 9
             && result.CharacterEntry.Skills.DarkKnightCombos is { } combos)
             messages.Add(new DarkKnightComboStateMessage(combos));
-        messages.Add(new AvailableQuestListMessage(
-            result.Character.Progression.Level, result.World.Content.AvailableQuests));
-        messages.Add(new QuestVisibilityMessage(result.CharacterEntry.Quests.VisibilityFlags));
+        messages.Add(new CreatureListMessage(result.CharacterEntry.Features.Pets));
+        messages.Add(new ExtendedUserStateMessage(
+            result.Character, result.CharacterEntry.Public, result.CharacterEntry.Skills,
+            equipment, result.World.PreparedAt));
+        messages.Add(new UserStateBaselineMessage());
+        messages.Add(new VillageObjectListMessage());
+        messages.Add(new DungeonPermissionStateMessage(result.CharacterEntry.Progression.Dungeons));
+        AddInventorySnapshots(messages, result);
+        messages.Add(new EpicBookBaselineMessage());
+        messages.Add(new UsableCountBaselineMessage());
         messages.Add(new DailyChallengeStateMessage(result.CharacterEntry.Progression));
         messages.Add(new AccountGameOptionsMessage(result.Account.Settings));
         messages.Add(new HotkeyStateMessage(result.Account.Settings, result.CharacterEntry.Settings));
         messages.Add(new ServerEventBaselineMessage());
-        messages.Add(new DungeonPermissionStateMessage(result.CharacterEntry.Progression.Dungeons));
         messages.Add(new CharacterOptionStateMessage(result.CharacterEntry.Settings.OptionBitmap));
         messages.Add(new GrowthWeaponStateMessage(result.CharacterEntry.Progression.GrowthWeaponStages));
-
-        var titleBooks = result.CharacterEntry.Features.Collections.TitleBooks
-            .OrderBy(value => value.Category).ToArray();
-        RequireAtLeast(titleBooks, 5, "title-book categories");
-        messages.AddRange(titleBooks.Take(5).Select(value => new TitleBookStateMessage(value)));
-        messages.Add(new AchievementStateMessage(result.CharacterEntry.Features.Collections.Achievements));
         messages.Add(new SkillPointSlotStateMessage(result.CharacterEntry.Skills.SkillPointSlots));
         messages.Add(new ItemCooldownStateMessage(result.CharacterInventory.ItemValues.Cooldowns));
         messages.Add(new ItemEffectStateMessage(result.CharacterInventory.ItemValues.Effects));
-        messages.Add(new PurchaseRestrictionCompatibilityMessage(result.Account.Relations.Unknown730Entries));
         messages.Add(new ClientEffectBaselineMessage());
 
         var boxes = result.CharacterEntry.Features.Collections.CollectionBoxes
@@ -81,17 +92,12 @@ internal static class SelectedCharacterStateMessageFactory
         messages.Add(new EquipmentLockStateMessage(
             result.CharacterInventory.EquipmentLocks, result.AccountInventory.Cargo.EquipmentLocks));
         messages.Add(new ExpertJobStateMessage(result.CharacterEntry.Features.ExpertJob));
-        messages.Add(new SupportCharacterStateMessage(
-            result.Character.Identity.CharacterId,
-            result.Account.Relations.CharacterRelations,
-            result.World.PreparedAt));
         messages.Add(new DailyReviveCoinStateMessage(result.CharacterEntry.Progression.DailyReviveCoinClaimed));
         messages.Add(new CubeProgressionStateMessage(
             result.CharacterEntry.Progression.CubeType, result.CharacterEntry.Progression.CubeGrade));
         messages.Add(new PremiumServiceStateMessage(
             result.Account.Entitlements, result.CharacterEntry.Progression.PremiumUsageSlots));
         messages.Add(new LotteryProgressStateMessage(result.Account.Progression));
-        messages.Add(new LuckyStarStateMessage(result.Account.Wallet.LuckyStar));
         messages.Add(new ChampionBreakStateMessage(result.CharacterEntry.Progression));
         messages.Add(new GoldLimitStateMessage(result.CharacterEntry.Progression.GoldLimitUpgradeLevel));
         messages.Add(new FatigueAccelerationStateMessage(
@@ -105,13 +111,21 @@ internal static class SelectedCharacterStateMessageFactory
         RequireAtLeast(schedules, 3, "daily schedules");
         messages.AddRange(schedules.Take(3).Select(value => new DailyScheduleStateMessage(value)));
         messages.Add(new PcRoomPlayTimeStateMessage(result.Account.Relations.PcRoomPlayTimeState));
+        messages.Add(new PartyBaselineMessage());
+        messages.Add(new PurchaseRestrictionCompatibilityMessage(result.Account.Relations.Unknown730Entries));
         messages.Add(new EntryMarkerMessage());
-        messages.Add(new CurrentUserStateMessage(
-            result.Character, result.CharacterEntry.Public, equipment, result.CharacterEntry.Features.Pets));
+        // Subtype six, not a second copy of the subtype the batch opened with. The older client
+        // took nothing here; A21's own server sends this frame once, right after the marker.
+        messages.Add(new TownReadyStateMessage(result.Character.Identity.CharacterId));
         messages.Add(new CeraBalanceStateMessage(result.Account.Wallet));
         messages.Add(new CrossServerFriendBaselineMessage());
         messages.Add(new CharacterPositionStateMessage(
             result.Character.Identity.CharacterId, result.World.Channel.Spawn));
+        messages.Add(new UpdateItemListBaselineMessage());
+
+        // NOTI 0x019F and 0x019D are deliberately absent. The reference entry sequence carries
+        // neither: it answers 0x019F on the client's own request after entry, and never sends
+        // 0x019D in this window. Both encoders stay registered for the paths that do ask.
         if (result.World.Content.PetWelcome is { Lines.Count: > 0 } welcome)
             messages.Add(new PetWelcomeStateMessage(result.Character.Identity.CharacterId, welcome));
         return messages;

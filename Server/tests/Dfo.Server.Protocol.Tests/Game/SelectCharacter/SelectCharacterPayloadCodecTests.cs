@@ -100,7 +100,10 @@ public sealed class SelectCharacterPayloadCodecTests
     [InlineData(0x006C, 3)]
     [InlineData(0x017B, 11)]
     [InlineData(0x021F, 4)]
-    [InlineData(0x007C, 0)]
+    // A21 gives the completion marker an eight-byte body; A12's was empty. The frame is still a
+    // pure signal -- both observed bodies are constants -- but "zero length" is no longer what
+    // identifies it.
+    [InlineData(0x007C, 8)]
     [InlineData(0x0111, 8)]
     public void SelectCharacterPayload_ObservedConstantBodiesHaveExactLengths(
         ushort type,
@@ -335,8 +338,11 @@ public sealed class SelectCharacterPayloadCodecTests
             (0x019D, 0), (0x019F, 0), (0x01A8, 0), (0x01B9, 0),
             (0x01C7, 0), (0x01EB, 0), (0x021F, 0), (0x0245, 0),
             (0x025B, 0), (0x0286, 0), (0x02D5, 0), (0x02D5, 1),
-            (0x02D5, 2), (0x02DA, 0), (0x0300, 0), (0x0331, 0),
-            (0x0357, 0), (0x0381, 0), (0x0381, 1), (0x03D8, 0),
+            // 0x0344, 0x036A and 0x03C1 are the A21 numbers for what A12 numbered 0x02DA, 0x0300
+            // and 0x0357. The other four in this list keep their numbers: A21's own server sends
+            // those bodies at 0x02D5, 0x0331, 0x0381 and 0x03D8, whatever it calls them.
+            (0x02D5, 2), (0x0344, 0), (0x036A, 0), (0x0331, 0),
+            (0x03C1, 0), (0x0381, 0), (0x0381, 1), (0x03D8, 0),
             (0x007C, 0), (0x0111, 0), (0x01C0, 0), (0x0077, 0),
         };
 
@@ -690,6 +696,20 @@ public sealed class SelectCharacterPayloadCodecTests
             message = new DarkKnightComboStateMessage(
                 result.CharacterEntry.Skills.DarkKnightCombos
                 ?? throw new InvalidDataException("Dark Knight combo state is unavailable."));
+        }
+        // Both left the A21 entry sequence but keep their encoders, so they are built here for the
+        // same reason 0x0245 and 0x01C0 are: the body is still worth pinning, and reaching it
+        // through the batch would silently stop testing anything the day it is not in the batch.
+        else if (type == 0x019F)
+        {
+            message = new SupportCharacterStateMessage(
+                result.Character.Identity.CharacterId,
+                result.Account.Relations.CharacterRelations,
+                result.World.PreparedAt);
+        }
+        else if (type == 0x019D)
+        {
+            message = new LuckyStarStateMessage(result.Account.Wallet.LuckyStar);
         }
         else
         {

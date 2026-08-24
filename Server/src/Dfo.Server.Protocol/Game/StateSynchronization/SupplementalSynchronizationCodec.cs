@@ -229,8 +229,9 @@ internal static class SupplementalSynchronizationCodec
         if (userId == 0)
             throw Missing("Pvp.Identity.CharacterId");
         var body = EncodePvpSubtype0(identity);
-        if (body.Length < 5 || body[0] != 0 || BitConverter.ToUInt16(body, 1) != 1 ||
-            BitConverter.ToUInt16(body, 3) != userId)
+        var idOffset = StateSynchronizationPayloadCodec.CurrentUserStateCharacterIdOffset;
+        if (body.Length < idOffset + 2 || body[0] != 0 || BitConverter.ToUInt16(body, 1) != 1 ||
+            BitConverter.ToUInt16(body, idOffset) != userId)
             throw new InvalidDataException("PvP identity is not a matching subtype-0 USERINFO body.");
         if (seen is not null && !seen.Add(userId))
             throw new InvalidDataException("PvP identity order contains a duplicate user id.");

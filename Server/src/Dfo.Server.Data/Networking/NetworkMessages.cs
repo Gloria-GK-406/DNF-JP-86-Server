@@ -91,6 +91,7 @@ public enum ServerMessageType
     // Pushed when the dungeon-selection screen opens. See Game/DungeonSelection.
     GameUserState = 0x0000_0003,
     GameUserArea = 0x0000_0017,
+    GameUserPosition = 0x0000_0016,
     GameUdpHost = 0x0000_001A,
     GameEnterSelectDungeonState = 0x0000_001B,
 

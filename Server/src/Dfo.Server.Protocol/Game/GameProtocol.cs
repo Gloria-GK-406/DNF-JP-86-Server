@@ -46,6 +46,9 @@ internal static class GameProtocol
 
     public const ushort AreaUsersNotificationType = 0x0018;
 
+    /// <summary>NOTI 0x0016 <c>USER_POSITION</c>, which A21 sends back for every 0x0023.</summary>
+    public const ushort UserPositionNotificationType = 0x0016;
+
     public const ushort InformNoticeSecondType = 0x01F8;
 
     public const ushort SecurityStatusType = 0x0252;
