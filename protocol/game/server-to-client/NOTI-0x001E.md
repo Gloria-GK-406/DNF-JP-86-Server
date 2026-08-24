@@ -48,6 +48,12 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- rks:machine:end -->
 
+<!-- rks:a12:begin -->
+
+> **本区结论得出于 A12 客户端**（SHA-256 `F78F0AEA…`），**A21 上尚未复核**。
+> 按迁移规则，本协议在 A21 上重做完成后整区删除；在那之前它是脚手架，不是 A21 的记录。
+> 迁移状态见[协议清单](../../catalog.md#a12-内容的退场)。
+
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
 本帧尚无 recv 侧抓包，但**已由服务端实际发出并生效**（实机 2026-08-18）。
@@ -63,3 +69,5 @@ body 为 **5 字节全零**（上游 `Network/Builders/Town/FinishLoadingBuilder
 ## 服务端实现映射
 
 `Server/src/Dfo.Server.Protocol/Game/FinishLoading/FinishLoadingSlice.cs`。已实现并实机验证。
+
+<!-- rks:a12:end -->
