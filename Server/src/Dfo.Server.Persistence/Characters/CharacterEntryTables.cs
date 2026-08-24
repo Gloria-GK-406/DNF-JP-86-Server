@@ -155,12 +155,13 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
         byte[] nameBytes,
         int job,
         int slotIndex,
+        byte[] appearanceBlob,
         CancellationToken cancellationToken)
     {
         var created = await database.WriteReturningAsync(
             """
-            INSERT INTO characters (account_id, name, name_bytes, job, grow_type, level, slot_index, created_at)
-            VALUES (@aid, @name, @nameBytes, @job, 0, 1, @slot, unixepoch())
+            INSERT INTO characters (account_id, name, name_bytes, job, grow_type, level, slot_index, created_at, appearance_blob)
+            VALUES (@aid, @name, @nameBytes, @job, 0, 1, @slot, unixepoch(), @appearance)
             RETURNING character_id;
             """,
             parameters =>
@@ -170,6 +171,7 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
                 parameters.AddWithValue("@nameBytes", nameBytes);
                 parameters.AddWithValue("@job", job);
                 parameters.AddWithValue("@slot", slotIndex);
+                parameters.AddWithValue("@appearance", appearanceBlob);
             },
             reader => (object)new CharacterId(reader.GetInt32(0)),
             cancellationToken).ConfigureAwait(false);

@@ -77,6 +77,7 @@ public interface ICharacterTable
         byte[] nameBytes,
         int job,
         int slotIndex,
+        byte[] appearanceBlob,
         CancellationToken cancellationToken);
 
     /// <summary>Moves a character along. Says how many rows that touched.</summary>

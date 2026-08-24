@@ -175,6 +175,10 @@ public sealed class SqliteCharacterLifecycleTests
             var bare = await repository.CreateAsync(
                 new NewCharacterSpec(Account, "Bare"u8.ToArray(), Job: 1, SlotIndex: 0, CharacterBaseStats.Zero),
                 CancellationToken.None);
+            var created = await repository.ListByAccountAsync(Account, CancellationToken.None);
+            // Creation writes three parts. Pinned here because writing none is what made a
+            // server-created character unable to enter the world.
+            Assert.Equal(3, created.Single(value => value.CharacterId == bare).Appearances.Count);
             var dressed = await repository.CreateAsync(
                 new NewCharacterSpec(Account, "Dressed"u8.ToArray(), Job: 2, SlotIndex: 1, CharacterBaseStats.Zero),
                 CancellationToken.None);
@@ -196,6 +200,20 @@ public sealed class SqliteCharacterLifecycleTests
                 update.Parameters.AddWithValue("@blob", blob);
                 update.Parameters.AddWithValue("@id", dressed.Value);
                 Assert.Equal(1, await update.ExecuteNonQueryAsync(CancellationToken.None));
+            }
+
+            // The one the roster reads when the column holds nothing at all. Creation now writes a
+            // default set -- a character with an empty blob makes the A21 client fail
+            // InitGraphicSystem while building the town -- so the empty case has to be made rather
+            // than found, and it is still worth keeping: the decoder must not throw on it.
+            await using (var connection = new SqliteConnection($"Data Source={databasePath}"))
+            {
+                await connection.OpenAsync(CancellationToken.None);
+                await using var clear = connection.CreateCommand();
+                clear.CommandText =
+                    "UPDATE characters SET appearance_blob = NULL WHERE character_id = @id;";
+                clear.Parameters.AddWithValue("@id", bare.Value);
+                Assert.Equal(1, await clear.ExecuteNonQueryAsync(CancellationToken.None));
             }
 
             var roster = await repository.ListByAccountAsync(Account, CancellationToken.None);

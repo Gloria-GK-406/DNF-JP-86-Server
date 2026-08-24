@@ -33,6 +33,30 @@ internal sealed class CharacterRosterService(
     /// </summary>
     private const int FullHpMpPercent = 100;
 
+    /// <summary>The appearance a character is created wearing.</summary>
+    /// <remarks>
+    /// Three parts -- <c>count(1)</c> then <c>slot(1), displayItem(i32), expansionLength(i32=4),
+    /// expansion(4), state(1), linkItem(i32), enchant(u32), flag(1)</c> per part -- transcribed
+    /// from a working A21 session's character.
+    ///
+    /// It is not cosmetic. A character whose appearance blob is empty makes the A21 client fail
+    /// <c>InitGraphicSystem</c> while building the town, and the client answers that by
+    /// terminating itself, which reads as a protocol crash and is not one. Equipped items are not
+    /// needed for this -- removing them and keeping only these parts still enters the world -- so
+    /// what the client requires here is something to build a model from, not a matching inventory.
+    ///
+    /// The archive was searched for a per-job creation set and none was found: in this game the
+    /// starting gear is server data, not content. So this is one set for every job, which is wrong
+    /// in the long run and honest about being wrong: it is the only evidenced shape available.
+    /// </remarks>
+    private static readonly byte[] CreatedAppearance =
+    [
+        3,
+        0x0C, 0x80, 0x80, 0xCB, 0x06, 0x04, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0x0E, 0xA0, 0x28, 0x00, 0x00, 0x04, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0x10, 0x70, 0x30, 0x00, 0x00, 0x04, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    ];
+
     public async ValueTask<IReadOnlyList<CharacterSummary>> ListByAccountAsync(
         AccountId accountId, CancellationToken cancellationToken)
     {
@@ -108,7 +132,7 @@ internal sealed class CharacterRosterService(
         // human-readable handle when inspecting the database by hand.
         var characterId = await characters.InsertAsync(
             spec.AccountId, DecodeForDisplay(spec.Name), spec.Name, spec.Job, spec.SlotIndex,
-            cancellationToken).ConfigureAwait(false);
+            CreatedAppearance, cancellationToken).ConfigureAwait(false);
 
         foreach (var skill in spec.InitialSkills ?? [])
         {
