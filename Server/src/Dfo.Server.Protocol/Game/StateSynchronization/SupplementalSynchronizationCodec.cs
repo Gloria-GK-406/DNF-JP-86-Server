@@ -290,6 +290,15 @@ internal static class SupplementalSynchronizationCodec
         writer.Write(value.Flag20);
     }
 
+    /// <summary>The same thirty-six byte close the roster screen writes.</summary>
+    /// <remarks>
+    /// This is the second encoder of subtype 2 in the repository -- the roster screen has its own
+    /// -- so the tail lives twice, and both were corrected together because the tail is one wire
+    /// fact. Only the tail: the ten bytes after the level still differ between the two, this one
+    /// writing progress values where the roster screen writes the bytes that session carried.
+    /// Both of those, and why they were not merged here, are in
+    /// Docs/ProtocolScaffoldDissonances.md.
+    /// </remarks>
     private static void WriteRosterTail(BinaryWriter writer, uint cloneTitleItemId)
     {
         writer.Write(cloneTitleItemId);
@@ -298,7 +307,10 @@ internal static class SupplementalSynchronizationCodec
         writer.Write(0u);
         writer.Write((byte)0);
         writer.Write(0u);
-        writer.Write(new byte[] { 0, 0, 0, 3, 0, 0, 4, 0, 0, 0, 0 });
+        writer.Write(new byte[6]);
+        writer.Write((byte)0xFF);
+        writer.Write(new byte[4]);
+        writer.Write(0u);
     }
 
     private static void WriteDstr(BinaryWriter writer, byte[]? value)

@@ -34,7 +34,7 @@ public sealed class CharacterLifecycleServiceTests
     }
 
     private static CharacterSummary Existing(ushort slot, string name) =>
-        new(new CharacterId(slot + 100), slot, Encoding.UTF8.GetBytes(name), 0, 0, 1, 0);
+        new(new CharacterId(slot + 100), slot, Encoding.UTF8.GetBytes(name), 0, 0, 1, 0, []);
 
     [Fact]
     public async Task AFreeNameIsAvailable()

@@ -150,6 +150,64 @@ public sealed class SqliteCharacterLifecycleTests
         });
     }
 
+    /// <summary>
+    /// The roster carries the stored appearance parts, and a character without any carries none.
+    /// </summary>
+    /// <remarks>
+    /// Both halves matter and only one of them is what this server currently produces. Creation
+    /// does not write <c>appearance_blob</c>, so every character this server makes comes back with
+    /// an empty list -- that is the shape the roster screen actually receives today. The non-empty
+    /// half is reachable only from data written some other way, which is why it is set up here by
+    /// hand rather than through the repository: without it, the decode this roster query now
+    /// performs would have no covered path at all.
+    /// </remarks>
+    [Fact]
+    public Task TheRosterCarriesStoredAppearancePartsAndCopesWithNone()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"dfo-character-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var databasePath = Path.Combine(directory, "characters.db");
+        return RunAndCleanUpAsync(directory, async () =>
+        {
+            await new AccountSide(databasePath).GetOrCreateAsync("account", "hash");
+            var repository = new CharacterSide(databasePath).PerCall;
+
+            var bare = await repository.CreateAsync(
+                new NewCharacterSpec(Account, "Bare"u8.ToArray(), Job: 1, SlotIndex: 0, CharacterBaseStats.Zero),
+                CancellationToken.None);
+            var dressed = await repository.CreateAsync(
+                new NewCharacterSpec(Account, "Dressed"u8.ToArray(), Job: 2, SlotIndex: 1, CharacterBaseStats.Zero),
+                CancellationToken.None);
+
+            // One count byte followed by one twenty-three byte entry, which is how the column is
+            // laid out wherever it does get written.
+            byte[] blob =
+            [
+                0x01,
+                0x0C, 0x80, 0x80, 0xCB, 0x06, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            ];
+            await using (var connection = new SqliteConnection($"Data Source={databasePath}"))
+            {
+                await connection.OpenAsync(CancellationToken.None);
+                await using var update = connection.CreateCommand();
+                update.CommandText =
+                    "UPDATE characters SET appearance_blob = @blob WHERE character_id = @id;";
+                update.Parameters.AddWithValue("@blob", blob);
+                update.Parameters.AddWithValue("@id", dressed.Value);
+                Assert.Equal(1, await update.ExecuteNonQueryAsync(CancellationToken.None));
+            }
+
+            var roster = await repository.ListByAccountAsync(Account, CancellationToken.None);
+
+            Assert.Empty(roster.Single(value => value.CharacterId == bare).Appearances);
+            var part = Assert.Single(roster.Single(value => value.CharacterId == dressed).Appearances);
+            Assert.Equal(0x0C, part.Slot);
+            Assert.Equal(0x06CB8080, part.DisplayItemId);
+            Assert.Equal(4, part.ExpansionLength);
+        });
+    }
+
     private static async Task RunAndCleanUpAsync(string directory, Func<Task> body)
     {
         try

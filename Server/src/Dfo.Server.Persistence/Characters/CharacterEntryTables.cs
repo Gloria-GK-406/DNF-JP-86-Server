@@ -65,7 +65,8 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
         AccountId accountId, CancellationToken cancellationToken) =>
         database.ReadAllAsync(
             $"""
-            SELECT character_id, slot_index, {Name}, job, grow_type, level, clone_title_item_id
+            SELECT character_id, slot_index, {Name}, job, grow_type, level, clone_title_item_id,
+                   appearance_blob
             FROM characters
             WHERE account_id = @aid AND delete_flag = 0
             ORDER BY slot_index, character_id;
@@ -77,7 +78,10 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
                 // Read wide and guarded: the column holds an unsigned item id, so the top half of
                 // its range does not fit the signed read, and a character wearing no title has
                 // nothing in it at all.
-                reader.IsDBNull(6) ? 0L : reader.GetInt64(6)),
+                reader.IsDBNull(6) ? 0L : reader.GetInt64(6),
+                // The same blob the entry path reads. The roster screen draws the character, so it
+                // needs the parts, not just the name and level.
+                EntryBlob.Bounded(reader, 7, EntryBlob.Appearance, "appearance", allowNull: true)),
             cancellationToken);
 
     public ValueTask<CharacterSummaryRow?> FindBySlotAsync(
@@ -94,9 +98,12 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
                 parameters.AddWithValue("@aid", accountId.Value);
                 parameters.AddWithValue("@slot", slotIndex);
             },
+            // Neither the title nor the appearance is selected here: this lookup answers "which
+            // character is in that slot", and its callers do not draw anything. Both are empty
+            // rather than absent because the row type is shared with the roster query.
             reader => new CharacterSummaryRow(
                 reader.GetInt32(0), reader.GetInt32(1), NameOf(reader),
-                reader.GetInt32(3), reader.GetInt32(4), reader.GetInt32(5), 0),
+                reader.GetInt32(3), reader.GetInt32(4), reader.GetInt32(5), 0, []),
             cancellationToken);
 
     public async ValueTask<bool> NameIsTakenAsync(

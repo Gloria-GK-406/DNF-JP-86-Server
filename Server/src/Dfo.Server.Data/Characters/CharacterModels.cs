@@ -14,7 +14,8 @@ public sealed record CharacterSummary(
     byte Job,
     byte GrowType,
     byte Level,
-    uint CloneTitleItemId);
+    uint CloneTitleItemId,
+    IReadOnlyList<Game.CharacterRosterAppearanceState> Appearances);
 
 public sealed record AccountCharacterRoster(
     AccountId AccountId,

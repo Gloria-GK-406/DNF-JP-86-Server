@@ -185,6 +185,68 @@ public sealed class SupplementalSynchronizationTests
             }));
     }
 
+    /// <summary>
+    /// An entry's fixed part: the slot, the name's length prefix, and the sixteen bytes after the
+    /// name. The name's own bytes, the parts and the tail are counted separately.
+    /// </summary>
+    private const int RosterEntryFixedWidth = 22;
+
+    private const int RosterHeaderWidth = 18;
+
+    private const int RosterAppearanceWidth = 23;
+
+    private const int RosterEntryTailWidth = 36;
+
+    /// <summary>
+    /// The widths close here too: header, entry, twenty-three per appearance, thirty-six of tail.
+    /// </summary>
+    /// <remarks>
+    /// This encoder writes the same subtype as the roster screen's, so the entry tail exists twice
+    /// in the repository and both had to move from thirty-two bytes to thirty-six. Only the roster
+    /// screen's copy was guarded, which meant this one could be reverted with the whole suite
+    /// still green -- and the shape it protects is precisely the one a single character cannot
+    /// show, because a short tail loses the second character rather than mangling the first.
+    /// </remarks>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void SelectCharacterSupplemental_RosterLengthClosesOverTheAppearanceCount(
+        int appearances)
+    {
+        var expected = RosterHeaderWidth + RosterEntryFixedWidth + 1
+            + (RosterAppearanceWidth * appearances) + RosterEntryTailWidth;
+        var appearance = new CharacterRosterAppearanceState(7, 1000, 4, [1, 2, 3, 4], 8, 2000, 9, 10);
+        var roster = new CharacterRosterEntryState(
+            24, 24, 2, 100, 3, 200,
+            [new CharacterRosterMemberState(
+                new CharacterId(10), 1, [0x41], 2, 3, 86, 4, 5, 6,
+                [.. Enumerable.Repeat(appearance, appearances)],
+                3000)]);
+
+        Assert.Equal(expected, Body(SupplementalSynchronizationCodec.EncodeRoster(roster)).Length);
+    }
+
+    /// <summary>
+    /// A second character begins where the first one ends, which is what the tail length buys.
+    /// </summary>
+    [Fact]
+    public void SelectCharacterSupplemental_ASecondCharacterStartsWhereTheFirstEnds()
+    {
+        var appearance = new CharacterRosterAppearanceState(7, 1000, 4, [1, 2, 3, 4], 8, 2000, 9, 10);
+        var first = new CharacterRosterMemberState(
+            new CharacterId(10), 1, [0x41], 2, 3, 86, 4, 5, 6, [appearance], 3000);
+        var roster = new CharacterRosterEntryState(
+            24, 24, 2, 100, 3, 200,
+            [first, first with { CharacterId = new CharacterId(11), SlotIndex = 2, Name = [0x42] }]);
+
+        var body = Body(SupplementalSynchronizationCodec.EncodeRoster(roster));
+
+        var entryLength = RosterEntryFixedWidth + 1 + RosterAppearanceWidth + RosterEntryTailWidth;
+        Assert.Equal(RosterHeaderWidth + (entryLength * 2), body.Length);
+        Assert.Equal(0x42, body[RosterHeaderWidth + entryLength + 6]);
+    }
+
     private static byte[] EncodeStaticNotification(SelectCharacterResult result, ushort type)
     {
         Assert.Equal((ushort)0x00FB, type);

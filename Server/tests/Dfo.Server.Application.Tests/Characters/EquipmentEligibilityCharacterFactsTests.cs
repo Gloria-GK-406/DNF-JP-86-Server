@@ -21,7 +21,8 @@ public sealed class EquipmentEligibilityCharacterFactsTests
             Job: 7,
             GrowType: 3,
             Level: 86,
-            CloneTitleItemId: 0);
+            CloneTitleItemId: 0,
+            Appearances: []);
         // Reading eligibility facts must not reach for static content: only creation needs it.
         // The last is how a character instance would be built, and reading eligibility facts never
         // builds one.

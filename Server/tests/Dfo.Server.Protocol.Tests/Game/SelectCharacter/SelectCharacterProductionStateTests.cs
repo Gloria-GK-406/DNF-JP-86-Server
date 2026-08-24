@@ -61,7 +61,8 @@ public sealed class SelectCharacterProductionStateTests
                 [new CharacterSummary(seed.Character.Identity.CharacterId,
                     seed.Character.Identity.SlotIndex, seed.Character.Identity.Name,
                     seed.Character.Identity.Job, seed.Character.Identity.GrowType,
-                    seed.Character.Progression.Level, seed.CharacterEntry.Public.CloneTitleItemId)]));
+                    seed.Character.Progression.Level, seed.CharacterEntry.Public.CloneTitleItemId,
+                    [])]));
         public ValueTask<ActiveCharacterState> LoadForSelectionAsync(AccountId id, ushort slot, CancellationToken ct) =>
             ValueTask.FromResult(seed.Character);
         public ValueTask<ActiveCharacterState> LoadByRosterPositionAsync(

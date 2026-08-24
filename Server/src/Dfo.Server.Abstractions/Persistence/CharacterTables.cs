@@ -9,7 +9,7 @@ public sealed record CharacterRosterRow(int CharacterId, int SlotIndex, int Leve
 /// <summary>What a character looks like in a list of them.</summary>
 public sealed record CharacterSummaryRow(
     int CharacterId, int SlotIndex, byte[] Name, int Job, int GrowType, int Level,
-    long CloneTitleItemId);
+    long CloneTitleItemId, byte[] AppearanceBlob);
 
 /// <summary>How far along a character is.</summary>
 public sealed record CharacterProgressRow(int Level, long Experience);

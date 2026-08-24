@@ -656,7 +656,8 @@ public sealed class CharacterEntryInventoryTests
                     state.Identity.Job,
                     state.Identity.GrowType,
                     state.Progression.Level,
-                    0)]));
+                    0,
+                    [])]));
 
         public ValueTask<ActiveCharacterState> LoadForSelectionAsync(
             AccountId accountId,

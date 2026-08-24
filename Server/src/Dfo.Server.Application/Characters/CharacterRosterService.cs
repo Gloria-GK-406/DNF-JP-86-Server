@@ -48,7 +48,18 @@ internal sealed class CharacterRosterService(
                 checked((byte)row.Job),
                 checked((byte)row.GrowType),
                 checked((byte)row.Level),
-                checked((uint)row.CloneTitleItemId))),
+                checked((uint)row.CloneTitleItemId),
+                // The stored blob is already a count followed by wire-shaped entries, so this
+                // decode is a re-read rather than a translation. It is the entry path's decoder
+                // because it is the same blob; that the two paths reach for it from different
+                // services is noted in Docs/ProtocolScaffoldDissonances.md.
+                //
+                // This adds a failure surface the roster did not have: a truncated or over-long
+                // blob now fails the whole listing rather than one character's parts. That is the
+                // right way round -- a roster that silently drops a character's appearance looks
+                // like a content bug for a long time -- but it is new, and it is why the decode
+                // stays strict instead of skipping what it cannot read.
+                SelectCharacterPreparationService.DecodeAppearances(row.AppearanceBlob))),
         ];
     }
 
