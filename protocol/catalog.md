@@ -78,6 +78,18 @@
 | `0x00` NOTI | `0x001A` | UDP 主机通告 | Notification | 实现服务端功能 | [NOTI-0x001A.md](game/server-to-client/NOTI-0x001A.md) |
 | `0x00` NOTI | `0x001B` | 进图选择状态 | Notification | 实现服务端功能 | [NOTI-0x001B.md](game/server-to-client/NOTI-0x001B.md) |
 | `0x00` NOTI | `0x007C` | `ENTER_GAMEWORLD_COMPLETE` | **阶段闸点** | 双向验证结束 | [NOTI-0x007C.md](game/server-to-client/NOTI-0x007C.md) |
+| `0x00` NOTI | `0x0009` | `PARTY_INFO` | Notification | 实现服务端功能 | [NOTI-0x0009.md](game/server-to-client/NOTI-0x0009.md) |
+| `0x00` NOTI | `0x000E` | `UPDATE_ITEM_LIST` | Notification | 实现服务端功能（只发空表） | [NOTI-0x000E.md](game/server-to-client/NOTI-0x000E.md) |
+| `0x00` NOTI | `0x0016` | `USER_POSITION` | Notification / 兼作 `0x0023` 的应答 | 实现服务端功能 | [NOTI-0x0016.md](game/server-to-client/NOTI-0x0016.md) |
+| `0x00` NOTI | `0x00CA` | `VILLAGE_OBJECT_LIST` | Notification | 实现服务端功能 | [NOTI-0x00CA.md](game/server-to-client/NOTI-0x00CA.md) |
+| `0x00` NOTI | `0x0165` | `CHARAC_INVISIBLE_FALGS` | Notification | 实现服务端功能 | [NOTI-0x0165.md](game/server-to-client/NOTI-0x0165.md) |
+| `0x00` NOTI | `0x021E` | `SET_USABLE_COUNT_INFO` | Notification | 实现服务端功能 | [NOTI-0x021E.md](game/server-to-client/NOTI-0x021E.md) |
+| `0x00` NOTI | `0x0344` | `BUY_RESTRICT_ITEM_LIST`（A21 号，A12 为 `0x02DA`） | Notification | 实现服务端功能 | [NOTI-0x0344.md](game/server-to-client/NOTI-0x0344.md) |
+| `0x00` NOTI | `0x036A` | `CONTRACT_OF_CUBE_INFO`（A21 号，A12 为 `0x0300`） | Notification | 实现服务端功能 | [NOTI-0x036A.md](game/server-to-client/NOTI-0x036A.md) |
+| `0x00` NOTI | `0x03C1` | `EQUIPMENT_RENTAL_LIST`（A21 号，A12 为 `0x0357`） | Notification | 实现服务端功能 | [NOTI-0x03C1.md](game/server-to-client/NOTI-0x03C1.md) |
+| `0x00` NOTI | `0x0465` | `EPIC_BOOK_INFO` | Notification | 实现服务端功能 | [NOTI-0x0465.md](game/server-to-client/NOTI-0x0465.md) |
+| `0x01` CMD | `0x0239` | `SET_CLONE_TITLE`（闸点之后） | Notification-shaped CMD | 实现服务端功能 | [0x0239.md](game/client-to-server/0x0239.md) |
+| `0x01` CMD | `0x036F` | `PREMIUM_SERVICE`（A21 号，A12 为 `0x0312`） | Notification-shaped CMD | 实现服务端功能 | [0x036F.md](game/client-to-server/0x036F.md) |
 
 角色生命周期五条 CMD 的响应与其请求同 type、同属一次交换，因此记在各自的 C→S 文档内而不另建
 S→C 文档；理由见
@@ -92,6 +104,17 @@ S→C 的 command 取自服务端编码器（`GameLoginResponseEncoder` / `Accou
 只属于 `IGameCmdMessage` 或 `IGameNotiMessage`，专属 encoder 固定写入 `0x01` 或 `0x00`，
 专属 sender 方法在调用点约束类别。`Dfo.Server.Networking` 仅以不透明 `Selector + Type`
 拆帧、路由和编码；全部 C→S Game decoder 由 Protocol 的 CMD helper 注册。
+
+## 阶段与 A21
+
+**2026-08-24。** 上表的「阶段」列是在 **A12** 客户端上确立的。服务端现在服务 **A21**，
+两者在若干协议上并不一致（`0x007C` 的 body 长度、闸点之后能不能继续发、四个号的归属……），
+逐条差异记在各自文档的 `## A21` 一节，流程层差异见
+[进入世界](patterns/world-entry.md)。
+
+**没有一条协议在 A21 上达到过「双向验证结束」**：本轮迁移的判据是一份 A21 参照会话的
+逐帧比对与实机行为，**没有对 A21 客户端做过静态普查，也没有任何 body 布局取得指令级证据**。
+表里仍写着「双向验证结束」的行，说的是它在 A12 上的状态。
 
 ## 清单的完整性
 
