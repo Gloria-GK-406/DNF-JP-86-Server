@@ -39,11 +39,15 @@ internal sealed class CharacterRosterService(
     /// expansion(4), state(1), linkItem(i32), enchant(u32), flag(1)</c> per part -- transcribed
     /// from a working A21 session's character.
     ///
-    /// It is not cosmetic. A character whose appearance blob is empty makes the A21 client fail
-    /// <c>InitGraphicSystem</c> while building the town, and the client answers that by
-    /// terminating itself, which reads as a protocol crash and is not one. Equipped items are not
-    /// needed for this -- removing them and keeping only these parts still enters the world -- so
-    /// what the client requires here is something to build a model from, not a matching inventory.
+    /// This was introduced on the belief that an empty blob is what makes the A21 client fail
+    /// <c>InitGraphicSystem</c> and terminate itself while building the town. **That belief did
+    /// not survive retesting**: with everything else as it is now, a character whose blob is NULL
+    /// enters the world just as well. What actually triggers that failure is unresolved; see
+    /// protocol/patterns/world-entry.md.
+    ///
+    /// So this is kept for what it plainly is -- a created character should be wearing something,
+    /// and the roster screen draws it -- and not as a fix for a failure it has not been shown to
+    /// prevent. Removing it would not be a regression against any evidence held today.
     ///
     /// The archive was searched for a per-job creation set and none was found: in this game the
     /// starting gear is server data, not content. So this is one set for every job, which is wrong
