@@ -43,27 +43,42 @@ import struct
 import collections
 from capstone import Cs, CS_ARCH_X86, CS_MODE_32
 
-DUMP = r"D:\project\DNF\DNFClient-debug\dumps\dnf-dump-20260817-100117-955-7824\DNF-memory-rva.bin"
+# ---------------------------------------------------------------------------
+# ANCHORS -- the whole client-specific surface of this script.
+#
+# Currently A21. To point it at another client, change this block and nothing
+# else. How the A21 values were recovered, and what each one is pinned on, is
+# in probes/a21-census-anchors.md; the A12 values are kept beside each so a
+# swap back is a copy, not another hunt.
+# ---------------------------------------------------------------------------
+CLIENT = "A21"          # DNF.unpacked-b1-debug.exe, SHA-256 1F8244D3...
+DUMP = r"D:\project\DNF\DNFClient-A21-protocol\dumps\dnf-dump-20260822-232754-263-26888\DNF-memory-rva.bin"
 IMAGE_BASE = 0x00400000
 
-GET_WRITER = 0x01C8F5B0
-MAKE_HEADER = 0x01C90460
-REGISTER = 0x00D89FC0
-THUNK_0ARG = 0x008BC420
-FORWARDER = {0x00D855C0: "CMD", 0x00D85680: "NOTI"}
+GET_WRITER = 0x0234CA50         # A12: 0x01C8F5B0
+MAKE_HEADER = 0x0234D1E0        # A12: 0x01C90460
+REGISTER = 0x0123C4A0           # A12: 0x00D89FC0
+THUNK_0ARG = 0x00D02C30         # A12: 0x008BC420
+FORWARDER = {0x01237660: "CMD", 0x01237720: "NOTI"}     # A12: 0x00D855C0 / 0x00D85680
 
-# The six startup batch functions, from patterns/game-receive.md. Sites are attributed
-# to a family by which batch function's body contains them.
+# The six startup batch functions. Sites are attributed to a family by which batch
+# function's body contains them.
+#
+# On A12 the two families' address ranges separated at 0x00900000 and that split could
+# stand in as a fallback. On A21 they do not separate -- all six sit in 0x00D0..0x00D9 --
+# so the mapping below is the only rule, and BATCH_SPLIT is None to keep the fallback
+# from silently guessing. The mapping itself comes from startup at 0x0123ABD8, which
+# hands one registry to one orchestrator and the other to the other.
 BATCHES = {
-    "CMD":  [0x008C5920, 0x008D04C0, 0x008F3C70],
-    "NOTI": [0x0090BD20, 0x009301C0, 0x0093EAD0],
+    "CMD":  [0x00D0C2C0, 0x00D18BC0, 0x00D44AF0],       # A12: 0x008C5920, 0x008D04C0, 0x008F3C70
+    "NOTI": [0x00D5F540, 0x00D885F0, 0x00D9A780],       # A12: 0x0090BD20, 0x009301C0, 0x0093EAD0
 }
-BATCH_SPLIT = 0x00900000     # batch address ranges separate here; used as the fallback rule
-TEXT_HI = 0x01D10000         # everything confirmed as .text lives below this
+BATCH_SPLIT = None           # A12: 0x00900000. See above -- A21 has no such split.
+TEXT_HI = 0x02C29000         # end of .text. A12: 0x01D10000
 
 # The two `call Register` sites inside the forwarder bodies are not registrations: the
 # forwarder passes on whatever its own caller pushed, so there is nothing to recover.
-FORWARDER_INTERNAL = {0x00D855D6, 0x00D85696}
+FORWARDER_INTERNAL = {0x01237676, 0x01237736}           # A12: 0x00D855D6, 0x00D85696
 
 # A 64-byte window drops one real forwarder site (0x00C90723) whose first push sits 67
 # bytes back behind a compiler-interleaved store run. Widening is safe because desynced
@@ -163,6 +178,10 @@ def family_of_batch_site(site):
     for lo, hi, fam in batch_ranges:
         if lo <= site < hi:
             return fam, "batch"
+    if BATCH_SPLIT is None:
+        # No address rule exists for this client. Reporting the site as unattributed
+        # costs one row; guessing costs a wrong family on a protocol nobody rechecks.
+        return None, "unattributed"
     return ("CMD" if site < BATCH_SPLIT else "NOTI"), "range-fallback"
 
 s2c = collections.defaultdict(list)          # (family, type) -> [(handler_rva, ctx, site, path)]
@@ -183,6 +202,9 @@ for s in call_sites(REGISTER):
     if s in FORWARDER_INTERNAL:
         continue                 # the forwarders' own call to Register, not a registration
     fam, how = family_of_batch_site(s)
+    if fam is None:
+        s2c_unresolved.append((s, how, "direct"))
+        continue
     s2c[(fam, ty_v)].append((fn_v - IMAGE_BASE, ctx, s, "batch:" + how))
 
 for fwd, fam in FORWARDER.items():
