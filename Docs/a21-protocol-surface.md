@@ -45,6 +45,22 @@ read_u8  0x027C5230   read_u16 0x027C52A0   read_u32 0x027C5310
 read_bytes(dst,len) 0x027C5380     set_remaining 0x027C4350
 ```
 
+## C→S 帧格式
+
+从 `DNFClient\RDAR\CNGameSocket.cpp` 还原（S→C 的那一半在上一节）：
+
+```
++0x00  u8    类常量 = 1
++0x01  u16   包类型
++0x03  u32   总长度（含头 = 正文长 + 填充 + 14）
++0x07  u32   校验和
++0x0B  u8    flag
++0x0C  u16   序号（明文）
++0x0E  body  正文起点
+```
+
+**C→S 头是 14 字节，S→C 是 15 字节**，两个方向不对称，不要互相套用。
+
 ## 分派机制
 
 ```
