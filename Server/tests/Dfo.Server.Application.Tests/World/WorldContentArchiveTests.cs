@@ -52,8 +52,17 @@ public sealed class WorldContentArchiveTests
             Subject(level: 40, clearedQuestIds: cleared),
             CancellationToken.None);
 
-        Assert.Equal(before.AvailableQuests.Quests.Count - cleared.Length, after.AvailableQuests.Quests.Count);
         Assert.DoesNotContain(after.AvailableQuests.Quests, quest => cleared.Contains(quest.QuestId));
+
+        // The set does not simply shrink by the number cleared, and it is not the cleared ones
+        // that leave it either. On the A21 archive these five take forty-two offers to
+        // thirty-eight rather than thirty-seven, and quest 63 -- which was not among them --
+        // stops being offered as well. Both directions are the quest graph's: clearing satisfies
+        // prerequisites and trips collisions, and which of the two moved 63 is not established
+        // here. The counts are pinned so a change stays visible; what this test is about is the
+        // removal asserted above.
+        Assert.Equal(42, before.AvailableQuests.Quests.Count);
+        Assert.Equal(38, after.AvailableQuests.Quests.Count);
     }
 
     [SkippableFact]

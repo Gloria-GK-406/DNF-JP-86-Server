@@ -24,7 +24,8 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             layout,
             layout.StartCell,
             layout.StartRoomMapId,
-            ImmutableHashSet.Create(layout.StartCell));
+            ImmutableHashSet.Create(layout.StartCell),
+            ImmutableHashSet<GroundDropId>.Empty);
         _runs[characterId] = state;
         return state;
     }
@@ -49,6 +50,29 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             };
             if (_runs.TryUpdate(characterId, moved, current))
                 return moved;
+        }
+    }
+
+    /// <remarks>
+    /// The same compare-and-swap the move uses, and for the same reason: two requests naming one
+    /// piece must not both come away with it. What is remembered is the piece, not the item -- the
+    /// room says what lies where, and this says only what is no longer there.
+    /// </remarks>
+    public DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber)
+    {
+        while (true)
+        {
+            if (!_runs.TryGetValue(characterId, out var current))
+                return null;
+
+            var taken = (ImmutableHashSet<GroundDropId>)current.TakenGroundDrops;
+            var id = new GroundDropId(current.CurrentCell, groundDropNumber);
+            if (taken.Contains(id))
+                return null;
+
+            var claimed = current with { TakenGroundDrops = taken.Add(id) };
+            if (_runs.TryUpdate(characterId, claimed, current))
+                return claimed;
         }
     }
 

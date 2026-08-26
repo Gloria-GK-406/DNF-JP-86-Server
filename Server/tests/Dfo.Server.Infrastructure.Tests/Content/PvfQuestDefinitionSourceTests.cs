@@ -142,19 +142,19 @@ public sealed class PvfQuestDefinitionSourceTests
         var training = await source.GetTrainingAvailabilityAsync(CancellationToken.None);
         var questIds = quests.Select(quest => quest.QuestId).ToHashSet();
 
-        // quest.lst has 2,740 unique in-range entries. Eight definitions declare a
-        // combined, non-selectable grade token and thirteen have no valid prerequisite
-        // alternative after unknown references are removed, so the validated catalogue
-        // conservatively retains 2,719 definitions.
-        Assert.Equal(2_719, quests.Count);
+        // The counts are the A21 archive's. The older client's catalogue validated to 2,719
+        // definitions; this one validates to 2,814, and the per-field counts move with it. They
+        // are pinned rather than derived because the point is that the projection is stable
+        // against one named archive, not that it agrees with whichever archive is present.
+        Assert.Equal(2_814, quests.Count);
         Assert.Equal(quests.Count, questIds.Count);
         Assert.All(quests, quest => Assert.InRange(quest.QuestId, 1, 29_999));
-        Assert.Equal(341, quests.Count(quest => quest.IsExposedByNpc.HasValue));
-        Assert.Equal(306, quests.Count(quest => quest.IsEventOnly.HasValue));
-        Assert.Equal(306, quests.Count(quest => quest.IsEventOnly == true));
+        Assert.Equal(444, quests.Count(quest => quest.IsExposedByNpc.HasValue));
+        Assert.Equal(351, quests.Count(quest => quest.IsEventOnly.HasValue));
+        Assert.Equal(351, quests.Count(quest => quest.IsEventOnly == true));
         Assert.Equal(15, quests.Count(quest => quest.CreatureKindRequirement.HasValue));
         Assert.Equal(6, quests.Count(quest => quest.ExpertJobRequirement is not null));
-        Assert.Equal(156, quests.Count(quest => quest.TargetCharacterRestriction is not null));
+        Assert.Equal(143, quests.Count(quest => quest.TargetCharacterRestriction is not null));
         Assert.DoesNotContain(
             quests,
             quest => quest.TargetCharacterRestriction?.IsValid == false);
@@ -292,7 +292,7 @@ public sealed class PvfQuestDefinitionSourceTests
         Assert.True(quest.JobRestriction!.IsExactAll);
         Assert.True(quest.JobRestriction.IsValid);
         Assert.Empty(quest.JobRestriction.JobFamilies);
-        Assert.Equal(new LevelRange(34, 99), quest.RequiredLevel);
+        Assert.Equal(new LevelRange(33, 99), quest.RequiredLevel);
         Assert.Null(quest.GrowTypeRequirement);
         Assert.True(quest.AppliesToAnyGrowType);
         Assert.Equal(3, quest.NpcIndex);

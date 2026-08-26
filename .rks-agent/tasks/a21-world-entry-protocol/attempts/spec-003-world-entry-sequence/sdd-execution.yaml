@@ -3,8 +3,8 @@ controller: sdd-lite
 contract:
   path: "./TaskContract.md"
   revision: 1
-current_stage: implementation
-state: in_progress
+current_stage: verification
+state: pending
 parent_controller: "../../multi-spec-map.md"
 artifacts:
   spec: "./spec.md"

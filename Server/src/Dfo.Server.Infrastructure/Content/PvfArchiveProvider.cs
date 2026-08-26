@@ -50,33 +50,7 @@ internal sealed class PvfArchiveProvider : IDisposable
         return PvfArchive.Open(path, archiveOptions);
     }
 
-    private string? ResolvePath()
-    {
-        if (!string.IsNullOrWhiteSpace(_options.ArchivePath) && File.Exists(_options.ArchivePath))
-            return _options.ArchivePath;
-
-        var configured = Environment.GetEnvironmentVariable(PvfContentOptions.PathVariable);
-        if (!string.IsNullOrWhiteSpace(configured) && File.Exists(configured))
-            return configured;
-
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null)
-        {
-            foreach (var candidate in new[]
-                     {
-                         Path.Combine(directory.FullName, "Data", "Pvf", "Script.pvf"),
-                         Path.Combine(directory.FullName, "Script.pvf"),
-                     })
-            {
-                if (File.Exists(candidate))
-                    return candidate;
-            }
-
-            directory = directory.Parent;
-        }
-
-        return null;
-    }
+    private string? ResolvePath() => _options.ResolveArchivePath();
 
     public void Dispose()
     {

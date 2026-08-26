@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Text;
 using System.Text.Json;
 using Dfo.Server.Data.Accounts;
@@ -178,7 +179,7 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(core.AmplifyType);
         writer.Write(core.AmplifyValue);
 
-        if (item.SlotIndex <= 10)
+        if (IsCostumeBarSlot(item.SlotIndex))
         {
             if (core.ItemKind == avatarKind)
             {
@@ -196,7 +197,7 @@ internal static partial class StateSynchronizationPayloadCodec
             writer.Write(item.AvatarDetail?.Color2 ?? 0);
         }
 
-        if (item.SlotIndex == 24)
+        if (item.SlotIndex == Noti2CreatureSlot)
         {
             if (core.ItemKind == creatureKind && item.Noti2CreatureMarker is null)
                 throw Missing($"SupportEquipment.Noti2CreatureMarker[{item.StorageEntryId}]");
@@ -262,7 +263,46 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(core.TailUnknown3);
         writer.Write(core.RemainUseCount);
         writer.Write((byte)0);
+        WriteNoti2EntryTail(writer, item.SlotIndex);
     }
+
+    /// <summary>What A21 appends to every equipped entry, and the older client appended to none.</summary>
+    /// <remarks>
+    /// Seventeen bytes for an ordinary worn slot and nine for a costume-bar or creature one. Read
+    /// off a working A21 session: its three worn pieces are sixty bytes each, and the sixty
+    /// decompose only with this on the end. The <c>8</c> is written because that is what the
+    /// session carried; nothing here knows what it counts.
+    /// </remarks>
+    private static void WriteNoti2EntryTail(BinaryWriter writer, int slotIndex)
+    {
+        if (!IsCostumeBarSlot(slotIndex) && slotIndex != Noti2CreatureSlot)
+        {
+            writer.Write(0u);
+            writer.Write(Noti2EntryTailConstant);
+        }
+
+        writer.Write(new byte[9]);
+    }
+
+    private const uint Noti2EntryTailConstant = 8;
+
+    /// <summary>
+    /// The slots the costume bar draws, which carry an avatar block and take the short tail.
+    /// </summary>
+    /// <remarks>
+    /// Zero through eleven. A21 added the aurora-illusion slot at eleven, so the older client's
+    /// boundary of ten is one short here.
+    /// </remarks>
+    private static bool IsCostumeBarSlot(int slotIndex) => slotIndex is >= 0 and <= 11;
+
+    /// <summary>The slot whose entry carries the creature marker.</summary>
+    /// <remarks>
+    /// Twenty-four here and twenty-five in the upstream server's own slot table, where
+    /// twenty-four is the support weapon. Left as it is because nothing has put a creature in
+    /// either slot on the wire yet, so changing it would trade one unverified number for another;
+    /// recorded in <c>Docs/ProtocolScaffoldDissonances.md</c>.
+    /// </remarks>
+    private const int Noti2CreatureSlot = 24;
 
     private static int RemainingSeconds(int expiresAt, DateTimeOffset preparedAt) =>
         expiresAt <= 0 ? 0 : checked((int)Math.Clamp(
@@ -769,9 +809,10 @@ internal static partial class StateSynchronizationPayloadCodec
         IReadOnlyList<CharacterPetRuntimeState> pets)
     {
         var identity = entry.Identity ?? throw Missing("CharacterEntry.Public.Identity");
-        var c = entry.Condition; var pvp = entry.Pvp; var job = entry.ExpertJob;
-        var guild = entry.Guild; var settings = entry.Settings;
-        var stats = entry.DerivedStats; var extras = entry.Extras;
+        // PvP standing, guild, settings and derived stats used to be read here for the tail this
+        // frame no longer writes field by field. They are still loaded on the character -- other
+        // frames use them -- but subtype zero does not mention them on A21.
+        var c = entry.Condition; var job = entry.ExpertJob; var extras = entry.Extras;
         var appearance = equipment.Where(item => item.SlotIndex <= 12 || item.SlotIndex == 23).OrderBy(item => item.SlotIndex).ToArray();
         if (appearance.Length > byte.MaxValue) throw CountError("appearance", "u8");
         var creature = equipment.SingleOrDefault(item => item.SlotIndex == 24 && item.Core.ItemKind == 5);
@@ -792,15 +833,180 @@ internal static partial class StateSynchronizationPayloadCodec
         }
         writer.Write(entry.CloneTitleItemId); writer.Write((byte)0); writer.Write(checked((byte)c.CreatureField2)); writer.Write(checked((byte)c.CreatureField3)); writer.Write(checked((byte)c.CreatureField4));
         writer.Write(checked((uint)extras.NameTagItemId)); writer.Write(checked((uint)extras.NameTagExpireTime)); writer.Write(checked((byte)c.Stamina)); writer.Write(checked((uint)c.FatiguePenalty)); writer.Write(c.EventCharacter != 0 ? (byte)1 : (byte)0);
-        writer.Write(creature is null ? 0u : checked((uint)creature.Core.ItemId)); WriteDstr(writer, pet?.CreatureText ?? []); writer.Write(pet?.Field04 > 0 ? (byte)1 : (byte)0);
-        writer.Write(c.PremiumPcRoom != 0 ? (byte)1 : (byte)0); writer.Write(checked((byte)c.ServerGroupId)); writer.Write(checked((uint)c.BlackCount)); writer.Write(checked((byte)guild.Level)); WriteDstr(writer, []);
-        writer.Write(checked((uint)c.ChaosPoint)); writer.Write((byte)1); writer.Write(checked((byte)c.DisguiseKind)); writer.Write(c.Disguised != 0 ? (byte)1 : (byte)0); writer.Write(checked((byte)job.Type)); writer.Write(checked((uint)job.Experience));
-        writer.Write((byte)0); writer.Write(0u); writer.Write((ushort)0); writer.Write(c.HardcoreMode != 0 ? (byte)1 : (byte)0); writer.Write(c.HardcoreDead != 0 ? (byte)1 : (byte)0);
-        writer.Write(checked((ushort)c.HardcoreDeathCount)); writer.Write(checked((uint)stats.Progress1)); writer.Write(checked((uint)stats.Progress2)); writer.Write(checked((byte)checked((uint)settings.UserStateBits))); writer.Write(checked((uint)c.ChatBanEndTime));
-        writer.Write((byte)100); writer.Write(checked((ushort)c.FatigueUpdate)); writer.Write(checked((byte)c.ReturnUserFlag)); writer.Write(checked((ushort)c.ChannelDisplayMode)); writer.Write(checked((byte)c.ChannelType)); writer.Write(checked((ushort)c.MoodValue));
-        writer.Write(SkillTreeIndexOnTheWire(extras.SkillTreeIndex)); writer.Write(c.ReturnUser != 0 ? (byte)1 : (byte)0); writer.Write(c.LinkSlotEnabled != 0 ? (byte)1 : (byte)0); writer.Write(checked((byte)c.LinkTypeA)); writer.Write(checked((byte)c.LinkTypeB));
-        writer.Write(checked((ushort)c.EmotionIndex)); writer.Write(checked((byte)c.ActionByte)); writer.Write(checked((ushort)c.FatigueDisplayUpdate)); writer.Write(checked((byte)c.CostumeFlag)); writer.Write(checked((byte)c.AuraFlag)); writer.Write(checked((byte)c.PetDisplayFlag)); writer.Write(checked((byte)c.TitleDisplayFlag));
-        writer.Write(checked((uint)pvp.StatA)); writer.Write(checked((byte)pvp.WinStreak)); writer.Write(checked((byte)pvp.LoseStreak)); writer.Write(checked((uint)pvp.RankPoint)); writer.Write(checked((byte)c.TrailingByte)); return stream.ToArray();
+        WriteCreatureTriple(writer, creature, pet);
+        writer.Write(BuildSubtypeZeroTail(job));
+        return stream.ToArray();
+    }
+
+    /// <summary>The twenty-six dimension keys A21 always sends, with the value each defaults to.</summary>
+    /// <remarks>
+    /// A21's dimension list is not "whatever the character has stored" -- it is this fixed roll of
+    /// twenty-six keys, every time, with a stored entry overriding a key's pair when one exists.
+    /// The reference session's subtype one declares twenty-six and carries 26x6 bytes of them, and
+    /// the A21 server that produced it holds the same table
+    /// (`UserInfoSubtype1Builder.A21DimensionKeys` / `A21DimensionDefaultVal2`).
+    ///
+    /// This server sent its stored list instead, which on a new character is empty -- so the frame
+    /// declared zero where A21 declares twenty-six, and everything after it landed 156 bytes early.
+    /// </remarks>
+    private static readonly (long Key, byte DefaultValue2)[] SubtypeOneDimensions =
+    [
+        (11006, 3), (11007, 3), (3054, 3), (3056, 3), (3057, 1), (122, 9), (4000, 1), (3706, 3),
+        (4108, 1), (4109, 1), (4110, 1), (4111, 1), (4103, 3), (4114, 3), (4115, 3), (4116, 3),
+        (4117, 3), (4118, 3), (4130, 3), (3900, 3), (4124, 1), (4125, 1), (4126, 1), (4127, 1),
+        (4128, 1), (4123, 3),
+    ];
+
+    /// <summary>What A21 writes between the dimension roll and the manage-level pair.</summary>
+    private static readonly byte[] SubtypeOneAfterDimensionPrefix =
+        [0x02, 0x00, 0x05, 0x00, 0x6F, 0x00, 0x00, 0x00, 0x00];
+
+    /// <summary>And what it writes after the manage point, to the end of the frame.</summary>
+    private static readonly byte[] SubtypeOneAfterDimensionRest =
+    [
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ];
+
+    /// <summary>Subtype one from the dimension roll to the end of the frame.</summary>
+    /// <remarks>
+    /// The two constant runs replace what this server wrote as four dimension flags, a PvP result
+    /// list, a special-reward quest list and six trailing stat fields. Those are the older client's
+    /// tail; A21's own server emits these bytes instead, and the capture agrees with it. Only the
+    /// manage level and manage point sit inside as values, at the offsets the upstream patches
+    /// them into -- what the rest of the twenty-five constant bytes stand for is not established.
+    /// </remarks>
+    private static void WriteSubtypeOneDimensionTail(
+        BinaryWriter writer,
+        CharacterEntryExtrasState extras)
+    {
+        // Grouped rather than ToDictionary: character_dimensions is keyed on (character_id,
+        // sort_order), so dim_key is not unique and a duplicate would throw ArgumentException --
+        // the wrong exception type for this layer, and one that would abort the whole batch where
+        // the previous sequential write was merely odd. First by sort order wins, which is the
+        // order the previous code would have written them in.
+        //
+        // A stored dimension whose key is not one of the twenty-six is dropped. That is what A21
+        // does, and there is no wire position for it, but it is a silent loss rather than an error.
+        var stored = extras.Dimensions
+            .OrderBy(value => value.SortOrder)
+            .GroupBy(value => value.Key)
+            .ToDictionary(group => group.Key, group => group.First());
+        writer.Write(checked((byte)SubtypeOneDimensions.Length));
+        foreach (var (key, defaultValue2) in SubtypeOneDimensions)
+        {
+            var (value1, value2) = stored.TryGetValue(key, out var saved)
+                ? (checked((byte)saved.Value1), checked((byte)saved.Value2))
+                : ((byte)0, defaultValue2);
+            writer.Write(checked((uint)key));
+            writer.Write(value1);
+            writer.Write(value2);
+        }
+
+        writer.Write(SubtypeOneAfterDimensionPrefix);
+        writer.Write(checked((byte)extras.ManageLevel));
+        // A manage point, which this server does not model. Zero is what the reference carries, so
+        // it is not a placeholder standing in for an unknown -- it is the observed value.
+        writer.Write(0u);
+        writer.Write(SubtypeOneAfterDimensionRest);
+    }
+
+    /// <summary>Everything subtype zero writes after the creature triple: a fixed 64-byte block.</summary>
+    /// <remarks>
+    /// This used to be forty-odd named fields -- guild level, chaos point, disguise, hardcore
+    /// counters, fatigue, channel, emotion, PvP standing -- laid out as the older client wanted
+    /// them, and it came to 81 bytes. A21 puts 64 there.
+    ///
+    /// The bytes are not a guess. The reference session's subtype zero ends with exactly this block,
+    /// and the A21 server that produced that capture writes it as a constant with three patch
+    /// points (`UserInfoSubtype0Builder.A21AfterAliveNoGuild`): the expert-job type at +23, its
+    /// experience at +24, and what it calls a channel id at +59. Comparing that constant against
+    /// the captured 64 bytes leaves exactly one difference -- offset 59, holding 2, which is that
+    /// third patch point at its default. Everything else matches byte for byte.
+    ///
+    /// So the block is transcribed rather than modelled: what the other 61 bytes mean is not
+    /// established here, and the fields this replaced are not gone from the domain -- they simply
+    /// have no known home on A21's wire. Writing them at the older client's offsets was not a
+    /// partial answer but a wrong one: every field after the first sat at an offset A21 does not
+    /// use, and the block being 17 bytes shorter means the frame ended in the wrong place too.
+    ///
+    /// The upstream comment on that constant is worth carrying over: its shape was chosen so the
+    /// client would not read a stale progress value as a string length. A field written into the
+    /// wrong place here does not merely display wrongly -- it can make the client size a read from
+    /// data that is not a length.
+    /// </remarks>
+    private static readonly byte[] SubtypeZeroFixedTail =
+    [
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0xCE, 0xDE, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x64, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00,
+    ];
+
+    private const int SubtypeZeroTailExpertJobTypeOffset = 23;
+    private const int SubtypeZeroTailExpertJobExperienceOffset = 24;
+    private const int SubtypeZeroTailChannelOffset = 59;
+
+    /// <summary>The channel value the reference carries, and the upstream default.</summary>
+    /// <remarks>
+    /// Two, on a session whose channel is advertised as 11 -- so this is not the channel number.
+    /// The upstream calls it a channel id and substitutes two whenever it holds zero, which is
+    /// every session this server has observed. What it selects is unestablished, so it is written
+    /// as the value the reference carries rather than derived from a channel field that would only
+    /// look related.
+    /// </remarks>
+    private const ushort SubtypeZeroTailChannel = 2;
+
+    private static byte[] BuildSubtypeZeroTail(CharacterExpertJobStorageRecord job)
+    {
+        var tail = SubtypeZeroFixedTail.ToArray();
+        tail[SubtypeZeroTailExpertJobTypeOffset] = checked((byte)job.Type);
+        // No expert job means no experience. The upstream projects the same way, and specifically
+        // refuses to send the older sentinel of -1.
+        var experience = job.Type == 0 ? 0u : checked((uint)Math.Max(0L, job.Experience));
+        BinaryPrimitives.WriteUInt32LittleEndian(
+            tail.AsSpan(SubtypeZeroTailExpertJobExperienceOffset), experience);
+        BinaryPrimitives.WriteUInt16LittleEndian(
+            tail.AsSpan(SubtypeZeroTailChannelOffset), SubtypeZeroTailChannel);
+        return tail;
+    }
+
+    /// <summary>The label A21 sends in the name slot when there is no creature: 没有宠物.</summary>
+    /// <remarks>
+    /// Written as bytes rather than <c>Encoding.UTF8.GetBytes</c> of a literal. What goes on the
+    /// wire should not depend on how this source file happens to be saved, and every other
+    /// transcribed run in this file is a byte array for the same reason.
+    /// </remarks>
+    private static readonly byte[] NoCreatureLabel =
+        [0xE6, 0xB2, 0xA1, 0xE6, 0x9C, 0x89, 0xE5, 0xAE, 0xA0, 0xE7, 0x89, 0xA9];
+
+    /// <summary>Writes the creature slot, including the shape A21 uses when there is none.</summary>
+    /// <remarks>
+    /// A21 does not spell "no creature" as zeros. The reference session, whose character has none,
+    /// writes <c>FFFFFFFF</c> for the item, the label above for the name, and <c>FF</c> for the
+    /// state -- twenty-one bytes where a zero item, an empty string and a zero state would be nine.
+    /// That the label is the client's own "no pet" text makes this a display name the server fills
+    /// in, not a name the client substitutes when the field is empty.
+    ///
+    /// A character that does have one is unobserved on A21: the reference never equips a creature.
+    /// The populated branch is therefore unchanged from the older client.
+    /// </remarks>
+    private static void WriteCreatureTriple(
+        BinaryWriter writer,
+        InventoryItemState? creature,
+        CharacterPetRuntimeState? pet)
+    {
+        if (creature is null)
+        {
+            writer.Write(uint.MaxValue);
+            WriteDstr(writer, NoCreatureLabel);
+            writer.Write(byte.MaxValue);
+            return;
+        }
+
+        writer.Write(checked((uint)creature.Core.ItemId));
+        WriteDstr(writer, pet?.CreatureText ?? []);
+        writer.Write(pet?.Field04 > 0 ? (byte)1 : (byte)0);
     }
 
     /// <summary>The zero block A21 carries between subtype one's version and the character id.</summary>
@@ -846,7 +1052,6 @@ internal static partial class StateSynchronizationPayloadCodec
         DateTimeOffset preparedAt)
     {
         var stats = publicState.DerivedStats; var extras = publicState.Extras;
-        var pvp = publicState.Pvp; var guild = publicState.Guild;
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         writer.Write((byte)1); writer.Write((ushort)1);
         writer.Write(new byte[ExtendedSubtypeReservedBlock]);
@@ -858,51 +1063,55 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(FullHpMpPercentOnTheWire); writer.Write((byte)0);
         writer.Write(checked((byte)extras.ExtraEquipmentSlotState)); writer.Write((byte)0);
         if (equipment.Count > byte.MaxValue) throw CountError("equipped item", "u8"); writer.Write(checked((byte)equipment.Count));
-        foreach (var item in equipment.OrderBy(item => item.SlotIndex)) WriteNoti2Item(writer, item, preparedAt);
+        foreach (var item in equipment.OrderBy(item => item.SlotIndex)) WriteNoti2EquippedItem(writer, item, preparedAt);
         writer.Write(publicState.CloneTitleItemId); writer.Write(checked((uint)extras.NameTagItemId)); writer.Write(checked((uint)extras.NameTagExpireTime)); writer.Write(SkillTreeIndexOnTheWire(extras.SkillTreeIndex));
-        for (byte page = 0; page < 2; page++)
-        {
-            var learned = skills.Pages.SingleOrDefault(p => p.PageIndex == page)?.Skills.Where(s => s.Level > 0).ToArray() ?? [];
-            if (learned.Length > byte.MaxValue) throw CountError("subtype1 skill", "u8"); writer.Write(checked((byte)learned.Length));
-            foreach (var skill in learned) { writer.Write(checked((ushort)skill.SkillId)); writer.Write(skill.Level); }
-        }
-        writer.Write(checked((byte)stats.EquippedCreatureLevel)); writer.Write(checked((byte)extras.Dimensions.Count));
-        foreach (var d in extras.Dimensions.OrderBy(value => value.SortOrder))
-        {
-            writer.Write(checked((uint)d.Key)); writer.Write(checked((byte)d.Value1)); writer.Write(checked((byte)d.Value2));
-        }
-        writer.Write(checked((byte)extras.DimensionFlags.Flag1)); writer.Write(checked((byte)extras.DimensionFlags.Flag2));
-        writer.Write(checked((byte)extras.DimensionFlags.Flag3)); writer.Write(checked((byte)extras.DimensionFlags.Flag4));
-        var pvpResults = pvp.Results ?? throw Missing("CharacterEntry.Public.Pvp.Results");
-        var specialRewards = extras.SpecialRewardQuestIds ?? throw Missing("CharacterEntry.Public.Extras.SpecialRewardQuestIds");
-        if (pvpResults.Count > byte.MaxValue) throw CountError("subtype1 PvP result", "u8");
-        writer.Write(checked((byte)pvpResults.Count));
-        foreach (var pvpResult in pvpResults)
-        {
-            writer.Write(checked((uint)pvpResult.Value32));
-            writer.Write(checked((ushort)pvpResult.Value16A));
-            writer.Write(checked((ushort)pvpResult.Value16B));
-        }
-        writer.Write(checked((byte)extras.ManageLevel)); writer.Write(checked((uint)specialRewards.Count));
-        foreach (var questId in specialRewards) writer.Write(checked((uint)questId));
-        writer.Write(checked((byte)stats.FlagByte)); writer.Write(checked((uint)guild.PowerWar)); writer.Write(checked((uint)stats.ServerTimestamp)); writer.Write(checked((ushort)stats.QuestShopCount));
-        writer.Write(checked((uint)stats.Progress1)); writer.Write(checked((uint)stats.Progress2)); return stream.ToArray();
+        var page0 = LearnedForSubtypeOne(skills, 0);
+        var page1 = LearnedForSubtypeOne(skills, 1);
+        WriteSubtypeOneSkillPage(writer, page0);
+        WriteSubtypeOneSkillPage(writer, IsCopiedSkillPage(page0, page1) ? [] : page1);
+        writer.Write(checked((byte)stats.EquippedCreatureLevel));
+        WriteSubtypeOneDimensionTail(writer, extras);
+        return stream.ToArray();
     }
 
-    private static void WriteNoti2Item(BinaryWriter writer, InventoryItemState item, DateTimeOffset preparedAt)
+    private static CharacterSkillState[] LearnedForSubtypeOne(
+        CharacterSkillsEntryState skills, byte pageIndex) =>
+        skills.Pages.SingleOrDefault(page => page.PageIndex == pageIndex)?.Skills
+            .Where(skill => skill.Level > 0).OrderBy(skill => skill.Slot).ToArray() ?? [];
+
+    private static void WriteSubtypeOneSkillPage(
+        BinaryWriter writer, IReadOnlyList<CharacterSkillState> learned)
     {
-        var core = item.Core; var avatar = item.AvatarDetail;
-        if (core.ItemKind == 8 && avatar is null) throw Missing($"AvatarDetail[{item.StorageEntryId}]");
-        writer.Write(checked((byte)item.SlotIndex)); writer.Write(core.ItemId); writer.Write(checked((uint)(core.ItemKind == 8 ? Math.Max(0, avatar!.ExpireDate - preparedAt.ToUnixTimeSeconds()) : core.Value)));
-        writer.Write(core.Attribute); writer.Write(core.Durability); writer.Write(core.ItemKind == 8 && avatar!.ClearAvatarId != 0 ? checked((uint)avatar.ClearAvatarId) : core.SealFlag);
-        writer.Write(core.EnchantCardId); writer.Write(core.EnchantUpgradeCount); writer.Write(core.AmplifyType); writer.Write(core.AmplifyValue);
-        if (item.SlotIndex <= 10) { writer.Write(core.ItemKind == 8 ? 30 : 0); if (core.ItemKind == 8) writer.Write(avatar!.JewelSocket); writer.Write(4); writer.Write(avatar?.Color1 ?? 0); writer.Write(avatar?.Color2 ?? 0); }
-        if (item.SlotIndex == 24) writer.Write(checked((uint)Math.Max(0, core.Marker16)));
-        writer.Write((byte)2); WriteChronicleDynamic(writer, core.ChronicleOption0); WriteChronicleDynamic(writer, core.ChronicleOption1); writer.Write(core.ExpireTime);
-        writer.Write(core.EmblemSocketCount); if (core.EmblemSocketCount > 0) writer.Write(core.EmblemId1); if (core.EmblemSocketCount > 1) writer.Write(core.EmblemId2); writer.Write(core.Rune);
-        writer.Write((byte)3); WriteRandomDynamic(writer, core.RandomOption0); WriteRandomDynamic(writer, core.RandomOption1); WriteRandomDynamic(writer, core.RandomOption2);
-        writer.Write(core.RandomOptionState); writer.Write(core.RandomOptionChangedIndex); writer.Write(core.RandomOptionChangeState); WriteRandomDynamic(writer, core.RandomOptionChange);
-        writer.Write(core.GenuineUpgrade); writer.Write(core.EmancipateEquipmentLevel); writer.Write(core.TradeRestriction); writer.Write(core.TailUnknown0); writer.Write(core.TailUnknown1); writer.Write(core.TailUnknown2); writer.Write(core.TailUnknown3); writer.Write(core.RemainUseCount); writer.Write((byte)0);
+        if (learned.Count > byte.MaxValue) throw CountError("subtype1 skill", "u8");
+        writer.Write(checked((byte)learned.Count));
+        foreach (var skill in learned)
+        {
+            writer.Write(checked((ushort)skill.SkillId)); writer.Write(skill.Level);
+        }
+    }
+
+    /// <summary>Whether the second tree holds nothing the first does not.</summary>
+    /// <remarks>
+    /// A character owns two skill trees from creation and the second is a copy of the first until
+    /// it is bought, so this is the ordinary case rather than an edge one. This frame reports the
+    /// copy as empty: a working A21 session sends the six skills for page zero and a count of zero
+    /// for page one, while the same session's skill frame sends both pages in full. The two frames
+    /// disagreeing is the client's rule, not a mistake in one of them -- this one carries what
+    /// differs, and the skill frame carries what is held.
+    /// </remarks>
+    private static bool IsCopiedSkillPage(
+        IReadOnlyList<CharacterSkillState> page0, IReadOnlyList<CharacterSkillState> page1)
+    {
+        if (page1.Count == 0) return true;
+        if (page0.Count != page1.Count) return false;
+        for (var index = 0; index < page0.Count; index++)
+        {
+            if (page0[index].SkillId != page1[index].SkillId
+                || page0[index].Level != page1[index].Level)
+                return false;
+        }
+
+        return true;
     }
 
     private static void WriteChronicleDynamic(BinaryWriter writer, ChronicleOptionState value) { writer.Write(value.Id); writer.Write(value.CharacterJob); writer.Write(value.FirstGrowType); writer.Write(value.EquipmentType); writer.Write(value.OptionNumber); }

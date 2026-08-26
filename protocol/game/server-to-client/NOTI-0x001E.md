@@ -71,3 +71,18 @@ body 为 **5 字节全零**（上游 `Network/Builders/Town/FinishLoadingBuilder
 `Server/src/Dfo.Server.Protocol/Game/FinishLoading/FinishLoadingSlice.cs`。已实现并实机验证。
 
 <!-- rks:a12:end -->
+
+## A21
+
+**2026-08-26。** 上面的机器区由 **A12** 客户端（SHA-256 `F78F0AEA…`）的静态普查生成。
+本节记录 **A21** 客户端（SHA-256 `1F8244D3…`）上不同的部分。判据是 A21 参照会话的字节
+（[原始字节](../../patterns/data/traces/a21-reference-entry-bytes-20260825.md)）与本仓的线级重放
+（[副本段对照](../../patterns/data/traces/a21-dungeon-wire-20260826.md)），以及产出那份参照的
+服务端自己的构包器。
+
+**参照只发这一帧，前面没有 CMD 应答。**
+
+本仓此前对 `FINISH_LOADING` 回两帧：一字节的 CMD `0x0025` 接受，再是这条通知。
+参照两次装载完成（副本第一图、`MOVE_MAP` 之后）都**只发这条通知**。
+
+CMD 那条的编码器保留——旧客户端确实收到过一帧，那个形状值得留档——只是不再发出。

@@ -7,6 +7,7 @@ using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Channel;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
@@ -225,8 +226,7 @@ public sealed class SelectCharacterHandler(
         CancellationToken cancellationToken)
     {
         var messages = stateMessages.CreateValidated(prepared);
-        var prePublicationMessages = BuildPrePublicationMessages(session, prepared);
-        ValidateSupplementalMessages(prePublicationMessages);
+        ValidateSupplementalMessages(BuildPrePublicationMessages(session, prepared));
         ValidateSupplementalMessages(
             [new TrailingEquipmentLockSnapshotMessage(
                 prepared.CharacterInventory, prepared.AccountInventory)]);
@@ -239,18 +239,12 @@ public sealed class SelectCharacterHandler(
         }
 
         EnsureCurrent(session);
-        if (SendsFramesAfterTheCompletionMarker)
-        {
-            await sender.SendExplicitAsync(
-                session.ConnectionId,
-                new GameExplicitMessageDelivery(
-                    prePublicationMessages,
-                    []),
-                cancellationToken).ConfigureAwait(false);
-        }
 
-        EnsureCurrent(session);
-
+        // The refill runs, and its delta goes out, BEFORE the post-marker frames. The reference
+        // session puts its one UPDATE_ITEM_LIST immediately after USER_POSITION -- the batch's own
+        // last frame -- and only then sends the invisibility flags, the clone title, the roster
+        // payload and the honour level. Running the command after them put our delta four frames
+        // too late.
         var inventory = await commandBus.SendAsync(
             new ApplySelectedCharacterDailyRefillCommand(session, prepared),
             cancellationToken).ConfigureAwait(false);
@@ -264,6 +258,23 @@ public sealed class SelectCharacterHandler(
                     inventory.CommittedUpdates.Select(value => (IGameServerMessage)
                         new InventoryDeltaMessage(
                             value.ContainerType, value.Items, value.PreparedAt)).ToArray(),
+                    []),
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        EnsureCurrent(session);
+        if (SendsFramesAfterTheCompletionMarker)
+        {
+            // Built here, not before the refill: the refill replaces `prepared`, and a message set
+            // composed from the older value would be stale by construction. None of these four
+            // frames reads anything the refill touches today, so this is not a fix -- it is the
+            // difference between that being guaranteed and it being a coincidence. They are also
+            // validated once above, before anything is sent, so a malformed set still fails before
+            // the first frame goes out rather than halfway through.
+            await sender.SendExplicitAsync(
+                session.ConnectionId,
+                new GameExplicitMessageDelivery(
+                    BuildPrePublicationMessages(session, prepared),
                     []),
                 cancellationToken).ConfigureAwait(false);
         }
@@ -356,9 +367,14 @@ public sealed class SelectCharacterHandler(
             new CloneTitleStateMessage(result.CharacterEntry.Public.CloneTitleItemId),
             new AccountRosterStateMessage(result.RosterEntry
                 ?? throw new InvalidDataException("Roster state is unavailable.")),
+            // The same account-wide standing the roster screen already received, not a character
+            // stat. The reference session sends 0x0289 twice with an identical body -- 01 00 00 00
+            // 00 00 00 00 at the roster and again here -- while this read two per-character derived
+            // stats, which are zero on a fresh character and disagreed with what login had just
+            // sent for the same account.
             new HonorProgressStateMessage(
-                checked((uint)Math.Max(0, result.CharacterEntry.Public.DerivedStats.Progress1)),
-                checked((uint)Math.Max(0, result.CharacterEntry.Public.DerivedStats.Progress2))),
+                AccountHonorLevel.Initial.Level,
+                AccountHonorLevel.Initial.Experience),
         };
         // NOTI 0x0025 GROWTH CAPSULE is not part of the A21 entry sequence. The reference sends
         // 0x0165, CMD 0x0239, the subtype-0x02 record and 0x0289 here and nothing else, and the

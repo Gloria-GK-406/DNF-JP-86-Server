@@ -19,9 +19,9 @@ internal static class AccountCharacterRosterPayloadCodec
     /// reproducing the observed bytes is the honest choice, and a wrong guess here costs at most a
     /// wrong value in a field nobody can name.
     /// </remarks>
-    private const byte FirstByteAfterLevel = 0x0B;
+    internal const byte FirstByteAfterLevel = 0x0B;
 
-    private const byte SecondByteAfterLevel = 0x01;
+    internal const byte SecondByteAfterLevel = 0x01;
 
     public static byte[] Encode(AccountCharacterRoster roster)
     {

@@ -30,6 +30,7 @@ public sealed class EquipmentEligibilityCharacterFactsTests
             () => new StubCharacterRepository(summary),
             new UnusedStatSource(),
             new UnusedInitialSkillSource(),
+            new UnusedInitialEquipmentSource(),
             null!);
 
         var facts = await reader.GetAsync(
@@ -54,6 +55,15 @@ public sealed class EquipmentEligibilityCharacterFactsTests
             byte job,
             CancellationToken cancellationToken) =>
             throw new InvalidOperationException("Eligibility facts do not need starting skills.");
+    }
+
+    private sealed class UnusedInitialEquipmentSource : IInitialEquipmentDefinitionSource
+    {
+        public ValueTask<IReadOnlyList<InitialEquipmentGrant>> GetAsync(
+            byte job,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException(
+                "Eligibility facts do not need starting equipment.");
     }
 
     private sealed class StubCharacterRepository(CharacterSummary summary) : ICharacterRepository

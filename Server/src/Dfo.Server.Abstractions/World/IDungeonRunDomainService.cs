@@ -14,7 +14,51 @@ public sealed record DungeonRunState(
     DungeonLayout Layout,
     MazeCell CurrentCell,
     int CurrentRoomMapId,
-    IReadOnlySet<MazeCell> VisitedCells);
+    IReadOnlySet<MazeCell> VisitedCells,
+    IReadOnlySet<GroundDropId> TakenGroundDrops)
+{
+    /// <summary>
+    /// What of a room's declared drops is still on its floor, each under the number the client
+    /// names it by when it picks one up.
+    /// </summary>
+    /// <remarks>
+    /// The number is the drop's position among everything the room declares, counted from one, and
+    /// it is derived rather than allocated: a room re-described mid-run has to name the same piece
+    /// the same way, or the client's request would arrive under a number this server had given to
+    /// something else. Which is also why the taken ones are removed after the numbering rather
+    /// than before -- dropping one first would renumber the rest.
+    /// </remarks>
+    public IReadOnlyList<GroundDrop> RemainingGroundDrops(IReadOnlyList<DungeonRoomDrop> declared)
+    {
+        ArgumentNullException.ThrowIfNull(declared);
+        return
+        [
+            .. declared
+                .Select((drop, index) => new GroundDrop(checked((ushort)(index + 1)), drop))
+                .Where(candidate => !TakenGroundDrops.Contains(
+                    new GroundDropId(CurrentCell, candidate.Number))),
+        ];
+    }
+
+    /// <summary>
+    /// What this room still has lying under that number, or null when it has nothing there.
+    /// </summary>
+    public GroundDrop? FindGroundDrop(IReadOnlyList<DungeonRoomDrop> declared, ushort number) =>
+        RemainingGroundDrops(declared)
+            .FirstOrDefault(candidate => candidate.Number == number);
+}
+
+/// <summary>One piece lying on a room's floor, under the number the client names it by.</summary>
+public sealed record GroundDrop(ushort Number, DungeonRoomDrop Drop);
+
+/// <summary>
+/// Which piece of floor a drop was on, so that two rooms numbering from one stay apart.
+/// </summary>
+/// <remarks>
+/// The cell rather than the map identifier: a maze may lead through the same map twice, and the
+/// player who cleared one of those rooms has not thereby cleared the other.
+/// </remarks>
+public readonly record struct GroundDropId(MazeCell Cell, ushort Number);
 
 /// <summary>The dungeon runs the server currently has going, and who is in them.</summary>
 /// <remarks>
@@ -56,6 +100,18 @@ public interface IDungeonRunDomainService
     /// refusal means the two disagree about the maze, and moving somewhere else would hide that.
     /// </remarks>
     DungeonRunState? TryMove(CharacterId characterId, MazeCell target);
+
+    /// <summary>
+    /// Takes one piece off the floor of the room the character is standing in.
+    /// </summary>
+    /// <remarks>
+    /// Answers the run as it stands afterwards, or null when that piece was already gone -- which
+    /// is what a second request for the same number is. Refusing the second is the whole point:
+    /// the drops a room declares are read back out of the archive every time the room is
+    /// described, so without a record of what has been taken a player could walk out of a room and
+    /// back in and be handed the same item again.
+    /// </remarks>
+    DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber);
 
     /// <summary>Ends the run. False when the character was not in one.</summary>
     bool End(CharacterId characterId);

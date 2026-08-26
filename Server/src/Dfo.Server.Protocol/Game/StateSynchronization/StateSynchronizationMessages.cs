@@ -216,17 +216,22 @@ internal sealed record PartyBaselineMessage : GameStateSynchronizationMessage, I
     internal override byte[] EncodeBody() => new byte[2];
 }
 
-/// <summary>NOTI 0x000E <c>UPDATE_ITEM_LIST</c>, carrying no entries.</summary>
+/// <summary>NOTI 0x000D <c>ITEM_LIST</c> for the guild-medal container, which is always empty here.
+/// </summary>
 /// <remarks>
-/// The captured body is a leading byte, a <c>u16</c> entry count, then that many 101-byte entries
-/// (the reference session sends five, ids 0xB1..0xB5, each with an <c>0xFF</c> at entry offset 69).
-/// The entries are inventory data this server does not yet model, so this sends the same envelope
-/// with a count of zero: the length is derived from the count, so an empty list is well formed.
+/// A21 carries a sixth entry container the older client did not: list type 38, <c>GuildMedal</c>
+/// upstream. The reference session sends it as the last of six ITEM_LIST frames with a body of
+/// <c>26 00 00</c> -- the type byte and a zero <c>u16</c> count.
+///
+/// It is a baseline rather than a real snapshot because guild medals are not modelled at all: there
+/// is no table to read and nothing that could ever put an item in it. Routing it through
+/// <c>AddInventorySnapshots</c> would mean inventing a container in the persistence layer whose only
+/// possible content is emptiness.
 /// </remarks>
-internal sealed record UpdateItemListBaselineMessage : GameStateSynchronizationMessage, IGameNotiMessage
+internal sealed record GuildMedalBaselineMessage : GameStateSynchronizationMessage, IGameNotiMessage
 {
-    internal override ushort Type => 0x000E;
-    internal override byte[] EncodeBody() => new byte[3];
+    internal override ushort Type => 0x000D;
+    internal override byte[] EncodeBody() => [(byte)InventoryContainerType.GuildMedal, 0, 0];
 }
 
 internal sealed record ServerEventBaselineMessage : GameStateSynchronizationMessage, IGameNotiMessage
@@ -308,12 +313,21 @@ internal sealed record ClientEffectBaselineMessage : GameStateSynchronizationMes
 internal sealed record CollectionBoxStateMessage(
     CharacterCollectionBoxProgressState Box) : GameStateSynchronizationMessage, IGameNotiMessage
 {
-    // COLLECT_BOX is 0x0381 on A12 and 0x03EB on A21. This sat at 0x0381 for a while on the
-    // strength of a working A21 session sending a body of the same size there -- but that body
-    // is A21's USER_BUY_RESTRICT_UPDATE_ITEM_LIST, which is what 0x0381 means on A21, and the
-    // sizes merely coincided. A census of the A21 client settles it: the client registers no
-    // receive handler at 0x0381 at all, so everything sent there was discarded.
-    internal override ushort Type => 0x03EB;
+    // 0x0381 is COLLECT_BOX on A12 and USER_BUY_RESTRICT_UPDATE_ITEM_LIST on A21; COLLECT_BOX
+    // moved to 0x03EB there. That table difference is real, and it is not what decides this.
+    //
+    // This briefly moved to 0x03EB on the argument that the A21 client registers no receive
+    // handler at 0x0381, so anything sent there is discarded. Both halves of that are true and
+    // the conclusion drawn from them was still backwards. The A21 reference session sends two
+    // eight-byte frames at 0x0381 -- 01 01 FF FF FF FF 00 00 and 02 01 FF FF FF FF 00 00 -- and
+    // those are byte for byte what this record emits, because that is where these bytes were
+    // transcribed from in the first place. The payload is A21's, at A21's number, and the client
+    // ignoring it is what the reference server also gets.
+    //
+    // 0x03EB, by contrast, HAS a receive handler on A21 (RVA 0x008A7490), and the reference never
+    // sends it. Moving here therefore stopped being a no-op and started feeding a live handler a
+    // body in another protocol's format.
+    internal override ushort Type => 0x0381;
     internal override byte[] EncodeBody() => StateSynchronizationPayloadCodec.EncodeCollectionBox(Box);
 }
 
@@ -515,6 +529,27 @@ internal sealed record TownReadyStateMessage(CharacterId CharacterId)
     }
 }
 
+/// <summary>CMD 0x01BA <c>MERCENARY_INFO</c> as the entry batch pushes it, unprompted.</summary>
+/// <remarks>
+/// The client also asks for this by itself once it is in town, and <c>MercenaryInfoHandler</c>
+/// answers that. This is the other occurrence: the reference session sends the same seven bytes a
+/// second time, inside the entry batch, between the town-ready frame and CERA -- before the client
+/// has asked for anything. Answering only the request leaves that slot empty.
+///
+/// The body is the family envelope's acceptance byte followed by manageLevel, managePoint and a
+/// zero record count, which is byte for byte what the handler's reply carries.
+/// </remarks>
+internal sealed record MercenarySupportStateMessage
+    : GameStateSynchronizationMessage, IGameCmdMessage
+{
+    internal override ushort Type => 0x01BA;
+
+    // Not a second copy of the handler's six bytes: the handler's own roster is the source, so the
+    // two cannot drift apart into a batch frame and a reply that disagree.
+    internal override byte[] EncodeBody() =>
+        GameCmdEnvelope.Accept(MercenaryInfo.MercenaryInfoResponseEncoder.EmptyRoster);
+}
+
 internal sealed record CeraBalanceStateMessage(
     AccountWalletEntryState Wallet) : GameStateSynchronizationMessage, IGameNotiMessage
 {
@@ -568,7 +603,7 @@ internal static class StateSynchronizationEncoderRegistration
         AddNoti<EpicBookBaselineMessage>(services);
         AddNoti<UsableCountBaselineMessage>(services);
         AddNoti<PartyBaselineMessage>(services);
-        AddNoti<UpdateItemListBaselineMessage>(services);
+        AddNoti<GuildMedalBaselineMessage>(services);
         AddNoti<ServerEventBaselineMessage>(services);
         AddNoti<DungeonPermissionStateMessage>(services);
         AddNoti<CharacterOptionStateMessage>(services);
@@ -589,6 +624,7 @@ internal static class StateSynchronizationEncoderRegistration
         AddNoti<DailyReviveCoinStateMessage>(services);
         AddNoti<CubeProgressionStateMessage>(services);
         AddCmd<PremiumServiceStateMessage>(services);
+        AddCmd<MercenarySupportStateMessage>(services);
         AddNoti<LotteryProgressStateMessage>(services);
         AddNoti<LuckyStarStateMessage>(services);
         AddNoti<ChampionBreakStateMessage>(services);

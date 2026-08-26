@@ -1,4 +1,4 @@
-﻿# NOTI `0x001A` `UDP_HOST`
+# NOTI `0x001A` `UDP_HOST`
 
 <!-- rks:machine:begin -->
 

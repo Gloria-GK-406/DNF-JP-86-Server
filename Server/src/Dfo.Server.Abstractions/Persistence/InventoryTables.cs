@@ -138,6 +138,9 @@ public interface ICharacterContainerStateTable
 {
     ValueTask<IReadOnlyList<ContainerStateRow>> ReadByCharacterAsync(
         CharacterId characterId, CancellationToken cancellationToken);
+
+    ValueTask InsertIfAbsentAsync(
+        CharacterId characterId, int listType, int parameter, CancellationToken cancellationToken);
 }
 
 /// <summary>What an account's cargo is set to.</summary>

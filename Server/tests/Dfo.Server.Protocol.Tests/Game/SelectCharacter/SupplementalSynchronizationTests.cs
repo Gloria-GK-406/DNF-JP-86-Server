@@ -247,6 +247,35 @@ public sealed class SupplementalSynchronizationTests
         Assert.Equal(0x42, body[RosterHeaderWidth + entryLength + 6]);
     }
 
+    /// <summary>
+    /// The ten bytes after the level are the two the roster screen writes, not two progress values.
+    /// </summary>
+    /// <remarks>
+    /// The entry path used to model this span as HonorLevel, HonorExperience and a reserved field,
+    /// which sends four zeros on any character whose first progress value is not 267. The reference
+    /// session's entry-path copy of this frame is byte for byte its roster-screen copy, 0B 01
+    /// included, and the roster screen already wrote the observed literals. This pins the two
+    /// together so the next change to one of them fails here rather than on the wire.
+    ///
+    /// The member state still carries the three fields; they are deliberately given values that
+    /// would show up if they were still being written.
+    /// </remarks>
+    [Fact]
+    public void SelectCharacterSupplemental_RosterWritesTheObservedBytesAfterLevelNotProgress()
+    {
+        var member = new CharacterRosterMemberState(
+            new CharacterId(10), 1, [0x41], 2, 3, 86,
+            HonorLevel: 0xAAAAAAAA, HonorExperience: 0xBBBBBBBB, HonorReserved: 0xCCCC,
+            [], 3000);
+        var roster = new CharacterRosterEntryState(24, 24, 2, 100, 3, 200, [member]);
+
+        var body = Body(SupplementalSynchronizationCodec.EncodeRoster(roster));
+
+        // slot(2) + dstr("A")(5) + 00 00 + job + growType + level = 12 bytes into the entry
+        var afterLevel = body.AsSpan(RosterHeaderWidth + 12, 10).ToArray();
+        Assert.Equal(new byte[] { 0x0B, 0x01, 0, 0, 0, 0, 0, 0, 0, 0 }, afterLevel);
+    }
+
     private static byte[] EncodeStaticNotification(SelectCharacterResult result, ushort type)
     {
         Assert.Equal((ushort)0x00FB, type);

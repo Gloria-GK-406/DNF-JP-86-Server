@@ -27,6 +27,7 @@ public sealed class CharacterLifecycleServiceTests
         services.AddSingleton<ICharacterRepository>(repository);
         services.AddSingleton(stats);
         services.AddSingleton<IInitialSkillDefinitionSource>(new FakeInitialSkillSource());
+        services.AddSingleton<IInitialEquipmentDefinitionSource>(new FakeInitialEquipmentSource());
         new ApplicationModule().ConfigureServices(
             services,
             new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
@@ -255,13 +256,35 @@ public sealed class CharacterLifecycleServiceTests
             Account, 4, "Cleric"u8.ToArray(), CancellationToken.None);
 
         Assert.Equal(CharacterCreationStatus.Created, result.Status);
-        // Only the active is written, and it takes slot zero even though the archive declares it
-        // second. Everything on the first skill page reaches the skill bar in slot order, so a
-        // passive written here would occupy a key the player cannot use.
+        // Both are written, into two bands. The active takes slot zero even though the archive
+        // declares it second, because everything in the low slots reaches the skill bar in slot
+        // order and a passive there would occupy a key the player cannot use. The passive is still
+        // held, at 102, which is where a working A21 session puts a job's initial passives.
         var declared = FakeInitialSkillSource.For(4);
         Assert.Equal(
-            [new NewCharacterSkill(0, declared[1].SkillId, declared[1].Level)],
+            [
+                new NewCharacterSkill(102, declared[0].SkillId, declared[0].Level),
+                new NewCharacterSkill(0, declared[1].SkillId, declared[1].Level),
+            ],
             repository.LastSpec!.InitialSkills);
+    }
+
+    [Fact]
+    public async Task ACreatedCharacterIsBornWearingTheEquipmentItsJobDeclares()
+    {
+        var (service, repository) = Build();
+
+        var result = await service.CreateCharacterAsync(
+            Account, 4, "Cleric"u8.ToArray(), CancellationToken.None);
+
+        Assert.Equal(CharacterCreationStatus.Created, result.Status);
+        // Worn, in the slots the archive names, carrying the durability the items declare. A
+        // character created with an empty equipment container reaches the world unable to attack.
+        var declared = FakeInitialEquipmentSource.For(4);
+        Assert.Equal(
+            declared.Select(grant => new NewCharacterEquipment(
+                grant.SlotIndex, grant.ItemId, grant.Durability)),
+            repository.LastSpec!.InitialEquipment!);
     }
 
     [Fact]
@@ -288,6 +311,21 @@ public sealed class CharacterLifecycleServiceTests
             ];
 
         public ValueTask<IReadOnlyList<InitialSkillGrant>> GetAsync(
+            byte job,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult(For(job));
+    }
+
+    /// <summary>Two pieces per job, distinct per job so a lookup for the wrong one is visible.</summary>
+    private sealed class FakeInitialEquipmentSource : IInitialEquipmentDefinitionSource
+    {
+        public static IReadOnlyList<InitialEquipmentGrant> For(byte job) =>
+            [
+                new InitialEquipmentGrant(12, 27000 + job, (ushort)(40 + job)),
+                new InitialEquipmentGrant(14, 10000 + job, (ushort)(30 + job)),
+            ];
+
+        public ValueTask<IReadOnlyList<InitialEquipmentGrant>> GetAsync(
             byte job,
             CancellationToken cancellationToken) =>
             ValueTask.FromResult(For(job));

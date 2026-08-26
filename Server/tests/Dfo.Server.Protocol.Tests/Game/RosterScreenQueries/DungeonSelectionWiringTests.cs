@@ -1,4 +1,4 @@
-﻿using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol;
@@ -69,7 +69,7 @@ public sealed class DungeonSelectionWiringTests
             0x0017 => Encode(new UserAreaNotification(13, spawn, 0xFF)),
             0x0003 => Encode(new UserStateNotification(13, 1)),
             0x001A => Encode(new UdpHostNotification()),
-            _ => Encode(new EnterSelectDungeonNotification(13, 1)),
+            _ => Encode(new EnterSelectDungeonNotification(13)),
         };
 
         // Server frame header: selector, u16 type, i32 total length.

@@ -1,0 +1,249 @@
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Networking;
+using Microsoft.Extensions.Logging;
+
+namespace Dfo.Server.Protocol.Game.MonsterDeath;
+
+/// <summary>
+/// CMD 0x0027 <c>DIE_MONSTER</c>: the client reporting that a room actor has died.
+/// </summary>
+/// <remarks>
+/// Combat is the client's to decide. It reports the swing with CMD 0x0026 <c>USE_SKILL</c>, which
+/// the server does not answer at all, and then reports the death here. The server's part is to
+/// acknowledge it and to say what the kill was worth -- not to adjudicate it.
+///
+/// The body is a hundred-odd bytes of attack detail. Only the first four are read: the actor's
+/// running number, which is the one this server handed out in <c>NOTI 0x001D START_MAP</c>, and
+/// the user that killed it. The rest describes how it died, which nothing here acts on.
+/// </remarks>
+public sealed record MonsterDeathRequest(
+    GameMessageMetadata Metadata,
+    ushort ActorSequence,
+    ushort WireUserId) : IClientNetworkMessage
+{
+    public ClientMessageType MessageType => ClientMessageType.GameMonsterDeath;
+}
+
+/// <summary>NOTI 0x0025 <c>EXP</c>: what the character is worth after the kill.</summary>
+internal sealed record ExperienceNotification(
+    byte Level,
+    uint TotalExperience,
+    CharacterSkillProtocolMirrorState SkillPoints,
+    AccountHonorLevel Honor) : IGameNotiMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameExperience;
+}
+
+/// <summary>NOTI 0x0026 <c>DIE_MONSTER</c>: the death acknowledged, and what it dropped.</summary>
+internal sealed record MonsterDeathNotification(ushort ActorSequence) : IGameNotiMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameMonsterDeath;
+}
+
+internal static class MonsterDeathPayloadCodec
+{
+    /// <summary>The actor number and the killing user; everything after is attack detail.</summary>
+    public const int MinimumBodyLength = 4;
+
+    /// <summary>The length the client reads when no experience line is itemised.</summary>
+    public const int ExperienceBodyLength = 83;
+
+    /// <summary>
+    /// The kill acknowledged: the actor's number, its drops, and four closing bytes.
+    /// </summary>
+    /// <remarks>
+    /// Sent with no drops. What a monster drops is content this server does not model yet, and an
+    /// invented drop would put an item on the floor that no later frame can account for. A working
+    /// A21 session's empty-handed kill is these same seven bytes.
+    ///
+    /// A drop, when there are any, is forty-eight bytes: <c>u16 sceneSlot, u32 templateId,
+    /// u8 upgrade, u32 count, 5 zero, u32 dropGroup, 24 zero, u16 owner, u16 zero</c>.
+    /// </remarks>
+    public static byte[] EncodeMonsterDeath(ushort actorSequence)
+    {
+        using var stream = new MemoryStream(7);
+        using var writer = new BinaryWriter(stream);
+        writer.Write(actorSequence);
+        writer.Write((byte)0); // no drops
+        writer.Write(MonsterDeathTail);
+        return stream.ToArray();
+    }
+
+    /// <summary>The four bytes every A21 kill acknowledgement closes with.</summary>
+    private static readonly byte[] MonsterDeathTail = [0x00, 0x00, 0xFF, 0x00];
+
+    /// <summary>
+    /// The experience frame, in the fixed A21 layout.
+    /// </summary>
+    /// <remarks>
+    /// Eighty-three bytes whose offsets are the reference builder's. Only four carry anything
+    /// today: the level, the total experience, the skill points, and the account's honour
+    /// standing. The bonus lines -- party, fatigue, Seria's blessing, the growth contract, the
+    /// internet cafe, the elite kill, the growth capsule, the channel and guild bonuses -- are
+    /// each a separate line in the client's experience popup, and every one of them is a reward
+    /// rule this server does not have. Zero is the honest value for a bonus that was not awarded.
+    ///
+    /// <b>The kill awards nothing.</b> The level and total are the character's as they already
+    /// stand, so this frame reports rather than grants. Granting needs an experience table, a
+    /// level-up path and a place to persist the result, which is a feature of its own; sending the
+    /// frame without it keeps the exchange complete and leaves the number honest.
+    /// </remarks>
+    public static byte[] EncodeExperience(
+        byte level,
+        uint totalExperience,
+        CharacterSkillProtocolMirrorState skillPoints,
+        AccountHonorLevel honor)
+    {
+        var body = new byte[ExperienceBodyLength];
+        var writer = new SpanWriter(body);
+        writer.Byte(level); // +0x00
+        writer.U32(totalExperience); // +0x01
+        writer.U32(0); // +0x05 party experience
+        writer.U16(skillPoints.Page0Sp); // +0x09
+        writer.U16(skillPoints.Page1Sp); // +0x0B
+        writer.U16(skillPoints.Page0Tp); // +0x0D
+        writer.U16(skillPoints.Page1Tp); // +0x0F
+        writer.U32(0); // +0x11 PvP victory points
+        writer.U32(0); // +0x15 fatigue buff experience
+        writer.Byte(0); // +0x19 presentation mode
+        writer.U32(0); // +0x1A Seria blessing
+        writer.U32(0); // +0x1E growth contract
+        writer.U32(0); // +0x22 unnamed
+        writer.U32(0); // +0x26 fatigue burn
+        writer.U32(0); // +0x2A internet cafe
+        writer.Byte(0); // +0x2E itemised entry count
+        writer.U32(0); // +0x2F elite monster kill
+        writer.U32(0); // +0x33 unnamed
+        writer.U32(0); // +0x37 growth capsule
+        writer.U32(honor.Level); // +0x3B
+        writer.U32(honor.Experience); // +0x3F
+        writer.U32(0); // +0x43 speed-growth buff
+        writer.U32(0); // +0x47 unnamed
+        writer.U32(0); // +0x4B channel bonus
+        writer.U32(0); // +0x4F guild bonus
+        return body;
+    }
+
+    /// <summary>A cursor over a fixed-length body, so the offsets above stay readable.</summary>
+    private ref struct SpanWriter(Span<byte> target)
+    {
+        private readonly Span<byte> _target = target;
+        private int _at = 0;
+
+        public void Byte(byte value) => _target[_at++] = value;
+
+        public void U16(ushort value)
+        {
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(_target[_at..], value);
+            _at += 2;
+        }
+
+        public void U32(uint value)
+        {
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(_target[_at..], value);
+            _at += 4;
+        }
+    }
+}
+
+internal sealed class ExperienceEncoder : GameNotiMessageEncoder<ExperienceNotification>
+{
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
+        ExperienceNotification message) =>
+        OnePayload(
+            GameProtocol.ExperienceNotificationType,
+            MonsterDeathPayloadCodec.EncodeExperience(
+                message.Level, message.TotalExperience, message.SkillPoints, message.Honor));
+}
+
+internal sealed class MonsterDeathEncoder : GameNotiMessageEncoder<MonsterDeathNotification>
+{
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
+        MonsterDeathNotification message) =>
+        OnePayload(
+            GameProtocol.MonsterDeathNotificationType,
+            MonsterDeathPayloadCodec.EncodeMonsterDeath(message.ActorSequence));
+}
+
+internal sealed class MonsterDeathDecoder : IGameMessageDecoder
+{
+    public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
+    {
+        if (body.Length < MonsterDeathPayloadCodec.MinimumBodyLength)
+        {
+            throw new InvalidDataException(
+                $"DIE_MONSTER requires at least four body bytes; received '{body.Length}'.");
+        }
+
+        return new MonsterDeathRequest(
+            metadata,
+            System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(body),
+            System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(body[2..]));
+    }
+}
+
+/// <summary>Acknowledges a kill and reports what the character is worth after it.</summary>
+public sealed class MonsterDeathHandler(
+    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionRuntimeDirectory runtimeSessions,
+    IGameMessageSender sender,
+    ILogger<MonsterDeathHandler> logger) : ClientMessageHandler<MonsterDeathRequest>
+{
+    protected override async ValueTask HandleMessageAsync(
+        NetworkDispatchContext context,
+        MonsterDeathRequest message,
+        CancellationToken cancellationToken)
+    {
+        var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        if (session is null || !runtimeSessions.TryGet(session, out var result, out _)
+            || result is null)
+        {
+            logger.LogWarning(
+                "Monster death {ConnectionId}: no published session, ignoring actor={Actor}",
+                context.Connection.ConnectionId,
+                message.ActorSequence);
+            return;
+        }
+
+        var mirror = result.CharacterEntry.Skills.ProtocolMirror;
+        if (mirror is null)
+        {
+            logger.LogWarning(
+                "Monster death {ConnectionId}: the session carries no skill point mirror, "
+                    + "acknowledging the kill without the experience frame",
+                context.Connection.ConnectionId);
+            await sender.SendExplicitAsync(
+                context.Connection.ConnectionId,
+                new GameExplicitMessageDelivery(
+                    [new MonsterDeathNotification(message.ActorSequence)], []),
+                cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        logger.LogInformation(
+            "Monster death {ConnectionId} user={WireUserId}: actor={Actor} killedBy={KilledBy}",
+            context.Connection.ConnectionId,
+            session.WireUserId,
+            message.ActorSequence,
+            message.WireUserId);
+
+        // The experience frame first, then the acknowledgement. That is the order a working A21
+        // session sends them in, and the popup the first one raises names the kill the second one
+        // confirms.
+        await sender.SendExplicitAsync(
+            context.Connection.ConnectionId,
+            new GameExplicitMessageDelivery(
+                [
+                    new ExperienceNotification(
+                        result.Character.Progression.Level,
+                        checked((uint)result.CharacterEntry.Public.Extras.CharacterExperience),
+                        mirror,
+                        AccountHonorLevel.Initial),
+                    new MonsterDeathNotification(message.ActorSequence),
+                ],
+                []),
+            cancellationToken).ConfigureAwait(false);
+    }
+}

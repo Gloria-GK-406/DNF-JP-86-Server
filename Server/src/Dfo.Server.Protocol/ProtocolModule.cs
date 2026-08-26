@@ -26,6 +26,8 @@ using Dfo.Server.Protocol.Game.DeleteCharacter;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.FinishLoading;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
+using Dfo.Server.Protocol.Game.GroundPickup;
+using Dfo.Server.Protocol.Game.MonsterDeath;
 using Dfo.Server.Protocol.Game.StoryPause;
 using Dfo.Server.Protocol.Game.UseStackable;
 using Dfo.Server.Protocol.Game.DungeonSelection;
@@ -159,6 +161,11 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<
             GrantTutorialRewardCommand, TutorialRewardResult, GrantTutorialRewardCommandHandler>(
             CommandExecutionKind.Transactional);
+        // Taking a piece off a room's floor: the claim on the floor and the row in the bag are one
+        // change, and a piece that left the floor without arriving anywhere is the thing to avoid.
+        services.AddCommandHandler<
+            PickUpGroundDropCommand, GroundPickupResult, PickUpGroundDropCommandHandler>(
+            CommandExecutionKind.Transactional);
     }
 
     /// <summary>Binds each catalogue member to the handler that consumes it.</summary>
@@ -192,13 +199,15 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameSetUdpIpPort);
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameCeraQuery);
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameInformNoticeSecond);
-        services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameSecurityStatus);
+        services.RegisterMessageHandler<SecurityStatusHandler>(ClientMessageType.GameSecurityStatus);
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameRuntimeTingStatistic);
         services.RegisterMessageHandler<EnterSelectDungeonHandler>(ClientMessageType.GameEnterSelectDungeon);
         services.RegisterMessageHandler<SelectDungeonHandler>(ClientMessageType.GameSelectDungeon);
         services.RegisterMessageHandler<FinishLoadingHandler>(ClientMessageType.GameFinishLoading);
         services.RegisterMessageHandler<MoveMapHandler>(ClientMessageType.GameMoveMap);
         services.RegisterMessageHandler<StoryPauseHandler>(ClientMessageType.GameStoryPause);
+        services.RegisterMessageHandler<MonsterDeathHandler>(ClientMessageType.GameMonsterDeath);
+        services.RegisterMessageHandler<GetItemHandler>(ClientMessageType.GameGetItem);
         services.RegisterMessageHandler<MoveItemSpaceHandler>(ClientMessageType.GameMoveItemSpace);
         services.RegisterMessageHandler<UseStackableHandler>(ClientMessageType.GameUseStackable);
 
@@ -245,6 +254,9 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.TaggedIdReportType, ClientMessageType.GameTaggedIdReport);
         services.AddGameCmdMessageEncoder<TutorialFlagAcknowledgement, TutorialFlagAcknowledgementEncoder>();
         services.AddGameNotiMessageEncoder<StoryPauseNotification, StoryPauseEncoder>();
+        services.AddGameNotiMessageEncoder<ExperienceNotification, ExperienceEncoder>();
+        services.AddGameNotiMessageEncoder<MonsterDeathNotification, MonsterDeathEncoder>();
+        services.AddGameNotiMessageEncoder<GroundPickupNotification, GroundPickupEncoder>();
         services.AddGameCmdMessageDecoder<RosterFollowUpMessageDecoder>(
             GameProtocol.RosterFollowUpType, ClientMessageType.GameRosterFollowUp);
         services.AddGameCmdMessageDecoder<CheckCharacterNameMessageDecoder>(
@@ -285,6 +297,10 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.MoveMapType, ClientMessageType.GameMoveMap);
         services.AddGameCmdMessageDecoder<StoryPauseDecoder>(
             GameProtocol.StoryPauseType, ClientMessageType.GameStoryPause);
+        services.AddGameCmdMessageDecoder<MonsterDeathDecoder>(
+            GameProtocol.MonsterDeathType, ClientMessageType.GameMonsterDeath);
+        services.AddGameCmdMessageDecoder<GetItemDecoder>(
+            GameProtocol.GetItemType, ClientMessageType.GameGetItem);
         services.AddGameCmdMessageDecoder<MoveItemSpaceDecoder>(
             GameProtocol.MoveItemSpaceType, ClientMessageType.GameMoveItemSpace);
         services.AddGameCmdMessageDecoder<UseStackableDecoder>(
@@ -342,6 +358,10 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<UserPositionNotification, UserPositionEncoder>();
         services.AddGameNotiMessageEncoder<UserStateNotification, UserStateEncoder>();
         services.AddGameNotiMessageEncoder<UdpHostNotification, UdpHostEncoder>();
+        services.AddGameCmdMessageEncoder<SecurityStatusAcknowledgement, SecurityStatusAcknowledgementEncoder>();
+
+        services.AddGameCmdMessageEncoder<EnterSelectDungeonAcknowledgement, EnterSelectDungeonAcknowledgementEncoder>();
+
         services.AddGameNotiMessageEncoder<EnterSelectDungeonNotification, EnterSelectDungeonEncoder>();
         services.AddGameNotiMessageEncoder<DungeonInfoNotification, DungeonInfoEncoder>();
         services.AddGameNotiMessageEncoder<StartMapNotification, StartMapEncoder>();
@@ -349,6 +369,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<FinishLoadingResponse, FinishLoadingResponseEncoder>();
         services.AddGameCmdMessageEncoder<MoveItemSpaceResponse, MoveItemSpaceResponseEncoder>();
         services.AddGameCmdMessageEncoder<UseStackableResponse, UseStackableResponseEncoder>();
+        services.AddGameCmdMessageEncoder<GetItemResponse, GetItemResponseEncoder>();
         services.AddGameNotiMessageEncoder<LoadingCompleteNotification, LoadingCompleteEncoder>();
         services.AddGameCmdMessageEncoder<HiddenCharacterInfoResponse, HiddenCharacterInfoResponseEncoder>();
         services.AddGameCmdMessageEncoder<RosterFollowUpResponse, RosterFollowUpResponseEncoder>();

@@ -127,8 +127,13 @@ public interface ICharacterSkillTable
     ValueTask<IReadOnlyList<CharacterSkillEntryRow>> ReadEntryAsync(
         CharacterId characterId, CancellationToken cancellationToken);
 
+    /// <param name="pageIndex">
+    /// Which skill tree the row belongs to. A character is created holding two, and while the
+    /// second is locked it is a copy of the first; see <c>protocol/game/server-to-client/NOTI-0x0013.md</c>.
+    /// </param>
     ValueTask InsertAsync(
-        CharacterId characterId, int slot, int skillId, int level, CancellationToken cancellationToken);
+        CharacterId characterId, int pageIndex, int slot, int skillId, int level,
+        CancellationToken cancellationToken);
 
     /// <summary>Puts one ordinary skill at that level. Says how many rows that touched.</summary>
     ValueTask<int> SetLevelAsync(

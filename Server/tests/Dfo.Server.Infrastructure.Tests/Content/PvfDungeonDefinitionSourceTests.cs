@@ -17,7 +17,7 @@ public sealed class PvfDungeonDefinitionSourceTests
     private const int TutorialDungeonId = 10000;
 
     [SkippableFact]
-    public async Task The_tutorial_dungeon_reads_as_one_maze_on_a_five_by_three_grid()
+    public async Task The_tutorial_dungeon_reads_as_one_maze_on_a_three_by_two_grid()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var provider = ContentArchive.CreateProvider();
@@ -32,17 +32,22 @@ public sealed class PvfDungeonDefinitionSourceTests
 
         var maze = Assert.Single(dungeon.Mazes);
         Assert.Equal(0, maze.Index);
-        Assert.Equal(5, maze.Width);
-        Assert.Equal(3, maze.Height);
+        Assert.Equal(3, maze.Width);
+        Assert.Equal(2, maze.Height);
     }
 
     /// <remarks>
-    /// The seven rooms and their map identifiers, spelled out. The start and boss cells both carry
+    /// The four rooms and their map identifiers, spelled out. The start and boss cells both carry
     /// a room, which is the property the layout depends on when it resolves the room a run opens
     /// in -- a start cell with no room would put the character nowhere.
+    ///
+    /// A21's tutorial is a different dungeon from the older client's, not the same one read
+    /// differently: three by two with four rooms against five by three with seven, and the boss in
+    /// a different cell. Anything derived from the older layout -- a room count, a path, a map
+    /// identifier -- does not carry over.
     /// </remarks>
     [SkippableFact]
-    public async Task The_tutorial_maze_declares_seven_rooms_including_its_start_and_boss_cells()
+    public async Task The_tutorial_maze_declares_four_rooms_including_its_start_and_boss_cells()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var provider = ContentArchive.CreateProvider();
@@ -56,14 +61,11 @@ public sealed class PvfDungeonDefinitionSourceTests
                 [new MazeCell(0, 1)] = 61000,
                 [new MazeCell(1, 1)] = 61001,
                 [new MazeCell(2, 1)] = 61002,
-                [new MazeCell(3, 1)] = 61003,
-                [new MazeCell(4, 1)] = 61005,
-                [new MazeCell(3, 2)] = 61004,
-                [new MazeCell(3, 0)] = 61006,
+                [new MazeCell(2, 0)] = 61005,
             },
             maze.Rooms);
         Assert.Equal([new MazeCell(0, 1)], maze.StartCandidates);
-        Assert.Equal([new MazeCell(3, 0)], maze.BossCandidates);
+        Assert.Equal([new MazeCell(2, 0)], maze.BossCandidates);
         Assert.All(
             maze.StartCandidates.Concat(maze.BossCandidates),
             cell => Assert.True(maze.Rooms.ContainsKey(cell), $"cell {cell} carries no room"));

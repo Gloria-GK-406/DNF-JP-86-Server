@@ -77,6 +77,18 @@ internal static class GameProtocol
 
     public const ushort MoveMapType = 0x002D;
 
+    /// <summary>The client reporting a room actor dead, and the two frames that answer it.</summary>
+    public const ushort MonsterDeathType = 0x0027;
+
+    public const ushort ExperienceNotificationType = 0x0025;
+
+    public const ushort MonsterDeathNotificationType = 0x0026;
+
+    /// <summary>Picking an item up off the floor, and the notification that answers it.</summary>
+    public const ushort GetItemType = 0x002B;
+
+    public const ushort GroundPickupNotificationType = 0x0027;
+
     public const ushort MoveItemSpaceType = 0x0013;
 
     public const ushort UseStackableType = 0x002C;

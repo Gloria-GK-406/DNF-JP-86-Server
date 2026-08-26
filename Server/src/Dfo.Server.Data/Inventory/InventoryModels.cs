@@ -19,6 +19,7 @@ public enum InventoryContainerType : byte
     QuickSlot = 29,
     KnightShieldEquipped = 33,
     KnightShieldCatalog = 34,
+    GuildMedal = 38,
 }
 
 public enum InventoryOwnerType : byte

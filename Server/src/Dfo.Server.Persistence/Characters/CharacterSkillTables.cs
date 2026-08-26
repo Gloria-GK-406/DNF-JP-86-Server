@@ -44,15 +44,17 @@ internal sealed class SqliteCharacterSkillTable(SqliteDatabase database) : IChar
             cancellationToken);
 
     public async ValueTask InsertAsync(
-        CharacterId characterId, int slot, int skillId, int level, CancellationToken cancellationToken) =>
+        CharacterId characterId, int pageIndex, int slot, int skillId, int level,
+        CancellationToken cancellationToken) =>
         _ = await database.ExecuteAsync(
             """
             INSERT INTO character_skills (character_id, mode, page_index, slot, skill_id, level, extra_values)
-            VALUES (@cid, 'pve', 0, @slot, @skill, @level, NULL);
+            VALUES (@cid, 'pve', @page, @slot, @skill, @level, NULL);
             """,
             parameters =>
             {
                 parameters.AddWithValue("@cid", characterId.Value);
+                parameters.AddWithValue("@page", pageIndex);
                 parameters.AddWithValue("@slot", slot);
                 parameters.AddWithValue("@skill", skillId);
                 parameters.AddWithValue("@level", level);

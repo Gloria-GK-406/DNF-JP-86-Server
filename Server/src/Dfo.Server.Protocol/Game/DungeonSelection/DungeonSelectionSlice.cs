@@ -1,4 +1,4 @@
-﻿using System.Buffers.Binary;
+using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Inventory;
@@ -48,6 +48,28 @@ internal sealed class EnterSelectDungeonDecoder : IGameMessageDecoder
     }
 }
 
+/// <summary>CMD 0x000F: the single acceptance byte A21 answers ENTER_SELECT_DUNGEON with.</summary>
+/// <remarks>
+/// The comment on the handler below used to say no CMD reply was sent because the reference server
+/// sends none. That was the A12 reference. A21's sends one after ENTER_SELECT_DUNGEON and a second
+/// after SELECT_DUNGEON, both a single <c>01</c> -- its own builder calls it a success ack -- and
+/// the second one comes immediately before NOTI 0x001B.
+/// </remarks>
+internal sealed record EnterSelectDungeonAcknowledgement : IGameCmdMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameEnterSelectDungeonAcknowledgement;
+}
+
+internal sealed class EnterSelectDungeonAcknowledgementEncoder
+    : GameCmdMessageEncoder<EnterSelectDungeonAcknowledgement>
+{
+    private static readonly byte[] SuccessAck = [0x01];
+
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
+        EnterSelectDungeonAcknowledgement message) =>
+        OnePayload(GameProtocol.EnterSelectDungeonType, SuccessAck);
+}
+
 /// <summary>NOTI 0x0017 <c>USER_AREA</c>: where a user is, as the client should display it.</summary>
 internal sealed record UserAreaNotification(
     ushort WireUserId,
@@ -73,8 +95,7 @@ internal sealed record UdpHostNotification : IGameNotiMessage
 
 /// <summary>NOTI 0x001B: the dungeon-selection screen's own state.</summary>
 internal sealed record EnterSelectDungeonNotification(
-    ushort WireUserId,
-    ushort TowerOfDespairFloor) : IGameNotiMessage
+    ushort WireUserId) : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameEnterSelectDungeonState;
 }
@@ -99,9 +120,6 @@ internal static class DungeonSelectionPayloadCodec
     /// of the character's real area.
     /// </summary>
     public const byte SelectionScreenAreaId = 0xFF;
-
-    /// <summary>Floor used when no Tower of Despair progress is known.</summary>
-    public const ushort DefaultTowerOfDespairFloor = 1;
 
     public static byte[] EncodeUserArea(ushort wireUserId, EntrySpawnState spawn, byte areaId)
     {
@@ -129,21 +147,41 @@ internal static class DungeonSelectionPayloadCodec
 
     public static byte[] EncodeUdpHostUnavailable() => [0x00];
 
-    public static byte[] EncodeEnterSelectDungeon(ushort wireUserId, ushort towerFloor)
+    /// <summary>NOTI 0x001B as A21 builds it: 37 bytes for a party of one.</summary>
+    /// <remarks>
+    /// The nineteen-byte shape this replaces came from the older client's builder and lines up with
+    /// A21's at no offset. A21's own builder writes, in order: two zero <c>i32</c>s, a count of
+    /// hell-quest blocked slots, a zero byte, the user count, then <c>{u16 userId, u8 0}</c> per
+    /// user, then a zero <c>i32</c>, a <c>u16</c> of one, a zero <c>u16</c>, a zero <c>i32</c>, two
+    /// zero bytes, two zero <c>i32</c>s and a final zero byte.
+    ///
+    /// For one user that is 37 bytes with exactly three non-zero positions -- 10, 11 and 18 -- and
+    /// the reference session's frame has non-zero bytes at 10, 11 and 18 and nowhere else. Those
+    /// are the user count, the low byte of user id 1, and the constant one.
+    ///
+    /// The tower-of-despair floor this used to write has no place in A21's shape. It is not lost
+    /// evidence: it was the older client's field, at an offset A21 does not use.
+    /// </remarks>
+    public static byte[] EncodeEnterSelectDungeon(ushort wireUserId)
     {
-        using var stream = new MemoryStream(19);
+        using var stream = new MemoryStream(37);
         using var writer = new BinaryWriter(stream);
-        writer.Write(1);
-        writer.Write((ushort)0);
-        writer.Write((byte)1);
+        writer.Write(0);
+        writer.Write(0);
+        writer.Write((byte)0);   // hell-quest blocked slot count
+        writer.Write((byte)0);
+        writer.Write((byte)1);   // user count
         writer.Write(wireUserId);
         writer.Write((byte)0);
         writer.Write(0);
-
-        // The reference server notes the client reads this at body offset 14 for a solo entry, and
-        // that each extra party member shifts it by three. Only the solo shape is produced here.
-        writer.Write(towerFloor);
-        writer.Write(new byte[3]);
+        writer.Write((ushort)1);
+        writer.Write((ushort)0);
+        writer.Write(0);
+        writer.Write((byte)0);
+        writer.Write((byte)0);
+        writer.Write(0);
+        writer.Write(0);
+        writer.Write((byte)0);
         return stream.ToArray();
     }
 }
@@ -180,8 +218,7 @@ internal sealed class EnterSelectDungeonEncoder
         EnterSelectDungeonNotification message) =>
         OnePayload(
             GameProtocol.EnterSelectDungeonNotificationType,
-            DungeonSelectionPayloadCodec.EncodeEnterSelectDungeon(
-                message.WireUserId, message.TowerOfDespairFloor));
+            DungeonSelectionPayloadCodec.EncodeEnterSelectDungeon(message.WireUserId));
 }
 
 /// <summary>
@@ -200,9 +237,9 @@ internal sealed class EnterSelectDungeonEncoder
 /// between the two points can change a stat today, and matching what was already sent is the
 /// property worth keeping while that is true.
 ///
-/// No CMD 0x000F reply is sent, because the reference server sends none either -- its only CMD on
-/// this path is an error body for a blocked mercenary. The client does register a receive handler
-/// for CMD 0x000F, and entering the town without one shows it is not required on the success path.
+/// A21 answers with CMD 0x000F carrying a single acceptance byte. This used to send no CMD reply,
+/// on the grounds that the reference server sends none -- true of the A12 reference and not of the
+/// A21 one, which sends it here and again after SELECT_DUNGEON.
 /// </remarks>
 public sealed class EnterSelectDungeonHandler(
     ISelectedSessionDirectory selectedSessions,
@@ -261,20 +298,25 @@ public sealed class EnterSelectDungeonHandler(
             .SingleOrDefault(value => value.ContainerType == InventoryContainerType.Equipment)
             ?.Items ?? [];
 
+        // A21's answer, in its order: the stat block, the acceptance, the user state, the UDP
+        // offer. Two frames this used to send are gone from here:
+        //
+        //   NOTI 0x0017 USER_AREA -- the A21 reference sends it exactly twice in a whole session,
+        //   both on the way back to town at the end, and never when the selection screen opens.
+        //
+        //   NOTI 0x001B -- it belongs to the SELECT_DUNGEON answer, where A21 sends it directly
+        //   after the second acceptance byte.
         var notifications = new IGameServerMessage[]
         {
-            new UserAreaNotification(
-                session.WireUserId, spawn, DungeonSelectionPayloadCodec.SelectionScreenAreaId),
             new ExtendedUserStateMessage(
                 result.Character,
                 result.CharacterEntry.Public,
                 result.CharacterEntry.Skills,
                 equipment,
                 result.World.PreparedAt),
+            new EnterSelectDungeonAcknowledgement(),
             new UserStateNotification(session.WireUserId, 0x01),
             new UdpHostNotification(),
-            new EnterSelectDungeonNotification(
-                session.WireUserId, DungeonSelectionPayloadCodec.DefaultTowerOfDespairFloor),
         };
 
         // Logged here rather than left to the dispatch layer. The first live run produced this

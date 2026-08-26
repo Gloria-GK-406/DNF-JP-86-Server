@@ -59,6 +59,7 @@ public sealed class CharacterBodyCreationTests
     [InlineData("character_pvp")]
     [InlineData("character_settings")]
     [InlineData("character_expert_job")]
+    [InlineData("character_container_state")]
     public async Task ACreatedCharacterHasItsRowInEveryTableThatHoldsOne(string table)
     {
         await WithACreatedCharacterAsync(async (path, id) =>
@@ -84,6 +85,25 @@ public sealed class CharacterBodyCreationTests
                 .LoadAsync(Account, id, CancellationToken.None);
 
             Assert.Null(record.Profile.CharacterOptionBlob);
+        });
+    }
+
+    /// <remarks>
+    /// The main container's snapshot puts this number on the wire, and it is not a cosmetic one:
+    /// a character whose bag declares nothing is a character the client is told cannot hold an
+    /// item. Nothing wrote this row at all until A21's reference session was compared frame by
+    /// frame -- the read fell through to the column default and every created character reported
+    /// zero slots. The reference's own freshly made character reports 24.
+    /// </remarks>
+    [Fact]
+    public async Task ACreatedCharacterHasTwentyFourMainContainerSlots()
+    {
+        await WithACreatedCharacterAsync(async (path, id) =>
+        {
+            Assert.Equal(24L, await ScalarAsync(
+                path,
+                "SELECT list_param16 FROM character_container_state "
+                    + $"WHERE character_id={id.Value} AND list_type=0"));
         });
     }
 

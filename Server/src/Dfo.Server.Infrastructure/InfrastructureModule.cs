@@ -50,6 +50,10 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<ICreatureDefinitionSource, PvfCreatureDefinitionSource>();
         services.TryAddSingleton<ICreatureEquipmentLifetimeSource, PvfCreatureEquipmentLifetimeSource>();
         services.TryAddSingleton<IEntryLifecycleContentSource, PvfEntryLifecycleContentSource>();
+        services.TryAddSingleton<IInitialEquipmentDefinitionSource,
+            PvfInitialEquipmentDefinitionSource>();
+        services.TryAddSingleton<IDungeonRoomActorSource, PvfDungeonRoomActorSource>();
+        services.TryAddSingleton<IDungeonRoomDropSource, PvfDungeonRoomDropSource>();
         services.TryAddSingleton<IDungeonExperienceProgressionPolicySource,
             PvfDungeonExperienceProgressionPolicySource>();
         services.TryAddSingleton<IExpertSkillContractDefinitionSource,

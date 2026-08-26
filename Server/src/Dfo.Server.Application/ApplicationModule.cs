@@ -87,6 +87,7 @@ public sealed class ApplicationModule : IServerModule
                 () => provider.GetRequiredService<ICharacterRepository>(),
                 provider.GetRequiredService<ICharacterStatDefinitionSource>(),
                 provider.GetRequiredService<IInitialSkillDefinitionSource>(),
+                provider.GetRequiredService<IInitialEquipmentDefinitionSource>(),
                 characterId => new PlayingCharacter(
                     characterId,
                     provider.GetRequiredService<IItemUseRuleDefinitionSource>(),

@@ -12,6 +12,7 @@ internal sealed class CharacterDomainService(
     Func<ICharacterRepository> characterRepository,
     ICharacterStatDefinitionSource characterStats,
     IInitialSkillDefinitionSource initialSkills,
+    IInitialEquipmentDefinitionSource initialEquipment,
     Func<CharacterId, ICharacter> playingCharacter)
     : ICharacterDomainService, IEquipmentEligibilityCharacterReader
 {
@@ -28,6 +29,9 @@ internal sealed class CharacterDomainService(
     public ICharacter Get(CharacterId characterId) => playingCharacter(characterId);
 
     private const ushort DefaultSlotLimit = 32;
+
+    /// <summary>The first slot of the skill band the client's skill bar does not draw from.</summary>
+    private const short FirstPassiveSlot = 102;
 
     // Bounds and job ceiling carried over from the legacy server, which is the only evidence we
     // have for them. The two byte bounds genuinely differ per protocol -- see CharacterNameRules.
@@ -161,27 +165,36 @@ internal sealed class CharacterDomainService(
         // without its stats is the half-built state the entry profile query rejects outright.
         var stats = await characterStats.GetInitialAsync(job, cancellationToken).ConfigureAwait(false);
 
-        // Only the actives, and the reason is measured rather than assumed. Everything written to
-        // the character's first skill page reaches the skill bar in slot order: granting all eight
-        // put the three actives on A, S and D and then two passives on F and G, where a player
-        // cannot use them and would not expect them. Ordering the actives first was not enough,
-        // because the passives still occupied slots after them.
+        // Two bands, because the skill bar reads only the first. Everything written to the low
+        // slots reaches the bar in slot order, so granting the passives alongside the actives put
+        // 基础精通 and 基础防具精通 on F and G, where a player cannot use them and would not expect
+        // them; ordering the actives first was not enough, because the passives still landed in
+        // slots after them. Dropping the passives instead answered that, and cost the character
+        // the passives themselves.
         //
-        // The cost is that passives are not held at all, which is wrong in the long run -- 基础精通
-        // is a real passive with real effects. It is acceptable now because none of those effects
-        // is implemented, so a passive that is held and one that is not are indistinguishable, and
-        // holding it would break something visible today. Holding them without binding them needs
-        // a place to put them that the bar does not read, and no such place has been located.
-        //
-        // Among the actives the archive's order is kept: it is the only ordering available.
+        // The band the bar does not read is 102 upwards. That is not a choice made here: a working
+        // A21 session places a job's three initial passives at 102, 103 and 104 while its three
+        // actives sit at 0, 1 and 2, and this repository's own PvP profile already builds its
+        // slots the same way. Within each band the archive's order is kept; it is the only
+        // ordering available.
         var grants = await initialSkills.GetAsync(job, cancellationToken).ConfigureAwait(false);
         var skills = new List<NewCharacterSkill>();
-        short slot = 0;
-        foreach (var grant in grants.Where(value => value.IsActive))
-            skills.Add(new NewCharacterSkill(slot++, grant.SkillId, grant.Level));
+        short activeSlot = 0;
+        short passiveSlot = FirstPassiveSlot;
+        foreach (var grant in grants)
+        {
+            var slot = grant.IsActive ? activeSlot++ : passiveSlot++;
+            skills.Add(new NewCharacterSkill(slot, grant.SkillId, grant.Level));
+        }
+
+        var equipment =
+            (await initialEquipment.GetAsync(job, cancellationToken).ConfigureAwait(false))
+            .Select(grant => new NewCharacterEquipment(
+                grant.SlotIndex, grant.ItemId, grant.Durability))
+            .ToArray();
 
         var characterId = await repository.CreateAsync(
-            new NewCharacterSpec(accountId, rawName, job, slotIndex, stats, skills),
+            new NewCharacterSpec(accountId, rawName, job, slotIndex, stats, skills, equipment),
             cancellationToken).ConfigureAwait(false);
         return new CharacterCreationResult(CharacterCreationStatus.Created, characterId);
     }

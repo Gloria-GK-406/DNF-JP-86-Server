@@ -69,6 +69,7 @@ internal static class SelectedCharacterStateMessageFactory
         messages.Add(new VillageObjectListMessage());
         messages.Add(new DungeonPermissionStateMessage(result.CharacterEntry.Progression.Dungeons));
         AddInventorySnapshots(messages, result);
+        messages.Add(new GuildMedalBaselineMessage());
         messages.Add(new EpicBookBaselineMessage());
         messages.Add(new UsableCountBaselineMessage());
         messages.Add(new DailyChallengeStateMessage(result.CharacterEntry.Progression));
@@ -95,8 +96,11 @@ internal static class SelectedCharacterStateMessageFactory
         messages.Add(new DailyReviveCoinStateMessage(result.CharacterEntry.Progression.DailyReviveCoinClaimed));
         messages.Add(new CubeProgressionStateMessage(
             result.CharacterEntry.Progression.CubeType, result.CharacterEntry.Progression.CubeGrade));
-        messages.Add(new PremiumServiceStateMessage(
-            result.Account.Entitlements, result.CharacterEntry.Progression.PremiumUsageSlots));
+        // PREMIUM_SERVICE is deliberately absent. The A21 reference session never sends it --
+        // not at 0x036F and not at the older 0x0312 -- anywhere in its 458 frames, while the
+        // client does register a receive handler for it. Pushing seventy-seven bytes at a live
+        // handler the reference leaves alone is a difference we introduced, not one it asked
+        // for. The record and its encoder stay registered for a path that does ask.
         messages.Add(new LotteryProgressStateMessage(result.Account.Progression));
         messages.Add(new ChampionBreakStateMessage(result.CharacterEntry.Progression));
         messages.Add(new GoldLimitStateMessage(result.CharacterEntry.Progression.GoldLimitUpgradeLevel));
@@ -117,11 +121,15 @@ internal static class SelectedCharacterStateMessageFactory
         // Subtype six, not a second copy of the subtype the batch opened with. The older client
         // took nothing here; A21's own server sends this frame once, right after the marker.
         messages.Add(new TownReadyStateMessage(result.Character.Identity.CharacterId));
+        messages.Add(new MercenarySupportStateMessage());
         messages.Add(new CeraBalanceStateMessage(result.Account.Wallet));
         messages.Add(new CrossServerFriendBaselineMessage());
         messages.Add(new CharacterPositionStateMessage(
             result.Character.Identity.CharacterId, result.World.Channel.Spawn));
-        messages.Add(new UpdateItemListBaselineMessage());
+        // UPDATE_ITEM_LIST is not sent from here. The reference carries exactly one 0x000E in
+        // this window and it is not an empty envelope: it is the daily refill's own result, five
+        // entries in slots 0xB1..0xB5. Sending a zero-count frame here and the real delta later
+        // produced two frames where the reference has one, in neither of its positions.
 
         // NOTI 0x019F and 0x019D are deliberately absent. The reference entry sequence carries
         // neither: it answers 0x019F on the client's own request after entry, and never sends

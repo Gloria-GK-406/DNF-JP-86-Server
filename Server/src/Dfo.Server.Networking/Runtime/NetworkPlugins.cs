@@ -179,6 +179,15 @@ internal sealed class GameNetworkPlugin(
     /// and its body is withheld: the decoders that can decline include ones whose bodies carry
     /// account credentials, and a decode failure must not turn into a credential dump. Naming the
     /// decoder identifies the defect without printing what it failed to read.
+    ///
+    /// A decoder that THROWS is the third way, and until 2026-08-25 it was the silent one. Only the
+    /// dispatch call had a catch, so an exception raised while decoding escaped the receive
+    /// callback, the connection was torn down, and nothing was written anywhere. That is not a
+    /// hypothetical: A21's CHANGE_TUTORIAL_FLAG is six bytes and this server's decoder demanded
+    /// exactly five, so every tutorial entry ended with the client reporting a lost connection and
+    /// the server reporting nothing at all. The length was the bug; the silence is what made it
+    /// expensive. Rethrown, not swallowed -- a frame this server cannot read is not one it can
+    /// continue a session on, so the connection still drops. Only the silence is removed.
     /// </remarks>
     private IClientNetworkMessage? Decode(GameClientFrameRequestInfo frame, NetworkConnectionId connectionId)
     {
@@ -197,13 +206,34 @@ internal sealed class GameNetworkPlugin(
             return null;
         }
 
-        var message = decoder.Decode(
-            new GameMessageMetadata(
+        IClientNetworkMessage? message;
+        try
+        {
+            message = decoder.Decode(
+                new GameMessageMetadata(
+                    frame.Selector,
+                    frame.Type,
+                    frame.Checksum,
+                    frame.Sequence),
+                frame.Body.Span);
+        }
+        catch (Exception error)
+        {
+            // The body is withheld for the same reason a declining decoder's is: some of these
+            // carry credentials, and a decode failure must not become a dump. For a length defect
+            // the length is the part that matters, and it is here.
+            logger.LogError(
+                error,
+                "Game decoder {Decoder} threw {ConnectionId}: selector=0x{Selector:X2} " +
+                "type=0x{Type:X4} seq={Sequence} body({BodyLength}B); body withheld",
+                decoder.GetType().Name,
+                connectionId,
                 frame.Selector,
                 frame.Type,
-                frame.Checksum,
-                frame.Sequence),
-            frame.Body.Span);
+                frame.Sequence,
+                frame.Body.Length);
+            throw;
+        }
 
         if (message is null)
         {

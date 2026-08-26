@@ -16,8 +16,8 @@ public sealed class PvfSkillPointDefinitionSourceTests
 
         Assert.Equal(11010, result.TotalSp);
         Assert.Equal(37, result.TotalTp);
-        Assert.InRange(result.FreeGrants.Count, 16, 16);
-        Assert.Equal(new SkillPointGrantDefinition(181, 2, IsInitial: true), result.FreeGrants[0]);
+        Assert.InRange(result.FreeGrants.Count, 14, 14);
+        Assert.Equal(new SkillPointGrantDefinition(179, 7, IsInitial: true), result.FreeGrants[0]);
         Assert.True(result.Skills.TryGetValue(1, out var skill));
         Assert.Equal([20], skill!.Costs);
         Assert.Equal(5, skill.OrdinaryMaximumLevel);
@@ -32,7 +32,7 @@ public sealed class PvfSkillPointDefinitionSourceTests
         var normal = await source.GetAsync(1, 1, 86, [], CancellationToken.None);
         var darkKnight = await source.GetAsync(9, 1, 86, [], CancellationToken.None);
 
-        Assert.Equal([181, 182, 179, 46, 5, 169],
+        Assert.Equal([179, 174, 169, 46, 5, 511],
             normal.FreeGrants.Where(value => value.IsInitial).Take(6).Select(value => value.SkillId));
         Assert.Equal([118, 119, 120, 121, 122, 123],
             darkKnight.FreeGrants.Where(value => value.IsInitial).Take(6).Select(value => value.SkillId));

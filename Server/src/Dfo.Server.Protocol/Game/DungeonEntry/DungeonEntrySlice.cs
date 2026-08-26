@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol.Game.DungeonSelection;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.DungeonEntry;
@@ -46,8 +47,20 @@ internal sealed record DungeonInfoNotification(DungeonLayout Layout, byte Diffic
 /// False when the character has stood in this room before. The reference builder has a separate
 /// revisit path that differs in this flag alone for an ordinary room.
 /// </param>
+/// <param name="Actors">
+/// What stands in the room, in the order the client is to build it: the map's monsters and then
+/// its AI characters.
+/// </param>
+/// <param name="FirstActorSequence">
+/// The running number the room's first actor is given. Every later actor takes the next one, and
+/// the client names an actor by that number when it reports one dead.
+/// </param>
 internal sealed record StartMapNotification(
-    DungeonRunState Run, bool FirstEntry) : IGameNotiMessage
+    DungeonRunState Run,
+    bool FirstEntry,
+    IReadOnlyList<DungeonRoomActor> Actors,
+    ushort FirstActorSequence,
+    IReadOnlyList<GroundDrop> Drops) : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameStartMap;
 }
@@ -60,47 +73,41 @@ internal sealed record SupportTagNotification : IGameNotiMessage
 
 internal static class DungeonEntryPayloadCodec
 {
-    /// <summary>A maze cell coordinate the content never declares, used where a room is absent.</summary>
-    private const byte NoCell = 0xFF;
-
-    /// <summary>
-    /// The reference builder's field order, with every value it defaults still written.
-    /// </summary>
+    /// <summary>NOTI 0x001C as A21 builds it: 32 bytes.</summary>
     /// <remarks>
-    /// The generated field table for this type records six bytes; that is the lower bound static
-    /// analysis reached before the client's handler stepped through an indirect call, not the
-    /// body's length. The reference builder writes the rest, so it is followed here and the frame
-    /// is thirty bytes. The values with no meaning to us are written as the builder's own
-    /// defaults rather than as zero, because a default that the reference server chose is evidence
-    /// and a zero we chose is not.
+    /// Three things separate this from the thirty-byte shape it replaces, and all three come from
+    /// A21's own builder read against the reference session's frame:
+    ///
+    ///   * the dungeon id is an <c>i32</c>, not an <c>i16</c>. That alone is the two-byte
+    ///     difference, and it is what puts the trailing <c>FFFFFFFF</c> sentinel at offset 18 where
+    ///     the reference has it rather than at 16;
+    ///   * there is no absent-abyss cell pair. Those two bytes are a hell-party marker and a
+    ///     hell-party enabled flag, both zero when neither applies -- the older client's 0xFF/0xFF
+    ///     sentinel is not what A21 writes;
+    ///   * a constant one follows the minimap group count. A21's builder writes it outside the
+    ///     dynamic group list and its own comment declines to read it as a switch, so it is copied
+    ///     rather than interpreted.
+    ///
+    /// The generated field table records six bytes for this type; that is where static analysis
+    /// stopped, not the body's length.
     /// </remarks>
     public static byte[] EncodeDungeonInfo(DungeonLayout layout, byte difficulty)
     {
-        using var stream = new MemoryStream(30);
+        using var stream = new MemoryStream(32);
         using var writer = new BinaryWriter(stream);
-        writer.Write(checked((short)layout.DungeonId));
+        writer.Write(layout.DungeonId);
         writer.Write(difficulty);
         writer.Write(checked((byte)layout.MazeIndex));
         writer.Write(layout.BossCell.X);
         writer.Write(layout.BossCell.Y);
-        // Not an abyss run: the reference server marks the absent abyss room rather than pointing
-        // at cell (0,0), which is a cell an ordinary maze can occupy.
-        writer.Write(NoCell);
-        writer.Write(NoCell);
-        writer.Write((byte)0); // dungeon mode
-        writer.Write((byte)0); // no extra pair groups
-        writer.Write((ushort)0); // abyss not enabled
-        writer.Write((ushort)0);
+        writer.Write((byte)0); // hell-party marker
+        writer.Write((byte)0); // hell party not enabled
         writer.Write((byte)0);
-        writer.Write((byte)0);
+        writer.Write((byte)0); // no minimap groups
+        writer.Write((byte)1); // the constant after the group list
+        writer.Write(new byte[5]);
         writer.Write(unchecked((int)0xFFFFFFFF)); // builder default packet seed
-        writer.Write((byte)0);
-        writer.Write((byte)0);
-        writer.Write((byte)0);
-        writer.Write((byte)0);
-        writer.Write((byte)0);
-        writer.Write((byte)0);
-        writer.Write(0);
+        writer.Write(new byte[10]);
         return stream.ToArray();
     }
 
@@ -108,24 +115,34 @@ internal static class DungeonEntryPayloadCodec
     /// The room the run opens in, and what stands in it.
     /// </summary>
     /// <remarks>
-    /// The monster list is sent empty. Every field in this frame rests on transcription from the
-    /// reference server -- the client's own handler yields only "at least one byte" -- so the first
-    /// thing worth learning is whether the client accepts the frame's shape at all. An empty room
-    /// answers that for a fraction of the work, and monsters can be filled in once the shape is
-    /// known to be right rather than assumed to be.
+    /// The actor list was sent empty until 2026-08-26, on the reasoning that the frame's shape
+    /// should be shown to be right before anything was put in it. That was answered -- and then
+    /// left standing, because the session it was checked against ran a maze whose first two rooms
+    /// declare no monsters at all, so an empty list matched it byte for byte. A room that does
+    /// declare monsters reaches the client as one holding nothing: it draws them from its own copy
+    /// of the map, but they are scenery. The player walks through them, swings through them, and
+    /// they never swing back.
     ///
     /// The seed is the layout's, not a fresh one: the client draws on the same value.
     /// </remarks>
-    public static byte[] EncodeStartMap(DungeonRunState run, bool firstEntry)
+    public static byte[] EncodeStartMap(
+        DungeonRunState run,
+        bool firstEntry,
+        IReadOnlyList<DungeonRoomActor> actors,
+        ushort firstActorSequence,
+        IReadOnlyList<GroundDrop> drops)
     {
         var layout = run.Layout;
-        using var stream = new MemoryStream(21);
+        using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);
         writer.Write(run.CurrentCell.X);
         writer.Write(run.CurrentCell.Y);
         writer.Write((byte)0); // not a layered room
         writer.Write(layout.Seed);
-        writer.Write((byte)0); // abyss mode
+        // A21's builder defaults this to two, not zero, and the reference session carries two here
+        // on both of its START_MAP frames. It is the ordinary-dungeon marker; the older client's
+        // zero was an abyss-mode reading that A21 does not share.
+        writer.Write((byte)2);
         writer.Write((byte)0); // unnamed byte the builder writes after it
         writer.Write(1); // room state value, the builder's default
         writer.Write(firstEntry ? (byte)1 : (byte)0);
@@ -134,14 +151,118 @@ internal static class DungeonEntryPayloadCodec
         // altar path passes the resolved map id into the same slot, and its abyss logging prints
         // it beside another map id. Sending the maze index here told the client to load map 0,
         // which it answered with a black screen and a crash a few seconds later (2026-08-18).
-        writer.Write(checked((ushort)run.CurrentRoomMapId));
-        writer.Write((byte)0); // monsters
-        writer.Write((byte)0); // pre-generated drops
+        // An i32 on A21, not a u16 -- the other half of this frame's two-byte growth. The value is
+        // unchanged; only its width was wrong.
+        writer.Write(run.CurrentRoomMapId);
+
+        if (actors.Count > byte.MaxValue)
+        {
+            throw new InvalidDataException(
+                $"A room declares {actors.Count} actors and the frame counts them in one byte.");
+        }
+
+        writer.Write((byte)actors.Count);
+        for (var index = 0; index < actors.Count; index++)
+        {
+            // Twenty-one bytes each. The template order and the packet index are the room's own
+            // bookkeeping and a run of one has nothing to say in either; the sequence is what the
+            // client names the actor by afterwards.
+            writer.Write((ushort)0); // template order
+            writer.Write(0); // packet index
+            writer.Write(unchecked((ushort)(firstActorSequence + index)));
+            writer.Write(actors[index].Code);
+            writer.Write(actors[index].Level);
+            writer.Write(actors[index].ActorType);
+            writer.Write((byte)0); // first flag
+            writer.Write((byte)0); // second flag
+            writer.Write(0); // extra state
+            writer.Write((byte)0); // A21 actor record extension
+        }
+
+        // What the room's breakable objects hold, worked out before the room opens rather than when
+        // one breaks: the client is told up front, and the tutorial's second room will not let the
+        // player past that step until it has been. What is passed here is what the room still
+        // holds -- a piece already picked up is gone from the list but has not renumbered the
+        // rest, so a re-described room names everything the way it first did.
+        if (drops.Count > byte.MaxValue)
+        {
+            throw new InvalidDataException(
+                $"A room declares {drops.Count} drops and the frame counts them in one byte.");
+        }
+
+        writer.Write((byte)drops.Count);
+        for (var index = 0; index < drops.Count; index++)
+        {
+            // Nineteen bytes each, and not the forty-eight a kill's drop takes -- the two frames
+            // describe the same thing in different shapes.
+            writer.Write(drops[index].Drop.ObjectIndex);
+            writer.Write(drops[index].Number); // what the client names it by when it picks it up
+            writer.Write(checked((uint)drops[index].Drop.ItemId));
+            writer.Write(DropInstance(run, drops[index].Drop.ObjectIndex));
+            writer.Write(drops[index].Drop.Durability);
+            writer.Write((byte)0); // amplify type
+            writer.Write((ushort)0); // amplify value
+            writer.Write((ushort)0);
+            writer.Write((byte)0);
+        }
+
         writer.Write((byte)0); // abyss fog
         writer.Write((byte)0); // no ridable object groups
         writer.Write((byte)0xFF); // party member index, the builder's default for a run of one
         return stream.ToArray();
     }
+
+    /// <summary>
+    /// The number the room's first actor is given, derived rather than drawn.
+    /// </summary>
+    /// <remarks>
+    /// A21 draws it at random from 1 to 60000 per room, which the legacy server did to keep a
+    /// re-entered room from colliding with actor identities the client still holds. Deriving it
+    /// from the run's own seed and the room gets the same separation without a counter to keep:
+    /// two runs of the same room differ because their seeds do, and one run re-sending the same
+    /// room repeats itself, which is what a re-send should do.
+    ///
+    /// The mixing is not decoration. A dungeon's rooms carry consecutive map identifiers, so a
+    /// derivation that only added the map to the seed put neighbouring rooms at neighbouring
+    /// bases: the tutorial's first room took 30946 and 30947, and its second started at 30945 and
+    /// ran over both. The client names an actor by this number, so a room that reuses one the
+    /// player has already killed hands it a monster the client believes is dead. Two multiplies
+    /// and two shifts scatter adjacent map identifiers across the range instead.
+    /// </remarks>
+    public static ushort FirstActorSequence(DungeonRunState run)
+    {
+        var mixed = ((uint)run.CurrentRoomMapId * 2654435761u) ^ (uint)run.Layout.Seed;
+        mixed ^= mixed >> 15;
+        mixed *= 2246822519u;
+        mixed ^= mixed >> 13;
+        return (ushort)(1 + (mixed % ActorSequenceRange));
+    }
+
+    /// <summary>
+    /// The value a dropped item carries as its own, derived the same way the actor numbers are.
+    /// </summary>
+    /// <remarks>
+    /// A working A21 session draws it, and what the item ends up carrying once picked up is the
+    /// same value -- the reference session's dropped shoulder and the equipped one share it. So it
+    /// identifies the instance rather than counting anything, and what it must be is distinct
+    /// within a room and stable across a re-send of that room.
+    ///
+    /// Kept inside a signed thirty-two bits, and away from zero. The picked-up piece is stored
+    /// carrying this same value, and the column it is stored in is signed: a value that only fits
+    /// unsigned would reach the wire as one number and the database as another.
+    /// </remarks>
+    internal static uint DropInstance(DungeonRunState run, byte objectIndex)
+    {
+        var mixed = ((uint)run.CurrentRoomMapId * 2246822519u)
+                    ^ ((uint)run.Layout.Seed + objectIndex);
+        mixed ^= mixed >> 13;
+        mixed *= 2654435761u;
+        var instance = (mixed ^ (mixed >> 16)) & int.MaxValue;
+        return instance == 0 ? 1u : instance;
+    }
+
+    /// <summary>How many running numbers a room's actors may be given, as A21 bounds it.</summary>
+    private const uint ActorSequenceRange = 60000;
 
     /// <summary>
     /// An empty support-character roster: a record count of zero and nothing after it.
@@ -162,7 +283,9 @@ internal sealed class StartMapEncoder : GameNotiMessageEncoder<StartMapNotificat
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(StartMapNotification message) =>
         OnePayload(
             GameProtocol.StartMapNotificationType,
-            DungeonEntryPayloadCodec.EncodeStartMap(message.Run, message.FirstEntry));
+            DungeonEntryPayloadCodec.EncodeStartMap(
+                message.Run, message.FirstEntry, message.Actors, message.FirstActorSequence,
+                message.Drops));
 }
 
 internal sealed class SupportTagEncoder : GameNotiMessageEncoder<SupportTagNotification>
@@ -214,6 +337,8 @@ public sealed class SelectDungeonHandler(
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IDungeonLayoutRuleService layouts,
     IDungeonRunDomainService runs,
+    IDungeonRoomActorSource roomActors,
+    IDungeonRoomDropSource roomDrops,
     IGameMessageSender sender,
     ILogger<SelectDungeonHandler> logger) : ClientMessageHandler<SelectDungeonRequest>
 {
@@ -278,15 +403,29 @@ public sealed class SelectDungeonHandler(
             layout.BossCell.Y,
             layout.Seed);
 
-        // This order, and all three. The reference server describes the run before it places the
-        // character in it, and closes with the support roster even when it is empty.
+        // A21's order, which is not the one this used to send. Its answer opens with a second
+        // acceptance byte on CMD 0x000F, then the selection state that used to be sent when the
+        // screen opened, then the support roster, and only then the run's shape and the room. The
+        // older order -- describe the run, place the character, close with the roster -- was the
+        // A12 reference's.
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(
                 [
-                    new DungeonInfoNotification(layout, message.Difficulty),
-                    new StartMapNotification(run, FirstEntry: true),
+                    new EnterSelectDungeonAcknowledgement(),
+                    new EnterSelectDungeonNotification(session.WireUserId),
                     new SupportTagNotification(),
+                    new DungeonInfoNotification(layout, message.Difficulty),
+                    new StartMapNotification(
+                        run,
+                        FirstEntry: true,
+                        await roomActors.GetAsync(run.CurrentRoomMapId, cancellationToken)
+                            .ConfigureAwait(false),
+                        DungeonEntryPayloadCodec.FirstActorSequence(run),
+                        run.RemainingGroundDrops(
+                            await roomDrops.GetAsync(
+                                layout.DungeonId, run.CurrentRoomMapId, cancellationToken)
+                                .ConfigureAwait(false))),
                 ],
                 []),
             cancellationToken).ConfigureAwait(false);
@@ -354,6 +493,8 @@ internal sealed class MoveMapDecoder : IGameMessageDecoder
 public sealed class MoveMapHandler(
     ISelectedSessionDirectory selectedSessions,
     IDungeonRunDomainService runs,
+    IDungeonRoomActorSource roomActors,
+    IDungeonRoomDropSource roomDrops,
     IGameMessageSender sender,
     ILogger<MoveMapHandler> logger) : ClientMessageHandler<MoveMapRequest>
 {
@@ -414,7 +555,20 @@ public sealed class MoveMapHandler(
 
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
-            new GameExplicitMessageDelivery([new StartMapNotification(moved, firstEntry)], []),
+            new GameExplicitMessageDelivery(
+                [
+                    new StartMapNotification(
+                        moved,
+                        firstEntry,
+                        await roomActors.GetAsync(moved.CurrentRoomMapId, cancellationToken)
+                            .ConfigureAwait(false),
+                        DungeonEntryPayloadCodec.FirstActorSequence(moved),
+                        moved.RemainingGroundDrops(
+                            await roomDrops.GetAsync(
+                                moved.Layout.DungeonId, moved.CurrentRoomMapId, cancellationToken)
+                                .ConfigureAwait(false))),
+                ],
+                []),
             cancellationToken).ConfigureAwait(false);
     }
 }

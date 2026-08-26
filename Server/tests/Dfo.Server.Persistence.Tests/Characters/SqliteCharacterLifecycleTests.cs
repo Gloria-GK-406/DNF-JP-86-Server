@@ -154,12 +154,13 @@ public sealed class SqliteCharacterLifecycleTests
     /// The roster carries the stored appearance parts, and a character without any carries none.
     /// </summary>
     /// <remarks>
-    /// Both halves matter and only one of them is what this server currently produces. Creation
-    /// does not write <c>appearance_blob</c>, so every character this server makes comes back with
-    /// an empty list -- that is the shape the roster screen actually receives today. The non-empty
-    /// half is reachable only from data written some other way, which is why it is set up here by
-    /// hand rather than through the repository: without it, the decode this roster query now
-    /// performs would have no covered path at all.
+    /// What the roster draws is what the character is wearing, so the parts are the equipment the
+    /// creation was given and a character given none carries none. Both halves are reached through
+    /// the repository because both are now shapes it produces.
+    ///
+    /// The stored-blob half is still exercised by hand afterwards. A blob written by something
+    /// other than this creation -- an older row, another tool -- must still decode, and nothing
+    /// the repository does can produce one to test that with.
     /// </remarks>
     [Fact]
     public Task TheRosterCarriesStoredAppearancePartsAndCopesWithNone()
@@ -175,10 +176,29 @@ public sealed class SqliteCharacterLifecycleTests
             var bare = await repository.CreateAsync(
                 new NewCharacterSpec(Account, "Bare"u8.ToArray(), Job: 1, SlotIndex: 0, CharacterBaseStats.Zero),
                 CancellationToken.None);
+            var clothed = await repository.CreateAsync(
+                new NewCharacterSpec(
+                    Account, "Clothed"u8.ToArray(), Job: 0, SlotIndex: 2, CharacterBaseStats.Zero,
+                    InitialEquipment:
+                    [
+                        new NewCharacterEquipment(12, 27600, 45),
+                        new NewCharacterEquipment(14, 10400, 33),
+                        new NewCharacterEquipment(16, 12400, 27),
+                    ]),
+                CancellationToken.None);
             var created = await repository.ListByAccountAsync(Account, CancellationToken.None);
-            // Creation writes three parts. Pinned here because writing none is what made a
-            // server-created character unable to enter the world.
-            Assert.Equal(3, created.Single(value => value.CharacterId == bare).Appearances.Count);
+
+            // The parts are the granted equipment the roster draws, in its slots. A creation given
+            // nothing to wear writes nothing rather than a stand-in set: the roster would
+            // otherwise draw every character holding whichever job's weapon the stand-in was
+            // transcribed from. The coat and the pants are worn but not drawn -- the roster's
+            // appearance stops at slot thirteen.
+            Assert.Empty(created.Single(value => value.CharacterId == bare).Appearances);
+            var worn = created.Single(value => value.CharacterId == clothed).Appearances;
+            Assert.Equal([12], worn.Select(value => (int)value.Slot));
+            Assert.Equal([27600], worn.Select(value => value.DisplayItemId));
+            Assert.Equal([4], worn.Select(value => value.ExpansionLength));
+
             var dressed = await repository.CreateAsync(
                 new NewCharacterSpec(Account, "Dressed"u8.ToArray(), Job: 2, SlotIndex: 1, CharacterBaseStats.Zero),
                 CancellationToken.None);
@@ -202,10 +222,9 @@ public sealed class SqliteCharacterLifecycleTests
                 Assert.Equal(1, await update.ExecuteNonQueryAsync(CancellationToken.None));
             }
 
-            // The one the roster reads when the column holds nothing at all. Creation now writes a
-            // default set -- a character with an empty blob makes the A21 client fail
-            // InitGraphicSystem while building the town -- so the empty case has to be made rather
-            // than found, and it is still worth keeping: the decoder must not throw on it.
+            // NULL rather than an empty blob. Creation writes a one-byte count of zero for a
+            // character with nothing to wear, and a column holding nothing at all is a different
+            // input the decoder must also survive.
             await using (var connection = new SqliteConnection($"Data Source={databasePath}"))
             {
                 await connection.OpenAsync(CancellationToken.None);

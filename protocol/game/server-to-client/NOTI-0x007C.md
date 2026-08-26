@@ -1,4 +1,4 @@
-﻿# NOTI `0x007C` `ENTER_GAMEWORLD_COMPLETE`
+# NOTI `0x007C` `ENTER_GAMEWORLD_COMPLETE`
 
 <!-- rks:machine:begin -->
 

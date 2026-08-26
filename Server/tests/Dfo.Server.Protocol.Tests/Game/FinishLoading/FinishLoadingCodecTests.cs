@@ -1,4 +1,7 @@
+using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol.Game;
+using Microsoft.Extensions.Logging.Abstractions;
 using Dfo.Server.Protocol.Game.FinishLoading;
 
 namespace Dfo.Server.Protocol.Tests.Game.FinishLoading;
@@ -69,5 +72,64 @@ public sealed class FinishLoadingCodecTests
         Assert.Equal(
             [0x00, 0x00, 0x00, 0x00, 0x00],
             FinishLoadingPayloadCodec.EncodeLoadingComplete());
+    }
+
+    /// <summary>A21 answers with the notification alone, not with a CMD in front of it.</summary>
+    /// <remarks>
+    /// This sent two frames: a one-byte CMD acknowledgement and then NOTI 0x001E. The A21 reference
+    /// sends only the notification, both times its session finishes a load -- at the dungeon's
+    /// first room and again after MOVE_MAP. Verified at the wire level on 2026-08-26: the client's
+    /// FINISH_LOADING draws one frame back and the session continues.
+    ///
+    /// The acknowledgement's encoder and its codec test stay: the older client did receive one, and
+    /// the shape is worth keeping recorded. What changed is only whether it goes out here.
+    /// </remarks>
+    [Fact]
+    public async Task The_handler_answers_with_the_notification_alone()
+    {
+        var sender = new RecordingSender();
+        var handler = new FinishLoadingHandler(sender, NullLogger<FinishLoadingHandler>.Instance);
+        var context = new NetworkDispatchContext(
+            new NetworkConnectionContext(new NetworkConnectionId("game-1"), NetworkEndpointKind.Game, 20011));
+
+        await handler.HandleAsync(
+            context,
+            new FinishLoadingRequest(GameMessageMetadata.Empty, 0, 0),
+            CancellationToken.None);
+
+        var sent = Assert.Single(sender.Sent);
+        Assert.IsType<LoadingCompleteNotification>(sent, exactMatch: false);
+    }
+
+    private sealed class RecordingSender : IGameMessageSender
+    {
+        public List<IGameServerMessage> Sent { get; } = [];
+
+        public ValueTask SendCmdAsync(
+            NetworkConnectionId connectionId,
+            IGameCmdMessage message,
+            CancellationToken cancellationToken)
+        {
+            Sent.Add(message);
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask SendNotiAsync(
+            NetworkConnectionId connectionId,
+            IGameNotiMessage message,
+            CancellationToken cancellationToken)
+        {
+            Sent.Add(message);
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask SendExplicitAsync(
+            NetworkConnectionId requiredDirectConnectionId,
+            GameExplicitMessageDelivery delivery,
+            CancellationToken cancellationToken)
+        {
+            Sent.AddRange(delivery.RequiredDirectMessages);
+            return ValueTask.CompletedTask;
+        }
     }
 }

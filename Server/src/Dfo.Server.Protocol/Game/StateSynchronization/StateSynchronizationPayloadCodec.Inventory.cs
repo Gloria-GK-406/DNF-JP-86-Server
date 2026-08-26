@@ -7,7 +7,24 @@ namespace Dfo.Server.Protocol.Game.StateSynchronization;
 
 internal static partial class StateSynchronizationPayloadCodec
 {
-    private const int CommonItemEntryLength = 84;
+    /// <summary>The fixed part of one item entry, in bytes.</summary>
+    /// <remarks>
+    /// A21 measures 101. This was 84, which is the older client's length, and the arithmetic in the
+    /// reference session settles it with no room to argue: its main-container snapshot declares
+    /// fourteen entries and carries 1414 bytes of them, and 1414/101 is exactly fourteen. Its
+    /// UPDATE_ITEM_LIST declares five and strides 101 between their slot fields as well.
+    ///
+    /// The seventeen added bytes are zero in every entry the reference sends, so where inside the
+    /// entry they belong cannot be read off the capture -- only that the entry is that much longer.
+    /// They are written as a trailing run for that reason, which reproduces every observed entry
+    /// byte for byte. An avatar entry appends its jewel-socket block after this run; no A21 avatar
+    /// entry has been observed, so that ordering is carried over from the older client rather than
+    /// measured.
+    /// </remarks>
+    private const int CommonItemEntryLength = 101;
+
+    /// <summary>How much of the entry is written field by field before the trailing run.</summary>
+    private const int WrittenItemEntryLength = 84;
 
     /// <param name="townId">
     /// The town this entry places the character in -- the same value NOTI 0x0017 carries. It is a
@@ -114,7 +131,8 @@ internal static partial class StateSynchronizationPayloadCodec
         var containerType = container.ContainerType;
 
         var items = container.Items.OrderBy(value => value.SlotIndex).ToArray();
-        var mainVirtualCount = containerType == InventoryContainerType.Main ? 9 : 0;
+        // Three runtime slots, six cubes and the five A21 added at 360..364.
+        var mainVirtualCount = containerType == InventoryContainerType.Main ? 14 : 0;
         if (items.Length + mainVirtualCount > ushort.MaxValue)
             throw new InvalidDataException("Inventory item count cannot be represented as u16.");
         using var stream = new MemoryStream();
@@ -146,6 +164,13 @@ internal static partial class StateSynchronizationPayloadCodec
             int[] cubeItemIds = [3033, 3034, 3035, 3036, 3037, 3262];
             for (short slot = 354; slot <= 359; slot++)
                 WriteVirtualInventoryItem(writer, values, slot, cubeItemIds[slot - 354]);
+            // Five slots the older client's main container did not have. The reference session's
+            // snapshot declares fourteen entries -- three at slots 0..2, six cubes at 354..359, and
+            // these -- where this server declared nine. The ids are transcribed; what they hold is
+            // not established, and like the cubes they carry a count of zero until something sets one.
+            int[] extendedItemIds = [10100115, 10100116, 10099773, 10099774, 10099775];
+            for (short slot = 360; slot <= 364; slot++)
+                WriteVirtualInventoryItem(writer, values, slot, extendedItemIds[slot - 360]);
         }
         else
         {
@@ -214,7 +239,7 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(core.AmplifyType);
         writer.Write(core.AmplifyValue);
         writer.Write(core.ItemKind == 2 ? core.Marker16 : Math.Max(0, core.Marker16));
-        writer.Write((byte)2);
+        writer.Write(PopulatedCount(core.ChronicleOption0.Id, core.ChronicleOption1.Id));
         writer.Write(core.ChronicleOption0.Id);
         writer.Write(core.ChronicleOption1.Id);
         writer.Write(core.ChronicleOption0.CharacterJob);
@@ -230,7 +255,8 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(core.EmblemId1);
         writer.Write(core.EmblemId2);
         writer.Write(core.Rune);
-        writer.Write((byte)3);
+        writer.Write(PopulatedCount(
+            core.RandomOption0.Type, core.RandomOption1.Type, core.RandomOption2.Type));
         writer.Write(core.RandomOption0.Type);
         writer.Write(core.RandomOption1.Type);
         writer.Write(core.RandomOption2.Type);
@@ -255,6 +281,7 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(core.TailUnknown3);
         writer.Write(core.RemainUseCount);
         writer.Write(core.SortLockFlag == 1 ? (byte)1 : (byte)0);
+        writer.Write(new byte[CommonItemEntryLength - WrittenItemEntryLength]);
 
         if (core.ItemKind == 8)
         {
@@ -267,6 +294,25 @@ internal static partial class StateSynchronizationPayloadCodec
             writer.Write(avatar.Color2);
         }
     }
+
+    /// <summary>How many of a fixed option array's slots actually hold something.</summary>
+    /// <remarks>
+    /// The byte in front of the chronicle and random option arrays used to be written as the
+    /// literal 2 and 3 -- the arrays' capacities, transcribed from the older client's builder. A21
+    /// puts zero there for every item the reference session sends, and it cannot be a length prefix
+    /// because the entry is a fixed 101 bytes either way: the arrays are always present.
+    ///
+    /// Reading it as "how many are in use" reproduces every observed byte, since none of those
+    /// items carries an option. Only the zero case is observed; an item that does carry one has not
+    /// been seen on A21, so what it should say then is inference rather than measurement.
+    ///
+    /// The inference has a gap worth naming: this counts any non-empty slot, not a filled prefix.
+    /// An item with slot 0 empty and slot 1 set yields 1, which under the "how many are in use"
+    /// reading tells the client slot 0 is the one in use. Whether the field is a count or a filled
+    /// length cannot be told apart while every observed item has neither.
+    /// </remarks>
+    private static byte PopulatedCount(params int[] values) =>
+        checked((byte)values.Count(value => value != 0));
 
     private static InvalidDataException Missing(string name) =>
         new($"Required inventory synchronization value '{name}' is unavailable.");

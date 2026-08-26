@@ -31,7 +31,10 @@ public sealed class PvfCollectionBoxDefinitionSourceTests
             Assert.Equal(box.Capacity, box.Slots.Count);
             Assert.All(box.Slots, slot => Assert.InRange(slot.Column, 0, box.Columns - 1));
             Assert.All(box.Slots, slot => Assert.InRange(slot.Row, 0, box.Rows - 1));
-            Assert.All(box.Slots, slot => Assert.True(slot.ItemTemplateId > 0));
+            // A21 declares a box whose grid has a hole: one position carries -1 where every other
+            // carries an item. It is a position the box has and nothing fills, not a parse
+            // failure, so the grid still holds exactly what it declares.
+            Assert.All(box.Slots, slot => Assert.True(slot.ItemTemplateId > 0 || slot.ItemTemplateId == -1));
 
             // Row-major order must produce one slot per position, with none repeated.
             var positions = box.Slots.Select(slot => (slot.Column, slot.Row)).ToHashSet();

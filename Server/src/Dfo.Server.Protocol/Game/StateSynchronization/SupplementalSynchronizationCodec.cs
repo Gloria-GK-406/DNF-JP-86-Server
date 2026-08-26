@@ -52,9 +52,20 @@ internal static class SupplementalSynchronizationCodec
             writer.Write(character.Job);
             writer.Write(character.GrowType);
             writer.Write(character.Level);
-            writer.Write(character.HonorLevel);
-            writer.Write(character.HonorExperience);
-            writer.Write(character.HonorReserved);
+            // The same ten bytes the roster screen writes, from the same reading: two observed
+            // literals and eight zeros. This used to model them as two progress values plus a
+            // reserved field, which sends four zeros on any character whose first progress value
+            // is not 267 -- and the reference session's entry-path copy of this frame is byte for
+            // byte its roster-screen copy, 0B 01 included. Two codecs for one wire fact is the
+            // dissonance recorded in Docs/ProtocolScaffoldDissonances.md; until they are one, the
+            // least they can do is agree.
+            //
+            // Which reading is right is still open: 0B 01 00 00 is also the little-endian u32 267.
+            // A second character whose progress differs would settle it.
+            writer.Write(AccountRoster.AccountCharacterRosterPayloadCodec.FirstByteAfterLevel);
+            writer.Write(AccountRoster.AccountCharacterRosterPayloadCodec.SecondByteAfterLevel);
+            writer.Write(0u);
+            writer.Write(0u);
             writer.Write(checked((byte)appearances.Count));
             foreach (var appearance in appearances)
                 WriteAppearance(writer, appearance);

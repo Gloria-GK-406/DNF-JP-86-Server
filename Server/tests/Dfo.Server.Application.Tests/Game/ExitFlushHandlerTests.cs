@@ -96,7 +96,7 @@ public sealed class ExitFlushHandlerTests
 
         await handler.HandleAsync(
             context,
-            new TaggedIdReportRequest(GameMessageMetadata.Empty, 31, 1),
+            new TaggedIdReportRequest(GameMessageMetadata.Empty, Mode: 0, FlagIndex: 31, RewardFlag: 1),
             CancellationToken.None);
 
         var entry = Assert.Single(logger.Entries);
@@ -122,7 +122,7 @@ public sealed class ExitFlushHandlerTests
 
         await handler.HandleAsync(
             context,
-            new TaggedIdReportRequest(GameMessageMetadata.Empty, 38, 1),
+            new TaggedIdReportRequest(GameMessageMetadata.Empty, Mode: 0, FlagIndex: 38, RewardFlag: 1),
             CancellationToken.None);
 
         var item = Assert.Single(
@@ -153,7 +153,7 @@ public sealed class ExitFlushHandlerTests
 
         await handler.HandleAsync(
             context,
-            new TaggedIdReportRequest(GameMessageMetadata.Empty, 38, 1),
+            new TaggedIdReportRequest(GameMessageMetadata.Empty, Mode: 0, FlagIndex: 38, RewardFlag: 1),
             CancellationToken.None);
 
         // One pile of two, not two piles of one.
@@ -175,7 +175,7 @@ public sealed class ExitFlushHandlerTests
 
         await handler.HandleAsync(
             context,
-            new TaggedIdReportRequest(GameMessageMetadata.Empty, 77, 0),
+            new TaggedIdReportRequest(GameMessageMetadata.Empty, Mode: 0, FlagIndex: 77, RewardFlag: 0),
             CancellationToken.None);
 
         Assert.Contains("unattributed", Assert.Single(logger.Entries).Message);

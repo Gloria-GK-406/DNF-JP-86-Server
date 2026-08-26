@@ -48,6 +48,12 @@ public enum ClientMessageType
     // Walking through a door into an adjoining room. See Game/DungeonEntry.
     GameMoveMap = 0x0001_002D,
 
+    // The client reporting a room actor dead. See Game/MonsterDeath.
+    GameMonsterDeath = 0x0001_0027,
+
+    // Picking a dropped item up off a room's floor. See Game/GroundPickup.
+    GameGetItem = 0x0001_002B,
+
     // Consuming one item off a pile. See Game/UseStackable.
     GameUseStackable = 0x0001_002C,
 
@@ -84,6 +90,8 @@ public enum ServerMessageType
     GameRosterFollowUp = 0x0001_02A8,
     GameContentsPlayInfo = 0x0001_02C1,
     GameConnectionCheck = 0x0001_04DD,
+    GameSecurityStatusAcknowledgement = 0x0001_0252,
+    GameEnterSelectDungeonAcknowledgement = 0x0001_000F,
 
     // Pushed on every area change. See Game/TownProjection.
     GameAreaUsers = 0x0000_0018,
@@ -119,6 +127,14 @@ public enum ServerMessageType
     // Confirms a scripted pause. Answers CMD 0x00BF under a different type.
     // See Game/StoryPause.
     GameStoryPauseState = 0x0000_00AA,
+
+    // What the kill was worth, and the kill acknowledged. See Game/MonsterDeath.
+    GameExperience = 0x0000_0025,
+    GameMonsterDeath = 0x0000_0026,
+
+    // Whether the item was picked up, and where it landed. See Game/GroundPickup.
+    GameGetItem = 0x0001_002B,
+    GameGroundPickup = 0x0000_0027,
 }
 
 public interface IClientNetworkMessage
