@@ -77,6 +77,9 @@ public enum ClientMessageType
     // Leaving the dungeon, which is the only thing that ends a run. See Game/DungeonClear.
     GameGiveUpGame = 0x0001_002A,
 
+    // Closing the dungeon-selection screen. See Game/DungeonSelection.
+    GameBackToVillage = 0x0001_0084,
+
     // Consuming one item off a pile. See Game/UseStackable.
     GameUseStackable = 0x0001_002C,
 
@@ -171,6 +174,9 @@ public enum ServerMessageType
 
     // Why the character is not going into the dungeon they picked. See Game/DungeonEntry.
     GameSelectDungeon = 0x0001_0010,
+
+    // The selection screen closed. See Game/DungeonSelection.
+    GameBackToVillage = 0x0001_0084,
 }
 
 public interface IClientNetworkMessage

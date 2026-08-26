@@ -129,6 +129,9 @@ internal static class GameProtocol
     /// <summary>Leaving the dungeon, asked and answered under one type.</summary>
     public const ushort GiveUpGameType = 0x002A;
 
+    /// <summary>Closing the dungeon-selection screen, asked and answered under one type.</summary>
+    public const ushort BackToVillageType = 0x0084;
+
     public const ushort MoveItemSpaceType = 0x0013;
 
     public const ushort UseStackableType = 0x002C;

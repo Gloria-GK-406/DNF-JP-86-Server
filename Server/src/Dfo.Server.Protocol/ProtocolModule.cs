@@ -218,6 +218,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<TutorialLevelUpHandler>(ClientMessageType.GameTutorialLevelUp);
         services.RegisterMessageHandler<SetPlayResultHandler>(ClientMessageType.GameSetPlayResult);
         services.RegisterMessageHandler<GiveUpGameHandler>(ClientMessageType.GameGiveUpGame);
+        services.RegisterMessageHandler<BackToVillageHandler>(ClientMessageType.GameBackToVillage);
 
         // One handler, six wire keys: the reports nothing answers. Registered so that the log can
         // tell a protocol this server has decided about from one it has never heard of.
@@ -335,6 +336,8 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.SetPlayResultType, ClientMessageType.GameSetPlayResult);
         services.AddGameCmdMessageDecoder<GiveUpGameDecoder>(
             GameProtocol.GiveUpGameType, ClientMessageType.GameGiveUpGame);
+        services.AddGameCmdMessageDecoder<BackToVillageDecoder>(
+            GameProtocol.BackToVillageType, ClientMessageType.GameBackToVillage);
         services.AddGameCmdMessageDecoder<CharacterStatisticDecoder>(
             GameProtocol.CharacterStatisticType, ClientMessageType.GameCharacterStatistic);
         services.AddGameCmdMessageDecoder<RequestBlacklistDecoder>(
@@ -429,6 +432,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<TutorialLevelUpResponse, TutorialLevelUpResponseEncoder>();
         services.AddGameCmdMessageEncoder<GiveUpGameResponse, GiveUpGameResponseEncoder>();
         services.AddGameCmdMessageEncoder<SelectDungeonRefusal, SelectDungeonRefusalEncoder>();
+        services.AddGameCmdMessageEncoder<BackToVillageResponse, BackToVillageResponseEncoder>();
         services.AddGameNotiMessageEncoder<LoadingCompleteNotification, LoadingCompleteEncoder>();
         services.AddGameCmdMessageEncoder<HiddenCharacterInfoResponse, HiddenCharacterInfoResponseEncoder>();
         services.AddGameCmdMessageEncoder<RosterFollowUpResponse, RosterFollowUpResponseEncoder>();

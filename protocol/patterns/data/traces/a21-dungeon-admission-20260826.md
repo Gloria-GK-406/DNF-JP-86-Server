@@ -126,6 +126,62 @@ actor 与掉落。**教学和正式副本走的是同一条路,进入这件事�
 参照是**回的**,所以它是真缺口;没有实现的原因是任务表只有读路径。见
 [a21-room-rules-and-leaving-20260826](a21-room-rules-and-leaving-20260826.md) 第五节。
 
+## 五、补上 0x001B 之后的第二次实机:界面开了,但列表是空的
+
+**同日。** 界面确实打开了(`#153 NOTI 0x001B`),两件新事。
+
+### 回城按钮:`CMD 0x0084 BACK_2_VILLAGE`,发了三次没人答
+
+```text
+#156 C->S CMD 0x0084 (0B)
+#157 C->S CMD 0x0084 (0B)
+#158 C->S CMD 0x0084 (0B)
+    (此后只剩心跳)
+```
+
+**不是 `GIVEUP_GAME`。** 上游把两者路由到同一个 handler
+(`d[0x0084] = HandleRaidAwareDungeonExit(..., Handle_ENUM_CMDPACKET_GIVEUP_GAME, "back-to-village")`),
+这正是容易误以为"一个 type 管两件事"的地方:**离开副本和关掉选图界面不是同一 type。**
+两份参照抓包都没有它。
+
+上游 `TownHandler.ReturnSelectionToTownAsync` 的回答是四帧:
+
+```text
+S->C CMD  0x0084   01
+S->C NOTI 0x0003   USER_STATE,状态回 0
+S->C NOTI 0x0017   USER_AREA
+S->C NOTI 0x0018   AREA_USERS
+```
+
+**最后两帧才是按钮"没反应"的原因** —— 客户端在等着被放回它本来就站着的那块城区。区块取自角色当前
+位置而非频道出生点:玩家走到门口才开的界面,按取消却被挪到出生点是另一种错。
+
+**顺带一条普查发现:客户端普查里没有 `CMD 0x0084` 这一 type 的页面。** `protocol-identity.tsv` 只有
+`S2C NOTI 0x0084 END_ASSAULT`,C2S 一行都没有 —— 也就是说静态普查没找到它的构包点,而客户端明明发了
+三次。这与 `SET_UDP_IP_PORT` 是同一类:构包点在扫不到的混淆区。因此本条只记在这里,没有可追加的页面。
+
+### 列表为空:排除了什么,剩下什么
+
+**排除掉的:**
+
+- 本仓的 `ENTER_SELECT_DUNGEON` 现在与上游非教学分支**逐帧一致**(五帧)。上游在那之后只多做两件
+  事:`RestoreBeforeSelectionAsync`(不上线)与 `SendExpProgressAsync`(一帧 `NOTI 0x0025 EXP`,
+  账号成长进度;本仓没建模那份数据,未发)。
+- **这次交换里没有任何一帧携带副本列表。** `NOTI 0x001B` 是地狱组队选择状态(37 字节)。
+- 入场批次的 `NOTI 0x0015 ACCEPTABLE_QUEST_LIST` 与参照**逐字节相同**:
+  `02 0b 00 f8 03 65 00 20 0c 21 0c 22 0c 23 0c 24 0c 25 0c 26 0c 27 0c 28 0c`。
+
+**所以列表是客户端自己按它已有的状态画的。** 剩下最像的一条线索:
+
+- 角色的 `character_active_quests` **0 行**、`character_invisible_flags`(任务清除)**0 行** ——
+  这两张表在本仓**只有读路径**。
+- 客户端发过 `CMD 0x001F ACCEPT_QUEST`(`1F 00 F8 03`,任务 **1016**),**而 1016 正是本仓自己那份
+  可接任务列表里的第一个**;本仓没应答,任务因此从未被接下。
+- 档案里 1047 个 `.dgn` 有 **984 个**带 `[quest connection]`。
+
+**这是推断不是结论**:没有任何一份抓包展示过"接了任务之后列表就有了"。要证实它,下一步是实现
+`ACCEPT_QUEST` —— 角色存储本来就有任务写路径(`ICharacterStoreSession.Quests`),缺的只是协议这一端。
+
 ## 还没做的
 
 - **进入的准入规则。** 等级、疲劳、入场道具、每日次数 —— 一条都没有。拒绝帧的形状齐了,判定没有。

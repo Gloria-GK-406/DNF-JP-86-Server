@@ -2,6 +2,8 @@ using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.StateSynchronization;
@@ -110,6 +112,122 @@ internal sealed record EnterSelectDungeonNotification(
     ushort WireUserId) : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameEnterSelectDungeonState;
+}
+
+/// <summary>
+/// CMD 0x0084 <c>BACK_2_VILLAGE</c>: closing the dungeon-selection screen.
+/// </summary>
+/// <remarks>
+/// An empty body, and <b>not</b> the same type as leaving a dungeon -- the reference server routes
+/// both to one handler, which is what made it easy to assume one type covered both. Observed live
+/// on 2026-08-26: the player opened the selection screen, pressed the button back to town, and
+/// pressed it twice more because nothing happened. Neither captured session ever sent it.
+/// <para>
+/// The reference answers with a one-byte success, puts the character's state back to zero, and
+/// projects the area it left from. That last part is why the button appears dead without it: the
+/// client is waiting to be placed back in the town it is already standing in.
+/// </para>
+/// </remarks>
+public sealed record BackToVillageRequest(GameMessageMetadata Metadata) : IClientNetworkMessage
+{
+    public ClientMessageType MessageType => ClientMessageType.GameBackToVillage;
+}
+
+/// <summary>The CMD acknowledgement under the same type: the reference's one-byte success.</summary>
+public sealed record BackToVillageResponse : IGameCmdMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameBackToVillage;
+}
+
+internal sealed class BackToVillageDecoder : IGameMessageDecoder
+{
+    public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
+        new BackToVillageRequest(metadata);
+}
+
+internal sealed class BackToVillageResponseEncoder : GameCmdMessageEncoder<BackToVillageResponse>
+{
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
+        BackToVillageResponse message) =>
+        OnePayload(GameProtocol.BackToVillageType, new byte[] { 0x01 });
+}
+
+/// <summary>
+/// Closes the selection screen and puts the character back where it opened it.
+/// </summary>
+/// <remarks>
+/// Three frames in the reference's order: the success, the user state returning to zero, and the
+/// area projection. The area comes from where the character is standing rather than from the
+/// channel's spawn -- the player walked to the gate, and putting them back at the spawn would move
+/// them across the town for pressing cancel.
+/// <para>
+/// Any run is ended as well. The reference routes this type and the one that leaves a dungeon to
+/// the same handler, and a character who somehow reached here holding a run would otherwise keep
+/// it for ever; see the same reasoning in <c>Game/DungeonClear</c>.
+/// </para>
+/// </remarks>
+public sealed class BackToVillageHandler(
+    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionRuntimeDirectory runtimeSessions,
+    IDungeonRunDomainService runs,
+    IGameMessageSender sender,
+    ILogger<BackToVillageHandler> logger) : ClientMessageHandler<BackToVillageRequest>
+{
+    protected override async ValueTask HandleMessageAsync(
+        NetworkDispatchContext context,
+        BackToVillageRequest message,
+        CancellationToken cancellationToken)
+    {
+        var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        if (session is null
+            || !runtimeSessions.TryGet(session, out var result, out _)
+            || result is null)
+        {
+            logger.LogWarning(
+                "Back to village {ConnectionId}: no published session, ignoring",
+                context.Connection.ConnectionId);
+            return;
+        }
+
+        var position = result.Character.Position;
+        logger.LogInformation(
+            "Back to village {ConnectionId} user={WireUserId}: {TownId}:{AreaId} pos=({X},{Y}) "
+                + "runEnded={RunEnded}",
+            context.Connection.ConnectionId,
+            session.WireUserId,
+            position.TownId,
+            position.AreaId,
+            position.X,
+            position.Y,
+            runs.End(session.CharacterId));
+
+        var spawn = result.World.Channel.Spawn with
+        {
+            TownId = position.TownId,
+            AreaId = position.AreaId,
+            X = position.X,
+            Y = position.Y,
+        };
+
+        await sender.SendExplicitAsync(
+            context.Connection.ConnectionId,
+            new GameExplicitMessageDelivery(
+                [
+                    new BackToVillageResponse(),
+                    new UserStateNotification(session.WireUserId, 0x00),
+                    new UserAreaNotification(session.WireUserId, spawn, position.AreaId),
+                    new AreaUsersNotification(
+                        position.TownId,
+                        position.AreaId,
+                        [
+                            new AreaUserPresence(
+                                session.WireUserId, position.X, position.Y,
+                                position.Direction, spawn.AreaState),
+                        ]),
+                ],
+                []),
+            cancellationToken).ConfigureAwait(false);
+    }
 }
 
 /// <summary>
