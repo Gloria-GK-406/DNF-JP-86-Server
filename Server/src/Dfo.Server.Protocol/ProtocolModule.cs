@@ -231,6 +231,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameRequestBlacklist);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameFarmEventAction);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GamePi);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameRequestIgaVersion);
         services.RegisterMessageHandler<MoveItemSpaceHandler>(ClientMessageType.GameMoveItemSpace);
         services.RegisterMessageHandler<UseStackableHandler>(ClientMessageType.GameUseStackable);
 
@@ -342,6 +343,8 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.FarmEventActionType, ClientMessageType.GameFarmEventAction);
         services.AddGameCmdMessageDecoder<PiDecoder>(
             GameProtocol.PiType, ClientMessageType.GamePi);
+        services.AddGameCmdMessageDecoder<RequestIgaVersionDecoder>(
+            GameProtocol.RequestIgaVersionType, ClientMessageType.GameRequestIgaVersion);
         services.AddGameCmdMessageDecoder<UseSkillDecoder>(
             GameProtocol.UseSkillType, ClientMessageType.GameUseSkill);
         services.AddGameCmdMessageDecoder<SyncItemSpaceDecoder>(
@@ -425,6 +428,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<GetItemResponse, GetItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<TutorialLevelUpResponse, TutorialLevelUpResponseEncoder>();
         services.AddGameCmdMessageEncoder<GiveUpGameResponse, GiveUpGameResponseEncoder>();
+        services.AddGameCmdMessageEncoder<SelectDungeonRefusal, SelectDungeonRefusalEncoder>();
         services.AddGameNotiMessageEncoder<LoadingCompleteNotification, LoadingCompleteEncoder>();
         services.AddGameCmdMessageEncoder<HiddenCharacterInfoResponse, HiddenCharacterInfoResponseEncoder>();
         services.AddGameCmdMessageEncoder<RosterFollowUpResponse, RosterFollowUpResponseEncoder>();

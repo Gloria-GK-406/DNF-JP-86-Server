@@ -152,6 +152,25 @@ public sealed record PiReport(GameMessageMetadata Metadata, byte[] Body) : IUnan
     public ClientMessageType MessageType => ClientMessageType.GamePi;
 }
 
+/// <summary>CMD 0x039D <c>REQ_IGA_VER</c>: an in-game-advertising version check.</summary>
+/// <remarks>
+/// Sixteen bytes, sent once while standing in town. <b>No reference frame behind it</b> -- neither
+/// captured A21 session sent it. The same caveat <see cref="PiReport"/> and
+/// <see cref="DecreaseDurabilityReport"/> carry: nothing here knows what it is, and the silence is
+/// this server having no advertising service rather than the reference declining to answer.
+/// </remarks>
+public sealed record RequestIgaVersionReport(GameMessageMetadata Metadata, byte[] Body)
+    : IUnansweredReport
+{
+    public ClientMessageType MessageType => ClientMessageType.GameRequestIgaVersion;
+}
+
+internal sealed class RequestIgaVersionDecoder : IGameMessageDecoder
+{
+    public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
+        new RequestIgaVersionReport(metadata, body.ToArray());
+}
+
 internal sealed class CharacterStatisticDecoder : IGameMessageDecoder
 {
     public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>

@@ -72,6 +72,7 @@ public enum ClientMessageType
     GameRequestBlacklist = 0x0001_0078,
     GameFarmEventAction = 0x0001_02BE,
     GamePi = 0x0001_011B,
+    GameRequestIgaVersion = 0x0001_039D,
 
     // Leaving the dungeon, which is the only thing that ends a run. See Game/DungeonClear.
     GameGiveUpGame = 0x0001_002A,
@@ -167,6 +168,9 @@ public enum ServerMessageType
     GamePlayResult = 0x0000_0022,
     GameClearDungeonReward = 0x0000_0023,
     GameGiveUpGame = 0x0001_002A,
+
+    // Why the character is not going into the dungeon they picked. See Game/DungeonEntry.
+    GameSelectDungeon = 0x0001_0010,
 }
 
 public interface IClientNetworkMessage

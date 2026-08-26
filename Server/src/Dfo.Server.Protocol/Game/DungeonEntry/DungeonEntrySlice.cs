@@ -33,6 +33,61 @@ public sealed record SelectDungeonRequest(
     public ClientMessageType MessageType => ClientMessageType.GameSelectDungeon;
 }
 
+/// <summary>
+/// The CMD refusal under the same type: why the character is not going in.
+/// </summary>
+/// <remarks>
+/// Three bytes -- a zero, a code, and a context byte that only the party-shaped refusals use. The
+/// codes are the reference server's own
+/// <c>DungeonAdmissionRejectBuilder</c> table; <b>what the client draws for each of them has not
+/// been read out of its string table</b>, unlike the move and use refusals, so they are named for
+/// what the server decided rather than for what the player is told.
+/// <para>
+/// Before 2026-08-26 a selection this server could not answer was answered with nothing at all,
+/// which reaches the player as a button that does nothing. A probe against dungeon 5000 -- a
+/// training room the archive declares no maze for -- produced exactly that silence.
+/// </para>
+/// </remarks>
+public sealed record SelectDungeonRefusal(byte ErrorCode, byte Context) : IGameCmdMessage
+{
+    /// <summary>The archive declares no enterable dungeon under that identifier.</summary>
+    public const byte DungeonNotFound = 0x15;
+
+    /// <summary>
+    /// The dungeon exists and this character may not enter it.
+    /// </summary>
+    /// <remarks>
+    /// The reference server's catch-all, and what its minimum-level gate answers with. Nothing
+    /// here sends it yet: the gate needs the archive's <c>[minimum required level]</c> and the
+    /// story-dungeon exemption that goes with it, and a gate without the exemption would refuse
+    /// dungeons the client legitimately offers. See <c>Docs/ProtocolScaffoldDissonances.md</c>.
+    /// </remarks>
+    public const byte DungeonUnavailable = 0x01;
+
+    /// <summary>The selection screen is not open, or is open on something else.</summary>
+    public const byte InvalidSelectionState = 0x13;
+
+    /// <summary>An entry item the dungeon requires is not held.</summary>
+    public const byte MissingRequiredItem = 0x11;
+
+    /// <summary>Not enough fatigue left to enter.</summary>
+    public const byte InsufficientFatigue = 0x16;
+
+    /// <summary>Only the party leader may take a party in.</summary>
+    public const byte NotPartyLeader = 0x08;
+
+    /// <summary>Today's entries are used up.</summary>
+    public const byte DailyEntryLimitReached = 0xF6;
+
+    /// <summary>A member has no entries left, or no permission. The context names which.</summary>
+    public const byte MemberBlocked = 0xAD;
+
+    public ServerMessageType MessageType => ServerMessageType.GameSelectDungeon;
+
+    /// <summary>The refusals that are about the character rather than about a party member.</summary>
+    public static SelectDungeonRefusal For(byte errorCode) => new(errorCode, 0);
+}
+
 /// <summary>NOTI 0x001C <c>DUNGEON_INFO</c>: which dungeon is being run, and its shape.</summary>
 internal sealed record DungeonInfoNotification(DungeonLayout Layout, byte Difficulty)
     : IGameNotiMessage
@@ -270,6 +325,14 @@ internal static class DungeonEntryPayloadCodec
     public static byte[] EncodeSupportTag() => [0x00, 0x00];
 }
 
+internal sealed class SelectDungeonRefusalEncoder : GameCmdMessageEncoder<SelectDungeonRefusal>
+{
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(SelectDungeonRefusal message) =>
+        OnePayload(
+            GameProtocol.SelectDungeonType,
+            new byte[] { 0x00, message.ErrorCode, message.Context });
+}
+
 internal sealed class DungeonInfoEncoder : GameNotiMessageEncoder<DungeonInfoNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(DungeonInfoNotification message) =>
@@ -381,6 +444,11 @@ public sealed class SelectDungeonHandler(
                     + "{DungeonId}, refusing",
                 context.Connection.ConnectionId,
                 message.DungeonId);
+            await sender.SendExplicitAsync(
+                context.Connection.ConnectionId,
+                new GameExplicitMessageDelivery(
+                    [SelectDungeonRefusal.For(SelectDungeonRefusal.DungeonNotFound)], []),
+                cancellationToken).ConfigureAwait(false);
             return;
         }
 

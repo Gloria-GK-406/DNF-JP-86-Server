@@ -124,6 +124,8 @@ internal static class GameProtocol
 
     public const ushort PiType = 0x011B;
 
+    public const ushort RequestIgaVersionType = 0x039D;
+
     /// <summary>Leaving the dungeon, asked and answered under one type.</summary>
     public const ushort GiveUpGameType = 0x002A;
 
