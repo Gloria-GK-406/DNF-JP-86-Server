@@ -89,6 +89,33 @@ internal static class GameProtocol
 
     public const ushort GroundPickupNotificationType = 0x0027;
 
+    /// <summary>The exit, the merchant behind it, and the two frames of the result screen.</summary>
+    public const ushort EnableClearDungeonNotificationType = 0x001F;
+
+    public const ushort SecretShopNpcNotificationType = 0x0117;
+
+    public const ushort SetPlayResultType = 0x002E;
+
+    public const ushort PlayResultNotificationType = 0x0022;
+
+    public const ushort ClearDungeonRewardNotificationType = 0x0023;
+
+    /// <summary>The tutorial's own level grant, asked and answered under one type.</summary>
+    public const ushort TutorialLevelUpType = 0x01E4;
+
+    /// <summary>The types the reference server answers with nothing. See Game/UnansweredReports.</summary>
+    public const ushort UseSkillType = 0x0026;
+
+    public const ushort SyncItemSpaceType = 0x035C;
+
+    public const ushort DecreaseDurabilityType = 0x0030;
+
+    public const ushort OverflowInfoType = 0x00D9;
+
+    public const ushort LogDomainConnectType = 0x04F1;
+
+    public const ushort LogConnectProcessType = 0x04D7;
+
     public const ushort MoveItemSpaceType = 0x0013;
 
     public const ushort UseStackableType = 0x002C;

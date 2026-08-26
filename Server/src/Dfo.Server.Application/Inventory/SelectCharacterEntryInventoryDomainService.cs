@@ -60,17 +60,30 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
             ?? throw new InvalidDataException(
                 "Entry inventory has no main container to bind the character to.");
 
+        // The equipment container is bound alongside it. Wearing a piece is a move between the two
+        // lists, so both ends have to be containers the same way -- and the character's equipment
+        // rows already exist whether or not anything is bound to them, which is what made the
+        // player's drag from the bag onto the shoulder slot come back refused for a list this
+        // server "does not serve" (2026-08-26).
+        var equipment = inventory.Containers.SingleOrDefault(
+                value => value.ContainerType == InventoryContainerType.Equipment)
+            ?? throw new InvalidDataException(
+                "Entry inventory has no equipment container to bind the character to.");
+
         containers.Clear(characterId);
-        containers.Register(characterId, new PersistentItemContainer(
-            ContainerId.ForCharacter(characterId, main.ContainerType),
-            characterId,
-            new ContainerShape(main.ContainerType, main.Parameter),
-            itemStore,
-            transactions,
-            mutations,
-            placements,
-            arrivals,
-            slotRules));
+        foreach (var container in (InventoryContainerState[])[main, equipment])
+        {
+            containers.Register(characterId, new PersistentItemContainer(
+                ContainerId.ForCharacter(characterId, container.ContainerType),
+                characterId,
+                new ContainerShape(container.ContainerType, container.Parameter),
+                itemStore,
+                transactions,
+                mutations,
+                placements,
+                arrivals,
+                slotRules));
+        }
     }
 
     public async ValueTask<EntryInventoryPreparation> ApplyDailyRefillAsync(

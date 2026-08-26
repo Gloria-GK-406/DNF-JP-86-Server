@@ -35,9 +35,20 @@ public sealed class ItemSlotRuleService : IItemSlotRuleService
         if (slotIndex >= placement.SlotStart && slotIndex <= placement.SlotEnd)
             return true;
 
-        return slotIndex >= QuickSlotStart
-            && slotIndex <= QuickSlotEnd
-            && placement.ItemKind is not (KindCreature or KindCreatureEquipment
-                or KindCreatureConsumable or KindAvatar or KindAvatarEmblem);
+        return slotIndex >= QuickSlotStart && slotIndex <= QuickSlotEnd
+            && AllowsQuickSlot(placement.ItemKind);
     }
+
+    /// <summary>
+    /// Whether a kind may sit on the bar at all.
+    /// </summary>
+    /// <remarks>
+    /// Read by two callers and written once. Whether an arriving item is <em>offered</em> the bar
+    /// is <c>ItemArrivalRuleService</c>'s decision and whether it may <em>stay</em> there is this
+    /// one's, and the two would be free to disagree if each carried its own list of exclusions --
+    /// which is how an item could be placed somewhere a drag could never have put it.
+    /// </remarks>
+    internal static bool AllowsQuickSlot(byte itemKind) =>
+        itemKind is not (KindCreature or KindCreatureEquipment or KindCreatureConsumable
+            or KindAvatar or KindAvatarEmblem);
 }

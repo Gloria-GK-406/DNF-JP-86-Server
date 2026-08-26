@@ -26,6 +26,9 @@ using Dfo.Server.Protocol.Game.DeleteCharacter;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.FinishLoading;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
+using Dfo.Server.Protocol.Game.TutorialLevelUp;
+using Dfo.Server.Protocol.Game.UnansweredReports;
+using Dfo.Server.Protocol.Game.DungeonClear;
 using Dfo.Server.Protocol.Game.GroundPickup;
 using Dfo.Server.Protocol.Game.MonsterDeath;
 using Dfo.Server.Protocol.Game.StoryPause;
@@ -166,6 +169,10 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<
             PickUpGroundDropCommand, GroundPickupResult, PickUpGroundDropCommandHandler>(
             CommandExecutionKind.Transactional);
+        // The tutorial's level: one row, written once, and the client is told what it now stands at.
+        services.AddCommandHandler<
+            GrantTutorialLevelCommand, TutorialLevelUpResult, GrantTutorialLevelCommandHandler>(
+            CommandExecutionKind.Transactional);
     }
 
     /// <summary>Binds each catalogue member to the handler that consumes it.</summary>
@@ -208,6 +215,17 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<StoryPauseHandler>(ClientMessageType.GameStoryPause);
         services.RegisterMessageHandler<MonsterDeathHandler>(ClientMessageType.GameMonsterDeath);
         services.RegisterMessageHandler<GetItemHandler>(ClientMessageType.GameGetItem);
+        services.RegisterMessageHandler<TutorialLevelUpHandler>(ClientMessageType.GameTutorialLevelUp);
+        services.RegisterMessageHandler<SetPlayResultHandler>(ClientMessageType.GameSetPlayResult);
+
+        // One handler, six wire keys: the reports nothing answers. Registered so that the log can
+        // tell a protocol this server has decided about from one it has never heard of.
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameUseSkill);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameSyncItemSpace);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameDecreaseDurability);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameOverflowInfo);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogDomainConnect);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogConnectProcess);
         services.RegisterMessageHandler<MoveItemSpaceHandler>(ClientMessageType.GameMoveItemSpace);
         services.RegisterMessageHandler<UseStackableHandler>(ClientMessageType.GameUseStackable);
 
@@ -257,6 +275,10 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<ExperienceNotification, ExperienceEncoder>();
         services.AddGameNotiMessageEncoder<MonsterDeathNotification, MonsterDeathEncoder>();
         services.AddGameNotiMessageEncoder<GroundPickupNotification, GroundPickupEncoder>();
+        services.AddGameNotiMessageEncoder<EnableClearDungeonNotification, EnableClearDungeonEncoder>();
+        services.AddGameNotiMessageEncoder<SecretShopNpcNotification, SecretShopNpcEncoder>();
+        services.AddGameNotiMessageEncoder<PlayResultNotification, PlayResultEncoder>();
+        services.AddGameNotiMessageEncoder<ClearDungeonRewardNotification, ClearDungeonRewardEncoder>();
         services.AddGameCmdMessageDecoder<RosterFollowUpMessageDecoder>(
             GameProtocol.RosterFollowUpType, ClientMessageType.GameRosterFollowUp);
         services.AddGameCmdMessageDecoder<CheckCharacterNameMessageDecoder>(
@@ -301,6 +323,22 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.MonsterDeathType, ClientMessageType.GameMonsterDeath);
         services.AddGameCmdMessageDecoder<GetItemDecoder>(
             GameProtocol.GetItemType, ClientMessageType.GameGetItem);
+        services.AddGameCmdMessageDecoder<TutorialLevelUpDecoder>(
+            GameProtocol.TutorialLevelUpType, ClientMessageType.GameTutorialLevelUp);
+        services.AddGameCmdMessageDecoder<SetPlayResultDecoder>(
+            GameProtocol.SetPlayResultType, ClientMessageType.GameSetPlayResult);
+        services.AddGameCmdMessageDecoder<UseSkillDecoder>(
+            GameProtocol.UseSkillType, ClientMessageType.GameUseSkill);
+        services.AddGameCmdMessageDecoder<SyncItemSpaceDecoder>(
+            GameProtocol.SyncItemSpaceType, ClientMessageType.GameSyncItemSpace);
+        services.AddGameCmdMessageDecoder<DecreaseDurabilityDecoder>(
+            GameProtocol.DecreaseDurabilityType, ClientMessageType.GameDecreaseDurability);
+        services.AddGameCmdMessageDecoder<OverflowInfoDecoder>(
+            GameProtocol.OverflowInfoType, ClientMessageType.GameOverflowInfo);
+        services.AddGameCmdMessageDecoder<LogDomainConnectDecoder>(
+            GameProtocol.LogDomainConnectType, ClientMessageType.GameLogDomainConnect);
+        services.AddGameCmdMessageDecoder<LogConnectProcessDecoder>(
+            GameProtocol.LogConnectProcessType, ClientMessageType.GameLogConnectProcess);
         services.AddGameCmdMessageDecoder<MoveItemSpaceDecoder>(
             GameProtocol.MoveItemSpaceType, ClientMessageType.GameMoveItemSpace);
         services.AddGameCmdMessageDecoder<UseStackableDecoder>(
@@ -370,6 +408,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<MoveItemSpaceResponse, MoveItemSpaceResponseEncoder>();
         services.AddGameCmdMessageEncoder<UseStackableResponse, UseStackableResponseEncoder>();
         services.AddGameCmdMessageEncoder<GetItemResponse, GetItemResponseEncoder>();
+        services.AddGameCmdMessageEncoder<TutorialLevelUpResponse, TutorialLevelUpResponseEncoder>();
         services.AddGameNotiMessageEncoder<LoadingCompleteNotification, LoadingCompleteEncoder>();
         services.AddGameCmdMessageEncoder<HiddenCharacterInfoResponse, HiddenCharacterInfoResponseEncoder>();
         services.AddGameCmdMessageEncoder<RosterFollowUpResponse, RosterFollowUpResponseEncoder>();

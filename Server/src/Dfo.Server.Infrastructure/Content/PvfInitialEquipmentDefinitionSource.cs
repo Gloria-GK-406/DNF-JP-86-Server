@@ -26,32 +26,6 @@ internal sealed class PvfInitialEquipmentDefinitionSource : IInitialEquipmentDef
     private const string EquipmentListPath = "equipment/equipment.lst";
     private const string EquipmentDirectory = "equipment";
 
-    /// <summary>
-    /// The slot each archive name occupies, as the client's equipment container numbers them.
-    /// </summary>
-    /// <remarks>
-    /// Zero through eleven are the avatar slots, so the worn pieces begin at twelve. A21 inserted
-    /// the aurora-illusion avatar ahead of the weapon, which is why these are not the numbers an
-    /// older client used and why they are written out rather than derived from an ordering.
-    /// </remarks>
-    private static readonly Dictionary<string, byte> SlotsByName = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["[weapon]"] = 12,
-        ["[title]"] = 13,
-        ["[coat]"] = 14,
-        ["[shoulder]"] = 15,
-        ["[pants]"] = 16,
-        ["[shoes]"] = 17,
-        ["[waist]"] = 18,
-        ["[amulet]"] = 19,
-        ["[wrist]"] = 20,
-        ["[ring]"] = 21,
-        ["[support]"] = 22,
-        ["[magic stone]"] = 23,
-        ["[earring]"] = 24,
-        ["[support weapon]"] = 24,
-    };
-
     private readonly PvfArchiveProvider _provider;
     private readonly Lock _gate = new();
     private readonly Dictionary<byte, IReadOnlyList<InitialEquipmentGrant>> _byJob = [];
@@ -145,7 +119,7 @@ internal sealed class PvfInitialEquipmentDefinitionSource : IInitialEquipmentDef
             {
                 // An unrecognised slot name still clears the pending one. Carrying it forward
                 // would attach the next name's integer to the last slot we understood.
-                pendingSlot = SlotsByName.TryGetValue(archive.ResolveString(token.Value), out var slot)
+                pendingSlot = PvfEquipmentSlots.ByName.TryGetValue(archive.ResolveString(token.Value), out var slot)
                     ? slot
                     : null;
                 continue;

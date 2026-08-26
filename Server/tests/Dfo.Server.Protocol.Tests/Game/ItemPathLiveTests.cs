@@ -92,7 +92,12 @@ public sealed class ItemPathLiveTests
             new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
 
             using var host = builder.Build();
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            // A guard against hanging, not a budget. The first placement lookup on this path opens
+            // the 73MB archive and indexes two of its list files, which takes a second on an idle
+            // machine and considerably longer while the rest of the solution's tests are reading
+            // the same file. Twenty seconds was enough until it was not, and a test that fails when
+            // the machine is busy says nothing about the item path.
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(120));
             await host.StartAsync(timeout.Token);
 
             // The character and its potion exist before anyone connects, exactly as they would

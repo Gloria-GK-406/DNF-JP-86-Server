@@ -44,14 +44,16 @@ public sealed class TutorialRewardPlacementTests
     }
 
     [Fact]
-    public async Task A_grant_with_no_pile_opens_the_first_free_slot_of_the_band()
+    public async Task A_grant_with_no_pile_opens_the_first_quick_slot()
     {
         var inventory = new RewardInventory();
 
         var result = await Grant(inventory, (Potion, 2));
 
-        Assert.Equal(new PlacedRewardItem(65, Potion, 2), Assert.Single(result.Placed));
-        Assert.Equal([(65, Potion, 2)], inventory.Rows());
+        // The bar before the band, which is where the tutorial's own potion has to arrive: the
+        // step that follows tells the player to press its key. See BagPlacementVerbTests.
+        Assert.Equal(new PlacedRewardItem(3, Potion, 2), Assert.Single(result.Placed));
+        Assert.Equal([(3, Potion, 2)], inventory.Rows());
     }
 
     /// <remarks>
@@ -77,12 +79,20 @@ public sealed class TutorialRewardPlacementTests
     [Fact]
     public async Task An_item_whose_band_is_full_is_left_out_and_the_rest_of_the_step_proceeds()
     {
+        // Both of the potion's homes are taken: its own band by the scroll, and the quick bar by
+        // six of something else. Seeding only the band would leave the bar free, and the potion
+        // this is meant to leave out would quietly land there instead.
         var inventory = new RewardInventory { [65] = (Scroll, 1) };
+        for (var slot = 3; slot <= 8; slot++)
+            inventory[slot] = (Unknown, 1);
 
         var result = await Grant(inventory, (Potion, 1), (Scroll, 1));
 
         Assert.Equal(new PlacedRewardItem(65, Scroll, 1), Assert.Single(result.Placed));
-        Assert.Equal([(65, Scroll, 2)], inventory.Rows());
+        Assert.Equal(
+            [(3, Unknown, 1), (4, Unknown, 1), (5, Unknown, 1), (6, Unknown, 1), (7, Unknown, 1),
+             (8, Unknown, 1), (65, Scroll, 2)],
+            inventory.Rows());
     }
 
     [Fact]
@@ -92,8 +102,8 @@ public sealed class TutorialRewardPlacementTests
 
         var result = await Grant(inventory, (Unknown, 1), (Scroll, 1));
 
-        Assert.Equal(new PlacedRewardItem(65, Scroll, 1), Assert.Single(result.Placed));
-        Assert.Equal([(65, Scroll, 1)], inventory.Rows());
+        Assert.Equal(new PlacedRewardItem(3, Scroll, 1), Assert.Single(result.Placed));
+        Assert.Equal([(3, Scroll, 1)], inventory.Rows());
     }
 
     /// <remarks>
@@ -109,9 +119,9 @@ public sealed class TutorialRewardPlacementTests
         var result = await Grant(inventory, (Potion, 2), (Potion, 3));
 
         Assert.Equal(
-            [new PlacedRewardItem(65, Potion, 2), new PlacedRewardItem(65, Potion, 3)],
+            [new PlacedRewardItem(3, Potion, 2), new PlacedRewardItem(3, Potion, 3)],
             result.Placed);
-        Assert.Equal([(65, Potion, 5)], inventory.Rows());
+        Assert.Equal([(3, Potion, 5)], inventory.Rows());
     }
 
     [Fact]

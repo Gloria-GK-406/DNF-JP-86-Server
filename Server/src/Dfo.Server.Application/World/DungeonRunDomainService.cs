@@ -25,7 +25,13 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             layout.StartCell,
             layout.StartRoomMapId,
             ImmutableHashSet.Create(layout.StartCell),
-            ImmutableHashSet<GroundDropId>.Empty);
+            ImmutableHashSet<GroundDropId>.Empty,
+            ImmutableHashSet<RoomActorId>.Empty,
+            // The wall clock, deliberately, and only here. A run's length is a fact about how long
+            // the player took, so it is measured rather than derived from anything the request
+            // carries -- and this service is already the one thing in the dungeon path that keeps
+            // state for as long as a run lasts.
+            DateTimeOffset.UtcNow);
         _runs[characterId] = state;
         return state;
     }
@@ -73,6 +79,25 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             var claimed = current with { TakenGroundDrops = taken.Add(id) };
             if (_runs.TryUpdate(characterId, claimed, current))
                 return claimed;
+        }
+    }
+
+    /// <remarks>The same compare-and-swap the move and the pick-up use, and for the same reason.</remarks>
+    public DungeonRunState? TryReportActorDead(CharacterId characterId, ushort actorSequence)
+    {
+        while (true)
+        {
+            if (!_runs.TryGetValue(characterId, out var current))
+                return null;
+
+            var dead = (ImmutableHashSet<RoomActorId>)current.DeadActors;
+            var id = new RoomActorId(current.CurrentCell, actorSequence);
+            if (dead.Contains(id))
+                return null;
+
+            var reported = current with { DeadActors = dead.Add(id) };
+            if (_runs.TryUpdate(characterId, reported, current))
+                return reported;
         }
     }
 

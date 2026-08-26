@@ -45,3 +45,21 @@
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+## A21
+
+**2026-08-26 实机,整条结局都挂在这一个字节上。** 玩家打完 Boss 房最后一只怪之后无事可做 ——
+没有出口、没有结算画面,线上只剩心跳 —— 因为这一帧从来没发过。归档见
+[a21-tutorial-ending-20260826](../../patterns/data/traces/a21-tutorial-ending-20260826.md)。
+
+```text
+body = 00        ← 一个字节,值为零
+```
+
+上游 `DungeonNotificationBuilder.BuildEnableClearDungeon` 就是 `new byte[] { 0x00 }`。
+注释指明它对应 `df_game_r CParty::ClearDungeon`。
+
+**发送时机:Boss 房最后一只怪被上报死亡。** 本仓因此在运行状态里记住每间房已死的 actor
+(按格子+运行序号),AI 角色不计 —— 教学第一间房那位阿甘左是友方,等它死房间永远不会清。
+紧跟着发 [NOTI 0x0117 SECRET_SHOP_NPC](NOTI-0x0117.md)。
+
+**在此之前客户端什么都不问。** 它随后才发 [`CMD 0x002E SET_PLAY_RESULT`](../client-to-server/0x002E.md)。

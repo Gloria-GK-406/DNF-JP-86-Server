@@ -41,7 +41,9 @@ public sealed class DungeonEntryCodecTests
         Tutorial.StartCell,
         Tutorial.StartRoomMapId,
         new HashSet<MazeCell> { Tutorial.StartCell },
-        new HashSet<GroundDropId>());
+        new HashSet<GroundDropId>(),
+        new HashSet<RoomActorId>(),
+        DateTimeOffset.UnixEpoch);
 
     /// <remarks>
     /// The captured body, byte for byte: <c>102700000000000000</c>, identical across all eight

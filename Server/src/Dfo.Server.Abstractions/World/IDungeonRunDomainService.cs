@@ -15,8 +15,38 @@ public sealed record DungeonRunState(
     MazeCell CurrentCell,
     int CurrentRoomMapId,
     IReadOnlySet<MazeCell> VisitedCells,
-    IReadOnlySet<GroundDropId> TakenGroundDrops)
+    IReadOnlySet<GroundDropId> TakenGroundDrops,
+    IReadOnlySet<RoomActorId> DeadActors,
+    DateTimeOffset StartedAt)
 {
+    /// <summary>Whether every actor this room declares has been reported dead.</summary>
+    /// <remarks>
+    /// AI characters are not counted. They fight beside the player rather than against them, and a
+    /// room whose clearing waited on the tutorial's own escort would never clear at all.
+    /// </remarks>
+    public bool IsCleared(IReadOnlyList<DungeonRoomActor> declared, ushort firstSequence)
+    {
+        ArgumentNullException.ThrowIfNull(declared);
+        for (var index = 0; index < declared.Count; index++)
+        {
+            if (declared[index].ActorType > LastHostileActorType)
+                continue;
+            var sequence = unchecked((ushort)(firstSequence + index));
+            if (!DeadActors.Contains(new RoomActorId(CurrentCell, sequence)))
+                return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>Whether this room is the one the run's boss stands in.</summary>
+    public bool IsBossRoom => CurrentCell == Layout.BossCell;
+
+    /// <summary>
+    /// Everything above this is an ally, not a monster. Type five is the tutorial's own escort.
+    /// </summary>
+    private const byte LastHostileActorType = 3;
+
     /// <summary>
     /// What of a room's declared drops is still on its floor, each under the number the client
     /// names it by when it picks one up.
@@ -47,6 +77,13 @@ public sealed record DungeonRunState(
         RemainingGroundDrops(declared)
             .FirstOrDefault(candidate => candidate.Number == number);
 }
+
+/// <summary>One actor of one room, under the running number the client names it by.</summary>
+/// <remarks>
+/// Keyed by cell for the same reason a ground drop is: a maze may lead through the same map twice,
+/// and what the player killed in one of those rooms they have not killed in the other.
+/// </remarks>
+public readonly record struct RoomActorId(MazeCell Cell, ushort Sequence);
 
 /// <summary>One piece lying on a room's floor, under the number the client names it by.</summary>
 public sealed record GroundDrop(ushort Number, DungeonRoomDrop Drop);
@@ -112,6 +149,17 @@ public interface IDungeonRunDomainService
     /// back in and be handed the same item again.
     /// </remarks>
     DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber);
+
+    /// <summary>
+    /// Records that one of the room's actors is dead.
+    /// </summary>
+    /// <remarks>
+    /// Answers the run as it stands afterwards, or null when that actor was already down -- which
+    /// is what a repeated report is. What this is for is knowing when a room has been emptied: the
+    /// dungeon's exit does not open until the boss room's last monster is reported dead, and the
+    /// client will not ask to leave until it has been told the exit is open.
+    /// </remarks>
+    DungeonRunState? TryReportActorDead(CharacterId characterId, ushort actorSequence);
 
     /// <summary>Ends the run. False when the character was not in one.</summary>
     bool End(CharacterId characterId);

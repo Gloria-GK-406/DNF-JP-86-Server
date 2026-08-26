@@ -54,6 +54,21 @@ public enum ClientMessageType
     // Picking a dropped item up off a room's floor. See Game/GroundPickup.
     GameGetItem = 0x0001_002B,
 
+    // The client reporting how the run went, once the exit has opened. See Game/DungeonClear.
+    GameSetPlayResult = 0x0001_002E,
+
+    // The tutorial asking for the level it promised. See Game/TutorialLevelUp.
+    GameTutorialLevelUp = 0x0001_01E4,
+
+    // The reports the reference server answers with nothing. One handler, six wire keys, and the
+    // silence is a decision rather than a gap. See Game/UnansweredReports.
+    GameUseSkill = 0x0001_0026,
+    GameSyncItemSpace = 0x0001_035C,
+    GameDecreaseDurability = 0x0001_0030,
+    GameOverflowInfo = 0x0001_00D9,
+    GameLogDomainConnect = 0x0001_04F1,
+    GameLogConnectProcess = 0x0001_04D7,
+
     // Consuming one item off a pile. See Game/UseStackable.
     GameUseStackable = 0x0001_002C,
 
@@ -135,6 +150,15 @@ public enum ServerMessageType
     // Whether the item was picked up, and where it landed. See Game/GroundPickup.
     GameGetItem = 0x0001_002B,
     GameGroundPickup = 0x0000_0027,
+
+    // Whether the tutorial's level was granted. See Game/TutorialLevelUp.
+    GameTutorialLevelUp = 0x0001_01E4,
+
+    // The exit opening, and the result screen behind it. See Game/DungeonClear.
+    GameEnableClearDungeon = 0x0000_001F,
+    GameSecretShopNpc = 0x0000_0117,
+    GamePlayResult = 0x0000_0022,
+    GameClearDungeonReward = 0x0000_0023,
 }
 
 public interface IClientNetworkMessage

@@ -70,14 +70,64 @@ internal sealed class ItemArrivalRuleService : IItemArrivalRuleService
             }
         }
 
-        if (FirstFreeSlot(placement.SlotStart, placement.SlotEnd, occupiedSlots) is not { } slot)
+        foreach (var (start, end) in BandsFor(placement))
         {
-            return new ItemArrival.NoRoom();
+            if (FirstFreeSlot(start, end, occupiedSlots) is not { } slot)
+            {
+                continue;
+            }
+
+            // A stack limit of zero is the archive declaring nothing, which caps nothing.
+            var placed = placement.StackLimit > 0 ? Math.Min(count, placement.StackLimit) : count;
+            return new ItemArrival.IntoEmptySlot(slot, placed);
         }
 
-        // A stack limit of zero is the archive declaring nothing, which caps nothing.
-        var placed = placement.StackLimit > 0 ? Math.Min(count, placement.StackLimit) : count;
-        return new ItemArrival.IntoEmptySlot(slot, placed);
+        return new ItemArrival.NoRoom();
+    }
+
+    /// <summary>What the archive's equipment index makes every worn item.</summary>
+    private const byte EquipmentKind = 1;
+
+    /// <summary>What a potion is, and the one kind the bar is offered before the bag.</summary>
+    private const byte ConsumableKind = 2;
+
+    /// <summary>
+    /// The bands an arriving item is offered, in the order it is offered them.
+    /// </summary>
+    /// <remarks>
+    /// <b>A consumable is offered the quick-slot bar first.</b> That is not a nicety: the tutorial
+    /// hands over a potion and then tells the player to press its key, and a potion that landed in
+    /// the bag leaves the bar empty and the step unfinishable -- which is what a live A21 session
+    /// showed on 2026-08-26, our acknowledgement naming slot 65 where the reference server's named
+    /// slot 3. The reference builds the order the same way, in
+    /// <c>InventoryInsertService.TryPlanInsertByDefaultRule</c>.
+    /// <para>
+    /// Everything else that may occupy a quick slot is offered its own band first and the bar only
+    /// as a fallback, which is the same source's other branch. Creatures and what they wear or eat
+    /// may not occupy one at all, and equipment never reaches here: the bar holds things that are
+    /// used, and the reference excludes anything unstackable from this whole decision.
+    /// </para>
+    /// </remarks>
+    private static IEnumerable<(int Start, int End)> BandsFor(ItemPlacement placement)
+    {
+        var own = (placement.SlotStart, placement.SlotEnd);
+        if (placement.ItemKind == EquipmentKind
+            || !ItemSlotRuleService.AllowsQuickSlot(placement.ItemKind))
+        {
+            yield return own;
+            yield break;
+        }
+
+        var bar = (ItemSlotRuleService.QuickSlotStart, ItemSlotRuleService.QuickSlotEnd);
+        if (placement.ItemKind == ConsumableKind)
+        {
+            yield return bar;
+            yield return own;
+            yield break;
+        }
+
+        yield return own;
+        yield return bar;
     }
 
     /// <summary>The pile that grows, chosen by slot so that two runs agree about which one it is.</summary>
@@ -85,8 +135,9 @@ internal sealed class ItemArrivalRuleService : IItemArrivalRuleService
         present.Count == 0 ? null : present.MinBy(pile => pile.SlotIndex);
 
     /// <remarks>
-    /// Only within the band. Slots below it belong to equipment and the quick bar, and an item that
-    /// spilled into one of those is an item the client does not draw where the player looks.
+    /// Only within the band it is given. Which bands an item is given, and in what order, is
+    /// <see cref="BandsFor"/>'s business; an item that landed outside all of them is one the client
+    /// does not draw where the player looks.
     /// </remarks>
     private static int? FirstFreeSlot(int slotStart, int slotEnd, IReadOnlySet<int> occupiedSlots)
     {

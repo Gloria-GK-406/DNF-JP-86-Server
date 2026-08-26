@@ -239,11 +239,67 @@ public sealed class RefillRuleServiceTests
         Assert.Equal(9, Assert.IsType<ItemArrival.IntoEmptySlot>(arrival).Count);
     }
 
+    /// <remarks>
+    /// The quick bar is seeded as well as the band. A consumable is offered slots 3 to 8 before its
+    /// own band, so a test that filled only the band would be asserting that six free slots are no
+    /// room at all.
+    /// </remarks>
     [Fact]
     public void AGrantWithNowhereToGoAnswersNoRoom()
     {
         var arrival = Arrival.ForGrant(
-            [], count: 1, new ItemPlacement(2, 5, 65, 66), Occupied(65, 66));
+            [], count: 1, new ItemPlacement(2, 5, 65, 66), Occupied(3, 4, 5, 6, 7, 8, 65, 66));
+
+        Assert.IsType<ItemArrival.NoRoom>(arrival);
+    }
+
+    /// <summary>A consumable is offered the quick bar first, and its own band after it.</summary>
+    [Fact]
+    public void AConsumableIsOfferedTheQuickBarBeforeItsOwnBand()
+    {
+        var placement = new ItemPlacement(2, 5, 65, 66);
+
+        Assert.Equal(
+            3,
+            Assert.IsType<ItemArrival.IntoEmptySlot>(
+                Arrival.ForGrant([], count: 1, placement, Occupied())).SlotIndex);
+        Assert.Equal(
+            65,
+            Assert.IsType<ItemArrival.IntoEmptySlot>(
+                Arrival.ForGrant([], count: 1, placement, Occupied(3, 4, 5, 6, 7, 8))).SlotIndex);
+    }
+
+    /// <summary>Everything else is offered its own band first and the bar only as a fallback.</summary>
+    /// <remarks>
+    /// The other half of the reference server's own branch. A quest item belongs in the quest band
+    /// and may sit on the bar; a consumable prefers the bar. Both orders come from
+    /// <c>InventoryInsertService.TryPlanInsertByDefaultRule</c>.
+    /// </remarks>
+    [Fact]
+    public void AQuestItemIsOfferedItsOwnBandBeforeTheQuickBar()
+    {
+        var placement = new ItemPlacement(4, 5, 177, 178);
+
+        Assert.Equal(
+            177,
+            Assert.IsType<ItemArrival.IntoEmptySlot>(
+                Arrival.ForGrant([], count: 1, placement, Occupied())).SlotIndex);
+        Assert.Equal(
+            3,
+            Assert.IsType<ItemArrival.IntoEmptySlot>(
+                Arrival.ForGrant([], count: 1, placement, Occupied(177, 178))).SlotIndex);
+    }
+
+    /// <summary>Equipment never reaches the bar, however full its own band is.</summary>
+    /// <remarks>
+    /// The bar holds things that are used. The reference server excludes anything unstackable from
+    /// this decision entirely, which is the same outcome by another route.
+    /// </remarks>
+    [Fact]
+    public void EquipmentIsNeverOfferedTheQuickBar()
+    {
+        var arrival = Arrival.ForGrant(
+            [], count: 1, new ItemPlacement(1, 1, 9, 10), Occupied(9, 10));
 
         Assert.IsType<ItemArrival.NoRoom>(arrival);
     }

@@ -1,3 +1,7 @@
+using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Protocol.Game.DungeonClear;
+using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Characters;
@@ -188,6 +192,8 @@ internal sealed class MonsterDeathDecoder : IGameMessageDecoder
 public sealed class MonsterDeathHandler(
     ISelectedSessionDirectory selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
+    IDungeonRunDomainService runs,
+    IDungeonRoomActorSource roomActors,
     IGameMessageSender sender,
     ILogger<MonsterDeathHandler> logger) : ClientMessageHandler<MonsterDeathRequest>
 {
@@ -232,18 +238,67 @@ public sealed class MonsterDeathHandler(
         // The experience frame first, then the acknowledgement. That is the order a working A21
         // session sends them in, and the popup the first one raises names the kill the second one
         // confirms.
+        List<IGameServerMessage> frames =
+        [
+            new ExperienceNotification(
+                result.Character.Progression.Level,
+                checked((uint)result.CharacterEntry.Public.Extras.CharacterExperience),
+                mirror,
+                AccountHonorLevel.Initial),
+            new MonsterDeathNotification(message.ActorSequence),
+        ];
+
+        frames.AddRange(
+            await this.ClearedAsync(context, session.CharacterId, message.ActorSequence,
+                cancellationToken).ConfigureAwait(false));
+
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
-            new GameExplicitMessageDelivery(
-                [
-                    new ExperienceNotification(
-                        result.Character.Progression.Level,
-                        checked((uint)result.CharacterEntry.Public.Extras.CharacterExperience),
-                        mirror,
-                        AccountHonorLevel.Initial),
-                    new MonsterDeathNotification(message.ActorSequence),
-                ],
-                []),
+            new GameExplicitMessageDelivery(frames, []),
             cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The frames that follow the kill that empties the boss room, and nothing otherwise.
+    /// </summary>
+    /// <remarks>
+    /// This is where a run ends. The client asks for nothing after the last monster falls until it
+    /// has been told the dungeon may be cleared -- which is what a live session showed on
+    /// 2026-08-26, the player left standing in an emptied boss room with only heartbeats on the
+    /// wire.
+    /// <para>
+    /// Fired once, because the report that empties the room can only happen once: a repeated
+    /// death is refused by the run itself and never reaches the test below.
+    /// </para>
+    /// </remarks>
+    private async ValueTask<IReadOnlyList<IGameServerMessage>> ClearedAsync(
+        NetworkDispatchContext context,
+        CharacterId characterId,
+        ushort actorSequence,
+        CancellationToken cancellationToken)
+    {
+        if (runs.TryReportActorDead(characterId, actorSequence) is not { } run)
+            return [];
+        if (!run.IsBossRoom)
+            return [];
+
+        var declared = await roomActors.GetAsync(run.CurrentRoomMapId, cancellationToken)
+            .ConfigureAwait(false);
+        if (!run.IsCleared(declared, DungeonEntryPayloadCodec.FirstActorSequence(run)))
+            return [];
+
+        logger.LogInformation(
+            "Monster death {ConnectionId} character={CharacterId}: boss room {RoomId} of dungeon "
+                + "{DungeonId} is clear, opening the exit",
+            context.Connection.ConnectionId,
+            characterId.Value,
+            run.CurrentRoomMapId,
+            run.Layout.DungeonId);
+
+        return
+        [
+            new EnableClearDungeonNotification(),
+            new SecretShopNpcNotification(DungeonClearPayloadCodec.SecretShopNpcId),
+        ];
     }
 }

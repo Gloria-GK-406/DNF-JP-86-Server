@@ -54,6 +54,7 @@ public sealed class InfrastructureModule : IServerModule
             PvfInitialEquipmentDefinitionSource>();
         services.TryAddSingleton<IDungeonRoomActorSource, PvfDungeonRoomActorSource>();
         services.TryAddSingleton<IDungeonRoomDropSource, PvfDungeonRoomDropSource>();
+        services.TryAddSingleton<IEquipmentSlotDefinitionSource, PvfEquipmentSlotDefinitionSource>();
         services.TryAddSingleton<IDungeonExperienceProgressionPolicySource,
             PvfDungeonExperienceProgressionPolicySource>();
         services.TryAddSingleton<IExpertSkillContractDefinitionSource,
