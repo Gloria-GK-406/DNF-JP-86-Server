@@ -94,10 +94,40 @@ internal sealed record UdpHostNotification : IGameNotiMessage
 }
 
 /// <summary>NOTI 0x001B: the dungeon-selection screen's own state.</summary>
+/// <remarks>
+/// Sent once per selection, and <b>which of the two moments it is sent at depends on the
+/// tutorial</b>. Ordinarily it goes out with the rest of the screen's state, as the answer to
+/// CMD 0x000F. The tutorial's own first entry is the exception: the reference server defers it,
+/// and everything else the entry projects, until the client reports tutorial flag 30.
+/// <para>
+/// This server sent it only at the deferred moment until 2026-08-26, because the session it was
+/// modelled on was a tutorial and that is where the frame appears on its wire. A player walking up
+/// to a real dungeon gate therefore got the screen's other three frames and not this one -- see
+/// <see cref="DungeonSelectionRules"/>.
+/// </para>
+/// </remarks>
 internal sealed record EnterSelectDungeonNotification(
     ushort WireUserId) : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameEnterSelectDungeonState;
+}
+
+/// <summary>
+/// When the selection screen's state is due.
+/// </summary>
+/// <remarks>
+/// The reference server asks two things: is the character still level one, and has the tutorial
+/// been marked skippable. This server keeps no such mark -- nothing here can skip the tutorial --
+/// so it asks the level alone. The two answers differ only for a character that skipped, which is
+/// a state this server cannot reach. See <c>Docs/ProtocolScaffoldDissonances.md</c>.
+/// </remarks>
+internal static class DungeonSelectionRules
+{
+    /// <summary>The level a character is at until the tutorial's own step raises it.</summary>
+    private const byte TutorialLevel = 1;
+
+    public static bool DefersSelectionState(byte characterLevel) =>
+        characterLevel <= TutorialLevel;
 }
 
 /// <summary>
@@ -306,8 +336,14 @@ public sealed class EnterSelectDungeonHandler(
         //
         //   NOTI 0x001B -- it belongs to the SELECT_DUNGEON answer, where A21 sends it directly
         //   after the second acceptance byte.
-        var notifications = new IGameServerMessage[]
-        {
+        // The selection state closes the burst for everyone but the tutorial, whose first entry
+        // defers it -- and every frame this server had been checked against came from a tutorial,
+        // so it was only ever sent at the deferred moment. A player at a real dungeon gate got the
+        // screen's other three frames and no state to draw it from (2026-08-26).
+        var defersState = DungeonSelectionRules.DefersSelectionState(
+            result.Character.Progression.Level);
+        List<IGameServerMessage> notifications =
+        [
             new ExtendedUserStateMessage(
                 result.Character,
                 result.CharacterEntry.Public,
@@ -317,7 +353,11 @@ public sealed class EnterSelectDungeonHandler(
             new EnterSelectDungeonAcknowledgement(),
             new UserStateNotification(session.WireUserId, 0x01),
             new UdpHostNotification(),
-        };
+        ];
+        if (!defersState)
+        {
+            notifications.Add(new EnterSelectDungeonNotification(session.WireUserId));
+        }
 
         // Logged here rather than left to the dispatch layer. The first live run produced this
         // handler's own log line and no frames at all, with nothing reported anywhere -- the
@@ -332,7 +372,7 @@ public sealed class EnterSelectDungeonHandler(
             logger.LogInformation(
                 "Enter select dungeon {ConnectionId}: {Count} notifications handed to the sender",
                 context.Connection.ConnectionId,
-                notifications.Length);
+                notifications.Count);
         }
         catch (Exception error)
         {

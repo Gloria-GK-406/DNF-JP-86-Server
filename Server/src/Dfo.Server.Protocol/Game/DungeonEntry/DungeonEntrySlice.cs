@@ -476,12 +476,20 @@ public sealed class SelectDungeonHandler(
         // screen opened, then the support roster, and only then the run's shape and the room. The
         // older order -- describe the run, place the character, close with the roster -- was the
         // A12 reference's.
+        // The selection state is sent once. For everyone but the tutorial it went out when the
+        // screen opened; the tutorial's first entry defers it to here, which is where the captured
+        // session shows it and why this used to send it unconditionally.
+        List<IGameServerMessage> frames = [new EnterSelectDungeonAcknowledgement()];
+        if (DungeonSelectionRules.DefersSelectionState(result.Character.Progression.Level))
+        {
+            frames.Add(new EnterSelectDungeonNotification(session.WireUserId));
+        }
+
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(
                 [
-                    new EnterSelectDungeonAcknowledgement(),
-                    new EnterSelectDungeonNotification(session.WireUserId),
+                    .. frames,
                     new SupportTagNotification(),
                     new DungeonInfoNotification(layout, message.Difficulty),
                     new StartMapNotification(
