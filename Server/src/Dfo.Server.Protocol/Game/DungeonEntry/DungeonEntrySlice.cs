@@ -521,6 +521,22 @@ public sealed class MoveMapHandler(
             return;
         }
 
+        // The room decides, not the run. A boss room has no way back out of it whatever state the
+        // run is in; see DungeonRoomKind.
+        if (!current.MayLeaveCurrentRoom)
+        {
+            logger.LogWarning(
+                "Move map {ConnectionId}: the {Kind} room at ({FromX},{FromY}) may not be left, "
+                    + "refusing ({X},{Y})",
+                context.Connection.ConnectionId,
+                current.CurrentRoomKind,
+                current.CurrentCell.X,
+                current.CurrentCell.Y,
+                message.NextX,
+                message.NextY);
+            return;
+        }
+
         var target = new MazeCell(message.NextX, message.NextY);
         var firstEntry = !current.VisitedCells.Contains(target);
         var moved = runs.TryMove(session.CharacterId, target);
@@ -553,6 +569,23 @@ public sealed class MoveMapHandler(
             message.PathPositionX,
             message.PathPositionY);
 
+        // A room walked into a second time is described as empty. The reference server has a
+        // separate revisit builder that writes no actors and no drops at all, and it is right to:
+        // the client already killed what was in there and still holds those identities. Sending
+        // the list again resurrects them under the very same numbers -- which is what a live
+        // session saw on 2026-08-26 when it walked back out of the boss room, five monsters and
+        // four monsters standing up again with the numbers they had died under.
+        var actors = firstEntry
+            ? await roomActors.GetAsync(moved.CurrentRoomMapId, cancellationToken)
+                .ConfigureAwait(false)
+            : [];
+        var drops = firstEntry
+            ? moved.RemainingGroundDrops(
+                await roomDrops.GetAsync(
+                    moved.Layout.DungeonId, moved.CurrentRoomMapId, cancellationToken)
+                    .ConfigureAwait(false))
+            : [];
+
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(
@@ -560,13 +593,9 @@ public sealed class MoveMapHandler(
                     new StartMapNotification(
                         moved,
                         firstEntry,
-                        await roomActors.GetAsync(moved.CurrentRoomMapId, cancellationToken)
-                            .ConfigureAwait(false),
+                        actors,
                         DungeonEntryPayloadCodec.FirstActorSequence(moved),
-                        moved.RemainingGroundDrops(
-                            await roomDrops.GetAsync(
-                                moved.Layout.DungeonId, moved.CurrentRoomMapId, cancellationToken)
-                                .ConfigureAwait(false))),
+                        drops),
                 ],
                 []),
             cancellationToken).ConfigureAwait(false);

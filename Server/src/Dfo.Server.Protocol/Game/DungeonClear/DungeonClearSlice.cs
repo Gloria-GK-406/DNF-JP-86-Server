@@ -64,6 +64,83 @@ internal sealed record ClearDungeonRewardNotification : IGameNotiMessage
     public ServerMessageType MessageType => ServerMessageType.GameClearDungeonReward;
 }
 
+/// <summary>
+/// CMD 0x002A <c>GIVEUP_GAME</c>: the character leaving the dungeon.
+/// </summary>
+/// <remarks>
+/// An empty body. It is what the client sends once the result screen is done with, and it is the
+/// only thing in this server that ends a run: until 2026-08-26 nothing called
+/// <c>IDungeonRunDomainService.End</c> at all, so a character who had walked back to town was
+/// still, as far as the server knew, standing in a dungeon -- which is half of why that session
+/// could walk back into the boss room after clearing it.
+/// <para>
+/// The client reached town without this being answered. What it did not get is the town state the
+/// reference server pushes behind the acknowledgement -- <c>NOTI 0x0003</c>, <c>0x0017</c> and
+/// <c>0x0018</c> -- which it went and asked for itself instead. Those are not sent here; see
+/// <c>Docs/ProtocolScaffoldDissonances.md</c>.
+/// </para>
+/// </remarks>
+public sealed record GiveUpGameRequest(GameMessageMetadata Metadata) : IClientNetworkMessage
+{
+    public ClientMessageType MessageType => ClientMessageType.GameGiveUpGame;
+}
+
+/// <summary>The CMD acknowledgement under the same type: one byte, as the reference sends it.</summary>
+public sealed record GiveUpGameResponse : IGameCmdMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameGiveUpGame;
+}
+
+internal sealed class GiveUpGameDecoder : IGameMessageDecoder
+{
+    public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
+        new GiveUpGameRequest(metadata);
+}
+
+internal sealed class GiveUpGameResponseEncoder : GameCmdMessageEncoder<GiveUpGameResponse>
+{
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(GiveUpGameResponse message) =>
+        OnePayload(GameProtocol.GiveUpGameType, new byte[] { 0x01 });
+}
+
+/// <summary>Ends the run and says so.</summary>
+/// <remarks>
+/// Answered whether or not there was a run to end. The client has already left; telling it no would
+/// leave it holding a dungeon it is no longer in, and there is nothing it could do about that.
+/// </remarks>
+public sealed class GiveUpGameHandler(
+    ISelectedSessionDirectory selectedSessions,
+    IDungeonRunDomainService runs,
+    IGameMessageSender sender,
+    ILogger<GiveUpGameHandler> logger) : ClientMessageHandler<GiveUpGameRequest>
+{
+    protected override async ValueTask HandleMessageAsync(
+        NetworkDispatchContext context,
+        GiveUpGameRequest message,
+        CancellationToken cancellationToken)
+    {
+        var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        if (session is null)
+        {
+            logger.LogWarning(
+                "Give up game {ConnectionId}: no published session, ignoring",
+                context.Connection.ConnectionId);
+            return;
+        }
+
+        logger.LogInformation(
+            "Give up game {ConnectionId} character={CharacterId}: run ended={Ended}",
+            context.Connection.ConnectionId,
+            session.CharacterId.Value,
+            runs.End(session.CharacterId));
+
+        await sender.SendExplicitAsync(
+            context.Connection.ConnectionId,
+            new GameExplicitMessageDelivery([new GiveUpGameResponse()], []),
+            cancellationToken).ConfigureAwait(false);
+    }
+}
+
 internal static class DungeonClearPayloadCodec
 {
     /// <summary>The rank the client worked out, at the one offset the reference server reads.</summary>

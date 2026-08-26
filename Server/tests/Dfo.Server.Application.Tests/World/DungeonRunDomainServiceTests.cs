@@ -126,14 +126,58 @@ public sealed class DungeonRunDomainServiceTests
         Assert.Null(service.TryReportActorDead(Character, FirstSequence));
     }
 
-    /// <summary>The boss room is the one the layout says it is, and only that one.</summary>
+    /// <summary>Every cell of the maze is one of the three kinds, and only one.</summary>
     [Fact]
-    public void Only_the_layouts_boss_cell_is_the_boss_room()
+    public void The_layout_says_what_each_of_its_rooms_is_for()
+    {
+        Assert.Equal(DungeonRoomKind.Start, Tutorial.KindOf(Tutorial.StartCell));
+        Assert.Equal(DungeonRoomKind.Boss, Tutorial.KindOf(Tutorial.BossCell));
+        Assert.Equal(DungeonRoomKind.Ordinary, Tutorial.KindOf(new MazeCell(1, 1)));
+    }
+
+    /// <summary>
+    /// The boss room may not be left, and the rooms before it may.
+    /// </summary>
+    /// <remarks>
+    /// A live session on 2026-08-26 walked back out of the boss room after clearing it and through
+    /// rooms it had already emptied, which the game does not allow. The rule is asked of the room
+    /// rather than of the run's phase: the boss room's doors shut behind you whether or not the
+    /// boss is dead, and a dungeon that later grows a room with its own answer brings that answer
+    /// with it instead of adding a case.
+    /// </remarks>
+    [Fact]
+    public void The_boss_room_may_not_be_left_and_the_rooms_before_it_may()
     {
         var service = new DungeonRunDomainService();
 
-        Assert.False(service.Begin(Character, Tutorial).IsBossRoom);
-        Assert.True(service.TryMove(Character, Tutorial.BossCell)!.IsBossRoom);
+        var start = service.Begin(Character, Tutorial);
+        Assert.False(start.IsBossRoom);
+        Assert.True(start.MayLeaveCurrentRoom);
+
+        var ordinary = service.TryMove(Character, new MazeCell(1, 1));
+        Assert.NotNull(ordinary);
+        Assert.True(ordinary.MayLeaveCurrentRoom);
+
+        var boss = service.TryMove(Character, Tutorial.BossCell);
+        Assert.NotNull(boss);
+        Assert.True(boss.IsBossRoom);
+        Assert.False(boss.MayLeaveCurrentRoom);
+    }
+
+    /// <summary>A run ends, and the character is no longer in one.</summary>
+    /// <remarks>
+    /// Nothing called this until 2026-08-26. A character who had walked back to town was still, as
+    /// far as the server knew, standing in a dungeon.
+    /// </remarks>
+    [Fact]
+    public void Ending_a_run_leaves_the_character_in_none()
+    {
+        var service = new DungeonRunDomainService();
+        service.Begin(Character, Tutorial);
+
+        Assert.True(service.End(Character));
+        Assert.Null(service.Find(Character));
+        Assert.False(service.End(Character));
     }
 
     /// <summary>What died in one room has not died in the next.</summary>

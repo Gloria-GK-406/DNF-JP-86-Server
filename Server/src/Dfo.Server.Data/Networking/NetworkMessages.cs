@@ -68,6 +68,13 @@ public enum ClientMessageType
     GameOverflowInfo = 0x0001_00D9,
     GameLogDomainConnect = 0x0001_04F1,
     GameLogConnectProcess = 0x0001_04D7,
+    GameCharacterStatistic = 0x0001_007B,
+    GameRequestBlacklist = 0x0001_0078,
+    GameFarmEventAction = 0x0001_02BE,
+    GamePi = 0x0001_011B,
+
+    // Leaving the dungeon, which is the only thing that ends a run. See Game/DungeonClear.
+    GameGiveUpGame = 0x0001_002A,
 
     // Consuming one item off a pile. See Game/UseStackable.
     GameUseStackable = 0x0001_002C,
@@ -159,6 +166,7 @@ public enum ServerMessageType
     GameSecretShopNpc = 0x0000_0117,
     GamePlayResult = 0x0000_0022,
     GameClearDungeonReward = 0x0000_0023,
+    GameGiveUpGame = 0x0001_002A,
 }
 
 public interface IClientNetworkMessage

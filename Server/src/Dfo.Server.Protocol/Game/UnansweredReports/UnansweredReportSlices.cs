@@ -110,6 +110,72 @@ public sealed record LogConnectProcessReport(GameMessageMetadata Metadata, byte[
     public ClientMessageType MessageType => ClientMessageType.GameLogConnectProcess;
 }
 
+/// <summary>CMD 0x007B <c>CHARACTER_STATISTIC</c>: figures the client keeps about itself.</summary>
+/// <remarks>
+/// Twenty-four bytes in the live capture, sent as the result screen opens. A working A21 session
+/// received one and answered none.
+/// </remarks>
+public sealed record CharacterStatisticReport(GameMessageMetadata Metadata, byte[] Body)
+    : IUnansweredReport
+{
+    public ClientMessageType MessageType => ClientMessageType.GameCharacterStatistic;
+}
+
+/// <summary>CMD 0x0078 <c>REQUEST_BLACKLIST</c>: asked for on the way back into town.</summary>
+/// <remarks>
+/// An empty body. A working A21 session received one and answered none -- which is the answer only
+/// because this server has no blacklist to send; a server that had one would owe a list here.
+/// </remarks>
+public sealed record RequestBlacklistReport(GameMessageMetadata Metadata, byte[] Body)
+    : IUnansweredReport
+{
+    public ClientMessageType MessageType => ClientMessageType.GameRequestBlacklist;
+}
+
+/// <summary>CMD 0x02BE <c>FARM_EVENT_ACTION</c>: one byte, sent once on arriving in town.</summary>
+/// <remarks>A working A21 session received one and answered none.</remarks>
+public sealed record FarmEventActionReport(GameMessageMetadata Metadata, byte[] Body)
+    : IUnansweredReport
+{
+    public ClientMessageType MessageType => ClientMessageType.GameFarmEventAction;
+}
+
+/// <summary>CMD 0x011B <c>PI</c>: eight bytes, and <b>no reference frame behind it</b>.</summary>
+/// <remarks>
+/// Sent once as a room finished loading. The captured A21 session never sent it, so "the reference
+/// answers nothing" cannot be said here -- only that nothing in this server knows what it is. The
+/// same caveat <see cref="DecreaseDurabilityReport"/> carries, and the same place it is written
+/// down.
+/// </remarks>
+public sealed record PiReport(GameMessageMetadata Metadata, byte[] Body) : IUnansweredReport
+{
+    public ClientMessageType MessageType => ClientMessageType.GamePi;
+}
+
+internal sealed class CharacterStatisticDecoder : IGameMessageDecoder
+{
+    public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
+        new CharacterStatisticReport(metadata, body.ToArray());
+}
+
+internal sealed class RequestBlacklistDecoder : IGameMessageDecoder
+{
+    public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
+        new RequestBlacklistReport(metadata, body.ToArray());
+}
+
+internal sealed class FarmEventActionDecoder : IGameMessageDecoder
+{
+    public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
+        new FarmEventActionReport(metadata, body.ToArray());
+}
+
+internal sealed class PiDecoder : IGameMessageDecoder
+{
+    public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
+        new PiReport(metadata, body.ToArray());
+}
+
 internal sealed class UseSkillDecoder : IGameMessageDecoder
 {
     public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>

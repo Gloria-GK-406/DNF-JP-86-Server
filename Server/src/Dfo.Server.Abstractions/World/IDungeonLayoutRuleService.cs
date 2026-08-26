@@ -52,7 +52,36 @@ public sealed record DungeonLayout(
     MazeCell BossCell,
     int StartRoomMapId,
     int Seed,
-    IReadOnlyDictionary<MazeCell, int> Rooms);
+    IReadOnlyDictionary<MazeCell, int> Rooms)
+{
+    /// <summary>What this cell's room is for.</summary>
+    public DungeonRoomKind KindOf(MazeCell cell) =>
+        cell == BossCell ? DungeonRoomKind.Boss
+        : cell == StartCell ? DungeonRoomKind.Start
+        : DungeonRoomKind.Ordinary;
+}
+
+/// <summary>
+/// What a room is for, which is what decides what may be done in it.
+/// </summary>
+/// <remarks>
+/// A kind rather than a phase. Whether a player may walk back out of a room is a property of the
+/// room, not of how far the run has got: the boss room's doors shut behind you whether or not the
+/// boss is dead, and the rooms a dungeon may add later -- a shop, a puzzle, a checkpoint -- each
+/// bring their own answer with them. Asking the kind leaves room for those; asking the run's phase
+/// would have to be rewritten for every one of them.
+/// </remarks>
+public enum DungeonRoomKind : byte
+{
+    /// <summary>An ordinary room: walk in, walk out.</summary>
+    Ordinary = 0,
+
+    /// <summary>Where the run opens.</summary>
+    Start,
+
+    /// <summary>The room the run ends in. There is no way back out of it.</summary>
+    Boss,
+}
 
 /// <summary>Turns dungeon content, entry facts and an explicit seed into a run's maze.</summary>
 public interface IDungeonLayoutRuleService

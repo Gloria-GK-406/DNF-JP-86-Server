@@ -116,6 +116,17 @@ internal static class GameProtocol
 
     public const ushort LogConnectProcessType = 0x04D7;
 
+    public const ushort CharacterStatisticType = 0x007B;
+
+    public const ushort RequestBlacklistType = 0x0078;
+
+    public const ushort FarmEventActionType = 0x02BE;
+
+    public const ushort PiType = 0x011B;
+
+    /// <summary>Leaving the dungeon, asked and answered under one type.</summary>
+    public const ushort GiveUpGameType = 0x002A;
+
     public const ushort MoveItemSpaceType = 0x0013;
 
     public const ushort UseStackableType = 0x002C;

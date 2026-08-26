@@ -217,6 +217,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<GetItemHandler>(ClientMessageType.GameGetItem);
         services.RegisterMessageHandler<TutorialLevelUpHandler>(ClientMessageType.GameTutorialLevelUp);
         services.RegisterMessageHandler<SetPlayResultHandler>(ClientMessageType.GameSetPlayResult);
+        services.RegisterMessageHandler<GiveUpGameHandler>(ClientMessageType.GameGiveUpGame);
 
         // One handler, six wire keys: the reports nothing answers. Registered so that the log can
         // tell a protocol this server has decided about from one it has never heard of.
@@ -226,6 +227,10 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameOverflowInfo);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogDomainConnect);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogConnectProcess);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameCharacterStatistic);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameRequestBlacklist);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameFarmEventAction);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GamePi);
         services.RegisterMessageHandler<MoveItemSpaceHandler>(ClientMessageType.GameMoveItemSpace);
         services.RegisterMessageHandler<UseStackableHandler>(ClientMessageType.GameUseStackable);
 
@@ -327,6 +332,16 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.TutorialLevelUpType, ClientMessageType.GameTutorialLevelUp);
         services.AddGameCmdMessageDecoder<SetPlayResultDecoder>(
             GameProtocol.SetPlayResultType, ClientMessageType.GameSetPlayResult);
+        services.AddGameCmdMessageDecoder<GiveUpGameDecoder>(
+            GameProtocol.GiveUpGameType, ClientMessageType.GameGiveUpGame);
+        services.AddGameCmdMessageDecoder<CharacterStatisticDecoder>(
+            GameProtocol.CharacterStatisticType, ClientMessageType.GameCharacterStatistic);
+        services.AddGameCmdMessageDecoder<RequestBlacklistDecoder>(
+            GameProtocol.RequestBlacklistType, ClientMessageType.GameRequestBlacklist);
+        services.AddGameCmdMessageDecoder<FarmEventActionDecoder>(
+            GameProtocol.FarmEventActionType, ClientMessageType.GameFarmEventAction);
+        services.AddGameCmdMessageDecoder<PiDecoder>(
+            GameProtocol.PiType, ClientMessageType.GamePi);
         services.AddGameCmdMessageDecoder<UseSkillDecoder>(
             GameProtocol.UseSkillType, ClientMessageType.GameUseSkill);
         services.AddGameCmdMessageDecoder<SyncItemSpaceDecoder>(
@@ -409,6 +424,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<UseStackableResponse, UseStackableResponseEncoder>();
         services.AddGameCmdMessageEncoder<GetItemResponse, GetItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<TutorialLevelUpResponse, TutorialLevelUpResponseEncoder>();
+        services.AddGameCmdMessageEncoder<GiveUpGameResponse, GiveUpGameResponseEncoder>();
         services.AddGameNotiMessageEncoder<LoadingCompleteNotification, LoadingCompleteEncoder>();
         services.AddGameCmdMessageEncoder<HiddenCharacterInfoResponse, HiddenCharacterInfoResponseEncoder>();
         services.AddGameCmdMessageEncoder<RosterFollowUpResponse, RosterFollowUpResponseEncoder>();

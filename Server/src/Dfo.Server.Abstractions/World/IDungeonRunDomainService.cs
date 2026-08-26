@@ -39,8 +39,22 @@ public sealed record DungeonRunState(
         return true;
     }
 
+    /// <summary>What the room the character is standing in is for.</summary>
+    public DungeonRoomKind CurrentRoomKind => Layout.KindOf(CurrentCell);
+
     /// <summary>Whether this room is the one the run's boss stands in.</summary>
-    public bool IsBossRoom => CurrentCell == Layout.BossCell;
+    public bool IsBossRoom => CurrentRoomKind == DungeonRoomKind.Boss;
+
+    /// <summary>
+    /// Whether the character may walk out of the room they are in.
+    /// </summary>
+    /// <remarks>
+    /// A live session on 2026-08-26 walked out of the boss room after clearing it and back through
+    /// rooms it had already emptied, which the game does not allow. The rule is the room's, not the
+    /// run's: the boss room has no way back out of it, and a dungeon that later grows a room with
+    /// its own answer brings that answer with it rather than adding a case here.
+    /// </remarks>
+    public bool MayLeaveCurrentRoom => CurrentRoomKind != DungeonRoomKind.Boss;
 
     /// <summary>
     /// Everything above this is an ally, not a monster. Type five is the tutorial's own escort.
