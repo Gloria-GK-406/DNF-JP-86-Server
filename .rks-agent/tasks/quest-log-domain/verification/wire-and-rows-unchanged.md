@@ -54,8 +54,15 @@ the same field either way.
 values.** The two quest-related frames of the entry batch -- `#18 NOTI 0x0015` (25B, the acceptable
 quest list) and `#69 NOTI 0x0016` (9B) -- are among the 73.
 
-`entry-compare-*.txt`, which sets the batch beside the reference session's, is identical across all
-four runs.
+`entry-compare-*.txt` sets the batch beside a reference session and is identical across all four
+runs, which is all it is relied on for here. It is worth saying which session, because the answer
+turned out to be the wrong one: `cmpentry.py` names the upstream output directory's `packet_log.txt`
+by path, and that file was overwritten on 2026-08-27 by a newer upstream run. So these four files
+compare against a session no page on this branch cites. Being identical across all four, they still
+show what they are used for -- that nothing drifted between runs -- and the comparison against the
+session the branch does cite lives in
+`../../a21-world-entry-protocol/attempts/spec-003-world-entry-sequence/verification/`, taken with a
+comparator that names the file rather than the directory.
 
 ## What this does not cover
 
