@@ -21,6 +21,10 @@ usage: check-controls.py <layouts.json>
 import sys
 import json
 
+# Ends an expected prefix that deliberately stops short: the fields before it are asserted,
+# whatever follows is not. Used where the head has evidence and the tail does not.
+OPEN_TAIL = "..."
+
 # key, observed body length, expected non-repeating prefix, expected repeat group, note
 #
 # PROVENANCE. Every expectation below is transcribed from a hand-written document or a
@@ -34,8 +38,12 @@ CONTROLS = [
      "0x01DD.md field table: 厂商桶/核心数/MHz/内存/GPU vendor/GPU device/显存/OS/位数"),
     ("CMD:0x00C2", 361, None, None, "0x00C2.md and catalog: exit-flush frame, 361 B"),
     ("CMD:0x00FA", 50, None, None, "catalog exit-flush sequence: 0x00FA(50B)"),
-    ("CMD:0x008F", 5, ["u32", "u8"], [],
-     "catalog: 0x008F(5B); 0x008F.md: `body 只有一个 id 和一个标志` = u32 + u8"),
+    ("CMD:0x008F", 6, ["u8", "u32", "u8"], [],
+     "A21 captures: a21-live-entry-20260825 `#110 C->S CMD 0x008F (6B)`, "
+     "a21-reference-entry-bytes-20260825 `#137 (6B)`, a21-dungeon-wire-20260826 "
+     "`#94 ... 00 1e 00 00 00 01` = u8 mode + u32 flagIndex + u8 rewardFlag. "
+     "The A12 page still records 5 B (u32 + u8); this control follows the A21 bytes, "
+     "which is also what this server decodes."),
     ("CMD:0x0117", 12, None, None,
      "INVERTED. 0x0117.md: straight-line width 2 B but real body 12 B, payload written "
      "through a vtable. A closed 2-byte verdict here would be the dangerous failure."),
@@ -49,9 +57,12 @@ CONTROLS = [
     # they are checked on shape. Each document's `4 + nameLength` must appear as the
     # single `dstring` primitive rather than as two separate fields -- which is exactly
     # what pins that primitive's identity.
-    ("CMD:0x0005", None, ["u8", "dstring", "u8", "u8", "u8", "u8"], [],
-     "0x0005.md: 职业 u8 / i32 名字长度 + 名字字节 / 常量0 u8 / 布尔 u8 / u8×2 "
-     "(= 1 + 4+nameLength + 4)"),
+    ("CMD:0x0005", None, ["u8", "dstring", OPEN_TAIL], [],
+     "0x0005.md: 职业 u8 / i32 名字长度 + 名字字节, then a tail of single bytes. The head "
+     "is what this control is for. The tail is left unasserted: the A12 page records four "
+     "bytes, A21's two builder sites write five and six, and no A21 capture of this "
+     "protocol exists to settle it -- the client refuses a bad name before sending, so the "
+     "frame has never been seen on the wire here."),
     ("CMD:0x0006", None, ["u16", "dstring"], [],
      "0x0006.md: 角色列表下标 u16 / i32 名字长度 + 名字字节 (= 2 + 4+nameLength)"),
     ("CMD:0x02B5", None, ["dstring"], [],
@@ -63,8 +74,15 @@ CONTROLS = [
 # non-closed verdict is a regression. Deliberately excludes 0x00C2 / 0x00FA (counted
 # repeats), the three length-prefixed ones, 0x0117 (polymorphic) and 0x01BA (builder in
 # the obfuscated region -- its 0-byte body is known only from a capture).
+#
+# 0x0008 was in this set while the analysed binary was the A12 client, whose builders for
+# it agree. A21's do not: of eleven sites, seven write `u16, u8` and the rest write longer
+# shapes behind branches, so the extractor reports `partial/builder-sites-disagree`. That
+# verdict is true, and requiring `closed` here would be requiring the extractor to overstate
+# what the client does. The layout is still gated -- the closure test below asserts it
+# reproduces the captured three bytes -- so a rewritten layout is still caught.
 MUST_CLOSE = {
-    "CMD:0x00AB": True, "CMD:0x01DD": True, "CMD:0x008F": True, "CMD:0x0008": True,
+    "CMD:0x00AB": True, "CMD:0x01DD": True, "CMD:0x008F": True,
     "CMD:0x02A8": True, "CMD:0x0286": True, "CMD:0x0003": True,
 }
 
@@ -131,8 +149,18 @@ for key, observed, want_prefix, want_group, note in CONTROLS:
             verdict.append("ok not falsely closed (%s/%s)" % (e["state"], e["reason"]))
     else:
         if want_prefix is not None:
-            ok = prefix == want_prefix
-            verdict.append("prefix MATCH" if ok else "prefix DIFF %s" % (prefix,))
+            # A control ending in OPEN_TAIL asserts its leading fields and says nothing
+            # about what follows. It is for a protocol whose head is evidenced and whose
+            # tail is not -- asserting the tail anyway would be transcribing a guess, and
+            # asserting the extractor's own answer would make the control self-certifying.
+            if want_prefix and want_prefix[-1] == OPEN_TAIL:
+                head = want_prefix[:-1]
+                ok = prefix[:len(head)] == head
+                verdict.append("prefix MATCH (head of %d; tail not asserted)" % len(head)
+                               if ok else "prefix DIFF %s" % (prefix,))
+            else:
+                ok = prefix == want_prefix
+                verdict.append("prefix MATCH" if ok else "prefix DIFF %s" % (prefix,))
             if not ok:
                 fail += 1
         if want_group is not None:

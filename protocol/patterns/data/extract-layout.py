@@ -432,12 +432,36 @@ for row in inventory:
         entry["site_agreement"] = ("n/a" if len(variants) < 2 else
                                    "consistent" if len(shapes) == 1 else "divergent")
         rank = {"closed": 0, "closed-parametric": 1, "partial": 2, "structure-unknown": 3}
+        # When call sites disagree, the shape the most of them write is the one to report.
+        # The tie-break used to be "whichever site wrote the most fields", and that is not a
+        # measure of evidence -- it is a measure of how long one function happened to be.
+        # `0x0008` is where it showed: seven sites write `u16, u8` and the capture is three
+        # bytes, while two sites write `u16, u8, u32`; the longer shape won and the extractor
+        # reported a seven-byte layout the wire refutes. Counting sites gets that right, and
+        # a genuine tie still falls back to the longer shape rather than picking arbitrarily.
+        support = collections.Counter(
+            (tuple((f["enc"], f["len"]) for f in v["fields"]),
+             tuple(tuple((f["enc"], f["len"]) for f in g["fields"]) for g in v["groups"]))
+            for v in variants)
+
+        def shape_of(v):
+            return (tuple((f["enc"], f["len"]) for f in v["fields"]),
+                    tuple(tuple((f["enc"], f["len"]) for f in g["fields"])
+                          for g in v["groups"]))
+
+        def better(v, than):
+            if than is None:
+                return True
+            if rank[v["state"]] != rank[than["state"]]:
+                return rank[v["state"]] < rank[than["state"]]
+            if support[shape_of(v)] != support[shape_of(than)]:
+                return support[shape_of(v)] > support[shape_of(than)]
+            return (len(v["fields"]) + len(v["groups"])
+                    > len(than["fields"]) + len(than["groups"]))
+
         best = None
         for v in variants:
-            if best is None or rank[v["state"]] < rank[best["state"]] \
-               or (v["state"] == best["state"]
-                   and len(v["fields"]) + len(v["groups"]) >
-                       len(best["fields"]) + len(best["groups"])):
+            if better(v, best):
                 best = v
         if best is None:
             entry["state"], entry["reason"] = "structure-unknown", "no-builder-site-found"

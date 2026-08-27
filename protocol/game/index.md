@@ -32,7 +32,7 @@
 | `0x0008` | `GET_USERINFO` | **手写记录** | 见文档 | [0x0008.md](client-to-server/0x0008.md) **(手写)** |
 | `0x0009` | `RECOVER_STAMINA` | 布局已闭合 | `2` | [0x0009.md](client-to-server/0x0009.md) |
 | `0x000A` | `REQUEST_PEER` | 布局部分可得 | `≥ 7` | [0x000A.md](client-to-server/0x000A.md) |
-| `0x000B` | `RESPONSE_PEER` | 布局部分可得 | `≥ 9` | [0x000B.md](client-to-server/0x000B.md) |
+| `0x000B` | `RESPONSE_PEER` | 布局部分可得 | `≥ 7` | [0x000B.md](client-to-server/0x000B.md) |
 | `0x000C` | `SET_PARTY_INFO` | 布局部分可得 | `—` | [0x000C.md](client-to-server/0x000C.md) |
 | `0x000D` | `LEAVE_PARTY` | 布局已闭合 | `0` | [0x000D.md](client-to-server/0x000D.md) |
 | `0x000E` | `WALKOUT_PARTY_MEMBER` | 布局已闭合 | `1` | [0x000E.md](client-to-server/0x000E.md) |
@@ -70,7 +70,7 @@
 | `0x002E` | `SET_PLAY_RESULT` | 布局部分可得 | `≥ 42 + n×7` | [0x002E.md](client-to-server/0x002E.md) |
 | `0x002F` | `DROP_ITEM` | 布局部分可得 | `≥ 0 + n×2` | [0x002F.md](client-to-server/0x002F.md) |
 | `0x0030` | `DECREASE_DURABILITY` | 布局已闭合 | `1` | [0x0030.md](client-to-server/0x0030.md) |
-| `0x0032` | `MAKE_PVP_ROOM` | 布局部分可得 | `—` | [0x0032.md](client-to-server/0x0032.md) |
+| `0x0032` | `MAKE_PVP_ROOM` | 布局部分可得 | `≥ 13057` | [0x0032.md](client-to-server/0x0032.md) |
 | `0x0033` | `ENTER_PVP_ROOM` | 布局已闭合 | `3` | [0x0033.md](client-to-server/0x0033.md) |
 | `0x0034` | `SET_PVP_SEAT_STATE` | 布局已闭合 | `2` | [0x0034.md](client-to-server/0x0034.md) |
 | `0x0035` | `SET_PVP_READY_STATE` | 布局已闭合 | `1` | [0x0035.md](client-to-server/0x0035.md) |
@@ -376,7 +376,7 @@
 | `0x01D6` | `PRECHECK_SOLO_TELEPOART` | 布局部分可得 | `—` | [0x01D6.md](client-to-server/0x01D6.md) |
 | `0x01D7` | `SOLO_TELEPOART` | 布局已闭合 | `15` | [0x01D7.md](client-to-server/0x01D7.md) |
 | `0x01D9` | `SAVE_GAME_OPTION_CHATTING_EMOTICON` | 布局部分可得 | `—` | [0x01D9.md](client-to-server/0x01D9.md) |
-| `0x01DA` | `REPORT_CLIENT_HACK` | 布局部分可得 | `≥ 10` | [0x01DA.md](client-to-server/0x01DA.md) |
+| `0x01DA` | `REPORT_CLIENT_HACK` | 布局部分可得 | `≥ 6` | [0x01DA.md](client-to-server/0x01DA.md) |
 | `0x01DC` | `IMAGE_COMMUNICATION_EQUIPMENT_USE` | 布局已闭合 | `0` | [0x01DC.md](client-to-server/0x01DC.md) |
 | `0x01DD` | `COMPATIBILITY_INDEX` | **手写记录** | 见文档 | [0x01DD.md](client-to-server/0x01DD.md) **(手写)** |
 | `0x01DE` | `INFORM_NOTICE` | 布局已闭合 | `4` | [0x01DE.md](client-to-server/0x01DE.md) |
@@ -435,7 +435,7 @@
 | `0x0223` | `REQUEST_FOR_PARTICIPATION` | 布局已闭合 | `1` | [0x0223.md](client-to-server/0x0223.md) |
 | `0x0224` | `MONSTER_MOVE_SYSTEM` | 布局已闭合 | `17` | [0x0224.md](client-to-server/0x0224.md) |
 | `0x0227` | `PVP_TOURNAMENT_MATCH_LIST` | 布局已闭合 | `4` | [0x0227.md](client-to-server/0x0227.md) |
-| `0x0228` | `PVP_TOURNAMENT_REQUEST` | 布局部分可得 | `≥ 6` | [0x0228.md](client-to-server/0x0228.md) |
+| `0x0228` | `PVP_TOURNAMENT_REQUEST` | 布局部分可得 | `≥ 1` | [0x0228.md](client-to-server/0x0228.md) |
 | `0x0229` | `LOADING_CART` | 布局已闭合 | `4` | [0x0229.md](client-to-server/0x0229.md) |
 | `0x022A` | `GOLDEN_COMMERCE_START` | 布局已闭合 | `0` | [0x022A.md](client-to-server/0x022A.md) |
 | `0x022B` | `GOLDEN_COMMERCE_REWARD` | 布局已闭合 | `1` | [0x022B.md](client-to-server/0x022B.md) |
@@ -467,7 +467,7 @@
 | `0x024E` | `UPGRADE_ROOM_UPGRADE_START` | 结构未知 | `—` | [0x024E.md](client-to-server/0x024E.md) |
 | `0x024F` | `UPGRADE_ROOM_UPGRADE_CANCEL` | 布局已闭合 | `0` | [0x024F.md](client-to-server/0x024F.md) |
 | `0x0250` | `UPGRADE_ROOM_MASTER_MESSAGE` | 布局部分可得 | `—` | [0x0250.md](client-to-server/0x0250.md) |
-| `0x0252` | `SECURITY_STATUS` | 布局部分可得 | `≥ 12` | [0x0252.md](client-to-server/0x0252.md) |
+| `0x0252` | `SECURITY_STATUS` | 布局部分可得 | `≥ 8` | [0x0252.md](client-to-server/0x0252.md) |
 | `0x0253` | `EVENT_NPC_DROP_ITEM_` | 布局已闭合 | `0` | [0x0253.md](client-to-server/0x0253.md) |
 | `0x0254` | `REQUEST_PICK_EVENT_INFO` | 结构未知 | `—` | [0x0254.md](client-to-server/0x0254.md) |
 | `0x0255` | `LETS_PICK_PRESENT` | 布局已闭合 | `2` | [0x0255.md](client-to-server/0x0255.md) |
@@ -545,7 +545,7 @@
 | `0x02AA` | `EXECUTE_SLOT_MACHINE` | 结构未知 | `—` | [0x02AA.md](client-to-server/0x02AA.md) |
 | `0x02AB` | `BINGO_RESET` | 布局部分可得 | `≥ 4` | [0x02AB.md](client-to-server/0x02AB.md) |
 | `0x02B0` | `ILLUSION_UPGRADE_STATE` | 布局已闭合 | `2` | [0x02B0.md](client-to-server/0x02B0.md) |
-| `0x02B1` | `EVENT_REWARD` | 布局部分可得 | `≥ 12` | [0x02B1.md](client-to-server/0x02B1.md) |
+| `0x02B1` | `EVENT_REWARD` | 布局部分可得 | `≥ 8` | [0x02B1.md](client-to-server/0x02B1.md) |
 | `0x02B2` | `EVENT_REQUEST` | 布局部分可得 | `≥ 16` | [0x02B2.md](client-to-server/0x02B2.md) |
 | `0x02B3` | `STATICS_RUNTIME_TING` | 布局已闭合 | `1` | [0x02B3.md](client-to-server/0x02B3.md) |
 | `0x02B4` | `RESERVE_LEAVE_PARTY` | 布局已闭合 | `1` | [0x02B4.md](client-to-server/0x02B4.md) |
@@ -556,7 +556,7 @@
 | `0x02B9` | `DUNGEON_BONUS_MONSTER` | 布局已闭合 | `4` | [0x02B9.md](client-to-server/0x02B9.md) |
 | `0x02BC` | `DAILY_CHALLENGE_REWARD` | 布局已闭合 | `4` | [0x02BC.md](client-to-server/0x02BC.md) |
 | `0x02BD` | `REQUEST_STUDY_JOIN_REWARD` | 布局已闭合 | `0` | [0x02BD.md](client-to-server/0x02BD.md) |
-| `0x02BE` | `FARM_EVENT_ACTION` | 布局部分可得 | `≥ 5` | [0x02BE.md](client-to-server/0x02BE.md) |
+| `0x02BE` | `FARM_EVENT_ACTION` | 布局部分可得 | `≥ 3` | [0x02BE.md](client-to-server/0x02BE.md) |
 | `0x02BF` | `UPDATE_SPEC_EVENT` | 布局部分可得 | `≥ 1 + n×5` | [0x02BF.md](client-to-server/0x02BF.md) |
 | `0x02C1` | `CONTENTS_PLAY_INFO` | 布局已闭合 | `1` | [0x02C1.md](client-to-server/0x02C1.md) |
 | `0x02C2` | `ENTRY_INTO_PARTY` | 布局已闭合 | `4` | [0x02C2.md](client-to-server/0x02C2.md) |
@@ -723,7 +723,7 @@
 | `0x03AF` | `CHARACTER_CREATE_COUNT_PER_DAY` | 结构未知 | `—` | [0x03AF.md](client-to-server/0x03AF.md) |
 | `0x03B0` | `USE_TITLE_CHANGE_ITEM` | 布局已闭合 | `4` | [0x03B0.md](client-to-server/0x03B0.md) |
 | `0x03B4` | `DESTORY_DUNGEON_START` | 布局已闭合 | `22` | [0x03B4.md](client-to-server/0x03B4.md) |
-| `0x03B5` | `COMPOUND_UNIQUE_ITEM` | 布局部分可得 | `≥ 9` | [0x03B5.md](client-to-server/0x03B5.md) |
+| `0x03B5` | `COMPOUND_UNIQUE_ITEM` | 布局部分可得 | `≥ 5` | [0x03B5.md](client-to-server/0x03B5.md) |
 | `0x03B8` | `EMBLEM_COLLECT_ITEM` | 布局已闭合 | `26` | [0x03B8.md](client-to-server/0x03B8.md) |
 | `0x03B9` | `READ_HUNTING_SKILL` | 布局已闭合 | `15` | [0x03B9.md](client-to-server/0x03B9.md) |
 | `0x03BA` | `UPGRADE_CARRY_GOLD` | 布局已闭合 | `15` | [0x03BA.md](client-to-server/0x03BA.md) |
@@ -830,7 +830,7 @@
 | `0x04AE` | `EVERYDAY_BOSS_TOWER` | 布局已闭合 | `18` | [0x04AE.md](client-to-server/0x04AE.md) |
 | `0x04B0` | `FISHING_EVENT_ATTENDANCE` | 布局已闭合 | `18` | [0x04B0.md](client-to-server/0x04B0.md) |
 | `0x04B2` | `GIFT_OF_SERIA` | 布局已闭合 | `14` | [0x04B2.md](client-to-server/0x04B2.md) |
-| `0x04B4` | `YUNDY_EVENT` | 布局部分可得 | `≥ 17` | [0x04B4.md](client-to-server/0x04B4.md) |
+| `0x04B4` | `YUNDY_EVENT` | 布局部分可得 | `≥ 13` | [0x04B4.md](client-to-server/0x04B4.md) |
 | `0x04BC` | `CARD_GAME` | 布局已闭合 | `50` | [0x04BC.md](client-to-server/0x04BC.md) |
 | `0x04BD` | `CARD_GAME_COMPOUND` | 布局已闭合 | `22` | [0x04BD.md](client-to-server/0x04BD.md) |
 | `0x04BE` | `GUILD_MODE_CHANGE_CHN` | 布局已闭合 | `15` | [0x04BE.md](client-to-server/0x04BE.md) |
