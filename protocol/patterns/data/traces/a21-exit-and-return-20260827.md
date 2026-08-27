@@ -1,0 +1,88 @@
+# A21 退出游戏卡住:退出协议是对的,连接早就没了(2026-08-27)
+
+**症状(玩家报告)。** 鬼剑士教学全程通过——第二间房上路有怪、装备打完才爆、通关回城都正常——
+**最后按退出游戏,卡住。** 玩家的判断是"这个协议还没做"。
+
+**结论:退出协议做了,而且和上游逐字节一致。真正断的地方在回城之后、退出之前。**
+
+## 一、上游怎么处理退出的
+
+`CMD 0x0003` 在 A21 的表里叫 `EXIT`。上游 `GameProtocolHandler.RegisterMiscHandlers` 里就一行:
+
+```csharp
+d[0x0003] = (s, h, b) =>
+    s.SendPacketAsync(GamePacketEnvelopeBuilder.Build(0x01, 0x0003, CommonPacketBodyBuilder.BuildSuccessAck()));
+```
+
+**回一个字节的成功,别的什么都不做。** 不落库、不断连接、不推任何投影。上游抓包对得上:
+
+```text
+RECV cmd=0x01 type=0x0003 len=15 body=(1B) [00]
+SEND cmd=0x01 type=0x0003 len=16 body=(1B) [01]
+RECV cmd=0x01 type=0x02B3 STATICS_RUNTIME_TING     ← 之后客户端自己收尾
+```
+
+本仓的 `GameExitHandler` 走的是同一条:`GameProtocol.ExitType` 已注册解码器、处理器与编码器,
+答 `GameCmdEnvelope.Accept()`,也就是 `[01]`。**这一段本来就是通的。**
+
+## 二、连接是在哪一帧上断的
+
+把两边回城之后的那一段并排看:
+
+| | 上游 2026-08-27 | 本仓同日 |
+|---|---|---|
+| `CMD 0x02EF` FPS_PERFORMANCE_STATISTIC (424B) | 收下,不回 | 收下,记 `Unhandled`,不回 |
+| `CMD 0x00C2` CLIENT_SPEC_PROFILE (**362B**) | 收下,不回 | **解码器抛异常** |
+| `CMD 0x045C` FRAMELAG_PER_DUNGEON | 收到 | — |
+| `CMD 0x00FA` LODING_TIME_REPORT | 收到 | — |
+| `CMD 0x0117` LAG_STATISTICS | 收到 | — |
+| `CMD 0x0003` EXIT | 收到,回 `[01]` | — |
+| `CMD 0x02B3` STATICS_RUNTIME_TING | 收到 | — |
+
+**本仓的日志在 `0x00C2` 那一行之后再没有任何一帧。** 不是客户端不发——上游同一位置收到了后面
+五帧——是连接已经在 `0x00C2` 上被拆掉了。玩家此后做的每一件事,包括按退出,都是在对一个已经关掉
+的 socket 说话。
+
+## 三、`0x00C2` 为什么抛
+
+A21 的包头是 **25 字节**,A12 是 24。多出来的一字节在偏移 15,把它后面的每个字段都推后一位。
+本仓按 A12 的算法算出体长 361,收到 362,判长度不符抛异常。
+
+判据、字节表和"那一字节是什么不知道"的记录,写在
+[`CMD 0x00C2`](../../game/client-to-server/0x00C2.md) 的 A21 节。核心一句:同一台机器的两份样本
+里,偏移 15 之后按 A12 位置读全是噪声,往后挪一字节 DirectX 变回 9.0.0、两个计时变回 -1、
+336 字节的表从跨字段变成规整的「计数 + 时长」对。
+
+## 四、这是同一个坑的第二次
+
+第一次是 2026-08-25 的 `CHANGE_TUTORIAL_FLAG`:A21 六字节、本仓要五字节,于是每次进教学都以
+"客户端报连接丢失、服务端什么也没记"收场。那次改的是**把抛异常的解码器也记进日志**。
+
+这次日志确实记下来了——定位只花了几分钟,而不是一周。**但掉线那一半没动**:
+`NetworkPlugins.Decode` 捕获异常、记 Error、然后 `throw;`,连接随之断开。
+
+于是一帧**上游都不回的纯遥测上报**,把整局玩崩了。分帧是信封层做的,能走到 `Decode` 说明帧本身
+已经读对;`Decode` 里抛出的一定是"体内布局与我们的模型不符",而不是"流失步"。这两件事的严重
+程度不一样,现在按一件处理。取舍与三个可选项记在
+`Docs/ProtocolScaffoldDissonances.md` 二十一,**没有在本次改动里动它**。
+
+## 五、改了什么
+
+- `ClientSpecProfilePayloadCodec` 包头 24 → 25,偏移 15 起的字段整体后移一位;新增的那一字节
+  按原样读出并记进日志(`off15=`),而不是跳过。
+- 回归样本换成 A21 那帧**完整 362 字节(含表)**,不再是只填包头的构造体。表是钉住偏移的关键:
+  读错一字节,行就会跨在自己的字段上。
+
+## 六、还没做的
+
+| type | 上游 | 本仓 |
+|---|---|---|
+| `CMD 0x001F` ACCEPT_QUEST | **回 `01 F8 03 01 00 00 00 00`** | 未实现,记 `Unhandled` |
+| `CMD 0x02EF` FPS_PERFORMANCE_STATISTIC | 不注册、不回 | 记 `Unhandled` |
+| `CMD 0x045C` FRAMELAG_PER_DUNGEON | 不注册、不回 | 未见(连接已断) |
+| `CMD 0x00FA` LODING_TIME_REPORT | 不注册、不回 | 未见 |
+| `CMD 0x0117` LAG_STATISTICS | 不注册、不回 | 未见 |
+| `CMD 0x02B3` STATICS_RUNTIME_TING | 不注册、不回 | 未见 |
+
+后五个都是纯上报,上游一个都不回——按"全量模拟"应该登记成有意不回
+(`IUnansweredReport`),而不是继续躺在 `Unhandled` 里。`0x001F` 是真缺口,需要任务写入路径。

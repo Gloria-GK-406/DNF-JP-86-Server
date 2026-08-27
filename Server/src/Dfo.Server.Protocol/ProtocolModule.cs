@@ -233,6 +233,9 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameFarmEventAction);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GamePi);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameRequestIgaVersion);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameFpsPerformanceStatistic);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameFrameLagPerDungeon);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLagStatistics);
         services.RegisterMessageHandler<MoveItemSpaceHandler>(ClientMessageType.GameMoveItemSpace);
         services.RegisterMessageHandler<UseStackableHandler>(ClientMessageType.GameUseStackable);
 
@@ -348,6 +351,12 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.PiType, ClientMessageType.GamePi);
         services.AddGameCmdMessageDecoder<RequestIgaVersionDecoder>(
             GameProtocol.RequestIgaVersionType, ClientMessageType.GameRequestIgaVersion);
+        services.AddGameCmdMessageDecoder<FpsPerformanceStatisticDecoder>(
+            GameProtocol.FpsPerformanceStatisticType, ClientMessageType.GameFpsPerformanceStatistic);
+        services.AddGameCmdMessageDecoder<FrameLagPerDungeonDecoder>(
+            GameProtocol.FrameLagPerDungeonType, ClientMessageType.GameFrameLagPerDungeon);
+        services.AddGameCmdMessageDecoder<LagStatisticsDecoder>(
+            GameProtocol.LagStatisticsType, ClientMessageType.GameLagStatistics);
         services.AddGameCmdMessageDecoder<UseSkillDecoder>(
             GameProtocol.UseSkillType, ClientMessageType.GameUseSkill);
         services.AddGameCmdMessageDecoder<SyncItemSpaceDecoder>(

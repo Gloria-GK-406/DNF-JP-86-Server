@@ -165,6 +165,62 @@ public sealed record RequestIgaVersionReport(GameMessageMetadata Metadata, byte[
     public ClientMessageType MessageType => ClientMessageType.GameRequestIgaVersion;
 }
 
+/// <summary>
+/// CMD 0x02EF <c>FPS_PERFORMANCE_STATISTIC</c>: 424 bytes of frame-rate figures.
+/// </summary>
+/// <remarks>
+/// One of the five reports the client empties out after a dungeon on its way to leaving. Two of
+/// those five were already answered-by-silence here under other names -- <c>CMD 0x00FA</c> as the
+/// session metrics and <c>CMD 0x02B3</c> among the map-entry reports -- and the reference server
+/// registers a handler for none of the five: they reach its dispatcher and fall off the end.
+/// <para>
+/// This one, <see cref="FrameLagPerDungeonReport"/> and <see cref="LagStatisticsReport"/> were
+/// found by how they went missing. This server never saw two of them at all: it threw on
+/// <c>CMD 0x00C2</c> earlier in the same burst and took the connection with it, so everything the
+/// client said afterwards -- these, and the request to leave the game -- went nowhere. See
+/// <c>protocol/patterns/data/traces/a21-exit-and-return-20260827.md</c>.
+/// </para>
+/// </remarks>
+public sealed record FpsPerformanceStatisticReport(GameMessageMetadata Metadata, byte[] Body)
+    : IUnansweredReport
+{
+    public ClientMessageType MessageType => ClientMessageType.GameFpsPerformanceStatistic;
+}
+
+/// <summary>CMD 0x045C <c>FRAMELAG_PER_DUNGEON</c>: 21 bytes, one per dungeon left.</summary>
+/// <inheritdoc cref="FpsPerformanceStatisticReport" path="/remarks"/>
+public sealed record FrameLagPerDungeonReport(GameMessageMetadata Metadata, byte[] Body)
+    : IUnansweredReport
+{
+    public ClientMessageType MessageType => ClientMessageType.GameFrameLagPerDungeon;
+}
+
+/// <summary>CMD 0x0117 <c>LAG_STATISTICS</c>: 61 bytes, position samples paired with timings.</summary>
+/// <inheritdoc cref="FpsPerformanceStatisticReport" path="/remarks"/>
+public sealed record LagStatisticsReport(GameMessageMetadata Metadata, byte[] Body)
+    : IUnansweredReport
+{
+    public ClientMessageType MessageType => ClientMessageType.GameLagStatistics;
+}
+
+internal sealed class FpsPerformanceStatisticDecoder : IGameMessageDecoder
+{
+    public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
+        new FpsPerformanceStatisticReport(metadata, body.ToArray());
+}
+
+internal sealed class FrameLagPerDungeonDecoder : IGameMessageDecoder
+{
+    public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
+        new FrameLagPerDungeonReport(metadata, body.ToArray());
+}
+
+internal sealed class LagStatisticsDecoder : IGameMessageDecoder
+{
+    public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
+        new LagStatisticsReport(metadata, body.ToArray());
+}
+
 internal sealed class RequestIgaVersionDecoder : IGameMessageDecoder
 {
     public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>

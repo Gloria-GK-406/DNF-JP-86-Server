@@ -37,7 +37,7 @@ public sealed class ClientSpecProfileHandler(
             ClientSpecProfileDescriptor.DescribeDirectXVersion(message.DirectXVersion),
             $"startLoading={ClientSpecProfileDescriptor.DescribeSeconds(message.StartLoadingSeconds)}"
             + $" returnVillage={ClientSpecProfileDescriptor.DescribeSeconds(message.ReturnVillageSeconds)}",
-            $"off19={message.Unknown19}",
+            $"off15={message.Unknown15} off20={message.Unknown20}",
             ClientSpecProfileDescriptor.DescribeTable(message.Table),
             ClientSpecProfileDescriptor.DescribeEntries(message.Entries));
 

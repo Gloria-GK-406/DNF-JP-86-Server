@@ -73,6 +73,9 @@ public enum ClientMessageType
     GameFarmEventAction = 0x0001_02BE,
     GamePi = 0x0001_011B,
     GameRequestIgaVersion = 0x0001_039D,
+    GameFpsPerformanceStatistic = 0x0001_02EF,
+    GameFrameLagPerDungeon = 0x0001_045C,
+    GameLagStatistics = 0x0001_0117,
 
     // Leaving the dungeon, which is the only thing that ends a run. See Game/DungeonClear.
     GameGiveUpGame = 0x0001_002A,

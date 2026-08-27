@@ -35,7 +35,7 @@ public sealed class ClientSpecProfileHandlerTests
         Assert.Contains("video=4096MB total=8192MB", entry.Message);
         Assert.Contains("directX=9.0.0", entry.Message);
         Assert.Contains("startLoading=unmeasured returnVillage=unmeasured", entry.Message);
-        Assert.Contains("off19=6", entry.Message);
+        Assert.Contains("off15=1 off20=6", entry.Message);
         Assert.Contains("6rows all-zero", entry.Message);
         Assert.Contains("entries=none", entry.Message);
     }
@@ -105,8 +105,9 @@ public sealed class ClientSpecProfileHandlerTests
         NormalizedVideoMemoryMegabytes: 4096,
         NormalizedTotalMemoryMegabytes: 8192,
         OperatingSystemKind: 0x0E,
+        Unknown15: 1,
         DirectXVersion: 0x00090000,
-        Unknown19: 6,
+        Unknown20: 6,
         StartLoadingSeconds: -1,
         ReturnVillageSeconds: -1,
         Table: CreateTable(),

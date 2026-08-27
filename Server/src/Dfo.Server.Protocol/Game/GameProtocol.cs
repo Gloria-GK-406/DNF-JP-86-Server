@@ -126,6 +126,12 @@ internal static class GameProtocol
 
     public const ushort RequestIgaVersionType = 0x039D;
 
+    public const ushort FpsPerformanceStatisticType = 0x02EF;
+
+    public const ushort FrameLagPerDungeonType = 0x045C;
+
+    public const ushort LagStatisticsType = 0x0117;
+
     /// <summary>Leaving the dungeon, asked and answered under one type.</summary>
     public const ushort GiveUpGameType = 0x002A;
 
