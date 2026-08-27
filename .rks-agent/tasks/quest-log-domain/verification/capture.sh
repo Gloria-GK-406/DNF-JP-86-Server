@@ -6,10 +6,13 @@
 # usage: capture.sh <label>        label lands in the archive file names
 set -u
 LABEL="${1:?usage: capture.sh <label>}"
-SW='C:/Users/10239/AppData/Local/Temp/claude/d--project-DNF/7caec783-c820-4633-b9d0-e9fbf9114f94/scratchpad'
-W='/d/project/DNF/DNF-JP-86-Server/.worktrees/a21-world-entry-protocol'
+# Both roots are derived rather than written down. The originals named the a21-world-entry-protocol
+# worktree, which was removed when that branch merged; a recipe that points at a path nobody has is
+# not a recipe. SW is where the probes live -- override it if they have moved.
+OUT="$(cd "$(dirname "$0")" && pwd)"
+W="$(cd "$OUT/../../../.." && pwd)"
+SW="${SW:-$OUT}"
 BIN="$W/Server/src/Dfo.Server.Host/bin/Debug/net10.0"
-OUT="$W/.rks-agent/tasks/quest-log-domain/verification"
 PVF='D:/project/DNF/DNFClient-A21-protocol/Script.pvf'
 ACCT=10038
 HASH=de509f65e9ccaae621cb7278fc2b8e6c
@@ -46,7 +49,10 @@ python wireclient.py 10011 "$ACCT" "$HASH" Nagisa 0 > "$SW/capture-create-$LABEL
 tail -1 "$SW/capture-create-$LABEL.txt"
 python entryprobe.py 10011 "$ACCT" "$HASH" 0 ours-entry.txt
 cp ours-entry.txt "$OUT/entry-batch-$LABEL.txt"
-python cmpentry.py > "$OUT/entry-compare-$LABEL.txt" 2>&1
+# cmpentry2.py, not the older cmpentry.py: it windows the reference by S->C position and
+# names the 08-23 capture rather than the upstream directory's default, which was overwritten.
+# The entry-compare-before/after/after-control files archived here predate both corrections.
+python cmpentry2.py ours-entry.txt "$OUT/entry-compare-$LABEL.txt" >/dev/null 2>&1
 head -2 "$OUT/entry-compare-$LABEL.txt"
 python questrows.py "$BIN/Data/dfo-server.db" > "$OUT/quest-rows-after-entry-$LABEL.txt" 2>&1
 halt
