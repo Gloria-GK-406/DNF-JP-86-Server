@@ -1,6 +1,6 @@
 # What the player saw before and after
 
-Same procedure throughout (`capture.sh`, archived beside this note), same archive, same account and
+Same procedure throughout (the harness now kept as [`Tool/WireSmoke`](../../../../Tool/WireSmoke/README.md)), same archive, same account and
 character, database wiped before each run. Four captures exist:
 
 | Label | Build | Why it was taken |

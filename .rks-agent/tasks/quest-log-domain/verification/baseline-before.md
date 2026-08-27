@@ -1,7 +1,8 @@
 # The baseline this refactor must not move
 
-Taken at commit `589adf34`, before any code changed. Reproduced by
-`scratchpad/capture.sh <label>`, which boots the host twice from a wiped database:
+Taken at commit `589adf34`, before any code changed. Reproduced by the harness that has since
+been moved into the repository as [`Tool/WireSmoke`](../../../../Tool/WireSmoke/README.md) --
+it boots the host twice from a wiped database:
 
 - **run A** creates the character and selects it, recording the whole entry batch;
 - **run B** starts cold again, creates the character, and accepts two quests.
