@@ -163,13 +163,31 @@ public sealed record QuestDefinition(
     IReadOnlyList<int> CollisionQuestIds,
     IReadOnlyList<int> AccountCollisionQuestIds,
     bool HasSpecialRewardStatus = false,
-    IReadOnlyList<SeekingItemRequirement>? SeekingItems = null)
+    IReadOnlyList<SeekingItemRequirement>? SeekingItems = null,
+    uint InitialTrigger = 1,
+    IReadOnlyList<QuestEventItem>? EventItems = null)
 {
     /// <summary>A quest offered regardless of grow type.</summary>
     public const int AnyGrowType = -1;
 
     public bool AppliesToAnyGrowType => GrowTypeRequirement is null;
+
+    /// <summary>Whether clearing this quest leaves it available to accept again.</summary>
+    /// <remarks>
+    /// Read from the grade rather than from a flag of its own, which is where the reference server
+    /// reads it: the three repeating grades are the daily pair and the plainly named repeat.
+    /// </remarks>
+    public bool IsRepeatable => Grade
+        is QuestGrade.Daily or QuestGrade.SpecialDaily or QuestGrade.NormallyRepeat;
 }
+
+/// <summary>One item a quest hands over at the moment it is accepted.</summary>
+/// <remarks>
+/// Declared under <c>[depend give item]</c>, which 126 of this archive's quests use. These are not
+/// the completion rewards: they arrive with the acceptance so the quest has something to be about,
+/// and the acceptance answer names the slot each one landed in.
+/// </remarks>
+public sealed record QuestEventItem(int ItemId, int Count);
 
 /// <summary>Static quest definitions, keyed by the identifiers the client uses.</summary>
 public interface IQuestDefinitionSource

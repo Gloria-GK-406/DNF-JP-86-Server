@@ -191,6 +191,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         var jobChangeValues = new List<int>();
         var objectiveType = string.Empty;
         var objectiveIntData = new List<int>();
+        var eventItemValues = new List<int>();
         var difficulty = string.Empty;
         var rewards = new List<QuestReward>();
         var completedGroups = new List<IReadOnlyList<int>>();
@@ -243,6 +244,8 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
                 objectiveType = StripBrackets(ReadString(archive, token, questId, "type"));
             else if (section == tags.IntData)
                 AddInteger(objectiveIntData, token, questId, "int data");
+            else if (section == tags.DependGiveItem)
+                AddInteger(eventItemValues, token, questId, "depend give item");
             else if (section == tags.Difficulty)
                 difficulty = ReadString(archive, token, questId, "difficulty");
             else if (section == tags.RewardType)
@@ -317,7 +320,9 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             [],
             [],
             hasSpecialRewardStatus,
-            ProjectSeekingItems(objectiveType, objectiveIntData));
+            ProjectSeekingItems(objectiveType, objectiveIntData),
+            ComputeInitialTrigger(objectiveType, objectiveIntData),
+            ProjectEventItems(eventItemValues));
 
         return new RawQuestDefinition(
             definition,
@@ -325,6 +330,79 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             requiredAnswerGroups,
             collisionGroups,
             accountCollisionGroups);
+    }
+
+    /// <summary>What the acceptance answer reports as this quest's starting progress.</summary>
+    /// <remarks>
+    /// A trigger is three nine-bit channels packed into a word, and which counts fill them depends
+    /// on what the quest is about. The reference server reads them out of <c>[int data]</c> at a
+    /// stride set by the objective type, and falls back to one for everything it does not
+    /// recognise.
+    /// <para>
+    /// <b>Three of its branches are not implemented here</b>, and each falls back to one rather
+    /// than to a guess: <c>seek n meet npc</c> and the quest-clear family both need indexes this
+    /// source does not build, and the <c>[sub type] 6</c> case needs a tag it does not read. The
+    /// two quests observed being accepted on the wire are <c>meet npc</c>, which reaches the same
+    /// fallback in the reference server itself -- so what is evidenced end to end is the fallback,
+    /// and the strided branches are transcribed rather than confirmed. See
+    /// protocol/game/client-to-server/0x001F.md.
+    /// </para>
+    /// </remarks>
+    private static uint ComputeInitialTrigger(string objectiveType, IReadOnlyList<int> intData) =>
+        objectiveType switch
+        {
+            "condition under clear" or "clear map" or "hunt monster" => PackChannels(intData, 4),
+            "condition under clear2" or "hunt enemy" => PackChannels(intData, 5),
+            "normal clear" => PackTrigger(1, 1, 0),
+            _ => DefaultInitialTrigger,
+        };
+
+    /// <summary>The trigger of a quest whose objective declares no counts.</summary>
+    private const uint DefaultInitialTrigger = 1;
+
+    /// <summary>
+    /// Every stride-th value of the objective data, packed into the first three channels.
+    /// </summary>
+    private static uint PackChannels(IReadOnlyList<int> intData, int stride)
+    {
+        if (intData.Count == 0)
+            return DefaultInitialTrigger;
+
+        var channels = new List<int>();
+        for (var index = 0; index + stride <= intData.Count; index += stride)
+            channels.Add(intData[index + stride - 1]);
+
+        return channels.Count == 0
+            ? DefaultInitialTrigger
+            : PackTrigger(
+                channels[0],
+                channels.Count > 1 ? channels[1] : 0,
+                channels.Count > 2 ? channels[2] : 0);
+    }
+
+    /// <summary>Three counts in one word, nine bits each, low channel first.</summary>
+    private static uint PackTrigger(int first, int second, int third) =>
+        (uint)(((third & 0x1FF) << 18) | ((second & 0x1FF) << 9) | (first & 0x1FF));
+
+    /// <summary>The <c>[depend give item]</c> pairs, read as item then count.</summary>
+    /// <remarks>
+    /// A trailing odd value is dropped rather than paired with a zero: a half-written pair is a
+    /// file this source does not understand, and inventing the missing half would hand the
+    /// character an item the archive never declared.
+    /// </remarks>
+    private static IReadOnlyList<QuestEventItem> ProjectEventItems(IReadOnlyList<int> values)
+    {
+        if (values.Count < 2)
+            return [];
+
+        var items = new List<QuestEventItem>(values.Count / 2);
+        for (var index = 0; index + 1 < values.Count; index += 2)
+        {
+            if (values[index] > 0 && values[index + 1] > 0)
+                items.Add(new QuestEventItem(values[index], values[index + 1]));
+        }
+
+        return items;
     }
 
     internal static IReadOnlyList<SeekingItemRequirement> ProjectSeekingItems(
@@ -680,6 +758,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             CompleteNpcIndex = Offset(archive, "[complete npc index]");
             Type = Offset(archive, "[type]");
             IntData = Offset(archive, "[int data]");
+            DependGiveItem = Offset(archive, "[depend give item]");
             Difficulty = Offset(archive, "[difficulty]");
             RewardType = Offset(archive, "[reward type]");
             RewardIntData = Offset(archive, "[reward int data]");
@@ -707,6 +786,8 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         public int CompleteNpcIndex { get; }
         public int Type { get; }
         public int IntData { get; }
+
+        public int DependGiveItem { get; }
         public int Difficulty { get; }
         public int RewardType { get; }
         public int RewardIntData { get; }

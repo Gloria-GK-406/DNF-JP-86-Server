@@ -14,6 +14,8 @@ public enum ClientMessageType
     GameClientHardwareDetail = 0x0001_01DD,
     GameClientSpecProfile = 0x0001_00C2,
     GameSessionMetrics = 0x0001_00FA,
+    GameAcceptQuest = 0x0001_001F,
+
     GameTaggedIdReport = 0x0001_008F,
     GameRosterFollowUp = 0x0001_02A8,
     GameCheckCharacterName = 0x0001_02B5,
@@ -145,6 +147,8 @@ public enum ServerMessageType
 
     // Acknowledges a tutorial flag change and carries what the step gave.
     // See Game/TaggedIdReport.
+    GameAcceptQuest = 0x0001_001F,
+
     GameTaggedIdReport = 0x0001_008F,
 
     // Whether the item was consumed. See Game/UseStackable.

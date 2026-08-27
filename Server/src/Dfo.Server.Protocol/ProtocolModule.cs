@@ -47,6 +47,7 @@ using Dfo.Server.Protocol.Game.SelectCharacter;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Game.SessionMetrics;
+using Dfo.Server.Protocol.Game.QuestAcceptance;
 using Dfo.Server.Protocol.Game.TaggedIdReport;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -94,6 +95,8 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Direct);
         services.AddCommandHandler<GetChannelInfoCommand, GetChannelInfoResult, GetChannelInfoCommandHandler>(
             CommandExecutionKind.Direct);
+        services.AddCommandHandler<AcceptQuestCommand, QuestAcceptOutcome, AcceptQuestCommandHandler>(
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<AcknowledgeGameExitCommand, AcknowledgeGameExitResult, AcknowledgeGameExitCommandHandler>(
             CommandExecutionKind.Direct);
         // Every command below reaches a write that outlives the process, so every one of them
@@ -191,6 +194,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<ClientHardwareDetailHandler>(ClientMessageType.GameClientHardwareDetail);
         services.RegisterMessageHandler<ClientSpecProfileHandler>(ClientMessageType.GameClientSpecProfile);
         services.RegisterMessageHandler<SessionMetricsHandler>(ClientMessageType.GameSessionMetrics);
+        services.RegisterMessageHandler<AcceptQuestHandler>(ClientMessageType.GameAcceptQuest);
         services.RegisterMessageHandler<TaggedIdReportHandler>(ClientMessageType.GameTaggedIdReport);
         services.RegisterMessageHandler<RosterFollowUpHandler>(ClientMessageType.GameRosterFollowUp);
         services.RegisterMessageHandler<CheckCharacterNameHandler>(ClientMessageType.GameCheckCharacterName);
@@ -278,8 +282,11 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.ClientSpecProfileType, ClientMessageType.GameClientSpecProfile);
         services.AddGameCmdMessageDecoder<SessionMetricsMessageDecoder>(
             GameProtocol.SessionMetricsType, ClientMessageType.GameSessionMetrics);
+        services.AddGameCmdMessageDecoder<AcceptQuestMessageDecoder>(
+            GameProtocol.AcceptQuestType, ClientMessageType.GameAcceptQuest);
         services.AddGameCmdMessageDecoder<TaggedIdReportMessageDecoder>(
             GameProtocol.TaggedIdReportType, ClientMessageType.GameTaggedIdReport);
+        services.AddGameCmdMessageEncoder<AcceptQuestAcknowledgement, AcceptQuestAcknowledgementEncoder>();
         services.AddGameCmdMessageEncoder<TutorialFlagAcknowledgement, TutorialFlagAcknowledgementEncoder>();
         services.AddGameNotiMessageEncoder<StoryPauseNotification, StoryPauseEncoder>();
         services.AddGameNotiMessageEncoder<ExperienceNotification, ExperienceEncoder>();

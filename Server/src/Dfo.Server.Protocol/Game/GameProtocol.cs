@@ -92,6 +92,15 @@ internal static class GameProtocol
     /// <summary>The exit, the merchant behind it, and the two frames of the result screen.</summary>
     public const ushort EnableClearDungeonNotificationType = 0x001F;
 
+    /// <summary>CMD 0x001F <c>ACCEPT_QUEST</c>: the client taking a quest on.</summary>
+    /// <remarks>
+    /// The same number as <see cref="EnableClearDungeonNotificationType"/> and a different
+    /// protocol: that one is a notification this server pushes, this one is a command the client
+    /// sends. The two families share one number space and disagree about most of it, so they get
+    /// two constants rather than one.
+    /// </remarks>
+    public const ushort AcceptQuestType = 0x001F;
+
     public const ushort SecretShopNpcNotificationType = 0x0117;
 
     public const ushort SetPlayResultType = 0x002E;
