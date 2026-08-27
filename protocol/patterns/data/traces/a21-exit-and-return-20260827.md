@@ -91,20 +91,92 @@ A21 的包头是 **25 字节**,A12 是 24。多出来的一字节在偏移 15,�
 （见 `Docs/ProtocolScaffoldDissonances.md` 二十一）。所以"读得懂的放行、读不懂的照断"就是
 现在期望的行为，这两行把它钉住了。
 
-探针是一次性工具，没有入库；重跑只要按 [`0x00C2`](../../../game/client-to-server/0x00C2.md)
-的 A21 节把那 362 字节包进一个 14 字节 A21 入站 header（校验和字段本服务端不校验，填零即可）
-送到游戏端口，再送一帧 `CMD 0x04DD` 看回不回。
+### 整串重放（这才是对得上玩家症状的那一条）
+
+单帧对照证明不了"退出这条路通了"——路上有七帧。把上游捕获的**七个 body 原样、按原顺序**打进
+跑着的服务端：
+
+```text
+greeting on connect: ['0x0001']
+
+0x02EF FPS_PERFORMANCE_STATISTIC   424B -> no answer            [alive]
+0x00C2 CLIENT_SPEC_PROFILE         362B -> no answer            [alive]
+0x045C FRAMELAG_PER_DUNGEON         21B -> no answer            [alive]
+0x00FA LODING_TIME_REPORT           56B -> no answer            [alive]
+0x0117 LAG_STATISTICS               61B -> no answer            [alive]
+0x0003 EXIT                          1B -> [('0x0003', '01')]   [alive]
+0x02B3 STATICS_RUNTIME_TING          1B -> no answer            [alive]
+
+follow-up 0x04DD -> [('0x04DD', '01')]  [ALIVE]
+```
+
+**七帧全部被接受，只有 `EXIT` 有回应，且回的正是上游那一个字节 `01`；结束时连接仍然活着。**
+与上游同段抓包逐帧同形。玩家那次卡在第二帧上，现在七帧都过得去。
+
+探针是一次性工具，没有入库；重跑只要把这七个 body 各包进一个 14 字节 A21 入站 header
+（校验和字段本服务端不校验，填零即可）送到游戏端口，最后补一帧 `CMD 0x04DD` 看回不回。
+body 取自 `ServerS4A21/Server/DfoServer/bin/Debug/packet_log.upstream-tutorial-20260827.txt`。
+
+## 五之三、同一段里还有第二颗雷：`CMD 0x00FA`
+
+把捕获的整串按顺序重放，**`0x00C2` 修好之后连接仍然会断，只是晚一帧**：
+
+```text
+0x02EF FPS_PERFORMANCE_STATISTIC    alive
+0x00C2 CLIENT_SPEC_PROFILE          alive        ← 本次修好的
+0x045C FRAMELAG_PER_DUNGEON         alive
+0x00FA LODING_TIME_REPORT           *** 断连
+```
+
+`0x00FA` 有结构化解码器且校验长度，而它**从来没被真实的 A21 体检验过**——上一次实机在
+`0x00C2` 就已经死了，这一帧根本没走到。
+
+原因和 `0x00C2` 同类：**A21 比 A12 多一段**。均值段是 `{u16 tag, u32 mean}`，A12 写七段
+（tag 0..6），A21 写八段，第八段的 tag 是**立即数 9**，并且排在两个计数段之前：
+
+```text
+00 00 | 00000000     01 00 | 00000000     02 00 | 00000000     03 00 | 00000000
+04 00 | 6E010000     05 00 | 00000000     06 00 | 00000000     09 00 | 16EE0000
+07 00 | 0000         08 00 | 0000                     8×6 + 4 + 4 = 56
+```
+
+本仓读到偏移 42 期望 tag 7、实得 tag 9，抛异常。改成八段之后整串走通：
+
+```text
+0x02EF alive   0x00C2 alive   0x045C alive   0x00FA alive   0x0117 alive
+EXIT  ->  cls=0x01 type=0x0003 body=01        ← 与上游逐字节相同
+after EXIT: alive
+```
+
+探针是 `scratchpad/exitprobe.py`，体全部取自参照抓包而不是构造——构造的体只能证明我们的解码器
+同意我们自己的猜测。
+
+**这颗雷是"保持全敏度"这个决定直接换来的**：真机上它会表现成"退出又卡住了"，再花掉一次实机
+会话才定位。用捕获的字节离线重放，几分钟就找到了。
 
 ## 六、还没做的
 
-| type | 上游 | 本仓 |
+| type | 上游 | 本仓（改完之后） |
 |---|---|---|
-| `CMD 0x001F` ACCEPT_QUEST | **回 `01 F8 03 01 00 00 00 00`** | 未实现,记 `Unhandled` |
-| `CMD 0x02EF` FPS_PERFORMANCE_STATISTIC | 不注册、不回 | 记 `Unhandled` |
-| `CMD 0x045C` FRAMELAG_PER_DUNGEON | 不注册、不回 | 未见(连接已断) |
-| `CMD 0x00FA` LODING_TIME_REPORT | 不注册、不回 | 未见 |
-| `CMD 0x0117` LAG_STATISTICS | 不注册、不回 | 未见 |
-| `CMD 0x02B3` STATICS_RUNTIME_TING | 不注册、不回 | 未见 |
+| `CMD 0x001F` ACCEPT_QUEST | **回 `01 F8 03 01 00 00 00 00`** | **未实现，仍记 `Unhandled`** |
+| `CMD 0x02EF` FPS_PERFORMANCE_STATISTIC | 不注册、不回 | 已登记为有意不回 |
+| `CMD 0x045C` FRAMELAG_PER_DUNGEON | 不注册、不回 | 已登记为有意不回 |
+| `CMD 0x00FA` LODING_TIME_REPORT | 不注册、不回 | 早已不回；这次把读法从 A12 的 50 字节改成 A21 的 56 |
+| `CMD 0x0117` LAG_STATISTICS | 不注册、不回 | 已登记为有意不回 |
+| `CMD 0x02B3` STATICS_RUNTIME_TING | 不注册、不回 | 早已不回；1 字节，A21 上没变 |
 
-后五个都是纯上报,上游一个都不回——按"全量模拟"应该登记成有意不回
-(`IUnansweredReport`),而不是继续躺在 `Unhandled` 里。`0x001F` 是真缺口,需要任务写入路径。
+**这一串里只剩 `0x001F` 是真缺口**，需要任务写入路径。其余六条上游一个都不回，本仓现在也都是
+"有意不回"而不是躺在 `Unhandled` 里——一个没实现的洞和一个照着上游不回的决定，在线上长得一模
+一样，混在同一条告警里会把真洞埋掉。
+
+## 七、这条路上的下一颗雷:`CMD 0x00FA` 也是错的
+
+`0x00FA` 本仓早就答成"不回"了,所以看起来没问题——**但它的读法是 A12 的**:七个均值、体长 50。
+A21 是**八个均值、体长 56**,多出来的一段 tag 是立即数 9,而且排在两个计数段之前。按 A12 读会
+在第 7 段抛"tag 9 出现在应为 tag 7 的位置",于是又是一次拆连接。
+
+**它这次没炸,只是因为 `0x00C2` 在它前面先炸了,它压根没到达。** 字节表见
+[`CMD 0x00FA`](../../../game/client-to-server/0x00FA.md) 的 A21 节。
+
+*教训*:一个类型"已经登记、已经答成不回"不等于它读得对。这一串退出上报里,已登记的两条
+(`0x00FA`/`0x02B3`)当时都没有拿 A21 的真实字节复核过。
