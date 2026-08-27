@@ -10,6 +10,62 @@ namespace Dfo.Server.Protocol.Tests.Game.Login;
 
 public sealed class GameLoginCodecTests
 {
+    /// <summary>
+    /// The login answer, transcribed from a session the A21 client accepted.
+    /// </summary>
+    /// <remarks>
+    /// Only the host differs from what this server sends: that session advertised
+    /// <c>127.0.0.2</c> and this one is configured with <c>127.0.0.1</c>. Everything else --
+    /// the five leading bytes including the revision, the connection port, the two endpoint ports
+    /// and the twenty-four byte tail -- is asserted as it was on the wire.
+    ///
+    /// Worth stating plainly: the client accepted the previous, one-byte-shorter body too. This
+    /// guard exists because "the client did not complain" and "the bytes are right" are different
+    /// claims, and only the second one survives a later field that depends on the difference.
+    /// </remarks>
+    [Fact]
+    public void The_success_body_matches_the_session_the_client_accepted()
+    {
+        var body = GameLoginResponseEncoder.EncodeSuccessBody(
+            new GameLoginResponse(
+                Succeeded: true,
+                Environment: 1,
+                ConnectionPort: 10128,
+                EndpointHost: "127.0.0.2",
+                EndpointPortA: 17200,
+                EndpointPortB: 17200));
+
+        Assert.Equal(
+            new byte[]
+            {
+                0x01, 0x14, 0x00, 0x01, 0x00,
+                0x90, 0x27, 0x00, 0x00,
+                0x09, 0x00, 0x00, 0x00,
+                0x31, 0x32, 0x37, 0x2E, 0x30, 0x2E, 0x30, 0x2E, 0x32,
+                0x30, 0x43, 0x00, 0x00,
+                0x30, 0x43, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            },
+            body);
+    }
+
+    [Fact]
+    public void The_success_body_is_forty_five_bytes_plus_the_host()
+    {
+        var body = GameLoginResponseEncoder.EncodeSuccessBody(
+            new GameLoginResponse(
+                Succeeded: true,
+                Environment: 1,
+                ConnectionPort: 10128,
+                EndpointHost: "192.0.2.20",
+                EndpointPortA: 17200,
+                EndpointPortB: 17201));
+
+        Assert.Equal(45 + "192.0.2.20".Length, body.Length);
+    }
+
     [Fact]
     public void TryDecode_ReadsTwoAsciiDStrings()
     {
@@ -36,8 +92,16 @@ public sealed class GameLoginCodecTests
         Assert.False(GameLoginPayloadCodec.TryDecode(oversized, out _, out _));
     }
 
+    /// <summary>
+    /// The frame around the body, and the body's fields named at their offsets.
+    /// </summary>
+    /// <remarks>
+    /// The offsets moved by one when this stopped targeting the A12 client: that client took four
+    /// leading bytes before the port and A21 takes five. The transcribed-body test above is the
+    /// golden; this one says which field is which, which a literal cannot.
+    /// </remarks>
     [Fact]
-    public void EncodeSuccess_PreservesLegacyLoginBody()
+    public void EncodeSuccess_NamesEachFieldOfTheLoginBody()
     {
         var frame = Assert.Single(
             new GameLoginResponseEncoder().Encode(CreateLoginResponse()));
@@ -45,17 +109,15 @@ public sealed class GameLoginCodecTests
         Assert.Equal(0x01, frame[0]);
         Assert.Equal(0x0001, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1, 2)));
         Assert.Equal(frame.Length, BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(3, 4)));
-        // Offsets follow the client's read order: four u8, a raw 4-byte port, a length-prefixed
-        // host string, then the two u32 the client passes to SetEndpoint.
         var body = frame.AsSpan(GameServerFrameEncoder.HeaderLength);
-        Assert.Equal(new byte[] { 0x01, 18, 0x00, 0x01 }, body[..4].ToArray());
-        Assert.Equal(10128, BinaryPrimitives.ReadInt32LittleEndian(body[4..8]));
-        Assert.Equal(10, BinaryPrimitives.ReadInt32LittleEndian(body[8..12]));
-        Assert.Equal("192.0.2.20", Encoding.ASCII.GetString(body[12..22]));
-        Assert.Equal(17200, BinaryPrimitives.ReadInt32LittleEndian(body[22..26]));
-        Assert.Equal(17200, BinaryPrimitives.ReadInt32LittleEndian(body[26..30]));
-        Assert.All(body[30..].ToArray(), value => Assert.Equal(0, value));
-        Assert.Equal(54, body.Length);
+        Assert.Equal(new byte[] { 0x01, 20, 0x00, 0x01, 0x00 }, body[..5].ToArray());
+        Assert.Equal(10128, BinaryPrimitives.ReadInt32LittleEndian(body[5..9]));
+        Assert.Equal(10, BinaryPrimitives.ReadInt32LittleEndian(body[9..13]));
+        Assert.Equal("192.0.2.20", Encoding.ASCII.GetString(body[13..23]));
+        Assert.Equal(17200, BinaryPrimitives.ReadInt32LittleEndian(body[23..27]));
+        Assert.Equal(17200, BinaryPrimitives.ReadInt32LittleEndian(body[27..31]));
+        Assert.All(body[31..].ToArray(), value => Assert.Equal(0, value));
+        Assert.Equal(55, body.Length);
     }
 
     [Fact]

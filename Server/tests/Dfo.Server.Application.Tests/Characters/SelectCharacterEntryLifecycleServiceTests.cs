@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Inventory;
@@ -54,8 +55,10 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var session = Session(result);
         var reloaded = result.CharacterInventory with
         {
-            Containers = [new InventoryContainerState(InventoryContainerType.Main, 0,
-                [new InventoryItemState(1, 65, Core(itemKind: 4, itemId: 9001, value: 2))])]
+            Containers = [
+                new InventoryContainerState(InventoryContainerType.Main, 0,
+                    [new InventoryItemState(1, 65, Core(itemKind: 4, itemId: 9001, value: 2))]),
+                new InventoryContainerState(InventoryContainerType.Equipment, 0, [])]
         };
         var leases = new EntryInventoryLeaseRegistry();
         var service = new SelectCharacterEntryInventoryDomainService(
@@ -113,20 +116,32 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
             {
                 VirtualResources = [new InventoryRuntimeValueState(0, 0, 7)],
                 Containers = [new InventoryContainerState(InventoryContainerType.Main, 0,
-                    [new InventoryItemState(1, 65, Core(itemKind: 5, itemId: 99, value: 999_999))])]
+                    [new InventoryItemState(1, 65, Core(itemKind: 5, itemId: 99, value: 999_999))]),
+                    new InventoryContainerState(InventoryContainerType.Equipment, 0, [])]
             }
         };
-        var characters = new RecordingCharacterStore();
+        var logs = new RecordingQuestLogs
+        {
+            Carried =
+            {
+                [602] = [new CarriedQuest(0, 100, 0), new CarriedQuest(1, 101, 0)],
+            },
+        };
         var service = new SelectCharacterQuestEntryService(
             new QuestSource(new Dictionary<int, IReadOnlyList<SeekingItemRequirement>>
             {
                 [100] = [new SeekingItemRequirement(0, 10)],
                 [101] = [new SeekingItemRequirement(99, 2)],
-            }), characters, new AmbientStoreAccess(new OpenTransactionAccessor()));
+            }), logs);
 
         var projection = await service.SynchronizeAsync(Session(result), result, CancellationToken.None);
 
-        Assert.Equal([3, 1], characters.QuestWrites.Select(value => value.TriggerValue));
+        // The whole of each write, not just the value: the slot says which row was corrected, and
+        // the quest as last seen is the guard that stands between this snapshot and a row that
+        // moved since. A test that watched only the new value would pass with either thrown away.
+        Assert.Equal(
+            [(new CarriedQuest(0, 100, 0), 3), (new CarriedQuest(1, 101, 0), 1)],
+            logs.ProgressWrites);
         Assert.Equal([3u, 1u], projection!.State.Quests.Select(value => value.TriggerValue));
         Assert.Equal([3, 1], projection.Result.CharacterEntry.Quests.ActiveQuests
             .Select(value => value.TriggerValue));
@@ -174,7 +189,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
     /// so a wrong value here reaches the client and nothing fails.
     /// </remarks>
     [Fact]
-    public async Task Entry_binds_the_character_to_its_own_main_container()
+    public async Task Entry_binds_the_character_to_its_own_main_and_equipment_containers()
     {
         var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(
             new AccountId(606), 606, 1);
@@ -182,7 +197,9 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         // An expanded bag: the parameter is this character's, not the container type's.
         var expanded = result.CharacterInventory with
         {
-            Containers = [new InventoryContainerState(InventoryContainerType.Main, 156, [])],
+            Containers = [
+                new InventoryContainerState(InventoryContainerType.Main, 156, []),
+                new InventoryContainerState(InventoryContainerType.Equipment, 0, [])],
         };
         var containers = new CharacterContainerDomainService();
         var service = new SelectCharacterEntryInventoryDomainService(
@@ -202,6 +219,14 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         Assert.False(bound.IsRemovable);
         Assert.Equal([bound], containers.GetContainers(
             session.CharacterId, InventoryContainerType.Main));
+
+        // Wearing a piece is a move between the two lists, so both ends have to be bound. Before
+        // 2026-08-26 only the bag was, and a player's drag onto an equipment slot came back refused
+        // for a list this server did not serve.
+        var equipment = containers.GetContainer(
+            session.CharacterId, InventoryContainerType.Equipment);
+        Assert.Equal(InventoryContainerType.Equipment, equipment.Type);
+        Assert.False(equipment.IsRemovable);
     }
 
     /// <summary>
@@ -209,15 +234,17 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
     /// </summary>
     /// <remarks>
     /// The entry projection emits every container type, empty ones included, so entry binds the
-    /// character to the main one. The shared fixture builds its state by hand and leaves the list
-    /// empty, which is a shape no load produces.
+    /// character to the main one and to the equipment it wears. The shared fixture builds its state
+    /// by hand and leaves the list empty, which is a shape no load produces.
     /// </remarks>
     private static SelectCharacterResult WithMainContainer(SelectCharacterResult result) =>
         result with
         {
             CharacterInventory = result.CharacterInventory with
             {
-                Containers = [new InventoryContainerState(InventoryContainerType.Main, 0, [])],
+                Containers = [
+                    new InventoryContainerState(InventoryContainerType.Main, 0, []),
+                    new InventoryContainerState(InventoryContainerType.Equipment, 0, [])],
             },
         };
 

@@ -39,14 +39,20 @@ BodyLength = 未知（字段集合已知不完整）
 
 | 项 | 值 |
 |---|---|
-| handler 入口 | `0x008FB420` |
+| handler 入口 | `0x00D4CAF0` |
 | handler 所在区 | text |
 | 注册路径 | batch:batch |
 
 
-支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`
+支持客户端 SHA-256：`1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`
 
 <!-- rks:machine:end -->
+
+<!-- rks:a12:begin -->
+
+> **本区结论得出于 A12 客户端**（SHA-256 `F78F0AEA…`），**A21 上尚未复核**。
+> 按迁移规则，本协议在 A21 上重做完成后整区删除；在那之前它是脚手架，不是 A21 的记录。
+> 迁移状态见[协议清单](../../catalog.md#a12-内容的退场)。
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
@@ -63,3 +69,20 @@ body 为 **5 字节全零**（上游 `Network/Builders/Town/FinishLoadingBuilder
 ## 服务端实现映射
 
 `Server/src/Dfo.Server.Protocol/Game/FinishLoading/FinishLoadingSlice.cs`。已实现并实机验证。
+
+<!-- rks:a12:end -->
+
+## A21
+
+**2026-08-26。** 上面的机器区由 **A12** 客户端（SHA-256 `F78F0AEA…`）的静态普查生成。
+本节记录 **A21** 客户端（SHA-256 `1F8244D3…`）上不同的部分。判据是 A21 参照会话的字节
+（[原始字节](../../patterns/data/traces/a21-reference-entry-bytes-20260825.md)）与本仓的线级重放
+（[副本段对照](../../patterns/data/traces/a21-dungeon-wire-20260826.md)），以及产出那份参照的
+服务端自己的构包器。
+
+**参照只发这一帧，前面没有 CMD 应答。**
+
+本仓此前对 `FINISH_LOADING` 回两帧：一字节的 CMD `0x0025` 接受，再是这条通知。
+参照两次装载完成（副本第一图、`MOVE_MAP` 之后）都**只发这条通知**。
+
+CMD 那条的编码器保留——旧客户端确实收到过一帧，那个形状值得留档——只是不再发出。

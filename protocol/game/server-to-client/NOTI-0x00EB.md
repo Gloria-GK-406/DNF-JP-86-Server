@@ -35,12 +35,12 @@ BodyLength = 2
 
 | 项 | 值 |
 |---|---|
-| handler 入口 | `0x008F6190` |
+| handler 入口 | `0x00D475D0` |
 | handler 所在区 | text |
 | 注册路径 | batch:batch |
 
 
-支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`
+支持客户端 SHA-256：`1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`
 
 <!-- rks:machine:end -->
 

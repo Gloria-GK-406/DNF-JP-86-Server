@@ -1,4 +1,4 @@
-﻿# 协议清单
+# 协议清单
 
 本页记录**已在线观察到、正在做或已做完**的协议：各自处于哪一阶段、细节在哪个文档。
 细节不写在这里——每行链接到该协议自己的文档。
@@ -44,7 +44,7 @@
 | `0x01` | `0x0008` | GET_USERINFO | Query / 有响应 | 双向验证结束 | [0x0008.md](game/client-to-server/0x0008.md) |
 | `0x01` | `0x000F` | `ENTER_SELECT_DUNGEON` | Query / 推 NOTI | 实现服务端功能 | [0x000F.md](game/client-to-server/0x000F.md) |
 | `0x01` | `0x0010` | `SELECT_DUNGEON` | Query / 有响应 | **已观察，未实现**（开副本运行） | [0x0010.md](game/client-to-server/0x0010.md) |
-| `0x01` | `0x0023` | `SET_USER_POSITION` | Report / 无响应 | 实现服务端功能 | [0x0023.md](game/client-to-server/0x0023.md) |
+| `0x01` | `0x0023` | `SET_USER_POSITION` | Report / A12 无响应，A21 推 `NOTI 0x0016` | 实现服务端功能 | [0x0023.md](game/client-to-server/0x0023.md) |
 | `0x01` | `0x003F` | `CERA` | Report / 无响应 | 实现服务端功能 | [0x003F.md](game/client-to-server/0x003F.md) |
 | `0x01` | `0x008F` | `CHANGE_TUTORIAL_FLAG` | Report / 无响应 | 双向验证结束 | [0x008F.md](game/client-to-server/0x008F.md) |
 | `0x01` | `0x00AB` | `CLIENT_SPEC_STATISTIC` | Report / 无响应 | 双向验证结束 | [0x00AB.md](game/client-to-server/0x00AB.md) |
@@ -52,7 +52,7 @@
 | `0x01` | `0x00C5` | `SAVE_GAME_OPTION_1` | Report / 无响应 | 实现服务端功能 | [0x00C5.md](game/client-to-server/0x00C5.md) |
 | `0x01` | `0x00FA` | `LODING_TIME_REPORT`（分段指标流） | Report / 无响应 | 双向验证结束 | [0x00FA.md](game/client-to-server/0x00FA.md) |
 | `0x01` | `0x0117` | `LAG_STATISTICS`（多态信封） | Report / 无响应 | 未知 | [0x0117.md](game/client-to-server/0x0117.md) |
-| `0x01` | `0x01BA` | `MERCENARY_INFO` | Query / 有响应 | 实现服务端功能 | [0x01BA.md](game/client-to-server/0x01BA.md) |
+| `0x01` | `0x01BA` | `MERCENARY_INFO` | Query / 有响应；**另在入场批次主动发一帧** | 实现服务端功能 | [0x01BA.md](game/client-to-server/0x01BA.md) |
 | `0x01` | `0x01DD` | `COMPATIBILITY_INDEX` | Report / 无响应 | 双向验证结束 | [0x01DD.md](game/client-to-server/0x01DD.md) |
 | `0x01` | `0x01F8` | `INFORM_NOTICE_2ND` | Report / 无响应 | 实现服务端功能 | [0x01F8.md](game/client-to-server/0x01F8.md) |
 | `0x01` | `0x0252` | `SECURITY_STATUS` | Report / 无响应 | 实现服务端功能 | [0x0252.md](game/client-to-server/0x0252.md) |
@@ -61,20 +61,35 @@
 | `0x01` | `0x02B3` | `STATICS_RUNTIME_TING` | Report / 无响应 | 实现服务端功能 | [0x02B3.md](game/client-to-server/0x02B3.md) |
 | `0x01` | `0x02B5` | `CHECK_DOUBLE_CHARACTER_NAME` | Query / 有响应 | 实现服务端功能 | [0x02B5.md](game/client-to-server/0x02B5.md) |
 | `0x01` | `0x02C1` | `CONTENTS_PLAY_INFO` | Query / 有响应 | 实现服务端功能 | [0x02C1.md](game/client-to-server/0x02C1.md) |
+| `0x01` | `0x04DD` | `CHECK_USER_CONNECTION` | Query / 有响应 | 实现服务端功能 | [0x04DD.md](game/client-to-server/0x04DD.md) |
 
 ## Game / Server → Client
 
 | Command | Type | 名称 | 角色 | 阶段 | 文档 |
 |---:|---:|---|---|---|---|
-| `0x01` CMD | `0x0001` | LOGIN response | Response | 确定语义 | [CMD-0x0001.md](game/server-to-client/CMD-0x0001.md) |
-| `0x00` NOTI | `0x0002` | 角色列表 | Notification | 未知 | — |
+| `0x01` CMD | `0x0001` | LOGIN response | Response | 实现服务端功能 | [CMD-0x0001.md](game/server-to-client/CMD-0x0001.md) |
+| `0x00` NOTI | `0x0001` | `CHANNELINFO` 初始连接通知 | Notification | 实现服务端功能 | [NOTI-0x0001.md](game/server-to-client/NOTI-0x0001.md) |
+| `0x01` CMD | `0x04DD` | `CHECK_USER_CONNECTION` response | Response | 实现服务端功能 | [0x04DD.md](game/client-to-server/0x04DD.md) |
+| `0x00` NOTI | `0x0002` | 角色列表 | Notification | 实现服务端功能 | [NOTI-0x0002.md](game/server-to-client/NOTI-0x0002.md) |
 | `0x01` CMD | `0x0003` | EXIT response | Response | 未知 | — |
 | `0x00` NOTI | `0x0289` | `HONOR_LEVEL_INFO` | Notification | 实现服务端功能 | [NOTI-0x0289.md](game/server-to-client/NOTI-0x0289.md) |
 | `0x00` NOTI | `0x0003` | `USER_STATE` | Notification | 实现服务端功能 | [NOTI-0x0003.md](game/server-to-client/NOTI-0x0003.md) |
-| `0x00` NOTI | `0x0017` | `USER_AREA` | Notification | 实现服务端功能 | [NOTI-0x0017.md](game/server-to-client/NOTI-0x0017.md) |
+| `0x00` NOTI | `0x0017` | `USER_AREA` | Notification | 编码器保留，**选副本时不发**——A21 参照只在回城路上发 | [NOTI-0x0017.md](game/server-to-client/NOTI-0x0017.md) |
 | `0x00` NOTI | `0x001A` | UDP 主机通告 | Notification | 实现服务端功能 | [NOTI-0x001A.md](game/server-to-client/NOTI-0x001A.md) |
-| `0x00` NOTI | `0x001B` | 进图选择状态 | Notification | 实现服务端功能 | [NOTI-0x001B.md](game/server-to-client/NOTI-0x001B.md) |
+| `0x00` NOTI | `0x001B` | 进图选择状态 | Notification | 实现服务端功能（A21：37 字节，随 `0x0010` 的回包发） | [NOTI-0x001B.md](game/server-to-client/NOTI-0x001B.md) |
 | `0x00` NOTI | `0x007C` | `ENTER_GAMEWORLD_COMPLETE` | **阶段闸点** | 双向验证结束 | [NOTI-0x007C.md](game/server-to-client/NOTI-0x007C.md) |
+| `0x00` NOTI | `0x0009` | `PARTY_INFO` | Notification | 实现服务端功能 | [NOTI-0x0009.md](game/server-to-client/NOTI-0x0009.md) |
+| `0x00` NOTI | `0x000E` | `UPDATE_ITEM_LIST` | Notification | 实现服务端功能（发当日补给的真实增量；批次里的空信封已撤） | [NOTI-0x000E.md](game/server-to-client/NOTI-0x000E.md) |
+| `0x00` NOTI | `0x0016` | `USER_POSITION` | Notification / 兼作 `0x0023` 的应答 | 实现服务端功能 | [NOTI-0x0016.md](game/server-to-client/NOTI-0x0016.md) |
+| `0x00` NOTI | `0x00CA` | `VILLAGE_OBJECT_LIST` | Notification | 实现服务端功能 | [NOTI-0x00CA.md](game/server-to-client/NOTI-0x00CA.md) |
+| `0x00` NOTI | `0x0165` | `CHARAC_INVISIBLE_FALGS` | Notification | 实现服务端功能 | [NOTI-0x0165.md](game/server-to-client/NOTI-0x0165.md) |
+| `0x00` NOTI | `0x021E` | `SET_USABLE_COUNT_INFO` | Notification | 实现服务端功能 | [NOTI-0x021E.md](game/server-to-client/NOTI-0x021E.md) |
+| `0x00` NOTI | `0x0344` | `BUY_RESTRICT_ITEM_LIST`（A21 号，A12 为 `0x02DA`） | Notification | 实现服务端功能 | [NOTI-0x0344.md](game/server-to-client/NOTI-0x0344.md) |
+| `0x00` NOTI | `0x036A` | `CONTRACT_OF_CUBE_INFO`（A21 号，A12 为 `0x0300`） | Notification | 实现服务端功能 | [NOTI-0x036A.md](game/server-to-client/NOTI-0x036A.md) |
+| `0x00` NOTI | `0x03C1` | `EQUIPMENT_RENTAL_LIST`（A21 号，A12 为 `0x0357`） | Notification | 实现服务端功能 | [NOTI-0x03C1.md](game/server-to-client/NOTI-0x03C1.md) |
+| `0x00` NOTI | `0x0465` | `EPIC_BOOK_INFO` | Notification | 实现服务端功能 | [NOTI-0x0465.md](game/server-to-client/NOTI-0x0465.md) |
+| `0x01` CMD | `0x0239` | `SET_CLONE_TITLE`（闸点之后） | Notification-shaped CMD | 实现服务端功能 | [0x0239.md](game/client-to-server/0x0239.md) |
+| `0x01` CMD | `0x036F` | `PREMIUM_SERVICE`（A21 号，A12 为 `0x0312`） | Notification-shaped CMD | 编码器保留，**入场批次不发**——A21 参照全程不发此号 | [0x036F.md](game/client-to-server/0x036F.md) |
 
 角色生命周期五条 CMD 的响应与其请求同 type、同属一次交换，因此记在各自的 C→S 文档内而不另建
 S→C 文档；理由见
@@ -89,6 +104,68 @@ S→C 的 command 取自服务端编码器（`GameLoginResponseEncoder` / `Accou
 只属于 `IGameCmdMessage` 或 `IGameNotiMessage`，专属 encoder 固定写入 `0x01` 或 `0x00`，
 专属 sender 方法在调用点约束类别。`Dfo.Server.Networking` 仅以不透明 `Selector + Type`
 拆帧、路由和编码；全部 C→S Game decoder 由 Protocol 的 CMD helper 注册。
+
+## A12 内容的退场
+
+服务端服务的是 **A21**，而本资料库的绝大部分结论得出于 **A12** 客户端。两者的协议身份
+本身就不一样（见上一节），所以 A12 的内容是**脚手架**，不是记录。
+
+规则：
+
+1. 一条协议在 A12 和 A21 上都存在、且 A12 已经做过的，**暂时保留** A12 的内容；
+2. 该协议在 A21 上重做完成后，**整块删除** A12 的内容；
+3. 终态：树里不再有任何 A12 内容。
+
+为了让第 3 步可验证而不是靠记性，A12 的人工内容被包在
+
+```html
+<!-- rks:a12:begin -->  …  <!-- rks:a12:end -->
+```
+
+之间，A21 原生的页面则带 `<!-- rks:origin:a21 -->`。进度用
+[`check-a12-residue.py`](patterns/data/check-a12-residue.py) 查：
+
+```
+python patterns/data/check-a12-residue.py . --list-mixed
+```
+
+它把每页归为 `a12-only` / `mixed` / `a21` / `empty` 四态。**`mixed` 就是待清单**——
+那些页已经记下了 A21 的差异，但上面的字段表还是 A12 的。
+
+**注意机器区。** 每页的机器区由静态普查生成，目前全部来自 A12 客户端（页脚的
+`支持客户端 SHA-256` 就是证据）。人工区清干净了，机器区仍是 A12 的；真正离开 A12
+要等对 A21 客户端重跑一次普查。检查器会单独报这个数。
+
+## 阶段与 A21
+
+**2026-08-24。** 上表的「阶段」列是在 **A12** 客户端上确立的。服务端现在服务 **A21**，
+两者在若干协议上并不一致（`0x007C` 的 body 长度、闸点之后能不能继续发、四个号的归属……），
+逐条差异记在各自文档的 `## A21` 一节，流程层差异见
+[进入世界](patterns/world-entry.md)。
+
+**没有一条协议在 A21 上达到过「双向验证结束」**：本轮迁移的判据是一份 A21 参照会话的
+逐帧比对与实机行为，**没有任何 body 布局取得指令级证据**。表里仍写着「双向验证结束」的行，
+说的是它在 A12 上的状态。
+
+> 上面这句原本还写着「没有对 A21 客户端做过静态普查」。那一条已经不成立：2026-08-24 对 A21
+> 镜像重跑了完整的身份普查与布局提取（[锚点](patterns/data/probes/a21-census-anchors.md)），
+> 整棵文档树的机器区都由它重生成。下面「清单的完整性」一节里的数字仍是 A12 的，尚未换。
+
+### 2026-08-25：入场批次逐帧对齐
+
+本仓的入场批次与 A21 参照会话已**逐帧对齐**：两侧各 66 帧，协议多重集差为空。过程与全表见
+[逐帧对账](patterns/data/traces/a21-entry-batch-diff-20260825.md)，实机会话见
+[进城实录](patterns/data/traces/a21-live-entry-20260825.md)。
+
+这一轮里有两条**被推翻的旧结论**，按规则连同原因保留：
+
+| 旧结论 | 出处 | 推翻它的证据 |
+|---|---|---|
+| `GAME_OPTION` 的大小差是数据差异，不是布局差异 | [a21-world-entry-20260823](patterns/data/traces/a21-world-entry-20260823.log) `[S]` 节 | 客户端自己发的 `CMD 0x00C5` body 是 **154 = 4 + 150**，即它的选项表就是 150 字节；服务端发 134 不会解析失败，但那不是同一张表 |
+| `ITEM_LIST` 的大小差是数据差异 | 同上 | 参照主背包声明 14 条、条目区 1414 字节，`1414/101` 整除——条目宽度本身变了 |
+
+两条都属于同一类误判：**「大小不同不等于布局不同」是对的，但它不是「大小不同就一定是数据」**。
+判据是能不能用角色数据把差额算平；算不平就要继续查。
 
 ## 清单的完整性
 
@@ -199,6 +276,13 @@ NOTI 没有信封。
 四条都已建独立文档：`0x00C2` / `0x00FA` / `0x008F` 均已双向验证结束，`0x0117` 仍为未知。
 `0x008F` 严格说不属于 flush——它是 EXIT **响应**的反应，详见其文档。
 
+> **A21 的这一段不一样（2026-08-27 实测）。** 顺序是
+> `0x02EF(424B) → 0x00C2(362B) → 0x045C(21B) → 0x00FA(56B) → 0x0117(61B) → 0x0003 EXIT ⇄ → 0x02B3(1B)`，
+> 且 **`0x00C2` 是 362 字节而不是 361**——A21 的包头比 A12 多一字节。本仓按 361 解码抛异常、
+> **连接被拆**，表现是玩家在城里按退出游戏卡死。详见
+> [0x00C2](game/client-to-server/0x00C2.md#a21包头是-25-字节不是-24--而且读错会掉线)
+> 与 [a21-exit-and-return-20260827](patterns/data/traces/a21-exit-and-return-20260827.md)。
+
 | Type | 方向 | Body | 观察 |
 |---:|---|---:|---|
 | `0x0003` | C→S | 1 | EXIT 请求（`00`）。服务端已实现 |
@@ -233,3 +317,12 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 的字节，不管发送方走没走加密**。两者盲区不重叠，合起来才能断言"客户端确实什么都没发"。
 方法上的推论见
 [角色生命周期协议族](patterns/character-lifecycle.md#顺带解决的旧悬案seq-4-与-seq-6)。
+
+### 2026-08-26：副本段
+
+`0x000F` / `0x0010` / `0x008F` / `0x0252` / `0x0025` / `0x00BF` 及其回包在**线级**上已与 A21
+参照逐帧同形，见[副本段对照](patterns/data/traces/a21-dungeon-wire-20260826.md)。
+**尚未由真客户端确认**——线级重放证明服务端答了什么，不证明客户端接受什么。
+
+同时修掉一处会让排查代价极高的形状：解码器抛出的异常此前没有报告路径，
+表现为连接静默消失。详见[进入世界](patterns/world-entry.md#断线的机制)。

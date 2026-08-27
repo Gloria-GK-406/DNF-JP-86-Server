@@ -52,9 +52,20 @@ internal static class SupplementalSynchronizationCodec
             writer.Write(character.Job);
             writer.Write(character.GrowType);
             writer.Write(character.Level);
-            writer.Write(character.HonorLevel);
-            writer.Write(character.HonorExperience);
-            writer.Write(character.HonorReserved);
+            // The same ten bytes the roster screen writes, from the same reading: two observed
+            // literals and eight zeros. This used to model them as two progress values plus a
+            // reserved field, which sends four zeros on any character whose first progress value
+            // is not 267 -- and the reference session's entry-path copy of this frame is byte for
+            // byte its roster-screen copy, 0B 01 included. Two codecs for one wire fact is the
+            // dissonance recorded in Docs/ProtocolScaffoldDissonances.md; until they are one, the
+            // least they can do is agree.
+            //
+            // Which reading is right is still open: 0B 01 00 00 is also the little-endian u32 267.
+            // A second character whose progress differs would settle it.
+            writer.Write(AccountRoster.AccountCharacterRosterPayloadCodec.FirstByteAfterLevel);
+            writer.Write(AccountRoster.AccountCharacterRosterPayloadCodec.SecondByteAfterLevel);
+            writer.Write(0u);
+            writer.Write(0u);
             writer.Write(checked((byte)appearances.Count));
             foreach (var appearance in appearances)
                 WriteAppearance(writer, appearance);
@@ -229,8 +240,9 @@ internal static class SupplementalSynchronizationCodec
         if (userId == 0)
             throw Missing("Pvp.Identity.CharacterId");
         var body = EncodePvpSubtype0(identity);
-        if (body.Length < 5 || body[0] != 0 || BitConverter.ToUInt16(body, 1) != 1 ||
-            BitConverter.ToUInt16(body, 3) != userId)
+        var idOffset = StateSynchronizationPayloadCodec.CurrentUserStateCharacterIdOffset;
+        if (body.Length < idOffset + 2 || body[0] != 0 || BitConverter.ToUInt16(body, 1) != 1 ||
+            BitConverter.ToUInt16(body, idOffset) != userId)
             throw new InvalidDataException("PvP identity is not a matching subtype-0 USERINFO body.");
         if (seen is not null && !seen.Add(userId))
             throw new InvalidDataException("PvP identity order contains a duplicate user id.");
@@ -290,6 +302,15 @@ internal static class SupplementalSynchronizationCodec
         writer.Write(value.Flag20);
     }
 
+    /// <summary>The same thirty-six byte close the roster screen writes.</summary>
+    /// <remarks>
+    /// This is the second encoder of subtype 2 in the repository -- the roster screen has its own
+    /// -- so the tail lives twice, and both were corrected together because the tail is one wire
+    /// fact. Only the tail: the ten bytes after the level still differ between the two, this one
+    /// writing progress values where the roster screen writes the bytes that session carried.
+    /// Both of those, and why they were not merged here, are in
+    /// Docs/ProtocolScaffoldDissonances.md.
+    /// </remarks>
     private static void WriteRosterTail(BinaryWriter writer, uint cloneTitleItemId)
     {
         writer.Write(cloneTitleItemId);
@@ -298,7 +319,10 @@ internal static class SupplementalSynchronizationCodec
         writer.Write(0u);
         writer.Write((byte)0);
         writer.Write(0u);
-        writer.Write(new byte[] { 0, 0, 0, 3, 0, 0, 4, 0, 0, 0, 0 });
+        writer.Write(new byte[6]);
+        writer.Write((byte)0xFF);
+        writer.Write(new byte[4]);
+        writer.Write(0u);
     }
 
     private static void WriteDstr(BinaryWriter writer, byte[]? value)

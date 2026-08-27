@@ -584,10 +584,20 @@ internal sealed class PersistentItemContainer(
     /// Taken from the loader rather than from the store, because the snapshot the client is shown
     /// carries facts the store's vocabulary does not name -- an avatar's details among them. What
     /// the entry snapshot is built from is not this refactor's subject.
+    /// <para>
+    /// Only the main list has such a loader. The equipment container is bound so that a piece can
+    /// be put on and taken off, and what the client is shown of it comes from the entry projection
+    /// rather than from here. Refused rather than answered out of the store, because a snapshot
+    /// assembled without those facts is one with an avatar quietly stripped of its colours -- and a
+    /// caller would have no way to tell that from a container that simply holds none.
+    /// </para>
     /// </remarks>
     public override ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
         CancellationToken cancellationToken) =>
-        snapshots.ReadMainItemsAsync(characterId, cancellationToken);
+        this.Type == InventoryContainerType.Main
+            ? snapshots.ReadMainItemsAsync(characterId, cancellationToken)
+            : throw new NotSupportedException(
+                $"Container '{this.Id.Value}' has no snapshot source; only the main list does.");
 
     private protected override ValueTask WriteAsync(Action<IItemStoreSession> write)
     {

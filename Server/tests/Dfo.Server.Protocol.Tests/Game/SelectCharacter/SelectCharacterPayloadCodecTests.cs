@@ -86,21 +86,29 @@ public sealed class SelectCharacterPayloadCodecTests
         var avatar = EncodeInventory(
             result, InventoryContainerType.Avatar);
 
-        Assert.Equal(5 + (10 * 84), main.Length);
+        // Two A21 measurements move every number here, and neither changes what is asserted: the
+        // common entry is 101 bytes rather than 84, and the main container carries fourteen virtual
+        // slots rather than nine. The same four values are still read back from the same fields --
+        // the item id, the avatar's jewel-socket length and its two colours -- at the offsets those
+        // two facts put them at. The avatar extension is unchanged at forty-two bytes.
+        Assert.Equal(5 + (15 * 101), main.Length);
         Assert.Equal((byte)InventoryContainerType.Main, main[0]);
-        Assert.Equal(10, BinaryPrimitives.ReadUInt16LittleEndian(main.AsSpan(3, 2)));
-        Assert.Equal(1001, BinaryPrimitives.ReadInt32LittleEndian(main.AsSpan(259, 4)));
-        Assert.Equal(5 + 126, avatar.Length);
-        Assert.Equal(30, BinaryPrimitives.ReadInt32LittleEndian(avatar.AsSpan(89, 4)));
-        Assert.Equal(0x1122, BinaryPrimitives.ReadUInt16LittleEndian(avatar.AsSpan(127, 2)));
-        Assert.Equal(0x3344, BinaryPrimitives.ReadUInt16LittleEndian(avatar.AsSpan(129, 2)));
+        Assert.Equal(15, BinaryPrimitives.ReadUInt16LittleEndian(main.AsSpan(3, 2)));
+        Assert.Equal(1001, BinaryPrimitives.ReadInt32LittleEndian(main.AsSpan(310, 4)));
+        Assert.Equal(5 + 101 + 42, avatar.Length);
+        Assert.Equal(30, BinaryPrimitives.ReadInt32LittleEndian(avatar.AsSpan(106, 4)));
+        Assert.Equal(0x1122, BinaryPrimitives.ReadUInt16LittleEndian(avatar.AsSpan(144, 2)));
+        Assert.Equal(0x3344, BinaryPrimitives.ReadUInt16LittleEndian(avatar.AsSpan(146, 2)));
     }
 
     [Theory]
     [InlineData(0x006C, 3)]
     [InlineData(0x017B, 11)]
     [InlineData(0x021F, 4)]
-    [InlineData(0x007C, 0)]
+    // A21 gives the completion marker an eight-byte body; A12's was empty. The frame is still a
+    // pure signal -- both observed bodies are constants -- but "zero length" is no longer what
+    // identifies it.
+    [InlineData(0x007C, 8)]
     [InlineData(0x0111, 8)]
     public void SelectCharacterPayload_ObservedConstantBodiesHaveExactLengths(
         ushort type,
@@ -227,7 +235,10 @@ public sealed class SelectCharacterPayloadCodecTests
         Assert.Equal(1, BinaryPrimitives.ReadUInt16LittleEndian(populated));
         Assert.Equal(source.Character.Identity.CharacterId.Value,
             BinaryPrimitives.ReadUInt16LittleEndian(populated.AsSpan(2)));
-        Assert.Equal(320, populated.Length);
+        // Three entries, each ending in the A21 tail the older client had no room for: nine
+        // zero bytes for a costume-bar or creature slot, seventeen for an ordinary one. All
+        // three of these are costume-bar or creature slots, so the body grew by 27.
+        Assert.Equal(347, populated.Length);
         Assert.Equal(3, populated[100]);
 
         // Ordinary slot: NOTI-2 begins with u8 slot and uses dynamic sections.
@@ -242,20 +253,20 @@ public sealed class SelectCharacterPayloadCodecTests
         Assert.Equal([7, 8, 9, 10, 0xFF], populated.AsSpan(158, 5).ToArray());
 
         // Avatar slot: remaining seconds, clear-avatar u32, jewel socket and colors.
-        Assert.Equal(2, populated[173]);
-        Assert.Equal(222, BinaryPrimitives.ReadInt32LittleEndian(populated.AsSpan(174)));
-        Assert.Equal(300u, BinaryPrimitives.ReadUInt32LittleEndian(populated.AsSpan(178)));
-        Assert.Equal(333u, BinaryPrimitives.ReadUInt32LittleEndian(populated.AsSpan(185)));
-        Assert.Equal(30, BinaryPrimitives.ReadInt32LittleEndian(populated.AsSpan(197)));
+        Assert.Equal(2, populated[182]);
+        Assert.Equal(222, BinaryPrimitives.ReadInt32LittleEndian(populated.AsSpan(183)));
+        Assert.Equal(300u, BinaryPrimitives.ReadUInt32LittleEndian(populated.AsSpan(187)));
+        Assert.Equal(333u, BinaryPrimitives.ReadUInt32LittleEndian(populated.AsSpan(194)));
+        Assert.Equal(30, BinaryPrimitives.ReadInt32LittleEndian(populated.AsSpan(206)));
         Assert.Equal(Enumerable.Range(0, 30).Select(value => (byte)value),
-            populated.AsSpan(201, 30).ToArray());
-        Assert.Equal(0x1122, BinaryPrimitives.ReadUInt16LittleEndian(populated.AsSpan(235)));
-        Assert.Equal(0x3344, BinaryPrimitives.ReadUInt16LittleEndian(populated.AsSpan(237)));
+            populated.AsSpan(210, 30).ToArray());
+        Assert.Equal(0x1122, BinaryPrimitives.ReadUInt16LittleEndian(populated.AsSpan(244)));
+        Assert.Equal(0x3344, BinaryPrimitives.ReadUInt16LittleEndian(populated.AsSpan(246)));
 
         // Creature slot 24 carries the NOTI-2 creature marker after the enchant block.
-        Assert.Equal(24, populated[258]);
-        Assert.Equal(444, BinaryPrimitives.ReadInt32LittleEndian(populated.AsSpan(259)));
-        Assert.Equal(555u, BinaryPrimitives.ReadUInt32LittleEndian(populated.AsSpan(282)));
+        Assert.Equal(24, populated[276]);
+        Assert.Equal(444, BinaryPrimitives.ReadInt32LittleEndian(populated.AsSpan(277)));
+        Assert.Equal(555u, BinaryPrimitives.ReadUInt32LittleEndian(populated.AsSpan(300)));
         Assert.Equal([0, 0], empty);
         Assert.Throws<InvalidDataException>(() => EncodeSelectedStateBody(
             source with
@@ -335,9 +346,14 @@ public sealed class SelectCharacterPayloadCodecTests
             (0x019D, 0), (0x019F, 0), (0x01A8, 0), (0x01B9, 0),
             (0x01C7, 0), (0x01EB, 0), (0x021F, 0), (0x0245, 0),
             (0x025B, 0), (0x0286, 0), (0x02D5, 0), (0x02D5, 1),
-            (0x02D5, 2), (0x02DA, 0), (0x0300, 0), (0x0331, 0),
-            (0x0357, 0), (0x0381, 0), (0x0381, 1), (0x03D8, 0),
+            // 0x0344, 0x036A and 0x03C1 are the A21 numbers for what A12 numbered 0x02DA, 0x0300
+            // and 0x0357. The other four in this list keep their numbers: A21's own server sends
+            // those bodies at 0x02D5, 0x0331, 0x0381 and 0x03D8, whatever it calls them.
+            (0x02D5, 2), (0x0344, 0), (0x036A, 0), (0x0331, 0),
+            (0x03C1, 0), (0x0381, 0), (0x0381, 1), (0x03D8, 0),
             (0x007C, 0), (0x0111, 0), (0x01C0, 0), (0x0077, 0),
+            // The sixth ITEM_LIST: A21's guild-medal container, which the older client did not have.
+            (0x000D, 5),
         };
 
         foreach (var @case in cases)
@@ -345,6 +361,11 @@ public sealed class SelectCharacterPayloadCodecTests
                 result, @case.Type, @case.Occurrence));
 
         Assert.Equal(77, EncodePremiumService(result).Length);
+        // MERCENARY_INFO is a CMD, so like PREMIUM_SERVICE it is built directly rather than looked
+        // up in the batch. Seven bytes: the envelope's acceptance and an empty expedition roster.
+        Assert.Equal(
+            new byte[] { 0x01, 0, 0, 0, 0, 0, 0 },
+            new MercenarySupportStateMessage().EncodeBody());
     }
 
     [Fact]
@@ -393,19 +414,13 @@ public sealed class SelectCharacterPayloadCodecTests
                 },
             },
             InventoryContainerType.Avatar));
-        Assert.Throws<InvalidDataException>(() => EncodeSelectedStateBody(
-            result with
-            {
-                CharacterEntry = result.CharacterEntry with
-                {
-                    Public = result.CharacterEntry.Public with
-                    {
-                        Pvp = result.CharacterEntry.Public.Pvp with { Results = null! },
-                    },
-                },
-            },
-            0x0002,
-            1));
+
+        // An unavailable PvP result list used to have to throw here, because subtype 1 wrote the
+        // list and a null would have gone out as a count of zero -- "no results" where the truth is
+        // "not loaded". A21's subtype 1 does not carry PvP results at all, so there is no longer a
+        // wire value that could be mistaken for one, and nothing for this frame to refuse.
+        // Whether the domain should still be loading them is a separate question, recorded in
+        // Docs/ProtocolScaffoldDissonances.md rather than answered here.
     }
 
     [Fact]
@@ -525,29 +540,34 @@ public sealed class SelectCharacterPayloadCodecTests
     }
 
     [Fact]
-    public void SelectCharacterPayload_Subtype1PreservesPvpResultsAndSpecialRewardQuestIds()
+    public void SelectCharacterPayload_Subtype1EndsWithTheA21DimensionRollAndItsConstantRuns()
     {
         var result = SelectCharacterPayloadTestData.CreateComplete();
 
         var body = EncodeSelectedStateBody(result, 0x0002, 1);
-        byte[] expectedTail =
-        [
-            2,
-            0x44, 0x33, 0x22, 0x11, 0x66, 0x55, 0x88, 0x77,
-            0x04, 0x03, 0x02, 0x01, 0x06, 0x05, 0x08, 0x07,
-            8,
-            2, 0, 0, 0,
-            0x0D, 0x0C, 0x0B, 0x0A,
-            0x14, 0x13, 0x12, 0x11,
-            0,
-            0, 0, 0, 0,
-            0, 0, 0, 0,
-            0, 0,
-            0x0B, 0, 0, 0,
-            0x0C, 0, 0, 0,
-        ];
 
-        Assert.Equal(expectedTail, body[^expectedTail.Length..]);
+        // A21 ends subtype 1 with a fixed roll of twenty-six dimension keys and two constant runs
+        // around the manage level and manage point. What stood here before was the older client's
+        // tail -- four dimension flags, a PvP result list, a special-reward quest list and six stat
+        // fields -- and none of it is on A21's wire.
+        //
+        // The values below are not a re-recording of whatever the encoder now produces: every byte
+        // is read off the reference session's own subtype 1, whose last 187 bytes this reproduces
+        // exactly. See patterns/data/traces/a21-entry-batch-diff-20260825.md.
+        var tail = body[^187..];
+        Assert.Equal(26, tail[0]);
+        Assert.Equal(11006u, BinaryPrimitives.ReadUInt32LittleEndian(tail.AsSpan(1, 4)));
+        Assert.Equal(3, tail[6]);
+        Assert.Equal(4123u, BinaryPrimitives.ReadUInt32LittleEndian(tail.AsSpan(1 + (25 * 6), 4)));
+        Assert.Equal(3, tail[1 + (25 * 6) + 5]);
+        Assert.Equal(
+            new byte[] { 0x02, 0x00, 0x05, 0x00, 0x6F, 0x00, 0x00, 0x00, 0x00 },
+            tail[157..166]);
+        Assert.Equal(8, tail[166]);                                  // manage level, from the domain
+        Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(tail.AsSpan(167, 4)));
+        Assert.Equal(
+            new byte[] { 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+            tail[171..187]);
     }
 
     [Fact]
@@ -599,7 +619,13 @@ public sealed class SelectCharacterPayloadCodecTests
 
             Assert.Equal([13502], typed.Public.Extras.SpecialRewardQuestIds);
             Assert.Empty(typed.Public.Pvp.Results);
-            Assert.Equal(13502u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(body.Length - 23, 4)));
+
+            // The wire assertion that used to follow -- the quest id 23 bytes from the end of
+            // subtype 1 -- is gone because A21's subtype 1 does not carry the special-reward list.
+            // What this test is named for still holds and is still checked: the id comes out of the
+            // real SQLite source rather than the fixture. The body is still built so that a change
+            // which makes the domain unencodable fails here rather than silently.
+            Assert.NotEmpty(body);
         }
         finally
         {
@@ -690,6 +716,20 @@ public sealed class SelectCharacterPayloadCodecTests
             message = new DarkKnightComboStateMessage(
                 result.CharacterEntry.Skills.DarkKnightCombos
                 ?? throw new InvalidDataException("Dark Knight combo state is unavailable."));
+        }
+        // Both left the A21 entry sequence but keep their encoders, so they are built here for the
+        // same reason 0x0245 and 0x01C0 are: the body is still worth pinning, and reaching it
+        // through the batch would silently stop testing anything the day it is not in the batch.
+        else if (type == 0x019F)
+        {
+            message = new SupportCharacterStateMessage(
+                result.Character.Identity.CharacterId,
+                result.Account.Relations.CharacterRelations,
+                result.World.PreparedAt);
+        }
+        else if (type == 0x019D)
+        {
+            message = new LuckyStarStateMessage(result.Account.Wallet.LuckyStar);
         }
         else
         {

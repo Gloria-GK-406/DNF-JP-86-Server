@@ -35,9 +35,6 @@ public interface ICharacterStore : IDomainStore<ICharacterStoreSession>;
 /// </remarks>
 public interface ICharacterStoreSession
 {
-    /// <summary>The quests the character is carrying, by the slot each sits in.</summary>
-    IStoreSession<OwnedCharacterId, short, StoredActiveQuest> Quests { get; }
-
     /// <summary>The creatures the character owns, by the key each is known under.</summary>
     IStoreSession<OwnedCharacterId, long, StoredCreature> Creatures { get; }
 
@@ -56,19 +53,6 @@ public interface ICharacterStoreSession
     /// <summary>Puts the character at this exact place.</summary>
     void WritePosition(OwnedCharacterId characterId, CharacterPositionState position);
 }
-
-/// <summary>The whole of what one quest slot holds.</summary>
-/// <param name="ExpectedTriggerValue">
-/// What the caller last saw in this slot, or null to write regardless.
-/// </param>
-/// <remarks>
-/// The expectation travels with the value because it is part of what the caller is asserting: not
-/// merely that the slot should now hold this, but that it still holds what they were told it did.
-/// Writing without it would lose the guard that stands between a stale entry snapshot and the row
-/// as it is now.
-/// </remarks>
-public sealed record StoredActiveQuest(
-    short Slot, int QuestId, int TriggerValue, int? ExpectedTriggerValue = null);
 
 /// <summary>The condition one of a character's creatures is in.</summary>
 /// <param name="OnlyWhenAtMostZero">

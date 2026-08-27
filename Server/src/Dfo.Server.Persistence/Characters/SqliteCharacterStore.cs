@@ -58,8 +58,6 @@ internal sealed class SqliteCharacterStoreSession : ICharacterStoreSession, ISql
 {
     private readonly SqliteDatabaseParticipant owner;
 
-    private readonly QuestSection quests;
-
     private readonly CreatureSection creatures;
 
     private readonly Dictionary<OwnedCharacterId, CharacterPositionState> positions = [];
@@ -67,16 +65,12 @@ internal sealed class SqliteCharacterStoreSession : ICharacterStoreSession, ISql
     public SqliteCharacterStoreSession(SqliteDatabaseParticipant owner)
     {
         this.owner = owner;
-        this.quests = new QuestSection(owner);
         this.creatures = new CreatureSection(owner);
     }
 
-    public IStoreSession<OwnedCharacterId, short, StoredActiveQuest> Quests => this.quests;
-
     public IStoreSession<OwnedCharacterId, long, StoredCreature> Creatures => this.creatures;
 
-    public bool HasStagedWork =>
-        this.quests.HasStagedWork || this.creatures.HasStagedWork || this.positions.Count > 0;
+    public bool HasStagedWork => this.creatures.HasStagedWork || this.positions.Count > 0;
 
     public async ValueTask<bool> HoldsAsync(
         OwnedCharacterId characterId, CancellationToken cancellationToken)
@@ -128,7 +122,6 @@ internal sealed class SqliteCharacterStoreSession : ICharacterStoreSession, ISql
             await this.RefuseUnlessOwnedAsync(characterId, cancellationToken).ConfigureAwait(false);
         }
 
-        await this.quests.FlushAsync(cancellationToken).ConfigureAwait(false);
         await this.creatures.FlushAsync(cancellationToken).ConfigureAwait(false);
         foreach (var (characterId, position) in this.positions)
         {
@@ -138,7 +131,6 @@ internal sealed class SqliteCharacterStoreSession : ICharacterStoreSession, ISql
 
     public void Discard()
     {
-        this.quests.Discard();
         this.creatures.Discard();
         this.positions.Clear();
     }
@@ -148,8 +140,7 @@ internal sealed class SqliteCharacterStoreSession : ICharacterStoreSession, ISql
     /// and refuses in its own words, exactly as it always has; asking here as well would replace
     /// that refusal with this one and change what a caller is told.
     /// </remarks>
-    private IEnumerable<OwnedCharacterId> Touched() =>
-        this.quests.Touched.Concat(this.creatures.Touched).Distinct();
+    private IEnumerable<OwnedCharacterId> Touched() => this.creatures.Touched.Distinct();
 
     /// <remarks>
     /// The same pairing the section writes are addressed by. A character that is not this
@@ -194,193 +185,6 @@ internal sealed class SqliteCharacterStoreSession : ICharacterStoreSession, ISql
     }
 }
 
-/// <summary>One of a character's sections that holds many rows, staged and flushed as a batch.</summary>
-/// <remarks>
-/// The staging, the overlay a read applies to what the database says, and letting go afterwards
-/// are the same for every such section; only the rows and the statements differ.
-/// </remarks>
-internal abstract class SqliteCharacterSection<TKey, TValue>(SqliteDatabaseParticipant owner)
-    : IStoreSession<OwnedCharacterId, TKey, TValue>
-    where TKey : notnull
-    where TValue : class
-{
-    private readonly Dictionary<OwnedCharacterId, Dictionary<TKey, TValue?>> staged = [];
-
-    public bool HasStagedWork => this.staged.Count > 0;
-
-    public IEnumerable<OwnedCharacterId> Touched => this.staged.Keys;
-
-    protected SqliteDatabaseParticipant Owner { get; } = owner;
-
-    public async ValueTask<IReadOnlyList<TValue>> ReadAllAsync(
-        OwnedCharacterId place, CancellationToken cancellationToken)
-    {
-        var rows = new SortedDictionary<TKey, TValue>(
-            Comparer<TKey>.Default);
-        foreach (var value in await this.ReadRowsAsync(place, cancellationToken).ConfigureAwait(false))
-        {
-            rows[this.KeyOf(value)] = value;
-        }
-
-        if (this.staged.TryGetValue(place, out var held))
-        {
-            foreach (var (key, value) in held)
-            {
-                if (value is null)
-                {
-                    rows.Remove(key);
-                }
-                else
-                {
-                    rows[key] = value;
-                }
-            }
-        }
-
-        return [.. rows.Values];
-    }
-
-    public async ValueTask<TValue?> ReadAsync(
-        OwnedCharacterId place, TKey key, CancellationToken cancellationToken)
-    {
-        if (this.staged.TryGetValue(place, out var held) && held.TryGetValue(key, out var value))
-        {
-            return value;
-        }
-
-        foreach (var row in await this.ReadRowsAsync(place, cancellationToken).ConfigureAwait(false))
-        {
-            if (this.KeyOf(row).Equals(key))
-            {
-                return row;
-            }
-        }
-
-        return null;
-    }
-
-    public void Write(OwnedCharacterId place, TValue value)
-    {
-        ArgumentNullException.ThrowIfNull(value);
-        this.Staged(place)[this.KeyOf(value)] = value;
-    }
-
-    public virtual void Clear(OwnedCharacterId place, TKey key) => this.Staged(place)[key] = null;
-
-    public async ValueTask FlushAsync(CancellationToken cancellationToken)
-    {
-        foreach (var (place, rows) in this.staged)
-        {
-            foreach (var (key, value) in rows)
-            {
-                if (value is null)
-                {
-                    await this.EmptyAsync(place, key, cancellationToken).ConfigureAwait(false);
-                }
-                else
-                {
-                    await this.FillAsync(place, value, cancellationToken).ConfigureAwait(false);
-                }
-            }
-        }
-    }
-
-    public void Discard() => this.staged.Clear();
-
-    protected abstract TKey KeyOf(TValue value);
-
-    protected abstract ValueTask<IReadOnlyList<TValue>> ReadRowsAsync(
-        OwnedCharacterId place, CancellationToken cancellationToken);
-
-    protected abstract ValueTask FillAsync(
-        OwnedCharacterId place, TValue value, CancellationToken cancellationToken);
-
-    protected abstract ValueTask EmptyAsync(
-        OwnedCharacterId place, TKey key, CancellationToken cancellationToken);
-
-    private Dictionary<TKey, TValue?> Staged(OwnedCharacterId place)
-    {
-        if (!this.staged.TryGetValue(place, out var rows))
-        {
-            rows = [];
-            this.staged.Add(place, rows);
-        }
-
-        return rows;
-    }
-}
-
-/// <summary>The quests a character is carrying.</summary>
-internal sealed class QuestSection(SqliteDatabaseParticipant owner)
-    : SqliteCharacterSection<short, StoredActiveQuest>(owner)
-{
-    protected override short KeyOf(StoredActiveQuest value) => value.Slot;
-
-    protected override async ValueTask<IReadOnlyList<StoredActiveQuest>> ReadRowsAsync(
-        OwnedCharacterId place, CancellationToken cancellationToken)
-    {
-        await using var command = await this.Owner.CommandAsync(cancellationToken).ConfigureAwait(false);
-        command.CommandText =
-            "SELECT slot, quest_id, trigger_value FROM character_active_quests WHERE character_id=@character;";
-        command.Parameters.AddWithValue("@character", place.Character.Value);
-        var rows = new List<StoredActiveQuest>();
-        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-        {
-            rows.Add(new StoredActiveQuest(
-                checked((short)reader.GetInt32(0)), reader.GetInt32(1), reader.GetInt32(2)));
-        }
-
-        return rows;
-    }
-
-    /// <remarks>
-    /// When the caller said what they last saw, the statement carries it, and a row that has since
-    /// moved fails rather than being overwritten. That guard is what stands between an entry
-    /// snapshot and the row as it is at the moment of writing.
-    /// </remarks>
-    protected override async ValueTask FillAsync(
-        OwnedCharacterId place, StoredActiveQuest value, CancellationToken cancellationToken)
-    {
-        await using var command = await this.Owner.CommandAsync(cancellationToken).ConfigureAwait(false);
-        command.CommandText = value.ExpectedTriggerValue is null
-            ? """
-                INSERT INTO character_active_quests(character_id, slot, quest_id, trigger_value)
-                VALUES(@character, @slot, @quest, @trigger)
-                ON CONFLICT(character_id, slot) DO UPDATE SET quest_id=@quest, trigger_value=@trigger;
-                """
-            : """
-                UPDATE character_active_quests SET trigger_value=@trigger
-                WHERE character_id=@character AND slot=@slot AND quest_id=@quest
-                  AND trigger_value=@expected;
-                """;
-        command.Parameters.AddWithValue("@character", place.Character.Value);
-        command.Parameters.AddWithValue("@slot", value.Slot);
-        command.Parameters.AddWithValue("@quest", value.QuestId);
-        command.Parameters.AddWithValue("@trigger", value.TriggerValue);
-        if (value.ExpectedTriggerValue is { } expected)
-        {
-            command.Parameters.AddWithValue("@expected", expected);
-        }
-
-        if (await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) != 1)
-        {
-            throw new InvalidDataException($"Seeking quest {value.QuestId} changed concurrently.");
-        }
-    }
-
-    protected override async ValueTask EmptyAsync(
-        OwnedCharacterId place, short key, CancellationToken cancellationToken)
-    {
-        await using var command = await this.Owner.CommandAsync(cancellationToken).ConfigureAwait(false);
-        command.CommandText =
-            "DELETE FROM character_active_quests WHERE character_id=@character AND slot=@slot;";
-        command.Parameters.AddWithValue("@character", place.Character.Value);
-        command.Parameters.AddWithValue("@slot", key);
-        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-    }
-}
-
 /// <summary>The condition each of a character's creatures is in.</summary>
 /// <remarks>
 /// This section addresses one field of a creature's row rather than the whole of it. The rest of
@@ -389,7 +193,7 @@ internal sealed class QuestSection(SqliteDatabaseParticipant owner)
 /// wrong without widening what can be done.
 /// </remarks>
 internal sealed class CreatureSection(SqliteDatabaseParticipant owner)
-    : SqliteCharacterSection<long, StoredCreature>(owner)
+    : SqliteOwnedCharacterSection<long, StoredCreature>(owner)
 {
     protected override long KeyOf(StoredCreature value) => value.CreatureKey;
 

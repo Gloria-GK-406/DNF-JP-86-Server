@@ -42,7 +42,7 @@ public sealed class PvfDailyActivityDefinitionSourceTests
 
         var firstSlot = group.Slots[0];
         Assert.Equal(1, firstSlot.SlotIndex);
-        Assert.Contains(14501, firstSlot.QuestIds);
+        Assert.Contains(14710, firstSlot.QuestIds);
         Assert.DoesNotContain(1, firstSlot.QuestIds);
 
         // [reward table] 1 29 10099407 2  30 49 10099407 3  50 100 10100021 1

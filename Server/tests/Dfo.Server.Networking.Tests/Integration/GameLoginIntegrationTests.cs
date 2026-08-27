@@ -131,20 +131,39 @@ public sealed class GameLoginIntegrationTests
         return stream.ToArray();
     }
 
+    /// <summary>
+    /// The login answer this test expects to arrive, rebuilt here rather than transcribed.
+    /// </summary>
+    /// <remarks>
+    /// Like the notice above, a second implementation of the same layout cannot prove the layout.
+    /// It proves the answer reaches a real socket in one frame after the request. The layout is
+    /// held by the codec test, whose expectation is transcribed from a session the client
+    /// accepted.
+    /// </remarks>
     private static byte[] BuildExpectedLoginResponse()
     {
         var serverIp = "192.0.2.20"u8.ToArray();
-        var body = new byte[44 + serverIp.Length];
-        new byte[] { 0x01, 18, 0x00, 0x01 }.CopyTo(body, 0);
-        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(4), 10128);
-        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(8), serverIp.Length);
-        serverIp.CopyTo(body, 12);
-        var offset = 12 + serverIp.Length;
+        var body = new byte[45 + serverIp.Length];
+        new byte[] { 0x01, 20, 0x00, 0x01, 0x00 }.CopyTo(body, 0);
+        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(5), 10128);
+        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(9), serverIp.Length);
+        serverIp.CopyTo(body, 13);
+        var offset = 13 + serverIp.Length;
         BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(offset), 17200);
         BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(offset + 4), 17201);
         return GameServerFrameEncoder.Encode(0x01, 0x0001, body);
     }
 
+    /// <summary>
+    /// The notice this test expects to arrive, rebuilt here rather than transcribed.
+    /// </summary>
+    /// <remarks>
+    /// Being a second implementation of the same layout, this cannot prove the layout: change the
+    /// codec and this in the same way and both agree on something wrong. It proves delivery -- that
+    /// a real socket receives the whole notice, in one frame, before anything else. The layout
+    /// itself is held by the codec test, whose expectation is transcribed from a session the
+    /// client accepted.
+    /// </remarks>
     private static byte[] BuildExpectedInitialConnectionNotice(
         DateTimeOffset preparedAt,
         byte channelId)
@@ -162,10 +181,12 @@ public sealed class GameLoginIntegrationTests
         WriteDString(body, "192.0.2.20");
         WriteInt32(body, 12311);
         WriteInt32(body, 12312);
-        body.WriteByte(0x00);
-        body.WriteByte(0x00);
-        WriteInt32(body, 1086);
-        WriteInt32(body, 1036);
+        WriteInt32(body, 0);
+        body.WriteByte((byte)'0');
+        body.WriteByte((byte)'0');
+        WriteInt32(body, 1271);
+        WriteInt32(body, 1218);
+        WriteInt32(body, 0);
         return GameServerFrameEncoder.Encode(0x00, 0x0001, body.ToArray());
     }
 

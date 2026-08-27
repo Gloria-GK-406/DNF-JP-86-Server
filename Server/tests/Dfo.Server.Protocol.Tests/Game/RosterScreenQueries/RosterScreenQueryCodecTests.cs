@@ -1,4 +1,4 @@
-﻿using System.Buffers.Binary;
+using System.Buffers.Binary;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.ContentsPlayInfo;
@@ -118,9 +118,13 @@ public sealed class RosterScreenQueryCodecTests
         // Storage keeps -1 for "second skill page never bought"; the wire byte is 0xFF. Encoding
         // used to be a checked cast, so every character in that state -- which is every newly
         // created one -- threw OverflowException while building the entry batch.
-        var unbought = EncodeCurrentUserStateWithSkillTree(-1);
-        var pageZero = EncodeCurrentUserStateWithSkillTree(0);
-        var pageOne = EncodeCurrentUserStateWithSkillTree(1);
+        //
+        // Read from USERINFO subtype 1, not subtype 0. A21's subtype 0 ends in a fixed block that
+        // carries no skill-tree field, so the byte this guards no longer has a home there; subtype
+        // 1 still writes it, and that is where the overflow would reappear.
+        var unbought = EncodeExtendedUserStateWithSkillTree(-1);
+        var pageZero = EncodeExtendedUserStateWithSkillTree(0);
+        var pageOne = EncodeExtendedUserStateWithSkillTree(1);
 
         Assert.Equal(pageZero.Length, unbought.Length);
         Assert.Equal(pageZero.Length, pageOne.Length);
@@ -137,7 +141,7 @@ public sealed class RosterScreenQueryCodecTests
         Assert.Equal(0x01, pageOne[offset]);
     }
 
-    private static byte[] EncodeCurrentUserStateWithSkillTree(int storedIndex)
+    private static byte[] EncodeExtendedUserStateWithSkillTree(int storedIndex)
     {
         var source = Dfo.Server.Protocol.Tests.Game.SelectCharacter
             .SelectCharacterPayloadTestData.CreateComplete();
@@ -152,11 +156,12 @@ public sealed class RosterScreenQueryCodecTests
             },
         };
 
-        return new CurrentUserStateMessage(
+        return new ExtendedUserStateMessage(
             source.Character,
             entry.Public,
+            entry.Skills,
             source.CharacterInventory.Containers
                 .Single(value => value.ContainerType == InventoryContainerType.Equipment).Items,
-            entry.Features.Pets).EncodeBody();
+            source.World.PreparedAt).EncodeBody();
     }
 }

@@ -32,10 +32,36 @@ public sealed class BagPlacementVerbTests
         Assert.Equal(7, joined.Total);
     }
 
+    /// <summary>
+    /// A consumable with no pile opens a quick slot, not the first slot of its own band.
+    /// </summary>
+    /// <remarks>
+    /// The tutorial is the reason this matters: it hands over a potion and then tells the player to
+    /// press its key. A potion that landed in the bag leaves the bar empty and that step
+    /// unfinishable, which is what a live A21 session showed on 2026-08-26 -- our acknowledgement
+    /// naming slot 65 where the reference server's named slot 3.
+    /// </remarks>
     [Fact]
-    public async Task Adding_with_no_pile_opens_the_first_free_slot_of_the_band()
+    public async Task Adding_a_consumable_with_no_pile_opens_the_quick_bar_first()
     {
         var bag = new BagInventory();
+
+        var outcome = await bag.InUseCase(container => container.AddAsync(Potion, 4, default));
+
+        var opened = Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(outcome);
+        Assert.Equal(3, opened.SlotIndex);
+        Assert.Equal(4, opened.Count);
+    }
+
+    /// <summary>With the bar full, the same offer lands in the item's own band.</summary>
+    /// <remarks>
+    /// The bar is a preference, not a home. Without this the rule above would be indistinguishable
+    /// from one that puts every consumable on the bar and drops the rest on the floor.
+    /// </remarks>
+    [Fact]
+    public async Task Adding_a_consumable_falls_back_to_its_own_band_when_the_bar_is_full()
+    {
+        var bag = FullBar();
 
         var outcome = await bag.InUseCase(container => container.AddAsync(Potion, 4, default));
 
@@ -44,15 +70,34 @@ public sealed class BagPlacementVerbTests
         Assert.Equal(4, opened.Count);
     }
 
+    /// <remarks>
+    /// Every slot the item is allowed has to be taken before this can be asserted, and since
+    /// 2026-08-26 a consumable is allowed the quick bar as well as its band. Seeding only the band
+    /// would leave six slots free and this would be asserting nothing.
+    /// </remarks>
     [Fact]
     public async Task Adding_answers_that_there_is_no_room_rather_than_spilling_out_of_the_band()
     {
-        var bag = new BagInventory { [65] = (Potion, 10), [66] = (Potion, 10) };
+        var bag = FullBar();
+        bag[65] = (Potion, 10);
+        bag[66] = (Potion, 10);
 
         var outcome = await bag.InUseCase(container => container.AddAsync(Potion, 1, default));
 
         Assert.IsType<ItemPlacementOutcome.NoRoom>(outcome);
-        Assert.Equal([(65, Potion, 10), (66, Potion, 10)], bag.Rows());
+        Assert.Equal(
+            [(3, Unknown, 1), (4, Unknown, 1), (5, Unknown, 1), (6, Unknown, 1), (7, Unknown, 1),
+             (8, Unknown, 1), (65, Potion, 10), (66, Potion, 10)],
+            bag.Rows());
+    }
+
+    /// <summary>A bag whose six quick slots are all taken by something that is not the potion.</summary>
+    private static BagInventory FullBar()
+    {
+        var bag = new BagInventory();
+        for (var slot = 3; slot <= 8; slot++)
+            bag[slot] = (Unknown, 1);
+        return bag;
     }
 
     [Fact]
@@ -86,8 +131,8 @@ public sealed class BagPlacementVerbTests
             new ItemRefill(Potion, ItemKind, 5, 65, 120), default));
 
         var opened = Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(grant);
-        Assert.Equal(66, opened.SlotIndex);
-        Assert.Equal([(65, Potion, 10), (66, Potion, 5)], granted.Rows());
+        Assert.Equal(3, opened.SlotIndex);
+        Assert.Equal([(3, Potion, 5), (65, Potion, 10)], granted.Rows());
 
         var joined = Assert.IsType<ItemPlacementOutcome.AddedToPile>(refill);
         Assert.Equal(65, joined.SlotIndex);

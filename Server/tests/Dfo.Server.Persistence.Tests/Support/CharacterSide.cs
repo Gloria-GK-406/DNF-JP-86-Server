@@ -39,7 +39,9 @@ internal sealed class CharacterSide
         new SqliteCharacterStatsTable(this.database),
         new SqliteCharacterPvpTable(this.database),
         new SqliteCharacterSettingsTable(this.database),
-        new SqliteCharacterExpertJobTable(this.database));
+        new SqliteCharacterExpertJobTable(this.database),
+        new SqliteCharacterContainerStateTable(this.database),
+        new SqliteCharacterItemTable(this.database));
 
     /// <summary>The skill table itself, for the tests that are about what a statement touches.</summary>
     public ICharacterSkillTable Skills => new SqliteCharacterSkillTable(this.database);

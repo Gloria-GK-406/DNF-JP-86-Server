@@ -22,6 +22,25 @@ internal sealed class SqliteCharacterContainerStateTable(SqliteDatabase database
             reader => new ContainerStateRow(
                 reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2)),
             cancellationToken);
+
+    public async ValueTask InsertIfAbsentAsync(
+        CharacterId characterId,
+        int listType,
+        int parameter,
+        CancellationToken cancellationToken) =>
+        _ = await database.ExecuteAsync(
+            """
+            INSERT INTO character_container_state (character_id, list_type, list_param16)
+            VALUES (@characterId, @listType, @parameter)
+            ON CONFLICT(character_id, list_type) DO NOTHING;
+            """,
+            parameters =>
+            {
+                parameters.AddWithValue("@characterId", characterId.Value);
+                parameters.AddWithValue("@listType", listType);
+                parameters.AddWithValue("@parameter", parameter);
+            },
+            cancellationToken).ConfigureAwait(false);
 }
 
 /// <summary>The <c>account_cargo_state</c> table.</summary>

@@ -14,6 +14,8 @@ public enum ClientMessageType
     GameClientHardwareDetail = 0x0001_01DD,
     GameClientSpecProfile = 0x0001_00C2,
     GameSessionMetrics = 0x0001_00FA,
+    GameAcceptQuest = 0x0001_001F,
+
     GameTaggedIdReport = 0x0001_008F,
     GameRosterFollowUp = 0x0001_02A8,
     GameCheckCharacterName = 0x0001_02B5,
@@ -23,6 +25,11 @@ public enum ClientMessageType
     GameHiddenCharacterInfo = 0x0001_0286,
     GameSaveGameOption1 = 0x0001_00C5,
     GameContentsPlayInfo = 0x0001_02C1,
+
+    // The client's own periodic liveness probe on the Game endpoint. It arrives with no body
+    // and keeps coming for the life of the connection whether or not it is answered.
+    // See Game/ConnectionCheck.
+    GameConnectionCheck = 0x0001_04DD,
 
     // The map-entry report family: sent once the entry batch is accepted and the client starts
     // loading a town. None is answered. See Game/MapEntryReports.
@@ -42,6 +49,41 @@ public enum ClientMessageType
 
     // Walking through a door into an adjoining room. See Game/DungeonEntry.
     GameMoveMap = 0x0001_002D,
+
+    // The client reporting a room actor dead. See Game/MonsterDeath.
+    GameMonsterDeath = 0x0001_0027,
+
+    // Picking a dropped item up off a room's floor. See Game/GroundPickup.
+    GameGetItem = 0x0001_002B,
+
+    // The client reporting how the run went, once the exit has opened. See Game/DungeonClear.
+    GameSetPlayResult = 0x0001_002E,
+
+    // The tutorial asking for the level it promised. See Game/TutorialLevelUp.
+    GameTutorialLevelUp = 0x0001_01E4,
+
+    // The reports the reference server answers with nothing. One handler, six wire keys, and the
+    // silence is a decision rather than a gap. See Game/UnansweredReports.
+    GameUseSkill = 0x0001_0026,
+    GameSyncItemSpace = 0x0001_035C,
+    GameDecreaseDurability = 0x0001_0030,
+    GameOverflowInfo = 0x0001_00D9,
+    GameLogDomainConnect = 0x0001_04F1,
+    GameLogConnectProcess = 0x0001_04D7,
+    GameCharacterStatistic = 0x0001_007B,
+    GameRequestBlacklist = 0x0001_0078,
+    GameFarmEventAction = 0x0001_02BE,
+    GamePi = 0x0001_011B,
+    GameRequestIgaVersion = 0x0001_039D,
+    GameFpsPerformanceStatistic = 0x0001_02EF,
+    GameFrameLagPerDungeon = 0x0001_045C,
+    GameLagStatistics = 0x0001_0117,
+
+    // Leaving the dungeon, which is the only thing that ends a run. See Game/DungeonClear.
+    GameGiveUpGame = 0x0001_002A,
+
+    // Closing the dungeon-selection screen. See Game/DungeonSelection.
+    GameBackToVillage = 0x0001_0084,
 
     // Consuming one item off a pile. See Game/UseStackable.
     GameUseStackable = 0x0001_002C,
@@ -78,6 +120,9 @@ public enum ServerMessageType
     GameInformNotice = 0x0000_01A1,
     GameRosterFollowUp = 0x0001_02A8,
     GameContentsPlayInfo = 0x0001_02C1,
+    GameConnectionCheck = 0x0001_04DD,
+    GameSecurityStatusAcknowledgement = 0x0001_0252,
+    GameEnterSelectDungeonAcknowledgement = 0x0001_000F,
 
     // Pushed on every area change. See Game/TownProjection.
     GameAreaUsers = 0x0000_0018,
@@ -85,6 +130,7 @@ public enum ServerMessageType
     // Pushed when the dungeon-selection screen opens. See Game/DungeonSelection.
     GameUserState = 0x0000_0003,
     GameUserArea = 0x0000_0017,
+    GameUserPosition = 0x0000_0016,
     GameUdpHost = 0x0000_001A,
     GameEnterSelectDungeonState = 0x0000_001B,
 
@@ -101,6 +147,8 @@ public enum ServerMessageType
 
     // Acknowledges a tutorial flag change and carries what the step gave.
     // See Game/TaggedIdReport.
+    GameAcceptQuest = 0x0001_001F,
+
     GameTaggedIdReport = 0x0001_008F,
 
     // Whether the item was consumed. See Game/UseStackable.
@@ -112,6 +160,30 @@ public enum ServerMessageType
     // Confirms a scripted pause. Answers CMD 0x00BF under a different type.
     // See Game/StoryPause.
     GameStoryPauseState = 0x0000_00AA,
+
+    // What the kill was worth, and the kill acknowledged. See Game/MonsterDeath.
+    GameExperience = 0x0000_0025,
+    GameMonsterDeath = 0x0000_0026,
+
+    // Whether the item was picked up, and where it landed. See Game/GroundPickup.
+    GameGetItem = 0x0001_002B,
+    GameGroundPickup = 0x0000_0027,
+
+    // Whether the tutorial's level was granted. See Game/TutorialLevelUp.
+    GameTutorialLevelUp = 0x0001_01E4,
+
+    // The exit opening, and the result screen behind it. See Game/DungeonClear.
+    GameEnableClearDungeon = 0x0000_001F,
+    GameSecretShopNpc = 0x0000_0117,
+    GamePlayResult = 0x0000_0022,
+    GameClearDungeonReward = 0x0000_0023,
+    GameGiveUpGame = 0x0001_002A,
+
+    // Why the character is not going into the dungeon they picked. See Game/DungeonEntry.
+    GameSelectDungeon = 0x0001_0010,
+
+    // The selection screen closed. See Game/DungeonSelection.
+    GameBackToVillage = 0x0001_0084,
 }
 
 public interface IClientNetworkMessage

@@ -94,6 +94,7 @@ public sealed class CharacterRepositoryProductsTests
             () => throw new NotSupportedException("No test here reaches the roster."),
             new UnusedStats(),
             new UnusedInitialSkills(),
+            new UnusedInitialEquipment(),
             characterId => new PlayingCharacter(
                 characterId, rules, judgement, cooldowns, sessions, runtime, presence));
     }
@@ -125,6 +126,13 @@ public sealed class CharacterRepositoryProductsTests
     private sealed class UnusedInitialSkills : IInitialSkillDefinitionSource
     {
         public ValueTask<IReadOnlyList<InitialSkillGrant>> GetAsync(
+            byte job, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("No test here creates a character.");
+    }
+
+    private sealed class UnusedInitialEquipment : IInitialEquipmentDefinitionSource
+    {
+        public ValueTask<IReadOnlyList<InitialEquipmentGrant>> GetAsync(
             byte job, CancellationToken cancellationToken) =>
             throw new NotSupportedException("No test here creates a character.");
     }

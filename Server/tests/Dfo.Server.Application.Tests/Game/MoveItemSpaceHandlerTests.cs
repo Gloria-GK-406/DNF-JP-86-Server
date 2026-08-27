@@ -306,8 +306,10 @@ public sealed class MoveItemSpaceHandlerTests
     public async Task Two_moves_arriving_at_once_are_both_carried_out_and_neither_is_refused()
     {
         var inventory = new FakeInventory { [65] = (8474, 1), [66] = (9000, 1) };
+        var placements = new ConsumablePlacements();
         var handler = new MoveItemSpaceCommandHandler(
-            inventory.Containers(new ConsumablePlacements()));
+            inventory.Containers(placements), new NoWearables(), placements,
+            new ItemSlotRuleService());
 
         var results = await Task.WhenAll(
             Dispatch(handler, inventory, sourceSlot: 65, destinationSlot: 3),
@@ -337,6 +339,13 @@ public sealed class MoveItemSpaceHandlerTests
                 CancellationToken.None);
         });
 
+    /// <summary>Nothing is wearable here; these tests move things inside the bag.</summary>
+    private sealed class NoWearables : IEquipmentSlotDefinitionSource
+    {
+        public ValueTask<byte?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<byte?>(null);
+    }
+
     private static readonly NetworkDispatchContext Context = new(
         new NetworkConnectionContext(new NetworkConnectionId("game-move"), NetworkEndpointKind.Game, 10011));
 
@@ -349,8 +358,10 @@ public sealed class MoveItemSpaceHandlerTests
         FakeInventory inventory, IItemPlacementDefinitionSource? placements = null)
     {
         var sender = new RecordingSender();
+        var resolved = placements ?? new ConsumablePlacements();
         var commandHandler = new MoveItemSpaceCommandHandler(
-            inventory.Containers(placements ?? new ConsumablePlacements()));
+            inventory.Containers(resolved), new NoWearables(), resolved,
+            new ItemSlotRuleService());
 
         return (
             new MoveItemSpaceHandler(

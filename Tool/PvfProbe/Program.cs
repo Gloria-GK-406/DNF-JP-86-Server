@@ -39,6 +39,35 @@ switch (args[0])
         Dump(archive, args[1], args.Length > 2 ? int.Parse(args[2]) : 400);
         return 0;
 
+    case "tokens":
+    {
+        // Kind and interned offset alongside the text. `dump` shows what a section says; this
+        // shows what a reader matching on tags and integers will actually see, which is the
+        // difference that decides whether a parser written against the printed form works.
+        Require(args, 2);
+        var index = archive.FindFile(args[1]);
+        if (index < 0)
+        {
+            Console.WriteLine($"!! not found: {args[1]}");
+            return 1;
+        }
+
+        var limit = args.Length > 2 ? int.Parse(args[2]) : 200;
+        var skip = args.Length > 3 ? int.Parse(args[3]) : 0;
+        var script = archive.OpenScript(index);
+        var seen = 0;
+        while (script.Read(out var token) && seen < skip + limit)
+        {
+            seen++;
+            if (seen <= skip)
+                continue;
+            Console.WriteLine($"{seen}	{token.Kind}	string={token.IsString}	"
+                              + $"value={token.Value}	{TokenText(archive, token)}");
+        }
+
+        return 0;
+    }
+
     case "files":
     {
         // The whole file table. Every other command reaches a file through a path or a .lst,

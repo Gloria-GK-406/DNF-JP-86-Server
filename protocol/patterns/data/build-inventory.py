@@ -34,7 +34,12 @@ import collections
 
 IDENTITY = sys.argv[1] if len(sys.argv) > 1 else "protocol-identity.tsv"
 OUT = sys.argv[2] if len(sys.argv) > 2 else "protocol-inventory.tsv"
-ENUMS = r"D:\project\86JP\Server\DfoServer\Network\Core\PacketTypes.cs"
+# Names come from the client's own enum table, so this has to follow whichever client
+# the census was run against. A21 currently. The A12 table is
+#   D:\project\86JP\Server\DfoServer\Network\Core\PacketTypes.cs
+# and the two disagree on 375 NOTI and 361 CMD names -- pointing this at the wrong one
+# mislabels a third of the tree and does not fail while doing it.
+ENUMS = r"D:\project\DNF\ServerS4A21\Server\DfoServer\Network\Core\PacketTypesA21.cs"
 
 # ------------------------------------------------------------------ upstream names
 names = {"CMD": {}, "NOTI": {}}

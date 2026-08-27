@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Transactions;
@@ -8,18 +9,19 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Persistence.Characters;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
+using Dfo.Server.Persistence.Quests;
 using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Application.Tests.Characters;
 
 /// <summary>
-/// One use case changing a character and the items that character owns.
+/// One use case changing a character, its quests, and the items it owns.
 /// </summary>
 /// <remarks>
-/// This is what the whole boundary was built for, and it is not something either store can show on
-/// its own: each has its own settlement tests, but only together do they answer whether a use case
-/// that touches both leaves them agreeing. Before the participant was keyed on the database, this
-/// pairing could not even be assembled -- the second store to join was refused.
+/// This is what the whole boundary was built for, and it is not something any one store can show
+/// on its own: each has its own settlement tests, but only together do they answer whether a use
+/// case that touches several leaves them agreeing. Before the participant was keyed on the
+/// database, this grouping could not even be assembled -- the second store to join was refused.
 /// </remarks>
 public sealed class CharacterStoreSettlementTests
 {
@@ -36,7 +38,7 @@ public sealed class CharacterStoreSettlementTests
         var transaction = new DomainTransaction();
 
         fixture.Items.SessionIn(transaction).Write(Main, new StoredItem(66, Potion(3)));
-        fixture.Characters.SessionIn(transaction).Quests.Write(
+        fixture.Quests.SessionIn(transaction).Carried.Write(
             Owned, new StoredActiveQuest(2, 200, 9, ExpectedTriggerValue: 6));
         await transaction.CommitAsync(CancellationToken.None);
 
@@ -57,7 +59,7 @@ public sealed class CharacterStoreSettlementTests
         var transaction = new DomainTransaction();
 
         fixture.Items.SessionIn(transaction).Write(Main, new StoredItem(66, Potion(3)));
-        fixture.Characters.SessionIn(transaction).Quests.Write(
+        fixture.Quests.SessionIn(transaction).Carried.Write(
             Owned, new StoredActiveQuest(2, 200, 9, ExpectedTriggerValue: 1234));
 
         await Assert.ThrowsAsync<InvalidDataException>(
@@ -74,11 +76,14 @@ public sealed class CharacterStoreSettlementTests
 
         _ = fixture.Items.SessionIn(transaction);
         _ = fixture.Characters.SessionIn(transaction);
+        _ = fixture.Quests.SessionIn(transaction);
 
         // A second participant whose commit can fail would have been refused outright; that this
         // returns at all is the whole point of keying enlistment on the database.
-        Assert.True(fixture.Characters.IsDurable && fixture.Items.IsDurable);
+        Assert.True(fixture.Characters.IsDurable && fixture.Items.IsDurable
+                    && fixture.Quests.IsDurable);
         Assert.Equal(fixture.Items.StoreIdentity, fixture.Characters.StoreIdentity);
+        Assert.Equal(fixture.Items.StoreIdentity, fixture.Quests.StoreIdentity);
     }
 
     /// <remarks>
@@ -106,8 +111,9 @@ public sealed class CharacterStoreSettlementTests
 
     /// <remarks>
     /// A write with nothing to compare against puts the slot in that state whatever it held, and
-    /// creates it when it held nothing. Nothing in the server writes quests this way today, but the
-    /// contract offers it, and an offer nothing exercises is an offer nobody has checked.
+    /// creates it when it held nothing. It is how a quest is taken on -- there is nothing to
+    /// compare against a row that does not exist yet -- and this is where that half of the
+    /// contract is checked, apart from any caller.
     /// </remarks>
     [Fact]
     public async Task AQuestWrittenWithNothingToCompareAgainstLandsRegardless()
@@ -115,9 +121,9 @@ public sealed class CharacterStoreSettlementTests
         await using var fixture = await Fixture.CreateAsync();
         var transaction = new DomainTransaction();
 
-        var rows = fixture.Characters.SessionIn(transaction);
-        rows.Quests.Write(Owned, new StoredActiveQuest(2, 200, 11));
-        rows.Quests.Write(Owned, new StoredActiveQuest(3, 300, 12));
+        var rows = fixture.Quests.SessionIn(transaction);
+        rows.Carried.Write(Owned, new StoredActiveQuest(2, 200, 11));
+        rows.Carried.Write(Owned, new StoredActiveQuest(3, 300, 12));
         await transaction.CommitAsync(CancellationToken.None);
 
         Assert.Equal(11, await fixture.ReadQuestTriggerAsync());
@@ -132,13 +138,81 @@ public sealed class CharacterStoreSettlementTests
     public async Task ASessionSeesItsOwnUnsettledWrites()
     {
         await using var fixture = await Fixture.CreateAsync();
-        var rows = fixture.Characters.SessionIn(new DomainTransaction());
+        var rows = fixture.Quests.SessionIn(new DomainTransaction());
 
-        rows.Quests.Write(Owned, new StoredActiveQuest(2, 200, 42, ExpectedTriggerValue: 6));
-        var seen = await rows.Quests.ReadAsync(Owned, 2, CancellationToken.None);
+        rows.Carried.Write(Owned, new StoredActiveQuest(2, 200, 42, ExpectedTriggerValue: 6));
+        var seen = await rows.Carried.ReadAsync(Owned, 2, CancellationToken.None);
 
         Assert.Equal(42, seen!.TriggerValue);
         Assert.Equal(6, await fixture.ReadQuestTriggerAsync());
+    }
+
+    /// <remarks>
+    /// Finishing a quest and asking to be told about one are the two kinds of quest state that had
+    /// nowhere to be written before: the tables existed and only ever answered reads. A round trip
+    /// through the store is what says they are writable at all.
+    /// </remarks>
+    [Fact]
+    public async Task WhatWasFinishedAndWhatIsBeingWatchedComeBackOut()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var transaction = new DomainTransaction();
+
+        var rows = fixture.Quests.SessionIn(transaction);
+        rows.Cleared.Write(Owned, new StoredClearedQuest(1016, 1));
+        rows.Tracked.Write(Owned, new StoredTrackedQuest(0, 1016));
+        rows.Tracked.Write(Owned, new StoredTrackedQuest(1, 101));
+        await transaction.CommitAsync(CancellationToken.None);
+
+        var read = fixture.Quests.SessionIn(new DomainTransaction());
+        Assert.Equal(
+            [new StoredClearedQuest(1016, 1)],
+            await read.Cleared.ReadAllAsync(Owned, CancellationToken.None));
+        Assert.Equal(
+            [new StoredTrackedQuest(0, 1016), new StoredTrackedQuest(1, 101)],
+            await read.Tracked.ReadAllAsync(Owned, CancellationToken.None));
+    }
+
+    /// <remarks>
+    /// The other half of those two sections. Emptying a place is part of what a store session
+    /// promises, and here it is the only thing that runs their delete statements: no verb of the
+    /// quest log ever unfinishes a quest, and a shortened tracking selection only reaches the
+    /// tracking one. A statement nothing executes is a statement nothing would notice was wrong.
+    /// </remarks>
+    [Fact]
+    public async Task WhatWasFinishedAndWhatIsBeingWatchedCanBeTakenAwayAgain()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var seeding = new DomainTransaction();
+        var seed = fixture.Quests.SessionIn(seeding);
+        seed.Cleared.Write(Owned, new StoredClearedQuest(1016, 1));
+        seed.Tracked.Write(Owned, new StoredTrackedQuest(0, 1016));
+        await seeding.CommitAsync(CancellationToken.None);
+
+        var transaction = new DomainTransaction();
+        var rows = fixture.Quests.SessionIn(transaction);
+        rows.Cleared.Clear(Owned, 1016);
+        rows.Tracked.Clear(Owned, 0);
+        await transaction.CommitAsync(CancellationToken.None);
+
+        var read = fixture.Quests.SessionIn(new DomainTransaction());
+        Assert.Empty(await read.Cleared.ReadAllAsync(Owned, CancellationToken.None));
+        Assert.Empty(await read.Tracked.ReadAllAsync(Owned, CancellationToken.None));
+    }
+
+    /// <remarks>
+    /// The quest number is the flag array's index, and the entry projection refuses a row past its
+    /// end. Refused while staging rather than while flushing, because by then the other kinds of
+    /// state have written their statements and a refusal raised there would take them down too.
+    /// </remarks>
+    [Fact]
+    public async Task AFinishedQuestPastTheFlagArrayIsRefusedWhereItIsAskedFor()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var rows = fixture.Quests.SessionIn(new DomainTransaction());
+
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => rows.Cleared.Write(Owned, new StoredClearedQuest(30_000, 1)));
     }
 
     private const int PotionId = 1000;
@@ -158,6 +232,7 @@ public sealed class CharacterStoreSettlementTests
             this.Path = path;
             this.Items = new SqliteItemStore(path);
             this.Characters = new SqliteCharacterStore(path);
+            this.Quests = new SqliteQuestStore(path);
         }
 
         public string Path { get; }
@@ -165,6 +240,8 @@ public sealed class CharacterStoreSettlementTests
         public SqliteItemStore Items { get; }
 
         public SqliteCharacterStore Characters { get; }
+
+        public SqliteQuestStore Quests { get; }
 
         public static async Task<Fixture> CreateAsync()
         {

@@ -37,17 +37,18 @@ public sealed record SetUserAreaRequest(
 /// CMD 0x0023 <c>SET_USER_POSITION</c>: where the character now stands inside its current area.
 /// </summary>
 /// <remarks>
-/// Report-only -- the client registers no receive handler for this type. Nine frames were captured
-/// on 2026-08-17 and all nine were byte-identical (<c>DA01 EA00 05 68 00</c>: x 474, y 234,
-/// direction 5), because the character never moved off the arrival gate. The reference server reads
-/// only x and y; the three trailing bytes have bounded width and no evidenced meaning, and
-/// direction is inferred from the value matching the arrival direction the same server writes.
+/// The body is seven bytes -- <c>DA01 EA00 05 68 00</c>: x 474, y 234, direction 5, then a
+/// <c>u16</c> whose meaning is still unevidenced. The 2026-08-17 A12 session captured nine of these
+/// byte-identical frames and nothing coming back, which is why this was recorded as report-only.
+/// A21 does answer: its reference session replies to every 0x0023 with NOTI 0x0016 carrying the
+/// wire user id followed by the same x, y, direction and trailing pair the report just supplied.
 /// </remarks>
 public sealed record SetUserPositionRequest(
     GameMessageMetadata Metadata,
     short X,
     short Y,
-    byte Direction) : IClientNetworkMessage
+    byte Direction,
+    ushort Trailer) : IClientNetworkMessage
 {
     public ClientMessageType MessageType => ClientMessageType.GameSetUserPosition;
 }
@@ -106,6 +107,31 @@ internal static class TownProjectionPayloadCodec
     }
 }
 
+/// <summary>NOTI 0x0016 <c>USER_POSITION</c>: where one character stands, echoed to the reporter.</summary>
+internal sealed record UserPositionNotification(
+    ushort WireUserId,
+    short X,
+    short Y,
+    byte Direction,
+    ushort Trailer) : IGameNotiMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameUserPosition;
+}
+
+internal sealed class UserPositionEncoder : GameNotiMessageEncoder<UserPositionNotification>
+{
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(UserPositionNotification message)
+    {
+        var body = new byte[9];
+        BinaryPrimitives.WriteUInt16LittleEndian(body, message.WireUserId);
+        BinaryPrimitives.WriteInt16LittleEndian(body.AsSpan(2), message.X);
+        BinaryPrimitives.WriteInt16LittleEndian(body.AsSpan(4), message.Y);
+        body[6] = message.Direction;
+        BinaryPrimitives.WriteUInt16LittleEndian(body.AsSpan(7), message.Trailer);
+        return OnePayload(GameProtocol.UserPositionNotificationType, body);
+    }
+}
+
 internal sealed class AreaUsersEncoder : GameNotiMessageEncoder<AreaUsersNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(AreaUsersNotification message) =>
@@ -142,6 +168,9 @@ internal sealed class SetUserPositionDecoder : IGameMessageDecoder
     /// <summary>The captured body is seven bytes; x, y and direction occupy the first five.</summary>
     public const int MinimumBodyLength = 5;
 
+    /// <summary>What the entry frame carries, used when a short body omits the trailing pair.</summary>
+    private const ushort DefaultTrailer = 100;
+
     public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
         if (body.Length < MinimumBodyLength)
@@ -154,7 +183,10 @@ internal sealed class SetUserPositionDecoder : IGameMessageDecoder
             metadata,
             BinaryPrimitives.ReadInt16LittleEndian(body),
             BinaryPrimitives.ReadInt16LittleEndian(body[2..]),
-            body[4]);
+            body[4],
+            // Echoed straight back in the answer. The captured value is 104 where the entry frame
+            // carried 100, so it is the client's to state rather than a constant of ours.
+            body.Length >= 7 ? BinaryPrimitives.ReadUInt16LittleEndian(body[5..]) : DefaultTrailer);
     }
 }
 
@@ -289,12 +321,13 @@ public sealed class SetUserAreaHandler(
 /// <remarks>
 /// The town and area are left alone: this command reports movement inside the area it is already in,
 /// and taking an area from it would let a stale frame contradict the crossing that 0x0024 just
-/// applied. Nothing is sent back -- the reference server only forwards it to other characters
-/// standing in the same area, which needs a second character to matter.
+/// applied. A21 answers every report with NOTI 0x0016 carrying the position back; the solo case is
+/// not an exception, because the reference session that shows it had one character in the town.
 /// </remarks>
 public sealed class SetUserPositionHandler(
     ISelectedSessionDirectory selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
+    IGameMessageSender sender,
     ILogger<SetUserPositionHandler> logger) : ClientMessageHandler<SetUserPositionRequest>
 {
     protected override ValueTask HandleMessageAsync(
@@ -324,6 +357,10 @@ public sealed class SetUserPositionHandler(
         runtimeSessions.ReplaceExact(
             session,
             result with { Character = result.Character with { Position = moved } });
-        return ValueTask.CompletedTask;
+        return sender.SendNotiAsync(
+            context.Connection.ConnectionId,
+            new UserPositionNotification(
+                session.WireUserId, message.X, message.Y, message.Direction, message.Trailer),
+            cancellationToken);
     }
 }

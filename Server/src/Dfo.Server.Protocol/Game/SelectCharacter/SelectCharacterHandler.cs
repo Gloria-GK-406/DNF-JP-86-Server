@@ -7,6 +7,7 @@ using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Channel;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
@@ -19,23 +20,32 @@ namespace Dfo.Server.Protocol.Game.SelectCharacter;
 /// Whether the frames that follow the entry batch are put on the wire.
 /// </summary>
 /// <remarks>
-/// The entry batch ends with NOTI 0x007C <c>ENTER_GAMEWORLD_COMPLETE</c>, a zero-length signal
-/// telling the client that world entry is over. The reference server's entry sequence stops there
-/// -- 53 templates, nothing after. This server kept going: pre-publication state, inventory deltas,
-/// a trailing equipment-lock snapshot, quest and pet frames, and an account character
-/// roster, all delivered after the completion signal. The client dies while reading that tail.
+/// The entry batch ends with NOTI 0x007C <c>ENTER_GAMEWORLD_COMPLETE</c>, an eight-byte signal
+/// telling the client that world entry is over.
 ///
-/// Off in production while that is under test, on in the tests that assert the delivery contract,
-/// so suppressing the frames does not quietly delete the coverage that describes them. The commands
-/// run either way -- they do the domain work, and publication in particular is what makes the
-/// session readable to the dungeon-selection handler. Only the frames are withheld.
+/// This flag was added when the A12 reference sequence was the only capture available, and that
+/// sequence does stop at the marker. A21 does not: its entry sequence carries twelve more frames
+/// after 0x007C, and four of them are the pre-publication frames built here -- NOTI 0x0165 user
+/// visibility, CMD 0x0239 clone title, the NOTI 0x0002 subtype-0x02 character record, and NOTI
+/// 0x0289 honor progress -- followed by the trailing equipment-lock snapshot and a second
+/// mercenary answer. The earlier note recorded on this member, that the client dies while reading
+/// that tail, does not survive the A21 capture: the client dies when the tail is *withheld*,
+/// because the subtype-0x02 record is what it builds its own town avatar from.
+///
+/// On in production for A21, and the tests that assert the delivery contract keep asserting it.
+/// The commands run either way -- they do the domain work, and publication in particular is what
+/// makes the session readable to the dungeon-selection handler. Only the frames are withheld.
 /// </remarks>
 public sealed record SelectCharacterDeliveryOptions(bool SendsFramesAfterTheCompletionMarker)
 {
-    /// <summary>Matches the reference server: nothing after the completion marker.</summary>
+    /// <summary>Matches the A12 reference sequence: nothing after the completion marker.</summary>
+    /// <remarks>
+    /// Retained because it describes a real captured sequence, not because it is the current
+    /// production choice. A21 sends a post-marker tail; see the remarks on this type.
+    /// </remarks>
     public static SelectCharacterDeliveryOptions ReferenceSequence { get; } = new(false);
 
-    /// <summary>Everything this server historically sent, marker or not.</summary>
+    /// <summary>The post-marker tail on the wire, which is what A21 does.</summary>
     public static SelectCharacterDeliveryOptions Everything { get; } = new(true);
 }
 
@@ -216,8 +226,7 @@ public sealed class SelectCharacterHandler(
         CancellationToken cancellationToken)
     {
         var messages = stateMessages.CreateValidated(prepared);
-        var prePublicationMessages = BuildPrePublicationMessages(session, prepared);
-        ValidateSupplementalMessages(prePublicationMessages);
+        ValidateSupplementalMessages(BuildPrePublicationMessages(session, prepared));
         ValidateSupplementalMessages(
             [new TrailingEquipmentLockSnapshotMessage(
                 prepared.CharacterInventory, prepared.AccountInventory)]);
@@ -230,18 +239,12 @@ public sealed class SelectCharacterHandler(
         }
 
         EnsureCurrent(session);
-        if (SendsFramesAfterTheCompletionMarker)
-        {
-            await sender.SendExplicitAsync(
-                session.ConnectionId,
-                new GameExplicitMessageDelivery(
-                    prePublicationMessages,
-                    []),
-                cancellationToken).ConfigureAwait(false);
-        }
 
-        EnsureCurrent(session);
-
+        // The refill runs, and its delta goes out, BEFORE the post-marker frames. The reference
+        // session puts its one UPDATE_ITEM_LIST immediately after USER_POSITION -- the batch's own
+        // last frame -- and only then sends the invisibility flags, the clone title, the roster
+        // payload and the honour level. Running the command after them put our delta four frames
+        // too late.
         var inventory = await commandBus.SendAsync(
             new ApplySelectedCharacterDailyRefillCommand(session, prepared),
             cancellationToken).ConfigureAwait(false);
@@ -255,6 +258,23 @@ public sealed class SelectCharacterHandler(
                     inventory.CommittedUpdates.Select(value => (IGameServerMessage)
                         new InventoryDeltaMessage(
                             value.ContainerType, value.Items, value.PreparedAt)).ToArray(),
+                    []),
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        EnsureCurrent(session);
+        if (SendsFramesAfterTheCompletionMarker)
+        {
+            // Built here, not before the refill: the refill replaces `prepared`, and a message set
+            // composed from the older value would be stale by construction. None of these four
+            // frames reads anything the refill touches today, so this is not a fix -- it is the
+            // difference between that being guaranteed and it being a coincidence. They are also
+            // validated once above, before anything is sent, so a malformed set still fails before
+            // the first frame goes out rather than halfway through.
+            await sender.SendExplicitAsync(
+                session.ConnectionId,
+                new GameExplicitMessageDelivery(
+                    BuildPrePublicationMessages(session, prepared),
                     []),
                 cancellationToken).ConfigureAwait(false);
         }
@@ -347,23 +367,23 @@ public sealed class SelectCharacterHandler(
             new CloneTitleStateMessage(result.CharacterEntry.Public.CloneTitleItemId),
             new AccountRosterStateMessage(result.RosterEntry
                 ?? throw new InvalidDataException("Roster state is unavailable.")),
+            // The same account-wide standing the roster screen already received, not a character
+            // stat. The reference session sends 0x0289 twice with an identical body -- 01 00 00 00
+            // 00 00 00 00 at the roster and again here -- while this read two per-character derived
+            // stats, which are zero on a fresh character and disagreed with what login had just
+            // sent for the same account.
             new HonorProgressStateMessage(
-                checked((uint)Math.Max(0, result.CharacterEntry.Public.DerivedStats.Progress1)),
-                checked((uint)Math.Max(0, result.CharacterEntry.Public.DerivedStats.Progress2))),
+                AccountHonorLevel.Initial.Level,
+                AccountHonorLevel.Initial.Experience),
         };
-        var mirror = result.CharacterEntry.Skills.ProtocolMirror
+        // NOTI 0x0025 GROWTH CAPSULE is not part of the A21 entry sequence. The reference sends
+        // 0x0165, CMD 0x0239, the subtype-0x02 record and 0x0289 here and nothing else, and the
+        // client overruns a stack buffer while reading this body -- a 66-thousand-element copy off
+        // the end of its own stack -- so its A21 layout is not the one this encoder writes. The
+        // encoder and its mirror stay; only the unsolicited entry-time send is withdrawn until the
+        // layout is derived from a capture that actually contains it.
+        _ = result.CharacterEntry.Skills.ProtocolMirror
             ?? throw new InvalidDataException("Skill protocol mirror is unavailable.");
-        messages.Add(new GrowthCapsuleStateMessage(
-            result.Character.Progression.Level,
-            result.Character.Progression.Experience,
-            mirror.Page0Sp,
-            mirror.Page1Sp,
-            mirror.Page0Tp,
-            mirror.Page1Tp,
-            checked((uint)result.CharacterEntry.Public.Pvp.RankPoint),
-            result.Account.Progression.GrowthCapsuleExperience,
-            checked((uint)Math.Max(0, result.CharacterEntry.Public.DerivedStats.Progress1)),
-            checked((uint)Math.Max(0, result.CharacterEntry.Public.DerivedStats.Progress2))));
         return messages;
     }
 

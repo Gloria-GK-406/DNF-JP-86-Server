@@ -19,12 +19,18 @@ using Dfo.Server.Protocol.Game.InformNotice;
 using Dfo.Server.Protocol.Game.ClientHardwareDetail;
 using Dfo.Server.Protocol.Game.ClientSpecProfile;
 using Dfo.Server.Protocol.Game.ClientSpecStatistic;
+using Dfo.Server.Protocol.Game.ConnectionCheck;
 using Dfo.Server.Protocol.Game.ContentsPlayInfo;
 using Dfo.Server.Protocol.Game.CreateCharacter;
 using Dfo.Server.Protocol.Game.DeleteCharacter;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.FinishLoading;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
+using Dfo.Server.Protocol.Game.TutorialLevelUp;
+using Dfo.Server.Protocol.Game.UnansweredReports;
+using Dfo.Server.Protocol.Game.DungeonClear;
+using Dfo.Server.Protocol.Game.GroundPickup;
+using Dfo.Server.Protocol.Game.MonsterDeath;
 using Dfo.Server.Protocol.Game.StoryPause;
 using Dfo.Server.Protocol.Game.UseStackable;
 using Dfo.Server.Protocol.Game.DungeonSelection;
@@ -41,6 +47,7 @@ using Dfo.Server.Protocol.Game.SelectCharacter;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Game.SessionMetrics;
+using Dfo.Server.Protocol.Game.QuestAcceptance;
 using Dfo.Server.Protocol.Game.TaggedIdReport;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -69,7 +76,7 @@ public sealed class ProtocolModule : IServerModule
 
         services.AddGameMessageSending();
         services.TryAddSingleton<ChannelProtocolKeyProvider>();
-        services.TryAddSingleton(SelectCharacterDeliveryOptions.ReferenceSequence);
+        services.TryAddSingleton(SelectCharacterDeliveryOptions.Everything);
         services.TryAddSingleton<ISelectedCharacterStateMessageFactory, SelectedCharacterStateMessageFactoryService>();
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<INetworkConnectionObserver, OnlineUserConnectionObserver>());
@@ -88,6 +95,8 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Direct);
         services.AddCommandHandler<GetChannelInfoCommand, GetChannelInfoResult, GetChannelInfoCommandHandler>(
             CommandExecutionKind.Direct);
+        services.AddCommandHandler<AcceptQuestCommand, QuestAcceptOutcome, AcceptQuestCommandHandler>(
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<AcknowledgeGameExitCommand, AcknowledgeGameExitResult, AcknowledgeGameExitCommandHandler>(
             CommandExecutionKind.Direct);
         // Every command below reaches a write that outlives the process, so every one of them
@@ -158,6 +167,15 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<
             GrantTutorialRewardCommand, TutorialRewardResult, GrantTutorialRewardCommandHandler>(
             CommandExecutionKind.Transactional);
+        // Taking a piece off a room's floor: the claim on the floor and the row in the bag are one
+        // change, and a piece that left the floor without arriving anywhere is the thing to avoid.
+        services.AddCommandHandler<
+            PickUpGroundDropCommand, GroundPickupResult, PickUpGroundDropCommandHandler>(
+            CommandExecutionKind.Transactional);
+        // The tutorial's level: one row, written once, and the client is told what it now stands at.
+        services.AddCommandHandler<
+            GrantTutorialLevelCommand, TutorialLevelUpResult, GrantTutorialLevelCommandHandler>(
+            CommandExecutionKind.Transactional);
     }
 
     /// <summary>Binds each catalogue member to the handler that consumes it.</summary>
@@ -176,6 +194,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<ClientHardwareDetailHandler>(ClientMessageType.GameClientHardwareDetail);
         services.RegisterMessageHandler<ClientSpecProfileHandler>(ClientMessageType.GameClientSpecProfile);
         services.RegisterMessageHandler<SessionMetricsHandler>(ClientMessageType.GameSessionMetrics);
+        services.RegisterMessageHandler<AcceptQuestHandler>(ClientMessageType.GameAcceptQuest);
         services.RegisterMessageHandler<TaggedIdReportHandler>(ClientMessageType.GameTaggedIdReport);
         services.RegisterMessageHandler<RosterFollowUpHandler>(ClientMessageType.GameRosterFollowUp);
         services.RegisterMessageHandler<CheckCharacterNameHandler>(ClientMessageType.GameCheckCharacterName);
@@ -185,18 +204,42 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<HiddenCharacterInfoHandler>(ClientMessageType.GameHiddenCharacterInfo);
         services.RegisterMessageHandler<SaveGameOption1Handler>(ClientMessageType.GameSaveGameOption1);
         services.RegisterMessageHandler<ContentsPlayInfoHandler>(ClientMessageType.GameContentsPlayInfo);
+        services.RegisterMessageHandler<ConnectionCheckHandler>(ClientMessageType.GameConnectionCheck);
 
         // One handler, six wire keys: the map-entry report family.
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameSetUdpIpPort);
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameCeraQuery);
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameInformNoticeSecond);
-        services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameSecurityStatus);
+        services.RegisterMessageHandler<SecurityStatusHandler>(ClientMessageType.GameSecurityStatus);
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameRuntimeTingStatistic);
         services.RegisterMessageHandler<EnterSelectDungeonHandler>(ClientMessageType.GameEnterSelectDungeon);
         services.RegisterMessageHandler<SelectDungeonHandler>(ClientMessageType.GameSelectDungeon);
         services.RegisterMessageHandler<FinishLoadingHandler>(ClientMessageType.GameFinishLoading);
         services.RegisterMessageHandler<MoveMapHandler>(ClientMessageType.GameMoveMap);
         services.RegisterMessageHandler<StoryPauseHandler>(ClientMessageType.GameStoryPause);
+        services.RegisterMessageHandler<MonsterDeathHandler>(ClientMessageType.GameMonsterDeath);
+        services.RegisterMessageHandler<GetItemHandler>(ClientMessageType.GameGetItem);
+        services.RegisterMessageHandler<TutorialLevelUpHandler>(ClientMessageType.GameTutorialLevelUp);
+        services.RegisterMessageHandler<SetPlayResultHandler>(ClientMessageType.GameSetPlayResult);
+        services.RegisterMessageHandler<GiveUpGameHandler>(ClientMessageType.GameGiveUpGame);
+        services.RegisterMessageHandler<BackToVillageHandler>(ClientMessageType.GameBackToVillage);
+
+        // One handler, six wire keys: the reports nothing answers. Registered so that the log can
+        // tell a protocol this server has decided about from one it has never heard of.
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameUseSkill);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameSyncItemSpace);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameDecreaseDurability);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameOverflowInfo);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogDomainConnect);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogConnectProcess);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameCharacterStatistic);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameRequestBlacklist);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameFarmEventAction);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GamePi);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameRequestIgaVersion);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameFpsPerformanceStatistic);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameFrameLagPerDungeon);
+        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLagStatistics);
         services.RegisterMessageHandler<MoveItemSpaceHandler>(ClientMessageType.GameMoveItemSpace);
         services.RegisterMessageHandler<UseStackableHandler>(ClientMessageType.GameUseStackable);
 
@@ -239,10 +282,20 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.ClientSpecProfileType, ClientMessageType.GameClientSpecProfile);
         services.AddGameCmdMessageDecoder<SessionMetricsMessageDecoder>(
             GameProtocol.SessionMetricsType, ClientMessageType.GameSessionMetrics);
+        services.AddGameCmdMessageDecoder<AcceptQuestMessageDecoder>(
+            GameProtocol.AcceptQuestType, ClientMessageType.GameAcceptQuest);
         services.AddGameCmdMessageDecoder<TaggedIdReportMessageDecoder>(
             GameProtocol.TaggedIdReportType, ClientMessageType.GameTaggedIdReport);
+        services.AddGameCmdMessageEncoder<AcceptQuestAcknowledgement, AcceptQuestAcknowledgementEncoder>();
         services.AddGameCmdMessageEncoder<TutorialFlagAcknowledgement, TutorialFlagAcknowledgementEncoder>();
         services.AddGameNotiMessageEncoder<StoryPauseNotification, StoryPauseEncoder>();
+        services.AddGameNotiMessageEncoder<ExperienceNotification, ExperienceEncoder>();
+        services.AddGameNotiMessageEncoder<MonsterDeathNotification, MonsterDeathEncoder>();
+        services.AddGameNotiMessageEncoder<GroundPickupNotification, GroundPickupEncoder>();
+        services.AddGameNotiMessageEncoder<EnableClearDungeonNotification, EnableClearDungeonEncoder>();
+        services.AddGameNotiMessageEncoder<SecretShopNpcNotification, SecretShopNpcEncoder>();
+        services.AddGameNotiMessageEncoder<PlayResultNotification, PlayResultEncoder>();
+        services.AddGameNotiMessageEncoder<ClearDungeonRewardNotification, ClearDungeonRewardEncoder>();
         services.AddGameCmdMessageDecoder<RosterFollowUpMessageDecoder>(
             GameProtocol.RosterFollowUpType, ClientMessageType.GameRosterFollowUp);
         services.AddGameCmdMessageDecoder<CheckCharacterNameMessageDecoder>(
@@ -257,6 +310,8 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.SaveGameOption1Type, ClientMessageType.GameSaveGameOption1);
         services.AddGameCmdMessageDecoder<ContentsPlayInfoMessageDecoder>(
             GameProtocol.ContentsPlayInfoType, ClientMessageType.GameContentsPlayInfo);
+        services.AddGameCmdMessageDecoder<ConnectionCheckMessageDecoder>(
+            GameProtocol.ConnectionCheckType, ClientMessageType.GameConnectionCheck);
         services.AddGameCmdMessageDecoder<SetUdpIpPortDecoder>(
             GameProtocol.SetUdpIpPortType, ClientMessageType.GameSetUdpIpPort);
         services.AddGameCmdMessageDecoder<CeraQueryDecoder>(
@@ -281,6 +336,46 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.MoveMapType, ClientMessageType.GameMoveMap);
         services.AddGameCmdMessageDecoder<StoryPauseDecoder>(
             GameProtocol.StoryPauseType, ClientMessageType.GameStoryPause);
+        services.AddGameCmdMessageDecoder<MonsterDeathDecoder>(
+            GameProtocol.MonsterDeathType, ClientMessageType.GameMonsterDeath);
+        services.AddGameCmdMessageDecoder<GetItemDecoder>(
+            GameProtocol.GetItemType, ClientMessageType.GameGetItem);
+        services.AddGameCmdMessageDecoder<TutorialLevelUpDecoder>(
+            GameProtocol.TutorialLevelUpType, ClientMessageType.GameTutorialLevelUp);
+        services.AddGameCmdMessageDecoder<SetPlayResultDecoder>(
+            GameProtocol.SetPlayResultType, ClientMessageType.GameSetPlayResult);
+        services.AddGameCmdMessageDecoder<GiveUpGameDecoder>(
+            GameProtocol.GiveUpGameType, ClientMessageType.GameGiveUpGame);
+        services.AddGameCmdMessageDecoder<BackToVillageDecoder>(
+            GameProtocol.BackToVillageType, ClientMessageType.GameBackToVillage);
+        services.AddGameCmdMessageDecoder<CharacterStatisticDecoder>(
+            GameProtocol.CharacterStatisticType, ClientMessageType.GameCharacterStatistic);
+        services.AddGameCmdMessageDecoder<RequestBlacklistDecoder>(
+            GameProtocol.RequestBlacklistType, ClientMessageType.GameRequestBlacklist);
+        services.AddGameCmdMessageDecoder<FarmEventActionDecoder>(
+            GameProtocol.FarmEventActionType, ClientMessageType.GameFarmEventAction);
+        services.AddGameCmdMessageDecoder<PiDecoder>(
+            GameProtocol.PiType, ClientMessageType.GamePi);
+        services.AddGameCmdMessageDecoder<RequestIgaVersionDecoder>(
+            GameProtocol.RequestIgaVersionType, ClientMessageType.GameRequestIgaVersion);
+        services.AddGameCmdMessageDecoder<FpsPerformanceStatisticDecoder>(
+            GameProtocol.FpsPerformanceStatisticType, ClientMessageType.GameFpsPerformanceStatistic);
+        services.AddGameCmdMessageDecoder<FrameLagPerDungeonDecoder>(
+            GameProtocol.FrameLagPerDungeonType, ClientMessageType.GameFrameLagPerDungeon);
+        services.AddGameCmdMessageDecoder<LagStatisticsDecoder>(
+            GameProtocol.LagStatisticsType, ClientMessageType.GameLagStatistics);
+        services.AddGameCmdMessageDecoder<UseSkillDecoder>(
+            GameProtocol.UseSkillType, ClientMessageType.GameUseSkill);
+        services.AddGameCmdMessageDecoder<SyncItemSpaceDecoder>(
+            GameProtocol.SyncItemSpaceType, ClientMessageType.GameSyncItemSpace);
+        services.AddGameCmdMessageDecoder<DecreaseDurabilityDecoder>(
+            GameProtocol.DecreaseDurabilityType, ClientMessageType.GameDecreaseDurability);
+        services.AddGameCmdMessageDecoder<OverflowInfoDecoder>(
+            GameProtocol.OverflowInfoType, ClientMessageType.GameOverflowInfo);
+        services.AddGameCmdMessageDecoder<LogDomainConnectDecoder>(
+            GameProtocol.LogDomainConnectType, ClientMessageType.GameLogDomainConnect);
+        services.AddGameCmdMessageDecoder<LogConnectProcessDecoder>(
+            GameProtocol.LogConnectProcessType, ClientMessageType.GameLogConnectProcess);
         services.AddGameCmdMessageDecoder<MoveItemSpaceDecoder>(
             GameProtocol.MoveItemSpaceType, ClientMessageType.GameMoveItemSpace);
         services.AddGameCmdMessageDecoder<UseStackableDecoder>(
@@ -332,10 +427,16 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<DeleteCharacterResponse, DeleteCharacterResponseEncoder>();
         services.AddGameCmdMessageEncoder<MercenaryInfoResponse, MercenaryInfoResponseEncoder>();
         services.AddGameCmdMessageEncoder<ContentsPlayInfoResponse, ContentsPlayInfoResponseEncoder>();
+        services.AddGameCmdMessageEncoder<ConnectionCheckResponse, ConnectionCheckResponseEncoder>();
         services.AddGameNotiMessageEncoder<UserAreaNotification, UserAreaEncoder>();
         services.AddGameNotiMessageEncoder<AreaUsersNotification, AreaUsersEncoder>();
+        services.AddGameNotiMessageEncoder<UserPositionNotification, UserPositionEncoder>();
         services.AddGameNotiMessageEncoder<UserStateNotification, UserStateEncoder>();
         services.AddGameNotiMessageEncoder<UdpHostNotification, UdpHostEncoder>();
+        services.AddGameCmdMessageEncoder<SecurityStatusAcknowledgement, SecurityStatusAcknowledgementEncoder>();
+
+        services.AddGameCmdMessageEncoder<EnterSelectDungeonAcknowledgement, EnterSelectDungeonAcknowledgementEncoder>();
+
         services.AddGameNotiMessageEncoder<EnterSelectDungeonNotification, EnterSelectDungeonEncoder>();
         services.AddGameNotiMessageEncoder<DungeonInfoNotification, DungeonInfoEncoder>();
         services.AddGameNotiMessageEncoder<StartMapNotification, StartMapEncoder>();
@@ -343,6 +444,11 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<FinishLoadingResponse, FinishLoadingResponseEncoder>();
         services.AddGameCmdMessageEncoder<MoveItemSpaceResponse, MoveItemSpaceResponseEncoder>();
         services.AddGameCmdMessageEncoder<UseStackableResponse, UseStackableResponseEncoder>();
+        services.AddGameCmdMessageEncoder<GetItemResponse, GetItemResponseEncoder>();
+        services.AddGameCmdMessageEncoder<TutorialLevelUpResponse, TutorialLevelUpResponseEncoder>();
+        services.AddGameCmdMessageEncoder<GiveUpGameResponse, GiveUpGameResponseEncoder>();
+        services.AddGameCmdMessageEncoder<SelectDungeonRefusal, SelectDungeonRefusalEncoder>();
+        services.AddGameCmdMessageEncoder<BackToVillageResponse, BackToVillageResponseEncoder>();
         services.AddGameNotiMessageEncoder<LoadingCompleteNotification, LoadingCompleteEncoder>();
         services.AddGameCmdMessageEncoder<HiddenCharacterInfoResponse, HiddenCharacterInfoResponseEncoder>();
         services.AddGameCmdMessageEncoder<RosterFollowUpResponse, RosterFollowUpResponseEncoder>();

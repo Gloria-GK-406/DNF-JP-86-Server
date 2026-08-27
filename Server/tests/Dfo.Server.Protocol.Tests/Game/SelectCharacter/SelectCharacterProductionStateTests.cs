@@ -39,7 +39,8 @@ public sealed class SelectCharacterProductionStateTests
         Assert.NotNull(result.CharacterEntry.Skills.ProtocolMirror);
         Assert.All(result.CharacterEntry.Features.Collections.CollectionBoxes,
             value => Assert.NotNull(value.Protocol));
-        Assert.Equal(57, messages.Count); // Knight-only row 10 is the sole skipped static row.
+        // 62 static rows on A21, less the knight-only row this job does not take.
+        Assert.Equal(61, messages.Count);
         Assert.False(sources.Published);
     }
 
@@ -61,7 +62,8 @@ public sealed class SelectCharacterProductionStateTests
                 [new CharacterSummary(seed.Character.Identity.CharacterId,
                     seed.Character.Identity.SlotIndex, seed.Character.Identity.Name,
                     seed.Character.Identity.Job, seed.Character.Identity.GrowType,
-                    seed.Character.Progression.Level, seed.CharacterEntry.Public.CloneTitleItemId)]));
+                    seed.Character.Progression.Level, seed.CharacterEntry.Public.CloneTitleItemId,
+                    [])]));
         public ValueTask<ActiveCharacterState> LoadForSelectionAsync(AccountId id, ushort slot, CancellationToken ct) =>
             ValueTask.FromResult(seed.Character);
         public ValueTask<ActiveCharacterState> LoadByRosterPositionAsync(

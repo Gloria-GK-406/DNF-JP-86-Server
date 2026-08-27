@@ -40,7 +40,9 @@ public sealed class ItemPathFrameTests
     public async Task AMoveOfARealRowAcknowledgesTheSameBytesAsBefore()
     {
         await using var storage = await Storage.CreateAsync((65, PotionId, 1));
-        var handler = new MoveItemSpaceCommandHandler(storage.Containers());
+        var handler = new MoveItemSpaceCommandHandler(
+            storage.Containers(), new NoWearables(), new ConsumableBand(),
+            new ItemSlotRuleService());
 
         // The boundary the pipeline would have opened for a Transactional command. Without it the
         // container refuses the write outright, which is the guarantee working rather than a
@@ -67,7 +69,9 @@ public sealed class ItemPathFrameTests
     public async Task ARefusedMoveOfARealRowAcknowledgesTheSameBytesAsBefore()
     {
         await using var storage = await Storage.CreateAsync();
-        var handler = new MoveItemSpaceCommandHandler(storage.Containers());
+        var handler = new MoveItemSpaceCommandHandler(
+            storage.Containers(), new NoWearables(), new ConsumableBand(),
+            new ItemSlotRuleService());
 
         await using var boundary = storage.Scope.Begin();
         var result = await handler.HandleAsync(
@@ -81,6 +85,35 @@ public sealed class ItemPathFrameTests
     private static CommandExecutionContext Context => new(
         Guid.Empty, typeof(MoveItemSpaceCommand), typeof(MoveItemSpaceCommandHandler),
         CommandExecutionKind.Transactional);
+
+    /// <summary>
+    /// Wearing a piece is acknowledged with the bytes the reference server sends.
+    /// </summary>
+    /// <remarks>
+    /// The reference character equipped the very same shoulder out of the very same bag slot, so
+    /// both halves of this exchange are captured rather than derived: it received
+    /// <c>00 09 00 40 38 00 00 01 00 00 00 03 0F 00</c> and answered
+    /// <c>01 00 09 00 01 00 00 00 03 0F 00</c>. What this pins is that a cross-list success uses
+    /// the same encoding a same-list one does, and that exactly one piece is reported moved.
+    /// </remarks>
+    [Fact]
+    public void Wearing_a_piece_is_acknowledged_the_way_the_reference_acknowledges_it()
+    {
+        var body = MoveItemSpacePayloadCodec.Encode(
+            new MoveItemSpaceResponse(
+                ErrorCode: null, SourceListType: 0, SourceSlotIndex: 9, MoveValue: 1,
+                DestinationListType: 3, DestinationSlotIndex: 15));
+
+        Assert.Equal(
+            [0x01, 0x00, 0x09, 0x00, 0x01, 0x00, 0x00, 0x00, 0x03, 0x0F, 0x00], body);
+    }
+
+    /// <summary>Nothing is wearable here; these tests move things inside the bag.</summary>
+    private sealed class NoWearables : IEquipmentSlotDefinitionSource
+    {
+        public ValueTask<byte?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<byte?>(null);
+    }
 
     private sealed class ConsumableBand : IItemPlacementDefinitionSource
     {

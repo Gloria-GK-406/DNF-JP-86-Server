@@ -1,4 +1,4 @@
-﻿# NOTI `0x001A` `UDP_HOST`
+# NOTI `0x001A` `UDP_HOST`
 
 <!-- rks:machine:begin -->
 
@@ -38,14 +38,20 @@ BodyLength = 未知（字段集合已知不完整）
 
 | 项 | 值 |
 |---|---|
-| handler 入口 | `0x00911280` |
+| handler 入口 | `0x00D65640` |
 | handler 所在区 | text |
 | 注册路径 | batch:batch |
 
 
-支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`
+支持客户端 SHA-256：`1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`
 
 <!-- rks:machine:end -->
+
+<!-- rks:a12:begin -->
+
+> **本区结论得出于 A12 客户端**（SHA-256 `F78F0AEA…`），**A21 上尚未复核**。
+> 按迁移规则，本协议在 A21 上重做完成后整区删除；在那之前它是脚手架，不是 A21 的记录。
+> 迁移状态见[协议清单](../../catalog.md#a12-内容的退场)。
 
 ## 实测字段表（运行时读取跟踪）
 
@@ -90,3 +96,5 @@ P2P UDP 主机通告。参照实现的 `UdpHostBuilder.BuildUnavailable()` 只�
 读取跟踪只证明帧到了，不证明是这个 handler 发的。
 
 <!-- 走过的死胡同也要写：它能避免下一个人重复同样的尝试。 -->
+
+<!-- rks:a12:end -->

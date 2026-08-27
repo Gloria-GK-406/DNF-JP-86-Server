@@ -25,18 +25,16 @@
 
 ```text
 BodyLength = 未知（字段集合已知不完整）
-已读出字段合计 = 518   ← 下界，不是总长
+已读出字段合计 = 8   ← 下界，不是总长
 ```
 
 | Offset | Size | Enc | 可能含义 | 置信度 | 证据 |
 |---:|---:|---|---|---|---|
-| 0 | 1 | `u8` | 塔层数 layer：上游对同一次 START_MAP 连发两包，第一包写 0（基准层），第二包写当前层数 | Confirmed | 上游 Network/Builders/Dungeon/TowerOfDespairApcInfoBuilder.cs:39 BuildBody 首字节 WriteByte(layer)；:31-32 分别以 0 与 (byte)floor 调用；发包点 Network/Handlers/Dungeon/DungeonMapHandler.cs:592-599，取自 `[ebp - 0xa30]` |
-| 1 | 255 | `dstringw` | 角色名 player.Name（dstr） | Confirmed | 上游 TowerOfDespairApcInfoBuilder.cs:40 WriteDstr(player.Name)，取自 `[ebp - 0x410]` |
-| 256 | 1 | `u8` | 角色等级 player.Level | Confirmed | 上游 TowerOfDespairApcInfoBuilder.cs:41 WriteByte(player.Level)，取自 `[ebp - 0xa1f]` |
-| 257 | 1 | `u8` | 职业 player.Job | Confirmed | 上游 TowerOfDespairApcInfoBuilder.cs:42 WriteByte(player.Job)，取自 `[ebp - 0xa1e]` |
-| 258 | 1 | `u8` | 转职/成长类型 player.GrowType | Confirmed | 上游 TowerOfDespairApcInfoBuilder.cs:43 WriteByte(player.GrowType)，取自 `[ebp - 0xa20]` |
-| 259 | 255 | `dstringw` | 公会名（dstr）；上游恒写空串 | Confirmed | 上游 TowerOfDespairApcInfoBuilder.cs:44 WriteDstr(Array.Empty<byte>()) 并注释 guild name，取自 `[ebp - 0x610]` |
-| 514 | 4 | `u32` | 公会 id；上游恒写 0 | Confirmed | 上游 TowerOfDespairApcInfoBuilder.cs:45 WriteInt32(0) 并注释 guild id，取自 `[ebp - 0xa30]` |
+| 0 | 1 | `u8` | 塔层数 layer：上游对同一次 START_MAP 连发两包，第一包写 0（基准层），第二包写当前层数 | Confirmed | 上游 Network/Builders/Dungeon/TowerOfDespairApcInfoBuilder.cs:39 BuildBody 首字节 WriteByte(layer)；:31-32 分别以 0 与 (byte)floor 调用；发包点 Network/Handlers/Dungeon/DungeonMapHandler.cs:592-599，取自 `[ebp - 0xa74]` |
+| 1 | 1 | `u8` | 角色名 player.Name（dstr） | Confirmed | 上游 TowerOfDespairApcInfoBuilder.cs:40 WriteDstr(player.Name)，取自 `[ebp - 0xa63]` |
+| 2 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 0xa62]` |
+| 3 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 0xa64]` |
+| 4 | 4 | `u32` | unknown | — | 接收指令，取自 `[ebp - 0xa74]` |
 
 `可能含义` 为 `unknown` 表示**字段边界已确定但含义无证据**——这类未知靠实机改值做差分即可解决，与上面的「结构未知」不是一回事。
 
@@ -44,12 +42,12 @@ BodyLength = 未知（字段集合已知不完整）
 
 | 项 | 值 |
 |---|---|
-| handler 入口 | `0x005FFBA0` |
+| handler 入口 | `0x00A14EC0` |
 | handler 所在区 | text |
 | 注册路径 | forwarder |
 
 
-支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`
+支持客户端 SHA-256：`1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`
 
 <!-- rks:machine:end -->
 

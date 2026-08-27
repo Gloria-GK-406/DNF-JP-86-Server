@@ -9,7 +9,7 @@ public sealed record CharacterRosterRow(int CharacterId, int SlotIndex, int Leve
 /// <summary>What a character looks like in a list of them.</summary>
 public sealed record CharacterSummaryRow(
     int CharacterId, int SlotIndex, byte[] Name, int Job, int GrowType, int Level,
-    long CloneTitleItemId);
+    long CloneTitleItemId, byte[] AppearanceBlob, int CreatedAtUnixSeconds);
 
 /// <summary>How far along a character is.</summary>
 public sealed record CharacterProgressRow(int Level, long Experience);
@@ -77,6 +77,7 @@ public interface ICharacterTable
         byte[] nameBytes,
         int job,
         int slotIndex,
+        byte[] appearanceBlob,
         CancellationToken cancellationToken);
 
     /// <summary>Moves a character along. Says how many rows that touched.</summary>
@@ -126,8 +127,13 @@ public interface ICharacterSkillTable
     ValueTask<IReadOnlyList<CharacterSkillEntryRow>> ReadEntryAsync(
         CharacterId characterId, CancellationToken cancellationToken);
 
+    /// <param name="pageIndex">
+    /// Which skill tree the row belongs to. A character is created holding two, and while the
+    /// second is locked it is a copy of the first; see <c>protocol/game/server-to-client/NOTI-0x0013.md</c>.
+    /// </param>
     ValueTask InsertAsync(
-        CharacterId characterId, int slot, int skillId, int level, CancellationToken cancellationToken);
+        CharacterId characterId, int pageIndex, int slot, int skillId, int level,
+        CancellationToken cancellationToken);
 
     /// <summary>Puts one ordinary skill at that level. Says how many rows that touched.</summary>
     ValueTask<int> SetLevelAsync(

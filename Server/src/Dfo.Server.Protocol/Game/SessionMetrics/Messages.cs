@@ -3,7 +3,7 @@ using Dfo.Server.Data.Networking;
 namespace Dfo.Server.Protocol.Game.SessionMetrics;
 
 /// <summary>
-/// One of the seven fixed metric sections of SESSION_METRICS (0x00FA). The value is a mean the
+/// One of the eight fixed metric sections of SESSION_METRICS (0x00FA). The value is a mean the
 /// client already computed as total/samples, truncated toward zero, and written as 0 when it had
 /// no samples -- so 0 means "nothing measured", not "measured zero".
 /// Which metric each tag denotes is unconfirmed; see protocol/game/client-to-server/0x00FA.md.
@@ -24,7 +24,7 @@ public sealed record SessionMetricRecord(
 
 /// <summary>
 /// SESSION_METRICS report (cmd 0x01/type 0x00FA). Fire-and-forget; the second frame of the
-/// client's normal-exit flush. Seven tagged means followed by two counted sections that share a
+/// client's normal-exit flush. Eight tagged means followed by two counted sections that share a
 /// record shape. Nothing depends on its arrival: a force-killed client never sends it.
 /// </summary>
 public sealed record SessionMetricsReportRequest(

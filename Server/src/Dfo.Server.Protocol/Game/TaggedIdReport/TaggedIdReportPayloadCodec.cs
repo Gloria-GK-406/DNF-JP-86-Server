@@ -4,13 +4,31 @@ using Dfo.Server.Data.Networking;
 namespace Dfo.Server.Protocol.Game.TaggedIdReport;
 
 /// <summary>
-/// Decodes the five-byte 0x008F body <c>{u32 id, u8 flag}</c>. All fourteen client builder sites
-/// write exactly these two fields with no branches, loops or optional tail, so any other length is
-/// not this message. See protocol/game/client-to-server/0x008F.md.
+/// Decodes the 0x008F body: <c>u8 mode</c>, <c>u32 flagIndex</c>, <c>u8 rewardFlag</c>.
 /// </summary>
+/// <remarks>
+/// This read four bytes of id at offset zero and a flag at four, and rejected any length but five.
+/// That is the older client. A21 puts a mode byte in front, so the same six bytes mean something
+/// else entirely: the session that reaches the tutorial sends <c>00 1E 00 00 00 01</c>, which is
+/// mode 0, flag index 30, reward 1 -- not id 7680 with the flag clear.
+///
+/// The length check was worse than the misread. A21's shortest form is six bytes, so every
+/// CHANGE_TUTORIAL_FLAG threw <c>InvalidDataException</c> out of the decoder, and the decoder is
+/// called outside the dispatch layer's try/catch: the exception escaped the receive callback and
+/// the connection was dropped with nothing logged. The client showed "network connection
+/// interrupted" while the server said nothing at all. Reproduced at the wire level on
+/// 2026-08-25 -- the connection closes on this frame and no other.
+///
+/// The client may also append nine reserved bytes, which the A21 reference calls the capture
+/// layout; both forms carry these fields at the same offsets, so anything from six bytes up is
+/// accepted and only the first six are read.
+///
+/// See protocol/game/client-to-server/0x008F.md.
+/// </remarks>
 internal static class TaggedIdReportPayloadCodec
 {
-    public const int BodyLength = 5;
+    /// <summary>The shortest form A21 sends. Longer bodies carry the same fields up front.</summary>
+    public const int BodyLength = 6;
 
     /// <summary>
     /// <c>u8 result=1</c>, <c>u8 count</c>, then <c>u16 slot, u32 itemId, u32 count</c> per item.
@@ -40,19 +58,20 @@ internal static class TaggedIdReportPayloadCodec
         GameMessageMetadata metadata,
         ReadOnlySpan<byte> body)
     {
-        if (body.Length != BodyLength)
+        if (body.Length < BodyLength)
         {
             throw new InvalidDataException(
-                $"0x008F requires exactly {BodyLength} body bytes; received '{body.Length}'.");
+                $"0x008F requires at least {BodyLength} body bytes; received '{body.Length}'.");
         }
 
-        // No value is rejected: twelve of the fourteen sites hard-code the flag to 1 and two
-        // compute it, so the domain of the computed sites is not yet known and must not be
-        // guessed at by the parser.
+        // No value is rejected: the reward flag is hard-coded at most client sites and computed at
+        // a couple, so the domain of the computed ones is not yet known and must not be guessed at
+        // by the parser.
         return new TaggedIdReportRequest(
             metadata,
-            BinaryPrimitives.ReadUInt32LittleEndian(body),
-            body[4]);
+            body[0],
+            BinaryPrimitives.ReadUInt32LittleEndian(body[1..]),
+            body[5]);
     }
 }
 

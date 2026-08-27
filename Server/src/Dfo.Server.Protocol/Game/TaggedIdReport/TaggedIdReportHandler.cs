@@ -40,7 +40,7 @@ public sealed class TaggedIdReportHandler(
         var attributed = onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var onlineUser)
             && onlineUser is not null;
 
-        var declared = await rewards.GetAsync(message.Id, cancellationToken).ConfigureAwait(false);
+        var declared = await rewards.GetAsync(message.FlagIndex, cancellationToken).ConfigureAwait(false);
 
         // The acknowledgement reports what reached the inventory, not what the archive declares.
         // An item that was refused -- unknown to the archive, or its band already full -- is left
@@ -55,7 +55,7 @@ public sealed class TaggedIdReportHandler(
                 logger.LogWarning(
                     "Tagged id report {ConnectionId}: flag {Flag} gives {Declared} item(s) but no "
                         + "character is selected, skipping",
-                    context.Connection.ConnectionId, message.Id, declared.Count);
+                    context.Connection.ConnectionId, message.FlagIndex, declared.Count);
             }
         }
         else
@@ -76,7 +76,7 @@ public sealed class TaggedIdReportHandler(
                 logger.LogWarning(
                     "Tagged id report {ConnectionId}: flag {Flag} declared {Declared} item(s) but "
                         + "only {Granted} reached the inventory",
-                    context.Connection.ConnectionId, message.Id, declared.Count,
+                    context.Connection.ConnectionId, message.FlagIndex, declared.Count,
                     result.Placed.Count);
             }
         }
@@ -85,8 +85,8 @@ public sealed class TaggedIdReportHandler(
             "Tagged id report {ConnectionId} {Attribution}: id={Id} flag={Flag} declared={Declared} granted={Granted}",
             context.Connection.ConnectionId,
             attributed ? $"account={onlineUser!.AccountId} onlineUser={onlineUser.OnlineUserId}" : "unattributed",
-            message.Id,
-            message.Flag,
+            message.FlagIndex,
+            message.RewardFlag,
             declared.Count,
             granted.Count);
 

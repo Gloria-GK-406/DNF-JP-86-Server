@@ -10,54 +10,78 @@ namespace Dfo.Server.Protocol.Tests.Game;
 /// </summary>
 public sealed class SmallReportPayloadCodecTests
 {
+    /// <remarks>
+    /// These four used to pin the older client's five-byte <c>{u32 id, u8 flag}</c>, including its
+    /// captured body <c>1F 00 00 00 01</c>. A21 puts a mode byte in front, so that body is not this
+    /// message on A21 -- it is four bytes too short and its fields sit one byte early. What each
+    /// test guards is kept: the observed body decodes to the right fields, the index is little
+    /// endian, the indices the client hard-codes survive, and the length boundary is enforced.
+    /// The boundary itself moved from "exactly five" to "at least six", which is what let every
+    /// A21 CHANGE_TUTORIAL_FLAG take the connection down.
+    /// </remarks>
     [Fact]
-    public void TaggedIdReport_InterpretsTheObservedBody()
+    public void TaggedIdReport_InterpretsTheObservedA21Body()
     {
-        // Real captured body (protocol record E-001): id 31, flag 1.
-        byte[] body = [0x1F, 0x00, 0x00, 0x00, 0x01];
+        // The body a real A21 session sends on entering the tutorial: mode 0, flag index 30,
+        // reward claimed. Archived in patterns/data/traces/a21-reference-entry-bytes-20260825.md.
+        byte[] body = [0x00, 0x1E, 0x00, 0x00, 0x00, 0x01];
         var metadata = new GameMessageMetadata(0x01, 0x008F, 0xED60D4D0, 12);
 
         var request = TaggedIdReportPayloadCodec.Decode(metadata, body);
 
         Assert.Equal(ClientMessageType.GameTaggedIdReport, request.MessageType);
         Assert.Equal(metadata, request.Metadata);
-        Assert.Equal(31u, request.Id);
-        Assert.Equal(1, request.Flag);
+        Assert.Equal(0, request.Mode);
+        Assert.Equal(30u, request.FlagIndex);
+        Assert.Equal(1, request.RewardFlag);
     }
 
     [Fact]
-    public void TaggedIdReport_ReadsTheIdAsLittleEndian()
+    public void TaggedIdReport_ReadsTheFlagIndexAsLittleEndianFromOffsetOne()
     {
         var request = TaggedIdReportPayloadCodec.Decode(
-            GameMessageMetadata.Empty, [0x78, 0x56, 0x34, 0x12, 0xFF]);
+            GameMessageMetadata.Empty, [0x00, 0x78, 0x56, 0x34, 0x12, 0xFF]);
 
-        Assert.Equal(0x12345678u, request.Id);
-        Assert.Equal(0xFF, request.Flag);
+        Assert.Equal(0x12345678u, request.FlagIndex);
+        Assert.Equal(0xFF, request.RewardFlag);
     }
 
     [Fact]
-    public void TaggedIdReport_PreservesTheHardCodedEnumIds()
+    public void TaggedIdReport_PreservesTheHardCodedFlagIndices()
     {
-        // Two builder sites write these as immediates, so both must survive decoding.
-        foreach (var id in (uint[])[77, 38])
+        // The two the client writes as immediates. Both carry meaning upstream: 31 ends the
+        // tutorial run, 77 sets every flag at once.
+        foreach (var index in (uint[])[77, 31])
         {
-            var body = new byte[5];
-            BitConverter.GetBytes(id).CopyTo(body, 0);
-            body[4] = 1;
+            var body = new byte[6];
+            BitConverter.GetBytes(index).CopyTo(body, 1);
+            body[5] = 1;
 
-            Assert.Equal(id, TaggedIdReportPayloadCodec.Decode(GameMessageMetadata.Empty, body).Id);
+            Assert.Equal(
+                index,
+                TaggedIdReportPayloadCodec.Decode(GameMessageMetadata.Empty, body).FlagIndex);
         }
     }
 
     [Fact]
-    public void TaggedIdReport_RejectsBodiesThatAreNotFiveBytes()
+    public void TaggedIdReport_RejectsBodiesShorterThanSixBytesAndAcceptsLongerOnes()
     {
         Assert.Throws<InvalidDataException>(
             () => TaggedIdReportPayloadCodec.Decode(GameMessageMetadata.Empty, []));
+        // The older client's whole body is one of the too-short cases now.
         Assert.Throws<InvalidDataException>(
-            () => TaggedIdReportPayloadCodec.Decode(GameMessageMetadata.Empty, [0x1F, 0x00, 0x00, 0x00]));
-        Assert.Throws<InvalidDataException>(
-            () => TaggedIdReportPayloadCodec.Decode(GameMessageMetadata.Empty, [0x1F, 0x00, 0x00, 0x00, 0x01, 0x00]));
+            () => TaggedIdReportPayloadCodec.Decode(
+                GameMessageMetadata.Empty, [0x1F, 0x00, 0x00, 0x00, 0x01]));
+
+        // The client may append nine reserved bytes. Same fields, same offsets, still accepted --
+        // rejecting it would drop the connection exactly as the old length check did.
+        var padded = new byte[15];
+        padded[1] = 0x1E;
+        padded[5] = 0x01;
+        var request = TaggedIdReportPayloadCodec.Decode(GameMessageMetadata.Empty, padded);
+
+        Assert.Equal(30u, request.FlagIndex);
+        Assert.Equal(1, request.RewardFlag);
     }
 
     [Fact]

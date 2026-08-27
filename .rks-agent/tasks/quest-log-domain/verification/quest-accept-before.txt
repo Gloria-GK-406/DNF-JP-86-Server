@@ -1,0 +1,13 @@
+entry batch: 66 frames
+
+accept 1016  ->  2 frame(s)
+   CMD  0x001F (8B) 01 f8 03 01 00 00 00 00
+   NOTI 0x0015 (25B) 01 0b 00 f8 03 65 00 20 0c 21 0c 22 0c 23 0c 24 0c 25 0c 26 0c 27 0c 28 0c
+
+accept 101  ->  2 frame(s)
+   CMD  0x001F (8B) 01 65 00 01 00 00 00 00
+   NOTI 0x0015 (25B) 01 0b 00 f8 03 65 00 20 0c 21 0c 22 0c 23 0c 24 0c 25 0c 26 0c 27 0c 28 0c
+
+accept 1016 a second time  ->  00 12
+
+RESULT: matches the reference

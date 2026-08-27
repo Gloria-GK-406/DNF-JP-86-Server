@@ -14,7 +14,7 @@
 | Direction | Server → Client | 接收注册表普查 |
 | Command 族 | `0x00`（NOTI） | 客户端两张注册表的分表证据 |
 | Type | `0x02A6` | 同上 |
-| 名称 | `HELL_PARTY_MONSTER_INFO` | upstream NotiPacketType |
+| 名称 | `REAL_ESTATE_REWARD_INFO` | upstream NotiPacketType |
 | 身份说明 | notification (server push only) | 普查 |
 
 ## Body
@@ -25,15 +25,20 @@
 
 ```text
 BodyLength = 未知（字段集合已知不完整）
-已读出字段合计 = 4 + n×8   ← 下界，不是总长
+已读出字段合计 = 1 + n×14   ← 下界，不是总长
 ```
 
 | Offset | Size | Enc | 可能含义 | 置信度 | 证据 |
 |---:|---:|---|---|---|---|
-| 0 | 4 | `u32` | 条目数 count = actorLevels.Count | Confirmed | 上游 DungeonNotificationBuilder.cs:82-83 BuildHellPartyMonsterInfo 先算 count 再 WriteInt32(count)，取自 `[ebp - 0xc]` |
+| 0 | 1 | `u8` | 条目数 count = actorLevels.Count | Confirmed | 上游 DungeonNotificationBuilder.cs:82-83 BuildHellPartyMonsterInfo 先算 count 再 WriteInt32(count)，取自 `[ebp - 2]` |
 | **重复组 g1 ×n** |  |  | *以下字段按运行时计数重复；其后字段的偏移随重复次数变化* |  |  |
-| &nbsp;&nbsp;↳&nbsp;0 | 4 | `u32` | 该条目的怪物 code | Confirmed | 上游 DungeonNotificationBuilder.cs:86 循环写 actorLevels[i].Key；Key 的取值见 Network/Handlers/Dungeon/DungeonMapHandler.cs:754 new KeyValuePair<int,int>(monster.Code, ...)，取自 `[ebp - 4]` |
-| &nbsp;&nbsp;↳&nbsp;4 | 4 | `u32` | 该怪物的等级（上游取 max(1, monster.Level)） | Confirmed | 上游 DungeonNotificationBuilder.cs:87 WriteInt32(actorLevels[i].Value)；取值见 DungeonMapHandler.cs:754 Math.Max(1, (int)monster.Level)，取自 `[ebp - 4]` |
+| &nbsp;&nbsp;↳&nbsp;0 | 1 | `u8` | 该条目的怪物 code | Confirmed | 上游 DungeonNotificationBuilder.cs:86 循环写 actorLevels[i].Key；Key 的取值见 Network/Handlers/Dungeon/DungeonMapHandler.cs:754 new KeyValuePair<int,int>(monster.Code, ...)，取自 `[ebp - 3]` |
+| &nbsp;&nbsp;↳&nbsp;1 | 2 | `u16` | unknown | — | 接收指令，取自 `[ebp - 0xc]` |
+| &nbsp;&nbsp;↳&nbsp;3 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 1]` |
+| &nbsp;&nbsp;↳&nbsp;4 | 1 | `u8` | 该怪物的等级（上游取 max(1, monster.Level)） | Confirmed | 上游 DungeonNotificationBuilder.cs:87 WriteInt32(actorLevels[i].Value)；取值见 DungeonMapHandler.cs:754 Math.Max(1, (int)monster.Level)，取自 `[ebp - 5]` |
+| &nbsp;&nbsp;↳&nbsp;5 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 4]` |
+| &nbsp;&nbsp;↳&nbsp;6 | 4 | `u32` | unknown | — | 接收指令，取自 `[ebp - 0x14]` |
+| &nbsp;&nbsp;↳&nbsp;10 | 4 | `u32` | unknown | — | 接收指令，取自 `[ebp - 0x10]` |
 
 `可能含义` 为 `unknown` 表示**字段边界已确定但含义无证据**——这类未知靠实机改值做差分即可解决，与上面的「结构未知」不是一回事。
 
@@ -41,12 +46,12 @@ BodyLength = 未知（字段集合已知不完整）
 
 | 项 | 值 |
 |---|---|
-| handler 入口 | `0x008F6EE0` |
+| handler 入口 | `0x00343B20` |
 | handler 所在区 | text |
-| 注册路径 | batch:batch |
+| 注册路径 | forwarder |
 
 
-支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`
+支持客户端 SHA-256：`1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`
 
 <!-- rks:machine:end -->
 

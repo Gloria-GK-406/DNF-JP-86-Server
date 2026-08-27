@@ -150,6 +150,101 @@ public sealed class SqliteCharacterLifecycleTests
         });
     }
 
+    /// <summary>
+    /// The roster carries the stored appearance parts, and a character without any carries none.
+    /// </summary>
+    /// <remarks>
+    /// What the roster draws is what the character is wearing, so the parts are the equipment the
+    /// creation was given and a character given none carries none. Both halves are reached through
+    /// the repository because both are now shapes it produces.
+    ///
+    /// The stored-blob half is still exercised by hand afterwards. A blob written by something
+    /// other than this creation -- an older row, another tool -- must still decode, and nothing
+    /// the repository does can produce one to test that with.
+    /// </remarks>
+    [Fact]
+    public Task TheRosterCarriesStoredAppearancePartsAndCopesWithNone()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"dfo-character-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var databasePath = Path.Combine(directory, "characters.db");
+        return RunAndCleanUpAsync(directory, async () =>
+        {
+            await new AccountSide(databasePath).GetOrCreateAsync("account", "hash");
+            var repository = new CharacterSide(databasePath).PerCall;
+
+            var bare = await repository.CreateAsync(
+                new NewCharacterSpec(Account, "Bare"u8.ToArray(), Job: 1, SlotIndex: 0, CharacterBaseStats.Zero),
+                CancellationToken.None);
+            var clothed = await repository.CreateAsync(
+                new NewCharacterSpec(
+                    Account, "Clothed"u8.ToArray(), Job: 0, SlotIndex: 2, CharacterBaseStats.Zero,
+                    InitialEquipment:
+                    [
+                        new NewCharacterEquipment(12, 27600, 45),
+                        new NewCharacterEquipment(14, 10400, 33),
+                        new NewCharacterEquipment(16, 12400, 27),
+                    ]),
+                CancellationToken.None);
+            var created = await repository.ListByAccountAsync(Account, CancellationToken.None);
+
+            // The parts are the granted equipment the roster draws, in its slots. A creation given
+            // nothing to wear writes nothing rather than a stand-in set: the roster would
+            // otherwise draw every character holding whichever job's weapon the stand-in was
+            // transcribed from. The coat and the pants are worn but not drawn -- the roster's
+            // appearance stops at slot thirteen.
+            Assert.Empty(created.Single(value => value.CharacterId == bare).Appearances);
+            var worn = created.Single(value => value.CharacterId == clothed).Appearances;
+            Assert.Equal([12], worn.Select(value => (int)value.Slot));
+            Assert.Equal([27600], worn.Select(value => value.DisplayItemId));
+            Assert.Equal([4], worn.Select(value => value.ExpansionLength));
+
+            var dressed = await repository.CreateAsync(
+                new NewCharacterSpec(Account, "Dressed"u8.ToArray(), Job: 2, SlotIndex: 1, CharacterBaseStats.Zero),
+                CancellationToken.None);
+
+            // One count byte followed by one twenty-three byte entry, which is how the column is
+            // laid out wherever it does get written.
+            byte[] blob =
+            [
+                0x01,
+                0x0C, 0x80, 0x80, 0xCB, 0x06, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            ];
+            await using (var connection = new SqliteConnection($"Data Source={databasePath}"))
+            {
+                await connection.OpenAsync(CancellationToken.None);
+                await using var update = connection.CreateCommand();
+                update.CommandText =
+                    "UPDATE characters SET appearance_blob = @blob WHERE character_id = @id;";
+                update.Parameters.AddWithValue("@blob", blob);
+                update.Parameters.AddWithValue("@id", dressed.Value);
+                Assert.Equal(1, await update.ExecuteNonQueryAsync(CancellationToken.None));
+            }
+
+            // NULL rather than an empty blob. Creation writes a one-byte count of zero for a
+            // character with nothing to wear, and a column holding nothing at all is a different
+            // input the decoder must also survive.
+            await using (var connection = new SqliteConnection($"Data Source={databasePath}"))
+            {
+                await connection.OpenAsync(CancellationToken.None);
+                await using var clear = connection.CreateCommand();
+                clear.CommandText =
+                    "UPDATE characters SET appearance_blob = NULL WHERE character_id = @id;";
+                clear.Parameters.AddWithValue("@id", bare.Value);
+                Assert.Equal(1, await clear.ExecuteNonQueryAsync(CancellationToken.None));
+            }
+
+            var roster = await repository.ListByAccountAsync(Account, CancellationToken.None);
+
+            Assert.Empty(roster.Single(value => value.CharacterId == bare).Appearances);
+            var part = Assert.Single(roster.Single(value => value.CharacterId == dressed).Appearances);
+            Assert.Equal(0x0C, part.Slot);
+            Assert.Equal(0x06CB8080, part.DisplayItemId);
+            Assert.Equal(4, part.ExpansionLength);
+        });
+    }
+
     private static async Task RunAndCleanUpAsync(string directory, Func<Task> body)
     {
         try

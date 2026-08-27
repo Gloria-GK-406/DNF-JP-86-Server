@@ -39,8 +39,12 @@ public sealed class SelectCharacterLifecycleTests
             new CharacterPositionState(spawn.TownId, spawn.AreaId, spawn.X, spawn.Y, spawn.Direction),
             result.Character.Position);
         Assert.Equal(result.Character.Position, fixture.Mutations.PersistedPosition);
+        // The refill runs and its delta goes out before the post-marker frames, not after. That
+        // order is on the wire: the reference session's one UPDATE_ITEM_LIST sits directly after
+        // USER_POSITION, ahead of the invisibility flags, the clone title, the roster payload and
+        // the honour level.
         Assert.Equal(
-            ["prepare", "position", "static", "pre", "inventory", "active", "publish",
+            ["prepare", "position", "static", "inventory", "pre", "active", "publish",
                 "plan-pvp", "x11", "quest", "pet"],
             fixture.Ledger);
         Assert.Equal(
@@ -67,7 +71,7 @@ public sealed class SelectCharacterLifecycleTests
                 fixture.Context, fixture.Command, CancellationToken.None));
 
         Assert.Equal(
-            ["prepare", "position", "static", "pre", "inventory", "active", "publish",
+            ["prepare", "position", "static", "inventory", "pre", "active", "publish",
                 "plan-pvp", "x11", "cleanup", "close"],
             fixture.Ledger);
         Assert.Null(fixture.Directory.Find(fixture.AccountId));
@@ -277,7 +281,7 @@ public sealed class SelectCharacterLifecycleTests
                 fixture.Context, fixture.Command, CancellationToken.None));
 
         Assert.Equal(
-            ["prepare", "position", "static", "pre", "inventory", "active", "publish",
+            ["prepare", "position", "static", "inventory", "pre", "active", "publish",
                 "plan-pvp", "pvp", "cleanup", "close"],
             fixture.Ledger);
         Assert.DoesNotContain("ready", fixture.Ledger);
@@ -294,7 +298,7 @@ public sealed class SelectCharacterLifecycleTests
             fixture.Context, fixture.Command, CancellationToken.None);
 
         Assert.Equal(
-            ["prepare", "position", "static", "pre", "inventory", "active", "publish",
+            ["prepare", "position", "static", "inventory", "pre", "active", "publish",
                 "plan-pvp", "pvp", "ready", "target", "x11", "quest", "pet"],
             fixture.Ledger);
         Assert.NotNull(fixture.Directory.Find(fixture.AccountId));

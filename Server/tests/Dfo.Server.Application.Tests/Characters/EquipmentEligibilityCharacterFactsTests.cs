@@ -21,7 +21,8 @@ public sealed class EquipmentEligibilityCharacterFactsTests
             Job: 7,
             GrowType: 3,
             Level: 86,
-            CloneTitleItemId: 0);
+            CloneTitleItemId: 0,
+            Appearances: []);
         // Reading eligibility facts must not reach for static content: only creation needs it.
         // The last is how a character instance would be built, and reading eligibility facts never
         // builds one.
@@ -29,6 +30,7 @@ public sealed class EquipmentEligibilityCharacterFactsTests
             () => new StubCharacterRepository(summary),
             new UnusedStatSource(),
             new UnusedInitialSkillSource(),
+            new UnusedInitialEquipmentSource(),
             null!);
 
         var facts = await reader.GetAsync(
@@ -53,6 +55,15 @@ public sealed class EquipmentEligibilityCharacterFactsTests
             byte job,
             CancellationToken cancellationToken) =>
             throw new InvalidOperationException("Eligibility facts do not need starting skills.");
+    }
+
+    private sealed class UnusedInitialEquipmentSource : IInitialEquipmentDefinitionSource
+    {
+        public ValueTask<IReadOnlyList<InitialEquipmentGrant>> GetAsync(
+            byte job,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException(
+                "Eligibility facts do not need starting equipment.");
     }
 
     private sealed class StubCharacterRepository(CharacterSummary summary) : ICharacterRepository

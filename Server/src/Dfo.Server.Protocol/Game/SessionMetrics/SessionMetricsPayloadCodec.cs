@@ -4,15 +4,40 @@ using Dfo.Server.Data.Networking;
 namespace Dfo.Server.Protocol.Game.SessionMetrics;
 
 /// <summary>
-/// Decodes the SESSION_METRICS (0x00FA) body: seven <c>{u16 tag, u32 mean}</c> sections, then two
+/// Decodes the SESSION_METRICS (0x00FA) body: eight <c>{u16 tag, u32 mean}</c> sections, then two
 /// counted sections each <c>{u16 tag, u16 count}</c> followed by that many 9-byte records.
-/// Body length is therefore <c>50 + 9 * (count7 + count8)</c>.
+/// Body length is therefore <c>56 + 9 * (count7 + count8)</c>.
 /// Layout is instruction-confirmed from the builder at MakeHeader site 0x01CD33B7; see
 /// protocol/game/client-to-server/0x00FA.md.
 /// </summary>
+/// <remarks>
+/// <b>A21 writes eight means where A12 wrote seven.</b> The first seven carry their own index as
+/// the tag; the eighth carries the literal 9, and it sits before the counted sections rather than
+/// after them. An A21 body is therefore 56 bytes and not 50, and reading it at A12's offsets finds
+/// tag 9 where tag 7 was expected.
+/// <para>
+/// This mattered because it is on the way out of the game. The client flushes five telemetry
+/// reports and then asks to leave; this is one of the five. On 2026-08-27 the frame before it,
+/// <c>CMD 0x00C2</c>, was also mis-sized and had already taken the connection down, so this one
+/// never arrived to fail -- it was found by replaying the captured burst against a server that
+/// could get past 0x00C2. See protocol/patterns/data/traces/a21-exit-and-return-20260827.md.
+/// </para>
+/// <para>
+/// <b>Only the means are evidenced on A21.</b> The one captured body declares both counted
+/// sections empty, so the 9-byte record shape below is still A12's and unconfirmed here.
+/// </para>
+/// </remarks>
 internal static class SessionMetricsPayloadCodec
 {
-    public const int MeanCount = 7;
+    /// <summary>The tag each mean section carries, in the order the client writes them.</summary>
+    /// <remarks>
+    /// Zero through six are the loop counter the builder writes for itself. Nine is an immediate,
+    /// and what it measures is unknown: one sample, value 60950. It is read and kept rather than
+    /// skipped so a second sample can contradict it.
+    /// </remarks>
+    public static ReadOnlySpan<ushort> MeanTags => [0, 1, 2, 3, 4, 5, 6, 9];
+
+    public const int MeanCount = 8;
 
     public const int MeanLength = 6;
 
@@ -44,12 +69,14 @@ internal static class SessionMetricsPayloadCodec
         {
             var section = body.Slice(index * MeanLength, MeanLength);
             var tag = BinaryPrimitives.ReadUInt16LittleEndian(section);
-            if (tag != index)
+            if (tag != MeanTags[index])
             {
-                // The builder writes the loop counter itself, so these tags are 0..6 by
-                // construction. Anything else means the frame is not this message.
+                // The first seven tags are the loop counter the builder writes for itself and the
+                // eighth is an immediate, so the whole sequence is fixed by construction. Anything
+                // else means the frame is not this message.
                 throw new InvalidDataException(
-                    $"SESSION_METRICS mean section {index} declares tag '{tag}'; the client writes its own index.");
+                    $"SESSION_METRICS mean section {index} declares tag '{tag}'; the client writes "
+                    + $"'{MeanTags[index]}' there.");
             }
 
             means[index] = new SessionMetricMean(tag, BinaryPrimitives.ReadUInt32LittleEndian(section[2..]));

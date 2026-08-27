@@ -48,12 +48,13 @@ public sealed class AccountEntryStateTests
     }
 
     [Fact]
-    public void AccountSettings_UsesDemonstratedLegacyDefaultWithoutInventingQuickChatState()
+    public void AccountSettings_UsesDemonstratedDefaultWithoutInventingQuickChatState()
     {
         var result = new AccountSettingsEntryProjection().Build(
             new AccountSettingsStorageRecord(null, [], [], 0, []));
 
-        Assert.Equal(134, result.MainGameOptions.Length);
+        // Seventy-five options, which is what A21 sends. The older client's table held sixty-seven.
+        Assert.Equal(150, result.MainGameOptions.Length);
         Assert.Equal([1, 0, 1, 0], result.MainGameOptions[..4]);
         Assert.Empty(result.QuickChatBank0);
         Assert.Null(result.AccountHotkeySlot);

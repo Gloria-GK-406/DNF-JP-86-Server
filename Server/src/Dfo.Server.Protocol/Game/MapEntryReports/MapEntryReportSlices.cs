@@ -146,10 +146,16 @@ internal sealed class RuntimeTingStatisticDecoder : IGameMessageDecoder
 }
 
 /// <summary>
-/// Consumes the five map-entry reports and logs them. One handler for the family: none of them has
-/// a response, a domain effect or a command, so five near-identical classes would carry no
-/// information that this one does not.
+/// Consumes the map-entry reports and logs them. One handler for the family: none of the ones it
+/// still owns has a response, a domain effect or a command, so several near-identical classes
+/// would carry no information that this one does not.
 /// </summary>
+/// <remarks>
+/// SECURITY_STATUS left the family on 2026-08-25. It is decoded here still -- the body is opaque
+/// either way -- but A21 answers it, so it is handled by <see cref="SecurityStatusHandler"/>
+/// instead. Keeping it here would have meant giving the whole family a sender for one member's
+/// sake, and the family's point is that its members have no reply.
+/// </remarks>
 public sealed class MapEntryReportHandler(
     IOnlineUserQueryDomainService onlineUsers,
     ILogger<MapEntryReportHandler> logger)
@@ -167,7 +173,6 @@ public sealed class MapEntryReportHandler(
             SetUdpIpPortReport report => $"SET_UDP_IP_PORT {Convert.ToHexString(report.Body)}",
             InformNoticeSecondReport report => $"INFORM_NOTICE_2ND value={report.Value}",
             CeraQueryReport => "CERA (empty body)",
-            SecurityStatusReport report => $"SECURITY_STATUS {Convert.ToHexString(report.Body)}",
             RuntimeTingStatisticReport report => $"STATICS_RUNTIME_TING value={report.Value}",
             _ => message.GetType().Name,
         };
@@ -179,5 +184,51 @@ public sealed class MapEntryReportHandler(
             detail);
 
         return ValueTask.CompletedTask;
+    }
+}
+
+/// <summary>Answers CMD 0x0252 <c>SECURITY_STATUS</c> with the six zero bytes A21 expects.</summary>
+/// <remarks>
+/// The client sends this while a dungeon loads and the reference server answers every one of them
+/// with a fixed six-byte zero body -- no envelope acceptance byte in front, which is why this does
+/// not go through <c>GameCmdEnvelope</c>: the observed body starts with a zero, not a one.
+///
+/// Nothing is read out of the request. Its body is opaque here and upstream alike; what the client
+/// needs is the answer, not an interpretation of the question.
+/// </remarks>
+public sealed record SecurityStatusAcknowledgement : IGameCmdMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameSecurityStatusAcknowledgement;
+}
+
+internal sealed class SecurityStatusAcknowledgementEncoder
+    : GameCmdMessageEncoder<SecurityStatusAcknowledgement>
+{
+    private static readonly byte[] ObservedBody = new byte[6];
+
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
+        SecurityStatusAcknowledgement message) =>
+        OnePayload(GameProtocol.SecurityStatusType, ObservedBody);
+}
+
+/// <summary>Logs the report and answers it.</summary>
+public sealed class SecurityStatusHandler(
+    IGameMessageSender sender,
+    ILogger<SecurityStatusHandler> logger)
+    : ClientMessageHandler<SecurityStatusReport>
+{
+    protected override async ValueTask HandleMessageAsync(
+        NetworkDispatchContext context,
+        SecurityStatusReport message,
+        CancellationToken cancellationToken)
+    {
+        logger.LogInformation(
+            "Security status {ConnectionId}: {Body}",
+            context.Connection.ConnectionId,
+            Convert.ToHexString(message.Body));
+        await sender.SendCmdAsync(
+            context.Connection.ConnectionId,
+            new SecurityStatusAcknowledgement(),
+            cancellationToken).ConfigureAwait(false);
     }
 }

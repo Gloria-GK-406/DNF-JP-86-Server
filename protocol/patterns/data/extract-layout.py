@@ -42,35 +42,48 @@ import struct
 import collections
 from capstone import Cs, CS_ARCH_X86, CS_MODE_32
 
-DUMP = r"D:\project\DNF\DNFClient-debug\dumps\dnf-dump-20260817-100117-955-7824\DNF-memory-rva.bin"
+# ---------------------------------------------------------------------------
+# ANCHORS -- the whole client-specific surface of this script.
+#
+# Currently A21. To point it at another client, change this block and nothing
+# else. Every value below is read off the instruction stream, not matched by
+# position; probes/a21-census-anchors.md records what each one is pinned on.
+# The A12 values are kept beside each so a swap back is a copy.
+# ---------------------------------------------------------------------------
+CLIENT = "A21"          # DNF.unpacked-b1-debug.exe, SHA-256 1F8244D3...
+DUMP = r"D:\project\DNF\DNFClient-A21-protocol\dumps\dnf-dump-20260822-232754-263-26888\DNF-memory-rva.bin"
 IMAGE_BASE = 0x00400000
-TEXT_HI = 0x01D10000
-OPAQUE_LO = 0x02300000          # beyond here the image is packed; calls are unfollowable
+TEXT_HI = 0x02C29000            # end of .text.  A12: 0x01D10000
+OPAQUE_LO = 0x0355E000          # first non-code address; calls beyond are unfollowable.
+                                # A12: 0x02300000
 
-GET_WRITER = 0x01C8F5B0
-MAKE_HEADER = 0x01C90460
-FINALIZE = 0x01C8FDD0
+GET_WRITER = 0x0234CA50         # A12: 0x01C8F5B0
+MAKE_HEADER = 0x0234D1E0        # A12: 0x01C90460
+FINALIZE = 0x0234E6D0           # A12: 0x01C8FDD0
 
+# Width is whichever primitive the builder called. The three fixed-width writers each
+# advance the writer's own byte counter at [ecx+0x2BCC2C] by exactly their width, which
+# is where these widths come from -- not from the ordering of their addresses.
 WRITES = {
-    0x01C90550: ("u8", 1),
-    0x01C90580: ("u16", 2),
-    0x01C905B0: ("u32", 4),
-    0x01C8FAC0: ("bytes", None),     # length is the second pushed argument
-    # `i32 length + bytes`. Previously recorded as a suspected length-prefixed writer on
-    # the strength of one obfuscated-region call site. Three independently hand-verified
-    # protocols now pin it: 0x0005 documents `1 + 4 + nameLength + 4` and extracts as
-    # u8 + this + 4×u8; 0x0006 documents `2 + 4 + nameLength` and extracts as u16 + this;
-    # 0x02B5 documents `4 + nameLength` and extracts as exactly this. Each of those
-    # `4 + nameLength` is the i32 length prefix plus the bytes.
-    0x01C90710: ("dstring", None),
+    0x0234D2E0: ("u8", 1),          # inc [counter],    push 1.   A12: 0x01C90550
+    0x0234D310: ("u16", 2),         # add [counter], 2, push 2.   A12: 0x01C90580
+    0x0234D340: ("u32", 4),         # add [counter], 4, push 4.   A12: 0x01C905B0
+    0x0234CED0: ("bytes", None),    # ret 8: pointer and length.  A12: 0x01C8FAC0
+    0x0234D4A0: ("dstring", None),  # measures, then walks.       A12: 0x01C90710
 }
+
+# The read side runs off two globals: the stream pointer [0x03BAAE38] and the remaining
+# byte count [0x03BAAE3C]. Each primitive advances one and decrements the other by its
+# own width.
+#
+# A21 has no dstring reader. Handlers inline "read a length, then read that many bytes"
+# -- 58 such pairs scattered across handlers, gathered into no helper -- so a string
+# reports here as u32 + bytes, which is what the instructions actually do.
 READS = {
-    0x01D00420: ("u8", 1),
-    0x01D00490: ("u16", 2),
-    0x01D00500: ("u32", 4),
-    0x01D00570: ("bytes", None),
-    0x01C92000: ("dstring", None),
-    0x01C920A0: ("dstringw", None),
+    0x023C5230: ("u8", 1),          # mov cl, byte [eax];  inc eax.    A12: 0x01D00420
+    0x023C52A0: ("u16", 2),         # mov cx, word [eax];  add eax, 2. A12: 0x01D00490
+    0x023C5310: ("u32", 4),         # mov ecx, dword[eax]; add eax, 4. A12: 0x01D00500
+    0x023C5380: ("bytes", None),    # memcpy of [ebp+0xc].             A12: 0x01D00570
 }
 
 MAX_INSN = 600

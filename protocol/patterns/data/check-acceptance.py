@@ -33,11 +33,22 @@ if not os.path.isdir(os.path.join(ROOT, "game")):
 BEGIN, END = "<!-- rks:machine:begin -->", "<!-- rks:machine:end -->"
 STATES = ["布局已闭合（含计数重复组）", "布局已闭合", "布局部分可得", "结构未知"]
 
-# A CMD's response shares its request's type and belongs in the C->S document. One
-# response was written up separately before that rule existed. Moving hand-verified
-# content to satisfy a counting rule would trade real evidence for tidiness, so the
-# exception is declared here and cross-linked from the request document instead.
-DECLARED_EXTRA_DOCS = {"game/server-to-client/CMD-0x0001.md"}
+# Documents that exist on purpose without a censused identity behind them.
+#
+#   CMD-0x0001  A CMD's response shares its request's type and belongs in the C->S
+#               document. This one was written up separately before that rule existed.
+#               Moving hand-verified content to satisfy a counting rule would trade real
+#               evidence for tidiness, so it is declared here and cross-linked from the
+#               request document instead.
+#   NOTI-0x0381 The A21 client registers no receive handler on this type, so the census --
+#               which is a census of handlers -- cannot produce it. The A21 reference
+#               server sends it in the entry batch regardless, and so does this server, so
+#               there is something to document. A page the client will discard is still a
+#               page about what goes on the wire.
+DECLARED_EXTRA_DOCS = {
+    "game/server-to-client/CMD-0x0001.md",
+    "game/server-to-client/NOTI-0x0381.md",
+}
 
 rows = []
 with open(INVENTORY, encoding="utf-8") as f:

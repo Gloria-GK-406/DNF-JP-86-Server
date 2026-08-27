@@ -9,15 +9,22 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 /// <remarks>
 /// Job 0 is the swordman, the job the tutorial was walked with on 2026-08-18 and the one whose
 /// empty skill bar prompted this. Its declared set is fixed here in full because the set itself is
-/// the answer: nothing inside the archive distinguishes a subset of it as "what level one gets".
-/// Every entry requires level one, and there are three actives rather than the two that occupy the
-/// attack keys, so neither the required level nor the active mark is a filter. See
+/// the answer: nothing inside the archive distinguishes a subset of it as "what level one gets",
+/// and every entry requires level one. The active mark decides which slot band a grant lands in
+/// rather than whether it is held at all. See
 /// protocol/patterns/data/probes/pvf-initial-skills-20260818.md.
+///
+/// The values are the A21 client's. The older client declares eight grants for this job where A21
+/// declares six, agreeing on 179, 174, 5, 46 and 169 and differing on the rest, so a test that
+/// passes against one archive fails against the other -- which is the point of pinning them.
 /// </remarks>
 public sealed class PvfInitialSkillDefinitionSourceTests
 {
+    /// <summary>The highest job the A21 archive declares: 13, the demonic lancer.</summary>
+    private const byte LastDeclaredJob = 13;
+
     [SkippableFact]
-    public async Task The_swordman_is_created_holding_its_eight_declared_skills()
+    public async Task The_swordman_is_created_holding_its_six_declared_skills()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var provider = ContentArchive.CreateProvider();
@@ -27,14 +34,12 @@ public sealed class PvfInitialSkillDefinitionSourceTests
 
         Assert.Equal(
             [
-                new InitialSkillGrant(181, 2, IsActive: false), // 精工
-                new InitialSkillGrant(182, 2, IsActive: false), // 纺织
-                new InitialSkillGrant(184, 1, IsActive: false), // 炼金
                 new InitialSkillGrant(179, 7, IsActive: false), // 物品分解
+                new InitialSkillGrant(174, 1, IsActive: false), // 基础精通
+                new InitialSkillGrant(169, 1, IsActive: true),  // 后跳
                 new InitialSkillGrant(5, 1, IsActive: true),    // 鬼斩
                 new InitialSkillGrant(46, 1, IsActive: true),   // 上挑
-                new InitialSkillGrant(169, 1, IsActive: true),  // 后跳
-                new InitialSkillGrant(174, 1, IsActive: false), // 基础精通
+                new InitialSkillGrant(511, 1, IsActive: false), // 基础防具精通
             ],
             grants);
     }
@@ -53,7 +58,7 @@ public sealed class PvfInitialSkillDefinitionSourceTests
         var source = new PvfInitialSkillDefinitionSource(provider);
 
         var byJob = new Dictionary<byte, IReadOnlyList<InitialSkillGrant>>();
-        for (byte job = 0; job <= 12; job++)
+        for (byte job = 0; job <= LastDeclaredJob; job++)
             byJob[job] = await source.GetAsync(job, CancellationToken.None);
 
         Assert.All(byJob, pair => Assert.NotEmpty(pair.Value));
@@ -86,7 +91,7 @@ public sealed class PvfInitialSkillDefinitionSourceTests
         using var provider = ContentArchive.CreateProvider();
         var source = new PvfInitialSkillDefinitionSource(provider);
 
-        for (byte job = 0; job <= 12; job++)
+        for (byte job = 0; job <= LastDeclaredJob; job++)
         {
             var actives = (await source.GetAsync(job, CancellationToken.None))
                 .Where(grant => grant.IsActive)

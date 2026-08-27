@@ -22,7 +22,7 @@ public sealed class CharacterBodyShapeTests
     private static readonly string[] Characters =
     [
         "account_id", "appearance_blob", "area_id", "area_state", "bonus_sp", "bonus_tp",
-        "character_id", "clone_title_item_id", "delete_flag", "direction",
+        "character_id", "clone_title_item_id", "created_at", "delete_flag", "direction",
         "ex_equip_slot_stat", "exp", "grow_type", "guild_level", "guild_power_war", "job",
         "level", "manage_level", "name", "name_bytes", "name_tag_expire_time",
         "name_tag_item_id", "pos_x", "pos_y", "skill_tree_index", "slot_index", "town_id",

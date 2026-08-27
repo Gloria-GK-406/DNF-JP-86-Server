@@ -39,12 +39,12 @@ BodyLength = 未知（字段集合已知不完整）
 
 | 项 | 值 |
 |---|---|
-| handler 入口 | `0x0093B8E0` |
+| handler 入口 | `0x00D94CD0` |
 | handler 所在区 | text |
 | 注册路径 | batch:batch |
 
 
-支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`
+支持客户端 SHA-256：`1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`
 
 <!-- rks:machine:end -->
 
@@ -52,3 +52,16 @@ BodyLength = 未知（字段集合已知不完整）
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+
+## A21
+
+**2026-08-24。** 上面的机器区由 **A12** 客户端（SHA-256 `F78F0AEA…`）的静态普查生成。
+本节记录 **A21** 客户端（SHA-256 `1F8244D3…`）上不同的部分。判据除另有注明外，都是一份
+A21 参照会话，归档于
+[a21-world-entry-20260823.log](../../patterns/data/traces/a21-world-entry-20260823.log)
+（section L 是入场序列的逐帧顺序）。
+
+A21 的入场序列里有这一帧，紧跟 `0x0003`（section L 第 14 帧）。
+
+body 1 字节，参照值 `00`，读作「村庄对象数为零」。服务端按常量下发
+（`VillageObjectListMessage`）。**非空列表的形状没有样本。**

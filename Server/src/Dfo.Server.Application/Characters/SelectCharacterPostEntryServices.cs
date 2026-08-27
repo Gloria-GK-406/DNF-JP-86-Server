@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Game;
@@ -29,8 +30,7 @@ public sealed record SelectCharacterPetRevival(
 
 internal sealed class SelectCharacterQuestEntryService(
     IQuestDefinitionSource quests,
-    ICharacterStore characters,
-    AmbientStoreAccess stores) : ISelectCharacterQuestEntryService
+    ICharacterQuestLogDomainService logs) : ISelectCharacterQuestEntryService
 {
     public async ValueTask<SelectCharacterQuestSynchronization?> SynchronizeAsync(
         SelectedSessionIdentity session, SelectCharacterResult result, CancellationToken cancellationToken)
@@ -50,20 +50,26 @@ internal sealed class SelectCharacterQuestEntryService(
         if (planned.Count == 0) return null;
         // Each write carries the value this entry snapshot was built from, so a slot that has
         // moved since fails rather than being overwritten with a decision made about the old one.
-        var place = new OwnedCharacterId(session.AccountId, session.CharacterId);
+        var log = logs.LogOf(session.AccountId, session.CharacterId);
         var committed = new List<SeekingQuestTriggerUpdate>();
-        await stores.ChangeAsync(characters, rows =>
+        foreach (var update in planned.OrderBy(value => value.Slot))
         {
-            foreach (var update in planned.OrderBy(value => value.Slot))
+            if (update.After == update.Before) continue;
+            // A quest the snapshot said was being carried and the log no longer holds is the same
+            // situation the write's own guard exists for, and it fails the same way: entry stops
+            // rather than reporting a correction that was never made.
+            if (!await log.RecordProgressAsync(
+                    new CarriedQuest(update.Slot, update.QuestId, update.Before),
+                    update.After,
+                    cancellationToken)
+                    .ConfigureAwait(false))
             {
-                if (update.After == update.Before) continue;
-                rows.Quests.Write(place, new StoredActiveQuest(
-                    update.Slot, update.QuestId, update.After, update.Before));
-                committed.Add(update);
+                throw new InvalidDataException(
+                    $"Seeking quest {update.QuestId} changed concurrently.");
             }
 
-            return ValueTask.CompletedTask;
-        }, cancellationToken).ConfigureAwait(false);
+            committed.Add(update);
+        }
         if (committed.Count == 0) return null;
         var bySlot = result.CharacterEntry.Quests.ActiveQuests.ToDictionary(value => value.Slot);
         foreach (var change in committed)

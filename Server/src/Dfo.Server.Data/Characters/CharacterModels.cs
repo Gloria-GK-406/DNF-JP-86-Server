@@ -14,7 +14,8 @@ public sealed record CharacterSummary(
     byte Job,
     byte GrowType,
     byte Level,
-    uint CloneTitleItemId);
+    uint CloneTitleItemId,
+    IReadOnlyList<Game.CharacterRosterAppearanceState> Appearances);
 
 public sealed record AccountCharacterRoster(
     AccountId AccountId,
@@ -101,16 +102,24 @@ public sealed record CharacterBaseStats(
 /// Resolved from the job's archive definition by the caller rather than here, so that storage
 /// stays a place that records decisions instead of one that makes them.
 /// </param>
+/// <param name="InitialEquipment">
+/// The pieces the character is created wearing. Resolved from the job's archive definition by the
+/// caller for the same reason the skills are.
+/// </param>
 public sealed record NewCharacterSpec(
     AccountId AccountId,
     byte[] Name,
     byte Job,
     ushort SlotIndex,
     CharacterBaseStats Stats,
-    IReadOnlyList<NewCharacterSkill>? InitialSkills = null);
+    IReadOnlyList<NewCharacterSkill>? InitialSkills = null,
+    IReadOnlyList<NewCharacterEquipment>? InitialEquipment = null);
 
 /// <summary>One skill a character is created holding.</summary>
 public sealed record NewCharacterSkill(short Slot, uint SkillId, byte Level);
+
+/// <summary>One piece of equipment a character is created wearing.</summary>
+public sealed record NewCharacterEquipment(byte SlotIndex, int ItemId, ushort Durability);
 
 public sealed record CharacterCreationResult(
     CharacterCreationStatus Status,

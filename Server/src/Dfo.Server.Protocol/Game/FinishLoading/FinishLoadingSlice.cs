@@ -112,10 +112,15 @@ public sealed class FinishLoadingHandler(
             message.First,
             message.Second);
 
+        // Only the notification. A21's reference answers FINISH_LOADING with NOTI 0x001E and
+        // nothing else -- both times its session sends one, at the dungeon's first room and again
+        // after MOVE_MAP. The CMD acknowledgement this used to send in front of it is a frame the
+        // reference does not send at all; its encoder stays registered, because the older client
+        // did get one and the record of that shape is worth keeping.
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(
-                [new FinishLoadingResponse(), new LoadingCompleteNotification()],
+                [new LoadingCompleteNotification()],
                 []),
             cancellationToken).ConfigureAwait(false);
     }

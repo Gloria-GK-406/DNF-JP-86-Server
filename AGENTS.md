@@ -65,7 +65,8 @@ socket 层的 handler 驱动领域命令完成任务。**
 
 ```
 TCP 字节
-  → TouchSocket 适配器（Networking/Framing，13B Game 头 / 11B Channel 头）
+  → TouchSocket 适配器（Networking/Framing，入站 14B Game 头 / 11B Channel 头；
+     出站 Game 15B。入站长度是 A21 客户端的形状，A12 为 13B）
   → NetworkPlugin.OnTcpReceived（Networking/Runtime/NetworkPlugins.cs）
       按线级键查解包器注册表；查不到即丢弃。传输侧到此为止，不认识任何具体协议
   → IGameMessageDecoder / IChannelMessageDecoder
@@ -86,6 +87,7 @@ TCP 字节
 
 领域按目录组织：`Accounts/`（账号 entry 状态）、`Channel/`（入场策略）、
 `Characters/`（花名册/entry 状态/入场后修正）、`Inventory/`（入场租约、每日补货）、
+`Quests/`（按角色取得的任务日志：在做的、已通关的、追踪选择）、
 `OnlineUsers/`（在线聚合 + 执行门）、`Sessions/`（在场注册表、选中会话目录、
 PvP 大厅、专家商店）、`World/`（出生点策略、世界内容）、`Users/`
 （`OnlineStateStore` 持三张字典与唯一那把锁，`AccountDomainService`、
@@ -131,8 +133,8 @@ PvP 大厅、专家商店）、`World/`（出生点策略、世界内容）、`U
   `CommitCanFail`；提交分三段——全体 `PrepareAsync` → 唯一可失败者 `CommitAsync`
   → 其余 `CommitAsync`。**一次事务只收一个 `CommitCanFail` 参与者**，第二个在
   `Enlist` 时抛；这是「不做两阶段提交」的代价与前提。登记按 identity 去重，
-  而 SQLite 侧的 identity 是**连接字符串**，即**一个数据库一个参与者**——物品与
-  人物是同一个参与者的两个面（`ISqliteStoreFacet`），不是两个参与者。这是被上一条
+  而 SQLite 侧的 identity 是**连接字符串**，即**一个数据库一个参与者**——物品、
+  人物与任务是同一个参与者的三个面（`ISqliteStoreFacet`），不是三个参与者。这是被上一条
   逼出来的：若各自入伙，第二个可失败参与者会被拒，一次用例就永远无法同时改物品与
   人物。同一数据库在一次用例里因此只参与一次，其读能看见自己未提交的写。
   环境事务经 `IDomainTransactionAccessor` 暴露（`AsyncLocal`），因为存储是单例、
@@ -140,9 +142,10 @@ PvP 大厅、专家商店）、`World/`（出生点策略、世界内容）、`U
 - 载体协议（`Abstractions/Transactions/DomainStores.cs`）：`IDomainStore<TSession>`
   给出载体身份、是否持久、以事务换取会话；`IStoreSession<TPlace,TKey,TValue>` 是
   「按位置读、按位置写、按位置清空」的共享词汇。`IItemStoreSession` 直接就是它的
-  一个具名实例；`ICharacterStoreSession` 不是——人物不像容器那样是一张齐次的表，
-  所以它是若干具名分区的组合，`Quests` 与 `Creatures` 各自是钉死类型参数的
-  `IStoreSession`，而一角色一行的位置分区另给三个成员。两种形状共享同一套词汇，
+  一个具名实例；`ICharacterStoreSession` 与 `IQuestStoreSession` 不是——人物和任务都不像
+  容器那样是一张齐次的表，所以各是若干具名分区的组合：人物那边 `Creatures` 是钉死类型参数的
+  `IStoreSession`，一角色一行的位置分区另给三个成员；任务那边 `Carried`、`Cleared`、
+  `Tracked` 三个分区都是。两种形状共享同一套词汇，
   类型一个不丢。业务代码经
   `AmbientStoreAccess` 触达：边界内用环境事务，边界外读放行、持久写拒绝、易失写
   自开一次性边界并当场落定。
@@ -247,7 +250,7 @@ Networking 只把该字节当作不透明 `Selector` 做拆帧、查表与写帧
 
 ### 端到端示例：GameLogin
 
-1. 13B 头帧 → `GameClientFrameDataHandlingAdapter` → `GameNetworkPlugin`
+1. 14B 头帧 → `GameClientFrameDataHandlingAdapter` → `GameNetworkPlugin`
    按不透明 selector 0x01/type 0x0001 查表；Protocol 将所有 C→S Game 注册固定为 CMD，
    `GameLoginPayloadCodec` 解出 loginId + 密码哈希
 2. dispatcher → `GameLoginHandler`：要求该连接已有匿名在线注册

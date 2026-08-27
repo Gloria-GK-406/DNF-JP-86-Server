@@ -1,4 +1,4 @@
-﻿# NOTI `0x001B` `ENTER_SELECT_DUNGEON`
+# NOTI `0x001B` `ENTER_SELECT_DUNGEON`
 
 <!-- rks:machine:begin -->
 
@@ -30,7 +30,7 @@ BodyLength = 未知（字段集合已知不完整）
 
 | Offset | Size | Enc | 可能含义 | 置信度 | 证据 |
 |---:|---:|---|---|---|---|
-| 0 | 4 | `u32` | 上游恒写常量 1，无任何参数参与 | Confirmed | 上游 Network/Builders/Dungeon/EnterSelectDungeonStateBuilder.cs:42 BuildEnterSelectDungeon 第一个 WriteInt32(0x01)；调用点 Network/Handlers/Dungeon/DungeonEntryHandler.cs:129-134，取自 `[ebp - 0x460]` |
+| 0 | 4 | `u32` | 上游恒写常量 1，无任何参数参与 | Confirmed | 上游 Network/Builders/Dungeon/EnterSelectDungeonStateBuilder.cs:42 BuildEnterSelectDungeon 第一个 WriteInt32(0x01)；调用点 Network/Handlers/Dungeon/DungeonEntryHandler.cs:129-134，取自 `[ebp - 0x480]` |
 
 `可能含义` 为 `unknown` 表示**字段边界已确定但含义无证据**——这类未知靠实机改值做差分即可解决，与上面的「结构未知」不是一回事。
 
@@ -38,14 +38,20 @@ BodyLength = 未知（字段集合已知不完整）
 
 | 项 | 值 |
 |---|---|
-| handler 入口 | `0x00937600` |
+| handler 入口 | `0x00D90190` |
 | handler 所在区 | text |
 | 注册路径 | batch:batch |
 
 
-支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`
+支持客户端 SHA-256：`1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`
 
 <!-- rks:machine:end -->
+
+<!-- rks:a12:begin -->
+
+> **本区结论得出于 A12 客户端**（SHA-256 `F78F0AEA…`），**A21 上尚未复核**。
+> 按迁移规则，本协议在 A21 上重做完成后整区删除；在那之前它是脚手架，不是 A21 的记录。
+> 迁移状态见[协议清单](../../catalog.md#a12-内容的退场)。
 
 ## 证据与样本
 
@@ -89,3 +95,29 @@ u16 towerOfDespairFloor    ← 单人时位于 body 偏移 14
 > 因此"首次发出/确认"这个说法在本条上不成立。
 
 <!-- 走过的死胡同也要写：它能避免下一个人重复同样的尝试。 -->
+
+<!-- rks:a12:end -->
+
+## A21
+
+**2026-08-26。** 上面的机器区由 **A12** 客户端（SHA-256 `F78F0AEA…`）的静态普查生成。
+本节记录 **A21** 客户端（SHA-256 `1F8244D3…`）上不同的部分。判据是 A21 参照会话的字节
+（[原始字节](../../patterns/data/traces/a21-reference-entry-bytes-20260825.md)）与本仓的线级重放
+（[副本段对照](../../patterns/data/traces/a21-dungeon-wire-20260826.md)），以及产出那份参照的
+服务端自己的构包器。
+
+**37 字节，不是 19。**
+
+本仓此前那 19 字节来自旧客户端的构包器，与 A21 的形状**在任何偏移上都对不齐**。
+A21 的顺序是：两个零 `i32`、地狱任务封禁槽位数、一个零字节、用户数，随后每个用户
+`{u16 userId, u8 0}`，再是一个零 `i32`、一个值为 1 的 `u16`、一个零 `u16`、一个零 `i32`、
+两个零字节、两个零 `i32`、最后一个零字节。
+
+一个用户时正好 37 字节，**非零位只有三处：10、11、18**——用户数、用户 id 的低字节、那个常量 1。
+参照会话的这一帧非零位恰好也是 10、11、18，其余全零。
+
+**发送时机也变了。** 本仓此前在 `ENTER_SELECT_DUNGEON` 的回包里发它；参照是在
+`SELECT_DUNGEON` 的回包里发，紧跟在第二个 CMD `0x000F` 接受字节之后。
+
+旧形状里那个「绝望之塔层数」在 A21 的形状里没有位置。这不是丢了证据——它是旧客户端的字段，
+落在 A21 不使用的偏移上。

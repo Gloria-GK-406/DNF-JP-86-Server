@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
@@ -14,6 +15,7 @@ using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Quests;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Users;
@@ -87,6 +89,7 @@ public sealed class ApplicationModule : IServerModule
                 () => provider.GetRequiredService<ICharacterRepository>(),
                 provider.GetRequiredService<ICharacterStatDefinitionSource>(),
                 provider.GetRequiredService<IInitialSkillDefinitionSource>(),
+                provider.GetRequiredService<IInitialEquipmentDefinitionSource>(),
                 characterId => new PlayingCharacter(
                     characterId,
                     provider.GetRequiredService<IItemUseRuleDefinitionSource>(),
@@ -118,6 +121,7 @@ public sealed class ApplicationModule : IServerModule
         // they are read in and everything that made them one character came here.
         services.TryAddSingleton<ICharacterEntryStateRepository, CharacterEntryAssembly>();
         services.TryAddSingleton<ICharacterContainerDomainService, CharacterContainerDomainService>();
+        services.TryAddSingleton<ICharacterQuestLogDomainService, CharacterQuestLogDomainService>();
         services.TryAddSingleton<ICharacterItemCooldownDomainService, CharacterItemCooldownDomainService>();
         services.TryAddSingleton<IItemUseJudgementService, ItemUseJudgementService>();
         services.TryAddSingleton<IItemUseEffectDomainService, ItemUseEffectDomainService>();

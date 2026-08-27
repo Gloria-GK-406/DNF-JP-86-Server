@@ -3,19 +3,24 @@ using Dfo.Server.Data.Networking;
 namespace Dfo.Server.Protocol.Game.TaggedIdReport;
 
 /// <summary>
-/// A five-byte report (cmd 0x01/type 0x008F) carrying an id and a flag. All fourteen client
-/// builder sites write the same two fields with no branches; twelve hard-code the flag to 1 and
-/// two hard-code the id to an enum value, so the id is an enum member rather than a handle.
-/// Neither field's meaning is confirmed, hence the offset-based names.
-///
-/// The client sends it while handling the inbound EXIT response, so it arrives after the server
-/// has already answered EXIT -- possibly while the connection is closing. See
-/// protocol/game/client-to-server/0x008F.md.
+/// A tutorial flag change (cmd 0x01/type 0x008F): a mode byte, the flag's index, and whether the
+/// step's reward is claimed with it.
 /// </summary>
+/// <remarks>
+/// The fields were <c>Id</c> and <c>Flag</c> when this was read as the older client's five-byte
+/// <c>{u32 id, u8 flag}</c>. A21 prepends a mode byte, and with the real layout the names are no
+/// longer guesses: the index selects the tutorial step, and the reward flag decides whether that
+/// step's items are granted. Mode's meaning is not established -- every observed body has it zero.
+///
+/// The client also sends this while handling the inbound EXIT response, so it can arrive after the
+/// server has answered EXIT, possibly while the connection is closing. See
+/// protocol/game/client-to-server/0x008F.md.
+/// </remarks>
 public sealed record TaggedIdReportRequest(
     GameMessageMetadata Metadata,
-    uint Id,
-    byte Flag) : IClientNetworkMessage
+    byte Mode,
+    uint FlagIndex,
+    byte RewardFlag) : IClientNetworkMessage
 {
     public ClientMessageType MessageType => ClientMessageType.GameTaggedIdReport;
 }

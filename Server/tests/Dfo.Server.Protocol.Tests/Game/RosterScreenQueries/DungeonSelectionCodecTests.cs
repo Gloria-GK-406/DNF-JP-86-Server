@@ -1,4 +1,4 @@
-﻿using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 
@@ -70,16 +70,34 @@ public sealed class DungeonSelectionCodecTests
     public void UdpHostOffersNothing() =>
         Assert.Equal("00", Convert.ToHexString(DungeonSelectionPayloadCodec.EncodeUdpHostUnavailable()));
 
+    /// <remarks>
+    /// This pinned the older client's nineteen bytes, including a tower-of-despair floor the test
+    /// read back from offset fourteen. A21's frame is 37 bytes and has no floor in it -- the two
+    /// shapes line up at no offset at all, so there was nothing to migrate. What is pinned now is
+    /// A21's, and against the reference session rather than against this encoder: for one user its
+    /// frame has non-zero bytes at 10, 11 and 18 and nowhere else, which is the user count, the low
+    /// byte of the user id, and the constant one.
+    /// </remarks>
     [Fact]
-    public void EnterSelectDungeonState_PutsTheTowerFloorAtOffsetFourteen()
+    public void EnterSelectDungeonState_MatchesTheA21ReferenceFrameForOneUser()
     {
-        var body = DungeonSelectionPayloadCodec.EncodeEnterSelectDungeon(0x0102, 9);
+        var body = DungeonSelectionPayloadCodec.EncodeEnterSelectDungeon(1);
 
-        Assert.Equal(19, body.Length);
-        // The reference server documents the solo reader as taking this u16 from offset 14.
-        Assert.Equal(9, BitConverter.ToUInt16(body, 14));
+        Assert.Equal(37, body.Length);
+        Assert.Equal(
+            new[] { 10, 11, 18 },
+            Enumerable.Range(0, body.Length).Where(index => body[index] != 0).ToArray());
+        Assert.Equal(
+            "00000000000000000000010100000000000001000000000000000000000000000000000000",
+            Convert.ToHexString(body));
+    }
 
-        // i32 1, u16 0, u8 count=1, [u16 user, u8 0], i32 0, u16 floor, three zero bytes.
-        Assert.Equal("01000000000001020100000000000900000000", Convert.ToHexString(body));
+    /// <summary>A user id above 255 reaches both of its bytes, which the all-zeros case cannot show.</summary>
+    [Fact]
+    public void EnterSelectDungeonState_CarriesTheWholeUserId()
+    {
+        var body = DungeonSelectionPayloadCodec.EncodeEnterSelectDungeon(0x0102);
+
+        Assert.Equal(0x0102, BitConverter.ToUInt16(body, 11));
     }
 }

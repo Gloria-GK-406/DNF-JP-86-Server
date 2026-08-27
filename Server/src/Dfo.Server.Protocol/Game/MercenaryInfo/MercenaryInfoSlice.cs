@@ -53,7 +53,9 @@ internal sealed class MercenaryInfoResponseEncoder : GameCmdMessageEncoder<Merce
     /// The leading byte was previously described as a status of this message. It is not: it is the
     /// family-wide envelope, and the payload proper starts at manageLevel.
     /// </remarks>
-    private static readonly byte[] EmptyRoster = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+    /// <remarks>Also the body of the unprompted frame the entry batch pushes, which is why
+    /// this is not private: the two have to be the same bytes or they are two protocols.</remarks>
+    internal static readonly byte[] EmptyRoster = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
 
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         MercenaryInfoResponse message) =>

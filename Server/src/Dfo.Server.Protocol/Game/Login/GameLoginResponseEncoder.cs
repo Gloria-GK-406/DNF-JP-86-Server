@@ -5,6 +5,13 @@ namespace Dfo.Server.Protocol.Game.Login;
 
 internal sealed class GameLoginResponseEncoder : GameCmdMessageEncoder<GameLoginResponse>
 {
+    /// <summary>The value the A21 server reports in the second body byte.</summary>
+    /// <remarks>
+    /// A12 reported eighteen here. Both are transcribed from what each client's own server sends;
+    /// nothing here knows what the client does with it.
+    /// </remarks>
+    private const byte ProtocolRevision = 20;
+
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(GameLoginResponse message) =>
         message.Succeeded
             ? OnePayload(GameProtocol.LoginType, EncodeSuccessBody(message))
@@ -12,13 +19,20 @@ internal sealed class GameLoginResponseEncoder : GameCmdMessageEncoder<GameLogin
                 "The observed Game LOGIN protocol has no failure body yet.");
 
     /// <summary>
-    /// Field order is taken from the client's read sequence in the CMD 0x0001 handler
-    /// (RVA 0x008C7E20): four u8, a raw 4-byte port, a length-prefixed host string, then two u32
-    /// that the client hands to SetEndpoint together with the host. The legacy port of this body
-    /// carried a fifth leading u8, which pushed every later field one byte along; the client then
-    /// read the host length as 0x00000900, failed ReadDString's bounds check (RVA 0x01C92000) and
-    /// configured no endpoint at all.
+    /// Five leading bytes, a raw 4-byte port, a length-prefixed host string, two u32, then a
+    /// twenty-four byte tail.
     /// </summary>
+    /// <remarks>
+    /// The A12 client took four leading bytes here, and a fifth pushed every later field along
+    /// until it read the host length as 0x00000900 and configured no endpoint at all. A21 takes
+    /// five: its own server sends <c>01 14 00 01 00</c> before the port, and reports twenty where
+    /// A12 reported eighteen.
+    ///
+    /// This one is worth being explicit about: the A21 client <em>accepted</em> the four-byte
+    /// version and went on to the roster, so nothing here was failing. It is changed to match the
+    /// session the client is known to accept, not to fix an observed break -- and a later field
+    /// that turns out to depend on the difference would have been very hard to trace back here.
+    /// </remarks>
     internal static byte[] EncodeSuccessBody(GameLoginResponse message)
     {
         ArgumentNullException.ThrowIfNull(message);
@@ -33,15 +47,16 @@ internal sealed class GameLoginResponseEncoder : GameCmdMessageEncoder<GameLogin
         ValidatePort(message.EndpointPortA, nameof(message.EndpointPortA));
         ValidatePort(message.EndpointPortB, nameof(message.EndpointPortB));
 
-        var body = new byte[checked(44 + endpointHost.Length)];
+        var body = new byte[checked(45 + endpointHost.Length)];
         body[0] = 0x01;
-        body[1] = 18;
+        body[1] = ProtocolRevision;
         body[2] = 0x00;
         body[3] = message.Environment;
-        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(4, 4), message.ConnectionPort);
-        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(8, 4), endpointHost.Length);
-        endpointHost.CopyTo(body, 12);
-        var offset = 12 + endpointHost.Length;
+        body[4] = 0x00;
+        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(5, 4), message.ConnectionPort);
+        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(9, 4), endpointHost.Length);
+        endpointHost.CopyTo(body, 13);
+        var offset = 13 + endpointHost.Length;
         BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(offset, 4), message.EndpointPortA);
         BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(offset + 4, 4), message.EndpointPortB);
         return body;
