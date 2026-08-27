@@ -3,8 +3,8 @@ controller: sdd-standard
 contract:
   path: "./TaskContract.md"
   revision: 1
-current_stage: implementation
-state: pending
+current_stage: verification
+state: completed
 artifacts:
   spec: "./spec.md"
   plan: "./plan.md"

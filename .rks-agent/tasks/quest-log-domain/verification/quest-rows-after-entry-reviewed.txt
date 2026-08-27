@@ -1,0 +1,2 @@
+character_active_quests (character_id, slot, quest_id, trigger_value): 0 row(s)
+character_quest_notify_selections (character_id, slot_index, quest_id): 0 row(s)

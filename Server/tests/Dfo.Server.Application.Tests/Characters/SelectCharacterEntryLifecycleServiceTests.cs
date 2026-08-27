@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Inventory;
@@ -119,17 +120,28 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
                     new InventoryContainerState(InventoryContainerType.Equipment, 0, [])]
             }
         };
-        var characters = new RecordingCharacterStore();
+        var logs = new RecordingQuestLogs
+        {
+            Carried =
+            {
+                [602] = [new CarriedQuest(0, 100, 0), new CarriedQuest(1, 101, 0)],
+            },
+        };
         var service = new SelectCharacterQuestEntryService(
             new QuestSource(new Dictionary<int, IReadOnlyList<SeekingItemRequirement>>
             {
                 [100] = [new SeekingItemRequirement(0, 10)],
                 [101] = [new SeekingItemRequirement(99, 2)],
-            }), characters, new AmbientStoreAccess(new OpenTransactionAccessor()));
+            }), logs);
 
         var projection = await service.SynchronizeAsync(Session(result), result, CancellationToken.None);
 
-        Assert.Equal([3, 1], characters.QuestWrites.Select(value => value.TriggerValue));
+        // The whole of each write, not just the value: the slot says which row was corrected, and
+        // the quest as last seen is the guard that stands between this snapshot and a row that
+        // moved since. A test that watched only the new value would pass with either thrown away.
+        Assert.Equal(
+            [(new CarriedQuest(0, 100, 0), 3), (new CarriedQuest(1, 101, 0), 1)],
+            logs.ProgressWrites);
         Assert.Equal([3u, 1u], projection!.State.Quests.Select(value => value.TriggerValue));
         Assert.Equal([3, 1], projection.Result.CharacterEntry.Quests.ActiveQuests
             .Select(value => value.TriggerValue));

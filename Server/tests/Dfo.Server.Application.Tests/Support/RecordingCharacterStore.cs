@@ -14,13 +14,9 @@ namespace Dfo.Server.Application.Tests.Support;
 /// </remarks>
 internal sealed class RecordingCharacterStore : ICharacterStore
 {
-    public Dictionary<(int Character, short Slot), StoredActiveQuest> Quests { get; } = [];
-
     public Dictionary<(int Character, long Key), StoredCreature> Creatures { get; } = [];
 
     public Dictionary<int, CharacterPositionState> Positions { get; } = [];
-
-    public List<StoredActiveQuest> QuestWrites { get; } = [];
 
     public bool Holds { get; set; } = true;
 
@@ -37,9 +33,6 @@ internal sealed class RecordingCharacterStore : ICharacterStore
     private sealed class Session(RecordingCharacterStore store)
         : ICharacterStoreSession, ITransactionParticipant
     {
-        public IStoreSession<OwnedCharacterId, short, StoredActiveQuest> Quests { get; } =
-            new QuestRows(store);
-
         public IStoreSession<OwnedCharacterId, long, StoredCreature> Creatures { get; } =
             new CreatureRows(store);
 
@@ -62,30 +55,6 @@ internal sealed class RecordingCharacterStore : ICharacterStore
         public ValueTask CommitAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
 
         public ValueTask RollbackAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
-    }
-
-    private sealed class QuestRows(RecordingCharacterStore store)
-        : IStoreSession<OwnedCharacterId, short, StoredActiveQuest>
-    {
-        public ValueTask<IReadOnlyList<StoredActiveQuest>> ReadAllAsync(
-            OwnedCharacterId place, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<StoredActiveQuest>>(
-                [.. store.Quests.Where(row => row.Key.Character == place.Character.Value)
-                    .OrderBy(row => row.Key.Slot).Select(row => row.Value)]);
-
-        public ValueTask<StoredActiveQuest?> ReadAsync(
-            OwnedCharacterId place, short key, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(
-                store.Quests.TryGetValue((place.Character.Value, key), out var held) ? held : null);
-
-        public void Write(OwnedCharacterId place, StoredActiveQuest value)
-        {
-            store.Quests[(place.Character.Value, value.Slot)] = value;
-            store.QuestWrites.Add(value);
-        }
-
-        public void Clear(OwnedCharacterId place, short key) =>
-            store.Quests.Remove((place.Character.Value, key));
     }
 
     private sealed class CreatureRows(RecordingCharacterStore store)
