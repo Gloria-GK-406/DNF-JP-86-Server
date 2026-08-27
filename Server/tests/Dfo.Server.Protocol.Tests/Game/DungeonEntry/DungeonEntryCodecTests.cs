@@ -136,15 +136,111 @@ public sealed class DungeonEntryCodecTests
         {
             var entry = body.AsSpan(19 + (index * 21));
             Assert.Equal(0, BinaryPrimitives.ReadUInt16LittleEndian(entry)); // template order
-            Assert.Equal(0, BinaryPrimitives.ReadInt32LittleEndian(entry[2..])); // packet index
             Assert.Equal(FirstSequence + index, BinaryPrimitives.ReadUInt16LittleEndian(entry[6..]));
             Assert.Equal(actors[index].Code, BinaryPrimitives.ReadInt32LittleEndian(entry[8..]));
             Assert.Equal(actors[index].Level, entry[12]);
             Assert.Equal(actors[index].ActorType, entry[13]);
         }
 
+        // A monster and an AI character are each the first of their own kind.
+        Assert.Equal(0, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(21)));
+        Assert.Equal(0, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(42)));
+
         // The four bytes the frame has always ended with sit after the actors, not before them.
         Assert.Equal([0, 0, 0, 0xFF], body[^4..]);
+    }
+
+    /// <summary>
+    /// Each actor is numbered within its own kind, and the two kinds are numbered apart.
+    /// </summary>
+    /// <remarks>
+    /// Every actor of every room carried zero here until 2026-08-27, which the tutorial's first
+    /// room could not show: it holds one monster and one AI character, and those are the first of
+    /// their two kinds. The second room holds four, and a client given four actors that all claim
+    /// the same place keeps one of them. What the player saw was a room whose two monsters were
+    /// missing and whose crate had already dropped its shoulder piece -- the step that waits for
+    /// those monsters had nothing to wait for.
+    /// </remarks>
+    [Fact]
+    public void Actors_are_numbered_within_their_own_kind()
+    {
+        DungeonRoomActor[] actors =
+        [
+            new DungeonRoomActor(61670, 1, 0),
+            new DungeonRoomActor(61359, 1, 0),
+            new DungeonRoomActor(461, 80, 5),
+            new DungeonRoomActor(61670, 1, 0),
+            new DungeonRoomActor(462, 80, 5),
+        ];
+
+        var body = DungeonEntryPayloadCodec.EncodeStartMap(
+            AtStart, firstEntry: true, actors, FirstSequence, NoDrops);
+
+        int[] expected = [0, 1, 0, 2, 1];
+        for (var index = 0; index < actors.Length; index++)
+        {
+            Assert.Equal(
+                expected[index],
+                BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(19 + (index * 21) + 2)));
+        }
+    }
+
+    /// <summary>
+    /// The tutorial's second room, byte for byte against the frame the reference server sent.
+    /// </summary>
+    /// <remarks>
+    /// Captured from the reference server on 2026-08-27, running the same client against the same
+    /// archive: room (1,1) of dungeon 10000, map 61001, four actors and one breakable object
+    /// holding a shoulder piece. The seed, the sequence base and the drop's instance value are
+    /// each side's own and are substituted here; everything else must match.
+    /// <para>
+    /// This room is the first one that can tell two numberings apart. The room before it holds one
+    /// monster and one AI character, which agree under any of them.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_reference_servers_second_tutorial_room_is_reproduced_byte_for_byte()
+    {
+        byte[] reference =
+        [
+            0x01, 0x01, 0x00, 0x43, 0x23, 0xB2, 0x30, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+            0x49, 0xEE, 0x00, 0x00, 0x04,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x99, 0x63, 0xE6, 0xF0, 0x00, 0x00, 0x01, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x9A, 0x63, 0xAF, 0xEF, 0x00, 0x00, 0x01, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x9B, 0x63, 0xE6, 0xF0, 0x00, 0x00, 0x01, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x9C, 0x63, 0xAF, 0xEF, 0x00, 0x00, 0x01, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x01,
+            0x00, 0x01, 0x00, 0x40, 0x38, 0x00, 0x00, 0x8F, 0x36, 0x6C, 0x3B, 0x19, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0xFF,
+        ];
+
+        var run = AtStart with
+        {
+            CurrentCell = new MazeCell(1, 1),
+            CurrentRoomMapId = 61001,
+        };
+        DungeonRoomActor[] actors =
+        [
+            new DungeonRoomActor(61670, 1, 0),
+            new DungeonRoomActor(61359, 1, 0),
+            new DungeonRoomActor(61670, 1, 0),
+            new DungeonRoomActor(61359, 1, 0),
+        ];
+        var drops = run.RemainingGroundDrops([new DungeonRoomDrop(0, 14400, 25)]);
+
+        var body = DungeonEntryPayloadCodec.EncodeStartMap(
+            run, firstEntry: true, actors, 0x6399, drops);
+
+        // Each side draws these for itself: the room's seed and the drop's instance value.
+        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(3), 0x30B22343);
+        Array.Copy(reference, 111, body, 111, 4);
+
+        Assert.Equal(reference, body);
     }
 
     /// <summary>
@@ -350,16 +446,55 @@ public sealed class DungeonEntryCodecTests
     }
 
     /// <remarks>
-    /// The seed is on the wire because the client draws on it. A frame that carried a different
-    /// seed than the layout was derived from would leave the two sides disagreeing about
-    /// everything downstream of it.
+    /// The seed is on the wire because the client draws on it, and it is the room's rather than
+    /// the run's: the reference server draws a fresh one for every room it builds. Two things are
+    /// guarded here -- that two rooms of one run do not get the same value, and that a room
+    /// described twice describes itself the same way, which is what a revisit needs and what the
+    /// reference gets from caching the room instead.
     /// </remarks>
     [Fact]
-    public void Start_map_carries_the_layouts_own_seed()
+    public void Start_map_carries_a_seed_of_its_own_room_that_a_revisit_repeats()
     {
-        var body = DungeonEntryPayloadCodec.EncodeStartMap(AtStart, firstEntry: true, NoActors, FirstSequence, NoDrops);
+        var next = AtStart with
+        {
+            CurrentCell = new MazeCell(1, 1),
+            CurrentRoomMapId = 61001,
+        };
 
-        Assert.Equal(0x0BADF00D, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(3)));
+        var first = DungeonEntryPayloadCodec.EncodeStartMap(AtStart, firstEntry: true, NoActors, FirstSequence, NoDrops);
+        var second = DungeonEntryPayloadCodec.EncodeStartMap(next, firstEntry: true, NoActors, FirstSequence, NoDrops);
+        var again = DungeonEntryPayloadCodec.EncodeStartMap(next, firstEntry: false, NoActors, FirstSequence, NoDrops);
+
+        var firstSeed = BinaryPrimitives.ReadInt32LittleEndian(first.AsSpan(3));
+        var secondSeed = BinaryPrimitives.ReadInt32LittleEndian(second.AsSpan(3));
+
+        Assert.NotEqual(firstSeed, secondSeed);
+        Assert.Equal(secondSeed, BinaryPrimitives.ReadInt32LittleEndian(again.AsSpan(3)));
+    }
+
+    /// <remarks>
+    /// The reference server clears bit 18 of every room seed it sends, and does not say why. The
+    /// client has not been read for what it does with the bit; what is known is that the reference
+    /// will not send it set, so neither does this.
+    /// </remarks>
+    [Fact]
+    public void A_room_seed_never_carries_the_bit_the_reference_always_clears()
+    {
+        MazeCell[] cells =
+        [
+            new MazeCell(0, 0), new MazeCell(1, 1), new MazeCell(2, 1),
+            new MazeCell(3, 0), new MazeCell(4, 2),
+        ];
+
+        foreach (var cell in cells)
+        {
+            var body = DungeonEntryPayloadCodec.EncodeStartMap(
+                AtStart with { CurrentCell = cell }, firstEntry: true, NoActors, FirstSequence, NoDrops);
+
+            var seed = BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(3));
+            Assert.Equal(0, seed & 0x40000);
+            Assert.True(seed >= 0);
+        }
     }
 
     /// <remarks>

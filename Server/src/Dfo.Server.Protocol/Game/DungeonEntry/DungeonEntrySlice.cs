@@ -178,7 +178,18 @@ internal static class DungeonEntryPayloadCodec
     /// of the map, but they are scenery. The player walks through them, swings through them, and
     /// they never swing back.
     ///
-    /// The seed is the layout's, not a fresh one: the client draws on the same value.
+    /// Each actor also carries its place within its own kind, and every one of them carried zero
+    /// until 2026-08-27. The tutorial's first room holds one monster and one AI character, which
+    /// are the first of their two kinds, so zero was right there by accident and the second room
+    /// was where it showed: four actors all claiming the same place, of which the client kept one.
+    /// The player walked into a room whose two monsters were not there and whose crate had already
+    /// given up its shoulder piece, because the step that waits for them had nothing to wait for.
+    ///
+    /// The seed is the room's, not the run's. The reference server draws a fresh one for every
+    /// room it builds and clears one bit of it; this derives the room's from the run's so that a
+    /// re-described room describes itself the same way, and clears the same bit. What that bit
+    /// means to the client has not been read out of it -- only that the reference will not send it
+    /// set.
     /// </remarks>
     public static byte[] EncodeStartMap(
         DungeonRunState run,
@@ -193,7 +204,7 @@ internal static class DungeonEntryPayloadCodec
         writer.Write(run.CurrentCell.X);
         writer.Write(run.CurrentCell.Y);
         writer.Write((byte)0); // not a layered room
-        writer.Write(layout.Seed);
+        writer.Write(RoomSeed(run));
         // A21's builder defaults this to two, not zero, and the reference session carries two here
         // on both of its START_MAP frames. It is the ordinary-dungeon marker; the older client's
         // zero was an abyss-mode reading that A21 does not share.
@@ -217,17 +228,24 @@ internal static class DungeonEntryPayloadCodec
         }
 
         writer.Write((byte)actors.Count);
+        var monstersWritten = 0;
+        var aiCharactersWritten = 0;
         for (var index = 0; index < actors.Count; index++)
         {
-            // Twenty-one bytes each. The template order and the packet index are the room's own
-            // bookkeeping and a run of one has nothing to say in either; the sequence is what the
-            // client names the actor by afterwards.
+            // Twenty-one bytes each. The template order is the room's own bookkeeping and a run of
+            // one has nothing to say in it; the sequence is what the client names the actor by
+            // afterwards; the packet index is the actor's place within its own kind.
+            var actor = actors[index];
+            var packetIndex = IsAiCharacter(actor.ActorType)
+                ? aiCharactersWritten++
+                : monstersWritten++;
+
             writer.Write((ushort)0); // template order
-            writer.Write(0); // packet index
+            writer.Write(packetIndex);
             writer.Write(unchecked((ushort)(firstActorSequence + index)));
-            writer.Write(actors[index].Code);
-            writer.Write(actors[index].Level);
-            writer.Write(actors[index].ActorType);
+            writer.Write(actor.Code);
+            writer.Write(actor.Level);
+            writer.Write(actor.ActorType);
             writer.Write((byte)0); // first flag
             writer.Write((byte)0); // second flag
             writer.Write(0); // extra state
@@ -306,6 +324,42 @@ internal static class DungeonEntryPayloadCodec
     /// carrying this same value, and the column it is stored in is signed: a value that only fits
     /// unsigned would reach the wire as one number and the database as another.
     /// </remarks>
+    /// <summary>Where an actor type stops being a monster and starts being an AI character.</summary>
+    /// <remarks>
+    /// The reference server's own boundary, and it counts the two kinds separately: an AI
+    /// character standing beside a monster is the first of its kind, not the second actor.
+    /// </remarks>
+    private const byte FirstAiCharacterActorType = 5;
+
+    private static bool IsAiCharacter(byte actorType) => actorType >= FirstAiCharacterActorType;
+
+    /// <summary>
+    /// The seed one room is described with.
+    /// </summary>
+    /// <remarks>
+    /// The reference server draws a fresh value per room and clears bit 18 of it before sending.
+    /// Neither the draw nor the mask is explained there, and the client has not been read for what
+    /// it does with either; what can be said is that the reference never sends that bit set, and
+    /// that every room of a run gets a different value.
+    /// <para>
+    /// This derives the value from the run's seed and the cell rather than drawing it, so that a
+    /// room re-described after a revisit describes itself the same way. The mask is copied.
+    /// </para>
+    /// </remarks>
+    internal static int RoomSeed(DungeonRunState run)
+    {
+        var mixed = (uint)run.Layout.Seed;
+        mixed ^= ((uint)run.CurrentCell.X << 8) | run.CurrentCell.Y;
+        mixed *= 2654435761u;
+        mixed ^= mixed >> 15;
+        mixed *= 2246822519u;
+        mixed ^= mixed >> 13;
+        return (int)(mixed & 0x7FFFFFFFu & ~ReservedSeedBit);
+    }
+
+    /// <summary>The one bit of the room seed the reference server always clears.</summary>
+    private const uint ReservedSeedBit = 0x40000u;
+
     internal static uint DropInstance(DungeonRunState run, byte objectIndex)
     {
         var mixed = ((uint)run.CurrentRoomMapId * 2246822519u)
