@@ -182,8 +182,9 @@ internal static class DungeonEntryPayloadCodec
     /// until 2026-08-27. The tutorial's first room holds one monster and one AI character, which
     /// are the first of their two kinds, so zero was right there by accident and the second room
     /// was where it showed: four actors all claiming the same place, of which the client kept one.
-    /// The player walked into a room whose two monsters were not there and whose crate had already
-    /// given up its shoulder piece, because the step that waits for them had nothing to wait for.
+    /// The player walked into a room whose two monsters were not there and whose shoulder piece was
+    /// already lying on the floor: what reveals a declared drop is the client's own script, and the
+    /// step it waits on -- those monsters dying -- had nothing left to wait for.
     ///
     /// The seed is the room's, not the run's. The reference server draws a fresh one for every
     /// room it builds and clears one bit of it; this derives the room's from the run's so that a

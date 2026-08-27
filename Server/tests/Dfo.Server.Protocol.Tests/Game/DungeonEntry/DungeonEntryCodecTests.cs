@@ -158,8 +158,8 @@ public sealed class DungeonEntryCodecTests
     /// room could not show: it holds one monster and one AI character, and those are the first of
     /// their two kinds. The second room holds four, and a client given four actors that all claim
     /// the same place keeps one of them. What the player saw was a room whose two monsters were
-    /// missing and whose crate had already dropped its shoulder piece -- the step that waits for
-    /// those monsters had nothing to wait for.
+    /// missing and whose shoulder piece was already on the floor -- the client reveals a declared
+    /// drop on its own script, and the step it waits on had nothing left to wait for.
     /// </remarks>
     [Fact]
     public void Actors_are_numbered_within_their_own_kind()
