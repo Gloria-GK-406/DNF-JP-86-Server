@@ -394,7 +394,11 @@ public sealed class SetPlayResultHandler(
                 result.Character.Progression.Level,
                 checked((uint)result.CharacterEntry.Public.Extras.CharacterExperience),
                 mirror,
-                AccountHonorLevel.Initial));
+                AccountHonorLevel.Initial,
+                // Nothing is paid at settlement yet, so there is no line to declare. When there
+                // is, it goes here rather than into the total: the client subtracts every declared
+                // line to work out the base, and this frame is the same one a kill sends.
+                ExperienceBonusLines.None));
         }
 
         frames.Add(new ClearDungeonRewardNotification());

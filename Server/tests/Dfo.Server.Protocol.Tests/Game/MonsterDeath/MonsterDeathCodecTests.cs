@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Protocol.Game.MonsterDeath;
 
@@ -37,7 +38,7 @@ public sealed class MonsterDeathCodecTests
     {
         var body = MonsterDeathPayloadCodec.EncodeExperience(
             level: 7, totalExperience: 1234, SkillPoints, new AccountHonorLevel(3, 456),
-            seriaBlessing: 0);
+            ExperienceBonusLines.None);
 
         Assert.Equal(83, body.Length);
         Assert.Equal(7, body[0x00]);
@@ -58,26 +59,169 @@ public sealed class MonsterDeathCodecTests
         }
     }
 
-    /// <summary>The channel's line is written where the client reads it.</summary>
+    /// <summary>
+    /// The declared lines are, pair for pair, the ones the measurement produced.
+    /// </summary>
     /// <remarks>
-    /// <c>+0x4B</c>, and it has to be declared rather than merely paid: the client works out the
-    /// base line by subtracting every named line from the gain, so an amount paid into the total
-    /// and left at zero here is drawn as though the kill itself were worth that much more. This
-    /// pins the offset, because a bonus written one slot over would be drawn under another name
-    /// and still add up.
+    /// Pinned against a transcription of <c>Docs/ExperienceNoticeSlots.md</c> §4 held here, not
+    /// against the production table, and pinned as whole triples rather than as separate sets of
+    /// kinds and offsets. Comparing the sets separately passes a table whose rows were transposed
+    /// among themselves -- every kind present, every offset present, every pairing wrong -- and a
+    /// transposed pairing is exactly this task's defect: the bonus is drawn under another line's
+    /// name and the breakdown still adds up, so nothing anywhere reports it.
+    /// <para>
+    /// The client's own name for each line is part of the comparison because it is the only half a
+    /// human can check. An offset is unfalsifiable by inspection; 赛丽亚的祝福奖励 next to
+    /// <c>+0x1A</c> can be read back against the measurement, or against the screen.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void The_channel_bonus_is_written_in_the_slot_the_client_draws_it_from()
+    public void The_declared_lines_are_pair_for_pair_the_measured_ones()
+    {
+        Assert.Equal(Measured.Length, MonsterDeathPayloadCodec.NamedLines.Count);
+        foreach (var (kind, offset, clientName) in Measured)
+        {
+            var declared = Assert.Single(
+                MonsterDeathPayloadCodec.NamedLines, line => line.Kind == kind);
+            Assert.Equal(offset, declared.Offset);
+            Assert.Equal(clientName, declared.ClientName);
+        }
+
+        // Every kind but Unlisted has a line, so no kind can be paid and silently undeclared.
+        var declarable = Enum.GetValues<ExperienceBonusKind>()
+            .Where(kind => kind is not ExperienceBonusKind.Unlisted);
+        Assert.Equal(
+            declarable.Order(),
+            MonsterDeathPayloadCodec.NamedLines.Select(line => line.Kind).Order());
+
+        // And neither of the two slots the client handles asymmetrically is among them.
+        Assert.DoesNotContain(0x2F, MonsterDeathPayloadCodec.NamedLines.Select(line => line.Offset));
+        Assert.DoesNotContain(0x33, MonsterDeathPayloadCodec.NamedLines.Select(line => line.Offset));
+    }
+
+    /// <summary>Each line lands on the offset the client draws that name from.</summary>
+    /// <remarks>
+    /// Driven from the measurement transcribed here rather than from the production table, so the
+    /// writer is checked against what was observed rather than against another copy of itself.
+    /// </remarks>
+    [Fact]
+    public void Every_named_line_is_written_at_the_offset_the_client_draws_it_from()
+    {
+        foreach (var (kind, offset, _) in Measured)
+        {
+            var body = MonsterDeathPayloadCodec.EncodeExperience(
+                level: 7, totalExperience: 1234, SkillPoints, new AccountHonorLevel(3, 456),
+                LinesOf((kind, 77u)));
+
+            Assert.Equal(77u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(offset)));
+            foreach (var other in AllBonusOffsets.Where(at => at != offset))
+                Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(other)));
+        }
+    }
+
+    /// <summary>Two reasons sharing a line are drawn as one amount.</summary>
+    /// <remarks>
+    /// Nothing stops two entitlements landing on the same line, and dropping either would leave
+    /// the base reading long by that much -- the total is unaffected, so only the player's own
+    /// arithmetic would catch it.
+    /// </remarks>
+    [Fact]
+    public void Two_reasons_on_one_line_are_added_together()
     {
         var body = MonsterDeathPayloadCodec.EncodeExperience(
             level: 7, totalExperience: 1234, SkillPoints, new AccountHonorLevel(3, 456),
-            seriaBlessing: 3);
+            LinesOf(
+                (ExperienceBonusKind.SeriaBlessing, 3u),
+                (ExperienceBonusKind.SeriaBlessing, 4u)));
 
-        Assert.Equal(3u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(0x1A)));
-        Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(0x1E)));
-        Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(0x4B)));
-        Assert.Equal(83, body.Length);
+        Assert.Equal(7u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(0x1A)));
     }
+
+    /// <summary>A bonus with no identified line is left to the base, not forced into a slot.</summary>
+    [Fact]
+    public void A_bonus_belonging_to_no_line_writes_nothing()
+    {
+        var body = MonsterDeathPayloadCodec.EncodeExperience(
+            level: 7, totalExperience: 1234, SkillPoints, new AccountHonorLevel(3, 456),
+            LinesOf((ExperienceBonusKind.Unlisted, 9u)));
+
+        foreach (var offset in AllBonusOffsets)
+            Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(offset)));
+    }
+
+    /// <summary>
+    /// The two slots the client handles asymmetrically stay at zero whatever is paid.
+    /// </summary>
+    [Fact]
+    public void The_slots_that_do_not_balance_are_never_written()
+    {
+        foreach (var kind in Enum.GetValues<ExperienceBonusKind>())
+        {
+            var body = MonsterDeathPayloadCodec.EncodeExperience(
+                level: 7, totalExperience: 1234, SkillPoints, new AccountHonorLevel(3, 456),
+                LinesOf((kind, 55u)));
+
+            Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(0x2F)));
+            Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(0x33)));
+        }
+    }
+
+    /// <summary>The measurement switch still fills all fourteen slots with its own amounts.</summary>
+    /// <remarks>
+    /// This is how every name above was learned, and it has to keep working: the three inert slots
+    /// have no other known way in, and re-running it is the only way to re-check the table.
+    /// </remarks>
+    [Fact]
+    public void The_label_probe_still_pays_a_distinct_amount_into_every_slot()
+    {
+        var body = MonsterDeathPayloadCodec.EncodeExperience(
+            level: 7, totalExperience: 1234, SkillPoints, new AccountHonorLevel(3, 456),
+            LinesOf((ExperienceBonusKind.SeriaBlessing, 3u)), labelProbe: true);
+
+        var written = AllBonusOffsets
+            .Select(offset => BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(offset)));
+        Assert.Equal(ExperienceDiagnostics.ProbeAmounts, written);
+    }
+
+    /// <summary>
+    /// The nine drawn-and-subtracted lines, transcribed from <c>Docs/ExperienceNoticeSlots.md</c>.
+    /// </summary>
+    /// <remarks>
+    /// A second copy of the production table on purpose: it is the anchor these tests compare
+    /// against, so changing the server's table alone can never make them agree. Edit it only from
+    /// a fresh measurement, never to make a test pass.
+    /// </remarks>
+    private static readonly (ExperienceBonusKind Kind, int Offset, string ClientName)[] Measured =
+    [
+        (ExperienceBonusKind.PartyReward, 0x05, "队伍奖励"),
+        (ExperienceBonusKind.FatigueBuff, 0x15, "疲劳值Buff"),
+        (ExperienceBonusKind.SeriaBlessing, 0x1A, "赛丽亚的祝福奖励"),
+        (ExperienceBonusKind.GrowthContract, 0x1E, "成长之契约奖励"),
+        (ExperienceBonusKind.FatigueBurn, 0x26, "疲劳值燃烧奖励"),
+        (ExperienceBonusKind.InternetCafe, 0x2A, "网吧奖励"),
+        (ExperienceBonusKind.RapidGrowthBuff, 0x43, "极速成长Buff奖励"),
+        (ExperienceBonusKind.SeriaWelcome, 0x4B, "赛丽亚的欢迎"),
+        (ExperienceBonusKind.GuildReward, 0x4F, "公会奖励"),
+    ];
+
+    /// <summary>The fourteen bonus slots, in the order the frame writes them.</summary>
+    private static readonly int[] AllBonusOffsets =
+        [0x05, 0x15, 0x1A, 0x1E, 0x22, 0x26, 0x2A, 0x2F, 0x33, 0x37, 0x43, 0x47, 0x4B, 0x4F];
+
+    /// <summary>The lines an award of these contributions declares.</summary>
+    /// <remarks>
+    /// Built through a real award rather than by hand, so these tests exercise the same gathering
+    /// the handler does.
+    /// </remarks>
+    private static ExperienceBonusLines LinesOf(params (ExperienceBonusKind Kind, uint Amount)[] paid) =>
+        ExperienceBonusLines.Of(new ExperienceAward(
+            Base: 1,
+            Contributions: [.. paid.Select(
+                one => new ExperienceContribution("test", 0.5, one.Amount, one.Kind))],
+            Gained: 1,
+            Level: 7,
+            Total: 1234,
+            LeveledUp: false));
 
     [Fact]
     public void A_body_shorter_than_the_actor_number_and_the_user_is_refused()

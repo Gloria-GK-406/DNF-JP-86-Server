@@ -261,7 +261,10 @@ public sealed class TutorialLevelUpHandler(
         if (mirror is not null)
         {
             frames.Add(new ExperienceNotification(
-                granted.Level, granted.Experience, mirror, AccountHonorLevel.Initial));
+                granted.Level, granted.Experience, mirror, AccountHonorLevel.Initial,
+                // The tutorial grant is a flat figure with nothing added to it, so no line is
+                // declared.
+                ExperienceBonusLines.None));
         }
 
         frames.Add(new AvailableQuestListMessage(

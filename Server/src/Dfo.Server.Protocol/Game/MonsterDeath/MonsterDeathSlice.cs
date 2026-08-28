@@ -34,18 +34,71 @@ public sealed record MonsterDeathRequest(
     public ClientMessageType MessageType => ClientMessageType.GameMonsterDeath;
 }
 
+/// <summary>
+/// How much of a gain each of the notice's named lines accounts for.
+/// </summary>
+/// <remarks>
+/// Declared rather than merely paid, because the client works out the base line by subtracting
+/// every named line from the gain -- so an amount paid into the total and left at zero here is
+/// drawn as though the occasion itself were worth that much more.
+/// <para>
+/// Gathered by line rather than taken singly: nothing stops two reasons sharing a line, and a
+/// first-match read would drop the second silently -- the kind of loss that shows up only as a
+/// breakdown the player can see does not add up.
+/// </para>
+/// </remarks>
+internal sealed class ExperienceBonusLines
+{
+    /// <summary>One place per kind, so a line is addressed by name rather than by offset.</summary>
+    private static readonly int KindCount = Enum.GetValues<ExperienceBonusKind>().Length;
+
+    private readonly uint[] _amounts;
+
+    private ExperienceBonusLines(uint[] amounts) => this._amounts = amounts;
+
+    /// <summary>An occasion that declared nothing.</summary>
+    public static ExperienceBonusLines None { get; } = new(new uint[KindCount]);
+
+    /// <summary>What each of an award's contributions declared, gathered by line.</summary>
+    /// <remarks>
+    /// A contribution of no identified line is skipped rather than dropped: it stays in the award's
+    /// total, and the client draws it as part of the base. That is the honest reading -- the amount
+    /// is right and only its attribution is coarse.
+    /// </remarks>
+    public static ExperienceBonusLines Of(ExperienceAward? award)
+    {
+        if (award is null || award.Contributions.Count == 0)
+            return None;
+
+        var amounts = new uint[KindCount];
+        foreach (var contribution in award.Contributions)
+        {
+            if (contribution.Kind is ExperienceBonusKind.Unlisted)
+                continue;
+
+            // Saturating: the frame's field is a u32, and a sum that wrapped would draw a line
+            // smaller than the amount it stands for -- which is exactly the breakdown error this
+            // whole type exists to prevent.
+            var total = (ulong)amounts[(int)contribution.Kind] + contribution.Amount;
+            amounts[(int)contribution.Kind] = total > uint.MaxValue ? uint.MaxValue : (uint)total;
+        }
+
+        return new ExperienceBonusLines(amounts);
+    }
+
+    /// <summary>What this line accounts for.</summary>
+    public uint this[ExperienceBonusKind kind] =>
+        kind is ExperienceBonusKind.Unlisted ? 0 : this._amounts[(int)kind];
+}
+
 /// <summary>NOTI 0x0025 <c>EXP</c>: what the character is worth after the kill.</summary>
-/// <param name="SeriaBlessing">
-/// How much of the gain the channel added. Declared rather than folded into the total, because the
-/// client subtracts every named line from the gain to work out what to draw as the base -- so an
-/// amount paid but not declared here is drawn as though the kill itself were worth that much more.
-/// </param>
+/// <param name="Lines">How much of the gain each named line accounts for.</param>
 internal sealed record ExperienceNotification(
     byte Level,
     uint TotalExperience,
     CharacterSkillProtocolMirrorState SkillPoints,
     AccountHonorLevel Honor,
-    uint SeriaBlessing = 0,
+    ExperienceBonusLines Lines,
     bool LabelProbe = false) : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameExperience;
@@ -90,25 +143,66 @@ internal static class MonsterDeathPayloadCodec
     private static readonly byte[] MonsterDeathTail = [0x00, 0x00, 0xFF, 0x00];
 
     /// <summary>
+    /// One line of the notice: which bonus it is, where the client reads it, and what it calls it.
+    /// </summary>
+    /// <param name="ClientName">
+    /// The name the client itself draws over this line. Kept beside the offset rather than left in
+    /// a document, because the pair is what a later reader has to check and the offset alone cannot
+    /// be checked at all -- every offset looks equally plausible.
+    /// </param>
+    public sealed record ExperienceNoticeLine(
+        ExperienceBonusKind Kind, int Offset, string ClientName);
+
+    /// <summary>
+    /// Where the client draws each named line from, and under what name.
+    /// </summary>
+    /// <remarks>
+    /// Measured, not transcribed. A probe paid a distinct amount into all fourteen bonus slots and
+    /// the client labelled every line itself; the two rounds and their cross-validation are in
+    /// <c>Docs/ExperienceNoticeSlots.md</c>. Nine slots are both drawn and subtracted from the
+    /// base, and those nine are here.
+    /// <para>
+    /// <c>+0x2F</c> and <c>+0x33</c> are absent on purpose: the first is drawn but not subtracted
+    /// and the second subtracted but not drawn, so either one leaves the player looking at a
+    /// breakdown that does not add up. <c>+0x22</c>, <c>+0x37</c> and <c>+0x47</c> are absent
+    /// because the client neither draws nor subtracts them.
+    /// </para>
+    /// </remarks>
+    public static IReadOnlyList<ExperienceNoticeLine> NamedLines { get; } =
+    [
+        new(ExperienceBonusKind.PartyReward, 0x05, "队伍奖励"),
+        new(ExperienceBonusKind.FatigueBuff, 0x15, "疲劳值Buff"),
+        new(ExperienceBonusKind.SeriaBlessing, 0x1A, "赛丽亚的祝福奖励"),
+        new(ExperienceBonusKind.GrowthContract, 0x1E, "成长之契约奖励"),
+        new(ExperienceBonusKind.FatigueBurn, 0x26, "疲劳值燃烧奖励"),
+        new(ExperienceBonusKind.InternetCafe, 0x2A, "网吧奖励"),
+        new(ExperienceBonusKind.RapidGrowthBuff, 0x43, "极速成长Buff奖励"),
+        new(ExperienceBonusKind.SeriaWelcome, 0x4B, "赛丽亚的欢迎"),
+        new(ExperienceBonusKind.GuildReward, 0x4F, "公会奖励"),
+    ];
+
+    /// <summary>
     /// The experience frame, in the fixed A21 layout.
     /// </summary>
     /// <remarks>
-    /// Eighty-three bytes whose offsets are the reference builder's. Only four carry anything
-    /// today: the level, the total experience, the skill points, and the account's honour
-    /// standing. The bonus lines -- party, fatigue, Seria's blessing, the growth contract, the
-    /// internet cafe, the elite kill, the growth capsule, the channel and guild bonuses -- are
-    /// each a separate line in the client's experience popup, and every one of them is a reward
-    /// rule this server does not have. Zero is the honest value for a bonus that was not awarded.
+    /// Eighty-three bytes whose offsets are the reference builder's. The level, the total
+    /// experience, the skill points and the account's honour standing carry the character's
+    /// standing; the nine named bonus lines carry what was paid on top of the occasion, each on
+    /// the line the client draws it as.
     ///
-    /// The level and total are what the kill left behind, and until 2026-08-28 they were not: this
-    /// frame reported what the character already had, because nothing granted anything. The
-    /// channel's line is now paid and declared; the rest are still zero, and zero remains the
-    /// honest value for a bonus this server does not award.
+    /// The level and total are what the occasion left behind, and until 2026-08-28 they were not:
+    /// this frame reported what the character already had, because nothing granted anything.
     /// <para>
     /// The lines are not decoration. The client reads the gain as this total minus the one it
     /// holds, then subtracts every line below to decide what the base was worth
     /// (<c>0x01179476</c> onwards). A line paid but left at zero is therefore drawn as part of the
     /// base, and a line declared but not paid would make the base read short by that much.
+    /// </para>
+    /// <para>
+    /// Five slots stay at zero whatever is paid. Two of them -- <c>+0x2F</c> and <c>+0x33</c> --
+    /// are the ones the client itself handles asymmetrically, and writing to either is how this
+    /// server would put a breakdown on screen that does not add up. The reference server has names
+    /// for them; the names are what makes them look fillable.
     /// </para>
     /// </remarks>
     public static byte[] EncodeExperience(
@@ -116,42 +210,44 @@ internal static class MonsterDeathPayloadCodec
         uint totalExperience,
         CharacterSkillProtocolMirrorState skillPoints,
         AccountHonorLevel honor,
-        uint seriaBlessing,
+        ExperienceBonusLines lines,
         bool labelProbe = false)
     {
+        ArgumentNullException.ThrowIfNull(lines);
         var body = new byte[ExperienceBodyLength];
         var writer = new SpanWriter(body);
         // A measurement, off in play: every bonus slot gets a distinct amount so
-        // the client names each line itself. See ExperienceDiagnostics -- the one
-        // slot whose name this server knows was learned exactly this way, and it
-        // was not the name the reference server gives it.
+        // the client names each line itself. See ExperienceDiagnostics -- every
+        // name in NamedLines was learned exactly this way, and two of them
+        // were not the names the reference server gives those slots.
         var p = labelProbe ? ExperienceDiagnostics.ProbeAmounts : null;
         uint Slot(int index, uint value) => p is null ? value : p[index];
+        uint Line(int index, ExperienceBonusKind kind) => Slot(index, lines[kind]);
         writer.Byte(level); // +0x00
         writer.U32(totalExperience); // +0x01
-        writer.U32(Slot(0, 0)); // +0x05 party experience
+        writer.U32(Line(0, ExperienceBonusKind.PartyReward)); // +0x05 队伍奖励
         writer.U16(skillPoints.Page0Sp); // +0x09
         writer.U16(skillPoints.Page1Sp); // +0x0B
         writer.U16(skillPoints.Page0Tp); // +0x0D
         writer.U16(skillPoints.Page1Tp); // +0x0F
         writer.U32(0); // +0x11 PvP victory points
-        writer.U32(Slot(1, 0)); // +0x15 fatigue buff experience
+        writer.U32(Line(1, ExperienceBonusKind.FatigueBuff)); // +0x15 疲劳值Buff
         writer.Byte(0); // +0x19 presentation mode
-        writer.U32(Slot(2, seriaBlessing)); // +0x1A
-        writer.U32(Slot(3, 0)); // +0x1E growth contract
-        writer.U32(Slot(4, 0)); // +0x22 unnamed
-        writer.U32(Slot(5, 0)); // +0x26 fatigue burn
-        writer.U32(Slot(6, 0)); // +0x2A internet cafe
+        writer.U32(Line(2, ExperienceBonusKind.SeriaBlessing)); // +0x1A 赛丽亚的祝福奖励
+        writer.U32(Line(3, ExperienceBonusKind.GrowthContract)); // +0x1E 成长之契约奖励
+        writer.U32(Slot(4, 0)); // +0x22 neither drawn nor subtracted
+        writer.U32(Line(5, ExperienceBonusKind.FatigueBurn)); // +0x26 疲劳值燃烧奖励
+        writer.U32(Line(6, ExperienceBonusKind.InternetCafe)); // +0x2A 网吧奖励
         writer.Byte(0); // +0x2E itemised entry count
-        writer.U32(Slot(7, 0)); // +0x2F elite monster kill
-        writer.U32(Slot(8, 0)); // +0x33 unnamed
-        writer.U32(Slot(9, 0)); // +0x37 growth capsule
+        writer.U32(Slot(7, 0)); // +0x2F drawn but NOT subtracted -- unusable
+        writer.U32(Slot(8, 0)); // +0x33 subtracted but NOT drawn -- unusable
+        writer.U32(Slot(9, 0)); // +0x37 neither drawn nor subtracted
         writer.U32(honor.Level); // +0x3B
         writer.U32(honor.Experience); // +0x3F
-        writer.U32(Slot(10, 0)); // +0x43 speed-growth buff
-        writer.U32(Slot(11, 0)); // +0x47 unnamed
-        writer.U32(Slot(12, 0)); // +0x4B
-        writer.U32(Slot(13, 0)); // +0x4F guild bonus
+        writer.U32(Line(10, ExperienceBonusKind.RapidGrowthBuff)); // +0x43 极速成长Buff奖励
+        writer.U32(Slot(11, 0)); // +0x47 neither drawn nor subtracted
+        writer.U32(Line(12, ExperienceBonusKind.SeriaWelcome)); // +0x4B 赛丽亚的欢迎
+        writer.U32(Line(13, ExperienceBonusKind.GuildReward)); // +0x4F 公会奖励
         return body;
     }
 
@@ -185,7 +281,7 @@ internal sealed class ExperienceEncoder : GameNotiMessageEncoder<ExperienceNotif
             GameProtocol.ExperienceNotificationType,
             MonsterDeathPayloadCodec.EncodeExperience(
                 message.Level, message.TotalExperience, message.SkillPoints, message.Honor,
-                message.SeriaBlessing, message.LabelProbe));
+                message.Lines, message.LabelProbe));
 }
 
 internal sealed class MonsterDeathEncoder : GameNotiMessageEncoder<MonsterDeathNotification>
@@ -330,7 +426,7 @@ public sealed class MonsterDeathHandler(
                 level,
                 diagnostics.LabelProbe ? total + ExperienceDiagnostics.ProbeTotal : total,
                 mirror, AccountHonorLevel.Initial,
-                AmountOf(award, ExperienceBonusKind.SeriaBlessing), diagnostics.LabelProbe),
+                ExperienceBonusLines.Of(award), diagnostics.LabelProbe),
             new MonsterDeathNotification(message.ActorSequence),
         ];
 
@@ -420,27 +516,6 @@ public sealed class MonsterDeathHandler(
             monster.Rank,
             award);
         return award;
-    }
-
-    /// <summary>How much of an award came from one named line of the frame.</summary>
-    /// <remarks>
-    /// Summed rather than taken singly: nothing stops two reasons sharing a line, and a
-    /// first-match read would drop the second silently -- the kind of loss that shows up only as a
-    /// breakdown the player can see does not add up.
-    /// </remarks>
-    private static uint AmountOf(ExperienceAward? award, ExperienceBonusKind kind)
-    {
-        if (award is null)
-            return 0;
-
-        var total = 0UL;
-        foreach (var contribution in award.Contributions)
-        {
-            if (contribution.Kind == kind)
-                total += contribution.Amount;
-        }
-
-        return total > uint.MaxValue ? uint.MaxValue : (uint)total;
     }
 
     /// <summary>

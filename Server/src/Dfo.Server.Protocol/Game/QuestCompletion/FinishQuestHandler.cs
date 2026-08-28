@@ -146,7 +146,11 @@ public sealed class FinishQuestHandler(
         if (mirror is not null)
         {
             frames.Add(new ExperienceNotification(
-                outcome.NewLevel, outcome.NewExperience, mirror, AccountHonorLevel.Initial));
+                outcome.NewLevel, outcome.NewExperience, mirror, AccountHonorLevel.Initial,
+                // A quest pays its own table's figure and nothing on top, so there is no named
+                // line to declare. The client draws the whole gain as the base, which is what it
+                // is.
+                ExperienceBonusLines.None));
         }
         else
         {

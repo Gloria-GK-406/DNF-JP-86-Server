@@ -38,32 +38,70 @@ public readonly record struct ExperienceOccasion(
 /// from the total it gained (<c>0x01179476</c> onwards in the A21 client). So a bonus that is paid
 /// but declared in no slot is not merely undrawn -- it is drawn as part of the base.
 /// <para>
-/// <see cref="Unlisted"/> is that state, named rather than left implicit. It is what a bonus whose
-/// line this server has not identified must use, and it is honest: the total is right, and the
-/// breakdown attributes the amount to the occasion instead of to the entitlement.
+/// The nine named members are the nine slots the client both draws and subtracts. Their names are
+/// the client's own, read off the screen: a probe paid a distinct amount into all fourteen slots
+/// and the popup labelled each line itself. That measurement, and the two rounds that
+/// cross-validated it, are written up in <c>Docs/ExperienceNoticeSlots.md</c>.
+/// </para>
+/// <para>
+/// <b>Five slots are deliberately absent.</b> <c>+0x2F</c> is drawn but not subtracted and
+/// <c>+0x33</c> is subtracted but not drawn, so either one makes the breakdown the player reads
+/// stop adding up -- and the whole value of this notice is that it adds up. <c>+0x22</c>,
+/// <c>+0x37</c> and <c>+0x47</c> are neither drawn nor subtracted, so writing to them has no
+/// observable effect at all. The reference server has names for several of these; those names are
+/// what makes them look fillable, and two of its names for slots that ARE usable were measured
+/// wrong. Do not add a member for any of the five.
 /// </para>
 /// </remarks>
 public enum ExperienceBonusKind
 {
     /// <summary>Paid, but belonging to no slot this server has identified.</summary>
+    /// <remarks>
+    /// The client folds it into the base line. The total stays right and the breakdown attributes
+    /// the amount to the occasion instead of to the entitlement -- one line fewer, rather than a
+    /// line that does not balance.
+    /// </remarks>
     Unlisted,
 
+    /// <summary>队伍奖励, drawn from <c>+0x05</c>.</summary>
+    PartyReward,
+
+    /// <summary>疲劳值Buff, drawn from <c>+0x15</c>.</summary>
+    FatigueBuff,
+
     /// <summary>
-    /// The channel's own bonus, which the client draws as 赛丽亚的祝福奖励 from the slot at
-    /// <c>+0x1A</c>.
+    /// 赛丽亚的祝福奖励, drawn from <c>+0x1A</c>. This is the channel's own reward.
     /// </summary>
     /// <remarks>
-    /// The slot moved on 2026-08-28 and the reason is worth keeping. The reference server writes
-    /// its channel bonus at <c>+0x4B</c>, and this server copied that; the client draws
-    /// <c>+0x4B</c> as 赛丽亚的欢迎, which is a different bonus. Both the slot and the name came
-    /// from the same source and both were wrong.
-    /// <para>
-    /// What settled it is in <c>Docs/ExperienceNoticeSlots.md</c>: a probe paid a distinct amount
-    /// into every slot and the client named each line itself. Of fourteen slots only nine are both
-    /// drawn and subtracted from the base, and this is one of them.
-    /// </para>
+    /// The slot moved here on 2026-08-28 and the reason is worth keeping. The reference server
+    /// wrote its channel bonus at <c>+0x4B</c> and this server copied that; the client draws
+    /// <c>+0x4B</c> as 赛丽亚的欢迎, which is a different reward. Both the slot and the name came
+    /// from the same source and both were wrong, which is why every name here was re-measured.
     /// </remarks>
     SeriaBlessing,
+
+    /// <summary>成长之契约奖励, drawn from <c>+0x1E</c>.</summary>
+    GrowthContract,
+
+    /// <summary>疲劳值燃烧奖励, drawn from <c>+0x26</c>.</summary>
+    FatigueBurn,
+
+    /// <summary>网吧奖励, drawn from <c>+0x2A</c>.</summary>
+    InternetCafe,
+
+    /// <summary>极速成长Buff奖励, drawn from <c>+0x43</c>.</summary>
+    RapidGrowthBuff,
+
+    /// <summary>赛丽亚的欢迎, drawn from <c>+0x4B</c>.</summary>
+    /// <remarks>
+    /// Distinct from <see cref="SeriaBlessing"/> despite the similar name, and the pair is exactly
+    /// how the reference server's labelling was caught: a bonus written here appears under this
+    /// name, not that one.
+    /// </remarks>
+    SeriaWelcome,
+
+    /// <summary>公会奖励, drawn from <c>+0x4F</c>.</summary>
+    GuildReward,
 }
 
 /// <summary>One reason a character earns more than the occasion is worth.</summary>
