@@ -52,8 +52,17 @@ public sealed record DungeonLayout(
     MazeCell BossCell,
     int StartRoomMapId,
     int Seed,
-    IReadOnlyDictionary<MazeCell, int> Rooms)
+    IReadOnlyDictionary<MazeCell, int> Rooms,
+    byte BasisLevel = 1)
 {
+    /// <summary>What a monster of this run is worth when its map declines to say.</summary>
+    /// <remarks>
+    /// The dungeon's <c>[basis level]</c>, carried here because a map is shared between dungeons
+    /// and cannot hold it. Most maps declare monster level zero and lean on this entirely; reading
+    /// a declared zero as a level rather than as an absence made every such monster level one.
+    /// </remarks>
+    public byte LevelOf(byte declaredLevel) => declaredLevel > 0 ? declaredLevel : BasisLevel;
+
     /// <summary>What this cell's room is for.</summary>
     public DungeonRoomKind KindOf(MazeCell cell) =>
         cell == BossCell ? DungeonRoomKind.Boss

@@ -25,6 +25,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
     private const string ListPath = "dungeon/dungeon.lst";
     private const string DungeonDirectory = "dungeon";
     private const string RoomKeyword = "map";
+    private const string BossRoomKeyword = "boss";
 
     private readonly PvfArchiveProvider _provider;
     private readonly Lock _gate = new();
@@ -78,6 +79,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         MazeDraft? draft = null;
         var section = Section.None;
         byte minimumLevel = 1;
+        byte basisLevel = 1;
         var consumesFatigue = true;
         var pending = new List<int>();
 
@@ -109,6 +111,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
                     else if (token.Value == tags.StartMap) section = Section.Start;
                     else if (token.Value == tags.BossMap) section = Section.Boss;
                     else if (token.Value == tags.MinimumRequiredLevel) section = Section.MinimumLevel;
+                    else if (token.Value == tags.BasisLevel) section = Section.BasisLevel;
                     else if (token.Value == tags.NoFatigue)
                     {
                         consumesFatigue = false;
@@ -123,17 +126,28 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
                 }
             }
 
-            if (section == Section.Rooms && token.IsString)
+            if ((section is Section.Rooms or Section.SkippedRoomEntry) && token.IsString)
             {
-                // The kind is quoted and repeats before every room. Anything that is not a room
-                // is skipped rather than guessed at: the pending operands are dropped with it.
+                // The kind is quoted and repeats before every room. TWO kinds declare one: `map`
+                // and `boss`, which differ only in that `boss` also marks the cell the run ends
+                // in -- the same cell [boss map] names. Reading `boss` as something to skip left
+                // the boss cell with no room while the layout still pointed at it, and the player
+                // walked up to the last door and could not open it. Dungeon 10004, the swordman
+                // tutorial, is where that surfaced; dungeon 10000 spells every room `map` and so
+                // never showed it.
+                //
+                // An unknown kind is still skipped rather than guessed at, but the skip now lasts
+                // exactly one entry. It used to last the rest of the section, because only
+                // Section.Rooms read a kind at all: once skipped, every later room in the same
+                // [map specification] was dropped with it. Thirty-seven of the archive's dungeons
+                // open that section with `boss`, so for those it dropped the whole maze.
                 Flush(draft, section, pending);
                 pending.Clear();
-                if (!string.Equals(
-                        archive.ResolveString(token.Value), RoomKeyword, StringComparison.OrdinalIgnoreCase))
-                {
-                    section = Section.SkippedRoomEntry;
-                }
+                var kind = archive.ResolveString(token.Value);
+                section = string.Equals(kind, RoomKeyword, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(kind, BossRoomKeyword, StringComparison.OrdinalIgnoreCase)
+                        ? Section.Rooms
+                        : Section.SkippedRoomEntry;
 
                 continue;
             }
@@ -147,6 +161,14 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
                     minimumLevel = token.Value is >= 0 and <= byte.MaxValue
                         ? (byte)token.Value
                         : minimumLevel;
+                    section = Section.None;
+                    break;
+                case Section.BasisLevel:
+                    // Clamped to one at the bottom: a dungeon declaring zero would price every
+                    // monster whose map declines to set a level at nothing at all.
+                    basisLevel = token.Value is > 0 and <= byte.MaxValue
+                        ? (byte)token.Value
+                        : basisLevel;
                     section = Section.None;
                     break;
                 case Section.Size:
@@ -165,7 +187,8 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         // No maze means a different structural family, not an ordinary dungeon with nowhere to go.
         return mazes.Count == 0
             ? null
-            : new DungeonDefinition(dungeonId, archivePath, minimumLevel, consumesFatigue, mazes);
+            : new DungeonDefinition(
+                dungeonId, archivePath, minimumLevel, consumesFatigue, mazes, basisLevel);
     }
 
     /// <summary>Consumes whole rows once enough operands have arrived, leaving partial ones.</summary>
@@ -223,6 +246,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         Start,
         Boss,
         MinimumLevel,
+        BasisLevel,
         SkippedRoomEntry,
     }
 
@@ -252,6 +276,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
             StartMap = archive.GetTag("[start map]").Offset;
             BossMap = archive.GetTag("[boss map]").Offset;
             MinimumRequiredLevel = archive.GetTag("[minimum required level]").Offset;
+            BasisLevel = archive.GetTag("[basis level]").Offset;
             NoFatigue = archive.GetTag("[no fatigue]").Offset;
         }
 
@@ -268,6 +293,8 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         public int BossMap { get; }
 
         public int MinimumRequiredLevel { get; }
+
+        public int BasisLevel { get; }
 
         public int NoFatigue { get; }
     }

@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol.Game.Quests;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Logging;
 
@@ -30,6 +31,7 @@ public sealed class AcceptQuestHandler(
     ISelectedSessionRuntimeDirectory runtimeSessions,
     ICommandBus commandBus,
     IGameMessageSender sender,
+    QuestOfferRefresher offers,
     ILogger<AcceptQuestHandler> logger) : ClientMessageHandler<AcceptQuestRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -87,6 +89,21 @@ public sealed class AcceptQuestHandler(
                 context.Connection.ConnectionId, message.QuestId);
             return;
         }
+
+        // The offer list is worked out again, because taking a quest on changes one of its inputs.
+        // The quest just accepted leaves it, which is a deliberate difference from the reference
+        // server: its list builder is never given the carried set and therefore names a quest the
+        // character is already holding. The client believes that list -- it raised its own accept
+        // prompt again for a quest just accepted, and the second acceptance was refused. Seen live
+        // on 2026-08-27 and reproduced by the reference server on the same client. Recorded in
+        // Docs/ProtocolScaffoldDissonances.md.
+        result = await offers.RefreshAsync(
+            result,
+            session.AccountId,
+            session.CharacterId,
+            result.Character.Progression.Level,
+            cancellationToken).ConfigureAwait(false);
+        runtimeSessions.ReplaceExact(session, result);
 
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,

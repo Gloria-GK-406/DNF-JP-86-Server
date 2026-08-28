@@ -111,6 +111,54 @@ public sealed class QuestLogTests
         Assert.Single(await log.CarriedAsync(CancellationToken.None));
     }
 
+    /// <summary>
+    /// Handed in, then offered again: the second acceptance is refused rather than paid.
+    /// </summary>
+    /// <remarks>
+    /// The regression this exists for happened on a live client on 2026-08-27. FINISH_QUEST had
+    /// just landed, the acceptance rules still had no cleared-quest check because until that
+    /// moment nothing could write one, and 与赛丽亚的初次见面 was taken on again and paid its
+    /// reward a second time.
+    /// </remarks>
+    [Fact]
+    public async Task AQuestAlreadyFinishedCannotBeTakenOnAgain()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var log = fixture.Log();
+        await log.AcceptAsync(Quest(1016, trigger: 0, objective: "meet npc"), CancellationToken.None);
+        Assert.Equal(
+            QuestFinishVerdict.Finished, await log.FinishAsync(1016, CancellationToken.None));
+
+        var again = await log.AcceptAsync(Quest(1016), CancellationToken.None);
+
+        Assert.False(again.Accepted);
+        Assert.Equal(QuestRefusal.AlreadyCleared, again.Refusal);
+        Assert.Empty(await log.CarriedAsync(CancellationToken.None));
+    }
+
+    /// <summary>A repeatable quest is meant to come back, and does.</summary>
+    /// <remarks>
+    /// The other half of the same rule, and the reason it is asked of the grade rather than of the
+    /// cleared list alone: refusing every cleared quest would retire the dailies permanently after
+    /// their first completion.
+    /// </remarks>
+    [Fact]
+    public async Task AQuestThatRepeatsCanBeTakenOnAfterBeingFinished()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var log = fixture.Log();
+        var daily = Quest(5000, trigger: 0, objective: "meet npc") with { Grade = QuestGrade.Daily };
+        Assert.True(daily.IsRepeatable);
+        await log.AcceptAsync(daily, CancellationToken.None);
+        Assert.Equal(
+            QuestFinishVerdict.Finished, await log.FinishAsync(5000, CancellationToken.None));
+
+        var again = await log.AcceptAsync(daily, CancellationToken.None);
+
+        Assert.True(again.Accepted);
+        Assert.Equal([new CarriedQuest(0, 5000, 0)], await log.CarriedAsync(CancellationToken.None));
+    }
+
     [Fact]
     public async Task AQuestArrivingAtAFullLogIsRefusedForADifferentReasonAndChangesNothing()
     {
@@ -339,8 +387,202 @@ public sealed class QuestLogTests
     /// The archive declares what a quest starts at; every other field is what the parser found in
     /// the file and none of it is a question the log asks.
     /// </remarks>
-    private static QuestDefinition Quest(int questId, uint trigger = 1) =>
-        new(questId, "", null, null, null, null, null, null, [], "", "",
+    /// <summary>The whole tutorial exchange: report the visit, then hand the quest in.</summary>
+    [Fact]
+    public async Task AQuestWhoseObjectiveIsMetIsHandedInAndBecomesCleared()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var log = fixture.Log();
+        var quest = Quest(1016, trigger: 1, objective: "meet npc");
+        await log.AcceptAsync(quest, CancellationToken.None);
+        await log.AdvanceAsync(quest, 0, false, CancellationToken.None);
+
+        Assert.Equal(
+            QuestFinishVerdict.Finished,
+            await log.FinishAsync(1016, CancellationToken.None));
+
+        Assert.Empty(await log.CarriedAsync(CancellationToken.None));
+        Assert.Equal(
+            [new ClearedQuest(1016, IQuestLog.ClearedMark)],
+            await log.ClearedAsync(CancellationToken.None));
+    }
+
+    /// <remarks>
+    /// The gate that stops a crafted frame finishing any carried quest by asking. The client will
+    /// not send this before the objective is met, so it is refused where a real client never goes.
+    /// </remarks>
+    [Fact]
+    public async Task AQuestWhoseObjectiveIsNotMetIsRefusedAndStaysCarried()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var log = fixture.Log();
+        await log.AcceptAsync(Quest(1016, trigger: 1, objective: "meet npc"), CancellationToken.None);
+
+        Assert.Equal(
+            QuestFinishVerdict.ObjectiveUnmet,
+            await log.FinishAsync(1016, CancellationToken.None));
+
+        Assert.Equal(
+            [new CarriedQuest(0, 1016, 1)], await log.CarriedAsync(CancellationToken.None));
+        Assert.Empty(await log.ClearedAsync(CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task HandingInAQuestNobodyIsCarryingSaysSo()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+
+        Assert.Equal(
+            QuestFinishVerdict.NotCarried,
+            await fixture.Log().FinishAsync(1016, CancellationToken.None));
+    }
+
+    /// <summary>Handed in once. The second attempt finds nothing to hand in.</summary>
+    /// <remarks>
+    /// Worth its own test because the client repeats an unanswered request, and because the two
+    /// writes this verb makes are what would otherwise let a quest be paid for twice.
+    /// </remarks>
+    [Fact]
+    public async Task AQuestAlreadyHandedInCannotBeHandedInAgain()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var log = fixture.Log();
+        await log.AcceptAsync(Quest(1016, trigger: 0, objective: "meet npc"), CancellationToken.None);
+        Assert.Equal(
+            QuestFinishVerdict.Finished, await log.FinishAsync(1016, CancellationToken.None));
+
+        Assert.Equal(
+            QuestFinishVerdict.NotCarried, await log.FinishAsync(1016, CancellationToken.None));
+
+        Assert.Equal(
+            [new ClearedQuest(1016, IQuestLog.ClearedMark)],
+            await log.ClearedAsync(CancellationToken.None));
+    }
+
+    /// <summary>Clicking 赛丽亚, end to end: the quest goes to zero and the row holds it.</summary>
+    [Fact]
+    public async Task AReportOnAClientCountedQuestMovesItAndIsStored()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var log = fixture.Log();
+        var quest = Quest(1016, trigger: 1, objective: "meet npc");
+        await log.AcceptAsync(quest, CancellationToken.None);
+
+        var advance = await log.AdvanceAsync(quest, 0, false, CancellationToken.None);
+
+        Assert.Equal(QuestAdvanceVerdict.Advanced, advance.Verdict);
+        Assert.Equal(new QuestTrigger(0), advance.Trigger);
+        Assert.Equal(
+            [new CarriedQuest(0, 1016, 0)], await log.CarriedAsync(CancellationToken.None));
+    }
+
+    /// <remarks>
+    /// The client repeats a report it was not answered for. Once the quest is at zero the repeats
+    /// have to be absorbed: the answer stays zero, and the row is left alone rather than written
+    /// with the value it already holds.
+    /// </remarks>
+    [Fact]
+    public async Task AReportThatLandsOnTheValueAlreadyHeldChangesNothing()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var log = fixture.Log();
+        var quest = Quest(1016, trigger: 1, objective: "meet npc");
+        await log.AcceptAsync(quest, CancellationToken.None);
+        await log.AdvanceAsync(quest, 0, false, CancellationToken.None);
+
+        var again = await log.AdvanceAsync(quest, 0, false, CancellationToken.None);
+
+        Assert.Equal(QuestAdvanceVerdict.Unchanged, again.Verdict);
+        Assert.Equal(new QuestTrigger(0), again.Trigger);
+        Assert.Equal(
+            [new CarriedQuest(0, 1016, 0)], await log.CarriedAsync(CancellationToken.None));
+    }
+
+    /// <summary>
+    /// An objective this server counts is answered with the stored value and not moved by what
+    /// the client says about it.
+    /// </summary>
+    [Fact]
+    public async Task AReportOnAServerCountedQuestIsAnsweredWithoutMovingIt()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var log = fixture.Log();
+        var quest = Quest(2000, trigger: 5, objective: "hunt monster");
+        await log.AcceptAsync(quest, CancellationToken.None);
+
+        var advance = await log.AdvanceAsync(quest, 0, false, CancellationToken.None);
+
+        Assert.Equal(QuestAdvanceVerdict.Unchanged, advance.Verdict);
+        Assert.Equal(new QuestTrigger(5), advance.Trigger);
+        Assert.Equal(
+            [new CarriedQuest(0, 2000, 5)], await log.CarriedAsync(CancellationToken.None));
+    }
+
+    /// <remarks>
+    /// An item-seeking quest's progress is a count of what is in the bag, which this log does not
+    /// read. It says so with its own verdict rather than passing for an ordinary no-change: the
+    /// caller logs that distinction, and losing it would turn a known gap into a silent one.
+    /// </remarks>
+    [Fact]
+    public async Task AReportOnABagCountedQuestSaysItCannotBeEvaluatedHere()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var log = fixture.Log();
+        var quest = Quest(2001, trigger: 3, objective: "seeking");
+        await log.AcceptAsync(quest, CancellationToken.None);
+
+        var advance = await log.AdvanceAsync(quest, 0, false, CancellationToken.None);
+
+        Assert.Equal(QuestAdvanceVerdict.NotEvaluable, advance.Verdict);
+        Assert.Equal(new QuestTrigger(3), advance.Trigger);
+    }
+
+    [Fact]
+    public async Task AReportAboutAQuestNobodyIsCarryingSaysSo()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+
+        var advance = await fixture.Log().AdvanceAsync(
+            Quest(1016, objective: "meet npc"), 0, false, CancellationToken.None);
+
+        Assert.Equal(QuestAdvanceVerdict.NotCarried, advance.Verdict);
+    }
+
+    /// <remarks>
+    /// Asked before the character is looked at, so a report this server cannot read is refused
+    /// as such rather than answered "you are not carrying that" -- which would be a different
+    /// byte on the wire and a wrong account of what happened.
+    /// </remarks>
+    [Fact]
+    public async Task AReportWithASelectorThisServerCannotReadIsRefusedBeforeTheLogIsRead()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+
+        var advance = await fixture.Log().AdvanceAsync(
+            Quest(1016, objective: "meet npc"), 0x11, false, CancellationToken.None);
+
+        Assert.Equal(QuestAdvanceVerdict.Refused, advance.Verdict);
+    }
+
+    /// <summary>A quest at zero told one more goes back to one, and the row follows.</summary>
+    [Fact]
+    public async Task AReportOfOneMoreMovesTheQuestBackUp()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var log = fixture.Log();
+        var quest = Quest(1016, trigger: 0, objective: "meet npc");
+        await log.AcceptAsync(quest, CancellationToken.None);
+
+        var advance = await log.AdvanceAsync(quest, 0, true, CancellationToken.None);
+
+        Assert.Equal(QuestAdvanceVerdict.Advanced, advance.Verdict);
+        Assert.Equal(
+            [new CarriedQuest(0, 1016, 1)], await log.CarriedAsync(CancellationToken.None));
+    }
+
+    private static QuestDefinition Quest(
+        int questId, uint trigger = 1, string objective = "") =>
+        new(questId, "", null, null, null, null, null, null, [], objective, "",
             null, null, null, null, null, null, null, [], [], [], [], InitialTrigger: trigger);
 
     private sealed class Fixture : IAsyncDisposable

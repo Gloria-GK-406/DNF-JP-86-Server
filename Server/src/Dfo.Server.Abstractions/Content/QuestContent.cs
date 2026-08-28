@@ -134,6 +134,12 @@ public sealed record TrainingQuestAvailability(int CharacterLevel, IReadOnlyList
 /// A single-letter grading the content applies to the quest. Its meaning is not confirmed,
 /// so it is deliberately not given a business name.
 /// </param>
+/// <param name="PaysAtCharacterLevel">
+/// Whether the quest is paid at the finishing character's level rather than its own, with no
+/// penalty for having outgrown it. The archive spells this <c>[ignore quest level 4 exp]</c>, and
+/// declares it on 5 per cent of its quests -- the achievement family, mostly, which stays worth
+/// finishing at any level.
+/// </param>
 /// <param name="ObjectiveTypeCode">
 /// What the quest asks the character to do, as a bare vocabulary value such as
 /// <c>seeking</c> or <c>meet npc</c>. It is passed through rather than modelled as an
@@ -165,7 +171,8 @@ public sealed record QuestDefinition(
     bool HasSpecialRewardStatus = false,
     IReadOnlyList<SeekingItemRequirement>? SeekingItems = null,
     uint InitialTrigger = 1,
-    IReadOnlyList<QuestEventItem>? EventItems = null)
+    IReadOnlyList<QuestEventItem>? EventItems = null,
+    bool PaysAtCharacterLevel = false)
 {
     /// <summary>A quest offered regardless of grow type.</summary>
     public const int AnyGrowType = -1;

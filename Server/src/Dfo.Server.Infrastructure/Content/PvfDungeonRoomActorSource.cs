@@ -38,8 +38,22 @@ internal sealed class PvfDungeonRoomActorSource : IDungeonRoomActorSource
     /// <summary>The highest actor type that is still a monster.</summary>
     private const byte HighestMonsterActorType = 3;
 
-    /// <summary><c>code level type x y z</c> and two more the map keeps for itself.</summary>
+    /// <summary>
+    /// <c>code, level, autoLevel, x, y, z, randomDrops, fixedDrops</c>, then two quoted words.
+    /// </summary>
+    /// <remarks>
+    /// The third integer is the map's AUTO-LEVEL, not the actor's rank. Reading it as the rank is
+    /// what made ordinary monsters arrive as bosses: dungeon 144's rooms declare auto-level 3 and
+    /// 4 on monsters the map calls <c>[normal]</c>, and 3 is the rank number for a boss. The rank
+    /// is the second quoted word, which this used to skip.
+    /// </remarks>
     private const int MonsterRecordIntegers = 8;
+
+    /// <summary>How many quoted words close a monster record: its placement, then its rank.</summary>
+    private const int MonsterRecordWords = 2;
+
+    /// <summary>Which quoted word of a monster record carries its rank.</summary>
+    private const int MonsterRankWordPosition = 1;
 
     /// <summary><c>code x y z</c>, then two more after the quoted words.</summary>
     private const int AiCharacterRecordIntegers = 6;
@@ -110,13 +124,26 @@ internal sealed class PvfDungeonRoomActorSource : IDungeonRoomActorSource
         var monsters = new List<DungeonRoomActor>();
         var aiCharacters = new List<DungeonRoomActor>();
         var record = new List<int>();
+        var words = new List<string>();
         var block = Block.None;
+
+        // A monster record is finished by its quoted rank, which arrives AFTER its last integer,
+        // so one cannot be emitted the moment its integers are complete. It is held until whatever
+        // comes next says it is over: the next record's first integer, or the end of the block.
+        void FlushMonster()
+        {
+            if (record.Count == MonsterRecordIntegers)
+                monsters.Add(Monster(record, words));
+            record.Clear();
+            words.Clear();
+        }
 
         var reader = archive.OpenScript(fileIndex);
         while (reader.Read(out var token))
         {
             if (token.Kind == PvfTokenKind.Identifier)
             {
+                var previous = block;
                 if (token.Value == monsterOpen)
                 {
                     block = Block.Monster;
@@ -136,46 +163,83 @@ internal sealed class PvfDungeonRoomActorSource : IDungeonRoomActorSource
                     block = Block.None;
                 }
 
+                if (previous == Block.Monster)
+                    FlushMonster();
                 record.Clear();
+                words.Clear();
                 continue;
             }
 
             if (block == Block.None)
                 continue;
 
-            // The quoted words inside a record carry placement and behaviour, which are not read
-            // here. They are skipped rather than counted: the integers alone decide where one
-            // record ends and the next begins.
+            // A monster record closes with two quoted words -- where it stands, and what rank it
+            // is -- and the rank is a field. An AI character's words are read from its own file
+            // instead, so they are still skipped there.
+            if (token.Kind == PvfTokenKind.QuotedString)
+            {
+                if (block == Block.Monster
+                    && record.Count == MonsterRecordIntegers
+                    && words.Count < MonsterRecordWords)
+                {
+                    words.Add(archive.ResolveString(token.Value));
+                }
+
+                continue;
+            }
+
             if (token.Kind != PvfTokenKind.Int32)
                 continue;
 
-            record.Add(token.Value);
             if (block == Block.Monster && record.Count == MonsterRecordIntegers)
-            {
-                monsters.Add(Monster(record));
-                record.Clear();
-            }
-            else if (block == Block.AiCharacter && record.Count == AiCharacterRecordIntegers)
+                FlushMonster();
+
+            record.Add(token.Value);
+            if (block == Block.AiCharacter && record.Count == AiCharacterRecordIntegers)
             {
                 if (TryAiCharacter(archive, record[0], out var actor))
                     aiCharacters.Add(actor);
                 record.Clear();
+                words.Clear();
             }
         }
 
+        if (block == Block.Monster)
+            FlushMonster();
         return [.. monsters, .. aiCharacters];
     }
 
-    private static DungeonRoomActor Monster(IReadOnlyList<int> record)
+    /// <remarks>
+    /// The level is passed through as declared, zero included. Zero is not "level zero": it is the
+    /// map declining to set one, and what the monster is then worth comes from the dungeon's own
+    /// <c>[basis level]</c> -- which this source cannot see, because a map belongs to no one
+    /// dungeon. The caller substitutes it.
+    /// </remarks>
+    private static DungeonRoomActor Monster(IReadOnlyList<int> record, IReadOnlyList<string> words)
     {
-        var level = record[1] is > 0 and <= byte.MaxValue ? (byte)record[1] : (byte)1;
-
-        // A type outside the monster band would reach the client as an AI character. The archive
-        // has not been seen to declare one; clamping keeps a map that did from turning a monster
-        // into something that fights beside the player.
-        var type = record[2] is >= 0 and <= HighestMonsterActorType ? (byte)record[2] : (byte)0;
-        return new DungeonRoomActor(record[0], level, type);
+        var level = record[1] is > 0 and <= byte.MaxValue ? (byte)record[1] : (byte)0;
+        var rank = words.Count > MonsterRankWordPosition
+            ? RankOf(words[MonsterRankWordPosition])
+            : (byte)0;
+        return new DungeonRoomActor(record[0], level, rank);
     }
+
+    /// <summary>The map's word for how big a monster is, as the number the client draws it by.</summary>
+    /// <remarks>
+    /// Four words and four numbers, in the order the archive lists them. A word this does not know
+    /// reads as an ordinary monster rather than as the band's top: an unrecognised rank drawn as a
+    /// boss would put a boss health bar on something that is not one, which is the failure this
+    /// whole reading exists to remove.
+    /// </remarks>
+    private static byte RankOf(string word) =>
+        word.Trim().Trim('`', '"').Trim().ToLowerInvariant() switch
+        {
+            "[normal]" or "normal" => 0,
+            "[champion]" or "champion" => 1,
+            "[super champion]" or "super champion" => 2,
+            "[boss]" or "boss" => HighestMonsterActorType,
+            _ => 0,
+        };
 
     private bool TryAiCharacter(PvfArchive archive, int code, out DungeonRoomActor actor)
     {

@@ -199,6 +199,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         var collisionGroups = new List<IReadOnlyList<int>>();
         var accountCollisionGroups = new List<IReadOnlyList<int>>();
         var hasSpecialRewardStatus = false;
+        var paysAtCharacterLevel = false;
         List<int>? currentRelationshipGroup = null;
 
         var reader = archive.OpenScript(fileIndex);
@@ -210,6 +211,10 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
                 section = token.Value;
                 if (section == tags.SpecialRewardStatus)
                     hasSpecialRewardStatus = true;
+                // Read as presence rather than as its value. Every declaration in the archive
+                // carries a 1, and the reference server tests the flag rather than the number.
+                if (section == tags.IgnoreQuestLevelForExperience)
+                    paysAtCharacterLevel = true;
                 if (section == tags.TargetCharacter)
                     targetCharacterDeclared = true;
                 currentRelationshipGroup = StartRelationshipGroup(
@@ -322,7 +327,8 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             hasSpecialRewardStatus,
             ProjectSeekingItems(objectiveType, objectiveIntData),
             ComputeInitialTrigger(objectiveType, objectiveIntData),
-            ProjectEventItems(eventItemValues));
+            ProjectEventItems(eventItemValues),
+            paysAtCharacterLevel);
 
         return new RawQuestDefinition(
             definition,
@@ -774,6 +780,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             CollisionQuest = Offset(archive, "[collision quest]");
             AccountCollisionQuest = Offset(archive, "[account collision quest]");
             SpecialRewardStatus = Offset(archive, "[special reward status]");
+            IgnoreQuestLevelForExperience = Offset(archive, "[ignore quest level 4 exp]");
             TrainingLevel = Level;
         }
 
@@ -803,6 +810,8 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         public int CollisionQuest { get; }
         public int AccountCollisionQuest { get; }
         public int SpecialRewardStatus { get; }
+
+        public int IgnoreQuestLevelForExperience { get; }
         public int TrainingLevel { get; }
 
         private static int Offset(PvfArchive archive, string tag) => archive.GetTag(tag).Offset;

@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.World;
@@ -264,6 +265,7 @@ public sealed class WorldContentArchiveTests
             job,
             growType,
             (clearedQuestIds ?? []).ToDictionary(questId => questId, _ => 1),
+            [],
             [],
             collectionBoxes ?? [],
             equippedCreatureItemId,

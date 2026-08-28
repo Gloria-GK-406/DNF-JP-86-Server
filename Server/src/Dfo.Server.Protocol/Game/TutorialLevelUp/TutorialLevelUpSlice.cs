@@ -1,3 +1,5 @@
+using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Protocol.Game.Quests;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Persistence;
@@ -164,6 +166,7 @@ public sealed class TutorialLevelUpHandler(
     IDungeonRunDomainService runs,
     ICommandBus commandBus,
     IGameMessageSender sender,
+    QuestOfferRefresher offers,
     ILogger<TutorialLevelUpHandler> logger) : ClientMessageHandler<TutorialLevelUpRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -229,6 +232,16 @@ public sealed class TutorialLevelUpHandler(
                 },
             },
         };
+        // The level is one of the offer list's inputs -- a quest whose band the character has just
+        // entered becomes offerable at this moment -- and the list's own first byte IS the level,
+        // so a session that skips this goes on drawing the old one. Worked out again rather than
+        // edited, for the same reason the two quest paths do it: a level can only ADD offers.
+        updated = await offers.RefreshAsync(
+            updated,
+            session.AccountId,
+            session.CharacterId,
+            granted.Level,
+            cancellationToken).ConfigureAwait(false);
         runtimeSessions.ReplaceExact(session, updated);
 
         logger.LogInformation(
@@ -238,14 +251,22 @@ public sealed class TutorialLevelUpHandler(
             granted.Level,
             granted.Experience);
 
+        // The reference server's own order, from its 2026-08-23 capture of the tutorial: the
+        // experience frame, the quest list for the new level, then the acknowledgement. It sends
+        // one more between the list and the acknowledgement -- NOTI 0x0002, the character's whole
+        // state -- and this still does not: that is a re-projection of the published entry and the
+        // session has no partial-update path for it. Recorded in Docs/ProtocolScaffoldDissonances.md.
         var mirror = updated.CharacterEntry.Skills.ProtocolMirror;
-        IGameServerMessage[] frames = mirror is null
-            ? [new TutorialLevelUpResponse(TutorialLevelUpResponse.Granted)]
-            : [
-                new ExperienceNotification(
-                    granted.Level, granted.Experience, mirror, AccountHonorLevel.Initial),
-                new TutorialLevelUpResponse(TutorialLevelUpResponse.Granted),
-            ];
+        var frames = new List<IGameServerMessage>();
+        if (mirror is not null)
+        {
+            frames.Add(new ExperienceNotification(
+                granted.Level, granted.Experience, mirror, AccountHonorLevel.Initial));
+        }
+
+        frames.Add(new AvailableQuestListMessage(
+            granted.Level, updated.World.Content.AvailableQuests));
+        frames.Add(new TutorialLevelUpResponse(TutorialLevelUpResponse.Granted));
 
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,

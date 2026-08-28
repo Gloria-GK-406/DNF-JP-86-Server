@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
@@ -603,6 +604,53 @@ public sealed class WorldContentRuleTests
             new StubCollectionBoxSource(collectionBoxes ?? []),
             new StubCreatureSource(creatures ?? [], creatureIdByEquipment));
 
+    /// <summary>
+    /// Finishing a quest makes the quest that required it offerable.
+    /// </summary>
+    /// <remarks>
+    /// The half a shrinking list cannot do, and the reason the offer list is recomputed rather
+    /// than edited. The archive's own case: quest 1776 declares <c>[pre required quest] 101</c>,
+    /// so handing 101 in is exactly what should reveal it. On 2026-08-27 it did not -- the player
+    /// finished 青之守护者塔娜, was offered no next quest, could not reach a dungeon, and was stuck
+    /// until they logged out.
+    /// </remarks>
+    [Fact]
+    public async Task AQuestWaitingOnAPrerequisiteIsOfferedOnceItIsCleared()
+    {
+        var service = Service(
+            [Quest(1776, level: new LevelRange(1, 99), prerequisites: [[101]])]);
+
+        var before = await service.LoadAsync(Subject(level: 1), CancellationToken.None);
+        var after = await service.LoadAsync(
+            Subject(level: 1, clearedQuestIds: [101]), CancellationToken.None);
+
+        Assert.DoesNotContain(before.AvailableQuests.Quests, quest => quest.QuestId == 1776);
+        Assert.Contains(after.AvailableQuests.Quests, quest => quest.QuestId == 1776);
+    }
+
+    /// <summary>
+    /// A quest the character is already carrying is not an offer.
+    /// </summary>
+    /// <remarks>
+    /// <b>A deliberate difference from the reference server</b>, which never gives its list builder
+    /// the carried set and therefore names quests the character is holding. The client acts on that
+    /// list: on 2026-08-27 it raised its own accept prompt a second time for a quest just accepted,
+    /// the player accepted again, and the second acceptance was refused. Offerable and held are two
+    /// states, and the list is the offerable one.
+    /// </remarks>
+    [Fact]
+    public async Task AQuestAlreadyBeingCarriedIsNotOffered()
+    {
+        var service = Service([Quest(1016, level: new LevelRange(1, 99))]);
+
+        var offered = await service.LoadAsync(Subject(level: 1), CancellationToken.None);
+        var held = await service.LoadAsync(
+            Subject(level: 1, carriedQuestIds: [1016]), CancellationToken.None);
+
+        Assert.Contains(offered.AvailableQuests.Quests, quest => quest.QuestId == 1016);
+        Assert.DoesNotContain(held.AvailableQuests.Quests, quest => quest.QuestId == 1016);
+    }
+
     private static WorldContentSubject Subject(
         int level = 1,
         byte job = 0,
@@ -612,11 +660,13 @@ public sealed class WorldContentRuleTests
         IReadOnlyCollection<int>? claimedDailyChallengeGroupIds = null,
         IReadOnlyList<CollectionBoxProgressSubject>? collectionBoxes = null,
         int equippedCreatureItemId = 0,
-        int equippedCreatureLevel = 0) =>
+        int equippedCreatureLevel = 0,
+        IReadOnlyCollection<int>? carriedQuestIds = null) =>
         new(level,
             job,
             growType,
             clearedQuestFlags ?? (clearedQuestIds ?? []).ToDictionary(questId => questId, _ => 1),
+            carriedQuestIds ?? [],
             claimedDailyChallengeGroupIds ?? [],
             collectionBoxes ?? [],
             equippedCreatureItemId,

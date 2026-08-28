@@ -15,6 +15,7 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 public sealed class PvfDungeonDefinitionSourceTests
 {
     private const int TutorialDungeonId = 10000;
+    private const int SwordmanTutorialDungeonId = 10004;
 
     [SkippableFact]
     public async Task The_tutorial_dungeon_reads_as_one_maze_on_a_three_by_two_grid()
@@ -62,6 +63,52 @@ public sealed class PvfDungeonDefinitionSourceTests
                 [new MazeCell(1, 1)] = 61001,
                 [new MazeCell(2, 1)] = 61002,
                 [new MazeCell(2, 0)] = 61005,
+            },
+            maze.Rooms);
+        Assert.Equal([new MazeCell(0, 1)], maze.StartCandidates);
+        Assert.Equal([new MazeCell(2, 0)], maze.BossCandidates);
+        Assert.All(
+            maze.StartCandidates.Concat(maze.BossCandidates),
+            cell => Assert.True(maze.Rooms.ContainsKey(cell), $"cell {cell} carries no room"));
+    }
+
+    /// <remarks>
+    /// The swordman tutorial: the dungeon a level-1 swordman is pulled into on first entering
+    /// town. It matters here for one word: its boss room is
+    /// declared <c>boss 2 0 35038</c>, not <c>map 2 0 35038</c>. Dungeon 10000 above spells every
+    /// room <c>map</c>, so it cannot tell whether the reader handles the other kind -- and the
+    /// reader did not. The boss cell carried no room, the layout still named it, and the player
+    /// reached the last door with nowhere on the other side of it.
+    ///
+    /// The room after the misread one is the second half of the same defect: the skip used to run
+    /// to the end of the section. Here <c>boss</c> is last so only it was lost, which is why the
+    /// count below (eight, not seven) is the assertion that pins both halves.
+    /// </remarks>
+    [SkippableFact]
+    public async Task The_swordman_tutorial_declares_its_boss_room_with_the_other_room_keyword()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfDungeonDefinitionSource(provider);
+
+        var dungeon = await source.GetAsync(SwordmanTutorialDungeonId, CancellationToken.None);
+
+        Assert.NotNull(dungeon);
+        Assert.Equal("dungeon/Tutorial/Tutorial_knight.dgn", dungeon!.ArchivePath);
+        var maze = Assert.Single(dungeon.Mazes);
+        Assert.Equal(5, maze.Width);
+        Assert.Equal(3, maze.Height);
+        Assert.Equal(
+            new Dictionary<MazeCell, int>
+            {
+                [new MazeCell(0, 1)] = 35031,
+                [new MazeCell(1, 1)] = 35032,
+                [new MazeCell(2, 1)] = 35033,
+                [new MazeCell(3, 1)] = 35034,
+                [new MazeCell(4, 1)] = 35036,
+                [new MazeCell(3, 2)] = 35035,
+                [new MazeCell(3, 0)] = 35037,
+                [new MazeCell(2, 0)] = 35038,
             },
             maze.Rooms);
         Assert.Equal([new MazeCell(0, 1)], maze.StartCandidates);

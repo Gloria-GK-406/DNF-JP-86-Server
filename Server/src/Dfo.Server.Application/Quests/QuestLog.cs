@@ -84,6 +84,16 @@ internal sealed class QuestLog(
             return QuestAcceptance.Refused(QuestRefusal.AlreadyCarried);
         }
 
+        // Asked before the slot is chosen, because a quest that may not be taken on at all should
+        // not consume the answer "no room". A repeatable quest is meant to come back -- that is
+        // what its grade says -- so only the others are held against their own clear.
+        if (!definition.IsRepeatable)
+        {
+            var cleared = await this.ClearedAsync(cancellationToken).ConfigureAwait(false);
+            if (cleared.Any(quest => quest.QuestId == definition.QuestId))
+                return QuestAcceptance.Refused(QuestRefusal.AlreadyCleared);
+        }
+
         if (FirstFreeSlot(carried) is not { } slot)
         {
             return QuestAcceptance.Refused(QuestRefusal.NoFreeSlot);
@@ -131,6 +141,54 @@ internal sealed class QuestLog(
     }
 
     /// <remarks>
+    /// The order matters: whether the report is one this quest takes at all is asked before the
+    /// character is looked at, so a malformed report is refused rather than answered "you are not
+    /// carrying that". Then the row, then the arithmetic, and the row is written only when the
+    /// value actually moved -- a report landing on the value already stored is an answer, not a
+    /// write, and writing it anyway would cost a statement per repeat while the client waits.
+    ///
+    /// It reads the row itself rather than taking one from the caller. A report is the player
+    /// doing something, not a caller correcting a snapshot: there is no earlier value being
+    /// asserted, so there is nothing to hold the row against, and the value now stored is the only
+    /// one the arithmetic can be applied to.
+    /// </remarks>
+    public async ValueTask<QuestAdvance> AdvanceAsync(
+        QuestDefinition definition,
+        byte selector,
+        bool increment,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+        var authority = QuestObjectives.AuthorityOver(definition.ObjectiveTypeCode, selector);
+        if (authority == QuestObjectiveAuthority.None)
+            return QuestAdvance.Refused;
+
+        if (await this.FindCarriedAsync(definition.QuestId, cancellationToken).ConfigureAwait(false)
+            is not { } carried)
+        {
+            return QuestAdvance.NotCarried;
+        }
+
+        var current = new QuestTrigger(unchecked((uint)carried.TriggerValue));
+        if (authority is not QuestObjectiveAuthority.Client)
+        {
+            return new QuestAdvance(
+                authority == QuestObjectiveAuthority.Derived
+                    ? QuestAdvanceVerdict.NotEvaluable
+                    : QuestAdvanceVerdict.Unchanged,
+                current);
+        }
+
+        var next = current.Advance(selector, increment);
+        if (next == current)
+            return new QuestAdvance(QuestAdvanceVerdict.Unchanged, current);
+
+        await this.RecordProgressAsync(carried, unchecked((int)next.PackedValue), cancellationToken)
+            .ConfigureAwait(false);
+        return new QuestAdvance(QuestAdvanceVerdict.Advanced, next);
+    }
+
+    /// <remarks>
     /// The two writes are one change: a quest that stopped being carried without being recorded as
     /// finished would be a quest the character did and can do again. They settle together because
     /// they are staged into the same session, and the use case settles that.
@@ -161,6 +219,27 @@ internal sealed class QuestLog(
             return ValueTask.CompletedTask;
         }, cancellationToken).ConfigureAwait(false);
         return true;
+    }
+
+    /// <remarks>
+    /// Written in terms of <see cref="CompleteAsync"/> rather than beside it, so the two verbs
+    /// cannot drift into writing the cleared list two different ways. What this adds is the gate.
+    /// </remarks>
+    public async ValueTask<QuestFinishVerdict> FinishAsync(
+        int questId, CancellationToken cancellationToken)
+    {
+        if (await this.FindCarriedAsync(questId, cancellationToken).ConfigureAwait(false)
+            is not { } carried)
+        {
+            return QuestFinishVerdict.NotCarried;
+        }
+
+        if (!new QuestTrigger(unchecked((uint)carried.TriggerValue)).IsComplete)
+            return QuestFinishVerdict.ObjectiveUnmet;
+
+        await this.CompleteAsync(questId, IQuestLog.ClearedMark, cancellationToken)
+            .ConfigureAwait(false);
+        return QuestFinishVerdict.Finished;
     }
 
     public async ValueTask<bool> GiveUpAsync(int questId, CancellationToken cancellationToken)

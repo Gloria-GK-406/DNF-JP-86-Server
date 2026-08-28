@@ -24,7 +24,12 @@ public enum QuestAcceptRefusal : byte
     /// <summary>The archive declares no such quest.</summary>
     Unknown = 0x17,
 
-    /// <summary>The character is already carrying it.</summary>
+    /// <summary>The character is already carrying it, or has already finished it.</summary>
+    /// <remarks>
+    /// One code for both, which is the reference server's own doing: its acceptance service
+    /// answers 18 for a quest in the active list and 18 again for one already cleared and not
+    /// repeatable. Nothing on the wire tells the two apart.
+    /// </remarks>
     AlreadyActive = 18,
 
     /// <summary>Its items would not fit.</summary>
@@ -174,6 +179,7 @@ public sealed class AcceptQuestCommandHandler(
     private static QuestAcceptRefusal WireCodeFor(QuestRefusal? refusal) => refusal switch
     {
         QuestRefusal.AlreadyCarried => QuestAcceptRefusal.AlreadyActive,
+        QuestRefusal.AlreadyCleared => QuestAcceptRefusal.AlreadyActive,
         QuestRefusal.NoFreeSlot => QuestAcceptRefusal.ActiveListFull,
         _ => throw new ArgumentOutOfRangeException(
             nameof(refusal), refusal, "No code was decided for this refusal."),

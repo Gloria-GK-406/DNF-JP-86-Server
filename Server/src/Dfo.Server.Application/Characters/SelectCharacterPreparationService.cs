@@ -130,9 +130,9 @@ public sealed class SelectCharacterPreparationService(
             creatureLifetimes, preparedAt,
             cancellationToken).ConfigureAwait(false);
 
-        var content = await worldContent.LoadAsync(
-            BuildContentSubject(character, characterEntry, characterInventory),
-            cancellationToken).ConfigureAwait(false);
+        var contentSubject = BuildContentSubject(character, characterEntry, characterInventory);
+        var content = await worldContent.LoadAsync(contentSubject, cancellationToken)
+            .ConfigureAwait(false);
         var channelPolicy = await placement.ResolveAsync(
             channel,
             character.Position.TownId,
@@ -171,7 +171,7 @@ public sealed class SelectCharacterPreparationService(
             characterInventory,
             accountInventory,
             accountEntry,
-            new GameWorldEntryState(preparedAt, content, channelPolicy),
+            new GameWorldEntryState(preparedAt, content, channelPolicy, contentSubject),
             new CharacterSessionEntryState(
                 accountId,
                 character.Identity.CharacterId,
@@ -498,6 +498,7 @@ public sealed class SelectCharacterPreparationService(
             character.Identity.Job,
             character.Identity.GrowType,
             clearedQuestFlags,
+            [.. entry.Quests.ActiveQuests.Select(quest => quest.QuestId)],
             claimedGroups,
             boxes,
             equippedCreature.GetItemId(characterInventory),

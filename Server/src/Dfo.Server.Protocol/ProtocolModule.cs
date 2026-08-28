@@ -48,6 +48,9 @@ using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Game.SessionMetrics;
 using Dfo.Server.Protocol.Game.QuestAcceptance;
+using Dfo.Server.Protocol.Game.Quests;
+using Dfo.Server.Protocol.Game.QuestCompletion;
+using Dfo.Server.Protocol.Game.QuestProgress;
 using Dfo.Server.Protocol.Game.TaggedIdReport;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -96,6 +99,10 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<GetChannelInfoCommand, GetChannelInfoResult, GetChannelInfoCommandHandler>(
             CommandExecutionKind.Direct);
         services.AddCommandHandler<AcceptQuestCommand, QuestAcceptOutcome, AcceptQuestCommandHandler>(
+            CommandExecutionKind.Transactional);
+        services.AddCommandHandler<SetQuestTriggerCommand, QuestTriggerOutcome, SetQuestTriggerCommandHandler>(
+            CommandExecutionKind.Transactional);
+        services.AddCommandHandler<FinishQuestCommand, QuestFinishOutcome, FinishQuestCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<AcknowledgeGameExitCommand, AcknowledgeGameExitResult, AcknowledgeGameExitCommandHandler>(
             CommandExecutionKind.Direct);
@@ -194,7 +201,10 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<ClientHardwareDetailHandler>(ClientMessageType.GameClientHardwareDetail);
         services.RegisterMessageHandler<ClientSpecProfileHandler>(ClientMessageType.GameClientSpecProfile);
         services.RegisterMessageHandler<SessionMetricsHandler>(ClientMessageType.GameSessionMetrics);
+        services.AddSingleton<QuestOfferRefresher>();
         services.RegisterMessageHandler<AcceptQuestHandler>(ClientMessageType.GameAcceptQuest);
+        services.RegisterMessageHandler<SetQuestTriggerHandler>(ClientMessageType.GameSetQuestTrigger);
+        services.RegisterMessageHandler<FinishQuestHandler>(ClientMessageType.GameFinishQuest);
         services.RegisterMessageHandler<TaggedIdReportHandler>(ClientMessageType.GameTaggedIdReport);
         services.RegisterMessageHandler<RosterFollowUpHandler>(ClientMessageType.GameRosterFollowUp);
         services.RegisterMessageHandler<CheckCharacterNameHandler>(ClientMessageType.GameCheckCharacterName);
@@ -284,9 +294,15 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.SessionMetricsType, ClientMessageType.GameSessionMetrics);
         services.AddGameCmdMessageDecoder<AcceptQuestMessageDecoder>(
             GameProtocol.AcceptQuestType, ClientMessageType.GameAcceptQuest);
+        services.AddGameCmdMessageDecoder<SetQuestTriggerMessageDecoder>(
+            GameProtocol.SetQuestTriggerType, ClientMessageType.GameSetQuestTrigger);
+        services.AddGameCmdMessageDecoder<FinishQuestMessageDecoder>(
+            GameProtocol.FinishQuestType, ClientMessageType.GameFinishQuest);
         services.AddGameCmdMessageDecoder<TaggedIdReportMessageDecoder>(
             GameProtocol.TaggedIdReportType, ClientMessageType.GameTaggedIdReport);
         services.AddGameCmdMessageEncoder<AcceptQuestAcknowledgement, AcceptQuestAcknowledgementEncoder>();
+        services.AddGameCmdMessageEncoder<SetQuestTriggerAcknowledgement, SetQuestTriggerAcknowledgementEncoder>();
+        services.AddGameCmdMessageEncoder<FinishQuestAcknowledgement, FinishQuestAcknowledgementEncoder>();
         services.AddGameCmdMessageEncoder<TutorialFlagAcknowledgement, TutorialFlagAcknowledgementEncoder>();
         services.AddGameNotiMessageEncoder<StoryPauseNotification, StoryPauseEncoder>();
         services.AddGameNotiMessageEncoder<ExperienceNotification, ExperienceEncoder>();

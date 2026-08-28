@@ -69,6 +69,13 @@ internal sealed class WorldContentEntryRuleService(
                 continue;
             if (!MatchesQuestProgress(quest, subject.ClearedQuestFlags))
                 continue;
+            // Being carried is not being offerable. The reference server's own list builder is not
+            // given the carried set at all and so cannot make this distinction; its list names a
+            // quest the character is already holding, the client believes it and raises its accept
+            // prompt again, and the second acceptance is refused. Deviating from its bytes on
+            // purpose -- recorded in Docs/ProtocolScaffoldDissonances.md.
+            if (subject.CarriedQuestIds.Contains(quest.QuestId))
+                continue;
             if (!IsOfferableGrade(quest.Grade))
                 continue;
             // A repeatable quest is offered again once cleared; that is what repeatable

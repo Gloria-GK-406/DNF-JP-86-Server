@@ -42,12 +42,18 @@ public sealed record MazeDefinition(
 /// divide dungeons is structural -- whether they have a maze -- and that shows up as this record
 /// being unavailable rather than as a field on it. See Docs/DungeonEntryNotes.md.
 /// </remarks>
+/// <param name="BasisLevel">
+/// What a monster in this dungeon is worth when its map declines to say. A map is shared between
+/// dungeons and so cannot carry it; the dungeon names it under <c>[basis level]</c>, and most maps
+/// declare monster level zero and lean on it entirely.
+/// </param>
 public sealed record DungeonDefinition(
     int DungeonId,
     string ArchivePath,
     byte MinimumRequiredLevel,
     bool ConsumesFatigue,
-    IReadOnlyList<MazeDefinition> Mazes);
+    IReadOnlyList<MazeDefinition> Mazes,
+    byte BasisLevel = 1);
 
 /// <summary>Reads dungeon declarations out of the content archive.</summary>
 public interface IDungeonDefinitionSource

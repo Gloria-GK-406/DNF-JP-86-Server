@@ -101,6 +101,22 @@ internal static class GameProtocol
     /// </remarks>
     public const ushort AcceptQuestType = 0x001F;
 
+    /// <summary>CMD 0x0021 <c>SET_QUEST_TRIGGER</c>: the client reporting that a quest moved.</summary>
+    /// <remarks>
+    /// The number is <c>FAIL_CLEAR_DUNGEON</c> in the notification family, which this server does
+    /// not send, so only the command side has a constant. If the notification is ever needed it
+    /// gets its own, the way 0x001F's two do.
+    /// </remarks>
+    public const ushort SetQuestTriggerType = 0x0021;
+
+    /// <summary>CMD 0x0022 <c>FINISH_QUEST</c>: the client handing a finished quest in.</summary>
+    /// <remarks>
+    /// The same number as <see cref="PlayResultNotificationType"/> and a different protocol: that
+    /// one is a notification this server pushes at the end of a dungeon run, this one is a command
+    /// the client sends at an NPC. Two constants, for the reason 0x001F's two exist.
+    /// </remarks>
+    public const ushort FinishQuestType = 0x0022;
+
     public const ushort SecretShopNpcNotificationType = 0x0117;
 
     public const ushort SetPlayResultType = 0x002E;

@@ -28,6 +28,9 @@ public enum QuestRefusal
 
     /// <summary>Every slot the character has is taken.</summary>
     NoFreeSlot,
+
+    /// <summary>It has been finished already, and it is not one that comes back.</summary>
+    AlreadyCleared,
 }
 
 /// <summary>What became of one attempt to take a quest on.</summary>
@@ -42,6 +45,64 @@ public sealed record QuestAcceptance(
         new(true, slot, triggerValue, null);
 
     public static QuestAcceptance Refused(QuestRefusal refusal) => new(false, 0, 0, refusal);
+}
+
+/// <summary>What became of one report that a quest moved.</summary>
+public enum QuestAdvanceVerdict
+{
+    /// <summary>The progress moved, and the new value was stored.</summary>
+    Advanced,
+
+    /// <summary>
+    /// The report is one this quest's objective is not advanced by, so nothing was stored.
+    /// </summary>
+    /// <remarks>
+    /// Not a refusal. Whole families of objective -- the ones counted by killing things or by
+    /// clearing a map -- are the server's to count, and the client reports on them anyway; the
+    /// reference server answers those with the value it already had. So does this.
+    /// </remarks>
+    Unchanged,
+
+    /// <summary>
+    /// The objective's rule needs state the log does not read, so nothing was stored and the
+    /// value handed back is the one already held.
+    /// </summary>
+    /// <remarks>
+    /// Item-seeking quests, whose progress is a count of what is in the bag rather than anything
+    /// reported. The log answers with the stored value so the client is answered at all -- silence
+    /// is what makes it repeat -- but the value can be stale, and the caller is expected to say so
+    /// somewhere a person will see it.
+    /// </remarks>
+    NotEvaluable,
+
+    /// <summary>The character is not carrying that quest.</summary>
+    NotCarried,
+
+    /// <summary>The report is not one this quest accepts, and nothing was stored.</summary>
+    Refused,
+}
+
+/// <summary>What became of one report, and the progress to answer with.</summary>
+public sealed record QuestAdvance(QuestAdvanceVerdict Verdict, QuestTrigger Trigger)
+{
+    public static QuestAdvance NotCarried { get; } =
+        new(QuestAdvanceVerdict.NotCarried, new QuestTrigger(0));
+
+    public static QuestAdvance Refused { get; } =
+        new(QuestAdvanceVerdict.Refused, new QuestTrigger(0));
+}
+
+/// <summary>What became of one attempt to hand a quest in.</summary>
+public enum QuestFinishVerdict
+{
+    /// <summary>It was handed in: it stopped being carried and started being cleared.</summary>
+    Finished,
+
+    /// <summary>The character is not carrying it.</summary>
+    NotCarried,
+
+    /// <summary>It is carried, but what it asked for has not been done yet.</summary>
+    ObjectiveUnmet,
 }
 
 /// <summary>
@@ -68,6 +129,13 @@ public sealed record QuestAcceptance(
 /// </remarks>
 public interface IQuestLog
 {
+    /// <summary>What handing a quest in leaves in the cleared list.</summary>
+    /// <remarks>
+    /// One, which is the reference server's value for every ordinary completion -- its own writer
+    /// takes a parameter and then coerces a zero to one, so one is both its default and its floor.
+    /// </remarks>
+    const byte ClearedMark = 1;
+
     /// <summary>Whose quests these are.</summary>
     CharacterId CharacterId { get; }
 
@@ -95,15 +163,16 @@ public interface IQuestLog
     /// player -- the client draws the carried list in slot order, so a quest given the wrong slot
     /// is a quest in the wrong place on screen.
     ///
-    /// <b>Two of the reference server's refusals are not asked here, and this takes on a quest
-    /// where it would refuse</b>: a quest already cleared and not repeatable, and a quest whose
-    /// prerequisites are unmet. Both are answerable now that finished quests are recorded, and
-    /// neither is answerable yet in practice, because nothing finishes a quest -- every log is
-    /// empty of clears, so the checks would pass on state no use case has ever written. They
-    /// belong with quest completion rather than ahead of it. The gap is mostly unreachable from a
-    /// real client, which offers only what its own copy of that state allows and refuses the rest
-    /// before sending; it is not unreachable from a crafted frame. See
-    /// protocol/game/client-to-server/0x001F.md.
+    /// A quest already finished is refused unless its grade brings it back. That check was left
+    /// out while nothing could finish a quest -- every log was empty of clears, so it could only
+    /// ever pass -- and FINISH_QUEST landing is what made it load-bearing: on 2026-08-27 a player
+    /// handed 与赛丽亚的初次见面 in, was offered it again, and was paid its reward twice.
+    ///
+    /// <b>One of the reference server's refusals is still not asked</b>: a quest whose
+    /// prerequisites are unmet. It needs the same cleared list this one reads and is answerable
+    /// now, but no quest that reaches this server declares one, so it is a check with nothing to
+    /// check. Unreachable from a real client, which offers only what its own copy of that state
+    /// allows; reachable from a crafted frame. See protocol/game/client-to-server/0x001F.md.
     /// </remarks>
     ValueTask<QuestAcceptance> AcceptAsync(
         QuestDefinition definition, CancellationToken cancellationToken);
@@ -133,6 +202,32 @@ public interface IQuestLog
         CarriedQuest asLastSeen, int triggerValue, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Moves a carried quest on by one report from the client, deciding for itself whether that
+    /// report advances this quest at all.
+    /// </summary>
+    /// <param name="definition">
+    /// What the quest is. The decision turns on its objective -- who counts it, the client or the
+    /// server -- and that is the archive's answer, not the log's.
+    /// </param>
+    /// <param name="selector">Which counters the report is about. See <see cref="QuestTrigger.Advance"/>.</param>
+    /// <param name="increment">Whether the report is one more or one fewer.</param>
+    /// <remarks>
+    /// Unlike <see cref="RecordProgressAsync"/>, this takes no expectation: the caller is relaying
+    /// what the player did, not correcting a row it read, and the value to write is one the log
+    /// works out from the row it holds now. That is also why the two exist separately rather than
+    /// one being written in terms of the other.
+    ///
+    /// It answers rather than throws for every outcome including refusal, because the client is
+    /// owed an answer to each of these and only the caller knows which byte says which. A report
+    /// that changes nothing is still an answer.
+    /// </remarks>
+    ValueTask<QuestAdvance> AdvanceAsync(
+        QuestDefinition definition,
+        byte selector,
+        bool increment,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Finishes a carried quest: it stops being carried and starts being cleared.
     /// </summary>
     /// <param name="mark">
@@ -143,6 +238,27 @@ public interface IQuestLog
     /// <returns>False when the character is not carrying that quest.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The mark is zero.</exception>
     ValueTask<bool> CompleteAsync(int questId, byte mark, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Hands a carried quest in, if what it asked for has been done.
+    /// </summary>
+    /// <remarks>
+    /// The gate is the progress word reaching zero, which is what "the objective is met" means on
+    /// this wire -- see <see cref="QuestTrigger.IsComplete"/>. It is asked here rather than by the
+    /// caller because it is the one rule that decides whether a quest may be handed in at all, and
+    /// a caller that could skip it could finish any carried quest by asking.
+    ///
+    /// What it leaves behind is <see cref="ClearedMark"/>, not a number the caller chooses. The
+    /// reference server writes one value for every ordinary completion, so a parameter here would
+    /// be a choice nobody makes. A caller that needs a different mark has
+    /// <see cref="CompleteAsync"/>.
+    ///
+    /// <b>Two of the reference server's gates are not asked</b>, both for quest shapes this server
+    /// does not model: a "question" quest answers with a chosen flag value instead of a progress
+    /// word, and a "quest clear" quest is gated on how many other quests are cleared. Neither
+    /// reaches the tutorial, and both would need state this log does not read.
+    /// </remarks>
+    ValueTask<QuestFinishVerdict> FinishAsync(int questId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Gives a carried quest up: it stops being carried and is not recorded as finished.
