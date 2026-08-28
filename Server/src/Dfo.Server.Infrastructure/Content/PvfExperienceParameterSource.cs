@@ -10,8 +10,8 @@ namespace Dfo.Server.Infrastructure.Content;
 /// Parsed once and held: one file, read by every kill, rewritten by nothing while the process runs.
 ///
 /// The file is long and most of it is about other subjects -- drops, abuse points, assault costs.
-/// Only the three experience sections are taken, and a section this does not name is skipped
-/// rather than collected, so a neighbouring array cannot arrive under the wrong heading.
+/// Only the five experience sections are taken, and a section this does not name is skipped rather
+/// than collected, so a neighbouring array cannot arrive under the wrong heading.
 /// </remarks>
 internal sealed class PvfExperienceParameterSource(PvfArchiveProvider provider)
     : IExperienceParameterSource
@@ -20,6 +20,8 @@ internal sealed class PvfExperienceParameterSource(PvfArchiveProvider provider)
     private const string DifficultySection = "[dungeon difficulty exp bonusrate]";
     private const string PartySection = "[party user number exp bonusrate]";
     private const string MonsterSection = "[monster exp bonusrate]";
+    private const string ClearSection = "[clear exp bonusrate]";
+    private const string ClearRankSection = "[clear rank exp bonusrate]";
 
     private readonly Lock _gate = new();
     private ExperienceParameters? _parameters;
@@ -37,6 +39,8 @@ internal sealed class PvfExperienceParameterSource(PvfArchiveProvider provider)
         var difficulty = new List<double>();
         var party = new List<double>();
         var monster = new List<double>();
+        var clear = new List<double>();
+        var clearRank = new List<double>();
         string? section = null;
 
         var reader = provider.Archive.OpenScript(ArchivePath);
@@ -68,6 +72,10 @@ internal sealed class PvfExperienceParameterSource(PvfArchiveProvider provider)
                 party.Add(rate);
             else if (Is(section, MonsterSection))
                 monster.Add(rate);
+            else if (Is(section, ClearSection))
+                clear.Add(rate);
+            else if (Is(section, ClearRankSection))
+                clearRank.Add(rate);
         }
 
         // A missing table is a broken archive, not a world where every kill is worth nothing.
@@ -79,10 +87,15 @@ internal sealed class PvfExperienceParameterSource(PvfArchiveProvider provider)
                 $"'{ArchivePath}' declares no experience rate tables; dungeon rewards cannot be scaled.");
         }
 
+        // The clear tables are not required the way the two above are. A dungeon whose clear pays
+        // nothing is a dungeon that still works; a world with no difficulty rates is one where
+        // every reward is silently wrong, which is why only those two refuse.
         return new ExperienceParameters(
             difficulty,
             party,
-            monster.Count > 0 ? monster[0] : ExperienceParameters.UnlistedRate);
+            monster.Count > 0 ? monster[0] : ExperienceParameters.UnlistedRate,
+            clear.Count > 0 ? clear[0] : ExperienceParameters.UnlistedRate,
+            clearRank);
     }
 
     private static bool Is(string? section, string name) =>

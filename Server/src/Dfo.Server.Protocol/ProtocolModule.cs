@@ -107,6 +107,8 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<GrantKillExperienceCommand, KillExperienceResult, GrantKillExperienceCommandHandler>(
             CommandExecutionKind.Transactional);
+        services.AddCommandHandler<GrantClearExperienceCommand, ClearExperienceResult, GrantClearExperienceCommandHandler>(
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<AcknowledgeGameExitCommand, AcknowledgeGameExitResult, AcknowledgeGameExitCommandHandler>(
             CommandExecutionKind.Direct);
         // Every command below reaches a write that outlives the process, so every one of them

@@ -1,10 +1,14 @@
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.World;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.MonsterDeath;
+using Dfo.Server.Protocol.Game.Quests;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.DungeonClear;
@@ -59,7 +63,10 @@ internal sealed record PlayResultNotification(
 }
 
 /// <summary>NOTI 0x0023 <c>CLEAR_DUNGEON_REWARD</c>: what the run paid out.</summary>
-internal sealed record ClearDungeonRewardNotification : IGameNotiMessage
+/// <param name="ClearBase">What clearing the dungeon was worth.</param>
+/// <param name="RankBonus">What the run's rank added to that.</param>
+internal sealed record ClearDungeonRewardNotification(uint ClearBase, uint RankBonus)
+    : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameClearDungeonReward;
 }
@@ -186,13 +193,14 @@ internal static class DungeonClearPayloadCodec
     }
 
     /// <summary>
-    /// The reward breakdown, in the reference builder's layout: 274 bytes and every figure zero.
+    /// The reward breakdown, in the reference builder's layout: 274 bytes.
     /// </summary>
     /// <remarks>
-    /// <b>This run pays nothing, and the frame says so.</b> A clear reward needs an experience
-    /// formula, a rank-to-bonus table and a card generator, none of which this server has; a frame
-    /// carrying invented figures would put numbers on the result screen that nothing else in the
-    /// server could account for. The same stance the kill acknowledgement takes.
+    /// Two of its figures now carry what the clear actually paid; the rest are still zero, and
+    /// zero is still the honest value for a reward this server does not grant. A clear's avatar,
+    /// creature, adventure-group and premium bonuses each need a source this server has not got,
+    /// and a frame carrying invented figures would put numbers on the result screen that nothing
+    /// else could account for.
     /// <para>
     /// The layout is not invented. It is the reference builder's, and the reference's own 354-byte
     /// frame confirms it offset for offset: the count of per-object experience entries at 155, the
@@ -200,15 +208,23 @@ internal static class DungeonClearPayloadCodec
     /// flags land on 249, 258, 267, 276, 285, 294 and 303, and the paid-card cost at 312. Ten
     /// entries account for the eighty bytes between that frame's length and this one's.
     /// </para>
+    /// <para>
+    /// <b>The first two fields' names are the reference server's, and are not measured.</b> Their
+    /// positions are structural -- they are the frame's first eight bytes -- but which is the
+    /// clear's own worth and which is the rank bonus rests on that server's naming, and its naming
+    /// has been measured wrong twice on the neighbouring experience notice. A clear's worth is
+    /// several times its rank bonus, so a single result screen settles it by eye; until one has
+    /// been looked at, this pairing is an assumption.
+    /// </para>
     /// </remarks>
-    public static byte[] EncodeClearDungeonReward()
+    public static byte[] EncodeClearDungeonReward(uint clearBase, uint rankBonus)
     {
         using var stream = new MemoryStream(ClearRewardBodyLength);
         using var writer = new BinaryWriter(stream);
 
         // Base block: the clear's four headline figures, a byte, and twenty-three reward slots.
-        writer.Write(0u); // clear base experience
-        writer.Write(0); // score bonus
+        writer.Write(clearBase); // clear base experience
+        writer.Write(checked((int)Math.Min(rankBonus, int.MaxValue))); // score bonus
         writer.Write(0u); // party clear breakdown
         writer.Write(0); // avatar bonus
         writer.Write((byte)0);
@@ -326,21 +342,29 @@ internal sealed class ClearDungeonRewardEncoder
         ClearDungeonRewardNotification message) =>
         OnePayload(
             GameProtocol.ClearDungeonRewardNotificationType,
-            DungeonClearPayloadCodec.EncodeClearDungeonReward());
+            DungeonClearPayloadCodec.EncodeClearDungeonReward(
+                message.ClearBase, message.RankBonus));
 }
 
 /// <summary>
-/// Answers the client's result report with the result screen's three frames.
+/// Pays for the finished run and answers with the result screen's frames.
 /// </summary>
 /// <remarks>
 /// The order is the reference server's: the result, then what the character is now worth, then the
 /// reward breakdown. The experience frame is the same one a kill sends and reports the same way --
-/// the character's standing, not a gain.
+/// the character's standing after the award, not a gain.
+/// <para>
+/// The award happens before any of them. Until 2026-08-29 a whole dungeon paid nothing: this
+/// handler reported the character's entry-time total back to it and filled the reward frame with
+/// zeroes.
+/// </para>
 /// </remarks>
 public sealed class SetPlayResultHandler(
     ISelectedSessionDirectory selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IDungeonRunDomainService runs,
+    ICommandBus commandBus,
+    QuestOfferRefresher offers,
     IGameMessageSender sender,
     ILogger<SetPlayResultHandler> logger) : ClientMessageHandler<SetPlayResultRequest>
 {
@@ -374,34 +398,134 @@ public sealed class SetPlayResultHandler(
         var elapsed = DateTimeOffset.UtcNow - run.StartedAt;
         var clearTime = (int)Math.Clamp(elapsed.TotalMilliseconds, 0, int.MaxValue);
 
+        // Asked before anything is paid, and the same refusal a kill makes. The experience frame
+        // carries the skill-point mirror as well as the total, so without one there is no frame to
+        // report the new standing on -- and paying anyway would leave the character credited, the
+        // run spent, and the client still drawing the total it entered with.
+        //
+        // Refusing is unrecoverable here in a way it is not for a kill: SET_PLAY_RESULT arrives
+        // once per run, so a clear refused is a clear never paid. That is acceptable only because
+        // the branch cannot be reached for a published session -- entry refuses to publish without
+        // a mirror (SelectCharacterHandler's pre-publication build throws on a missing one). If
+        // that ever stops being true, this becomes a run silently paying nothing, and the choice
+        // has to be made again.
+        var mirror = result.CharacterEntry.Skills.ProtocolMirror;
+        if (mirror is null)
+        {
+            logger.LogWarning(
+                "Set play result {ConnectionId} character={CharacterId}: the session carries no "
+                    + "skill point mirror, so the clear was neither paid nor reported",
+                context.Connection.ConnectionId,
+                session.CharacterId.Value);
+            await sender.SendExplicitAsync(
+                context.Connection.ConnectionId,
+                new GameExplicitMessageDelivery(
+                    [
+                        new PlayResultNotification(
+                            session.WireUserId, clearTime, message.ClientRankPoint),
+                        new ClearDungeonRewardNotification(0, 0),
+                    ],
+                    []),
+                cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        var paid = (await commandBus.SendAsync(
+            new GrantClearExperienceCommand(
+                session.AccountId,
+                session.CharacterId,
+                run.Layout.DungeonId,
+                new ClearCircumstances(
+                    run.Layout.BasisLevel,
+                    run.Difficulty,
+                    run.Layout.ExperienceWeight,
+                    message.ClientRankPoint)),
+            cancellationToken).ConfigureAwait(false));
+
+        // The whole award, in its parts. Experience is a number nobody can check by looking, so
+        // this line is what makes a live session usable as evidence for what a clear paid -- and
+        // what the result screen's own figures have to agree with.
         logger.LogInformation(
             "Set play result {ConnectionId} character={CharacterId}: dungeon {DungeonId} cleared "
-                + "in {ClearTime}ms at rank {Rank}",
+                + "in {ClearTime}ms at rank {Rank}; clearBase={ClearBase} rankBonus={RankBonus} "
+                + "award={Award}",
             context.Connection.ConnectionId,
             session.CharacterId.Value,
             run.Layout.DungeonId,
             clearTime,
-            message.ClientRankPoint);
+            message.ClientRankPoint,
+            paid.ClearBase,
+            paid.RankBonus,
+            paid.Award);
 
-        var mirror = result.CharacterEntry.Skills.ProtocolMirror;
+        // The session is corrected before the frames go out, exactly as a kill does it: every
+        // later frame reads the character from here, so a session left holding the entry-time
+        // total would go on reporting it.
+        var award = paid.Award;
+        var level = award?.Level ?? checked((byte)result.Character.Progression.Level);
+        var total = award?.Total
+            ?? checked((uint)result.CharacterEntry.Public.Extras.CharacterExperience);
+        if (award is not null)
+        {
+            result = result with
+            {
+                Character = result.Character with
+                {
+                    Progression = new CharacterProgressionState(level, total),
+                },
+                CharacterEntry = result.CharacterEntry with
+                {
+                    Public = result.CharacterEntry.Public with
+                    {
+                        Extras = result.CharacterEntry.Public.Extras with
+                        {
+                            CharacterExperience = total,
+                        },
+                    },
+                },
+            };
+
+            // A level decides which quests are offered, and a clear is as capable of crossing one
+            // as a kill is -- more so, since it pays in one lump. The same refresh, for the same
+            // reason: a quest whose band was just entered would otherwise stay hidden until the
+            // character next entered the world.
+            if (award.LeveledUp)
+            {
+                result = await offers
+                    .RefreshAsync(result, session.AccountId, session.CharacterId, level,
+                        cancellationToken).ConfigureAwait(false);
+            }
+
+            runtimeSessions.ReplaceExact(session, result);
+        }
+
         List<IGameServerMessage> frames =
         [
             new PlayResultNotification(session.WireUserId, clearTime, message.ClientRankPoint),
-        ];
-        if (mirror is not null)
-        {
-            frames.Add(new ExperienceNotification(
-                result.Character.Progression.Level,
-                checked((uint)result.CharacterEntry.Public.Extras.CharacterExperience),
+            new ExperienceNotification(
+                level,
+                total,
                 mirror,
                 AccountHonorLevel.Initial,
-                // Nothing is paid at settlement yet, so there is no line to declare. When there
-                // is, it goes here rather than into the total: the client subtracts every declared
-                // line to work out the base, and this frame is the same one a kill sends.
-                ExperienceBonusLines.None));
+                // Nothing a clear pays belongs to a named line: the clear's own worth and its rank
+                // bonus are both what the occasion was worth, and the client draws them as the
+                // base. The result screen below reports them apart.
+                ExperienceBonusLines.None),
+        ];
+
+        if (award?.LeveledUp == true)
+        {
+            frames.Add(new AvailableQuestListMessage(
+                level, result.World.Content.AvailableQuests));
         }
 
-        frames.Add(new ClearDungeonRewardNotification());
+        // Declared only where it was granted. The command's two figures are what the clear was
+        // worth; when the award did not happen -- no such character, or a row that would not take
+        // the write -- the character received none of it, and putting those figures on the result
+        // screen beside a total that did not move would draw a breakdown of experience nobody has.
+        frames.Add(award is null
+            ? new ClearDungeonRewardNotification(0, 0)
+            : new ClearDungeonRewardNotification(paid.ClearBase, paid.RankBonus));
 
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,

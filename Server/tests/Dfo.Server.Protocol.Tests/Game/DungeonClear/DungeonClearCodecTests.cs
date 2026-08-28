@@ -89,7 +89,7 @@ public sealed class DungeonClearCodecTests
     [Fact]
     public void The_reward_breakdown_keeps_the_reference_layout_and_pays_nothing()
     {
-        var body = DungeonClearPayloadCodec.EncodeClearDungeonReward();
+        var body = DungeonClearPayloadCodec.EncodeClearDungeonReward(clearBase: 0, rankBonus: 0);
 
         Assert.Equal(274, body.Length);
         Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(body)); // clear base experience
@@ -119,11 +119,47 @@ public sealed class DungeonClearCodecTests
     [Fact]
     public void Nothing_else_in_the_reward_breakdown_carries_a_value()
     {
-        var body = DungeonClearPayloadCodec.EncodeClearDungeonReward();
+        var body = DungeonClearPayloadCodec.EncodeClearDungeonReward(clearBase: 0, rankBonus: 0);
         int[] expected = [160, 169, 178, 187, 196, 205, 214, 223];
 
         var carried = Enumerable.Range(0, body.Length).Where(offset => body[offset] != 0).ToArray();
 
         Assert.Equal(expected, carried);
+    }
+
+    /// <summary>What was paid is written where the result screen reads it, and nowhere else.</summary>
+    /// <remarks>
+    /// Two figures, at the frame's first eight bytes. Their positions are structural; which of the
+    /// two is the clear's own worth and which is the rank bonus is the reference server's naming,
+    /// unmeasured -- so they are given distinguishable values here and a live result screen is what
+    /// settles the pairing.
+    /// </remarks>
+    [Fact]
+    public void What_the_clear_paid_is_written_at_the_frames_first_two_figures()
+    {
+        var body = DungeonClearPayloadCodec.EncodeClearDungeonReward(
+            clearBase: 243, rankBonus: 29);
+
+        Assert.Equal(274, body.Length);
+        Assert.Equal(243u, BinaryPrimitives.ReadUInt32LittleEndian(body));
+        Assert.Equal(29, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(4)));
+    }
+
+    /// <summary>
+    /// Paying does not disturb any other field, including the ones read as lengths.
+    /// </summary>
+    /// <remarks>
+    /// Two counted lists sit at 109 and 110 and a per-object count at 155. A figure that spilled
+    /// into one of them would be read as a length, and the client would go on consuming entries
+    /// that are not there -- which is not a wrong number on a screen but a misread frame.
+    /// </remarks>
+    [Fact]
+    public void Paying_leaves_every_other_field_exactly_as_an_empty_run_leaves_it()
+    {
+        var paid = DungeonClearPayloadCodec.EncodeClearDungeonReward(
+            clearBase: 4_000_000_000, rankBonus: 800_000_000);
+        var empty = DungeonClearPayloadCodec.EncodeClearDungeonReward(clearBase: 0, rankBonus: 0);
+
+        Assert.Equal(empty.AsSpan(8).ToArray(), paid.AsSpan(8).ToArray());
     }
 }

@@ -120,4 +120,27 @@ public sealed class PvfExperienceParameterSourceTests
 
         Assert.Same(source.Load(), source.Load());
     }
+
+    /// <summary>The clear tables are read, and they are not the reference server's constants.</summary>
+    /// <remarks>
+    /// This assertion earns its place by disagreeing with something. The reference server carries
+    /// <c>0, 0.01, 0.02, 0.03, 0.05</c> as its fallback for the rank rates and this archive
+    /// declares <c>0.05, 0.1, 0.12, 0.15, 0.2</c> -- an order of magnitude apart at every rank.
+    /// Transcribing its numbers would make every clear pay a tenth of what it should and produce
+    /// no error anywhere.
+    /// </remarks>
+    [SkippableFact]
+    public void TheClearTablesAreReadFromTheArchiveAndNotFromTheReferenceServer()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+
+        var parameters = new PvfExperienceParameterSource(provider).Load();
+
+        Assert.Equal(1, parameters.ClearOverallRate);
+        Assert.Equal(
+            [(double)0.05f, (double)0.1f, (double)0.12f, (double)0.15f, (double)0.2f],
+            parameters.ClearRankRates);
+        Assert.NotEqual([0, 0.01, 0.02, 0.03, 0.05], parameters.ClearRankRates);
+    }
 }
