@@ -116,7 +116,19 @@ static const ch_iat_entry g_ch_iat_table_a21[] = {
     {0x03029280, "kernel32.dll", "WritePrivateProfileStringW"},
     {0x03029284, "kernel32.dll", "WritePrivateProfileStructW"},
     {0x03029288, "kernel32.dll", "GetPrivateProfileIntW"},
-    {0x0302928C, "kernel32.dll", "WritePrivateProfileStructW"},
+    /* The chat filter's read path calls through this thunk, so it is the
+     * reader -- not WritePrivateProfileStructW, which this table said until
+     * 2026-08-28 and which the live packed client really does hold here. The
+     * two are 0x500 apart in kernel32 and share a signature, so the wrong one
+     * does not crash: it turns every struct-shaped config READ into a WRITE
+     * that returns TRUE, and the caller trusts what it just destroyed. Proved
+     * under a debugger -- four struct reads at startup were four writes, and
+     * one of them filled CONFIG_CHARACTER_CHATTING_FILTER with 154 zero bytes,
+     * switching off every chat type including the two a kill's experience
+     * notice uses. Correcting the name turned all four back into reads.
+     * Upstream reached the same entry independently (S4A21ClientPatch 6710eee)
+     * and deleted the six chat-tab hooks it had been treating the symptom with. */
+    {0x0302928C, "kernel32.dll", "GetPrivateProfileStructW"},
     {0x03029290, "kernel32.dll", "GetWindowsDirectoryW"},
     {0x03029294, "kernel32.dll", "CreateThread"},
     {0x03029298, "kernel32.dll", "TerminateThread"},
