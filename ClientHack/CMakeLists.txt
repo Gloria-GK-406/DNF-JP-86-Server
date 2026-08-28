@@ -347,6 +347,24 @@ clienthack_plugin_a21(plugin_server_redirect_a21
     plugins/0110_server_redirect/server_redirect.c
     "0110_ServerRedirect" "ServerRedirect")
 target_link_libraries(plugin_server_redirect_a21 PRIVATE clienthack_core_a21 ws2_32)
+# A measurement, never required and never shipped alongside a repair to the
+# thing it measures: a run with the fix in place cannot say what the unfixed
+# client did.
+add_library(plugin_exp_notice_probe_a21 SHARED EXCLUDE_FROM_ALL
+    plugins/0130_exp_notice_probe/exp_notice_probe.c
+    plugins/plugin_entry.c
+    plugins/plugin.def)
+target_include_directories(plugin_exp_notice_probe_a21 PRIVATE include plugins)
+target_compile_definitions(plugin_exp_notice_probe_a21 PRIVATE
+    CLIENTHACK_CLIENT_A21=1
+    CLIENTHACK_PLUGIN_NAME="ExpNoticeProbe")
+clienthack_warnings(plugin_exp_notice_probe_a21)
+set_target_properties(plugin_exp_notice_probe_a21 PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "0130_ExpNoticeProbe"
+    RUNTIME_OUTPUT_DIRECTORY "${CLIENTHACK_STAGE_DIR_A21}/plugins"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CLIENTHACK_STAGE_DIR_A21}/plugins"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CLIENTHACK_STAGE_DIR_A21}/plugins")
 
 add_custom_target(clienthack_plugins_a21 DEPENDS
     plugin_network_hook_a21
