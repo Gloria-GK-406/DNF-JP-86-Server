@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 
@@ -14,46 +15,50 @@ namespace Dfo.Server.Application.World;
 /// <para>
 /// It is one class rather than a registry of self-reporting bonuses because "which of a
 /// character's things affect experience" is knowledge about experience, not about the character.
-/// One domain is read today and the others -- a channel's rate, a timed effect from an elixir, a
-/// world-wide event -- arrive as further methods of the same shape. If they outgrow one file, each
-/// is already a whole that lifts out.
+/// Two sources are read today -- the account's premium terms and the channel's own reward -- and
+/// the others still to come, a timed effect from an elixir or a world-wide event, arrive the same
+/// way. If they outgrow one file, each is already a whole that lifts out.
 /// </para>
 /// </remarks>
 internal sealed class ExperienceBonusService(
     ISelectedSessionDirectory sessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     ExperienceEntitlementPolicy policy,
-    ExperienceChannelPolicy channel,
+    IChannelExperienceSource channels,
     TimeProvider clock) : IExperienceBonusService
 {
     public IReadOnlyList<ExperienceModifier> Collect(in ExperienceOccasion occasion)
     {
         var found = new List<ExperienceModifier>();
-        this.CollectAccountEntitlements(occasion, found);
-        ExperienceBonusRules.FromChannel(occasion.Event, channel, found);
-        return found;
-    }
-
-    /// <remarks>
-    /// The account's premium terms, which arrive with the character's entry and sit in the
-    /// published session -- so this reads memory, not the database, which is what lets the whole
-    /// interface be synchronous.
-    /// </remarks>
-    private void CollectAccountEntitlements(
-        in ExperienceOccasion occasion, List<ExperienceModifier> into)
-    {
         var session = sessions.FindByCharacter(occasion.Character);
         if (session is null || !runtimeSessions.TryGet(session, out var result, out _)
             || result is null)
         {
-            return;
+            // Nothing resident to read. Every bonus this service knows about is a fact about the
+            // published session -- the account's terms, the channel the connection came in on --
+            // so without one there is nothing to add, rather than something to guess at.
+            return found;
         }
 
+        // The account's premium terms, which arrive with the character's entry and sit in the
+        // published session -- so this reads memory, not the database, which is what lets the
+        // whole interface be synchronous.
         ExperienceBonusRules.FromAccountEntitlements(
             result.Account.Entitlements.Premiums,
             clock.GetUtcNow(),
             occasion.Event,
             policy,
-            into);
+            found);
+
+        // The channel's own reward, which the archive makes conditional: a channel is bound to a
+        // group of dungeons and pays only for those. Both halves are read here -- the channel the
+        // session entered on, and the dungeon this occasion is in -- because the rule that decides
+        // has no business holding either.
+        ExperienceBonusRules.FromChannel(
+            occasion.Event,
+            channels.Load().RateFor(result.World.Channel.ChannelId, occasion.DungeonId),
+            found);
+
+        return found;
     }
 }

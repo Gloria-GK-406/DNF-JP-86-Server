@@ -32,6 +32,9 @@ public sealed class InfrastructureModule : IServerModule
             ServiceDescriptor.Singleton<IHostedService, ChannelScriptStartupService>());
         services.TryAddSingleton<IChannelCatalog>(
             new ConfigurationChannelCatalog(options.Channels));
+        // The same file, read a second way. It is sent to the client verbatim as a script and it
+        // also declares which channel pays extra for which dungeons, which nothing read until now.
+        services.TryAddSingleton<IChannelExperienceSource, ChannelScriptExperienceSource>();
         // Static game content. The archive opens lazily, so a server that never reads
         // content still starts when Script.pvf is absent.
         services.TryAddSingleton(new PvfContentOptions

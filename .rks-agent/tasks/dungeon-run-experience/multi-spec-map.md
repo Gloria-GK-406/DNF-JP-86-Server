@@ -6,30 +6,34 @@ contract:
 state: active
 phase: child_execution
 phase_state: pending
-active_attempt: spec-001-named-bonus-lines
+active_attempt: spec-002-channel-reward-by-dungeon-group
 last_transition: child-created
 transition_evidence: >-
-  root_evaluation: SC-1..SC-6 not_started, SC-7 in_progress, SC-8 not_started, every
-  constraint aligned -> gaps-remain. successor_decision: the smallest stable outcome is
-  the notice's own named lines, which nothing else depends on and which everything else
-  will report through -> safe-successor. child_modeling: spec-001-named-bonus-lines
-  contract ready and contained, routing decision complete, no other active row.
-  Workspace evidence: git worktree add .worktrees/dungeon-run-experience -b dungeon-run-experience ff413e0e;
-  in-worktree git rev-parse --show-toplevel =
-  D:/project/DNF/DNF-JP-86-Server/.worktrees/dungeon-run-experience;
-  git branch --show-current = dungeon-run-experience;
-  git rev-parse HEAD = ff413e0e; git status --short = only the untracked task folder;
-  source checkout main still at ff413e0e with a clean tree.
+  child-sealed: spec-001 sealed completed at verification. child-accepted: prior baseline
+  ff413e0e confirmed unchanged before the commit; one accepted-result commit 2d121cf9
+  "Give every bonus the client draws its own line to be drawn on"; task worktree clean
+  afterwards; source branch main still at ff413e0e. Independent review verdict approved
+  (second round; the first returned changes_required on a test that passed a transposed
+  table, and the remediation was re-reviewed). Fresh suite 1506 passed / 2 skipped / 0
+  failed with PVF_ARCHIVE_PATH set to the A21 archive. root_evaluation at 2d121cf9:
+  SC-2 satisfied, SC-1/SC-7/SC-8 in_progress, SC-3..SC-6 not_started, every constraint
+  aligned -> gaps-remain. successor_decision: the next bounded outcome is the channel
+  reward's missing rule, which nothing depends on and which must land before settlement
+  can pay a channel bonus of its own -> safe-successor. child_modeling:
+  spec-002-channel-reward-by-dungeon-group contract ready and contained, routing decision
+  complete, no other active row.
 workspace:
   repository_root: D:/project/DNF/DNF-JP-86-Server
   task_root: D:/project/DNF/DNF-JP-86-Server/.worktrees/dungeon-run-experience/.rks-agent/tasks/dungeon-run-experience
   code_root: D:/project/DNF/DNF-JP-86-Server/.worktrees/dungeon-run-experience
   branch: dungeon-run-experience
-  baseline: ff413e0eb1fa62df7bf337ec23fd286e3a4bd4fe
+  baseline: 2d121cf9
   baseline_evidence: >-
-    ff413e0e "Put the dials this server invented into a file an operator can edit";
-    source tree clean at creation; suite at that commit 1501 passed / 2 skipped / 0 failed
-    (Dfo.Server.Host.Tests must run alone -- it binds port 7001 and collides with a running host).
+    2d121cf9 "Give every bonus the client draws its own line to be drawn on", accepted from
+    ff413e0e; task worktree clean; suite 1506 passed / 2 skipped / 0 failed. Every test run
+    needs PVF_ARCHIVE_PATH=/d/project/DNF/DNFClient-A21-protocol/Script.pvf -- without it
+    ItemPathLiveTests fails for want of the archive, which reads as a regression and is not
+    one. Dfo.Server.Host.Tests binds port 7001 and must not run while a host is up.
 ---
 
 # Multi-Spec Map
@@ -54,14 +58,14 @@ workspace:
 
 | SC | Requirement | Progress | Evidence | Remaining gap | Constraint |
 |---|---|---|---|---|---|
-| SC-1 | 每一笔已支付的加成落在客户端为它单列的那一行，明细与总数自洽 | not_started | none | 只有 `SeriaBlessing` 一种加成能被申报，其余进 `Unlisted` | aligned |
-| SC-2 | 每个加成种类的槽位与叫法可追到实测出处，两个不自洽的槽被挡住 | not_started | none | `ExperienceBonusKind` 只有两个成员，无阻挡 | aligned |
+| SC-1 | 每一笔已支付的加成落在客户端为它单列的那一行，明细与总数自洽 | in_progress | 2d121cf9；`spec-001` 终验：逐种类落点、合并、`Unlisted` 不写槽 | 实机截图待三个成果齐了一次性验收 | aligned |
+| SC-2 | 每个加成种类的槽位与叫法可追到实测出处，两个不自洽的槽被挡住 | satisfied | 2d121cf9；三元组逐条比对实测转写；九种变异实验 | 无 | aligned |
 | SC-3 | 频道奖励只在本局副本属于该频道声明的副本组时支付，比率取自该行 | not_started | none | 现为固定 0.05，无归属判断 | aligned |
 | SC-4 | 无声明、不在组内、读不到时不支付且不影响其余加成 | not_started | none | 同上 | aligned |
 | SC-5 | 通关结算经由同一发放件支付，跨等级线后果与击杀一致 | not_started | none | 结算完全不发经验 | aligned |
 | SC-6 | 结算帧报出的数字与实际支付一致 | not_started | none | 274 个零字节 | aligned |
 | SC-7 | 档案的数从档案读，服务端自己定的数仍可配置且缺省不变 | in_progress | ff413e0e 已把服务端自己定的数配置化 | 频道比率现在错在配置侧，应回到档案侧 | aligned |
-| SC-8 | 全套测试通过，构建零警告零错误 | not_started | none | 尚未开工 | aligned |
+| SC-8 | 全套测试通过，构建零警告零错误 | in_progress | 2d121cf9 处 1506 通过 / 2 跳过 / 0 失败，build 0/0 | 后两个成果各自重跑 | aligned |
 
 ## Spec Attempts
 
@@ -69,4 +73,5 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 
 | # | Attempt | TaskContract | Outcome | Affects | State | Result | Git result |
 |---:|---|---|---|---|---|---|---|
-| 1 | `spec-001-named-bonus-lines` | `attempts/spec-001-named-bonus-lines/TaskContract.md` | 通告为它支付的每一笔加成单列一行，两个不自洽的槽被挡住 | SC-1, SC-2, SC-8 | `running` | pending | `active` |
+| 1 | `spec-001-named-bonus-lines` | `attempts/spec-001-named-bonus-lines/TaskContract.md` | 通告为它支付的每一笔加成单列一行，两个不自洽的槽被挡住 | SC-1, SC-2, SC-8 | `sealed` | completed | `2d121cf9` |
+| 2 | `spec-002-channel-reward-by-dungeon-group` | `attempts/spec-002-channel-reward-by-dungeon-group/TaskContract.md` | 频道奖励按档案声明的频道-副本组归属发放，比率不再是服务端配置 | SC-3, SC-4, SC-7, SC-8 | `running` | pending | `active` |

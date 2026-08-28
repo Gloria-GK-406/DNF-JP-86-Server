@@ -178,9 +178,11 @@ public sealed class ExperienceTuningSourceTests
         Assert.Equal(
             expected.LevelGapBands.Count,
             experience.GetProperty("LevelGapBands").GetArrayLength());
-        Assert.Equal(
-            ExperienceChannelPolicy.Measured.Rate,
-            experience.GetProperty("ChannelRate").GetDouble());
+
+        // The channel's reward is declared in the archive, not here. Asserted as an absence
+        // because the key was here once: an operator who still had the old file would be reading
+        // a dial that the server no longer consults.
+        Assert.False(experience.TryGetProperty("ChannelRate", out _));
     }
 
     private static IConfiguration Configuration(Dictionary<string, string?> values) =>

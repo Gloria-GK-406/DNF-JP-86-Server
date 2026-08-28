@@ -32,8 +32,7 @@
       { "From": 10, "To": 2147483647, "Rate": 0.05 }
     ],
 
-    "//ChannelRate": "What the channel adds to a kill, drawn by the client as the Seria blessing line. Measured at 0.05 against four captured awards, on the one channel that was measured. Unlike the values above, a malformed rate here is skipped rather than fatal.",
-    "ChannelRate": 0.05,
+    "//ChannelReward": "The channel's own reward is NOT here. It is declared in Resources/Channel/channel_info.etc: the [server] section binds each channel to a dungeon group and states the percentage it adds, and the [dungeon] sections list each group's dungeons. A channel pays only for its own dungeons. Change it there, not here.",
 
     "//PremiumRates": "What a premium term adds, keyed by the type the account row carries. Empty by default: the archive declares no rate for any of its fifty-two premium types, so any number here is an operator's choice. Example: \"1\": 0.20",
     "PremiumRates": {},

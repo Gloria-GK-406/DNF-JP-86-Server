@@ -30,36 +30,6 @@ public sealed record ExperienceEntitlementPolicy(IReadOnlyDictionary<int, double
 }
 
 /// <summary>
-/// What the channel a character is playing on adds to a kill.
-/// </summary>
-/// <remarks>
-/// <b>Measured, not transcribed.</b> The four captured kills each paid more than
-/// <see cref="MonsterExperienceRules"/> accounts for, and the excess is the same rule every time:
-/// 62 paid 65, 72 paid 75, 126 paid 132 and 146 paid 153, which is <c>floor(worth x 0.05)</c> at
-/// 3, 3, 6 and 7. Four samples, four agreements, and the only rate that fits all four.
-/// <para>
-/// It is policy rather than content: nothing in the archive declares it. <c>channel_info.etc</c>
-/// lists which dungeons a channel carries and no rates at all, and no other file found declares an
-/// experience rate per channel. So the default here is what was measured on the one channel that
-/// was measured, and an operator running channels that differ has to say so.
-/// </para>
-/// <para>
-/// Only a kill. The captures cover kills, and the settlement at the end of a run is not
-/// implemented here at all; paying it at an occasion nothing measured would be inventing a second
-/// rule out of the evidence for the first.
-/// </para>
-/// </remarks>
-/// <param name="Rate">What the channel adds to what a kill is worth.</param>
-public sealed record ExperienceChannelPolicy(double Rate)
-{
-    /// <summary>The rate the captured session was paying.</summary>
-    public static ExperienceChannelPolicy Measured { get; } = new(0.05);
-
-    /// <summary>A channel that adds nothing.</summary>
-    public static ExperienceChannelPolicy None { get; } = new(0);
-}
-
-/// <summary>
 /// Decides what an already-fetched set of facts adds to an award.
 /// </summary>
 /// <remarks>
@@ -117,21 +87,28 @@ internal static class ExperienceBonusRules
         }
     }
 
-    /// <summary>What the channel adds to this occasion.</summary>
+    /// <summary>What the channel the character is on adds to this occasion.</summary>
     /// <remarks>
-    /// A kill and nothing else, for the reason given on <see cref="ExperienceChannelPolicy"/>: the
-    /// rate was measured against kills, and the other two occasions would be carrying it on the
-    /// strength of evidence that says nothing about them.
+    /// The rate arrives already looked up, because the lookup needs two facts this rule has no
+    /// business holding: which channel the connection came in on, and which dungeon the run is in.
+    /// Both are read next door and both come from the archive's own declaration -- a channel pays
+    /// for its own dungeons and for no others.
+    /// <para>
+    /// A kill and nothing else. The captures cover kills; the settlement at the end of a run pays
+    /// nothing at all yet, so there is no base for a clear-side bonus to be a proportion of.
+    /// </para>
     /// </remarks>
     public static void FromChannel(
         ExperienceEvent occasion,
-        ExperienceChannelPolicy policy,
+        double rate,
         ICollection<ExperienceModifier> into)
     {
-        ArgumentNullException.ThrowIfNull(policy);
         ArgumentNullException.ThrowIfNull(into);
 
-        if (occasion is ExperienceEvent.MonsterKill && policy.Rate > 0)
-            into.Add(new ExperienceModifier("channel", policy.Rate, ExperienceBonusKind.SeriaBlessing));
+        if (occasion is ExperienceEvent.MonsterKill && rate > 0)
+        {
+            into.Add(new ExperienceModifier(
+                "channel", rate, ExperienceBonusKind.SeriaBlessing));
+        }
     }
 }

@@ -7,6 +7,7 @@ using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Dfo.Server.Protocol.Game.UseStackable;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Tests.Game;
 
@@ -70,10 +71,17 @@ public sealed class CommandRegistrationTests
     /// The archive and the database both open lazily, so building the graph touches neither. A
     /// configuration this sparse is deliberate: anything that needed a real file here would be a
     /// dependency doing work in its constructor.
+    /// <para>
+    /// Logging is registered because every real host has it -- <c>Host.CreateApplicationBuilder</c>
+    /// adds it before any module runs. Leaving it out would make this graph unfaithful in the one
+    /// direction that matters here: a service that logs would fail to resolve in a test and resolve
+    /// perfectly in production.
+    /// </para>
     /// </remarks>
     private static ServiceProvider BuildProductionGraph()
     {
         var services = new ServiceCollection();
+        services.AddLogging();
         var configuration = new ConfigurationBuilder().Build();
         new ApplicationModule().ConfigureServices(services, configuration);
         new InfrastructureModule().ConfigureServices(services, configuration);

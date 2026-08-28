@@ -17,9 +17,9 @@ public sealed class ChannelHostStartupTests
             Path.GetTempPath(), $"dfo-host-cwd-{Guid.NewGuid():N}");
         Directory.CreateDirectory(workingDirectory);
         var channelPort = GetAvailablePort();
-        var gamePort = GetAvailablePortExcept(channelPort);
+        var gamePorts = GetAvailablePortsExcept(channelPort, count: 2);
         var output = new StringBuilder();
-        using var process = StartHost(workingDirectory, channelPort, gamePort, output);
+        using var process = StartHost(workingDirectory, channelPort, gamePorts, output);
         try
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
@@ -43,8 +43,17 @@ public sealed class ChannelHostStartupTests
             var channelInfo = await ReadFrameAsync(stream, timeout.Token);
             Assert.Equal(0x12, channelInfo.MessageNumber);
             var infoPlaintext = Decrypt(channelInfo.Body, key);
-            Assert.Equal(1, BinaryPrimitives.ReadInt32LittleEndian(infoPlaintext.AsSpan(2, 4)));
-            Assert.Equal(gamePort, BinaryPrimitives.ReadInt32LittleEndian(infoPlaintext.AsSpan(50, 4)));
+            // Both shipped channels, each on the port this test gave it. Forty-eight bytes a
+            // record, the port sixteen from its end.
+            Assert.Equal(
+                gamePorts.Count, BinaryPrimitives.ReadInt32LittleEndian(infoPlaintext.AsSpan(2, 4)));
+            for (var index = 0; index < gamePorts.Count; index++)
+            {
+                Assert.Equal(
+                    gamePorts[index],
+                    BinaryPrimitives.ReadInt32LittleEndian(
+                        infoPlaintext.AsSpan(50 + (index * 48), 4)));
+            }
 
             var startupOutput = Snapshot(output);
             Assert.Contains($"ContentRoot={Path.GetDirectoryName(typeof(Program).Assembly.Location)}", startupOutput);
@@ -57,7 +66,7 @@ public sealed class ChannelHostStartupTests
             Assert.Contains("ChannelAddress=127.0.0.1", startupOutput);
             Assert.Contains("GameAddress=127.0.0.1", startupOutput);
             Assert.Contains($"ChannelPort={channelPort}", startupOutput);
-            Assert.Contains($"GamePorts={gamePort}", startupOutput);
+            Assert.Contains($"GamePorts={string.Join(",", gamePorts)}", startupOutput);
         }
         finally
         {
@@ -90,10 +99,10 @@ public sealed class ChannelHostStartupTests
         }
 
         var channelPort = GetAvailablePort();
-        var gamePort = GetAvailablePortExcept(channelPort);
+        var gamePorts = GetAvailablePortsExcept(channelPort, count: 2);
         var output = new StringBuilder();
         using var process = StartHost(
-            workingDirectory, channelPort, gamePort, output, scriptPath);
+            workingDirectory, channelPort, gamePorts, output, scriptPath);
         try
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
@@ -118,10 +127,19 @@ public sealed class ChannelHostStartupTests
         }
     }
 
+    /// <summary>
+    /// The packaged host, on ports this test owns.
+    /// </summary>
+    /// <remarks>
+    /// Every configured game port is overridden, not just the first. The shipped configuration
+    /// lists two channels so that the archive's channel-to-dungeon reward can be seen paying and
+    /// not paying; leaving the second at its shipped port would have this test bind 10011 on a
+    /// developer machine, where a real server is often already listening on it.
+    /// </remarks>
     private static Process StartHost(
         string workingDirectory,
         int channelPort,
-        int gamePort,
+        IReadOnlyList<int> gamePorts,
         StringBuilder output,
         string? scriptPath = null)
     {
@@ -135,7 +153,14 @@ public sealed class ChannelHostStartupTests
         };
         startInfo.Environment["Networking__Enabled"] = "true";
         startInfo.Environment["Networking__ChannelPort"] = channelPort.ToString();
-        startInfo.Environment["Networking__GamePorts__0"] = gamePort.ToString();
+        for (var index = 0; index < gamePorts.Count; index++)
+        {
+            startInfo.Environment[$"Networking__GamePorts__{index}"] =
+                gamePorts[index].ToString();
+            startInfo.Environment[$"Channel__Channels__{index}__Port"] =
+                gamePorts[index].ToString();
+        }
+
         startInfo.Environment["Channel__PublicServerIp"] = "127.0.0.1";
         startInfo.Environment["Game__EndpointHost"] = "127.0.0.1";
         startInfo.Environment["Database__Path"] = Path.Combine(workingDirectory, "host.db");
@@ -227,11 +252,17 @@ public sealed class ChannelHostStartupTests
         return aes.DecryptEcb(compressed.ToArray(), PaddingMode.None);
     }
 
-    private static int GetAvailablePortExcept(int excluded)
+    private static IReadOnlyList<int> GetAvailablePortsExcept(int excluded, int count)
     {
-        int port;
-        do port = GetAvailablePort(); while (port == excluded);
-        return port;
+        var ports = new List<int>(count);
+        while (ports.Count < count)
+        {
+            var port = GetAvailablePort();
+            if (port != excluded && !ports.Contains(port))
+                ports.Add(port);
+        }
+
+        return ports;
     }
 
     private static int GetAvailablePort()

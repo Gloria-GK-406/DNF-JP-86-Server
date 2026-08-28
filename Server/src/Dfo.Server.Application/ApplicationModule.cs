@@ -73,15 +73,10 @@ public sealed class ApplicationModule : IServerModule
 
         services.TryAddSingleton(ExperienceEntitlementPolicyFrom(configuration));
 
-        // What the channel adds to a kill. Unlike the premium rates above, this one has a
-        // measured default: the four captured kills each paid floor(worth x 0.05) more than the
-        // rule accounts for. An operator running channels that pay differently overrides it;
-        // setting it to 0 turns the line off.
-        services.TryAddSingleton(
-            double.TryParse(configuration["Experience:ChannelRate"], out var channelRate)
-                && channelRate >= 0
-                    ? new ExperienceChannelPolicy(channelRate)
-                    : ExperienceChannelPolicy.Measured);
+        // What the channel adds is not registered here at all any more. It is declared in
+        // channel_info.etc, per channel and per dungeon group, and is read from there -- it was
+        // an operator dial only for as long as this server believed the archive was silent
+        // about it.
         // A measurement switch, off unless an operator asks for it. See
         // ExperienceDiagnostics: it makes a kill pay a distinct amount into
         // every named line of the frame so the client labels them itself.

@@ -99,16 +99,22 @@ public sealed class ExperienceBonusRulesTests
     /// what actually reached the wire. The difference is the channel's, and 0.05 is the only rate
     /// that produces all four -- 3, 3, 6 and 7 -- under the same flooring.
     /// </remarks>
+    /// <summary>The measured rate still reproduces each captured award.</summary>
+    /// <remarks>
+    /// The rate no longer comes from here -- the archive declares five percent on the row binding
+    /// the channel to the group that holds dungeon 144, which is where all four were captured --
+    /// but the arithmetic it feeds is unchanged, and these four are the only samples that ever
+    /// pinned it. They are kept so that moving the number's source cannot quietly move the number.
+    /// </remarks>
     [Theory]
     [InlineData(62u, 65u)]
     [InlineData(72u, 75u)]
     [InlineData(126u, 132u)]
     [InlineData(146u, 153u)]
-    public void TheChannelRateReproducesEachCapturedAward(uint worth, uint captured)
+    public void TheDeclaredRateReproducesEachCapturedAward(uint worth, uint captured)
     {
         var found = new List<ExperienceModifier>();
-        ExperienceBonusRules.FromChannel(
-            ExperienceEvent.MonsterKill, ExperienceChannelPolicy.Measured, found);
+        ExperienceBonusRules.FromChannel(ExperienceEvent.MonsterKill, DeclaredRate, found);
 
         var channel = Assert.Single(found);
         Assert.Equal(ExperienceBonusKind.SeriaBlessing, channel.Kind);
@@ -117,9 +123,10 @@ public sealed class ExperienceBonusRulesTests
 
     /// <summary>The channel pays a kill and says nothing about the other occasions.</summary>
     /// <remarks>
-    /// Not a limitation to be lifted casually: the rate was measured against kills only, and the
-    /// settlement at the end of a run is not implemented here at all. Paying it elsewhere would be
-    /// carrying a measurement into a place the measurement says nothing about.
+    /// Not a limitation to be lifted casually. The archive does describe a clear-side channel
+    /// bonus, but the settlement at the end of a run pays nothing at all in this server yet --
+    /// there is no base for a proportion of it to be taken from, so paying one here would be
+    /// inventing both halves.
     /// </remarks>
     [Theory]
     [InlineData(ExperienceEvent.DungeonClear)]
@@ -127,21 +134,30 @@ public sealed class ExperienceBonusRulesTests
     public void TheChannelAddsNothingToAnOccasionItWasNotMeasuredAgainst(ExperienceEvent occasion)
     {
         var found = new List<ExperienceModifier>();
-        ExperienceBonusRules.FromChannel(occasion, ExperienceChannelPolicy.Measured, found);
+        ExperienceBonusRules.FromChannel(occasion, DeclaredRate, found);
 
         Assert.Empty(found);
     }
 
-    /// <summary>A channel configured to add nothing adds nothing.</summary>
+    /// <summary>
+    /// A rate of nothing produces no line at all, rather than a line worth nothing.
+    /// </summary>
+    /// <remarks>
+    /// This is the answer for every channel that declares zero, and for every kill in a dungeon
+    /// the channel does not carry -- which after 2026-08-29 is most of them. A zero-valued
+    /// contribution would be drawn as a line the player earned nothing on.
+    /// </remarks>
     [Fact]
-    public void AChannelRateOfZeroAddsNothing()
+    public void AChannelThatAddsNothingProducesNoLine()
     {
         var found = new List<ExperienceModifier>();
-        ExperienceBonusRules.FromChannel(
-            ExperienceEvent.MonsterKill, ExperienceChannelPolicy.None, found);
+        ExperienceBonusRules.FromChannel(ExperienceEvent.MonsterKill, 0, found);
 
         Assert.Empty(found);
     }
+
+    /// <summary>What the archive declares for the channel the captures were taken on.</summary>
+    private const double DeclaredRate = 0.05;
 
     /// <summary>A premium term is paid but belongs to no line the frame can draw.</summary>
     /// <remarks>
