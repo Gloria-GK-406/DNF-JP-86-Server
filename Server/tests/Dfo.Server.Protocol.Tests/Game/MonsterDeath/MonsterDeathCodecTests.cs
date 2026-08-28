@@ -37,7 +37,7 @@ public sealed class MonsterDeathCodecTests
     {
         var body = MonsterDeathPayloadCodec.EncodeExperience(
             level: 7, totalExperience: 1234, SkillPoints, new AccountHonorLevel(3, 456),
-            channelBonus: 0);
+            seriaBlessing: 0);
 
         Assert.Equal(83, body.Length);
         Assert.Equal(7, body[0x00]);
@@ -67,15 +67,15 @@ public sealed class MonsterDeathCodecTests
     /// and still add up.
     /// </remarks>
     [Fact]
-    public void The_channel_bonus_is_written_where_the_client_reads_it()
+    public void The_channel_bonus_is_written_in_the_slot_the_client_draws_it_from()
     {
         var body = MonsterDeathPayloadCodec.EncodeExperience(
             level: 7, totalExperience: 1234, SkillPoints, new AccountHonorLevel(3, 456),
-            channelBonus: 3);
+            seriaBlessing: 3);
 
-        Assert.Equal(3u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(0x4B)));
-        Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(0x47)));
-        Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(0x4F)));
+        Assert.Equal(3u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(0x1A)));
+        Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(0x1E)));
+        Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(0x4B)));
         Assert.Equal(83, body.Length);
     }
 

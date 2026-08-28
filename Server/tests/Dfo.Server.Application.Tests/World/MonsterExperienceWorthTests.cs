@@ -40,7 +40,7 @@ public sealed class MonsterExperienceWorthTests
     public void TheFormulaReproducesEveryLevelTheReferenceTableAgreesOn()
     {
         var disagreements = Enumerable.Range(1, 100)
-            .Where(level => MonsterExperienceWorth.For(level) != ReferenceTable[level - 1])
+            .Where(level => MonsterExperienceWorth.For(level, MonsterWorthCurve.Recovered) != ReferenceTable[level - 1])
             .ToArray();
 
         Assert.Equal([100], disagreements);
@@ -57,7 +57,7 @@ public sealed class MonsterExperienceWorthTests
     public void TheLevelCeilingsHandEditIsNotFollowed()
     {
         Assert.Equal(3575u, ReferenceTable[99]);
-        Assert.Equal(3621u, MonsterExperienceWorth.For(100));
+        Assert.Equal(3621u, MonsterExperienceWorth.For(100, MonsterWorthCurve.Recovered));
     }
 
     /// <summary>Below the growth level it is flat: ten a level, plus two levels of head start.</summary>
@@ -68,8 +68,8 @@ public sealed class MonsterExperienceWorthTests
     [InlineData(15, 170)]
     public void EarlyLevelsAreTenALevelOverATwoLevelHeadStart(int level, uint worth)
     {
-        Assert.Equal(worth, MonsterExperienceWorth.For(level));
-        Assert.Equal((uint)(10 * (level + 2)), MonsterExperienceWorth.For(level));
+        Assert.Equal(worth, MonsterExperienceWorth.For(level, MonsterWorthCurve.Recovered));
+        Assert.Equal((uint)(10 * (level + 2)), MonsterExperienceWorth.For(level, MonsterWorthCurve.Recovered));
     }
 
     /// <remarks>
@@ -82,12 +82,12 @@ public sealed class MonsterExperienceWorthTests
     public void TheFlatAndGrowingRulesMeetExactlyAtTheGrowthLevel()
     {
         // At fifteen the percentage is exactly 100, so the growing rule gives the flat answer.
-        Assert.Equal((uint)(10 * (15 + 2)), MonsterExperienceWorth.For(15));
+        Assert.Equal((uint)(10 * (15 + 2)), MonsterExperienceWorth.For(15, MonsterWorthCurve.Recovered));
 
         // At sixteen it is 103, and the flat answer alone is no longer enough.
         Assert.Equal((uint)(10 * (16 + 2)), 180u);
-        Assert.Equal(185u, MonsterExperienceWorth.For(16));
-        Assert.True(MonsterExperienceWorth.For(16) > 180u);
+        Assert.Equal(185u, MonsterExperienceWorth.For(16, MonsterWorthCurve.Recovered));
+        Assert.True(MonsterExperienceWorth.For(16, MonsterWorthCurve.Recovered) > 180u);
     }
 
     /// <summary>Each level past fifteen adds three percentage points, not three per cent.</summary>
@@ -107,7 +107,7 @@ public sealed class MonsterExperienceWorthTests
 
         Assert.Equal(
             (uint)Math.Round(flat * expectedPercent / 100.0),
-            MonsterExperienceWorth.For(level));
+            MonsterExperienceWorth.For(level, MonsterWorthCurve.Recovered));
     }
 
     [Theory]
@@ -115,7 +115,7 @@ public sealed class MonsterExperienceWorthTests
     [InlineData(-1)]
     [InlineData(int.MinValue)]
     public void ALevelThatCannotExistIsWorthNothing(int level) =>
-        Assert.Equal(0u, MonsterExperienceWorth.For(level));
+        Assert.Equal(0u, MonsterExperienceWorth.For(level, MonsterWorthCurve.Recovered));
 
     /// <summary>Past the table it keeps growing rather than falling off a cliff.</summary>
     /// <remarks>
@@ -126,7 +126,7 @@ public sealed class MonsterExperienceWorthTests
     [Fact]
     public void AboveTheReferenceTableTheFormulaStillAnswers()
     {
-        Assert.True(MonsterExperienceWorth.For(110) > MonsterExperienceWorth.For(100));
-        Assert.Equal(10u * 112 * (100 + (3 * 95)) / 100, MonsterExperienceWorth.For(110));
+        Assert.True(MonsterExperienceWorth.For(110, MonsterWorthCurve.Recovered) > MonsterExperienceWorth.For(100, MonsterWorthCurve.Recovered));
+        Assert.Equal(10u * 112 * (100 + (3 * 95)) / 100, MonsterExperienceWorth.For(110, MonsterWorthCurve.Recovered));
     }
 }

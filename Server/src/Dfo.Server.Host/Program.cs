@@ -8,6 +8,7 @@ using Dfo.Server.Networking;
 using Dfo.Server.Persistence;
 using Dfo.Server.Networking.Configuration;
 using Dfo.Server.Protocol;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -17,6 +18,12 @@ var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
     Args = args,
     ContentRootPath = AppContext.BaseDirectory,
 });
+
+// Balance lives in its own file. It changes for different reasons, at a different rate and often
+// by different hands than the settings beside it: appsettings.json says how the server runs,
+// experience.json says how the game plays. Optional, and every value in it defaults to what was
+// measured -- a deployment without the file behaves exactly as one built before it existed.
+builder.Configuration.AddJsonFile("experience.json", optional: true, reloadOnChange: false);
 
 builder.AddServerModules(
     new InfrastructureModule(),

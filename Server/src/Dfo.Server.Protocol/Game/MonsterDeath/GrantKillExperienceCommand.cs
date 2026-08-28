@@ -47,6 +47,7 @@ public sealed record GrantKillExperienceCommand(
 /// </remarks>
 public sealed class GrantKillExperienceCommandHandler(
     IExperienceParameterSource parameters,
+    ExperienceTuning tuning,
     IExperienceBonusService bonuses,
     ICharacterExperienceGrant grant)
     : ICommandHandler<GrantKillExperienceCommand, KillExperienceResult>
@@ -88,7 +89,8 @@ public sealed class GrantKillExperienceCommandHandler(
                 // exercised at one member; parties are not modelled anywhere in this server yet,
                 // and a count taken from nothing would be a guess in the middle of a checked sum.
                 PartyMemberCount: 1),
-            parameters.Load());
+            parameters.Load(),
+            tuning);
         if (worth == 0)
             return ExperienceValuation.Nothing;
 

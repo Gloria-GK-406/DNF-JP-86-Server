@@ -25,39 +25,34 @@ namespace Dfo.Server.Abstractions.World;
 /// </remarks>
 public static class MonsterExperienceWorth
 {
-    /// <summary>What every level of a monster is worth before its growth rate applies.</summary>
-    private const int PerLevel = 10;
-
-    /// <summary>
-    /// The levels a monster is credited with beyond its own.
-    /// </summary>
-    /// <remarks>
-    /// Without it a level-1 monster would be worth ten and the first hour of the game would pay
-    /// almost nothing; with it the floor is thirty.
-    /// </remarks>
-    private const int LevelHeadStart = 2;
-
-    /// <summary>The level at which a monster's worth starts growing faster than its level.</summary>
-    private const int GrowthBeginsAtLevel = 15;
-
-    /// <summary>How many percentage points each level past <see cref="GrowthBeginsAtLevel"/> adds.</summary>
-    private const int GrowthPercentPerLevel = 3;
-
     /// <summary>What a monster of this level is worth, or zero when there is no such level.</summary>
+    /// <param name="monsterLevel">The monster's level as the room declared it.</param>
+    /// <param name="curve">
+    /// The four numbers the shape is drawn with. They are configuration rather than constants
+    /// because how fast experience grows is balance: the shape came out of a hundred-entry table,
+    /// the values did not come from anywhere that can be checked.
+    /// </param>
     /// <remarks>
-    /// The rounding mode is stated rather than left to the default, and it never actually decides
-    /// anything: the numerator is <c>10(n+2)(100+3k)</c>, always a multiple of ten, so dividing by
-    /// a hundred cannot land on a half. Written out so the next reader does not have to work that
-    /// out to know the answer is stable.
+    /// The rounding mode is stated rather than left to the default. With the recovered curve it
+    /// never decides anything -- the numerator is <c>10(n+2)(100+3k)</c>, always a multiple of ten,
+    /// so dividing by a hundred cannot land on a half -- but a configured curve has no such
+    /// guarantee, so the tie-break is named rather than inherited.
     /// </remarks>
-    public static uint For(int monsterLevel)
+    public static uint For(int monsterLevel, MonsterWorthCurve curve)
     {
+        ArgumentNullException.ThrowIfNull(curve);
         if (monsterLevel < 1)
             return 0;
 
-        var baseWorth = PerLevel * (monsterLevel + LevelHeadStart);
+        var baseWorth = curve.PerLevel * (monsterLevel + curve.LevelHeadStart);
         var growthPercent = 100
-            + (GrowthPercentPerLevel * Math.Max(0, monsterLevel - GrowthBeginsAtLevel));
-        return checked((uint)Math.Round(baseWorth * growthPercent / 100.0, MidpointRounding.AwayFromZero));
+            + (curve.GrowthPercentPerLevel
+                * Math.Max(0, monsterLevel - curve.GrowthBeginsAtLevel));
+        if (baseWorth <= 0 || growthPercent <= 0)
+            return 0;
+
+        var worth = Math.Round(
+            (double)baseWorth * growthPercent / 100.0, MidpointRounding.AwayFromZero);
+        return worth >= uint.MaxValue ? uint.MaxValue : (uint)worth;
     }
 }

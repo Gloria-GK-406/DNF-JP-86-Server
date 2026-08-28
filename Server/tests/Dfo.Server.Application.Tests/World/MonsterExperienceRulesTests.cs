@@ -27,6 +27,12 @@ public sealed class MonsterExperienceRulesTests
     /// <summary>Dungeon 144's weight, as the archive declares it and as a single.</summary>
     private const double CapturedDungeonWeight = 1.45f;
 
+    /// <summary>The dials as they ship, which is what every captured award was priced under.</summary>
+    private static readonly ExperienceTuning Tuning = ExperienceTuning.Default;
+
+    private static uint Worth(in KillCircumstances kill, ExperienceParameters parameters) =>
+        MonsterExperienceRules.WorthOf(kill, parameters, Tuning);
+
     private static readonly ExperienceParameters CapturedRates = new(
         DifficultyRates: [1.3f, 2, 2.5f, 3, 4],
         PartyMemberRates: [1, 2, 3, 4],
@@ -40,7 +46,7 @@ public sealed class MonsterExperienceRulesTests
     [InlineData(5, MonsterRank.Champion, 2, 146u)]
     public void TheCapturedKillsAreWorthWhatWasCaptured(
         int monsterLevel, MonsterRank rank, int characterLevel, uint worth) =>
-        Assert.Equal(worth, MonsterExperienceRules.WorthOf(Kill(monsterLevel, rank, characterLevel), CapturedRates));
+        Assert.Equal(worth, Worth(Kill(monsterLevel, rank, characterLevel), CapturedRates));
 
     /// <remarks>
     /// The same run levelled the character mid-way, and the awards did not move: at character level
@@ -54,10 +60,10 @@ public sealed class MonsterExperienceRulesTests
     {
         Assert.Equal(
             worth,
-            MonsterExperienceRules.WorthOf(Kill(monsterLevel, MonsterRank.Ordinary, 2), CapturedRates));
+            Worth(Kill(monsterLevel, MonsterRank.Ordinary, 2), CapturedRates));
         Assert.Equal(
             worth,
-            MonsterExperienceRules.WorthOf(Kill(monsterLevel, MonsterRank.Ordinary, 3), CapturedRates));
+            Worth(Kill(monsterLevel, MonsterRank.Ordinary, 3), CapturedRates));
     }
 
     /// <summary>A champion is worth twice an ordinary monster of the same level.</summary>
@@ -66,15 +72,15 @@ public sealed class MonsterExperienceRulesTests
     [InlineData(5)]
     public void AChampionIsWorthTwiceAnOrdinaryMonster(int monsterLevel)
     {
-        var ordinary = MonsterExperienceRules.WorthOf(
+        var ordinary = Worth(
             Kill(monsterLevel, MonsterRank.Ordinary, 2), CapturedRates);
-        var champion = MonsterExperienceRules.WorthOf(
+        var champion = Worth(
             Kill(monsterLevel, MonsterRank.Champion, 2), CapturedRates);
 
         // Not exactly twice, and that is the point: the two roundings happen before the doubling
         // is visible, so a rule that multiplied the finished ordinary amount would answer 124 and
         // 144 rather than the captured 126 and 146.
-        Assert.Equal(2.0, MonsterExperienceRules.RankRate(MonsterRank.Champion));
+        Assert.Equal(2.0, Tuning.RankRate(MonsterRank.Champion));
         Assert.True(champion > ordinary * 2, $"{champion} should exceed twice {ordinary}");
     }
 
@@ -86,7 +92,7 @@ public sealed class MonsterExperienceRulesTests
     [Fact]
     public void TheSharedAmountIsRoundedBeforeTheLevelGapIsApplied()
     {
-        Assert.Equal(72u, MonsterExperienceRules.WorthOf(Kill(5, MonsterRank.Ordinary, 2), CapturedRates));
+        Assert.Equal(72u, Worth(Kill(5, MonsterRank.Ordinary, 2), CapturedRates));
         Assert.Equal(73u, (uint)Math.Floor(35 * 1.3f * CapturedDungeonWeight * 1.12));
     }
 
@@ -96,7 +102,7 @@ public sealed class MonsterExperienceRulesTests
     [InlineData(2, 1.12)]
     [InlineData(3, 1.12)]
     public void AMonsterALittleAboveTheCharacterPaysAPremium(int gap, double rate) =>
-        Assert.Equal(rate, MonsterExperienceRules.LevelGapRate(10, 10 + gap));
+        Assert.Equal(rate, Tuning.LevelGapRate(10, 10 + gap));
 
     /// <remarks>
     /// The seven bands with no evidence behind them, asserted so that changing one is a deliberate
@@ -119,7 +125,7 @@ public sealed class MonsterExperienceRulesTests
     [InlineData(10, 0.05)]
     [InlineData(40, 0.05)]
     public void TheUnevidencedLevelGapBandsAreTranscribedAsTheyStand(int gap, double rate) =>
-        Assert.Equal(rate, MonsterExperienceRules.LevelGapRate(20, 20 + gap));
+        Assert.Equal(rate, Tuning.LevelGapRate(20, 20 + gap));
 
     /// <summary>Outgrowing a monster costs far more than being outmatched by one gains.</summary>
     /// <remarks>
@@ -130,10 +136,10 @@ public sealed class MonsterExperienceRulesTests
     [Fact]
     public void TheCurveIsNotSymmetric()
     {
-        Assert.Equal(1.12, MonsterExperienceRules.LevelGapRate(10, 13));
-        Assert.Equal(1.00, MonsterExperienceRules.LevelGapRate(10, 7));
-        Assert.Equal(0.20, MonsterExperienceRules.LevelGapRate(10, 4));
-        Assert.Equal(0.05, MonsterExperienceRules.LevelGapRate(10, 3));
+        Assert.Equal(1.12, Tuning.LevelGapRate(10, 13));
+        Assert.Equal(1.00, Tuning.LevelGapRate(10, 7));
+        Assert.Equal(0.20, Tuning.LevelGapRate(10, 4));
+        Assert.Equal(0.05, Tuning.LevelGapRate(10, 3));
     }
 
     /// <summary>A dungeon weight below one pays less, as the tutorial's does.</summary>
@@ -144,20 +150,20 @@ public sealed class MonsterExperienceRulesTests
         var captured = Kill(5, MonsterRank.Ordinary, 2);
 
         Assert.True(
-            MonsterExperienceRules.WorthOf(tutorial, CapturedRates)
-                < MonsterExperienceRules.WorthOf(captured, CapturedRates) / 10);
+            Worth(tutorial, CapturedRates)
+                < Worth(captured, CapturedRates) / 10);
     }
 
     [Fact]
     public void AMonsterOfNoLevelIsWorthNothing() =>
-        Assert.Equal(0u, MonsterExperienceRules.WorthOf(Kill(0, MonsterRank.Ordinary, 2), CapturedRates));
+        Assert.Equal(0u, Worth(Kill(0, MonsterRank.Ordinary, 2), CapturedRates));
 
     /// <summary>A party of one is the only size the captures exercise, and it neither scales nor divides.</summary>
     [Fact]
     public void SoloPlayNeitherScalesNorDivides()
     {
         Assert.Equal(1.0, CapturedRates.PartyMemberRate(1));
-        Assert.Equal(72u, MonsterExperienceRules.WorthOf(Kill(5, MonsterRank.Ordinary, 2), CapturedRates));
+        Assert.Equal(72u, Worth(Kill(5, MonsterRank.Ordinary, 2), CapturedRates));
     }
 
     /// <summary>An AI character is not a monster and is worth nothing.</summary>

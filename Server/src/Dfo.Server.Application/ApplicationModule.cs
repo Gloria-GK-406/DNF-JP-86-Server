@@ -65,6 +65,12 @@ public sealed class ApplicationModule : IServerModule
         // archive declares no rate for any of its fifty-two premium types, so any number here
         // would be invented, and an invented number in this subject is indistinguishable from a
         // measured one.
+        // What a kill is worth before anything a character carries: the curve, the divisor, the
+        // rank rates and the level-gap bands. Only what the archive does not declare -- and unlike
+        // the two policies below, a malformed value here stops the server rather than defaulting,
+        // because these have a right answer and a wrong one is invisible in play.
+        services.TryAddSingleton(ExperienceTuningSource.From(configuration));
+
         services.TryAddSingleton(ExperienceEntitlementPolicyFrom(configuration));
 
         // What the channel adds to a kill. Unlike the premium rates above, this one has a

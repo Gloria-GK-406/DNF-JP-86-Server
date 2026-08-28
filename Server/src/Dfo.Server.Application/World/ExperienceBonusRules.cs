@@ -132,6 +132,6 @@ internal static class ExperienceBonusRules
         ArgumentNullException.ThrowIfNull(into);
 
         if (occasion is ExperienceEvent.MonsterKill && policy.Rate > 0)
-            into.Add(new ExperienceModifier("channel", policy.Rate, ExperienceBonusKind.Channel));
+            into.Add(new ExperienceModifier("channel", policy.Rate, ExperienceBonusKind.SeriaBlessing));
     }
 }

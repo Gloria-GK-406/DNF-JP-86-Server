@@ -1,0 +1,44 @@
+{
+  "//": "Balance, not infrastructure. Every value here defaults to what this server was measured or recovered at, so deleting this file changes nothing. Only what the archive does NOT declare belongs here -- the difficulty and party rates, each dungeon's weight and the level thresholds are content and are read from Script.pvf.",
+
+  "Experience": {
+    "//Curve": "What a monster of a level is worth: PerLevel x (level + LevelHeadStart), under a percentage of 100 + GrowthPercentPerLevel x (level - GrowthBeginsAtLevel). Recovered from a hundred-entry table; ninety-nine entries reproduce exactly.",
+    "Curve": {
+      "PerLevel": 10,
+      "LevelHeadStart": 2,
+      "GrowthBeginsAtLevel": 15,
+      "GrowthPercentPerLevel": 3
+    },
+
+    "//WorthDivisor": "What that worth is divided by before anything else. The one number no evidence in hand can check: what was captured constrains this times the curve, not either alone.",
+    "WorthDivisor": 2.0,
+
+    "//RankRates": "By MonsterRank: ordinary, champion, super champion, boss. The first two are evidenced by capture; the other two are the reference server's word.",
+    "RankRates": [1.0, 2.0, 3.0, 4.0],
+
+    "//LevelGapBands": "monsterLevel - characterLevel, first band containing it wins. Must run unbroken from -2147483648 to 2147483647 or the server refuses to start: a difference in no band has no rate. Only the 1-to-3 band is evidenced.",
+    "LevelGapBands": [
+      { "From": -2147483648, "To": -7, "Rate": 0.05 },
+      { "From": -6, "To": -6, "Rate": 0.20 },
+      { "From": -5, "To": -5, "Rate": 0.50 },
+      { "From": -4, "To": -4, "Rate": 0.75 },
+      { "From": -3, "To": 0, "Rate": 1.00 },
+      { "From": 1, "To": 3, "Rate": 1.12 },
+      { "From": 4, "To": 5, "Rate": 1.00 },
+      { "From": 6, "To": 6, "Rate": 0.75 },
+      { "From": 7, "To": 7, "Rate": 0.70 },
+      { "From": 8, "To": 8, "Rate": 0.60 },
+      { "From": 9, "To": 9, "Rate": 0.50 },
+      { "From": 10, "To": 2147483647, "Rate": 0.05 }
+    ],
+
+    "//ChannelRate": "What the channel adds to a kill, drawn by the client as the Seria blessing line. Measured at 0.05 against four captured awards, on the one channel that was measured. Unlike the values above, a malformed rate here is skipped rather than fatal.",
+    "ChannelRate": 0.05,
+
+    "//PremiumRates": "What a premium term adds, keyed by the type the account row carries. Empty by default: the archive declares no rate for any of its fifty-two premium types, so any number here is an operator's choice. Example: \"1\": 0.20",
+    "PremiumRates": {},
+
+    "//LabelProbe": "A measurement, not a play setting. Pays a distinct amount into every bonus slot so the client names each line itself; raises only what is reported, never what is stored.",
+    "LabelProbe": false
+  }
+}

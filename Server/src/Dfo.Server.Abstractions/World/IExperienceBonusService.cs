@@ -48,8 +48,22 @@ public enum ExperienceBonusKind
     /// <summary>Paid, but belonging to no slot this server has identified.</summary>
     Unlisted,
 
-    /// <summary>The channel's own bonus, drawn from the slot at <c>+0x4B</c>.</summary>
-    Channel,
+    /// <summary>
+    /// The channel's own bonus, which the client draws as 赛丽亚的祝福奖励 from the slot at
+    /// <c>+0x1A</c>.
+    /// </summary>
+    /// <remarks>
+    /// The slot moved on 2026-08-28 and the reason is worth keeping. The reference server writes
+    /// its channel bonus at <c>+0x4B</c>, and this server copied that; the client draws
+    /// <c>+0x4B</c> as 赛丽亚的欢迎, which is a different bonus. Both the slot and the name came
+    /// from the same source and both were wrong.
+    /// <para>
+    /// What settled it is in <c>Docs/ExperienceNoticeSlots.md</c>: a probe paid a distinct amount
+    /// into every slot and the client named each line itself. Of fourteen slots only nine are both
+    /// drawn and subtracted from the base, and this is one of them.
+    /// </para>
+    /// </remarks>
+    SeriaBlessing,
 }
 
 /// <summary>One reason a character earns more than the occasion is worth.</summary>

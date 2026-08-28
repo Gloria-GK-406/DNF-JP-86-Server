@@ -111,7 +111,7 @@ public sealed class ExperienceBonusRulesTests
             ExperienceEvent.MonsterKill, ExperienceChannelPolicy.Measured, found);
 
         var channel = Assert.Single(found);
-        Assert.Equal(ExperienceBonusKind.Channel, channel.Kind);
+        Assert.Equal(ExperienceBonusKind.SeriaBlessing, channel.Kind);
         Assert.Equal(captured, worth + (uint)Math.Floor(worth * channel.Rate));
     }
 

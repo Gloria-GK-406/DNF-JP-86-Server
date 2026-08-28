@@ -35,7 +35,7 @@ public sealed record MonsterDeathRequest(
 }
 
 /// <summary>NOTI 0x0025 <c>EXP</c>: what the character is worth after the kill.</summary>
-/// <param name="ChannelBonus">
+/// <param name="SeriaBlessing">
 /// How much of the gain the channel added. Declared rather than folded into the total, because the
 /// client subtracts every named line from the gain to work out what to draw as the base -- so an
 /// amount paid but not declared here is drawn as though the kill itself were worth that much more.
@@ -45,7 +45,7 @@ internal sealed record ExperienceNotification(
     uint TotalExperience,
     CharacterSkillProtocolMirrorState SkillPoints,
     AccountHonorLevel Honor,
-    uint ChannelBonus = 0,
+    uint SeriaBlessing = 0,
     bool LabelProbe = false) : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameExperience;
@@ -116,7 +116,7 @@ internal static class MonsterDeathPayloadCodec
         uint totalExperience,
         CharacterSkillProtocolMirrorState skillPoints,
         AccountHonorLevel honor,
-        uint channelBonus,
+        uint seriaBlessing,
         bool labelProbe = false)
     {
         var body = new byte[ExperienceBodyLength];
@@ -137,7 +137,7 @@ internal static class MonsterDeathPayloadCodec
         writer.U32(0); // +0x11 PvP victory points
         writer.U32(Slot(1, 0)); // +0x15 fatigue buff experience
         writer.Byte(0); // +0x19 presentation mode
-        writer.U32(Slot(2, 0)); // +0x1A Seria blessing
+        writer.U32(Slot(2, seriaBlessing)); // +0x1A
         writer.U32(Slot(3, 0)); // +0x1E growth contract
         writer.U32(Slot(4, 0)); // +0x22 unnamed
         writer.U32(Slot(5, 0)); // +0x26 fatigue burn
@@ -150,7 +150,7 @@ internal static class MonsterDeathPayloadCodec
         writer.U32(honor.Experience); // +0x3F
         writer.U32(Slot(10, 0)); // +0x43 speed-growth buff
         writer.U32(Slot(11, 0)); // +0x47 unnamed
-        writer.U32(Slot(12, channelBonus)); // +0x4B
+        writer.U32(Slot(12, 0)); // +0x4B
         writer.U32(Slot(13, 0)); // +0x4F guild bonus
         return body;
     }
@@ -185,7 +185,7 @@ internal sealed class ExperienceEncoder : GameNotiMessageEncoder<ExperienceNotif
             GameProtocol.ExperienceNotificationType,
             MonsterDeathPayloadCodec.EncodeExperience(
                 message.Level, message.TotalExperience, message.SkillPoints, message.Honor,
-                message.ChannelBonus, message.LabelProbe));
+                message.SeriaBlessing, message.LabelProbe));
 }
 
 internal sealed class MonsterDeathEncoder : GameNotiMessageEncoder<MonsterDeathNotification>
@@ -330,7 +330,7 @@ public sealed class MonsterDeathHandler(
                 level,
                 diagnostics.LabelProbe ? total + ExperienceDiagnostics.ProbeTotal : total,
                 mirror, AccountHonorLevel.Initial,
-                AmountOf(award, ExperienceBonusKind.Channel), diagnostics.LabelProbe),
+                AmountOf(award, ExperienceBonusKind.SeriaBlessing), diagnostics.LabelProbe),
             new MonsterDeathNotification(message.ActorSequence),
         ];
 
