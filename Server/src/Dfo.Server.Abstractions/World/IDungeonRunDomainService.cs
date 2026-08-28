@@ -17,7 +17,8 @@ public sealed record DungeonRunState(
     IReadOnlySet<MazeCell> VisitedCells,
     IReadOnlySet<GroundDropId> TakenGroundDrops,
     IReadOnlySet<RoomActorId> DeadActors,
-    DateTimeOffset StartedAt)
+    DateTimeOffset StartedAt,
+    byte Difficulty = 0)
 {
     /// <summary>Whether every actor this room declares has been reported dead.</summary>
     /// <remarks>
@@ -136,7 +137,12 @@ public interface IDungeonRunDomainService
     /// were in, and the client has already been told so. Refusing here would leave the server
     /// describing a run the client has abandoned.
     /// </remarks>
-    DungeonRunState Begin(CharacterId characterId, DungeonLayout layout);
+    /// <param name="difficulty">
+    /// What the character chose on the way in. It is a fact about this run rather than about the
+    /// dungeon, so it is not on the layout: the same maze entered twice at two difficulties is two
+    /// runs whose kills are worth different amounts.
+    /// </param>
+    DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty);
 
     /// <summary>The run this character is in, or null when they are not in one.</summary>
     DungeonRunState? Find(CharacterId characterId);

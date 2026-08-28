@@ -41,7 +41,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         var service = new DungeonRunDomainService();
 
-        var run = service.Begin(Character, Tutorial);
+        var run = service.Begin(Character, Tutorial, difficulty: 0);
 
         Assert.Empty(run.TakenGroundDrops);
         Assert.Single(run.RemainingGroundDrops(OneBreakableObject));
@@ -51,7 +51,7 @@ public sealed class DungeonRunDomainServiceTests
     public void A_piece_can_be_taken_once()
     {
         var service = new DungeonRunDomainService();
-        service.Begin(Character, Tutorial);
+        service.Begin(Character, Tutorial, difficulty: 0);
 
         var afterTaking = service.TryTakeGroundDrop(Character, 1);
 
@@ -73,7 +73,7 @@ public sealed class DungeonRunDomainServiceTests
     public void A_revisited_room_does_not_get_its_floor_back()
     {
         var service = new DungeonRunDomainService();
-        service.Begin(Character, Tutorial);
+        service.Begin(Character, Tutorial, difficulty: 0);
         service.TryTakeGroundDrop(Character, 1);
 
         service.TryMove(Character, new MazeCell(1, 1));
@@ -89,7 +89,7 @@ public sealed class DungeonRunDomainServiceTests
     public void The_next_room_still_has_what_it_declares()
     {
         var service = new DungeonRunDomainService();
-        service.Begin(Character, Tutorial);
+        service.Begin(Character, Tutorial, difficulty: 0);
         service.TryTakeGroundDrop(Character, 1);
 
         var moved = service.TryMove(Character, new MazeCell(1, 1));
@@ -115,7 +115,7 @@ public sealed class DungeonRunDomainServiceTests
             new DungeonRoomActor(461, 80, 5),
         ];
         var service = new DungeonRunDomainService();
-        var run = service.Begin(Character, Tutorial);
+        var run = service.Begin(Character, Tutorial, difficulty: 0);
 
         Assert.False(run.IsCleared(declared, FirstSequence));
 
@@ -150,7 +150,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         var service = new DungeonRunDomainService();
 
-        var start = service.Begin(Character, Tutorial);
+        var start = service.Begin(Character, Tutorial, difficulty: 0);
         Assert.False(start.IsBossRoom);
         Assert.True(start.MayLeaveCurrentRoom);
 
@@ -173,7 +173,7 @@ public sealed class DungeonRunDomainServiceTests
     public void Ending_a_run_leaves_the_character_in_none()
     {
         var service = new DungeonRunDomainService();
-        service.Begin(Character, Tutorial);
+        service.Begin(Character, Tutorial, difficulty: 0);
 
         Assert.True(service.End(Character));
         Assert.Null(service.Find(Character));
@@ -186,7 +186,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         DungeonRoomActor[] declared = [new DungeonRoomActor(61670, 1, 0)];
         var service = new DungeonRunDomainService();
-        service.Begin(Character, Tutorial);
+        service.Begin(Character, Tutorial, difficulty: 0);
         service.TryReportActorDead(Character, FirstSequence);
 
         var moved = service.TryMove(Character, new MazeCell(1, 1));
@@ -205,7 +205,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         var before = DateTimeOffset.UtcNow;
 
-        var run = new DungeonRunDomainService().Begin(Character, Tutorial);
+        var run = new DungeonRunDomainService().Begin(Character, Tutorial, difficulty: 0);
 
         Assert.InRange(run.StartedAt, before, DateTimeOffset.UtcNow);
     }

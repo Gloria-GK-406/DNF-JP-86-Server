@@ -31,12 +31,59 @@ public sealed class ApplicationModule : IServerModule
 {
     public string Name => "Application";
 
+    /// <summary>Reads <c>Experience:PremiumRates</c> as premium type to added rate.</summary>
+    /// <remarks>
+    /// A malformed entry is skipped rather than failing startup: this is an operator's dial, and a
+    /// server that will not boot because one rate was mistyped is worse than one that boots paying
+    /// the rates it could read.
+    /// </remarks>
+    private static ExperienceEntitlementPolicy ExperienceEntitlementPolicyFrom(
+        IConfiguration configuration)
+    {
+        var rates = new Dictionary<int, double>();
+        foreach (var entry in configuration.GetSection("Experience:PremiumRates").GetChildren())
+        {
+            if (int.TryParse(entry.Key, out var premiumType)
+                && double.TryParse(entry.Value, out var rate)
+                && rate > 0)
+            {
+                rates[premiumType] = rate;
+            }
+        }
+
+        return rates.Count == 0 ? ExperienceEntitlementPolicy.None : new(rates);
+    }
+
     public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.TryAddSingleton(TimeProvider.System);
+
+        // What a premium term adds to an award. Empty unless an operator configures it: the
+        // archive declares no rate for any of its fifty-two premium types, so any number here
+        // would be invented, and an invented number in this subject is indistinguishable from a
+        // measured one.
+        services.TryAddSingleton(ExperienceEntitlementPolicyFrom(configuration));
+
+        // What the channel adds to a kill. Unlike the premium rates above, this one has a
+        // measured default: the four captured kills each paid floor(worth x 0.05) more than the
+        // rule accounts for. An operator running channels that pay differently overrides it;
+        // setting it to 0 turns the line off.
+        services.TryAddSingleton(
+            double.TryParse(configuration["Experience:ChannelRate"], out var channelRate)
+                && channelRate >= 0
+                    ? new ExperienceChannelPolicy(channelRate)
+                    : ExperienceChannelPolicy.Measured);
+        // A measurement switch, off unless an operator asks for it. See
+        // ExperienceDiagnostics: it makes a kill pay a distinct amount into
+        // every named line of the frame so the client labels them itself.
+        services.TryAddSingleton(
+            new ExperienceDiagnostics(
+                bool.TryParse(configuration["Experience:LabelProbe"], out var probe) && probe));
+        services.TryAddSingleton<IExperienceBonusService, ExperienceBonusService>();
+        services.TryAddSingleton<ICharacterExperienceGrant, CharacterExperienceGrant>();
         // One store, three services. The store keeps the collections whose invariant spans them
         // behind a single lock; the services are the three responsibilities read off it.
         services.TryAddSingleton<OnlineStateStore>();

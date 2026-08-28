@@ -42,6 +42,11 @@ public sealed record MazeDefinition(
 /// divide dungeons is structural -- whether they have a maze -- and that shows up as this record
 /// being unavailable rather than as a field on it. See Docs/DungeonEntryNotes.md.
 /// </remarks>
+/// <param name="ExperienceWeight">
+/// What this dungeon multiplies a monster's worth by, from its <c>[experience increasing point]</c>.
+/// It is how one dungeon pays better than another at the same level and difficulty; the archive
+/// gives dungeon 144 a weight of 1.45.
+/// </param>
 /// <param name="BasisLevel">
 /// What a monster in this dungeon is worth when its map declines to say. A map is shared between
 /// dungeons and so cannot carry it; the dungeon names it under <c>[basis level]</c>, and most maps
@@ -53,7 +58,8 @@ public sealed record DungeonDefinition(
     byte MinimumRequiredLevel,
     bool ConsumesFatigue,
     IReadOnlyList<MazeDefinition> Mazes,
-    byte BasisLevel = 1);
+    byte BasisLevel = 1,
+    double ExperienceWeight = 1.0);
 
 /// <summary>Reads dungeon declarations out of the content archive.</summary>
 public interface IDungeonDefinitionSource

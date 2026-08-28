@@ -27,15 +27,17 @@ public sealed class MonsterDeathCodecTests
     }
 
     /// <remarks>
-    /// The bonus lines are each a reward rule this server does not have, so every one of them is
-    /// zero. That is asserted rather than left implicit: a stray non-zero here would put a line
-    /// in the player's experience popup claiming a bonus nobody awarded.
+    /// Every bonus line this server does not award is zero. That is asserted rather than left
+    /// implicit: a stray non-zero would put a line in the player's experience popup claiming a
+    /// bonus nobody paid, and -- because the client reads the base as the gain minus every line --
+    /// it would also make the base it draws read short by that much.
     /// </remarks>
     [Fact]
     public void The_experience_frame_carries_the_four_fields_that_have_a_value_and_zero_elsewhere()
     {
         var body = MonsterDeathPayloadCodec.EncodeExperience(
-            level: 7, totalExperience: 1234, SkillPoints, new AccountHonorLevel(3, 456));
+            level: 7, totalExperience: 1234, SkillPoints, new AccountHonorLevel(3, 456),
+            channelBonus: 0);
 
         Assert.Equal(83, body.Length);
         Assert.Equal(7, body[0x00]);
@@ -54,6 +56,27 @@ public sealed class MonsterDeathCodecTests
             if (!valued.Contains(offset))
                 Assert.Equal(0, body[offset]);
         }
+    }
+
+    /// <summary>The channel's line is written where the client reads it.</summary>
+    /// <remarks>
+    /// <c>+0x4B</c>, and it has to be declared rather than merely paid: the client works out the
+    /// base line by subtracting every named line from the gain, so an amount paid into the total
+    /// and left at zero here is drawn as though the kill itself were worth that much more. This
+    /// pins the offset, because a bonus written one slot over would be drawn under another name
+    /// and still add up.
+    /// </remarks>
+    [Fact]
+    public void The_channel_bonus_is_written_where_the_client_reads_it()
+    {
+        var body = MonsterDeathPayloadCodec.EncodeExperience(
+            level: 7, totalExperience: 1234, SkillPoints, new AccountHonorLevel(3, 456),
+            channelBonus: 3);
+
+        Assert.Equal(3u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(0x4B)));
+        Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(0x47)));
+        Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(0x4F)));
+        Assert.Equal(83, body.Length);
     }
 
     [Fact]

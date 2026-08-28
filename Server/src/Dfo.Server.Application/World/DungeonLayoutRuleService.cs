@@ -55,7 +55,8 @@ internal sealed class DungeonLayoutRuleService(IDungeonDefinitionSource dungeons
             startRoomMapId,
             seed,
             maze.Rooms,
-            definition.BasisLevel);
+            definition.BasisLevel,
+            definition.ExperienceWeight);
     }
 
     /// <remarks>

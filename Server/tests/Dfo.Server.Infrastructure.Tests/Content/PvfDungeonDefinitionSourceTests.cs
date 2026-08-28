@@ -118,6 +118,103 @@ public sealed class PvfDungeonDefinitionSourceTests
             cell => Assert.True(maze.Rooms.ContainsKey(cell), $"cell {cell} carries no room"));
     }
 
+    /// <summary>
+    /// A dungeon's own experience weight and basis level, which price every kill inside it.
+    /// </summary>
+    /// <remarks>
+    /// Dungeon 144 is the one the 2026-08-27 kill captures were taken in, so these two numbers are
+    /// load-bearing for every award those captures check. The weight is written with a decimal
+    /// point and therefore stored as a single; read through the integer path it would arrive as the
+    /// bit pattern 1069967704 and price a kill a billion times over.
+    ///
+    /// The basis level matters for the same run: every monster in those rooms declares level zero,
+    /// which means "use this", and the reference server sent level 5 for them.
+    /// </remarks>
+    [SkippableFact]
+    public async Task ADungeonDeclaresWhatItsKillsAreWorthAndWhatLevelItsMonstersAre()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfDungeonDefinitionSource(provider);
+
+        var dungeon = await source.GetAsync(144, CancellationToken.None);
+
+        Assert.NotNull(dungeon);
+        Assert.Equal((double)1.45f, dungeon!.ExperienceWeight);
+        Assert.Equal(5, dungeon.BasisLevel);
+    }
+
+    /// <summary>A weight written as a whole number rather than as a decimal.</summary>
+    /// <remarks>
+    /// Both forms are real, and reading only the decimal one left every dungeon using the other at
+    /// the default of 1. The four below are the ones checked by hand, and they are the largest
+    /// under-payments it caused: <c>port.dgn</c> and <c>mainbridge.dgn</c> were paying a thirtieth
+    /// of what they are worth, <c>circus_new.dgn</c> a fifteenth and <c>circus.dgn</c> a
+    /// thirty-fifth. A comment saying the tag was never written that way made the omission look
+    /// deliberate.
+    /// <para>
+    /// Every case here is a genuine <c>Int32</c> in the archive, verified token by token. That
+    /// matters more than it looks: <c>bakalcastle.dgn</c> also declares 4 and would have seemed to
+    /// belong here, but it writes it as a single and so exercises the branch that already worked.
+    /// A pin that lands on the wrong branch says nothing about the fix it was written for.
+    /// </para>
+    /// </remarks>
+    [SkippableTheory]
+    [InlineData(4103, 35.0)]
+    [InlineData(4108, 30.0)]
+    [InlineData(4114, 15.0)]
+    [InlineData(4109, 9.0)]
+    public async Task AWeightWrittenAsAWholeNumberIsReadToo(int dungeonId, double weight)
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfDungeonDefinitionSource(provider);
+
+        var dungeon = await source.GetAsync(dungeonId, CancellationToken.None);
+
+        Assert.NotNull(dungeon);
+        Assert.Equal(weight, dungeon!.ExperienceWeight);
+    }
+
+    /// <summary>A dungeon declaring no experience at all pays none.</summary>
+    /// <remarks>
+    /// Zero is a value, not an absence. Two dungeons declare it -- 6001 and 6005, both minigames --
+    /// and reading it as invalid left them at the default of 1, paying in full where the archive
+    /// says they pay nothing. Only a tag that is absent takes the default.
+    /// </remarks>
+    [SkippableFact]
+    public async Task ADungeonDeclaringNoExperienceGetsNone()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfDungeonDefinitionSource(provider);
+
+        var dungeon = await source.GetAsync(6001, CancellationToken.None);
+
+        Assert.NotNull(dungeon);
+        Assert.Equal(0.0, dungeon!.ExperienceWeight);
+    }
+
+    /// <summary>A weight below one, which the tutorial has and which pays a tenth.</summary>
+    /// <remarks>
+    /// The weight is not a bonus that dungeons may only add: the tutorial declares 0.1 and so pays
+    /// a tenth of what its monsters' levels are worth. Asserted because a reader who met only
+    /// dungeon 144's 1.45 would reasonably assume the field never reduces, and clamping it at one
+    /// would make the tutorial pay ten times over.
+    /// </remarks>
+    [SkippableFact]
+    public async Task ADungeonsWeightCanPayLessThanAMonsterIsWorth()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfDungeonDefinitionSource(provider);
+
+        var dungeon = await source.GetAsync(TutorialDungeonId, CancellationToken.None);
+
+        Assert.Equal((double)0.1f, dungeon!.ExperienceWeight);
+        Assert.Equal(1, dungeon.BasisLevel);
+    }
+
     /// <remarks>
     /// An absent dungeon and a dungeon the archive declares without a maze answer the same way, on
     /// purpose: neither can be entered by the maze path, and a caller that had to tell them apart

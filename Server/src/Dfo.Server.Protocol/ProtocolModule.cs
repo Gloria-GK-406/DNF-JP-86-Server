@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
@@ -103,6 +104,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<SetQuestTriggerCommand, QuestTriggerOutcome, SetQuestTriggerCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<FinishQuestCommand, QuestFinishOutcome, FinishQuestCommandHandler>(
+            CommandExecutionKind.Transactional);
+        services.AddCommandHandler<GrantKillExperienceCommand, KillExperienceResult, GrantKillExperienceCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<AcknowledgeGameExitCommand, AcknowledgeGameExitResult, AcknowledgeGameExitCommandHandler>(
             CommandExecutionKind.Direct);

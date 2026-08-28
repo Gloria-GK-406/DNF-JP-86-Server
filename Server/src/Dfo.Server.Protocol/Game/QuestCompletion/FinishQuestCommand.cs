@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
@@ -64,17 +65,22 @@ public sealed record FinishQuestCommand(
 ///
 /// The order is the log first, then the items. The log's gate is the cheap one and the one most
 /// likely to refuse -- a quest not carried, an objective unmet -- and refusing before touching the
-/// bag keeps a refused completion from having to unwind a placement. When the bag then refuses,
-/// the whole command is abandoned rather than compensated: the transaction is what takes the clear
-/// back, which is exactly what it is for.
+/// bag keeps a refused completion from having to unwind a placement.
+///
+/// <b>A refusal raised after that point does not unwind anything, and this remark used to say it
+/// did.</b> Returning a refusal is a normal return, so the unit of work commits: the quest has left
+/// the carried list, entered the cleared list and the items are in the bag, while the client is
+/// told 22. Three paths reach that state -- the bag refusing a reward, no such character, and a
+/// character row that will not take the write -- and none of them is reachable from a real client,
+/// which is why it has never been seen. Making them unwind means failing rather than returning,
+/// and that is a change to what a refused command does everywhere, not a repair to this one.
 /// </remarks>
 public sealed class FinishQuestCommandHandler(
     IQuestDefinitionSource quests,
     IQuestParameterSource questParameters,
     ICharacterQuestLogDomainService logs,
     ICharacterContainerDomainService containers,
-    ICharacterTable characters,
-    IDungeonExperienceProgressionPolicySource progression)
+    ICharacterExperienceGrant grant)
     : ICommandHandler<FinishQuestCommand, QuestFinishOutcome>
 {
     public async ValueTask<QuestFinishOutcome> HandleAsync(
@@ -96,13 +102,6 @@ public sealed class FinishQuestCommandHandler(
             .ConfigureAwait(false);
         if (definition is null)
             return QuestFinishOutcome.Refuse(command.QuestId);
-
-        var progress = await characters
-            .FindProgressAsync(command.CharacterId, cancellationToken).ConfigureAwait(false);
-        if (progress is null)
-            return QuestFinishOutcome.Refuse(command.QuestId);
-        var characterLevel = checked((byte)Math.Clamp(progress.Level, 1, byte.MaxValue));
-        var characterExperience = checked((uint)Math.Max(0, progress.Experience));
 
         var log = logs.LogOf(command.AccountId, command.CharacterId);
         var verdict = await log.FinishAsync(command.QuestId, cancellationToken)
@@ -146,56 +145,37 @@ public sealed class FinishQuestCommandHandler(
             }
         }
 
-        var experience = questParameters.Load().ExperienceFor(
-            characterLevel,
-            RewardLevelOf(definition),
-            DifficultyOf(definition),
-            definition.Grade == QuestGrade.Epic,
-            definition.PaysAtCharacterLevel);
+        // Through the same grant a kill uses. What a quest pays is its own rule -- the archive's
+        // quest table, nothing to do with monsters -- but raising the total, crossing thresholds
+        // and persisting are not, and a second copy of those is what made this command write the
+        // same total for two completions of one quest.
+        var award = await grant.AwardAsync(
+            command.CharacterId,
+            characterLevel => new ExperienceValuation(
+                questParameters.Load().ExperienceFor(
+                    characterLevel,
+                    RewardLevelOf(definition),
+                    DifficultyOf(definition),
+                    definition.Grade == QuestGrade.Epic,
+                    definition.PaysAtCharacterLevel),
+                []),
+            cancellationToken).ConfigureAwait(false);
 
-        var (level, total) = this.Advance(characterLevel, characterExperience, experience);
-        if (total != characterExperience
-            && await characters.SetProgressAsync(
-                command.CharacterId, level, total, cancellationToken).ConfigureAwait(false) != 1)
-        {
+        // No character to award to, or a row that would not take the write. Both were refusals
+        // before this command shared its granting, and both must stay refusals: reporting a
+        // completion whose award did not happen would tell the client its level and total from a
+        // placeholder, and on the first of the two that placeholder is level 1 with no experience.
+        if (award is null)
             return QuestFinishOutcome.Refuse(command.QuestId);
-        }
 
         return new QuestFinishOutcome(
             true,
             command.QuestId,
             ObjectiveKindOf(definition.ObjectiveTypeCode),
-            experience,
+            award.Gained,
             placed,
-            level,
-            total);
-    }
-
-    /// <summary>
-    /// Where the character stands after the reward, level included.
-    /// </summary>
-    /// <remarks>
-    /// The archive's <c>character/ExpTable.tbl</c> lists what a character must hold to be each
-    /// level, so the new level is however many of those the new total has passed. Walked rather
-    /// than computed in one step because a single reward can cross more than one threshold at low
-    /// levels, where the first few are a few hundred apart and a quest can pay more than that.
-    ///
-    /// Experience saturates at the top of the table rather than wrapping. A character at the last
-    /// threshold keeps earning and stays there, which is what the client draws.
-    /// </remarks>
-    private (byte Level, uint Total) Advance(byte level, uint current, uint gained)
-    {
-        if (gained == 0)
-            return (level, current);
-
-        var total = (ulong)current + gained;
-        var thresholds = progression.Load().LevelThresholds;
-        total = Math.Min(total, thresholds.Count > 0 ? thresholds[^1] : uint.MaxValue);
-
-        var next = level;
-        while (next < thresholds.Count + 1 && total >= thresholds[next - 1])
-            next++;
-        return (next, checked((uint)total));
+            award.Level,
+            award.Total);
     }
 
     /// <remarks>

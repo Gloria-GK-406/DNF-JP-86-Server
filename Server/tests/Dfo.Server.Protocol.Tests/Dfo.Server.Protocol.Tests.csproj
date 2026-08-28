@@ -20,6 +20,21 @@
     <ProjectReference Include="..\..\src\Dfo.Server.Persistence\Dfo.Server.Persistence.csproj" />
     <ProjectReference Include="..\..\src\Dfo.Server.Protocol\Dfo.Server.Protocol.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      One character's progress, held in memory. Shared with the Application tests by link rather
+      than copied: two copies of a double drift, and the drift is invisible until one of them
+      quietly stops matching the interface the other is proving something about. There is no
+      shared test-support project, and one double does not earn creating one.
+    -->
+    <Compile Include="..\Dfo.Server.Application.Tests\Support\RecordingCharacterTable.cs"
+             Link="Support\RecordingCharacterTable.cs" />
+    <Compile Include="..\Dfo.Server.Application.Tests\Support\RecordingQuestLogs.cs"
+             Link="Support\RecordingQuestLogs.cs" />
+    <Compile Include="..\Dfo.Server.Application.Tests\Support\StubWorldContentEntryRuleService.cs"
+             Link="Support\StubWorldContentEntryRuleService.cs" />
+  </ItemGroup>
   <ItemGroup>
     <!-- Compiled in rather than copied: three test assemblies reach the inventory seam, and this
          is the one description of how the server wires it. -->

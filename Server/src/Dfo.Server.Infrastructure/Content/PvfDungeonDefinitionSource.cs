@@ -80,6 +80,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         var section = Section.None;
         byte minimumLevel = 1;
         byte basisLevel = 1;
+        var experienceWeight = 1.0;
         var consumesFatigue = true;
         var pending = new List<int>();
 
@@ -112,6 +113,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
                     else if (token.Value == tags.BossMap) section = Section.Boss;
                     else if (token.Value == tags.MinimumRequiredLevel) section = Section.MinimumLevel;
                     else if (token.Value == tags.BasisLevel) section = Section.BasisLevel;
+                    else if (token.Value == tags.ExperienceWeight) section = Section.ExperienceWeight;
                     else if (token.Value == tags.NoFatigue)
                     {
                         consumesFatigue = false;
@@ -152,6 +154,18 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
                 continue;
             }
 
+            // A decimal weight arrives as a single and must not reach the integer path below:
+            // read there it would be the bit pattern -- 1.45 becomes 1069967704 -- and every kill
+            // in the dungeon would be worth about a billion times what it should be. The
+            // whole-number form is read in the switch instead.
+            if (token.Kind == PvfTokenKind.Single && section == Section.ExperienceWeight)
+            {
+                var weight = BitConverter.Int32BitsToSingle(token.Value);
+                experienceWeight = weight is >= 0 and <= 1000 ? weight : experienceWeight;
+                section = Section.None;
+                continue;
+            }
+
             if (token.Kind != PvfTokenKind.Int32)
                 continue;
 
@@ -161,6 +175,21 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
                     minimumLevel = token.Value is >= 0 and <= byte.MaxValue
                         ? (byte)token.Value
                         : minimumLevel;
+                    section = Section.None;
+                    break;
+                case Section.ExperienceWeight:
+                    // Written either way, and both are real. Reading only the decimal form left
+                    // every dungeon using this one at the default of 1: port.dgn and
+                    // mainbridge.dgn declare 30, circus_new.dgn 15, circus.dgn 35, and each was
+                    // paying that fraction of what it is worth. Which form a value takes is not
+                    // predictable from the value -- 4 is written both ways in different dungeons.
+                    //
+                    // Zero is accepted rather than rejected: dungeons 6001 and 6005 declare it and
+                    // mean it, and treating it as invalid paid them in full. Only an absent tag
+                    // takes the default.
+                    experienceWeight = token.Value is >= 0 and <= 1000
+                        ? token.Value
+                        : experienceWeight;
                     section = Section.None;
                     break;
                 case Section.BasisLevel:
@@ -188,7 +217,8 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         return mazes.Count == 0
             ? null
             : new DungeonDefinition(
-                dungeonId, archivePath, minimumLevel, consumesFatigue, mazes, basisLevel);
+                dungeonId, archivePath, minimumLevel, consumesFatigue, mazes, basisLevel,
+                experienceWeight);
     }
 
     /// <summary>Consumes whole rows once enough operands have arrived, leaving partial ones.</summary>
@@ -247,6 +277,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         Boss,
         MinimumLevel,
         BasisLevel,
+        ExperienceWeight,
         SkippedRoomEntry,
     }
 
@@ -277,6 +308,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
             BossMap = archive.GetTag("[boss map]").Offset;
             MinimumRequiredLevel = archive.GetTag("[minimum required level]").Offset;
             BasisLevel = archive.GetTag("[basis level]").Offset;
+            ExperienceWeight = archive.GetTag("[experience increasing point]").Offset;
             NoFatigue = archive.GetTag("[no fatigue]").Offset;
         }
 
@@ -295,6 +327,8 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         public int MinimumRequiredLevel { get; }
 
         public int BasisLevel { get; }
+
+        public int ExperienceWeight { get; }
 
         public int NoFatigue { get; }
     }

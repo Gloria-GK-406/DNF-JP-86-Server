@@ -513,7 +513,7 @@ public sealed class SelectDungeonHandler(
 
         // Remembered from here on. The layout was chosen from quest state as it stood at this
         // moment, so it cannot be recomputed later and still describe the run the client is in.
-        var run = runs.Begin(session.CharacterId, layout);
+        var run = runs.Begin(session.CharacterId, layout, message.Difficulty);
 
         logger.LogInformation(
             "Select dungeon {ConnectionId} user={WireUserId}: dungeon={DungeonId} difficulty={Difficulty} "

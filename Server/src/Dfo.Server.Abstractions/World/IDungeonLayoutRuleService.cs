@@ -43,6 +43,12 @@ public sealed record DungeonEntryFacts(
 /// at entry, and reading the archive again later would answer for whichever maze the rule would
 /// pick now.
 /// </param>
+/// <param name="ExperienceWeight">
+/// What this dungeon multiplies a monster's worth by. Carried here for the same reason the basis
+/// level is: a run knows its layout, and a kill in it needs the dungeon's own numbers without
+/// going back to the archive. It is not a bonus dungeons may only add -- the tutorial's is 0.1,
+/// and it pays a tenth.
+/// </param>
 public sealed record DungeonLayout(
     int DungeonId,
     int MazeIndex,
@@ -53,8 +59,10 @@ public sealed record DungeonLayout(
     int StartRoomMapId,
     int Seed,
     IReadOnlyDictionary<MazeCell, int> Rooms,
-    byte BasisLevel = 1)
+    byte BasisLevel = 1,
+    double ExperienceWeight = 1.0)
 {
+
     /// <summary>What a monster of this run is worth when its map declines to say.</summary>
     /// <remarks>
     /// The dungeon's <c>[basis level]</c>, carried here because a map is shared between dungeons

@@ -17,7 +17,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
 {
     private readonly ConcurrentDictionary<CharacterId, DungeonRunState> _runs = new();
 
-    public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout)
+    public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty)
     {
         ArgumentNullException.ThrowIfNull(layout);
         var state = new DungeonRunState(
@@ -31,7 +31,8 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             // the player took, so it is measured rather than derived from anything the request
             // carries -- and this service is already the one thing in the dungeon path that keeps
             // state for as long as a run lasts.
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow,
+            difficulty);
         _runs[characterId] = state;
         return state;
     }
