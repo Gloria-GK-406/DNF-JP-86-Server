@@ -175,6 +175,33 @@ public sealed class SetPlayResultHandlerTests
             });
     }
 
+    /// <summary>
+    /// A clamped award is reported as what landed, not as what the clear was worth.
+    /// </summary>
+    /// <remarks>
+    /// At the top of the experience table the grant hands back less than it was asked to pay, and
+    /// with the parts no longer attributable it hands the whole of it back as the base. The result
+    /// screen has to follow: reporting the command's two figures beside a total that moved by less
+    /// would put experience on the screen the character did not receive.
+    /// <para>
+    /// This is the half of the fix a test would otherwise miss. The command's figures and the
+    /// award's agree whenever nothing is clamped, so reading the wrong one is invisible until they
+    /// do not -- which is exactly here.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task AClampedAwardIsReportedAsWhatLanded()
+    {
+        var sent = await Settle(bus: new FixedAward(leveledUp: false, clamped: true));
+
+        var reward = sent.OfType<ClearDungeonRewardNotification>().Single();
+        Assert.Equal(ClampedLanding, reward.ClearBase);
+        Assert.Equal(0u, reward.RankBonus);
+    }
+
+    /// <summary>What the ceiling left room for, which is less than the clear was worth.</summary>
+    private const uint ClampedLanding = 40;
+
     /// <summary>A run pays once however many times its result is reported.</summary>
     /// <remarks>
     /// The client says when a run is over. Before the settlement paid anything a repeated report
@@ -298,7 +325,8 @@ public sealed class SetPlayResultHandlerTests
     /// Fixed rather than computed, because what the clear is worth is checked against the archive
     /// next door. What is checked here is what the handler does with the answer.
     /// </remarks>
-    private sealed class FixedAward(bool leveledUp, bool awarded = true) : ICommandBus
+    private sealed class FixedAward(bool leveledUp, bool awarded = true, bool clamped = false)
+        : ICommandBus
     {
         /// <summary>Whether the settlement got as far as pricing the run.</summary>
         public bool WasAsked => this.TimesAsked > 0;
@@ -312,13 +340,23 @@ public sealed class SetPlayResultHandlerTests
         {
             Assert.IsType<GrantClearExperienceCommand>(command);
             this.TimesAsked++;
-            var award = new ExperienceAward(
-                Base: ClearBase,
-                Contributions: [new ExperienceContribution("clear rank", 0.12, RankBonus)],
-                Gained: ClearBase + RankBonus,
-                Level: leveledUp ? (byte)4 : (byte)3,
-                Total: StartingExperience + ClearBase + RankBonus,
-                LeveledUp: leveledUp);
+            // Clamped is the shape the grant returns when the ceiling took part of the award:
+            // what landed, reported whole, with no parts to attribute it to.
+            var award = clamped
+                ? new ExperienceAward(
+                    Base: ClampedLanding,
+                    Contributions: [],
+                    Gained: ClampedLanding,
+                    Level: leveledUp ? (byte)4 : (byte)3,
+                    Total: StartingExperience + ClampedLanding,
+                    LeveledUp: leveledUp)
+                : new ExperienceAward(
+                    Base: ClearBase,
+                    Contributions: [new ExperienceContribution("clear rank", 0.12, RankBonus)],
+                    Gained: ClearBase + RankBonus,
+                    Level: leveledUp ? (byte)4 : (byte)3,
+                    Total: StartingExperience + ClearBase + RankBonus,
+                    LeveledUp: leveledUp);
             // The two figures stand even when nothing was awarded: they are what the clear was
             // worth, and the handler is what has to decide they may not be reported.
             var result = new ClearExperienceResult(
