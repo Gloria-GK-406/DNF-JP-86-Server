@@ -102,5 +102,21 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         }
     }
 
+    public DungeonRunState? TrySettle(CharacterId characterId)
+    {
+        while (true)
+        {
+            if (!_runs.TryGetValue(characterId, out var current))
+                return null;
+
+            if (current.IsSettled)
+                return null;
+
+            var settled = current with { IsSettled = true };
+            if (_runs.TryUpdate(characterId, settled, current))
+                return settled;
+        }
+    }
+
     public bool End(CharacterId characterId) => _runs.TryRemove(characterId, out _);
 }

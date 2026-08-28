@@ -56,8 +56,25 @@ internal sealed class CharacterExperienceGrant(
             return null;
         }
 
-        return new ExperienceAward(
-            @base, contributions, gained, nextLevel, total, LeveledUp: nextLevel > level);
+        // What is reported is what landed, which at the top of the table is less than what was
+        // valued. A character at the ceiling gains nothing however much they earn, and one just
+        // below it gains only the room that was left.
+        //
+        // The distinction is not academic. Every caller reports this award to the client, and two
+        // of them draw a breakdown from it: the experience notice declares each contribution and
+        // the client works out the base by subtracting them from the gain it computes for itself
+        // -- so an award claiming more than the total moved makes that base come out negative. The
+        // result screen has the same problem in reverse, reporting experience that never landed.
+        var landed = total - held;
+        return landed == gained
+            ? new ExperienceAward(
+                @base, contributions, gained, nextLevel, total, LeveledUp: nextLevel > level)
+            // Clamped. The parts can no longer be attributed -- there is no honest way to say
+            // which of them the ceiling took -- so what landed is reported whole, as the occasion
+            // itself. The total is right and the breakdown is coarse, which is the same trade
+            // Unlisted makes elsewhere.
+            : new ExperienceAward(
+                landed, [], landed, nextLevel, total, LeveledUp: nextLevel > level);
     }
 
     /// <summary>

@@ -175,6 +175,23 @@ public sealed class SetPlayResultHandlerTests
             });
     }
 
+    /// <summary>A run pays once however many times its result is reported.</summary>
+    /// <remarks>
+    /// The client says when a run is over. Before the settlement paid anything a repeated report
+    /// was harmless; now it would be a repeated payment, and the run stays in progress until the
+    /// character walks out, so nothing else would refuse it. The kill path has carried the same
+    /// guard since it started paying, and for the same reason.
+    /// </remarks>
+    [Fact]
+    public async Task ARunIsPaidOnceHoweverManyTimesItsResultIsReported()
+    {
+        var bus = new FixedAward(leveledUp: false);
+        var sent = await Settle(bus: bus, reports: 3);
+
+        Assert.Equal(1, bus.TimesAsked);
+        Assert.Single(sent.OfType<ClearDungeonRewardNotification>());
+    }
+
     /// <summary>What the character held before the run.</summary>
     private const uint StartingExperience = 1000;
 
@@ -183,7 +200,8 @@ public sealed class SetPlayResultHandlerTests
         StubWorldContentEntryRuleService? content = null,
         bool awarded = true,
         FixedAward? bus = null,
-        bool withMirror = true)
+        bool withMirror = true,
+        int reports = 1)
     {
         var session = SelectedSessionIdentity.Create(
             new AccountId(1),
@@ -205,12 +223,15 @@ public sealed class SetPlayResultHandlerTests
             sender,
             NullLogger<SetPlayResultHandler>.Instance);
 
-        await handler.HandleAsync(
-            new NetworkDispatchContext(
-                new NetworkConnectionContext(
-                    new NetworkConnectionId("one"), NetworkEndpointKind.Game, 10010)),
-            new SetPlayResultRequest(default!, ClientRankPoint: 80),
-            CancellationToken.None);
+        for (var report = 0; report < reports; report++)
+        {
+            await handler.HandleAsync(
+                new NetworkDispatchContext(
+                    new NetworkConnectionContext(
+                        new NetworkConnectionId("one"), NetworkEndpointKind.Game, 10010)),
+                new SetPlayResultRequest(default!, ClientRankPoint: 80),
+                CancellationToken.None);
+        }
 
         return sender.Sent;
     }
@@ -280,14 +301,17 @@ public sealed class SetPlayResultHandlerTests
     private sealed class FixedAward(bool leveledUp, bool awarded = true) : ICommandBus
     {
         /// <summary>Whether the settlement got as far as pricing the run.</summary>
-        public bool WasAsked { get; private set; }
+        public bool WasAsked => this.TimesAsked > 0;
+
+        /// <summary>How many times it did, which a replayed report would raise.</summary>
+        public int TimesAsked { get; private set; }
 
         public ValueTask<TResult> SendAsync<TResult>(
             ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull
         {
             Assert.IsType<GrantClearExperienceCommand>(command);
-            this.WasAsked = true;
+            this.TimesAsked++;
             var award = new ExperienceAward(
                 Base: ClearBase,
                 Contributions: [new ExperienceContribution("clear rank", 0.12, RankBonus)],
@@ -306,6 +330,18 @@ public sealed class SetPlayResultHandlerTests
 
     private sealed class OneRun : IDungeonRunDomainService
     {
+        private bool _settled;
+
+        /// <summary>The run, claimed once, exactly as the real service claims it.</summary>
+        public DungeonRunState? TrySettle(CharacterId characterId)
+        {
+            if (this._settled)
+                return null;
+
+            this._settled = true;
+            return this.Find(characterId);
+        }
+
         private static readonly DungeonLayout Layout = new(
             DungeonId: 144,
             MazeIndex: 0,

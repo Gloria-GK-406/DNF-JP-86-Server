@@ -7,12 +7,18 @@ namespace Dfo.Server.Application.World;
 /// What each account entitlement adds to an award, and how long it is worth adding.
 /// </summary>
 /// <remarks>
-/// <b>Policy, not content.</b> The archive declares an experience rate for an item that grants one
-/// -- 484 stackables carry an <c>[exp bonus rate]</c> of their own -- but it declares none for a
-/// premium term: every one of the fifty-two types in <c>etc/(r)premiumlist.etc</c> has an empty
-/// <c>[bonus]</c> section. So this is a number an operator sets, and it is empty by default rather
-/// than filled with a plausible one. A rate invented here would be indistinguishable from a rate
-/// read from somewhere, which is the confusion this whole subject has already cost a day to.
+/// <b>Policy for now, and not because the archive is silent.</b> An earlier version of this note
+/// claimed every premium type in <c>etc/premiumlist.etc</c> declares nothing. It does not: three
+/// of them carry a rate -- two <c>[exp]</c> sections of 5 and one <c>[bonus exp]</c> of 20 -- which
+/// an independent read of the A21 archive found on 2026-08-29. The claim was wrong in exactly the
+/// way this server's channel rate was wrong for a day: a number was called policy because nobody
+/// had looked.
+/// <para>
+/// Reading them is the next piece of work rather than this one, because it needs the mapping from
+/// a declaration in that file to the type an account row carries, and inventing that mapping to
+/// close a comment would be the same mistake a third time. Until then the rates are an operator's,
+/// and empty by default rather than filled with a plausible guess.
+/// </para>
 /// </remarks>
 /// <param name="RatesByPremiumType">
 /// What each premium type adds, keyed by the type the account row carries. A type absent from this

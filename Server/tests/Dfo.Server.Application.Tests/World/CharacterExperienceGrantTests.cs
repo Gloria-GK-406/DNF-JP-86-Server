@@ -193,6 +193,64 @@ public sealed class CharacterExperienceGrantTests
         Assert.Equal(Thresholds[^1], award!.Total);
     }
 
+    /// <summary>
+    /// An award reports what landed, which at the ceiling is less than what it was worth.
+    /// </summary>
+    /// <remarks>
+    /// Every caller reports this award to the client, and two of them draw a breakdown from it. The
+    /// experience notice declares each contribution and the client works out the base by taking
+    /// them off the gain it computes for itself -- so an award claiming more than the total moved
+    /// makes that base come out negative, which is the one thing that notice exists not to do. The
+    /// result screen has the same problem the other way round, reporting experience nobody
+    /// received.
+    /// </remarks>
+    [Fact]
+    public async Task AnAwardClampedByTheCeilingReportsOnlyWhatLanded()
+    {
+        var characters = new RecordingCharacterTable(level: 4, experience: 690);
+        var grant = Grant(characters);
+
+        var award = await grant.AwardAsync(
+            Character,
+            _ => new ExperienceValuation(
+                1_000_000, [new ExperienceContribution("channel", 0.05, 50_000)]),
+            CancellationToken.None);
+
+        Assert.NotNull(award);
+        Assert.Equal(Thresholds[^1] - 690, award.Gained);
+        // The parts cannot be attributed once the ceiling has taken some of them, so what landed
+        // is reported whole rather than split into a base and a bonus that no longer add up.
+        Assert.Equal(award.Gained, award.Base);
+        Assert.Empty(award.Contributions);
+    }
+
+    /// <summary>
+    /// A character already at the ceiling is awarded nothing, and is told so.
+    /// </summary>
+    /// <remarks>
+    /// Not an award of what the kill was worth against a total that cannot move. Before this, a
+    /// capped character killing a monster was sent a notice declaring a bonus line beside a gain of
+    /// nothing -- the client subtracts the line from the gain, and draws a negative base.
+    /// </remarks>
+    [Fact]
+    public async Task ACharacterAtTheCeilingIsAwardedNothing()
+    {
+        var characters = new RecordingCharacterTable(level: 5, experience: Thresholds[^1]);
+        var grant = Grant(characters);
+
+        var award = await grant.AwardAsync(
+            Character,
+            _ => new ExperienceValuation(72, [new ExperienceContribution("channel", 0.05, 3)]),
+            CancellationToken.None);
+
+        Assert.NotNull(award);
+        Assert.Equal(0u, award.Gained);
+        Assert.Equal(0u, award.Base);
+        Assert.Empty(award.Contributions);
+        Assert.Equal(Thresholds[^1], award.Total);
+        Assert.Null(characters.LastWrite);
+    }
+
     /// <summary>The award explains itself in one line, which is what a live log has to carry.</summary>
     [Fact]
     public async Task AnAwardCanSayWhereItCameFrom()

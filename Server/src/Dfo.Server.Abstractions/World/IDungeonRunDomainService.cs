@@ -18,7 +18,8 @@ public sealed record DungeonRunState(
     IReadOnlySet<GroundDropId> TakenGroundDrops,
     IReadOnlySet<RoomActorId> DeadActors,
     DateTimeOffset StartedAt,
-    byte Difficulty = 0)
+    byte Difficulty = 0,
+    bool IsSettled = false)
 {
     /// <summary>Whether every actor this room declares has been reported dead.</summary>
     /// <remarks>
@@ -180,6 +181,22 @@ public interface IDungeonRunDomainService
     /// client will not ask to leave until it has been told the exit is open.
     /// </remarks>
     DungeonRunState? TryReportActorDead(CharacterId characterId, ushort actorSequence);
+
+    /// <summary>
+    /// Records that this run has been settled.
+    /// </summary>
+    /// <remarks>
+    /// Answers the run as it stands afterwards, or null when it had already been settled -- which
+    /// is what a repeated result report is. The run itself is not ended: what ends it is the
+    /// character leaving, and between the result screen and the door the run is still theirs.
+    /// <para>
+    /// This is the same guard a kill has in <see cref="TryReportActorDead"/>, and it is needed for
+    /// the same reason. A settlement pays experience, and it is the client that says when one
+    /// happens; without a record of having paid, a repeated report is a repeated payment. That
+    /// only became true on 2026-08-29, when the settlement started paying anything at all.
+    /// </para>
+    /// </remarks>
+    DungeonRunState? TrySettle(CharacterId characterId);
 
     /// <summary>Ends the run. False when the character was not in one.</summary>
     bool End(CharacterId characterId);

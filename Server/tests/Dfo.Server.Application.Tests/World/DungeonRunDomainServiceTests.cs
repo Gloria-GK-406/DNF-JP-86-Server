@@ -220,4 +220,45 @@ public sealed class DungeonRunDomainServiceTests
 
         Assert.Null(service.TryTakeGroundDrop(Character, 1));
     }
+
+    /// <summary>A run may be settled once, and a repeat is refused.</summary>
+    /// <remarks>
+    /// The same shape as a repeated death report, and needed for the same reason: the client says
+    /// when a run is over, and saying so pays experience. Nothing else refuses a second report --
+    /// the run stays in progress until the character walks out.
+    /// </remarks>
+    [Fact]
+    public void ARunIsSettledOnceAndARepeatIsRefused()
+    {
+        var runs = new DungeonRunDomainService();
+        runs.Begin(Character, Tutorial, difficulty: 0);
+
+        var settled = runs.TrySettle(Character);
+
+        Assert.NotNull(settled);
+        Assert.True(settled.IsSettled);
+        Assert.Null(runs.TrySettle(Character));
+    }
+
+    /// <summary>Settling does not end the run.</summary>
+    /// <remarks>
+    /// Between the result screen and the door the character is still in the dungeon, and the frames
+    /// that follow read the run for its layout. Ending it here would answer the walk out with "no
+    /// run in progress".
+    /// </remarks>
+    [Fact]
+    public void SettlingDoesNotEndTheRun()
+    {
+        var runs = new DungeonRunDomainService();
+        runs.Begin(Character, Tutorial, difficulty: 0);
+        runs.TrySettle(Character);
+
+        Assert.NotNull(runs.Find(Character));
+        Assert.True(runs.End(Character));
+    }
+
+    /// <summary>A character in no run has nothing to settle.</summary>
+    [Fact]
+    public void ACharacterInNoRunHasNothingToSettle() =>
+        Assert.Null(new DungeonRunDomainService().TrySettle(Character));
 }

@@ -384,12 +384,16 @@ public sealed class SetPlayResultHandler(
             return;
         }
 
-        var run = runs.Find(session.CharacterId);
+        // Claimed, not merely looked up. The client says when a run is over, and since 2026-08-29
+        // saying so pays experience -- so a repeated report would be a repeated payment. The same
+        // guard a kill has, for the same reason, and the run is left in progress either way: what
+        // ends it is the character walking out.
+        var run = runs.TrySettle(session.CharacterId);
         if (run is null)
         {
             logger.LogWarning(
-                "Set play result {ConnectionId} character={CharacterId}: no run in progress, "
-                    + "ignoring",
+                "Set play result {ConnectionId} character={CharacterId}: no run in progress, or "
+                    + "one already settled; ignoring",
                 context.Connection.ConnectionId,
                 session.CharacterId.Value);
             return;
@@ -519,13 +523,14 @@ public sealed class SetPlayResultHandler(
                 level, result.World.Content.AvailableQuests));
         }
 
-        // Declared only where it was granted. The command's two figures are what the clear was
-        // worth; when the award did not happen -- no such character, or a row that would not take
-        // the write -- the character received none of it, and putting those figures on the result
-        // screen beside a total that did not move would draw a breakdown of experience nobody has.
+        // Read off the award rather than off the valuation. The command's two figures are what the
+        // clear was worth; what the character received can be less -- nothing at all when the
+        // award did not happen, or a clamped amount at the top of the experience table -- and the
+        // result screen must report what landed. An award carries its base and its one
+        // contribution, which are those same two figures whenever nothing was clamped.
         frames.Add(award is null
             ? new ClearDungeonRewardNotification(0, 0)
-            : new ClearDungeonRewardNotification(paid.ClearBase, paid.RankBonus));
+            : new ClearDungeonRewardNotification(award.Base, award.Gained - award.Base));
 
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
