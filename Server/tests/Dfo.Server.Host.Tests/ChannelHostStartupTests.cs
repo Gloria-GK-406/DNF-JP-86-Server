@@ -105,7 +105,13 @@ public sealed class ChannelHostStartupTests
             workingDirectory, channelPort, gamePorts, output, scriptPath);
         try
         {
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            // Generous on purpose. This waits for a whole process to cold-start, read its
+            // configuration, refuse, and exit, and the suite runs seven assemblies at once behind
+            // a build -- ten seconds was enough alone and not enough under that load, which made a
+            // passing baseline look like a regression three runs running. Nothing is masked by the
+            // larger budget: a host that wrongly started would never exit, and this would still
+            // fail, only later.
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             await process.WaitForExitAsync(timeout.Token);
             Assert.NotEqual(0, process.ExitCode);
             var startupOutput = Snapshot(output);
