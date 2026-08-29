@@ -121,6 +121,37 @@ internal static class GameProtocol
 
     public const ushort SetPlayResultType = 0x002E;
 
+    /// <summary>
+    /// CMD 0x0075 <c>BOSS_DIE_CHECK</c>: the client's own word that the boss is down.
+    /// </summary>
+    /// <remarks>
+    /// Sent once, immediately after the exit opens, and answered with nothing. The client's
+    /// dispatch tables register a response handler for 671 command types and this is not one of
+    /// them -- see <c>protocol/game/client-to-server/0x0075.md</c> for that census and for why a
+    /// reply would be a frame nobody reads.
+    /// </remarks>
+    public const ushort BossDieCheckType = 0x0075;
+
+    /// <summary>
+    /// CMD 0x0045 <c>SCORE_SCROLL_STATE</c>: the result scroll has finished drawing.
+    /// </summary>
+    /// <remarks>
+    /// An empty body, and the client waits on the answer: its handler for the reply is what moves
+    /// the run off the result screen. Left unanswered on 2026-08-29 and the player stood in the
+    /// boss room with the scroll drawn and nothing else to do.
+    /// </remarks>
+    public const ushort ScoreScrollStateType = 0x0045;
+
+    /// <summary>
+    /// CMD 0x0048 <c>EPLP_COMMAND</c>: the button that walks a character out of a finished run.
+    /// </summary>
+    /// <remarks>
+    /// Not <c>GIVEUP_GAME</c>. A complete reference session that cleared a dungeon and returned to
+    /// town never sent <c>0x002A</c>; it sent this twice. See
+    /// <c>protocol/game/client-to-server/0x0048.md</c>.
+    /// </remarks>
+    public const ushort EplpCommandType = 0x0048;
+
     public const ushort PlayResultNotificationType = 0x0022;
 
     public const ushort ClearDungeonRewardNotificationType = 0x0023;

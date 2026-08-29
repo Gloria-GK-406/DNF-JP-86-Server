@@ -201,29 +201,15 @@ public sealed class BackToVillageHandler(
             position.Y,
             runs.End(session.CharacterId));
 
-        var spawn = result.World.Channel.Spawn with
-        {
-            TownId = position.TownId,
-            AreaId = position.AreaId,
-            X = position.X,
-            Y = position.Y,
-        };
-
+        // The same projection the dungeon's own exit sends, and deliberately not a second copy of
+        // it: both mean "put this character back in the town they are standing in", and two copies
+        // would drift into one route working and the other not.
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(
                 [
                     new BackToVillageResponse(),
-                    new UserStateNotification(session.WireUserId, 0x00),
-                    new UserAreaNotification(session.WireUserId, spawn, position.AreaId),
-                    new AreaUsersNotification(
-                        position.TownId,
-                        position.AreaId,
-                        [
-                            new AreaUserPresence(
-                                session.WireUserId, position.X, position.Y,
-                                position.Direction, spawn.AreaState),
-                        ]),
+                    .. TownReturnProjection.Frames(session, result),
                 ],
                 []),
             cancellationToken).ConfigureAwait(false);

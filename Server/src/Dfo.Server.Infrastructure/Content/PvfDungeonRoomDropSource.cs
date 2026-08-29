@@ -89,27 +89,39 @@ internal sealed class PvfDungeonRoomDropSource : IDungeonRoomDropSource
         var drops = new List<DungeonRoomDrop>();
         for (var index = 0; index < objects.Count; index++)
         {
-            if (objects[index] is not { } group || !groups.TryGetValue(group, out var itemId))
+            if (objects[index] is not { Group: { } group } declared
+                || !groups.TryGetValue(group, out var itemId))
+            {
                 continue;
+            }
 
             drops.Add(new DungeonRoomDrop(
                 checked((byte)index),
                 itemId,
-                PvfEquipmentDurability.Read(archive, equipment, itemId)));
+                PvfEquipmentDurability.Read(archive, equipment, itemId),
+                declared.Count));
         }
 
         return drops;
     }
 
+    /// <summary>What one breakable object declares: which reward group, and how many.</summary>
+    /// <remarks>
+    /// The count is the second integer after the kind and it is read rather than assumed. Every
+    /// object the tutorial declares says one, so an assumption would have looked right for as long
+    /// as nothing declared otherwise -- and been wrong on the floor the moment something did.
+    /// </remarks>
+    private readonly record struct RoomObject(int? Group, int Count);
+
     /// <summary>
-    /// One entry per breakable object the room declares, in order: its item group, or null when
+    /// One entry per breakable object the room declares, in order: its item group, or none when
     /// the object holds no item.
     /// </summary>
     /// <remarks>
     /// The objects that hold nothing keep their place. The client names the object it broke by its
     /// position among all of them, so dropping the empty ones would renumber the rest.
     /// </remarks>
-    private IReadOnlyList<int?> RoomObjectGroups(PvfArchive archive, int mapId)
+    private IReadOnlyList<RoomObject> RoomObjectGroups(PvfArchive archive, int mapId)
     {
         if (!Paths(ref _mapPaths, MapListPath).TryGetValue(mapId, out var relativePath))
             return [];
@@ -120,7 +132,7 @@ internal sealed class PvfDungeonRoomDropSource : IDungeonRoomDropSource
 
         var open = archive.GetTag("[special passive object]").Offset;
         var close = archive.GetTag("[/special passive object]").Offset;
-        var objects = new List<int?>();
+        var objects = new List<RoomObject>();
         var inside = false;
         var integers = new List<int>();
         string? kind = null;
@@ -162,8 +174,12 @@ internal sealed class PvfDungeonRoomDropSource : IDungeonRoomDropSource
 
             objects.Add(
                 string.Equals(kind, ItemKind, StringComparison.OrdinalIgnoreCase)
-                    ? integers[ObjectIntegersBeforeKind]
-                    : null);
+                    ? new RoomObject(
+                        integers[ObjectIntegersBeforeKind],
+                        // At least one: a declaration of zero or less would put a stack of nothing
+                        // on the floor, and the object is only here because it holds something.
+                        Math.Max(1, integers[ObjectIntegersBeforeKind + 1]))
+                    : new RoomObject(null, 1));
             integers.Clear();
             kind = null;
         }

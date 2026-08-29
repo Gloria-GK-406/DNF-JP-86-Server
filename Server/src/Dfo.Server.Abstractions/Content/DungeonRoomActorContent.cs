@@ -30,7 +30,14 @@ public interface IDungeonRoomActorSource
 /// Which of the room's breakable objects this belongs to, counted in declaration order. The
 /// client identifies the object it broke by this number.
 /// </param>
-public readonly record struct DungeonRoomDrop(byte ObjectIndex, int ItemId, ushort Durability);
+/// <param name="Count">
+/// How many the object declares. It is the stack count for anything that stacks, and the client
+/// reads it off the floor: a material announced without one is drawn with whatever number happened
+/// to be in that field, which on 2026-08-29 was a pseudo-random discriminator and read as hundreds
+/// of thousands. Equipment does not stack and this stays at one for it.
+/// </param>
+public readonly record struct DungeonRoomDrop(
+    byte ObjectIndex, int ItemId, ushort Durability, int Count = 1);
 
 /// <summary>Reads what a room's breakable objects yield.</summary>
 /// <remarks>

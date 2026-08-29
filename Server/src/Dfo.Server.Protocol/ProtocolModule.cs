@@ -236,6 +236,10 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<GetItemHandler>(ClientMessageType.GameGetItem);
         services.RegisterMessageHandler<TutorialLevelUpHandler>(ClientMessageType.GameTutorialLevelUp);
         services.RegisterMessageHandler<SetPlayResultHandler>(ClientMessageType.GameSetPlayResult);
+        services.RegisterMessageHandler<BossDieCheckHandler>(ClientMessageType.GameBossDieCheck);
+        services.RegisterMessageHandler<ScoreScrollStateHandler>(
+            ClientMessageType.GameScoreScrollState);
+        services.RegisterMessageHandler<EplpCommandHandler>(ClientMessageType.GameEplpCommand);
         services.RegisterMessageHandler<GiveUpGameHandler>(ClientMessageType.GameGiveUpGame);
         services.RegisterMessageHandler<BackToVillageHandler>(ClientMessageType.GameBackToVillage);
 
@@ -365,6 +369,12 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.TutorialLevelUpType, ClientMessageType.GameTutorialLevelUp);
         services.AddGameCmdMessageDecoder<SetPlayResultDecoder>(
             GameProtocol.SetPlayResultType, ClientMessageType.GameSetPlayResult);
+        services.AddGameCmdMessageDecoder<BossDieCheckDecoder>(
+            GameProtocol.BossDieCheckType, ClientMessageType.GameBossDieCheck);
+        services.AddGameCmdMessageDecoder<ScoreScrollStateDecoder>(
+            GameProtocol.ScoreScrollStateType, ClientMessageType.GameScoreScrollState);
+        services.AddGameCmdMessageDecoder<EplpCommandDecoder>(
+            GameProtocol.EplpCommandType, ClientMessageType.GameEplpCommand);
         services.AddGameCmdMessageDecoder<GiveUpGameDecoder>(
             GameProtocol.GiveUpGameType, ClientMessageType.GameGiveUpGame);
         services.AddGameCmdMessageDecoder<BackToVillageDecoder>(
@@ -467,6 +477,9 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<UseStackableResponse, UseStackableResponseEncoder>();
         services.AddGameCmdMessageEncoder<GetItemResponse, GetItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<TutorialLevelUpResponse, TutorialLevelUpResponseEncoder>();
+        services.AddGameCmdMessageEncoder<
+            ScoreScrollStateResponse, ScoreScrollStateResponseEncoder>();
+        services.AddGameCmdMessageEncoder<EplpCommandResponse, EplpCommandResponseEncoder>();
         services.AddGameCmdMessageEncoder<GiveUpGameResponse, GiveUpGameResponseEncoder>();
         services.AddGameCmdMessageEncoder<SelectDungeonRefusal, SelectDungeonRefusalEncoder>();
         services.AddGameCmdMessageEncoder<BackToVillageResponse, BackToVillageResponseEncoder>();

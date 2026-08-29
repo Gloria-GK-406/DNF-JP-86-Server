@@ -61,6 +61,16 @@ public enum ClientMessageType
     // The client reporting how the run went, once the exit has opened. See Game/DungeonClear.
     GameSetPlayResult = 0x0001_002E,
 
+    // The client's own word that the boss is down, which nothing answers. See Game/DungeonClear.
+    GameBossDieCheck = 0x0001_0075,
+
+    // The result scroll has finished drawing, and the run waits on the answer. See
+    // Game/DungeonClear.
+    GameScoreScrollState = 0x0001_0045,
+
+    // The button that walks a character out of a finished run. See Game/DungeonClear.
+    GameEplpCommand = 0x0001_0048,
+
     // The tutorial asking for the level it promised. See Game/TutorialLevelUp.
     GameTutorialLevelUp = 0x0001_01E4,
 
@@ -181,6 +191,8 @@ public enum ServerMessageType
     GameSecretShopNpc = 0x0000_0117,
     GamePlayResult = 0x0000_0022,
     GameClearDungeonReward = 0x0000_0023,
+    GameScoreScrollState = 0x0001_0045,
+    GameEplpCommand = 0x0001_0048,
     GameGiveUpGame = 0x0001_002A,
 
     // Why the character is not going into the dungeon they picked. See Game/DungeonEntry.

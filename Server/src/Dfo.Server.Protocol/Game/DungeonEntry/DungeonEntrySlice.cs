@@ -115,7 +115,7 @@ internal sealed record StartMapNotification(
     bool FirstEntry,
     IReadOnlyList<DungeonRoomActor> Actors,
     ushort FirstActorSequence,
-    IReadOnlyList<GroundDrop> Drops) : IGameNotiMessage
+    IReadOnlyList<FloorPiece> Drops) : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameStartMap;
 }
@@ -197,7 +197,7 @@ internal static class DungeonEntryPayloadCodec
         bool firstEntry,
         IReadOnlyList<DungeonRoomActor> actors,
         ushort firstActorSequence,
-        IReadOnlyList<GroundDrop> drops)
+        IReadOnlyList<FloorPiece> drops)
     {
         var layout = run.Layout;
         using var stream = new MemoryStream();
@@ -276,7 +276,10 @@ internal static class DungeonEntryPayloadCodec
             writer.Write(drops[index].Drop.ObjectIndex);
             writer.Write(drops[index].Number); // what the client names it by when it picks it up
             writer.Write(checked((uint)drops[index].Drop.ItemId));
-            writer.Write(DropInstance(run, drops[index].Drop.ObjectIndex));
+            // Count or discriminator, and which is decided before the frame is built rather than
+            // here: the reading depends on what the item is, which is an archive question. See
+            // FloorPieceValues.
+            writer.Write(drops[index].WireValue);
             writer.Write(drops[index].Drop.Durability);
             writer.Write((byte)0); // amplify type
             writer.Write((ushort)0); // amplify value
@@ -461,6 +464,7 @@ public sealed class SelectDungeonHandler(
     IDungeonRunDomainService runs,
     IDungeonRoomActorSource roomActors,
     IDungeonRoomDropSource roomDrops,
+    IItemPlacementDefinitionSource placements,
     IGameMessageSender sender,
     ILogger<SelectDungeonHandler> logger) : ClientMessageHandler<SelectDungeonRequest>
 {
@@ -557,10 +561,14 @@ public sealed class SelectDungeonHandler(
                         await roomActors.GetAsync(run.CurrentRoomMapId, cancellationToken)
                             .ConfigureAwait(false),
                         DungeonEntryPayloadCodec.FirstActorSequence(run),
-                        run.RemainingGroundDrops(
-                            await roomDrops.GetAsync(
-                                layout.DungeonId, run.CurrentRoomMapId, cancellationToken)
-                                .ConfigureAwait(false))),
+                        await FloorPieceValues.DescribeAsync(
+                            run,
+                            run.RemainingGroundDrops(
+                                await roomDrops.GetAsync(
+                                    layout.DungeonId, run.CurrentRoomMapId, cancellationToken)
+                                    .ConfigureAwait(false)),
+                            placements,
+                            cancellationToken).ConfigureAwait(false)),
                 ],
                 []),
             cancellationToken).ConfigureAwait(false);
@@ -630,6 +638,7 @@ public sealed class MoveMapHandler(
     IDungeonRunDomainService runs,
     IDungeonRoomActorSource roomActors,
     IDungeonRoomDropSource roomDrops,
+    IItemPlacementDefinitionSource placements,
     IGameMessageSender sender,
     ILogger<MoveMapHandler> logger) : ClientMessageHandler<MoveMapRequest>
 {
@@ -715,10 +724,14 @@ public sealed class MoveMapHandler(
                 .ConfigureAwait(false)
             : [];
         var drops = firstEntry
-            ? moved.RemainingGroundDrops(
-                await roomDrops.GetAsync(
-                    moved.Layout.DungeonId, moved.CurrentRoomMapId, cancellationToken)
-                    .ConfigureAwait(false))
+            ? await FloorPieceValues.DescribeAsync(
+                moved,
+                moved.RemainingGroundDrops(
+                    await roomDrops.GetAsync(
+                        moved.Layout.DungeonId, moved.CurrentRoomMapId, cancellationToken)
+                        .ConfigureAwait(false)),
+                placements,
+                cancellationToken).ConfigureAwait(false)
             : [];
 
         await sender.SendExplicitAsync(

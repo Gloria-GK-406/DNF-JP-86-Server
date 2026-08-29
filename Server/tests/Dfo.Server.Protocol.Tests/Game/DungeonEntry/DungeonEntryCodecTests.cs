@@ -199,7 +199,7 @@ public sealed class DungeonEntryCodecTests
     /// </para>
     /// </remarks>
     [Fact]
-    public void The_reference_servers_second_tutorial_room_is_reproduced_byte_for_byte()
+    public async Task The_reference_servers_second_tutorial_room_is_reproduced_byte_for_byte()
     {
         byte[] reference =
         [
@@ -231,7 +231,7 @@ public sealed class DungeonEntryCodecTests
             new DungeonRoomActor(61670, 1, 0),
             new DungeonRoomActor(61359, 1, 0),
         ];
-        var drops = run.RemainingGroundDrops([new DungeonRoomDrop(0, 14400, 25)]);
+        var drops = await Floor(run, new DungeonRoomDrop(0, ShoulderItemId, 25));
 
         var body = DungeonEntryPayloadCodec.EncodeStartMap(
             run, firstEntry: true, actors, 0x6399, drops);
@@ -253,9 +253,9 @@ public sealed class DungeonEntryCodecTests
     /// frames describe the same thing in different shapes.
     /// </remarks>
     [Fact]
-    public void Start_map_carries_what_the_rooms_breakable_objects_hold()
+    public async Task Start_map_carries_what_the_rooms_breakable_objects_hold()
     {
-        var drops = AtStart.RemainingGroundDrops([new DungeonRoomDrop(0, 14400, 25)]);
+        var drops = await Floor(AtStart, new DungeonRoomDrop(0, ShoulderItemId, 25));
 
         var body = DungeonEntryPayloadCodec.EncodeStartMap(
             AtStart, firstEntry: true, NoActors, FirstSequence, drops);
@@ -271,6 +271,69 @@ public sealed class DungeonEntryCodecTests
         Assert.Equal(25, BinaryPrimitives.ReadUInt16LittleEndian(entry[11..]));
         Assert.Equal([0, 0, 0, 0, 0, 0], entry[13..19].ToArray());
         Assert.Equal([0, 0, 0, 0xFF], body[^4..]);
+    }
+
+    /// <summary>
+    /// A material on the floor is announced with its count, not with a discriminator.
+    /// </summary>
+    /// <remarks>
+    /// The defect this pins, reported live on 2026-08-29: every piece on the floor carried the
+    /// value that tells one piece of equipment from another, and for anything that stacks the
+    /// client reads that field as a count. A 31-bit pseudo-random number read as several hundred
+    /// thousand of a material.
+    /// </remarks>
+    [Fact]
+    public async Task A_material_on_the_floor_is_announced_with_its_count()
+    {
+        var drops = await Floor(AtStart, new DungeonRoomDrop(0, MaterialItemId, 0, Count: 3));
+
+        var body = DungeonEntryPayloadCodec.EncodeStartMap(
+            AtStart, firstEntry: true, NoActors, FirstSequence, drops);
+
+        var entry = body.AsSpan(20);
+        Assert.Equal((uint)MaterialItemId, BinaryPrimitives.ReadUInt32LittleEndian(entry[3..]));
+        Assert.Equal(3u, BinaryPrimitives.ReadUInt32LittleEndian(entry[7..]));
+    }
+
+    /// <summary>
+    /// A piece of equipment keeps the discriminator, and it is the one the pick-up banks.
+    /// </summary>
+    /// <remarks>
+    /// The two halves have to agree or the piece in the bag stops being recognisably the piece
+    /// that was on the floor -- which is what <c>GroundPickupSlice</c> relies on to carry the
+    /// announcement across rather than invent a second one.
+    /// </remarks>
+    [Fact]
+    public async Task Equipment_on_the_floor_keeps_the_discriminator_the_pickup_banks()
+    {
+        var drops = await Floor(AtStart, new DungeonRoomDrop(0, ShoulderItemId, 25));
+
+        var body = DungeonEntryPayloadCodec.EncodeStartMap(
+            AtStart, firstEntry: true, NoActors, FirstSequence, drops);
+
+        var entry = body.AsSpan(20);
+        Assert.Equal(
+            DungeonEntryPayloadCodec.DropInstance(AtStart, 0),
+            BinaryPrimitives.ReadUInt32LittleEndian(entry[7..]));
+    }
+
+    /// <summary>
+    /// An item the archive does not declare is announced with a count rather than refused.
+    /// </summary>
+    /// <remarks>
+    /// A room is being described and the client will draw the piece either way. A count is the
+    /// reading that cannot put an absurd number on the floor, so it is the one an unknown item
+    /// gets.
+    /// </remarks>
+    [Fact]
+    public async Task An_item_the_archive_does_not_declare_is_announced_with_a_count()
+    {
+        var drops = await Floor(AtStart, new DungeonRoomDrop(0, 999999, 0, Count: 2));
+
+        var body = DungeonEntryPayloadCodec.EncodeStartMap(
+            AtStart, firstEntry: true, NoActors, FirstSequence, drops);
+
+        Assert.Equal(2u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(27)));
     }
 
     /// <summary>
@@ -411,7 +474,37 @@ public sealed class DungeonEntryCodecTests
     private static readonly DungeonRoomActor[] NoActors = [];
 
     /// <summary>A room with nothing breakable in it.</summary>
-    private static readonly GroundDrop[] NoDrops = [];
+    private static readonly FloorPiece[] NoDrops = [];
+
+    /// <summary>The equipment the tutorial's second room holds, and a material that stacks.</summary>
+    private const int ShoulderItemId = 14400;
+
+    private const int MaterialItemId = 10088621;
+
+    /// <summary>
+    /// Describes the floor through the real resolver, with an archive that knows two items.
+    /// </summary>
+    /// <remarks>
+    /// Through the resolver rather than by building the pieces here: what goes in that field is
+    /// the thing under test, and a fixture that decided it itself would agree with whatever the
+    /// production code did.
+    /// </remarks>
+    private static ValueTask<IReadOnlyList<FloorPiece>> Floor(
+        DungeonRunState run, params DungeonRoomDrop[] declared) =>
+        FloorPieceValues.DescribeAsync(
+            run, run.RemainingGroundDrops(declared), new TwoItems(), CancellationToken.None);
+
+    /// <summary>An archive in which the shoulder is equipment and the material is not.</summary>
+    private sealed class TwoItems : IItemPlacementDefinitionSource
+    {
+        public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ItemPlacement?>(itemId switch
+            {
+                ShoulderItemId => new ItemPlacement(ItemKind: 1, StackLimit: 1, SlotStart: 0, SlotEnd: 0),
+                MaterialItemId => new ItemPlacement(ItemKind: 4, StackLimit: 999, SlotStart: 0, SlotEnd: 0),
+                _ => null,
+            });
+    }
 
     /// <summary>An arbitrary sequence base; these tests are about the fields around it.</summary>
     private const ushort FirstSequence = 75;

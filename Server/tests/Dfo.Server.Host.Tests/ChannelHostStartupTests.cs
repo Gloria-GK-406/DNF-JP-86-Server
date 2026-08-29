@@ -105,14 +105,30 @@ public sealed class ChannelHostStartupTests
             workingDirectory, channelPort, gamePorts, output, scriptPath);
         try
         {
-            // Generous on purpose. This waits for a whole process to cold-start, read its
-            // configuration, refuse, and exit, and the suite runs seven assemblies at once behind
-            // a build -- ten seconds was enough alone and not enough under that load, which made a
-            // passing baseline look like a regression three runs running. Nothing is masked by the
-            // larger budget: a host that wrongly started would never exit, and this would still
-            // fail, only later.
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            await process.WaitForExitAsync(timeout.Token);
+            // Generous on purpose, and the budget is not what this test is about. The refusal is
+            // a hosted service, so what is being waited on is not "read a path and exit" but a
+            // whole host cold-starting: the container, the 70MB archive the content sources open,
+            // the database file -- and only then the refusal. Alone that is a couple of seconds;
+            // under the seven assemblies this suite runs at once it went past ten and then past
+            // thirty, and each time a passing baseline read as a regression.
+            //
+            // Nothing is masked by the larger budget. What this test proves is that the host
+            // exited non-zero and that nothing is listening; a host that wrongly started would
+            // never exit and would still fail here, only later. The deadline exists so that a
+            // hang ends the suite instead of holding it forever, and on hitting it this reports
+            // what the host had said by then rather than a bare cancellation.
+            var waited = Stopwatch.StartNew();
+            using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+            try
+            {
+                await process.WaitForExitAsync(timeout.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                throw new Xunit.Sdk.XunitException(
+                    $"The host was still running after {waited.Elapsed}. Its output so far:"
+                        + Environment.NewLine + Snapshot(output));
+            }
             Assert.NotEqual(0, process.ExitCode);
             var startupOutput = Snapshot(output);
             Assert.Contains(scriptPath, startupOutput);

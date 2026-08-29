@@ -39,6 +39,20 @@ Resources/Channel/channel_info.etc
 启动成功后，即使进程当前目录改变或磁盘上的源文件被替换，客户端的 `0x09` 请求也只读取
 已验证快照。这避免连接建立后才出现 `FileNotFoundException`。
 
+### 一处待办：这道校验发生得比它该发生的晚
+
+`ChannelScriptStartupService` 是一个 `IHostedService`，所以「读脚本、拒绝、退出」排在容器建好
+之后、并且排在此前每一个 hosted service 之后——包括打开 70MB 档案的内容源与建库。**「在 listener
+起来之前失败」是真的，但「早失败」不是**：一次拒绝要走完整个冷启动。
+
+代价先落在测试上。`ChannelHostStartupTests.InvalidRequiredChannelScript_FailsBeforeListenersStart`
+等的是一整个进程冷启动，单跑两三秒，七个测试程序集并行时越过十秒、又越过三十秒，每次都让一条
+干净的基线读起来像回归。当前预算三分钟，并在超时时打印主机已经输出的内容——数字不是重点，能
+诊断才是。
+
+把这道校验搬到建图期（配置绑定处直接读一次），拒绝就会发生在任何昂贵启动工作之前，保证更强、
+测试也不必再等冷启动。属结构改动，未做。
+
 ## 频道与经验加成
 
 `channel_info.etc` 不只是发给客户端的一份脚本，它还声明了**哪个频道为哪些副本多发经验**：

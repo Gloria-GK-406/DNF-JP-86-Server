@@ -32,6 +32,39 @@ public sealed class PvfDungeonRoomDropSourceTests
         Assert.Equal([new DungeonRoomDrop(0, 14400, 25)], drops);
     }
 
+    /// <summary>
+    /// The declared count is read, and it is not always one.
+    /// </summary>
+    /// <remarks>
+    /// The count is the second integer after the kind, and it is what a stackable piece is drawn
+    /// with on the floor. Every object the tutorial declares says one, so a reader that ignored
+    /// the field entirely and returned one would satisfy every other test here -- and would put a
+    /// wrong number under every material in the game. Room 55611 is the one this was checked
+    /// against because it declares three:
+    /// <code>
+    /// [special passive object]
+    /// 49014 780 341 0 1 [item] 1 3 -1 -1 -1
+    /// [/special passive object]
+    /// </code>
+    /// </remarks>
+    [SkippableFact]
+    public async Task A_declared_count_is_read_rather_than_assumed_to_be_one()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfDungeonRoomDropSource(provider);
+
+        var drops = await source.GetAsync(CountingDungeon, CountingRoom, CancellationToken.None);
+
+        var drop = Assert.Single(drops);
+        Assert.Equal(3, drop.Count);
+    }
+
+    /// <summary>The dungeon and room whose declaration carries a count above one.</summary>
+    private const int CountingDungeon = 144;
+
+    private const int CountingRoom = 55611;
+
     [SkippableFact]
     public async Task A_room_with_nothing_breakable_yields_nothing()
     {
