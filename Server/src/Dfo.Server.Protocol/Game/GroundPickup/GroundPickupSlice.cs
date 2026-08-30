@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -62,6 +63,21 @@ public sealed record GroundPickupNotification(
     public ServerMessageType MessageType => ServerMessageType.GameGroundPickup;
 }
 
+/// <summary>
+/// NOTI 0x0027 <c>GET_ITEM</c>, the form the client reads as money rather than an item.
+/// </summary>
+/// <remarks>
+/// The same type as an item pick-up and a different body. What tells them apart is the byte at
+/// <c>+4</c>: an item writes one there, money writes zero.
+/// </remarks>
+public sealed record GroundGoldPickupNotification(
+    ushort GroundDropNumber,
+    ushort PickerActorId,
+    int Amount) : IGameNotiMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameGroundPickup;
+}
+
 internal static class GroundPickupPayloadCodec
 {
     /// <summary>The piece's number is all the reference server reads of the request.</summary>
@@ -69,6 +85,53 @@ internal static class GroundPickupPayloadCodec
 
     /// <summary>The notification's fixed length, as the reference builder writes it.</summary>
     public const int NotificationBodyLength = 18;
+
+    /// <summary>The money form's length, measured rather than transcribed.</summary>
+    public const int GoldNotificationBodyLength = 117;
+
+    /// <summary>
+    /// Everything after the amount, which no capture has ever varied.
+    /// </summary>
+    /// <remarks>
+    /// A hundred and seven bytes, <b>byte-for-byte identical in two independent captures</b> that
+    /// differ in the amount, the piece and the picker -- 38 gold to user 3 in
+    /// <c>packet_log.upstream-killexp-20260827.txt</c> and 131 to user 1 in
+    /// <c>packet_log.reference-20260823.txt</c>. It repeats on a fourteen-byte period and this
+    /// server has not read what it means, which is why it is carried as the constant it was
+    /// observed to be rather than generated from a structure nobody has confirmed.
+    /// </remarks>
+    private static readonly byte[] GoldNotificationTail =
+    [
+        0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ];
+
+    /// <summary>
+    /// The money form: the piece, who took it, and how much.
+    /// </summary>
+    /// <remarks>
+    /// Measured against two captures. The amount is a signed 32-bit field at <c>+6</c>, and the
+    /// client adds it to the purse it is already displaying rather than being told a total -- the
+    /// total reaches it once, in the item-list frame at entry.
+    /// </remarks>
+    public static byte[] EncodeGoldNotification(GroundGoldPickupNotification message)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+        var body = new byte[GoldNotificationBodyLength];
+        BinaryPrimitives.WriteUInt16LittleEndian(body.AsSpan(0), message.GroundDropNumber);
+        BinaryPrimitives.WriteUInt16LittleEndian(body.AsSpan(2), message.PickerActorId);
+        body[4] = 0x00; // money, where an item writes one
+        body[5] = 0x01;
+        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(6), message.Amount);
+        GoldNotificationTail.CopyTo(body.AsSpan(10));
+        return body;
+    }
 
     public static byte[] EncodeResponse(GetItemResponse message) =>
         message.Accepted ? [0x01] : [0x00, GetItemResponse.InventoryFull];
@@ -114,6 +177,15 @@ internal sealed class GetItemResponseEncoder : GameCmdMessageEncoder<GetItemResp
         OnePayload(GameProtocol.GetItemType, GroundPickupPayloadCodec.EncodeResponse(message));
 }
 
+internal sealed class GroundGoldPickupEncoder : GameNotiMessageEncoder<GroundGoldPickupNotification>
+{
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
+        GroundGoldPickupNotification message) =>
+        OnePayload(
+            GameProtocol.GroundPickupNotificationType,
+            GroundPickupPayloadCodec.EncodeGoldNotification(message));
+}
+
 internal sealed class GroundPickupEncoder : GameNotiMessageEncoder<GroundPickupNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
@@ -150,17 +222,26 @@ public enum GroundPickupStatus
 
     /// <summary>The archive declares nothing holdable under that identifier.</summary>
     UnknownItem,
+
+    /// <summary>Money, which goes to the account's purse rather than into a bag.</summary>
+    Banked,
 }
 
 /// <summary>What a pick-up did, or why it did not.</summary>
-public sealed record GroundPickupResult(GroundPickupStatus Status, int ItemId, int SlotIndex)
+/// <param name="Amount">
+/// How much money was taken, and what the account holds afterwards. Zero for anything that went
+/// into a bag.
+/// </param>
+public sealed record GroundPickupResult(
+    GroundPickupStatus Status, int ItemId, int SlotIndex, int Amount = 0, int Total = 0)
 {
     public static GroundPickupResult Refused(GroundPickupStatus status, int itemId = 0) =>
         new(status, itemId, 0);
 }
 
 /// <summary>One character taking one piece off the floor of the room they are standing in.</summary>
-public sealed record PickUpGroundDropCommand(CharacterId CharacterId, ushort GroundDropNumber)
+public sealed record PickUpGroundDropCommand(
+    AccountId AccountId, CharacterId CharacterId, ushort GroundDropNumber)
     : ICommand<GroundPickupResult>;
 
 /// <summary>
@@ -183,7 +264,8 @@ public sealed class PickUpGroundDropCommandHandler(
     IDungeonRunDomainService runs,
     IDungeonRoomDropSource roomDrops,
     IItemPlacementDefinitionSource placements,
-    ICharacterContainerDomainService containers)
+    ICharacterContainerDomainService containers,
+    IAccountMoneyService money)
     : ICommandHandler<PickUpGroundDropCommand, GroundPickupResult>
 {
     /// <summary>What the archive's equipment index says every worn item is.</summary>
@@ -203,37 +285,57 @@ public sealed class PickUpGroundDropCommandHandler(
         var declared = await roomDrops
             .GetAsync(run.Layout.DungeonId, run.CurrentRoomMapId, cancellationToken)
             .ConfigureAwait(false);
-        if (run.FindGroundDrop(declared, command.GroundDropNumber) is not { } found)
+
+        // Two kinds of thing lie on a floor and they are found differently. What the room declares
+        // can be read back out of the archive at any time; what a monster dropped exists only in
+        // the run. The declared pieces hold the low numbers and a dropped one is always numbered
+        // above them, so the two cannot both answer to one number.
+        var piece = Piece(run, declared, command.GroundDropNumber);
+        if (piece is null)
             return GroundPickupResult.Refused(GroundPickupStatus.NothingThere);
+
+        // Money goes to the account's purse and never touches a bag, so it is claimed and banked
+        // before a container is even looked for -- a character with no bag bound can still pick up
+        // coins.
+        if (piece.ItemId == RolledDrop.GoldItemId)
+        {
+            if (runs.TryTakeGroundDrop(command.CharacterId, command.GroundDropNumber) is null)
+                return GroundPickupResult.Refused(GroundPickupStatus.AlreadyTaken);
+
+            var total = await money.AddAsync(command.AccountId, piece.Count, cancellationToken)
+                .ConfigureAwait(false);
+            return new GroundPickupResult(
+                GroundPickupStatus.Banked, RolledDrop.GoldItemId, 0, piece.Count, total);
+        }
 
         var container = containers.FindContainer(command.CharacterId, InventoryContainerType.Main);
         if (container is null)
-            return GroundPickupResult.Refused(GroundPickupStatus.NoBoundContainer, found.Drop.ItemId);
+            return GroundPickupResult.Refused(GroundPickupStatus.NoBoundContainer, piece.ItemId);
 
         if (runs.TryTakeGroundDrop(command.CharacterId, command.GroundDropNumber) is null)
-            return GroundPickupResult.Refused(GroundPickupStatus.AlreadyTaken, found.Drop.ItemId);
+            return GroundPickupResult.Refused(GroundPickupStatus.AlreadyTaken, piece.ItemId);
 
-        var outcome = await container.AddAsync(found.Drop.ItemId, 1, cancellationToken)
+        var outcome = await container.AddAsync(piece.ItemId, piece.Count, cancellationToken)
             .ConfigureAwait(false);
         switch (outcome)
         {
             case ItemPlacementOutcome.AddedToPile topped:
                 return new GroundPickupResult(
-                    GroundPickupStatus.PickedUp, found.Drop.ItemId, topped.SlotIndex);
+                    GroundPickupStatus.PickedUp, piece.ItemId, topped.SlotIndex);
 
             case ItemPlacementOutcome.PutInEmptySlot opened:
-                await CarryOverAsync(container, run, found, opened.SlotIndex, cancellationToken)
+                await CarryOverAsync(container, piece, opened.SlotIndex, cancellationToken)
                     .ConfigureAwait(false);
                 return new GroundPickupResult(
-                    GroundPickupStatus.PickedUp, found.Drop.ItemId, opened.SlotIndex);
+                    GroundPickupStatus.PickedUp, piece.ItemId, opened.SlotIndex);
 
             case ItemPlacementOutcome.NoRoom:
                 return GroundPickupResult.Refused(
-                    GroundPickupStatus.InventoryFull, found.Drop.ItemId);
+                    GroundPickupStatus.InventoryFull, piece.ItemId);
 
             case ItemPlacementOutcome.UnknownItem:
                 return GroundPickupResult.Refused(
-                    GroundPickupStatus.UnknownItem, found.Drop.ItemId);
+                    GroundPickupStatus.UnknownItem, piece.ItemId);
 
             default:
                 // Listed rather than defaulted: an outcome nobody read would become a piece that
@@ -241,6 +343,44 @@ public sealed class PickUpGroundDropCommandHandler(
                 throw new ArgumentOutOfRangeException(
                     nameof(command), outcome, "No reading was decided for this outcome.");
         }
+    }
+
+    /// <summary>
+    /// One piece on a floor, from wherever it came from.
+    /// </summary>
+    /// <param name="Instance">
+    /// The value that tells this piece of equipment from another. It is announced when the piece
+    /// arrives on the floor and has to be the same value the bag ends up holding.
+    /// </param>
+    private sealed record FloorPickup(int ItemId, int Count, ushort Durability, uint Instance);
+
+    /// <summary>What lies under that number, declared or dropped, or nothing.</summary>
+    private static FloorPickup? Piece(
+        DungeonRunState run, IReadOnlyList<DungeonRoomDrop> declared, ushort number)
+    {
+        if (run.FindGroundDrop(declared, number) is { } room)
+        {
+            return new FloorPickup(
+                room.Drop.ItemId,
+                Math.Max(1, room.Drop.Count),
+                room.Drop.Durability,
+                DungeonEntryPayloadCodec.DropInstance(run, room.Drop.ObjectIndex));
+        }
+
+        if (run.FindMonsterDrop(number) is { } dropped)
+        {
+            // Derived from the kill, not from the piece's number -- which is what the kill's own
+            // frame announced, and what makes every piece of one kill carry one value the way the
+            // captured frames do. Deriving it from the number here would put a different value in
+            // the bag than the one the player was shown on the floor.
+            return new FloorPickup(
+                dropped.Drop.ItemId,
+                Math.Max(1, dropped.Drop.Count),
+                dropped.Drop.Rolled.Durability,
+                DungeonEntryPayloadCodec.MonsterDropInstance(run, dropped.ActorSequence));
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -259,12 +399,11 @@ public sealed class PickUpGroundDropCommandHandler(
     /// </remarks>
     private async ValueTask CarryOverAsync(
         IItemContainer container,
-        DungeonRunState run,
-        GroundDrop found,
+        FloorPickup found,
         int slotIndex,
         CancellationToken cancellationToken)
     {
-        var placement = await placements.GetAsync(found.Drop.ItemId, cancellationToken)
+        var placement = await placements.GetAsync(found.ItemId, cancellationToken)
             .ConfigureAwait(false);
         if (placement?.ItemKind != EquipmentItemKind)
             return;
@@ -278,9 +417,8 @@ public sealed class PickUpGroundDropCommandHandler(
             slotIndex,
             landed.Core with
             {
-                Value = checked((int)DungeonEntryPayloadCodec.DropInstance(
-                    run, found.Drop.ObjectIndex)),
-                Durability = found.Drop.Durability,
+                Value = checked((int)found.Instance),
+                Durability = found.Durability,
             },
             cancellationToken).ConfigureAwait(false);
     }
@@ -315,8 +453,33 @@ public sealed class GetItemHandler(
         }
 
         var result = await commandBus.SendAsync(
-            new PickUpGroundDropCommand(session.CharacterId, message.GroundDropNumber),
+            new PickUpGroundDropCommand(
+                session.AccountId, session.CharacterId, message.GroundDropNumber),
             cancellationToken).ConfigureAwait(false);
+
+        if (result.Status is GroundPickupStatus.Banked)
+        {
+            logger.LogInformation(
+                "Get item {ConnectionId} user={WireUserId}: drop {Number} is {Amount} gold, "
+                    + "account now holds {Total}",
+                context.Connection.ConnectionId,
+                session.WireUserId,
+                message.GroundDropNumber,
+                result.Amount,
+                result.Total);
+
+            await sender.SendExplicitAsync(
+                context.Connection.ConnectionId,
+                new GameExplicitMessageDelivery(
+                    [
+                        new GetItemResponse(Accepted: true),
+                        new GroundGoldPickupNotification(
+                            message.GroundDropNumber, session.WireUserId, result.Amount),
+                    ],
+                    []),
+                cancellationToken).ConfigureAwait(false);
+            return;
+        }
 
         if (result.Status is GroundPickupStatus.PickedUp)
         {

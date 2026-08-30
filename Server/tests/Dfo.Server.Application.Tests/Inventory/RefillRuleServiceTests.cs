@@ -239,6 +239,60 @@ public sealed class RefillRuleServiceTests
         Assert.Equal(9, Assert.IsType<ItemArrival.IntoEmptySlot>(arrival).Count);
     }
 
+    /// <summary>
+    /// An undeclared stack limit still joins a pile.
+    /// </summary>
+    /// <remarks>
+    /// <b>The two halves of this method used to disagree about what zero meant.</b> Opening a slot
+    /// read it as "caps nothing", which the test above pins; joining a pile read it as "does not
+    /// stack" and opened a second slot instead. Almost nothing in the archive declares a
+    /// <c>[stack limit]</c> -- the crystal shard and the throwing stone both leave it out -- so in
+    /// play the effect was that materials never stacked at all: a second shard opened slot 124
+    /// beside the first at 123.
+    /// <para>
+    /// Zero means unbounded, which is what the reference server reads in both the places it
+    /// resolves a limit.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void AGrantWithNoDeclaredStackLimitStillJoinsAPile()
+    {
+        var arrival = Arrival.ForGrant(
+            [new ItemPile(123, 1)], count: 1, new ItemPlacement(3, 0, 121, 176), Occupied(123));
+
+        var onto = Assert.IsType<ItemArrival.OntoExistingPile>(arrival);
+        Assert.Equal(123, onto.SlotIndex);
+        Assert.Equal(1, onto.Added);
+        Assert.Equal(2, onto.Total);
+    }
+
+    /// <summary>And it keeps joining, however large the pile gets.</summary>
+    [Fact]
+    public void An_uncapped_pile_keeps_taking_more()
+    {
+        var arrival = Arrival.ForGrant(
+            [new ItemPile(123, 9_999_999)], count: 3,
+            new ItemPlacement(3, 0, 121, 176), Occupied(123));
+
+        Assert.Equal(10_000_002, Assert.IsType<ItemArrival.OntoExistingPile>(arrival).Total);
+    }
+
+    /// <summary>
+    /// Equipment is unaffected: a limit of one still opens a slot for every piece.
+    /// </summary>
+    /// <remarks>
+    /// Worth pinning beside the change, because "zero means unbounded" and "one means never pile"
+    /// are one comparison apart and a fix to the first that broke the second would stack swords.
+    /// </remarks>
+    [Fact]
+    public void A_limit_of_one_still_never_joins_a_pile()
+    {
+        var arrival = Arrival.ForGrant(
+            [new ItemPile(9, 1)], count: 1, new ItemPlacement(1, 1, 9, 64), Occupied(9));
+
+        Assert.Equal(10, Assert.IsType<ItemArrival.IntoEmptySlot>(arrival).SlotIndex);
+    }
+
     /// <remarks>
     /// The quick bar is seeded as well as the band. A consumable is offered slots 3 to 8 before its
     /// own band, so a test that filled only the band would be asserting that six free slots are no

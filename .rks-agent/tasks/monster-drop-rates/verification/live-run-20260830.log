@@ -1,0 +1,428 @@
+info: Dfo.Server.Host[0]
+      Starting DFO server with modules: Infrastructure, Persistence, Application, Networking, Protocol
+info: Dfo.Server.Host[0]
+      Effective startup configuration: ContentRoot=D:\project\DNF\DNF-JP-86-Server\.worktrees\monster-drop-rates\Server\src\Dfo.Server.Host\bin\Debug\net10.0\; ChannelScript=D:\project\DNF\DNF-JP-86-Server\.worktrees\monster-drop-rates\Server\src\Dfo.Server.Host\bin\Debug\net10.0\Resources\Channel\channel_info.etc; ChannelAddress=127.0.0.1; GameAddress=127.0.0.1; ChannelPort=7001; GamePorts=10010,10011
+info: Dfo.Server.Host[0]
+      Static content archive: D:/project/DNF/DNFClient-A21-protocol/Script.pvf (72894573 bytes, 2017-01-05 01:22:45Z)
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      服务器已启动。
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      服务器已启动。
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: D:\project\DNF\DNF-JP-86-Server\.worktrees\monster-drop-rates\Server\src\Dfo.Server.Host\bin\Debug\net10.0\
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GetChannelScriptCommand handled by GetChannelScriptCommandHandler as Direct with execution 4a625c41-a859-4bda-8a9d-34e13e79e96c in 11.0651 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GetChannelInfoCommand handled by GetChannelInfoCommandHandler as Direct with execution b2a60de8-eceb-4151-9d36-381763a32238 in 0.9305 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command LoginGameUserCommand handled by LoginGameUserCommandHandler as Transactional with execution 356cb87c-9005-4b6d-bb4d-4af61aa2eb2b in 52.7534 ms
+info: Dfo.Server.Protocol.Game.ClientSpecStatistic.ClientSpecStatisticHandler[0]
+      Client hardware report Game:02-00-00-00 account=1 onlineUser=1ca3bf70b6ce45bab81b2d416b2f1872: trigger=128 reported=0 cpu=cores=12 vendor=Intel clock=>2450MHz gpu=pci=8086:A7A8 os=Windows10/11 sp=0 memory=bucket=7 (>2056MB)
+info: Dfo.Server.Protocol.Game.ClientHardwareDetail.ClientHardwareDetailHandler[0]
+      Client hardware detail Game:02-00-00-00 account=1 onlineUser=1ca3bf70b6ce45bab81b2d416b2f1872: cpu=cores=12 vendor=Intel clock=2600MHz gpu=pci=8086:A7A8 video=4093MB os=Windows10/11 bitness=64 memory=16107MB
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GetAccountCharacterRosterCommand handled by GetAccountCharacterRosterCommandHandler as Direct with execution 2a1f6326-6a7f-46d2-99b8-2f1c02f61261 in 14.199 ms
+info: Dfo.Server.Protocol.Game.HiddenCharacterInfo.HiddenCharacterInfoHandler[0]
+      Hidden character info Game:02-00-00-00: already answered with the roster, not replying again
+info: Dfo.Server.Protocol.Game.SaveGameOption.SaveGameOption1Handler[0]
+      Save game option 1 Game:02-00-00-00 account=1: 150 option bytes, not persisted
+info: Dfo.Server.Protocol.Game.SaveGameOption.SaveGameOption1Handler[0]
+      Save game option 1 Game:02-00-00-00 account=1: 150 option bytes, not persisted
+info: Dfo.Server.Protocol.Game.RosterFollowUp.RosterFollowUpHandler[0]
+      Roster follow-up Game:02-00-00-00 account=1 onlineUser=1ca3bf70b6ce45bab81b2d416b2f1872: value=0xFFFF (sentinel)
+info: Dfo.Server.Protocol.Game.MercenaryInfo.MercenaryInfoHandler[0]
+      Mercenary info Game:02-00-00-00: replying with an empty expedition roster
+info: Dfo.Server.Protocol.Game.MapEntryReports.MapEntryReportHandler[0]
+      Map entry report Game:02-00-00-00 account=1: SET_UDP_IP_PORT 05AC11E001AC11E0010839C00500000C000000333065336134343865643066
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command CheckCharacterNameCommand handled by CheckCharacterNameCommandHandler as Direct with execution ea52d61f-5201-43e6-b4a0-6ccc71d605eb in 17.4629 ms
+info: Dfo.Server.Protocol.Game.CharacterName.CheckCharacterNameHandler[0]
+      Check character name Game:02-00-00-00 account=1: Available name='12' (2B)
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command CreateCharacterCommand handled by CreateCharacterCommandHandler as Transactional with execution 18b5787b-0cdb-4f3f-bbe1-f1050715c2dc in 2426.1487 ms
+info: Dfo.Server.Protocol.Game.CreateCharacter.CreateCharacterHandler[0]
+      Create character Game:02-00-00-00 account=1 job=11: Created character=1
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GetAccountCharacterRosterCommand handled by GetAccountCharacterRosterCommandHandler as Direct with execution d17fece8-d662-49a2-8493-f9262c5ba6d1 in 6.7994 ms
+info: Dfo.Server.Protocol.Game.MercenaryInfo.MercenaryInfoHandler[0]
+      Mercenary info Game:02-00-00-00: replying with an empty expedition roster
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command PrepareSelectedCharacterSessionCommand handled by PrepareSelectedCharacterSessionCommandHandler as Transactional with execution 16594613-0548-4723-a420-7ffcfff3c522 in 1916.3679 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command ApplySelectedCharacterDailyRefillCommand handled by ApplySelectedCharacterDailyRefillCommandHandler as Transactional with execution 4ac6baf2-ff30-46ca-95bd-b29ff3b94de4 in 176.6992 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command PublishSelectedCharacterSessionCommand handled by PublishSelectedCharacterSessionCommandHandler as Workflow with execution d4aac5f1-246e-4707-9a6b-095e8382b8c5 in 9.6801 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command SynchronizeSelectedCharacterQuestsCommand handled by SynchronizeSelectedCharacterQuestsCommandHandler as Transactional with execution d681e67e-ce12-4bbc-b848-0ef7544ac839 in 6.3962 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command ReviveSelectedCharacterPetCommand handled by ReviveSelectedCharacterPetCommandHandler as Transactional with execution 4ef58451-d8cf-4c23-a9fc-2d0b7a29cd48 in 14.2006 ms
+info: Dfo.Server.Protocol.Game.MapEntryReports.MapEntryReportHandler[0]
+      Map entry report Game:02-00-00-00 account=1: INFORM_NOTICE_2ND value=16
+info: Dfo.Server.Protocol.Game.MapEntryReports.MapEntryReportHandler[0]
+      Map entry report Game:02-00-00-00 account=1: CERA (empty body)
+info: Dfo.Server.Protocol.Game.MercenaryInfo.MercenaryInfoHandler[0]
+      Mercenary info Game:02-00-00-00: replying with an empty expedition roster
+info: Dfo.Server.Protocol.Game.SaveGameOption.SaveGameOption1Handler[0]
+      Save game option 1 Game:02-00-00-00 account=1: 150 option bytes, not persisted
+info: Dfo.Server.Protocol.Game.SaveGameOption.SaveGameOption1Handler[0]
+      Save game option 1 Game:02-00-00-00 account=1: 150 option bytes, not persisted
+info: Dfo.Server.Protocol.Game.DungeonSelection.EnterSelectDungeonHandler[0]
+      Enter select dungeon Game:02-00-00-00 user=1: selection=10000 town=1 area=0->0xFF pos=(474,234)
+info: Dfo.Server.Protocol.Game.DungeonSelection.EnterSelectDungeonHandler[0]
+      Enter select dungeon Game:02-00-00-00: 4 notifications handed to the sender
+info: Dfo.Server.Protocol.Game.SaveGameOption.SaveGameOption1Handler[0]
+      Save game option 1 Game:02-00-00-00 account=1: 150 option bytes, not persisted
+info: Dfo.Server.Protocol.Game.DungeonEntry.SelectDungeonHandler[0]
+      Select dungeon Game:02-00-00-00 user=1: dungeon=10000 difficulty=0 maze=0 start=(0,1) room=61000 boss=(2,0) seed=1222085113
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GrantTutorialRewardCommand handled by GrantTutorialRewardCommandHandler as Transactional with execution a8f3847e-cb79-47be-8af9-27a3caec0498 in 2.7038 ms
+info: Dfo.Server.Protocol.Game.TaggedIdReport.TaggedIdReportHandler[0]
+      Tagged id report Game:02-00-00-00 account=1 onlineUser=1ca3bf70b6ce45bab81b2d416b2f1872: id=30 flag=1 declared=0 granted=0
+info: Dfo.Server.Protocol.Game.MapEntryReports.MapEntryReportHandler[0]
+      Map entry report Game:02-00-00-00 account=1: INFORM_NOTICE_2ND value=16
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:02-00-00-00: 0F0000007F000001
+info: Dfo.Server.Protocol.Game.MercenaryInfo.MercenaryInfoHandler[0]
+      Mercenary info Game:02-00-00-00: replying with an empty expedition roster
+info: Dfo.Server.Protocol.Game.FinishLoading.FinishLoadingHandler[0]
+      Finish loading Game:02-00-00-00: releasing the loading screen (0,0)
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=1
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=1
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=2
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:02-00-00-00: 0500000000000000
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:02-00-00-00: 0500000000000000
+info: Dfo.Server.Infrastructure.Content.ChannelScriptExperienceSource[0]
+      Channel experience: 29 channel(s) declare a reward
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GrantKillExperienceCommand handled by GrantKillExperienceCommandHandler as Transactional with execution eb13cfe5-a37e-48a0-9773-773e0664ebd1 in 72.263 ms
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Kill experience character=1: monster=61670 level=1 rank=Ordinary award=1 (base 1) -> level 1 at 1
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=56807 monster level=1 rank=0 gave piece 1 = item 0 x18 (Common, Gold)
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=56807 monster level=1 rank=0 gave piece 2 = item 31002 x1 (Common, Equipment)
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Monster death Game:02-00-00-00 user=1: actor=56807 killedBy=0
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:02-00-00-00: 0500000000000000
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:02-00-00-00: 0500000000000000
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=2
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:02-00-00-00: 0500000000000000
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=2
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:02-00-00-00: 0500000000000000
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:02-00-00-00: 0500000000000000
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command PickUpGroundDropCommand handled by PickUpGroundDropCommandHandler as Transactional with execution 64b4bcf2-f244-43e3-a2b0-b8d41fa043dc in 5.7304 ms
+info: Dfo.Server.Protocol.Game.GroundPickup.GetItemHandler[0]
+      Get item Game:02-00-00-00 user=1: drop 1 refused as NothingThere
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:02-00-00-00: 0500000000000000
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:02-00-00-00: 0500000000000000
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command PickUpGroundDropCommand handled by PickUpGroundDropCommandHandler as Transactional with execution 63d89d86-dfcd-4742-8c06-8a45e5e1e684 in 112.7143 ms
+info: Dfo.Server.Protocol.Game.GroundPickup.GetItemHandler[0]
+      Get item Game:02-00-00-00 user=1: drop 2 is item 31002, into slot 9
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:02-00-00-00: 0500000000000000
+info: Dfo.Server.Protocol.Game.DungeonEntry.MoveMapHandler[0]
+      Move map Game:02-00-00-00 user=1: (0,1) -> (1,1) room=61001 first=True path=(948,285)
+info: Dfo.Server.Protocol.Game.FinishLoading.FinishLoadingHandler[0]
+      Finish loading Game:02-00-00-00: releasing the loading screen (0,0)
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=2
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GrantKillExperienceCommand handled by GrantKillExperienceCommandHandler as Transactional with execution d9435c3a-132d-42df-86a6-8fed36025a15 in 2.6734 ms
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Kill experience character=1: monster=61670 level=1 rank=Ordinary award=1 (base 1) -> level 1 at 2
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=14195 monster level=1 rank=0 gave piece 2 = item 0 x18 (Common, Gold)
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=14195 monster level=1 rank=0 gave piece 3 = item 6003 x1 (Common, Stackable)
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Monster death Game:02-00-00-00 user=1: actor=14195 killedBy=0
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GrantKillExperienceCommand handled by GrantKillExperienceCommandHandler as Transactional with execution c7f7518b-d2dd-41f1-81f0-c5e1d0531943 in 2.1092 ms
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Kill experience character=1: monster=61670 level=1 rank=Ordinary award=1 (base 1) -> level 1 at 3
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=14197 monster level=1 rank=0 gave piece 4 = item 0 x17 (Common, Gold)
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Monster death Game:02-00-00-00 user=1: actor=14197 killedBy=0
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=2
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:02-00-00-00: 0500000000000000
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:02-00-00-00: 0500000000000000
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:02-00-00-00: 0500000000000000
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:02-00-00-00: 0500000000000000
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GrantKillExperienceCommand handled by GrantKillExperienceCommandHandler as Transactional with execution aaec376a-d684-438a-80a5-b6af4f2b26db in 2.2904 ms
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Kill experience character=1: monster=61359 level=1 rank=Ordinary award=1 (base 1) -> level 1 at 4
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=14198 monster level=1 rank=0 gave piece 5 = item 0 x17 (Common, Gold)
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=14198 monster level=1 rank=0 gave piece 6 = item 37003 x1 (Common, Equipment)
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Monster death Game:02-00-00-00 user=1: actor=14198 killedBy=0
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GrantKillExperienceCommand handled by GrantKillExperienceCommandHandler as Transactional with execution d38d78c9-46ef-43f5-a11c-46ddddf4a0fe in 138.2829 ms
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Kill experience character=1: monster=61359 level=1 rank=Ordinary award=1 (base 1) -> level 1 at 5
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=14196 monster level=1 rank=0 gave piece 7 = item 0 x17 (Common, Gold)
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=14196 monster level=1 rank=0 gave piece 8 = item 27601 x1 (Common, Equipment)
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Monster death Game:02-00-00-00 user=1: actor=14196 killedBy=0
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=2
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command PickUpGroundDropCommand handled by PickUpGroundDropCommandHandler as Transactional with execution 99e5f5e4-f27a-4abe-8a7f-0295633b41a1 in 0.3883 ms
+info: Dfo.Server.Protocol.Game.GroundPickup.GetItemHandler[0]
+      Get item Game:02-00-00-00 user=1: drop 7 refused as NothingThere
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:02-00-00-00: 0500000000000000
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=2
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:02-00-00-00: 0500000000000000
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command PickUpGroundDropCommand handled by PickUpGroundDropCommandHandler as Transactional with execution f3796645-7443-4a3a-81a6-1ca7d0fed4b8 in 0.1161 ms
+info: Dfo.Server.Protocol.Game.GroundPickup.GetItemHandler[0]
+      Get item Game:02-00-00-00 user=1: drop 5 refused as NothingThere
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:02-00-00-00: 0500000000000000
+info: Dfo.Server.Protocol.Game.DungeonEntry.MoveMapHandler[0]
+      Move map Game:02-00-00-00 user=1: (1,1) -> (2,1) room=61002 first=True path=(941,350)
+info: Dfo.Server.Protocol.Game.FinishLoading.FinishLoadingHandler[0]
+      Finish loading Game:02-00-00-00: releasing the loading screen (0,0)
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=2
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:02-00-00-00: 0500000000000000
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:02-00-00-00: 0500000000000000
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GrantKillExperienceCommand handled by GrantKillExperienceCommandHandler as Transactional with execution d000da68-732e-4a00-8e61-2d9c5b613bac in 30.9427 ms
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Kill experience character=1: monster=61356 level=1 rank=Ordinary award=1 (base 1) -> level 1 at 6
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=24377 monster level=1 rank=0 gave piece 1 = item 0 x18 (Common, Gold)
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Monster death Game:02-00-00-00 user=1: actor=24377 killedBy=0
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GrantKillExperienceCommand handled by GrantKillExperienceCommandHandler as Transactional with execution 691d2733-3623-43a8-8635-7ab9fed77f24 in 1.6467 ms
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Kill experience character=1: monster=61356 level=1 rank=Ordinary award=1 (base 1) -> level 1 at 7
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=24379 monster level=1 rank=0 gave piece 2 = item 0 x17 (Common, Gold)
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=24379 monster level=1 rank=0 gave piece 3 = item 12401 x1 (Common, Equipment)
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Monster death Game:02-00-00-00 user=1: actor=24379 killedBy=0
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GrantKillExperienceCommand handled by GrantKillExperienceCommandHandler as Transactional with execution a0947ec1-1dc2-488c-95d2-d5a808b9ea76 in 30.6749 ms
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Kill experience character=1: monster=61356 level=1 rank=Ordinary award=1 (base 1) -> level 1 at 8
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=24378 monster level=1 rank=0 gave piece 4 = item 0 x18 (Common, Gold)
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=24378 monster level=1 rank=0 gave piece 5 = item 6004 x1 (Common, Stackable)
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=24378 monster level=1 rank=0 gave piece 6 = item 14400 x1 (Common, Equipment)
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Monster death Game:02-00-00-00 user=1: actor=24378 killedBy=0
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GrantKillExperienceCommand handled by GrantKillExperienceCommandHandler as Transactional with execution 114c0764-3ada-458a-b815-a973e0d31f1e in 1.9343 ms
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Kill experience character=1: monster=61356 level=1 rank=Ordinary award=1 (base 1) -> level 1 at 9
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=24380 monster level=1 rank=0 gave piece 7 = item 0 x18 (Common, Gold)
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=24380 monster level=1 rank=0 gave piece 8 = item 80006 x1 (Common, Stackable)
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Monster death Game:02-00-00-00 user=1: actor=24380 killedBy=0
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GrantKillExperienceCommand handled by GrantKillExperienceCommandHandler as Transactional with execution 78507c33-47ad-45af-b5c4-bfded6cca597 in 347.6387 ms
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Kill experience character=1: monster=61356 level=1 rank=Ordinary award=1 (base 1) -> level 1 at 10
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=24376 monster level=1 rank=0 gave piece 9 = item 0 x18 (Common, Gold)
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=24376 monster level=1 rank=0 gave piece 10 = item 31002 x1 (Common, Equipment)
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Monster death Game:02-00-00-00 user=1: actor=24376 killedBy=0
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GrantTutorialRewardCommand handled by GrantTutorialRewardCommandHandler as Transactional with execution a7b51951-1522-4171-8fc4-d0f0c615e534 in 3.1128 ms
+info: Dfo.Server.Protocol.Game.TaggedIdReport.TaggedIdReportHandler[0]
+      Tagged id report Game:02-00-00-00 account=1 onlineUser=1ca3bf70b6ce45bab81b2d416b2f1872: id=38 flag=1 declared=1 granted=1
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=2
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:02-00-00-00: 0500000000000000
+info: Dfo.Server.Protocol.Game.DungeonEntry.MoveMapHandler[0]
+      Move map Game:02-00-00-00 user=1: (2,1) -> (2,0) room=61005 first=True path=(898,184)
+info: Dfo.Server.Protocol.Game.FinishLoading.FinishLoadingHandler[0]
+      Finish loading Game:02-00-00-00: releasing the loading screen (0,0)
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=2
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:02-00-00-00: 0500000000000000
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=2
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GrantKillExperienceCommand handled by GrantKillExperienceCommandHandler as Transactional with execution f4c0fb35-8eb4-4ea8-bdb5-590e63ce18b1 in 330.0476 ms
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Kill experience character=1: monster=62527 level=1 rank=Ordinary award=1 (base 1) -> level 1 at 11
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=42597 monster level=1 rank=0 gave piece 1 = item 0 x18 (Common, Gold)
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Monster death Game:02-00-00-00 user=1: actor=42597 killedBy=0
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GrantTutorialLevelCommand handled by GrantTutorialLevelCommandHandler as Transactional with execution 1db19009-7485-4767-bcda-dddb99026711 in 3.3803 ms
+info: Dfo.Server.Protocol.Game.TutorialLevelUp.TutorialLevelUpHandler[0]
+      Tutorial level up Game:02-00-00-00 character=1: now level 2 at 1000
+info: Dfo.Server.Protocol.Game.MercenaryInfo.MercenaryInfoHandler[0]
+      Mercenary info Game:02-00-00-00: replying with an empty expedition roster
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GrantKillExperienceCommand handled by GrantKillExperienceCommandHandler as Transactional with execution 8188dcb2-1e44-4d26-9c0f-fdf4b28feddd in 11.593 ms
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Kill experience character=1: monster=61361 level=1 rank=Ordinary award=1 (base 1) -> level 2 at 1001
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=42600 monster level=1 rank=0 gave piece 2 = item 0 x17 (Common, Gold)
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=42600 monster level=1 rank=0 gave piece 3 = item 27601 x1 (Common, Equipment)
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Monster death Game:02-00-00-00 user=1: actor=42600 killedBy=0
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GrantKillExperienceCommand handled by GrantKillExperienceCommandHandler as Transactional with execution e4149cc5-3ddb-4dad-ad80-35dc4caa2a39 in 1.639 ms
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Kill experience character=1: monster=61357 level=1 rank=Ordinary award=1 (base 1) -> level 2 at 1002
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=42598 monster level=1 rank=0 gave piece 4 = item 0 x18 (Common, Gold)
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=42598 monster level=1 rank=0 gave piece 5 = item 6003 x1 (Common, Stackable)
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=42598 monster level=1 rank=0 gave piece 6 = item 29901 x1 (Common, Equipment)
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Monster death Game:02-00-00-00 user=1: actor=42598 killedBy=0
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=2
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GrantKillExperienceCommand handled by GrantKillExperienceCommandHandler as Transactional with execution 828d4a69-9fb6-443e-b910-0f122a07e7aa in 366.5326 ms
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Kill experience character=1: monster=61360 level=1 rank=Ordinary award=1 (base 1) -> level 2 at 1003
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=42599 monster level=1 rank=0 gave piece 7 = item 0 x17 (Common, Gold)
+info: Dfo.Server.Application.World.MonsterDropService[0]
+      Monster drop character=1: actor=42599 monster level=1 rank=0 gave piece 8 = item 14401 x1 (Common, Equipment)
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Monster death Game:02-00-00-00 user=1: actor=42599 killedBy=0
+info: Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler[0]
+      Monster death Game:02-00-00-00 character=1: boss room 61005 of dungeon 10000 is clear, opening the exit
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GrantClearExperienceCommand handled by GrantClearExperienceCommandHandler as Transactional with execution 717105ca-bfb1-486e-b5e6-dbd1ec0a50ba in 13.1926 ms
+info: Dfo.Server.Protocol.Game.DungeonClear.SetPlayResultHandler[0]
+      Set play result Game:02-00-00-00 character=1: dungeon 10000 cleared in 142341ms at rank 99; clearBase=12 rankBonus=2 award=14 (base 12 + clear rank 2) -> level 2 at 1017
+info: Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler[0]
+      Security status Game:02-00-00-00: 0600000000000000
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=0 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=2
+info: Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler[0]
+      Story pause Game:02-00-00-00 user=1: pause=1 type=2
+info: Dfo.Server.Protocol.Game.DungeonClear.GiveUpGameHandler[0]
+      Give up game Game:02-00-00-00 character=1: run ended=True
+info: Dfo.Server.Protocol.Game.TownProjection.SetUserAreaHandler[0]
+      Set user area Game:02-00-00-00 user=1: 1:0 -> 1:2 pos=(486,355)
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AcceptQuestCommand handled by AcceptQuestCommandHandler as Transactional with execution fb96a999-5d1a-459f-b65d-cb93898f7746 in 36.0884 ms
+info: Dfo.Server.Protocol.Game.QuestAcceptance.AcceptQuestHandler[0]
+      Accept quest Game:02-00-00-00 account=1: quest=1016 accepted trigger=1 items=0
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GrantTutorialRewardCommand handled by GrantTutorialRewardCommandHandler as Transactional with execution f1a27ee9-006c-4153-be37-267cdc72b958 in 0.1348 ms
+info: Dfo.Server.Protocol.Game.TaggedIdReport.TaggedIdReportHandler[0]
+      Tagged id report Game:02-00-00-00 account=1 onlineUser=1ca3bf70b6ce45bab81b2d416b2f1872: id=31 flag=1 declared=0 granted=0

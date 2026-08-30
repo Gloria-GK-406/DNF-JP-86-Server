@@ -368,10 +368,27 @@ internal static class DungeonEntryPayloadCodec
     /// <summary>The one bit of the room seed the reference server always clears.</summary>
     private const uint ReservedSeedBit = 0x40000u;
 
-    internal static uint DropInstance(DungeonRunState run, byte objectIndex)
+    /// <summary>
+    /// The value carried by every piece one kill dropped.
+    /// </summary>
+    /// <remarks>
+    /// Shared so that there is one place to be wrong. The kill's frame announces it and the
+    /// pick-up banks it, and those two are in different files: until 2026-08-30 one of them
+    /// derived it from the dead actor and the other from the piece's number, which agreed with
+    /// itself everywhere and with the client nowhere.
+    /// <para>
+    /// Keyed by the actor rather than by the piece, which is also what makes every piece of one
+    /// kill carry one value -- the captured frames show a kill that dropped twice announcing the
+    /// same value for both.
+    /// </para>
+    /// </remarks>
+    internal static uint MonsterDropInstance(DungeonRunState run, ushort actorSequence) =>
+        DropInstance(run, actorSequence);
+
+    internal static uint DropInstance(DungeonRunState run, int objectIndex)
     {
         var mixed = ((uint)run.CurrentRoomMapId * 2246822519u)
-                    ^ ((uint)run.Layout.Seed + objectIndex);
+                    ^ ((uint)run.Layout.Seed + (uint)objectIndex);
         mixed ^= mixed >> 13;
         mixed *= 2654435761u;
         var instance = (mixed ^ (mixed >> 16)) & int.MaxValue;

@@ -305,6 +305,13 @@ public sealed class LeaveDungeonTests
     {
         public bool Ended { get; private set; }
 
+        /// <summary>Not exercised here: nothing in these tests kills anything.</summary>
+        public IReadOnlyList<MonsterDrop> AllocateMonsterDrops(
+            CharacterId characterId,
+            int declaredDropCount,
+            ushort actorSequence,
+            IReadOnlyList<RolledDrop> rolled) => [];
+
         public bool End(CharacterId characterId)
         {
             this.Ended = true;

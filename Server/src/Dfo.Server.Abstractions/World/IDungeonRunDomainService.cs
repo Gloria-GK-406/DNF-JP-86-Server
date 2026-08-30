@@ -19,8 +19,17 @@ public sealed record DungeonRunState(
     IReadOnlySet<RoomActorId> DeadActors,
     DateTimeOffset StartedAt,
     byte Difficulty = 0,
-    bool IsSettled = false)
+    bool IsSettled = false,
+    IReadOnlyList<AllocatedMonsterDrop>? MonsterDrops = null)
 {
+    /// <summary>What the run's kills have put on the floor, in the order they were numbered.</summary>
+    /// <remarks>
+    /// Held rather than derived, which is the difference between these and the drops a room
+    /// declares. A room's floor can be described again from the archive at any time; what a
+    /// monster dropped exists nowhere else, so if this were lost the piece would be unclaimable.
+    /// </remarks>
+    public IReadOnlyList<AllocatedMonsterDrop> MonsterDrops { get; init; } = MonsterDrops ?? [];
+
     /// <summary>Whether every actor this room declares has been reported dead.</summary>
     /// <remarks>
     /// AI characters are not counted. They fight beside the player rather than against them, and a
@@ -92,7 +101,66 @@ public sealed record DungeonRunState(
     public GroundDrop? FindGroundDrop(IReadOnlyList<DungeonRoomDrop> declared, ushort number) =>
         RemainingGroundDrops(declared)
             .FirstOrDefault(candidate => candidate.Number == number);
+
+    /// <summary>
+    /// The next number a piece dropped in this room may be given.
+    /// </summary>
+    /// <remarks>
+    /// Above everything the room declares and above everything already dropped in it. The room's
+    /// own pieces are numbered from one by their declaration order and are renumbered every time
+    /// the room is described, so a dropped piece that took one of those numbers would be shadowed
+    /// by a box the moment the player walked back in.
+    /// <para>
+    /// Per cell rather than per run, because that is how the numbering already works here: a maze
+    /// may lead through one map twice and the two rooms number from one independently.
+    /// <b>This deviates from live capture, not from the reference server:</b> six captured frames
+    /// number 1 through 6 straight across a run without resetting per room. Both are
+    /// collision-free, and this server's declared floor pieces are already numbered per room, so
+    /// numbering dropped pieces per run would have needed the declared ones to change with them.
+    /// </para>
+    /// </remarks>
+    public ushort NextMonsterDropNumber(int declaredDropCount)
+    {
+        var highest = declaredDropCount;
+        foreach (var allocated in MonsterDrops)
+        {
+            if (allocated.Cell == CurrentCell && allocated.Drop.Number > highest)
+                highest = allocated.Drop.Number;
+        }
+
+        return checked((ushort)(highest + 1));
+    }
+
+    /// <summary>What a kill dropped in this room and nobody has taken, under its number.</summary>
+    /// <remarks>
+    /// The whole record rather than the piece, because what identifies the piece to the client is
+    /// derived from the kill that produced it and not from its number.
+    /// </remarks>
+    public AllocatedMonsterDrop? FindMonsterDrop(ushort number)
+    {
+        foreach (var allocated in MonsterDrops)
+        {
+            if (allocated.Cell == CurrentCell
+                && allocated.Drop.Number == number
+                && !TakenGroundDrops.Contains(new GroundDropId(CurrentCell, number)))
+            {
+                return allocated;
+            }
+        }
+
+        return null;
+    }
 }
+
+/// <summary>One piece a kill put on a room's floor, under the number it was given.</summary>
+/// <param name="ActorSequence">
+/// Which kill produced it. Kept because the value that tells one piece of equipment from another
+/// is derived from the kill rather than from the piece: every piece of one kill carries the same
+/// one, which is what the captured frames show, and the piece a player ends up holding has to
+/// carry the value its arrival announced.
+/// </param>
+public readonly record struct AllocatedMonsterDrop(
+    MazeCell Cell, ushort ActorSequence, MonsterDrop Drop);
 
 /// <summary>One actor of one room, under the running number the client names it by.</summary>
 /// <remarks>
@@ -197,6 +265,25 @@ public interface IDungeonRunDomainService
     /// </para>
     /// </remarks>
     DungeonRunState? TrySettle(CharacterId characterId);
+
+    /// <summary>
+    /// Puts what a kill produced on the floor of the room the character is standing in, numbering
+    /// each piece.
+    /// </summary>
+    /// <remarks>
+    /// Numbering is an allocation and not a derivation, which is what makes this a mutation rather
+    /// than a query: nothing anywhere declares that a monster dropped anything, so a number given
+    /// out here cannot be worked out again and has to be remembered.
+    /// <para>
+    /// Answers what was numbered, or an empty list when the character is not in a run. The caller
+    /// supplies how many pieces the room itself declares, because those hold the low numbers.
+    /// </para>
+    /// </remarks>
+    IReadOnlyList<MonsterDrop> AllocateMonsterDrops(
+        CharacterId characterId,
+        int declaredDropCount,
+        ushort actorSequence,
+        IReadOnlyList<RolledDrop> rolled);
 
     /// <summary>Ends the run. False when the character was not in one.</summary>
     bool End(CharacterId characterId);

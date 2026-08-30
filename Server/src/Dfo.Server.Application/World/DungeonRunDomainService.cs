@@ -118,5 +118,44 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         }
     }
 
+    /// <remarks>
+    /// The same compare-and-swap as everything else here, and it matters more: two kills answered
+    /// at once must not be handed the same number, and unlike a claim a number cannot be worked
+    /// out again to notice the clash.
+    /// </remarks>
+    public IReadOnlyList<MonsterDrop> AllocateMonsterDrops(
+        CharacterId characterId,
+        int declaredDropCount,
+        ushort actorSequence,
+        IReadOnlyList<RolledDrop> rolled)
+    {
+        ArgumentNullException.ThrowIfNull(rolled);
+        if (rolled.Count == 0)
+            return [];
+
+        while (true)
+        {
+            if (!_runs.TryGetValue(characterId, out var current))
+                return [];
+
+            var next = current.NextMonsterDropNumber(declaredDropCount);
+            var numbered = new List<MonsterDrop>(rolled.Count);
+            // Copied rather than cast to a builder: this list is replaced whole on every kill
+            // like every other part of a run, and a run's drops are counted in ones.
+            var allocated = new List<AllocatedMonsterDrop>(current.MonsterDrops);
+            foreach (var piece in rolled)
+            {
+                var drop = new MonsterDrop(next++, piece);
+                numbered.Add(drop);
+                allocated.Add(new AllocatedMonsterDrop(
+                    current.CurrentCell, actorSequence, drop));
+            }
+
+            var updated = current with { MonsterDrops = allocated };
+            if (_runs.TryUpdate(characterId, updated, current))
+                return numbered;
+        }
+    }
+
     public bool End(CharacterId characterId) => _runs.TryRemove(characterId, out _);
 }

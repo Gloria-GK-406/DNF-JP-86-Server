@@ -405,6 +405,13 @@ public sealed class SetPlayResultHandlerTests
         public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty) =>
             throw new NotSupportedException("This fixture only answers.");
 
+        /// <summary>Not exercised here: nothing in these tests kills anything.</summary>
+        public IReadOnlyList<MonsterDrop> AllocateMonsterDrops(
+            CharacterId characterId,
+            int declaredDropCount,
+            ushort actorSequence,
+            IReadOnlyList<RolledDrop> rolled) => [];
+
         public bool End(CharacterId characterId) =>
             throw new NotSupportedException("This fixture only answers.");
 

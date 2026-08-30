@@ -75,4 +75,76 @@ public sealed class GroundPickupCodecTests
         Assert.Equal(9, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(15)));
         Assert.Equal(0, body[17]);
     }
+
+    /// <summary>
+    /// The money form of the pick-up notification, against a captured frame.
+    /// </summary>
+    /// <remarks>
+    /// <c>packet_log.upstream-killexp-20260827.txt</c> line 454: piece 1, user 3, 38 gold -- and
+    /// that same run's kill frame shows actor 38088 dropping exactly 38 gold as piece 1, so the
+    /// two halves of the exchange agree.
+    /// <para>
+    /// The whole 117-byte body is transcribed. Its last 107 bytes are identical in a second,
+    /// independent capture that paid 131 to a different user, which is what makes them a constant
+    /// rather than something this server invented a structure for.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_money_form_is_the_captured_frame()
+    {
+        var body = GroundPickupPayloadCodec.EncodeGoldNotification(
+            new GroundGoldPickupNotification(1, 3, 38));
+
+        Assert.Equal(117, body.Length);
+        Assert.Equal(Bytes(
+            "01 00 03 00 00 01 26 00 00 00 01 00 00 00 00 00 00 00 00 01 00 00 00 00 01 00 00 00 "
+                + "00 00 00 00 00 01 00 00 00 00 01 00 00 00 00 00 00 00 00 01 00 00 00 00 01 00 "
+                + "00 00 00 00 00 00 00 01 00 00 00 00 01 00 00 00 00 00 00 00 00 01 00 00 00 00 "
+                + "01 00 00 00 00 00 00 00 00 01 00 00 00 00 01 00 00 00 00 00 00 00 00 01 00 00 "
+                + "00 00 01 00 00 00 00 00 00 00 00"),
+            body);
+    }
+
+    /// <summary>
+    /// The second capture, which differs in every field that is not the tail.
+    /// </summary>
+    /// <remarks>
+    /// <c>packet_log.reference-20260823.txt</c> line 550: piece 2, user 1, 131 gold. Its kill
+    /// frame paid 131 under piece 2. Two captures agreeing on 107 bytes while disagreeing on the
+    /// other ten is what separates a constant from a coincidence.
+    /// </remarks>
+    [Fact]
+    public void A_second_capture_shares_the_tail_and_nothing_else()
+    {
+        var first = GroundPickupPayloadCodec.EncodeGoldNotification(
+            new GroundGoldPickupNotification(1, 3, 38));
+        var second = GroundPickupPayloadCodec.EncodeGoldNotification(
+            new GroundGoldPickupNotification(2, 1, 131));
+
+        Assert.Equal(Bytes("02 00 01 00 00 01 83 00 00 00"), second[..10]);
+        Assert.Equal(first[10..], second[10..]);
+    }
+
+    /// <summary>
+    /// The byte that tells the client money from an item.
+    /// </summary>
+    /// <remarks>
+    /// An item writes one at <c>+4</c> and money writes zero. Both captures agree, and it is the
+    /// only field the two forms share a position for and disagree about.
+    /// </remarks>
+    [Fact]
+    public void The_fifth_byte_is_what_tells_the_two_forms_apart()
+    {
+        var money = GroundPickupPayloadCodec.EncodeGoldNotification(
+            new GroundGoldPickupNotification(1, 3, 38));
+        var item = GroundPickupPayloadCodec.EncodeNotification(
+            new GroundPickupNotification(1, 3, 9));
+
+        Assert.Equal(0x00, money[4]);
+        Assert.Equal(0x01, item[4]);
+    }
+
+    private static byte[] Bytes(string hex) =>
+        [.. hex.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Select(pair => Convert.ToByte(pair, 16))];
 }

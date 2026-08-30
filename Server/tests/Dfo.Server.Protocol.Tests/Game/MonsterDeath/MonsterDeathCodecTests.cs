@@ -19,13 +19,85 @@ public sealed class MonsterDeathCodecTests
     [Fact]
     public void A_kill_with_no_drops_is_the_actor_number_a_zero_count_and_four_closing_bytes()
     {
-        var body = MonsterDeathPayloadCodec.EncodeMonsterDeath(30946);
+        var body = MonsterDeathPayloadCodec.EncodeMonsterDeath(
+            MonsterDeathNotification.Empty(30946));
 
         Assert.Equal(7, body.Length);
         Assert.Equal(30946, BinaryPrimitives.ReadUInt16LittleEndian(body));
         Assert.Equal(0, body[2]);
         Assert.Equal([0x00, 0x00, 0xFF, 0x00], body[3..]);
     }
+
+    /// <summary>
+    /// A kill that paid gold, byte for byte against a captured frame.
+    /// </summary>
+    /// <remarks>
+    /// <c>packet_log.upstream-killexp-20260827.txt</c>, the first kill of the run: actor 38088
+    /// dropped 38 gold as piece 1, owned by user 3. The whole 55-byte body is transcribed, so this
+    /// fails on any change to any offset rather than on the ones somebody thought to assert.
+    /// <para>
+    /// Gold is identifier zero and its amount rides in the count field. That is not this server's
+    /// invention and not only the reference server's: the client decides a piece is gold by
+    /// exactly that test.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_kill_that_paid_gold_is_the_captured_frame()
+    {
+        var body = MonsterDeathPayloadCodec.EncodeMonsterDeath(
+            new MonsterDeathNotification(
+                38088,
+                [new MonsterDrop(1, new RolledDrop(0, 38, DropRarity.Common, DropItemKind.Gold))],
+                Owner: 3,
+                Instance: 0x6A904F8E));
+
+        Assert.Equal(Bytes(
+            "C8 94 01 01 00 00 00 00 00 00 26 00 00 00 00 00 00 00 00 8E 4F 90 6A 00 00 00 00 "
+                + "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 03 00 00 00 00 00 "
+                + "FF 00"),
+            body);
+    }
+
+    /// <summary>
+    /// A kill that paid gold and an item together, byte for byte against a captured frame.
+    /// </summary>
+    /// <remarks>
+    /// The same capture, actor 32543: 44 gold as piece 3 and item 10088620 as piece 4, both under
+    /// one instance. It is the frame that proves a kill may pay more than once -- which is the
+    /// whole reason the five rates are rolled separately rather than chosen between.
+    /// <para>
+    /// 103 bytes: three, then two records of forty-eight, then four. A record of any other width
+    /// cannot produce this length with two pieces in it, which is what makes forty-eight measured
+    /// rather than transcribed.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_kill_that_paid_twice_is_the_captured_frame()
+    {
+        var body = MonsterDeathPayloadCodec.EncodeMonsterDeath(
+            new MonsterDeathNotification(
+                32543,
+                [
+                    new MonsterDrop(3, new RolledDrop(0, 44, DropRarity.Common, DropItemKind.Gold)),
+                    new MonsterDrop(
+                        4,
+                        new RolledDrop(10088620, 1, DropRarity.Common, DropItemKind.Stackable)),
+                ],
+                Owner: 3,
+                Instance: 0x6A904F9C));
+
+        Assert.Equal(103, body.Length);
+        Assert.Equal(Bytes(
+            "1F 7F 02 03 00 00 00 00 00 00 2C 00 00 00 00 00 00 00 00 9C 4F 90 6A 00 00 00 00 "
+                + "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 03 00 00 00 04 00 "
+                + "AC F0 99 00 00 01 00 00 00 00 00 00 00 00 9C 4F 90 6A 00 00 00 00 00 00 00 00 "
+                + "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 03 00 00 00 00 00 FF 00"),
+            body);
+    }
+
+    private static byte[] Bytes(string hex) =>
+        [.. hex.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Select(pair => Convert.ToByte(pair, 16))];
 
     /// <remarks>
     /// Every bonus line this server does not award is zero. That is asserted rather than left

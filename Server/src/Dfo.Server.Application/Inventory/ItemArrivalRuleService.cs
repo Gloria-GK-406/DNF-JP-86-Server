@@ -55,16 +55,24 @@ internal sealed class ItemArrivalRuleService : IItemArrivalRuleService
         ArgumentNullException.ThrowIfNull(placement);
         ArgumentNullException.ThrowIfNull(occupiedSlots);
 
-        if (placement.StackLimit > 1)
+        // A declared limit of zero is the archive declaring nothing, which caps nothing -- the same
+        // reading the empty-slot branch below already used, and the reference server's in both the
+        // places it resolves a limit. Until 2026-08-30 this branch read zero as "does not stack"
+        // instead, so the two halves of this method disagreed: a crystal shard picked up twice
+        // opened two slots because its file declares no [stack limit], which almost no stackable
+        // in the archive does. Equipment is unaffected -- its limit is one, and one still piles
+        // onto nothing.
+        var stackLimit = placement.StackLimit > 0 ? placement.StackLimit : int.MaxValue;
+        if (stackLimit > 1)
         {
             foreach (var pile in present.OrderBy(value => value.SlotIndex))
             {
-                if (pile.Count >= placement.StackLimit)
+                if (pile.Count >= stackLimit)
                 {
                     continue;
                 }
 
-                var added = Math.Min(count, placement.StackLimit - pile.Count);
+                var added = Math.Min(count, stackLimit - pile.Count);
                 return new ItemArrival.OntoExistingPile(
                     pile.SlotIndex, added, pile.Count + added);
             }
@@ -77,8 +85,7 @@ internal sealed class ItemArrivalRuleService : IItemArrivalRuleService
                 continue;
             }
 
-            // A stack limit of zero is the archive declaring nothing, which caps nothing.
-            var placed = placement.StackLimit > 0 ? Math.Min(count, placement.StackLimit) : count;
+            var placed = Math.Min(count, stackLimit);
             return new ItemArrival.IntoEmptySlot(slot, placed);
         }
 

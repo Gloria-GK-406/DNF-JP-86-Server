@@ -7,7 +7,8 @@
 上游 `ServerS4A21` 在这一族文件里已被查出四处编造（见第十二节），它的**结构与它的数值一样
 不可信**——本页凡是只有上游一个来源的说法都单独标出。
 
-取证日期 2026-08-29 / 30。档案 = `DNFClient-A21-protocol/Script.pvf`。
+取证日期 2026-08-29 / 30。**2026-08-30 实现期间又推翻了两条、坐实了三条，见第十四节。**
+档案 = `DNFClient-A21-protocol/Script.pvf`。
 客户端 = A21，SHA-256 `1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`。
 
 ---
@@ -35,7 +36,7 @@
 | 1 | 掉不掉 | `[drop prob]` 的五个率 × 档次/难度/组队倍率 |
 | 2 | 哪一类 | 中的是哪个类型槽（装备 / 堆叠物 / 时装） |
 | 3 | 什么品质 | `[basis of rarity dicision]` 的累积门槛 |
-| 4 | 哪一件 | 等级→品级带，从 `(品级, 稀有度)` 桶里按权重抽 |
+| 4 | 哪一件 | `[item drop ref table]` 给品级带，从 `(品级, 稀有度)` 桶里按权重抽 |
 
 而**一件东西有没有资格进桶**，看它自己的 `[creation rate]` / `genRate`。
 
@@ -52,7 +53,8 @@
 | `etc/itemdropinfo_object.etc` | 可破坏物费率表 |
 | `etc/itemdropinfo_common.etc` | 只有 `[gold drop ref table]`：每级金币基数与浮动百分比 |
 | `etc/(r)itemdropinfo_control.etc` | **未查明** |
-| `Etc/ItemDictionary/ItemDictionary.etc` | 装备索引，一物一行 |
+| `equipment/equipment.lst` + 各 `.equ` | 装备总表 118479 件，入池资格在各自文件里 |
+| ~~`Etc/ItemDictionary/ItemDictionary.etc`~~ | **不是掉落池**，是图鉴 UI 的索引。见第十四节 |
 | `stackable/stackable.lst` + 各 `.stk` | 堆叠物索引 |
 | `etc/independent_drop.etc` + `etc/independentdrop/*` | 独立掉落 |
 | `etc/worlddrop.etc` | 世界掉落 |
@@ -125,7 +127,12 @@
 > **X = 最后一个门槛 + 1**。摇一个整数 `0 < n ≤ X−1`，落在哪一段就是哪一档。
 > **门槛必须非降；与前一位相同时该档概率为 0。**
 
-A21 每组 **7 个数**，比社区文档的 6 个多一档：**白、蓝、紫、粉、史诗、传说 + 基数**。
+A21 每组 **7 个数**，比社区文档的 6 个多一档：**白、蓝、紫、粉、史诗、远古 + 基数**。
+
+第六档是**远古（chronicle）而不是传说**。档案的 `[drop upgrade rarity]` 按升序列了七个标签
+`common / uncommon / rare / unique / epic / chronicle / legendary`，物品的 `[rarity]` 正好取这七个值；
+用物品名核对过：稀有度 4 是铁脊蛇矛与方天画戟（90 级史诗），稀有度 6 是安徒恩的抵抗者（传说）。
+阶梯只有六档，所以传说走不到——**也不损失什么，档案里没有任何自称可产出的物品在史诗之上。**
 用「最后一个 = 前一个 + 1」核对，本仓档案每一组都成立。
 
 `itemdropinfo_monseter.etc` 有 **4 组**：
@@ -145,24 +152,29 @@ A21 每组 **7 个数**，比社区文档的 6 个多一档：**白、蓝、紫�
 
 ## 五、物品池：什么东西有资格掉
 
-### 装备：`ItemDictionary.etc`
-
-一物一行，列义（依上游解析，自洽可核）：
+### 两族物品是同一条规则：闸在物品自己身上
 
 ```text
-[0] itemId  [1] rarity  [2] grade  [3] ?  [4] equipCategory  [5] genRate  …  名称
-入池条件：genRate > 0、grade > 0、rarity ≤ 5、equipCategory / 1000 ∈ {10, 11, 12}
-分桶：grade * 10 + rarity，桶内按 genRate 加权
+equipment/equipment.lst → 每个 .equ 的 [creation rate] / [grade] / [rarity]
+stackable/stackable.lst → 每个文件的 [creation rate] / [grade] / [rarity]
 ```
 
-**这份索引就在档案里，不需要自己去扫一万个 `.equ`。**
+按 `(grade, rarity)` 分桶，桶内按 `[creation rate]` 加权。**未声明 `[creation rate]` 者不入池。**
 
-### 堆叠物：`stackable.lst` + 各 `.stk`
+| 族 | 总数 | 声明 `[creation rate] > 0` | 显式声明 0 | 未声明 |
+|---|---|---|---|---|
+| 装备 | 118479 | **6062** | 9505 | 102912 |
+| 堆叠物 | 42272 | **774** | — | 41498 |
 
-同样按 `[grade]` / `[rarity]` 分桶，按 `[creation rate]` 加权。
+装备的权重取 30/40/41/125/187/250/312/375/500/625/750/1125 等 17 种真实值；
+入池的稀有度只有 0..4，件数 911 / 919 / 930 / 2465 / 837。
+堆叠物 774 件里 760 件是 `[recipe]`、14 件是 `[throw]`，权重多为 1000。
 
-**闸在物品自己身上**：42272 个堆叠物里**只有 787 个声明了 `[creation rate]`**（762 个是 1000），
-其余 41485 个没有声明——**没声明就进不了通用掉落池**。
+**第一版按上游写成「装备取自 `ItemDictionary.etc`、`genRate` 决定入池」，那一整条是错的。**
+见第十四节。
+
+**闸在物品自己身上**：没声明 `[creation rate]` 就进不了通用掉落池。上表的 774 / 41498 是
+全量扫描的结果，取代了本页第一版凭抽样写下的 787 / 41485。
 
 ### 于是通用池里的堆叠物主要是设计图，材料不在里面
 
@@ -276,7 +288,12 @@ A21 每组 **7 个数**，比社区文档的 6 个多一档：**白、蓝、紫�
 
 | 事实 | 由什么定死 |
 |---|---|
-| 一次击杀可以掉多件 | **客户端**：`NOTI 0x0026` handler（RVA `0x00D54840`）读 `u16 actor` + `u8 计数`，按计数循环 |
+| 一次击杀可以掉多件 | **客户端**：`NOTI 0x0026` handler（RVA `0x00D54840`）读 `u16 actor` + `u8 计数`，按计数循环；**上游抓包里有一帧同时给了金币和一件物品** |
+| 掉落记录是 48 字节，布局如第十四节表 | 两个抓包共 6 帧带掉落，全部按 `3 + 48n + 4` 整除、该为零的 24 字节全为零 |
+| 金币是物品号 0，金额写在数量字段 | 同上（观测到 38 / 44 / 131）；客户端 `IsGold => TemplateId == 0` |
+| 等级→品级带取自 `[item drop ref table]`（`等级 向下 向上`） | 86 级起每一行 `等级 − 向下` 恒等于 79，正是 A21 顶级装备的品级下沿 |
+| 入池资格由 `.equ` / `.stk` 自己的 `[creation rate]` 决定，装备与堆叠物同一条规则 | 全量扫描 118479 + 42272 个文件 |
+| 怪物档次就是地图上那个引号词（`[normal]`/`[champion]`/`[super champion]`/`[boss]` → 0..3） | 房间描述已经在读它，与 `[monster type drop bonusrate]` 的 4 档一一对应 |
 | `[drop prob]` 每段五个各自独立的率；三张加成表各 5 组一一对应 | 档案的计数对齐 |
 | 稀有度是累积门槛 + 基数，门槛相同即该档为 0 | 档案 + 社区解码规则，且本仓每一组都满足 `X = 末门槛 + 1` |
 | 入池资格由物品自己的 `[creation rate]` / `genRate` 决定 | 档案 |
@@ -287,19 +304,32 @@ A21 每组 **7 个数**，比社区文档的 6 个多一档：**白、蓝、紫�
 ### 只有上游源码一个来源（是读法，不是证据）
 
 * 五个率是**独立掷**而非互斥分布
-* **分母 = 10000**（档案里没有这个数）
-* `MobItemDropRate = 1000`
+  —— 但抓包里那帧「一次给金币又给物品」已经排除了互斥分布，这条现在有旁证
 * 类型槽 1/3 → 堆叠物、2 → 装备、4 → 时装的映射
+* `[basis of rarity dicision]` 四组对应四个类型槽
 * 产出者的顺序与开关
+* `MobItemDropRate = 1000`
+
+### 服务端政策（档案里根本没有，不是读法也不是事实）
+
+* **五个率的分母。** `itemdropinfo_*` 全族没有基数段。
+  `Etc/ServerParameter.etc` 有 `[basis of item dicision] 2500`，但它紧挨着该文件**自己的**
+  `[drop prob]`（3 段 × 2 个率），归属存疑；上游用 10000，它自己也没有出处。
+  两者差四倍：普通怪掉金币是 7.5% 还是 30%。
+  本仓做成配置项 `DropRates:RateBasis`，默认 10000（复现第三节那张与游玩记忆吻合的形态），
+  规则本身吃传入的基数、不认识任何字面量。
 
 ### 未查明
 
-* `etc/(r)itemdropinfo_control.etc` 是什么
+* `etc/(r)itemdropinfo_control.etc` 是什么（`etc/itemdropinfo_control.etc` 不存在）
 * `[drop kind prob] 10000 0`
-* `ItemDictionary` 第 3 列
+* `[gold drop ref table]` 第 3 列（13 / 11 / 9，随等级下降）
+* `[condition rate]` `95 5 93 7 90 10 85 15`
+* `[first boss/named mob hunting] 1 1`
+* `[item drop rarity control]` `2 13 17 0 -5`
 * `[special passive object item]` 的条目权重是组内权重还是出现概率
 * 深渊那两组稀有度分别对应什么
-* `[basis of rarity dicision]` 四组对应四个类型槽——推断，非直证
+* 掉落记录 +16 那个 32 位判别值客户端拿它做什么（上游写时间戳，本仓写可复现的推导值）
 
 ---
 
@@ -309,10 +339,12 @@ A21 每组 **7 个数**，比社区文档的 6 个多一档：**白、蓝、紫�
 |---|---|---|
 | `AreaMaterialDropProvider`（整个 40 行） | 手写的副本→材料映射 + 固定 25% | 特产材料完全脱离档案；档案本有 `independent_drop.etc` |
 | `MonsterDropConfig.LoadStackablePool` | 按目录名排除 `cash/ quest/ recipe/ …` | 手写启发式；而且想排掉设计图却排了个空——能掉的设计图在 `stackable/` 根目录 |
-| `MonsterDropConfig.RollRarity` | `lcg.Next(1000000) + 1` 写死分母 | 基数说的是 1..1000002，**史诗与传说永远摇不到** |
+| `MonsterDropConfig.RollRarity` | `lcg.Next(1000000) + 1` 写死分母 | 基数说的是 1..1000002，**史诗与远古永远摇不到** |
 | 同上 | `_rarityThresholds[0, r]` 恒取第 0 组 | 装备用了类型1 的门槛，紫由 10% 变 2.51%、粉由 0.05% 变 1% |
+| `MonsterDropConfig.LoadEquipmentPool` | 整个装备池读 `ItemDictionary.etc` | **读错了文件**，见第十四节 |
 
-前两处一眼可见，**后两处各只有一行，代码看起来完全正常**——这正是重写时最容易照抄的地方。
+前两处一眼可见，**中间两处各只有一行，代码看起来完全正常**——这正是重写时最容易照抄的地方。
+最后一处最难发现：它读的文件真实存在、解析得通、产出的池子看起来完全合理。
 
 上游这一族核心机制约 **4970 行 / 19 个文件**，其中真读档案的有五处。
 它不是随手写的；编造集中在档案难读或它没找到出处的几个点上。
@@ -381,3 +413,79 @@ ICardRewardService      二期
   （`github.com/heihuo000/86nut` 知识库）
 * 取证过程与逐条出处：`.rks-agent/tasks/finishing-and-leaving-a-run/drop-rules-evidence.md`
 * 翻牌协议：`protocol/game/client-to-server/0x0045.md` / `0x0046.md` / `0x0047.md`
+
+---
+
+## 十四、实现期间改掉的（2026-08-30）
+
+第一期落地时对着真档案全量核了一遍，本页有两条被推翻、三条被坐实。
+逐项取证在 `.rks-agent/tasks/monster-drop-rates/archive-findings.md`。
+
+### 推翻一：装备池不是 `ItemDictionary.etc`
+
+把 13474 条字典行与它们各自的 `.equ` 全部对上之后：
+
+| 字典列 | 上游读作 | 实际是什么 | 怎么知道的 |
+|---|---|---|---|
+| `[1]` | rarity | 图鉴的陈列分类 | 8 个取值一一映到 `.equ` 稀有度，但不是同一个：`4→5`、`3→2`、`6→3`、`7→4` |
+| `[2]` | grade | `[minimum level]` | 13474 行里只有 5930 行与 `.equ` `[grade]` 相等 |
+| `[3]` | ？ | `[grade]` | 上游没读这一列 |
+| `[5]` | genRate（权重） | 只取 0/1 的旗标 | 全表仅两个取值 |
+
+它与 `(f)/(r)itemdictionary`、`baseitemdictionarytable`、`dungeondropinfo`、`independentdropinfo`
+同在 `etc/itemdictionary/`，与 `ui/itemdictionary/*.xui` 成对——**是图鉴 UI 的索引**。
+13474 条，而装备总数 118479。
+
+真正的闸是物品自己的 `[creation rate]`，与堆叠物同一条规则（第五节）。
+上游在堆叠物那一侧就是这么读的，只有装备那一侧换成了字典——**它与自己不一致，这就是破绽。**
+
+### 推翻二：稀有度第六档是远古，不是传说
+
+见第四节。传说是第七档，阶梯够不着。
+
+### 坐实一：`[item drop ref table]` 是等级→品级带
+
+每张费率表 200 行 × 3 数：`等级 向下 向上`，品级带 = `[等级−向下, 等级+向上]`。
+
+自证：**86 级起每一行 `等级 − 向下` 恒等于 79**，79 正是 A21 顶级装备的品级下沿。
+五张表各自声明一份且并不相同（86 级怪物表给 `7 4`、可破坏物表给 `7 3`），所以要按表读、不能共用一份。
+
+本页原先完全没有提这张表，品级带此前无出处。
+
+### 坐实二：48 字节的掉落记录，以及金币
+
+上游抓包里 6 帧带掉落的 `NOTI 0x0026`（两个抓包、两个角色），按
+`u16 actor + u8 count + count×48B + 4B` 解**全部整除、无一字节剩余**，
+该为零的 24 字节全为零。44 或 52 字节的读法解不开那两帧 103 字节的。
+
+| 偏移 | 宽 | 字段 | 观测值 |
+|---|---|---|---|
+| +0 | u16 | 场景槽号 | 1..6，**整局连续递增，不按房间重置** |
+| +2 | u32 | 物品号 | `0` = 金币；`3142` / `10088620` / `109040005` = 物品 |
+| +6 | u8 | 强化等级 | 全为 0 |
+| +7 | u32 | 数量 | 金币是**金额**（38 / 44 / 131），物品是件数 |
+| +11 | 5B | 零 | |
+| +16 | u32 | 判别值 | 上游写 Unix 时间戳，同一次击杀的两件相同 |
+| +20 | 24B | 零 | |
+| +44 | u16 | 归属 | = 该角色的 wire user id |
+| +46 | u16 | 零 | |
+
+尾部 4 字节 `00 00 FF 00`。
+
+**本仓的判别值不用时间戳**，用从局种子推出来的值——房间被重新描述时要能说出同一个数，时钟做不到。
+
+### 坐实三：怪物档次早就建模了
+
+`PvfDungeonRoomActorSource.RankOf` 把地图上的引号词读成
+`[normal]→0 / [champion]→1 / [super champion]→2 / [boss]→3`，与
+`[monster type drop bonusrate]` 的 4 档一一对应。档次倍率取得到真值。
+
+### 顺带查明、本期没做的
+
+| 段 | 是什么 | 为什么没做 |
+|---|---|---|
+| `[drop bonus of dungeon level increase]` | 等级差掉落惩罚：+8→0.4 … 0→1 … −3→1.225 | 本期验收未要求；缺它是偏高的有界偏差，不是编造 |
+| `[user derived drop job mapping]` | 职业→可掉落装备类别 | 抽取不吃角色 |
+| `[drop upgrade rarity]` | 掉落装备的强化等级分布（只有 `[rare]` 有表） | 记录待做 |
+| **怪掉的东西不进 `START_MAP`** | 重新进同一间房时，房间声明的箱子会重新画出来，怪掉在地上的不会 | 本期范围是击杀帧与既有拾取路径，两者都正常；编号仍然认得出来，捡得到，只是重描述后画不出来。二期之前要补 |
+| `itemdropinfo_clearreward.etc` 的 `[drop prob]` | 按 profile 命名分组、每段只有 1 个率 | **二期不是「换一张表」那么简单**，那一段要另写一个读法；其余各段可直接复用 |

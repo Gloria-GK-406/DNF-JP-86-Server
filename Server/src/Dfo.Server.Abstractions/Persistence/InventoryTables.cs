@@ -149,6 +149,17 @@ public interface IAccountCargoStateTable
     /// <summary>At most two rows, so that a duplicated one can be seen rather than hidden.</summary>
     ValueTask<IReadOnlyList<AccountCargoStateRow>> ReadByAccountAsync(
         AccountId accountId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Adds to what the account is carrying and answers what it carries afterwards.
+    /// </summary>
+    /// <remarks>
+    /// The addition happens in the statement rather than by reading and writing back, because two
+    /// pickups answered at once must not each add to the same total they both read. An account
+    /// with no row yet gets one; the column defaults to zero, which is what a new account has.
+    /// </remarks>
+    ValueTask<int> AddValue32Async(
+        AccountId accountId, int amount, CancellationToken cancellationToken);
 }
 
 /// <summary>How much gold a character may hold and bid.</summary>

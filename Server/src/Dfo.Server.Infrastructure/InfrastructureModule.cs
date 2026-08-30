@@ -60,6 +60,15 @@ public sealed class InfrastructureModule : IServerModule
             PvfInitialEquipmentDefinitionSource>();
         services.TryAddSingleton<IDungeonRoomActorSource, PvfDungeonRoomActorSource>();
         services.TryAddSingleton<IDungeonRoomDropSource, PvfDungeonRoomDropSource>();
+
+        // One object behind both seams, because both read the same files and the rate table is
+        // where two of the three gold sections live.
+        services.TryAddSingleton<PvfDropRateTableSource>();
+        services.TryAddSingleton<IDropRateTableSource>(
+            provider => provider.GetRequiredService<PvfDropRateTableSource>());
+        services.TryAddSingleton<IGoldDropTableSource>(
+            provider => provider.GetRequiredService<PvfDropRateTableSource>());
+        services.TryAddSingleton<IDropItemPoolSource, PvfDropItemPoolSource>();
         services.TryAddSingleton<IEquipmentSlotDefinitionSource, PvfEquipmentSlotDefinitionSource>();
         services.TryAddSingleton<IDungeonExperienceProgressionPolicySource,
             PvfDungeonExperienceProgressionPolicySource>();

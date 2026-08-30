@@ -302,6 +302,13 @@ public sealed class ResultScreenTests
         public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty) =>
             throw new NotSupportedException("The boss confirmation may only read the run.");
 
+        /// <summary>Not exercised here: nothing in these tests kills anything.</summary>
+        public IReadOnlyList<MonsterDrop> AllocateMonsterDrops(
+            CharacterId characterId,
+            int declaredDropCount,
+            ushort actorSequence,
+            IReadOnlyList<RolledDrop> rolled) => [];
+
         public bool End(CharacterId characterId) =>
             throw new NotSupportedException("The boss confirmation may only read the run.");
 

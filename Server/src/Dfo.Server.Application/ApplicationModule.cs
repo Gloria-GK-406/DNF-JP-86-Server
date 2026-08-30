@@ -127,6 +127,22 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IExpertSkillContractRuleService, ExpertSkillContractRuleService>();
         services.TryAddSingleton<IDungeonEffectRuleService, DungeonEffectRuleService>();
         services.TryAddSingleton<IDungeonRunDomainService, DungeonRunDomainService>();
+
+        // The compensation seam and its first-phase implementation, which never compensates. It is
+        // registered rather than left out so that everything upstream is written against the real
+        // shape from the first day.
+        services.TryAddSingleton<IAccountMoneyService, AccountMoneyService>();
+        services.TryAddSingleton<IDropRateAdjuster, NoDropRateAdjustment>();
+        // The one number the archive does not declare. See DropRateOptions for the two candidate
+        // readings and why neither could be chosen from the files.
+        services.TryAddSingleton(new DropRateOptions
+        {
+            RateBasis = int.TryParse(configuration["DropRates:RateBasis"], out var basis)
+                && basis > 0
+                ? basis
+                : new DropRateOptions().RateBasis,
+        });
+        services.TryAddSingleton<IMonsterDropService, MonsterDropService>();
         services.TryAddSingleton<IActiveCharacterAccessDomainService>(
             provider => new ActiveCharacterAccessDomainService(
                 provider.GetRequiredService<OnlineStateStore>(),

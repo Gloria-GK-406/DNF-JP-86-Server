@@ -317,6 +317,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<ExperienceNotification, ExperienceEncoder>();
         services.AddGameNotiMessageEncoder<MonsterDeathNotification, MonsterDeathEncoder>();
         services.AddGameNotiMessageEncoder<GroundPickupNotification, GroundPickupEncoder>();
+        services.AddGameNotiMessageEncoder<
+            GroundGoldPickupNotification, GroundGoldPickupEncoder>();
         services.AddGameNotiMessageEncoder<EnableClearDungeonNotification, EnableClearDungeonEncoder>();
         services.AddGameNotiMessageEncoder<SecretShopNpcNotification, SecretShopNpcEncoder>();
         services.AddGameNotiMessageEncoder<PlayResultNotification, PlayResultEncoder>();

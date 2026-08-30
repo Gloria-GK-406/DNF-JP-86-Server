@@ -105,9 +105,21 @@ internal sealed record ExperienceNotification(
 }
 
 /// <summary>NOTI 0x0026 <c>DIE_MONSTER</c>: the death acknowledged, and what it dropped.</summary>
-internal sealed record MonsterDeathNotification(ushort ActorSequence) : IGameNotiMessage
+/// <param name="Owner">
+/// Which user the pieces belong to, as its wire identifier. Every captured record carries the
+/// killer's own, which is what a party will one day make interesting.
+/// </param>
+internal sealed record MonsterDeathNotification(
+    ushort ActorSequence,
+    IReadOnlyList<MonsterDrop> Drops,
+    ushort Owner,
+    uint Instance = 0) : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameMonsterDeath;
+
+    /// <summary>An acknowledgement with nothing on the floor after it.</summary>
+    public static MonsterDeathNotification Empty(ushort actorSequence) =>
+        new(actorSequence, [], 0);
 }
 
 internal static class MonsterDeathPayloadCodec
@@ -118,25 +130,55 @@ internal static class MonsterDeathPayloadCodec
     /// <summary>The length the client reads when no experience line is itemised.</summary>
     public const int ExperienceBodyLength = 83;
 
+    /// <summary>How many bytes one piece on the floor takes.</summary>
+    public const int DropRecordLength = 48;
+
     /// <summary>
     /// The kill acknowledged: the actor's number, its drops, and four closing bytes.
     /// </summary>
     /// <remarks>
-    /// Sent with no drops. What a monster drops is content this server does not model yet, and an
-    /// invented drop would put an item on the floor that no later frame can account for. A working
-    /// A21 session's empty-handed kill is these same seven bytes.
+    /// <b>Measured, not transcribed.</b> Six frames across two reference captures carry drops --
+    /// five of one piece and two of two -- and all six divide exactly as
+    /// <c>u16 actor + u8 count + count x 48 + 4</c> with every byte that should be zero at zero.
+    /// A 44- or 52-byte record cannot parse the two-piece frames at all.
     ///
-    /// A drop, when there are any, is forty-eight bytes: <c>u16 sceneSlot, u32 templateId,
-    /// u8 upgrade, u32 count, 5 zero, u32 dropGroup, 24 zero, u16 owner, u16 zero</c>.
+    /// One piece is <c>u16 number, u32 itemId, u8 upgrade, u32 count, 5 zero, u32 instance,
+    /// 24 zero, u16 owner, u16 zero</c>.
+    /// <para>
+    /// <b>Gold is item zero</b>, and its count field carries the amount rather than a number of
+    /// pieces. The captures show 38, 44 and 131 paid that way, and the client reads a piece as
+    /// gold by exactly that test.
+    /// </para>
+    /// <para>
+    /// The instance is the same for every piece of one kill. The reference server writes the
+    /// current Unix time there; this server writes a value derived from the run, because a run
+    /// re-described has to name the same piece the same way and a clock cannot.
+    /// </para>
     /// </remarks>
-    public static byte[] EncodeMonsterDeath(ushort actorSequence)
+    public static byte[] EncodeMonsterDeath(MonsterDeathNotification message)
     {
-        using var stream = new MemoryStream(7);
-        using var writer = new BinaryWriter(stream);
-        writer.Write(actorSequence);
-        writer.Write((byte)0); // no drops
-        writer.Write(MonsterDeathTail);
-        return stream.ToArray();
+        ArgumentNullException.ThrowIfNull(message);
+        var drops = message.Drops;
+        var body = new byte[3 + (DropRecordLength * drops.Count) + MonsterDeathTail.Length];
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(body, message.ActorSequence);
+        body[2] = checked((byte)drops.Count);
+
+        for (var index = 0; index < drops.Count; index++)
+        {
+            var record = body.AsSpan(3 + (DropRecordLength * index), DropRecordLength);
+            var drop = drops[index];
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(record, drop.Number);
+            System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(record[2..], drop.ItemId);
+            record[6] = 0; // upgrade level
+            System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(record[7..], drop.Count);
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(
+                record[16..], message.Instance);
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(
+                record[44..], message.Owner);
+        }
+
+        MonsterDeathTail.CopyTo(body.AsSpan(body.Length - MonsterDeathTail.Length));
+        return body;
     }
 
     /// <summary>The four bytes every A21 kill acknowledgement closes with.</summary>
@@ -290,7 +332,7 @@ internal sealed class MonsterDeathEncoder : GameNotiMessageEncoder<MonsterDeathN
         MonsterDeathNotification message) =>
         OnePayload(
             GameProtocol.MonsterDeathNotificationType,
-            MonsterDeathPayloadCodec.EncodeMonsterDeath(message.ActorSequence));
+            MonsterDeathPayloadCodec.EncodeMonsterDeath(message));
 }
 
 internal sealed class MonsterDeathDecoder : IGameMessageDecoder
@@ -316,6 +358,7 @@ public sealed class MonsterDeathHandler(
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IDungeonRunDomainService runs,
     IDungeonRoomActorSource roomActors,
+    IMonsterDropService drops,
     ICommandBus commandBus,
     QuestOfferRefresher offers,
     IGameMessageSender sender,
@@ -352,7 +395,7 @@ public sealed class MonsterDeathHandler(
             await sender.SendExplicitAsync(
                 context.Connection.ConnectionId,
                 new GameExplicitMessageDelivery(
-                    [new MonsterDeathNotification(message.ActorSequence)], []),
+                    [MonsterDeathNotification.Empty(message.ActorSequence)], []),
                 cancellationToken).ConfigureAwait(false);
             return;
         }
@@ -361,10 +404,28 @@ public sealed class MonsterDeathHandler(
         // a death it was not answered for, and the run refuses the repeat -- so this is the one
         // place that can tell a kill from its echo. Awarding before it would pay for both.
         var run = runs.TryReportActorDead(session.CharacterId, message.ActorSequence);
-        var award = run is null
-            ? null
-            : await this.AwardAsync(context, session, run, message.ActorSequence, cancellationToken)
+        ExperienceAward? award = null;
+        IReadOnlyList<MonsterDrop> dropped = [];
+        var instance = 0u;
+        if (run is not null
+            && await this.KilledAsync(context, run, message.ActorSequence, cancellationToken)
+                .ConfigureAwait(false) is { } killed)
+        {
+            award = await this.AwardAsync(session, run, killed, cancellationToken)
                 .ConfigureAwait(false);
+
+            // Rolled after the experience and from the same identification, so a kill that pays
+            // nothing also drops nothing and the two can never disagree about what died.
+            dropped = await drops.ForKillAsync(
+                new MonsterKill(
+                    session.CharacterId,
+                    run,
+                    message.ActorSequence,
+                    killed.Level,
+                    (int)killed.Rank),
+                cancellationToken).ConfigureAwait(false);
+            instance = DungeonEntryPayloadCodec.MonsterDropInstance(run, message.ActorSequence);
+        }
 
         logger.LogInformation(
             "Monster death {ConnectionId} user={WireUserId}: actor={Actor} killedBy={KilledBy}",
@@ -427,7 +488,8 @@ public sealed class MonsterDeathHandler(
                 diagnostics.LabelProbe ? total + ExperienceDiagnostics.ProbeTotal : total,
                 mirror, AccountHonorLevel.Initial,
                 ExperienceBonusLines.Of(award), diagnostics.LabelProbe),
-            new MonsterDeathNotification(message.ActorSequence),
+            new MonsterDeathNotification(
+                message.ActorSequence, dropped, session.WireUserId, instance),
         ];
 
         if (award?.LeveledUp == true)
@@ -450,17 +512,21 @@ public sealed class MonsterDeathHandler(
     }
 
     /// <summary>
-    /// What the kill was worth, awarded, or nothing when the room cannot name what died.
+    /// What died, or nothing when the room cannot name it.
     /// </summary>
     /// <remarks>
     /// The monster is looked up in the room the client is standing in, by the running number that
-    /// room's actors were given. A sequence the room does not account for is not awarded: it means
+    /// room's actors were given. A sequence the room does not account for yields nothing: it means
     /// the client and this server disagree about what is in the room, and paying an invented
-    /// monster's worth would turn that disagreement into experience.
+    /// monster would turn that disagreement into experience and items.
+    /// <para>
+    /// Answered once and used twice, because experience and drops are decided from the same three
+    /// facts -- what it was, what level, what rank -- and looking it up separately for each would
+    /// let the two disagree.
+    /// </para>
     /// </remarks>
-    private async ValueTask<ExperienceAward?> AwardAsync(
+    private async ValueTask<KilledMonster?> KilledAsync(
         NetworkDispatchContext context,
-        SelectedSessionIdentity session,
         DungeonRunState run,
         ushort actorSequence,
         CancellationToken cancellationToken)
@@ -471,8 +537,8 @@ public sealed class MonsterDeathHandler(
         if (index < 0 || index >= declared.Count)
         {
             logger.LogWarning(
-                "Kill experience {ConnectionId}: actor {Actor} is not one of the {Count} this room "
-                    + "declares, so nothing was awarded",
+                "Monster death {ConnectionId}: actor {Actor} is not one of the {Count} this room "
+                    + "declares, so nothing was awarded and nothing dropped",
                 context.Connection.ConnectionId, actorSequence, declared.Count);
             return null;
         }
@@ -482,17 +548,26 @@ public sealed class MonsterDeathHandler(
         if (!MonsterExperienceRules.IsMonster(actor.ActorType))
         {
             logger.LogInformation(
-                "Kill experience {ConnectionId}: actor {Actor} is an AI character, not a monster; "
-                    + "nothing was awarded",
+                "Monster death {ConnectionId}: actor {Actor} is an AI character, not a monster; "
+                    + "nothing was awarded and nothing dropped",
                 context.Connection.ConnectionId, actorSequence);
             return null;
         }
 
         // The level the client was told, which is the dungeon's basis level wherever the map
-        // declined to set one -- the same substitution the room frame made.
-        var monster = new KilledMonster(
+        // declined to set one -- the same substitution the room frame made. The rank is the word
+        // the map closes the monster's record with, which the room source already reads.
+        return new KilledMonster(
             actor.Code, run.Layout.LevelOf(actor.Level), (MonsterRank)actor.ActorType);
+    }
 
+    /// <summary>What the kill was worth, awarded.</summary>
+    private async ValueTask<ExperienceAward?> AwardAsync(
+        SelectedSessionIdentity session,
+        DungeonRunState run,
+        KilledMonster monster,
+        CancellationToken cancellationToken)
+    {
         var award = (await commandBus.SendAsync(
             new GrantKillExperienceCommand(
                 session.AccountId,
@@ -507,9 +582,8 @@ public sealed class MonsterDeathHandler(
         // this line is what makes a live session usable as evidence for what was paid -- and it is
         // how the reference server's own arithmetic was recovered in the first place.
         logger.LogInformation(
-            "Kill experience {ConnectionId} character={CharacterId}: monster={Monster} "
+            "Kill experience character={CharacterId}: monster={Monster} "
                 + "level={MonsterLevel} rank={Rank} award={Award}",
-            context.Connection.ConnectionId,
             session.CharacterId.Value,
             monster.Code,
             monster.Level,

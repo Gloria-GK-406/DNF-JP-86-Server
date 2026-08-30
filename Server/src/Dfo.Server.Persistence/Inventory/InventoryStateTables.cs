@@ -65,6 +65,36 @@ internal sealed class SqliteAccountCargoStateTable(SqliteDatabase database)
             reader => new AccountCargoStateRow(
                 reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2), reader.GetInt32(3)),
             cancellationToken);
+
+    /// <remarks>
+    /// One statement: the upsert adds to the stored value and returns it, so nothing is read into
+    /// the server and written back. Clamped at zero and at the 32-bit ceiling by the statement
+    /// itself -- the wire field is a signed 32-bit integer and a total that wrapped would show the
+    /// player a negative purse.
+    /// </remarks>
+    public async ValueTask<int> AddValue32Async(
+        AccountId accountId, int amount, CancellationToken cancellationToken)
+    {
+        var rows = await database.ReadAllAsync(
+            """
+            INSERT INTO account_cargo_state (account_id, value32)
+            VALUES (@accountId, MAX(0, MIN(@ceiling, @amount)))
+            ON CONFLICT(account_id) DO UPDATE SET
+                value32 = MAX(0, MIN(@ceiling, value32 + @amount)),
+                updated_at = CURRENT_TIMESTAMP
+            RETURNING value32;
+            """,
+            parameters =>
+            {
+                parameters.AddWithValue("@accountId", accountId.Value);
+                parameters.AddWithValue("@amount", amount);
+                parameters.AddWithValue("@ceiling", int.MaxValue);
+            },
+            reader => reader.GetInt32(0),
+            cancellationToken).ConfigureAwait(false);
+
+        return rows.Count > 0 ? rows[0] : 0;
+    }
 }
 
 /// <summary>The gold caps, read from <c>character_stats</c> where they now live.</summary>
