@@ -3,11 +3,11 @@ kind: rks-multi-spec-map
 contract:
   path: ./TaskContract.md
   revision: 1
-state: active
-phase: child_execution
-phase_state: in_progress
-active_attempt: spec-001-boss-die-check
-last_transition: child-created
+state: sealed
+phase: deferred
+phase_state: sealed
+active_attempt: null
+last_transition: scope-deferred-by-user
 transition_evidence: >-
   workspace-ready: git worktree add .worktrees/finishing-and-leaving-a-run -b
   finishing-and-leaving-a-run c5a36a1d; in-worktree toplevel, branch and HEAD verified; source
@@ -161,6 +161,39 @@ public uint PacketValue => Core == null ? StackCount : unchecked((uint)Core.Valu
 即**有物品实例就写实例的 `value`，没有实例就写堆叠数量**——与本仓库里 `value` 这一列本身的双重
 语义（装备是实例判别值、堆叠物是数量）是同一件事，见 `Docs/GM工具_新背包表结构与ItemCore语义.md`。
 本仓无条件写实例判别值，于是材料的数量位上是个 31 位伪随机数。
+
+## Root Closeout（2026-08-30，用户指示封存）
+
+**三件已交付并合入 main（`6ce69953`）；第四件由用户主动延后，不是失败也不是阻塞。**
+
+| 成果 | 状态 |
+|---|---|
+| spec-001 结算处的应答 + `CMD 0x0075` 的定论 | 已交付、已合并 |
+| spec-002 `CMD 0x0048` 离开副本 + 城镇状态 | 已交付、已合并 |
+| spec-003 地面掉落的数量语义 | 已交付、已合并 |
+| 第四件 翻牌奖励 | **延后**：取证发现它需要一整套掉落/爆率系统 |
+
+### 为什么延后而不是继续
+
+第四件原以为是「补一个领域服务 + 三帧协议」。取证之后是另一回事：牌面的奖励内容要走
+**通用掉落阶梯**（费率表 × 稀有度门槛 × 物品池），而那套机器同时也是怪物掉落、可破坏物、
+深渊、独立掉落的机器。上游那一族约 4970 行 / 19 个文件。
+
+把它塞进本任务会让一个「修四个报告缺陷」的任务变成一个新系统的实现。用户 2026-08-30 决定
+**先把爆率系统写成文档，另起任务实现，一期做怪物掉落、二期做翻牌**。
+
+### 留下的东西
+
+* `Docs/DropRates.md` —— 掉落与爆率系统的完整说明，含证据等级分档与本仓设计
+* `card-reward-evidence.md` —— 翻牌协议与时序的取证（`0x0045`/`0x0046`/`0x0047` 三帧已定死）
+* `drop-rules-evidence.md` —— 掉落规则的逐条出处
+
+### 未验的
+
+根契约 SC-1 / SC-2 / SC-3 的**实机判据未取**。三件都只有自动化判据与变异验证，
+没有实机会话确认。这是本任务留下的唯一空缺，下一次实机顺带即可。
+
+SC-5 / SC-6（翻牌）随第四件一起延后。
 
 ## Planned Successors
 
