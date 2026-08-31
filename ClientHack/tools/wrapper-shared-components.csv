@@ -1,0 +1,12 @@
+target,refs,kind,by_section,from_named_bodies
+0x05D1C88E,392,mid-body,.tls:1;.mackt:6;.-wI:385,329
+0x05ACE827,273,mid-body,.bss:1;.mackt:3;.-wI:269,229
+0x05ACE953,273,mid-body,.mackt:4;.-wI:269,223
+0x05AA628D,272,mid-body,.tls:2;.mackt:6;.-wI:264,212
+0x05AA7FB2,272,mid-body,.mackt:3;.-wI:269,231
+0x05C4DA5C,271,mid-body,.mackt:4;.-wI:267,235
+0x05CBBE7A,270,mid-body,.mackt:2;.-wI:268,236
+0x05CA0181,269,mid-body,.tls:1;.mackt:2;.-wI:266,232
+0x05B26233,269,mid-body,.mackt:1;.-wI:268,229
+0x05D3AA11,266,prefix-hit,.mackt:1;.-wI:265,232
+0x059AE2C9,150,other,.-wI:150,2

@@ -1,0 +1,1336 @@
+target,host_entry,offset,source_va,source_section,mnemonic,source_class,scope
+0x05AE464F,0x05AE4642,13,0x0513E504,.tls,call,survives (.tls),external
+0x05CFBBE6,0x05CFBBDC,10,0x0549F444,.vmp1,jmp?,survives (.vmp1),external
+0x05C5FCDA,0x05C5FCD1,9,0x0552FCD2,.vmp1,jmp?,survives (.vmp1),external
+0x05D3AA11,0x05D3AA0B,6,0x0599436B,.mackt,jmp,survives (.mackt),external
+0x05D3AA11,0x05D3AA0B,6,0x0599DD6B,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x0599DEC4,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x059A28AC,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x059AA86D,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x059AB706,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x059C3ECE,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x059C67CC,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x059C80BC,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x059CC281,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x059CC52B,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x059CCC13,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x059CD2F8,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x059CD3D1,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x059CDEB1,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x059CF7BA,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x059D0C3F,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x059D1BCB,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x059D2ED3,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x059D2EE3,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x059D30B2,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x059D32A5,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x059D61A2,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x059D794B,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x059D9779,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x059D9D33,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x059DA04C,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05A99367,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05A9E267,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AA3379,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AA3C63,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05AA61D6,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AA8319,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AA9808,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AA9C74,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AAB424,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AB2FB4,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AB4156,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05AB657C,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AB7955,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05ABD588,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05ABD88A,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05ABEEE6,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AC35F7,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AC51F1,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AC5794,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AC5D75,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AC5EB6,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AC6FED,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05ACE6E8,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05ACF3AB,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05ACF6C7,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05ACFC01,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AD423C,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AD55E0,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AD87DC,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05ADA7F2,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05ADD708,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05ADE93A,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AE257E,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05AE2A7E,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AE498A,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AE4FA1,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AE72A6,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AE8F82,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AE93BA,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AEA9C6,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AEBEDF,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AEBFEF,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05AED67A,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AF15D4,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05AF1D73,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05AF345B,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AF583A,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AFBB9C,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05AFE9F4,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05B0B036,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05B10443,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05B2A2C4,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05B2DB02,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05B43FE1,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05B45CF5,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05B4DB9D,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05B5551E,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05B5FBEF,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05B61A83,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05B6A393,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05B6BF43,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05B6C011,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05B6CB17,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05B8980B,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05B97F6A,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05B9C9D0,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05B9F748,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BA0EC6,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05BA13F6,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05BA3F47,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05BA7F42,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05BAA773,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BB3E56,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BB5DC0,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BBBBF0,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BBBDED,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BC042E,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05BC37EB,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BC6391,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BC7992,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BC8F63,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BC949D,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BC9627,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BCBB38,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BCC454,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BCDB77,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BCE26E,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BD01B1,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BD02CF,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BD0BAB,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BD0E93,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BD376D,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BD5DDD,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BD6AD0,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BD757B,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BD860E,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BD919B,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BD9585,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BDD79F,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BDDD18,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05BDF7E3,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BDF9F0,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BE156C,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BE15F4,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BE4B7A,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BE56BC,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BE5EA4,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BE5FC1,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BE621E,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BE8DD9,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BE9462,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BE9F25,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BE9F45,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BEB807,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05BEC769,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BF035C,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BF03D7,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BF03EA,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BF283E,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BF445C,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05BF739C,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05BFE70A,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C0322C,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C06EF0,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C070F3,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C08F33,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C11BD7,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C11DB4,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C13106,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C1335C,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C167B7,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C1766E,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C1777C,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C19C52,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C24B57,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C252C6,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C2674E,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C27968,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C279E7,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C27AA9,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C27BD4,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C2F018,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C30328,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05C30953,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C32B04,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C33E4E,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C3779C,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C39348,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C39817,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C3981C,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C3F57E,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C3FBAF,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C498CA,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C4C235,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C4E9B0,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C4ECB8,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C57F52,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C596F2,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C5A094,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C5F0CF,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C6053C,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C61BBB,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C62628,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C633CA,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05C63D2C,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C64EA3,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C659B9,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C67A69,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C6B5B0,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C6EABE,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C71A9E,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C79D0F,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C7BFCD,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C7D61B,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C81FD7,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C86E46,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C86FF3,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C88EF9,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C89275,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C8C048,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C8DE43,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C90C9F,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C949A2,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C972C3,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C9B679,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C9EB2A,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C9ED0A,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05C9F672,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CA0544,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CA865E,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05CA893D,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05CA945C,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CACAF3,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CADA23,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CAE146,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CAF37B,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CB0B84,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CB27FC,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CB38F8,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CB4170,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CC14D1,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CC6DCA,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CC84D1,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CCAAA9,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CCB20E,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CCBFDE,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CCC95D,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CD26BA,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CD27A5,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CD30F5,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CD38B4,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CD620D,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05CD6325,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CD8CF5,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05CDD516,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CDDC12,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CDE15F,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CE51D7,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CF0B07,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05CF3435,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05D0531B,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05D06338,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05D08FF6,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05D0B602,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05D0C83B,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05D0DEF2,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05D0FB13,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05D10773,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05D10A34,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05D15A52,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05D216C4,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05D23189,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05D25704,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05D30E2E,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05D3115A,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05D3B04F,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05D3D230,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3AA11,0x05D3AA0B,6,0x05D4046D,.-wI,jmp,dies-with-host,external
+0x05D3AA11,0x05D3AA0B,6,0x05D40D51,.-wI,jmp,dies-with-host,external
+0x05C88DFE,0x05C88DF8,6,0x05994443,.mackt,call,survives (.mackt),external
+0x05AD7A34,0x05AD7A2E,6,0x0599453A,.mackt,jmp,survives (.mackt),external
+0x059DAFB9,0x059DAFB3,6,0x05994544,.mackt,jmp,survives (.mackt),external
+0x05AFEAA6,0x05AFEA97,15,0x059945A5,.mackt,jmp,survives (.mackt),external
+0x05AB284B,0x05AB2845,6,0x059947A4,.mackt,jmp,survives (.mackt),external
+0x05BD69F7,0x05BD69F1,6,0x05996169,.mackt,jmp,survives (.mackt),external
+0x05CCD6D7,0x05CCD6D1,6,0x0599629E,.mackt,jmp,survives (.mackt),external
+0x059C8925,0x059C8919,12,0x05996827,.mackt,jmp,survives (.mackt),external
+0x05D3424D,0x05D34240,13,0x05996FCD,.mackt,jmp,survives (.mackt),external
+0x059D6420,0x059D641A,6,0x05997373,.mackt,jmp,survives (.mackt),external
+0x05B88742,0x05B8873B,7,0x05999109,.-wI,jmp,dies-with-host,external
+0x05C9F736,0x05C9F72C,10,0x0599B9AF,.-wI,jmp,dies-with-host,external
+0x05BAA8FF,0x05BAA8F8,7,0x0599BA19,.-wI,call,dies-with-host,external
+0x05BCE1AA,0x05BCE1A4,6,0x0599BACC,.-wI,call,dies-with-host,external
+0x05C24C49,0x05C24C43,6,0x0599BB7A,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05B010FA,0x05B010F4,6,0x0599C151,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05ADF3E7,0x05ADF3E0,7,0x0599D584,.-wI,jmp,dies-with-host,external
+0x05AB4BA6,0x05AB4BA0,6,0x0599DB5E,.-wI,call,dies-with-host,external
+0x05ADD22A,0x05ADD21F,11,0x0599DD53,.-wI,call,dies-with-host,external
+0x05BC0859,0x05BC0853,6,0x0599EA20,.-wI,call,dies-with-host,external
+0x05D255DA,0x05D255D4,6,0x0599FE68,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05CB3AD5,0x05CB3ACF,6,0x059A0927,.-wI,call,dies-with-host,external
+0x05C05901,0x05C058FB,6,0x059A0B0D,.-wI,jmp,dies-with-host,external
+0x05C88CF5,0x05C88CEF,6,0x059A1939,.-wI,call,dies-with-host,external
+0x05B8AB52,0x05B8AB4C,6,0x059A19F4,.-wI,call,dies-with-host,external
+0x05D05D5F,0x05D05D58,7,0x059A1BEA,.-wI,call,dies-with-host,external
+0x05AA4C78,0x05AA4C72,6,0x059A2D56,.-wI,jmp,dies-with-host,external
+0x05CBC816,0x05CBC80F,7,0x059A36A4,.-wI,jmp,dies-with-host,external
+0x05BB7609,0x05BB75FD,12,0x059A38B4,.-wI,call,dies-with-host,external
+0x05CF2130,0x05CF2129,7,0x059A460B,.-wI,jmp,dies-with-host,external
+0x05B79E3E,0x05B79E32,12,0x059A4A8C,.-wI,call,dies-with-host,external
+0x059D3E7D,0x059D3E77,6,0x059A4DCF,.-wI,jmp,dies-with-host,external
+0x05D1EDB9,0x05D1EDB3,6,0x059A54B1,.-wI,call,dies-with-host,external
+0x05AE84D0,0x05AE84CA,6,0x059A5A6C,.-wI,call,survives (.-wI unnamed/CRT),external
+0x059C7996,0x059C798A,12,0x059A644D,.-wI,jmp,dies-with-host,external
+0x05AC2A32,0x05AC2A2C,6,0x059A67B6,.-wI,jmp,dies-with-host,external
+0x05BD1AEF,0x05BD1AE9,6,0x059A67BB,.-wI,call,dies-with-host,external
+0x05CBEE6C,0x05CBEE64,8,0x059A815E,.-wI,jmp,dies-with-host,external
+0x05ACC740,0x05ACC73A,6,0x059A8C7D,.-wI,call,dies-with-host,external
+0x05D4284D,0x05D42847,6,0x059A9ED8,.-wI,jmp,dies-with-host,external
+0x059DA02D,0x059DA01F,14,0x059AA1A1,.-wI,jmp,dies-with-host,external
+0x05ADC887,0x05ADC87C,11,0x059AA593,.-wI,jmp,dies-with-host,external
+0x05CCEC73,0x05CCEC6D,6,0x059AAC96,.-wI,call,dies-with-host,external
+0x05AC7DA6,0x05AC7D99,13,0x059AB4EE,.-wI,call,dies-with-host,external
+0x05CB9C7E,0x05CB9C73,11,0x059AB966,.-wI,jmp,dies-with-host,external
+0x05CAE0DA,0x05CAE0CD,13,0x059AC469,.-wI,call,dies-with-host,external
+0x05D44591,0x05D4458B,6,0x059AC47E,.-wI,jmp,dies-with-host,external
+0x059A7517,0x059A7511,6,0x059B0F08,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05BE5697,0x05BE568B,12,0x059B16CD,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05BBBDAC,0x05BBBDA0,12,0x059B3C9E,.-wI,call,survives (.-wI unnamed/CRT),external
+0x059B5360,0x059B535E,2,0x059B52AB,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x0599A720,0x0599A714,12,0x059B6D56,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x0599A720,0x0599A714,12,0x059B6DD6,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x0599A720,0x0599A714,12,0x059B71A3,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x059DE303,0x059DE2FD,6,0x059C3E6B,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05C60C53,0x05C60C4D,6,0x059C40B4,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05CF1C81,0x05CF1C79,8,0x059C466F,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05A97FB0,0x05A97FA4,12,0x059C46CF,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05C2E0AF,0x05C2E0A9,6,0x059C47C0,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05BDA442,0x05BDA43C,6,0x059C4B65,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05AD54A2,0x05AD549C,6,0x059C50CC,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05C88687,0x05C88680,7,0x059C5624,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05B93CFA,0x05B93CF4,6,0x059C58C4,.-wI,jmp,dies-with-host,external
+0x05BB7604,0x05BB75FD,7,0x059C5A64,.-wI,call,dies-with-host,external
+0x05AA9556,0x05AA9550,6,0x059C68C3,.-wI,jmp,dies-with-host,external
+0x059C8D0D,0x059C8D00,13,0x059C7C0F,.-wI,jmp,dies-with-host,external
+0x05AD4C79,0x05AD4C73,6,0x059C7D1D,.-wI,jmp,dies-with-host,external
+0x05AAAA7E,0x05AAAA78,6,0x059C7D5B,.-wI,call,dies-with-host,external
+0x05C93103,0x05C930F6,13,0x059C7F5E,.-wI,call,dies-with-host,external
+0x05A9AB95,0x05A9AB8F,6,0x059C817B,.-wI,call,dies-with-host,external
+0x05CFBBE7,0x05CFBBDC,11,0x059C8405,.-wI,jmp,dies-with-host,external
+0x05BAB212,0x05BAB20C,6,0x059C86A0,.-wI,call,dies-with-host,external
+0x05CBBC6A,0x05CBBC5B,15,0x059C93AF,.-wI,call,dies-with-host,external
+0x05C8651F,0x05C86510,15,0x059C9CA5,.-wI,jmp,dies-with-host,external
+0x05CCB5C3,0x05CCB5B6,13,0x059CA455,.-wI,jmp,dies-with-host,external
+0x05C13D65,0x05C13D5F,6,0x059CA47B,.-wI,call,dies-with-host,external
+0x05D3424B,0x05D34240,11,0x059CB6DC,.-wI,jmp,dies-with-host,external
+0x059CCE77,0x059CCE71,6,0x059CB756,.-wI,jmp,dies-with-host,external
+0x05B44BCE,0x05B44BC8,6,0x059CB7B1,.-wI,call,dies-with-host,external
+0x05B9FAE8,0x05B9FAE1,7,0x059CB7B9,.-wI,jmp,dies-with-host,external
+0x05AD753F,0x05AD7539,6,0x059CBBEC,.-wI,jmp,dies-with-host,external
+0x05CCA020,0x05CCA01A,6,0x059CBE7B,.-wI,call,dies-with-host,external
+0x05BEBBB1,0x05BEBBAB,6,0x059CC233,.-wI,call,dies-with-host,external
+0x05BF5FAF,0x05BF5FA4,11,0x059CCBC6,.-wI,jmp,dies-with-host,external
+0x05CF6C9E,0x05CF6C98,6,0x059CD45D,.-wI,jmp,dies-with-host,external
+0x059AB2B1,0x059AB2AB,6,0x059CE027,.-wI,jmp,dies-with-host,external
+0x05CBEE30,0x05CBEE25,11,0x059CE386,.-wI,call,dies-with-host,external
+0x05BCEB6E,0x05BCEB68,6,0x059CE471,.-wI,call,dies-with-host,external
+0x05CE3980,0x05CE397A,6,0x059CE759,.-wI,jmp,dies-with-host,external
+0x05AB2565,0x05AB255F,6,0x059CE83F,.-wI,call,dies-with-host,external
+0x05CB2261,0x05CB225B,6,0x059CEAA1,.-wI,call,dies-with-host,external
+0x05BEFE6A,0x05BEFE64,6,0x059CEC6A,.-wI,call,dies-with-host,external
+0x05B7A078,0x05B7A06B,13,0x059CEDCB,.-wI,jmp,dies-with-host,external
+0x05CF6BC4,0x05CF6BB6,14,0x059CF3BC,.-wI,jmp,dies-with-host,external
+0x059A643B,0x059A6435,6,0x059CF81D,.-wI,jmp,dies-with-host,external
+0x059CBE42,0x059CBE3C,6,0x059CFE33,.-wI,jmp,dies-with-host,external
+0x05CF6562,0x05CF655B,7,0x059D08B1,.-wI,jmp,dies-with-host,external
+0x05D3AA7C,0x05D3AA76,6,0x059D0DD2,.-wI,call,dies-with-host,external
+0x05D445A7,0x05D445A1,6,0x059D1007,.-wI,jmp,dies-with-host,external
+0x05C7B38C,0x05C7B385,7,0x059D17AF,.-wI,call,dies-with-host,external
+0x05CB675B,0x05CB6755,6,0x059D249B,.-wI,call,dies-with-host,external
+0x05AE5947,0x05AE5941,6,0x059D29E6,.-wI,jmp,dies-with-host,external
+0x05BB992A,0x05BB9924,6,0x059D33D7,.-wI,call,dies-with-host,external
+0x05C56B42,0x05C56B3B,7,0x059D34FD,.-wI,call,dies-with-host,external
+0x059AA1B3,0x059AA1AD,6,0x059D3722,.-wI,jmp,dies-with-host,external
+0x05ADC882,0x05ADC87C,6,0x059D3875,.-wI,jmp,dies-with-host,external
+0x05AB70A7,0x05AB70A1,6,0x059D3BAF,.-wI,jmp,dies-with-host,external
+0x05C98478,0x05C98472,6,0x059D3C9D,.-wI,call,dies-with-host,external
+0x05C971EC,0x05C971E1,11,0x059D3DDB,.-wI,call,dies-with-host,external
+0x059CE476,0x059CE470,6,0x059D4180,.-wI,jmp,dies-with-host,external
+0x05AFEA9D,0x05AFEA97,6,0x059D4402,.-wI,call,dies-with-host,external
+0x05BFE4F8,0x05BFE4F2,6,0x059D4A13,.-wI,call,dies-with-host,external
+0x05B68087,0x05B6807C,11,0x059D4FCC,.-wI,call,dies-with-host,external
+0x05C9F995,0x05C9F987,14,0x059D579E,.-wI,call,dies-with-host,external
+0x05C0D461,0x05C0D45B,6,0x059D5A2B,.-wI,call,dies-with-host,external
+0x05D2AB81,0x05D2AB72,15,0x059D5E79,.-wI,jmp,dies-with-host,external
+0x05B1E9F8,0x05B1E9ED,11,0x059D6955,.-wI,jmp,dies-with-host,external
+0x05C5500B,0x05C54FFE,13,0x059D69C1,.-wI,jmp,dies-with-host,external
+0x05BD3297,0x05BD3291,6,0x059D69C6,.-wI,call,dies-with-host,external
+0x05BF7BDF,0x05BF7BD4,11,0x059D6FE2,.-wI,call,dies-with-host,external
+0x05CDD73E,0x05CDD731,13,0x059D76B9,.-wI,jmp,dies-with-host,external
+0x05C6B708,0x05C6B702,6,0x059D7A1D,.-wI,jmp,dies-with-host,external
+0x05CF0AA7,0x05CF0AA1,6,0x059D80BD,.-wI,jmp,dies-with-host,external
+0x05C56C50,0x05C56C4A,6,0x059D84F3,.-wI,call,dies-with-host,external
+0x059DE1AF,0x059DE1A9,6,0x059D938E,.-wI,call,dies-with-host,external
+0x05D16CB6,0x05D16CAE,8,0x059D9853,.-wI,jmp,dies-with-host,external
+0x05C55967,0x05C55961,6,0x059DA241,.-wI,call,dies-with-host,external
+0x05B06769,0x05B06762,7,0x059DABBF,.-wI,jmp,dies-with-host,external
+0x05ADC214,0x05ADC20E,6,0x059DB1F2,.-wI,call,dies-with-host,external
+0x05C4A406,0x05C4A400,6,0x059DBC60,.-wI,call,dies-with-host,external
+0x05AE62E2,0x05AE62DB,7,0x059DBF83,.-wI,call,dies-with-host,external
+0x05CB8315,0x05CB830A,11,0x059DC699,.-wI,jmp,dies-with-host,external
+0x05C1529D,0x05C15297,6,0x059DCBBF,.-wI,jmp,dies-with-host,external
+0x05B10C1F,0x05B10C19,6,0x059DD41B,.-wI,jmp,dies-with-host,external
+0x05C6FD3D,0x05C6FD37,6,0x059DD5A8,.-wI,jmp,dies-with-host,external
+0x05CAE0D3,0x05CAE0CD,6,0x059DE133,.-wI,jmp,dies-with-host,external
+0x05C0EEF9,0x05C0EEF3,6,0x059DE521,.-wI,jmp,dies-with-host,external
+0x05C14E34,0x05C14E25,15,0x059DE847,.-wI,call,dies-with-host,external
+0x05B48629,0x05B4861E,11,0x05A94639,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05A9C96F,0x05A9C969,6,0x05A947BA,.-wI,call,dies-with-host,external
+0x05AE73B6,0x05AE73AE,8,0x05A95121,.-wI,jmp,dies-with-host,external
+0x05A98672,0x05A9866C,6,0x05A953AD,.-wI,jmp,dies-with-host,external
+0x05BF7A4E,0x05BF7A45,9,0x05A9547E,.-wI,call,dies-with-host,external
+0x05C7CA41,0x05C7CA36,11,0x05A955C0,.-wI,jmp,dies-with-host,external
+0x05C94E55,0x05C94E4E,7,0x05A95F1A,.-wI,call,dies-with-host,external
+0x05BFE501,0x05BFE4F2,15,0x05A9762A,.-wI,call,dies-with-host,external
+0x05D3FB3D,0x05D3FB37,6,0x05A97FE3,.-wI,jmp,dies-with-host,external
+0x05BFC0C9,0x05BFC0BC,13,0x05A98066,.-wI,call,dies-with-host,external
+0x05C044B4,0x05C044AD,7,0x05A985FE,.-wI,call,dies-with-host,external
+0x05CEA3BF,0x05CEA3B9,6,0x05A98907,.-wI,jmp,dies-with-host,external
+0x05CF0067,0x05CF005A,13,0x05A99C5B,.-wI,call,dies-with-host,external
+0x05B47B35,0x05B47B2F,6,0x05A9AD82,.-wI,call,dies-with-host,external
+0x05D18CAC,0x05D18C9E,14,0x05A9ADC3,.-wI,jmp,dies-with-host,external
+0x05BB7B88,0x05BB7B82,6,0x05A9C140,.-wI,call,dies-with-host,external
+0x05BE0BE0,0x05BE0BD1,15,0x05A9C475,.-wI,call,dies-with-host,external
+0x05AE9BE5,0x05AE9BDD,8,0x05A9C750,.-wI,jmp,dies-with-host,external
+0x05C3C6AC,0x05C3C69F,13,0x05A9C77F,.-wI,call,dies-with-host,external
+0x05AD4558,0x05AD4551,7,0x05A9CA59,.-wI,jmp,dies-with-host,external
+0x05D44EAE,0x05D44EA8,6,0x05A9CBB6,.-wI,jmp,dies-with-host,external
+0x059DBB14,0x059DBB0E,6,0x05A9CF6B,.-wI,jmp,dies-with-host,external
+0x05ABF8B1,0x05ABF8AB,6,0x05A9D1F6,.-wI,jmp,dies-with-host,external
+0x05CBD57E,0x05CBD578,6,0x05A9D4F1,.-wI,jmp,dies-with-host,external
+0x05B3D479,0x05B3D46E,11,0x05A9DCB5,.-wI,jmp,dies-with-host,external
+0x05C5B81F,0x05C5B814,11,0x05AA0420,.-wI,call,dies-with-host,external
+0x05AE3398,0x05AE3391,7,0x05AA0649,.-wI,call,dies-with-host,external
+0x05C1AF0C,0x05C1AF06,6,0x05AA0767,.-wI,call,dies-with-host,external
+0x05AC08BF,0x05AC08B9,6,0x05AA0A98,.-wI,jmp,dies-with-host,external
+0x05CAE972,0x05CAE965,13,0x05AA1D1D,.-wI,jmp,dies-with-host,external
+0x059CE2DA,0x059CE2D2,8,0x05AA2A32,.-wI,call,dies-with-host,external
+0x05BF1874,0x05BF186E,6,0x05AA2B9B,.-wI,call,dies-with-host,external
+0x05CBC74B,0x05CBC745,6,0x05AA397F,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x059DA025,0x059DA01F,6,0x05AA3CE8,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05BE4D04,0x05BE4CFD,7,0x05AA4143,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05B72738,0x05B72732,6,0x05AA5179,.-wI,call,dies-with-host,external
+0x05CBAF98,0x05CBAF92,6,0x05AA534B,.-wI,jmp,dies-with-host,external
+0x05AD9A20,0x05AD9A15,11,0x05AA53D5,.-wI,call,dies-with-host,external
+0x05AF792B,0x05AF7925,6,0x05AA59F3,.-wI,jmp,dies-with-host,external
+0x05AB6453,0x05AB644D,6,0x05AA5A84,.-wI,jmp,dies-with-host,external
+0x05ACDB3C,0x05ACDB36,6,0x05AA6033,.-wI,jmp,dies-with-host,external
+0x05BD3DEE,0x05BD3DE3,11,0x05AA6FE6,.-wI,call,dies-with-host,external
+0x05D2AC22,0x05D2AC14,14,0x05AA7762,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x059D7CC1,0x059D7CBB,6,0x05AA777B,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05C6EC85,0x05C6EC7C,9,0x05AA7D7E,.-wI,jmp,dies-with-host,external
+0x05CE7AAE,0x05CE7AA3,11,0x05AA80A0,.-wI,jmp,dies-with-host,external
+0x05A9FB0D,0x05A9FB01,12,0x05AA8620,.-wI,call,dies-with-host,external
+0x05AA7B44,0x05AA7B3E,6,0x05AA879E,.-wI,jmp,dies-with-host,external
+0x05C17315,0x05C1730A,11,0x05AA8FBB,.-wI,call,dies-with-host,external
+0x059CDF0D,0x059CDF07,6,0x05AA9440,.-wI,jmp,dies-with-host,external
+0x05C67BAF,0x05C67BA9,6,0x05AA9D3A,.-wI,call,dies-with-host,external
+0x05C94AFF,0x05C94AF8,7,0x05AAA35D,.-wI,jmp,dies-with-host,external
+0x05BF49DE,0x05BF49D4,10,0x05AAA371,.-wI,jmp,dies-with-host,external
+0x05C13367,0x05C13361,6,0x05AAB791,.-wI,call,dies-with-host,external
+0x05BD39A2,0x05BD3993,15,0x05AAB7B4,.-wI,call,dies-with-host,external
+0x059C9406,0x059C93F9,13,0x05AAB988,.-wI,jmp,dies-with-host,external
+0x05AA9F63,0x05AA9F5B,8,0x05AAD091,.-wI,jmp,dies-with-host,external
+0x05CED966,0x05CED960,6,0x05AAD0EA,.-wI,jmp,dies-with-host,external
+0x05B0E86D,0x05B0E860,13,0x05AAD2FD,.-wI,call,dies-with-host,external
+0x05ACDB3E,0x05ACDB36,8,0x05AAE062,.-wI,call,dies-with-host,external
+0x05BF8474,0x05BF846E,6,0x05AAF5DC,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05AD1960,0x05AD1954,12,0x05AAF6D1,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05AE7E4A,0x05AE7E44,6,0x05AAF886,.-wI,jmp,dies-with-host,external
+0x05C0A984,0x05C0A97E,6,0x05AAFF05,.-wI,call,dies-with-host,external
+0x05C5B81A,0x05C5B814,6,0x05AB03F0,.-wI,call,dies-with-host,external
+0x05B3065E,0x05B30655,9,0x05AB0617,.-wI,jmp,dies-with-host,external
+0x05AEC927,0x05AEC918,15,0x05AB07B5,.-wI,jmp,dies-with-host,external
+0x05C282F9,0x05C282EE,11,0x05AB0CBF,.-wI,call,dies-with-host,external
+0x05BEA630,0x05BEA621,15,0x05AB1500,.-wI,call,dies-with-host,external
+0x05C3A4A6,0x05C3A4A0,6,0x05AB1B1A,.-wI,call,dies-with-host,external
+0x05C90EE5,0x05C90EDF,6,0x05AB242A,.-wI,call,dies-with-host,external
+0x05C0C1ED,0x05C0C1E7,6,0x05AB25A0,.-wI,call,dies-with-host,external
+0x0599DF08,0x0599DF00,8,0x05AB29F6,.-wI,jmp,dies-with-host,external
+0x05C5CA12,0x05C5CA0C,6,0x05AB2F7C,.-wI,call,dies-with-host,external
+0x05D158AA,0x05D158A3,7,0x05AB2FC1,.-wI,jmp,dies-with-host,external
+0x05CA4919,0x05CA490A,15,0x05AB308D,.-wI,call,dies-with-host,external
+0x05CD4C6E,0x05CD4C67,7,0x05AB42C0,.-wI,jmp,dies-with-host,external
+0x05AE04C6,0x05AE04C0,6,0x05AB46E6,.-wI,jmp,dies-with-host,external
+0x05B07E11,0x05B07E0B,6,0x05AB4CD9,.-wI,call,dies-with-host,external
+0x05CCFF43,0x05CCFF3D,6,0x05AB563A,.-wI,jmp,dies-with-host,external
+0x05D06F41,0x05D06F3A,7,0x05AB586F,.-wI,jmp,dies-with-host,external
+0x05C3549A,0x05C35494,6,0x05AB6382,.-wI,call,dies-with-host,external
+0x05D25FDC,0x05D25FD5,7,0x05AB63FB,.-wI,jmp,dies-with-host,external
+0x05ACB2F0,0x05ACB2E7,9,0x05AB6A49,.-wI,jmp,dies-with-host,external
+0x05C64022,0x05C6401C,6,0x05AB6AB1,.-wI,call,dies-with-host,external
+0x05C44AFB,0x05C44AF5,6,0x05AB7886,.-wI,call,dies-with-host,external
+0x05ACD09F,0x05ACD098,7,0x05AB78E6,.-wI,jmp,dies-with-host,external
+0x05CC89A1,0x05CC899A,7,0x05AB7BC0,.-wI,jmp,dies-with-host,external
+0x059DD828,0x059DD821,7,0x05AB8DC7,.-wI,call,dies-with-host,external
+0x05CE8FB2,0x05CE8FA5,13,0x05ABB01E,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05ADFA61,0x05ADFA5B,6,0x05ABBD63,.-wI,jmp,dies-with-host,external
+0x05BEA583,0x05BEA579,10,0x05ABC9C7,.-wI,call,dies-with-host,external
+0x05B04A74,0x05B04A6B,9,0x05ABCC27,.-wI,jmp,dies-with-host,external
+0x05B94451,0x05B9444B,6,0x05ABCC65,.-wI,jmp,dies-with-host,external
+0x059D9A3E,0x059D9A37,7,0x05ABD55F,.-wI,jmp,dies-with-host,external
+0x05C985BE,0x05C985B3,11,0x05ABD756,.-wI,jmp,dies-with-host,external
+0x059D43C8,0x059D43C2,6,0x05ABD7C0,.-wI,call,dies-with-host,external
+0x059DC0F3,0x059DC0EB,8,0x05ABDA48,.-wI,jmp,dies-with-host,external
+0x05AC0FD3,0x05AC0FCD,6,0x05ABDBA7,.-wI,call,dies-with-host,external
+0x05BB5DEF,0x05BB5DE4,11,0x05ABE2A6,.-wI,call,dies-with-host,external
+0x05C7F39E,0x05C7F398,6,0x05ABE2CA,.-wI,jmp,dies-with-host,external
+0x05C3C821,0x05C3C814,13,0x05ABEB64,.-wI,jmp,dies-with-host,external
+0x05C45CE6,0x05C45CD9,13,0x05ABEDEE,.-wI,call,dies-with-host,external
+0x05B97020,0x05B97019,7,0x05ABEED7,.-wI,jmp,dies-with-host,external
+0x05C509F7,0x05C509EB,12,0x05ABF22E,.-wI,jmp,dies-with-host,external
+0x05C76823,0x05C7681D,6,0x05AC0947,.-wI,call,dies-with-host,external
+0x05BD1ADB,0x05BD1ACF,12,0x05AC0A1F,.-wI,call,dies-with-host,external
+0x05BF0D6F,0x05BF0D66,9,0x05AC0FE9,.-wI,call,dies-with-host,external
+0x05B04A71,0x05B04A6B,6,0x05AC11E9,.-wI,jmp,dies-with-host,external
+0x05C26B8B,0x05C26B84,7,0x05AC179C,.-wI,call,dies-with-host,external
+0x05B7A071,0x05B7A06B,6,0x05AC1913,.-wI,jmp,dies-with-host,external
+0x05BE99B8,0x05BE99B2,6,0x05AC196D,.-wI,jmp,dies-with-host,external
+0x05C32283,0x05C3227D,6,0x05AC1FFB,.-wI,call,dies-with-host,external
+0x05CB9C79,0x05CB9C73,6,0x05AC20AE,.-wI,call,dies-with-host,external
+0x05AB79DF,0x05AB79D2,13,0x05AC23EA,.-wI,jmp,dies-with-host,external
+0x05D3D379,0x05D3D372,7,0x05AC2A8D,.-wI,call,dies-with-host,external
+0x05C1AAA6,0x05C1AAA0,6,0x05AC40CE,.-wI,jmp,dies-with-host,external
+0x05CB1DBF,0x05CB1DB9,6,0x05AC449E,.-wI,call,dies-with-host,external
+0x05CAB002,0x05CAAFF3,15,0x05AC4FBC,.-wI,jmp,dies-with-host,external
+0x05AC5E15,0x05AC5E08,13,0x05AC5299,.-wI,call,dies-with-host,external
+0x05AA7E4C,0x05AA7E45,7,0x05AC5C89,.-wI,jmp,dies-with-host,external
+0x05C08F85,0x05C08F7E,7,0x05AC5E2F,.-wI,call,dies-with-host,external
+0x05C4EA64,0x05C4EA5E,6,0x05AC5EB1,.-wI,jmp,dies-with-host,external
+0x05ADBEF7,0x05ADBEEC,11,0x05AC6330,.-wI,jmp,dies-with-host,external
+0x05C5BE5B,0x05C5BE54,7,0x05AC6657,.-wI,call,dies-with-host,external
+0x05AED2CF,0x05AED2C9,6,0x05AC68DB,.-wI,jmp,dies-with-host,external
+0x05D1AB7C,0x05D1AB75,7,0x05AC81F9,.-wI,jmp,dies-with-host,external
+0x05B290BC,0x05B290B6,6,0x05AC84FF,.-wI,jmp,dies-with-host,external
+0x05AAB976,0x05AAB96F,7,0x05AC8547,.-wI,jmp,dies-with-host,external
+0x059D9BCB,0x059D9BC5,6,0x05AC908C,.-wI,jmp,dies-with-host,external
+0x05C5FE7C,0x05C5FE74,8,0x05AC90D3,.-wI,jmp,dies-with-host,external
+0x05A98E85,0x05A98E7F,6,0x05AC9131,.-wI,jmp,dies-with-host,external
+0x059D771C,0x059D7716,6,0x05AC923B,.-wI,call,dies-with-host,external
+0x05AD7A3B,0x05AD7A2E,13,0x05AC98D9,.-wI,call,dies-with-host,external
+0x05CBE580,0x05CBE579,7,0x05AC9960,.-wI,call,dies-with-host,external
+0x05CCE455,0x05CCE44F,6,0x05ACA46A,.-wI,call,dies-with-host,external
+0x05AEAF2C,0x05AEAF20,12,0x05ACA503,.-wI,jmp,dies-with-host,external
+0x05C41DB0,0x05C41DA1,15,0x05ACB6EC,.-wI,call,dies-with-host,external
+0x05C32288,0x05C3227D,11,0x05ACB868,.-wI,call,dies-with-host,external
+0x05ADE589,0x05ADE583,6,0x05ACBE87,.-wI,jmp,dies-with-host,external
+0x05B0F703,0x05B0F6FD,6,0x05ACC362,.-wI,call,dies-with-host,external
+0x05D41BD3,0x05D41BCD,6,0x05ACC7C6,.-wI,jmp,dies-with-host,external
+0x05BBCF39,0x05BBCF33,6,0x05ACC991,.-wI,call,dies-with-host,external
+0x05C1CE1D,0x05C1CE16,7,0x05ACCC87,.-wI,call,dies-with-host,external
+0x05BEA62B,0x05BEA621,10,0x05ACD461,.-wI,call,dies-with-host,external
+0x05CB8310,0x05CB830A,6,0x05ACD571,.-wI,call,dies-with-host,external
+0x05C60369,0x05C6035D,12,0x05ACE9AC,.-wI,call,dies-with-host,external
+0x05CBAEB9,0x05CBAEAC,13,0x05ACEB25,.-wI,jmp,dies-with-host,external
+0x05BD01AC,0x05BD019D,15,0x05ACEB79,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05CC453D,0x05CC4537,6,0x05ACEEA2,.-wI,call,dies-with-host,external
+0x05AA111E,0x05AA1116,8,0x05ACF643,.-wI,call,dies-with-host,external
+0x05BDE97D,0x05BDE977,6,0x05ACF91A,.-wI,call,dies-with-host,external
+0x059D8B23,0x059D8B1D,6,0x05ACFBFC,.-wI,jmp,dies-with-host,external
+0x05D1C6E9,0x05D1C6E3,6,0x05AD0619,.-wI,jmp,dies-with-host,external
+0x05C73E62,0x05C73E5B,7,0x05AD0D12,.-wI,call,dies-with-host,external
+0x05CE3AB3,0x05CE3AAA,9,0x05AD1366,.-wI,jmp,dies-with-host,external
+0x05BB4B1D,0x05BB4B10,13,0x05AD21DE,.-wI,call,dies-with-host,external
+0x05A98E87,0x05A98E7F,8,0x05AD2323,.-wI,jmp,dies-with-host,external
+0x05C5A38C,0x05C5A386,6,0x05AD33ED,.-wI,jmp,dies-with-host,external
+0x05CB2266,0x05CB225B,11,0x05AD36BB,.-wI,jmp,dies-with-host,external
+0x05B5E5D2,0x05B5E5CC,6,0x05AD38F0,.-wI,jmp,dies-with-host,external
+0x05B7764F,0x05B77648,7,0x05AD3DD7,.-wI,jmp,dies-with-host,external
+0x05AF5E02,0x05AF5DF6,12,0x05AD4762,.-wI,jmp,dies-with-host,external
+0x05D10C14,0x05D10C0E,6,0x05AD4EEB,.-wI,jmp,dies-with-host,external
+0x059A7B92,0x059A7B85,13,0x05AD54C2,.-wI,jmp,dies-with-host,external
+0x05B6A490,0x05B6A488,8,0x05AD5641,.-wI,jmp,dies-with-host,external
+0x05B2B6F1,0x05B2B6EA,7,0x05AD5914,.-wI,call,dies-with-host,external
+0x05C72837,0x05C72831,6,0x05AD5CBB,.-wI,call,dies-with-host,external
+0x05CE1287,0x05CE127C,11,0x05AD6003,.-wI,jmp,dies-with-host,external
+0x05CC7535,0x05CC752F,6,0x05AD6E34,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05C309C6,0x05C309B7,15,0x05AD8091,.-wI,jmp,dies-with-host,external
+0x05B89065,0x05B8905F,6,0x05AD8151,.-wI,call,dies-with-host,external
+0x05AF8AC6,0x05AF8AC0,6,0x05AD82B6,.-wI,jmp,dies-with-host,external
+0x05BE1B57,0x05BE1B4C,11,0x05AD8498,.-wI,call,dies-with-host,external
+0x05CBA861,0x05CBA85A,7,0x05AD869D,.-wI,jmp,dies-with-host,external
+0x05CB7EF1,0x05CB7EEB,6,0x05AD90FE,.-wI,jmp,dies-with-host,external
+0x05AA8319,0x05AA8313,6,0x05ADA939,.-wI,jmp,dies-with-host,external
+0x05999C7E,0x05999C78,6,0x05ADA9DE,.-wI,call,dies-with-host,external
+0x05BEA626,0x05BEA621,5,0x05ADB620,.-wI,call,dies-with-host,external
+0x05BC8AAC,0x05BC8AA6,6,0x05ADB9E5,.-wI,call,dies-with-host,external
+0x05BE0F96,0x05BE0F89,13,0x05ADBB68,.-wI,call,dies-with-host,external
+0x05B93D01,0x05B93CF4,13,0x05ADBC52,.-wI,jmp,dies-with-host,external
+0x05B68082,0x05B6807C,6,0x05ADBC5F,.-wI,call,dies-with-host,external
+0x05BB3023,0x05BB301D,6,0x05ADC8FE,.-wI,call,dies-with-host,external
+0x05D1A78B,0x05D1A785,6,0x05ADC942,.-wI,call,dies-with-host,external
+0x05AED2D6,0x05AED2C9,13,0x05ADE56E,.-wI,jmp,dies-with-host,external
+0x05C0E81F,0x05C0E818,7,0x05ADE941,.-wI,call,dies-with-host,external
+0x059A33E6,0x059A33E0,6,0x05ADEBE7,.-wI,jmp,dies-with-host,external
+0x05ABD097,0x05ABD090,7,0x05ADF558,.-wI,call,dies-with-host,external
+0x059D5D07,0x059D5CF8,15,0x05ADF56A,.-wI,jmp,dies-with-host,external
+0x05AC2000,0x05AC1FFA,6,0x05ADFF79,.-wI,call,dies-with-host,external
+0x05B0903B,0x05B09034,7,0x05AE0FD8,.-wI,call,dies-with-host,external
+0x05AAA080,0x05AAA07A,6,0x05AE0FF4,.-wI,call,dies-with-host,external
+0x05B4F74D,0x05B4F747,6,0x05AE123B,.-wI,jmp,dies-with-host,external
+0x059C5825,0x059C581F,6,0x05AE136D,.-wI,call,dies-with-host,external
+0x05AFF4FF,0x05AFF4F2,13,0x05AE159D,.-wI,jmp,dies-with-host,external
+0x05BE1D2D,0x05BE1D28,5,0x05AE1AB3,.-wI,call,dies-with-host,external
+0x05C7DEC6,0x05C7DEC0,6,0x05AE1CAE,.-wI,jmp,dies-with-host,external
+0x05D0B661,0x05D0B65B,6,0x05AE20F6,.-wI,jmp,dies-with-host,external
+0x059D8B26,0x059D8B1D,9,0x05AE250F,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05AA5206,0x05AA51FF,7,0x05AE25C8,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05AB57ED,0x05AB57E6,7,0x05AE291F,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05BDCB33,0x05BDCB2C,7,0x05AE2FDB,.-wI,call,dies-with-host,external
+0x059DE396,0x059DE38F,7,0x05AE3CD2,.-wI,jmp,dies-with-host,external
+0x05BCA7DB,0x05BCA7CF,12,0x05AE48B2,.-wI,jmp,dies-with-host,external
+0x059D23AA,0x059D23A3,7,0x05AE52C3,.-wI,call,dies-with-host,external
+0x05C47E6B,0x05C47E65,6,0x05AE5355,.-wI,call,dies-with-host,external
+0x05BAA7A2,0x05BAA79C,6,0x05AE565A,.-wI,call,dies-with-host,external
+0x05AC2A37,0x05AC2A2C,11,0x05AE5760,.-wI,jmp,dies-with-host,external
+0x05B7890A,0x05B78904,6,0x05AE5942,.-wI,call,dies-with-host,external
+0x05B94C03,0x05B94BF5,14,0x05AE642A,.-wI,call,dies-with-host,external
+0x05C6E192,0x05C6E186,12,0x05AE64EC,.-wI,call,dies-with-host,external
+0x05AC9103,0x05AC90FD,6,0x05AE6713,.-wI,jmp,dies-with-host,external
+0x05D06F46,0x05D06F3A,12,0x05AE6D6B,.-wI,jmp,dies-with-host,external
+0x05AB7AC0,0x05AB7ABA,6,0x05AE70AD,.-wI,jmp,dies-with-host,external
+0x05C59F85,0x05C59F7F,6,0x05AE72B3,.-wI,jmp,dies-with-host,external
+0x05ADBEF2,0x05ADBEEC,6,0x05AE72CB,.-wI,jmp,dies-with-host,external
+0x05BE0BD9,0x05BE0BD1,8,0x05AE73E9,.-wI,jmp,dies-with-host,external
+0x059D28D5,0x059D28C9,12,0x05AE754F,.-wI,jmp,dies-with-host,external
+0x05CDA5A7,0x05CDA59B,12,0x05AE7828,.-wI,call,dies-with-host,external
+0x05CDEE16,0x05CDEE10,6,0x05AE7AC1,.-wI,jmp,dies-with-host,external
+0x05CC8A82,0x05CC8A77,11,0x05AE7CE9,.-wI,jmp,dies-with-host,external
+0x05BC4540,0x05BC453A,6,0x05AE7E45,.-wI,call,dies-with-host,external
+0x05BD0B6E,0x05BD0B67,7,0x05AE8D69,.-wI,call,dies-with-host,external
+0x05C8C2DA,0x05C8C2D4,6,0x05AE8F91,.-wI,call,dies-with-host,external
+0x05AA26B3,0x05AA26AD,6,0x05AE90B5,.-wI,jmp,dies-with-host,external
+0x05CE7929,0x05CE7923,6,0x05AE9710,.-wI,jmp,dies-with-host,external
+0x05CF015D,0x05CF0156,7,0x05AEA8AC,.-wI,jmp,dies-with-host,external
+0x05BB762F,0x05BB7629,6,0x05AEB445,.-wI,call,dies-with-host,external
+0x05BB40AE,0x05BB40A2,12,0x05AEB4D5,.-wI,call,dies-with-host,external
+0x05BEEC3C,0x05BEEC36,6,0x05AED40B,.-wI,call,dies-with-host,external
+0x05ABD910,0x05ABD90A,6,0x05AED47F,.-wI,jmp,dies-with-host,external
+0x05B177CE,0x05B177C8,6,0x05AED4F3,.-wI,call,dies-with-host,external
+0x05C9B4A1,0x05C9B49A,7,0x05AEF332,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x059CC1AE,0x059CC1A7,7,0x05AEF8F0,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x059CC5D3,0x059CC5C7,12,0x05AEFF41,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05B94BFB,0x05B94BF5,6,0x05AF0B44,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05AA9A0A,0x05AA9A01,9,0x05AF2E82,.-wI,jmp,dies-with-host,external
+0x05CCFFA4,0x05CCFF9E,6,0x05AF2E89,.-wI,jmp,dies-with-host,external
+0x05AB4BAF,0x05AB4BA0,15,0x05AF3637,.-wI,jmp,dies-with-host,external
+0x05C9FF25,0x05C9FF1E,7,0x05AF4BBF,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05B478FE,0x05B478F8,6,0x05AF58F7,.-wI,call,dies-with-host,external
+0x05BC317F,0x05BC3179,6,0x05AF881E,.-wI,call,dies-with-host,external
+0x05BE45CF,0x05BE45C9,6,0x05AF8AFF,.-wI,call,dies-with-host,external
+0x05B5D1C4,0x05B5D1BE,6,0x05AFA0E9,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05B6BDCC,0x05B6BDC0,12,0x05AFA7B8,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05B1990A,0x05B19904,6,0x05AFCA4C,.-wI,jmp,dies-with-host,external
+0x059C9008,0x059C9001,7,0x05AFDC23,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05AD7BDD,0x05AD7BD1,12,0x05AFDC58,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05C37E7D,0x05C37E77,6,0x05AFF185,.-wI,call,dies-with-host,external
+0x05AA208E,0x05AA2088,6,0x05B0140A,.-wI,jmp,dies-with-host,external
+0x05A955E3,0x05A955DD,6,0x05B014DF,.-wI,jmp,dies-with-host,external
+0x059C9A28,0x059C9A1C,12,0x05B02D06,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05C3E491,0x05C3E48B,6,0x05B04DB4,.-wI,call,dies-with-host,external
+0x05ABD5DA,0x05ABD5D4,6,0x05B06736,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05BB5DEA,0x05BB5DE4,6,0x05B082F0,.-wI,call,dies-with-host,external
+0x05B41877,0x05B41871,6,0x05B0A652,.-wI,jmp,dies-with-host,external
+0x05B3313A,0x05B33134,6,0x05B0AB7E,.-wI,call,dies-with-host,external
+0x05AE64F5,0x05AE64EA,11,0x05B0E97B,.-wI,call,dies-with-host,external
+0x05B67A0B,0x05B67A04,7,0x05B0F116,.-wI,call,dies-with-host,external
+0x05CD8DD5,0x05CD8DCF,6,0x05B0FF3B,.-wI,call,dies-with-host,external
+0x05D02CCE,0x05D02CC7,7,0x05B10D53,.-wI,jmp,dies-with-host,external
+0x05BD1AD6,0x05BD1ACF,7,0x05B113CB,.-wI,call,dies-with-host,external
+0x05C55F75,0x05C55F66,15,0x05B1552E,.-wI,jmp,dies-with-host,external
+0x05C282F4,0x05C282EE,6,0x05B17114,.-wI,call,dies-with-host,external
+0x05C0AF2B,0x05C0AF1F,12,0x05B177F3,.-wI,call,dies-with-host,external
+0x05C6FD5C,0x05C6FD56,6,0x05B18EFA,.-wI,call,dies-with-host,external
+0x05AEA8BD,0x05AEA8B1,12,0x05B1A867,.-wI,jmp,dies-with-host,external
+0x05C432FC,0x05C432F6,6,0x05B1B64E,.-wI,call,dies-with-host,external
+0x059D6FD6,0x059D6FD0,6,0x05B1B66B,.-wI,jmp,dies-with-host,external
+0x05C58B36,0x05C58B30,6,0x05B1E91E,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05CCA576,0x05CCA570,6,0x05B203DC,.-wI,call,dies-with-host,external
+0x05ACAB10,0x05ACAB0A,6,0x05B22C99,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05C6B70D,0x05C6B702,11,0x05B2420E,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05ADAB0F,0x05ADAB03,12,0x05B244BF,.-wI,jmp,dies-with-host,external
+0x059D815D,0x059D8157,6,0x05B2455B,.-wI,jmp,dies-with-host,external
+0x05AC194B,0x05AC1944,7,0x05B257E3,.-wI,jmp,dies-with-host,external
+0x05C38038,0x05C3802D,11,0x05B26E2E,.-wI,jmp,dies-with-host,external
+0x05B26419,0x05B26413,6,0x05B27CCE,.-wI,jmp,dies-with-host,external
+0x05B87372,0x05B8736A,8,0x05B29253,.-wI,call,dies-with-host,external
+0x05B2B67D,0x05B2B671,12,0x05B2963E,.-wI,jmp,dies-with-host,external
+0x059CBE01,0x059CBDFB,6,0x05B2ABA1,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05C09F63,0x05C09F58,11,0x05B2C3D4,.-wI,call,dies-with-host,external
+0x05AEDD64,0x05AEDD55,15,0x05B2D9EB,.-wI,call,dies-with-host,external
+0x05CBC589,0x05CBC583,6,0x05B2DBD7,.-wI,call,dies-with-host,external
+0x059D70C7,0x059D70BC,11,0x05B2E6B1,.-wI,call,dies-with-host,external
+0x05C70D0B,0x05C70D05,6,0x05B30DB0,.-wI,call,dies-with-host,external
+0x05B1CFCF,0x05B1CFC4,11,0x05B32ADF,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05AB79D8,0x05AB79D2,6,0x05B332CC,.-wI,jmp,dies-with-host,external
+0x05CCA52B,0x05CCA51E,13,0x05B39439,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05CCC91B,0x05CCC913,8,0x05B3BB41,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05AB2853,0x05AB2845,14,0x05B3BE06,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05BF61D3,0x05BF61CD,6,0x05B3C66F,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05C15820,0x05C1581A,6,0x05B3C7B7,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05CDB38C,0x05CDB385,7,0x05B3D554,.-wI,call,dies-with-host,external
+0x05C8DF7E,0x05C8DF78,6,0x05B3F369,.-wI,call,dies-with-host,external
+0x05AB7C15,0x05AB7C0D,8,0x05B3F9F5,.-wI,jmp,dies-with-host,external
+0x05C74075,0x05C7406F,6,0x05B3FA59,.-wI,jmp,dies-with-host,external
+0x05BC4A7C,0x05BC4A71,11,0x05B4062C,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05BB4120,0x05BB411A,6,0x05B406CD,.-wI,call,dies-with-host,external
+0x05AB8709,0x05AB86FC,13,0x05B4093C,.-wI,call,dies-with-host,external
+0x05B85734,0x05B85725,15,0x05B429B7,.-wI,jmp,dies-with-host,external
+0x05BFC7F3,0x05BFC7ED,6,0x05B4332E,.-wI,call,dies-with-host,external
+0x059A7B8B,0x059A7B85,6,0x05B439DF,.-wI,jmp,dies-with-host,external
+0x05D36FD7,0x05D36FD0,7,0x05B43E84,.-wI,jmp,dies-with-host,external
+0x05D44EB5,0x05D44EA8,13,0x05B440CE,.-wI,jmp,dies-with-host,external
+0x05CAE3F5,0x05CAE3E8,13,0x05B44157,.-wI,call,dies-with-host,external
+0x05AD45E9,0x05AD45E3,6,0x05B4532D,.-wI,call,dies-with-host,external
+0x05CD775D,0x05CD7757,6,0x05B45596,.-wI,jmp,dies-with-host,external
+0x05D19000,0x05D18FF4,12,0x05B464A9,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05AD54AA,0x05AD549C,14,0x05B46ADE,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05C870D3,0x05C870CC,7,0x05B46C0B,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05C21156,0x05C21150,6,0x05B47BD1,.-wI,call,dies-with-host,external
+0x059D96B2,0x059D96AC,6,0x05B4B1AF,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05A9D49D,0x05A9D496,7,0x05B4BBCC,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05CE4C2D,0x05CE4C27,6,0x05B4BCCF,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05A9A7FE,0x05A9A7F5,9,0x05B4BE16,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05AF3500,0x05AF34F1,15,0x05B4CB5C,.-wI,jmp,dies-with-host,external
+0x05AD2F88,0x05AD2F82,6,0x05B4D031,.-wI,call,dies-with-host,external
+0x05AA49DF,0x05AA49D9,6,0x05B4DAA4,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x059D9A46,0x059D9A37,15,0x05B4DAB6,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05AA8D44,0x05AA8D39,11,0x05B4E8DE,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05CDC8C1,0x05CDC8BB,6,0x05B4E96C,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05CE1282,0x05CE127C,6,0x05B4F5F6,.-wI,jmp,dies-with-host,external
+0x059CA150,0x059CA149,7,0x05B4FBD0,.-wI,jmp,dies-with-host,external
+0x05ABBFC8,0x05ABBFC2,6,0x05B50AE2,.-wI,jmp,dies-with-host,external
+0x05AB84D0,0x05AB84C9,7,0x05B52B0D,.-wI,call,dies-with-host,external
+0x05C60B40,0x05C60B39,7,0x05B5366A,.-wI,call,dies-with-host,external
+0x05D1E352,0x05D1E34C,6,0x05B55674,.-wI,jmp,dies-with-host,external
+0x05D02F6C,0x05D02F66,6,0x05B55735,.-wI,jmp,dies-with-host,external
+0x05D3424F,0x05D34240,15,0x05B57A95,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05C9449C,0x05C94496,6,0x05B599ED,.-wI,jmp,dies-with-host,external
+0x05B2B9EB,0x05B2B9E5,6,0x05B5CA3D,.-wI,jmp,dies-with-host,external
+0x05C13D6A,0x05C13D5F,11,0x05B5EDA3,.-wI,call,dies-with-host,external
+0x05C74E04,0x05C74DFD,7,0x05B5EE24,.-wI,call,dies-with-host,external
+0x05A9569E,0x05A95690,14,0x05B5FB96,.-wI,jmp,dies-with-host,external
+0x05C4B662,0x05C4B65B,7,0x05B605E2,.-wI,jmp,dies-with-host,external
+0x05C5D5D6,0x05C5D5CA,12,0x05B60749,.-wI,jmp,dies-with-host,external
+0x05AAB853,0x05AAB845,14,0x05B61E0F,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05CDD740,0x05CDD731,15,0x05B62721,.-wI,jmp,dies-with-host,external
+0x059CA06B,0x059CA05F,12,0x05B65597,.-wI,jmp,dies-with-host,external
+0x05CBEE2B,0x05CBEE25,6,0x05B65B4E,.-wI,call,dies-with-host,external
+0x05D02C33,0x05D02C28,11,0x05B65DE9,.-wI,call,dies-with-host,external
+0x05C0A989,0x05C0A97E,11,0x05B66655,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05C45B39,0x05C45B33,6,0x05B6A075,.-wI,call,dies-with-host,external
+0x05C7F3A0,0x05C7F398,8,0x05B6D0AF,.-wI,call,dies-with-host,external
+0x05ACD431,0x05ACD42A,7,0x05B6D642,.-wI,call,dies-with-host,external
+0x05AD51C6,0x05AD51BF,7,0x05B6FC40,.-wI,call,dies-with-host,external
+0x05ADF595,0x05ADF58F,6,0x05B71594,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05CB7EF8,0x05CB7EEB,13,0x05B718D5,.-wI,call,dies-with-host,external
+0x05B4187C,0x05B41871,11,0x05B73FB2,.-wI,jmp,dies-with-host,external
+0x05D38522,0x05D3851C,6,0x05B77B97,.-wI,jmp,dies-with-host,external
+0x05B2DC06,0x05B2DC00,6,0x05B7AFF8,.-wI,jmp,dies-with-host,external
+0x059CD024,0x059CD01D,7,0x05B7B4E1,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05C96292,0x05C9628C,6,0x05B7DB75,.-wI,jmp,dies-with-host,external
+0x05AE64F1,0x05AE64EA,7,0x05B7F8CF,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05CBAEB3,0x05CBAEAC,7,0x05B7FA05,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05CE8A22,0x05CE8A1C,6,0x05B7FBB2,.-wI,call,dies-with-host,external
+0x05BC5BEF,0x05BC5BE9,6,0x05B7FBBD,.-wI,call,dies-with-host,external
+0x05A987D7,0x05A987CD,10,0x05B8015A,.-wI,jmp,dies-with-host,external
+0x05BEEC41,0x05BEEC36,11,0x05B80F19,.-wI,jmp,dies-with-host,external
+0x05A9FB07,0x05A9FB01,6,0x05B84A8A,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05B59AF6,0x05B59AEF,7,0x05B8754E,.-wI,jmp,dies-with-host,external
+0x05B40AB1,0x05B40AAB,6,0x05B88090,.-wI,call,dies-with-host,external
+0x05C21A37,0x05C21A31,6,0x05B88FB9,.-wI,call,dies-with-host,external
+0x05CCCEA1,0x05CCCE9A,7,0x05B89D3E,.-wI,call,dies-with-host,external
+0x05C5A1C0,0x05C5A1BA,6,0x05B8B266,.-wI,call,dies-with-host,external
+0x059AB058,0x059AB051,7,0x05B8C07A,.-wI,jmp,dies-with-host,external
+0x05BE4D09,0x05BE4CFD,12,0x05B8C822,.-wI,call,dies-with-host,external
+0x05C05856,0x05C05848,14,0x05B8DB44,.-wI,call,dies-with-host,external
+0x05C5A1C5,0x05C5A1BA,11,0x05B900DB,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05CCCA48,0x05CCCA42,6,0x05B90ABC,.-wI,jmp,dies-with-host,external
+0x05CDE7C3,0x05CDE7BD,6,0x05B91147,.-wI,call,dies-with-host,external
+0x05AD7BD8,0x05AD7BD1,7,0x05B9463C,.-wI,jmp,dies-with-host,external
+0x05C64027,0x05C6401C,11,0x05B9465E,.-wI,jmp,dies-with-host,external
+0x05AB60E7,0x05AB60E1,6,0x05B971A6,.-wI,jmp,dies-with-host,external
+0x05C8A79A,0x05C8A794,6,0x05B9723C,.-wI,call,dies-with-host,external
+0x05BBBA3A,0x05BBBA2F,11,0x05B97F7E,.-wI,call,dies-with-host,external
+0x05CA5A2C,0x05CA5A26,6,0x05B9887E,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05C13357,0x05C13351,6,0x05B98955,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05C60363,0x05C6035D,6,0x05B98A8E,.-wI,call,dies-with-host,external
+0x05BC386A,0x05BC3863,7,0x05B9C34C,.-wI,call,dies-with-host,external
+0x05C49A7C,0x05C49A75,7,0x05B9E2E6,.-wI,jmp,dies-with-host,external
+0x05AE40EC,0x05AE40E6,6,0x05B9F691,.-wI,call,dies-with-host,external
+0x05BD332C,0x05BD3326,6,0x05B9F9D5,.-wI,call,dies-with-host,external
+0x05AA96F5,0x05AA96E7,14,0x05BA0590,.-wI,call,dies-with-host,external
+0x05B90A7D,0x05B90A75,8,0x05BA07E7,.-wI,jmp,dies-with-host,external
+0x05A9794C,0x05A97946,6,0x05BA14C2,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05BDB259,0x05BDB253,6,0x05BA1FB1,.-wI,call,dies-with-host,external
+0x05D174E2,0x05D174DC,6,0x05BA4CDC,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x059DB0E6,0x059DB0E0,6,0x05BA4EEC,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05C49A81,0x05C49A75,12,0x05BA59F3,.-wI,jmp,dies-with-host,external
+0x05C044F1,0x05C044EB,6,0x05BA623F,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05C2C1AE,0x05C2C1A8,6,0x05BA78E0,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05CB38EC,0x05CB38E6,6,0x05BA7FE4,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05BCE482,0x05BCE475,13,0x05BA81EC,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05C31098,0x05C3108B,13,0x05BA8C4C,.-wI,call,dies-with-host,external
+0x05BDC8C6,0x05BDC8C0,6,0x05BA8C9D,.-wI,call,dies-with-host,external
+0x05C3935C,0x05C3934D,15,0x05BA8F58,.-wI,call,dies-with-host,external
+0x059DACA0,0x059DAC99,7,0x05BA9895,.-wI,call,dies-with-host,external
+0x05B1D313,0x05B1D30D,6,0x05BAA62C,.-wI,call,dies-with-host,external
+0x05BBD48F,0x05BBD489,6,0x05BAA797,.-wI,call,dies-with-host,external
+0x05BD4B64,0x05BD4B57,13,0x05BAB0A4,.-wI,call,dies-with-host,external
+0x05BE6229,0x05BE6223,6,0x05BB3F3F,.-wI,call,dies-with-host,external
+0x05C11AD5,0x05C11ACE,7,0x05BB3FE4,.-wI,call,dies-with-host,external
+0x05B508BE,0x05B508B8,6,0x05BB4754,.-wI,call,dies-with-host,external
+0x05BF6CF6,0x05BF6CEF,7,0x05BB5386,.-wI,call,dies-with-host,external
+0x05BE7128,0x05BE711D,11,0x05BB7604,.-wI,call,dies-with-host,external
+0x05AC1AD8,0x05AC1AD2,6,0x05BB7826,.-wI,call,dies-with-host,external
+0x05C2EF52,0x05C2EF4C,6,0x05BB7BD0,.-wI,call,dies-with-host,external
+0x05BD3999,0x05BD3993,6,0x05BB869A,.-wI,call,dies-with-host,external
+0x05ABD09C,0x05ABD090,12,0x05BB9925,.-wI,call,dies-with-host,external
+0x05C1CDB8,0x05C1CDB3,5,0x05BBBFAB,.-wI,call,dies-with-host,external
+0x05BE5DC1,0x05BE5DBB,6,0x05BBC688,.-wI,call,dies-with-host,external
+0x05C30510,0x05C3050A,6,0x05BBC6EC,.-wI,call,dies-with-host,external
+0x05CF2137,0x05CF2129,14,0x05BBD2B8,.-wI,call,dies-with-host,external
+0x05BAA7A7,0x05BAA79C,11,0x05BBE63A,.-wI,call,dies-with-host,external
+0x05BDDE5D,0x05BDDE57,6,0x05BC08D6,.-wI,call,dies-with-host,external
+0x05BB8799,0x05BB8793,6,0x05BC0ED7,.-wI,call,dies-with-host,external
+0x05C4A272,0x05C4A26B,7,0x05BC49F1,.-wI,call,dies-with-host,external
+0x05C3CC01,0x05C3CBFB,6,0x05BC4A30,.-wI,call,dies-with-host,external
+0x05C5B69C,0x05C5B690,12,0x05BC4A83,.-wI,call,dies-with-host,external
+0x05BD19EC,0x05BD19E6,6,0x05BC4BA0,.-wI,call,dies-with-host,external
+0x05CA61EF,0x05CA61E4,11,0x05BC650E,.-wI,call,dies-with-host,external
+0x05C23543,0x05C2353D,6,0x05BC651A,.-wI,call,dies-with-host,external
+0x05C34496,0x05C34490,6,0x05BC6774,.-wI,call,dies-with-host,external
+0x05CBF86A,0x05CBF864,6,0x05BC747C,.-wI,call,dies-with-host,external
+0x05BD6B2E,0x05BD6B28,6,0x05BC7923,.-wI,call,dies-with-host,external
+0x059C6201,0x059C61F2,15,0x05BC8A5C,.-wI,call,dies-with-host,external
+0x05AE0107,0x05AE00F8,15,0x05BC8BAB,.-wI,call,dies-with-host,external
+0x05C08EB5,0x05C08EAF,6,0x05BC90DC,.-wI,call,dies-with-host,external
+0x05BBD729,0x05BBD723,6,0x05BC934A,.-wI,call,dies-with-host,external
+0x05CC90F2,0x05CC90EB,7,0x05BC9D71,.-wI,call,dies-with-host,external
+0x05BDA95A,0x05BDA954,6,0x05BC9F07,.-wI,call,dies-with-host,external
+0x05B4C49E,0x05B4C493,11,0x05BC9FB5,.-wI,call,dies-with-host,external
+0x05C70E62,0x05C70E5C,6,0x05BCA6F1,.-wI,call,dies-with-host,external
+0x05ADEB76,0x05ADEB69,13,0x05BCC44F,.-wI,call,dies-with-host,external
+0x05C8F972,0x05C8F965,13,0x05BCE470,.-wI,call,dies-with-host,external
+0x05C1AB8C,0x05C1AB86,6,0x05BCEA7C,.-wI,call,dies-with-host,external
+0x05BEB9E0,0x05BEB9D4,12,0x05BD03E6,.-wI,call,dies-with-host,external
+0x05CA9176,0x05CA9170,6,0x05BD0B45,.-wI,call,dies-with-host,external
+0x05AA824A,0x05AA823C,14,0x05BD1AD1,.-wI,call,dies-with-host,external
+0x05BFF1F5,0x05BFF1EF,6,0x05BD1BD3,.-wI,call,dies-with-host,external
+0x05A9AA9B,0x05A9AA94,7,0x05BD3C7D,.-wI,call,dies-with-host,external
+0x05BCC4B3,0x05BCC4A6,13,0x05BD5DCF,.-wI,call,dies-with-host,external
+0x05C580DC,0x05C580D6,6,0x05BD5F7F,.-wI,jmp,dies-with-host,external
+0x05C7E074,0x05C7E069,11,0x05BD62A2,.-wI,call,dies-with-host,external
+0x05BB883D,0x05BB8837,6,0x05BD62C1,.-wI,call,dies-with-host,external
+0x05BD7E80,0x05BD7E7A,6,0x05BD6477,.-wI,call,dies-with-host,external
+0x05CB41B7,0x05CB41B1,6,0x05BD696E,.-wI,call,dies-with-host,external
+0x05C0EF00,0x05C0EEF3,13,0x05BD842B,.-wI,call,dies-with-host,external
+0x05B3F2ED,0x05B3F2E7,6,0x05BD85FE,.-wI,call,dies-with-host,external
+0x05C2D659,0x05C2D64B,14,0x05BD91FF,.-wI,call,dies-with-host,external
+0x059A35B9,0x059A35AE,11,0x05BD92A2,.-wI,call,dies-with-host,external
+0x05C8BF55,0x05C8BF4E,7,0x05BD9686,.-wI,call,dies-with-host,external
+0x05BBA460,0x05BBA45A,6,0x05BD991B,.-wI,call,dies-with-host,external
+0x05AB1650,0x05AB164A,6,0x05BDC992,.-wI,call,dies-with-host,external
+0x05CCCA4F,0x05CCCA42,13,0x05BDD752,.-wI,call,dies-with-host,external
+0x05C719B1,0x05C719A6,11,0x05BDE9E4,.-wI,call,dies-with-host,external
+0x05CBBC61,0x05CBBC5B,6,0x05BDF879,.-wI,call,dies-with-host,external
+0x059AAEF9,0x059AAEEC,13,0x05BE1F04,.-wI,call,dies-with-host,external
+0x05BC9042,0x05BC903C,6,0x05BE2DBC,.-wI,call,dies-with-host,external
+0x05AA5ECB,0x05AA5EBF,12,0x05BE4C19,.-wI,call,dies-with-host,external
+0x05AAC5FA,0x05AAC5F4,6,0x05BE4CFF,.-wI,call,dies-with-host,external
+0x05BF0D6A,0x05BF0D66,4,0x05BE61D2,.-wI,call,dies-with-host,external
+0x05C1123E,0x05C11238,6,0x05BE7FE8,.-wI,call,dies-with-host,external
+0x05C39513,0x05C3950C,7,0x05BE8BF3,.-wI,call,dies-with-host,external
+0x05AB55A3,0x05AB559D,6,0x05BE9DBD,.-wI,call,dies-with-host,external
+0x05C378D0,0x05C378CA,6,0x05BE9E9E,.-wI,call,dies-with-host,external
+0x05C8CCEF,0x05C8CCE7,8,0x05BEA53C,.-wI,jmp,dies-with-host,external
+0x059CCA6B,0x059CCA60,11,0x05BEDED2,.-wI,call,dies-with-host,external
+0x05BD64EE,0x05BD64E8,6,0x05BEE8C9,.-wI,call,dies-with-host,external
+0x059DC347,0x059DC341,6,0x05BEE91B,.-wI,call,dies-with-host,external
+0x05CDF4A2,0x05CDF49C,6,0x05BEEC67,.-wI,jmp,dies-with-host,external
+0x05B24389,0x05B24383,6,0x05BEED11,.-wI,call,dies-with-host,external
+0x05C4E733,0x05C4E72C,7,0x05BEF439,.-wI,call,dies-with-host,external
+0x05C5B737,0x05C5B732,5,0x05BEFF63,.-wI,call,dies-with-host,external
+0x05BCAE38,0x05BCAE2B,13,0x05BF060C,.-wI,call,dies-with-host,external
+0x05BC3184,0x05BC3179,11,0x05BF26C2,.-wI,call,dies-with-host,external
+0x05BD1434,0x05BD142E,6,0x05BF2798,.-wI,call,dies-with-host,external
+0x05C6FDA7,0x05C6FD99,14,0x05BF49ED,.-wI,call,dies-with-host,external
+0x05B04A79,0x05B04A6B,14,0x05BF4C5C,.-wI,jmp,dies-with-host,external
+0x05C27B41,0x05C27B3B,6,0x05BF4DC1,.-wI,call,dies-with-host,external
+0x05C33873,0x05C3386D,6,0x05BF5F83,.-wI,call,dies-with-host,external
+0x05C8A77E,0x05C8A771,13,0x05BFB3AD,.-wI,call,dies-with-host,external
+0x05BEC72F,0x05BEC728,7,0x05BFBF95,.-wI,call,dies-with-host,external
+0x05C0EEFB,0x05C0EEF3,8,0x05BFBFC8,.-wI,call,dies-with-host,external
+0x05BD1A29,0x05BD1A23,6,0x05BFC7EE,.-wI,call,dies-with-host,external
+0x05AED2E4,0x05AED2DE,6,0x05BFD557,.-wI,call,dies-with-host,external
+0x05C54D15,0x05C54D0F,6,0x05BFD781,.-wI,call,dies-with-host,external
+0x05C2080E,0x05C20807,7,0x05BFDDC0,.-wI,call,dies-with-host,external
+0x05BEE5B5,0x05BEE5AF,6,0x05C0046E,.-wI,call,dies-with-host,external
+0x05B6F2CF,0x05B6F2C2,13,0x05C007E9,.-wI,jmp,dies-with-host,external
+0x05BCAE31,0x05BCAE2B,6,0x05C01554,.-wI,call,dies-with-host,external
+0x059D6FEC,0x059D6FE1,11,0x05C01BC6,.-wI,call,dies-with-host,external
+0x05B63413,0x05B6340A,9,0x05C01BF2,.-wI,jmp,dies-with-host,external
+0x05D2D0F8,0x05D2D0ED,11,0x05C02C32,.-wI,call,dies-with-host,external
+0x05C18CCB,0x05C18CC5,6,0x05C02C40,.-wI,call,dies-with-host,external
+0x05BD860E,0x05BD8603,11,0x05C037AB,.-wI,jmp,dies-with-host,external
+0x05ACBEF4,0x05ACBEEE,6,0x05C04226,.-wI,call,dies-with-host,external
+0x05C56C09,0x05C56C03,6,0x05C04252,.-wI,call,dies-with-host,external
+0x05C5A393,0x05C5A386,13,0x05C0445E,.-wI,call,dies-with-host,external
+0x05BABAF9,0x05BABAF3,6,0x05C04464,.-wI,call,dies-with-host,external
+0x05C8F748,0x05C8F73E,10,0x05C065EE,.-wI,call,dies-with-host,external
+0x05C9B495,0x05C9B48F,6,0x05C0727D,.-wI,call,dies-with-host,external
+0x05C3FA32,0x05C3FA2B,7,0x05C08EC3,.-wI,call,dies-with-host,external
+0x05C3FA32,0x05C3FA2B,7,0x05C3F9D7,.-wI,jmp,dies-with-host,external
+0x05C4736F,0x05C47360,15,0x05C08FAA,.-wI,call,dies-with-host,external
+0x05BE51EE,0x05BE51E8,6,0x05C0997A,.-wI,call,dies-with-host,external
+0x05C09992,0x05C0998A,8,0x05C09FC7,.-wI,call,dies-with-host,external
+0x05CBC55A,0x05CBC54E,12,0x05C1016F,.-wI,call,dies-with-host,external
+0x05BD4B5E,0x05BD4B57,7,0x05C10AE5,.-wI,call,dies-with-host,external
+0x059AA33F,0x059AA339,6,0x05C10B17,.-wI,call,dies-with-host,external
+0x05BB8E7B,0x05BB8E75,6,0x05C11A02,.-wI,call,dies-with-host,external
+0x05C2CB07,0x05C2CB01,6,0x05C11A52,.-wI,call,dies-with-host,external
+0x05CF6569,0x05CF655B,14,0x05C11E84,.-wI,jmp,dies-with-host,external
+0x05B96F4D,0x05B96F3F,14,0x05C133BD,.-wI,jmp,dies-with-host,external
+0x05AC910A,0x05AC90FD,13,0x05C14E20,.-wI,call,dies-with-host,external
+0x05BF7AE8,0x05BF7AD9,15,0x05C14E57,.-wI,call,dies-with-host,external
+0x05C1081F,0x05C10819,6,0x05C154D7,.-wI,call,dies-with-host,external
+0x05BC946A,0x05BC9464,6,0x05C1565F,.-wI,call,dies-with-host,external
+0x05C719AC,0x05C719A6,6,0x05C156EC,.-wI,call,dies-with-host,external
+0x05C3C6A5,0x05C3C69F,6,0x05C15832,.-wI,call,dies-with-host,external
+0x05C9CA99,0x05C9CA8C,13,0x05C17409,.-wI,call,dies-with-host,external
+0x05CD62F7,0x05CD62F1,6,0x05C17412,.-wI,call,dies-with-host,external
+0x05B112D3,0x05B112C5,14,0x05C18DB4,.-wI,call,dies-with-host,external
+0x05C659A8,0x05C65999,15,0x05C192E4,.-wI,call,dies-with-host,external
+0x05B19912,0x05B19904,14,0x05C1944B,.-wI,jmp,dies-with-host,external
+0x05C6599F,0x05C65999,6,0x05C194E7,.-wI,call,dies-with-host,external
+0x05ABB654,0x05ABB647,13,0x05C1A60C,.-wI,call,dies-with-host,external
+0x05C58BB0,0x05C58BAA,6,0x05C1AF30,.-wI,call,dies-with-host,external
+0x05ADBB53,0x05ADBB4D,6,0x05C1CB28,.-wI,jmp,dies-with-host,external
+0x05B2B6F7,0x05B2B6EA,13,0x05C1CCE6,.-wI,call,dies-with-host,external
+0x05CB8256,0x05CB8250,6,0x05C1CD17,.-wI,jmp,dies-with-host,external
+0x05AC96EA,0x05AC96E2,8,0x05C1CE18,.-wI,call,dies-with-host,external
+0x05C61D09,0x05C61D03,6,0x05C1CF3D,.-wI,call,dies-with-host,external
+0x05BB3029,0x05BB301D,12,0x05C1D9BE,.-wI,call,dies-with-host,external
+0x05BBD4B6,0x05BBD4B0,6,0x05C1DEF8,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05C044F6,0x05C044EB,11,0x05C1E45A,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05BE8ACA,0x05BE8AC4,6,0x05C1E636,.-wI,jmp,dies-with-host,external
+0x05AB4970,0x05AB4969,7,0x05C1FBF4,.-wI,call,dies-with-host,external
+0x05BD7D92,0x05BD7D8B,7,0x05C21151,.-wI,call,dies-with-host,external
+0x05AA831E,0x05AA8313,11,0x05C21A04,.-wI,call,dies-with-host,external
+0x05C7AF89,0x05C7AF7E,11,0x05C23543,.-wI,call,dies-with-host,external
+0x05CA2091,0x05CA2089,8,0x05C2460B,.-wI,jmp,dies-with-host,external
+0x059C7EC1,0x059C7EBB,6,0x05C24681,.-wI,call,dies-with-host,external
+0x05BD3DE9,0x05BD3DE3,6,0x05C247B6,.-wI,call,dies-with-host,external
+0x05BE7123,0x05BE711D,6,0x05C249F3,.-wI,call,dies-with-host,external
+0x05AD23CC,0x05AD23BE,14,0x05C24C63,.-wI,jmp,dies-with-host,external
+0x05CBEEA4,0x05CBEE9F,5,0x05C258DE,.-wI,call,dies-with-host,external
+0x05C26541,0x05C2653B,6,0x05C26BA8,.-wI,call,dies-with-host,external
+0x05BE8C93,0x05BE8C8B,8,0x05C26BD6,.-wI,call,dies-with-host,external
+0x05ADC72D,0x05ADC727,6,0x05C27D85,.-wI,jmp,dies-with-host,external
+0x05C870DA,0x05C870CC,14,0x05C2A4BF,.-wI,call,dies-with-host,external
+0x059D7D1D,0x059D7D17,6,0x05C2D583,.-wI,jmp,dies-with-host,external
+0x05C04EBB,0x05C04EB4,7,0x05C2E0A4,.-wI,jmp,dies-with-host,external
+0x05AB0184,0x05AB017E,6,0x05C2EA2A,.-wI,jmp,dies-with-host,external
+0x05BD92A7,0x05BD9298,15,0x05C2EF0D,.-wI,call,dies-with-host,external
+0x05B4C499,0x05B4C493,6,0x05C30391,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05C7FDEF,0x05C7FDE8,7,0x05C30453,.-wI,call,dies-with-host,external
+0x05C177A4,0x05C17797,13,0x05C30B05,.-wI,jmp,dies-with-host,external
+0x05BBC6FD,0x05BBC6F1,12,0x05C31086,.-wI,call,dies-with-host,external
+0x05C395AB,0x05C395A2,9,0x05C310CA,.-wI,call,dies-with-host,external
+0x05C27BF6,0x05C27BE9,13,0x05C32BC2,.-wI,call,dies-with-host,external
+0x05BD69DB,0x05BD69D5,6,0x05C32D21,.-wI,call,dies-with-host,external
+0x05CF0162,0x05CF0156,12,0x05C33715,.-wI,call,dies-with-host,external
+0x05D38524,0x05D3851C,8,0x05C34262,.-wI,call,dies-with-host,external
+0x05C1A409,0x05C1A402,7,0x05C34509,.-wI,call,dies-with-host,external
+0x05C716E8,0x05C716E1,7,0x05C34CB2,.-wI,call,dies-with-host,external
+0x05A94EEF,0x05A94EE9,6,0x05C3648B,.-wI,jmp,dies-with-host,external
+0x05BD7BA6,0x05BD7BA0,6,0x05C376B7,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05BFC22F,0x05BFC224,11,0x05C3792E,.-wI,call,dies-with-host,external
+0x05C7FF07,0x05C7FEFF,8,0x05C37F56,.-wI,jmp,dies-with-host,external
+0x05BD03D7,0x05BD03CA,13,0x05C37FA2,.-wI,call,dies-with-host,external
+0x05C23FB2,0x05C23FAC,6,0x05C38813,.-wI,call,dies-with-host,external
+0x05C5FCB5,0x05C5FCAF,6,0x05C3CD16,.-wI,call,dies-with-host,external
+0x05BF810C,0x05BF8106,6,0x05C3FB4F,.-wI,call,dies-with-host,external
+0x05BCE461,0x05BCE45B,6,0x05C3FD1A,.-wI,call,dies-with-host,external
+0x05BD6530,0x05BD6525,11,0x05C409ED,.-wI,call,dies-with-host,external
+0x05C0F920,0x05C0F91A,6,0x05C411A1,.-wI,call,dies-with-host,external
+0x05C309C4,0x05C309B7,13,0x05C44A51,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05AC1FC6,0x05AC1FBB,11,0x05C45AED,.-wI,call,dies-with-host,external
+0x05C4BE56,0x05C4BE4C,10,0x05C45BD1,.-wI,call,dies-with-host,external
+0x05BFF1FB,0x05BFF1EF,12,0x05C45BDE,.-wI,call,dies-with-host,external
+0x05C154E1,0x05C154D6,11,0x05C45C37,.-wI,jmp,dies-with-host,external
+0x05AA09A2,0x05AA099C,6,0x05C46783,.-wI,call,dies-with-host,external
+0x05C60D92,0x05C60D8C,6,0x05C46909,.-wI,call,dies-with-host,external
+0x05C90AAC,0x05C90A9F,13,0x05C46C54,.-wI,call,dies-with-host,external
+0x05BCC228,0x05BCC221,7,0x05C46E67,.-wI,call,dies-with-host,external
+0x05C03CF9,0x05C03CEA,15,0x05C48BD6,.-wI,call,dies-with-host,external
+0x05B9E388,0x05B9E380,8,0x05C48D6C,.-wI,call,dies-with-host,external
+0x05BE6240,0x05BE623A,6,0x05C48E1F,.-wI,call,dies-with-host,external
+0x05AB70AE,0x05AB70A1,13,0x05C4A851,.-wI,call,dies-with-host,external
+0x05CFE542,0x05CFE537,11,0x05C4AF24,.-wI,call,dies-with-host,external
+0x05C5B741,0x05C5B732,15,0x05C4CDBA,.-wI,jmp,dies-with-host,external
+0x05C61BDD,0x05C61BD4,9,0x05C4D8FB,.-wI,jmp,dies-with-host,external
+0x059CBFDB,0x059CBFD5,6,0x05C527C1,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05B98A93,0x05B98A8D,6,0x05C53408,.-wI,call,dies-with-host,external
+0x05BFDDD4,0x05BFDDCE,6,0x05C545B5,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05CDB372,0x05CDB36C,6,0x05C54876,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05B24992,0x05B2498C,6,0x05C54C13,.-wI,jmp,dies-with-host,external
+0x05CDF4A8,0x05CDF49C,12,0x05C54FB8,.-wI,call,dies-with-host,external
+0x05C4199F,0x05C41999,6,0x05C5582E,.-wI,jmp,dies-with-host,external
+0x05CD7798,0x05CD7792,6,0x05C565DE,.-wI,jmp,dies-with-host,external
+0x05BCC3EC,0x05BCC3E6,6,0x05C56A4E,.-wI,call,dies-with-host,external
+0x05C07852,0x05C0784C,6,0x05C56BC0,.-wI,call,dies-with-host,external
+0x05C971E7,0x05C971E1,6,0x05C56C45,.-wI,call,dies-with-host,external
+0x05AE353B,0x05AE3535,6,0x05C57415,.-wI,call,dies-with-host,external
+0x05C8F7AB,0x05C8F7A5,6,0x05C57719,.-wI,call,dies-with-host,external
+0x05BD64E3,0x05BD64DD,6,0x05C58ACF,.-wI,call,dies-with-host,external
+0x05CC1593,0x05CC1584,15,0x05C58B31,.-wI,call,dies-with-host,external
+0x05C53428,0x05C53422,6,0x05C59F12,.-wI,call,dies-with-host,external
+0x059A2283,0x059A227D,6,0x05C5A364,.-wI,call,dies-with-host,external
+0x05AE73FC,0x05AE73F6,6,0x05C5A381,.-wI,call,dies-with-host,external
+0x05C7E06F,0x05C7E069,6,0x05C5B64C,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05B96E81,0x05B96E7A,7,0x05C5D5F6,.-wI,jmp,dies-with-host,external
+0x05CC805C,0x05CC8056,6,0x05C5F04B,.-wI,call,dies-with-host,external
+0x05C66D2B,0x05C66D25,6,0x05C5F182,.-wI,call,dies-with-host,external
+0x05BF7ADF,0x05BF7AD9,6,0x05C5FD37,.-wI,call,dies-with-host,external
+0x05C04469,0x05C04463,6,0x05C60494,.-wI,call,dies-with-host,external
+0x05C1932A,0x05C1931E,12,0x05C60575,.-wI,call,dies-with-host,external
+0x05C23548,0x05C2353D,11,0x05C61207,.-wI,call,dies-with-host,external
+0x05B1E9F3,0x05B1E9ED,6,0x05C61390,.-wI,call,dies-with-host,external
+0x05BF5FAA,0x05BF5FA4,6,0x05C61D9A,.-wI,call,dies-with-host,external
+0x05C63E0C,0x05C63E06,6,0x05C63097,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05C5C981,0x05C5C97B,6,0x05C63BC0,.-wI,jmp,dies-with-host,external
+0x05AA9B84,0x05AA9B75,15,0x05C63CE5,.-wI,jmp,dies-with-host,external
+0x05ACD896,0x05ACD890,6,0x05C64068,.-wI,call,dies-with-host,external
+0x05BF88CB,0x05BF88C5,6,0x05C647E7,.-wI,jmp,dies-with-host,external
+0x05CBDE84,0x05CBDE79,11,0x05C65238,.-wI,jmp,dies-with-host,external
+0x05BEEF58,0x05BEEF52,6,0x05C6590E,.-wI,call,dies-with-host,external
+0x05C0AF25,0x05C0AF1F,6,0x05C68AB4,.-wI,call,dies-with-host,external
+0x05BEE803,0x05BEE7FC,7,0x05C6998D,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05AA9DF4,0x05AA9DEE,6,0x05C6A48C,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05AC0240,0x05AC023A,6,0x05C6A5D1,.-wI,jmp,dies-with-host,external
+0x05ABD3FD,0x05ABD3F7,6,0x05C6AF79,.-wI,call,dies-with-host,external
+0x05C972C3,0x05C972B6,13,0x05C6B5D5,.-wI,jmp,dies-with-host,external
+0x05C8BD3C,0x05C8BD33,9,0x05C6B84C,.-wI,jmp,dies-with-host,external
+0x05C5F31D,0x05C5F311,12,0x05C6D99C,.-wI,call,dies-with-host,external
+0x05CD4C70,0x05CD4C67,9,0x05C6E026,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05BF0252,0x05BF024C,6,0x05C6E56A,.-wI,call,dies-with-host,external
+0x05BF035C,0x05BF0356,6,0x05C6ECCD,.-wI,jmp,dies-with-host,external
+0x05C5D597,0x05C5D589,14,0x05C70338,.-wI,jmp,dies-with-host,external
+0x05D372B6,0x05D372B0,6,0x05C703C5,.-wI,jmp,dies-with-host,external
+0x05B3D474,0x05B3D46E,6,0x05C70505,.-wI,jmp,dies-with-host,external
+0x05BB3125,0x05BB311F,6,0x05C70E62,.-wI,call,dies-with-host,external
+0x05CACCFF,0x05CACCF9,6,0x05C710E5,.-wI,call,dies-with-host,external
+0x05ABDB56,0x05ABDB50,6,0x05C7236B,.-wI,jmp,dies-with-host,external
+0x05C37EC2,0x05C37EBC,6,0x05C7240C,.-wI,jmp,dies-with-host,external
+0x05BE8A69,0x05BE8A5D,12,0x05C72800,.-wI,call,dies-with-host,external
+0x05CB4225,0x05CB421E,7,0x05C74919,.-wI,call,dies-with-host,external
+0x05BB5DC5,0x05BB5DBA,11,0x05C7544E,.-wI,call,dies-with-host,external
+0x05C810C6,0x05C810B9,13,0x05C7651F,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05AA8FB7,0x05AA8FB0,7,0x05C795F5,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05C6E5BC,0x05C6E5B2,10,0x05C79616,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05ABD766,0x05ABD75B,11,0x05C79F04,.-wI,call,dies-with-host,external
+0x05C11CD3,0x05C11CCB,8,0x05C7A3E5,.-wI,call,dies-with-host,external
+0x05CECCA8,0x05CECCA2,6,0x05C7B274,.-wI,call,dies-with-host,external
+0x05CBE585,0x05CBE579,12,0x05C7C79D,.-wI,jmp,dies-with-host,external
+0x059CB939,0x059CB933,6,0x05C7C7A9,.-wI,call,dies-with-host,external
+0x05C28332,0x05C2832C,6,0x05C7D956,.-wI,call,dies-with-host,external
+0x05CDEE1F,0x05CDEE10,15,0x05C7EB87,.-wI,jmp,dies-with-host,external
+0x05AC7DA4,0x05AC7D99,11,0x05C7ED3B,.-wI,jmp,dies-with-host,external
+0x05C809A6,0x05C809A0,6,0x05C8098A,.-wI,jmp,dies-with-host,external
+0x05C4E760,0x05C4E75A,6,0x05C80A4B,.-wI,call,dies-with-host,external
+0x05CA024D,0x05CA0247,6,0x05C80A60,.-wI,jmp,dies-with-host,external
+0x05D16CB4,0x05D16CAE,6,0x05C80AD1,.-wI,jmp,dies-with-host,external
+0x05D16CB4,0x05D16CAE,6,0x072B64E8,.#|U,call?,survives (.#|U),external
+0x05CE69A4,0x05CE699E,6,0x05C830DD,.-wI,jmp,dies-with-host,external
+0x05BDDD6B,0x05BDDD65,6,0x05C831B8,.-wI,call,dies-with-host,external
+0x05C70D14,0x05C70D05,15,0x05C83218,.-wI,call,dies-with-host,external
+0x0599D2A0,0x0599D29A,6,0x05C83E71,.-wI,jmp,dies-with-host,external
+0x05C57E91,0x05C57E8B,6,0x05C86281,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05BF6195,0x05BF618D,8,0x05C86819,.-wI,call,dies-with-host,external
+0x05CCD6B1,0x05CCD6AB,6,0x05C8833C,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05B73982,0x05B7397C,6,0x05C884A4,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05C9403D,0x05C94037,6,0x05C88FDC,.-wI,jmp,dies-with-host,external
+0x05B6BDC6,0x05B6BDC0,6,0x05C89120,.-wI,jmp,dies-with-host,external
+0x059AC13B,0x059AC135,6,0x05C8945B,.-wI,jmp,dies-with-host,external
+0x05BD96E2,0x05BD96DC,6,0x05C89705,.-wI,call,dies-with-host,external
+0x05CB59F6,0x05CB59F0,6,0x05C89E09,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05C005DE,0x05C005D1,13,0x05C89E6C,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05CA395F,0x05CA3959,6,0x05C8B244,.-wI,jmp,dies-with-host,external
+0x05CAB377,0x05CAB371,6,0x05C8B3D8,.-wI,call,dies-with-host,external
+0x05ADBEFB,0x05ADBEEC,15,0x05C8BBD3,.-wI,call,dies-with-host,external
+0x05C37F46,0x05C37F39,13,0x05C8C3E3,.-wI,jmp,dies-with-host,external
+0x05BF0371,0x05BF0366,11,0x05C8C484,.-wI,call,dies-with-host,external
+0x05C39353,0x05C3934D,6,0x05C8C5C3,.-wI,call,dies-with-host,external
+0x05B161C4,0x05B161B7,13,0x05C8CF0A,.-wI,jmp,dies-with-host,external
+0x059C9401,0x059C93F9,8,0x05C8DCAB,.-wI,call,dies-with-host,external
+0x05D0D237,0x05D0D22B,12,0x05C8DFE9,.-wI,call,dies-with-host,external
+0x05CBBF91,0x05CBBF8B,6,0x05C8E752,.-wI,call,dies-with-host,external
+0x05C0584E,0x05C05848,6,0x05C8E7E9,.-wI,call,dies-with-host,external
+0x05C3F125,0x05C3F11F,6,0x05C8F98F,.-wI,call,dies-with-host,external
+0x05BE5231,0x05BE5223,14,0x05C8FFBB,.-wI,call,dies-with-host,external
+0x05B9FAED,0x05B9FAE1,12,0x05C90292,.-wI,jmp,dies-with-host,external
+0x05C6A53E,0x05C6A531,13,0x05C90642,.-wI,call,dies-with-host,external
+0x05CA4912,0x05CA490A,8,0x05C9068B,.-wI,jmp,dies-with-host,external
+0x05CBE0E5,0x05CBE0DF,6,0x05C92119,.-wI,call,dies-with-host,external
+0x05C9598A,0x05C95983,7,0x05C921B4,.-wI,call,dies-with-host,external
+0x05BF6341,0x05BF6334,13,0x05C922AB,.-wI,call,dies-with-host,external
+0x05C7492A,0x05C74923,7,0x05C9394D,.-wI,call,dies-with-host,external
+0x05AD6F04,0x05AD6EFE,6,0x05C93E80,.-wI,call,dies-with-host,external
+0x05AD92F6,0x05AD92F0,6,0x05C9405A,.-wI,call,dies-with-host,external
+0x05CA36A0,0x05CA369A,6,0x05C94099,.-wI,jmp,dies-with-host,external
+0x05BBD3D3,0x05BBD3CC,7,0x05C94B45,.-wI,call,dies-with-host,external
+0x05ABD917,0x05ABD90A,13,0x05C94CCC,.-wI,jmp,dies-with-host,external
+0x05C2CAC8,0x05C2CAC2,6,0x05C9694E,.-wI,call,dies-with-host,external
+0x05CC53F2,0x05CC53EC,6,0x05C9873A,.-wI,jmp,dies-with-host,external
+0x05C10AF0,0x05C10AEA,6,0x05C991D9,.-wI,call,dies-with-host,external
+0x05BE8A8C,0x05BE8A85,7,0x05C99B47,.-wI,call,dies-with-host,external
+0x05BF7C62,0x05BF7C5B,7,0x05C9B55B,.-wI,call,dies-with-host,external
+0x05CB38F3,0x05CB38E6,13,0x05C9CA04,.-wI,jmp,dies-with-host,external
+0x05C7191E,0x05C71919,5,0x05C9D2C7,.-wI,jmp,dies-with-host,external
+0x05D02CD0,0x05D02CC7,9,0x05C9D6A3,.-wI,call,dies-with-host,external
+0x05C276FE,0x05C276F8,6,0x05C9ECD7,.-wI,call,dies-with-host,external
+0x05D00844,0x05D00839,11,0x05C9F342,.-wI,call,dies-with-host,external
+0x059D81F8,0x059D81F1,7,0x05C9FA2E,.-wI,jmp,dies-with-host,external
+0x05C72805,0x05C727FF,6,0x05CA3674,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05C54DE7,0x05C54DE1,6,0x05CA3C74,.-wI,call,dies-with-host,external
+0x05C56B47,0x05C56B3B,12,0x05CA513B,.-wI,jmp,dies-with-host,external
+0x059D7BBC,0x059D7BB6,6,0x05CA58A9,.-wI,call,dies-with-host,external
+0x05AAAED5,0x05AAAECE,7,0x05CA598F,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05BE8AD3,0x05BE8AC4,15,0x05CA6714,.-wI,call,dies-with-host,external
+0x05CDFDDB,0x05CDFDD5,6,0x05CA6B7B,.-wI,call,dies-with-host,external
+0x05B8572C,0x05B85725,7,0x05CA83F5,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05C1779D,0x05C17797,6,0x05CA9559,.-wI,jmp,dies-with-host,external
+0x05C49A2A,0x05C49A24,6,0x05CACCFA,.-wI,call,dies-with-host,external
+0x05C6B3AE,0x05C6B3A2,12,0x05CACDDE,.-wI,call,dies-with-host,external
+0x05B216C9,0x05B216BC,13,0x05CADB4E,.-wI,jmp,dies-with-host,external
+0x05BEB95A,0x05BEB953,7,0x05CAE3C8,.-wI,call,dies-with-host,external
+0x05C14E12,0x05C14E0C,6,0x05CAE561,.-wI,call,dies-with-host,external
+0x05AFEA5C,0x05AFEA56,6,0x05CAE785,.-wI,jmp,dies-with-host,external
+0x05AB41B7,0x05AB41AB,12,0x05CAF1D5,.-wI,call,dies-with-host,external
+0x05C6B954,0x05C6B947,13,0x05CAF247,.-wI,jmp,dies-with-host,external
+0x05C48EA0,0x05C48E99,7,0x05CAF5C6,.-wI,jmp,dies-with-host,external
+0x05C218C8,0x05C218C1,7,0x05CB0975,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05C1301F,0x05C13019,6,0x05CB0BC2,.-wI,call,dies-with-host,external
+0x05CE7CDD,0x05CE7CD2,11,0x05CB198E,.-wI,call,dies-with-host,external
+0x05C921DA,0x05C921D4,6,0x05CB1DAF,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05BB2EA9,0x05BB2EA3,6,0x05CB28CB,.-wI,call,dies-with-host,external
+0x05C1CDBD,0x05C1CDB3,10,0x05CB4A30,.-wI,call,dies-with-host,external
+0x05BE5E67,0x05BE5E61,6,0x05CB542C,.-wI,call,dies-with-host,external
+0x05B8741D,0x05B87417,6,0x05CB58AD,.-wI,jmp,dies-with-host,external
+0x05AE480A,0x05AE4804,6,0x05CB5BB7,.-wI,call,dies-with-host,external
+0x05D255E1,0x05D255D4,13,0x05CB7708,.-wI,jmp,dies-with-host,external
+0x05BA99A1,0x05BA9997,10,0x05CB774F,.-wI,call,dies-with-host,external
+0x05C1ABAA,0x05C1ABA4,6,0x05CB78E8,.-wI,call,dies-with-host,external
+0x05ADE743,0x05ADE73D,6,0x05CB79B3,.-wI,call,dies-with-host,external
+0x05C9BA9C,0x05C9BA91,11,0x05CB7F74,.-wI,call,dies-with-host,external
+0x059A8371,0x059A836B,6,0x05CB82F8,.-wI,jmp,dies-with-host,external
+0x05C9E6D5,0x05C9E6C9,12,0x05CB835A,.-wI,jmp,dies-with-host,external
+0x05BB6AE3,0x05BB6AD7,12,0x05CB8AA6,.-wI,call,dies-with-host,external
+0x05ADFA63,0x05ADFA5B,8,0x05CB8C5C,.-wI,call,dies-with-host,external
+0x05C79E50,0x05C79E48,8,0x05CB928A,.-wI,call,dies-with-host,external
+0x05C42B06,0x05C42AFB,11,0x05CB9348,.-wI,call,dies-with-host,external
+0x05C7221B,0x05C72215,6,0x05CB9B17,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05CDF779,0x05CDF772,7,0x05CB9F3E,.-wI,call,dies-with-host,external
+0x05C4D1F8,0x05C4D1F2,6,0x05CBB081,.-wI,call,dies-with-host,external
+0x05D21D50,0x05D21D4A,6,0x05CBB3BD,.-wI,call,dies-with-host,external
+0x05B2D836,0x05B2D82E,8,0x05CBBC02,.-wI,jmp,dies-with-host,external
+0x05AC0245,0x05AC023A,11,0x05CBCCC4,.-wI,call,dies-with-host,external
+0x05B203B1,0x05B203AB,6,0x05CBD01B,.-wI,jmp,dies-with-host,external
+0x05BD8609,0x05BD8603,6,0x05CBD175,.-wI,call,dies-with-host,external
+0x05C40B1C,0x05C40B16,6,0x05CBD2F1,.-wI,call,dies-with-host,external
+0x059D70C2,0x059D70BC,6,0x05CBD52F,.-wI,jmp,dies-with-host,external
+0x05C7ED72,0x05C7ED6C,6,0x05CBD6FD,.-wI,jmp,dies-with-host,external
+0x05D0D231,0x05D0D22B,6,0x05CBE0DA,.-wI,jmp,dies-with-host,external
+0x05C70089,0x05C7007B,14,0x05CBEE88,.-wI,call,dies-with-host,external
+0x05B0BD2C,0x05B0BD22,10,0x05CC0EE0,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05C5BEDC,0x05C5BED5,7,0x05CC10CA,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05BE1E6E,0x05BE1E68,6,0x05CC137A,.-wI,jmp,dies-with-host,external
+0x05CE3987,0x05CE397A,13,0x05CC4486,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05D3E7C6,0x05D3E7C0,6,0x05CC4532,.-wI,call,dies-with-host,external
+0x05D05DC1,0x05D05DBB,6,0x05CC49FD,.-wI,jmp,dies-with-host,external
+0x05C04F16,0x05C04F09,13,0x05CC53A4,.-wI,call,dies-with-host,external
+0x05B93C85,0x05B93C7E,7,0x05CC5407,.-wI,jmp,dies-with-host,external
+0x05C1779F,0x05C17797,8,0x05CC574B,.-wI,call,dies-with-host,external
+0x05C400CB,0x05C400C5,6,0x05CC581A,.-wI,jmp,dies-with-host,external
+0x05B203B9,0x05B203AB,14,0x05CC5A07,.-wI,jmp,dies-with-host,external
+0x05C17310,0x05C1730A,6,0x05CC623B,.-wI,call,dies-with-host,external
+0x05ADFADE,0x05ADFAD8,6,0x05CC8AD6,.-wI,call,dies-with-host,external
+0x05CE7D09,0x05CE7D03,6,0x05CC8AF4,.-wI,call,dies-with-host,external
+0x05BCBBB6,0x05BCBBB0,6,0x05CC9968,.-wI,call,dies-with-host,external
+0x05CBD5A2,0x05CBD599,9,0x05CC9F20,.-wI,jmp,dies-with-host,external
+0x05CD1BEC,0x05CD1BE5,7,0x05CC9F4B,.-wI,jmp,dies-with-host,external
+0x05BEA4B1,0x05BEA4AB,6,0x05CCA2F6,.-wI,call,dies-with-host,external
+0x05C150DC,0x05C150D6,6,0x05CCB228,.-wI,call,dies-with-host,external
+0x05CABC21,0x05CABC1B,6,0x05CCBCD1,.-wI,call,dies-with-host,external
+0x05AB4E3F,0x05AB4E39,6,0x05CCC243,.-wI,call,dies-with-host,external
+0x05AE4EA2,0x05AE4E9C,6,0x05CCC462,.-wI,jmp,dies-with-host,external
+0x05C6A634,0x05C6A62E,6,0x05CCC733,.-wI,call,dies-with-host,external
+0x05D2AB78,0x05D2AB72,6,0x05CCCADE,.-wI,call,dies-with-host,external
+0x05C2AB66,0x05C2AB60,6,0x05CCCD40,.-wI,call,dies-with-host,external
+0x05CAE3CD,0x05CAE3BF,14,0x05CCDBAE,.-wI,call,dies-with-host,external
+0x05BD7BF6,0x05BD7BEF,7,0x05CCE671,.-wI,jmp,dies-with-host,external
+0x05CB288D,0x05CB287F,14,0x05CCE7A7,.-wI,jmp,dies-with-host,external
+0x05AAE4DB,0x05AAE4D5,6,0x05CCF472,.-wI,call,dies-with-host,external
+0x05AB3068,0x05AB3062,6,0x05CD1DC7,.-wI,call,dies-with-host,external
+0x05CA5A31,0x05CA5A26,11,0x05CD2804,.-wI,jmp,dies-with-host,external
+0x05BEB961,0x05BEB953,14,0x05CD2E70,.-wI,call,dies-with-host,external
+0x05AA58B1,0x05AA58AB,6,0x05CD2EC3,.-wI,jmp,dies-with-host,external
+0x059D6FE7,0x059D6FE1,6,0x05CD3ACB,.-wI,jmp,dies-with-host,external
+0x05CC8063,0x05CC8056,13,0x05CD56CA,.-wI,call,dies-with-host,external
+0x059C61F8,0x059C61F2,6,0x05CD6343,.-wI,call,dies-with-host,external
+0x05B73984,0x05B7397C,8,0x05CD7353,.-wI,call,dies-with-host,external
+0x05C33E4E,0x05C33E43,11,0x05CD748D,.-wI,jmp,dies-with-host,external
+0x05CB9F81,0x05CB9F75,12,0x05CD93F3,.-wI,jmp,dies-with-host,external
+0x05B180CA,0x05B180C3,7,0x05CD9539,.-wI,jmp,dies-with-host,external
+0x059DE796,0x059DE78E,8,0x05CDA589,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x059D5D00,0x059D5CF8,8,0x05CDB513,.-wI,jmp,dies-with-host,external
+0x05C64F6F,0x05C64F69,6,0x05CDC04B,.-wI,call,dies-with-host,external
+0x059A0049,0x059A003C,13,0x05CDC8B6,.-wI,jmp,dies-with-host,external
+0x05C67942,0x05C6793D,5,0x05CDC8BC,.-wI,call,dies-with-host,external
+0x05AC98EB,0x05AC98DE,13,0x05CDD138,.-wI,call,dies-with-host,external
+0x05CB49BE,0x05CB49B8,6,0x05CDD442,.-wI,call,dies-with-host,external
+0x05B9F748,0x05B9F741,7,0x05CDD641,.-wI,jmp,dies-with-host,external
+0x05B696F7,0x05B696EC,11,0x05CDD94D,.-wI,call,dies-with-host,external
+0x05ABDE94,0x05ABDE8E,6,0x05CDD9AC,.-wI,call,dies-with-host,external
+0x05C99209,0x05C991FB,14,0x05CDDBBC,.-wI,jmp,dies-with-host,external
+0x05AAFC57,0x05AAFC51,6,0x05CDDFB0,.-wI,jmp,dies-with-host,external
+0x05B47907,0x05B478F8,15,0x05CDE183,.-wI,jmp,dies-with-host,external
+0x05AC96E8,0x05AC96E2,6,0x05CDE1E5,.-wI,jmp,dies-with-host,external
+0x05CDA5A1,0x05CDA59B,6,0x05CDF034,.-wI,jmp,dies-with-host,external
+0x05CD91F1,0x05CD91EA,7,0x05CDF4A3,.-wI,jmp,dies-with-host,external
+0x05C38033,0x05C3802D,6,0x05CDF89F,.-wI,call,dies-with-host,external
+0x05B913CF,0x05B913C9,6,0x05CE124F,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05B6A494,0x05B6A488,12,0x05CE54DD,.-wI,call,dies-with-host,external
+0x05D02C2E,0x05D02C28,6,0x05CE7309,.-wI,call,dies-with-host,external
+0x05AD4B2D,0x05AD4B20,13,0x05CE75D9,.-wI,jmp,dies-with-host,external
+0x05B3ECFD,0x05B3ECF7,6,0x05CE7673,.-wI,jmp,dies-with-host,external
+0x05D42A88,0x05D42A7F,9,0x05CE7BD0,.-wI,jmp,dies-with-host,external
+0x05AA8242,0x05AA823C,6,0x05CE895F,.-wI,jmp,dies-with-host,external
+0x05C9BA97,0x05C9BA91,6,0x05CE89D3,.-wI,call,dies-with-host,external
+0x05A94EF2,0x05A94EE9,9,0x05CE993B,.-wI,call,dies-with-host,external
+0x05C3FA37,0x05C3FA2B,12,0x05CEA2EE,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05AB41B1,0x05AB41AB,6,0x05CEA3BA,.-wI,call,dies-with-host,external
+0x05AA53E6,0x05AA53DA,12,0x05CEBDE3,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05BC616D,0x05BC6167,6,0x05CEC487,.-wI,call,dies-with-host,external
+0x05B4C244,0x05B4C23E,6,0x05CEE1C0,.-wI,jmp,dies-with-host,external
+0x05C106EF,0x05C106E4,11,0x05CEE212,.-wI,call,dies-with-host,external
+0x05C4E995,0x05C4E98F,6,0x05CEFF7E,.-wI,call,dies-with-host,external
+0x05AEC568,0x05AEC562,6,0x05CF01AE,.-wI,call,dies-with-host,external
+0x05B112CC,0x05B112C5,7,0x05CF08DE,.-wI,jmp,dies-with-host,external
+0x05C0E8EE,0x05C0E8E8,6,0x05CF3392,.-wI,call,dies-with-host,external
+0x05AD3344,0x05AD333E,6,0x05CF34D5,.-wI,call,dies-with-host,external
+0x05AA7E54,0x05AA7E45,15,0x05CF4CB1,.-wI,jmp,dies-with-host,external
+0x05C9424B,0x05C94245,6,0x05CF4DDF,.-wI,call,dies-with-host,external
+0x05D0B668,0x05D0B65B,13,0x05CF595A,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05B6F19F,0x05B6F194,11,0x05CF5E8E,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D4313A,0x05D43134,6,0x05CF65BB,.-wI,jmp,dies-with-host,external
+0x05CE12C1,0x05CE12B9,8,0x05CF6D9C,.-wI,jmp,dies-with-host,external
+0x059D28D0,0x059D28C9,7,0x05CF7832,.-wI,call,dies-with-host,external
+0x059D0130,0x059D012A,6,0x05CF9902,.-wI,jmp,dies-with-host,external
+0x05C27BEF,0x05C27BE9,6,0x05CFA64D,.-wI,jmp,dies-with-host,external
+0x05C6F52A,0x05C6F524,6,0x05CFBB6E,.-wI,jmp,dies-with-host,external
+0x05C7AF84,0x05C7AF7E,6,0x05CFC182,.-wI,call,dies-with-host,external
+0x05CD19F8,0x05CD19EB,13,0x05CFC9B2,.-wI,jmp,dies-with-host,external
+0x05C37EE3,0x05C37EDD,6,0x05CFFF25,.-wI,call,dies-with-host,external
+0x05C1205B,0x05C12054,7,0x05CFFFC3,.-wI,jmp,dies-with-host,external
+0x05D34246,0x05D34240,6,0x05D0083A,.-wI,call,dies-with-host,external
+0x05CC158B,0x05CC1584,7,0x05D009DC,.-wI,jmp,dies-with-host,external
+0x05BD691A,0x05BD6914,6,0x05D014CC,.-wI,call,dies-with-host,external
+0x05BDE330,0x05BDE32A,6,0x05D02FDB,.-wI,call,dies-with-host,external
+0x05AC9A1A,0x05AC9A14,6,0x05D04BE9,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05BC6D7D,0x05BC6D76,7,0x05D04C02,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x059DBB1B,0x059DBB0E,13,0x05D04CAE,.-wI,jmp,dies-with-host,external
+0x05BD83E5,0x05BD83DE,7,0x05D07451,.-wI,jmp,dies-with-host,external
+0x05BF0558,0x05BF0552,6,0x05D09901,.-wI,call,dies-with-host,external
+0x05C33E59,0x05C33E53,6,0x05D0BE1F,.-wI,jmp,dies-with-host,external
+0x05C15218,0x05C1520D,11,0x05D0C836,.-wI,call,dies-with-host,external
+0x05CACA8D,0x05CACA87,6,0x05D0CC22,.-wI,jmp,dies-with-host,external
+0x05C70F7C,0x05C70F76,6,0x05D0CC5A,.-wI,jmp,dies-with-host,external
+0x05CB4C80,0x05CB4C7A,6,0x05D0EF7B,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05CE8FAB,0x05CE8FA5,6,0x05D0FA31,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05C54D1A,0x05C54D0F,11,0x05D128C0,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05AC7D9F,0x05AC7D99,6,0x05D135F3,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x059D1D2C,0x059D1D26,6,0x05D14C57,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05AEAF27,0x05AEAF20,7,0x05D15851,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05CB0B31,0x05CB0B29,8,0x05D15A1B,.-wI,call,dies-with-host,external
+0x05C4E8F1,0x05C4E8EA,7,0x05D16288,.-wI,call,dies-with-host,external
+0x05BC6135,0x05BC612F,6,0x05D1657C,.-wI,jmp,dies-with-host,external
+0x05C6AE8C,0x05C6AE85,7,0x05D16581,.-wI,call,dies-with-host,external
+0x05AB306D,0x05AB3062,11,0x05D181CB,.-wI,jmp,dies-with-host,external
+0x05BF4BE1,0x05BF4BDB,6,0x05D18CA7,.-wI,call,dies-with-host,external
+0x05C267D6,0x05C267CA,12,0x05D1A71E,.-wI,jmp,dies-with-host,external
+0x05C9E6D0,0x05C9E6C9,7,0x05D1A91B,.-wI,jmp,dies-with-host,external
+0x05AA955D,0x05AA9550,13,0x05D1BFE0,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05AA9D5C,0x05AA9D55,7,0x05D1CFDF,.-wI,jmp,dies-with-host,external
+0x05CC8061,0x05CC8056,11,0x05D1E265,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05C32D26,0x05C32D20,6,0x05D200F5,.-wI,call,dies-with-host,external
+0x05CD2FE5,0x05CD2FDF,6,0x05D2079D,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05CA95C1,0x05CA95BA,7,0x05D20873,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05BB5DC0,0x05BB5DBA,6,0x05D20E57,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D1C0B4,0x05D1C0A9,11,0x05D22C78,.-wI,jmp,dies-with-host,external
+0x05B59921,0x05B5991B,6,0x05D24695,.-wI,jmp,dies-with-host,external
+0x05C419A6,0x05C41999,13,0x05D246BA,.-wI,call,dies-with-host,external
+0x05AB6455,0x05AB644D,8,0x05D24BB5,.-wI,jmp,dies-with-host,external
+0x05BF0F12,0x05BF0F0C,6,0x05D27350,.-wI,jmp,dies-with-host,external
+0x05AA111C,0x05AA1116,6,0x05D273B0,.-wI,jmp,dies-with-host,external
+0x05BEFFD5,0x05BEFFCF,6,0x05D27E77,.-wI,call,survives (.-wI unnamed/CRT),external
+0x059D0A5B,0x059D0A54,7,0x05D27EA0,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05B1AA80,0x05B1AA79,7,0x05D28B4A,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05D3D2B4,0x05D3D2A8,12,0x05D28B6A,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05C30519,0x05C3050A,15,0x05D29902,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05CC5547,0x05CC5541,6,0x05D2AB73,.-wI,call,dies-with-host,external
+0x05BE5691,0x05BE568B,6,0x05D2AC48,.-wI,call,dies-with-host,external
+0x05BC259C,0x05BC2591,11,0x05D2AD51,.-wI,jmp,dies-with-host,external
+0x05C021E3,0x05C021D7,12,0x05D2B885,.-wI,jmp,dies-with-host,external
+0x05B6A492,0x05B6A488,10,0x05D2D6C1,.-wI,jmp,dies-with-host,external
+0x05CCC919,0x05CCC913,6,0x05D2F150,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05ADD225,0x05ADD21F,6,0x05D30DBD,.-wI,call,survives (.-wI unnamed/CRT),external
+0x0599D2A5,0x0599D29A,11,0x05D31C4D,.-wI,call,dies-with-host,external
+0x05BD9EAA,0x05BD9EA4,6,0x05D34B2A,.-wI,call,dies-with-host,external
+0x059AAEF2,0x059AAEEC,6,0x05D3705C,.-wI,jmp,dies-with-host,external
+0x05C4D201,0x05C4D1F2,15,0x05D385FE,.-wI,call,dies-with-host,external
+0x05C9CA92,0x05C9CA8C,6,0x05D3A765,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05AC193D,0x05AC1937,6,0x05D3A867,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05C6AD5C,0x05C6AD55,7,0x05D3A975,.-wI,jmp,survives (.-wI unnamed/CRT),external
+0x05BD929E,0x05BD9298,6,0x05D3B08F,.-wI,call,dies-with-host,external
+0x05B01ADD,0x05B01AD7,6,0x05D3D21A,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05D2C58B,0x05D2C585,6,0x05D3D3DB,.-wI,jmp,dies-with-host,external
+0x05C67DE8,0x05C67DE2,6,0x05D41BC8,.-wI,call,survives (.-wI unnamed/CRT),external
+0x05D0083F,0x05D00839,6,0x05D447E2,.-wI,call,dies-with-host,external
+0x05999C87,0x05999C78,15,0x05D44E0C,.-wI,call,dies-with-host,external
+0x05C2EF10,0x05C2EF06,10,0x06356FAD,.#|U,jmp?,survives (.#|U),external
+0x05CB49BB,0x05CB49B8,3,0x06401EBE,.#|U,call?,survives (.#|U),external
+0x05C8BFD6,0x05C8BFD1,5,0x07257DFA,.#|U,call?,survives (.#|U),external

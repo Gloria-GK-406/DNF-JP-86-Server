@@ -1,0 +1,197 @@
+target,host_entry,offset,convention,module,function,source_va,source_class,mnemonic
+0x0599A720,0x0599A714,12,esp+0/R+1,msvcp60.dll,??0_Lockit@std@@QAE@XZ,0x059B6D56,survives (.-wI unnamed/CRT),jmp
+0x0599A720,0x0599A714,12,esp+0/R+1,msvcp60.dll,??0_Lockit@std@@QAE@XZ,0x059B6DD6,survives (.-wI unnamed/CRT),jmp
+0x0599A720,0x0599A714,12,esp+0/R+1,msvcp60.dll,??0_Lockit@std@@QAE@XZ,0x059B71A3,survives (.-wI unnamed/CRT),jmp
+0x059A7517,0x059A7511,6,esp+0/R+1,awesomium.dll,?instance@WebCore@Awesomium@@SAPAV12@XZ,0x059B0F08,survives (.-wI unnamed/CRT),call
+0x059B5360,0x059B535E,2,esp-832/.,kernel32.dll,IsDebuggerPresent,0x059B52AB,survives (.-wI unnamed/CRT),jmp
+0x059C8925,0x059C8919,12,esp+8/a2,user32.dll,GetAsyncKeyState,0x05996827,survives (.mackt),jmp
+0x059C9008,0x059C9001,7,esp+4/R,user32.dll,PtInRect,0x05AFDC23,survives (.-wI unnamed/CRT),call
+0x059C9A28,0x059C9A1C,12,esp+8/a2,msvcp60.dll,??1?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAE@XZ,0x05B02D06,survives (.-wI unnamed/CRT),jmp
+0x059CBE01,0x059CBDFB,6,esp+4/R,msvcp60.dll,?_Copy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z,0x05B2ABA1,survives (.-wI unnamed/CRT),jmp
+0x059CBFDB,0x059CBFD5,6,esp+4/R,msvcp60.dll,??1_Lockit@std@@QAE@XZ,0x05C527C1,survives (.-wI unnamed/CRT),call
+0x059CC1AE,0x059CC1A7,7,esp+4/R,user32.dll,GetDlgItem,0x05AEF8F0,survives (.-wI unnamed/CRT),jmp
+0x059CC5D3,0x059CC5C7,12,esp+0/R+1,user32.dll,FindWindowW,0x05AEFF41,survives (.-wI unnamed/CRT),jmp
+0x059CD024,0x059CD01D,7,esp+0/R+1,user32.dll,GetParent,0x05B7B4E1,survives (.-wI unnamed/CRT),jmp
+0x059D0A5B,0x059D0A54,7,esp+4/R,msvcp60.dll,?_Eos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z,0x05D27EA0,survives (.-wI unnamed/CRT),jmp
+0x059D1D2C,0x059D1D26,6,esp+8/a2,user32.dll,GetAsyncKeyState,0x05D14C57,survives (.-wI unnamed/CRT),jmp
+0x059D6420,0x059D641A,6,esp+0/R+1,user32.dll,GetWindowRect,0x05997373,survives (.mackt),jmp
+0x059D7CC1,0x059D7CBB,6,esp+4/R,wininet.dll,HttpSendRequestW,0x05AA777B,survives (.-wI unnamed/CRT),call
+0x059D8B26,0x059D8B1D,9,esp+4/R,user32.dll,MessageBoxW,0x05AE250F,survives (.-wI unnamed/CRT),call
+0x059D96B2,0x059D96AC,6,esp+8/a2,msvcp60.dll,??1?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAE@XZ,0x05B4B1AF,survives (.-wI unnamed/CRT),jmp
+0x059D9A46,0x059D9A37,15,esp+4/R,shlwapi.dll,PathSearchAndQualifyW,0x05B4DAB6,survives (.-wI unnamed/CRT),jmp
+0x059DA025,0x059DA01F,6,esp+0/R+1,gdi32.dll,DeleteObject,0x05AA3CE8,survives (.-wI unnamed/CRT),call
+0x059DAFB9,0x059DAFB3,6,esp+4/R,user32.dll,PtInRect,0x05994544,survives (.mackt),jmp
+0x059DB0E6,0x059DB0E0,6,esp+4/R,msvcp60.dll,??0_Lockit@std@@QAE@XZ,0x05BA4EEC,survives (.-wI unnamed/CRT),call
+0x059DE303,0x059DE2FD,6,esp+4/R,user32.dll,GetWindowLongW,0x059C3E6B,survives (.-wI unnamed/CRT),call
+0x059DE796,0x059DE78E,8,esp+0/R+1,msvcp60.dll,??0_Lockit@std@@QAE@XZ,0x05CDA589,survives (.-wI unnamed/CRT),jmp
+0x05A9794C,0x05A97946,6,esp+8/a2,user32.dll,IntersectRect,0x05BA14C2,survives (.-wI unnamed/CRT),jmp
+0x05A97FB0,0x05A97FA4,12,esp+0/R+1,shell32.dll,ShellExecuteW,0x059C46CF,survives (.-wI unnamed/CRT),call
+0x05A9A7FE,0x05A9A7F5,9,esp+0/R+1,gdi32.dll,TextOutW,0x05B4BE16,survives (.-wI unnamed/CRT),jmp
+0x05A9D49D,0x05A9D496,7,esp+0/R+1,user32.dll,OffsetRect,0x05B4BBCC,survives (.-wI unnamed/CRT),jmp
+0x05A9FB07,0x05A9FB01,6,esp+4/R,gdi32.dll,TextOutW,0x05B84A8A,survives (.-wI unnamed/CRT),jmp
+0x05AA49DF,0x05AA49D9,6,esp+4/R,msvcp60.dll,?_Split@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXXZ,0x05B4DAA4,survives (.-wI unnamed/CRT),jmp
+0x05AA5206,0x05AA51FF,7,esp+4/R,combase.dll,CoTaskMemFree,0x05AE25C8,survives (.-wI unnamed/CRT),call
+0x05AA53E6,0x05AA53DA,12,esp+4/a1,fmodex.dll,?init@System@FMOD@@QAG?AW4FMOD_RESULT@@HIPAX@Z,0x05CEBDE3,survives (.-wI unnamed/CRT),jmp
+0x05AA8D44,0x05AA8D39,11,esp+4/R,user32.dll,ShowCursor,0x05B4E8DE,survives (.-wI unnamed/CRT),jmp
+0x05AA8FB7,0x05AA8FB0,7,esp+4/R,msvcp60.dll,??0_Lockit@std@@QAE@XZ,0x05C795F5,survives (.-wI unnamed/CRT),call
+0x05AA955D,0x05AA9550,13,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05D1BFE0,survives (.-wI unnamed/CRT),call
+0x05AA9DF4,0x05AA9DEE,6,esp+4/R,msvcp60.dll,?_Eos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z,0x05C6A48C,survives (.-wI unnamed/CRT),call
+0x05AAAED5,0x05AAAECE,7,esp+4/a1,version.dll,VerQueryValueW,0x05CA598F,survives (.-wI unnamed/CRT),jmp
+0x05AAB853,0x05AAB845,14,esp+0/R+1,msvcp60.dll,??1_Lockit@std@@QAE@XZ,0x05B61E0F,survives (.-wI unnamed/CRT),jmp
+0x05AB284B,0x05AB2845,6,esp+0/R+1,user32.dll,PtInRect,0x059947A4,survives (.mackt),jmp
+0x05AB2853,0x05AB2845,14,esp+0/R+1,user32.dll,PtInRect,0x05B3BE06,survives (.-wI unnamed/CRT),jmp
+0x05AB57ED,0x05AB57E6,7,esp+4/R,msvcp60.dll,?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z,0x05AE291F,survives (.-wI unnamed/CRT),call
+0x05ABD5DA,0x05ABD5D4,6,esp+4/R,gdi32.dll,GetTextExtentPoint32W,0x05B06736,survives (.-wI unnamed/CRT),jmp
+0x05AC193D,0x05AC1937,6,esp+4/R,advapi32.dll,RegCloseKey,0x05D3A867,survives (.-wI unnamed/CRT),jmp
+0x05AC7D9F,0x05AC7D99,6,esp+4/R,user32.dll,SetCursorPos,0x05D135F3,survives (.-wI unnamed/CRT),jmp
+0x05AC9A1A,0x05AC9A14,6,esp+4/R,gdi32.dll,CreateCompatibleDC,0x05D04BE9,survives (.-wI unnamed/CRT),jmp
+0x05ACAB10,0x05ACAB0A,6,esp+0/R+1,msvcp60.dll,??1_Lockit@std@@QAE@XZ,0x05B22C99,survives (.-wI unnamed/CRT),jmp
+0x05AD1960,0x05AD1954,12,esp+0/R+1,wininet.dll,HttpEndRequestW,0x05AAF6D1,survives (.-wI unnamed/CRT),jmp
+0x05AD54A2,0x05AD549C,6,esp+8/a2,psapi.dll,GetModuleInformation,0x059C50CC,survives (.-wI unnamed/CRT),jmp
+0x05AD54AA,0x05AD549C,14,esp+8/a2,psapi.dll,GetModuleInformation,0x05B46ADE,survives (.-wI unnamed/CRT),jmp
+0x05AD7A34,0x05AD7A2E,6,esp+4/R,advapi32.dll,RegCloseKey,0x0599453A,survives (.mackt),jmp
+0x05AD7BDD,0x05AD7BD1,12,esp+0/R+1,msvcp60.dll,?assign@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAEAAV12@ABV12@II@Z,0x05AFDC58,survives (.-wI unnamed/CRT),jmp
+0x05ADD225,0x05ADD21F,6,esp+4/R,msvcp60.dll,??0?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAE@ABV01@@Z,0x05D30DBD,survives (.-wI unnamed/CRT),call
+0x05ADF595,0x05ADF58F,6,esp+8/a2,msvcp60.dll,??1?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAE@XZ,0x05B71594,survives (.-wI unnamed/CRT),jmp
+0x05AE464F,0x05AE4642,13,esp+8/a2,version.dll,VerQueryValueA,0x0513E504,survives (.tls),call
+0x05AE64F1,0x05AE64EA,7,esp+0/R+1,msvcp60.dll,??0_Lockit@std@@QAE@XZ,0x05B7F8CF,survives (.-wI unnamed/CRT),jmp
+0x05AE84D0,0x05AE84CA,6,esp+0/R+1,wininet.dll,HttpEndRequestW,0x059A5A6C,survives (.-wI unnamed/CRT),call
+0x05AEAF27,0x05AEAF20,7,esp+0/R+1,msvcp60.dll,??1?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAE@XZ,0x05D15851,survives (.-wI unnamed/CRT),jmp
+0x05AFEAA6,0x05AFEA97,15,esp+4/R,msvcp60.dll,?_Split@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXXZ,0x059945A5,survives (.mackt),jmp
+0x05B010FA,0x05B010F4,6,esp+0/R+1,user32.dll,OpenClipboard,0x0599C151,survives (.-wI unnamed/CRT),jmp
+0x05B01ADD,0x05B01AD7,6,esp+0/R+1,advapi32.dll,RegQueryValueExW,0x05D3D21A,survives (.-wI unnamed/CRT),call
+0x05B0BD2C,0x05B0BD22,10,esp+0/R+1,user32.dll,CharNextW,0x05CC0EE0,survives (.-wI unnamed/CRT),jmp
+0x05B1AA80,0x05B1AA79,7,esp+0/R+1,user32.dll,GetClassNameA,0x05D28B4A,survives (.-wI unnamed/CRT),jmp
+0x05B1CFCF,0x05B1CFC4,11,esp+4/R,oleaut32.dll,SysFreeString,0x05B32ADF,survives (.-wI unnamed/CRT),call
+0x05B48629,0x05B4861E,11,esp+0/R+1,msvcp60.dll,?_Split@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXXZ,0x05A94639,survives (.-wI unnamed/CRT),call
+0x05B4C499,0x05B4C493,6,esp+4/R,msvcp60.dll,?_Xlen@std@@YAXXZ,0x05C30391,survives (.-wI unnamed/CRT),jmp
+0x05B5D1C4,0x05B5D1BE,6,esp+4/R,msvcp60.dll,?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z,0x05AFA0E9,survives (.-wI unnamed/CRT),jmp
+0x05B6BDCC,0x05B6BDC0,12,esp+4/R,shlwapi.dll,PathAddBackslashA,0x05AFA7B8,survives (.-wI unnamed/CRT),jmp
+0x05B6F19F,0x05B6F194,11,esp+4/R,msvcp60.dll,??0_Lockit@std@@QAE@XZ,0x05CF5E8E,survives (.-wI unnamed/CRT),jmp
+0x05B73982,0x05B7397C,6,esp+4/R,oleaut32.dll,SysFreeString,0x05C884A4,survives (.-wI unnamed/CRT),jmp
+0x05B8572C,0x05B85725,7,esp+0/R+1,gdi32.dll,DeleteDC,0x05CA83F5,survives (.-wI unnamed/CRT),jmp
+0x05B913CF,0x05B913C9,6,esp+4/R,advapi32.dll,RegCloseKey,0x05CE124F,survives (.-wI unnamed/CRT),call
+0x05B94BFB,0x05B94BF5,6,esp+0/R+1,oleaut32.dll,SysAllocString,0x05AF0B44,survives (.-wI unnamed/CRT),jmp
+0x05BB5DC0,0x05BB5DBA,6,esp+0/R+1,msvcp60.dll,??0_Lockit@std@@QAE@XZ,0x05D20E57,survives (.-wI unnamed/CRT),jmp
+0x05BBBDAC,0x05BBBDA0,12,esp+0/R+1,gdi32.dll,SelectObject,0x059B3C9E,survives (.-wI unnamed/CRT),call
+0x05BBD4B6,0x05BBD4B0,6,esp+4/R,msvcp60.dll,?erase@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAEAAV12@II@Z,0x05C1DEF8,survives (.-wI unnamed/CRT),call
+0x05BC4A7C,0x05BC4A71,11,esp+0/R+1,msvcp60.dll,?_Freeze@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXXZ,0x05B4062C,survives (.-wI unnamed/CRT),call
+0x05BC6D7D,0x05BC6D76,7,esp+0/R+1,msvcp60.dll,??0_Lockit@std@@QAE@XZ,0x05D04C02,survives (.-wI unnamed/CRT),jmp
+0x05BCE482,0x05BCE475,13,esp+4/R,msvcp60.dll,??1?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAE@XZ,0x05BA81EC,survives (.-wI unnamed/CRT),call
+0x05BD01AC,0x05BD019D,15,esp+4/R,user32.dll,PtInRect,0x05ACEB79,survives (.-wI unnamed/CRT),call
+0x05BD69F7,0x05BD69F1,6,esp+4/R,msvcp60.dll,?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z,0x05996169,survives (.mackt),jmp
+0x05BD7BA6,0x05BD7BA0,6,esp+4/R,msvcp60.dll,?_Xlen@std@@YAXXZ,0x05C376B7,survives (.-wI unnamed/CRT),call
+0x05BDA442,0x05BDA43C,6,esp+4/R,msvcp60.dll,??0_Lockit@std@@QAE@XZ,0x059C4B65,survives (.-wI unnamed/CRT),call
+0x05BE4D04,0x05BE4CFD,7,esp+4/R,gdi32.dll,TextOutW,0x05AA4143,survives (.-wI unnamed/CRT),call
+0x05BE5697,0x05BE568B,12,esp+0/R+1,msvcp60.dll,?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z,0x059B16CD,survives (.-wI unnamed/CRT),call
+0x05BEE803,0x05BEE7FC,7,esp+4/a1,msvcp60.dll,??1_Winit@std@@QAE@XZ,0x05C6998D,survives (.-wI unnamed/CRT),call
+0x05BEFFD5,0x05BEFFCF,6,esp+0/R+1,msvcp60.dll,?assign@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAEAAV12@ABV12@II@Z,0x05D27E77,survives (.-wI unnamed/CRT),call
+0x05BF61D3,0x05BF61CD,6,esp+4/R,msvcp60.dll,??1?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAE@XZ,0x05B3C66F,survives (.-wI unnamed/CRT),call
+0x05BF8474,0x05BF846E,6,esp+0/R+1,msvcp60.dll,?erase@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAEAAV12@II@Z,0x05AAF5DC,survives (.-wI unnamed/CRT),call
+0x05BFDDD4,0x05BFDDCE,6,esp+4/R,msvcp60.dll,??0_Lockit@std@@QAE@XZ,0x05C545B5,survives (.-wI unnamed/CRT),call
+0x05C005DE,0x05C005D1,13,esp+0/R+1,msvcp60.dll,??0_Lockit@std@@QAE@XZ,0x05C89E6C,survives (.-wI unnamed/CRT),call
+0x05C044F1,0x05C044EB,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05BA623F,survives (.-wI unnamed/CRT),call
+0x05C044F6,0x05C044EB,11,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05C1E45A,survives (.-wI unnamed/CRT),call
+0x05C0A989,0x05C0A97E,11,esp+4/R,user32.dll,PtInRect,0x05B66655,survives (.-wI unnamed/CRT),call
+0x05C13357,0x05C13351,6,esp+8/a2,msvcp60.dll,??1?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAE@XZ,0x05B98955,survives (.-wI unnamed/CRT),jmp
+0x05C15820,0x05C1581A,6,esp+0/R+1,user32.dll,PtInRect,0x05B3C7B7,survives (.-wI unnamed/CRT),jmp
+0x05C218C8,0x05C218C1,7,esp+0/R+1,advapi32.dll,RegOpenKeyExA,0x05CB0975,survives (.-wI unnamed/CRT),jmp
+0x05C24C49,0x05C24C43,6,esp+0/R+1,msvcp60.dll,?_Split@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXXZ,0x0599BB7A,survives (.-wI unnamed/CRT),jmp
+0x05C2C1AE,0x05C2C1A8,6,esp+8/a2,advapi32.dll,RegQueryValueExW,0x05BA78E0,survives (.-wI unnamed/CRT),call
+0x05C2E0AF,0x05C2E0A9,6,esp+4/R,msvcp60.dll,??1_Lockit@std@@QAE@XZ,0x059C47C0,survives (.-wI unnamed/CRT),call
+0x05C2EF10,0x05C2EF06,10,esp+4/R,advapi32.dll,RegCloseKey,0x06356FAD,survives (.#|U),jmp?
+0x05C30519,0x05C3050A,15,esp+0/R+1,msvcp60.dll,?_Xran@std@@YAXXZ,0x05D29902,survives (.-wI unnamed/CRT),call
+0x05C309C4,0x05C309B7,13,esp+0/R+1,msvcp60.dll,??0_Lockit@std@@QAE@XZ,0x05C44A51,survives (.-wI unnamed/CRT),jmp
+0x05C3FA37,0x05C3FA2B,12,esp+4/R,user32.dll,IsWindowVisible,0x05CEA2EE,survives (.-wI unnamed/CRT),call
+0x05C54D1A,0x05C54D0F,11,esp+0/R+1,user32.dll,GetWindowTextLengthW,0x05D128C0,survives (.-wI unnamed/CRT),jmp
+0x05C57E91,0x05C57E8B,6,esp+4/R,user32.dll,SetCapture,0x05C86281,survives (.-wI unnamed/CRT),call
+0x05C58B36,0x05C58B30,6,esp+0/R+1,user32.dll,EnumWindows,0x05B1E91E,survives (.-wI unnamed/CRT),call
+0x05C5A1C5,0x05C5A1BA,11,esp+4/R,user32.dll,CharNextW,0x05B900DB,survives (.-wI unnamed/CRT),jmp
+0x05C5BEDC,0x05C5BED5,7,esp+0/R+1,user32.dll,IntersectRect,0x05CC10CA,survives (.-wI unnamed/CRT),jmp
+0x05C5FCDA,0x05C5FCD1,9,esp+4/R,user32.dll,OffsetRect,0x0552FCD2,survives (.vmp1),jmp?
+0x05C60C53,0x05C60C4D,6,esp+4/a1,user32.dll,SetWindowPos,0x059C40B4,survives (.-wI unnamed/CRT),call
+0x05C63E0C,0x05C63E06,6,esp+4/R,user32.dll,PtInRect,0x05C63097,survives (.-wI unnamed/CRT),call
+0x05C67DE8,0x05C67DE2,6,esp+4/R,msvcp60.dll,?assign@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAEAAV12@ABV12@II@Z,0x05D41BC8,survives (.-wI unnamed/CRT),call
+0x05C6AD5C,0x05C6AD55,7,esp+4/R,msvcp60.dll,?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z,0x05D3A975,survives (.-wI unnamed/CRT),jmp
+0x05C6B70D,0x05C6B702,11,esp+0/R+1,wininet.dll,FtpOpenFileW,0x05B2420E,survives (.-wI unnamed/CRT),jmp
+0x05C6E5BC,0x05C6E5B2,10,esp+4/a1,fmodex.dll,?setPan@Channel@FMOD@@QAG?AW4FMOD_RESULT@@M@Z,0x05C79616,survives (.-wI unnamed/CRT),jmp
+0x05C7221B,0x05C72215,6,esp+4/R,msvcp60.dll,?_Eos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z,0x05CB9B17,survives (.-wI unnamed/CRT),call
+0x05C72805,0x05C727FF,6,esp+4/R,msvcp60.dll,?_Xran@std@@YAXXZ,0x05CA3674,survives (.-wI unnamed/CRT),jmp
+0x05C7E06F,0x05C7E069,6,esp+4/R,msvcp60.dll,??1_Lockit@std@@QAE@XZ,0x05C5B64C,survives (.-wI unnamed/CRT),call
+0x05C810C6,0x05C810B9,13,esp+0/R+1,msvcp60.dll,?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z,0x05C7651F,survives (.-wI unnamed/CRT),call
+0x05C870D3,0x05C870CC,7,esp+0/R+1,msvcp60.dll,?_Xlen@std@@YAXXZ,0x05B46C0B,survives (.-wI unnamed/CRT),jmp
+0x05C88687,0x05C88680,7,esp+0/R+1,gdi32.dll,CreateDIBSection,0x059C5624,survives (.-wI unnamed/CRT),call
+0x05C88DFE,0x05C88DF8,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05994443,survives (.mackt),call
+0x05C8BFD6,0x05C8BFD1,5,esp+0/R+1,msvcp60.dll,??1_Lockit@std@@QAE@XZ,0x07257DFA,survives (.#|U),call?
+0x05C921DA,0x05C921D4,6,esp+0/R+1,msvcp60.dll,?assign@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAEAAV12@PBDI@Z,0x05CB1DAF,survives (.-wI unnamed/CRT),call
+0x05C9B4A1,0x05C9B49A,7,esp+0/R+1,user32.dll,GetWindowRect,0x05AEF332,survives (.-wI unnamed/CRT),jmp
+0x05C9CA92,0x05C9CA8C,6,esp+4/R,user32.dll,EnumWindows,0x05D3A765,survives (.-wI unnamed/CRT),jmp
+0x05C9FF25,0x05C9FF1E,7,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05AF4BBF,survives (.-wI unnamed/CRT),call
+0x05CA5A2C,0x05CA5A26,6,esp+0/R+1,advapi32.dll,RegCloseKey,0x05B9887E,survives (.-wI unnamed/CRT),call
+0x05CA95C1,0x05CA95BA,7,esp+0/R+1,wininet.dll,HttpSendRequestExW,0x05D20873,survives (.-wI unnamed/CRT),call
+0x05CB38EC,0x05CB38E6,6,esp+4/R,advapi32.dll,RegCloseKey,0x05BA7FE4,survives (.-wI unnamed/CRT),call
+0x05CB49BB,0x05CB49B8,3,esp+0/R+1,user32.dll,GetKeyboardLayout,0x06401EBE,survives (.#|U),call?
+0x05CB4C80,0x05CB4C7A,6,esp+0/R+1,msvcp60.dll,??1_Lockit@std@@QAE@XZ,0x05D0EF7B,survives (.-wI unnamed/CRT),call
+0x05CB59F6,0x05CB59F0,6,esp+4/R,gdi32.dll,SetTextColor,0x05C89E09,survives (.-wI unnamed/CRT),call
+0x05CBAEB3,0x05CBAEAC,7,esp+4/R,shell32.dll,DoEnvironmentSubstA,0x05B7FA05,survives (.-wI unnamed/CRT),call
+0x05CBC74B,0x05CBC745,6,esp+0/R+1,gdi32.dll,CreateFontW,0x05AA397F,survives (.-wI unnamed/CRT),jmp
+0x05CC7535,0x05CC752F,6,esp+4/R,gdi32.dll,TextOutW,0x05AD6E34,survives (.-wI unnamed/CRT),call
+0x05CC8061,0x05CC8056,11,esp+0/R+1,user32.dll,GetWindowLongW,0x05D1E265,survives (.-wI unnamed/CRT),jmp
+0x05CCA52B,0x05CCA51E,13,esp+0/R+1,msvcp60.dll,?assign@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAEAAV12@PBDI@Z,0x05B39439,survives (.-wI unnamed/CRT),jmp
+0x05CCC919,0x05CCC913,6,esp+4/a1,msvcp60.dll,??1Init@ios_base@std@@QAE@XZ,0x05D2F150,survives (.-wI unnamed/CRT),jmp
+0x05CCC91B,0x05CCC913,8,esp+4/a1,msvcp60.dll,??1Init@ios_base@std@@QAE@XZ,0x05B3BB41,survives (.-wI unnamed/CRT),call
+0x05CCD6B1,0x05CCD6AB,6,esp+0/R+1,user32.dll,ShowWindow,0x05C8833C,survives (.-wI unnamed/CRT),jmp
+0x05CCD6D7,0x05CCD6D1,6,esp+4/a1,msvcp60.dll,??1?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAE@XZ,0x0599629E,survives (.mackt),jmp
+0x05CD2FE5,0x05CD2FDF,6,esp+0/R+1,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05D2079D,survives (.-wI unnamed/CRT),call
+0x05CD4C70,0x05CD4C67,9,esp+0/R+1,user32.dll,PtInRect,0x05C6E026,survives (.-wI unnamed/CRT),call
+0x05CDB372,0x05CDB36C,6,esp+0/R+1,awesomium.dll,??1WebURL@Awesomium@@QAE@XZ,0x05C54876,survives (.-wI unnamed/CRT),call
+0x05CDC8C1,0x05CDC8BB,6,esp+0/R+1,user32.dll,SetCursorPos,0x05B4E96C,survives (.-wI unnamed/CRT),call
+0x05CE3987,0x05CE397A,13,esp+0/R+1,user32.dll,GetWindowTextA,0x05CC4486,survives (.-wI unnamed/CRT),call
+0x05CE4C2D,0x05CE4C27,6,esp+4/R,msvcp60.dll,??0_Lockit@std@@QAE@XZ,0x05B4BCCF,survives (.-wI unnamed/CRT),jmp
+0x05CE8FAB,0x05CE8FA5,6,esp+4/R,advapi32.dll,RegQueryValueExA,0x05D0FA31,survives (.-wI unnamed/CRT),jmp
+0x05CE8FB2,0x05CE8FA5,13,esp+4/R,advapi32.dll,RegQueryValueExA,0x05ABB01E,survives (.-wI unnamed/CRT),jmp
+0x05CF1C81,0x05CF1C79,8,esp+4/R,user32.dll,IsWindowVisible,0x059C466F,survives (.-wI unnamed/CRT),jmp
+0x05CFBBE6,0x05CFBBDC,10,esp+0/R+1,gdi32.dll,CreateCompatibleDC,0x0549F444,survives (.vmp1),jmp?
+0x05D0B668,0x05D0B65B,13,esp+0/R+1,advapi32.dll,RegQueryValueExA,0x05CF595A,survives (.-wI unnamed/CRT),call
+0x05D16CB4,0x05D16CAE,6,esp+0/R+1,msvcp60.dll,??0_Lockit@std@@QAE@XZ,0x072B64E8,survives (.#|U),call?
+0x05D174E2,0x05D174DC,6,esp+4/R,user32.dll,GetClientRect,0x05BA4CDC,survives (.-wI unnamed/CRT),jmp
+0x05D19000,0x05D18FF4,12,esp+0/R+1,msvcp60.dll,??1_Lockit@std@@QAE@XZ,0x05B464A9,survives (.-wI unnamed/CRT),call
+0x05D255DA,0x05D255D4,6,esp+4/R,user32.dll,IsWindowVisible,0x0599FE68,survives (.-wI unnamed/CRT),jmp
+0x05D2AC22,0x05D2AC14,14,esp+4/R,shell32.dll,ShellExecuteW,0x05AA7762,survives (.-wI unnamed/CRT),jmp
+0x05D3424D,0x05D34240,13,esp+0/R+1,msvcp60.dll,??1_Lockit@std@@QAE@XZ,0x05996FCD,survives (.mackt),jmp
+0x05D3424F,0x05D34240,15,esp+0/R+1,msvcp60.dll,??1_Lockit@std@@QAE@XZ,0x05B57A95,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x0599436B,survives (.mackt),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x059C3ECE,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05AA3C63,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05AB4156,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05AE257E,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05AEBFEF,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05AF15D4,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05AF1D73,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05AFE9F4,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05B2A2C4,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05B45CF5,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05B4DB9D,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05B61A83,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05BA0EC6,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05BA13F6,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05BA3F47,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05BA7F42,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05BC042E,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05BDDD18,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05BEB807,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05BF445C,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05C30328,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05C633CA,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05CA865E,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05CA893D,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05CD620D,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05CD8CF5,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05D08FF6,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05D0B602,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05D0FB13,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05D10773,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05D23189,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05D30E2E,survives (.-wI unnamed/CRT),jmp
+0x05D3AA11,0x05D3AA0B,6,esp+4/R,msvcp60.dll,?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z,0x05D3D230,survives (.-wI unnamed/CRT),jmp
+0x05D3D2B4,0x05D3D2A8,12,esp+0/R+1,oleaut32.dll,VariantInit,0x05D28B6A,survives (.-wI unnamed/CRT),jmp

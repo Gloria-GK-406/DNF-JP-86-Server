@@ -366,6 +366,32 @@ set_target_properties(plugin_exp_notice_probe_a21 PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CLIENTHACK_STAGE_DIR_A21}/plugins"
     RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CLIENTHACK_STAGE_DIR_A21}/plugins")
 
+# A measurement for the wrapper rewrite plan (risk 2 in
+# Docs/themida-api-wrapper-recovery.md), never required and off unless
+# [WrapperPilot] Enabled=1: it rewrites .-wI wrapper entries at runtime, so a
+# refusal to start must never depend on it. EXCLUDE_FROM_ALL keeps it out of
+# the default stage; build target clienthack_wrapper_pilot_a21 on demand and
+# copy the DLL into the client's plugins directory by hand.
+add_library(plugin_wrapper_pilot_a21 SHARED EXCLUDE_FROM_ALL
+    plugins/0150_wrapper_pilot/wrapper_pilot.c
+    plugins/plugin_entry.c
+    plugins/plugin.def)
+target_include_directories(plugin_wrapper_pilot_a21 PRIVATE
+    include plugins plugins/0150_wrapper_pilot)
+target_compile_definitions(plugin_wrapper_pilot_a21 PRIVATE
+    CLIENTHACK_CLIENT_A21=1
+    CLIENTHACK_PLUGIN_NAME="WrapperPilot"
+    CLIENTHACK_PLUGIN_FLAGS=0u)
+clienthack_warnings(plugin_wrapper_pilot_a21)
+set_target_properties(plugin_wrapper_pilot_a21 PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "0150_WrapperPilot"
+    RUNTIME_OUTPUT_DIRECTORY "${CLIENTHACK_STAGE_DIR_A21}/plugins"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CLIENTHACK_STAGE_DIR_A21}/plugins"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CLIENTHACK_STAGE_DIR_A21}/plugins")
+
+add_custom_target(clienthack_wrapper_pilot_a21 DEPENDS plugin_wrapper_pilot_a21)
+
 add_custom_target(clienthack_plugins_a21 DEPENDS
     plugin_network_hook_a21
     plugin_server_redirect_a21
