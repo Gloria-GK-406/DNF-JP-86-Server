@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -108,9 +109,24 @@ public sealed class DungeonRecoveryOnAFreshDatabaseTests
         return Convert.ToInt64(await command.ExecuteScalarAsync());
     }
 
-    private sealed class NoProgression : IDungeonExperienceProgressionPolicySource
+    /// <summary>Only the progression policy; recovery asks nothing else of the rules.</summary>
+    private sealed class NoProgression : IExperienceRuleService
     {
-        public DungeonExperienceProgressionPolicy Load() => new([], 0, 0, 0);
+        public DungeonExperienceProgressionPolicy Progression() => new([], 0, 0, 0);
+
+        public uint WorthOfKill(in KillCircumstances kill) => throw new NotSupportedException();
+
+        public bool IsMonster(byte declaredActorType) => throw new NotSupportedException();
+
+        public ClearExperienceWorth WorthOfClear(in ClearCircumstances clear) =>
+            throw new NotSupportedException();
+
+        public IReadOnlyList<ExperienceModifier> ModifiersFor(
+            ExperienceEvent occasion,
+            IReadOnlyList<AccountPremiumEntryState> premiums,
+            DateTimeOffset now,
+            int channelId,
+            int dungeonId) => throw new NotSupportedException();
     }
 
     private static async Task ExecuteAsync(string path, string sql)

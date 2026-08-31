@@ -1,5 +1,5 @@
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Protocol.Game.StateSynchronization;
-using Dfo.Server.Protocol.Game.Quests;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Persistence;
@@ -112,7 +112,7 @@ public sealed record GrantTutorialLevelCommand(CharacterId CharacterId, byte Cur
 /// </remarks>
 public sealed class GrantTutorialLevelCommandHandler(
     ICharacterTable characters,
-    IDungeonExperienceProgressionPolicySource experience)
+    ICharacterExperienceGrant grant)
     : ICommandHandler<GrantTutorialLevelCommand, TutorialLevelUpResult>
 {
     /// <summary>Where the tutorial leaves a character, as the reference server names it.</summary>
@@ -128,11 +128,8 @@ public sealed class GrantTutorialLevelCommandHandler(
         if (command.CurrentLevel >= TargetLevel)
             return TutorialLevelUpResult.Refused(TutorialLevelUpStatus.AlreadyPast);
 
-        var thresholds = experience.Load().LevelThresholds;
-        if (thresholds.Count < TargetLevel - 1)
+        if (grant.ThresholdForLevel(TargetLevel) is not { } target)
             return TutorialLevelUpResult.Refused(TutorialLevelUpStatus.NoThreshold);
-
-        var target = thresholds[TargetLevel - 2];
         if (await characters.SetProgressAsync(
                 command.CharacterId, TargetLevel, target, cancellationToken)
                 .ConfigureAwait(false) != 1)
@@ -166,7 +163,7 @@ public sealed class TutorialLevelUpHandler(
     IDungeonRunDomainService runs,
     ICommandBus commandBus,
     IGameMessageSender sender,
-    QuestOfferRefresher offers,
+    IQuestOfferRefreshDomainService offers,
     ILogger<TutorialLevelUpHandler> logger) : ClientMessageHandler<TutorialLevelUpRequest>
 {
     protected override async ValueTask HandleMessageAsync(

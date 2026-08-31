@@ -192,8 +192,9 @@ public sealed class FinishQuestCommandHandlerTests
         }
 
         public FinishQuestCommandHandler Handler(QuestDefinition definition) =>
-            new(new Quests(definition),
-                new InventedQuestParameters(),
+            new(new QuestDefinitionDomainService(
+                    new QuestContentRuleService(
+                        new Quests(definition), new InventedQuestParameters())),
                 new CharacterQuestLogDomainService(
                     new SqliteQuestStore(this.Path), new AmbientStoreAccess(this.Scope)),
                 new CharacterContainerDomainService(),
@@ -248,10 +249,25 @@ public sealed class FinishQuestCommandHandlerTests
     }
 
     /// <summary>Thresholds far enough apart that these awards never cross one.</summary>
-    private sealed class FixedProgression : IDungeonExperienceProgressionPolicySource
+    /// <summary>Only the level thresholds; nothing here asks what a kill or a clear is worth.</summary>
+    private sealed class FixedProgression : IExperienceRuleService
     {
-        public DungeonExperienceProgressionPolicy Load() =>
+        public DungeonExperienceProgressionPolicy Progression() =>
             new([.. Enumerable.Range(1, 100).Select(level => (uint)(level * 100_000))], 0, 1, 100);
+
+        public uint WorthOfKill(in KillCircumstances kill) => throw new NotSupportedException();
+
+        public bool IsMonster(byte declaredActorType) => throw new NotSupportedException();
+
+        public ClearExperienceWorth WorthOfClear(in ClearCircumstances clear) =>
+            throw new NotSupportedException();
+
+        public IReadOnlyList<ExperienceModifier> ModifiersFor(
+            ExperienceEvent occasion,
+            IReadOnlyList<AccountPremiumEntryState> premiums,
+            DateTimeOffset now,
+            int channelId,
+            int dungeonId) => throw new NotSupportedException();
     }
 
     private sealed class Quests(QuestDefinition definition) : IQuestDefinitionSource

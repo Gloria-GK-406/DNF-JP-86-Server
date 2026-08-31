@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Application.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Networking;
@@ -91,7 +92,7 @@ public sealed class ExitFlushHandlerTests
         var logger = new RecordingLogger<TaggedIdReportHandler>();
         var sender = new RecordingExplicitSender();
         var handler = new TaggedIdReportHandler(
-            Attributed(out var context), new NoSessions(), new NoRewards(),
+            Attributed(out var context), new NoSessions(), new TutorialRewardDomainService(new TutorialRewardRuleService(new NoRewards())),
             Rewarding(new RecordingInventory(), new NoPlacement()), sender, logger);
 
         await handler.HandleAsync(
@@ -117,7 +118,7 @@ public sealed class ExitFlushHandlerTests
         var sender = new RecordingExplicitSender();
         var stored = new RecordingInventory();
         var handler = new TaggedIdReportHandler(
-            Attributed(out var context), new OneSession(), new OneReward(),
+            Attributed(out var context), new OneSession(), new TutorialRewardDomainService(new TutorialRewardRuleService(new OneReward())),
             Rewarding(stored, new KnownPlacement()), sender, logger);
 
         await handler.HandleAsync(
@@ -147,7 +148,7 @@ public sealed class ExitFlushHandlerTests
         var sender = new RecordingExplicitSender();
         var stored = new RecordingInventory();
         var handler = new TaggedIdReportHandler(
-            Attributed(out var context), new OneSession(), new TwoOfOneReward(),
+            Attributed(out var context), new OneSession(), new TutorialRewardDomainService(new TutorialRewardRuleService(new TwoOfOneReward())),
             Rewarding(stored, new KnownPlacement()), sender,
             new RecordingLogger<TaggedIdReportHandler>());
 
@@ -169,7 +170,7 @@ public sealed class ExitFlushHandlerTests
         // It arrives after the server has answered EXIT, so the online user may already be gone.
         var logger = new RecordingLogger<TaggedIdReportHandler>();
         var handler = new TaggedIdReportHandler(
-            Unattributed(out var context), new NoSessions(), new NoRewards(),
+            Unattributed(out var context), new NoSessions(), new TutorialRewardDomainService(new TutorialRewardRuleService(new NoRewards())),
             Rewarding(new RecordingInventory(), new NoPlacement()), new RecordingExplicitSender(),
             logger);
 

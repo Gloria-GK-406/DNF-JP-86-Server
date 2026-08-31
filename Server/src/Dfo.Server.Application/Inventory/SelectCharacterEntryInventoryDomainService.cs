@@ -9,7 +9,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class SelectCharacterEntryInventoryDomainService(
-    IEntryLifecycleContentSource content,
+    IInventoryLifecycleRuleService lifecycleRules,
     IEntryInventoryMutationRepository mutations,
     ICharacterInventoryEntryDomainService inventories,
     IEntryInventoryLeasePersistence persistence,
@@ -17,7 +17,7 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
     ICharacterContainerDomainService containers,
     IItemStore itemStore,
     IDomainTransactionAccessor transactions,
-    IItemPlacementDefinitionSource placements,
+    IItemPlacementRuleService placementRules,
     IItemArrivalRuleService arrivals,
     IItemSlotRuleService slotRules) : ISelectCharacterEntryInventoryDomainService
 {
@@ -80,7 +80,7 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
                 itemStore,
                 transactions,
                 mutations,
-                placements,
+                placementRules,
                 arrivals,
                 slotRules));
         }
@@ -95,7 +95,7 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
 
         try
         {
-            var rules = await content.GetDailyRefillRulesAsync(result.World.PreparedAt, cancellationToken)
+            var rules = await lifecycleRules.DailyRefillsAsync(result.World.PreparedAt, cancellationToken)
                 .ConfigureAwait(false);
             var committed = await mutations.ApplyDailyRefillAsync(
                     session.AccountId, session.CharacterId, rules, result.World.PreparedAt, cancellationToken)

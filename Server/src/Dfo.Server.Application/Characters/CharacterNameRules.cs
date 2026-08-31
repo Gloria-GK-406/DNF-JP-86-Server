@@ -1,4 +1,5 @@
 using System.Text;
+using Dfo.Server.Abstractions.Characters;
 
 namespace Dfo.Server.Application.Characters;
 
@@ -56,12 +57,4 @@ internal static class CharacterNameRules
             ? CharacterNameShape.Malformed
             : CharacterNameShape.WellFormed;
     }
-}
-
-internal enum CharacterNameShape
-{
-    WellFormed,
-    TooShort,
-    TooLong,
-    Malformed,
 }

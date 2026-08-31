@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
@@ -9,7 +10,6 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
-using Dfo.Server.Protocol.Game.DungeonEntry;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.GroundPickup;
@@ -262,15 +262,11 @@ public sealed record PickUpGroundDropCommand(
 /// </remarks>
 public sealed class PickUpGroundDropCommandHandler(
     IDungeonRunDomainService runs,
-    IDungeonRoomDropSource roomDrops,
-    IItemPlacementDefinitionSource placements,
+    IGroundPickupDomainService floor,
     ICharacterContainerDomainService containers,
     IAccountMoneyService money)
     : ICommandHandler<PickUpGroundDropCommand, GroundPickupResult>
 {
-    /// <summary>What the archive's equipment index says every worn item is.</summary>
-    private const byte EquipmentItemKind = 1;
-
     public async ValueTask<GroundPickupResult> HandleAsync(
         CommandExecutionContext context,
         PickUpGroundDropCommand command,
@@ -282,17 +278,12 @@ public sealed class PickUpGroundDropCommandHandler(
         if (run is null)
             return GroundPickupResult.Refused(GroundPickupStatus.NotInARun);
 
-        var declared = await roomDrops
-            .GetAsync(run.Layout.DungeonId, run.CurrentRoomMapId, cancellationToken)
+        var found = await floor.FindOnFloorAsync(run, command.GroundDropNumber, cancellationToken)
             .ConfigureAwait(false);
-
-        // Two kinds of thing lie on a floor and they are found differently. What the room declares
-        // can be read back out of the archive at any time; what a monster dropped exists only in
-        // the run. The declared pieces hold the low numbers and a dropped one is always numbered
-        // above them, so the two cannot both answer to one number.
-        var piece = Piece(run, declared, command.GroundDropNumber);
-        if (piece is null)
+        if (found is null)
             return GroundPickupResult.Refused(GroundPickupStatus.NothingThere);
+
+        var piece = Announced(run, found);
 
         // Money goes to the account's purse and never touches a bag, so it is claimed and banked
         // before a container is even looked for -- a character with no bag bound can still pick up
@@ -352,36 +343,26 @@ public sealed class PickUpGroundDropCommandHandler(
     /// The value that tells this piece of equipment from another. It is announced when the piece
     /// arrives on the floor and has to be the same value the bag ends up holding.
     /// </param>
-    private sealed record FloorPickup(int ItemId, int Count, ushort Durability, uint Instance);
+    private sealed record FloorPickup(
+        int ItemId, int Count, ushort Durability, uint Instance, bool IsEquipment);
 
-    /// <summary>What lies under that number, declared or dropped, or nothing.</summary>
-    private static FloorPickup? Piece(
-        DungeonRunState run, IReadOnlyList<DungeonRoomDrop> declared, ushort number)
-    {
-        if (run.FindGroundDrop(declared, number) is { } room)
-        {
-            return new FloorPickup(
-                room.Drop.ItemId,
-                Math.Max(1, room.Drop.Count),
-                room.Drop.Durability,
-                DungeonEntryPayloadCodec.DropInstance(run, room.Drop.ObjectIndex));
-        }
-
-        if (run.FindMonsterDrop(number) is { } dropped)
-        {
-            // Derived from the kill, not from the piece's number -- which is what the kill's own
-            // frame announced, and what makes every piece of one kill carry one value the way the
-            // captured frames do. Deriving it from the number here would put a different value in
-            // the bag than the one the player was shown on the floor.
-            return new FloorPickup(
-                dropped.Drop.ItemId,
-                Math.Max(1, dropped.Drop.Count),
-                dropped.Drop.Rolled.Durability,
-                DungeonEntryPayloadCodec.MonsterDropInstance(run, dropped.ActorSequence));
-        }
-
-        return null;
-    }
+    /// <summary>
+    /// The piece with the value it was announced under.
+    /// </summary>
+    /// <remarks>
+    /// A piece a kill dropped takes its value from the kill, not from the piece's number -- which
+    /// is what the kill's own frame announced, and what makes every piece of one kill carry one
+    /// value the way the captured frames do. Deriving it from the number here would put a
+    /// different value in the bag than the one the player was shown on the floor.
+    /// </remarks>
+    private static FloorPickup Announced(DungeonRunState run, GroundPiece found) =>
+        new(found.ItemId,
+            found.Count,
+            found.Durability,
+            found.FromKillActorSequence is { } actorSequence
+                ? GameDropIdentity.ForKill(run, actorSequence)
+                : GameDropIdentity.ForDeclaredObject(run, found.ObjectIndex!.Value),
+            found.IsEquipment);
 
     /// <summary>
     /// Gives the banked piece what it was lying on the floor carrying.
@@ -403,9 +384,7 @@ public sealed class PickUpGroundDropCommandHandler(
         int slotIndex,
         CancellationToken cancellationToken)
     {
-        var placement = await placements.GetAsync(found.ItemId, cancellationToken)
-            .ConfigureAwait(false);
-        if (placement?.ItemKind != EquipmentItemKind)
+        if (!found.IsEquipment)
             return;
 
         var landed = await container.ReadSlotAsync(slotIndex, cancellationToken)

@@ -87,7 +87,8 @@ internal sealed class InventorySide
             new SqliteItemStore(this.databasePath),
             this.Scope,
             null!,
-            placements ?? new MainBandPlacements(),
+            new ItemPlacementRuleService(
+                placements ?? new MainBandPlacements(), new NoWearables()),
             new ItemArrivalRuleService(),
             new ItemSlotRuleService()));
     }
@@ -97,6 +98,13 @@ internal sealed class InventorySide
     {
         public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(2, 100, 65, 120));
+    }
+
+    /// <summary>Nothing here is worn; no test reached through this binding puts a piece on.</summary>
+    private sealed class NoWearables : IEquipmentSlotDefinitionSource
+    {
+        public ValueTask<byte?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<byte?>(null);
     }
 
     /// <summary>

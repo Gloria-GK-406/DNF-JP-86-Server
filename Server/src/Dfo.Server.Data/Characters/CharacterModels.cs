@@ -119,7 +119,12 @@ public sealed record NewCharacterSpec(
 public sealed record NewCharacterSkill(short Slot, uint SkillId, byte Level);
 
 /// <summary>One piece of equipment a character is created wearing.</summary>
-public sealed record NewCharacterEquipment(byte SlotIndex, int ItemId, ushort Durability);
+/// <param name="ItemKind">
+/// The kind its item core records. Carried rather than assumed, because what number equipment takes
+/// is a rule about items and whoever writes the row is not the place that knows it.
+/// </param>
+public sealed record NewCharacterEquipment(
+    byte SlotIndex, int ItemId, ushort Durability, byte ItemKind);
 
 public sealed record CharacterCreationResult(
     CharacterCreationStatus Status,

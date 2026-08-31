@@ -46,8 +46,7 @@ public sealed record GrantKillExperienceCommand(
 /// </para>
 /// </remarks>
 public sealed class GrantKillExperienceCommandHandler(
-    IExperienceParameterSource parameters,
-    ExperienceTuning tuning,
+    IExperienceValuationDomainService valuation,
     IExperienceBonusService bonuses,
     ICharacterExperienceGrant grant)
     : ICommandHandler<GrantKillExperienceCommand, KillExperienceResult>
@@ -78,7 +77,7 @@ public sealed class GrantKillExperienceCommandHandler(
 
     private ExperienceValuation Value(GrantKillExperienceCommand command, byte characterLevel)
     {
-        var worth = MonsterExperienceRules.WorthOf(
+        var worth = valuation.WorthOfKill(
             new KillCircumstances(
                 command.Monster.Level,
                 command.Monster.Rank,
@@ -88,9 +87,7 @@ public sealed class GrantKillExperienceCommandHandler(
                 // Solo. A party rate and a division by party size are both in the rule and both
                 // exercised at one member; parties are not modelled anywhere in this server yet,
                 // and a count taken from nothing would be a guess in the middle of a checked sum.
-                PartyMemberCount: 1),
-            parameters.Load(),
-            tuning);
+                PartyMemberCount: 1));
         if (worth == 0)
             return ExperienceValuation.Nothing;
 

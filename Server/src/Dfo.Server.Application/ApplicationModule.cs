@@ -83,6 +83,9 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton(
             new ExperienceDiagnostics(
                 bool.TryParse(configuration["Experience:LabelProbe"], out var probe) && probe));
+        // What a kill, a clear and a channel are worth, and how much of it a level costs. The
+        // one reader of the four archive declarations and the two operator dials behind them.
+        services.TryAddSingleton<IExperienceRuleService, ExperienceRuleService>();
         services.TryAddSingleton<IExperienceBonusService, ExperienceBonusService>();
         services.TryAddSingleton<ICharacterExperienceGrant, CharacterExperienceGrant>();
         // One store, three services. The store keeps the collections whose invariant spans them
@@ -105,8 +108,20 @@ public sealed class ApplicationModule : IServerModule
         // The gate is keyed on the character rather than the account because the operations
         // that need it span accounts: a party pays an entry cost together.
         services.TryAddSingleton<UserExecutionGate<CharacterId>>();
+        // What the archive declares about quests, and the shared parameters a reward is worked
+        // out from. One reader for both, because no quest outcome is decided without both.
+        services.TryAddSingleton<IQuestContentRuleService, QuestContentRuleService>();
         services.TryAddSingleton<IDungeonLayoutRuleService, DungeonLayoutRuleService>();
+        // What the server declares about its channels, and what a tutorial step hands over.
+        services.TryAddSingleton<IChannelContentRuleService, ChannelContentRuleService>();
+        services.TryAddSingleton<ITutorialRewardRuleService, TutorialRewardRuleService>();
+        // What a room declares, and what a run standing in it makes of that: the actor numbering,
+        // the monster-or-ally boundary, and which of the declared pieces are still on the floor.
+        services.TryAddSingleton<IDungeonRoomRuleService, DungeonRoomRuleService>();
         services.TryAddSingleton<IItemSlotRuleService, ItemSlotRuleService>();
+        // Where an item belongs, which slot it is worn in, and whether it is equipment at all --
+        // the one place the archive's item definitions are read for those three answers.
+        services.TryAddSingleton<IItemPlacementRuleService, ItemPlacementRuleService>();
         // Where an arriving item goes, and which day a refill belongs to. Both were decisions the
         // database used to make about itself.
         services.TryAddSingleton<IItemArrivalRuleService, ItemArrivalRuleService>();
@@ -123,6 +138,11 @@ public sealed class ApplicationModule : IServerModule
             provider => new SelectedSessionPositionPersistence(
                 provider.GetService<ICharacterStore>(),
                 provider.GetRequiredService<IDomainTransactionAccessor>()));
+        // What a job starts with and what a creation request may ask for; and what entry
+        // reconciles a character against on the way in.
+        services.TryAddSingleton<ICharacterCreationRuleService, CharacterCreationRuleService>();
+        services.TryAddSingleton<
+            ICharacterEntryPreparationRuleService, CharacterEntryPreparationRuleService>();
         services.TryAddSingleton<IGoldLimitRuleService, GoldLimitRuleService>();
         services.TryAddSingleton<IExpertSkillContractRuleService, ExpertSkillContractRuleService>();
         services.TryAddSingleton<IDungeonEffectRuleService, DungeonEffectRuleService>();
@@ -132,6 +152,10 @@ public sealed class ApplicationModule : IServerModule
         // registered rather than left out so that everything upstream is written against the real
         // shape from the first day.
         services.TryAddSingleton<IAccountMoneyService, AccountMoneyService>();
+        // What an occasion drops: the one reader of the three drop tables and the only caller of
+        // DropRules. The compensation seam below stays outside it, because what a character is
+        // owed is state that crosses runs.
+        services.TryAddSingleton<IDropRuleService, DropRuleService>();
         services.TryAddSingleton<IDropRateAdjuster, NoDropRateAdjustment>();
         // The one number the archive does not declare. See DropRateOptions for the two candidate
         // readings and why neither could be chosen from the files.
@@ -142,6 +166,29 @@ public sealed class ApplicationModule : IServerModule
                 ? basis
                 : new DropRateOptions().RateBasis,
         });
+        // Entering a dungeon and walking between its rooms: the use case two protocol handlers
+        // used to assemble inline.
+        services.TryAddSingleton<IDungeonSelectionRuleService, DungeonSelectionRuleService>();
+        services.TryAddSingleton<IDungeonVisitDomainService, DungeonVisitDomainService>();
+        // What a kill reported against a run means: which declared actor it names, and whether
+        // the room is now empty.
+        services.TryAddSingleton<IMonsterKillDomainService, MonsterKillDomainService>();
+        // Recomputing a session's offer list after a level or a quest moved what it is made of.
+        // It used to sit in the Protocol layer, where five handlers reached it directly.
+        services.TryAddSingleton<
+            IQuestOfferRefreshDomainService, QuestOfferRefreshDomainService>();
+        // Whether a character may stand where they say, and what a tutorial step declares.
+        services.TryAddSingleton<ITownMovementDomainService, TownMovementDomainService>();
+        services.TryAddSingleton<ITutorialRewardDomainService, TutorialRewardDomainService>();
+        // The seams the command handlers reach the rules through, so that none of them holds a
+        // rule service of its own.
+        services.TryAddSingleton<IGroundPickupDomainService, GroundPickupDomainService>();
+        services.TryAddSingleton<IItemMovementDomainService, ItemMovementDomainService>();
+        services.TryAddSingleton<IQuestDefinitionDomainService, QuestDefinitionDomainService>();
+        services.TryAddSingleton<
+            IExperienceValuationDomainService, ExperienceValuationDomainService>();
+        services.TryAddSingleton<
+            IChannelDirectoryDomainService, ChannelDirectoryDomainService>();
         services.TryAddSingleton<IMonsterDropService, MonsterDropService>();
         services.TryAddSingleton<IActiveCharacterAccessDomainService>(
             provider => new ActiveCharacterAccessDomainService(
@@ -151,12 +198,9 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton(
             provider => new CharacterDomainService(
                 () => provider.GetRequiredService<ICharacterRepository>(),
-                provider.GetRequiredService<ICharacterStatDefinitionSource>(),
-                provider.GetRequiredService<IInitialSkillDefinitionSource>(),
-                provider.GetRequiredService<IInitialEquipmentDefinitionSource>(),
+                provider.GetRequiredService<ICharacterCreationRuleService>(),
                 characterId => new PlayingCharacter(
                     characterId,
-                    provider.GetRequiredService<IItemUseRuleDefinitionSource>(),
                     provider.GetRequiredService<IItemUseJudgementService>(),
                     provider.GetRequiredService<ICharacterItemCooldownDomainService>(),
                     provider.GetRequiredService<ISelectedSessionDirectory>(),
@@ -188,6 +232,9 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICharacterQuestLogDomainService, CharacterQuestLogDomainService>();
         services.TryAddSingleton<ICharacterItemCooldownDomainService, CharacterItemCooldownDomainService>();
         services.TryAddSingleton<IItemUseJudgementService, ItemUseJudgementService>();
+        // What entry has to grant before a character is published. One reader for the daily
+        // refill declarations.
+        services.TryAddSingleton<IInventoryLifecycleRuleService, InventoryLifecycleRuleService>();
         services.TryAddSingleton<IItemUseEffectDomainService, ItemUseEffectDomainService>();
         services.TryAddSingleton<ISelectCharacterEntryInventoryDomainService, SelectCharacterEntryInventoryDomainService>();
         services.TryAddSingleton<ICharacterProfileEntryProjection, CharacterProfileEntryProjection>();

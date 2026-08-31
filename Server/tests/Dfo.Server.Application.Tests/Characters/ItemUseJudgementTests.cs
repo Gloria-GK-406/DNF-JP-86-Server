@@ -20,7 +20,15 @@ namespace Dfo.Server.Application.Tests.Characters;
 /// </remarks>
 public sealed class ItemUseJudgementTests
 {
-    private static readonly IItemUseJudgementService Judgement = new ItemUseJudgementService();
+    private static readonly IItemUseJudgementService Judgement =
+        new ItemUseJudgementService(new NoItemUseRules());
+
+    /// <summary>These tests hand the judgement a declaration; none of them looks one up.</summary>
+    private sealed class NoItemUseRules : IItemUseRuleDefinitionSource
+    {
+        public ValueTask<ItemUseRule?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+    }
 
     /// <summary>An ordinary consumable with no restriction, and a candidate who meets them all.</summary>
     private static ItemUseCandidate Ready(

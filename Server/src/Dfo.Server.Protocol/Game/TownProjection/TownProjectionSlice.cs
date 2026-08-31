@@ -209,7 +209,7 @@ public sealed class SetUserAreaHandler(
     ISelectedSessionDirectory selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IChannelEntryPolicy channels,
-    IEntryPlacementRuleService placement,
+    ITownMovementDomainService towns,
     IGameMessageSender sender,
     ILogger<SetUserAreaHandler> logger) : ClientMessageHandler<SetUserAreaRequest>
 {
@@ -234,7 +234,7 @@ public sealed class SetUserAreaHandler(
         // Refused rather than clamped. The byte the entry acknowledgement carries is a lookup key
         // the client dereferences without a null check, so storing a town the content does not
         // declare would turn this step into a crash on the next login instead of here.
-        if (!await placement.DeclaresAreaAsync(message.TownId, message.AreaId, cancellationToken)
+        if (!await towns.DeclaresAreaAsync(message.TownId, message.AreaId, cancellationToken)
                 .ConfigureAwait(false))
         {
             logger.LogWarning(
@@ -251,7 +251,7 @@ public sealed class SetUserAreaHandler(
         var channel = await channels
             .ResolveAsync(context.Connection.ListenerPort, cancellationToken)
             .ConfigureAwait(false);
-        if (!await placement.CanEnterTownAsync(channel, message.TownId, cancellationToken)
+        if (!await towns.CanEnterTownAsync(channel, message.TownId, cancellationToken)
                 .ConfigureAwait(false))
         {
             logger.LogWarning(

@@ -1,8 +1,8 @@
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
-using Dfo.Server.Protocol.Game.Quests;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Logging;
 
@@ -31,7 +31,7 @@ public sealed class AcceptQuestHandler(
     ISelectedSessionRuntimeDirectory runtimeSessions,
     ICommandBus commandBus,
     IGameMessageSender sender,
-    QuestOfferRefresher offers,
+    IQuestOfferRefreshDomainService offers,
     ILogger<AcceptQuestHandler> logger) : ClientMessageHandler<AcceptQuestRequest>
 {
     protected override async ValueTask HandleMessageAsync(

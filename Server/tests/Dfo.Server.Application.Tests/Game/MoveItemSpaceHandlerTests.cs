@@ -308,8 +308,10 @@ public sealed class MoveItemSpaceHandlerTests
         var inventory = new FakeInventory { [65] = (8474, 1), [66] = (9000, 1) };
         var placements = new ConsumablePlacements();
         var handler = new MoveItemSpaceCommandHandler(
-            inventory.Containers(placements), new NoWearables(), placements,
-            new ItemSlotRuleService());
+            inventory.Containers(placements),
+            new ItemMovementDomainService(
+                new ItemPlacementRuleService(placements, new NoWearables()),
+                new ItemSlotRuleService()));
 
         var results = await Task.WhenAll(
             Dispatch(handler, inventory, sourceSlot: 65, destinationSlot: 3),
@@ -360,8 +362,10 @@ public sealed class MoveItemSpaceHandlerTests
         var sender = new RecordingSender();
         var resolved = placements ?? new ConsumablePlacements();
         var commandHandler = new MoveItemSpaceCommandHandler(
-            inventory.Containers(resolved), new NoWearables(), resolved,
-            new ItemSlotRuleService());
+            inventory.Containers(resolved),
+            new ItemMovementDomainService(
+                new ItemPlacementRuleService(resolved, new NoWearables()),
+                new ItemSlotRuleService()));
 
         return (
             new MoveItemSpaceHandler(

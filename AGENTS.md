@@ -77,7 +77,8 @@ TCP 字节
   → ClientMessageHandler<TMessage>（Protocol/<Endpoint>/<Protocol>/*Handler.cs）
       鉴权门（IOnlineUserQueryDomainService）→ commandBus.SendAsync(...) → 发响应
   → CommandBus 管线（机制在 Application）→ ICommandHandler（在切片内）
-      → 领域服务（Application）→ 仓储与存储（Persistence）/内容源（Infrastructure）
+      → 领域服务（Application）→ 仓储与存储（Persistence）
+                              → 规则服务（Application）→ 内容源（Infrastructure）
   → Game 由 IGameMessageSender 约束 CMD/NOTI，Channel 直接用 INetworkMessageSender；
       最终均委托 TouchSocketNetworkMessageSender 按消息 CLR 类型查编码器注册表
       → IServerMessageEncoder（Protocol 切片内）产出完整帧 → 出站
@@ -93,6 +94,30 @@ PvP 大厅、专家商店）、`World/`（出生点策略、世界内容）、`U
 （`OnlineStateStore` 持三张字典与唯一那把锁，`AccountDomainService`、
 `OnlineUserDomainService`、`ActiveCharacterDomainService` 三个门面各取其一）。
 服务只做业务；`Persistence` 提供仓储与存储实现，`Infrastructure` 提供 PVF 内容源实现。
+
+**三层是上下关系，不是三选一。**
+
+```
+CMD handler          驱动用例，不承载业务语义
+  → 业务服务         （领域服务）读写世界状态，编排用例
+    → 规则服务       内容 + 传入的 facts + 显式种子 → 值/决定，无状态
+      → 纯规则       静态类，纯函数，不碰 I/O
+```
+
+每一层只调它下面那层。业务服务问规则服务「规则怎么说」，规则服务读内容源并调静态规则类算出
+答案；业务服务不自己读内容源，handler 也不自己问规则服务——端点解析（`IChannelEntryPolicy`）
+是唯一的例外，它列在下面「handler 业务语义规则」允许的四类里。
+
+**规则输入只经规则服务进入本服务器。** 规则输入指游戏规则依赖的、来自运行中世界之外的值：
+PVF 内容源、游戏规则配置、以及表达归档或游戏语义的常量。它们的读取点只有一个，就是拥有该
+主题的那个规则服务；`Application` 的业务服务、`Protocol` 的 handler 与命令处理器都不读。
+
+反过来的一半早就写在 `Docs/领域结构重构设计.md` §6 里：规则服务不许自己查世界状态，只能接收
+facts。两半合起来才是一条线——一边不许往上摸世界，一边不许绕过它去够内容。
+
+**宿主部署配置不是规则输入。** `IServerConfigService` 与它的三个消费方按下面「接口后缀标明
+类别」那节记的例外办，不受这条约束。同样不算规则输入的还有两类，各自在代码里写明了理由：
+纯测量开关（`ExperienceDiagnostics`）与协议投递行为（`SelectCharacterDeliveryOptions`）。
 
 **在线状态那把锁不能拆成三把。** 三张字典是同一个不变量的三种读法——一个账号至多一个活跃
 角色，且该角色的 session 属于活着的连接。断线要同时删连接和该账号的活跃角色，发布要先读在线
@@ -283,7 +308,8 @@ PremiumService、CloneTitle 是 CMD，其余当前状态推送是 NOTI；拒绝�
 - `CLIENT_SPEC_STATISTIC`(0x00AB) 的 handler 直接打语义化日志，**不经过命令总线**
   （纯遥测、无领域变更、无响应；见 protocol 记录的 Implementation mapping）。
   存在水命令：`AcknowledgeGameExitCommand` 返回常量；Channel Connect 已改为纯协议
-  直接响应，ScriptVersion、Script、Info 命令仍负责读取基础设施内容源。
+  直接响应。ScriptVersion、Script、Info 三个命令曾直接读基础设施内容源，现已改为经
+  `IChannelDirectoryDomainService` → `IChannelContentRuleService` 取得，目录与脚本同一个所有者。
 - 登录失败目前**无法编码**（sender 对失败体直接抛异常），失败以服务器内部
   异常形态存在，客户端看不到错误。
 - `Dfo.Server.Utilities` 是空项目占位。
@@ -346,12 +372,12 @@ PremiumService、CloneTitle 是 CMD，其余当前状态推送是 NOTI；拒绝�
 | 后缀 | 含义 | 调用它意味着 |
 |---|---|---|
 | `*DomainService` | 领域服务 | 读写世界状态，**次序与并发有意义** |
-| `*RuleService` | 规则服务 | 内容 + 传入的 facts + 显式种子 → 值/决定，无状态 |
+| `*RuleService` | 规则服务 | 内容 + 传入的 facts + 显式种子 → 值/决定，无状态。**内容源与规则配置的唯一读取点**；由业务服务调用，不由 handler 调用 |
 | `*Projection` | 投影 | 单个 `Build(存储记录) → 领域值`，无依赖、无 I/O |
-| `*Rules`（静态类） | 纯规则 | 纯函数，不碰 I/O |
+| `*Rules`（静态类） | 纯规则 | 纯函数，不碰 I/O。**只由规则服务调用**，是规则服务的下一层而不是它的替代 |
 | `*Repository` / `*Registry` / `*Directory` / `*Persistence` | 持久化与运行时注册表 | 各自后缀已表明 |
 | `*Store` | 存储载体 | 按位置读写，入事务；载体是内存还是数据库对调用方无差别 |
-| `*DefinitionSource` / `*ContentSource` / `*Catalog` | 内容源 | 读归档，确定性、可缓存 |
+| `*DefinitionSource` / `*ContentSource` / `*Catalog` | 内容源 | 读归档，确定性、可缓存。**只被规则服务注入** |
 | `*Policy` | 策略 | 规则服务的一种，回答"允不允许"；`IChannelEntryPolicy` 即此类 |
 | `*Query` / `*Reader` | 只读投影/查询 | 只读，不改世界状态 |
 | `*Decoder` / `*Encoder` / `*Sender` / `*Dispatcher` / `*Handler` / `*Observer` / `*Closer` | 传输与协议 | 各自后缀已表明 |

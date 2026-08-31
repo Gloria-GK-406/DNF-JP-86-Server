@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
@@ -17,7 +18,6 @@ using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.OnlineUsers;
-using System.Runtime.ExceptionServices;
 
 namespace Dfo.Server.Application.Characters;
 
@@ -41,12 +41,10 @@ public sealed class SelectCharacterPreparationService(
     IAccountEntryStateDomainService accountEntries,
     IEquippedCreatureQuery equippedCreature,
     IWorldContentEntryRuleService worldContent,
-    ISkillPointDefinitionSource skillPoints,
+    ICharacterEntryPreparationRuleService preparationRules,
     ICharacterPvpSkillProfileRepository pvpSkills,
     IDungeonPersistentEffectRecoveryRepository dungeonEffects,
-    IExpertSkillContractDefinitionSource expertContracts,
     IExpertSkillContractReconciliationRepository expertSkillReconciliation,
-    ICreatureEquipmentLifetimeSource creatureLifetimes,
     IChannelEntryPolicy channels,
     IEntryPlacementRuleService placement,
     ISessionAdjacentEntryDomainService sessionAdjacent,
@@ -109,14 +107,14 @@ public sealed class SelectCharacterPreparationService(
             cancellationToken).ConfigureAwait(false);
         var learnedSkillIds = characterEntry.Skills.Pages.SelectMany(value => value.Skills)
             .Select(value => checked((int)value.SkillId)).Distinct().ToArray();
-        var reconciliationDefinitions = await skillPoints.GetAsync(
+        var reconciliationDefinitions = await preparationRules.SkillPointsAsync(
             character.Identity.Job, character.Identity.GrowType, character.Progression.Level,
             learnedSkillIds, cancellationToken).ConfigureAwait(false);
         var freeBaseline = reconciliationDefinitions.FreeGrants.GroupBy(value => value.SkillId)
             .ToDictionary(group => group.Key, group => group.Max(value => value.Level));
         if (await expertSkillReconciliation.ReconcileAsync(
                 accountId, character.Identity.CharacterId,
-                expertContracts.GetOverSkillPremiumTypes(), reconciliationDefinitions.Skills,
+                preparationRules.OverSkillPremiumTypes(), reconciliationDefinitions.Skills,
                 freeBaseline, cancellationToken).ConfigureAwait(false))
             characterEntry = await characterEntries.LoadAsync(
                 accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false);
@@ -127,7 +125,7 @@ public sealed class SelectCharacterPreparationService(
         accountEntry = await CompleteSupportCharacterProjectionAsync(
             accountId, character, roster, accountEntry,
             characters, characterInventoryEntries, characterEntries,
-            creatureLifetimes, preparedAt,
+            preparationRules, preparedAt,
             cancellationToken).ConfigureAwait(false);
 
         var contentSubject = BuildContentSubject(character, characterEntry, characterInventory);
@@ -140,7 +138,8 @@ public sealed class SelectCharacterPreparationService(
         if (channelPolicy.PvpSkillProfileApplies)
         {
             var initial = await BuildInitialPvpSkillProfileAsync(
-                character, characterEntry.Skills, skillPoints, cancellationToken).ConfigureAwait(false);
+                character, characterEntry.Skills, preparationRules, cancellationToken)
+                .ConfigureAwait(false);
             characterEntry = characterEntry with
             {
                 Skills = MergePvpProfile(characterEntry.Skills,
@@ -150,7 +149,8 @@ public sealed class SelectCharacterPreparationService(
         }
         else
             characterEntry = await CompleteSkillProjectionAsync(
-                character, characterEntry, skillPoints, cancellationToken).ConfigureAwait(false);
+                character, characterEntry, preparationRules, cancellationToken)
+                .ConfigureAwait(false);
         var adjacent = await sessionAdjacent.LoadAsync(
             new SessionAdjacentSubject(
                 character.Identity.CharacterId,
@@ -295,12 +295,12 @@ public sealed class SelectCharacterPreparationService(
     private static async ValueTask<CharacterEntryState> CompleteSkillProjectionAsync(
         ActiveCharacterState character,
         CharacterEntryState entry,
-        ISkillPointDefinitionSource source,
+        ICharacterEntryPreparationRuleService rules,
         CancellationToken cancellationToken)
     {
         var learnedIds = entry.Skills.Pages.SelectMany(value => value.Skills)
             .Select(value => checked((int)value.SkillId)).Distinct().ToArray();
-        var definitions = await source.GetAsync(
+        var definitions = await rules.SkillPointsAsync(
             character.Identity.Job,
             character.Identity.GrowType,
             character.Progression.Level,
@@ -344,9 +344,9 @@ public sealed class SelectCharacterPreparationService(
 
     internal static async ValueTask<CharacterSkillsEntryState> BuildInitialPvpSkillProfileAsync(
         ActiveCharacterState character, CharacterSkillsEntryState basis,
-        ISkillPointDefinitionSource source, CancellationToken cancellationToken)
+        ICharacterEntryPreparationRuleService rules, CancellationToken cancellationToken)
     {
-        var definitions = await source.GetAsync(character.Identity.Job, character.Identity.GrowType,
+        var definitions = await rules.SkillPointsAsync(character.Identity.Job, character.Identity.GrowType,
             character.Progression.Level, [], cancellationToken).ConfigureAwait(false);
         var grants = definitions.FreeGrants.GroupBy(value => value.SkillId)
             .Select(group => group.OrderByDescending(value => value.Level).First()).ToArray();
@@ -401,7 +401,7 @@ public sealed class SelectCharacterPreparationService(
         ICharacterDomainService characters,
         ICharacterInventoryEntryDomainService inventories,
         ICharacterEntryStateDomainService entries,
-        ICreatureEquipmentLifetimeSource creatureLifetimes,
+        ICharacterEntryPreparationRuleService preparationRules,
         DateTimeOffset preparedAt,
         CancellationToken cancellationToken)
     {
@@ -422,7 +422,7 @@ public sealed class SelectCharacterPreparationService(
         var supportInventory = await inventories.LoadAsync(
             accountId, relation.SupportCharacterId, cancellationToken).ConfigureAwait(false);
         supportInventory = await CompleteSupportCreatureMarkerAsync(
-            supportInventory, creatureLifetimes, preparedAt, cancellationToken)
+            supportInventory, preparationRules, preparedAt, cancellationToken)
             .ConfigureAwait(false);
         var completed = relation with
         {
@@ -441,7 +441,7 @@ public sealed class SelectCharacterPreparationService(
 
     private static async ValueTask<CharacterInventoryEntryState> CompleteSupportCreatureMarkerAsync(
         CharacterInventoryEntryState inventory,
-        ICreatureEquipmentLifetimeSource lifetimes,
+        ICharacterEntryPreparationRuleService rules,
         DateTimeOffset preparedAt,
         CancellationToken cancellationToken)
     {
@@ -463,7 +463,7 @@ public sealed class SelectCharacterPreparationService(
                     continue;
                 }
 
-                var lifetime = await lifetimes.GetAsync(
+                var lifetime = await rules.CreatureLifetimeAsync(
                     item.Core.ItemId, preparedAt, cancellationToken).ConfigureAwait(false);
                 var marker = SupportCreatureMarkerProjection.Resolve(
                     lifetime, item.Core.ExpireTime, item.Core.Marker16, preparedAt);

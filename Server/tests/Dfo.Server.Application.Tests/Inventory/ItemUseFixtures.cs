@@ -200,7 +200,8 @@ internal abstract class FakeMainInventory(int characterId = 60)
             this.store,
             this.Scope,
             null!,
-            placements ?? new ConsumableBandPlacements(),
+            new ItemPlacementRuleService(
+                placements ?? new ConsumableBandPlacements(), new NoWearables()),
             new ItemArrivalRuleService(),
             new ItemSlotRuleService()));
         return containers;
@@ -211,6 +212,13 @@ internal abstract class FakeMainInventory(int characterId = 60)
     {
         public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(2, 100, 65, 120));
+    }
+
+    /// <summary>Nothing here is worn; these fixtures use items rather than put them on.</summary>
+    private sealed class NoWearables : IEquipmentSlotDefinitionSource
+    {
+        public ValueTask<byte?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<byte?>(null);
     }
 
     /// <summary>What the container holds of one item, in slot order.</summary>

@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Application.Quests;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Channel;
@@ -249,7 +251,9 @@ public sealed class WorldContentArchiveTests
     }
 
     private static WorldContentEntryRuleService CreateService(IServiceProvider provider) =>
-        new(provider.GetRequiredService<IQuestDefinitionSource>(),
+        new(new QuestContentRuleService(
+                provider.GetRequiredService<IQuestDefinitionSource>(),
+                provider.GetRequiredService<IQuestParameterSource>()),
             provider.GetRequiredService<IDailyActivityDefinitionSource>(),
             provider.GetRequiredService<ICollectionBoxDefinitionSource>(),
             provider.GetRequiredService<ICreatureDefinitionSource>());

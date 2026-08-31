@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Quests;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -13,7 +14,6 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonClear;
 using Dfo.Server.Protocol.Game.MonsterDeath;
-using Dfo.Server.Protocol.Game.Quests;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -245,7 +245,7 @@ public sealed class SetPlayResultHandlerTests
             runtime,
             new OneRun(),
             bus ?? new FixedAward(leveledUp, awarded),
-            new QuestOfferRefresher(
+            new QuestOfferRefreshDomainService(
                 content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs()),
             sender,
             NullLogger<SetPlayResultHandler>.Instance);

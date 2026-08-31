@@ -2,6 +2,15 @@ namespace Dfo.Server.Protocol.Game;
 
 internal static class GameProtocol
 {
+    /// <summary>
+    /// The merchant a working A21 session puts on the result screen.
+    /// </summary>
+    /// <remarks>
+    /// Two slices name it: the clear frame that opens the screen and the kill that empties the boss
+    /// room. It is here rather than in either of them because a slice may not reach into another.
+    /// </remarks>
+    public const int SecretShopNpcId = 1000;
+
     public const ushort LoginType = 0x0001;
 
     public const ushort ExitType = 0x0003;

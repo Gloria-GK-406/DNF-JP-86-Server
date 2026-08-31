@@ -41,8 +41,10 @@ public sealed class ItemPathFrameTests
     {
         await using var storage = await Storage.CreateAsync((65, PotionId, 1));
         var handler = new MoveItemSpaceCommandHandler(
-            storage.Containers(), new NoWearables(), new ConsumableBand(),
-            new ItemSlotRuleService());
+            storage.Containers(),
+            new ItemMovementDomainService(
+                new ItemPlacementRuleService(new ConsumableBand(), new NoWearables()),
+                new ItemSlotRuleService()));
 
         // The boundary the pipeline would have opened for a Transactional command. Without it the
         // container refuses the write outright, which is the guarantee working rather than a
@@ -70,8 +72,10 @@ public sealed class ItemPathFrameTests
     {
         await using var storage = await Storage.CreateAsync();
         var handler = new MoveItemSpaceCommandHandler(
-            storage.Containers(), new NoWearables(), new ConsumableBand(),
-            new ItemSlotRuleService());
+            storage.Containers(),
+            new ItemMovementDomainService(
+                new ItemPlacementRuleService(new ConsumableBand(), new NoWearables()),
+                new ItemSlotRuleService()));
 
         await using var boundary = storage.Scope.Begin();
         var result = await handler.HandleAsync(
@@ -168,7 +172,7 @@ public sealed class ItemPathFrameTests
                 new SqliteItemStore(this.Path),
                 this.Scope,
                 null!,
-                new ConsumableBand(),
+                new ItemPlacementRuleService(new ConsumableBand(), new NoWearables()),
                 new ItemArrivalRuleService(),
                 new ItemSlotRuleService()));
             return containers;

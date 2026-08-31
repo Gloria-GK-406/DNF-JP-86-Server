@@ -214,7 +214,7 @@ internal abstract class StoreBackedItemContainer(
     ContainerShape shape,
     IItemStore store,
     IDomainTransactionAccessor transactions,
-    IItemPlacementDefinitionSource placements,
+    IItemPlacementRuleService placementRules,
     IItemArrivalRuleService arrivals,
     IItemSlotRuleService slotRules) : IItemContainer
 {
@@ -270,7 +270,8 @@ internal abstract class StoreBackedItemContainer(
     public async ValueTask<ItemPlacementOutcome> AddAsync(
         int itemId, int count, CancellationToken cancellationToken)
     {
-        var placement = await placements.GetAsync(itemId, cancellationToken).ConfigureAwait(false);
+        var placement = await placementRules.PlacementForAsync(itemId, cancellationToken)
+            .ConfigureAwait(false);
         if (placement is null)
         {
             return new ItemPlacementOutcome.UnknownItem();
@@ -437,7 +438,7 @@ internal abstract class StoreBackedItemContainer(
         int requestedCount,
         CancellationToken cancellationToken)
     {
-        var placement = await placements.GetAsync(moving.ItemId, cancellationToken)
+        var placement = await placementRules.PlacementForAsync(moving.ItemId, cancellationToken)
             .ConfigureAwait(false);
         if (placement is null || !slotRules.CanOccupyMainSlot(placement, targetSlot))
         {
@@ -476,7 +477,8 @@ internal abstract class StoreBackedItemContainer(
             return (null, ItemMoveRefusal.PartialSwapNotAllowed);
         }
 
-        var displacedPlacement = await placements.GetAsync(displaced.ItemId, cancellationToken)
+        var displacedPlacement = await placementRules
+            .PlacementForAsync(displaced.ItemId, cancellationToken)
             .ConfigureAwait(false);
         return displacedPlacement is null
             || !slotRules.CanOccupyMainSlot(displacedPlacement, moving.SlotIndex)
@@ -573,10 +575,10 @@ internal sealed class PersistentItemContainer(
     IItemStore store,
     IDomainTransactionAccessor transactions,
     IEntryInventoryMutationRepository snapshots,
-    IItemPlacementDefinitionSource placements,
+    IItemPlacementRuleService placementRules,
     IItemArrivalRuleService arrivals,
     IItemSlotRuleService slotRules)
-    : StoreBackedItemContainer(id, shape, store, transactions, placements, arrivals, slotRules)
+    : StoreBackedItemContainer(id, shape, store, transactions, placementRules, arrivals, slotRules)
 {
     public override bool IsRemovable => false;
 

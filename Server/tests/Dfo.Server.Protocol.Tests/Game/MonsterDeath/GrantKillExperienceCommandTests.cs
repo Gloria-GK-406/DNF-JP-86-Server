@@ -1,6 +1,10 @@
+using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Quests;
+using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Protocol.Game.MonsterDeath;
@@ -73,8 +77,14 @@ public sealed class GrantKillExperienceCommandTests
         int monsterLevel, MonsterRank rank, double channelRate)
     {
         var handler = new GrantKillExperienceCommandHandler(
-            new CapturedParameters(),
-            ExperienceTuning.Default,
+            new ExperienceValuationDomainService(new ExperienceRuleService(
+                new CapturedParameters(),
+                new UngradedRanks(),
+                new NoProgression(),
+                new NoChannelExperience(),
+                new NoQuestContent(),
+                ExperienceTuning.Default,
+                ExperienceEntitlementPolicy.None)),
             new FixedChannelBonus(channelRate),
             new PricingGrant(characterLevel: 3));
 
@@ -97,6 +107,39 @@ public sealed class GrantKillExperienceCommandTests
     }
 
     /// <summary>The archive's rates as they stood for the captured run.</summary>
+    /// <summary>Nothing on this path reads a rank grade.</summary>
+    private sealed class UngradedRanks : IDungeonRankGradeSource
+    {
+        public DungeonRankGrades Load() => throw new NotSupportedException();
+    }
+
+    /// <summary>Nothing on this path turns experience into a level.</summary>
+    private sealed class NoProgression : IDungeonExperienceProgressionPolicySource
+    {
+        public DungeonExperienceProgressionPolicy Load() => throw new NotSupportedException();
+    }
+
+    /// <summary>Nothing on this path reads a channel's reward.</summary>
+    private sealed class NoChannelExperience : IChannelExperienceSource
+    {
+        public ChannelExperienceCatalog Load() => throw new NotSupportedException();
+    }
+
+    /// <summary>Nothing on this path reads a quest.</summary>
+    private sealed class NoQuestContent : IQuestContentRuleService
+    {
+        public ValueTask<IReadOnlyList<QuestDefinition>> AllAsync(CancellationToken ct) =>
+            throw new NotSupportedException();
+
+        public ValueTask<QuestDefinition?> FindAsync(int questId, CancellationToken ct) =>
+            throw new NotSupportedException();
+
+        public ValueTask<IReadOnlyList<TrainingQuestAvailability>> TrainingAvailabilityAsync(
+            CancellationToken ct) => throw new NotSupportedException();
+
+        public QuestParameters Parameters() => throw new NotSupportedException();
+    }
+
     private sealed class CapturedParameters : IExperienceParameterSource
     {
         public ExperienceParameters Load() => new(
@@ -124,6 +167,9 @@ public sealed class GrantKillExperienceCommandTests
     /// </remarks>
     private sealed class PricingGrant(byte characterLevel) : ICharacterExperienceGrant
     {
+        /// <summary>No test on this path asks what a level costs.</summary>
+        public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
+
         public ValueTask<ExperienceAward?> AwardAsync(
             CharacterId characterId,
             Func<byte, ExperienceValuation> valuation,

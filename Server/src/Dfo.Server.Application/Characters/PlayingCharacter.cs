@@ -20,7 +20,6 @@ namespace Dfo.Server.Application.Characters;
 /// </remarks>
 internal sealed class PlayingCharacter(
     CharacterId characterId,
-    IItemUseRuleDefinitionSource rules,
     IItemUseJudgementService judgement,
     ICharacterItemCooldownDomainService cooldowns,
     ISelectedSessionDirectory selectedSessions,
@@ -32,7 +31,8 @@ internal sealed class PlayingCharacter(
     public async ValueTask<ItemUsability> CanUseAsync(
         int itemId, CancellationToken cancellationToken)
     {
-        var rule = await rules.GetAsync(itemId, cancellationToken).ConfigureAwait(false);
+        var rule = await judgement.RuleForAsync(itemId, cancellationToken)
+            .ConfigureAwait(false);
 
         // An unreadable declaration is refused rather than waved through. The archive names job
         // families and places this contract does not model -- a misspelt [prist], a [seria room] --
@@ -102,10 +102,16 @@ internal sealed class PlayingCharacter(
 /// <remarks>
 /// Nothing here can find a character, and that is the point. Every fact it compares arrives as a
 /// value, so the four comparisons and the order they are made in can be checked without a session,
-/// a directory or a database -- and the same judgement serves whoever else comes to need it.
+/// a directory or a database -- and the same judgement serves whoever else comes to need it. The
+/// archive it judges against is read here too, so that a judgement and the effects planned from it
+/// are made against one declaration rather than two lookups that could disagree.
 /// </remarks>
-internal sealed class ItemUseJudgementService : IItemUseJudgementService
+internal sealed class ItemUseJudgementService(
+    IItemUseRuleDefinitionSource rules) : IItemUseJudgementService
 {
+    public ValueTask<ItemUseRule?> RuleForAsync(int itemId, CancellationToken cancellationToken) =>
+        rules.GetAsync(itemId, cancellationToken);
+
     public ItemCooldownKey CooldownKeyFor(int itemId, ItemUseRule rule)
     {
         ArgumentNullException.ThrowIfNull(rule);

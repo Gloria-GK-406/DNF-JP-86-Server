@@ -105,7 +105,7 @@ internal sealed record UdpHostNotification : IGameNotiMessage
 /// This server sent it only at the deferred moment until 2026-08-26, because the session it was
 /// modelled on was a tutorial and that is where the frame appears on its wire. A player walking up
 /// to a real dungeon gate therefore got the screen's other three frames and not this one -- see
-/// <see cref="DungeonSelectionRules"/>.
+/// <see cref="IDungeonVisitDomainService"/>.
 /// </para>
 /// </remarks>
 internal sealed record EnterSelectDungeonNotification(
@@ -214,24 +214,6 @@ public sealed class BackToVillageHandler(
                 []),
             cancellationToken).ConfigureAwait(false);
     }
-}
-
-/// <summary>
-/// When the selection screen's state is due.
-/// </summary>
-/// <remarks>
-/// The reference server asks two things: is the character still level one, and has the tutorial
-/// been marked skippable. This server keeps no such mark -- nothing here can skip the tutorial --
-/// so it asks the level alone. The two answers differ only for a character that skipped, which is
-/// a state this server cannot reach. See <c>Docs/ProtocolScaffoldDissonances.md</c>.
-/// </remarks>
-internal static class DungeonSelectionRules
-{
-    /// <summary>The level a character is at until the tutorial's own step raises it.</summary>
-    private const byte TutorialLevel = 1;
-
-    public static bool DefersSelectionState(byte characterLevel) =>
-        characterLevel <= TutorialLevel;
 }
 
 /// <summary>
@@ -378,6 +360,7 @@ internal sealed class EnterSelectDungeonEncoder
 public sealed class EnterSelectDungeonHandler(
     ISelectedSessionDirectory selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
+    IDungeonVisitDomainService visits,
     IGameMessageSender sender,
     ILogger<EnterSelectDungeonHandler> logger)
     : ClientMessageHandler<EnterSelectDungeonRequest>
@@ -444,8 +427,7 @@ public sealed class EnterSelectDungeonHandler(
         // defers it -- and every frame this server had been checked against came from a tutorial,
         // so it was only ever sent at the deferred moment. A player at a real dungeon gate got the
         // screen's other three frames and no state to draw it from (2026-08-26).
-        var defersState = DungeonSelectionRules.DefersSelectionState(
-            result.Character.Progression.Level);
+        var defersState = visits.DefersSelectionState(result.Character.Progression.Level);
         List<IGameServerMessage> notifications =
         [
             new ExtendedUserStateMessage(

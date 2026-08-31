@@ -1,5 +1,7 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.Quests;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -15,7 +17,7 @@ public sealed class CharacterEntryStateTests
         var characterId = new CharacterId(71);
         var service = new CharacterEntryStateDomainService(
             new StubRepository(Storage(accountId, characterId)),
-            new StubQuestDefinitions([200]),
+            new QuestContentRuleService(new StubQuestDefinitions([200]), new NoQuestParameters()),
             new CharacterProfileEntryProjection(),
             new CharacterSkillQuestEntryProjection(),
             new CharacterProgressionEntryProjection(),
@@ -142,6 +144,14 @@ public sealed class CharacterEntryStateTests
             AccountId accountId,
             CharacterId characterId,
             CancellationToken cancellationToken) => ValueTask.FromResult(record);
+    }
+
+    /// <summary>Nothing reached through here works out a quest reward.</summary>
+    private sealed class NoQuestParameters : IQuestParameterSource
+    {
+        public QuestParameters Load() =>
+            throw new NotSupportedException(
+                "No test on this path asks what a quest pays; a value here would be invented.");
     }
 
     private sealed class StubQuestDefinitions(IReadOnlyCollection<int> specialIds)

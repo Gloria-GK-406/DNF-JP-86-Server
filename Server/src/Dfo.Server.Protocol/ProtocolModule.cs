@@ -49,7 +49,6 @@ using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Game.SessionMetrics;
 using Dfo.Server.Protocol.Game.QuestAcceptance;
-using Dfo.Server.Protocol.Game.Quests;
 using Dfo.Server.Protocol.Game.QuestCompletion;
 using Dfo.Server.Protocol.Game.QuestProgress;
 using Dfo.Server.Protocol.Game.TaggedIdReport;
@@ -206,7 +205,6 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<ClientHardwareDetailHandler>(ClientMessageType.GameClientHardwareDetail);
         services.RegisterMessageHandler<ClientSpecProfileHandler>(ClientMessageType.GameClientSpecProfile);
         services.RegisterMessageHandler<SessionMetricsHandler>(ClientMessageType.GameSessionMetrics);
-        services.AddSingleton<QuestOfferRefresher>();
         services.RegisterMessageHandler<AcceptQuestHandler>(ClientMessageType.GameAcceptQuest);
         services.RegisterMessageHandler<SetQuestTriggerHandler>(ClientMessageType.GameSetQuestTrigger);
         services.RegisterMessageHandler<FinishQuestHandler>(ClientMessageType.GameFinishQuest);

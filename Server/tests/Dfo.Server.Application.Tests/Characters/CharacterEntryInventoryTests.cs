@@ -318,7 +318,11 @@ public sealed class CharacterEntryInventoryTests
         var result = await Dfo.Server.Application.Characters.SelectCharacterPreparationService
             .BuildInitialPvpSkillProfileAsync(
                 darkKnight, EmptyCharacterEntry(darkKnight.Identity.CharacterId).Skills,
-                new AllocationSkillSource(), CancellationToken.None);
+                new CharacterEntryPreparationRuleService(
+                    new AllocationSkillSource(),
+                    new UnusedExpertContracts(),
+                    new UnusedCreatureLifetimes()),
+                CancellationToken.None);
 
         Assert.Equal([(short)0, (short)102, (short)150],
             result.Pages[0].Skills.Select(value => value.Slot));
@@ -749,6 +753,19 @@ public sealed class CharacterEntryInventoryTests
             CancellationToken cancellationToken) => ValueTask.FromResult(new SkillPointDefinitionSet(
                 100, 10, [], learnedSkillIds.ToDictionary(id => id,
                     id => new SkillPointCostDefinition(id, false, [10], false, 1, 100, 0, 1, 1))));
+    }
+
+    /// <summary>Entry inputs this test's path never reads.</summary>
+    private sealed class UnusedExpertContracts : IExpertSkillContractDefinitionSource
+    {
+        public IReadOnlySet<int> GetOverSkillPremiumTypes() => throw new NotSupportedException();
+    }
+
+    private sealed class UnusedCreatureLifetimes : ICreatureEquipmentLifetimeSource
+    {
+        public ValueTask<CreatureEquipmentLifetime> GetAsync(
+            int itemTemplateId, DateTimeOffset preparedAt, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
     }
 
     private sealed class AllocationSkillSource : ISkillPointDefinitionSource

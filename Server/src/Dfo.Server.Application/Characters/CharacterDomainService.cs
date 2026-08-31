@@ -10,9 +10,7 @@ namespace Dfo.Server.Application.Characters;
 
 internal sealed class CharacterDomainService(
     Func<ICharacterRepository> characterRepository,
-    ICharacterStatDefinitionSource characterStats,
-    IInitialSkillDefinitionSource initialSkills,
-    IInitialEquipmentDefinitionSource initialEquipment,
+    ICharacterCreationRuleService creationRules,
     Func<CharacterId, ICharacter> playingCharacter)
     : ICharacterDomainService, IEquipmentEligibilityCharacterReader
 {
@@ -28,19 +26,6 @@ internal sealed class CharacterDomainService(
     /// </remarks>
     public ICharacter Get(CharacterId characterId) => playingCharacter(characterId);
 
-    private const ushort DefaultSlotLimit = 32;
-
-    /// <summary>The first slot of the skill band the client's skill bar does not draw from.</summary>
-    private const short FirstPassiveSlot = 102;
-
-    // Bounds and job ceiling carried over from the legacy server, which is the only evidence we
-    // have for them. The two byte bounds genuinely differ per protocol -- see CharacterNameRules.
-    private const int NameCheckMinBytes = 2;
-    private const int NameCheckMaxBytes = 30;
-    private const int CreateMinBytes = 2;
-    private const int CreateMaxBytes = 18;
-    private const byte MaxJobId = 12;
-
     public async ValueTask<AccountCharacterRoster> GetAccountRosterAsync(
         AccountId accountId,
         CancellationToken cancellationToken)
@@ -48,7 +33,8 @@ internal sealed class CharacterDomainService(
         var characters = await characterRepository().ListByAccountAsync(
             accountId,
             cancellationToken).ConfigureAwait(false);
-        return new AccountCharacterRoster(accountId, DefaultSlotLimit, characters);
+        return new AccountCharacterRoster(
+            accountId, creationRules.AccountSlotLimit, characters);
     }
 
     public async ValueTask<ActiveCharacterState> LoadForSelectionAsync(
@@ -100,7 +86,7 @@ internal sealed class CharacterDomainService(
         byte[] rawName,
         CancellationToken cancellationToken)
     {
-        var shape = CharacterNameRules.Inspect(rawName, NameCheckMinBytes, NameCheckMaxBytes);
+        var shape = creationRules.InspectNameForCheck(rawName);
         if (shape != CharacterNameShape.WellFormed)
         {
             return ToNameStatus(shape);
@@ -118,13 +104,12 @@ internal sealed class CharacterDomainService(
         byte[] rawName,
         CancellationToken cancellationToken)
     {
-        if (job > MaxJobId)
+        if (!creationRules.IsKnownJob(job))
         {
             return new CharacterCreationResult(CharacterCreationStatus.MalformedRequest, null);
         }
 
-        if (CharacterNameRules.Inspect(rawName, CreateMinBytes, CreateMaxBytes)
-            != CharacterNameShape.WellFormed)
+        if (creationRules.InspectNameForCreation(rawName) != CharacterNameShape.WellFormed)
         {
             return new CharacterCreationResult(CharacterCreationStatus.InvalidName, null);
         }
@@ -132,7 +117,7 @@ internal sealed class CharacterDomainService(
         var repository = characterRepository();
         var existing = await repository.ListByAccountAsync(accountId, cancellationToken)
             .ConfigureAwait(false);
-        if (existing.Count >= DefaultSlotLimit)
+        if (existing.Count >= creationRules.AccountSlotLimit)
         {
             return new CharacterCreationResult(CharacterCreationStatus.NoFreeSlot, null);
         }
@@ -159,42 +144,17 @@ internal sealed class CharacterDomainService(
             slotIndex++;
         }
 
-        // Resolved here rather than inside the repository: what a character is born with is a rule
-        // about characters, and the repository's job is to store what it is handed. It is resolved
-        // before the insert because the two have to land in one transaction -- a character row
-        // without its stats is the half-built state the entry profile query rejects outright.
-        var stats = await characterStats.GetInitialAsync(job, cancellationToken).ConfigureAwait(false);
-
-        // Two bands, because the skill bar reads only the first. Everything written to the low
-        // slots reaches the bar in slot order, so granting the passives alongside the actives put
-        // 基础精通 and 基础防具精通 on F and G, where a player cannot use them and would not expect
-        // them; ordering the actives first was not enough, because the passives still landed in
-        // slots after them. Dropping the passives instead answered that, and cost the character
-        // the passives themselves.
-        //
-        // The band the bar does not read is 102 upwards. That is not a choice made here: a working
-        // A21 session places a job's three initial passives at 102, 103 and 104 while its three
-        // actives sit at 0, 1 and 2, and this repository's own PvP profile already builds its
-        // slots the same way. Within each band the archive's order is kept; it is the only
-        // ordering available.
-        var grants = await initialSkills.GetAsync(job, cancellationToken).ConfigureAwait(false);
-        var skills = new List<NewCharacterSkill>();
-        short activeSlot = 0;
-        short passiveSlot = FirstPassiveSlot;
-        foreach (var grant in grants)
-        {
-            var slot = grant.IsActive ? activeSlot++ : passiveSlot++;
-            skills.Add(new NewCharacterSkill(slot, grant.SkillId, grant.Level));
-        }
-
-        var equipment =
-            (await initialEquipment.GetAsync(job, cancellationToken).ConfigureAwait(false))
-            .Select(grant => new NewCharacterEquipment(
-                grant.SlotIndex, grant.ItemId, grant.Durability))
-            .ToArray();
+        // Asked for here rather than inside the repository: what a character is born with is a
+        // rule about characters, and the repository's job is to store what it is handed. It is
+        // asked for before the insert because the two have to land in one transaction -- a
+        // character row without its stats is the half-built state the entry profile query rejects
+        // outright.
+        var born = await creationRules.StartingStateAsync(job, cancellationToken)
+            .ConfigureAwait(false);
 
         var characterId = await repository.CreateAsync(
-            new NewCharacterSpec(accountId, rawName, job, slotIndex, stats, skills, equipment),
+            new NewCharacterSpec(
+                accountId, rawName, job, slotIndex, born.Stats, born.Skills, born.Equipment),
             cancellationToken).ConfigureAwait(false);
         return new CharacterCreationResult(CharacterCreationStatus.Created, characterId);
     }

@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Application.Quests;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
@@ -599,7 +601,9 @@ public sealed class WorldContentRuleTests
         IReadOnlyList<CollectionBoxDefinition>? collectionBoxes = null,
         IReadOnlyList<CreatureDefinition>? creatures = null,
         IReadOnlyDictionary<int, int>? creatureIdByEquipment = null) =>
-        new(new StubQuestSource(quests ?? [], trainingAvailability ?? []),
+        new(new QuestContentRuleService(
+                new StubQuestSource(quests ?? [], trainingAvailability ?? []),
+                new NoQuestParameters()),
             new StubDailyActivitySource(dailyActivities ?? []),
             new StubCollectionBoxSource(collectionBoxes ?? []),
             new StubCreatureSource(creatures ?? [], creatureIdByEquipment));
@@ -731,6 +735,14 @@ public sealed class WorldContentRuleTests
             ArtifactSlots: [],
             Evolutions: evolutions ?? [],
             AmbientLines: ambientLines);
+
+    /// <summary>Nothing reached through here works out a quest reward.</summary>
+    private sealed class NoQuestParameters : IQuestParameterSource
+    {
+        public QuestParameters Load() =>
+            throw new NotSupportedException(
+                "No test on this path asks what a quest pays; a value here would be invented.");
+    }
 
     private sealed class StubQuestSource(
         IReadOnlyList<QuestDefinition> quests,

@@ -5,7 +5,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.World;
 
-namespace Dfo.Server.Protocol.Game.Quests;
+namespace Dfo.Server.Application.Quests;
 
 /// <summary>
 /// Works the offer list out again after the character has changed what it is computed from.
@@ -25,9 +25,9 @@ namespace Dfo.Server.Protocol.Game.Quests;
 /// The character's own state is read back rather than passed in, because the two callers know
 /// different halves of it and the log knows all of it.
 /// </remarks>
-public sealed class QuestOfferRefresher(
+internal sealed class QuestOfferRefreshDomainService(
     IWorldContentEntryRuleService worldContent,
-    ICharacterQuestLogDomainService logs)
+    ICharacterQuestLogDomainService logs) : IQuestOfferRefreshDomainService
 {
     /// <summary>
     /// The session with its offer list, and the inputs behind it, brought up to date.

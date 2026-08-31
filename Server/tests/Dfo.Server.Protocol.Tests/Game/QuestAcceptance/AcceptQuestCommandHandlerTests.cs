@@ -174,11 +174,13 @@ public sealed class AcceptQuestCommandHandlerTests
                 new SqliteItemStore(this.Path),
                 this.Scope,
                 null!,
-                new Placements(this.PlacementIsKnown),
+                new ItemPlacementRuleService(
+                    new Placements(this.PlacementIsKnown), new NoWearables()),
                 new ItemArrivalRuleService(),
                 new ItemSlotRuleService()));
             return new AcceptQuestCommandHandler(
-                new Quests(definition),
+                new QuestDefinitionDomainService(
+                    new QuestContentRuleService(new Quests(definition), new NoQuestParameters())),
                 new CharacterQuestLogDomainService(
                     new SqliteQuestStore(this.Path), new AmbientStoreAccess(this.Scope)),
                 containers);
@@ -241,6 +243,14 @@ public sealed class AcceptQuestCommandHandlerTests
         }
     }
 
+    /// <summary>Nothing reached through here works out a quest reward.</summary>
+    private sealed class NoQuestParameters : IQuestParameterSource
+    {
+        public QuestParameters Load() =>
+            throw new NotSupportedException(
+                "No test on this path asks what a quest pays; a value here would be invented.");
+    }
+
     private sealed class Quests(QuestDefinition? definition) : IQuestDefinitionSource
     {
         public ValueTask<IReadOnlyList<QuestDefinition>> GetAllAsync(
@@ -255,6 +265,13 @@ public sealed class AcceptQuestCommandHandlerTests
         public ValueTask<IReadOnlyList<TrainingQuestAvailability>> GetTrainingAvailabilityAsync(
             CancellationToken cancellationToken) =>
             ValueTask.FromResult<IReadOnlyList<TrainingQuestAvailability>>([]);
+    }
+
+    /// <summary>Nothing here is worn; these tests never put a piece on.</summary>
+    private sealed class NoWearables : IEquipmentSlotDefinitionSource
+    {
+        public ValueTask<byte?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<byte?>(null);
     }
 
     /// <summary>Where items go, or that the archive declares no such item at all.</summary>

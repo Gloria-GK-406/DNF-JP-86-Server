@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.World;
@@ -14,7 +15,7 @@ namespace Dfo.Server.Application.World;
 /// the content changing.
 /// </remarks>
 internal sealed class WorldContentEntryRuleService(
-    IQuestDefinitionSource quests,
+    IQuestContentRuleService quests,
     IDailyActivityDefinitionSource dailyActivities,
     ICollectionBoxDefinitionSource collectionBoxes,
     ICreatureDefinitionSource creatures) : IWorldContentEntryRuleService
@@ -36,9 +37,9 @@ internal sealed class WorldContentEntryRuleService(
         WorldContentSubject subject,
         CancellationToken cancellationToken)
     {
-        var catalog = await quests.GetAllAsync(cancellationToken).ConfigureAwait(false);
+        var catalog = await quests.AllAsync(cancellationToken).ConfigureAwait(false);
         var trainingAvailability = await quests
-            .GetTrainingAvailabilityAsync(cancellationToken)
+            .TrainingAvailabilityAsync(cancellationToken)
             .ConfigureAwait(false);
         var equippedCreature = subject.EquippedCreatureItemId > 0
             ? await creatures.FindByEquipmentAsync(

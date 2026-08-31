@@ -37,6 +37,7 @@ public sealed class GameExitIntegrationTests
         builder.Services.AddSingleton<IServerConfigService>(
             new ServerConfigService(builder.Configuration));
         builder.Services.AddSingleton<IChannelCatalog>(StaticChannelCatalog.ForGamePort(gamePort));
+        builder.Services.AddSingleton<IChannelScriptSource>(new NoChannelScript());
         builder.Services.AddSingleton(ChannelEntryOptions.Legacy);
         new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
         new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);

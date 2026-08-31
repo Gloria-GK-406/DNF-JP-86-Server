@@ -265,8 +265,7 @@ public sealed class CharacterItemUseTests
         var clock = new AdvanceableTimeProvider(new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero));
         var usability = new PlayingCharacter(
             Character,
-            new FakeItemUseRules((8474, ItemUseRules.Potion())),
-            new ItemUseJudgementService(),
+            new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
             new CharacterItemCooldownDomainService(clock),
             new OneSession(),
             FixedRuntimeSessions.Unpublished,
@@ -313,8 +312,7 @@ public sealed class CharacterItemUseTests
         fixture = new Fixture(clock, cooldowns);
         return new PlayingCharacter(
             Character,
-            new FakeItemUseRules(rules),
-            new ItemUseJudgementService(),
+            new ItemUseJudgementService(new FakeItemUseRules(rules)),
             cooldowns,
             new OneSession(),
             new FixedRuntimeSessions(level, job),

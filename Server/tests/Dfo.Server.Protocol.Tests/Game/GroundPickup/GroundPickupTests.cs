@@ -9,6 +9,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.GroundPickup;
+using Dfo.Server.Protocol.Game;
 
 namespace Dfo.Server.Protocol.Tests.Game.GroundPickup;
 
@@ -54,7 +55,11 @@ public sealed class GroundPickupTests
         var bag = new FakeContainer();
         var purse = new FakePurse();
         var handler = new PickUpGroundDropCommandHandler(
-            runs, new StubRoomDrops(declared), new StubPlacements(), new StubContainers(bag),
+            runs,
+            new GroundPickupDomainService(
+                new DungeonRoomRuleService(new NoRoomActors(), new StubRoomDrops(declared)),
+                new ItemPlacementRuleService(new StubPlacements(), new NoWearables())),
+            new StubContainers(bag),
             purse);
         return (handler, runs, bag, purse);
     }
@@ -232,7 +237,7 @@ public sealed class GroundPickupTests
 
         Assert.Equal(GroundPickupStatus.PickedUp, result.Status);
         Assert.Equal(
-            (int)DungeonEntryPayloadCodec.MonsterDropInstance(run, Actor),
+            (int)GameDropIdentity.ForKill(run, Actor),
             bag.Slots[result.SlotIndex].Value);
     }
 
@@ -298,10 +303,25 @@ public sealed class GroundPickupTests
             ValueTask.FromResult(declared);
     }
 
+    /// <summary>A room declaring no actors; these tests supply their own or need none.</summary>
+    private sealed class NoRoomActors : IDungeonRoomActorSource
+    {
+        public ValueTask<IReadOnlyList<DungeonRoomActor>> GetAsync(
+            int mapId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<DungeonRoomActor>>([]);
+    }
+
     private sealed class StubPlacements : IItemPlacementDefinitionSource
     {
         public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(1, 1, 0, 55));
+    }
+
+    /// <summary>Nothing here is worn; these tests never put a piece on.</summary>
+    private sealed class NoWearables : IEquipmentSlotDefinitionSource
+    {
+        public ValueTask<byte?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<byte?>(null);
     }
 
     private sealed class StubContainers(IItemContainer bag) : ICharacterContainerDomainService

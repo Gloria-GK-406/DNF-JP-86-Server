@@ -80,7 +80,7 @@ public sealed record AcceptQuestCommand(
 /// sees the quest it has just staged and can take it back.
 /// </remarks>
 public sealed class AcceptQuestCommandHandler(
-    IQuestDefinitionSource quests,
+    IQuestDefinitionDomainService quests,
     ICharacterQuestLogDomainService logs,
     ICharacterContainerDomainService containers)
     : ICommandHandler<AcceptQuestCommand, QuestAcceptOutcome>
@@ -103,7 +103,7 @@ public sealed class AcceptQuestCommandHandler(
                 + $"registered transactional; this execution is {context.ExecutionKind}.");
         }
 
-        var definition = await quests.GetAsync(command.QuestId, cancellationToken)
+        var definition = await quests.FindAsync(command.QuestId, cancellationToken)
             .ConfigureAwait(false);
         if (definition is null)
             return QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.Unknown);

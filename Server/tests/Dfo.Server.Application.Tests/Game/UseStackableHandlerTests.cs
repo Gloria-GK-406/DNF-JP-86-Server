@@ -297,18 +297,17 @@ public sealed class UseStackableHandlerTests
         var sessions = new OneSession();
         var sender = new RecordingSender();
 
-        var judgement = new ItemUseJudgementService();
+        var judgement = new ItemUseJudgementService(content);
         var commandHandler = new UseStackableCommandHandler(
             inventory.Containers(),
             new OneCharacter(new PlayingCharacter(
                 new CharacterId(60),
-                content,
                 judgement,
                 cooldowns,
                 sessions,
                 new FixedRuntimeSessions(level: 50, job: 0),
                 new SessionPresenceRegistry())),
-            new ItemUseEffectDomainService(content, judgement, cooldowns));
+            new ItemUseEffectDomainService(judgement, cooldowns));
 
         return (
             new UseStackableHandler(

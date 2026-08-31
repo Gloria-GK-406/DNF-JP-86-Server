@@ -13,6 +13,9 @@ namespace Dfo.Server.Application.Tests.Characters;
 /// </summary>
 public sealed class CharacterLifecycleServiceTests
 {
+    /// <summary>What the creation rules stamp every worn piece with.</summary>
+    private const byte EquipmentKind = 1;
+
     private static readonly AccountId Account = new(1);
 
     private static (ICharacterDomainService Service, FakeRepository Repository) Build(
@@ -283,7 +286,7 @@ public sealed class CharacterLifecycleServiceTests
         var declared = FakeInitialEquipmentSource.For(4);
         Assert.Equal(
             declared.Select(grant => new NewCharacterEquipment(
-                grant.SlotIndex, grant.ItemId, grant.Durability)),
+                grant.SlotIndex, grant.ItemId, grant.Durability, EquipmentKind)),
             repository.LastSpec!.InitialEquipment!);
     }
 

@@ -29,7 +29,7 @@ public sealed record SelectCharacterPetRevival(
     PetRevivalState State);
 
 internal sealed class SelectCharacterQuestEntryService(
-    IQuestDefinitionSource quests,
+    IQuestContentRuleService quests,
     ICharacterQuestLogDomainService logs) : ISelectCharacterQuestEntryService
 {
     public async ValueTask<SelectCharacterQuestSynchronization?> SynchronizeAsync(
@@ -38,7 +38,7 @@ internal sealed class SelectCharacterQuestEntryService(
         var planned = new List<SeekingQuestTriggerUpdate>();
         foreach (var active in result.CharacterEntry.Quests.ActiveQuests.OrderBy(value => value.Slot))
         {
-            var definition = await quests.GetAsync(active.QuestId, cancellationToken).ConfigureAwait(false);
+            var definition = await quests.FindAsync(active.QuestId, cancellationToken).ConfigureAwait(false);
             if (definition?.SeekingItems is not { Count: > 0 } requirements) continue;
             long missing = 0;
             foreach (var requirement in requirements)

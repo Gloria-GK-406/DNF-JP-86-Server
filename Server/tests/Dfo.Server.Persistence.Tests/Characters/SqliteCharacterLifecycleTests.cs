@@ -13,6 +13,9 @@ namespace Dfo.Server.Persistence.Tests.Characters;
 /// <summary>Persistence for character creation, name lookup and soft deletion.</summary>
 public sealed class SqliteCharacterLifecycleTests
 {
+    /// <summary>What the creation rules stamp every worn piece with.</summary>
+    private const byte EquipmentKind = 1;
+
     private static readonly AccountId Account = new(1);
 
     private static async Task WithRepositoryAsync(Func<ICharacterRepository, Task> body)
@@ -181,9 +184,9 @@ public sealed class SqliteCharacterLifecycleTests
                     Account, "Clothed"u8.ToArray(), Job: 0, SlotIndex: 2, CharacterBaseStats.Zero,
                     InitialEquipment:
                     [
-                        new NewCharacterEquipment(12, 27600, 45),
-                        new NewCharacterEquipment(14, 10400, 33),
-                        new NewCharacterEquipment(16, 12400, 27),
+                        new NewCharacterEquipment(12, 27600, 45, EquipmentKind),
+                        new NewCharacterEquipment(14, 10400, 33, EquipmentKind),
+                        new NewCharacterEquipment(16, 12400, 27, EquipmentKind),
                     ]),
                 CancellationToken.None);
             var created = await repository.ListByAccountAsync(Account, CancellationToken.None);

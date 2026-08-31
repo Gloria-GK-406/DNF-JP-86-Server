@@ -12,14 +12,14 @@ namespace Dfo.Server.Application.Channel;
 /// else the legacy policy exposes is spawn behaviour, which is a separate decision.
 /// </remarks>
 internal sealed class ChannelEntryPolicy(
-    IChannelCatalog channels,
+    IChannelContentRuleService channels,
     ChannelEntryOptions options) : IChannelEntryPolicy
 {
     public async ValueTask<ChannelEntryIdentity> ResolveAsync(
         int listenerPort,
         CancellationToken cancellationToken)
     {
-        var catalog = await channels.GetChannelsAsync(cancellationToken).ConfigureAwait(false);
+        var catalog = await channels.ChannelsAsync(cancellationToken).ConfigureAwait(false);
         foreach (var channel in catalog)
         {
             if (channel.Port == listenerPort)

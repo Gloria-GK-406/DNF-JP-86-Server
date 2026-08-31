@@ -53,6 +53,16 @@ public sealed record ItemUseCandidate(
 /// </summary>
 public interface IItemUseJudgementService
 {
+    /// <summary>
+    /// What the archive declares about using this item, or null when it declares nothing usable
+    /// under that identifier.
+    /// </summary>
+    /// <remarks>
+    /// Read here rather than by each caller, so that the declaration a judgement is made against
+    /// is the same one the effects are planned from.
+    /// </remarks>
+    ValueTask<ItemUseRule?> RuleForAsync(int itemId, CancellationToken cancellationToken);
+
     /// <summary>The cooldown this item shares, or its own when it shares none.</summary>
     ItemCooldownKey CooldownKeyFor(int itemId, ItemUseRule rule);
 

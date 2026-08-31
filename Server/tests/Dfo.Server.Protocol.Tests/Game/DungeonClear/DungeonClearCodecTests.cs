@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.DungeonClear;
 
@@ -28,7 +29,7 @@ public sealed class DungeonClearCodecTests
     {
         Assert.Equal(
             [0xE8, 0x03, 0x00, 0x00],
-            DungeonClearPayloadCodec.EncodeSecretShopNpc(DungeonClearPayloadCodec.SecretShopNpcId));
+            DungeonClearPayloadCodec.EncodeSecretShopNpc(GameProtocol.SecretShopNpcId));
     }
 
     /// <remarks>

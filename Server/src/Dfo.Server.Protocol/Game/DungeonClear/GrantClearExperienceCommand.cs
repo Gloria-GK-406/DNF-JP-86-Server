@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
@@ -42,9 +43,7 @@ public sealed record GrantClearExperienceCommand(
 /// </para>
 /// </remarks>
 public sealed class GrantClearExperienceCommandHandler(
-    IQuestParameterSource questParameters,
-    IExperienceParameterSource parameters,
-    IDungeonRankGradeSource rankGrades,
+    IExperienceValuationDomainService valuation,
     ICharacterExperienceGrant grant)
     : ICommandHandler<GrantClearExperienceCommand, ClearExperienceResult>
 {
@@ -63,11 +62,7 @@ public sealed class GrantClearExperienceCommandHandler(
                 + $"registered transactional; this execution is {context.ExecutionKind}.");
         }
 
-        var settings = parameters.Load();
-        var clearBase = DungeonClearExperienceRules.BaseWorth(
-            command.Clear, questParameters.Load(), settings);
-        var rankBonus = DungeonClearExperienceRules.RankBonus(
-            clearBase, command.Clear.ClientRankPoint, rankGrades.Load(), settings);
+        var (clearBase, rankBonus) = valuation.WorthOfClear(command.Clear);
 
         // The two figures are worked out before the grant rather than inside its callback, because
         // neither depends on the character's level -- unlike a kill, where the level decides the

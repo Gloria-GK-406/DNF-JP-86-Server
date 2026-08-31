@@ -229,9 +229,7 @@ public sealed record MoveItemSpaceCommand(
 /// </remarks>
 public sealed class MoveItemSpaceCommandHandler(
     ICharacterContainerDomainService containers,
-    IEquipmentSlotDefinitionSource equipmentSlots,
-    IItemPlacementDefinitionSource placements,
-    IItemSlotRuleService slotRules)
+    IItemMovementDomainService moves)
     : ICommandHandler<MoveItemSpaceCommand, ItemMoveResult>
 {
     private const byte MainListType = (byte)InventoryContainerType.Main;
@@ -321,7 +319,7 @@ public sealed class MoveItemSpaceCommandHandler(
         if (piece is null)
             return ItemMoveResult.Refused(ItemMoveStatus.BothSlotsEmpty);
 
-        var slot = await equipmentSlots.GetAsync(piece.ItemId, cancellationToken)
+        var slot = await moves.WornSlotForAsync(piece.ItemId, cancellationToken)
             .ConfigureAwait(false);
         if (slot is null)
             return ItemMoveResult.Refused(ItemMoveStatus.NotWearable);
@@ -371,18 +369,25 @@ public sealed class MoveItemSpaceCommandHandler(
         if (piece is null)
             return ItemMoveResult.Refused(ItemMoveStatus.BothSlotsEmpty);
 
-        var placement = await placements.GetAsync(piece.ItemId, cancellationToken)
-            .ConfigureAwait(false);
-        if (placement is null)
-            return ItemMoveResult.Refused(ItemMoveStatus.NotWearable);
-        if (!slotRules.CanOccupyMainSlot(placement, command.DestinationSlotIndex))
-            return ItemMoveResult.Refused(ItemMoveStatus.ItemCannotOccupySlot);
+        switch (await moves.MayOccupyMainSlotAsync(
+            piece.ItemId, command.DestinationSlotIndex, cancellationToken).ConfigureAwait(false))
+        {
+            case MainSlotAdmission.ItemUnknown:
+                return ItemMoveResult.Refused(ItemMoveStatus.NotWearable);
+
+            case MainSlotAdmission.SlotNotAllowed:
+                return ItemMoveResult.Refused(ItemMoveStatus.ItemCannotOccupySlot);
+
+            default:
+                break;
+        }
 
         var displaced = await bag.ReadSlotAsync(command.DestinationSlotIndex, cancellationToken)
             .ConfigureAwait(false);
         if (displaced is not null)
         {
-            var displacedSlot = await equipmentSlots.GetAsync(displaced.ItemId, cancellationToken)
+            var displacedSlot = await moves
+                .WornSlotForAsync(displaced.ItemId, cancellationToken)
                 .ConfigureAwait(false);
             if (displacedSlot != command.SourceSlotIndex)
                 return ItemMoveResult.Refused(ItemMoveStatus.DisplacedCannotOccupySlot);

@@ -605,6 +605,8 @@ public sealed class SelectCharacterPayloadCodecTests
             var services = new ServiceCollection();
             services.AddSingleton(repository);
             services.AddSingleton<IQuestDefinitionSource>(new Row9QuestDefinitions(13502));
+            // The quest rules read both declarations; nothing on this path asks what a quest pays.
+            services.AddSingleton<IQuestParameterSource>(new NoQuestParameters());
             new ApplicationModule().ConfigureServices(
                 services, new ConfigurationBuilder().Build());
             await using var provider = services.BuildServiceProvider();
@@ -642,6 +644,14 @@ public sealed class SelectCharacterPayloadCodecTests
         BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(5), value);
         bytes[66] = 0xFF;
         return bytes;
+    }
+
+    /// <summary>Nothing on this path works out a quest reward.</summary>
+    private sealed class NoQuestParameters : IQuestParameterSource
+    {
+        public QuestParameters Load() =>
+            throw new NotSupportedException(
+                "No test on this path asks what a quest pays; a value here would be invented.");
     }
 
     private sealed class Row9QuestDefinitions(int specialQuestId) : IQuestDefinitionSource

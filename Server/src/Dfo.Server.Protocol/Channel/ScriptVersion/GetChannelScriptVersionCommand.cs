@@ -7,12 +7,12 @@ public sealed record GetChannelScriptVersionCommand : ICommand<GetChannelScriptV
 
 public sealed record GetChannelScriptVersionResult(string Version);
 
-public sealed class GetChannelScriptVersionCommandHandler(IChannelScriptSource source)
+public sealed class GetChannelScriptVersionCommandHandler(IChannelDirectoryDomainService channels)
     : ICommandHandler<GetChannelScriptVersionCommand, GetChannelScriptVersionResult>
 {
     public ValueTask<GetChannelScriptVersionResult> HandleAsync(
         CommandExecutionContext context,
         GetChannelScriptVersionCommand command,
         CancellationToken cancellationToken) =>
-        ValueTask.FromResult(new GetChannelScriptVersionResult(source.Version));
+        ValueTask.FromResult(new GetChannelScriptVersionResult(channels.ScriptVersion));
 }

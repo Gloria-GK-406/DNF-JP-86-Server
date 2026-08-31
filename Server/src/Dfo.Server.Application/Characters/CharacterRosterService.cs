@@ -230,7 +230,7 @@ internal sealed class CharacterRosterService(
     /// <summary>A freshly made piece of equipment, as the item core records one.</summary>
     /// <remarks>
     /// Four fields carry something and the rest are zero, which is what a working A21 session's
-    /// newly created pieces hold: the kind the equipment index gives every worn item, the
+    /// newly created pieces hold: the kind the creation rules give every worn item, the
     /// identifier, the durability its own definition declares, and an instance value that
     /// distinguishes one piece from another. <c>Marker16</c> is -1 and
     /// <c>RandomOptionChangedIndex</c> is 255 because that is what an untouched core reads as
@@ -241,14 +241,11 @@ internal sealed class CharacterRosterService(
     /// across restarts.
     /// </remarks>
     private static InventoryItemCoreState EquipmentCore(NewCharacterEquipment piece) =>
-        new(EquipmentItemKind, piece.ItemId, Random.Shared.Next(1, int.MaxValue), 0,
+        new(piece.ItemKind, piece.ItemId, Random.Shared.Next(1, int.MaxValue), 0,
             piece.Durability, 0, 0, 0, 0, 0, UntouchedMarker,
             EmptyChronicle, EmptyChronicle, 0, 0, 0, 0, 0,
             EmptyRandomOption, EmptyRandomOption, EmptyRandomOption, 0, UntouchedRandomOptionIndex,
             0, EmptyRandomOption, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-    /// <summary>What the archive's equipment index says every worn item is.</summary>
-    private const byte EquipmentItemKind = 1;
 
     private const int UntouchedMarker = -1;
 

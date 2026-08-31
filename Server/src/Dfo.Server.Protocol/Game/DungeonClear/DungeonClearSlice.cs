@@ -1,4 +1,6 @@
 using System.Buffers.Binary;
+using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Sessions;
@@ -7,7 +9,6 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.MonsterDeath;
-using Dfo.Server.Protocol.Game.Quests;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Logging;
 
@@ -152,9 +153,6 @@ internal static class DungeonClearPayloadCodec
 {
     /// <summary>The rank the client worked out, at the one offset the reference server reads.</summary>
     public const int ClientRankPointOffset = 10;
-
-    /// <summary>The merchant a working A21 session puts on the result screen.</summary>
-    public const int SecretShopNpcId = 1000;
 
     /// <summary>The exit opens on a single zero.</summary>
     public static byte[] EncodeEnableClearDungeon() => [0x00];
@@ -364,7 +362,7 @@ public sealed class SetPlayResultHandler(
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IDungeonRunDomainService runs,
     ICommandBus commandBus,
-    QuestOfferRefresher offers,
+    IQuestOfferRefreshDomainService offers,
     IGameMessageSender sender,
     ILogger<SetPlayResultHandler> logger) : ClientMessageHandler<SetPlayResultRequest>
 {

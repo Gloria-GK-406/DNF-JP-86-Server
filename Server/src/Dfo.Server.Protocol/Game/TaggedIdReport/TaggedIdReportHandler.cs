@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.Logging;
@@ -27,7 +28,7 @@ namespace Dfo.Server.Protocol.Game.TaggedIdReport;
 public sealed class TaggedIdReportHandler(
     IOnlineUserQueryDomainService onlineUsers,
     ISelectedSessionDirectory selectedSessions,
-    ITutorialRewardDefinitionSource rewards,
+    ITutorialRewardDomainService rewards,
     ICommandBus commandBus,
     IGameMessageSender sender,
     ILogger<TaggedIdReportHandler> logger) : ClientMessageHandler<TaggedIdReportRequest>
@@ -40,7 +41,7 @@ public sealed class TaggedIdReportHandler(
         var attributed = onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var onlineUser)
             && onlineUser is not null;
 
-        var declared = await rewards.GetAsync(message.FlagIndex, cancellationToken).ConfigureAwait(false);
+        var declared = await rewards.DeclaredForAsync(message.FlagIndex, cancellationToken).ConfigureAwait(false);
 
         // The acknowledgement reports what reached the inventory, not what the archive declares.
         // An item that was refused -- unknown to the archive, or its band already full -- is left

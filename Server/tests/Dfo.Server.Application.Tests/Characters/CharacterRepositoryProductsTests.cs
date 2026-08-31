@@ -84,7 +84,7 @@ public sealed class CharacterRepositoryProductsTests
         var clock = new AdvanceableTimeProvider(
             new DateTimeOffset(2026, 8, 18, 12, 0, 0, TimeSpan.Zero));
         var rules = new FakeItemUseRules((Potion, ItemUseRules.Potion(cooldownMilliseconds: 0)));
-        var judgement = new ItemUseJudgementService();
+        var judgement = new ItemUseJudgementService(rules);
         var cooldowns = new CharacterItemCooldownDomainService(clock);
         var sessions = new OnlyCharacterSixty();
         var runtime = new FixedRuntimeSessions(level: 50, job: 0);
@@ -92,11 +92,12 @@ public sealed class CharacterRepositoryProductsTests
 
         return new CharacterDomainService(
             () => throw new NotSupportedException("No test here reaches the roster."),
-            new UnusedStats(),
-            new UnusedInitialSkills(),
-            new UnusedInitialEquipment(),
+            new CharacterCreationRuleService(
+                new UnusedStats(),
+                new UnusedInitialSkills(),
+                new UnusedInitialEquipment()),
             characterId => new PlayingCharacter(
-                characterId, rules, judgement, cooldowns, sessions, runtime, presence));
+                characterId, judgement, cooldowns, sessions, runtime, presence));
     }
 
     /// <summary>A directory that has published a session for character 60 and for nobody else.</summary>

@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -268,7 +269,7 @@ internal sealed class CharacterFeatureEntryProjection : ICharacterFeatureEntryPr
 
 internal sealed class CharacterEntryStateDomainService(
     ICharacterEntryStateRepository repository,
-    IQuestDefinitionSource questDefinitions,
+    IQuestContentRuleService questDefinitions,
     ICharacterProfileEntryProjection profiles,
     ICharacterSkillQuestEntryProjection skillQuests,
     ICharacterProgressionEntryProjection progression,
@@ -291,7 +292,7 @@ internal sealed class CharacterEntryStateDomainService(
         var specialRewardQuestIds = new List<int>();
         foreach (var clearFlag in storage.Quest.ClearFlags.Where(value => value.Value != 0))
         {
-            var definition = await questDefinitions.GetAsync(clearFlag.SlotIndex, cancellationToken)
+            var definition = await questDefinitions.FindAsync(clearFlag.SlotIndex, cancellationToken)
                 .ConfigureAwait(false);
             if (definition?.HasSpecialRewardStatus == true)
                 specialRewardQuestIds.Add(clearFlag.SlotIndex);

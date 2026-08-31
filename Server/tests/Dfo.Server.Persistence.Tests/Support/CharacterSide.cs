@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Persistence;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Accounts;
@@ -60,12 +61,12 @@ internal sealed class CharacterSide
             rules);
 
     public IDungeonPersistentEffectRecoveryRepository DungeonRecovery(
-        IDungeonExperienceProgressionPolicySource progression, IDungeonEffectRuleService rules) =>
+        IExperienceRuleService experienceRules, IDungeonEffectRuleService rules) =>
         new DungeonEffectRecoveryService(
             new SqliteDungeonEffectOutboxTable(this.database),
             new SqliteAccountTable(this.database),
             new SqliteCharacterTable(this.database),
-            progression,
+            experienceRules,
             rules);
 
     /// <summary>Runs one call inside a use case and settles it, the way one command would.</summary>

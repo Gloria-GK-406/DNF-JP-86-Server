@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Quests;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Application.Transactions;
@@ -35,7 +36,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var persistence = new RecordingLeasePersistence();
         var loader = new InventoryLoader(result.CharacterInventory);
         var service = new SelectCharacterEntryInventoryDomainService(
-            new RefillContent(), new RefillMutation(), loader, persistence, leases,
+            new InventoryLifecycleRuleService(new RefillContent()), new RefillMutation(), loader, persistence, leases,
             new CharacterContainerDomainService(), new VolatileItemStore(), new DomainTransactionScope(),
             null!, null!, null!);
 
@@ -62,7 +63,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         };
         var leases = new EntryInventoryLeaseRegistry();
         var service = new SelectCharacterEntryInventoryDomainService(
-            new RefillContent(), new RefillMutation(), new InventoryLoader(reloaded),
+            new InventoryLifecycleRuleService(new RefillContent()), new RefillMutation(), new InventoryLoader(reloaded),
             new NoopLeasePersistence(), leases, new CharacterContainerDomainService(),
             new VolatileItemStore(), new DomainTransactionScope(), null!, null!, null!);
         _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
@@ -86,7 +87,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var loader = new InventoryLoader(result.CharacterInventory);
         var leases = new EntryInventoryLeaseRegistry();
         var service = new SelectCharacterEntryInventoryDomainService(
-            new RefillContent(), new FailingRefillMutation(), loader, new NoopLeasePersistence(), leases,
+            new InventoryLifecycleRuleService(new RefillContent()), new FailingRefillMutation(), loader, new NoopLeasePersistence(), leases,
             new CharacterContainerDomainService(), new VolatileItemStore(), new DomainTransactionScope(),
             null!, null!, null!);
         _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
@@ -128,11 +129,14 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
             },
         };
         var service = new SelectCharacterQuestEntryService(
-            new QuestSource(new Dictionary<int, IReadOnlyList<SeekingItemRequirement>>
-            {
-                [100] = [new SeekingItemRequirement(0, 10)],
-                [101] = [new SeekingItemRequirement(99, 2)],
-            }), logs);
+            new QuestContentRuleService(
+                new QuestSource(new Dictionary<int, IReadOnlyList<SeekingItemRequirement>>
+                {
+                    [100] = [new SeekingItemRequirement(0, 10)],
+                    [101] = [new SeekingItemRequirement(99, 2)],
+                }),
+                new NoQuestParameters()),
+            logs);
 
         var projection = await service.SynchronizeAsync(Session(result), result, CancellationToken.None);
 
@@ -203,7 +207,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         };
         var containers = new CharacterContainerDomainService();
         var service = new SelectCharacterEntryInventoryDomainService(
-            new RefillContent(), new RefillMutation(),
+            new InventoryLifecycleRuleService(new RefillContent()), new RefillMutation(),
             new InventoryLoader(expanded), new NoopLeasePersistence(),
             new EntryInventoryLeaseRegistry(), containers,
             new VolatileItemStore(), new DomainTransactionScope(), null!, null!, null!);
@@ -316,6 +320,14 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
             LoadCount++;
             return ValueTask.FromResult(inventory);
         }
+    }
+
+    /// <summary>Nothing reached through here works out a quest reward.</summary>
+    private sealed class NoQuestParameters : IQuestParameterSource
+    {
+        public QuestParameters Load() =>
+            throw new NotSupportedException(
+                "No test on this path asks what a quest pays; a value here would be invented.");
     }
 
     private sealed class QuestSource(

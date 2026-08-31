@@ -15,7 +15,6 @@ namespace Dfo.Server.Application.Inventory;
 /// added later; written as an absent effect, the rest of the model never learns about it.
 /// </remarks>
 internal sealed class ItemUseEffectDomainService(
-    IItemUseRuleDefinitionSource rules,
     IItemUseJudgementService judgement,
     ICharacterItemCooldownDomainService cooldowns) : IItemUseEffectDomainService
 {
@@ -26,7 +25,8 @@ internal sealed class ItemUseEffectDomainService(
         int slotIndex,
         CancellationToken cancellationToken)
     {
-        var rule = await rules.GetAsync(itemId, cancellationToken).ConfigureAwait(false);
+        var rule = await judgement.RuleForAsync(itemId, cancellationToken)
+            .ConfigureAwait(false);
         if (rule is null)
             return [];
 

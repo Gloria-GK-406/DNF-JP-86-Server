@@ -28,9 +28,10 @@ public sealed class EquipmentEligibilityCharacterFactsTests
         // builds one.
         IEquipmentEligibilityCharacterReader reader = new CharacterDomainService(
             () => new StubCharacterRepository(summary),
-            new UnusedStatSource(),
-            new UnusedInitialSkillSource(),
-            new UnusedInitialEquipmentSource(),
+            new CharacterCreationRuleService(
+                new UnusedStatSource(),
+                new UnusedInitialSkillSource(),
+                new UnusedInitialEquipmentSource()),
             null!);
 
         var facts = await reader.GetAsync(

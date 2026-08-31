@@ -93,17 +93,29 @@ public sealed class ChannelAdmissionTests
     }
 
     private static ChannelEntryPolicy Policy(bool freeDuelEnabled = false) =>
-        new(new StubChannelCatalog(
-            [
-                new ChannelServerInfo(11, "#ch.11", 500, 0, "127.0.0.1", 10011),
-                new ChannelServerInfo(100, "#ch.100", 500, 0, "127.0.0.1", 10161),
-                new ChannelServerInfo(68, "#ch.68", 500, 0, "127.0.0.1", 10068),
-            ]),
+        new(
+            new ChannelContentRuleService(
+                new StubChannelCatalog(
+                [
+                    new ChannelServerInfo(11, "#ch.11", 500, 0, "127.0.0.1", 10011),
+                    new ChannelServerInfo(100, "#ch.100", 500, 0, "127.0.0.1", 10161),
+                    new ChannelServerInfo(68, "#ch.68", 500, 0, "127.0.0.1", 10068),
+                ]),
+                new NoChannelScript()),
             ChannelEntryOptions.Legacy with { FreeDuelEnabled = freeDuelEnabled });
 
     private sealed class StubChannelCatalog(IReadOnlyList<ChannelServerInfo> channels) : IChannelCatalog
     {
         public ValueTask<IReadOnlyList<ChannelServerInfo>> GetChannelsAsync(
             CancellationToken cancellationToken) => ValueTask.FromResult(channels);
+    }
+
+    /// <summary>Admission reads the catalogue; no script is downloaded on this path.</summary>
+    private sealed class NoChannelScript : IChannelScriptSource
+    {
+        public string Version => throw new NotSupportedException();
+
+        public ValueTask<byte[]> ReadAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
     }
 }

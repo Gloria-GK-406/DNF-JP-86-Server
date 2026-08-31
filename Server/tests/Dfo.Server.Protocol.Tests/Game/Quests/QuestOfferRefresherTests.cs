@@ -1,11 +1,11 @@
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Quests;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.World;
-using Dfo.Server.Protocol.Game.Quests;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 
 namespace Dfo.Server.Protocol.Tests.Game.Quests;
@@ -30,7 +30,7 @@ public sealed class QuestOfferRefresherTests
     public async Task TheOfferListIsRecomputedAtTheNewLevel()
     {
         var content = new StubWorldContentEntryRuleService();
-        var refresher = new QuestOfferRefresher(content, new RecordingQuestLogs());
+        var refresher = new QuestOfferRefreshDomainService(content, new RecordingQuestLogs());
 
         var refreshed = await refresher.RefreshAsync(
             SessionAtLevel(2), Account, Character, level: 3, CancellationToken.None);
@@ -50,7 +50,7 @@ public sealed class QuestOfferRefresherTests
     public async Task ASessionWithNoSubjectIsLeftAsItIs()
     {
         var content = new StubWorldContentEntryRuleService();
-        var refresher = new QuestOfferRefresher(content, new RecordingQuestLogs());
+        var refresher = new QuestOfferRefreshDomainService(content, new RecordingQuestLogs());
         var without = SessionAtLevel(2);
         without = without with { World = without.World with { Subject = null } };
 

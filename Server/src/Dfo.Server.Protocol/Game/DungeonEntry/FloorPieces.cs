@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Protocol.Game;
 
 namespace Dfo.Server.Protocol.Game.DungeonEntry;
 
@@ -35,41 +36,35 @@ internal sealed record FloorPiece(ushort Number, DungeonRoomDrop Drop, uint Wire
 /// </remarks>
 internal static class FloorPieceValues
 {
-    /// <summary>The kind whose value field is a discriminator rather than a count.</summary>
-    private const byte EquipmentItemKind = 1;
-
     /// <summary>
-    /// Describes each remaining piece, asking the archive what kind it is.
+    /// Puts the announced value on each piece the domain service described.
     /// </summary>
     /// <remarks>
     /// An item the archive does not declare is announced with its declared count rather than
     /// refused. The room is being described; a piece nobody can look up is a piece the client will
-    /// draw anyway, and a count is the reading that cannot put an absurd number on the floor.
+    /// draw anyway, and a count is the reading that cannot put an absurd number on the floor. Which
+    /// pieces are equipment is decided before this is called, by the rules that own the question,
+    /// so this is left with the one thing that is the wire's: which of the two meanings the value
+    /// field carries.
     /// </remarks>
-    public static async ValueTask<IReadOnlyList<FloorPiece>> DescribeAsync(
-        DungeonRunState run,
-        IReadOnlyList<GroundDrop> drops,
-        IItemPlacementDefinitionSource placements,
-        CancellationToken cancellationToken)
+    public static IReadOnlyList<FloorPiece> Describe(
+        DungeonRunState run, IReadOnlyList<FloorDropDescription> drops)
     {
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(drops);
-        ArgumentNullException.ThrowIfNull(placements);
 
         if (drops.Count == 0)
             return [];
 
         var pieces = new List<FloorPiece>(drops.Count);
-        foreach (var drop in drops)
+        foreach (var described in drops)
         {
-            var placement = await placements.GetAsync(drop.Drop.ItemId, cancellationToken)
-                .ConfigureAwait(false);
-            var isEquipment = placement?.ItemKind == EquipmentItemKind;
+            var drop = described.Drop;
             pieces.Add(new FloorPiece(
                 drop.Number,
                 drop.Drop,
-                isEquipment
-                    ? DungeonEntryPayloadCodec.DropInstance(run, drop.Drop.ObjectIndex)
+                described.IsEquipment
+                    ? GameDropIdentity.ForDeclaredObject(run, drop.Drop.ObjectIndex)
                     : checked((uint)Math.Max(1, drop.Drop.Count))));
         }
 

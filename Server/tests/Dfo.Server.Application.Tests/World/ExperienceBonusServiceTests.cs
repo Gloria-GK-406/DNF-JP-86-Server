@@ -1,6 +1,9 @@
 using Dfo.Server.Abstractions.Channel;
+using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Quests;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
@@ -129,8 +132,14 @@ public sealed class ExperienceBonusServiceTests
         new ExperienceBonusService(
             new OneSession(),
             new OneRuntimeSession(published, channelId),
-            ExperienceEntitlementPolicy.None,
-            new FixedChannelExperience(channels ?? TwoChannels),
+            new ExperienceRuleService(
+                new UnpricedKills(),
+                new UngradedRanks(),
+                new NoProgression(),
+                new FixedChannelExperience(channels ?? TwoChannels),
+                new NoQuestContent(),
+                ExperienceTuning.Default,
+                ExperienceEntitlementPolicy.None),
             TimeProvider.System);
 
     /// <summary>What the other channel declares, which is deliberately not five percent.</summary>
@@ -144,6 +153,39 @@ public sealed class ExperienceBonusServiceTests
             [OtherChannel] = new(
                 OtherChannel, "[sky_catle]", OtherChannelRate, new HashSet<int> { OtherDungeon }),
         });
+
+    /// <summary>Nothing on this path prices a kill.</summary>
+    private sealed class UnpricedKills : IExperienceParameterSource
+    {
+        public ExperienceParameters Load() => throw new NotSupportedException();
+    }
+
+    /// <summary>Nothing on this path reads a rank grade.</summary>
+    private sealed class UngradedRanks : IDungeonRankGradeSource
+    {
+        public DungeonRankGrades Load() => throw new NotSupportedException();
+    }
+
+    /// <summary>Nothing on this path turns experience into a level.</summary>
+    private sealed class NoProgression : IDungeonExperienceProgressionPolicySource
+    {
+        public DungeonExperienceProgressionPolicy Load() => throw new NotSupportedException();
+    }
+
+    /// <summary>Nothing on this path reads a quest.</summary>
+    private sealed class NoQuestContent : IQuestContentRuleService
+    {
+        public ValueTask<IReadOnlyList<QuestDefinition>> AllAsync(CancellationToken ct) =>
+            throw new NotSupportedException();
+
+        public ValueTask<QuestDefinition?> FindAsync(int questId, CancellationToken ct) =>
+            throw new NotSupportedException();
+
+        public ValueTask<IReadOnlyList<TrainingQuestAvailability>> TrainingAvailabilityAsync(
+            CancellationToken ct) => throw new NotSupportedException();
+
+        public QuestParameters Parameters() => throw new NotSupportedException();
+    }
 
     private sealed class FixedChannelExperience(ChannelExperienceCatalog catalog)
         : IChannelExperienceSource

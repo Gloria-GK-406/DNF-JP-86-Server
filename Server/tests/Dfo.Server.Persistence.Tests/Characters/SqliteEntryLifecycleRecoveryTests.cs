@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -447,11 +448,26 @@ public sealed class SqliteEntryLifecycleRecoveryTests
             VALUES('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa','suitable-dungeon-lucky-star',3,7,7,3,1,
              '{payloadJson.Replace("'", "''")}',0,1,1);
             """);
-    private sealed class ProgressionPolicy : IDungeonExperienceProgressionPolicySource
+    /// <summary>Only the progression policy; recovery asks nothing else of the rules.</summary>
+    private sealed class ProgressionPolicy : IExperienceRuleService
     {
-        public DungeonExperienceProgressionPolicy Load() => new(
+        public DungeonExperienceProgressionPolicy Progression() => new(
             Enumerable.Range(1, 85).Select(value => checked((uint)(value * 1000))).ToArray(),
             1_000_000, 10_000, 100);
+
+        public uint WorthOfKill(in KillCircumstances kill) => throw new NotSupportedException();
+
+        public bool IsMonster(byte declaredActorType) => throw new NotSupportedException();
+
+        public ClearExperienceWorth WorthOfClear(in ClearCircumstances clear) =>
+            throw new NotSupportedException();
+
+        public IReadOnlyList<ExperienceModifier> ModifiersFor(
+            ExperienceEvent occasion,
+            IReadOnlyList<AccountPremiumEntryState> premiums,
+            DateTimeOffset now,
+            int channelId,
+            int dungeonId) => throw new NotSupportedException();
     }
     private static async Task ExecuteAsync(string path, string sql)
     {

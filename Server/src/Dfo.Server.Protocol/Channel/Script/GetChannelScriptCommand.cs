@@ -7,12 +7,12 @@ public sealed record GetChannelScriptCommand : ICommand<GetChannelScriptResult>;
 
 public sealed record GetChannelScriptResult(byte[] Content);
 
-public sealed class GetChannelScriptCommandHandler(IChannelScriptSource source)
+public sealed class GetChannelScriptCommandHandler(IChannelDirectoryDomainService channels)
     : ICommandHandler<GetChannelScriptCommand, GetChannelScriptResult>
 {
     public async ValueTask<GetChannelScriptResult> HandleAsync(
         CommandExecutionContext context,
         GetChannelScriptCommand command,
         CancellationToken cancellationToken) =>
-        new(await source.ReadAsync(cancellationToken).ConfigureAwait(false));
+        new(await channels.ReadScriptAsync(cancellationToken).ConfigureAwait(false));
 }

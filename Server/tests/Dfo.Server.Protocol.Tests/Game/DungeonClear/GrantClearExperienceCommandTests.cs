@@ -1,6 +1,10 @@
+using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Quests;
+using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Protocol.Game.DungeonClear;
@@ -120,7 +124,16 @@ public sealed class GrantClearExperienceCommandTests
             CancellationToken.None);
 
     private static GrantClearExperienceCommandHandler Handler() =>
-        new(new ArchiveQuests(), new ArchiveRates(), new ArchiveGrades(), new PricingGrant());
+        new(
+            new ExperienceValuationDomainService(new ExperienceRuleService(
+                new ArchiveRates(),
+                new ArchiveGrades(),
+                new NoProgression(),
+                new NoChannelExperience(),
+                new QuestContentRuleService(new NoQuestDefinitions(), new ArchiveQuests()),
+                ExperienceTuning.Default,
+                ExperienceEntitlementPolicy.None)),
+            new PricingGrant());
 
     private static CommandExecutionContext Context(CommandExecutionKind kind) =>
         new(Guid.Empty,
@@ -134,6 +147,31 @@ public sealed class GrantClearExperienceCommandTests
             CapturedDungeon,
             new ClearCircumstances(
                 basisLevel, Difficulty: 0, CapturedDungeonWeight, (byte)clientRankPoint));
+
+    /// <summary>A settlement asks what a clear pays, never what a quest is.</summary>
+    /// <summary>Nothing on this path turns experience into a level.</summary>
+    private sealed class NoProgression : IDungeonExperienceProgressionPolicySource
+    {
+        public DungeonExperienceProgressionPolicy Load() => throw new NotSupportedException();
+    }
+
+    /// <summary>Nothing on this path reads a channel's reward.</summary>
+    private sealed class NoChannelExperience : IChannelExperienceSource
+    {
+        public ChannelExperienceCatalog Load() => throw new NotSupportedException();
+    }
+
+    private sealed class NoQuestDefinitions : IQuestDefinitionSource
+    {
+        public ValueTask<IReadOnlyList<QuestDefinition>> GetAllAsync(
+            CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        public ValueTask<QuestDefinition?> GetAsync(
+            int questId, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        public ValueTask<IReadOnlyList<TrainingQuestAvailability>> GetTrainingAvailabilityAsync(
+            CancellationToken cancellationToken) => throw new NotSupportedException();
+    }
 
     private sealed class ArchiveQuests : IQuestParameterSource
     {
@@ -171,6 +209,9 @@ public sealed class GrantClearExperienceCommandTests
     /// </remarks>
     private sealed class PricingGrant : ICharacterExperienceGrant
     {
+        /// <summary>No test on this path asks what a level costs.</summary>
+        public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
+
         public ValueTask<ExperienceAward?> AwardAsync(
             CharacterId characterId,
             Func<byte, ExperienceValuation> valuation,

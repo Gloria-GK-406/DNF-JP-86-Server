@@ -1,6 +1,9 @@
 using System.Buffers.Binary;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.World;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 
@@ -128,7 +131,7 @@ public sealed class DungeonEntryCodecTests
         ];
 
         var body = DungeonEntryPayloadCodec.EncodeStartMap(
-            AtStart, firstEntry: true, actors, FirstSequence, NoDrops);
+            AtStart, firstEntry: true, Rooms.Describe(actors), FirstSequence, NoDrops);
 
         Assert.Equal(23 + (21 * actors.Length), body.Length);
         Assert.Equal(actors.Length, body[18]);
@@ -174,7 +177,7 @@ public sealed class DungeonEntryCodecTests
         ];
 
         var body = DungeonEntryPayloadCodec.EncodeStartMap(
-            AtStart, firstEntry: true, actors, FirstSequence, NoDrops);
+            AtStart, firstEntry: true, Rooms.Describe(actors), FirstSequence, NoDrops);
 
         int[] expected = [0, 1, 0, 2, 1];
         for (var index = 0; index < actors.Length; index++)
@@ -234,7 +237,7 @@ public sealed class DungeonEntryCodecTests
         var drops = await Floor(run, new DungeonRoomDrop(0, ShoulderItemId, 25));
 
         var body = DungeonEntryPayloadCodec.EncodeStartMap(
-            run, firstEntry: true, actors, 0x6399, drops);
+            run, firstEntry: true, Rooms.Describe(actors), 0x6399, drops);
 
         // Each side draws these for itself: the room's seed and the drop's instance value.
         BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(3), 0x30B22343);
@@ -313,7 +316,7 @@ public sealed class DungeonEntryCodecTests
 
         var entry = body.AsSpan(20);
         Assert.Equal(
-            DungeonEntryPayloadCodec.DropInstance(AtStart, 0),
+            GameDropIdentity.ForDeclaredObject(AtStart, 0),
             BinaryPrimitives.ReadUInt32LittleEndian(entry[7..]));
     }
 
@@ -352,7 +355,7 @@ public sealed class DungeonEntryCodecTests
         var bases = new List<int>();
         foreach (var mapId in new[] { 61000, 61001, 61002, 61005 })
         {
-            bases.Add(DungeonEntryPayloadCodec.FirstActorSequence(
+            bases.Add(Rooms.FirstActorSequenceFor(
                 AtStart with { CurrentRoomMapId = mapId }));
         }
 
@@ -379,9 +382,9 @@ public sealed class DungeonEntryCodecTests
     [Fact]
     public void The_actor_sequence_base_is_stable_for_a_run_and_inside_the_clients_range()
     {
-        var first = DungeonEntryPayloadCodec.FirstActorSequence(AtStart);
+        var first = Rooms.FirstActorSequenceFor(AtStart);
 
-        Assert.Equal(first, DungeonEntryPayloadCodec.FirstActorSequence(AtStart));
+        Assert.Equal(first, Rooms.FirstActorSequenceFor(AtStart));
         Assert.InRange(first, 1, 60000);
     }
 
@@ -462,7 +465,7 @@ public sealed class DungeonEntryCodecTests
         {
             for (byte objectIndex = 0; objectIndex < 4; objectIndex++)
             {
-                var instance = DungeonEntryPayloadCodec.DropInstance(
+                var instance = GameDropIdentity.ForDeclaredObject(
                     AtStart with { CurrentRoomMapId = mapId }, objectIndex);
 
                 Assert.InRange(instance, 1u, (uint)int.MaxValue);
@@ -471,7 +474,15 @@ public sealed class DungeonEntryCodecTests
     }
 
     /// <summary>A room the archive declares nothing in.</summary>
-    private static readonly DungeonRoomActor[] NoActors = [];
+    private static readonly RoomActorDescription[] NoActors = [];
+
+    /// <summary>
+    /// The room rules, for the two answers these tests need of them: where an actor type stops
+    /// being a monster, and the number a room's first actor takes. Neither reads a source.
+    /// </summary>
+    private static readonly IDungeonRoomRuleService Rooms =
+        new DungeonRoomRuleService(new NoRoomActors(), new NoRoomDrops());
+
 
     /// <summary>A room with nothing breakable in it.</summary>
     private static readonly FloorPiece[] NoDrops = [];
@@ -489,10 +500,23 @@ public sealed class DungeonEntryCodecTests
     /// the thing under test, and a fixture that decided it itself would agree with whatever the
     /// production code did.
     /// </remarks>
-    private static ValueTask<IReadOnlyList<FloorPiece>> Floor(
-        DungeonRunState run, params DungeonRoomDrop[] declared) =>
-        FloorPieceValues.DescribeAsync(
-            run, run.RemainingGroundDrops(declared), new TwoItems(), CancellationToken.None);
+    private static async ValueTask<IReadOnlyList<FloorPiece>> Floor(
+        DungeonRunState run, params DungeonRoomDrop[] declared)
+    {
+        // Which pieces are equipment is the placement rules' answer, taken from the real service
+        // over an archive that knows two items, so this fixture decides nothing the frame is
+        // about.
+        var placementRules = new ItemPlacementRuleService(new TwoItems(), new NoWearables());
+        var described = new List<FloorDropDescription>();
+        foreach (var drop in run.RemainingGroundDrops(declared))
+        {
+            described.Add(new FloorDropDescription(
+                drop,
+                await placementRules.IsEquipmentAsync(drop.Drop.ItemId, CancellationToken.None)));
+        }
+
+        return FloorPieceValues.Describe(run, described);
+    }
 
     /// <summary>An archive in which the shoulder is equipment and the material is not.</summary>
     private sealed class TwoItems : IItemPlacementDefinitionSource
@@ -504,6 +528,29 @@ public sealed class DungeonEntryCodecTests
                 MaterialItemId => new ItemPlacement(ItemKind: 4, StackLimit: 999, SlotStart: 0, SlotEnd: 0),
                 _ => null,
             });
+    }
+
+    /// <summary>Nothing here is worn; these tests never put a piece on.</summary>
+    private sealed class NoWearables : IEquipmentSlotDefinitionSource
+    {
+        public ValueTask<byte?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<byte?>(null);
+    }
+
+    /// <summary>A room declaring no actors; these tests supply their own or need none.</summary>
+    private sealed class NoRoomActors : IDungeonRoomActorSource
+    {
+        public ValueTask<IReadOnlyList<DungeonRoomActor>> GetAsync(
+            int mapId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<DungeonRoomActor>>([]);
+    }
+
+    /// <summary>A room declaring nothing on its floor.</summary>
+    private sealed class NoRoomDrops : IDungeonRoomDropSource
+    {
+        public ValueTask<IReadOnlyList<DungeonRoomDrop>> GetAsync(
+            int dungeonId, int mapId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<DungeonRoomDrop>>([]);
     }
 
     /// <summary>An arbitrary sequence base; these tests are about the fields around it.</summary>

@@ -61,7 +61,7 @@ public sealed record SetQuestTriggerCommand(
 /// are asked in and which byte carries which answer.
 /// </remarks>
 public sealed class SetQuestTriggerCommandHandler(
-    IQuestDefinitionSource quests,
+    IQuestDefinitionDomainService quests,
     ICharacterQuestLogDomainService logs)
     : ICommandHandler<SetQuestTriggerCommand, QuestTriggerOutcome>
 {
@@ -83,7 +83,7 @@ public sealed class SetQuestTriggerCommandHandler(
                 + $"registered transactional; this execution is {context.ExecutionKind}.");
         }
 
-        var definition = await quests.GetAsync(command.QuestId, cancellationToken)
+        var definition = await quests.FindAsync(command.QuestId, cancellationToken)
             .ConfigureAwait(false);
         if (definition is null)
             return QuestTriggerOutcome.Refuse(command.QuestId);

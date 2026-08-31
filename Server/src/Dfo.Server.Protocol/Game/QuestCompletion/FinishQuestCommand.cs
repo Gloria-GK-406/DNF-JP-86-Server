@@ -76,8 +76,7 @@ public sealed record FinishQuestCommand(
 /// and that is a change to what a refused command does everywhere, not a repair to this one.
 /// </remarks>
 public sealed class FinishQuestCommandHandler(
-    IQuestDefinitionSource quests,
-    IQuestParameterSource questParameters,
+    IQuestDefinitionDomainService quests,
     ICharacterQuestLogDomainService logs,
     ICharacterContainerDomainService containers,
     ICharacterExperienceGrant grant)
@@ -98,7 +97,7 @@ public sealed class FinishQuestCommandHandler(
                 + $"so it has to be registered transactional; this execution is {context.ExecutionKind}.");
         }
 
-        var definition = await quests.GetAsync(command.QuestId, cancellationToken)
+        var definition = await quests.FindAsync(command.QuestId, cancellationToken)
             .ConfigureAwait(false);
         if (definition is null)
             return QuestFinishOutcome.Refuse(command.QuestId);
@@ -152,7 +151,7 @@ public sealed class FinishQuestCommandHandler(
         var award = await grant.AwardAsync(
             command.CharacterId,
             characterLevel => new ExperienceValuation(
-                questParameters.Load().ExperienceFor(
+                quests.RewardParameters().ExperienceFor(
                     characterLevel,
                     RewardLevelOf(definition),
                     DifficultyOf(definition),

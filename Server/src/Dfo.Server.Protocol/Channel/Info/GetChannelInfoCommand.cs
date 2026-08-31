@@ -8,12 +8,12 @@ public sealed record GetChannelInfoCommand : ICommand<GetChannelInfoResult>;
 
 public sealed record GetChannelInfoResult(IReadOnlyList<ChannelServerInfo> Channels);
 
-public sealed class GetChannelInfoCommandHandler(IChannelCatalog catalog)
+public sealed class GetChannelInfoCommandHandler(IChannelDirectoryDomainService channels)
     : ICommandHandler<GetChannelInfoCommand, GetChannelInfoResult>
 {
     public async ValueTask<GetChannelInfoResult> HandleAsync(
         CommandExecutionContext context,
         GetChannelInfoCommand command,
         CancellationToken cancellationToken) =>
-        new(await catalog.GetChannelsAsync(cancellationToken).ConfigureAwait(false));
+        new(await channels.ChannelsAsync(cancellationToken).ConfigureAwait(false));
 }

@@ -274,9 +274,23 @@ public sealed class CharacterExperienceGrantTests
     private static CharacterExperienceGrant Grant(ICharacterTable characters) =>
         new(characters, new FixedProgression(Thresholds));
 
-    private sealed class FixedProgression(IReadOnlyList<uint> thresholds)
-        : IDungeonExperienceProgressionPolicySource
+    /// <summary>Only the level thresholds; these tests are about the grant's arithmetic.</summary>
+    private sealed class FixedProgression(IReadOnlyList<uint> thresholds) : IExperienceRuleService
     {
-        public DungeonExperienceProgressionPolicy Load() => new(thresholds, 0, 1, 100);
+        public DungeonExperienceProgressionPolicy Progression() => new(thresholds, 0, 1, 100);
+
+        public uint WorthOfKill(in KillCircumstances kill) => throw new NotSupportedException();
+
+        public bool IsMonster(byte declaredActorType) => throw new NotSupportedException();
+
+        public ClearExperienceWorth WorthOfClear(in ClearCircumstances clear) =>
+            throw new NotSupportedException();
+
+        public IReadOnlyList<ExperienceModifier> ModifiersFor(
+            ExperienceEvent occasion,
+            IReadOnlyList<AccountPremiumEntryState> premiums,
+            DateTimeOffset now,
+            int channelId,
+            int dungeonId) => throw new NotSupportedException();
     }
 }

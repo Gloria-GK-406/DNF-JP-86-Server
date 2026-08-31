@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Persistence;
@@ -26,7 +27,7 @@ internal sealed class DungeonEffectRecoveryService(
     IDungeonEffectOutboxTable outbox,
     IAccountTable accounts,
     ICharacterTable characters,
-    IDungeonExperienceProgressionPolicySource progression,
+    IExperienceRuleService experienceRules,
     IDungeonEffectRuleService rules) : IDungeonPersistentEffectRecoveryRepository
 {
     /// <summary>How long a claim holds before another recovery may take the effect.</summary>
@@ -148,7 +149,7 @@ internal sealed class DungeonEffectRecoveryService(
         // The stored pair above is solely the stale-write guard. Settlement carries the
         // authoritative in-dungeon progress separately; calculating from the stored pair would
         // discard experience accumulated in the live dungeon session.
-        var policy = progression.Load();
+        var policy = experienceRules.Progression();
         var split = rules.SplitExperience(
             new DungeonExperienceSettlement(
                 payload.PreviousLevel, payload.PreviousExp, payload.RawGain,

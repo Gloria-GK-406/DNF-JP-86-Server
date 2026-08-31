@@ -1,15 +1,15 @@
+using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Protocol.Game.DungeonClear;
 using Dfo.Server.Protocol.Game.StateSynchronization;
-using Dfo.Server.Protocol.Game.Quests;
 using Dfo.Server.Data.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
-using Dfo.Server.Protocol.Game.DungeonClear;
-using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol.Game;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.MonsterDeath;
@@ -357,10 +357,10 @@ public sealed class MonsterDeathHandler(
     ISelectedSessionDirectory selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IDungeonRunDomainService runs,
-    IDungeonRoomActorSource roomActors,
+    IMonsterKillDomainService kills,
     IMonsterDropService drops,
     ICommandBus commandBus,
-    QuestOfferRefresher offers,
+    IQuestOfferRefreshDomainService offers,
     IGameMessageSender sender,
     ExperienceDiagnostics diagnostics,
     ILogger<MonsterDeathHandler> logger) : ClientMessageHandler<MonsterDeathRequest>
@@ -424,7 +424,7 @@ public sealed class MonsterDeathHandler(
                     killed.Level,
                     (int)killed.Rank),
                 cancellationToken).ConfigureAwait(false);
-            instance = DungeonEntryPayloadCodec.MonsterDropInstance(run, message.ActorSequence);
+            instance = GameDropIdentity.ForKill(run, message.ActorSequence);
         }
 
         logger.LogInformation(
@@ -531,21 +531,18 @@ public sealed class MonsterDeathHandler(
         ushort actorSequence,
         CancellationToken cancellationToken)
     {
-        var declared = await roomActors.GetAsync(run.CurrentRoomMapId, cancellationToken)
+        var lookup = await kills.IdentifyAsync(run, actorSequence, cancellationToken)
             .ConfigureAwait(false);
-        var index = actorSequence - DungeonEntryPayloadCodec.FirstActorSequence(run);
-        if (index < 0 || index >= declared.Count)
+        if (lookup.Kill is not { } killed)
         {
             logger.LogWarning(
                 "Monster death {ConnectionId}: actor {Actor} is not one of the {Count} this room "
                     + "declares, so nothing was awarded and nothing dropped",
-                context.Connection.ConnectionId, actorSequence, declared.Count);
+                context.Connection.ConnectionId, actorSequence, lookup.DeclaredCount);
             return null;
         }
 
-        var actor = declared[index];
-
-        if (!MonsterExperienceRules.IsMonster(actor.ActorType))
+        if (!killed.IsMonster)
         {
             logger.LogInformation(
                 "Monster death {ConnectionId}: actor {Actor} is an AI character, not a monster; "
@@ -554,11 +551,7 @@ public sealed class MonsterDeathHandler(
             return null;
         }
 
-        // The level the client was told, which is the dungeon's basis level wherever the map
-        // declined to set one -- the same substitution the room frame made. The rank is the word
-        // the map closes the monster's record with, which the room source already reads.
-        return new KilledMonster(
-            actor.Code, run.Layout.LevelOf(actor.Level), (MonsterRank)actor.ActorType);
+        return new KilledMonster(killed.Code, killed.Level, killed.Rank);
     }
 
     /// <summary>What the kill was worth, awarded.</summary>
@@ -614,9 +607,7 @@ public sealed class MonsterDeathHandler(
         if (!run.IsBossRoom)
             return [];
 
-        var declared = await roomActors.GetAsync(run.CurrentRoomMapId, cancellationToken)
-            .ConfigureAwait(false);
-        if (!run.IsCleared(declared, DungeonEntryPayloadCodec.FirstActorSequence(run)))
+        if (!await kills.IsCurrentRoomClearedAsync(run, cancellationToken).ConfigureAwait(false))
             return [];
 
         logger.LogInformation(
@@ -630,7 +621,7 @@ public sealed class MonsterDeathHandler(
         return
         [
             new EnableClearDungeonNotification(),
-            new SecretShopNpcNotification(DungeonClearPayloadCodec.SecretShopNpcId),
+            new SecretShopNpcNotification(GameProtocol.SecretShopNpcId),
         ];
     }
 }

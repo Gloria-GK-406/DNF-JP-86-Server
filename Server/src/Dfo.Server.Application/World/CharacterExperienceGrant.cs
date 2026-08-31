@@ -16,8 +16,14 @@ namespace Dfo.Server.Application.World;
 /// </remarks>
 internal sealed class CharacterExperienceGrant(
     ICharacterTable characters,
-    IDungeonExperienceProgressionPolicySource progression) : ICharacterExperienceGrant
+    IExperienceRuleService experienceRules) : ICharacterExperienceGrant
 {
+    public uint? ThresholdForLevel(byte level)
+    {
+        var thresholds = experienceRules.Progression().LevelThresholds;
+        return level < 2 || thresholds.Count < level - 1 ? null : thresholds[level - 2];
+    }
+
     public async ValueTask<ExperienceAward?> AwardAsync(
         CharacterId characterId,
         Func<byte, ExperienceValuation> valuation,
@@ -94,7 +100,7 @@ internal sealed class CharacterExperienceGrant(
     /// </remarks>
     private (byte Level, uint Total) Advance(byte level, uint held, uint gained)
     {
-        var thresholds = progression.Load().LevelThresholds;
+        var thresholds = experienceRules.Progression().LevelThresholds;
         var total = (ulong)held + gained;
         if (thresholds.Count > 0)
             total = Math.Min(total, thresholds[^1]);

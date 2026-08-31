@@ -82,6 +82,17 @@ public readonly record struct ExperienceValuation(
 public interface ICharacterExperienceGrant
 {
     /// <summary>
+    /// How much experience a character must hold to be this level, or null when the table declares
+    /// no such level.
+    /// </summary>
+    /// <remarks>
+    /// The same table this service levels against, asked directly. Entry <c>n-1</c> is what a
+    /// character must hold to be level <c>n</c>, so reaching level two means holding the first
+    /// entry.
+    /// </remarks>
+    uint? ThresholdForLevel(byte level);
+
+    /// <summary>
     /// Reads where a character stands, asks what the occasion is worth to them, and awards it.
     /// </summary>
     /// <param name="valuation">

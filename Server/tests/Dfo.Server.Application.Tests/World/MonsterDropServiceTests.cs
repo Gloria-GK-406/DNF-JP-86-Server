@@ -82,13 +82,15 @@ public sealed class MonsterDropServiceTests
     {
         var runs = new DungeonRunDomainService();
         var service = new MonsterDropService(
-            new StubRateTables(table),
-            new StubGoldTables(Gold),
-            new StubPools(),
+            new DropRuleService(
+                new StubRateTables(table),
+                new StubGoldTables(Gold),
+                new StubPools(),
+                new DropRateOptions { RateBasis = Basis }),
             new NoDropRateAdjustment(),
             runs,
-            new StubRoomDrops(declaredRoomDrops),
-            new DropRateOptions { RateBasis = Basis },
+            new DungeonRoomRuleService(
+                new NoRoomActors(), new StubRoomDrops(declaredRoomDrops)),
             NullLogger<MonsterDropService>.Instance);
         return (service, runs);
     }
@@ -291,6 +293,14 @@ public sealed class MonsterDropServiceTests
     {
         public DropItemPool Load(DropItemFamily family) =>
             family == DropItemFamily.Equipment ? EquipmentPool() : StackablePool();
+    }
+
+    /// <summary>A room declaring no actors; these tests supply their own or need none.</summary>
+    private sealed class NoRoomActors : IDungeonRoomActorSource
+    {
+        public ValueTask<IReadOnlyList<DungeonRoomActor>> GetAsync(
+            int mapId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<DungeonRoomActor>>([]);
     }
 
     private sealed class StubRoomDrops(int count) : IDungeonRoomDropSource

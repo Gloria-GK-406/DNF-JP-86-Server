@@ -1,11 +1,11 @@
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.MonsterDeath;
-using Dfo.Server.Protocol.Game.Quests;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Logging;
 
@@ -32,7 +32,7 @@ public sealed class FinishQuestHandler(
     ISelectedSessionRuntimeDirectory runtimeSessions,
     ICommandBus commandBus,
     IGameMessageSender sender,
-    QuestOfferRefresher offers,
+    IQuestOfferRefreshDomainService offers,
     TimeProvider clock,
     ILogger<FinishQuestHandler> logger) : ClientMessageHandler<FinishQuestRequest>
 {

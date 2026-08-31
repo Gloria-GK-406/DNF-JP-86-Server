@@ -1,10 +1,11 @@
 using System.Buffers.Binary;
+using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Networking;
-using Dfo.Server.Protocol.Game.DungeonSelection;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.DungeonEntry;
@@ -113,7 +114,7 @@ internal sealed record DungeonInfoNotification(DungeonLayout Layout, byte Diffic
 internal sealed record StartMapNotification(
     DungeonRunState Run,
     bool FirstEntry,
-    IReadOnlyList<DungeonRoomActor> Actors,
+    IReadOnlyList<RoomActorDescription> Actors,
     ushort FirstActorSequence,
     IReadOnlyList<FloorPiece> Drops) : IGameNotiMessage
 {
@@ -195,7 +196,7 @@ internal static class DungeonEntryPayloadCodec
     public static byte[] EncodeStartMap(
         DungeonRunState run,
         bool firstEntry,
-        IReadOnlyList<DungeonRoomActor> actors,
+        IReadOnlyList<RoomActorDescription> actors,
         ushort firstActorSequence,
         IReadOnlyList<FloorPiece> drops)
     {
@@ -236,8 +237,8 @@ internal static class DungeonEntryPayloadCodec
             // Twenty-one bytes each. The template order is the room's own bookkeeping and a run of
             // one has nothing to say in it; the sequence is what the client names the actor by
             // afterwards; the packet index is the actor's place within its own kind.
-            var actor = actors[index];
-            var packetIndex = IsAiCharacter(actor.ActorType)
+            var actor = actors[index].Actor;
+            var packetIndex = actors[index].IsAiCharacter
                 ? aiCharactersWritten++
                 : monstersWritten++;
 
@@ -294,32 +295,6 @@ internal static class DungeonEntryPayloadCodec
     }
 
     /// <summary>
-    /// The number the room's first actor is given, derived rather than drawn.
-    /// </summary>
-    /// <remarks>
-    /// A21 draws it at random from 1 to 60000 per room, which the legacy server did to keep a
-    /// re-entered room from colliding with actor identities the client still holds. Deriving it
-    /// from the run's own seed and the room gets the same separation without a counter to keep:
-    /// two runs of the same room differ because their seeds do, and one run re-sending the same
-    /// room repeats itself, which is what a re-send should do.
-    ///
-    /// The mixing is not decoration. A dungeon's rooms carry consecutive map identifiers, so a
-    /// derivation that only added the map to the seed put neighbouring rooms at neighbouring
-    /// bases: the tutorial's first room took 30946 and 30947, and its second started at 30945 and
-    /// ran over both. The client names an actor by this number, so a room that reuses one the
-    /// player has already killed hands it a monster the client believes is dead. Two multiplies
-    /// and two shifts scatter adjacent map identifiers across the range instead.
-    /// </remarks>
-    public static ushort FirstActorSequence(DungeonRunState run)
-    {
-        var mixed = ((uint)run.CurrentRoomMapId * 2654435761u) ^ (uint)run.Layout.Seed;
-        mixed ^= mixed >> 15;
-        mixed *= 2246822519u;
-        mixed ^= mixed >> 13;
-        return (ushort)(1 + (mixed % ActorSequenceRange));
-    }
-
-    /// <summary>
     /// The value a dropped item carries as its own, derived the same way the actor numbers are.
     /// </summary>
     /// <remarks>
@@ -332,15 +307,6 @@ internal static class DungeonEntryPayloadCodec
     /// carrying this same value, and the column it is stored in is signed: a value that only fits
     /// unsigned would reach the wire as one number and the database as another.
     /// </remarks>
-    /// <summary>Where an actor type stops being a monster and starts being an AI character.</summary>
-    /// <remarks>
-    /// The reference server's own boundary, and it counts the two kinds separately: an AI
-    /// character standing beside a monster is the first of its kind, not the second actor.
-    /// </remarks>
-    private const byte FirstAiCharacterActorType = 5;
-
-    private static bool IsAiCharacter(byte actorType) => actorType >= FirstAiCharacterActorType;
-
     /// <summary>
     /// The seed one room is described with.
     /// </summary>
@@ -367,36 +333,6 @@ internal static class DungeonEntryPayloadCodec
 
     /// <summary>The one bit of the room seed the reference server always clears.</summary>
     private const uint ReservedSeedBit = 0x40000u;
-
-    /// <summary>
-    /// The value carried by every piece one kill dropped.
-    /// </summary>
-    /// <remarks>
-    /// Shared so that there is one place to be wrong. The kill's frame announces it and the
-    /// pick-up banks it, and those two are in different files: until 2026-08-30 one of them
-    /// derived it from the dead actor and the other from the piece's number, which agreed with
-    /// itself everywhere and with the client nowhere.
-    /// <para>
-    /// Keyed by the actor rather than by the piece, which is also what makes every piece of one
-    /// kill carry one value -- the captured frames show a kill that dropped twice announcing the
-    /// same value for both.
-    /// </para>
-    /// </remarks>
-    internal static uint MonsterDropInstance(DungeonRunState run, ushort actorSequence) =>
-        DropInstance(run, actorSequence);
-
-    internal static uint DropInstance(DungeonRunState run, int objectIndex)
-    {
-        var mixed = ((uint)run.CurrentRoomMapId * 2246822519u)
-                    ^ ((uint)run.Layout.Seed + (uint)objectIndex);
-        mixed ^= mixed >> 13;
-        mixed *= 2654435761u;
-        var instance = (mixed ^ (mixed >> 16)) & int.MaxValue;
-        return instance == 0 ? 1u : instance;
-    }
-
-    /// <summary>How many running numbers a room's actors may be given, as A21 bounds it.</summary>
-    private const uint ActorSequenceRange = 60000;
 
     /// <summary>
     /// An empty support-character roster: a record count of zero and nothing after it.
@@ -477,11 +413,7 @@ internal sealed class SelectDungeonDecoder : IGameMessageDecoder
 public sealed class SelectDungeonHandler(
     ISelectedSessionDirectory selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
-    IDungeonLayoutRuleService layouts,
-    IDungeonRunDomainService runs,
-    IDungeonRoomActorSource roomActors,
-    IDungeonRoomDropSource roomDrops,
-    IItemPlacementDefinitionSource placements,
+    IDungeonVisitDomainService visits,
     IGameMessageSender sender,
     ILogger<SelectDungeonHandler> logger) : ClientMessageHandler<SelectDungeonRequest>
 {
@@ -511,13 +443,10 @@ public sealed class SelectDungeonHandler(
             quests.ActiveQuests.Select(value => value.QuestId).ToArray(),
             quests.ClearedQuestIds);
 
-        // One seed per run, chosen here and then carried: the rule never invents one, because a
-        // layout has to be reproducible from what was recorded about the run.
-        var seed = Random.Shared.Next();
-        var layout = await layouts
-            .ResolveAsync(message.DungeonId, facts, seed, cancellationToken)
+        var entered = await visits.EnterAsync(
+            session.CharacterId, message.DungeonId, message.Difficulty, facts, cancellationToken)
             .ConfigureAwait(false);
-        if (layout is null)
+        if (entered is null)
         {
             logger.LogWarning(
                 "Select dungeon {ConnectionId}: the archive declares no enterable dungeon "
@@ -532,9 +461,7 @@ public sealed class SelectDungeonHandler(
             return;
         }
 
-        // Remembered from here on. The layout was chosen from quest state as it stood at this
-        // moment, so it cannot be recomputed later and still describe the run the client is in.
-        var run = runs.Begin(session.CharacterId, layout, message.Difficulty);
+        var (layout, visit) = entered;
 
         logger.LogInformation(
             "Select dungeon {ConnectionId} user={WireUserId}: dungeon={DungeonId} difficulty={Difficulty} "
@@ -560,7 +487,7 @@ public sealed class SelectDungeonHandler(
         // screen opened; the tutorial's first entry defers it to here, which is where the captured
         // session shows it and why this used to send it unconditionally.
         List<IGameServerMessage> frames = [new EnterSelectDungeonAcknowledgement()];
-        if (DungeonSelectionRules.DefersSelectionState(result.Character.Progression.Level))
+        if (visits.DefersSelectionState(result.Character.Progression.Level))
         {
             frames.Add(new EnterSelectDungeonNotification(session.WireUserId));
         }
@@ -573,19 +500,11 @@ public sealed class SelectDungeonHandler(
                     new SupportTagNotification(),
                     new DungeonInfoNotification(layout, message.Difficulty),
                     new StartMapNotification(
-                        run,
+                        visit.Run,
                         FirstEntry: true,
-                        await roomActors.GetAsync(run.CurrentRoomMapId, cancellationToken)
-                            .ConfigureAwait(false),
-                        DungeonEntryPayloadCodec.FirstActorSequence(run),
-                        await FloorPieceValues.DescribeAsync(
-                            run,
-                            run.RemainingGroundDrops(
-                                await roomDrops.GetAsync(
-                                    layout.DungeonId, run.CurrentRoomMapId, cancellationToken)
-                                    .ConfigureAwait(false)),
-                            placements,
-                            cancellationToken).ConfigureAwait(false)),
+                        visit.Actors,
+                        visit.FirstActorSequence,
+                        FloorPieceValues.Describe(visit.Run, visit.FloorDrops)),
                 ],
                 []),
             cancellationToken).ConfigureAwait(false);
@@ -653,9 +572,7 @@ internal sealed class MoveMapDecoder : IGameMessageDecoder
 public sealed class MoveMapHandler(
     ISelectedSessionDirectory selectedSessions,
     IDungeonRunDomainService runs,
-    IDungeonRoomActorSource roomActors,
-    IDungeonRoomDropSource roomDrops,
-    IItemPlacementDefinitionSource placements,
+    IDungeonVisitDomainService visits,
     IGameMessageSender sender,
     ILogger<MoveMapHandler> logger) : ClientMessageHandler<MoveMapRequest>
 {
@@ -699,9 +616,10 @@ public sealed class MoveMapHandler(
         }
 
         var target = new MazeCell(message.NextX, message.NextY);
-        var firstEntry = !current.VisitedCells.Contains(target);
-        var moved = runs.TryMove(session.CharacterId, target);
-        if (moved is null)
+        var visit = await visits
+            .MoveAsync(session.CharacterId, current, target, cancellationToken)
+            .ConfigureAwait(false);
+        if (visit is null)
         {
             logger.LogWarning(
                 "Move map {ConnectionId}: maze {MazeIndex} of dungeon {DungeonId} declares no room "
@@ -723,10 +641,10 @@ public sealed class MoveMapHandler(
             session.WireUserId,
             current.CurrentCell.X,
             current.CurrentCell.Y,
-            moved.CurrentCell.X,
-            moved.CurrentCell.Y,
-            moved.CurrentRoomMapId,
-            firstEntry,
+            visit.Run.CurrentCell.X,
+            visit.Run.CurrentCell.Y,
+            visit.Run.CurrentRoomMapId,
+            visit.FirstEntry,
             message.PathPositionX,
             message.PathPositionY);
 
@@ -736,31 +654,16 @@ public sealed class MoveMapHandler(
         // the list again resurrects them under the very same numbers -- which is what a live
         // session saw on 2026-08-26 when it walked back out of the boss room, five monsters and
         // four monsters standing up again with the numbers they had died under.
-        var actors = firstEntry
-            ? await roomActors.GetAsync(moved.CurrentRoomMapId, cancellationToken)
-                .ConfigureAwait(false)
-            : [];
-        var drops = firstEntry
-            ? await FloorPieceValues.DescribeAsync(
-                moved,
-                moved.RemainingGroundDrops(
-                    await roomDrops.GetAsync(
-                        moved.Layout.DungeonId, moved.CurrentRoomMapId, cancellationToken)
-                        .ConfigureAwait(false)),
-                placements,
-                cancellationToken).ConfigureAwait(false)
-            : [];
-
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(
                 [
                     new StartMapNotification(
-                        moved,
-                        firstEntry,
-                        actors,
-                        DungeonEntryPayloadCodec.FirstActorSequence(moved),
-                        drops),
+                        visit.Run,
+                        visit.FirstEntry,
+                        visit.Actors,
+                        visit.FirstActorSequence,
+                        FloorPieceValues.Describe(visit.Run, visit.FloorDrops)),
                 ],
                 []),
             cancellationToken).ConfigureAwait(false);

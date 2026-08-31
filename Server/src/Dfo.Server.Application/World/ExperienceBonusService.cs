@@ -23,13 +23,11 @@ namespace Dfo.Server.Application.World;
 internal sealed class ExperienceBonusService(
     ISelectedSessionDirectory sessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
-    ExperienceEntitlementPolicy policy,
-    IChannelExperienceSource channels,
+    IExperienceRuleService experienceRules,
     TimeProvider clock) : IExperienceBonusService
 {
     public IReadOnlyList<ExperienceModifier> Collect(in ExperienceOccasion occasion)
     {
-        var found = new List<ExperienceModifier>();
         var session = sessions.FindByCharacter(occasion.Character);
         if (session is null || !runtimeSessions.TryGet(session, out var result, out _)
             || result is null)
@@ -37,28 +35,19 @@ internal sealed class ExperienceBonusService(
             // Nothing resident to read. Every bonus this service knows about is a fact about the
             // published session -- the account's terms, the channel the connection came in on --
             // so without one there is nothing to add, rather than something to guess at.
-            return found;
+            return [];
         }
 
-        // The account's premium terms, which arrive with the character's entry and sit in the
-        // published session -- so this reads memory, not the database, which is what lets the
-        // whole interface be synchronous.
-        ExperienceBonusRules.FromAccountEntitlements(
+        // Everything the rules need, and nothing they could have found for themselves. The
+        // account's premium terms arrive with the character's entry and sit in the published
+        // session -- so this reads memory, not the database, which is what lets the whole
+        // interface be synchronous. The channel is the one the session entered on, and the
+        // dungeon is this occasion's; the rule that decides has no business finding either.
+        return experienceRules.ModifiersFor(
+            occasion.Event,
             result.Account.Entitlements.Premiums,
             clock.GetUtcNow(),
-            occasion.Event,
-            policy,
-            found);
-
-        // The channel's own reward, which the archive makes conditional: a channel is bound to a
-        // group of dungeons and pays only for those. Both halves are read here -- the channel the
-        // session entered on, and the dungeon this occasion is in -- because the rule that decides
-        // has no business holding either.
-        ExperienceBonusRules.FromChannel(
-            occasion.Event,
-            channels.Load().RateFor(result.World.Channel.ChannelId, occasion.DungeonId),
-            found);
-
-        return found;
+            result.World.Channel.ChannelId,
+            occasion.DungeonId);
     }
 }

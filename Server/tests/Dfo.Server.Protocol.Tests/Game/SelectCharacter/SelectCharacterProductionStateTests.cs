@@ -25,8 +25,9 @@ public sealed class SelectCharacterProductionStateTests
         var seed = SelectCharacterPayloadTestData.CreateComplete();
         var sources = new Sources(seed);
         var handler = new SelectCharacterPreparationService(
-            sources, sources, sources, sources, sources, sources, sources, sources,
-            sources, sources, sources, sources, sources, sources, sources, sources,
+            sources, sources, sources, sources, sources, sources, sources,
+            new CharacterEntryPreparationRuleService(sources, sources, sources),
+            sources, sources, sources, sources, sources, sources,
             new FixedTimeProvider(seed.World.PreparedAt));
         var channel = new ChannelEntryIdentity(1, 10011, ChannelEntryKind.General);
 
