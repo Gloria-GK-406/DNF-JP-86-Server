@@ -77,6 +77,15 @@ The division that decides the ceiling of this whole programme:
 | VM virtualization (vmp1) | **build-time** transform | no -- observing the runtime never yields the original code |
 | CRT mutation (`.,_W`) | **build-time** transform | no -- must be re-synthesized |
 
+> **A21 更正（2026-08-31）**：最后一行是 A12 的观察，**不适用于 A21**。
+> A21 的程序 C 运行时在 `.text` 的 `0x02C00000`–`0x02CAA000` 带里，**是明文、未变形的
+> MSVC CRT**——`__security_init_cookie` 在 `0x02C865DE`，热补丁序言、
+> `DEFAULT_SECURITY_COOKIE = 0xBB40E64E`、cookie 存 `0x0399CEE0`，一眼可读。
+> 给整个 `.text` 布防实测：3,769 次页首触里 99.8% 由 `.text` 自己触发，
+> 来自 `.-wI` 的**只有 1 次，且是读**。`.-wI` 装的是壳自己的启动支撑层与 API 包装器，
+> 不是程序的 CRT，**不需要重新合成**。详见 `Docs/a21-crt-layer.md` 第七节。
+> **A21 实际只剩一项构建期变换：`.vmp1` 虚拟化。**
+
 Runtime transforms can be undone by observation. Build-time transforms cannot.
 That is why steps 3-4 fell in weeks and the rest is a different project.
 

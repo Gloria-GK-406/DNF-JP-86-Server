@@ -293,6 +293,8 @@ API 拿 `&msg`（栈上缓冲区）当返回地址去执行——崩溃 EIP 正�
 严丝合缝。**这 103 个入口必须原样保留**；同理，任何"约定"在改写前都应先过
 `wrapper_rewrite_safety.py` 这类落点普查。
 
+> **08-31 已实机仲裁**：资格普查复核 D 组 102 个入口后判 99/102 MISMATCH，六轮实机会话验证该判定成立——排除 18 个装载桩后把剩余入口带进真实会话，客户端在 26 个入口被改写后崩溃（控制流跳进垃圾地址，`esp` 错位）；同等强度的纯见证会话零次该特征，归因于改写。**D 组维持排除。** 本节记载的 4 个实机稳定样本中，SetFocus / GetSystemMetrics / TextOutW 经执行见证确认**整局从未执行**，其「稳定」结论空洞；试点插件无执行计数是根因。详见 `Docs/wrapper-eligibility-census-results.md` 与 `Docs/fleet-wrapper-eligibility-workflow.md` 第十一、十二节。
+
 D 组（`esp+8/a2`）4 个样本实机改写后稳定，是真转移型；但鉴于 C 组的教训，
 全量改写前建议对 D 组逐个抽样复核路径。
 
@@ -309,6 +311,7 @@ D 组（`esp+8/a2`）4 个样本实机改写后稳定，是真转移型；但鉴
 - 剩余未命名的包装器：多数卡在一次无法折叠的内存读，少数碰到 `int3`/`int`。
 - `.vmp1` 的 2508 个虚拟化入口未处理。上游的做法是照干净参考实现**重写**
   （`CThread::Create`、`ISocket::Write`），不是还原。
+- **包装器改写资格普查已完成并经实机验证（08-31）**：1,654 个入口逐行判定，`ClientHack/tools/wrapper-rewrite-eligibility.csv` 给出 **640 个合格入口**（A 312 / B 327 / D 1，151 个不同 API）。实机验证结论：**普查预防了一次真实崩溃**（`0x059D1D26` GetAsyncKeyState 装载桩，单独改写即死）；**D 组 102 个入口排除成立**；**A/B 组转移改写经执行证明确认安全**。另有 521 个真转移型入口因 `safe_len` 不足模板需求（多数 `safe_len=6`）暂不可原地改写，是阶段 2 的下一标的。**前置条件**：改写只能在 B1 未打包 exe 上做，打包版全部 `ERROR_ACCESS_DENIED`。详见 `Docs/wrapper-eligibility-census-results.md`。
 - **全量改写（阶段 2）尚未实施**。前置约束已定：C 组 103 个入口排除；入口补丁
   ≤5 字节（前缀落点普查）或按宿主安全长度；D 组建议逐个抽样复核路径；
   试点工具链为 `0150_WrapperPilot` 插件 + `generate_wrapper_pilot.py`（含

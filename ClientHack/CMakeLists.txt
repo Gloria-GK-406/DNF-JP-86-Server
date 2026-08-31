@@ -392,6 +392,28 @@ set_target_properties(plugin_wrapper_pilot_a21 PROPERTIES
 
 add_custom_target(clienthack_wrapper_pilot_a21 DEPENDS plugin_wrapper_pilot_a21)
 
+# Live capture of .vmp1 VM entries and their per-function keys. Same on-demand
+# shape as the wrapper pilot: not part of the default stage.
+add_library(plugin_vm_entry_trace_a21 SHARED EXCLUDE_FROM_ALL
+    plugins/0160_vm_entry_trace/vm_entry_trace.c
+    plugins/plugin_entry.c
+    plugins/plugin.def)
+target_include_directories(plugin_vm_entry_trace_a21 PRIVATE
+    include plugins plugins/0160_vm_entry_trace)
+target_compile_definitions(plugin_vm_entry_trace_a21 PRIVATE
+    CLIENTHACK_CLIENT_A21=1
+    CLIENTHACK_PLUGIN_NAME="VmEntryTrace"
+    CLIENTHACK_PLUGIN_FLAGS=0u)
+clienthack_warnings(plugin_vm_entry_trace_a21)
+set_target_properties(plugin_vm_entry_trace_a21 PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "0160_VmEntryTrace"
+    RUNTIME_OUTPUT_DIRECTORY "${CLIENTHACK_STAGE_DIR_A21}/plugins"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CLIENTHACK_STAGE_DIR_A21}/plugins"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CLIENTHACK_STAGE_DIR_A21}/plugins")
+
+add_custom_target(clienthack_vm_entry_trace_a21 DEPENDS plugin_vm_entry_trace_a21)
+
 add_custom_target(clienthack_plugins_a21 DEPENDS
     plugin_network_hook_a21
     plugin_server_redirect_a21
