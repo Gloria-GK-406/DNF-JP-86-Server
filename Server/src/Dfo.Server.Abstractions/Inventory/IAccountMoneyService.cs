@@ -28,4 +28,27 @@ public interface IAccountMoneyService
     /// negative purse.
     /// </remarks>
     ValueTask<int> AddAsync(AccountId accountId, int amount, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Takes that much out of the account, or takes nothing at all.
+    /// </summary>
+    /// <remarks>
+    /// Answers what the account carries afterwards, and <c>null</c> when it did not carry that
+    /// much -- in which case nothing was taken and the purse stands exactly where it stood.
+    /// <para>
+    /// <b>This is not <see cref="AddAsync"/> with the sign turned round, and it may not be
+    /// replaced by one.</b> That one holds its total at zero, so an account asked for more than it
+    /// has is emptied and then answers as though it had paid. Charging with it would record a
+    /// player who cannot afford something as having bought it, and the money it did not have would
+    /// be gone as well. Refusing is the whole reason this member exists.
+    /// </para>
+    /// <para>
+    /// An account that has never held money carries nothing, so nothing above zero can be taken
+    /// from it. A take of zero is a charge of nothing and is always allowed; a negative amount is
+    /// not, because a negative take is an addition wearing the other name, and handing money out
+    /// is the one thing a charging seam must not be able to do by accident.
+    /// </para>
+    /// </remarks>
+    ValueTask<int?> TrySpendAsync(
+        AccountId accountId, int amount, CancellationToken cancellationToken);
 }

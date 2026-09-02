@@ -179,6 +179,12 @@ public sealed class ResultScreenTests
     }
 
     /// <summary>The scroll's state is acknowledged, which is what moves the run off the screen.</summary>
+    /// <remarks>
+    /// The acknowledgement comes first and the card panel's layout follows it in the same delivery.
+    /// The order is asserted rather than the count: the client's handler for the acknowledgement is
+    /// what dismisses the result screen, so a layout ahead of it would be drawn over a screen still
+    /// standing. What the layout itself contains is <c>Game/CardReward</c>'s to assert.
+    /// </remarks>
     [Fact]
     public async Task The_scroll_state_is_acknowledged()
     {
@@ -186,7 +192,8 @@ public sealed class ResultScreenTests
 
         await Scroll(sender, new OneSession(Identity));
 
-        Assert.IsType<ScoreScrollStateResponse>(Assert.Single(sender.Sent));
+        Assert.IsType<ScoreScrollStateResponse>(sender.Sent[0]);
+        Assert.IsType<CardSelectRightStateResponse>(sender.Sent[1]);
     }
 
     /// <summary>
@@ -205,7 +212,8 @@ public sealed class ResultScreenTests
 
         await Scroll(sender, new NoSession());
 
-        Assert.IsType<ScoreScrollStateResponse>(Assert.Single(sender.Sent));
+        Assert.IsType<ScoreScrollStateResponse>(sender.Sent[0]);
+        Assert.IsType<CardSelectRightStateResponse>(sender.Sent[1]);
     }
 
     /// <summary>The acknowledgement goes out under the type the client's frame arrived on.</summary>
@@ -322,6 +330,17 @@ public sealed class ResultScreenTests
             throw new NotSupportedException("The boss confirmation may only read the run.");
 
         public DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber) =>
+            throw new NotSupportedException("The boss confirmation may only read the run.");
+
+        public DungeonRunState? FixClearRewardCards(
+            CharacterId characterId,
+            ClearRewardCardFace free,
+            ClearRewardCardFace paid,
+            int? paidFlipCost) =>
+            throw new NotSupportedException("The boss confirmation may only read the run.");
+
+        public ClearRewardCardSlot? TryClaimClearRewardCard(
+            CharacterId characterId, ClearRewardCardKind kind, int index) =>
             throw new NotSupportedException("The boss confirmation may only read the run.");
     }
 

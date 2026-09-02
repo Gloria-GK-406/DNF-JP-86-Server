@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Characters;
 
@@ -10,6 +11,10 @@ namespace Dfo.Server.Abstractions.World;
 /// The cells entered so far. A room the character has been in before is announced as a revisit,
 /// which the client distinguishes from a first entry.
 /// </param>
+/// <param name="ClearRewardCards">
+/// What this clear's cards turned out to be, and which of their positions have been claimed. Null
+/// until the clear fixes them, which is what "this run has no cards yet" is said with.
+/// </param>
 public sealed record DungeonRunState(
     DungeonLayout Layout,
     MazeCell CurrentCell,
@@ -20,7 +25,8 @@ public sealed record DungeonRunState(
     DateTimeOffset StartedAt,
     byte Difficulty = 0,
     bool IsSettled = false,
-    IReadOnlyList<AllocatedMonsterDrop>? MonsterDrops = null)
+    IReadOnlyList<AllocatedMonsterDrop>? MonsterDrops = null,
+    ClearRewardCardSet? ClearRewardCards = null)
 {
     /// <summary>What the run's kills have put on the floor, in the order they were numbered.</summary>
     /// <remarks>
@@ -150,6 +156,99 @@ public sealed record DungeonRunState(
 
         return null;
     }
+}
+
+/// <summary>One position of one of a clear's two faces.</summary>
+/// <remarks>
+/// The kind belongs in the key rather than beside it. The free face and the paid face are two
+/// separate faces, so position two of one has nothing to do with position two of the other, and a
+/// key that held only the index would have claiming one close the other.
+/// </remarks>
+public readonly record struct ClearRewardCardId(ClearRewardCardKind Kind, int Index);
+
+/// <summary>
+/// What one clear's cards came to, and which of their positions have been claimed.
+/// </summary>
+/// <remarks>
+/// Both faces together, because both are decided at the same moment and neither may be decided
+/// twice. Held rather than worked out again on demand: what a face is drawn for includes facts
+/// this record does not carry -- see <see cref="ClearRewardOccasion"/> -- so a face redrawn at
+/// flip time could be drawn for a different occasion than the one it was fixed at, and the card
+/// the player is looking at would change under them.
+/// </remarks>
+/// <param name="Claimed">
+/// Which positions have been taken. Positions rather than faces: a flip takes one position and
+/// leaves the rest of that face where they were.
+/// <para>
+/// The concrete immutable set rather than <c>IReadOnlySet</c>, because claiming a position
+/// produces the next set from this one and needs <c>Add</c> to do it. Declared as the interface,
+/// the only way to get that back is a cast, and a caller who built this record from an ordinary
+/// <c>HashSet</c> would compile and then throw at the first flip. The type says what is required
+/// so that the compiler refuses the wrong set instead of the run failing on it.
+/// </para>
+/// </param>
+/// <param name="PaidFlipCost">
+/// What a paid flip of this clear costs, or null when this clear names no price for one.
+/// <b>Fixed here, with the faces, and never worked out again.</b>
+/// <para>
+/// <b>Null has two causes and they are not kept apart here.</b> The archive prices a flip by level
+/// and answers nothing for a level it does not list; and the dungeon the clear was fought in may
+/// have switched its own paid card off, which leaves the clear with no flip for a price to be
+/// about. What put the null here is <see cref="ICardRewardDomainService.SettleAsync"/>, which
+/// composes both into one absence -- so nothing downstream of this record can tell which happened,
+/// and nothing downstream should read it as either one.
+/// </para>
+/// <para>
+/// It is a copy of an archive answer and could in principle outlive the file it came from, which
+/// is a real cost and was the argument for asking the file again on every flip instead. It loses
+/// to consistency, and not narrowly: the level a clear settles at is taken before the clear's own
+/// experience is paid, and the level a flip happens at is taken after -- so a clear that levelled
+/// the character across a band of the cost table would announce one price on the result screen
+/// and take another at the click. A copy that may go stale within one run is better than a server
+/// that quotes one figure and charges a different one, and the run ends long before the file can
+/// change under it.
+/// </para>
+/// <para>
+/// <b>That hazard has since gone, and the fixing has stayed.</b> The price is reached by the
+/// dungeon's own <c>[basis level]</c> rather than by the character's level, and a dungeon does not
+/// level, so there is no second figure left for the two to disagree about. The paragraph above is
+/// kept as the argument that put the figure here, not as a danger still being guarded against; the
+/// same correction is made on <see cref="ClearRewardSettlementResult"/>.
+/// </para>
+/// <para>
+/// Null rather than zero, all the way through: zero is a price -- a flip given away -- and neither
+/// an unpriced level nor a switched-off dungeon is a free one. See
+/// <see cref="IClearRewardRuleService.PaidFlipCost"/> and
+/// <see cref="IClearRewardRuleService.OffersPaidFlipAsync"/>.
+/// </para>
+/// </param>
+public sealed record ClearRewardCardSet(
+    ClearRewardCardFace Free,
+    ClearRewardCardFace Paid,
+    ImmutableHashSet<ClearRewardCardId> Claimed,
+    int? PaidFlipCost)
+{
+    /// <summary>The face of that kind.</summary>
+    public ClearRewardCardFace FaceOf(ClearRewardCardKind kind) =>
+        kind == ClearRewardCardKind.Paid ? this.Paid : this.Free;
+
+    /// <summary>
+    /// What sits at that position, or null when the face has no position under that number.
+    /// </summary>
+    /// <remarks>
+    /// A position out of range answers null rather than throwing: the number comes off the wire,
+    /// and a client that names a fifth card is asking for something that does not exist rather
+    /// than breaking the clear.
+    /// </remarks>
+    public ClearRewardCardSlot? SlotAt(ClearRewardCardKind kind, int index)
+    {
+        var slots = this.FaceOf(kind).Slots;
+        return index >= 0 && index < slots.Count ? slots[index] : null;
+    }
+
+    /// <summary>Whether that position has already been taken.</summary>
+    public bool IsClaimed(ClearRewardCardKind kind, int index) =>
+        this.Claimed.Contains(new ClearRewardCardId(kind, index));
 }
 
 /// <summary>One piece a kill put on a room's floor, under the number it was given.</summary>
@@ -284,6 +383,54 @@ public interface IDungeonRunDomainService
         int declaredDropCount,
         ushort actorSequence,
         IReadOnlyList<RolledDrop> rolled);
+
+    /// <summary>
+    /// Fixes what this clear's two faces hold, and answers the run as it stands afterwards.
+    /// </summary>
+    /// <remarks>
+    /// <b>Idempotent, and that is the point of it.</b> A run whose faces are already fixed keeps
+    /// the ones it has and is answered with them; what was passed in is dropped. A repeated result
+    /// report is the ordinary way to arrive here a second time, and the one thing that must not
+    /// happen is the player being shown a different card than the one they were shown a moment
+    /// ago.
+    /// <para>
+    /// This is why it is not shaped like <see cref="TrySettle"/>, which answers null on a repeat.
+    /// A second settle has nothing to give back, whereas a second fix has exactly what the caller
+    /// asked for -- the cards of this clear -- and refusing would make every caller ask again.
+    /// </para>
+    /// <para>
+    /// The price of a paid flip is fixed with the faces and by the same rule: a run that already
+    /// has one keeps it. It is here rather than asked for again later because the two have to
+    /// agree -- see <see cref="ClearRewardCardSet.PaidFlipCost"/> for what that costs and why it
+    /// is worth it.
+    /// </para>
+    /// <para>
+    /// Null only when the character is in no run at all.
+    /// </para>
+    /// </remarks>
+    DungeonRunState? FixClearRewardCards(
+        CharacterId characterId,
+        ClearRewardCardFace free,
+        ClearRewardCardFace paid,
+        int? paidFlipCost);
+
+    /// <summary>
+    /// Takes one position of one of this clear's faces.
+    /// </summary>
+    /// <remarks>
+    /// Answers what was behind it, or null when there was nothing to take: no run, no faces fixed
+    /// yet, no position under that number, or that position already claimed. The last of those is
+    /// what a repeated flip is, and refusing it is the whole reason claiming is recorded -- the
+    /// faces are fixed and can be read again at any time, so without a record of what has been
+    /// taken one card could be handed over as often as it was asked for.
+    /// <para>
+    /// A position that was claimed successfully but holds nothing answers a slot rather than null.
+    /// An empty position is an ordinary outcome of the draw, and it has to stay distinguishable
+    /// from a refusal.
+    /// </para>
+    /// </remarks>
+    ClearRewardCardSlot? TryClaimClearRewardCard(
+        CharacterId characterId, ClearRewardCardKind kind, int index);
 
     /// <summary>Ends the run. False when the character was not in one.</summary>
     bool End(CharacterId characterId);

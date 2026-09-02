@@ -1,3 +1,5 @@
+using Dfo.Server.Data.Networking;
+
 namespace Dfo.Server.Protocol.Game;
 
 internal static class GameProtocol
@@ -10,6 +12,37 @@ internal static class GameProtocol
     /// room. It is here rather than in either of them because a slice may not reach into another.
     /// </remarks>
     public const int SecretShopNpcId = 1000;
+
+    /// <summary>
+    /// What this server puts in the account for a card that had something behind it.
+    /// </summary>
+    /// <remarks>
+    /// Two slices name it: the card slice, which pays it when a position is turned over, and the
+    /// clear frame, which announces beside that position what turning it over will pay. It is here
+    /// rather than in either of them because a slice may not reach into another -- the same reason
+    /// <see cref="SecretShopNpcId"/> is here.
+    /// <para>
+    /// <b>This server's own decision, and not a reading of the archive.</b> The clear-reward table
+    /// declares no gold on a flip at all: its two drop-kind slots are a full value and a zero, and
+    /// the two sections that would turn a gold outcome into an amount -- the ones its sibling
+    /// tables carry -- are absent from it. There is therefore nothing in the file to read a figure
+    /// out of, and nothing here was read out of one.
+    /// </para>
+    /// <para>
+    /// The figure is the placeholder the owner of this server chose knowing that: gold is paid,
+    /// the rule for how much is not known, and one gold a card stands in until it is. It is named
+    /// here, once, so that settling the real rule is a change to this line and to nothing else --
+    /// and so that anybody reading a flip's payout can see at a glance that it came from a
+    /// decision rather than from the archive.
+    /// </para>
+    /// <para>
+    /// It rides on a reading that may yet be wrong. Which of the drop-kind slots means gold is not
+    /// stated by the file; reading them as "items full, gold none" is what makes this figure an
+    /// invention rather than a contradiction of the archive. If that reading is right, this gold
+    /// is something the archive does not have.
+    /// </para>
+    /// </remarks>
+    public const int ClearRewardCardGold = 1;
 
     public const ushort LoginType = 0x0001;
 
@@ -152,6 +185,23 @@ internal static class GameProtocol
     public const ushort ScoreScrollStateType = 0x0045;
 
     /// <summary>
+    /// CMD 0x0046 <c>CARD_SELECT_RIGHT_STATE</c>: the card panel's layout, asked and answered.
+    /// </summary>
+    /// <remarks>
+    /// Two slices send under this number, which is why the message it carries is
+    /// <see cref="CardSelectRightStateResponse"/> down the page rather than inside either of them.
+    /// The card slice answers the client's own request for it; the result screen sends it unasked,
+    /// straight after the scroll's acknowledgement, because that is where the reference server
+    /// sends it and because the branch on which the client asks cannot be decided statically.
+    /// </remarks>
+    public const ushort CardSelectRightStateType = 0x0046;
+
+    /// <summary>
+    /// CMD 0x0047 <c>SELECT_CARD</c>: one card turned over, and every card answered.
+    /// </summary>
+    public const ushort SelectCardType = 0x0047;
+
+    /// <summary>
     /// CMD 0x0048 <c>EPLP_COMMAND</c>: the button that walks a character out of a finished run.
     /// </summary>
     /// <remarks>
@@ -222,4 +272,25 @@ internal static class GameProtocol
     public const ushort InformNoticeNotificationType = 0x01A1;
 
     public const ushort ConnectionCheckType = 0x04DD;
+}
+
+/// <summary>
+/// CMD 0x0046 <c>CARD_SELECT_RIGHT_STATE</c>: the card panel's layout, seventeen bytes of it.
+/// </summary>
+/// <remarks>
+/// <b>It carries nothing, and it has nowhere to carry anything.</b> The record has no member: the
+/// cards are face down when this arrives and the client is told what is behind them only when one
+/// is turned over. Its bytes are a transcribed constant --
+/// <c>01 01 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF</c> -- built in
+/// <c>Game/CardReward/CardRewardPayloadCodec.cs</c>.
+/// <para>
+/// It lives at the endpoint layer rather than in the card slice for the reason
+/// <see cref="GameProtocol.SecretShopNpcId"/> does: two slices name it. The card slice answers the
+/// client's request for the layout, and the result screen sends it after acknowledging the scroll,
+/// and a slice may not reach into another.
+/// </para>
+/// </remarks>
+public sealed record CardSelectRightStateResponse : IGameCmdMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameCardSelectRightState;
 }

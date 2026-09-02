@@ -166,6 +166,27 @@ public sealed class ApplicationModule : IServerModule
                 ? basis
                 : new DropRateOptions().RateBasis,
         });
+        // What a clear's card face holds: the one reader of the clear-reward rate table and the
+        // only caller of ClearRewardRules. It is handed three content sources and a basis, and
+        // nothing that could tell it anything about the world. The third joined when a dungeon
+        // became able to switch its own paid card off; the count here said two until then.
+        services.TryAddSingleton<IClearRewardRuleService, ClearRewardRuleService>();
+        // The card flip's own undeclared number, kept apart from the monster side's rather than
+        // shared with it: the two files declare different sections and there is nothing saying
+        // their numerators are over the same thing. See ClearRewardRateOptions for the
+        // composition this basis belongs to and why neither could be read out of the archive.
+        services.TryAddSingleton(new ClearRewardRateOptions
+        {
+            RateBasis =
+                int.TryParse(configuration["ClearRewardRates:RateBasis"], out var cardBasis)
+                && cardBasis > 0
+                    ? cardBasis
+                    : new ClearRewardRateOptions().RateBasis,
+        });
+        // Where a clear's two faces are decided and where each one's seed is prepared. It sits
+        // above the rules because how many faces a clear has, and which facts each is drawn from,
+        // is a question about the world -- which the rules are not allowed to ask.
+        services.TryAddSingleton<ICardRewardDomainService, CardRewardDomainService>();
         // Entering a dungeon and walking between its rooms: the use case two protocol handlers
         // used to assemble inline.
         services.TryAddSingleton<IDungeonSelectionRuleService, DungeonSelectionRuleService>();

@@ -66,7 +66,23 @@ internal sealed record PlayResultNotification(
 /// <summary>NOTI 0x0023 <c>CLEAR_DUNGEON_REWARD</c>: what the run paid out.</summary>
 /// <param name="ClearBase">What clearing the dungeon was worth.</param>
 /// <param name="RankBonus">What the run's rank added to that.</param>
-internal sealed record ClearDungeonRewardNotification(uint ClearBase, uint RankBonus)
+/// <param name="FreeCards">
+/// Every position of the clear's free card face. Carried on the frame rather than looked up by the
+/// encoder, because what a clear's cards hold is fixed once at settlement and this frame reports
+/// it; an encoder that went and asked would be a second place a face could be decided.
+/// </param>
+/// <param name="PaidFlipCost">
+/// What this frame says a paid flip of the clear costs. A price rather than a nullable one, and
+/// deliberately: the archive answers nothing for a level it does not price, and which of
+/// <see cref="DungeonClearPayloadCodec.NoPaidFlipCost"/> and
+/// <see cref="DungeonClearPayloadCodec.UnpricedPaidFlipCost"/> such a clear is reported with is a
+/// decision, made by the settlement that knows which case it is in rather than defaulted here.
+/// </param>
+internal sealed record ClearDungeonRewardNotification(
+    uint ClearBase,
+    uint RankBonus,
+    IReadOnlyList<ClearRewardCardSlot> FreeCards,
+    int PaidFlipCost)
     : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameClearDungeonReward;
@@ -194,11 +210,12 @@ internal static class DungeonClearPayloadCodec
     /// The reward breakdown, in the reference builder's layout: 274 bytes.
     /// </summary>
     /// <remarks>
-    /// Two of its figures now carry what the clear actually paid; the rest are still zero, and
-    /// zero is still the honest value for a reward this server does not grant. A clear's avatar,
-    /// creature, adventure-group and premium bonuses each need a source this server has not got,
-    /// and a frame carrying invented figures would put numbers on the result screen that nothing
-    /// else could account for.
+    /// Two of its figures carry what the clear actually paid, and the card tail carries what the
+    /// clear's free face holds and what a paid flip of it costs; the rest are still zero, and zero
+    /// is still the honest value for a
+    /// reward this server does not grant. A clear's avatar, creature, adventure-group and premium
+    /// bonuses each need a source this server has not got, and a frame carrying invented figures
+    /// would put numbers on the result screen that nothing else could account for.
     /// <para>
     /// The layout is not invented. It is the reference builder's, and the reference's own 354-byte
     /// frame confirms it offset for offset: the count of per-object experience entries at 155, the
@@ -215,7 +232,24 @@ internal static class DungeonClearPayloadCodec
     /// been looked at, this pairing is an assumption.
     /// </para>
     /// </remarks>
-    public static byte[] EncodeClearDungeonReward(uint clearBase, uint rankBonus)
+    /// <param name="clearBase">What the clear itself paid.</param>
+    /// <param name="rankBonus">What the run's rank added to it.</param>
+    /// <param name="freeCards">
+    /// Every position of this clear's free face, each naming the position it is. An empty list is
+    /// a clear with no cards fixed, and writes the tail this frame carried before cards existed.
+    /// </param>
+    /// <param name="paidFlipCost">
+    /// What a paid flip of this clear costs, written as the price it is. Zero is a price here and
+    /// not an absence -- it is a flip given away -- so a caller with no price to write says which
+    /// of the two cases it is in: <see cref="NoPaidFlipCost"/> for a clear that has no flip to
+    /// price, <see cref="UnpricedPaidFlipCost"/> for a level the archive prices none at. The
+    /// default is the first of those, which is the frame this encoder built before cards existed.
+    /// </param>
+    public static byte[] EncodeClearDungeonReward(
+        uint clearBase,
+        uint rankBonus,
+        IReadOnlyList<ClearRewardCardSlot>? freeCards = null,
+        int paidFlipCost = NoPaidFlipCost)
     {
         using var stream = new MemoryStream(ClearRewardBodyLength);
         using var writer = new BinaryWriter(stream);
@@ -246,20 +280,22 @@ internal static class DungeonClearPayloadCodec
 
         writer.Write(0u); // no per-object experience entries
 
-        // The card tail. One free-card seat because no item is behind it, then seven seats, then
-        // what a paid flip would cost.
+        // The card tail: the free card's pair, then seven seats, then what a paid flip would cost.
+        // The face's positions fill them in order -- position zero the free-card pair, the rest
+        // the seats after it -- which is the order the panel's own layout numbers them in.
+        var cards = freeCards ?? [];
         writer.Write((byte)0);
-        writer.Write((byte)1);
-        writer.Write(0); // free-card item
-        writer.Write(0); // free-card gold
-        for (var seat = 0; seat < 7; seat++)
+        writer.Write(FreeFlipPositions(cards));
+        writer.Write(ItemIdAt(cards, FreeCardPosition)); // free-card item
+        writer.Write(FreeCardGoldAt(cards)); // free-card gold
+        for (var seat = 0; seat < CardSeatCount; seat++)
         {
             writer.Write((byte)1);
-            writer.Write(0);
-            writer.Write(0);
+            writer.Write(ItemIdAt(cards, seat + 1));
+            writer.Write(AmountAt(cards, seat + 1));
         }
 
-        writer.Write(0); // paid-card cost
+        writer.Write(paidFlipCost); // paid-card cost
         writer.Write(new byte[16]);
         writer.Write(0); // tail card item
         writer.Write((byte)0);
@@ -283,6 +319,148 @@ internal static class DungeonClearPayloadCodec
     public const int ClearRewardBodyLength = 274;
 
     private const int FixedRewardSlotCount = 23;
+
+    /// <summary>Which position of the face the free-card pair carries.</summary>
+    private const int FreeCardPosition = 0;
+
+    /// <summary>
+    /// What the byte before the free-card pair declares.
+    /// </summary>
+    /// <remarks>
+    /// Two when something sits behind the free position and one when nothing does.
+    /// <c>protocol/game/server-to-client/NOTI-0x0023.md</c> records the byte as
+    /// <c>u8 免费翻牌位数(牌后有物品时为 2,否则 1)</c> -- a value that says whether the free
+    /// position has anything behind it, not a count of entries that follow.
+    /// <para>
+    /// <b>The pair after it is fixed either way</b>, which is what that same record's own
+    /// reconciliation rests on: it accounts for the reference's 354-byte frame against this
+    /// body's <see cref="ClearRewardBodyLength"/> as a flat eighty bytes of per-object experience,
+    /// and the seven seat flags land on 249..303 there and 169..223 here whichever value this byte
+    /// carries. So this is one value changing and nothing else: the body is the same length for
+    /// both, which the check at the end of <see cref="EncodeClearDungeonReward"/> holds to.
+    /// </para>
+    /// </remarks>
+    private static byte FreeFlipPositions(IReadOnlyList<ClearRewardCardSlot> cards) =>
+        PositionOf(cards, FreeCardPosition) is null ? (byte)1 : (byte)2;
+
+    /// <summary>What the second half of the free-card pair carries.</summary>
+    /// <remarks>
+    /// <b>Gold, and not the item's count.</b>
+    /// <c>protocol/game/server-to-client/NOTI-0x0023.md</c> records the free position's pair as
+    /// <c>i32 免费牌物品 / i32 免费牌金币</c> and the seven seats after it as
+    /// <c>7×(u8 标记=1, i32 物品, i32 数量)</c> -- the seats carry a count, this does not. Those
+    /// are the record's two layout lines, and they name different fields.
+    /// <para>
+    /// <b>Not relied on, and flagged rather than smoothed over:</b> that record's prose calls the
+    /// reference frame's non-zero offsets 240 and 245 "the free card pair", while its own layout
+    /// block puts the pair at 241 and 245 with the marker on 240. Read the second way, 241 being
+    /// absent from that list is a free position carrying gold and no item, which would be a second
+    /// reason this field is not a count -- but that is a reading of an offset list, not something
+    /// the record states, and the record's two sentences do not agree. The layout block above is
+    /// what this field is written from.
+    /// </para>
+    /// <para>
+    /// <b>What this server actually pays on that card, and worked out the same way the payment
+    /// is.</b> A flip of a position that held something puts
+    /// <see cref="GameProtocol.ClearRewardCardGold"/> in the account and a flip of one that held
+    /// nothing puts nothing there, so this field carries the one figure exactly when the free
+    /// position holds something. It is not an independent claim about the card: reached from the
+    /// same position lookup as the item beside it, so the two cannot disagree, and taken from the
+    /// one place that names the figure so that settling the real rule leaves this in step.
+    /// </para>
+    /// <para>
+    /// That is also what keeps this frame out of a shape the record does not describe. The record
+    /// says nothing about a free position carrying gold and no item -- it was never reachable
+    /// while this server paid no gold at all, and it is still not: gold here is conditioned on the
+    /// item being there, on the same lookup the marker byte above uses, so a non-zero gold always
+    /// arrives with a non-zero item and a marker of two.
+    /// </para>
+    /// </remarks>
+    private static int FreeCardGoldAt(IReadOnlyList<ClearRewardCardSlot> cards) =>
+        PositionOf(cards, FreeCardPosition) is null ? 0 : GameProtocol.ClearRewardCardGold;
+
+    /// <summary>The nine-byte card seats that follow the free-card entry.</summary>
+    /// <remarks>
+    /// A flag, an identifier and an amount apiece. Their flags land on 169, 178, 187, 196, 205,
+    /// 214 and 223 of this body, and the paid-card cost after the last of them on 232.
+    /// </remarks>
+    private const int CardSeatCount = 7;
+
+    /// <summary>What the cost field carries on a clear that fixed no cards at all.</summary>
+    /// <remarks>
+    /// Zero, which is what this frame wrote there before cards existed. It is not standing in for
+    /// a price the archive withheld: a settlement that fixed no cards has no paid flip at all, so
+    /// there is nothing here for a price to be right or wrong about. A clear that did fix cards but
+    /// names no price is the other case, and is <see cref="UnpricedPaidFlipCost"/>.
+    /// </remarks>
+    public const int NoPaidFlipCost = 0;
+
+    /// <summary>
+    /// What the cost field carries when a clear's settlement names no price for a paid flip.
+    /// </summary>
+    /// <remarks>
+    /// <b>Two clears reach this, and the name only says the first.</b> The archive prices a flip by
+    /// level and answers nothing for a level it does not list; and a dungeon may switch its own
+    /// paid card off through <c>DungeonDefinition.OffersPaidCard</c>, which five of the archive's
+    /// dungeons do, leaving the settlement with no flip for a price to be about. The settlement
+    /// hands both over as one <c>null</c> -- the card slice's own refusal reason carries the same
+    /// pair and argues it there -- so this field cannot tell them apart either, and does not
+    /// pretend to. The constant keeps the name it was introduced under; renaming it would move a
+    /// name and settle nothing.
+    /// <para>
+    /// <b>Not zero, and that is the whole of the decision.</b> The archive answers nothing for an
+    /// unpriced level rather than zero, and <c>ClearRewardTable.GoldCardCost</c>'s own remarks say
+    /// why: zero is a price -- a free flip -- and a level the table does not price is not a free
+    /// one. Neither is a dungeon that has no flip on offer. This field is four bytes of price with
+    /// nowhere in it to say "no price", and its width and position are the reference's, so
+    /// something has to go in; what may not go in is the value that gives the flip away.
+    /// </para>
+    /// <para>
+    /// The largest the field can carry goes in instead. Its one property is that no price in the
+    /// archive's table is equal to it, so it cannot be mistaken for something read out of the
+    /// file -- which is what a number written here has to be able to survive being asked about.
+    /// <b>What the client does when shown it is not ascertained</b> and nothing here claims to
+    /// know; the decision made is only that this server does not hand out a free flip it could
+    /// not price, and that a level it could not price is visible rather than silent.
+    /// </para>
+    /// </remarks>
+    public const int UnpricedPaidFlipCost = int.MaxValue;
+
+    /// <summary>What the face holds at that position, or nothing.</summary>
+    /// <remarks>
+    /// Matched on the position each slot names rather than on where the slot sits in the list. The
+    /// frame is positional, so a face handed over in some other order would otherwise have its
+    /// contents written under the wrong cards, and nothing in the frame could say so.
+    /// </remarks>
+    private static ClearRewardCardItem? PositionOf(
+        IReadOnlyList<ClearRewardCardSlot> cards, int position)
+    {
+        for (var index = 0; index < cards.Count; index++)
+        {
+            if (cards[index].Index == position)
+                return cards[index].Item;
+        }
+
+        return null;
+    }
+
+    /// <summary>The identifier that position carries, or zero when it holds nothing.</summary>
+    private static int ItemIdAt(IReadOnlyList<ClearRewardCardSlot> cards, int position) =>
+        PositionOf(cards, position)?.ItemId ?? 0;
+
+    /// <summary>
+    /// How many of it that position carries, or zero when it holds nothing.
+    /// </summary>
+    /// <remarks>
+    /// The third field of a card seat, which
+    /// <c>protocol/game/server-to-client/NOTI-0x0023.md</c> records as the <c>i32 数量</c> of
+    /// <c>7×(u8 标记=1, i32 物品, i32 数量)</c> -- that seat's own count, beside that seat's own
+    /// identifier. <b>The free position's second field is not this one</b>; the same record names
+    /// it gold, and it is written by <see cref="FreeCardGoldAt"/>. A seat holding nothing writes
+    /// the pair a clear with no cards writes, which is two zeroes.
+    /// </remarks>
+    private static int AmountAt(IReadOnlyList<ClearRewardCardSlot> cards, int position) =>
+        PositionOf(cards, position)?.Quantity ?? 0;
 }
 
 internal sealed class SetPlayResultDecoder : IGameMessageDecoder
@@ -341,7 +519,7 @@ internal sealed class ClearDungeonRewardEncoder
         OnePayload(
             GameProtocol.ClearDungeonRewardNotificationType,
             DungeonClearPayloadCodec.EncodeClearDungeonReward(
-                message.ClearBase, message.RankBonus));
+                message.ClearBase, message.RankBonus, message.FreeCards, message.PaidFlipCost));
 }
 
 /// <summary>
@@ -361,6 +539,7 @@ public sealed class SetPlayResultHandler(
     ISelectedSessionDirectory selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IDungeonRunDomainService runs,
+    ICardRewardDomainService cardRewards,
     ICommandBus commandBus,
     IQuestOfferRefreshDomainService offers,
     IGameMessageSender sender,
@@ -397,6 +576,29 @@ public sealed class SetPlayResultHandler(
             return;
         }
 
+        // The cards are fixed here, and here is the only place they can be fixed. Above is the
+        // claim: a repeated result report is turned back before it reaches this line, so one run
+        // draws one pair of faces however many times its result is reported. Below is every frame
+        // this settlement sends, and the reward breakdown is one of them -- so a face fixed after
+        // them would be reported as the zeroes it was before it existed.
+        //
+        // The level handed in is the one the character cleared at, taken before the award below
+        // can move it: what band a clear's cards are drawn from is a fact about the run that was
+        // just fought, not about the level the last of its experience happened to buy.
+        var settled = await cardRewards.SettleAsync(
+            new ClearRewardSettlement(session.CharacterId, result.Character.Progression.Level),
+            cancellationToken).ConfigureAwait(false);
+        var freeCards = settled?.Cards.Free.Slots ?? [];
+
+        // What the result screen is told a paid flip costs. The settlement answers the archive's
+        // price for the level this clear settled at, and answers nothing for a level the archive
+        // prices none at -- which is not the same as pricing it at nothing, so the two are not
+        // written the same way. Neither value is invented here: both are the frame's own, named
+        // and argued where the frame is built.
+        var paidFlipCost = settled is null
+            ? DungeonClearPayloadCodec.NoPaidFlipCost
+            : settled.PaidFlipCost ?? DungeonClearPayloadCodec.UnpricedPaidFlipCost;
+
         var elapsed = DateTimeOffset.UtcNow - run.StartedAt;
         var clearTime = (int)Math.Clamp(elapsed.TotalMilliseconds, 0, int.MaxValue);
 
@@ -425,7 +627,7 @@ public sealed class SetPlayResultHandler(
                     [
                         new PlayResultNotification(
                             session.WireUserId, clearTime, message.ClientRankPoint),
-                        new ClearDungeonRewardNotification(0, 0),
+                        new ClearDungeonRewardNotification(0, 0, freeCards, paidFlipCost),
                     ],
                     []),
                 cancellationToken).ConfigureAwait(false);
@@ -527,8 +729,9 @@ public sealed class SetPlayResultHandler(
         // result screen must report what landed. An award carries its base and its one
         // contribution, which are those same two figures whenever nothing was clamped.
         frames.Add(award is null
-            ? new ClearDungeonRewardNotification(0, 0)
-            : new ClearDungeonRewardNotification(award.Base, award.Gained - award.Base));
+            ? new ClearDungeonRewardNotification(0, 0, freeCards, paidFlipCost)
+            : new ClearDungeonRewardNotification(
+                award.Base, award.Gained - award.Base, freeCards, paidFlipCost));
 
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,

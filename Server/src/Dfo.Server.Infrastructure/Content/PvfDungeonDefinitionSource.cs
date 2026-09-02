@@ -19,6 +19,12 @@ namespace Dfo.Server.Infrastructure.Content;
 /// cells as bare x/y pairs -- candidates rather than single cells, which is why choosing among
 /// them belongs to a rule and not here.
 /// </para>
+/// <para>
+/// <c>[gold card use]</c> sits at file scope rather than inside a maze -- <c>Grimseeker.dgn</c>
+/// writes it between <c>[revision table]</c> and <c>[recommend equipment]</c> -- and takes one
+/// integer. What that integer means is argued on
+/// <see cref="DungeonDefinition.OffersPaidCard"/>; nothing is decided here beyond reading it.
+/// </para>
 /// </remarks>
 internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
 {
@@ -82,6 +88,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         byte basisLevel = 1;
         var experienceWeight = 1.0;
         var consumesFatigue = true;
+        var offersPaidCard = true;
         var pending = new List<int>();
 
         var reader = archive.OpenScript(fileIndex);
@@ -114,6 +121,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
                     else if (token.Value == tags.MinimumRequiredLevel) section = Section.MinimumLevel;
                     else if (token.Value == tags.BasisLevel) section = Section.BasisLevel;
                     else if (token.Value == tags.ExperienceWeight) section = Section.ExperienceWeight;
+                    else if (token.Value == tags.PaidCardSwitch) section = Section.PaidCardSwitch;
                     else if (token.Value == tags.NoFatigue)
                     {
                         consumesFatigue = false;
@@ -192,6 +200,14 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
                         : experienceWeight;
                     section = Section.None;
                     break;
+                case Section.PaidCardSwitch:
+                    // Zero turns the paid card off; anything else leaves it on. Why that is the
+                    // direction, and why no other value has a reading, is argued on
+                    // DungeonDefinition.OffersPaidCard -- the archive writes this tag five times
+                    // and writes zero every time.
+                    offersPaidCard = token.Value != 0;
+                    section = Section.None;
+                    break;
                 case Section.BasisLevel:
                     // Clamped to one at the bottom: a dungeon declaring zero would price every
                     // monster whose map declines to set a level at nothing at all.
@@ -218,7 +234,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
             ? null
             : new DungeonDefinition(
                 dungeonId, archivePath, minimumLevel, consumesFatigue, mazes, basisLevel,
-                experienceWeight);
+                experienceWeight, offersPaidCard);
     }
 
     /// <summary>Consumes whole rows once enough operands have arrived, leaving partial ones.</summary>
@@ -278,6 +294,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         MinimumLevel,
         BasisLevel,
         ExperienceWeight,
+        PaidCardSwitch,
         SkippedRoomEntry,
     }
 
@@ -310,6 +327,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
             BasisLevel = archive.GetTag("[basis level]").Offset;
             ExperienceWeight = archive.GetTag("[experience increasing point]").Offset;
             NoFatigue = archive.GetTag("[no fatigue]").Offset;
+            PaidCardSwitch = archive.GetTag("[gold card use]").Offset;
         }
 
         public int MazeInfo { get; }
@@ -331,5 +349,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         public int ExperienceWeight { get; }
 
         public int NoFatigue { get; }
+
+        public int PaidCardSwitch { get; }
     }
 }

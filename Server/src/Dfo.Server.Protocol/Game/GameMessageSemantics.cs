@@ -120,6 +120,10 @@ internal static class GameMessageRegistrationExtensions
     public static IServiceCollection AddGameMessageSending(this IServiceCollection services)
     {
         services.TryAddSingleton<IGameMessageSender, GameMessageSender>();
+        // The endpoint layer's own outbound frames, bound here rather than inside any slice: a
+        // slice that registered one would be the slice that owned it, and the frames that live
+        // here are exactly the ones no single slice may own. See GameInventoryDelivery.
+        GameInventoryDelivery.AddEncoders(services);
         return services;
     }
 

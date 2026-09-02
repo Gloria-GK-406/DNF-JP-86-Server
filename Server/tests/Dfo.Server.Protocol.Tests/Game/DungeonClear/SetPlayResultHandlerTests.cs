@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Quests;
@@ -219,6 +220,143 @@ public sealed class SetPlayResultHandlerTests
         Assert.Single(sent.OfType<ClearDungeonRewardNotification>());
     }
 
+    /// <summary>The result screen reports the cards this clear fixed, not an empty tail.</summary>
+    /// <remarks>
+    /// The face the settlement seam answered, position for position. The bytes those positions
+    /// come to are <c>DungeonClearCodecTests</c>'s to check; what is checked here is that the
+    /// frame is handed the clear's own face rather than nothing, which is what it carried before
+    /// cards existed.
+    /// </remarks>
+    [Fact]
+    public async Task TheResultScreenReportsTheCardsThisClearFixed()
+    {
+        var cards = new RecordingCards();
+
+        var sent = await Settle(cards: cards);
+
+        var reward = sent.OfType<ClearDungeonRewardNotification>().Single();
+        Assert.Equal(RecordingCards.FreeFace.Slots, reward.FreeCards);
+    }
+
+    /// <summary>
+    /// The result screen says what a paid flip of this clear costs, and says the settlement's own
+    /// figure.
+    /// </summary>
+    /// <remarks>
+    /// The price reaches the frame from the settlement rather than from the frame's own reading of
+    /// anything: the archive is the rule service's to read, the settlement is what asks it, and
+    /// this handler carries the answer across. A frame that still wrote the placeholder would
+    /// report a flip this server gives away.
+    /// </remarks>
+    [Fact]
+    public async Task TheResultScreenSaysWhatAPaidFlipCosts()
+    {
+        var sent = await Settle(cards: new RecordingCards());
+
+        var reward = sent.OfType<ClearDungeonRewardNotification>().Single();
+        Assert.Equal(RecordingCards.PaidFlipCost, reward.PaidFlipCost);
+        Assert.NotEqual(DungeonClearPayloadCodec.NoPaidFlipCost, reward.PaidFlipCost);
+
+        // The other two breakdowns this handler can send are the ones that report no experience:
+        // a clear with no skill-point mirror to answer on, and one whose award did not happen.
+        // What a flip costs has nothing to do with either, and both say so.
+        foreach (var frames in new[]
+                 {
+                     await Settle(cards: new RecordingCards(), withMirror: false),
+                     await Settle(cards: new RecordingCards(), awarded: false),
+                 })
+        {
+            Assert.Equal(
+                RecordingCards.PaidFlipCost,
+                frames.OfType<ClearDungeonRewardNotification>().Single().PaidFlipCost);
+        }
+    }
+
+    /// <summary>
+    /// <b>A level the archive prices no flip at is not reported as a free flip.</b>
+    /// </summary>
+    /// <remarks>
+    /// The decision this task had to make, held down. The archive answers nothing for a level its
+    /// cost table has no row for, and nothing is not zero: zero is a price, and it is the price of
+    /// a flip given away. So such a clear is reported with the frame's own marker for a flip this
+    /// server could not price -- see <see cref="DungeonClearPayloadCodec.UnpricedPaidFlipCost"/>
+    /// for why that value and not another -- and what this pins is that it is not the placeholder
+    /// the field carried before there was anything to put in it.
+    /// </remarks>
+    [Fact]
+    public async Task ALevelTheArchivePricesNoFlipAtIsNotReportedAsAFreeOne()
+    {
+        var sent = await Settle(cards: new RecordingCards(priced: false));
+
+        var reward = sent.OfType<ClearDungeonRewardNotification>().Single();
+        Assert.Equal(DungeonClearPayloadCodec.UnpricedPaidFlipCost, reward.PaidFlipCost);
+        Assert.NotEqual(DungeonClearPayloadCodec.NoPaidFlipCost, reward.PaidFlipCost);
+        Assert.NotEqual(0, reward.PaidFlipCost);
+    }
+
+    /// <summary>
+    /// A run fixes one pair of faces however many times its result is reported.
+    /// </summary>
+    /// <remarks>
+    /// Which is what puts the settlement behind the claim rather than in front of it. The seam is
+    /// idempotent of its own accord, so this does not check that the player keeps the card they
+    /// were shown -- it checks where the call sits: asked ahead of the claim it would be asked
+    /// three times here, and a repeated report would be reaching the rules on every arrival.
+    /// </remarks>
+    [Fact]
+    public async Task TheCardsAreFixedOnceHoweverManyTimesTheResultIsReported()
+    {
+        var cards = new RecordingCards();
+
+        await Settle(cards: cards, reports: 3);
+
+        Assert.Single(cards.Settlements);
+    }
+
+    /// <summary>
+    /// The cards are fixed at the level the run was cleared at, not the one the clear bought.
+    /// </summary>
+    /// <remarks>
+    /// The other end of where the call sits. A settlement asked after the award would be asked
+    /// about level four here, because this clear crosses a threshold -- and the rate band and the
+    /// grade band a card is drawn from would both be the ones the character only reached by
+    /// finishing the run whose cards they are.
+    /// </remarks>
+    [Fact]
+    public async Task TheCardsAreFixedAtTheLevelTheRunWasClearedAt()
+    {
+        var cards = new RecordingCards();
+
+        await Settle(leveledUp: true, cards: cards);
+
+        var settlement = Assert.Single(cards.Settlements);
+        Assert.Equal(3, settlement.CharacterLevel);
+        Assert.Equal(new CharacterId(60), settlement.CharacterId);
+        Assert.Equal(1, settlement.PartyMemberCount);
+    }
+
+    /// <summary>
+    /// A clear that cannot be paid still fixes its cards and still reports them.
+    /// </summary>
+    /// <remarks>
+    /// The refusal above is about experience: without a skill-point mirror there is no frame to
+    /// report a new standing on. It is not about cards, and the panel the client goes on to ask
+    /// for has nothing behind it unless this clear fixed some -- so the settlement sits ahead of
+    /// that refusal, and this is what says so.
+    /// </remarks>
+    [Fact]
+    public async Task AClearThatCannotBePaidStillFixesAndReportsItsCards()
+    {
+        var cards = new RecordingCards();
+
+        var sent = await Settle(cards: cards, withMirror: false);
+
+        Assert.Single(cards.Settlements);
+        var reward = sent.OfType<ClearDungeonRewardNotification>().Single();
+        Assert.Equal(0u, reward.ClearBase);
+        Assert.Equal(RecordingCards.FreeFace.Slots, reward.FreeCards);
+    }
+
     /// <summary>What the character held before the run.</summary>
     private const uint StartingExperience = 1000;
 
@@ -228,7 +366,8 @@ public sealed class SetPlayResultHandlerTests
         bool awarded = true,
         FixedAward? bus = null,
         bool withMirror = true,
-        int reports = 1)
+        int reports = 1,
+        RecordingCards? cards = null)
     {
         var session = SelectedSessionIdentity.Create(
             new AccountId(1),
@@ -244,6 +383,7 @@ public sealed class SetPlayResultHandlerTests
             new OneSession(session),
             runtime,
             new OneRun(),
+            cards ?? new RecordingCards(),
             bus ?? new FixedAward(leveledUp, awarded),
             new QuestOfferRefreshDomainService(
                 content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs()),
@@ -366,6 +506,77 @@ public sealed class SetPlayResultHandlerTests
     }
 
 
+    /// <summary>
+    /// A settlement seam that fixes one known pair of faces and remembers every asking.
+    /// </summary>
+    /// <remarks>
+    /// The face it answers is not the empty one, and the position holding equipment is not the
+    /// first: a handler that reported the wrong face, or none, or a face of its own, all differ
+    /// from this one. What a real face comes to is checked where the rules are.
+    /// </remarks>
+    /// <param name="priced">
+    /// Whether the archive prices a flip at this clear's level. False is the settlement answering
+    /// nothing, which is what a level outside the archive's cost table comes back as.
+    /// </param>
+    private sealed class RecordingCards(bool priced = true) : ICardRewardDomainService
+    {
+        /// <summary>
+        /// What this seam says a paid flip of its clear costs.
+        /// </summary>
+        /// <remarks>
+        /// Not a price the archive gives -- what the archive gives is asserted where the archive
+        /// is read -- and not zero either, so a frame that dropped the price on the floor cannot
+        /// pass by writing the placeholder it used to write.
+        /// </remarks>
+        public const int PaidFlipCost = 4_210;
+
+        /// <summary>Every settlement this seam was asked for, in the order it was asked.</summary>
+        public List<ClearRewardSettlement> Settlements { get; } = [];
+
+        /// <summary>The free face it fixes: four positions, the second of them holding a piece.</summary>
+        public static readonly ClearRewardCardFace FreeFace = new(
+            ClearRewardCardKind.Free,
+            [
+                new ClearRewardCardSlot(0, null),
+                new ClearRewardCardSlot(
+                    1, new ClearRewardCardItem(52001, 4, DropRarity.Common, Durability: 100)),
+                new ClearRewardCardSlot(2, null),
+                new ClearRewardCardSlot(3, null),
+            ]);
+
+        /// <summary>The paid face, deliberately unlike the free one.</summary>
+        private static readonly ClearRewardCardFace PaidFace = new(
+            ClearRewardCardKind.Paid,
+            [
+                new ClearRewardCardSlot(
+                    0, new ClearRewardCardItem(52002, 9, DropRarity.Rare, Durability: 100)),
+                new ClearRewardCardSlot(1, null),
+                new ClearRewardCardSlot(2, null),
+                new ClearRewardCardSlot(3, null),
+            ]);
+
+        public ValueTask<ClearRewardSettlementResult?> SettleAsync(
+            ClearRewardSettlement settlement, CancellationToken cancellationToken)
+        {
+            this.Settlements.Add(settlement);
+            return ValueTask.FromResult<ClearRewardSettlementResult?>(
+                new ClearRewardSettlementResult(
+                    new ClearRewardCardSet(
+                        FreeFace,
+                        PaidFace,
+                        ImmutableHashSet<ClearRewardCardId>.Empty,
+                        priced ? PaidFlipCost : null),
+                    priced ? PaidFlipCost : null));
+        }
+
+        public ValueTask<ClearRewardCardSlot?> ClaimAsync(
+            CharacterId characterId,
+            ClearRewardCardKind kind,
+            int index,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("A settlement fixes cards; it turns none over.");
+    }
+
     private sealed class OneRun : IDungeonRunDomainService
     {
         private bool _settled;
@@ -422,6 +633,17 @@ public sealed class SetPlayResultHandlerTests
             throw new NotSupportedException("This fixture only answers.");
 
         public DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber) =>
+            throw new NotSupportedException("This fixture only answers.");
+
+        public DungeonRunState? FixClearRewardCards(
+            CharacterId characterId,
+            ClearRewardCardFace free,
+            ClearRewardCardFace paid,
+            int? paidFlipCost) =>
+            throw new NotSupportedException("This fixture only answers.");
+
+        public ClearRewardCardSlot? TryClaimClearRewardCard(
+            CharacterId characterId, ClearRewardCardKind kind, int index) =>
             throw new NotSupportedException("This fixture only answers.");
     }
 

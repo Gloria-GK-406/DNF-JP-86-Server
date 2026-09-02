@@ -1,4 +1,3 @@
-using System.Buffers.Binary;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
@@ -7,25 +6,6 @@ namespace Dfo.Server.Protocol.Game.StateSynchronization;
 
 internal static partial class StateSynchronizationPayloadCodec
 {
-    /// <summary>The fixed part of one item entry, in bytes.</summary>
-    /// <remarks>
-    /// A21 measures 101. This was 84, which is the older client's length, and the arithmetic in the
-    /// reference session settles it with no room to argue: its main-container snapshot declares
-    /// fourteen entries and carries 1414 bytes of them, and 1414/101 is exactly fourteen. Its
-    /// UPDATE_ITEM_LIST declares five and strides 101 between their slot fields as well.
-    ///
-    /// The seventeen added bytes are zero in every entry the reference sends, so where inside the
-    /// entry they belong cannot be read off the capture -- only that the entry is that much longer.
-    /// They are written as a trailing run for that reason, which reproduces every observed entry
-    /// byte for byte. An avatar entry appends its jewel-socket block after this run; no A21 avatar
-    /// entry has been observed, so that ordering is carried over from the older client rather than
-    /// measured.
-    /// </remarks>
-    private const int CommonItemEntryLength = 101;
-
-    /// <summary>How much of the entry is written field by field before the trailing run.</summary>
-    private const int WrittenItemEntryLength = 84;
-
     /// <param name="townId">
     /// The town this entry places the character in -- the same value NOTI 0x0017 carries. It is a
     /// lookup key on the client, not a display field: the byte is handed to a keyed town manager
@@ -160,7 +140,7 @@ internal static partial class StateSynchronizationPayloadCodec
             for (short slot = 0; slot <= 2; slot++)
                 WriteVirtualInventoryItem(writer, values, slot, slot);
             foreach (var item in items)
-                WriteInventoryItem(writer, item, preparedAt);
+                GameInventoryItemEntry.Write(writer, item, preparedAt);
             int[] cubeItemIds = [3033, 3034, 3035, 3036, 3037, 3262];
             for (short slot = 354; slot <= 359; slot++)
                 WriteVirtualInventoryItem(writer, values, slot, cubeItemIds[slot - 354]);
@@ -175,25 +155,8 @@ internal static partial class StateSynchronizationPayloadCodec
         else
         {
             foreach (var item in items)
-                WriteInventoryItem(writer, item, preparedAt);
+                GameInventoryItemEntry.Write(writer, item, preparedAt);
         }
-        return stream.ToArray();
-    }
-
-    public static byte[] EncodeInventoryDelta(
-        InventoryContainerType containerType,
-        IReadOnlyList<InventoryItemState> items,
-        DateTimeOffset preparedAt)
-    {
-        ArgumentNullException.ThrowIfNull(items);
-        if (items.Count > ushort.MaxValue)
-            throw new InvalidDataException("Inventory delta item count cannot be represented as u16.");
-        using var stream = new MemoryStream();
-        using var writer = new BinaryWriter(stream);
-        writer.Write((byte)containerType);
-        writer.Write(checked((ushort)items.Count));
-        foreach (var item in items)
-            WriteInventoryItem(writer, item, preparedAt);
         return stream.ToArray();
     }
 
@@ -209,110 +172,8 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(slot);
         writer.Write(fixedItemId);
         writer.Write(count);
-        writer.Write(new byte[CommonItemEntryLength - 10]);
+        writer.Write(new byte[GameInventoryItemEntry.CommonLength - 10]);
     }
-
-    internal static void WriteInventoryItem(
-        BinaryWriter writer,
-        InventoryItemState item,
-        DateTimeOffset preparedAt)
-    {
-        if (item.SlotIndex is < short.MinValue or > short.MaxValue)
-            throw new InvalidDataException("Inventory slot cannot be represented as i16.");
-        var core = item.Core ?? throw Missing("InventoryItem.Core");
-        var avatar = item.AvatarDetail;
-        if (core.ItemKind == 8 && avatar is null)
-            throw Missing($"AvatarDetail[{item.StorageEntryId}]");
-        if (core.ItemKind != 8 && avatar is not null)
-            throw new InvalidDataException("Non-avatar inventory item carries avatar detail.");
-
-        writer.Write(checked((short)item.SlotIndex));
-        writer.Write(core.ItemId);
-        writer.Write(core.ItemKind == 8
-            ? Math.Max(0, avatar!.ExpireDate - checked((int)preparedAt.ToUnixTimeSeconds()))
-            : core.Value);
-        writer.Write(core.Attribute);
-        writer.Write(core.Durability);
-        writer.Write(core.SealFlag);
-        writer.Write(core.EnchantCardId);
-        writer.Write(core.EnchantUpgradeCount);
-        writer.Write(core.AmplifyType);
-        writer.Write(core.AmplifyValue);
-        writer.Write(core.ItemKind == 2 ? core.Marker16 : Math.Max(0, core.Marker16));
-        writer.Write(PopulatedCount(core.ChronicleOption0.Id, core.ChronicleOption1.Id));
-        writer.Write(core.ChronicleOption0.Id);
-        writer.Write(core.ChronicleOption1.Id);
-        writer.Write(core.ChronicleOption0.CharacterJob);
-        writer.Write(core.ChronicleOption1.CharacterJob);
-        writer.Write(core.ChronicleOption0.FirstGrowType);
-        writer.Write(core.ChronicleOption1.FirstGrowType);
-        writer.Write(core.ChronicleOption0.EquipmentType);
-        writer.Write(core.ChronicleOption1.EquipmentType);
-        writer.Write(core.ChronicleOption0.OptionNumber);
-        writer.Write(core.ChronicleOption1.OptionNumber);
-        writer.Write(core.ExpireTime);
-        writer.Write(core.EmblemSocketCount);
-        writer.Write(core.EmblemId1);
-        writer.Write(core.EmblemId2);
-        writer.Write(core.Rune);
-        writer.Write(PopulatedCount(
-            core.RandomOption0.Type, core.RandomOption1.Type, core.RandomOption2.Type));
-        writer.Write(core.RandomOption0.Type);
-        writer.Write(core.RandomOption1.Type);
-        writer.Write(core.RandomOption2.Type);
-        writer.Write(core.RandomOption0.Value1);
-        writer.Write(core.RandomOption1.Value1);
-        writer.Write(core.RandomOption2.Value1);
-        writer.Write(core.RandomOption0.Value2);
-        writer.Write(core.RandomOption1.Value2);
-        writer.Write(core.RandomOption2.Value2);
-        writer.Write(core.RandomOptionState);
-        writer.Write(core.RandomOptionChangedIndex);
-        writer.Write(core.RandomOptionChangeState);
-        writer.Write(core.RandomOptionChange.Type);
-        writer.Write(core.RandomOptionChange.Value1);
-        writer.Write(core.RandomOptionChange.Value2);
-        writer.Write(core.GenuineUpgrade);
-        writer.Write(core.EmancipateEquipmentLevel);
-        writer.Write(core.TradeRestriction);
-        writer.Write(core.TailUnknown0);
-        writer.Write(core.TailUnknown1);
-        writer.Write(core.TailUnknown2);
-        writer.Write(core.TailUnknown3);
-        writer.Write(core.RemainUseCount);
-        writer.Write(core.SortLockFlag == 1 ? (byte)1 : (byte)0);
-        writer.Write(new byte[CommonItemEntryLength - WrittenItemEntryLength]);
-
-        if (core.ItemKind == 8)
-        {
-            if (avatar!.JewelSocket.Length != 30)
-                throw new InvalidDataException("Avatar jewel socket must contain exactly 30 bytes.");
-            writer.Write(30);
-            writer.Write(avatar.JewelSocket);
-            writer.Write(4);
-            writer.Write(avatar.Color1);
-            writer.Write(avatar.Color2);
-        }
-    }
-
-    /// <summary>How many of a fixed option array's slots actually hold something.</summary>
-    /// <remarks>
-    /// The byte in front of the chronicle and random option arrays used to be written as the
-    /// literal 2 and 3 -- the arrays' capacities, transcribed from the older client's builder. A21
-    /// puts zero there for every item the reference session sends, and it cannot be a length prefix
-    /// because the entry is a fixed 101 bytes either way: the arrays are always present.
-    ///
-    /// Reading it as "how many are in use" reproduces every observed byte, since none of those
-    /// items carries an option. Only the zero case is observed; an item that does carry one has not
-    /// been seen on A21, so what it should say then is inference rather than measurement.
-    ///
-    /// The inference has a gap worth naming: this counts any non-empty slot, not a filled prefix.
-    /// An item with slot 0 empty and slot 1 set yields 1, which under the "how many are in use"
-    /// reading tells the client slot 0 is the one in use. Whether the field is a count or a filled
-    /// length cannot be told apart while every observed item has neither.
-    /// </remarks>
-    private static byte PopulatedCount(params int[] values) =>
-        checked((byte)values.Count(value => value != 0));
 
     private static InvalidDataException Missing(string name) =>
         new($"Required inventory synchronization value '{name}' is unavailable.");

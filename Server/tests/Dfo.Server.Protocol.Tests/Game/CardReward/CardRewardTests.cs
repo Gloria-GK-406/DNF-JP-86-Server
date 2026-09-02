@@ -1,0 +1,1539 @@
+using System.Buffers.Binary;
+using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Dispatching;
+using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.World;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.World;
+using Dfo.Server.Infrastructure;
+using Dfo.Server.Networking.Framing;
+using Dfo.Server.Persistence;
+using Dfo.Server.Protocol.Game;
+using Dfo.Server.Protocol.Game.CardReward;
+using Dfo.Server.Protocol.Game.DungeonClear;
+using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
+
+namespace Dfo.Server.Protocol.Tests.Game.CardReward;
+
+/// <summary>
+/// The two exchanges that put a clear's cards in front of the player: the layout that lays them
+/// face down, and the flip that turns them face up.
+/// </summary>
+/// <remarks>
+/// The expectations here are byte sequences rather than shapes, because both frames have captures
+/// behind them: the seventeen-byte layout and the thirty-three byte answer were both observed. Where
+/// this server departs from the reference -- naming a position in every record instead of only the
+/// first -- the departure is asserted position by position rather than on one sample, since a
+/// single sample cannot tell "each record names its own position" from "every record says zero".
+/// </remarks>
+public sealed class CardRewardTests
+{
+    /// <summary>
+    /// The layout frame's body, transcribed from the reference session.
+    /// </summary>
+    /// <remarks>
+    /// From <c>protocol/game/client-to-server/0x0045.md</c>:
+    /// <c>SEND cmd=0x01 type=0x0046 len=32 body=(17B) [01 01 00 FF ...]</c>. Written out here rather
+    /// than built from the encoder's own constants, so that changing one of those constants turns
+    /// this red instead of moving the goalposts with it.
+    /// </remarks>
+    private static readonly byte[] CapturedLayout =
+    [
+        0x01, 0x01, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    ];
+
+    /// <summary>The wire type of the layout frame, transcribed rather than read from the constant.</summary>
+    private const ushort ObservedLayoutType = 0x0046;
+
+    /// <summary>The wire type of the flip frame, transcribed rather than read from the constant.</summary>
+    private const ushort ObservedFlipType = 0x0047;
+
+    /// <summary>
+    /// How long the answer is when nothing at all is behind the four cards.
+    /// </summary>
+    /// <remarks>
+    /// Thirty-three bytes, which is the length of the captured answer -- one envelope byte and
+    /// eight four-byte records. This server fills the first four of those records differently from
+    /// the reference, but not more widely, so the empty case still measures what was captured.
+    /// </remarks>
+    private const int CapturedEmptyAnswerLength = 33;
+
+    /// <summary>A piece this server has actually seen a dungeon declare.</summary>
+    private const int FirstItemId = 10088621;
+
+    /// <summary>A piece dungeon 120 names in its own card declaration.</summary>
+    private const int SecondItemId = 3329;
+
+    /// <summary>What a card's piece is created carrying, as the fixture's face declares it.</summary>
+    private const ushort HeldDurability = 25;
+
+    /// <summary>The moment a flip is answered at, fixed so the frame it builds is reproducible.</summary>
+    private static readonly DateTimeOffset Flipped = new(2026, 9, 1, 12, 0, 0, TimeSpan.Zero);
+
+    /// <summary>
+    /// What the fixture's rules charge for a paid flip.
+    /// </summary>
+    /// <remarks>
+    /// A price, and only a price. It is deliberately not the archive's figure: what the archive
+    /// charges at a level is asserted against the archive itself in the application tests, and a
+    /// number transcribed here would look like a second reading of the file while proving nothing
+    /// about it. All this one has to be is something a purse can be one coin short of.
+    /// </remarks>
+    private const int FixturePrice = 250;
+
+    /// <summary>What the fixture's account carries before a flip, comfortably above the price.</summary>
+    private const int StartingPurse = 1000;
+
+    /// <summary>The level the fixture's flips are priced by when a command is built here.</summary>
+    private const int FlipLevel = 42;
+
+    /// <summary>
+    /// The level the fixture's published session carries, which is a different one on purpose.
+    /// </summary>
+    /// <remarks>
+    /// A command built by the handler has to carry what the session publishes rather than whatever
+    /// this file happens to hand its own commands, and two equal numbers could not tell those
+    /// apart.
+    /// </remarks>
+    private const int PublishedLevel = 57;
+
+    // ---- the layout ------------------------------------------------------------------------
+
+    /// <summary>The layout is the seventeen bytes the reference sent, byte for byte.</summary>
+    [Fact]
+    public void The_layout_is_the_body_the_capture_carried()
+    {
+        var frame = Assert.Single(
+            new CardSelectRightStateResponseEncoder().Encode(new CardSelectRightStateResponse()));
+
+        Assert.Equal(CapturedLayout, frame[GameServerFrameEncoder.HeaderLength..]);
+    }
+
+    /// <summary>It goes out as a CMD under the type the client registered a handler for.</summary>
+    [Fact]
+    public void The_layout_goes_out_under_the_type_the_client_registered()
+    {
+        var frame = Assert.Single(
+            new CardSelectRightStateResponseEncoder().Encode(new CardSelectRightStateResponse()));
+
+        Assert.Equal(0x01, frame[0]);
+        Assert.Equal(ObservedLayoutType, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1, 2)));
+    }
+
+    /// <summary>
+    /// The layout has no way to carry an item, which is the requirement rather than a property of
+    /// today's values.
+    /// </summary>
+    /// <remarks>
+    /// Asserting the bytes would pass just as well if the record grew an item and the encoder
+    /// ignored it; the next person to touch the encoder would then have a field sitting there
+    /// waiting to be written. What is asserted is that there is nothing to write: the message is a
+    /// record with no state at all, so the cards stay face down by construction.
+    /// </remarks>
+    [Fact]
+    public void The_layout_message_has_nowhere_to_put_an_item()
+    {
+        var carried = typeof(CardSelectRightStateResponse)
+            .GetProperties()
+            .Where(property => property.Name != nameof(CardSelectRightStateResponse.MessageType))
+            .Select(property => property.Name);
+
+        Assert.Empty(carried);
+        Assert.Empty(Assert.Single(typeof(CardSelectRightStateResponse).GetConstructors())
+            .GetParameters());
+    }
+
+    /// <summary>The scroll's acknowledgement is followed by the layout, in that order.</summary>
+    /// <remarks>
+    /// The order is the whole of it. The client's handler for the acknowledgement is what takes the
+    /// run off the result screen; a layout arriving first would be a panel drawn over a screen that
+    /// has not been dismissed.
+    /// </remarks>
+    [Fact]
+    public async Task The_scroll_acknowledgement_is_followed_by_the_layout()
+    {
+        var sender = new RecordingSender();
+        var handler = new ScoreScrollStateHandler(
+            new OneSession(Identity), sender, NullLogger<ScoreScrollStateHandler>.Instance);
+
+        await handler.HandleAsync(
+            Dispatch(), new ScoreScrollStateRequest(GameMessageMetadata.Empty), CancellationToken.None);
+
+        Assert.Collection(
+            sender.Sent,
+            first => Assert.IsType<ScoreScrollStateResponse>(first),
+            second => Assert.IsType<CardSelectRightStateResponse>(second));
+    }
+
+    /// <summary>The layout request is answered with the layout on its own.</summary>
+    [Fact]
+    public async Task The_layout_request_is_answered_with_the_layout()
+    {
+        var sender = new RecordingSender();
+        var handler = new CardSelectRightStateHandler(
+            new OneSession(Identity), sender, NullLogger<CardSelectRightStateHandler>.Instance);
+
+        await handler.HandleAsync(
+            Dispatch(),
+            new CardSelectRightStateRequest(GameMessageMetadata.Empty),
+            CancellationToken.None);
+
+        Assert.IsType<CardSelectRightStateResponse>(Assert.Single(sender.Sent));
+    }
+
+    // ---- the flip's answer -----------------------------------------------------------------
+
+    /// <summary>
+    /// Every position of the face is declared, the ones holding nothing included.
+    /// </summary>
+    /// <remarks>
+    /// Two pieces and two empty positions, written out byte by byte. The empty positions are the
+    /// point: each is a record of its own declaring no contents, not a gap in the frame.
+    /// </remarks>
+    [Fact]
+    public void Every_position_is_declared_including_the_ones_holding_nothing()
+    {
+        var body = Encode(
+            ClearRewardCardKind.Free,
+            Held(0, FirstItemId, 1),
+            Empty(1),
+            Held(2, SecondItemId, 2),
+            Empty(3));
+
+        Assert.Equal(
+            new byte[]
+            {
+                0x01,
+                0x00, 0x00, 0x01, 0xAD, 0xF0, 0x99, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x01, 0x00, 0x00,
+                0x00, 0x02, 0x01, 0x01, 0x0D, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x03, 0x00, 0x00,
+                0xFF, 0xFF, 0xFF, 0xFF,
+                0xFF, 0xFF, 0xFF, 0xFF,
+                0xFF, 0xFF, 0xFF, 0xFF,
+                0xFF, 0xFF, 0xFF, 0xFF,
+            },
+            body);
+    }
+
+    /// <summary>A face holding nothing at all is the length the capture had.</summary>
+    [Fact]
+    public void A_face_holding_nothing_is_the_length_the_capture_had()
+    {
+        var body = Encode(ClearRewardCardKind.Free, Empty(0), Empty(1), Empty(2), Empty(3));
+
+        Assert.Equal(CapturedEmptyAnswerLength, body.Length);
+        Assert.Equal(
+            new byte[]
+            {
+                0x01,
+                0x00, 0x00, 0x00, 0x00,
+                0x00, 0x01, 0x00, 0x00,
+                0x00, 0x02, 0x00, 0x00,
+                0x00, 0x03, 0x00, 0x00,
+                0xFF, 0xFF, 0xFF, 0xFF,
+                0xFF, 0xFF, 0xFF, 0xFF,
+                0xFF, 0xFF, 0xFF, 0xFF,
+                0xFF, 0xFF, 0xFF, 0xFF,
+            },
+            body);
+    }
+
+    /// <summary>
+    /// Each record names its own position, whichever position holds the piece.
+    /// </summary>
+    /// <remarks>
+    /// One sample cannot tell this apart from "every record says zero", which is exactly what the
+    /// reference server writes -- so all four are exercised. The piece moves from position to
+    /// position and the record that carries it has to move with it.
+    /// </remarks>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void Each_record_names_the_position_it_describes(int holding)
+    {
+        var slots = Enumerable.Range(0, 4)
+            .Select(index => index == holding ? Held(index, SecondItemId, 2) : Empty(index))
+            .ToArray();
+
+        var body = Encode(ClearRewardCardKind.Free, slots);
+
+        // Every record before the one holding the piece is four bytes wide, so the one that holds
+        // it starts right after them.
+        var at = 1 + (holding * 4);
+        Assert.Equal(holding, (int)body[at + 1]);
+        Assert.Equal(1, (int)body[at + 2]);
+        Assert.Equal(SecondItemId, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(at + 3)));
+        Assert.Equal(2, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(at + 7)));
+
+        // and every other record names its own position too, with nothing behind it.
+        for (var record = 0; record < 4; record++)
+        {
+            if (record == holding)
+                continue;
+
+            var other = 1 + (record * 4) + (record > holding ? 8 : 0);
+            Assert.Equal(record, (int)body[other + 1]);
+            Assert.Equal(0, (int)body[other + 2]);
+        }
+    }
+
+    /// <summary>The face a record belongs to travels with it.</summary>
+    [Theory]
+    [InlineData(ClearRewardCardKind.Free, 0x00)]
+    [InlineData(ClearRewardCardKind.Paid, 0x01)]
+    public void Each_record_names_the_face_it_belongs_to(ClearRewardCardKind kind, byte expected)
+    {
+        var body = Encode(kind, Empty(0), Empty(1), Empty(2), Empty(3));
+
+        for (var record = 0; record < 4; record++)
+            Assert.Equal(expected, body[1 + (record * 4)]);
+    }
+
+    /// <summary>The answer goes out as a CMD under the type the flip arrived on.</summary>
+    [Fact]
+    public void The_answer_goes_out_under_the_type_the_flip_arrived_on()
+    {
+        var frame = Assert.Single(new SelectCardResponseEncoder().Encode(
+            new SelectCardResponse(ClearRewardCardKind.Free, [Empty(0), Empty(1), Empty(2), Empty(3)])));
+
+        Assert.Equal(0x01, frame[0]);
+        Assert.Equal(ObservedFlipType, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1, 2)));
+    }
+
+    // ---- the flip's request ----------------------------------------------------------------
+
+    /// <summary>A free flip names the face and the position it clicked.</summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void A_free_flip_names_the_position_it_clicked(byte position)
+    {
+        var request = (SelectCardRequest)new SelectCardDecoder()
+            .Decode(GameMessageMetadata.Empty, [0x00, position])!;
+
+        Assert.Equal(ClearRewardCardKind.Free, request.Kind);
+        Assert.Equal(position, (byte)request.Index);
+    }
+
+    /// <summary>A paid flip is read the same way, from its own reading.</summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void A_paid_flip_names_the_position_it_clicked(byte position)
+    {
+        var request = (SelectCardRequest)new SelectCardDecoder()
+            .Decode(GameMessageMetadata.Empty, [0x01, position])!;
+
+        Assert.Equal(ClearRewardCardKind.Paid, request.Kind);
+        Assert.Equal(position, (byte)request.Index);
+    }
+
+    /// <summary>A face this type does not have is dropped rather than answered.</summary>
+    [Theory]
+    [InlineData(0x02)]
+    [InlineData(0x03)]
+    [InlineData(0xFF)]
+    public void A_face_the_type_does_not_have_is_dropped(byte face)
+    {
+        Assert.Null(new SelectCardDecoder().Decode(GameMessageMetadata.Empty, [face, 0x00]));
+    }
+
+    /// <summary>A position above the last card is dropped, on either face.</summary>
+    [Theory]
+    [InlineData(0x00, 4)]
+    [InlineData(0x00, 7)]
+    [InlineData(0x00, 255)]
+    [InlineData(0x01, 4)]
+    [InlineData(0x01, 255)]
+    public void A_position_above_the_last_card_is_dropped(byte face, byte position)
+    {
+        Assert.Null(new SelectCardDecoder().Decode(GameMessageMetadata.Empty, [face, position]));
+    }
+
+    /// <summary>A body too short to carry both bytes is declined, not thrown.</summary>
+    /// <remarks>
+    /// Declining is the requirement rather than an implementation detail: a decoder that throws
+    /// takes the connection with it, and the player who would lose it has just cleared a dungeon.
+    /// The client's own second packer for this type writes a single byte, so a one-byte body is a
+    /// shape that really arrives.
+    /// </remarks>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void A_body_too_short_to_carry_both_bytes_is_declined(int length)
+    {
+        var thrown = Record.Exception(() =>
+            Assert.Null(new SelectCardDecoder().Decode(GameMessageMetadata.Empty, new byte[length])));
+
+        Assert.Null(thrown);
+    }
+
+    // ---- turning a card over ---------------------------------------------------------------
+
+    /// <summary>Turning one card over answers with all four positions.</summary>
+    /// <remarks>
+    /// Whichever one is turned. The requirement is that the whole face is revealed by any flip, so
+    /// flipping position three has to reveal position zero just as flipping zero reveals three.
+    /// </remarks>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public async Task Turning_one_card_over_reveals_the_whole_face(int flipped)
+    {
+        var world = new World();
+
+        var result = await world.Flip(ClearRewardCardKind.Free, flipped);
+
+        Assert.Equal(SelectCardStatus.Flipped, result.Status);
+        Assert.Equal(4, result.Slots.Count);
+        Assert.Collection(
+            result.Slots,
+            first => Assert.Equal(FirstItemId, first.Item!.Value.ItemId),
+            second => Assert.True(second.IsEmpty),
+            third => Assert.Equal(SecondItemId, third.Item!.Value.ItemId),
+            fourth => Assert.True(fourth.IsEmpty));
+    }
+
+    /// <summary>The same position turned over twice hands nothing over the second time.</summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public async Task The_same_position_turned_over_twice_hands_nothing_over(int flipped)
+    {
+        var world = new World();
+
+        var first = await world.Flip(ClearRewardCardKind.Free, flipped);
+        var second = await world.Flip(ClearRewardCardKind.Free, flipped);
+
+        Assert.Equal(SelectCardStatus.Flipped, first.Status);
+        Assert.Equal(SelectCardStatus.AlreadyFlipped, second.Status);
+        Assert.Empty(second.Slots);
+    }
+
+    /// <summary>
+    /// The two faces are claimed apart: taking one position of one leaves the other's alone.
+    /// </summary>
+    [Fact]
+    public async Task Taking_a_position_of_one_face_leaves_the_other_face_alone()
+    {
+        var world = new World();
+
+        var free = await world.Flip(ClearRewardCardKind.Free, 0);
+        var paid = await world.Flip(ClearRewardCardKind.Paid, 0);
+
+        Assert.Equal(SelectCardStatus.Flipped, free.Status);
+        Assert.Equal(SelectCardStatus.Flipped, paid.Status);
+    }
+
+    /// <summary>A character in no run is handed nothing.</summary>
+    [Fact]
+    public async Task A_character_in_no_run_is_handed_nothing()
+    {
+        var world = new World(inARun: false);
+
+        var result = await world.Flip(ClearRewardCardKind.Free, 0);
+
+        Assert.Equal(SelectCardStatus.NotInARun, result.Status);
+    }
+
+    /// <summary>A run whose cards are not fixed yet is handed nothing.</summary>
+    [Fact]
+    public async Task A_run_whose_cards_are_not_fixed_is_handed_nothing()
+    {
+        var world = new World(cardsFixed: false);
+
+        var result = await world.Flip(ClearRewardCardKind.Free, 0);
+
+        Assert.Equal(SelectCardStatus.NoCardsFixed, result.Status);
+    }
+
+    /// <summary>A position the face does not have is handed nothing.</summary>
+    [Fact]
+    public async Task A_position_the_face_does_not_have_is_handed_nothing()
+    {
+        var world = new World();
+
+        var result = await world.Flip(ClearRewardCardKind.Free, 4);
+
+        Assert.Equal(SelectCardStatus.NoSuchPosition, result.Status);
+    }
+
+    /// <summary>Nothing on this path asks the rules what a card is worth.</summary>
+    /// <remarks>
+    /// The fixture's rule service throws on every member, so a flip that reached it would fail here
+    /// rather than quietly redraw a face the player is already looking at.
+    /// </remarks>
+    [Fact]
+    public async Task Turning_a_card_over_never_asks_the_rules_anything()
+    {
+        var world = new World();
+
+        await world.Flip(ClearRewardCardKind.Free, 1);
+
+        Assert.Equal(0, world.RuleQuestions);
+    }
+
+    // ---- the handler -----------------------------------------------------------------------
+
+    /// <summary>A flip that took something is answered with the whole face.</summary>
+    [Fact]
+    public async Task A_flip_that_took_something_is_answered_with_the_whole_face()
+    {
+        var world = new World();
+        var sender = new RecordingSender();
+
+        await world.Handle(sender, ClearRewardCardKind.Free, 1);
+
+        var answer = Assert.IsType<SelectCardResponse>(Assert.Single(sender.Sent));
+        Assert.Equal(4, answer.Slots.Count);
+    }
+
+    /// <summary>A second flip of the same position is answered with nothing at all.</summary>
+    [Fact]
+    public async Task A_second_flip_of_the_same_position_is_answered_with_nothing()
+    {
+        var world = new World();
+        var sender = new RecordingSender();
+
+        await world.Handle(sender, ClearRewardCardKind.Free, 1);
+        await world.Handle(sender, ClearRewardCardKind.Free, 1);
+
+        Assert.Single(sender.Sent);
+    }
+
+    /// <summary>A flip on a connection with no published session never reaches the run.</summary>
+    [Fact]
+    public async Task A_flip_without_a_published_session_never_reaches_the_run()
+    {
+        var world = new World();
+        var sender = new RecordingSender();
+
+        await world.Handle(sender, ClearRewardCardKind.Free, 1, new NoSession());
+
+        Assert.Empty(sender.Sent);
+        Assert.Equal(0, world.Flips);
+    }
+
+    // ---- the piece reaching the bag ---------------------------------------------------------
+
+    /// <summary>
+    /// A flipped piece is in the bag afterwards, under its own identifier and count.
+    /// </summary>
+    /// <remarks>
+    /// Both held positions, not one. The face's two pieces differ in identifier and in how many
+    /// there are, so a delivery that handed over a constant -- the first piece, or one of
+    /// something -- passes on one of these and fails on the other.
+    /// </remarks>
+    [Theory]
+    [InlineData(0, FirstItemId, 1)]
+    [InlineData(2, SecondItemId, 2)]
+    public async Task A_flipped_piece_is_in_the_bag_afterwards(
+        int index, int itemId, int quantity)
+    {
+        var world = new World();
+
+        var result = await world.Flip(ClearRewardCardKind.Free, index);
+
+        Assert.Equal(SelectCardStatus.Flipped, result.Status);
+        var landed = world.Bag.Slots[Bag.OpenedSlot];
+        Assert.Equal(itemId, landed.ItemId);
+        Assert.Equal(quantity, landed.Value);
+    }
+
+    /// <summary>
+    /// A piece that opened a slot of its own is not banked broken.
+    /// </summary>
+    /// <remarks>
+    /// The bag opens a slot with no durability at all, and a piece at zero durability is a broken
+    /// one. What this piece carries was decided when the face was fixed, and it travels on the card
+    /// for exactly this moment.
+    /// </remarks>
+    [Fact]
+    public async Task A_piece_that_opened_a_slot_carries_the_durability_the_card_declared()
+    {
+        var world = new World();
+
+        await world.Flip(ClearRewardCardKind.Free, 0);
+
+        Assert.Equal(HeldDurability, world.Bag.Slots[Bag.OpenedSlot].Durability);
+    }
+
+    /// <summary>
+    /// A piece that joined a pile leaves the pile's own durability alone.
+    /// </summary>
+    /// <remarks>
+    /// The pile already carries one, and it is the pile's rather than this arrival's. Writing the
+    /// card's over it would rewrite what was already in the bag, which no arrival may do.
+    /// </remarks>
+    [Fact]
+    public async Task A_piece_that_joined_a_pile_leaves_the_piles_durability_alone()
+    {
+        var world = new World(bagAnswer: BagAnswer.JoinsAPile);
+
+        await world.Flip(ClearRewardCardKind.Free, 0);
+
+        Assert.Equal(Bag.PileDurability, world.Bag.Slots[Bag.PileSlot].Durability);
+        Assert.Equal(2, world.Bag.Slots[Bag.PileSlot].Value);
+    }
+
+    /// <summary>
+    /// The answer goes out first and the bag change after it, in one exchange.
+    /// </summary>
+    /// <remarks>
+    /// The ground pick-up's order, which is the reference server's. Asserted as one exchange
+    /// carrying two frames rather than as two frames having been sent, because a flat count cannot
+    /// tell that apart from two exchanges of one -- and it is the exchange the client reads in one
+    /// go.
+    /// </remarks>
+    [Fact]
+    public async Task The_answer_comes_first_and_the_bag_change_after_it_in_one_exchange()
+    {
+        var world = new World();
+        var sender = new RecordingSender();
+
+        await world.Handle(sender, ClearRewardCardKind.Free, 0);
+
+        var exchange = Assert.Single(sender.Exchanges);
+        Assert.Collection(
+            exchange,
+            first => Assert.IsType<SelectCardResponse>(first),
+            second => Assert.IsType<InventoryDeltaMessage>(second));
+    }
+
+    /// <summary>
+    /// The frame that tells the client is the endpoint layer's own, not the entry slice's.
+    /// </summary>
+    /// <remarks>
+    /// This is the lift, asserted rather than described: the card slice may not reach into the
+    /// state-synchronization slice, so the frame the two share has to live above both of them. If
+    /// it moved back inside a slice this fails, whatever else still worked.
+    /// </remarks>
+    [Fact]
+    public async Task The_frame_that_tells_the_client_lives_in_the_endpoint_layer()
+    {
+        var world = new World();
+        var sender = new RecordingSender();
+
+        await world.Handle(sender, ClearRewardCardKind.Free, 0);
+
+        var told = Assert.IsType<InventoryDeltaMessage>(sender.Sent[1]);
+        Assert.Equal("Dfo.Server.Protocol.Game", told.GetType().Namespace);
+    }
+
+    /// <summary>
+    /// The bag change says which container, which slot, which piece and how many.
+    /// </summary>
+    /// <remarks>
+    /// Read off the encoded body rather than off the message, because what the client gets is the
+    /// body. Both held positions again, so a body built from constants cannot pass.
+    /// </remarks>
+    [Theory]
+    [InlineData(0, FirstItemId, 1)]
+    [InlineData(2, SecondItemId, 2)]
+    public async Task The_bag_change_carries_the_slot_the_piece_and_how_many(
+        int index, int itemId, int quantity)
+    {
+        var world = new World();
+        var sender = new RecordingSender();
+
+        await world.Handle(sender, ClearRewardCardKind.Free, index);
+
+        var frame = Assert.Single(
+            new InventoryDeltaEncoder().Encode(Assert.IsType<InventoryDeltaMessage>(sender.Sent[1])));
+        Assert.Equal(0x00, frame[0]);
+        Assert.Equal((ushort)0x000E, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1, 2)));
+
+        var body = frame[GameServerFrameEncoder.HeaderLength..];
+        Assert.Equal((byte)InventoryContainerType.Main, body[0]);
+        Assert.Equal((ushort)1, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(1)));
+        Assert.Equal((short)Bag.OpenedSlot, BinaryPrimitives.ReadInt16LittleEndian(body.AsSpan(3)));
+        Assert.Equal(itemId, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(5)));
+        Assert.Equal(quantity, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(9)));
+        Assert.Equal(HeldDurability, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(14)));
+    }
+
+    /// <summary>A position that held nothing says nothing about the bag.</summary>
+    [Fact]
+    public async Task A_position_that_held_nothing_says_nothing_about_the_bag()
+    {
+        var world = new World();
+        var sender = new RecordingSender();
+
+        await world.Handle(sender, ClearRewardCardKind.Free, 1);
+
+        Assert.IsType<SelectCardResponse>(Assert.Single(sender.Sent));
+        Assert.Empty(world.Bag.Slots);
+    }
+
+    /// <summary>
+    /// A bag that could not take the piece is still answered with the face, and told nothing.
+    /// </summary>
+    /// <remarks>
+    /// Three ways for the bag to refuse and all three answered the same way. The face was revealed
+    /// by the flip and cannot be un-revealed, so the answer goes out either way; what must not go
+    /// out is a bag change describing a slot nothing landed in.
+    /// </remarks>
+    [Theory]
+    [InlineData(BagAnswer.NoRoom, true)]
+    [InlineData(BagAnswer.UnknownItem, true)]
+    [InlineData(BagAnswer.OpensASlot, false)]
+    public async Task A_bag_that_could_not_take_the_piece_is_still_answered_with_the_face(
+        BagAnswer answer, bool bagBound)
+    {
+        var world = new World(bagBound: bagBound, bagAnswer: answer);
+        var sender = new RecordingSender();
+
+        await world.Handle(sender, ClearRewardCardKind.Free, 0);
+
+        var told = Assert.IsType<SelectCardResponse>(Assert.Single(sender.Sent));
+        Assert.Equal(4, told.Slots.Count);
+    }
+
+    // ---- the money -------------------------------------------------------------------------
+
+    /// <summary>
+    /// A position that held something pays the card's gold into the account; one that held
+    /// nothing pays nothing.
+    /// </summary>
+    /// <remarks>
+    /// Both halves together, because the figure alone would be satisfied by a flip that paid it
+    /// every time -- and a card that held nothing paying for it is the shape the result screen
+    /// could never report, since that frame writes the gold and the item off the same position.
+    /// </remarks>
+    [Theory]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    public async Task A_position_that_held_something_pays_the_cards_gold(int index, bool holds)
+    {
+        var world = new World();
+
+        var result = await world.Flip(ClearRewardCardKind.Free, index);
+
+        var expected = holds ? GameProtocol.ClearRewardCardGold : 0;
+        Assert.Equal(expected, result.GoldPaid);
+        Assert.Equal(StartingPurse + expected, world.Purse.Total);
+    }
+
+    /// <summary>
+    /// A card whose piece the bag could not take is still paid for.
+    /// </summary>
+    /// <remarks>
+    /// The card is what was turned over, and a full bag does not make it turn over less. It is
+    /// also what the result screen already announced: that frame writes this gold beside the
+    /// card's contents, long before any bag is asked about them.
+    /// </remarks>
+    [Fact]
+    public async Task A_card_the_bag_could_not_take_is_still_paid_for()
+    {
+        var world = new World(bagAnswer: BagAnswer.NoRoom);
+
+        var result = await world.Flip(ClearRewardCardKind.Free, 0);
+
+        Assert.Null(result.Delivered);
+        Assert.Equal(GameProtocol.ClearRewardCardGold, result.GoldPaid);
+        Assert.Equal(StartingPurse + GameProtocol.ClearRewardCardGold, world.Purse.Total);
+    }
+
+    /// <summary>A free flip is never charged, whatever the account is carrying.</summary>
+    /// <remarks>
+    /// An empty purse on purpose: a free flip that went to the purse at all would be refused here
+    /// rather than merely charged nothing.
+    /// </remarks>
+    [Fact]
+    public async Task A_free_flip_is_never_charged()
+    {
+        var world = new World(purse: 0);
+
+        var result = await world.Flip(ClearRewardCardKind.Free, 0);
+
+        Assert.Equal(SelectCardStatus.Flipped, result.Status);
+        Assert.Equal(0, result.GoldCharged);
+        Assert.Equal(0, world.Purse.Charges);
+    }
+
+    /// <summary>
+    /// A paid flip an account can afford costs the settlement's price and hands the card over.
+    /// </summary>
+    /// <remarks>
+    /// The purse afterwards is the price out and the card's own gold in, which is the arithmetic
+    /// of the whole exchange rather than of either half -- a flip that charged and paid nothing,
+    /// or paid and charged nothing, lands somewhere else.
+    /// </remarks>
+    [Fact]
+    public async Task A_paid_flip_costs_the_price_the_settlement_names_and_hands_the_card_over()
+    {
+        var world = new World();
+
+        var result = await world.Flip(ClearRewardCardKind.Paid, 0);
+
+        Assert.Equal(SelectCardStatus.Flipped, result.Status);
+        Assert.Equal(FixturePrice, result.GoldCharged);
+        Assert.Equal(
+            StartingPurse - FixturePrice + GameProtocol.ClearRewardCardGold,
+            world.Purse.Total);
+        Assert.Equal(FirstItemId, world.Bag.Slots[Bag.OpenedSlot].ItemId);
+    }
+
+    /// <summary>
+    /// An account one coin short of the price is refused, and is left with the coin and no card.
+    /// </summary>
+    /// <remarks>
+    /// One coin short rather than empty, so that a charge which compared the wrong way round --
+    /// or not at all -- cannot pass by the account being obviously unable to pay. Three things are
+    /// asserted afterwards and they are three different failures: the money is untouched, the bag
+    /// is untouched, and the position was never claimed, which the flip after the top-up shows.
+    /// </remarks>
+    [Fact]
+    public async Task An_account_that_cannot_afford_a_paid_flip_keeps_its_money_and_its_card()
+    {
+        var world = new World(purse: FixturePrice - 1);
+
+        var refused = await world.Flip(ClearRewardCardKind.Paid, 0);
+
+        Assert.Equal(SelectCardStatus.NotEnoughGold, refused.Status);
+        Assert.Empty(refused.Slots);
+        Assert.Equal(0, refused.GoldCharged);
+        Assert.Equal(FixturePrice - 1, world.Purse.Total);
+        Assert.Empty(world.Bag.Slots);
+
+        await world.Purse.AddAsync(Identity.AccountId, 1, CancellationToken.None);
+        Assert.Equal(
+            SelectCardStatus.Flipped, (await world.Flip(ClearRewardCardKind.Paid, 0)).Status);
+    }
+
+    /// <summary>
+    /// A paid flip at a level nothing prices is refused rather than given away.
+    /// </summary>
+    /// <remarks>
+    /// The archive answers nothing for a level it does not list, which is not the same as pricing
+    /// it at nothing. Refusing keeps that distinction: a flip this server could not price is one
+    /// it does not hand out, and the result screen already told the client as much.
+    /// </remarks>
+    [Fact]
+    public async Task A_paid_flip_at_an_unpriced_level_is_refused_rather_than_free()
+    {
+        var world = new World(paidFlipPrice: null);
+
+        var result = await world.Flip(ClearRewardCardKind.Paid, 0);
+
+        Assert.Equal(SelectCardStatus.NotPriced, result.Status);
+        Assert.Equal(StartingPurse, world.Purse.Total);
+        Assert.Equal(0, world.Purse.Charges);
+        Assert.Empty(world.Bag.Slots);
+    }
+
+    /// <summary>
+    /// A charge whose claim was lost afterwards is handed back.
+    /// </summary>
+    /// <remarks>
+    /// The one order in which money can move without a card moving: the position was unclaimed
+    /// when the price was taken and gone by the time the claim was made. Charging after the claim
+    /// instead would not fix it -- a claim cannot be given back, because the card has been shown.
+    /// So the price is what is given back.
+    /// </remarks>
+    [Fact]
+    public async Task A_paid_flip_that_lost_its_position_is_given_its_money_back()
+    {
+        var world = new World(claimsAreLost: true);
+
+        var result = await world.Flip(ClearRewardCardKind.Paid, 0);
+
+        Assert.Equal(SelectCardStatus.AlreadyFlipped, result.Status);
+        Assert.Equal(1, world.Purse.Charges);
+        Assert.Equal(StartingPurse, world.Purse.Total);
+    }
+
+    /// <summary>
+    /// A paid flip asks the rules nothing either, because its price was fixed with its faces.
+    /// </summary>
+    /// <remarks>
+    /// The counterpart of the free flip's "asks the rules nothing", and it says the same thing --
+    /// which it did not while the price was worked out afresh on every flip. A flip that went back
+    /// to the rules for a figure would fail here rather than quietly charge a price the result
+    /// screen never announced, and the flip is charged all the same, so this is not a flip that
+    /// merely skipped the question.
+    /// </remarks>
+    [Fact]
+    public async Task A_paid_flip_asks_the_rules_nothing_because_its_price_was_already_fixed()
+    {
+        var world = new World();
+
+        var result = await world.Flip(ClearRewardCardKind.Paid, 0);
+
+        Assert.Equal(0, world.RuleQuestions);
+        Assert.Equal(FixturePrice, result.GoldCharged);
+    }
+
+    /// <summary>
+    /// The command carries the account and the level the published session holds.
+    /// </summary>
+    /// <remarks>
+    /// Both are the handler's to fill in, and neither is the client's: the account is whose purse
+    /// pays and is paid, and the level is what the price is read at. The published level differs
+    /// from the one this file hands its own commands, so a handler that made one up would show.
+    /// </remarks>
+    [Fact]
+    public async Task The_command_carries_the_account_and_the_published_level()
+    {
+        var world = new World();
+        var sender = new RecordingSender();
+
+        await world.Handle(sender, ClearRewardCardKind.Free, 0);
+
+        Assert.NotNull(world.LastCommand);
+        Assert.Equal(Identity.AccountId, world.LastCommand.AccountId);
+        Assert.Equal(PublishedLevel, world.LastCommand.CharacterLevel);
+    }
+
+    /// <summary>A flip on a connection whose session was never published never reaches the run.</summary>
+    /// <remarks>
+    /// The identity alone is not enough now: the level a paid flip is priced at comes off the
+    /// published session, and a flip dispatched without one would be priced at whatever stood in
+    /// for it.
+    /// </remarks>
+    [Fact]
+    public async Task A_flip_without_a_published_entry_never_reaches_the_run()
+    {
+        var world = new World();
+        var sender = new RecordingSender();
+
+        await world.Handle(
+            sender, ClearRewardCardKind.Free, 1, runtimeSessions: new NoRuntimeSession());
+
+        Assert.Empty(sender.Sent);
+        Assert.Equal(0, world.Flips);
+    }
+
+    // ---- wiring ----------------------------------------------------------------------------
+
+    /// <summary>
+    /// The production graph can build the message registry, which is where an unhandled decoder
+    /// would show.
+    /// </summary>
+    /// <remarks>
+    /// The registry's own check is closure: every catalogue member a registered decoder declares it
+    /// can produce must have a registered handler, or building it throws. A decoder registered
+    /// without its handler is the exact shape of a half-finished slice, and nothing else in this
+    /// suite would notice it -- the frames would simply stop being answered on a live client.
+    /// </remarks>
+    [Fact]
+    public void The_card_protocols_are_wired_into_the_production_graph()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        var configuration = new ConfigurationBuilder().Build();
+        new ApplicationModule().ConfigureServices(services, configuration);
+        new InfrastructureModule().ConfigureServices(services, configuration);
+        new PersistenceModule().ConfigureServices(services, configuration);
+        new ProtocolModule().ConfigureServices(services, configuration);
+        using var provider = services.BuildServiceProvider();
+        var registry = provider.GetRequiredService<MessageHandlerRegistry>();
+
+        Assert.Equal(
+            typeof(CardSelectRightStateHandler),
+            registry.GetHandlerType(ClientMessageType.GameCardSelectRightState));
+        Assert.Equal(
+            typeof(SelectCardHandler),
+            registry.GetHandlerType(ClientMessageType.GameSelectCard));
+        // Transactional, not workflow. The flip puts a row in a bag, and the bag's own container
+        // refuses a write with no boundary open -- so this is not bookkeeping about which enum a
+        // registration carries, it is whether the arrival can happen at all. A claim marked taken
+        // whose piece never landed is the state the boundary exists to make impossible.
+        var registration = Assert.Single(
+            provider.GetServices<CommandHandlerRegistration>(),
+            value => value.CommandType == typeof(SelectCardCommand));
+        Assert.Equal(CommandExecutionKind.Transactional, registration.ExecutionKind);
+    }
+
+    // ---- fixtures --------------------------------------------------------------------------
+
+    private static byte[] Encode(ClearRewardCardKind kind, params ClearRewardCardSlot[] slots)
+    {
+        var frame = Assert.Single(
+            new SelectCardResponseEncoder().Encode(new SelectCardResponse(kind, slots)));
+        return frame[GameServerFrameEncoder.HeaderLength..];
+    }
+
+    private static ClearRewardCardSlot Held(int index, int itemId, int quantity) =>
+        new(index, new ClearRewardCardItem(
+            itemId, quantity, DropRarity.Common, Durability: HeldDurability));
+
+    private static ClearRewardCardSlot Empty(int index) => new(index, null);
+
+    private static NetworkDispatchContext Dispatch() =>
+        new(new NetworkConnectionContext(
+            new NetworkConnectionId("one"), NetworkEndpointKind.Game, 10010));
+
+    private static SelectedSessionIdentity Identity { get; } = SelectedSessionIdentity.Create(
+        new AccountId(1),
+        new CharacterId(60),
+        new NetworkConnectionId("one"),
+        connectionGeneration: 1,
+        listenerPort: 10010);
+
+    /// <summary>
+    /// A run with its cards already fixed, on the real services that keep them.
+    /// </summary>
+    /// <remarks>
+    /// The run registry and the card service are the production ones, not stand-ins. What "the same
+    /// position cannot be taken twice" means is decided in them, and a fixture that decided it here
+    /// would be asserting its own behaviour. The rule service is a stand-in that throws, because
+    /// nothing on this path may reach it.
+    /// </remarks>
+    private sealed class World
+    {
+        private static readonly MazeCell Cell = new(0, 0);
+
+        private static readonly DungeonLayout Layout = new(
+            DungeonId: 144,
+            MazeIndex: 0,
+            Width: 1,
+            Height: 1,
+            StartCell: Cell,
+            BossCell: Cell,
+            StartRoomMapId: 55611,
+            Seed: 0,
+            Rooms: new Dictionary<MazeCell, int> { [Cell] = 55611 },
+            BasisLevel: 5,
+            ExperienceWeight: 1.45);
+
+        private readonly DungeonRunDomainService _runs = new();
+        private readonly RefusingRules _rules;
+        private readonly SelectCardCommandHandler _handler;
+
+        public World(
+            bool inARun = true,
+            bool cardsFixed = true,
+            bool bagBound = true,
+            BagAnswer bagAnswer = BagAnswer.OpensASlot,
+            int purse = StartingPurse,
+            int? paidFlipPrice = FixturePrice,
+            bool claimsAreLost = false)
+        {
+            this._rules = new RefusingRules();
+            this.Bag = new Bag(bagAnswer);
+            this.Purse = new Purse(purse);
+
+            ICardRewardDomainService cards = new CardRewardDomainService(this._rules, this._runs);
+            this._handler = new SelectCardCommandHandler(
+                claimsAreLost ? new LosingCards(cards) : cards,
+                this._runs,
+                new StubContainers(bagBound ? this.Bag : null),
+                this.Purse,
+                new FixedClock(Flipped));
+
+            if (!inARun)
+                return;
+
+            this._runs.Begin(Identity.CharacterId, Layout, difficulty: 1);
+            if (cardsFixed)
+            {
+                // The price goes down with the faces, which is where a clear fixes it. Handing it
+                // to the run rather than to the rule service is not a shortcut: after settlement
+                // there is nothing left for the rules to be asked, which is what the fixture's
+                // rule service refusing every member now says.
+                this._runs.FixClearRewardCards(
+                    Identity.CharacterId,
+                    Face(ClearRewardCardKind.Free),
+                    Face(ClearRewardCardKind.Paid),
+                    paidFlipPrice);
+            }
+        }
+
+        /// <summary>The character's own bag, which is where a flipped piece has to end up.</summary>
+        public Bag Bag { get; }
+
+        /// <summary>The account's purse, which is where a flip's money goes both ways.</summary>
+        public Purse Purse { get; }
+
+        /// <summary>How many times the rules were asked anything, which must stay at zero.</summary>
+        public int RuleQuestions => this._rules.Questions;
+
+        /// <summary>How many flips reached the command, which a dropped frame must not raise.</summary>
+        public int Flips { get; private set; }
+
+        /// <summary>The last command that reached the handler, whoever built it.</summary>
+        public SelectCardCommand? LastCommand { get; private set; }
+
+        public ValueTask<SelectCardResult> Flip(ClearRewardCardKind kind, int index) =>
+            this.Send(
+                new SelectCardCommand(
+                    Identity.AccountId, Identity.CharacterId, kind, index, FlipLevel));
+
+        public async ValueTask<SelectCardResult> Send(SelectCardCommand command)
+        {
+            this.Flips++;
+            this.LastCommand = command;
+            return await this._handler.HandleAsync(
+                new CommandExecutionContext(
+                    Guid.NewGuid(),
+                    typeof(SelectCardCommand),
+                    typeof(SelectCardCommandHandler),
+                    CommandExecutionKind.Workflow),
+                command,
+                CancellationToken.None);
+        }
+
+        public async ValueTask Handle(
+            RecordingSender sender,
+            ClearRewardCardKind kind,
+            int index,
+            ISelectedSessionDirectory? sessions = null,
+            ISelectedSessionRuntimeDirectory? runtimeSessions = null)
+        {
+            var handler = new SelectCardHandler(
+                sessions ?? new OneSession(Identity),
+                runtimeSessions ?? new OneRuntimeSession(PublishedEntry()),
+                new OneCommandBus(this),
+                sender,
+                NullLogger<SelectCardHandler>.Instance);
+
+            await handler.HandleAsync(
+                Dispatch(),
+                new SelectCardRequest(GameMessageMetadata.Empty, kind, index),
+                CancellationToken.None);
+        }
+
+        /// <summary>
+        /// One face: a piece, nothing, a piece, nothing.
+        /// </summary>
+        /// <remarks>
+        /// Both shapes on one face on purpose. A face that was all pieces or all empty would let an
+        /// encoder that wrote one record per piece look correct.
+        /// </remarks>
+        private static ClearRewardCardFace Face(ClearRewardCardKind kind) =>
+            new(kind, [Held(0, FirstItemId, 1), Empty(1), Held(2, SecondItemId, 2), Empty(3)]);
+    }
+
+    /// <summary>A bus that carries exactly the one command this slice sends.</summary>
+    private sealed class OneCommandBus(World world) : ICommandBus
+    {
+        public async ValueTask<TResult> SendAsync<TResult>(
+            ICommand<TResult> command, CancellationToken cancellationToken = default)
+            where TResult : notnull
+        {
+            var flip = Assert.IsType<SelectCardCommand>(command);
+            var result = await world.Send(flip);
+            return (TResult)(object)result;
+        }
+    }
+
+    /// <summary>
+    /// A rule service that refuses every question, because a flip has none left to ask.
+    /// </summary>
+    /// <remarks>
+    /// Drawing a face is what may not happen on this path: the cards were fixed when the clear
+    /// settled and redrawing them would change what the player is looking at. The price is now in
+    /// the same position -- fixed with the faces and read back off them -- so asking what a flip
+    /// costs is a question about this clear that this clear already answered, and one that came
+    /// back with a different figure would be the server charging something other than it quoted.
+    /// Every question is counted as well as refused, so a test can say a flip asked none rather
+    /// than only that it survived asking.
+    /// </remarks>
+    private sealed class RefusingRules : IClearRewardRuleService
+    {
+        public int Questions { get; private set; }
+
+        public ClearRewardChance ChanceOf(ClearRewardOccasion occasion)
+        {
+            this.Questions++;
+            throw new NotSupportedException("Turning a card over may not ask the rules anything.");
+        }
+
+        public ClearRewardCardFace FaceFor(ClearRewardOccasion occasion, ulong seed)
+        {
+            this.Questions++;
+            throw new NotSupportedException("Turning a card over may not ask the rules anything.");
+        }
+
+        public int? PaidFlipCost(int dungeonBasisLevel)
+        {
+            this.Questions++;
+            throw new NotSupportedException("Turning a card over may not ask the rules anything.");
+        }
+
+        public ValueTask<bool> OffersPaidFlipAsync(
+            int dungeonId, CancellationToken cancellationToken)
+        {
+            this.Questions++;
+            throw new NotSupportedException("Turning a card over may not ask the rules anything.");
+        }
+    }
+
+    /// <summary>
+    /// The card service with its claim taken out from under it.
+    /// </summary>
+    /// <remarks>
+    /// The one shape the flip cannot produce on its own: a position that was unclaimed when the
+    /// price was taken and claimed by the time the claim was made. It is a race in production and
+    /// a wrapper here, because what it costs the player is the whole point of the test that uses
+    /// it.
+    /// </remarks>
+    private sealed class LosingCards(ICardRewardDomainService inner) : ICardRewardDomainService
+    {
+        public ValueTask<ClearRewardSettlementResult?> SettleAsync(
+            ClearRewardSettlement settlement, CancellationToken cancellationToken) =>
+            inner.SettleAsync(settlement, cancellationToken);
+
+        public ValueTask<ClearRewardCardSlot?> ClaimAsync(
+            CharacterId characterId,
+            ClearRewardCardKind kind,
+            int index,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ClearRewardCardSlot?>(null);
+    }
+
+    /// <summary>An account purse that remembers what it was given and what it paid.</summary>
+    /// <remarks>
+    /// A stand-in rather than the real service over SQLite, for the reason the bag beside it is
+    /// one: what is under test here is what this slice asks the purse for. That the purse itself
+    /// refuses a charge it cannot meet, and leaves the money alone when it does, is asserted
+    /// against the real store in the application and persistence tests. The refusal is modelled
+    /// the same way here so that a slice which stopped reading it would fail here too.
+    /// </remarks>
+    private sealed class Purse(int total) : IAccountMoneyService
+    {
+        public int Total { get; private set; } = total;
+
+        /// <summary>How many charges were attempted, met or not.</summary>
+        public int Charges { get; private set; }
+
+        public ValueTask<int> AddAsync(
+            AccountId accountId, int amount, CancellationToken cancellationToken)
+        {
+            this.Total += amount;
+            return ValueTask.FromResult(this.Total);
+        }
+
+        public ValueTask<int?> TrySpendAsync(
+            AccountId accountId, int amount, CancellationToken cancellationToken)
+        {
+            this.Charges++;
+            if (amount > this.Total)
+                return ValueTask.FromResult<int?>(null);
+
+            this.Total -= amount;
+            return ValueTask.FromResult<int?>(this.Total);
+        }
+    }
+
+    /// <summary>A published session standing at <see cref="PublishedLevel"/>.</summary>
+    private static SelectCharacterResult PublishedEntry()
+    {
+        var entry = SelectCharacterPayloadTestData.Create();
+        return entry with
+        {
+            Character = entry.Character with
+            {
+                Progression = new CharacterProgressionState(PublishedLevel, 0),
+            },
+        };
+    }
+
+    private sealed class OneRuntimeSession(SelectCharacterResult entry)
+        : ISelectedSessionRuntimeDirectory
+    {
+        public bool TryGet(
+            SelectedSessionIdentity session,
+            out SelectCharacterResult? result,
+            out bool shouldPersistPosition)
+        {
+            result = entry;
+            shouldPersistPosition = false;
+            return true;
+        }
+
+        public SelectCharacterResult GetRequired(SelectedSessionIdentity session) => entry;
+
+        public void ReplaceExact(SelectedSessionIdentity session, SelectCharacterResult result) =>
+            throw new NotSupportedException("Turning a card over does not rewrite the session.");
+
+        public void Publish(
+            SelectedSessionIdentity session, SelectCharacterResult result, bool persist) =>
+            throw new NotSupportedException("This fixture only answers.");
+
+        public bool RemoveExact(SelectedSessionIdentity session) =>
+            throw new NotSupportedException("This fixture only answers.");
+    }
+
+    private sealed class NoRuntimeSession : ISelectedSessionRuntimeDirectory
+    {
+        public bool TryGet(
+            SelectedSessionIdentity session,
+            out SelectCharacterResult? result,
+            out bool shouldPersistPosition)
+        {
+            result = null;
+            shouldPersistPosition = false;
+            return false;
+        }
+
+        public SelectCharacterResult GetRequired(SelectedSessionIdentity session) =>
+            throw new NotSupportedException("This fixture holds nothing.");
+
+        public void ReplaceExact(SelectedSessionIdentity session, SelectCharacterResult result) =>
+            throw new NotSupportedException("This fixture holds nothing.");
+
+        public void Publish(
+            SelectedSessionIdentity session, SelectCharacterResult result, bool persist) =>
+            throw new NotSupportedException("This fixture holds nothing.");
+
+        public bool RemoveExact(SelectedSessionIdentity session) =>
+            throw new NotSupportedException("This fixture holds nothing.");
+    }
+
+    private sealed class OneSession(SelectedSessionIdentity identity) : ISelectedSessionDirectory
+    {
+        public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => identity;
+
+        public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => identity;
+
+        public SelectedSessionIdentity? Find(AccountId accountId) => identity;
+
+        public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) => identity;
+
+        public IReadOnlyList<SelectedSessionIdentity> Current() => [identity];
+
+        public SelectedSessionIdentity? RegisterReplacing(SelectedSessionIdentity session) =>
+            throw new NotSupportedException("This fixture only answers.");
+
+        public bool TryRemoveExact(SelectedSessionIdentity session) =>
+            throw new NotSupportedException("This fixture only answers.");
+    }
+
+    private sealed class NoSession : ISelectedSessionDirectory
+    {
+        public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => null;
+
+        public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => null;
+
+        public SelectedSessionIdentity? Find(AccountId accountId) => null;
+
+        public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) => null;
+
+        public IReadOnlyList<SelectedSessionIdentity> Current() => [];
+
+        public SelectedSessionIdentity? RegisterReplacing(SelectedSessionIdentity session) =>
+            throw new NotSupportedException("This fixture only answers.");
+
+        public bool TryRemoveExact(SelectedSessionIdentity session) =>
+            throw new NotSupportedException("This fixture only answers.");
+    }
+
+    private sealed class RecordingSender : IGameMessageSender
+    {
+        public List<IGameServerMessage> Sent { get; } = [];
+
+        /// <summary>
+        /// What went out together, one entry per call.
+        /// </summary>
+        /// <remarks>
+        /// Kept apart from <see cref="Sent"/> because "the answer and the bag change go out in the
+        /// same exchange" is a claim about grouping, and a flat list of what was sent cannot tell
+        /// one exchange carrying two frames from two exchanges carrying one each.
+        /// </remarks>
+        public List<IReadOnlyList<IGameServerMessage>> Exchanges { get; } = [];
+
+        public ValueTask SendCmdAsync(
+            NetworkConnectionId connectionId,
+            IGameCmdMessage message,
+            CancellationToken cancellationToken)
+        {
+            this.Sent.Add(message);
+            this.Exchanges.Add([message]);
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask SendNotiAsync(
+            NetworkConnectionId connectionId,
+            IGameNotiMessage message,
+            CancellationToken cancellationToken)
+        {
+            this.Sent.Add(message);
+            this.Exchanges.Add([message]);
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask SendExplicitAsync(
+            NetworkConnectionId requiredDirectConnectionId,
+            GameExplicitMessageDelivery delivery,
+            CancellationToken cancellationToken)
+        {
+            this.Sent.AddRange(delivery.RequiredDirectMessages);
+            this.Exchanges.Add([.. delivery.RequiredDirectMessages]);
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    /// <summary>What the bag does with the piece it is offered.</summary>
+    public enum BagAnswer
+    {
+        /// <summary>It opens a slot of its own, which is what equipment gets.</summary>
+        OpensASlot,
+
+        /// <summary>It joins a pile that is already there, which carries its own durability.</summary>
+        JoinsAPile,
+
+        /// <summary>The band has nothing free.</summary>
+        NoRoom,
+
+        /// <summary>The archive declares nothing holdable under that identifier.</summary>
+        UnknownItem,
+    }
+
+    /// <summary>
+    /// A bag that answers one way, and remembers exactly what was written into it.
+    /// </summary>
+    /// <remarks>
+    /// A stand-in rather than the persistent container, for the reason the ground pick-up's tests
+    /// use one: the persistent container refuses a write with no transaction open, and what is under
+    /// test here is what this slice hands it, not how a row reaches SQLite.
+    /// </remarks>
+    private sealed class Bag(BagAnswer answer) : IItemContainer
+    {
+        /// <summary>The slot a pile already sits in, for the pile answer.</summary>
+        public const int PileSlot = 7;
+
+        /// <summary>What that pile carries before anything joins it.</summary>
+        public const ushort PileDurability = 11;
+
+        /// <summary>The slot an opened one takes, chosen so it cannot be confused with the pile's.</summary>
+        public const int OpenedSlot = 12;
+
+        public Dictionary<int, InventoryItemCoreState> Slots { get; } =
+            answer == BagAnswer.JoinsAPile
+                ? new Dictionary<int, InventoryItemCoreState>
+                {
+                    [PileSlot] = StackableItemCore.Create(2, FirstItemId, 1)
+                        with { Durability = PileDurability },
+                }
+                : [];
+
+        public ContainerId Id => new("bag");
+
+        public InventoryContainerType Type => InventoryContainerType.Main;
+
+        public ContainerShape Shape => new(InventoryContainerType.Main, 56);
+
+        public bool IsRemovable => false;
+
+        public ValueTask<ItemPlacementOutcome> AddAsync(
+            int itemId, int count, CancellationToken cancellationToken)
+        {
+            switch (answer)
+            {
+                case BagAnswer.OpensASlot:
+                    this.Slots[OpenedSlot] = StackableItemCore.Create(2, itemId, count);
+                    return ValueTask.FromResult<ItemPlacementOutcome>(
+                        new ItemPlacementOutcome.PutInEmptySlot(OpenedSlot, count));
+
+                case BagAnswer.JoinsAPile:
+                    var pile = this.Slots[PileSlot];
+                    this.Slots[PileSlot] = pile with { Value = pile.Value + count };
+                    return ValueTask.FromResult<ItemPlacementOutcome>(
+                        new ItemPlacementOutcome.AddedToPile(
+                            PileSlot, count, pile.Value + count));
+
+                case BagAnswer.NoRoom:
+                    return ValueTask.FromResult<ItemPlacementOutcome>(
+                        new ItemPlacementOutcome.NoRoom());
+
+                default:
+                    return ValueTask.FromResult<ItemPlacementOutcome>(
+                        new ItemPlacementOutcome.UnknownItem());
+            }
+        }
+
+        public ValueTask<ContainerSlotItem?> ReadSlotAsync(
+            int slotIndex, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(
+                this.Slots.TryGetValue(slotIndex, out var core)
+                    ? new ContainerSlotItem(slotIndex, core)
+                    : null);
+
+        public ValueTask PutAsync(
+            int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken)
+        {
+            this.Slots[slotIndex] = core;
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask<ContainerSlotPair> ReadSlotsAsync(
+            int firstSlotIndex, int secondSlotIndex, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("This fixture is only added to and read back.");
+
+        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException(
+                "The delta is built from what was written, not from the entry projection.");
+
+        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("This fixture is only added to and read back.");
+
+        public ValueTask ClearAsync(int slotIndex, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("This fixture is only added to and read back.");
+
+        public ValueTask<ItemPlacementOutcome> RefillAsync(
+            ItemRefill refill, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("This fixture is only added to and read back.");
+
+        public ValueTask<ItemMoveOutcome> MoveToAsync(
+            int fromSlotIndex, int toSlotIndex, int count, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("This fixture is only added to and read back.");
+    }
+
+    /// <summary>A character bound to one bag, or to none.</summary>
+    private sealed class StubContainers(IItemContainer? bag) : ICharacterContainerDomainService
+    {
+        public IItemContainer? FindContainer(
+            CharacterId characterId, InventoryContainerType type) => bag;
+
+        public IItemContainer GetContainer(CharacterId characterId, InventoryContainerType type) =>
+            bag ?? throw new InvalidOperationException("This character has no bag.");
+
+        public IReadOnlyList<IItemContainer> GetContainers(
+            CharacterId characterId, InventoryContainerType type) => bag is null ? [] : [bag];
+
+        public void Register(CharacterId characterId, IItemContainer container) =>
+            throw new NotSupportedException("This fixture only answers.");
+
+        public bool Remove(CharacterId characterId, ContainerId containerId) =>
+            throw new NotSupportedException("This fixture only answers.");
+
+        public bool UseContainer(CharacterId characterId, ContainerId containerId) =>
+            throw new NotSupportedException("This fixture only answers.");
+
+        public void Clear(CharacterId characterId) =>
+            throw new NotSupportedException("This fixture only answers.");
+    }
+
+    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
+    }
+}

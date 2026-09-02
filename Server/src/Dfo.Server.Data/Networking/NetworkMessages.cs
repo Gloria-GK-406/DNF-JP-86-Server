@@ -68,6 +68,11 @@ public enum ClientMessageType
     // Game/DungeonClear.
     GameScoreScrollState = 0x0001_0045,
 
+    // Asking for the card panel's layout, and turning one of its cards over.
+    // See Game/CardReward.
+    GameCardSelectRightState = 0x0001_0046,
+    GameSelectCard = 0x0001_0047,
+
     // The button that walks a character out of a finished run. See Game/DungeonClear.
     GameEplpCommand = 0x0001_0048,
 
@@ -194,6 +199,11 @@ public enum ServerMessageType
     GameScoreScrollState = 0x0001_0045,
     GameEplpCommand = 0x0001_0048,
     GameGiveUpGame = 0x0001_002A,
+
+    // The card panel's layout, and what every one of its positions turned out to hold.
+    // See Game/CardReward.
+    GameCardSelectRightState = 0x0001_0046,
+    GameSelectCard = 0x0001_0047,
 
     // Why the character is not going into the dungeon they picked. See Game/DungeonEntry.
     GameSelectDungeon = 0x0001_0010,

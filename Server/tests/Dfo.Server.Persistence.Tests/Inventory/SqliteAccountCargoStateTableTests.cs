@@ -134,4 +134,104 @@ public sealed class SqliteAccountCargoStateTableTests
             Discard(path);
         }
     }
+
+    /// <summary>An account carrying the price pays it, and is lighter by exactly that much.</summary>
+    [Fact]
+    public async Task An_account_that_can_pay_is_left_lighter_by_the_price()
+    {
+        var (table, path) = Open();
+        try
+        {
+            await table.AddValue32Async(Account, 500, CancellationToken.None);
+
+            Assert.Equal(380, await table.TryTakeValue32Async(Account, 120, CancellationToken.None));
+
+            var row = Assert.Single(
+                await table.ReadByAccountAsync(Account, CancellationToken.None));
+            Assert.Equal(380, row.Value32);
+        }
+        finally
+        {
+            Discard(path);
+        }
+    }
+
+    /// <summary>The last coin can be spent; an empty purse is a purse that paid.</summary>
+    /// <remarks>
+    /// The boundary of the condition. A take that required the account to have more than the price
+    /// would refuse exactly the player who can just afford something, which is the one case a
+    /// charge has to get right.
+    /// </remarks>
+    [Fact]
+    public async Task Paying_out_the_whole_purse_is_paying_and_not_refusing()
+    {
+        var (table, path) = Open();
+        try
+        {
+            await table.AddValue32Async(Account, 120, CancellationToken.None);
+
+            Assert.Equal(0, await table.TryTakeValue32Async(Account, 120, CancellationToken.None));
+        }
+        finally
+        {
+            Discard(path);
+        }
+    }
+
+    /// <summary>
+    /// An account short of the price refuses, and the addition in its place would have emptied it.
+    /// </summary>
+    /// <remarks>
+    /// <b>The whole reason there are two statements rather than one.</b> Both halves are asserted
+    /// on the same purse and in the same test, because apart they prove nothing: that a take
+    /// refuses is only worth something beside the fact that the addition clamps at zero and
+    /// answers a total, which a caller cannot tell from a charge that went through. The order is
+    /// take first -- the take must leave the purse untouched for the addition after it to have
+    /// the same purse to empty.
+    /// </remarks>
+    [Fact]
+    public async Task An_account_short_of_the_price_keeps_every_coin_where_adding_would_empty_it()
+    {
+        var (table, path) = Open();
+        try
+        {
+            await table.AddValue32Async(Account, 100, CancellationToken.None);
+
+            Assert.Null(await table.TryTakeValue32Async(Account, 101, CancellationToken.None));
+
+            var afterTheRefusal = Assert.Single(
+                await table.ReadByAccountAsync(Account, CancellationToken.None));
+            Assert.Equal(100, afterTheRefusal.Value32);
+
+            Assert.Equal(0, await table.AddValue32Async(Account, -101, CancellationToken.None));
+        }
+        finally
+        {
+            Discard(path);
+        }
+    }
+
+    /// <summary>
+    /// An account that has never held money cannot pay, but can be charged nothing.
+    /// </summary>
+    /// <remarks>
+    /// Its row does not exist, and the column it would carry defaults to zero -- which is what a
+    /// new account has. So a price above zero is more than it holds, and a price of zero is not.
+    /// </remarks>
+    [Fact]
+    public async Task An_account_with_no_purse_can_pay_nothing_and_nothing_only()
+    {
+        var (table, path) = Open();
+        try
+        {
+            Assert.Null(await table.TryTakeValue32Async(Account, 1, CancellationToken.None));
+            Assert.Equal(0, await table.TryTakeValue32Async(Account, 0, CancellationToken.None));
+
+            Assert.Empty(await table.ReadByAccountAsync(Account, CancellationToken.None));
+        }
+        finally
+        {
+            Discard(path);
+        }
+    }
 }

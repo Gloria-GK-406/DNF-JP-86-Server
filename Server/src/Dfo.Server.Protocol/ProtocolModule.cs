@@ -29,6 +29,7 @@ using Dfo.Server.Protocol.Game.FinishLoading;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Dfo.Server.Protocol.Game.TutorialLevelUp;
 using Dfo.Server.Protocol.Game.UnansweredReports;
+using Dfo.Server.Protocol.Game.CardReward;
 using Dfo.Server.Protocol.Game.DungeonClear;
 using Dfo.Server.Protocol.Game.GroundPickup;
 using Dfo.Server.Protocol.Game.MonsterDeath;
@@ -187,6 +188,14 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<
             GrantTutorialLevelCommand, TutorialLevelUpResult, GrantTutorialLevelCommandHandler>(
             CommandExecutionKind.Transactional);
+        // Turning a card over now hands the piece behind it to the character's bag, which is the
+        // moment the note left here foresaw: a claim on a run alone is memory, and a row in a bag
+        // is not. Transactional from that change onwards, on the same reading the ground pick-up
+        // was given -- the claim and the row are one change, and a position marked taken whose
+        // piece never arrived anywhere is the thing to avoid. The bag's own container refuses a
+        // write with no boundary open, so this is what makes the arrival possible at all.
+        services.AddCommandHandler<SelectCardCommand, SelectCardResult, SelectCardCommandHandler>(
+            CommandExecutionKind.Transactional);
     }
 
     /// <summary>Binds each catalogue member to the handler that consumes it.</summary>
@@ -237,6 +246,9 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<BossDieCheckHandler>(ClientMessageType.GameBossDieCheck);
         services.RegisterMessageHandler<ScoreScrollStateHandler>(
             ClientMessageType.GameScoreScrollState);
+        services.RegisterMessageHandler<CardSelectRightStateHandler>(
+            ClientMessageType.GameCardSelectRightState);
+        services.RegisterMessageHandler<SelectCardHandler>(ClientMessageType.GameSelectCard);
         services.RegisterMessageHandler<EplpCommandHandler>(ClientMessageType.GameEplpCommand);
         services.RegisterMessageHandler<GiveUpGameHandler>(ClientMessageType.GameGiveUpGame);
         services.RegisterMessageHandler<BackToVillageHandler>(ClientMessageType.GameBackToVillage);
@@ -373,6 +385,10 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.BossDieCheckType, ClientMessageType.GameBossDieCheck);
         services.AddGameCmdMessageDecoder<ScoreScrollStateDecoder>(
             GameProtocol.ScoreScrollStateType, ClientMessageType.GameScoreScrollState);
+        services.AddGameCmdMessageDecoder<CardSelectRightStateDecoder>(
+            GameProtocol.CardSelectRightStateType, ClientMessageType.GameCardSelectRightState);
+        services.AddGameCmdMessageDecoder<SelectCardDecoder>(
+            GameProtocol.SelectCardType, ClientMessageType.GameSelectCard);
         services.AddGameCmdMessageDecoder<EplpCommandDecoder>(
             GameProtocol.EplpCommandType, ClientMessageType.GameEplpCommand);
         services.AddGameCmdMessageDecoder<GiveUpGameDecoder>(
@@ -479,6 +495,9 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<TutorialLevelUpResponse, TutorialLevelUpResponseEncoder>();
         services.AddGameCmdMessageEncoder<
             ScoreScrollStateResponse, ScoreScrollStateResponseEncoder>();
+        services.AddGameCmdMessageEncoder<
+            CardSelectRightStateResponse, CardSelectRightStateResponseEncoder>();
+        services.AddGameCmdMessageEncoder<SelectCardResponse, SelectCardResponseEncoder>();
         services.AddGameCmdMessageEncoder<EplpCommandResponse, EplpCommandResponseEncoder>();
         services.AddGameCmdMessageEncoder<GiveUpGameResponse, GiveUpGameResponseEncoder>();
         services.AddGameCmdMessageEncoder<SelectDungeonRefusal, SelectDungeonRefusalEncoder>();

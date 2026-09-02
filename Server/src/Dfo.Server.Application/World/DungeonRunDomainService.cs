@@ -119,6 +119,77 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
     }
 
     /// <remarks>
+    /// The same compare-and-swap as everything else here. What differs is the answer to a second
+    /// arrival: a claim and a settle refuse it, and this one hands back the faces the run already
+    /// has. Two result reports racing must leave one pair of faces standing, not two, and the
+    /// loser of the race is answered with the winner's rather than with nothing.
+    /// <para>
+    /// The price goes in the same swap as the faces, which is what makes it impossible for a run
+    /// to hold one clear's cards and another clear's price. The loser of a race is answered with
+    /// the winner's price for the same reason it is answered with the winner's faces: the player
+    /// was shown one pair and quoted one figure, and both belong to whichever settlement got there
+    /// first.
+    /// </para>
+    /// </remarks>
+    public DungeonRunState? FixClearRewardCards(
+        CharacterId characterId,
+        ClearRewardCardFace free,
+        ClearRewardCardFace paid,
+        int? paidFlipCost)
+    {
+        ArgumentNullException.ThrowIfNull(free);
+        ArgumentNullException.ThrowIfNull(paid);
+
+        while (true)
+        {
+            if (!_runs.TryGetValue(characterId, out var current))
+                return null;
+
+            if (current.ClearRewardCards is not null)
+                return current;
+
+            var carded = current with
+            {
+                ClearRewardCards = new ClearRewardCardSet(
+                    free, paid, ImmutableHashSet<ClearRewardCardId>.Empty, paidFlipCost),
+            };
+            if (_runs.TryUpdate(characterId, carded, current))
+                return carded;
+        }
+    }
+
+    /// <remarks>
+    /// The same compare-and-swap the pick-up uses, and for the same reason: two requests naming
+    /// one card must not both come away with it. What is remembered is the position, not what was
+    /// behind it -- the faces are fixed and say that themselves.
+    /// </remarks>
+    public ClearRewardCardSlot? TryClaimClearRewardCard(
+        CharacterId characterId, ClearRewardCardKind kind, int index)
+    {
+        while (true)
+        {
+            if (!_runs.TryGetValue(characterId, out var current))
+                return null;
+            if (current.ClearRewardCards is not { } cards)
+                return null;
+            if (cards.SlotAt(kind, index) is not { } slot)
+                return null;
+
+            var claimed = cards.Claimed;
+            var id = new ClearRewardCardId(kind, index);
+            if (claimed.Contains(id))
+                return null;
+
+            var taken = current with
+            {
+                ClearRewardCards = cards with { Claimed = claimed.Add(id) },
+            };
+            if (_runs.TryUpdate(characterId, taken, current))
+                return slot;
+        }
+    }
+
+    /// <remarks>
     /// The same compare-and-swap as everything else here, and it matters more: two kills answered
     /// at once must not be handed the same number, and unlike a claim a number cannot be worked
     /// out again to notice the clash.

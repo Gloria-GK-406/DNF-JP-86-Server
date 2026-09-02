@@ -68,6 +68,9 @@ public sealed class InfrastructureModule : IServerModule
             provider => provider.GetRequiredService<PvfDropRateTableSource>());
         services.TryAddSingleton<IGoldDropTableSource>(
             provider => provider.GetRequiredService<PvfDropRateTableSource>());
+        // Another file of that family, read by itself: its bands are named profiles rather than
+        // parallel rates, so it gets its own reader rather than another path into the one above.
+        services.TryAddSingleton<IClearRewardRateSource, PvfClearRewardRateSource>();
         services.TryAddSingleton<IDropItemPoolSource, PvfDropItemPoolSource>();
         services.TryAddSingleton<IEquipmentSlotDefinitionSource, PvfEquipmentSlotDefinitionSource>();
         services.TryAddSingleton<IDungeonExperienceProgressionPolicySource,

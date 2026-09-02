@@ -402,7 +402,7 @@ public sealed class SelectCharacterAcceptedTranscriptTests
         EncodeThroughRegisteredEncoders(SelectedCharacterStateMessageFactory.Create(result));
 
     private static IReadOnlyList<byte[]> EncodeThroughRegisteredEncoders(
-        IReadOnlyList<GameStateSynchronizationMessage> messages)
+        IReadOnlyList<IGameServerMessage> messages)
     {
         var services = new ServiceCollection();
         new ProtocolModule().ConfigureServices(services, new ConfigurationBuilder().Build());

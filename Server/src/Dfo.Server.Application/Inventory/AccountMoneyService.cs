@@ -4,15 +4,30 @@ using Dfo.Server.Data.Accounts;
 
 namespace Dfo.Server.Application.Inventory;
 
-/// <summary>Adds to the account's purse, in one statement.</summary>
+/// <summary>Moves money into and out of the account's purse, one statement at a time.</summary>
 /// <remarks>
-/// Thin on purpose. The clamping and the addition both happen in the store, because two pickups
+/// Thin on purpose. Both directions happen in the store rather than here, because two pickups
 /// answered at once must not each add to the same total they both read -- and a purse that lost a
-/// coin to a race is the kind of defect nobody can reconstruct afterwards.
+/// coin to a race is the kind of defect nobody can reconstruct afterwards. The same reasoning is
+/// what keeps the check on a charge in the store: a balance read here and acted on afterwards
+/// would let two charges both pass a test only one of them could afford.
 /// </remarks>
 internal sealed class AccountMoneyService(IAccountCargoStateTable cargo) : IAccountMoneyService
 {
     public ValueTask<int> AddAsync(
         AccountId accountId, int amount, CancellationToken cancellationToken) =>
         cargo.AddValue32Async(accountId, amount, cancellationToken);
+
+    /// <remarks>
+    /// The refusal is the store's answer, not a comparison made here. What this adds is the guard
+    /// on the sign: a negative amount would reach the store as a take of negative money, which the
+    /// store's own condition treats as affordable and its subtraction turns into a gift.
+    /// </remarks>
+    public ValueTask<int?> TrySpendAsync(
+        AccountId accountId, int amount, CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(amount);
+
+        return cargo.TryTakeValue32Async(accountId, amount, cancellationToken);
+    }
 }

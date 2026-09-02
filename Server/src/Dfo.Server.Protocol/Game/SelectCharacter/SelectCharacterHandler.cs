@@ -255,9 +255,7 @@ public sealed class SelectCharacterHandler(
             await sender.SendExplicitAsync(
                 session.ConnectionId,
                 new GameExplicitMessageDelivery(
-                    inventory.CommittedUpdates.Select(value => (IGameServerMessage)
-                        new InventoryDeltaMessage(
-                            value.ContainerType, value.Items, value.PreparedAt)).ToArray(),
+                    GameInventoryDelivery.Notifications(inventory.CommittedUpdates),
                     []),
                 cancellationToken).ConfigureAwait(false);
         }

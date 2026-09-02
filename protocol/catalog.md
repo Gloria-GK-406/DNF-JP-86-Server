@@ -46,6 +46,8 @@
 | `0x01` | `0x0010` | `SELECT_DUNGEON` | Query / 有响应 | **已观察，未实现**（开副本运行） | [0x0010.md](game/client-to-server/0x0010.md) |
 | `0x01` | `0x0023` | `SET_USER_POSITION` | Report / A12 无响应，A21 推 `NOTI 0x0016` | 实现服务端功能 | [0x0023.md](game/client-to-server/0x0023.md) |
 | `0x01` | `0x003F` | `CERA` | Report / 无响应 | 实现服务端功能 | [0x003F.md](game/client-to-server/0x003F.md) |
+| `0x01` | `0x0046` | `CARD_SELECT_RIGHT_STATE` | Query / 有响应；**另在 `0x0045` 的应答之后主动追发一帧** | 实现服务端功能 | [0x0046.md](game/client-to-server/0x0046.md) |
+| `0x01` | `0x0047` | `SELECT_CARD` | Mutation / 有响应（认领不到牌位时不答） | 实现服务端功能 | [0x0047.md](game/client-to-server/0x0047.md) |
 | `0x01` | `0x008F` | `CHANGE_TUTORIAL_FLAG` | Report / 无响应 | 双向验证结束 | [0x008F.md](game/client-to-server/0x008F.md) |
 | `0x01` | `0x00AB` | `CLIENT_SPEC_STATISTIC` | Report / 无响应 | 双向验证结束 | [0x00AB.md](game/client-to-server/0x00AB.md) |
 | `0x01` | `0x00C2` | `FRAME_LAG_STATISTICS` | Report / 无响应 | 双向验证结束 | [0x00C2.md](game/client-to-server/0x00C2.md) |
@@ -79,7 +81,7 @@
 | `0x00` NOTI | `0x001B` | 进图选择状态 | Notification | 实现服务端功能（A21：37 字节，随 `0x0010` 的回包发） | [NOTI-0x001B.md](game/server-to-client/NOTI-0x001B.md) |
 | `0x00` NOTI | `0x007C` | `ENTER_GAMEWORLD_COMPLETE` | **阶段闸点** | 双向验证结束 | [NOTI-0x007C.md](game/server-to-client/NOTI-0x007C.md) |
 | `0x00` NOTI | `0x0009` | `PARTY_INFO` | Notification | 实现服务端功能 | [NOTI-0x0009.md](game/server-to-client/NOTI-0x0009.md) |
-| `0x00` NOTI | `0x000E` | `UPDATE_ITEM_LIST` | Notification | 实现服务端功能（发当日补给的真实增量；批次里的空信封已撤） | [NOTI-0x000E.md](game/server-to-client/NOTI-0x000E.md) |
+| `0x00` NOTI | `0x000E` | `UPDATE_ITEM_LIST` | Notification | 实现服务端功能（两个调用方：当日补给的真实增量、翻牌到货；批次里的空信封已撤） | [NOTI-0x000E.md](game/server-to-client/NOTI-0x000E.md) |
 | `0x00` NOTI | `0x0016` | `USER_POSITION` | Notification / 兼作 `0x0023` 的应答 | 实现服务端功能 | [NOTI-0x0016.md](game/server-to-client/NOTI-0x0016.md) |
 | `0x00` NOTI | `0x00CA` | `VILLAGE_OBJECT_LIST` | Notification | 实现服务端功能 | [NOTI-0x00CA.md](game/server-to-client/NOTI-0x00CA.md) |
 | `0x00` NOTI | `0x0165` | `CHARAC_INVISIBLE_FALGS` | Notification | 实现服务端功能 | [NOTI-0x0165.md](game/server-to-client/NOTI-0x0165.md) |

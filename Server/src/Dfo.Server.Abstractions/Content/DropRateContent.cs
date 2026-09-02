@@ -43,9 +43,12 @@ public sealed record DropRateBand(int LowLevel, int HighLevel, IReadOnlyList<int
 /// </summary>
 /// <remarks>
 /// The archive writes one group as N thresholds followed by one more number, and that last number
-/// is the basis: every group in this archive satisfies "basis = last threshold + 1". A roll is an
-/// integer from one up to <see cref="HighestRoll"/>, and the band it lands in is the first
-/// threshold it does not exceed.
+/// is the basis. Every group read through this type closes that way -- "basis = last threshold +
+/// 1" -- but that is the shape of the groups being read rather than a rule the family keeps: the
+/// abyss table satisfies it in neither of its two groups, closing 1000001 after 1000001 in one
+/// and 1000001 after 1000002 in the other, and is refused rather than read. A roll is an integer
+/// from one up to <see cref="HighestRoll"/>, and the band it lands in is the first threshold it
+/// does not exceed.
 /// <para>
 /// <b>The basis is read, never assumed.</b> The reference server hard-codes a million against a
 /// basis of 1000003, which puts its highest roll one short of the epic band and two short of the
@@ -110,9 +113,15 @@ public readonly record struct ItemGradeBand(int Low, int High)
 /// One of the archive's <c>itemdropinfo_*.etc</c> tables, read.
 /// </summary>
 /// <remarks>
-/// Four of the five files in this family share this shape exactly -- monster, monster-extra,
-/// breakable object and clear reward -- and the abyss table does not. Nothing here is specific to
-/// monsters; which file was read is the caller's choice.
+/// Three of the family's seven files are read through this one: monster, monster-extra and
+/// breakable object. The first two declare every section this record holds; the breakable-object
+/// table declares all of them but <c>[party member drop bonusrate]</c>, which is absent from it
+/// and comes back as <see cref="UnlistedRate"/> rather than as a rate of somebody else's. The
+/// abyss table declares a difficulty-keyed section where the three declare <c>[drop prob]</c>;
+/// the common and control files declare it not at all; and the clear-reward table declares named
+/// profiles of one rate each, so it is read by <c>IClearRewardRateSource</c> rather than by this
+/// one -- see <see cref="DropRateTables.ClearReward"/>. Nothing here is specific to monsters;
+/// which file was read is the caller's choice, but it must be one of the three.
 /// </remarks>
 /// <param name="ArchivePath">Which file this was read from, so a log can say.</param>
 /// <param name="LevelBands">The bands, in declaration order.</param>
@@ -197,9 +206,11 @@ public static class DropRateTables
     public const string BreakableObject = "etc/itemdropinfo_object.etc";
 
     /// <summary>
-    /// The clear-reward table. Same sections, but its <c>[drop prob]</c> is not the same shape: it
-    /// declares named profiles of one rate each rather than bands of five, so the card flip needs
-    /// its own reading of that one section rather than this file swapped for that one.
+    /// The clear-reward table. Not the same sections: seven of its sixteen are the family's and
+    /// the other nine are declared by no other file of it. One of the seven it declares
+    /// differently -- its <c>[drop prob]</c> is named profiles of one rate each rather than bands
+    /// of five -- so the card flip is read by <c>IClearRewardRateSource</c> rather than by handing
+    /// this path to <see cref="IDropRateTableSource"/>.
     /// </summary>
     public const string ClearReward = "etc/itemdropinfo_clearreward.etc";
 }

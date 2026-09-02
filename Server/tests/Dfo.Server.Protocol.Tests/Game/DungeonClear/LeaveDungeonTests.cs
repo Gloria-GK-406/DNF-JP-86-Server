@@ -335,6 +335,17 @@ public sealed class LeaveDungeonTests
 
         public DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber) =>
             throw new NotSupportedException("This fixture only ends.");
+
+        public DungeonRunState? FixClearRewardCards(
+            CharacterId characterId,
+            ClearRewardCardFace free,
+            ClearRewardCardFace paid,
+            int? paidFlipCost) =>
+            throw new NotSupportedException("This fixture only ends.");
+
+        public ClearRewardCardSlot? TryClaimClearRewardCard(
+            CharacterId characterId, ClearRewardCardKind kind, int index) =>
+            throw new NotSupportedException("This fixture only ends.");
     }
 
     private sealed class OneSession(SelectedSessionIdentity identity) : ISelectedSessionDirectory

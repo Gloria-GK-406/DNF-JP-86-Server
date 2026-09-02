@@ -95,6 +95,50 @@ internal sealed class SqliteAccountCargoStateTable(SqliteDatabase database)
 
         return rows.Count > 0 ? rows[0] : 0;
     }
+
+    /// <remarks>
+    /// One statement again, and for a second reason on top of the first: the condition that says
+    /// the account can pay and the subtraction that makes it pay are the same statement, so two
+    /// charges answered at once cannot both read a total that only covers one of them.
+    /// <para>
+    /// <b>Not the addition with a negative amount.</b> That one clamps at zero, so an account
+    /// short of the price would be emptied and answer with a total, which a caller cannot tell
+    /// from a charge that went through. Here the row is only touched when
+    /// <c>value32 &gt;= @amount</c> holds, so a refusal writes nothing at all and the purse is
+    /// left where it was.
+    /// </para>
+    /// <para>
+    /// No row matched means one of two things -- the account is short, or it has no row at all --
+    /// and both are the same answer for any real price: an account with no row carries nothing.
+    /// The single exception is a take of zero, which every purse including an unopened one can
+    /// afford, so it answers with the zero such an account carries rather than opening it a row
+    /// to say the same thing.
+    /// </para>
+    /// </remarks>
+    public async ValueTask<int?> TryTakeValue32Async(
+        AccountId accountId, int amount, CancellationToken cancellationToken)
+    {
+        var rows = await database.ReadAllAsync(
+            """
+            UPDATE account_cargo_state SET
+                value32 = value32 - @amount,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE account_id = @accountId AND value32 >= @amount
+            RETURNING value32;
+            """,
+            parameters =>
+            {
+                parameters.AddWithValue("@accountId", accountId.Value);
+                parameters.AddWithValue("@amount", amount);
+            },
+            reader => reader.GetInt32(0),
+            cancellationToken).ConfigureAwait(false);
+
+        if (rows.Count > 0)
+            return rows[0];
+
+        return amount == 0 ? 0 : null;
+    }
 }
 
 /// <summary>The gold caps, read from <c>character_stats</c> where they now live.</summary>

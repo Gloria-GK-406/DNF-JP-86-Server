@@ -54,7 +54,7 @@ public sealed class SupplementalSynchronizationTests
         var update = new InventoryDeltaMessage(
             Dfo.Server.Data.Inventory.InventoryContainerType.Main, [item], prepared.World.PreparedAt);
         var updateFrame = Assert.Single(
-            new GameNotiStateSynchronizationEncoder<InventoryDeltaMessage>().Encode(update));
+            new InventoryDeltaEncoder().Encode(update));
         Assert.Equal((ushort)0x000E, Type(updateFrame));
         Assert.Equal((byte)Dfo.Server.Data.Inventory.InventoryContainerType.Main, Body(updateFrame)[0]);
         Assert.Equal((ushort)1, BinaryPrimitives.ReadUInt16LittleEndian(Body(updateFrame).AsSpan(1)));

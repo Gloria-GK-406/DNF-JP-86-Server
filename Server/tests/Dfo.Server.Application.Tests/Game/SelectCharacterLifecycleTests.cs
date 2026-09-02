@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Tests.Characters;
@@ -59,6 +60,29 @@ public sealed class SelectCharacterLifecycleTests
         Assert.NotNull(fixture.Directory.Find(fixture.AccountId));
         Assert.Equal(result.Character, fixture.Active.GetRequired(fixture.AccountId));
         Assert.Empty(fixture.Closer.Closed);
+    }
+
+    /// <summary>
+    /// A refill that committed something puts the bag change on the wire, in its own place.
+    /// </summary>
+    /// <remarks>
+    /// The frame is the one a cleared run's card reward now sends too, and it was moved out of the
+    /// state-synchronization slice so that both may send it. This is the entry path's half of that:
+    /// it still sends it, still after the refill and still before the post-marker tail. The
+    /// fixture's ordinary refill commits nothing, which is why this asks for one that does.
+    /// </remarks>
+    [Fact]
+    public async Task CommittedRefill_SendsTheBagChangeBetweenTheRefillAndTheTail()
+    {
+        var fixture = await Fixture.CreateAsync(refillCommits: true);
+
+        await fixture.Handler.HandleAsync(
+            fixture.Context, fixture.Command, CancellationToken.None);
+
+        Assert.Equal(
+            ["prepare", "position", "static", "inventory", "delta", "pre", "active", "publish",
+                "plan-pvp", "x11", "quest", "pet"],
+            fixture.Ledger);
     }
 
     [Fact]
@@ -453,7 +477,8 @@ public sealed class SelectCharacterLifecycleTests
             bool invalidWireIdentity = false,
             bool failPreparation = false,
             bool missingRoster = false,
-            bool missingSkillMirror = false)
+            bool missingSkillMirror = false,
+            bool refillCommits = false)
         {
             var accountId = new AccountId(501);
             var connectionId = new NetworkConnectionId("Game:lifecycle");
@@ -489,7 +514,7 @@ public sealed class SelectCharacterLifecycleTests
             var closer = new RecordingCloser(ledger);
             var cleanup = new RecordingCleanup(directory, active, ledger);
             var mutations = new CharacterMutations(ledger);
-            var inventory = new InventoryPreparation(result, ledger);
+            var inventory = new InventoryPreparation(result, ledger, refillCommits);
             var sender = new RecordingSender(
                 ledger, failTrailingLocks, failPvp, failPvpTarget, failStatic, blockStatic);
             var sessionEntry = new SessionEntry(ledger, planPvp);
@@ -662,9 +687,24 @@ public sealed class SelectCharacterLifecycleTests
             CancellationToken cancellationToken) => throw new InvalidOperationException();
     }
 
-    private sealed class InventoryPreparation(SelectCharacterResult result, List<string> ledger)
+    private sealed class InventoryPreparation(
+        SelectCharacterResult result, List<string> ledger, bool commitsRefill)
         : ISelectCharacterEntryInventoryDomainService
     {
+        /// <summary>
+        /// What a refill that actually topped the character up leaves behind.
+        /// </summary>
+        /// <remarks>
+        /// The fixture's own inventory is empty, so a committed change has to be stated here. It
+        /// exists so that the frame the handler builds from it -- the bag change the client is told
+        /// about -- has something to describe; without it the handler sends nothing and no test can
+        /// tell that road from a missing one.
+        /// </remarks>
+        private static readonly CommittedInventoryUpdateState RefillCommit = new(
+            InventoryContainerType.Main,
+            [new InventoryItemState(1, 3, StackableItemCore.Create(2, 1001, 1))],
+            DateTimeOffset.UnixEpoch);
+
         public int Claims { get; private set; }
         public int Saves { get; private set; }
         public ValueTask SaveExistingLeaseAsync(SelectedSessionIdentity previousSession,
@@ -683,7 +723,8 @@ public sealed class SelectCharacterLifecycleTests
             ledger.Add("inventory");
             Claims++;
             return ValueTask.FromResult(new EntryInventoryPreparation(
-                current with { CharacterInventory = result.CharacterInventory }, []));
+                current with { CharacterInventory = result.CharacterInventory },
+                commitsRefill ? [RefillCommit] : []));
         }
     }
 
@@ -896,10 +937,19 @@ public sealed class SelectCharacterLifecycleTests
                 return ValueTask.CompletedTask;
             var messageName = delivery.RequiredDirectMessages.FirstOrDefault()?.GetType().Name;
             var trailing = messageName == "TrailingEquipmentLockSnapshotMessage";
+            // The bag change the refill produced. Named apart from the rest because it is the one
+            // frame two protocols now share, and "it still goes out here" is what says the lift did
+            // not quietly drop the entry path's use of it.
+            var delta = messageName == "InventoryDeltaMessage";
             var pvp = messageName == "PvpLobbySnapshotMessage";
             var rejection = messageName == "EntryAdmissionRejectedCommandMessage";
             var target = delivery.BestEffortTargets.Count > 0;
-            ledger.Add(rejection ? "x08" : pvp ? "pvp" : target ? "target" : trailing ? "x11" : "pre");
+            ledger.Add(rejection ? "x08"
+                : pvp ? "pvp"
+                : target ? "target"
+                : trailing ? "x11"
+                : delta ? "delta"
+                : "pre");
             if (pvp && failPvp)
                 return ValueTask.FromException(new IOException("PvP direct delivery failed"));
             // The Networking sender owns target isolation; a target transport failure is

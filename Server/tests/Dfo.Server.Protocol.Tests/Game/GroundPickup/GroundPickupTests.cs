@@ -293,6 +293,21 @@ public sealed class GroundPickupTests
             this.Total += amount;
             return ValueTask.FromResult(this.Total);
         }
+
+        /// <remarks>
+        /// Nothing on a floor charges for anything, so this is here to be a purse rather than to be
+        /// exercised. It refuses the same way the real one does all the same: a stand-in that let a
+        /// charge through would make a caller that started making them look correct.
+        /// </remarks>
+        public ValueTask<int?> TrySpendAsync(
+            AccountId accountId, int amount, CancellationToken cancellationToken)
+        {
+            if (amount > this.Total)
+                return ValueTask.FromResult<int?>(null);
+
+            this.Total -= amount;
+            return ValueTask.FromResult<int?>(this.Total);
+        }
     }
 
     private sealed class StubRoomDrops(IReadOnlyList<DungeonRoomDrop> declared)

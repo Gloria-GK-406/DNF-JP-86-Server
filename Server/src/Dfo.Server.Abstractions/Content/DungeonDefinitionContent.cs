@@ -52,6 +52,32 @@ public sealed record MazeDefinition(
 /// dungeons and so cannot carry it; the dungeon names it under <c>[basis level]</c>, and most maps
 /// declare monster level zero and lean on it entirely.
 /// </param>
+/// <param name="OffersPaidCard">
+/// Whether a clear of this dungeon offers the paid card, from its <c>[gold card use]</c>.
+/// <para>
+/// <b>Defaulted to true, and the default is the archive's silence.</b> Five of the 1047 dungeons
+/// the list names declare this tag at all -- 100, 3503, 3700, 3901 and 3902 -- and every one of
+/// the five declares it as <c>0</c>. The other 1042 say nothing, and the price of a paid flip is
+/// declared away from the dungeon entirely, in <c>etc/itemdropinfo_clearreward.etc</c>'s
+/// <c>[gold card cost table]</c>, which prices every level. So the ordinary case is that a flip is
+/// offered and priced by that table, and a dungeon that declares nothing here is an ordinary case.
+/// </para>
+/// <para>
+/// <b>Which makes <c>0</c> the switch being turned off, and that direction is a reading rather
+/// than a declaration.</b> The argument for it is that the other direction is empty: if <c>0</c>
+/// meant "offer the paid card" it would restate the default and the five declarations would do
+/// nothing at all. No second source settles it -- the reference server parses this tag into a
+/// field (<c>86JP</c>: <c>Tool/PvfLib/Models/DungeonFile.cs</c>, defaulting it to <c>-1</c> rather
+/// than to either of the two values that occur) and then never reads that field anywhere in its
+/// server.
+/// </para>
+/// <para>
+/// <b>What a value other than zero would mean is unascertained</b>, because none occurs: the
+/// archive declares this tag five times and writes <c>0</c> five times. Anything else is therefore
+/// read as "not turned off" rather than as some third state, which is the reading that cannot
+/// invent a behaviour for a value nobody has seen.
+/// </para>
+/// </param>
 public sealed record DungeonDefinition(
     int DungeonId,
     string ArchivePath,
@@ -59,7 +85,8 @@ public sealed record DungeonDefinition(
     bool ConsumesFatigue,
     IReadOnlyList<MazeDefinition> Mazes,
     byte BasisLevel = 1,
-    double ExperienceWeight = 1.0);
+    double ExperienceWeight = 1.0,
+    bool OffersPaidCard = true);
 
 /// <summary>Reads dungeon declarations out of the content archive.</summary>
 public interface IDungeonDefinitionSource

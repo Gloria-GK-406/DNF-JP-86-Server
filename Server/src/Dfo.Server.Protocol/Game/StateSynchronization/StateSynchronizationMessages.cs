@@ -57,16 +57,6 @@ internal sealed record InventorySnapshotMessage(
         AccountSelectionKey, AccountValue32, PreparedAt);
 }
 
-internal sealed record InventoryDeltaMessage(
-    InventoryContainerType ContainerType,
-    IReadOnlyList<InventoryItemState> Items,
-    DateTimeOffset PreparedAt) : GameStateSynchronizationMessage, IGameNotiMessage
-{
-    internal override ushort Type => 0x000E;
-    internal override byte[] EncodeBody() =>
-        StateSynchronizationPayloadCodec.EncodeInventoryDelta(ContainerType, Items, PreparedAt);
-}
-
 internal sealed record CreatureListMessage(
     IReadOnlyList<CharacterPetRuntimeState> Pets) : GameStateSynchronizationMessage, IGameNotiMessage
 {
@@ -585,7 +575,6 @@ internal static class StateSynchronizationEncoderRegistration
     {
         AddCmd<CharacterEntryAcceptedMessage>(services);
         AddNoti<InventorySnapshotMessage>(services);
-        AddNoti<InventoryDeltaMessage>(services);
         AddNoti<CreatureListMessage>(services);
         AddNoti<CurrentUserStateMessage>(services);
         AddNoti<ExtendedUserStateMessage>(services);

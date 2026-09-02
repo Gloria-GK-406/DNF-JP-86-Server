@@ -1,0 +1,141 @@
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol.Game;
+using Microsoft.Extensions.Logging;
+
+namespace Dfo.Server.Protocol.Game.CardReward;
+
+/// <summary>
+/// Answers the layout request with the layout, whatever state the character is in.
+/// </summary>
+/// <remarks>
+/// Unconditionally, and for the reason the scroll's own acknowledgement is unconditional: this
+/// frame arrives once, at the end of a run, and the client has no way to ask again -- so a silence
+/// here is indistinguishable from the server not having the type, which is the defect being fixed.
+/// There is nothing to withhold either. The layout names positions and carries no item, so a
+/// character who somehow sent this outside a run is shown four backs and, having no cards fixed,
+/// gets nothing at all for turning one over.
+/// </remarks>
+public sealed class CardSelectRightStateHandler(
+    ISelectedSessionDirectory selectedSessions,
+    IGameMessageSender sender,
+    ILogger<CardSelectRightStateHandler> logger)
+    : ClientMessageHandler<CardSelectRightStateRequest>
+{
+    protected override async ValueTask HandleMessageAsync(
+        NetworkDispatchContext context,
+        CardSelectRightStateRequest message,
+        CancellationToken cancellationToken)
+    {
+        var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+
+        logger.LogInformation(
+            "Card layout {ConnectionId} character={CharacterId}: layout sent",
+            context.Connection.ConnectionId,
+            session?.CharacterId.Value);
+
+        await sender.SendCmdAsync(
+            context.Connection.ConnectionId,
+            new CardSelectRightStateResponse(),
+            cancellationToken).ConfigureAwait(false);
+    }
+}
+
+/// <summary>
+/// Turns one card over and answers with every position of the face it belonged to.
+/// </summary>
+/// <remarks>
+/// <b>A flip that hands nothing over is answered with nothing.</b> That is the reference server's
+/// behaviour and it is the right one here: the positions were revealed by the flip that did take
+/// something, and the client ignores a position it has already been shown, so a second answer would
+/// be a frame that changes nothing. Silence also keeps a request naming a run that does not exist
+/// from being told anything about one.
+/// <para>
+/// <b>The acknowledgement goes first and the bag change after it, in one exchange.</b> That order is
+/// the ground pick-up's, which is the reference server's: the client consumes the answer to what it
+/// asked and only then reads what changed underneath it. A position that held nothing sends the one
+/// frame alone -- there is no bag change to describe.
+/// </para>
+/// </remarks>
+public sealed class SelectCardHandler(
+    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionRuntimeDirectory runtimeSessions,
+    ICommandBus commandBus,
+    IGameMessageSender sender,
+    ILogger<SelectCardHandler> logger) : ClientMessageHandler<SelectCardRequest>
+{
+    protected override async ValueTask HandleMessageAsync(
+        NetworkDispatchContext context,
+        SelectCardRequest message,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+
+        var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+
+        // The published session as well as the identity, because a paid flip is priced by the
+        // level the character stands at and the level is one of the things a published session
+        // carries. Reading it here is a read of state this handler does not own and does not
+        // change; what is done with it is the command's.
+        if (session is null
+            || !runtimeSessions.TryGet(session, out var published, out _)
+            || published is null)
+        {
+            logger.LogWarning(
+                "Select card {ConnectionId}: no published session, ignoring {Kind} position {Index}",
+                context.Connection.ConnectionId,
+                message.Kind,
+                message.Index);
+            return;
+        }
+
+        var result = await commandBus.SendAsync(
+            new SelectCardCommand(
+                session.AccountId,
+                session.CharacterId,
+                message.Kind,
+                message.Index,
+                published.Character.Progression.Level),
+            cancellationToken).ConfigureAwait(false);
+
+        if (result.Status is not SelectCardStatus.Flipped)
+        {
+            logger.LogInformation(
+                "Select card {ConnectionId} character={CharacterId}: {Kind} position {Index} "
+                    + "handed nothing over, {Status}",
+                context.Connection.ConnectionId,
+                session.CharacterId.Value,
+                message.Kind,
+                message.Index,
+                result.Status);
+            return;
+        }
+
+        logger.LogInformation(
+            "Select card {ConnectionId} character={CharacterId}: {Kind} position {Index} taken, "
+                + "{Revealed} positions revealed, bag {Bag}, charged {Charged}, paid {Paid}",
+            context.Connection.ConnectionId,
+            session.CharacterId.Value,
+            message.Kind,
+            message.Index,
+            result.Slots.Count,
+            result.Delivered is null ? "unchanged" : "told",
+            result.GoldCharged,
+            result.GoldPaid);
+
+        await sender.SendExplicitAsync(
+            context.Connection.ConnectionId,
+            new GameExplicitMessageDelivery(
+                result.Delivered is { } delivered
+                    ?
+                    [
+                        new SelectCardResponse(result.Kind, result.Slots),
+                        GameInventoryDelivery.Notification(delivered),
+                    ]
+                    : [new SelectCardResponse(result.Kind, result.Slots)],
+                []),
+            cancellationToken).ConfigureAwait(false);
+    }
+}

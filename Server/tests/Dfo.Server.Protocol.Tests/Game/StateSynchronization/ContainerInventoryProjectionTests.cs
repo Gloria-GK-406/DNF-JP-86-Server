@@ -9,6 +9,7 @@ using Dfo.Server.Persistence.Characters;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
 using Dfo.Server.Persistence.Tests.Support;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Data.Sqlite;
 

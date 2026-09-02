@@ -160,6 +160,28 @@ public interface IAccountCargoStateTable
     /// </remarks>
     ValueTask<int> AddValue32Async(
         AccountId accountId, int amount, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Takes that much away if the account is carrying it, and answers what is left.
+    /// </summary>
+    /// <remarks>
+    /// <c>null</c> when the account was not carrying that much, and then nothing was written:
+    /// the condition and the subtraction are one statement, so no two takes can both pass a test
+    /// only one of them could afford.
+    /// <para>
+    /// <b>Separate from <see cref="AddValue32Async"/> rather than a negative amount handed to
+    /// it.</b> That statement holds its result at zero, which turns "could not pay" into "paid,
+    /// and is now empty" -- silently, and with the money gone. A caller charging for something
+    /// has to be able to tell those apart.
+    /// </para>
+    /// <para>
+    /// An account with no row carries nothing: every take above zero from it fails, and a take of
+    /// zero succeeds against the zero it carries without opening it a row. Taking nothing changes
+    /// nothing, so there is nothing to record.
+    /// </para>
+    /// </remarks>
+    ValueTask<int?> TryTakeValue32Async(
+        AccountId accountId, int amount, CancellationToken cancellationToken);
 }
 
 /// <summary>How much gold a character may hold and bid.</summary>

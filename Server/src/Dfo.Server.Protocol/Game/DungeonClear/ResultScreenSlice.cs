@@ -150,11 +150,11 @@ public sealed record ScoreScrollStateRequest(GameMessageMetadata Metadata) : ICl
 /// graph, so beyond that first byte the body's contents do not matter.
 /// <para>
 /// <b>The reference sends a second frame with it</b>, <c>CMD 0x0046</c>, carrying the card panel's
-/// layout. That one is not sent here: a layout presupposes rewards to lay out, and what a flip is
-/// worth belongs to a domain this server has not got yet. The consequence is written down rather
-/// than discovered later -- with no layout the client closes the scroll and offers no cards, which
-/// is a run that ends rather than a run that hangs. See
-/// <c>protocol/game/client-to-server/0x0045.md</c>.
+/// layout, <b>and so does this server now</b>. It used not to: a layout presupposes rewards to lay
+/// out, and what a flip is worth was a domain this server did not have. It has it now -- the cards
+/// of a clear are fixed at settlement, and <see cref="CardSelectRightStateResponse"/> is the frame
+/// that puts them face down in front of the player. Without it the client closes the scroll and
+/// offers no cards at all. See <c>protocol/game/client-to-server/0x0045.md</c>.
 /// </para>
 /// </remarks>
 public sealed record ScoreScrollStateResponse : IGameCmdMessage
@@ -176,7 +176,7 @@ internal sealed class ScoreScrollStateResponseEncoder
         OnePayload(GameProtocol.ScoreScrollStateType, new byte[] { 0x01 });
 }
 
-/// <summary>Answers, whatever state the character is in.</summary>
+/// <summary>Answers, and puts the cards down behind the answer, whatever state the character is in.</summary>
 /// <remarks>
 /// Unconditionally, and unlike every other handler here, which returns early without a published
 /// session. The scroll has already been drawn by the time this is sent and the client cannot ask
@@ -184,6 +184,14 @@ internal sealed class ScoreScrollStateResponseEncoder
 /// the defect being fixed. There is nothing to withhold either: the answer carries no reward,
 /// grants nothing and reads nothing, so a client that sent this outside a run learns nothing it
 /// did not already have.
+/// <para>
+/// <b>Two frames, in that order.</b> The acknowledgement first, because the client's handler for it
+/// is what moves the run off the result screen; the layout second, because that handler's own
+/// branch is what would otherwise ask for it, and that branch cannot be decided without a live
+/// client. Sending it unasked is what the reference server does and it costs nothing to be wrong
+/// about: the layout carries no item, and a player with no cards fixed gets nothing for turning one
+/// over.
+/// </para>
 /// </remarks>
 public sealed class ScoreScrollStateHandler(
     ISelectedSessionDirectory selectedSessions,
@@ -198,13 +206,15 @@ public sealed class ScoreScrollStateHandler(
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
 
         logger.LogInformation(
-            "Score scroll state {ConnectionId} character={CharacterId}: acknowledged",
+            "Score scroll state {ConnectionId} character={CharacterId}: acknowledged, "
+                + "card layout sent",
             context.Connection.ConnectionId,
             session?.CharacterId.Value);
 
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
-            new GameExplicitMessageDelivery([new ScoreScrollStateResponse()], []),
+            new GameExplicitMessageDelivery(
+                [new ScoreScrollStateResponse(), new CardSelectRightStateResponse()], []),
             cancellationToken).ConfigureAwait(false);
     }
 }
