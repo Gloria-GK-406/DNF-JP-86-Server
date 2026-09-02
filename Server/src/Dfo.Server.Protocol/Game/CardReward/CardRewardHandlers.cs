@@ -44,7 +44,7 @@ public sealed class CardSelectRightStateHandler(
 }
 
 /// <summary>
-/// Turns one card over and answers with every position of the face it belonged to.
+/// Turns one card over and answers with the whole panel's state.
 /// </summary>
 /// <remarks>
 /// <b>A flip that hands nothing over is answered with nothing.</b> That is the reference server's
@@ -131,10 +131,10 @@ public sealed class SelectCardHandler(
                 result.Delivered is { } delivered
                     ?
                     [
-                        new SelectCardResponse(result.Kind, result.Slots),
+                        new SelectCardResponse(result.Kind, message.Index),
                         GameInventoryDelivery.Notification(delivered),
                     ]
-                    : [new SelectCardResponse(result.Kind, result.Slots)],
+                    : [new SelectCardResponse(result.Kind, message.Index)],
                 []),
             cancellationToken).ConfigureAwait(false);
     }

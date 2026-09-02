@@ -13,9 +13,13 @@ namespace Dfo.Server.Protocol.Tests.Game.DungeonClear;
 /// <remarks>
 /// Every one of these is pinned against a working A21 session's own bytes. The reward breakdown is
 /// the interesting one -- 354 bytes there against 274 here -- and the eighty-byte difference is
-/// accounted for exactly: ten per-object experience entries this server has none of. The offsets
-/// asserted below are the ones that frame carries a non-zero value at, which is what makes the
-/// layout checkable rather than merely transcribed.
+/// accounted for exactly: ten per-object experience entries this server has none of.
+/// <para>
+/// <b>The card tail is not asserted by offset anywhere below.</b> Its cases go through
+/// <see cref="CardPanelFrameReader"/>, which consumes the frame's counts the way the client does;
+/// the only byte offsets left are the fixed fields in front of the tail and the whole-frame shape
+/// of a clear that fixed no cards, which is byte-identical to the reference's own.
+/// </para>
 /// </remarks>
 public sealed class DungeonClearCodecTests
 {
@@ -101,13 +105,15 @@ public sealed class DungeonClearCodecTests
         Assert.Equal(0, body[110]); // second counted list
         Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(155))); // no entries
 
-        // The card tail, which begins where the entry list would have ended.
-        Assert.Equal(0, body[159]); // reserved before the free-card pair
-        Assert.Equal(1, body[160]); // no item behind the free position; see NOTI-0x0023.md
-        // The reference writes these same flags at 249, 258, 267, 276, 285, 294 and 303, and its
-        // paid-card cost at 312 -- eighty bytes further along, which is exactly its entry list.
-        foreach (var flag in (int[])[169, 178, 187, 196, 205, 214, 223])
-            Assert.Equal(1, body[flag]);
+        // The card tail of a clear that fixed no cards, which is byte-identical to the
+        // reference's own. Read by offset here on purpose: the point of this case is that the
+        // whole frame did not move. What the bytes mean is asserted through the reader instead.
+        Assert.Equal(0, body[159]); // no item-acquisition records
+        Assert.Equal(1, body[160]); // the free row's first column declares its gold and no piece
+        // The reference writes these same count bytes at 249, 258, 267, 276, 285, 294 and 303,
+        // and its paid-card cost at 312 -- eighty bytes further along, which is its entry list.
+        foreach (var column in (int[])[169, 178, 187, 196, 205, 214, 223])
+            Assert.Equal(1, body[column]);
         Assert.Equal(0, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(232))); // paid-card cost
     }
 
@@ -167,427 +173,317 @@ public sealed class DungeonClearCodecTests
     }
 
     /// <summary>
-    /// The byte that says whether the free position has anything behind it.
+    /// Where the card tail begins in the bodies this encoder writes.
     /// </summary>
     /// <remarks>
-    /// <c>protocol/game/server-to-client/NOTI-0x0023.md</c> records it as
-    /// <c>u8 免费翻牌位数(牌后有物品时为 2,否则 1)</c>: a value, not a count of entries after it.
+    /// <b>Used only to prove the tail did not move</b>, never to reach into it. Three of the
+    /// fields before it are counts and this encoder writes all three as zero, which is what puts
+    /// the tail here; every assertion about the tail's own contents goes through
+    /// <see cref="CardPanelFrameReader"/>, which consumes those counts instead of assuming them.
     /// </remarks>
-    private const int FreeFlipPositionsOffset = 160;
-
-    /// <summary>Where the free-card pair's two halves sit in this body.</summary>
-    private const int FreeCardItemOffset = 161;
+    private const int CardTailOffset = 159;
 
     /// <summary>
-    /// The half after it, which the same record names <c>i32 免费牌金币</c> -- gold, not a count.
-    /// </summary>
-    private const int FreeCardGoldOffset = 165;
-
-    /// <summary>The first seat's flag; each seat after it is nine bytes further along.</summary>
-    private const int FirstSeatOffset = 169;
-
-    /// <summary>The width of one card seat: a flag, an identifier and an amount.</summary>
-    private const int SeatStride = 9;
-
-    /// <summary>Where the card tail ends and the paid-card cost begins.</summary>
-    private const int PaidCardCostOffset = 232;
-
-    /// <summary>
-    /// The card tail carries the free face position for position, and nothing else moves.
+    /// The clear's reward is declared on the free row as its gold and then its piece.
     /// </summary>
     /// <remarks>
-    /// Four positions with four distinguishable pairs, and one of them deliberately empty in the
-    /// middle. A single filled position could not tell "each position is written where it belongs"
-    /// from "the face's first position is written everywhere", and equal quantities could not tell
-    /// an identifier from a count -- so every number below is different from every other.
+    /// <b>Read back the way the client reads it.</b> Every assertion in this section runs on what
+    /// <see cref="CardPanelFrameReader"/> walks out of the frame rather than on a byte offset. The
+    /// previous attempt at this feature asserted offsets, agreed with its own encoder by
+    /// construction, and passed every case while the panel displayed nothing.
     /// <para>
-    /// The frame's own positions are the free-card pair and the seven seats after it, in that
-    /// order, so the face's position zero is the pair and its positions one to three are the
-    /// first three seats. The four seats behind them stay empty, which is what says the face's
-    /// contents stop where the face does.
-    /// </para>
-    /// <para>
-    /// The free position's second field is gold on
-    /// <c>protocol/game/server-to-client/NOTI-0x0023.md</c> and not the item's count, so what
-    /// stands there is what a flip of that position pays and not the five handed in beside it --
-    /// which is why the quantity at position zero appears nowhere below.
+    /// The two entries are ordered and the order is what gives them their meaning: the first is
+    /// the card's gold whatever identifier sits beside it, the second is the piece. A live run
+    /// that wrote a real identifier into the first entry still saw its amount displayed as gold.
     /// </para>
     /// </remarks>
     [Fact]
-    public void The_card_tail_carries_the_free_face_position_for_position()
+    public void The_reward_is_declared_on_the_free_row_as_gold_then_the_piece()
     {
-        var body = DungeonClearPayloadCodec.EncodeClearDungeonReward(
-            clearBase: 0,
-            rankBonus: 0,
-            freeCards:
-            [
-                Holding(0, itemId: 31001, quantity: 5),
-                Empty(1),
-                Holding(2, itemId: 31002, quantity: 6),
-                Holding(3, itemId: 31003, quantity: 7),
-            ]);
+        var tail = Tail(Holding(0, itemId: 31001, quantity: 5));
+        var card = tail.FreeRow.Columns[0];
 
-        Assert.Equal(274, body.Length);
-        Assert.Equal(31001, Int32At(body, FreeCardItemOffset));
-        Assert.Equal(
-            GameProtocol.ClearRewardCardGold, Int32At(body, FreeCardGoldOffset));
-        Assert.Equal((0, 0), SeatAt(body, 0));
-        Assert.Equal((31002, 6), SeatAt(body, 1));
-        Assert.Equal((31003, 7), SeatAt(body, 2));
-        foreach (var seat in (int[])[3, 4, 5, 6])
-            Assert.Equal((0, 0), SeatAt(body, seat));
+        Assert.Equal(2, card.Entries.Count);
+        Assert.Equal(GameProtocol.ClearRewardCardGold, card.Gold);
+        Assert.Equal(new CardEntry(31001, 5), card.Piece);
+    }
+
+    /// <summary>A card with nothing behind it declares its gold and stops there.</summary>
+    /// <remarks>
+    /// One entry rather than none: the card still exists and still pays what it pays, which here
+    /// is nothing. Declaring no entries at all is what the two rows this server does not deliver
+    /// do, and that is a different statement.
+    /// </remarks>
+    [Fact]
+    public void A_card_with_nothing_behind_it_declares_only_its_gold()
+    {
+        var card = Tail(Empty(0)).FreeRow.Columns[0];
+
+        Assert.Single(card.Entries);
+        Assert.Equal(0, card.Gold);
+        Assert.Null(card.Piece);
     }
 
     /// <summary>
-    /// A face whose contents sit further along is written further along, not at the front.
+    /// The gold entry's identifier is never the piece's, whatever the piece is.
     /// </summary>
     /// <remarks>
-    /// The other half of the position check, and the one that a mapping which ignored the position
-    /// number would fail on its own: a single piece of equipment on the face's last position must
-    /// reach the third seat, and the free-card pair must stay empty.
+    /// The client does not read this field at all, so its value cannot be observed in play -- but
+    /// writing the piece's identifier there is exactly the mistake the previous attempt made, and
+    /// it is what pushed the piece one entry too early and left the panel with a gold amount where
+    /// its item should have been.
     /// </remarks>
     [Fact]
-    public void A_position_at_the_end_of_the_face_is_written_at_the_end_of_the_tail()
+    public void The_gold_entrys_identifier_is_not_the_pieces()
     {
-        var body = DungeonClearPayloadCodec.EncodeClearDungeonReward(
-            clearBase: 0,
-            rankBonus: 0,
-            freeCards: [Empty(0), Empty(1), Empty(2), Holding(3, itemId: 42001, quantity: 3)]);
+        var card = Tail(Holding(0, itemId: 31001, quantity: 5)).FreeRow.Columns[0];
 
-        Assert.Equal(0, Int32At(body, FreeCardItemOffset));
-        Assert.Equal(0, Int32At(body, FreeCardGoldOffset));
-        Assert.Equal((0, 0), SeatAt(body, 0));
-        Assert.Equal((0, 0), SeatAt(body, 1));
-        Assert.Equal((42001, 3), SeatAt(body, 2));
+        Assert.Equal(0, card.Entries[0].ItemId);
+        Assert.Equal(31001, card.Entries[1].ItemId);
     }
 
     /// <summary>
-    /// A full face changes the card tail and nothing else, and the frame keeps its length.
+    /// The gold on the card is what a flip of it pays into the account.
     /// </summary>
     /// <remarks>
-    /// The card tail is the only part of this body a face may move. A frame that grew would be
-    /// refused by the encoder's own length check, and a frame that stayed the right length while
-    /// spilling into the counts at 109, 110 and 155 would be misread rather than merely wrong. So
-    /// the bytes before the tail are compared whole, and the tail's own shape bytes -- the free
-    /// position's marker and the seven seat flags -- are asserted one by one after it.
+    /// Reached from the same lookup the piece is, so the two cannot disagree: a card that hands
+    /// something over is a card that pays, and a card that hands nothing over pays nothing.
     /// </remarks>
-    [Fact]
-    public void A_face_with_contents_disturbs_nothing_outside_the_card_tail()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void The_gold_on_the_card_is_what_a_flip_of_it_pays(bool holds)
     {
-        var empty = DungeonClearPayloadCodec.EncodeClearDungeonReward(clearBase: 0, rankBonus: 0);
-        var filled = DungeonClearPayloadCodec.EncodeClearDungeonReward(
-            clearBase: 0,
-            rankBonus: 0,
-            freeCards:
-            [
-                Holding(0, itemId: 31001, quantity: 5),
-                Holding(1, itemId: 31002, quantity: 6),
-                Holding(2, itemId: 31003, quantity: 7),
-                Holding(3, itemId: 31004, quantity: 8),
-            ]);
+        var card = Tail(holds ? Holding(0, 31001, 1) : Empty(0)).FreeRow.Columns[0];
 
-        Assert.Equal(empty.Length, filled.Length);
-        Assert.Equal(
-            empty.AsSpan(0, FreeFlipPositionsOffset).ToArray(),
-            filled.AsSpan(0, FreeFlipPositionsOffset).ToArray());
-        Assert.Equal(
-            empty.AsSpan(PaidCardCostOffset).ToArray(),
-            filled.AsSpan(PaidCardCostOffset).ToArray());
-
-        // The marker and the seven flags are what the client reads the tail's shape off. The seat
-        // flags are 1 whether the face holds anything or not; the marker is 2 here because this
-        // face has something behind its free position.
-        Assert.Equal(2, filled[FreeFlipPositionsOffset]);
-        foreach (var seat in (int[])[0, 1, 2, 3, 4, 5, 6])
-            Assert.Equal(1, filled[FirstSeatOffset + (seat * SeatStride)]);
+        Assert.Equal(holds ? GameProtocol.ClearRewardCardGold : 0, card.Gold);
     }
 
     /// <summary>
-    /// The free position's marker is two when something sits behind that position.
+    /// The card's gold is one, and that figure is this server's own decision.
     /// </summary>
     /// <remarks>
-    /// <c>protocol/game/server-to-client/NOTI-0x0023.md</c> records the byte before the free-card
-    /// pair as <c>u8 免费翻牌位数(牌后有物品时为 2,否则 1)</c> -- a value saying whether that
-    /// position has anything behind it, not a count of entries after it. The pair does not move
-    /// for it: the same record accounts for the reference's 354-byte frame against this body's 274
-    /// as a flat eighty bytes of per-object experience, with the seven seat flags at 169..223 here
-    /// either way. The length is asserted alongside because that is the whole of the claim -- one
-    /// value changes and the body does not.
+    /// The archive says a flipped card produces no gold at all. The figure written here is a
+    /// placeholder its owner chose, named in one place so that settling the real rule leaves this
+    /// frame in step rather than leaving a second copy behind.
     /// </remarks>
     [Fact]
-    public void The_free_position_declares_two_when_an_item_sits_behind_it()
-    {
-        var body = DungeonClearPayloadCodec.EncodeClearDungeonReward(
-            clearBase: 0,
-            rankBonus: 0,
-            freeCards: [Holding(0, itemId: 31001, quantity: 5), Empty(1), Empty(2), Empty(3)]);
-
-        Assert.Equal(2, body[FreeFlipPositionsOffset]);
-        Assert.Equal(31001, Int32At(body, FreeCardItemOffset));
-        Assert.Equal(DungeonClearPayloadCodec.ClearRewardBodyLength, body.Length);
-        Assert.Equal(1, body[FirstSeatOffset]);
-        Assert.Equal(0, Int32At(body, PaidCardCostOffset));
-    }
-
-    /// <summary>
-    /// The free position's marker is one when nothing sits behind that position.
-    /// </summary>
-    /// <remarks>
-    /// The other half of the record's rule, and the half a face holding nothing at all could not
-    /// tell from the marker being one because the marker is always one: this face does hold
-    /// something, at its last position, and the free position is still empty. So a marker that
-    /// answered "does this face hold anything" rather than "does the free position hold anything"
-    /// fails here.
-    /// </remarks>
-    [Fact]
-    public void The_free_position_declares_one_when_nothing_sits_behind_it()
-    {
-        var body = DungeonClearPayloadCodec.EncodeClearDungeonReward(
-            clearBase: 0,
-            rankBonus: 0,
-            freeCards: [Empty(0), Empty(1), Empty(2), Holding(3, itemId: 42001, quantity: 3)]);
-
-        Assert.Equal(1, body[FreeFlipPositionsOffset]);
-        Assert.Equal(0, Int32At(body, FreeCardItemOffset));
-        Assert.Equal(DungeonClearPayloadCodec.ClearRewardBodyLength, body.Length);
-        Assert.Equal((42001, 3), SeatAt(body, 2));
-    }
-
-    /// <summary>
-    /// The free position's second field is gold, not the count its seats carry.
-    /// </summary>
-    /// <remarks>
-    /// Two different fields on <c>protocol/game/server-to-client/NOTI-0x0023.md</c>: the free
-    /// position's pair is <c>i32 免费牌物品 / i32 免费牌金币</c>, while each seat after it is
-    /// <c>u8 标记=1, i32 物品, i32 数量</c>. So the free position's second field carries what a
-    /// flip of it pays while a seat's carries its count.
-    /// <para>
-    /// Handing the same quantity to both is the point of the case: with different quantities, a
-    /// count written into the free position's gold field would look like an ordinary value, and
-    /// what is being pinned is that the count does not go there at all. Nine is chosen for it
-    /// because it is neither zero nor what a flip pays, so neither an encoder that wrote the count
-    /// there nor one that wrote nothing there can pass.
-    /// </para>
-    /// </remarks>
-    [Fact]
-    public void The_free_positions_second_field_is_gold_and_not_the_items_count()
-    {
-        var body = DungeonClearPayloadCodec.EncodeClearDungeonReward(
-            clearBase: 0,
-            rankBonus: 0,
-            freeCards:
-            [
-                Holding(0, itemId: 31001, quantity: 9),
-                Holding(1, itemId: 31002, quantity: 9),
-                Empty(2),
-                Empty(3),
-            ]);
-
-        Assert.Equal(31001, Int32At(body, FreeCardItemOffset));
-        Assert.Equal(
-            GameProtocol.ClearRewardCardGold, Int32At(body, FreeCardGoldOffset));
-        Assert.NotEqual(9, Int32At(body, FreeCardGoldOffset));
-        Assert.Equal((31002, 9), SeatAt(body, 0));
-    }
-
-    /// <summary>
-    /// The free position's gold is what this server pays for turning that position over.
-    /// </summary>
-    /// <remarks>
-    /// The frame reports the payment rather than describing a second one of its own, which is the
-    /// whole of what this field had to be settled to. A position holding something is worth
-    /// <see cref="GameProtocol.ClearRewardCardGold"/> when it is flipped, so that is what the
-    /// result screen says sits behind it; a position holding nothing is flipped for nothing, so
-    /// the field is zero.
-    /// <para>
-    /// The figure is asserted through the name rather than as a literal, because it is one
-    /// decision in one place -- see <see cref="GameProtocol.ClearRewardCardGold"/>. What the decision currently
-    /// is, is pinned on its own in
-    /// <see cref="The_card_gold_this_server_pays_is_one_and_is_this_servers_own_decision"/>: with
-    /// only this test, a figure that quietly became zero would still agree with itself.
-    /// </para>
-    /// </remarks>
-    [Fact]
-    public void The_free_positions_gold_is_what_a_flip_of_that_position_pays()
-    {
-        var held = DungeonClearPayloadCodec.EncodeClearDungeonReward(
-            clearBase: 0,
-            rankBonus: 0,
-            freeCards: [Holding(0, itemId: 31001, quantity: 1), Empty(1), Empty(2), Empty(3)]);
-        var empty = DungeonClearPayloadCodec.EncodeClearDungeonReward(
-            clearBase: 0,
-            rankBonus: 0,
-            freeCards: [Empty(0), Empty(1), Empty(2), Holding(3, itemId: 31001, quantity: 1)]);
-
-        Assert.Equal(
-            GameProtocol.ClearRewardCardGold, Int32At(held, FreeCardGoldOffset));
-        Assert.Equal(0, Int32At(empty, FreeCardGoldOffset));
-    }
-
-    /// <summary>
-    /// The figure a flipped card pays is one, and it is this server's decision rather than a
-    /// reading of the archive.
-    /// </summary>
-    /// <remarks>
-    /// The one place the decision is written down, asserted so that changing it is a deliberate
-    /// act rather than a drift. It is not checked against the archive because there is nothing in
-    /// the archive to check it against: the clear-reward table declares no gold on a flip and
-    /// holds no section that would turn one into an amount, which is exactly why the figure had to
-    /// be decided rather than read. See <see cref="GameProtocol.ClearRewardCardGold"/> for the whole of the
-    /// argument.
-    /// </remarks>
-    [Fact]
-    public void The_card_gold_this_server_pays_is_one_and_is_this_servers_own_decision()
+    public void The_cards_gold_is_one_and_is_this_servers_own_decision()
     {
         Assert.Equal(1, GameProtocol.ClearRewardCardGold);
+        Assert.Equal(
+            GameProtocol.ClearRewardCardGold,
+            Tail(Holding(0, 31001, 1)).FreeRow.Columns[0].Gold);
     }
 
-    /// <summary>
-    /// The frame never claims gold behind a free position it says is empty.
-    /// </summary>
+    /// <summary>Gold never arrives on a card with nothing behind it.</summary>
     /// <remarks>
-    /// <c>protocol/game/server-to-client/NOTI-0x0023.md</c> describes what the pair carries when
-    /// the position holds something and when it holds nothing, and says nothing about a position
-    /// carrying gold and no item. That combination was unreachable while this server paid no gold
-    /// at all; it stays unreachable because the gold is conditioned on the same position lookup
-    /// the item and the marker byte are, and this asserts it over every arrangement of a face
-    /// rather than over the two the other cases happen to use.
+    /// A shape the record does not describe, and one this server must not produce: it would tell
+    /// the panel a card pays while the flip of it hands nothing over. Every face in the theory has
+    /// its first position empty, so none of them may carry gold.
     /// </remarks>
     [Theory]
-    [InlineData(false, false, false, false)]
-    [InlineData(true, false, false, false)]
-    [InlineData(false, true, true, true)]
-    [InlineData(true, true, true, true)]
-    public void Gold_behind_the_free_position_never_arrives_without_an_item(
-        bool first, bool second, bool third, bool fourth)
+    [InlineData(false, false, false)]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, true)]
+    [InlineData(true, true, true)]
+    public void Gold_never_arrives_on_a_card_with_nothing_behind_it(
+        bool second, bool third, bool fourth)
     {
-        var face = new[] { first, second, third, fourth }
-            .Select((holds, index) => holds ? Holding(index, 31001 + index, index + 1) : Empty(index))
-            .ToArray();
+        var tail = Tail(
+            Empty(0),
+            second ? Holding(1, 31002, 1) : Empty(1),
+            third ? Holding(2, 31003, 1) : Empty(2),
+            fourth ? Holding(3, 31004, 1) : Empty(3));
 
-        var body = DungeonClearPayloadCodec.EncodeClearDungeonReward(
-            clearBase: 0, rankBonus: 0, freeCards: face);
-
-        if (Int32At(body, FreeCardGoldOffset) != 0)
-        {
-            Assert.NotEqual(0, Int32At(body, FreeCardItemOffset));
-            Assert.Equal(2, body[FreeFlipPositionsOffset]);
-        }
-        else
-        {
-            Assert.Equal(0, Int32At(body, FreeCardItemOffset));
-            Assert.Equal(1, body[FreeFlipPositionsOffset]);
-        }
-    }
-
-    /// <summary>A clear with no cards writes the tail this frame wrote before cards existed.</summary>
-    /// <remarks>
-    /// Both ways of having none: a settlement that fixed no face at all, and a face whose every
-    /// position came up empty. Neither may put anything on the result screen, and the byte-for-byte
-    /// comparison against the no-argument call is what says so.
-    /// </remarks>
-    [Fact]
-    public void A_clear_with_nothing_behind_its_cards_writes_the_tail_it_always_wrote()
-    {
-        var before = DungeonClearPayloadCodec.EncodeClearDungeonReward(clearBase: 7, rankBonus: 3);
-
-        Assert.Equal(
-            before,
-            DungeonClearPayloadCodec.EncodeClearDungeonReward(
-                clearBase: 7, rankBonus: 3, freeCards: []));
-        Assert.Equal(
-            before,
-            DungeonClearPayloadCodec.EncodeClearDungeonReward(
-                clearBase: 7,
-                rankBonus: 3,
-                freeCards: [Empty(0), Empty(1), Empty(2), Empty(3)]));
+        Assert.Equal(0, tail.FreeRow.Columns[0].Gold);
+        Assert.Null(tail.FreeRow.Columns[0].Piece);
     }
 
     /// <summary>
-    /// What a paid flip costs is written where the reference writes it, and moves nothing else.
+    /// Only the position the flip claims reaches the wire.
     /// </summary>
     /// <remarks>
-    /// The field the reference's own frame carries at 312 and this one at 232, which is what the
-    /// seven seat flags before it fix. Compared against the frame that prices nothing rather than
-    /// asserted alone: a price written four bytes off would satisfy a single read at the offset it
-    /// landed on, and nothing else in this body may move for a price at all.
+    /// <b>The client never says which card was clicked</b> -- the request's position byte is a
+    /// constant written into the client's own packer -- so the position the claim takes is fixed
+    /// and the positions after it have no way to reach a player. Putting them on the wire would
+    /// declare rewards nobody can be handed. This is the case that would fail if the encoder went
+    /// back to spreading a face across the columns.
     /// </remarks>
     [Fact]
-    public void What_a_paid_flip_costs_is_written_at_the_end_of_the_card_tail()
+    public void Only_the_position_the_flip_claims_reaches_the_wire()
     {
-        const int Cost = 6_780;
+        var tail = Tail(
+            Holding(0, 31001, 1),
+            Holding(1, 31002, 2),
+            Holding(2, 31003, 3),
+            Holding(3, 31004, 4));
 
-        var priced = DungeonClearPayloadCodec.EncodeClearDungeonReward(
-            clearBase: 0, rankBonus: 0, freeCards: [], paidFlipCost: Cost);
-        var unpriced = DungeonClearPayloadCodec.EncodeClearDungeonReward(
-            clearBase: 0, rankBonus: 0);
-
-        Assert.Equal(Cost, Int32At(priced, PaidCardCostOffset));
-        Assert.Equal(
-            unpriced.AsSpan(0, PaidCardCostOffset).ToArray(),
-            priced.AsSpan(0, PaidCardCostOffset).ToArray());
-        Assert.Equal(
-            unpriced.AsSpan(PaidCardCostOffset + sizeof(int)).ToArray(),
-            priced.AsSpan(PaidCardCostOffset + sizeof(int)).ToArray());
+        Assert.Equal(new CardEntry(31001, 1), tail.FreeRow.Columns[0].Piece);
+        for (var column = 1; column < CardPanelFrameReader.ColumnsPerRow; column++)
+        {
+            Assert.Single(tail.FreeRow.Columns[column].Entries);
+            Assert.Equal(0, tail.FreeRow.Columns[column].Gold);
+            Assert.Null(tail.FreeRow.Columns[column].Piece);
+        }
     }
 
     /// <summary>
-    /// <b>The body is the same length whatever a flip costs, marker and all.</b>
+    /// The gold row and the black-diamond row are declared, and declared empty.
     /// </summary>
     /// <remarks>
-    /// The frame is read positionally and its length is fixed: the encoder's own check at the end
-    /// of the build refuses a body that is not <c>ClearRewardBodyLength</c>, so a price written at
-    /// some other width would not merely be wrong here, it would be refused. Swept over the two
-    /// values the settlement can choose between and a price between them, with a full face in the
-    /// tail so that the widest case is the one measured.
+    /// They are the second and third rows of the same panel and their contents are what a player
+    /// sees after paying for a flip of them. This server delivers neither, so every column of both
+    /// declares nothing at all -- which is a different statement from a card that exists and pays
+    /// nothing, and is why these two are checked for no entries rather than for an empty one.
+    /// <para>
+    /// The previous attempt wrote the clear's reward into the second row, which is what put a
+    /// piece behind a gold card nobody had paid for.
+    /// </para>
     /// </remarks>
+    [Fact]
+    public void The_gold_and_black_diamond_rows_are_declared_empty()
+    {
+        var tail = Tail(Holding(0, 31001, 1));
+
+        foreach (var row in (CardRow[])[tail.GoldRow, tail.BlackDiamondRow])
+        {
+            Assert.Equal(CardPanelFrameReader.ColumnsPerRow, row.Columns.Count);
+            Assert.All(row.Columns, column => Assert.Empty(column.Entries));
+        }
+    }
+
+    /// <summary>The frame grows by one entry when a piece sits behind the card, and by nothing else.</summary>
     [Theory]
-    [InlineData(DungeonClearPayloadCodec.NoPaidFlipCost)]
-    [InlineData(10_300)]
-    [InlineData(DungeonClearPayloadCodec.UnpricedPaidFlipCost)]
+    [InlineData(false, 274)]
+    [InlineData(true, 282)]
+    public void The_frame_grows_by_one_entry_when_a_piece_sits_behind_the_card(
+        bool holds, int expected)
+    {
+        var body = Body(holds ? Holding(0, 31001, 1) : Empty(0));
+
+        Assert.Equal(expected, body.Length);
+        Assert.Equal(
+            expected,
+            DungeonClearPayloadCodec.ClearRewardBodyLengthFor(
+                [holds ? Holding(0, 31001, 1) : Empty(0)]));
+    }
+
+    /// <summary>A clear that fixed no cards writes a tail that hands nothing to anybody.</summary>
+    [Fact]
+    public void A_clear_that_fixed_no_cards_hands_nothing_to_anybody()
+    {
+        var tail = CardPanelFrameReader.ReadClearDungeonReward(
+            DungeonClearPayloadCodec.EncodeClearDungeonReward(clearBase: 0, rankBonus: 0));
+
+        Assert.All(tail.FreeRow.Columns, column => Assert.Equal(0, column.Gold));
+        Assert.All(tail.FreeRow.Columns, column => Assert.Null(column.Piece));
+        Assert.All(tail.GoldRow.Columns, column => Assert.Empty(column.Entries));
+        Assert.All(tail.BlackDiamondRow.Columns, column => Assert.Empty(column.Entries));
+        Assert.Equal(0, tail.PaidFlipCost);
+        Assert.All(tail.Trailer, value => Assert.Equal(0, value));
+    }
+
+    /// <summary>What a paid flip costs sits between the first two rows and is carried whole.</summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(10300)]
+    [InlineData(int.MaxValue)]
+    public void What_a_paid_flip_costs_sits_between_the_first_two_rows(int paidFlipCost)
+    {
+        var tail = CardPanelFrameReader.ReadClearDungeonReward(
+            DungeonClearPayloadCodec.EncodeClearDungeonReward(
+                clearBase: 0,
+                rankBonus: 0,
+                freeCards: [Holding(0, 31001, 1)],
+                paidFlipCost: paidFlipCost));
+
+        Assert.Equal(paidFlipCost, tail.PaidFlipCost);
+    }
+
+    /// <summary>What a paid flip costs does not change how long the frame is.</summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(10300)]
+    [InlineData(int.MaxValue)]
     public void The_body_keeps_its_length_whatever_a_paid_flip_costs(int paidFlipCost)
     {
         var body = DungeonClearPayloadCodec.EncodeClearDungeonReward(
-            clearBase: 4_000_000_000,
-            rankBonus: 800_000_000,
-            freeCards:
-            [
-                Holding(0, itemId: 31001, quantity: 5),
-                Holding(1, itemId: 31002, quantity: 6),
-                Holding(2, itemId: 31003, quantity: 7),
-                Holding(3, itemId: 31004, quantity: 8),
-            ],
-            paidFlipCost: paidFlipCost);
+            clearBase: 0, rankBonus: 0, freeCards: [Empty(0)], paidFlipCost: paidFlipCost);
 
-        Assert.Equal(274, DungeonClearPayloadCodec.ClearRewardBodyLength);
         Assert.Equal(DungeonClearPayloadCodec.ClearRewardBodyLength, body.Length);
-        Assert.Equal(paidFlipCost, Int32At(body, PaidCardCostOffset));
     }
 
     /// <summary>
     /// The marker for a level the archive prices no flip at is not a free flip.
     /// </summary>
     /// <remarks>
-    /// The one property the marker is chosen for. Zero at this offset is a price -- the price of a
-    /// flip given away -- so a clear whose level the archive does not price may not be written with
-    /// it; that the value written instead is one the archive's own cost table never declares is
-    /// pinned against the archive, in <c>ClearRewardArchiveTests</c>.
+    /// Zero is a price and not an absence, so a settlement that names no price writes a value the
+    /// archive's own cost table cannot produce rather than giving the flip away.
     /// </remarks>
     [Fact]
     public void The_marker_for_a_level_with_no_price_is_not_a_free_flip()
     {
-        Assert.Equal(0, DungeonClearPayloadCodec.NoPaidFlipCost);
-        Assert.Equal(int.MaxValue, DungeonClearPayloadCodec.UnpricedPaidFlipCost);
+        var tail = CardPanelFrameReader.ReadClearDungeonReward(
+            DungeonClearPayloadCodec.EncodeClearDungeonReward(
+                clearBase: 0,
+                rankBonus: 0,
+                freeCards: [Holding(0, 31001, 1)],
+                paidFlipCost: DungeonClearPayloadCodec.UnpricedPaidFlipCost));
 
-        var body = DungeonClearPayloadCodec.EncodeClearDungeonReward(
-            clearBase: 0,
-            rankBonus: 0,
-            freeCards: [],
-            paidFlipCost: DungeonClearPayloadCodec.UnpricedPaidFlipCost);
+        Assert.NotEqual(0, tail.PaidFlipCost);
+        Assert.Equal(DungeonClearPayloadCodec.UnpricedPaidFlipCost, tail.PaidFlipCost);
+    }
 
-        Assert.NotEqual(0, Int32At(body, PaidCardCostOffset));
+    /// <summary>
+    /// A face changes the card tail and nothing in front of it.
+    /// </summary>
+    /// <remarks>
+    /// The three counts before the tail decide where the tail begins. A face that reached one of
+    /// them would move the whole tail without changing a single field this server means to change,
+    /// and the client would read the frame apart. Comparing everything in front of the tail whole
+    /// is what says none of that happened.
+    /// </remarks>
+    [Fact]
+    public void A_face_changes_the_card_tail_and_nothing_in_front_of_it()
+    {
+        var bare = DungeonClearPayloadCodec.EncodeClearDungeonReward(clearBase: 7, rankBonus: 9);
+        var full = DungeonClearPayloadCodec.EncodeClearDungeonReward(
+            clearBase: 7, rankBonus: 9, freeCards: [Holding(0, 31001, 5)]);
+
         Assert.Equal(
-            DungeonClearPayloadCodec.UnpricedPaidFlipCost, Int32At(body, PaidCardCostOffset));
+            bare.AsSpan(0, CardTailOffset).ToArray(),
+            full.AsSpan(0, CardTailOffset).ToArray());
+        Assert.Equal(0, CardPanelFrameReader.ReadClearDungeonReward(bare).AcquisitionRecordCount);
+        Assert.Equal(0, CardPanelFrameReader.ReadClearDungeonReward(full).AcquisitionRecordCount);
+    }
+
+    /// <summary>
+    /// Every face this encoder can be given produces a frame that can be walked to its end.
+    /// </summary>
+    /// <remarks>
+    /// The check the previous attempt had no equivalent of. A frame whose declared counts and
+    /// carried bytes disagree is one the client desynchronises on, and no assertion about a
+    /// particular field would notice it -- the reader refuses such a frame outright.
+    /// </remarks>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(4)]
+    public void Every_face_produces_a_frame_that_can_be_walked_to_its_end(int holding)
+    {
+        var face = Enumerable.Range(0, 4)
+            .Select(index =>
+                index < holding ? Holding(index, 31001 + index, index + 1) : Empty(index))
+            .ToArray();
+
+        var tail = CardPanelFrameReader.ReadClearDungeonReward(
+            DungeonClearPayloadCodec.EncodeClearDungeonReward(
+                clearBase: 0, rankBonus: 0, freeCards: face));
+
+        Assert.Equal(CardPanelFrameReader.ColumnsPerRow, tail.FreeRow.Columns.Count);
+        Assert.Equal(CardPanelFrameReader.TrailerLength, tail.Trailer.Count);
     }
 
     /// <summary>One position of a face, holding one piece of equipment.</summary>
@@ -597,13 +493,12 @@ public sealed class DungeonClearCodecTests
     /// <summary>One position of a face, holding nothing.</summary>
     private static ClearRewardCardSlot Empty(int index) => new(index, null);
 
-    private static int Int32At(byte[] body, int offset) =>
-        BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(offset));
+    /// <summary>The body this encoder writes for a face.</summary>
+    private static byte[] Body(params ClearRewardCardSlot[] cards) =>
+        DungeonClearPayloadCodec.EncodeClearDungeonReward(
+            clearBase: 0, rankBonus: 0, freeCards: cards);
 
-    /// <summary>What one card seat declares: an identifier and an amount.</summary>
-    private static (int ItemId, int Amount) SeatAt(byte[] body, int seat)
-    {
-        var at = FirstSeatOffset + (seat * SeatStride);
-        return (Int32At(body, at + 1), Int32At(body, at + 5));
-    }
+    /// <summary>That body's card tail, walked back out the way the client walks it.</summary>
+    private static ClearRewardTail Tail(params ClearRewardCardSlot[] cards) =>
+        CardPanelFrameReader.ReadClearDungeonReward(Body(cards));
 }

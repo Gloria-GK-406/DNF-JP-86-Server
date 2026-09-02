@@ -198,112 +198,134 @@ public sealed class CardRewardTests
     // ---- the flip's answer -----------------------------------------------------------------
 
     /// <summary>
-    /// Every position of the face is declared, the ones holding nothing included.
+    /// The answer declares all eight columns, the untouched ones included.
     /// </summary>
     /// <remarks>
-    /// Two pieces and two empty positions, written out byte by byte. The empty positions are the
-    /// point: each is a record of its own declaring no contents, not a gap in the frame.
+    /// <b>Read back the way the client reads it, not compared against a byte layout.</b> Every
+    /// assertion in this section runs on what <see cref="CardPanelFrameReader"/> walks out of the
+    /// frame, so a count byte written wrong desynchronises the reader and fails the case instead
+    /// of quietly agreeing with the encoder. The last attempt at this feature passed every
+    /// byte-offset assertion it had while the panel showed nothing at all.
     /// </remarks>
     [Fact]
-    public void Every_position_is_declared_including_the_ones_holding_nothing()
+    public void The_answer_declares_every_column_including_the_untouched_ones()
     {
-        var body = Encode(
-            ClearRewardCardKind.Free,
-            Held(0, FirstItemId, 1),
-            Empty(1),
-            Held(2, SecondItemId, 2),
-            Empty(3));
+        var records = ReadAnswer(ClearRewardCardKind.Free, turnedColumn: 0);
 
-        Assert.Equal(
-            new byte[]
-            {
-                0x01,
-                0x00, 0x00, 0x01, 0xAD, 0xF0, 0x99, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x01, 0x00, 0x00,
-                0x00, 0x02, 0x01, 0x01, 0x0D, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x03, 0x00, 0x00,
-                0xFF, 0xFF, 0xFF, 0xFF,
-                0xFF, 0xFF, 0xFF, 0xFF,
-                0xFF, 0xFF, 0xFF, 0xFF,
-                0xFF, 0xFF, 0xFF, 0xFF,
-            },
-            body);
+        Assert.Equal(CardPanelFrameReader.AnswerRecordCount, records.Count);
+        Assert.All(records, record => Assert.Empty(record.Entries));
     }
 
-    /// <summary>A face holding nothing at all is the length the capture had.</summary>
+    /// <summary>An answer carrying nothing is the length the capture had.</summary>
     [Fact]
-    public void A_face_holding_nothing_is_the_length_the_capture_had()
+    public void An_answer_carrying_nothing_is_the_length_the_capture_had()
     {
-        var body = Encode(ClearRewardCardKind.Free, Empty(0), Empty(1), Empty(2), Empty(3));
+        var body = Encode(ClearRewardCardKind.Free, turnedColumn: 0);
 
         Assert.Equal(CapturedEmptyAnswerLength, body.Length);
-        Assert.Equal(
-            new byte[]
-            {
-                0x01,
-                0x00, 0x00, 0x00, 0x00,
-                0x00, 0x01, 0x00, 0x00,
-                0x00, 0x02, 0x00, 0x00,
-                0x00, 0x03, 0x00, 0x00,
-                0xFF, 0xFF, 0xFF, 0xFF,
-                0xFF, 0xFF, 0xFF, 0xFF,
-                0xFF, 0xFF, 0xFF, 0xFF,
-                0xFF, 0xFF, 0xFF, 0xFF,
-            },
-            body);
     }
 
     /// <summary>
-    /// Each record names its own position, whichever position holds the piece.
+    /// The column that was turned over carries this server's seat, and no other column does.
     /// </summary>
     /// <remarks>
-    /// One sample cannot tell this apart from "every record says zero", which is exactly what the
-    /// reference server writes -- so all four are exercised. The piece moves from position to
-    /// position and the record that carries it has to move with it.
+    /// One sample could not tell "the turned column carries the seat" from "every column does",
+    /// so all four are exercised and the other seven columns are checked each time.
     /// </remarks>
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]
     [InlineData(3)]
-    public void Each_record_names_the_position_it_describes(int holding)
+    public void Only_the_column_that_was_turned_over_carries_a_seat(int turned)
     {
-        var slots = Enumerable.Range(0, 4)
-            .Select(index => index == holding ? Held(index, SecondItemId, 2) : Empty(index))
-            .ToArray();
+        var records = ReadAnswer(ClearRewardCardKind.Free, turned);
 
-        var body = Encode(ClearRewardCardKind.Free, slots);
-
-        // Every record before the one holding the piece is four bytes wide, so the one that holds
-        // it starts right after them.
-        var at = 1 + (holding * 4);
-        Assert.Equal(holding, (int)body[at + 1]);
-        Assert.Equal(1, (int)body[at + 2]);
-        Assert.Equal(SecondItemId, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(at + 3)));
-        Assert.Equal(2, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(at + 7)));
-
-        // and every other record names its own position too, with nothing behind it.
-        for (var record = 0; record < 4; record++)
+        for (var column = 0; column < records.Count; column++)
         {
-            if (record == holding)
-                continue;
-
-            var other = 1 + (record * 4) + (record > holding ? 8 : 0);
-            Assert.Equal(record, (int)body[other + 1]);
-            Assert.Equal(0, (int)body[other + 2]);
+            Assert.Equal(
+                column == turned ? AnsweringSeat : NoSeatByte, records[column].FreeSeat);
+            Assert.Equal(NoSeatByte, records[column].GoldSeat);
         }
     }
 
-    /// <summary>The face a record belongs to travels with it.</summary>
+    /// <summary>
+    /// A flip of the gold row names the gold row's seat and leaves the free row alone.
+    /// </summary>
+    /// <remarks>
+    /// The two rows are separate bytes with separate handlers on the client's side, and the last
+    /// attempt turned a gold card over on every free flip by writing a column number into the
+    /// second one. Nothing this server sends may touch a row the player did not flip.
+    /// </remarks>
     [Theory]
-    [InlineData(ClearRewardCardKind.Free, 0x00)]
-    [InlineData(ClearRewardCardKind.Paid, 0x01)]
-    public void Each_record_names_the_face_it_belongs_to(ClearRewardCardKind kind, byte expected)
+    [InlineData(ClearRewardCardKind.Free)]
+    [InlineData(ClearRewardCardKind.Paid)]
+    public void A_flip_names_its_own_row_and_leaves_the_other_alone(ClearRewardCardKind kind)
     {
-        var body = Encode(kind, Empty(0), Empty(1), Empty(2), Empty(3));
+        var turned = ReadAnswer(kind, turnedColumn: 2)[2];
 
-        for (var record = 0; record < 4; record++)
-            Assert.Equal(expected, body[1 + (record * 4)]);
+        Assert.Equal(
+            kind is ClearRewardCardKind.Free ? AnsweringSeat : NoSeatByte, turned.FreeSeat);
+        Assert.Equal(
+            kind is ClearRewardCardKind.Paid ? AnsweringSeat : NoSeatByte, turned.GoldSeat);
+    }
+
+    /// <summary>
+    /// The seat byte is a seat number, and this server answers as seat zero.
+    /// </summary>
+    /// <remarks>
+    /// A live run answered <c>0x00</c>, <c>0x01</c>, <c>0x02</c> and <c>0x03</c> on four records
+    /// and only the <c>0x00</c> one took effect, which a boolean could not produce. Zero is what
+    /// the client's own run-time number came to for a lone player, so it is what this server may
+    /// answer with -- and it is wrong the moment a party exists, which is why it is one constant
+    /// rather than a literal repeated per record.
+    /// </remarks>
+    [Fact]
+    public void The_seat_this_server_answers_as_is_zero()
+    {
+        var records = ReadAnswer(ClearRewardCardKind.Free, turnedColumn: 0);
+
+        Assert.Equal(0x00, records[0].FreeSeat);
+        Assert.Equal(0xFF, records[0].GoldSeat);
+    }
+
+    /// <summary>
+    /// Every record declares no entries, so the whole answer can be walked to its end.
+    /// </summary>
+    /// <remarks>
+    /// The reference server writes <c>0xFF</c> in the entry count of its last four records, which
+    /// declares two hundred and fifty-five pairs inside a thirty-three byte frame. This is the
+    /// case that stops that shape from being copied back in: the reader below refuses a frame it
+    /// cannot walk to the end, so a filler byte of <c>0xFF</c> fails here rather than in a live
+    /// client.
+    /// </remarks>
+    [Fact]
+    public void The_whole_answer_can_be_walked_to_its_end()
+    {
+        var body = Encode(ClearRewardCardKind.Free, turnedColumn: 1);
+        var records = CardPanelFrameReader.ReadSelectCardAnswer(body);
+
+        Assert.All(records, record => Assert.Empty(record.Entries));
+        Assert.All(records, record => Assert.Equal(0x00, record.Trailer));
+    }
+
+    /// <summary>
+    /// No reward reaches this frame, whatever the flip handed over.
+    /// </summary>
+    /// <remarks>
+    /// What a card holds is delivered in the clear's settlement notification and drawn from there.
+    /// A live run answered with every record empty and the clicked card still turned over with its
+    /// contents on it. Anything written here would land in a place nothing has been found to draw.
+    /// </remarks>
+    [Fact]
+    public void The_answer_hands_over_nothing()
+    {
+        foreach (var kind in (ClearRewardCardKind[])[
+            ClearRewardCardKind.Free, ClearRewardCardKind.Paid])
+        {
+            foreach (var column in (int[])[0, 1, 2, 3])
+                Assert.All(ReadAnswer(kind, column), record => Assert.Empty(record.Entries));
+        }
     }
 
     /// <summary>The answer goes out as a CMD under the type the flip arrived on.</summary>
@@ -311,7 +333,7 @@ public sealed class CardRewardTests
     public void The_answer_goes_out_under_the_type_the_flip_arrived_on()
     {
         var frame = Assert.Single(new SelectCardResponseEncoder().Encode(
-            new SelectCardResponse(ClearRewardCardKind.Free, [Empty(0), Empty(1), Empty(2), Empty(3)])));
+            new SelectCardResponse(ClearRewardCardKind.Free, 0)));
 
         Assert.Equal(0x01, frame[0]);
         Assert.Equal(ObservedFlipType, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1, 2)));
@@ -509,7 +531,7 @@ public sealed class CardRewardTests
         await world.Handle(sender, ClearRewardCardKind.Free, 1);
 
         var answer = Assert.IsType<SelectCardResponse>(Assert.Single(sender.Sent));
-        Assert.Equal(4, answer.Slots.Count);
+        Assert.Equal(1, answer.TurnedColumn);
     }
 
     /// <summary>A second flip of the same position is answered with nothing at all.</summary>
@@ -710,7 +732,7 @@ public sealed class CardRewardTests
         await world.Handle(sender, ClearRewardCardKind.Free, 0);
 
         var told = Assert.IsType<SelectCardResponse>(Assert.Single(sender.Sent));
-        Assert.Equal(4, told.Slots.Count);
+        Assert.Equal(0, told.TurnedColumn);
     }
 
     // ---- the money -------------------------------------------------------------------------
@@ -971,12 +993,23 @@ public sealed class CardRewardTests
 
     // ---- fixtures --------------------------------------------------------------------------
 
-    private static byte[] Encode(ClearRewardCardKind kind, params ClearRewardCardSlot[] slots)
+    private static byte[] Encode(ClearRewardCardKind kind, int turnedColumn)
     {
         var frame = Assert.Single(
-            new SelectCardResponseEncoder().Encode(new SelectCardResponse(kind, slots)));
+            new SelectCardResponseEncoder().Encode(new SelectCardResponse(kind, turnedColumn)));
         return frame[GameServerFrameEncoder.HeaderLength..];
     }
+
+    /// <summary>The answer, walked back out the way the client walks it.</summary>
+    private static IReadOnlyList<FlipRecord> ReadAnswer(
+        ClearRewardCardKind kind, int turnedColumn) =>
+        CardPanelFrameReader.ReadSelectCardAnswer(Encode(kind, turnedColumn));
+
+    /// <summary>The seat number this server answers as while it serves one player.</summary>
+    private const byte AnsweringSeat = 0x00;
+
+    /// <summary>What a seat byte carries when nobody turned that card over.</summary>
+    private const byte NoSeatByte = 0xFF;
 
     private static ClearRewardCardSlot Held(int index, int itemId, int quantity) =>
         new(index, new ClearRewardCardItem(

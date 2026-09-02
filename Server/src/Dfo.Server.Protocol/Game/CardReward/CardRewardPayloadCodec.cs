@@ -12,8 +12,9 @@ namespace Dfo.Server.Protocol.Game.CardReward;
 /// Both shapes are recorded in <c>protocol/game/client-to-server/0x0046.md</c> and
 /// <c>protocol/game/client-to-server/0x0047.md</c>, which is where the evidence for each field
 /// lives. What is worth saying here is the split: the layout is a transcribed constant, the request
-/// has one proven reading and one unproven one, and the answer has a single position byte that no
-/// live client has confirmed.
+/// has one proven reading and one unproven one, and the answer carries no reward at all -- it says
+/// which column of which row is face up and whose flip it was, and the panel draws the contents
+/// from the clear's settlement notification.
 /// </remarks>
 internal static class CardRewardPayloadCodec
 {
@@ -65,29 +66,35 @@ internal static class CardRewardPayloadCodec
     /// </remarks>
     public const int HighestRequestablePosition = 3;
 
-    /// <summary>The three bytes every described record opens with.</summary>
-    private const int RecordHeaderLength = 3;
+    /// <summary>The width of one record when it declares no entries, which is all of them here.</summary>
+    private const int EmptyRecordLength = 4;
 
-    /// <summary>The identifier and the count that every declared item is a pair of.</summary>
-    private const int ContentPairLength = 8;
-
-    /// <summary>The byte each described record closes with.</summary>
+    /// <summary>What a record's seat bytes carry when nobody has turned that card over.</summary>
     /// <remarks>
-    /// Zero, which is what the reference builder writes for every record it describes. The client
-    /// keeps it against the record's own number; what it then does with it has not been read.
+    /// <c>0xFF</c>, and it is the one value whose effect is fully read: the client's handler for
+    /// each of the two seat bytes returns immediately on it, touching neither row. Every other
+    /// value is compared against a number the client fetches at run time.
     /// </remarks>
-    private const byte RecordTail = 0x00;
+    private const byte NoSeat = 0xFF;
 
-    /// <summary>The byte a record that describes nothing is filled with.</summary>
+    /// <summary>
+    /// The seat this server answers as.
+    /// </summary>
     /// <remarks>
-    /// <c>FF FF FF FF</c>, transcribed from the reference builder and from the captured
-    /// thirty-three byte answer. The leading <c>0xFF</c> is what takes the record out of
-    /// consideration; the other three follow it so the frame keeps the width the capture had.
+    /// <b>A seat number, not a boolean.</b> The client compares this byte against a small integer
+    /// it fetches at run time and only acts on the record when the two are equal; a live run that
+    /// answered <c>0x00</c>, <c>0x01</c>, <c>0x02</c> and <c>0x03</c> on four records had exactly
+    /// the <c>0x00</c> one take effect, which a boolean could not produce. That run also measured
+    /// the run-time number for a lone player: zero.
+    /// <para>
+    /// <b>This is the one place a party would change</b>, and it is a constant here for that
+    /// reason. Whether the number is the player's own party seat is an inference the record marks
+    /// as one -- see <c>protocol/game/client-to-server/0x0047.md</c>. Answering a fixed zero is
+    /// right for one player and wrong for a party, where it would credit every member's flip to
+    /// whoever received the frame.
+    /// </para>
     /// </remarks>
-    private const byte AbsentRecordByte = 0xFF;
-
-    /// <summary>The width of a record that describes nothing.</summary>
-    private const int AbsentRecordLength = 4;
+    private const byte OwnSeat = 0x00;
 
     /// <summary>
     /// The card panel's layout: which positions exist, and nothing else.
@@ -180,97 +187,43 @@ internal static class CardRewardPayloadCodec
     }
 
     /// <summary>
-    /// Every position of the flipped face, each record naming the position it describes.
+    /// The whole card panel's state: which column of which row has been turned over, and by whom.
     /// </summary>
     /// <remarks>
-    /// Eight records. The face's positions fill the first of them in their own order and the rest
-    /// are written as records describing nothing, so a four-position face with nothing behind any
-    /// of it comes to thirty-three bytes -- the length of the captured answer.
+    /// <b>A state snapshot, not a report of what was won.</b> Eight records go out every time, one
+    /// per column, including the columns nobody has touched. Each record's two seat bytes say who
+    /// turned that column's free card and who turned its gold card, and <c>0xFF</c> says nobody
+    /// did.
     /// <para>
-    /// A position holding nothing is written as a record declaring no contents, which is how it is
-    /// said out loud rather than by omission. That distinction is the point of the frame: the
-    /// client is meant to turn all four cards face up, and a position left out of the answer is one
-    /// it would leave face down.
+    /// <b>No reward reaches this frame.</b> What a card holds was already delivered in the clear's
+    /// settlement notification, and the panel draws it from there -- see
+    /// <c>protocol/game/server-to-client/NOTI-0x0023.md</c>. A live run that answered with every
+    /// record empty still turned the clicked card over with its contents on it, which is what
+    /// settles the division: this frame decides <i>whose</i> a column is, the settlement frame
+    /// decides <i>what is on it</i>, and the player's own click decides which column turns.
+    /// </para>
+    /// <para>
+    /// <b>Every record declares zero entries.</b> The reference server writes <c>0xFF</c> in the
+    /// entry count of its last four records, which declares two hundred and fifty-five pairs
+    /// inside a thirty-three byte frame. Nothing observable comes of it, but it is a frame that
+    /// cannot be walked to its end, so this server does not copy it.
     /// </para>
     /// </remarks>
     public static byte[] EncodeSelectCardResponse(SelectCardResponse message)
     {
         ArgumentNullException.ThrowIfNull(message);
 
-        var described = Math.Min(message.Slots.Count, WirePositionCount);
-        var length = ((WirePositionCount - described) * AbsentRecordLength)
-            + (described * (RecordHeaderLength + 1));
-        for (var record = 0; record < described; record++)
-        {
-            if (message.Slots[record].Item is not null)
-                length += ContentPairLength;
-        }
-
-        var payload = new byte[length];
+        var payload = new byte[WirePositionCount * EmptyRecordLength];
         var at = 0;
-        for (var record = 0; record < described; record++)
-            at = WriteRecord(payload, at, message.Kind, message.Slots[record]);
-
-        while (at < length)
-            payload[at++] = AbsentRecordByte;
+        for (var column = 0; column < WirePositionCount; column++)
+        {
+            var turned = column == message.TurnedColumn;
+            payload[at++] = turned && message.Kind is ClearRewardCardKind.Free ? OwnSeat : NoSeat;
+            payload[at++] = turned && message.Kind is ClearRewardCardKind.Paid ? OwnSeat : NoSeat;
+            payload[at++] = 0; // no entries follow
+            payload[at++] = 0; // the record's trailing flag
+        }
 
         return GameCmdEnvelope.Accept(payload);
     }
-
-    /// <summary>One record: whose face it is, which position, and what is behind it.</summary>
-    private static int WriteRecord(
-        byte[] payload, int at, ClearRewardCardKind kind, ClearRewardCardSlot slot)
-    {
-        payload[at++] = AnsweredFaceByte(kind);
-        payload[at++] = ContentOwningPosition(slot.Index);
-        payload[at++] = slot.Item is null ? (byte)0 : (byte)1;
-
-        if (slot.Item is { } item)
-        {
-            BinaryPrimitives.WriteUInt32LittleEndian(payload.AsSpan(at), (uint)item.ItemId);
-            BinaryPrimitives.WriteUInt32LittleEndian(payload.AsSpan(at + 4), (uint)item.Quantity);
-            at += ContentPairLength;
-        }
-
-        payload[at++] = RecordTail;
-        return at;
-    }
-
-    /// <summary>
-    /// <b>The one byte this whole feature rests on, and no live client has confirmed it.</b>
-    /// </summary>
-    /// <remarks>
-    /// It is read as the number of the card position a record's contents belong to. Two things
-    /// point that way and neither of them is a measurement:
-    /// <list type="bullet">
-    /// <item>the client hands this byte to a lookup that addresses a per-position list --
-    /// <c>this + 0x1E8 + 100*b + 60</c> -- which is an index into positions rather than a
-    /// flag;</item>
-    /// <item>the client skips a record's contents when the byte is above seven, and seven is the
-    /// last of the <see cref="WirePositionCount"/> positions the frame carries -- so the bound is
-    /// the frame's own width rather than a number from somewhere else.</item>
-    /// </list>
-    /// The reference server writes <c>paidSelected ? 0x00 : 0xFF</c> here, and only in the first of
-    /// its eight records -- its other seven never carry contents at all (<c>86JP</c>:
-    /// <c>CardRewardNotificationSender.BuildCardInfoAck</c>). So the only position it can point at
-    /// is zero, which is why its own panel has one card with anything behind it. Turning all four
-    /// face up is this reading being taken at its word.
-    /// <para>
-    /// <b>Every use of that reading is this function.</b> One live flip settles it -- put a pair on
-    /// position two and see whether the third card lights up -- and if it is wrong, this is the
-    /// only place that changes. See <c>protocol/game/client-to-server/0x0047.md</c>.
-    /// </para>
-    /// </remarks>
-    private static byte ContentOwningPosition(int index) => checked((byte)index);
-
-    /// <summary>Which of the two faces a record belongs to.</summary>
-    /// <remarks>
-    /// Also inferred, and recorded beside the position byte rather than mixed into it. The client
-    /// hands this byte to the same lookup its own one-byte <c>SELECT_CARD</c> packer feeds, which
-    /// is what makes "the face" the reading; and a record whose first byte is <c>0xFF</c> is left
-    /// alone, which is what makes <c>0xFF</c> mean "no record here". The reference server writes
-    /// zero for a free face, so the free value has a capture behind it and the paid value is the
-    /// enumeration taken at its word.
-    /// </remarks>
-    private static byte AnsweredFaceByte(ClearRewardCardKind kind) => (byte)kind;
 }

@@ -207,7 +207,7 @@ internal static class DungeonClearPayloadCodec
     }
 
     /// <summary>
-    /// The reward breakdown, in the reference builder's layout: 274 bytes.
+    /// The reward breakdown: the clear's figures, then the card panel's three rows.
     /// </summary>
     /// <remarks>
     /// Two of its figures carry what the clear actually paid, and the card tail carries what the
@@ -217,11 +217,13 @@ internal static class DungeonClearPayloadCodec
     /// bonuses each need a source this server has not got, and a frame carrying invented figures
     /// would put numbers on the result screen that nothing else could account for.
     /// <para>
-    /// The layout is not invented. It is the reference builder's, and the reference's own 354-byte
-    /// frame confirms it offset for offset: the count of per-object experience entries at 155, the
-    /// list itself from 159, the free-card pair at 240 and 245, seven nine-byte card seats whose
-    /// flags land on 249, 258, 267, 276, 285, 294 and 303, and the paid-card cost at 312. Ten
-    /// entries account for the eighty bytes between that frame's length and this one's.
+    /// <b>The layout is measured, not transcribed.</b> Its length is
+    /// <c>210 + 8N + 8E</c> for <c>N</c> per-object experience entries and <c>E</c> card entries
+    /// across the three rows, and five frames of three different lengths close on it -- an empty
+    /// face at 274, this server's own at 282, and the reference's 354-byte capture. Three of the
+    /// fields in front of the tail are counts, so nothing here may reach a fixed offset: see
+    /// <c>protocol/game/server-to-client/NOTI-0x0023.md</c> for the walk and for the live runs
+    /// that fixed each part of the tail's meaning.
     /// </para>
     /// <para>
     /// <b>The first two fields' names are the reference server's, and are not measured.</b> Their
@@ -280,111 +282,154 @@ internal static class DungeonClearPayloadCodec
 
         writer.Write(0u); // no per-object experience entries
 
-        // The card tail: the free card's pair, then seven seats, then what a paid flip would cost.
-        // The face's positions fill them in order -- position zero the free-card pair, the rest
-        // the seats after it -- which is the order the panel's own layout numbers them in.
+        // The card tail: a record count, then one group per row of the panel with the paid flip's
+        // cost between the first two, then the trailer. Three rows, eight columns apiece; the
+        // clear's reward goes on the free row and the other two rows are declared empty.
         var cards = freeCards ?? [];
-        writer.Write((byte)0);
-        writer.Write(FreeFlipPositions(cards));
-        writer.Write(ItemIdAt(cards, FreeCardPosition)); // free-card item
-        writer.Write(FreeCardGoldAt(cards)); // free-card gold
-        for (var seat = 0; seat < CardSeatCount; seat++)
-        {
-            writer.Write((byte)1);
-            writer.Write(ItemIdAt(cards, seat + 1));
-            writer.Write(AmountAt(cards, seat + 1));
-        }
-
+        writer.Write((byte)0); // no item-acquisition records
+        WriteFreeRow(writer, cards);
         writer.Write(paidFlipCost); // paid-card cost
-        writer.Write(new byte[16]);
-        writer.Write(0); // tail card item
+        WriteUnturnedRow(writer); // the gold row
+        WriteUnturnedRow(writer); // the black-diamond row
+
+        // The twenty-two byte trailer, field for field as the client reads it: two figures into
+        // protected globals, a UI branch switch, a flag, and three more figures. All zero.
+        writer.Write(0);
+        writer.Write(0);
         writer.Write((byte)0);
         writer.Write((byte)0);
-        writer.Write(0u);
-        writer.Write(0u); // the three score categories, summed; all of them zero
-        writer.Write(new byte[8]);
+        writer.Write(0);
+        writer.Write(0);
+        writer.Write(0);
 
         var body = stream.ToArray();
-        if (body.Length != ClearRewardBodyLength)
+        var expected = ClearRewardBodyLengthFor(freeCards);
+        if (body.Length != expected)
         {
             throw new InvalidDataException(
-                $"CLEAR_DUNGEON_REWARD is {ClearRewardBodyLength} bytes with no per-object "
-                    + $"experience entries; built '{body.Length}'.");
+                $"CLEAR_DUNGEON_REWARD with no per-object experience entries and "
+                    + $"{(RewardOf(cards) is null ? "nothing" : "something")} behind the card is "
+                    + $"'{expected}' bytes; built '{body.Length}'.");
         }
 
         return body;
     }
 
-    /// <summary>What the frame is with no per-object experience entries in it.</summary>
-    public const int ClearRewardBodyLength = 274;
-
-    private const int FixedRewardSlotCount = 23;
-
-    /// <summary>Which position of the face the free-card pair carries.</summary>
-    private const int FreeCardPosition = 0;
-
     /// <summary>
-    /// What the byte before the free-card pair declares.
+    /// One row of the card tail: eight columns, each declaring how much it holds.
     /// </summary>
     /// <remarks>
-    /// Two when something sits behind the free position and one when nothing does.
-    /// <c>protocol/game/server-to-client/NOTI-0x0023.md</c> records the byte as
-    /// <c>u8 免费翻牌位数(牌后有物品时为 2,否则 1)</c> -- a value that says whether the free
-    /// position has anything behind it, not a count of entries that follow.
-    /// <para>
-    /// <b>The pair after it is fixed either way</b>, which is what that same record's own
-    /// reconciliation rests on: it accounts for the reference's 354-byte frame against this
-    /// body's <see cref="ClearRewardBodyLength"/> as a flat eighty bytes of per-object experience,
-    /// and the seven seat flags land on 249..303 there and 169..223 here whichever value this byte
-    /// carries. So this is one value changing and nothing else: the body is the same length for
-    /// both, which the check at the end of <see cref="EncodeClearDungeonReward"/> holds to.
-    /// </para>
+    /// <b>A column's count byte is an entry count, not a flag.</b> Each entry is an identifier and
+    /// an amount, and the client pushes every one of them into a list it keeps per column and row,
+    /// so a column can declare more than one. What it does with them is fixed by position:
+    /// <list type="bullet">
+    /// <item>the first entry is that card's <b>gold</b>, and its identifier is not read at all;</item>
+    /// <item>the second entry is that card's <b>piece</b>, drawn as an item;</item>
+    /// <item>a third and later entry is consumed but never drawn.</item>
+    /// </list>
+    /// Live runs establish each of those: writing a real identifier in the first entry still
+    /// displayed its amount as gold, writing a piece in the second displayed that piece, and a
+    /// third entry never appeared. See <c>protocol/game/server-to-client/NOTI-0x0023.md</c>.
     /// </remarks>
-    private static byte FreeFlipPositions(IReadOnlyList<ClearRewardCardSlot> cards) =>
-        PositionOf(cards, FreeCardPosition) is null ? (byte)1 : (byte)2;
+    private static void WriteFreeRow(BinaryWriter writer, IReadOnlyList<ClearRewardCardSlot> cards)
+    {
+        for (var column = 0; column < WireCardColumnCount; column++)
+        {
+            if (column != RewardColumn)
+            {
+                // A column with nothing on it still declares its gold entry, which is none. This
+                // is the reference server's own shape for the seven columns it does not use.
+                writer.Write((byte)1);
+                writer.Write(0);
+                writer.Write(0);
+                continue;
+            }
 
-    /// <summary>What the second half of the free-card pair carries.</summary>
-    /// <remarks>
-    /// <b>Gold, and not the item's count.</b>
-    /// <c>protocol/game/server-to-client/NOTI-0x0023.md</c> records the free position's pair as
-    /// <c>i32 免费牌物品 / i32 免费牌金币</c> and the seven seats after it as
-    /// <c>7×(u8 标记=1, i32 物品, i32 数量)</c> -- the seats carry a count, this does not. Those
-    /// are the record's two layout lines, and they name different fields.
-    /// <para>
-    /// <b>Not relied on, and flagged rather than smoothed over:</b> that record's prose calls the
-    /// reference frame's non-zero offsets 240 and 245 "the free card pair", while its own layout
-    /// block puts the pair at 241 and 245 with the marker on 240. Read the second way, 241 being
-    /// absent from that list is a free position carrying gold and no item, which would be a second
-    /// reason this field is not a count -- but that is a reading of an offset list, not something
-    /// the record states, and the record's two sentences do not agree. The layout block above is
-    /// what this field is written from.
-    /// </para>
-    /// <para>
-    /// <b>What this server actually pays on that card, and worked out the same way the payment
-    /// is.</b> A flip of a position that held something puts
-    /// <see cref="GameProtocol.ClearRewardCardGold"/> in the account and a flip of one that held
-    /// nothing puts nothing there, so this field carries the one figure exactly when the free
-    /// position holds something. It is not an independent claim about the card: reached from the
-    /// same position lookup as the item beside it, so the two cannot disagree, and taken from the
-    /// one place that names the figure so that settling the real rule leaves this in step.
-    /// </para>
-    /// <para>
-    /// That is also what keeps this frame out of a shape the record does not describe. The record
-    /// says nothing about a free position carrying gold and no item -- it was never reachable
-    /// while this server paid no gold at all, and it is still not: gold here is conditioned on the
-    /// item being there, on the same lookup the marker byte above uses, so a non-zero gold always
-    /// arrives with a non-zero item and a marker of two.
-    /// </para>
-    /// </remarks>
-    private static int FreeCardGoldAt(IReadOnlyList<ClearRewardCardSlot> cards) =>
-        PositionOf(cards, FreeCardPosition) is null ? 0 : GameProtocol.ClearRewardCardGold;
+            var reward = RewardOf(cards);
+            writer.Write((byte)(reward is null ? 1 : 2));
+            writer.Write(0); // the gold entry's identifier is not read
+            writer.Write(reward is null ? 0 : GameProtocol.ClearRewardCardGold);
+            if (reward is { } piece)
+            {
+                writer.Write(piece.ItemId);
+                writer.Write(piece.Quantity);
+            }
+        }
+    }
 
-    /// <summary>The nine-byte card seats that follow the free-card entry.</summary>
+    /// <summary>
+    /// A row whose every column declares nothing at all.
+    /// </summary>
     /// <remarks>
-    /// A flag, an identifier and an amount apiece. Their flags land on 169, 178, 187, 196, 205,
-    /// 214 and 223 of this body, and the paid-card cost after the last of them on 232.
+    /// The gold row and the black-diamond row. Their contents are what a player sees after paying
+    /// for a flip of them, and this server delivers neither, so declaring them empty is the honest
+    /// answer rather than an omission -- the reader consumes all three rows either way and the
+    /// trailer sits behind them. The reference server writes these two rows the same way.
     /// </remarks>
-    private const int CardSeatCount = 7;
+    private static void WriteUnturnedRow(BinaryWriter writer)
+    {
+        for (var column = 0; column < WireCardColumnCount; column++)
+            writer.Write((byte)0);
+    }
+
+    /// <summary>
+    /// What this clear puts on its card, or <c>null</c> when it put nothing there.
+    /// </summary>
+    /// <remarks>
+    /// <b>One position, not four.</b> The client never reports which card the player clicked -- the
+    /// request's position byte is a written-in constant zero -- so which card is turned over cannot
+    /// change what is behind it. The panel turns the clicked card over and draws the one reward the
+    /// answer names. A face declaring four different things would therefore be declaring three that
+    /// no player can ever reach; see <c>protocol/game/client-to-server/0x0047.md</c>.
+    /// </remarks>
+    private static ClearRewardCardItem? RewardOf(IReadOnlyList<ClearRewardCardSlot> cards) =>
+        PositionOf(cards, RewardPosition);
+
+    /// <summary>How many columns each row of the tail carries.</summary>
+    /// <remarks>
+    /// Eight, which all three of the client's parse loops bound with <c>cmp ..., 8</c>. The panel
+    /// draws four of them; the frame carries eight either way, so this is a fact about the frame
+    /// rather than about the panel.
+    /// </remarks>
+    public const int WireCardColumnCount = 8;
+
+    /// <summary>Which column of the free row this clear's reward is declared on.</summary>
+    /// <remarks>
+    /// Zero, and it is the same zero the flip answer writes as the seat that turned a card over:
+    /// the value the answer carries is what the panel then uses to pick whose contents a column
+    /// draws. While this server answers for one player at seat zero, the reward has to be on
+    /// column zero for that pick to land on it. Changing one without the other would put a card
+    /// face up with nothing behind it.
+    /// </remarks>
+    private const int RewardColumn = 0;
+
+    /// <summary>Which position of the settled face is the one that reaches the player.</summary>
+    /// <remarks>
+    /// Zero, because zero is the position the flip claims: the client's request carries a constant
+    /// zero and the claim takes it at its word. The rule service still settles a whole face; the
+    /// positions after this one have no way to reach a player and are not put on the wire.
+    /// </remarks>
+    private const int RewardPosition = 0;
+
+    /// <summary>The width of one identifier-and-amount entry.</summary>
+    private const int CardEntryLength = 8;
+
+    /// <summary>
+    /// What the frame is with no per-object experience entries and nothing behind the card.
+    /// </summary>
+    /// <remarks>
+    /// The pre-tail block is 159 bytes, the record count one, the free row's eight columns
+    /// 1 + 8 + 63, the cost four, the two empty rows eight apiece, and the trailer twenty-two.
+    /// A piece behind the card adds one entry to the free row's first column and nothing else.
+    /// </remarks>
+    public const int ClearRewardBodyLength = 274;
+
+    /// <summary>What the frame measures for a given face.</summary>
+    public static int ClearRewardBodyLengthFor(IReadOnlyList<ClearRewardCardSlot>? cards) =>
+        ClearRewardBodyLength
+            + (RewardOf(cards ?? []) is null ? 0 : CardEntryLength);
+
+    private const int FixedRewardSlotCount = 23;
 
     /// <summary>What the cost field carries on a clear that fixed no cards at all.</summary>
     /// <remarks>
@@ -443,24 +488,6 @@ internal static class DungeonClearPayloadCodec
 
         return null;
     }
-
-    /// <summary>The identifier that position carries, or zero when it holds nothing.</summary>
-    private static int ItemIdAt(IReadOnlyList<ClearRewardCardSlot> cards, int position) =>
-        PositionOf(cards, position)?.ItemId ?? 0;
-
-    /// <summary>
-    /// How many of it that position carries, or zero when it holds nothing.
-    /// </summary>
-    /// <remarks>
-    /// The third field of a card seat, which
-    /// <c>protocol/game/server-to-client/NOTI-0x0023.md</c> records as the <c>i32 数量</c> of
-    /// <c>7×(u8 标记=1, i32 物品, i32 数量)</c> -- that seat's own count, beside that seat's own
-    /// identifier. <b>The free position's second field is not this one</b>; the same record names
-    /// it gold, and it is written by <see cref="FreeCardGoldAt"/>. A seat holding nothing writes
-    /// the pair a clear with no cards writes, which is two zeroes.
-    /// </remarks>
-    private static int AmountAt(IReadOnlyList<ClearRewardCardSlot> cards, int position) =>
-        PositionOf(cards, position)?.Quantity ?? 0;
 }
 
 internal sealed class SetPlayResultDecoder : IGameMessageDecoder

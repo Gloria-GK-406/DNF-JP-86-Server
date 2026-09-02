@@ -35,21 +35,19 @@ public sealed record SelectCardRequest(
 }
 
 /// <summary>
-/// The CMD answer under the same type: every position of the flipped face, in one frame.
+/// The CMD answer under the same type: the whole panel's state after the flip.
 /// </summary>
 /// <remarks>
-/// <b>All of them, not just the one that was turned.</b> The wire carries eight records and each
-/// one names the position its contents belong to, so a single answer can say what sits behind
-/// every card -- including the positions holding nothing, which say so by declaring no contents
-/// rather than by being left out. That is the requirement this type exists to meet; it is not what
-/// the reference server does, which fills one record and leaves the rest empty. See
+/// <b>It carries no reward.</b> What a card holds was settled and sent with the clear's reward
+/// notification; this answer says which column of which row is now face up and whose flip it was.
+/// The player's own client decides which column to turn, and never tells the server which one --
+/// the request's position byte is a written-in constant. See
 /// <see cref="CardRewardPayloadCodec.EncodeSelectCardResponse"/>.
 /// </remarks>
-/// <param name="Slots">
-/// The face's positions in their own order, each carrying the position number it describes.
-/// </param>
-public sealed record SelectCardResponse(
-    ClearRewardCardKind Kind, IReadOnlyList<ClearRewardCardSlot> Slots) : IGameCmdMessage
+/// <param name="Kind">Which row was turned over: the free row or the gold one.</param>
+/// <param name="TurnedColumn">Which column of that row this answer declares face up.</param>
+public sealed record SelectCardResponse(ClearRewardCardKind Kind, int TurnedColumn)
+    : IGameCmdMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameSelectCard;
 }
