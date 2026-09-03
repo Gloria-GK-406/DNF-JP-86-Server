@@ -141,6 +141,103 @@ internal sealed class SqliteAccountCargoStateTable(SqliteDatabase database)
     }
 }
 
+/// <summary>The <c>character_stats.carried_gold</c> column.</summary>
+/// <remarks>
+/// Both directions are one statement, for the reason the account cargo's are: two changes answered
+/// at once must not each read the same figure and each write their own sum. Nothing serialises them
+/// -- the per-character execution gate this server declares has no callers -- and the item store,
+/// being a unit of work, offers only read-modify-write. So the guard lives in the statement.
+/// <para>
+/// Every character has a row from creation, so neither direction opens one. A statement that
+/// matched nothing means the character does not exist, which is not this table's to invent.
+/// </para>
+/// </remarks>
+internal sealed class SqliteCharacterCarriedGoldTable(SqliteDatabase database)
+    : ICharacterCarriedGoldTable
+{
+    /// <remarks>
+    /// One statement over both tables, because the cap is worked out from the level and the level
+    /// lives on the character while the figure and the stored upgrade live on its stats. Read
+    /// apart, the level could move between the two reads and the cap would be priced at the wrong
+    /// one.
+    /// </remarks>
+    public ValueTask<CarriedGoldRow?> FindAsync(
+        CharacterId characterId, CancellationToken cancellationToken) =>
+        database.ReadFirstAsync(
+            """
+            SELECT s.carried_gold, c.level, s.gold_carry_limit
+            FROM character_stats s
+            JOIN characters c ON c.character_id = s.character_id
+            WHERE s.character_id = @characterId
+            LIMIT 1;
+            """,
+            parameters => parameters.AddWithValue("@characterId", characterId.Value),
+            reader => new CarriedGoldRow(
+                reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2)),
+            cancellationToken);
+
+    /// <remarks>
+    /// The ceiling is a parameter of the statement rather than a comparison made afterwards, so a
+    /// second addition answered at the same moment cannot carry the total past it.
+    /// </remarks>
+    public async ValueTask<int> AddAsync(
+        CharacterId characterId, int amount, int ceiling, CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(ceiling);
+
+        var rows = await database.ReadAllAsync(
+            """
+            UPDATE character_stats SET
+                carried_gold = MAX(0, MIN(@ceiling, carried_gold + @amount))
+            WHERE character_id = @characterId
+            RETURNING carried_gold;
+            """,
+            parameters =>
+            {
+                parameters.AddWithValue("@characterId", characterId.Value);
+                parameters.AddWithValue("@amount", amount);
+                parameters.AddWithValue("@ceiling", ceiling);
+            },
+            reader => reader.GetInt32(0),
+            cancellationToken).ConfigureAwait(false);
+
+        return rows.Count > 0 ? rows[0] : 0;
+    }
+
+    /// <remarks>
+    /// The condition that says the character can pay and the subtraction that makes it pay are one
+    /// statement, so two charges answered at once cannot both pass a test only one of them could
+    /// afford. A refusal writes nothing at all.
+    /// <para>
+    /// A take of zero is a charge of nothing and is always allowed. A negative amount is not: a
+    /// negative take is an addition wearing the other name, and handing gold out is the one thing
+    /// a charging seam must not be able to do by accident.
+    /// </para>
+    /// </remarks>
+    public async ValueTask<int?> TryTakeAsync(
+        CharacterId characterId, int amount, CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(amount);
+
+        var rows = await database.ReadAllAsync(
+            """
+            UPDATE character_stats SET
+                carried_gold = carried_gold - @amount
+            WHERE character_id = @characterId AND carried_gold >= @amount
+            RETURNING carried_gold;
+            """,
+            parameters =>
+            {
+                parameters.AddWithValue("@characterId", characterId.Value);
+                parameters.AddWithValue("@amount", amount);
+            },
+            reader => reader.GetInt32(0),
+            cancellationToken).ConfigureAwait(false);
+
+        return rows.Count > 0 ? rows[0] : null;
+    }
+}
+
 /// <summary>The gold caps, read from <c>character_stats</c> where they now live.</summary>
 internal sealed class SqliteCharacterGoldLimitTable(SqliteDatabase database)
     : ICharacterGoldLimitTable

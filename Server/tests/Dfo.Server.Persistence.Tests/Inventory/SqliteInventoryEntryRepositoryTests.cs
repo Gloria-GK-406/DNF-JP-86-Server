@@ -85,7 +85,13 @@ public sealed class SqliteInventoryEntryRepositoryTests
             Assert.Equal(
                 new InventoryRuntimeValueState(356, 3035, 99),
                 Assert.Single(accountResult.AccountVirtualResources));
-            Assert.Empty(characterResult.CharacterVirtualResources);
+            // Slot 0 is the gold this character carries, and it is answered for every character
+            // this server has rather than only for one that has been given some. Zero is a figure
+            // a character can carry; "no entry" was how the old reading said "no item row here",
+            // and gold stopped being an item row.
+            Assert.Equal(
+                new InventoryRuntimeValueState(0, 0, 0),
+                Assert.Single(characterResult.CharacterVirtualResources));
             Assert.Collection(
                 characterResult.CharacterItemValues,
                 item => Assert.Equal(

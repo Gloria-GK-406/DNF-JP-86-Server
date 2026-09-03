@@ -21,6 +21,19 @@ internal sealed class GoldLimitRuleService : IGoldLimitRuleService
     }
 }
 
+/// <summary>How much gold a character may carry.</summary>
+/// <remarks>
+/// The archive's floor and the stored upgrade are both weighed here rather than at the seam that
+/// moves gold, because which of them applies is a rule and that seam is a store. Nothing about the
+/// running world is consulted: the level and the stored column are handed in.
+/// </remarks>
+internal sealed class CarriedGoldRuleService(IGoldCarryLimitSource carryLimits)
+    : ICarriedGoldRuleService
+{
+    public int CarryLimitFor(int characterLevel, int storedCarryLimit) =>
+        Math.Max(carryLimits.BaseLimitFor(characterLevel), Math.Max(0, storedCarryLimit));
+}
+
 /// <summary>What an over-skill contract running out does to the levels it was holding up.</summary>
 internal sealed class ExpertSkillContractRuleService : IExpertSkillContractRuleService
 {

@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
@@ -119,11 +120,9 @@ internal static class GroundPickupPayloadCodec
     /// Measured against two captures. The amount is a signed 32-bit field at <c>+6</c>: the client
     /// adds it to the figure it is already displaying rather than being told a total.
     /// <para>
-    /// <b>The figure it adds to is the character's carried gold, which this server does not keep.</b>
-    /// What it was told at entry is the account cargo's gold, in a different container of the
-    /// item-list frame. So the number the player watches go up here is not backed by anything
-    /// stored, and it is gone by the next entry. Giving it something to be backed by is a separate
-    /// piece of work; nothing about this frame changes when that happens.
+    /// The figure it adds to is the character's carried gold, which this server now keeps. What
+    /// it was told at entry is that same figure, read out of the character; so the number the
+    /// player watches go up here is the number that will still be there at the next entry.
     /// </para>
     /// </remarks>
     public static byte[] EncodeGoldNotification(GroundGoldPickupNotification message)
@@ -229,13 +228,13 @@ public enum GroundPickupStatus
     /// <summary>The archive declares nothing holdable under that identifier.</summary>
     UnknownItem,
 
-    /// <summary>Gold, which goes to the account's cargo rather than into a bag.</summary>
+    /// <summary>Gold, which goes onto the character rather than into a bag.</summary>
     Banked,
 }
 
 /// <summary>What a pick-up did, or why it did not.</summary>
 /// <param name="Amount">
-/// How much gold was taken, and what the account's cargo holds afterwards. Zero for anything that
+/// How much gold was taken, and what the character carries afterwards. Zero for anything that
 /// went into a bag.
 /// </param>
 public sealed record GroundPickupResult(
@@ -270,7 +269,7 @@ public sealed class PickUpGroundDropCommandHandler(
     IDungeonRunDomainService runs,
     IGroundPickupDomainService floor,
     ICharacterContainerDomainService containers,
-    IAccountCargoGoldService cargoGold)
+    ICharacterDomainService characters)
     : ICommandHandler<PickUpGroundDropCommand, GroundPickupResult>
 {
     public async ValueTask<GroundPickupResult> HandleAsync(
@@ -291,17 +290,16 @@ public sealed class PickUpGroundDropCommandHandler(
 
         var piece = Announced(run, found);
 
-        // Gold goes to the account's cargo and never touches a bag, so it is claimed and banked
+        // Gold goes onto the character and never touches a bag, so it is claimed and credited
         // before a container is even looked for -- a character with no bag bound can still pick up
-        // coins. The reference server puts it on the character instead; this server has no carried
-        // gold yet, which is why it lands here.
+        // coins.
         if (piece.ItemId == RolledDrop.GoldItemId)
         {
             if (runs.TryTakeGroundDrop(command.CharacterId, command.GroundDropNumber) is null)
                 return GroundPickupResult.Refused(GroundPickupStatus.AlreadyTaken);
 
-            var total = await cargoGold.AddAsync(command.AccountId, piece.Count, cancellationToken)
-                .ConfigureAwait(false);
+            var total = await characters.Get(command.CharacterId)
+                .AddGoldAsync(piece.Count, cancellationToken).ConfigureAwait(false);
             return new GroundPickupResult(
                 GroundPickupStatus.Banked, RolledDrop.GoldItemId, 0, piece.Count, total);
         }
@@ -421,6 +419,7 @@ public sealed class GetItemHandler(
     ISelectedSessionDirectory selectedSessions,
     ICommandBus commandBus,
     IGameMessageSender sender,
+    TimeProvider clock,
     ILogger<GetItemHandler> logger) : ClientMessageHandler<GetItemRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -447,7 +446,7 @@ public sealed class GetItemHandler(
         {
             logger.LogInformation(
                 "Get item {ConnectionId} user={WireUserId}: drop {Number} is {Amount} gold, "
-                    + "account cargo now holds {Total}",
+                    + "character now carries {Total}",
                 context.Connection.ConnectionId,
                 session.WireUserId,
                 message.GroundDropNumber,
@@ -461,6 +460,17 @@ public sealed class GetItemHandler(
                         new GetItemResponse(Accepted: true),
                         new GroundGoldPickupNotification(
                             message.GroundDropNumber, session.WireUserId, result.Amount),
+
+                        // And what the character now actually carries. The frame above says how
+                        // much the pile held and the client adds it; this one says the total and
+                        // the client takes it as read. They agree on every ordinary pick-up, and
+                        // they disagree by exactly the amount the carry cap refused when the cap
+                        // was reached -- which is the case where the addition alone would leave
+                        // the player looking at a figure the server does not hold, right up until
+                        // the next entry. That is the shape of the defect this whole seam exists
+                        // to remove, so it is corrected in the same breath rather than detected.
+                        GameInventoryDelivery.CarriedGoldNotification(
+                            result.Total, clock.GetUtcNow()),
                     ],
                     []),
                 cancellationToken).ConfigureAwait(false);

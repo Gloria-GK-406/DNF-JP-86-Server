@@ -15,10 +15,12 @@ using Dfo.Server.Protocol.Game.CardReward;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Application.Tests.Inventory;
 namespace Dfo.Server.Application.Tests.World;
 
 /// <summary>
-/// A paid flip charged against the operator-supplied archive and a real account cargo.
+/// A paid flip charged against the operator-supplied archive and a real character's gold.
 /// </summary>
 /// <remarks>
 /// The whole path, with nothing between the file and the gold: the rule service reads
@@ -97,7 +99,7 @@ public sealed class PaidCardFlipCostTests
     /// An account with more than the archive's price pays exactly that price and gets the card.
     /// </summary>
     /// <remarks>
-    /// The cargo gold afterwards is what was funded, less the archive's price, plus what the card
+    /// What the character carries afterwards is what was funded, less the archive's price, plus what the card
     /// itself paid -- all three, because the price alone would also be satisfied by a flip that
     /// charged correctly and handed nothing over.
     /// <para>
@@ -122,7 +124,7 @@ public sealed class PaidCardFlipCostTests
             Assert.Equal(SelectCardStatus.Flipped, result.Status);
             Assert.Equal(price, result.GoldCharged);
             Assert.NotEqual(0, result.GoldPaid);
-            Assert.Equal(500 + result.GoldPaid, await world.CargoGold());
+            Assert.Equal(500 + result.GoldPaid, await world.CarriedGold());
             Assert.Equal(CardItemId, world.Bag.Landed?.ItemId);
         }
         finally
@@ -157,7 +159,7 @@ public sealed class PaidCardFlipCostTests
             Assert.Equal(0, result.GoldCharged);
             Assert.Equal(0, result.GoldPaid);
             Assert.Empty(result.Slots);
-            Assert.Equal(price - 1, await world.CargoGold());
+            Assert.Equal(price - 1, await world.CarriedGold());
             Assert.Null(world.Bag.Landed);
         }
         finally
@@ -226,7 +228,7 @@ public sealed class PaidCardFlipCostTests
 
             Assert.Equal(SelectCardStatus.Flipped, result.Status);
             Assert.Equal(announced, result.GoldCharged);
-            Assert.Equal(funded - announced + result.GoldPaid, await world.CargoGold());
+            Assert.Equal(funded - announced + result.GoldPaid, await world.CarriedGold());
         }
         finally
         {
@@ -242,7 +244,7 @@ public sealed class PaidCardFlipCostTests
     /// The archive prices this level -- asserted first, so that the refusal below is the dungeon's
     /// declaration and not a level nobody priced -- and the account is funded well past that
     /// price, so a flip that went through would go through. What it gets instead is a refusal that
-    /// left the cargo gold exactly as it found it.
+    /// left the character's gold exactly as it found it.
     /// <para>
     /// <b>The free flip of the same clear is turned afterwards and is untouched.</b> That is the
     /// half that says what was switched off: a change that had closed the whole card panel, or
@@ -270,7 +272,7 @@ public sealed class PaidCardFlipCostTests
             Assert.Equal(0, paid.GoldCharged);
             Assert.Equal(0, paid.GoldPaid);
             Assert.Empty(paid.Slots);
-            Assert.Equal(price + 500, await world.CargoGold());
+            Assert.Equal(price + 500, await world.CarriedGold());
 
             // Only the paid card was switched off.
             var free = await world.Turn(ClearRewardCardKind.Free, 0);
@@ -310,7 +312,7 @@ public sealed class PaidCardFlipCostTests
 
             Assert.Equal(SelectCardStatus.Flipped, paid.Status);
             Assert.Equal(price, paid.GoldCharged);
-            Assert.Equal(500 + paid.GoldPaid, await world.CargoGold());
+            Assert.Equal(500 + paid.GoldPaid, await world.CarriedGold());
         }
         finally
         {
@@ -362,7 +364,7 @@ public sealed class PaidCardFlipCostTests
             BasisLevel: BasisLevel,
             ExperienceWeight: 1.45);
 
-        private readonly SqliteAccountCargoStateTable _cargo;
+        private readonly SqliteCharacterCarriedGoldTable _carried;
         private readonly CardRewardDomainService _cards;
         private readonly SelectCardCommandHandler _handler;
         private readonly string _path;
@@ -387,9 +389,10 @@ public sealed class PaidCardFlipCostTests
             int dungeonId = OrdinaryDungeonId)
         {
             this._path = Path.Combine(Path.GetTempPath(), $"dfo-flip-{Guid.NewGuid():N}.db");
-            this._cargo = new SqliteAccountCargoStateTable(
-                new SqliteDatabase(this._path, new DomainTransactionScope()));
-            this._cargo.AddValue32Async(Account, funded, CancellationToken.None)
+            var database = new SqliteDatabase(this._path, new DomainTransactionScope());
+            OpenCharacter(database);
+            this._carried = new SqliteCharacterCarriedGoldTable(database);
+            this._carried.AddAsync(Character, funded, int.MaxValue, CancellationToken.None)
                 .AsTask().GetAwaiter().GetResult();
 
             var runs = new DungeonRunDomainService();
@@ -423,8 +426,35 @@ public sealed class PaidCardFlipCostTests
                 this._cards,
                 runs,
                 new OneBag(this.Bag),
-                new AccountCargoGoldService(this._cargo),
+                new OneCharacter(new RealCarriedGold(this._carried)),
                 TimeProvider.System);
+        }
+
+        /// <summary>
+        /// A character whose gold is the real table over the real file.
+        /// </summary>
+        /// <remarks>
+        /// Only the gold is real here. The cap is the archive's floor for level eighty-six, four
+        /// hundred million, which no case in this file goes near -- so the cap is passed straight
+        /// through rather than read, and a case that started to depend on it would have to say so.
+        /// </remarks>
+        private sealed class RealCarriedGold(SqliteCharacterCarriedGoldTable carried) : ICharacter
+        {
+            public CharacterId Id => Character;
+
+            public ValueTask<ItemUsability> CanUseAsync(
+                int itemId, CancellationToken cancellationToken) =>
+                throw new NotSupportedException("This subject is about a flip's price.");
+
+            public async ValueTask<int> GoldAsync(CancellationToken cancellationToken) =>
+                (await carried.FindAsync(Character, cancellationToken))?.Carried ?? 0;
+
+            public ValueTask<int> AddGoldAsync(int amount, CancellationToken cancellationToken) =>
+                carried.AddAsync(Character, amount, int.MaxValue, cancellationToken);
+
+            public ValueTask<int?> TrySpendGoldAsync(
+                int amount, CancellationToken cancellationToken) =>
+                carried.TryTakeAsync(Character, amount, cancellationToken);
         }
 
         public RecordingBag Bag { get; } = new();
@@ -453,11 +483,29 @@ public sealed class PaidCardFlipCostTests
                 new ClearRewardSettlement(Character, standingAt), CancellationToken.None))
                 ?.PaidFlipCost;
 
-        /// <summary>What the account cargo's own row says it holds.</summary>
-        public async ValueTask<int> CargoGold()
+        /// <summary>What the character's own row says it carries.</summary>
+        public async ValueTask<int> CarriedGold() =>
+            (await this._carried.FindAsync(Character, CancellationToken.None))?.Carried ?? 0;
+
+        /// <remarks>
+        /// The gold lives on the character, so the character has to exist. Level eighty-six is the
+        /// band these captures were taken in, and its archive floor is four hundred million --
+        /// comfortably above anything this subject funds, so the cap never enters these cases.
+        /// </remarks>
+        private static void OpenCharacter(SqliteDatabase database)
         {
-            var rows = await this._cargo.ReadByAccountAsync(Account, CancellationToken.None);
-            return rows.Count > 0 ? rows[0].Value32 : 0;
+            using var connection = new SqliteConnection(database.ConnectionString);
+            connection.Open();
+            using var insert = connection.CreateCommand();
+            insert.CommandText =
+                """
+                INSERT INTO characters(character_id, account_id, name, job, level)
+                VALUES (@characterId, @accountId, 'flipper', 1, 86);
+                INSERT INTO character_stats(character_id) VALUES (@characterId);
+                """;
+            insert.Parameters.AddWithValue("@characterId", Character.Value);
+            insert.Parameters.AddWithValue("@accountId", Account.Value);
+            insert.ExecuteNonQuery();
         }
 
         public void Discard()

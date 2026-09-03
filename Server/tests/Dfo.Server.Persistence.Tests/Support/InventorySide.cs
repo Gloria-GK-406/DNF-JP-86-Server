@@ -200,6 +200,7 @@ internal sealed class InventorySide
         new SqliteCharacterContainerStateTable(this.database),
         new SqliteAccountCargoStateTable(this.database),
         new SqliteCharacterGoldLimitTable(this.database),
+        new SqliteCharacterCarriedGoldTable(this.database),
         new SqliteCharacterItemCooldownTable(this.database),
         new SqliteCharacterItemEffectTable(this.database),
         new SqliteCharacterItemLockTable(this.database),

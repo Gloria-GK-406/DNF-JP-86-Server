@@ -16,6 +16,14 @@ namespace Dfo.Server.Abstractions.Characters;
 /// body; a bag, a quest log and a skill page are each their own thing, reached through their own
 /// repository rather than bolted on here.
 ///
+/// The gold it carries belongs here by that same test, and the test is about meaning rather than
+/// storage. The client draws that gold as an item -- the first virtual slot of the main list, item
+/// id zero -- because its inventory window renders a currency with the widget it renders a sword
+/// with. That is an encoding at the boundary. What the gold actually is, is a figure on the
+/// character: it has none of an item's thirty fields but one, obeys a carry cap no item obeys, and
+/// cannot be moved, split, merged, locked or rented. The bag is still reached through its own
+/// repository; what is reached here is the character's own money.
+///
 /// A character can only answer while it is the one being played -- what it reads exists only then.
 /// That is not a lifetime of its own: nothing is prepared for it and nothing is released, and
 /// asking about a character nobody is playing gets the same answer it always did.
@@ -32,6 +40,45 @@ public interface ICharacter
     /// as asking once. Starting one belongs to the effects, which run after a use succeeds.
     /// </remarks>
     ValueTask<ItemUsability> CanUseAsync(int itemId, CancellationToken cancellationToken);
+
+    /// <summary>How much gold this character is carrying.</summary>
+    /// <remarks>
+    /// Read when asked, like every other answer here. A character this server does not have
+    /// carries nothing, which is the same figure a character who has spent everything carries --
+    /// the difference matters to the two members below and not to this one.
+    /// </remarks>
+    ValueTask<int> GoldAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gives this character that much gold and answers what it carries afterwards.
+    /// </summary>
+    /// <remarks>
+    /// <b>The one way gold arrives.</b> The carry cap is applied here, so an arrival that would
+    /// take the character past it fills to the cap and no further. Anything that reached the store
+    /// around this would be gold the cap never saw, which is exactly how the reference server ended
+    /// up with three different answers to a full purse.
+    /// <para>
+    /// A negative amount takes gold away and is held at zero. It is not a way to charge: a charge
+    /// that cannot be met has to be refused rather than clamped, which is what
+    /// <see cref="TrySpendGoldAsync"/> is for.
+    /// </para>
+    /// <para>
+    /// Answers what the character carries afterwards, which a caller can compare with what it
+    /// offered to see whether the cap took a bite.
+    /// </para>
+    /// </remarks>
+    ValueTask<int> AddGoldAsync(int amount, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Takes that much gold from this character, or takes nothing at all.
+    /// </summary>
+    /// <remarks>
+    /// Answers what is carried afterwards, and <c>null</c> when the character was not carrying that
+    /// much -- in which case nothing was taken and the figure stands where it stood. Refusing is
+    /// the point: a charge clamped to zero would record a player who cannot afford something as
+    /// having bought it, and the gold they did not have would be gone as well.
+    /// </remarks>
+    ValueTask<int?> TrySpendGoldAsync(int amount, CancellationToken cancellationToken);
 }
 
 /// <summary>

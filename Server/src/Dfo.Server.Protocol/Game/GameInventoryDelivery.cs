@@ -207,6 +207,77 @@ internal static class GameInventoryDelivery
         return new InventoryDeltaMessage(update.ContainerType, update.Items, update.PreparedAt);
     }
 
+    /// <summary>
+    /// The frame that tells the client what a character now carries in gold.
+    /// </summary>
+    /// <remarks>
+    /// The same delta frame a bag change takes, aimed at the main list's first virtual slot -- the
+    /// place the client draws carried gold. The figure is absolute, so the client takes it as the
+    /// new total rather than adding it, which is what makes this the way to correct a display that
+    /// has drifted.
+    /// <para>
+    /// <b>Not for a floor pick-up.</b> That one already has its own frame, and that frame carries
+    /// the amount picked up rather than a total, which the client adds. Sending both would be
+    /// telling the client the same change twice in two different languages.
+    /// </para>
+    /// <para>
+    /// Every field but the slot, the id and the figure is zero, which is the same hundred and one
+    /// bytes the entry snapshot writes for this slot. Gold has no durability, no enchant and no
+    /// expiry; it is a count wearing an item's shape because that is the shape the client's
+    /// inventory window reads.
+    /// </para>
+    /// </remarks>
+    public static IGameServerMessage CarriedGoldNotification(int carried, DateTimeOffset preparedAt) =>
+        new InventoryDeltaMessage(
+            InventoryContainerType.Main,
+            [new InventoryItemState(0, CarriedGoldSlot, CarriedGoldCore(carried))],
+            preparedAt);
+
+    /// <summary>The main list's first virtual slot, where the client draws carried gold.</summary>
+    private const int CarriedGoldSlot = 0;
+
+    private static InventoryItemCoreState CarriedGoldCore(int carried) =>
+        new(
+            ItemKind: 0,
+            ItemId: 0,
+            Value: Math.Max(0, carried),
+            Attribute: 0,
+            Durability: 0,
+            SealFlag: 0,
+            EnchantCardId: 0,
+            EnchantUpgradeCount: 0,
+            AmplifyType: 0,
+            AmplifyValue: 0,
+            Marker16: 0,
+            ChronicleOption0: EmptyChronicle,
+            ChronicleOption1: EmptyChronicle,
+            ExpireTime: 0,
+            EmblemSocketCount: 0,
+            EmblemId1: 0,
+            EmblemId2: 0,
+            Rune: 0,
+            RandomOption0: EmptyRandomOption,
+            RandomOption1: EmptyRandomOption,
+            RandomOption2: EmptyRandomOption,
+            RandomOptionState: 0,
+            RandomOptionChangedIndex: 0,
+            RandomOptionChangeState: 0,
+            RandomOptionChange: EmptyRandomOption,
+            GenuineUpgrade: 0,
+            EmancipateEquipmentLevel: 0,
+            TradeRestriction: 0,
+            TailUnknown0: 0,
+            TailUnknown1: 0,
+            TailUnknown2: 0,
+            TailUnknown3: 0,
+            RemainUseCount: 0,
+            SortLockFlag: 0,
+            EquipmentLockId: 0);
+
+    private static ChronicleOptionState EmptyChronicle => new(0, 0, 0, 0, 0);
+
+    private static RandomOptionState EmptyRandomOption => new(0, 0, 0);
+
     /// <summary>The same, for a batch of changes that settled together.</summary>
     public static IReadOnlyList<IGameServerMessage> Notifications(
         IReadOnlyList<CommittedInventoryUpdateState> updates)

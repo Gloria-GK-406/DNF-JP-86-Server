@@ -128,14 +128,33 @@ public sealed class SelectCardHandler(
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(
-                result.Delivered is { } delivered
-                    ?
-                    [
-                        new SelectCardResponse(result.Kind, message.Index),
-                        GameInventoryDelivery.Notification(delivered),
-                    ]
-                    : [new SelectCardResponse(result.Kind, message.Index)],
+                Frames(result, message.Index, published.World.PreparedAt),
                 []),
             cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// What this flip has to tell the client: that it happened, what the bag now holds, and what
+    /// the character now carries.
+    /// </summary>
+    /// <remarks>
+    /// The gold frame goes out whenever a flip moved gold either way. Without it the player's own
+    /// figure would not move until the next entry, which is the shape the whole carried-gold
+    /// defect wore: the server had the right number and the client was never told it.
+    /// </remarks>
+    private static IReadOnlyList<IGameServerMessage> Frames(
+        SelectCardResult result, int index, DateTimeOffset preparedAt)
+    {
+        var frames = new List<IGameServerMessage>
+        {
+            new SelectCardResponse(result.Kind, index),
+        };
+        if (result.Delivered is { } delivered)
+            frames.Add(GameInventoryDelivery.Notification(delivered));
+
+        if (result.GoldPaid > 0 || result.GoldCharged > 0)
+            frames.Add(GameInventoryDelivery.CarriedGoldNotification(result.GoldCarried, preparedAt));
+
+        return frames;
     }
 }

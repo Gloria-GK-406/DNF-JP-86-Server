@@ -6,7 +6,7 @@ contract:
 state: active
 phase: child_execution
 phase_state: pending
-active_attempt: spec-001
+active_attempt: spec-002
 last_transition: child-created
 transition_evidence: >-
   workspace-ready：规范根 .worktrees/gold-the-player-carries（git rev-parse --show-toplevel
@@ -25,17 +25,38 @@ transition_evidence: >-
   依赖链接校验：depends_on 为空 YAML 序列，合法（无未决外部前置）。游标一致性校验：
   safe-successor 的目标为 child_modeling/pending，与转移前持久化状态一致。子路由决策已完成
   readiness / marginal value / Single 结构选择三节，Controller Selection 留给 single-spec-workflow。
+  child-sealed：spec-001 以 outcome completed 封存于
+  attempts/spec-001-money-named-for-what-it-is/spec-result.md，终止阶段 verification。
+  child-accepted：接受前 HEAD 仍等于先前基线 1946c012（实测），完整变更集经检查后一次提交，
+  新提交 e4f29e1d4d68abd4b45114822731c8e8f9995874；提交后任务工作区 git status 为空、
+  分支仅前进这一步（e4f29e1d 的父提交即 1946c012）、源检出 main 仍为 1946c012 且状态为空、
+  无关的 client-debug-lab 仍为 33a18570 未触碰。工作区基线随之推进。
+  gaps-remain（第二次）：在已接受基线 e4f29e1d 上，SC-5/6/8/9 已 satisfied、SC-7 in_progress、
+  SC-1..SC-4 仍 not_started（见下表），九条约束全部 aligned，无违反也无风险项。root-satisfied 不成立。
+  safe-successor（第二次）：剩余缺口全部指向同一个有界稳定结果 —— 「玩家身上的金币是真的：
+  能被写入、跨会话保留、变更时告知客户端，且既有的赚钱与花钱路径都作用于它」。它一次性覆盖
+  SC-1..SC-4 与 SC-7 的剩余一半；自带 oracle（实机：打一把赚钱、记数、重登核对；付费翻牌前后核对差额）；
+  可独立验收，也可在不牵连 spec-001 已接受结果的前提下回滚。拆得更小会交付一个玩家看不见的半成品：
+  只有写路径而不改三个入账点，等于交付一个永远显示 0 的钱包，SC-1 无从观察。
+  child-created（第二次）：确定性标识 spec-002 / spec-002-gold-the-character-keeps（既有最大尝试号
+  为 1，故次号为 2，号不复用；spec-001 已封存，无 running 行，active_attempt 为 null）；子契约与
+  路由决策写在 attempts/spec-002-gold-the-character-keeps/ 下，经规范化后证明包含于 task_root。
+  依赖链接校验：depends_on 为空 YAML 序列，合法 —— spec-001 是已并入基线 e4f29e1d 的已接受历史，
+  按规则不得表示为依赖边。游标一致性校验：safe-successor 的目标为 child_modeling/pending，
+  与转移前持久化状态一致。子路由决策已完成 readiness / marginal value / Single 结构选择三节，
+  Controller Selection 留给 single-spec-workflow。
 workspace:
   repository_root: E:/Project/DNF/DNF-JP-86-Server
   task_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/gold-the-player-carries/.rks-agent/tasks/gold-the-player-carries
   code_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/gold-the-player-carries
   branch: gold-the-player-carries
-  baseline: 1946c012fc7083835c742699b0bb2ad5a29fda29
+  baseline: e4f29e1d4d68abd4b45114822731c8e8f9995874
   baseline_evidence: >-
     PVF_ARCHIVE_PATH=E:/Project/DNF/DNFClient-A21-protocol/Script.pvf dotnet test
     Server/86JP.Server.slnx --nologo → exit 0；七个测试程序集合计 1993 通过 / 2 跳过 / 0 失败
     （60 + 52 + 488 + 4 + 248 + 215 + 926），与契约声明的基线逐项吻合。那 2 个跳过出自
     Dfo.Server.Infrastructure.Tests 的缺档案用例，是档案已加载的证据而非静默跳过。
+    接受 spec-001 后于 e4f29e1d 复测同一命令，计数逐程序集不变。
 ---
 
 # Multi-Spec Map
@@ -56,15 +77,15 @@ workspace:
 
 | SC | Requirement | Progress | Evidence | Remaining gap | Constraint |
 |---|---|---|---|---|---|
-| SC-1 | 玩家赚到的金币显示在背包上，重新登录后仍然是那个数 | not_started | none | 随身金币无写路径，登录读出恒为 0 | aligned |
+| SC-1 | 玩家赚到的金币显示在背包上，重新登录后仍然是那个数 | not_started | none | 随身金币无写路径，登录读出恒为 0。变更通知帧已存在且正确，缺的是存储 | aligned |
 | SC-2 | 玩家花钱的既有路径从他看得见的那笔钱里扣，余额与显示一致 | not_started | none | 付费翻牌当前从账号金库扣 | aligned |
 | SC-3 | 携带上限对随身金币真实生效，超限入账处理确定且一致 | not_started | none | 上限链存在但限着一个不存在的量 | aligned |
 | SC-4 | 新建角色带确定的随身金币起始值，而非靠读取缺省得 0 | not_started | none | 建角色不插主背包槽 0 的行 | aligned |
-| SC-5 | `purse` 不再在本仓指代任何一笔钱 | not_started | none | 79 处 / 10 文件，其中测试 62 处含类名与用例名 | aligned |
-| SC-6 | `Gold` 只出现在指代金币之处 | not_started | none | 魔方碎片、黄金牌牌面两类非货币用法混在同名空间 | aligned |
-| SC-7 | 两笔钱可从名字区分且不能互相误用 | not_started | none | 只有金库一笔被实现，且其名字指向随身语义 | aligned |
-| SC-8 | 仓库文档不再把随身金币记作已实现 | not_started | none | 三份文档走样，其中一份是整起事故的源头 | aligned |
-| SC-9 | 命名与文档的归位没有改变任何行为 | not_started | none | 归位尚未开始 | aligned |
+| SC-5 | `purse` 不再在本仓指代任何一笔钱 | satisfied | spec-001 验证证据；全仓检索 0 命中，检索有效性经反证 | 无 | aligned |
+| SC-6 | `Gold` 只出现在指代金币之处 | satisfied | spec-001 验证证据；逐条判定全部命中，六个碎片字段改为 Cube 结尾，牌面改为 GoldCard | 无 | aligned |
+| SC-7 | 两笔钱可从名字区分且不能互相误用 | in_progress | spec-001 验证证据；金库一侧已更名为 IAccountCargoGoldService 并仍强制传 AccountId | 随身一侧尚不存在，「不能互相误用」要到两侧同时在场才可观察 | aligned |
+| SC-8 | 仓库文档不再把随身金币记作已实现 | satisfied | spec-001 验证证据；四处修正逐条独立查证，含事故源头那一栏改为分述 | 无 | aligned |
+| SC-9 | 命名与文档的归位没有改变任何行为 | satisfied | spec-001 验证证据；1993 通过 / 2 跳过 / 0 失败，逐程序集与基线一致，断言与期望值未动 | 无 | aligned |
 
 ## Spec Attempts
 
@@ -72,4 +93,5 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 
 | # | Attempt | TaskContract | Outcome | Affects | State | Result | Git result |
 |---:|---|---|---|---|---|---|---|
-| `1` | `spec-001` | `attempts/spec-001-money-named-for-what-it-is/TaskContract.md` | 两笔钱各自叫对名字，文档与事实一致，行为逐值不变 | `SC-5, SC-6, SC-7, SC-8, SC-9` | `running` | `pending` | `active` |
+| `1` | `spec-001` | `attempts/spec-001-money-named-for-what-it-is/TaskContract.md` | 两笔钱各自叫对名字，文档与事实一致，行为逐值不变 | `SC-5, SC-6, SC-7, SC-8, SC-9` | `sealed` | `completed` | `accepted e4f29e1d` |
+| `2` | `spec-002` | `attempts/spec-002-gold-the-character-keeps/TaskContract.md` | 玩家身上的金币是真的：能写入、跨会话保留、变更时告知客户端，既有收支都作用于它 | `SC-1, SC-2, SC-3, SC-4, SC-7` | `running` | `pending` | `active` |

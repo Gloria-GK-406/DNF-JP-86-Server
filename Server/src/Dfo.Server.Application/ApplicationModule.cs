@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
@@ -144,6 +145,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<
             ICharacterEntryPreparationRuleService, CharacterEntryPreparationRuleService>();
         services.TryAddSingleton<IGoldLimitRuleService, GoldLimitRuleService>();
+        services.TryAddSingleton<ICarriedGoldRuleService, CarriedGoldRuleService>();
         services.TryAddSingleton<IExpertSkillContractRuleService, ExpertSkillContractRuleService>();
         services.TryAddSingleton<IDungeonEffectRuleService, DungeonEffectRuleService>();
         services.TryAddSingleton<IDungeonRunDomainService, DungeonRunDomainService>();
@@ -226,7 +228,9 @@ public sealed class ApplicationModule : IServerModule
                     provider.GetRequiredService<ICharacterItemCooldownDomainService>(),
                     provider.GetRequiredService<ISelectedSessionDirectory>(),
                     provider.GetRequiredService<ISelectedSessionRuntimeDirectory>(),
-                    provider.GetRequiredService<ISessionPresenceRegistry>())));
+                    provider.GetRequiredService<ISessionPresenceRegistry>(),
+                    provider.GetRequiredService<ICharacterCarriedGoldTable>(),
+                    provider.GetRequiredService<ICarriedGoldRuleService>())));
         services.TryAddSingleton<ICharacterDomainService>(
             provider => provider.GetRequiredService<CharacterDomainService>());
         services.TryAddSingleton<ISelectCharacterPreparationService, SelectCharacterPreparationService>();

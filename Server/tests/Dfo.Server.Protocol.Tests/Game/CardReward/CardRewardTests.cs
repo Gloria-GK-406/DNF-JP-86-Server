@@ -95,8 +95,8 @@ public sealed class CardRewardTests
     /// </remarks>
     private const int FixturePrice = 250;
 
-    /// <summary>What the fixture's account cargo holds before a flip, comfortably above the price.</summary>
-    private const int StartingCargoGold = 1000;
+    /// <summary>What the fixture's character carries before a flip, comfortably above the price.</summary>
+    private const int StartingGold = 1000;
 
     /// <summary>The level the fixture's flips are priced by when a command is built here.</summary>
     private const int FlipLevel = 42;
@@ -530,8 +530,9 @@ public sealed class CardRewardTests
 
         await world.Handle(sender, ClearRewardCardKind.Free, 1);
 
-        var answer = Assert.IsType<SelectCardResponse>(Assert.Single(sender.Sent));
+        var answer = Assert.IsType<SelectCardResponse>(sender.Sent[0]);
         Assert.Equal(1, answer.TurnedColumn);
+        AssertCarriedGold(sender.Sent[^1], StartingGold + FaceGold);
     }
 
     /// <summary>A second flip of the same position is answered with nothing at all.</summary>
@@ -542,9 +543,10 @@ public sealed class CardRewardTests
         var sender = new RecordingSender();
 
         await world.Handle(sender, ClearRewardCardKind.Free, 1);
+        var afterFirst = sender.Sent.Count;
         await world.Handle(sender, ClearRewardCardKind.Free, 1);
 
-        Assert.Single(sender.Sent);
+        Assert.Equal(afterFirst, sender.Sent.Count);
     }
 
     /// <summary>A flip on a connection with no published session never reaches the run.</summary>
@@ -643,7 +645,8 @@ public sealed class CardRewardTests
         Assert.Collection(
             exchange,
             first => Assert.IsType<SelectCardResponse>(first),
-            second => Assert.IsType<InventoryDeltaMessage>(second));
+            second => Assert.IsType<InventoryDeltaMessage>(second),
+            third => AssertCarriedGold(third, StartingGold + FaceGold));
     }
 
     /// <summary>
@@ -707,7 +710,8 @@ public sealed class CardRewardTests
 
         await world.Handle(sender, ClearRewardCardKind.Free, 1);
 
-        Assert.IsType<SelectCardResponse>(Assert.Single(sender.Sent));
+        Assert.IsType<SelectCardResponse>(sender.Sent[0]);
+        AssertCarriedGold(sender.Sent[^1], StartingGold + FaceGold);
         Assert.Empty(world.Bag.Slots);
     }
 
@@ -731,8 +735,30 @@ public sealed class CardRewardTests
 
         await world.Handle(sender, ClearRewardCardKind.Free, 0);
 
-        var told = Assert.IsType<SelectCardResponse>(Assert.Single(sender.Sent));
+        var told = Assert.IsType<SelectCardResponse>(sender.Sent[0]);
         Assert.Equal(0, told.TurnedColumn);
+        AssertCarriedGold(sender.Sent[^1], StartingGold + FaceGold);
+    }
+
+    /// <summary>
+    /// The frame that tells the client what the character now carries, and the figure in it.
+    /// </summary>
+    /// <remarks>
+    /// Aimed at the main list's first virtual slot with item id zero, which is where the client
+    /// draws carried gold. Asserting the figure and not merely the frame's presence is the point:
+    /// the defect this whole change exists to remove was a server that had the right number and a
+    /// client that was never told it.
+    /// </remarks>
+    private static void AssertCarriedGold(IGameServerMessage message, int expected)
+    {
+        var told = Assert.IsType<InventoryDeltaMessage>(message);
+
+        Assert.Equal(InventoryContainerType.Main, told.ContainerType);
+
+        var entry = Assert.Single(told.Items);
+        Assert.Equal(0, entry.SlotIndex);
+        Assert.Equal(0, entry.Core.ItemId);
+        Assert.Equal(expected, entry.Core.Value);
     }
 
     /// <summary>What the fixture's settled face says a flip of it pays.</summary>
@@ -778,7 +804,7 @@ public sealed class CardRewardTests
 
         Assert.Equal(holds, result.Delivered is not null);
         Assert.Equal(FaceGold, result.GoldPaid);
-        Assert.Equal(StartingCargoGold + FaceGold, world.CargoGold.Total);
+        Assert.Equal(StartingGold + FaceGold, world.Gold.Total);
     }
 
     /// <summary>
@@ -798,31 +824,31 @@ public sealed class CardRewardTests
 
         Assert.Null(result.Delivered);
         Assert.Equal(FaceGold, result.GoldPaid);
-        Assert.Equal(StartingCargoGold + FaceGold, world.CargoGold.Total);
+        Assert.Equal(StartingGold + FaceGold, world.Gold.Total);
     }
 
     /// <summary>A free flip is never charged, whatever the account is carrying.</summary>
     /// <remarks>
-    /// An empty cargo on purpose: a free flip that reached the charging seam at all would be
-    /// refused here rather than merely charged nothing.
+    /// A character carrying nothing on purpose: a free flip that reached the charging seam at all
+    /// would be refused here rather than merely charged nothing.
     /// </remarks>
     [Fact]
     public async Task A_free_flip_is_never_charged()
     {
-        var world = new World(cargoGold: 0);
+        var world = new World(startingGold: 0);
 
         var result = await world.Flip(ClearRewardCardKind.Free, 0);
 
         Assert.Equal(SelectCardStatus.Flipped, result.Status);
         Assert.Equal(0, result.GoldCharged);
-        Assert.Equal(0, world.CargoGold.Charges);
+        Assert.Equal(0, world.Gold.Charges);
     }
 
     /// <summary>
     /// A paid flip an account can afford costs the settlement's price and hands the card over.
     /// </summary>
     /// <remarks>
-    /// The cargo gold afterwards is the price out and the card's own gold in, which is the arithmetic
+    /// What the character carries afterwards is the price out and the card's own gold in, which is the arithmetic
     /// of the whole exchange rather than of either half -- a flip that charged and paid nothing,
     /// or paid and charged nothing, lands somewhere else.
     /// </remarks>
@@ -835,7 +861,7 @@ public sealed class CardRewardTests
 
         Assert.Equal(SelectCardStatus.Flipped, result.Status);
         Assert.Equal(FixturePrice, result.GoldCharged);
-        Assert.Equal(StartingCargoGold - FixturePrice + PaidFaceGold, world.CargoGold.Total);
+        Assert.Equal(StartingGold - FixturePrice + PaidFaceGold, world.Gold.Total);
         Assert.Equal(FirstItemId, world.Bag.Slots[Bag.OpenedSlot].ItemId);
     }
 
@@ -851,17 +877,17 @@ public sealed class CardRewardTests
     [Fact]
     public async Task An_account_that_cannot_afford_a_paid_flip_keeps_its_money_and_its_card()
     {
-        var world = new World(cargoGold: FixturePrice - 1);
+        var world = new World(startingGold: FixturePrice - 1);
 
         var refused = await world.Flip(ClearRewardCardKind.Paid, 0);
 
         Assert.Equal(SelectCardStatus.NotEnoughGold, refused.Status);
         Assert.Empty(refused.Slots);
         Assert.Equal(0, refused.GoldCharged);
-        Assert.Equal(FixturePrice - 1, world.CargoGold.Total);
+        Assert.Equal(FixturePrice - 1, world.Gold.Total);
         Assert.Empty(world.Bag.Slots);
 
-        await world.CargoGold.AddAsync(Identity.AccountId, 1, CancellationToken.None);
+        await world.Gold.AddGoldAsync(1, CancellationToken.None);
         Assert.Equal(
             SelectCardStatus.Flipped, (await world.Flip(ClearRewardCardKind.Paid, 0)).Status);
     }
@@ -882,8 +908,8 @@ public sealed class CardRewardTests
         var result = await world.Flip(ClearRewardCardKind.Paid, 0);
 
         Assert.Equal(SelectCardStatus.NotPriced, result.Status);
-        Assert.Equal(StartingCargoGold, world.CargoGold.Total);
-        Assert.Equal(0, world.CargoGold.Charges);
+        Assert.Equal(StartingGold, world.Gold.Total);
+        Assert.Equal(0, world.Gold.Charges);
         Assert.Empty(world.Bag.Slots);
     }
 
@@ -904,8 +930,8 @@ public sealed class CardRewardTests
         var result = await world.Flip(ClearRewardCardKind.Paid, 0);
 
         Assert.Equal(SelectCardStatus.AlreadyFlipped, result.Status);
-        Assert.Equal(1, world.CargoGold.Charges);
-        Assert.Equal(StartingCargoGold, world.CargoGold.Total);
+        Assert.Equal(1, world.Gold.Charges);
+        Assert.Equal(StartingGold, world.Gold.Total);
     }
 
     /// <summary>
@@ -933,8 +959,8 @@ public sealed class CardRewardTests
     /// The command carries the account and the level the published session holds.
     /// </summary>
     /// <remarks>
-    /// Both are the handler's to fill in, and neither is the client's: the account is whose cargo
-    /// pays and is paid, and the level is what the price is read at. The published level differs
+    /// Both are the handler's to fill in, and neither is the client's: the account is which one the
+    /// character belongs to, and the level is what the price is read at. The published level differs
     /// from the one this file hands its own commands, so a handler that made one up would show.
     /// </remarks>
     [Fact]
@@ -1082,20 +1108,20 @@ public sealed class CardRewardTests
             bool cardsFixed = true,
             bool bagBound = true,
             BagAnswer bagAnswer = BagAnswer.OpensASlot,
-            int cargoGold = StartingCargoGold,
+            int startingGold = StartingGold,
             int? paidFlipPrice = FixturePrice,
             bool claimsAreLost = false)
         {
             this._rules = new RefusingRules();
             this.Bag = new Bag(bagAnswer);
-            this.CargoGold = new CargoGold(cargoGold);
+            this.Gold = new CarriedGold(startingGold);
 
             ICardRewardDomainService cards = new CardRewardDomainService(this._rules, this._runs);
             this._handler = new SelectCardCommandHandler(
                 claimsAreLost ? new LosingCards(cards) : cards,
                 this._runs,
                 new StubContainers(bagBound ? this.Bag : null),
-                this.CargoGold,
+                new OnePlayingCharacter(this.Gold),
                 new FixedClock(Flipped));
 
             if (!inARun)
@@ -1119,14 +1145,8 @@ public sealed class CardRewardTests
         /// <summary>The character's own bag, which is where a flipped piece has to end up.</summary>
         public Bag Bag { get; }
 
-        /// <summary>
-        /// The account cargo's gold, which is where a flip's gold currently goes both ways.
-        /// </summary>
-        /// <remarks>
-        /// The reference server puts a flip's gold on the character instead. This server has no
-        /// carried gold yet, so the cargo is what the slice reaches; the stand-in follows it.
-        /// </remarks>
-        public CargoGold CargoGold { get; }
+        /// <summary>The gold this character carries, which is where a flip's gold goes both ways.</summary>
+        public CarriedGold Gold { get; }
 
         /// <summary>How many times the rules were asked anything, which must stay at zero.</summary>
         public int RuleQuestions => this._rules.Questions;
@@ -1266,40 +1286,6 @@ public sealed class CardRewardTests
             int index,
             CancellationToken cancellationToken) =>
             ValueTask.FromResult<ClearRewardCardSlot?>(null);
-    }
-
-    /// <summary>An account cargo's gold that remembers what it was given and what it paid.</summary>
-    /// <remarks>
-    /// A stand-in rather than the real service over SQLite, for the reason the bag beside it is
-    /// one: what is under test here is what this slice asks the seam for. That the store itself
-    /// refuses a charge it cannot meet, and leaves the gold alone when it does, is asserted
-    /// against the real store in the application and persistence tests. The refusal is modelled
-    /// the same way here so that a slice which stopped reading it would fail here too.
-    /// </remarks>
-    private sealed class CargoGold(int total) : IAccountCargoGoldService
-    {
-        public int Total { get; private set; } = total;
-
-        /// <summary>How many charges were attempted, met or not.</summary>
-        public int Charges { get; private set; }
-
-        public ValueTask<int> AddAsync(
-            AccountId accountId, int amount, CancellationToken cancellationToken)
-        {
-            this.Total += amount;
-            return ValueTask.FromResult(this.Total);
-        }
-
-        public ValueTask<int?> TrySpendAsync(
-            AccountId accountId, int amount, CancellationToken cancellationToken)
-        {
-            this.Charges++;
-            if (amount > this.Total)
-                return ValueTask.FromResult<int?>(null);
-
-            this.Total -= amount;
-            return ValueTask.FromResult<int?>(this.Total);
-        }
     }
 
     /// <summary>A published session standing at <see cref="PublishedLevel"/>.</summary>

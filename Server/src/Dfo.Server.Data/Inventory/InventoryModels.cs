@@ -107,9 +107,12 @@ public sealed record InventoryContainerState(
 /// slot 2 the PvP point. Real items begin at slot 3, so the two never collide. Six cube fragments
 /// follow at 354..359 and five more counts at 360..364, each likewise a fixed id.
 /// <para>
-/// <b>Slot 0 is read and sent but never written.</b> Nothing in this server puts a figure in it,
-/// so every entry draws the player zero gold whatever they earned. Earnings currently go to the
-/// account cargo instead, which is a different pot the player only sees inside the cargo window.
+/// <b>Slot 0 is a projection, not a stored row.</b> What a character carries lives on the
+/// character itself, in <c>character_stats.carried_gold</c> beside the cap that governs it, and is
+/// written into this slot when a frame is built. It is stored that way so that a change to it can
+/// be a single statement: through the item store it could only be read, adjusted and written back,
+/// and two changes answered at once would then race. Slots 1 and 2 are still read from item rows,
+/// and nothing writes them yet.
 /// </para>
 /// <para>
 /// <see cref="Value"/> is the count. It is what the storage row's item core carries in its own

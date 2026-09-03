@@ -202,6 +202,82 @@ public interface IAccountCargoStateTable
         AccountId accountId, int amount, CancellationToken cancellationToken);
 }
 
+/// <summary>What a character carries, and what the cap on it is worked out from.</summary>
+/// <param name="Carried">The figure on the player's bag.</param>
+/// <param name="Level">The character's level, which the archive prices a floor by.</param>
+/// <param name="StoredCarryLimit">
+/// The upgrade recorded against the character. Zero for every character today, because nothing in
+/// this server sells one yet.
+/// </param>
+public sealed record CarriedGoldRow(int Carried, int Level, int StoredCarryLimit);
+
+/// <summary>The gold a character is carrying -- the figure on the player's bag.</summary>
+/// <remarks>
+/// <b>Not stored as an item, though the client draws it as one.</b> On the wire it is the first
+/// virtual slot of the main list with item id zero, which is how the client's inventory window can
+/// render a currency with the same widget as a sword. That is an encoding, and encodings belong at
+/// the boundary: gold has none of an item's thirty fields but one, obeys a carry cap no item
+/// obeys, and cannot be moved, split, merged, locked or rented. So it is stored as what it is, a
+/// figure on the character, and projected into that slot when a frame is built.
+/// <para>
+/// It lives in <c>character_stats</c> beside <c>gold_carry_limit</c>, the cap that governs it. The
+/// row exists for every character from creation, so "no row" is not a state this has to mean
+/// anything by -- a character carrying nothing carries zero, and that is a figure rather than an
+/// absence.
+/// </para>
+/// <para>
+/// <b>Both directions are one statement, and that is the whole reason this table exists rather
+/// than a write through the item store.</b> That store is a unit of work: reading a figure out,
+/// adding to it and writing it back is the only shape available through it, and two changes
+/// answered at once would then race. Nothing serialises them -- the per-character execution gate
+/// this server declares has no callers -- so the guard has to be in the statement, exactly as the
+/// account cargo's is.
+/// </para>
+/// </remarks>
+public interface ICharacterCarriedGoldTable
+{
+    /// <summary>
+    /// What this character is carrying, and the two facts that decide what caps it.
+    /// </summary>
+    /// <remarks>
+    /// The three arrive together because the cap is needed on the same breath as the figure and is
+    /// worked out from the character's level and its stored upgrade. Reading them apart would be
+    /// two round trips answering one question, and would let the level move between them.
+    /// <para>
+    /// <c>null</c> when this server has no such character. That is not the same as a character
+    /// carrying nothing, and a caller charging or paying one has to be able to tell them apart.
+    /// </para>
+    /// </remarks>
+    ValueTask<CarriedGoldRow?> FindAsync(CharacterId characterId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Adds to what the character carries, holding the total at <paramref name="ceiling"/>, and
+    /// answers what it carries afterwards.
+    /// </summary>
+    /// <remarks>
+    /// The ceiling is passed in rather than read here, because what a character may carry is a
+    /// rule and this is a table. A negative amount takes gold away; the total is held at zero as
+    /// well, since a negative figure on the bag is not a thing the client can draw.
+    /// </remarks>
+    ValueTask<int> AddAsync(
+        CharacterId characterId, int amount, int ceiling, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Takes that much from what the character carries, or takes nothing at all.
+    /// </summary>
+    /// <remarks>
+    /// Answers what is carried afterwards, and <c>null</c> when the character was not carrying
+    /// that much -- in which case nothing was written and the figure stands where it stood.
+    /// <para>
+    /// <b>Not <see cref="AddAsync"/> with the sign turned round.</b> That one holds its total at
+    /// zero, so a character asked for more than it has would be emptied and then answer as though
+    /// it had paid. Refusing is the whole reason this member exists.
+    /// </para>
+    /// </remarks>
+    ValueTask<int?> TryTakeAsync(
+        CharacterId characterId, int amount, CancellationToken cancellationToken);
+}
+
 /// <summary>How much gold a character may hold and bid.</summary>
 public interface ICharacterGoldLimitTable
 {

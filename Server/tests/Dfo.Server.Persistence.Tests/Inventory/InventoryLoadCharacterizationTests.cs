@@ -359,8 +359,8 @@ public sealed class InventoryLoadCharacterizationTests
         CharacterContainerParameters[1].ContainerType = Avatar
         CharacterContainerParameters[1].Value = 4444
         CharacterVirtualResources[0].SlotIndex = 0
-        CharacterVirtualResources[0].ItemId = 2001
-        CharacterVirtualResources[0].Value = 33
+        CharacterVirtualResources[0].ItemId = 0
+        CharacterVirtualResources[0].Value = 0
         CharacterVirtualResources[1].SlotIndex = 1
         CharacterVirtualResources[1].ItemId = 2002
         CharacterVirtualResources[1].Value = 0

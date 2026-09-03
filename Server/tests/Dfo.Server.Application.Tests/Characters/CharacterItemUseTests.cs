@@ -269,7 +269,9 @@ public sealed class CharacterItemUseTests
             new CharacterItemCooldownDomainService(clock),
             new OneSession(),
             FixedRuntimeSessions.Unpublished,
-            new SessionPresenceRegistry());
+            new SessionPresenceRegistry(),
+            new NoCarriedGold(),
+            new StoredCarryLimitOnly());
 
         Assert.Equal(
             ItemUsability.CharacterStateUnavailable,
@@ -316,7 +318,9 @@ public sealed class CharacterItemUseTests
             cooldowns,
             new OneSession(),
             new FixedRuntimeSessions(level, job),
-            new SessionPresenceRegistry());
+            new SessionPresenceRegistry(),
+            new NoCarriedGold(),
+            new StoredCarryLimitOnly());
     }
 
     private static ICharacter Build(

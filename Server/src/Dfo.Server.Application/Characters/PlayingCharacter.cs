@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Characters;
 
@@ -24,9 +25,47 @@ internal sealed class PlayingCharacter(
     ICharacterItemCooldownDomainService cooldowns,
     ISelectedSessionDirectory selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
-    ISessionPresenceRegistry presence) : ICharacter
+    ISessionPresenceRegistry presence,
+    ICharacterCarriedGoldTable carriedGold,
+    ICarriedGoldRuleService goldRules) : ICharacter
 {
     public CharacterId Id => characterId;
+
+    public async ValueTask<int> GoldAsync(CancellationToken cancellationToken) =>
+        (await carriedGold.FindAsync(characterId, cancellationToken).ConfigureAwait(false))
+            ?.Carried ?? 0;
+
+    /// <remarks>
+    /// The cap is worked out from what the same read answers with -- the level and the stored
+    /// upgrade -- and handed to the store, which applies it inside the statement that adds. That
+    /// is why the cap is not compared here: a comparison made in this method would be a read
+    /// followed by a write, and two arrivals answered at once would each pass it.
+    /// <para>
+    /// A character this server does not have is given nothing rather than opened a row. Inventing
+    /// one here would put a figure on a character nobody can play.
+    /// </para>
+    /// </remarks>
+    public async ValueTask<int> AddGoldAsync(int amount, CancellationToken cancellationToken)
+    {
+        if (await carriedGold.FindAsync(characterId, cancellationToken).ConfigureAwait(false)
+            is not { } standing)
+        {
+            return 0;
+        }
+
+        var ceiling = goldRules.CarryLimitFor(standing.Level, standing.StoredCarryLimit);
+        return await carriedGold
+            .AddAsync(characterId, amount, ceiling, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <remarks>
+    /// No cap is read: taking gold away cannot carry anyone past one. The refusal is the store's
+    /// answer rather than a comparison made here, for the reason the addition's cap is the store's
+    /// -- two charges answered at once must not both pass a test only one of them could afford.
+    /// </remarks>
+    public ValueTask<int?> TrySpendGoldAsync(int amount, CancellationToken cancellationToken) =>
+        carriedGold.TryTakeAsync(characterId, amount, cancellationToken);
 
     public async ValueTask<ItemUsability> CanUseAsync(
         int itemId, CancellationToken cancellationToken)

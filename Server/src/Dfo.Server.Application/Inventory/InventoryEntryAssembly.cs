@@ -28,6 +28,7 @@ internal sealed class InventoryEntryAssembly(
     ICharacterContainerStateTable containerStates,
     IAccountCargoStateTable cargoStates,
     ICharacterGoldLimitTable goldLimits,
+    ICharacterCarriedGoldTable carriedGold,
     ICharacterItemCooldownTable itemCooldowns,
     ICharacterItemEffectTable itemEffects,
     ICharacterItemLockTable itemLocks,
@@ -35,6 +36,15 @@ internal sealed class InventoryEntryAssembly(
     : ICharacterInventoryEntryRepository, IAccountInventoryEntryRepository,
         IEntryInventoryLeasePersistence
 {
+    /// <summary>Where the gold a character carries is drawn, and the id it is drawn under.</summary>
+    /// <remarks>
+    /// The client's own convention: the main list's first virtual slot, item id zero. The same
+    /// zero a floor drop uses to mean "this pile is gold".
+    /// </remarks>
+    private const int CarriedGoldSlot = 0;
+
+    private const int CarriedGoldItemId = 0;
+
     /// <summary>The six cube fragments, in the slots and under the ids the client knows.</summary>
     private static readonly int[] CubeItemIds = [3033, 3034, 3035, 3036, 3037, 3262];
 
@@ -52,7 +62,9 @@ internal sealed class InventoryEntryAssembly(
             .ConfigureAwait(false);
         var containerParameters = await ReadContainerParametersAsync(characterId, cancellationToken)
             .ConfigureAwait(false);
-        var virtualResources = CharacterVirtualResources(items);
+        var virtualResources = await this
+            .CharacterVirtualResourcesAsync(characterId, items, cancellationToken)
+            .ConfigureAwait(false);
         var values = await ReadItemValuesAsync(characterId, cancellationToken).ConfigureAwait(false);
         var locks = await ReadLocksAsync(characterId, cancellationToken).ConfigureAwait(false);
         var rented = await ReadRentalsAsync(characterId, cancellationToken).ConfigureAwait(false);
@@ -347,22 +359,43 @@ internal sealed class InventoryEntryAssembly(
     /// </summary>
     /// <remarks>
     /// Slot 0 is the gold the character carries, slot 1 the revival coin, slot 2 the PvP point --
-    /// see <see cref="InventoryRuntimeValueState"/>, which also records that nothing writes slot 0
-    /// yet.
+    /// see <see cref="InventoryRuntimeValueState"/>.
     /// <para>
-    /// They are read out of the items already loaded rather than from the database again, which
-    /// is why this one takes no connection and asks no table anything. A slot with no stored row
-    /// simply does not appear here, and the frame draws it as zero.
+    /// <b>Slot 0 is read from the character rather than from an item row.</b> The client draws it
+    /// as an item because its inventory window renders a currency with the widget it renders a
+    /// sword with; that is an encoding, and this is where the encoding is applied. What gold
+    /// actually is, is a figure on the character, and it is stored as one so that a change to it
+    /// can be a single statement.
+    /// </para>
+    /// <para>
+    /// Slots 1 and 2 still come out of the items already loaded. Nothing writes them yet either,
+    /// so they are empty today; when a revival coin or a PvP point becomes real it follows slot 0
+    /// out of the item rows rather than the other way round -- they are three currencies, and none
+    /// of the three is an item.
     /// </para>
     /// </remarks>
-    private static IReadOnlyList<InventoryRuntimeValueState> CharacterVirtualResources(
-        IReadOnlyList<InventoryStorageItem> items) =>
-        [.. items
+    private async ValueTask<IReadOnlyList<InventoryRuntimeValueState>> CharacterVirtualResourcesAsync(
+        CharacterId characterId,
+        IReadOnlyList<InventoryStorageItem> items,
+        CancellationToken cancellationToken)
+    {
+        var carried = await carriedGold.FindAsync(characterId, cancellationToken)
+            .ConfigureAwait(false);
+        var values = new List<InventoryRuntimeValueState>();
+
+        // Only for a character this server actually has. A figure on one it does not would be
+        // invented rather than read, and an empty load has to stay empty.
+        if (carried is not null)
+            values.Add(new(CarriedGoldSlot, CarriedGoldItemId, Math.Max(0, carried.Carried)));
+
+        values.AddRange(items
             .Where(item => item.ContainerType == InventoryContainerType.Main
-                && item.SlotIndex is >= 0 and <= 2)
+                && item.SlotIndex is > CarriedGoldSlot and <= 2)
             .Select(item => new InventoryRuntimeValueState(
-                item.SlotIndex, item.Core.ItemId, Math.Max(0, item.Core.Value)))
-            .OrderBy(value => value.SlotIndex)];
+                item.SlotIndex, item.Core.ItemId, Math.Max(0, item.Core.Value))));
+        values.Sort((left, right) => left.SlotIndex.CompareTo(right.SlotIndex));
+        return values;
+    }
 
     private async ValueTask<IReadOnlyList<InventoryRuntimeValueState>> AccountVirtualResourcesAsync(
         AccountId accountId, CancellationToken cancellationToken)

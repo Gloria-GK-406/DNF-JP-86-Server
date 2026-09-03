@@ -16,6 +16,8 @@ using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Inventory;
 
+using Dfo.Server.Application.Tests.Characters;
+
 namespace Dfo.Server.Application.Tests.Game;
 
 /// <summary>
@@ -306,7 +308,9 @@ public sealed class UseStackableHandlerTests
                 cooldowns,
                 sessions,
                 new FixedRuntimeSessions(level: 50, job: 0),
-                new SessionPresenceRegistry())),
+                new SessionPresenceRegistry(),
+                new NoCarriedGold(),
+                new StoredCarryLimitOnly())),
             new ItemUseEffectDomainService(judgement, cooldowns));
 
         return (

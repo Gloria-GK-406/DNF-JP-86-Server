@@ -97,7 +97,7 @@ public sealed class CharacterRepositoryProductsTests
                 new UnusedInitialSkills(),
                 new UnusedInitialEquipment()),
             characterId => new PlayingCharacter(
-                characterId, judgement, cooldowns, sessions, runtime, presence));
+                characterId, judgement, cooldowns, sessions, runtime, presence, new NoCarriedGold(), new StoredCarryLimitOnly()));
     }
 
     /// <summary>A directory that has published a session for character 60 and for nobody else.</summary>

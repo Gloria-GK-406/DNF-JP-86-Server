@@ -13,6 +13,38 @@ public interface IGoldLimitRuleService
     int UpgradeLevel(int carryLimit, int auctionLimit);
 }
 
+/// <summary>How much gold a character may carry, and what happens when it fills up.</summary>
+/// <remarks>
+/// Its own service rather than a member of the gold-limit rule beside it, because that one is pure
+/// -- it folds two stored numbers into an upgrade level and asks the archive nothing -- while this
+/// one reads the archive's own table. Folding them together would make every caller of the pure
+/// one supply a content source it has no use for.
+/// </remarks>
+public interface ICarriedGoldRuleService
+{
+    /// <summary>
+    /// The most gold a character standing at that level may carry.
+    /// </summary>
+    /// <remarks>
+    /// The archive declares a floor per level; the character row declares an upgrade bought on top
+    /// of it. The answer is whichever is higher, so a character never carries less than its level
+    /// entitles it to and never loses an upgrade it paid for.
+    /// <para>
+    /// <b>The stored column reads zero for every character today</b> -- nothing in this server has
+    /// ever written it -- so in practice the archive's floor is the whole of the answer. Taking the
+    /// column alone would clamp every player's gold to nothing.
+    /// </para>
+    /// <para>
+    /// <b>What happens at the cap is decided here rather than at each place gold arrives.</b> An
+    /// arrival that would carry a character past the cap fills to it and no further; the remainder
+    /// is not held anywhere. The reference server has three different answers to this across its
+    /// call sites -- truncate, refuse, and ignore the cap entirely -- which is what happens when
+    /// the decision is not in one place.
+    /// </para>
+    /// </remarks>
+    int CarryLimitFor(int characterLevel, int storedCarryLimit);
+}
+
 /// <summary>One skill level an expired contract brings down, or removes when it reaches nothing.</summary>
 public sealed record ExpertSkillCap(byte Page, short Slot, int? Level);
 

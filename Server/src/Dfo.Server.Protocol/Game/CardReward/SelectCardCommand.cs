@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
@@ -100,7 +101,8 @@ public sealed record SelectCardResult(
     IReadOnlyList<ClearRewardCardSlot> Slots,
     CommittedInventoryUpdateState? Delivered = null,
     int GoldCharged = 0,
-    int GoldPaid = 0)
+    int GoldPaid = 0,
+    int GoldCarried = 0)
 {
     public static SelectCardResult Refused(
         SelectCardStatus status, ClearRewardCardKind kind, int index) =>
@@ -109,13 +111,9 @@ public sealed record SelectCardResult(
 
 /// <summary>One player turning over one position of one of this clear's two faces.</summary>
 /// <param name="AccountId">
-/// Whose account cargo this flip pays into and, for a paid flip, charges.
-/// <para>
-/// <b>Known to be the wrong pot.</b> The reference server pays a flip into the gold the character
-/// is carrying and charges a paid flip from it; this server has no carried gold yet, so both
-/// directions currently reach the account's cargo instead. That is why an account rather than a
-/// character is handed in here. Moving both to the carried gold is a separate piece of work.
-/// </para>
+/// Which account the flipping character belongs to. A flip's gold does not go here -- it is paid
+/// into and charged from the gold the character carries -- but the account is what the delivery of
+/// a piece is checked against.
 /// </param>
 /// <param name="CharacterLevel">
 /// What the character stands at. Handed in rather than looked up, for the reason every other fact
@@ -159,7 +157,7 @@ public sealed record SelectCardCommand(
 /// <b>The claim and the row in the bag are one change.</b> This command reaches a persistent write
 /// the moment a piece lands, so it is registered transactional: a position marked taken whose piece
 /// never arrived anywhere is the thing to avoid, and it is the same reasoning the ground pick-up
-/// was given. The cargo gold is on that same boundary now, which is what makes a charge and a claim one
+/// was given. The character's gold is on that same boundary now, which is what makes a charge and a claim one
 /// change rather than two.
 /// </para>
 /// <para>
@@ -173,7 +171,7 @@ public sealed class SelectCardCommandHandler(
     ICardRewardDomainService cards,
     IDungeonRunDomainService runs,
     ICharacterContainerDomainService containers,
-    IAccountCargoGoldService cargoGold,
+    ICharacterDomainService characters,
     TimeProvider clock) : ICommandHandler<SelectCardCommand, SelectCardResult>
 {
     public async ValueTask<SelectCardResult> HandleAsync(
@@ -220,8 +218,8 @@ public sealed class SelectCardCommandHandler(
             // price goes back: this is the one path where gold moved and no card did.
             if (charge.Price > 0)
             {
-                await cargoGold.AddAsync(command.AccountId, charge.Price, cancellationToken)
-                    .ConfigureAwait(false);
+                await characters.Get(command.CharacterId)
+                    .AddGoldAsync(charge.Price, cancellationToken).ConfigureAwait(false);
             }
 
             return SelectCardResult.Refused(
@@ -235,9 +233,10 @@ public sealed class SelectCardCommandHandler(
         // only when something was behind the card would leave a player who turned over an empty
         // one with no sign that anything happened at all.
         var paid = fixedCards.FaceOf(command.Kind).Gold;
-        if (paid > 0)
-            await cargoGold.AddAsync(command.AccountId, paid, cancellationToken)
-                .ConfigureAwait(false);
+        var carried = paid > 0
+            ? await characters.Get(command.CharacterId).AddGoldAsync(paid, cancellationToken)
+                .ConfigureAwait(false)
+            : charge.Carried;
 
         return new SelectCardResult(
             SelectCardStatus.Flipped,
@@ -249,7 +248,8 @@ public sealed class SelectCardCommandHandler(
                     .ConfigureAwait(false)
                 : null,
             charge.Price,
-            paid);
+            paid,
+            carried);
     }
 
     /// <summary>
@@ -274,25 +274,32 @@ public sealed class SelectCardCommandHandler(
     /// That order is the whole of why this is neither a redraw nor a re-quote.
     /// </para>
     /// </remarks>
-    private async ValueTask<(SelectCardStatus? Refusal, int Price)> ChargeAsync(
+    private async ValueTask<(SelectCardStatus? Refusal, int Price, int Carried)> ChargeAsync(
         SelectCardCommand command, CancellationToken cancellationToken)
     {
         if (command.Kind is not ClearRewardCardKind.Paid)
-            return (null, 0);
+        {
+            return (null, 0,
+                await characters.Get(command.CharacterId).GoldAsync(cancellationToken)
+                    .ConfigureAwait(false));
+        }
 
         var settled = await cards.SettleAsync(
             new ClearRewardSettlement(command.CharacterId, command.CharacterLevel),
             cancellationToken).ConfigureAwait(false);
 
         if (settled?.PaidFlipCost is not { } price || price < 0)
-            return (SelectCardStatus.NotPriced, 0);
+            return (SelectCardStatus.NotPriced, 0, 0);
 
-        var left = await cargoGold.TrySpendAsync(command.AccountId, price, cancellationToken)
+        var left = await characters.Get(command.CharacterId)
+            .TrySpendGoldAsync(price, cancellationToken)
             .ConfigureAwait(false);
 
         // Null is the store refusing, and a refusal there changed nothing -- which is what makes
         // this a refusal here too rather than a flip the player was let off paying for.
-        return left is null ? (SelectCardStatus.NotEnoughGold, 0) : (null, price);
+        return left is null
+            ? (SelectCardStatus.NotEnoughGold, 0, 0)
+            : (null, price, left.Value);
     }
 
     /// <summary>

@@ -29,10 +29,16 @@ public sealed class CharacterBodyShapeTests
         "user_state",
     ];
 
-    /// <summary>character_stats -- 30 columns.</summary>
+    /// <summary>character_stats -- 31 columns.</summary>
+    /// <remarks>
+    /// <c>carried_gold</c> is the gold on the player's bag. It lives beside the cap that governs
+    /// it rather than in the item rows, because a gold change has to be one statement -- see
+    /// <c>ICharacterCarriedGoldTable</c>.
+    /// </remarks>
     private static readonly string[] CharacterStats =
     [
-        "auction_gold_limit", "character_id", "current_hp_mp_percent", "equip_list_trailing",
+        "auction_gold_limit", "carried_gold", "character_id", "current_hp_mp_percent",
+        "equip_list_trailing",
         "equipped_creature_level", "flag_byte", "gold_carry_limit", "progress1", "progress2",
         "quest_shop_count", "server_timestamp", "stat_attack_speed", "stat_cast_speed",
         "stat_dark_resistance", "stat_fire_resistance", "stat_hit_recovery", "stat_hp_max",
