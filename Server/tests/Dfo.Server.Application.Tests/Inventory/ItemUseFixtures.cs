@@ -177,7 +177,7 @@ internal abstract class FakeMainInventory(int characterId = 60)
 {
     private readonly CharacterId character = new(characterId);
 
-    private readonly VolatileItemStore store = new();
+    private readonly VolatileItemDomainStore store = new();
 
     private ContainerId Main => ContainerId.ForCharacter(this.character, InventoryContainerType.Main);
 
@@ -246,7 +246,7 @@ internal abstract class FakeMainInventory(int characterId = 60)
     /// The memory store settles without waiting for anything, so nothing here can block; this is
     /// what lets a fixture seed itself from a property initialiser.
     /// </remarks>
-    private void Settle(Action<IItemStoreSession> write)
+    private void Settle(Action<IItemDomainStoreSession> write)
     {
         var alone = new DomainTransaction();
         write(this.store.SessionIn(alone));

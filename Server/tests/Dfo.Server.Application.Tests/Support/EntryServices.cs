@@ -42,6 +42,7 @@ internal static class EntryServices
         IChannelEntryPolicy? channels = null,
         IEntryPlacementRuleService? placement = null,
         ISessionAdjacentEntryDomainService? sessionAdjacent = null,
+        ISelectedSessionPositionPersistence? positions = null,
         TimeProvider? timeProvider = null) =>
         new(characters,
             inventory,
@@ -60,7 +61,18 @@ internal static class EntryServices
             channels ?? new StubChannelEntryPolicy(),
             placement ?? new StubEntryPlacementRuleService(),
             sessionAdjacent ?? new StubSessionAdjacentEntryDomainService(),
+            positions ?? new NoPositionPersistence(),
             timeProvider ?? TimeProvider.System);
+
+    /// <summary>Entry fixtures do not exercise position storage; the channel decides whether it runs.</summary>
+    private sealed class NoPositionPersistence : ISelectedSessionPositionPersistence
+    {
+        public ValueTask PersistAsync(
+            Dfo.Server.Data.Accounts.AccountId accountId,
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            Dfo.Server.Data.Characters.CharacterPositionState position,
+            CancellationToken cancellationToken) => ValueTask.CompletedTask;
+    }
 
     public static async ValueTask<SelectCharacterResult> EnterAsync(
         this SelectCharacterPreparationService handler,

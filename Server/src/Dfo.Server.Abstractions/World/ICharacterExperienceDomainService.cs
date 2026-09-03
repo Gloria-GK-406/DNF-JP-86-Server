@@ -79,7 +79,7 @@ public readonly record struct ExperienceValuation(
 /// the frames are decided rather than inside the arithmetic.
 /// </para>
 /// </remarks>
-public interface ICharacterExperienceGrant
+public interface ICharacterExperienceDomainService
 {
     /// <summary>
     /// How much experience a character must hold to be this level, or null when the table declares
@@ -91,6 +91,24 @@ public interface ICharacterExperienceGrant
     /// entry.
     /// </remarks>
     uint? ThresholdForLevel(byte level);
+
+    /// <summary>
+    /// Puts the character at that level holding that much experience, and answers whether the row
+    /// took the write.
+    /// </summary>
+    /// <remarks>
+    /// The tutorial grants a level outright rather than earning it, so it has nothing to award and
+    /// cannot go through <see cref="AwardAsync"/>. It still belongs here: this is where the
+    /// character's level and experience are written, and a caller that reached the row itself would
+    /// be writing progression from outside the one place that owns it.
+    /// <para>
+    /// <c>false</c> means the row did not take the write, which is not the same as writing a value
+    /// that happened to already be there -- the caller refuses rather than reporting a grant the
+    /// store disagrees with.
+    /// </para>
+    /// </remarks>
+    ValueTask<bool> TrySetProgressAsync(
+        CharacterId characterId, byte level, uint experience, CancellationToken cancellationToken);
 
     /// <summary>
     /// Reads where a character stands, asks what the occasion is worth to them, and awards it.

@@ -37,7 +37,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var loader = new InventoryLoader(result.CharacterInventory);
         var service = new SelectCharacterEntryInventoryDomainService(
             new InventoryLifecycleRuleService(new RefillContent()), new RefillMutation(), loader, persistence, leases,
-            new CharacterContainerDomainService(), new VolatileItemStore(), new DomainTransactionScope(),
+            new CharacterContainerDomainService(), new VolatileItemDomainStore(), new DomainTransactionScope(),
             null!, null!, null!);
 
         await service.SaveExistingLeaseAsync(previous, CancellationToken.None);
@@ -65,7 +65,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var service = new SelectCharacterEntryInventoryDomainService(
             new InventoryLifecycleRuleService(new RefillContent()), new RefillMutation(), new InventoryLoader(reloaded),
             new NoopLeasePersistence(), leases, new CharacterContainerDomainService(),
-            new VolatileItemStore(), new DomainTransactionScope(), null!, null!, null!);
+            new VolatileItemDomainStore(), new DomainTransactionScope(), null!, null!, null!);
         _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
 
         var prepared = await service.ApplyDailyRefillAsync(session, result, CancellationToken.None);
@@ -88,7 +88,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var leases = new EntryInventoryLeaseRegistry();
         var service = new SelectCharacterEntryInventoryDomainService(
             new InventoryLifecycleRuleService(new RefillContent()), new FailingRefillMutation(), loader, new NoopLeasePersistence(), leases,
-            new CharacterContainerDomainService(), new VolatileItemStore(), new DomainTransactionScope(),
+            new CharacterContainerDomainService(), new VolatileItemDomainStore(), new DomainTransactionScope(),
             null!, null!, null!);
         _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
 
@@ -165,10 +165,10 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
                 }
             }
         };
-        var characters = new RecordingCharacterStore();
+        var characters = new RecordingCharacterDomainStore();
         characters.Creatures[(603, 77)] = new StoredCreature(77, 0);
         var accessor = new OpenTransactionAccessor();
-        var items = new VolatileItemStore();
+        var items = new VolatileItemDomainStore();
         items.SessionIn(accessor.Current!).Write(
             ContainerId.ForCharacter(new CharacterId(603), InventoryContainerType.Equipment),
             new StoredItem(24, Core(itemKind: 5, itemId: 1, value: 77)));
@@ -210,7 +210,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
             new InventoryLifecycleRuleService(new RefillContent()), new RefillMutation(),
             new InventoryLoader(expanded), new NoopLeasePersistence(),
             new EntryInventoryLeaseRegistry(), containers,
-            new VolatileItemStore(), new DomainTransactionScope(), null!, null!, null!);
+            new VolatileItemDomainStore(), new DomainTransactionScope(), null!, null!, null!);
 
         var prepared = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
 

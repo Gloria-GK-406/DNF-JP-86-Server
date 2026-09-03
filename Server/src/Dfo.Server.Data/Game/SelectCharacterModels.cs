@@ -42,3 +42,11 @@ public sealed record SelectCharacterResult(
     CharacterSessionEntryState Session,
     AccountCharacterRoster? Roster = null,
     CharacterRosterEntryState? RosterEntry = null);
+
+public sealed record SelectCharacterQuestSynchronization(
+    SelectCharacterResult Result,
+    AcceptedQuestSynchronizationState State);
+
+public sealed record SelectCharacterPetRevival(
+    SelectCharacterResult Result,
+    PetRevivalState State);

@@ -207,10 +207,15 @@ public sealed class GrantClearExperienceCommandTests
     /// irrelevant here and is passed as such: unlike a kill, nothing about a clear's worth depends
     /// on who cleared it.
     /// </remarks>
-    private sealed class PricingGrant : ICharacterExperienceGrant
+    private sealed class PricingGrant : ICharacterExperienceDomainService
     {
         /// <summary>No test on this path asks what a level costs.</summary>
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
+
+        /// <summary>Pricing stand-ins never set progress outright; the tutorial is the only path that does.</summary>
+        public ValueTask<bool> TrySetProgressAsync(
+            CharacterId characterId, byte level, uint experience, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("This stand-in prices awards; it does not set progress.");
 
         public ValueTask<ExperienceAward?> AwardAsync(
             CharacterId characterId,

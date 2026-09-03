@@ -15,7 +15,7 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
     IEntryInventoryLeasePersistence persistence,
     IEntryInventoryLeaseRegistry leases,
     ICharacterContainerDomainService containers,
-    IItemStore itemStore,
+    IItemDomainStore itemStore,
     IDomainTransactionAccessor transactions,
     IItemPlacementRuleService placementRules,
     IItemArrivalRuleService arrivals,

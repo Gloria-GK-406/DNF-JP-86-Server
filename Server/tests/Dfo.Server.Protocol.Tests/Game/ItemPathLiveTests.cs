@@ -167,7 +167,7 @@ public sealed class ItemPathLiveTests
                 ContainerId.ForCharacter(character, InventoryContainerType.Main),
                 character,
                 new ContainerShape(InventoryContainerType.Main, 0),
-                services.GetRequiredService<IItemStore>(),
+                services.GetRequiredService<IItemDomainStore>(),
                 services.GetRequiredService<IDomainTransactionAccessor>(),
                 null!,
                 services.GetRequiredService<IItemPlacementRuleService>(),

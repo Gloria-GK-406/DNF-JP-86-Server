@@ -17,7 +17,7 @@ namespace Dfo.Server.Persistence.Tests.Support;
 /// Because nothing is written anywhere, its session commits by swapping state it already holds,
 /// which cannot fail.
 /// </remarks>
-internal sealed class VolatileItemStore : IItemStore
+internal sealed class VolatileItemDomainStore : IItemDomainStore
 {
     private readonly Dictionary<ContainerId, Dictionary<int, StoredItem>> containers = [];
 
@@ -27,12 +27,12 @@ internal sealed class VolatileItemStore : IItemStore
 
     public bool IsDurable => false;
 
-    public IItemStoreSession SessionIn(IDomainTransaction transaction)
+    public IItemDomainStoreSession SessionIn(IDomainTransaction transaction)
     {
         ArgumentNullException.ThrowIfNull(transaction);
         return transaction.Enlist(
             this.StoreIdentity,
-            () => new VolatileItemStoreSession(this.containers, this.sync));
+            () => new VolatileItemDomainStoreSession(this.containers, this.sync));
     }
 }
 
@@ -42,9 +42,9 @@ internal sealed class VolatileItemStore : IItemStore
 /// committing is one assignment per touched container and has nothing left in it that could fail.
 /// That is what lets any number of these sit beside the single participant whose commit still can.
 /// </remarks>
-internal sealed class VolatileItemStoreSession(
+internal sealed class VolatileItemDomainStoreSession(
     Dictionary<ContainerId, Dictionary<int, StoredItem>> containers,
-    object sync) : IItemStoreSession, ITransactionParticipant
+    object sync) : IItemDomainStoreSession, ITransactionParticipant
 {
     /// <summary>What each named slot will hold, or null where it will be left empty.</summary>
     private readonly Dictionary<ContainerId, Dictionary<int, StoredItem>> staged = [];

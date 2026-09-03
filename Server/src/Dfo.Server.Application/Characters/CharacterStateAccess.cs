@@ -108,7 +108,7 @@ internal sealed class AmbientStoreAccess(IDomainTransactionAccessor transactions
 /// the place.
 /// </remarks>
 internal sealed class SelectedSessionPositionPersistence(
-    ICharacterStore? store, IDomainTransactionAccessor transactions)
+    ICharacterDomainStore? store, IDomainTransactionAccessor transactions)
     : ISelectedSessionPositionPersistence
 {
     public async ValueTask PersistAsync(

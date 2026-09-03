@@ -21,22 +21,22 @@ public readonly record struct OwnedCharacterId(AccountId Account, CharacterId Ch
 /// kind kept in the same database, which is what lets one use case change a character and the
 /// items it owns as a single outcome.
 /// </remarks>
-public interface ICharacterStore : IDomainStore<ICharacterStoreSession>;
+public interface ICharacterDomainStore : IDomainStore<ICharacterDomainStoreSession>;
 
 /// <summary>One use case's reads and writes against one store of characters.</summary>
 /// <remarks>
 /// A character is not one homogeneous table the way a container is, so the session is a handful of
 /// named sections rather than a single addressing scheme. Each section that holds many rows per
-/// character speaks the shared <see cref="IStoreSession{TPlace,TKey,TValue}"/> vocabulary; the one
+/// character speaks the shared <see cref="IDomainStoreSession{TPlace,TKey,TValue}"/> vocabulary; the one
 /// that holds a single row per character says so by having no key at all.
 ///
 /// Adding a section adds a property here, not a verb: what the caller can ask of a section is
 /// fixed, and only what a section holds is new.
 /// </remarks>
-public interface ICharacterStoreSession
+public interface ICharacterDomainStoreSession
 {
     /// <summary>The creatures the character owns, by the key each is known under.</summary>
-    IStoreSession<OwnedCharacterId, long, StoredCreature> Creatures { get; }
+    IDomainStoreSession<OwnedCharacterId, long, StoredCreature> Creatures { get; }
 
     /// <summary>Whether this pairing is one this store can place at all.</summary>
     /// <remarks>

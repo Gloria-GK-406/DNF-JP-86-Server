@@ -189,13 +189,3 @@ public interface IEntryInventoryLeasePersistence
     ValueTask SaveAsync(EntryInventoryLeaseSnapshot lease, CancellationToken cancellationToken);
 }
 
-/// <summary>
-/// Purpose-limited view of character facts required by equipment eligibility rules.
-/// </summary>
-public interface IEquipmentEligibilityCharacterReader
-{
-    ValueTask<EquipmentEligibilityCharacterFacts> GetAsync(
-        AccountId accountId,
-        CharacterId characterId,
-        CancellationToken cancellationToken);
-}

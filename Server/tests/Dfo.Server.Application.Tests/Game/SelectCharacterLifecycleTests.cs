@@ -58,7 +58,9 @@ public sealed class SelectCharacterLifecycleTests
             ],
             fixture.Bus.DispatchedCommands);
         Assert.NotNull(fixture.Directory.Find(fixture.AccountId));
-        Assert.Equal(result.Character, fixture.Active.GetRequired(fixture.AccountId));
+        Assert.Equal(
+            result.Character.Identity.CharacterId,
+            fixture.Users.GetRequired(fixture.OnlineUserId).CurrentCharacterId);
         Assert.Empty(fixture.Closer.Closed);
     }
 
@@ -99,7 +101,7 @@ public sealed class SelectCharacterLifecycleTests
                 "plan-pvp", "x11", "cleanup", "close"],
             fixture.Ledger);
         Assert.Null(fixture.Directory.Find(fixture.AccountId));
-        Assert.Throws<KeyNotFoundException>(() => fixture.Active.GetRequired(fixture.AccountId));
+        Assert.Null(fixture.Users.GetRequired(fixture.OnlineUserId).CurrentCharacterId);
         Assert.Equal([fixture.ConnectionId], fixture.Closer.Closed);
     }
 
@@ -244,7 +246,7 @@ public sealed class SelectCharacterLifecycleTests
 
         Assert.Equal(["prepare", "x08"], fixture.Ledger);
         Assert.Null(fixture.Directory.Find(fixture.AccountId));
-        Assert.Throws<KeyNotFoundException>(() => fixture.Active.GetRequired(fixture.AccountId));
+        Assert.Null(fixture.Users.GetRequired(fixture.OnlineUserId).CurrentCharacterId);
         Assert.Empty(fixture.Closer.Closed);
     }
 
@@ -310,7 +312,7 @@ public sealed class SelectCharacterLifecycleTests
             fixture.Ledger);
         Assert.DoesNotContain("ready", fixture.Ledger);
         Assert.Null(fixture.Directory.Find(fixture.AccountId));
-        Assert.Throws<KeyNotFoundException>(() => fixture.Active.GetRequired(fixture.AccountId));
+        Assert.Null(fixture.Users.GetRequired(fixture.OnlineUserId).CurrentCharacterId);
     }
 
     [Fact]
@@ -338,10 +340,7 @@ public sealed class SelectCharacterLifecycleTests
             fixture.AccountId, new CharacterId(500), fixture.ConnectionId,
             before!.Generation, StubChannelEntryPolicy.GeneralChannel.ListenerPort);
         fixture.Directory.RegisterReplacing(old);
-        fixture.Active.Publish(old, fixture.Result.Character with
-        {
-            Identity = fixture.Result.Character.Identity with { CharacterId = old.CharacterId }
-        });
+        fixture.Active.Publish(old);
         fixture.Ledger.Clear();
         Assert.True(fixture.Users.TryGetByConnection(fixture.ConnectionId, out var selected));
 
@@ -416,6 +415,7 @@ public sealed class SelectCharacterLifecycleTests
             RecordingCommandBus bus,
             SelectCharacterHandler handler,
             SelectCharacterRequest command,
+            OnlineUserId onlineUserId,
             long authenticatedGeneration)
         {
             AccountId = accountId;
@@ -436,6 +436,7 @@ public sealed class SelectCharacterLifecycleTests
             Bus = bus;
             Handler = handler;
             Command = command;
+            OnlineUserId = onlineUserId;
             AuthenticatedGeneration = authenticatedGeneration;
             Context = new NetworkDispatchContext(new NetworkConnectionContext(
                 connectionId,
@@ -461,6 +462,13 @@ public sealed class SelectCharacterLifecycleTests
         public RecordingCommandBus Bus { get; }
         public SelectCharacterHandler Handler { get; }
         public SelectCharacterRequest Command { get; }
+
+        /// <summary>
+        /// The connected user this fixture logs in. Which character an account is playing is read
+        /// back from this user's own snapshot, which is where publication binds it.
+        /// </summary>
+        public OnlineUserId OnlineUserId { get; }
+
         public long AuthenticatedGeneration { get; }
         public NetworkDispatchContext Context { get; }
 
@@ -517,16 +525,17 @@ public sealed class SelectCharacterLifecycleTests
             var inventory = new InventoryPreparation(result, ledger, refillCommits);
             var sender = new RecordingSender(
                 ledger, failTrailingLocks, failPvp, failPvpTarget, failStatic, blockStatic);
-            var sessionEntry = new SessionEntry(ledger, planPvp);
+            var sessionEntry = new SessionEntry(ledger, planPvp, directory);
             var transitionGate = new SelectedSessionTransitionGate();
-            var preparation = refuseAdmission ? null : new Preparation(result, ledger, failPreparation);
+            var preparation = refuseAdmission
+                ? null
+                : new Preparation(result, ledger, failPreparation, mutations);
             var prepareHandler = new PrepareSelectedCharacterSessionCommandHandler(
                 users,
                 refuseAdmission ? new RefusingPreparation(ledger) : preparation!,
-                directory,
+                sessionEntry,
                 cleanup,
-                inventory,
-                mutations);
+                inventory);
             var bus = new RecordingCommandBus(
                 prepareHandler,
                 new ApplySelectedCharacterDailyRefillCommandHandler(inventory),
@@ -536,7 +545,7 @@ public sealed class SelectCharacterLifecycleTests
                     new QuestEntry(ledger, changeQuest), sessionEntry),
                 new ReviveSelectedCharacterPetCommandHandler(
                     new PetEntry(ledger, revivePet), sessionEntry),
-                new CompensateSelectedCharacterSessionCommandHandler(cleanup, directory));
+                new CompensateSelectedCharacterSessionCommandHandler(cleanup, sessionEntry));
             var handler = new SelectCharacterHandler(
                 users,
                 new StubChannelEntryPolicy(),
@@ -554,7 +563,8 @@ public sealed class SelectCharacterLifecycleTests
             return new Fixture(
                 accountId, connectionId, result, ledger, directory, active, closer,
                 users, cleanup, mutations, inventory, sender, sessionEntry,
-                preparation, transitionGate, bus, handler, command, authenticated.Generation);
+                preparation, transitionGate, bus, handler, command,
+                registered.OnlineUserId, authenticated.Generation);
         }
     }
 
@@ -652,9 +662,32 @@ public sealed class SelectCharacterLifecycleTests
     }
 
     private sealed class Preparation(
-        SelectCharacterResult result, List<string> ledger, bool failPreparation)
-        : ISelectCharacterPreparationService
+        SelectCharacterResult result, List<string> ledger, bool failPreparation,
+        ISelectedSessionPositionPersistence positions)
+        : ISelectCharacterPreparationDomainService
     {
+        /// <summary>The real service's own act: stamp the spawn, then store it when the channel keeps positions.</summary>
+        public async ValueTask<SelectCharacterResult> PlaceAtSpawnAsync(
+            SelectedSessionIdentity session, SelectCharacterResult prepared,
+            CancellationToken cancellationToken)
+        {
+            var spawn = prepared.World.Channel.Spawn;
+            var resolved = new CharacterPositionState(
+                spawn.TownId, spawn.AreaId, spawn.X, spawn.Y, spawn.Direction);
+            var placed = prepared with
+            {
+                Character = prepared.Character with { Position = resolved },
+            };
+            if (placed.World.Channel.PersistsPosition)
+            {
+                await positions.PersistAsync(
+                    session.AccountId, session.CharacterId, resolved, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            return placed;
+        }
+
         public int FullPreparationCalls { get; private set; }
         public ValueTask<ActiveCharacterState> PreflightAsync(
             AccountId accountId, ushort slotIndex, Dfo.Server.Data.Channel.ChannelEntryIdentity channel,
@@ -671,7 +704,7 @@ public sealed class SelectCharacterLifecycleTests
         }
     }
 
-    private sealed class RefusingPreparation(List<string> ledger) : ISelectCharacterPreparationService
+    private sealed class RefusingPreparation(List<string> ledger) : ISelectCharacterPreparationDomainService
     {
         public ValueTask<ActiveCharacterState> PreflightAsync(
             AccountId accountId, ushort slotIndex, Dfo.Server.Data.Channel.ChannelEntryIdentity channel,
@@ -684,6 +717,10 @@ public sealed class SelectCharacterLifecycleTests
         }
         public ValueTask<SelectCharacterResult> PrepareAsync(ActiveCharacterState selected,
             AccountId accountId, Dfo.Server.Data.Channel.ChannelEntryIdentity channel,
+            CancellationToken cancellationToken) => throw new InvalidOperationException();
+
+        public ValueTask<SelectCharacterResult> PlaceAtSpawnAsync(
+            SelectedSessionIdentity session, SelectCharacterResult prepared,
             CancellationToken cancellationToken) => throw new InvalidOperationException();
     }
 
@@ -728,9 +765,18 @@ public sealed class SelectCharacterLifecycleTests
         }
     }
 
-    private sealed class SessionEntry(List<string> ledger, bool planPvp)
-        : ISelectCharacterSessionEntryService
+    private sealed class SessionEntry(
+        List<string> ledger, bool planPvp, ISelectedSessionDirectory sessions)
+        : ISelectCharacterSessionEntryDomainService
     {
+        public SelectedSessionIdentity? Find(AccountId accountId) => sessions.Find(accountId);
+
+        public SelectedSessionIdentity? RegisterReplacing(SelectedSessionIdentity session) =>
+            sessions.RegisterReplacing(session);
+
+        public bool ReleaseExact(SelectedSessionIdentity session) =>
+            sessions.TryRemoveExact(session);
+
         public SelectCharacterResult? RuntimeResult { get; private set; }
         public PvpLobbySynchronizationState? PlanPvp(
             SelectedSessionIdentity session, SelectCharacterResult result)
@@ -777,7 +823,7 @@ public sealed class SelectCharacterLifecycleTests
         }
     }
 
-    private sealed class QuestEntry(List<string> ledger, bool changes) : ISelectCharacterQuestEntryService
+    private sealed class QuestEntry(List<string> ledger, bool changes) : ISelectCharacterQuestEntryDomainService
     {
         public ValueTask<SelectCharacterQuestSynchronization?> SynchronizeAsync(
             SelectedSessionIdentity session, SelectCharacterResult result,
@@ -802,7 +848,7 @@ public sealed class SelectCharacterLifecycleTests
         }
     }
 
-    private sealed class PetEntry(List<string> ledger, bool changes) : ISelectCharacterPetEntryService
+    private sealed class PetEntry(List<string> ledger, bool changes) : ISelectCharacterPetEntryDomainService
     {
         public ValueTask<SelectCharacterPetRevival?> ReviveAsync(
             SelectedSessionIdentity session, SelectCharacterResult result,
@@ -843,22 +889,18 @@ public sealed class SelectCharacterLifecycleTests
     private sealed class RecordingActive(IActiveCharacterDomainService inner, List<string> ledger)
         : IActiveCharacterDomainService
     {
-        public void Publish(AccountId accountId, ActiveCharacterState character) =>
-            inner.Publish(accountId, character);
-
-        public void Publish(SelectedSessionIdentity session, ActiveCharacterState character)
+        public void Publish(SelectedSessionIdentity session)
         {
             ledger.Add("active");
-            inner.Publish(session, character);
+            inner.Publish(session);
         }
 
-        public ActiveCharacterState GetRequired(AccountId accountId) => inner.GetRequired(accountId);
         public bool ClearExact(SelectedSessionIdentity session) => inner.ClearExact(session);
     }
 
     private sealed class RecordingCleanup(
         ISelectedSessionDirectory directory, IActiveCharacterDomainService active, List<string> ledger)
-        : ISelectedSessionCleanupService
+        : ISelectedSessionCleanupDomainService
     {
         public List<(SelectedSessionIdentity Session, bool IncludeOwner)> Calls { get; } = [];
         public SelectedSessionIdentity? FailureSession { get; set; }

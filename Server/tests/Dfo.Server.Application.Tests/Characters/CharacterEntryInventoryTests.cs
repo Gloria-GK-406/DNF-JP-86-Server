@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Inventory;
@@ -10,6 +11,7 @@ using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Tests.Characters;
@@ -197,6 +199,7 @@ public sealed class CharacterEntryInventoryTests
             await entry.EnterAsync(accountId, 2, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None));
 
         Assert.Same(previous, active.GetRequired(accountId));
+        Assert.Equal(0, active.PublishCount);
     }
 
     /// <remarks>
@@ -490,6 +493,7 @@ public sealed class CharacterEntryInventoryTests
             await entry.EnterAsync(accountId, 5, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None));
 
         Assert.Same(previous, active.GetRequired(accountId));
+        Assert.Equal(0, active.PublishCount);
     }
 
     [Fact]
@@ -510,6 +514,7 @@ public sealed class CharacterEntryInventoryTests
             await entry.EnterAsync(accountId, 6, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None));
 
         Assert.Same(previous, active.GetRequired(accountId));
+        Assert.Equal(0, active.PublishCount);
     }
 
     private static InventoryStorageItem StorageItem(
@@ -566,6 +571,68 @@ public sealed class CharacterEntryInventoryTests
         0,
         0,
         0);
+
+    /// <summary>
+    /// The spawn is written onto the character and stored, when the channel keeps positions.
+    /// </summary>
+    /// <remarks>
+    /// Driven against the real preparation service on purpose. The select-character lifecycle
+    /// tests drive a stand-in that carries its own copy of this act, so they would keep passing if
+    /// the production one lost its channel check or stopped stamping the character.
+    /// </remarks>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task PlaceAtSpawn_StampsTheCharacterAndStoresOnlyWhenTheChannelKeepsPositions(
+        bool persists)
+    {
+        var accountId = new AccountId(77);
+        var selected = Character(701, 1);
+        var positions = new RecordingPositions();
+        var entry = EntryServices.Create(
+            new StubCharacterDomainService(selected),
+            new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
+            new StubCharacterEntryStateDomainService(EmptyCharacterEntry(selected.Identity.CharacterId)),
+            new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)),
+            new StatefulActiveCharacterDomainService(),
+            positions: positions);
+        var prepared = await entry.EnterAsync(
+            accountId, 1, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None);
+        var session = SelectedSessionIdentity.Create(
+            accountId,
+            selected.Identity.CharacterId,
+            new NetworkConnectionId("Game:place"),
+            1,
+            StubChannelEntryPolicy.GeneralChannel.ListenerPort);
+        var subject = prepared with
+        {
+            World = prepared.World with
+            {
+                Channel = prepared.World.Channel with { PersistsPosition = persists },
+            },
+        };
+
+        var placed = await entry.PlaceAtSpawnAsync(session, subject, CancellationToken.None);
+
+        var spawn = subject.World.Channel.Spawn;
+        var expected = new CharacterPositionState(
+            spawn.TownId, spawn.AreaId, spawn.X, spawn.Y, spawn.Direction);
+        Assert.Equal(expected, placed.Character.Position);
+        Assert.Equal(persists ? expected : null, positions.Persisted);
+    }
+
+    private sealed class RecordingPositions : ISelectedSessionPositionPersistence
+    {
+        public CharacterPositionState? Persisted { get; private set; }
+
+        public ValueTask PersistAsync(
+            AccountId accountId, CharacterId characterId, CharacterPositionState position,
+            CancellationToken cancellationToken)
+        {
+            Persisted = position;
+            return ValueTask.CompletedTask;
+        }
+    }
 
     private static ActiveCharacterState Character(int id, ushort slot) => new(
         new CharacterIdentityState(new CharacterId(id), slot, [0x41], 1, 0),
@@ -900,6 +967,15 @@ public sealed class CharacterEntryInventoryTests
                 new InvalidDataException("account settings are unavailable"));
     }
 
+    /// <summary>
+    /// The account's active character as this suite needs to observe it: what it was seeded with,
+    /// and whether anything published over it.
+    /// </summary>
+    /// <remarks>
+    /// Publication no longer carries a character's standing, so the seeded state can only be
+    /// displaced by a publication happening at all. Every assertion that the seed survived is
+    /// therefore paired with <see cref="PublishCount"/>, which is what the displacement would be.
+    /// </remarks>
     private sealed class StatefulActiveCharacterDomainService : IActiveCharacterDomainService
     {
         private readonly Dictionary<AccountId, ActiveCharacterState> states = [];
@@ -913,18 +989,12 @@ public sealed class CharacterEntryInventoryTests
 
         public int PublishCount { get; private set; }
 
-        public void Publish(AccountId accountId, ActiveCharacterState character)
-        {
-            states[accountId] = character;
-            PublishCount++;
-        }
-
-        public void Publish(SelectedSessionIdentity session, ActiveCharacterState character) =>
-            Publish(session.AccountId, character);
+        public void Publish(SelectedSessionIdentity session) => PublishCount++;
 
         public bool ClearExact(SelectedSessionIdentity session) =>
             states.Remove(session.AccountId);
 
+        /// <summary>What this account was seeded with, for tests that assert nothing displaced it.</summary>
         public ActiveCharacterState GetRequired(AccountId accountId) => states[accountId];
     }
 }

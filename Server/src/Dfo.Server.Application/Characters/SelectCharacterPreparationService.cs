@@ -21,18 +21,6 @@ using Dfo.Server.Application.OnlineUsers;
 
 namespace Dfo.Server.Application.Characters;
 
-public interface ISelectCharacterPreparationService
-{
-    ValueTask<ActiveCharacterState> PreflightAsync(
-        AccountId accountId, ushort rosterIndex, ChannelEntryIdentity channel,
-        CancellationToken cancellationToken);
-    ValueTask<SelectCharacterResult> PrepareAsync(
-        ActiveCharacterState selected,
-        AccountId accountId,
-        ChannelEntryIdentity channel,
-        CancellationToken cancellationToken);
-}
-
 public sealed class SelectCharacterPreparationService(
     ICharacterDomainService characters,
     ICharacterInventoryEntryDomainService characterInventoryEntries,
@@ -48,8 +36,33 @@ public sealed class SelectCharacterPreparationService(
     IChannelEntryPolicy channels,
     IEntryPlacementRuleService placement,
     ISessionAdjacentEntryDomainService sessionAdjacent,
-    TimeProvider timeProvider) : ISelectCharacterPreparationService
+    ISelectedSessionPositionPersistence positions,
+    TimeProvider timeProvider) : ISelectCharacterPreparationDomainService
 {
+    public async ValueTask<SelectCharacterResult> PlaceAtSpawnAsync(
+        SelectedSessionIdentity session,
+        SelectCharacterResult prepared,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(prepared);
+        var spawn = prepared.World.Channel.Spawn;
+        var resolved = new CharacterPositionState(
+            spawn.TownId, spawn.AreaId, spawn.X, spawn.Y, spawn.Direction);
+        var placed = prepared with
+        {
+            Character = prepared.Character with { Position = resolved },
+        };
+        if (placed.World.Channel.PersistsPosition)
+        {
+            await positions.PersistAsync(
+                session.AccountId, session.CharacterId, resolved, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        return placed;
+    }
+
     public async ValueTask<ActiveCharacterState> PreflightAsync(
         AccountId accountId, ushort rosterIndex, ChannelEntryIdentity channel,
         CancellationToken cancellationToken)

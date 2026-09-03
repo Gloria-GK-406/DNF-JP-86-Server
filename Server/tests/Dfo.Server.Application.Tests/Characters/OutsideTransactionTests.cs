@@ -68,7 +68,7 @@ public sealed class OutsideTransactionTests
     public async Task ChangingSomethingThatOutlivesNothingIsAllowedOutsideAUseCase()
     {
         var access = new AmbientStoreAccess(new ClosedTransactionAccessor());
-        var run = new VolatileItemStore();
+        var run = new VolatileItemDomainStore();
         var dungeon = new ContainerId("dungeon");
 
         await access.ChangeAsync(
@@ -200,12 +200,12 @@ public sealed class OutsideTransactionTests
         private Fixture(string path)
         {
             this.Path = path;
-            this.Characters = new SqliteCharacterStore(path);
+            this.Characters = new SqliteCharacterDomainStore(path);
         }
 
         public string Path { get; }
 
-        public SqliteCharacterStore Characters { get; }
+        public SqliteCharacterDomainStore Characters { get; }
 
         public static async Task<Fixture> CreateAsync()
         {

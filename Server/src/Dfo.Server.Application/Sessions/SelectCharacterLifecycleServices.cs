@@ -1,41 +1,12 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
-using Dfo.Server.Abstractions.Sessions;
-using Dfo.Server.Data.Game;
-using Dfo.Server.Data.Networking;
-using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Game;
+using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Sessions;
-
-public interface ISelectedSessionCleanupService
-{
-    ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
-        SelectedSessionIdentity session, bool includeOwner, CancellationToken cancellationToken);
-}
-
-public enum SelectedSessionCleanupNoticeKind
-{
-    ExpertStoreClosed = 1,
-    TownDeparture = 2,
-}
-
-public sealed record SelectedSessionCleanupNotice(
-    SelectedSessionCleanupNoticeKind Kind,
-    ushort UserId);
-
-public sealed record SelectedSessionCleanupNotificationTarget(
-    NetworkConnectionId ConnectionId,
-    IReadOnlyList<SelectedSessionCleanupNotice> OrderedNotices);
-
-public sealed record SelectedSessionCleanupNotificationPlan(
-    NetworkConnectionId OwnerConnectionId,
-    IReadOnlyList<SelectedSessionCleanupNotice> RequiredOwnerNotices,
-    IReadOnlyList<SelectedSessionCleanupNotificationTarget> BestEffortTargets)
-{
-    public static SelectedSessionCleanupNotificationPlan Empty(SelectedSessionIdentity session) =>
-        new(session.ConnectionId, [], []);
-}
 
 /// <summary>
 /// Exact cleanup completed with one or more failures after its notification targets were resolved.
@@ -49,20 +20,6 @@ public sealed class SelectedSessionCleanupFailure(
     public SelectedSessionCleanupNotificationPlan NotificationPlan { get; } = notificationPlan;
 }
 
-public interface ISelectCharacterSessionEntryService
-{
-    PvpLobbySynchronizationState? PlanPvp(SelectedSessionIdentity session, SelectCharacterResult result);
-    IReadOnlyList<PvpParticipantPublicationTarget> PlanPvpPublication(
-        SelectedSessionIdentity session, SelectCharacterResult result);
-    void Publish(SelectedSessionIdentity session, SelectCharacterResult result);
-    void ReplaceRuntimeExact(SelectedSessionIdentity session, SelectCharacterResult result);
-    void MarkPvpReady(SelectedSessionIdentity session, SelectCharacterResult result);
-}
-
-public sealed record PvpParticipantPublicationTarget(
-    NetworkConnectionId ConnectionId,
-    PvpParticipantEntryState Participant);
-
 internal sealed class SelectedSessionCleanupService(
     ISelectedSessionDirectory sessions,
     ISelectedSessionRuntimeDirectory runtimes,
@@ -73,7 +30,7 @@ internal sealed class SelectedSessionCleanupService(
     ISessionPresenceRegistry presence,
     IExpertStoreRegistry expertStores,
     IPvpLobbyRegistry pvp,
-    IEnumerable<ISelectedSessionPositionPersistence> positionPersistence) : ISelectedSessionCleanupService
+    IEnumerable<ISelectedSessionPositionPersistence> positionPersistence) : ISelectedSessionCleanupDomainService
 {
     public async ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
         SelectedSessionIdentity session, bool includeOwner, CancellationToken cancellationToken)
@@ -162,8 +119,15 @@ internal sealed class SelectCharacterSessionEntryService(
     ISelectedSessionDirectory sessions,
     ISelectedSessionRuntimeDirectory runtimes,
     ISessionPresenceRegistry presence,
-    IPvpLobbyRegistry pvp) : ISelectCharacterSessionEntryService
+    IPvpLobbyRegistry pvp) : ISelectCharacterSessionEntryDomainService
 {
+    public SelectedSessionIdentity? Find(AccountId accountId) => sessions.Find(accountId);
+
+    public SelectedSessionIdentity? RegisterReplacing(SelectedSessionIdentity session) =>
+        sessions.RegisterReplacing(session);
+
+    public bool ReleaseExact(SelectedSessionIdentity session) => sessions.TryRemoveExact(session);
+
     public PvpLobbySynchronizationState? PlanPvp(
         SelectedSessionIdentity session, SelectCharacterResult result)
     {

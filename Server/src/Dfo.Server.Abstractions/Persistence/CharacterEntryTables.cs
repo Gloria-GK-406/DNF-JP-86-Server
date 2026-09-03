@@ -134,7 +134,7 @@ public interface ICharacterShieldDeckTable
 /// <summary>The <c>character_active_quests</c> table.</summary>
 /// <remarks>
 /// The entry projection's way in. The same rows are read and written inside a use case through
-/// <c>IQuestStore</c>, which does not share this reader's connection; what the two agree on, and
+/// <c>IQuestDomainStore</c>, which does not share this reader's connection; what the two agree on, and
 /// the one thing they do not, is written out there.
 /// </remarks>
 public interface ICharacterActiveQuestTable

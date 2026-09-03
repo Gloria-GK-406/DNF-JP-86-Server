@@ -171,7 +171,7 @@ public sealed class AcceptQuestCommandHandlerTests
                 ContainerId.ForCharacter(Character, InventoryContainerType.Main),
                 Character,
                 new ContainerShape(InventoryContainerType.Main, 0),
-                new SqliteItemStore(this.Path),
+                new SqliteItemDomainStore(this.Path),
                 this.Scope,
                 null!,
                 new ItemPlacementRuleService(
@@ -182,7 +182,7 @@ public sealed class AcceptQuestCommandHandlerTests
                 new QuestDefinitionDomainService(
                     new QuestContentRuleService(new Quests(definition), new NoQuestParameters())),
                 new CharacterQuestLogDomainService(
-                    new SqliteQuestStore(this.Path), new AmbientStoreAccess(this.Scope)),
+                    new SqliteQuestDomainStore(this.Path), new AmbientStoreAccess(this.Scope)),
                 containers);
         }
 

@@ -130,7 +130,7 @@ public readonly record struct ExperienceModifier(
 /// no task makes that impossible to write by accident rather than merely discouraged.
 /// </para>
 /// </remarks>
-public interface IExperienceBonusService
+public interface IExperienceBonusDomainService
 {
     /// <summary>What this character earns on top of this occasion, each reason named.</summary>
     IReadOnlyList<ExperienceModifier> Collect(in ExperienceOccasion occasion);

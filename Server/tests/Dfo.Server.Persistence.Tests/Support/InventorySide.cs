@@ -84,7 +84,7 @@ internal sealed class InventorySide
             ContainerId.ForCharacter(character, InventoryContainerType.Main),
             character,
             new ContainerShape(InventoryContainerType.Main, parameter),
-            new SqliteItemStore(this.databasePath),
+            new SqliteItemDomainStore(this.databasePath),
             this.Scope,
             null!,
             new ItemPlacementRuleService(

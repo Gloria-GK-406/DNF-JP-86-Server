@@ -23,7 +23,7 @@ namespace Dfo.Server.Application.Tests.Characters;
 /// case that touches several leaves them agreeing. Before the participant was keyed on the
 /// database, this grouping could not even be assembled -- the second store to join was refused.
 /// </remarks>
-public sealed class CharacterStoreSettlementTests
+public sealed class CharacterDomainStoreSettlementTests
 {
     private static readonly OwnedCharacterId Owned =
         new(new AccountId(6), new CharacterId(60));
@@ -230,18 +230,18 @@ public sealed class CharacterStoreSettlementTests
         private Fixture(string path)
         {
             this.Path = path;
-            this.Items = new SqliteItemStore(path);
-            this.Characters = new SqliteCharacterStore(path);
-            this.Quests = new SqliteQuestStore(path);
+            this.Items = new SqliteItemDomainStore(path);
+            this.Characters = new SqliteCharacterDomainStore(path);
+            this.Quests = new SqliteQuestDomainStore(path);
         }
 
         public string Path { get; }
 
-        public SqliteItemStore Items { get; }
+        public SqliteItemDomainStore Items { get; }
 
-        public SqliteCharacterStore Characters { get; }
+        public SqliteCharacterDomainStore Characters { get; }
 
-        public SqliteQuestStore Quests { get; }
+        public SqliteQuestDomainStore Quests { get; }
 
         public static async Task<Fixture> CreateAsync()
         {

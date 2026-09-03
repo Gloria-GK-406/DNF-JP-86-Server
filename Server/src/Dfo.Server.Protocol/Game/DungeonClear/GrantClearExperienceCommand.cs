@@ -31,7 +31,7 @@ public sealed record GrantClearExperienceCommand(
 /// <remarks>
 /// The same shape as the kill's: a rule over content decides the amount, the shared grant adds it,
 /// and the transaction is here. What it deliberately does not do is ask
-/// <c>IExperienceBonusService</c> what the character carries.
+/// <c>IExperienceBonusDomainService</c> what the character carries.
 /// <para>
 /// <b>Why nothing is collected here.</b> A settlement is drawn on the result screen, whose
 /// breakdown this server fills from the two figures below. An entitlement paid at settlement would
@@ -44,7 +44,7 @@ public sealed record GrantClearExperienceCommand(
 /// </remarks>
 public sealed class GrantClearExperienceCommandHandler(
     IExperienceValuationDomainService valuation,
-    ICharacterExperienceGrant grant)
+    ICharacterExperienceDomainService grant)
     : ICommandHandler<GrantClearExperienceCommand, ClearExperienceResult>
 {
     public async ValueTask<ClearExperienceResult> HandleAsync(

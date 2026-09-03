@@ -37,8 +37,8 @@
          is the one description of how the server wires it. -->
     <Compile Include="..\Dfo.Server.Persistence.Tests\Support\InventorySide.cs"
              Link="Support\InventorySide.cs" />
-    <Compile Include="..\Dfo.Server.Persistence.Tests\Support\VolatileItemStore.cs"
-             Link="Support\VolatileItemStore.cs" />
+    <Compile Include="..\Dfo.Server.Persistence.Tests\Support\VolatileItemDomainStore.cs"
+             Link="Support\VolatileItemDomainStore.cs" />
   </ItemGroup>
 
 </Project>

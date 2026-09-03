@@ -115,6 +115,32 @@ PVF 内容源、游戏规则配置、以及表达归档或游戏语义的常量�
 反过来的一半早就写在 `Docs/领域结构重构设计.md` §6 里：规则服务不许自己查世界状态，只能接收
 facts。两半合起来才是一条线——一边不许往上摸世界，一边不许绕过它去够内容。
 
+### 命令处理器只够得到领域形状
+
+命令处理器的构造器里只允许出现两种东西：
+
+| 形状 | 是什么 | 怎么认 |
+|---|---|---|
+| 领域服务 | 编排一项业务能力；规则判断由它在内部向规则服务索取 | `Dfo.Server.Abstractions` 里以 `DomainService` 结尾的接口 |
+| 领域 store | 领域状态的事务结算真源，被要一个会话、由事务收口 | 同一程序集里以 `DomainStore` 结尾的接口 |
+
+**实例与快照不在这张表上，因为它们不是被注入的**：实例由领域服务交出来
+（`characters.Get(id)`、`logs.LogOf(...)`、`containers.FindContainer(...)`），快照作为命令
+自己的字段送进来。
+
+除此之外的一切都不许注入——行网关（`*Table`）、持久化接缝（`*Persistence`）、运行时容器
+（`*Directory` / `*Registry`）、内容源、规则服务、命令总线。要用它们，就把用法收进拥有那件事
+的领域服务里。
+
+唯一的例外是一张具名豁免清单，目前只有 `TimeProvider`（环境时钟，不是这个游戏知道的东西）。
+清单与它每一项的理由都写在守它的判据旁边。
+
+**这条由判据守着**：`Server/tests/Dfo.Server.Application.Tests/Commands/CommandHandlerArchitectureTests.cs`
+反射遍历全部 `ICommandHandler<,>` 实现的构造器参数。它按类型判定而不是按一张类型名单——
+名单要人手维护，而没人维护的名单等于没有规则。同一个判据另有一条用例专门证明它会拒绝
+（喂给它行网关、持久化接缝、运行时容器与命令总线，断言全部被拒），否则一条什么都放行的规则
+和一个没有违规的仓库看起来一模一样。
+
 **宿主部署配置不是规则输入。** `IServerConfigService` 与它的三个消费方按下面「接口后缀标明
 类别」那节记的例外办，不受这条约束。同样不算规则输入的还有两类，各自在代码里写明了理由：
 纯测量开关（`ExperienceDiagnostics`）与协议投递行为（`SelectCharacterDeliveryOptions`）。
@@ -165,11 +191,11 @@ facts。两半合起来才是一条线——一边不许往上摸世界，一边
   环境事务经 `IDomainTransactionAccessor` 暴露（`AsyncLocal`），因为存储是单例、
   容器按角色持有，两者都拿不到注入。
 - 载体协议（`Abstractions/Transactions/DomainStores.cs`）：`IDomainStore<TSession>`
-  给出载体身份、是否持久、以事务换取会话；`IStoreSession<TPlace,TKey,TValue>` 是
-  「按位置读、按位置写、按位置清空」的共享词汇。`IItemStoreSession` 直接就是它的
-  一个具名实例；`ICharacterStoreSession` 与 `IQuestStoreSession` 不是——人物和任务都不像
+  给出载体身份、是否持久、以事务换取会话；`IDomainStoreSession<TPlace,TKey,TValue>` 是
+  「按位置读、按位置写、按位置清空」的共享词汇。`IItemDomainStoreSession` 直接就是它的
+  一个具名实例；`ICharacterDomainStoreSession` 与 `IQuestDomainStoreSession` 不是——人物和任务都不像
   容器那样是一张齐次的表，所以各是若干具名分区的组合：人物那边 `Creatures` 是钉死类型参数的
-  `IStoreSession`，一角色一行的位置分区另给三个成员；任务那边 `Carried`、`Cleared`、
+  `IDomainStoreSession`，一角色一行的位置分区另给三个成员；任务那边 `Carried`、`Cleared`、
   `Tracked` 三个分区都是。两种形状共享同一套词汇，
   类型一个不丢。业务代码经
   `AmbientStoreAccess` 触达：边界内用环境事务，边界外读放行、持久写拒绝、易失写
@@ -375,8 +401,8 @@ PremiumService、CloneTitle 是 CMD，其余当前状态推送是 NOTI；拒绝�
 | `*RuleService` | 规则服务 | 内容 + 传入的 facts + 显式种子 → 值/决定，无状态。**内容源与规则配置的唯一读取点**；由业务服务调用，不由 handler 调用 |
 | `*Projection` | 投影 | 单个 `Build(存储记录) → 领域值`，无依赖、无 I/O |
 | `*Rules`（静态类） | 纯规则 | 纯函数，不碰 I/O。**只由规则服务调用**，是规则服务的下一层而不是它的替代 |
-| `*Repository` / `*Registry` / `*Directory` / `*Persistence` | 持久化与运行时注册表 | 各自后缀已表明 |
-| `*Store` | 存储载体 | 按位置读写，入事务；载体是内存还是数据库对调用方无差别 |
+| `*Repository` / `*Registry` / `*Directory` / `*Persistence` | 持久化与运行时注册表 | 各自后缀已表明。**不得注入命令处理器** |
+| `*DomainStore` | 领域 store | 领域状态的事务结算真源，被要一个会话、由事务收口。是命令处理器可注入的两种形状之一 |
 | `*DefinitionSource` / `*ContentSource` / `*Catalog` | 内容源 | 读归档，确定性、可缓存。**只被规则服务注入** |
 | `*Policy` | 策略 | 规则服务的一种，回答"允不允许"；`IChannelEntryPolicy` 即此类 |
 | `*Query` / `*Reader` | 只读投影/查询 | 只读，不改世界状态 |
@@ -389,10 +415,15 @@ PremiumService、CloneTitle 是 CMD，其余当前状态推送是 NOTI；拒绝�
 唯一的例外是 `IServerConfigService`（`T GetConfig<T>(string key)`）：它是宿主配置访问，
 三类都不属于，**刻意保留原名**。
 
-**本约定的范围是 `Dfo.Server.Abstractions`。** `Application` 内部还有五个自用的 `I*Service`
-（`ISelectedSessionCleanupService`、`ISelectCharacterSessionEntryService`、
-`ISelectCharacterPreparationService`、`ISelectCharacterQuestEntryService`、
-`ISelectCharacterPetEntryService`），它们不跨层暴露，尚未纳入分类法——新增跨层接缝时按上表命名。
+**本约定的范围是 `Dfo.Server.Abstractions`。** 这里曾经记着五个 `Application` 内部自用的
+`I*Service`「不跨层暴露、尚未纳入分类法」。那句话与代码不符：`Protocol` 的命令处理器一直在跨层
+注入它们。它们现在是 `Abstractions` 里带 `DomainService` 后缀的正经接缝
+（`ISelectedSessionCleanupDomainService`、`ISelectCharacterSessionEntryDomainService`、
+`ISelectCharacterPreparationDomainService`、`ISelectCharacterQuestEntryDomainService`、
+`ISelectCharacterPetEntryDomainService`），实现仍留在 `Application`。
+
+*教训*：一句「不跨层」的记载不会阻止跨层，只会让下一个读它的人以为没有跨层。所以命令处理器
+那条注入规则现在由判据守，而不是由这张表守。
 
 设计依据与推导过程见 `Docs/领域结构重构设计.md`。
 
@@ -400,4 +431,7 @@ PremiumService、CloneTitle 是 CMD，其余当前状态推送是 NOTI；拒绝�
 - 逆向出来的 legacy 行为在代码里用 XML doc remarks 说明来源，不凭记忆。
 - 协议结论变更必须同步 `protocol/` 记录与 catalog 状态；推翻旧结论要保留
   "为什么被推翻"（见 `protocol/README.md` 安全边界一节）。
-- 分层问题看项目引用图，别找"分层测试"（不存在）。
+- 分层问题主要看项目引用图。唯一的分层判据是
+  `Server/tests/Dfo.Server.Application.Tests/Commands/CommandHandlerArchitectureTests.cs`，
+  它只覆盖**命令处理器**的构造器注入面；普通消息 handler 的能力清单仍然只写在本文档里，
+  没有判据守着。

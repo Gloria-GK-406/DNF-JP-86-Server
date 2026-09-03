@@ -17,14 +17,14 @@ namespace Dfo.Server.Persistence.Inventory;
 /// fail -- so a use case that changed items and something else would be refused if each joined
 /// separately. This store therefore contributes a facet to the database's participation.
 /// </remarks>
-internal sealed class SqliteItemStore : IItemStore
+internal sealed class SqliteItemDomainStore : IItemDomainStore
 {
     /// <summary>What the database registers this store's session under.</summary>
-    private static readonly object FacetKey = typeof(SqliteItemStoreSession);
+    private static readonly object FacetKey = typeof(SqliteItemDomainStoreSession);
 
     private readonly string connectionString;
 
-    public SqliteItemStore(string databasePath)
+    public SqliteItemDomainStore(string databasePath)
     {
         var fullPath = Path.GetFullPath(databasePath);
         this.connectionString = new SqliteConnectionStringBuilder { DataSource = fullPath }.ToString();
@@ -34,13 +34,13 @@ internal sealed class SqliteItemStore : IItemStore
 
     public bool IsDurable => true;
 
-    public IItemStoreSession SessionIn(IDomainTransaction transaction)
+    public IItemDomainStoreSession SessionIn(IDomainTransaction transaction)
     {
         ArgumentNullException.ThrowIfNull(transaction);
         var database = transaction.Enlist(
             this.StoreIdentity,
             () => new SqliteDatabaseParticipant(this.connectionString));
-        return database.Facet(FacetKey, owner => new SqliteItemStoreSession(owner));
+        return database.Facet(FacetKey, owner => new SqliteItemDomainStoreSession(owner));
     }
 }
 
@@ -58,8 +58,8 @@ internal sealed class SqliteItemStore : IItemStore
 /// being replaced. So the facts are read before the deletes and written back with the insert; see
 /// <see cref="CarriedAvatarsAsync"/>.
 /// </remarks>
-internal sealed class SqliteItemStoreSession(SqliteDatabaseParticipant owner)
-    : IItemStoreSession, ISqliteStoreFacet
+internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant owner)
+    : IItemDomainStoreSession, ISqliteStoreFacet
 {
     /// <summary>What each named slot will hold, or null where it will be left empty.</summary>
     private readonly Dictionary<ContainerId, Dictionary<int, StoredItem?>> staged = [];

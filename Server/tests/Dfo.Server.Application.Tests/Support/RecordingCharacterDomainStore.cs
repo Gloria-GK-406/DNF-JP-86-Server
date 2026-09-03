@@ -12,7 +12,7 @@ namespace Dfo.Server.Application.Tests.Support;
 /// Writes land as soon as they are made rather than when a transaction settles. That keeps these
 /// tests about the service under test; the settling itself is proven against the real store.
 /// </remarks>
-internal sealed class RecordingCharacterStore : ICharacterStore
+internal sealed class RecordingCharacterDomainStore : ICharacterDomainStore
 {
     public Dictionary<(int Character, long Key), StoredCreature> Creatures { get; } = [];
 
@@ -24,16 +24,16 @@ internal sealed class RecordingCharacterStore : ICharacterStore
 
     public bool IsDurable => true;
 
-    public ICharacterStoreSession SessionIn(IDomainTransaction transaction)
+    public ICharacterDomainStoreSession SessionIn(IDomainTransaction transaction)
     {
         ArgumentNullException.ThrowIfNull(transaction);
         return transaction.Enlist(this.StoreIdentity, () => new Session(this));
     }
 
-    private sealed class Session(RecordingCharacterStore store)
-        : ICharacterStoreSession, ITransactionParticipant
+    private sealed class Session(RecordingCharacterDomainStore store)
+        : ICharacterDomainStoreSession, ITransactionParticipant
     {
-        public IStoreSession<OwnedCharacterId, long, StoredCreature> Creatures { get; } =
+        public IDomainStoreSession<OwnedCharacterId, long, StoredCreature> Creatures { get; } =
             new CreatureRows(store);
 
         public bool CommitCanFail => false;
@@ -57,8 +57,8 @@ internal sealed class RecordingCharacterStore : ICharacterStore
         public ValueTask RollbackAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
     }
 
-    private sealed class CreatureRows(RecordingCharacterStore store)
-        : IStoreSession<OwnedCharacterId, long, StoredCreature>
+    private sealed class CreatureRows(RecordingCharacterDomainStore store)
+        : IDomainStoreSession<OwnedCharacterId, long, StoredCreature>
     {
         public ValueTask<IReadOnlyList<StoredCreature>> ReadAllAsync(
             OwnedCharacterId place, CancellationToken cancellationToken) =>

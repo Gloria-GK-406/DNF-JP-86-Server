@@ -196,9 +196,9 @@ public sealed class FinishQuestCommandHandlerTests
                     new QuestContentRuleService(
                         new Quests(definition), new InventedQuestParameters())),
                 new CharacterQuestLogDomainService(
-                    new SqliteQuestStore(this.Path), new AmbientStoreAccess(this.Scope)),
+                    new SqliteQuestDomainStore(this.Path), new AmbientStoreAccess(this.Scope)),
                 new CharacterContainerDomainService(),
-                new CharacterExperienceGrant(this.Characters, new FixedProgression()));
+                new CharacterExperienceDomainService(this.Characters, new FixedProgression()));
 
         /// <summary>Puts the quest in the carried list with its objective already at that value.</summary>
         public async Task CarryAsync(int questId, int triggerValue)

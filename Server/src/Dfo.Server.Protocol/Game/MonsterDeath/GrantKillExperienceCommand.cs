@@ -47,8 +47,8 @@ public sealed record GrantKillExperienceCommand(
 /// </remarks>
 public sealed class GrantKillExperienceCommandHandler(
     IExperienceValuationDomainService valuation,
-    IExperienceBonusService bonuses,
-    ICharacterExperienceGrant grant)
+    IExperienceBonusDomainService bonuses,
+    ICharacterExperienceDomainService grant)
     : ICommandHandler<GrantKillExperienceCommand, KillExperienceResult>
 {
     public async ValueTask<KillExperienceResult> HandleAsync(

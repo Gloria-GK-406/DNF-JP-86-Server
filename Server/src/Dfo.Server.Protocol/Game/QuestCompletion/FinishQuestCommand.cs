@@ -79,7 +79,7 @@ public sealed class FinishQuestCommandHandler(
     IQuestDefinitionDomainService quests,
     ICharacterQuestLogDomainService logs,
     ICharacterContainerDomainService containers,
-    ICharacterExperienceGrant grant)
+    ICharacterExperienceDomainService grant)
     : ICommandHandler<FinishQuestCommand, QuestFinishOutcome>
 {
     public async ValueTask<QuestFinishOutcome> HandleAsync(

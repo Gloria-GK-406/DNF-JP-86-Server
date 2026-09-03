@@ -9,7 +9,7 @@ namespace Dfo.Server.Persistence.Database;
 /// are the same for every such section; only the rows and the statements differ.
 /// </remarks>
 internal abstract class SqliteOwnedCharacterSection<TKey, TValue>(SqliteDatabaseParticipant owner)
-    : IStoreSession<OwnedCharacterId, TKey, TValue>
+    : IDomainStoreSession<OwnedCharacterId, TKey, TValue>
     where TKey : notnull
     where TValue : class
 {

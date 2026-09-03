@@ -27,7 +27,7 @@ public sealed class SelectCharacterProductionStateTests
         var handler = new SelectCharacterPreparationService(
             sources, sources, sources, sources, sources, sources, sources,
             new CharacterEntryPreparationRuleService(sources, sources, sources),
-            sources, sources, sources, sources, sources, sources,
+            sources, sources, sources, sources, sources, sources, sources,
             new FixedTimeProvider(seed.World.PreparedAt));
         var channel = new ChannelEntryIdentity(1, 10011, ChannelEntryKind.General);
 
@@ -52,9 +52,14 @@ public sealed class SelectCharacterProductionStateTests
         ICharacterPvpSkillProfileRepository, IDungeonPersistentEffectRecoveryRepository,
         IExpertSkillContractDefinitionSource, IExpertSkillContractReconciliationRepository,
         ICreatureEquipmentLifetimeSource, IEntryPlacementRuleService,
-        ISessionAdjacentEntryDomainService, IActiveCharacterDomainService
+        ISessionAdjacentEntryDomainService, IActiveCharacterDomainService,
+        ISelectedSessionPositionPersistence
     {
         public bool Published { get; private set; }
+
+        public ValueTask PersistAsync(
+            AccountId accountId, CharacterId characterId, CharacterPositionState position,
+            CancellationToken cancellationToken) => ValueTask.CompletedTask;
 
         public ICharacter Get(CharacterId characterId) =>
             throw new NotSupportedException("This stand-in answers no questions about a character.");
@@ -138,10 +143,8 @@ public sealed class SelectCharacterProductionStateTests
             ValueTask.FromResult(true);
         public ValueTask<SessionAdjacentEntryState> LoadAsync(SessionAdjacentSubject subject, CancellationToken ct) =>
             ValueTask.FromResult(SessionAdjacentEntryState.Empty);
-        public void Publish(AccountId id, ActiveCharacterState character) => Published = true;
-        public void Publish(SelectedSessionIdentity session, ActiveCharacterState character) => Published = true;
+        public void Publish(SelectedSessionIdentity session) => Published = true;
         public bool ClearExact(SelectedSessionIdentity session) => Published = false;
-        public ActiveCharacterState GetRequired(AccountId id) => seed.Character;
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider

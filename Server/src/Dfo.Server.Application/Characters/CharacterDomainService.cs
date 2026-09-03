@@ -12,7 +12,7 @@ internal sealed class CharacterDomainService(
     Func<ICharacterRepository> characterRepository,
     ICharacterCreationRuleService creationRules,
     Func<CharacterId, ICharacter> playingCharacter)
-    : ICharacterDomainService, IEquipmentEligibilityCharacterReader
+    : ICharacterDomainService
 {
     /// <remarks>
     /// Built rather than looked up. A character holds no state, so there is nothing a registry
@@ -206,20 +206,4 @@ internal sealed class CharacterDomainService(
         _ => CharacterNameStatus.Malformed,
     };
 
-    public async ValueTask<EquipmentEligibilityCharacterFacts> GetAsync(
-        AccountId accountId,
-        CharacterId characterId,
-        CancellationToken cancellationToken)
-    {
-        var roster = await GetAccountRosterAsync(accountId, cancellationToken).ConfigureAwait(false);
-        var character = roster.Characters.FirstOrDefault(item => item.CharacterId == characterId)
-            ?? throw new KeyNotFoundException(
-                $"Account '{accountId}' has no character '{characterId}'.");
-
-        return new EquipmentEligibilityCharacterFacts(
-            character.CharacterId,
-            character.Level,
-            character.Job,
-            character.GrowType);
-    }
 }

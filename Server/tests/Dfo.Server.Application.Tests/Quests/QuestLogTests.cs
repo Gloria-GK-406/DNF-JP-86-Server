@@ -590,7 +590,7 @@ public sealed class QuestLogTests
         private Fixture(string path)
         {
             this.Path = path;
-            this.Store = new SqliteQuestStore(path);
+            this.Store = new SqliteQuestDomainStore(path);
             this.Transactions = new SwappableTransactionAccessor();
             this.Logs = new CharacterQuestLogDomainService(
                 this.Store, new AmbientStoreAccess(this.Transactions));
@@ -598,7 +598,7 @@ public sealed class QuestLogTests
 
         public string Path { get; }
 
-        public SqliteQuestStore Store { get; }
+        public SqliteQuestDomainStore Store { get; }
 
         public SwappableTransactionAccessor Transactions { get; }
 

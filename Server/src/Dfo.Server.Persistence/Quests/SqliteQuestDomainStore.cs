@@ -17,14 +17,14 @@ namespace Dfo.Server.Persistence.Quests;
 /// than two -- which is the only way both can be settled together, since a transaction admits one
 /// participant whose commit can still fail.
 /// </remarks>
-internal sealed class SqliteQuestStore : IQuestStore
+internal sealed class SqliteQuestDomainStore : IQuestDomainStore
 {
     /// <summary>What the database registers this store's session under.</summary>
-    private static readonly object FacetKey = typeof(SqliteQuestStoreSession);
+    private static readonly object FacetKey = typeof(SqliteQuestDomainStoreSession);
 
     private readonly string connectionString;
 
-    public SqliteQuestStore(string databasePath)
+    public SqliteQuestDomainStore(string databasePath)
     {
         var fullPath = Path.GetFullPath(databasePath);
         this.connectionString = new SqliteConnectionStringBuilder { DataSource = fullPath }.ToString();
@@ -34,13 +34,13 @@ internal sealed class SqliteQuestStore : IQuestStore
 
     public bool IsDurable => true;
 
-    public IQuestStoreSession SessionIn(IDomainTransaction transaction)
+    public IQuestDomainStoreSession SessionIn(IDomainTransaction transaction)
     {
         ArgumentNullException.ThrowIfNull(transaction);
         var database = transaction.Enlist(
             this.StoreIdentity,
             () => new SqliteDatabaseParticipant(this.connectionString));
-        return database.Facet(FacetKey, owner => new SqliteQuestStoreSession(owner));
+        return database.Facet(FacetKey, owner => new SqliteQuestDomainStoreSession(owner));
     }
 }
 
@@ -53,7 +53,7 @@ internal sealed class SqliteQuestStore : IQuestStore
 /// while flushing, before any of that character's rows are touched. That is the store refusing an
 /// address it cannot place, not a rule about quests: the account is half of the address.
 /// </remarks>
-internal sealed class SqliteQuestStoreSession : IQuestStoreSession, ISqliteStoreFacet
+internal sealed class SqliteQuestDomainStoreSession : IQuestDomainStoreSession, ISqliteStoreFacet
 {
     private readonly SqliteDatabaseParticipant owner;
 
@@ -63,7 +63,7 @@ internal sealed class SqliteQuestStoreSession : IQuestStoreSession, ISqliteStore
 
     private readonly TrackedQuestSection tracked;
 
-    public SqliteQuestStoreSession(SqliteDatabaseParticipant owner)
+    public SqliteQuestDomainStoreSession(SqliteDatabaseParticipant owner)
     {
         this.owner = owner;
         this.carried = new CarriedQuestSection(owner);
@@ -71,11 +71,11 @@ internal sealed class SqliteQuestStoreSession : IQuestStoreSession, ISqliteStore
         this.tracked = new TrackedQuestSection(owner);
     }
 
-    public IStoreSession<OwnedCharacterId, short, StoredActiveQuest> Carried => this.carried;
+    public IDomainStoreSession<OwnedCharacterId, short, StoredActiveQuest> Carried => this.carried;
 
-    public IStoreSession<OwnedCharacterId, int, StoredClearedQuest> Cleared => this.cleared;
+    public IDomainStoreSession<OwnedCharacterId, int, StoredClearedQuest> Cleared => this.cleared;
 
-    public IStoreSession<OwnedCharacterId, short, StoredTrackedQuest> Tracked => this.tracked;
+    public IDomainStoreSession<OwnedCharacterId, short, StoredTrackedQuest> Tracked => this.tracked;
 
     public bool HasStagedWork =>
         this.carried.HasStagedWork || this.cleared.HasStagedWork || this.tracked.HasStagedWork;

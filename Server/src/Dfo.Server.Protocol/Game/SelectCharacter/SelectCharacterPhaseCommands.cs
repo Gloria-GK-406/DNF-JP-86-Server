@@ -3,7 +3,6 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
-using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Accounts;
@@ -31,11 +30,10 @@ public sealed record PreparedSelectedCharacterSession(
 
 public sealed class PrepareSelectedCharacterSessionCommandHandler(
     IOnlineUserQueryDomainService onlineUsers,
-    ISelectCharacterPreparationService preparation,
-    ISelectedSessionDirectory selectedSessions,
-    ISelectedSessionCleanupService cleanup,
-    ISelectCharacterEntryInventoryDomainService inventoryEntry,
-    ISelectedSessionPositionPersistence positions)
+    ISelectCharacterPreparationDomainService preparation,
+    ISelectCharacterSessionEntryDomainService sessionEntry,
+    ISelectedSessionCleanupDomainService cleanup,
+    ISelectCharacterEntryInventoryDomainService inventoryEntry)
     : ICommandHandler<PrepareSelectedCharacterSessionCommand, PreparedSelectedCharacterSession>
 {
     public async ValueTask<PreparedSelectedCharacterSession> HandleAsync(
@@ -52,7 +50,7 @@ public sealed class PrepareSelectedCharacterSessionCommandHandler(
         // represented by the game protocol is not an accepted session.
         _ = SelectedSessionIdentity.ToWireUserId(selected.Identity.CharacterId);
         var cleanupNotifications = new List<SelectedSessionCleanupNotificationPlan>();
-        var previous = selectedSessions.Find(command.AccountId);
+        var previous = sessionEntry.Find(command.AccountId);
         if (previous is not null)
             await inventoryEntry.SaveExistingLeaseAsync(previous, cancellationToken).ConfigureAwait(false);
         if (previous?.ConnectionId == command.ConnectionId)
@@ -66,7 +64,7 @@ public sealed class PrepareSelectedCharacterSessionCommandHandler(
             {
                 if (error is SelectedSessionCleanupFailure cleanupFailure)
                     cleanupNotifications.Add(cleanupFailure.NotificationPlan);
-                _ = selectedSessions.TryRemoveExact(previous);
+                _ = sessionEntry.ReleaseExact(previous);
                 throw SelectCharacterPhaseFailure.Create(
                     error, [command.ConnectionId], cleanupNotifications);
             }
@@ -90,7 +88,7 @@ public sealed class PrepareSelectedCharacterSessionCommandHandler(
         var pendingCloses = new List<NetworkConnectionId>();
         try
         {
-            var displaced = selectedSessions.RegisterReplacing(session);
+            var displaced = sessionEntry.RegisterReplacing(session);
             if (displaced is not null)
             {
                 pendingCloses.Add(displaced.ConnectionId);
@@ -101,30 +99,17 @@ public sealed class PrepareSelectedCharacterSessionCommandHandler(
                 }
                 finally
                 {
-                    _ = selectedSessions.TryRemoveExact(displaced);
+                    _ = sessionEntry.ReleaseExact(displaced);
                 }
             }
 
             var prepared = await preparation.PrepareAsync(
                 selected, command.AccountId, command.Channel, cancellationToken)
                 .ConfigureAwait(false);
-            var spawn = prepared.World.Channel.Spawn;
-            var resolvedPosition = new CharacterPositionState(
-                spawn.TownId, spawn.AreaId, spawn.X, spawn.Y, spawn.Direction);
-            prepared = prepared with
-            {
-                Character = prepared.Character with { Position = resolvedPosition },
-            };
+            prepared = await preparation.PlaceAtSpawnAsync(session, prepared, cancellationToken)
+                .ConfigureAwait(false);
             prepared = await inventoryEntry.PrepareLeaseAsync(session, prepared, cancellationToken)
                 .ConfigureAwait(false);
-            if (prepared.World.Channel.PersistsPosition)
-            {
-                await positions.PersistAsync(
-                    command.AccountId,
-                    session.CharacterId,
-                    resolvedPosition,
-                    cancellationToken).ConfigureAwait(false);
-            }
 
             return new PreparedSelectedCharacterSession(
                 session, prepared, cleanupNotifications, pendingCloses);
@@ -151,7 +136,7 @@ public sealed class PrepareSelectedCharacterSessionCommandHandler(
             }
             finally
             {
-                _ = selectedSessions.TryRemoveExact(session);
+                _ = sessionEntry.ReleaseExact(session);
             }
 
             pendingCloses.Add(session.ConnectionId);
@@ -204,7 +189,7 @@ public sealed record PublishedSelectedCharacterSession(
 
 public sealed class PublishSelectedCharacterSessionCommandHandler(
     IActiveCharacterDomainService activeCharacters,
-    ISelectCharacterSessionEntryService sessionEntry)
+    ISelectCharacterSessionEntryDomainService sessionEntry)
     : ICommandHandler<PublishSelectedCharacterSessionCommand, PublishedSelectedCharacterSession>
 {
     public ValueTask<PublishedSelectedCharacterSession> HandleAsync(
@@ -212,7 +197,7 @@ public sealed class PublishSelectedCharacterSessionCommandHandler(
         PublishSelectedCharacterSessionCommand command,
         CancellationToken cancellationToken)
     {
-        activeCharacters.Publish(command.Session, command.State.Character);
+        activeCharacters.Publish(command.Session);
         sessionEntry.Publish(command.Session, command.State);
         return ValueTask.FromResult(
             new PublishedSelectedCharacterSession(sessionEntry.PlanPvp(command.Session, command.State)));
@@ -231,7 +216,7 @@ public sealed record SelectedCharacterPvpPublication(
     IReadOnlyList<PvpParticipantPublicationTarget> Targets);
 
 public sealed class MarkSelectedCharacterPvpReadyCommandHandler(
-    ISelectCharacterSessionEntryService sessionEntry)
+    ISelectCharacterSessionEntryDomainService sessionEntry)
     : ICommandHandler<MarkSelectedCharacterPvpReadyCommand, SelectedCharacterPvpPublication>
 {
     public ValueTask<SelectedCharacterPvpPublication> HandleAsync(
@@ -257,8 +242,8 @@ public sealed record SynchronizedSelectedCharacterQuests(
     SelectCharacterQuestSynchronization? Change);
 
 public sealed class SynchronizeSelectedCharacterQuestsCommandHandler(
-    ISelectCharacterQuestEntryService questEntry,
-    ISelectCharacterSessionEntryService sessionEntry)
+    ISelectCharacterQuestEntryDomainService questEntry,
+    ISelectCharacterSessionEntryDomainService sessionEntry)
     : ICommandHandler<SynchronizeSelectedCharacterQuestsCommand, SynchronizedSelectedCharacterQuests>
 {
     public async ValueTask<SynchronizedSelectedCharacterQuests> HandleAsync(
@@ -285,8 +270,8 @@ public sealed record ReviveSelectedCharacterPetCommand(
 public sealed record RevivedSelectedCharacterPet(SelectCharacterPetRevival? Change);
 
 public sealed class ReviveSelectedCharacterPetCommandHandler(
-    ISelectCharacterPetEntryService petEntry,
-    ISelectCharacterSessionEntryService sessionEntry)
+    ISelectCharacterPetEntryDomainService petEntry,
+    ISelectCharacterSessionEntryDomainService sessionEntry)
     : ICommandHandler<ReviveSelectedCharacterPetCommand, RevivedSelectedCharacterPet>
 {
     public async ValueTask<RevivedSelectedCharacterPet> HandleAsync(
@@ -314,8 +299,8 @@ public sealed record CompensatedSelectedCharacterSession(
     SelectedSessionCleanupNotificationPlan Notifications);
 
 public sealed class CompensateSelectedCharacterSessionCommandHandler(
-    ISelectedSessionCleanupService cleanup,
-    ISelectedSessionDirectory selectedSessions)
+    ISelectedSessionCleanupDomainService cleanup,
+    ISelectCharacterSessionEntryDomainService sessionEntry)
     : ICommandHandler<CompensateSelectedCharacterSessionCommand, CompensatedSelectedCharacterSession>
 {
     public async ValueTask<CompensatedSelectedCharacterSession> HandleAsync(
@@ -332,7 +317,7 @@ public sealed class CompensateSelectedCharacterSessionCommandHandler(
         }
         finally
         {
-            _ = selectedSessions.TryRemoveExact(command.Session);
+            _ = sessionEntry.ReleaseExact(command.Session);
         }
 
         return new CompensatedSelectedCharacterSession(

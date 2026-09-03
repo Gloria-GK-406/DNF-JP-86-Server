@@ -20,7 +20,7 @@ namespace Dfo.Server.Persistence.Tests.Inventory;
 /// if one of the five could not be said this way, that was the point at which to stop rather than
 /// to invent an identity for items to be addressed by.
 /// </remarks>
-public sealed class SqliteItemStoreTests
+public sealed class SqliteItemDomainStoreTests
 {
     private static readonly ContainerId Main =
         ContainerId.ForCharacter(new CharacterId(60), InventoryContainerType.Main);
@@ -388,7 +388,7 @@ public sealed class SqliteItemStoreTests
                 await InsertItemAsync(connection, slot, core);
         }
 
-        return new StoreUnderTest(path, new SqliteItemStore(path));
+        return new StoreUnderTest(path, new SqliteItemDomainStore(path));
     }
 
     private static async Task SeedAsync(
@@ -508,7 +508,7 @@ public sealed class SqliteItemStoreTests
         return connection;
     }
 
-    private sealed record StoreUnderTest(string Path, SqliteItemStore Value) : IAsyncDisposable
+    private sealed record StoreUnderTest(string Path, SqliteItemDomainStore Value) : IAsyncDisposable
     {
         public ValueTask DisposeAsync()
         {

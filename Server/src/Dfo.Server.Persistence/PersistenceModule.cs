@@ -155,14 +155,14 @@ public sealed class PersistenceModule : IServerModule
         // The one store whose commit can still fail, and so the one a use case may hold. It is
         // registered as the item store without qualification because it is the one that keeps
         // things; the store that does not is asked for by its own name.
-        services.TryAddSingleton(_ => new SqliteItemStore(databasePath));
+        services.TryAddSingleton(_ => new SqliteItemDomainStore(databasePath));
         // The character's own rows, kept in the same database and therefore settled by the same
         // participant as the items it owns.
-        services.TryAddSingleton<ICharacterStore>(_ => new SqliteCharacterStore(databasePath));
-        services.TryAddSingleton<IItemStore>(
-            provider => provider.GetRequiredService<SqliteItemStore>());
+        services.TryAddSingleton<ICharacterDomainStore>(_ => new SqliteCharacterDomainStore(databasePath));
+        services.TryAddSingleton<IItemDomainStore>(
+            provider => provider.GetRequiredService<SqliteItemDomainStore>());
         // The character's quests, kept in the same database and therefore settled by the same
         // participant as the character and the items it owns.
-        services.TryAddSingleton<IQuestStore>(_ => new SqliteQuestStore(databasePath));
+        services.TryAddSingleton<IQuestDomainStore>(_ => new SqliteQuestDomainStore(databasePath));
     }
 }

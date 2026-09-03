@@ -1,23 +1,144 @@
+using System.Reflection;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Protocol.Channel.Connect;
 
 namespace Dfo.Server.Application.Tests.Commands;
 
+/// <summary>
+/// What a command handler is allowed to be given.
+/// </summary>
+/// <remarks>
+/// A command handler drives one business action, and everything it needs to do that reaches it as
+/// a domain shape: a domain service, or a domain store. Instances and snapshots are not on this
+/// list because they are not injected -- a domain service hands out the instance, and a snapshot
+/// arrives as a field of the command itself.
+/// <para>
+/// The rule is decided from the type rather than from a list of approved type names. A list would
+/// have to be maintained by hand, and a rule nobody maintains is the same as no rule: this
+/// repository already has one such list, in <c>AGENTS.md</c>, which drifted until eight message
+/// handlers broke it while every check stayed green.
+/// </para>
+/// </remarks>
 public sealed class CommandHandlerArchitectureTests
 {
+    /// <summary>
+    /// Types that are not domain shapes and are still allowed, each with the reason it is allowed.
+    /// </summary>
+    /// <remarks>
+    /// This is the one hand-kept list, and it is meant to stay short. An entry belongs here only
+    /// when it carries no domain meaning at all: an ambient capability of the platform rather than
+    /// something this game knows about.
+    /// </remarks>
+    private static readonly IReadOnlyDictionary<Type, string> Exempt =
+        new Dictionary<Type, string>
+        {
+            [typeof(TimeProvider)] =
+                "环境时钟。它不是这个游戏知道的任何东西，注入它是为了让时间在测试里可控。",
+        };
+
+    private static readonly Assembly Abstractions = typeof(ICharacterDomainService).Assembly;
+
+    /// <summary>
+    /// The sweep actually finds handlers.
+    /// </summary>
+    /// <remarks>
+    /// Without this, a reflection query that stopped matching -- a renamed contract, a moved
+    /// assembly -- would turn every check below into an assertion about an empty sequence, and an
+    /// empty sequence has no violations in it.
+    /// </remarks>
+    [Fact]
+    public void TheSweepFindsTheCommandHandlers() =>
+        Assert.NotEmpty(ProductionCommandHandlers());
+
+    [Fact]
+    public void ProductionCommandHandlers_OnlyTakeDomainShapes()
+    {
+        var violations = ProductionCommandHandlers()
+            .SelectMany(handler => handler.GetConstructors()
+                .SelectMany(constructor => constructor.GetParameters())
+                .Select(parameter => (Handler: handler, Parameter: parameter)))
+            .Where(candidate => !IsPermitted(candidate.Parameter.ParameterType))
+            .Select(candidate =>
+                $"{candidate.Handler.Name}({candidate.Parameter.ParameterType.Name} "
+                    + $"{candidate.Parameter.Name})")
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Empty(violations);
+    }
+
+    /// <summary>
+    /// A command handler that dispatched another command would hide half a use case behind the
+    /// first one, so the pipeline could neither order nor report it.
+    /// </summary>
+    /// <remarks>
+    /// The whitelist above already refuses <see cref="ICommandBus"/>, because it is neither a
+    /// domain service nor a domain store. This stays as its own check because it is its own rule:
+    /// it would still hold if the vocabulary changed.
+    /// </remarks>
     [Fact]
     public void ProductionCommandHandlers_DoNotDependOnCommandBus()
     {
-        var violations = typeof(ChannelConnectHandler).Assembly
-            .GetTypes()
-            .Where(type => !type.IsAbstract && type.GetInterfaces().Any(contract =>
-                contract.IsGenericType
-                && contract.GetGenericTypeDefinition() == typeof(ICommandHandler<,>)))
+        var violations = ProductionCommandHandlers()
             .Where(type => type.GetConstructors().Any(constructor =>
-                constructor.GetParameters().Any(parameter => parameter.ParameterType == typeof(ICommandBus))))
+                constructor.GetParameters().Any(parameter =>
+                    parameter.ParameterType == typeof(ICommandBus))))
             .Select(type => type.FullName)
             .ToArray();
 
         Assert.Empty(violations);
     }
+
+    /// <summary>
+    /// The rule refuses what it is meant to refuse.
+    /// </summary>
+    /// <remarks>
+    /// Without this, a rule that accepted everything would pass the check above just as quietly as
+    /// a repository with no violations. The types below stand for the four ways the injection
+    /// surface has actually gone wrong here: reaching a single table, reaching a storage seam,
+    /// reaching a container, and dispatching another command.
+    /// </remarks>
+    [Theory]
+    [InlineData(typeof(Dfo.Server.Abstractions.Persistence.ICharacterTable))]
+    [InlineData(typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionPositionPersistence))]
+    [InlineData(typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionDirectory))]
+    [InlineData(typeof(ICommandBus))]
+    [InlineData(typeof(string))]
+    public void ATypeOutsideTheVocabularyIsRefused(Type type) => Assert.False(IsPermitted(type));
+
+    [Theory]
+    [InlineData(typeof(ICharacterDomainService))]
+    [InlineData(typeof(Dfo.Server.Abstractions.Inventory.IItemDomainStore))]
+    [InlineData(typeof(TimeProvider))]
+    public void ADomainShapeOrANamedExemptionIsPermitted(Type type) => Assert.True(IsPermitted(type));
+
+    /// <summary>Every exemption states why it is one.</summary>
+    [Fact]
+    public void EveryExemptionCarriesItsReason() =>
+        Assert.All(Exempt, entry => Assert.False(string.IsNullOrWhiteSpace(entry.Value)));
+
+    private static IEnumerable<Type> ProductionCommandHandlers() =>
+        typeof(ChannelConnectHandler).Assembly
+            .GetTypes()
+            .Where(type => !type.IsAbstract && type.GetInterfaces().Any(contract =>
+                contract.IsGenericType
+                && contract.GetGenericTypeDefinition() == typeof(ICommandHandler<,>)));
+
+    private static bool IsPermitted(Type type) => Exempt.ContainsKey(type) || IsDomainShape(type);
+
+    /// <summary>
+    /// A domain shape is an interface the seam layer publishes whose name says which of the two it
+    /// is.
+    /// </summary>
+    /// <remarks>
+    /// Both halves matter. The suffix alone would let a type inside <c>Application</c> or
+    /// <c>Protocol</c> claim to be a seam by naming itself one; the assembly alone would admit
+    /// every table gateway and registry the seam layer also declares.
+    /// </remarks>
+    private static bool IsDomainShape(Type type) =>
+        type.IsInterface
+        && type.Assembly == Abstractions
+        && (type.Name.EndsWith("DomainService", StringComparison.Ordinal)
+            || type.Name.EndsWith("DomainStore", StringComparison.Ordinal));
 }

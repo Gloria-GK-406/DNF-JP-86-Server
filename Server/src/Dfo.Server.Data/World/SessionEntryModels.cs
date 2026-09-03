@@ -1,4 +1,5 @@
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Networking;
 
 namespace Dfo.Server.Data.World;
 
@@ -103,4 +104,27 @@ public sealed record SessionAdjacentEntryState(
         TownPresenceEntryState.Empty,
         ExpertStoreEntryState.None,
         PvpLobby: null);
+}
+
+public enum SelectedSessionCleanupNoticeKind
+{
+    ExpertStoreClosed = 1,
+    TownDeparture = 2,
+}
+
+public sealed record SelectedSessionCleanupNotice(
+    SelectedSessionCleanupNoticeKind Kind,
+    ushort UserId);
+
+public sealed record SelectedSessionCleanupNotificationTarget(
+    NetworkConnectionId ConnectionId,
+    IReadOnlyList<SelectedSessionCleanupNotice> OrderedNotices);
+
+public sealed record SelectedSessionCleanupNotificationPlan(
+    NetworkConnectionId OwnerConnectionId,
+    IReadOnlyList<SelectedSessionCleanupNotice> RequiredOwnerNotices,
+    IReadOnlyList<SelectedSessionCleanupNotificationTarget> BestEffortTargets)
+{
+    public static SelectedSessionCleanupNotificationPlan Empty(SelectedSessionIdentity session) =>
+        new(session.ConnectionId, [], []);
 }

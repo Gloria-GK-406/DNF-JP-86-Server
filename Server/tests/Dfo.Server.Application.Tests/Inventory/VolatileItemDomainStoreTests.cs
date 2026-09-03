@@ -18,7 +18,7 @@ namespace Dfo.Server.Application.Tests.Inventory;
 /// Beyond the five, this fixes what the memory store owes the coordinator: everything is worked out
 /// while preparing, so committing has nothing in it that could fail.
 /// </remarks>
-public sealed class VolatileItemStoreTests
+public sealed class VolatileItemDomainStoreTests
 {
     private static readonly ContainerId Run =
         ContainerId.ForCharacter(new CharacterId(60), InventoryContainerType.Main);
@@ -29,7 +29,7 @@ public sealed class VolatileItemStoreTests
     [Fact]
     public async Task Relocate_IsExpressedAsAClearAndAWrite()
     {
-        var store = new VolatileItemStore();
+        var store = new VolatileItemDomainStore();
         var transaction = new StubTransaction();
         await SeedAsync(store, (65, Potion(5)));
         var session = store.SessionIn(transaction);
@@ -45,7 +45,7 @@ public sealed class VolatileItemStoreTests
     [Fact]
     public async Task Split_IsExpressedAsTwoWrites()
     {
-        var store = new VolatileItemStore();
+        var store = new VolatileItemDomainStore();
         var transaction = new StubTransaction();
         await SeedAsync(store, (65, Potion(5)));
         var session = store.SessionIn(transaction);
@@ -61,7 +61,7 @@ public sealed class VolatileItemStoreTests
     [Fact]
     public async Task Swap_IsExpressedAsTwoWrites()
     {
-        var store = new VolatileItemStore();
+        var store = new VolatileItemDomainStore();
         var transaction = new StubTransaction();
         await SeedAsync(store, (65, Potion(5)), (66, Stone(1)));
         var session = store.SessionIn(transaction);
@@ -78,7 +78,7 @@ public sealed class VolatileItemStoreTests
     [Fact]
     public async Task Merge_IsExpressedAsAWriteAndAClear()
     {
-        var store = new VolatileItemStore();
+        var store = new VolatileItemDomainStore();
         var transaction = new StubTransaction();
         await SeedAsync(store, (65, Potion(5)), (66, Potion(2)));
         var session = store.SessionIn(transaction);
@@ -95,7 +95,7 @@ public sealed class VolatileItemStoreTests
     [Fact]
     public async Task PartialConsume_IsExpressedAsAWrite()
     {
-        var store = new VolatileItemStore();
+        var store = new VolatileItemDomainStore();
         var transaction = new StubTransaction();
         await SeedAsync(store, (65, Potion(5)));
         var session = store.SessionIn(transaction);
@@ -110,7 +110,7 @@ public sealed class VolatileItemStoreTests
     [Fact]
     public async Task ConsumingTheLastOfAPile_IsExpressedAsAClear()
     {
-        var store = new VolatileItemStore();
+        var store = new VolatileItemDomainStore();
         var transaction = new StubTransaction();
         await SeedAsync(store, (65, Potion(1)));
         var session = store.SessionIn(transaction);
@@ -133,7 +133,7 @@ public sealed class VolatileItemStoreTests
     [Fact]
     public async Task AWholeRunOfOperationsNeedsNoIdentityForAnyItem()
     {
-        var store = new VolatileItemStore();
+        var store = new VolatileItemDomainStore();
         var transaction = new StubTransaction();
         var session = store.SessionIn(transaction);
 
@@ -152,7 +152,7 @@ public sealed class VolatileItemStoreTests
     [Fact]
     public async Task Read_SeesThisSessionsOwnUncommittedWrites()
     {
-        var store = new VolatileItemStore();
+        var store = new VolatileItemDomainStore();
         var transaction = new StubTransaction();
         await SeedAsync(store, (65, Potion(5)));
         var session = store.SessionIn(transaction);
@@ -171,7 +171,7 @@ public sealed class VolatileItemStoreTests
     [Fact]
     public async Task Rollback_LeavesTheStoredItemsUntouched()
     {
-        var store = new VolatileItemStore();
+        var store = new VolatileItemDomainStore();
         var transaction = new StubTransaction();
         await SeedAsync(store, (65, Potion(5)));
         var session = store.SessionIn(transaction);
@@ -197,7 +197,7 @@ public sealed class VolatileItemStoreTests
     [Fact]
     public async Task Commit_RefusesToStandInForAPrepareThatNeverRan()
     {
-        var store = new VolatileItemStore();
+        var store = new VolatileItemDomainStore();
         var transaction = new StubTransaction();
         await SeedAsync(store, (65, Potion(5)));
         var session = store.SessionIn(transaction);
@@ -219,7 +219,7 @@ public sealed class VolatileItemStoreTests
     [Fact]
     public async Task TwoContainersExchangeTheirContentsInOneSettlement()
     {
-        var store = new VolatileItemStore();
+        var store = new VolatileItemDomainStore();
         await SeedAsync(store, (65, Potion(5)));
         await SeedAsync(store, Reward, (1, Stone(1)));
         var transaction = new StubTransaction();
@@ -240,7 +240,7 @@ public sealed class VolatileItemStoreTests
     [Fact]
     public async Task ClearingASlotThisSessionJustWroteLeavesItEmpty()
     {
-        var store = new VolatileItemStore();
+        var store = new VolatileItemDomainStore();
         await SeedAsync(store, (65, Potion(5)));
         var transaction = new StubTransaction();
         var session = store.SessionIn(transaction);
@@ -256,7 +256,7 @@ public sealed class VolatileItemStoreTests
     [Fact]
     public void ANegativeSlotIsRefused()
     {
-        var session = new VolatileItemStore().SessionIn(new StubTransaction());
+        var session = new VolatileItemDomainStore().SessionIn(new StubTransaction());
 
         Assert.Throws<ArgumentOutOfRangeException>(
             () => session.Write(Run, new StoredItem(-1, Potion(1))));
@@ -266,13 +266,13 @@ public sealed class VolatileItemStoreTests
     [Fact]
     public void Store_IsNotDurable()
     {
-        Assert.False(new VolatileItemStore().IsDurable);
+        Assert.False(new VolatileItemDomainStore().IsDurable);
     }
 
     [Fact]
     public void Session_TakesPartOnceHoweverOftenItsStoreIsAsked()
     {
-        var store = new VolatileItemStore();
+        var store = new VolatileItemDomainStore();
         var transaction = new StubTransaction();
 
         var first = store.SessionIn(transaction);
@@ -300,11 +300,11 @@ public sealed class VolatileItemStoreTests
 
     /// <summary>Puts items in the store the only way there is: through a settled transaction.</summary>
     private static Task SeedAsync(
-        VolatileItemStore store, params (int Slot, InventoryItemCoreState Core)[] seeded) =>
+        VolatileItemDomainStore store, params (int Slot, InventoryItemCoreState Core)[] seeded) =>
         SeedAsync(store, Run, seeded);
 
     private static async Task SeedAsync(
-        VolatileItemStore store,
+        VolatileItemDomainStore store,
         ContainerId containerId,
         params (int Slot, InventoryItemCoreState Core)[] seeded)
     {
@@ -319,7 +319,7 @@ public sealed class VolatileItemStoreTests
     }
 
     private static async Task<List<(int Slot, int ItemId, int Count)>> ReadAsync(
-        VolatileItemStore store, ContainerId? containerId = null)
+        VolatileItemDomainStore store, ContainerId? containerId = null)
     {
         var session = store.SessionIn(new StubTransaction());
         var items = await session.ReadAllAsync(containerId ?? Run, CancellationToken.None);

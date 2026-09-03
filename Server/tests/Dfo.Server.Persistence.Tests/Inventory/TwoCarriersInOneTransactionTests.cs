@@ -77,8 +77,8 @@ public sealed class TwoCarriersInOneTransactionTests
         private Fixture(string path, string secondPath)
         {
             this.Path = path;
-            this.Durable = new SqliteItemStore(path);
-            this.SecondDurable = new SqliteItemStore(secondPath);
+            this.Durable = new SqliteItemDomainStore(path);
+            this.SecondDurable = new SqliteItemDomainStore(secondPath);
             this.SecondPath = secondPath;
         }
 
@@ -86,11 +86,11 @@ public sealed class TwoCarriersInOneTransactionTests
 
         public string SecondPath { get; }
 
-        public SqliteItemStore Durable { get; }
+        public SqliteItemDomainStore Durable { get; }
 
-        public SqliteItemStore SecondDurable { get; }
+        public SqliteItemDomainStore SecondDurable { get; }
 
-        public VolatileItemStore Volatile { get; } = new();
+        public VolatileItemDomainStore Volatile { get; } = new();
 
         public static async Task<Fixture> CreateAsync()
         {

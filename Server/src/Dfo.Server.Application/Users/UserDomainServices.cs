@@ -64,14 +64,7 @@ internal sealed class OnlineUserDomainService(OnlineStateStore state) : IOnlineU
 internal sealed class ActiveCharacterDomainService(OnlineStateStore state)
     : IActiveCharacterDomainService
 {
-    public void Publish(AccountId accountId, ActiveCharacterState character) =>
-        state.Publish(accountId, character);
-
-    public void Publish(SelectedSessionIdentity session, ActiveCharacterState character) =>
-        state.Publish(session, character);
+    public void Publish(SelectedSessionIdentity session) => state.Publish(session);
 
     public bool ClearExact(SelectedSessionIdentity session) => state.ClearExact(session);
-
-    public ActiveCharacterState GetRequired(AccountId accountId) =>
-        state.GetRequiredCharacter(accountId);
 }

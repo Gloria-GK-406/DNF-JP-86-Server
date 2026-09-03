@@ -21,7 +21,7 @@ namespace Dfo.Server.Abstractions.Quests;
 /// <b>Neither reader sees the other's open use case</b>, and it is worth being exact about why
 /// that costs nothing rather than trusting it. A use case that wrote here and then asked the
 /// tables would be shown the state before its own writes -- which is the shape the item store had
-/// to answer with <see cref="Inventory.IItemStoreSession.ApplyDecidedWritesAsync"/>. No use case
+/// to answer with <see cref="Inventory.IItemDomainStoreSession.ApplyDecidedWritesAsync"/>. No use case
 /// does that with quests: entry builds its snapshot first and then corrects the snapshot in memory
 /// alongside the rows, and every other quest use case reads and writes only here. The day one does
 /// read back through the tables inside its own boundary, it needs the same operation the items
@@ -35,26 +35,26 @@ namespace Dfo.Server.Abstractions.Quests;
 /// and there is no evidence which order the client wants. Whoever implements quest tracking
 /// settles it; see <see cref="IQuestLog.TrackAsync"/>.
 /// </remarks>
-public interface IQuestStore : IDomainStore<IQuestStoreSession>;
+public interface IQuestDomainStore : IDomainStore<IQuestDomainStoreSession>;
 
 /// <summary>One use case's reads and writes against one store of quests.</summary>
 /// <remarks>
 /// Three sections, because a character's quest state is three unrelated sets of rows rather than
 /// one addressing scheme: what is being carried, what has been finished, and what the player asked
-/// to be told about. Each speaks the shared <see cref="IStoreSession{TPlace,TKey,TValue}"/>
+/// to be told about. Each speaks the shared <see cref="IDomainStoreSession{TPlace,TKey,TValue}"/>
 /// vocabulary, and each is addressed by the character and the account it belongs to -- the account
 /// is half of the address, not a check made before using it.
 /// </remarks>
-public interface IQuestStoreSession
+public interface IQuestDomainStoreSession
 {
     /// <summary>The quests the character is carrying, by the slot each sits in.</summary>
-    IStoreSession<OwnedCharacterId, short, StoredActiveQuest> Carried { get; }
+    IDomainStoreSession<OwnedCharacterId, short, StoredActiveQuest> Carried { get; }
 
     /// <summary>The quests the character has finished, by quest.</summary>
-    IStoreSession<OwnedCharacterId, int, StoredClearedQuest> Cleared { get; }
+    IDomainStoreSession<OwnedCharacterId, int, StoredClearedQuest> Cleared { get; }
 
     /// <summary>Which quests the character asked to be told about, by the slot each sits in.</summary>
-    IStoreSession<OwnedCharacterId, short, StoredTrackedQuest> Tracked { get; }
+    IDomainStoreSession<OwnedCharacterId, short, StoredTrackedQuest> Tracked { get; }
 }
 
 /// <summary>The whole of what one quest slot holds.</summary>

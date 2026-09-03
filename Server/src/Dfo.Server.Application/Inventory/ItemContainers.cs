@@ -212,7 +212,7 @@ public static class ItemContainerOperations
 internal abstract class StoreBackedItemContainer(
     ContainerId id,
     ContainerShape shape,
-    IItemStore store,
+    IItemDomainStore store,
     IDomainTransactionAccessor transactions,
     IItemPlacementRuleService placementRules,
     IItemArrivalRuleService arrivals,
@@ -226,7 +226,7 @@ internal abstract class StoreBackedItemContainer(
 
     public abstract bool IsRemovable { get; }
 
-    protected IItemStore Store => store;
+    protected IItemDomainStore Store => store;
 
     public async ValueTask<ContainerSlotItem?> ReadSlotAsync(
         int slotIndex, CancellationToken cancellationToken)
@@ -504,7 +504,7 @@ internal abstract class StoreBackedItemContainer(
     /// has nothing to settle.
     /// </remarks>
     private protected async ValueTask<TResult> ReadAsync<TResult>(
-        Func<IItemStoreSession, ValueTask<TResult>> read)
+        Func<IItemDomainStoreSession, ValueTask<TResult>> read)
     {
         if (transactions.Current is { } ambient)
         {
@@ -523,7 +523,7 @@ internal abstract class StoreBackedItemContainer(
     }
 
     /// <summary>What this container does with a change when no use case boundary is open.</summary>
-    private protected abstract ValueTask WriteAsync(Action<IItemStoreSession> write);
+    private protected abstract ValueTask WriteAsync(Action<IItemDomainStoreSession> write);
 
     /// <summary>
     /// Makes what a verb has just decided readable by everyone inside this use case, not only by
@@ -549,7 +549,7 @@ internal abstract class StoreBackedItemContainer(
         }
     }
 
-    private protected IItemStoreSession? AmbientSession() =>
+    private protected IItemDomainStoreSession? AmbientSession() =>
         transactions.Current is { } ambient ? store.SessionIn(ambient) : null;
 
     private protected static ContainerSlotItem? ToSlotItem(StoredItem? stored) =>
@@ -572,7 +572,7 @@ internal sealed class PersistentItemContainer(
     ContainerId id,
     CharacterId characterId,
     ContainerShape shape,
-    IItemStore store,
+    IItemDomainStore store,
     IDomainTransactionAccessor transactions,
     IEntryInventoryMutationRepository snapshots,
     IItemPlacementRuleService placementRules,
@@ -601,7 +601,7 @@ internal sealed class PersistentItemContainer(
             : throw new NotSupportedException(
                 $"Container '{this.Id.Value}' has no snapshot source; only the main list does.");
 
-    private protected override ValueTask WriteAsync(Action<IItemStoreSession> write)
+    private protected override ValueTask WriteAsync(Action<IItemDomainStoreSession> write)
     {
         var session = this.AmbientSession()
             ?? throw new InvalidOperationException(

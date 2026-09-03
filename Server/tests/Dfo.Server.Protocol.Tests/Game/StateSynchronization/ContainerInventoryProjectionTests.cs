@@ -122,7 +122,7 @@ public sealed class ContainerInventoryProjectionTests
                 ContainerId.ForCharacter(Character, InventoryContainerType.Main),
                 Character,
                 new ContainerShape(InventoryContainerType.Main, parameter),
-                new SqliteItemStore(Path),
+                new SqliteItemDomainStore(Path),
                 new DomainTransactionScope(),
                 Mutations,
                 null!,

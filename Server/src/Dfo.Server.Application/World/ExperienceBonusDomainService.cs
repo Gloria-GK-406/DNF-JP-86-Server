@@ -20,11 +20,11 @@ namespace Dfo.Server.Application.World;
 /// way. If they outgrow one file, each is already a whole that lifts out.
 /// </para>
 /// </remarks>
-internal sealed class ExperienceBonusService(
+internal sealed class ExperienceBonusDomainService(
     ISelectedSessionDirectory sessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IExperienceRuleService experienceRules,
-    TimeProvider clock) : IExperienceBonusService
+    TimeProvider clock) : IExperienceBonusDomainService
 {
     public IReadOnlyList<ExperienceModifier> Collect(in ExperienceOccasion occasion)
     {

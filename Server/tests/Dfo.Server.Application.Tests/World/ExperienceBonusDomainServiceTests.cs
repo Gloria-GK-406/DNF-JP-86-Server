@@ -24,7 +24,7 @@ namespace Dfo.Server.Application.Tests.World;
 /// everyone everywhere, because the rate had been recovered from four kills that all happened to
 /// be in a dungeon their channel carried.
 /// </remarks>
-public sealed class ExperienceBonusServiceTests
+public sealed class ExperienceBonusDomainServiceTests
 {
     private const int CarriedDungeon = 144;
     private const int OtherDungeon = 157;
@@ -111,7 +111,7 @@ public sealed class ExperienceBonusServiceTests
         Assert.Empty(Collect(Service(), CarriedDungeon, occasion));
 
     private static IReadOnlyList<ExperienceModifier> Collect(
-        IExperienceBonusService service,
+        IExperienceBonusDomainService service,
         int dungeonId,
         ExperienceEvent occasion = ExperienceEvent.MonsterKill) =>
         service.Collect(new ExperienceOccasion(
@@ -125,11 +125,11 @@ public sealed class ExperienceBonusServiceTests
     /// nothing else -- which is what lets <c>Assert.Single</c> and <c>Assert.Empty</c> above mean
     /// what they say.
     /// </remarks>
-    private static IExperienceBonusService Service(
+    private static IExperienceBonusDomainService Service(
         bool published = true,
         ChannelExperienceCatalog? channels = null,
         int channelId = Channel) =>
-        new ExperienceBonusService(
+        new ExperienceBonusDomainService(
             new OneSession(),
             new OneRuntimeSession(published, channelId),
             new ExperienceRuleService(

@@ -123,11 +123,11 @@ public sealed class OneDatabaseOneParticipantTests
     }
 
     /// <summary>A second kind of state kept in the same database, for this file only.</summary>
-    private sealed class MarkStore : IDomainStore<MarkSession>
+    private sealed class MarkDomainStore : IDomainStore<MarkSession>
     {
         private readonly string connectionString;
 
-        public MarkStore(string databasePath) =>
+        public MarkDomainStore(string databasePath) =>
             this.connectionString = new SqliteConnectionStringBuilder
                 { DataSource = Path.GetFullPath(databasePath) }.ToString();
 
@@ -178,20 +178,20 @@ public sealed class OneDatabaseOneParticipantTests
         {
             this.Path = path;
             this.OtherPath = otherPath;
-            this.Items = new SqliteItemStore(path);
-            this.OtherItems = new SqliteItemStore(otherPath);
-            this.Marks = new MarkStore(path);
+            this.Items = new SqliteItemDomainStore(path);
+            this.OtherItems = new SqliteItemDomainStore(otherPath);
+            this.Marks = new MarkDomainStore(path);
         }
 
         public string Path { get; }
 
         public string OtherPath { get; }
 
-        public SqliteItemStore Items { get; }
+        public SqliteItemDomainStore Items { get; }
 
-        public SqliteItemStore OtherItems { get; }
+        public SqliteItemDomainStore OtherItems { get; }
 
-        public MarkStore Marks { get; }
+        public MarkDomainStore Marks { get; }
 
         public static async Task<Fixture> CreateAsync()
         {

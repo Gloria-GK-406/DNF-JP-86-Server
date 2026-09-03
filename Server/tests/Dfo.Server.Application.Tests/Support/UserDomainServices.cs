@@ -62,13 +62,7 @@ internal sealed class UserDomainServices
         out OnlineUserSnapshot? onlineUser) =>
         online.TryGetByConnection(connectionId, out onlineUser);
 
-    public void Publish(AccountId accountId, ActiveCharacterState character) =>
-        active.Publish(accountId, character);
-
-    public void Publish(SelectedSessionIdentity session, ActiveCharacterState character) =>
-        active.Publish(session, character);
+    public void Publish(SelectedSessionIdentity session) => active.Publish(session);
 
     public bool ClearExact(SelectedSessionIdentity session) => active.ClearExact(session);
-
-    public ActiveCharacterState GetRequired(AccountId accountId) => active.GetRequired(accountId);
 }

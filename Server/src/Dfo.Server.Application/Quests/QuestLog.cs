@@ -22,7 +22,7 @@ namespace Dfo.Server.Application.Quests;
 /// exists to prevent.
 /// </remarks>
 internal sealed class QuestLog(
-    OwnedCharacterId place, IQuestStore store, AmbientStoreAccess stores) : IQuestLog
+    OwnedCharacterId place, IQuestDomainStore store, AmbientStoreAccess stores) : IQuestLog
 {
     /// <summary>How many quests a character can carry at once.</summary>
     /// <remarks>
@@ -307,7 +307,7 @@ internal sealed class QuestLog(
 /// are the same log in every way that matters: they read and write the same place through the same
 /// store.
 /// </remarks>
-internal sealed class CharacterQuestLogDomainService(IQuestStore store, AmbientStoreAccess stores)
+internal sealed class CharacterQuestLogDomainService(IQuestDomainStore store, AmbientStoreAccess stores)
     : ICharacterQuestLogDomainService
 {
     public IQuestLog LogOf(AccountId accountId, CharacterId characterId) =>

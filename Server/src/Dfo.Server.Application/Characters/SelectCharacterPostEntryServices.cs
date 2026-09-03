@@ -8,29 +8,9 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Characters;
 
-public interface ISelectCharacterQuestEntryService
-{
-    ValueTask<SelectCharacterQuestSynchronization?> SynchronizeAsync(
-        SelectedSessionIdentity session, SelectCharacterResult result, CancellationToken cancellationToken);
-}
-
-public sealed record SelectCharacterQuestSynchronization(
-    SelectCharacterResult Result,
-    AcceptedQuestSynchronizationState State);
-
-public interface ISelectCharacterPetEntryService
-{
-    ValueTask<SelectCharacterPetRevival?> ReviveAsync(
-        SelectedSessionIdentity session, SelectCharacterResult result, CancellationToken cancellationToken);
-}
-
-public sealed record SelectCharacterPetRevival(
-    SelectCharacterResult Result,
-    PetRevivalState State);
-
 internal sealed class SelectCharacterQuestEntryService(
     IQuestContentRuleService quests,
-    ICharacterQuestLogDomainService logs) : ISelectCharacterQuestEntryService
+    ICharacterQuestLogDomainService logs) : ISelectCharacterQuestEntryDomainService
 {
     public async ValueTask<SelectCharacterQuestSynchronization?> SynchronizeAsync(
         SelectedSessionIdentity session, SelectCharacterResult result, CancellationToken cancellationToken)
@@ -109,9 +89,9 @@ internal sealed class SelectCharacterQuestEntryService(
 /// settle together, so a revival that cannot be written leaves nothing half done.
 /// </remarks>
 internal sealed class SelectCharacterPetEntryService(
-    ICharacterStore characters,
-    IItemStore items,
-    AmbientStoreAccess stores) : ISelectCharacterPetEntryService
+    ICharacterDomainStore characters,
+    IItemDomainStore items,
+    AmbientStoreAccess stores) : ISelectCharacterPetEntryDomainService
 {
     /// <summary>The equipment slot the equipped creature sits in.</summary>
     private const int EquippedCreatureSlot = 24;

@@ -59,7 +59,5 @@ public sealed class CarriedGoldCompositionTests
             new ServiceProviderOptions { ValidateOnBuild = false, ValidateScopes = false });
 
         Assert.NotNull(provider.GetRequiredService<ICarriedGoldRuleService>());
-        Assert.NotNull(
-            provider.GetRequiredService<Dfo.Server.Abstractions.Inventory.IAccountCargoGoldService>());
     }
 }

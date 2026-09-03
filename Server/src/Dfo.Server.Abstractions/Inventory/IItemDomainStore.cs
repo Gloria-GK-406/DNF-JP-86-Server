@@ -16,7 +16,7 @@ namespace Dfo.Server.Abstractions.Inventory;
 /// <see cref="IDomainStore{TSession}"/>; what is particular to items is only the session's
 /// vocabulary below.
 /// </remarks>
-public interface IItemStore : IDomainStore<IItemStoreSession>;
+public interface IItemDomainStore : IDomainStore<IItemDomainStoreSession>;
 
 /// <summary>
 /// One use case's reads and writes against one store of items.
@@ -35,7 +35,7 @@ public interface IItemStore : IDomainStore<IItemStoreSession>;
 /// The writes are staged, not applied. They become visible to this session's own reads at once and
 /// to everyone else only when the transaction settles.
 /// </remarks>
-public interface IItemStoreSession : IStoreSession<ContainerId, int, StoredItem>
+public interface IItemDomainStoreSession : IDomainStoreSession<ContainerId, int, StoredItem>
 {
     /// <summary>
     /// Turns everything this session has decided into the writes it calls for, still inside the

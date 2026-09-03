@@ -53,7 +53,7 @@ public interface IDomainStore<out TSession> : IDomainStore
 /// same use case that does not share this session. A use case that writes here and then reads the
 /// same state by another route has to say so; the item store names that operation.
 /// </remarks>
-public interface IStoreSession<in TPlace, in TKey, TValue>
+public interface IDomainStoreSession<in TPlace, in TKey, TValue>
     where TValue : class
 {
     /// <summary>Everything one place holds, in key order.</summary>

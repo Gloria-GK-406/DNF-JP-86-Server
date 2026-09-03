@@ -14,15 +14,20 @@ namespace Dfo.Server.Application.World;
 /// principle applied hopefully: it is the specific defect this replaces, where a quest finished
 /// twice wrote the same total both times because the copy it added to was the entry-time snapshot.
 /// </remarks>
-internal sealed class CharacterExperienceGrant(
+internal sealed class CharacterExperienceDomainService(
     ICharacterTable characters,
-    IExperienceRuleService experienceRules) : ICharacterExperienceGrant
+    IExperienceRuleService experienceRules) : ICharacterExperienceDomainService
 {
     public uint? ThresholdForLevel(byte level)
     {
         var thresholds = experienceRules.Progression().LevelThresholds;
         return level < 2 || thresholds.Count < level - 1 ? null : thresholds[level - 2];
     }
+
+    public async ValueTask<bool> TrySetProgressAsync(
+        CharacterId characterId, byte level, uint experience, CancellationToken cancellationToken) =>
+        await characters.SetProgressAsync(characterId, level, experience, cancellationToken)
+            .ConfigureAwait(false) == 1;
 
     public async ValueTask<ExperienceAward?> AwardAsync(
         CharacterId characterId,

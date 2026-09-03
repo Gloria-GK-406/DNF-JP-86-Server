@@ -17,7 +17,7 @@ public sealed class OnlineUserConnectionObserver(
     OnlineUserExecutionGate executionGate,
     SelectedSessionTransitionGate lifecycleGate,
     ISelectedSessionDirectory selectedSessions,
-    ISelectedSessionCleanupService cleanup,
+    ISelectedSessionCleanupDomainService cleanup,
     IChannelEntryPolicy channels,
     IServerConfigService serverConfig,
     IGameMessageSender gameSender,

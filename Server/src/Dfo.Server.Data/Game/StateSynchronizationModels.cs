@@ -1,5 +1,6 @@
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Networking;
 
 namespace Dfo.Server.Data.Game;
 
@@ -34,6 +35,10 @@ public sealed record PvpLobbySynchronizationState(
     IReadOnlyList<PvpParticipantEntryState> OrderedIdentities,
     IReadOnlyList<PvpRoomSnapshotState> OrderedRooms,
     PvpParticipantEntryState Newcomer);
+
+public sealed record PvpParticipantPublicationTarget(
+    NetworkConnectionId ConnectionId,
+    PvpParticipantEntryState Participant);
 
 public sealed record AcceptedQuestProgressState(ushort QuestId, uint TriggerValue);
 

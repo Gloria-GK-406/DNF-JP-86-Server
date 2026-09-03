@@ -169,7 +169,7 @@ public sealed class ItemPathFrameTests
                 ContainerId.ForCharacter(Character, InventoryContainerType.Main),
                 Character,
                 new ContainerShape(InventoryContainerType.Main, 0),
-                new SqliteItemStore(this.Path),
+                new SqliteItemDomainStore(this.Path),
                 this.Scope,
                 null!,
                 new ItemPlacementRuleService(new ConsumableBand(), new NoWearables()),

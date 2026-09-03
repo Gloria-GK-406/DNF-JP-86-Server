@@ -87,8 +87,8 @@ public sealed class ApplicationModule : IServerModule
         // What a kill, a clear and a channel are worth, and how much of it a level costs. The
         // one reader of the four archive declarations and the two operator dials behind them.
         services.TryAddSingleton<IExperienceRuleService, ExperienceRuleService>();
-        services.TryAddSingleton<IExperienceBonusService, ExperienceBonusService>();
-        services.TryAddSingleton<ICharacterExperienceGrant, CharacterExperienceGrant>();
+        services.TryAddSingleton<IExperienceBonusDomainService, ExperienceBonusDomainService>();
+        services.TryAddSingleton<ICharacterExperienceDomainService, CharacterExperienceDomainService>();
         // One store, three services. The store keeps the collections whose invariant spans them
         // behind a single lock; the services are the three responsibilities read off it.
         services.TryAddSingleton<OnlineStateStore>();
@@ -137,7 +137,7 @@ public sealed class ApplicationModule : IServerModule
         // and fail loudly only if it ever actually tries to save a position.
         services.TryAddSingleton<ISelectedSessionPositionPersistence>(
             provider => new SelectedSessionPositionPersistence(
-                provider.GetService<ICharacterStore>(),
+                provider.GetService<ICharacterDomainStore>(),
                 provider.GetRequiredService<IDomainTransactionAccessor>()));
         // What a job starts with and what a creation request may ask for; and what entry
         // reconciles a character against on the way in.
@@ -153,7 +153,6 @@ public sealed class ApplicationModule : IServerModule
         // The compensation seam and its first-phase implementation, which never compensates. It is
         // registered rather than left out so that everything upstream is written against the real
         // shape from the first day.
-        services.TryAddSingleton<IAccountCargoGoldService, AccountCargoGoldService>();
         // What an occasion drops: the one reader of the three drop tables and the only caller of
         // DropRules. The compensation seam below stays outside it, because what a character is
         // owed is state that crosses runs.
@@ -213,11 +212,6 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<
             IChannelDirectoryDomainService, ChannelDirectoryDomainService>();
         services.TryAddSingleton<IMonsterDropService, MonsterDropService>();
-        services.TryAddSingleton<IActiveCharacterAccessDomainService>(
-            provider => new ActiveCharacterAccessDomainService(
-                provider.GetRequiredService<OnlineStateStore>(),
-                provider.GetRequiredService<UserExecutionGate<CharacterId>>(),
-                TimeSpan.FromSeconds(10)));
         services.TryAddSingleton(
             provider => new CharacterDomainService(
                 () => provider.GetRequiredService<ICharacterRepository>(),
@@ -233,9 +227,7 @@ public sealed class ApplicationModule : IServerModule
                     provider.GetRequiredService<ICarriedGoldRuleService>())));
         services.TryAddSingleton<ICharacterDomainService>(
             provider => provider.GetRequiredService<CharacterDomainService>());
-        services.TryAddSingleton<ISelectCharacterPreparationService, SelectCharacterPreparationService>();
-        services.TryAddSingleton<IEquipmentEligibilityCharacterReader>(
-            provider => provider.GetRequiredService<CharacterDomainService>());
+        services.TryAddSingleton<ISelectCharacterPreparationDomainService, SelectCharacterPreparationService>();
         services.TryAddSingleton<ICharacterInventoryEntryDomainService, CharacterInventoryEntryDomainService>();
         services.TryAddSingleton<IAccountInventoryEntryDomainService, AccountInventoryEntryDomainService>();
         services.TryAddSingleton<IEquippedCreatureQuery, EquippedCreatureQuery>();
@@ -267,8 +259,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICharacterProgressionEntryProjection, CharacterProgressionEntryProjection>();
         services.TryAddSingleton<ICharacterFeatureEntryProjection, CharacterFeatureEntryProjection>();
         services.TryAddSingleton<ICharacterEntryStateDomainService, CharacterEntryStateDomainService>();
-        services.TryAddSingleton<ISelectCharacterQuestEntryService, SelectCharacterQuestEntryService>();
-        services.TryAddSingleton<ISelectCharacterPetEntryService, SelectCharacterPetEntryService>();
+        services.TryAddSingleton<ISelectCharacterQuestEntryDomainService, SelectCharacterQuestEntryService>();
+        services.TryAddSingleton<ISelectCharacterPetEntryDomainService, SelectCharacterPetEntryService>();
         services.TryAddSingleton<IAccountSettingsEntryProjection, AccountSettingsEntryProjection>();
         services.TryAddSingleton<IAccountWalletEntitlementEntryProjection, AccountWalletEntitlementEntryProjection>();
         services.TryAddSingleton<IAccountProgressionEntryProjection, AccountProgressionEntryProjection>();
@@ -295,8 +287,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IExpertStoreRegistry, ExpertStoreRegistry>();
         services.TryAddSingleton<IPvpLobbyRegistry, PvpLobbyRegistry>();
         services.TryAddSingleton<ISessionAdjacentEntryDomainService, SessionAdjacentEntryDomainService>();
-        services.TryAddSingleton<ISelectedSessionCleanupService, SelectedSessionCleanupService>();
-        services.TryAddSingleton<ISelectCharacterSessionEntryService, SelectCharacterSessionEntryService>();
+        services.TryAddSingleton<ISelectedSessionCleanupDomainService, SelectedSessionCleanupService>();
+        services.TryAddSingleton<ISelectCharacterSessionEntryDomainService, SelectCharacterSessionEntryService>();
         services.AddCommandDispatching();
         services.AddNetworkMessageDispatching();
     }

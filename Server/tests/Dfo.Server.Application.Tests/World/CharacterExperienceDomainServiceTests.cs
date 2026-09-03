@@ -16,7 +16,7 @@ namespace Dfo.Server.Application.Tests.World;
 /// this code already produced a wrong total, when a quest finished twice wrote the same figure both
 /// times because its own copy added to an entry-time snapshot rather than to the store.
 /// </remarks>
-public sealed class CharacterExperienceGrantTests
+public sealed class CharacterExperienceDomainServiceTests
 {
     private static readonly CharacterId Character = new(7);
 
@@ -271,7 +271,7 @@ public sealed class CharacterExperienceGrantTests
 
     private static ExperienceValuation Worth(uint amount) => new(amount, []);
 
-    private static CharacterExperienceGrant Grant(ICharacterTable characters) =>
+    private static CharacterExperienceDomainService Grant(ICharacterTable characters) =>
         new(characters, new FixedProgression(Thresholds));
 
     /// <summary>Only the level thresholds; these tests are about the grant's arithmetic.</summary>

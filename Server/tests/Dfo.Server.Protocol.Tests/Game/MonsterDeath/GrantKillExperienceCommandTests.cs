@@ -149,7 +149,7 @@ public sealed class GrantKillExperienceCommandTests
     }
 
     /// <summary>A channel that adds this much, or nothing at all.</summary>
-    private sealed class FixedChannelBonus(double rate) : IExperienceBonusService
+    private sealed class FixedChannelBonus(double rate) : IExperienceBonusDomainService
     {
         public IReadOnlyList<ExperienceModifier> Collect(in ExperienceOccasion occasion) =>
             rate > 0
@@ -165,10 +165,15 @@ public sealed class GrantKillExperienceCommandTests
     /// the monster one or two levels above them, which is the band the level-gap rate of 1.12
     /// covers. Where the award lands afterwards belongs to the grant's own tests.
     /// </remarks>
-    private sealed class PricingGrant(byte characterLevel) : ICharacterExperienceGrant
+    private sealed class PricingGrant(byte characterLevel) : ICharacterExperienceDomainService
     {
         /// <summary>No test on this path asks what a level costs.</summary>
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
+
+        /// <summary>Pricing stand-ins never set progress outright; the tutorial is the only path that does.</summary>
+        public ValueTask<bool> TrySetProgressAsync(
+            CharacterId characterId, byte level, uint experience, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("This stand-in prices awards; it does not set progress.");
 
         public ValueTask<ExperienceAward?> AwardAsync(
             CharacterId characterId,

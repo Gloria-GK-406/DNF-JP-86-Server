@@ -260,17 +260,13 @@ public sealed class SessionGenerationOwnershipTests
 
     private sealed class ThrowingActive : IActiveCharacterDomainService
     {
-        public void Publish(AccountId accountId, ActiveCharacterState character) { }
-        public void Publish(SelectedSessionIdentity session, ActiveCharacterState character) { }
-        public ActiveCharacterState GetRequired(AccountId accountId) => throw new KeyNotFoundException();
+        public void Publish(SelectedSessionIdentity session) { }
         public bool ClearExact(SelectedSessionIdentity session) => throw new InvalidOperationException("fault");
     }
 
     private sealed class PassiveActive : IActiveCharacterDomainService
     {
-        public void Publish(AccountId accountId, ActiveCharacterState character) { }
-        public void Publish(SelectedSessionIdentity session, ActiveCharacterState character) { }
-        public ActiveCharacterState GetRequired(AccountId accountId) => throw new KeyNotFoundException();
+        public void Publish(SelectedSessionIdentity session) { }
         public bool ClearExact(SelectedSessionIdentity session) => false;
     }
 

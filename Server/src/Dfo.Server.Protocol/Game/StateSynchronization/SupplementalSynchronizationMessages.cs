@@ -1,6 +1,6 @@
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
-using Dfo.Server.Application.Sessions;
+using Dfo.Server.Data.World;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Protocol.Game.StateSynchronization;

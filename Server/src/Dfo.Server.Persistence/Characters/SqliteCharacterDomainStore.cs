@@ -18,14 +18,14 @@ namespace Dfo.Server.Persistence.Characters;
 /// only way both can be settled together, since a transaction admits one participant whose commit
 /// can still fail.
 /// </remarks>
-internal sealed class SqliteCharacterStore : ICharacterStore
+internal sealed class SqliteCharacterDomainStore : ICharacterDomainStore
 {
     /// <summary>What the database registers this store's session under.</summary>
-    private static readonly object FacetKey = typeof(SqliteCharacterStoreSession);
+    private static readonly object FacetKey = typeof(SqliteCharacterDomainStoreSession);
 
     private readonly string connectionString;
 
-    public SqliteCharacterStore(string databasePath)
+    public SqliteCharacterDomainStore(string databasePath)
     {
         var fullPath = Path.GetFullPath(databasePath);
         this.connectionString = new SqliteConnectionStringBuilder { DataSource = fullPath }.ToString();
@@ -35,13 +35,13 @@ internal sealed class SqliteCharacterStore : ICharacterStore
 
     public bool IsDurable => true;
 
-    public ICharacterStoreSession SessionIn(IDomainTransaction transaction)
+    public ICharacterDomainStoreSession SessionIn(IDomainTransaction transaction)
     {
         ArgumentNullException.ThrowIfNull(transaction);
         var database = transaction.Enlist(
             this.StoreIdentity,
             () => new SqliteDatabaseParticipant(this.connectionString));
-        return database.Facet(FacetKey, owner => new SqliteCharacterStoreSession(owner));
+        return database.Facet(FacetKey, owner => new SqliteCharacterDomainStoreSession(owner));
     }
 }
 
@@ -54,7 +54,7 @@ internal sealed class SqliteCharacterStore : ICharacterStore
 /// while flushing, before any of that character's rows are touched. That is the store refusing an
 /// address it cannot place, not a rule about characters: the account is half of the address.
 /// </remarks>
-internal sealed class SqliteCharacterStoreSession : ICharacterStoreSession, ISqliteStoreFacet
+internal sealed class SqliteCharacterDomainStoreSession : ICharacterDomainStoreSession, ISqliteStoreFacet
 {
     private readonly SqliteDatabaseParticipant owner;
 
@@ -62,13 +62,13 @@ internal sealed class SqliteCharacterStoreSession : ICharacterStoreSession, ISql
 
     private readonly Dictionary<OwnedCharacterId, CharacterPositionState> positions = [];
 
-    public SqliteCharacterStoreSession(SqliteDatabaseParticipant owner)
+    public SqliteCharacterDomainStoreSession(SqliteDatabaseParticipant owner)
     {
         this.owner = owner;
         this.creatures = new CreatureSection(owner);
     }
 
-    public IStoreSession<OwnedCharacterId, long, StoredCreature> Creatures => this.creatures;
+    public IDomainStoreSession<OwnedCharacterId, long, StoredCreature> Creatures => this.creatures;
 
     public bool HasStagedWork => this.creatures.HasStagedWork || this.positions.Count > 0;
 

@@ -204,21 +204,30 @@ public sealed class UserServiceTests
             "login-101",
             "hash",
             CancellationToken.None);
-        var character = CreateCharacter(1001, 2);
+        var authenticated = service.GetRequired(registered.OnlineUserId);
+        var session = SelectedSessionIdentity.Create(
+            accountId, new CharacterId(1001), connection.ConnectionId,
+            authenticated.Generation, 10011);
 
-        service.Publish(accountId, character);
+        service.Publish(session);
 
         var snapshot = service.GetRequired(registered.OnlineUserId);
-        Assert.Equal(character.Identity.CharacterId, snapshot.CurrentCharacterId);
+        Assert.Equal(session.CharacterId, snapshot.CurrentCharacterId);
         Assert.Equal(OnlineUserState.CharacterActive, snapshot.State);
-        Assert.Same(character, service.GetRequired(accountId));
 
-        var replacement = CreateCharacter(1004, 5);
-        service.Publish(accountId, replacement);
+        // Binding advanced the online user's generation, so the replacing session owns the
+        // generation the first publication left behind.
+        var replacement = SelectedSessionIdentity.Create(
+            accountId, new CharacterId(1004), connection.ConnectionId,
+            snapshot.Generation, 10011);
+        service.Publish(replacement);
 
         var replacedSnapshot = service.GetRequired(registered.OnlineUserId);
-        Assert.Equal(replacement.Identity.CharacterId, replacedSnapshot.CurrentCharacterId);
-        Assert.Same(replacement, service.GetRequired(accountId));
+        Assert.Equal(replacement.CharacterId, replacedSnapshot.CurrentCharacterId);
+        Assert.Equal(OnlineUserState.CharacterActive, replacedSnapshot.State);
+        // The account's active entry moved with it: only the exact replacing session clears.
+        Assert.False(service.ClearExact(session));
+        Assert.True(service.ClearExact(replacement));
     }
 
     [Fact]
@@ -237,21 +246,28 @@ public sealed class UserServiceTests
             "hash",
             CancellationToken.None);
         var authenticated = service.GetRequired(registered.OnlineUserId);
-        var character = CreateCharacter(1002, 3);
-        service.Publish(accountId, character);
+        var session = SelectedSessionIdentity.Create(
+            accountId, new CharacterId(1002), connection.ConnectionId,
+            authenticated.Generation, 10011);
+        service.Publish(session);
         var active = service.GetRequired(registered.OnlineUserId);
 
         Assert.False(service.TryDisconnect(
             active.OnlineUserId,
             connection.ConnectionId,
             authenticated.Generation));
-        Assert.Same(character, service.GetRequired(accountId));
+        Assert.Equal(
+            session.CharacterId,
+            service.GetRequired(active.OnlineUserId).CurrentCharacterId);
 
         Assert.True(service.TryDisconnect(
             active.OnlineUserId,
             connection.ConnectionId,
             active.Generation));
-        Assert.Throws<KeyNotFoundException>(() => service.GetRequired(accountId));
+        // The account holds no active entry any more: a clear naming the exact session that was
+        // published is refused, and the online user it was bound to is gone with it.
+        Assert.False(service.ClearExact(session));
+        Assert.Throws<KeyNotFoundException>(() => service.GetRequired(active.OnlineUserId));
     }
 
     [Fact]
@@ -266,7 +282,7 @@ public sealed class UserServiceTests
         var firstAuthenticated = service.GetRequired(first.OnlineUserId);
         var firstSession = SelectedSessionIdentity.Create(accountId, new CharacterId(1101),
             firstConnection.ConnectionId, firstAuthenticated.Generation, 10011);
-        service.Publish(firstSession, CreateCharacter(1101, 1));
+        service.Publish(firstSession);
 
         var secondConnection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:new"), NetworkEndpointKind.Game, 10011);
@@ -275,13 +291,13 @@ public sealed class UserServiceTests
         var secondAuthenticated = service.GetRequired(second.OnlineUserId);
         var replacement = SelectedSessionIdentity.Create(accountId, new CharacterId(1102),
             secondConnection.ConnectionId, secondAuthenticated.Generation, 10011);
-        var replacementCharacter = CreateCharacter(1102, 2);
-        service.Publish(replacement, replacementCharacter);
+        service.Publish(replacement);
 
         Assert.False(service.ClearExact(firstSession));
-        Assert.Same(replacementCharacter, service.GetRequired(accountId));
+        Assert.Equal(
+            replacement.CharacterId,
+            service.GetRequired(second.OnlineUserId).CurrentCharacterId);
         Assert.True(service.ClearExact(replacement));
-        Assert.Throws<KeyNotFoundException>(() => service.GetRequired(accountId));
         var afterClear = service.GetRequired(second.OnlineUserId);
         Assert.Null(afterClear.CurrentCharacterId);
         Assert.Equal(OnlineUserState.Authenticated, afterClear.State);
@@ -302,8 +318,11 @@ public sealed class UserServiceTests
             "login-103",
             "hash",
             CancellationToken.None);
-        var previous = CreateCharacter(1003, 4);
-        service.Publish(accountId, previous);
+        var authenticated = service.GetRequired(registered.OnlineUserId);
+        var previous = SelectedSessionIdentity.Create(
+            accountId, new CharacterId(1003), connection.ConnectionId,
+            authenticated.Generation, 10011);
+        service.Publish(previous);
         var snapshotBeforeFailure = service.GetRequired(registered.OnlineUserId);
         var entry = EntryServices.Create(
             new MissingCharacterDomainService(),
@@ -315,7 +334,9 @@ public sealed class UserServiceTests
         await Assert.ThrowsAsync<KeyNotFoundException>(async () =>
             await entry.EnterAsync(accountId, 5, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None));
 
-        Assert.Same(previous, service.GetRequired(accountId));
+        Assert.Equal(
+            previous.CharacterId,
+            service.GetRequired(registered.OnlineUserId).CurrentCharacterId);
         Assert.Equal(snapshotBeforeFailure, service.GetRequired(registered.OnlineUserId));
     }
 
@@ -375,7 +396,7 @@ public sealed class UserServiceTests
         var selected = SelectedSessionIdentity.Create(
             accountId, new CharacterId(1004), connection.ConnectionId, beforeBind.Generation, 10011);
         sessions.RegisterReplacing(selected);
-        service.Publish(selected, CreateCharacter(1004, 4));
+        service.Publish(selected);
 
         await observer.DisconnectedAsync(connection, CancellationToken.None);
 
@@ -457,7 +478,7 @@ public sealed class UserServiceTests
     private static OnlineUserConnectionObserver CreateObserver(
         IOnlineUserDomainService service,
         ISelectedSessionDirectory sessions,
-        ISelectedSessionCleanupService cleanup,
+        ISelectedSessionCleanupDomainService cleanup,
         IGameMessageSender sender,
         TimeProvider timeProvider,
         IChannelEntryPolicy? channelPolicy = null) =>
@@ -521,20 +542,6 @@ public sealed class UserServiceTests
         public override DateTimeOffset GetUtcNow() => value;
     }
 
-    private static ActiveCharacterState CreateCharacter(int characterId, ushort slotIndex) =>
-        new(
-            new CharacterIdentityState(
-                new CharacterId(characterId),
-                slotIndex,
-                [0x41],
-                Job: 1,
-                GrowType: 0),
-            new CharacterProgressionState(Level: 10, Experience: 100),
-            new CharacterFatigueState(Total: 156, Used: 0),
-            new CharacterPositionState(TownId: 1, AreaId: 1, X: 10, Y: 20, Direction: 0),
-            DateTimeOffset.UnixEpoch,
-            DarkKnightCombo: null);
-
     private sealed class StubAccountRepository(AccountId accountId) : IAccountRepository
     {
         public ValueTask<AccountRecord> GetOrCreateAsync(
@@ -559,7 +566,7 @@ public sealed class UserServiceTests
         public IReadOnlyList<SelectedSessionIdentity> Current() => [];
     }
 
-    private sealed class NoopCleanup : ISelectedSessionCleanupService
+    private sealed class NoopCleanup : ISelectedSessionCleanupDomainService
     {
         public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
             SelectedSessionIdentity session, bool includeOwner,
@@ -568,7 +575,7 @@ public sealed class UserServiceTests
     }
 
     private sealed class FailingCleanup(SelectedSessionCleanupNotificationPlan plan)
-        : ISelectedSessionCleanupService
+        : ISelectedSessionCleanupDomainService
     {
         public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
             SelectedSessionIdentity session, bool includeOwner,
@@ -602,7 +609,7 @@ public sealed class UserServiceTests
         }
     }
 
-    private sealed class ClearingCleanup(IActiveCharacterDomainService active) : ISelectedSessionCleanupService
+    private sealed class ClearingCleanup(IActiveCharacterDomainService active) : ISelectedSessionCleanupDomainService
     {
         public SelectedSessionIdentity? Cleaned { get; private set; }
 
