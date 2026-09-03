@@ -242,29 +242,27 @@ public sealed class ExitFlushHandlerTests
             [.. this.Rows().Select(row => (row.ItemId, row.Count))];
     }
 
-    private sealed class NoSessions : ISelectedSessionDirectory
+    private sealed class NoSessions : ISelectedSessionDomainService
     {
-        public SelectedSessionIdentity? RegisterReplacing(SelectedSessionIdentity session) => null;
-        public bool TryRemoveExact(SelectedSessionIdentity session) => false;
+        public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => null;
+        public bool ReleaseExact(SelectedSessionIdentity session) => false;
         public SelectedSessionIdentity? Find(AccountId accountId) => null;
         public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => null;
         public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) => null;
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => null;
-        public IReadOnlyList<SelectedSessionIdentity> Current() => [];
     }
 
-    private sealed class OneSession : ISelectedSessionDirectory
+    private sealed class OneSession : ISelectedSessionDomainService
     {
         private static readonly SelectedSessionIdentity Session = SelectedSessionIdentity.Create(
             new AccountId(1), new CharacterId(1), new NetworkConnectionId("Game:tutorial"), 1, 10011);
 
-        public SelectedSessionIdentity? RegisterReplacing(SelectedSessionIdentity session) => null;
-        public bool TryRemoveExact(SelectedSessionIdentity session) => false;
+        public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => null;
+        public bool ReleaseExact(SelectedSessionIdentity session) => false;
         public SelectedSessionIdentity? Find(AccountId accountId) => Session;
         public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => Session;
         public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) => Session;
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => Session;
-        public IReadOnlyList<SelectedSessionIdentity> Current() => [Session];
     }
 
     private sealed class NoRewards : ITutorialRewardDefinitionSource

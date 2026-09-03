@@ -6,7 +6,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Sessions;
 
 /// <summary>Keeps the duelling lobby's readiness and room offers in memory.</summary>
-internal sealed class PvpLobbyRegistry : IPvpLobbyRegistry
+internal sealed class PvpLobbyDomainService : IPvpLobbyDomainService
 {
     private readonly ConcurrentDictionary<CharacterId, PvpLobbyParticipant> _ready = new();
     private readonly ConcurrentDictionary<ushort, PvpRoom> _rooms = new();

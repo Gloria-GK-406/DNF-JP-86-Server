@@ -91,21 +91,21 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICharacterExperienceDomainService, CharacterExperienceDomainService>();
         // One store, three services. The store keeps the collections whose invariant spans them
         // behind a single lock; the services are the three responsibilities read off it.
-        services.TryAddSingleton<OnlineStateStore>();
+        services.TryAddSingleton<OnlineStateRegistry>();
         services.TryAddSingleton<IAccountDomainService>(
             provider => new AccountDomainService(
                 () => provider.GetRequiredService<IAccountRepository>(),
-                provider.GetRequiredService<OnlineStateStore>()));
+                provider.GetRequiredService<OnlineStateRegistry>()));
         services.TryAddSingleton(
             provider => new OnlineUserDomainService(
-                provider.GetRequiredService<OnlineStateStore>()));
+                provider.GetRequiredService<OnlineStateRegistry>()));
         services.TryAddSingleton<IOnlineUserDomainService>(
             provider => provider.GetRequiredService<OnlineUserDomainService>());
         services.TryAddSingleton<IOnlineUserQueryDomainService>(
             provider => provider.GetRequiredService<OnlineUserDomainService>());
         services.TryAddSingleton<IActiveCharacterDomainService>(
             provider => new ActiveCharacterDomainService(
-                provider.GetRequiredService<OnlineStateStore>()));
+                provider.GetRequiredService<OnlineStateRegistry>()));
         // The gate is keyed on the character rather than the account because the operations
         // that need it span accounts: a party pays an entry cost together.
         services.TryAddSingleton<UserExecutionGate<CharacterId>>();
@@ -220,9 +220,9 @@ public sealed class ApplicationModule : IServerModule
                     characterId,
                     provider.GetRequiredService<IItemUseJudgementService>(),
                     provider.GetRequiredService<ICharacterItemCooldownDomainService>(),
-                    provider.GetRequiredService<ISelectedSessionDirectory>(),
+                    provider.GetRequiredService<ISelectedSessionDomainService>(),
                     provider.GetRequiredService<ISelectedSessionRuntimeDirectory>(),
-                    provider.GetRequiredService<ISessionPresenceRegistry>(),
+                    provider.GetRequiredService<ISessionPresenceDomainService>(),
                     provider.GetRequiredService<ICharacterCarriedGoldTable>(),
                     provider.GetRequiredService<ICarriedGoldRuleService>())));
         services.TryAddSingleton<ICharacterDomainService>(
@@ -281,11 +281,11 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IWorldContentEntryRuleService, WorldContentEntryRuleService>();
         services.TryAddSingleton<IChannelEntryPolicy, ChannelEntryPolicy>();
         services.TryAddSingleton<IEntryPlacementRuleService, EntryPlacementRuleService>();
-        services.TryAddSingleton<ISessionPresenceRegistry, SessionPresenceRegistry>();
-        services.TryAddSingleton<ISelectedSessionDirectory, SelectedSessionDirectory>();
+        services.TryAddSingleton<ISessionPresenceDomainService, SessionPresenceDomainService>();
+        services.TryAddSingleton<ISelectedSessionDomainService, SelectedSessionDomainService>();
         services.TryAddSingleton<ISelectedSessionRuntimeDirectory, SelectedSessionRuntimeDirectory>();
-        services.TryAddSingleton<IExpertStoreRegistry, ExpertStoreRegistry>();
-        services.TryAddSingleton<IPvpLobbyRegistry, PvpLobbyRegistry>();
+        services.TryAddSingleton<IExpertStoreDomainService, ExpertStoreDomainService>();
+        services.TryAddSingleton<IPvpLobbyDomainService, PvpLobbyDomainService>();
         services.TryAddSingleton<ISessionAdjacentEntryDomainService, SessionAdjacentEntryDomainService>();
         services.TryAddSingleton<ISelectedSessionCleanupDomainService, SelectedSessionCleanupService>();
         services.TryAddSingleton<ISelectCharacterSessionEntryDomainService, SelectCharacterSessionEntryService>();

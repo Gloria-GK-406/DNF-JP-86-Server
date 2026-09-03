@@ -6,36 +6,32 @@ contract:
 state: active
 phase: child_execution
 phase_state: pending
-active_attempt: spec-001
+active_attempt: spec-002
 last_transition: child-created
 transition_evidence: >-
-  标识与路径按确定规则算出（下一个编号 1，无沿用）：
-  attempts/spec-001-guard-the-injection-surface/，已规范化并证明包含在 task_root 之内。
-  子契约 state: ready，parent 指向 ../../TaskContract.md，contributes_to 为
-  SC-1/2/3/4/7/8/9，depends_on 为空列表（合法：无未解决的外部前置）。子路由决策已就位，
-  SDD 就绪、边际控制价值、Single 结构选择三节填完，Controller Selection 留给
-  single-spec-workflow。激活前校验无错，此前无活跃子成果、无 running 行。
-  上一次转移的证据（safe-successor）：
-  根评估（基线 9c0de6c6）：九条成功条件全部 not_started，无任何已接受证据，五项约束全部
-  aligned，尚无既往 Spec 结果，故非 root-satisfied，应用 gaps-remain。后继决策：契约
-  Authorization 的 task 行覆盖「配置的执行与验证」，无需扩权；当前缺口里最小且自足的一个
-  有界成果是「让注入面有正确的名字并有判据守着它」——它同时消化三个零消费方接缝（退役后
-  白名单要分类的类型更少）、三个领域 store 的正名，以及两处硬违规与 14 次命名不到位的注入。
-  该成果可独立接受或回滚，不依赖任何未接受的兄弟结果，故应用 safe-successor。
-  上一次转移的证据（workspace-ready）：
-  主检出为 main/9c0de6c6，git-dir 与 common-dir 相同故非链接工作区，非子模块；工作区仅有本任务
-  两份未跟踪产物。`.worktrees/` 已由 .git/info/exclude:7 排除，未改 .gitignore。以
-  `git worktree add -b commands-reach-only-domain-shapes .worktrees/commands-reach-only-domain-shapes
-  9c0de6c6` 建任务工作区，建后 toplevel/branch/HEAD 三项自证，status 为空。两份启动产物以
-  sha256 校验后转移到工作区内相同的仓库相对路径
-  （TaskContract.md 077f5932…b3f，routing-decision.md 79f9b1e6…91d），源副本经校验后删除；
-  源检出 status 恢复为空，源分支 tip 仍为 9c0de6c6，未产生启动提交。
+  根评估（基线 70a3e54e）：SC-1/2/3/4/7 已满足，SC-8/SC-9 进行中，**SC-5 与 SC-6 仍未开始**，
+  五项约束全部 aligned，故 gaps-remain。后继决策：契约 task 行覆盖本轮，无需扩权；当前缺口里
+  最小且自足的有界成果是 SC-5 的前一半——把暴露成可注入接缝的会话与在场内存容器改说领域话，
+  并顺带结掉 spec-001 明写为「必须在后续成果收口」的那层透传壳。它可独立接受或回滚，不依赖
+  未接受的兄弟结果，故 safe-successor。标识与路径按确定规则算出（下一个编号 2，无沿用）：
+  attempts/spec-002-containers-speak-domain-verbs/，已证明包含在 task_root 之内；子契约 ready，
+  depends_on 为空列表；子路由决策四节齐全（controller 取 sdd-lite，理由见其中）。激活前校验
+  无错，此前无活跃子成果、无 running 行。
+  上一次转移的证据（child-accepted）：
+  spec-001 交回 spec-result.md，outcome completed，terminal_stage verification。独立评审
+  reviews/change-review.md verdict approved（第一轮 changes_required 的两条阻断已整改并经第二轮
+  复核关闭；评审者自建反射探针、自做三次生产代码变异、自行逐文件重算用例数对账，并逐字符比对
+  两轮 git diff 证明整改零生产代码改动）。新鲜验证 verification/completion-evidence.md decision
+  pass：构建 0 警告 0 错误，全量 2007 通过 / 2 跳过 / 0 失败。接受前证明：HEAD 仍等于先前基线
+  9c0de6c6，变更集 81 项全在 Server/ 与 AGENTS.md 之下加本任务产物目录，无 CRLF 污染，Spec 明列
+  的 Non-Goals 逐条确认未被触碰。以一次提交接受：70a3e54e，提交后工作区干净、源分支 main 的 tip
+  仍为 9c0de6c6、任务分支只前进一步。基线随之推进。
 workspace:
   repository_root: E:/Project/DNF/DNF-JP-86-Server
   task_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/commands-reach-only-domain-shapes/.rks-agent/tasks/commands-reach-only-domain-shapes
   code_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/commands-reach-only-domain-shapes
   branch: commands-reach-only-domain-shapes
-  baseline: 9c0de6c689964b5e791b5adb33cf6bc9bcb9b4ed
+  baseline: 70a3e54e10faccd65ca522f4e22af37355f88f06
   baseline_evidence: >-
     在任务工作区内跑
     `PVF_ARCHIVE_PATH=E:/Project/DNF/DNFClient-A21-protocol/Script.pvf dotnet test Server/86JP.Server.slnx --nologo`：
@@ -69,15 +65,15 @@ workspace:
 
 | SC | Requirement | Progress | Evidence | Remaining gap | Constraint |
 |---|---|---|---|---|---|
-| SC-1 | 每个命令处理器的每个构造器参数都是领域服务、领域 store、实例（或交出实例的工厂），或在具名豁免清单里 | not_started | none | 基线 55 个依赖中 19 次落在白名单外；豁免清单尚不存在 | aligned |
-| SC-2 | 没有命令处理器直接注入规则服务、静态规则类、PVF 内容源或行网关 | not_started | none | 两处硬违规待消除：`ICharacterTable`、`ISelectedSessionPositionPersistence` | aligned |
-| SC-3 | 违反 SC-1/SC-2 会让判据变红 | not_started | none | 现有判据只守「不许注入 `ICommandBus`」一条黑名单 | aligned |
-| SC-4 | 领域层「store」只指事务结算的真源且名字这么说；摆摊语义仍可从名字读出 | not_started | none | 三个 `IDomainStore` 实现待改名；`OnlineStateStore` 与六个容器的一词多义待消解 | aligned |
-| SC-5 | 三个内存容器改说领域话并私有化；大聚合不再被当作可读写的角色状态持有 | not_started | none | 三个注册表待转领域服务；大聚合 16 处读、9 处 `with` 写回待拆 | aligned |
+| SC-1 | 每个命令处理器的每个构造器参数都是领域服务、领域 store、实例（或交出实例的工厂），或在具名豁免清单里 | satisfied | `attempts/spec-001-guard-the-injection-surface/verification/completion-evidence.md` C-1：27 个处理器 55 个参数零违规，独立评审者以外部反射探针复核同一结论 | — | aligned |
+| SC-2 | 没有命令处理器直接注入规则服务、静态规则类、PVF 内容源或行网关 | satisfied | `attempts/spec-001-guard-the-injection-surface/verification/completion-evidence.md` C-2 | — | aligned |
+| SC-3 | 违反 SC-1/SC-2 会让判据变红 | satisfied | `attempts/spec-001-guard-the-injection-surface/verification/completion-evidence.md` C-4：拒绝用例加遍历非空断言；评审者另做三次生产代码变异逐次被抓 | — | aligned |
+| SC-4 | 领域层「store」只指事务结算的真源且名字这么说；摆摊语义仍可从名字读出 | satisfied | `attempts/spec-001-guard-the-injection-surface/verification/completion-evidence.md` C-5：含 `Store` 的类型逐个分类对照，摆摊一族一字未动 | `OnlineStateStore` 仍叫 Store 而非 `IDomainStore`；它是内存容器，归后续「容器转领域服务」处理 | aligned |
+| SC-5 | 三个内存容器改说领域话并私有化；大聚合不再被当作可读写的角色状态持有 | not_started | none | 三个注册表待转领域服务；大聚合 16 处读、9 处 `with` 写回待拆。**新增负担**：spec-001 为消除注入面违规，给 `ISelectCharacterSessionEntryDomainService` 加了三个逐字透传容器动词的成员，容器既没私有化也没改说领域话，须在此一并收口 | aligned |
 | SC-6 | 等级、经验、剩余 SP/TP 由角色实例回答，不再从入场镜像读 | not_started | none | 四个经验帧发送方仍读 `result.CharacterEntry.Skills.ProtocolMirror` | aligned |
-| SC-7 | 三个零消费方接缝及只写不读的角色状态残留副本不再存在 | not_started | none | 三个接缝连同各自测试待退役；`ActiveCharacterState` 副本 A 待处置 | aligned |
-| SC-8 | 除 SC-6 那一处外行为逐值不变 | not_started | none | 待各子成果分别取证并在根层汇总对账 | aligned |
-| SC-9 | 词汇表与对应判据写进仓库约定；`AGENTS.md` 与代码的冲突消解或如实记载 | not_started | none | 五个 `Application` 内部服务的跨层状态待裁决；`AGENTS.md:403` 待随判据更新 | aligned |
+| SC-7 | 三个零消费方接缝及只写不读的角色状态残留副本不再存在 | satisfied | `attempts/spec-001-guard-the-injection-surface/verification/completion-evidence.md` C-6：五个标识符全仓 0 处；注册项收敛为两个字段且各有存活读出点，反向索引随之退役 | — | aligned |
+| SC-8 | 除 SC-6 那一处外行为逐值不变 | in_progress | `attempts/spec-001-guard-the-injection-surface/verification/completion-evidence.md` C-7：2007 通过 / 2 跳过 / 0 失败，逐文件用例数对账 2015 − 21 + 11 + 2 闭合 | 后两个子成果各自的行为保持仍待取证 | aligned |
+| SC-9 | 词汇表与对应判据写进仓库约定；`AGENTS.md` 与代码的冲突消解或如实记载 | in_progress | `attempts/spec-001-guard-the-injection-surface/verification/completion-evidence.md` C-8：`AGENTS.md` 四处改动，五个内部服务的跨层记载已据实改写，分层判据自陈已更新 | 后两个子成果的结果仍需补记 | aligned |
 
 ## Spec Attempts
 
@@ -85,4 +81,5 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 
 | # | Attempt | TaskContract | Outcome | Affects | State | Result | Git result |
 |---:|---|---|---|---|---|---|---|
-| 1 | `spec-001` | `./attempts/spec-001-guard-the-injection-surface/TaskContract.md` | 注入面可由类型本身判定并被判据守住：领域 store 正名、两处硬违规消除、十四次命名不到位归类、三个死件退役 | SC-1, SC-2, SC-3, SC-4, SC-7, SC-8, SC-9 | `running` | pending | `active` |
+| 1 | `spec-001` | `./attempts/spec-001-guard-the-injection-surface/TaskContract.md` | 注入面可由类型本身判定并被判据守住：领域 store 正名、两处硬违规消除、十四次命名不到位归类、三个死件退役 | SC-1, SC-2, SC-3, SC-4, SC-7, SC-8, SC-9 | `sealed` | `completed`（`./attempts/spec-001-guard-the-injection-surface/spec-result.md`） | `70a3e54e` |
+| 2 | `spec-002` | `./attempts/spec-002-containers-speak-domain-verbs/TaskContract.md` | 会话与在场内存容器改说领域话；拆掉 spec-001 为通过判据而留下的透传壳 | SC-4, SC-5, SC-8, SC-9 | `running` | pending | `active` |

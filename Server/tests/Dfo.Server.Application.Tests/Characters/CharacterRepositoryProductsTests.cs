@@ -88,7 +88,7 @@ public sealed class CharacterRepositoryProductsTests
         var cooldowns = new CharacterItemCooldownDomainService(clock);
         var sessions = new OnlyCharacterSixty();
         var runtime = new FixedRuntimeSessions(level: 50, job: 0);
-        var presence = new SessionPresenceRegistry();
+        var presence = new SessionPresenceDomainService();
 
         return new CharacterDomainService(
             () => throw new NotSupportedException("No test here reaches the roster."),
@@ -101,17 +101,16 @@ public sealed class CharacterRepositoryProductsTests
     }
 
     /// <summary>A directory that has published a session for character 60 and for nobody else.</summary>
-    private sealed class OnlyCharacterSixty : ISelectedSessionDirectory
+    private sealed class OnlyCharacterSixty : ISelectedSessionDomainService
     {
         private static readonly SelectedSessionIdentity Session = SelectedSessionIdentity.Create(
             new AccountId(6), new CharacterId(60), new NetworkConnectionId("game-products"), 1, 10011);
 
-        public SelectedSessionIdentity? RegisterReplacing(SelectedSessionIdentity session) => null;
-        public bool TryRemoveExact(SelectedSessionIdentity session) => false;
+        public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => null;
+        public bool ReleaseExact(SelectedSessionIdentity session) => false;
         public SelectedSessionIdentity? Find(AccountId accountId) => Session;
         public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) => Session;
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => Session;
-        public IReadOnlyList<SelectedSessionIdentity> Current() => [Session];
 
         public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) =>
             characterId.Value == 60 ? Session : null;

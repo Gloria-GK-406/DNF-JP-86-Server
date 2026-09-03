@@ -11,9 +11,9 @@ namespace Dfo.Server.Application.Sessions;
 /// about their arrival, belong to the entry lifecycle.
 /// </remarks>
 internal sealed class SessionAdjacentEntryDomainService(
-    ISessionPresenceRegistry presence,
-    IExpertStoreRegistry expertStores,
-    IPvpLobbyRegistry lobby) : ISessionAdjacentEntryDomainService
+    ISessionPresenceDomainService presence,
+    IExpertStoreDomainService expertStores,
+    IPvpLobbyDomainService lobby) : ISessionAdjacentEntryDomainService
 {
     public ValueTask<SessionAdjacentEntryState> LoadAsync(
         SessionAdjacentSubject subject,

@@ -31,7 +31,7 @@ public sealed record PreparedSelectedCharacterSession(
 public sealed class PrepareSelectedCharacterSessionCommandHandler(
     IOnlineUserQueryDomainService onlineUsers,
     ISelectCharacterPreparationDomainService preparation,
-    ISelectCharacterSessionEntryDomainService sessionEntry,
+    ISelectedSessionDomainService sessions,
     ISelectedSessionCleanupDomainService cleanup,
     ISelectCharacterEntryInventoryDomainService inventoryEntry)
     : ICommandHandler<PrepareSelectedCharacterSessionCommand, PreparedSelectedCharacterSession>
@@ -50,7 +50,7 @@ public sealed class PrepareSelectedCharacterSessionCommandHandler(
         // represented by the game protocol is not an accepted session.
         _ = SelectedSessionIdentity.ToWireUserId(selected.Identity.CharacterId);
         var cleanupNotifications = new List<SelectedSessionCleanupNotificationPlan>();
-        var previous = sessionEntry.Find(command.AccountId);
+        var previous = sessions.Find(command.AccountId);
         if (previous is not null)
             await inventoryEntry.SaveExistingLeaseAsync(previous, cancellationToken).ConfigureAwait(false);
         if (previous?.ConnectionId == command.ConnectionId)
@@ -64,7 +64,7 @@ public sealed class PrepareSelectedCharacterSessionCommandHandler(
             {
                 if (error is SelectedSessionCleanupFailure cleanupFailure)
                     cleanupNotifications.Add(cleanupFailure.NotificationPlan);
-                _ = sessionEntry.ReleaseExact(previous);
+                _ = sessions.ReleaseExact(previous);
                 throw SelectCharacterPhaseFailure.Create(
                     error, [command.ConnectionId], cleanupNotifications);
             }
@@ -88,7 +88,7 @@ public sealed class PrepareSelectedCharacterSessionCommandHandler(
         var pendingCloses = new List<NetworkConnectionId>();
         try
         {
-            var displaced = sessionEntry.RegisterReplacing(session);
+            var displaced = sessions.Select(session);
             if (displaced is not null)
             {
                 pendingCloses.Add(displaced.ConnectionId);
@@ -99,7 +99,7 @@ public sealed class PrepareSelectedCharacterSessionCommandHandler(
                 }
                 finally
                 {
-                    _ = sessionEntry.ReleaseExact(displaced);
+                    _ = sessions.ReleaseExact(displaced);
                 }
             }
 
@@ -136,7 +136,7 @@ public sealed class PrepareSelectedCharacterSessionCommandHandler(
             }
             finally
             {
-                _ = sessionEntry.ReleaseExact(session);
+                _ = sessions.ReleaseExact(session);
             }
 
             pendingCloses.Add(session.ConnectionId);
@@ -300,7 +300,7 @@ public sealed record CompensatedSelectedCharacterSession(
 
 public sealed class CompensateSelectedCharacterSessionCommandHandler(
     ISelectedSessionCleanupDomainService cleanup,
-    ISelectCharacterSessionEntryDomainService sessionEntry)
+    ISelectedSessionDomainService sessions)
     : ICommandHandler<CompensateSelectedCharacterSessionCommand, CompensatedSelectedCharacterSession>
 {
     public async ValueTask<CompensatedSelectedCharacterSession> HandleAsync(
@@ -317,7 +317,7 @@ public sealed class CompensateSelectedCharacterSessionCommandHandler(
         }
         finally
         {
-            _ = sessionEntry.ReleaseExact(command.Session);
+            _ = sessions.ReleaseExact(command.Session);
         }
 
         return new CompensatedSelectedCharacterSession(

@@ -85,7 +85,7 @@ internal sealed class EplpCommandResponseEncoder : GameCmdMessageEncoder<EplpCom
 /// </para>
 /// </remarks>
 public sealed class EplpCommandHandler(
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IDungeonRunDomainService runs,
     IGameMessageSender sender,

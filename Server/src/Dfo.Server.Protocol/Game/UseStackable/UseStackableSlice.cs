@@ -295,7 +295,7 @@ public sealed class UseStackableCommandHandler(
 /// about items -- which is why a refusal can gain a better sentence without the rules moving.
 /// </remarks>
 public sealed class UseStackableHandler(
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     ICommandBus commandBus,
     IGameMessageSender sender,
     ILogger<UseStackableHandler> logger) : ClientMessageHandler<UseStackableRequest>

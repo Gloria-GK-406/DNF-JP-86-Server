@@ -134,7 +134,7 @@ internal sealed class GiveUpGameResponseEncoder : GameCmdMessageEncoder<GiveUpGa
 /// leave it holding a dungeon it is no longer in, and there is nothing it could do about that.
 /// </remarks>
 public sealed class GiveUpGameHandler(
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     IDungeonRunDomainService runs,
     IGameMessageSender sender,
     ILogger<GiveUpGameHandler> logger) : ClientMessageHandler<GiveUpGameRequest>
@@ -570,7 +570,7 @@ internal sealed class ClearDungeonRewardEncoder
 /// </para>
 /// </remarks>
 public sealed class SetPlayResultHandler(
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IDungeonRunDomainService runs,
     ICardRewardDomainService cardRewards,

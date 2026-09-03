@@ -55,7 +55,7 @@ public sealed class SelectCharacterHandler(
     ICommandBus commandBus,
     ISelectedCharacterStateMessageFactory stateMessages,
     SelectedSessionTransitionGate lifecycleGate,
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     IGameMessageSender sender,
     INetworkConnectionCloser closer,
     ILogger<SelectCharacterHandler> logger,

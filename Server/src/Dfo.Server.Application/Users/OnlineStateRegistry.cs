@@ -26,7 +26,7 @@ namespace Dfo.Server.Application.Users;
 /// nothing outside the access seam that has since been retired.
 /// </para>
 /// </remarks>
-internal sealed class OnlineStateStore
+internal sealed class OnlineStateRegistry
 {
     private readonly object sync = new();
     private readonly Dictionary<OnlineUserId, OnlineUser> byId = [];

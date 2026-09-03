@@ -159,7 +159,7 @@ codec 的常量。这是纯化简，无行为变化。
 **现象**：普通协议 handler 通常只在总线之外读取连接身份；
 `SelectCharacterHandler` 则是显式批准的多阶段协议工作流协调者。除
 `IOnlineUserQueryDomainService`、`IChannelEntryPolicy` 和 `ICommandBus` 外，它还持有
-`SelectedSessionTransitionGate`、`ISelectedSessionDirectory`、
+`SelectedSessionTransitionGate`、`ISelectedSessionDomainService`、
 `INetworkMessageSender` 与 `INetworkConnectionCloser`。
 
 **位置**：`Dfo.Server.Protocol/Game/SelectCharacter/SelectCharacterHandler.cs`。

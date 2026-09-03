@@ -1180,7 +1180,7 @@ public sealed class CardRewardTests
             RecordingSender sender,
             ClearRewardCardKind kind,
             int index,
-            ISelectedSessionDirectory? sessions = null,
+            ISelectedSessionDomainService? sessions = null,
             ISelectedSessionRuntimeDirectory? runtimeSessions = null)
         {
             var handler = new SelectCardHandler(
@@ -1353,7 +1353,7 @@ public sealed class CardRewardTests
             throw new NotSupportedException("This fixture holds nothing.");
     }
 
-    private sealed class OneSession(SelectedSessionIdentity identity) : ISelectedSessionDirectory
+    private sealed class OneSession(SelectedSessionIdentity identity) : ISelectedSessionDomainService
     {
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => identity;
 
@@ -1363,16 +1363,14 @@ public sealed class CardRewardTests
 
         public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) => identity;
 
-        public IReadOnlyList<SelectedSessionIdentity> Current() => [identity];
-
-        public SelectedSessionIdentity? RegisterReplacing(SelectedSessionIdentity session) =>
+        public SelectedSessionIdentity? Select(SelectedSessionIdentity session) =>
             throw new NotSupportedException("This fixture only answers.");
 
-        public bool TryRemoveExact(SelectedSessionIdentity session) =>
+        public bool ReleaseExact(SelectedSessionIdentity session) =>
             throw new NotSupportedException("This fixture only answers.");
     }
 
-    private sealed class NoSession : ISelectedSessionDirectory
+    private sealed class NoSession : ISelectedSessionDomainService
     {
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => null;
 
@@ -1382,12 +1380,10 @@ public sealed class CardRewardTests
 
         public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) => null;
 
-        public IReadOnlyList<SelectedSessionIdentity> Current() => [];
-
-        public SelectedSessionIdentity? RegisterReplacing(SelectedSessionIdentity session) =>
+        public SelectedSessionIdentity? Select(SelectedSessionIdentity session) =>
             throw new NotSupportedException("This fixture only answers.");
 
-        public bool TryRemoveExact(SelectedSessionIdentity session) =>
+        public bool ReleaseExact(SelectedSessionIdentity session) =>
             throw new NotSupportedException("This fixture only answers.");
     }
 

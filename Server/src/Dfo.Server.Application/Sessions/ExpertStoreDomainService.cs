@@ -6,7 +6,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Sessions;
 
 /// <summary>Keeps open expert stores in memory, keyed by their owner.</summary>
-internal sealed class ExpertStoreRegistry : IExpertStoreRegistry
+internal sealed class ExpertStoreDomainService : IExpertStoreDomainService
 {
     private readonly ConcurrentDictionary<CharacterId, StoreOwner> _open = new();
 

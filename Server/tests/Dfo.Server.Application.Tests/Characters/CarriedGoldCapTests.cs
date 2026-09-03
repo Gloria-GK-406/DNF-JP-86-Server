@@ -151,9 +151,9 @@ public sealed class CarriedGoldCapTests
                 Who,
                 new ItemUseJudgementService(new FakeItemUseRules()),
                 new CharacterItemCooldownDomainService(TimeProvider.System),
-                new SelectedSessionDirectory(),
+                new SelectedSessionDomainService(),
                 new FixedRuntimeSessions(level: SessionLevel, job: 0),
-                new SessionPresenceRegistry(),
+                new SessionPresenceDomainService(),
                 gold,
                 new CarriedGoldRuleService(archive)),
             archive);

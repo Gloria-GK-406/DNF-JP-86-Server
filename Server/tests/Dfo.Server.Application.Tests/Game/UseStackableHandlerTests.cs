@@ -308,7 +308,7 @@ public sealed class UseStackableHandlerTests
                 cooldowns,
                 sessions,
                 new FixedRuntimeSessions(level: 50, job: 0),
-                new SessionPresenceRegistry(),
+                new SessionPresenceDomainService(),
                 new NoCarriedGold(),
                 new StoredCarryLimitOnly())),
             new ItemUseEffectDomainService(judgement, cooldowns));
@@ -344,18 +344,17 @@ public sealed class UseStackableHandlerTests
         public bool IsEmpty => this.Count == 0;
     }
 
-    private sealed class OneSession : ISelectedSessionDirectory
+    private sealed class OneSession : ISelectedSessionDomainService
     {
         private static readonly SelectedSessionIdentity Session = SelectedSessionIdentity.Create(
             new AccountId(6), new CharacterId(60), new NetworkConnectionId("game-use"), 1, 10011);
 
-        public SelectedSessionIdentity? RegisterReplacing(SelectedSessionIdentity session) => null;
-        public bool TryRemoveExact(SelectedSessionIdentity session) => false;
+        public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => null;
+        public bool ReleaseExact(SelectedSessionIdentity session) => false;
         public SelectedSessionIdentity? Find(AccountId accountId) => Session;
         public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => Session;
         public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) => Session;
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => Session;
-        public IReadOnlyList<SelectedSessionIdentity> Current() => [Session];
     }
 
     private sealed class RecordingSender : IGameMessageSender

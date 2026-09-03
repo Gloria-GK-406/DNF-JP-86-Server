@@ -27,7 +27,7 @@ namespace Dfo.Server.Protocol.Game.QuestAcceptance;
 /// request, waited, and sent it again: the two acceptances observed live arrived twice each.
 /// </remarks>
 public sealed class AcceptQuestHandler(
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     ICommandBus commandBus,
     IGameMessageSender sender,

@@ -23,9 +23,9 @@ internal sealed class PlayingCharacter(
     CharacterId characterId,
     IItemUseJudgementService judgement,
     ICharacterItemCooldownDomainService cooldowns,
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
-    ISessionPresenceRegistry presence,
+    ISessionPresenceDomainService presence,
     ICharacterCarriedGoldTable carriedGold,
     ICarriedGoldRuleService goldRules) : ICharacter
 {

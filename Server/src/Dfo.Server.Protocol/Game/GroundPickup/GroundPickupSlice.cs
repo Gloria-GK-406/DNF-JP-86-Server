@@ -416,7 +416,7 @@ public sealed class PickUpGroundDropCommandHandler(
 /// acknowledgement and only then reads the notification that says where the piece went.
 /// </remarks>
 public sealed class GetItemHandler(
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     ICommandBus commandBus,
     IGameMessageSender sender,
     TimeProvider clock,

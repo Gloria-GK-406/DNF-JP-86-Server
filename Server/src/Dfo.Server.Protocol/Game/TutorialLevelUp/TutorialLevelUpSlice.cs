@@ -155,7 +155,7 @@ public sealed class GrantTutorialLevelCommandHandler(ICharacterExperienceDomainS
 /// </para>
 /// </remarks>
 public sealed class TutorialLevelUpHandler(
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IDungeonRunDomainService runs,
     ICommandBus commandBus,

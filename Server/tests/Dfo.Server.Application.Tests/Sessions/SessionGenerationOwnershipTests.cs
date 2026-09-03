@@ -20,9 +20,9 @@ public sealed class SessionGenerationOwnershipTests
     {
         var oldSession = Session("old", generation: 3);
         var current = Session("new", generation: 4);
-        var presence = new SessionPresenceRegistry();
-        var stores = new ExpertStoreRegistry();
-        var lobby = new PvpLobbyRegistry();
+        var presence = new SessionPresenceDomainService();
+        var stores = new ExpertStoreDomainService();
+        var lobby = new PvpLobbyDomainService();
 
         presence.Admit(new SessionPresence(current.CharacterId, 10011, 1, 2, true, current));
         stores.Open(current);
@@ -44,13 +44,13 @@ public sealed class SessionGenerationOwnershipTests
     public async Task Cleanup_AttemptsLaterExactActionsWhenOneActionThrows()
     {
         var session = Session("cleanup", 9);
-        var directory = new SelectedSessionDirectory();
-        directory.RegisterReplacing(session);
+        var directory = new SelectedSessionDomainService();
+        directory.Select(session);
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(), new CharacterContainerDomainService(),
             new CharacterItemCooldownDomainService(TimeProvider.System),
-            new ThrowingActive(), new SessionPresenceRegistry(), new ExpertStoreRegistry(),
-            new PvpLobbyRegistry(), []);
+            new ThrowingActive(), new SessionPresenceDomainService(), new ExpertStoreDomainService(),
+            new PvpLobbyDomainService(), []);
 
         await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
             await service.CleanupAsync(session, includeOwner: false, CancellationToken.None));
@@ -65,18 +65,18 @@ public sealed class SessionGenerationOwnershipTests
         var peer = SelectedSessionIdentity.Create(
             new AccountId(8), new CharacterId(80), new NetworkConnectionId("cleanup-peer"),
             1, 10011);
-        var directory = new SelectedSessionDirectory();
-        directory.RegisterReplacing(owner);
-        directory.RegisterReplacing(peer);
-        var presence = new SessionPresenceRegistry();
+        var directory = new SelectedSessionDomainService();
+        directory.Select(owner);
+        directory.Select(peer);
+        var presence = new SessionPresenceDomainService();
         presence.Admit(new SessionPresence(owner.CharacterId, 10011, 1, 2, true, owner));
         presence.Admit(new SessionPresence(peer.CharacterId, 10011, 1, 2, true, peer));
-        var stores = new ExpertStoreRegistry();
+        var stores = new ExpertStoreDomainService();
         stores.Open(owner);
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(), new CharacterContainerDomainService(),
             new CharacterItemCooldownDomainService(TimeProvider.System),
-            new ThrowingActive(), presence, stores, new PvpLobbyRegistry(),
+            new ThrowingActive(), presence, stores, new PvpLobbyDomainService(),
             []);
 
         var failure = await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
@@ -106,23 +106,23 @@ public sealed class SessionGenerationOwnershipTests
             new NetworkConnectionId("peer-2"), 1, 10011);
         var otherListener = SelectedSessionIdentity.Create(new AccountId(10), new CharacterId(100),
             new NetworkConnectionId("peer-other-port"), 1, 10012);
-        var directory = new SelectedSessionDirectory();
-        directory.RegisterReplacing(owner);
-        directory.RegisterReplacing(peer2);
-        directory.RegisterReplacing(peer1);
-        directory.RegisterReplacing(otherListener);
-        var presence = new SessionPresenceRegistry();
+        var directory = new SelectedSessionDomainService();
+        directory.Select(owner);
+        directory.Select(peer2);
+        directory.Select(peer1);
+        directory.Select(otherListener);
+        var presence = new SessionPresenceDomainService();
         presence.Admit(new SessionPresence(owner.CharacterId, 10011, 1, 2, true, owner));
         presence.Admit(new SessionPresence(peer2.CharacterId, 10011, 1, 2, true, peer2));
         presence.Admit(new SessionPresence(peer1.CharacterId, 10011, 1, 2, true, peer1));
         presence.Admit(new SessionPresence(
             otherListener.CharacterId, 10012, 1, 2, true, otherListener));
-        var stores = new ExpertStoreRegistry();
+        var stores = new ExpertStoreDomainService();
         stores.Open(owner);
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(), new CharacterContainerDomainService(),
             new CharacterItemCooldownDomainService(TimeProvider.System),
-            new PassiveActive(), presence, stores, new PvpLobbyRegistry(),
+            new PassiveActive(), presence, stores, new PvpLobbyDomainService(),
             []);
 
         var delivery = await service.CleanupAsync(owner, includeOwner, CancellationToken.None);
@@ -151,14 +151,14 @@ public sealed class SessionGenerationOwnershipTests
             session.AccountId, session.CharacterId.Value, 1);
         var runtimes = new SelectedSessionRuntimeDirectory();
         runtimes.Publish(session, result, shouldPersist);
-        var directory = new SelectedSessionDirectory();
-        directory.RegisterReplacing(session);
+        var directory = new SelectedSessionDomainService();
+        directory.Select(session);
         var persistence = new RecordingPositionPersistence();
         var service = new SelectedSessionCleanupService(
             directory, runtimes, new EmptyInventoryLease(), new CharacterContainerDomainService(),
             new CharacterItemCooldownDomainService(TimeProvider.System),
             new PassiveActive(),
-            new SessionPresenceRegistry(), new ExpertStoreRegistry(), new PvpLobbyRegistry(),
+            new SessionPresenceDomainService(), new ExpertStoreDomainService(), new PvpLobbyDomainService(),
             [persistence]);
 
         await service.CleanupAsync(session, false, CancellationToken.None);
@@ -171,16 +171,16 @@ public sealed class SessionGenerationOwnershipTests
     {
         var stale = Session("stale", 1);
         var replacement = Session("replacement", 2);
-        var directory = new SelectedSessionDirectory();
-        directory.RegisterReplacing(replacement);
-        var presence = new SessionPresenceRegistry();
+        var directory = new SelectedSessionDomainService();
+        directory.Select(replacement);
+        var presence = new SessionPresenceDomainService();
         presence.Admit(new SessionPresence(replacement.CharacterId, 10011, 1, 2, true, replacement));
-        var stores = new ExpertStoreRegistry();
+        var stores = new ExpertStoreDomainService();
         stores.Open(replacement);
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(), new CharacterContainerDomainService(),
             new CharacterItemCooldownDomainService(TimeProvider.System),
-            new PassiveActive(), presence, stores, new PvpLobbyRegistry(),
+            new PassiveActive(), presence, stores, new PvpLobbyDomainService(),
             []);
 
         var delivery = await service.CleanupAsync(
@@ -202,15 +202,15 @@ public sealed class SessionGenerationOwnershipTests
     public async Task Cleanup_ClearsTheCharactersCooldowns()
     {
         var session = Session("cleanup-cooldown", 11);
-        var directory = new SelectedSessionDirectory();
-        directory.RegisterReplacing(session);
+        var directory = new SelectedSessionDomainService();
+        directory.Select(session);
         var cooldowns = new CharacterItemCooldownDomainService(TimeProvider.System);
         cooldowns.Start(session.CharacterId, ItemCooldownKey.ForGroup(70), TimeSpan.FromMinutes(30));
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(),
             new CharacterContainerDomainService(), cooldowns,
-            new PassiveActive(), new SessionPresenceRegistry(), new ExpertStoreRegistry(),
-            new PvpLobbyRegistry(), []);
+            new PassiveActive(), new SessionPresenceDomainService(), new ExpertStoreDomainService(),
+            new PvpLobbyDomainService(), []);
 
         await service.CleanupAsync(session, includeOwner: false, CancellationToken.None);
 
@@ -227,15 +227,15 @@ public sealed class SessionGenerationOwnershipTests
     {
         var departing = Session("cooldown-departing", 12);
         var returned = Session("cooldown-returned", 13);
-        var directory = new SelectedSessionDirectory();
-        directory.RegisterReplacing(returned);
+        var directory = new SelectedSessionDomainService();
+        directory.Select(returned);
         var cooldowns = new CharacterItemCooldownDomainService(TimeProvider.System);
         cooldowns.Start(returned.CharacterId, ItemCooldownKey.ForGroup(70), TimeSpan.FromMinutes(30));
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(),
             new CharacterContainerDomainService(), cooldowns,
-            new PassiveActive(), new SessionPresenceRegistry(), new ExpertStoreRegistry(),
-            new PvpLobbyRegistry(), []);
+            new PassiveActive(), new SessionPresenceDomainService(), new ExpertStoreDomainService(),
+            new PvpLobbyDomainService(), []);
 
         await service.CleanupAsync(departing, includeOwner: false, CancellationToken.None);
 

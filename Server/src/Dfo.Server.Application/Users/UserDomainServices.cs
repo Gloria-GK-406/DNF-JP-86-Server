@@ -18,7 +18,7 @@ namespace Dfo.Server.Application.Users;
 /// </remarks>
 internal sealed class AccountDomainService(
     Func<IAccountRepository> accountRepository,
-    OnlineStateStore state) : IAccountDomainService
+    OnlineStateRegistry state) : IAccountDomainService
 {
     public async ValueTask<AccountId> LoginAsync(
         OnlineUserId onlineUserId,
@@ -37,7 +37,7 @@ internal sealed class AccountDomainService(
 }
 
 /// <summary>Who is connected, and the lifecycle of those connections.</summary>
-internal sealed class OnlineUserDomainService(OnlineStateStore state) : IOnlineUserDomainService
+internal sealed class OnlineUserDomainService(OnlineStateRegistry state) : IOnlineUserDomainService
 {
     public OnlineUserSnapshot RegisterConnection(NetworkConnectionContext connection) =>
         state.RegisterConnection(connection);
@@ -61,7 +61,7 @@ internal sealed class OnlineUserDomainService(OnlineStateStore state) : IOnlineU
 }
 
 /// <summary>The character each account currently has in play, and the session that owns it.</summary>
-internal sealed class ActiveCharacterDomainService(OnlineStateStore state)
+internal sealed class ActiveCharacterDomainService(OnlineStateRegistry state)
     : IActiveCharacterDomainService
 {
     public void Publish(SelectedSessionIdentity session) => state.Publish(session);

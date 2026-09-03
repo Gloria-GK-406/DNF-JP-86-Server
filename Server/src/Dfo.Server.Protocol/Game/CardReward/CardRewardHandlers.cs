@@ -19,7 +19,7 @@ namespace Dfo.Server.Protocol.Game.CardReward;
 /// gets nothing at all for turning one over.
 /// </remarks>
 public sealed class CardSelectRightStateHandler(
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     IGameMessageSender sender,
     ILogger<CardSelectRightStateHandler> logger)
     : ClientMessageHandler<CardSelectRightStateRequest>
@@ -60,7 +60,7 @@ public sealed class CardSelectRightStateHandler(
 /// </para>
 /// </remarks>
 public sealed class SelectCardHandler(
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     ICommandBus commandBus,
     IGameMessageSender sender,

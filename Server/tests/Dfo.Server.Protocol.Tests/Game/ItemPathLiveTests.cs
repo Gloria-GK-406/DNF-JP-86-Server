@@ -173,7 +173,7 @@ public sealed class ItemPathLiveTests
                 services.GetRequiredService<IItemPlacementRuleService>(),
                 services.GetRequiredService<IItemArrivalRuleService>(),
                 services.GetRequiredService<IItemSlotRuleService>()));
-        services.GetRequiredService<ISelectedSessionDirectory>().RegisterReplacing(
+        services.GetRequiredService<ISelectedSessionDomainService>().Select(
             new SelectedSessionIdentity(
                 new AccountId(6), character, connectionId, 0, WireUserId: 60, ListenerPort: 0));
     }

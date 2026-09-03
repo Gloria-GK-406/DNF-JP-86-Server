@@ -21,7 +21,7 @@ namespace Dfo.Server.Protocol.Game.QuestProgress;
 /// finishing it is FINISH_QUEST's, and the lists are re-sent there.
 /// </remarks>
 public sealed class SetQuestTriggerHandler(
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     ICommandBus commandBus,
     IGameMessageSender sender,
     ILogger<SetQuestTriggerHandler> logger) : ClientMessageHandler<SetQuestTriggerRequest>

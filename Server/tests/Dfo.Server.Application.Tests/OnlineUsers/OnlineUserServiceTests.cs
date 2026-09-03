@@ -382,7 +382,7 @@ public sealed class UserServiceTests
         var accountId = new AccountId(104);
         var service = CreateService(accountId);
         var gate = new OnlineUserExecutionGate();
-        var sessions = new SelectedSessionDirectory();
+        var sessions = new SelectedSessionDomainService();
         var cleanup = new ClearingCleanup(service);
         var observer = new OnlineUserConnectionObserver(
             service, gate, new SelectedSessionTransitionGate(), sessions, cleanup,
@@ -395,7 +395,7 @@ public sealed class UserServiceTests
         var beforeBind = service.GetRequired(registered.OnlineUserId);
         var selected = SelectedSessionIdentity.Create(
             accountId, new CharacterId(1004), connection.ConnectionId, beforeBind.Generation, 10011);
-        sessions.RegisterReplacing(selected);
+        sessions.Select(selected);
         service.Publish(selected);
 
         await observer.DisconnectedAsync(connection, CancellationToken.None);
@@ -409,7 +409,7 @@ public sealed class UserServiceTests
     {
         var accountId = new AccountId(106);
         var service = CreateService(accountId);
-        var sessions = new SelectedSessionDirectory();
+        var sessions = new SelectedSessionDomainService();
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:cleanup-failure"), NetworkEndpointKind.Game, 10011);
         var registered = service.RegisterConnection(connection);
@@ -419,7 +419,7 @@ public sealed class UserServiceTests
         var selected = SelectedSessionIdentity.Create(
             accountId, new CharacterId(1006), connection.ConnectionId,
             authenticated.Generation, 10011);
-        sessions.RegisterReplacing(selected);
+        sessions.Select(selected);
         var peerConnection = new NetworkConnectionId("Game:cleanup-peer");
         var plan = new SelectedSessionCleanupNotificationPlan(
             connection.ConnectionId,
@@ -477,7 +477,7 @@ public sealed class UserServiceTests
 
     private static OnlineUserConnectionObserver CreateObserver(
         IOnlineUserDomainService service,
-        ISelectedSessionDirectory sessions,
+        ISelectedSessionDomainService sessions,
         ISelectedSessionCleanupDomainService cleanup,
         IGameMessageSender sender,
         TimeProvider timeProvider,
@@ -555,15 +555,14 @@ public sealed class UserServiceTests
                 DateTimeOffset.UtcNow));
     }
 
-    private sealed class EmptySelectedSessions : ISelectedSessionDirectory
+    private sealed class EmptySelectedSessions : ISelectedSessionDomainService
     {
-        public SelectedSessionIdentity? RegisterReplacing(SelectedSessionIdentity session) => null;
-        public bool TryRemoveExact(SelectedSessionIdentity session) => false;
+        public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => null;
+        public bool ReleaseExact(SelectedSessionIdentity session) => false;
         public SelectedSessionIdentity? Find(AccountId accountId) => null;
         public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => null;
         public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) => null;
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => null;
-        public IReadOnlyList<SelectedSessionIdentity> Current() => [];
     }
 
     private sealed class NoopCleanup : ISelectedSessionCleanupDomainService

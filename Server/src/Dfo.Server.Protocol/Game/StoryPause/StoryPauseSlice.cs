@@ -87,7 +87,7 @@ internal sealed class StoryPauseDecoder : IGameMessageDecoder
 
 /// <summary>Confirms a scripted pause so the script can carry on.</summary>
 public sealed class StoryPauseHandler(
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     IGameMessageSender sender,
     ILogger<StoryPauseHandler> logger) : ClientMessageHandler<StoryPauseRequest>
 {

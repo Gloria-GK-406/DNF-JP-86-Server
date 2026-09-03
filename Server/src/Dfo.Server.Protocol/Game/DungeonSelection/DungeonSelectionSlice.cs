@@ -167,7 +167,7 @@ internal sealed class BackToVillageResponseEncoder : GameCmdMessageEncoder<BackT
 /// </para>
 /// </remarks>
 public sealed class BackToVillageHandler(
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IDungeonRunDomainService runs,
     IGameMessageSender sender,
@@ -358,7 +358,7 @@ internal sealed class EnterSelectDungeonEncoder
 /// A21 one, which sends it here and again after SELECT_DUNGEON.
 /// </remarks>
 public sealed class EnterSelectDungeonHandler(
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IDungeonVisitDomainService visits,
     IGameMessageSender sender,

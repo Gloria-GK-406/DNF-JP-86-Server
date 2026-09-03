@@ -435,7 +435,7 @@ public sealed class MoveItemSpaceCommandHandler(
 /// back, because the client matches the acknowledgement against what it sent.
 /// </remarks>
 public sealed class MoveItemSpaceHandler(
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     ICommandBus commandBus,
     IGameMessageSender sender,
     ILogger<MoveItemSpaceHandler> logger) : ClientMessageHandler<MoveItemSpaceRequest>

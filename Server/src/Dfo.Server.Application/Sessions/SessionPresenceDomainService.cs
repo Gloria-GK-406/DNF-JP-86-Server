@@ -9,11 +9,11 @@ namespace Dfo.Server.Application.Sessions;
 /// Keeps the server's record of who is present, in memory, for its lifetime.
 /// </summary>
 /// <remarks>
-/// Placed alongside the other in-memory runtime registries in this layer rather than in
+/// Placed alongside the in-memory runtime state this layer already holds rather than in
 /// Infrastructure: it holds no external technology, and the accepted online-user and
-/// active-character registries already live here.
+/// active-character state already lives here.
 /// </remarks>
-internal sealed class SessionPresenceRegistry : ISessionPresenceRegistry
+internal sealed class SessionPresenceDomainService : ISessionPresenceDomainService
 {
     private readonly ConcurrentDictionary<CharacterId, SessionPresence> _byCharacter = new();
 

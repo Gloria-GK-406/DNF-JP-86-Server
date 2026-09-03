@@ -193,7 +193,7 @@ public sealed class ExperienceBonusDomainServiceTests
         public ChannelExperienceCatalog Load() => catalog;
     }
 
-    private sealed class OneSession : ISelectedSessionDirectory
+    private sealed class OneSession : ISelectedSessionDomainService
     {
         public static readonly SelectedSessionIdentity Identity = SelectedSessionIdentity.Create(
             new AccountId(1),
@@ -211,12 +211,10 @@ public sealed class ExperienceBonusDomainServiceTests
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) =>
             Identity;
 
-        public IReadOnlyList<SelectedSessionIdentity> Current() => [Identity];
-
-        public SelectedSessionIdentity? RegisterReplacing(SelectedSessionIdentity session) =>
+        public SelectedSessionIdentity? Select(SelectedSessionIdentity session) =>
             throw new NotSupportedException("This fixture only answers.");
 
-        public bool TryRemoveExact(SelectedSessionIdentity session) =>
+        public bool ReleaseExact(SelectedSessionIdentity session) =>
             throw new NotSupportedException("This fixture only answers.");
     }
 

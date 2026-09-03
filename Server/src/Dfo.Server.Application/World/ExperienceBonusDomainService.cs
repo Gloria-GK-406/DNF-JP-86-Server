@@ -21,7 +21,7 @@ namespace Dfo.Server.Application.World;
 /// </para>
 /// </remarks>
 internal sealed class ExperienceBonusDomainService(
-    ISelectedSessionDirectory sessions,
+    ISelectedSessionDomainService sessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IExperienceRuleService experienceRules,
     TimeProvider clock) : IExperienceBonusDomainService

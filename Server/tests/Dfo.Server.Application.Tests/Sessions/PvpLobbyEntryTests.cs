@@ -9,7 +9,7 @@ namespace Dfo.Server.Application.Tests.Sessions;
 
 public sealed class PvpLobbyEntryTests
 {
-    private static readonly ExpertStoreRegistry Stores = new();
+    private static readonly ExpertStoreDomainService Stores = new();
 
     /// <remarks>
     /// The distinction this pins is the one the Spec calls out: no lobby at all versus a
@@ -19,7 +19,7 @@ public sealed class PvpLobbyEntryTests
     [Fact]
     public async Task An_ordinary_channel_has_no_lobby_rather_than_an_empty_one()
     {
-        var result = await Service(new PvpLobbyRegistry())
+        var result = await Service(new PvpLobbyDomainService())
             .LoadAsync(Subject(StubChannelEntryPolicy.GeneralChannel), CancellationToken.None);
 
         Assert.Null(result.PvpLobby);
@@ -28,7 +28,7 @@ public sealed class PvpLobbyEntryTests
     [Fact]
     public async Task The_duelling_channel_has_a_lobby_even_when_nobody_is_waiting()
     {
-        var result = await Service(new PvpLobbyRegistry())
+        var result = await Service(new PvpLobbyDomainService())
             .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
 
         Assert.NotNull(result.PvpLobby);
@@ -39,7 +39,7 @@ public sealed class PvpLobbyEntryTests
     [Fact]
     public async Task The_lobby_lists_the_other_characters_who_are_ready()
     {
-        var lobby = new PvpLobbyRegistry();
+        var lobby = new PvpLobbyDomainService();
         lobby.MarkReady(Ready(10));
         lobby.MarkReady(Ready(11));
         lobby.MarkReady(Ready(99));
@@ -55,7 +55,7 @@ public sealed class PvpLobbyEntryTests
     [Fact]
     public async Task Characters_ready_on_another_listener_are_not_in_this_lobby()
     {
-        var lobby = new PvpLobbyRegistry();
+        var lobby = new PvpLobbyDomainService();
         lobby.MarkReady(Ready(10));
         lobby.MarkReady(Ready(11, listenerPort: 10011));
 
@@ -70,7 +70,7 @@ public sealed class PvpLobbyEntryTests
     [Fact]
     public async Task The_lobby_lists_the_rooms_on_offer()
     {
-        var lobby = new PvpLobbyRegistry();
+        var lobby = new PvpLobbyDomainService();
         lobby.Offer(Room(2));
         lobby.Offer(Room(1));
 
@@ -87,7 +87,7 @@ public sealed class PvpLobbyEntryTests
     [Fact]
     public async Task A_room_still_being_announced_is_not_offered()
     {
-        var lobby = new PvpLobbyRegistry();
+        var lobby = new PvpLobbyDomainService();
         lobby.Offer(Room(1, published: false));
         lobby.Offer(Room(2));
 
@@ -100,7 +100,7 @@ public sealed class PvpLobbyEntryTests
     [Fact]
     public async Task Rooms_on_another_listener_are_not_offered()
     {
-        var lobby = new PvpLobbyRegistry();
+        var lobby = new PvpLobbyDomainService();
         lobby.Offer(Room(1, listenerPort: 10011));
 
         var result = await Service(lobby)
@@ -112,7 +112,7 @@ public sealed class PvpLobbyEntryTests
     [Fact]
     public async Task A_room_carries_what_the_lobby_shows_about_it()
     {
-        var lobby = new PvpLobbyRegistry();
+        var lobby = new PvpLobbyDomainService();
         lobby.Offer(new PvpRoom(
             RoomId: 7,
             OwnerCharacterId: new CharacterId(10),
@@ -137,7 +137,7 @@ public sealed class PvpLobbyEntryTests
     [Fact]
     public void Withdrawing_removes_a_room_from_the_offers()
     {
-        var lobby = new PvpLobbyRegistry();
+        var lobby = new PvpLobbyDomainService();
         lobby.Offer(Room(1));
 
         Assert.True(lobby.Withdraw(1));
@@ -148,7 +148,7 @@ public sealed class PvpLobbyEntryTests
     [Fact]
     public void Clearing_readiness_removes_a_participant()
     {
-        var lobby = new PvpLobbyRegistry();
+        var lobby = new PvpLobbyDomainService();
         lobby.MarkReady(Ready(10));
 
         Assert.True(lobby.ClearReady(new CharacterId(10)));
@@ -156,8 +156,8 @@ public sealed class PvpLobbyEntryTests
         Assert.Empty(lobby.ReadyOn(10068, new CharacterId(99)));
     }
 
-    private static SessionAdjacentEntryDomainService Service(IPvpLobbyRegistry lobby) =>
-        new(new SessionPresenceRegistry(), Stores, lobby);
+    private static SessionAdjacentEntryDomainService Service(IPvpLobbyDomainService lobby) =>
+        new(new SessionPresenceDomainService(), Stores, lobby);
 
     private static SessionAdjacentSubject Subject(ChannelEntryIdentity channel) =>
         new(new CharacterId(99), new AccountId(1), channel, TownId: 1, AreaId: 0);

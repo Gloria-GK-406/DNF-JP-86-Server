@@ -2,7 +2,6 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
-using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.World;
 
@@ -21,15 +20,15 @@ public sealed class SelectedSessionCleanupFailure(
 }
 
 internal sealed class SelectedSessionCleanupService(
-    ISelectedSessionDirectory sessions,
+    ISelectedSessionDomainService sessions,
     ISelectedSessionRuntimeDirectory runtimes,
     IEntryInventoryLeaseRegistry inventoryLeases,
     ICharacterContainerDomainService containers,
     ICharacterItemCooldownDomainService cooldowns,
     IActiveCharacterDomainService activeCharacters,
-    ISessionPresenceRegistry presence,
-    IExpertStoreRegistry expertStores,
-    IPvpLobbyRegistry pvp,
+    ISessionPresenceDomainService presence,
+    IExpertStoreDomainService expertStores,
+    IPvpLobbyDomainService pvp,
     IEnumerable<ISelectedSessionPositionPersistence> positionPersistence) : ISelectedSessionCleanupDomainService
 {
     public async ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
@@ -80,7 +79,7 @@ internal sealed class SelectedSessionCleanupService(
         Run(() => inventoryLeases.ReleaseExact(session));
         Run(() => runtimes.RemoveExact(session));
         Run(() => activeCharacters.ClearExact(session));
-        Run(() => sessions.TryRemoveExact(session));
+        Run(() => sessions.ReleaseExact(session));
 
         // After the directory entry is gone: a character that already re-entered on another
         // connection owns the registration now, and dropping it would unbind a live session.
@@ -116,18 +115,11 @@ internal sealed class SelectedSessionCleanupService(
 }
 
 internal sealed class SelectCharacterSessionEntryService(
-    ISelectedSessionDirectory sessions,
+    ISelectedSessionDomainService sessions,
     ISelectedSessionRuntimeDirectory runtimes,
-    ISessionPresenceRegistry presence,
-    IPvpLobbyRegistry pvp) : ISelectCharacterSessionEntryDomainService
+    ISessionPresenceDomainService presence,
+    IPvpLobbyDomainService pvp) : ISelectCharacterSessionEntryDomainService
 {
-    public SelectedSessionIdentity? Find(AccountId accountId) => sessions.Find(accountId);
-
-    public SelectedSessionIdentity? RegisterReplacing(SelectedSessionIdentity session) =>
-        sessions.RegisterReplacing(session);
-
-    public bool ReleaseExact(SelectedSessionIdentity session) => sessions.TryRemoveExact(session);
-
     public PvpLobbySynchronizationState? PlanPvp(
         SelectedSessionIdentity session, SelectCharacterResult result)
     {

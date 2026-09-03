@@ -6,12 +6,12 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Sessions;
 
-internal sealed class SelectedSessionDirectory : ISelectedSessionDirectory
+internal sealed class SelectedSessionDomainService : ISelectedSessionDomainService
 {
     private readonly object sync = new();
     private readonly Dictionary<AccountId, SelectedSessionIdentity> sessions = [];
 
-    public SelectedSessionIdentity? RegisterReplacing(SelectedSessionIdentity session)
+    public SelectedSessionIdentity? Select(SelectedSessionIdentity session)
     {
         ArgumentNullException.ThrowIfNull(session);
         lock (sync)
@@ -29,7 +29,7 @@ internal sealed class SelectedSessionDirectory : ISelectedSessionDirectory
         }
     }
 
-    public bool TryRemoveExact(SelectedSessionIdentity session)
+    public bool ReleaseExact(SelectedSessionIdentity session)
     {
         ArgumentNullException.ThrowIfNull(session);
         lock (sync)
@@ -58,10 +58,5 @@ internal sealed class SelectedSessionDirectory : ISelectedSessionDirectory
     public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId)
     {
         lock (sync) return sessions.Values.SingleOrDefault(value => value.ConnectionId == connectionId);
-    }
-
-    public IReadOnlyList<SelectedSessionIdentity> Current()
-    {
-        lock (sync) return sessions.Values.OrderBy(value => value.WireUserId).ToArray();
     }
 }

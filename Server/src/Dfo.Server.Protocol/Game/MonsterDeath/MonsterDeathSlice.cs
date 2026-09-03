@@ -354,7 +354,7 @@ internal sealed class MonsterDeathDecoder : IGameMessageDecoder
 
 /// <summary>Acknowledges a kill and reports what the character is worth after it.</summary>
 public sealed class MonsterDeathHandler(
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IDungeonRunDomainService runs,
     IMonsterKillDomainService kills,

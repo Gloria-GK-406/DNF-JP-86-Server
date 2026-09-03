@@ -11,14 +11,14 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Tests;
 
 /// <summary>
-/// The three online-state services over one store, as a single object.
+/// The three online-state services over one registry, as a single object.
 /// </summary>
 /// <remarks>
 /// Production composes these three separately; this fixture exists because these tests exercise the
 /// account, online-user and active-character responsibilities of one connection together, and
 /// holding three references at every call site would obscure what each test is asserting. It adds
 /// no behavior: every member forwards to the same service the container would have injected, and
-/// all three share one store, so the tests still exercise the real cross-responsibility path.
+/// all three share one registry, so the tests still exercise the real cross-responsibility path.
 /// </remarks>
 internal sealed class UserDomainServices
     : IAccountDomainService, IOnlineUserDomainService, IActiveCharacterDomainService
@@ -29,10 +29,10 @@ internal sealed class UserDomainServices
 
     public UserDomainServices(Func<IAccountRepository> accountRepository)
     {
-        var store = new OnlineStateStore();
-        accounts = new AccountDomainService(accountRepository, store);
-        online = new OnlineUserDomainService(store);
-        active = new ActiveCharacterDomainService(store);
+        var state = new OnlineStateRegistry();
+        accounts = new AccountDomainService(accountRepository, state);
+        online = new OnlineUserDomainService(state);
+        active = new ActiveCharacterDomainService(state);
     }
 
     public ValueTask<AccountId> LoginAsync(

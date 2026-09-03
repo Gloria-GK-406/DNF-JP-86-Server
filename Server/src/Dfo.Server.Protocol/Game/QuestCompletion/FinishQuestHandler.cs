@@ -28,7 +28,7 @@ namespace Dfo.Server.Protocol.Game.QuestCompletion;
 /// one is the only thing on this path that changes them.
 /// </remarks>
 public sealed class FinishQuestHandler(
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     ICommandBus commandBus,
     IGameMessageSender sender,

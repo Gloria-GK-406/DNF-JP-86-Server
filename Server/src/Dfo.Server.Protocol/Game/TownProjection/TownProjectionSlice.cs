@@ -206,7 +206,7 @@ internal sealed class SetUserPositionDecoder : IGameMessageDecoder
 /// registration is not an obligation to reply -- see protocol/patterns/game-receive.md.
 /// </remarks>
 public sealed class SetUserAreaHandler(
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IChannelEntryPolicy channels,
     ITownMovementDomainService towns,
@@ -325,7 +325,7 @@ public sealed class SetUserAreaHandler(
 /// not an exception, because the reference session that shows it had one character in the town.
 /// </remarks>
 public sealed class SetUserPositionHandler(
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IGameMessageSender sender,
     ILogger<SetUserPositionHandler> logger) : ClientMessageHandler<SetUserPositionRequest>

@@ -27,7 +27,7 @@ namespace Dfo.Server.Protocol.Game.TaggedIdReport;
 /// </remarks>
 public sealed class TaggedIdReportHandler(
     IOnlineUserQueryDomainService onlineUsers,
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     ITutorialRewardDomainService rewards,
     ICommandBus commandBus,
     IGameMessageSender sender,

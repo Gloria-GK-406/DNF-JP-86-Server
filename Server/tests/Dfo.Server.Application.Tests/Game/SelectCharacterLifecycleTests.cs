@@ -258,7 +258,7 @@ public sealed class SelectCharacterLifecycleTests
             fixture.AccountId, fixture.Result.Character.Identity.CharacterId,
             fixture.ConnectionId, fixture.AuthenticatedGeneration,
             StubChannelEntryPolicy.GeneralChannel.ListenerPort);
-        fixture.Directory.RegisterReplacing(previous);
+        fixture.Directory.Select(previous);
 
         await Assert.ThrowsAsync<Dfo.Server.Data.Channel.ChannelAdmissionRefusedException>(async () =>
             await fixture.Handler.HandleAsync(fixture.Context, fixture.Command, CancellationToken.None));
@@ -339,7 +339,7 @@ public sealed class SelectCharacterLifecycleTests
         var old = SelectedSessionIdentity.Create(
             fixture.AccountId, new CharacterId(500), fixture.ConnectionId,
             before!.Generation, StubChannelEntryPolicy.GeneralChannel.ListenerPort);
-        fixture.Directory.RegisterReplacing(old);
+        fixture.Directory.Select(old);
         fixture.Active.Publish(old);
         fixture.Ledger.Clear();
         Assert.True(fixture.Users.TryGetByConnection(fixture.ConnectionId, out var selected));
@@ -351,7 +351,7 @@ public sealed class SelectCharacterLifecycleTests
         Assert.True(current.ConnectionGeneration > selected!.Generation);
         Assert.Equal([(old, true)], fixture.Cleanup.Calls);
         Assert.DoesNotContain(fixture.ConnectionId, fixture.Closer.Closed);
-        Assert.False(fixture.Directory.TryRemoveExact(old));
+        Assert.False(fixture.Directory.ReleaseExact(old));
     }
 
     [Fact]
@@ -361,7 +361,7 @@ public sealed class SelectCharacterLifecycleTests
         var displaced = SelectedSessionIdentity.Create(
             fixture.AccountId, new CharacterId(500), new NetworkConnectionId("Game:old"),
             1, StubChannelEntryPolicy.GeneralChannel.ListenerPort);
-        fixture.Directory.RegisterReplacing(displaced);
+        fixture.Directory.Select(displaced);
         fixture.Closer.OnClose = async () =>
         {
             await using var callbackLease = await fixture.TransitionGate.AcquireAsync(
@@ -383,7 +383,7 @@ public sealed class SelectCharacterLifecycleTests
         var displaced = SelectedSessionIdentity.Create(
             fixture.AccountId, new CharacterId(500), new NetworkConnectionId("Game:old-fault"),
             1, StubChannelEntryPolicy.GeneralChannel.ListenerPort);
-        fixture.Directory.RegisterReplacing(displaced);
+        fixture.Directory.Select(displaced);
         fixture.Cleanup.FailureSession = displaced;
 
         await Assert.ThrowsAsync<IOException>(async () =>
@@ -401,7 +401,7 @@ public sealed class SelectCharacterLifecycleTests
             NetworkConnectionId connectionId,
             SelectCharacterResult result,
             List<string> ledger,
-            ISelectedSessionDirectory directory,
+            ISelectedSessionDomainService directory,
             RecordingActive active,
             RecordingCloser closer,
             UserDomainServices users,
@@ -448,7 +448,7 @@ public sealed class SelectCharacterLifecycleTests
         public NetworkConnectionId ConnectionId { get; }
         public SelectCharacterResult Result { get; }
         public List<string> Ledger { get; }
-        public ISelectedSessionDirectory Directory { get; }
+        public ISelectedSessionDomainService Directory { get; }
         public RecordingActive Active { get; }
         public RecordingCloser Closer { get; }
         public UserDomainServices Users { get; }
@@ -517,7 +517,7 @@ public sealed class SelectCharacterLifecycleTests
             await users.LoginAsync(
                 registered.OnlineUserId, "lifecycle", "hash", CancellationToken.None);
             var authenticated = users.GetRequired(registered.OnlineUserId);
-            var directory = new SelectedSessionDirectory();
+            var directory = new SelectedSessionDomainService();
             var active = new RecordingActive(users, ledger);
             var closer = new RecordingCloser(ledger);
             var cleanup = new RecordingCleanup(directory, active, ledger);
@@ -525,7 +525,7 @@ public sealed class SelectCharacterLifecycleTests
             var inventory = new InventoryPreparation(result, ledger, refillCommits);
             var sender = new RecordingSender(
                 ledger, failTrailingLocks, failPvp, failPvpTarget, failStatic, blockStatic);
-            var sessionEntry = new SessionEntry(ledger, planPvp, directory);
+            var sessionEntry = new SessionEntry(ledger, planPvp);
             var transitionGate = new SelectedSessionTransitionGate();
             var preparation = refuseAdmission
                 ? null
@@ -533,7 +533,7 @@ public sealed class SelectCharacterLifecycleTests
             var prepareHandler = new PrepareSelectedCharacterSessionCommandHandler(
                 users,
                 refuseAdmission ? new RefusingPreparation(ledger) : preparation!,
-                sessionEntry,
+                directory,
                 cleanup,
                 inventory);
             var bus = new RecordingCommandBus(
@@ -545,7 +545,7 @@ public sealed class SelectCharacterLifecycleTests
                     new QuestEntry(ledger, changeQuest), sessionEntry),
                 new ReviveSelectedCharacterPetCommandHandler(
                     new PetEntry(ledger, revivePet), sessionEntry),
-                new CompensateSelectedCharacterSessionCommandHandler(cleanup, sessionEntry));
+                new CompensateSelectedCharacterSessionCommandHandler(cleanup, directory));
             var handler = new SelectCharacterHandler(
                 users,
                 new StubChannelEntryPolicy(),
@@ -766,17 +766,9 @@ public sealed class SelectCharacterLifecycleTests
     }
 
     private sealed class SessionEntry(
-        List<string> ledger, bool planPvp, ISelectedSessionDirectory sessions)
+        List<string> ledger, bool planPvp)
         : ISelectCharacterSessionEntryDomainService
     {
-        public SelectedSessionIdentity? Find(AccountId accountId) => sessions.Find(accountId);
-
-        public SelectedSessionIdentity? RegisterReplacing(SelectedSessionIdentity session) =>
-            sessions.RegisterReplacing(session);
-
-        public bool ReleaseExact(SelectedSessionIdentity session) =>
-            sessions.TryRemoveExact(session);
-
         public SelectCharacterResult? RuntimeResult { get; private set; }
         public PvpLobbySynchronizationState? PlanPvp(
             SelectedSessionIdentity session, SelectCharacterResult result)
@@ -899,7 +891,7 @@ public sealed class SelectCharacterLifecycleTests
     }
 
     private sealed class RecordingCleanup(
-        ISelectedSessionDirectory directory, IActiveCharacterDomainService active, List<string> ledger)
+        ISelectedSessionDomainService directory, IActiveCharacterDomainService active, List<string> ledger)
         : ISelectedSessionCleanupDomainService
     {
         public List<(SelectedSessionIdentity Session, bool IncludeOwner)> Calls { get; } = [];
@@ -914,7 +906,7 @@ public sealed class SelectCharacterLifecycleTests
                 return ValueTask.FromException<SelectedSessionCleanupNotificationPlan>(
                     new IOException("cleanup failed"));
             _ = active.ClearExact(session);
-            _ = directory.TryRemoveExact(session);
+            _ = directory.ReleaseExact(session);
             return ValueTask.FromResult(SelectedSessionCleanupNotificationPlan.Empty(session));
         }
     }

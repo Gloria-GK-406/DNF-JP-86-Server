@@ -255,7 +255,7 @@ public sealed class CharacterItemUseTests
 
     /// <remarks>
     /// Entry registers the session and binds the container before it publishes the runtime state
-    /// (`SelectCharacterPhaseCommands`: RegisterReplacing, then PrepareLeaseAsync, then the publish
+    /// (`SelectCharacterPhaseCommands`: Select, then PrepareLeaseAsync, then the publish
     /// command), so a request arriving in between finds a character it cannot ask about. Answering
     /// that with the archive's own refusal would tell the player their item is not a consumable.
     /// </remarks>
@@ -269,7 +269,7 @@ public sealed class CharacterItemUseTests
             new CharacterItemCooldownDomainService(clock),
             new OneSession(),
             FixedRuntimeSessions.Unpublished,
-            new SessionPresenceRegistry(),
+            new SessionPresenceDomainService(),
             new NoCarriedGold(),
             new StoredCarryLimitOnly());
 
@@ -318,7 +318,7 @@ public sealed class CharacterItemUseTests
             cooldowns,
             new OneSession(),
             new FixedRuntimeSessions(level, job),
-            new SessionPresenceRegistry(),
+            new SessionPresenceDomainService(),
             new NoCarriedGold(),
             new StoredCarryLimitOnly());
     }
@@ -328,17 +328,16 @@ public sealed class CharacterItemUseTests
         params (int ItemId, ItemUseRule Rule)[] rules) =>
         Build(out fixture, level: 50, job: 0, rules);
 
-    private sealed class OneSession : ISelectedSessionDirectory
+    private sealed class OneSession : ISelectedSessionDomainService
     {
         private static readonly SelectedSessionIdentity Session = SelectedSessionIdentity.Create(
             new AccountId(6), new CharacterId(60), new NetworkConnectionId("game-usable"), 1, 10011);
 
-        public SelectedSessionIdentity? RegisterReplacing(SelectedSessionIdentity session) => null;
-        public bool TryRemoveExact(SelectedSessionIdentity session) => false;
+        public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => null;
+        public bool ReleaseExact(SelectedSessionIdentity session) => false;
         public SelectedSessionIdentity? Find(AccountId accountId) => Session;
         public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => Session;
         public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) => Session;
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => Session;
-        public IReadOnlyList<SelectedSessionIdentity> Current() => [Session];
     }
 }

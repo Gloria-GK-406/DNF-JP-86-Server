@@ -118,7 +118,7 @@ public sealed class CardRewardReconnectIntegrationTests
             await host.StartAsync(timeout.Token);
 
             var runs = host.Services.GetRequiredService<IDungeonRunDomainService>();
-            var sessions = host.Services.GetRequiredService<ISelectedSessionDirectory>();
+            var sessions = host.Services.GetRequiredService<ISelectedSessionDomainService>();
             var onlineUsers = host.Services.GetRequiredService<IOnlineUserQueryDomainService>();
             var gameService = host.Services.GetRequiredService<IGameTcpService>();
 
@@ -134,7 +134,7 @@ public sealed class CardRewardReconnectIntegrationTests
                 // proves nothing this test is about. What has to be real is the loss of the
                 // socket, and it is -- this is the directory the disconnect observer reads to
                 // find out whose connection just went away.
-                sessions.RegisterReplacing(
+                sessions.Select(
                     SelectedSessionIdentity.Create(
                         Account, Character, first, connectionGeneration: 1, gamePort));
 
@@ -156,7 +156,7 @@ public sealed class CardRewardReconnectIntegrationTests
             await reconnected.ConnectAsync(IPAddress.Loopback, gamePort, timeout.Token);
             var second = await ConnectedIdAsync(gameService, onlineUsers, timeout.Token);
             Assert.NotEqual(first, second);
-            sessions.RegisterReplacing(
+            sessions.Select(
                 SelectedSessionIdentity.Create(
                     Account, Character, second, connectionGeneration: 2, gamePort));
 

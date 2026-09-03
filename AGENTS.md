@@ -89,9 +89,9 @@ TCP 字节
 领域按目录组织：`Accounts/`（账号 entry 状态）、`Channel/`（入场策略）、
 `Characters/`（花名册/entry 状态/入场后修正）、`Inventory/`（入场租约、每日补货）、
 `Quests/`（按角色取得的任务日志：在做的、已通关的、追踪选择）、
-`OnlineUsers/`（在线聚合 + 执行门）、`Sessions/`（在场注册表、选中会话目录、
-PvP 大厅、专家商店）、`World/`（出生点策略、世界内容）、`Users/`
-（`OnlineStateStore` 持三张字典与唯一那把锁，`AccountDomainService`、
+`OnlineUsers/`（在线聚合 + 执行门）、`Sessions/`（在场、选中会话、PvP 大厅、专家商店
+四个领域服务，各自把运行态留在私有容器里）、`World/`（出生点策略、世界内容）、`Users/`
+（`OnlineStateRegistry` 持三张字典与唯一那把锁，`AccountDomainService`、
 `OnlineUserDomainService`、`ActiveCharacterDomainService` 三个门面各取其一）。
 服务只做业务；`Persistence` 提供仓储与存储实现，`Infrastructure` 提供 PVF 内容源实现。
 
@@ -148,7 +148,7 @@ facts。两半合起来才是一条线——一边不许往上摸世界，一边
 **在线状态那把锁不能拆成三把。** 三张字典是同一个不变量的三种读法——一个账号至多一个活跃
 角色，且该角色的 session 属于活着的连接。断线要同时删连接和该账号的活跃角色，发布要先读在线
 用户再写活跃角色表；各自一把锁会开出"账号绑在一个已经没了的连接上"的窗口。所以责任拆成三个
-服务类型，它们共享的状态留在 `OnlineStateStore` 的单锁后面。
+服务类型，它们共享的状态留在 `OnlineStateRegistry` 的单锁后面。
 
 ### 2) 命令执行总线（Application/Commands）
 
@@ -408,6 +408,8 @@ PremiumService、CloneTitle 是 CMD，其余当前状态推送是 NOTI；拒绝�
 | `*Query` / `*Reader` | 只读投影/查询 | 只读，不改世界状态 |
 | `*Decoder` / `*Encoder` / `*Sender` / `*Dispatcher` / `*Handler` / `*Observer` / `*Closer` | 传输与协议 | 各自后缀已表明 |
 | `*Module` | 组合根接线 | `IServerModule`，只注册不执行业务 |
+
+判断一个进程内容器属于哪一边，看**接口说的是领域动作还是容器动作**，而不是看它内部有没有用字典。会话、在场、摆摊、PvP 大厅四处都在内存里保存运行态，但它们对外只回答领域问题（谁在这个区域、这个角色有没有摊开着、哪些房间已公告），所以它们是领域服务；字典是实现细节。反过来，一个对外暴露「取出来、改一改、塞回去」的类型不会因为改个名字就变成领域服务。
 
 判据：**这块状态参不参与别的聚合的不变量**——参与就放进那个聚合，不参与才自己一个服务。
 规则服务**不许自己查世界状态**，只能接收 facts；一旦它自己去查，它就成了世界的第二个所有者。

@@ -411,7 +411,7 @@ internal sealed class SelectDungeonDecoder : IGameMessageDecoder
 /// protocol/patterns/game-receive.md.
 /// </remarks>
 public sealed class SelectDungeonHandler(
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IDungeonVisitDomainService visits,
     IGameMessageSender sender,
@@ -570,7 +570,7 @@ internal sealed class MoveMapDecoder : IGameMessageDecoder
 /// somewhere harder to find.
 /// </remarks>
 public sealed class MoveMapHandler(
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     IDungeonRunDomainService runs,
     IDungeonVisitDomainService visits,
     IGameMessageSender sender,

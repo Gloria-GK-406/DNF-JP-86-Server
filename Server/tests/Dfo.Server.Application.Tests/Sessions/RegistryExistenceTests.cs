@@ -24,9 +24,9 @@ public sealed class RegistryExistenceTests
     {
         using var provider = BuildProductionGraph();
 
-        Assert.NotNull(provider.GetRequiredService<ISessionPresenceRegistry>());
-        Assert.NotNull(provider.GetRequiredService<IExpertStoreRegistry>());
-        Assert.NotNull(provider.GetRequiredService<IPvpLobbyRegistry>());
+        Assert.NotNull(provider.GetRequiredService<ISessionPresenceDomainService>());
+        Assert.NotNull(provider.GetRequiredService<IExpertStoreDomainService>());
+        Assert.NotNull(provider.GetRequiredService<IPvpLobbyDomainService>());
         Assert.NotNull(provider.GetRequiredService<ISessionAdjacentEntryDomainService>());
     }
 
@@ -61,7 +61,7 @@ public sealed class RegistryExistenceTests
     public async Task A_registry_written_to_is_the_same_one_the_view_consults()
     {
         using var provider = BuildProductionGraph();
-        provider.GetRequiredService<ISessionPresenceRegistry>().Admit(
+        provider.GetRequiredService<ISessionPresenceDomainService>().Admit(
             new SessionPresence(new CharacterId(2), 10011, 1, 0, StandingInTown: true));
 
         var result = await provider.GetRequiredService<ISessionAdjacentEntryDomainService>().LoadAsync(

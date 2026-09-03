@@ -79,7 +79,7 @@ internal sealed class BossDieCheckDecoder : IGameMessageDecoder
 /// </para>
 /// </remarks>
 public sealed class BossDieCheckHandler(
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     IDungeonRunDomainService runs,
     ILogger<BossDieCheckHandler> logger) : ClientMessageHandler<BossDieCheckRequest>
 {
@@ -194,7 +194,7 @@ internal sealed class ScoreScrollStateResponseEncoder
 /// </para>
 /// </remarks>
 public sealed class ScoreScrollStateHandler(
-    ISelectedSessionDirectory selectedSessions,
+    ISelectedSessionDomainService selectedSessions,
     IGameMessageSender sender,
     ILogger<ScoreScrollStateHandler> logger) : ClientMessageHandler<ScoreScrollStateRequest>
 {

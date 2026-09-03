@@ -31,7 +31,7 @@ public sealed record SessionPresence(
 /// The server's record of who is present and where.
 /// </summary>
 /// <remarks>
-/// This registry exists for the server's lifetime, so consulting it always answers. An
+/// This service exists for the server's lifetime, so consulting it always answers. An
 /// empty answer means nobody is there, which is different from there being nowhere to ask.
 /// <para>
 /// Admitting and withdrawing belong to the entry lifecycle, which is not migrated yet.
@@ -39,7 +39,7 @@ public sealed record SessionPresence(
 /// empty.
 /// </para>
 /// </remarks>
-public interface ISessionPresenceRegistry
+public interface ISessionPresenceDomainService
 {
     /// <summary>Records a character as present, replacing any earlier record of them.</summary>
     void Admit(SessionPresence presence);
@@ -67,16 +67,24 @@ public interface ISessionPresenceRegistry
         int? listenerPort = null);
 }
 
-/// <summary>Generation-safe directory of currently selected sessions.</summary>
-public interface ISelectedSessionDirectory
+/// <summary>Generation-safe answers about which session each account currently has selected.</summary>
+public interface ISelectedSessionDomainService
 {
-    SelectedSessionIdentity? RegisterReplacing(SelectedSessionIdentity session);
-    bool TryRemoveExact(SelectedSessionIdentity session);
+    SelectedSessionIdentity? Select(SelectedSessionIdentity session);
+
+    /// <summary>
+    /// Releases exactly this session, and answers whether it was still the current one.
+    /// </summary>
+    /// <remarks>
+    /// Exact rather than by account: a session that has already been displaced must not take its
+    /// replacement's registration down with it.
+    /// </remarks>
+    bool ReleaseExact(SelectedSessionIdentity session);
+
     SelectedSessionIdentity? Find(AccountId accountId);
     SelectedSessionIdentity? FindByCharacter(CharacterId characterId);
     SelectedSessionIdentity? FindByWireUserId(ushort wireUserId);
     SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId);
-    IReadOnlyList<SelectedSessionIdentity> Current();
 }
 
 public interface ISelectedSessionRuntimeDirectory
@@ -122,10 +130,10 @@ public interface ISelectedSessionPositionPersistence
 /// <remarks>
 /// Deliberately separate from presence. A store outlives the moment its owner is standing
 /// somewhere, and the legacy runtime keeps it in its own registry keyed by owner; reading
-/// it off a presence record would answer "no store" for anyone the presence registry has
+/// it off a presence record would answer "no store" for anyone the presence service has
 /// not yet admitted — including, at composition time, the character entering.
 /// </remarks>
-public interface IExpertStoreRegistry
+public interface IExpertStoreDomainService
 {
     /// <summary>Records that a character has a store open.</summary>
     void Open(CharacterId ownerCharacterId);
@@ -173,10 +181,10 @@ public sealed record PvpRoom(
 /// The server's record of who is waiting to duel and which rooms are on offer.
 /// </summary>
 /// <remarks>
-/// Like the presence registry, this exists for the server's lifetime and always answers.
+/// Like the presence service, this exists for the server's lifetime and always answers.
 /// Its writers belong to the duelling flow, which is not migrated.
 /// </remarks>
-public interface IPvpLobbyRegistry
+public interface IPvpLobbyDomainService
 {
     /// <summary>Records a character as ready, replacing any earlier record of them.</summary>
     void MarkReady(PvpLobbyParticipant participant);

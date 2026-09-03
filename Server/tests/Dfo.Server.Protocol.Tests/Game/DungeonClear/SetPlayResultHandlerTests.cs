@@ -689,7 +689,7 @@ public sealed class SetPlayResultHandlerTests
             throw new NotSupportedException("This fixture only answers.");
     }
 
-    private sealed class OneSession(SelectedSessionIdentity identity) : ISelectedSessionDirectory
+    private sealed class OneSession(SelectedSessionIdentity identity) : ISelectedSessionDomainService
     {
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => identity;
 
@@ -699,12 +699,10 @@ public sealed class SetPlayResultHandlerTests
 
         public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) => identity;
 
-        public IReadOnlyList<SelectedSessionIdentity> Current() => [identity];
-
-        public SelectedSessionIdentity? RegisterReplacing(SelectedSessionIdentity session) =>
+        public SelectedSessionIdentity? Select(SelectedSessionIdentity session) =>
             throw new NotSupportedException("This fixture only answers.");
 
-        public bool TryRemoveExact(SelectedSessionIdentity session) =>
+        public bool ReleaseExact(SelectedSessionIdentity session) =>
             throw new NotSupportedException("This fixture only answers.");
     }
 
