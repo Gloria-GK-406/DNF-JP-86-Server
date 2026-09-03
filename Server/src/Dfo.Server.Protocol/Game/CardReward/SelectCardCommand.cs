@@ -223,11 +223,13 @@ public sealed class SelectCardCommandHandler(
                 SelectCardStatus.AlreadyFlipped, command.Kind, command.Index);
         }
 
-        // Paid for what the position held, not for what the bag managed to take. The card is what
-        // was turned over, and a full bag does not make it turn over less -- the same trade the
-        // piece itself is given below, and the same one the result screen was built on: that frame
-        // announced this gold when it announced the card's contents, long before any bag was asked.
-        var paid = claimed.Item is null ? 0 : GameProtocol.ClearRewardCardGold;
+        // Paid whatever the position held, and paid for turning the card over rather than for
+        // what came out of it. A flipped free card is a floor: the archive gives every level a
+        // gold base and every difficulty a multiplier, and the settlement frame announced that
+        // figure on the card long before any position was claimed or any bag was asked. Paying
+        // only when something was behind the card would leave a player who turned over an empty
+        // one with no sign that anything happened at all.
+        var paid = fixedCards.FaceOf(command.Kind).Gold;
         if (paid > 0)
             await money.AddAsync(command.AccountId, paid, cancellationToken).ConfigureAwait(false);
 

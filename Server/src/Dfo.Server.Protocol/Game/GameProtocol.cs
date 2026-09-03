@@ -13,37 +13,6 @@ internal static class GameProtocol
     /// </remarks>
     public const int SecretShopNpcId = 1000;
 
-    /// <summary>
-    /// What this server puts in the account for a card that had something behind it.
-    /// </summary>
-    /// <remarks>
-    /// Two slices name it: the card slice, which pays it when a position is turned over, and the
-    /// clear frame, which announces beside that position what turning it over will pay. It is here
-    /// rather than in either of them because a slice may not reach into another -- the same reason
-    /// <see cref="SecretShopNpcId"/> is here.
-    /// <para>
-    /// <b>This server's own decision, and not a reading of the archive.</b> The clear-reward table
-    /// declares no gold on a flip at all: its two drop-kind slots are a full value and a zero, and
-    /// the two sections that would turn a gold outcome into an amount -- the ones its sibling
-    /// tables carry -- are absent from it. There is therefore nothing in the file to read a figure
-    /// out of, and nothing here was read out of one.
-    /// </para>
-    /// <para>
-    /// The figure is the placeholder the owner of this server chose knowing that: gold is paid,
-    /// the rule for how much is not known, and one gold a card stands in until it is. It is named
-    /// here, once, so that settling the real rule is a change to this line and to nothing else --
-    /// and so that anybody reading a flip's payout can see at a glance that it came from a
-    /// decision rather than from the archive.
-    /// </para>
-    /// <para>
-    /// It rides on a reading that may yet be wrong. Which of the drop-kind slots means gold is not
-    /// stated by the file; reading them as "items full, gold none" is what makes this figure an
-    /// invention rather than a contradiction of the archive. If that reading is right, this gold
-    /// is something the archive does not have.
-    /// </para>
-    /// </remarks>
-    public const int ClearRewardCardGold = 1;
-
     public const ushort LoginType = 0x0001;
 
     public const ushort ExitType = 0x0003;

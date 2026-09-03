@@ -50,6 +50,7 @@ namespace Dfo.Server.Application.World;
 /// </remarks>
 internal sealed class ClearRewardRuleService(
     IClearRewardRateSource rates,
+    IGoldDropTableSource goldTables,
     IDropItemPoolSource pools,
     IDungeonDefinitionSource dungeons,
     ClearRewardRateOptions options) : IClearRewardRuleService
@@ -195,13 +196,20 @@ internal sealed class ClearRewardRuleService(
         ArgumentNullException.ThrowIfNull(occasion);
 
         var table = rates.Load(DropRateTables.ClearReward);
+
+        // The gold first, and from its own generator. A card pays whether or not anything was
+        // drawn behind it, so this must not sit downstream of the draw -- and it must not consume
+        // values of the draw's generator either, or adding it would move every position of every
+        // face this server has ever dealt.
+        var gold = this.GoldOf(occasion, table, new DropRandom(seed));
+
         var chance = this.ChanceOf(occasion);
         if (chance.IsImpossible
             || table.Rarity is not { } ladder
             || ladder.HighestRoll <= 0
             || table.GradeBandFor(occasion.DungeonBasisLevel) is not { } grades)
         {
-            return Undrawn(occasion.Kind);
+            return Undrawn(occasion.Kind, gold);
         }
 
         var fallback = this.FallbackRowsFor(table, occasion.Kind);
@@ -217,7 +225,7 @@ internal sealed class ClearRewardRuleService(
                         ?? Fallback(fallback, random)));
         }
 
-        return new ClearRewardCardFace(occasion.Kind, slots);
+        return new ClearRewardCardFace(occasion.Kind, slots, gold);
     }
 
     /// <summary>
@@ -305,9 +313,47 @@ internal sealed class ClearRewardRuleService(
     /// party size the file does not list -- and a file with no map-count rows at all.
     /// </para>
     /// </remarks>
-    private static ClearRewardCardFace Undrawn(ClearRewardCardKind kind) =>
-        new(kind, [.. Enumerable.Range(0, ClearRewardRules.CardSlotCount)
-            .Select(index => new ClearRewardCardSlot(index, null))]);
+    private static ClearRewardCardFace Undrawn(ClearRewardCardKind kind, int gold) =>
+        new(
+            kind,
+            [.. Enumerable.Range(0, ClearRewardRules.CardSlotCount)
+                .Select(index => new ClearRewardCardSlot(index, null))],
+            gold);
+
+    /// <summary>
+    /// What a flip of this face pays, from the three archive numbers that describe it.
+    /// </summary>
+    /// <remarks>
+    /// The level's base and the band it moves inside are the second and third columns of
+    /// <c>[gold drop ref table]</c>, taken at the dungeon's basis level for the same reason the
+    /// paid flip's price is -- what a clear pays is a fact about the dungeon, not about who walked
+    /// into it. The multiplier is <c>[dungeon difficulty gold drop bonusrate]</c>, out of the
+    /// clear-reward file itself.
+    /// <para>
+    /// A difficulty the file does not list pays nothing rather than paying the base unscaled:
+    /// there is no figure for it, and inventing the neutral multiplier would be indistinguishable
+    /// from the archive having declared one.
+    /// </para>
+    /// </remarks>
+    private int GoldOf(ClearRewardOccasion occasion, ClearRewardTable table, DropRandom random)
+    {
+        // The free card's floor, and only the free card's. What a paid flip hands over is bought
+        // with the price the archive puts on it; paying a floor on top of that would be this
+        // server inventing a second reward for a card the player already paid for. The reference
+        // server's own gold path is named for the free card too.
+        if (occasion.Kind is not ClearRewardCardKind.Free)
+            return 0;
+
+        if (table.DifficultyGoldRate(occasion.Difficulty) is not { } difficultyRate)
+            return 0;
+
+        var gold = goldTables.Load(DropRateTables.ClearReward);
+        return ClearRewardRules.CardGoldOf(
+            gold.BaseFor(occasion.DungeonBasisLevel),
+            difficultyRate,
+            gold.VarianceFor(occasion.DungeonBasisLevel),
+            random);
+    }
 
     /// <summary>
     /// What one position that was drawn and came up holding nothing is handed: one row of the

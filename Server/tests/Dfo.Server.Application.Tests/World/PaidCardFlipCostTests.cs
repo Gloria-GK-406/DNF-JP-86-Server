@@ -339,6 +339,7 @@ public sealed class PaidCardFlipCostTests
     private static ClearRewardRuleService Rules(ServiceProvider provider) =>
         new(
             provider.GetRequiredService<IClearRewardRateSource>(),
+            provider.GetRequiredService<IGoldDropTableSource>(),
             provider.GetRequiredService<IDropItemPoolSource>(),
             provider.GetRequiredService<IDungeonDefinitionSource>(),
             new ClearRewardRateOptions());
@@ -480,7 +481,11 @@ public sealed class PaidCardFlipCostTests
                     new ClearRewardCardSlot(
                         0, new ClearRewardCardItem(CardItemId, 1, DropRarity.Common, 25)),
                     new ClearRewardCardSlot(1, null),
-                ]);
+                ],
+                FaceGold);
+
+        /// <summary>What the hand-written face says a flip of it pays.</summary>
+        private const int FaceGold = 37;
     }
 
     /// <summary>A bag that takes whatever it is offered and remembers the last of it.</summary>

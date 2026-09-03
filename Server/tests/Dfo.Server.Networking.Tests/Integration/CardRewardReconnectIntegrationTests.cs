@@ -246,7 +246,11 @@ public sealed class CardRewardReconnectIntegrationTests
                 new ClearRewardCardSlot(
                     2, new ClearRewardCardItem(FreePieceId + 1, 3, DropRarity.Common, 40)),
                 new ClearRewardCardSlot(3, null),
-            ]);
+            ],
+            FaceGold);
+
+    /// <summary>What the hand-written faces say a flip of them pays.</summary>
+    private const int FaceGold = 37;
 
     /// <summary>The paid face, whose holes are at the other positions.</summary>
     private static ClearRewardCardFace PaidFace() =>
@@ -259,7 +263,8 @@ public sealed class CardRewardReconnectIntegrationTests
                 new ClearRewardCardSlot(2, null),
                 new ClearRewardCardSlot(
                     3, new ClearRewardCardItem(PaidPieceId + 7, 1, DropRarity.Epic, 60)),
-            ]);
+            ],
+            FaceGold);
 
     private static async Task<NetworkConnectionId> ConnectedIdAsync(
         IGameTcpService gameService,

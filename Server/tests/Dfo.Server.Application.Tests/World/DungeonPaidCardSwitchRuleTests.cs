@@ -131,6 +131,7 @@ public sealed class DungeonPaidCardSwitchRuleTests
     private static ClearRewardRuleService Rules(ServiceProvider provider) =>
         new(
             provider.GetRequiredService<IClearRewardRateSource>(),
+            provider.GetRequiredService<IGoldDropTableSource>(),
             provider.GetRequiredService<IDropItemPoolSource>(),
             provider.GetRequiredService<IDungeonDefinitionSource>(),
             new ClearRewardRateOptions());

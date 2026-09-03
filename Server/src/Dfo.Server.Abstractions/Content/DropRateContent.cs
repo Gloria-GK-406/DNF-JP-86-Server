@@ -237,18 +237,43 @@ public interface IDropRateTableSource
 /// What each monster rank multiplies that by. Four of them, matching the four ranks a map may
 /// call a monster: <c>1 2 4 6</c> in this archive.
 /// </param>
+/// <param name="VariancePercents">
+/// The third number of each <c>[gold drop ref table]</c> row, by level. <b>It is banded, not
+/// constant</b>: A21 declares <c>13</c> from level 1 to 64, <c>11</c> from 65 to 77 and <c>9</c>
+/// from 78 to 200. Reading it as one figure would pass every check taken at a low level and be
+/// wrong for every endgame one.
+/// <para>
+/// <b>Read as a percentage either side of the amount</b>, which is what the A21 reference server's
+/// own gold path calls it and how it applies it. That naming is the only part of this column taken
+/// from the reference; the three-wide row it sits in is the archive's own, so the column's place
+/// is checkable even where its meaning rests on that reading.
+/// </para>
+/// <para>
+/// Distinct from <see cref="VolumeBand"/>, which is the monster path's <c>[gold volume]</c> and
+/// lives in the rate file rather than the shared one. A rate file declaring no volume band still
+/// carries these.
+/// </para>
+/// </param>
 /// <param name="VolumeBand">
 /// The percentage band the amount is varied inside, both ends included. <c>100 110</c> here, so
 /// gold is never less than its base and up to a tenth more.
 /// </param>
 public sealed record GoldDropTable(
     IReadOnlyDictionary<int, int> BaseAmounts,
+    IReadOnlyDictionary<int, int> VariancePercents,
     IReadOnlyList<int> RankQuantities,
     (int Low, int High) VolumeBand)
 {
     /// <summary>What one drop of gold is worth at that level, or nothing at an unlisted one.</summary>
     public int BaseFor(int level) =>
         this.BaseAmounts.TryGetValue(level, out var amount) ? amount : 0;
+
+    /// <summary>
+    /// How far either side of the base that level's amount may fall, as a percentage, or nothing
+    /// at an unlisted level.
+    /// </summary>
+    public int VarianceFor(int level) =>
+        this.VariancePercents.TryGetValue(level, out var percent) ? percent : 0;
 
     /// <summary>What this rank multiplies the base by, or once for an unlisted rank.</summary>
     public int QuantityFor(int monsterRank) =>

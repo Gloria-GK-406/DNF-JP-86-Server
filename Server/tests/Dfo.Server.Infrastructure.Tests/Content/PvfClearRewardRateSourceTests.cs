@@ -432,7 +432,6 @@ public sealed class PvfClearRewardRateSourceTests
 
         Assert.Contains(PvfClearRewardRateSource.UnreadSections.RarityControl, tags);
         Assert.Contains(PvfClearRewardRateSource.UnreadSections.ChronicleSetRewardRate, tags);
-        Assert.Contains(PvfClearRewardRateSource.UnreadSections.DifficultyGoldBonusRate, tags);
 
         // And the reading really does leave them out: none of the table's numeric members holds
         // the five numbers of [item drop rarity control] or the three pairs of

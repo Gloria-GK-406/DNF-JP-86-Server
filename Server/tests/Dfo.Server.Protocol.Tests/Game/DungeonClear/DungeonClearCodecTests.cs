@@ -200,11 +200,15 @@ public sealed class DungeonClearCodecTests
     [Fact]
     public void The_reward_is_declared_on_the_free_row_as_gold_then_the_piece()
     {
-        var tail = Tail(Holding(0, itemId: 31001, quantity: 5));
-        var card = tail.FreeRow.Columns[0];
+        var body = DungeonClearPayloadCodec.EncodeClearDungeonReward(
+            clearBase: 0,
+            rankBonus: 0,
+            freeCards: [Holding(0, itemId: 31001, quantity: 5)],
+            cardGold: 273);
+        var card = CardPanelFrameReader.ReadClearDungeonReward(body).FreeRow.Columns[0];
 
         Assert.Equal(2, card.Entries.Count);
-        Assert.Equal(GameProtocol.ClearRewardCardGold, card.Gold);
+        Assert.Equal(273, card.Gold);
         Assert.Equal(new CardEntry(31001, 5), card.Piece);
     }
 
@@ -243,61 +247,54 @@ public sealed class DungeonClearCodecTests
     }
 
     /// <summary>
-    /// The gold on the card is what a flip of it pays into the account.
+    /// The card carries the gold the settlement handed this frame, and carries it whether or not
+    /// anything is behind the card.
     /// </summary>
     /// <remarks>
-    /// Reached from the same lookup the piece is, so the two cannot disagree: a card that hands
-    /// something over is a card that pays, and a card that hands nothing over pays nothing.
+    /// <b>The two are independent, and that is the point.</b> A free card is a floor: it pays for
+    /// being turned over rather than for what came out of it, so a card with nothing behind it
+    /// still announces its gold. Tying the two together is what used to leave a player who turned
+    /// over an empty card with no sign that anything had happened.
+    /// <para>
+    /// The figure itself is not this frame's to decide. It is settled with the face, from the
+    /// archive's per-level base and per-difficulty multiplier, and this encoder writes what it is
+    /// handed -- which is why the case passes a figure of its own rather than any constant.
+    /// </para>
     /// </remarks>
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void The_gold_on_the_card_is_what_a_flip_of_it_pays(bool holds)
+    public void The_card_carries_the_gold_the_settlement_handed_it(bool holds)
     {
-        var card = Tail(holds ? Holding(0, 31001, 1) : Empty(0)).FreeRow.Columns[0];
+        const int Gold = 273;
+        var body = DungeonClearPayloadCodec.EncodeClearDungeonReward(
+            clearBase: 0,
+            rankBonus: 0,
+            freeCards: [holds ? Holding(0, 31001, 1) : Empty(0)],
+            cardGold: Gold);
 
-        Assert.Equal(holds ? GameProtocol.ClearRewardCardGold : 0, card.Gold);
+        var card = CardPanelFrameReader.ReadClearDungeonReward(body).FreeRow.Columns[0];
+
+        Assert.Equal(Gold, card.Gold);
+        Assert.Equal(holds, card.Piece is not null);
     }
 
-    /// <summary>
-    /// The card's gold is one, and that figure is this server's own decision.
-    /// </summary>
+    /// <summary>Only the card the reward is on carries gold; the other seven carry none.</summary>
     /// <remarks>
-    /// The archive says a flipped card produces no gold at all. The figure written here is a
-    /// placeholder its owner chose, named in one place so that settling the real rule leaves this
-    /// frame in step rather than leaving a second copy behind.
+    /// The gold belongs to the one card a flip can reach, not to the row. A figure spread across
+    /// the row would announce seven payments no player can be given.
     /// </remarks>
     [Fact]
-    public void The_cards_gold_is_one_and_is_this_servers_own_decision()
+    public void Only_the_card_the_reward_is_on_carries_gold()
     {
-        Assert.Equal(1, GameProtocol.ClearRewardCardGold);
-        Assert.Equal(
-            GameProtocol.ClearRewardCardGold,
-            Tail(Holding(0, 31001, 1)).FreeRow.Columns[0].Gold);
-    }
+        var body = DungeonClearPayloadCodec.EncodeClearDungeonReward(
+            clearBase: 0, rankBonus: 0, freeCards: [Holding(0, 31001, 1)], cardGold: 273);
 
-    /// <summary>Gold never arrives on a card with nothing behind it.</summary>
-    /// <remarks>
-    /// A shape the record does not describe, and one this server must not produce: it would tell
-    /// the panel a card pays while the flip of it hands nothing over. Every face in the theory has
-    /// its first position empty, so none of them may carry gold.
-    /// </remarks>
-    [Theory]
-    [InlineData(false, false, false)]
-    [InlineData(true, false, false)]
-    [InlineData(false, true, true)]
-    [InlineData(true, true, true)]
-    public void Gold_never_arrives_on_a_card_with_nothing_behind_it(
-        bool second, bool third, bool fourth)
-    {
-        var tail = Tail(
-            Empty(0),
-            second ? Holding(1, 31002, 1) : Empty(1),
-            third ? Holding(2, 31003, 1) : Empty(2),
-            fourth ? Holding(3, 31004, 1) : Empty(3));
+        var row = CardPanelFrameReader.ReadClearDungeonReward(body).FreeRow;
 
-        Assert.Equal(0, tail.FreeRow.Columns[0].Gold);
-        Assert.Null(tail.FreeRow.Columns[0].Piece);
+        Assert.Equal(273, row.Columns[0].Gold);
+        for (var column = 1; column < CardPanelFrameReader.ColumnsPerRow; column++)
+            Assert.Equal(0, row.Columns[column].Gold);
     }
 
     /// <summary>

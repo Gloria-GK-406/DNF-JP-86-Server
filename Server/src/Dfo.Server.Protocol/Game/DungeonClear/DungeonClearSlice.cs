@@ -82,6 +82,7 @@ internal sealed record ClearDungeonRewardNotification(
     uint ClearBase,
     uint RankBonus,
     IReadOnlyList<ClearRewardCardSlot> FreeCards,
+    int CardGold,
     int PaidFlipCost)
     : IGameNotiMessage
 {
@@ -251,6 +252,7 @@ internal static class DungeonClearPayloadCodec
         uint clearBase,
         uint rankBonus,
         IReadOnlyList<ClearRewardCardSlot>? freeCards = null,
+        int cardGold = 0,
         int paidFlipCost = NoPaidFlipCost)
     {
         using var stream = new MemoryStream(ClearRewardBodyLength);
@@ -287,7 +289,7 @@ internal static class DungeonClearPayloadCodec
         // clear's reward goes on the free row and the other two rows are declared empty.
         var cards = freeCards ?? [];
         writer.Write((byte)0); // no item-acquisition records
-        WriteFreeRow(writer, cards);
+        WriteFreeRow(writer, cards, cardGold);
         writer.Write(paidFlipCost); // paid-card cost
         WriteUnturnedRow(writer); // the gold row
         WriteUnturnedRow(writer); // the black-diamond row
@@ -331,7 +333,8 @@ internal static class DungeonClearPayloadCodec
     /// displayed its amount as gold, writing a piece in the second displayed that piece, and a
     /// third entry never appeared. See <c>protocol/game/server-to-client/NOTI-0x0023.md</c>.
     /// </remarks>
-    private static void WriteFreeRow(BinaryWriter writer, IReadOnlyList<ClearRewardCardSlot> cards)
+    private static void WriteFreeRow(
+        BinaryWriter writer, IReadOnlyList<ClearRewardCardSlot> cards, int cardGold)
     {
         for (var column = 0; column < WireCardColumnCount; column++)
         {
@@ -348,7 +351,7 @@ internal static class DungeonClearPayloadCodec
             var reward = RewardOf(cards);
             writer.Write((byte)(reward is null ? 1 : 2));
             writer.Write(0); // the gold entry's identifier is not read
-            writer.Write(reward is null ? 0 : GameProtocol.ClearRewardCardGold);
+            writer.Write(cardGold);
             if (reward is { } piece)
             {
                 writer.Write(piece.ItemId);
@@ -546,7 +549,11 @@ internal sealed class ClearDungeonRewardEncoder
         OnePayload(
             GameProtocol.ClearDungeonRewardNotificationType,
             DungeonClearPayloadCodec.EncodeClearDungeonReward(
-                message.ClearBase, message.RankBonus, message.FreeCards, message.PaidFlipCost));
+                message.ClearBase,
+                message.RankBonus,
+                message.FreeCards,
+                message.CardGold,
+                message.PaidFlipCost));
 }
 
 /// <summary>
@@ -616,6 +623,7 @@ public sealed class SetPlayResultHandler(
             new ClearRewardSettlement(session.CharacterId, result.Character.Progression.Level),
             cancellationToken).ConfigureAwait(false);
         var freeCards = settled?.Cards.Free.Slots ?? [];
+        var cardGold = settled?.Cards.Free.Gold ?? 0;
 
         // What the result screen is told a paid flip costs. The settlement answers the archive's
         // price for the level this clear settled at, and answers nothing for a level the archive
@@ -654,7 +662,7 @@ public sealed class SetPlayResultHandler(
                     [
                         new PlayResultNotification(
                             session.WireUserId, clearTime, message.ClientRankPoint),
-                        new ClearDungeonRewardNotification(0, 0, freeCards, paidFlipCost),
+                        new ClearDungeonRewardNotification(0, 0, freeCards, cardGold, paidFlipCost),
                     ],
                     []),
                 cancellationToken).ConfigureAwait(false);
@@ -756,9 +764,9 @@ public sealed class SetPlayResultHandler(
         // result screen must report what landed. An award carries its base and its one
         // contribution, which are those same two figures whenever nothing was clamped.
         frames.Add(award is null
-            ? new ClearDungeonRewardNotification(0, 0, freeCards, paidFlipCost)
+            ? new ClearDungeonRewardNotification(0, 0, freeCards, cardGold, paidFlipCost)
             : new ClearDungeonRewardNotification(
-                award.Base, award.Gained - award.Base, freeCards, paidFlipCost));
+                award.Base, award.Gained - award.Base, freeCards, cardGold, paidFlipCost));
 
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,

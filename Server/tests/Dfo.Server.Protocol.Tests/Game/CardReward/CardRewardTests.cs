@@ -735,29 +735,50 @@ public sealed class CardRewardTests
         Assert.Equal(0, told.TurnedColumn);
     }
 
+    /// <summary>What the fixture's settled face says a flip of it pays.</summary>
+    /// <remarks>
+    /// A figure of the fixture's own, not a constant out of the server. What a card pays is
+    /// settled with the face from the archive's own numbers; these cases are about the flip
+    /// handing over whatever that turned out to be.
+    /// </remarks>
+    private const int FaceGold = 37;
+
+    /// <summary>
+    /// What the fixture's paid face pays: nothing, which is what production settles for it.
+    /// </summary>
+    /// <remarks>
+    /// <b>Different from the free face's on purpose.</b> The floor is the free card's -- a paid
+    /// card was already bought at the archive's price -- so two faces carrying the same number
+    /// would let a flip credit either one and look right, which is how a paid flip drawing the
+    /// free card's floor went unnoticed.
+    /// </remarks>
+    private const int PaidFaceGold = 0;
+
     // ---- the money -------------------------------------------------------------------------
 
     /// <summary>
-    /// A position that held something pays the card's gold into the account; one that held
-    /// nothing pays nothing.
+    /// A flip pays the card's gold whether or not the position held anything.
     /// </summary>
     /// <remarks>
-    /// Both halves together, because the figure alone would be satisfied by a flip that paid it
-    /// every time -- and a card that held nothing paying for it is the shape the result screen
-    /// could never report, since that frame writes the gold and the item off the same position.
+    /// <b>Both positions, because the figure alone would be satisfied by paying only for the one
+    /// that held something</b> -- which is what this server used to do, and what left a player who
+    /// turned over an empty card with nothing at all to show for it. A free card is a floor: it
+    /// pays for being turned over. The figure comes from the settled face, so this case reads it
+    /// off the face rather than off any constant.
     /// </remarks>
     [Theory]
     [InlineData(0, true)]
     [InlineData(1, false)]
-    public async Task A_position_that_held_something_pays_the_cards_gold(int index, bool holds)
+    public async Task A_flip_pays_the_cards_gold_whether_or_not_it_held_anything(
+        int index, bool holds)
     {
         var world = new World();
 
         var result = await world.Flip(ClearRewardCardKind.Free, index);
 
-        var expected = holds ? GameProtocol.ClearRewardCardGold : 0;
-        Assert.Equal(expected, result.GoldPaid);
-        Assert.Equal(StartingPurse + expected, world.Purse.Total);
+        Assert.Equal(holds, result.Delivered is not null);
+        Assert.Equal(FaceGold, result.GoldPaid);
+        Assert.Equal(StartingPurse + FaceGold, world.Purse.Total);
     }
 
     /// <summary>
@@ -776,8 +797,8 @@ public sealed class CardRewardTests
         var result = await world.Flip(ClearRewardCardKind.Free, 0);
 
         Assert.Null(result.Delivered);
-        Assert.Equal(GameProtocol.ClearRewardCardGold, result.GoldPaid);
-        Assert.Equal(StartingPurse + GameProtocol.ClearRewardCardGold, world.Purse.Total);
+        Assert.Equal(FaceGold, result.GoldPaid);
+        Assert.Equal(StartingPurse + FaceGold, world.Purse.Total);
     }
 
     /// <summary>A free flip is never charged, whatever the account is carrying.</summary>
@@ -814,9 +835,7 @@ public sealed class CardRewardTests
 
         Assert.Equal(SelectCardStatus.Flipped, result.Status);
         Assert.Equal(FixturePrice, result.GoldCharged);
-        Assert.Equal(
-            StartingPurse - FixturePrice + GameProtocol.ClearRewardCardGold,
-            world.Purse.Total);
+        Assert.Equal(StartingPurse - FixturePrice + PaidFaceGold, world.Purse.Total);
         Assert.Equal(FirstItemId, world.Bag.Slots[Bag.OpenedSlot].ItemId);
     }
 
@@ -1159,7 +1178,10 @@ public sealed class CardRewardTests
         /// encoder that wrote one record per piece look correct.
         /// </remarks>
         private static ClearRewardCardFace Face(ClearRewardCardKind kind) =>
-            new(kind, [Held(0, FirstItemId, 1), Empty(1), Held(2, SecondItemId, 2), Empty(3)]);
+            new(
+                kind,
+                [Held(0, FirstItemId, 1), Empty(1), Held(2, SecondItemId, 2), Empty(3)],
+                kind is ClearRewardCardKind.Free ? FaceGold : PaidFaceGold);
     }
 
     /// <summary>A bus that carries exactly the one command this slice sends.</summary>

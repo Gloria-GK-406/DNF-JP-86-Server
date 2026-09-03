@@ -35,7 +35,10 @@ internal sealed class PvfDropRateTableSource(PvfArchiveProvider provider)
     private const string GoldQuantitySection = "[gold quantity]";
     private const string GoldVolumeSection = "[gold volume]";
 
-    /// <summary>Level, amount, and a third number this reading has not identified.</summary>
+    /// <summary>
+    /// Level, the amount one drop of gold is worth there, and how far either way that amount may
+    /// move as a percentage. All three are read; the third is banded rather than constant.
+    /// </summary>
     private const int GoldBaseRowWidth = 3;
 
     /// <summary>The two level bounds every band opens with.</summary>
@@ -83,8 +86,12 @@ internal sealed class PvfDropRateTableSource(PvfArchiveProvider provider)
         }
 
         var amounts = new Dictionary<int, int>(baseValues.Count / GoldBaseRowWidth);
+        var variances = new Dictionary<int, int>(baseValues.Count / GoldBaseRowWidth);
         for (var at = 0; at < baseValues.Count; at += GoldBaseRowWidth)
+        {
             amounts[baseValues[at]] = baseValues[at + 1];
+            variances[baseValues[at]] = baseValues[at + 2];
+        }
 
         var own = this.ReadSections(archivePath);
         var quantities = Integers(own, GoldQuantitySection);
@@ -97,6 +104,7 @@ internal sealed class PvfDropRateTableSource(PvfArchiveProvider provider)
 
         return new GoldDropTable(
             amounts,
+            variances,
             quantities.Count > 0 ? quantities : [1],
             (low, Math.Max(low, high)));
     }

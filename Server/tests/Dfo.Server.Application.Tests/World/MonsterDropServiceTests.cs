@@ -75,7 +75,10 @@ public sealed class MonsterDropServiceTests
             });
 
     private static readonly GoldDropTable Gold = new(
-        new Dictionary<int, int> { [MonsterLevel] = 1357 }, [1, 2, 4, 6], (100, 110));
+        new Dictionary<int, int> { [MonsterLevel] = 1357 },
+        new Dictionary<int, int> { [MonsterLevel] = 9 },
+        [1, 2, 4, 6],
+        (100, 110));
 
     private static (MonsterDropService Service, DungeonRunDomainService Runs) Build(
         DropRateTable table, int declaredRoomDrops = 0)

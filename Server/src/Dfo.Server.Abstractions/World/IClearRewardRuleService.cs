@@ -75,8 +75,13 @@ public sealed record ClearRewardCardSlot(int Index, ClearRewardCardItem? Item)
 /// same thing" is a consequence of asking once rather than a rule every caller has to keep by
 /// passing the same seed each time.
 /// </remarks>
+/// <param name="Gold">
+/// What a flip of this face pays, whatever the positions hold. Decided here with the positions and
+/// from the same seed, so a clear that is asked twice -- or reconnected into -- answers the same
+/// figure both times. See <see cref="ClearRewardRules.CardGoldOf"/> for where it comes from.
+/// </param>
 public sealed record ClearRewardCardFace(
-    ClearRewardCardKind Kind, IReadOnlyList<ClearRewardCardSlot> Slots);
+    ClearRewardCardKind Kind, IReadOnlyList<ClearRewardCardSlot> Slots, int Gold);
 
 /// <summary>
 /// What a card face is being produced for: everything about the occasion that the archive's tables

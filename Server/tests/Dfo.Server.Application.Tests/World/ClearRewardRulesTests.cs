@@ -475,4 +475,79 @@ public sealed class ClearRewardRulesTests
                 ClearRewardRules.BlankItemOf(rows, new DropRandom(seed)));
         }
     }
+
+    /// <summary>
+    /// A card's gold is the level's base scaled by the difficulty, with the variance disabled.
+    /// </summary>
+    /// <remarks>
+    /// The band is zero here so that the scaling can be read on its own. What the three numbers
+    /// mean and where each comes from is on <see cref="ClearRewardRules.CardGoldOf"/>; that they
+    /// are the archive's is pinned in <c>ClearRewardArchiveTests</c>.
+    /// </remarks>
+    [Theory]
+    [InlineData(44, 1.02, 45)]
+    [InlineData(44, 2.0, 88)]
+    [InlineData(77, 1.6, 123)]
+    [InlineData(17, 1.02, 17)]
+    public void A_cards_gold_is_the_levels_base_scaled_by_the_difficulty(
+        int baseAmount, double rate, int expected) =>
+        Assert.Equal(
+            expected,
+            ClearRewardRules.CardGoldOf(baseAmount, rate, variancePercent: 0, new DropRandom(1)));
+
+    /// <summary>
+    /// The variance moves the amount either way and never past the band the level declares.
+    /// </summary>
+    /// <remarks>
+    /// <b>Both halves matter.</b> A rule that only ever moved one way, or that moved further than
+    /// the archive allows, would satisfy a bound check alone; so the seeds are swept and the span
+    /// actually produced is asserted to reach both sides of the unmoved figure.
+    /// </remarks>
+    [Fact]
+    public void The_variance_moves_the_amount_both_ways_and_stays_inside_the_band()
+    {
+        const int Base = 200;
+        const double Rate = 1.5;
+        const int Percent = 13;
+        var unmoved = Base * Rate;
+        var low = (int)Math.Floor(unmoved * (1 - (Percent / 100.0)));
+        var high = (int)Math.Ceiling(unmoved * (1 + (Percent / 100.0)));
+
+        var seen = new List<int>();
+        for (var seed = 0; seed < 200; seed++)
+            seen.Add(ClearRewardRules.CardGoldOf(Base, Rate, Percent, new DropRandom((ulong)seed)));
+
+        Assert.All(seen, amount => Assert.InRange(amount, low, high));
+        Assert.Contains(seen, amount => amount < unmoved);
+        Assert.Contains(seen, amount => amount > unmoved);
+    }
+
+    /// <summary>A level the archive gives no base for pays nothing, because there is no figure.</summary>
+    /// <remarks>
+    /// The one case that pays nothing. A card that was turned over pays whatever its level is
+    /// worth, and a level the file does not list is not worth zero -- it is not worth anything
+    /// this server can name, which is a different statement and the honest one.
+    /// </remarks>
+    [Theory]
+    [InlineData(0, 1.5)]
+    [InlineData(-1, 1.5)]
+    [InlineData(200, 0)]
+    [InlineData(200, double.NaN)]
+    public void A_figure_the_archive_does_not_give_pays_nothing(int baseAmount, double rate) =>
+        Assert.Equal(
+            0,
+            ClearRewardRules.CardGoldOf(baseAmount, rate, variancePercent: 13, new DropRandom(1)));
+
+    /// <summary>An amount that would round away comes back as one rather than as nothing.</summary>
+    /// <remarks>
+    /// The floor is what makes this a floor. A base and a multiplier that between them come to
+    /// less than half a coin still describe a card that was turned over, and a card that was
+    /// turned over pays.
+    /// </remarks>
+    [Fact]
+    public void An_amount_that_would_round_away_still_pays_one() =>
+        Assert.Equal(
+            1,
+            ClearRewardRules.CardGoldOf(1, 0.01, variancePercent: 0, new DropRandom(1)));
+
 }

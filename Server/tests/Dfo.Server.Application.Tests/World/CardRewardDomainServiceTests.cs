@@ -138,6 +138,9 @@ public sealed class CardRewardDomainServiceTests
         public ValueTask<bool> OffersPaidFlipAsync(
             int dungeonId, CancellationToken cancellationToken) => ValueTask.FromResult(true);
 
+        /// <summary>What this stub's faces say a flip of them pays.</summary>
+        private const int FaceGold = 37;
+
         public ClearRewardCardFace FaceFor(ClearRewardOccasion occasion, ulong seed)
         {
             ArgumentNullException.ThrowIfNull(occasion);
@@ -149,7 +152,8 @@ public sealed class CardRewardDomainServiceTests
                     .Select(index => new ClearRewardCardSlot(
                         index,
                         new ClearRewardCardItem(
-                            (answer * 100) + index, 1, DropRarity.Common, 0)))]);
+                            (answer * 100) + index, 1, DropRarity.Common, 0)))],
+                FaceGold);
         }
     }
 
@@ -524,6 +528,7 @@ public sealed class CardRewardDomainServiceTests
                 ClearRewardFixture.Pool(
                     new ClearRewardFixture.PoolRow(86, DropRarity.Common, 1, 1))));
         services.AddSingleton<IDungeonDefinitionSource>(new ClearRewardFixture.StubDungeons());
+        services.AddSingleton<IGoldDropTableSource>(new ClearRewardFixture.StubGoldTables());
 
         using var provider = services.BuildServiceProvider();
 

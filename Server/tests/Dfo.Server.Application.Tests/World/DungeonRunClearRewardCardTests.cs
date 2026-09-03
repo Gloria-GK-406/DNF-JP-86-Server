@@ -43,8 +43,12 @@ public sealed class DungeonRunClearRewardCardTests
             [new MazeCell(2, 0)] = 61005,
         });
 
+    /// <summary>What the hand-written faces below say a flip of them pays.</summary>
+    private const int FaceGold = 37;
+
     /// <summary>A face written out by hand; null in a position means it holds nothing.</summary>
-    private static ClearRewardCardFace Face(ClearRewardCardKind kind, params int?[] itemIds) =>
+    private static ClearRewardCardFace Face(
+        ClearRewardCardKind kind, params int?[] itemIds) =>
         new(
             kind,
             [.. itemIds.Select(
@@ -52,7 +56,8 @@ public sealed class DungeonRunClearRewardCardTests
                     index,
                     itemId is { } id
                         ? new ClearRewardCardItem(id, 1, DropRarity.Common, 0)
-                        : null))]);
+                        : null))],
+            FaceGold);
 
     private static int?[] ItemIds(ClearRewardCardFace face) =>
         [.. face.Slots.Select(slot => slot.Item?.ItemId)];

@@ -188,7 +188,10 @@ public sealed class DropRulesTests
         // The archive's own numbers: level 86 pays 1357, the four ranks multiply by 1/2/4/6, and
         // the amount varies between 100% and 110%.
         var gold = new GoldDropTable(
-            new Dictionary<int, int> { [86] = 1357 }, [1, 2, 4, 6], (100, 110));
+            new Dictionary<int, int> { [86] = 1357 },
+            new Dictionary<int, int> { [86] = 9 },
+            [1, 2, 4, 6],
+            (100, 110));
 
         for (var seed = 0; seed < 100; seed++)
         {

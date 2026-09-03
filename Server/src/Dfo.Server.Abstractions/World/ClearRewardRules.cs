@@ -435,6 +435,56 @@ public static class ClearRewardRules
     }
 
     /// <summary>
+    /// What a free card pays in gold: the level's base, scaled by the difficulty, moved either way
+    /// inside the band the level declares.
+    /// </summary>
+    /// <remarks>
+    /// <b>Three archive numbers and nothing else.</b> The base and the band are the second and
+    /// third columns of <c>[gold drop ref table]</c>; the multiplier is
+    /// <c>[dungeon difficulty gold drop bonusrate]</c>, which sits in the clear-reward file itself.
+    /// Each can be pointed at a line of the archive.
+    /// <para>
+    /// <b>How the three combine is this server's, and is named here rather than hidden.</b> The
+    /// archive declares the numbers and says nothing about their arithmetic. The A21 reference
+    /// server multiplies the same three and then piles on four more factors -- a weighted kill
+    /// count, a rank bonus, a division by the party size, and a bare <c>175/1000</c>. That last
+    /// one appears twice in its source with no comment and no matching number anywhere in the
+    /// archive, and this repository has already been bitten once by copying an unsourced constant
+    /// out of it: a rarity denominator written as a flat million, which quietly put two whole
+    /// bands out of reach. None of the four is taken.
+    /// </para>
+    /// <para>
+    /// <b>The result is never zero.</b> A flipped free card pays whether or not anything was
+    /// behind it -- that is what makes it the floor it is meant to be -- so an amount that rounds
+    /// away comes back as one rather than as nothing. A level the archive gives no base for is the
+    /// one case that pays nothing, because there is no figure to pay.
+    /// </para>
+    /// </remarks>
+    /// <param name="baseAmount">What one gold drop is worth at the dungeon's basis level.</param>
+    /// <param name="difficultyGoldRate">What this difficulty multiplies that by.</param>
+    /// <param name="variancePercent">How far either way the amount may move, as a percentage.</param>
+    /// <param name="random">The run's own generator, so a clear pays the same on every asking.</param>
+    public static int CardGoldOf(
+        int baseAmount, double difficultyGoldRate, int variancePercent, DropRandom random)
+    {
+        ArgumentNullException.ThrowIfNull(random);
+
+        if (baseAmount <= 0 || !double.IsFinite(difficultyGoldRate) || difficultyGoldRate <= 0)
+            return 0;
+
+        var scaled = baseAmount * difficultyGoldRate;
+        if (variancePercent > 0)
+        {
+            var moved = random.Next((2 * variancePercent) + 1) - 1 - variancePercent;
+            scaled += scaled * moved / 100.0;
+        }
+
+        var amount = (long)Math.Round(scaled, MidpointRounding.AwayFromZero);
+        return amount <= 0 ? 1 : (int)Math.Min(amount, int.MaxValue);
+    }
+
+
+    /// <summary>
     /// One row drawn from a card's fallback table by the weights the archive wrote, or nothing
     /// when the table has no row to draw.
     /// </summary>

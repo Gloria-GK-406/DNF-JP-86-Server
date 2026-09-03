@@ -49,6 +49,7 @@ public sealed class ClearRewardArchiveTests
     private static ClearRewardRuleService Service(ServiceProvider provider, DropItemPool pool) =>
         new(
             provider.GetRequiredService<IClearRewardRateSource>(),
+            provider.GetRequiredService<IGoldDropTableSource>(),
             new ClearRewardFixture.RecordingPools(pool),
             provider.GetRequiredService<IDungeonDefinitionSource>(),
             new ClearRewardRateOptions { RateBasis = Basis });
@@ -591,6 +592,7 @@ public sealed class ClearRewardArchiveTests
         var pool = provider.GetRequiredService<IDropItemPoolSource>().Load(DropItemFamily.Equipment);
         var service = new ClearRewardRuleService(
             provider.GetRequiredService<IClearRewardRateSource>(),
+            provider.GetRequiredService<IGoldDropTableSource>(),
             provider.GetRequiredService<IDropItemPoolSource>(),
             provider.GetRequiredService<IDungeonDefinitionSource>(),
             new ClearRewardRateOptions { RateBasis = Basis });
@@ -661,6 +663,7 @@ public sealed class ClearRewardArchiveTests
             .Load(DropItemFamily.Equipment);
         var rules = new ClearRewardRuleService(
             provider.GetRequiredService<IClearRewardRateSource>(),
+            provider.GetRequiredService<IGoldDropTableSource>(),
             provider.GetRequiredService<IDropItemPoolSource>(),
             provider.GetRequiredService<IDungeonDefinitionSource>(),
             new ClearRewardRateOptions { RateBasis = Basis });
@@ -748,4 +751,63 @@ public sealed class ClearRewardArchiveTests
             BasisLevel: dungeon.BasisLevel,
             ExperienceWeight: dungeon.ExperienceWeight);
     }
+
+    /// <summary>
+    /// The three numbers a card's gold is built from are the ones the archive declares.
+    /// </summary>
+    /// <remarks>
+    /// <b>Every factor in that figure has to be pointed at a line of the archive.</b> The base and
+    /// the band come from <c>[gold drop ref table]</c> in the shared file; the multiplier comes
+    /// from <c>[dungeon difficulty gold drop bonusrate]</c> in the clear-reward file itself. This
+    /// case is what keeps that claim honest, and it is the case that would fail if a factor with
+    /// no archive behind it were ever quietly folded in -- which is exactly how the A21 reference
+    /// server writes the same figure, with a bare <c>175/1000</c> that appears nowhere in the file.
+    /// </remarks>
+    [SkippableFact]
+    public void The_archive_declares_the_numbers_a_cards_gold_is_built_from()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateContentProvider();
+
+        // The clear-reward file's own multipliers: one per difficulty, and the same five
+        // difficulties its sibling section declares. They are scaled, not summed, which is what
+        // the lowest entry being above one says.
+        var table = Table(provider);
+        Assert.Equal(
+            [1.02, 1.38, 1.6, 1.9, 2.0],
+            table.DifficultyGoldRates.Select(rate => Math.Round(rate, 4)));
+        Assert.Equal(table.DifficultyRates.Count, table.DifficultyGoldRates.Count);
+
+        // The shared file's per-level bases and the band each level moves inside. Three levels
+        // apart from one another, so a reader that returned a constant or read the wrong column
+        // could not pass.
+        var gold = provider.GetRequiredService<IGoldDropTableSource>()
+            .Load(DropRateTables.ClearReward);
+        Assert.Equal(17, gold.BaseFor(1));
+        Assert.Equal(44, gold.BaseFor(5));
+        Assert.Equal(77, gold.BaseFor(9));
+        // <b>The band is banded.</b> Reading this column as one figure passes every check taken
+        // at a low level and is wrong for every endgame one, so all three of the archive's bands
+        // are pinned here along with the two levels the value changes at.
+        Assert.Equal(13, gold.VarianceFor(1));
+        Assert.Equal(13, gold.VarianceFor(64));
+        Assert.Equal(11, gold.VarianceFor(65));
+        Assert.Equal(11, gold.VarianceFor(77));
+        Assert.Equal(9, gold.VarianceFor(78));
+        Assert.Equal(9, gold.VarianceFor(86));
+        Assert.Equal(9, gold.VarianceFor(200));
+
+        // The bases at those same levels, so a reader that returned the band where the base goes
+        // -- or the other way about -- cannot pass either.
+        Assert.Equal(977, gold.BaseFor(65));
+        Assert.Equal(1196, gold.BaseFor(78));
+        Assert.Equal(1357, gold.BaseFor(86));
+        Assert.Equal(4877, gold.BaseFor(200));
+
+        // A level the file does not reach carries neither, which is what makes the rule's own
+        // refusal to pay for one reachable rather than theoretical.
+        Assert.Equal(0, gold.BaseFor(0));
+        Assert.Equal(0, gold.VarianceFor(0));
+    }
+
 }

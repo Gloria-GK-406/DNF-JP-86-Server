@@ -11,6 +11,7 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Networking.Framing;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonClear;
@@ -236,6 +237,30 @@ public sealed class SetPlayResultHandlerTests
 
         var reward = sent.OfType<ClearDungeonRewardNotification>().Single();
         Assert.Equal(RecordingCards.FreeFace.Slots, reward.FreeCards);
+    }
+
+    /// <summary>
+    /// The gold the settlement fixed reaches the card, walked back out of the frame itself.
+    /// </summary>
+    /// <remarks>
+    /// <b>The seam the last two attempts at this feature both fell through.</b> A settled figure
+    /// that never reaches the frame shows the player nothing while every criterion either side of
+    /// the gap passes: the rule service is asked about a number, the encoder is handed a number,
+    /// and nobody checks that they are the same number. So this reads the frame the way the client
+    /// reads it and compares what comes out against what the settlement declared.
+    /// </remarks>
+    [Fact]
+    public async Task TheGoldTheSettlementFixedReachesTheCard()
+    {
+        var sent = await Settle(cards: new RecordingCards());
+
+        var reward = sent.OfType<ClearDungeonRewardNotification>().Single();
+        var body = Assert.Single(new ClearDungeonRewardEncoder().Encode(reward))
+            [GameServerFrameEncoder.HeaderLength..];
+        var card = CardPanelFrameReader.ReadClearDungeonReward(body).FreeRow.Columns[0];
+
+        Assert.Equal(RecordingCards.FaceGold, reward.CardGold);
+        Assert.Equal(RecordingCards.FaceGold, card.Gold);
     }
 
     /// <summary>
@@ -533,6 +558,9 @@ public sealed class SetPlayResultHandlerTests
         /// <summary>Every settlement this seam was asked for, in the order it was asked.</summary>
         public List<ClearRewardSettlement> Settlements { get; } = [];
 
+        /// <summary>What the hand-written faces say a flip of them pays.</summary>
+        public const int FaceGold = 37;
+
         /// <summary>The free face it fixes: four positions, the second of them holding a piece.</summary>
         public static readonly ClearRewardCardFace FreeFace = new(
             ClearRewardCardKind.Free,
@@ -542,7 +570,20 @@ public sealed class SetPlayResultHandlerTests
                     1, new ClearRewardCardItem(52001, 4, DropRarity.Common, Durability: 100)),
                 new ClearRewardCardSlot(2, null),
                 new ClearRewardCardSlot(3, null),
-            ]);
+            ],
+            FaceGold);
+
+        /// <summary>
+        /// What a paid face pays: nothing, which is what production settles for it.
+        /// </summary>
+        /// <remarks>
+        /// <b>Different from the free face's, and that is the whole point of the figure.</b> The
+        /// floor exists so that turning a <i>free</i> card over is never silent; a paid card was
+        /// already bought at the archive's price. Two faces carrying the same number would let the
+        /// frame read either one and look right, which is how this seam passed while writing the
+        /// wrong face's gold.
+        /// </remarks>
+        public const int PaidFaceGold = 0;
 
         /// <summary>The paid face, deliberately unlike the free one.</summary>
         private static readonly ClearRewardCardFace PaidFace = new(
@@ -553,7 +594,8 @@ public sealed class SetPlayResultHandlerTests
                 new ClearRewardCardSlot(1, null),
                 new ClearRewardCardSlot(2, null),
                 new ClearRewardCardSlot(3, null),
-            ]);
+            ],
+            PaidFaceGold);
 
         public ValueTask<ClearRewardSettlementResult?> SettleAsync(
             ClearRewardSettlement settlement, CancellationToken cancellationToken)

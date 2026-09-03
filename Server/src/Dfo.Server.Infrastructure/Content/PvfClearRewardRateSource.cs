@@ -68,6 +68,20 @@ internal sealed class PvfClearRewardRateSource(PvfArchiveProvider provider) : IC
     /// <summary>The cumulative rarity thresholds and the basis that closes them.</summary>
     private const string RaritySection = "[basis of rarity dicision]";
 
+    /// <summary>
+    /// <c>1.02 1.38 1.6 1.9 2</c> in A21: one multiplier per difficulty, the same five
+    /// difficulties as <c>[dungeon difficulty drop bonusrate]</c>.
+    /// <para>
+    /// <b>Read since the card's gold became an archive reading.</b> It used to be recorded
+    /// here as inapplicable, because this server paid a flat figure its owner had chosen and
+    /// a multiplier with nothing to multiply would only have put an archive number beside a
+    /// value that did not come from one. That is no longer the case: a free card's gold is
+    /// now the level's base from <c>[gold drop ref table]</c> scaled by this entry, so the
+    /// multiplier has its multiplicand.
+    /// </para>
+    /// </summary>
+    private const string DifficultyGoldSection = "[dungeon difficulty gold drop bonusrate]";
+
     /// <summary>One multiplier per party size, stored as singles.</summary>
     private const string PartySection = "[party member drop bonusrate]";
 
@@ -148,21 +162,6 @@ internal sealed class PvfClearRewardRateSource(PvfArchiveProvider provider) : IC
         /// </summary>
         internal const string ChronicleSetRewardRate = "[chronicle set reward rate]";
 
-        /// <summary>
-        /// <c>1.02 1.38 1.6 1.9 2</c> in A21: one multiplier per difficulty, the same five
-        /// difficulties as <c>[dungeon difficulty drop bonusrate]</c>.
-        /// <para>
-        /// This one is not unascertained -- it is inapplicable <b>here</b>. What it multiplies
-        /// is settled: the A21 reference server's <c>GenerateFreeGoldCard</c> multiplies a
-        /// card's gold by it, alongside the monster gold table, the kills the run made and the
-        /// party multiplier. None of that reaches this server, whose card gold is a flat figure
-        /// its owner chose (<c>GameProtocol.ClearRewardCardGold</c>) rather than an archive
-        /// reading, so the multiplier still has nothing here to multiply. Reading it would put
-        /// an archive number next to a value that did not come from the archive, which is
-        /// exactly the confusion this table exists to avoid.
-        /// </para>
-        /// </summary>
-        internal const string DifficultyGoldBonusRate = "[dungeon difficulty gold drop bonusrate]";
     }
 
     public ClearRewardTable Load(string archivePath)
@@ -186,6 +185,7 @@ internal sealed class PvfClearRewardRateSource(PvfArchiveProvider provider) : IC
             Integers(sections, DropKindSection),
             Integers(sections, ItemTypeSection),
             Integers(sections, DifficultySection),
+            Reals(sections, DifficultyGoldSection),
             Reals(sections, PartySection),
             Pairs(sections, MapCountSection, archivePath),
             ReadLadder(sections, archivePath),

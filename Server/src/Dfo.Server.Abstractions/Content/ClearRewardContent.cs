@@ -148,6 +148,17 @@ public sealed record ClearRewardBlankItem(int Weight, int ItemId, int Quantity);
 /// first is zero, which where these bonuses are added is the neutral entry rather than an emptying
 /// one; and the fifth is smaller than the fourth, so this is not a monotonic ladder.
 /// </param>
+/// <param name="DifficultyGoldRates">
+/// <c>[dungeon difficulty gold drop bonusrate]</c>, one multiplier per difficulty, indexed from
+/// zero, the same five difficulties as <see cref="DifficultyRates"/>. A21 declares
+/// <c>1.02 1.38 1.6 1.9 2</c>.
+/// <para>
+/// <b>Multipliers, where its sibling holds addends.</b> The lowest entry here is <c>1.02</c> and
+/// not zero, which is what says these are scaled rather than summed -- a zero would empty the
+/// figure rather than leave it alone. The two sections are read apart for that reason and never
+/// share an accessor.
+/// </para>
+/// </param>
 /// <param name="PartyMemberRates">
 /// <c>[party member drop bonusrate]</c>, one multiplier per party size, stored by the archive as
 /// singles. Indexed from a party of one.
@@ -227,6 +238,7 @@ public sealed record ClearRewardTable(
     IReadOnlyList<int> DropKindRates,
     IReadOnlyList<int> ItemTypeRates,
     IReadOnlyList<int> DifficultyRates,
+    IReadOnlyList<double> DifficultyGoldRates,
     IReadOnlyList<double> PartyMemberRates,
     IReadOnlyDictionary<int, int> MapCountRates,
     RarityLadder? Rarity,
@@ -259,6 +271,20 @@ public sealed record ClearRewardTable(
     public int? DifficultyRate(int difficulty) =>
         difficulty >= 0 && difficulty < this.DifficultyRates.Count
             ? this.DifficultyRates[difficulty]
+            : null;
+
+    /// <summary>
+    /// What this difficulty multiplies a card's gold by, or null when the table declares no such
+    /// difficulty.
+    /// </summary>
+    /// <remarks>
+    /// Null rather than one, for the reason its sibling answers null rather than zero: a caller
+    /// handed the neutral value could not tell it apart from the archive's own entry, and this
+    /// table's neutral value would be a number the archive never declares.
+    /// </remarks>
+    public double? DifficultyGoldRate(int difficulty) =>
+        difficulty >= 0 && difficulty < this.DifficultyGoldRates.Count
+            ? this.DifficultyGoldRates[difficulty]
             : null;
 
     /// <summary>What a party of this size multiplies by, or null when unlisted.</summary>

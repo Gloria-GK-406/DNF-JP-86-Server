@@ -312,6 +312,7 @@ public sealed class ClearRewardRuleServiceTests
         var pools = new ClearRewardFixture.RecordingPools(OnePiece());
         var service = new ClearRewardRuleService(
             new ClearRewardFixture.StubRates(ClearRewardFixture.Table()),
+            new ClearRewardFixture.StubGoldTables(),
             pools,
             new ClearRewardFixture.StubDungeons(),
             new ClearRewardRateOptions { RateBasis = ClearRewardFixture.Basis });
@@ -492,14 +493,17 @@ public sealed class ClearRewardRuleServiceTests
         var constructor = Assert.Single(typeof(ClearRewardRuleService).GetConstructors());
         var dependencies = constructor.GetParameters().Select(parameter => parameter.ParameterType);
 
-        // Three content sources and the options, and nothing else. The dungeon list joined them
-        // when a dungeon became able to switch its own paid card off; it is content like the other
-        // two, read the same way and owned by the same service. What the list may not grow is
-        // anything that could answer a question about the running world, which is what the suffix
+        // Four content sources and the options, and nothing else. The dungeon list joined when a
+        // dungeon became able to switch its own paid card off, and the gold table joined when a
+        // card's gold became an archive reading rather than a figure this server chose; both are
+        // content like the first two, read the same way and owned by the same service. What the
+        // list may not grow is anything that could answer a question about the running world,
+        // which is what the suffix
         // check below is and why it is a separate assertion rather than a comment on this one.
         Assert.Equal(
             [
                 typeof(IClearRewardRateSource),
+                typeof(IGoldDropTableSource),
                 typeof(IDropItemPoolSource),
                 typeof(IDungeonDefinitionSource),
                 typeof(ClearRewardRateOptions),
@@ -650,12 +654,13 @@ public sealed class ClearRewardRuleServiceTests
 
     /// <summary>The service is registered, and its basis comes from configuration.</summary>
     /// <remarks>
-    /// The registration is what makes the three content sources reach it and nothing else does;
+    /// The registration is what makes the four content sources reach it and nothing else does;
     /// the configured basis is what makes the named assumption an operator's dial rather than a
-    /// constant hidden in the rules. Three, as
+    /// constant hidden in the rules. Four, as
     /// <see cref="The_rule_service_is_handed_no_reader_of_world_state"/> pins by reflection and the
     /// <c>Build</c> below registers: the dungeon list joined the rate table and the pool when a
-    /// dungeon became able to switch its own paid card off.
+    /// dungeon became able to switch its own paid card off, and the gold table joined when a
+    /// card's gold became an archive reading.
     /// </remarks>
     [Fact]
     public void The_registration_wires_the_service_and_reads_the_basis()
@@ -692,6 +697,7 @@ public sealed class ClearRewardRuleServiceTests
                     ClearRewardFixture.Pool(
                         new ClearRewardFixture.PoolRow(86, DropRarity.Common, 1, 1))));
             services.AddSingleton<IDungeonDefinitionSource>(new ClearRewardFixture.StubDungeons());
+            services.AddSingleton<IGoldDropTableSource>(new ClearRewardFixture.StubGoldTables());
             return services.BuildServiceProvider();
         }
     }
@@ -1014,6 +1020,231 @@ public sealed class ClearRewardRuleServiceTests
             }
         }
     }
+
+    /// <summary>
+    /// A settled face carries its gold whether or not any of its positions holds anything.
+    /// </summary>
+    /// <remarks>
+    /// <b>The two are decided apart, and this is what says so.</b> A face drawn at no chance at
+    /// all comes back with every position empty, and it still has to pay: a free card is a floor,
+    /// and paying only when something was drawn is what used to leave an empty flip silent.
+    /// </remarks>
+    [Theory]
+    [InlineData(ClearRewardFixture.Basis)]
+    [InlineData(0)]
+    public void A_settled_face_carries_its_gold_whether_or_not_it_drew_anything(int threshold)
+    {
+        var service = ClearRewardFixture.Service(
+            ClearRewardFixture.Table(threshold: threshold), ClearRewardFixture.Pool());
+
+        var face = service.FaceFor(ClearRewardFixture.Occasion(), Seed);
+
+        Assert.All(face.Slots, slot => Assert.Null(slot.Item));
+        Assert.True(face.Gold > 0, $"a settled face paid {face.Gold}");
+    }
+
+    /// <summary>
+    /// The gold is the level's base scaled by the difficulty, inside the band the level declares.
+    /// </summary>
+    [Fact]
+    public void The_faces_gold_is_the_levels_base_scaled_by_the_difficulty()
+    {
+        var service = ClearRewardFixture.Service(
+            ClearRewardFixture.Table(), ClearRewardFixture.Pool());
+
+        var unmoved = ClearRewardFixture.GoldBase * ClearRewardFixture.DifficultyGoldRate;
+        var percent = ClearRewardFixture.GoldVariancePercent / 100.0;
+
+        for (var seed = 0UL; seed < 50; seed++)
+        {
+            var face = service.FaceFor(ClearRewardFixture.Occasion(), seed);
+            Assert.InRange(
+                face.Gold,
+                (int)Math.Floor(unmoved * (1 - percent)),
+                (int)Math.Ceiling(unmoved * (1 + percent)));
+        }
+    }
+
+    /// <summary>The same clear settles the same gold every time it is asked.</summary>
+    /// <remarks>
+    /// Same seed, same figure -- which is what lets a reconnecting client be told the same number
+    /// the first settlement announced. Two different seeds are asked as well, so a constant could
+    /// not pass this by standing still.
+    /// </remarks>
+    [Fact]
+    public void The_same_clear_settles_the_same_gold_every_time()
+    {
+        var service = ClearRewardFixture.Service(
+            ClearRewardFixture.Table(), ClearRewardFixture.Pool());
+        var occasion = ClearRewardFixture.Occasion();
+
+        Assert.Equal(
+            service.FaceFor(occasion, Seed).Gold, service.FaceFor(occasion, Seed).Gold);
+
+        var spread = new HashSet<int>();
+        for (var seed = 0UL; seed < 50; seed++)
+            spread.Add(service.FaceFor(occasion, seed).Gold);
+
+        Assert.True(spread.Count > 1, "every seed settled the same gold");
+    }
+
+    /// <summary>
+    /// What the gold spends of the generator never reaches the positions.
+    /// </summary>
+    /// <remarks>
+    /// <b>Two faces from one seed, differing only in how much randomness the gold needs.</b> A
+    /// level with no band spends nothing on its gold and a level with one spends a value; if the
+    /// two shared a generator with the draw, the second face's positions would all be shifted by
+    /// that value and this server would have silently redealt every face it has ever dealt.
+    /// Asking the same seed twice would not have noticed -- both answers would have been shifted
+    /// alike -- so the difference has to be in the gold's own appetite.
+    /// </remarks>
+    [Fact]
+    public void What_the_gold_spends_of_the_generator_never_reaches_the_positions()
+    {
+        // Several candidates at the same grade and quality, so a generator that had been shifted
+        // would pick a different one. A pool of one could not tell the two apart.
+        var pool = ClearRewardFixture.Pool(
+            [.. Enumerable.Range(0, 8).Select(
+                index => new ClearRewardFixture.PoolRow(
+                    86, DropRarity.Common, 40_000 + index, 12))]);
+        var steady = ClearRewardFixture.Service(
+            ClearRewardFixture.Table(),
+            pool,
+            gold: ClearRewardFixture.GoldTable(variancePercent: 0));
+        var moving = ClearRewardFixture.Service(
+            ClearRewardFixture.Table(),
+            pool,
+            gold: ClearRewardFixture.GoldTable(variancePercent: 13));
+
+        for (var seed = 0UL; seed < 20; seed++)
+        {
+            Assert.Equal(
+                steady.FaceFor(ClearRewardFixture.Occasion(), seed)
+                    .Slots.Select(slot => slot.Item?.ItemId),
+                moving.FaceFor(ClearRewardFixture.Occasion(), seed)
+                    .Slots.Select(slot => slot.Item?.ItemId));
+        }
+    }
+
+    /// <summary>
+    /// The gold's base is taken at the dungeon's basis level, not at the character's.
+    /// </summary>
+    /// <remarks>
+    /// <b>The two are the same number in most of this file's cases, which is exactly why this one
+    /// names them apart.</b> A character-keyed base is the same defect the grade band and the paid
+    /// flip's price were both found to have: an eighty-sixth-level character farming a dungeon
+    /// whose basis level is five would be paid the endgame figure -- on this archive 1357 against
+    /// 44, some thirty times over -- and nothing on the screen would look wrong.
+    /// </remarks>
+    [Fact]
+    public void The_golds_base_is_taken_at_the_dungeons_level_not_the_characters()
+    {
+        const int DungeonLevel = 5;
+        const int DungeonBase = 44;
+        var service = ClearRewardFixture.Service(
+            ClearRewardFixture.Table(),
+            ClearRewardFixture.Pool(),
+            gold: new GoldDropTable(
+                new Dictionary<int, int>
+                {
+                    [DungeonLevel] = DungeonBase,
+                    [ClearRewardFixture.EndgameLevel] = 1357,
+                },
+                new Dictionary<int, int>
+                {
+                    // The dungeon's level moves the amount not at all and the character's moves it
+                    // a long way, so a band read at the wrong level cannot land on the same figure.
+                    [DungeonLevel] = 0,
+                    [ClearRewardFixture.EndgameLevel] = 50,
+                },
+                [1],
+                (100, 100)));
+
+        var occasion = ClearRewardFixture.Occasion(dungeonBasisLevel: DungeonLevel);
+        var expected = (int)Math.Round(DungeonBase * ClearRewardFixture.DifficultyGoldRate);
+
+        // Every seed, because a band read at the character's level would still land on the
+        // dungeon's figure for some of them.
+        for (var seed = 0UL; seed < 50; seed++)
+            Assert.Equal(expected, service.FaceFor(occasion, seed).Gold);
+    }
+
+    /// <summary>
+    /// The floor is the free card's; a paid flip is not given it on top of the price it paid.
+    /// </summary>
+    /// <remarks>
+    /// The archive prices a paid flip, and a card the player has already bought does not also
+    /// carry the figure that exists so that turning a free card over is never silent.
+    /// </remarks>
+    [Fact]
+    public void The_floor_belongs_to_the_free_card_and_not_to_the_paid_one()
+    {
+        var service = ClearRewardFixture.Service(
+            ClearRewardFixture.Table(), ClearRewardFixture.Pool());
+
+        Assert.True(
+            service.FaceFor(ClearRewardFixture.Occasion(), Seed).Gold > 0,
+            "the free card paid nothing");
+        Assert.Equal(
+            0,
+            service.FaceFor(
+                ClearRewardFixture.Occasion(kind: ClearRewardCardKind.Paid), Seed).Gold);
+    }
+
+    /// <summary>
+    /// Each difficulty scales the gold by its own entry, not by the first one.
+    /// </summary>
+    /// <remarks>
+    /// <b>Every difficulty, because one of them proves nothing.</b> A lookup that always reached
+    /// the first entry would pass any case built on a single difficulty, and the amount it
+    /// produced would still be a plausible figure that moved with the seed -- the same shape as a
+    /// base read at the wrong level. On the archive the five entries run 1.02 to 2, so getting
+    /// this wrong halves what the hardest difficulty pays and nothing on the screen says so.
+    /// <para>
+    /// The band is switched off here so the scaling can be read on its own; that the band itself
+    /// is applied is <see cref="The_faces_gold_is_the_levels_base_scaled_by_the_difficulty"/>'s.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void Each_difficulty_scales_the_gold_by_its_own_entry()
+    {
+        var service = ClearRewardFixture.Service(
+            ClearRewardFixture.Table(),
+            ClearRewardFixture.Pool(),
+            gold: ClearRewardFixture.GoldTable(variancePercent: 0));
+
+        var paid = new List<int>();
+        for (var difficulty = 0; difficulty < ClearRewardFixture.DifficultyGoldRates.Length; difficulty++)
+        {
+            var face = service.FaceFor(
+                ClearRewardFixture.Occasion(difficulty: difficulty), Seed);
+
+            Assert.Equal(
+                (int)Math.Round(
+                    ClearRewardFixture.GoldBase * ClearRewardFixture.DifficultyGoldRates[difficulty],
+                    MidpointRounding.AwayFromZero),
+                face.Gold);
+            paid.Add(face.Gold);
+        }
+
+        // And the five are not all the same figure, which is what makes the case above a check on
+        // the lookup rather than on the multiplication alone.
+        Assert.Equal(paid.Count, paid.Distinct().Count());
+    }
+
+    /// <summary>A difficulty the file does not list pays nothing rather than paying unscaled.</summary>
+    [Fact]
+    public void A_difficulty_the_file_does_not_list_pays_nothing()
+    {
+        var service = ClearRewardFixture.Service(
+            ClearRewardFixture.Table(), ClearRewardFixture.Pool());
+
+        var face = service.FaceFor(
+            ClearRewardFixture.Occasion() with { Difficulty = 9 }, Seed);
+
+        Assert.Equal(0, face.Gold);
+    }
 }
 
 /// <summary>
@@ -1175,6 +1406,55 @@ internal static class ClearRewardFixture
         return new RarityLadder(values);
     }
 
+    /// <summary>The gold bases and bands the fixture's dungeon level declares.</summary>
+    /// <remarks>
+    /// Level and figures of its own rather than the archive's, so a case that asserts an amount
+    /// says which numbers produced it. The archive's own reading is pinned separately, against the
+    /// real file.
+    /// </remarks>
+    public const int GoldBase = 200;
+
+    /// <summary>How far either way the fixture's level lets a card's gold move.</summary>
+    public const int GoldVariancePercent = 10;
+
+    /// <summary>A gold table on the fixture's level, with a band a case may choose.</summary>
+    public static GoldDropTable GoldTable(int variancePercent = GoldVariancePercent) =>
+        new(
+            new Dictionary<int, int> { [EndgameLevel] = GoldBase },
+            new Dictionary<int, int> { [EndgameLevel] = variancePercent },
+            [1],
+            (100, 100));
+
+    /// <summary>Hands out one gold table, whatever path it is asked for.</summary>
+    public sealed class StubGoldTables(GoldDropTable? gold = null) : IGoldDropTableSource
+    {
+        public GoldDropTable Load(string archivePath) =>
+            gold ?? new GoldDropTable(
+                new Dictionary<int, int> { [EndgameLevel] = GoldBase },
+                new Dictionary<int, int> { [EndgameLevel] = GoldVariancePercent },
+                [1],
+                (100, 100));
+    }
+
+    /// <summary>What the fixture's own difficulty multiplies a card's gold by.</summary>
+    /// <remarks>
+    /// The entry at <see cref="CertainDifficulty"/>. The other four differ from it and from each
+    /// other -- see <see cref="DifficultyGoldRates"/> -- so a lookup that reached the wrong index
+    /// cannot land on this figure.
+    /// </remarks>
+    public const double DifficultyGoldRate = 1.5;
+
+    /// <summary>
+    /// One gold multiplier per difficulty, every one of them different.
+    /// </summary>
+    /// <remarks>
+    /// <b>Different on purpose.</b> A table whose entries repeated would let a service that always
+    /// read the first of them pass every case that used any of them, which is how a wrong-index
+    /// lookup stays invisible: the amount is still a plausible figure that moves with the seed.
+    /// The archive's own five differ too.
+    /// </remarks>
+    public static readonly double[] DifficultyGoldRates = [1.25, DifficultyGoldRate, 1.75, 2.0, 2.25];
+
     /// <summary>
     /// A table whose second profile declares the full threshold and whose first declares half.
     /// </summary>
@@ -1206,6 +1486,7 @@ internal static class ClearRewardFixture
             [10000, 0],
             [0, 9500, 0, 500],
             [0, Basis - MapBase],
+            DifficultyGoldRates,
             [1.0],
             new Dictionary<int, int> { [MapCount] = MapBase },
             ladder ?? PinnedTo(DropRarity.Common),
@@ -1242,11 +1523,13 @@ internal static class ClearRewardFixture
         DropItemPool pool,
         int basis = Basis,
         IDungeonDefinitionSource? dungeons = null,
+        GoldDropTable? gold = null,
         bool freeCardBlankItems = false,
         bool goldCardBlankItems = false,
         bool pcRoomCardBlankItems = false) =>
         new(
             new StubRates(table),
+            new StubGoldTables(gold),
             new RecordingPools(pool),
             dungeons ?? new StubDungeons(),
             new ClearRewardRateOptions
@@ -1302,4 +1585,5 @@ internal static class ClearRewardFixture
             return pool;
         }
     }
+
 }
