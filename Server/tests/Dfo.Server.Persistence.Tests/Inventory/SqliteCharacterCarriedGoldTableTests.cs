@@ -151,7 +151,7 @@ public sealed class SqliteCharacterCarriedGoldTableTests
         }
     }
 
-    /// <summary>The last coin can be spent; an emptied purse is one that paid.</summary>
+    /// <summary>The last coin can be spent; a character emptied is one that paid.</summary>
     /// <remarks>
     /// The boundary of the condition. A take that required the character to hold more than the
     /// price would refuse exactly the player who can just afford something, which is the one case

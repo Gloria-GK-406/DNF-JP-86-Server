@@ -56,7 +56,7 @@ public interface ICharacter
     /// <b>The one way gold arrives.</b> The carry cap is applied here, so an arrival that would
     /// take the character past it fills to the cap and no further. Anything that reached the store
     /// around this would be gold the cap never saw, which is exactly how the reference server ended
-    /// up with three different answers to a full purse.
+    /// up with three different answers to a character carrying all it may.
     /// <para>
     /// A negative amount takes gold away and is held at zero. It is not a way to charge: a charge
     /// that cannot be met has to be refused rather than clamped, which is what

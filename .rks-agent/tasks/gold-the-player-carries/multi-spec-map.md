@@ -4,10 +4,10 @@ contract:
   path: ./TaskContract.md
   revision: 1
 state: active
-phase: child_execution
-phase_state: pending
-active_attempt: spec-002
-last_transition: child-created
+phase: root_evaluation
+phase_state: in_progress
+active_attempt: null
+last_transition: child-accepted
 transition_evidence: >-
   workspace-ready：规范根 .worktrees/gold-the-player-carries（git rev-parse --show-toplevel
   实测），分支 gold-the-player-carries，HEAD 1946c012，工作区仅两份声明的未跟踪任务产物；源检出
@@ -45,12 +45,18 @@ transition_evidence: >-
   按规则不得表示为依赖边。游标一致性校验：safe-successor 的目标为 child_modeling/pending，
   与转移前持久化状态一致。子路由决策已完成 readiness / marginal value / Single 结构选择三节，
   Controller Selection 留给 single-spec-workflow。
+  child-sealed（spec-002）：以 outcome completed 封存于
+  attempts/spec-002-gold-the-character-keeps/spec-result.md，终止阶段 verification。
+  child-accepted（spec-002）：接受前 HEAD 仍等于先前基线 e4f29e1d（实测），完整变更集 46 文件
+  +2304/−223 一次提交，新提交 50d45f384819219f4b9ff598b6210cad77c6cc7b；提交后任务工作区
+  git status 为空、分支仅前进这一步（父提交即 e4f29e1d）、源检出 main 仍为 1946c012 且状态为空、
+  无关的 client-debug-lab 仍为 33a18570 未触碰。工作区基线随之推进。
 workspace:
   repository_root: E:/Project/DNF/DNF-JP-86-Server
   task_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/gold-the-player-carries/.rks-agent/tasks/gold-the-player-carries
   code_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/gold-the-player-carries
   branch: gold-the-player-carries
-  baseline: e4f29e1d4d68abd4b45114822731c8e8f9995874
+  baseline: 50d45f384819219f4b9ff598b6210cad77c6cc7b
   baseline_evidence: >-
     PVF_ARCHIVE_PATH=E:/Project/DNF/DNFClient-A21-protocol/Script.pvf dotnet test
     Server/86JP.Server.slnx --nologo → exit 0；七个测试程序集合计 1993 通过 / 2 跳过 / 0 失败
@@ -77,13 +83,13 @@ workspace:
 
 | SC | Requirement | Progress | Evidence | Remaining gap | Constraint |
 |---|---|---|---|---|---|
-| SC-1 | 玩家赚到的金币显示在背包上，重新登录后仍然是那个数 | not_started | none | 随身金币无写路径，登录读出恒为 0。变更通知帧已存在且正确，缺的是存储 | aligned |
-| SC-2 | 玩家花钱的既有路径从他看得见的那笔钱里扣，余额与显示一致 | not_started | none | 付费翻牌当前从账号金库扣 | aligned |
-| SC-3 | 携带上限对随身金币真实生效，超限入账处理确定且一致 | not_started | none | 上限链存在但限着一个不存在的量 | aligned |
-| SC-4 | 新建角色带确定的随身金币起始值，而非靠读取缺省得 0 | not_started | none | 建角色不插主背包槽 0 的行 | aligned |
+| SC-1 | 玩家赚到的金币显示在背包上，重新登录后仍然是那个数 | satisfied | spec-002 验证证据；实机三方吻合（日志 / 库 / 客户端同为 199513），且拾取后跨重登仍在 | 无 | aligned |
+| SC-2 | 玩家花钱的既有路径从他看得见的那笔钱里扣，余额与显示一致 | satisfied | spec-002 验证证据；实机 200000 − 580 + 47 = 199467，与库一致 | 无 | aligned |
+| SC-3 | 携带上限对随身金币真实生效，超限入账处理确定且一致 | satisfied | spec-002 验证证据；上限取档案按等级下限与已买升级的较大者，在唯一入口上截断，13 条判据覆盖 | 无 | aligned |
+| SC-4 | 新建角色带确定的随身金币起始值，而非靠读取缺省得 0 | satisfied | spec-002 验证证据；character_stats 的行随角色创建而生，「无行」不再是可与持有零混淆的状态 | 无 | aligned |
 | SC-5 | `purse` 不再在本仓指代任何一笔钱 | satisfied | spec-001 验证证据；全仓检索 0 命中，检索有效性经反证 | 无 | aligned |
 | SC-6 | `Gold` 只出现在指代金币之处 | satisfied | spec-001 验证证据；逐条判定全部命中，六个碎片字段改为 Cube 结尾，牌面改为 GoldCard | 无 | aligned |
-| SC-7 | 两笔钱可从名字区分且不能互相误用 | in_progress | spec-001 验证证据；金库一侧已更名为 IAccountCargoGoldService 并仍强制传 AccountId | 随身一侧尚不存在，「不能互相误用」要到两侧同时在场才可观察 | aligned |
+| SC-7 | 两笔钱可从名字区分且不能互相误用 | satisfied | spec-001 与 spec-002 验证证据；随身一侧不带角色标识、金库一侧强制传账号标识，两者不同形，误用在编译期被拒 | 无 | aligned |
 | SC-8 | 仓库文档不再把随身金币记作已实现 | satisfied | spec-001 验证证据；四处修正逐条独立查证，含事故源头那一栏改为分述 | 无 | aligned |
 | SC-9 | 命名与文档的归位没有改变任何行为 | satisfied | spec-001 验证证据；1993 通过 / 2 跳过 / 0 失败，逐程序集与基线一致，断言与期望值未动 | 无 | aligned |
 
@@ -94,4 +100,4 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 | # | Attempt | TaskContract | Outcome | Affects | State | Result | Git result |
 |---:|---|---|---|---|---|---|---|
 | `1` | `spec-001` | `attempts/spec-001-money-named-for-what-it-is/TaskContract.md` | 两笔钱各自叫对名字，文档与事实一致，行为逐值不变 | `SC-5, SC-6, SC-7, SC-8, SC-9` | `sealed` | `completed` | `accepted e4f29e1d` |
-| `2` | `spec-002` | `attempts/spec-002-gold-the-character-keeps/TaskContract.md` | 玩家身上的金币是真的：能写入、跨会话保留、变更时告知客户端，既有收支都作用于它 | `SC-1, SC-2, SC-3, SC-4, SC-7` | `running` | `pending` | `active` |
+| `2` | `spec-002` | `attempts/spec-002-gold-the-character-keeps/TaskContract.md` | 玩家身上的金币是真的：能写入、跨会话保留、变更时告知客户端，既有收支都作用于它 | `SC-1, SC-2, SC-3, SC-4, SC-7` | `sealed` | `completed` | `accepted 50d45f38` |
