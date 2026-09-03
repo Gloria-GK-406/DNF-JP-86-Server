@@ -21,6 +21,10 @@ public sealed record InventoryContainerParameter(
     InventoryContainerType ContainerType,
     ushort Value);
 
+/// <param name="Value32">
+/// The gold held in the account's cargo, named after the column it is read from. Not the gold a
+/// character carries.
+/// </param>
 public sealed record AccountCargoStorageState(
     AccountId AccountId,
     ushort SelectionKey,

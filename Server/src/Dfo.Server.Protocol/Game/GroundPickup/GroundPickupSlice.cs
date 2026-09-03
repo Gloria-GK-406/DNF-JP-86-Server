@@ -64,11 +64,11 @@ public sealed record GroundPickupNotification(
 }
 
 /// <summary>
-/// NOTI 0x0027 <c>GET_ITEM</c>, the form the client reads as money rather than an item.
+/// NOTI 0x0027 <c>GET_ITEM</c>, the form the client reads as gold rather than an item.
 /// </summary>
 /// <remarks>
 /// The same type as an item pick-up and a different body. What tells them apart is the byte at
-/// <c>+4</c>: an item writes one there, money writes zero.
+/// <c>+4</c>: an item writes one there, gold writes zero.
 /// </remarks>
 public sealed record GroundGoldPickupNotification(
     ushort GroundDropNumber,
@@ -86,7 +86,7 @@ internal static class GroundPickupPayloadCodec
     /// <summary>The notification's fixed length, as the reference builder writes it.</summary>
     public const int NotificationBodyLength = 18;
 
-    /// <summary>The money form's length, measured rather than transcribed.</summary>
+    /// <summary>The gold form's length, measured rather than transcribed.</summary>
     public const int GoldNotificationBodyLength = 117;
 
     /// <summary>
@@ -113,12 +113,18 @@ internal static class GroundPickupPayloadCodec
     ];
 
     /// <summary>
-    /// The money form: the piece, who took it, and how much.
+    /// The gold form: the piece, who took it, and how much.
     /// </summary>
     /// <remarks>
-    /// Measured against two captures. The amount is a signed 32-bit field at <c>+6</c>, and the
-    /// client adds it to the purse it is already displaying rather than being told a total -- the
-    /// total reaches it once, in the item-list frame at entry.
+    /// Measured against two captures. The amount is a signed 32-bit field at <c>+6</c>: the client
+    /// adds it to the figure it is already displaying rather than being told a total.
+    /// <para>
+    /// <b>The figure it adds to is the character's carried gold, which this server does not keep.</b>
+    /// What it was told at entry is the account cargo's gold, in a different container of the
+    /// item-list frame. So the number the player watches go up here is not backed by anything
+    /// stored, and it is gone by the next entry. Giving it something to be backed by is a separate
+    /// piece of work; nothing about this frame changes when that happens.
+    /// </para>
     /// </remarks>
     public static byte[] EncodeGoldNotification(GroundGoldPickupNotification message)
     {
@@ -223,14 +229,14 @@ public enum GroundPickupStatus
     /// <summary>The archive declares nothing holdable under that identifier.</summary>
     UnknownItem,
 
-    /// <summary>Money, which goes to the account's purse rather than into a bag.</summary>
+    /// <summary>Gold, which goes to the account's cargo rather than into a bag.</summary>
     Banked,
 }
 
 /// <summary>What a pick-up did, or why it did not.</summary>
 /// <param name="Amount">
-/// How much money was taken, and what the account holds afterwards. Zero for anything that went
-/// into a bag.
+/// How much gold was taken, and what the account's cargo holds afterwards. Zero for anything that
+/// went into a bag.
 /// </param>
 public sealed record GroundPickupResult(
     GroundPickupStatus Status, int ItemId, int SlotIndex, int Amount = 0, int Total = 0)
@@ -264,7 +270,7 @@ public sealed class PickUpGroundDropCommandHandler(
     IDungeonRunDomainService runs,
     IGroundPickupDomainService floor,
     ICharacterContainerDomainService containers,
-    IAccountMoneyService money)
+    IAccountCargoGoldService cargoGold)
     : ICommandHandler<PickUpGroundDropCommand, GroundPickupResult>
 {
     public async ValueTask<GroundPickupResult> HandleAsync(
@@ -285,15 +291,16 @@ public sealed class PickUpGroundDropCommandHandler(
 
         var piece = Announced(run, found);
 
-        // Money goes to the account's purse and never touches a bag, so it is claimed and banked
+        // Gold goes to the account's cargo and never touches a bag, so it is claimed and banked
         // before a container is even looked for -- a character with no bag bound can still pick up
-        // coins.
+        // coins. The reference server puts it on the character instead; this server has no carried
+        // gold yet, which is why it lands here.
         if (piece.ItemId == RolledDrop.GoldItemId)
         {
             if (runs.TryTakeGroundDrop(command.CharacterId, command.GroundDropNumber) is null)
                 return GroundPickupResult.Refused(GroundPickupStatus.AlreadyTaken);
 
-            var total = await money.AddAsync(command.AccountId, piece.Count, cancellationToken)
+            var total = await cargoGold.AddAsync(command.AccountId, piece.Count, cancellationToken)
                 .ConfigureAwait(false);
             return new GroundPickupResult(
                 GroundPickupStatus.Banked, RolledDrop.GoldItemId, 0, piece.Count, total);
@@ -440,7 +447,7 @@ public sealed class GetItemHandler(
         {
             logger.LogInformation(
                 "Get item {ConnectionId} user={WireUserId}: drop {Number} is {Amount} gold, "
-                    + "account now holds {Total}",
+                    + "account cargo now holds {Total}",
                 context.Connection.ConnectionId,
                 session.WireUserId,
                 message.GroundDropNumber,

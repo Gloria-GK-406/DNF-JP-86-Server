@@ -346,8 +346,14 @@ internal sealed class InventoryEntryAssembly(
     /// The first three slots of the main list are counters rather than items.
     /// </summary>
     /// <remarks>
+    /// Slot 0 is the gold the character carries, slot 1 the revival coin, slot 2 the PvP point --
+    /// see <see cref="InventoryRuntimeValueState"/>, which also records that nothing writes slot 0
+    /// yet.
+    /// <para>
     /// They are read out of the items already loaded rather than from the database again, which
-    /// is why this one takes no connection and asks no table anything.
+    /// is why this one takes no connection and asks no table anything. A slot with no stored row
+    /// simply does not appear here, and the frame draws it as zero.
+    /// </para>
     /// </remarks>
     private static IReadOnlyList<InventoryRuntimeValueState> CharacterVirtualResources(
         IReadOnlyList<InventoryStorageItem> items) =>
@@ -365,7 +371,8 @@ internal sealed class InventoryEntryAssembly(
                 .ConfigureAwait(false)
             ?? throw new InvalidDataException(
                 $"Account {accountId.Value} is missing while loading inventory values.");
-        int[] counts = [row.Black, row.White, row.Red, row.Blue, row.Clear, row.Gold];
+        int[] counts =
+            [row.BlackCube, row.WhiteCube, row.RedCube, row.BlueCube, row.ClearCube, row.GoldCube];
         var values = new List<InventoryRuntimeValueState>();
         for (var index = 0; index < counts.Length; index++)
         {

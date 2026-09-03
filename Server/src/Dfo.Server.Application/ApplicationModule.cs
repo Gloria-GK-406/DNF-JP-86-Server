@@ -151,7 +151,7 @@ public sealed class ApplicationModule : IServerModule
         // The compensation seam and its first-phase implementation, which never compensates. It is
         // registered rather than left out so that everything upstream is written against the real
         // shape from the first day.
-        services.TryAddSingleton<IAccountMoneyService, AccountMoneyService>();
+        services.TryAddSingleton<IAccountCargoGoldService, AccountCargoGoldService>();
         // What an occasion drops: the one reader of the three drop tables and the only caller of
         // DropRules. The compensation seam below stays outside it, because what a character is
         // owed is state that crosses runs.

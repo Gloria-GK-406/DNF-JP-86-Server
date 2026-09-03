@@ -113,7 +113,11 @@ public enum ClearRewardBlankCard
     Free = 0,
 
     /// <summary>The paid card: <c>[gold card blank item]</c>, six weighted rows.</summary>
-    Gold = 1,
+    /// <remarks>
+    /// The card face the archive calls the gold card, not an amount of gold. A bare <c>Gold</c>
+    /// in this repository always means the money, which is why this member carries the noun.
+    /// </remarks>
+    GoldCard = 1,
 
     /// <summary>
     /// The PC-room card: <c>[pcroom card blank item]</c>, one row.
@@ -214,7 +218,7 @@ public sealed class ClearRewardBlankItemSwitches
     public bool Allows(ClearRewardBlankCard card) => card switch
     {
         ClearRewardBlankCard.Free => this.FreeCard,
-        ClearRewardBlankCard.Gold => this.GoldCard,
+        ClearRewardBlankCard.GoldCard => this.GoldCard,
         ClearRewardBlankCard.PcRoom => this.PcRoomCard,
         _ => false,
     };

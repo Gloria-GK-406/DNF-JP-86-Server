@@ -70,7 +70,7 @@ internal sealed class SqliteAccountCargoStateTable(SqliteDatabase database)
     /// One statement: the upsert adds to the stored value and returns it, so nothing is read into
     /// the server and written back. Clamped at zero and at the 32-bit ceiling by the statement
     /// itself -- the wire field is a signed 32-bit integer and a total that wrapped would show the
-    /// player a negative purse.
+    /// player a negative figure on the account cargo.
     /// </remarks>
     public async ValueTask<int> AddValue32Async(
         AccountId accountId, int amount, CancellationToken cancellationToken)
@@ -104,13 +104,13 @@ internal sealed class SqliteAccountCargoStateTable(SqliteDatabase database)
     /// <b>Not the addition with a negative amount.</b> That one clamps at zero, so an account
     /// short of the price would be emptied and answer with a total, which a caller cannot tell
     /// from a charge that went through. Here the row is only touched when
-    /// <c>value32 &gt;= @amount</c> holds, so a refusal writes nothing at all and the purse is
-    /// left where it was.
+    /// <c>value32 &gt;= @amount</c> holds, so a refusal writes nothing at all and the stored gold
+    /// is left where it was.
     /// </para>
     /// <para>
     /// No row matched means one of two things -- the account is short, or it has no row at all --
     /// and both are the same answer for any real price: an account with no row carries nothing.
-    /// The single exception is a take of zero, which every purse including an unopened one can
+    /// The single exception is a take of zero, which every cargo including an unopened one can
     /// afford, so it answers with the zero such an account carries rather than opening it a row
     /// to say the same thing.
     /// </para>

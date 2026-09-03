@@ -57,10 +57,19 @@ public sealed record AvatarDetailRow(
 public sealed record ContainerStateRow(int CharacterId, int ListType, int Value);
 
 /// <summary>One row of <c>account_cargo_state</c>.</summary>
+/// <param name="Value32">
+/// The gold held in this account's cargo, named after its column. Shared by every character on the
+/// account and only visible once the cargo is opened -- it is not the gold a character carries.
+/// </param>
 public sealed record AccountCargoStateRow(
     int AccountId, int SelectionKey, int Value32, int ItemCount);
 
 /// <summary>A character's two gold caps, which live with its other derived numbers.</summary>
+/// <param name="CarryLimit">
+/// The most gold this character may carry. It caps the gold on the player's bag, which this
+/// server does not keep yet, so nothing is currently held to it.
+/// </param>
+/// <param name="AuctionLimit">The most this character may bid. There is no auction house here.</param>
 public sealed record GoldLimitRow(int CarryLimit, int AuctionLimit);
 
 /// <summary>One row of <c>character_item_cooldowns</c> or <c>character_item_effects</c>.</summary>
@@ -84,8 +93,17 @@ public sealed record RentalRow(
     int CharacterId, long ItemId, long InventoryTemplateId, long ExpireTime);
 
 /// <summary>The six cube fragment counts an account carries.</summary>
+/// <remarks>
+/// Six colours of a crafting fragment, not six currencies. <c>GoldCube</c> is the gold-coloured
+/// fragment and holds no gold: in this repository a bare <c>Gold</c> always means the money.
+/// </remarks>
 public sealed record CubeFragmentRow(
-    int Black, int White, int Red, int Blue, int Clear, int Gold);
+    int BlackCube,
+    int WhiteCube,
+    int RedCube,
+    int BlueCube,
+    int ClearCube,
+    int GoldCube);
 
 /// <summary>The rows of <c>items</c> a character owns.</summary>
 public interface ICharacterItemTable

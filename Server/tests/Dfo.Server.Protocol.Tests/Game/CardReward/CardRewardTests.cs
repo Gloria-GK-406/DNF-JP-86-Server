@@ -91,12 +91,12 @@ public sealed class CardRewardTests
     /// A price, and only a price. It is deliberately not the archive's figure: what the archive
     /// charges at a level is asserted against the archive itself in the application tests, and a
     /// number transcribed here would look like a second reading of the file while proving nothing
-    /// about it. All this one has to be is something a purse can be one coin short of.
+    /// about it. All this one has to be is something an account can be one coin short of.
     /// </remarks>
     private const int FixturePrice = 250;
 
-    /// <summary>What the fixture's account carries before a flip, comfortably above the price.</summary>
-    private const int StartingPurse = 1000;
+    /// <summary>What the fixture's account cargo holds before a flip, comfortably above the price.</summary>
+    private const int StartingCargoGold = 1000;
 
     /// <summary>The level the fixture's flips are priced by when a command is built here.</summary>
     private const int FlipLevel = 42;
@@ -778,7 +778,7 @@ public sealed class CardRewardTests
 
         Assert.Equal(holds, result.Delivered is not null);
         Assert.Equal(FaceGold, result.GoldPaid);
-        Assert.Equal(StartingPurse + FaceGold, world.Purse.Total);
+        Assert.Equal(StartingCargoGold + FaceGold, world.CargoGold.Total);
     }
 
     /// <summary>
@@ -798,31 +798,31 @@ public sealed class CardRewardTests
 
         Assert.Null(result.Delivered);
         Assert.Equal(FaceGold, result.GoldPaid);
-        Assert.Equal(StartingPurse + FaceGold, world.Purse.Total);
+        Assert.Equal(StartingCargoGold + FaceGold, world.CargoGold.Total);
     }
 
     /// <summary>A free flip is never charged, whatever the account is carrying.</summary>
     /// <remarks>
-    /// An empty purse on purpose: a free flip that went to the purse at all would be refused here
-    /// rather than merely charged nothing.
+    /// An empty cargo on purpose: a free flip that reached the charging seam at all would be
+    /// refused here rather than merely charged nothing.
     /// </remarks>
     [Fact]
     public async Task A_free_flip_is_never_charged()
     {
-        var world = new World(purse: 0);
+        var world = new World(cargoGold: 0);
 
         var result = await world.Flip(ClearRewardCardKind.Free, 0);
 
         Assert.Equal(SelectCardStatus.Flipped, result.Status);
         Assert.Equal(0, result.GoldCharged);
-        Assert.Equal(0, world.Purse.Charges);
+        Assert.Equal(0, world.CargoGold.Charges);
     }
 
     /// <summary>
     /// A paid flip an account can afford costs the settlement's price and hands the card over.
     /// </summary>
     /// <remarks>
-    /// The purse afterwards is the price out and the card's own gold in, which is the arithmetic
+    /// The cargo gold afterwards is the price out and the card's own gold in, which is the arithmetic
     /// of the whole exchange rather than of either half -- a flip that charged and paid nothing,
     /// or paid and charged nothing, lands somewhere else.
     /// </remarks>
@@ -835,7 +835,7 @@ public sealed class CardRewardTests
 
         Assert.Equal(SelectCardStatus.Flipped, result.Status);
         Assert.Equal(FixturePrice, result.GoldCharged);
-        Assert.Equal(StartingPurse - FixturePrice + PaidFaceGold, world.Purse.Total);
+        Assert.Equal(StartingCargoGold - FixturePrice + PaidFaceGold, world.CargoGold.Total);
         Assert.Equal(FirstItemId, world.Bag.Slots[Bag.OpenedSlot].ItemId);
     }
 
@@ -851,17 +851,17 @@ public sealed class CardRewardTests
     [Fact]
     public async Task An_account_that_cannot_afford_a_paid_flip_keeps_its_money_and_its_card()
     {
-        var world = new World(purse: FixturePrice - 1);
+        var world = new World(cargoGold: FixturePrice - 1);
 
         var refused = await world.Flip(ClearRewardCardKind.Paid, 0);
 
         Assert.Equal(SelectCardStatus.NotEnoughGold, refused.Status);
         Assert.Empty(refused.Slots);
         Assert.Equal(0, refused.GoldCharged);
-        Assert.Equal(FixturePrice - 1, world.Purse.Total);
+        Assert.Equal(FixturePrice - 1, world.CargoGold.Total);
         Assert.Empty(world.Bag.Slots);
 
-        await world.Purse.AddAsync(Identity.AccountId, 1, CancellationToken.None);
+        await world.CargoGold.AddAsync(Identity.AccountId, 1, CancellationToken.None);
         Assert.Equal(
             SelectCardStatus.Flipped, (await world.Flip(ClearRewardCardKind.Paid, 0)).Status);
     }
@@ -882,8 +882,8 @@ public sealed class CardRewardTests
         var result = await world.Flip(ClearRewardCardKind.Paid, 0);
 
         Assert.Equal(SelectCardStatus.NotPriced, result.Status);
-        Assert.Equal(StartingPurse, world.Purse.Total);
-        Assert.Equal(0, world.Purse.Charges);
+        Assert.Equal(StartingCargoGold, world.CargoGold.Total);
+        Assert.Equal(0, world.CargoGold.Charges);
         Assert.Empty(world.Bag.Slots);
     }
 
@@ -904,8 +904,8 @@ public sealed class CardRewardTests
         var result = await world.Flip(ClearRewardCardKind.Paid, 0);
 
         Assert.Equal(SelectCardStatus.AlreadyFlipped, result.Status);
-        Assert.Equal(1, world.Purse.Charges);
-        Assert.Equal(StartingPurse, world.Purse.Total);
+        Assert.Equal(1, world.CargoGold.Charges);
+        Assert.Equal(StartingCargoGold, world.CargoGold.Total);
     }
 
     /// <summary>
@@ -933,7 +933,7 @@ public sealed class CardRewardTests
     /// The command carries the account and the level the published session holds.
     /// </summary>
     /// <remarks>
-    /// Both are the handler's to fill in, and neither is the client's: the account is whose purse
+    /// Both are the handler's to fill in, and neither is the client's: the account is whose cargo
     /// pays and is paid, and the level is what the price is read at. The published level differs
     /// from the one this file hands its own commands, so a handler that made one up would show.
     /// </remarks>
@@ -1082,20 +1082,20 @@ public sealed class CardRewardTests
             bool cardsFixed = true,
             bool bagBound = true,
             BagAnswer bagAnswer = BagAnswer.OpensASlot,
-            int purse = StartingPurse,
+            int cargoGold = StartingCargoGold,
             int? paidFlipPrice = FixturePrice,
             bool claimsAreLost = false)
         {
             this._rules = new RefusingRules();
             this.Bag = new Bag(bagAnswer);
-            this.Purse = new Purse(purse);
+            this.CargoGold = new CargoGold(cargoGold);
 
             ICardRewardDomainService cards = new CardRewardDomainService(this._rules, this._runs);
             this._handler = new SelectCardCommandHandler(
                 claimsAreLost ? new LosingCards(cards) : cards,
                 this._runs,
                 new StubContainers(bagBound ? this.Bag : null),
-                this.Purse,
+                this.CargoGold,
                 new FixedClock(Flipped));
 
             if (!inARun)
@@ -1119,8 +1119,14 @@ public sealed class CardRewardTests
         /// <summary>The character's own bag, which is where a flipped piece has to end up.</summary>
         public Bag Bag { get; }
 
-        /// <summary>The account's purse, which is where a flip's money goes both ways.</summary>
-        public Purse Purse { get; }
+        /// <summary>
+        /// The account cargo's gold, which is where a flip's gold currently goes both ways.
+        /// </summary>
+        /// <remarks>
+        /// The reference server puts a flip's gold on the character instead. This server has no
+        /// carried gold yet, so the cargo is what the slice reaches; the stand-in follows it.
+        /// </remarks>
+        public CargoGold CargoGold { get; }
 
         /// <summary>How many times the rules were asked anything, which must stay at zero.</summary>
         public int RuleQuestions => this._rules.Questions;
@@ -1262,15 +1268,15 @@ public sealed class CardRewardTests
             ValueTask.FromResult<ClearRewardCardSlot?>(null);
     }
 
-    /// <summary>An account purse that remembers what it was given and what it paid.</summary>
+    /// <summary>An account cargo's gold that remembers what it was given and what it paid.</summary>
     /// <remarks>
     /// A stand-in rather than the real service over SQLite, for the reason the bag beside it is
-    /// one: what is under test here is what this slice asks the purse for. That the purse itself
-    /// refuses a charge it cannot meet, and leaves the money alone when it does, is asserted
+    /// one: what is under test here is what this slice asks the seam for. That the store itself
+    /// refuses a charge it cannot meet, and leaves the gold alone when it does, is asserted
     /// against the real store in the application and persistence tests. The refusal is modelled
     /// the same way here so that a slice which stopped reading it would fail here too.
     /// </remarks>
-    private sealed class Purse(int total) : IAccountMoneyService
+    private sealed class CargoGold(int total) : IAccountCargoGoldService
     {
         public int Total { get; private set; } = total;
 

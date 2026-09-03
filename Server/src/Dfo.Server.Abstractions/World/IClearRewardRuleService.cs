@@ -79,6 +79,11 @@ public sealed record ClearRewardCardSlot(int Index, ClearRewardCardItem? Item)
 /// What a flip of this face pays, whatever the positions hold. Decided here with the positions and
 /// from the same seed, so a clear that is asked twice -- or reconnected into -- answers the same
 /// figure both times. See <see cref="ClearRewardRules.CardGoldOf"/> for where it comes from.
+/// <para>
+/// The figure only. Which of the player's two golds it is paid into is the flip's business and not
+/// this face's. Today it is paid into the account cargo. The reference server pays it into the
+/// gold the character carries instead, which is where it belongs.
+/// </para>
 /// </param>
 public sealed record ClearRewardCardFace(
     ClearRewardCardKind Kind, IReadOnlyList<ClearRewardCardSlot> Slots, int Gold);

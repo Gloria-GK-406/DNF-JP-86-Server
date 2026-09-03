@@ -257,14 +257,14 @@ internal sealed class ClearRewardRuleService(
         ClearRewardTable table, ClearRewardCardKind kind)
     {
         var card = kind == ClearRewardCardKind.Paid
-            ? ClearRewardBlankCard.Gold
+            ? ClearRewardBlankCard.GoldCard
             : ClearRewardBlankCard.Free;
         if (!options.BlankItems.Allows(card))
             return [];
 
         // The free card's rows are the empty list because the archive declares it no section, and
         // it is not lent the paid card's; see ClearRewardBlankCard.Free.
-        return card == ClearRewardBlankCard.Gold ? table.GoldCardBlankItems : [];
+        return card == ClearRewardBlankCard.GoldCard ? table.GoldCardBlankItems : [];
     }
 
     /// <summary>

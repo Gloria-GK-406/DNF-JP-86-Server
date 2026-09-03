@@ -32,11 +32,13 @@ namespace Dfo.Server.Persistence.Schema;
 /// row. A database carrying the older two-table shape is therefore not reconciled into this one; it
 /// is replaced, which is what this stage of the project does with databases anyway.
 ///
-/// One column is here that reading the shape back could not have found: <c>character_gold_limits</c>
-/// was declared in two places with different shapes and, alone among such tables, had no patcher
-/// reconciling them -- so the shape a database ended up with was whichever declaration ran first,
-/// and the column the other one declared was simply absent. Reading back a database gives what won,
-/// not what was meant; this table's declaration is the union of both.
+/// One column here could not have been found by reading a database back. <c>character_gold_limits</c>
+/// was once declared in two places with different shapes and, alone among such tables, had no
+/// patcher reconciling them -- so the shape a database ended up with was whichever declaration ran
+/// first, and the column the other one declared was simply absent. Reading back a database gives
+/// what won, not what was meant, so the union of both was taken. That table has since been folded
+/// into <c>character_stats</c>, which is where its two caps live now; the union survives as those
+/// columns.
 /// </remarks>
 internal static class CharacterDatabaseSchema
 {

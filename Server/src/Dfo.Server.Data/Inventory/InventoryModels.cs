@@ -98,6 +98,24 @@ public sealed record InventoryContainerState(
     ushort Parameter,
     IReadOnlyList<InventoryItemState> Items);
 
+/// <summary>
+/// One of the main list's virtual slots: a count the client draws, not a piece it can move.
+/// </summary>
+/// <remarks>
+/// The main list's first three slots hold currencies rather than items, and the item id is fixed
+/// per slot: <b>slot 0 is the gold the character carries</b> (item id 0), slot 1 the revival coin,
+/// slot 2 the PvP point. Real items begin at slot 3, so the two never collide. Six cube fragments
+/// follow at 354..359 and five more counts at 360..364, each likewise a fixed id.
+/// <para>
+/// <b>Slot 0 is read and sent but never written.</b> Nothing in this server puts a figure in it,
+/// so every entry draws the player zero gold whatever they earned. Earnings currently go to the
+/// account cargo instead, which is a different pot the player only sees inside the cargo window.
+/// </para>
+/// <para>
+/// <see cref="Value"/> is the count. It is what the storage row's item core carries in its own
+/// value field, which is why a currency needs no row shape of its own.
+/// </para>
+/// </remarks>
 public sealed record InventoryRuntimeValueState(
     int SlotIndex,
     int ItemId,
@@ -133,6 +151,10 @@ public sealed record CharacterRentalItemState(
 public sealed record CharacterRentalEntryState(
     IReadOnlyList<CharacterRentalItemState> Items);
 
+/// <summary>
+/// What this character may carry and bid in gold. Both cap the gold on the player's bag, which
+/// this server does not keep yet.
+/// </summary>
 public sealed record InventoryGoldLimitState(
     int CarryLimit,
     int AuctionLimit);
@@ -146,6 +168,11 @@ public sealed record CharacterInventoryEntryState(
     CharacterRentalEntryState Rentals,
     InventoryGoldLimitState GoldLimits);
 
+/// <param name="Value32">
+/// The gold held in this account's cargo, named after the column it is read from. Shared by every
+/// character on the account. It is not the gold a character carries -- that one lives in the main
+/// list's first virtual slot, see <see cref="InventoryRuntimeValueState"/>.
+/// </param>
 public sealed record AccountCargoEntryState(
     AccountId AccountId,
     InventoryContainerState Container,

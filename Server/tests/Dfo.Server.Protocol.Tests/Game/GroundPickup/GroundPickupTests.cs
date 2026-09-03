@@ -49,19 +49,19 @@ public sealed class GroundPickupTests
         BasisLevel: 86);
 
     private static (PickUpGroundDropCommandHandler Handler, DungeonRunDomainService Runs,
-        FakeContainer Bag, FakePurse Purse) Build(params DungeonRoomDrop[] declared)
+        FakeContainer Bag, FakeCargoGold CargoGold) Build(params DungeonRoomDrop[] declared)
     {
         var runs = new DungeonRunDomainService();
         var bag = new FakeContainer();
-        var purse = new FakePurse();
+        var cargoGold = new FakeCargoGold();
         var handler = new PickUpGroundDropCommandHandler(
             runs,
             new GroundPickupDomainService(
                 new DungeonRoomRuleService(new NoRoomActors(), new StubRoomDrops(declared)),
                 new ItemPlacementRuleService(new StubPlacements(), new NoWearables())),
             new StubContainers(bag),
-            purse);
-        return (handler, runs, bag, purse);
+            cargoGold);
+        return (handler, runs, bag, cargoGold);
     }
 
     private static ValueTask<GroundPickupResult> PickUp(
@@ -81,7 +81,7 @@ public sealed class GroundPickupTests
     [Fact]
     public async Task A_piece_a_monster_dropped_can_be_taken_by_its_number()
     {
-        var (handler, runs, bag, purse) = Build();
+        var (handler, runs, bag, cargoGold) = Build();
         runs.Begin(Character, Layout, difficulty: 0);
         var dropped = runs.AllocateMonsterDrops(Character, 0, 30001, [TheWeapon()]).Single();
 
@@ -105,7 +105,7 @@ public sealed class GroundPickupTests
     [Fact]
     public async Task The_same_number_is_not_given_twice()
     {
-        var (handler, runs, _, purse) = Build();
+        var (handler, runs, _, cargoGold) = Build();
         runs.Begin(Character, Layout, difficulty: 0);
         var dropped = runs.AllocateMonsterDrops(Character, 0, 30001, [TheWeapon()]).Single();
 
@@ -127,7 +127,7 @@ public sealed class GroundPickupTests
     [Fact]
     public async Task A_declared_piece_and_a_dropped_one_do_not_answer_to_one_number()
     {
-        var (handler, runs, _, purse) = Build(new DungeonRoomDrop(0, Shoulder, 25));
+        var (handler, runs, _, cargoGold) = Build(new DungeonRoomDrop(0, Shoulder, 25));
         runs.Begin(Character, Layout, difficulty: 0);
         var dropped = runs.AllocateMonsterDrops(Character, 1, 30001, [TheWeapon()]).Single();
 
@@ -137,17 +137,22 @@ public sealed class GroundPickupTests
     }
 
     /// <summary>
-    /// Money goes to the account's purse, not into a bag.
+    /// Gold goes to the account cargo, not into a bag.
     /// </summary>
     /// <remarks>
     /// The field it lands in was already on the wire and had never been named: it is stored as
     /// <c>account_cargo_state.value32</c> and written into the item-list frame where the reference
     /// server writes its own <c>AccountCargo.Money</c>.
+    /// <para>
+    /// <b>Not where the reference server puts it.</b> That one credits the gold the character is
+    /// carrying. This server has no carried gold yet, so the cargo is where a pick-up lands; this
+    /// case pins the behaviour that exists rather than the one that ought to.
+    /// </para>
     /// </remarks>
     [Fact]
-    public async Task Money_goes_to_the_account_purse()
+    public async Task Gold_goes_to_the_account_cargo()
     {
-        var (handler, runs, bag, purse) = Build();
+        var (handler, runs, bag, cargoGold) = Build();
         runs.Begin(Character, Layout, difficulty: 0);
         var gold = runs.AllocateMonsterDrops(
             Character, 0, 30001,
@@ -158,7 +163,7 @@ public sealed class GroundPickupTests
         Assert.Equal(GroundPickupStatus.Banked, result.Status);
         Assert.Equal(1357, result.Amount);
         Assert.Equal(1357, result.Total);
-        Assert.Equal(1357, purse.Total);
+        Assert.Equal(1357, cargoGold.Total);
 
         // And it never touched the bag.
         Assert.Empty(bag.Slots);
@@ -166,9 +171,9 @@ public sealed class GroundPickupTests
 
     /// <summary>The same coins are not paid twice.</summary>
     [Fact]
-    public async Task Money_is_paid_once()
+    public async Task Gold_is_paid_once()
     {
-        var (handler, runs, _, purse) = Build();
+        var (handler, runs, _, cargoGold) = Build();
         runs.Begin(Character, Layout, difficulty: 0);
         var gold = runs.AllocateMonsterDrops(
             Character, 0, 30001,
@@ -178,14 +183,14 @@ public sealed class GroundPickupTests
         var second = await PickUp(handler, gold.Number);
 
         Assert.Equal(GroundPickupStatus.NothingThere, second.Status);
-        Assert.Equal(44, purse.Total);
+        Assert.Equal(44, cargoGold.Total);
     }
 
     /// <summary>A number nothing was ever given is refused.</summary>
     [Fact]
     public async Task A_number_nothing_holds_is_refused()
     {
-        var (handler, runs, _, purse) = Build();
+        var (handler, runs, _, cargoGold) = Build();
         runs.Begin(Character, Layout, difficulty: 0);
 
         Assert.Equal(GroundPickupStatus.NothingThere, (await PickUp(handler, 9)).Status);
@@ -201,7 +206,7 @@ public sealed class GroundPickupTests
     [Fact]
     public async Task A_dropped_piece_stays_in_the_room_it_fell_in()
     {
-        var (handler, runs, _, purse) = Build();
+        var (handler, runs, _, cargoGold) = Build();
         runs.Begin(Character, Layout, difficulty: 0);
         var dropped = runs.AllocateMonsterDrops(Character, 0, 30001, [TheWeapon()]).Single();
 
@@ -229,7 +234,7 @@ public sealed class GroundPickupTests
     public async Task The_banked_piece_carries_the_value_its_kill_announced()
     {
         const ushort Actor = 30007;
-        var (handler, runs, bag, purse) = Build();
+        var (handler, runs, bag, cargoGold) = Build();
         var run = runs.Begin(Character, Layout, difficulty: 0);
         var dropped = runs.AllocateMonsterDrops(Character, 0, Actor, [TheWeapon()]).Single();
 
@@ -245,7 +250,7 @@ public sealed class GroundPickupTests
     [Fact]
     public async Task Every_piece_of_one_kill_carries_one_value()
     {
-        var (handler, runs, bag, purse) = Build();
+        var (handler, runs, bag, cargoGold) = Build();
         runs.Begin(Character, Layout, difficulty: 0);
         var pair = runs.AllocateMonsterDrops(
             Character, 0, 30007, [TheWeapon(), TheWeapon()]);
@@ -273,7 +278,7 @@ public sealed class GroundPickupTests
     [Fact]
     public async Task A_declared_stack_is_banked_at_the_count_the_room_declares()
     {
-        var (handler, runs, bag, purse) = Build(new DungeonRoomDrop(0, 10088621, 0, Count: 3));
+        var (handler, runs, bag, cargoGold) = Build(new DungeonRoomDrop(0, 10088621, 0, Count: 3));
         runs.Begin(Character, Layout, difficulty: 0);
 
         var result = await PickUp(handler, 1);
@@ -282,8 +287,8 @@ public sealed class GroundPickupTests
         Assert.Equal(3, bag.Counts[result.SlotIndex]);
     }
 
-    /// <summary>An account purse that remembers what was paid into it.</summary>
-    internal sealed class FakePurse : IAccountMoneyService
+    /// <summary>An account cargo's gold that remembers what was paid into it.</summary>
+    internal sealed class FakeCargoGold : IAccountCargoGoldService
     {
         public int Total { get; private set; }
 
@@ -295,7 +300,8 @@ public sealed class GroundPickupTests
         }
 
         /// <remarks>
-        /// Nothing on a floor charges for anything, so this is here to be a purse rather than to be
+        /// Nothing on a floor charges for anything, so this is here to complete the seam rather
+        /// than to be
         /// exercised. It refuses the same way the real one does all the same: a stand-in that let a
         /// charge through would make a caller that started making them look correct.
         /// </remarks>

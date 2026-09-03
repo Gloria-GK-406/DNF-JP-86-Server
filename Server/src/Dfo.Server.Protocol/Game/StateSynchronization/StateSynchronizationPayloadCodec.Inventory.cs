@@ -102,7 +102,7 @@ internal static partial class StateSynchronizationPayloadCodec
         IReadOnlyList<InventoryRuntimeValueState> characterVirtualResources,
         IReadOnlyList<InventoryRuntimeValueState> accountVirtualResources,
         ushort accountSelectionKey,
-        int accountValue32,
+        int accountCargoGold,
         DateTimeOffset preparedAt)
     {
         ArgumentNullException.ThrowIfNull(container);
@@ -111,7 +111,8 @@ internal static partial class StateSynchronizationPayloadCodec
         var containerType = container.ContainerType;
 
         var items = container.Items.OrderBy(value => value.SlotIndex).ToArray();
-        // Three runtime slots, six cubes and the five A21 added at 360..364.
+        // Three currency slots (0 gold, 1 revival coin, 2 PvP point), six cubes and the five
+        // A21 added at 360..364. See InventoryRuntimeValueState for what each holds.
         var mainVirtualCount = containerType == InventoryContainerType.Main ? 14 : 0;
         if (items.Length + mainVirtualCount > ushort.MaxValue)
             throw new InvalidDataException("Inventory item count cannot be represented as u16.");
@@ -121,7 +122,10 @@ internal static partial class StateSynchronizationPayloadCodec
         if (containerType is InventoryContainerType.AccountCargo)
         {
             writer.Write(accountSelectionKey);
-            writer.Write(accountValue32);
+            // The cargo's own gold, between the selection key and the item count. Shared by every
+            // character on the account; the gold a character carries rides in the main list's
+            // first virtual slot instead.
+            writer.Write(accountCargoGold);
             writer.Write(checked((ushort)(items.Length + mainVirtualCount)));
         }
         else if (containerType is InventoryContainerType.Pet)

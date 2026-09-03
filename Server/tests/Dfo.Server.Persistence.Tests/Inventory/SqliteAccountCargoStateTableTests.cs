@@ -7,7 +7,7 @@ using Microsoft.Data.Sqlite;
 namespace Dfo.Server.Persistence.Tests.Inventory;
 
 /// <summary>
-/// The account's purse.
+/// The gold an account keeps in its cargo.
 /// </summary>
 /// <remarks>
 /// It is <c>account_cargo_state.value32</c>, which has been stored, loaded and put on the wire
@@ -37,7 +37,7 @@ public sealed class SqliteAccountCargoStateTableTests
     /// <remarks>Constructing the database is what creates the schema.</remarks>
     private static (SqliteAccountCargoStateTable Table, string Path) Open()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"dfo-purse-{Guid.NewGuid():N}.db");
+        var path = Path.Combine(Path.GetTempPath(), $"dfo-cargo-gold-{Guid.NewGuid():N}.db");
         return (
             new SqliteAccountCargoStateTable(new SqliteDatabase(path, new DomainTransactionScope())),
             path);
@@ -85,12 +85,12 @@ public sealed class SqliteAccountCargoStateTableTests
     /// same total they read.
     /// </summary>
     /// <remarks>
-    /// The reason the addition is not a read followed by a write. A purse that lost a coin to a
-    /// race is a defect nobody can reconstruct afterwards: the player only knows they are poorer
-    /// than they expected.
+    /// The reason the addition is not a read followed by a write. A stored total that lost a coin
+    /// to a race is a defect nobody can reconstruct afterwards: the player only knows they are
+    /// poorer than they expected.
     /// </remarks>
     [Fact]
-    public async Task Concurrent_pickups_all_reach_the_purse()
+    public async Task Concurrent_pickups_all_reach_the_cargo_gold()
     {
         var (table, path) = Open();
         try
@@ -112,11 +112,11 @@ public sealed class SqliteAccountCargoStateTableTests
     /// The total is held between zero and what the wire field can carry.
     /// </summary>
     /// <remarks>
-    /// The field is a signed 32-bit integer. A total that wrapped would draw the player a negative
-    /// purse, and one driven below zero would do the same.
+    /// The field is a signed 32-bit integer. A total that wrapped would draw a negative figure on
+    /// the account cargo, and one driven below zero would do the same.
     /// </remarks>
     [Fact]
-    public async Task The_purse_is_held_between_zero_and_the_wire_ceiling()
+    public async Task The_cargo_gold_is_held_between_zero_and_the_wire_ceiling()
     {
         var (table, path) = Open();
         try
@@ -156,14 +156,14 @@ public sealed class SqliteAccountCargoStateTableTests
         }
     }
 
-    /// <summary>The last coin can be spent; an empty purse is a purse that paid.</summary>
+    /// <summary>The last coin can be spent; an emptied cargo is a cargo that paid.</summary>
     /// <remarks>
     /// The boundary of the condition. A take that required the account to have more than the price
     /// would refuse exactly the player who can just afford something, which is the one case a
     /// charge has to get right.
     /// </remarks>
     [Fact]
-    public async Task Paying_out_the_whole_purse_is_paying_and_not_refusing()
+    public async Task Paying_out_the_whole_cargo_gold_is_paying_and_not_refusing()
     {
         var (table, path) = Open();
         try
@@ -183,11 +183,11 @@ public sealed class SqliteAccountCargoStateTableTests
     /// </summary>
     /// <remarks>
     /// <b>The whole reason there are two statements rather than one.</b> Both halves are asserted
-    /// on the same purse and in the same test, because apart they prove nothing: that a take
+    /// on the same cargo and in the same test, because apart they prove nothing: that a take
     /// refuses is only worth something beside the fact that the addition clamps at zero and
     /// answers a total, which a caller cannot tell from a charge that went through. The order is
-    /// take first -- the take must leave the purse untouched for the addition after it to have
-    /// the same purse to empty.
+    /// take first -- the take must leave the cargo untouched for the addition after it to have
+    /// the same total to empty.
     /// </remarks>
     [Fact]
     public async Task An_account_short_of_the_price_keeps_every_coin_where_adding_would_empty_it()
@@ -219,7 +219,7 @@ public sealed class SqliteAccountCargoStateTableTests
     /// new account has. So a price above zero is more than it holds, and a price of zero is not.
     /// </remarks>
     [Fact]
-    public async Task An_account_with_no_purse_can_pay_nothing_and_nothing_only()
+    public async Task An_account_with_no_cargo_gold_can_pay_nothing_and_nothing_only()
     {
         var (table, path) = Open();
         try

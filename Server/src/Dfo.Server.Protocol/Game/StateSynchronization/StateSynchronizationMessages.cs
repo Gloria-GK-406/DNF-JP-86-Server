@@ -48,13 +48,13 @@ internal sealed record InventorySnapshotMessage(
     IReadOnlyList<InventoryRuntimeValueState> CharacterVirtualResources,
     IReadOnlyList<InventoryRuntimeValueState> AccountVirtualResources,
     ushort AccountSelectionKey,
-    int AccountValue32,
+    int AccountCargoGold,
     DateTimeOffset PreparedAt) : GameStateSynchronizationMessage, IGameNotiMessage
 {
     internal override ushort Type => 0x000D;
     internal override byte[] EncodeBody() => StateSynchronizationPayloadCodec.EncodeInventorySnapshot(
         Container, CharacterVirtualResources, AccountVirtualResources,
-        AccountSelectionKey, AccountValue32, PreparedAt);
+        AccountSelectionKey, AccountCargoGold, PreparedAt);
 }
 
 internal sealed record CreatureListMessage(

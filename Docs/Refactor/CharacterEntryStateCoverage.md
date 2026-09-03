@@ -30,7 +30,7 @@ Published compatibility bytes are source-specific and bounded: versioned `charac
 | 40 | cube type/grade | `character_crystal_contract`; absent row has the legacy 0/255 domain default | cube definitions |
 | 41 character portion | lottery premium-use count | `character_daily_counters['lottery_double_reward_used']` | account entitlement |
 | 44 | typed signed-i32 champion key plus mode/value | `character_init_flags` | business name remains provisional |
-| 45 | gold limit upgrade level derived losslessly from synchronized stored limits | `character_gold_limits` and legacy `GoldLimitDataProvider.ResolveUpgradeLevel` thresholds | inventory wallet |
+| 45 | gold limit upgrade level derived losslessly from synchronized stored limits | `character_stats.gold_carry_limit` / `auction_gold_limit` (the folded-away `character_gold_limits`) and legacy `GoldLimitDataProvider.ResolveUpgradeLevel` thresholds | carried-gold limits, which cap a gold this server does not keep yet |
 | 46 | fatigue acceleration value/state | no surviving normalized writer exists; legacy snapshot also leaves its documented zero defaults | none |
 | 47 | oldest active folder-0 inbox page selected oldest-first then emitted newest-first, plus distinct not-loaded count; saved/deleted/expired rows excluded | `mailbox_messages`, required `mailbox_recipients` state | mailbox mutation and attachment inventory |
 | 48 | ordered mission ID/progress | `character_pvp_missions` | PvP definitions |

@@ -18,10 +18,10 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Dfo.Server.Application.Tests.World;
 
 /// <summary>
-/// A paid flip charged against the operator-supplied archive and a real purse.
+/// A paid flip charged against the operator-supplied archive and a real account cargo.
 /// </summary>
 /// <remarks>
-/// The whole path, with nothing between the file and the money: the rule service reads
+/// The whole path, with nothing between the file and the gold: the rule service reads
 /// <c>etc/itemdropinfo_clearreward.etc</c>, the card service hands the price on, the command takes
 /// it, and the account's own row in SQLite is what is lighter afterwards. The price is never
 /// written down here -- it is read out of the archive in the test and compared against what the
@@ -97,7 +97,7 @@ public sealed class PaidCardFlipCostTests
     /// An account with more than the archive's price pays exactly that price and gets the card.
     /// </summary>
     /// <remarks>
-    /// The purse afterwards is what was funded, less the archive's price, plus what the card
+    /// The cargo gold afterwards is what was funded, less the archive's price, plus what the card
     /// itself paid -- all three, because the price alone would also be satisfied by a flip that
     /// charged correctly and handed nothing over.
     /// <para>
@@ -122,7 +122,7 @@ public sealed class PaidCardFlipCostTests
             Assert.Equal(SelectCardStatus.Flipped, result.Status);
             Assert.Equal(price, result.GoldCharged);
             Assert.NotEqual(0, result.GoldPaid);
-            Assert.Equal(500 + result.GoldPaid, await world.Purse());
+            Assert.Equal(500 + result.GoldPaid, await world.CargoGold());
             Assert.Equal(CardItemId, world.Bag.Landed?.ItemId);
         }
         finally
@@ -138,7 +138,7 @@ public sealed class PaidCardFlipCostTests
     /// One coin short rather than empty: an account with nothing at all would be refused by a
     /// charge that compared the wrong way round just as surely as by one that compared correctly.
     /// The row is read back afterwards rather than the refusal being trusted, because "answered a
-    /// refusal" and "left the money where it was" are two different claims and the second is the
+    /// refusal" and "left the gold where it was" are two different claims and the second is the
     /// one the player would notice.
     /// </remarks>
     [SkippableFact]
@@ -157,7 +157,7 @@ public sealed class PaidCardFlipCostTests
             Assert.Equal(0, result.GoldCharged);
             Assert.Equal(0, result.GoldPaid);
             Assert.Empty(result.Slots);
-            Assert.Equal(price - 1, await world.Purse());
+            Assert.Equal(price - 1, await world.CargoGold());
             Assert.Null(world.Bag.Landed);
         }
         finally
@@ -226,7 +226,7 @@ public sealed class PaidCardFlipCostTests
 
             Assert.Equal(SelectCardStatus.Flipped, result.Status);
             Assert.Equal(announced, result.GoldCharged);
-            Assert.Equal(funded - announced + result.GoldPaid, await world.Purse());
+            Assert.Equal(funded - announced + result.GoldPaid, await world.CargoGold());
         }
         finally
         {
@@ -242,7 +242,7 @@ public sealed class PaidCardFlipCostTests
     /// The archive prices this level -- asserted first, so that the refusal below is the dungeon's
     /// declaration and not a level nobody priced -- and the account is funded well past that
     /// price, so a flip that went through would go through. What it gets instead is a refusal that
-    /// left the purse exactly as it found it.
+    /// left the cargo gold exactly as it found it.
     /// <para>
     /// <b>The free flip of the same clear is turned afterwards and is untouched.</b> That is the
     /// half that says what was switched off: a change that had closed the whole card panel, or
@@ -270,7 +270,7 @@ public sealed class PaidCardFlipCostTests
             Assert.Equal(0, paid.GoldCharged);
             Assert.Equal(0, paid.GoldPaid);
             Assert.Empty(paid.Slots);
-            Assert.Equal(price + 500, await world.Purse());
+            Assert.Equal(price + 500, await world.CargoGold());
 
             // Only the paid card was switched off.
             var free = await world.Turn(ClearRewardCardKind.Free, 0);
@@ -310,7 +310,7 @@ public sealed class PaidCardFlipCostTests
 
             Assert.Equal(SelectCardStatus.Flipped, paid.Status);
             Assert.Equal(price, paid.GoldCharged);
-            Assert.Equal(500 + paid.GoldPaid, await world.Purse());
+            Assert.Equal(500 + paid.GoldPaid, await world.CargoGold());
         }
         finally
         {
@@ -423,7 +423,7 @@ public sealed class PaidCardFlipCostTests
                 this._cards,
                 runs,
                 new OneBag(this.Bag),
-                new AccountMoneyService(this._cargo),
+                new AccountCargoGoldService(this._cargo),
                 TimeProvider.System);
         }
 
@@ -453,8 +453,8 @@ public sealed class PaidCardFlipCostTests
                 new ClearRewardSettlement(Character, standingAt), CancellationToken.None))
                 ?.PaidFlipCost;
 
-        /// <summary>What the account's own row says it carries.</summary>
-        public async ValueTask<int> Purse()
+        /// <summary>What the account cargo's own row says it holds.</summary>
+        public async ValueTask<int> CargoGold()
         {
             var rows = await this._cargo.ReadByAccountAsync(Account, CancellationToken.None);
             return rows.Count > 0 ? rows[0].Value32 : 0;

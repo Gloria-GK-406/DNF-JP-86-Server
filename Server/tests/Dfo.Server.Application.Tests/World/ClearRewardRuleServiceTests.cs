@@ -755,7 +755,7 @@ public sealed class ClearRewardRuleServiceTests
         static bool[] AsRead(ClearRewardBlankItemSwitches switches) =>
         [
             switches.Allows(ClearRewardBlankCard.Free),
-            switches.Allows(ClearRewardBlankCard.Gold),
+            switches.Allows(ClearRewardBlankCard.GoldCard),
             switches.Allows(ClearRewardBlankCard.PcRoom),
         ];
     }
