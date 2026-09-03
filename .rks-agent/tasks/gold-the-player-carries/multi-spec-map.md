@@ -3,11 +3,11 @@ kind: rks-multi-spec-map
 contract:
   path: ./TaskContract.md
   revision: 1
-state: active
-phase: root_evaluation
-phase_state: in_progress
+state: completed
+phase: completed
+phase_state: completed
 active_attempt: null
-last_transition: child-accepted
+last_transition: verification-passed
 transition_evidence: >-
   workspace-ready：规范根 .worktrees/gold-the-player-carries（git rev-parse --show-toplevel
   实测），分支 gold-the-player-carries，HEAD 1946c012，工作区仅两份声明的未跟踪任务产物；源检出
@@ -51,12 +51,16 @@ transition_evidence: >-
   +2304/−223 一次提交，新提交 50d45f384819219f4b9ff598b6210cad77c6cc7b；提交后任务工作区
   git status 为空、分支仅前进这一步（父提交即 e4f29e1d）、源检出 main 仍为 1946c012 且状态为空、
   无关的 client-debug-lab 仍为 33a18570 未触碰。工作区基线随之推进。
+  root-satisfied：九条成功条件在已接受基线 50d45f38 上全部有已接受证据，九条约束全部 aligned。
+  review-approved：两个子 Spec 各自经独立的新上下文评审者审过完整变更集并 approved，无未解决的
+  阻断性发现；根级复核确认两者合起来覆盖根契约的全部范围，无遗漏、无越界。
+  verification-passed：见下方 Root Verification。
 workspace:
   repository_root: E:/Project/DNF/DNF-JP-86-Server
   task_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/gold-the-player-carries/.rks-agent/tasks/gold-the-player-carries
   code_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/gold-the-player-carries
   branch: gold-the-player-carries
-  baseline: 50d45f384819219f4b9ff598b6210cad77c6cc7b
+  baseline: b46dbbd37c373aa27589ea1590e7a01b92765bc2
   baseline_evidence: >-
     PVF_ARCHIVE_PATH=E:/Project/DNF/DNFClient-A21-protocol/Script.pvf dotnet test
     Server/86JP.Server.slnx --nologo → exit 0；七个测试程序集合计 1993 通过 / 2 跳过 / 0 失败
@@ -101,3 +105,32 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 |---:|---|---|---|---|---|---|---|
 | `1` | `spec-001` | `attempts/spec-001-money-named-for-what-it-is/TaskContract.md` | 两笔钱各自叫对名字，文档与事实一致，行为逐值不变 | `SC-5, SC-6, SC-7, SC-8, SC-9` | `sealed` | `completed` | `accepted e4f29e1d` |
 | `2` | `spec-002` | `attempts/spec-002-gold-the-character-keeps/TaskContract.md` | 玩家身上的金币是真的：能写入、跨会话保留、变更时告知客户端，既有收支都作用于它 | `SC-1, SC-2, SC-3, SC-4, SC-7` | `sealed` | `completed` | `accepted 50d45f38` |
+
+## Root Review
+
+两个子 Spec 各自由独立的新上下文评审者审过完整变更集，均以 `approved` 收束，无未解决的阻断性发现。
+根级复核只问一个它们各自答不了的问题：**两者合起来是否覆盖根契约的全部范围，且没有互相破坏。**
+
+- 覆盖：SC-5/6/8/9 由 spec-001 满足，SC-1/2/3/4 由 spec-002 满足，SC-7 的两半分别由两者满足。无遗漏。
+- 越界：两个 Spec 的 Out 范围（存取款协议、金库存量迁移、拍卖行、邮件金币与卖装备收入、复活币与
+  胜点、宿主部署参数）均未被触碰。
+- **互相破坏：查到一处，已整改。**见下。
+
+## Root Verification
+
+在已接受基线 `b46dbbd3` 上新鲜取得：
+
+- 全量判据 `PVF_ARCHIVE_PATH=… dotnet test Server/86JP.Server.slnx --nologo` → exit 0，
+  `60 + 488 + 52 + 255 + 6 + 221 + 933 = 2015 通过 / 2 跳过 / 0 失败`。根契约声明的基线是
+  1993 / 2 / 0，增量 22 全部来自新判据，无程序集下降。两个跳过仍是缺档案守卫，即档案已加载的证据。
+- 全仓检索 `purse` → **0 命中**（`Server/`、`Docs/`、`protocol/`，`.cs` 与 `.md`）。
+- 实机（授权方本人操作客户端）：拾取 46 金币后，服务端日志 `character now carries 199513`、
+  数据库 `carried_gold = 199513`、客户端显示 **199513**，三方吻合；`account_cargo_state` 全程 0 行。
+
+**根级验证抓到了一处两个子 Spec 的评审都看不到的回归。** SC-5（`purse` 不再指代任何一笔钱）由
+spec-001 满足，而 spec-002 在自己新写的注释里又用了两次该词——`ICharacter.cs:59` 与
+`SqliteCharacterCarriedGoldTableTests.cs:154`。两次评审各自看的是一个变更对它自己的边界，在那个
+边界内这个词只是无害的散文；只有对着根契约「这个词在本仓不指任何一笔钱」才是回归。已于
+`b46dbbd3` 整改，判据计数不变。
+
+这是本根任务保留下来的一条判据：**逐个子 Spec 的评审证明不了「后一个没有打破前一个」。**
