@@ -52,6 +52,9 @@ internal sealed class RecordingCharacterTable(int level, uint experience) : ICha
     public ValueTask<CharacterSummaryRow?> FindBySlotAsync(
         AccountId accountId, int slotIndex, CancellationToken cancellationToken) => throw Unneeded();
 
+    public ValueTask<CharacterStandingRow?> FindStandingAsync(
+        CharacterId characterId, CancellationToken cancellationToken) => throw Unneeded();
+
     public ValueTask<bool> NameIsTakenAsync(byte[] name, CancellationToken cancellationToken) =>
         throw Unneeded();
 

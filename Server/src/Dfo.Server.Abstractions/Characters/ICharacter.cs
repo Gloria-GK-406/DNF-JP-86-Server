@@ -41,6 +41,33 @@ public interface ICharacter
     /// </remarks>
     ValueTask<ItemUsability> CanUseAsync(int itemId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// What level this character has reached and what it holds towards the next one.
+    /// </summary>
+    /// <remarks>
+    /// Read when asked, so it is what the store says now rather than what a session was published
+    /// with. Nothing when there is no such character: a placeholder level of one holding nothing
+    /// is a real standing that a real character can have, so inventing it here would be
+    /// indistinguishable from the truth about somebody else.
+    /// </remarks>
+    ValueTask<CharacterProgressionState?> ProgressAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// What this character has left to spend on skills, on each of its two pages.
+    /// </summary>
+    /// <remarks>
+    /// Worked out at the moment of the question, from the level the store holds now. That is the
+    /// whole of it: the figure is not stored anywhere, so an answer kept from an earlier moment is
+    /// an answer for an earlier level -- which is exactly what a levelling character was being
+    /// told until they logged out and back in.
+    /// <para>
+    /// Nothing when there is no such character, for the reason <see cref="ProgressAsync"/> gives:
+    /// a character who has spent every point also has none left.
+    /// </para>
+    /// </remarks>
+    ValueTask<CharacterSkillProtocolMirrorState?> RemainingSkillPointsAsync(
+        CancellationToken cancellationToken);
+
     /// <summary>How much gold this character is carrying.</summary>
     /// <remarks>
     /// Read when asked, like every other answer here. A character this server does not have

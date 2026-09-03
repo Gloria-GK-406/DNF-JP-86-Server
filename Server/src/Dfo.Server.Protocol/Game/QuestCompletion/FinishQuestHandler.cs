@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
@@ -30,6 +31,7 @@ namespace Dfo.Server.Protocol.Game.QuestCompletion;
 public sealed class FinishQuestHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
+    ICharacterDomainService characters,
     ICommandBus commandBus,
     IGameMessageSender sender,
     IQuestOfferRefreshDomainService offers,
@@ -141,7 +143,13 @@ public sealed class FinishQuestHandler(
             cancellationToken).ConfigureAwait(false);
         runtimeSessions.ReplaceExact(session, result);
 
-        var mirror = result.CharacterEntry.Skills.ProtocolMirror;
+        // Asked of the character, and asked after the completion has been written: handing a quest
+        // in can cross a level, and a level grants more points to spend. The session's own copy is
+        // entry's projection of the moment the character walked in and nothing recomputes it, so
+        // reading it here would report the points the character had before the quest -- which is
+        // what it did until now.
+        var mirror = await characters.Get(session.CharacterId)
+            .RemainingSkillPointsAsync(cancellationToken).ConfigureAwait(false);
         var frames = new List<IGameServerMessage>();
         if (mirror is not null)
         {
@@ -154,11 +162,12 @@ public sealed class FinishQuestHandler(
         }
         else
         {
-            // The frame carries the skill-point mirror as well as the total, and inventing one
-            // would tell the client it had points it does not. The completion still stands.
+            // The frame carries the character's remaining skill points as well as the total, and
+            // inventing a figure would tell the client it had points it does not. The completion
+            // still stands.
             logger.LogWarning(
-                "Finish quest {ConnectionId}: quest {Quest} was finished but the session carries "
-                    + "no skill point mirror, so the experience frame was not sent",
+                "Finish quest {ConnectionId}: quest {Quest} was finished but the character has "
+                    + "no skill point ledger to report, so the experience frame was not sent",
                 context.Connection.ConnectionId, message.QuestId);
         }
 

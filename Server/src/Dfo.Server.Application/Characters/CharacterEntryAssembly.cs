@@ -220,20 +220,11 @@ internal sealed class CharacterEntryAssembly(
     private async ValueTask<CharacterSkillStorageRecord> LoadSkillsAsync(
         CharacterId characterId, byte job, CancellationToken cancellationToken)
     {
-        var rows = new List<CharacterSkillStorageRow>();
-        foreach (var skill in await skills.ReadEntryAsync(characterId, cancellationToken)
-                     .ConfigureAwait(false))
-        {
-            if (skill.PageIndex is < 0 or > 1 || skill.Slot is < 0 or > short.MaxValue
-                || skill.SkillId <= 0 || skill.Level is < 0 or > byte.MaxValue)
-            {
-                throw new InvalidDataException("Character skill state is out of range.");
-            }
-
-            rows.Add(new CharacterSkillStorageRow(
-                checked((byte)skill.PageIndex), checked((short)skill.Slot), skill.SkillId,
-                skill.Level, skill.ExtraValues));
-        }
+        // The same reading a character gives its own rows when it is asked what it has left to
+        // spend. Shared rather than repeated: the two have to agree exactly, and a divergence
+        // between them would show up only as a skill-point total that looks reasonable.
+        var rows = CharacterSkillPages.Rows(
+            await skills.ReadEntryAsync(characterId, cancellationToken).ConfigureAwait(false));
 
         var combos = new List<(byte, byte[])>();
         foreach (var page in await comboPages.ReadAsync(characterId, cancellationToken)

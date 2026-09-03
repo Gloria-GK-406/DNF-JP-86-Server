@@ -1,4 +1,6 @@
 using System.Collections.Immutable;
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Quests;
@@ -117,6 +119,39 @@ public sealed class SetPlayResultHandlerTests
             sent.Select(frame => frame.GetType()));
     }
 
+    /// <summary>
+    /// The points reported are the ones the character has after the award, not before it.
+    /// </summary>
+    /// <remarks>
+    /// <b>The whole reason this frame stopped reading the session.</b> A level buys skill points,
+    /// and the level is bought by this very clear -- so a figure taken before the award is a level
+    /// out of date, and it is the figure the player is left staring at until they log out again.
+    /// <para>
+    /// A clear that crosses nothing asks once, and that half matters too: nothing else a clear
+    /// does can move the ledger, so asking again would be a second walk through the archive for an
+    /// answer that cannot have changed.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task ThePointsReportedAreTheOnesTheAwardLeftBehind()
+    {
+        var crossed = new SkillPointLedger();
+        var reported = await Settle(leveledUp: true, ledger: crossed);
+
+        Assert.Equal(2, crossed.TimesAsked);
+        Assert.Equal(
+            SkillPointLedger.AfterTheLevel,
+            reported.OfType<ExperienceNotification>().Single().SkillPoints);
+
+        var stayed = new SkillPointLedger();
+        var unchanged = await Settle(ledger: stayed);
+
+        Assert.Equal(1, stayed.TimesAsked);
+        Assert.Equal(
+            SkillPointLedger.BeforeTheLevel,
+            unchanged.OfType<ExperienceNotification>().Single().SkillPoints);
+    }
+
     /// <summary>A settlement that crosses no threshold sends no quest list.</summary>
     /// <remarks>
     /// Sending it anyway would be harmless-looking and wrong: the client would redraw a list it
@@ -151,19 +186,19 @@ public sealed class SetPlayResultHandlerTests
     }
 
     /// <summary>
-    /// Without a skill-point mirror the clear is neither paid nor reported.
+    /// Without a skill-point ledger the clear is neither paid nor reported.
     /// </summary>
     /// <remarks>
-    /// The same refusal a kill makes, for the same reason: the experience frame carries the mirror
-    /// as well as the total, so without one there is no frame to report a new standing on. Paying
-    /// regardless would credit the character, spend the run, and leave the client drawing the
-    /// total it entered with.
+    /// The same refusal a kill makes, for the same reason: the experience frame carries the
+    /// character's remaining points as well as the total, so without them there is no frame to
+    /// report a new standing on. Paying regardless would credit the character, spend the run, and
+    /// leave the client drawing the total it entered with.
     /// </remarks>
     [Fact]
-    public async Task WithoutASkillMirrorTheClearIsNeitherPaidNorReported()
+    public async Task WithoutASkillLedgerTheClearIsNeitherPaidNorReported()
     {
         var bus = new FixedAward(leveledUp: false);
-        var sent = await Settle(bus: bus, withMirror: false);
+        var sent = await Settle(bus: bus, withLedger: false);
 
         Assert.False(bus.WasAsked);
         Assert.Collection(
@@ -283,11 +318,11 @@ public sealed class SetPlayResultHandlerTests
         Assert.NotEqual(DungeonClearPayloadCodec.NoPaidFlipCost, reward.PaidFlipCost);
 
         // The other two breakdowns this handler can send are the ones that report no experience:
-        // a clear with no skill-point mirror to answer on, and one whose award did not happen.
+        // a clear with no skill-point ledger to answer on, and one whose award did not happen.
         // What a flip costs has nothing to do with either, and both say so.
         foreach (var frames in new[]
                  {
-                     await Settle(cards: new RecordingCards(), withMirror: false),
+                     await Settle(cards: new RecordingCards(), withLedger: false),
                      await Settle(cards: new RecordingCards(), awarded: false),
                  })
         {
@@ -364,7 +399,7 @@ public sealed class SetPlayResultHandlerTests
     /// A clear that cannot be paid still fixes its cards and still reports them.
     /// </summary>
     /// <remarks>
-    /// The refusal above is about experience: without a skill-point mirror there is no frame to
+    /// The refusal above is about experience: without a skill-point ledger there is no frame to
     /// report a new standing on. It is not about cards, and the panel the client goes on to ask
     /// for has nothing behind it unless this clear fixed some -- so the settlement sits ahead of
     /// that refusal, and this is what says so.
@@ -374,7 +409,7 @@ public sealed class SetPlayResultHandlerTests
     {
         var cards = new RecordingCards();
 
-        var sent = await Settle(cards: cards, withMirror: false);
+        var sent = await Settle(cards: cards, withLedger: false);
 
         Assert.Single(cards.Settlements);
         var reward = sent.OfType<ClearDungeonRewardNotification>().Single();
@@ -390,7 +425,8 @@ public sealed class SetPlayResultHandlerTests
         StubWorldContentEntryRuleService? content = null,
         bool awarded = true,
         FixedAward? bus = null,
-        bool withMirror = true,
+        bool withLedger = true,
+        SkillPointLedger? ledger = null,
         int reports = 1,
         RecordingCards? cards = null)
     {
@@ -400,13 +436,14 @@ public sealed class SetPlayResultHandlerTests
             new NetworkConnectionId("one"),
             connectionGeneration: 1,
             listenerPort: 10010);
-        var entry = Entry(withMirror);
+        var entry = Entry();
         var runtime = new OneRuntimeSession(entry);
         var sender = new RecordingSender();
 
         var handler = new SetPlayResultHandler(
             new OneSession(session),
             runtime,
+            new OnePlayingCharacter(ledger ?? new SkillPointLedger(withLedger)),
             new OneRun(),
             cards ?? new RecordingCards(),
             bus ?? new FixedAward(leveledUp, awarded),
@@ -427,63 +464,16 @@ public sealed class SetPlayResultHandlerTests
 
         return sender.Sent;
     }
-
-    /// <summary>An entry at level 3 holding <see cref="StartingExperience"/>.</summary>
+    /// <summary>The published session this settlement starts from, at level three.</summary>
     /// <remarks>
-    /// Only the four members this handler reads are filled in: the character's standing, the
-    /// stored total, the skill-point mirror the experience frame carries, and a subject for the
-    /// offer list to be recomputed from. The rest of the entry stays as the shared builder leaves
-    /// it, so the day this handler starts reading a fifth is a day this fixture fails loudly.
+    /// Shared with the three other slices that send an experience frame. It used to be built here
+    /// with its skill projection left unset, so a settlement that went back to reading the session
+    /// failed on a null rather than on a wrong figure -- caught, but for a reason that would stop
+    /// holding the day the fixture happened to carry one. The shared builder fills it with a figure
+    /// the ledger never gives out instead, so the revert is caught for what it actually is.
     /// </remarks>
-    private static SelectCharacterResult Entry(bool withMirror = true)
-    {
-        var result = SelectCharacterPayloadTestData.Create();
-        return result with
-        {
-            Character = result.Character with
-            {
-                Progression = new CharacterProgressionState(3, StartingExperience),
-            },
-            CharacterEntry = result.CharacterEntry with
-            {
-                Public = new CharacterPublicEntryState(
-                    null!, null!, null!, null!, null!, null!,
-                    new CharacterEntryExtrasState(
-                        SkillTreeIndex: 0,
-                        NameTagItemId: 0,
-                        NameTagExpireTime: 0,
-                        ManageLevel: 0,
-                        CharacterExperience: StartingExperience,
-                        ExtraEquipmentSlotState: 0,
-                        Dimensions: [],
-                        DimensionFlags: (0, 0, 0, 0),
-                        SpecialRewardQuestIds: []),
-                    null!,
-                    VisibilityBits: 0,
-                    CloneTitleItemId: 0),
-                Skills = new CharacterSkillsEntryState(
-                    Pages: [],
-                    SkillPointSlots: [],
-                    SkillPointBasis: null!,
-                    DarkKnightCombos: null,
-                    KnightShieldDeck: null,
-                    ProtocolMirror: withMirror
-                        ? new CharacterSkillProtocolMirrorState(11, 22, 33, 44)
-                        : null),
-            },
-            World = result.World with
-            {
-                Subject = new WorldContentSubject(
-                    3, Job: 0, GrowType: 0,
-                    ClearedQuestFlags: new Dictionary<int, int>(),
-                    CarriedQuestIds: [],
-                    ClaimedDailyChallengeGroupIds: [],
-                    CollectionBoxes: [],
-                    EquippedCreatureItemId: 0,
-                    EquippedCreatureLevel: 0),
-            },
-        };
-    }
+    private static SelectCharacterResult Entry() =>
+        ExperienceFrameEntry.At(3, StartingExperience);
 
     /// <summary>A bus that answers the clear command with a fixed award.</summary>
     /// <remarks>
@@ -687,74 +677,5 @@ public sealed class SetPlayResultHandlerTests
         public ClearRewardCardSlot? TryClaimClearRewardCard(
             CharacterId characterId, ClearRewardCardKind kind, int index) =>
             throw new NotSupportedException("This fixture only answers.");
-    }
-
-    private sealed class OneSession(SelectedSessionIdentity identity) : ISelectedSessionDomainService
-    {
-        public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => identity;
-
-        public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => identity;
-
-        public SelectedSessionIdentity? Find(AccountId accountId) => identity;
-
-        public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) => identity;
-
-        public SelectedSessionIdentity? Select(SelectedSessionIdentity session) =>
-            throw new NotSupportedException("This fixture only answers.");
-
-        public bool ReleaseExact(SelectedSessionIdentity session) =>
-            throw new NotSupportedException("This fixture only answers.");
-    }
-
-    private sealed class OneRuntimeSession(SelectCharacterResult entry)
-        : ISelectedSessionRuntimeDirectory
-    {
-        private SelectCharacterResult _entry = entry;
-
-        public bool TryGet(
-            SelectedSessionIdentity session,
-            out SelectCharacterResult? result,
-            out bool shouldPersistPosition)
-        {
-            result = this._entry;
-            shouldPersistPosition = false;
-            return true;
-        }
-
-        public void ReplaceExact(SelectedSessionIdentity session, SelectCharacterResult result) =>
-            this._entry = result;
-
-        public SelectCharacterResult GetRequired(SelectedSessionIdentity session) => this._entry;
-
-        public void Publish(
-            SelectedSessionIdentity session, SelectCharacterResult result, bool persist) =>
-            throw new NotSupportedException("This fixture only answers.");
-
-        public bool RemoveExact(SelectedSessionIdentity session) =>
-            throw new NotSupportedException("This fixture only answers.");
-    }
-
-    private sealed class RecordingSender : IGameMessageSender
-    {
-        public List<IGameServerMessage> Sent { get; } = [];
-
-        public ValueTask SendCmdAsync(
-            NetworkConnectionId connectionId, IGameCmdMessage message,
-            CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("The result screen's frames are sent explicitly.");
-
-        public ValueTask SendNotiAsync(
-            NetworkConnectionId connectionId, IGameNotiMessage message,
-            CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("The result screen's frames are sent explicitly.");
-
-        public ValueTask SendExplicitAsync(
-            NetworkConnectionId requiredDirectConnectionId,
-            GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken)
-        {
-            this.Sent.AddRange(delivery.RequiredDirectMessages);
-            return ValueTask.CompletedTask;
-        }
     }
 }

@@ -30,6 +30,9 @@ namespace Dfo.Server.Application.Tests.Game;
 /// </remarks>
 public sealed class UseStackableHandlerTests
 {
+    /// <summary>The level on the character's own row, which is what a use is judged against.</summary>
+    private const byte RowLevel = 50;
+
     [Fact]
     public async Task One_item_leaves_the_pile()
     {
@@ -310,7 +313,9 @@ public sealed class UseStackableHandlerTests
                 new FixedRuntimeSessions(level: 50, job: 0),
                 new SessionPresenceDomainService(),
                 new NoCarriedGold(),
-                new StoredCarryLimitOnly())),
+                new StoredCarryLimitOnly(),
+                CharacterRow.At(RowLevel),
+                new NoSkillPointLedger())),
             new ItemUseEffectDomainService(judgement, cooldowns));
 
         return (

@@ -212,6 +212,10 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<
             IChannelDirectoryDomainService, ChannelDirectoryDomainService>();
         services.TryAddSingleton<IMonsterDropService, MonsterDropService>();
+        // What a character has left to spend, asked by identifier and worked out on the spot. The
+        // arithmetic is the entry rule service's; this is the way to reach it without being entry.
+        services.TryAddSingleton<
+            ICharacterSkillPointDomainService, CharacterSkillPointDomainService>();
         services.TryAddSingleton(
             provider => new CharacterDomainService(
                 () => provider.GetRequiredService<ICharacterRepository>(),
@@ -224,7 +228,9 @@ public sealed class ApplicationModule : IServerModule
                     provider.GetRequiredService<ISelectedSessionRuntimeDirectory>(),
                     provider.GetRequiredService<ISessionPresenceDomainService>(),
                     provider.GetRequiredService<ICharacterCarriedGoldTable>(),
-                    provider.GetRequiredService<ICarriedGoldRuleService>())));
+                    provider.GetRequiredService<ICarriedGoldRuleService>(),
+                    provider.GetRequiredService<ICharacterTable>(),
+                    provider.GetRequiredService<ICharacterSkillPointDomainService>())));
         services.TryAddSingleton<ICharacterDomainService>(
             provider => provider.GetRequiredService<CharacterDomainService>());
         services.TryAddSingleton<ISelectCharacterPreparationDomainService, SelectCharacterPreparationService>();

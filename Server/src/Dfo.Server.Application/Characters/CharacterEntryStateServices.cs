@@ -48,19 +48,7 @@ internal sealed class CharacterSkillQuestEntryProjection : ICharacterSkillQuestE
         CharacterSkillStorageRecord skills,
         CharacterQuestStorageRecord quests)
     {
-        var pages = skills.Skills
-            .GroupBy(value => value.PageIndex)
-            .OrderBy(group => group.Key)
-            .Select(group => new CharacterSkillPageState(
-                group.Key,
-                group.OrderBy(value => value.Slot)
-                    .Select(value => new CharacterSkillState(
-                        value.Slot,
-                        checked((uint)value.SkillId),
-                        checked((byte)value.Level),
-                        [.. value.ExtraValues]))
-                    .ToArray()))
-            .ToArray();
+        var pages = CharacterSkillPages.Pages(skills.Skills);
         var combos = skills.Job == 9
             ? skills.DarkKnightComboPages.OrderBy(value => value.PageIndex)
                 .Select(value => new DarkKnightComboEntryState(value.PageIndex, [.. value.Body]))

@@ -27,9 +27,41 @@ internal sealed class PlayingCharacter(
     ISelectedSessionRuntimeDirectory runtimeSessions,
     ISessionPresenceDomainService presence,
     ICharacterCarriedGoldTable carriedGold,
-    ICarriedGoldRuleService goldRules) : ICharacter
+    ICarriedGoldRuleService goldRules,
+    ICharacterTable characters,
+    ICharacterSkillPointDomainService skillPoints) : ICharacter
 {
     public CharacterId Id => characterId;
+
+    /// <remarks>
+    /// The row, not the session. A session carries a copy of the character's standing and every
+    /// path that moves it has to remember to correct that copy; the row is what those paths write
+    /// to, so it is the one answer that cannot be a level behind.
+    /// <para>
+    /// Read straight off the table rather than through the service that awards experience. That
+    /// service publishes no read: what it offers is the award itself, and adding a plain read to it
+    /// would put a second door on this row without putting a rule behind it. Reaching the table is
+    /// what this class already does for gold, and for the same reason.
+    /// </para>
+    /// </remarks>
+    public async ValueTask<CharacterProgressionState?> ProgressAsync(
+        CancellationToken cancellationToken) =>
+        await characters.FindProgressAsync(characterId, cancellationToken).ConfigureAwait(false)
+            is { } progress
+            ? new CharacterProgressionState(
+                checked((byte)Math.Clamp(progress.Level, 1, byte.MaxValue)),
+                checked((uint)Math.Max(0, progress.Experience)))
+            : null;
+
+    /// <remarks>
+    /// Handed straight on. Working the ledger out needs the archive as well as four tables, and
+    /// what it comes to is the same answer whoever asks -- so it lives in one service that anything
+    /// can reach, and a character is one of the things that reaches it rather than a second place
+    /// that knows how.
+    /// </remarks>
+    public ValueTask<CharacterSkillProtocolMirrorState?> RemainingSkillPointsAsync(
+        CancellationToken cancellationToken) =>
+        skillPoints.RemainingAsync(characterId, cancellationToken);
 
     public async ValueTask<int> GoldAsync(CancellationToken cancellationToken) =>
         (await carriedGold.FindAsync(characterId, cancellationToken).ConfigureAwait(false))
@@ -89,6 +121,21 @@ internal sealed class PlayingCharacter(
             return ItemUsability.CharacterStateUnavailable;
         }
 
+        // The level is read rather than taken from the session beside the job. The session carries
+        // a copy of the character's standing that every path which moves the character has to
+        // remember to correct, and a judgement made against that copy is a judgement made against
+        // whatever level was last written into it -- which is the same shape of defect as a skill
+        // point total that never caught up with a level-up.
+        //
+        // A missing row answers the way a missing session does, and for the same reason: what is
+        // being reported is that there is nothing to judge against, not that the archive refused
+        // the item. Reading it here rather than folding it into the check above keeps that
+        // distinction where a reader can see it.
+        if (await this.ProgressAsync(cancellationToken).ConfigureAwait(false) is not { } progress)
+        {
+            return ItemUsability.CharacterStateUnavailable;
+        }
+
         // The lookup is here because finding a cooldown needs a character and the judgement is not
         // allowed to know how to find one. What is reported is only what the register says: whether
         // a declaration with no cooldown at all can be waiting is a question about the declaration,
@@ -99,7 +146,7 @@ internal sealed class PlayingCharacter(
         return judgement.Judge(
             rule,
             new ItemUseCandidate(
-                state.Progression.Level,
+                progress.Level,
                 CharacterJobFamilies.Resolve(state.Identity.Job),
                 this.Place(),
                 coolingDown));

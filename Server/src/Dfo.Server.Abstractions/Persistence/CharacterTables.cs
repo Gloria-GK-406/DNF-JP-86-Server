@@ -14,6 +14,14 @@ public sealed record CharacterSummaryRow(
 /// <summary>How far along a character is.</summary>
 public sealed record CharacterProgressRow(int Level, long Experience);
 
+/// <summary>What a character is, and how far along, in the terms the archive prices by.</summary>
+/// <remarks>
+/// The three columns the archive needs before it can say what a character is entitled to. They
+/// travel together because every one of those questions needs all three at once, and reading them
+/// apart would let two of them come from different moments.
+/// </remarks>
+public sealed record CharacterStandingRow(int Job, int GrowType, int Level);
+
 /// <summary>One row of <c>character_buy_restrict_items</c>.</summary>
 public sealed record CharacterBuyRestrictRow(
     int CharacterId, int SortOrder, int EntryId, int SentinelOrValue, int Flag);
@@ -68,6 +76,19 @@ public interface ICharacterTable
 
     /// <summary>Where a character has got to, or nothing when it is not there.</summary>
     ValueTask<CharacterProgressRow?> FindProgressAsync(
+        CharacterId characterId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// What the character is and what level it has reached, or nothing when it is gone.
+    /// </summary>
+    /// <remarks>
+    /// Narrow on purpose, and by character rather than by slot. The job and the grow type were
+    /// only ever readable here through a roster read keyed on an account and a slot, which is a
+    /// question nobody outside the roster has the answer to; anything holding a character's own
+    /// identifier had to go without them. Deleted characters are left out, as every other read
+    /// that answers "what is this character" leaves them out.
+    /// </remarks>
+    ValueTask<CharacterStandingRow?> FindStandingAsync(
         CharacterId characterId, CancellationToken cancellationToken);
 
     /// <summary>Adds the character and says what id it was given.</summary>

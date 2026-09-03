@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Sessions;
@@ -157,6 +158,7 @@ public sealed class GrantTutorialLevelCommandHandler(ICharacterExperienceDomainS
 public sealed class TutorialLevelUpHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
+    ICharacterDomainService characters,
     IDungeonRunDomainService runs,
     ICommandBus commandBus,
     IGameMessageSender sender,
@@ -250,7 +252,12 @@ public sealed class TutorialLevelUpHandler(
         // one more between the list and the acknowledgement -- NOTI 0x0002, the character's whole
         // state -- and this still does not: that is a re-projection of the published entry and the
         // session has no partial-update path for it. Recorded in Docs/ProtocolScaffoldDissonances.md.
-        var mirror = updated.CharacterEntry.Skills.ProtocolMirror;
+        // Asked of the character, after the grant has been written. This is the one place in the
+        // tutorial where a level is actually gained, so it is the frame that most needs the points
+        // worked out again: the session's copy is entry's projection from before the level, and
+        // reporting it here told the player their new level bought them nothing.
+        var mirror = await characters.Get(session.CharacterId)
+            .RemainingSkillPointsAsync(cancellationToken).ConfigureAwait(false);
         var frames = new List<IGameServerMessage>();
         if (mirror is not null)
         {

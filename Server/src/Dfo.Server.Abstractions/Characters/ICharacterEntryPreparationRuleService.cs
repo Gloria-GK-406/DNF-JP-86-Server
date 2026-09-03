@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Abstractions.Characters;
 
@@ -20,6 +21,26 @@ public interface ICharacterEntryPreparationRuleService
         byte characterLevel,
         IReadOnlyCollection<int> learnedSkillIds,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// What the character has left to spend, from what the archive grants and what they have spent.
+    /// </summary>
+    /// <remarks>
+    /// A character's remaining points are not stored anywhere: the total comes from the archive by
+    /// level, the bonus from storage, and the spend from walking the learned skills against the
+    /// archive's cost table. So it has to be worked out every time it is asked for, and it has to
+    /// be worked out the same way every time -- which is why the arithmetic lives here, in the one
+    /// place that already holds the archive's answers, rather than beside each caller.
+    /// <para>
+    /// Content plus the facts it is handed, and nothing else: the level, the learned pages and the
+    /// stored bonus all arrive as arguments. This looks nothing up.
+    /// </para>
+    /// </remarks>
+    CharacterSkillProtocolMirrorState RemainingPoints(
+        SkillPointDefinitionSet definitions,
+        byte characterLevel,
+        IReadOnlyList<CharacterSkillPageState> pages,
+        CharacterSkillPointBasisState basis);
 
     /// <summary>Which premium terms carry an over-skill contract.</summary>
     IReadOnlySet<int> OverSkillPremiumTypes();

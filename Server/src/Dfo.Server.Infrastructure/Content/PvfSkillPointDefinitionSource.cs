@@ -1,12 +1,51 @@
+using System.Collections.Concurrent;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Infrastructure.Content;
 
+/// <summary>
+/// What the archive declares about a job's skill points, read once per distinct question.
+/// </summary>
+/// <remarks>
+/// Answering one of these means walking the archive: <c>Etc/spTable.etc</c>, the character list,
+/// the job's own script, the skill list, and one script per skill the character has learned. That
+/// was affordable while entry was the only caller and asked once per login. It is not any more --
+/// a character is now asked what it has left to spend every time a kill, a clear or a quest sends
+/// an experience frame -- and a full parse of the archive on the kill path is not a cost, it is a
+/// different kind of operation.
+/// <para>
+/// So the answers are kept. What makes that safe is that this is a pure function of its four
+/// arguments over an archive that never changes: <see cref="PvfArchiveProvider"/> opens the file
+/// once and holds it read-only for the life of the process, so an answer that was right when it
+/// was worked out stays right. The cache is here, at the archive, and not in the services above:
+/// their contract is that a character's ledger is worked out from what is stored at the moment of
+/// the question, and remembering what a <em>file</em> says does not touch that -- remembering what
+/// a <em>character</em> has left would break it outright.
+/// </para>
+/// <para>
+/// The learned skills take part in the key in a canonical form, sorted and deduplicated, because
+/// the parameter is an <see cref="IReadOnlyCollection{T}"/> and promises no order -- and the
+/// answer does not depend on one, since the ids are deduplicated into a dictionary before anything
+/// is read. Two callers naming the same skills in different orders must not each pay for a parse.
+/// </para>
+/// <para>
+/// Nothing is evicted. The entries are bounded by the distinct questions a running server asks --
+/// a job, an advancement, a level and a set of learned skills -- so it grows as characters learn
+/// skills and stops when they stop. That is a deliberate choice for a server whose archive is
+/// fixed, not an oversight; if it ever needs a bound, this is the one place to put it.
+/// </para>
+/// </remarks>
 internal sealed class PvfSkillPointDefinitionSource(PvfArchiveProvider provider)
     : ISkillPointDefinitionSource
 {
+    /// <summary>One distinct question, in a form two orderings of the same one agree on.</summary>
+    private readonly record struct Question(
+        byte Job, byte PackedGrowType, byte CharacterLevel, string LearnedSkillIds);
+
+    private readonly ConcurrentDictionary<Question, SkillPointDefinitionSet> answers = new();
+
     public ValueTask<SkillPointDefinitionSet> GetAsync(
         byte job,
         byte packedGrowType,
@@ -15,6 +54,31 @@ internal sealed class PvfSkillPointDefinitionSource(PvfArchiveProvider provider)
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        ArgumentNullException.ThrowIfNull(learnedSkillIds);
+        var question = new Question(
+            job,
+            packedGrowType,
+            characterLevel,
+            string.Join(',', learnedSkillIds.Distinct().Order()));
+        return ValueTask.FromResult(
+            this.answers.TryGetValue(question, out var answered)
+                ? answered
+                // Worked out outside the dictionary rather than inside GetOrAdd's factory: two
+                // callers racing on one question would both parse, which wastes a parse but keeps
+                // the read off the dictionary's lock. Whichever lands first is the one everyone
+                // gets, and the two are equal anyway -- the archive cannot have changed between
+                // them.
+                : this.answers.GetOrAdd(
+                    question,
+                    this.Read(job, packedGrowType, characterLevel, learnedSkillIds)));
+    }
+
+    private SkillPointDefinitionSet Read(
+        byte job,
+        byte packedGrowType,
+        byte characterLevel,
+        IReadOnlyCollection<int> learnedSkillIds)
+    {
         var archive = provider.Archive;
         var totalSp = ReadSpTotal(archive, characterLevel);
         var totalTp = characterLevel < 50 ? 0 : characterLevel - 49;
@@ -26,7 +90,7 @@ internal sealed class PvfSkillPointDefinitionSource(PvfArchiveProvider provider)
             if (paths.TryGetValue(skillId, out var path))
                 skills[skillId] = ReadSkill(archive, job, skillId, path, packedGrowType, characterLevel);
         }
-        return ValueTask.FromResult(new SkillPointDefinitionSet(totalSp, totalTp, grants, skills));
+        return new SkillPointDefinitionSet(totalSp, totalTp, grants, skills);
     }
 
     private static int ReadSpTotal(PvfArchive archive, int level)

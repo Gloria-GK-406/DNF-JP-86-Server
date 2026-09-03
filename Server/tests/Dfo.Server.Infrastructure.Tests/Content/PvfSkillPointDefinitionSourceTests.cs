@@ -51,6 +51,70 @@ public sealed class PvfSkillPointDefinitionSourceTests
         Assert.DoesNotContain(0, result);
     }
 
+    /// <summary>
+    /// The same question is parsed once, however many times it is asked.
+    /// </summary>
+    /// <remarks>
+    /// <b>Identity is the assertion, and it is what makes this a proof rather than a hope.</b>
+    /// Answering this question means walking five kinds of file in the archive and building a new
+    /// set out of what they say -- so a second walk would hand back a second object. Equal, but
+    /// not the same one. That the same instance comes back is therefore only possible if the
+    /// archive was not read again.
+    /// <para>
+    /// It matters because of who asks now. Every kill, clear and quest hand-in sends a frame that
+    /// carries what the character has left to spend, and that figure is worked out from this. A
+    /// full parse of the archive on the kill path is not a slow answer, it is a different kind of
+    /// operation to the one that used to be there.
+    /// </para>
+    /// </remarks>
+    [SkippableFact]
+    public async Task Real_archive_is_walked_once_per_distinct_question()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfSkillPointDefinitionSource(provider);
+
+        var first = await source.GetAsync(0, 1, 86, [1, 2], CancellationToken.None);
+
+        Assert.Same(first, await source.GetAsync(0, 1, 86, [1, 2], CancellationToken.None));
+
+        // The learned skills arrive as a collection, which promises no order and may repeat -- and
+        // the answer depends on neither, because the ids are deduplicated before anything is read.
+        // Two callers naming the same skills differently must not each pay for a walk.
+        Assert.Same(first, await source.GetAsync(0, 1, 86, [2, 1, 2], CancellationToken.None));
+
+        // And it is a cache, not a single remembered answer: a different question is a different
+        // walk. Level is the one that moves in play, so it is the one asserted.
+        Assert.NotSame(first, await source.GetAsync(0, 1, 85, [1, 2], CancellationToken.None));
+        Assert.NotSame(first, await source.GetAsync(1, 1, 86, [1, 2], CancellationToken.None));
+        Assert.NotSame(first, await source.GetAsync(0, 2, 86, [1, 2], CancellationToken.None));
+        Assert.NotSame(first, await source.GetAsync(0, 1, 86, [1], CancellationToken.None));
+    }
+
+    /// <summary>
+    /// Callers racing on one question all end up with one answer.
+    /// </summary>
+    /// <remarks>
+    /// The source is a singleton and the connections asking it are not serialised, so the store
+    /// behind it has to be safe for concurrent readers and writers. Asserted on identity again:
+    /// whichever caller's walk lands first is the answer every one of them is handed, so a store
+    /// that let two answers stand would be caught here rather than in a session six months from
+    /// now holding a set nobody else has.
+    /// </remarks>
+    [SkippableFact]
+    public async Task Racing_callers_are_handed_one_answer()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfSkillPointDefinitionSource(provider);
+
+        var answers = await Task.WhenAll(Enumerable.Range(0, 8).Select(index =>
+            Task.Run(async () =>
+                await source.GetAsync(0, 1, 40, [1, 2, 3], CancellationToken.None))));
+
+        Assert.All(answers, answer => Assert.Same(answers[0], answer));
+    }
+
     [SkippableFact]
     public async Task Real_archive_distinguishes_inapplicable_skills_from_applicable_zero_level_caps()
     {

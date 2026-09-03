@@ -149,6 +149,16 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
             reader => new CharacterProgressRow(reader.GetInt32(0), reader.GetInt64(1)),
             cancellationToken);
 
+    public ValueTask<CharacterStandingRow?> FindStandingAsync(
+        CharacterId characterId, CancellationToken cancellationToken) =>
+        database.ReadFirstAsync(
+            "SELECT job,grow_type,level FROM characters "
+            + "WHERE character_id=@cid AND delete_flag=0",
+            parameters => parameters.AddWithValue("@cid", characterId.Value),
+            reader => new CharacterStandingRow(
+                reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2)),
+            cancellationToken);
+
     public async ValueTask<CharacterId> InsertAsync(
         AccountId accountId,
         string name,

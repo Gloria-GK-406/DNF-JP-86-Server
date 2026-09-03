@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Protocol.Game;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Sessions;
@@ -572,6 +573,7 @@ internal sealed class ClearDungeonRewardEncoder
 public sealed class SetPlayResultHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
+    ICharacterDomainService characters,
     IDungeonRunDomainService runs,
     ICardRewardDomainService cardRewards,
     ICommandBus commandBus,
@@ -638,22 +640,28 @@ public sealed class SetPlayResultHandler(
         var clearTime = (int)Math.Clamp(elapsed.TotalMilliseconds, 0, int.MaxValue);
 
         // Asked before anything is paid, and the same refusal a kill makes. The experience frame
-        // carries the skill-point mirror as well as the total, so without one there is no frame to
-        // report the new standing on -- and paying anyway would leave the character credited, the
-        // run spent, and the client still drawing the total it entered with.
+        // carries the character's remaining skill points as well as the total, so without them
+        // there is no frame to report the new standing on -- and paying anyway would leave the
+        // character credited, the run spent, and the client still drawing the total it entered
+        // with.
+        //
+        // Asked of the character rather than read off the session, for the reason a kill asks:
+        // the session's copy is entry's projection and nothing recomputes it, so a character who
+        // levelled during the run would be told the figure they walked in with.
         //
         // Refusing is unrecoverable here in a way it is not for a kill: SET_PLAY_RESULT arrives
         // once per run, so a clear refused is a clear never paid. That is acceptable only because
-        // the branch cannot be reached for a published session -- entry refuses to publish without
-        // a mirror (SelectCharacterHandler's pre-publication build throws on a missing one). If
-        // that ever stops being true, this becomes a run silently paying nothing, and the choice
-        // has to be made again.
-        var mirror = result.CharacterEntry.Skills.ProtocolMirror;
+        // the branch cannot be reached for a character this server has -- the ledger is worked out
+        // from stored rows, and only a character that is gone has none. If that ever stops being
+        // true, this becomes a run silently paying nothing, and the choice has to be made again.
+        var character = characters.Get(session.CharacterId);
+        var mirror = await character.RemainingSkillPointsAsync(cancellationToken)
+            .ConfigureAwait(false);
         if (mirror is null)
         {
             logger.LogWarning(
-                "Set play result {ConnectionId} character={CharacterId}: the session carries no "
-                    + "skill point mirror, so the clear was neither paid nor reported",
+                "Set play result {ConnectionId} character={CharacterId}: the character has no "
+                    + "skill point ledger to report, so the clear was neither paid nor reported",
                 context.Connection.ConnectionId,
                 session.CharacterId.Value);
             await sender.SendExplicitAsync(
@@ -730,6 +738,12 @@ public sealed class SetPlayResultHandler(
             // character next entered the world.
             if (award.LeveledUp)
             {
+                // And the same second ask a kill makes: crossing a level grants more points, so
+                // the figure taken before the award is a level out of date. Only a level moves
+                // that ledger here -- a clear learns no skills and stores no bonus.
+                mirror = await character.RemainingSkillPointsAsync(cancellationToken)
+                    .ConfigureAwait(false) ?? mirror;
+
                 result = await offers
                     .RefreshAsync(result, session.AccountId, session.CharacterId, level,
                         cancellationToken).ConfigureAwait(false);

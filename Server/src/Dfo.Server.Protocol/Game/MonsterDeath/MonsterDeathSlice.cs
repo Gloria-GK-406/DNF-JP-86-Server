@@ -5,6 +5,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Characters;
@@ -356,6 +357,7 @@ internal sealed class MonsterDeathDecoder : IGameMessageDecoder
 public sealed class MonsterDeathHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
+    ICharacterDomainService characters,
     IDungeonRunDomainService runs,
     IMonsterKillDomainService kills,
     IMonsterDropService drops,
@@ -381,15 +383,21 @@ public sealed class MonsterDeathHandler(
             return;
         }
 
-        // Asked before anything is consumed. The experience frame carries the skill-point mirror
-        // as well as the total, so without one there is no frame to send -- and awarding first
-        // would leave the character paid, the death spent, and the session still holding the old
-        // total with no frame to correct it.
-        var mirror = result.CharacterEntry.Skills.ProtocolMirror;
+        // Asked before anything is consumed. The experience frame carries the character's
+        // remaining skill points as well as the total, so without them there is no frame to send
+        // -- and awarding first would leave the character paid, the death spent, and the session
+        // still holding the old total with no frame to correct it.
+        //
+        // Asked of the character rather than read off the session. The session's copy is the
+        // projection entry made on the way in, and nothing has ever recomputed it: a character who
+        // levelled up mid-run was told the figure they entered with until they logged out again.
+        var character = characters.Get(session.CharacterId);
+        var mirror = await character.RemainingSkillPointsAsync(cancellationToken)
+            .ConfigureAwait(false);
         if (mirror is null)
         {
             logger.LogWarning(
-                "Monster death {ConnectionId}: the session carries no skill point mirror, "
+                "Monster death {ConnectionId}: the character has no skill point ledger to report, "
                     + "acknowledging the kill without awarding or reporting experience",
                 context.Connection.ConnectionId);
             await sender.SendExplicitAsync(
@@ -465,6 +473,15 @@ public sealed class MonsterDeathHandler(
             // entered stays hidden until they next enter the world.
             if (award.LeveledUp)
             {
+                // And it decides how many skill points the character has, so the figure asked for
+                // before the award is now a level out of date. Asked again here rather than every
+                // time, because a level is the only input to that ledger a kill can move: what has
+                // been learned and what bonus is stored are untouched by one. A character that has
+                // gone in the meantime keeps the answer already in hand, exactly as the level and
+                // the total above keep theirs.
+                mirror = await character.RemainingSkillPointsAsync(cancellationToken)
+                    .ConfigureAwait(false) ?? mirror;
+
                 result = await offers
                     .RefreshAsync(result, session.AccountId, session.CharacterId, level,
                         cancellationToken).ConfigureAwait(false);

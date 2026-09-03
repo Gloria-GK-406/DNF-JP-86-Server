@@ -26,6 +26,18 @@ public sealed class CharacterItemUseTests
 {
     private static readonly CharacterId Character = new(60);
 
+    /// <summary>
+    /// The level on the session this character is played on. Deliberately not the row's.
+    /// </summary>
+    /// <remarks>
+    /// A wrong level within easy reach. What a character may use is judged against the level on
+    /// its own row; the session carries a copy of that level which every path moving the character
+    /// has to remember to correct, and a judgement made against the copy would be made against
+    /// whatever was last written there. The two are given different figures so that reading the
+    /// wrong one is a failing case rather than a coincidence.
+    /// </remarks>
+    private const byte SessionLevel = 7;
+
     [Fact]
     public async Task An_item_the_archive_does_not_list_is_not_usable()
     {
@@ -271,10 +283,64 @@ public sealed class CharacterItemUseTests
             FixedRuntimeSessions.Unpublished,
             new SessionPresenceDomainService(),
             new NoCarriedGold(),
-            new StoredCarryLimitOnly());
+            new StoredCarryLimitOnly(),
+            CharacterRow.None,
+            new NoSkillPointLedger());
 
         Assert.Equal(
             ItemUsability.CharacterStateUnavailable,
+            await usability.CanUseAsync(8474, CancellationToken.None));
+    }
+
+    /// <summary>
+    /// A character with a published session but no row of its own is not the player's fault either.
+    /// </summary>
+    /// <remarks>
+    /// The level is read from the row now, so there is a second way to have nothing to judge
+    /// against: the session is there and the row is not. It answers the way a missing session
+    /// answers, and it has to -- what is being reported is that this server cannot say how far
+    /// along the character is, and the archive's own refusal would tell the player their potion is
+    /// not a consumable.
+    /// </remarks>
+    [Fact]
+    public async Task A_character_with_no_row_of_its_own_is_not_the_players_fault()
+    {
+        var clock = new AdvanceableTimeProvider(new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero));
+        var usability = new PlayingCharacter(
+            Character,
+            new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
+            new CharacterItemCooldownDomainService(clock),
+            new OneSession(),
+            new FixedRuntimeSessions(SessionLevel, job: 0),
+            new SessionPresenceDomainService(),
+            new NoCarriedGold(),
+            new StoredCarryLimitOnly(),
+            CharacterRow.None,
+            new NoSkillPointLedger());
+
+        Assert.Equal(
+            ItemUsability.CharacterStateUnavailable,
+            await usability.CanUseAsync(8474, CancellationToken.None));
+    }
+
+    /// <summary>
+    /// The level a use is judged against is the row's, not the session's.
+    /// </summary>
+    /// <remarks>
+    /// <b>The link the rest of this file would not catch.</b> Every other case here would pass
+    /// against either level, because the two used to be the same object. They are not any more:
+    /// the row is what a level-up writes, and the session holds a copy that has to be corrected by
+    /// hand. So the row is put above the item's requirement and the session below it, and the
+    /// answer says which one arrived.
+    /// </remarks>
+    [Fact]
+    public async Task The_level_a_use_is_judged_against_is_the_rows()
+    {
+        var usability = Build(
+            out _, level: 50, job: 0, (8474, ItemUseRules.RequiringLevel(SessionLevel + 1)));
+
+        Assert.Equal(
+            ItemUsability.Allowed,
             await usability.CanUseAsync(8474, CancellationToken.None));
     }
 
@@ -317,10 +383,12 @@ public sealed class CharacterItemUseTests
             new ItemUseJudgementService(new FakeItemUseRules(rules)),
             cooldowns,
             new OneSession(),
-            new FixedRuntimeSessions(level, job),
+            new FixedRuntimeSessions(SessionLevel, job),
             new SessionPresenceDomainService(),
             new NoCarriedGold(),
-            new StoredCarryLimitOnly());
+            new StoredCarryLimitOnly(),
+            CharacterRow.At(level),
+            new NoSkillPointLedger());
     }
 
     private static ICharacter Build(

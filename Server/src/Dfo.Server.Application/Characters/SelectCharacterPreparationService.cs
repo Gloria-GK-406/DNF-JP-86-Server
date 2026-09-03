@@ -319,39 +319,14 @@ public sealed class SelectCharacterPreparationService(
             character.Progression.Level,
             learnedIds,
             cancellationToken).ConfigureAwait(false);
-        var baseline = definitions.FreeGrants.GroupBy(value => value.SkillId)
-            .ToDictionary(group => group.Key, group => group.Max(value => value.Level));
-
-        ushort RemainingFor(byte pageIndex, bool tp)
-        {
-            var spent = 0;
-            var page = entry.Skills.Pages.SingleOrDefault(value => value.PageIndex == pageIndex);
-            foreach (var learned in page?.Skills ?? [])
-            {
-                if (!definitions.Skills.TryGetValue(checked((int)learned.SkillId), out var skill))
-                    continue; // Legacy treats an absent PVF skill definition as unchargeable.
-                baseline.TryGetValue(skill.SkillId, out var freeLevel);
-                if (skill.IsFixedLevel && character.Progression.Level >= skill.RequiredLevel)
-                {
-                    var fixedLevel = skill.FixedLevelBase
-                        + (character.Progression.Level - skill.RequiredLevel) / Math.Max(1, skill.FixedLevelInterval)
-                        * skill.FixedLevelAddPerInterval;
-                    freeLevel = checked((byte)Math.Min(byte.MaxValue,
-                        Math.Max(freeLevel, Math.Min(fixedLevel, skill.MaximumLevel))));
-                }
-                if (skill.UsesTp != tp || learned.Level <= freeLevel || skill.Costs.Count == 0)
-                    continue;
-                for (var level = freeLevel; level < learned.Level; level++)
-                    spent = checked(spent + skill.Costs[Math.Min(level, skill.Costs.Count - 1)]);
-            }
-            var total = (tp ? definitions.TotalTp : definitions.TotalSp)
-                + (tp ? entry.Skills.SkillPointBasis.BonusTp : entry.Skills.SkillPointBasis.BonusSp);
-            return checked((ushort)Math.Clamp(total - spent, 0, ushort.MaxValue));
-        }
-
-        var mirror = new CharacterSkillProtocolMirrorState(
-            RemainingFor(0, false), RemainingFor(1, false),
-            RemainingFor(0, true), RemainingFor(1, true));
+        // The arithmetic itself belongs to the rule service, which already holds the archive's
+        // answers. Entry supplies what it has in hand; a character asked about its points later
+        // supplies the same facts read from storage, and both get the one implementation.
+        var mirror = rules.RemainingPoints(
+            definitions,
+            character.Progression.Level,
+            entry.Skills.Pages,
+            entry.Skills.SkillPointBasis);
         return entry with { Skills = entry.Skills with { ProtocolMirror = mirror } };
     }
 

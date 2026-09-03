@@ -28,6 +28,14 @@ internal sealed class CarriedGold(int total) : ICharacter
     public ValueTask<ItemUsability> CanUseAsync(int itemId, CancellationToken cancellationToken) =>
         throw new NotSupportedException("These cases are about gold, not about using an item.");
 
+    public ValueTask<CharacterProgressionState?> ProgressAsync(
+        CancellationToken cancellationToken) =>
+        throw new NotSupportedException("These cases are about gold, not about standing.");
+
+    public ValueTask<CharacterSkillProtocolMirrorState?> RemainingSkillPointsAsync(
+        CancellationToken cancellationToken) =>
+        throw new NotSupportedException("These cases are about gold, not about skill points.");
+
     public ValueTask<int> GoldAsync(CancellationToken cancellationToken) =>
         ValueTask.FromResult(this.Total);
 

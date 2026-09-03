@@ -446,6 +446,14 @@ public sealed class PaidCardFlipCostTests
                 int itemId, CancellationToken cancellationToken) =>
                 throw new NotSupportedException("This subject is about a flip's price.");
 
+            public ValueTask<CharacterProgressionState?> ProgressAsync(
+                CancellationToken cancellationToken) =>
+                throw new NotSupportedException("This subject is about a flip's price.");
+
+            public ValueTask<CharacterSkillProtocolMirrorState?> RemainingSkillPointsAsync(
+                CancellationToken cancellationToken) =>
+                throw new NotSupportedException("This subject is about a flip's price.");
+
             public async ValueTask<int> GoldAsync(CancellationToken cancellationToken) =>
                 (await carried.FindAsync(Character, cancellationToken))?.Carried ?? 0;
 

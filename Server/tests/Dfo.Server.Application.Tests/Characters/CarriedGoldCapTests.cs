@@ -155,7 +155,9 @@ public sealed class CarriedGoldCapTests
                 new FixedRuntimeSessions(level: SessionLevel, job: 0),
                 new SessionPresenceDomainService(),
                 gold,
-                new CarriedGoldRuleService(archive)),
+                new CarriedGoldRuleService(archive),
+                CharacterRow.None,
+                new NoSkillPointLedger()),
             archive);
     }
 
