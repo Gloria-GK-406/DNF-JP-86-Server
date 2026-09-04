@@ -21,6 +21,7 @@ public sealed class OnlineUserConnectionObserver(
     IChannelEntryPolicy channels,
     IServerConfigService serverConfig,
     IGameMessageSender gameSender,
+    ICleanupNotificationDelivery cleanupDelivery,
     TimeProvider timeProvider) : INetworkConnectionObserver
 {
     public async ValueTask ConnectedAsync(
@@ -91,19 +92,15 @@ public sealed class OnlineUserConnectionObserver(
                 {
                     var notifications = await cleanup.CleanupAsync(
                         selected, includeOwner: false, CancellationToken.None).ConfigureAwait(false);
-                    await gameSender.SendExplicitAsync(
-                        notifications.OwnerConnectionId,
-                        CleanupSynchronizationDelivery.Create(notifications),
-                        CancellationToken.None).ConfigureAwait(false);
+                    await cleanupDelivery.DeliverAsync(
+                        notifications, CancellationToken.None).ConfigureAwait(false);
                 }
                 catch (SelectedSessionCleanupFailure cleanupFailure)
                 {
                     try
                     {
-                        await gameSender.SendExplicitAsync(
-                            cleanupFailure.NotificationPlan.OwnerConnectionId,
-                            CleanupSynchronizationDelivery.Create(
-                                cleanupFailure.NotificationPlan),
+                        await cleanupDelivery.DeliverAsync(
+                            cleanupFailure.NotificationPlan,
                             CancellationToken.None).ConfigureAwait(false);
                     }
                     catch

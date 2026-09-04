@@ -36,9 +36,15 @@ public sealed record PvpLobbySynchronizationState(
     IReadOnlyList<PvpRoomSnapshotState> OrderedRooms,
     PvpParticipantEntryState Newcomer);
 
-public sealed record PvpParticipantPublicationTarget(
-    NetworkConnectionId ConnectionId,
-    PvpParticipantEntryState Participant);
+/// <summary>Who should be told a newcomer joined the lobby, and what to tell them about.</summary>
+/// <remarks>
+/// Characters, not connections. Working out where those characters are is not this plan's
+/// business, and used to be: the version of this that carried a connection each forced the
+/// domain service that built it to go looking for sockets.
+/// </remarks>
+public sealed record PvpParticipantPublicationPlan(
+    IReadOnlyList<CharacterId> Audience,
+    PvpParticipantEntryState Newcomer);
 
 public sealed record AcceptedQuestProgressState(ushort QuestId, uint TriggerValue);
 

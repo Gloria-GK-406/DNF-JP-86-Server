@@ -20,6 +20,7 @@ using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Protocol.Game.InitialConnection;
 using Dfo.Server.Protocol.Game;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 
 namespace Dfo.Server.Application.Tests.OnlineUsers;
 
@@ -348,7 +349,7 @@ public sealed class UserServiceTests
         var observer = new OnlineUserConnectionObserver(
             service, gate, new SelectedSessionTransitionGate(),
             new EmptySelectedSessions(), new NoopCleanup(), new StubChannelEntryPolicy(),
-            new StubServerConfigService(), new RecordingInitialSender(), TimeProvider.System);
+            new StubServerConfigService(), new RecordingInitialSender(), new RecordingCleanupDelivery(), TimeProvider.System);
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:20"),
             NetworkEndpointKind.Game,
@@ -387,7 +388,7 @@ public sealed class UserServiceTests
         var observer = new OnlineUserConnectionObserver(
             service, gate, new SelectedSessionTransitionGate(), sessions, cleanup,
             new StubChannelEntryPolicy(), new StubServerConfigService(),
-            new RecordingInitialSender(), TimeProvider.System);
+            new RecordingInitialSender(), new RecordingCleanupDelivery(), TimeProvider.System);
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:24"), NetworkEndpointKind.Game, 10011);
         var registered = service.RegisterConnection(connection);
@@ -420,28 +421,34 @@ public sealed class UserServiceTests
             accountId, new CharacterId(1006), connection.ConnectionId,
             authenticated.Generation, 10011);
         sessions.Select(selected);
-        var peerConnection = new NetworkConnectionId("Game:cleanup-peer");
+        var peer = new CharacterId(1007);
         var plan = new SelectedSessionCleanupNotificationPlan(
             connection.ConnectionId,
             [new SelectedSessionCleanupNotice(
                 SelectedSessionCleanupNoticeKind.ExpertStoreClosed, selected.WireUserId)],
-            [new SelectedSessionCleanupNotificationTarget(
-                peerConnection,
-                [new SelectedSessionCleanupNotice(
-                    SelectedSessionCleanupNoticeKind.TownDeparture, selected.WireUserId)])]);
+            [peer],
+            [new SelectedSessionCleanupNotice(
+                SelectedSessionCleanupNoticeKind.TownDeparture, selected.WireUserId)]);
         var sender = new RecordingExplicitSender();
+        var cleanupDelivery = new RecordingCleanupDelivery();
         var observer = CreateObserver(
-            service, sessions, new FailingCleanup(plan), sender, TimeProvider.System);
+            service, sessions, new FailingCleanup(plan), sender, TimeProvider.System,
+            cleanupDelivery: cleanupDelivery);
 
         await observer.DisconnectedAsync(connection, CancellationToken.None);
 
-        var delivery = Assert.Single(sender.Deliveries);
-        Assert.Equal(connection.ConnectionId, delivery.ConnectionId);
-        Assert.Equal("ExpertStoreClosedMessage",
-            Assert.Single(delivery.Delivery.RequiredDirectMessages).GetType().Name);
-        var target = Assert.Single(delivery.Delivery.BestEffortTargets);
-        Assert.Equal(peerConnection, target.ConnectionId);
-        Assert.Equal("TownDepartureMessage", Assert.Single(target.OrderedMessages).GetType().Name);
+        // Both halves are still handed over after a failed cleanup, which is what this case has
+        // always been about. The peer half is named in characters now; which connection that
+        // character is on is answered later, by the notification service.
+        var delivered = Assert.Single(cleanupDelivery.Delivered);
+        Assert.Equal(connection.ConnectionId, delivered.OwnerConnectionId);
+        Assert.Equal(
+            SelectedSessionCleanupNoticeKind.ExpertStoreClosed,
+            Assert.Single(delivered.RequiredOwnerNotices).Kind);
+        Assert.Equal([peer], delivered.PeerAudience);
+        Assert.Equal(
+            SelectedSessionCleanupNoticeKind.TownDeparture,
+            Assert.Single(delivered.PeerNotices).Kind);
         Assert.False(service.TryGetByConnection(connection.ConnectionId, out _));
     }
 
@@ -453,7 +460,7 @@ public sealed class UserServiceTests
         var observer = new OnlineUserConnectionObserver(
             service, new OnlineUserExecutionGate(), lifecycleGate,
             new EmptySelectedSessions(), new NoopCleanup(), new StubChannelEntryPolicy(),
-            new StubServerConfigService(), new RecordingInitialSender(), TimeProvider.System);
+            new StubServerConfigService(), new RecordingInitialSender(), new RecordingCleanupDelivery(), TimeProvider.System);
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:25"), NetworkEndpointKind.Game, 10011);
         var registered = service.RegisterConnection(connection);
@@ -481,7 +488,8 @@ public sealed class UserServiceTests
         ISelectedSessionCleanupDomainService cleanup,
         IGameMessageSender sender,
         TimeProvider timeProvider,
-        IChannelEntryPolicy? channelPolicy = null) =>
+        IChannelEntryPolicy? channelPolicy = null,
+        RecordingCleanupDelivery? cleanupDelivery = null) =>
         new(
             service,
             new OnlineUserExecutionGate(),
@@ -491,7 +499,26 @@ public sealed class UserServiceTests
             channelPolicy ?? new StubChannelEntryPolicy(),
             new StubServerConfigService(),
             sender,
+            cleanupDelivery ?? new RecordingCleanupDelivery(),
             timeProvider);
+
+    /// <summary>Records the cleanup plan instead of turning it into frames.</summary>
+    /// <remarks>
+    /// The plan used to become one delivery here; its two halves now leave by two routes, and
+    /// which frames each half becomes is the delivery service's own subject. What these cases are
+    /// about is whether the plan was handed over at all, and with what in it.
+    /// </remarks>
+    private sealed class RecordingCleanupDelivery : ICleanupNotificationDelivery
+    {
+        public List<SelectedSessionCleanupNotificationPlan> Delivered { get; } = [];
+
+        public ValueTask DeliverAsync(
+            SelectedSessionCleanupNotificationPlan plan, CancellationToken cancellationToken)
+        {
+            Delivered.Add(plan);
+            return ValueTask.CompletedTask;
+        }
+    }
 
     private sealed class FixedChannelEntryPolicy(ChannelEntryIdentity channel) : IChannelEntryPolicy
     {

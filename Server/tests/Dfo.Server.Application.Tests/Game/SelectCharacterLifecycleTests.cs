@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
@@ -19,6 +20,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.SelectCharacter;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -168,7 +170,7 @@ public sealed class SelectCharacterLifecycleTests
         var observer = new OnlineUserConnectionObserver(
             fixture.Users, new OnlineUserExecutionGate(), fixture.TransitionGate,
             fixture.Directory, fixture.Cleanup, new StubChannelEntryPolicy(),
-            new StubServerConfigService(), fixture.Sender, TimeProvider.System);
+            new StubServerConfigService(), fixture.Sender, new NoopCleanupDelivery(), TimeProvider.System);
         var connection = new NetworkConnectionContext(
             fixture.ConnectionId, NetworkEndpointKind.Game,
             StubChannelEntryPolicy.GeneralChannel.ListenerPort);
@@ -195,7 +197,7 @@ public sealed class SelectCharacterLifecycleTests
         var observer = new OnlineUserConnectionObserver(
             fixture.Users, new OnlineUserExecutionGate(), fixture.TransitionGate,
             fixture.Directory, fixture.Cleanup, new StubChannelEntryPolicy(),
-            new StubServerConfigService(), fixture.Sender, TimeProvider.System);
+            new StubServerConfigService(), fixture.Sender, new NoopCleanupDelivery(), TimeProvider.System);
         var disconnect = observer.DisconnectedAsync(
             new NetworkConnectionContext(fixture.ConnectionId, NetworkEndpointKind.Game,
                 StubChannelEntryPolicy.GeneralChannel.ListenerPort), CancellationToken.None).AsTask();
@@ -221,7 +223,7 @@ public sealed class SelectCharacterLifecycleTests
         var observer = new OnlineUserConnectionObserver(
             fixture.Users, new OnlineUserExecutionGate(), fixture.TransitionGate,
             fixture.Directory, fixture.Cleanup, new StubChannelEntryPolicy(),
-            new StubServerConfigService(), fixture.Sender, TimeProvider.System);
+            new StubServerConfigService(), fixture.Sender, new NoopCleanupDelivery(), TimeProvider.System);
         var disconnect = observer.DisconnectedAsync(
             new NetworkConnectionContext(fixture.ConnectionId, NetworkEndpointKind.Game,
                 StubChannelEntryPolicy.GeneralChannel.ListenerPort), CancellationToken.None).AsTask();
@@ -329,6 +331,19 @@ public sealed class SelectCharacterLifecycleTests
             fixture.Ledger);
         Assert.NotNull(fixture.Directory.Find(fixture.AccountId));
         Assert.Empty(fixture.Closer.Closed);
+
+        // Who was told, and what about. The fan-out used to be a list of connections built by the
+        // domain service; it is the same people and the same subject, said in characters.
+        var (audience, notification) = Assert.Single(fixture.Notifications.Published);
+        Assert.Equal(
+            [new CharacterId(4242)],
+            Assert.IsType<NotificationAudience.TheseCharacters>(audience).CharacterIds);
+        // Built from the state that was published, not from the one this fixture started with:
+        // spawn placement moves the character between the two, and asserting against the earlier
+        // value is how a first attempt at this case managed to fail while the code was right.
+        Assert.Equal(
+            fixture.SessionEntry.RuntimeResult!.Character,
+            Assert.IsType<PvpParticipantPublished>(notification).Newcomer.Character);
     }
 
     [Fact]
@@ -409,6 +424,7 @@ public sealed class SelectCharacterLifecycleTests
             CharacterMutations mutations,
             InventoryPreparation inventory,
             RecordingSender sender,
+            RecordingNotifications notifications,
             SessionEntry sessionEntry,
             Preparation? preparation,
             SelectedSessionTransitionGate transitionGate,
@@ -430,6 +446,7 @@ public sealed class SelectCharacterLifecycleTests
             Mutations = mutations;
             Inventory = inventory;
             Sender = sender;
+            Notifications = notifications;
             SessionEntry = sessionEntry;
             Preparation = preparation;
             TransitionGate = transitionGate;
@@ -456,6 +473,7 @@ public sealed class SelectCharacterLifecycleTests
         public CharacterMutations Mutations { get; }
         public InventoryPreparation Inventory { get; }
         public RecordingSender Sender { get; }
+        public RecordingNotifications Notifications { get; }
         public SessionEntry SessionEntry { get; }
         public Preparation? Preparation { get; }
         public SelectedSessionTransitionGate TransitionGate { get; }
@@ -526,6 +544,7 @@ public sealed class SelectCharacterLifecycleTests
             var sender = new RecordingSender(
                 ledger, failTrailingLocks, failPvp, failPvpTarget, failStatic, blockStatic);
             var sessionEntry = new SessionEntry(ledger, planPvp);
+            var notifications = new RecordingNotifications(ledger);
             var transitionGate = new SelectedSessionTransitionGate();
             var preparation = refuseAdmission
                 ? null
@@ -554,6 +573,8 @@ public sealed class SelectCharacterLifecycleTests
                 transitionGate,
                 directory,
                 sender,
+                notifications,
+                new NoopCleanupDelivery(),
                 closer,
                 NullLogger<SelectCharacterHandler>.Instance,
                 // These tests describe the full delivery contract, including everything that
@@ -562,7 +583,7 @@ public sealed class SelectCharacterLifecycleTests
             var command = new SelectCharacterRequest(GameMessageMetadata.Empty, 3);
             return new Fixture(
                 accountId, connectionId, result, ledger, directory, active, closer,
-                users, cleanup, mutations, inventory, sender, sessionEntry,
+                users, cleanup, mutations, inventory, sender, notifications, sessionEntry,
                 preparation, transitionGate, bus, handler, command,
                 registered.OnlineUserId, authenticated.Generation);
         }
@@ -780,12 +801,9 @@ public sealed class SelectCharacterLifecycleTests
                 : null;
         }
 
-        public IReadOnlyList<PvpParticipantPublicationTarget> PlanPvpPublication(
-            SelectedSessionIdentity session, SelectCharacterResult result) => planPvp
-            ? [new PvpParticipantPublicationTarget(
-                new NetworkConnectionId("Game:peer"),
-                Participant(result))]
-            : [];
+        public PvpParticipantPublicationPlan PlanPvpPublication(
+            SelectedSessionIdentity session, SelectCharacterResult result) =>
+            new(planPvp ? [new CharacterId(4242)] : [], Participant(result));
 
         public void Publish(SelectedSessionIdentity session, SelectCharacterResult result)
         {
@@ -993,6 +1011,43 @@ public sealed class SelectCharacterLifecycleTests
                 ? ValueTask.FromException(new IOException("required delivery failed"))
                 : ValueTask.CompletedTask;
         }
+    }
+
+    /// <summary>Stands in for the notification service, and keeps the fan-out in the ledger.</summary>
+    /// <remarks>
+    /// The PvP publication used to leave through the sender, which is why the ledger has a
+    /// "target" in it. It leaves through here now, and it records the same word at the same point
+    /// -- so what these cases assert about the order of the entry sequence keeps meaning what it
+    /// meant. What became of each recipient is not this file's subject; the notification cases
+    /// cover that.
+    /// </remarks>
+    private sealed class RecordingNotifications(List<string> ledger) : INotificationBus
+    {
+        public List<(NotificationAudience Audience, object Notification)> Published { get; } = [];
+
+        public ValueTask<NotificationDelivery> PublishAsync<TNotification>(
+            NotificationAudience audience,
+            TNotification notification,
+            CancellationToken cancellationToken)
+            where TNotification : class, INotification<TNotification>
+        {
+            ledger.Add("target");
+            Published.Add((audience, notification));
+            return ValueTask.FromResult(new NotificationDelivery([]));
+        }
+    }
+
+    /// <summary>The cleanup plans these cases produce are empty, and this keeps them silent.</summary>
+    /// <remarks>
+    /// Before the peer half moved to the notification service, an empty plan reached
+    /// <see cref="RecordingSender"/> and was dropped there without touching the ledger. This does
+    /// the same for the same reason, so the ordered sequences these cases assert keep their shape.
+    /// </remarks>
+    private sealed class NoopCleanupDelivery : ICleanupNotificationDelivery
+    {
+        public ValueTask DeliverAsync(
+            SelectedSessionCleanupNotificationPlan plan, CancellationToken cancellationToken) =>
+            ValueTask.CompletedTask;
     }
 
     private sealed class RecordingCloser(List<string> ledger) : INetworkConnectionCloser

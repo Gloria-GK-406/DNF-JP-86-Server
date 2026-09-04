@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.World;
 
@@ -37,25 +38,37 @@ internal sealed class SelectedSessionCleanupService(
     {
         var failures = new List<Exception>();
         var currentPresence = presence.Find(session.CharacterId);
-        var targets = new List<SelectedSessionCleanupNotificationTarget>();
+        var audience = new List<CharacterId>();
+        var peerNotices = new List<SelectedSessionCleanupNotice>();
         var required = new List<SelectedSessionCleanupNotice>();
         if (currentPresence?.Session == session)
         {
+            // Who, in characters. Which connection each of them is on is the notification
+            // service's question; this service used to answer it here, and that is the reason it
+            // knew what a socket was at all.
+            //
+            // Asked here rather than at the moment of sending, because the presence record this
+            // departure is leaving is withdrawn a few statements below: resolving the area later
+            // would be asking about a different moment.
             foreach (var peer in presence.InArea(
                          currentPresence.TownId, currentPresence.AreaId, session.CharacterId,
                          currentPresence.ListenerPort))
             {
-                var peerSession = peer.Session ?? sessions.FindByCharacter(peer.CharacterId);
-                if (peerSession is null) continue;
-                var values = new List<SelectedSessionCleanupNotice>();
-                if (expertStores.HasOpenStore(session.CharacterId))
-                    values.Add(new SelectedSessionCleanupNotice(
-                        SelectedSessionCleanupNoticeKind.ExpertStoreClosed, session.WireUserId));
-                values.Add(new SelectedSessionCleanupNotice(
-                    SelectedSessionCleanupNoticeKind.TownDeparture, session.WireUserId));
-                targets.Add(new SelectedSessionCleanupNotificationTarget(
-                    peerSession.ConnectionId, values));
+                audience.Add(peer.CharacterId);
             }
+
+            // One set for all of them. It was always one set -- the loop that used to build these
+            // rebuilt the same entries for every peer -- and saying it once is what makes that
+            // true rather than coincidental.
+            if (audience.Count > 0)
+            {
+                if (expertStores.HasOpenStore(session.CharacterId))
+                    peerNotices.Add(new SelectedSessionCleanupNotice(
+                        SelectedSessionCleanupNoticeKind.ExpertStoreClosed, session.WireUserId));
+                peerNotices.Add(new SelectedSessionCleanupNotice(
+                    SelectedSessionCleanupNoticeKind.TownDeparture, session.WireUserId));
+            }
+
             if (includeOwner && expertStores.HasOpenStore(session.CharacterId))
                 required.Add(new SelectedSessionCleanupNotice(
                     SelectedSessionCleanupNoticeKind.ExpertStoreClosed, session.WireUserId));
@@ -104,7 +117,7 @@ internal sealed class SelectedSessionCleanupService(
             return true;
         });
         var notificationPlan = new SelectedSessionCleanupNotificationPlan(
-            session.ConnectionId, required, targets);
+            session.ConnectionId, required, audience, peerNotices);
         if (failures.Count != 0)
             throw new SelectedSessionCleanupFailure(notificationPlan, failures);
         return notificationPlan;
@@ -163,16 +176,19 @@ internal sealed class SelectCharacterSessionEntryService(
             identities, rooms, CreatePvpParticipant(result));
     }
 
-    public IReadOnlyList<PvpParticipantPublicationTarget> PlanPvpPublication(
-        SelectedSessionIdentity session, SelectCharacterResult result)
-    {
-        var newcomer = CreatePvpParticipant(result);
-        return pvp.ReadyOn(session.ListenerPort, session.CharacterId)
-            .Select(value => value.Session ?? sessions.FindByCharacter(value.CharacterId))
-            .Where(value => value is not null)
-            .Select(value => new PvpParticipantPublicationTarget(value!.ConnectionId, newcomer))
-            .ToArray();
-    }
+    /// <summary>Which characters should hear that this one has joined them.</summary>
+    /// <remarks>
+    /// It says who, and stops. Working out which connection each of them is on used to happen
+    /// here, and it is the reason this service was ever handed the session directory: a service
+    /// about lobbies had to know what a socket was in order to name three people. That question
+    /// now has one place to live, and it is not this one.
+    /// </remarks>
+    public PvpParticipantPublicationPlan PlanPvpPublication(
+        SelectedSessionIdentity session, SelectCharacterResult result) =>
+        new(
+            [.. pvp.ReadyOn(session.ListenerPort, session.CharacterId)
+                .Select(value => value.CharacterId)],
+            CreatePvpParticipant(result));
 
     /// <remarks>
     /// The position is handed to its own service in the same statement run that publishes the

@@ -354,7 +354,13 @@ facts。两半合起来才是一条线——一边不许往上摸世界，一边
 2. 只读查询与端点解析（`IOnlineUserQueryDomainService`、`IChannelEntryPolicy`）；
 3. 不含领域状态或领域决策的确定性协议能力，例如 Channel Connect 读取
    Protocol 所有的当日密钥，或 LOGIN 从 `IServerConfigService` 读取端点配置并构造响应；
-4. `commandBus.SendAsync(...)` 与 sender 的单连接或显式收件人发送方法。
+4. `commandBus.SendAsync(...)`、sender 的单连接或显式收件人发送方法、
+   `INotificationBus.PublishAsync(...)`，以及把两者按顺序打包好的投递服务
+   （如 `ICleanupNotificationDelivery.DeliverAsync`）——见下面的「CMD ⇒ Notify」。
+   发布一个通知是投递，不是业务：谁该收到由前面的命令决定，通知只负责把它送出去。
+   **一份计划要分两条路送出去时，把顺序封进一个投递服务，不要在每个调用点各写一遍**——
+   清理通告有六个投递点，**其中四个在 catch 里**（`OnlineUserConnectionObserver.cs:102`、
+   `SelectCharacterHandler.cs:136` / `:156` / `:162`），`:156` 那个还在补偿命令之后。
 
 Game 出站还必须遵守一条协议边界：`0x01` 是 CMD，`0x00` 是 NOTI，二者由客户端的
 两张独立注册表接收。这个语义只属于 Protocol。每个 Game 出站 message 必须且只能实现
@@ -404,6 +410,105 @@ PVP、任务、宠物与补偿等顶层命令，并在阶段之间发送具体�
 `ICommandBus` 递归编排。同步消息按自身协议身份分类，不按工作流位置猜测：进入接受、
 PremiumService、CloneTitle 是 CMD，其余当前状态推送是 NOTI；拒绝保持相邻的 CMD
 `01/0004` 与 NOTI `00/01F7` 两条消息。Networking 只执行通用传输与显式收件人失败隔离。
+
+### CMD ⇒ Notify：把一件事告诉一群人
+
+**做完一件事和告诉别人这件事，是两步。** 命令改状态并提交；通知把结果送给一群人。
+它们之间没有隐式联系——协议 handler 先派发命令，再发布通知，顺序写在那里看得见。
+
+```csharp
+var result = await commandBus.SendAsync(new MarkSelectedCharacterPvpReadyCommand(...), ct);
+if (result.Publication.Audience.Count > 0)
+    await notifications.PublishAsync(
+        new NotificationAudience.TheseCharacters(result.Publication.Audience),
+        new PvpParticipantPublished(result.Publication.Newcomer),
+        ct);
+```
+
+要点，按重要性：
+
+- **人群以角色表达，不是连接。** `NotificationAudience` 是一个封闭层级的值；
+  「这个角色此刻在哪个连接上」只由通知服务回答（`NotificationAudienceResolver` 解析一次，
+  `NotificationBus` 在每个收件人轮到时再问一次）。**领域服务不得为投递去查连接**——
+  这条正是通知服务存在的理由，在它之前有两个领域服务因为要算「通知谁」而知道了 socket 的存在。
+  **规则的边界说准**：禁的是「**拿一个角色去查它在哪个连接、为的是给他发东西**」。
+  两个限定缺一不可——`FindByCharacter` 本身不是禁令的对象：
+  `SelectCharacterLifecycleServices.cs:154` 与 `ExperienceBonusDomainService.cs:31` 今天仍在调它，
+  取的是**会话标识**当运行态目录的键，**从不读 `ConnectionId`**，两处都合规。
+  按「见到 `FindByCharacter` 就是违规」去 grep 会把它们误判。
+  不禁的是「这次操作本身就发生在其上的那个连接」：清理计划带着离开者自己的
+  `session.ConnectionId`（`SelectCharacterLifecycleServices.cs:120`），必送给本人的那一半直接走它，
+  不是扇出。
+  **别把这条豁免读宽**：`SelectedSessionIdentity` 里带着 `ConnectionId`，而它被传进十来个领域服务，
+  照字面它们都「手上有连接」。豁免的是**这次操作的主体自己的**那一个，不是任何拿得到的连接；
+  凡是要决定「还该告诉谁」的，一律走人群。
+- **通知类型自带它的处理器契约。** `INotification<TSelf>` 是自指的，所以发布调用点的类型由实参定死，
+  加宽到契约接口本身编译不过（`CS0311`）。处理器按**收件人**产出该收件人的消息，返回空表示弃权。
+- **处理器只读。** 写属于已经提交完的那条命令。`NotificationHandlerArchitectureTests` 守着注入面：
+  只允许 `Dfo.Server.Abstractions` 里以 `DomainService` 结尾的接口。
+- **注册时声明重试上限**，每个通知自己决定。0 表示只发一次。
+  **失败不只是抛异常**——每收件人有一个全局一致的投递期限，到点也算失败，而那时帧可能已经在传输里，
+  所以重试可能是重复而不是补送。「到两次会出问题的通知应当声明 0」。
+- **通知类型必须在 `ProtocolModule` 里注册处理器**，且该程序集要 `AddNotificationCatalog`。
+  漏注册会在**开始接受连接之前**让服务器起不来（宿主先实例化 hosted service 再启动）。
+
+**这一轮做到哪一步，以及没做什么：**
+
+- 迁移了两处扇出：PvP 大厅公示、会话清理的「尽力送旁人」段。第三个候选
+  （`SessionAdjacentEntryDomainService` 里的 `presence.InArea`）经检查**不是扇出**——
+  它给入场者本人算「我周围有谁」，收件人只有一个。
+- **周期触发不在这一轮里。** 没有调度器、没有时刻表。唯一的循环是重试队列的排空
+  （`NotificationRetryDrainService`），它不驱动任何业务。
+- **没有发布订阅。** 业务用例直接调用通知服务；不存在「发布一件事、由订阅者各自决定反应」的间接层。
+- **其余「回给请求方」的发送一处没动。** 本轮收尾时实测 37 处 `SendExplicitAsync` 与 7 处
+  `SendNotiAsync`（命令：`grep -rn "SendExplicitAsync" Server/src --include=*.cs` 去掉
+  `INetworkServices.cs` / `GameMessageSemantics.cs` / `TouchSocketNetworkMessageSender.cs` 三个定义处）。
+  它们绝大多数没有旁人收件人，套上人群抽象等于给占绝对多数的情形加一层间接。
+  （数会变，看的是它旁边那句理由，不是这个数。）
+- **频道、全服、组队三种人群没有实现**，因为本仓今天没有它们的真实调用方（队伍这个概念还不存在）。
+  人群是封闭层级，但**它不是真正的联合类型**：C# 要求未密封 record 的复制构造函数至少 protected
+  （`CS8878`），所以外部 record 借它派生得出来。真正的保护是解析器最后一个分支会**指名**没教过的形态。
+- **被迁移的两处扇出，帧逐值不变，收件人集合在竞态窗口里与迁移前不同**——
+  会话被顶替或重连时，旧代码寻址的是「当时记下的会话」，新代码寻址的是「这个角色此刻在哪」。
+  完整差异清单在 `.rks-agent/tasks/notifications-know-their-audience/tasks/TASK-05-*.md` 与 `TASK-06-*.md`。
+
+**投递失败会被说出来，但不是靠摘要。** 总线把每个收件人的结果放进一份摘要
+（成功 / 弃权 / 人不在了 / 失败），而**读摘要是可选的，今天没有一个调用方读它**。
+所以总线自己记日志，在还拿得到原因的地方记：
+
+- 投递抛异常 → `Warning` + 异常本身；
+- 到了每收件人期限 → `Warning`，与抛异常**分开说**（超时也是从 catch 里出来的，异常就在手上；
+  不记它是因为那是取消令牌，不是原因）；
+- 重试额度用尽、彻底放弃某个收件人 → `Warning`；声明了 0 次重试的通知不记这一条，
+  因为它从来就没有第二次机会可放弃，失败那一条已经说过了。
+
+**弃权与「人不在了」不记**——它们不是出了问题。
+
+### 判据偶发失败：先取身份，再谈别的
+
+有一条已知的 SQLite 并行释放偶发。**判别依据是三样一起看：**
+
+1. 异常类型 `ObjectDisposedException: Cannot access a disposed object. Object name: 'SQLitePCL.sqlite3'`
+2. 复跑即绿（**要真的跑**——某些机器上三次全量能红两次）
+3. **栈根在下面这份清单内**
+
+已记录的栈根（三条）：
+
+| 栈根 | 见于 |
+|---|---|
+| `CharacterDatabaseSchema.KeepWritersAndReadersApart → SqliteCommand.ExecuteScalar` | `OutsideTransactionTests.ReadingACharacterOutsideAUseCaseIsAllowed`、`DarkKnightComboBookTests.APageTheEntryLoadWouldNotCarryIsRefused`、`DarkKnightComboBookTests.TwoBooksAskedForTheSameCharacterAreTheSameBook` |
+| `ItemPathFrameTests.Storage.ReadAsync → SqliteCommand.ExecuteReaderAsync` | 同名用例 |
+| `OneDatabaseOneParticipantTests.Fixture.ReadItemsAsync → SqliteCommand.ExecuteReaderAsync` | 同名用例 |
+
+**用例名不是判别依据**——第一条栈根已经在三个不同用例名上出现过。
+**栈根是**：清单外的新栈根**不得直接归入**，要另给不归因的明证（改动与该路径无交集等），
+确认之后把新栈根追加进这张表。
+
+**取不到身份的失败一律是取证缺口，不是结论。** 所以跑全量判据时把完整输出落盘
+（`--logger "console;verbosity=detailed"`），不要用会滤掉明细的过滤器——
+这条规则是因为同一个成果里连续四次遇到失败、四次都没取到身份才写下来的。
+已知的取证缺口两条：`Dfo.Server.Networking.Tests` 的一次未记名失败、
+`DarkKnightComboBookTests.ARowTheEntryLoadWouldNotCarryIsRefusedWhenRead`。
 
 ### 其他与主设计的偏差（诚实清单）
 

@@ -1,0 +1,98 @@
+kind: rks-sdd-execution
+controller: sdd-standard
+contract:
+  path: "./TaskContract.md"
+  revision: 2
+current_stage: verification
+state: completed
+artifacts:
+  spec: "./spec.md"
+  plan: "./plan.md"
+  result: "./spec-result.md"
+  change_review: "./reviews/change-review.md"
+  completion_evidence: "./verification/completion-evidence.md"
+stages:
+- id: spec
+  reads:
+  - contract
+  skills:
+  - writing-specs
+  gate: none
+  done_when: spec fixes preserved behavior and structural goal
+  writes:
+  - spec
+- id: plan
+  reads:
+  - spec
+  skills:
+  - writing-plans
+  gate: none
+  done_when: plan sequences refactor steps and behavior-preservation checks
+  writes:
+  - plan
+- id: implementation
+  reads:
+  - plan
+  skills:
+  - executing-tasks
+  - test-driven-development
+  gate: hitl
+  done_when: planned refactor is complete with behavior-preservation evidence
+- id: review
+  reads:
+  - contract
+  - spec
+  - plan
+  skills:
+  - reviewing-code
+  gate: auto
+  done_when: refactor is approved with no unresolved blocking findings
+  writes:
+  - change_review
+- id: verification
+  reads:
+  - contract
+  - change_review
+  skills:
+  - verification-before-completion
+  gate: auto
+  done_when: fresh evidence proves preserved behavior and TaskContract success
+  writes:
+  - completion_evidence
+tasks:
+  active: null
+  items:
+  - id: TASK-01
+    file: "./tasks/TASK-01-audience-is-a-value.md"
+    depends_on: []
+    state: done
+  - id: TASK-02
+    file: "./tasks/TASK-02-notification-carries-its-handler-contract.md"
+    depends_on:
+    - TASK-01
+    state: done
+  - id: TASK-03
+    file: "./tasks/TASK-03-one-publish-delivers-one-by-one.md"
+    depends_on:
+    - TASK-02
+    state: done
+  - id: TASK-04
+    file: "./tasks/TASK-04-retry-without-stale-content.md"
+    depends_on:
+    - TASK-03
+    state: done
+  - id: TASK-05
+    file: "./tasks/TASK-05-pvp-publication-goes-through-notifications.md"
+    depends_on:
+    - TASK-04
+    state: done
+  - id: TASK-06
+    file: "./tasks/TASK-06-evaluate-remaining-fanouts.md"
+    depends_on:
+    - TASK-05
+    state: done
+  - id: TASK-07
+    file: "./tasks/TASK-07-conventions-record-the-pattern.md"
+    depends_on:
+    - TASK-06
+    state: done

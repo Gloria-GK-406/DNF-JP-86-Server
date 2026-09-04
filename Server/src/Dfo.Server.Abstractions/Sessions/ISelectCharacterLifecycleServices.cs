@@ -12,7 +12,7 @@ public interface ISelectedSessionCleanupDomainService
 public interface ISelectCharacterSessionEntryDomainService
 {
     PvpLobbySynchronizationState? PlanPvp(SelectedSessionIdentity session, SelectCharacterResult result);
-    IReadOnlyList<PvpParticipantPublicationTarget> PlanPvpPublication(
+    PvpParticipantPublicationPlan PlanPvpPublication(
         SelectedSessionIdentity session, SelectCharacterResult result);
     void Publish(SelectedSessionIdentity session, SelectCharacterResult result);
     void ReplaceRuntimeExact(SelectedSessionIdentity session, SelectCharacterResult result);

@@ -86,12 +86,11 @@ public sealed class SessionGenerationOwnershipTests
         Assert.Equal(
             [SelectedSessionCleanupNoticeKind.ExpertStoreClosed],
             failure.NotificationPlan.RequiredOwnerNotices.Select(value => value.Kind));
-        var target = Assert.Single(failure.NotificationPlan.BestEffortTargets);
-        Assert.Equal(peer.ConnectionId, target.ConnectionId);
+        Assert.Equal([peer.CharacterId], failure.NotificationPlan.PeerAudience);
         Assert.Equal(
             [SelectedSessionCleanupNoticeKind.ExpertStoreClosed,
                 SelectedSessionCleanupNoticeKind.TownDeparture],
-            target.OrderedNotices.Select(value => value.Kind));
+            failure.NotificationPlan.PeerNotices.Select(value => value.Kind));
         Assert.Null(directory.Find(owner.AccountId));
     }
 
@@ -133,12 +132,13 @@ public sealed class SessionGenerationOwnershipTests
             Assert.Equal(
                 SelectedSessionCleanupNoticeKind.ExpertStoreClosed,
                 delivery.RequiredOwnerNotices[0].Kind);
-        Assert.Equal([peer1.ConnectionId, peer2.ConnectionId],
-            delivery.BestEffortTargets.Select(value => value.ConnectionId));
-        Assert.All(delivery.BestEffortTargets, target => Assert.Equal(
+        Assert.Equal([peer1.CharacterId, peer2.CharacterId], delivery.PeerAudience);
+        // One set for everybody rather than a copy each. They were always the same two entries;
+        // saying so once is the difference between that being true and being a coincidence.
+        Assert.Equal(
             [SelectedSessionCleanupNoticeKind.ExpertStoreClosed,
                 SelectedSessionCleanupNoticeKind.TownDeparture],
-            target.OrderedNotices.Select(value => value.Kind)));
+            delivery.PeerNotices.Select(value => value.Kind));
     }
 
     [Theory]
@@ -192,7 +192,8 @@ public sealed class SessionGenerationOwnershipTests
             stale, includeOwner: true, CancellationToken.None);
 
         Assert.Empty(delivery.RequiredOwnerNotices);
-        Assert.Empty(delivery.BestEffortTargets);
+        Assert.Empty(delivery.PeerAudience);
+        Assert.Empty(delivery.PeerNotices);
         Assert.Equal(replacement, directory.Find(replacement.AccountId));
         Assert.Equal(replacement, presence.Find(replacement.CharacterId)!.Session);
         Assert.True(stores.HasOpenStore(replacement.CharacterId));

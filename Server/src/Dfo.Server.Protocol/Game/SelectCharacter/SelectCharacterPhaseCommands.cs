@@ -212,8 +212,7 @@ public sealed record MarkSelectedCharacterPvpReadyCommand(
     public AccountId AccountId => Session.AccountId;
 }
 
-public sealed record SelectedCharacterPvpPublication(
-    IReadOnlyList<PvpParticipantPublicationTarget> Targets);
+public sealed record SelectedCharacterPvpPublication(PvpParticipantPublicationPlan Publication);
 
 public sealed class MarkSelectedCharacterPvpReadyCommandHandler(
     ISelectCharacterSessionEntryDomainService sessionEntry)
@@ -224,9 +223,9 @@ public sealed class MarkSelectedCharacterPvpReadyCommandHandler(
         MarkSelectedCharacterPvpReadyCommand command,
         CancellationToken cancellationToken)
     {
-        var targets = sessionEntry.PlanPvpPublication(command.Session, command.State);
+        var publication = sessionEntry.PlanPvpPublication(command.Session, command.State);
         sessionEntry.MarkPvpReady(command.Session, command.State);
-        return ValueTask.FromResult(new SelectedCharacterPvpPublication(targets));
+        return ValueTask.FromResult(new SelectedCharacterPvpPublication(publication));
     }
 }
 

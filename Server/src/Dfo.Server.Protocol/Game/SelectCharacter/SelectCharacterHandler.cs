@@ -1,6 +1,7 @@
 using System.Runtime.ExceptionServices;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
@@ -57,6 +58,8 @@ public sealed class SelectCharacterHandler(
     SelectedSessionTransitionGate lifecycleGate,
     ISelectedSessionDomainService selectedSessions,
     IGameMessageSender sender,
+    INotificationBus notifications,
+    ICleanupNotificationDelivery cleanupDelivery,
     INetworkConnectionCloser closer,
     ILogger<SelectCharacterHandler> logger,
     SelectCharacterDeliveryOptions delivery) : ClientMessageHandler<SelectCharacterRequest>
@@ -98,10 +101,7 @@ public sealed class SelectCharacterHandler(
             pendingCloses.AddRange(prepared.ConnectionsToClose);
             foreach (var notifications in prepared.CleanupNotifications)
             {
-                await sender.SendExplicitAsync(
-                    notifications.OwnerConnectionId,
-                    CleanupSynchronizationDelivery.Create(notifications),
-                    cancellationToken).ConfigureAwait(false);
+                await cleanupDelivery.DeliverAsync(notifications, cancellationToken).ConfigureAwait(false);
             }
             await ExecuteAcceptedWorkflowAsync(session, prepared.State, cancellationToken)
                 .ConfigureAwait(false);
@@ -133,10 +133,7 @@ public sealed class SelectCharacterHandler(
             {
                 try
                 {
-                    await sender.SendExplicitAsync(
-                        notifications.OwnerConnectionId,
-                        CleanupSynchronizationDelivery.Create(notifications),
-                        CancellationToken.None).ConfigureAwait(false);
+                    await cleanupDelivery.DeliverAsync(notifications, CancellationToken.None).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -156,20 +153,13 @@ public sealed class SelectCharacterHandler(
                     var compensated = await commandBus.SendAsync(
                         new CompensateSelectedCharacterSessionCommand(session),
                         CancellationToken.None).ConfigureAwait(false);
-                    await sender.SendExplicitAsync(
-                        compensated.Notifications.OwnerConnectionId,
-                        CleanupSynchronizationDelivery.Create(compensated.Notifications),
-                        CancellationToken.None).ConfigureAwait(false);
+                    await cleanupDelivery.DeliverAsync(compensated.Notifications, CancellationToken.None).ConfigureAwait(false);
                 }
                 catch (SelectedSessionCleanupFailure cleanupFailure)
                 {
                     try
                     {
-                        await sender.SendExplicitAsync(
-                            cleanupFailure.NotificationPlan.OwnerConnectionId,
-                            CleanupSynchronizationDelivery.Create(
-                                cleanupFailure.NotificationPlan),
-                            CancellationToken.None).ConfigureAwait(false);
+                        await cleanupDelivery.DeliverAsync(cleanupFailure.NotificationPlan, CancellationToken.None).ConfigureAwait(false);
                     }
                     catch
                     {
@@ -293,16 +283,14 @@ public sealed class SelectCharacterHandler(
                 new MarkSelectedCharacterPvpReadyCommand(session, prepared),
                 cancellationToken).ConfigureAwait(false);
             EnsureCurrent(session);
-            if (pvpPublication.Targets.Count > 0)
+            // The command decided who; telling them is a separate step, and this is the shape
+            // that pairing takes everywhere from here on. What this used to do instead was build
+            // a delivery plan out of connections the domain service had looked up for it.
+            if (pvpPublication.Publication.Audience.Count > 0)
             {
-                await sender.SendExplicitAsync(
-                    session.ConnectionId,
-                    new GameExplicitMessageDelivery([], pvpPublication.Targets.Select(target =>
-                        new GameExplicitMessageTarget(
-                            target.ConnectionId,
-                            [(IGameServerMessage)new PvpParticipantPublicationMessage(
-                                target.Participant)]))
-                        .ToArray()),
+                await notifications.PublishAsync(
+                    new NotificationAudience.TheseCharacters(pvpPublication.Publication.Audience),
+                    new PvpParticipantPublished(pvpPublication.Publication.Newcomer),
                     cancellationToken).ConfigureAwait(false);
             }
         }

@@ -16,6 +16,7 @@ using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Notifications;
 using Dfo.Server.Application.Quests;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Sessions;
@@ -312,5 +313,6 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ISelectCharacterSessionEntryDomainService, SelectCharacterSessionEntryService>();
         services.AddCommandDispatching();
         services.AddNetworkMessageDispatching();
+        services.AddNotificationDispatching();
     }
 }

@@ -116,15 +116,23 @@ public sealed record SelectedSessionCleanupNotice(
     SelectedSessionCleanupNoticeKind Kind,
     ushort UserId);
 
-public sealed record SelectedSessionCleanupNotificationTarget(
-    NetworkConnectionId ConnectionId,
-    IReadOnlyList<SelectedSessionCleanupNotice> OrderedNotices);
-
+/// <remarks>
+/// Two halves that are not the same kind of thing. The owner's notices must reach one connection
+/// this code already has in hand -- it is the connection the departure is happening on. The peers
+/// are a fan-out, and they are named in characters: which connection each of them is on is not a
+/// question this plan, or the domain service that builds it, has any business answering.
+/// <para>
+/// One list of notices for all the peers rather than one per peer. They were always identical --
+/// the loop that built them rebuilt the same two entries for everybody -- so the per-target copy
+/// was saying that they might differ, which was never true.
+/// </para>
+/// </remarks>
 public sealed record SelectedSessionCleanupNotificationPlan(
     NetworkConnectionId OwnerConnectionId,
     IReadOnlyList<SelectedSessionCleanupNotice> RequiredOwnerNotices,
-    IReadOnlyList<SelectedSessionCleanupNotificationTarget> BestEffortTargets)
+    IReadOnlyList<CharacterId> PeerAudience,
+    IReadOnlyList<SelectedSessionCleanupNotice> PeerNotices)
 {
     public static SelectedSessionCleanupNotificationPlan Empty(SelectedSessionIdentity session) =>
-        new(session.ConnectionId, [], []);
+        new(session.ConnectionId, [], [], []);
 }

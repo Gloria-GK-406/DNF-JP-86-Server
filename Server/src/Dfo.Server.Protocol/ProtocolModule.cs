@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
+using Dfo.Server.Application.Notifications;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
@@ -79,6 +80,17 @@ public sealed class ProtocolModule : IServerModule
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.AddGameMessageSending();
+        // Every notification type declared in this assembly must have a handler registered below,
+        // and the server refuses to start if one does not. Declared rather than discovered: the
+        // check is only worth having while something says which assemblies it covers, and this
+        // line is that something.
+        services.AddNotificationCatalog(typeof(ProtocolModule).Assembly);
+        services.TryAddSingleton<ICleanupNotificationDelivery, CleanupNotificationDelivery>();
+        services.AddNotificationHandler<SessionCleanupAnnounced, SessionCleanupAnnouncedHandler>(
+            // Nothing. A departure notice that misses somebody is corrected by the next thing that
+            // redraws who is standing where, and by the time a retry ran the person it describes
+            // has been gone for a second -- the notice would arrive as news about nobody.
+            retryLimit: 0);
         services.TryAddSingleton<ChannelProtocolKeyProvider>();
         services.TryAddSingleton(SelectCharacterDeliveryOptions.Everything);
         services.TryAddSingleton<ISelectedCharacterStateMessageFactory, SelectedCharacterStateMessageFactoryService>();
@@ -147,6 +159,17 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<MarkSelectedCharacterPvpReadyCommand, SelectedCharacterPvpPublication, MarkSelectedCharacterPvpReadyCommandHandler>(
             CommandExecutionKind.Workflow,
             accountAccessMode: UserAccessMode.Exclusive);
+        // One further go, decided by this notification rather than for it. A failure here is not
+        // only a throw: a recipient who runs out of the per-recipient deadline counts too, and by
+        // then the frame may already be with the transport -- so the second attempt can arrive as
+        // a duplicate rather than as a rescue. That is the trade this particular notification is
+        // making, and it makes it knowingly: a lobby roster that missed a newcomer stays wrong
+        // until something else redraws it, and the owner's standing premise for this whole path is
+        // that hearing something twice is the cheaper of those two. What the client does with a
+        // repeated publication is not something this repository can show. A notification where
+        // arriving twice would not be harmless should declare zero.
+        services.AddNotificationHandler<PvpParticipantPublished, PvpParticipantPublishedHandler>(
+            retryLimit: 1);
         // These two change a character's stored state, so they are the phases that need a
         // boundary: the unit of work opens one for Transactional commands and for nothing else.
         // Without it the store would have no transaction to join and the change would land

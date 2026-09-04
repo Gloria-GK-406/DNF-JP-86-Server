@@ -1,5 +1,6 @@
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Data.World;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -180,16 +181,31 @@ internal static class SupplementalSynchronizationEncoderRegistration
         services.AddGameNotiMessageEncoder<TMessage, SupplementalNotiSynchronizationEncoder<TMessage>>();
 }
 
-internal static class CleanupSynchronizationDelivery
-{
-    public static GameExplicitMessageDelivery Create(SelectedSessionCleanupNotificationPlan plan) =>
-        new(
-            plan.RequiredOwnerNotices.Select(ToMessage).ToArray(),
-            plan.BestEffortTargets.Select(target => new GameExplicitMessageTarget(
-                target.ConnectionId,
-                target.OrderedNotices.Select(ToMessage).ToArray())).ToArray());
+/// <summary>What the people standing around somebody are told when that somebody leaves.</summary>
+/// <remarks>
+/// The notices travel with the notification because they are what happened -- who left, and
+/// whether a store closed with them. By the time anybody hears this, the session is already gone,
+/// so there is nothing left to read back.
+/// </remarks>
+public sealed record SessionCleanupAnnounced(IReadOnlyList<SelectedSessionCleanupNotice> Notices)
+    : INotification<SessionCleanupAnnounced>;
 
-    private static IGameNotiMessage ToMessage(SelectedSessionCleanupNotice notice) =>
+public sealed class SessionCleanupAnnouncedHandler : INotificationHandler<SessionCleanupAnnounced>
+{
+    public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(
+        NotificationRecipient recipient,
+        SessionCleanupAnnounced notification,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(notification);
+        return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(
+            [.. notification.Notices.Select(CleanupNoticeMessages.ToMessage)]);
+    }
+}
+
+internal static class CleanupNoticeMessages
+{
+    public static IGameNotiMessage ToMessage(SelectedSessionCleanupNotice notice) =>
         notice.Kind switch
         {
             SelectedSessionCleanupNoticeKind.ExpertStoreClosed =>
@@ -199,4 +215,47 @@ internal static class CleanupSynchronizationDelivery
             _ => throw new InvalidDataException(
                 $"Unknown selected-session cleanup notice '{notice.Kind}'."),
         };
+}
+
+/// <summary>Delivers both halves of a cleanup plan, in the order they have to go out in.</summary>
+/// <remarks>
+/// A service rather than the mapping function it replaces, and that is the whole point. The plan
+/// has two halves that now leave by two different routes -- the owner's notices down the
+/// connection this code already holds, the peers through the notification service -- and there are
+/// six places that deliver one. Left as two calls at each of those places, the rule that the owner
+/// hears first would be six hand-written sequences, and four of the six are inside a catch. Here
+/// it is one.
+/// </remarks>
+public interface ICleanupNotificationDelivery
+{
+    ValueTask DeliverAsync(
+        SelectedSessionCleanupNotificationPlan plan, CancellationToken cancellationToken);
+}
+
+internal sealed class CleanupNotificationDelivery(
+    IGameMessageSender sender,
+    INotificationBus notifications) : ICleanupNotificationDelivery
+{
+    public async ValueTask DeliverAsync(
+        SelectedSessionCleanupNotificationPlan plan, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        if (plan.RequiredOwnerNotices.Count > 0)
+        {
+            await sender.SendExplicitAsync(
+                plan.OwnerConnectionId,
+                new GameExplicitMessageDelivery(
+                    [.. plan.RequiredOwnerNotices.Select(CleanupNoticeMessages.ToMessage)],
+                    []),
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        if (plan.PeerAudience.Count > 0 && plan.PeerNotices.Count > 0)
+        {
+            await notifications.PublishAsync(
+                new NotificationAudience.TheseCharacters(plan.PeerAudience),
+                new SessionCleanupAnnounced(plan.PeerNotices),
+                cancellationToken).ConfigureAwait(false);
+        }
+    }
 }
