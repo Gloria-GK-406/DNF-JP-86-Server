@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
@@ -179,6 +180,7 @@ public sealed class LeaveDungeonTests
         var handler = new EplpCommandHandler(
             new NoSession(),
             new NoRuntimeSession(),
+            new StandingNowhere(),
             new OneRun(),
             sender,
             NullLogger<EplpCommandHandler>.Instance);
@@ -206,6 +208,7 @@ public sealed class LeaveDungeonTests
         var handler = new BackToVillageHandler(
             new OneSession(Identity),
             new OneRuntimeSession(Entry()),
+            new StandingWhereTheyAre(),
             new OneRun(),
             sender,
             NullLogger<BackToVillageHandler>.Instance);
@@ -239,6 +242,7 @@ public sealed class LeaveDungeonTests
         var handler = new EplpCommandHandler(
             new OneSession(Identity),
             new OneRuntimeSession(Entry()),
+            new StandingWhereTheyAre(),
             runs,
             sender,
             NullLogger<EplpCommandHandler>.Instance);
@@ -259,12 +263,20 @@ public sealed class LeaveDungeonTests
     /// <summary>The area state the channel's spawn carries, which the projection reuses.</summary>
     private const byte SpawnAreaState = 7;
 
+    /// <summary>Where the character actually is, which the projection reads.</summary>
+    private static CharacterPositionState Standing { get; } = new(
+        StandingTownId, StandingAreaId, StandingX, StandingY, Direction: 1);
+
     /// <summary>
-    /// An entry standing somewhere that is not the channel's spawn point.
+    /// An entry whose spawn and whose stale snapshot are both somewhere else.
     /// </summary>
     /// <remarks>
-    /// Deliberately different in every coordinate. If the projection read the spawn instead of the
-    /// position, every assertion about where the character lands would fail rather than coincide.
+    /// Three different places, deliberately, and every coordinate differs. The spawn is one wrong
+    /// answer -- projecting it would teleport a player across town for finishing a run. The copy of
+    /// the position the entry snapshot still carries is the other: it is the one the projection
+    /// used to read, and it stops being corrected the moment a step is reported to the service that
+    /// owns where the character stands. Either mistake fails every assertion below rather than
+    /// coinciding with the right answer.
     /// </remarks>
     private static SelectCharacterResult Entry()
     {
@@ -274,7 +286,7 @@ public sealed class LeaveDungeonTests
             Character = result.Character with
             {
                 Position = new CharacterPositionState(
-                    StandingTownId, StandingAreaId, StandingX, StandingY, Direction: 1),
+                    TownId: 9, AreaId: 8, X: 77, Y: 66, Direction: 4),
             },
             World = result.World with
             {
@@ -431,6 +443,46 @@ public sealed class LeaveDungeonTests
             throw new NotSupportedException("This fixture holds nothing.");
 
         public bool RemoveExact(SelectedSessionIdentity session) =>
+            throw new NotSupportedException("This fixture holds nothing.");
+    }
+
+    /// <summary>The service that owns where the character is, answering the one place they are.</summary>
+    private sealed class StandingWhereTheyAre : ICharacterPositionDomainService
+    {
+        public CharacterPositionState? Find(CharacterId characterId) => Standing;
+
+        public void Place(SelectedSessionIdentity session, CharacterPositionState position) =>
+            throw new NotSupportedException("Leaving a dungeon does not place anyone.");
+
+        public CharacterPositionState CrossInto(
+            SelectedSessionIdentity session, byte townId, byte areaId, short x, short y) =>
+            throw new NotSupportedException("Leaving a dungeon reports no movement.");
+
+        public CharacterPositionState StepTo(
+            SelectedSessionIdentity session, short x, short y, byte direction) =>
+            throw new NotSupportedException("Leaving a dungeon reports no movement.");
+
+        public bool ForgetExact(SelectedSessionIdentity session) =>
+            throw new NotSupportedException("Leaving a dungeon does not end the session.");
+    }
+
+    /// <summary>Nobody is standing anywhere, which is what no published session looks like.</summary>
+    private sealed class StandingNowhere : ICharacterPositionDomainService
+    {
+        public CharacterPositionState? Find(CharacterId characterId) => null;
+
+        public void Place(SelectedSessionIdentity session, CharacterPositionState position) =>
+            throw new NotSupportedException("This fixture holds nothing.");
+
+        public CharacterPositionState CrossInto(
+            SelectedSessionIdentity session, byte townId, byte areaId, short x, short y) =>
+            throw new NotSupportedException("This fixture holds nothing.");
+
+        public CharacterPositionState StepTo(
+            SelectedSessionIdentity session, short x, short y, byte direction) =>
+            throw new NotSupportedException("This fixture holds nothing.");
+
+        public bool ForgetExact(SelectedSessionIdentity session) =>
             throw new NotSupportedException("This fixture holds nothing.");
     }
 

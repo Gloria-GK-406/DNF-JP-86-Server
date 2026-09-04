@@ -6,10 +6,14 @@ using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Sessions;
+using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Persistence.Characters;
+using Dfo.Server.Persistence.Database;
+using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Application.Tests.Characters;
 
@@ -27,14 +31,14 @@ public sealed class CharacterItemUseTests
     private static readonly CharacterId Character = new(60);
 
     /// <summary>
-    /// The level on the session this character is played on. Deliberately not the row's.
+    /// The level the session this character is played on used to carry. Deliberately not the row's.
     /// </summary>
     /// <remarks>
-    /// A wrong level within easy reach. What a character may use is judged against the level on
-    /// its own row; the session carries a copy of that level which every path moving the character
-    /// has to remember to correct, and a judgement made against the copy would be made against
-    /// whatever was last written there. The two are given different figures so that reading the
-    /// wrong one is a failing case rather than a coincidence.
+    /// A wrong level, kept as the figure the cases below are set around. The session carried a copy
+    /// of the character's standing that every path moving the character had to remember to correct,
+    /// and a judgement made against the copy was made against whatever was last written there. The
+    /// character reads its own row now and cannot reach that copy at all, so what this names is the
+    /// answer a regression would produce rather than one it can.
     /// </remarks>
     private const byte SessionLevel = 7;
 
@@ -265,11 +269,26 @@ public sealed class CharacterItemUseTests
         Assert.False(fixture.Cooldowns.IsCoolingDown(Character, ItemCooldownKey.ForItem(8474)));
     }
 
+    /// <summary>
+    /// A character whose state is not published yet is not the player's fault.
+    /// </summary>
     /// <remarks>
     /// Entry registers the session and binds the container before it publishes the runtime state
     /// (`SelectCharacterPhaseCommands`: Select, then PrepareLeaseAsync, then the publish
     /// command), so a request arriving in between finds a character it cannot ask about. Answering
     /// that with the archive's own refusal would tell the player their item is not a consumable.
+    /// PrepareLeaseAsync is a database round trip, so the window is real rather than theoretical.
+    /// <para>
+    /// Said here as an absent presence record, because that is where the character reads it. The
+    /// step that publishes the runtime state admits the character to the presence record with
+    /// nothing awaited in between, and the cleanup that withdraws one removes the other in the same
+    /// synchronous run, so a character inside this window is in neither.
+    /// </para>
+    /// <para>
+    /// The row is present, which is what separates this from the case below: that one has the
+    /// character published and no row, this one has a row and no character published, and the two
+    /// answer alike.
+    /// </para>
     /// </remarks>
     [Fact]
     public async Task A_character_whose_state_is_not_published_yet_is_not_the_players_fault()
@@ -279,12 +298,10 @@ public sealed class CharacterItemUseTests
             Character,
             new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
             new CharacterItemCooldownDomainService(clock),
-            new OneSession(),
-            FixedRuntimeSessions.Unpublished,
             new SessionPresenceDomainService(),
             new NoCarriedGold(),
             new StoredCarryLimitOnly(),
-            CharacterRow.None,
+            CharacterRow.At(level: 50),
             new NoSkillPointLedger());
 
         Assert.Equal(
@@ -293,14 +310,14 @@ public sealed class CharacterItemUseTests
     }
 
     /// <summary>
-    /// A character with a published session but no row of its own is not the player's fault either.
+    /// A character being played but with no row of its own is not the player's fault either.
     /// </summary>
     /// <remarks>
-    /// The level is read from the row now, so there is a second way to have nothing to judge
-    /// against: the session is there and the row is not. It answers the way a missing session
-    /// answers, and it has to -- what is being reported is that this server cannot say how far
-    /// along the character is, and the archive's own refusal would tell the player their potion is
-    /// not a consumable.
+    /// Both facts a use is judged against -- what the character is and how far along it is -- come
+    /// from the row now, so a character this server does not have is a character with nothing to
+    /// judge against. It answers the way the unpublished character above answers, and it has to:
+    /// what is being reported either way is that there is nothing to judge against, and the
+    /// archive's own refusal would tell the player their potion is not a consumable.
     /// </remarks>
     [Fact]
     public async Task A_character_with_no_row_of_its_own_is_not_the_players_fault()
@@ -310,9 +327,7 @@ public sealed class CharacterItemUseTests
             Character,
             new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
             new CharacterItemCooldownDomainService(clock),
-            new OneSession(),
-            new FixedRuntimeSessions(SessionLevel, job: 0),
-            new SessionPresenceDomainService(),
+            PresentCharacters.StandingInTown(Character),
             new NoCarriedGold(),
             new StoredCarryLimitOnly(),
             CharacterRow.None,
@@ -324,14 +339,78 @@ public sealed class CharacterItemUseTests
     }
 
     /// <summary>
+    /// A character whose row has been marked deleted under it is still judged against that row.
+    /// </summary>
+    /// <remarks>
+    /// <b>The case a filter on one of the two reads would fail.</b> The two facts a use is judged
+    /// against arrive as two narrow reads of one row, and either of them answering nothing is
+    /// reported as the same <see cref="ItemUsability.CharacterStateUnavailable"/> -- so what the
+    /// pair needs is to see the same rows. The progress read has never excluded a deleted
+    /// character; a <c>delete_flag</c> condition on the identity read alone would invent a refusal
+    /// for a state this server previously judged.
+    /// <para>
+    /// The state is reachable rather than theoretical: deleting a character checks only that the
+    /// connection is authenticated, not that the character is the one being played, so the presence
+    /// record admitted at entry outlives the mark. Whether refusing a deleted character would be
+    /// the better answer is a separate question -- nothing here chose to start refusing it.
+    /// </para>
+    /// <para>
+    /// Asked of a real table, because the condition under test is in the statement. A double would
+    /// answer both reads however it was written to, whatever the two statements said.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task A_character_marked_deleted_under_the_player_is_still_judged()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"dfo-deleted-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var database = new SqliteDatabase(
+                Path.Combine(directory, "characters.db"), new DomainTransactionScope());
+            await using (var connection = new SqliteConnection(database.ConnectionString))
+            {
+                await connection.OpenAsync(CancellationToken.None);
+                await using var insert = connection.CreateCommand();
+                insert.CommandText =
+                    "INSERT INTO characters(character_id,account_id,name,job,level,delete_flag) "
+                    + "VALUES(@cid,6,'deleted',0,50,1);";
+                insert.Parameters.AddWithValue("@cid", Character.Value);
+                Assert.Equal(1, await insert.ExecuteNonQueryAsync(CancellationToken.None));
+            }
+
+            var usability = new PlayingCharacter(
+                Character,
+                new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
+                new CharacterItemCooldownDomainService(
+                    new AdvanceableTimeProvider(
+                        new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero))),
+                PresentCharacters.StandingInTown(Character),
+                new NoCarriedGold(),
+                new StoredCarryLimitOnly(),
+                new SqliteCharacterTable(database),
+                new NoSkillPointLedger());
+
+            Assert.Equal(
+                ItemUsability.Allowed,
+                await usability.CanUseAsync(8474, CancellationToken.None));
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    /// <summary>
     /// The level a use is judged against is the row's, not the session's.
     /// </summary>
     /// <remarks>
     /// <b>The link the rest of this file would not catch.</b> Every other case here would pass
     /// against either level, because the two used to be the same object. They are not any more:
-    /// the row is what a level-up writes, and the session holds a copy that has to be corrected by
-    /// hand. So the row is put above the item's requirement and the session below it, and the
-    /// answer says which one arrived.
+    /// the row is what a level-up writes, and the copy the session held had to be corrected by
+    /// hand. So the row is put above the item's requirement and that copy's figure below it, and
+    /// the answer says which one arrived.
     /// </remarks>
     [Fact]
     public async Task The_level_a_use_is_judged_against_is_the_rows()
@@ -382,12 +461,10 @@ public sealed class CharacterItemUseTests
             Character,
             new ItemUseJudgementService(new FakeItemUseRules(rules)),
             cooldowns,
-            new OneSession(),
-            new FixedRuntimeSessions(SessionLevel, job),
-            new SessionPresenceDomainService(),
+            PresentCharacters.StandingInTown(Character),
             new NoCarriedGold(),
             new StoredCarryLimitOnly(),
-            CharacterRow.At(level),
+            CharacterRow.At(level, job),
             new NoSkillPointLedger());
     }
 
@@ -395,17 +472,4 @@ public sealed class CharacterItemUseTests
         out Fixture fixture,
         params (int ItemId, ItemUseRule Rule)[] rules) =>
         Build(out fixture, level: 50, job: 0, rules);
-
-    private sealed class OneSession : ISelectedSessionDomainService
-    {
-        private static readonly SelectedSessionIdentity Session = SelectedSessionIdentity.Create(
-            new AccountId(6), new CharacterId(60), new NetworkConnectionId("game-usable"), 1, 10011);
-
-        public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => null;
-        public bool ReleaseExact(SelectedSessionIdentity session) => false;
-        public SelectedSessionIdentity? Find(AccountId accountId) => Session;
-        public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => Session;
-        public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) => Session;
-        public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => Session;
-    }
 }

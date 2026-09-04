@@ -161,6 +161,60 @@ facts。两半合起来才是一条线——一边不许往上摸世界，一边
 会话快照里仍然留着坐标、在场、世界内容、背包投影与账号侧状态。**那不是说聚合已经拆完了**，
 只是说剩余点数不在里面了。
 
+**这几样状态各自归谁——以及哪几样只做了一半。** 下面这张表按「谁是主人」记，不按「计划要做什么」
+记。**先看最后一列**：有两样今天一个生产调用方都没有，那是刻意的，不是漏接线。
+
+| 状态 | 主人 | 入场序列之外今天谁在问它 |
+|---|---|---|
+| 身份（槽位、名字、职业、成长型） | 角色实例 `ICharacter.IdentityAsync` | 道具可用性判定（`PlayingCharacter.CanUseAsync`）。实例从 `characters` 行现读，不再向会话要 |
+| 坐标 | `ICharacterPositionDomainService` | 6 个生产注入点：`TownProjectionSlice.cs:216`/`:335`、`DungeonSelectionSlice.cs:173`、`LeaveDungeonSlice.cs:91`、`SelectCharacterLifecycleServices.cs:33`/`:132` |
+| 任务 | 既有的任务簿实例 `ICharacterQuestLogDomainService` | 进本时收集迷宫筛选用的 facts（`DungeonEntrySlice.cs:477-483`） |
+| 设置（热键、选项位图、可见位） | `ICharacterSettingsDomainService` | **零个。刻意的，见下。** |
+| 暗骑连招页 | `IDarkKnightComboDomainStore` + `IDarkKnightComboBook` | **零个。刻意的，见下。** |
+| 疲劳 | `ICharacterFatigueDomainService` | 进本处报告消耗（`DungeonEntrySlice.cs:509-511`）。**接缝不记账，见下。** |
+
+**会话运行态聚合仍然存在，而且几乎原样存在。** `SelectCharacterResult`
+（`Dfo.Server.Data/Game/SelectCharacterModels.cs:35`）九个成员一个没少，
+`ISelectedSessionRuntimeDirectory` 照旧。这一轮动的主要是**谁来回答**，不是**快照里有什么**：
+取数点从快照挪到各自的主人。快照本身只少了一个字段——`ActiveCharacterState.DarkKnightCombo`
+连同 `DarkKnightComboState` 记录一起退役了，理由是它此前**每个构造点写的都是 `null`、
+全仓零个读点**，删它逐值不变。除此之外一个字段没删、没改。**拆整个聚合不在这一轮里**，
+要等入场投影的公开态/进度/特性三块内容查清之后再定。
+
+**`ActiveCharacterState.Position` 已经成了死字段——它还在，但没有人维护它，也没有人读它。**
+`Server/src` 里写它的只有一处：`SelectCharacterPreparationService.cs:54`，入场落位时用频道出生点
+`with` 出来的。读它的只有两处，都在入场序列之内（`SelectCharacterPreparationService.cs:149`
+解析频道落点、`SelectCharacterLifecycleServices.cs:188` 把它交给坐标服务）。入场之后再没有任何
+东西写它——`Server/src` 全量搜 `Position =` 与 `Position:`，除上面那一处只剩坐标服务对自己私有
+`Standing` 记录的写；也再没有任何东西读它——`Server/src/Dfo.Server.Protocol` 下 `.Position`
+成员访问 **0 处**。而 `ReplaceExact` 有 6 个生产调用点
+（`SelectCharacterLifecycleServices.cs:195`、`DungeonClearSlice.cs:752`、`MonsterDeathSlice.cs:490`、
+`AcceptQuestHandler.cs:106`、`FinishQuestHandler.cs:144`、`TutorialLevelUpSlice.cs:241`），
+没有一处在交回去之前动过 `Character.Position`，于是每一次都把入场那一刻的坐标原样搬回。
+**所以快照里的坐标自入场起永久陈旧。** 摘掉这个字段要动 `Dfo.Server.Data` 与五个切片文件，
+不在这一轮里；在那之前，**任何从它取坐标的新代码都是错的**——坐标问
+`ICharacterPositionDomainService`。
+
+**疲劳有接缝，但接缝不记账。** 唯一注册的实现是
+`UnaccountedCharacterFatigueDomainService`：它答一对定值，对报给它的东西一律丢弃。进本处
+（`SelectDungeonHandler`）确实调 `SpendAsync` 且数目被判据钉住，但那是**报告**不是**闸门**——
+没有余额可以不足，`SelectDungeonRefusal.InsufficientFatigue` 至今无人问。
+`CharacterRosterService.cs:147` 那个写死的 `new CharacterFatigueState(188, 0)` 仍是发出去的唯一数字。
+**报的那个 `1` 是占位值，且与档案已知冲突**：`SelectDungeonHandler.FatigueAnEntryCosts` 无条件
+报 1，而副本自带 `[no fatigue]` 标记（`DungeonDefinition.ConsumesFatigue`，全仓唯一读者是
+`PvfDungeonDefinitionSourceTests.cs:32` 那条钉解析的判据，它断言教程本 10000 为 `false`）——
+按写下的规则那本进本该扣 0。今天不记账所以无可观察后果，但**真开始记账时，调用点必须先问档案
+这本扣不扣**。规则与出处见 `Docs/DungeonEntryNotes.md` 第八节。
+
+**设置与连招今天刻意没有消费方，别当死代码删掉。** 两者都有真实的表、真实的 SQL，判据对着真库
+校验它们答得对；缺的是调用方，而调用方要等改键协议与连招编辑协议做进来。
+证据：`character_hotkey_slots` 在 `Server/src` 里只有 `CREATE TABLE` 与一条 `SELECT`；
+`character_settings` 只有 `CREATE TABLE`、一条 `SELECT` 与建号时的 `INSERT … DO NOTHING`；
+全仓 `UPDATE character_settings` / `UPDATE character_hotkey` 零命中；唯一携带选项位图的入站协议
+`SaveGameOption1Handler` 自己的摘要写着 "Nothing is persisted yet"。连招 store 的写路径
+（`INSERT … ON CONFLICT DO UPDATE`、`DELETE`）已经建好，同样零调用方；入场读走的仍是
+`ICharacterComboPageTable`。**没有任何架构判据会注意到它们长期无人调用**，所以这一段就是那个提醒。
+
 **宿主部署配置不是规则输入。** `IServerConfigService` 与它的三个消费方按下面「接口后缀标明
 类别」那节记的例外办，不受这条约束。同样不算规则输入的还有两类，各自在代码里写明了理由：
 纯测量开关（`ExperienceDiagnostics`）与协议投递行为（`SelectCharacterDeliveryOptions`）。
@@ -205,15 +259,17 @@ facts。两半合起来才是一条线——一边不许往上摸世界，一边
   → 其余 `CommitAsync`。**一次事务只收一个 `CommitCanFail` 参与者**，第二个在
   `Enlist` 时抛；这是「不做两阶段提交」的代价与前提。登记按 identity 去重，
   而 SQLite 侧的 identity 是**连接字符串**，即**一个数据库一个参与者**——物品、
-  人物与任务是同一个参与者的三个面（`ISqliteStoreFacet`），不是三个参与者。这是被上一条
-  逼出来的：若各自入伙，第二个可失败参与者会被拒，一次用例就永远无法同时改物品与
+  人物、任务与暗骑连招页是同一个参与者的**四**个面（`ISqliteStoreFacet`），不是四个参与者。
+  这是被上一条逼出来的：若各自入伙，第二个可失败参与者会被拒，一次用例就永远无法同时改物品与
   人物。同一数据库在一次用例里因此只参与一次，其读能看见自己未提交的写。
   环境事务经 `IDomainTransactionAccessor` 暴露（`AsyncLocal`），因为存储是单例、
   容器按角色持有，两者都拿不到注入。
 - 载体协议（`Abstractions/Transactions/DomainStores.cs`）：`IDomainStore<TSession>`
   给出载体身份、是否持久、以事务换取会话；`IDomainStoreSession<TPlace,TKey,TValue>` 是
-  「按位置读、按位置写、按位置清空」的共享词汇。`IItemDomainStoreSession` 直接就是它的
-  一个具名实例；`ICharacterDomainStoreSession` 与 `IQuestDomainStoreSession` 不是——人物和任务都不像
+  「按位置读、按位置写、按位置清空」的共享词汇。今天有**四**个 session：
+  `IItemDomainStoreSession` 与 `IDarkKnightComboDomainStoreSession` 直接就是它的具名实例
+  （后者是 `IDomainStoreSession<OwnedCharacterId, byte, DarkKnightComboEntryState>`，一张按页号
+  寻址的齐次表）；`ICharacterDomainStoreSession` 与 `IQuestDomainStoreSession` 不是——人物和任务都不像
   容器那样是一张齐次的表，所以各是若干具名分区的组合：人物那边 `Creatures` 是钉死类型参数的
   `IDomainStoreSession`，一角色一行的位置分区另给三个成员；任务那边 `Carried`、`Cleared`、
   `Tracked` 三个分区都是。两种形状共享同一套词汇，
@@ -358,6 +414,21 @@ PremiumService、CloneTitle 是 CMD，其余当前状态推送是 NOTI；拒绝�
   `IChannelDirectoryDomainService` → `IChannelContentRuleService` 取得，目录与脚本同一个所有者。
 - 登录失败目前**无法编码**（sender 对失败体直接抛异常），失败以服务器内部
   异常形态存在，客户端看不到错误。
+- **协议 handler 层普遍没有判据守着。这是个模式，不是个例。** `Dfo.Server.Protocol` 里有 48 个
+  `ClientMessageHandler<>` 子类，其中 **19 个**的类名在 `Server/tests` 全域一次都不出现：
+  `AcceptQuestHandler`、`CheckCharacterNameHandler`、`ConnectionCheckHandler`、
+  `ContentsPlayInfoHandler`、`CreateCharacterHandler`、`DeleteCharacterHandler`、
+  `EnterSelectDungeonHandler`、`GetAccountCharacterRosterHandler`、`GetItemHandler`、
+  `GiveUpGameHandler`、`HiddenCharacterInfoHandler`、`MapEntryReportHandler`、
+  `MercenaryInfoHandler`、`MoveMapHandler`、`SaveGameOption1Handler`、`SecurityStatusHandler`、
+  `SetQuestTriggerHandler`、`StoryPauseHandler`、`UnansweredReportHandler`。
+  缺口长的样子是固定的：**把一个 handler 整段退回读陈值，全量判据仍然全绿**。
+  已经实测撞到过三处，每一处都是先发现缺口、补上一条会红的判据之后才有的红：
+  `MonsterDeathHandler`（`MonsterDeathHandlerTests.cs`）、`SetUserAreaHandler` 与
+  `SetUserPositionHandler`（`TownProjectionHandlerTests.cs`）、`SelectDungeonHandler`
+  （`SelectDungeonHandlerTests.cs`）——后三个 handler 在这些用例之前从未被任何用例构造过。
+  **所以动 handler 之前先查它有没有判据；多半没有，那就先补一条会红的再动它。**
+  「快速开发」那节写的「测试三件套」是规定，不是现状。
 - `Dfo.Server.Utilities` 是空项目占位。
 
 ## 构建与运行

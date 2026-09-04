@@ -47,17 +47,6 @@ public sealed class RemainingSkillPointTests
     private const int LearnedSkill = 100;
 
     /// <summary>
-    /// The level on the session this character is played on. Deliberately not either row level.
-    /// </summary>
-    /// <remarks>
-    /// A wrong level within easy reach, exactly as the carry-cap cases keep one: the session
-    /// carries a level of its own, and a ledger that priced from it would be pricing from the
-    /// figure entry published rather than from the figure the store holds. The archive stand-in
-    /// records which level it was asked about, and the case asserts it.
-    /// </remarks>
-    private const byte SessionLevel = 40;
-
-    /// <summary>
     /// The same character at two levels has two different answers, each its level's own.
     /// </summary>
     /// <remarks>
@@ -161,8 +150,6 @@ public sealed class RemainingSkillPointTests
                 Who,
                 new ItemUseJudgementService(new FakeItemUseRules()),
                 new CharacterItemCooldownDomainService(TimeProvider.System),
-                new SelectedSessionDomainService(),
-                new FixedRuntimeSessions(level: SessionLevel, job: 0),
                 new SessionPresenceDomainService(),
                 new NoCarriedGold(),
                 new StoredCarryLimitOnly(),
@@ -196,6 +183,9 @@ public sealed class RemainingSkillPointTests
             CharacterId characterId, CancellationToken cancellationToken) =>
             ValueTask.FromResult(
                 this.Exists ? new CharacterProgressRow(this.Level, Experience) : null);
+
+        public ValueTask<CharacterIdentityRow?> FindIdentityAsync(
+            CharacterId characterId, CancellationToken cancellationToken) => throw Unneeded();
 
         public ValueTask<IReadOnlyList<CharacterRosterRow>> ReadByAccountAsync(
             AccountId accountId, CancellationToken cancellationToken) => throw Unneeded();

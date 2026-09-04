@@ -41,8 +41,13 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
     private const string Name = "COALESCE(name_bytes, CAST(name AS BLOB))";
 
     /// <summary>The name column, empty when a row has neither form of it.</summary>
-    private static byte[] NameOf(SqliteDataReader reader) =>
-        reader.IsDBNull(2) ? [] : (byte[])reader.GetValue(2);
+    /// <remarks>
+    /// The position is a parameter because the column does not sit in the same place in every
+    /// statement here, and a reader that assumed one would quietly hand back whatever else was
+    /// there.
+    /// </remarks>
+    private static byte[] NameOf(SqliteDataReader reader, int ordinal) =>
+        reader.IsDBNull(ordinal) ? [] : (byte[])reader.GetValue(ordinal);
 
     public async ValueTask<IReadOnlyList<CharacterRosterRow>> ReadByAccountAsync(
         AccountId accountId, CancellationToken cancellationToken)
@@ -73,7 +78,7 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
             """,
             parameters => parameters.AddWithValue("@aid", accountId.Value),
             reader => new CharacterSummaryRow(
-                reader.GetInt32(0), reader.GetInt32(1), NameOf(reader),
+                reader.GetInt32(0), reader.GetInt32(1), NameOf(reader, 2),
                 reader.GetInt32(3), reader.GetInt32(4), reader.GetInt32(5),
                 // Read wide and guarded: the column holds an unsigned item id, so the top half of
                 // its range does not fit the signed read, and a character wearing no title has
@@ -103,7 +108,7 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
             // character is in that slot", and its callers do not draw anything. Both are empty
             // rather than absent because the row type is shared with the roster query.
             reader => new CharacterSummaryRow(
-                reader.GetInt32(0), reader.GetInt32(1), NameOf(reader),
+                reader.GetInt32(0), reader.GetInt32(1), NameOf(reader, 2),
                 reader.GetInt32(3), reader.GetInt32(4), reader.GetInt32(5), 0, [],
                 reader.GetInt32(6)),
             cancellationToken);
@@ -157,6 +162,31 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
             parameters => parameters.AddWithValue("@cid", characterId.Value),
             reader => new CharacterStandingRow(
                 reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2)),
+            cancellationToken);
+
+    /// <remarks>
+    /// The row condition is <see cref="FindProgressAsync"/>'s, down to the missing
+    /// <c>delete_flag</c>. The two are asked one after the other by a single expression -- what the
+    /// character is, and how far along it is -- which treats either of them answering nothing as
+    /// the one fact "there is nothing to judge against", so what that expression needs is for the
+    /// two to see the same rows. A <c>delete_flag</c> here and none there would make a soft-deleted
+    /// character answer one and not the other, which is a state neither caller has a name for.
+    /// <para>
+    /// The neighbour to match is therefore <see cref="FindProgressAsync"/> rather than
+    /// <see cref="FindStandingAsync"/>, which this read otherwise resembles. If a consumer turns up
+    /// that must tell a deleted character apart -- advancing a job, opening the slot back up -- the
+    /// filter belongs on that consumer's side, where it can be read alongside the decision it is
+    /// for. Put here it would answer that question for everyone who asks what a character is, and
+    /// answer it differently from the read standing next to it.
+    /// </para>
+    /// </remarks>
+    public ValueTask<CharacterIdentityRow?> FindIdentityAsync(
+        CharacterId characterId, CancellationToken cancellationToken) =>
+        database.ReadFirstAsync(
+            $"SELECT slot_index,{Name},job,grow_type FROM characters WHERE character_id=@cid",
+            parameters => parameters.AddWithValue("@cid", characterId.Value),
+            reader => new CharacterIdentityRow(
+                reader.GetInt32(0), NameOf(reader, 1), reader.GetInt32(2), reader.GetInt32(3)),
             cancellationToken);
 
     public async ValueTask<CharacterId> InsertAsync(

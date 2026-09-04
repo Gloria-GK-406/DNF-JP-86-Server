@@ -799,8 +799,7 @@ internal static class SelectCharacterPayloadTestData
             new CharacterProgressionState(60, 100),
             new CharacterFatigueState(188, 5),
             new CharacterPositionState(1, 2, 3, 4, 5),
-            DateTimeOffset.FromUnixTimeSeconds(1_700_000_000),
-            null);
+            DateTimeOffset.FromUnixTimeSeconds(1_700_000_000));
         return new SelectCharacterResult(
             character,
             new CharacterEntryState(

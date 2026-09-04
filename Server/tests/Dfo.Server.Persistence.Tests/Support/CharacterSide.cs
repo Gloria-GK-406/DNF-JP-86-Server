@@ -47,6 +47,15 @@ internal sealed class CharacterSide
     /// <summary>The skill table itself, for the tests that are about what a statement touches.</summary>
     public ICharacterSkillTable Skills => new SqliteCharacterSkillTable(this.database);
 
+    /// <summary>
+    /// The characters table itself, for the tests that are about what one statement reads.
+    /// </summary>
+    /// <remarks>
+    /// The narrow reads keyed on a character's own identifier answer nobody through the roster, so
+    /// a test about which column lands in which field has to ask the table.
+    /// </remarks>
+    public ICharacterTable Characters => new SqliteCharacterTable(this.database);
+
     public ICharacterPvpSkillProfileRepository PvpProfile => new PvpSkillProfileService(
         new SqliteCharacterTable(this.database),
         new SqliteCharacterSkillTable(this.database),

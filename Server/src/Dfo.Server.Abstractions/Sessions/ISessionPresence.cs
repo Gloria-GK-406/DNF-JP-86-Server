@@ -99,7 +99,17 @@ public interface ISelectedSessionRuntimeDirectory
     bool RemoveExact(SelectedSessionIdentity session);
 }
 
-/// <summary>Narrow peripheral seam used to save the last exact runtime position during cleanup.</summary>
+/// <summary>
+/// Narrow peripheral seam that stores where a character is standing, at the two moments a session
+/// has that to store.
+/// </summary>
+/// <remarks>
+/// Entry uses it once placement has resolved a spawn, and only on a channel that keeps a position;
+/// teardown uses it for whatever <see cref="Characters.ICharacterPositionDomainService"/> answers
+/// for the session being taken down. Neither reads the copy of the position the entry snapshot
+/// carries: nothing has corrected that copy since entry, and nothing reads it (<c>AGENTS.md</c>,
+/// "角色自己的数，问角色").
+/// </remarks>
 public interface ISelectedSessionPositionPersistence
 {
     /// <summary>

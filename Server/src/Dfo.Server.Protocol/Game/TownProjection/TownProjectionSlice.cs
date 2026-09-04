@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Channel;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
@@ -191,15 +192,19 @@ internal sealed class SetUserPositionDecoder : IGameMessageDecoder
 }
 
 /// <summary>
-/// Moves the published session to the requested area and tells the client where it now is.
+/// Moves the character to the requested area and tells the client where they now are.
 /// </summary>
 /// <remarks>
-/// The new position is written into the runtime session rather than to storage. Cleanup already
-/// persists the runtime's last position when a session ends, so a town crossing survives logout
-/// without a second write path -- and one write at the end beats one per step. The cost is a hard
-/// client kill that never closes the socket: the crossing is then lost. The reference server buys
-/// that back with a throttled write-through on every step, which is worth copying only once
-/// something shows the loss happening.
+/// The crossing is reported to the service that holds where the character is standing, not written
+/// to storage. Cleanup already persists the position that service holds when a session ends, so a
+/// town crossing survives logout without a second write path -- and one write at the end beats one
+/// per step. The cost is a hard client kill that never closes the socket: the crossing is then
+/// lost. The reference server buys that back with a throttled write-through on every step, which is
+/// worth copying only once something shows the loss happening.
+///
+/// The runtime session is still consulted, for the channel's spawn template and to establish that
+/// this connection has a published session at all. Where the character stands is no longer part of
+/// what it is asked.
 ///
 /// Nothing is answered on the CMD side. The client does register a receive handler for this type
 /// (RVA 0x008E37E0), but the reference server's success path pushes only NOTI 0x0017, and
@@ -208,6 +213,7 @@ internal sealed class SetUserPositionDecoder : IGameMessageDecoder
 public sealed class SetUserAreaHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
+    ICharacterPositionDomainService positions,
     IChannelEntryPolicy channels,
     ITownMovementDomainService towns,
     IGameMessageSender sender,
@@ -219,9 +225,14 @@ public sealed class SetUserAreaHandler(
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        // The position is asked for here alongside the published session because the refusal below
+        // reports where the character stays. The two arrive and leave together -- publication
+        // records both and teardown drops both -- so this conjunct admits and refuses exactly the
+        // connections the two before it do.
         if (session is null
             || !runtimeSessions.TryGet(session, out var result, out _)
-            || result is null)
+            || result is null
+            || positions.Find(session.CharacterId) is not { } standing)
         {
             logger.LogWarning(
                 "Set user area {ConnectionId}: no published session, ignoring {TownId}:{AreaId}",
@@ -243,8 +254,8 @@ public sealed class SetUserAreaHandler(
                 context.Connection.ConnectionId,
                 message.TownId,
                 message.AreaId,
-                result.Character.Position.TownId,
-                result.Character.Position.AreaId);
+                standing.TownId,
+                standing.AreaId);
             return;
         }
 
@@ -261,25 +272,18 @@ public sealed class SetUserAreaHandler(
             return;
         }
 
-        var previous = result.Character.Position;
-        var moved = previous with
-        {
-            TownId = message.TownId,
-            AreaId = message.AreaId,
-            X = message.X,
-            Y = message.Y,
-        };
-        runtimeSessions.ReplaceExact(
-            session,
-            result with { Character = result.Character with { Position = moved } });
+        // Reported rather than assembled here and written back: the destination is what this
+        // command carries, and the facing it keeps is the service's to hold.
+        var moved = positions.CrossInto(
+            session, message.TownId, message.AreaId, message.X, message.Y);
 
         logger.LogInformation(
             "Set user area {ConnectionId} user={WireUserId}: {FromTown}:{FromArea} -> "
                 + "{ToTown}:{ToArea} pos=({X},{Y})",
             context.Connection.ConnectionId,
             session.WireUserId,
-            previous.TownId,
-            previous.AreaId,
+            standing.TownId,
+            standing.AreaId,
             moved.TownId,
             moved.AreaId,
             moved.X,
@@ -315,18 +319,20 @@ public sealed class SetUserAreaHandler(
 }
 
 /// <summary>
-/// Keeps the runtime session's position current so the write at cleanup records where the character
-/// actually stood.
+/// Keeps the character's live position current so the write at cleanup records where they actually
+/// stood.
 /// </summary>
 /// <remarks>
 /// The town and area are left alone: this command reports movement inside the area it is already in,
 /// and taking an area from it would let a stale frame contradict the crossing that 0x0024 just
-/// applied. A21 answers every report with NOTI 0x0016 carrying the position back; the solo case is
-/// not an exception, because the reference session that shows it had one character in the town.
+/// applied. That is the service's rule now rather than this handler's, so both reports get it. A21
+/// answers every report with NOTI 0x0016 carrying the position back; the solo case is not an
+/// exception, because the reference session that shows it had one character in the town.
 /// </remarks>
 public sealed class SetUserPositionHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
+    ICharacterPositionDomainService positions,
     IGameMessageSender sender,
     ILogger<SetUserPositionHandler> logger) : ClientMessageHandler<SetUserPositionRequest>
 {
@@ -348,15 +354,9 @@ public sealed class SetUserPositionHandler(
             return ValueTask.CompletedTask;
         }
 
-        var moved = result.Character.Position with
-        {
-            X = message.X,
-            Y = message.Y,
-            Direction = message.Direction,
-        };
-        runtimeSessions.ReplaceExact(
-            session,
-            result with { Character = result.Character with { Position = moved } });
+        // The step is reported and the service keeps the rest of where they were. Nothing here
+        // reads the position back: the answer this frame carries is the one the client just sent.
+        _ = positions.StepTo(session, message.X, message.Y, message.Direction);
         return sender.SendNotiAsync(
             context.Connection.ConnectionId,
             new UserPositionNotification(

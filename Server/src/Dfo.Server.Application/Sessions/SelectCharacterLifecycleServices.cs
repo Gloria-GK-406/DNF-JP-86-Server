@@ -29,7 +29,8 @@ internal sealed class SelectedSessionCleanupService(
     ISessionPresenceDomainService presence,
     IExpertStoreDomainService expertStores,
     IPvpLobbyDomainService pvp,
-    IEnumerable<ISelectedSessionPositionPersistence> positionPersistence) : ISelectedSessionCleanupDomainService
+    IEnumerable<ISelectedSessionPositionPersistence> positionPersistence,
+    ICharacterPositionDomainService positions) : ISelectedSessionCleanupDomainService
 {
     public async ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
         SelectedSessionIdentity session, bool includeOwner, CancellationToken cancellationToken)
@@ -61,8 +62,16 @@ internal sealed class SelectedSessionCleanupService(
         }
 
         // Every mutation is exact and isolated; a stale session can attempt all safely.
+        //
+        // Where the character is standing is asked of the service that owns it rather than read
+        // off the runtime snapshot. The two are put there and taken away together -- publication
+        // records both in one method and the two removals below are in one run -- so the added
+        // conjunct answers for exactly the sessions the first two already admitted. What is not
+        // moved is when this happens: it stays here, inside whatever use case is running, for the
+        // reason the persistence seam states.
         if (runtimes.TryGet(session, out var runtime, out var shouldPersistPosition)
-            && runtime is not null && shouldPersistPosition)
+            && runtime is not null && shouldPersistPosition
+            && positions.Find(session.CharacterId) is { } standing)
         {
             var persistence = positionPersistence.SingleOrDefault();
             if (persistence is null)
@@ -70,13 +79,14 @@ internal sealed class SelectedSessionCleanupService(
                     "Selected-session position persistence is unavailable."));
             else
                 await RunAsync(() => persistence.PersistAsync(
-                    session.AccountId, session.CharacterId, runtime.Character.Position,
+                    session.AccountId, session.CharacterId, standing,
                     CancellationToken.None));
         }
         Run(() => expertStores.CloseExact(session));
         Run(() => presence.WithdrawExact(session));
         Run(() => pvp.ClearReadyExact(session));
         Run(() => inventoryLeases.ReleaseExact(session));
+        Run(() => positions.ForgetExact(session));
         Run(() => runtimes.RemoveExact(session));
         Run(() => activeCharacters.ClearExact(session));
         Run(() => sessions.ReleaseExact(session));
@@ -118,7 +128,8 @@ internal sealed class SelectCharacterSessionEntryService(
     ISelectedSessionDomainService sessions,
     ISelectedSessionRuntimeDirectory runtimes,
     ISessionPresenceDomainService presence,
-    IPvpLobbyDomainService pvp) : ISelectCharacterSessionEntryDomainService
+    IPvpLobbyDomainService pvp,
+    ICharacterPositionDomainService positions) : ISelectCharacterSessionEntryDomainService
 {
     public PvpLobbySynchronizationState? PlanPvp(
         SelectedSessionIdentity session, SelectCharacterResult result)
@@ -163,9 +174,18 @@ internal sealed class SelectCharacterSessionEntryService(
             .ToArray();
     }
 
+    /// <remarks>
+    /// The position is handed to its own service in the same statement run that publishes the
+    /// runtime state and admits the presence record, so the three are there for exactly the same
+    /// span. What is handed over is the position entry settled on -- placement resolved it and the
+    /// entry write already stored it -- rather than anything read back out of the runtime
+    /// directory; from here on it is the service that answers, and the copy in the snapshot is not
+    /// read again.
+    /// </remarks>
     public void Publish(SelectedSessionIdentity session, SelectCharacterResult result)
     {
         runtimes.Publish(session, result, result.World.Channel.PersistsPosition);
+        positions.Place(session, result.Character.Position);
         var spawn = result.World.Channel.Spawn;
         presence.Admit(new SessionPresence(
             session.CharacterId, session.ListenerPort, spawn.TownId, spawn.AreaId, true, session));

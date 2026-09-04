@@ -149,8 +149,7 @@ internal sealed class CharacterRosterService(
                 // The client reads this as the character's creation time and the entry ACK carries
                 // it; a working A21 session sends a real Unix timestamp here, so a fixed epoch is a
                 // zero on the wire rather than an unset field.
-                DateTimeOffset.FromUnixTimeSeconds(row.CreatedAtUnixSeconds),
-                DarkKnightCombo: null);
+                DateTimeOffset.FromUnixTimeSeconds(row.CreatedAtUnixSeconds));
     }
 
     public ValueTask<bool> NameExistsAsync(byte[] name, CancellationToken cancellationToken)

@@ -450,6 +450,10 @@ public sealed class PaidCardFlipCostTests
                 CancellationToken cancellationToken) =>
                 throw new NotSupportedException("This subject is about a flip's price.");
 
+            public ValueTask<CharacterIdentityState?> IdentityAsync(
+                CancellationToken cancellationToken) =>
+                throw new NotSupportedException("This subject is about a flip's price.");
+
             public ValueTask<CharacterSkillProtocolMirrorState?> RemainingSkillPointsAsync(
                 CancellationToken cancellationToken) =>
                 throw new NotSupportedException("This subject is about a flip's price.");

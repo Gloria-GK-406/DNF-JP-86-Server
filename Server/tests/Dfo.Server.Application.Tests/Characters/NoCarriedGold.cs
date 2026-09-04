@@ -1,9 +1,37 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Persistence;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.Tests.Characters;
+
+/// <summary>
+/// The server's record of who is present, with somebody in it.
+/// </summary>
+/// <remarks>
+/// A character with no record here is refused an item outright, because entry admits a character
+/// to this record in the same step that publishes the runtime state a use used to be judged
+/// against. So a case that is not about that window has to put its character in, and this is the
+/// smallest way to: standing in a town, which is the only kind of place this server serves.
+/// </remarks>
+internal static class PresentCharacters
+{
+    /// <summary>A record admitting each of them to a town, and nobody else.</summary>
+    public static ISessionPresenceDomainService StandingInTown(params CharacterId[] characters)
+    {
+        ArgumentNullException.ThrowIfNull(characters);
+        var presence = new SessionPresenceDomainService();
+        foreach (var character in characters)
+        {
+            presence.Admit(new SessionPresence(
+                character, ListenerPort: 10011, TownId: 0, AreaId: 0, StandingInTown: true));
+        }
+
+        return presence;
+    }
+}
 
 /// <summary>
 /// A character's gold, for the cases that are not about gold.
@@ -31,32 +59,45 @@ internal sealed class NoCarriedGold : ICharacterCarriedGoldTable
 }
 
 /// <summary>
-/// A character's own row: either a character standing at some level, or none at all.
+/// A character's own row: either a character of some job standing at some level, or none at all.
 /// </summary>
 /// <remarks>
 /// Two answers from one double because the pair is the point. What a character may use is now
-/// judged against the level on its own row rather than against the session's copy of it, so a case
-/// about that judgement has to be able to say both "the row says forty" and "there is no row" --
-/// and the second is not the first with a zero in it.
+/// judged against its own row rather than against the session's copy of it -- both the level it
+/// stands at and the job it took up -- so a case about that judgement has to be able to say both
+/// "the row says forty" and "there is no row", and the second is not the first with a zero in it.
 /// <para>
-/// Everything the table can be asked besides those two refuses outright, because no case here has
-/// needed it.
+/// Everything the table can be asked besides what the row says about this character refuses
+/// outright, because no case here has needed it.
 /// </para>
 /// </remarks>
 internal sealed class CharacterRow : ICharacterTable
 {
     private readonly byte? level;
 
-    private CharacterRow(byte? level) => this.level = level;
+    private readonly byte job;
+
+    private CharacterRow(byte? level, byte job = 0)
+    {
+        this.level = level;
+        this.job = job;
+    }
 
     /// <summary>A character this server does not have.</summary>
     public static CharacterRow None { get; } = new(null);
 
-    /// <summary>A character whose row says it has reached that level.</summary>
-    public static CharacterRow At(byte level) => new(level);
+    /// <summary>A character whose row says it has reached that level, of that job.</summary>
+    /// <remarks>
+    /// Job zero is the swordman, and it is the default because most cases here are not about the
+    /// job; the ones that are name it.
+    /// </remarks>
+    public static CharacterRow At(byte level, byte job = 0) => new(level, job);
 
     /// <summary>What the row holds, which no case here moves.</summary>
     public const uint Experience = 700;
+
+    /// <summary>The slot and name the row carries, which no case here reads for its value.</summary>
+    public const ushort SlotIndex = 2;
 
     public ValueTask<CharacterProgressRow?> FindProgressAsync(
         CharacterId characterId, CancellationToken cancellationToken) =>
@@ -67,8 +108,15 @@ internal sealed class CharacterRow : ICharacterTable
         CharacterId characterId, CancellationToken cancellationToken) =>
         ValueTask.FromResult(
             this.level is { } standing
-                ? new CharacterStandingRow(Job: 0, GrowType: 0, standing)
+                ? new CharacterStandingRow(this.job, GrowType: 0, standing)
                 : null);
+
+    public ValueTask<CharacterIdentityRow?> FindIdentityAsync(
+        CharacterId characterId, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(
+            this.level is null
+                ? null
+                : new CharacterIdentityRow(SlotIndex, [0x41], this.job, GrowType: 0));
 
     public ValueTask<IReadOnlyList<CharacterRosterRow>> ReadByAccountAsync(
         AccountId accountId, CancellationToken cancellationToken) => throw Unneeded();

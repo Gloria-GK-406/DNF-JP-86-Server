@@ -76,53 +76,6 @@ internal sealed class AdvanceableTimeProvider(DateTimeOffset start) : TimeProvid
 }
 
 /// <summary>
-/// One character, published, with the level and job the test cares about.
-/// </summary>
-/// <remarks>
-/// Every other member of the entry result is left null. The usability service reads
-/// <see cref="SelectCharacterResult.Character"/> and nothing else, and a fixture that filled in
-/// the other eight would hide the day it starts reading a ninth.
-/// </remarks>
-internal sealed class FixedRuntimeSessions(byte level, byte job, bool published = true)
-    : ISelectedSessionRuntimeDirectory
-{
-    /// <summary>A directory that has not been published to yet, as during entry.</summary>
-    public static FixedRuntimeSessions Unpublished => new(level: 0, job: 0, published: false);
-
-    private readonly SelectCharacterResult result = new(
-        new ActiveCharacterState(
-            new CharacterIdentityState(new CharacterId(60), 0, [], job, GrowType: 0),
-            new CharacterProgressionState(level, 0),
-            new CharacterFatigueState(0, 0),
-            new CharacterPositionState(1, 0, 0, 0, 0),
-            DateTimeOffset.UnixEpoch,
-            DarkKnightCombo: null),
-        null!, null!, null!, null!, null!, null!);
-
-    public void Publish(
-        SelectedSessionIdentity session, SelectCharacterResult value, bool shouldPersistPosition) =>
-        throw new NotSupportedException("This fixture only answers.");
-
-    public void ReplaceExact(SelectedSessionIdentity session, SelectCharacterResult value) =>
-        throw new NotSupportedException("This fixture only answers.");
-
-    public SelectCharacterResult GetRequired(SelectedSessionIdentity session) =>
-        published ? result : throw new KeyNotFoundException("Nothing was published for it.");
-
-    public bool TryGet(
-        SelectedSessionIdentity session,
-        out SelectCharacterResult? value,
-        out bool shouldPersistPosition)
-    {
-        value = published ? result : null;
-        shouldPersistPosition = false;
-        return published;
-    }
-
-    public bool RemoveExact(SelectedSessionIdentity session) => false;
-}
-
-/// <summary>
 /// Runs a command on the handler that owns it, with a use case boundary and nothing else.
 /// </summary>
 /// <remarks>

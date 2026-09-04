@@ -639,8 +639,7 @@ public sealed class CharacterEntryInventoryTests
         new CharacterProgressionState(10, 100),
         new CharacterFatigueState(156, 0),
         new CharacterPositionState(1, 1, 10, 20, 0),
-        DateTimeOffset.UnixEpoch,
-        null);
+        DateTimeOffset.UnixEpoch);
 
     private static TestInventoryEntryState EmptyInventory(AccountId accountId, CharacterId characterId) => new(
         new CharacterInventoryEntryState(

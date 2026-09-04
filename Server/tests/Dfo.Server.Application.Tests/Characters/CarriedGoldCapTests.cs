@@ -131,15 +131,6 @@ public sealed class CarriedGoldCapTests
     /// <summary>The level on the character's own row, which is what prices the cap.</summary>
     private const int RowLevel = 40;
 
-    /// <summary>
-    /// The level on the session this character is played on. Deliberately not <see cref="RowLevel"/>.
-    /// </summary>
-    /// <remarks>
-    /// A second level within reach of the same object, so that a chain which priced the cap from
-    /// the session instead of from the row would be asking about this figure and would be caught.
-    /// </remarks>
-    private const byte SessionLevel = 7;
-
     private static ICarriedGoldRuleService Rule() => new CarriedGoldRuleService(new FlatFloor());
 
     private static (ICharacter Character, FlatFloor Archive) Carrier(
@@ -151,8 +142,6 @@ public sealed class CarriedGoldCapTests
                 Who,
                 new ItemUseJudgementService(new FakeItemUseRules()),
                 new CharacterItemCooldownDomainService(TimeProvider.System),
-                new SelectedSessionDomainService(),
-                new FixedRuntimeSessions(level: SessionLevel, job: 0),
                 new SessionPresenceDomainService(),
                 gold,
                 new CarriedGoldRuleService(archive),
@@ -168,9 +157,9 @@ public sealed class CarriedGoldCapTests
     /// other, and a table that varied would let a wrong level lookup pass as a wrong weighing.
     /// <para>
     /// <b>But it records the level it was asked for.</b> Flat alone would let a chain that priced
-    /// the cap from the wrong level pass -- and there is a wrong level within easy reach: the
-    /// session this character is played on carries one too. The cap has to come from the character's
-    /// own row, so the two are given different figures and the one that arrives here is asserted.
+    /// the cap from a level other than the one the store answered with pass unnoticed. The cap has
+    /// to come from the character's own row, so the level that arrives here is asserted to be the
+    /// one the row was carrying.
     /// </para>
     /// </remarks>
     private sealed class FlatFloor : IGoldCarryLimitSource

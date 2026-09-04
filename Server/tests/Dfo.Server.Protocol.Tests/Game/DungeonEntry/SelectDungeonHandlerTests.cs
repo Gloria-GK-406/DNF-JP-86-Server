@@ -1,0 +1,577 @@
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game;
+using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.DungeonSelection;
+using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
+using Microsoft.Extensions.Logging.Abstractions;
+using EnteredDungeon = Dfo.Server.Abstractions.World.DungeonEntry;
+using QuestTaken = Dfo.Server.Abstractions.Quests.QuestAcceptance;
+
+namespace Dfo.Server.Protocol.Tests.Game.DungeonEntry;
+
+/// <summary>
+/// Which quest state the maze is chosen against.
+/// </summary>
+/// <remarks>
+/// The facts this handler gathers decide the layout, and there are two places they could come
+/// from: the character's own quest log, and the copy the entry batch left in the published
+/// session. Nothing refreshes that copy, so a handler reading it would not throw and would not
+/// crash -- it would quietly choose the maze for the quests the character held when they entered
+/// the world, however many they have taken on or handed in since.
+///
+/// That is the mistake this test exists to catch, which is why the log here answers with quests
+/// the session's copy does not mention and the session's copy names one the log does not. Reading
+/// the wrong one produces a recognisably wrong set rather than coinciding with the right one.
+/// </remarks>
+public sealed class SelectDungeonHandlerTests
+{
+    /// <summary>
+    /// The facts handed to the run are the log's carried quests, not the session's copy.
+    /// </summary>
+    [Fact]
+    public async Task Entry_asks_the_quest_log_which_quests_are_carried()
+    {
+        var visits = new RecordingVisits();
+        var handler = Handler(visits);
+
+        await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
+
+        var facts = Assert.Single(visits.Facts);
+        Assert.Equal([CarriedInLog, AlsoCarriedInLog], facts.ActiveQuestIds);
+    }
+
+    /// <summary>
+    /// The cleared list comes from the log too, which is where the difference shows plainest: the
+    /// session's copy has never had a quest in it.
+    /// </summary>
+    [Fact]
+    public async Task Entry_asks_the_quest_log_which_quests_are_cleared()
+    {
+        var visits = new RecordingVisits();
+        var handler = Handler(visits);
+
+        await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
+
+        var facts = Assert.Single(visits.Facts);
+        Assert.Equal([ClearedInLog], facts.ClearedQuestIds);
+    }
+
+    /// <summary>
+    /// Everything else about the entry is unchanged: the difficulty asked for reaches the run, and
+    /// the same four frames answer it in the same order.
+    /// </summary>
+    /// <remarks>
+    /// Asserted here so that a change of source is not mistaken for licence to change the answer.
+    /// The character is level sixty, so the selection state is not deferred to this frame and the
+    /// acknowledgement is followed straight by the support roster.
+    /// </remarks>
+    [Fact]
+    public async Task The_answer_to_an_entry_is_what_it_was()
+    {
+        var visits = new RecordingVisits();
+        var sender = new RecordingSender();
+        var handler = Handler(visits, sender);
+
+        await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
+
+        Assert.Equal(Difficulty, Assert.Single(visits.Facts).Difficulty);
+        Assert.Equal(TutorialDungeonId, Assert.Single(visits.Dungeons));
+        Assert.Collection(
+            sender.Sent,
+            frame => Assert.IsType<EnterSelectDungeonAcknowledgement>(frame),
+            frame => Assert.IsType<SupportTagNotification>(frame),
+            frame => Assert.IsType<DungeonInfoNotification>(frame),
+            frame => Assert.IsType<StartMapNotification>(frame));
+    }
+
+    /// <summary>
+    /// A character with an empty log enters with empty facts rather than with the session's copy.
+    /// </summary>
+    /// <remarks>
+    /// The "nothing to find" case. Asking the log has no separate answer for it -- a character
+    /// with no quest rows has an empty log rather than none -- so what has to be shown is that
+    /// empty does not fall back to the stale copy, which does hold a quest.
+    /// </remarks>
+    [Fact]
+    public async Task An_empty_log_enters_with_no_quests_rather_than_the_sessions_copy()
+    {
+        var visits = new RecordingVisits();
+        var handler = Handler(visits, new RecordingSender(), new OneLog(new StandInLog([], [])));
+
+        await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
+
+        var facts = Assert.Single(visits.Facts);
+        Assert.Empty(facts.ActiveQuestIds);
+        Assert.Empty(facts.ClearedQuestIds);
+    }
+
+    /// <summary>
+    /// Entering reports what the entry costs to the fatigue seam, against this character.
+    /// </summary>
+    /// <remarks>
+    /// The number is written out here rather than read from
+    /// <see cref="SelectDungeonHandler.FatigueAnEntryCosts"/>. A test that takes its expectation
+    /// from the constant it is checking agrees with the handler about whatever that constant
+    /// becomes, which is the one change this exists to catch.
+    /// <para>
+    /// What it does not check is any effect of the report, because there is none: the seam's only
+    /// implementation keeps no account. That half is checked next door, in
+    /// <see cref="UnaccountedFatigueTests"/>.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task Entry_reports_what_it_costs_to_the_fatigue_seam()
+    {
+        var fatigue = new RecordingFatigue();
+        var handler = Handler(new RecordingVisits(), fatigue: fatigue);
+
+        await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
+
+        var spent = Assert.Single(fatigue.Spent);
+        Assert.Equal(Identity.CharacterId, spent.CharacterId);
+        Assert.Equal((ushort)1, spent.Points);
+    }
+
+    /// <summary>A refused selection reports nothing to the fatigue seam.</summary>
+    /// <remarks>
+    /// The other half of <see cref="Entry_reports_what_it_costs_to_the_fatigue_seam"/>. That one
+    /// says a report happens; this one says where, and it is the half a call site slides past
+    /// unnoticed: reported before the run has answered rather than after, a selection the archive
+    /// refuses costs the character a point for a dungeon they never stood in. Nothing else in the
+    /// handler changes shape when it moves -- the refusal frame is the same frame either way.
+    /// <para>
+    /// Which is why the refusal is asserted alongside the empty report list. Without it an empty
+    /// list would equally mean the handler stopped before reaching this branch at all, and the
+    /// test would go on passing for a reason that has nothing to do with what it is named for.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task A_refused_selection_reports_nothing_to_the_fatigue_seam()
+    {
+        var fatigue = new RecordingFatigue();
+        var sender = new RecordingSender();
+        var handler = new SelectDungeonHandler(
+            new OneSession(Identity),
+            new OneRuntimeSession(Entry()),
+            new RefusingVisits(),
+            new OneLog(new StandInLog([], [])),
+            fatigue,
+            sender,
+            NullLogger<SelectDungeonHandler>.Instance);
+
+        await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
+
+        var refusal = Assert.IsType<SelectDungeonRefusal>(Assert.Single(sender.Sent));
+        Assert.Equal(SelectDungeonRefusal.DungeonNotFound, refusal.ErrorCode);
+        Assert.Empty(fatigue.Spent);
+    }
+
+    /// <summary>The guard in front of the read reports nothing to the fatigue seam either.</summary>
+    /// <remarks>
+    /// The refusal above is one of the two ways this frame ends without an entry; this is the
+    /// other, and it is not covered by the same assertion because it leaves by a different
+    /// return. A report put here would charge a character for a frame that was answered before
+    /// anything was even looked up.
+    /// <para>
+    /// Kept apart from <see cref="Without_a_published_session_nothing_is_entered"/>, which holds
+    /// no reference to the seam it hands the handler and so says nothing about it.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task Without_a_published_session_nothing_is_reported_to_the_fatigue_seam()
+    {
+        var visits = new RecordingVisits();
+        var fatigue = new RecordingFatigue();
+        var handler = new SelectDungeonHandler(
+            new NoSession(),
+            new OneRuntimeSession(Entry()),
+            visits,
+            new OneLog(new UnaskedLog()),
+            fatigue,
+            new RecordingSender(),
+            NullLogger<SelectDungeonHandler>.Instance);
+
+        await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
+
+        Assert.Empty(visits.Facts);
+        Assert.Empty(fatigue.Spent);
+    }
+
+    /// <summary>Without a published session nothing is entered and nothing is sent.</summary>
+    /// <remarks>
+    /// The guard in front of the read, kept as it was. It answers before the log is asked, which
+    /// is why the log here refuses to answer at all.
+    /// </remarks>
+    [Fact]
+    public async Task Without_a_published_session_nothing_is_entered()
+    {
+        var visits = new RecordingVisits();
+        var sender = new RecordingSender();
+        var handler = new SelectDungeonHandler(
+            new NoSession(),
+            new OneRuntimeSession(Entry()),
+            visits,
+            new OneLog(new UnaskedLog()),
+            new RecordingFatigue(),
+            sender,
+            NullLogger<SelectDungeonHandler>.Instance);
+
+        await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
+
+        Assert.Empty(visits.Facts);
+        Assert.Empty(sender.Sent);
+    }
+
+    /// <summary>The quests the log says the character is carrying, in slot order.</summary>
+    private const int CarriedInLog = 910;
+
+    private const int AlsoCarriedInLog = 911;
+
+    /// <summary>The quest the log says the character has finished.</summary>
+    private const int ClearedInLog = 920;
+
+    /// <summary>
+    /// The quest the session's copy carries, which the log does not mention.
+    /// </summary>
+    /// <remarks>
+    /// The number the entry batch's fixture puts in the published snapshot. Named here so that a
+    /// reading of the wrong source is a visibly wrong number rather than an empty list.
+    /// </remarks>
+    private const int CarriedInTheSessionsCopy = 55;
+
+    private const ushort TutorialDungeonId = 10000;
+
+    private const byte Difficulty = 3;
+
+    private static SelectDungeonHandler Handler(
+        RecordingVisits visits,
+        RecordingSender? sender = null,
+        OneLog? logs = null,
+        RecordingFatigue? fatigue = null) =>
+        new(
+            new OneSession(Identity),
+            new OneRuntimeSession(Entry()),
+            visits,
+            logs ?? new OneLog(new StandInLog(
+                [
+                    new CarriedQuest(0, CarriedInLog, 4),
+                    new CarriedQuest(1, AlsoCarriedInLog, 0),
+                ],
+                [new ClearedQuest(ClearedInLog, IQuestLog.ClearedMark)])),
+            fatigue ?? new RecordingFatigue(),
+            sender ?? new RecordingSender(),
+            NullLogger<SelectDungeonHandler>.Instance);
+
+    private static SelectDungeonRequest Request() =>
+        new(GameMessageMetadata.Empty, TutorialDungeonId, Difficulty, 0, 0);
+
+    /// <summary>
+    /// A published session whose quest copy is the one entry took, and stale.
+    /// </summary>
+    private static SelectCharacterResult Entry()
+    {
+        var result = SelectCharacterPayloadTestData.Create();
+        Assert.Equal(
+            CarriedInTheSessionsCopy,
+            Assert.Single(result.CharacterEntry.Quests.ActiveQuests).QuestId);
+        Assert.Empty(result.CharacterEntry.Quests.ClearedQuestIds);
+        return result;
+    }
+
+    private static NetworkDispatchContext Dispatch() =>
+        new(new NetworkConnectionContext(
+            new NetworkConnectionId("one"), NetworkEndpointKind.Game, 10010));
+
+    private static SelectedSessionIdentity Identity { get; } = SelectedSessionIdentity.Create(
+        new AccountId(1),
+        new CharacterId(0x1234),
+        new NetworkConnectionId("one"),
+        connectionGeneration: 1,
+        listenerPort: 10010);
+
+    /// <summary>The maze the run under test is given, which these tests do not vary.</summary>
+    private static readonly DungeonLayout Tutorial = new(
+        DungeonId: TutorialDungeonId,
+        MazeIndex: 0,
+        Width: 5,
+        Height: 3,
+        StartCell: new MazeCell(0, 1),
+        BossCell: new MazeCell(3, 0),
+        StartRoomMapId: 61000,
+        Seed: 0x0BADF00D,
+        Rooms: new Dictionary<MazeCell, int> { [new MazeCell(0, 1)] = 61000 });
+
+    /// <summary>The run as it stands on entry: in the start room, having seen only it.</summary>
+    private static readonly DungeonRunState AtStart = new(
+        Tutorial,
+        Tutorial.StartCell,
+        Tutorial.StartRoomMapId,
+        new HashSet<MazeCell> { Tutorial.StartCell },
+        new HashSet<GroundDropId>(),
+        new HashSet<RoomActorId>(),
+        DateTimeOffset.UnixEpoch,
+        Difficulty);
+
+    /// <summary>
+    /// The run, recording the facts it was handed and answering with a fixed room.
+    /// </summary>
+    /// <remarks>
+    /// It answers rather than refusing, so that the whole handler runs and the frames it sends can
+    /// be checked alongside the facts. The facts are what these tests are about; the room is a
+    /// constant so that nothing else varies with them.
+    /// </remarks>
+    private sealed class RecordingVisits : IDungeonVisitDomainService
+    {
+        public List<DungeonEntryFacts> Facts { get; } = [];
+
+        public List<int> Dungeons { get; } = [];
+
+        public bool DefersSelectionState(byte characterLevel) => false;
+
+        public ValueTask<EnteredDungeon?> EnterAsync(
+            CharacterId characterId,
+            int dungeonId,
+            byte difficulty,
+            DungeonEntryFacts facts,
+            CancellationToken cancellationToken)
+        {
+            this.Dungeons.Add(dungeonId);
+            this.Facts.Add(facts);
+            return ValueTask.FromResult<EnteredDungeon?>(
+                new EnteredDungeon(Tutorial, new DungeonRoomVisit(AtStart, true, [], [], 1)));
+        }
+
+        public ValueTask<DungeonRoomVisit?> MoveAsync(
+            CharacterId characterId,
+            DungeonRunState current,
+            MazeCell target,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Entering a dungeon walks into no adjoining room.");
+    }
+
+    /// <summary>
+    /// The run that declares the dungeon unenterable, which is the handler's only refusal.
+    /// </summary>
+    /// <remarks>
+    /// Separate from <see cref="RecordingVisits"/> rather than a flag on it: every other test in
+    /// this file is about an entry that happens, and a fixture that could answer either way would
+    /// have to be told which every time it is built.
+    /// </remarks>
+    private sealed class RefusingVisits : IDungeonVisitDomainService
+    {
+        public bool DefersSelectionState(byte characterLevel) => false;
+
+        public ValueTask<EnteredDungeon?> EnterAsync(
+            CharacterId characterId,
+            int dungeonId,
+            byte difficulty,
+            DungeonEntryFacts facts,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult<EnteredDungeon?>(null);
+
+        public ValueTask<DungeonRoomVisit?> MoveAsync(
+            CharacterId characterId,
+            DungeonRunState current,
+            MazeCell target,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("A refused selection walks into no room.");
+    }
+
+    /// <summary>
+    /// The fatigue seam, remembering what it is told and refusing everything else.
+    /// </summary>
+    /// <remarks>
+    /// Entry neither reads a balance nor gives points back, so both of those are defects this
+    /// fixture reports rather than absorbs: a balance read would mean something here had started
+    /// gating entry on fatigue, which is not this seam's doing and not this frame's.
+    /// </remarks>
+    private sealed class RecordingFatigue : ICharacterFatigueDomainService
+    {
+        public List<(CharacterId CharacterId, ushort Points)> Spent { get; } = [];
+
+        public ValueTask SpendAsync(
+            CharacterId characterId, ushort points, CancellationToken cancellationToken)
+        {
+            this.Spent.Add((characterId, points));
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask<CharacterFatigueBalance> BalanceOfAsync(
+            CharacterId characterId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Entering a dungeon asks for no balance; nothing gates it.");
+
+        public ValueTask RefundAsync(
+            CharacterId characterId, ushort points, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Entering a dungeon gives no fatigue back.");
+    }
+
+    private sealed class OneLog(IQuestLog log) : ICharacterQuestLogDomainService
+    {
+        public IQuestLog LogOf(AccountId accountId, CharacterId characterId)
+        {
+            Assert.Equal(Identity.AccountId, accountId);
+            Assert.Equal(Identity.CharacterId, characterId);
+            return log;
+        }
+    }
+
+    /// <summary>A log holding exactly what it was built with.</summary>
+    /// <remarks>
+    /// Only the two reads are answered. Entering a dungeon changes no quest, so a verb reached
+    /// from here would be a defect this fixture should report rather than absorb.
+    /// </remarks>
+    private class StandInLog(
+        IReadOnlyList<CarriedQuest> carried, IReadOnlyList<ClearedQuest> cleared) : IQuestLog
+    {
+        public CharacterId CharacterId => Identity.CharacterId;
+
+        public virtual ValueTask<IReadOnlyList<CarriedQuest>> CarriedAsync(
+            CancellationToken cancellationToken) => ValueTask.FromResult(carried);
+
+        public virtual ValueTask<IReadOnlyList<ClearedQuest>> ClearedAsync(
+            CancellationToken cancellationToken) => ValueTask.FromResult(cleared);
+
+        public ValueTask<CarriedQuest?> FindCarriedAsync(
+            int questId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Entering a dungeon asks for the whole list.");
+
+        public ValueTask<IReadOnlyList<int>> TrackedAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Entering a dungeon reads no tracking selection.");
+
+        public ValueTask<QuestTaken> AcceptAsync(
+            QuestDefinition definition, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Entering a dungeon takes no quest on.");
+
+        public ValueTask<bool> RecordProgressAsync(
+            CarriedQuest asLastSeen, int triggerValue, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Entering a dungeon moves no quest.");
+
+        public ValueTask<QuestAdvance> AdvanceAsync(
+            QuestDefinition definition,
+            byte selector,
+            bool increment,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Entering a dungeon moves no quest.");
+
+        public ValueTask<bool> CompleteAsync(
+            int questId, byte mark, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Entering a dungeon finishes no quest.");
+
+        public ValueTask<QuestFinishVerdict> FinishAsync(
+            int questId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Entering a dungeon hands no quest in.");
+
+        public ValueTask<bool> GiveUpAsync(int questId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Entering a dungeon gives no quest up.");
+
+        public ValueTask TrackAsync(
+            IReadOnlyList<int> questIds, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Entering a dungeon changes no tracking selection.");
+    }
+
+    /// <summary>A log that must not be asked anything at all.</summary>
+    private sealed class UnaskedLog() : StandInLog([], [])
+    {
+        public override ValueTask<IReadOnlyList<CarriedQuest>> CarriedAsync(
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("The guard answers before the log is asked.");
+
+        public override ValueTask<IReadOnlyList<ClearedQuest>> ClearedAsync(
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("The guard answers before the log is asked.");
+    }
+
+    private sealed class OneSession(SelectedSessionIdentity identity) : ISelectedSessionDomainService
+    {
+        public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => identity;
+
+        public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => identity;
+
+        public SelectedSessionIdentity? Find(AccountId accountId) => identity;
+
+        public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) => identity;
+
+        public SelectedSessionIdentity? Select(SelectedSessionIdentity session) =>
+            throw new NotSupportedException("This fixture only answers.");
+
+        public bool ReleaseExact(SelectedSessionIdentity session) =>
+            throw new NotSupportedException("This fixture only answers.");
+    }
+
+    private sealed class NoSession : ISelectedSessionDomainService
+    {
+        public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => null;
+
+        public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => null;
+
+        public SelectedSessionIdentity? Find(AccountId accountId) => null;
+
+        public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) => null;
+
+        public SelectedSessionIdentity? Select(SelectedSessionIdentity session) =>
+            throw new NotSupportedException("This fixture only answers.");
+
+        public bool ReleaseExact(SelectedSessionIdentity session) =>
+            throw new NotSupportedException("This fixture only answers.");
+    }
+
+    private sealed class OneRuntimeSession(SelectCharacterResult entry)
+        : ISelectedSessionRuntimeDirectory
+    {
+        public bool TryGet(
+            SelectedSessionIdentity session,
+            out SelectCharacterResult? result,
+            out bool shouldPersistPosition)
+        {
+            result = entry;
+            shouldPersistPosition = false;
+            return true;
+        }
+
+        public SelectCharacterResult GetRequired(SelectedSessionIdentity session) => entry;
+
+        public void ReplaceExact(SelectedSessionIdentity session, SelectCharacterResult result) =>
+            throw new NotSupportedException("Entering a dungeon rewrites no session.");
+
+        public void Publish(
+            SelectedSessionIdentity session, SelectCharacterResult result, bool persist) =>
+            throw new NotSupportedException("This fixture only answers.");
+
+        public bool RemoveExact(SelectedSessionIdentity session) =>
+            throw new NotSupportedException("This fixture only answers.");
+    }
+
+    private sealed class RecordingSender : IGameMessageSender
+    {
+        public List<IGameServerMessage> Sent { get; } = [];
+
+        public ValueTask SendCmdAsync(
+            NetworkConnectionId connectionId, IGameCmdMessage message,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("Entering a dungeon answers as one delivery.");
+
+        public ValueTask SendNotiAsync(
+            NetworkConnectionId connectionId, IGameNotiMessage message,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("Entering a dungeon answers as one delivery.");
+
+        public ValueTask SendExplicitAsync(
+            NetworkConnectionId requiredDirectConnectionId,
+            GameExplicitMessageDelivery delivery,
+            CancellationToken cancellationToken)
+        {
+            this.Sent.AddRange(delivery.RequiredDirectMessages);
+            return ValueTask.CompletedTask;
+        }
+    }
+}

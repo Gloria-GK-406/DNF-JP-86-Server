@@ -22,6 +22,15 @@ public sealed record CharacterProgressRow(int Level, long Experience);
 /// </remarks>
 public sealed record CharacterStandingRow(int Job, int GrowType, int Level);
 
+/// <summary>Which character this is, said without saying how far it has got.</summary>
+/// <remarks>
+/// The four columns that name a character: where it sits on the roster screen, what it is called,
+/// what it took up and how it grew. They travel together because they are asked together -- one
+/// question about one character at one moment -- and reading them apart would let a name and a slot
+/// come from two.
+/// </remarks>
+public sealed record CharacterIdentityRow(int SlotIndex, byte[] Name, int Job, int GrowType);
+
 /// <summary>One row of <c>character_buy_restrict_items</c>.</summary>
 public sealed record CharacterBuyRestrictRow(
     int CharacterId, int SortOrder, int EntryId, int SentinelOrValue, int Flag);
@@ -85,10 +94,40 @@ public interface ICharacterTable
     /// Narrow on purpose, and by character rather than by slot. The job and the grow type were
     /// only ever readable here through a roster read keyed on an account and a slot, which is a
     /// question nobody outside the roster has the answer to; anything holding a character's own
-    /// identifier had to go without them. Deleted characters are left out, as every other read
-    /// that answers "what is this character" leaves them out.
+    /// identifier had to go without them. Deleted characters are left out of this read. The
+    /// neighbouring <see cref="FindIdentityAsync"/> keeps them instead, because it is asked as one
+    /// question with <see cref="FindProgressAsync"/> and the two must see the same rows; the
+    /// reason is written out there.
     /// </remarks>
     ValueTask<CharacterStandingRow?> FindStandingAsync(
+        CharacterId characterId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Which slot the character sits in, what it is called and what it is, or nothing when there is
+    /// no such row.
+    /// </summary>
+    /// <remarks>
+    /// By character rather than by account and slot, for the reason
+    /// <see cref="FindStandingAsync"/> is: the slot and the name were only readable through a
+    /// roster read keyed on an account, which is a question nothing holding a character's own
+    /// identifier can answer -- so a character asked what it is had to be told by whoever last
+    /// looked it up.
+    /// <para>
+    /// A character marked deleted still answers, which is <see cref="FindProgressAsync"/>'s
+    /// condition rather than <see cref="FindStandingAsync"/>'s. The two narrow reads are asked
+    /// together as one question -- what the character is, and how far along it is -- and a caller
+    /// that reads either absence as "nothing to judge against" needs them to see the same rows. A
+    /// consumer that must tell a deleted character apart filters on its own side, where the
+    /// exclusion can be read next to the decision it is for.
+    /// </para>
+    /// <para>
+    /// Distinct from <see cref="FindStandingAsync"/>, which overlaps it on two columns and is a
+    /// different question: that one prices what a character is entitled to and needs the level
+    /// beside the job, this one says who the character is and must not depend on how far along it
+    /// is.
+    /// </para>
+    /// </remarks>
+    ValueTask<CharacterIdentityRow?> FindIdentityAsync(
         CharacterId characterId, CancellationToken cancellationToken);
 
     /// <summary>Adds the character and says what id it was given.</summary>

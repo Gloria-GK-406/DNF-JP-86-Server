@@ -216,6 +216,21 @@ public sealed class ApplicationModule : IServerModule
         // arithmetic is the entry rule service's; this is the way to reach it without being entry.
         services.TryAddSingleton<
             ICharacterSkillPointDomainService, CharacterSkillPointDomainService>();
+        // Where a character being played is standing, asked by identifier. It used to be a field
+        // on the session's snapshot of the character, which meant every step rewrote the snapshot
+        // and every reader had to find a session before it could ask.
+        services.TryAddSingleton<
+            ICharacterPositionDomainService, CharacterPositionDomainService>();
+        // A character's keys and options, asked by identifier. The entry load is the only other
+        // reader of those two tables and it is left alone: it builds its frames from rows it has
+        // already read, and this reads the same rows for anyone who is not entry.
+        services.TryAddSingleton<
+            ICharacterSettingsDomainService, CharacterSettingsDomainService>();
+        // A character's fatigue -- the seam only. The implementation answers a fixed pair and
+        // records nothing, which is what its name says; the system that would record it is its own
+        // piece of work and this exists so that the places that spend fatigue call it now.
+        services.TryAddSingleton<
+            ICharacterFatigueDomainService, UnaccountedCharacterFatigueDomainService>();
         services.TryAddSingleton(
             provider => new CharacterDomainService(
                 () => provider.GetRequiredService<ICharacterRepository>(),
@@ -224,8 +239,6 @@ public sealed class ApplicationModule : IServerModule
                     characterId,
                     provider.GetRequiredService<IItemUseJudgementService>(),
                     provider.GetRequiredService<ICharacterItemCooldownDomainService>(),
-                    provider.GetRequiredService<ISelectedSessionDomainService>(),
-                    provider.GetRequiredService<ISelectedSessionRuntimeDirectory>(),
                     provider.GetRequiredService<ISessionPresenceDomainService>(),
                     provider.GetRequiredService<ICharacterCarriedGoldTable>(),
                     provider.GetRequiredService<ICarriedGoldRuleService>(),
@@ -253,6 +266,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICharacterEntryStateRepository, CharacterEntryAssembly>();
         services.TryAddSingleton<ICharacterContainerDomainService, CharacterContainerDomainService>();
         services.TryAddSingleton<ICharacterQuestLogDomainService, CharacterQuestLogDomainService>();
+        services.TryAddSingleton<
+            ICharacterDarkKnightComboDomainService, CharacterDarkKnightComboDomainService>();
         services.TryAddSingleton<ICharacterItemCooldownDomainService, CharacterItemCooldownDomainService>();
         services.TryAddSingleton<IItemUseJudgementService, ItemUseJudgementService>();
         // What entry has to grant before a character is published. One reader for the daily

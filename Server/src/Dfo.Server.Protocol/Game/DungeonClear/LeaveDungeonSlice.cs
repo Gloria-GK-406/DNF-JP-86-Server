@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
@@ -87,6 +88,7 @@ internal sealed class EplpCommandResponseEncoder : GameCmdMessageEncoder<EplpCom
 public sealed class EplpCommandHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
+    ICharacterPositionDomainService positions,
     IDungeonRunDomainService runs,
     IGameMessageSender sender,
     ILogger<EplpCommandHandler> logger) : ClientMessageHandler<EplpCommandRequest>
@@ -100,9 +102,13 @@ public sealed class EplpCommandHandler(
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        // Where they are standing is asked of the service that owns it. It is recorded and dropped
+        // with the published session, so this conjunct admits exactly the connections the two
+        // before it do.
         if (session is null
             || !runtimeSessions.TryGet(session, out var result, out _)
-            || result is null)
+            || result is null
+            || positions.Find(session.CharacterId) is not { } position)
         {
             logger.LogWarning(
                 "Eplp command {ConnectionId}: no published session, ignoring",
@@ -119,7 +125,7 @@ public sealed class EplpCommandHandler(
         var runEnded = leaving && runs.End(session.CharacterId);
         if (leaving)
         {
-            frames.AddRange(TownReturnProjection.Frames(session, result));
+            frames.AddRange(TownReturnProjection.Frames(session, result, position));
         }
 
         logger.LogInformation(

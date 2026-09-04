@@ -1,8 +1,10 @@
 using System.Buffers.Binary;
 using Dfo.Server.Protocol.Game.DungeonSelection;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Networking;
@@ -72,6 +74,12 @@ public sealed record SelectDungeonRefusal(byte ErrorCode, byte Context) : IGameC
     public const byte MissingRequiredItem = 0x11;
 
     /// <summary>Not enough fatigue left to enter.</summary>
+    /// <remarks>
+    /// Nothing sends it. Entry reports what it costs to <see cref="ICharacterFatigueDomainService"/>
+    /// but nobody keeps that account and so nobody can find it short, which is a different state of
+    /// affairs from <see cref="DungeonUnavailable"/>: there the rule is known and unwritten, here
+    /// the balance this would be measured against does not exist yet.
+    /// </remarks>
     public const byte InsufficientFatigue = 0x16;
 
     /// <summary>Only the party leader may take a party in.</summary>
@@ -403,8 +411,8 @@ internal sealed class SelectDungeonDecoder : IGameMessageDecoder
 /// Nothing is committed on the character yet, and nothing is remembered about the run. This slice
 /// exists to learn whether the client accepts these three frames, which is the question every
 /// later piece depends on and none of which can be settled by reading the reference server. The
-/// run aggregate, the party that owns entry, and the cost a run charges all arrive after that
-/// answer.
+/// run aggregate and the party that owns entry arrive after that answer. So does the charging of
+/// what an entry costs: the cost is reported here, to a fatigue seam that keeps no account of it.
 ///
 /// No CMD reply. The reference server's success path produces none -- it delegates straight to the
 /// run's lifecycle and pushes notifications -- and registration is not an obligation to reply; see
@@ -414,9 +422,35 @@ public sealed class SelectDungeonHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IDungeonVisitDomainService visits,
+    ICharacterQuestLogDomainService questLogs,
+    ICharacterFatigueDomainService fatigue,
     IGameMessageSender sender,
     ILogger<SelectDungeonHandler> logger) : ClientMessageHandler<SelectDungeonRequest>
 {
+    /// <summary>What one entry reports as spent.</summary>
+    /// <remarks>
+    /// <b>No dungeon declares a cost, so this is not read off one.</b> The archive says only
+    /// whether a dungeon charges fatigue at all -- its <c>[no fatigue]</c> tag, which reaches this
+    /// server as <see cref="DungeonDefinition.ConsumesFatigue"/> and which nothing in the server
+    /// reads: the only reader is the test pinning the parse. Neither
+    /// <see cref="DungeonDefinition"/> nor <see cref="DungeonLayout"/> carries a number of points,
+    /// and no other content or table holds one either.
+    /// <para>
+    /// What there is, is the charge itself: a point for each newly entered room that holds
+    /// monsters (<c>Docs/DungeonEntryNotes.md</c> section 8, dictated 2026-08-27). An entry walks
+    /// into exactly one room, the run's first, so an entry's cost is that one point.
+    /// </para>
+    /// <para>
+    /// Three things that would change it are deliberately not asked here, because each belongs to
+    /// the fatigue system rather than to this frame: whether that first room holds any monsters,
+    /// whether the character has stood in it before, and whether this dungeon charges at all. Until
+    /// then this is the ordinary case stated plainly rather than a computation, and it is a
+    /// placeholder in the same sense as the seam it is reported to -- what changes when fatigue is
+    /// built is what this number is worked out from, not that a report happens here.
+    /// </para>
+    /// </remarks>
+    public const ushort FatigueAnEntryCosts = 1;
+
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
         SelectDungeonRequest message,
@@ -434,14 +468,19 @@ public sealed class SelectDungeonHandler(
             return;
         }
 
-        // Gathered here and handed over, so the rule stays a function of what it is given. Cleared
-        // quests come from the entry batch the session already carries rather than a fresh read,
-        // which keeps the facts consistent with the state the client was told about.
-        var quests = result.CharacterEntry.Quests;
+        // Gathered here and handed over, so the rule stays a function of what it is given. They
+        // are asked of the character's own log rather than read out of the session, because the
+        // session's copy is whatever the entry batch put there and nothing refreshes it: a quest
+        // taken on or handed in since the character entered the world would leave the maze chosen
+        // against the state the player has already moved on from. Which quests they are is still
+        // decided once, here, and the layout stays fixed to the run it opens.
+        var questLog = questLogs.LogOf(session.AccountId, session.CharacterId);
+        var carried = await questLog.CarriedAsync(cancellationToken).ConfigureAwait(false);
+        var cleared = await questLog.ClearedAsync(cancellationToken).ConfigureAwait(false);
         var facts = new DungeonEntryFacts(
             message.Difficulty,
-            quests.ActiveQuests.Select(value => value.QuestId).ToArray(),
-            quests.ClearedQuestIds);
+            carried.Select(quest => quest.QuestId).ToArray(),
+            cleared.Select(quest => quest.QuestId).ToArray());
 
         var entered = await visits.EnterAsync(
             session.CharacterId, message.DungeonId, message.Difficulty, facts, cancellationToken)
@@ -462,6 +501,14 @@ public sealed class SelectDungeonHandler(
         }
 
         var (layout, visit) = entered;
+
+        // Reported once the entry has actually happened, so that a refused selection reports
+        // nothing. What the seam does with it is nothing at all today -- see
+        // ICharacterFatigueDomainService -- which is why this is the report and not a check: there
+        // is no balance to be short of.
+        await fatigue
+            .SpendAsync(session.CharacterId, FatigueAnEntryCosts, cancellationToken)
+            .ConfigureAwait(false);
 
         logger.LogInformation(
             "Select dungeon {ConnectionId} user={WireUserId}: dungeon={DungeonId} difficulty={Difficulty} "

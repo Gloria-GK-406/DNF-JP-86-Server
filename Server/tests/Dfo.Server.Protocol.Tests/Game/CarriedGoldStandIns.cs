@@ -32,6 +32,11 @@ internal sealed class CarriedGold(int total) : ICharacter
         CancellationToken cancellationToken) =>
         throw new NotSupportedException("These cases are about gold, not about standing.");
 
+    public ValueTask<CharacterIdentityState?> IdentityAsync(
+        CancellationToken cancellationToken) =>
+        throw new NotSupportedException(
+            "These cases are about gold, not about what the character is.");
+
     public ValueTask<CharacterSkillProtocolMirrorState?> RemainingSkillPointsAsync(
         CancellationToken cancellationToken) =>
         throw new NotSupportedException("These cases are about gold, not about skill points.");

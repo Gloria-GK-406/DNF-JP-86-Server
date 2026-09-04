@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Inventory;
@@ -169,6 +170,7 @@ internal sealed class BackToVillageResponseEncoder : GameCmdMessageEncoder<BackT
 public sealed class BackToVillageHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
+    ICharacterPositionDomainService positions,
     IDungeonRunDomainService runs,
     IGameMessageSender sender,
     ILogger<BackToVillageHandler> logger) : ClientMessageHandler<BackToVillageRequest>
@@ -179,9 +181,13 @@ public sealed class BackToVillageHandler(
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        // Where they are standing is asked of the service that owns it. It is recorded and dropped
+        // with the published session, so this conjunct admits exactly the connections the two
+        // before it do.
         if (session is null
             || !runtimeSessions.TryGet(session, out var result, out _)
-            || result is null)
+            || result is null
+            || positions.Find(session.CharacterId) is not { } position)
         {
             logger.LogWarning(
                 "Back to village {ConnectionId}: no published session, ignoring",
@@ -189,7 +195,6 @@ public sealed class BackToVillageHandler(
             return;
         }
 
-        var position = result.Character.Position;
         logger.LogInformation(
             "Back to village {ConnectionId} user={WireUserId}: {TownId}:{AreaId} pos=({X},{Y}) "
                 + "runEnded={RunEnded}",
@@ -209,7 +214,7 @@ public sealed class BackToVillageHandler(
             new GameExplicitMessageDelivery(
                 [
                     new BackToVillageResponse(),
-                    .. TownReturnProjection.Frames(session, result),
+                    .. TownReturnProjection.Frames(session, result, position),
                 ],
                 []),
             cancellationToken).ConfigureAwait(false);

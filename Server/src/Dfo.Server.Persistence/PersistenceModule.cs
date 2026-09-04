@@ -164,5 +164,11 @@ public sealed class PersistenceModule : IServerModule
         // The character's quests, kept in the same database and therefore settled by the same
         // participant as the character and the items it owns.
         services.TryAddSingleton<IQuestDomainStore>(_ => new SqliteQuestDomainStore(databasePath));
+        // The character's combo pages, kept in the same database and therefore settled by the same
+        // participant again. It is handed the entry load's own reader of those rows rather than
+        // being left to select them a second way.
+        services.TryAddSingleton<IDarkKnightComboDomainStore>(
+            provider => new SqliteDarkKnightComboDomainStore(
+                databasePath, provider.GetRequiredService<ICharacterComboPageTable>()));
     }
 }

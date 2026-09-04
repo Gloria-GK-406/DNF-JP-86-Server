@@ -20,9 +20,12 @@ namespace Dfo.Server.Application.Tests.Transactions;
 /// ever change items and anything else together. So the participant is the database, and each kind
 /// of state contributes a facet of it.
 ///
-/// The second kind of state here is a stand-in that exists only in this file. Items are the only
-/// real one so far; proving the rule now is what keeps the protocol from being shaped around a
-/// single store and having to be rebuilt when the next one arrives.
+/// The second kind of state here is a stand-in that exists only in this file, so that what is
+/// proved is the rule rather than whichever stores happen to exist. It was written when items were
+/// the only real one, which is what kept the protocol from being shaped around a single store and
+/// having to be rebuilt when the next one arrived. There are four real ones now -- items,
+/// characters, quests and Dark Knight combo pages -- and each contributes a facet of the same
+/// participant, because the module hands all four the one database path.
 /// </remarks>
 public sealed class OneDatabaseOneParticipantTests
 {

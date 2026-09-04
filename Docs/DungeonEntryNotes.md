@@ -134,8 +134,13 @@
 
 ## 八、疲劳值规则（用户 2026-08-27 口述，尚未实现）
 
-现状：`CharacterRosterService.cs` 里写死 `new CharacterFatigueState(188, 0)`，全仓没有任何地方
-递减它。规则本身已经定了，实现时照这个来：
+现状：`CharacterRosterService.cs:147` 里写死 `new CharacterFatigueState(188, 0)`，全仓没有任何地方
+递减它。今天有一个**不记账的接缝** `ICharacterFatigueDomainService`（实现
+`UnaccountedCharacterFatigueDomainService`：答一对定值，报给它的一律丢弃），进本处
+`SelectDungeonHandler` 会向它报一次消耗——报告落在接缝上，发出去的那个 188 不受影响。
+规则本身已经定了，实现时照这个来：
+
+### 扣减规则
 
 | 规则 | 说明 |
 |---|---|
@@ -149,8 +154,30 @@
 房），房间清空也已经在跟踪（boss 房清空会开出口）。「有怪」这一条要看房间的 actor 列表非空——
 空房间不该扣。
 
-副本自身还有 `[no fatigue]` 标记（`DungeonDefinition.ConsumesFatigue` 已经读出来了），教学本就是
-不耗疲劳的，实现时别漏。
+### 总量与恢复
+
+同一次口述里还有三条，此前只写在代码注释里、`Docs/` 与 `protocol/` 均无出处，现在落在这里，
+**代码注释与本节互相指得到**（`ICharacterFatigueDomainService` 的 `<remarks>` 引本节，本节引它）：
+
+| 规则 | 说明 |
+|---|---|
+| 每日总量 | **基础 156**，另有**黑钻 +32**；156 + 32 = **188**，正是实机会话发出的那个数 |
+| 恢复 | **抗疲劳药剂**可以把已花掉的点数还回来（接缝上的 `RefundAsync` 就是给它留的，今天无人调用） |
+| 重置 | **每日重置** |
+
+**「每日重置」的具体时刻仓内无记载。** 代码注释与本节都只写到「每日」；几点重置、按哪个时区，
+至今没有任何仓内出处，实现之前要先问所有者补上，不要凭印象填。
+
+### 与档案标记的已知冲突（今天无后果，记真账之前必须解决）
+
+副本自身有 `[no fatigue]` 标记（`DungeonDefinition.ConsumesFatigue` 已经读出来了），教学本就是
+不耗疲劳的，实现时别漏。**而今天的报告点没有问它**：
+`SelectDungeonHandler.FatigueAnEntryCosts` 是个**无条件报 1** 的占位常量
+（它自己的 `<remarks>` 把这一点写明了），而全仓 `ConsumesFatigue` 的唯一读者是
+`PvfDungeonDefinitionSourceTests.cs:32` 那条钉解析的判据 —— 它断言教程本 `10000` 为 `false`。
+也就是说：**按上面写下的规则，教程本进本该扣 0，占位值报的是 1。**
+今天接缝不记账，所以这个冲突在线上无可观察后果；一旦开始记真账，**调用点必须先问档案
+这本扣不扣**，还要按上表判断那间房有没有怪、是不是第一次进。
 
 ## 七、引用
 

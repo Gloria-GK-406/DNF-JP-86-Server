@@ -42,6 +42,23 @@ public interface ICharacter
     ValueTask<ItemUsability> CanUseAsync(int itemId, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Which slot this character sits in, what it is called, what it took up and how it grew.
+    /// </summary>
+    /// <remarks>
+    /// Read when asked, like every other answer here, so it is what the store says now rather than
+    /// what a session was published with. These four were only reachable through that session's
+    /// copy of the character until now, which meant anything holding a character's own identifier
+    /// had to find a session before it could ask what the character was -- and got told whatever
+    /// was last written into that copy.
+    /// <para>
+    /// Nothing when there is no such character, for the reason <see cref="ProgressAsync"/> gives:
+    /// slot zero with an empty name is a standing a real character can have, so inventing it here
+    /// would be indistinguishable from the truth about somebody else.
+    /// </para>
+    /// </remarks>
+    ValueTask<CharacterIdentityState?> IdentityAsync(CancellationToken cancellationToken);
+
+    /// <summary>
     /// What level this character has reached and what it holds towards the next one.
     /// </summary>
     /// <remarks>

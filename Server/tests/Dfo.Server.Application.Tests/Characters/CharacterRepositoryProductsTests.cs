@@ -1,7 +1,7 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
-using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.World;
 using Dfo.Server.Application.Characters;
@@ -10,7 +10,6 @@ using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
-using Dfo.Server.Data.Networking;
 
 namespace Dfo.Server.Application.Tests.Characters;
 
@@ -30,8 +29,8 @@ public sealed class CharacterRepositoryProductsTests
     /// <remarks>
     /// The item is declared for a level the seeded character has and no other restriction, so the
     /// only thing that can make this answer differ between two characters is which character the
-    /// repository built the instance for. Character 60 is the one the session directory knows;
-    /// anyone else has no published state and is told so.
+    /// repository built the instance for. Character 60 is the one with a row of its own; anyone
+    /// else has nothing to be judged against and is told so.
     /// </remarks>
     [Fact]
     public async Task The_repository_hands_back_the_character_it_was_asked_for()
@@ -86,9 +85,11 @@ public sealed class CharacterRepositoryProductsTests
         var rules = new FakeItemUseRules((Potion, ItemUseRules.Potion(cooldownMilliseconds: 0)));
         var judgement = new ItemUseJudgementService(rules);
         var cooldowns = new CharacterItemCooldownDomainService(clock);
-        var sessions = new OnlyCharacterSixty();
-        var runtime = new FixedRuntimeSessions(level: 50, job: 0);
-        var presence = new SessionPresenceDomainService();
+
+        // Both are being played, so that the row is the only thing left to tell them apart. A
+        // character nobody is playing is refused before its row is ever read, and this case would
+        // then pass without the repository having handed back anything in particular.
+        var presence = PresentCharacters.StandingInTown(new CharacterId(60), new CharacterId(61));
 
         return new CharacterDomainService(
             () => throw new NotSupportedException("No test here reaches the roster."),
@@ -97,24 +98,77 @@ public sealed class CharacterRepositoryProductsTests
                 new UnusedInitialSkills(),
                 new UnusedInitialEquipment()),
             characterId => new PlayingCharacter(
-                characterId, judgement, cooldowns, sessions, runtime, presence, new NoCarriedGold(),
-                new StoredCarryLimitOnly(), CharacterRow.At(50), new NoSkillPointLedger()));
+                characterId, judgement, cooldowns, presence, new NoCarriedGold(),
+                new StoredCarryLimitOnly(), new OnlyCharacterSixtysRow(),
+                new NoSkillPointLedger()));
     }
 
-    /// <summary>A directory that has published a session for character 60 and for nobody else.</summary>
-    private sealed class OnlyCharacterSixty : ISelectedSessionDomainService
+    /// <summary>A table holding a row for character 60 and for nobody else.</summary>
+    /// <remarks>
+    /// What tells the two characters apart. It used to be the session directory, because what a
+    /// character is was read off the session published for it; both facts a use is judged against
+    /// are read from the character's own row now, so the row is what has to differ.
+    /// </remarks>
+    private sealed class OnlyCharacterSixtysRow : ICharacterTable
     {
-        private static readonly SelectedSessionIdentity Session = SelectedSessionIdentity.Create(
-            new AccountId(6), new CharacterId(60), new NetworkConnectionId("game-products"), 1, 10011);
+        /// <summary>High enough that the declared item is not refused for it.</summary>
+        private const int Level = 50;
 
-        public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => null;
-        public bool ReleaseExact(SelectedSessionIdentity session) => false;
-        public SelectedSessionIdentity? Find(AccountId accountId) => Session;
-        public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) => Session;
-        public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => Session;
+        private static bool Has(CharacterId characterId) => characterId.Value == 60;
 
-        public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) =>
-            characterId.Value == 60 ? Session : null;
+        public ValueTask<CharacterIdentityRow?> FindIdentityAsync(
+            CharacterId characterId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(
+                Has(characterId)
+                    ? new CharacterIdentityRow(SlotIndex: 0, Name: [0x41], Job: 0, GrowType: 0)
+                    : null);
+
+        public ValueTask<CharacterProgressRow?> FindProgressAsync(
+            CharacterId characterId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(
+                Has(characterId) ? new CharacterProgressRow(Level, 0) : null);
+
+        public ValueTask<CharacterStandingRow?> FindStandingAsync(
+            CharacterId characterId, CancellationToken cancellationToken) => throw Unneeded();
+
+        public ValueTask<IReadOnlyList<CharacterRosterRow>> ReadByAccountAsync(
+            AccountId accountId, CancellationToken cancellationToken) => throw Unneeded();
+
+        public ValueTask<IReadOnlyList<CharacterSummaryRow>> ReadSummariesByAccountAsync(
+            AccountId accountId, CancellationToken cancellationToken) => throw Unneeded();
+
+        public ValueTask<CharacterSummaryRow?> FindBySlotAsync(
+            AccountId accountId, int slotIndex, CancellationToken cancellationToken) =>
+            throw Unneeded();
+
+        public ValueTask<bool> NameIsTakenAsync(
+            byte[] name, CancellationToken cancellationToken) => throw Unneeded();
+
+        public ValueTask<bool> BelongsToAsync(
+            CharacterId characterId, AccountId accountId, CancellationToken cancellationToken) =>
+            throw Unneeded();
+
+        public ValueTask<AccountId?> FindOwnerAsync(
+            CharacterId characterId, CancellationToken cancellationToken) => throw Unneeded();
+
+        public ValueTask<CharacterId> InsertAsync(
+            AccountId accountId,
+            string name,
+            byte[] nameBytes,
+            int job,
+            int slotIndex,
+            byte[] appearanceBlob,
+            CancellationToken cancellationToken) => throw Unneeded();
+
+        public ValueTask<int> SetProgressAsync(
+            CharacterId characterId, int level, long experience,
+            CancellationToken cancellationToken) => throw Unneeded();
+
+        public ValueTask<bool> MarkDeletedAsync(
+            CharacterId characterId, CancellationToken cancellationToken) => throw Unneeded();
+
+        private static NotSupportedException Unneeded() =>
+            new("This double says which characters have a row, and nothing else.");
     }
 
     private sealed class UnusedStats : ICharacterStatDefinitionSource

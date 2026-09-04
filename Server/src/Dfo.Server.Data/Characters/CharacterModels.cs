@@ -170,15 +170,12 @@ public sealed record CharacterPositionState(
     short Y,
     byte Direction);
 
-public sealed record DarkKnightComboState(IReadOnlyList<uint> SkillIds);
-
 public sealed record ActiveCharacterState(
     CharacterIdentityState Identity,
     CharacterProgressionState Progression,
     CharacterFatigueState Fatigue,
     CharacterPositionState Position,
-    DateTimeOffset CreatedAt,
-    DarkKnightComboState? DarkKnightCombo);
+    DateTimeOffset CreatedAt);
 
 public sealed record CharacterAppearanceCompatibilityState(
     byte FormatVersion,

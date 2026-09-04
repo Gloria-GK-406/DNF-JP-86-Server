@@ -59,9 +59,9 @@ public interface IDungeonVisitDomainService
     /// dungeon under that identifier.
     /// </summary>
     /// <remarks>
-    /// The facts are handed in rather than found: which quests a character carries comes from the
-    /// entry batch the session was published with, so that the layout is chosen against the state
-    /// the client was told about rather than a fresher read of it.
+    /// The facts are handed in rather than found. Collecting them is the caller's job -- it is the
+    /// one holding the lease while it asks -- and this service stays a function of what it is
+    /// given, which is what keeps a run reproducible from its record.
     /// </remarks>
     ValueTask<DungeonEntry?> EnterAsync(
         CharacterId characterId,

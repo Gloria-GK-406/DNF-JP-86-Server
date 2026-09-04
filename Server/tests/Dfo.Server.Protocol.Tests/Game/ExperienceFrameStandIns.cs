@@ -151,6 +151,9 @@ internal sealed class SkillPointLedger(bool present = true) : ICharacter
     public ValueTask<CharacterProgressionState?> ProgressAsync(
         CancellationToken cancellationToken) => throw Unasked();
 
+    public ValueTask<CharacterIdentityState?> IdentityAsync(
+        CancellationToken cancellationToken) => throw Unasked();
+
     public ValueTask<ItemUsability> CanUseAsync(
         int itemId, CancellationToken cancellationToken) => throw Unasked();
 

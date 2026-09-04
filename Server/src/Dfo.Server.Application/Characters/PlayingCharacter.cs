@@ -23,8 +23,6 @@ internal sealed class PlayingCharacter(
     CharacterId characterId,
     IItemUseJudgementService judgement,
     ICharacterItemCooldownDomainService cooldowns,
-    ISelectedSessionDomainService selectedSessions,
-    ISelectedSessionRuntimeDirectory runtimeSessions,
     ISessionPresenceDomainService presence,
     ICharacterCarriedGoldTable carriedGold,
     ICarriedGoldRuleService goldRules,
@@ -32,6 +30,31 @@ internal sealed class PlayingCharacter(
     ICharacterSkillPointDomainService skillPoints) : ICharacter
 {
     public CharacterId Id => characterId;
+
+    /// <remarks>
+    /// The row, for the reason the progress below is read from the row: a session carries a copy of
+    /// what the character is, and a copy is what somebody has to remember to correct. Nothing
+    /// corrects this one -- a character's job changes when it awakens -- and until now the only way
+    /// to ask what a character was, holding nothing but its identifier, was to find its session
+    /// first and read that copy.
+    /// <para>
+    /// Two of these four are also on the standing read, which prices what a character is entitled
+    /// to. They are not read through it: that read needs the level beside the job and this question
+    /// must not depend on how far along the character is. The overlap is two columns of one row,
+    /// not two sources.
+    /// </para>
+    /// </remarks>
+    public async ValueTask<CharacterIdentityState?> IdentityAsync(
+        CancellationToken cancellationToken) =>
+        await characters.FindIdentityAsync(characterId, cancellationToken).ConfigureAwait(false)
+            is { } identity
+            ? new CharacterIdentityState(
+                characterId,
+                checked((ushort)identity.SlotIndex),
+                identity.Name,
+                checked((byte)identity.Job),
+                checked((byte)identity.GrowType))
+            : null;
 
     /// <remarks>
     /// The row, not the session. A session carries a copy of the character's standing and every
@@ -116,21 +139,36 @@ internal sealed class PlayingCharacter(
 
         // Nobody is playing this character, so there is nothing to compare against. Answering with
         // the archive's own refusal would tell the player their item is not a consumable.
-        if (this.State() is not { } state)
+        //
+        // Asked of the presence record, where this used to ask whether a session had published its
+        // runtime state. The two say the same thing: entry publishes that state and admits the
+        // character to this record in one method with nothing awaited between the two statements,
+        // and cleanup withdraws the record and removes that state in one synchronous run. Neither
+        // is written anywhere else. What is refused here is the gap entry leaves before both
+        // happen -- the session is registered and its lease is being prepared, which is a database
+        // round trip a request can arrive during.
+        if (presence.Find(characterId) is null)
         {
             return ItemUsability.CharacterStateUnavailable;
         }
 
-        // The level is read rather than taken from the session beside the job. The session carries
-        // a copy of the character's standing that every path which moves the character has to
-        // remember to correct, and a judgement made against that copy is a judgement made against
-        // whatever level was last written into it -- which is the same shape of defect as a skill
-        // point total that never caught up with a level-up.
+        // What the character is, asked of the character. It used to be taken off the session's copy
+        // of it, which every path that moves the character has to remember to correct -- and a
+        // judgement made against a copy is a judgement made against whatever was last written into
+        // it. There is no such thing to be behind now: both facts below are read from the row a
+        // change writes to.
         //
-        // A missing row answers the way a missing session does, and for the same reason: what is
-        // being reported is that there is nothing to judge against, not that the archive refused
-        // the item. Reading it here rather than folding it into the check above keeps that
-        // distinction where a reader can see it.
+        // A character this server does not have is reported as nothing to judge against rather than
+        // as the archive refusing the item, because those are different things to tell a player:
+        // the archive's own refusal says their potion is not a consumable.
+        if (await this.IdentityAsync(cancellationToken).ConfigureAwait(false) is not { } identity)
+        {
+            return ItemUsability.CharacterStateUnavailable;
+        }
+
+        // Read rather than folded into the question above, because they are two questions: what the
+        // character is does not say how far along it is, and a level-up moves one without touching
+        // the other. A missing row answers the same way here, and for the same reason.
         if (await this.ProgressAsync(cancellationToken).ConfigureAwait(false) is not { } progress)
         {
             return ItemUsability.CharacterStateUnavailable;
@@ -147,20 +185,9 @@ internal sealed class PlayingCharacter(
             rule,
             new ItemUseCandidate(
                 progress.Level,
-                CharacterJobFamilies.Resolve(state.Identity.Job),
+                CharacterJobFamilies.Resolve(identity.Job),
                 this.Place(),
                 coolingDown));
-    }
-
-    private ActiveCharacterState? State()
-    {
-        var session = selectedSessions.FindByCharacter(characterId);
-        if (session is null)
-        {
-            return null;
-        }
-
-        return runtimeSessions.TryGet(session, out var result, out _) ? result?.Character : null;
     }
 
     /// <summary>
@@ -174,6 +201,12 @@ internal sealed class PlayingCharacter(
     /// direction, and it stops being safe the day dungeons are served: a character inside one whose
     /// presence record is missing would be allowed a village-only item. The place to fix it is the
     /// same change that starts serving dungeons, which is where the fact becomes real.
+    /// </para>
+    /// <para>
+    /// The one caller there is refuses a character with no record of its own before reaching here,
+    /// so along that path the default only ever covers a record that says the character is standing
+    /// in a town. The missing-record case is written out because it is what this method means, not
+    /// because anything reaches it today.
     /// </para>
     /// </remarks>
     private ItemUsePlace Place() =>

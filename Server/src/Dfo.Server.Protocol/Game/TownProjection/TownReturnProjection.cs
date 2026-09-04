@@ -1,3 +1,4 @@
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.DungeonSelection;
@@ -19,6 +20,11 @@ namespace Dfo.Server.Protocol.Game.TownProjection;
 /// A player who walked to the dungeon gate and came back should be at the gate; projecting the
 /// spawn would carry them across town for pressing a button.
 /// </para>
+/// <para>
+/// Where they are standing is passed in rather than taken off the session's snapshot of the
+/// character. This is a projection: it has no dependencies and looks nothing up, so the two
+/// handlers that send it ask the service that owns the position and hand the answer over.
+/// </para>
 /// </remarks>
 internal static class TownReturnProjection
 {
@@ -26,12 +32,14 @@ internal static class TownReturnProjection
     private const byte StandingInTown = 0x00;
 
     public static IReadOnlyList<IGameServerMessage> Frames(
-        SelectedSessionIdentity session, SelectCharacterResult result)
+        SelectedSessionIdentity session,
+        SelectCharacterResult result,
+        CharacterPositionState position)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(result);
+        ArgumentNullException.ThrowIfNull(position);
 
-        var position = result.Character.Position;
         var spawn = result.World.Channel.Spawn with
         {
             TownId = position.TownId,
