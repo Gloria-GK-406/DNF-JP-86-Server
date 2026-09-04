@@ -4,28 +4,27 @@ contract:
   path: ./TaskContract.md
   revision: 1
 state: active
-phase: child_execution
-phase_state: pending
-active_attempt: spec-001
-last_transition: child-created
+phase: root_evaluation
+phase_state: in_progress
+active_attempt: null
+last_transition: child-accepted
 transition_evidence: >-
-  子成果 spec-001 已创建并激活。激活前的校验结果全部为空错误：
-  身份与路径——`spec-001` 是首个编号（表原为空，无重用）；子目录
-  `attempts/spec-001-owners-for-character-state/`，经 realpath 规范化后证明包含于 task_root 之内
-  （大小写不敏感比较，contained=True）。
-  子契约——`state: ready`，`parent: ../../TaskContract.md`，`contributes_to` 11 项
-  （SC-1..SC-8、SC-13..SC-15），`depends_on: []`。空列表按依赖链接校验规则合法且无需成员分类：
-  本成果没有未解决的外部前置契约，已接受的内部历史由 `workspace.baseline` 表示而不是依赖边。
-  路由决策——已就位并填完 SDD readiness、marginal control value、child-specific 的 Single
-  structural selection；`Controller Selection` 按规则留空，由 `single-spec-workflow` 在实例化
-  Profile 之前补齐。
-  活动性——追加本行之前表内无 running/active 行，追加之后恰有一行。`active_attempt` 置为 spec-001。
+  spec-001 交回 spec-result.md，outcome completed。完整变更评审 verdict approved（独立 fresh-context，
+  无未决阻断）；新鲜验证 decision pass（独立验证者自跑：构建 0 警告 0 错误，2069 通过 / 2 跳过 / 0 失败，
+  契约成功条件 C-1..C-11 逐条有当前证据，含验证者自做的两次变异验证）。以一次提交接受：0d8e960e，
+  工作区干净、源分支 main 仍为 427331bc、分支只前进一步。
+
+  **随后所有者裁定停止本根任务，不做 spec-002。** 原话：「那个spec要先不做了。重新起一个新的任务契约和
+  spec来做这次的任务。」——工作重心转向通知服务（事件/广播机制），疲劳记账留待将来另起。
+  因此本根任务以 **15 条成功条件里 11 条满足、4 条未开始** 的状态封存，不是全部达成。
+  未开始的是 SC-9..SC-12（疲劳按用量记账、跨期归零、耗尽拒绝、每日补货边界不变），它们原属计划中的
+  spec-002，该子成果**从未被创建**。
 workspace:
   repository_root: E:/Project/DNF/DNF-JP-86-Server
   task_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/character-state-finds-its-owner/.rks-agent/tasks/character-state-finds-its-owner
   code_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/character-state-finds-its-owner
   branch: character-state-finds-its-owner
-  baseline: 427331bcb07f60121c97920287ac341c9cb14dee
+  baseline: 0d8e960ea791262d7d9102a0b6e22fc558424741
   baseline_evidence: >-
     在任务工作区内跑
     `PVF_ARCHIVE_PATH=E:/Project/DNF/DNFClient-A21-protocol/Script.pvf dotnet test Server/86JP.Server.slnx --nologo`：
@@ -74,21 +73,21 @@ workspace:
 
 | SC | Requirement | Progress | Evidence | Remaining gap | Constraint |
 |---|---|---|---|---|---|
-| SC-1 | 角色实例能回答自己的身份，现读不缓存；入场序列之外不从会话运行态聚合读身份 | not_started | none | 身份today只作为入场投影快照的一个字段存在，角色实例不暴露它 | aligned |
-| SC-2 | 角色坐标由一个专门的领域服务持有并回答，不由角色实例回答；会话聚合不再是坐标的取数与写回位置 | not_started | none | 坐标现由会话聚合持有，6 处读 + 2 处整体写回 | aligned |
-| SC-3 | 角色的按键与选项设置由一个领域服务回答 | not_started | none | 设置现只作为入场投影的一个字段，无任何领域接缝 | aligned |
-| SC-4 | 暗帝连招页由领域 store 与其实例持有；恒为 null 的单数残留字段在全仓不再存在 | not_started | none | 连招页现只有行网关与入场投影；单数残留字段仍在 | aligned |
-| SC-5 | 入场之后读任务状态的那一处改问已有的任务簿实例，且没有为任务新建第二条通路 | not_started | none | 那一处仍读入场投影快照 | aligned |
-| SC-6 | 疲劳有一个接缝，进本处真的向它报告消耗；第一批里它不记账，且这一点可从代码本身读出 | not_started | none | 疲劳今天没有任何接缝，值写死在角色名单服务里 | aligned |
-| SC-7 | 第一批里疲劳的调用点在被改坏时判据会红 | not_started | none | 无调用点，故无判据 | aligned |
-| SC-8 | 第一个成果做完时，服务器对客户端的行为逐值不变 | not_started | none | 第一个成果尚未开始 | aligned |
-| SC-9 | 疲劳按「用了多少」记账；上限由基础值与账号权益现算，不存在存放剩余量的位置 | not_started | none | 疲劳无存储、无上限规则 | aligned |
-| SC-10 | 跨过每日重置时刻之后疲劳消耗归零，且不依赖任何定时任务或后台触发器 | not_started | none | 无重置机制 | aligned |
-| SC-11 | 疲劳耗尽时进本被拒，用的是既有的那个拒绝码 | not_started | none | 该拒绝码定义了但全仓零引用 | aligned |
-| SC-12 | 每日补货的行为不变，其日边界不因疲劳而改动 | not_started | none | 尚未开始；这一条守的是不要为了疲劳去改每日补货那条 UTC+8 0 点边界 | aligned |
-| SC-13 | 命令处理器注入面判据仍然通过，判定谓词与具名豁免清单未被放宽或扩充 | not_started | none | 基线上该判据通过；本轮每个成果都要复核它没被放宽 | aligned |
-| SC-14 | 领域层中 `store` 一词仍只有一种读法：事务结算的真源 | not_started | none | 基线上成立；第一个成果要新增一个 store，必须仍然只有这一种读法 | aligned |
-| SC-15 | 仓库约定记下这几样状态各自归谁，且如实写下会话运行态聚合仍然存在 | not_started | none | 尚未记载 | aligned |
+| SC-1 | 角色实例能回答自己的身份，现读不缓存；入场序列之外不从会话运行态聚合读身份 | satisfied | `attempts/spec-001-owners-for-character-state/verification/completion-evidence.md` C-1 | — | aligned |
+| SC-2 | 角色坐标由一个专门的领域服务持有并回答，不由角色实例回答；会话聚合不再是坐标的取数与写回位置 | satisfied | `attempts/spec-001-owners-for-character-state/verification/completion-evidence.md` C-2 | — | aligned |
+| SC-3 | 角色的按键与选项设置由一个领域服务回答 | satisfied | `attempts/spec-001-owners-for-character-state/verification/completion-evidence.md` C-3；生产调用方 0，如实报出 | — | aligned |
+| SC-4 | 暗帝连招页由领域 store 与其实例持有；恒为 null 的单数残留字段在全仓不再存在 | satisfied | `attempts/spec-001-owners-for-character-state/verification/completion-evidence.md` C-4 | — | aligned |
+| SC-5 | 入场之后读任务状态的那一处改问已有的任务簿实例，且没有为任务新建第二条通路 | satisfied | `attempts/spec-001-owners-for-character-state/verification/completion-evidence.md` C-5 | — | aligned |
+| SC-6 | 疲劳有一个接缝，进本处真的向它报告消耗；第一批里它不记账，且这一点可从代码本身读出 | satisfied | `attempts/spec-001-owners-for-character-state/verification/completion-evidence.md` C-6 | — | aligned |
+| SC-7 | 第一批里疲劳的调用点在被改坏时判据会红 | satisfied | `attempts/spec-001-owners-for-character-state/verification/completion-evidence.md` C-7，验证者自做两次变异 | — | aligned |
+| SC-8 | 第一个成果做完时，服务器对客户端的行为逐值不变 | satisfied | `attempts/spec-001-owners-for-character-state/verification/completion-evidence.md` C-8；既有断言一字未改 | — | aligned |
+| SC-9 | 疲劳按「用了多少」记账；上限由基础值与账号权益现算，不存在存放剩余量的位置 | not_started | none | **所有者裁定暂不做。** 原属计划中的 spec-002，该子成果从未被创建 | aligned |
+| SC-10 | 跨过每日重置时刻之后疲劳消耗归零，且不依赖任何定时任务或后台触发器 | not_started | none | **所有者裁定暂不做。** 原属计划中的 spec-002，该子成果从未被创建 | aligned |
+| SC-11 | 疲劳耗尽时进本被拒，用的是既有的那个拒绝码 | not_started | none | **所有者裁定暂不做。** 原属计划中的 spec-002，该子成果从未被创建 | aligned |
+| SC-12 | 每日补货的行为不变，其日边界不因疲劳而改动 | not_started | none | **所有者裁定暂不做。** 原属计划中的 spec-002，该子成果从未被创建 | aligned |
+| SC-13 | 命令处理器注入面判据仍然通过，判定谓词与具名豁免清单未被放宽或扩充 | satisfied | `attempts/spec-001-owners-for-character-state/verification/completion-evidence.md` C-9；谓词与豁免清单 diff 为空 | — | aligned |
+| SC-14 | 领域层中 `store` 一词仍只有一种读法：事务结算的真源 | satisfied | `attempts/spec-001-owners-for-character-state/verification/completion-evidence.md` C-10 | — | aligned |
+| SC-15 | 仓库约定记下这几样状态各自归谁，且如实写下会话运行态聚合仍然存在 | satisfied | `attempts/spec-001-owners-for-character-state/verification/completion-evidence.md` C-11；数字逐个复算吻合 | — | aligned |
 
 ## Planned Decomposition
 
@@ -110,4 +109,30 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 
 | # | Attempt | TaskContract | Outcome | Affects | State | Result | Git result |
 |---:|---|---|---|---|---|---|---|
-| 1 | `spec-001` | `./attempts/spec-001-owners-for-character-state/TaskContract.md` | 角色的身份、坐标、设置、连招页各自找到主人；入场后那一处任务读点重指已有的任务簿；疲劳立一个有会红判据的占位接缝。行为逐值不变 | SC-1, SC-2, SC-3, SC-4, SC-5, SC-6, SC-7, SC-8, SC-13, SC-14, SC-15 | `running` | pending | `active` |
+| 1 | `spec-001` | `./attempts/spec-001-owners-for-character-state/TaskContract.md` | 角色的身份、坐标、设置、连招页各自找到主人；入场后那一处任务读点重指已有的任务簿；疲劳立一个有会红判据的占位接缝。行为逐值不变 | SC-1..SC-8, SC-13..SC-15 | `sealed` | `completed`（`./attempts/spec-001-owners-for-character-state/spec-result.md`） | `0d8e960e` |
+
+## Root Evaluation（spec-001 接受之后，所有者裁定暂停）
+
+十五条成功条件里 **十一条满足，四条未开始**：
+
+- SC-1..SC-8、SC-13..SC-15 满足，证据见上表各行，全部来自 spec-001 的新鲜验证。
+- **SC-9..SC-12 未开始**（疲劳按用量记账、跨期归零、耗尽拒绝、每日补货边界不变）。它们原属计划中的
+  spec-002「疲劳真的记账」，**该子成果从未被创建**。
+
+**为什么停在这里。**
+
+所有者在 spec-001 接受之后裁定暂不做疲劳记账，把工作重心转向通知服务（事件与广播机制）。原话：
+「那个spec要先不做了。重新起一个新的任务契约和spec来做这次的任务。」
+
+这不是阻塞也不是失败——根契约与它的四条剩余条件都仍然成立，只是**当前没有继续的授权**。控制器按推断
+替所有者继续，正是授权边界明令禁止的。因此本图停在根评估，如实记下差口，不宣称完成。
+
+**留给将来重启 spec-002 的人的东西**，都在 `attempts/spec-001-owners-for-character-state/spec-result.md`
+的 Successor Guidance 里，其中与疲劳直接相关的三条：
+
+1. 占位无条件报告消耗 `1`，而教程本被既有判据钉着 `ConsumesFatigue = false`——按写下的规则该副本
+   进本消耗是 **0**。记真账时调用点**必须先问档案该副本扣不扣**
+2. 「每日 6 点重置」这个**时刻仓内无出处**。代码只写 `reset daily`；`Docs/DungeonEntryNotes.md` §八
+   有基础 156、黑钻 +32、抗疲劳药剂，独独没有时刻。实现每日边界前需要所有者给一个可追溯落点
+3. 疲劳接缝已经有会红的判据钉住调用点（移除调用、数值改错、被拒绝路径误报，三种变异各有判据变红），
+   所以把空转换成真账时，**调用面是已经被证明过的**
