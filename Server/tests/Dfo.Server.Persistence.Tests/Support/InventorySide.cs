@@ -29,9 +29,20 @@ internal sealed class InventorySide
 
     private readonly string databasePath;
 
-    public InventorySide(string databasePath)
+    /// <summary>
+    /// What the archive says about the items in this database.
+    /// </summary>
+    /// <remarks>
+    /// The load asks it what sort of thing each row holds, because that is what decides whether the
+    /// row carries a name. The default says every item is an ordinary consumable, which is what
+    /// most tests here are about; a test that needs a thing with a name passes its own.
+    /// </remarks>
+    private readonly IItemPlacementDefinitionSource placements;
+
+    public InventorySide(string databasePath, IItemPlacementDefinitionSource? placements = null)
     {
         this.databasePath = databasePath;
+        this.placements = placements ?? new MainBandPlacements();
         this.Scope = new DomainTransactionScope();
         this.database = new SqliteDatabase(databasePath, this.Scope);
     }
@@ -60,7 +71,8 @@ internal sealed class InventorySide
         new SqliteCharacterItemTable(this.database),
         new SqliteCharacterDailyCounterTable(this.database),
         new DailyRefillRuleService(),
-        this.Containers);
+        this.Containers,
+        new ItemPlacementRuleService(this.placements, new NoWearables()));
 
     /// <summary>
     /// Binds a character to its own main container, as entry does.
@@ -88,7 +100,7 @@ internal sealed class InventorySide
             this.Scope,
             null!,
             new ItemPlacementRuleService(
-                placements ?? new MainBandPlacements(), new NoWearables()),
+                placements ?? this.placements, new NoWearables()),
             new ItemArrivalRuleService(),
             new ItemSlotRuleService()));
     }
@@ -204,5 +216,6 @@ internal sealed class InventorySide
         new SqliteCharacterItemCooldownTable(this.database),
         new SqliteCharacterItemEffectTable(this.database),
         new SqliteCharacterItemLockTable(this.database),
-        new SqliteCharacterRentalTable(this.database));
+        new SqliteCharacterRentalTable(this.database),
+        new ItemPlacementRuleService(this.placements, new NoWearables()));
 }

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Data.Accounts;
@@ -32,7 +33,8 @@ internal sealed class InventoryEntryAssembly(
     ICharacterItemCooldownTable itemCooldowns,
     ICharacterItemEffectTable itemEffects,
     ICharacterItemLockTable itemLocks,
-    ICharacterRentalTable rentals)
+    ICharacterRentalTable rentals,
+    IItemPlacementRuleService placementRules)
     : ICharacterInventoryEntryRepository, IAccountInventoryEntryRepository,
         IEntryInventoryLeasePersistence
 {
@@ -127,10 +129,20 @@ internal sealed class InventoryEntryAssembly(
         await RequireOwnershipAsync(lease.Session.AccountId, characterId, cancellationToken)
             .ConfigureAwait(false);
 
+        // What the scan keeps is exactly what has a name. A thing with a name is the same thing
+        // after this save as before it, so its row is found again by that name and kept; a pile
+        // has no name because two of it are the same thing, so there is nothing about the row it
+        // sat on worth keeping. The piles this save is writing are therefore taken away here and
+        // written again below, within the same save -- which is all a pile has ever been, a count
+        // in a position. Keeping them by a row key instead would be handing a pile the very mark
+        // that would let somebody tell two identical piles apart.
         var present = lease.Inventory.Containers
             .Where(value => value.ContainerType != InventoryContainerType.AccountCargo)
-            .SelectMany(value => value.Items).Where(value => value.StorageEntryId > 0)
-            .Select(value => value.StorageEntryId).Distinct().ToArray();
+            .SelectMany(value => value.Items)
+            .Select(value => value.Identity)
+            .OfType<ItemIdentity>()
+            .Select(identity => (long)identity.Value)
+            .Distinct().ToArray();
         await characterItems.DeleteOwnExceptAsync(characterId, present, cancellationToken)
             .ConfigureAwait(false);
 
@@ -143,34 +155,133 @@ internal sealed class InventoryEntryAssembly(
                 "A dirty avatar lease requires its exact 30-byte detail row.");
         }
 
+        // What each thing is, settled first and all of it, while the positions the load read are
+        // still standing. Those positions are what says a thing is this character's, so an update
+        // that ran after they were taken away would have nothing left to check itself against.
+        var settled = new List<SettledItem>();
         foreach (var container in lease.Inventory.Containers.Where(
                      value => value.ContainerType != InventoryContainerType.AccountCargo))
         {
             foreach (var item in container.Items)
             {
+                // Classified before it is written, out of the one place that classifies. The
+                // archive is what says a template is an avatar; a row it declares one that is
+                // being written as something else is the silent disagreement this classification
+                // exists to make audible, and it is refused rather than stored.
+                var worldClass = await placementRules
+                    .ClassifyAsync(item.Core.ItemId, cancellationToken).ConfigureAwait(false);
+                if (worldClass == ItemWorldClass.Avatar && item.Core.ItemKind != 8)
+                {
+                    throw new InvalidDataException(
+                        $"The archive declares item {item.Core.ItemId} an avatar, but the row in "
+                        + $"slot {item.SlotIndex} carries kind {item.Core.ItemKind}.");
+                }
+
                 // The avatar facts go in with the row rather than after it. An item that is not
                 // an avatar sends none, which clears whatever the row held -- an item that stopped
                 // being an avatar and kept them would be refused by the encoder later on.
                 var avatarDetail = item.Core.ItemKind == 8 ? item.AvatarDetail : null;
-                var touched = item.StorageEntryId > 0
-                    ? await characterItems.UpdateOwnAsync(
-                        item.StorageEntryId, characterId, (byte)container.ContainerType,
-                        item.SlotIndex, item.Core, avatarDetail, cancellationToken)
-                        .ConfigureAwait(false)
-                    : await characterItems.InsertOwnAsync(
-                        characterId, (byte)container.ContainerType, item.SlotIndex,
+                long? identity;
+                if (item.Identity is { } named)
+                {
+                    identity = await characterItems.UpdateOwnAsync(
+                        named.Value, characterId, item.Core, avatarDetail, cancellationToken)
+                        .ConfigureAwait(false) == 1
+                        ? named.Value
+                        : null;
+                }
+                else
+                {
+                    identity = await characterItems.InsertOwnAsync(
                         item.Core, avatarDetail, cancellationToken).ConfigureAwait(false);
-                if (touched != 1)
+                }
+
+                if (identity is not { } written)
                 {
                     // An insert that lands on nothing is an avatar UID another row already holds;
                     // there is no other condition an insert here can fail to meet. An update that
                     // lands on nothing is that, or a row that is no longer the character's.
-                    throw new InvalidDataException(item.StorageEntryId > 0
-                        ? $"Dirty inventory item {item.StorageEntryId} is stale or missing."
+                    throw new InvalidDataException(item.Identity is { } missing
+                        ? $"Dirty inventory item {missing.Value} is stale or missing."
                         : $"Dirty inventory item in slot {item.SlotIndex} was not persisted.");
                 }
+
+                settled.Add(new SettledItem(
+                    (int)container.ContainerType,
+                    item.SlotIndex,
+                    worldClass,
+                    checked((int)written),
+                    item.Core.ItemId,
+                    item.Core.Value));
             }
         }
+
+        // One thing, one position. A lease naming the same thing twice used to cost the player
+        // that thing's first position and nothing else, because a row could only be in one place;
+        // now that a position names a row rather than holding it, two of them would name the same
+        // row and the player would appear to have two of something there is one of -- and could
+        // then move both away. It is refused before anything is written.
+        var claimed = settled.Select(item => item.Identity).ToHashSet();
+        if (claimed.Count != settled.Count)
+        {
+            throw new InvalidDataException(
+                "A dirty inventory names the same thing in more than one position.");
+        }
+
+        // Every position at once, and only then where each thing ended up. Emptying them one by
+        // one as each thing was written would put a thing down in a place another has not left
+        // yet, which is exactly the collision the old shape needed somewhere to park to avoid.
+        await characterItems.ClearOwnPositionsAsync(characterId, cancellationToken)
+            .ConfigureAwait(false);
+        foreach (var item in settled)
+        {
+            var pile = item.WorldClass is ItemWorldClass.Interchangeable;
+            if (await characterItems.HoldOwnAsync(
+                    characterId,
+                    item.ListType,
+                    item.SlotIndex,
+                    pile ? ItemSlotKind.Template : ItemSlotKind.World,
+                    pile ? item.TemplateId : item.Identity,
+                    item.Identity,
+                    pile ? Math.Max(item.Held, 1) : 1,
+                    cancellationToken).ConfigureAwait(false) != 1)
+            {
+                throw new InvalidDataException(
+                    $"Two of this character's things claim container {item.ListType} "
+                    + $"slot {item.SlotIndex}.");
+            }
+        }
+    }
+
+    /// <summary>One thing this save has settled, and where the lease says it belongs.</summary>
+    /// <param name="Identity">The row it was written to, which a position is about to name.</param>
+    /// <param name="TemplateId">What the archive calls it, which a pile's position names instead.</param>
+    /// <param name="Held">What its core says it holds, which is a pile's count and nothing else's.</param>
+    private sealed record SettledItem(
+        int ListType,
+        int SlotIndex,
+        ItemWorldClass WorldClass,
+        int Identity,
+        int TemplateId,
+        int Held);
+
+    /// <summary>The name of the thing on this row, or nothing when the row holds a pile.</summary>
+    /// <remarks>
+    /// Asked of the archive out of the one place that classifies, not read off the kind byte the
+    /// row carries -- those two disagree, which is why the classification exists at all.
+    ///
+    /// A pile is left unnamed deliberately. Its row key would be a perfectly good number and a
+    /// completely wrong fact: it names the row, not the thing, and a pile is the one kind of
+    /// content for which no such thing exists to be named.
+    /// </remarks>
+    private async ValueTask<ItemIdentity?> IdentityOfAsync(
+        long itemUid, InventoryItemCoreState core, CancellationToken cancellationToken)
+    {
+        var worldClass = await placementRules.ClassifyAsync(core.ItemId, cancellationToken)
+            .ConfigureAwait(false);
+        return worldClass is ItemWorldClass.Interchangeable
+            ? null
+            : new ItemIdentity(checked((int)itemUid));
     }
 
     private async ValueTask RequireOwnershipAsync(
@@ -207,8 +318,10 @@ internal sealed class InventoryEntryAssembly(
 
             RequireSlot(row.SlotIndex, row.ItemUid);
             items.Add(WithAvatarDetail(new InventoryStorageItem(
-                row.ItemUid, ownerType, row.OwnerId, characterId, containerType,
-                row.SlotIndex, row.Core), row.Avatar));
+                await IdentityOfAsync(row.ItemUid, row.Core, cancellationToken)
+                    .ConfigureAwait(false),
+                ownerType, row.OwnerId, characterId, containerType,
+                row.SlotIndex, row.Core), row.ItemUid, row.Avatar));
         }
 
         return items;
@@ -232,7 +345,9 @@ internal sealed class InventoryEntryAssembly(
 
             RequireSlot(row.SlotIndex, row.ItemUid);
             items.Add(new InventoryStorageItem(
-                row.ItemUid, InventoryOwnerType.Account, row.AccountId, storedCharacterId,
+                await IdentityOfAsync(row.ItemUid, row.Core, cancellationToken)
+                    .ConfigureAwait(false),
+                InventoryOwnerType.Account, row.AccountId, storedCharacterId,
                 containerType, row.SlotIndex, row.Core));
         }
 
@@ -253,7 +368,7 @@ internal sealed class InventoryEntryAssembly(
     /// second one -- the owner, the character and the template id -- are gone with the second row.
     /// </remarks>
     private static InventoryStorageItem WithAvatarDetail(
-        InventoryStorageItem item, AvatarDetailRow? detail)
+        InventoryStorageItem item, long itemUid, AvatarDetailRow? detail)
     {
         if (item.Core.ItemKind != 8)
         {
@@ -263,7 +378,7 @@ internal sealed class InventoryEntryAssembly(
         if (item.Core.Value <= 0)
         {
             throw new InvalidDataException(
-                $"Avatar inventory row {item.StorageEntryId} has no avatar UID.");
+                $"Avatar inventory row {itemUid} has no avatar UID.");
         }
 
         if (detail is null)

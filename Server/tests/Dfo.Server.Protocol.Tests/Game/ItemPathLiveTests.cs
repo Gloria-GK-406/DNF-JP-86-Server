@@ -226,8 +226,12 @@ public sealed class ItemPathLiveTests
 
         await using var item = connection.CreateCommand();
         item.CommandText =
-            "INSERT INTO items(owner_scope,owner_id,list_type,"
-            + "slot_index,item_core) VALUES('character',60,0,65,@core)";
+            // A thing and the position holding it. A seeded row is two rows now: the world
+            // row carries no position of its own for a fixture to fill in.
+            "INSERT INTO items(item_core) VALUES(@core);"
+            + "INSERT INTO item_slots(owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count) "
+            + "VALUES('character',60,0,65,'world',last_insert_rowid(),"
+            + "last_insert_rowid(),1)";
         item.Parameters.AddWithValue(
             "@core", InventoryItemCore.Encode(Core()));
         await item.ExecuteNonQueryAsync();
@@ -238,8 +242,10 @@ public sealed class ItemPathLiveTests
         await using var connection = Open(databasePath);
         await using var command = connection.CreateCommand();
         command.CommandText =
-            "SELECT slot_index,item_core FROM items "
-            + "WHERE owner_scope='character' AND owner_id=60 AND list_type=0 ORDER BY slot_index";
+            "SELECT place.slot_index,held.item_core "
+            + "FROM item_slots place JOIN items held ON held.item_uid=place.core_uid "
+            + "WHERE place.owner_scope='character' AND place.owner_id=60 "
+            + "AND place.list_type=0 ORDER BY place.slot_index";
         var rows = new List<(int, int, int)>();
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())

@@ -6,8 +6,14 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Abstractions.Inventory;
 
+/// <summary>One stored row of an inventory, as the load reads it.</summary>
+/// <remarks>
+/// <see cref="Identity"/> is the name of the thing on the row, answered by the classification the
+/// load asks of the archive -- not the key of the row itself. A pile has no name, so it arrives
+/// here with none, and nothing downstream can tell two piles of one template apart.
+/// </remarks>
 public sealed record InventoryStorageItem(
-    long StorageEntryId,
+    ItemIdentity? Identity,
     InventoryOwnerType OwnerType,
     int OwnerId,
     CharacterId? CharacterId,

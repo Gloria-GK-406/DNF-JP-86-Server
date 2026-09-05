@@ -50,7 +50,7 @@ public sealed class TitleBookCarrierTests
 
             Assert.Equal(
                 containerType,
-                await ScalarAsync(path, "SELECT list_type FROM items WHERE owner_id=1"));
+                await ScalarAsync(path, "SELECT list_type FROM item_slots WHERE owner_id=1"));
 
             var loaded = await LoadCharacterAsync(path);
 
@@ -73,7 +73,9 @@ public sealed class TitleBookCarrierTests
             await InsertMainItemAsync(path, slot: 0, itemId: 2001);
             await InsertTitleBookAsync(path, category: 0, slot: 0, itemId: 700);
 
-            Assert.Equal(2L, await ScalarAsync(path, "SELECT COUNT(*) FROM items WHERE owner_id=1"));
+            Assert.Equal(
+                2L,
+                await ScalarAsync(path, "SELECT COUNT(*) FROM item_slots WHERE owner_id=1"));
 
             var inventory = await side.InUseCaseAsync(token => side.CharacterEntries
                 .LoadCharacterAsync(Account, Character, token));
@@ -141,7 +143,7 @@ public sealed class TitleBookCarrierTests
                             new InventoryContainerState(
                                 InventoryContainerType.Main,
                                 0,
-                                [new InventoryItemState(held.StorageEntryId, 4, held.Core)]),
+                                [new InventoryItemState(held.Identity, 4, held.Core)]),
                         ]),
                     1,
                     true),
@@ -149,7 +151,7 @@ public sealed class TitleBookCarrierTests
 
             Assert.Equal(2, (await LoadCharacterAsync(path)).Features.TitleBooks.Count);
             Assert.Equal(4L, await ScalarAsync(
-                path, "SELECT slot_index FROM items WHERE owner_id=1 AND list_type=0"));
+                path, "SELECT slot_index FROM item_slots WHERE owner_id=1 AND list_type=0"));
         });
     }
 
@@ -197,14 +199,18 @@ public sealed class TitleBookCarrierTests
 
     private static Task InsertTitleBookAsync(string path, int category, int slot, int itemId) =>
         ExecuteAsync(path, $"""
-            INSERT INTO items(owner_scope,owner_id,list_type,slot_index,item_core)
-            VALUES('character',{Character.Value},{19 + category},{slot},{Core(itemId)});
+            INSERT INTO items(item_core) VALUES({Core(itemId)});
+            INSERT INTO item_slots(owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count)
+            VALUES('character',{Character.Value},{19 + category},{slot},'world',
+                last_insert_rowid(),last_insert_rowid(),1);
             """);
 
     private static Task InsertMainItemAsync(string path, int slot, int itemId) =>
         ExecuteAsync(path, $"""
-            INSERT INTO items(owner_scope,owner_id,list_type,slot_index,item_core)
-            VALUES('character',{Character.Value},0,{slot},{Core(itemId)});
+            INSERT INTO items(item_core) VALUES({Core(itemId)});
+            INSERT INTO item_slots(owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count)
+            VALUES('character',{Character.Value},0,{slot},'world',
+                last_insert_rowid(),last_insert_rowid(),1);
             """);
 
     private static string Core(int itemId)

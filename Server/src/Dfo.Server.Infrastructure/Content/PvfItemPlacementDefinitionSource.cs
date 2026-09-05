@@ -20,7 +20,7 @@ internal sealed class PvfItemPlacementDefinitionSource(PvfArchiveProvider provid
     private readonly Lock _gate = new();
     private readonly Dictionary<int, ItemPlacement?> _cache = [];
     private IReadOnlyDictionary<int, (int Id, string RelativePath)>? _stackables;
-    private IReadOnlySet<int>? _equipment;
+    private IReadOnlyDictionary<int, string>? _equipment;
 
     public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken)
     {
@@ -32,7 +32,7 @@ internal sealed class PvfItemPlacementDefinitionSource(PvfArchiveProvider provid
 
             var archive = provider.Archive;
             _stackables ??= PvfListFile.Read(archive, StackableListPath).ToDictionary(value => value.Id);
-            _equipment ??= PvfListFile.Read(archive, EquipmentListPath).Select(value => value.Id).ToHashSet();
+            _equipment ??= PvfEntryLifecycleContentSource.ReadEquipmentPaths(archive);
 
             var metadata = PvfEntryLifecycleContentSource.ResolveItemMetadataFor(
                 archive, itemId, _stackables, _equipment);
@@ -43,7 +43,10 @@ internal sealed class PvfItemPlacementDefinitionSource(PvfArchiveProvider provid
             var placement = metadata.SlotEnd < metadata.SlotStart
                 ? null
                 : new ItemPlacement(
-                    metadata.ItemKind, metadata.StackLimit, metadata.SlotStart, metadata.SlotEnd);
+                    metadata.ItemKind, metadata.StackLimit, metadata.SlotStart, metadata.SlotEnd)
+                {
+                    WorldClass = metadata.WorldClass,
+                };
             _cache[itemId] = placement;
             return ValueTask.FromResult(placement);
         }

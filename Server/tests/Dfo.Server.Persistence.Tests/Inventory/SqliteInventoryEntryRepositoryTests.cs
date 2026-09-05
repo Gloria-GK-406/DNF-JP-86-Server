@@ -25,12 +25,15 @@ public sealed class SqliteInventoryEntryRepositoryTests
             await ExecuteAsync(databasePath, """
                 INSERT INTO characters(character_id, account_id) VALUES(21, 11);
                 INSERT INTO accounts(account_id, cube_red) VALUES(11, 99);
-                INSERT INTO items(
-                    item_uid, owner_scope, owner_id, list_type, slot_index, item_core)
-                VALUES(101, 'character', 21, 3, 7, @characterCore);
-                INSERT INTO items(
-                    item_uid, owner_scope, owner_id, cargo_character_id, list_type, slot_index, item_core)
-                VALUES(202, 'account', 11, 21, 12, 4, @cargoCore);
+                INSERT INTO items(item_uid, item_core) VALUES(101, @characterCore);
+                INSERT INTO item_slots(
+                    owner_scope, owner_id, list_type, slot_index, kind, id, core_uid, count)
+                VALUES('character', 21, 3, 7, 'world', 101, 101, 1);
+                INSERT INTO items(item_uid, cargo_character_id, item_core)
+                VALUES(202, 21, @cargoCore);
+                INSERT INTO item_slots(
+                    owner_scope, owner_id, list_type, slot_index, kind, id, core_uid, count)
+                VALUES('account', 11, 12, 4, 'world', 202, 202, 1);
                 INSERT INTO character_container_state(character_id, list_type, list_param16)
                 VALUES(21, 2, 48);
                 INSERT INTO account_cargo_state(account_id, selection_key, value32, item_count)
@@ -297,17 +300,19 @@ public sealed class SqliteInventoryEntryRepositoryTests
             var validCore = CreateCore(1, 3003, 31);
             var firstCore = invalidCase == "malformed" ? new byte[81] : validCore;
             await ExecuteAsync(databasePath, """
-                INSERT INTO items(
-                    item_uid, owner_scope, owner_id, list_type, slot_index, item_core)
-                VALUES(301, 'character', 23, 0, 5, @core);
+                INSERT INTO items(item_uid, item_core) VALUES(301, @core);
+                INSERT INTO item_slots(
+                    owner_scope, owner_id, list_type, slot_index, kind, id, core_uid, count)
+                VALUES('character', 23, 0, 5, 'world', 301, 301, 1);
                 """,
                 ("@core", firstCore));
             if (invalidCase == "duplicate")
             {
                 await ExecuteAsync(databasePath, """
-                    INSERT INTO items(
-                        item_uid, owner_scope, owner_id, list_type, slot_index, item_core)
-                    VALUES(302, 'character', 23, 0, 5, @core);
+                    INSERT INTO items(item_uid, item_core) VALUES(302, @core);
+                    INSERT INTO item_slots(
+                        owner_scope, owner_id, list_type, slot_index, kind, id, core_uid, count)
+                    VALUES('character', 23, 0, 5, 'world', 302, 302, 1);
                     """, ("@core", validCore));
             }
 
@@ -347,10 +352,13 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 INSERT INTO accounts(account_id) VALUES(13);
                 """);
             await ExecuteAsync(databasePath, """
-                INSERT INTO items(item_uid, owner_scope, owner_id, list_type, slot_index, item_core)
-                VALUES(301, 'character', 23, 0, 5, @mine),
-                      (302, 'character', 28, 0, 5, @theirs),
-                      (303, 'account', 13, 12, 5, @cargo);
+                INSERT INTO items(item_uid, item_core)
+                VALUES(301, @mine), (302, @theirs), (303, @cargo);
+                INSERT INTO item_slots(
+                    owner_scope, owner_id, list_type, slot_index, kind, id, core_uid, count)
+                VALUES('character', 23, 0, 5, 'world', 301, 301, 1),
+                      ('character', 28, 0, 5, 'world', 302, 302, 1),
+                      ('account', 13, 12, 5, 'world', 303, 303, 1);
                 """,
                 ("@mine", CreateCore(1, 3003, 31)),
                 ("@theirs", CreateCore(1, 4004, 41)),
@@ -360,7 +368,11 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 new AccountId(13), new CharacterId(23), CancellationToken.None);
 
             var item = Assert.Single(loaded.CharacterItems);
-            Assert.Equal(301, item.StorageEntryId);
+
+            // Row 301 is the one that came back, which its own core says. It no longer says so by
+            // its row key: the archive this side is given declares every item an ordinary
+            // consumable, and a pile is loaded with no name at all.
+            Assert.Null(item.Identity);
             Assert.Equal(3003, item.Core.ItemId);
         }
         finally
@@ -389,14 +401,18 @@ public sealed class SqliteInventoryEntryRepositoryTests
             await SeedSchemaAsync(databasePath);
             _ = new InventorySide(databasePath);
             await ExecuteAsync(databasePath, """
-                INSERT INTO items(item_uid, owner_scope, owner_id, list_type, slot_index, item_core)
-                VALUES(401, 'account', 17, 12, 5, @core);
+                INSERT INTO items(item_uid, item_core) VALUES(401, @core);
+                INSERT INTO item_slots(
+                    owner_scope, owner_id, list_type, slot_index, kind, id, core_uid, count)
+                VALUES('account', 17, 12, 5, 'world', 401, 401, 1);
                 """, ("@core", CreateCore(1, 4004, 41)));
 
             await Assert.ThrowsAsync<SqliteException>(async () =>
                 await ExecuteAsync(databasePath, """
-                    INSERT INTO items(item_uid, owner_scope, owner_id, list_type, slot_index, item_core)
-                    VALUES(402, 'account', 17, 12, 5, @core);
+                    INSERT INTO items(item_uid, item_core) VALUES(402, @core);
+                    INSERT INTO item_slots(
+                        owner_scope, owner_id, list_type, slot_index, kind, id, core_uid, count)
+                    VALUES('account', 17, 12, 5, 'world', 402, 402, 1);
                     """, ("@core", CreateCore(1, 4005, 42))));
         }
         finally
@@ -422,9 +438,11 @@ public sealed class SqliteInventoryEntryRepositoryTests
             var firstCore = invalidCase == "malformed" ? new byte[81] : CreateCore(1, 4004, 41);
             var listType = invalidCase == "wrong-container" ? 3 : 12;
             await ExecuteAsync(databasePath, """
-                INSERT INTO items(
-                    item_uid, owner_scope, owner_id, cargo_character_id, list_type, slot_index, item_core)
-                VALUES(401, 'account', 17, 27, @listType, 5, @core);
+                INSERT INTO items(item_uid, cargo_character_id, item_core)
+                VALUES(401, 27, @core);
+                INSERT INTO item_slots(
+                    owner_scope, owner_id, list_type, slot_index, kind, id, core_uid, count)
+                VALUES('account', 17, @listType, 5, 'world', 401, 401, 1);
                 """,
                 ("@listType", listType),
                 ("@core", firstCore));
@@ -520,6 +538,16 @@ public sealed class SqliteInventoryEntryRepositoryTests
     private static string CreateDatabase() =>
         Path.Combine(Path.GetTempPath(), $"dfo-inventory-{Guid.NewGuid():N}.db");
 
+    /// <summary>
+    /// The tables these tests read, declared here so a row can be written that the real shape
+    /// forbids.
+    /// </summary>
+    /// <remarks>
+    /// The positions are deliberately not held unique here. Two things in one position is exactly
+    /// what the duplicate case below has to put into the database in order to find out what the
+    /// load does with it, and against the real declaration it could not be written at all -- which
+    /// would leave the load's own refusal untested rather than tested.
+    /// </remarks>
     private static async Task SeedSchemaAsync(string databasePath) =>
         await ExecuteAsync(databasePath, """
             CREATE TABLE characters(character_id INTEGER PRIMARY KEY, account_id INTEGER NOT NULL);
@@ -533,19 +561,23 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 cube_gold INTEGER NOT NULL DEFAULT 0);
             CREATE TABLE items(
                 item_uid INTEGER PRIMARY KEY,
-                owner_scope TEXT NOT NULL,
-                owner_id INTEGER NOT NULL,
-                list_type INTEGER NOT NULL,
-                slot_index INTEGER NOT NULL,
                 item_core BLOB NOT NULL,
                 cargo_character_id INTEGER,
-                avatar_uid INTEGER,
                 avatar_expire_date INTEGER,
                 avatar_clear_id INTEGER,
                 avatar_jewel_socket BLOB,
                 avatar_color1 INTEGER,
                 avatar_color2 INTEGER,
                 avatar_delete_date INTEGER);
+            CREATE TABLE item_slots(
+                owner_scope TEXT NOT NULL,
+                owner_id INTEGER NOT NULL,
+                list_type INTEGER NOT NULL,
+                slot_index INTEGER NOT NULL,
+                kind TEXT NOT NULL,
+                id INTEGER NOT NULL,
+                core_uid INTEGER NOT NULL,
+                count INTEGER NOT NULL);
             CREATE TABLE character_container_state(
                 character_id INTEGER NOT NULL,
                 list_type INTEGER NOT NULL,

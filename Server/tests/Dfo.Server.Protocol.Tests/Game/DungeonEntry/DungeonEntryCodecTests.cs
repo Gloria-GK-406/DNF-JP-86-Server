@@ -524,7 +524,10 @@ public sealed class DungeonEntryCodecTests
         public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<ItemPlacement?>(itemId switch
             {
-                ShoulderItemId => new ItemPlacement(ItemKind: 1, StackLimit: 1, SlotStart: 0, SlotEnd: 0),
+                ShoulderItemId => new ItemPlacement(ItemKind: 1, StackLimit: 1, SlotStart: 0, SlotEnd: 0)
+                {
+                    WorldClass = ItemWorldClass.Equipment,
+                },
                 MaterialItemId => new ItemPlacement(ItemKind: 4, StackLimit: 999, SlotStart: 0, SlotEnd: 0),
                 _ => null,
             });

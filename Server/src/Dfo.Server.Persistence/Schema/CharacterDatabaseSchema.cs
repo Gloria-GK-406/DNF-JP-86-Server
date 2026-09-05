@@ -162,9 +162,42 @@ internal static class CharacterDatabaseSchema
         }
     }
 
-    /// <remarks>The order is the one the database reported and carries no meaning.</remarks>
+    /// <remarks>
+    /// The order is the one the database reported and carries no meaning.
+    ///
+    /// <c>item_slots</c> is the one declaration here that was not read back out of a database,
+    /// because no database has ever had it. It says where a thing is -- which owner's which
+    /// container's which position, holding what, and how many -- and it says it the same way for
+    /// a thing that has an identity of its own and for a pile that has none. Which of the two a
+    /// row is saying is <c>kind</c>: <c>world</c> means <c>id</c> names a row of <c>items</c> and
+    /// there is exactly one of it, <c>template</c> means <c>id</c> names an archive template and
+    /// <c>count</c> says how many.
+    ///
+    /// <c>core_uid</c> is beside them because a pile keeps a row of <c>items</c> too -- the
+    /// eighty-two bytes it is sent to the client as are not reconstructible from a template number
+    /// and a count -- and <c>id</c> for a pile names the template rather than that row. So the
+    /// position names its row outright: for a thing with an identity the two are the same number,
+    /// which the table holds them to, and for a pile <c>core_uid</c> is the only thing that says
+    /// which row is the pile's. It is what makes a row nothing points at answerable in one
+    /// condition, and what lets a position be emptied without a position column to find its row by.
+    ///
+    /// <b><c>items</c> no longer says where anything is.</b> The four columns that used to --
+    /// <c>owner_scope</c>, <c>owner_id</c>, <c>list_type</c>, <c>slot_index</c> -- are gone, and so
+    /// is the uniqueness over them. A thing's row is what it is; where it is, is a row of
+    /// <c>item_slots</c> naming it, and there is exactly one place that answers that question now.
+    ///
+    /// <c>items</c> grew the eight columns a contract creature carries beyond its core, named the
+    /// way the avatar's are: the row is the thing, and what a thing of that kind carries are
+    /// columns of it. They are absent on every row that is not one.
+    ///
+    /// <c>item_uid</c> is now bounded. It is the value a creature's identity goes on the wire as,
+    /// and that field is a signed 32-bit integer, so a database able to hand out a larger one
+    /// would be handing out an identity the server cannot say. The bound is on the column that
+    /// allocates it rather than on a caller, because allocation is the only place one is made.
+    /// </remarks>
     private const string TableDeclarations = """
-        CREATE TABLE IF NOT EXISTS items ( item_uid INTEGER PRIMARY KEY AUTOINCREMENT, owner_scope TEXT NOT NULL CHECK (owner_scope IN ('character', 'account')), owner_id INTEGER NOT NULL, list_type INTEGER NOT NULL, slot_index INTEGER NOT NULL, item_core BLOB NOT NULL CHECK (length(item_core) = 82), cargo_character_id INTEGER, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, avatar_uid INTEGER, avatar_expire_date INTEGER, avatar_clear_id INTEGER, avatar_jewel_socket BLOB CHECK (avatar_jewel_socket IS NULL OR length(avatar_jewel_socket) = 30), avatar_color1 INTEGER, avatar_color2 INTEGER, avatar_delete_date INTEGER, UNIQUE(owner_scope, owner_id, list_type, slot_index) );
+        CREATE TABLE IF NOT EXISTS items ( item_uid INTEGER PRIMARY KEY AUTOINCREMENT CONSTRAINT world_identity_fits_the_wire CHECK (item_uid BETWEEN 1 AND 2147483647), item_core BLOB NOT NULL CHECK (length(item_core) = 82), cargo_character_id INTEGER, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, avatar_expire_date INTEGER, avatar_clear_id INTEGER, avatar_jewel_socket BLOB CHECK (avatar_jewel_socket IS NULL OR length(avatar_jewel_socket) = 30), avatar_color1 INTEGER, avatar_color2 INTEGER, avatar_delete_date INTEGER, creature_field04 INTEGER, creature_mode_flag INTEGER, creature_progress_value INTEGER, creature_mode1_field0a INTEGER, creature_mode1_field0b INTEGER, creature_field_after_value INTEGER, creature_text BLOB, creature_tail_flag INTEGER );
+        CREATE TABLE IF NOT EXISTS item_slots ( owner_scope TEXT NOT NULL CHECK (owner_scope IN ('character', 'account')), owner_id INTEGER NOT NULL, list_type INTEGER NOT NULL, slot_index INTEGER NOT NULL, kind TEXT NOT NULL CHECK (kind IN ('world', 'template')), id INTEGER NOT NULL, core_uid INTEGER NOT NULL, count INTEGER NOT NULL, UNIQUE(owner_scope, owner_id, list_type, slot_index), CONSTRAINT slot_count_is_positive CHECK (count > 0), CONSTRAINT world_slot_holds_exactly_one CHECK (kind <> 'world' OR count = 1), CONSTRAINT world_slot_names_its_own_row CHECK (kind <> 'world' OR core_uid = id) );
         CREATE TABLE IF NOT EXISTS character_rentals ( character_id INTEGER NOT NULL, item_id INTEGER NOT NULL, inventory_template_id INTEGER NOT NULL DEFAULT 0, expire_time INTEGER NOT NULL, PRIMARY KEY (character_id, item_id) );
         CREATE TABLE IF NOT EXISTS character_item_cooldowns ( character_id INTEGER NOT NULL, sort_order INTEGER NOT NULL, item_id INTEGER NOT NULL, value INTEGER NOT NULL, PRIMARY KEY (character_id, sort_order) );
         CREATE TABLE IF NOT EXISTS character_item_effects ( character_id INTEGER NOT NULL, sort_order INTEGER NOT NULL, item_id INTEGER NOT NULL, value INTEGER NOT NULL, PRIMARY KEY (character_id, sort_order) );
@@ -179,7 +212,6 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS character_collectbox_slots(character_id INTEGER, box_index INTEGER, slot_index INTEGER, item_id INTEGER, PRIMARY KEY(character_id,box_index,slot_index));
         CREATE TABLE IF NOT EXISTS character_condition ( action_byte INTEGER NOT NULL DEFAULT 0, aura_flag INTEGER NOT NULL DEFAULT 0, black_count INTEGER NOT NULL DEFAULT 0, champion_break_key_id INTEGER NOT NULL DEFAULT 0, champion_break_mode INTEGER NOT NULL DEFAULT 0, champion_break_value INTEGER NOT NULL DEFAULT 0, channel_display_mode INTEGER NOT NULL DEFAULT 0, channel_type INTEGER NOT NULL DEFAULT 0, chaos_point INTEGER NOT NULL DEFAULT 0, character_id INTEGER PRIMARY KEY, chat_ban_end_time INTEGER NOT NULL DEFAULT 0, costume_flag INTEGER NOT NULL DEFAULT 0, creature_buffer BLOB, creature_field1 INTEGER NOT NULL DEFAULT 0, creature_field2 INTEGER NOT NULL DEFAULT 0, creature_field3 INTEGER NOT NULL DEFAULT 0, creature_field4 INTEGER NOT NULL DEFAULT 0, crystal_cube_grade INTEGER NOT NULL DEFAULT 255, crystal_cube_type INTEGER NOT NULL DEFAULT 0, dimension_flag1 INTEGER NOT NULL DEFAULT 0, dimension_flag2 INTEGER NOT NULL DEFAULT 0, dimension_flag3 INTEGER NOT NULL DEFAULT 0, dimension_flag4 INTEGER NOT NULL DEFAULT 0, disguise_kind INTEGER NOT NULL DEFAULT 0, emotion_index INTEGER NOT NULL DEFAULT 0, fatigue_display_update INTEGER NOT NULL DEFAULT 0, fatigue_penalty INTEGER NOT NULL DEFAULT 0, fatigue_update INTEGER NOT NULL DEFAULT 0, hardcore_death_count INTEGER NOT NULL DEFAULT 0, is_disguised INTEGER NOT NULL DEFAULT 0, is_event_character INTEGER NOT NULL DEFAULT 0, is_hardcore_dead INTEGER NOT NULL DEFAULT 0, is_hardcore_mode INTEGER NOT NULL DEFAULT 0, is_premium_pc_room INTEGER NOT NULL DEFAULT 0, is_private_store INTEGER NOT NULL DEFAULT 0, is_return_user INTEGER NOT NULL DEFAULT 0, link_slot_enabled INTEGER NOT NULL DEFAULT 0, link_type_a INTEGER NOT NULL DEFAULT 0, link_type_b INTEGER NOT NULL DEFAULT 0, mood_value INTEGER NOT NULL DEFAULT 0, pc_room_id INTEGER NOT NULL DEFAULT 65537, pc_room_state INTEGER, pet_display_flag INTEGER NOT NULL DEFAULT 0, return_user_flag INTEGER NOT NULL DEFAULT 1, server_group_id INTEGER NOT NULL DEFAULT 0, stamina INTEGER NOT NULL DEFAULT 0, title_display_flag INTEGER NOT NULL DEFAULT 0, trailing_byte INTEGER NOT NULL DEFAULT 0 );
         CREATE TABLE IF NOT EXISTS character_container_state ( character_id INTEGER NOT NULL, list_type INTEGER NOT NULL, list_param16 INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (character_id, list_type) );
-        CREATE TABLE IF NOT EXISTS character_creatures(character_id INTEGER, sort_order INTEGER, creature_key INTEGER, field04 INTEGER, mode_flag INTEGER, progress_value INTEGER, mode1_field0a INTEGER, mode1_field0b INTEGER, field_after_value INTEGER, creature_text BLOB, tail_flag INTEGER, PRIMARY KEY(character_id,sort_order));
         CREATE TABLE IF NOT EXISTS character_daily_challenge_entries(character_id INTEGER, group_index INTEGER, entry_index INTEGER, track_like_id INTEGER, value_a INTEGER, value_b INTEGER, PRIMARY KEY(character_id,group_index,entry_index));
         CREATE TABLE IF NOT EXISTS character_daily_challenge_tail_ids(character_id INTEGER, sort_order INTEGER, id_value INTEGER, PRIMARY KEY(character_id,sort_order));
         CREATE TABLE IF NOT EXISTS character_daily_challenges ( character_id INTEGER, group_index INTEGER, group_id INTEGER, claimed_at TEXT, PRIMARY KEY(character_id,group_index) );
@@ -210,9 +242,8 @@ internal static class CharacterDatabaseSchema
         """;
 
     private const string IndexDeclarations = """
-        CREATE INDEX IF NOT EXISTS idx_items_owner_space ON items(owner_id, list_type, slot_index);
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_items_account_slot ON items(owner_id, slot_index) WHERE owner_scope = 'account';
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_items_avatar_uid ON items(avatar_uid) WHERE avatar_uid IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS idx_item_slots_core ON item_slots(core_uid);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_item_slots_account_slot ON item_slots(owner_id, slot_index) WHERE owner_scope = 'account';
         CREATE INDEX IF NOT EXISTS idx_characters_account ON characters(account_id, delete_flag, slot_index);
         """;
 
@@ -259,17 +290,6 @@ internal static class CharacterDatabaseSchema
         character_collectbox_slots|slot_index|INTEGER
         character_collectbox_slots|item_id|INTEGER
         character_container_state|list_param16|INTEGER NOT NULL DEFAULT 0
-        character_creatures|character_id|INTEGER
-        character_creatures|sort_order|INTEGER
-        character_creatures|creature_key|INTEGER
-        character_creatures|field04|INTEGER
-        character_creatures|mode_flag|INTEGER
-        character_creatures|progress_value|INTEGER
-        character_creatures|mode1_field0a|INTEGER
-        character_creatures|mode1_field0b|INTEGER
-        character_creatures|field_after_value|INTEGER
-        character_creatures|creature_text|BLOB
-        character_creatures|tail_flag|INTEGER
         character_daily_challenge_entries|character_id|INTEGER
         character_daily_challenge_entries|group_index|INTEGER
         character_daily_challenge_entries|entry_index|INTEGER

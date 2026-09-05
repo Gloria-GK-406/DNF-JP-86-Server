@@ -3,7 +3,12 @@ using Dfo.Server.Application.Commands;
 using Dfo.Server.Infrastructure;
 using Dfo.Server.Persistence;
 using Dfo.Server.Protocol;
+using Dfo.Server.Protocol.Game.CreateCharacter;
+using Dfo.Server.Protocol.Game.DeleteCharacter;
+using Dfo.Server.Protocol.Game.Login;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
+using Dfo.Server.Protocol.Game.SelectCharacter;
+using Dfo.Server.Protocol.Game.TaggedIdReport;
 using Dfo.Server.Protocol.Game.UseStackable;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -53,6 +58,52 @@ public sealed class CommandRegistrationTests
 
         Assert.Contains(registrations, value => value.CommandType == typeof(UseStackableCommand));
         Assert.Contains(registrations, value => value.CommandType == typeof(MoveItemSpaceCommand));
+    }
+
+    /// <summary>
+    /// That the commands which can reach a persistent write are the transactional kind.
+    /// </summary>
+    /// <remarks>
+    /// Only <c>Transactional</c> makes <c>UnitOfWorkBehavior</c> open a domain transaction, and
+    /// without one a handler's writes each settle on their own with nobody able to take them back.
+    /// The repository convention names these ten for exactly that reason.
+    /// <para>
+    /// This is pinned rather than left to the convention because entry save now depends on it for
+    /// player data. It takes away every pile the character still holds and writes them again inside
+    /// the same save, so the rows that used to be safe to lose -- the ones a lease had let go of --
+    /// are no longer the only ones in the delete. Change the kind on <c>Prepare</c> and that pair
+    /// stops being one change: the delete settles, the rewrite does not, and the piles are gone with
+    /// nothing said. Before this assertion existed that edit left the whole suite green.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_commands_that_reach_a_persistent_write_are_transactional()
+    {
+        using var provider = BuildProductionGraph();
+        var registrations = provider.GetServices<CommandHandlerRegistration>()
+            .ToDictionary(value => value.CommandType, value => value.ExecutionKind);
+
+        Type[] reachPersistentWrites =
+        [
+            typeof(LoginGameUserCommand),
+            typeof(CreateCharacterCommand),
+            typeof(DeleteCharacterCommand),
+            typeof(PrepareSelectedCharacterSessionCommand),
+            typeof(ApplySelectedCharacterDailyRefillCommand),
+            typeof(SynchronizeSelectedCharacterQuestsCommand),
+            typeof(ReviveSelectedCharacterPetCommand),
+            typeof(MoveItemSpaceCommand),
+            typeof(UseStackableCommand),
+            typeof(GrantTutorialRewardCommand),
+        ];
+
+        foreach (var command in reachPersistentWrites)
+        {
+            Assert.True(
+                registrations.TryGetValue(command, out var kind),
+                $"{command.Name} is not registered at all.");
+            Assert.Equal(CommandExecutionKind.Transactional, kind);
+        }
     }
 
     /// <remarks>

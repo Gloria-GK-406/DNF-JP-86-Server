@@ -760,7 +760,7 @@ public sealed class SelectCharacterLifecycleTests
         /// </remarks>
         private static readonly CommittedInventoryUpdateState RefillCommit = new(
             InventoryContainerType.Main,
-            [new InventoryItemState(1, 3, StackableItemCore.Create(2, 1001, 1))],
+            [new InventoryItemState(null, 3, StackableItemCore.Create(2, 1001, 1))],
             DateTimeOffset.UnixEpoch);
 
         public int Claims { get; private set; }

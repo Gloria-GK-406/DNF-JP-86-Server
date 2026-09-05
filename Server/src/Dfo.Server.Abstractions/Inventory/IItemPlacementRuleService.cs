@@ -33,12 +33,36 @@ public interface IItemPlacementRuleService
     ValueTask<byte?> WornSlotForAsync(int itemId, CancellationToken cancellationToken);
 
     /// <summary>
+    /// What sort of thing this template is: a pile, or an individual piece of one of three kinds.
+    /// </summary>
+    /// <remarks>
+    /// <b>The one place the question is answered.</b> Every write of an item passes through here
+    /// before it is made, so a thing is classified as it is written rather than once during some
+    /// migration -- and the two writes that used to answer it for themselves cannot drift.
+    /// <para>
+    /// It takes a template identifier and nothing else. That is not brevity: it is what makes the
+    /// answer impossible to take from the kind byte a stored row happens to carry. Those two still
+    /// disagree -- an avatar is stored as kind 8 and the archive's equipment index gives it kind 1
+    /// -- and a classifier handed the row would be free to believe the row. The contract creature
+    /// used to be a second such pair and no longer is: the archive now gives it the kind storage
+    /// records it under.
+    /// </para>
+    /// </remarks>
+    ValueTask<ItemWorldClass> ClassifyAsync(int itemId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Whether this item is a piece of equipment.
     /// </summary>
     /// <remarks>
+    /// One reading of <see cref="ClassifyAsync"/> rather than a second answer beside it: the
+    /// archive's equipment index is exactly what makes a template an individual piece, so
+    /// "equipment" here means any of the three individual kinds, which is what the kind number
+    /// this used to read meant as well.
+    /// <para>
     /// False for an item the archive does not declare, which is the same reading both callers of
     /// the kind number already took: an unknown piece is described and banked as an ordinary
     /// stackable rather than refused.
+    /// </para>
     /// </remarks>
     ValueTask<bool> IsEquipmentAsync(int itemId, CancellationToken cancellationToken);
 }

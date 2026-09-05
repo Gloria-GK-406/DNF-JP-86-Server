@@ -116,7 +116,16 @@ internal sealed class SelectCharacterPetEntryService(
             .ConfigureAwait(false);
         if (equipped?.Core is not { ItemKind: CreatureItemKind } core || core.Value <= 0) return null;
 
-        var creatureKey = (long)core.Value;
+        // Which creature this is, read off the position that holds it rather than off a number
+        // inside its core. The core's value is what the wire carries for a creature and nothing
+        // said it was also the key the creature's condition is kept under; the two agreed only by
+        // luck, and where they did not, entry quietly failed to revive a dead creature. The
+        // identity is the key -- it is the number this same creature appears under in the list the
+        // frame writes, so the row found here and the entry the mutation has to appear in are the
+        // same creature by construction.
+        if (equipped.Identity is not { } worn) return null;
+
+        var creatureKey = (long)worn.Value;
         var creature = await stores.ReadAsync(
             characters, rows => rows.Creatures.ReadAsync(place, creatureKey, cancellationToken))
             .ConfigureAwait(false);

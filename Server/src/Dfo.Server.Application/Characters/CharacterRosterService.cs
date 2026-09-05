@@ -1,6 +1,8 @@
 using System.Buffers.Binary;
 using System.Text;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -29,7 +31,8 @@ internal sealed class CharacterRosterService(
     ICharacterSettingsTable settings,
     ICharacterExpertJobTable expertJob,
     ICharacterContainerStateTable containerState,
-    ICharacterItemTable items) : ICharacterRepository
+    ICharacterItemTable items,
+    IItemPlacementRuleService placementRules) : ICharacterRepository
 {
     /// <summary>
     /// A new character enters at full health. Written explicitly because the column's schema
@@ -194,9 +197,47 @@ internal sealed class CharacterRosterService(
         // attack and whose weapon-bound skills the client draws greyed.
         foreach (var piece in equipment)
         {
-            await items.InsertOwnAsync(
-                characterId, (int)InventoryContainerType.Equipment, piece.SlotIndex,
-                EquipmentCore(piece), null, cancellationToken).ConfigureAwait(false);
+            // Classified before it is written, out of the one place that classifies. A worn slot
+            // holds one thing rather than a pile, so a starting piece the archive declares
+            // interchangeable is a mistake in the creation table rather than a character who
+            // begins with a stack of potions welded to their shoulder.
+            var worldClass = await placementRules
+                .ClassifyAsync(piece.ItemId, cancellationToken).ConfigureAwait(false);
+            if (worldClass == ItemWorldClass.Interchangeable)
+            {
+                throw new InvalidDataException(
+                    $"Starting piece {piece.ItemId} is not an individual piece the archive "
+                    + "declares wearable, so it cannot be worn in slot "
+                    + $"{piece.SlotIndex}.");
+            }
+
+            // Two rows, because a thing and where it is are two facts. The piece goes into the
+            // world first and is given an identity there; the equipment slot then says it holds
+            // that identity. Writing only the first would leave a piece nothing anywhere points
+            // at -- a character created unarmed, and a row the orphan read would rightly report.
+            var identity = await items
+                .InsertOwnAsync(EquipmentCore(piece), null, cancellationToken)
+                .ConfigureAwait(false);
+            if (identity is not { } named)
+            {
+                throw new InvalidDataException(
+                    $"Starting piece {piece.ItemId} could not be put into the world.");
+            }
+
+            var worn = checked((int)named);
+            if (await items.HoldOwnAsync(
+                    characterId,
+                    (int)InventoryContainerType.Equipment,
+                    piece.SlotIndex,
+                    ItemSlotKind.World,
+                    worn,
+                    worn,
+                    1,
+                    cancellationToken).ConfigureAwait(false) != 1)
+            {
+                throw new InvalidDataException(
+                    $"Two starting pieces claim equipment slot {piece.SlotIndex}.");
+            }
         }
 
         // The rows without which the character cannot be entered. Each of the six holds one

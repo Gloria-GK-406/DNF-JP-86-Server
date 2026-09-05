@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Transactions;
@@ -90,9 +91,23 @@ public sealed class PersistentContainerBoundaryTests
             new SqliteItemDomainStore(path),
             scope,
             null!,
-            null!,
+            // A write classifies what it is about to write, so this one is supplied rather than
+            // left null. It answers what these piles are: an ordinary consumable of the main band.
+            new ItemPlacementRuleService(new MainBandPlacements(), new NoWearables()),
             null!,
             null!);
+    }
+
+    private sealed class MainBandPlacements : IItemPlacementDefinitionSource
+    {
+        public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(2, 100, 65, 120));
+    }
+
+    private sealed class NoWearables : IEquipmentSlotDefinitionSource
+    {
+        public ValueTask<byte?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<byte?>(null);
     }
 
     private static InventoryItemCoreState Core(int count) =>

@@ -58,7 +58,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         {
             Containers = [
                 new InventoryContainerState(InventoryContainerType.Main, 0,
-                    [new InventoryItemState(1, 65, Core(itemKind: 4, itemId: 9001, value: 2))]),
+                    [new InventoryItemState(new ItemIdentity(1), 65, Core(itemKind: 4, itemId: 9001, value: 2))]),
                 new InventoryContainerState(InventoryContainerType.Equipment, 0, [])]
         };
         var leases = new EntryInventoryLeaseRegistry();
@@ -117,7 +117,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
             {
                 VirtualResources = [new InventoryRuntimeValueState(0, 0, 7)],
                 Containers = [new InventoryContainerState(InventoryContainerType.Main, 0,
-                    [new InventoryItemState(1, 65, Core(itemKind: 5, itemId: 99, value: 999_999))]),
+                    [new InventoryItemState(new ItemIdentity(1), 65, Core(itemKind: 5, itemId: 99, value: 999_999))]),
                     new InventoryContainerState(InventoryContainerType.Equipment, 0, [])]
             }
         };
@@ -169,9 +169,16 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         characters.Creatures[(603, 77)] = new StoredCreature(77, 0);
         var accessor = new OpenTransactionAccessor();
         var items = new VolatileItemDomainStore();
+        // The creature is named by its identity and by nothing else. Its core carries a different
+        // number on purpose: that value is what the wire shows for a creature, it is not the key
+        // its condition is kept under, and a revival that went looking by it would find the wrong
+        // creature or none.
         items.SessionIn(accessor.Current!).Write(
             ContainerId.ForCharacter(new CharacterId(603), InventoryContainerType.Equipment),
-            new StoredItem(24, Core(itemKind: 5, itemId: 1, value: 77)));
+            new StoredItem(24, Core(itemKind: 5, itemId: 1, value: 999))
+            {
+                Identity = new ItemIdentity(77),
+            });
         var service = new SelectCharacterPetEntryService(
             characters, items, new AmbientStoreAccess(accessor));
 

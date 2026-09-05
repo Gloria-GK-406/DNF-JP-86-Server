@@ -46,7 +46,7 @@ internal static class GameInventoryItemEntry
         var core = item.Core ?? throw Missing("InventoryItem.Core");
         var avatar = item.AvatarDetail;
         if (core.ItemKind == 8 && avatar is null)
-            throw Missing($"AvatarDetail[{item.StorageEntryId}]");
+            throw Missing($"AvatarDetail[slot {item.SlotIndex}]");
         if (core.ItemKind != 8 && avatar is not null)
             throw new InvalidDataException("Non-avatar inventory item carries avatar detail.");
 
@@ -230,7 +230,7 @@ internal static class GameInventoryDelivery
     public static IGameServerMessage CarriedGoldNotification(int carried, DateTimeOffset preparedAt) =>
         new InventoryDeltaMessage(
             InventoryContainerType.Main,
-            [new InventoryItemState(0, CarriedGoldSlot, CarriedGoldCore(carried))],
+            [new InventoryItemState(null, CarriedGoldSlot, CarriedGoldCore(carried))],
             preparedAt);
 
     /// <summary>The main list's first virtual slot, where the client draws carried gold.</summary>

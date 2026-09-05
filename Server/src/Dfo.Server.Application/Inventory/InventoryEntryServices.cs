@@ -164,7 +164,6 @@ internal static class InventoryEntryProjection
                 group => group.Key,
                 group => (IReadOnlyList<InventoryItemState>)group
                     .OrderBy(item => item.SlotIndex)
-                    .ThenBy(item => item.StorageEntryId)
                     .Select(ToItemState)
                     .ToArray());
     }
@@ -181,7 +180,6 @@ internal static class InventoryEntryProjection
             "account cargo");
         return source
             .OrderBy(item => item.SlotIndex)
-            .ThenBy(item => item.StorageEntryId)
             .Select(ToItemState)
             .ToArray();
     }
@@ -207,8 +205,13 @@ internal static class InventoryEntryProjection
         }
     }
 
+    /// <remarks>
+    /// The two orderings above sort by slot alone. They used to break a tie on the storage row
+    /// key, which was a tie that cannot happen -- <see cref="ValidateItems"/> has already refused
+    /// two items in one container's slot -- and which asked a pile for a mark it does not have.
+    /// </remarks>
     private static InventoryItemState ToItemState(InventoryStorageItem item) =>
-        new(item.StorageEntryId, item.SlotIndex, item.Core, item.AvatarDetail);
+        new(item.Identity, item.SlotIndex, item.Core, item.AvatarDetail);
 
     private static IReadOnlyList<InventoryRuntimeValueState> NormalizeRuntimeValues(
         IReadOnlyList<InventoryRuntimeValueState> source)

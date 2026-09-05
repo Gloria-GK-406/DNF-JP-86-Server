@@ -21,7 +21,7 @@ public sealed class PvfEntryLifecycleContentSourceTests
         ];
 
         var rules = PvfEntryLifecycleContentSource.Parse(values, PreparedAt,
-            _ => new PvfEntryLifecycleContentSource.RefillItemMetadata(100, 2, 65, 120));
+            _ => new PvfEntryLifecycleContentSource.RefillItemMetadata(100, 2, 65, 120, ItemWorldClass.Interchangeable));
 
         Assert.Equal([2680738, 690001556], rules.Select(value => value.ItemId));
         // How many a rule grants is no longer the content source's judgement to make.
@@ -29,7 +29,7 @@ public sealed class PvfEntryLifecycleContentSourceTests
         Assert.Equal(1, new DailyRefillRuleService().GrantFor(rules[1], 99));
         Assert.Throws<FormatException>(() => PvfEntryLifecycleContentSource.Parse(
             ["1", "2", "2030-01-01 06:00:00"], PreparedAt,
-            _ => new PvfEntryLifecycleContentSource.RefillItemMetadata(100, 2, 65, 120)));
+            _ => new PvfEntryLifecycleContentSource.RefillItemMetadata(100, 2, 65, 120, ItemWorldClass.Interchangeable)));
 
         Assert.Equal(7, PvfEntryLifecycleContentSource.ResolveStackableItemKind(1, "[creature]"));
         Assert.Equal(9, PvfEntryLifecycleContentSource.ResolveStackableItemKind(1, "[avatar emblem]"));
@@ -39,6 +39,36 @@ public sealed class PvfEntryLifecycleContentSourceTests
         Assert.Equal(11, PvfEntryLifecycleContentSource.ResolveStackableItemKind(3033, "[material]"));
         Assert.Equal(2, PvfEntryLifecycleContentSource.ResolveStackableItemKind(1, "[consumable]"));
     }
+
+    /// <summary>
+    /// What an <c>[equipment type]</c> name says the piece is, including the avatar answer.
+    /// </summary>
+    /// <remarks>
+    /// The avatar branch is the one of the three with a consequence beyond the classification
+    /// itself: the entry load refuses a row the archive calls an avatar unless the row says so too,
+    /// and nothing else decides that. It was the only branch of this function no assertion reached,
+    /// so a reading that stopped answering <see cref="ItemWorldClass.Avatar"/> would have left the
+    /// suite green and the refusal silently disarmed.
+    ///
+    /// The two avatar names are the ones this function's own remarks give; the rest are names the
+    /// slot table already lists. The backtick and the padding are what the archive's strings
+    /// actually carry, so the normalisation is asserted rather than assumed.
+    /// </remarks>
+    [Theory]
+    [InlineData("[hat avatar]", ItemWorldClass.Avatar)]
+    [InlineData("[coat avatar]", ItemWorldClass.Avatar)]
+    [InlineData("`[coat avatar]`", ItemWorldClass.Avatar)]
+    [InlineData("  [COAT AVATAR]  ", ItemWorldClass.Avatar)]
+    [InlineData("[creature]", ItemWorldClass.Creature)]
+    [InlineData("`[creature]`", ItemWorldClass.Creature)]
+    [InlineData("[coat]", ItemWorldClass.Equipment)]
+    [InlineData("[weapon]", ItemWorldClass.Equipment)]
+    [InlineData("", ItemWorldClass.Equipment)]
+    [InlineData(null, ItemWorldClass.Equipment)]
+    public void EquipmentType_IsReadAsTheAvatarTheCreatureOrOrdinaryGear(
+        string? equipmentType, ItemWorldClass expected) =>
+        Assert.Equal(
+            expected, PvfEntryLifecycleContentSource.ClassifyEquipmentType(equipmentType));
 
     [SkippableFact]
     public async Task DailyRefill_RealArchiveProducesAuthoritativeRulesWithStackLimits()

@@ -156,11 +156,11 @@ internal static partial class StateSynchronizationPayloadCodec
     {
         const byte avatarKind = 8;
         const byte creatureKind = 5;
-        var core = item.Core ?? throw Missing($"SupportEquipment.Core[{item.StorageEntryId}]");
+        var core = item.Core ?? throw Missing($"SupportEquipment.Core[slot {item.SlotIndex}]");
         if (item.SlotIndex is < 0 or > byte.MaxValue)
             throw new InvalidDataException("NOTI-2 equipment slot must fit u8.");
         if (core.ItemKind == avatarKind && item.AvatarDetail is null)
-            throw Missing($"SupportEquipment.AvatarDetail[{item.StorageEntryId}]");
+            throw Missing($"SupportEquipment.AvatarDetail[slot {item.SlotIndex}]");
         if (core.ItemKind != avatarKind && item.AvatarDetail is not null)
             throw new InvalidDataException("Non-avatar support equipment carries avatar detail.");
 
@@ -200,7 +200,7 @@ internal static partial class StateSynchronizationPayloadCodec
         if (item.SlotIndex == Noti2CreatureSlot)
         {
             if (core.ItemKind == creatureKind && item.Noti2CreatureMarker is null)
-                throw Missing($"SupportEquipment.Noti2CreatureMarker[{item.StorageEntryId}]");
+                throw Missing($"SupportEquipment.Noti2CreatureMarker[slot {item.SlotIndex}]");
             writer.Write(core.ItemKind == creatureKind
                 ? item.Noti2CreatureMarker!.Value
                 : core.Marker16 == -1 ? 0u : unchecked((uint)core.Marker16));

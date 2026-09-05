@@ -4,11 +4,13 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Abstractions.Persistence;
 
-/// <summary>One row of <c>items</c> belonging to a character, as it is stored.</summary>
+/// <summary>One of a character's things, together with the position holding it.</summary>
 /// <remarks>
-/// Everything here is the column's own value, including the scope and owner that the load checks
-/// against the character it was asked for. A row that carries someone else's owner is a row this
-/// has to be able to describe, because refusing it is the load's job and not the table's.
+/// Two rows rather than one now: what the thing is comes from <c>items</c>, and where it is comes
+/// from the <c>item_slots</c> row that names it. The scope and owner are that row's, and the load
+/// still checks them against the character it was asked for -- a position that names someone else
+/// is something this has to be able to describe, because refusing it is the load's job and not the
+/// table's.
 ///
 /// <see cref="Avatar"/> is present on exactly the rows that are avatars, and absent on the rest.
 /// Absent is not the same as zeroed: an ordinary item has no avatar facts, and an avatar with none
@@ -52,6 +54,64 @@ public sealed record AvatarDetailRow(
     long Color1,
     long Color2,
     long DeleteDate);
+
+/// <summary>What a contract creature carries beyond its core, from the columns of its own row.</summary>
+/// <remarks>
+/// The same eight facts <c>character_creatures</c> keeps, minus its keys. The key is gone because
+/// the row this hangs off already is the creature: the thing and its state are one row, so there
+/// is no second row left to disagree with the first, and no separate identity to keep in step.
+///
+/// Present on exactly the rows that are creatures, absent on the rest, exactly as
+/// <see cref="AvatarDetailRow"/> is.
+/// </remarks>
+public sealed record CreatureDetailRow(
+    int Field04,
+    int ModeFlag,
+    int ProgressValue,
+    int Mode1Field0A,
+    int Mode1Field0B,
+    int FieldAfterValue,
+    byte[] CreatureText,
+    int TailFlag);
+
+/// <summary>One thing in the world, and what it carries -- without saying where it is.</summary>
+/// <remarks>
+/// <see cref="ItemUid"/> is the identity. It is an <c>int</c> rather than a <c>long</c> because
+/// there is one identity space and it is the narrow one: a creature's identity goes on the wire as
+/// a signed 32-bit integer, and a second identity kept alongside the first purely to be wider is
+/// two things that have to be kept in step. The allocation is bounded so this conversion can never
+/// be the thing that fails.
+///
+/// Exactly one of <see cref="Avatar"/> and <see cref="Creature"/> is present on a row that is one
+/// of those, and neither is on a row that is neither.
+/// </remarks>
+public sealed record WorldItemRow(
+    int ItemUid,
+    InventoryItemCoreState Core,
+    AvatarDetailRow? Avatar,
+    CreatureDetailRow? Creature);
+
+/// <summary>Which owner's which container's which position.</summary>
+public sealed record ItemPlace(string OwnerScope, int OwnerId, int ListType, int SlotIndex);
+
+/// <summary>One row of <c>item_slots</c>: what a position holds, and how many.</summary>
+/// <remarks>
+/// <b>One shape for both kinds of content.</b> A slot holding a sword and a slot holding a stack of
+/// potions are the same three columns; only their values differ. <see cref="Kind"/> says which of
+/// the two <see cref="Id"/> is, so a value is never read as the other thing by accident -- and it
+/// is the query that then decides, rather than a rule somebody has to remember.
+///
+/// A world slot holds exactly one, which the table itself holds it to. A template slot holds as
+/// many as the pile has.
+///
+/// <see cref="CoreUid"/> is the row of <c>items</c> this position's eighty-two bytes are kept on.
+/// For a thing with an identity it is <see cref="Id"/> again, which the table holds it to; for a
+/// pile it is the only thing that says which row is the pile's, because <see cref="Id"/> names the
+/// template there. It is what makes a position able to find and empty its row without <c>items</c>
+/// carrying a position of its own.
+/// </remarks>
+public sealed record ItemSlotRow(
+    ItemPlace Place, ItemSlotKind Kind, int Id, int CoreUid, int Count);
 
 /// <summary>One row of <c>character_container_state</c>.</summary>
 public sealed record ContainerStateRow(int CharacterId, int ListType, int Value);
@@ -105,7 +165,133 @@ public sealed record CubeFragmentRow(
     int ClearCube,
     int GoldCube);
 
-/// <summary>The rows of <c>items</c> a character owns.</summary>
+/// <summary>The rows of <c>items</c>, read and written as things rather than as places.</summary>
+/// <remarks>
+/// Beside <see cref="ICharacterItemTable"/> rather than replacing it: that one answers a
+/// character's whole inventory in the order the entry load reads it, and every caller it has wants
+/// exactly that. This one addresses one thing by its identity, which is the question a place cannot
+/// ask today and the whole reason the identity exists.
+///
+/// A row in the table this addresses outlives every move of the thing it is about: where something
+/// sits is a row in the slot table, so moving it rewrites that row and leaves the world row alone,
+/// and a world row is created once and deleted once. **Nothing production reaches this interface**
+/// -- the composition root binds only <c>ICharacterItemTable</c>, and the one implementation is
+/// constructed by tests alone. Settlement writes the same table through its own statements.
+///
+/// Two sets of sentences stood here before, and naming both is the point. The first said nothing
+/// reached this yet, that settlement still wrote a row per slot, and that moving one still
+/// destroyed and rebuilt it; the last two stopped being true when settlement changed. The second
+/// opened "Settlement reaches this now" -- written in the same outcome, to replace the first --
+/// and that was wrong on the day it was written: what changed was the table, not this interface's
+/// callers. A remark that survives the code it describes is worse than none, and a correction that
+/// introduces its own false sentence is how that happens.
+/// </remarks>
+public interface IWorldItemTable
+{
+    /// <summary>Puts a thing into the world and answers the identity it was given.</summary>
+    /// <remarks>
+    /// Nowhere is named. A thing put into the world is in the world and nowhere else until a
+    /// position says it holds it, which is a row of <c>item_slots</c> and not a column of this one.
+    /// </remarks>
+    /// <param name="avatar">What this thing carries as an avatar, or null when it is not one.</param>
+    /// <param name="creature">What it carries as a creature, or null when it is not one.</param>
+    ValueTask<int> InsertAsync(
+        InventoryItemCoreState core,
+        AvatarDetailRow? avatar,
+        CreatureDetailRow? creature,
+        CancellationToken cancellationToken);
+
+    /// <summary>The thing with that identity, or nothing when the world holds none.</summary>
+    ValueTask<WorldItemRow?> FindAsync(int itemUid, CancellationToken cancellationToken);
+
+    /// <summary>Every thing in the world that no position holds.</summary>
+    /// <remarks>
+    /// The state a world row exists in order to be able to express. A thing outlives the positions
+    /// it passes through, so it can be in none of them -- and something that is in none of them is
+    /// something nobody can reach by looking at an inventory. This is the read that says which
+    /// those are.
+    /// <para>
+    /// <b>Nothing here removes them.</b> Sweeping them up is later work with a schedule of its
+    /// own; a read that quietly deleted would leave that work nothing to review and no way to see
+    /// what it had done.
+    /// </para>
+    /// <para>
+    /// <b>A pile's row is not one of these.</b> Something interchangeable keeps a row of
+    /// <c>items</c> as well, because its core carries values a template id and a count cannot
+    /// rebuild. This used to be the whole difficulty: the position holding a pile names the
+    /// template rather than the row, so no slot's <c>id</c> ever named a pile's row, and telling a
+    /// pile from an orphan needed the position columns <c>items</c> no longer has. A position now
+    /// names its row outright in <c>core_uid</c>, whichever kind it holds, so the question is one
+    /// condition and the same one for both.
+    /// </para>
+    /// <para>
+    /// <b>The answer is exactly as truthful as the slot table.</b> A write that put a row into
+    /// <c>items</c> without the position that holds it would leave something this cannot tell from
+    /// a thing nobody holds. Nothing writes that way any more: the entry save and the equipment a
+    /// character is created wearing both put the position down with the thing.
+    /// </para>
+    /// </remarks>
+    ValueTask<IReadOnlyList<WorldItemRow>> ReadUnreferencedAsync(
+        CancellationToken cancellationToken);
+
+    /// <summary>Changes what the thing with that identity carries, leaving the identity alone.</summary>
+    /// <remarks>
+    /// The avatar and creature columns are written on every call rather than only when there are
+    /// some, so a thing that stops being one stops carrying them. Leaving them would not be a
+    /// harmless leftover: what a row carries is what says which kind it is.
+    /// </remarks>
+    ValueTask<int> UpdateAsync(
+        int itemUid,
+        InventoryItemCoreState core,
+        AvatarDetailRow? avatar,
+        CreatureDetailRow? creature,
+        CancellationToken cancellationToken);
+
+    /// <summary>Takes the thing out of the world for good.</summary>
+    ValueTask<int> DeleteAsync(int itemUid, CancellationToken cancellationToken);
+}
+
+/// <summary>The rows of <c>item_slots</c>: what each position holds.</summary>
+/// <remarks>
+/// One position at a time, which is what a caller asking about a place wants. The reads and writes
+/// a whole inventory needs are on <see cref="ICharacterItemTable"/>, because they are one question
+/// about a character rather than many about places.
+/// </remarks>
+public interface IItemSlotTable
+{
+    /// <summary>Everything this owner has, by container and then by position.</summary>
+    ValueTask<IReadOnlyList<ItemSlotRow>> ReadByOwnerAsync(
+        string ownerScope, int ownerId, CancellationToken cancellationToken);
+
+    /// <summary>What one position holds, or nothing when it holds nothing.</summary>
+    ValueTask<ItemSlotRow?> FindAsync(ItemPlace place, CancellationToken cancellationToken);
+
+    /// <summary>Puts that into that position.</summary>
+    /// <remarks>
+    /// Refused when the position is taken, rather than overwriting it. A slot that quietly
+    /// replaced what it held would lose a world row's only reference without anything saying so.
+    /// </remarks>
+    ValueTask<int> InsertAsync(ItemSlotRow row, CancellationToken cancellationToken);
+
+    /// <summary>Empties that position.</summary>
+    ValueTask<int> ClearAsync(ItemPlace place, CancellationToken cancellationToken);
+}
+
+/// <summary>A character's things, and the positions of its own that hold them.</summary>
+/// <remarks>
+/// <b>Writing one is two steps, and they are apart on purpose.</b> What a thing is and where it is
+/// are two rows now, and a save that reshuffles an inventory would otherwise have to put a thing
+/// down in a place the thing it is swapping with has not left yet. So every one of this
+/// character's positions is emptied once, in the middle: <see cref="UpdateOwnAsync"/> and
+/// <see cref="InsertOwnAsync"/> settle what the things are while the old positions still stand --
+/// which is also what lets an update prove the thing is this character's -- and
+/// <see cref="HoldOwnAsync"/> then says where each one ended up.
+/// <para>
+/// This is what replaces parking a row on a position nobody has for the length of a batch. There
+/// is no uniqueness over positions on <c>items</c> left to dodge, because <c>items</c> holds no
+/// position.
+/// </para>
+/// </remarks>
 public interface ICharacterItemTable
 {
     /// <summary>Every one of them, in the order the load reads them.</summary>
@@ -116,10 +302,23 @@ public interface ICharacterItemTable
     ValueTask<IReadOnlyList<MainItemRow>> ReadMainAsync(
         CharacterId characterId, CancellationToken cancellationToken);
 
-    /// <summary>Removes this character's own items apart from the ones named.</summary>
+    /// <summary>
+    /// Removes this character's own things apart from the ones named, with their positions.
+    /// </summary>
+    /// <remarks>
+    /// The positions of the things that are kept are left standing, because they are what says
+    /// those things are this character's until <see cref="ClearOwnPositionsAsync"/> takes them
+    /// away.
+    /// </remarks>
     ValueTask<int> DeleteOwnExceptAsync(
         CharacterId characterId, IReadOnlyList<long> keep, CancellationToken cancellationToken);
 
+    /// <summary>Changes what one of this character's own things carries, wherever it is.</summary>
+    /// <remarks>
+    /// One when the thing is this character's, and nothing at all when it is not -- which is how a
+    /// lease naming something stale, or something belonging to somebody else, is refused rather
+    /// than acted on. Being this character's is read off the position that still holds it.
+    /// </remarks>
     /// <param name="avatarDetail">
     /// What this item carries as an avatar, or null when it is not one. Null clears the avatar
     /// columns rather than leaving them: an item updated out of being an avatar that kept them
@@ -128,19 +327,44 @@ public interface ICharacterItemTable
     ValueTask<int> UpdateOwnAsync(
         long itemUid,
         CharacterId characterId,
-        int listType,
-        int slotIndex,
         InventoryItemCoreState core,
         InventoryAvatarDetailState? avatarDetail,
         CancellationToken cancellationToken);
 
+    /// <summary>Puts a new thing into the world and answers its identity.</summary>
+    /// <remarks>
+    /// No character is named, because a new thing belongs to nobody until a position holds it.
+    /// Null when the write landed on nothing, which here means an avatar UID another row holds.
+    /// </remarks>
     /// <param name="avatarDetail">As above; null for everything that is not an avatar.</param>
-    ValueTask<int> InsertOwnAsync(
+    ValueTask<long?> InsertOwnAsync(
+        InventoryItemCoreState core,
+        InventoryAvatarDetailState? avatarDetail,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Empties every position of this character's inventory, leaving the things themselves.
+    /// </summary>
+    /// <remarks>
+    /// The title-book containers are left alone, exactly as the reads and the scan leave them.
+    /// </remarks>
+    ValueTask<int> ClearOwnPositionsAsync(
+        CharacterId characterId, CancellationToken cancellationToken);
+
+    /// <summary>Says that one of this character's positions now holds that.</summary>
+    /// <param name="id">
+    /// What the position holds: the thing's identity when it has one, the archive's template
+    /// number when it is a pile.
+    /// </param>
+    /// <param name="coreUid">The row of <c>items</c> this position's bytes are kept on.</param>
+    ValueTask<int> HoldOwnAsync(
         CharacterId characterId,
         int listType,
         int slotIndex,
-        InventoryItemCoreState core,
-        InventoryAvatarDetailState? avatarDetail,
+        ItemSlotKind kind,
+        int id,
+        int coreUid,
+        int count,
         CancellationToken cancellationToken);
 }
 

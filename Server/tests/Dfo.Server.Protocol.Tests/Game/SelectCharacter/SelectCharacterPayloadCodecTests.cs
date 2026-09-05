@@ -200,13 +200,13 @@ public sealed class SelectCharacterPayloadCodecTests
             [
                 new InventoryContainerState(InventoryContainerType.Equipment, 0,
                 [
-                    new InventoryItemState(11, 1, ordinary),
-                    new InventoryItemState(12, 2, avatar,
+                    new InventoryItemState(new ItemIdentity(11), 1, ordinary),
+                    new InventoryItemState(new ItemIdentity(12), 2, avatar,
                         new InventoryAvatarDetailState(
                             checked((int)source.World.PreparedAt.AddSeconds(300).ToUnixTimeSeconds()),
                             333, Enumerable.Range(0, 30).Select(value => (byte)value).ToArray(),
                             0x1122, 0x3344, 0)),
-                    new InventoryItemState(13, 24, creature, Noti2CreatureMarker: 555),
+                    new InventoryItemState(new ItemIdentity(13), 24, creature, Noti2CreatureMarker: 555),
                 ]),
             ],
         };
@@ -445,7 +445,7 @@ public sealed class SelectCharacterPayloadCodecTests
                     container.ContainerType == InventoryContainerType.Equipment
                         ? container with
                         {
-                            Items = [.. container.Items, new InventoryItemState(99, 24, petCore)],
+                            Items = [.. container.Items, new InventoryItemState(new ItemIdentity(99), 24, petCore)],
                         }
                         : container).ToArray(),
             },
@@ -782,9 +782,9 @@ internal static class SelectCharacterPayloadTestData
             characterId,
             [
                 new InventoryContainerState(InventoryContainerType.Main, 9,
-                    [new InventoryItemState(1, 3, core)]),
+                    [new InventoryItemState(new ItemIdentity(1), 3, core)]),
                 new InventoryContainerState(InventoryContainerType.Avatar, 0,
-                    [new InventoryItemState(2, 3, avatarCore,
+                    [new InventoryItemState(new ItemIdentity(2), 3, avatarCore,
                         new InventoryAvatarDetailState(1_700_000_500, 44,
                             Enumerable.Range(0, 30).Select(value => (byte)value).ToArray(),
                             0x1122, 0x3344, 0))]),
@@ -836,7 +836,7 @@ internal static class SelectCharacterPayloadTestData
                 .. source.CharacterInventory.Containers,
                 new InventoryContainerState(InventoryContainerType.PersonalCargo, 8, []),
                 new InventoryContainerState(InventoryContainerType.Equipment, 0,
-                    [new InventoryItemState(3, 1, equipmentCore)]),
+                    [new InventoryItemState(new ItemIdentity(3), 1, equipmentCore)]),
                 new InventoryContainerState(InventoryContainerType.Pet, 0, []),
             ],
             ItemValues = new CharacterItemValueEntryState(

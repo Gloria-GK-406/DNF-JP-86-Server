@@ -16,6 +16,10 @@ namespace Dfo.Server.Persistence.Tests.Support;
 ///
 /// Because nothing is written anywhere, its session commits by swapping state it already holds,
 /// which cannot fail.
+///
+/// It keeps things rather than rows, so it hands back exactly what it was given -- including the
+/// identity a write carried, where the durable store answers with the one the position names. A
+/// test whose subject is which thing was found therefore says so when it writes.
 /// </remarks>
 internal sealed class VolatileItemDomainStore : IItemDomainStore
 {

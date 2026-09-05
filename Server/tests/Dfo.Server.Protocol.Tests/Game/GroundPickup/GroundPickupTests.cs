@@ -299,10 +299,12 @@ public sealed class GroundPickupTests
             ValueTask.FromResult<IReadOnlyList<DungeonRoomActor>>([]);
     }
 
+    /// <summary>Everything here is a piece of gear, which is what these tests drop and pick up.</summary>
     private sealed class StubPlacements : IItemPlacementDefinitionSource
     {
         public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(1, 1, 0, 55));
+            ValueTask.FromResult<ItemPlacement?>(
+                new ItemPlacement(1, 1, 0, 55) { WorldClass = ItemWorldClass.Equipment });
     }
 
     /// <summary>Nothing here is worn; these tests never put a piece on.</summary>
@@ -365,7 +367,7 @@ public sealed class GroundPickupTests
             int slotIndex, CancellationToken cancellationToken) =>
             ValueTask.FromResult(
                 this.Slots.TryGetValue(slotIndex, out var core)
-                    ? new ContainerSlotItem(slotIndex, core)
+                    ? new ContainerSlotItem(slotIndex, core, ItemWorldClass.Interchangeable)
                     : null);
 
         public ValueTask PutAsync(

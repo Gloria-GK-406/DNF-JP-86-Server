@@ -18,13 +18,31 @@ namespace Dfo.Server.Persistence.Tests.Schema;
 /// </remarks>
 public sealed class ItemCarrierShapeTests
 {
-    /// <summary>items -- 16 columns.</summary>
+    /// <summary>items -- the ruling's columns less the four that said where, plus a creature's eight.</summary>
+    /// <remarks>
+    /// The eight are not the ruling's. They are <c>character_creatures</c>' own columns less its
+    /// keys, arriving here because this row is now the creature rather than a row pointing at one.
+    /// Named with the same prefix the avatar's carry, for the same reason: a column called
+    /// <c>tail_flag</c> on a table of everything would say whose tail nowhere.
+    ///
+    /// The four that are not here are <c>owner_scope</c>, <c>owner_id</c>, <c>list_type</c> and
+    /// <c>slot_index</c>. They said where a thing was, which is the other table's whole subject;
+    /// keeping them here as well was what made a move rewrite the thing rather than the position,
+    /// and it is the shape this stage retires.
+    /// </remarks>
     private static readonly string[] Items =
     [
         "avatar_clear_id", "avatar_color1", "avatar_color2", "avatar_delete_date",
-        "avatar_expire_date", "avatar_jewel_socket", "avatar_uid", "cargo_character_id",
-        "created_at", "item_core", "item_uid", "list_type", "owner_id", "owner_scope",
-        "slot_index", "updated_at",
+        "avatar_expire_date", "avatar_jewel_socket", "cargo_character_id",
+        "created_at", "creature_field04", "creature_field_after_value", "creature_mode1_field0a",
+        "creature_mode1_field0b", "creature_mode_flag", "creature_progress_value", "creature_tail_flag",
+        "creature_text", "item_core", "item_uid", "updated_at",
+    ];
+
+    /// <summary>item_slots -- 8 columns, and the same eight whatever the slot holds.</summary>
+    private static readonly string[] ItemSlots =
+    [
+        "core_uid", "count", "id", "kind", "list_type", "owner_id", "owner_scope", "slot_index",
     ];
 
     /// <summary>character_rentals -- 4 columns.</summary>
@@ -73,6 +91,7 @@ public sealed class ItemCarrierShapeTests
     public static TheoryData<string, string[]> Carriers() => new()
     {
         { "items", Items },
+        { "item_slots", ItemSlots },
         { "character_rentals", CharacterRentals },
         { "character_item_cooldowns", CharacterItemCooldowns },
         { "character_item_effects", CharacterItemEffects },
@@ -87,10 +106,16 @@ public sealed class ItemCarrierShapeTests
     }
 
     /// <remarks>
-    /// Every constraint the four source tables of <c>items</c> declared has to arrive here, and two
-    /// of them change shape on the way: the title book's core check was an upper bound and becomes
-    /// exact, and the avatar's jewel socket was unconditional and becomes conditional, because most
-    /// rows of this table are not avatars.
+    /// Every constraint the four source tables of <c>items</c> declared has to arrive somewhere,
+    /// and two of them changed shape on the way: the title book's core check was an upper bound and
+    /// became exact, and the avatar's jewel socket was unconditional and became conditional,
+    /// because most rows of this table are not avatars.
+    ///
+    /// Two of them are no longer on this table, and both are checked where they went rather than
+    /// dropped: the uniqueness over a position and the check on the owner's scope are the slot
+    /// table's, asserted by <see cref="TheSlotTableKeepsThePositionUniqueAndHoldsEachKindToItsCount"/>.
+    /// This one asserts they are not here as well, because two tables holding the same fact is how
+    /// they come to disagree.
     /// </remarks>
     [Fact]
     public async Task ItemsCarriesEveryConstraintItsSourcesDeclared()
@@ -98,10 +123,9 @@ public sealed class ItemCarrierShapeTests
         var sql = Squeeze(await DeclarationAsync("items"));
 
         Assert.Contains("item_uid INTEGER PRIMARY KEY AUTOINCREMENT", sql, StringComparison.Ordinal);
-        Assert.Contains(
+        Assert.DoesNotContain(
             "UNIQUE(owner_scope, owner_id, list_type, slot_index)", sql, StringComparison.Ordinal);
-        Assert.Contains(
-            "CHECK (owner_scope IN ('character', 'account'))", sql, StringComparison.Ordinal);
+        Assert.DoesNotContain("owner_scope", sql, StringComparison.Ordinal);
         Assert.Contains("CHECK (length(item_core) = 82)", sql, StringComparison.Ordinal);
         Assert.Contains(
             "CHECK (avatar_jewel_socket IS NULL OR length(avatar_jewel_socket) = 30)",
@@ -110,24 +134,78 @@ public sealed class ItemCarrierShapeTests
     }
 
     /// <remarks>
+    /// A creature's identity goes on the wire as a signed 32-bit integer, and the identity it goes
+    /// as is this column. A database able to allocate a larger one would be able to hand out an
+    /// identity the server cannot say -- so the bound is on the column that allocates them, which
+    /// is the only place one is ever made.
+    /// </remarks>
+    [Fact]
+    public async Task TheWorldIdentityCannotLeaveWhatTheWireCanSay()
+    {
+        var sql = Squeeze(await DeclarationAsync("items"));
+
+        Assert.Contains(
+            "CONSTRAINT world_identity_fits_the_wire CHECK (item_uid BETWEEN 1 AND 2147483647)",
+            sql,
+            StringComparison.Ordinal);
+    }
+
+    /// <remarks>
+    /// The slot table keeps the uniqueness the item table had, because it is the same fact: one
+    /// position holds one thing. What it no longer keeps is the payload, which is why settlement
+    /// may go on destroying and rebuilding a row of it without anything being lost.
+    ///
+    /// The other three say what the kind means for the rest of the row. A world row is one thing,
+    /// so a slot naming one holds exactly one of it and names that very row as the one its bytes
+    /// are on; a template slot holds a pile, and a pile of none is an empty slot rather than a row
+    /// saying nothing.
+    /// </remarks>
+    [Fact]
+    public async Task TheSlotTableKeepsThePositionUniqueAndHoldsEachKindToItsCount()
+    {
+        var sql = Squeeze(await DeclarationAsync("item_slots"));
+
+        Assert.Contains(
+            "UNIQUE(owner_scope, owner_id, list_type, slot_index)", sql, StringComparison.Ordinal);
+        Assert.Contains(
+            "CHECK (owner_scope IN ('character', 'account'))", sql, StringComparison.Ordinal);
+        Assert.Contains(
+            "CONSTRAINT slot_count_is_positive CHECK (count > 0)", sql, StringComparison.Ordinal);
+        Assert.Contains(
+            "CONSTRAINT world_slot_holds_exactly_one CHECK (kind <> 'world' OR count = 1)",
+            sql,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "CONSTRAINT world_slot_names_its_own_row CHECK (kind <> 'world' OR core_uid = id)",
+            sql,
+            StringComparison.Ordinal);
+        Assert.Contains("CHECK (kind IN ('world', 'template'))", sql, StringComparison.Ordinal);
+    }
+
+    /// <remarks>
     /// The strictest of the sources wins where they disagree. A composite primary key does not
     /// imply <c>NOT NULL</c> in SQLite, so the title book's three key columns arrive nullable
     /// unless this is stated outright.
+    ///
+    /// Four of the five are the slot table's columns now, and the requirement travelled with them
+    /// unchanged: a position that left out which container or which slot would be a position that
+    /// says nothing, whichever table it is a row of.
     /// </remarks>
     [Theory]
-    [InlineData("owner_id")]
-    [InlineData("list_type")]
-    [InlineData("slot_index")]
-    [InlineData("item_core")]
-    [InlineData("owner_scope")]
-    public async Task AnItemColumnWithDisagreeingSourcesTakesTheStrictest(string column)
+    [InlineData("item_slots", "owner_id")]
+    [InlineData("item_slots", "list_type")]
+    [InlineData("item_slots", "slot_index")]
+    [InlineData("item_slots", "owner_scope")]
+    [InlineData("item_slots", "core_uid")]
+    [InlineData("items", "item_core")]
+    public async Task AnItemColumnWithDisagreeingSourcesTakesTheStrictest(
+        string table, string column)
     {
-        var sql = Squeeze(await DeclarationAsync("items"));
+        var sql = Squeeze(await DeclarationAsync(table));
         var start = sql.IndexOf(column + " ", StringComparison.Ordinal);
 
-        Assert.True(start >= 0, $"items has no column named {column}.");
-        var declaration = sql[start..sql.IndexOf(',', start)];
-        Assert.Contains("NOT NULL", declaration, StringComparison.Ordinal);
+        Assert.True(start >= 0, $"{table} has no column named {column}.");
+        Assert.Contains("NOT NULL", DeclarationOf(sql, start), StringComparison.Ordinal);
     }
 
     /// <remarks>
@@ -135,7 +213,6 @@ public sealed class ItemCarrierShapeTests
     /// sparse column does not say absent, it says zero -- and the encoder tells the two apart.
     /// </remarks>
     [Theory]
-    [InlineData("avatar_uid")]
     [InlineData("avatar_expire_date")]
     [InlineData("avatar_clear_id")]
     [InlineData("avatar_jewel_socket")]
@@ -143,15 +220,31 @@ public sealed class ItemCarrierShapeTests
     [InlineData("avatar_color2")]
     [InlineData("avatar_delete_date")]
     [InlineData("cargo_character_id")]
+    [InlineData("creature_field04")]
+    [InlineData("creature_mode_flag")]
+    [InlineData("creature_progress_value")]
+    [InlineData("creature_mode1_field0a")]
+    [InlineData("creature_mode1_field0b")]
+    [InlineData("creature_field_after_value")]
+    [InlineData("creature_text")]
+    [InlineData("creature_tail_flag")]
     public async Task ASparseItemColumnIsNullableAndHasNoDefault(string column)
     {
         var sql = Squeeze(await DeclarationAsync("items"));
         var start = sql.IndexOf(column + " ", StringComparison.Ordinal);
 
         Assert.True(start >= 0, $"items has no column named {column}.");
-        var declaration = sql[start..sql.IndexOf(',', start)];
+        var declaration = DeclarationOf(sql, start);
         Assert.DoesNotContain("NOT NULL", declaration, StringComparison.Ordinal);
         Assert.DoesNotContain("DEFAULT", declaration, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>One column's declaration, which ends at the next one or at the table's own end.</summary>
+    private static string DeclarationOf(string sql, int start)
+    {
+        var comma = sql.IndexOf(',', start);
+        var close = sql.LastIndexOf(')');
+        return sql[start..(comma >= 0 && comma < close ? comma : close)];
     }
 
     [Theory]
@@ -181,9 +274,10 @@ public sealed class ItemCarrierShapeTests
     }
 
     /// <remarks>
-    /// The cargo declared <c>UNIQUE(account_id, slot_index)</c>, which the merged table's four-part
-    /// constraint weakens for account rows. One partial unique index takes it back to exactly
-    /// today's strength -- see D-16 in the ruling.
+    /// The cargo declared <c>UNIQUE(account_id, slot_index)</c>, which a four-part constraint over
+    /// the position weakens for account rows. One partial unique index takes it back to exactly
+    /// today's strength -- see D-16 in the ruling. It is an index of the slot table now, because
+    /// the two columns it names are the slot table's; the fact it enforces did not change.
     /// </remarks>
     [Fact]
     public async Task TheCargosOwnSlotUniquenessIsRestoredByAPartialIndex()
@@ -191,36 +285,46 @@ public sealed class ItemCarrierShapeTests
         var indexes = await IndexesAsync();
 
         Assert.True(
-            indexes.TryGetValue("idx_items_account_slot", out var sql),
+            indexes.TryGetValue("idx_item_slots_account_slot", out var sql),
             "The cargo's slot uniqueness has no successor index.");
         Assert.Contains("UNIQUE", sql!, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("owner_id, slot_index", sql!, StringComparison.Ordinal);
+        Assert.Contains("ON item_slots(owner_id, slot_index)", sql!, StringComparison.Ordinal);
         Assert.Contains("WHERE owner_scope = 'account'", sql!, StringComparison.Ordinal);
     }
 
     /// <remarks>
     /// The detail table was keyed on the avatar UID, which says: at most one of these anywhere, not
-    /// per character. A lease that tries to claim a UID another character already holds is refused
-    /// today and rolled back, and a test builds exactly that. A value inside a BLOB cannot be
-    /// indexed, so the UID is stored beside the core and indexed there -- see D-15 in the ruling.
+    /// per character. That rule is still enforced and still tested: the lease that claims a UID
+    /// another character holds is built by
+    /// <c>DirtyLeaseSave_PersistsAvatarDetailsAuthoritativelyAndRollsBackUidCollision</c>,
+    /// which reads the refusal. What has gone is the rule being a key of the table. D-15 stored
+    /// the UID beside the core so an index could name it; the two writes that own the rule ask the
+    /// core instead, and the column and its index are gone. What is asserted here is that nothing
+    /// took their place.
     /// </remarks>
     [Fact]
-    public async Task TheAvatarDetailsPrimaryKeyIsRestoredByAPartialIndex()
+    public async Task TheAvatarsUidIsNoLongerAKeyOfTheTable()
     {
+        var shape = await ShapeAsync();
         var indexes = await IndexesAsync();
 
-        Assert.True(
-            indexes.TryGetValue("idx_items_avatar_uid", out var sql),
-            "The avatar detail's primary key has no successor index.");
-        Assert.Contains("UNIQUE", sql!, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ON items(avatar_uid)", sql!, StringComparison.Ordinal);
-        Assert.Contains("WHERE avatar_uid IS NOT NULL", sql!, StringComparison.Ordinal);
+        Assert.DoesNotContain("avatar_uid", shape["items"]);
+        Assert.DoesNotContain("idx_items_avatar_uid", indexes.Keys);
+        Assert.DoesNotContain(
+            indexes,
+            entry => entry.Value.Contains("avatar", StringComparison.OrdinalIgnoreCase));
     }
 
     /// <remarks>
     /// Each of the six declared indexes has a stated fate in the ruling rather than a rule to infer
-    /// one from. Four name a retired table and go with it; one is rebuilt on the column that
+    /// one from. Four name a retired table and go with it; one was rebuilt on the column that
     /// replaced the one it named.
+    ///
+    /// The sixth answered "this owner's things by position" against <c>items</c>, and it is gone
+    /// rather than rebuilt: those columns are the slot table's, that table already holds them
+    /// unique, and every read of it names the owner's scope first -- so the constraint's own index
+    /// answers what this one used to. What did have to be added is the other direction, from a row
+    /// back to the position naming it, which is how a row nothing holds is found.
     /// </remarks>
     [Fact]
     public async Task EveryIndexThatNamedARetiredTableIsGoneAndTheOneThatMovedWasRebuilt()
@@ -232,12 +336,12 @@ public sealed class ItemCarrierShapeTests
         Assert.DoesNotContain("idx_character_new_items_character_space", indexes.Keys);
         Assert.DoesNotContain("idx_character_rental_items_char", indexes.Keys);
         Assert.DoesNotContain("idx_rental_items_char", indexes.Keys);
+        Assert.DoesNotContain("idx_items_owner_space", indexes.Keys);
 
         Assert.Contains("idx_characters_account", indexes.Keys);
         Assert.Contains(
             indexes,
-            entry => entry.Value.Contains("ON items(owner_id, list_type, slot_index)",
-                StringComparison.Ordinal));
+            entry => entry.Value.Contains("ON item_slots(core_uid)", StringComparison.Ordinal));
     }
 
     private static async Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> ShapeAsync() =>

@@ -35,7 +35,14 @@ public interface ICharacterDomainStore : IDomainStore<ICharacterDomainStoreSessi
 /// </remarks>
 public interface ICharacterDomainStoreSession
 {
-    /// <summary>The creatures the character owns, by the key each is known under.</summary>
+    /// <summary>The creatures the character owns, by the identity each of them is.</summary>
+    /// <remarks>
+    /// The key is the world identity of the creature -- the same number the creature list frame
+    /// writes as each entry's first field. There is one identity space for a creature and it is
+    /// the narrow one the wire can say; a second key kept beside it purely to be wider would be
+    /// two things somebody has to keep in step. The database bounds what it allocates to that
+    /// width, so the conversion the frame makes can never be the thing that fails.
+    /// </remarks>
     IDomainStoreSession<OwnedCharacterId, long, StoredCreature> Creatures { get; }
 
     /// <summary>Whether this pairing is one this store can place at all.</summary>
@@ -55,6 +62,9 @@ public interface ICharacterDomainStoreSession
 }
 
 /// <summary>The condition one of a character's creatures is in.</summary>
+/// <param name="CreatureKey">
+/// Which creature: its world identity, which is the whole of what names it.
+/// </param>
 /// <param name="OnlyWhenAtMostZero">
 /// Whether to write only while the condition is still at most nothing.
 /// </param>

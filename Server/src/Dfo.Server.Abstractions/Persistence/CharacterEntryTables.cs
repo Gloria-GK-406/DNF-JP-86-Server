@@ -192,7 +192,7 @@ public interface ICharacterDungeonPermissionTable
         CharacterId characterId, CancellationToken cancellationToken);
 }
 
-/// <summary>The <c>character_creatures</c> table.</summary>
+/// <summary>The creature rows of <c>items</c>: a character's creatures, in the order they list in.</summary>
 public interface ICharacterCreatureTable
 {
     ValueTask<IReadOnlyList<CharacterPetStorageRow>> ReadAsync(

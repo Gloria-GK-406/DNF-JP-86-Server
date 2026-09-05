@@ -187,10 +187,21 @@ internal sealed class SqliteCharacterDomainStoreSession : ICharacterDomainStoreS
 
 /// <summary>The condition each of a character's creatures is in.</summary>
 /// <remarks>
-/// This section addresses one field of a creature's row rather than the whole of it. The rest of
-/// the row -- its ordering, its text, its mode -- takes part in no use case that writes here, and
-/// carrying it through a read and a write only to put it back unchanged would widen what can go
-/// wrong without widening what can be done.
+/// This section addresses one column of a creature's world row rather than the whole of it. The
+/// rest of the row -- its core, its text, its mode, where it is standing -- takes part in no use
+/// case that writes here, and carrying it through a read and a write only to put it back unchanged
+/// would widen what can go wrong without widening what can be done.
+///
+/// The rows are the creature rows of <c>items</c>, and the key is the world identity. They used to
+/// be rows of <c>character_creatures</c> under a key of their own; a creature is one row now, so
+/// there is no second row to keep in step and no moment at which the two could disagree.
+///
+/// Whether a row is a creature at all is read off the same column this writes, so a write is held
+/// to rows that already are creatures. Setting it on a row that is not one would not correct
+/// anything -- it would make that row answer as a creature to every read that asks.
+///
+/// Whose creature it is comes from the position holding it. A world row says what a thing is and
+/// nothing about whose it is, so both the read and the write ask <c>item_slots</c> that.
 /// </remarks>
 internal sealed class CreatureSection(SqliteDatabaseParticipant owner)
     : SqliteOwnedCharacterSection<long, StoredCreature>(owner)
@@ -201,17 +212,22 @@ internal sealed class CreatureSection(SqliteDatabaseParticipant owner)
         OwnedCharacterId place, CancellationToken cancellationToken)
     {
         await using var command = await this.Owner.CommandAsync(cancellationToken).ConfigureAwait(false);
-        command.CommandText =
-            "SELECT creature_key, field04 FROM character_creatures WHERE character_id=@character;";
+        // A row with no condition recorded is one this section does not hold. Reading it as
+        // nothing would say the creature is in a condition it was never put in, and a caller
+        // acting on that would then fail against a guard the row cannot satisfy.
+        command.CommandText = """
+            SELECT held.item_uid, held.creature_field04 FROM items held
+            WHERE held.creature_field04 IS NOT NULL
+              AND EXISTS (
+                  SELECT 1 FROM item_slots place
+                  WHERE place.owner_scope = 'character' AND place.owner_id = @character
+                    AND place.core_uid = held.item_uid);
+            """;
         command.Parameters.AddWithValue("@character", place.Character.Value);
         var rows = new List<StoredCreature>();
         await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
-            // A row with no condition recorded is one this section does not hold. Reading it as
-            // nothing would say the creature is in a condition it was never put in, and a caller
-            // acting on that would then fail against a guard the row cannot satisfy.
-            if (reader.IsDBNull(1)) continue;
             rows.Add(new StoredCreature(reader.GetInt64(0), reader.GetInt32(1)));
         }
 
@@ -224,12 +240,20 @@ internal sealed class CreatureSection(SqliteDatabaseParticipant owner)
         await using var command = await this.Owner.CommandAsync(cancellationToken).ConfigureAwait(false);
         command.CommandText = value.OnlyWhenAtMostZero
             ? """
-                UPDATE character_creatures SET field04=@condition
-                WHERE character_id=@character AND creature_key=@key AND field04<=0;
+                UPDATE items SET creature_field04=@condition
+                WHERE item_uid=@key AND creature_field04<=0
+                  AND EXISTS (
+                      SELECT 1 FROM item_slots place
+                      WHERE place.owner_scope='character' AND place.owner_id=@character
+                        AND place.core_uid=@key);
                 """
             : """
-                UPDATE character_creatures SET field04=@condition
-                WHERE character_id=@character AND creature_key=@key;
+                UPDATE items SET creature_field04=@condition
+                WHERE item_uid=@key AND creature_field04 IS NOT NULL
+                  AND EXISTS (
+                      SELECT 1 FROM item_slots place
+                      WHERE place.owner_scope='character' AND place.owner_id=@character
+                        AND place.core_uid=@key);
                 """;
         command.Parameters.AddWithValue("@condition", value.Field04);
         command.Parameters.AddWithValue("@character", place.Character.Value);
@@ -241,9 +265,9 @@ internal sealed class CreatureSection(SqliteDatabaseParticipant owner)
     }
 
     /// <remarks>
-    /// A creature's condition is a field of a row this store does not otherwise own, so there is
-    /// nothing here to empty. Clearing it would mean deleting the creature, which is not what this
-    /// section addresses.
+    /// A creature's condition is a column of a world row this store does not otherwise own, so
+    /// there is nothing here to empty. Clearing it would mean deleting the creature itself, which
+    /// is not what this section addresses.
     ///
     /// Refused where it is asked for rather than while flushing: by then other kinds of state have
     /// already written their statements, and a refusal raised then would take them down with it.

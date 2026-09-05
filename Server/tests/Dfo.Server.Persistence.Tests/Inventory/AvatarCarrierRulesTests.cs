@@ -96,8 +96,12 @@ public sealed class AvatarCarrierRulesTests
             await ExecuteAsync(path, $"""
                 INSERT INTO account_cargo_state(account_id,selection_key,value32,item_count)
                 VALUES({Account},1,2,3);
-                INSERT INTO items(owner_scope,owner_id,cargo_character_id,list_type,slot_index,item_core)
-                VALUES('account',{Account},{Character},12,5,{Core(8, 2700, 5151)});
+                INSERT INTO items(cargo_character_id,item_core)
+                VALUES({Character},{Core(8, 2700, 5151)});
+                INSERT INTO item_slots(
+                    owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count)
+                VALUES('account',{Account},12,5,'world',last_insert_rowid(),
+                    last_insert_rowid(),1);
                 """);
 
             var loaded = await side.InUseCaseAsync(token => side.AccountEntries
@@ -142,8 +146,10 @@ public sealed class AvatarCarrierRulesTests
     private static Task InsertCharacterItemAsync(
         string path, int listType, int slot, byte itemKind, int itemId, int value) =>
         ExecuteAsync(path, $"""
-            INSERT INTO items(owner_scope,owner_id,list_type,slot_index,item_core)
-            VALUES('character',{Character},{listType},{slot},{Core(itemKind, itemId, value)});
+            INSERT INTO items(item_core) VALUES({Core(itemKind, itemId, value)});
+            INSERT INTO item_slots(owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count)
+            VALUES('character',{Character},{listType},{slot},'world',last_insert_rowid(),
+                last_insert_rowid(),1);
             """);
 
     private static string Core(byte itemKind, int itemId, int value)

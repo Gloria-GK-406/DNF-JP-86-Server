@@ -41,7 +41,7 @@ public sealed class CharacterEntryInventoryTests
                 new InventoryContainerState(
                     InventoryContainerType.Equipment,
                     0,
-                    [new InventoryItemState(1, 24, Core(9001, 1, itemKind: 5))]),
+                    [new InventoryItemState(new ItemIdentity(1), 24, Core(9001, 1, itemKind: 5))]),
             ],
             [],
             new CharacterItemValueEntryState([], []),
@@ -518,7 +518,7 @@ public sealed class CharacterEntryInventoryTests
     }
 
     private static InventoryStorageItem StorageItem(
-        long storageEntryId,
+        int identity,
         InventoryOwnerType ownerType,
         int ownerId,
         CharacterId? characterId,
@@ -527,7 +527,7 @@ public sealed class CharacterEntryInventoryTests
         int itemId,
         int value = 1) =>
         new(
-            storageEntryId,
+            new ItemIdentity(identity),
             ownerType,
             ownerId,
             characterId,

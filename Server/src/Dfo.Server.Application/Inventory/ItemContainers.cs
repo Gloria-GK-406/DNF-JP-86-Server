@@ -233,17 +233,20 @@ internal abstract class StoreBackedItemContainer(
     {
         var stored = await this.ReadAsync(
             session => session.ReadAsync(id, slotIndex, cancellationToken)).ConfigureAwait(false);
-        return ToSlotItem(stored);
+        return await this.ToSlotItemAsync(stored, cancellationToken).ConfigureAwait(false);
     }
 
     public async ValueTask<ContainerSlotPair> ReadSlotsAsync(
         int firstSlotIndex, int secondSlotIndex, CancellationToken cancellationToken)
     {
-        return await this.ReadAsync(async session => new ContainerSlotPair(
-            ToSlotItem(await session.ReadAsync(id, firstSlotIndex, cancellationToken)
-                .ConfigureAwait(false)),
-            ToSlotItem(await session.ReadAsync(id, secondSlotIndex, cancellationToken)
-                .ConfigureAwait(false)))).ConfigureAwait(false);
+        var pair = await this.ReadAsync(async session => (
+            First: await session.ReadAsync(id, firstSlotIndex, cancellationToken)
+                .ConfigureAwait(false),
+            Second: await session.ReadAsync(id, secondSlotIndex, cancellationToken)
+                .ConfigureAwait(false))).ConfigureAwait(false);
+        return new ContainerSlotPair(
+            await this.ToSlotItemAsync(pair.First, cancellationToken).ConfigureAwait(false),
+            await this.ToSlotItemAsync(pair.Second, cancellationToken).ConfigureAwait(false));
     }
 
     public abstract ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
@@ -254,14 +257,34 @@ internal abstract class StoreBackedItemContainer(
     {
         var stored = await this.ReadAsync(
             session => session.ReadAllAsync(id, cancellationToken)).ConfigureAwait(false);
-        return [.. stored.Select(item => ToSlotItem(item)!)];
+        var read = new List<ContainerSlotItem>(stored.Count);
+        foreach (var item in stored)
+        {
+            read.Add((await this.ToSlotItemAsync(item, cancellationToken).ConfigureAwait(false))!);
+        }
+
+        return read;
     }
 
-    public ValueTask PutAsync(
+    /// <summary>
+    /// The one write every container verb is made of, and therefore where a thing is classified.
+    /// </summary>
+    /// <remarks>
+    /// Relocating, splitting, swapping, merging, consuming, landing an arrival and the card
+    /// reward's direct put are all said as calls to this, so asking the archive here is asking it
+    /// on every one of them. The class is asked of the template rather than read off the core: the
+    /// kind byte the core carries and the archive's answer disagree today, and the point of the
+    /// classification is that the archive wins.
+    /// </remarks>
+    public async ValueTask PutAsync(
         int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(core);
-        return this.WriteAsync(session => session.Write(id, new StoredItem(slotIndex, core)));
+        var worldClass = await placementRules.ClassifyAsync(core.ItemId, cancellationToken)
+            .ConfigureAwait(false);
+        await this.WriteAsync(session => session.Write(
+                id, new StoredItem(slotIndex, core) { WorldClass = worldClass }))
+            .ConfigureAwait(false);
     }
 
     public ValueTask ClearAsync(int slotIndex, CancellationToken cancellationToken) =>
@@ -552,8 +575,28 @@ internal abstract class StoreBackedItemContainer(
     private protected IItemDomainStoreSession? AmbientSession() =>
         transactions.Current is { } ambient ? store.SessionIn(ambient) : null;
 
-    private protected static ContainerSlotItem? ToSlotItem(StoredItem? stored) =>
-        stored is null ? null : new ContainerSlotItem(stored.SlotIndex, stored.Core);
+    /// <summary>
+    /// What a slot holds, said the same way whichever of the two kinds it is.
+    /// </summary>
+    /// <remarks>
+    /// The sort of thing it is comes from the archive, out of the one place that classifies -- the
+    /// same question and the same answer a write of this slot would get. Reading it off the kind
+    /// byte the core carries would be the reading the classification exists to replace, and a
+    /// caller would then be told one thing on the way out and another on the way in.
+    ///
+    /// Nothing about the row it was read from comes with it: not a key, not a name. The store's
+    /// vocabulary has none to give, which is what makes the round trip this file is watched for
+    /// impossible to write rather than merely absent.
+    /// </remarks>
+    private protected async ValueTask<ContainerSlotItem?> ToSlotItemAsync(
+        StoredItem? stored, CancellationToken cancellationToken) =>
+        stored is null
+            ? null
+            : new ContainerSlotItem(
+                stored.SlotIndex,
+                stored.Core,
+                await placementRules.ClassifyAsync(stored.Core.ItemId, cancellationToken)
+                    .ConfigureAwait(false));
 }
 
 /// <summary>

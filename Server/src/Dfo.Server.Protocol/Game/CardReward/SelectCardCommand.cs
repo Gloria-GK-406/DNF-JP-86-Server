@@ -367,12 +367,12 @@ public sealed class SelectCardCommandHandler(
 
         // Built from what was just written rather than re-read through the entry projection: that
         // projection reads the character's rows and this change has not settled yet, so it would
-        // answer the piece as the bag opened it and not as it now stands. The storage identity is
-        // left at zero because this frame has no field for it -- see GameInventoryItemEntry, which
-        // names it only in an error message about an avatar entry, which this is not.
+        // answer the piece as the bag opened it and not as it now stands. No name is carried
+        // because this frame has no field for one, and because the name of what was just written
+        // is settlement's to hand out rather than this caller's to guess at.
         return new CommittedInventoryUpdateState(
             container.Type,
-            [new InventoryItemState(0, slotIndex, core)],
+            [new InventoryItemState(null, slotIndex, core)],
             clock.GetUtcNow());
     }
 }

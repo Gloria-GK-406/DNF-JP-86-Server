@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Inventory;
 
@@ -22,15 +23,15 @@ public interface IItemDomainStore : IDomainStore<IItemDomainStoreSession>;
 /// One use case's reads and writes against one store of items.
 /// </summary>
 /// <remarks>
-/// Everything is addressed by container and slot. There is no identifier for an item, which is
-/// deliberate: a move is expressed as a clear and a write, and a store that handed out identities
-/// would be inviting callers to address the thing rather than the place.
+/// Everything is addressed by container and slot. There is no identifier for an item here, which
+/// stays deliberate: a move is said as a clear and a write, and a session that took identities from
+/// its callers would be inviting them to hold one between a read and a write.
 ///
-/// A write carries the whole of what a slot holds. Enchantments and rolled options are inside the
-/// core, and so is the one fact kept in another table: an avatar's details hang off the avatar UID
-/// the core carries, not off the inventory row, so they follow the core without this session ever
-/// naming them. That is what makes a clear plus a write lossless, and with it the reason no item
-/// needs an identity of its own.
+/// A write carries the whole of what a slot holds, plus what the archive makes of it. The class is
+/// what settlement decides on: a thing with an identity keeps its row and is referred to from the
+/// position that holds it, while a pile is counted in the position and keeps nothing. So a move no
+/// longer destroys what moved -- the row survives the batch and its position changes -- and the
+/// identity of the thing is settlement's to keep rather than a caller's to carry.
 ///
 /// The writes are staged, not applied. They become visible to this session's own reads at once and
 /// to everyone else only when the transaction settles.
@@ -56,4 +57,38 @@ public interface IItemDomainStoreSession : IDomainStoreSession<ContainerId, int,
 }
 
 /// <summary>The whole of what one slot of a store holds.</summary>
-public sealed record StoredItem(int SlotIndex, InventoryItemCoreState Core);
+/// <remarks>
+/// <see cref="WorldClass"/> is what the archive says the thing being written is. It is answered on
+/// the way in and left unanswered on the way out: a write comes from a container, which asks the
+/// classification before it stages anything, while a read comes out of the rows and the store has
+/// no archive to ask. Null therefore means "not asked", not "a pile".
+/// <para>
+/// <b>Settlement decides on it, so a write must answer it.</b> Whether the thing keeps a row of its
+/// own and an identity that outlives its position, or is a count in the position and nothing else,
+/// is read off this and off nothing else. A write that left it unanswered is refused rather than
+/// guessed at: the kind byte a core carries is the reading this classification exists to replace,
+/// and taking silence for "a pile" would throw away the identity of everything it was wrong about.
+/// A read may leave it unanswered because a read decides nothing.
+/// </para>
+/// <para>
+/// <see cref="Identity"/> runs the other way: a read answers with the thing standing in the slot,
+/// and a write leaves it unanswered because settlement is what decides which row a write lands on.
+/// It is there for the one question a slot number cannot answer -- <b>which</b> thing this is --
+/// which is what a caller needs before it can address that thing's own state anywhere else. It is
+/// answered out of the rows, so a read served from this session's own staged writes has none.
+/// </para>
+/// <para>
+/// <b>It is not a token to hold on to.</b> Nothing here accepts one back, and nothing may keep one
+/// across a use case: a thing addressed by an identity read in an earlier transaction is a thing
+/// whose state the caller is guessing at. Within one use case it is an address, and addresses are
+/// exactly what the position table exists to hand out.
+/// </para>
+/// </remarks>
+public sealed record StoredItem(int SlotIndex, InventoryItemCoreState Core)
+{
+    /// <summary>What the archive says this is. Required on a write; null on a read.</summary>
+    public ItemWorldClass? WorldClass { get; init; }
+
+    /// <summary>Which thing this is. Answered on a read from the rows; null on a write.</summary>
+    public ItemIdentity? Identity { get; init; }
+}

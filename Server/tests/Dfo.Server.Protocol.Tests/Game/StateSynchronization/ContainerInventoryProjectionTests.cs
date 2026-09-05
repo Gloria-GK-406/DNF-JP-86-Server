@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Transactions;
@@ -125,9 +126,26 @@ public sealed class ContainerInventoryProjectionTests
                 new SqliteItemDomainStore(Path),
                 new DomainTransactionScope(),
                 Mutations,
-                null!,
+                // A read now asks the archive what sort of thing each slot holds, the same
+                // question a write of that slot asks, so a rules service is supplied rather than
+                // left null. Nothing here is declared, which is the answer an undeclared template
+                // gets anyway: an ordinary pile.
+                new ItemPlacementRuleService(new NothingDeclared(), new NoWearables()),
                 null!,
                 null!);
+
+        private sealed class NothingDeclared : IItemPlacementDefinitionSource
+        {
+            public ValueTask<ItemPlacement?> GetAsync(
+                int itemId, CancellationToken cancellationToken) =>
+                ValueTask.FromResult<ItemPlacement?>(null);
+        }
+
+        private sealed class NoWearables : IEquipmentSlotDefinitionSource
+        {
+            public ValueTask<byte?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+                ValueTask.FromResult<byte?>(null);
+        }
 
         public async Task<InventoryContainerState> LoadContainerAsync(
             InventoryContainerType containerType)
@@ -147,7 +165,11 @@ public sealed class ContainerInventoryProjectionTests
             BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(21, 4), -1);
             await using var connection = Open(Path);
             await using var command = connection.CreateCommand();
-            command.CommandText = "INSERT INTO items(owner_scope,owner_id,list_type,slot_index,item_core) VALUES('character',60,@list,@slot,@core)";
+            command.CommandText =
+                "INSERT INTO items(item_core) VALUES(@core);"
+                + "INSERT INTO item_slots(owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count) "
+                + "VALUES('character',60,@list,@slot,'world',last_insert_rowid(),"
+                + "last_insert_rowid(),1)";
             command.Parameters.AddWithValue("@list", listType);
             command.Parameters.AddWithValue("@slot", slot);
             command.Parameters.AddWithValue("@core", core);

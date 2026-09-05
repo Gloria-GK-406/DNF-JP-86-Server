@@ -264,23 +264,63 @@ internal sealed class SqliteCharacterDungeonPermissionTable(SqliteDatabase datab
             cancellationToken);
 }
 
-/// <summary>The <c>character_creatures</c> table.</summary>
+/// <summary>The creature rows of <c>items</c>: a character's creatures, each one a world row.</summary>
+/// <remarks>
+/// The eight facts used to be a row of <c>character_creatures</c> kept under a key of its own, and
+/// they are columns of the world row now. The creature and its condition are one row, so the state
+/// follows the creature rather than the position it is standing in, and there is no second row
+/// left to disagree with the first. Which rows are creatures is decided by the first of the eight,
+/// exactly as an avatar's presence is decided by its UID.
+///
+/// <b>The identity is the key.</b> <c>creature_key</c> is gone, and <c>item_uid</c> is what the
+/// creature list frame writes as each entry's first field. There is one identity space and it is
+/// the narrow one the wire can say, which the table itself holds the allocation to.
+///
+/// <b>The order is the wire order.</b> The frame writes its entries in the order this read answers
+/// in. That order was ascending <c>character_creatures.sort_order</c> -- a per-character sequence
+/// the primary key admitted one row apiece of -- and it is ascending <c>item_uid</c> now. The two
+/// agree in what matters about them: each is a total order over exactly this character's
+/// creatures, each runs in the order the creatures were acquired, and neither moves when a
+/// creature does -- nothing ever rewrote the old column on a move, and the identity ordered on
+/// here is the one thing a move is defined not to change. Ordering on the position instead would
+/// have reshuffled the list every time a creature was picked up and put down.
+///
+/// The rank is answered rather than stored, because the column that carried it is gone and the
+/// caller sorts on it. Dense from zero, exactly as that column was.
+///
+/// <b>Whose creature it is comes from the position holding it.</b> A world row says what a thing
+/// is and no longer says whose it is, so this asks <c>item_slots</c> -- which is also what makes a
+/// creature nobody holds absent from every character's list rather than present in one of them.
+/// </remarks>
 internal sealed class SqliteCharacterCreatureTable(SqliteDatabase database)
     : ICharacterCreatureTable
 {
-    public ValueTask<IReadOnlyList<CharacterPetStorageRow>> ReadAsync(
-        CharacterId characterId, CancellationToken cancellationToken) =>
-        database.ReadAllAsync(
-            "SELECT sort_order, creature_key, field04, mode_flag, progress_value, mode1_field0a, "
-            + "mode1_field0b, field_after_value, creature_text, tail_flag FROM character_creatures "
-            + "WHERE character_id=@cid ORDER BY sort_order",
+    public async ValueTask<IReadOnlyList<CharacterPetStorageRow>> ReadAsync(
+        CharacterId characterId, CancellationToken cancellationToken)
+    {
+        var rows = await database.ReadAllAsync(
+            """
+            SELECT held.item_uid, held.creature_field04, held.creature_mode_flag,
+                   held.creature_progress_value, held.creature_mode1_field0a,
+                   held.creature_mode1_field0b, held.creature_field_after_value,
+                   held.creature_text, held.creature_tail_flag
+            FROM items held
+            WHERE held.creature_field04 IS NOT NULL
+              AND EXISTS (
+                  SELECT 1 FROM item_slots place
+                  WHERE place.owner_scope = 'character' AND place.owner_id = @cid
+                    AND place.core_uid = held.item_uid)
+            ORDER BY held.item_uid;
+            """,
             parameters => parameters.AddWithValue("@cid", characterId.Value),
             reader => new CharacterPetStorageRow(
-                reader.GetInt32(0), reader.GetInt64(1), reader.GetInt32(2), reader.GetInt32(3),
-                reader.GetInt32(4), reader.GetInt32(5), reader.GetInt32(6), reader.GetInt32(7),
-                EntryBlob.Bounded(reader, 8, EntryBlob.CreatureText, "creature text", true),
-                reader.GetInt32(9)),
-            cancellationToken);
+                0, reader.GetInt64(0), reader.GetInt32(1), reader.GetInt32(2),
+                reader.GetInt32(3), reader.GetInt32(4), reader.GetInt32(5), reader.GetInt32(6),
+                EntryBlob.Bounded(reader, 7, EntryBlob.CreatureText, "creature text", true),
+                reader.GetInt32(8)),
+            cancellationToken).ConfigureAwait(false);
+        return [.. rows.Select((row, rank) => row with { SortOrder = rank })];
+    }
 }
 
 /// <summary>The <c>character_achievement_complete</c> table.</summary>

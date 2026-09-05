@@ -28,6 +28,47 @@ public enum InventoryOwnerType : byte
     Account = 1,
 }
 
+/// <summary>What a thing with an identity is called, for as long as it exists.</summary>
+/// <remarks>
+/// It is the thing's own name, not the name of a row that happens to hold it right now: the row
+/// survives a move, so this value survives a move, and two reads either side of a write of the
+/// same thing answer the same number.
+/// <para>
+/// A pile has none. Two of a pile are the same thing, so there is nothing for a name to tell
+/// apart, and every shape that can describe a pile therefore says <c>ItemIdentity?</c> rather than
+/// <c>ItemIdentity</c>. That is not a convenience: a shape that could name a pile would be handing
+/// out exactly the mark somebody would go on to tell two identical piles apart by.
+/// </para>
+/// </remarks>
+public readonly record struct ItemIdentity(int Value);
+
+/// <summary>What kind of thing a slot's id names.</summary>
+public enum ItemSlotKind
+{
+    /// <summary>One thing in the world, of which there is exactly one.</summary>
+    World,
+
+    /// <summary>An archive template: a pile of interchangeable things, of which there are several.</summary>
+    Template,
+}
+
+/// <summary>
+/// What one position holds, said the same way whichever of the two it is.
+/// </summary>
+/// <remarks>
+/// Three facts and no branch: which kind the id names, the id, and how many. A position holding a
+/// sword and one holding a stack of potions differ only in what those three say -- the sword's id
+/// is its identity and there is one of it, the potions' id is their template and there are as many
+/// as the pile holds. It is the same three the stored position carries, so nothing has to be
+/// translated between what a slot is and what a slot row says.
+/// </remarks>
+public sealed record InventorySlotContent(ItemSlotKind Kind, int Id, int Count)
+{
+    /// <summary>The name of the thing here, or nothing when this position holds a pile.</summary>
+    public ItemIdentity? Identity =>
+        this.Kind is ItemSlotKind.World ? new ItemIdentity(this.Id) : null;
+}
+
 public sealed record ChronicleOptionState(
     int Id,
     byte CharacterJob,
@@ -74,12 +115,34 @@ public sealed record InventoryItemCoreState(
     byte SortLockFlag,
     byte EquipmentLockId);
 
+/// <summary>What one position of a container holds, as the client is shown it.</summary>
+/// <remarks>
+/// <see cref="Identity"/> is the thing's own name and survives every write of it. It replaces the
+/// storage key this projection used to carry, which named the row rather than the thing and so
+/// changed whenever the row did.
+/// <para>
+/// It is absent for a pile, which has no name to carry. Nothing may therefore tell two piles of
+/// one template apart by anything here: what is left of a pile is its template and its count, and
+/// two piles that agree on both are the same thing.
+/// </para>
+/// </remarks>
 public sealed record InventoryItemState(
-    long StorageEntryId,
+    ItemIdentity? Identity,
     int SlotIndex,
     InventoryItemCoreState Core,
     InventoryAvatarDetailState? AvatarDetail = null,
-    uint? Noti2CreatureMarker = null);
+    uint? Noti2CreatureMarker = null)
+{
+    /// <summary>This position said in the one shape both kinds of content use.</summary>
+    /// <remarks>
+    /// Derived rather than stored, so it cannot drift from the identity beside it. A pile's count
+    /// is what its core carries; a thing with a name is one of itself.
+    /// </remarks>
+    public InventorySlotContent Holds => this.Identity is { } identity
+        ? new InventorySlotContent(ItemSlotKind.World, identity.Value, 1)
+        : new InventorySlotContent(
+            ItemSlotKind.Template, this.Core.ItemId, Math.Max(this.Core.Value, 1));
+}
 
 /// <summary>
 /// Avatar-instance facts stored beside an inventory item. A null value means the item is

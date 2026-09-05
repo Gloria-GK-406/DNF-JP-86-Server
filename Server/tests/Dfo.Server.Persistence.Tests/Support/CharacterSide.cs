@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -42,7 +43,30 @@ internal sealed class CharacterSide
         new SqliteCharacterSettingsTable(this.database),
         new SqliteCharacterExpertJobTable(this.database),
         new SqliteCharacterContainerStateTable(this.database),
-        new SqliteCharacterItemTable(this.database));
+        new SqliteCharacterItemTable(this.database),
+        new ItemPlacementRuleService(new WornPieces(), new NoWornSlots()));
+
+    /// <summary>
+    /// Every template a worn piece, which is what a character's starting gear is.
+    /// </summary>
+    /// <remarks>
+    /// Creation classifies each piece before it writes it, and these tests are about the rows a
+    /// creation lands rather than about the archive. A source that declared nothing would make
+    /// every starting piece a pile, which creation refuses.
+    /// </remarks>
+    private sealed class WornPieces : IItemPlacementDefinitionSource
+    {
+        public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ItemPlacement?>(
+                new ItemPlacement(1, 1, 9, 64) { WorldClass = ItemWorldClass.Equipment });
+    }
+
+    /// <summary>Nothing here resolves a worn slot; no test through this side puts a piece on.</summary>
+    private sealed class NoWornSlots : IEquipmentSlotDefinitionSource
+    {
+        public ValueTask<byte?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<byte?>(null);
+    }
 
     /// <summary>The skill table itself, for the tests that are about what a statement touches.</summary>
     public ICharacterSkillTable Skills => new SqliteCharacterSkillTable(this.database);

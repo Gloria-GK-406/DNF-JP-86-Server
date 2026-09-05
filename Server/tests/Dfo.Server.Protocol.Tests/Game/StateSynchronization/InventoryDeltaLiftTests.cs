@@ -190,8 +190,8 @@ public sealed class InventoryDeltaLiftTests
     /// </remarks>
     private static IReadOnlyList<InventoryItemState> TwoItems() =>
     [
-        new(1, 3, Core(2, 1001, 3, durability: 50)),
-        new(2, 17, Core(2, 8475, 99, durability: 12)),
+        new(new ItemIdentity(1), 3, Core(2, 1001, 3, durability: 50)),
+        new(new ItemIdentity(2), 17, Core(2, 8475, 99, durability: 12)),
     ];
 
     private static InventoryItemCoreState Core(

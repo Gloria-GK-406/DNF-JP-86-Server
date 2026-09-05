@@ -208,7 +208,8 @@ public sealed class AcceptQuestCommandHandlerTests
             await using var connection = Open(this.Path);
             await using var command = connection.CreateCommand();
             command.CommandText =
-                "SELECT slot_index FROM items WHERE owner_scope='character' AND owner_id=60";
+                "SELECT slot_index FROM item_slots "
+                + "WHERE owner_scope='character' AND owner_id=60";
             var rows = new List<int>();
             await using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())

@@ -484,6 +484,195 @@ if (result.Publication.Audience.Count > 0)
 
 **弃权与「人不在了」不记**——它们不是出了问题。
 
+### 物品：有身份的东西，和它在哪，是两张表
+
+**`items` 是世界表，`item_slots` 是位置表。** 世界表说「这件东西是什么、它自己带着哪些可变状态」；
+位置表说「哪个容器的哪一格放着什么、几个、那 82 字节住在世界表的哪一行」。
+移动一件东西不再销毁重建它的世界行——`item_uid` 跨越任何位置变动与任何写入都不变。
+
+`items` 今天 **19 列**（`Schema/CharacterDatabaseSchema.cs` 的 `CREATE TABLE items`，逐列数过）：
+
+| 组 | 列数 | 内容 |
+|---|---|---|
+| 身份与 core | 2 | `item_uid`（`INTEGER PRIMARY KEY AUTOINCREMENT`，带一条 CHECK，见下）、`item_core`（`CHECK (length(item_core) = 82)`） |
+| 归属与时间 | 3 | `cargo_character_id`、`created_at`、`updated_at` |
+| 时装 | 6 | `avatar_expire_date`、`_clear_id`、`_jewel_socket`、`_color1`、`_color2`、`_delete_date` |
+| 契约兽 | 8 | `creature_field04`、`_mode_flag`、`_progress_value`、`_mode1_field0a`、`_mode1_field0b`、`_field_after_value`、`_text`、`_tail_flag` |
+
+**「这一行有没有时装细节」由细节列自己回答，读侧只有一处。** 判定处是
+`InventoryItemTables.cs` 的 `SqliteCharacterItemTable.Avatar(SqliteDataReader, int)`：
+六列的**第一列** `avatar_expire_date` 是不是 NULL，就是这一行是不是时装的全部依据
+（`SqliteWorldItemTable.Read` 也调它，不另判一次）。契约兽那八列同理，第一列是
+`creature_field04`。`items` 上**没有** `avatar_uid`，也**没有** `idx_items_avatar_uid`。
+
+「同一个时装 UID 全库至多一行带着它的细节」这条规则**还在**，但它不再是表的键，而是**三条写入
+语句自己的条件，分别是**：`SqliteCharacterItemTable.UpdateOwnAsync` 的 `NOT EXISTS(…)`、
+`SqliteCharacterItemTable.InsertOwnAsync` 的 `INSERT … SELECT … WHERE NOT EXISTS(…)`
+（后者取代了原先的 `ON CONFLICT(avatar_uid) … DO NOTHING`）、以及
+`SqliteItemDomainStore.FillAsync` 的 `INSERT … SELECT … WHERE @expire IS NULL OR NOT EXISTS(…)`。
+前两条共用同一段条件文本 `SqliteCharacterItemTable.CarriesTheAvatar`；第三条**没有**复用它，
+因为它比对的是**待插入的 core** 而不是一个 `@avatarKey` 参数，所以那段文本在它里面是内联的。
+三条都从 **core 里**读 UID（`substr(item_core, 6, 4)`，即 core 偏移 5 起的 4 字节小端），
+不再读一份列副本。**该谓词文本在 `Server/src` 今天出现在 4 处 SQL 里，分别是**
+`InventoryItemTables.cs:229`、`:264`（这两处是常量的两个使用点）、
+`SqliteItemDomainStore.cs:414`（`CarriedAvatarsAsync` 的检索键）、`:544`（`FillAsync` 的守卫）。
+
+`item_slots` **8 列**：`owner_scope`（`character`/`account`）、`owner_id`、`list_type`、`slot_index`、
+`kind`（`world`/`template`）、`id`、`core_uid`、`count`。
+`UNIQUE(owner_scope, owner_id, list_type, slot_index)` 是「一格只放一样东西」；
+三条具名 CHECK 分别是 `count > 0`、世界槽 `count = 1`、世界槽 `core_uid = id`。
+
+**`core_uid` 是这个形状的关键，一个列解掉了两笔债。** 任何一种槽行都指名它那 82 字节住在哪一行
+——堆叠物也有世界行，因为它的 core **不可约到「模板号 + 数量」**
+（`StackableItemCore.Create` 写死 `Marker16 = -1` 与 `RandomOptionChangedIndex = 255`，
+而 `GameInventoryDelivery` 对 `ItemKind == 2` 把 `-1` **原样上线不钳**；
+见 `Docs/ItemWorldModel.md` 的「更正 C-1」）。于是两件事同时成立：孤儿查询收成单条
+`NOT EXISTS (… holder.core_uid = items.item_uid)`，不再需要靠位置列把堆叠物挑出去；
+上一版为躲唯一键冲突而设的「抬起到哨兵槽再落下」整套机制**摘掉**
+（全仓 `LiftAsync` / `NoContainer` **零命中**）。
+
+**分类由档案回答，不由存储里那个种类字节回答。** 唯一实现是
+`ItemPlacementRuleService.ClassifyAsync`，签名**只收模板号**（`int itemId`），
+答 `ItemWorldClass` 四值之一（`Interchangeable` / `Equipment` / `Avatar` / `Creature`）。
+生产侧 6 个调用点（`InventoryEntryAssembly` 两处、`ItemContainers` 两处、
+`CharacterRosterService`、`DailyRefillService`），覆盖每一条写入路径。
+存储里的行说自己是别的种类时，**以档案为准并拒绝**，而不是照存。
+
+#### 本轮明确没有做的（逐条，不是「大概没做」）
+
+- **不做定时清理器。** 无人引用的世界行只要求**可查询**（`ReadUnreferencedAsync`），
+  没有任何东西清扫它们。
+- **不启用「存在但不在任何槽里」的用法**：地上掉落、交易托管、拍卖挂单、邮件附件，一条都没接。
+- **不做契约兽领域本身**：实例动词、喂食、经验、等级、饱食度记账，一个都没有。
+- **不裁契约兽槽位是 24 还是 25。** 沿用今天在用的 24；悬案原样留在
+  `Docs/ProtocolScaffoldDissonances.md` 第九节。
+- **不动 `character_condition` 的五个含义未查清的列。**
+- **旧库作废重建。** 没有迁移机制，也没有为旧形状保留兼容读路径。
+
+#### 被授权的两处行为变化
+
+只有两处，其余一律逐值字节不变。完整清单（每条的连带后果与代码位置）在
+`.rks-agent/tasks/items-own-their-identity/behavior-change-list.md`。
+
+1. **契约兽取下之后能装回去。** 全部起因是 `PvfEquipmentSlots.ByName` 补了一个键
+   `["[creature]"] = 24`（该表今天 **16 个键**）。连带：契约兽瞄准非契约兽槽位时，
+   **服务器内部**的拒绝理由从 `NotWearable` 变成 `ItemCannotOccupySlot`——
+   `ErrorCodeFor` 把两者都映射到同一个错误码，**客户端字节不变**，但内部语义确实变了。
+2. **契约兽的种类判定取档案的解释：1 → 5。** 起因是
+   `PvfEntryLifecycleContentSource.WornPieceMetadata` 对 `ItemWorldClass.Creature`
+   给 `CreatureItemKind = 5` 而非 `WornPieceItemKind = 1`。连带：
+   **契约兽不再能被拖进快捷栏 3..8**（`ItemSlotRuleService.AllowsQuickSlot` 把 5 排除在外）
+   ——这是第二处真实的可观察行为变化，只是没有既有判据覆盖它。
+   **它有一个点名的可达实例**：交任务奖励里有契约兽模板 id **63465**
+   （`equipment/creature/WolfLee.equ`，`[equipment type]` 原文 `[creature]`），
+   而 `FinishQuestCommandHandler` 走的正是 `IItemContainer.AddAsync`。**不是理论上可达。**
+
+#### 三处「结论对，但撑着它的不是代码」
+
+**不要把它们读成「有代码守着」。**
+
+- **`items` 上那条 `world_identity_fits_the_wire` CHECK（`item_uid BETWEEN 1 AND 2147483647`）
+  只对新建库无条件成立。** 发布版的 `items` 表没有它，而 schema 调和只会
+  `ALTER TABLE … ADD COLUMN`（`CharacterDatabaseSchema.cs` 一处），**补不了 CHECK**。
+  既存库上溢出会落到编码时的 `checked((int))`，抛 `OverflowException`。
+  这与「旧库作废重建」不冲突，**但说法不得省略这个限定**。
+- **「今天不存在能销毁一件有身份物品的生产通路」成立，但其中一条依据不是代码给的。**
+  `ItemContainers.ConsumeAsync` 只有一个生产调用方（`ItemUseEffectDomainService`），
+  而它是否被调用只看 `rule.IsConsumedOnUse`——那是**档案数据**
+  （`PvfItemUseRuleDefinitionSource`）保证的；`ConsumeAsync` 自己**没有任何守卫**
+  拦住一件有身份的东西。
+- **「清空先于填入」这条不变量已经不再承重，且没有任何判据钉住它。**
+  `SqliteItemDomainStore` 的注释**四处**说它（类型级 `<remarks>` 一处，加 `ApplyDecidedWritesAsync`、`FlushAsync`、
+  `EmptyAsync` 各一处 `<remarks>`），但变异实测：逐槽交替 empty/fill、字面违反该注释，
+  **`Dfo.Server.Persistence.Tests` 今天的 316 条仍然全绿**（TASK-13 重跑过这次变异；
+  它原先记的是 315，本成果后来新增一条判据，**结论未变**）。真正扛住换位的是 `spared`——幸存者按名字免删，
+  落点是 `EmptyAsync` 里 `DELETE FROM items` 上追加的 `AND item_uid NOT IN (<幸存者>)`。
+  这是一条**只写在注释里的口头不变量**。
+
+#### 已知缺陷与覆盖缺口（只记，本成果不修）
+
+- **时装与契约兽宝珠同样「取得下、装不上」。** `PvfEquipmentSlots.ByName` 的 16 个键里
+  **没有任何 avatar 键**（文件里 `avatar` 三处出现全在注释里），而槽 0..11 正是时装带；
+  `[artifact red/blue/green]`、`[charm]`、`[flag]`、`[name tag]` 同样不在表里。
+  症状与契约兽本轮之前完全一致。**这是同一处不对称的其余部分。**
+- **入场存盘的时装守卫，与发放路径的写入方是矛盾的（潜伏，今天不可达）。**
+  `InventoryEntryAssembly.SaveAsync` 拒绝「档案说是时装、行却不是 kind 8」的行；
+  而 `ItemContainers.AddAsync` 把 `placement.ItemKind` 原样写进 core，
+  `PvfEntryLifecycleContentSource.WornPieceMetadata` 对非契约兽**一律给 1**。
+  **即：一件时装模板一旦经发放路径入库，下一次存盘必被自己这道守卫拒绝并回滚。**
+  今天走不到——五条发放通路（卡片奖励、地面拾取、接任务给的道具、交任务奖励、教程奖励）
+  都调 `IItemContainer.AddAsync`，逐条对真实档案穷尽后**时装 0 个**；
+  决定性的一条是**66328 个时装模板里声明 `[creation rate]` 的是 0 个**，
+  而装备掉落池的唯一闸门正是它（`PvfDropItemPoolSource.ReadCreatable`），
+  另有 `DropRuleService` 对 `DropItemKind.Avatar` 槽**显式 `return null`**。
+  穷尽过程记在 `behavior-change-list.md`。**根因是下面那条 8／1 不一致；修了它这条自然消失。**
+  **档案内容或发放表一变，它就会从「不可达」变成「玩家存盘失败」。**
+- **时装的种类不一致仍在**：存储记 8、档案给 1。本轮只对齐了契约兽那一对；动时装属
+  未授权的行为变化。**四处生产注释**点着它——数的是**点名 8／1 这一对**的生产注释：
+  `ItemPlacementContent` 的 `ItemWorldClass` 类型级 `<remarks>`、
+  `IItemPlacementRuleService.ClassifyAsync`、`ItemPlacementRuleService.ClassifyAsync`、
+  `PvfEntryLifecycleContentSource.WornPieceMetadata`。
+  **不计入**：`SqliteItemDomainStore.CarriedAvatarsAsync`、`AvatarKind` 常量、
+  `InventoryEntryAssembly.WithAvatarDetail` 都只说「时装是 kind 8」而**不点名那对分歧**；
+  判据侧 `ItemClassificationTests` 点名，但那不是生产注释。
+- **新形状引入一个旧形状表达不出的失败模式：同一件东西被两个位置同时指名。**
+  保存侧已加拒绝（`InventoryEntryAssembly.SaveAsync` 落位前比身份集合的大小），
+  **装载侧没有对称的拒绝**——入场读只校验 (容器, 槽) 不重复，不校验 `core_uid` 不重复。
+- **「非时装不得带细节」与三条取值校验全仓无断言。** `GameInventoryDelivery` 的
+  `"Non-avatar inventory item carries avatar detail."` 与
+  `"Avatar jewel socket must contain exactly 30 bytes."`、以及 `InventoryEntryAssembly` 里
+  「珠宝槽恰好 30 字节 ＋ 两个颜色落在 0..65535」那一条，**在 `Server/tests` 全域零命中**；
+  删掉它们全量仍会绿。（`avatar_jewel_socket` 另有 schema CHECK 兜底，其余没有。）
+- **契约兽的「从槽 24 取下、目标背包格里已有另一只 → 互换」没有判据。**
+- **「同一个时装 UID 全库至多一行」这条规则今天覆盖三条写入语句，还剩一个写入方不被覆盖。**
+  规则的三处落点见上面的世界表小节。入场存盘走前两条，各有判据钉住，见
+  `SqliteEntryInventoryMutationRepositoryTests` 的
+  `DirtyLeaseSave_PersistsAvatarDetailsAuthoritativelyAndRollsBackUidCollision` 与
+  `DirtyLeaseSave_RefusesToRewriteARowOntoAnAvatarAnotherCharacterHolds`；
+  第三条 `SqliteItemDomainStore.FillAsync` 由
+  `SqliteItemDomainStoreTests.TheWorldRefusesASecondRowOnAnAvatarAlreadyStanding` 钉住。
+  **被拒时的表现与旧索引只差异常类型**：旧索引抛 `SqliteException`，今天 `FillAsync` 的
+  `INSERT … SELECT` 落空、`RETURNING` 无行、`ExecuteScalarAsync` 返回 `null`，紧随其后那句
+  `allocated is null` 抛 `InvalidOperationException`（消息含 `named no identity`），
+  **同样回滚，不会静默通过**。
+  **今天仍不被覆盖的写入方只剩一个**：`SqliteWorldItemTable`（`InsertAsync`／`UpdateAsync`），
+  它写 `items` 时装列却没有自己的条件，退役前靠 `idx_items_avatar_uid` 抛错。
+  它**生产里零调用方、零 DI 注册**（`PersistenceModule` 注册的是 `ICharacterItemTable`、
+  `IAccountCargoItemTable`、`SqliteItemDomainStore`／`IItemDomainStore`，**没有** `IWorldItemTable`），
+  全仓只有 `WorldAndSlotTableTests` 与 `CreatureIdentityFitsTheWireTests` 把它 new 出来。
+  **这个缺口今天到不了生产，是有意留下的**——去补它等于在一个生产无人调用的类上引入新行为。
+- **两条判据的名字不再描述它证明的东西**：
+  `Relocate_KeepsAnAvatarsDetailsBecauseTheLinkIsInsideTheCore`（现在靠「行没被删」通过，
+  它 `<remarks>` 里说的那套搬运 `CarriedAvatarsAsync` 近乎走不到——**这一点仍然为真**。
+  但**不要再照抄旧的那句「全仓零覆盖」**：让 `CarriedAvatarsAsync` 恒返回空表，
+  今天 `Dfo.Server.Persistence.Tests` 会**红 1 条**——
+  `TheWorldRefusesASecondRowOnAnAvatarAlreadyStanding`，因为空表使 `@expire` 为 NULL、
+  守卫短路放行、该判据等的那次抛错不再发生。**它钉住的是守卫对这次检索的依赖，
+  不是那六个值被正确搬到新行上**；后者今天**仍然零覆盖**）、
+  `EveryIndexThatNamedARetiredTableIsGoneAndTheOneThatMovedWasRebuilt`
+  （正向断言现在指向新增的 `ON item_slots(core_uid)`）。
+
+#### 三条已被证伪的记载，订正
+
+一度记着「孤儿的答案跨存盘易逝——`DeleteOwnExceptAsync` 删的恰好就是孤儿查询会报的那类行」。
+**这句在位置列退役之前为真，今天不成立**：该删除现在以
+`SELECT core_uid FROM item_slots WHERE owner_scope='character' AND owner_id=@cid …`
+圈定对象，**一条没有任何槽行指名的世界行根本不在它的范围内**。
+所以孤儿今天**不会**被入场对账顺手清掉，它会一直留着，直到有人写清理器。
+「孤儿在今天的生产上不会产生」这一条不受影响。
+
+其二，本文件一度把「**`avatar_uid` 这个半身份还在**」列在「已知缺陷与覆盖缺口」里，原话是：
+「物品拿到了真身份 `item_uid`，但「这一行有没有时装细节」今天仍由 `avatar_uid` 是否为 NULL
+决定（`items` 上另有 `idx_items_avatar_uid` 唯一部分索引）。它的退役曾被指给「退役旧形状」
+那一步，而交付的形状仍是 `avatar_*7`——**那条派工没有落地。**」
+**这句在写下时为真，今天不成立**：列与索引都已退役，判定处见上面的世界表小节。
+那条缺陷条目**因此整条删除**，不是改写。
+
+其三，同一次退役让 `Docs/Refactor/TableOwnershipRuling.md` 的 **D-15**（「时装细节表的主键靠
+`items.avatar_uid` 上的部分唯一索引复原」）与该文档 `character_avatar_detail.item_uid`
+→ `items.avatar_uid` 那一行**不再描述今天的库**。那是一份历史裁定，按本仓规矩**不改它的正文**，
+本节即是它的修正案：它所保的那条规则仍在，位置换成了**三条**写入语句自己的条件。
+
 ### 判据偶发失败：先取身份，再谈别的
 
 有一条已知的 SQLite 并行释放偶发。**判别依据是三样一起看：**

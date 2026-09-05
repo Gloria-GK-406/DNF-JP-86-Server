@@ -1515,7 +1515,7 @@ public sealed class CardRewardTests
             int slotIndex, CancellationToken cancellationToken) =>
             ValueTask.FromResult(
                 this.Slots.TryGetValue(slotIndex, out var core)
-                    ? new ContainerSlotItem(slotIndex, core)
+                    ? new ContainerSlotItem(slotIndex, core, ItemWorldClass.Interchangeable)
                     : null);
 
         public ValueTask PutAsync(

@@ -32,7 +32,8 @@ internal sealed class DailyRefillService(
     ICharacterItemTable items,
     ICharacterDailyCounterTable counters,
     IDailyRefillRuleService refillRules,
-    ICharacterContainerDomainService containers) : IEntryInventoryMutationRepository
+    ICharacterContainerDomainService containers,
+    IItemPlacementRuleService placementRules) : IEntryInventoryMutationRepository
 {
     /// <summary>What a refill counter is called, with the item appended.</summary>
     private const string CounterPrefix = "pvf_daily_refill_item_";
@@ -88,10 +89,30 @@ internal sealed class DailyRefillService(
     }
 
     /// <summary>Reads every occupied slot of the main inventory, in the order the client draws them.</summary>
+    /// <remarks>
+    /// A row is named by what the archive makes of it, not by the key of the row it was read out
+    /// of: a thing with a name keeps that name across every write of it, and a pile is handed none
+    /// because two of it are the same thing.
+    /// </remarks>
     public async ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
-        CharacterId characterId, CancellationToken cancellationToken) =>
-        [.. (await items.ReadMainAsync(characterId, cancellationToken).ConfigureAwait(false))
-            .Select(row => new InventoryItemState(row.ItemUid, row.SlotIndex, row.Core))];
+        CharacterId characterId, CancellationToken cancellationToken)
+    {
+        var read = new List<InventoryItemState>();
+        foreach (var row in await items.ReadMainAsync(characterId, cancellationToken)
+                     .ConfigureAwait(false))
+        {
+            var worldClass = await placementRules
+                .ClassifyAsync(row.Core.ItemId, cancellationToken).ConfigureAwait(false);
+            read.Add(new InventoryItemState(
+                worldClass is ItemWorldClass.Interchangeable
+                    ? null
+                    : new ItemIdentity(checked((int)row.ItemUid)),
+                row.SlotIndex,
+                row.Core));
+        }
+
+        return read;
+    }
 
     /// <remarks>
     /// Every answer the bag can give is read back into this entry's own terms. A band with no room

@@ -58,9 +58,14 @@ public sealed class SchemaOwnershipTests
         Assert.Equal(43, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
         Assert.Contains("characters(", shape, StringComparison.Ordinal);
         Assert.Contains("items(", shape, StringComparison.Ordinal);
+        Assert.Contains("item_slots(", shape, StringComparison.Ordinal);
         Assert.Contains("accounts(", shape, StringComparison.Ordinal);
         Assert.Contains("character_active_quests(", shape, StringComparison.Ordinal);
-        Assert.Contains("character_creatures(", shape, StringComparison.Ordinal);
+
+        // The creatures table is named here as one that is gone. Its eight facts are columns of
+        // the world row the creature is, so a database still declaring it would be one where a
+        // creature could be recorded twice and the two could disagree.
+        Assert.DoesNotContain("character_creatures(", shape, StringComparison.Ordinal);
         // One table spelled out column by column, so that a declaration quietly losing one fails
         // here rather than only wherever it happens to be read. The gold limits used to be a table
         // of their own; they are caps derived from level, so they sit with the other derived

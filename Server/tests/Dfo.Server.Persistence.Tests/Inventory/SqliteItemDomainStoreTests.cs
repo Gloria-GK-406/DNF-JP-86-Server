@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Transactions;
@@ -38,7 +39,7 @@ public sealed class SqliteItemDomainStoreTests
 
         var moving = await session.ReadAsync(Main, 65, CancellationToken.None);
         session.Clear(Main, 65);
-        session.Write(Main, new StoredItem(3, moving!.Core));
+        session.Write(Main, Pile(3, moving!.Core));
         await transaction.SettleAsync();
 
         Assert.Equal([(3, PotionId, 5)], await ReadSlotsAsync(store.Path));
@@ -53,8 +54,8 @@ public sealed class SqliteItemDomainStoreTests
         var session = store.Value.SessionIn(transaction);
 
         var moving = await session.ReadAsync(Main, 65, CancellationToken.None);
-        session.Write(Main, new StoredItem(65, moving!.Core with { Value = 3 }));
-        session.Write(Main, new StoredItem(66, Potion(2)));
+        session.Write(Main, Pile(65, moving!.Core with { Value = 3 }));
+        session.Write(Main, Pile(66, Potion(2)));
         await transaction.SettleAsync();
 
         Assert.Equal([(65, PotionId, 3), (66, PotionId, 2)], await ReadSlotsAsync(store.Path));
@@ -81,8 +82,8 @@ public sealed class SqliteItemDomainStoreTests
 
         var first = await session.ReadAsync(Main, 65, CancellationToken.None);
         var second = await session.ReadAsync(Main, 66, CancellationToken.None);
-        session.Write(Main, new StoredItem(66, first!.Core));
-        session.Write(Main, new StoredItem(65, second!.Core));
+        session.Write(Main, Pile(66, first!.Core));
+        session.Write(Main, Pile(65, second!.Core));
         await transaction.SettleAsync();
 
         Assert.Equal([(65, StoneId, 1), (66, PotionId, 5)], await ReadSlotsAsync(store.Path));
@@ -99,7 +100,7 @@ public sealed class SqliteItemDomainStoreTests
 
         var moving = await session.ReadAsync(Main, 65, CancellationToken.None);
         var target = await session.ReadAsync(Main, 66, CancellationToken.None);
-        session.Write(Main, new StoredItem(66, target!.Core with { Value = 7 }));
+        session.Write(Main, Pile(66, target!.Core with { Value = 7 }));
         session.Clear(Main, moving!.SlotIndex);
         await transaction.SettleAsync();
 
@@ -115,7 +116,7 @@ public sealed class SqliteItemDomainStoreTests
         var session = store.Value.SessionIn(transaction);
 
         var used = await session.ReadAsync(Main, 65, CancellationToken.None);
-        session.Write(Main, new StoredItem(65, used!.Core with { Value = 4 }));
+        session.Write(Main, Pile(65, used!.Core with { Value = 4 }));
         await transaction.SettleAsync();
 
         Assert.Equal([(65, PotionId, 4)], await ReadSlotsAsync(store.Path));
@@ -134,6 +135,42 @@ public sealed class SqliteItemDomainStoreTests
         await transaction.SettleAsync();
 
         Assert.Empty(await ReadSlotsAsync(store.Path));
+    }
+
+    /// <summary>
+    /// That the world refuses to stand two rows on one avatar's facts.
+    /// </summary>
+    /// <remarks>
+    /// A partial unique index on the old avatar key used to carry this. Retiring that key took the
+    /// index with it, and the guard has to be said in the statement instead: an insert that would
+    /// put a second row on an avatar UID some row already carries selects nothing, so the insert
+    /// returns no identity and the write fails loudly rather than leaving the pair behind.
+    /// <para>
+    /// Nothing reaches this today -- the settle empties a position before it fills one, so the row
+    /// a move rewrites is gone by the time its replacement is written. It is a last line, and a
+    /// last line with no test is the shape this outcome kept finding: present, believed, and not
+    /// actually holding anything.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task TheWorldRefusesASecondRowOnAnAvatarAlreadyStanding()
+    {
+        var detail = new InventoryAvatarDetailState(
+            11, 12, Enumerable.Repeat((byte)13, 30).ToArray(), 14, 15, 16);
+        await using var store = await NewStoreAsync((9, Avatar()));
+        await SeedAvatarDetailAsync(store.Path, AvatarUid, detail);
+        var transaction = new StubTransaction();
+        var session = store.Value.SessionIn(transaction);
+
+        // Both writes carry the same avatar's facts, because both are fed by the row being
+        // displaced. One of them may stand; the second is the pair the retired index forbade.
+        session.Clear(Main, 9);
+        session.Write(Main, Worn(10, Avatar()));
+        session.Write(Main, Worn(11, Avatar()));
+
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await transaction.SettleAsync());
+        Assert.Contains("named no identity", refused.Message, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -158,7 +195,7 @@ public sealed class SqliteItemDomainStoreTests
 
         var moving = await session.ReadAsync(Main, 9, CancellationToken.None);
         session.Clear(Main, 9);
-        session.Write(Main, new StoredItem(10, moving!.Core));
+        session.Write(Main, Worn(10, moving!.Core));
         await transaction.SettleAsync();
 
         Assert.Equal([(10, AvatarItemId, AvatarUid)], await ReadSlotsAsync(store.Path));
@@ -172,7 +209,7 @@ public sealed class SqliteItemDomainStoreTests
         var transaction = new StubTransaction();
         var session = store.Value.SessionIn(transaction);
 
-        session.Write(Main, new StoredItem(66, Potion(2)));
+        session.Write(Main, Pile(66, Potion(2)));
         session.Clear(Main, 65);
 
         Assert.Equal(2, (await session.ReadAsync(Main, 66, CancellationToken.None))!.Core.Value);
@@ -191,7 +228,7 @@ public sealed class SqliteItemDomainStoreTests
         var session = store.Value.SessionIn(transaction);
 
         session.Clear(Main, 65);
-        session.Write(Main, new StoredItem(3, Potion(5)));
+        session.Write(Main, Pile(3, Potion(5)));
         await transaction.PrepareAsync();
         await transaction.RollbackAsync();
 
@@ -224,7 +261,7 @@ public sealed class SqliteItemDomainStoreTests
         var transaction = new StubTransaction();
         var session = store.Value.SessionIn(transaction);
         _ = await session.ReadAllAsync(Main, CancellationToken.None);
-        session.Write(Main, new StoredItem(66, Potion(1)));
+        session.Write(Main, Pile(66, Potion(1)));
         await transaction.SettleAsync();
 
         Assert.Equal(before, await ReadTableNamesAsync(store.Path));
@@ -268,8 +305,8 @@ public sealed class SqliteItemDomainStoreTests
         var fromEquipment = await session.ReadAsync(Equipment, 1, CancellationToken.None);
         session.Clear(Main, 65);
         session.Clear(Equipment, 1);
-        session.Write(Main, new StoredItem(65, fromEquipment!.Core));
-        session.Write(Equipment, new StoredItem(1, fromMain!.Core));
+        session.Write(Main, Pile(65, fromEquipment!.Core));
+        session.Write(Equipment, Pile(1, fromMain!.Core));
         await transaction.SettleAsync();
 
         Assert.Equal([(65, StoneId, 1)], await ReadSlotsAsync(store.Path));
@@ -283,7 +320,7 @@ public sealed class SqliteItemDomainStoreTests
         var transaction = new StubTransaction();
         var session = store.Value.SessionIn(transaction);
 
-        session.Write(Main, new StoredItem(66, Potion(2)));
+        session.Write(Main, Pile(66, Potion(2)));
         session.Clear(Main, 66);
 
         Assert.Null(await session.ReadAsync(Main, 66, CancellationToken.None));
@@ -325,7 +362,7 @@ public sealed class SqliteItemDomainStoreTests
         var session = store.Value.SessionIn(new StubTransaction());
 
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => session.Write(Main, new StoredItem(-1, Potion(1))));
+            () => session.Write(Main, Pile(-1, Potion(1))));
         Assert.Throws<ArgumentOutOfRangeException>(() => session.Clear(Main, -1));
     }
 
@@ -341,12 +378,27 @@ public sealed class SqliteItemDomainStoreTests
         var session = store.Value.SessionIn(transaction);
         var participant = Assert.Single(transaction.Participants);
 
-        session.Write(Main, new StoredItem(3, Potion(1)));
+        session.Write(Main, Pile(3, Potion(1)));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             async () => await participant.CommitAsync(CancellationToken.None));
         Assert.Equal([(65, PotionId, 5)], await ReadSlotsAsync(store.Path));
     }
+
+    /// <summary>
+    /// A pile on its way into a slot: what it is, plus what the archive makes of it.
+    /// </summary>
+    /// <remarks>
+    /// Settlement reads the class off the write, so every write says one. The container is what
+    /// asks the archive in the server; here the test says which of the two answers it means, and
+    /// the five operations above all move piles.
+    /// </remarks>
+    private static StoredItem Pile(int slotIndex, InventoryItemCoreState core) =>
+        new(slotIndex, core) { WorldClass = ItemWorldClass.Interchangeable };
+
+    /// <summary>The same, for the one thing here the archive would call an avatar.</summary>
+    private static StoredItem Worn(int slotIndex, InventoryItemCoreState core) =>
+        new(slotIndex, core) { WorldClass = ItemWorldClass.Avatar };
 
     private const int PotionId = 1000;
 
@@ -360,6 +412,18 @@ public sealed class SqliteItemDomainStoreTests
 
     /// <summary>An avatar row carries its detail row's key in the core's value field.</summary>
     private const int AvatarUid = 777;
+
+    /// <summary>An avatar UID as the four bytes a core carries it as.</summary>
+    /// <remarks>
+    /// The row keeps no column of its own for the UID any more, so a test that wants the row of
+    /// one avatar asks the core, which is where the value has always been.
+    /// </remarks>
+    private static byte[] AvatarKeyOf(int avatarUid)
+    {
+        var key = new byte[4];
+        BinaryPrimitives.WriteInt32LittleEndian(key, avatarUid);
+        return key;
+    }
 
     private static InventoryItemCoreState Avatar() => Core(8, AvatarItemId, AvatarUid);
 
@@ -410,8 +474,10 @@ public sealed class SqliteItemDomainStoreTests
         bytes[66] = byte.MaxValue;
         await using var command = connection.CreateCommand();
         command.CommandText =
-            "INSERT INTO items(owner_scope,owner_id,list_type,slot_index,item_core) "
-            + "VALUES('character',60,@list,@slot,@core)";
+            "INSERT INTO items(item_core) VALUES(@core);"
+            + "INSERT INTO item_slots(owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count) "
+            + "VALUES('character',60,@list,@slot,'world',last_insert_rowid(),"
+            + "last_insert_rowid(),1)";
         command.Parameters.AddWithValue("@list", listType);
         command.Parameters.AddWithValue("@slot", slot);
         command.Parameters.AddWithValue("@core", bytes);
@@ -425,11 +491,11 @@ public sealed class SqliteItemDomainStoreTests
         await using var command = connection.CreateCommand();
         // The facts belong to the row that is the avatar, so they are put on it. There is one.
         command.CommandText =
-            "UPDATE items SET avatar_uid=@uid,avatar_expire_date=@expire,avatar_clear_id=@clear,"
+            "UPDATE items SET avatar_expire_date=@expire,avatar_clear_id=@clear,"
             + "avatar_jewel_socket=@jewel,avatar_color1=@color1,avatar_color2=@color2,"
             + "avatar_delete_date=@delete "
-            + "WHERE owner_scope='character' AND owner_id=60 AND substr(item_core,1,1)=X'08'";
-        command.Parameters.AddWithValue("@uid", avatarUid);
+            + "WHERE substr(item_core,1,1)=X'08' AND substr(item_core,6,4)=@uid";
+        command.Parameters.AddWithValue("@uid", AvatarKeyOf(avatarUid));
         command.Parameters.AddWithValue("@expire", detail.ExpireDate);
         command.Parameters.AddWithValue("@clear", detail.ClearAvatarId);
         command.Parameters.AddWithValue("@jewel", detail.JewelSocket);
@@ -447,8 +513,9 @@ public sealed class SqliteItemDomainStoreTests
         command.CommandText =
             "SELECT avatar_expire_date,avatar_clear_id,avatar_jewel_socket,avatar_color1,"
             + "avatar_color2,avatar_delete_date "
-            + "FROM items WHERE avatar_uid=@uid";
-        command.Parameters.AddWithValue("@uid", avatarUid);
+            + "FROM items WHERE avatar_expire_date IS NOT NULL "
+            + "AND substr(item_core,6,4)=@uid";
+        command.Parameters.AddWithValue("@uid", AvatarKeyOf(avatarUid));
         await using var reader = await command.ExecuteReaderAsync();
         if (!await reader.ReadAsync())
             return null;
@@ -470,9 +537,10 @@ public sealed class SqliteItemDomainStoreTests
         await using var connection = Open(path);
         await using var command = connection.CreateCommand();
         command.CommandText =
-            "SELECT slot_index,item_core FROM items "
-            + "WHERE owner_scope='character' AND owner_id=60 AND list_type=@list "
-            + "ORDER BY slot_index";
+            "SELECT place.slot_index,held.item_core "
+            + "FROM item_slots place JOIN items held ON held.item_uid=place.core_uid "
+            + "WHERE place.owner_scope='character' AND place.owner_id=60 "
+            + "AND place.list_type=@list ORDER BY place.slot_index";
         command.Parameters.AddWithValue("@list", listType);
         var rows = new List<(int, int, int)>();
         await using var reader = await command.ExecuteReaderAsync();

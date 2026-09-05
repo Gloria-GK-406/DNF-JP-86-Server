@@ -574,7 +574,9 @@ public sealed class PaidCardFlipCostTests
         public ValueTask<ContainerSlotItem?> ReadSlotAsync(
             int slotIndex, CancellationToken cancellationToken) =>
             ValueTask.FromResult(
-                this.Landed is { } core ? new ContainerSlotItem(slotIndex, core) : null);
+                this.Landed is { } core
+                    ? new ContainerSlotItem(slotIndex, core, ItemWorldClass.Interchangeable)
+                    : null);
 
         public ValueTask PutAsync(
             int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken)

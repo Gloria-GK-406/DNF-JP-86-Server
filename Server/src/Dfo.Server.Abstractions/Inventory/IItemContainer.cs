@@ -1,4 +1,5 @@
 using System.Globalization;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 
@@ -275,8 +276,22 @@ public abstract record ItemMoveOutcome
 /// The whole of it, because that is what a write takes: an item read out of one slot and written
 /// into another has to arrive with its enchantments, its rolled options and its avatar link intact,
 /// and the only thing that carries all of those is the core itself.
+///
+/// <b>One shape for both kinds of content.</b> A slot holding a sword and a slot holding a stack
+/// of potions are read as the same three facts -- which sort of thing it is, what it is, and how
+/// many -- and differ only in what those three say. <see cref="WorldClass"/> is the first of them,
+/// and it is the archive's answer rather than the kind byte inside the core, which is the reading
+/// the classification exists to replace.
+///
+/// <b>No identity is among them, deliberately.</b> A slot is addressed by where it is, and the
+/// name of the thing standing there is settlement's to keep. Handing one out here would create
+/// exactly the token a verb could carry from a read to a write -- take the token, go elsewhere for
+/// something to operate on, operate, put a new token back -- which is the round trip this whole
+/// shape exists to make unsayable. What a caller who needs the name asks for instead is the
+/// container's snapshot, which is a projection of what is stored and not something a write takes.
 /// </remarks>
-public sealed record ContainerSlotItem(int SlotIndex, InventoryItemCoreState Core)
+public sealed record ContainerSlotItem(
+    int SlotIndex, InventoryItemCoreState Core, ItemWorldClass WorldClass)
 {
     public byte ItemKind => Core.ItemKind;
 
@@ -284,6 +299,9 @@ public sealed record ContainerSlotItem(int SlotIndex, InventoryItemCoreState Cor
 
     /// <summary>How many the slot holds. For anything that does not stack, one.</summary>
     public int Count => Core.Value;
+
+    /// <summary>Whether two of what is here would be the same thing.</summary>
+    public bool IsPile => this.WorldClass is ItemWorldClass.Interchangeable;
 }
 
 /// <summary>What the two slots named by a move request hold right now.</summary>

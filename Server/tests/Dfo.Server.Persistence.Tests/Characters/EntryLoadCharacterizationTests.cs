@@ -121,9 +121,16 @@ public sealed class EntryLoadCharacterizationTests
             INSERT INTO character_dungeon_permissions VALUES(22,0,300,2);
             INSERT INTO character_daily_counters VALUES(22,'revive_coin_daily_claim','day',1);
             INSERT INTO character_daily_counters VALUES(22,'lottery_double_reward_used','day',6);
-            INSERT INTO character_creatures VALUES(22,0,400,1,2,3,4,5,6,X'07',8);
-            INSERT INTO items(owner_scope,owner_id,list_type,slot_index,item_core)
-                VALUES('character',22,19,1,@core);
+            INSERT INTO items(item_uid,item_core,
+                creature_field04,creature_mode_flag,creature_progress_value,
+                creature_mode1_field0a,creature_mode1_field0b,creature_field_after_value,
+                creature_text,creature_tail_flag)
+                VALUES(400,@core,1,2,3,4,5,6,X'07',8);
+            INSERT INTO item_slots(owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count)
+                VALUES('character',22,3,24,'world',400,400,1);
+            INSERT INTO items(item_uid,item_core) VALUES(401,@core);
+            INSERT INTO item_slots(owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count)
+                VALUES('character',22,19,1,'world',401,401,1);
             INSERT INTO character_achievement_complete VALUES(22,0,500,1,2,3,4);
             INSERT INTO character_collectbox_slots VALUES(22,3,0,700);
             INSERT INTO character_expert_job(character_id,giveup_count,disjoint_machine_grade,disjoint_machine_endurance,enchanter_endurance,expert_job_type,expert_job_exp)
