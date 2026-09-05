@@ -24,6 +24,11 @@ artifacts/
 
 # Runtime data
 *.pvf
+# ...but not the project directory. This repo has core.ignorecase=true, so `*.pvf`
+# also matches the folder `Dfo.Pvf`, and everything created inside it becomes
+# invisible to `git add` without a word of warning. Git cannot re-include a file
+# whose parent directory is excluded, so the directory itself is un-excluded here.
+!Server/src/Dfo.Pvf/
 
 # OS
 .DS_Store
