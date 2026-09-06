@@ -529,6 +529,14 @@ if (result.Publication.Audience.Count > 0)
 `kind`（`world`/`template`）、`id`、`core_uid`、`count`。
 `UNIQUE(owner_scope, owner_id, list_type, slot_index)` 是「一格只放一样东西」；
 三条具名 CHECK 分别是 `count > 0`、世界槽 `count = 1`、世界槽 `core_uid = id`。
+**`core_uid` 上没有唯一性**，所以「一件东西只在一个位置」这条由代码说，两侧各一处：
+`InventoryEntryAssembly` 的 `SaveAsync` 落位前比世界行身份集合的大小，
+`RequireOneNameEach` 在两条入场读取到行之后比同一样东西。
+两处都数世界行而不数 `ItemIdentity`——堆叠物没有身份，按身份数会把它漏掉。
+**两处都够不到称号书。** `ReadByCharacterAsync` 与保存侧的 `DeleteOwnExceptAsync`、
+`ClearOwnPositionsAsync` 都带 `list_type NOT BETWEEN 19 AND 23`，那五个容器由
+`SqliteCharacterTitleBookTable.ReadAsync` 单独读，整个租借往返都不经过这五个容器的位置行。
+于是一条称号书位置行与一条别处的位置行指名同一个世界行时，两侧都看不见。
 
 **`core_uid` 是这个形状的关键，一个列解掉了两笔债。** 任何一种槽行都指名它那 82 字节住在哪一行
 ——堆叠物也有世界行，因为它的 core **不可约到「模板号 + 数量」**
@@ -580,14 +588,6 @@ if (result.Publication.Audience.Count > 0)
 
 #### 已知缺陷与覆盖缺口
 
-- **新形状引入一个旧形状表达不出的失败模式：同一件东西被两个位置同时指名。**
-  保存侧已加拒绝（`InventoryEntryAssembly.SaveAsync` 落位前比身份集合的大小），
-  **装载侧没有对称的拒绝**——入场读只校验 (容器, 槽) 不重复，不校验 `core_uid` 不重复。
-- **「非时装不得带细节」与三条取值校验全仓无断言。** `GameInventoryDelivery` 的
-  `"Non-avatar inventory item carries avatar detail."` 与
-  `"Avatar jewel socket must contain exactly 30 bytes."`、以及 `InventoryEntryAssembly` 里
-  「珠宝槽恰好 30 字节 ＋ 两个颜色落在 0..65535」那一条，**在 `Server/tests` 全域零命中**；
-  删掉它们全量仍会绿。（`avatar_jewel_socket` 另有 schema CHECK 兜底，其余没有。）
 - **契约兽的「从槽 24 取下、目标背包格里已有另一只 → 互换」没有判据。**
 - **「同一个时装 UID 全库至多一行」这条规则覆盖三条写入语句，还剩一个写入方不被覆盖。**
   三处落点见上面的世界表小节，各有判据钉住
@@ -604,14 +604,9 @@ if (result.Publication.Audience.Count > 0)
   全仓只有 `WorldAndSlotTableTests` 与 `CreatureIdentityFitsTheWireTests` 把它 new 出来。
   **这个缺口今天到不了生产，是有意留下的**——去补它等于在一个生产无人调用的类上引入新行为。
   **谁第一次给它接上生产调用方，谁就得同时补守卫与判据。**
-- **两条判据的名字不再描述它证明的东西**：
-  - `Relocate_KeepsAnAvatarsDetailsBecauseTheLinkIsInsideTheCore` 现在靠「行没被删」通过。
-    但**不要读成「全仓零覆盖」**：让 `CarriedAvatarsAsync` 恒返回空表，
-    `Dfo.Server.Persistence.Tests` 会**红 1 条**（`TheWorldRefusesASecondRowOnAnAvatarAlreadyStanding`，
-    因为空表使 `@expire` 为 NULL、守卫短路放行）。**它钉住的是守卫对这次检索的依赖，
-    不是那六个值被正确搬到新行上**；后者仍然零覆盖。
-  - `EveryIndexThatNamedARetiredTableIsGoneAndTheOneThatMovedWasRebuilt`
-    的正向断言现在指向新增的 `ON item_slots(core_uid)`。
+- **一条判据的名字不再描述它证明的东西**：
+  `EveryIndexThatNamedARetiredTableIsGoneAndTheOneThatMovedWasRebuilt`
+  的正向断言现在指向新增的 `ON item_slots(core_uid)`。
 
 #### 时装：种类已经对齐，但仍然穿不上
 

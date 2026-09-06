@@ -306,8 +306,10 @@ internal sealed class InventoryEntryAssembly(
         CharacterId characterId, CancellationToken cancellationToken)
     {
         var items = new List<InventoryStorageItem>();
-        foreach (var row in await characterItems.ReadByCharacterAsync(characterId, cancellationToken)
-                     .ConfigureAwait(false))
+        var rows = await characterItems.ReadByCharacterAsync(characterId, cancellationToken)
+            .ConfigureAwait(false);
+        RequireOneNameEach(rows.Select(row => row.ItemUid), "character inventory");
+        foreach (var row in rows)
         {
             var ownerType = ParseOwnerType(row.OwnerScope);
             var containerType = ParseContainerType(row.ListType, allowAccountCargo: false);
@@ -332,8 +334,10 @@ internal sealed class InventoryEntryAssembly(
         AccountId accountId, CancellationToken cancellationToken)
     {
         var items = new List<InventoryStorageItem>();
-        foreach (var row in await cargoItems.ReadByAccountAsync(accountId, cancellationToken)
-                     .ConfigureAwait(false))
+        var rows = await cargoItems.ReadByAccountAsync(accountId, cancellationToken)
+            .ConfigureAwait(false);
+        RequireOneNameEach(rows.Select(row => row.ItemUid), "account cargo");
+        foreach (var row in rows)
         {
             var storedCharacterId = row.CharacterId is { } value ? new CharacterId(value) : (CharacterId?)null;
             var containerType = ParseContainerType(row.ListType, allowAccountCargo: true);
@@ -715,6 +719,30 @@ internal sealed class InventoryEntryAssembly(
         {
             throw new InvalidDataException(
                 $"Inventory row {storageEntryId} has negative slot {slotIndex}.");
+        }
+    }
+
+    /// <summary>One thing is in one place, said of the rows a load has just read.</summary>
+    /// <remarks>
+    /// The counterpart on the way in of the refusal <see cref="SaveAsync"/> makes on the way out;
+    /// why a row may not be named twice is written there. No constraint says it: the uniqueness on
+    /// <c>item_slots</c> is over positions, and <c>core_uid</c> carries none of its own.
+    /// <para>
+    /// World rows are counted rather than identities, which is what the save side counts too. A
+    /// pile is answered no identity on purpose, so counting identities would pass a doubly-named
+    /// pile through in silence.
+    /// </para>
+    /// </remarks>
+    private static void RequireOneNameEach(IEnumerable<long> namedRows, string source)
+    {
+        var seen = new HashSet<long>();
+        foreach (var itemUid in namedRows)
+        {
+            if (!seen.Add(itemUid))
+            {
+                throw new InvalidDataException(
+                    $"The {source} names item {itemUid} in more than one position.");
+            }
         }
     }
 

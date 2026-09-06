@@ -174,17 +174,21 @@ public sealed class SqliteItemDomainStoreTests
     }
 
     /// <summary>
-    /// An avatar is the one item with facts kept in a second table, and moving it keeps them.
+    /// An avatar put down again unchanged keeps its row, and so keeps its facts by not moving them.
     /// </summary>
     /// <remarks>
-    /// This is the case that decided whether a store addressed by slot could be lossless. It can,
-    /// and not by leaving the facts where they were: they are columns of the row now, and this store
-    /// moves an item by replacing its row. So the facts are read back under the avatar UID the core
-    /// carries and written on again -- the link travels inside the core exactly as an enchantment
-    /// does, and the store is what makes that true rather than a second table.
+    /// Nothing is carried anywhere here, and that is what this holds. The write puts down the same
+    /// core the read took up, so the second of the three passes in <c>Survivors</c> claims the
+    /// displaced row by content; the row is spared from the delete and landed on, and its six
+    /// columns are never touched. <c>CarriedAvatarsAsync</c> is not even asked about it, because a
+    /// survivor is excluded from that retrieval.
+    /// <para>
+    /// The case where the six facts really are carried -- the row deleted and another built in its
+    /// place -- is the one below.
+    /// </para>
     /// </remarks>
     [Fact]
-    public async Task Relocate_KeepsAnAvatarsDetailsBecauseTheLinkIsInsideTheCore()
+    public async Task Relocate_LeavesASparedAvatarsRowStandingWithItsFactsUntouched()
     {
         var detail = new InventoryAvatarDetailState(
             11, 12, Enumerable.Repeat((byte)13, 30).ToArray(), 14, 15, 16);
@@ -200,6 +204,56 @@ public sealed class SqliteItemDomainStoreTests
 
         Assert.Equal([(10, AvatarItemId, AvatarUid)], await ReadSlotsAsync(store.Path));
         Assert.Equivalent(detail, await ReadAvatarDetailAsync(store.Path, AvatarUid));
+    }
+
+    /// <summary>
+    /// An avatar whose row is rebuilt is handed its six facts onto the row that replaces it.
+    /// </summary>
+    /// <remarks>
+    /// The write above keeps its row; this one does not, which is the whole difference. The core
+    /// put down differs from the one taken up -- in a field outside the four bytes at offset five
+    /// that carry the avatar UID -- so none of the three passes in <c>Survivors</c> claims the
+    /// displaced row: the first and third want the same position and this is a different one, and
+    /// the second wants identical bytes. The row is therefore deleted and a new one inserted, and
+    /// the only way the facts reach it is the retrieval.
+    /// <para>
+    /// The identity is asserted to have changed, and that assertion is what makes the rest mean
+    /// anything: without it a relocate that quietly took the sparing path would satisfy every other
+    /// line here while proving nothing, which is exactly what the test above turned out to be.
+    /// </para>
+    /// <para>
+    /// All six are asserted one by one for the reason given on
+    /// <see cref="AWriteThatCarriesAnAvatarsFactsPutsThemOnTheRowTheWorldCreates"/>.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task AnAvatarWhoseRowIsRebuiltIsHandedItsSixFactsAgain()
+    {
+        var detail = new InventoryAvatarDetailState(
+            41, 42, Enumerable.Repeat((byte)43, 30).ToArray(), 44, 45, 46);
+        await using var store = await NewStoreAsync((9, Avatar()));
+        await SeedAvatarDetailAsync(store.Path, AvatarUid, detail);
+        var standing = await ReadWorldRowIdAsync(store.Path, 9);
+        var transaction = new StubTransaction();
+        var session = store.Value.SessionIn(transaction);
+
+        var moving = await session.ReadAsync(Main, 9, CancellationToken.None);
+        session.Clear(Main, 9);
+        session.Write(Main, Worn(10, moving!.Core with { Durability = 77 }));
+        await transaction.SettleAsync();
+
+        var rebuilt = await ReadWorldRowIdAsync(store.Path, 10);
+        Assert.NotNull(standing);
+        Assert.NotNull(rebuilt);
+        Assert.NotEqual(standing, rebuilt);
+        var stored = await ReadAvatarDetailAsync(store.Path, AvatarUid);
+        Assert.NotNull(stored);
+        Assert.Equal(41, stored.ExpireDate);
+        Assert.Equal(42, stored.ClearAvatarId);
+        Assert.Equal(Enumerable.Repeat((byte)43, 30), stored.JewelSocket);
+        Assert.Equal(44, (int)stored.Color1);
+        Assert.Equal(45, (int)stored.Color2);
+        Assert.Equal(46, stored.DeleteDate);
     }
 
     /// <summary>
@@ -559,6 +613,23 @@ public sealed class SqliteItemDomainStoreTests
         return new InventoryAvatarDetailState(
             reader.GetInt32(0), reader.GetInt32(1), (byte[])reader.GetValue(2),
             (ushort)reader.GetInt32(3), (ushort)reader.GetInt32(4), reader.GetInt32(5));
+    }
+
+    /// <summary>Which row of the world a position names, or nothing when the position is empty.</summary>
+    /// <remarks>
+    /// <see cref="ReadSlotsAsync"/> answers what a position holds, which is the same for a row that
+    /// survived and a row that replaced it. This answers which row, which is what tells the two
+    /// apart.
+    /// </remarks>
+    private static async Task<long?> ReadWorldRowIdAsync(string path, int slot)
+    {
+        await using var connection = Open(path);
+        await using var command = connection.CreateCommand();
+        command.CommandText =
+            "SELECT core_uid FROM item_slots "
+            + "WHERE owner_scope='character' AND owner_id=60 AND list_type=0 AND slot_index=@slot";
+        command.Parameters.AddWithValue("@slot", slot);
+        return await command.ExecuteScalarAsync() as long?;
     }
 
     private static async Task<List<(int Slot, int ItemId, int Count)>> ReadSlotsAsync(
