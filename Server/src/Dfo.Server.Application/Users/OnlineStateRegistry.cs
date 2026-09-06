@@ -174,10 +174,9 @@ internal sealed class OnlineStateRegistry
     /// Which character an account is playing, and under which session.
     /// </summary>
     /// <remarks>
-    /// The identity, not the character's standing. This record used to carry a whole
-    /// <c>ActiveCharacterState</c> that nothing ever read back: the only readers wanted the id, to
-    /// answer which account a character is on and to release the binding when the session ends.
-    /// A character's standing is read from the session's own runtime state.
+    /// The identity, not the character.s standing. The readers want the id, to answer which account
+    /// a character is on and to release the binding when the session ends; a character.s standing
+    /// is read from the session.s own runtime state.
     /// </remarks>
     private sealed record ActiveCharacterRegistration(
         OnlineUserId OnlineUserId,

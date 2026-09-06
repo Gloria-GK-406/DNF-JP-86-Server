@@ -42,12 +42,9 @@ internal sealed class ItemPlacementRuleService(
     /// to prefer it.
     /// </para>
     /// <para>
-    /// <b>Amended; what the sentence above said before is quoted next.</b> It said the guard
-    /// mattered because "the byte and the archive still disagree about an avatar -- stored as kind
-    /// 8, given kind 1 by the equipment index". They no longer disagree: the equipment index gives
-    /// an avatar template the same 8 storage records it under. The guard is unchanged and still
-    /// worth having, for the reason now written above it. It is corrected rather than deleted
-    /// because the disagreement is why the signature was drawn this way.
+    /// The signature was drawn this way because the byte and the archive once disagreed about an
+    /// avatar and about a contract creature. They no longer do, and the guard is unchanged: it is
+    /// worth having for the reason written above it rather than for that divergence.
     /// </para>
     /// </remarks>
     public async ValueTask<ItemWorldClass> ClassifyAsync(

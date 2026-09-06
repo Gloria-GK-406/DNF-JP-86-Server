@@ -55,7 +55,7 @@ public sealed class DropRandom
     /// its first threshold, and a roll of zero would belong to no band at all.
     /// <para>
     /// The modulo is taken without rejection sampling. The bias it leaves is on the order of the
-    /// bound over 2^64 -- for the largest bound in this subject, about five parts in a hundred
+    /// bound over 2^64 -- for the largest bound these ladders use, about five parts in a hundred
     /// million million -- which is far below the resolution of anything that reads these numbers.
     /// </para>
     /// </remarks>

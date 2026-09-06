@@ -65,8 +65,7 @@ public sealed class ApplicationModule : IServerModule
 
         // What a premium term adds to an award. Empty unless an operator configures it: the
         // archive declares no rate for any of its fifty-two premium types, so any number here
-        // would be invented, and an invented number in this subject is indistinguishable from a
-        // measured one.
+        // would be invented, and an invented number is indistinguishable from a measured one.
         // What a kill is worth before anything a character carries: the curve, the divisor, the
         // rank rates and the level-gap bands. Only what the archive does not declare -- and unlike
         // the two policies below, a malformed value here stops the server rather than defaulting,
@@ -124,8 +123,7 @@ public sealed class ApplicationModule : IServerModule
         // Where an item belongs, which slot it is worn in, and whether it is equipment at all --
         // the one place the archive's item definitions are read for those three answers.
         services.TryAddSingleton<IItemPlacementRuleService, ItemPlacementRuleService>();
-        // Where an arriving item goes, and which day a refill belongs to. Both were decisions the
-        // database used to make about itself.
+        // Where an arriving item goes, and which day a refill belongs to.
         services.TryAddSingleton<IItemArrivalRuleService, ItemArrivalRuleService>();
         services.TryAddSingleton<IDailyRefillRuleService, DailyRefillRuleService>();
 
@@ -189,15 +187,13 @@ public sealed class ApplicationModule : IServerModule
         // above the rules because how many faces a clear has, and which facts each is drawn from,
         // is a question about the world -- which the rules are not allowed to ask.
         services.TryAddSingleton<ICardRewardDomainService, CardRewardDomainService>();
-        // Entering a dungeon and walking between its rooms: the use case two protocol handlers
-        // used to assemble inline.
+        // Entering a dungeon and walking between its rooms.
         services.TryAddSingleton<IDungeonSelectionRuleService, DungeonSelectionRuleService>();
         services.TryAddSingleton<IDungeonVisitDomainService, DungeonVisitDomainService>();
         // What a kill reported against a run means: which declared actor it names, and whether
         // the room is now empty.
         services.TryAddSingleton<IMonsterKillDomainService, MonsterKillDomainService>();
         // Recomputing a session's offer list after a level or a quest moved what it is made of.
-        // It used to sit in the Protocol layer, where five handlers reached it directly.
         services.TryAddSingleton<
             IQuestOfferRefreshDomainService, QuestOfferRefreshDomainService>();
         // Whether a character may stand where they say, and what a tutorial step declares.
@@ -217,9 +213,7 @@ public sealed class ApplicationModule : IServerModule
         // arithmetic is the entry rule service's; this is the way to reach it without being entry.
         services.TryAddSingleton<
             ICharacterSkillPointDomainService, CharacterSkillPointDomainService>();
-        // Where a character being played is standing, asked by identifier. It used to be a field
-        // on the session's snapshot of the character, which meant every step rewrote the snapshot
-        // and every reader had to find a session before it could ask.
+        // Where a character being played is standing, asked by identifier rather than by session.
         services.TryAddSingleton<
             ICharacterPositionDomainService, CharacterPositionDomainService>();
         // A character's keys and options, asked by identifier. The entry load is the only other
@@ -252,8 +246,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IAccountInventoryEntryDomainService, AccountInventoryEntryDomainService>();
         services.TryAddSingleton<IEquippedCreatureQuery, EquippedCreatureQuery>();
         services.TryAddSingleton<IEntryInventoryLeaseRegistry, EntryInventoryLeaseRegistry>();
-        // What used to be two SQL classes on the inventory side: fourteen tables between them,
-        // and the sequencing that made those tables one inventory.
+        // Fourteen inventory tables, and the sequencing that makes them one inventory.
         services.TryAddSingleton<InventoryEntryAssembly>();
         services.TryAddSingleton<ICharacterInventoryEntryRepository>(
             provider => provider.GetRequiredService<InventoryEntryAssembly>());
@@ -262,8 +255,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IEntryInventoryLeasePersistence>(
             provider => provider.GetRequiredService<InventoryEntryAssembly>());
         services.TryAddSingleton<IEntryInventoryMutationRepository, DailyRefillService>();
-        // What used to be one SQL class over thirty-three tables. The tables stayed; the order
-        // they are read in and everything that made them one character came here.
+        // Thirty-three tables: the order they are read in, and everything that makes them one
+        // character.
         services.TryAddSingleton<ICharacterEntryStateRepository, CharacterEntryAssembly>();
         services.TryAddSingleton<ICharacterContainerDomainService, CharacterContainerDomainService>();
         services.TryAddSingleton<ICharacterQuestLogDomainService, CharacterQuestLogDomainService>();
@@ -287,11 +280,10 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IAccountWalletEntitlementEntryProjection, AccountWalletEntitlementEntryProjection>();
         services.TryAddSingleton<IAccountProgressionEntryProjection, AccountProgressionEntryProjection>();
         services.TryAddSingleton<IAccountRelationCompatibilityEntryProjection, AccountRelationCompatibilityEntryProjection>();
-        // What used to be two SQL classes: creating an account if its login name is new, and
-        // putting an account's eight tables together. Both are decisions, so both are here.
+        // Creating an account if its login name is new, and putting its eight tables together.
+        // Both are decisions, so both are here.
         services.TryAddSingleton<IAccountRepository, AccountProvisioning>();
-        // What used to be four SQL classes on the character side. Each of them read, decided, and
-        // wrote; only the reading and writing stayed behind.
+        // The character side's decisions. Reading and writing stayed in persistence.
         services.TryAddSingleton<ICharacterRepository, CharacterRosterService>();
         services.TryAddSingleton<ICharacterPvpSkillProfileRepository, PvpSkillProfileService>();
         services.TryAddSingleton<IExpertSkillContractReconciliationRepository,

@@ -14,11 +14,11 @@ namespace Dfo.Server.Abstractions.World;
 /// are <c>[gold card blank item]</c> and the free card has no section of that shape, so a
 /// switched-on paid face fills where a free face stays empty. All three switches are off as this
 /// server is deployed, which is why the two faces of one seed come out identical today -- <b>that
-/// is the configuration's doing rather than the composition's</b>, and it is written here because
-/// a sentence saying the kind reaches nothing would be true only until somebody turned a switch.
+/// is the configuration's doing rather than the composition's</b>, and a switch turned on would
+/// part them.
 /// </para>
 /// <para>
-/// That is a reading of the file rather than an omission. What the archive gives the paid card is
+/// What the archive gives the paid card is
 /// three sections of its own -- <c>[gold card cost table]</c>, <c>[gold card create rate]</c> and
 /// <c>[gold card blank item]</c> -- and none of them is a rate for a position. Its six
 /// <c>[drop prob]</c> profiles are named for occasions (<c>event</c>, <c>pcroom bonus</c>) and not
@@ -103,13 +103,8 @@ public sealed record ClearRewardCardFace(
 /// differ, is argued on the two parameters below.
 /// </para>
 /// <para>
-/// <b>How far the run got is not one of these facts, and is deliberately gone.</b> This record
-/// carried a visited-room count while the composition scaled the map-count rate by the share of
-/// rooms entered; that scaling was withdrawn when the composition was settled, and the field
-/// outlived it with no reader anywhere. A fact that looks like an input and reaches no answer is
-/// the shape of defect this subject has twice been damaged by, so it is removed rather than left
-/// carrying an explanation of why nothing uses it. The run still knows which rooms it has been in
-/// -- <see cref="DungeonRunState.VisitedCells"/> -- and nothing on this path asks.
+/// <b>How far the run got is not one of these facts.</b> Nothing on this path reads it; the run
+/// itself still knows -- <see cref="DungeonRunState.VisitedCells"/>.
 /// </para>
 /// </remarks>
 /// <param name="Kind">Free or paid. See <see cref="ClearRewardCardKind"/>.</param>
@@ -226,7 +221,7 @@ public interface IClearRewardRuleService
     /// <b>A room count the archive does not list is not one of those.</b> It is the ordinary case
     /// rather than a gap -- the map-count table stops at five rooms and real mazes hold more -- and
     /// it is priced at the largest row the table does declare. Reading it as a gap is what emptied
-    /// both faces of most real clears for the first nine tasks of this subject; see
+    /// both faces of most real clears until it was corrected; see
     /// <see cref="ClearRewardRules.MapBaseRate"/>.
     /// </para>
     /// </remarks>
@@ -272,7 +267,7 @@ public interface IClearRewardRuleService
     /// row, 580, and not the level 86 row's 10300. See
     /// <see cref="ClearRewardOccasion.DungeonBasisLevel"/> for the reading behind that and for the
     /// gear tap the other way round opened. The A21 reference server reaches the same row by the
-    /// same key, which TASK-09 recorded and this no longer merely records.
+    /// same key.
     /// </para>
     /// <para>
     /// A level and nothing more. That table is keyed on the level alone: the difficulty, the maze

@@ -43,8 +43,8 @@ public sealed record ClearRewardSettlement(
 /// written down.</b> The level a clear settles at is read before the clear's own experience is
 /// paid and every flip of it happens after, so a price keyed on the character moved between the
 /// figure the result screen announced and the figure a flip would take -- a server quoting one
-/// price and taking another. TASK-07 found that and fixed it by fixing the price with the cards,
-/// and that fix is still what this type is. What has gone is the premise rather than the fix: a
+/// price and taking another. Fixing the price with the cards is what this type is; what has gone
+/// is the premise rather than the fix. A
 /// dungeon does not level, so there is no second figure left for the two to disagree about.
 /// </para>
 /// <para>

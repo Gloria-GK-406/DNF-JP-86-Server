@@ -164,8 +164,7 @@ public interface ICharacterMercenarySupportTable
 
 /// <summary>One skill of a character, with whatever else was stored beside it.</summary>
 /// <remarks>
-/// One row type for both kinds of page. The duel pages used to have a type of their own with the
-/// same five fields, which said nothing the table did not.
+/// One row type for both kinds of page: a separate duel type would carry the same five fields.
 /// </remarks>
 public sealed record CharacterSkillEntryRow(
     int PageIndex, int Slot, int SkillId, int Level, byte[] ExtraValues);

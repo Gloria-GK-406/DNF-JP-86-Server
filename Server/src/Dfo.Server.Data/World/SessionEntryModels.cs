@@ -122,9 +122,7 @@ public sealed record SelectedSessionCleanupNotice(
 /// are a fan-out, and they are named in characters: which connection each of them is on is not a
 /// question this plan, or the domain service that builds it, has any business answering.
 /// <para>
-/// One list of notices for all the peers rather than one per peer. They were always identical --
-/// the loop that built them rebuilt the same two entries for everybody -- so the per-target copy
-/// was saying that they might differ, which was never true.
+/// One list of notices for all the peers rather than one per peer, because they never differ.
 /// </para>
 /// </remarks>
 public sealed record SelectedSessionCleanupNotificationPlan(

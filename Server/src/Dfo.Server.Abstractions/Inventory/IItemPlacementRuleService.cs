@@ -45,14 +45,10 @@ public interface IItemPlacementRuleService
     /// free to hand any core it likes to a write.
     /// </para>
     /// <para>
-    /// <b>Amended; what this paragraph said before is quoted next.</b> It said: "Those two still
-    /// disagree -- an avatar is stored as kind 8 and the archive's equipment index gives it kind 1
-    /// -- and a classifier handed the row would be free to believe the row. The contract creature
-    /// used to be a second such pair and no longer is: the archive now gives it the kind storage
-    /// records it under." The avatar pair is answered now too: the archive gives an avatar template
-    /// the 8 storage records it under, so no template is left that the two sources disagree about.
-    /// It is corrected rather than deleted because the reason for the signature is unchanged and
-    /// the record of what it was guarding against is what explains the shape.
+    /// The signature was drawn this way because the two sources once disagreed -- the equipment
+    /// index handed out the constant 1 while storage recorded a 5 for a contract creature and an 8
+    /// for an avatar. Both pairs are answered now, and the signature is unchanged: a caller can
+    /// still hand a write any core it likes.
     /// </para>
     /// </remarks>
     ValueTask<ItemWorldClass> ClassifyAsync(int itemId, CancellationToken cancellationToken);

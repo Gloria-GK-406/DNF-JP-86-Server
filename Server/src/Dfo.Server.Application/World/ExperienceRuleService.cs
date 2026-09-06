@@ -13,8 +13,7 @@ namespace Dfo.Server.Application.World;
 /// The three pure rule classes are called from here and nowhere else. That is the point of the
 /// arrangement: what a kill is worth, what a clear is worth and what a term adds were each written
 /// as a function of their inputs, and until now each caller fetched those inputs for itself. A
-/// caller that fetched one of them differently was a caller that paid a different amount, which is
-/// the class of defect this subject has already produced twice.
+/// caller that fetched one of them differently was a caller that paid a different amount.
 /// </remarks>
 internal sealed class ExperienceRuleService(
     IExperienceParameterSource parameters,

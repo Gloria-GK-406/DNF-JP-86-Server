@@ -32,8 +32,8 @@ internal sealed class CharacterCreationRuleService(
     /// Held here rather than asked of the item-placement rules. Reaching for those would make
     /// creating a character depend on the item-definition archive source being wired, which it has
     /// never needed and which several compositions do not register -- a large coupling to read one
-    /// number. Two rule services carrying the same archive fact is recorded as an open question in
-    /// TASK-11's inventory rather than answered by making one of them heavier.
+    /// number. Two rule services carrying the same archive fact is an open question, left open
+    /// rather than answered by making one of them heavier.
     /// </remarks>
     private const byte EquipmentKind = 1;
 

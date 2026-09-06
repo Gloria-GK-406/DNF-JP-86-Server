@@ -140,8 +140,8 @@ internal sealed class PvfClearRewardRateSource(PvfArchiveProvider provider) : IC
     /// They are left here as names so that whoever ascertains one knows where it goes.
     /// </para>
     /// <para>
-    /// <c>[gold card create rate]</c> used to stand here as a third. TASK-09 of this subject found
-    /// the reference server reading it -- as the paid face's own scale -- so it is read here now;
+    /// <c>[gold card create rate]</c> used to stand here as a third. The reference server reads it
+    /// -- as the paid face's own scale -- so it is read here now;
     /// see <see cref="ClearRewardTable.GoldCardCreateRate"/>. What it cost to leave it here was
     /// that "unascertained" and "not looked for" are written the same way and are not the same
     /// thing.

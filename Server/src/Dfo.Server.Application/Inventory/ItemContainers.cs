@@ -85,25 +85,18 @@ internal static class ArrivingAvatar
     /// it.
     /// </para>
     /// <para>
-    /// <b>Amended, and the original is kept here rather than rubbed out.</b> The sentence above
-    /// read "an avatar whose remaining seconds are two billion". That number is wrong, and one
-    /// subtraction shows it: what the delivery writes is <c>ExpireDate - now</c>, not
-    /// <c>ExpireDate</c>. Read once, on 2026-09-06T09:32Z, with <c>now</c> at
+    /// <b>What a client should draw is about 11.4 years, not about 68.</b> The delivery writes
+    /// <c>ExpireDate - now</c>, not <c>ExpireDate</c>. Read once, on 2026-09-06T09:32Z, with <c>now</c> at
     /// <c>1788687136</c>: <c>2147483647 - 1788687136 = 358796511</c> seconds, which is
     /// <c>358796511 / 86400 = 4152.7</c> days, or <c>358796511 / 31556952 = 11.37</c> years
     /// against a Julian year -- <b>about 11.4 years</b>, and it falls by one every second, so
-    /// anyone can redo the subtraction against their own clock. The "about sixty-eight years"
-    /// this replaces belongs to the bound itself, not to the figure "two billion":
-    /// <c>2147483647 / 31556952 = 68.05</c> years, while <c>2.1e9 / 31556952 = 66.55</c>. The
-    /// two are apart by <c>2147483647 / 358796511 = 5.99</c>, close to six times.
+    /// anyone can redo the subtraction against their own clock. About 68 years is the bound
+    /// itself, <c>2147483647 / 31556952 = 68.05</c>, which is about six times the remaining
+    /// lifetime -- <c>2147483647 / 358796511 = 5.99</c>.
     /// </para>
     /// <para>
-    /// One phrasing only, so a corrected number is not re-broken in the retelling: this figure is
-    /// written "about 11.4 years" wherever it appears. It was first amended as "roughly eleven and
-    /// a half years", which is 11.5 and so about 0.13 years -- some 47 days -- away from the
-    /// 11.37 the subtraction gives; the review of that amendment caught the two readings and this
-    /// is the single one they were settled to. A colloquial rounding is how the original error
-    /// travelled, so a retelling copies the arithmetic rather than rounding it again.
+    /// Written "about 11.4 years" wherever it appears, and a retelling copies the arithmetic rather
+    /// than rounding it again: a colloquial rounding is how the wrong figure travelled.
     /// </para>
     /// <para>
     /// This matters to whoever first watches a client draw one of these. Told to expect about
@@ -386,15 +379,6 @@ internal abstract class StoreBackedItemContainer(
     /// on every one of them. The class is asked of the template rather than read off the core,
     /// because a caller is free to hand over a core whose kind byte says something the archive
     /// does not, and the point of the classification is that the archive wins.
-    /// <para>
-    /// <b>Amended; what this sentence said before is quoted at the end of it.</b> What it said was
-    /// "the kind byte the core carries and the archive's answer disagree today", which named the
-    /// two standing pairs -- the creature's and the avatar's -- where the archive's equipment index
-    /// handed out the constant 1 while storage recorded a 5 and an 8. Both are answered by the
-    /// archive now, so there is no template the two sources disagree about, and the reason to ask
-    /// the template rather than the row is no longer that they disagree: it is that a caller may
-    /// still hand this method any core it likes.
-    /// </para>
     /// <para>
     /// Nothing is written twice: the avatar-carrying write below is this same call with the six
     /// facts filled in, so there is one place a container writes an item and one place a container

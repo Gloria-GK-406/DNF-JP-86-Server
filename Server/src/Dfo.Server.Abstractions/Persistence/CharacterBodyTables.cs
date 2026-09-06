@@ -167,8 +167,7 @@ public interface ICharacterPvpTable
     /// Says the duel-arena skill pages have been seeded.
     /// </summary>
     /// <remarks>
-    /// This used to be a row of its own in a table that existed only to be present or absent. It is
-    /// a flag now, on a row that is always there.
+    /// A flag on a row that is always there, rather than a row whose presence was the fact.
     /// </remarks>
     ValueTask MarkSkillsInitializedAsync(
         CharacterId characterId, CancellationToken cancellationToken);

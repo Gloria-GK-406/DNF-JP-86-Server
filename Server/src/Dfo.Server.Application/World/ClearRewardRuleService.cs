@@ -16,11 +16,10 @@ namespace Dfo.Server.Application.World;
 /// switched its own paid card off. It is not read for a card's contents. The one dungeon-level
 /// declaration about contents that the archive carries -- <c>[result card]</c> -- is declared by
 /// four dungeons, all four of which declare no <c>[map specification]</c> and so have no
-/// definition to read here at all; that finding, and why nothing is built on it, is recorded in
-/// this subject's TASK-08.
+/// definition to read here at all, so nothing is built on it.
 /// </para>
 /// <para>
-/// The order of the work is fixed and only the first step of it is this subject's own. Composing
+/// The order of the work is fixed, and only its first step is new here. Composing
 /// the archive's numbers into one chance is new and lives in <see cref="ClearRewardRules"/>.
 /// Rolling a quality, taking the level's grade band and drawing one
 /// weighted piece are the existing drop parts, called here rather than restated: the quality is
@@ -40,9 +39,9 @@ namespace Dfo.Server.Application.World;
 /// <para>
 /// <b>Only equipment is drawn.</b> The file declares a section of four item-type rates -- see the
 /// remarks on <see cref="ClearRewardTable.ItemTypeRates"/> -- and it is deliberately not applied
-/// here as a second gate. That is now a choice rather than an inability: this subject's TASK-09
-/// found the A21 reference server reading the four positions as item types one to four and rolling
-/// them, so A21's <c>0 9500 0 500</c> is ordinary equipment at 9500 and avatar at 500. What keeps
+/// here as a second gate, and that is a choice rather than an inability: the A21 reference server
+/// reads the four positions as item types one to four and rolls them, so A21's <c>0 9500 0 500</c>
+/// is ordinary equipment at 9500 and avatar at 500. What keeps
 /// the gate out of here is the owner's decision of 2026-08-31 that this phase hands out equipment
 /// and no avatar, which a second roll would only be a slower way of saying. If the avatar branch
 /// is ever wanted, this is where it goes.
@@ -144,14 +143,12 @@ internal sealed class ClearRewardRuleService(
     /// 580. The reading is argued on <see cref="ClearRewardOccasion.DungeonBasisLevel"/>; what
     /// it rests on is the archive's own <c>[mob level charac level replace flag]</c> and this
     /// repository already pricing a clear's experience the same way, not the reference server
-    /// agreeing -- though TASK-09 found that it does, its <c>GetPaidCardCost</c> reaching this
-    /// table by the same key.
+    /// agreeing -- though it does, its <c>GetPaidCardCost</c> reaching this table by the same key.
     /// </para>
     /// <para>
     /// <b>The null is still this server's own.</b> Where the table has no row the reference server
     /// walks back to the nearest lower level and finally to the lowest, so it never answers "not
-    /// priced" at all; that difference is recorded in this subject's TASK-09 and is not adopted
-    /// here.
+    /// priced" at all. That behaviour is not adopted here.
     /// </para>
     /// </remarks>
     public int? PaidFlipCost(int dungeonBasisLevel) =>

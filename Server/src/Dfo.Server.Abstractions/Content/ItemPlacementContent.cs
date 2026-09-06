@@ -16,15 +16,10 @@ namespace Dfo.Server.Abstractions.Content;
 /// nothing that decides it may be handed a stored row.
 /// </para>
 /// <para>
-/// <b>Amended; what this paragraph said before is quoted next.</b> It said the two sources "still
-/// disagree -- an avatar is stored as kind 8 while the archive's equipment index gives it kind 1",
-/// and that "The contract creature used to be a second such pair: the equipment index gave it kind
-/// 1 while storage recorded the 5 that every reader of the worn creature slot looks for. That one
-/// is now answered by the archive as the 5 it is; the avatar's is the same defect left standing."
-/// The avatar's half is no longer standing: the equipment index gives an avatar template the 8
-/// storage records it under, so both pairs agree and there is no template left where the two
-/// sources answer differently. It is corrected rather than deleted because the pair of defects is
-/// the reason this enum exists at all.
+/// This enum exists because the two sources once disagreed: the equipment index handed out the
+/// constant 1 while storage recorded a 5 for a contract creature and an 8 for an avatar. Both
+/// pairs are answered now and no template is left where the two disagree, but the byte is still
+/// whatever a caller put in it, so the template stays the only thing asked.
 /// </para>
 /// </remarks>
 public enum ItemWorldClass

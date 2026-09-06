@@ -57,8 +57,7 @@ internal sealed class SelectedSessionCleanupService(
                 audience.Add(peer.CharacterId);
             }
 
-            // One set for all of them. It was always one set -- the loop that used to build these
-            // rebuilt the same entries for every peer -- and saying it once is what makes that
+            // One set for all of them, because they never differ; saying it once is what makes that
             // true rather than coincidental.
             if (audience.Count > 0)
             {

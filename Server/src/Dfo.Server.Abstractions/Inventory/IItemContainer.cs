@@ -299,14 +299,13 @@ public sealed record ContainerSlotItem(
 
     /// <summary>How many the slot holds. For anything that does not stack, one.</summary>
     /// <remarks>
-    /// <b>Amended; what this read did before is described next.</b> It answered
-    /// <c>Core.Value</c> for both sorts of content, which said what the sentence above says only
-    /// for a pile. The value inside an individual piece's core is not a quantity: an avatar's is
-    /// the identity the store's fill looks its six facts up by, and a starting equipment piece's
-    /// is drawn the same way in <c>CharacterRosterService.EquipmentCore</c>. A container asked to
-    /// move one of something compares the request against this number, so reading an identity here
-    /// turned a plain drag of a delivered avatar into a request to divide it -- which put down a
-    /// row carrying no facts, and the entry load refuses one of those.
+    /// <b>Do not answer <c>Core.Value</c> for both sorts of content.</b> The value inside an
+    /// individual piece.s core is not a quantity: an avatar.s is the identity the store.s fill
+    /// looks its six facts up by, and a starting equipment piece.s is drawn the same way in
+    /// <c>CharacterRosterService.EquipmentCore</c>. A container asked to move one of something
+    /// compares the request against this number, so reading an identity here turns a plain drag of
+    /// a delivered avatar into a request to divide it -- which puts down a row carrying no facts,
+    /// and the entry load refuses one of those.
     /// <para>
     /// The branch is <see cref="IsPile"/> rather than a second reading of its own, so the two
     /// answers cannot come apart: what makes a thing countable is the same archive answer that

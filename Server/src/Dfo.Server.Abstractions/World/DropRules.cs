@@ -246,7 +246,7 @@ public static class DropRules
 }
 
 /// <summary>
-/// The one number in this subject that the archive does not declare.
+/// The one number on this path that the archive does not declare.
 /// </summary>
 /// <remarks>
 /// A rate table's five rates are numerators, and nothing in the <c>itemdropinfo_*</c> family says

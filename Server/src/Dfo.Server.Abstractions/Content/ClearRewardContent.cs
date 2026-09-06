@@ -139,8 +139,7 @@ public sealed record ClearRewardBlankItem(int Weight, int ItemId, int Quantity);
 /// names no position, but the A21 reference server does: its <c>RollItemType</c> indexes this list
 /// by item type less one and its equipment branch takes type 2 for ordinary equipment and type 4
 /// for avatar, so A21's numbers are equipment at 9500 and avatar at 500 with types 1 and 3 unused.
-/// This subject had that recorded as unascertained until TASK-09 went and read the reference
-/// server. Carried verbatim all the same: nothing on this path applies it, for the reason given on
+/// Carried verbatim all the same: nothing on this path applies it, for the reason given on
 /// <c>ClearRewardRuleService</c>.
 /// </param>
 /// <param name="DifficultyRates">
