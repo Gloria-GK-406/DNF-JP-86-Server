@@ -64,5 +64,5 @@ PVF_ARCHIVE_PATH=<Script.pvf 的路径> dotnet test Server/86JP.Server.slnx --no
 4. **协议失谐记录** —— `ProtocolScaffoldDissonances.md`、`InventoryCoordinateDissonances.md`：
    只记不修，等实机样本。
 
-**事实该写在哪，只有一个答案**：上游与线上协议的事实进 `protocol/`；本仓自己的代码与文档
-对不上的地方进 `Docs/`；仓库层面的架构与约定进 `AGENTS.md`。
+**事实该写在哪、什么值得写、过期的怎么办**，一处写清，见
+[`AGENTS.md` 的「记什么，不记什么」](AGENTS.md#记什么不记什么)。
