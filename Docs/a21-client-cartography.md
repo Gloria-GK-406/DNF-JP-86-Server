@@ -160,7 +160,7 @@ mode 2 → UTF-16LE（占 74,474 次）   mode 1 → cp949（115 次）
 - 类名、vtable RTTI、`.xui` 脚本名、断言消息这几类锚点也都还没用。
 - ~~`.vmp1` 没有共享分派器~~ —— **已被推翻**，它确实是 VMProtect 虚拟机，
   只是 direct-threaded 所以本来就不该汇聚。见 `Docs/a21-vmp1-virtualization.md`。
-- 146 个翻译单元只描述了 57 个（额度耗尽时停下）；40 份落在 `Docs/a21-units/`。
+- 146 个翻译单元只描述了 57 个（额度耗尽时停下）；**39 份**落在 `Docs/a21-units/`，逐份索引见文末。
 - 单元描述**没有经过对抗验证**（`UnitVerify` 阶段一个都没跑成），
   而上一轮 49/55 的推翻率说明这一层不能省。引用单元结论时要自己复核。
 
@@ -169,3 +169,55 @@ mode 2 → UTF-16LE（占 74,474 次）   mode 1 → cp949（115 次）
 - `Docs/themida-api-wrapper-recovery.md` —— 1654 个 API 包装的还原（本文的锚点来源之一）
 - `Docs/differential-crossmodule-fixups.md` —— 重定位表
 - `Docs/s4a21-port-status.md` —— A21 移植总体进度
+
+## 细文档索引
+
+本文是摘要。逐个翻译单元的分析在 `Docs/a21-units/`，**每一份都未经对抗验证**（见上面「未决」），
+引用其结论前请自己复核。
+
+| 文档 | 覆盖的源文件 |
+| --- | --- |
+| [`unit-000`](a21-units/unit-000.md) | `DNFClient\RDAR\Appendage\AppendageFactory.cpp` |
+| [`unit-001`](a21-units/unit-001.md) | `DNFClient\RDAR\Appendage\CNBoosterAppendage.cpp` |
+| [`unit-002`](a21-units/unit-002.md) | `DNFClient\RDAR\Appendage\china\CNEventRhythmAction.cpp` |
+| [`unit-003`](a21-units/unit-003.md) | `DNFClient\RDAR\BlueMarble\CNRDBlueMarble.cpp` |
+| [`unit-004`](a21-units/unit-004.md) | `DNFClient\RDAR\CNEntryDungeonPartyManager.cpp` |
+| [`unit-005`](a21-units/unit-005.md) | `DNFClient\RDAR\CNGameSocket.cpp` |
+| [`unit-006`](a21-units/unit-006.md) | `DNFClient\RDAR\CNHitGauge.cpp` |
+| [`unit-007`](a21-units/unit-007.md) | `DNFClient\RDAR\CNPVPModule.cpp` |
+| [`unit-008`](a21-units/unit-008.md) | `DNFClient\RDAR\CNRDAction.cpp` |
+| [`unit-009`](a21-units/unit-009.md) | `DNFClient\RDAR\CNRDActionBehavior.cpp` |
+| [`unit-010`](a21-units/unit-010.md) | `DNFClient\RDAR\CNRDAdvanceAltarReward.cpp` |
+| [`unit-011`](a21-units/unit-011.md) | `DNFClient\RDAR\CNRDBaseInterface.cpp` |
+| [`unit-012`](a21-units/unit-012.md) | `DNFClient\RDAR\CNRDBossTowerReward.cpp` |
+| [`unit-013`](a21-units/unit-013.md) | `DNFClient\RDAR\CNRDConfigFile.cpp` |
+| [`unit-014`](a21-units/unit-014.md) | `DNFClient\RDAR\CNRDDungeon.cpp` |
+| [`unit-015`](a21-units/unit-015.md) | `DNFClient\RDAR\CNRDEquipment.cpp` |
+| [`unit-016`](a21-units/unit-016.md) | `DNFClient\RDAR\CNRDInterfaceManager.cpp` |
+| [`unit-017`](a21-units/unit-017.md) | `DNFClient\RDAR\CNRDItemManager.cpp` |
+| [`unit-018`](a21-units/unit-018.md) | `DNFClient\RDAR\CNRDItemObject.cpp` |
+| [`unit-019`](a21-units/unit-019.md) | `DNFClient\RDAR\CNRDMainHudMenuManager.cpp` |
+| [`unit-020`](a21-units/unit-020.md) | `DNFClient\RDAR\CNRDMap.cpp` |
+| [`unit-021`](a21-units/unit-021.md) | `DNFClient\RDAR\CNRDMovementUnit.cpp` |
+| [`unit-022`](a21-units/unit-022.md) | `DNFClient\RDAR\CNRDObject.cpp` |
+| [`unit-023`](a21-units/unit-023.md) | `DNFClient\RDAR\CNRDObjectManager.cpp` |
+| [`unit-024`](a21-units/unit-024.md) | `DNFClient\RDAR\CNRDObjectMoveSystem.cpp` |
+| [`unit-025`](a21-units/unit-025.md) | `DNFClient\RDAR\CNRDPassiveObject.cpp` |
+| [`unit-026`](a21-units/unit-026.md) | `DNFClient\RDAR\CNRDSkillBuyWindow.cpp` (class `CNRDSkillShop`) |
+| [`unit-027`](a21-units/unit-027.md) | `DNFClient\RDAR\CNRDSkillManager.cpp` |
+| [`unit-029`](a21-units/unit-029.md) | `DNFClient\RDAR\CNRDStage.cpp` |
+| [`unit-030`](a21-units/unit-030.md) | `DNFClient\RDAR\CNRDUdpIdentify.cpp` |
+| [`unit-033`](a21-units/unit-033.md) | `DNFClient\RDAR\CNRoom.cpp` |
+| [`unit-034`](a21-units/unit-034.md) | `DNFClient\RDAR\CNSelectChannelModule.cpp` |
+| [`unit-035`](a21-units/unit-035.md) | `DNFClient\RDAR\CNSelectChannelSocket.cpp` |
+| [`unit-036`](a21-units/unit-036.md) | `DNFClient\RDAR\CNSelectCharacterModule.cpp` |
+| [`unit-039`](a21-units/unit-039.md) | `DNFClient\RDAR\CNUser.cpp` |
+| [`unit-042`](a21-units/unit-042.md) | `DNFClient\RDAR\CashShop\CouponSystemManager.cpp` |
+| [`unit-043`](a21-units/unit-043.md) | `DNFClient\RDAR\CashShop\Localization\CNRDCashShop_CHN.cpp` |
+| [`unit-048`](a21-units/unit-048.md) | `DNFClient\RDAR\ClientArgumentParser.cpp` |
+| [`unit-049`](a21-units/unit-049.md) | `DNFClient\RDAR\DumpReport\HangDumpTrace.cpp` |
+
+两份跨单元的边界勘察：
+
+- [`boundary-0`](a21-units/boundary-0.md) —— which `.text` functions are protector runtime rather than game code?
+- [`boundary-1`](a21-units/boundary-1.md) —— the non-`.text` executable sections of DNF S4A21

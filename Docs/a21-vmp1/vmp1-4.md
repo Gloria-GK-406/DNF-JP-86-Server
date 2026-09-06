@@ -275,7 +275,7 @@ structure.
 
 ---
 
-## Correction to the earlier `vmp1-4.md` (preserved as `vmp1-4.prev.md`)
+## Correction to the earlier draft of this document
 
 Its headline — "a loop, one loop, the same 22-byte loop" — **holds**, and its
 identification of the stack probe is right. Three of its specifics do not survive

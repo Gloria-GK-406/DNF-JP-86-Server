@@ -144,3 +144,18 @@ CMD 侧对应表在 `0x03B53230`。
 - `Docs/a21-client-cartography.md` —— 字符串解密与源码树归属（本文锚点的来源）
 - `Docs/themida-api-wrapper-recovery.md` —— API 包装层还原
 - `Docs/a21-protocol/proto-*.md` —— 每个源文件的完整分析
+
+## 细文档索引
+
+本文是摘要。每个源文件的完整分析在 `Docs/a21-protocol/`：
+
+| 文档 | 覆盖的源文件 |
+| --- | --- |
+| [`proto-0`](a21-protocol/proto-0.md) | `GameCoreNetwork_NOTI_Dungeon.cpp` |
+| [`proto-1`](a21-protocol/proto-1.md) | `GameCoreNetwork_NOTI_Etc.cpp` |
+| [`proto-2`](a21-protocol/proto-2.md) | `GameCoreNetwork_NOTI_Town.cpp` |
+| [`proto-3`](a21-protocol/proto-3.md) | `GameCoreNetwork_CMD_Town.cpp` |
+| [`proto-4`](a21-protocol/proto-4.md) | `GameCoreNetwork_CMD_Dungeon.cpp` |
+| [`proto-5`](a21-protocol/proto-5.md) | `GameCoreNetwork_CMD_Etc.cpp` |
+| [`proto-6`](a21-protocol/proto-6.md) | `CNRDUserInfoPacketHandler.cpp` |
+| [`proto-7`](a21-protocol/proto-7.md) | `Library\Include\Nengine\ISocket.cpp`（传输层，不是包体） |

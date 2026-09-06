@@ -130,3 +130,16 @@ emulation 拿到的 774 个 handler 地址里，**758 个在整个 122MB 镜像�
 - `Docs/a21-client-cartography.md` —— 字符串解密与源码树归属
 - `Docs/a21-protocol-surface.md` —— 747 个包类型
 - `Docs/themida-api-wrapper-recovery.md` —— `.-wI` 那一侧的还原
+
+## 细文档索引
+
+本文是摘要。逐问的取证在 `Docs/a21-vmp1/`，按提问顺序：
+
+- [`vmp1-0`](a21-vmp1/vmp1-0.md) —— What `.vmp1` actually is
+- [`vmp1-1`](a21-vmp1/vmp1-1.md) —— .vmp1 convergence clusters 0x0542F873 and 0x054FEC24
+- [`vmp1-2`](a21-vmp1/vmp1-2.md) —— .vmp1 and the two .data pages 0x0399C000 / 0x03B89000
+- [`vmp1-3`](a21-vmp1/vmp1-3.md) —— The 2,508 `.vmp1` entries called from `.text` — how many are live?
+- [`vmp1-4`](a21-vmp1/vmp1-4.md) —— why 1,499 walks into `.vmp1` "hit the 800-instruction budget"
+- [`vmp1-5`](a21-vmp1/vmp1-5.md) —— .vmp1 — which entries deserve the CThread::Create / ISocket::Write treatment
+- [`vmp1-6`](a21-vmp1/vmp1-6.md) —— `.vmp1` vs `.-wI` — structural comparison, and the symeval decision
+- [`vmp1-7`](a21-vmp1/vmp1-7.md) —— `.vmp1` vs. the VMProtect 2.x/3.x layout playbook

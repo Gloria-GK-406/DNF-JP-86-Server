@@ -1,5 +1,21 @@
 # GM工具新背包数据结构说明
 
+> **这份文档描述的是参照服务端 `ServerS4A21`，不是本仓。**
+> 它讲的背包模型（`character_new_items` 一张表、`item_uid` 只是行主键、
+> `ItemCore.Value` 对时装是 `AvatarUid`、真源是 `InventoryService`）
+> **本仓一条都不成立**：`character_new_items`、`InventoryService`、`AvatarUid`
+> 这三个名字在 `Server/src` 里各自 0 命中。
+>
+> 本仓今天的形状是 **`items` 世界表 + `item_slots` 位置表**：物品有跨位置不变的
+> `item_uid`，槽行经 `core_uid` 指名它，时装细节是 `items` 上的六列。
+> 权威描述在 `AGENTS.md`「物品：有身份的东西，和它在哪，是两张表」一节。
+>
+> **它保留下来是因为参照实现的业务语义有价值**——槽位区段的划分、
+> `category → list_type` 的映射、随身金币的表达，这些是本仓做同一件事时的参照。
+> **但不要拿它当本仓事实去取证。** 已经发生过：至少六个任务把它当权威引用过，
+> 其中两处用它确定时装 `Value` 的语义与穿戴槽号，而这两条本仓都另有出处。
+
+
 本文面向 GM 工具重写。当前背包已经从旧 `character_items + extra_json`、`character_equipped_entries.raw_entry`、旧 DTO/InvenItem 过渡到在线 `InventoryService + ItemCore + Detail` 模型。GM 工具不要再直接构造旧 DTO，也不要再依赖 `extra_json` 字节段名称。
 
 ## 总体规则

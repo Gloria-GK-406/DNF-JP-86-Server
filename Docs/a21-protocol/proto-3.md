@@ -1,4 +1,3 @@
-<title>CMD_Town Protocol Map</title>
 
 # GameCoreNetwork_CMD_Town.cpp — handlers, wire formats, and dispatch
 

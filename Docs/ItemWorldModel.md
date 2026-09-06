@@ -2,6 +2,18 @@
 
 2026-09-05，基准 `main` @ `51cd99c2`。**设计文档，未改动任何代码。**
 
+> **本文已经落地了，就在加入它的那个提交里**（`499c99aa`「Give an item an identity of
+> its own, and let a slot say only where it is」）。所以：
+>
+> - **第一节「今天的形状与它的三个后果」讲的是 `51cd99c2`，不是今天。** 那三个后果——
+>   `item_uid` 每写一次就换一个、物品无法「存在但不在任何槽里」、`Core.Value` 一字三义——
+>   前两条已经不成立。**今天的形状看 `AGENTS.md`「物品：有身份的东西，和它在哪，是两张表」。**
+> - 第三条只解掉一半：`Core.Value` 对时装不再是身份（`server-agrees-what-an-avatar-is`，
+>   `fa10dfa5`），对堆叠物仍是数量、对契约兽仍是 `creature_key`。
+> - **本文其余部分作为「为什么是这个形状」的推导保留**，那部分没有过期。
+>
+> 配套文档里 `CreatureDomainDesign.md` 那句「本文落地后要按本文改写」**尚未兑现**。
+
 配套：[Domain Instance Design](Refactor/DomainInstanceDesign.md)（领域对象定式）、
 [Table Ownership Ruling](Refactor/TableOwnershipRuling.md)（持久层裁定，已落地）、
 [宠物领域怎么建](CreatureDomainDesign.md)（本文落地后要按本文改写）。
