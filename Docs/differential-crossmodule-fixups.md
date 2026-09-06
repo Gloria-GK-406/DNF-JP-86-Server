@@ -789,3 +789,62 @@ Themida 包装器，正向求值就能算出它最终跳到哪个 API；那个�
 规矩相应更新：**建表仍按上面的双 pair 流程，但 `same-delta:` 行应先送去
 `resolve_wrappers.py` 找见证人，找不到再等重启。** 详见
 `Docs/themida-api-wrapper-recovery.md`。
+
+
+## 2026-09-06：17 行歧义已消解，B1 exe 不再绑定 boot
+
+`DNFClient-A21-protocol` 的 B1 exe 在 9-06 这个 boot 上失效，症状与既有记载一致
+（构建于 8-22 的 boot，其后重启过）。诊断后发现失效**不只是"表按设计需要重建"**，
+表里有一处真错。
+
+### 病根
+
+原表只由 **Aug-22 一对 dump** 建成，剩 17 行 `same-delta` 猜测。这些猜测本身是
+「对当前 pair 正确、对分开该组的 boot 错误」的潜伏故障。其中一组真的错了：
+
+```
+kernel.appcore.dll  →  ntdll.dll        10 个站点
+d3d9.dll            →  netapi32/wkscli   3 个
+iertutil.dll        →  netutils/urlmon   3 个
+dbghelp.dll         →  d3dx9_43          1 个
+```
+
+**那 10 个站点实际指向 ntdll。** ntdll 是 KnownDLL，每次重启基址必变；
+只要某个 boot 让 ntdll 与 kernel.appcore 的差值不同，这 10 个站点就会被加上
+错误的修正值——这正是 exe 一重启就废掉的直接原因，而不是"表按设计过期"。
+
+### 消解
+
+累积到 5 个不同 boot 的 dump（8-22 两次、8-28、8-31、9-06），用三对跨 boot
+组合 `--refine`：
+
+```
+refine pair 1 (0822b × 0828)  14 modules moved,  51 rows settled
+refine pair 2 (0828  × 0831)  71 modules moved,  19 rows settled
+refine pair 3 (0831  × 0906)  71 modules moved,  32 rows settled
+歧义 17 → 15，其中 17 行归属被改正
+```
+
+### 剩下的 15 行为什么无害
+
+全部是同一组 `d3dx9_43.dll | dbghelp.dll`。它们在 5 个 boot 里**每次都相隔恰好
+0x120000**：
+
+```
+0822a  0x5E1B0000 / 0x5E090000      0831   0x50710000 / 0x505F0000
+0822b  0x5BD70000 / 0x5BC50000      0906   0x6DDD0000 / 0x6DCB0000
+0828   0x5BAE0000 / 0x5B9C0000
+```
+
+两者相邻加载、间距恒定，因此 `delta_d3dx9 ≡ delta_dbghelp`——认成哪一个，
+修正值都一样。这与原来那三组的性质完全不同：KnownDLL 组是**会**被 boot 分开的。
+
+### 状态与验收
+
+- `crossmodule-relocs-a21.csv` 已更新（旧表存为 `.pre-5boot`）。
+- 用新表重建的 exe 在 9-06 boot 上启动正常。
+- **「耐重启」这一条尚未被证实**——要证实只有一个办法：重启后**不重建**直接启动。
+  能起来即成立；若仍失败，抓下那个 boot 的 dump 再 refine 一次，
+  **把它弄坏的那一对正是能把它定下来的那一对**。
+- 顺带修了 `_rebuildebuild_a21_b1.ps1` 的失效路径（仓库从 `D:` 迁到 `E:`，
+  且构建产物现在位于 `client-debug-lab` 工作树）。
