@@ -1,0 +1,384 @@
+using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Inventory;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.World;
+using Dfo.Server.Infrastructure;
+using Dfo.Server.Protocol.Game;
+using Dfo.Server.Protocol.Game.MoveItemSpace;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+namespace Dfo.Server.Protocol.Tests.Game.MoveItemSpace;
+
+/// <summary>
+/// What the log says when the server will not put a piece on, and why the avatar case is read
+/// off it.
+/// </summary>
+/// <remarks>
+/// <c>PvfEquipmentSlots.ByName</c> is written out one name at a time and none of the names in it
+/// ends in <c>avatar]</c>. Template 101500690, which the archive declares under
+/// <c>[coat avatar]</c>, was run through this path and observed getting nothing back from
+/// <c>PvfEquipmentSlotDefinitionSource</c> and being refused by
+/// <c>MoveItemSpaceCommandHandler.PutOnAsync</c> as <c>NotWearable</c>. What the request had
+/// written in its destination end came back out of the log beside the template number, which is
+/// the pair these tests hold still.
+/// <para>
+/// Why that pair is worth holding is what <c>PutOnAsync</c> already says of itself: "A stock
+/// client works it out for itself and will not offer a drop it believes is illegal, so a request
+/// naming the wrong slot cannot be produced by playing; which is precisely why the server may not
+/// take the request's word for it." The server not taking its word for it is one thing; the
+/// request still carrying it is what makes the refusal readable.
+/// </para>
+/// <para>
+/// The archive is the real one. The premise the instrument rests on -- that this template is an
+/// avatar and that the archive gives it no worn slot -- is asserted rather than assumed, because a
+/// double saying so would keep saying so after the archive stopped.
+/// </para>
+/// <para>
+/// <b>These tests do not establish which slot any avatar name belongs in.</b> They establish that
+/// two numbers reach the record for the drags exercised here. Whether a live client names the
+/// slots these tests use, and what it names for the other ten avatar types, is not something a
+/// test can be asked.
+/// </para>
+/// </remarks>
+public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFixture archive)
+    : IClassFixture<ArchiveContentFixture>
+{
+    /// <summary>
+    /// A template the archive declares under <c>[coat avatar]</c>.
+    /// </summary>
+    /// <remarks>
+    /// The first of the three lowest identifiers that name reaches in
+    /// <c>equipment/equipment.lst</c>: 101500690, 101500691 and 101500692. One is enough here, and
+    /// the two facts this test needs of it are asserted below rather than taken on trust.
+    /// </remarks>
+    private const int CoatAvatarTemplate = 101500690;
+
+    /// <summary>A template the archive declares under <c>[coat]</c>, which is slot 14.</summary>
+    private const int OrdinaryCoatTemplate = 10018;
+
+    /// <summary>Where the piece sits in the bag before the drag.</summary>
+    private const short BagSlot = 9;
+
+    /// <summary>The worn slot the request names for the avatar.</summary>
+    /// <remarks>
+    /// Two, and nothing here says two is where a coat avatar belongs -- that is the number this
+    /// record exists to collect, and the server has no opinion about it. What the test asserts is
+    /// that whatever the client wrote comes back out of the log.
+    /// </remarks>
+    private const short NamedAvatarSlot = 2;
+
+    /// <summary>A worn slot the ordinary coat does not belong in; the archive says 14.</summary>
+    private const short WrongSlotForACoat = 15;
+
+    private static readonly NetworkConnectionId Connection = new("game-avatar-refusal");
+
+    private static readonly NetworkDispatchContext Context = new(
+        new NetworkConnectionContext(Connection, NetworkEndpointKind.Game, 10011));
+
+    /// <summary>
+    /// The premise: this template is an avatar, and the archive names no slot to wear it in.
+    /// </summary>
+    /// <remarks>
+    /// Both halves matter. Without the first the refused piece is not an avatar and the record
+    /// says nothing about avatars; without the second the piece would be worn rather than refused
+    /// and there would be no record at all.
+    /// </remarks>
+    [Fact]
+    public async Task The_archive_calls_this_template_an_avatar_and_names_no_worn_slot_for_it()
+    {
+        var placement = await archive.Placements.GetAsync(
+            CoatAvatarTemplate, CancellationToken.None);
+
+        Assert.NotNull(placement);
+        Assert.Equal(ItemWorldClass.Avatar, placement.WorldClass);
+        Assert.Null(await archive.EquipmentSlots.GetAsync(
+            CoatAvatarTemplate, CancellationToken.None));
+    }
+
+    /// <summary>
+    /// An avatar the server cannot place leaves its template and the slot the client asked for.
+    /// </summary>
+    /// <remarks>
+    /// This is the instrument, held against one template. What it shows is that the record for
+    /// this drag carried 101500690 and the 2 the request had written. Whether a live client writes
+    /// 2 for a coat avatar is not settled here -- that is the reading the record is for, and it
+    /// takes a client.
+    /// </remarks>
+    [Fact]
+    public async Task An_avatar_refused_as_unwearable_is_recorded_with_its_template_and_that_slot()
+    {
+        var (handler, sender, logger) = this.Build(CoatAvatarTemplate);
+
+        await handler.HandleAsync(
+            Context, Request(CoatAvatarTemplate, NamedAvatarSlot), CancellationToken.None);
+
+        Assert.Equal(
+            $"Move item space game-avatar-refusal character=60: item {CoatAvatarTemplate} "
+                + $"{BagSlot}->{NamedAvatarSlot} refused as NotWearable",
+            Assert.Single(logger.Entries).Message);
+        Assert.Equal(
+            MoveItemSpaceResponse.NotMovable,
+            ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+    }
+
+    /// <summary>
+    /// The other refusal decided with the piece in hand names its template too.
+    /// </summary>
+    /// <remarks>
+    /// Template 10018, which the archive declares under <c>[coat]</c>, aimed at 15 rather than the
+    /// 14 <c>PvfEquipmentSlots.ByName</c> gives that name. It is the second of the two refusals
+    /// <c>PutOnAsync</c> decides with the piece already read, and it is here because the same
+    /// change touched both: were only the first passing the identifier on, this line would come
+    /// out reading <c>item 0</c>.
+    /// </remarks>
+    [Fact]
+    public async Task A_piece_aimed_at_the_wrong_slot_is_recorded_with_its_template_and_that_slot()
+    {
+        var (handler, _, logger) = this.Build(OrdinaryCoatTemplate);
+
+        await handler.HandleAsync(
+            Context, Request(OrdinaryCoatTemplate, WrongSlotForACoat), CancellationToken.None);
+
+        Assert.Equal(
+            $"Move item space game-avatar-refusal character=60: item {OrdinaryCoatTemplate} "
+                + $"{BagSlot}->{WrongSlotForACoat} refused as ItemCannotOccupySlot",
+            Assert.Single(logger.Entries).Message);
+    }
+
+    /// <summary>The drag: out of the bag, onto the worn list, at the slot the client named.</summary>
+    private static MoveItemSpaceRequest Request(int itemId, short wornSlot) =>
+        new(GameMessageMetadata.Empty,
+            (byte)InventoryContainerType.Main,
+            BagSlot,
+            itemId,
+            MoveCount: 0,
+            (byte)InventoryContainerType.Equipment,
+            wornSlot,
+            DestinationInstanceValue: 0);
+
+    private (MoveItemSpaceHandler Handler, RecordingSender Sender, RecordingLogger Logger) Build(
+        int itemIdInTheBag)
+    {
+        var character = new CharacterId(60);
+        var containers = new CharacterContainerDomainService();
+        var bag = new SlotDictionaryContainer(InventoryContainerType.Main);
+        bag.Seed(BagSlot, itemIdInTheBag);
+        containers.Register(character, bag);
+        containers.Register(character, new SlotDictionaryContainer(InventoryContainerType.Equipment));
+
+        var commandHandler = new MoveItemSpaceCommandHandler(
+            containers,
+            new ItemMovementDomainService(
+                new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
+                new ItemSlotRuleService()));
+
+        var sender = new RecordingSender();
+        var logger = new RecordingLogger();
+        return (
+            new MoveItemSpaceHandler(new OneSession(), new DirectMoveBus(commandHandler), sender, logger),
+            sender,
+            logger);
+    }
+
+    /// <summary>
+    /// A container that is a dictionary of slots and refuses everything else.
+    /// </summary>
+    /// <remarks>
+    /// The refusals under test are decided from one read of one slot, so what stands behind that
+    /// read does not have to keep items or settle anything. The unused members raise rather than
+    /// answering emptily, so a path that started using one of them fails here instead of quietly
+    /// being told the container is empty.
+    /// </remarks>
+    private sealed class SlotDictionaryContainer(InventoryContainerType type) : IItemContainer
+    {
+        private readonly Dictionary<int, ContainerSlotItem> bySlot = [];
+
+        public ContainerId Id { get; } = ContainerId.ForCharacter(new CharacterId(60), type);
+
+        public InventoryContainerType Type => type;
+
+        public ContainerShape Shape { get; } = new(type, 0);
+
+        public bool IsRemovable => false;
+
+        /// <summary>Puts one of a template in a slot.</summary>
+        /// <remarks>
+        /// The kind byte and the world class written here are not read on the path under test:
+        /// <c>PutOnAsync</c> takes the identifier off the slot and asks the archive, which is the
+        /// reading the classification exists to be. They are filled in because
+        /// <see cref="ContainerSlotItem"/> carries them, not because either is being described.
+        /// </remarks>
+        public void Seed(int slotIndex, int itemId) =>
+            this.bySlot[slotIndex] = new ContainerSlotItem(
+                slotIndex,
+                StackableItemCore.Create(1, itemId, 1),
+                ItemWorldClass.Equipment);
+
+        public ValueTask<ContainerSlotItem?> ReadSlotAsync(
+            int slotIndex, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(this.bySlot.GetValueOrDefault(slotIndex));
+
+        public ValueTask<ContainerSlotPair> ReadSlotsAsync(
+            int firstSlotIndex, int secondSlotIndex, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(new ContainerSlotPair(
+                this.bySlot.GetValueOrDefault(firstSlotIndex),
+                this.bySlot.GetValueOrDefault(secondSlotIndex)));
+
+        public ValueTask PutAsync(
+            int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken)
+        {
+            this.bySlot[slotIndex] = new ContainerSlotItem(
+                slotIndex, core, ItemWorldClass.Equipment);
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask ClearAsync(int slotIndex, CancellationToken cancellationToken)
+        {
+            this.bySlot.Remove(slotIndex);
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(
+            CancellationToken cancellationToken) => throw Unused();
+
+        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(
+            CancellationToken cancellationToken) => throw Unused();
+
+        public ValueTask<ItemPlacementOutcome> AddAsync(
+            int itemId, int count, CancellationToken cancellationToken) => throw Unused();
+
+        public ValueTask<ItemPlacementOutcome> RefillAsync(
+            ItemRefill refill, CancellationToken cancellationToken) => throw Unused();
+
+        public ValueTask<ItemMoveOutcome> MoveToAsync(
+            int fromSlotIndex, int toSlotIndex, int count, CancellationToken cancellationToken) =>
+            throw Unused();
+
+        private static NotSupportedException Unused() =>
+            new("This container answers slot reads and writes and nothing else.");
+    }
+
+    /// <summary>A bus that runs the move command on the handler that owns it.</summary>
+    /// <remarks>
+    /// No use case boundary is opened, because the container behind this one keeps nothing past
+    /// the test and so has none to refuse a write outside of. What the boundary is for is checked
+    /// where a persistent container is.
+    /// </remarks>
+    private sealed class DirectMoveBus(
+        ICommandHandler<MoveItemSpaceCommand, ItemMoveResult> move) : ICommandBus
+    {
+        public async ValueTask<TResult> SendAsync<TResult>(
+            ICommand<TResult> command, CancellationToken cancellationToken = default)
+            where TResult : notnull
+        {
+            var context = new CommandExecutionContext(
+                Guid.Empty, command.GetType(), typeof(DirectMoveBus),
+                CommandExecutionKind.Transactional);
+            var result = await move.HandleAsync(
+                context, (MoveItemSpaceCommand)(object)command, cancellationToken);
+            return (TResult)(object)result;
+        }
+    }
+
+    private sealed class OneSession : ISelectedSessionDomainService
+    {
+        private static readonly SelectedSessionIdentity Session = SelectedSessionIdentity.Create(
+            new AccountId(6), new CharacterId(60), Connection, 1, 10011);
+
+        public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => null;
+
+        public bool ReleaseExact(SelectedSessionIdentity session) => false;
+
+        public SelectedSessionIdentity? Find(AccountId accountId) => Session;
+
+        public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => Session;
+
+        public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) => Session;
+
+        public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) =>
+            Session;
+    }
+
+    private sealed class RecordingSender : IGameMessageSender
+    {
+        public List<IGameServerMessage> Sent { get; } = [];
+
+        public ValueTask SendCmdAsync(
+            NetworkConnectionId connectionId,
+            IGameCmdMessage message,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("The move acknowledgement is sent explicitly.");
+
+        public ValueTask SendNotiAsync(
+            NetworkConnectionId connectionId,
+            IGameNotiMessage message,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("The move acknowledgement is a CMD.");
+
+        public ValueTask SendExplicitAsync(
+            NetworkConnectionId requiredDirectConnectionId,
+            GameExplicitMessageDelivery delivery,
+            CancellationToken cancellationToken)
+        {
+            this.Sent.AddRange(delivery.RequiredDirectMessages);
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    /// <summary>The log, kept as the sentences it would have written.</summary>
+    private sealed class RecordingLogger : ILogger<MoveItemSpaceHandler>
+    {
+        public List<(LogLevel Level, string Message)> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter) =>
+            this.Entries.Add((logLevel, formatter(state, exception)));
+    }
+}
+
+/// <summary>
+/// The operator's own archive, opened once for the class that reads it.
+/// </summary>
+/// <remarks>
+/// Opening it costs a second and indexing <c>equipment/equipment.lst</c> costs more, and three
+/// tests asking the same two questions have no reason to pay for it three times. The production
+/// registration is used rather than the sources constructed by hand, so what these tests read is
+/// what the server reads.
+/// </remarks>
+public sealed class ArchiveContentFixture : IDisposable
+{
+    private readonly ServiceProvider services;
+
+    public ArchiveContentFixture()
+    {
+        var collection = new ServiceCollection();
+        new InfrastructureModule().ConfigureServices(
+            collection, new ConfigurationBuilder().Build());
+        this.services = collection.BuildServiceProvider();
+        this.Placements = this.services.GetRequiredService<IItemPlacementDefinitionSource>();
+        this.EquipmentSlots = this.services.GetRequiredService<IEquipmentSlotDefinitionSource>();
+    }
+
+    public IItemPlacementDefinitionSource Placements { get; }
+
+    public IEquipmentSlotDefinitionSource EquipmentSlots { get; }
+
+    public void Dispose() => this.services.Dispose();
+}

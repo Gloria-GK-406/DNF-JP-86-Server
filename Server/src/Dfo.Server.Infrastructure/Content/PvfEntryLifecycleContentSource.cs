@@ -28,6 +28,17 @@ internal sealed class PvfEntryLifecycleContentSource(PvfArchiveProvider provider
     /// </remarks>
     private const byte CreatureItemKind = 5;
 
+    /// <summary>The kind byte an avatar carries.</summary>
+    /// <remarks>
+    /// The number storage has always recorded an avatar under, and the number every reader and
+    /// writer of an avatar row looks for: the entry load will not hand out an avatar's six facts
+    /// for a row of any other kind, the entry save refuses a row the archive calls an avatar that
+    /// carries anything else, and both projections the client is served branch on this same 8. It
+    /// is named here for the reason the creature's 5 is: this is where the kind a template gets is
+    /// decided, and the archive already knows the template is an avatar.
+    /// </remarks>
+    private const byte AvatarItemKind = 8;
+
     /// <summary>
     /// What every avatar slot's name ends with: <c>[hat avatar]</c>, <c>[coat avatar]</c>, and the
     /// nine others.
@@ -179,15 +190,31 @@ internal sealed class PvfEntryLifecycleContentSource(PvfArchiveProvider provider
     /// the one that knows: it spells the template <c>[creature]</c>, and the kind that says
     /// creature is 5.
     /// <para>
-    /// <b>The avatar is deliberately left alone.</b> Storage records an avatar as kind 8 and this
-    /// still answers 1 for one, so that pair still disagrees. It is the same defect and it is not
-    /// this outcome's to fix; naming it here keeps the remaining disagreement visible rather than
-    /// letting the creature's repair read as if every kind now agreed.
+    /// <b>Amended; what this paragraph said before is quoted at the end of it.</b> The avatar was
+    /// the second half of that same defect and it is answered here now: storage records an avatar
+    /// as kind 8, every reader and writer of an avatar row looks for that 8, and this gives an
+    /// avatar template the 8 rather than the 1. So the pair no longer disagrees, and an avatar that
+    /// arrives through this reading is banked as the avatar it is.
+    /// </para>
+    /// <para>
+    /// What this paragraph said before: "<b>The avatar is deliberately left alone.</b> Storage
+    /// records an avatar as kind 8 and this still answers 1 for one, so that pair still disagrees.
+    /// It is the same defect and it is not this outcome's to fix; naming it here keeps the
+    /// remaining disagreement visible rather than letting the creature's repair read as if every
+    /// kind now agreed." It was true of the outcome that repaired the creature, and it stopped
+    /// being true here. It is corrected rather than deleted because what it was for -- keeping the
+    /// disagreement visible instead of letting a partial repair read as a whole one -- is the
+    /// reason there is a paragraph here at all.
     /// </para>
     /// </remarks>
     private static RefillItemMetadata WornPieceMetadata(ItemWorldClass worldClass) =>
         new(1,
-            worldClass == ItemWorldClass.Creature ? CreatureItemKind : WornPieceItemKind,
+            worldClass switch
+            {
+                ItemWorldClass.Creature => CreatureItemKind,
+                ItemWorldClass.Avatar => AvatarItemKind,
+                _ => WornPieceItemKind,
+            },
             9,
             64,
             worldClass);

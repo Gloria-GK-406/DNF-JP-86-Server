@@ -1,0 +1,119 @@
+kind: rks-sdd-execution
+controller: sdd-standard
+contract:
+  path: "./TaskContract.md"
+  revision: 3
+current_stage: verification
+state: completed
+artifacts:
+  spec: "./spec.md"
+  plan: "./plan.md"
+  result: "./spec-result.md"
+  change_review: "./reviews/change-review.md"
+  completion_evidence: "./verification/completion-evidence.md"
+stages:
+- id: spec
+  reads:
+  - contract
+  skills:
+  - writing-specs
+  gate: none
+  done_when: spec defines the failure and accepted corrected behavior
+  writes:
+  - spec
+- id: plan
+  reads:
+  - spec
+  skills:
+  - writing-plans
+  gate: none
+  done_when: plan covers cause investigation, fix, regression, and verification
+  writes:
+  - plan
+- id: implementation
+  reads:
+  - plan
+  skills:
+  - executing-tasks
+  - systematic-debugging
+  - test-driven-development
+  gate: auto
+  done_when: demonstrated cause is fixed with regression evidence
+- id: review
+  reads:
+  - contract
+  - spec
+  - plan
+  skills:
+  - reviewing-code
+  gate: auto
+  done_when: complete fix is approved with no unresolved blocking findings
+  writes:
+  - change_review
+- id: verification
+  reads:
+  - contract
+  - change_review
+  skills:
+  - verification-before-completion
+  gate: auto
+  done_when: fresh evidence proves the fix and every TaskContract success condition
+  writes:
+  - completion_evidence
+tasks:
+  active: null
+  items:
+  - id: TASK-01
+    file: "./tasks/TASK-01-world-write-carries-avatar-facts.md"
+    depends_on: []
+    state: done
+  - id: TASK-02
+    file: "./tasks/TASK-02-a-granted-avatar-is-whole.md"
+    depends_on:
+    - TASK-01
+    state: done
+  - id: TASK-03
+    file: "./tasks/TASK-03-two-avatars-two-identities.md"
+    depends_on:
+    - TASK-02
+    state: done
+  - id: TASK-04
+    file: "./tasks/TASK-04-what-the-new-kind-changes.md"
+    depends_on:
+    - TASK-02
+    state: done
+  - id: TASK-05
+    file: "./tasks/TASK-05-record-the-slot-the-client-names.md"
+    depends_on:
+    - TASK-02
+    state: done
+  - id: TASK-08
+    file: "./tasks/TASK-08-an-avatar-is-not-a-pile.md"
+    depends_on:
+    - TASK-02
+    state: done
+  - id: TASK-06
+    file: "./tasks/TASK-06-both-directions-of-the-change-list.md"
+    depends_on:
+    - TASK-02
+    - TASK-03
+    - TASK-04
+    - TASK-05
+    - TASK-08
+    state: done
+  - id: TASK-07
+    file: "./tasks/TASK-07-the-record-says-how-far-we-got.md"
+    depends_on:
+    - TASK-06
+    state: done
+  - id: TASK-09
+    file: "./tasks/TASK-09-a-picked-up-avatar-stays-whole.md"
+    depends_on:
+    - TASK-02
+    - TASK-08
+    state: done
+  - id: TASK-10
+    file: "./tasks/TASK-10-sweep-the-writers-not-just-the-gates.md"
+    depends_on:
+    - TASK-09
+    state: done

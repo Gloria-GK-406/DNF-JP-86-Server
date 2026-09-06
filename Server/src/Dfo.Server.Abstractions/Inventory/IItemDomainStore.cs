@@ -83,6 +83,33 @@ public interface IItemDomainStoreSession : IDomainStoreSession<ContainerId, int,
 /// whose state the caller is guessing at. Within one use case it is an address, and addresses are
 /// exactly what the position table exists to hand out.
 /// </para>
+/// <para>
+/// <see cref="AvatarDetail"/> runs the same way round as <see cref="WorldClass"/>: answered on the
+/// way in and left unanswered on the way out. It is the six facts an avatar carries -- when it
+/// expires, which avatar it clears, its jewel sockets, its two colours, when it is deleted. A read
+/// comes out of the rows and hands back the position and the core and nothing else, so null on a
+/// read means "not asked" rather than "an avatar with nothing on it": an avatar always carries the
+/// six, an all-zero set included.
+/// </para>
+/// <para>
+/// <b>Settlement writes them, so a write that brings an avatar into the world must answer them.</b>
+/// The six are columns of the world row, and that row is written once -- when the world first takes
+/// the thing. A write that brought an avatar in and left them unanswered would land a row whose six
+/// columns are all null, which is a row this server cannot read back as an avatar at all.
+/// </para>
+/// <para>
+/// Unlike <see cref="WorldClass"/>, silence is not refused at the write, because settlement has a
+/// second reading for this one and has none for that one: an avatar the world is already carrying
+/// is handed its own six back when its row is rebuilt, so a write that merely moves one has nothing
+/// to add and is right to say nothing. The obligation is therefore on the write that brings an
+/// avatar in, and it is an obligation rather than a check because nothing at the moment of the
+/// write can tell that write apart from the one that moves an avatar already standing.
+/// </para>
+/// <para>
+/// A thing that keeps its row keeps its own six columns, and an answer here does not overwrite
+/// them: settlement puts these on the row it creates, which is the same rule that makes an avatar's
+/// state follow the avatar rather than the position.
+/// </para>
 /// </remarks>
 public sealed record StoredItem(int SlotIndex, InventoryItemCoreState Core)
 {
@@ -91,4 +118,12 @@ public sealed record StoredItem(int SlotIndex, InventoryItemCoreState Core)
 
     /// <summary>Which thing this is. Answered on a read from the rows; null on a write.</summary>
     public ItemIdentity? Identity { get; init; }
+
+    /// <summary>
+    /// The six facts this avatar carries. Required on a write that brings an avatar into the world;
+    /// null on a read, null on the write of anything that is not an avatar, and null on the write
+    /// that merely moves an avatar the world is already carrying, which has nothing to add to the
+    /// six that avatar is already standing with.
+    /// </summary>
+    public InventoryAvatarDetailState? AvatarDetail { get; init; }
 }

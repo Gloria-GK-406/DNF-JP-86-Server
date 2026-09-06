@@ -198,7 +198,21 @@ public enum ItemMoveStatus
 /// <summary>Where the item ended up, or why it stayed.</summary>
 public sealed record ItemMoveResult(ItemMoveStatus Status, int MoveValue, int ItemId)
 {
+    /// <summary>A refusal decided before anything was read, so no template is named.</summary>
     public static ItemMoveResult Refused(ItemMoveStatus status) => new(status, 0, 0);
+
+    /// <summary>
+    /// A refusal decided with the piece already in hand, naming the template it was holding.
+    /// </summary>
+    /// <remarks>
+    /// The move value stays zero, because nothing moved. The identifier is here for the log: the
+    /// refusal branch of <c>MoveItemSpaceHandler.ResolveAsync</c> writes it out beside the two
+    /// ends the request named, and without it that line says which reason was taken and not over
+    /// which template. The two equip refusals in <see cref="MoveItemSpaceCommandHandler"/> hand it
+    /// the piece they had already read.
+    /// </remarks>
+    public static ItemMoveResult Refused(ItemMoveStatus status, int itemId) =>
+        new(status, 0, itemId);
 }
 
 /// <summary>One character moving one item between two slots.</summary>
@@ -322,9 +336,9 @@ public sealed class MoveItemSpaceCommandHandler(
         var slot = await moves.WornSlotForAsync(piece.ItemId, cancellationToken)
             .ConfigureAwait(false);
         if (slot is null)
-            return ItemMoveResult.Refused(ItemMoveStatus.NotWearable);
+            return ItemMoveResult.Refused(ItemMoveStatus.NotWearable, piece.ItemId);
         if (slot.Value != command.DestinationSlotIndex)
-            return ItemMoveResult.Refused(ItemMoveStatus.ItemCannotOccupySlot);
+            return ItemMoveResult.Refused(ItemMoveStatus.ItemCannotOccupySlot, piece.ItemId);
 
         var displaced = await worn.ReadSlotAsync(command.DestinationSlotIndex, cancellationToken)
             .ConfigureAwait(false);
@@ -491,10 +505,22 @@ public sealed class MoveItemSpaceHandler(
                 message, result.MoveValue, message.DestinationSlotIndex);
         }
 
+        // `{ItemId}` goes in beside the two ends the request already named. That pair is what a
+        // slot map can be read from: `PvfEquipmentSlots.ByName` carries no name ending in
+        // `avatar]`, and template 101500690 -- which the archive declares under `[coat avatar]` --
+        // was seen reaching `PutOnAsync`, getting nothing back from the archive and being refused
+        // as `NotWearable`, with this line then carrying its number and the slot the request had
+        // written. That observation and its mutations are in
+        // `RefusedEquipIsRecordedWithItsTemplateTests`. The server has no opinion about which slot
+        // an avatar belongs in and the client does, so `{To}` is the client's answer and
+        // `{ItemId}` says what it was answering about. The one-argument `ItemMoveResult.Refused`
+        // puts a zero here, for a refusal decided before any slot was read.
         logger.LogInformation(
-            "Move item space {ConnectionId} character={CharacterId}: {From}->{To} refused as {Status}",
+            "Move item space {ConnectionId} character={CharacterId}: item {ItemId} "
+                + "{From}->{To} refused as {Status}",
             context.Connection.ConnectionId,
             session.CharacterId.Value,
+            result.ItemId,
             message.SourceSlotIndex,
             message.DestinationSlotIndex,
             result.Status);

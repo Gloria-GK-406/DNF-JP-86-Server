@@ -268,7 +268,21 @@ internal sealed class InventoryEntryAssembly(
     /// <summary>The name of the thing on this row, or nothing when the row holds a pile.</summary>
     /// <remarks>
     /// Asked of the archive out of the one place that classifies, not read off the kind byte the
-    /// row carries -- those two disagree, which is why the classification exists at all.
+    /// row carries -- a row is written by callers free to put anything in that byte, which is why
+    /// the classification exists at all.
+    ///
+    /// <b>Amended; what the clause above said before is quoted next.</b> It said the archive is
+    /// asked "not read off the kind byte the row carries -- <i>those two disagree</i>, which is why
+    /// the classification exists at all". The half that has stopped being true is "those two
+    /// disagree": it named the two standing pairs where the archive's equipment index handed out
+    /// the constant 1 while storage recorded a 5 for a contract creature and an 8 for an avatar,
+    /// and both are answered by the archive now -- the creature's by the outcome that repaired it,
+    /// the avatar's by the one that made a granted avatar whole. No template is left that the two
+    /// sources answer differently. The half that still stands is the conclusion: the archive is
+    /// still the only thing asked here, because a write is handed a core by a caller and nothing
+    /// checks that byte before it arrives. It is corrected rather than deleted because a reader who
+    /// found only the conclusion would have no way to tell whether asking the archive was ever load
+    /// bearing.
     ///
     /// A pile is left unnamed deliberately. Its row key would be a perfectly good number and a
     /// completely wrong fact: it names the row, not the thing, and a pile is the one kind of

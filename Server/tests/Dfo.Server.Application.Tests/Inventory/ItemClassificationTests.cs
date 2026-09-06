@@ -15,15 +15,21 @@ namespace Dfo.Server.Application.Tests.Inventory;
 /// What a thing is, answered by the archive, on the way into storage.
 /// </summary>
 /// <remarks>
-/// The kind byte a row carries and the archive's reading of the same template do not agree, and
-/// nothing had ever compared them: an avatar is stored as kind 8 while the archive's equipment
-/// index gives it kind 1. Because a projection can still assemble the bytes the client expects out
-/// of either, getting this wrong changes nothing anybody would notice until something starts
-/// depending on it -- which is exactly what the world side is about to do.
+/// The kind byte a row carries and the archive's reading of the same template had never been
+/// compared, and a caller of a write is free to hand over a core saying anything at all. Because a
+/// projection can still assemble the bytes the client expects out of either, getting this wrong
+/// changes nothing anybody would notice until something starts depending on it -- which is exactly
+/// what the world side is about to do.
 ///
-/// The contract creature was a second such pair and is no longer one: the archive now gives it the
-/// kind storage records it under. What that repair does not touch is any of this -- the archive is
-/// still the only thing asked, and a row's byte is still not an input.
+/// <b>Amended; what the sentence above said before is quoted next.</b> It said the two "do not
+/// agree, and nothing had ever compared them: an avatar is stored as kind 8 while the archive's
+/// equipment index gives it kind 1", and went on: "The contract creature was a second such pair and
+/// is no longer one: the archive now gives it the kind storage records it under." Both pairs agree
+/// now -- the archive gives an avatar template the 8 storage records it under, as it already gave
+/// the creature its 5 -- so there is no template left where the two sources answer differently.
+/// What those repairs do not touch is any of this: the archive is still the only thing asked, and a
+/// row's byte is still not an input. It is corrected rather than deleted because the pair of
+/// disagreements is what these cases were written for.
 ///
 /// So these run against the operator's own archive, through the production content registration
 /// and a real store. What they hold is that the answer comes from the template and could not have

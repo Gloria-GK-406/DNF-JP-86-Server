@@ -37,9 +37,17 @@ internal sealed class ItemPlacementRuleService(
     /// character is created wearing; and the entry lease save, before it writes a row back.
     /// <para>
     /// There is nothing here but the archive's answer. A stored kind byte is not an input and
-    /// cannot become one without changing the signature, which is the whole guard: the byte and
-    /// the archive still disagree about an avatar -- stored as kind 8, given kind 1 by the
-    /// equipment index -- and a classification that could see the byte would be free to prefer it.
+    /// cannot become one without changing the signature, which is the whole guard: a write may be
+    /// handed a core saying anything, and a classification that could see the byte would be free
+    /// to prefer it.
+    /// </para>
+    /// <para>
+    /// <b>Amended; what the sentence above said before is quoted next.</b> It said the guard
+    /// mattered because "the byte and the archive still disagree about an avatar -- stored as kind
+    /// 8, given kind 1 by the equipment index". They no longer disagree: the equipment index gives
+    /// an avatar template the same 8 storage records it under. The guard is unchanged and still
+    /// worth having, for the reason now written above it. It is corrected rather than deleted
+    /// because the disagreement is why the signature was drawn this way.
     /// </para>
     /// </remarks>
     public async ValueTask<ItemWorldClass> ClassifyAsync(

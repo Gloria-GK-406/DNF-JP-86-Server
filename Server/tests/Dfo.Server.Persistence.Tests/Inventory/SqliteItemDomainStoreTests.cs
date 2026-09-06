@@ -202,6 +202,43 @@ public sealed class SqliteItemDomainStoreTests
         Assert.Equivalent(detail, await ReadAvatarDetailAsync(store.Path, AvatarUid));
     }
 
+    /// <summary>
+    /// A write that carries an avatar's six facts is what puts them on the row the world creates.
+    /// </summary>
+    /// <remarks>
+    /// The avatar here has never been in this database, so there is no row standing under its UID
+    /// and the retrieval that hands a rebuilt row its facts back finds nothing. What lands on the
+    /// six columns therefore came from the write and from nowhere else, which is the whole of what
+    /// this holds: settlement prefers the facts the write carried.
+    /// <para>
+    /// All six are asserted one by one rather than compared as a whole, because "five bound and one
+    /// left null" is exactly the shape a half-finished binding leaves and a looser comparison would
+    /// let through.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task AWriteThatCarriesAnAvatarsFactsPutsThemOnTheRowTheWorldCreates()
+    {
+        var detail = new InventoryAvatarDetailState(
+            21, 22, Enumerable.Repeat((byte)23, 30).ToArray(), 24, 25, 26);
+        await using var store = await NewStoreAsync();
+        var transaction = new StubTransaction();
+        var session = store.Value.SessionIn(transaction);
+
+        session.Write(Main, Worn(9, Avatar()) with { AvatarDetail = detail });
+        await transaction.SettleAsync();
+
+        Assert.Equal([(9, AvatarItemId, AvatarUid)], await ReadSlotsAsync(store.Path));
+        var stored = await ReadAvatarDetailAsync(store.Path, AvatarUid);
+        Assert.NotNull(stored);
+        Assert.Equal(21, stored.ExpireDate);
+        Assert.Equal(22, stored.ClearAvatarId);
+        Assert.Equal(Enumerable.Repeat((byte)23, 30), stored.JewelSocket);
+        Assert.Equal(24, (int)stored.Color1);
+        Assert.Equal(25, (int)stored.Color2);
+        Assert.Equal(26, stored.DeleteDate);
+    }
+
     [Fact]
     public async Task Read_SeesThisSessionsOwnUncommittedWrites()
     {

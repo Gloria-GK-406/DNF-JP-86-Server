@@ -39,6 +39,117 @@ public static class StackableItemCore
         };
 }
 
+/// <summary>
+/// What an avatar has to be given at the moment the world first takes it.
+/// </summary>
+/// <remarks>
+/// An avatar is not an avatar until it carries two things beyond its kind: an identity of its own,
+/// and the six facts a row of that kind holds. Both are demanded of a standing avatar in three
+/// places -- the entry load will not serve one whose identity is not above zero or whose facts are
+/// missing or whose jewel socket is not exactly thirty bytes, the entry save refuses to write one
+/// back without them, and the two projections the client is served refuse to encode one. A delivery
+/// that opened a slot for an avatar and gave it neither would put down a row nothing in this server
+/// can pick up again, and it would do so silently, because the write itself has nothing to check.
+/// So the shape is made here, once, on the one path that opens a slot.
+/// </remarks>
+internal static class ArrivingAvatar
+{
+    /// <summary>The kind byte an avatar carries, which is what storage judges one by.</summary>
+    /// <remarks>
+    /// The same 8 the archive now gives an avatar template, and the same 8 the load, the save and
+    /// both projections look for. It is compared against here rather than the world class, because
+    /// the kind is what every one of those readers uses and a second question would be a second
+    /// answer to keep in step.
+    /// </remarks>
+    internal const byte ItemKind = 8;
+
+    /// <summary>How many bytes an avatar's jewel socket is, exactly.</summary>
+    private const int JewelSocketLength = 30;
+
+    /// <summary>
+    /// What an avatar's expiry is set to when nothing has said it expires.
+    /// </summary>
+    /// <remarks>
+    /// <b>A placeholder ruling, and it is named as one.</b> In this repository a non-null
+    /// <c>avatar_expire_date</c> means "this row is an avatar", not "this avatar runs out": the
+    /// column is what the load asks to find out whether a row carries facts at all, so an avatar
+    /// that never expires still has to have something in it. What goes on the wire is not this
+    /// number -- the delivery writes <c>max(0, ExpireDate - now)</c>, a count of seconds left --
+    /// so the upper bound of the signed 32-bit seconds this column holds is the largest remaining
+    /// lifetime this server is able to say, which is the defensible way to say "not expiring" with
+    /// the column it has.
+    /// <para>
+    /// What it is not is a measurement. Nobody has yet watched a client draw an avatar whose
+    /// remaining seconds are what this bound leaves, and a client that renders that as a date, or
+    /// refuses it, would be saying this bound is the wrong placeholder. Live play is what settles
+    /// it.
+    /// </para>
+    /// <para>
+    /// <b>Amended, and the original is kept here rather than rubbed out.</b> The sentence above
+    /// read "an avatar whose remaining seconds are two billion". That number is wrong, and one
+    /// subtraction shows it: what the delivery writes is <c>ExpireDate - now</c>, not
+    /// <c>ExpireDate</c>. Read once, on 2026-09-06T09:32Z, with <c>now</c> at
+    /// <c>1788687136</c>: <c>2147483647 - 1788687136 = 358796511</c> seconds, which is
+    /// <c>358796511 / 86400 = 4152.7</c> days, or <c>358796511 / 31556952 = 11.37</c> years
+    /// against a Julian year -- <b>about 11.4 years</b>, and it falls by one every second, so
+    /// anyone can redo the subtraction against their own clock. The "about sixty-eight years"
+    /// this replaces belongs to the bound itself, not to the figure "two billion":
+    /// <c>2147483647 / 31556952 = 68.05</c> years, while <c>2.1e9 / 31556952 = 66.55</c>. The
+    /// two are apart by <c>2147483647 / 358796511 = 5.99</c>, close to six times.
+    /// </para>
+    /// <para>
+    /// One phrasing only, so a corrected number is not re-broken in the retelling: this figure is
+    /// written "about 11.4 years" wherever it appears. It was first amended as "roughly eleven and
+    /// a half years", which is 11.5 and so about 0.13 years -- some 47 days -- away from the
+    /// 11.37 the subtraction gives; the review of that amendment caught the two readings and this
+    /// is the single one they were settled to. A colloquial rounding is how the original error
+    /// travelled, so a retelling copies the arithmetic rather than rounding it again.
+    /// </para>
+    /// <para>
+    /// This matters to whoever first watches a client draw one of these. Told to expect about
+    /// sixty-eight years, he would read a client showing eleven-and-something as the client
+    /// mangling the field; told to expect about 11.4 years, he would read the same draw as this
+    /// placeholder working. The wrong number would have sent him looking for a defect that is not
+    /// there.
+    /// </para>
+    /// </remarks>
+    private const int NeverExpires = int.MaxValue;
+
+    /// <summary>
+    /// The identity a newly delivered avatar is known by, which is above zero and its own.
+    /// </summary>
+    /// <remarks>
+    /// Drawn rather than sequenced, which is the same reading
+    /// <c>CharacterRosterService.EquipmentCore</c> took for the instance value it gives a freshly
+    /// created piece: what the number must be is distinct, and a sequence would need a row of its
+    /// own to stay distinct across restarts.
+    /// <para>
+    /// Above zero because three separate places refuse an avatar whose identity is not, and
+    /// <see cref="Random.Shared"/> drawing from one rather than from zero is what keeps them
+    /// unreachable rather than merely unlikely.
+    /// </para>
+    /// </remarks>
+    internal static int NewIdentity() => Random.Shared.Next(1, int.MaxValue);
+
+    /// <summary>
+    /// The six facts an avatar arrives carrying, none of them yet anything but a default.
+    /// </summary>
+    /// <remarks>
+    /// A fresh avatar has had no jewel set in it, no colour dyed on it, clears nothing and is not
+    /// scheduled for deletion, so five of the six are the zero that says exactly that. The socket
+    /// is thirty bytes because the column and the load both refuse any other length, and a fresh
+    /// one is thirty zeroes rather than nothing: null would be "this row carries no facts", which
+    /// is the one thing an avatar may not say.
+    /// </remarks>
+    internal static InventoryAvatarDetailState Facts() => new(
+        ExpireDate: NeverExpires,
+        ClearAvatarId: 0,
+        JewelSocket: new byte[JewelSocketLength],
+        Color1: 0,
+        Color2: 0,
+        DeleteDate: 0);
+}
+
 /// <summary>How a decided move rearranges the two slots.</summary>
 public enum ContainerMoveKind
 {
@@ -272,18 +383,51 @@ internal abstract class StoreBackedItemContainer(
     /// <remarks>
     /// Relocating, splitting, swapping, merging, consuming, landing an arrival and the card
     /// reward's direct put are all said as calls to this, so asking the archive here is asking it
-    /// on every one of them. The class is asked of the template rather than read off the core: the
-    /// kind byte the core carries and the archive's answer disagree today, and the point of the
-    /// classification is that the archive wins.
+    /// on every one of them. The class is asked of the template rather than read off the core,
+    /// because a caller is free to hand over a core whose kind byte says something the archive
+    /// does not, and the point of the classification is that the archive wins.
+    /// <para>
+    /// <b>Amended; what this sentence said before is quoted at the end of it.</b> What it said was
+    /// "the kind byte the core carries and the archive's answer disagree today", which named the
+    /// two standing pairs -- the creature's and the avatar's -- where the archive's equipment index
+    /// handed out the constant 1 while storage recorded a 5 and an 8. Both are answered by the
+    /// archive now, so there is no template the two sources disagree about, and the reason to ask
+    /// the template rather than the row is no longer that they disagree: it is that a caller may
+    /// still hand this method any core it likes.
+    /// </para>
+    /// <para>
+    /// Nothing is written twice: the avatar-carrying write below is this same call with the six
+    /// facts filled in, so there is one place a container writes an item and one place a container
+    /// classifies one.
+    /// </para>
     /// </remarks>
-    public async ValueTask PutAsync(
-        int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken)
+    public ValueTask PutAsync(
+        int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken) =>
+        this.WriteOneAsync(slotIndex, core, null, cancellationToken);
+
+    /// <summary>The write itself, with whatever an avatar carries into the world on it.</summary>
+    /// <remarks>
+    /// The facts are null for everything that is not an avatar entering the world, which is every
+    /// caller of <see cref="PutAsync"/>: a move, a split, a merge and a consume are all an item
+    /// the world already holds, and settlement hands such an item its own six back rather than
+    /// taking them from the write.
+    /// </remarks>
+    private async ValueTask WriteOneAsync(
+        int slotIndex,
+        InventoryItemCoreState core,
+        InventoryAvatarDetailState? avatarDetail,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(core);
         var worldClass = await placementRules.ClassifyAsync(core.ItemId, cancellationToken)
             .ConfigureAwait(false);
         await this.WriteAsync(session => session.Write(
-                id, new StoredItem(slotIndex, core) { WorldClass = worldClass }))
+                id,
+                new StoredItem(slotIndex, core)
+                {
+                    WorldClass = worldClass,
+                    AvatarDetail = avatarDetail,
+                }))
             .ConfigureAwait(false);
     }
 
@@ -333,6 +477,13 @@ internal abstract class StoreBackedItemContainer(
     /// Opening a slot needs a kind, because a kind is part of what is written; a refill whose rule
     /// declares none is refused here rather than stored, since an item kind of zero is a row the
     /// entry path cannot read back. Joining a pile needs no kind: the pile already carries one.
+    ///
+    /// Opening a slot for an avatar needs more than a kind, and this is where it is given: an
+    /// avatar row that carries no identity of its own and no facts is a row the load refuses and
+    /// the two projections refuse, so an avatar delivered without them would be a thing the server
+    /// could put down and then never pick up again. The shape is <see cref="ArrivingAvatar"/>'s;
+    /// what is here is only the one branch that asks for it. Joining a pile cannot reach it,
+    /// because an avatar is never a pile.
     /// </remarks>
     private async ValueTask<ItemPlacementOutcome> LandAsync(
         ItemArrival arrival,
@@ -361,9 +512,12 @@ internal abstract class StoreBackedItemContainer(
                             + "opened for it.");
                 }
 
-                await this.PutAsync(
+                var landing = StackableItemCore.Create(itemKind, itemId, opened.Count);
+                var isAvatar = itemKind == ArrivingAvatar.ItemKind;
+                await this.WriteOneAsync(
                     opened.SlotIndex,
-                    StackableItemCore.Create(itemKind, itemId, opened.Count),
+                    isAvatar ? landing with { Value = ArrivingAvatar.NewIdentity() } : landing,
+                    isAvatar ? ArrivingAvatar.Facts() : null,
                     cancellationToken).ConfigureAwait(false);
                 await this.ApplyDecidedWritesAsync(cancellationToken).ConfigureAwait(false);
                 return new ItemPlacementOutcome.PutInEmptySlot(opened.SlotIndex, opened.Count);

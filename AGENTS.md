@@ -513,9 +513,15 @@ if (result.Publication.Audience.Count > 0)
 前两条共用同一段条件文本 `SqliteCharacterItemTable.CarriesTheAvatar`；第三条**没有**复用它，
 因为它比对的是**待插入的 core** 而不是一个 `@avatarKey` 参数，所以那段文本在它里面是内联的。
 三条都从 **core 里**读 UID（`substr(item_core, 6, 4)`，即 core 偏移 5 起的 4 字节小端），
-不再读一份列副本。**该谓词文本在 `Server/src` 今天出现在 4 处 SQL 里，分别是**
-`InventoryItemTables.cs:229`、`:264`（这两处是常量的两个使用点）、
-`SqliteItemDomainStore.cs:414`（`CarriedAvatarsAsync` 的检索键）、`:544`（`FillAsync` 的守卫）。
+不再读一份列副本。**该谓词文本在 `Server/src` 今天出现在 4 处 SQL 里，按成员名分别是**
+`SqliteCharacterItemTable.UpdateOwnAsync` 与 `SqliteCharacterItemTable.InsertOwnAsync`
+（同文件 `InventoryItemTables.cs`，这两处是常量 `SqliteCharacterItemTable.CarriesTheAvatar` 的两个使用点）、
+`SqliteItemDomainStoreSession.CarriedAvatarsAsync` 的检索键（写作 `AND substr(item_core, 6, 4) = @uid`）、
+`SqliteItemDomainStoreSession.FillAsync` 的守卫
+（写作 `AND substr(standing.item_core, 6, 4) = substr(@core, 6, 4)`），后两处在 `SqliteItemDomainStore.cs`。
+计数口径：在 `Server/src` 下按字符串 `item_core, 6, 4` 检索，命中 3 行；其中
+`InventoryItemTables.cs` 那一行是常量声明，被上面点名的两个成员各引用一次，故算 4 处 SQL。
+**这一句原先用行号索引，那是错的**；订正与来龙去脉见下面「这一轮补记的四条修正案」其一。
 
 `item_slots` **8 列**：`owner_scope`（`character`/`account`）、`owner_id`、`list_type`、`slot_index`、
 `kind`（`world`/`template`）、`id`、`core_uid`、`count`。
@@ -672,6 +678,399 @@ if (result.Publication.Audience.Count > 0)
 `items.avatar_uid` 上的部分唯一索引复原」）与该文档 `character_avatar_detail.item_uid`
 → `items.avatar_uid` 那一行**不再描述今天的库**。那是一份历史裁定，按本仓规矩**不改它的正文**，
 本节即是它的修正案：它所保的那条规则仍在，位置换成了**三条**写入语句自己的条件。
+
+#### 「服务端同意时装是什么」这一轮：做到哪一步
+
+**这一轮的名字是 `server-agrees-what-an-avatar-is`。** 逐条的行为变化、覆盖读数与字节归因在
+`.rks-agent/tasks/server-agrees-what-an-avatar-is/behavior-change-list.md`（下称「清单」）。
+这里只写后来的读者与所有者要拿去做决定的部分。
+
+**读法提醒**：本文件上面几节里的「本轮」指的是上一个成果 `items-own-their-identity`
+（那份清单在 `.rks-agent/tasks/items-own-their-identity/behavior-change-list.md`，
+「被授权的两处行为变化」一节点着它）；**本节起的「本轮／这一轮」指
+`server-agrees-what-an-avatar-is`**。
+
+**做成了四件事**（第 1–3 件是本轮原本就要做的，第 4 件是被独立评审拦下来才补做的）。
+
+1. **时装的种类只剩一个说法。** 上面「已知缺陷与覆盖缺口」里那条「存储记 8、档案给 1」不再成立——
+   `PvfEntryLifecycleContentSource.WornPieceMetadata` 现在对 `ItemWorldClass.Avatar`
+   答 `AvatarItemKind`（8），此前落 `WornPieceItemKind`（1）。
+   观测：`GrantedAvatarIsWholeTests.The_archive_and_storage_answer_the_same_kind_for_one_avatar`
+   对模板 `101550507` 断言档案与存储答同一个数；把档案那一支改回 1，该判据变红（清单第四节 MU-1）。
+2. **发放通路能造出一件完整的时装：一个身份，加六列事实。**
+   `ItemContainers.ArrivingAvatar` 与 `StoreBackedItemContainer.LandAsync` 的 `IntoEmptySlot` 分支
+   在落地时把 core 的 `Value` 换成 `ArrivingAvatar.NewIdentity()` 抽出来的数，并把六项事实随写入交出去。
+   **六项分别是**：`avatar_expire_date` ＝ `int.MaxValue`、`avatar_clear_id` ＝ 0、
+   `avatar_jewel_socket` ＝ 30 个零字节、`avatar_color1` ＝ 0、`avatar_color2` ＝ 0、
+   `avatar_delete_date` ＝ 0——正是上面世界表小节里「时装 6 列」那一组。
+   观测：`GrantedAvatarIsWholeTests.A_granted_avatar_is_loaded_saved_and_loaded_again_with_the_same_facts`
+   与 `…Two_granted_avatars_carry_two_drawn_identities_rather_than_two_counts`；MU-4、MU-5 各让它们变红。
+3. **「同一个时装 UID 全库至多一行」那条守卫，对新入库的行开始生效。**
+   上面世界表小节记的第三条落点 `SqliteItemDomainStore.FillAsync` 的
+   `WHERE @expire IS NULL OR NOT EXISTS(…)`：此前一次发放来的写入把 `@expire` 绑成 `DBNull`，
+   左侧取真、守卫短路；现在写入自带 `int.MaxValue`，左侧不再取真。
+   观测：`TwoAvatarsDoNotShareOneIdentityTests.TheGuardIsBlindToFactlessRowsAndEngagesOnceTheWritesCarryFacts`
+   连同同类的另两条（`…TwoAvatarsPutDownInSeparateSettlementsStandUnderIdentitiesOfTheirOwn`、
+   `…AWriteNamingAnIdentityTheWorldAlreadyStandsUnderIsRefusedAndRolledBack`）；MU-6 让它们变红。
+
+**第四件，是被独立评审拦下来才做成的：从地上捡起来的时装也是完整的。**
+
+上面第 2 条说的「发放通路能造出一件完整的时装」，**在一段时间里只对 `AddAsync` 那一道门成立**。
+**地面拾取那道门上不成立**，而那正是一条发放通路。
+
+- **制造者是谁**：`PickUpGroundDropCommandHandler.CarryOverAsync`。它在
+  `container.AddAsync(...)` 把时装落地（六列齐备）之后，对**同一格**再写一次
+  `landed.Core with { Value = checked((int)found.Instance), Durability = found.Durability }`，
+  走的是 `IItemContainer.PutAsync`，而 `StoreBackedItemContainer.PutAsync` 转调
+  `WriteOneAsync(slotIndex, core, **null**, …)`——**不带六项事实**。
+  那句无条件换 `Value` 的写法**在本轮基线 `565d33fe` 上就有**，本轮没有动过它。
+  **就这一条路而言**（这句只说地面拾取，不说别的路）：本轮之前它写下的时装行带 kind 1，
+  `WithAvatarDetail` 在 `item.Core.ItemKind != 8` 上早返、走不到那条拒绝；
+  本轮的第 1、2 条（档案改答 kind 8、落地带六项事实）之后它带 kind 8，才走得到——
+  **两者相遇，才有了这条缺陷。**
+- **后果是什么**：换掉 `Core.Value` 之后 `SqliteItemDomainStoreSession.Survivors` 三趟都不认
+  （`SameContent` 因 core 字节变了不成立，`SameThing` 因它比 `core.Value` 而这一位刚被换掉也不成立），
+  该行被删掉重建；`FillAsync` 算六列时写入不带事实，落到 `CarriedAvatarsAsync` 回捞，
+  而检索键取的是**新**的 `Core.Value`，回捞落空 → **六列全 NULL**。
+  下一次入场装载在 `InventoryEntryAssembly.WithAvatarDetail` 抛
+  `InvalidDataException: Avatar detail {value} is unavailable.`，
+  该异常落进 `SelectCharacterHandler.HandleAsync` 的 `catch (Exception error)`，
+  连接被关掉——**所有者看到的是「这个角色选完进不去」**。
+- **由谁发现**：**完整变更集独立评审**（`.rks-agent/tasks/server-agrees-what-an-avatar-is/reviews/change-review.md`
+  的阻断发现 BF-1）。**不是执行方自查，也不是任务级快审。**
+  它此前没有被记下，两条可核的观测：评审自己写的是「这条新增的制造者
+  不在 3.1–3.4 的 34 行里、不在 3.6 的两条里、不在正向扫的 B-01..B-05 里，
+  `AGENTS.md` 也没有点到它」（逐字抄）；本轮开工时另在清单**第二版**上按
+  「CarryOverAsync／地面拾取／GroundPickup／PickedUpAvatar」四个词跑过一次只读检索，
+  **命中 2 处，逐处读过，两处都与这条门无关**（一处是起因 E 计数口径里排除
+  `GroundPickupSlice` 那句，一处是第九节讲别的容器通路上非堆移动未测）。
+  评审的凭据是它自己临时加的一条探针
+  （用完删除、按 `sha256sum` 还原），读数 `Avatar detail 123456 is unavailable.`。
+- **怎么修的**：TASK-09 在 `CarryOverAsync` 里按 `landed.WorldClass` 分岔——
+  `is ItemWorldClass.Avatar` 时只写 `landed.Core with { Durability = found.Durability }`，**不碰 `Value`**；
+  其余仍写 `Value` ＋ `Durability`。分岔用 `ContainerSlotItem.WorldClass`（向归档问来的那个答案，
+  与 `IsPile` 同一个来源），不用调用方递进来的 kind 字节。
+  理由不是「给时装开特例」：`FloorPickup.Instance` 的 `<param>` 把那个值定义成
+  「把这件**装备**与另一件区分开的值」，而时装核心里那一位是身份、也是查六列用的键
+  ——**这条通路本来就把两种东西写进了同一位**。
+- **修后有无覆盖**：**有。** 新判据 `PickedUpAvatarStaysWholeTests` 三条（真 SQLite 库、
+  操作者自己的 `Script.pvf`、地板由 `DungeonRunDomainService.AllocateMonsterDrops` 摆出、
+  拾取走生产命令处理器）。变异实测 MU-09-1 把那一岔改回原样，读数 `失败: 2，通过: 1`：
+  `An_avatar_taken_off_the_floor_is_served_again_with_its_six_facts` 以
+  `Avatar detail 1075541543 is unavailable.` 红，
+  `Two_avatars_off_one_kill_keep_two_identities_of_their_own` 以
+  `Assert.NotEqual() Failure: Values are equal` 红。
+- **一处不足以确定，明写**：**一件时装今天能不能真的出现在地板上，至今未确立。**
+  上面那三条判据是用 `AllocateMonsterDrops` 直接把时装放上地板做出来的——
+  **那是「GM 直接发放／掉落」那个动作的形状**，不是对 `DropRuleService` 今天会不会掉时装的测定。
+
+**这条缺陷暴露的方法缺口，比缺陷本身更该记下。** 此前的反向扫扫的是**判定点**
+（一条拒绝在哪、有没有判据会红），**没有扫写入方**（谁能把系统送进那条拒绝）。
+于是清单把「装载时六列取不到被拒」那条记作「有覆盖」，读起来像已经照看过了，
+**而它当时只覆盖了「背包内拖动」那一个制造者，「地面拾取」这个制造者从头到尾没有被枚举。**
+清单第三版为此新增了 **3.7 节「制造者扫」**：按一条可复核的枚举口径把 **13 个写入方**逐个判过，
+问的是同一个问题：**它能不能造出一行「kind 8 但六列为空」的时装，有没有判据覆盖。**
+
+**那 13 行的口径覆盖到哪、排除了什么，一并记在这里**（第二轮补记，由 TASK-10 的独立评审指出）：
+能往世界表 `items` 写那六列的成员，在 `Server/src` 下今天读到**三族**——
+**容器一族**经 `StoreBackedItemContainer.WriteOneAsync`（清单表 #1–#11）、
+**入场存盘一族**经 `InsertOwnAsync`／`UpdateOwnAsync`（#12–#13），
+以及 **`SqliteWorldItemTable.InsertAsync`／`UpdateAsync`**——
+**第三族被明写排除，不在那 13 行里**。排除的理由只有一条：**它今天在 `Server/src` 里
+零调用方、零 DI 注册**（`grep -rn "IWorldItemTable" Server/src --include=*.cs` 只读出接口声明
+与实现的类头两行；`grep -rn "SqliteWorldItemTable" Server/` 在 `Server/src` 下只有它自己，
+把它 new 出来的是 `WorldAndSlotTableTests` 与 `CreatureIdentityFitsTheWireTests` 两个测试文件；
+`PersistenceModule` 注册的是 `ICharacterItemTable`、`IAccountCargoItemTable`、
+`SqliteItemDomainStore`／`IItemDomainStore`）。
+**这一族不是本轮新发现的**：本文件上面「已知缺陷与覆盖缺口」一节早已记着它，
+那是**上一个成果 `items-own-their-identity`** 写下的，处置是「有意留下的守卫缺口」；
+上面三条 grep 说明**它今天仍是那个状态**，本轮既未改它，也未把它列为新缺陷。
+**它写得出那个形状**（`BindAvatarColumns` 在 `avatar is null` 时把六列绑成 NULL），
+所以**谁第一次给它接上生产调用方，那份 13 行的清单当天就变成 15 行**，
+而进来的那两行没有闸门也没有判据——这正是上面那条已知缺陷说的「谁接线谁补守卫」。
+
+那一节的结论是：**在那 13 行之内，除已修掉的两个（背包内拖动、地面拾取）之外，
+没有找到第三个既同型又今天能被时装走到的写入方**；该节同时逐条写明了这个枚举口径挡不住什么。
+被排除的那一族今天走不到，**加不进那三条小结的任何一个集合，结论不因它而变**。
+
+**没做的那一件：时装仍然穿不上。**
+
+不是没写代码，是**槽号一格都没有出处**。`PvfEquipmentSlots.ByName` 的 16 个键里，
+以 `avatar]` 结尾的是 **0 个**（口径：把上面「已知缺陷与覆盖缺口」第一条里点名的那 16 个键逐个取末尾七个字符比对；
+`[title name]`、`[support weapon]`、`[creature]` 这些都不以 `avatar]` 结尾）。
+于是 `PvfEquipmentSlotDefinitionSource.GetAsync` 对一件时装答 `null`，
+`MoveItemSpaceCommandHandler.PutOnAsync` 拿到 `null` 就 `Refused(NotWearable, piece.ItemId)`。
+**本轮没有给这张表补任何键**（该文件不在本轮的改动清单里，`git status --porcelain` 里不出现）——
+本轮一个槽号也没量出来，补键就等于写下一个没有出处的数。
+
+**本轮留下的是量具，不是修法。** `MoveItemSpaceHandler.ResolveAsync` 的拒绝记录现在写作
+`item {ItemId} {From}->{To} refused as {Status}`：`{ItemId}` 是被拒的模板号，
+`{To}` 是**客户端自己写下的**目标槽号。观测：`RefusedEquipIsRecordedWithItsTemplateTests` 的三条整句比对判据。
+一次实机拖拽就能从这一行读出「哪个模板 → 哪个槽」。
+
+**槽号出处：本轮找过三处，逐处写结论。**
+
+1. **档案里时装名后面那个数不是槽号。** `[equipment type]` 的形状是「一个名字，后面一个数」
+   （`[shoulder] 13`）。本轮把 `equipment/equipment.lst` 的 **118,479** 个模板逐个打开、
+   读各自文件里第一处 `[equipment type]`：**11 个以 `avatar]` 结尾的名字，后面那个数的取值集合是 `{0}`**，
+   样本是这 11 个名字下的 66,328 个模板，逐个读过（其中后面不跟整数的模板 0 个）。
+   同一次扫描里 `[weapon]` 后面那个数取到 10 个不同值、`[coat]` 10 个、`[ring]` 7 个。
+   **一个取值集合只有 `{0}` 的数，读不出 0..11 这十二格里的哪一格。**
+2. **`protocol/` 里，本轮没有找到一份说「量到了一件穿在身上的时装」的记载。**
+   检索口径：在 `protocol/` 下按「时装」二字检索，命中 **19 个文件**，逐个读过；
+   其中四条记载明写「没量到」，分处三个文件，逐字抄下：
+   - `protocol/game/server-to-client/NOTI-0x0002.md`：「到这一天为止，本仓的角色从来没有穿戴任何东西，
+     `equipCount` 恒为 0，这条路径因此从未上过线。」
+   - 同文件稍后：「**注意**：A21 参照里槽位 11 没有物品，这一条来自上游
+     `EquipmentTypeInfo.IsCostumeBarSlot`，不是量出来的。」
+   - `protocol/game/server-to-client/NOTI-0x000D.md`：「A21 的时装条目未被观察到，
+     其珠宝槽块与这段零的先后是从 A12 沿用的，不是量出来的。」
+   - `protocol/patterns/character-lifecycle.md` 的「未解问题」表里有一行：
+     「有外观条目的角色如何编码 | 中：我们恒发 0 条 | 给已建角色穿一件时装」。
+   那 19 个文件里，写出角色身上有哪几格的是
+   `protocol/patterns/data/traces/a21-starting-gear-and-skills-20260826.md`，
+   它列的三格是 12（武器）、14（上衣）、16（下装），三格都不在 0..11 内。
+   **本轮没有逐文件穷尽 `protocol/` 的 1,819 个文件**
+   （口径：`find protocol -type f | wc -l`），所以这里只写上面这几条记载的读数。
+3. **上游转写只到「带宽十二格」与「槽 11 叫什么」，而且自陈不是量出来的。**
+   `NOTI-0x0002.md` 写「**时装槽的边界是 11，不是 10。** A21 在武器之前插了 `AuraSkinAvatar`（槽位 11）」，
+   紧接着就是上面抄的那句「不是量出来的」。
+   **它给了 0..11 这十二格的边界，没有给「11 个类型名 → 12 个槽号」的对照。**
+
+**`PvfEquipmentSlots.ByName` 今天认不出的类型名：17 个，覆盖 66,596 个模板。**
+
+计数口径：把 `equipment/equipment.lst` 读成「id → 相对路径」（本轮实测 118,479 行、
+118,479 个互不相同的 id、118,479 条互不相同的路径），逐个打开 `equipment/<路径>`，
+取文件里第一处 `[equipment type]` 后面那个字符串，按 `OrdinalIgnoreCase` 拿去 `ByName` 查，
+查不到的按名字归并计数。这一遍里打不开的文件 0 个、读不到类型名的模板 0 个，
+读到类型名的模板 118,479 个。
+**测法**：把 `Server/src/Dfo.Pvf` 的 11 个源文件原样复制到工作区之外，写一个只调
+`PvfArchive.Open`／`FindFile`／`OpenScript`／`GetTag`／`ResolveString` 的一次性程序跑一遍；
+取标签与取值那两步与 `PvfEquipmentSlotDefinitionSource.Read` 逐句相同
+（同一个 `[equipment type]`、同一组 `TryMovePast` ＋ `TryReadSectionValue`）。
+**工作区里的文件一个都没有被改动**，这一段的数与判据无关，重跑要另写程序。
+
+| 认不出的名字 | 模板数 | 是不是时装名 |
+|---|---:|---|
+| `[coat avatar]` | 8,391 | 是 |
+| `[hat avatar]` | 8,325 | 是 |
+| `[pants avatar]` | 8,194 | 是 |
+| `[shoes avatar]` | 8,070 | 是 |
+| `[hair avatar]` | 7,929 | 是 |
+| `[breast avatar]` | 7,565 | 是 |
+| `[face avatar]` | 7,028 | 是 |
+| `[waist avatar]` | 7,000 | 是 |
+| `[skin avatar]` | 2,954 | 是 |
+| `[weapon avatar]` | 449 | 是 |
+| `[aurora avatar]` | 423 | 是 |
+| `[artifact red]` | 65 | 否 |
+| `[charm]` | 50 | 否 |
+| `[artifact blue]` | 47 | 否 |
+| `[flag]` | 47 | 否 |
+| `[artifact green]` | 31 | 否 |
+| `[name tag]` | 28 | 否 |
+
+复算：11 个时装名相加 **66,328**；6 个非时装名相加 **268**；两数相加 **66,596**；行数 11 ＋ 6 ＝ **17**。
+加法的每一项都在上面那张 17 行表里，可当场重算。
+
+**这里曾经差 5，来历已查明：那是一次加法错误，不是 5 个模板行。**
+本 Spec 的中间取证文件 `.rks-agent/tasks/server-agrees-what-an-avatar-is/findings-archive-measurement.md`
+把这两个数写作 66,323 与 66,591，各比这里少 5。错在哪已经落到句子上：
+**同一份文件的表与它自己的结论句对不上**——该文件的探针输出原文逐名列的 11 个数是
+423／7565／8391／7028／7929／8325／8194／8070／2954／7000／449，**这 11 个数相加是 66328**，
+与本轮按上面口径测的两遍、以及 QR-07-1 评审方另写探针跑的第三遍**逐个相同**；
+而同一个文件的结论句写成「这 11 个名字覆盖 66,323 个模板」。**表是对的，小计算错了。**
+计数口径与旁证：非时装六项 65＋47＋31＋50＋47＋28 ＝ **268**，两版相同，
+**5 的差额整个落在时装小计这一项**（66,591 − 66,323 ＝ 268 ＝ 66,596 − 66,328）；
+另与本文件上面「已知缺陷与覆盖缺口」里早已记着的「66328 个时装模板」相符。
+所以按上面那一遍 118,479 个模板的口径，**档案里并没有另外 5 个时装模板可数**——
+差的是一个写错的小计，不是 5 个能被打开的模板文件。
+错值后来被下游照抄，本轮点到的落点有两处：`TaskContract.md` 与 TASK-07 的验收条件第 4 条
+（本轮没有逐文件穷尽本 Spec 的中间记载，所以这里只写点到的这两处）。
+**订正已经落好**：契约原写的 66,591 已由 **Contract Amendment C-3** 订正为 **66,596**（其中时装 **66,328**），
+`findings-archive-measurement.md` 已补记 **修正案 F-1**；两处都保留原文、另起一段订正。
+
+**这一处留下的教训比那个数本身有用。** 那份取证文件记的是档案侧那一遍穷尽扫描
+（118,479 个模板逐个读过），它同时给了表和小计；
+**而上面点到的两处下游（`TaskContract.md`、本任务验收条件第 4 条）照抄的都是它的结论句，不是它的表**
+——读的人看不见加法，也就没有机会发现小计错了。所以：
+**一个由多项相加得出的数，要么当场把加法写出来（各项、项数、和，三样齐），要么就不要写这个小计。**
+上面那张 17 行表加紧跟其后的那行复算，就是按这条写的。
+按 D-07 的处置意见，这个错能被逮住，是因为上一轮没有照抄契约的 66,591，而是把三个数并列写了出来。
+
+**`ByName` 的 16 个键里，有两个在这次扫描中一次都没被用到**：`[title]` 与 `[earring]`——
+118,479 个模板读到的类型名里，按 `OrdinalIgnoreCase` 与这两个键相等的是 **0 个**。
+（称号在档案里走的是 `[title name]`，1,796 个模板；24 号槽走的是 `[support weapon]`，26 个模板。
+补一个数：`PvfEquipmentSlots.ByName` 里槽号写作 **24** 的键有三个——`[earring]`、`[support weapon]`、
+`[creature]`，其中 `[creature]` 的模板数是 **707**。这 707 的出处是 QR-07-1 评审方那一遍探针，
+与 `findings-archive-measurement.md` 的类型名表、以及上一个成果 `items-own-their-identity` 记下的
+`Avatar=66328 Creature=707 Equipment=51444 sum=118479` 三处相同；
+本轮执行者那一遍只统计了 `ByName` **认不出**的名字，没有单独复算它。
+所以「`[earring]` 一次都没被用到」说的只是这一个键，不是 24 号槽在档案里没有东西。）
+**这不是删它们的理由**：`PvfInitialEquipmentDefinitionSource` 也读这张表，
+它读的是创建角色那张表里写的名字，不是 `[equipment type]`——本轮没有测过那张表里出现哪些名字。
+
+**给所有者的实机须知，三条。**
+
+1. **看到 `item 0` 不是缺陷。** 时装拖拽这一帧，客户端要在「源列号／目标列号」两处写数。
+   若它把目标列写成 `Avatar`（＝1）而不是 `Equipment`（＝3），请求就到不了
+   `MoveItemSpaceCommandHandler.PutOnAsync`，而是更早地在 `HandleAsync` 的
+   `if (command.SourceListType != MainListType || command.DestinationListType != MainListType)`
+   这一句上被拒。那条路走的是**单参**的 `ItemMoveResult.Refused`，`ItemId` 位置是 0，
+   于是记录读作 `item 0 …->N refused as ListNotServed`——**槽号仍在，模板号丢失**。
+   **要量的东西是槽号**；一次只拖一件时，模板号由操作上下文可知，所以这行记录仍然管用。
+   **证据类型：代码路径读出。真实客户端在这一帧里写的是哪个列号，本轮没有观测过**，
+   这正是实机要回答的问题之一。
+2. **「取下」那条路径不会说出模板号。** `MoveItemSpaceCommandHandler.TakeOffAsync` 的三个拒绝返回
+   （`MainSlotAdmission.ItemUnknown` → `Refused(NotWearable)`、
+   `MainSlotAdmission.SlotNotAllowed` → `Refused(ItemCannotOccupySlot)`、
+   `displacedSlot != command.SourceSlotIndex` → `Refused(DisplacedCannotOccupySlot)`）
+   写的都是单参重载，那时 `{ItemId}` 是 0；同方法更早的 `NoBoundContainer` 与 `BothSlotsEmpty`
+   两个返回也是单参。**要量的那一次是「拖上去」，不是「取下来」。** 证据类型：代码级读出。
+3. **一件时装的「剩余秒数」那一格应当画出约 11.4 年，不是约 68 年。**
+   `GameInventoryDelivery.WriteItem` 对一行 kind 8 写的第三个字段是
+   `Math.Max(0, avatar!.ExpireDate - checked((int)preparedAt.ToUnixTimeSeconds()))`
+   ——**是差，不是 `ExpireDate` 本身**。本轮实算一遍（2026-09-06T09:32:11Z，`now` ＝ 1788687136）：
+   `2147483647 − 1788687136 = 358796511` 秒；`358796511 ÷ 86400 = 4152.7` 天；
+   `358796511 ÷ 31556952 = 11.37` 年（分母取儒略年 365.2425 天）＝ **约 11.4 年**，并且每过一秒少一。
+   **本仓对这个数只用「约 11.4 年」一个说法**（＝ `11.37` 取三位有效数字）；
+   **不要写成「十一年半」**——那是 `11.5`，与算式差约 0.13 年（约 47 天）。
+   **看到十一年多，是这个占位在正常工作，不是缺陷**；看到约 68 年、或一个不合理的日期、
+   或客户端拒绝渲染，那才是要追的。
+   **这个数此前在本仓被写错过**（写成「约 2.1×10⁹／two billion」）。
+   「约 68 年」对应的是 **`int.MaxValue` 本身**：`2147483647 ÷ 31556952 = 68.05` 年；
+   而写下的那两位有效数字 `2.1×10⁹` 本身是 `2.1×10⁹ ÷ 31556952 = 66.55` 年。
+   两者相差的倍数 `2147483647 ÷ 358796511 = 5.99`，**将近六倍**。
+   订正见下面的修正案其五。证据类型：代码级读出 ＋ 一次当场的减法，读者可拿自己的钟重做。
+
+**这一轮的影响面超出了时装：普通装备在背包里的拖动行为也变了，而且是变好。**
+
+事实链，逐环点名（证据类型：**代码级读出**）：
+
+1. `CharacterRosterService.EquipmentCore` 给起始装备写的是
+   `Value: Random.Shared.Next(1, int.MaxValue)`；`GroundPickupSlice.CarryOverAsync` 在一件装备
+   落进背包后，把该格写成 `Value = checked((int)found.Instance)`。
+   **这两句写进 `Value` 位的都是一个身份，不是「有几个」**——起始装备走前一句，
+   从地上捡起来的装备走后一句。
+2. 在本轮**之前**，`ContainerSlotItem.Count` 写的是 `=> Core.Value`，无条件读同一位。
+   于是这样一件装备在背包内被拖动时，`DecideMoveAsync` 走哪一支，取决于请求里的 `MoveCount`
+   与那个身份相不相等（`MoveItemSpaceDecoder` 从 `body[7..]` 读那四个字节；`MoveItemSpaceSlice`
+   自己 `<remarks>` 抄下的那次实机请求在这四个字节上是 `01 00 00 00`，即 1）。两者不等时：
+   目标格空 → `StoreBackedItemContainer.DecideMoveAsync` 选 `Split`（把一件装备拆开）；
+   目标格有东西 → 返回 `PartialSwapNotAllowed`（对调被拒）。
+3. 本轮为修时装而把它改成 `Count => this.IsPile ? Core.Value : 1`
+   （`IsPile => this.WorldClass is ItemWorldClass.Interchangeable`），
+   **顺带把普通装备的这条毛病一起消掉了**：现在整件移动、整件对调。
+
+**要说清三件事：**
+
+- **这是变好。** 同一次拖动，此前落在「拆分」或「对调被拒」那一支，现在落在「整件移动／整件对调」那一支。
+- **它不在本 Spec 原本列出的行为变化里**，是同一处修复强制带出的。要保留旧行为，
+  反而得给时装开一个特例，那会让普通装备继续坏着。
+- **证据类型：代码级读出，未实测，也未实机。** 上面三步都是从工作区文件的语句文本读出的；
+  本轮没有一条判据把一件带着抽出来的 `Value` 的普通装备送进 `MoveToAsync`
+  （清单 3.2 的 RV-23 与 3.3 的 RP-08 都记作「无覆盖」，凭据是 MU-20 的 3 条红与 MU-21 的 22 条红
+  逐条列出之后没有这样一条）。
+  **所以：所有者实机测普通装备时若看到与线上老服不同的拖动行为，那不是本轮新引入的缺陷。**
+
+**这一条是怎么被发现的，要一并记下：五份记载都没发现它。**
+清单第一版、QR-06-1、TASK-08 的执行结果、QR-08-1、控制器处置 D-08——这五份都把它当成时装专属的问题。
+它是 TASK-06 第二轮重跑反向扫时**从代码里扫出来的**，不是从上面点名的那五份记载里读出来的。
+**它本身就是「反向扫为什么必须存在」的例证。**
+
+#### 这一轮补记的五条修正案
+
+按本仓规矩：**改已被证伪的记载要补记修正案，不是抹去原文。**
+（前四条随本轮主体一起写下；**其五**是完整变更集独立评审指出后补记的。）
+
+**其一——`AGENTS.md` 自己用行号索引，那是错的。** 上面世界表小节那句
+「该谓词文本在 `Server/src` 今天出现在 4 处 SQL 里」，**原文用的是行号**，写作
+`InventoryItemTables.cs:229`、`:264`、`SqliteItemDomainStore.cs:414`、`:544`。
+前两个数至今仍对；后两个**在本轮基线 `565d33fe` 上就已经不对**——基线实测是 **438** 与 **568**
+（口径：`git show 565d33fe:Server/src/Dfo.Server.Persistence/Inventory/SqliteItemDomainStore.cs`
+逐行检索 `substr(item_core, 6, 4)` 与 `substr(standing.item_core, 6, 4)`，各命中一行）。
+这一轮里它们又动过两次：TASK-01 落地后快审 R-01 测得 **453** 与 **595**，
+交付态本节再测是 **468** 与 **642**。**同一对数在一轮之内漂了三次。**
+**这正是本仓「按成员名索引、不按行号」那条规矩自己被违反的实例**，也是那条规矩最便宜的例证。
+上面那句已改成按成员名索引。**这是基线就有的缺陷，不是本轮弄坏又修好的**——
+本轮开工之前它就已经指错了行。
+
+**其二——时装的 8／1 不一致，已经不在了。** 上面「已知缺陷与覆盖缺口」里那条
+「**时装的种类不一致仍在**：存储记 8、档案给 1……**四处生产注释**点着它」，
+**在写下时为真，今天不成立**：`WornPieceMetadata` 已改答 8（见上面「做成了三件事」第 1 条）。
+原文不删。它点名的那四处生产注释本轮各自补记了修正案、也各自保留了原文，分别在
+`ItemPlacementContent` 的 `ItemWorldClass`、`IItemPlacementRuleService.ClassifyAsync`、
+`ItemPlacementRuleService.ClassifyAsync`、`PvfEntryLifecycleContentSource.WornPieceMetadata`。
+
+**其三——那条潜伏的存盘矛盾，随根因一起消失了。** 同一节里
+「**入场存盘的时装守卫，与发放路径的写入方是矛盾的（潜伏，今天不可达）**」那条，
+原文自己写着「根因是下面那条 8／1 不一致；修了它这条自然消失」。根因已修：
+`ItemContainers` 这条路现在写 8，`InventoryEntryAssembly.SaveAsync` 那道
+「档案说是时装、行却不是 kind 8」的拒绝对发放来的行不再命中。
+观测：`GrantedAvatarIsWholeTests.A_granted_avatar_is_loaded_saved_and_loaded_again_with_the_same_facts`
+走的正是「发放 → 存盘 → 再载入」这一趟。原文不删。
+
+**其四——一条无出处的译名。** `PvfEquipmentSlots` 的类型级 `<remarks>` 写着
+「A21 inserted the aurora-illusion avatar ahead of the weapon」。
+**`aurora-illusion avatar` 这个说法在本仓找不到出处**，它把三样东西拧成了一样：
+
+| 说法 | 出处 | 本轮实测 |
+|---|---|---|
+| `AuraSkinAvatar` | `protocol/game/server-to-client/NOTI-0x0002.md` 与 `protocol/patterns/data/traces/a21-starting-gear-and-skills-20260826.md`，两处都写这个名字：前者紧接着自陈「不是量出来的」，后者写「槽号出自上游 `EquipmentType`」 | 底层记载说的是这个名字 |
+| `aura skin avatar` | `ClientHack/tools/literals-a21.csv` 第 27941 行，客户端二进制里的一条字面量 | 档案里以它作 `[equipment type]` 的模板 **0 个** |
+| `[aurora avatar]` | 档案 `equipment/*.equ` 的 `[equipment type]` | **423 个模板**，后面那个数取值集合 `{0}` |
+
+（这三行的计数口径与上面那张十七行表相同，是同一次扫描的读数。）
+**三个是三样东西**：一个是上游的枚举名，一个是客户端二进制里的字面量，一个是档案里的类型名；
+`aurora-illusion avatar` 哪一个都不是。**按仓规不改那段注释的正文**，本条即是它的修正案。
+它同时说明了槽号为什么补不上：**这 11 个时装名里哪一个坐在槽 11，本轮未确立。**
+
+**其五——「剩余秒数约二十一亿」是错的，一次减法就能证伪。**
+**原文两处，逐字抄下，不删**：
+
+| 出处 | 原文 |
+|---|---|
+| `behavior-change-list.md` 3.3 的 RP-06 | 「第三个字段是 `Math.Max(0, int.MaxValue - now)`（**约 2.1×10⁹**）而不是落地计数」 |
+| 生产注释 `Server/src/Dfo.Server.Application/Inventory/ItemContainers.cs` 的 `ArrivingAvatar.NeverExpires` 的 `<remarks>` | "Nobody has yet watched a client draw an avatar whose remaining seconds are **two billion**" |
+
+**错在哪**：两处都把 `int.MaxValue` 本身当成了上线的数，而写上去的是
+`ExpireDate - now`——**是差，不是被减数**。
+**复算（本轮当场做的一遍，读者可自行重做）**：
+
+```text
+int.MaxValue         = 2147483647
+now（unix 秒）        = 1788687136     ← 2026-09-06T09:32:11Z，`date +%s`
+差                    = 358796511 秒
+358796511 ÷ 86400    = 4152.7 天
+358796511 ÷ 31556952 = 11.37 年       ← 分母取儒略年 365.2425 天
+```
+
+即 **约 3.59×10⁸ 秒 ≈ 11.4 年**（＝ 上面算式末行 `11.37` 取三位有效数字）。
+作为对照，**「约 68 年」对应的是 `int.MaxValue` 本身**：`2147483647 ÷ 31556952 = 68.05` 年；
+写下的那两位有效数字 `2.1×10⁹` 本身是 `2.1×10⁹ ÷ 31556952 = 66.55` 年。
+两者相差的倍数：`2147483647 ÷ 358796511 = 5.99`，**将近六倍**。
+这个数每过一秒少一，所以它不是常量，上面写的是**一次带时刻的减法**。
+
+**指出者**：完整变更集独立评审的非阻断观察（`reviews/change-review.md` 第七节）。
+**订正落在两处**：那段生产注释保留原句、另起一段写明它错在哪并附同一条算式
+（**只改注释措辞，没有改任何可执行代码**）；清单在 RP-06 那一栏就地标注，并把修正案全文
+记在它第五节的 **NB-1b**。上面「给所有者的实机须知」第 3 条写的就是订正后的数。
+
+**这个错与其一那条「差 5」同类，共因也一样**：
+**一个读者一次算术就能证伪的数，被写下时没有把算式一并写出来。**
+本仓那条规矩（「一个由多项相加得出的数，要么当场把加法写出来，要么就不要写这个小计」）
+在这里推广一次：**由算术得出的数，都要把算式一并写出来。**
+
+**这条修正案第一次交付时，自己犯了它要修的那件事的小号版本。** 它修的是
+「同一个数被写成两个说法」（`2.1×10⁹` 与 `3.6×10⁸`）；而它第一次写下时，
+**把订正后的数也写成了两个说法**——本节与清单 NB-1b 写「约 **11.4** 年」，
+上面「实机须知」第 3 条的标题与清单 3.8.2 的所有者段落却写「约**十一年半**」，
+生产注释里是 "roughly eleven and a half years"。复算给的是 `11.37`，
+而「十一年半」是 `11.5`，**差约 0.13 年（约 47 天）**。
+由 TASK-10 的独立评审指出，第二轮已统一为「约 11.4 年」／"about 11.4 years"。
+**这是本成果第五次栽在「表是对的、小结或复述算错了」上**，前四次已各自订正。
+**由此多加一条**：**一个数被订正之后，它的每一处复述都要照着算式抄，
+不要用口语约数替换**——「十一年半」「六十八年」这类写法，正是让原错传开的那种写法。
 
 ### 判据偶发失败：先取身份，再谈别的
 

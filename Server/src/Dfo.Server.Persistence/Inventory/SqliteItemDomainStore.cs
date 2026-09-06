@@ -161,9 +161,24 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
     /// The class the write carries is required rather than optional. Settlement decides on it
     /// whether the thing being written keeps an identity of its own or is a pile counted in its
     /// slot, and there is no second reading of the row it could fall back on: the kind byte a core
-    /// carries and the archive's answer disagree, which is the whole reason the classification
-    /// exists. A write that did not say would therefore have to be guessed at, and a guess of
-    /// "pile" silently throws away the identity of everything it is wrong about.
+    /// carries is put there by the caller and the archive's answer is not, which is the whole
+    /// reason the classification exists. A write that did not say would therefore have to be
+    /// guessed at, and a guess of "pile" silently throws away the identity of everything it is
+    /// wrong about.
+    /// <para>
+    /// <b>Amended; what the sentence above said before is quoted next.</b> It said there is no
+    /// second reading to fall back on because "the kind byte a core carries and the archive's
+    /// answer <i>disagree</i>, which is the whole reason the classification exists". The
+    /// disagreement it named was two standing pairs -- the archive's equipment index handing out
+    /// the constant 1 while storage recorded a 5 for a contract creature and an 8 for an avatar --
+    /// and neither pair stands any more: the creature's was answered by the outcome that repaired
+    /// it, the avatar's by the one that made a granted avatar whole, so no template is left that
+    /// the two sources answer differently. What has not changed is why this method still refuses a
+    /// write that says nothing: the byte is whatever a caller put in it, this class has no archive
+    /// to ask, and settlement reads the class off nothing else. It is corrected rather than deleted
+    /// because a reader who found only the refusal would not know it was ever answering a real
+    /// divergence rather than a hypothetical one.
+    /// </para>
     /// </remarks>
     public void Write(ContainerId containerId, StoredItem item)
     {
@@ -395,12 +410,27 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
     /// Three things in this file are true today for reasons that live in another method. None of
     /// them is an invariant this class enforces, so each is written down rather than trusted:
     ///
-    /// First, the guard in <see cref="FillAsync"/> is equivalent to the unique index that used to
-    /// stand on the retired avatar key only because the SELECT above filters on
-    /// avatar_expire_date IS NOT NULL. That filter is what makes a returned row's first column
-    /// never null, which is what makes "this row carries no facts" and "no row was found" the same
-    /// question. Loosen the filter and the guard silently starts refusing rows the old index let
-    /// through. It is a coupling between two methods, not a property of either.
+    /// First -- <b>amended; what this paragraph said before is quoted at the end of it</b> -- this
+    /// SELECT is no longer the only thing that decides when the guard in <see cref="FillAsync"/>
+    /// engages. That guard runs when the @expire the insert binds is not null, and @expire now has
+    /// two sources: this retrieval, and the six facts a write carried itself. What this retrieval
+    /// contributes is unchanged and still coupled the same way -- it filters on
+    /// avatar_expire_date IS NOT NULL, which is what makes a returned row's first column never
+    /// null, which is what makes "this row carries no facts" and "no row was found" the same
+    /// question here; loosen this filter and the guard still starts refusing rows the old index let
+    /// through. What is no longer true is the word "only". A write carrying its own facts makes
+    /// @expire non-null with nothing found here at all, and that is precisely the case the retired
+    /// index covered and this retrieval never could reach: an avatar entering the world for the
+    /// first time, which no standing row can be asked about. So the guard is still not a property
+    /// of either method, and it is now coupled to what the write carries as well as to this filter.
+    /// <para>
+    /// What this paragraph said before: "the guard in FillAsync is equivalent to the unique index
+    /// that used to stand on the retired avatar key only because the SELECT above filters on
+    /// avatar_expire_date IS NOT NULL". That was true while this retrieval was @expire's only
+    /// source, and it stopped being true when a write gained the ability to carry the six facts
+    /// itself. It is corrected rather than deleted because the half it got right -- the coupling to
+    /// this filter -- is still the reason to read this paragraph.
+    /// </para>
     ///
     /// Second, <see cref="LandAsync"/> has no avatar-uniqueness guard of its own and does not need
     /// one, because every one of the three passes in Survivors matches on the value inside the
@@ -544,16 +574,60 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
     /// The database refuses to allocate one that would not fit the wire, and that refusal is turned
     /// into a sentence because "CHECK constraint failed" says nothing about what has happened,
     /// which is that this database has handed out every identity it is able to say.
+    /// <para>
+    /// The six avatar columns are taken from what the write itself carried whenever it carried
+    /// anything, and only otherwise from what the row being replaced already had. The two answer
+    /// different questions and neither stands in for the other: a write carrying its own facts is
+    /// an avatar entering the world, which no row can be asked about because there is no row yet,
+    /// while <see cref="CarriedAvatarsAsync"/> is an avatar the world already holds having its row
+    /// rebuilt, which the write has nothing to add to. Preferring the write is what lets an avatar
+    /// be put down for the first time with its facts on it; keeping the retrieval is what stops a
+    /// move from throwing away the facts of one already standing.
+    /// </para>
+    /// <para>
+    /// <b>The guard in the WHERE clause was, until a write could carry facts, unreachable for
+    /// anything this world put down for the first time.</b> Its condition opens with
+    /// <c>@expire IS NULL</c>, and @expire had a single source then: the six columns of a standing
+    /// row, read back by <see cref="CarriedAvatarsAsync"/>. An avatar entering the world for the
+    /// first time has no standing row to be read off, so its insert bound null there, satisfied the
+    /// condition on its left side, and never reached the subquery at all. The row it landed carried
+    /// six null columns as a result -- and the subquery selects on
+    /// <c>standing.avatar_expire_date IS NOT NULL</c>, so the next write under the same identity
+    /// could not see that row either. The blindness fed itself: a first-time avatar was neither
+    /// judged nor visible to the judgement of the next one, and two of them could stand in one
+    /// world under one identity with nothing raised anywhere. What the guard did judge was only the
+    /// other case, a standing row being rebuilt, whose facts the retrieval does supply.
+    /// </para>
+    /// <para>
+    /// It engages now because @expire has the second source described above. A write that brings an
+    /// avatar in carries its own six, so the insert binds a non-null @expire and the condition falls
+    /// through to the subquery; and the row that insert lands carries a non-null
+    /// avatar_expire_date, which is what makes it visible to the write after it. One change breaks
+    /// both ends of the circle and nothing breaks either end without it, which is why
+    /// <c>TwoAvatarsDoNotShareOneIdentityTests</c> holds the contrast between a pair of writes
+    /// carrying no facts and the same pair carrying them, rather than the refusal on its own: a
+    /// case that only showed a collision refused would be satisfied by a guard that had always
+    /// engaged, and this one never had.
+    /// </para>
+    /// <para>
+    /// A refusal is not an error the database raises. The statement succeeds and writes no row, so
+    /// <c>RETURNING</c> yields nothing and the scalar read answers null; the sentence thrown below
+    /// is what turns that silence into a refusal. It is thrown inside the transaction the
+    /// participant holds open at prepare, so the settlement carrying the collision is taken back
+    /// whole rather than landing everything except the avatar.
+    /// </para>
     /// </remarks>
     private async ValueTask<int> FillAsync(
         StoredItem item,
         IReadOnlyDictionary<int, object?[]> carried,
         CancellationToken cancellationToken)
     {
-        var facts = item.Core.ItemKind == AvatarKind
-                    && carried.TryGetValue(item.Core.Value, out var held)
-            ? held
-            : null;
+        var facts = item.AvatarDetail is { } carriedByTheWrite
+            ? FactsOf(carriedByTheWrite)
+            : item.Core.ItemKind == AvatarKind
+              && carried.TryGetValue(item.Core.Value, out var held)
+                ? held
+                : null;
         await using var command = await owner.CommandAsync(cancellationToken).ConfigureAwait(false);
         command.CommandText = """
             INSERT INTO items(
@@ -656,6 +730,35 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
     [
         ("@expire", 0), ("@clear", 1), ("@socket", 2),
         ("@color1", 3), ("@color2", 4), ("@delete", 5),
+    ];
+
+    /// <summary>The six facts a write carried, in the order <see cref="AvatarColumns"/> binds.</summary>
+    /// <remarks>
+    /// The two colours are widened to <see cref="int"/> so that a column holding an INTEGER is
+    /// bound the same value whichever of the two sources it came from: what the retrieval reads
+    /// back off a row is what SQLite stores, and it stores no sixteen-bit thing.
+    ///
+    /// <b>Amended; what this paragraph said before is quoted at the end of it.</b> This method
+    /// cannot be handed a null socket to bind: <see cref="InventoryAvatarDetailState"/> declares
+    /// <c>JewelSocket</c> as a non-nullable <c>byte[]</c>, and this assembly compiles with nullable
+    /// reference types on, so reaching the case the sentence below described takes a caller that
+    /// deliberately defeats the annotation rather than one that merely has nothing to put there.
+    /// What is bound is the array the record carries, whatever length it is. The table is what says
+    /// a socket that is present is thirty bytes, and it refuses any other length rather than this
+    /// method silently correcting one -- that half was and is true, and it is the reason to read
+    /// this paragraph at all.
+    /// <para>
+    /// What this paragraph said before: "A jewel socket left null arrives here as null and is bound
+    /// as null, exactly as a fact the retrieval did not find is." It is corrected rather than
+    /// deleted because the symmetry it reached for is real on the other source -- each of the six
+    /// <see cref="CarriedAvatarsAsync"/> reads back can be null and is bound as null -- and the
+    /// error was extending that symmetry to a source whose type does not offer the null.
+    /// </para>
+    /// </remarks>
+    private static object?[] FactsOf(InventoryAvatarDetailState detail) =>
+    [
+        detail.ExpireDate, detail.ClearAvatarId, detail.JewelSocket,
+        (int)detail.Color1, (int)detail.Color2, detail.DeleteDate,
     ];
 
     private static InventoryItemCoreState DecodeCore(SqliteDataReader reader, int ordinal) =>

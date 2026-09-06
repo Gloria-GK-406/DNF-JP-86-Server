@@ -382,6 +382,32 @@ public sealed class PickUpGroundDropCommandHandler(
     ///
     /// A durability of zero would be a broken piece rather than an unspecified one, which is why
     /// this cannot be left to the bag's own defaults.
+    ///
+    /// <b>Amended; what this method did to an avatar before is described next.</b> It wrote the
+    /// announced value over every piece the archive calls equipment, and an avatar is one of those
+    /// -- <c>IsEquipmentAsync</c> answers "not interchangeable", which an avatar is not. The value
+    /// inside an avatar's core is not the kind of value the paragraph above is about: it is the
+    /// identity the bag drew when it opened the slot, and the key
+    /// <c>SqliteItemDomainStore.FillAsync</c> looks the six avatar facts up by. Replacing it left
+    /// the row and its facts unable to find each other -- the second write is no longer any of the
+    /// three things <c>Survivors</c> recognises, so the row is rebuilt, and the facts are searched
+    /// for under the value that has just replaced the one they were filed under. Six columns came
+    /// back NULL and the next entry load refused the row:
+    /// <c>InvalidDataException: Avatar detail N is unavailable.</c>
+    /// <para>
+    /// So an avatar takes the wear and not the value. The wear is a plain field of the core and
+    /// changing it alone leaves the row the same thing standing in the same place, which is what
+    /// keeps its facts on it. The class is the archive's answer carried on the slot rather than
+    /// the kind byte in the core, for the reason <c>ContainerSlotItem.WorldClass</c> gives.
+    /// </para>
+    /// <para>
+    /// This is the narrow repair, and it is narrow deliberately: what is wrong is one path writing
+    /// one field, not the write itself. <c>IItemContainer.PutAsync</c> passes no avatar facts on
+    /// any call -- see its own summary -- so any other caller that came to replace a standing
+    /// avatar's value would go the same way. None does today; that reading is recorded with this
+    /// outcome rather than guarded against here, because a guard in the write would be a rule
+    /// about avatars living somewhere no reader of this path would look for it.
+    /// </para>
     /// </remarks>
     private async ValueTask CarryOverAsync(
         IItemContainer container,
@@ -397,14 +423,15 @@ public sealed class PickUpGroundDropCommandHandler(
         if (landed is null)
             return;
 
-        await container.PutAsync(
-            slotIndex,
-            landed.Core with
+        var carried = landed.WorldClass is ItemWorldClass.Avatar
+            ? landed.Core with { Durability = found.Durability }
+            : landed.Core with
             {
                 Value = checked((int)found.Instance),
                 Durability = found.Durability,
-            },
-            cancellationToken).ConfigureAwait(false);
+            };
+
+        await container.PutAsync(slotIndex, carried, cancellationToken).ConfigureAwait(false);
     }
 }
 

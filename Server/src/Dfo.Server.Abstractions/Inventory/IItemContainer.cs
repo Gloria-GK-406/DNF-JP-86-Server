@@ -298,7 +298,30 @@ public sealed record ContainerSlotItem(
     public int ItemId => Core.ItemId;
 
     /// <summary>How many the slot holds. For anything that does not stack, one.</summary>
-    public int Count => Core.Value;
+    /// <remarks>
+    /// <b>Amended; what this read did before is described next.</b> It answered
+    /// <c>Core.Value</c> for both sorts of content, which said what the sentence above says only
+    /// for a pile. The value inside an individual piece's core is not a quantity: an avatar's is
+    /// the identity the store's fill looks its six facts up by, and a starting equipment piece's
+    /// is drawn the same way in <c>CharacterRosterService.EquipmentCore</c>. A container asked to
+    /// move one of something compares the request against this number, so reading an identity here
+    /// turned a plain drag of a delivered avatar into a request to divide it -- which put down a
+    /// row carrying no facts, and the entry load refuses one of those.
+    /// <para>
+    /// The branch is <see cref="IsPile"/> rather than a second reading of its own, so the two
+    /// answers cannot come apart: what makes a thing countable is the same archive answer that
+    /// makes two of it the same thing. A pile is unaffected -- the value it counts itself in is
+    /// still what it is answered with -- which is what keeps splitting, merging and moving part of
+    /// a pile exactly as they were.
+    /// </para>
+    /// <para>
+    /// One rather than the value is what the sentence above already promised, so this is the read
+    /// catching up with what callers were told. It is not a ruling about where an identity lives:
+    /// the identity stays in the core's value, which is where the load, the save, both projections
+    /// and the store's fill each look for it.
+    /// </para>
+    /// </remarks>
+    public int Count => this.IsPile ? Core.Value : 1;
 
     /// <summary>Whether two of what is here would be the same thing.</summary>
     public bool IsPile => this.WorldClass is ItemWorldClass.Interchangeable;

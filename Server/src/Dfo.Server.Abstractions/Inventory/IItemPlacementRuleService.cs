@@ -41,11 +41,18 @@ public interface IItemPlacementRuleService
     /// migration -- and the two writes that used to answer it for themselves cannot drift.
     /// <para>
     /// It takes a template identifier and nothing else. That is not brevity: it is what makes the
-    /// answer impossible to take from the kind byte a stored row happens to carry. Those two still
+    /// answer impossible to take from the kind byte a stored row happens to carry, and a caller is
+    /// free to hand any core it likes to a write.
+    /// </para>
+    /// <para>
+    /// <b>Amended; what this paragraph said before is quoted next.</b> It said: "Those two still
     /// disagree -- an avatar is stored as kind 8 and the archive's equipment index gives it kind 1
     /// -- and a classifier handed the row would be free to believe the row. The contract creature
     /// used to be a second such pair and no longer is: the archive now gives it the kind storage
-    /// records it under.
+    /// records it under." The avatar pair is answered now too: the archive gives an avatar template
+    /// the 8 storage records it under, so no template is left that the two sources disagree about.
+    /// It is corrected rather than deleted because the reason for the signature is unchanged and
+    /// the record of what it was guarding against is what explains the shape.
     /// </para>
     /// </remarks>
     ValueTask<ItemWorldClass> ClassifyAsync(int itemId, CancellationToken cancellationToken);
