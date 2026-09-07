@@ -249,7 +249,12 @@ public sealed class SelectCharacterPayloadCodecTests
         // Three entries, each ending in the A21 tail the older client had no room for: nine
         // zero bytes for a costume-bar or creature slot, seventeen for an ordinary one. All
         // three of these are costume-bar or creature slots, so the body grew by 27.
-        Assert.Equal(347, populated.Length);
+        //
+        // It then lost twelve of those again when the jewel run went to the eighteen bytes A21
+        // takes, from the thirty that are stored. That is the only reason this figure and every
+        // offset after the avatar's jewel run moved; the entry is otherwise unchanged, and the
+        // offsets before the run are the same numbers they were.
+        Assert.Equal(335, populated.Length);
         Assert.Equal(3, populated[100]);
 
         // Ordinary slot: NOTI-2 begins with u8 slot and uses dynamic sections.
@@ -268,16 +273,16 @@ public sealed class SelectCharacterPayloadCodecTests
         Assert.Equal(222, BinaryPrimitives.ReadInt32LittleEndian(populated.AsSpan(183)));
         Assert.Equal(300u, BinaryPrimitives.ReadUInt32LittleEndian(populated.AsSpan(187)));
         Assert.Equal(333u, BinaryPrimitives.ReadUInt32LittleEndian(populated.AsSpan(194)));
-        Assert.Equal(30, BinaryPrimitives.ReadInt32LittleEndian(populated.AsSpan(206)));
-        Assert.Equal(Enumerable.Range(0, 30).Select(value => (byte)value),
-            populated.AsSpan(210, 30).ToArray());
-        Assert.Equal(0x1122, BinaryPrimitives.ReadUInt16LittleEndian(populated.AsSpan(244)));
-        Assert.Equal(0x3344, BinaryPrimitives.ReadUInt16LittleEndian(populated.AsSpan(246)));
+        Assert.Equal(18, BinaryPrimitives.ReadInt32LittleEndian(populated.AsSpan(206)));
+        Assert.Equal(Enumerable.Range(0, 18).Select(value => (byte)value),
+            populated.AsSpan(210, 18).ToArray());
+        Assert.Equal(0x1122, BinaryPrimitives.ReadUInt16LittleEndian(populated.AsSpan(232)));
+        Assert.Equal(0x3344, BinaryPrimitives.ReadUInt16LittleEndian(populated.AsSpan(234)));
 
         // Creature slot 24 carries the NOTI-2 creature marker after the enchant block.
-        Assert.Equal(24, populated[276]);
-        Assert.Equal(444, BinaryPrimitives.ReadInt32LittleEndian(populated.AsSpan(277)));
-        Assert.Equal(555u, BinaryPrimitives.ReadUInt32LittleEndian(populated.AsSpan(300)));
+        Assert.Equal(24, populated[264]);
+        Assert.Equal(444, BinaryPrimitives.ReadInt32LittleEndian(populated.AsSpan(265)));
+        Assert.Equal(555u, BinaryPrimitives.ReadUInt32LittleEndian(populated.AsSpan(288)));
         Assert.Equal([0, 0], empty);
         Assert.Throws<InvalidDataException>(() => EncodeSelectedStateBody(
             source with

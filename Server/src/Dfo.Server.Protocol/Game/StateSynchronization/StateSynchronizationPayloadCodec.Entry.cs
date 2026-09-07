@@ -183,10 +183,9 @@ internal static partial class StateSynchronizationPayloadCodec
         {
             if (core.ItemKind == avatarKind)
             {
-                if (item.AvatarDetail!.JewelSocket.Length != 30)
+                if (item.AvatarDetail!.JewelSocket.Length != StoredJewelBytes)
                     throw new InvalidDataException("Support avatar jewel socket must contain exactly 30 bytes.");
-                writer.Write(30);
-                writer.Write(item.AvatarDetail.JewelSocket);
+                AvatarJewelSocketOnTheWire.WriteJewelRun(writer, item.AvatarDetail.JewelSocket);
             }
             else
             {
@@ -294,6 +293,17 @@ internal static partial class StateSynchronizationPayloadCodec
     /// boundary of ten is one short here.
     /// </remarks>
     private static bool IsCostumeBarSlot(int slotIndex) => slotIndex is >= 0 and <= 11;
+
+    /// <summary>How long a stored jewel socket is, which is not how much of it goes on the wire.</summary>
+    /// <remarks>
+    /// Thirty: five slots of six bytes, and the shape the store guarantees
+    /// (<c>CHECK(length(avatar_jewel_socket) = 30)</c>). The two writers below check an incoming
+    /// socket against it and then hand the whole thing to
+    /// <see cref="AvatarJewelSocketOnTheWire.WriteJewelRun"/>, which decides how much of it A21
+    /// actually takes. Keeping the two figures apart is the point: they were the same number until
+    /// the wire moved to eighteen, and writing thirty in both places is how they came to disagree.
+    /// </remarks>
+    private const int StoredJewelBytes = 30;
 
     /// <summary>The slot whose entry carries the creature marker.</summary>
     /// <remarks>
@@ -767,8 +777,8 @@ internal static partial class StateSynchronizationPayloadCodec
             using var document = JsonDocument.Parse(attachment.DetailJson);
             var avatar = document.RootElement.GetProperty("Avatar");
             var socket = avatar.GetProperty("JewelSocket").GetBytesFromBase64();
-            if (socket.Length != 30) throw new InvalidDataException("Mailbox avatar jewel socket must contain exactly 30 bytes.");
-            writer.Write(30); writer.Write(socket); writer.Write(4);
+            if (socket.Length != StoredJewelBytes) throw new InvalidDataException("Mailbox avatar jewel socket must contain exactly 30 bytes.");
+            AvatarJewelSocketOnTheWire.WriteJewelRun(writer, socket); writer.Write(4);
             writer.Write(avatar.GetProperty("Color1").GetUInt16()); writer.Write(avatar.GetProperty("Color2").GetUInt16());
         }
         catch (Exception error) when (error is JsonException or KeyNotFoundException or FormatException)

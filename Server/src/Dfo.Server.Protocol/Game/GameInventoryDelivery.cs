@@ -174,9 +174,10 @@ internal static class GameInventoryItemEntry
     /// <summary>The two length-prefixed runs the client reads after the record.</summary>
     /// <remarks>
     /// An eighteen-byte jewel socket and a four-byte colour pair, each behind its own length --
-    /// thirty bytes in all. See <see cref="WireJewelBytes"/> for why eighteen and not the thirty
-    /// that are stored. The avatar list reads both runs unconditionally, so an item with no avatar
-    /// facts still writes them, zero-filled, because there is nothing to say. Eleven avatars in a
+    /// thirty bytes in all. See <see cref="AvatarJewelSocketOnTheWire.WireJewelBytes"/> for why
+    /// eighteen and not the thirty that are stored. The avatar list reads both runs
+    /// unconditionally, so an item with no avatar facts still writes them, zero-filled, because
+    /// there is nothing to say. Eleven avatars in a
     /// live avatar bag parsed back to back, which is what shows the shape is aligned rather than
     /// merely accepted -- though a live check cannot tell eighteen from thirty, since the block
     /// declares its own length.
@@ -188,38 +189,11 @@ internal static class GameInventoryItemEntry
     /// </remarks>
     private static void WriteAppearanceBlock(BinaryWriter writer, InventoryAvatarDetailState? avatar)
     {
-        var stored = avatar?.JewelSocket ?? [];
-        writer.Write(WireJewelBytes);
-        writer.Write(stored.Length >= WireJewelBytes
-            ? stored.AsSpan(0, WireJewelBytes)
-            : new byte[WireJewelBytes]);
+        AvatarJewelSocketOnTheWire.WriteJewelRun(writer, avatar?.JewelSocket ?? []);
         writer.Write(ColourLength);
         writer.Write((ushort)(avatar?.Color1 ?? 0));
         writer.Write((ushort)(avatar?.Color2 ?? 0));
     }
-
-    /// <summary>How much of the stored jewel socket A21 puts on the wire.</summary>
-    /// <remarks>
-    /// Eighteen of the thirty that are stored. The stored socket is five slots of six bytes; A21
-    /// sends the first three. The reference A21 server names the figure
-    /// <c>A21AvatarJewelBytes = 18</c> and writes it from a thirty-byte column exactly this way,
-    /// truncating rather than reshaping (<c>ItemListProtocolWriter.WriteAvatarEntry126</c>, whose
-    /// name is the older client's total: 84 + 4 + 30 + 4 + 4 = 126, which is where the thirty comes
-    /// from).
-    /// <para>
-    /// Sending all thirty parses -- the block is length-prefixed, so the client honours whatever
-    /// length it is given, and eleven avatars sent that way lined up back to back against a live
-    /// client. It is still wrong. The reason to prefer eighteen is that the reference A21 server
-    /// sends eighteen -- that part is read out of its source. There is also a motive that is
-    /// weaker evidence and is offered as such: the client's destination for this block was measured
-    /// by static disassembly to be a stack local with far less room than the distance to its /GS
-    /// cookie, so twelve extra bytes would land on whatever is next without failing loudly. That
-    /// second part is not observed live and is not what the choice rests on. Live testing cannot
-    /// tell the two lengths apart at all, because a socket of zeros is a socket of zeros at either
-    /// length.
-    /// </para>
-    /// </remarks>
-    private const int WireJewelBytes = 18;
 
     private const int ColourLength = 4;
 
