@@ -1,11 +1,13 @@
+using Dfo.Server.Data.Inventory;
+
 namespace Dfo.Server.Abstractions.Inventory;
 
-/// <summary>Whether an item may sit in a slot of the main list, or why not.</summary>
+/// <summary>Whether an item may sit in a slot of some list, or why not.</summary>
 /// <remarks>
 /// Two refusals rather than one, because a caller with sentences to show a player has a different
 /// one for a piece nothing is known about than for a piece aimed at the wrong band.
 /// </remarks>
-public enum MainSlotAdmission
+public enum SlotAdmission
 {
     Allowed,
 
@@ -33,7 +35,15 @@ public interface IItemMovementDomainService
     /// </summary>
     ValueTask<byte?> WornSlotForAsync(int itemId, CancellationToken cancellationToken);
 
-    /// <summary>Whether this item may occupy that slot of the main list.</summary>
-    ValueTask<MainSlotAdmission> MayOccupyMainSlotAsync(
-        int itemId, int slotIndex, CancellationToken cancellationToken);
+    /// <summary>Whether this item may occupy that slot of that list.</summary>
+    /// <remarks>
+    /// Asked of a named list rather than of the main one. It was main-only while the main list was
+    /// the only one a move could land in; the avatar list is the second, and one question that
+    /// takes the list is one rule rather than two free to disagree about the same item.
+    /// </remarks>
+    ValueTask<SlotAdmission> MayOccupySlotAsync(
+        InventoryContainerType containerType,
+        int itemId,
+        int slotIndex,
+        CancellationToken cancellationToken);
 }

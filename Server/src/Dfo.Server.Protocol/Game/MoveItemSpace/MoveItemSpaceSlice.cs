@@ -173,7 +173,12 @@ public enum ItemMoveStatus
     /// <summary>The request named a list this server does not serve.</summary>
     ListNotServed,
 
-    /// <summary>The character is not bound to a main container.</summary>
+    /// <summary>The character is not bound to one of the containers the request named.</summary>
+    /// <remarks>
+    /// It used to say "a main container", which was the whole of it while the bag was the only
+    /// list a move could start from. A request naming the avatar list needs that list bound too,
+    /// and either end being unbound lands here.
+    /// </remarks>
     NoBoundContainer,
 
     /// <summary>Neither named slot holds anything.</summary>
@@ -228,10 +233,14 @@ public sealed record MoveItemSpaceCommand(
 /// Hands the move to the character's bag and reports what it answered.
 /// </summary>
 /// <remarks>
-/// Three moves are served: within the bag, out of the bag onto the character, and back off again.
-/// The other containers this request can name -- avatar, cargo, pet, the knight shield catalogue --
-/// each carry their own rules about what may enter them, and answering for them without those
-/// rules would let an item through a door that should have been shut.
+/// Two lists hold things a character carries -- the bag and the avatar list -- and moves are served
+/// within either, between them, and out of either onto the character and back off again.
+/// The other containers this request can name -- cargo, pet, the knight shield catalogue -- each
+/// carry their own rules about what may enter them, and answering for them without those rules
+/// would let an item through a door that should have been shut. The avatar list was on that list
+/// of unanswered doors until its rule was written down (`IItemSlotRuleService.CanOccupySlot`);
+/// being unanswered is what made a drag inside it come back `ListNotServed`, before any item was
+/// read, which is why that refusal could not even say which item it was about.
 ///
 /// Which slot may hold what, and whether a merge would burst a stack, are the bag's own questions.
 /// A move between two lists is neither container's: it needs the archive to say which slot a piece
@@ -248,10 +257,25 @@ public sealed class MoveItemSpaceCommandHandler(
 {
     private const byte MainListType = (byte)InventoryContainerType.Main;
 
+    private const byte AvatarListType = (byte)InventoryContainerType.Avatar;
+
     private const byte EquipmentListType = (byte)InventoryContainerType.Equipment;
 
     /// <summary>A piece of equipment does not stack, so exactly one of it ever moves.</summary>
     private const int OnePiece = 1;
+
+    /// <summary>The lists a character carries things in, as opposed to wears them from.</summary>
+    /// <remarks>
+    /// Both are ordinary containers with a slot rule of their own, so a move within either, or
+    /// between them, is the same operation with different ends. Naming them once is what keeps the
+    /// four served combinations from being four branches that could drift apart.
+    /// </remarks>
+    private static InventoryContainerType? CarriedListFor(byte listType) => listType switch
+    {
+        MainListType => InventoryContainerType.Main,
+        AvatarListType => InventoryContainerType.Avatar,
+        _ => null,
+    };
 
     public async ValueTask<ItemMoveResult> HandleAsync(
         CommandExecutionContext context,
@@ -260,24 +284,40 @@ public sealed class MoveItemSpaceCommandHandler(
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        var bag = containers.FindContainer(command.CharacterId, InventoryContainerType.Main);
+        var source = CarriedListFor(command.SourceListType);
+        var destination = CarriedListFor(command.DestinationListType);
+
+        if (source is { } putOnFrom && command.DestinationListType == EquipmentListType)
+        {
+            var from = containers.FindContainer(command.CharacterId, putOnFrom);
+            return from is null
+                ? ItemMoveResult.Refused(ItemMoveStatus.NoBoundContainer)
+                : await this.PutOnAsync(command, from, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (command.SourceListType == EquipmentListType && destination is { } takeOffTo)
+        {
+            var into = containers.FindContainer(command.CharacterId, takeOffTo);
+            return into is null
+                ? ItemMoveResult.Refused(ItemMoveStatus.NoBoundContainer)
+                : await this.TakeOffAsync(command, into, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (source is null || destination is null)
+            return ItemMoveResult.Refused(ItemMoveStatus.ListNotServed);
+
+        var bag = containers.FindContainer(command.CharacterId, source.Value);
         if (bag is null)
             return ItemMoveResult.Refused(ItemMoveStatus.NoBoundContainer);
 
-        if (command.SourceListType == MainListType
-            && command.DestinationListType == EquipmentListType)
+        if (source != destination)
         {
-            return await this.PutOnAsync(command, bag, cancellationToken).ConfigureAwait(false);
+            var into = containers.FindContainer(command.CharacterId, destination.Value);
+            return into is null
+                ? ItemMoveResult.Refused(ItemMoveStatus.NoBoundContainer)
+                : await this.CarryAcrossAsync(
+                    command, bag, into, destination.Value, cancellationToken).ConfigureAwait(false);
         }
-
-        if (command.SourceListType == EquipmentListType
-            && command.DestinationListType == MainListType)
-        {
-            return await this.TakeOffAsync(command, bag, cancellationToken).ConfigureAwait(false);
-        }
-
-        if (command.SourceListType != MainListType || command.DestinationListType != MainListType)
-            return ItemMoveResult.Refused(ItemMoveStatus.ListNotServed);
 
         // The move is carried out inside the bag as the clears and writes it is made of. Everything
         // they touch settles together, because the command is transactional and the boundary around
@@ -316,9 +356,28 @@ public sealed class MoveItemSpaceCommandHandler(
     /// word for it.
     /// </para>
     /// <para>
-    /// Whatever was already worn goes back into the slot the new piece came out of. That slot held
-    /// a piece of equipment a moment ago, so it is a slot equipment may occupy and there is no
-    /// second judgement to make.
+    /// Whatever was already worn goes back into the slot the new piece came out of, and nothing
+    /// here judges whether it may sit there. The reason written here before was "that slot held a
+    /// piece of equipment a moment ago", which was an argument about the bag, and the source is not
+    /// always the bag now. The reason that holds today is narrower and worth stating exactly:
+    /// <b>nothing can be worn in a costume slot at all.</b> A piece may only go on the slot its own
+    /// archive entry names, every name resolves through <c>PvfEquipmentSlots.ByName</c>, and the
+    /// lowest slot that table names is twelve. Slots <c>0..11</c> are therefore empty always, so
+    /// nothing can be displaced out of one into the avatar list.
+    /// <br/>
+    /// <b>That stops being true the day those slots get names</b> -- which is exactly what giving
+    /// costumes a slot map amounts to. Whoever does that has to come back here and decide whether
+    /// what comes off a costume slot can go back where the arriving costume came from. It probably
+    /// can, since only costumes should ever name <c>0..11</c>, but "probably" is the whole of the
+    /// argument and it is not one this comment should be read as having made.
+    /// <br/>
+    /// <b>Do not generalise it to "the worn slot decides what is in it".</b> That is false today:
+    /// <c>ByName</c> maps <c>[earring]</c>, <c>[support weapon]</c> and <c>[creature]</c> all to
+    /// slot 24, so what comes off 24 may be a creature where what went on was an earring -- and the
+    /// bag's own band rule does not admit a creature into a quick slot. That swap succeeds today
+    /// because nothing here judges it, and it is written up as a defect of its own in
+    /// <c>Docs/CreatureDomainDesign.md</c>. A judgement was briefly added here and taken out again:
+    /// it reached that case too, and refusing it is a change to a path this work was not about.
     /// </para>
     /// </remarks>
     private async ValueTask<ItemMoveResult> PutOnAsync(
@@ -342,7 +401,6 @@ public sealed class MoveItemSpaceCommandHandler(
 
         var displaced = await worn.ReadSlotAsync(command.DestinationSlotIndex, cancellationToken)
             .ConfigureAwait(false);
-
         await worn.PutAsync(command.DestinationSlotIndex, piece.Core, cancellationToken)
             .ConfigureAwait(false);
         if (displaced is null)
@@ -356,6 +414,78 @@ public sealed class MoveItemSpaceCommandHandler(
         }
 
         return new ItemMoveResult(ItemMoveStatus.Moved, OnePiece, piece.ItemId);
+    }
+
+    /// <summary>Carrying a thing from one of the character's lists into the other.</summary>
+    /// <remarks>
+    /// Neither container's own business, for the same reason wearing is not: each end judges what
+    /// it lets in, and the two judgements have to be made together before either is written. The
+    /// destination's rule is asked of the movement service by name, so the avatar list refusing a
+    /// thing that is not a costume and the bag refusing a costume aimed outside its band are one
+    /// rule asked twice rather than two rules that could disagree.
+    /// <para>
+    /// A slot that already holds something is a swap, and a swap has to satisfy both ends: what
+    /// comes back has to be admissible where the moving thing came from. Refusing rather than
+    /// displacing keeps the client's picture and the store's rows saying the same thing.
+    /// </para>
+    /// <para>
+    /// The count is not honoured. Both lists hold individual pieces -- the avatar list by its rule,
+    /// and a costume in the bag by its stack limit of one -- so a partial move of one of them is
+    /// not a thing that exists. A request naming a smaller count moves the piece and reports the
+    /// one it moved, which is what the equip paths beside this one already do.
+    /// </para>
+    /// </remarks>
+    private async ValueTask<ItemMoveResult> CarryAcrossAsync(
+        MoveItemSpaceCommand command,
+        IItemContainer from,
+        IItemContainer into,
+        InventoryContainerType destination,
+        CancellationToken cancellationToken)
+    {
+        var moving = await from.ReadSlotAsync(command.SourceSlotIndex, cancellationToken)
+            .ConfigureAwait(false);
+        if (moving is null)
+            return ItemMoveResult.Refused(ItemMoveStatus.BothSlotsEmpty);
+
+        switch (await moves.MayOccupySlotAsync(
+            destination, moving.ItemId, command.DestinationSlotIndex, cancellationToken)
+            .ConfigureAwait(false))
+        {
+            case SlotAdmission.ItemUnknown:
+                return ItemMoveResult.Refused(ItemMoveStatus.NotWearable, moving.ItemId);
+
+            case SlotAdmission.SlotNotAllowed:
+                return ItemMoveResult.Refused(ItemMoveStatus.ItemCannotOccupySlot, moving.ItemId);
+
+            default:
+                break;
+        }
+
+        var displaced = await into.ReadSlotAsync(command.DestinationSlotIndex, cancellationToken)
+            .ConfigureAwait(false);
+        if (displaced is not null)
+        {
+            var back = await moves.MayOccupySlotAsync(
+                from.Type, displaced.ItemId, command.SourceSlotIndex, cancellationToken)
+                .ConfigureAwait(false);
+            if (back != SlotAdmission.Allowed)
+                return ItemMoveResult.Refused(
+                    ItemMoveStatus.DisplacedCannotOccupySlot, moving.ItemId);
+        }
+
+        await into.PutAsync(command.DestinationSlotIndex, moving.Core, cancellationToken)
+            .ConfigureAwait(false);
+        if (displaced is null)
+        {
+            await from.ClearAsync(command.SourceSlotIndex, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            await from.PutAsync(command.SourceSlotIndex, displaced.Core, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        return new ItemMoveResult(ItemMoveStatus.Moved, OnePiece, moving.ItemId);
     }
 
     /// <summary>Taking a piece off: out of its slot and into the bag slot the player aimed at.</summary>
@@ -383,14 +513,15 @@ public sealed class MoveItemSpaceCommandHandler(
         if (piece is null)
             return ItemMoveResult.Refused(ItemMoveStatus.BothSlotsEmpty);
 
-        switch (await moves.MayOccupyMainSlotAsync(
-            piece.ItemId, command.DestinationSlotIndex, cancellationToken).ConfigureAwait(false))
+        switch (await moves.MayOccupySlotAsync(
+            bag.Type, piece.ItemId, command.DestinationSlotIndex, cancellationToken)
+            .ConfigureAwait(false))
         {
-            case MainSlotAdmission.ItemUnknown:
-                return ItemMoveResult.Refused(ItemMoveStatus.NotWearable);
+            case SlotAdmission.ItemUnknown:
+                return ItemMoveResult.Refused(ItemMoveStatus.NotWearable, piece.ItemId);
 
-            case MainSlotAdmission.SlotNotAllowed:
-                return ItemMoveResult.Refused(ItemMoveStatus.ItemCannotOccupySlot);
+            case SlotAdmission.SlotNotAllowed:
+                return ItemMoveResult.Refused(ItemMoveStatus.ItemCannotOccupySlot, piece.ItemId);
 
             default:
                 break;
@@ -404,7 +535,8 @@ public sealed class MoveItemSpaceCommandHandler(
                 .WornSlotForAsync(displaced.ItemId, cancellationToken)
                 .ConfigureAwait(false);
             if (displacedSlot != command.SourceSlotIndex)
-                return ItemMoveResult.Refused(ItemMoveStatus.DisplacedCannotOccupySlot);
+                return ItemMoveResult.Refused(
+                    ItemMoveStatus.DisplacedCannotOccupySlot, piece.ItemId);
         }
 
         await bag.PutAsync(command.DestinationSlotIndex, piece.Core, cancellationToken)

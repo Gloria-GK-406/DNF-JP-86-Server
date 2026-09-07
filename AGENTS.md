@@ -682,12 +682,22 @@ if (result.Publication.Audience.Count > 0)
 **一次实机拖拽就能从这一行读出「哪个模板 → 哪个槽」。** 用它之前要知道三件事，
 **三条的证据类型都是代码路径读出，没有实机观测过**：
 
-1. **`item 0` 不是缺陷。** 客户端若把目标列写成 `Avatar`(=1) 而非 `Equipment`(=3)，
-   请求在 `HandleAsync` 的列号检查上就被拒，走**单参**的 `ItemMoveResult.Refused`，
-   记录读作 `item 0 …->N refused as ListNotServed`——**槽号仍在，模板号丢失**。
-   要量的是槽号，一次只拖一件时模板号由操作上下文可知，这行仍然管用。
-2. **「取下」那条路不说模板号。** `TakeOffAsync` 的五个拒绝返回都是单参重载，`{ItemId}` 是 0。
-   **要量的那一次是「拖上去」，不是「取下来」。**
+1. **`item 0` 这一条已作废，但作废的方式和第一次写的更正**（也是 2026-09-07，已改正）**不同。**
+   原文写：目标列写成 `Avatar`(=1) 而非 `Equipment`(=3) 时请求会被拒为 `ListNotServed`、
+   记录读作 `item 0 …->N`。装扮栏接进 `MoveItemSpace` 之后**不再有这一行拒绝**——
+   但**不是因为它改走了 `PutOnAsync`**。`PutOnAsync` 的入口条件是**目标列 == 3**
+   （`MoveItemSpaceSlice.cs` 的 `HandleAsync`）；目标列 == 1 走的是 `CarryAcrossAsync`，
+   **一件时装会被真的搬进装扮栏，`Moved`，没有任何拒绝行**
+   （判据 `A_costume_moves_from_the_bag_back_into_the_avatar_list`）。
+   非时装或越界槽则得 `ItemCannotOccupySlot`，**那一行带模板号**。
+   **对量槽位映射的人：那条路现在是哑的，别走它。**
+   **实机观测到的目标列是 `Equipment`(=3)**（2026-09-07 量 11 件时装，全部如此），
+   而那条路——`PutOnAsync` → `NotWearable` → 带模板号——**可执行语句逐字符未变**
+   （注释改过），量具照旧管用。
+2. **「取下」那条路现在说一部分模板号（2026-09-07 更正）。** 原文写 `TakeOffAsync` 的五个拒绝
+   返回都是单参重载、`{ItemId}` 恒 0。现在其中**三个**（`NotWearable`、`ItemCannotOccupySlot`、
+   `DisplacedCannotOccupySlot`）带模板号，另两个（`NoBoundContainer`、`BothSlotsEmpty`）
+   仍不带——它们在读到物品之前就返回了。**要量的那一次仍然是「拖上去」**，这一条没变。
 3. **「剩余秒数」那一格应当画出约 11.4 年，不是约 68 年。**
    `GameInventoryDelivery.WriteItem` 对 kind 8 写的是
    `Math.Max(0, avatar!.ExpireDate - checked((int)preparedAt.ToUnixTimeSeconds()))`——**是差，不是

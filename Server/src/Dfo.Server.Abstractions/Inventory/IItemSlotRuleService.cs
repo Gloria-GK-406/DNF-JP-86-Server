@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Abstractions.Inventory;
 
@@ -19,4 +20,18 @@ public interface IItemSlotRuleService
 {
     /// <summary>Whether an item with this placement may sit in that slot of the main inventory.</summary>
     bool CanOccupyMainSlot(ItemPlacement placement, int slotIndex);
+
+    /// <summary>Whether an item with this placement may sit in that slot of that list.</summary>
+    /// <remarks>
+    /// The main list is not the only one a move can name any more, and each list a move may enter
+    /// has to answer for what it lets in. This is where those answers live, together, because the
+    /// alternative is a branch inside whatever is carrying out the move -- and then the next list
+    /// to be served puts a second branch somewhere else.
+    /// <para>
+    /// <b>False for a list this server does not serve.</b> A list with no rule written for it is
+    /// a door nobody has decided about, and the safe reading of an undecided door is shut. That
+    /// makes adding a list a deliberate act rather than something that happens by falling through.
+    /// </para>
+    /// </remarks>
+    bool CanOccupySlot(InventoryContainerType containerType, ItemPlacement placement, int slotIndex);
 }

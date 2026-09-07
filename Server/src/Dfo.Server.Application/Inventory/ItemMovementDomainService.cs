@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
@@ -10,16 +11,19 @@ internal sealed class ItemMovementDomainService(
     public ValueTask<byte?> WornSlotForAsync(int itemId, CancellationToken cancellationToken) =>
         placementRules.WornSlotForAsync(itemId, cancellationToken);
 
-    public async ValueTask<MainSlotAdmission> MayOccupyMainSlotAsync(
-        int itemId, int slotIndex, CancellationToken cancellationToken)
+    public async ValueTask<SlotAdmission> MayOccupySlotAsync(
+        InventoryContainerType containerType,
+        int itemId,
+        int slotIndex,
+        CancellationToken cancellationToken)
     {
         var placement = await placementRules.PlacementForAsync(itemId, cancellationToken)
             .ConfigureAwait(false);
         if (placement is null)
-            return MainSlotAdmission.ItemUnknown;
+            return SlotAdmission.ItemUnknown;
 
-        return slotRules.CanOccupyMainSlot(placement, slotIndex)
-            ? MainSlotAdmission.Allowed
-            : MainSlotAdmission.SlotNotAllowed;
+        return slotRules.CanOccupySlot(containerType, placement, slotIndex)
+            ? SlotAdmission.Allowed
+            : SlotAdmission.SlotNotAllowed;
     }
 }

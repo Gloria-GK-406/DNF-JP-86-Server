@@ -70,8 +70,18 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
             ?? throw new InvalidDataException(
                 "Entry inventory has no equipment container to bind the character to.");
 
+        // And the avatar list, for the same reason and after the same symptom. A player dragging a
+        // costume inside the avatar bag was answered `ListNotServed` on 2026-09-07 -- the identical
+        // refusal, from the identical cause, a fortnight after the note above was written about
+        // equipment. Its items are shown from the entry projection whether or not it is bound, so
+        // nothing looked wrong until something was dragged.
+        var avatar = inventory.Containers.SingleOrDefault(
+                value => value.ContainerType == InventoryContainerType.Avatar)
+            ?? throw new InvalidDataException(
+                "Entry inventory has no avatar container to bind the character to.");
+
         containers.Clear(characterId);
-        foreach (var container in (InventoryContainerState[])[main, equipment])
+        foreach (var container in (InventoryContainerState[])[main, equipment, avatar])
         {
             containers.Register(characterId, new PersistentItemContainer(
                 ContainerId.ForCharacter(characterId, container.ContainerType),

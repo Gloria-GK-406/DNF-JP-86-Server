@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
@@ -27,6 +28,38 @@ public sealed class ItemSlotRuleService : IItemSlotRuleService
     private const byte KindCreatureConsumable = 7;
     private const byte KindAvatar = 8;
     private const byte KindAvatarEmblem = 9;
+
+    /// <summary>How far the avatar list runs, and what may sit anywhere in it.</summary>
+    /// <remarks>
+    /// Two hundred and ten slots, and only avatars. Read out of the reference A21 server:
+    /// <c>ItemSlotBoundService.GetAvatarOpenRange</c> takes a list parameter, discards it, and
+    /// returns <c>0..209</c> whatever it is handed; <c>TryGetItemKindBySlot</c> answers
+    /// <c>KindAvatar</c> for every slot of that list rather than dividing it into bands the way
+    /// the main list is divided. <b>Read from upstream source, not measured against a client.</b>
+    /// <para>
+    /// The list has no bands and no expansion. Upstream has no avatar-expansion concept at all,
+    /// which is why the parameter it is handed goes unread -- see the open question about what
+    /// that parameter means to the client, which this does not answer and does not depend on.
+    /// </para>
+    /// </remarks>
+    private const int AvatarSlotStart = 0;
+
+    private const int AvatarSlotEnd = 209;
+
+    public bool CanOccupySlot(
+        InventoryContainerType containerType, ItemPlacement placement, int slotIndex)
+    {
+        ArgumentNullException.ThrowIfNull(placement);
+
+        return containerType switch
+        {
+            InventoryContainerType.Main => this.CanOccupyMainSlot(placement, slotIndex),
+            InventoryContainerType.Avatar => slotIndex >= AvatarSlotStart
+                && slotIndex <= AvatarSlotEnd
+                && placement.WorldClass == ItemWorldClass.Avatar,
+            _ => false,
+        };
+    }
 
     public bool CanOccupyMainSlot(ItemPlacement placement, int slotIndex)
     {

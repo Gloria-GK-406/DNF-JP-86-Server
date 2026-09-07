@@ -97,7 +97,7 @@ two products the bag already has.
 | Snapshot | bag | `IItemContainer.SnapshotAsync` (`IItemContainer.cs:119`) |
 | Snapshot | character | `ActiveCharacterState` from `LoadForSelectionAsync` and `LoadByRosterPositionAsync`; `AccountCharacterRoster` from `GetAccountRosterAsync` — exists, but packet-shaped; see R-5 |
 | Instance | character | **missing** — the repository returns snapshots today and nothing you can act on |
-| Rule | slot bands | `IItemSlotRuleService.CanOccupyMainSlot(placement, slotIndex)` (`ItemSlotRuleService.cs:31`) |
+| Rule | slot bands | `IItemSlotRuleService.CanOccupyMainSlot(placement, slotIndex)` (`ItemSlotRuleService.cs:64`) |
 | Rule | arrival | `IItemArrivalRuleService` |
 | Rule | archive content | `IItemPlacementDefinitionSource`, `IInitialSkillDefinitionSource`, and the rest of the PVF sources |
 
@@ -128,9 +128,11 @@ why the move use case no longer has a lost-race refusal to report.
 Placing the operation above both gives that failure one owner.
 
 *Not hypothetical.* `MOVE_ITEMSPACE` already carries both `SourceListType` and
-`DestinationListType`; both are currently refused with `ListNotServed` because only the main list is
-served. Bag-to-cargo is the next feature on this very request, and trade, mail and party each arrive
-the same way.
+`DestinationListType`. Two lists are served as of 2026-09-07 -- the bag and the avatar list, within
+either and between them -- and everything else is still refused with `ListNotServed`. Bag-to-cargo
+is the next feature on this very request, and trade, mail and party each arrive the same way.
+(Before that date only the main list was served, which is what the paragraph above was written
+against; the argument it makes is unchanged, only the count of served lists.)
 
 ### R-3 — The character instance is an entry point, not a container
 

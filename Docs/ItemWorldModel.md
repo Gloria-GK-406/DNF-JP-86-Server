@@ -90,7 +90,7 @@ writer.Write(core.ItemKind == 8 ? Math.Max(0, avatar!.ExpireDate - now) : core.V
 **堆叠在今天的代码里本来就没有身份**；给它一个稳定 id 会是凭空捏造。
 
 **4.「这个 id 在档案里存在吗」这道检查已经有了，而且由规则服务回答。**
-`MainSlotAdmission.ItemUnknown`，注释原文：
+`SlotAdmission.ItemUnknown`（2026-09-07 前叫 `MainSlotAdmission`），注释原文：
 「The archive declares no item that can be held under that identifier.」
 
 ## 四、不要做的：凭证来回

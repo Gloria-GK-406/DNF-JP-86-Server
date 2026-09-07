@@ -59,7 +59,8 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
             Containers = [
                 new InventoryContainerState(InventoryContainerType.Main, 0,
                     [new InventoryItemState(new ItemIdentity(1), 65, Core(itemKind: 4, itemId: 9001, value: 2))]),
-                new InventoryContainerState(InventoryContainerType.Equipment, 0, [])]
+                new InventoryContainerState(InventoryContainerType.Equipment, 0, []),
+                new InventoryContainerState(InventoryContainerType.Avatar, 0, [])]
         };
         var leases = new EntryInventoryLeaseRegistry();
         var service = new SelectCharacterEntryInventoryDomainService(
@@ -118,7 +119,8 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
                 VirtualResources = [new InventoryRuntimeValueState(0, 0, 7)],
                 Containers = [new InventoryContainerState(InventoryContainerType.Main, 0,
                     [new InventoryItemState(new ItemIdentity(1), 65, Core(itemKind: 5, itemId: 99, value: 999_999))]),
-                    new InventoryContainerState(InventoryContainerType.Equipment, 0, [])]
+                    new InventoryContainerState(InventoryContainerType.Equipment, 0, []),
+                    new InventoryContainerState(InventoryContainerType.Avatar, 0, [])]
             }
         };
         var logs = new RecordingQuestLogs
@@ -200,7 +202,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
     /// so a wrong value here reaches the client and nothing fails.
     /// </remarks>
     [Fact]
-    public async Task Entry_binds_the_character_to_its_own_main_and_equipment_containers()
+    public async Task Entry_binds_the_character_to_its_own_main_equipment_and_avatar_containers()
     {
         var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(
             new AccountId(606), 606, 1);
@@ -210,7 +212,8 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         {
             Containers = [
                 new InventoryContainerState(InventoryContainerType.Main, 156, []),
-                new InventoryContainerState(InventoryContainerType.Equipment, 0, [])],
+                new InventoryContainerState(InventoryContainerType.Equipment, 0, []),
+                new InventoryContainerState(InventoryContainerType.Avatar, 0, [])],
         };
         var containers = new CharacterContainerDomainService();
         var service = new SelectCharacterEntryInventoryDomainService(
@@ -238,6 +241,15 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
             session.CharacterId, InventoryContainerType.Equipment);
         Assert.Equal(InventoryContainerType.Equipment, equipment.Type);
         Assert.False(equipment.IsRemovable);
+
+        // The avatar list is the third, bound on 2026-09-07 after the identical symptom: a drag
+        // inside it came back `ListNotServed`, before the item was read, so the refusal could not
+        // even say which costume it was about. A loaded inventory always carries this container --
+        // the entry projection emits every container type -- so an absent one is a fixture that
+        // does not match a loaded inventory rather than a state a character can be in.
+        var avatar = containers.GetContainer(session.CharacterId, InventoryContainerType.Avatar);
+        Assert.Equal(InventoryContainerType.Avatar, avatar.Type);
+        Assert.False(avatar.IsRemovable);
     }
 
     /// <summary>
@@ -255,7 +267,8 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
             {
                 Containers = [
                     new InventoryContainerState(InventoryContainerType.Main, 0, []),
-                    new InventoryContainerState(InventoryContainerType.Equipment, 0, [])],
+                    new InventoryContainerState(InventoryContainerType.Equipment, 0, []),
+                    new InventoryContainerState(InventoryContainerType.Avatar, 0, [])],
             },
         };
 

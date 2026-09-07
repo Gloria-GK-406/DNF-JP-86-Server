@@ -588,9 +588,10 @@ internal abstract class StoreBackedItemContainer(
     /// show a player has a different one for a full stack than for an item that cannot go where it
     /// was dropped.
     ///
-    /// The band consulted is the main list's, which is the only list this server serves. A second
-    /// served list is a second band, and it belongs in the rule service beside this one rather than
-    /// as a branch here.
+    /// The rule consulted is this container's own, asked of the rule service. It used to be the
+    /// main list's band, written here because the main list was the only one served; the avatar
+    /// list is the second, and the note left at the time said a second served list belongs in the
+    /// rule service rather than as a branch here. It does, and it is there.
     /// </remarks>
     private async ValueTask<(DecidedMove? Plan, ItemMoveRefusal? Refusal)> DecideMoveAsync(
         ContainerSlotItem moving,
@@ -601,7 +602,7 @@ internal abstract class StoreBackedItemContainer(
     {
         var placement = await placementRules.PlacementForAsync(moving.ItemId, cancellationToken)
             .ConfigureAwait(false);
-        if (placement is null || !slotRules.CanOccupyMainSlot(placement, targetSlot))
+        if (placement is null || !slotRules.CanOccupySlot(shape.ContainerType, placement, targetSlot))
         {
             return (null, ItemMoveRefusal.ItemCannotOccupySlot);
         }
@@ -642,7 +643,7 @@ internal abstract class StoreBackedItemContainer(
             .PlacementForAsync(displaced.ItemId, cancellationToken)
             .ConfigureAwait(false);
         return displacedPlacement is null
-            || !slotRules.CanOccupyMainSlot(displacedPlacement, moving.SlotIndex)
+            || !slotRules.CanOccupySlot(shape.ContainerType, displacedPlacement, moving.SlotIndex)
             ? (null, ItemMoveRefusal.DisplacedCannotOccupySlot)
             : (new DecidedMove(targetSlot, moveCount, ContainerMoveKind.Swap), null);
     }

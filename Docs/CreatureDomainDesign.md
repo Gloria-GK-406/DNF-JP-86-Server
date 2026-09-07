@@ -230,7 +230,8 @@ GM 文档说它三段分区（0-139 宠物 / 140-188 宠物装备 / 189-239 宠�
 
 - **装不进去**：`PutOnAsync` 走 `WornSlotForAsync` → `PvfEquipmentSlots.ByName`，
   那张表**没有 `[creature]` 键** → `NotWearable`
-- **拖得出来**：`TakeOffAsync` 走 `MayOccupyMainSlotAsync`，把宠物当**普通装备**处理，
+- **拖得出来**：`TakeOffAsync` 走 `MayOccupySlotAsync`（2026-09-07 前叫 `MayOccupyMainSlotAsync`，
+  服务第二个列表时改名并加了列表参数），把宠物当**普通装备**处理，
   目标槽落在 9..64 就放行
 
 **拖出来可以，装回去不行。** 而且同一张表写着 `[earring] = 24`——

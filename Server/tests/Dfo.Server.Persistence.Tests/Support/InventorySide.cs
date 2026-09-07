@@ -89,13 +89,26 @@ internal sealed class InventorySide
     public void BindMain(
         int characterId,
         ushort parameter = 0,
+        IItemPlacementDefinitionSource? placements = null) =>
+        this.BindList(InventoryContainerType.Main, characterId, parameter, placements);
+
+    /// <summary>Binds one of the character's lists to a container that really keeps its rows.</summary>
+    /// <remarks>
+    /// The main list was the only one worth binding while it was the only one served. A second
+    /// served list needs the same thing for the same reason: what a container decides about a slot
+    /// depends on which list it is, and a fake standing in for it decides nothing.
+    /// </remarks>
+    public void BindList(
+        InventoryContainerType containerType,
+        int characterId,
+        ushort parameter = 0,
         IItemPlacementDefinitionSource? placements = null)
     {
         var character = new CharacterId(characterId);
         this.Containers.Register(character, new PersistentItemContainer(
-            ContainerId.ForCharacter(character, InventoryContainerType.Main),
+            ContainerId.ForCharacter(character, containerType),
             character,
-            new ContainerShape(InventoryContainerType.Main, parameter),
+            new ContainerShape(containerType, parameter),
             new SqliteItemDomainStore(this.databasePath),
             this.Scope,
             null!,
