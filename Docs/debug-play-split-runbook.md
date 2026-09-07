@@ -31,6 +31,24 @@ The old `codex/*` branches were renamed/cleaned; the debug lineage is now
 
 ## 2. Folder layout (runtime, outside the repo)
 
+**The A21 folders are split by purpose, and the names do not say which is which:**
+
+```
+E:\Project\DNF\
+├─ DNFClient-A21-protocol\   <- SERVER WORK. The client you run against this
+│                               repository's server: rebuilt B1 exe, 7 A21
+│                               plugins, Script.pvf. 启动DNF-A21.bat.
+└─ DNFClient-A21-debug\      <- UNPACKING WORK. The dump/rebuild path only.
+                                Its ClientHack.ini is older than the one
+                                actually in use and says plugins are unported;
+                                that is true of this folder, not of -protocol.
+```
+
+Read a fact about the running client out of `DNFClient-A21-protocol`. Taking one
+out of `-debug` has already produced a wrong conclusion once.
+
+The older A12 layout below is what the play/debug split was built on:
+
 ```
 D:\project\DNF\
 ├─ DNFClient-ClientHackLab-20260812\   <- DATA ROOT + archive (real game data,
@@ -39,11 +57,10 @@ D:\project\DNF\
 └─ DNFClient-debug\                     <- DEBUG: B1 exe + rebased DLLs + 6 plugins
 ```
 
-`DNFClient-play` and `DNFClient-debug` are the two operational folders. Both pull
-the multi-GB game data (`ImagePacks2`, `SoundPacks`, …) from the data root via
-**junctions**, and the shipped game files via **hardlinks** — the data is stored
-once. Cleaning old logs/experiments out of the data root is safe as long as the
-game *data* dirs and the original `DNF.exe` stay.
+Those two pull the multi-GB game data (`ImagePacks2`, `SoundPacks`, …) from the
+data root via **junctions**, and the shipped game files via **hardlinks** — the
+data is stored once. Cleaning old logs/experiments out of the data root is safe
+as long as the game *data* dirs and the original `DNF.exe` stay.
 
 ## 3. Run PLAY
 
@@ -165,7 +182,30 @@ cmake --build out\build-trace --config Debug --target clienthack_stage
 # then re-run prepare_b1_runtime.ps1 to redeploy+rebase into DNFClient-debug
 ```
 
-## 6. Quick checks
+## 6. Run the server this repo builds
+
+```
+cd Server/src/Dfo.Server.Host/bin/Debug/net10.0
+PVF_ARCHIVE_PATH=E:/Project/DNF/DNFClient-A21-protocol/Script.pvf   Networking__Enabled=true ./Dfo.Server.Host.exe
+```
+
+**Both variables are required and neither is defaulted for you.**
+`appsettings.json` ships `"Networking": { "Enabled": false }`, so without the
+override the host starts, logs `Application started`, and listens on nothing --
+no error, no warning, just two missing log lines. The client then shows an empty
+channel list and it looks like a client fault. A healthy start logs
+`IChannelTcpService` and `IGameTcpService` between the archive line and
+`Application started`; confirm with `netstat -ano | grep :7001`.
+
+Without `PVF_ARCHIVE_PATH` the host logs
+`Static content archive: none found -- any content read will fail` and runs on
+anyway, failing later at the first content read.
+
+Stop the host before running the test suite: a live host holds
+`Dfo.Server.Protocol.dll` under `Dfo.Server.Host/bin`, and the build fails with
+MSB3027 (retry count exceeded) rather than a test failure.
+
+## 7. Quick checks
 
 Rebased debug DLL bases (all must match):
 
