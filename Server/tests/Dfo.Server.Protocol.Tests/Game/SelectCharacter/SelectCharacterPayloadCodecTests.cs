@@ -88,17 +88,24 @@ public sealed class SelectCharacterPayloadCodecTests
 
         // Two A21 measurements move every number here, and neither changes what is asserted: the
         // common entry is 101 bytes rather than 84, and the main container carries fourteen virtual
-        // slots rather than nine. The same four values are still read back from the same fields --
-        // the item id, the avatar's jewel-socket length and its two colours -- at the offsets those
-        // two facts put them at. The avatar extension is unchanged at forty-two bytes.
+        // slots rather than nine. The item id is still read back from the same field at the offset
+        // those two facts put it at.
         Assert.Equal(5 + (15 * 101), main.Length);
         Assert.Equal((byte)InventoryContainerType.Main, main[0]);
         Assert.Equal(15, BinaryPrimitives.ReadUInt16LittleEndian(main.AsSpan(3, 2)));
         Assert.Equal(1001, BinaryPrimitives.ReadInt32LittleEndian(main.AsSpan(310, 4)));
-        Assert.Equal(5 + 101 + 42, avatar.Length);
-        Assert.Equal(30, BinaryPrimitives.ReadInt32LittleEndian(avatar.AsSpan(106, 4)));
-        Assert.Equal(0x1122, BinaryPrimitives.ReadUInt16LittleEndian(avatar.AsSpan(144, 2)));
-        Assert.Equal(0x3344, BinaryPrimitives.ReadUInt16LittleEndian(avatar.AsSpan(146, 2)));
+
+        // Correction (2026-09-07): this used to assert 5 + 101 + 42 here, and to read the
+        // jewel-socket length and the two colours out of that trailing block. The block was the
+        // older client's layout. A21 strides a fixed 101 between entries, so appending it put every
+        // following entry at the wrong offset -- the demonstrated cause of the main-container
+        // STATUS_STACK_BUFFER_OVERRUN (0xC0000409). An avatar entry is now the same 101 bytes as
+        // any other, and the socket and colours are not on the wire at all; where they belong is
+        // still being reversed (Docs/a21-vmp1/vmp1-9.md, vmp1-10.md). What that leaves assertable
+        // here is that the avatar container is one ordinary entry and no longer than one.
+        Assert.Equal(5 + 101, avatar.Length);
+        Assert.Equal((byte)InventoryContainerType.Avatar, avatar[0]);
+        Assert.Equal(1, BinaryPrimitives.ReadUInt16LittleEndian(avatar.AsSpan(3, 2)));
     }
 
     [Theory]

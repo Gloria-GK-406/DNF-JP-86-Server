@@ -24,12 +24,30 @@ internal static class GameInventoryItemEntry
     /// fourteen entries and carries 1414 bytes of them, and 1414/101 is exactly fourteen. Its
     /// UPDATE_ITEM_LIST declares five and strides 101 between their slot fields as well.
     ///
-    /// The seventeen added bytes are zero in every entry the reference sends, so where inside the
-    /// entry they belong cannot be read off the capture -- only that the entry is that much longer.
-    /// They are written as a trailing run for that reason, which reproduces every observed entry
-    /// byte for byte. An avatar entry appends its jewel-socket block after this run; no A21 avatar
-    /// entry has been observed, so that ordering is carried over from the older client rather than
-    /// measured.
+    /// The entry is that fixed length for every item, an avatar's included, and every value this
+    /// writer emits lands at the offset the A21 client reads one from. What was checked is the
+    /// offsets, not the names: this writer calls the byte at 0x1A a chronicle-option count and the
+    /// byte at 0x2F an emblem-socket count, where the client's own strings call them an emblem
+    /// count and an additional-option count. Which naming is right is not settled here -- only that
+    /// the widths and positions agree all the way through. The offsets are the ones the client's
+    /// own decrypted debug strings name, recovered field by field in
+    /// <c>Docs/a21-vmp1/vmp1-9.md</c> section three: SlotIndex@0x00, itemIndex@0x02, Data@0x06,
+    /// ext_data1@0x0A, Durability@0x0B, isSealed@0x0D, enchantIndex@0x0E, enchantUpgrade@0x12,
+    /// amplify_type@0x13, amplify_value@0x14, an emblem count@0x1A with its sub-array after it,
+    /// period@0x2B, an additional-option count@0x2F with its dword array after it,
+    /// genuineUpgrade@0x4A, emancipateEquipmentLevel@0x4B, tradeRestriction@0x4C.
+    ///
+    /// The last seventeen bytes (rec+0x54..0x64) are written as a zero run. The client does read
+    /// them as fields -- the table shows the record used all the way to rec+0x64 -- but which
+    /// fields is not recovered, and the reference session sends them as zero, so a zero run
+    /// reproduces every observed entry byte for byte. They are unknown, not padding.
+    ///
+    /// Correction (2026-09-07): this used to say the seventeen bytes were of unreadable position,
+    /// and that an avatar entry appends its jewel-socket block after the run. Both were wrong. The
+    /// append is the older client's layout; on A21 the client strides a fixed 101 between entries,
+    /// so appending put every following entry at the wrong offset. It is the demonstrated cause of
+    /// the main-container STATUS_STACK_BUFFER_OVERRUN (0xC0000409): the crash stopped when the
+    /// block was removed and returned when it was put back, against a live A21 client.
     /// </remarks>
     public const int CommonLength = 101;
 
@@ -75,7 +93,7 @@ internal static class GameInventoryItemEntry
         writer.Write(core.ChronicleOption0.OptionNumber);
         writer.Write(core.ChronicleOption1.OptionNumber);
         writer.Write(core.ExpireTime);
-        writer.Write(core.EmblemSocketCount);
+        writer.Write(WrittenOptionCount(core.EmblemSocketCount));
         writer.Write(core.EmblemId1);
         writer.Write(core.EmblemId2);
         writer.Write(core.Rune);
@@ -107,17 +125,40 @@ internal static class GameInventoryItemEntry
         writer.Write(core.SortLockFlag == 1 ? (byte)1 : (byte)0);
         writer.Write(new byte[CommonLength - WrittenLength]);
 
-        if (core.ItemKind == 8)
-        {
-            if (avatar!.JewelSocket.Length != 30)
-                throw new InvalidDataException("Avatar jewel socket must contain exactly 30 bytes.");
-            writer.Write(30);
-            writer.Write(avatar.JewelSocket);
-            writer.Write(4);
-            writer.Write(avatar.Color1);
-            writer.Write(avatar.Color2);
-        }
+        if (core.ItemKind == 8 && avatar!.JewelSocket.Length != 30)
+            throw new InvalidDataException("Avatar jewel socket must contain exactly 30 bytes.");
     }
+
+    /// <summary>How many option dwords this writer emits after the count at <c>rec+0x2F</c>.</summary>
+    /// <remarks>
+    /// Two: <c>EmblemId1</c> and <c>EmblemId2</c>. <c>Rune</c> follows them but is a u16 and belongs
+    /// to no array.
+    /// </remarks>
+    private const byte WrittenOptionEntries = 2;
+
+    /// <summary>The count at <c>rec+0x2F</c>, held to what actually follows it.</summary>
+    /// <remarks>
+    /// The stored figure is a byte and nothing constrains it, so it can name more options than this
+    /// writer emits. The entry is a fixed hundred and one bytes either way -- the array is always
+    /// present -- so an over-large count does not lengthen anything; it tells the client to read
+    /// bytes this writer never put a value in.
+    /// <para>
+    /// On A21 that is also a way to crash whoever receives it. Both handlers that read this record
+    /// drive an unbounded <c>rep movsd</c> from this count into a fixed stack buffer -- 0x0117C670
+    /// (NOTI 0x000D) into one forty bytes from its /GS cookie, 0x0117D720 (NOTI 0x000E) into one a
+    /// hundred and ninety-six from its own -- each guarding with <c>jle</c> against zero and nothing
+    /// against a ceiling (<c>Docs/a21-vmp1/vmp1-9.md</c> section five; static disassembly, not
+    /// observed live).
+    /// </para>
+    /// <para>
+    /// The bound is neither of those client figures but this writer's own output, which is checkable
+    /// here rather than in someone else's disassembly, and sits far below both. The equipment path
+    /// has clamped the same field the same way for as long as it has existed
+    /// (<c>StateSynchronizationPayloadCodec.Entry.cs</c>); this path was the one that did not.
+    /// </para>
+    /// </remarks>
+    private static byte WrittenOptionCount(byte stored) =>
+        Math.Min(WrittenOptionEntries, stored);
 
     /// <summary>How many of a fixed option array's slots actually hold something.</summary>
     /// <remarks>

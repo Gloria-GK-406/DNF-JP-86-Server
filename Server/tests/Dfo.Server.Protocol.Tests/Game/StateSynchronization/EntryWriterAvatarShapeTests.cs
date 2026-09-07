@@ -7,15 +7,30 @@ namespace Dfo.Server.Protocol.Tests.Game.StateSynchronization;
 /// What the item-entry writer refuses to put on the wire, and the shape it accepts instead.
 /// </summary>
 /// <remarks>
-/// Two of the writer's conditions decide the length of what it emits rather than a value inside it:
-/// an entry is a hundred and one bytes unless it is an avatar's, and an avatar's carries a
-/// jewel-socket block after that run. An item that disagreed with either -- facts on something that
-/// is not an avatar, or a socket that is not thirty bytes -- would be written as a length the client
-/// cannot read back, and every entry after it in the same frame would be read at the wrong offset.
+/// The entry is a fixed hundred and one bytes for every item, an avatar's included. An item that
+/// carries avatar facts without being an avatar, or an avatar whose jewel socket is not thirty
+/// bytes, is refused rather than written.
 /// <para>
-/// Neither condition has a constraint behind it. The kind is a byte inside the core, which nothing
-/// in the database can reach; the socket length is checked on the stored column but the value
-/// written here need not have come from that column.
+/// Neither refusal has a constraint behind it. The kind is a byte inside the core, which nothing in
+/// the database can reach; the socket length is checked on the stored column but the value written
+/// here need not have come from that column.
+/// </para>
+/// <para>
+/// Correction (2026-09-07): this used to say an avatar entry carries a jewel-socket block after the
+/// common run, and asserted it at a hundred and forty-three bytes. That was the older client's
+/// layout. On A21 the entries are a fixed hundred and one and the client strides by that, so the
+/// appended block pushed every following entry to the wrong offset; it is the demonstrated cause of
+/// the main-container STATUS_STACK_BUFFER_OVERRUN (0xC0000409), which stopped when the block was
+/// removed and returned when it was put back. The field table it was measured against is
+/// <c>Docs/a21-vmp1/vmp1-9.md</c> section three.
+/// </para>
+/// <para>
+/// The jewel socket and the two colours are consequently <b>not on the wire at all</b> today. The
+/// authoritative table places the client's thirty-byte consumer at <c>rec+0x1A..0x37</c>, but this
+/// writer already spends <c>rec+0x2B</c> on <c>period</c> and <c>rec+0x2F</c> on the option count,
+/// both at offsets that table names; that the lengths agree is not evidence that avatars displace
+/// them. So this is a known gap rather than a finished shape, and the refusals below are kept
+/// because they still constrain the stored value even though nothing reads it out here.
 /// </para>
 /// </remarks>
 public sealed class EntryWriterAvatarShapeTests
@@ -29,14 +44,10 @@ public sealed class EntryWriterAvatarShapeTests
     /// <summary>The delta's own header: a container type and a count.</summary>
     private const int ObservedDeltaHeaderLength = 3;
 
-    /// <summary>What an avatar entry appends after the common run.</summary>
-    /// <remarks>
-    /// Four for the socket's length prefix, thirty for the socket itself, four for the colour
-    /// block's prefix, and two apiece for the two colours: 4 + 30 + 4 + 2 + 2 = 42.
-    /// </remarks>
-    private const int ObservedAvatarTailLength = 42;
-
     private const int JewelSocketLength = 30;
+
+    /// <summary>A socket value no other field of the entry would produce.</summary>
+    private const byte JewelSocketFill = 0xA5;
 
     [Fact]
     public void AnItemThatIsNotAnAvatarMayNotCarryAvatarFacts()
@@ -67,21 +78,70 @@ public sealed class EntryWriterAvatarShapeTests
     /// over the length of an avatar entry: the recorded frame hashes all cover items of kind 2.
     /// </remarks>
     [Fact]
-    public void AnAvatarWithItsThirtyBytesIsWrittenAsTheLongerEntry()
+    public void AnAvatarWithItsThirtyBytesIsWrittenAsTheSameHundredAndOneByteEntry()
     {
         var body = Body(new InventoryItemState(
             new ItemIdentity(2), 3, Core(8, 2002, 9001), Facts(JewelSocketLength)));
 
+        Assert.Equal(ObservedDeltaHeaderLength + ObservedEntryLength, body.Length);
+    }
+
+    /// <summary>
+    /// The same fixed length for the kinds that are not avatars, so the avatar assertion above is
+    /// a statement about every item rather than about avatars alone.
+    /// </summary>
+    /// <remarks>
+    /// Kind 0 is the shape carried gold is written in -- an entry with nothing but a slot, an id
+    /// and a figure -- and kind 2 is an ordinary pile. Neither may carry avatar facts, so neither
+    /// is expressible in the theory that covers kind 8.
+    /// </remarks>
+    [Theory]
+    [InlineData((byte)0)]
+    [InlineData((byte)2)]
+    public void AnItemThatIsNotAnAvatarIsWrittenAsTheSameHundredAndOneByteEntry(byte kind)
+    {
+        var body = Body(new InventoryItemState(
+            new ItemIdentity(4), 3, Core(kind, 4004, 5)));
+
+        Assert.Equal(ObservedDeltaHeaderLength + ObservedEntryLength, body.Length);
+    }
+
+    /// <summary>
+    /// That the avatar entry is the same length is not enough: it must be the same entry.
+    /// </summary>
+    /// <remarks>
+    /// A writer that dropped the trailing block but moved the socket somewhere inside the run would
+    /// still satisfy the length assertion above while overwriting fields the client reads. The two
+    /// entries are compared from <c>rec+0x1A</c> onward because the bytes before it legitimately
+    /// differ: an avatar's <c>Data</c> at <c>rec+0x06</c> carries its remaining seconds rather than
+    /// the core's value, and the marker at <c>rec+0x16</c> is clamped for one kind and not the
+    /// other.
+    /// </remarks>
+    [Fact]
+    public void AnAvatarCarriesNoJewelBytesAnywhereInsideTheEntry()
+    {
+        const int optionRegionStart = ObservedDeltaHeaderLength + 0x1A;
+
+        var avatar = Body(new InventoryItemState(
+            new ItemIdentity(2), 3, Core(8, 2002, 9001), Facts(JewelSocketLength)));
+        var ordinary = Body(new InventoryItemState(
+            new ItemIdentity(2), 3, Core(2, 2002, 9001)));
+
         Assert.Equal(
-            ObservedDeltaHeaderLength + ObservedEntryLength + ObservedAvatarTailLength,
-            body.Length);
+            ordinary[optionRegionStart..],
+            avatar[optionRegionStart..]);
+        Assert.DoesNotContain(JewelSocketFill, avatar);
     }
 
     private static byte[] Body(InventoryItemState item) =>
         new InventoryDeltaMessage(InventoryContainerType.Main, [item], PreparedAt).EncodeBody();
 
-    private static InventoryAvatarDetailState Facts(int socketLength) =>
-        new(1_700_000_500, 44, new byte[socketLength], 0x1122, 0x3344, 0);
+    private static InventoryAvatarDetailState Facts(int socketLength)
+    {
+        var socket = new byte[socketLength];
+        Array.Fill(socket, JewelSocketFill);
+        return new(1_700_000_500, 44, socket, 0x1122, 0x3344, 0);
+    }
 
     private static InventoryItemCoreState Core(byte kind, int itemId, int value) => new(
         kind, itemId, value, 4, 50, 1, 6, 7, 8, 9, -1,

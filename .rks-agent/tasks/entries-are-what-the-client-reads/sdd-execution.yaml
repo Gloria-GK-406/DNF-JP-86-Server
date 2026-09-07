@@ -1,0 +1,51 @@
+kind: rks-sdd-execution
+controller: sdd-lite
+contract:
+  path: "./TaskContract.md"
+  revision: 1
+current_stage: verification
+state: in_progress
+artifacts:
+  spec: "./spec.md"
+  result: "./spec-result.md"
+  change_review: "./reviews/change-review.md"
+  completion_evidence: "./verification/completion-evidence.md"
+stages:
+- id: spec
+  reads:
+  - contract
+  skills:
+  - writing-specs
+  gate: none
+  done_when: spec defines the failure and accepted corrected behavior
+  writes:
+  - spec
+- id: implementation
+  reads:
+  - spec
+  skills:
+  - executing-tasks
+  - systematic-debugging
+  - test-driven-development
+  gate: auto
+  done_when: demonstrated cause is fixed with regression evidence
+- id: review
+  reads:
+  - contract
+  - spec
+  skills:
+  - reviewing-code
+  gate: auto
+  done_when: complete fix is approved with no unresolved blocking findings
+  writes:
+  - change_review
+- id: verification
+  reads:
+  - contract
+  - change_review
+  skills:
+  - verification-before-completion
+  gate: auto
+  done_when: fresh evidence proves the fix and all TaskContract success conditions
+  writes:
+  - completion_evidence
