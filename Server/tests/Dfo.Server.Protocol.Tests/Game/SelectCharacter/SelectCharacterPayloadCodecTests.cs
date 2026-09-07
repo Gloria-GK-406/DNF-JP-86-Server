@@ -95,17 +95,21 @@ public sealed class SelectCharacterPayloadCodecTests
         Assert.Equal(15, BinaryPrimitives.ReadUInt16LittleEndian(main.AsSpan(3, 2)));
         Assert.Equal(1001, BinaryPrimitives.ReadInt32LittleEndian(main.AsSpan(310, 4)));
 
-        // Correction (2026-09-07): this used to assert 5 + 101 + 42 here, and to read the
-        // jewel-socket length and the two colours out of that trailing block. The block was the
-        // older client's layout. A21 strides a fixed 101 between entries, so appending it put every
-        // following entry at the wrong offset -- the demonstrated cause of the main-container
-        // STATUS_STACK_BUFFER_OVERRUN (0xC0000409). An avatar entry is now the same 101 bytes as
-        // any other, and the socket and colours are not on the wire at all; where they belong is
-        // still being reversed (Docs/a21-vmp1/vmp1-9.md, vmp1-10.md). What that leaves assertable
-        // here is that the avatar container is one ordinary entry and no longer than one.
-        Assert.Equal(5 + 101, avatar.Length);
+        // Correction to a correction (2026-09-07). The line above this block briefly asserted
+        // 5 + 101 and read nothing out of the entry. That came from removing the trailing block
+        // outright, which was the right fix for the main bag and the wrong one here: the client
+        // picks its reader by container, and for the avatar list it reads a length-prefixed block
+        // after every record. Sending nothing there left it reading the receive buffer's padding as
+        // a length. The block, and these four values with it, are back -- and the frame's SHA-256
+        // is not the one it had before: what was there was the older client A12 shape, thirty bytes of
+        // jewel socket where A21 sends eighteen. Restored is the block, at the A21 length.
+        Assert.Equal(5 + 101 + 30, avatar.Length);
         Assert.Equal((byte)InventoryContainerType.Avatar, avatar[0]);
         Assert.Equal(1, BinaryPrimitives.ReadUInt16LittleEndian(avatar.AsSpan(3, 2)));
+        Assert.Equal(18, BinaryPrimitives.ReadInt32LittleEndian(avatar.AsSpan(106, 4)));
+        Assert.Equal(4, BinaryPrimitives.ReadInt32LittleEndian(avatar.AsSpan(128, 4)));
+        Assert.Equal(0x1122, BinaryPrimitives.ReadUInt16LittleEndian(avatar.AsSpan(132, 2)));
+        Assert.Equal(0x3344, BinaryPrimitives.ReadUInt16LittleEndian(avatar.AsSpan(134, 2)));
     }
 
     [Theory]

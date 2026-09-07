@@ -7,9 +7,10 @@ namespace Dfo.Server.Protocol.Tests.Game.StateSynchronization;
 /// What the item-entry writer refuses to put on the wire, and the shape it accepts instead.
 /// </summary>
 /// <remarks>
-/// The entry is a fixed hundred and one bytes for every item, an avatar's included. An item that
-/// carries avatar facts without being an avatar, or an avatar whose jewel socket is not thirty
-/// bytes, is refused rather than written.
+/// This class holds what the writer <b>refuses</b>, and one shape it accepts. An item that carries
+/// avatar facts without being an avatar, or an avatar whose stored jewel socket is not thirty
+/// bytes, is refused rather than written. How long an accepted entry comes out is decided by the
+/// container and asserted in <see cref="EntryWriterContainerShapeTests"/>, not here.
 /// <para>
 /// Neither refusal has a constraint behind it. The kind is a byte inside the core, which nothing in
 /// the database can reach; the socket length is checked on the stored column but the value written
@@ -17,20 +18,19 @@ namespace Dfo.Server.Protocol.Tests.Game.StateSynchronization;
 /// </para>
 /// <para>
 /// Correction (2026-09-07): this used to say an avatar entry carries a jewel-socket block after the
-/// common run, and asserted it at a hundred and forty-three bytes. That was the older client's
-/// layout. On A21 the entries are a fixed hundred and one and the client strides by that, so the
-/// appended block pushed every following entry to the wrong offset; it is the demonstrated cause of
-/// the main-container STATUS_STACK_BUFFER_OVERRUN (0xC0000409), which stopped when the block was
-/// removed and returned when it was put back. The field table it was measured against is
-/// <c>Docs/a21-vmp1/vmp1-9.md</c> section three.
+/// common run, and asserted it at a hundred and forty-three bytes. Keyed on the item's kind, which
+/// is what that writer did, it was wrong: it put the block on an avatar in the main bag and broke
+/// that list's fixed-101 stride (STATUS_STACK_BUFFER_OVERRUN).
 /// </para>
 /// <para>
-/// The jewel socket and the two colours are consequently <b>not on the wire at all</b> today. The
-/// authoritative table places the client's thirty-byte consumer at <c>rec+0x1A..0x37</c>, but this
-/// writer already spends <c>rec+0x2B</c> on <c>period</c> and <c>rec+0x2F</c> on the option count,
-/// both at offsets that table names; that the lengths agree is not evidence that avatars displace
-/// them. So this is a known gap rather than a finished shape, and the refusals below are kept
-/// because they still constrain the stored value even though nothing reads it out here.
+/// Correction to that correction (same day): removing the block outright was also wrong, and
+/// crashed the avatar list the other way. The block belongs to the <b>container</b>, not the item:
+/// the avatar list carries it on every entry, the equipment list on avatars only, and no other
+/// container ever. That rule and its two matched halves are asserted in
+/// <see cref="EntryWriterContainerShapeTests"/>; what stays here is what the writer refuses.
+/// The jewel socket therefore is on the wire again -- eighteen of its thirty stored bytes, which is
+/// the A21 length -- so the thirty-byte check below guards a value that is read rather than a
+/// value nothing looks at.
 /// </para>
 /// </remarks>
 public sealed class EntryWriterAvatarShapeTests
@@ -74,8 +74,9 @@ public sealed class EntryWriterAvatarShapeTests
     /// <summary>The shape the two refusals exist to protect, written out so it is not assumed.</summary>
     /// <remarks>
     /// Without this the two above would also pass if the writer refused every avatar, which is the
-    /// reading they are most likely to be misread as. It is also the only assertion in the suite
-    /// over the length of an avatar entry: the recorded frame hashes all cover items of kind 2.
+    /// reading they are most likely to be misread as. It says only that an avatar in an ordinary
+    /// container comes out at the common length; how long one comes out in the containers that do
+    /// carry the appearance block is asserted in <see cref="EntryWriterContainerShapeTests"/>.
     /// </remarks>
     [Fact]
     public void AnAvatarWithItsThirtyBytesIsWrittenAsTheSameHundredAndOneByteEntry()

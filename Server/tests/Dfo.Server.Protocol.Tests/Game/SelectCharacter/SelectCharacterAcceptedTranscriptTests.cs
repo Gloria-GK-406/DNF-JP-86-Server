@@ -47,18 +47,26 @@ public sealed class SelectCharacterAcceptedTranscriptTests
         "7093589D2FDAD5B2D0AFAADED850B0E091132E4D7EFBD60DF378E50C3393C72F",
         "3BDA3308A823C62FAF2758C0A2B96CCB1D61E41087CECE202724FEE071CC2F6E",
         "E0D5185CF4EFF8181ACE2EA25273DB6E22DEFB87012689EBFE410867929C9278",
-        // Frame 18 is the avatar container's ITEM_LIST, and it is the one frame in this list that
-        // carries an item of kind 8. It went from 163 bytes to 121 on 2026-09-07 -- exactly the
-        // forty-two the entry writer used to append after an avatar's common run. A21 strides a
-        // fixed 101 between entries, so that block put every following entry at the wrong offset;
-        // it is the demonstrated cause of the main-container STATUS_STACK_BUFFER_OVERRUN
-        // (0xC0000409), which stopped when it was removed and returned when it was put back,
-        // against a live client. See Docs/a21-vmp1/vmp1-9.md section three.
+        // Frame 18 is the avatar container's ITEM_LIST -- the one frame in this list belonging to a
+        // container the client reads a length-prefixed appearance block in. It has now been three
+        // lengths: 163, then 121, now 151. None of them is a correction of a typo; each is a
+        // different answer to "who carries the block, and how long is it".
         //
-        // It is the only frame that moved: this list is 62 entries before and after, and the other
-        // 61 hash identically. That was established by comparing element-wise rather than inferred
-        // from the change being small.
-        "29A34E1F0F1F342B9C28C5D1C50DC6B50A9558AEEE1EA1C698A07D7F5EFDEEFB",
+        // 163 keyed the block on the item's kind and gave it the older client's thirty-byte jewel
+        // socket. That put a block on an avatar sitting in the main bag too, which pushed every
+        // following entry out of that list's fixed-101 stride (STATUS_STACK_BUFFER_OVERRUN).
+        // 121 removed the block outright, which fixed the main bag and left this container's
+        // entries short of what the client reads -- it then took the four bytes after the record,
+        // which are the receive buffer's padding, as a length and copied 0x30303030 bytes onto its
+        // stack (STATUS_ACCESS_VIOLATION). Both were seen against a live client.
+        // 151 keys it on the container, which is how the client keys it, and sends the A21 socket
+        // length: eighteen of the thirty stored bytes, being the first three of five six-byte
+        // slots. 121 + 4 + 18 + 4 + 4 = 151.
+        //
+        // It is the only frame that moved: this list is 62 entries before and after, the other 61
+        // hash identically, and the length went 121 -> 151. Established by comparing element-wise,
+        // not inferred from the change being small.
+        "D4C7DEED02A813ED7592A9E9AFF8A624D6B971BC56B2B7A708EAC8FB57D6588A",
         "1C67C38E1FA5D968E76AD2F7BD13DBE13791EE3A8DD67FF551E4C6E2396B8DF7",
         "B1B2D24BB6B58BB0C1A57A3ED29692F1274C7458A6D036BA4BDB04ABCCE8446D",
         "F8F6FACBE72D43BA979F2CCB375828AD2198498C628300E2B6A59D010830BA64",

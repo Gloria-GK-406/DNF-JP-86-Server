@@ -32,7 +32,7 @@ BodyLength = 未知（字段集合已知不完整）
 |---:|---:|---|---|---|---|
 | 0 | 1 | `u8` | 物品空间/背包列表类型 itemSpace（InventoryListType：0=主背包 1=时装 2=个人仓库 3=装备 7=宠物 12=账号金库 29=快捷栏） | Confirmed | 上游 Network/Builders/Inventory/ItemListUpdateBuilder.cs:48 WriteByte((byte)itemSpace)（BuildItemSpaceUpdateBody）；空更新路径 :101 同位置同值；枚举见 Game/Inventory/InventoryListType.cs:5-18，取自 `[ebp - 0x268]` |
 | 1 | 2 | `u16` | 其后条目区的条目数 count；上游每成功写入一条槽位条目就自增一次 | Confirmed | 上游 ItemListUpdateBuilder.cs:49 WriteUInt16(count)，count 由 :44-45 与 :69-78 每条自增；空更新路径 :102 写 slotIndexes.Count，取自 `[ebp - 0x268]` |
-| 3 | 101 | `bytes` | 条目区：count 条槽位更新条目连续排列，单条长度随 offset 0 的列表类型而定（时装为 0x7E 字节等） | High | 上游 ItemListUpdateBuilder.cs:50 WriteBytes(entries)；单条长度表见 :114-123 GetUpdateEntrySize，取自 `[ebp - 0x218]` |
+| 3 | 101 | `bytes` | 条目区：count 条槽位更新条目连续排列，单条长度随 offset 0 的列表类型而定（**装扮栏为 131 字节，其余为 101**；见下方补记，此处原写的 `0x7E`＝126 是 A12 的总长） | High | 上游 ItemListUpdateBuilder.cs:50 WriteBytes(entries)；单条长度表见 :114-123 GetUpdateEntrySize，取自 `[ebp - 0x218]` |
 
 `可能含义` 为 `unknown` 表示**字段边界已确定但含义无证据**——这类未知靠实机改值做差分即可解决，与上面的「结构未知」不是一回事。
 
@@ -164,3 +164,54 @@ SEND cmd=0x00 type=0x000E len=119 body=(104B) [00 01 00 00 00 00 00 00 00 91 00 
 **两种语言不能对同一次变动各说一遍而不校正。**地面拾取现在两帧都发：增量帧让玩家立刻看到
 「捡到多少」，紧随的赋值帧把总额钉死。二者在寻常拾取上一致；**只有携带上限截断时才不一致**，
 而那正是单发增量帧会让客户端与服务端错开、直到下次登录才对齐的情形。
+
+## 补记（2026-09-07）：单条长度随容器而变，原文那个 `0x7E` 是旧客户端的数
+
+上面字段表里「时装为 `0x7E` 字节」应作 **131**。`0x7E` = 126 是 **A12** 的装扮条目总长
+（`84 + 4 + 30 + 4 + 4`）；A21 的普通条目由 84 涨到 101，装扮条目由 126 涨到 131。
+
+上游 `ItemListUpdateBuilder.GetUpdateEntrySize` 把这件事说得很直白：
+
+```
+Avatar                                        → AvatarEntrySize  = 131
+Equipment / Main / PersonalCargo /
+AccountCargo / QuickSlot / Pet / GuildMedal   → CommonEntrySize  = 101
+default                                       → CommonEntrySize  = 101
+```
+
+**但这张表只管空条目，不能用来证明填充条目的规则——上一版这里写错了。**
+`GetUpdateEntrySize` 在上游只有 **1 个调用点**（`ItemListUpdateBuilder.cs:106`，在
+`BuildEmptyUpdates` 里）。上游写**填充**条目走 `ItemListPacketBuilder.TryWriteOnlineEntry`，
+它**收下 `itemSpace` 却只看 `core.ItemKind == ItemCore.KindAvatar`**（`:196`）来决定调
+`WriteAvatarEntry126`——也就是**按物品种类**，正是本仓这一轮否掉的规则。
+
+上游这样写不会崩，是因为它把时装**锁死在装扮栏**：`ItemSlotBoundService.TryGetSlotRange`
+的 `case ItemCore.KindAvatar:` 直接 `listType = InventoryListType.Avatar`，
+时装进不了主背包，于是「按种类」与「按容器」在上游恰好重合。
+
+**本仓没有这个约束**——实机把时装放进主背包能正常显示。所以对本仓两条规则真的不同，
+本仓**有意选了按容器**，依据是客户端自己的 `0x01637740`（未虚拟化，三行分支），
+不是上游。两帧的详细规则、外观块字节形状、两种错法各自造成的崩溃，
+统一记在 [NOTI-0x000D.md](NOTI-0x000D.md) 的「补记（2026-09-07，同日第二次）」一节。
+
+> **一条待办，附带一个必须同时满足的条件**：两条规则要重新重合，上游靠的是**两道门**，
+> 缺一不可：
+>
+> 1. 时装**出不去**装扮栏——`ItemSlotBoundService.TryGetSlotRange` 的
+>    `case ItemCore.KindAvatar:` 直接把 `listType` 定为 `Avatar`；
+> 2. 非时装**进不来**装扮栏——同文件 `TryGetItemKindBySlot` 的
+>    `case InventoryListType.Avatar: itemKind = ItemCore.KindAvatar;`。
+>
+> **只做第 1 道会重新把客户端打崩。** 本仓明确允许装扮栏放非时装（这正是 RQ-006 的理由，
+> 实机也真放过一件普通堆叠物 8474），而客户端对选择子 1 是**无条件**读外观块的；
+> 若那时改成按种类，装扮栏里的非时装条目就短 30 字节，
+> 直接回到本轮刚修掉的 `STATUS_ACCESS_VIOLATION`。
+>
+> 所以这条待办的正确说法是：**若本仓同时立起这两道门**，两条规则才会重合。
+> 即便到那一天，**记载也要留着**——它解释了为什么本仓的规则曾与上游不同。
+
+**一处差别值得记**：`0x000D` 的装扮栏分支是**每条都读**外观块，而上游在**空条目**
+（`WriteEmptyEntry`）上也按容器给长度——装扮栏的空条目是 131 字节而不是 101，
+写法是 `WriteInt16(slot); WriteInt32(-1); WriteZeroBytes(entrySize - 6)`。
+本仓今天不发空条目，所以这条**尚未被本仓实现，也未被实机验证**，只是记下来。
+

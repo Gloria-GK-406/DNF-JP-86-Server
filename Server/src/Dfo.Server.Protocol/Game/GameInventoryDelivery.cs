@@ -24,8 +24,9 @@ internal static class GameInventoryItemEntry
     /// fourteen entries and carries 1414 bytes of them, and 1414/101 is exactly fourteen. Its
     /// UPDATE_ITEM_LIST declares five and strides 101 between their slot fields as well.
     ///
-    /// The entry is that fixed length for every item, an avatar's included, and every value this
-    /// writer emits lands at the offset the A21 client reads one from. What was checked is the
+    /// Every entry begins with that fixed length, and every value this writer emits lands at the
+    /// offset the A21 client reads one from. Two containers then carry a length-prefixed appearance
+    /// block after it -- see <see cref="CarriesAppearanceBlock"/>, which is where the rule lives. What was checked is the
     /// offsets, not the names: this writer calls the byte at 0x1A a chronicle-option count and the
     /// byte at 0x2F an emblem-socket count, where the client's own strings call them an emblem
     /// count and an additional-option count. Which naming is right is not settled here -- only that
@@ -37,17 +38,24 @@ internal static class GameInventoryItemEntry
     /// period@0x2B, an additional-option count@0x2F with its dword array after it,
     /// genuineUpgrade@0x4A, emancipateEquipmentLevel@0x4B, tradeRestriction@0x4C.
     ///
-    /// The last seventeen bytes (rec+0x54..0x64) are written as a zero run. The client does read
-    /// them as fields -- the table shows the record used all the way to rec+0x64 -- but which
-    /// fields is not recovered, and the reference session sends them as zero, so a zero run
-    /// reproduces every observed entry byte for byte. They are unknown, not padding.
+    /// The last seventeen bytes (rec+0x54..0x64) are written as a zero run. The client reads them as
+    /// fields and the reference A21 server names them -- a dword, four guardian-gem keys as u16, a
+    /// byte, and a dword at rec+0x61 -- but this repository has nowhere to read them from, so a zero
+    /// run is what it can honestly send. They are a gap, not padding. The dword at rec+0x61 is the
+    /// one place the client-side disassembly and the reference server independently agree.
     ///
-    /// Correction (2026-09-07): this used to say the seventeen bytes were of unreadable position,
-    /// and that an avatar entry appends its jewel-socket block after the run. Both were wrong. The
-    /// append is the older client's layout; on A21 the client strides a fixed 101 between entries,
-    /// so appending put every following entry at the wrong offset. It is the demonstrated cause of
-    /// the main-container STATUS_STACK_BUFFER_OVERRUN (0xC0000409): the crash stopped when the
-    /// block was removed and returned when it was put back, against a live A21 client.
+    /// Correction (2026-09-07): an earlier note said the seventeen bytes were of unreadable
+    /// position. That was wrong and is fixed above.
+    ///
+    /// Correction to that correction (same day): the same note went on to say that appending a
+    /// jewel-socket block after the run was the older client's layout and simply wrong. That is
+    /// half right at best. The block is real and the client reads it -- but by container, not by
+    /// item kind, which is what the earlier writer had keyed it on. Keying it on the kind put a
+    /// block on an avatar sitting in the main bag and broke that list's stride
+    /// (STATUS_STACK_BUFFER_OVERRUN); removing it outright starved the avatar list and broke that
+    /// one the other way (STATUS_ACCESS_VIOLATION, from a length read out of the receive buffer's
+    /// padding). Both were seen against a live client, and the rule that satisfies both is the
+    /// client's own, on <see cref="CarriesAppearanceBlock"/>.
     /// </remarks>
     public const int CommonLength = 101;
 
@@ -57,7 +65,8 @@ internal static class GameInventoryItemEntry
     public static void Write(
         BinaryWriter writer,
         InventoryItemState item,
-        DateTimeOffset preparedAt)
+        DateTimeOffset preparedAt,
+        InventoryContainerType containerType)
     {
         if (item.SlotIndex is < short.MinValue or > short.MaxValue)
             throw new InvalidDataException("Inventory slot cannot be represented as i16.");
@@ -127,7 +136,92 @@ internal static class GameInventoryItemEntry
 
         if (core.ItemKind == 8 && avatar!.JewelSocket.Length != 30)
             throw new InvalidDataException("Avatar jewel socket must contain exactly 30 bytes.");
+
+        if (CarriesAppearanceBlock(containerType, core.ItemKind))
+            WriteAppearanceBlock(writer, avatar);
     }
+
+    /// <summary>Whether an entry in this container carries the appearance block after its record.</summary>
+    /// <remarks>
+    /// The client decides this by container, not by what the item is, and the one place the item
+    /// does decide is the equipment list. The rule is read off <c>0x01637740</c>, which is not
+    /// virtualized:
+    /// <code>
+    /// F(buf, itemId, selector):
+    ///     if (selector == 1) { readLengthPrefixed(buf); return; }
+    ///     if (selector == 3) { if (isAvatar(itemId)) readLengthPrefixed(buf); return; }
+    ///     return;
+    /// </code>
+    /// The selector is the list type the frame already carries. Every other container reads a fixed
+    /// hundred and one bytes and nothing more.
+    /// <para>
+    /// Both ways of getting this wrong have been seen against a live client. Writing the block for
+    /// every avatar regardless of container puts it on one sitting in the main bag, which pushes
+    /// every following entry out of that list's fixed-101 stride and ends in
+    /// STATUS_STACK_BUFFER_OVERRUN. Writing it for nobody leaves the avatar list's entries short of
+    /// what the client reads, so it takes the four bytes after the record -- the receive buffer's
+    /// padding -- as a length and copies that many onto its stack.
+    /// </para>
+    /// </remarks>
+    private static bool CarriesAppearanceBlock(InventoryContainerType containerType, byte itemKind) =>
+        containerType switch
+        {
+            InventoryContainerType.Avatar => true,
+            InventoryContainerType.Equipment => itemKind == 8,
+            _ => false,
+        };
+
+    /// <summary>The two length-prefixed runs the client reads after the record.</summary>
+    /// <remarks>
+    /// An eighteen-byte jewel socket and a four-byte colour pair, each behind its own length --
+    /// thirty bytes in all. See <see cref="WireJewelBytes"/> for why eighteen and not the thirty
+    /// that are stored. The avatar list reads both runs unconditionally, so an item with no avatar
+    /// facts still writes them, zero-filled, because there is nothing to say. Eleven avatars in a
+    /// live avatar bag parsed back to back, which is what shows the shape is aligned rather than
+    /// merely accepted -- though a live check cannot tell eighteen from thirty, since the block
+    /// declares its own length.
+    /// <para>
+    /// What the client then does with the bytes is not established. That they are consumed in the
+    /// right places is; that the sockets and colours are read as sockets and colours is inferred
+    /// from the field names alone.
+    /// </para>
+    /// </remarks>
+    private static void WriteAppearanceBlock(BinaryWriter writer, InventoryAvatarDetailState? avatar)
+    {
+        var stored = avatar?.JewelSocket ?? [];
+        writer.Write(WireJewelBytes);
+        writer.Write(stored.Length >= WireJewelBytes
+            ? stored.AsSpan(0, WireJewelBytes)
+            : new byte[WireJewelBytes]);
+        writer.Write(ColourLength);
+        writer.Write((ushort)(avatar?.Color1 ?? 0));
+        writer.Write((ushort)(avatar?.Color2 ?? 0));
+    }
+
+    /// <summary>How much of the stored jewel socket A21 puts on the wire.</summary>
+    /// <remarks>
+    /// Eighteen of the thirty that are stored. The stored socket is five slots of six bytes; A21
+    /// sends the first three. The reference A21 server names the figure
+    /// <c>A21AvatarJewelBytes = 18</c> and writes it from a thirty-byte column exactly this way,
+    /// truncating rather than reshaping (<c>ItemListProtocolWriter.WriteAvatarEntry126</c>, whose
+    /// name is the older client's total: 84 + 4 + 30 + 4 + 4 = 126, which is where the thirty comes
+    /// from).
+    /// <para>
+    /// Sending all thirty parses -- the block is length-prefixed, so the client honours whatever
+    /// length it is given, and eleven avatars sent that way lined up back to back against a live
+    /// client. It is still wrong. The reason to prefer eighteen is that the reference A21 server
+    /// sends eighteen -- that part is read out of its source. There is also a motive that is
+    /// weaker evidence and is offered as such: the client's destination for this block was measured
+    /// by static disassembly to be a stack local with far less room than the distance to its /GS
+    /// cookie, so twelve extra bytes would land on whatever is next without failing loudly. That
+    /// second part is not observed live and is not what the choice rests on. Live testing cannot
+    /// tell the two lengths apart at all, because a socket of zeros is a socket of zeros at either
+    /// length.
+    /// </para>
+    /// </remarks>
+    private const int WireJewelBytes = 18;
+
+    private const int ColourLength = 4;
 
     /// <summary>How many option dwords this writer emits after the count at <c>rec+0x2F</c>.</summary>
     /// <remarks>
@@ -219,7 +313,7 @@ internal sealed record InventoryDeltaMessage(
         writer.Write((byte)this.ContainerType);
         writer.Write(checked((ushort)this.Items.Count));
         foreach (var item in this.Items)
-            GameInventoryItemEntry.Write(writer, item, this.PreparedAt);
+            GameInventoryItemEntry.Write(writer, item, this.PreparedAt, this.ContainerType);
         return stream.ToArray();
     }
 }

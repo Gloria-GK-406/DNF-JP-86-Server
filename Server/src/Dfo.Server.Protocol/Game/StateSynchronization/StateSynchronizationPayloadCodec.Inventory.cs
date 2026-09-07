@@ -144,7 +144,7 @@ internal static partial class StateSynchronizationPayloadCodec
             for (short slot = 0; slot <= 2; slot++)
                 WriteVirtualInventoryItem(writer, values, slot, slot);
             foreach (var item in items)
-                GameInventoryItemEntry.Write(writer, item, preparedAt);
+                GameInventoryItemEntry.Write(writer, item, preparedAt, containerType);
             int[] cubeItemIds = [3033, 3034, 3035, 3036, 3037, 3262];
             for (short slot = 354; slot <= 359; slot++)
                 WriteVirtualInventoryItem(writer, values, slot, cubeItemIds[slot - 354]);
@@ -159,7 +159,7 @@ internal static partial class StateSynchronizationPayloadCodec
         else
         {
             foreach (var item in items)
-                GameInventoryItemEntry.Write(writer, item, preparedAt);
+                GameInventoryItemEntry.Write(writer, item, preparedAt, containerType);
         }
         return stream.ToArray();
     }
