@@ -203,6 +203,8 @@ public sealed class ApplicationModule : IServerModule
         // rule service of its own.
         services.TryAddSingleton<IGroundPickupDomainService, GroundPickupDomainService>();
         services.TryAddSingleton<IItemMovementDomainService, ItemMovementDomainService>();
+        services.TryAddSingleton<INpcShopRuleService, NpcShopRuleService>();
+        services.TryAddSingleton<INpcShopDomainService, NpcShopDomainService>();
         services.TryAddSingleton<IQuestDefinitionDomainService, QuestDefinitionDomainService>();
         services.TryAddSingleton<
             IExperienceValuationDomainService, ExperienceValuationDomainService>();

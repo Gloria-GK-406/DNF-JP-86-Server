@@ -112,6 +112,17 @@ public sealed class GameLoginIntegrationTests
                 Assert.True(onlineUsers.TryGetByConnection(connectionId, out var stillLoggedIn));
                 Assert.Equal(authenticated.AccountId, stillLoggedIn!.AccountId);
                 Assert.Equal(OnlineUserState.Authenticated, stillLoggedIn.State);
+
+                // The two shop slices reach the real dispatcher and return framed refusals
+                // before character selection. SQLite settlement is covered in NpcShopPurchaseTests.
+                await client.GetStream().WriteAsync(EncodeClientFrame(1, 0x0015,
+                    Convert.FromHexString("4CDC341D010000000F00000002000000")), timeout.Token);
+                var refusedBuy = await ReadFrameAsync(client.GetStream(), timeout.Token);
+                Assert.Equal(GameServerFrameEncoder.Encode(1, 0x0015, new byte[] { 0, 0 }), refusedBuy);
+                await client.GetStream().WriteAsync(EncodeClientFrame(1, 0x02CC,
+                    new byte[] { 2, 0, 0, 0 }), timeout.Token);
+                var refusedCount = await ReadFrameAsync(client.GetStream(), timeout.Token);
+                Assert.Equal(GameServerFrameEncoder.Encode(1, 0x02CC, new byte[] { 0, 0 }), refusedCount);
             }
 
             await WaitUntilAsync(

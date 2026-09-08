@@ -316,6 +316,10 @@ internal static class GameInventoryDelivery
         return new InventoryDeltaMessage(update.ContainerType, update.Items, update.PreparedAt);
     }
 
+    public static IGameServerMessage ClearedSlotNotification(
+        InventoryContainerType containerType, int slotIndex, DateTimeOffset preparedAt) =>
+        new InventoryDeltaMessage(containerType, [new InventoryItemState(null, slotIndex, CarriedGoldCore(0))], preparedAt);
+
     /// <summary>
     /// The frame that tells the client what a character now carries in gold.
     /// </summary>

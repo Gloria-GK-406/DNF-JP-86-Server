@@ -7,6 +7,7 @@ using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Application.Notifications;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Channel;
 using Dfo.Server.Protocol.Channel.Connect;
@@ -28,6 +29,8 @@ using Dfo.Server.Protocol.Game.DeleteCharacter;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.FinishLoading;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
+using Dfo.Server.Protocol.Game.BuyItem;
+using Dfo.Server.Protocol.Game.ShopPurchaseCount;
 using Dfo.Server.Protocol.Game.TutorialLevelUp;
 using Dfo.Server.Protocol.Game.UnansweredReports;
 using Dfo.Server.Protocol.Game.CardReward;
@@ -87,6 +90,9 @@ public sealed class ProtocolModule : IServerModule
         // check is only worth having while something says which assemblies it covers, and this
         // line is that something.
         services.AddNotificationCatalog(typeof(ProtocolModule).Assembly);
+        // BUY_ITEM adds to the client inventory. Replaying its acknowledgement could duplicate that addition.
+        services.AddNotificationHandler<NpcShopPurchaseCompleted, NpcShopPurchaseCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<ShopPurchaseCountsReported, ShopPurchaseCountsReportedHandler>(retryLimit: 0);
         services.TryAddSingleton<ICleanupNotificationDelivery, CleanupNotificationDelivery>();
         services.AddNotificationHandler<SessionCleanupAnnounced, SessionCleanupAnnouncedHandler>(
             // Nothing. A departure notice that misses somebody is corrected by the next thing that
@@ -203,6 +209,10 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<UseStackableCommand, ItemUseResult, UseStackableCommandHandler>(
             CommandExecutionKind.Transactional);
+        services.AddCommandHandler<BuyItemCommand, NpcShopPurchaseResult, BuyItemCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<QueryShopPurchaseCountsCommand, NpcShopPurchaseCountsResult, QueryShopPurchaseCountsCommandHandler>(
+            CommandExecutionKind.Direct, UserAccessMode.Shared, UserAccessMode.Shared);
         // A tutorial step's items settle together, and through the same container everything else
         // writes through.
         services.AddCommandHandler<
@@ -301,6 +311,8 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLagStatistics);
         services.RegisterMessageHandler<MoveItemSpaceHandler>(ClientMessageType.GameMoveItemSpace);
         services.RegisterMessageHandler<UseStackableHandler>(ClientMessageType.GameUseStackable);
+        services.RegisterMessageHandler<BuyItemHandler>(ClientMessageType.GameBuyItem);
+        services.RegisterMessageHandler<ShopPurchaseCountHandler>(ClientMessageType.GameShopPurchaseCount);
 
         // Position and area: the only inputs that move a published character, and so the only
         // way the town its next entry reports can change.
@@ -457,6 +469,10 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.LogConnectProcessType, ClientMessageType.GameLogConnectProcess);
         services.AddGameCmdMessageDecoder<MoveItemSpaceDecoder>(
             GameProtocol.MoveItemSpaceType, ClientMessageType.GameMoveItemSpace);
+        services.AddGameCmdMessageDecoder<BuyItemMessageDecoder>(
+            GameProtocol.BuyItemType, ClientMessageType.GameBuyItem);
+        services.AddGameCmdMessageDecoder<ShopPurchaseCountDecoder>(
+            GameProtocol.ShopPurchaseCountType, ClientMessageType.GameShopPurchaseCount);
         services.AddGameCmdMessageDecoder<UseStackableDecoder>(
             GameProtocol.UseStackableType, ClientMessageType.GameUseStackable);
         services.AddGameCmdMessageDecoder<HiddenCharacterInfoMessageDecoder>(
@@ -524,6 +540,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<FinishLoadingResponse, FinishLoadingResponseEncoder>();
         services.AddGameCmdMessageEncoder<MoveItemSpaceResponse, MoveItemSpaceResponseEncoder>();
         services.AddGameCmdMessageEncoder<UseStackableResponse, UseStackableResponseEncoder>();
+        services.AddGameCmdMessageEncoder<BuyItemResponse, BuyItemResponseEncoder>();
+        services.AddGameCmdMessageEncoder<ShopPurchaseCountResponse, ShopPurchaseCountEncoder>();
         services.AddGameCmdMessageEncoder<GetItemResponse, GetItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<TutorialLevelUpResponse, TutorialLevelUpResponseEncoder>();
         services.AddGameCmdMessageEncoder<

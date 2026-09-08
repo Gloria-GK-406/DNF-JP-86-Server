@@ -55,12 +55,14 @@ public sealed class SchemaOwnershipTests
 
         // Counted rather than sampled: naming a handful of tables would stay green while forty of
         // the declarations went missing.
-        Assert.Equal(43, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
+        Assert.Equal(44, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
         Assert.Contains("characters(", shape, StringComparison.Ordinal);
         Assert.Contains("items(", shape, StringComparison.Ordinal);
         Assert.Contains("item_slots(", shape, StringComparison.Ordinal);
         Assert.Contains("accounts(", shape, StringComparison.Ordinal);
         Assert.Contains("character_active_quests(", shape, StringComparison.Ordinal);
+        Assert.Contains("npc_shop_purchase_counts(count:INTEGER,item_id:INTEGER,npc_id:INTEGER,owner_id:INTEGER,owner_scope:TEXT,period:TEXT)",
+            shape, StringComparison.Ordinal);
 
         // The creatures table is named here as one that is gone. Its eight facts are columns of
         // the world row the creature is, so a database still declaring it would be one where a

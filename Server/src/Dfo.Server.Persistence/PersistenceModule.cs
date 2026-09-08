@@ -94,6 +94,7 @@ public sealed class PersistenceModule : IServerModule
         services.TryAddSingleton<ICharacterCarriedGoldTable>(
             provider => new SqliteCharacterCarriedGoldTable(
                 provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<INpcShopPurchaseTable, SqliteNpcShopPurchaseTable>();
         services.TryAddSingleton<ICharacterGoldLimitTable>(
             provider => new SqliteCharacterGoldLimitTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<ICharacterItemCooldownTable>(
