@@ -59,6 +59,12 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
     /// <summary>Where the archive says the ordinary coat is worn.</summary>
     private const short CoatSlot = 14;
 
+    /// <summary>Where the archive names a coat avatar, measured against a live client.</summary>
+    private const short CoatAvatarSlot = 3;
+
+    /// <summary>A second coat avatar, so a swap has a costume at both ends.</summary>
+    private const int OtherCostumeTemplate = 101500690;
+
     [Fact]
     public async Task A_costume_moves_from_the_avatar_list_into_the_bag()
     {
@@ -129,28 +135,91 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
             side.Container(InventoryContainerType.Avatar).LastMove);
     }
 
-    /// <summary>
-    /// Wearing a costume out of the avatar list gets as far as the archive, and is refused there.
-    /// </summary>
+    /// <summary>A costume is worn out of the avatar list, onto the slot the archive names for it.</summary>
     /// <remarks>
-    /// <b>This is the whole of what this change delivers today.</b> The costume still cannot be
-    /// worn -- no avatar slot is declared anywhere this server can read, which is its own piece of
-    /// work -- so the answer is still a refusal. What changed is which refusal: it was
-    /// <c>ListNotServed</c>, decided from the two list numbers with nothing read, and it is now
-    /// <c>NotWearable</c>, decided after the costume was read, carrying the template it was about.
-    /// A log line that names the template is what a slot map can be measured from; one that says
-    /// <c>item 0</c> is not.
+    /// <b>This case used to assert a refusal, and that refusal was the whole of what serving the
+    /// avatar list delivered.</b> The costume reached the archive, the archive named no slot for
+    /// any costume, and the answer was <c>NotWearable</c> carrying the template -- which was the
+    /// point, because that line is what the eleven slots were then measured with.
+    /// <para>
+    /// The measuring is done and the names are in the table, so the same request now goes through.
+    /// The costume leaves the avatar list and stands in slot three, where the archive says a coat
+    /// avatar goes and where a live client asked for it three separate times.
+    /// </para>
     /// </remarks>
     [Fact]
-    public async Task Wearing_a_costume_out_of_the_avatar_list_is_refused_by_the_archive_not_by_the_list()
+    public async Task A_costume_is_worn_out_of_the_avatar_list_onto_its_own_slot()
     {
         var side = Build(avatarAt: AvatarSlot);
 
         var result = await side.MoveAsync(
-            InventoryContainerType.Avatar, AvatarSlot, InventoryContainerType.Equipment, 3);
+            InventoryContainerType.Avatar, AvatarSlot, InventoryContainerType.Equipment, CoatAvatarSlot);
 
-        Assert.Equal(ItemMoveStatus.NotWearable, result.Status);
+        Assert.Equal(ItemMoveStatus.Moved, result.Status);
         Assert.Equal(CostumeTemplate, result.ItemId);
+        Assert.Null(await side.ReadAsync(InventoryContainerType.Avatar, AvatarSlot));
+        Assert.Equal(
+            CostumeTemplate,
+            (await side.ReadAsync(InventoryContainerType.Equipment, CoatAvatarSlot))!.ItemId);
+    }
+
+    /// <summary>A costume aimed at a costume slot that is not its own is turned away.</summary>
+    [Fact]
+    public async Task A_costume_does_not_go_on_a_costume_slot_that_is_not_its_own()
+    {
+        var side = Build(avatarAt: AvatarSlot);
+
+        var result = await side.MoveAsync(
+            InventoryContainerType.Avatar, AvatarSlot, InventoryContainerType.Equipment, 5);
+
+        Assert.Equal(ItemMoveStatus.ItemCannotOccupySlot, result.Status);
+        Assert.Equal(CostumeTemplate, result.ItemId);
+        Assert.Null(await side.ReadAsync(InventoryContainerType.Equipment, 5));
+    }
+
+    /// <summary>The same costume goes on from the bag, which is a different source list.</summary>
+    /// <remarks>
+    /// Both sources reach the same lines of <c>PutOnAsync</c>, but a case proves one path. The bag
+    /// is the path a costume takes today, because that is where a granted one lands.
+    /// </remarks>
+    [Fact]
+    public async Task A_costume_is_worn_out_of_the_bag_too()
+    {
+        var side = Build(costumeInBagAt: BagSlot);
+
+        var result = await side.MoveAsync(
+            InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, CoatAvatarSlot);
+
+        Assert.Equal(ItemMoveStatus.Moved, result.Status);
+        Assert.Equal(
+            CostumeTemplate,
+            (await side.ReadAsync(InventoryContainerType.Equipment, CoatAvatarSlot))!.ItemId);
+    }
+
+    /// <summary>What comes off a costume slot goes back where the arriving costume came from.</summary>
+    /// <remarks>
+    /// The question <c>PutOnAsync</c> was asked to leave open until the costume slots had names.
+    /// This is the answer, asserted rather than argued: both ends of the swap are costumes, because
+    /// only the eleven <c>avatar]</c> names reach slots <c>0..10</c>, and the slot the displaced one
+    /// returns to is where the arriving one was standing -- a slot that list plainly admits a
+    /// costume in. Until today it could not be asserted at all: nothing could stand in a costume
+    /// slot to be displaced out of one.
+    /// </remarks>
+    [Fact]
+    public async Task What_comes_off_a_costume_slot_goes_back_into_the_avatar_list()
+    {
+        var side = Build(avatarAt: AvatarSlot, wornAt: CoatAvatarSlot, wornIsOtherCostume: true);
+
+        var result = await side.MoveAsync(
+            InventoryContainerType.Avatar, AvatarSlot, InventoryContainerType.Equipment, CoatAvatarSlot);
+
+        Assert.Equal(ItemMoveStatus.Moved, result.Status);
+        Assert.Equal(
+            CostumeTemplate,
+            (await side.ReadAsync(InventoryContainerType.Equipment, CoatAvatarSlot))!.ItemId);
+        Assert.Equal(
+            OtherCostumeTemplate,
+            (await side.ReadAsync(InventoryContainerType.Avatar, AvatarSlot))!.ItemId);
     }
 
     /// <summary>Taking a costume off into the avatar list reaches the list rather than a refusal.</summary>
@@ -168,25 +237,26 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
     }
 
     /// <summary>
-    /// Nothing is worn in a costume slot, so nothing is displaced out of one.
+    /// Nothing goes on the first costume slot but the costume whose slot it is.
     /// </summary>
     /// <remarks>
-    /// The swap that would put an ordinary piece into the avatar list needs something standing in
-    /// a costume slot to be displaced, and nothing can be: a piece goes on the slot its archive
-    /// entry names, and the lowest slot <c>PvfEquipmentSlots.ByName</c> names is twelve. This
-    /// asserts that emptiness at the only place it can be seen from here -- the request is refused
-    /// for naming a slot the coat does not belong in, and a costume is refused the same way.
+    /// A piece goes on the slot its own archive entry names and no other. Slot zero belongs to the
+    /// hat avatar, so neither an ordinary coat (fourteen) nor a coat avatar (three) may be put
+    /// there, and both are turned away by the same line.
     /// <para>
-    /// A case was written here claiming to pin the swap itself. It used slot fourteen, which is the
-    /// coat's slot and not a costume slot, and seeded a costume into it -- a state its own argument
-    /// said could not exist. It proved nothing and is gone. What replaces it is this, which is
-    /// small and true, and the note in <c>PutOnAsync</c> saying who has to revisit the question.
+    /// <b>This used to say something stronger and, as of 2026-09-08, false</b>: that nothing could
+    /// be worn in a costume slot at all, because the lowest slot the table named was twelve. That
+    /// was true while the costume slots had no names -- it is what let <c>PutOnAsync</c> leave the
+    /// displacement question open -- and giving them names is exactly what this change did. The
+    /// case went on passing only because the slot it aims at is zero and neither template's slot is
+    /// zero. What it can still say is the sentence above, which is the rule the swap case a few
+    /// lines up now leans on.
     /// </para>
     /// </remarks>
     [Theory]
     [InlineData(OrdinaryTemplate)]
     [InlineData(CostumeTemplate)]
-    public async Task Nothing_may_be_worn_in_a_costume_slot(int template)
+    public async Task Nothing_goes_on_a_costume_slot_but_the_costume_whose_slot_it_is(int template)
     {
         var side = Build(
             ordinaryInBagAt: template == OrdinaryTemplate ? BagSlot : null,
@@ -253,7 +323,8 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
         short? ordinaryInBagAt = null,
         short? ordinaryInAvatarListAt = null,
         short? wornAt = null,
-        bool wornIsOrdinary = false)
+        bool wornIsOrdinary = false,
+        bool wornIsOtherCostume = false)
     {
         var character = new CharacterId(Character);
         var containers = new CharacterContainerDomainService();
@@ -270,7 +341,8 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
         if (ordinaryInAvatarListAt is { } stranded)
             avatars.Seed(stranded, OrdinaryTemplate);
         if (wornAt is { } slot)
-            worn.Seed(slot, wornIsOrdinary ? OrdinaryTemplate : CostumeTemplate);
+            worn.Seed(slot, wornIsOrdinary ? OrdinaryTemplate
+                : wornIsOtherCostume ? OtherCostumeTemplate : CostumeTemplate);
 
         containers.Register(character, bag);
         containers.Register(character, avatars);

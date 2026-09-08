@@ -23,13 +23,20 @@ namespace Dfo.Server.Protocol.Tests.Game.MoveItemSpace;
 /// off it.
 /// </summary>
 /// <remarks>
-/// <c>PvfEquipmentSlots.ByName</c> is written out one name at a time and none of the names in it
-/// ends in <c>avatar]</c>. Template 101500690, which the archive declares under
+/// <c>PvfEquipmentSlots.ByName</c> is written out one name at a time, and until 2026-09-08 none of
+/// the names in it ended in <c>avatar]</c>. Template 101500690, which the archive declares under
 /// <c>[coat avatar]</c>, was run through this path and observed getting nothing back from
 /// <c>PvfEquipmentSlotDefinitionSource</c> and being refused by
 /// <c>MoveItemSpaceCommandHandler.PutOnAsync</c> as <c>NotWearable</c>. What the request had
-/// written in its destination end came back out of the log beside the template number, which is
-/// the pair these tests hold still.
+/// written in its destination end came back out of the log beside the template number, and that
+/// pair is what eleven costume slots were then measured with.
+/// <para>
+/// <b>The names are in the table now, so this file no longer reads a slot map off a refusal.</b>
+/// A costume the archive does have a slot for is refused for aiming at the wrong one, which is the
+/// ordinary <c>ItemCannotOccupySlot</c>; <c>NotWearable</c> is left for a template the archive
+/// names no slot for at all. The pair the cases hold still is unchanged -- a refusal decided with
+/// the piece already read names the piece -- and that is what they are for now.
+/// </para>
 /// <para>
 /// Why that pair is worth holding is what <c>PutOnAsync</c> already says of itself: "A stock
 /// client works it out for itself and will not offer a drop it believes is illegal, so a request
@@ -38,9 +45,10 @@ namespace Dfo.Server.Protocol.Tests.Game.MoveItemSpace;
 /// request still carrying it is what makes the refusal readable.
 /// </para>
 /// <para>
-/// The archive is the real one. The premise the instrument rests on -- that this template is an
-/// avatar and that the archive gives it no worn slot -- is asserted rather than assumed, because a
-/// double saying so would keep saying so after the archive stopped.
+/// The archive is the real one. The premise these rest on -- what this template is, and which slot
+/// the archive gives it -- is asserted rather than assumed, because a double saying so would keep
+/// saying so after the archive stopped. That is exactly what happened on 2026-09-08: the premise
+/// went from "no worn slot" to "slot three", and the assertion is what said so.
 /// </para>
 /// <para>
 /// <b>These tests do not establish which slot any avatar name belongs in.</b> They establish that
@@ -76,6 +84,9 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
     /// </remarks>
     private const short NamedAvatarSlot = 2;
 
+    /// <summary>Where the archive puts a coat avatar, measured against a live client.</summary>
+    private const byte CoatAvatarSlot = 3;
+
     /// <summary>A worn slot the ordinary coat does not belong in; the archive says 14.</summary>
     private const short WrongSlotForACoat = 15;
 
@@ -85,36 +96,53 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
         new NetworkConnectionContext(Connection, NetworkEndpointKind.Game, 10011));
 
     /// <summary>
-    /// The premise: this template is an avatar, and the archive names no slot to wear it in.
+    /// The premise: this template is an avatar, and the archive names the slot it is worn in.
     /// </summary>
     /// <remarks>
-    /// Both halves matter. Without the first the refused piece is not an avatar and the record
-    /// says nothing about avatars; without the second the piece would be worn rather than refused
-    /// and there would be no record at all.
+    /// Both halves matter, and the second one is the half that changed. It used to be that the
+    /// archive named <b>no</b> slot for any costume, which is what made the refusal below the only
+    /// place a template number could be read from. The names went in on 2026-09-08 and this half
+    /// now says which slot -- three -- so the cases beneath it are about a piece aimed at the wrong
+    /// slot rather than a piece with no slot at all.
+    /// <para>
+    /// This asserted that the archive named <b>no</b> worn slot for a coat avatar, which was true
+    /// while <c>PvfEquipmentSlots.ByName</c> had no costume names in it and was the whole reason a
+    /// costume could not be worn. The names went in on 2026-09-08, measured against a live client,
+    /// so the same question now has an answer: three. What the case is for is unchanged -- the
+    /// archive's own reading of this template -- and it is worth keeping because the slot it gives
+    /// back is one of the eleven that were measured rather than derived.
+    /// </para>
     /// </remarks>
     [Fact]
-    public async Task The_archive_calls_this_template_an_avatar_and_names_no_worn_slot_for_it()
+    public async Task The_archive_calls_this_template_an_avatar_and_names_its_worn_slot()
     {
         var placement = await archive.Placements.GetAsync(
             CoatAvatarTemplate, CancellationToken.None);
 
         Assert.NotNull(placement);
         Assert.Equal(ItemWorldClass.Avatar, placement.WorldClass);
-        Assert.Null(await archive.EquipmentSlots.GetAsync(
-            CoatAvatarTemplate, CancellationToken.None));
+        Assert.Equal(
+            CoatAvatarSlot,
+            await archive.EquipmentSlots.GetAsync(CoatAvatarTemplate, CancellationToken.None));
     }
 
     /// <summary>
-    /// An avatar the server cannot place leaves its template and the slot the client asked for.
+    /// An avatar aimed at a costume slot that is not its own leaves its template and that slot.
     /// </summary>
     /// <remarks>
-    /// This is the instrument, held against one template. What it shows is that the record for
-    /// this drag carried 101500690 and the 2 the request had written. Whether a live client writes
-    /// 2 for a coat avatar is not settled here -- that is the reading the record is for, and it
-    /// takes a client.
+    /// <b>This was the instrument.</b> It used to drag a coat avatar at slot 2 and record
+    /// <c>NotWearable</c>, because the archive named no slot for any costume and the refusal was
+    /// the only place a template number could be read from. That is what the eleven slots were
+    /// measured with, and the measuring is done: the coat avatar's slot is three, so aiming it at
+    /// two is now the ordinary "wrong slot" refusal.
+    /// <para>
+    /// The case is kept rather than deleted because the property it asserts outlived its purpose:
+    /// a refusal decided with the piece already read names the piece. Two is still the slot the
+    /// request wrote, and the line still says so.
+    /// </para>
     /// </remarks>
     [Fact]
-    public async Task An_avatar_refused_as_unwearable_is_recorded_with_its_template_and_that_slot()
+    public async Task An_avatar_aimed_at_the_wrong_costume_slot_is_recorded_with_its_template_and_that_slot()
     {
         var (handler, sender, logger) = this.Build(CoatAvatarTemplate);
 
@@ -123,7 +151,7 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
 
         Assert.Equal(
             $"Move item space game-avatar-refusal character=60: item {CoatAvatarTemplate} "
-                + $"{BagSlot}->{NamedAvatarSlot} refused as NotWearable",
+                + $"{BagSlot}->{NamedAvatarSlot} refused as ItemCannotOccupySlot",
             Assert.Single(logger.Entries).Message);
         Assert.Equal(
             MoveItemSpaceResponse.NotMovable,

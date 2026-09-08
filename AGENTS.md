@@ -563,7 +563,7 @@ if (result.Publication.Audience.Count > 0)
   `Docs/ProtocolScaffoldDissonances.md` 第九节。
 - **`character_condition` 有五个含义未查清的列。**
 - **没有迁移机制**，也没有为旧形状保留的兼容读路径——旧库作废重建。
-- **时装取得下、穿不上。** 见下面「时装」一节。
+- ~~**时装取得下、穿不上。**~~ **2026-09-08 已修**：11 个时装槽名已进 `PvfEquipmentSlots.ByName`，时装能穿上。见下面「时装」一节。
 
 #### 三处「结论对，但撑着它的不是代码」
 
@@ -608,17 +608,19 @@ if (result.Publication.Audience.Count > 0)
   `EveryIndexThatNamedARetiredTableIsGoneAndTheOneThatMovedWasRebuilt`
   的正向断言现在指向新增的 `ON item_slots(core_uid)`。
 
-#### 时装：种类已经对齐，但仍然穿不上
+#### 时装：种类已经对齐，穿不上的那一半已于 2026-09-08 修好
 
 **种类对齐了。** `PvfEntryLifecycleContentSource.WornPieceMetadata` 对 `ItemWorldClass.Avatar`
 答 `AvatarItemKind`（8），与存储的判定一致；发放通路落地时会抽一个身份并交出六项事实
 （`ItemContainers.ArrivingAvatar`）。`avatar_expire_date` 写的是 `int.MaxValue`，
 **这是占位裁定，不是量出来的**。
 
-**穿不上的原因不是没写代码，是槽号一格都没有出处。**
-`PvfEquipmentSlots.ByName` 的 16 个键里以 `avatar]` 结尾的是 **0 个**，于是
+**穿不上的原因曾经不是没写代码，是槽号一格都没有出处。**
+`PvfEquipmentSlots.ByName` 当时的 16 个键里以 `avatar]` 结尾的是 **0 个**，于是
 `PvfEquipmentSlotDefinitionSource.GetAsync` 对一件时装答 `null`，
 `MoveItemSpaceCommandHandler.PutOnAsync` 就 `Refused(NotWearable, piece.ItemId)`。
+**（2026-09-08：11 个时装键已进表，表现在 27 个键，时装能穿上。
+下面这一整节记的是当时的诊断，数字都是那时的；结论见本节末尾的补记。）**
 同样在表外的还有 `[artifact red/blue/green]`、`[charm]`、`[flag]`、`[name tag]`。
 **没有给这张表补键，因为补键就等于写下一个没有出处的数。**
 
@@ -639,7 +641,9 @@ if (result.Publication.Audience.Count > 0)
 3. **上游转写只到「带宽十二格」与「槽 11 叫什么」，且自陈不是量出来的。**
    **它给了 0..11 的边界，没有给「11 个类型名 → 12 个槽号」的对照。**
 
-**`ByName` 认不出的类型名：17 个，覆盖 66,596 个模板。**
+**`ByName` 当时认不出的类型名：17 个，覆盖 66,596 个模板。**
+**（2026-09-08 之后：11 个时装名已被认出，认不出的只剩 6 个、覆盖 268 个模板——
+就是下表里标「否」的那六行。表本身不动，它记的是当时的扫描。）**
 口径：把 `equipment/equipment.lst` 读成「id → 相对路径」（实测 118,479 行、互不相同的 id 与路径），
 逐个打开取第一处 `[equipment type]` 后的字符串，按 `OrdinalIgnoreCase` 查 `ByName`，
 查不到的按名字归并。这一遍打不开的文件 0 个、读不到类型名的模板 0 个。
@@ -668,13 +672,32 @@ if (result.Publication.Audience.Count > 0)
 
 复算：11 个时装名相加 **66,328**；6 个非时装名相加 **268**；两数相加 **66,596**；行数 11 ＋ 6 ＝ **17**。
 加法的每一项都在表里，可当场重算。
+**（这三个数是 2026-09-08 之前的。补键之后「认不出」的只剩那 6 行、268 个模板；
+11 个时装名与它们的 66,328 个模板现在都认得出，槽号就是本节末尾那 11 个。）**
 
-**`ByName` 的 16 个键里有两个在这次扫描中一次都没被用到**：`[title]` 与 `[earring]`。
+**`ByName` 当时的 16 个键里有两个在这次扫描中一次都没被用到**：`[title]` 与 `[earring]`。
 （称号走的是 `[title name]`，1,796 个模板；24 号槽走的是 `[support weapon]`，26 个模板。
 槽号写作 24 的键有三个——`[earring]`、`[support weapon]`、`[creature]`，其中 `[creature]` 707 个模板。
 所以「`[earring]` 没被用到」说的只是这一个键，不是 24 号槽在档案里没东西。）
 **这不是删它们的理由**：`PvfInitialEquipmentDefinitionSource` 也读这张表，读的是创建角色那张表里
-写的名字，不是 `[equipment type]`——那张表里出现哪些名字没有测过。
+写的名字，不是 `[equipment type]`。
+**「那张表里出现哪些名字没有测过」这句已作废（2026-09-08）**——判据
+`PvfEquipmentSlotsTests.No_job_is_created_wearing_anything_but_a_weapon_a_coat_and_pants`
+在钉它：档案里 14 个职业的创建表**只出现 `[weapon]`、`[coat]`、`[pants]` 三个名字**。
+（本轮补时装键之前又独立扫过一遍，逐职业零命中——这正是「补键会不会改变建号」的答案。）
+
+#### 2026-09-08：那 11 个时装槽已经量完，表已填上
+
+**下面这套量具是为量这张表造的，表量完了。** 11 件骑士时装逐件拖到装扮槽，
+得到 `0..10` 十一个互不相同的槽号；`PvfEquipmentSlots.ByName` 已按此补上 11 个键
+（`[hat avatar]`=0 … `[weapon avatar]`=10）。**时装现在能穿上。**
+对照表与三来源互证记在 `.rks-agent/tasks/costumes-know-where-they-are-worn/TaskContract.md`。
+
+**槽 11 没有键**：上游枚举叫它 `AuraSkinAvatar`，而**本档案没有任何模板声明它**
+（上面那张表就是证据：11 个时装名，没有第 12 个）。
+
+**量具本身留着**，它对「下一个槽号问题」仍然管用——下面三条注意事项也仍然成立，
+只是第 1 条与第 3 条描述的现象，起因已经变了（时装现在有槽号了）。
 
 **留下的是量具，不是修法。** `MoveItemSpaceHandler.ResolveAsync` 的拒绝记录写作
 `item {ItemId} {From}->{To} refused as {Status}`：`{ItemId}` 是被拒的模板号，

@@ -357,27 +357,34 @@ public sealed class MoveItemSpaceCommandHandler(
     /// </para>
     /// <para>
     /// Whatever was already worn goes back into the slot the new piece came out of, and nothing
-    /// here judges whether it may sit there. The reason written here before was "that slot held a
-    /// piece of equipment a moment ago", which was an argument about the bag, and the source is not
-    /// always the bag now. The reason that holds today is narrower and worth stating exactly:
-    /// <b>nothing can be worn in a costume slot at all.</b> A piece may only go on the slot its own
-    /// archive entry names, every name resolves through <c>PvfEquipmentSlots.ByName</c>, and the
-    /// lowest slot that table names is twelve. Slots <c>0..11</c> are therefore empty always, so
-    /// nothing can be displaced out of one into the avatar list.
+    /// here judges whether it may sit there. <b>The note left in this place on 2026-09-07 asked
+    /// whoever gave the costume slots names to come back and decide that; this is the decision.</b>
+    /// It stays as it is, and the reason is no longer the empty one it was then ("nothing can be
+    /// worn in a costume slot, so nothing can be displaced out of one").
     /// <br/>
-    /// <b>That stops being true the day those slots get names</b> -- which is exactly what giving
-    /// costumes a slot map amounts to. Whoever does that has to come back here and decide whether
-    /// what comes off a costume slot can go back where the arriving costume came from. It probably
-    /// can, since only costumes should ever name <c>0..11</c>, but "probably" is the whole of the
-    /// argument and it is not one this comment should be read as having made.
+    /// The reason now: <b>a swap has the same sort of thing at both ends, and the slot the
+    /// displaced piece goes back to is a slot that sort of thing was just sitting in.</b> A piece
+    /// may only go on the slot its own archive entry names, so what was already worn there names
+    /// that slot too. For the costume slots that means both ends are costumes -- only the eleven
+    /// <c>avatar]</c> names reach <c>0..10</c>, which was checked against the whole equipment index.
+    /// And the slot it returns to is where the arriving costume was standing a moment ago, in that
+    /// same list, so that list admits a costume there: the avatar list takes costumes anywhere in
+    /// its range, and a costume in the bag is in the equipment band, because the quick slots turn
+    /// avatars away and no move can put one there.
     /// <br/>
-    /// <b>Do not generalise it to "the worn slot decides what is in it".</b> That is false today:
+    /// <b>This covers the states a move can reach, and says nothing about the others.</b> A store
+    /// can hold a costume in a bag slot no move would have put it in -- rows written around the
+    /// server, say -- and a swap out of such a slot would put the displaced costume back into it.
+    /// That is the store disagreeing with the rules, not this swap creating the disagreement.
+    /// <br/>
+    /// <b>Do not generalise it to "the worn slot decides what is in it".</b> That is false:
     /// <c>ByName</c> maps <c>[earring]</c>, <c>[support weapon]</c> and <c>[creature]</c> all to
     /// slot 24, so what comes off 24 may be a creature where what went on was an earring -- and the
     /// bag's own band rule does not admit a creature into a quick slot. That swap succeeds today
-    /// because nothing here judges it, and it is written up as a defect of its own in
-    /// <c>Docs/CreatureDomainDesign.md</c>. A judgement was briefly added here and taken out again:
-    /// it reached that case too, and refusing it is a change to a path this work was not about.
+    /// because nothing here judges it, and it is written up as a defect of its own
+    /// (<c>Docs/CreatureDomainDesign.md</c>, and its own issue). A judgement was briefly added here
+    /// once and taken out again: it reached that case too, and refusing it is a change to a path
+    /// this work was not about.
     /// </para>
     /// </remarks>
     private async ValueTask<ItemMoveResult> PutOnAsync(
@@ -638,14 +645,16 @@ public sealed class MoveItemSpaceHandler(
         }
 
         // `{ItemId}` goes in beside the two ends the request already named. That pair is what a
-        // slot map can be read from: `PvfEquipmentSlots.ByName` carries no name ending in
-        // `avatar]`, and template 101500690 -- which the archive declares under `[coat avatar]` --
-        // was seen reaching `PutOnAsync`, getting nothing back from the archive and being refused
-        // as `NotWearable`, with this line then carrying its number and the slot the request had
-        // written. That observation and its mutations are in
-        // `RefusedEquipIsRecordedWithItsTemplateTests`. The server has no opinion about which slot
-        // an avatar belongs in and the client does, so `{To}` is the client's answer and
-        // `{ItemId}` says what it was answering about. The one-argument `ItemMoveResult.Refused`
+        // slot map was read from, and the costume map was read from it: while
+        // `PvfEquipmentSlots.ByName` carried no name ending in `avatar]`, a costume reaching
+        // `PutOnAsync` got nothing back from the archive and was refused as `NotWearable`, and this
+        // line carried its template beside the slot the client had asked for. Eleven costumes
+        // dragged one at a time gave eleven slots that way, and those are the numbers now in the
+        // table -- so a costume aimed at the wrong slot is the ordinary `ItemCannotOccupySlot`
+        // refusal today, and `NotWearable` is left for a template the archive names no slot for at
+        // all. The cases are in `RefusedEquipIsRecordedWithItsTemplateTests`. The server has no
+        // opinion about which slot an avatar belongs in and the client does, so `{To}` is the
+        // client's answer and `{ItemId}` says what it was answering about. The one-argument `ItemMoveResult.Refused`
         // puts a zero here, for a refusal decided before any slot was read.
         logger.LogInformation(
             "Move item space {ConnectionId} character={CharacterId}: item {ItemId} "

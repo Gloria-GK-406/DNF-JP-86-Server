@@ -80,7 +80,8 @@
 耐久与档案里各自 `.equ` 的 `[durability]` 逐个吻合，这是"这三行确实由
 `[create equipment list]` 生成"的独立佐证。
 
-槽号出自上游 `EquipmentType`：0..11 是时装槽（A21 在武器前插了 `AuraSkinAvatar`），
+槽号出自上游 `EquipmentType`：0..11 是时装槽（**2026-09-08 更正**：原文写「在武器前插了
+`AuraSkinAvatar`」，上游枚举明写 `WeaponAvatar = 10`、`AuraSkinAvatar = 11`，**它在武器之后**），
 12 武器、13 称号、14 上衣、15 护肩、16 下装、17 鞋、18 腰带、19 项链、20 手镯、
 21 戒指、22 辅助装备、23 魔法石、24 耳环。
 

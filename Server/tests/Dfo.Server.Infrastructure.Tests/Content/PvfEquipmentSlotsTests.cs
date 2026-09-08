@@ -40,22 +40,42 @@ public sealed class PvfEquipmentSlotsTests
     }
 
     /// <summary>
-    /// The band the worn pieces occupy is unchanged, and no name reaches outside it.
+    /// Every name in the table is either a costume slot or a worn one, and the worn band is unchanged.
     /// </summary>
     /// <remarks>
     /// Naming the creature could have been done by widening the container instead, and that would
     /// have been a different change with different consequences on the wire. It was not: the
-    /// creature was given a slot the container already had.
+    /// creature was given a slot the container already had. The same is true of the costumes named
+    /// on 2026-09-08 -- slots <c>0..10</c> were already part of the equipment container and were
+    /// simply standing empty.
+    /// <para>
+    /// This used to assert that <em>every</em> name fell in the worn band, which is how the table
+    /// looked while the costume slots had no names. It now says the thing that assertion was really
+    /// protecting: the two bands are what the table covers, the worn one is untouched, and nothing
+    /// sits between or beyond them. Slot eleven is in neither set on purpose -- the reference
+    /// server has a name for it and this archive has no template that asks for one.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void The_worn_band_is_unchanged_and_holds_every_name_in_the_table()
+    public void Every_name_is_a_costume_slot_or_a_worn_one_and_the_worn_band_is_unchanged()
     {
         Assert.Equal(12, PvfEquipmentSlots.FirstWornSlot);
         Assert.Equal(24, PvfEquipmentSlots.LastWornSlot);
+
+        var costumes = PvfEquipmentSlots.ByName
+            .Where(pair => pair.Key.EndsWith("avatar]", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        var worn = PvfEquipmentSlots.ByName.Except(costumes).ToArray();
+
+        Assert.Equal(11, costumes.Length);
+        Assert.All(costumes, pair => Assert.InRange(pair.Value, (byte)0, (byte)10));
+        Assert.Equal(
+            Enumerable.Range(0, 11).Select(value => (byte)value),
+            costumes.Select(pair => pair.Value).OrderBy(value => value));
         Assert.All(
-            PvfEquipmentSlots.ByName.Values,
-            slot => Assert.InRange(
-                slot, PvfEquipmentSlots.FirstWornSlot, PvfEquipmentSlots.LastWornSlot));
+            worn,
+            pair => Assert.InRange(
+                pair.Value, PvfEquipmentSlots.FirstWornSlot, PvfEquipmentSlots.LastWornSlot));
     }
 
     /// <summary>
