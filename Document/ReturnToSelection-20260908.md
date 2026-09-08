@@ -42,4 +42,7 @@ dotnet test Server/86JP.Server.slnx --artifacts-path E:/Project/DNF/.return-sele
 - [发送流程与实机验收](../protocol/patterns/flow-return-selection.md)
 - [客户端哈希、指令及固定远端提交](../protocol/patterns/data/probes/a21-return-selection-20260908.md)
 
-旧服务端尚在运行；待用户正常退出后切换新构建，再用同一客户端验证返回、外观和重新进入。
+2026-09-08 23:20:38 按用户要求重启，运行实现提交 `94a243f6` 的新构建，PID `47028`。
+Host 构建 0 警告、0 错误；7001 / 10010 / 10011 均已监听，启动日志无错误，继续使用原数据库。
+日志：`Server/src/Dfo.Server.Host/bin/Debug/net10.0/Logs/server-20260908-232038.stdout.log`。
+真实客户端的返回、外观与重新进入仍待用户验证。
