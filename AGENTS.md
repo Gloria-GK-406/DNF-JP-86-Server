@@ -190,13 +190,19 @@ facts。两半合起来才是一条线——一边不许往上摸世界，一边
 解析频道落点、`SelectCharacterLifecycleServices.cs:188` 把它交给坐标服务）。入场之后再没有任何
 东西写它——`Server/src` 全量搜 `Position =` 与 `Position:`，除上面那一处只剩坐标服务对自己私有
 `Standing` 记录的写；也再没有任何东西读它——`Server/src/Dfo.Server.Protocol` 下 `.Position`
-成员访问 **0 处**。而 `ReplaceExact` 有 6 个生产调用点
-（`SelectCharacterLifecycleServices.cs:195`、`DungeonClearSlice.cs:752`、`MonsterDeathSlice.cs:490`、
-`AcceptQuestHandler.cs:106`、`FinishQuestHandler.cs:144`、`TutorialLevelUpSlice.cs:241`），
+成员访问 **0 处**。而 `ReplaceExact` 有 7 个生产调用点
+（`SelectCharacterLifecycleServices`、`DungeonClearSlice`、`MonsterDeathSlice`、
+`AcceptQuestHandler`、`FinishQuestHandler`、`TutorialLevelUpSlice`、`MoveItemSpaceSlice`），
 没有一处在交回去之前动过 `Character.Position`，于是每一次都把入场那一刻的坐标原样搬回。
 **所以快照里的坐标自入场起永久陈旧。** 摘掉这个字段要动 `Dfo.Server.Data` 与五个切片文件，
 **至今没做**；在那之前，**任何从它取坐标的新代码都是错的**——坐标问
 `ICharacterPositionDomainService`。
+
+**物品移动成功后会重新加载 `CharacterInventory` 并替换会话中的该成员。** 副本选择界面和
+PvP 参与者投影随后读到刷新后的装备。读取或更新失败只记日志，已提交移动仍回成功确认；
+这时快照可能保持旧值。`ReplaceExact` 只在锁内检查会话代次，然后整体覆盖结果，不比较结果
+版本；协议 handler 在命令执行门释放后刷新，跨库存读取等待的并发覆盖风险仍在，不能把
+保留读取时其他八个成员的 `with` 表达式当作并发安全合并。
 
 **疲劳有接缝，但接缝不记账。** 唯一注册的实现是
 `UnaccountedCharacterFatigueDomainService`：它答一对定值，对报给它的东西一律丢弃。进本处

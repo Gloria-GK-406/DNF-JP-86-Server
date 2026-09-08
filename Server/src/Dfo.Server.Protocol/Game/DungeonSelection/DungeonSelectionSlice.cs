@@ -353,10 +353,9 @@ internal sealed class EnterSelectDungeonEncoder
 /// does not carry those numbers across into the town actor: it rebuilds the actor when the
 /// selection screen opens and repopulates it from this frame. Re-sending is not redundancy.
 ///
-/// It is rebuilt from the prepared entry state rather than re-read from storage, so it is
-/// byte-identical to the copy sent during selection. The reference server re-reads; nothing
-/// between the two points can change a stat today, and matching what was already sent is the
-/// property worth keeping while that is true.
+/// It is rebuilt from the resident entry state rather than re-read from storage. Successful item
+/// moves refresh that state's inventory, so its equipment can differ from the entry-burst copy.
+/// This path does not recompute the other entry fields from equipment.
 ///
 /// A21 answers with CMD 0x000F carrying a single acceptance byte. This used to send no CMD reply,
 /// on the grounds that the reference server sends none -- true of the A12 reference and not of the
@@ -414,8 +413,7 @@ public sealed class EnterSelectDungeonHandler(
                 session.ConnectionId);
         }
 
-        // Equipment is resolved the same way the selection batch resolves it, because the stat
-        // frame carries the equipped items alongside the stats and the two copies have to agree.
+        // The resident inventory is refreshed after moves; the stat frame must use those items.
         var equipment = result.CharacterInventory.Containers
             .SingleOrDefault(value => value.ContainerType == InventoryContainerType.Equipment)
             ?.Items ?? [];

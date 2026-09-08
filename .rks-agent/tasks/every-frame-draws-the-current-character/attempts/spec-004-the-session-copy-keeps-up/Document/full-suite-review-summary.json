@@ -1,0 +1,20 @@
+{
+  "passed_counts": [
+    631,
+    52,
+    60,
+    333,
+    259,
+    1076,
+    6
+  ],
+  "skipped_counts": [
+    2
+  ],
+  "fail_markers": 0,
+  "compiler_errors": 0,
+  "msbuild_errors": 0,
+  "run_banners": 7,
+  "total_passed": 2417,
+  "total_skipped": 2
+}

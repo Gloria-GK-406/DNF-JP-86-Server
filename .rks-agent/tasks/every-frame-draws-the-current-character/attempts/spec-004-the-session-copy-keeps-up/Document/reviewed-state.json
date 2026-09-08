@@ -1,0 +1,13 @@
+{
+  "head": "1d887c59a84845525963b3e8f7a6ab0ba0654b55",
+  "source_main": "addbeb52bffdd329a85f292f6784200d1146bb28",
+  "product_sha256": {
+    "AGENTS.md": "9ffdb28000225e86aa37c2482618dfc72fa30ab3d6e24a534bf1ee5124e7bd77",
+    "Docs/CharacterEntryFacesInventory.md": "3ad07d4bee0315f3ac6458126f25932797a8bce9d66ceeffd5435f71b6c4875f",
+    "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionSlice.cs": "7b398f191226f18f1a4a377e24ccc32ff75bcea5290686f81961f708904e8167",
+    "Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/MoveItemSpaceSlice.cs": "93abc8df226df8bd06bf986891769bcccc37cefbfae033e6ef1653ea4c4da4a9",
+    "Server/tests/Dfo.Server.Protocol.Tests/Game/MoveItemSpace/TheCharacterChangesAsYouDressItTests.cs": "d39e30ad1d911f6008dcfb28be8d2149bf16837991a29e2b2c15c27a2af6a90e",
+    "protocol/game/client-to-server/0x01E4.md": "6a0ca61cfc8e045f95543e0cd1cac4c13c28f643fe972a7264d02465436337ae",
+    "protocol/patterns/data/traces/a21-tutorial-ending-20260826.md": "fa6997e3fb4976f2725a993fdea53ae6b8344c99fe43721f5588632c9927abf7"
+  }
+}

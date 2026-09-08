@@ -1,0 +1,68 @@
+kind: rks-sdd-execution
+controller: sdd-standard
+contract:
+  path: "./TaskContract.md"
+  revision: 1
+current_stage: verification
+state: in_progress
+parent_controller: "../../multi-spec-map.md"
+artifacts:
+  spec: "./spec.md"
+  reader_enumeration: "./reader-enumeration.md"
+  behavior_change_list: "./behavior-change-list.md"
+  plan: "./plan.md"
+  result: "./Document/spec-result.md"
+  change_review: "./Document/change-review-r2.md"
+  completion_evidence: "./Document/completion-evidence.md"
+stages:
+- id: spec
+  reads:
+  - contract
+  skills:
+  - writing-specs
+  gate: none
+  done_when: spec defines the failure and accepted corrected behavior
+  writes:
+  - spec
+- id: plan
+  reads:
+  - spec
+  skills:
+  - writing-plans
+  gate: none
+  done_when: plan covers cause investigation, fix, regression, and verification
+  writes:
+  - reader_enumeration
+  - plan
+- id: implementation
+  reads:
+  - plan
+  skills:
+  - executing-tasks
+  - systematic-debugging
+  - test-driven-development
+  gate: auto
+  done_when: demonstrated cause is fixed with regression evidence
+  writes:
+  - behavior_change_list
+- id: review
+  reads:
+  - contract
+  - spec
+  - plan
+  skills:
+  - reviewing-code
+  gate: auto
+  done_when: complete fix is approved with no unresolved blocking findings
+  writes:
+  - change_review
+- id: verification
+  reads:
+  - contract
+  - change_review
+  skills:
+  - verification-before-completion
+  gate: auto
+  done_when: fresh evidence proves the fix and every TaskContract success condition
+  writes:
+  - completion_evidence

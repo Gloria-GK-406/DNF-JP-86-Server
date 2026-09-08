@@ -1,5 +1,12 @@
 # A21 新手副本的结尾:穿装备、奖励药、升级、通关
 
+> 2026-09-08 实现状态更正（代码基准 `1d887c59`，含物品移动快照刷新修改；代码推导，Confirmed，非新增抓包）：
+> 下文“少发中间两帧／快照没有局部更新路径”是历史状态。当前
+> `Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs` 已刷新任务状态并发送
+> `AvailableQuestListMessage`；物品移动另会刷新 `CharacterInventory`。
+> 这些局部更新不代表升级后的完整 USERINFO 重投影已经实现。原始取证与帧布局保持原记载。
+
+
 **2026-08-26。** 判据仍是三层:
 
 1. **对照抓包。** 8/22 那次上游 `ServerS4A21` 会话跑完了整个教学(4 次

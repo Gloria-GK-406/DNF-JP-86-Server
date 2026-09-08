@@ -4,32 +4,30 @@ contract:
   path: ./TaskContract.md
   revision: 1
 phase: child_execution
-phase_state: pending
-active_attempt: spec-003
+phase_state: in_progress
+active_attempt: spec-004
 last_transition: child-created
 transition_evidence: >-
-  Child spec-003-a-restated-move-does-not-undo-itself created at
-  attempts/spec-003-a-restated-move-does-not-undo-itself/ inside the task root, with a ready TaskContract
-  (revision 1, C-1..C-8, parent ../../TaskContract.md, contributes_to SC-6/SC-7/SC-10/SC-11, depends_on
-  empty) and a routing decision whose Controller Selection is left for single-spec-workflow. spec-002's row
-  was sealed and active_attempt was null before this; no other row is running. Preceding safe-successor
-  evidence: root evaluation at 19fa03d6 found SC-1..SC-5 satisfied, SC-7/SC-10/SC-11 in_progress,
-  SC-6/SC-8/SC-9 not_started, all constraints aligned; the bounded route is issue #14, third in the owner's
-  fixed order, and the owner said 「可以」 to it after being told its two peculiarities.
+  Child spec-004-the-session-copy-keeps-up created at attempts/spec-004-the-session-copy-keeps-up/ inside
+  the task root, with a ready TaskContract (revision 1, C-1..C-9, parent ../../TaskContract.md,
+  contributes_to SC-8/SC-9/SC-7/SC-10/SC-11, depends_on empty) and a routing decision selecting
+  sdd-standard / code-bugfix. spec-003's row was sealed and active_attempt was null before this. The plan
+  stage is where the enumeration becomes a chosen treatment, which is why Standard was selected over Lite:
+  the choice among three treatments is genuinely open and its input has not been gathered.
 workspace:
   repository_root: E:/Project/DNF/DNF-JP-86-Server
   task_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/every-frame-draws-the-current-character/.rks-agent/tasks/every-frame-draws-the-current-character
   code_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/every-frame-draws-the-current-character
   branch: every-frame-draws-the-current-character
-  baseline: 19fa03d6
+  baseline: 1d887c59
   baseline_evidence: >-
-    At 19fa03d6 (spec-002 accepted):
+    At 1d887c59 (spec-003 accepted):
     `PVF_ARCHIVE_PATH=E:/Project/DNF/DNFClient-A21-protocol/Script.pvf dotnet test Server/86JP.Server.slnx --nologo`
-    exited 0 with 2401 passed, 2 skipped, 0 failed -- Pvf 60, Networking 52, Protocol 615, Host 6,
-    Persistence 333, Infrastructure 259 (+2 skipped), Application 1076. Every assembly equals the 77ff3236
-    baseline except Protocol, which is 612 + 3. Output kept at
-    scratchpad/efdcc/spec002-final-verification.txt; searched for `[FAIL]`, `error CS` and `MSB<digit>`,
-    zero matches each, seven test-run banners present. No `Dfo.Server.Host` process was running.
+    exited 0 with 2409 passed, 2 skipped, 0 failed -- Pvf 60, Networking 52, Protocol 623, Host 6,
+    Persistence 333, Infrastructure 259 (+2 skipped), Application 1076. Every assembly equals the 19fa03d6
+    baseline except Protocol, which is 615 + 8. Output kept at
+    scratchpad/efdcc/spec003-verification.txt; searched for `[FAIL]`, `error CS` and `MSB<digit>`, zero
+    matches each, seven test-run banners present. No `Dfo.Server.Host` process was running.
 ---
 
 # Multi-Spec Map
@@ -96,12 +94,12 @@ Nothing here pre-creates a later Spec. Each is modelled from the accepted baseli
 | SC-3 | Entry roster frame and selection frame draw appearance from the same source | satisfied | `spec-002` at `19fa03d6`; mutation M-B on the shared projection reddens 6 cases across all three sides that draw a character | none | aligned |
 | SC-4 | Every moved byte-anchor frame named with its new value and reason; others byte-identical | satisfied | `spec-002` at `19fa03d6`; all 62 hashes unchanged, and the frame is not in the anchor at all -- established, not assumed | none | aligned |
 | SC-5 | `appearance_blob` and its decoder kept or retired by whether a reader remains, with the search recorded | satisfied | `spec-002` at `19fa03d6`; both kept as one unretired unit, decision and enumeration in its `behavior-change-list.md` D-1/D-2 | none; retiring the unit whole is successor work | aligned |
-| SC-6 | A restated take-off does not put the costume back on, or the finding that the two cannot be told apart | not_started | none | All of it | aligned |
-| SC-7 | Every altered refusal and admission path listed in both directions, derived from the code | in_progress | `spec-002` at `19fa03d6`; three forward, three reverse, including a removed refusal invisible in the diff | The remaining attempts each owe their own list | aligned |
+| SC-6 | A restated take-off does not put the costume back on, or the finding that the two cannot be told apart | satisfied | `spec-003` at `1d887c59`; the two are told apart by the request contradicting the store, and the one shape that could misfire is recorded rather than argued away | none in code; whether a restatement is byte-identical is unobserved and recorded as a premise | aligned |
+| SC-7 | Every altered refusal and admission path listed in both directions, derived from the code | in_progress | `spec-002` at `19fa03d6` and `spec-003` at `1d887c59`; the latter reports 7 new refusal conditions across four dispatch paths, the fourth of which the walk missed and review found | spec-004 owes its own list | aligned |
 | SC-8 | Readers of the session's inventory copy enumerated completely, across dispatch and registry frontiers | not_started | none | All of it | aligned |
 | SC-9 | A screen reading that copy shows what the character has after a move, by the justified treatment | not_started | none | All of it | aligned |
-| SC-10 | Falsified repository records corrected, including counts stated in prose | in_progress | `spec-002` at `19fa03d6` corrected four, one of which it had itself falsified twice | The remaining attempts may falsify more | aligned |
-| SC-11 | The check suite passes on the accepted result, with counts stated and any failure classified | in_progress | 2401 / 2 / 0 at `19fa03d6`, output retained and searched; earlier, one run that never executed was caught by reading output rather than the exit code | Must hold again on each later accepted result and at root verification | aligned |
+| SC-10 | Falsified repository records corrected, including counts stated in prose | in_progress | `spec-002` corrected four; `spec-003` corrected four more, one of them twice -- a record it had itself corrected went stale again | spec-004 may falsify more | aligned |
+| SC-11 | The check suite passes on the accepted result, with counts stated and any failure classified | in_progress | 2409 / 2 / 0 at `1d887c59`, output retained and searched; earlier, one run that never executed was caught by reading output rather than the exit code | Must hold again at root verification | aligned |
 
 ## Spec Attempts
 
@@ -111,4 +109,5 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 |---:|---|---|---|---|---|---|---|
 | `1` | `spec-001` | `attempts/spec-001-the-stored-appearance-decoder-is-pinned/TaskContract.md` | The behaviour of `DecodeAppearances` is pinned by checks, and the record separates the pre-existing coverage gap from the one the previous round removed | `SC-1, SC-2, SC-11` | `sealed` | `completed` | `77ff3236` |
 | `2` | `spec-002` | `attempts/spec-002-both-rosters-draw-what-is-worn/TaskContract.md` | Both roster frames draw a character's appearance from what it wears, and the stored column's fate is decided by whether a reader remains | `SC-3, SC-4, SC-5, SC-7, SC-10, SC-11` | `sealed` | `completed` | `19fa03d6` |
-| `3` | `spec-003` | `attempts/spec-003-a-restated-move-does-not-undo-itself/TaskContract.md` | A move the client restates does not carry itself out again, or the finding that a restatement cannot be told apart from a fresh drag | `SC-6, SC-7, SC-10, SC-11` | `running` | `pending` | `active` |
+| `3` | `spec-003` | `attempts/spec-003-a-restated-move-does-not-undo-itself/TaskContract.md` | A move the client restates does not carry itself out again, or the finding that a restatement cannot be told apart from a fresh drag | `SC-6, SC-7, SC-10, SC-11` | `sealed` | `completed` | `1d887c59` |
+| `4` | `spec-004` | `attempts/spec-004-the-session-copy-keeps-up/TaskContract.md` | The readers of the session's inventory copy are known, and a screen that reads it shows what the character has after a move | `SC-8, SC-9, SC-7, SC-10, SC-11` | `running` | `pending` | `active` |

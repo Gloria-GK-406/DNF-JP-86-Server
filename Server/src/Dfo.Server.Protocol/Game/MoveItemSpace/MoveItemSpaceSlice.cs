@@ -755,7 +755,7 @@ public sealed class MoveItemSpaceHandler(
         var (response, result) = await ResolveAsync(context, message, cancellationToken)
             .ConfigureAwait(false);
         List<IGameServerMessage> frames = [response];
-        if (result?.Status is ItemMoveStatus.Moved && ChangesWhatTheCharacterLooksLike(message))
+        if (result?.Status is ItemMoveStatus.Moved)
         {
             // Nothing raised while working out the appearance may cost the player the
             // acknowledgement. The move is committed by this point and the client holds the
@@ -765,7 +765,9 @@ public sealed class MoveItemSpaceHandler(
             // the acknowledgement, alone.
             try
             {
-                if (await this.AppearanceAsync(context, cancellationToken).ConfigureAwait(false)
+                if (await this.RefreshSessionAsync(
+                        context, ChangesWhatTheCharacterLooksLike(message), cancellationToken)
+                        .ConfigureAwait(false)
                     is { } appearance)
                 {
                     frames.Add(appearance);
@@ -775,8 +777,7 @@ public sealed class MoveItemSpaceHandler(
             {
                 logger.LogError(
                     failure,
-                    "Move item space {ConnectionId}: the move stands and the appearance was not "
-                        + "sent",
+                    "Move item space {ConnectionId}: the move stands; inventory refresh or appearance failed",
                     context.Connection.ConnectionId);
             }
         }
@@ -808,27 +809,15 @@ public sealed class MoveItemSpaceHandler(
             && StateSynchronizationPayloadCodec.CurrentUserStateDrawsFrom(
                 message.DestinationSlotIndex));
 
-    /// <summary>What the character wears now, read back from the store rather than the session.</summary>
+    /// <summary>Reloads inventory for the resident copy and the optional appearance frame.</summary>
     /// <remarks>
-    /// The session carries a copy of the character's inventory, and it is the copy taken when the
-    /// character was selected: `ReplaceExact` is called in eight places and none of them is after an
-    /// item move. Building this frame from that copy would send the client the picture it already
-    /// has, which is the whole of the defect this answers -- so the equipment is loaded again.
-    /// <para>
-    /// <b>The session's copy is deliberately left as it was.</b> Refreshing it would change what
-    /// every other reader of it draws -- the dungeon selection screen takes its equipment from
-    /// there -- and that is a different outcome from this one. The two disagree, and they disagreed
-    /// before this frame existed.
-    /// </para>
-    /// <para>
-    /// Nothing is built when the session cannot be read. A frame drawn from a session that is no
-    /// longer there would describe someone else's character or none at all, and the move stands
-    /// either way -- it was committed before this was asked, and the acknowledgement carrying it
-    /// goes out whether or not this answers.
-    /// </para>
+    /// Dungeon selection and PvP participant projection read this copy's equipment. Reload once
+    /// after a committed move so those consumers and the immediate appearance use the same items.
+    /// ReplaceExact checks the generation, not the result version: a concurrent writer can still
+    /// be overwritten across this load. It does not make the aggregate safe for concurrent refreshes.
     /// </remarks>
-    private async ValueTask<IGameServerMessage?> AppearanceAsync(
-        NetworkDispatchContext context, CancellationToken cancellationToken)
+    private async ValueTask<IGameServerMessage?> RefreshSessionAsync(
+        NetworkDispatchContext context, bool draw, CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
         if (session is null || !runtimeSessions.TryGet(session, out var state, out _)
@@ -840,6 +829,13 @@ public sealed class MoveItemSpaceHandler(
         var reloaded = await inventories
             .LoadAsync(session.AccountId, session.CharacterId, cancellationToken)
             .ConfigureAwait(false);
+
+        // Preserve the other members of the snapshot read above; a generation change during
+        // the load is refused by ReplaceExact and leaves only the committed move's acknowledgement.
+        runtimeSessions.ReplaceExact(session, state with { CharacterInventory = reloaded });
+
+        if (!draw) return null;
+
         var equipment = reloaded.Containers
             .SingleOrDefault(value => value.ContainerType == InventoryContainerType.Equipment)
             ?.Items ?? [];
