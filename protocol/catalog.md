@@ -41,7 +41,7 @@
 | `0x01` | `0x0004` | `SELECT_CHARACTER` | Mutation / 有响应 | 实现服务端功能 | [0x0004.md](game/client-to-server/0x0004.md) |
 | `0x01` | `0x0005` | `CREATE_CHARACTER` | Mutation / 有响应 | 实现服务端功能 | [0x0005.md](game/client-to-server/0x0005.md) |
 | `0x01` | `0x0006` | `DELETE_CHARACTER` | Mutation / 有响应 | 实现服务端功能 | [0x0006.md](game/client-to-server/0x0006.md) |
-| `0x01` | `0x0007` | `RETURN_SELECT_CHARACTER` | Mutation / 有响应 | 实现服务端功能 | [0x0007.md](game/client-to-server/0x0007.md) |
+| `0x01` | `0x0007` | `RETURN_SELECT_CHARACTER` | Mutation / 有响应 | 双向验证结束（A21） | [0x0007.md](game/client-to-server/0x0007.md) |
 | `0x01` | `0x0008` | GET_USERINFO | Query / 有响应 | 双向验证结束 | [0x0008.md](game/client-to-server/0x0008.md) |
 | `0x01` | `0x000F` | `ENTER_SELECT_DUNGEON` | Query / 推 NOTI | 实现服务端功能 | [0x000F.md](game/client-to-server/0x000F.md) |
 | `0x01` | `0x0010` | `SELECT_DUNGEON` | Query / 有响应 | **已观察，未实现**（开副本运行） | [0x0010.md](game/client-to-server/0x0010.md) |
@@ -146,9 +146,10 @@ python patterns/data/check-a12-residue.py . --list-mixed
 逐条差异记在各自文档的 `## A21` 一节，流程层差异见
 [进入世界](patterns/world-entry.md)。
 
-**没有一条协议在 A21 上达到过「双向验证结束」**：本轮迁移的判据是一份 A21 参照会话的
-逐帧比对与实机行为，**没有任何 body 布局取得指令级证据**。表里仍写着「双向验证结束」的行，
-说的是它在 A12 上的状态。
+历史行的「双向验证结束」默认描述 A12，不能直接视为 A21 已验证。
+**2026-09-08：`0x0007 RETURN_SELECT_CHARACTER` 已取得当前 A21 指令证据，并完成两轮返回选人、
+再次进入的实机验证**，上表单独标记 A21；见[本次实机记录](patterns/data/traces/a21-return-selection-live-20260908.md)。
+其余协议应以各自最新证据判定，不再用“所有协议都未验证”的全局结论代替逐条状态。
 
 > 上面这句原本还写着「没有对 A21 客户端做过静态普查」。那一条已经不成立：2026-08-24 对 A21
 > 镜像重跑了完整的身份普查与布局提取（[锚点](patterns/data/probes/a21-census-anchors.md)），

@@ -1,6 +1,6 @@
 # CMD 0x0007 返回选人实现
 
-实现分支：`main`。协议处于“实现服务端功能”，真实客户端闭环尚待验证。
+实现分支：`main`。协议处于“双向验证结束（A21）”，部署后两轮返回选人并再次进入通过，用户已确认。
 
 ## 行为
 
@@ -45,4 +45,5 @@ dotnet test Server/86JP.Server.slnx --artifacts-path E:/Project/DNF/.return-sele
 2026-09-08 23:20:38 按用户要求重启，运行实现提交 `94a243f6` 的新构建，PID `47028`。
 Host 构建 0 警告、0 错误；7001 / 10010 / 10011 均已监听，启动日志无错误，继续使用原数据库。
 日志：`Server/src/Dfo.Server.Host/bin/Debug/net10.0/Logs/server-20260908-232038.stdout.log`。
-真实客户端的返回、外观与重新进入仍待用户验证。
+真实客户端已完成两轮返回选人并再次进入，用户反馈测试无问题。
+[实机记录与覆盖范围](../protocol/patterns/data/traces/a21-return-selection-live-20260908.md)；未逐字段确认外观或覆盖所有职业及错误分支。
