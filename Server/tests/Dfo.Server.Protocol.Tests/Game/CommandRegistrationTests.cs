@@ -6,6 +6,7 @@ using Dfo.Server.Protocol;
 using Dfo.Server.Protocol.Game.CreateCharacter;
 using Dfo.Server.Protocol.Game.DeleteCharacter;
 using Dfo.Server.Protocol.Game.Login;
+using Dfo.Server.Protocol.Game.ReturnToSelection;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Dfo.Server.Protocol.Game.SelectCharacter;
 using Dfo.Server.Protocol.Game.TaggedIdReport;
@@ -104,6 +105,18 @@ public sealed class CommandRegistrationTests
                 $"{command.Name} is not registered at all.");
             Assert.Equal(CommandExecutionKind.Transactional, kind);
         }
+    }
+
+    [Fact]
+    public void Return_saves_in_a_transaction_and_cleans_up_outside_it()
+    {
+        using var provider = BuildProductionGraph();
+        var registrations = provider.GetServices<CommandHandlerRegistration>()
+            .ToDictionary(value => value.CommandType);
+        Assert.Equal(CommandExecutionKind.Transactional,
+            registrations[typeof(PrepareReturnToSelectionCommand)].ExecutionKind);
+        Assert.Equal(CommandExecutionKind.Workflow,
+            registrations[typeof(CompleteReturnToSelectionCommand)].ExecutionKind);
     }
 
     /// <remarks>

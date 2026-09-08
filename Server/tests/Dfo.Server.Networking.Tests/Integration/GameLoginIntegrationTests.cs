@@ -92,6 +92,26 @@ public sealed class GameLoginIntegrationTests
                 Assert.True(onlineUsers.TryGetByConnection(connectionId, out var authenticated));
                 Assert.Equal(OnlineUserState.Authenticated, authenticated!.State);
                 Assert.NotNull(authenticated.AccountId);
+
+                for (var i = 0; i < 6; i++)
+                    _ = await ReadFrameAsync(client.GetStream(), timeout.Token);
+
+                // Returning from the roster itself is idempotent and preserves authentication.
+                await client.GetStream().WriteAsync(EncodeClientFrame(1, 7, []), timeout.Token);
+                var returned = await ReadFrameAsync(client.GetStream(), timeout.Token);
+                Assert.Equal(1, returned[0]);
+                Assert.Equal(7, BinaryPrimitives.ReadUInt16LittleEndian(returned.AsSpan(1)));
+                Assert.Equal(new byte[] { 1 }, returned[15..]);
+                var roster = await ReadFrameAsync(client.GetStream(), timeout.Token);
+                Assert.Equal(0, roster[0]);
+                Assert.Equal(2, BinaryPrimitives.ReadUInt16LittleEndian(roster.AsSpan(1)));
+                Assert.Equal(0, roster[7]);
+                Assert.Equal(2, roster[15]);
+                var honor = await ReadFrameAsync(client.GetStream(), timeout.Token);
+                Assert.Equal(0x0289, BinaryPrimitives.ReadUInt16LittleEndian(honor.AsSpan(1)));
+                Assert.True(onlineUsers.TryGetByConnection(connectionId, out var stillLoggedIn));
+                Assert.Equal(authenticated.AccountId, stillLoggedIn!.AccountId);
+                Assert.Equal(OnlineUserState.Authenticated, stillLoggedIn.State);
             }
 
             await WaitUntilAsync(

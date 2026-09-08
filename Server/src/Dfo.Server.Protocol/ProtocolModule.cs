@@ -38,6 +38,7 @@ using Dfo.Server.Protocol.Game.StoryPause;
 using Dfo.Server.Protocol.Game.UseStackable;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.Exit;
+using Dfo.Server.Protocol.Game.ReturnToSelection;
 using Dfo.Server.Protocol.Game.HiddenCharacterInfo;
 using Dfo.Server.Protocol.Game.HonorLevel;
 using Dfo.Server.Protocol.Game.InitialConnection;
@@ -80,6 +81,7 @@ public sealed class ProtocolModule : IServerModule
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.AddGameMessageSending();
+        services.TryAddSingleton<CharacterSelectionDelivery>();
         // Every notification type declared in this assembly must have a handler registered below,
         // and the server refuses to start if one does not. Declared rather than discovered: the
         // check is only worth having while something says which assemblies it covers, and this
@@ -121,6 +123,10 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<GrantClearExperienceCommand, ClearExperienceResult, GrantClearExperienceCommandHandler>(
             CommandExecutionKind.Transactional);
+        services.AddCommandHandler<PrepareReturnToSelectionCommand, PreparedReturnToSelection, PrepareReturnToSelectionCommandHandler>(
+            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<CompleteReturnToSelectionCommand, CompletedReturnToSelection, CompleteReturnToSelectionCommandHandler>(
+            CommandExecutionKind.Workflow, accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<AcknowledgeGameExitCommand, AcknowledgeGameExitResult, AcknowledgeGameExitCommandHandler>(
             CommandExecutionKind.Direct);
         // Every command below reaches a write that outlives the process, so every one of them
@@ -228,6 +234,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<ChannelScriptVersionHandler>(ClientMessageType.ChannelScriptVersion);
         services.RegisterMessageHandler<ChannelScriptHandler>(ClientMessageType.ChannelScript);
         services.RegisterMessageHandler<ChannelInfoHandler>(ClientMessageType.ChannelInfo);
+        services.RegisterMessageHandler<ReturnToSelectionHandler>(ClientMessageType.GameReturnToSelection);
         services.RegisterMessageHandler<GameExitHandler>(ClientMessageType.GameExit);
         services.RegisterMessageHandler<GameLoginHandler>(ClientMessageType.GameLogin);
         services.RegisterMessageHandler<GetAccountCharacterRosterHandler>(
@@ -320,6 +327,8 @@ public sealed class ProtocolModule : IServerModule
     {
         services.AddGameCmdMessageDecoder<GameLoginMessageDecoder>(
             GameProtocol.LoginType, ClientMessageType.GameLogin);
+        services.AddGameCmdMessageDecoder<ReturnToSelectionMessageDecoder>(
+            GameProtocol.ReturnToSelectionType, ClientMessageType.GameReturnToSelection);
         services.AddGameCmdMessageDecoder<GameExitMessageDecoder>(
             GameProtocol.ExitType, ClientMessageType.GameExit);
         services.AddGameCmdMessageDecoder<SelectCharacterMessageDecoder>(
@@ -486,6 +495,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddServerMessageEncoder<ChannelInfoResponse, ChannelInfoResponseEncoder>(
             NetworkEndpointKind.Channel);
         services.AddGameCmdMessageEncoder<GameExitResponse, GameExitResponseEncoder>();
+        services.AddGameCmdMessageEncoder<ReturnToSelectionResponse, ReturnToSelectionResponseEncoder>();
         services.AddGameNotiMessageEncoder<GameInitialConnectionNotice, GameInitialConnectionNoticeEncoder>();
         services.AddGameCmdMessageEncoder<GameLoginResponse, GameLoginResponseEncoder>();
         services.AddGameNotiMessageEncoder<AccountCharacterRosterResponse, AccountCharacterRosterResponseEncoder>();

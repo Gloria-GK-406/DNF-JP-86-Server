@@ -15,6 +15,8 @@ internal static class GameProtocol
 
     public const ushort LoginType = 0x0001;
 
+    public const ushort ReturnToSelectionType = 0x0007;
+
     public const ushort ExitType = 0x0003;
 
     public const ushort SelectCharacterType = 0x0004;

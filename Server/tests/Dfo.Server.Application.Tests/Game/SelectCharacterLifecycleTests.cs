@@ -26,7 +26,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Dfo.Server.Application.Tests.Game;
 
-public sealed class SelectCharacterLifecycleTests
+public sealed partial class SelectCharacterLifecycleTests
 {
     [Fact]
     public async Task Success_OrdersRequiredDeliveryBeforePublicationAndPostEntryStages()
@@ -765,9 +765,11 @@ public sealed class SelectCharacterLifecycleTests
 
         public int Claims { get; private set; }
         public int Saves { get; private set; }
+        public bool FailSave { get; set; }
         public ValueTask SaveExistingLeaseAsync(SelectedSessionIdentity previousSession,
             CancellationToken cancellationToken)
         {
+            if (FailSave) throw new IOException("inventory save failed");
             Saves++;
             return ValueTask.CompletedTask;
         }
