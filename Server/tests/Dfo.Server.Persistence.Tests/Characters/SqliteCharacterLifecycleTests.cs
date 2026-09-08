@@ -326,19 +326,24 @@ public sealed class SqliteCharacterLifecycleTests
     }
 
     /// <summary>
-    /// The stored blob is left exactly as it was, and the entry burst's roster frame still reads it.
+    /// The stored blob is left exactly as it was, and nothing reads it any more.
     /// </summary>
     /// <remarks>
-    /// <b>The two screens now disagree, and this is where that is checkable.</b> The
-    /// character-selection roster derives from what is worn; the roster frame inside the entry
-    /// burst reads <c>characters.appearance_blob</c> through the entry-state load, and that column
-    /// still holds only what creation wrote -- creation's own filter, which stops at slot thirteen,
-    /// and three of a part's eight fields. Nothing here writes it, removes it, or brings it up to
-    /// date; that is a decision of its own and this records where it is still consumed so whoever
-    /// makes it can find it.
+    /// <b>Both rosters derive from what is worn now, and this is where the storage side of that is
+    /// checkable.</b> It used to say the two disagreed, because the entry burst's roster frame read
+    /// <c>characters.appearance_blob</c> through the entry-state load while the selection screen
+    /// derived from equipment; the entry frame was moved onto the same derivation afterwards, and
+    /// this remark is corrected rather than left standing.
+    /// <para>
+    /// The column itself is unchanged by any of that. It still holds only what creation wrote --
+    /// creation's own filter, which stops at slot thirteen, and three of a part's eight fields --
+    /// and nothing writes it, removes it, or brings it up to date. What is different is that
+    /// nothing decodes it any more either. Retiring it is a storage decision with a migration
+    /// behind it.
+    /// </para>
     /// </remarks>
     [Fact]
-    public Task TheEntryBurstStillReadsTheBlobCreationWrote()
+    public Task TheStoredBlobIsLeftAloneAndNoLongerRead()
     {
         var directory = Path.Combine(Path.GetTempPath(), $"dfo-character-{Guid.NewGuid():N}");
         Directory.CreateDirectory(directory);

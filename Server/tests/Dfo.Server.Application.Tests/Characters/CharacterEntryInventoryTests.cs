@@ -728,10 +728,24 @@ public sealed class CharacterEntryInventoryTests
                     state.Progression.Level,
                     0,
                     null)]));
+        // It refused until the entry burst started drawing the roster, and "this stand-in draws no
+        // roster" was a statement about the production path rather than about the stand-in. The
+        // character these cases enter with wears nothing the roster draws, so an empty appearance is
+        // what the real listing would answer -- and these cases are about lifecycle and ordering,
+        // not about what anybody is wearing.
         public ValueTask<AccountCharacterRoster> GetAccountRosterWithAppearanceAsync(
             AccountId accountId,
             CancellationToken cancellationToken) =>
-            throw new NotSupportedException("This stand-in draws no roster.");
+            ValueTask.FromResult(new AccountCharacterRoster(accountId, 24,
+                [new CharacterSummary(
+                    state.Identity.CharacterId,
+                    state.Identity.SlotIndex,
+                    state.Identity.Name,
+                    state.Identity.Job,
+                    state.Identity.GrowType,
+                    state.Progression.Level,
+                    0,
+                    [])]));
 
         public ValueTask<ActiveCharacterState> LoadForSelectionAsync(
             AccountId accountId,

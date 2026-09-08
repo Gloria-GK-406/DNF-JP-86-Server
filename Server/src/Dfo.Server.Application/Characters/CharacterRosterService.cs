@@ -140,11 +140,16 @@ internal sealed class CharacterRosterService(
     /// they have. Observed live on 2026-09-08.
     /// <para>
     /// What is drawn is asked of <see cref="DrawnAppearance"/>, which is the same answer the
-    /// in-world frame writes. The blob is neither written nor removed by this: it stays exactly as
-    /// it was, and the entry burst's own roster frame still reads it
-    /// (<c>SelectCharacterPreparationService.BuildRosterEntryAsync</c>, through
-    /// <c>CharacterEntryStateTables</c>). <b>The two screens therefore disagree</b> until something
-    /// decides about the second one; that is recorded rather than left to be discovered.
+    /// in-world frame writes. <b>The entry burst's roster frame asks this listing too</b>, so the
+    /// two screens agree: <c>SelectCharacterPreparationService.BuildRosterEntryAsync</c> takes the
+    /// appearance off these summaries rather than decoding the stored blob. They disagreed between
+    /// <c>35aaedf3</c> and the change that fixed it, and that gap is why this paragraph exists.
+    /// <para>
+    /// The blob is neither written nor removed by any of this. It is still written once at
+    /// creation and still loaded with the entry state; what changed is that nothing decodes it any
+    /// more. Retiring the column is a storage decision with a migration behind it and belongs to
+    /// whoever takes that on.
+    /// </para>
     /// </para>
     /// <para>
     /// A character wearing nothing has no rows in the second read and is drawn wearing nothing,

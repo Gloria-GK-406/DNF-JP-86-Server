@@ -5,44 +5,36 @@ contract:
   revision: 1
 phase: child_execution
 phase_state: pending
-active_attempt: spec-001
+active_attempt: spec-002
 last_transition: child-created
 transition_evidence: >-
-  Child spec-001-the-stored-appearance-decoder-is-pinned created at
-  attempts/spec-001-the-stored-appearance-decoder-is-pinned/ inside the task root, with a ready
-  TaskContract (revision 1, C-1..C-6, parent ../../TaskContract.md, contributes_to SC-1/SC-2/SC-11,
-  depends_on empty) and a routing decision whose Controller Selection is left for single-spec-workflow.
-  No attempt row existed before this one and no child was active. Preceding safe-successor evidence --
-  bounded route: pin the behaviour of SelectCharacterPreparationService.DecodeAppearances with checks, and
-  record which half of the missing coverage was always missing and which half the previous round removed.
-  It closes SC-1 and SC-2, needs no production change, and is the owner-fixed prerequisite for the attempt
-  that replaces that decoder's only reader. It sits wholly inside the root task's authorized scope (issue
-  #19, first in the owner's order), so the root task Authorization row covers it with no expansion.
-  Preceding transitions:
-  workspace-ready was established first: worktree created from addbeb52 at
-  .worktrees/every-frame-draws-the-current-character on branch every-frame-draws-the-current-character;
-  startup artifacts moved with matching sha256 on both ends (TaskContract.md 8eb5c334...,
-  routing-decision.md 4c34fa68...) and the source copies removed; the main checkout is still on main at
-  addbeb52 with an empty status; the worktree's only change is the untracked task folder; the baseline
-  suite passed in the worktree. Root evaluation against that accepted baseline then found every one of
-  SC-1..SC-11 at not_started with no accepted evidence, since addbeb52 is the commit that created these
-  gaps rather than one that closed any. All eleven constraints are aligned: the baseline run is green, the
-  byte anchor is intact, and nothing has been changed yet.
+  Child spec-002-both-rosters-draw-what-is-worn created at attempts/spec-002-both-rosters-draw-what-is-worn/
+  inside the task root, with a ready TaskContract (revision 1, C-1..C-8, parent ../../TaskContract.md,
+  contributes_to SC-3/SC-4/SC-5/SC-7/SC-10/SC-11, depends_on empty) and a routing decision whose Controller
+  Selection is left for single-spec-workflow. spec-001's row was sealed and active_attempt was null before
+  this; no other row is running. Preceding safe-successor evidence -- root evaluation at baseline 77ff3236
+  found SC-1 and SC-2 satisfied by spec-001, SC-11 in_progress, SC-3..SC-10 not_started, and all eleven
+  constraints aligned; the bounded route is to make the entry burst's roster frame draw a character's
+  appearance from what the character wears, through the projection the character-selection frame already
+  uses, and then decide by evidence whether characters.appearance_blob and its decoder still have a reader.
+  Issue #16, second in the owner's fixed order, wholly inside the root task's authorized scope.
 workspace:
   repository_root: E:/Project/DNF/DNF-JP-86-Server
   task_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/every-frame-draws-the-current-character/.rks-agent/tasks/every-frame-draws-the-current-character
   code_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/every-frame-draws-the-current-character
   branch: every-frame-draws-the-current-character
-  baseline: addbeb52bffdd329a85f292f6784200d1146bb28
+  baseline: 77ff3236
   baseline_evidence: >-
-    In the worktree at addbeb52:
+    At 77ff3236 (spec-001 accepted):
     `PVF_ARCHIVE_PATH=E:/Project/DNF/DNFClient-A21-protocol/Script.pvf dotnet test Server/86JP.Server.slnx --nologo`
-    exited 0 with 2392 passed, 2 skipped, 0 failed -- Pvf 60, Networking 52, Protocol 612, Host 6,
-    Persistence 333, Infrastructure 259 (+2 skipped), Application 1070. The two skips are
+    exited 0 with 2398 passed, 2 skipped, 0 failed -- Pvf 60, Networking 52, Protocol 612, Host 6,
+    Persistence 333, Infrastructure 259 (+2 skipped), Application 1076. Every assembly equals the addbeb52
+    baseline except Application, which is 1070 + 6, the six cases spec-001 added. The two skips are
     `PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message` and
     `PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog`;
     their being skipped is the sign the archive loaded. Output kept at
-    scratchpad/efdcc/baseline.txt. No `Dfo.Server.Host` process was running.
+    scratchpad/efdcc/spec001-verification.txt, and at scratchpad/efdcc/baseline.txt for the 2392 figure.
+    No `Dfo.Server.Host` process was running.
 ---
 
 # Multi-Spec Map
@@ -104,8 +96,8 @@ Nothing here pre-creates a later Spec. Each is modelled from the accepted baseli
 
 | SC | Requirement | Progress | Evidence | Remaining gap | Constraint |
 |---|---|---|---|---|---|
-| SC-1 | Blob decoding and both refusals proven by checks that fail when the behaviour is altered | not_started | none | All of it | aligned |
-| SC-2 | The record separates the pre-existing coverage gap from the coverage the previous round removed | not_started | none | All of it | aligned |
+| SC-1 | Blob decoding and both refusals proven by checks that fail when the behaviour is altered | satisfied | `spec-001` at `77ff3236`; six cases plus five mutations in its `coverage-record.md`, one of them reddening through a value mismatch | none | aligned |
+| SC-2 | The record separates the pre-existing coverage gap from the coverage the previous round removed | satisfied | `spec-001` at `77ff3236`; `coverage-record.md`, with the deleted case's blob and its three assertions read from `git show 35aaedf3^` | none | aligned |
 | SC-3 | Entry roster frame and selection frame draw appearance from the same source | not_started | none | All of it | aligned |
 | SC-4 | Every moved byte-anchor frame named with its new value and reason; others byte-identical | not_started | none | All of it | aligned |
 | SC-5 | `appearance_blob` and its decoder kept or retired by whether a reader remains, with the search recorded | not_started | none | All of it | aligned |
@@ -114,7 +106,7 @@ Nothing here pre-creates a later Spec. Each is modelled from the accepted baseli
 | SC-8 | Readers of the session's inventory copy enumerated completely, across dispatch and registry frontiers | not_started | none | All of it | aligned |
 | SC-9 | A screen reading that copy shows what the character has after a move, by the justified treatment | not_started | none | All of it | aligned |
 | SC-10 | Falsified repository records corrected, including counts stated in prose | not_started | none | All of it | aligned |
-| SC-11 | The check suite passes on the accepted result, with counts stated and any failure classified | not_started | none | All of it | aligned |
+| SC-11 | The check suite passes on the accepted result, with counts stated and any failure classified | in_progress | 2398 / 2 / 0 at `77ff3236`, output retained; one run that never executed was caught by reading output rather than the exit code | Must hold again on each later accepted result and at root verification | aligned |
 
 ## Spec Attempts
 
@@ -122,4 +114,5 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 
 | # | Attempt | TaskContract | Outcome | Affects | State | Result | Git result |
 |---:|---|---|---|---|---|---|---|
-| `1` | `spec-001` | `attempts/spec-001-the-stored-appearance-decoder-is-pinned/TaskContract.md` | The behaviour of `DecodeAppearances` is pinned by checks, and the record separates the pre-existing coverage gap from the one the previous round removed | `SC-1, SC-2, SC-11` | `running` | `pending` | `active` |
+| `1` | `spec-001` | `attempts/spec-001-the-stored-appearance-decoder-is-pinned/TaskContract.md` | The behaviour of `DecodeAppearances` is pinned by checks, and the record separates the pre-existing coverage gap from the one the previous round removed | `SC-1, SC-2, SC-11` | `sealed` | `completed` | `77ff3236` |
+| `2` | `spec-002` | `attempts/spec-002-both-rosters-draw-what-is-worn/TaskContract.md` | Both roster frames draw a character's appearance from what it wears, and the stored column's fate is decided by whether a reader remains | `SC-3, SC-4, SC-5, SC-7, SC-10, SC-11` | `running` | `pending` | `active` |

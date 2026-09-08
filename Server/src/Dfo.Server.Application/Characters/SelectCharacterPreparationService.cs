@@ -174,8 +174,16 @@ public sealed class SelectCharacterPreparationService(
             cancellationToken).ConfigureAwait(false);
 
         characterEntry = CompleteCollectionBoxProjection(characterEntry, content, preparedAt);
+
+        // The roster read above answers whether the selected character is on the account, and that
+        // question does not need anyone's clothes -- it stays on the listing that works nothing out,
+        // which is one of the four call sites that listing was split off for. The frame below does
+        // need them, so it takes the listing that has them. Two reads of the same summaries is the
+        // price of not putting an equipment read behind a membership check.
+        var drawnRoster = await characters.GetAccountRosterWithAppearanceAsync(
+            accountId, cancellationToken).ConfigureAwait(false);
         var rosterEntry = await BuildRosterEntryAsync(
-            accountId, roster, character.Identity.CharacterId, characterEntry,
+            accountId, drawnRoster, character.Identity.CharacterId, characterEntry,
             characterEntries, cancellationToken).ConfigureAwait(false);
 
         var result = new SelectCharacterResult(
@@ -203,6 +211,25 @@ public sealed class SelectCharacterPreparationService(
             ?? throw new InvalidDataException("PvP skill protocol mirror is unavailable."),
     };
 
+    /// <summary>The roster frame in the entry burst, drawn from what each character wears.</summary>
+    /// <remarks>
+    /// <b>It used to decode <c>characters.appearance_blob</c>, and that column is written once when
+    /// a character is created and by nothing afterwards.</b> A player who dressed a character was
+    /// therefore drawn the character they made rather than the one they have -- on this frame only,
+    /// because the character-selection frame had already been moved onto what is worn. The two
+    /// disagreed in the open until this.
+    /// <para>
+    /// The appearance now arrives on the summaries, worked out by the same listing the
+    /// character-selection frame asks, which is what stops the two drifting apart again: there is
+    /// one place that pairs a roster with what its characters wear, and both frames call it.
+    /// </para>
+    /// <para>
+    /// A null appearance is refused rather than drawn as nothing. Null means "this listing did not
+    /// work it out", which is true of the cheap listing and must never be true here; drawing it as
+    /// an empty appearance would undress every character on the screen and look like a content bug
+    /// rather than a wiring one.
+    /// </para>
+    /// </remarks>
     private static async ValueTask<CharacterRosterEntryState> BuildRosterEntryAsync(
         AccountId accountId,
         AccountCharacterRoster roster,
@@ -223,7 +250,8 @@ public sealed class SelectCharacterPreparationService(
                 checked((uint)Math.Max(0, entry.Public.DerivedStats.Progress1)),
                 checked((uint)Math.Max(0, entry.Public.DerivedStats.Progress2)),
                 0,
-                DecodeAppearances(entry.Public.Appearance.EncodedEntries),
+                summary.Appearances ?? throw new InvalidDataException(
+                    "The account roster this frame is drawn from did not work out appearances."),
                 summary.CloneTitleItemId));
         }
         return new CharacterRosterEntryState(
