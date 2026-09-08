@@ -700,8 +700,15 @@ if (result.Publication.Audience.Count > 0)
 只是第 1 条与第 3 条描述的现象，起因已经变了（时装现在有槽号了）。
 
 **留下的是量具，不是修法。** `MoveItemSpaceHandler.ResolveAsync` 的拒绝记录写作
-`item {ItemId} {From}->{To} refused as {Status}`：`{ItemId}` 是被拒的模板号，
-`{To}` 是**客户端自己写下的**目标槽号（判据 `RefusedEquipIsRecordedWithItsTemplateTests` 整句比对）。
+`item {ItemId} from list {FromList} slot {From} to list {ToList} slot {To} refused as {Status}`：
+`{ItemId}` 是被拒的模板号，`{To}` 是**客户端自己写下的**目标槽号
+（判据 `RefusedEquipIsRecordedWithItsTemplateTests` 整句比对）。
+**2026-09-08 补上了两个列表号**：在那之前这一行只记槽号，而同一对槽号属于好几条不同的路，
+一次实机诊断为此多花了三个来回才把「装扮脱不下来」定位到跨列表移动上。
+**但这一行记的是「请求写了哪两格」，不是「东西往哪边走」。** 一次请求不说哪一端拿着东西，
+服务端按「哪一端有东西就动哪一端」办，而回执与这一行都照抄请求自己的两端（协议要求如此）。
+所以一次反向的脱下会记成 `from list 0 slot 12 to list 3 slot 3`，东西其实是从 `3:3` 到 `0:12`。
+**要判方向就看 `{ItemId}`**：正向时它是源端那件，反向时它是目标端那件。
 **一次实机拖拽就能从这一行读出「哪个模板 → 哪个槽」。** 用它之前要知道三件事，
 **三条的证据类型都是代码路径读出，没有实机观测过**：
 

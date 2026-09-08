@@ -151,7 +151,9 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
 
         Assert.Equal(
             $"Move item space game-avatar-refusal character=60: item {CoatAvatarTemplate} "
-                + $"{BagSlot}->{NamedAvatarSlot} refused as ItemCannotOccupySlot",
+                + $"from list {(byte)InventoryContainerType.Main} slot {BagSlot} "
+                + $"to list {(byte)InventoryContainerType.Equipment} slot {NamedAvatarSlot} "
+                + "refused as ItemCannotOccupySlot",
             Assert.Single(logger.Entries).Message);
         Assert.Equal(
             MoveItemSpaceResponse.NotMovable,
@@ -178,7 +180,9 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
 
         Assert.Equal(
             $"Move item space game-avatar-refusal character=60: item {OrdinaryCoatTemplate} "
-                + $"{BagSlot}->{WrongSlotForACoat} refused as ItemCannotOccupySlot",
+                + $"from list {(byte)InventoryContainerType.Main} slot {BagSlot} "
+                + $"to list {(byte)InventoryContainerType.Equipment} slot {WrongSlotForACoat} "
+                + "refused as ItemCannotOccupySlot",
             Assert.Single(logger.Entries).Message);
     }
 

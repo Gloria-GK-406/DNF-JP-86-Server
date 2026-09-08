@@ -198,6 +198,16 @@ public enum ItemMoveStatus
 
     /// <summary>The archive declares nothing wearable under the identifier the slot holds.</summary>
     NotWearable,
+
+    /// <summary>The request restates a move the client has already been told about.</summary>
+    /// <remarks>
+    /// A drag that has been acknowledged is sometimes sent a second time, with the slot it came
+    /// from now empty and the piece already worn. Read literally that is "the worn piece belongs
+    /// back in this empty cell", which is the reverse of what the player asked for -- so a move
+    /// naming the worn piece's own identifier on its empty end is left alone rather than carried
+    /// out. Nothing is drawn for it: the client is already showing the state it is describing.
+    /// </remarks>
+    MoveAlreadyMade,
 }
 
 /// <summary>Where the item ended up, or why it stayed.</summary>
@@ -221,13 +231,21 @@ public sealed record ItemMoveResult(ItemMoveStatus Status, int MoveValue, int It
 }
 
 /// <summary>One character moving one item between two slots.</summary>
+/// <remarks>
+/// <c>SourceInstanceValue</c> is whatever identity the client named on the source end, and zero
+/// when it named none -- which is what a take-off carries, the identity riding on the other end
+/// instead. It is here for one decision: telling a fresh drag apart from a drag the client is
+/// restating, which read literally are the same two cells the other way round. See
+/// <see cref="ItemMoveStatus.MoveAlreadyMade"/>.
+/// </remarks>
 public sealed record MoveItemSpaceCommand(
     CharacterId CharacterId,
     byte SourceListType,
     short SourceSlotIndex,
     int MoveCount,
     byte DestinationListType,
-    short DestinationSlotIndex) : ICommand<ItemMoveResult>;
+    short DestinationSlotIndex,
+    int SourceInstanceValue = 0) : ICommand<ItemMoveResult>;
 
 /// <summary>
 /// Hands the move to the character's bag and reports what it answered.
@@ -275,6 +293,35 @@ public sealed class MoveItemSpaceCommandHandler(
         MainListType => InventoryContainerType.Main,
         AvatarListType => InventoryContainerType.Avatar,
         _ => null,
+    };
+
+    /// <summary>The same move, said from the end that turned out to be holding the item.</summary>
+    /// <remarks>
+    /// A request does not say which of its two ends the item is on; the client puts it on the end
+    /// the drag started from, and that is either end depending on which way the player dragged.
+    /// Reversing a served pair always gives another served pair -- carrying across becomes carrying
+    /// across the other way, putting on becomes taking off, and taking off becomes putting on --
+    /// so the path that answers the reversed request is one of the three already here, and none of
+    /// the rules about what may sit where has to be restated to reach it.
+    /// <para>
+    /// The identity does not travel. It belonged to the end the client named as the source, and a
+    /// reversed request names none of its own; the one decision that reads it
+    /// (<see cref="ItemMoveStatus.MoveAlreadyMade"/>) has already been made by the time this is
+    /// called.
+    /// </para>
+    /// <para>
+    /// Reversal happens at most once per request. Each path reverses only on finding its own end
+    /// empty, and hands over only after finding the other end occupied -- so the path it hands to
+    /// reads a slot that is known to hold something and goes forward from there.
+    /// </para>
+    /// </remarks>
+    private static MoveItemSpaceCommand Reversed(MoveItemSpaceCommand command) => command with
+    {
+        SourceListType = command.DestinationListType,
+        SourceSlotIndex = command.DestinationSlotIndex,
+        DestinationListType = command.SourceListType,
+        DestinationSlotIndex = command.SourceSlotIndex,
+        SourceInstanceValue = 0,
     };
 
     public async ValueTask<ItemMoveResult> HandleAsync(
@@ -397,7 +444,23 @@ public sealed class MoveItemSpaceCommandHandler(
         var piece = await bag.ReadSlotAsync(command.SourceSlotIndex, cancellationToken)
             .ConfigureAwait(false);
         if (piece is null)
-            return ItemMoveResult.Refused(ItemMoveStatus.BothSlotsEmpty);
+        {
+            var alreadyWorn = await worn
+                .ReadSlotAsync(command.DestinationSlotIndex, cancellationToken)
+                .ConfigureAwait(false);
+            if (alreadyWorn is null)
+                return ItemMoveResult.Refused(ItemMoveStatus.BothSlotsEmpty);
+
+            if (command.SourceInstanceValue > 0
+                && alreadyWorn.ItemId == command.SourceInstanceValue)
+            {
+                return ItemMoveResult.Refused(
+                    ItemMoveStatus.MoveAlreadyMade, alreadyWorn.ItemId);
+            }
+
+            return await this.TakeOffAsync(Reversed(command), bag, cancellationToken)
+                .ConfigureAwait(false);
+        }
 
         var slot = await moves.WornSlotForAsync(piece.ItemId, cancellationToken)
             .ConfigureAwait(false);
@@ -452,7 +515,15 @@ public sealed class MoveItemSpaceCommandHandler(
         var moving = await from.ReadSlotAsync(command.SourceSlotIndex, cancellationToken)
             .ConfigureAwait(false);
         if (moving is null)
-            return ItemMoveResult.Refused(ItemMoveStatus.BothSlotsEmpty);
+        {
+            var other = await into.ReadSlotAsync(command.DestinationSlotIndex, cancellationToken)
+                .ConfigureAwait(false);
+            return other is null
+                ? ItemMoveResult.Refused(ItemMoveStatus.BothSlotsEmpty)
+                : await this.CarryAcrossAsync(
+                    Reversed(command), into, from, from.Type, cancellationToken)
+                    .ConfigureAwait(false);
+        }
 
         switch (await moves.MayOccupySlotAsync(
             destination, moving.ItemId, command.DestinationSlotIndex, cancellationToken)
@@ -518,7 +589,14 @@ public sealed class MoveItemSpaceCommandHandler(
         var piece = await worn.ReadSlotAsync(command.SourceSlotIndex, cancellationToken)
             .ConfigureAwait(false);
         if (piece is null)
-            return ItemMoveResult.Refused(ItemMoveStatus.BothSlotsEmpty);
+        {
+            var carried = await bag.ReadSlotAsync(command.DestinationSlotIndex, cancellationToken)
+                .ConfigureAwait(false);
+            return carried is null
+                ? ItemMoveResult.Refused(ItemMoveStatus.BothSlotsEmpty)
+                : await this.PutOnAsync(Reversed(command), bag, cancellationToken)
+                    .ConfigureAwait(false);
+        }
 
         switch (await moves.MayOccupySlotAsync(
             bag.Type, piece.ItemId, command.DestinationSlotIndex, cancellationToken)
@@ -626,18 +704,21 @@ public sealed class MoveItemSpaceHandler(
                 message.SourceSlotIndex,
                 message.MoveCount,
                 message.DestinationListType,
-                message.DestinationSlotIndex),
+                message.DestinationSlotIndex,
+                message.SourceInstanceValue),
             cancellationToken).ConfigureAwait(false);
 
         if (result.Status is ItemMoveStatus.Moved or ItemMoveStatus.Unchanged)
         {
             logger.LogInformation(
                 "Move item space {ConnectionId} character={CharacterId}: item {ItemId} "
-                    + "{From}->{To} count={Count}",
+                    + "from list {FromList} slot {From} to list {ToList} slot {To} count={Count}",
                 context.Connection.ConnectionId,
                 session.CharacterId.Value,
                 result.ItemId,
+                message.SourceListType,
                 message.SourceSlotIndex,
+                message.DestinationListType,
                 message.DestinationSlotIndex,
                 result.MoveValue);
             return MoveItemSpaceResponse.Success(
@@ -658,11 +739,13 @@ public sealed class MoveItemSpaceHandler(
         // puts a zero here, for a refusal decided before any slot was read.
         logger.LogInformation(
             "Move item space {ConnectionId} character={CharacterId}: item {ItemId} "
-                + "{From}->{To} refused as {Status}",
+                + "from list {FromList} slot {From} to list {ToList} slot {To} refused as {Status}",
             context.Connection.ConnectionId,
             session.CharacterId.Value,
             result.ItemId,
+            message.SourceListType,
             message.SourceSlotIndex,
+            message.DestinationListType,
             message.DestinationSlotIndex,
             result.Status);
         return MoveItemSpaceResponse.Failure(message, ErrorCodeFor(result.Status));
@@ -704,6 +787,7 @@ public sealed class MoveItemSpaceHandler(
         ItemMoveStatus.NoSession => MoveItemSpaceResponse.Silent,
         ItemMoveStatus.NoBoundContainer => MoveItemSpaceResponse.Silent,
         ItemMoveStatus.BothSlotsEmpty => MoveItemSpaceResponse.Silent,
+        ItemMoveStatus.MoveAlreadyMade => MoveItemSpaceResponse.Silent,
         ItemMoveStatus.Moved or ItemMoveStatus.Unchanged => throw new ArgumentOutOfRangeException(
             nameof(status), status, "A move that happened has no error code."),
         _ => throw new ArgumentOutOfRangeException(
