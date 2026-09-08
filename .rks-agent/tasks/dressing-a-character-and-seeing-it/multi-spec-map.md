@@ -5,7 +5,7 @@ contract:
   revision: 1
 phase: child_execution
 phase_state: pending
-active_attempt: spec-001-a-move-reads-both-of-its-ends
+active_attempt: spec-002-the-character-changes-as-you-dress-it
 last_transition: child-created
 transition_evidence: >-
   workspace-ready: worktree created from 8247182c at
@@ -29,13 +29,26 @@ transition_evidence: >-
   active child and no running row existed before this one; the child TaskContract is state ready
   with C-1..C-9 each carrying observable evidence, and its routing decision has SDD readiness,
   marginal control value and Single structural selection filled with only Controller Selection left
-  for single-spec-workflow.
+  for single-spec-workflow. child-sealed: spec-001 returned outcome completed with terminal stage
+  verification. child-accepted: its verification artifact reads decision pass with 2375 passed / 2
+  skipped / 0 failed, exit code 0; the one gated commit e766d97152a6147323d3279248858ffb1ef4918c has
+  parent 8247182c6e555fd22204490272b6d2ada8008508, the branch advanced only to it, the task worktree
+  was clean afterwards, and main is still 8247182c. gaps-remain: SC-4, SC-5 and SC-6 have no
+  accepted evidence and SC-3, SC-8, SC-9 and SC-10 are in progress; every constraint still aligned.
+  safe-successor: a read-only survey of both this repository and the upstream reference established
+  that defect B needs no projection extracted -- the subtype-0 encoder already derives the
+  appearance from the equipment it is handed -- so B remains one bounded outcome and the extraction
+  stays with C, which needs the projection as a value. child-created: identity spec-002, folder
+  attempts/spec-002-the-character-changes-as-you-dress-it/, both paths canonicalised and proved
+  inside the durable task root; depends_on is an empty sequence; no active child and no running row
+  existed; the child contract is ready with C-1..C-8 each carrying observable evidence and its
+  routing decision has everything but Controller Selection, which single-spec-workflow completed.
 workspace:
   repository_root: E:/Project/DNF/DNF-JP-86-Server
   task_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/dressing-a-character-and-seeing-it/.rks-agent/tasks/dressing-a-character-and-seeing-it
   code_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/dressing-a-character-and-seeing-it
   branch: dressing-a-character-and-seeing-it
-  baseline: 8247182c6e555fd22204490272b6d2ada8008508
+  baseline: e766d97152a6147323d3279248858ffb1ef4918c
   baseline_evidence: >-
     PVF_ARCHIVE_PATH=E:/Project/DNF/DNFClient-A21-protocol/Script.pvf dotnet test
     Server/86JP.Server.slnx --nologo, run in the task worktree with no Dfo.Server.Host process
@@ -98,16 +111,16 @@ in advance -- each Spec decides its own local design.
 
 | SC | Requirement | Progress | Evidence | Remaining gap | Constraint |
 |---|---|---|---|---|---|
-| SC-1 | A move naming one empty end and one occupied end is carried out as the move it describes, for every served pair of lists, in both orders | not_started | none | The three cross-list paths still read only their own source end | aligned |
-| SC-2 | A move naming two empty ends is still refused as "both slots empty" | not_started | none | Has to be preserved through SC-1's change rather than assumed | aligned |
-| SC-3 | Every production refusal and admission path this work changes is listed forward and reverse, from the code rather than from the change's origin | not_started | none | Whole enumeration outstanding | aligned |
+| SC-1 | A move naming one empty end and one occupied end is carried out as the move it describes, for every served pair of lists, in both orders | satisfied | spec-001, accepted at `e766d971`; the served pairs are derived by probing the dispatch, and mutation M1 reddened 8 cases and nothing else in the suite | The owner has not re-tested live yet | aligned |
+| SC-2 | A move naming two empty ends is still refused as "both slots empty" | satisfied | spec-001, `e766d971`; asserted over the same derived pairs | none | aligned |
+| SC-3 | Every production refusal and admission path this work changes is listed forward and reverse, from the code rather than from the change's origin | in_progress | spec-001's `behavior-change-list.md`, `e766d971`; an independent reviewer scanned the code, found it over-reported four unreachable statuses (since corrected) and found no omission | The two sibling Specs have their own lists to write | aligned |
 | SC-4 | After a successful move that changed what the character wears, the client is told, without re-entry | not_started | none | The handler sends only its acknowledgement | aligned |
 | SC-5 | A successful move that changed nothing worn does not send that frame | not_started | none | No condition exists to decide it | aligned |
 | SC-6 | The character-selection screen shows what the character currently wears | not_started | none | The roster reads a stored blob nobody updates | aligned |
-| SC-7 | A move's log line names list and slot at both ends, worded as ordinary operational logging | not_started | none | Today it names slots only; the diagnostic wording was removed from the main checkout and is not to be restored as it stands | aligned |
-| SC-8 | No protocol frame added; frames not authorized to change are unchanged | not_started | none | Held by the byte anchor once changes exist | aligned |
-| SC-9 | The full suite is no weaker than baseline | not_started | none; the baseline itself measured at 2361 passed / 2 skipped / 0 failed, exit 0, in this worktree at 8247182c | Must be proved again at each accepted result | aligned |
-| SC-10 | Repository records this work falsifies are corrected | not_started | none | Search set not yet stated or run | aligned |
+| SC-7 | A move's log line names list and slot at both ends, worded as ordinary operational logging | satisfied | spec-001, `e766d971`; the rendered line is pinned in three checks and mutation M3 reddened exactly those three | Judged against the owner's own stated criterion, not their acceptance; they can overturn it in a word | aligned |
+| SC-8 | No protocol frame added; frames not authorized to change are unchanged | in_progress | spec-001, `e766d971`: byte anchor passes untouched, and the production diff names neither message-type enum | The two sibling Specs both touch the sending side and are where this is really tested | aligned |
+| SC-9 | The full suite is no weaker than baseline | in_progress | 2375 passed / 2 skipped / 0 failed, exit 0, at `e766d971` | Must be proved again at each remaining accepted result | aligned |
+| SC-10 | Repository records this work falsifies are corrected | in_progress | spec-001, `e766d971`: `AGENTS.md`'s measuring-instrument passage and `protocol/game/client-to-server/0x0013.md`'s take-off claim, from a stated search set that was run and read | The two sibling Specs have their own records to check | aligned |
 
 ## Spec Attempts
 
@@ -115,4 +128,5 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 
 | # | Attempt | TaskContract | Outcome | Affects | State | Result | Git result |
 |---:|---|---|---|---|---|---|---|
-| `1` | `spec-001` | `attempts/spec-001-a-move-reads-both-of-its-ends/TaskContract.md` | A move is carried out whenever either of the two ends it names holds something, and its record says which lists it was between | `SC-1`, `SC-2`, `SC-3`, `SC-7` | `running` | `pending` | `active` |
+| `1` | `spec-001` | `attempts/spec-001-a-move-reads-both-of-its-ends/TaskContract.md` | A move is carried out whenever either of the two ends it names holds something, and its record says which lists it was between | `SC-1`, `SC-2`, `SC-3`, `SC-7` | `sealed` | `completed` | `e766d971` |
+| `2` | `spec-002` | `attempts/spec-002-the-character-changes-as-you-dress-it/TaskContract.md` | A move that changed what the character wears tells the client so, then and there | `SC-4`, `SC-5` | `running` | `pending` | `active` |

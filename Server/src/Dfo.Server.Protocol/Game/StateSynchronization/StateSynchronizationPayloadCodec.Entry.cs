@@ -812,6 +812,30 @@ internal static partial class StateSynchronizationPayloadCodec
     /// </remarks>
     internal const int CurrentUserStateCharacterIdOffset = 3 + EntrySubtypeZeroReservedBlock;
 
+    /// <summary>Whether what subtype zero draws depends on what is worn in this slot.</summary>
+    /// <remarks>
+    /// The union of the two filters the encoder below uses, and deliberately a union rather than a
+    /// third filter: the appearance run takes <c>0..12</c> and <c>23</c>, and the creature triple
+    /// takes <c>24</c>. Anyone asking "would this frame come out differently if that slot changed"
+    /// has to ask about both, and asking here is what keeps a fourth slot filter from appearing in
+    /// this repository -- there are already three that disagree with each other, and reconciling
+    /// them changes bytes.
+    /// <para>
+    /// It answers about a worn slot. A slot number from the bag or the avatar page means something
+    /// else entirely, and the caller is the one that knows which list it holds.
+    /// </para>
+    /// </remarks>
+    internal static bool CurrentUserStateDrawsFrom(int wornSlotIndex) =>
+        wornSlotIndex <= Noti2AppearanceLastSlot
+            || wornSlotIndex == Noti2AppearanceExtraSlot
+            || wornSlotIndex == Noti2CreatureSlot;
+
+    /// <summary>The end of the run subtype zero draws the character's appearance from.</summary>
+    private const int Noti2AppearanceLastSlot = 12;
+
+    /// <summary>The one slot past that run the same appearance draws from.</summary>
+    private const int Noti2AppearanceExtraSlot = 23;
+
     public static byte[] EncodeCurrentUserState(
         ActiveCharacterState character,
         CharacterPublicEntryState entry,
@@ -823,7 +847,7 @@ internal static partial class StateSynchronizationPayloadCodec
         // frame no longer writes field by field. They are still loaded on the character -- other
         // frames use them -- but subtype zero does not mention them on A21.
         var c = entry.Condition; var job = entry.ExpertJob; var extras = entry.Extras;
-        var appearance = equipment.Where(item => item.SlotIndex <= 12 || item.SlotIndex == 23).OrderBy(item => item.SlotIndex).ToArray();
+        var appearance = equipment.Where(item => item.SlotIndex <= Noti2AppearanceLastSlot || item.SlotIndex == Noti2AppearanceExtraSlot).OrderBy(item => item.SlotIndex).ToArray();
         if (appearance.Length > byte.MaxValue) throw CountError("appearance", "u8");
         var creature = equipment.SingleOrDefault(item => item.SlotIndex == 24 && item.Core.ItemKind == 5);
         var pet = creature is null ? null : pets.SingleOrDefault(value => value.PetKey == creature.Core.Value);

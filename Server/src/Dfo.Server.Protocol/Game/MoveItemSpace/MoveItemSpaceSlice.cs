@@ -8,6 +8,7 @@ using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.MoveItemSpace;
@@ -667,23 +668,119 @@ public sealed class MoveItemSpaceCommandHandler(
 /// </remarks>
 public sealed class MoveItemSpaceHandler(
     ISelectedSessionDomainService selectedSessions,
+    ISelectedSessionRuntimeDirectory runtimeSessions,
+    ICharacterInventoryEntryDomainService inventories,
     ICommandBus commandBus,
     IGameMessageSender sender,
     ILogger<MoveItemSpaceHandler> logger) : ClientMessageHandler<MoveItemSpaceRequest>
 {
+    private const byte EquipmentListType = (byte)InventoryContainerType.Equipment;
+
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
         MoveItemSpaceRequest message,
         CancellationToken cancellationToken)
     {
-        var response = await ResolveAsync(context, message, cancellationToken).ConfigureAwait(false);
+        var (response, result) = await ResolveAsync(context, message, cancellationToken)
+            .ConfigureAwait(false);
+        List<IGameServerMessage> frames = [response];
+        if (result?.Status is ItemMoveStatus.Moved && ChangesWhatTheCharacterLooksLike(message))
+        {
+            // Nothing raised while working out the appearance may cost the player the
+            // acknowledgement. The move is committed by this point and the client holds the
+            // inventory shut until it is answered -- which is the very symptom this frame exists to
+            // remove, and it would come back wearing an unrelated cause. So the appearance is
+            // attempted, and a failure to build it leaves the answer as it was before this work:
+            // the acknowledgement, alone.
+            try
+            {
+                if (await this.AppearanceAsync(context, cancellationToken).ConfigureAwait(false)
+                    is { } appearance)
+                {
+                    frames.Add(appearance);
+                }
+            }
+            catch (Exception failure) when (!cancellationToken.IsCancellationRequested)
+            {
+                logger.LogError(
+                    failure,
+                    "Move item space {ConnectionId}: the move stands and the appearance was not "
+                        + "sent",
+                    context.Connection.ConnectionId);
+            }
+        }
+
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
-            new GameExplicitMessageDelivery([response], []),
+            new GameExplicitMessageDelivery(frames, []),
             cancellationToken).ConfigureAwait(false);
     }
 
-    private async ValueTask<MoveItemSpaceResponse> ResolveAsync(
+    /// <summary>
+    /// Whether this request named a worn slot the character's drawn appearance depends on.
+    /// </summary>
+    /// <remarks>
+    /// Decided from the request's two ends rather than from what the move turned out to do. The
+    /// appearance is drawn from the equipment list, so a move that changed it named that list at one
+    /// of its ends -- and reversing a request exchanges its two ends without changing either list,
+    /// so this holds whichever end the item was actually on.
+    /// <para>
+    /// Which worn slots the frame depends on is
+    /// <see cref="StateSynchronizationPayloadCodec.CurrentUserStateDrawsFrom"/>'s answer, asked
+    /// rather than restated. A slot number belonging to the bag or the avatar page is not put to it.
+    /// </para>
+    /// </remarks>
+    private static bool ChangesWhatTheCharacterLooksLike(MoveItemSpaceRequest message) =>
+        (message.SourceListType == EquipmentListType
+            && StateSynchronizationPayloadCodec.CurrentUserStateDrawsFrom(message.SourceSlotIndex))
+        || (message.DestinationListType == EquipmentListType
+            && StateSynchronizationPayloadCodec.CurrentUserStateDrawsFrom(
+                message.DestinationSlotIndex));
+
+    /// <summary>What the character wears now, read back from the store rather than the session.</summary>
+    /// <remarks>
+    /// The session carries a copy of the character's inventory, and it is the copy taken when the
+    /// character was selected: `ReplaceExact` is called in eight places and none of them is after an
+    /// item move. Building this frame from that copy would send the client the picture it already
+    /// has, which is the whole of the defect this answers -- so the equipment is loaded again.
+    /// <para>
+    /// <b>The session's copy is deliberately left as it was.</b> Refreshing it would change what
+    /// every other reader of it draws -- the dungeon selection screen takes its equipment from
+    /// there -- and that is a different outcome from this one. The two disagree, and they disagreed
+    /// before this frame existed.
+    /// </para>
+    /// <para>
+    /// Nothing is built when the session cannot be read. A frame drawn from a session that is no
+    /// longer there would describe someone else's character or none at all, and the move stands
+    /// either way -- it was committed before this was asked, and the acknowledgement carrying it
+    /// goes out whether or not this answers.
+    /// </para>
+    /// </remarks>
+    private async ValueTask<IGameServerMessage?> AppearanceAsync(
+        NetworkDispatchContext context, CancellationToken cancellationToken)
+    {
+        var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        if (session is null || !runtimeSessions.TryGet(session, out var state, out _)
+            || state is null)
+        {
+            return null;
+        }
+
+        var reloaded = await inventories
+            .LoadAsync(session.AccountId, session.CharacterId, cancellationToken)
+            .ConfigureAwait(false);
+        var equipment = reloaded.Containers
+            .SingleOrDefault(value => value.ContainerType == InventoryContainerType.Equipment)
+            ?.Items ?? [];
+
+        return new CurrentUserStateMessage(
+            state.Character,
+            state.CharacterEntry.Public,
+            equipment,
+            state.CharacterEntry.Features.Pets);
+    }
+
+    private async ValueTask<(MoveItemSpaceResponse Response, ItemMoveResult? Result)> ResolveAsync(
         NetworkDispatchContext context,
         MoveItemSpaceRequest message,
         CancellationToken cancellationToken)
@@ -694,7 +791,7 @@ public sealed class MoveItemSpaceHandler(
             logger.LogWarning(
                 "Move item space {ConnectionId}: no published session",
                 context.Connection.ConnectionId);
-            return MoveItemSpaceResponse.Failure(message, MoveItemSpaceResponse.Silent);
+            return (MoveItemSpaceResponse.Failure(message, MoveItemSpaceResponse.Silent), null);
         }
 
         var result = await commandBus.SendAsync(
@@ -721,8 +818,10 @@ public sealed class MoveItemSpaceHandler(
                 message.DestinationListType,
                 message.DestinationSlotIndex,
                 result.MoveValue);
-            return MoveItemSpaceResponse.Success(
-                message, result.MoveValue, message.DestinationSlotIndex);
+            return (
+                MoveItemSpaceResponse.Success(
+                    message, result.MoveValue, message.DestinationSlotIndex),
+                result);
         }
 
         // `{ItemId}` goes in beside the two ends the request already named. That pair is what a
@@ -748,7 +847,7 @@ public sealed class MoveItemSpaceHandler(
             message.DestinationListType,
             message.DestinationSlotIndex,
             result.Status);
-        return MoveItemSpaceResponse.Failure(message, ErrorCodeFor(result.Status));
+        return (MoveItemSpaceResponse.Failure(message, ErrorCodeFor(result.Status)), result);
     }
 
     /// <summary>

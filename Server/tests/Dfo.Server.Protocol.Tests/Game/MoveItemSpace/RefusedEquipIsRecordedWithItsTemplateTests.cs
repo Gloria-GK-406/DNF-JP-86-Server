@@ -15,6 +15,7 @@ using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Dfo.Server.Data.Game;
 
 namespace Dfo.Server.Protocol.Tests.Game.MoveItemSpace;
 
@@ -216,7 +217,9 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
         var sender = new RecordingSender();
         var logger = new RecordingLogger();
         return (
-            new MoveItemSpaceHandler(new OneSession(), new DirectMoveBus(commandHandler), sender, logger),
+            new MoveItemSpaceHandler(
+                new OneSession(), new NoPublishedRuntime(), new UnreachableInventory(),
+                new DirectMoveBus(commandHandler), sender, logger),
             sender,
             logger);
     }
@@ -366,6 +369,48 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
         }
     }
 
+
+    /// <summary>A session directory that has nothing published, so no appearance frame is built.</summary>
+    /// <remarks>
+    /// These cases are about the acknowledgement and the log line. The frame that follows a move
+    /// which changed the character's look is asserted where it belongs, and it is skipped here
+    /// rather than mocked: a session that cannot be read is exactly the case the handler answers by
+    /// sending the acknowledgement alone.
+    /// </remarks>
+    private sealed class NoPublishedRuntime : ISelectedSessionRuntimeDirectory
+    {
+        public void Publish(
+            SelectedSessionIdentity session, SelectCharacterResult result, bool shouldPersistPosition) =>
+            throw new NotSupportedException("Nothing publishes here.");
+
+        public void ReplaceExact(SelectedSessionIdentity session, SelectCharacterResult result) =>
+            throw new NotSupportedException("Nothing replaces here.");
+
+        public SelectCharacterResult GetRequired(SelectedSessionIdentity session) =>
+            throw new NotSupportedException("Nothing is published here.");
+
+        public bool TryGet(
+            SelectedSessionIdentity session,
+            out SelectCharacterResult? result,
+            out bool shouldPersistPosition)
+        {
+            result = null;
+            shouldPersistPosition = false;
+            return false;
+        }
+
+        public bool RemoveExact(SelectedSessionIdentity session) => false;
+    }
+
+    /// <summary>An inventory loader nobody reaches, because no session is published.</summary>
+    private sealed class UnreachableInventory : ICharacterInventoryEntryDomainService
+    {
+        public ValueTask<CharacterInventoryEntryState> LoadAsync(
+            AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException(
+                "The inventory is loaded only for a session that is published.");
+    }
+
     /// <summary>The log, kept as the sentences it would have written.</summary>
     private sealed class RecordingLogger : ILogger<MoveItemSpaceHandler>
     {
@@ -413,4 +458,5 @@ public sealed class ArchiveContentFixture : IDisposable
     public IEquipmentSlotDefinitionSource EquipmentSlots { get; }
 
     public void Dispose() => this.services.Dispose();
+
 }

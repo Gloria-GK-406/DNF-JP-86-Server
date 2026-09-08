@@ -4,7 +4,7 @@ contract:
   path: "./TaskContract.md"
   revision: 1
 current_stage: verification
-state: in_progress
+state: completed
 parent_controller: "../../multi-spec-map.md"
 artifacts:
   spec: "./spec.md"

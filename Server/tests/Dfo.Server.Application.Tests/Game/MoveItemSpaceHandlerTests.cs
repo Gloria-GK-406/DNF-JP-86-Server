@@ -13,6 +13,7 @@ using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Game;
 
 namespace Dfo.Server.Application.Tests.Game;
 
@@ -370,6 +371,8 @@ public sealed class MoveItemSpaceHandlerTests
         return (
             new MoveItemSpaceHandler(
                 new OneSession(),
+                new NoPublishedRuntime(),
+                new UnreachableInventory(),
                 new DirectCommandBus(move: commandHandler, scope: inventory.Scope),
                 sender,
                 NullLogger<MoveItemSpaceHandler>.Instance),
@@ -445,4 +448,45 @@ public sealed class MoveItemSpaceHandlerTests
             return ValueTask.CompletedTask;
         }
     }
+
+    /// <summary>A session directory that has nothing published, so no appearance frame is built.</summary>
+    /// <remarks>
+    /// These cases are about which moves the handler serves and what it answers, not about what
+    /// follows a move that changed the character's look. A session that cannot be read is exactly
+    /// the case the handler answers by sending the acknowledgement alone.
+    /// </remarks>
+    private sealed class NoPublishedRuntime : ISelectedSessionRuntimeDirectory
+    {
+        public void Publish(
+            SelectedSessionIdentity session, SelectCharacterResult result, bool shouldPersistPosition) =>
+            throw new NotSupportedException("Nothing publishes here.");
+
+        public void ReplaceExact(SelectedSessionIdentity session, SelectCharacterResult result) =>
+            throw new NotSupportedException("Nothing replaces here.");
+
+        public SelectCharacterResult GetRequired(SelectedSessionIdentity session) =>
+            throw new NotSupportedException("Nothing is published here.");
+
+        public bool TryGet(
+            SelectedSessionIdentity session,
+            out SelectCharacterResult? result,
+            out bool shouldPersistPosition)
+        {
+            result = null;
+            shouldPersistPosition = false;
+            return false;
+        }
+
+        public bool RemoveExact(SelectedSessionIdentity session) => false;
+    }
+
+    /// <summary>An inventory loader nobody reaches, because no session is published.</summary>
+    private sealed class UnreachableInventory : ICharacterInventoryEntryDomainService
+    {
+        public ValueTask<CharacterInventoryEntryState> LoadAsync(
+            AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException(
+                "The inventory is loaded only for a session that is published.");
+    }
+
 }
