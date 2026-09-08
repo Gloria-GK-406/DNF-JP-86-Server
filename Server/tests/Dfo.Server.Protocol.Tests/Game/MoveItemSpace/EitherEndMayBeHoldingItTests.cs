@@ -359,6 +359,245 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     }
 
     /// <summary>
+    /// A take-off the client restates does not put the piece back on.
+    /// </summary>
+    /// <remarks>
+    /// This is the mirror of <see cref="A_request_naming_the_worn_piece_on_its_empty_end_does_not_take_it_off"/>
+    /// and the reason the rule is one function rather than two conditions. The client names an item
+    /// on the end it is coming from; a take-off names it on the destination end, because the cell
+    /// the player released over goes in the source field. Once the take-off has been carried out
+    /// the source end is the one holding it, so the frame arrives at the put-on path with a piece
+    /// under its hand and, read literally, asks for the move back.
+    /// <para>
+    /// <b>What no case here can establish is that a client restates verbatim.</b> No restatement has
+    /// been observed at all. If the client rebuilds the frame from its new state instead, it names
+    /// the item on the source end, is indistinguishable from a fresh drag, and this guard never
+    /// fires -- which costs nothing, because the guard only ever refuses a frame that contradicts
+    /// itself.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task A_restated_take_off_does_not_put_the_piece_back_on()
+    {
+        var restated = this.Build();
+        restated.Seed(InventoryContainerType.Avatar, AvatarSlot, Costume);
+
+        var echoed = await restated.MoveAsync(
+            InventoryContainerType.Avatar, AvatarSlot,
+            InventoryContainerType.Equipment, WornCostumeSlot,
+            destinationInstanceValue: Costume);
+
+        Assert.Equal(ItemMoveStatus.MoveAlreadyMade, echoed.Status);
+        Assert.Equal(Costume, echoed.ItemId);
+        Assert.Equal(0, echoed.MoveValue);
+        Assert.Equal(
+            Costume,
+            (await restated.ReadAsync(InventoryContainerType.Avatar, AvatarSlot))!.ItemId);
+        Assert.Null(
+            await restated.ReadAsync(InventoryContainerType.Equipment, WornCostumeSlot));
+    }
+
+    /// <summary>
+    /// The same two cells, named the other way round, are a fresh put-on and are carried out.
+    /// </summary>
+    /// <remarks>
+    /// It differs from the case above in one field: which end carries the identifier. A guard that
+    /// judged the shape of the move rather than which end names what would refuse this one too, so
+    /// this is what holds the rule to being about the contradiction and nothing else.
+    /// </remarks>
+    [Fact]
+    public async Task The_same_two_cells_named_the_other_way_round_are_a_fresh_put_on()
+    {
+        var side = this.Build();
+        side.Seed(InventoryContainerType.Avatar, AvatarSlot, Costume);
+
+        var result = await side.MoveAsync(
+            InventoryContainerType.Avatar, AvatarSlot,
+            InventoryContainerType.Equipment, WornCostumeSlot,
+            sourceInstanceValue: Costume);
+
+        Assert.Equal(ItemMoveStatus.Moved, result.Status);
+        Assert.Equal(
+            Costume,
+            (await side.ReadAsync(InventoryContainerType.Equipment, WornCostumeSlot))!.ItemId);
+    }
+
+    /// <summary>
+    /// Naming the destination end while that end holds the piece is a take-off, not a restatement.
+    /// </summary>
+    /// <remarks>
+    /// The guard asks for the named end to be empty. Here it is not: the client is naming the piece
+    /// it can see in the worn slot, which is what a take-off does, and the store agrees with it.
+    /// Agreement is never a restatement.
+    /// </remarks>
+    [Fact]
+    public async Task Naming_the_worn_piece_on_the_end_that_holds_it_still_takes_it_off()
+    {
+        var side = this.Build();
+        side.Seed(InventoryContainerType.Equipment, WornCostumeSlot, Costume);
+
+        var result = await side.MoveAsync(
+            InventoryContainerType.Avatar, AvatarSlot,
+            InventoryContainerType.Equipment, WornCostumeSlot,
+            destinationInstanceValue: Costume);
+
+        Assert.Equal(ItemMoveStatus.Moved, result.Status);
+        Assert.Equal(
+            Costume,
+            (await side.ReadAsync(InventoryContainerType.Avatar, AvatarSlot))!.ItemId);
+    }
+
+    /// <summary>
+    /// Carrying a piece across, restated, does not carry it back.
+    /// </summary>
+    /// <remarks>
+    /// The same rule, on the path between the bag and the avatar page. Included because the defect
+    /// was reported about a costume coming off, and a reader could reasonably think this were only
+    /// about the worn list.
+    /// </remarks>
+    [Fact]
+    public async Task A_restated_carry_across_does_not_carry_it_back()
+    {
+        var restated = this.Build();
+        restated.Seed(InventoryContainerType.Avatar, AvatarSlot, Costume);
+
+        var echoed = await restated.MoveAsync(
+            InventoryContainerType.Avatar, AvatarSlot,
+            InventoryContainerType.Main, BagSlot,
+            destinationInstanceValue: Costume);
+
+        Assert.Equal(ItemMoveStatus.MoveAlreadyMade, echoed.Status);
+        Assert.Equal(Costume, echoed.ItemId);
+        Assert.Equal(
+            Costume,
+            (await restated.ReadAsync(InventoryContainerType.Avatar, AvatarSlot))!.ItemId);
+        Assert.Null(await restated.ReadAsync(InventoryContainerType.Main, BagSlot));
+    }
+
+    /// <summary>
+    /// A drag inside one list, restated, does not drag it back.
+    /// </summary>
+    /// <remarks>
+    /// The fourth path. Moving within a list is the container's own business and it decides the
+    /// same way, so this had the same defect as the three that cross lists -- and it was missed
+    /// when the rule was first applied, because the walk started from the paths the report named.
+    /// </remarks>
+    [Fact]
+    public async Task A_restated_drag_inside_one_list_does_not_drag_it_back()
+    {
+        var restated = this.Build();
+        restated.Seed(InventoryContainerType.Main, BagSlot, Costume);
+
+        var echoed = await restated.MoveAsync(
+            InventoryContainerType.Main, BagSlot,
+            InventoryContainerType.Main, ConsumableBagSlot,
+            destinationInstanceValue: Costume);
+
+        Assert.Equal(ItemMoveStatus.MoveAlreadyMade, echoed.Status);
+        Assert.Equal(Costume, echoed.ItemId);
+        Assert.Equal(
+            Costume,
+            (await restated.ReadAsync(InventoryContainerType.Main, BagSlot))!.ItemId);
+        Assert.Null(await restated.ReadAsync(InventoryContainerType.Main, ConsumableBagSlot));
+    }
+
+    /// <summary>
+    /// Putting a piece onto a worn slot that already holds one is carried out, whatever either end
+    /// names.
+    /// </summary>
+    /// <remarks>
+    /// Both ends hold something, so the rule's first clause -- that the end being named is empty --
+    /// is false whichever way it is asked, and the move goes through.
+    /// <para>
+    /// <b>The status is what carries this case; the two content assertions cannot.</b> Both cells
+    /// hold the same template before and after, so reading them back proves only that nothing was
+    /// lost -- a no-op would satisfy them too. <c>Moved</c> is what a refusal and a no-op cannot
+    /// both produce, and it is asserted positively for that reason.
+    /// </para>
+    /// <para>
+    /// <b>Both ends hold the same template on purpose.</b> That is the closest thing to a
+    /// counter-example the rule has: if the judgement compared identifiers before it looked at
+    /// occupancy, two pieces of one template would read as the item having moved. It does not --
+    /// occupancy is asked first, of the end being named.
+    /// </para>
+    /// <para>
+    /// An earlier version of this case moved an ordinary coat onto the avatar page and asserted
+    /// only that the answer was not <c>MoveAlreadyMade</c>. The avatar list refuses coats, so the
+    /// answer was <c>ItemCannotOccupySlot</c> and nothing was ever swapped; the negative assertion
+    /// passed anyway. It was found by a reviewer strengthening the assertion, and it is the reason
+    /// this one asserts where each piece ended up.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task A_swap_onto_an_occupied_worn_slot_is_carried_out_whatever_either_end_names()
+    {
+        var side = this.Build();
+        side.Seed(InventoryContainerType.Main, BagSlot, Costume);
+        side.Seed(InventoryContainerType.Equipment, WornCostumeSlot, Costume);
+
+        var result = await side.MoveAsync(
+            InventoryContainerType.Main, BagSlot,
+            InventoryContainerType.Equipment, WornCostumeSlot,
+            sourceInstanceValue: Costume,
+            destinationInstanceValue: Costume);
+
+        Assert.Equal(ItemMoveStatus.Moved, result.Status);
+        Assert.Equal(
+            Costume,
+            (await side.ReadAsync(InventoryContainerType.Equipment, WornCostumeSlot))!.ItemId);
+        Assert.Equal(
+            Costume,
+            (await side.ReadAsync(InventoryContainerType.Main, BagSlot))!.ItemId);
+    }
+
+    /// <summary>
+    /// Dropping a piece back where it already is stays the no-op it was.
+    /// </summary>
+    /// <remarks>
+    /// The client sends this and expects it to succeed, so it is the busiest frame arriving in
+    /// front of the same-list judgement. Both reads look at one cell: occupied, and the end being
+    /// named is not empty; empty, and neither end holds anything. The rule cannot reach it either
+    /// way, and this is what says so out loud rather than by argument.
+    /// </remarks>
+    [Fact]
+    public async Task Dropping_a_piece_back_where_it_already_is_changes_nothing()
+    {
+        var side = this.Build();
+        side.Seed(InventoryContainerType.Main, BagSlot, Costume);
+
+        var result = await side.MoveAsync(
+            InventoryContainerType.Main, BagSlot,
+            InventoryContainerType.Main, BagSlot,
+            sourceInstanceValue: Costume,
+            destinationInstanceValue: Costume);
+
+        Assert.NotEqual(ItemMoveStatus.MoveAlreadyMade, result.Status);
+        Assert.Equal(Costume, (await side.ReadAsync(InventoryContainerType.Main, BagSlot))!.ItemId);
+    }
+
+    /// <summary>
+    /// A move naming neither end behaves exactly as it did before the rule existed.
+    /// </summary>
+    /// <remarks>
+    /// Both instance values zero is what a frame shorter than eighteen bytes decodes to, and what a
+    /// client that does not fill them sends. The rule's first clause is the one that keeps those
+    /// out of its way.
+    /// </remarks>
+    [Fact]
+    public async Task A_move_naming_neither_end_is_carried_out()
+    {
+        var side = this.Build();
+        side.Seed(InventoryContainerType.Avatar, AvatarSlot, Costume);
+
+        var result = await side.MoveAsync(
+            InventoryContainerType.Avatar, AvatarSlot,
+            InventoryContainerType.Main, BagSlot);
+
+        Assert.Equal(ItemMoveStatus.Moved, result.Status);
+        Assert.Equal(Costume, (await side.ReadAsync(InventoryContainerType.Main, BagSlot))!.ItemId);
+    }
+
+    /// <summary>
     /// The acknowledgement names the request's own two ends, and the store agrees with a client
     /// that reads it as those two cells exchanging what they hold.
     /// </summary>
@@ -502,7 +741,8 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
             short sourceSlot,
             InventoryContainerType destination,
             short destinationSlot,
-            int sourceInstanceValue = 0) =>
+            int sourceInstanceValue = 0,
+            int destinationInstanceValue = 0) =>
             this.Handler.HandleAsync(
                 new CommandExecutionContext(
                     Guid.Empty,
@@ -516,7 +756,8 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
                     1,
                     (byte)destination,
                     destinationSlot,
-                    sourceInstanceValue),
+                    sourceInstanceValue,
+                    destinationInstanceValue),
                 CancellationToken.None);
 
         public async ValueTask<ContainerSlotItem?> ReadAsync(

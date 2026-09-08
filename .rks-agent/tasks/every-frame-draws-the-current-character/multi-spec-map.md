@@ -5,36 +5,31 @@ contract:
   revision: 1
 phase: child_execution
 phase_state: pending
-active_attempt: spec-002
+active_attempt: spec-003
 last_transition: child-created
 transition_evidence: >-
-  Child spec-002-both-rosters-draw-what-is-worn created at attempts/spec-002-both-rosters-draw-what-is-worn/
-  inside the task root, with a ready TaskContract (revision 1, C-1..C-8, parent ../../TaskContract.md,
-  contributes_to SC-3/SC-4/SC-5/SC-7/SC-10/SC-11, depends_on empty) and a routing decision whose Controller
-  Selection is left for single-spec-workflow. spec-001's row was sealed and active_attempt was null before
-  this; no other row is running. Preceding safe-successor evidence -- root evaluation at baseline 77ff3236
-  found SC-1 and SC-2 satisfied by spec-001, SC-11 in_progress, SC-3..SC-10 not_started, and all eleven
-  constraints aligned; the bounded route is to make the entry burst's roster frame draw a character's
-  appearance from what the character wears, through the projection the character-selection frame already
-  uses, and then decide by evidence whether characters.appearance_blob and its decoder still have a reader.
-  Issue #16, second in the owner's fixed order, wholly inside the root task's authorized scope.
+  Child spec-003-a-restated-move-does-not-undo-itself created at
+  attempts/spec-003-a-restated-move-does-not-undo-itself/ inside the task root, with a ready TaskContract
+  (revision 1, C-1..C-8, parent ../../TaskContract.md, contributes_to SC-6/SC-7/SC-10/SC-11, depends_on
+  empty) and a routing decision whose Controller Selection is left for single-spec-workflow. spec-002's row
+  was sealed and active_attempt was null before this; no other row is running. Preceding safe-successor
+  evidence: root evaluation at 19fa03d6 found SC-1..SC-5 satisfied, SC-7/SC-10/SC-11 in_progress,
+  SC-6/SC-8/SC-9 not_started, all constraints aligned; the bounded route is issue #14, third in the owner's
+  fixed order, and the owner said 「可以」 to it after being told its two peculiarities.
 workspace:
   repository_root: E:/Project/DNF/DNF-JP-86-Server
   task_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/every-frame-draws-the-current-character/.rks-agent/tasks/every-frame-draws-the-current-character
   code_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/every-frame-draws-the-current-character
   branch: every-frame-draws-the-current-character
-  baseline: 77ff3236
+  baseline: 19fa03d6
   baseline_evidence: >-
-    At 77ff3236 (spec-001 accepted):
+    At 19fa03d6 (spec-002 accepted):
     `PVF_ARCHIVE_PATH=E:/Project/DNF/DNFClient-A21-protocol/Script.pvf dotnet test Server/86JP.Server.slnx --nologo`
-    exited 0 with 2398 passed, 2 skipped, 0 failed -- Pvf 60, Networking 52, Protocol 612, Host 6,
-    Persistence 333, Infrastructure 259 (+2 skipped), Application 1076. Every assembly equals the addbeb52
-    baseline except Application, which is 1070 + 6, the six cases spec-001 added. The two skips are
-    `PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message` and
-    `PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog`;
-    their being skipped is the sign the archive loaded. Output kept at
-    scratchpad/efdcc/spec001-verification.txt, and at scratchpad/efdcc/baseline.txt for the 2392 figure.
-    No `Dfo.Server.Host` process was running.
+    exited 0 with 2401 passed, 2 skipped, 0 failed -- Pvf 60, Networking 52, Protocol 615, Host 6,
+    Persistence 333, Infrastructure 259 (+2 skipped), Application 1076. Every assembly equals the 77ff3236
+    baseline except Protocol, which is 612 + 3. Output kept at
+    scratchpad/efdcc/spec002-final-verification.txt; searched for `[FAIL]`, `error CS` and `MSB<digit>`,
+    zero matches each, seven test-run banners present. No `Dfo.Server.Host` process was running.
 ---
 
 # Multi-Spec Map
@@ -98,15 +93,15 @@ Nothing here pre-creates a later Spec. Each is modelled from the accepted baseli
 |---|---|---|---|---|---|
 | SC-1 | Blob decoding and both refusals proven by checks that fail when the behaviour is altered | satisfied | `spec-001` at `77ff3236`; six cases plus five mutations in its `coverage-record.md`, one of them reddening through a value mismatch | none | aligned |
 | SC-2 | The record separates the pre-existing coverage gap from the coverage the previous round removed | satisfied | `spec-001` at `77ff3236`; `coverage-record.md`, with the deleted case's blob and its three assertions read from `git show 35aaedf3^` | none | aligned |
-| SC-3 | Entry roster frame and selection frame draw appearance from the same source | not_started | none | All of it | aligned |
-| SC-4 | Every moved byte-anchor frame named with its new value and reason; others byte-identical | not_started | none | All of it | aligned |
-| SC-5 | `appearance_blob` and its decoder kept or retired by whether a reader remains, with the search recorded | not_started | none | All of it | aligned |
+| SC-3 | Entry roster frame and selection frame draw appearance from the same source | satisfied | `spec-002` at `19fa03d6`; mutation M-B on the shared projection reddens 6 cases across all three sides that draw a character | none | aligned |
+| SC-4 | Every moved byte-anchor frame named with its new value and reason; others byte-identical | satisfied | `spec-002` at `19fa03d6`; all 62 hashes unchanged, and the frame is not in the anchor at all -- established, not assumed | none | aligned |
+| SC-5 | `appearance_blob` and its decoder kept or retired by whether a reader remains, with the search recorded | satisfied | `spec-002` at `19fa03d6`; both kept as one unretired unit, decision and enumeration in its `behavior-change-list.md` D-1/D-2 | none; retiring the unit whole is successor work | aligned |
 | SC-6 | A restated take-off does not put the costume back on, or the finding that the two cannot be told apart | not_started | none | All of it | aligned |
-| SC-7 | Every altered refusal and admission path listed in both directions, derived from the code | not_started | none | All of it | aligned |
+| SC-7 | Every altered refusal and admission path listed in both directions, derived from the code | in_progress | `spec-002` at `19fa03d6`; three forward, three reverse, including a removed refusal invisible in the diff | The remaining attempts each owe their own list | aligned |
 | SC-8 | Readers of the session's inventory copy enumerated completely, across dispatch and registry frontiers | not_started | none | All of it | aligned |
 | SC-9 | A screen reading that copy shows what the character has after a move, by the justified treatment | not_started | none | All of it | aligned |
-| SC-10 | Falsified repository records corrected, including counts stated in prose | not_started | none | All of it | aligned |
-| SC-11 | The check suite passes on the accepted result, with counts stated and any failure classified | in_progress | 2398 / 2 / 0 at `77ff3236`, output retained; one run that never executed was caught by reading output rather than the exit code | Must hold again on each later accepted result and at root verification | aligned |
+| SC-10 | Falsified repository records corrected, including counts stated in prose | in_progress | `spec-002` at `19fa03d6` corrected four, one of which it had itself falsified twice | The remaining attempts may falsify more | aligned |
+| SC-11 | The check suite passes on the accepted result, with counts stated and any failure classified | in_progress | 2401 / 2 / 0 at `19fa03d6`, output retained and searched; earlier, one run that never executed was caught by reading output rather than the exit code | Must hold again on each later accepted result and at root verification | aligned |
 
 ## Spec Attempts
 
@@ -115,4 +110,5 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 | # | Attempt | TaskContract | Outcome | Affects | State | Result | Git result |
 |---:|---|---|---|---|---|---|---|
 | `1` | `spec-001` | `attempts/spec-001-the-stored-appearance-decoder-is-pinned/TaskContract.md` | The behaviour of `DecodeAppearances` is pinned by checks, and the record separates the pre-existing coverage gap from the one the previous round removed | `SC-1, SC-2, SC-11` | `sealed` | `completed` | `77ff3236` |
-| `2` | `spec-002` | `attempts/spec-002-both-rosters-draw-what-is-worn/TaskContract.md` | Both roster frames draw a character's appearance from what it wears, and the stored column's fate is decided by whether a reader remains | `SC-3, SC-4, SC-5, SC-7, SC-10, SC-11` | `running` | `pending` | `active` |
+| `2` | `spec-002` | `attempts/spec-002-both-rosters-draw-what-is-worn/TaskContract.md` | Both roster frames draw a character's appearance from what it wears, and the stored column's fate is decided by whether a reader remains | `SC-3, SC-4, SC-5, SC-7, SC-10, SC-11` | `sealed` | `completed` | `19fa03d6` |
+| `3` | `spec-003` | `attempts/spec-003-a-restated-move-does-not-undo-itself/TaskContract.md` | A move the client restates does not carry itself out again, or the finding that a restatement cannot be told apart from a fresh drag | `SC-6, SC-7, SC-10, SC-11` | `running` | `pending` | `active` |
