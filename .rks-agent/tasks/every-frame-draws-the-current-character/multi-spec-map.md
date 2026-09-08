@@ -3,31 +3,23 @@ kind: rks-multi-spec-map
 contract:
   path: ./TaskContract.md
   revision: 1
-phase: child_execution
-phase_state: in_progress
-active_attempt: spec-004
-last_transition: child-created
+phase: completed
+phase_state: completed
+active_attempt: null
+last_transition: verification-passed
 transition_evidence: >-
-  Child spec-004-the-session-copy-keeps-up created at attempts/spec-004-the-session-copy-keeps-up/ inside
-  the task root, with a ready TaskContract (revision 1, C-1..C-9, parent ../../TaskContract.md,
-  contributes_to SC-8/SC-9/SC-7/SC-10/SC-11, depends_on empty) and a routing decision selecting
-  sdd-standard / code-bugfix. spec-003's row was sealed and active_attempt was null before this. The plan
-  stage is where the enumeration becomes a chosen treatment, which is why Standard was selected over Lite:
-  the choice among three treatments is genuinely open and its input has not been gathered.
+  Document/root-review.md approved and Document/root-verification.md passed on accepted 0476c922; root-full-suite.txt records 2417/2/0. Four unique sealed rows, no active child, all root conditions evidenced and constraints aligned.
 workspace:
   repository_root: E:/Project/DNF/DNF-JP-86-Server
   task_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/every-frame-draws-the-current-character/.rks-agent/tasks/every-frame-draws-the-current-character
   code_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/every-frame-draws-the-current-character
   branch: every-frame-draws-the-current-character
-  baseline: 1d887c59
+  baseline: 0476c922
   baseline_evidence: >-
-    At 1d887c59 (spec-003 accepted):
-    `PVF_ARCHIVE_PATH=E:/Project/DNF/DNFClient-A21-protocol/Script.pvf dotnet test Server/86JP.Server.slnx --nologo`
-    exited 0 with 2409 passed, 2 skipped, 0 failed -- Pvf 60, Networking 52, Protocol 623, Host 6,
-    Persistence 333, Infrastructure 259 (+2 skipped), Application 1076. Every assembly equals the 19fa03d6
-    baseline except Protocol, which is 615 + 8. Output kept at
-    scratchpad/efdcc/spec003-verification.txt; searched for `[FAIL]`, `error CS` and `MSB<digit>`, zero
-    matches each, seven test-run banners present. No `Dfo.Server.Host` process was running.
+    Accepted commit 0476c922 is the direct child of 1d887c59, after independent approved re-review and
+    fresh full-suite verification: 2417 passed / 2 skipped / 0 failed. Original output is
+    attempts/spec-004-the-session-copy-keeps-up/Document/full-suite-final.txt (7 assemblies;
+    no FAIL, error CS or MSB-number markers). Acceptance proved a clean worktree and main addbeb52 unchanged.
 ---
 
 # Multi-Spec Map
@@ -95,11 +87,11 @@ Nothing here pre-creates a later Spec. Each is modelled from the accepted baseli
 | SC-4 | Every moved byte-anchor frame named with its new value and reason; others byte-identical | satisfied | `spec-002` at `19fa03d6`; all 62 hashes unchanged, and the frame is not in the anchor at all -- established, not assumed | none | aligned |
 | SC-5 | `appearance_blob` and its decoder kept or retired by whether a reader remains, with the search recorded | satisfied | `spec-002` at `19fa03d6`; both kept as one unretired unit, decision and enumeration in its `behavior-change-list.md` D-1/D-2 | none; retiring the unit whole is successor work | aligned |
 | SC-6 | A restated take-off does not put the costume back on, or the finding that the two cannot be told apart | satisfied | `spec-003` at `1d887c59`; the two are told apart by the request contradicting the store, and the one shape that could misfire is recorded rather than argued away | none in code; whether a restatement is byte-identical is unobserved and recorded as a premise | aligned |
-| SC-7 | Every altered refusal and admission path listed in both directions, derived from the code | in_progress | `spec-002` at `19fa03d6` and `spec-003` at `1d887c59`; the latter reports 7 new refusal conditions across four dispatch paths, the fourth of which the walk missed and review found | spec-004 owes its own list | aligned |
-| SC-8 | Readers of the session's inventory copy enumerated completely, across dispatch and registry frontiers | not_started | none | All of it | aligned |
-| SC-9 | A screen reading that copy shows what the character has after a move, by the justified treatment | not_started | none | All of it | aligned |
-| SC-10 | Falsified repository records corrected, including counts stated in prose | in_progress | `spec-002` corrected four; `spec-003` corrected four more, one of them twice -- a record it had itself corrected went stale again | spec-004 may falsify more | aligned |
-| SC-11 | The check suite passes on the accepted result, with counts stated and any failure classified | in_progress | 2409 / 2 / 0 at `1d887c59`, output retained and searched; earlier, one run that never executed was caught by reading output rather than the exit code | Must hold again at root verification | aligned |
+| SC-7 | Every altered refusal and admission path listed in both directions, derived from the code | satisfied | Forward/reverse change inventories in spec-002, spec-003 and spec-004; latest independently reviewed at 0476c922 | none; concurrent aggregate overwrite and stale-session appearance suppression disclosed | aligned |
+| SC-8 | Readers of the session's inventory copy enumerated completely, across dispatch and registry frontiers | satisfied | spec-004 reader-enumeration.md at baseline 1d887c59; 16 readers/12 files, dispatch and factory frontiers; independently checked | none | aligned |
+| SC-9 | A screen reading that copy shows what the character has after a move, by the justified treatment | satisfied | 0476c922: real EnterSelectDungeonHandler after putting on and taking off; P2 removal causes wrong screen equipment | none in this boundary; PvP code-derived, concurrent freshness not guaranteed | aligned |
+| SC-10 | Falsified repository records corrected, including counts stated in prose | satisfied | Corrections from all three behavior-changing attempts; latest AGENTS/call count, dungeon comment and historical source notes checked at 0476c922 | none | aligned |
+| SC-11 | The check suite passes on the accepted result, with counts stated and any failure classified | satisfied | 0476c922: 2417 passed / 2 skipped / 0 failed, fresh raw full-suite-final.txt retained; accepted source hashes unchanged | none; root verification passed at 0476c922 | aligned |
 
 ## Spec Attempts
 
@@ -110,4 +102,24 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 | `1` | `spec-001` | `attempts/spec-001-the-stored-appearance-decoder-is-pinned/TaskContract.md` | The behaviour of `DecodeAppearances` is pinned by checks, and the record separates the pre-existing coverage gap from the one the previous round removed | `SC-1, SC-2, SC-11` | `sealed` | `completed` | `77ff3236` |
 | `2` | `spec-002` | `attempts/spec-002-both-rosters-draw-what-is-worn/TaskContract.md` | Both roster frames draw a character's appearance from what it wears, and the stored column's fate is decided by whether a reader remains | `SC-3, SC-4, SC-5, SC-7, SC-10, SC-11` | `sealed` | `completed` | `19fa03d6` |
 | `3` | `spec-003` | `attempts/spec-003-a-restated-move-does-not-undo-itself/TaskContract.md` | A move the client restates does not carry itself out again, or the finding that a restatement cannot be told apart from a fresh drag | `SC-6, SC-7, SC-10, SC-11` | `sealed` | `completed` | `1d887c59` |
-| `4` | `spec-004` | `attempts/spec-004-the-session-copy-keeps-up/TaskContract.md` | The readers of the session's inventory copy are known, and a screen that reads it shows what the character has after a move | `SC-8, SC-9, SC-7, SC-10, SC-11` | `running` | `pending` | `active` |
+| `4` | `spec-004` | `attempts/spec-004-the-session-copy-keeps-up/TaskContract.md` | The readers of the session's inventory copy are known, and a screen that reads it shows what the character has after a move | `SC-8, SC-9, SC-7, SC-10, SC-11` | `sealed` | `completed` | `0476c922` |
+
+## Root Evaluation — 2026-09-08
+
+Accepted baseline 0476c922 includes all four ordered results: 77ff3236, 19fa03d6, 1d887c59, 0476c922.
+Root TaskContract revision 1 reloaded; SC-1..SC-11 have accepted code or recorded-finding evidence.
+The later changes do not alter the stored decoder, shared appearance projection, move replay guard,
+or byte-anchor and architecture predicates accepted earlier. Latest suite includes their checks.
+Constraints remain aligned: same task worktree, untouched outside scopes and old six refresh sites,
+no new frame/layout/registration, no relaxed guard tests, authorized expectations only, raw failure
+identities retained, binary writes and mutation restore hashes. Concurrent aggregate overwrite,
+replay semantics without live observation, and PvP only supported by source remain disclosed
+limitations, not claims of live proof. Root reviewing-code review and fresh verification follow.
+
+## Root Review
+
+`Document/root-review.md`: independent reviewing-code, approved at accepted 0476c922. Disclosed concurrency and live-observation limitations are retained; no blocking finding remains.
+
+## Root Verification
+
+`Document/root-verification.md`: pass at accepted 0476c922, root-full-suite.txt 2417/2/0. Terminal validation passed; product unchanged, main addbeb52 unchanged. Final disposition: task branch/worktree preserved pending owner integration choice.
