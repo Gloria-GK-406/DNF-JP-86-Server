@@ -134,7 +134,7 @@ X-13/X-14 是「装备槽 24 的 creature 从死转活」。帧序是对着 A21 
 | `Extras.SpecialRewardQuestIds` | **零读点，且唯一带 I/O 成本的死代码** | `CharacterEntryStateServices.cs:280-287` 对每个已清任务 `await questDefinitions.FindAsync` |
 | `Condition`（37 字段） | 32 个零读点；上线的 5 个恒为建表默认值 | INSERT 只写 `(character_id, pc_room_state)` |
 | `DerivedStats`（27 字段） | **不是死，是冻**：创建时的 1 级基础值，一辈子不重算 | 唯一写入是创建时 `InsertIfAbsentAsync`；`character_stats` 的两条 UPDATE 只动 `carried_gold` |
-| `Appearance` | 冻在创建时 | `appearance_blob` 无 UPDATE |
+| `Appearance` | 冻在创建时 | `appearance_blob` 无 UPDATE。**2026-09-08 起它是这个 blob 唯一的消费者**：画角色列表的那两帧（选人界面，以及建角色之后推的那条刷新）都已改成从实时穿戴现算 |
 | `VisibilityBits` | 恒为默认值 3，不可改 | `CharacterSettingsDomainService` 整个是只读的 |
 | `CloneTitleItemId` | 读点最多，值恒 0 | 无穿戴称号路径 |
 | `Identity` | 恒 (0,0,0)；可空 + `throw Missing` 守卫永不触发 | 生产路径无条件构造 |
@@ -248,7 +248,7 @@ result = result with
 | **称号书** | `items` 容器 19-23 | 写入者：`MoveItemSpace` 今天只认 `Main`/`Equipment` |
 | **收集箱** | 内容档驱动的箱子集合、协议壳 | 写入者：收集通路 |
 | **成长武器 / 魔方 / 冠军突破 / 金币上限** | 有列有帧；金币上限还有 `IGoldLimitRuleService` 与四档阈值 | 各自的写入者 |
-| **外观** | 创建时的 blob | 写入者：换装后重算写回（今天世界内形象与角色列表形象两个来源） |
+| **外观** | 创建时的 blob，只剩入场那一帧读它 | 写入者：换装后重算写回，或让入场那一帧也改成现算并退役这个列（2026-09-08 更正，见下） |
 | **可见位** | 只读领域服务 | 写入者；**并改**三份副本 |
 | **公会** | 两列 | 整个系统 |
 
@@ -258,6 +258,17 @@ seam 已在、拒绝码已在、调用点已有变异验证钉着。而且它要
 每日挑战、每日复活币都要用，**每日补货那条 UTC+8 0 点边界不得因此改动**。
 
 **宠物那条缺陷体量最小**，可以单独做，也可以搭在任一块里顺手修。
+
+> **2026-09-08 更正：外观那一行原来的「今天世界内形象与角色列表形象两个来源」说少了一半。**
+> 画角色列表的那两帧（选人界面，以及建角色之后推的那条刷新）已改成从实时穿戴现算，
+> 与世界内形象共用 `Application/Characters/DrawnAppearance.cs` 这一处规则。
+> 入口是 `CharacterRosterService.ListByAccountWithAppearanceAsync`；
+> `ListByAccountAsync` 仍旧不读穿戴，那是刻意保留的廉价 listing。
+> `appearance_blob` 仍旧只在角色创建时写一次、`Server/src` 下零条 UPDATE（本仓代码读出），
+> 而它现在只剩一个消费者：**入场那一批里的角色列表帧**。
+> **两个界面因此不一致**——选人界面画当前穿戴，入场那一帧画创建时那一份。
+> 这条边界是刻意的：入场那一帧在字节锚 `SelectCharacterAcceptedTranscriptTests` 之内，
+> 动它要改锚。要收口这条不一致，做法是让入场那一帧也问同一处规则，而不是给 blob 补写入者。
 
 ## 未查清的
 

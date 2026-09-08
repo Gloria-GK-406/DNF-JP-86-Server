@@ -111,6 +111,24 @@ handler 要么只把 body 打进日志，要么完全不引用它。
 > 样本来判定它到底是「两个字面量」还是「一个值为 267 的 `u32`」。
 > 「两个编码器」这条不谐本身仍在。
 
+**2026-09-08 更正：上面「两者的输入也不同」那一段现在还差了更要紧的一层——
+两者的外观来自两个互相不同步的真源。**
+界面那条的 `CharacterSummary.Appearances` 已改成从角色**当前穿戴**现算
+（`CharacterRosterService.ListByAccountWithAppearanceAsync` 读账号下全部穿戴，交给
+`Application/Characters/DrawnAppearance.cs`，与世界内 NOTI `0x0002` 子类型 0 同一处规则）。
+同名的 `ListByAccountAsync` **不**现算，它是刻意保下来的廉价 listing，供不画外观的调用方用。
+走界面那条编码器的有两个发送方：客户端请求 `0x0208`，以及建角色成功之后推的那条刷新，
+两者拿的都是现算过的那份。
+入场那条的 `CharacterRosterMemberState.Appearances` 仍解 `characters.appearance_blob`
+（`CharacterEntryStateTables` 读列，`SelectCharacterPreparationService.BuildRosterEntryAsync`
+解码），而那个列只在角色创建时写一次，`Server/src` 下零条 UPDATE（本仓代码读出）。
+**所以一个玩家换了装之后，选人界面画新的，入场那一批里的角色列表帧画创建时那一份。**
+两者的槽位判据也因此不同：现算那条是 `0..12` ＋ `23`（沿用世界内那一帧的），
+创建时写 blob 那条是 `<= 13`。
+
+这是刻意留下的边界：入场那一帧在字节锚 `SelectCharacterAcceptedTranscriptTests` 之内。
+收口的做法是让入场那条也问同一处规则，那会移动锚里的字节，是一件独立的事。
+
 ## 八、入场帧不再写的领域字段
 
 **2026-08-25。** 把 `NOTI 0x0002` 子类型 0 与 1 的尾部换成 A21 的定长块之后，一批字段

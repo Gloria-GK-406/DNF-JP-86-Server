@@ -696,6 +696,11 @@ public sealed class UserServiceTests
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
+        public ValueTask<AccountCharacterRoster> GetAccountRosterWithAppearanceAsync(
+            AccountId accountId,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
         public ValueTask<ActiveCharacterState> LoadForSelectionAsync(
             AccountId accountId,
             ushort slotIndex,

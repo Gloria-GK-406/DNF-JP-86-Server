@@ -86,6 +86,43 @@ internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : IChara
                 Avatar(reader, 6)),
             cancellationToken);
 
+    /// <summary>The container a character's worn pieces sit in.</summary>
+    private const int EquipmentListType = (int)InventoryContainerType.Equipment;
+
+    /// <summary>What every live character of one account is wearing.</summary>
+    /// <remarks>
+    /// The only read here that starts from <c>characters</c> rather than from a position, because
+    /// the account is a column of that table and of nothing else on the way down. <c>delete_flag</c>
+    /// is asked here for the same reason the roster's own read asks it: a soft-deleted character is
+    /// not on the screen this feeds, and joining its worn pieces in would draw a character that is
+    /// not there.
+    /// <para>
+    /// Every worn row comes back, not only the drawn ones. Which slots a character is drawn in is
+    /// one rule with one home, and repeating it as a <c>slot_index</c> condition here is exactly
+    /// how the two screens that draw a character came to disagree.
+    /// </para>
+    /// </remarks>
+    public ValueTask<IReadOnlyList<WornItemRow>> ReadWornByAccountAsync(
+        AccountId accountId, CancellationToken cancellationToken) =>
+        database.ReadAllAsync(
+            $"""
+            SELECT roster.character_id, held.item_uid, place.slot_index, held.item_core
+            FROM characters roster
+            JOIN item_slots place
+              ON place.owner_scope = 'character' AND place.owner_id = roster.character_id
+            JOIN items held ON held.item_uid = place.core_uid
+            WHERE roster.account_id = @accountId AND roster.delete_flag = 0
+              AND place.list_type = {EquipmentListType}
+            ORDER BY roster.character_id, place.slot_index, held.item_uid;
+            """,
+            parameters => parameters.AddWithValue("@accountId", accountId.Value),
+            reader => new WornItemRow(
+                reader.GetInt32(0),
+                reader.GetInt64(1),
+                reader.GetInt32(2),
+                InventoryItemCore.Decode(EntryCore(reader, 3, reader.GetInt64(1)))),
+            cancellationToken);
+
     public ValueTask<IReadOnlyList<MainItemRow>> ReadMainAsync(
         CharacterId characterId, CancellationToken cancellationToken) =>
         database.ReadAllAsync(

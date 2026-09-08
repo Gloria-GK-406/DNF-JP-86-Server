@@ -8,6 +8,11 @@ namespace Dfo.Server.Protocol.Game.AccountRoster;
 public sealed record GetAccountCharacterRosterCommand(AccountId AccountId)
     : ICommand<AccountCharacterRoster>, IAccountCommand;
 
+/// <remarks>
+/// The one caller of the roster that carries appearances. This frame draws every character on the
+/// account, so it is the one that pays for working out what each of them wears; the rest of the
+/// server asks the plain roster, which does not.
+/// </remarks>
 public sealed class GetAccountCharacterRosterCommandHandler(ICharacterDomainService characters)
     : ICommandHandler<GetAccountCharacterRosterCommand, AccountCharacterRoster>
 {
@@ -15,5 +20,5 @@ public sealed class GetAccountCharacterRosterCommandHandler(ICharacterDomainServ
         CommandExecutionContext context,
         GetAccountCharacterRosterCommand command,
         CancellationToken cancellationToken) =>
-        characters.GetAccountRosterAsync(command.AccountId, cancellationToken);
+        characters.GetAccountRosterWithAppearanceAsync(command.AccountId, cancellationToken);
 }

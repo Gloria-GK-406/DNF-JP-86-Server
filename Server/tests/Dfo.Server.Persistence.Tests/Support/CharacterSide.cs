@@ -34,7 +34,15 @@ internal sealed class CharacterSide
 
     public DomainTransactionScope Scope { get; }
 
-    public ICharacterRepository Roster => new CharacterRosterService(
+    public ICharacterRepository Roster => this.RosterOver(new SqliteCharacterItemTable(this.database));
+
+    /// <summary>The same roster over a different answer to "what is in this character's slots".</summary>
+    /// <remarks>
+    /// One test needs the worn read to refuse while everything else about the database stays real.
+    /// Corrupting a row cannot produce that: <c>items.item_core</c> is <c>NOT NULL CHECK
+    /// (length(item_core) = 82)</c>, so the table will not hold a core the read would reject.
+    /// </remarks>
+    public ICharacterRepository RosterOver(ICharacterItemTable items) => new CharacterRosterService(
         new SqliteCharacterTable(this.database),
         new SqliteCharacterSkillTable(this.database),
         new SqliteCharacterConditionTable(this.database),
@@ -43,7 +51,7 @@ internal sealed class CharacterSide
         new SqliteCharacterSettingsTable(this.database),
         new SqliteCharacterExpertJobTable(this.database),
         new SqliteCharacterContainerStateTable(this.database),
-        new SqliteCharacterItemTable(this.database),
+        items,
         new ItemPlacementRuleService(new WornPieces(), new NoWornSlots()));
 
     /// <summary>
@@ -70,6 +78,20 @@ internal sealed class CharacterSide
 
     /// <summary>The skill table itself, for the tests that are about what a statement touches.</summary>
     public ICharacterSkillTable Skills => new SqliteCharacterSkillTable(this.database);
+
+    /// <summary>
+    /// A character's things, for the tests that have to change what a character is wearing.
+    /// </summary>
+    /// <remarks>
+    /// The roster now draws from what is worn, so a test about the roster following a change has to
+    /// be able to make one. Creation can only put a character into the world dressed as it was
+    /// made; putting something on afterwards is these two tables, which is what the move path uses
+    /// underneath as well.
+    /// </remarks>
+    public ICharacterItemTable Items => new SqliteCharacterItemTable(this.database);
+
+    /// <summary>The positions themselves, for emptying one.</summary>
+    public IItemSlotTable Slots => new SqliteItemSlotTable(this.database);
 
     /// <summary>
     /// The characters table itself, for the tests that are about what one statement reads.
@@ -164,12 +186,20 @@ internal sealed class CharacterSide
     /// </remarks>
     public ICharacterRepository PerCall => new PerCallUseCase(this.Scope, this.Roster);
 
+    /// <summary>The same, over a substituted answer to what a character's slots hold.</summary>
+    public ICharacterRepository PerCallOver(ICharacterItemTable items) =>
+        new PerCallUseCase(this.Scope, this.RosterOver(items));
+
     private sealed class PerCallUseCase(DomainTransactionScope scope, ICharacterRepository inner)
         : ICharacterRepository
     {
         public ValueTask<IReadOnlyList<CharacterSummary>> ListByAccountAsync(
             AccountId accountId, CancellationToken cancellationToken) =>
             inner.ListByAccountAsync(accountId, cancellationToken);
+
+        public ValueTask<IReadOnlyList<CharacterSummary>> ListByAccountWithAppearanceAsync(
+            AccountId accountId, CancellationToken cancellationToken) =>
+            inner.ListByAccountWithAppearanceAsync(accountId, cancellationToken);
 
         public ValueTask<ActiveCharacterState?> FindByAccountAndSlotAsync(
             AccountId accountId, ushort slotIndex, CancellationToken cancellationToken) =>

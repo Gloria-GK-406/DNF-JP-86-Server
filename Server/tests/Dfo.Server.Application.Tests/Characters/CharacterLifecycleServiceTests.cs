@@ -362,6 +362,14 @@ public sealed class CharacterLifecycleServiceTests
             CancellationToken cancellationToken) =>
             ValueTask.FromResult<IReadOnlyList<CharacterSummary>>(existing);
 
+        // Refused rather than answered. Creation and deletion take the cheap listing, and a fake
+        // that served both would stop saying which one they take.
+        public ValueTask<IReadOnlyList<CharacterSummary>> ListByAccountWithAppearanceAsync(
+            AccountId accountId,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException(
+                "Creation and deletion list the account without working out appearances.");
+
         public ushort? RequestedSlot { get; private set; }
 
         // Records the slot the position was translated into. Returning null makes the load fail,

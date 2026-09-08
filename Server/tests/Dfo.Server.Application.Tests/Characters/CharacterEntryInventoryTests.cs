@@ -727,7 +727,11 @@ public sealed class CharacterEntryInventoryTests
                     state.Identity.GrowType,
                     state.Progression.Level,
                     0,
-                    [])]));
+                    null)]));
+        public ValueTask<AccountCharacterRoster> GetAccountRosterWithAppearanceAsync(
+            AccountId accountId,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException("This stand-in draws no roster.");
 
         public ValueTask<ActiveCharacterState> LoadForSelectionAsync(
             AccountId accountId,

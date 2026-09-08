@@ -39,7 +39,7 @@ public sealed class AccountCharacterRosterCodecTests
             Flag20: 0);
 
     private static CharacterSummary TheCharacterThatSessionCarried(
-        IReadOnlyList<CharacterRosterAppearanceState> appearances) =>
+        IReadOnlyList<CharacterRosterAppearanceState>? appearances) =>
         new(
             new CharacterId(1),
             SlotIndex: 0,
@@ -159,5 +159,20 @@ public sealed class AccountCharacterRosterCodecTests
         Assert.Throws<InvalidDataException>(
             () => AccountCharacterRosterPayloadCodec.Encode(
                 Roster(TheCharacterThatSessionCarried([appearance]))));
+    }
+
+    /// <summary>A character from a listing that worked out no appearance is refused, not drawn.</summary>
+    /// <remarks>
+    /// Null appearances mean the roster came from the cheap listing -- the one four other callers
+    /// use, which does not read what anyone wears. Drawing it would put every character on the
+    /// screen undressed, silently, which is exactly the defect this frame was fixed for; so the
+    /// codec refuses instead, and the mistake shows up as a failure rather than as a picture.
+    /// </remarks>
+    [Fact]
+    public void A_character_whose_appearance_was_never_worked_out_is_refused()
+    {
+        Assert.Throws<InvalidDataException>(
+            () => AccountCharacterRosterPayloadCodec.Encode(
+                Roster(TheCharacterThatSessionCarried(null))));
     }
 }

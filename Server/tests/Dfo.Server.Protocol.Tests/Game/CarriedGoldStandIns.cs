@@ -69,6 +69,9 @@ internal sealed class OnePlayingCharacter(ICharacter character) : ICharacterDoma
     public ValueTask<AccountCharacterRoster> GetAccountRosterAsync(
         AccountId accountId, CancellationToken cancellationToken) => throw Unused();
 
+    public ValueTask<AccountCharacterRoster> GetAccountRosterWithAppearanceAsync(
+        AccountId accountId, CancellationToken cancellationToken) => throw Unused();
+
     public ValueTask<ActiveCharacterState> LoadForSelectionAsync(
         AccountId accountId, ushort slotIndex, CancellationToken cancellationToken) => throw Unused();
 

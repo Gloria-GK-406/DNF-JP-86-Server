@@ -256,6 +256,9 @@ public sealed class AvatarCarrierRulesTests
         public ValueTask<IReadOnlyList<MainItemRow>> ReadMainAsync(
             CharacterId characterId, CancellationToken cancellationToken) => throw Unreached();
 
+        public ValueTask<IReadOnlyList<WornItemRow>> ReadWornByAccountAsync(
+            AccountId accountId, CancellationToken cancellationToken) => throw Unreached();
+
         public ValueTask<int> DeleteOwnExceptAsync(
             CharacterId characterId, IReadOnlyList<long> keep, CancellationToken cancellationToken)
             => throw Unreached();

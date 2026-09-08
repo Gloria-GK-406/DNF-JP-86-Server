@@ -7,6 +7,20 @@ public readonly record struct CharacterId(int Value)
     public override string ToString() => Value.ToString();
 }
 
+/// <summary>One of an account's characters, as a listing of them names it.</summary>
+/// <param name="Appearances">
+/// What this character is drawn wearing, or <c>null</c> when the listing was not asked to work it
+/// out.
+/// <para>
+/// <b><c>null</c> and empty are two different answers, and the difference is load-bearing.</b>
+/// Empty means "asked, and this character is drawn wearing nothing". Null means "nobody asked" --
+/// which is what every listing except the one feeding the character-selection frame gets, because
+/// working it out costs an account-scoped read of everything every character on the account wears.
+/// The one encoder that draws these refuses null rather than drawing an undressed character, so a
+/// caller that takes the cheap listing to a screen that draws is told so instead of quietly
+/// reproducing the defect this distinction exists because of.
+/// </para>
+/// </param>
 public sealed record CharacterSummary(
     CharacterId CharacterId,
     ushort SlotIndex,
@@ -15,7 +29,7 @@ public sealed record CharacterSummary(
     byte GrowType,
     byte Level,
     uint CloneTitleItemId,
-    IReadOnlyList<Game.CharacterRosterAppearanceState> Appearances);
+    IReadOnlyList<Game.CharacterRosterAppearanceState>? Appearances);
 
 public sealed record AccountCharacterRoster(
     AccountId AccountId,

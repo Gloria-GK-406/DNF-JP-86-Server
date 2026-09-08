@@ -69,7 +69,11 @@ public sealed class SelectCharacterProductionStateTests
                     seed.Character.Identity.SlotIndex, seed.Character.Identity.Name,
                     seed.Character.Identity.Job, seed.Character.Identity.GrowType,
                     seed.Character.Progression.Level, seed.CharacterEntry.Public.CloneTitleItemId,
-                    [])]));
+                    null)]));
+        // The entry burst asks the plain roster; nothing on that path draws a character.
+        public ValueTask<AccountCharacterRoster> GetAccountRosterWithAppearanceAsync(
+            AccountId id, CancellationToken ct) =>
+            throw new NotSupportedException("The entry burst does not draw the roster.");
         public ValueTask<ActiveCharacterState> LoadForSelectionAsync(AccountId id, ushort slot, CancellationToken ct) =>
             ValueTask.FromResult(seed.Character);
         public ValueTask<ActiveCharacterState> LoadByRosterPositionAsync(

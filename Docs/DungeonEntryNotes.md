@@ -134,7 +134,7 @@
 
 ## 八、疲劳值规则（用户 2026-08-27 口述，尚未实现）
 
-现状：`CharacterRosterService.cs:147` 里写死 `new CharacterFatigueState(188, 0)`，全仓没有任何地方
+现状：`CharacterRosterService.cs:214` 里写死 `new CharacterFatigueState(188, 0)`，全仓没有任何地方
 递减它。今天有一个**不记账的接缝** `ICharacterFatigueDomainService`（实现
 `UnaccountedCharacterFatigueDomainService`：答一对定值，报给它的一律丢弃），进本处
 `SelectDungeonHandler` 会向它报一次消耗——报告落在接缝上，发出去的那个 188 不受影响。

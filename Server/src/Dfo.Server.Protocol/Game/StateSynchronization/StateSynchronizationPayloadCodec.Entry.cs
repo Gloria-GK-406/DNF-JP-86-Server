@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Text;
 using System.Text.Json;
+using Dfo.Server.Application.Characters;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
@@ -814,27 +815,21 @@ internal static partial class StateSynchronizationPayloadCodec
 
     /// <summary>Whether what subtype zero draws depends on what is worn in this slot.</summary>
     /// <remarks>
-    /// The union of the two filters the encoder below uses, and deliberately a union rather than a
-    /// third filter: the appearance run takes <c>0..12</c> and <c>23</c>, and the creature triple
-    /// takes <c>24</c>. Anyone asking "would this frame come out differently if that slot changed"
-    /// has to ask about both, and asking here is what keeps a fourth slot filter from appearing in
-    /// this repository -- there are already three that disagree with each other, and reconciling
-    /// them changes bytes.
+    /// The union of the two things this frame draws from what is worn, and deliberately a union
+    /// rather than a third filter: the appearance run is
+    /// <see cref="DrawnAppearance.DrawsFrom"/>'s answer -- asked rather than restated, because the
+    /// character-selection roster draws from the same run -- and the creature triple takes
+    /// <c>24</c>. Anyone asking "would this frame come out differently if that slot changed" has to
+    /// ask about both, and asking here is what keeps a fourth slot filter from appearing in this
+    /// repository -- there are already three that disagree with each other, and reconciling them
+    /// changes bytes.
     /// <para>
     /// It answers about a worn slot. A slot number from the bag or the avatar page means something
     /// else entirely, and the caller is the one that knows which list it holds.
     /// </para>
     /// </remarks>
     internal static bool CurrentUserStateDrawsFrom(int wornSlotIndex) =>
-        wornSlotIndex <= Noti2AppearanceLastSlot
-            || wornSlotIndex == Noti2AppearanceExtraSlot
-            || wornSlotIndex == Noti2CreatureSlot;
-
-    /// <summary>The end of the run subtype zero draws the character's appearance from.</summary>
-    private const int Noti2AppearanceLastSlot = 12;
-
-    /// <summary>The one slot past that run the same appearance draws from.</summary>
-    private const int Noti2AppearanceExtraSlot = 23;
+        DrawnAppearance.DrawsFrom(wornSlotIndex) || wornSlotIndex == Noti2CreatureSlot;
 
     public static byte[] EncodeCurrentUserState(
         ActiveCharacterState character,
@@ -847,8 +842,11 @@ internal static partial class StateSynchronizationPayloadCodec
         // frame no longer writes field by field. They are still loaded on the character -- other
         // frames use them -- but subtype zero does not mention them on A21.
         var c = entry.Condition; var job = entry.ExpertJob; var extras = entry.Extras;
-        var appearance = equipment.Where(item => item.SlotIndex <= Noti2AppearanceLastSlot || item.SlotIndex == Noti2AppearanceExtraSlot).OrderBy(item => item.SlotIndex).ToArray();
-        if (appearance.Length > byte.MaxValue) throw CountError("appearance", "u8");
+        // Worked out where the roster screen works it out, so the two pictures of one character
+        // cannot disagree. This used to be a filter and eight literal writes inline here; the
+        // writes below are the same eight fields, now read off the part rather than recomputed.
+        var appearance = DrawnAppearance.Of(equipment);
+        if (appearance.Count > byte.MaxValue) throw CountError("appearance", "u8");
         var creature = equipment.SingleOrDefault(item => item.SlotIndex == 24 && item.Core.ItemKind == 5);
         var pet = creature is null ? null : pets.SingleOrDefault(value => value.PetKey == creature.Core.Value);
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
@@ -858,12 +856,12 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(new byte[EntrySubtypeZeroReservedBlock]);
         writer.Write(checked((ushort)character.Identity.CharacterId.Value)); WriteDstr(writer, character.Identity.Name);
         writer.Write(character.Identity.Job); writer.Write(character.Identity.GrowType); writer.Write(character.Progression.Level);
-        writer.Write(identity.PvpGrade); writer.Write(identity.PvpRatingGrade); writer.Write(identity.UserState); writer.Write(checked((byte)appearance.Length));
-        foreach (var item in appearance)
+        writer.Write(identity.PvpGrade); writer.Write(identity.PvpRatingGrade); writer.Write(identity.UserState); writer.Write(checked((byte)appearance.Count));
+        foreach (var part in appearance)
         {
-            writer.Write(checked((byte)item.SlotIndex)); writer.Write(item.Core.ItemId); writer.Write(4); writer.Write(0);
-            writer.Write(checked((byte)((item.Core.Attribute & 0x1F) * 2 + (item.Core.AmplifyType != 0 ? 1 : 0))));
-            writer.Write(0); writer.Write(0u); writer.Write(item.Core.EnchantUpgradeCount);
+            writer.Write(part.Slot); writer.Write(part.DisplayItemId); writer.Write(part.ExpansionLength); writer.Write(part.ExpansionData);
+            writer.Write(part.State);
+            writer.Write(part.LinkItemId); writer.Write(part.EnchantValue); writer.Write(part.Flag20);
         }
         writer.Write(entry.CloneTitleItemId); writer.Write((byte)0); writer.Write(checked((byte)c.CreatureField2)); writer.Write(checked((byte)c.CreatureField3)); writer.Write(checked((byte)c.CreatureField4));
         writer.Write(checked((uint)extras.NameTagItemId)); writer.Write(checked((uint)extras.NameTagExpireTime)); writer.Write(checked((byte)c.Stamina)); writer.Write(checked((uint)c.FatiguePenalty)); writer.Write(c.EventCharacter != 0 ? (byte)1 : (byte)0);

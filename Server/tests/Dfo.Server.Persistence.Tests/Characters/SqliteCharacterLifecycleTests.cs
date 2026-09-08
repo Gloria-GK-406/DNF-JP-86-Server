@@ -1,8 +1,12 @@
 using System.Text;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Persistence.Accounts;
 using Dfo.Server.Persistence.Characters;
 using Dfo.Server.Persistence.Tests.Support;
@@ -154,19 +158,23 @@ public sealed class SqliteCharacterLifecycleTests
     }
 
     /// <summary>
-    /// The roster carries the stored appearance parts, and a character without any carries none.
+    /// Each character on the roster is drawn wearing its own things, and a bare one wears none.
     /// </summary>
     /// <remarks>
-    /// What the roster draws is what the character is wearing, so the parts are the equipment the
-    /// creation was given and a character given none carries none. Both halves are reached through
-    /// the repository because both are now shapes it produces.
-    ///
-    /// The stored-blob half is still exercised by hand afterwards. A blob written by something
-    /// other than this creation -- an older row, another tool -- must still decode, and nothing
-    /// the repository does can produce one to test that with.
+    /// <b>The half of this case that asserted a hand-written blob is gone, and its going is the
+    /// point.</b> It used to write a part into <c>characters.appearance_blob</c> for a character
+    /// wearing nothing and assert the roster came back carrying it. That assertion was a statement
+    /// of the defect: the column is written once when a character is made and by nothing
+    /// afterwards, so the screen drew the character the player made rather than the one they have.
+    /// The roster derives from what is worn now, and the replacement for that half is
+    /// <see cref="ChangingWhatACharacterWearsChangesWhatTheRosterDraws"/>.
+    /// <para>
+    /// Three characters on one account, because "does not borrow" needs at least two dressed
+    /// differently and one wearing nothing at all.
+    /// </para>
     /// </remarks>
     [Fact]
-    public Task TheRosterCarriesStoredAppearancePartsAndCopesWithNone()
+    public Task TheRosterDrawsWhatEachCharacterWearsAndNothingWhenBare()
     {
         var directory = Path.Combine(Path.GetTempPath(), $"dfo-character-{Guid.NewGuid():N}");
         Directory.CreateDirectory(directory);
@@ -189,64 +197,331 @@ public sealed class SqliteCharacterLifecycleTests
                         new NewCharacterEquipment(16, 12400, 27, EquipmentKind),
                     ]),
                 CancellationToken.None);
-            var created = await repository.ListByAccountAsync(Account, CancellationToken.None);
+            var other = await repository.CreateAsync(
+                new NewCharacterSpec(
+                    Account, "Other"u8.ToArray(), Job: 2, SlotIndex: 1, CharacterBaseStats.Zero,
+                    InitialEquipment: [new NewCharacterEquipment(0, 413560000, 45, EquipmentKind)]),
+                CancellationToken.None);
 
-            // The parts are the granted equipment the roster draws, in its slots. A creation given
-            // nothing to wear writes nothing rather than a stand-in set: the roster would
-            // otherwise draw every character holding whichever job's weapon the stand-in was
-            // transcribed from. The coat and the pants are worn but not drawn -- the roster's
-            // appearance stops at slot thirteen.
-            Assert.Empty(created.Single(value => value.CharacterId == bare).Appearances);
-            var worn = created.Single(value => value.CharacterId == clothed).Appearances;
+            var roster = await repository.ListByAccountWithAppearanceAsync(
+                Account, CancellationToken.None);
+
+            // A character given nothing to wear is drawn wearing nothing rather than a stand-in
+            // set: the roster would otherwise draw every character holding whichever job's weapon
+            // the stand-in was transcribed from. Empty, not absent -- this listing was asked.
+            Assert.Empty(Drawn(roster.Single(value => value.CharacterId == bare)));
+
+            // The coat and the pants are worn but not drawn: the run this screen draws from ends
+            // at slot twelve and takes twenty-three as well, and fourteen and sixteen are neither.
+            var worn = Drawn(roster.Single(value => value.CharacterId == clothed));
             Assert.Equal([12], worn.Select(value => (int)value.Slot));
             Assert.Equal([27600], worn.Select(value => value.DisplayItemId));
             Assert.Equal([4], worn.Select(value => value.ExpansionLength));
 
-            var dressed = await repository.CreateAsync(
-                new NewCharacterSpec(Account, "Dressed"u8.ToArray(), Job: 2, SlotIndex: 1, CharacterBaseStats.Zero),
-                CancellationToken.None);
-
-            // One count byte followed by one twenty-three byte entry, which is how the column is
-            // laid out wherever it does get written.
-            byte[] blob =
-            [
-                0x01,
-                0x0C, 0x80, 0x80, 0xCB, 0x06, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            ];
-            await using (var connection = new SqliteConnection($"Data Source={databasePath}"))
-            {
-                await connection.OpenAsync(CancellationToken.None);
-                await using var update = connection.CreateCommand();
-                update.CommandText =
-                    "UPDATE characters SET appearance_blob = @blob WHERE character_id = @id;";
-                update.Parameters.AddWithValue("@blob", blob);
-                update.Parameters.AddWithValue("@id", dressed.Value);
-                Assert.Equal(1, await update.ExecuteNonQueryAsync(CancellationToken.None));
-            }
-
-            // NULL rather than an empty blob. Creation writes a one-byte count of zero for a
-            // character with nothing to wear, and a column holding nothing at all is a different
-            // input the decoder must also survive.
-            await using (var connection = new SqliteConnection($"Data Source={databasePath}"))
-            {
-                await connection.OpenAsync(CancellationToken.None);
-                await using var clear = connection.CreateCommand();
-                clear.CommandText =
-                    "UPDATE characters SET appearance_blob = NULL WHERE character_id = @id;";
-                clear.Parameters.AddWithValue("@id", bare.Value);
-                Assert.Equal(1, await clear.ExecuteNonQueryAsync(CancellationToken.None));
-            }
-
-            var roster = await repository.ListByAccountAsync(Account, CancellationToken.None);
-
-            Assert.Empty(roster.Single(value => value.CharacterId == bare).Appearances);
-            var part = Assert.Single(roster.Single(value => value.CharacterId == dressed).Appearances);
-            Assert.Equal(0x0C, part.Slot);
-            Assert.Equal(0x06CB8080, part.DisplayItemId);
-            Assert.Equal(4, part.ExpansionLength);
+            var others = Drawn(roster.Single(value => value.CharacterId == other));
+            Assert.Equal([0], others.Select(value => (int)value.Slot));
+            Assert.Equal([413560000], others.Select(value => value.DisplayItemId));
         });
     }
+
+    /// <summary>The roster draws the slots the shared rule names, and no others.</summary>
+    /// <remarks>
+    /// A worn set straddling every edge of the run: its first slot, its last, the slot one past it
+    /// that this repository's creation-time filter would have taken, the extra slot the run reaches
+    /// for, and the creature's, which belongs to a different part of the frame that draws a
+    /// character in the world. The same expectation is asserted against the in-world frame in
+    /// <c>BothScreensDrawTheSameCharacterTests</c>; both sides pin it so that mutating the one rule
+    /// cannot leave the two agreeing about a wrong picture.
+    /// </remarks>
+    [Fact]
+    public Task TheRosterDrawsExactlyTheSlotsTheRuleNames()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"dfo-character-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var databasePath = Path.Combine(directory, "characters.db");
+        return RunAndCleanUpAsync(directory, async () =>
+        {
+            await new AccountSide(databasePath).GetOrCreateAsync("account", "hash");
+            var repository = new CharacterSide(databasePath).PerCall;
+            await repository.CreateAsync(
+                new NewCharacterSpec(
+                    Account, "Edges"u8.ToArray(), Job: 0, SlotIndex: 0, CharacterBaseStats.Zero,
+                    InitialEquipment:
+                    [
+                        new NewCharacterEquipment(0, 413560000, 45, EquipmentKind),
+                        new NewCharacterEquipment(12, 27600, 45, EquipmentKind),
+                        new NewCharacterEquipment(13, 10400, 45, EquipmentKind),
+                        new NewCharacterEquipment(23, 12400, 45, EquipmentKind),
+                        new NewCharacterEquipment(24, 88800, 45, EquipmentKind),
+                    ]),
+                CancellationToken.None);
+
+            var drawn = Drawn((await repository.ListByAccountWithAppearanceAsync(
+                Account, CancellationToken.None)).Single());
+
+            Assert.Equal([0, 12, 23], drawn.Select(value => (int)value.Slot));
+            Assert.Equal([413560000, 27600, 12400], drawn.Select(value => value.DisplayItemId));
+        });
+    }
+
+    /// <summary>
+    /// Changing what a character wears changes what the selection screen draws for it.
+    /// </summary>
+    /// <remarks>
+    /// Nothing else happens in between -- no re-entry, no second command, no write to the stored
+    /// blob, which is left holding what creation put there. This is the case the reported defect
+    /// failed: eleven costumes went on and the selection screen went on drawing the character
+    /// undressed.
+    /// </remarks>
+    [Fact]
+    public Task ChangingWhatACharacterWearsChangesWhatTheRosterDraws()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"dfo-character-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var databasePath = Path.Combine(directory, "characters.db");
+        return RunAndCleanUpAsync(directory, async () =>
+        {
+            await new AccountSide(databasePath).GetOrCreateAsync("account", "hash");
+            var side = new CharacterSide(databasePath);
+            var repository = side.PerCall;
+            var character = await repository.CreateAsync(
+                new NewCharacterSpec(Account, "Dresser"u8.ToArray(), Job: 1, SlotIndex: 0, CharacterBaseStats.Zero),
+                CancellationToken.None);
+
+            Assert.Empty(Drawn((await repository.ListByAccountWithAppearanceAsync(
+                Account, CancellationToken.None)).Single()));
+
+            await Wear(side, character, slot: 3, itemId: 413500000);
+
+            var afterFirst = Drawn((await repository.ListByAccountWithAppearanceAsync(
+                Account, CancellationToken.None)).Single());
+            Assert.Equal([3], afterFirst.Select(value => (int)value.Slot));
+            Assert.Equal([413500000], afterFirst.Select(value => value.DisplayItemId));
+
+            // The part carries more than the slot and the item. The state byte is the piece's
+            // attribute doubled plus one for being amplified, and the last byte is its enchant
+            // count -- asserted here, off the store, so that the roster side has its own hold on
+            // what a part carries rather than borrowing the frame codec's.
+            var part = Assert.Single(afterFirst);
+            Assert.Equal(11, part.State);
+            Assert.Equal(9, part.Flag20);
+            Assert.Equal(4, part.ExpansionLength);
+            Assert.Equal(0, part.LinkItemId);
+            Assert.Equal(0u, part.EnchantValue);
+
+            await Wear(side, character, slot: 0, itemId: 413560000);
+
+            var afterSecond = Drawn((await repository.ListByAccountWithAppearanceAsync(
+                Account, CancellationToken.None)).Single());
+            Assert.Equal([0, 3], afterSecond.Select(value => (int)value.Slot));
+            Assert.Equal([413560000, 413500000], afterSecond.Select(value => value.DisplayItemId));
+
+            await TakeOff(side, character, slot: 3);
+
+            var afterRemoval = Drawn((await repository.ListByAccountWithAppearanceAsync(
+                Account, CancellationToken.None)).Single());
+            Assert.Equal([0], afterRemoval.Select(value => (int)value.Slot));
+            Assert.Equal([413560000], afterRemoval.Select(value => value.DisplayItemId));
+        });
+    }
+
+    /// <summary>
+    /// The stored blob is left exactly as it was, and the entry burst's roster frame still reads it.
+    /// </summary>
+    /// <remarks>
+    /// <b>The two screens now disagree, and this is where that is checkable.</b> The
+    /// character-selection roster derives from what is worn; the roster frame inside the entry
+    /// burst reads <c>characters.appearance_blob</c> through the entry-state load, and that column
+    /// still holds only what creation wrote -- creation's own filter, which stops at slot thirteen,
+    /// and three of a part's eight fields. Nothing here writes it, removes it, or brings it up to
+    /// date; that is a decision of its own and this records where it is still consumed so whoever
+    /// makes it can find it.
+    /// </remarks>
+    [Fact]
+    public Task TheEntryBurstStillReadsTheBlobCreationWrote()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"dfo-character-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var databasePath = Path.Combine(directory, "characters.db");
+        return RunAndCleanUpAsync(directory, async () =>
+        {
+            await new AccountSide(databasePath).GetOrCreateAsync("account", "hash");
+            var side = new CharacterSide(databasePath);
+            var character = await side.PerCall.CreateAsync(
+                new NewCharacterSpec(
+                    Account, "Frozen"u8.ToArray(), Job: 0, SlotIndex: 0, CharacterBaseStats.Zero,
+                    InitialEquipment: [new NewCharacterEquipment(12, 27600, 45, EquipmentKind)]),
+                CancellationToken.None);
+
+            // Put something else on afterwards. The selection screen follows it; the column does
+            // not, and that is what the two paragraphs above are about.
+            await Wear(side, character, slot: 0, itemId: 413560000);
+
+            var drawn = Drawn((await side.PerCall.ListByAccountWithAppearanceAsync(
+                Account, CancellationToken.None)).Single());
+            Assert.Equal([0, 12], drawn.Select(value => (int)value.Slot));
+
+            var stored = (await new CharacterSide(databasePath)
+                .EntryState(new GoldLimitRuleService())
+                .LoadAsync(Account, character, CancellationToken.None)).Profile.AppearanceBlob;
+
+            // One count byte and one part: slot twelve, item 27600 as 0x6BD0, an expansion field
+            // declaring its own four, and fourteen zero bytes creation never fills in.
+            Assert.Equal(
+                [
+                    0x01,
+                    0x0C, 0xD0, 0x6B, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                ],
+                stored);
+        });
+    }
+
+    /// <summary>
+    /// The listings that draw nothing never read what anyone is wearing; the one that draws does.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the case that keeps the account-scoped worn read on the one path that needs it.</b>
+    /// The first version of this work put that read inside
+    /// <see cref="ICharacterRepository.ListByAccountAsync"/>, which is also what resolves a roster
+    /// position, counts slots before a creation, finds a character by name before a deletion, and
+    /// checks during entry that the selected character is on the roster. None of those four draws
+    /// anything, and all four would have failed whenever that read failed -- so a database busy for
+    /// a moment, or one worn row this server did not write, would have kept a player from creating,
+    /// deleting or entering with any character on the account. A screen drawn correctly is not
+    /// worth a login that cannot happen.
+    /// <para>
+    /// The refusal is put at the seam rather than made out of a damaged row, because a damaged row
+    /// cannot be made: <c>items.item_core</c> is <c>NOT NULL CHECK (length(item_core) = 82)</c> and
+    /// <c>item_uid</c> is bounded to the wire's range, so the table itself refuses the two shapes
+    /// the read would reject. What remains reachable is the read failing for its own reasons, and
+    /// that is what stands in here. Everything else about the database is real.
+    /// </para>
+    /// <para>
+    /// Folding the read back into the cheap listing turns the first half of this red.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public Task TheListingsThatDrawNothingDoNotReadWhatAnyoneWears()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"dfo-character-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var databasePath = Path.Combine(directory, "characters.db");
+        return RunAndCleanUpAsync(directory, async () =>
+        {
+            await new AccountSide(databasePath).GetOrCreateAsync("account", "hash");
+            var side = new CharacterSide(databasePath);
+            var repository = side.PerCallOver(new RefusesTheWornRead(side.Items));
+            await repository.CreateAsync(
+                new NewCharacterSpec(
+                    Account, "Dressed"u8.ToArray(), Job: 0, SlotIndex: 0, CharacterBaseStats.Zero,
+                    InitialEquipment: [new NewCharacterEquipment(12, 27600, 45, EquipmentKind)]),
+                CancellationToken.None);
+            await repository.CreateAsync(
+                new NewCharacterSpec(Account, "Bystander"u8.ToArray(), Job: 1, SlotIndex: 1, CharacterBaseStats.Zero),
+                CancellationToken.None);
+
+            // Creating a character has already worked twice above, through the same repository.
+            // Listing, which is what deletion, roster-position resolution and entry all reach for,
+            // works too -- and says it worked nothing out about appearances rather than saying
+            // everyone is naked.
+            var listed = await repository.ListByAccountAsync(Account, CancellationToken.None);
+            Assert.Equal(2, listed.Count);
+            Assert.All(listed, summary => Assert.Null(summary.Appearances));
+
+            // The one caller that draws is the one that meets the refusal.
+            await Assert.ThrowsAsync<InvalidDataException>(
+                async () => await repository.ListByAccountWithAppearanceAsync(
+                    Account, CancellationToken.None));
+        });
+    }
+
+    /// <summary>A character's things, except that nobody can be told what anyone wears.</summary>
+    private sealed class RefusesTheWornRead(ICharacterItemTable inner) : ICharacterItemTable
+    {
+        public ValueTask<IReadOnlyList<CharacterItemRow>> ReadByCharacterAsync(
+            CharacterId characterId, CancellationToken cancellationToken) =>
+            inner.ReadByCharacterAsync(characterId, cancellationToken);
+
+        public ValueTask<IReadOnlyList<MainItemRow>> ReadMainAsync(
+            CharacterId characterId, CancellationToken cancellationToken) =>
+            inner.ReadMainAsync(characterId, cancellationToken);
+
+        public ValueTask<IReadOnlyList<WornItemRow>> ReadWornByAccountAsync(
+            AccountId accountId, CancellationToken cancellationToken) =>
+            throw new InvalidDataException("What this account wears cannot be read.");
+
+        public ValueTask<int> DeleteOwnExceptAsync(
+            CharacterId characterId, IReadOnlyList<long> keep, CancellationToken cancellationToken) =>
+            inner.DeleteOwnExceptAsync(characterId, keep, cancellationToken);
+
+        public ValueTask<int> UpdateOwnAsync(
+            long itemUid, CharacterId characterId, InventoryItemCoreState core,
+            InventoryAvatarDetailState? avatarDetail, CancellationToken cancellationToken) =>
+            inner.UpdateOwnAsync(itemUid, characterId, core, avatarDetail, cancellationToken);
+
+        public ValueTask<long?> InsertOwnAsync(
+            InventoryItemCoreState core, InventoryAvatarDetailState? avatarDetail,
+            CancellationToken cancellationToken) =>
+            inner.InsertOwnAsync(core, avatarDetail, cancellationToken);
+
+        public ValueTask<int> ClearOwnPositionsAsync(
+            CharacterId characterId, CancellationToken cancellationToken) =>
+            inner.ClearOwnPositionsAsync(characterId, cancellationToken);
+
+        public ValueTask<int> HoldOwnAsync(
+            CharacterId characterId, int listType, int slotIndex, ItemSlotKind kind,
+            int id, int coreUid, int count, CancellationToken cancellationToken) =>
+            inner.HoldOwnAsync(
+                characterId, listType, slotIndex, kind, id, coreUid, count, cancellationToken);
+    }
+
+    /// <summary>The parts one character is drawn as, refusing a listing that worked none out.</summary>
+    /// <remarks>
+    /// Null and empty are two different answers here: empty is "asked, wears nothing drawn", null is
+    /// "this listing never worked it out". Every case above asks the listing that does, so null is a
+    /// failure of the case rather than a shape it should cope with.
+    /// </remarks>
+    private static IReadOnlyList<CharacterRosterAppearanceState> Drawn(CharacterSummary summary) =>
+        summary.Appearances ?? throw new InvalidOperationException(
+            $"Character {summary.CharacterId} came back from a listing that drew nothing.");
+
+    /// <summary>Puts one newly made piece on, the way the store holds a worn thing.</summary>
+    /// <remarks>
+    /// Two writes, because a thing and where it is are two rows: the piece goes into the world and
+    /// is given an identity, and the worn position then says it holds that identity. It is the
+    /// same pair creation uses and the same pair a move settles through.
+    /// <para>
+    /// The piece carries an attribute, an amplify type and an enchant count rather than zeroes, so
+    /// that the fields of a drawn part other than the slot and the item are actually reached.
+    /// </para>
+    /// </remarks>
+    private static Task<int> Wear(CharacterSide side, CharacterId character, int slot, int itemId) =>
+        side.InUseCaseAsync(async token =>
+        {
+            var identity = await side.Items.InsertOwnAsync(
+                StackableItemCore.Create(EquipmentKind, itemId, 1) with
+                {
+                    Durability = 50,
+                    Attribute = 5,
+                    AmplifyType = 2,
+                    EnchantUpgradeCount = 9,
+                },
+                null,
+                token);
+            var worn = checked((int)identity!.Value);
+            Assert.Equal(1, await side.Items.HoldOwnAsync(
+                character, (int)InventoryContainerType.Equipment, slot,
+                ItemSlotKind.World, worn, worn, 1, token));
+            return worn;
+        });
+
+    /// <summary>Empties one worn position, leaving the thing that was in it.</summary>
+    private static Task<int> TakeOff(CharacterSide side, CharacterId character, int slot) =>
+        side.InUseCaseAsync(token => side.Slots.ClearAsync(
+            new ItemPlace(
+                "character", character.Value, (int)InventoryContainerType.Equipment, slot),
+            token));
 
     private static async Task RunAndCleanUpAsync(string directory, Func<Task> body)
     {

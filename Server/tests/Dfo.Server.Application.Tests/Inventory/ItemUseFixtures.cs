@@ -225,6 +225,9 @@ internal sealed class OneCharacter(ICharacter character) : ICharacterDomainServi
     public ValueTask<AccountCharacterRoster> GetAccountRosterAsync(
         AccountId accountId, CancellationToken cancellationToken) => throw Unused();
 
+    public ValueTask<AccountCharacterRoster> GetAccountRosterWithAppearanceAsync(
+        AccountId accountId, CancellationToken cancellationToken) => throw Unused();
+
     public ValueTask<ActiveCharacterState> LoadForSelectionAsync(
         AccountId accountId, ushort slotIndex, CancellationToken cancellationToken) => throw Unused();
 

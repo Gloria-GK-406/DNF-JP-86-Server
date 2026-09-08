@@ -70,11 +70,22 @@
 | 成长（等级/经验/SP/TP） | `characters`(level, exp, bonus_sp, bonus_tp) | ✅ | 入场态里还有第二份经验副本 |
 | 位置 | `characters`(town_id, area_id, pos_x/y, direction) | ✅ | — |
 | **战斗属性** | `character_stats` 20 个 `stat_*` + `current_hp_mp_percent` | ❌ | **冻在创建时的 1 级基础值，升级/换装都不重算** |
-| 外观 | `characters.appearance_blob` | ❌ | 无写入者；世界内形象走实时装备，角色列表走这个冻住的 blob |
+| 外观 | `characters.appearance_blob` | ❌ | blob 仍无写入者；世界内形象与**选人界面**已都改成从实时装备现算，只剩入场那一批里的角色列表帧还读它（2026-09-08 更正，见表下） |
 | 称号 | `characters.clone_title_item_id` ＋ `title_display_flag` ＋ `items` 容器 19-23 | ❌ | 无写入者；`MoveItemSpace` 只认 `Main`/`Equipment` |
 | 名牌 | `characters`(name_tag_item_id, name_tag_expire_time) | ❌ | 无写入者 |
 | 管理权限 | `characters.manage_level` | ❌ | 无写入者 |
 | 公会 | `characters`(guild_level, guild_power_war) | ❌ | 整个系统不存在 |
+
+> **2026-09-08 更正：外观那一行原来的「角色列表走这个冻住的 blob」不再成立，只成立一半。**
+> 画角色列表的那两帧（客户端请求 `0x0208` 的选人界面，以及建角色成功之后推的那条刷新，
+> 两者同一个 `AccountCharacterRosterPayloadCodec`）已改成从实时穿戴现算，和世界内形象走同一条
+> 规则（`Application/Characters/DrawnAppearance.cs`）。现算的入口是
+> `CharacterRosterService.ListByAccountWithAppearanceAsync`；**同名少一截的 `ListByAccountAsync`
+> 是刻意保下来的廉价 listing**，它一行穿戴都不读，供入场校验、名次解析、建角色查槽、删角色查名用。
+> 仍读 blob 的是**入场那一批里的角色列表帧**：`CharacterEntryStateTables` 读列，
+> `SelectCharacterPreparationService.BuildRosterEntryAsync` 解码。**两个界面因此不一致**——
+> 一个画当前穿戴，一个画创建时那一份；这是刻意留下的边界，不是遗漏。
+> blob 本身仍然只在角色创建时写入一次，`Server/src` 下零条 UPDATE（本仓代码读出）。
 
 ### B. 角色身上发生的事（`character_condition`）
 

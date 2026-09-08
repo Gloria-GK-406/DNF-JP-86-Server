@@ -37,6 +37,22 @@ internal sealed class CharacterDomainService(
             accountId, creationRules.AccountSlotLimit, characters);
     }
 
+    /// <remarks>
+    /// The same roster over the more expensive listing. Which of the two a caller wants is a
+    /// question about what the caller does with it, so it is asked here rather than settled by a
+    /// flag: the one that draws the characters takes this, and everything else takes the cheap one.
+    /// </remarks>
+    public async ValueTask<AccountCharacterRoster> GetAccountRosterWithAppearanceAsync(
+        AccountId accountId,
+        CancellationToken cancellationToken)
+    {
+        var characters = await characterRepository().ListByAccountWithAppearanceAsync(
+            accountId,
+            cancellationToken).ConfigureAwait(false);
+        return new AccountCharacterRoster(
+            accountId, creationRules.AccountSlotLimit, characters);
+    }
+
     public async ValueTask<ActiveCharacterState> LoadForSelectionAsync(
         AccountId accountId,
         ushort slotIndex,

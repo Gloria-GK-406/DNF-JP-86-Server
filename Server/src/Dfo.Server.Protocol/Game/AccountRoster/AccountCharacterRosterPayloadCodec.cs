@@ -49,8 +49,16 @@ internal static class AccountCharacterRosterPayloadCodec
             body.Add(SecondByteAfterLevel);
             WriteUInt32(body, 0);
             WriteUInt32(body, 0);
-            body.Add(checked((byte)character.Appearances.Count));
-            foreach (var appearance in character.Appearances)
+            // Refused rather than drawn as nothing. A null list means the listing this roster came
+            // from was never asked to work out what anyone is wearing, and the cheap listing is
+            // what four other callers use; drawing it here would put every character back on the
+            // screen undressed, silently, which is the defect this frame was fixed for.
+            var appearances = character.Appearances
+                ?? throw new InvalidDataException(
+                    $"Character {character.CharacterId} reached the roster frame from a listing "
+                    + "that did not work out what it is wearing.");
+            body.Add(checked((byte)appearances.Count));
+            foreach (var appearance in appearances)
             {
                 WriteAppearance(body, appearance);
             }

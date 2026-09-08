@@ -6,6 +6,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Characters;
@@ -101,35 +102,98 @@ internal sealed class CharacterRosterService(
     /// </summary>
     private const int AppearanceExpansionLength = 4;
 
+    /// <summary>The account's characters, with nothing worked out about how they look.</summary>
+    /// <remarks>
+    /// One read, and every summary carries a null appearance. This is what the four call sites that
+    /// draw nothing get: resolving a roster position, counting slots before a creation, finding a
+    /// character by name before a deletion, and the entry burst's check that the selected character
+    /// is on the roster.
+    /// <para>
+    /// <b>It is deliberately cheap, and that is a correctness property rather than a performance
+    /// one.</b> Working out an appearance means reading everything every character on the account
+    /// wears, and that read can fail for its own reasons -- so folding it in here would let a
+    /// moment's trouble reading equipment stop a player entering the world, deleting a character,
+    /// or getting as far as the write a creation is asking for.
+    /// See <see cref="ListByAccountWithAppearanceAsync"/>.
+    /// </para>
+    /// <para>
+    /// <b>It does not spare a creation altogether</b>, and saying it did would be false: after the
+    /// write succeeds, <c>CreateCharacterSlice</c> pushes a roster the client draws, and that one
+    /// takes the other listing. The split decides which half of a request pays, not which request.
+    /// </para>
+    /// </remarks>
     public async ValueTask<IReadOnlyList<CharacterSummary>> ListByAccountAsync(
         AccountId accountId, CancellationToken cancellationToken)
     {
         RequireAccount(accountId);
         var rows = await characters.ReadSummariesByAccountAsync(accountId, cancellationToken)
             .ConfigureAwait(false);
+        return [.. rows.Select(row => Summary(row, appearances: null))];
+    }
+
+    /// <summary>The account's characters, each drawn wearing what it is wearing.</summary>
+    /// <remarks>
+    /// Two reads, and the second is the whole of what makes the character-selection screen right.
+    /// The appearance used to be decoded out of <c>characters.appearance_blob</c>, which is written
+    /// once when a character is created and by nothing afterwards -- so a player who dressed a
+    /// character and came back to that screen was drawn the character they made, not the character
+    /// they have. Observed live on 2026-09-08.
+    /// <para>
+    /// What is drawn is asked of <see cref="DrawnAppearance"/>, which is the same answer the
+    /// in-world frame writes. The blob is neither written nor removed by this: it stays exactly as
+    /// it was, and the entry burst's own roster frame still reads it
+    /// (<c>SelectCharacterPreparationService.BuildRosterEntryAsync</c>, through
+    /// <c>CharacterEntryStateTables</c>). <b>The two screens therefore disagree</b> until something
+    /// decides about the second one; that is recorded rather than left to be discovered.
+    /// </para>
+    /// <para>
+    /// A character wearing nothing has no rows in the second read and is drawn wearing nothing,
+    /// which is what an account's freshly made character is -- an empty list, not a null one.
+    /// </para>
+    /// </remarks>
+    public async ValueTask<IReadOnlyList<CharacterSummary>> ListByAccountWithAppearanceAsync(
+        AccountId accountId, CancellationToken cancellationToken)
+    {
+        RequireAccount(accountId);
+        var rows = await characters.ReadSummariesByAccountAsync(accountId, cancellationToken)
+            .ConfigureAwait(false);
+        var worn = await items.ReadWornByAccountAsync(accountId, cancellationToken)
+            .ConfigureAwait(false);
+        var byCharacter = worn
+            .GroupBy(piece => piece.CharacterId)
+            .ToDictionary(
+                group => group.Key,
+                group => (IReadOnlyList<InventoryItemState>)[.. group.Select(Worn)]);
         return
         [
-            .. rows.Select(row => new CharacterSummary(
-                new CharacterId(row.CharacterId),
-                checked((ushort)row.SlotIndex),
-                row.Name,
-                checked((byte)row.Job),
-                checked((byte)row.GrowType),
-                checked((byte)row.Level),
-                checked((uint)row.CloneTitleItemId),
-                // The stored blob is already a count followed by wire-shaped entries, so this
-                // decode is a re-read rather than a translation. It is the entry path's decoder
-                // because it is the same blob; that the two paths reach for it from different
-                // services is noted in Docs/ProtocolScaffoldDissonances.md.
-                //
-                // This adds a failure surface the roster did not have: a truncated or over-long
-                // blob now fails the whole listing rather than one character's parts. That is the
-                // right way round -- a roster that silently drops a character's appearance looks
-                // like a content bug for a long time -- but it is new, and it is why the decode
-                // stays strict instead of skipping what it cannot read.
-                SelectCharacterPreparationService.DecodeAppearances(row.AppearanceBlob))),
+            .. rows.Select(row => Summary(
+                row,
+                DrawnAppearance.Of(
+                    byCharacter.TryGetValue(row.CharacterId, out var pieces) ? pieces : []))),
         ];
     }
+
+    /// <summary>One row as the listing names it, however much was worked out about it.</summary>
+    private static CharacterSummary Summary(
+        CharacterSummaryRow row,
+        IReadOnlyList<CharacterRosterAppearanceState>? appearances) =>
+        new(new CharacterId(row.CharacterId),
+            checked((ushort)row.SlotIndex),
+            row.Name,
+            checked((byte)row.Job),
+            checked((byte)row.GrowType),
+            checked((byte)row.Level),
+            checked((uint)row.CloneTitleItemId),
+            appearances);
+
+    /// <summary>One worn row as the piece the drawn appearance is worked out from.</summary>
+    /// <remarks>
+    /// The identity is the row of <c>items</c> the position names, which for a worn slot is the
+    /// piece itself -- the table holds a world slot to naming its own row. Nothing the roster draws
+    /// reads it; it is carried because a piece with an identity is what this is.
+    /// </remarks>
+    private static InventoryItemState Worn(WornItemRow piece) =>
+        new(new ItemIdentity(checked((int)piece.ItemUid)), piece.SlotIndex, piece.Core);
 
     public async ValueTask<ActiveCharacterState?> FindByAccountAndSlotAsync(
         AccountId accountId, ushort slotIndex, CancellationToken cancellationToken)

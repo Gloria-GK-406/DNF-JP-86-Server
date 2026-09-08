@@ -25,6 +25,21 @@ public sealed record CharacterItemRow(
     InventoryItemCoreState Core,
     AvatarDetailRow? Avatar);
 
+/// <summary>One thing one of an account's characters is wearing, and where it is worn.</summary>
+/// <remarks>
+/// Narrower than <see cref="CharacterItemRow"/> on purpose. The question this answers is "what is
+/// every character on this account wearing", asked by the character-selection roster, and the
+/// roster draws a piece from its slot and its core and nothing else -- so the avatar columns are
+/// not selected rather than selected and dropped.
+/// <para>
+/// The character is on the row because the read spans several of them. Which slots of the ones it
+/// returns are actually drawn is not this row's business and deliberately not the statement's: that
+/// is one rule with one home, and a copy of it in SQL is how the two screens came to disagree.
+/// </para>
+/// </remarks>
+public sealed record WornItemRow(
+    int CharacterId, long ItemUid, int SlotIndex, InventoryItemCoreState Core);
+
 /// <summary>One row of <c>items</c> belonging to an account's cargo, as it is stored.</summary>
 /// <remarks>
 /// No avatar facts here, unlike the character's own rows: an avatar sitting in the cargo has never
@@ -291,6 +306,12 @@ public interface IItemSlotTable
 /// is no uniqueness over positions on <c>items</c> left to dodge, because <c>items</c> holds no
 /// position.
 /// </para>
+/// <para>
+/// <b>One read here is not about a single character.</b>
+/// <see cref="ReadWornByAccountAsync"/> answers what every character on an account is wearing,
+/// because the character-selection screen draws them all at once. It is still a question about
+/// characters' own things; the account is how they are gathered, not whose the things are.
+/// </para>
 /// </remarks>
 public interface ICharacterItemTable
 {
@@ -301,6 +322,25 @@ public interface ICharacterItemTable
     /// <summary>The main list, in the order the client draws it.</summary>
     ValueTask<IReadOnlyList<MainItemRow>> ReadMainAsync(
         CharacterId characterId, CancellationToken cancellationToken);
+
+    /// <summary>What every live character on this account is wearing.</summary>
+    /// <remarks>
+    /// The one read on this interface that spans an account rather than a character, and it is here
+    /// rather than on a seam of its own because the thing it answers about is still a character's
+    /// own things -- several characters' worth of them, gathered by the account they belong to.
+    /// <para>
+    /// It exists because the character-selection screen draws every character at once and there was
+    /// no way to ask that question: every equipped read was by one character, so the screen read a
+    /// stored blob instead, and nothing had written that blob since the characters were made.
+    /// </para>
+    /// <para>
+    /// Ordered by character and then by slot, and returning the equipment container's rows whole.
+    /// Which of them are drawn is decided above this, in the one place that decides it for both of
+    /// the screens that draw a character.
+    /// </para>
+    /// </remarks>
+    ValueTask<IReadOnlyList<WornItemRow>> ReadWornByAccountAsync(
+        AccountId accountId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Removes this character's own things apart from the ones named, with their positions.
