@@ -33,3 +33,10 @@ artifacts/
 # OS
 .DS_Store
 Thumbs.db
+
+# CRAP 采集结果（Tool/CrapMeter 写入）
+# 每次调用在这里新建一个 .crap/<YYYY-MM-DD_HH-mm-ss>/，内容是某一次快照的测量证据，
+# 不是源码。历次运行只在本地留存、不进版本库；要保留某次结果就自己另存出去。
+# 排除写在这里而不是 .git/info/exclude，是为了让它随仓库分发——
+# 不然每个克隆都要各自再排一次，迟早有人把一整份采集提交上来。
+.crap/

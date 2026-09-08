@@ -1,0 +1,129 @@
+  正在确定要还原的项目…
+  已还原 E:\Project\DNF\DNF-JP-86-Server\.worktrees\change-risk-is-measured-repeatably\Tool\CrapMeter\CrapMeter.csproj (用时 152 毫秒)。
+  已还原 E:\Project\DNF\DNF-JP-86-Server\.worktrees\change-risk-is-measured-repeatably\Tool\CrapMeter.Tests\CrapMeter.Tests.csproj (用时 152 毫秒)。
+  CrapMeter -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\change-risk-is-measured-repeatably\Tool\CrapMeter\bin\Debug\net10.0\CrapMeter.dll
+  CrapMeter.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\change-risk-is-measured-repeatably\Tool\CrapMeter.Tests\bin\Debug\net10.0\CrapMeter.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\change-risk-is-measured-repeatably\Tool\CrapMeter.Tests\bin\Debug\net10.0\CrapMeter.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\change-risk-is-measured-repeatably\Tool\CrapMeter.Tests\bin\Debug\net10.0\CrapMeter.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)
+[xUnit.net 00:00:00.05]   Discovering: CrapMeter.Tests
+[xUnit.net 00:00:00.09]   Discovered:  CrapMeter.Tests
+[xUnit.net 00:00:00.11]   Starting:    CrapMeter.Tests
+  已通过 CrapMeter.Tests.CrapMetricTests.Negative_complexity_is_rejected [47 ms]
+  已通过 CrapMeter.Tests.RiskBandTests.Bands_split_at_the_documented_boundaries(crap: 15, expected: "moderate") [47 ms]
+  已通过 CrapMeter.Tests.PercentileTests.Nearest_rank_picks_the_expected_element(percentile: 50, expected: 5) [48 ms]
+  已通过 CrapMeter.Tests.RiskBandTests.Bands_split_at_the_documented_boundaries(crap: 30.001000000000001, expected: "above-warning") [< 1 ms]
+  已通过 CrapMeter.Tests.RiskBandTests.Bands_split_at_the_documented_boundaries(crap: 0, expected: "low") [< 1 ms]
+  已通过 CrapMeter.Tests.RiskBandTests.Bands_split_at_the_documented_boundaries(crap: 30, expected: "elevated") [< 1 ms]
+  已通过 CrapMeter.Tests.PercentileTests.Nearest_rank_picks_the_expected_element(percentile: 95, expected: 10) [< 1 ms]
+  已通过 CrapMeter.Tests.RiskBandTests.Bands_split_at_the_documented_boundaries(crap: 5, expected: "low") [< 1 ms]
+  已通过 CrapMeter.Tests.RiskBandTests.Bands_split_at_the_documented_boundaries(crap: 156, expected: "above-warning") [< 1 ms]
+  已通过 CrapMeter.Tests.RiskBandTests.Bands_split_at_the_documented_boundaries(crap: 5.0010000000000003, expected: "moderate") [< 1 ms]
+  已通过 CrapMeter.Tests.PercentileTests.Nearest_rank_picks_the_expected_element(percentile: 75, expected: 8) [< 1 ms]
+  已通过 CrapMeter.Tests.PercentileTests.Nearest_rank_picks_the_expected_element(percentile: 100, expected: 10) [< 1 ms]
+  已通过 CrapMeter.Tests.PercentileTests.Nearest_rank_picks_the_expected_element(percentile: 90, expected: 9) [< 1 ms]
+  已通过 CrapMeter.Tests.CrapMetricTests.Coverage_outside_the_unit_interval_is_rejected(coverage: -0.01) [< 1 ms]
+  已通过 CrapMeter.Tests.CrapMetricTests.Coverage_outside_the_unit_interval_is_rejected(coverage: NaN) [< 1 ms]
+  已通过 CrapMeter.Tests.PercentileTests.An_empty_set_has_no_percentile [< 1 ms]
+  已通过 CrapMeter.Tests.CrapMetricTests.Coverage_outside_the_unit_interval_is_rejected(coverage: 80) [< 1 ms]
+  已通过 CrapMeter.Tests.CrapMetricTests.Coverage_outside_the_unit_interval_is_rejected(coverage: 1.01) [< 1 ms]
+  已通过 CrapMeter.Tests.CrapMetricTests.Formula_matches_hand_calculation(complexity: 1, coverage: 1, expected: 1) [< 1 ms]
+  已通过 CrapMeter.Tests.PercentileTests.A_single_value_is_every_percentile [< 1 ms]
+  已通过 CrapMeter.Tests.CrapMetricTests.Formula_matches_hand_calculation(complexity: 12, coverage: 0, expected: 156) [< 1 ms]
+  已通过 CrapMeter.Tests.CrapMetricTests.Formula_matches_hand_calculation(complexity: 6, coverage: 1, expected: 6) [< 1 ms]
+  已通过 CrapMeter.Tests.CrapMetricTests.Formula_matches_hand_calculation(complexity: 4, coverage: 0.75, expected: 4.25) [< 1 ms]
+  已通过 CrapMeter.Tests.CrapMetricTests.Formula_matches_hand_calculation(complexity: 5, coverage: 0.5, expected: 8.125) [< 1 ms]
+  已通过 CrapMeter.Tests.CrapMetricTests.Formula_matches_hand_calculation(complexity: 10, coverage: 0, expected: 110) [< 1 ms]
+  已通过 CrapMeter.Tests.PercentileTests.The_lowest_percentile_never_falls_off_the_front [< 1 ms]
+  已通过 CrapMeter.Tests.CrapMetricTests.Warning_line_is_the_conventional_thirty [1 ms]
+  已通过 CrapMeter.Tests.CoverageMergeTests.Points_without_a_source_file_are_counted_rather_than_dropped [53 ms]
+  已通过 CrapMeter.Tests.DistributionTests.Mean_and_sum_are_over_function_scores [56 ms]
+  已通过 CrapMeter.Tests.DistributionTests.Percentiles_and_bands_come_only_from_the_computed_set [< 1 ms]
+  已通过 CrapMeter.Tests.CoverageMergeTests.A_point_missed_by_one_run_and_hit_by_another_ends_up_covered [3 ms]
+  已通过 CrapMeter.Tests.DistributionTests.Every_state_is_counted_and_the_totals_reconcile [< 1 ms]
+  已通过 CrapMeter.Tests.DistributionTests.A_scope_with_no_computed_function_has_no_percentiles_rather_than_zeros [< 1 ms]
+  已通过 CrapMeter.Tests.DistributionTests.Quadrants_split_on_the_shared_thresholds [< 1 ms]
+  已通过 CrapMeter.Tests.CoverageMergeTests.A_module_whose_point_set_differs_between_reports_is_a_snapshot_conflict [1 ms]
+  已通过 CrapMeter.Tests.CoverageMergeTests.Distinct_points_are_unioned [< 1 ms]
+  已通过 CrapMeter.Tests.CoverageMergeTests.The_same_point_seen_twice_sums_its_visits [< 1 ms]
+  已通过 CrapMeter.Tests.CoverageMergeTests.The_same_module_reported_identically_by_several_runs_is_not_a_conflict [< 1 ms]
+  已通过 CrapMeter.Tests.DistributionTests.Empty_scopes_and_each_scopes_top_functions_are_preserved [1 ms]
+  已通过 CrapMeter.Tests.ReportWriterTests.A_normal_report_leads_with_evidence_then_shape_then_findings_then_options_then_limits [67 ms]
+  已通过 CrapMeter.Tests.ReportWriterTests.Findings_cite_the_measured_pair_and_the_source_location [1 ms]
+  已通过 CrapMeter.Tests.ReportWriterTests.Counterfactual_scenarios_are_labelled_as_calculations_not_promises [< 1 ms]
+  已通过 CrapMeter.Tests.SourceInventoryTests.Explicit_interface_implementations_keep_their_prefix [112 ms]
+  已通过 CrapMeter.Tests.ReportWriterTests.Mean_and_sum_are_disclosed_as_scale_sensitive_supplements [42 ms]
+  已通过 CrapMeter.Tests.ReportWriterTests.A_degraded_report_says_so_up_front_and_carries_no_crap_value [4 ms]
+  已通过 CrapMeter.Tests.SourceInventoryTests.Declarations_without_a_body_are_recorded_as_bodyless [5 ms]
+  已通过 CrapMeter.Tests.SourceInventoryTests.Line_breaks_do_not_change_accessor_granularity_or_complexity [3 ms]
+  已通过 CrapMeter.Tests.SourceInventoryTests.All_accessors_have_separate_function_identities [1 ms]
+  已通过 CrapMeter.Tests.SourceInventoryTests.Partial_class_members_are_attributed_to_their_own_file [< 1 ms]
+  已通过 CrapMeter.Tests.SourceInventoryTests.Nested_types_get_their_own_container_path [< 1 ms]
+  已通过 CrapMeter.Tests.SourceInventoryTests.Ref_parameters_do_not_collide_with_value_parameters [1 ms]
+  已通过 CrapMeter.Tests.CoverageJoinTests.Bodyless_declarations_are_excluded_not_counted_as_uncovered [128 ms]
+  已通过 CrapMeter.Tests.CoverageJoinTests.A_field_initializer_point_is_recorded_as_unmapped_not_forced_onto_a_member [2 ms]
+  已通过 CrapMeter.Tests.CoverageJoinTests.Same_line_accessors_use_method_identity_or_remain_ambiguous [1 ms]
+  已通过 CrapMeter.Tests.SourceInventoryTests.Each_decision_point_adds_one [7 ms]
+  已通过 CrapMeter.Tests.CoverageJoinTests.Counts_reconcile_across_states_and_points [1 ms]
+  已通过 CrapMeter.Tests.CoverageJoinTests.Conflicting_modules_never_contribute_numeric_crap [< 1 ms]
+  已通过 CrapMeter.Tests.CoverageJoinTests.A_project_absent_from_coverage_is_missing_rather_than_zero_covered [< 1 ms]
+  已通过 CrapMeter.Tests.CoverageJoinTests.A_member_with_points_but_no_hits_is_measured_zero_not_missing [< 1 ms]
+  已通过 CrapMeter.Tests.CoverageJoinTests.Points_are_attributed_to_the_member_whose_range_contains_them [< 1 ms]
+  已通过 CrapMeter.Tests.CoverageJoinTests.A_member_the_report_never_mentions_is_missing_and_has_no_crap [< 1 ms]
+  已通过 CrapMeter.Tests.CoverageJoinTests.Host_child_process_gaps_are_missing_instead_of_measured_zero [< 1 ms]
+  已通过 CrapMeter.Tests.CoverageJoinTests.A_point_in_a_file_outside_the_measured_scope_is_recorded_as_out_of_scope [< 1 ms]
+  已通过 CrapMeter.Tests.SourceInventoryTests.Top_level_statements_and_event_accessors_are_inventoried [8 ms]
+  已通过 CrapMeter.Tests.SourceInventoryTests.Generic_arity_is_part_of_the_identity [< 1 ms]
+  已通过 CrapMeter.Tests.SourceInventoryTests.Overlapping_accessors_still_have_distinct_signatures [1 ms]
+  已通过 CrapMeter.Tests.SourceInventoryTests.Lambdas_and_local_functions_count_into_the_declaring_member [3 ms]
+  已通过 CrapMeter.Tests.SourceInventoryTests.Switch_expression_arms_and_pattern_combinators_count [2 ms]
+  已通过 CrapMeter.Tests.SourceInventoryTests.A_straight_line_method_has_complexity_one [< 1 ms]
+  | 运行目录：C:\Users\Gloria\AppData\Local\Temp\CrapMeter-runtime-b9e57c406f3c4afb8b1b7404b2c53d86\.crap\2026-09-08_21-08-49
+  |   | 10.0.302
+  |   | C:\Users\Gloria\AppData\Local\Temp\CrapMeter-runtime-b9e57c406f3c4afb8b1b7404b2c53d86\Server\tests\P.Tests\P.Tests.csproj : warning NU1503: 正在跳过项目“C:\Users\Gloria\AppData\Local\Temp\CrapMeter-runtime-b9e57c406f3c4afb8b1b7404b2c53d86\Server\tests\P.Tests\P.Tests.csproj”的还原操作。项目文件可能无效或缺少还原所需的目标。 [C:\Users\Gloria\AppData\Local\Temp\CrapMeter-runtime-b9e57c406f3c4afb8b1b7404b2c53d86\Server\86JP.Server.slnx]
+  |   |   正在确定要还原的项目…
+  |   | C:\Program Files\dotnet\sdk\10.0.302\NuGet.targets(198,5): warning : 找不到可还原的项目! [C:\Users\Gloria\AppData\Local\Temp\CrapMeter-runtime-b9e57c406f3c4afb8b1b7404b2c53d86\Server\86JP.Server.slnx]
+  |   | C:\Users\Gloria\AppData\Local\Temp\CrapMeter-runtime-b9e57c406f3c4afb8b1b7404b2c53d86\Server\tests\P.Tests\P.Tests.csproj(1,31): error : intentional fixture failure
+  |   | 
+  |   | 生成失败。
+  |   | 
+  |   | C:\Users\Gloria\AppData\Local\Temp\CrapMeter-runtime-b9e57c406f3c4afb8b1b7404b2c53d86\Server\tests\P.Tests\P.Tests.csproj : warning NU1503: 正在跳过项目“C:\Users\Gloria\AppData\Local\Temp\CrapMeter-runtime-b9e57c406f3c4afb8b1b7404b2c53d86\Server\tests\P.Tests\P.Tests.csproj”的还原操作。项目文件可能无效或缺少还原所需的目标。 [C:\Users\Gloria\AppData\Local\Temp\CrapMeter-runtime-b9e57c406f3c4afb8b1b7404b2c53d86\Server\86JP.Server.slnx]
+  |   | C:\Program Files\dotnet\sdk\10.0.302\NuGet.targets(198,5): warning : 找不到可还原的项目! [C:\Users\Gloria\AppData\Local\Temp\CrapMeter-runtime-b9e57c406f3c4afb8b1b7404b2c53d86\Server\86JP.Server.slnx]
+  |   | C:\Users\Gloria\AppData\Local\Temp\CrapMeter-runtime-b9e57c406f3c4afb8b1b7404b2c53d86\Server\tests\P.Tests\P.Tests.csproj(1,31): error : intentional fixture failure
+  |   |     2 个警告
+  |   |     1 个错误
+  |   | 
+  |   | 已用时间 00:00:00.19
+  | 状态：failed　运行目录：C:\Users\Gloria\AppData\Local\Temp\CrapMeter-runtime-b9e57c406f3c4afb8b1b7404b2c53d86\.crap\2026-09-08_21-08-49
+  已通过 CrapMeter.Tests.SourceInventoryTests.Overloads_are_separate_members_with_disjoint_ranges [1 ms]
+  已通过 CrapMeter.Tests.SourceInventoryTests.Switch_counts_cases_but_not_default [2 ms]
+  已通过 CrapMeter.Tests.SourceInventoryTests.Field_initializers_and_type_headers_are_recorded_as_non_member_ranges [2 ms]
+  已通过 CrapMeter.Tests.RuntimeTests.Snapshot_identity_changes_when_already_dirty_content_changes [470 ms]
+  已通过 CrapMeter.Tests.RuntimeTests.Failed_collection_preserves_self_describing_evidence(invalidSolution: False) [1 s]
+  | 运行目录：C:\Users\Gloria\AppData\Local\Temp\CrapMeter-runtime-2f3e00af2f6c47f4b5218f06bec4ff7e\.crap\2026-09-08_21-08-50
+  | 状态：failed　运行目录：C:\Users\Gloria\AppData\Local\Temp\CrapMeter-runtime-2f3e00af2f6c47f4b5218f06bec4ff7e\.crap\2026-09-08_21-08-50
+  | System.Xml.XmlException: Unexpected end of file while parsing Name has occurred. Line 1, position 9.
+  |    at System.Xml.XmlTextReaderImpl.Throw(Exception e)
+  |    at System.Xml.XmlTextReaderImpl.Throw(String res, String arg)
+  |    at System.Xml.XmlTextReaderImpl.ParseQName(Boolean isQName, Int32 startOffset, Int32& colonPos)
+  |    at System.Xml.XmlTextReaderImpl.ParseElement()
+  |    at System.Xml.XmlTextReaderImpl.ParseDocumentContent()
+  |    at System.Xml.Linq.XDocument.Load(XmlReader reader, LoadOptions options)
+  |    at System.Xml.Linq.XDocument.Load(String uri, LoadOptions options)
+  |    at CrapMeter.Inventory.SourceInventory.Scan(String repositoryRoot, String scanRoot) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\change-risk-is-measured-repeatably\Tool\CrapMeter\Inventory\SourceInventory.cs:line 42
+  |    at Program.<>c__DisplayClass0_0.<<Main>$>g__Collect|1() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\change-risk-is-measured-repeatably\Tool\CrapMeter\Program.cs:line 146
+  |    at Program.<Main>$(String[] args) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\change-risk-is-measured-repeatably\Tool\CrapMeter\Program.cs:line 102
+  已通过 CrapMeter.Tests.RuntimeTests.Failed_collection_preserves_self_describing_evidence(invalidSolution: True) [546 ms]
+  已通过 CrapMeter.Tests.RuntimeTests.Trx_requires_exact_expected_project_set_and_nonempty_consistent_results [160 ms]
+[xUnit.net 00:00:04.46]   Finished:    CrapMeter.Tests
+  已通过 CrapMeter.Tests.RuntimeTests.Snapshot_covers_untracked_tests_build_configuration_and_tool_but_ignores_outputs_and_documents [1 s]
+  已通过 CrapMeter.Tests.RuntimeTests.Snapshot_rejects_changed_head_even_when_scoped_content_is_unchanged [435 ms]
+  已通过 CrapMeter.Tests.RuntimeTests.Simultaneous_runs_never_share_a_directory [398 ms]
+  已通过 CrapMeter.Tests.RuntimeTests.Rerun_script_carries_every_option_and_escapes_powershell_literals [< 1 ms]
+  已通过 CrapMeter.Tests.RuntimeTests.Empty_trx_is_rejected_instead_of_becoming_a_green_test_run [153 ms]
+
+测试运行成功。
+测试总数: 81
+     通过数: 81
+总时间: 4.7853 秒

@@ -12,7 +12,8 @@ DNF 日服 Act.86 客户端的服务端仿真。协议逆向结论的权威存�
 Server/      .NET 10 服务端解决方案（本文档主角，见下）
 protocol/    协议知识库：按 endpoint/direction/type 组织的逆向记录
 ClientHack/  客户端补丁宿主（纯 C17/x86，CMake，Az.dll + 插件体系）
-Tool/        PvfProbe（PVF 归档探针）、PvfProxy（TCP 中转/启动器）、WireSmoke（打线）
+Tool/        PvfProbe（PVF 归档探针）、PvfProxy（TCP 中转/启动器）、WireSmoke（打线）、
+             CrapMeter（方法级 CRAP 变更风险采集，结果写 .crap/<时间戳>/，不进版本库）
 Docs/        四类东西混在一个平面上，读之前先认清是哪一类，分类见 README.md：
              本仓的设计与裁定 / 客户端逆向 / 参照服务端 ServerS4A21 的资料 / 协议失谐记录
 ```

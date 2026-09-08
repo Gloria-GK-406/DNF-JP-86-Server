@@ -12,7 +12,7 @@ DNF 86JP 版本的服务端重实现，外加为它服务的客户端补丁与�
 | [`protocol/`](protocol/README.md) | **协议资料库**。客户端协议的结论**及其证据**，四层组织，规矩见它自己的 README |
 | [`Docs/`](Docs/) | 服务端设计文档、领域裁定、客户端逆向记录。见下面「Docs 里有四类东西」 |
 | [`ClientHack/`](ClientHack/README.md) | 客户端补丁，独立的 Windows x86 纯 C 工程，与服务端解耦 |
-| [`Tool/`](Tool/) | 独立工具：`PvfProbe`（探档案）、`PvfProxy`、`WireSmoke`（打线） |
+| [`Tool/`](Tool/) | 独立工具：`PvfProbe`（探档案）、`PvfProxy`、`WireSmoke`（打线）、`CrapMeter`（量变更风险，见 [`Document/CrapMeasurement.md`](Document/CrapMeasurement.md)） |
 
 ## Server
 

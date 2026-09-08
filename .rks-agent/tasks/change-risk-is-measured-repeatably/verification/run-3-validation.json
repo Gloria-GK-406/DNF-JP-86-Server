@@ -1,0 +1,44 @@
+{
+  "run": "2026-09-08_21-21-45",
+  "decision": "pass",
+  "states": {
+    "Computed": 2269,
+    "Excluded": 526,
+    "Missing": 2
+  },
+  "raw_points": 25449,
+  "attributed_points": 21795,
+  "groups": 1543,
+  "passed_tests": 2392,
+  "above_warning": 23,
+  "samples": [
+    {
+      "id": "11F9C2A624BCE0BB17EC4F6C0EFB4F416DEAE4DC51D0803FAAB4B9648952D610",
+      "symbol": "Dfo.Pvf.Chunks.ChunkStore.ChunkCount.get",
+      "complexity": 1,
+      "coverage": 1,
+      "crap": 1
+    },
+    {
+      "id": "1C5C30489E600E196DEE4701BA7E36E1A3A9DF425EC83BC28E2E7FE956B864A7",
+      "symbol": "Dfo.Pvf.Chunks.ChunkStore.Decode",
+      "complexity": 6,
+      "coverage": 0.9444444444444444,
+      "crap": 6.006172839506172
+    },
+    {
+      "id": "71D2384FFDCB44FE8F54CF7DFA685532C8C5517E90A2460A522B7E6819168306",
+      "symbol": "Dfo.Server.Infrastructure.Content.PvfTutorialRewardDefinitionSource.Read",
+      "complexity": 13,
+      "coverage": 0,
+      "crap": 182
+    },
+    {
+      "id": "77BD4F1C179FF6726A4B50F1BDC96CB3B2E7B5D386FF9E9FE5EEA53838C7E34B",
+      "symbol": "Dfo.Pvf.Diagnostics.PvfMetrics.ChunkHits.get",
+      "complexity": 1,
+      "coverage": 0,
+      "crap": 2
+    }
+  ]
+}

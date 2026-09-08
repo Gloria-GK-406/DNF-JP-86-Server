@@ -1,0 +1,952 @@
+{
+  "decision": "pass",
+  "run": "2026-09-08_21-21-45",
+  "cases": [
+    {
+      "id": "EA1194EEFA5604C0B64919B7451BFB32C03B51C6E8678454B76C00685DD474B1",
+      "symbol": "Dfo.Pvf.PvfArchive.OpenScript",
+      "signature": "OpenScript(int)",
+      "path": "Server/src/Dfo.Pvf/PvfArchive.cs",
+      "startLine": 126,
+      "endLine": 130,
+      "complexity": 2,
+      "coverage": 1,
+      "crap": 2,
+      "coveragePoints": [
+        {
+          "Module": "Dfo.Pvf",
+          "RelativePath": "Server/src/Dfo.Pvf/PvfArchive.cs",
+          "Line": 127,
+          "Hits": 2117665,
+          "Key": "Dfo.Pvf.Tokens.PvfTokenReader Dfo.Pvf.PvfArchive::OpenScript(System.Int32)#sp0"
+        },
+        {
+          "Module": "Dfo.Pvf",
+          "RelativePath": "Server/src/Dfo.Pvf/PvfArchive.cs",
+          "Line": 128,
+          "Hits": 2117665,
+          "Key": "Dfo.Pvf.Tokens.PvfTokenReader Dfo.Pvf.PvfArchive::OpenScript(System.Int32)#sp1"
+        },
+        {
+          "Module": "Dfo.Pvf",
+          "RelativePath": "Server/src/Dfo.Pvf/PvfArchive.cs",
+          "Line": 129,
+          "Hits": 2117665,
+          "Key": "Dfo.Pvf.Tokens.PvfTokenReader Dfo.Pvf.PvfArchive::OpenScript(System.Int32)#sp2"
+        },
+        {
+          "Module": "Dfo.Pvf",
+          "RelativePath": "Server/src/Dfo.Pvf/PvfArchive.cs",
+          "Line": 130,
+          "Hits": 2117665,
+          "Key": "Dfo.Pvf.Tokens.PvfTokenReader Dfo.Pvf.PvfArchive::OpenScript(System.Int32)#sp3"
+        }
+      ],
+      "coverageReports": [
+        "raw/coverage/01.opencover.xml",
+        "raw/coverage/02.opencover.xml",
+        "raw/coverage/03.opencover.xml",
+        "raw/coverage/04.opencover.xml",
+        "raw/coverage/05.opencover.xml",
+        "raw/coverage/06.opencover.xml",
+        "raw/coverage/07.opencover.xml"
+      ],
+      "case": "overload-int",
+      "source": "    public PvfTokenReader OpenScript(int fileIndex)\n    {\n        var entry = GetEntry(fileIndex);\n        return entry.IsScript ? new PvfTokenReader(GetFileBytes(fileIndex)) : new PvfTokenReader(default);\n    }"
+    },
+    {
+      "id": "9A11F9A0D1447CD2FE568CC9F3E937F80C82F91DB4761E9CBA07FA3F71C70A6C",
+      "symbol": "Dfo.Pvf.PvfArchive.OpenScript",
+      "signature": "OpenScript(string)",
+      "path": "Server/src/Dfo.Pvf/PvfArchive.cs",
+      "startLine": 133,
+      "endLine": 137,
+      "complexity": 2,
+      "coverage": 1,
+      "crap": 2,
+      "coveragePoints": [
+        {
+          "Module": "Dfo.Pvf",
+          "RelativePath": "Server/src/Dfo.Pvf/PvfArchive.cs",
+          "Line": 134,
+          "Hits": 119415,
+          "Key": "Dfo.Pvf.Tokens.PvfTokenReader Dfo.Pvf.PvfArchive::OpenScript(System.String)#sp0"
+        },
+        {
+          "Module": "Dfo.Pvf",
+          "RelativePath": "Server/src/Dfo.Pvf/PvfArchive.cs",
+          "Line": 135,
+          "Hits": 119415,
+          "Key": "Dfo.Pvf.Tokens.PvfTokenReader Dfo.Pvf.PvfArchive::OpenScript(System.String)#sp1"
+        },
+        {
+          "Module": "Dfo.Pvf",
+          "RelativePath": "Server/src/Dfo.Pvf/PvfArchive.cs",
+          "Line": 136,
+          "Hits": 119415,
+          "Key": "Dfo.Pvf.Tokens.PvfTokenReader Dfo.Pvf.PvfArchive::OpenScript(System.String)#sp2"
+        },
+        {
+          "Module": "Dfo.Pvf",
+          "RelativePath": "Server/src/Dfo.Pvf/PvfArchive.cs",
+          "Line": 137,
+          "Hits": 119415,
+          "Key": "Dfo.Pvf.Tokens.PvfTokenReader Dfo.Pvf.PvfArchive::OpenScript(System.String)#sp3"
+        }
+      ],
+      "coverageReports": [
+        "raw/coverage/01.opencover.xml",
+        "raw/coverage/02.opencover.xml",
+        "raw/coverage/03.opencover.xml",
+        "raw/coverage/04.opencover.xml",
+        "raw/coverage/05.opencover.xml",
+        "raw/coverage/06.opencover.xml",
+        "raw/coverage/07.opencover.xml"
+      ],
+      "case": "overload-string",
+      "source": "    public PvfTokenReader OpenScript(string archivePath)\n    {\n        var index = FindFile(archivePath);\n        return index < 0 ? new PvfTokenReader(default) : OpenScript(index);\n    }"
+    },
+    {
+      "id": "10A40CDFE78C53A4A33B5BACB7AD3609345B0D98FD81F18A606C3FA3D331FA25",
+      "symbol": "Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec.EncodePremiumService",
+      "signature": "EncodePremiumService(AccountEntitlementEntryState, IReadOnlyList<CharacterPremiumUsageSlotState>)",
+      "path": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+      "startLine": 14,
+      "endLine": 38,
+      "complexity": 7,
+      "coverage": 0.9545454545454546,
+      "crap": 7.004601803155522,
+      "coveragePoints": [
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+          "Line": 17,
+          "Hits": 1,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodePremiumService(Dfo.Server.Data.Accounts.AccountEntitlementEntryState,System.Collections.Generic.IReadOnlyList`1<Dfo.Server.Data.Characters.CharacterPremiumUsageSlotState>)#sp0"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+          "Line": 18,
+          "Hits": 1,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodePremiumService(Dfo.Server.Data.Accounts.AccountEntitlementEntryState,System.Collections.Generic.IReadOnlyList`1<Dfo.Server.Data.Characters.CharacterPremiumUsageSlotState>)#sp1"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+          "Line": 19,
+          "Hits": 5,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodePremiumService(Dfo.Server.Data.Accounts.AccountEntitlementEntryState,System.Collections.Generic.IReadOnlyList`1<Dfo.Server.Data.Characters.CharacterPremiumUsageSlotState>)#sp2"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+          "Line": 20,
+          "Hits": 1,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodePremiumService(Dfo.Server.Data.Accounts.AccountEntitlementEntryState,System.Collections.Generic.IReadOnlyList`1<Dfo.Server.Data.Characters.CharacterPremiumUsageSlotState>)#sp3"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+          "Line": 21,
+          "Hits": 1,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodePremiumService(Dfo.Server.Data.Accounts.AccountEntitlementEntryState,System.Collections.Generic.IReadOnlyList`1<Dfo.Server.Data.Characters.CharacterPremiumUsageSlotState>)#sp4"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+          "Line": 22,
+          "Hits": 1,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodePremiumService(Dfo.Server.Data.Accounts.AccountEntitlementEntryState,System.Collections.Generic.IReadOnlyList`1<Dfo.Server.Data.Characters.CharacterPremiumUsageSlotState>)#sp5"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+          "Line": 23,
+          "Hits": 1,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodePremiumService(Dfo.Server.Data.Accounts.AccountEntitlementEntryState,System.Collections.Generic.IReadOnlyList`1<Dfo.Server.Data.Characters.CharacterPremiumUsageSlotState>)#sp6"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+          "Line": 24,
+          "Hits": 1,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodePremiumService(Dfo.Server.Data.Accounts.AccountEntitlementEntryState,System.Collections.Generic.IReadOnlyList`1<Dfo.Server.Data.Characters.CharacterPremiumUsageSlotState>)#sp7"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+          "Line": 25,
+          "Hits": 1,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodePremiumService(Dfo.Server.Data.Accounts.AccountEntitlementEntryState,System.Collections.Generic.IReadOnlyList`1<Dfo.Server.Data.Characters.CharacterPremiumUsageSlotState>)#sp8"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+          "Line": 26,
+          "Hits": 5,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodePremiumService(Dfo.Server.Data.Accounts.AccountEntitlementEntryState,System.Collections.Generic.IReadOnlyList`1<Dfo.Server.Data.Characters.CharacterPremiumUsageSlotState>)#sp9"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+          "Line": 27,
+          "Hits": 1,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodePremiumService(Dfo.Server.Data.Accounts.AccountEntitlementEntryState,System.Collections.Generic.IReadOnlyList`1<Dfo.Server.Data.Characters.CharacterPremiumUsageSlotState>)#sp10"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+          "Line": 28,
+          "Hits": 1,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodePremiumService(Dfo.Server.Data.Accounts.AccountEntitlementEntryState,System.Collections.Generic.IReadOnlyList`1<Dfo.Server.Data.Characters.CharacterPremiumUsageSlotState>)#sp11"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+          "Line": 29,
+          "Hits": 0,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodePremiumService(Dfo.Server.Data.Accounts.AccountEntitlementEntryState,System.Collections.Generic.IReadOnlyList`1<Dfo.Server.Data.Characters.CharacterPremiumUsageSlotState>)#sp12"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+          "Line": 30,
+          "Hits": 1,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodePremiumService(Dfo.Server.Data.Accounts.AccountEntitlementEntryState,System.Collections.Generic.IReadOnlyList`1<Dfo.Server.Data.Characters.CharacterPremiumUsageSlotState>)#sp13"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+          "Line": 31,
+          "Hits": 1,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodePremiumService(Dfo.Server.Data.Accounts.AccountEntitlementEntryState,System.Collections.Generic.IReadOnlyList`1<Dfo.Server.Data.Characters.CharacterPremiumUsageSlotState>)#sp14"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+          "Line": 32,
+          "Hits": 1,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodePremiumService(Dfo.Server.Data.Accounts.AccountEntitlementEntryState,System.Collections.Generic.IReadOnlyList`1<Dfo.Server.Data.Characters.CharacterPremiumUsageSlotState>)#sp15"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+          "Line": 33,
+          "Hits": 1,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodePremiumService(Dfo.Server.Data.Accounts.AccountEntitlementEntryState,System.Collections.Generic.IReadOnlyList`1<Dfo.Server.Data.Characters.CharacterPremiumUsageSlotState>)#sp16"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+          "Line": 34,
+          "Hits": 1,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodePremiumService(Dfo.Server.Data.Accounts.AccountEntitlementEntryState,System.Collections.Generic.IReadOnlyList`1<Dfo.Server.Data.Characters.CharacterPremiumUsageSlotState>)#sp17"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+          "Line": 35,
+          "Hits": 1,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodePremiumService(Dfo.Server.Data.Accounts.AccountEntitlementEntryState,System.Collections.Generic.IReadOnlyList`1<Dfo.Server.Data.Characters.CharacterPremiumUsageSlotState>)#sp18"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+          "Line": 36,
+          "Hits": 1,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodePremiumService(Dfo.Server.Data.Accounts.AccountEntitlementEntryState,System.Collections.Generic.IReadOnlyList`1<Dfo.Server.Data.Characters.CharacterPremiumUsageSlotState>)#sp19"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+          "Line": 37,
+          "Hits": 1,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodePremiumService(Dfo.Server.Data.Accounts.AccountEntitlementEntryState,System.Collections.Generic.IReadOnlyList`1<Dfo.Server.Data.Characters.CharacterPremiumUsageSlotState>)#sp20"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs",
+          "Line": 38,
+          "Hits": 1,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodePremiumService(Dfo.Server.Data.Accounts.AccountEntitlementEntryState,System.Collections.Generic.IReadOnlyList`1<Dfo.Server.Data.Characters.CharacterPremiumUsageSlotState>)#sp21"
+        }
+      ],
+      "coverageReports": [
+        "raw/coverage/01.opencover.xml",
+        "raw/coverage/02.opencover.xml",
+        "raw/coverage/03.opencover.xml",
+        "raw/coverage/04.opencover.xml",
+        "raw/coverage/05.opencover.xml",
+        "raw/coverage/06.opencover.xml",
+        "raw/coverage/07.opencover.xml"
+      ],
+      "case": "partial-entry",
+      "source": "    public static byte[] EncodePremiumService(\n        AccountEntitlementEntryState entitlements,\n        IReadOnlyList<CharacterPremiumUsageSlotState> usageSlots)\n    {\n        var data = new byte[74];\n        foreach (var premium in entitlements.Premiums)\n        {\n            var slot = premium.PremiumType - 580;\n            if (slot is < 0 or >= 8) continue;\n            WriteInt32(data, 6 + slot * 9,\n                checked((int)Math.Min(premium.ExpiresAtUnixSeconds, int.MaxValue)));\n        }\n        foreach (var usage in usageSlots)\n        {\n            if (usage.SlotIndex >= 8 || usage.UsedCount < 0)\n                throw new InvalidDataException(\"Premium usage slot is outside the observed 8-slot layout.\");\n            WriteInt32(data, 10 + usage.SlotIndex * 9, usage.UsedCount);\n        }\n        using var stream = new MemoryStream(77);\n        using var writer = new BinaryWriter(stream);\n        writer.Write((byte)1);\n        writer.Write((ushort)1);\n        writer.Write(data);\n        return stream.ToArray();\n    }"
+    },
+    {
+      "id": "F569C19F6E9DD0849A7CD4DC95AA9921AEF645EB17838060729D7C24BAADB73A",
+      "symbol": "Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec.EncodeEntryAccepted",
+      "signature": "EncodeEntryAccepted(ActiveCharacterState, AccountEntryState, CharacterQuestEntryState, byte, DateTimeOffset)",
+      "path": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+      "startLine": 15,
+      "endLine": 98,
+      "complexity": 9,
+      "coverage": 0.9682539682539683,
+      "crap": 9.002591512795595,
+      "coveragePoints": [
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 21,
+          "Hits": 13,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp0"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 22,
+          "Hits": 13,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp1"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 23,
+          "Hits": 13,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp2"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 24,
+          "Hits": 13,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp3"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 25,
+          "Hits": 13,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp4"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 30,
+          "Hits": 13,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp5"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 31,
+          "Hits": 1,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp6"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 32,
+          "Hits": 1,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp7"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 33,
+          "Hits": 1,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp8"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 34,
+          "Hits": 1,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp9"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 37,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp10"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 38,
+          "Hits": 0,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp11"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 40,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp12"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 41,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp13"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 42,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp14"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 43,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp15"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 44,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp16"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 45,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp17"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 46,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp18"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 47,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp19"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 48,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp20"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 49,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp21"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 50,
+          "Hits": 72,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp22"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 51,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp23"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 54,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp24"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 55,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp25"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 56,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp26"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 57,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp27"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 59,
+          "Hits": 24,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp28"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 60,
+          "Hits": 744,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp29"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 61,
+          "Hits": 360,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp30"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 62,
+          "Hits": 360,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp31"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 63,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp32"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 64,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp33"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 65,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp34"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 66,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp35"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 68,
+          "Hits": 348,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp36"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 69,
+          "Hits": 348,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp37"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 70,
+          "Hits": 348,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp38"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 71,
+          "Hits": 348,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp39"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 72,
+          "Hits": 360,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp40"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 73,
+          "Hits": 120,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp41"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 74,
+          "Hits": 48,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp42"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 75,
+          "Hits": 48,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp43"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 76,
+          "Hits": 48,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp44"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 80,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp45"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 81,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp46"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 82,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp47"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 83,
+          "Hits": 0,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp48"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 85,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp49"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 86,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp50"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 87,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp51"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 88,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp52"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 89,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp53"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 90,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp54"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 91,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp55"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 92,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp56"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 93,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp57"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 94,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp58"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 95,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp59"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 96,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp60"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 97,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp61"
+        },
+        {
+          "Module": "Dfo.Server.Protocol",
+          "RelativePath": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Inventory.cs",
+          "Line": 98,
+          "Hits": 12,
+          "Key": "System.Byte[] Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec::EncodeEntryAccepted(Dfo.Server.Data.Characters.ActiveCharacterState,Dfo.Server.Data.Accounts.AccountEntryState,Dfo.Server.Data.Characters.CharacterQuestEntryState,System.Byte,System.DateTimeOffset)#sp62"
+        }
+      ],
+      "coverageReports": [
+        "raw/coverage/01.opencover.xml",
+        "raw/coverage/02.opencover.xml",
+        "raw/coverage/03.opencover.xml",
+        "raw/coverage/04.opencover.xml",
+        "raw/coverage/05.opencover.xml",
+        "raw/coverage/06.opencover.xml",
+        "raw/coverage/07.opencover.xml"
+      ],
+      "case": "partial-inventory",
+      "source": "    public static byte[] EncodeEntryAccepted(\n        ActiveCharacterState character,\n        AccountEntryState account,\n        CharacterQuestEntryState quests,\n        byte townId,\n        DateTimeOffset preparedAt)\n    {\n        ArgumentNullException.ThrowIfNull(character);\n        ArgumentNullException.ThrowIfNull(account);\n        ArgumentNullException.ThrowIfNull(quests);\n        var characterId = checked((ushort)character.Identity.CharacterId.Value);\n        // A backstop, not the guarantee. Zero is the value the old defect produced and the one the\n        // content can never declare; the towns that do exist are not a contiguous range, so only\n        // EntryPlacementRuleService's lookup can tell a real town from a plausible number, and it\n        // already refuses to resolve a spawn in a town the archive does not define.\n        if (townId == 0)\n        {\n            throw new InvalidDataException(\n                \"Entry town cannot be zero: the client resolves this byte to a town object and \"\n                + \"dereferences the result unchecked.\");\n        }\n\n        if (account.Entitlements.Premiums.Count > byte.MaxValue)\n            throw new InvalidDataException(\"Premium count cannot be represented as u8.\");\n\n        using var stream = new MemoryStream(320);\n        using var writer = new BinaryWriter(stream);\n        writer.Write((byte)1);\n        writer.Write(0); // observed account-registration compatibility field\n        writer.Write(checked((int)character.CreatedAt.ToUnixTimeSeconds()));\n        writer.Write(characterId);\n        writer.Write((ushort)0); // observed leading fatigue compatibility field\n        writer.Write(character.Fatigue.Total);\n        writer.Write(character.Fatigue.Used);\n        writer.Write(checked((byte)account.Entitlements.Premiums.Count));\n        foreach (var premium in account.Entitlements.Premiums.OrderBy(value => value.PremiumType))\n        {\n            // The observed ACK layout carries only the low byte. Legacy loading\n            // projected the stored integer to byte before this body was built.\n            writer.Write(unchecked((byte)premium.PremiumType));\n            writer.Write(Math.Max(0, premium.ExpiresAtUnixSeconds - preparedAt.ToUnixTimeSeconds()));\n        }\n        writer.Write(account.Wallet.Cera);\n\n        var slots = quests.ActiveQuests.ToDictionary(value => value.Slot);\n        for (short slot = 0; slot < 30; slot++)\n        {\n            if (slots.TryGetValue(slot, out var quest))\n            {\n                writer.Write(checked((ushort)quest.QuestId));\n                writer.Write(checked((uint)quest.TriggerValue));\n            }\n            else\n            {\n                writer.Write(ushort.MaxValue);\n                writer.Write(0u);\n            }\n        }\n        for (var index = 0; index < 4; index++)\n            writer.Write(index < quests.NotificationQuestIds.Count\n                ? quests.NotificationQuestIds[index]\n                : 0);\n\n        // Offset 218. The reference server fills this from the character's stored town while calling\n        // the field AckCharSlotIndex; the name is its own misnomer and the value is what matters.\n        writer.Write(townId);\n        writer.Write((byte)0);\n        if (character.Progression.Level <= 1)\n            writer.Write((byte)0);\n        else\n        {\n            writer.Write((byte)1);\n            writer.Write((byte)0x4E);\n        }\n        writer.Write((ushort)0); // observed fatigue-battery empty state\n        writer.Write((ushort)0); // observed grown-up-buff empty state\n        writer.Write((byte)0); // observed no trade punishment\n        writer.Write((ushort)0); // observed 86JP compatibility field\n        writer.Write(new byte[8]);\n        writer.Write((byte)0); // observed tutorial-skippable state\n        writer.Write((ushort)0);\n        writer.Write(new byte[22]);\n        return stream.ToArray();\n    }"
+    },
+    {
+      "id": "B10405365907ED7DFD124D504F67342D5D90C992FCD792864202B73E3671F77A",
+      "symbol": "Dfo.Server.Abstractions.Networking.ClientMessageDecodingExtensions.AddGameMessageDecoder<>",
+      "signature": "AddGameMessageDecoder<>(this IServiceCollection, byte, ushort, params ClientMessageType[])",
+      "path": "Server/src/Dfo.Server.Abstractions/Networking/ClientMessageDecoding.cs",
+      "startLine": 56,
+      "endLine": 68,
+      "complexity": 1,
+      "coverage": 1,
+      "crap": 1,
+      "coveragePoints": [
+        {
+          "Module": "Dfo.Server.Abstractions",
+          "RelativePath": "Server/src/Dfo.Server.Abstractions/Networking/ClientMessageDecoding.cs",
+          "Line": 62,
+          "Hits": 2826,
+          "Key": "Microsoft.Extensions.DependencyInjection.IServiceCollection Dfo.Server.Abstractions.Networking.ClientMessageDecodingExtensions::AddGameMessageDecoder(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Byte,System.UInt16,Dfo.Server.Data.Networking.ClientMessageType[])#sp0"
+        },
+        {
+          "Module": "Dfo.Server.Abstractions",
+          "RelativePath": "Server/src/Dfo.Server.Abstractions/Networking/ClientMessageDecoding.cs",
+          "Line": 63,
+          "Hits": 2826,
+          "Key": "Microsoft.Extensions.DependencyInjection.IServiceCollection Dfo.Server.Abstractions.Networking.ClientMessageDecodingExtensions::AddGameMessageDecoder(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Byte,System.UInt16,Dfo.Server.Data.Networking.ClientMessageType[])#sp1"
+        },
+        {
+          "Module": "Dfo.Server.Abstractions",
+          "RelativePath": "Server/src/Dfo.Server.Abstractions/Networking/ClientMessageDecoding.cs",
+          "Line": 64,
+          "Hits": 2826,
+          "Key": "Microsoft.Extensions.DependencyInjection.IServiceCollection Dfo.Server.Abstractions.Networking.ClientMessageDecodingExtensions::AddGameMessageDecoder(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Byte,System.UInt16,Dfo.Server.Data.Networking.ClientMessageType[])#sp2"
+        },
+        {
+          "Module": "Dfo.Server.Abstractions",
+          "RelativePath": "Server/src/Dfo.Server.Abstractions/Networking/ClientMessageDecoding.cs",
+          "Line": 65,
+          "Hits": 2825,
+          "Key": "Microsoft.Extensions.DependencyInjection.IServiceCollection Dfo.Server.Abstractions.Networking.ClientMessageDecodingExtensions::AddGameMessageDecoder(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Byte,System.UInt16,Dfo.Server.Data.Networking.ClientMessageType[])#sp3"
+        },
+        {
+          "Module": "Dfo.Server.Abstractions",
+          "RelativePath": "Server/src/Dfo.Server.Abstractions/Networking/ClientMessageDecoding.cs",
+          "Line": 66,
+          "Hits": 2825,
+          "Key": "Microsoft.Extensions.DependencyInjection.IServiceCollection Dfo.Server.Abstractions.Networking.ClientMessageDecodingExtensions::AddGameMessageDecoder(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Byte,System.UInt16,Dfo.Server.Data.Networking.ClientMessageType[])#sp4"
+        },
+        {
+          "Module": "Dfo.Server.Abstractions",
+          "RelativePath": "Server/src/Dfo.Server.Abstractions/Networking/ClientMessageDecoding.cs",
+          "Line": 67,
+          "Hits": 2825,
+          "Key": "Microsoft.Extensions.DependencyInjection.IServiceCollection Dfo.Server.Abstractions.Networking.ClientMessageDecodingExtensions::AddGameMessageDecoder(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Byte,System.UInt16,Dfo.Server.Data.Networking.ClientMessageType[])#sp5"
+        },
+        {
+          "Module": "Dfo.Server.Abstractions",
+          "RelativePath": "Server/src/Dfo.Server.Abstractions/Networking/ClientMessageDecoding.cs",
+          "Line": 68,
+          "Hits": 2825,
+          "Key": "Microsoft.Extensions.DependencyInjection.IServiceCollection Dfo.Server.Abstractions.Networking.ClientMessageDecodingExtensions::AddGameMessageDecoder(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Byte,System.UInt16,Dfo.Server.Data.Networking.ClientMessageType[])#sp6"
+        }
+      ],
+      "coverageReports": [
+        "raw/coverage/01.opencover.xml",
+        "raw/coverage/02.opencover.xml",
+        "raw/coverage/03.opencover.xml",
+        "raw/coverage/04.opencover.xml",
+        "raw/coverage/05.opencover.xml",
+        "raw/coverage/06.opencover.xml",
+        "raw/coverage/07.opencover.xml"
+      ],
+      "case": "generic",
+      "source": "    public static IServiceCollection AddGameMessageDecoder<TDecoder>(\n        this IServiceCollection services,\n        byte selector,\n        ushort type,\n        params ClientMessageType[] produces)\n        where TDecoder : class, IGameMessageDecoder\n    {\n        ArgumentNullException.ThrowIfNull(services);\n        RequireDeclaredProductions<TDecoder>(produces);\n        services.AddSingleton<TDecoder>();\n        services.AddSingleton(new GameMessageDecoderRegistration(selector, type, typeof(TDecoder)));\n        return AddProductions<TDecoder>(services, produces);\n    }"
+    },
+    {
+      "id": "303196BBC67B98E759D7E317D9437D8F765C362DF94A420D2539943E919A0A3B",
+      "symbol": "Dfo.Server.Infrastructure.Content.PvfDropRateTableSource.IGoldDropTableSource.Load",
+      "signature": "IGoldDropTableSource.Load(string)",
+      "path": "Server/src/Dfo.Server.Infrastructure/Content/PvfDropRateTableSource.cs",
+      "startLine": 62,
+      "endLine": 66,
+      "complexity": 1,
+      "coverage": 1,
+      "crap": 1,
+      "coveragePoints": [
+        {
+          "Module": "Dfo.Server.Infrastructure",
+          "RelativePath": "Server/src/Dfo.Server.Infrastructure/Content/PvfDropRateTableSource.cs",
+          "Line": 63,
+          "Hits": 497,
+          "Key": "Dfo.Server.Abstractions.Content.GoldDropTable Dfo.Server.Infrastructure.Content.PvfDropRateTableSource::Dfo.Server.Abstractions.Content.IGoldDropTableSource.Load(System.String)#sp0"
+        },
+        {
+          "Module": "Dfo.Server.Infrastructure",
+          "RelativePath": "Server/src/Dfo.Server.Infrastructure/Content/PvfDropRateTableSource.cs",
+          "Line": 64,
+          "Hits": 497,
+          "Key": "Dfo.Server.Abstractions.Content.GoldDropTable Dfo.Server.Infrastructure.Content.PvfDropRateTableSource::Dfo.Server.Abstractions.Content.IGoldDropTableSource.Load(System.String)#sp1"
+        },
+        {
+          "Module": "Dfo.Server.Infrastructure",
+          "RelativePath": "Server/src/Dfo.Server.Infrastructure/Content/PvfDropRateTableSource.cs",
+          "Line": 65,
+          "Hits": 497,
+          "Key": "Dfo.Server.Abstractions.Content.GoldDropTable Dfo.Server.Infrastructure.Content.PvfDropRateTableSource::Dfo.Server.Abstractions.Content.IGoldDropTableSource.Load(System.String)#sp2"
+        },
+        {
+          "Module": "Dfo.Server.Infrastructure",
+          "RelativePath": "Server/src/Dfo.Server.Infrastructure/Content/PvfDropRateTableSource.cs",
+          "Line": 66,
+          "Hits": 497,
+          "Key": "Dfo.Server.Abstractions.Content.GoldDropTable Dfo.Server.Infrastructure.Content.PvfDropRateTableSource::Dfo.Server.Abstractions.Content.IGoldDropTableSource.Load(System.String)#sp3"
+        }
+      ],
+      "coverageReports": [
+        "raw/coverage/01.opencover.xml",
+        "raw/coverage/02.opencover.xml",
+        "raw/coverage/03.opencover.xml",
+        "raw/coverage/04.opencover.xml",
+        "raw/coverage/05.opencover.xml",
+        "raw/coverage/06.opencover.xml",
+        "raw/coverage/07.opencover.xml"
+      ],
+      "case": "explicit-interface",
+      "source": "    GoldDropTable IGoldDropTableSource.Load(string archivePath)\n    {\n        ArgumentException.ThrowIfNullOrWhiteSpace(archivePath);\n        return _goldTables.GetOrAdd(archivePath, this.ReadGold);\n    }"
+    },
+    {
+      "id": "9CBA398E86E5AE1FF4CC286C50FEE178A6194476B3ED614FF1BEA912C699E161",
+      "symbol": "Dfo.Server.Persistence.Database.SqliteDatabaseParticipant.CommandAsync",
+      "signature": "CommandAsync(CancellationToken)",
+      "path": "Server/src/Dfo.Server.Persistence/Database/SqliteDatabaseParticipant.cs",
+      "startLine": 84,
+      "endLine": 91,
+      "complexity": 2,
+      "coverage": 1,
+      "crap": 2,
+      "coveragePoints": [
+        {
+          "Module": "Dfo.Server.Persistence",
+          "RelativePath": "Server/src/Dfo.Server.Persistence/Database/SqliteDatabaseParticipant.cs",
+          "Line": 85,
+          "Hits": 2383,
+          "Key": "System.Void Dfo.Server.Persistence.Database.SqliteDatabaseParticipant/<CommandAsync>d__10::MoveNext()#sp0"
+        },
+        {
+          "Module": "Dfo.Server.Persistence",
+          "RelativePath": "Server/src/Dfo.Server.Persistence/Database/SqliteDatabaseParticipant.cs",
+          "Line": 86,
+          "Hits": 2383,
+          "Key": "System.Void Dfo.Server.Persistence.Database.SqliteDatabaseParticipant/<CommandAsync>d__10::MoveNext()#sp1"
+        },
+        {
+          "Module": "Dfo.Server.Persistence",
+          "RelativePath": "Server/src/Dfo.Server.Persistence/Database/SqliteDatabaseParticipant.cs",
+          "Line": 87,
+          "Hits": 2383,
+          "Key": "System.Void Dfo.Server.Persistence.Database.SqliteDatabaseParticipant/<CommandAsync>d__10::MoveNext()#sp2"
+        },
+        {
+          "Module": "Dfo.Server.Persistence",
+          "RelativePath": "Server/src/Dfo.Server.Persistence/Database/SqliteDatabaseParticipant.cs",
+          "Line": 88,
+          "Hits": 2383,
+          "Key": "System.Void Dfo.Server.Persistence.Database.SqliteDatabaseParticipant/<CommandAsync>d__10::MoveNext()#sp3"
+        },
+        {
+          "Module": "Dfo.Server.Persistence",
+          "RelativePath": "Server/src/Dfo.Server.Persistence/Database/SqliteDatabaseParticipant.cs",
+          "Line": 89,
+          "Hits": 2383,
+          "Key": "System.Void Dfo.Server.Persistence.Database.SqliteDatabaseParticipant/<CommandAsync>d__10::MoveNext()#sp4"
+        },
+        {
+          "Module": "Dfo.Server.Persistence",
+          "RelativePath": "Server/src/Dfo.Server.Persistence/Database/SqliteDatabaseParticipant.cs",
+          "Line": 90,
+          "Hits": 2383,
+          "Key": "System.Void Dfo.Server.Persistence.Database.SqliteDatabaseParticipant/<CommandAsync>d__10::MoveNext()#sp5"
+        },
+        {
+          "Module": "Dfo.Server.Persistence",
+          "RelativePath": "Server/src/Dfo.Server.Persistence/Database/SqliteDatabaseParticipant.cs",
+          "Line": 91,
+          "Hits": 2383,
+          "Key": "System.Void Dfo.Server.Persistence.Database.SqliteDatabaseParticipant/<CommandAsync>d__10::MoveNext()#sp6"
+        }
+      ],
+      "coverageReports": [
+        "raw/coverage/01.opencover.xml",
+        "raw/coverage/02.opencover.xml",
+        "raw/coverage/03.opencover.xml",
+        "raw/coverage/04.opencover.xml",
+        "raw/coverage/05.opencover.xml",
+        "raw/coverage/06.opencover.xml",
+        "raw/coverage/07.opencover.xml"
+      ],
+      "case": "async-state-machine",
+      "source": "    internal async ValueTask<SqliteCommand> CommandAsync(CancellationToken cancellationToken)\n    {\n        var link = await this.OpenAsync(cancellationToken).ConfigureAwait(false);\n        this.pending ??= link.BeginTransaction(deferred: true);\n        var command = link.CreateCommand();\n        command.Transaction = this.pending;\n        return command;\n    }"
+    }
+  ],
+  "cross_reference": "verify_run.py independently traced every point Key/module/file/line/hit to raw OpenCover XML."
+}

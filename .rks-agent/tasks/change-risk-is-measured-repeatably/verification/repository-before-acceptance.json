@@ -1,0 +1,37 @@
+{
+  "decision": "pass",
+  "expected_baseline": "addbeb52bffdd329a85f292f6784200d1146bb28",
+  "branch": "change-risk-is-measured-repeatably",
+  "root": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably",
+  "current_snapshot_files_verified": 793,
+  "production_and_existing_test_source_diff": [],
+  "ignored_output_rule": ".gitignore:42:.crap/\t.crap/2026-09-08_21-21-45/report.md",
+  "tracked_crap_files": [],
+  "server_regression": {
+    "passed": 2392,
+    "skipped": 2,
+    "failed": 0,
+    "exit_code": 0,
+    "project_passed_counts": [
+      60,
+      612,
+      52,
+      333,
+      259,
+      1070,
+      6
+    ]
+  },
+  "git_diff_check": "pass",
+  "pre_acceptance_status": [
+    "M .gitignore",
+    " M AGENTS.md",
+    " M README.md",
+    " M Server/Directory.Packages.props",
+    "?? .rks-agent/tasks/change-risk-is-measured-repeatably/",
+    "?? Document/CrapMeasurement.md",
+    "?? Server/tests/Directory.Build.props",
+    "?? Tool/CrapMeter.Tests/",
+    "?? Tool/CrapMeter/"
+  ]
+}

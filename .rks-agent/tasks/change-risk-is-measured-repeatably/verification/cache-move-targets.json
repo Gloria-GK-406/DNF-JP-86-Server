@@ -1,0 +1,154 @@
+[
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Tool\\CrapMeter\\obj",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\00"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Tool\\CrapMeter\\bin",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\01"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\src\\Dfo.Pvf\\bin",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\02"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\src\\Dfo.Pvf\\obj",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\03"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Tool\\CrapMeter.Tests\\bin",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\04"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Tool\\CrapMeter.Tests\\obj",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\05"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\src\\Dfo.Server.Data\\bin",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\06"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\tests\\Dfo.Pvf.Tests\\bin",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\07"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\src\\Dfo.Server.Host\\obj",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\08"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\tests\\Dfo.Pvf.Tests\\obj",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\09"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\src\\Dfo.Server.Data\\obj",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\10"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\src\\Dfo.Server.Host\\bin",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\11"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\src\\Dfo.Server.Protocol\\bin",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\12"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\src\\Dfo.Server.Protocol\\obj",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\13"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\src\\Dfo.Server.Utilities\\bin",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\14"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\src\\Dfo.Server.Utilities\\obj",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\15"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\src\\Dfo.Server.Networking\\bin",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\16"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\src\\Dfo.Server.Networking\\obj",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\17"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\src\\Dfo.Server.Persistence\\bin",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\18"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\src\\Dfo.Server.Persistence\\obj",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\19"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\src\\Dfo.Server.Application\\bin",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\20"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\src\\Dfo.Server.Application\\obj",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\21"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\src\\Dfo.Server.Abstractions\\bin",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\22"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\src\\Dfo.Server.Abstractions\\obj",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\23"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\tests\\Dfo.Server.Host.Tests\\bin",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\24"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\tests\\Dfo.Server.Host.Tests\\obj",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\25"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\src\\Dfo.Server.Infrastructure\\bin",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\26"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\src\\Dfo.Server.Infrastructure\\obj",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\27"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\tests\\Dfo.Server.Protocol.Tests\\bin",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\28"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\tests\\Dfo.Server.Protocol.Tests\\obj",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\29"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\tests\\Dfo.Server.Networking.Tests\\bin",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\30"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\tests\\Dfo.Server.Networking.Tests\\obj",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\31"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\tests\\Dfo.Server.Persistence.Tests\\bin",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\32"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\tests\\Dfo.Server.Persistence.Tests\\obj",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\33"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\tests\\Dfo.Server.Application.Tests\\bin",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\34"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\tests\\Dfo.Server.Application.Tests\\obj",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\35"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\tests\\Dfo.Server.Infrastructure.Tests\\obj",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\36"
+  },
+  {
+    "Source": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\Server\\tests\\Dfo.Server.Infrastructure.Tests\\bin",
+    "Destination": "E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\change-risk-is-measured-repeatably\\.rks-agent\\tasks\\change-risk-is-measured-repeatably\\verification\\build-cache\\37"
+  }
+]

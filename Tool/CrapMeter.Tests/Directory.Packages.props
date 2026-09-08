@@ -1,0 +1,3 @@
+<Project>
+  <Import Project="../CrapMeter/Directory.Packages.props" />
+</Project>

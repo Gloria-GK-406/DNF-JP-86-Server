@@ -1,0 +1,32 @@
+{
+  "decision": "pass",
+  "preserved_files": {
+    "history-before.json": 105,
+    "run-1-hashes-before.json": 45
+  },
+  "successful_runs": [
+    "2026-09-08_21-10-51",
+    "2026-09-08_21-21-45"
+  ],
+  "same_input_files": 793,
+  "same_function_identities": 2797,
+  "coverage_changes": [
+    {
+      "id": "7C68AB88BD64D5ED9D6EA70E867A1F8C955ADB3382BDD5B822EC65C107AC92EC",
+      "symbol": "Dfo.Pvf.Chunks.ChunkStore.Get",
+      "coverage": [
+        0.8148148148148148,
+        0.9629629629629629
+      ],
+      "crap": [
+        4.101610526850582,
+        4.000812884214804
+      ]
+    }
+  ],
+  "partial_run": "2026-09-08_21-14-59",
+  "failure_injection_run": "2026-09-08_21-25-32",
+  "failure_injection_test_exit": 1,
+  "failure_injection_test_failures": 1,
+  "failure_artifact_registry_matches_disk": true
+}
