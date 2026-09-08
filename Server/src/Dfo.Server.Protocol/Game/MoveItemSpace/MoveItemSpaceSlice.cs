@@ -202,11 +202,23 @@ public enum ItemMoveStatus
 
     /// <summary>The request restates a move the client has already been told about.</summary>
     /// <remarks>
-    /// A drag that has been acknowledged is sometimes sent a second time, with the slot it came
-    /// from now empty and the piece already worn. Read literally that is "the worn piece belongs
-    /// back in this empty cell", which is the reverse of what the player asked for -- so a move
-    /// naming the worn piece's own identifier on its empty end is left alone rather than carried
-    /// out. Nothing is drawn for it: the client is already showing the state it is describing.
+    /// A drag that has been acknowledged is sometimes sent a second time. Read literally it is
+    /// the reverse of what the player asked for, so carrying it out undoes their own move in front
+    /// of them. It is left alone instead, and nothing is drawn for it: the client is already
+    /// showing the state it is describing.
+    /// <para>
+    /// <b>Both directions reach this.</b> A restated put-on would arrive with the cell it came
+    /// from empty and the piece worn; a restated take-off with the piece back in the bag or on the
+    /// avatar page and the worn slot empty. What they have in common is the only thing this judges:
+    /// the request names the item on an end that does not hold it, and the store holds it at the
+    /// other. An earlier revision described the first of the two as though it were the whole
+    /// condition, because only that one was guarded.
+    /// </para>
+    /// <para>
+    /// <b>Both shapes are derived, not seen.</b> They follow from what the client was observed to
+    /// send for a fresh move; <b>no restatement of either has been observed at all</b>, and this
+    /// judgement rests on a restatement carrying the original frame's bytes.
+    /// </para>
     /// </remarks>
     MoveAlreadyMade,
 }
@@ -233,11 +245,15 @@ public sealed record ItemMoveResult(ItemMoveStatus Status, int MoveValue, int It
 
 /// <summary>One character moving one item between two slots.</summary>
 /// <remarks>
-/// <c>SourceInstanceValue</c> is whatever identity the client named on the source end, and zero
-/// when it named none -- which is what a take-off carries, the identity riding on the other end
-/// instead. It is here for one decision: telling a fresh drag apart from a drag the client is
-/// restating, which read literally are the same two cells the other way round. See
-/// <see cref="ItemMoveStatus.MoveAlreadyMade"/>.
+/// The two instance values are whatever identity the client named on each end, and zero where it
+/// named none. The client names the item on the end it is coming from, so a put-on fills the first
+/// and a take-off fills the second.
+/// <para>
+/// They are here for one decision: telling a fresh drag apart from a drag the client is restating,
+/// which read literally are the same two cells the other way round. See
+/// <see cref="ItemMoveStatus.MoveAlreadyMade"/>. The destination one used to be decoded and then
+/// dropped here, which is why only restated put-ons were caught.
+/// </para>
 /// </remarks>
 public sealed record MoveItemSpaceCommand(
     CharacterId CharacterId,
@@ -246,7 +262,8 @@ public sealed record MoveItemSpaceCommand(
     int MoveCount,
     byte DestinationListType,
     short DestinationSlotIndex,
-    int SourceInstanceValue = 0) : ICommand<ItemMoveResult>;
+    int SourceInstanceValue = 0,
+    int DestinationInstanceValue = 0) : ICommand<ItemMoveResult>;
 
 /// <summary>
 /// Hands the move to the character's bag and reports what it answered.
@@ -305,10 +322,10 @@ public sealed class MoveItemSpaceCommandHandler(
     /// so the path that answers the reversed request is one of the three already here, and none of
     /// the rules about what may sit where has to be restated to reach it.
     /// <para>
-    /// The identity does not travel. It belonged to the end the client named as the source, and a
-    /// reversed request names none of its own; the one decision that reads it
-    /// (<see cref="ItemMoveStatus.MoveAlreadyMade"/>) has already been made by the time this is
-    /// called.
+    /// Neither identity travels. A reversed request names no end of its own, and the one decision
+    /// that reads them (<see cref="ItemMoveStatus.MoveAlreadyMade"/>) has already been made on both
+    /// ends by the time this is called -- carrying them over would put the same frame through that
+    /// judgement twice with its ends swapped, which is a different question from the one asked.
     /// </para>
     /// <para>
     /// Reversal happens at most once per request. Each path reverses only on finding its own end
@@ -323,7 +340,44 @@ public sealed class MoveItemSpaceCommandHandler(
         DestinationListType = command.SourceListType,
         DestinationSlotIndex = command.SourceSlotIndex,
         SourceInstanceValue = 0,
+        DestinationInstanceValue = 0,
     };
+
+    /// <summary>Whether the request describes a move the store shows as already carried out.</summary>
+    /// <remarks>
+    /// A request names an item's identity on the end that item is coming from. So when the end it
+    /// names is empty and the store holds that very item at the other end, the client is describing
+    /// something that has already happened -- it is talking about the picture it had before the
+    /// answer reached it.
+    /// <para>
+    /// <b>Its safety is that it is a contradiction rather than a resemblance</b>, which is what
+    /// lets it refuse without judging what a move ought to look like. Every fresh drag that has
+    /// been observed names the item on an end that holds it, so none of them reaches this.
+    /// </para>
+    /// <para>
+    /// <b>That is evidence and not a proof, and one shape would break it.</b> A client that named
+    /// the identity of the piece it is moving on an <b>empty destination end</b> would satisfy all
+    /// four clauses while asking for something legitimate. The eleven put-ons that have been
+    /// observed all left that field zero, so nothing in the evidence reaches it -- but "not
+    /// observed" is not "cannot happen", and an earlier revision of this remark stated the
+    /// stronger claim. There is a second reading of the frame under which the shape cannot exist
+    /// at all; the two readings fit every observation equally and settling it needs a capture.
+    /// See the attempt's change list under "The one shape that could misfire".
+    /// </para>
+    /// <para>
+    /// Both directions are this one sentence, which is why it is a function rather than two
+    /// conditions written out twice the other way round. The forward half of it was here first,
+    /// copied from upstream, whose own condition names only the direction it was written for.
+    /// </para>
+    /// </remarks>
+    private static bool AlreadyCarriedOut(
+        int namedInstanceValue,
+        ContainerSlotItem? atTheEndItNames,
+        ContainerSlotItem? atTheOtherEnd) =>
+        namedInstanceValue > 0
+        && atTheEndItNames is null
+        && atTheOtherEnd is not null
+        && atTheOtherEnd.ItemId == namedInstanceValue;
 
     public async ValueTask<ItemMoveResult> HandleAsync(
         CommandExecutionContext context,
@@ -366,6 +420,19 @@ public sealed class MoveItemSpaceCommandHandler(
                 : await this.CarryAcrossAsync(
                     command, bag, into, destination.Value, cancellationToken).ConfigureAwait(false);
         }
+
+        // The fourth path the rule reaches. Moving inside one list is the container's own business
+        // and it decides by the same reading -- whichever end holds something is the end that moves
+        // -- so a restatement undoes itself here exactly as it did across lists. The container is
+        // never told what the client named, so the judgement is made before handing over.
+        var atSource = await bag.ReadSlotAsync(command.SourceSlotIndex, cancellationToken)
+            .ConfigureAwait(false);
+        var atDestination = await bag.ReadSlotAsync(command.DestinationSlotIndex, cancellationToken)
+            .ConfigureAwait(false);
+        if (AlreadyCarriedOut(command.SourceInstanceValue, atSource, atDestination))
+            return ItemMoveResult.Refused(ItemMoveStatus.MoveAlreadyMade, atDestination!.ItemId);
+        if (AlreadyCarriedOut(command.DestinationInstanceValue, atDestination, atSource))
+            return ItemMoveResult.Refused(ItemMoveStatus.MoveAlreadyMade, atSource!.ItemId);
 
         // The move is carried out inside the bag as the clears and writes it is made of. Everything
         // they touch settles together, because the command is transactional and the boundary around
@@ -444,20 +511,18 @@ public sealed class MoveItemSpaceCommandHandler(
 
         var piece = await bag.ReadSlotAsync(command.SourceSlotIndex, cancellationToken)
             .ConfigureAwait(false);
+        var displaced = await worn.ReadSlotAsync(command.DestinationSlotIndex, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (AlreadyCarriedOut(command.SourceInstanceValue, piece, displaced))
+            return ItemMoveResult.Refused(ItemMoveStatus.MoveAlreadyMade, displaced!.ItemId);
+        if (AlreadyCarriedOut(command.DestinationInstanceValue, displaced, piece))
+            return ItemMoveResult.Refused(ItemMoveStatus.MoveAlreadyMade, piece!.ItemId);
+
         if (piece is null)
         {
-            var alreadyWorn = await worn
-                .ReadSlotAsync(command.DestinationSlotIndex, cancellationToken)
-                .ConfigureAwait(false);
-            if (alreadyWorn is null)
+            if (displaced is null)
                 return ItemMoveResult.Refused(ItemMoveStatus.BothSlotsEmpty);
-
-            if (command.SourceInstanceValue > 0
-                && alreadyWorn.ItemId == command.SourceInstanceValue)
-            {
-                return ItemMoveResult.Refused(
-                    ItemMoveStatus.MoveAlreadyMade, alreadyWorn.ItemId);
-            }
 
             return await this.TakeOffAsync(Reversed(command), bag, cancellationToken)
                 .ConfigureAwait(false);
@@ -470,8 +535,6 @@ public sealed class MoveItemSpaceCommandHandler(
         if (slot.Value != command.DestinationSlotIndex)
             return ItemMoveResult.Refused(ItemMoveStatus.ItemCannotOccupySlot, piece.ItemId);
 
-        var displaced = await worn.ReadSlotAsync(command.DestinationSlotIndex, cancellationToken)
-            .ConfigureAwait(false);
         await worn.PutAsync(command.DestinationSlotIndex, piece.Core, cancellationToken)
             .ConfigureAwait(false);
         if (displaced is null)
@@ -515,11 +578,17 @@ public sealed class MoveItemSpaceCommandHandler(
     {
         var moving = await from.ReadSlotAsync(command.SourceSlotIndex, cancellationToken)
             .ConfigureAwait(false);
+        var displaced = await into.ReadSlotAsync(command.DestinationSlotIndex, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (AlreadyCarriedOut(command.SourceInstanceValue, moving, displaced))
+            return ItemMoveResult.Refused(ItemMoveStatus.MoveAlreadyMade, displaced!.ItemId);
+        if (AlreadyCarriedOut(command.DestinationInstanceValue, displaced, moving))
+            return ItemMoveResult.Refused(ItemMoveStatus.MoveAlreadyMade, moving!.ItemId);
+
         if (moving is null)
         {
-            var other = await into.ReadSlotAsync(command.DestinationSlotIndex, cancellationToken)
-                .ConfigureAwait(false);
-            return other is null
+            return displaced is null
                 ? ItemMoveResult.Refused(ItemMoveStatus.BothSlotsEmpty)
                 : await this.CarryAcrossAsync(
                     Reversed(command), into, from, from.Type, cancellationToken)
@@ -540,8 +609,6 @@ public sealed class MoveItemSpaceCommandHandler(
                 break;
         }
 
-        var displaced = await into.ReadSlotAsync(command.DestinationSlotIndex, cancellationToken)
-            .ConfigureAwait(false);
         if (displaced is not null)
         {
             var back = await moves.MayOccupySlotAsync(
@@ -589,11 +656,17 @@ public sealed class MoveItemSpaceCommandHandler(
 
         var piece = await worn.ReadSlotAsync(command.SourceSlotIndex, cancellationToken)
             .ConfigureAwait(false);
+        var displaced = await bag.ReadSlotAsync(command.DestinationSlotIndex, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (AlreadyCarriedOut(command.SourceInstanceValue, piece, displaced))
+            return ItemMoveResult.Refused(ItemMoveStatus.MoveAlreadyMade, displaced!.ItemId);
+        if (AlreadyCarriedOut(command.DestinationInstanceValue, displaced, piece))
+            return ItemMoveResult.Refused(ItemMoveStatus.MoveAlreadyMade, piece!.ItemId);
+
         if (piece is null)
         {
-            var carried = await bag.ReadSlotAsync(command.DestinationSlotIndex, cancellationToken)
-                .ConfigureAwait(false);
-            return carried is null
+            return displaced is null
                 ? ItemMoveResult.Refused(ItemMoveStatus.BothSlotsEmpty)
                 : await this.PutOnAsync(Reversed(command), bag, cancellationToken)
                     .ConfigureAwait(false);
@@ -613,8 +686,6 @@ public sealed class MoveItemSpaceCommandHandler(
                 break;
         }
 
-        var displaced = await bag.ReadSlotAsync(command.DestinationSlotIndex, cancellationToken)
-            .ConfigureAwait(false);
         if (displaced is not null)
         {
             var displacedSlot = await moves
@@ -684,7 +755,7 @@ public sealed class MoveItemSpaceHandler(
         var (response, result) = await ResolveAsync(context, message, cancellationToken)
             .ConfigureAwait(false);
         List<IGameServerMessage> frames = [response];
-        if (result?.Status is ItemMoveStatus.Moved && ChangesWhatTheCharacterLooksLike(message))
+        if (result?.Status is ItemMoveStatus.Moved)
         {
             // Nothing raised while working out the appearance may cost the player the
             // acknowledgement. The move is committed by this point and the client holds the
@@ -694,7 +765,9 @@ public sealed class MoveItemSpaceHandler(
             // the acknowledgement, alone.
             try
             {
-                if (await this.AppearanceAsync(context, cancellationToken).ConfigureAwait(false)
+                if (await this.RefreshSessionAsync(
+                        context, ChangesWhatTheCharacterLooksLike(message), cancellationToken)
+                        .ConfigureAwait(false)
                     is { } appearance)
                 {
                     frames.Add(appearance);
@@ -704,8 +777,7 @@ public sealed class MoveItemSpaceHandler(
             {
                 logger.LogError(
                     failure,
-                    "Move item space {ConnectionId}: the move stands and the appearance was not "
-                        + "sent",
+                    "Move item space {ConnectionId}: the move stands; inventory refresh or appearance failed",
                     context.Connection.ConnectionId);
             }
         }
@@ -737,27 +809,15 @@ public sealed class MoveItemSpaceHandler(
             && StateSynchronizationPayloadCodec.CurrentUserStateDrawsFrom(
                 message.DestinationSlotIndex));
 
-    /// <summary>What the character wears now, read back from the store rather than the session.</summary>
+    /// <summary>Reloads inventory for the resident copy and the optional appearance frame.</summary>
     /// <remarks>
-    /// The session carries a copy of the character's inventory, and it is the copy taken when the
-    /// character was selected: `ReplaceExact` is called in eight places and none of them is after an
-    /// item move. Building this frame from that copy would send the client the picture it already
-    /// has, which is the whole of the defect this answers -- so the equipment is loaded again.
-    /// <para>
-    /// <b>The session's copy is deliberately left as it was.</b> Refreshing it would change what
-    /// every other reader of it draws -- the dungeon selection screen takes its equipment from
-    /// there -- and that is a different outcome from this one. The two disagree, and they disagreed
-    /// before this frame existed.
-    /// </para>
-    /// <para>
-    /// Nothing is built when the session cannot be read. A frame drawn from a session that is no
-    /// longer there would describe someone else's character or none at all, and the move stands
-    /// either way -- it was committed before this was asked, and the acknowledgement carrying it
-    /// goes out whether or not this answers.
-    /// </para>
+    /// Dungeon selection and PvP participant projection read this copy's equipment. Reload once
+    /// after a committed move so those consumers and the immediate appearance use the same items.
+    /// ReplaceExact checks the generation, not the result version: a concurrent writer can still
+    /// be overwritten across this load. It does not make the aggregate safe for concurrent refreshes.
     /// </remarks>
-    private async ValueTask<IGameServerMessage?> AppearanceAsync(
-        NetworkDispatchContext context, CancellationToken cancellationToken)
+    private async ValueTask<IGameServerMessage?> RefreshSessionAsync(
+        NetworkDispatchContext context, bool draw, CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
         if (session is null || !runtimeSessions.TryGet(session, out var state, out _)
@@ -769,6 +829,13 @@ public sealed class MoveItemSpaceHandler(
         var reloaded = await inventories
             .LoadAsync(session.AccountId, session.CharacterId, cancellationToken)
             .ConfigureAwait(false);
+
+        // Preserve the other members of the snapshot read above; a generation change during
+        // the load is refused by ReplaceExact and leaves only the committed move's acknowledgement.
+        runtimeSessions.ReplaceExact(session, state with { CharacterInventory = reloaded });
+
+        if (!draw) return null;
+
         var equipment = reloaded.Containers
             .SingleOrDefault(value => value.ContainerType == InventoryContainerType.Equipment)
             ?.Items ?? [];
@@ -802,7 +869,8 @@ public sealed class MoveItemSpaceHandler(
                 message.MoveCount,
                 message.DestinationListType,
                 message.DestinationSlotIndex,
-                message.SourceInstanceValue),
+                message.SourceInstanceValue,
+                message.DestinationInstanceValue),
             cancellationToken).ConfigureAwait(false);
 
         if (result.Status is ItemMoveStatus.Moved or ItemMoveStatus.Unchanged)

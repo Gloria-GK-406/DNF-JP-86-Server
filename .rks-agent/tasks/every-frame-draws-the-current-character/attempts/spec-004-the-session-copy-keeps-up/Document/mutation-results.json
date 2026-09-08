@@ -1,0 +1,62 @@
+{
+  "command": [
+    "dotnet",
+    "test",
+    "Server/tests/Dfo.Server.Protocol.Tests/Dfo.Server.Protocol.Tests.csproj",
+    "--nologo",
+    "--no-restore",
+    "--filter",
+    "FullyQualifiedName~TheCharacterChangesAsYouDressItTests",
+    "--logger",
+    "console;verbosity=detailed"
+  ],
+  "source_sha256": "93abc8df226df8bd06bf986891769bcccc37cefbfae033e6ef1653ea4c4da4a9",
+  "results": [
+    {
+      "mutation": "P1",
+      "edit_from": "runtimeSessions.ReplaceExact(session, state with { CharacterInventory = reloaded });",
+      "edit_to": "runtimeSessions.ReplaceExact(session, state with { CharacterInventory = reloaded, CharacterEntry = state.CharacterEntry with { } });",
+      "exit": 1,
+      "failures": [
+        "[xUnit.net 00:00:00.69]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.TheCharacterChangesAsYouDressItTests.Only_the_inventory_member_of_the_session_copy_is_replaced [FAIL]"
+      ],
+      "restored_sha256": "93abc8df226df8bd06bf986891769bcccc37cefbfae033e6ef1653ea4c4da4a9"
+    },
+    {
+      "mutation": "P2",
+      "edit_from": "runtimeSessions.ReplaceExact(session, state with { CharacterInventory = reloaded });",
+      "edit_to": "// mutation: inventory refresh omitted",
+      "exit": 1,
+      "failures": [
+        "[xUnit.net 00:00:00.63]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.TheCharacterChangesAsYouDressItTests.Opening_dungeon_selection_after_dressing_reads_the_current_equipment [FAIL]",
+        "[xUnit.net 00:00:00.63]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.TheCharacterChangesAsYouDressItTests.A_session_that_will_not_accept_the_refresh_still_gets_its_acknowledgement [FAIL]",
+        "[xUnit.net 00:00:00.67]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.TheCharacterChangesAsYouDressItTests.The_session_copy_follows_the_move [FAIL]",
+        "[xUnit.net 00:00:00.68]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.TheCharacterChangesAsYouDressItTests.Dressing_reads_the_inventory_once_for_both_frames_and_copy [FAIL]",
+        "[xUnit.net 00:00:00.68]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.TheCharacterChangesAsYouDressItTests.A_move_that_changes_nothing_drawn_still_refreshes_the_copy [FAIL]",
+        "[xUnit.net 00:00:00.70]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.TheCharacterChangesAsYouDressItTests.Only_the_inventory_member_of_the_session_copy_is_replaced [FAIL]"
+      ],
+      "restored_sha256": "93abc8df226df8bd06bf986891769bcccc37cefbfae033e6ef1653ea4c4da4a9"
+    },
+    {
+      "mutation": "P3",
+      "edit_from": "catch (Exception failure) when (!cancellationToken.IsCancellationRequested)",
+      "edit_to": "catch (Exception failure) when (cancellationToken.IsCancellationRequested)",
+      "exit": 1,
+      "failures": [
+        "[xUnit.net 00:00:00.67]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.TheCharacterChangesAsYouDressItTests.A_session_that_will_not_accept_the_refresh_still_gets_its_acknowledgement [FAIL]",
+        "[xUnit.net 00:00:00.68]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.TheCharacterChangesAsYouDressItTests.A_move_is_still_acknowledged_when_the_appearance_cannot_be_built [FAIL]"
+      ],
+      "restored_sha256": "93abc8df226df8bd06bf986891769bcccc37cefbfae033e6ef1653ea4c4da4a9"
+    },
+    {
+      "mutation": "P4",
+      "edit_from": "if (result?.Status is ItemMoveStatus.Moved)",
+      "edit_to": "if (result?.Status is ItemMoveStatus.Moved && ChangesWhatTheCharacterLooksLike(message))",
+      "exit": 1,
+      "failures": [
+        "[xUnit.net 00:00:00.66]     Dfo.Server.Protocol.Tests.Game.MoveItemSpace.TheCharacterChangesAsYouDressItTests.A_move_that_changes_nothing_drawn_still_refreshes_the_copy [FAIL]"
+      ],
+      "restored_sha256": "93abc8df226df8bd06bf986891769bcccc37cefbfae033e6ef1653ea4c4da4a9"
+    }
+  ]
+}

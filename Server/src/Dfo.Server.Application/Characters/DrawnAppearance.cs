@@ -5,13 +5,17 @@ namespace Dfo.Server.Application.Characters;
 
 /// <summary>What a character is drawn wearing, worked out from what the character wears.</summary>
 /// <remarks>
-/// Two screens draw a character: the one inside the game, from the NOTI-2 subtype-zero frame, and
-/// the character-selection roster. Both draw the same twenty-three-byte part -- slot, display item,
-/// a four-byte expansion behind its own length, a state byte, a link item, an enchant value and a
-/// flag -- and they used to work it out twice: the in-world frame derived it from the equipment
-/// list inside its own byte-writing loop, and the roster read a blob nothing had written since the
-/// character was created. This is that derivation, once, as values rather than as bytes, so that
-/// both can ask it.
+/// Three places draw a character: the one inside the game, from the NOTI-2 subtype-zero frame, the
+/// character-selection roster, and the roster frame inside the entry burst. All three draw the same
+/// twenty-three-byte part -- slot, display item, a four-byte expansion behind its own length, a
+/// state byte, a link item, an enchant value and a flag -- and they used to work it out separately:
+/// the in-world frame derived it from the equipment list inside its own byte-writing loop, and both
+/// rosters read a blob nothing had written since the character was created. This is that
+/// derivation, once, as values rather than as bytes, so that all of them can ask it.
+/// <para>
+/// The two rosters were moved onto it one at a time -- the selection screen first, the entry burst
+/// afterwards -- so a reader of an intermediate revision will find them disagreeing.
+/// </para>
 /// <para>
 /// <b>It is here rather than beside either caller because neither can see the other.</b>
 /// <see cref="Dfo.Server.Data.Game.CharacterRosterAppearanceState"/> is a data record, the roster

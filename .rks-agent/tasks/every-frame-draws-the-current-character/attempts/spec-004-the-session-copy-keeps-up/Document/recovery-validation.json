@@ -1,0 +1,14 @@
+{
+  "errors": [],
+  "root_cursor": {
+    "phase": "child_execution",
+    "phase_state": "in_progress",
+    "active_attempt": "spec-004",
+    "last_transition": "child-created"
+  },
+  "child_cursor": {
+    "current_stage": "review",
+    "state": "in_progress"
+  },
+  "dependencies": []
+}

@@ -2,6 +2,13 @@
 
 调查日期 2026-09-04，基准 `main` @ `51cd99c2`。**只读调查，未改动任何代码。**
 
+> 2026-09-08 状态补注（代码基准 `1d887c59`，含物品移动快照刷新修改）：下文“未查清的”第 5 项
+> 已读明实现。`SelectedSessionRuntimeDirectory.ReplaceExact` 在锁内检查会话代次后整体替换
+> `Result`，没有结果版本比较或字段合并。物品移动新增了命令返回后的刷新参与者；与其他
+> 写点跨异步读取交错时可能覆盖更新。同连接 TCP 回调的完整串行保证尚未证实，因此此处
+> 是代码推导的风险，不是实机复现。历史调查正文保留。
+
+
 ## 这份清点回答什么
 
 上一轮 `character-state-finds-its-owner` 收尾时留下一句话：`CharacterEntry` 的
@@ -134,7 +141,7 @@ X-13/X-14 是「装备槽 24 的 creature 从死转活」。帧序是对着 A21 
 | `Extras.SpecialRewardQuestIds` | **零读点，且唯一带 I/O 成本的死代码** | `CharacterEntryStateServices.cs:280-287` 对每个已清任务 `await questDefinitions.FindAsync` |
 | `Condition`（37 字段） | 32 个零读点；上线的 5 个恒为建表默认值 | INSERT 只写 `(character_id, pc_room_state)` |
 | `DerivedStats`（27 字段） | **不是死，是冻**：创建时的 1 级基础值，一辈子不重算 | 唯一写入是创建时 `InsertIfAbsentAsync`；`character_stats` 的两条 UPDATE 只动 `carried_gold` |
-| `Appearance` | 冻在创建时 | `appearance_blob` 无 UPDATE。**2026-09-08 起它是这个 blob 唯一的消费者**：画角色列表的那两帧（选人界面，以及建角色之后推的那条刷新）都已改成从实时穿戴现算 |
+| `Appearance` | 冻在创建时 | `appearance_blob` 无 UPDATE。**它现在一个消费者都没有**：画角色列表的三处（选人界面、建角色之后推的那条刷新、入场那一批里的角色列表帧）都已改成从实时穿戴现算。列仍在写、仍被加载，只是没有代码再解它 |
 | `VisibilityBits` | 恒为默认值 3，不可改 | `CharacterSettingsDomainService` 整个是只读的 |
 | `CloneTitleItemId` | 读点最多，值恒 0 | 无穿戴称号路径 |
 | `Identity` | 恒 (0,0,0)；可空 + `throw Missing` 守卫永不触发 | 生产路径无条件构造 |
@@ -248,7 +255,7 @@ result = result with
 | **称号书** | `items` 容器 19-23 | 写入者：`MoveItemSpace` 今天只认 `Main`/`Equipment` |
 | **收集箱** | 内容档驱动的箱子集合、协议壳 | 写入者：收集通路 |
 | **成长武器 / 魔方 / 冠军突破 / 金币上限** | 有列有帧；金币上限还有 `IGoldLimitRuleService` 与四档阈值 | 各自的写入者 |
-| **外观** | 创建时的 blob，只剩入场那一帧读它 | 写入者：换装后重算写回，或让入场那一帧也改成现算并退役这个列（2026-09-08 更正，见下） |
+| **外观** | 创建时的 blob，**已无任何读者** | 入场那一帧也改成了现算，所以只剩「退役这个列」这一件事，而那要迁移既有存档（见下） |
 | **可见位** | 只读领域服务 | 写入者；**并改**三份副本 |
 | **公会** | 两列 | 整个系统 |
 
@@ -264,11 +271,36 @@ seam 已在、拒绝码已在、调用点已有变异验证钉着。而且它要
 > 与世界内形象共用 `Application/Characters/DrawnAppearance.cs` 这一处规则。
 > 入口是 `CharacterRosterService.ListByAccountWithAppearanceAsync`；
 > `ListByAccountAsync` 仍旧不读穿戴，那是刻意保留的廉价 listing。
-> `appearance_blob` 仍旧只在角色创建时写一次、`Server/src` 下零条 UPDATE（本仓代码读出），
-> 而它现在只剩一个消费者：**入场那一批里的角色列表帧**。
-> **两个界面因此不一致**——选人界面画当前穿戴，入场那一帧画创建时那一份。
-> 这条边界是刻意的：入场那一帧在字节锚 `SelectCharacterAcceptedTranscriptTests` 之内，
-> 动它要改锚。要收口这条不一致，做法是让入场那一帧也问同一处规则，而不是给 blob 补写入者。
+> `appearance_blob` 仍旧只在角色创建时写一次、`Server/src` 下零条 UPDATE（本仓代码读出）。
+>
+> **2026-09-08 晚些时候的再更正：上面这一段当时写的两句话都不对，下面是实测结论。**
+>
+> 第一句是「它现在只剩一个消费者：入场那一批里的角色列表帧，两个界面因此不一致」。
+> 入场那一帧随后也改成了向同一处规则要外观（`CharacterRosterService.GetAccountRosterWithAppearanceAsync`
+> → `DrawnAppearance`），所以三处现在同源，**那个 blob 的消费者归零**。
+>
+> 第二句是「入场那一帧在字节锚 `SelectCharacterAcceptedTranscriptTests` 之内，动它要改锚」。
+> **这句是错的，而且它的两半都是错的。**
+>
+> 先说那一帧根本不在锚里。锚编码的是 `SelectedCharacterStateMessageFactory.Create(...)` 的返回值，
+> 类型是 `IReadOnlyList<GameStateSynchronizationMessage>`；而承载角色名单的 `AccountRosterStateMessage`
+> 是 `SupplementalSynchronizationMessage`（`SupplementalSynchronizationMessages.cs:46`），
+> 在 `SelectCharacterHandler.cs:354` 于那个工厂**之外**构造。它不在那 62 条里（本仓代码读出）。
+>
+> 再说即便它在，锚也接不住这个改动：锚喂的是 `SelectCharacterPayloadTestData.CreateComplete()` ——
+> 一个**手工构造**的 `SelectCharacterResult`，直接过编码器。锚钉的是**编码器**，不是外观的**来源**；
+> 做决定的那段代码在锚的上游，锚根本不跑它。
+>
+> 实测：改完之后 62 条哈希**一条未动**（判据实跑）。
+> 真正接住这个改动的是 `SelectCharacterProductionStateTests`，它走生产路径。
+>
+> **这段更正本身也曾写错一次。** 第一版承认了「锚接不住」却仍写着「那一帧确实在锚里」——
+> 把 issue 里未经核实的前半句当成既有事实，只去纠正后半句的推论。
+> 教训有两条：「帧在锚里」与「决定在锚里」是两件事；而纠正一句话时，**它的前提也要一起核**。
+>
+> 现在只剩退役那一列本身：它仍在创建时写、仍被 `CharacterEntryStateTables` 与 `CharacterEntryTables`
+> 读出并挂到 `CharacterEntryState.Public.Appearance`，但没有任何消费方。
+> 退它要动 schema 与 `CharacterBodyShapeTests` 的字段清单，等于迁移既有存档，是一件独立的事。
 
 ## 未查清的
 

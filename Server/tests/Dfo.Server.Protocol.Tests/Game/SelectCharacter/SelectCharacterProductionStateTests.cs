@@ -23,7 +23,7 @@ public sealed class SelectCharacterProductionStateTests
     public async Task ApplicationProducedResult_EncodesTheCompleteStaticStream()
     {
         var seed = SelectCharacterPayloadTestData.CreateComplete();
-        var sources = new Sources(seed);
+        var sources = new Sources(seed, []);
         var handler = new SelectCharacterPreparationService(
             sources, sources, sources, sources, sources, sources, sources,
             new CharacterEntryPreparationRuleService(sources, sources, sources),
@@ -45,7 +45,139 @@ public sealed class SelectCharacterProductionStateTests
         Assert.False(sources.Published);
     }
 
-    private sealed class Sources(SelectCharacterResult seed) :
+    /// <summary>
+    /// The roster frame in the entry burst is drawn from what is worn, not from the stored blob.
+    /// </summary>
+    /// <remarks>
+    /// The two answers are made to differ on purpose: the character wears a coat in slot twelve and
+    /// the stored blob says slot zero. A frame built from the blob would name slot zero, so this
+    /// case cannot pass against the code as it was.
+    /// <para>
+    /// <b>The worn piece goes through <see cref="DrawnAppearance"/> rather than being written out as
+    /// a finished part, and the expected values are written out instead.</b> That is what puts the
+    /// shared projection inside this case: changing how a worn piece becomes a drawn part moves what
+    /// this frame carries, and this goes red. Handing the listing a hand-made part would have
+    /// stubbed the projection out and left the in-world frame as the only side that could feel it.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task The_roster_frame_is_drawn_from_what_is_worn_and_not_from_the_stored_blob()
+    {
+        var blobSaysSlotZero = new byte[]
+        {
+            1,
+            0x00, 0x40, 0x4C, 0xA9, 0x18, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        };
+        var seed = WithStoredAppearance(
+            SelectCharacterPayloadTestData.CreateComplete(), blobSaysSlotZero);
+
+        var result = await PrepareAsync(
+            new Sources(seed, DrawnAppearance.Of(WornCoatInSlotTwelve())), seed);
+
+        Assert.NotNull(result.RosterEntry);
+        var member = Assert.Single(result.RosterEntry.Characters);
+        var part = Assert.Single(member.Appearances);
+        Assert.Equal(12, part.Slot);
+        Assert.Equal(27600, part.DisplayItemId);
+        Assert.Equal(4, part.ExpansionLength);
+        Assert.Equal(11, part.State);
+        Assert.Equal(9, part.Flag20);
+    }
+
+    /// <summary>One coat in slot twelve, attribute five, amplified, nine upgrades.</summary>
+    /// <remarks>
+    /// The state byte the projection makes of that is the attribute's low five bits doubled plus one
+    /// for being amplified, which is eleven; the case above pins that rather than recomputing it.
+    /// </remarks>
+    private static IReadOnlyList<InventoryItemState> WornCoatInSlotTwelve() =>
+    [
+        new InventoryItemState(
+            new ItemIdentity(1),
+            12,
+            new InventoryItemCoreState(
+                1, 27600, 1, 5, 50, 0, 0, 9, 2, 0, -1,
+                new ChronicleOptionState(0, 0, 0, 0, 0),
+                new ChronicleOptionState(0, 0, 0, 0, 0),
+                0, 0, 0, 0, 0,
+                new RandomOptionState(0, 0, 0),
+                new RandomOptionState(0, 0, 0),
+                new RandomOptionState(0, 0, 0),
+                0, 0xFF, 0, new RandomOptionState(0, 0, 0),
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0)),
+    ];
+
+    /// <summary>A character wearing nothing is drawn wearing nothing, not wearing what it was made in.</summary>
+    [Fact]
+    public async Task A_character_wearing_nothing_is_drawn_wearing_nothing()
+    {
+        var blobSaysSlotZero = new byte[]
+        {
+            1,
+            0x00, 0x40, 0x4C, 0xA9, 0x18, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        };
+        var seed = WithStoredAppearance(
+            SelectCharacterPayloadTestData.CreateComplete(), blobSaysSlotZero);
+
+        var result = await PrepareAsync(new Sources(seed, []), seed);
+
+        Assert.NotNull(result.RosterEntry);
+        Assert.Empty(Assert.Single(result.RosterEntry.Characters).Appearances);
+    }
+
+    /// <summary>
+    /// A listing that worked nothing out is refused rather than drawn as a character wearing nothing.
+    /// </summary>
+    /// <remarks>
+    /// A null appearance means "this listing did not work it out", which is true of the cheap
+    /// listing and must never be true of the one this frame asks. Drawing it as an empty appearance
+    /// would undress every character on the screen and read as missing content rather than as the
+    /// wiring mistake it would be.
+    /// </remarks>
+    [Fact]
+    public async Task A_listing_that_worked_nothing_out_is_refused()
+    {
+        var seed = SelectCharacterPayloadTestData.CreateComplete();
+
+        var refusal = await Assert.ThrowsAsync<InvalidDataException>(
+            async () => await PrepareAsync(new Sources(seed, appearances: null), seed));
+
+        Assert.Equal(
+            "The account roster this frame is drawn from did not work out appearances.",
+            refusal.Message);
+    }
+
+    private static SelectCharacterResult WithStoredAppearance(
+        SelectCharacterResult seed, byte[] blob) => seed with
+        {
+            CharacterEntry = seed.CharacterEntry with
+            {
+                Public = seed.CharacterEntry.Public with
+                {
+                    Appearance = new CharacterAppearanceCompatibilityState(1, blob),
+                },
+            },
+        };
+
+    private static async Task<SelectCharacterResult> PrepareAsync(
+        Sources sources, SelectCharacterResult seed)
+    {
+        var handler = new SelectCharacterPreparationService(
+            sources, sources, sources, sources, sources, sources, sources,
+            new CharacterEntryPreparationRuleService(sources, sources, sources),
+            sources, sources, sources, sources, sources, sources, sources,
+            new FixedTimeProvider(seed.World.PreparedAt));
+        var channel = new ChannelEntryIdentity(1, 10011, ChannelEntryKind.General);
+        var selected = await handler.PreflightAsync(
+            seed.Account.AccountId, seed.Character.Identity.SlotIndex, channel, CancellationToken.None);
+        return await handler.PrepareAsync(
+            selected, seed.Account.AccountId, channel, CancellationToken.None);
+    }
+
+    private sealed class Sources(
+        SelectCharacterResult seed,
+        IReadOnlyList<CharacterRosterAppearanceState>? appearances = null) :
         ICharacterDomainService, ICharacterInventoryEntryDomainService, IAccountInventoryEntryDomainService,
         ICharacterEntryStateDomainService, IAccountEntryStateDomainService, IEquippedCreatureQuery,
         IWorldContentEntryRuleService, ISkillPointDefinitionSource, IChannelEntryPolicy,
@@ -70,10 +202,22 @@ public sealed class SelectCharacterProductionStateTests
                     seed.Character.Identity.Job, seed.Character.Identity.GrowType,
                     seed.Character.Progression.Level, seed.CharacterEntry.Public.CloneTitleItemId,
                     null)]));
-        // The entry burst asks the plain roster; nothing on that path draws a character.
+        // The entry burst draws the roster now, so this answers rather than refusing. It used to
+        // refuse, and the sentence it refused with -- that nothing on that path draws a character --
+        // is what the change this stand-in serves falsified.
+        //
+        // What it answers is the case's to decide. The complete-stream case passes an empty
+        // appearance, which is not a convenience: that seed's stored blob is a single zero byte, a
+        // declared count of no parts, so the decoder this replaces produced an empty list from it
+        // too, and the stream that case is about is the same stream it was about before.
         public ValueTask<AccountCharacterRoster> GetAccountRosterWithAppearanceAsync(
             AccountId id, CancellationToken ct) =>
-            throw new NotSupportedException("The entry burst does not draw the roster.");
+            ValueTask.FromResult(new AccountCharacterRoster(id, 24,
+                [new CharacterSummary(seed.Character.Identity.CharacterId,
+                    seed.Character.Identity.SlotIndex, seed.Character.Identity.Name,
+                    seed.Character.Identity.Job, seed.Character.Identity.GrowType,
+                    seed.Character.Progression.Level, seed.CharacterEntry.Public.CloneTitleItemId,
+                    appearances)]));
         public ValueTask<ActiveCharacterState> LoadForSelectionAsync(AccountId id, ushort slot, CancellationToken ct) =>
             ValueTask.FromResult(seed.Character);
         public ValueTask<ActiveCharacterState> LoadByRosterPositionAsync(

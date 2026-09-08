@@ -2,6 +2,9 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Sessions;
+using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Accounts;
@@ -16,6 +19,7 @@ using Dfo.Server.Protocol.Game.SelectCharacter;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Tests.Game.MoveItemSpace;
 
@@ -32,7 +36,7 @@ namespace Dfo.Server.Protocol.Tests.Game.MoveItemSpace;
 /// The frame that answers this already exists and is already sent once, at entry. What is new is
 /// sending it again when a move changed what it would say -- and building it from what the store
 /// holds rather than from the session's own copy, which is the copy taken at character selection
-/// and which no move refreshes. <c>The_frame_follows_the_store_and_not_the_session_copy</c> is the
+/// before this move refreshes it. <c>The_frame_follows_the_store_and_not_the_session_copy</c> is the
 /// case that separates those two: without it, an implementation reading the session copy passes
 /// every other case in this file.
 /// </para>
@@ -109,20 +113,111 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         Assert.DoesNotContain(frame.Equipment, item => item.Core.ItemId == OtherCostume);
     }
 
-    /// <summary>And the copy is left exactly as it was.</summary>
+    /// <summary>And the copy follows the move.</summary>
     /// <remarks>
-    /// Refreshing it would change what every other reader of it draws -- the dungeon selection
-    /// screen takes its equipment from there -- and that is a different outcome from this one. The
-    /// two disagree, and they disagreed before this frame existed.
+    /// <b>This case used to assert the opposite</b>, and its going the other way is the whole of the
+    /// change it now belongs to. When the appearance frame was added, refreshing the copy was left
+    /// undone deliberately: it changes what every other reader of it draws, and who those readers
+    /// were had not been established. They have been now -- sixteen of them, of which two take the
+    /// character's equipment out of the copy -- so the copy is brought up to date.
     /// </remarks>
     [Fact]
-    public async Task The_session_copy_is_left_as_it_was()
+    public async Task The_session_copy_follows_the_move()
     {
         var world = Build(inBagAt: BagSlot, sessionCopyWears: OtherCostume);
 
         await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, WornCostumeSlot);
 
+        Assert.Equal(1, world.Runtime.Replacements);
+        var replaced = Assert.IsType<SelectCharacterResult>(world.Runtime.Replaced);
+        var worn = Assert.Single(
+            replaced.CharacterInventory.Containers,
+            value => value.ContainerType == InventoryContainerType.Equipment);
+        Assert.Equal(Costume, Assert.Single(worn.Items).Core.ItemId);
+    }
+
+    /// <summary>
+    /// Only the inventory is replaced. Every other member of the copy is the instance it was.
+    /// </summary>
+    /// <remarks>
+    /// These readers must retain their captured objects rather than newly prepared entry values.
+    /// This checks an uncontended refresh; it does not assert aggregate concurrency safety.
+    /// </remarks>
+    [Fact]
+    public async Task Only_the_inventory_member_of_the_session_copy_is_replaced()
+    {
+        var world = Build(inBagAt: BagSlot, sessionCopyWears: OtherCostume);
+        var before = world.Runtime.Original;
+
+        await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, WornCostumeSlot);
+
+        var after = Assert.IsType<SelectCharacterResult>(world.Runtime.Replaced);
+        Assert.NotSame(before.CharacterInventory, after.CharacterInventory);
+        Assert.Same(before.Character, after.Character);
+        Assert.Same(before.CharacterEntry, after.CharacterEntry);
+        Assert.Same(before.AccountInventory, after.AccountInventory);
+        Assert.Same(before.Account, after.Account);
+        Assert.Same(before.World, after.World);
+        Assert.Same(before.Session, after.Session);
+        Assert.Same(before.Roster, after.Roster);
+        Assert.Same(before.RosterEntry, after.RosterEntry);
+    }
+
+    /// <summary>
+    /// A move that changed nothing about how the character is drawn still refreshes the copy.
+    /// </summary>
+    /// <remarks>
+    /// The refresh is gated on the move having succeeded, not on it having changed the drawn
+    /// appearance, and the two are different questions: the immediate frame reads slots zero to
+    /// twelve, twenty-three and creature slot twenty-four; the readers take the whole container --
+    /// so a move onto worn slot thirteen would leave them stale under the narrower rule. A move
+    /// inside the bag is the cheapest case that tells the two rules apart, and without it a
+    /// narrower gate passes every case in this file.
+    /// </remarks>
+    [Fact]
+    public async Task A_move_that_changes_nothing_drawn_still_refreshes_the_copy()
+    {
+        var world = Build(inBagAt: BagSlot, sessionCopyWears: OtherCostume);
+
+        await world.MoveAsync(
+            InventoryContainerType.Main, BagSlot, InventoryContainerType.Main, OtherBagSlot);
+
+        Assert.Equal(1, world.Runtime.Replacements);
+        Assert.IsType<MoveItemSpaceResponse>(Assert.Single(world.Sender.Sent));
+    }
+
+    /// <summary>A move that was refused leaves the copy alone.</summary>
+    [Fact]
+    public async Task A_refused_move_leaves_the_session_copy_alone()
+    {
+        var world = Build(sessionCopyWears: OtherCostume);
+
+        await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, WornCostumeSlot);
+
         Assert.Equal(0, world.Runtime.Replacements);
+        Assert.Null(world.Runtime.Replaced);
+    }
+
+    /// <summary>
+    /// A session that will not accept the refresh still gets its acknowledgement.
+    /// </summary>
+    /// <remarks>
+    /// Removal or a newly published generation during the inventory load makes replacement fail. The move is committed by then and the client
+    /// holds the inventory shut until it is answered, so a refusal here must cost nothing but the
+    /// refresh.
+    /// </remarks>
+    [Fact]
+    public async Task A_session_that_will_not_accept_the_refresh_still_gets_its_acknowledgement()
+    {
+        var world = Build(
+            inBagAt: BagSlot, sessionCopyWears: OtherCostume, sessionRefusesReplacement: true);
+
+        await world.MoveAsync(InventoryContainerType.Main, BagSlot, InventoryContainerType.Equipment, WornCostumeSlot);
+
+        var answer = Assert.IsType<MoveItemSpaceResponse>(Assert.Single(world.Sender.Sent));
+        Assert.Null(answer.ErrorCode);
+        Assert.Equal(1, answer.MoveValue);
+        Assert.IsType<InvalidOperationException>(Assert.Single(world.Logger.Errors));
     }
 
     [Fact]
@@ -193,11 +288,57 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         Assert.NotNull(refusal.ErrorCode);
     }
 
+    [Fact]
+    public async Task Opening_dungeon_selection_after_dressing_reads_the_current_equipment()
+    {
+        var world = Build(inBagAt: BagSlot, sessionCopyWears: OtherCostume);
+        var before = await world.OpenDungeonSelectionAsync();
+        Assert.Equal(OtherCostume, Assert.Single(before.Equipment).Core.ItemId);
+
+        await world.MoveAsync(InventoryContainerType.Main, BagSlot,
+            InventoryContainerType.Equipment, WornCostumeSlot);
+
+        var after = await world.OpenDungeonSelectionAsync();
+        Assert.Equal(Costume, Assert.Single(after.Equipment).Core.ItemId);
+        Assert.Same(before.Character, after.Character);
+
+        await world.MoveAsync(InventoryContainerType.Equipment, WornCostumeSlot,
+            InventoryContainerType.Main, BagSlot);
+        Assert.Empty((await world.OpenDungeonSelectionAsync()).Equipment);
+    }
+
+    [Fact]
+    public async Task Dressing_reads_the_inventory_once_for_both_frames_and_copy()
+    {
+        var world = Build(inBagAt: BagSlot, sessionCopyWears: OtherCostume);
+        await world.MoveAsync(InventoryContainerType.Main, BagSlot,
+            InventoryContainerType.Equipment, WornCostumeSlot);
+        Assert.Equal(1, world.Inventory.Loads);
+        Assert.Equal(Costume, Assert.Single(
+            Assert.Single(world.Sender.Sent.OfType<CurrentUserStateMessage>()).Equipment).Core.ItemId);
+        Assert.Equal(Costume, Assert.Single(
+            (await world.OpenDungeonSelectionAsync()).Equipment).Core.ItemId);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Refresh_preserves_the_real_directorys_position_persistence_flag(bool persists)
+    {
+        var world = Build(inBagAt: BagSlot, shouldPersistPosition: persists);
+        await world.MoveAsync(InventoryContainerType.Main, BagSlot,
+            InventoryContainerType.Equipment, WornCostumeSlot);
+        Assert.True(world.Runtime.TryGet(OneSession.Session, out _, out var after));
+        Assert.Equal(persists, after);
+    }
+
     private World Build(
         short? inBagAt = null,
         short? wornAt = null,
         int? sessionCopyWears = null,
-        bool storeRefusesToLoad = false)
+        bool storeRefusesToLoad = false,
+        bool sessionRefusesReplacement = false,
+        bool shouldPersistPosition = false)
     {
         var character = new CharacterId(Character);
         var containers = new CharacterContainerDomainService();
@@ -218,25 +359,40 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
                 new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
                 new ItemSlotRuleService()));
 
-        var runtime = new RecordingRuntime(sessionCopyWears);
+        var runtime = new RecordingRuntime(sessionCopyWears, sessionRefusesReplacement, shouldPersistPosition);
+        var inventory = new StoreBackedInventory(worn, character);
         var sender = new RecordingSender();
+        var logger = new RecordingLogger();
         return new World(
             new MoveItemSpaceHandler(
                 new OneSession(),
                 runtime,
                 storeRefusesToLoad
                     ? new InventoryThatRaises()
-                    : new StoreBackedInventory(worn, character),
+                    : inventory,
                 new DirectMoveBus(commandHandler),
                 sender,
-                NullLogger<MoveItemSpaceHandler>.Instance),
+                logger),
             sender,
-            runtime);
+            runtime,
+            inventory,
+            logger);
     }
 
     private sealed record World(
-        MoveItemSpaceHandler Handler, RecordingSender Sender, RecordingRuntime Runtime)
+        MoveItemSpaceHandler Handler, RecordingSender Sender, RecordingRuntime Runtime,
+        StoreBackedInventory Inventory, RecordingLogger Logger)
     {
+        public async ValueTask<ExtendedUserStateMessage> OpenDungeonSelectionAsync()
+        {
+            Sender.Sent.Clear();
+            await new EnterSelectDungeonHandler(new OneSession(), Runtime, new SelectionVisits(),
+                Sender, NullLogger<EnterSelectDungeonHandler>.Instance).HandleAsync(
+                    Dispatch, new EnterSelectDungeonRequest(GameMessageMetadata.Empty, 10000),
+                    CancellationToken.None);
+            return Assert.Single(Sender.Sent.OfType<ExtendedUserStateMessage>());
+        }
+
         public ValueTask MoveAsync(
             InventoryContainerType source,
             short sourceSlot,
@@ -266,9 +422,12 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
     private sealed class StoreBackedInventory(SlotBook worn, CharacterId character)
         : ICharacterInventoryEntryDomainService
     {
+        public int Loads { get; private set; }
+
         public async ValueTask<CharacterInventoryEntryState> LoadAsync(
             AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)
         {
+            Loads++;
             var items = await worn.ReadAllAsync(cancellationToken);
             var shape = SelectCharacterPayloadTestData.CreateComplete().CharacterInventory;
             return shape with
@@ -296,31 +455,53 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
             throw new InvalidDataException("The stored inventory could not be projected.");
     }
 
-    /// <summary>The session's own copy, and a count of how often anyone replaced it.</summary>
-    private sealed class RecordingRuntime(int? wears) : ISelectedSessionRuntimeDirectory
+    /// <summary>The session's own copy, what was last written back, and how often that happened.</summary>
+    private sealed class RecordingRuntime
+        : ISelectedSessionRuntimeDirectory
     {
-        private readonly SelectCharacterResult state = Snapshot(wears);
+        private readonly SelectedSessionRuntimeDirectory directory = new();
+        private readonly SelectCharacterResult state;
+        private readonly bool refusesReplacement;
+
+        public RecordingRuntime(int? wears, bool refusesReplacement, bool shouldPersistPosition)
+        {
+            var source = Snapshot(wears);
+            state = source with { Character = source.Character with
+                { Identity = source.Character.Identity with { CharacterId = new CharacterId(Character) } } };
+            this.refusesReplacement = refusesReplacement;
+            directory.Publish(OneSession.Session, state, shouldPersistPosition);
+        }
 
         public int Replacements { get; private set; }
+
+        /// <summary>The copy as it was taken at selection.</summary>
+        public SelectCharacterResult Original => this.state;
+
+        /// <summary>What was last handed to <see cref="ReplaceExact"/>, if anything was.</summary>
+        public SelectCharacterResult? Replaced { get; private set; }
 
         public void Publish(
             SelectedSessionIdentity session, SelectCharacterResult result, bool shouldPersistPosition) =>
             throw new NotSupportedException("Nothing publishes here.");
 
-        public void ReplaceExact(SelectedSessionIdentity session, SelectCharacterResult result) =>
-            this.Replacements++;
+        public void ReplaceExact(SelectedSessionIdentity session, SelectCharacterResult result)
+        {
+            // Models removal or a different generation published after TryGet, during LoadAsync.
+            if (refusesReplacement)
+                throw new InvalidOperationException("Selected runtime generation is no longer current.");
 
-        public SelectCharacterResult GetRequired(SelectedSessionIdentity session) => this.state;
+            this.Replacements++;
+            directory.ReplaceExact(session, result);
+            this.Replaced = result;
+        }
+
+        public SelectCharacterResult GetRequired(SelectedSessionIdentity session) => directory.GetRequired(session);
 
         public bool TryGet(
             SelectedSessionIdentity session,
             out SelectCharacterResult? result,
             out bool shouldPersistPosition)
-        {
-            result = this.state;
-            shouldPersistPosition = false;
-            return true;
-        }
+            => directory.TryGet(session, out result, out shouldPersistPosition);
 
         public bool RemoveExact(SelectedSessionIdentity session) => false;
 
@@ -439,9 +620,32 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         }
     }
 
+    private sealed class RecordingLogger : ILogger<MoveItemSpaceHandler>
+    {
+        public List<Exception> Errors { get; } = [];
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state,
+            Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            if (logLevel == LogLevel.Error && exception is not null) Errors.Add(exception);
+        }
+    }
+
+    private sealed class SelectionVisits : IDungeonVisitDomainService
+    {
+        public bool DefersSelectionState(byte characterLevel) => false;
+        public ValueTask<Dfo.Server.Abstractions.World.DungeonEntry?> EnterAsync(CharacterId characterId, int dungeonId,
+            byte difficulty, DungeonEntryFacts facts, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+        public ValueTask<DungeonRoomVisit?> MoveAsync(CharacterId characterId,
+            DungeonRunState current, MazeCell target, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+    }
+
     private sealed class OneSession : ISelectedSessionDomainService
     {
-        private static readonly SelectedSessionIdentity Session = SelectedSessionIdentity.Create(
+        public static readonly SelectedSessionIdentity Session = SelectedSessionIdentity.Create(
             new AccountId(6), new CharacterId(Character), Connection, 1, 10011);
 
         public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => null;
