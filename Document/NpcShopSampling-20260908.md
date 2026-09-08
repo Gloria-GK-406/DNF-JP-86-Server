@@ -37,4 +37,5 @@ PVF 中有六款名称带“预约硬币”的物品，不能仅凭显示名选�
 - 客户端 `0100_NetworkHook.dll` 原本位于 plugins-disabled，本轮保持该运行配置。
 - 用户分别测试金币商品与硬币商品，并提供商品名、数量；实际是否都是 `0x0015` 由日志判定。
 
-实际样本待本轮测试产生后归档到 `protocol/`。
+已收到本轮 5 次 BUY_ITEM 和两次 SHOP_PURCHASE_COUNT，覆盖赛丽亚材料兑换与塔娜金币装备。
+[样本与对照](../protocol/patterns/data/traces/a21-shop-purchases-20260908.md)。数量为 2 的差分样本正在补采，尚未实现扣款或交付。
