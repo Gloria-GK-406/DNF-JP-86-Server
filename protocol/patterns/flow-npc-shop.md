@@ -1,7 +1,7 @@
 # A21 NPC 商店
 
-2026-09-09；当前阶段：实现服务端功能，秘药/职业转换书/金币装备已实机通过，
-礼盒修复和其他边界待复验，见[实机记录](data/traces/a21-shop-live-20260909.md)。
+2026-09-09；当前阶段：实现服务端功能，秘药/职业转换书/金币装备/复活币礼盒购买已实机通过，
+满包与限购等边界待实机验证，见[实机记录](data/traces/a21-shop-live-20260909.md)。
 
 实机 C2S 先观察到 [SHOP_PURCHASE_COUNT](../game/client-to-server/0x02CC.md)，
 随后点击购买产生 [BUY_ITEM](../game/client-to-server/0x0015.md)。
