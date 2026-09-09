@@ -1,0 +1,46 @@
+{
+  "network": [
+    {
+      "port": 7001,
+      "connected": true
+    },
+    {
+      "port": 10010,
+      "connected": true,
+      "unauthenticated0450": "0150041100000000000000000000000002"
+    },
+    {
+      "port": 10011,
+      "connected": true,
+      "unauthenticated0450": "0150041100000000000000000000000002"
+    }
+  ],
+  "unchangedInventoryAndPremiumHashes": {
+    "items": "64970941b876ee8bb75c12d3470a529f7cf4fa7548ece07b6701ab3ac48f4854",
+    "item_slots": "7e96c28ba66328bcf5b200b07258edced849257c3ac380bd017aaf2717991217",
+    "account_premiums": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+  },
+  "wallet": [
+    [
+      1,
+      44310,
+      0,
+      0,
+      0
+    ]
+  ],
+  "seriaLuck": [
+    [
+      1,
+      0
+    ]
+  ],
+  "migration": [
+    18,
+    "seria_luck_value",
+    "INTEGER",
+    1,
+    "0",
+    0
+  ]
+}

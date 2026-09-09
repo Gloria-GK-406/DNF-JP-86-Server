@@ -275,6 +275,7 @@ internal static class CharacterDatabaseSchema
         accounts|token_cera|INTEGER NOT NULL DEFAULT 0
         accounts|happy_token_cera|INTEGER NOT NULL DEFAULT 0
         accounts|lucky_star|INTEGER NOT NULL DEFAULT 0
+        accounts|seria_luck_value|INTEGER NOT NULL DEFAULT 0
         accounts|honor_exp|INTEGER NOT NULL DEFAULT 0
         accounts|growth_capsule_exp|INTEGER NOT NULL DEFAULT 0
         accounts|cube_black|INTEGER NOT NULL DEFAULT 0

@@ -16,6 +16,15 @@ namespace Dfo.Server.Persistence.Accounts;
 /// </remarks>
 internal sealed class SqliteAccountTable(SqliteDatabase database) : IAccountTable
 {
+    public async ValueTask<int?> FindSeriaLuckAsync(AccountId accountId, CancellationToken cancellationToken) =>
+        await database.ReadFirstAsync("SELECT seria_luck_value FROM accounts WHERE account_id=@aid",
+            p => p.AddWithValue("@aid", accountId.Value), reader => (object)reader.GetInt32(0), cancellationToken)
+            .ConfigureAwait(false) is int value ? value : null;
+
+    public ValueTask<int> TrySetSeriaLuckAsync(AccountId accountId, int expected, int next, CancellationToken cancellationToken) =>
+        database.ExecuteAsync("UPDATE accounts SET seria_luck_value=@next WHERE account_id=@aid AND seria_luck_value=@expected AND @next BETWEEN 0 AND 8",
+            p => { p.AddWithValue("@aid", accountId.Value); p.AddWithValue("@next", next); p.AddWithValue("@expected", expected); }, cancellationToken);
+
     public ValueTask<int> TrySetCeraBalancesAsync(AccountId accountId, AccountCeraBalances expected,
         AccountCeraBalances next, CancellationToken cancellationToken) => database.ExecuteAsync(
             """
@@ -231,6 +240,12 @@ internal sealed class SqliteAccountSettingsTable(SqliteDatabase database) : IAcc
 /// <summary>The <c>account_premiums</c> table.</summary>
 internal sealed class SqliteAccountPremiumTable(SqliteDatabase database) : IAccountPremiumTable
 {
+    public ValueTask<int> UpsertExpiryAsync(AccountId accountId, int premiumType, long expiresAtUnixSeconds,
+        CancellationToken cancellationToken) => database.ExecuteAsync(
+            "INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(@aid,@type,@expiry) "
+            + "ON CONFLICT(account_id,premium_type) DO UPDATE SET end_time=excluded.end_time,updated_at=CURRENT_TIMESTAMP;",
+            p => { p.AddWithValue("@aid", accountId.Value); p.AddWithValue("@type", premiumType); p.AddWithValue("@expiry", expiresAtUnixSeconds); }, cancellationToken);
+
     public ValueTask<IReadOnlyList<AccountPremiumRow>> ReadAsync(
         AccountId accountId, CancellationToken cancellationToken) =>
         database.ReadAllAsync(

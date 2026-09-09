@@ -1,0 +1,70 @@
+{
+  "total": {
+    "Passed": 2730,
+    "NotExecuted": 2
+  },
+  "projects": [
+    {
+      "project": "Dfo.Pvf.Tests.dll",
+      "results": {
+        "Passed": 60
+      },
+      "trx": "Document\\Verification\\Package-Opening-20260909\\full-final\\Gloria_家庭台式机_2026-09-09_23_39_27_net10.0.trx"
+    },
+    {
+      "project": "Dfo.Server.Protocol.Tests.dll",
+      "results": {
+        "Passed": 706
+      },
+      "trx": "Document\\Verification\\Package-Opening-20260909\\full-final\\Gloria_家庭台式机_2026-09-09_23_39_28_net10.0.trx"
+    },
+    {
+      "project": "Dfo.Server.Infrastructure.Tests.dll",
+      "results": {
+        "Passed": 284,
+        "NotExecuted": 2
+      },
+      "trx": "Document\\Verification\\Package-Opening-20260909\\full-final\\Gloria_家庭台式机_2026-09-09_23_39_28_net10.0[1].trx"
+    },
+    {
+      "project": "Dfo.Server.Networking.Tests.dll",
+      "results": {
+        "Passed": 58
+      },
+      "trx": "Document\\Verification\\Package-Opening-20260909\\full-final\\Gloria_家庭台式机_2026-09-09_23_39_29_net10.0.trx"
+    },
+    {
+      "project": "Dfo.Server.Application.Tests.dll",
+      "results": {
+        "Passed": 1280
+      },
+      "trx": "Document\\Verification\\Package-Opening-20260909\\full-final\\Gloria_家庭台式机_2026-09-09_23_39_29_net10.0[1].trx"
+    },
+    {
+      "project": "Dfo.Server.Persistence.Tests.dll",
+      "results": {
+        "Passed": 336
+      },
+      "trx": "Document\\Verification\\Package-Opening-20260909\\full-final\\Gloria_家庭台式机_2026-09-09_23_39_29_net10.0[2].trx"
+    },
+    {
+      "project": "Dfo.Server.Host.Tests.dll",
+      "results": {
+        "Passed": 6
+      },
+      "trx": "Document\\Verification\\Package-Opening-20260909\\full-final\\Gloria_家庭台式机_2026-09-09_23_39_31_net10.0.trx"
+    }
+  ],
+  "nonpassed": [
+    {
+      "test": "Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message",
+      "outcome": "NotExecuted",
+      "output": "An archive is reachable from this working tree."
+    },
+    {
+      "test": "Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog",
+      "outcome": "NotExecuted",
+      "output": "An archive is reachable from this working tree."
+    }
+  ]
+}

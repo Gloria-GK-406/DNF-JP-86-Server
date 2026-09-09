@@ -1,0 +1,186 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="7da1da79-e8bc-4379-81dc-02b8277cd652" name="Gloria@家庭台式机 2026-09-09 23:37:58" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-09T23:37:58.7117278+08:00" queuing="2026-09-09T23:37:58.7117280+08:00" start="2026-09-09T23:37:58.1749324+08:00" finish="2026-09-09T23:37:58.7473549+08:00" />
+  <TestSettings name="default" id="71f3e458-e423-4fed-8c0a-17503a9e4029">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-09_23_37_58" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="221de03c-bb47-4e9a-ba23-877e1b30d4e9" testId="f67a5f4a-75aa-5210-d032-e9944950ed35" testName="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Live_sixty_box_request_has_fifteen_bytes_and_two_distinct_item_identifiers" computerName="家庭台式机" duration="00:00:00.0001852" startTime="2026-09-09T23:37:58.6919512+08:00" endTime="2026-09-09T23:37:58.6919662+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="221de03c-bb47-4e9a-ba23-877e1b30d4e9" />
+    <UnitTestResult executionId="ba064c68-40ab-486f-8403-016c494a4526" testId="cfecb74c-fdda-414f-a2e9-bc0abde56e8b" testName="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Single_box_without_material_uses_the_signed_ffff_sentinel" computerName="家庭台式机" duration="00:00:00.0027692" startTime="2026-09-09T23:37:58.6918889+08:00" endTime="2026-09-09T23:37:58.6919070+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ba064c68-40ab-486f-8403-016c494a4526" />
+    <UnitTestResult executionId="9b9e5232-990a-4357-8431-efdcdf023ba7" testId="bbf76b0b-3533-47f3-ae19-bef6f697e077" testName="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Selection_requires_a_complete_unambiguous_matching_avatar_tail(hex: &quot;4200030148B398000147B3980007&quot;)" computerName="家庭台式机" duration="00:00:00.0024252" startTime="2026-09-09T23:37:58.6737404+08:00" endTime="2026-09-09T23:37:58.6737553+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9b9e5232-990a-4357-8431-efdcdf023ba7" />
+    <UnitTestResult executionId="dbc541eb-4579-4ad5-b67b-8f5791edae6c" testId="8f3900f7-7736-4487-761d-91e95785b948" testName="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Batch_has_no_prefix_or_census_layout_fallback(length: 14)" computerName="家庭台式机" duration="00:00:00.0029562" startTime="2026-09-09T23:37:58.6600401+08:00" endTime="2026-09-09T23:37:58.6666723+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="dbc541eb-4579-4ad5-b67b-8f5791edae6c" />
+    <UnitTestResult executionId="d7f624e3-76b8-412f-8a37-a99343d19848" testId="57c8c3db-94b5-9b48-56dd-21e05900c141" testName="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Selection_requires_a_complete_unambiguous_matching_avatar_tail(hex: &quot;4200030148B398000000&quot;)" computerName="家庭台式机" duration="00:00:00.0000049" startTime="2026-09-09T23:37:58.6737797+08:00" endTime="2026-09-09T23:37:58.6737949+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d7f624e3-76b8-412f-8a37-a99343d19848" />
+    <UnitTestResult executionId="6c99a171-c6bf-434f-bb1d-d600d1341ee0" testId="900a0609-78c1-9083-7fa2-8cd936d9778d" testName="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Avatar_does_not_accept_a_partial_or_extended_group(hex: &quot;42000148B398000700&quot;)" computerName="家庭台式机" duration="00:00:00.0001083" startTime="2026-09-09T23:37:58.6738772+08:00" endTime="2026-09-09T23:37:58.6738915+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6c99a171-c6bf-434f-bb1d-d600d1341ee0" />
+    <UnitTestResult executionId="56442b95-f478-4f31-9d5a-258af9aa5ce5" testId="05dce761-2ee1-d8b2-cd63-acaf734d0ec1" testName="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Avatar_header_is_source_slot_then_count_then_item_and_ability" computerName="家庭台式机" duration="00:00:00.0030324" startTime="2026-09-09T23:37:58.6994923+08:00" endTime="2026-09-09T23:37:58.7017058+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="56442b95-f478-4f31-9d5a-258af9aa5ce5">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Collections differ&#xD;
+Expected: [AvatarPackageChoice { ItemId = 10007368, Ability = 7 }]&#xD;
+Actual:   [AvatarPackageChoice { ItemId = 10007368, Ability = 7 }]</Message>
+          <StackTrace>   at Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Avatar_header_is_source_slot_then_count_then_item_and_ability() in E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\Game\PackageOpening\PackageOpeningCodecTests.cs:line 71&#xD;
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)&#xD;
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="21caf471-bc48-4bfe-9c9c-d10dc8678c8d" testId="4b50aea0-3b0a-0926-5719-0ceb5af44519" testName="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Premium_grant_is_notification_subtype_two_with_signed_eight_byte_remaining_seconds" computerName="家庭台式机" duration="00:00:00.0068375" startTime="2026-09-09T23:37:58.6955935+08:00" endTime="2026-09-09T23:37:58.6956123+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="21caf471-bc48-4bfe-9c9c-d10dc8678c8d" />
+    <UnitTestResult executionId="b12d9d01-fab7-49b9-a1f2-4db670e4767b" testId="80dfd27f-eb8d-f24d-ea27-ee014a46a929" testName="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Avatar_does_not_accept_a_partial_or_extended_group(hex: &quot;420021&quot;)" computerName="家庭台式机" duration="00:00:00.0003448" startTime="2026-09-09T23:37:58.6738403+08:00" endTime="2026-09-09T23:37:58.6738537+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b12d9d01-fab7-49b9-a1f2-4db670e4767b" />
+    <UnitTestResult executionId="8edf6796-1e8a-454f-a97f-0a0f7a0f9d92" testId="e3c6d85d-26bb-f0ce-911f-54499074a3a5" testName="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Package_popup_and_avatar_completion_have_different_success_shapes" computerName="家庭台式机" duration="00:00:00.0010620" startTime="2026-09-09T23:37:58.6969996+08:00" endTime="2026-09-09T23:37:58.6980295+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8edf6796-1e8a-454f-a97f-0a0f7a0f9d92" />
+    <UnitTestResult executionId="051e10b2-eb08-4277-a98f-deb190244120" testId="fe7a0ee1-83f3-2963-a9ec-3ca2887b761b" testName="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Avatar_does_not_accept_a_partial_or_extended_group(hex: &quot;42000148B39800&quot;)" computerName="家庭台式机" duration="00:00:00.0000031" startTime="2026-09-09T23:37:58.6916580+08:00" endTime="2026-09-09T23:37:58.6916991+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="051e10b2-eb08-4277-a98f-deb190244120" />
+    <UnitTestResult executionId="60ab9c2f-c596-430a-8684-c9211dbab717" testId="f2675475-8a0a-13ed-feac-fc2a1b932bd1" testName="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Native_batch_success_has_two_counted_forty_byte_lists_and_the_middle_reserved_word" computerName="家庭台式机" duration="00:00:00.0004438" startTime="2026-09-09T23:37:58.6980916+08:00" endTime="2026-09-09T23:37:58.6985094+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="60ab9c2f-c596-430a-8684-c9211dbab717" />
+    <UnitTestResult executionId="f7779a4b-4d09-4252-a87d-941a0624387d" testId="5c252291-2d45-6ebc-7e9b-72915d91d34c" testName="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Selection_requires_a_complete_unambiguous_matching_avatar_tail(hex: &quot;4200030148B39800&quot;)" computerName="家庭台式机" duration="00:00:00.0009729" startTime="2026-09-09T23:37:58.6736813+08:00" endTime="2026-09-09T23:37:58.6737026+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f7779a4b-4d09-4252-a87d-941a0624387d" />
+    <UnitTestResult executionId="b356ab9c-751e-4ce6-8c74-cae9b3a03e86" testId="a3d09dfe-5f54-2b45-6873-32ea1d847d00" testName="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Batch_has_no_prefix_or_census_layout_fallback(length: 0)" computerName="家庭台式机" duration="00:00:00.0001410" startTime="2026-09-09T23:37:58.6727072+08:00" endTime="2026-09-09T23:37:58.6727482+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b356ab9c-751e-4ce6-8c74-cae9b3a03e86" />
+    <UnitTestResult executionId="3abf156c-9ac1-44f1-8831-8c91d822e489" testId="2af999da-1fdc-ba48-d7e2-f4a21e47db34" testName="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Batch_has_no_prefix_or_census_layout_fallback(length: 16)" computerName="家庭台式机" duration="00:00:00.0000022" startTime="2026-09-09T23:37:58.6730682+08:00" endTime="2026-09-09T23:37:58.6730852+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3abf156c-9ac1-44f1-8831-8c91d822e489" />
+    <UnitTestResult executionId="dc108a66-b646-40f7-a3ee-cf8859885ce4" testId="0dfd87f9-9a4f-3f61-c1b4-853356586d76" testName="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Native_single_success_has_one_list_without_batch_count_or_middle_word" computerName="家庭台式机" duration="00:00:00.0010884" startTime="2026-09-09T23:37:58.6958148+08:00" endTime="2026-09-09T23:37:58.6969328+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="dc108a66-b646-40f7-a3ee-cf8859885ce4" />
+    <UnitTestResult executionId="579cd53a-f591-4761-a46d-57be18aa13d3" testId="e17b3e80-e610-73bf-a6a0-36caa521f1bb" testName="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Batch_has_no_prefix_or_census_layout_fallback(length: 18)" computerName="家庭台式机" duration="00:00:00.0000004" startTime="2026-09-09T23:37:58.6731202+08:00" endTime="2026-09-09T23:37:58.6731347+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="579cd53a-f591-4761-a46d-57be18aa13d3" />
+    <UnitTestResult executionId="c31eb49a-cbd3-4cab-ba57-6549d16ce66e" testId="a5e44c80-cb8f-d9da-fdf7-bc7267e7e530" testName="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Ordinary_selection_and_avatar_selection_are_distinct_typed_inputs" computerName="家庭台式机" duration="00:00:00.0073330" startTime="2026-09-09T23:37:58.6919995+08:00" endTime="2026-09-09T23:37:58.6923034+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c31eb49a-cbd3-4cab-ba57-6549d16ce66e">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Collections differ&#xD;
+Expected: [10007368]&#xD;
+Actual:   [10007368]</Message>
+          <StackTrace>   at Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Ordinary_selection_and_avatar_selection_are_distinct_typed_inputs() in E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\Game\PackageOpening\PackageOpeningCodecTests.cs:line 51&#xD;
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)&#xD;
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="bcf2c52b-fb91-4da9-8542-6bb2a5db1e77" testId="1bc9a48b-1f94-f2d1-c74f-e968699123cb" testName="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Failure_shapes_do_not_contain_success_lists" computerName="家庭台式机" duration="00:00:00.0017469" startTime="2026-09-09T23:37:58.6956520+08:00" endTime="2026-09-09T23:37:58.6957795+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="bcf2c52b-fb91-4da9-8542-6bb2a5db1e77" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Selection_requires_a_complete_unambiguous_matching_avatar_tail(hex: &quot;4200030148B39800&quot;)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="5c252291-2d45-6ebc-7e9b-72915d91d34c">
+      <Execution id="f7779a4b-4d09-4252-a87d-941a0624387d" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests" name="Selection_requires_a_complete_unambiguous_matching_avatar_tail" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Batch_has_no_prefix_or_census_layout_fallback(length: 16)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="2af999da-1fdc-ba48-d7e2-f4a21e47db34">
+      <Execution id="3abf156c-9ac1-44f1-8831-8c91d822e489" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests" name="Batch_has_no_prefix_or_census_layout_fallback" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Avatar_does_not_accept_a_partial_or_extended_group(hex: &quot;42000148B39800&quot;)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="fe7a0ee1-83f3-2963-a9ec-3ca2887b761b">
+      <Execution id="051e10b2-eb08-4277-a98f-deb190244120" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests" name="Avatar_does_not_accept_a_partial_or_extended_group" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Single_box_without_material_uses_the_signed_ffff_sentinel" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="cfecb74c-fdda-414f-a2e9-bc0abde56e8b">
+      <Execution id="ba064c68-40ab-486f-8403-016c494a4526" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests" name="Single_box_without_material_uses_the_signed_ffff_sentinel" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Live_sixty_box_request_has_fifteen_bytes_and_two_distinct_item_identifiers" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="f67a5f4a-75aa-5210-d032-e9944950ed35">
+      <Execution id="221de03c-bb47-4e9a-ba23-877e1b30d4e9" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests" name="Live_sixty_box_request_has_fifteen_bytes_and_two_distinct_item_identifiers" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Package_popup_and_avatar_completion_have_different_success_shapes" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="e3c6d85d-26bb-f0ce-911f-54499074a3a5">
+      <Execution id="8edf6796-1e8a-454f-a97f-0a0f7a0f9d92" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests" name="Package_popup_and_avatar_completion_have_different_success_shapes" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Failure_shapes_do_not_contain_success_lists" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="1bc9a48b-1f94-f2d1-c74f-e968699123cb">
+      <Execution id="bcf2c52b-fb91-4da9-8542-6bb2a5db1e77" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests" name="Failure_shapes_do_not_contain_success_lists" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Selection_requires_a_complete_unambiguous_matching_avatar_tail(hex: &quot;4200030148B398000147B3980007&quot;)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="bbf76b0b-3533-47f3-ae19-bef6f697e077">
+      <Execution id="9b9e5232-990a-4357-8431-efdcdf023ba7" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests" name="Selection_requires_a_complete_unambiguous_matching_avatar_tail" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Selection_requires_a_complete_unambiguous_matching_avatar_tail(hex: &quot;4200030148B398000000&quot;)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="57c8c3db-94b5-9b48-56dd-21e05900c141">
+      <Execution id="d7f624e3-76b8-412f-8a37-a99343d19848" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests" name="Selection_requires_a_complete_unambiguous_matching_avatar_tail" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Native_batch_success_has_two_counted_forty_byte_lists_and_the_middle_reserved_word" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="f2675475-8a0a-13ed-feac-fc2a1b932bd1">
+      <Execution id="60ab9c2f-c596-430a-8684-c9211dbab717" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests" name="Native_batch_success_has_two_counted_forty_byte_lists_and_the_middle_reserved_word" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Avatar_header_is_source_slot_then_count_then_item_and_ability" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="05dce761-2ee1-d8b2-cd63-acaf734d0ec1">
+      <Execution id="56442b95-f478-4f31-9d5a-258af9aa5ce5" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests" name="Avatar_header_is_source_slot_then_count_then_item_and_ability" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Avatar_does_not_accept_a_partial_or_extended_group(hex: &quot;42000148B398000700&quot;)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="900a0609-78c1-9083-7fa2-8cd936d9778d">
+      <Execution id="6c99a171-c6bf-434f-bb1d-d600d1341ee0" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests" name="Avatar_does_not_accept_a_partial_or_extended_group" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Premium_grant_is_notification_subtype_two_with_signed_eight_byte_remaining_seconds" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="4b50aea0-3b0a-0926-5719-0ceb5af44519">
+      <Execution id="21caf471-bc48-4bfe-9c9c-d10dc8678c8d" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests" name="Premium_grant_is_notification_subtype_two_with_signed_eight_byte_remaining_seconds" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Native_single_success_has_one_list_without_batch_count_or_middle_word" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="0dfd87f9-9a4f-3f61-c1b4-853356586d76">
+      <Execution id="dc108a66-b646-40f7-a3ee-cf8859885ce4" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests" name="Native_single_success_has_one_list_without_batch_count_or_middle_word" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Batch_has_no_prefix_or_census_layout_fallback(length: 14)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="8f3900f7-7736-4487-761d-91e95785b948">
+      <Execution id="dbc541eb-4579-4ad5-b67b-8f5791edae6c" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests" name="Batch_has_no_prefix_or_census_layout_fallback" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Avatar_does_not_accept_a_partial_or_extended_group(hex: &quot;420021&quot;)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="80dfd27f-eb8d-f24d-ea27-ee014a46a929">
+      <Execution id="b12d9d01-fab7-49b9-a1f2-4db670e4767b" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests" name="Avatar_does_not_accept_a_partial_or_extended_group" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Batch_has_no_prefix_or_census_layout_fallback(length: 0)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="a3d09dfe-5f54-2b45-6873-32ea1d847d00">
+      <Execution id="b356ab9c-751e-4ce6-8c74-cae9b3a03e86" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests" name="Batch_has_no_prefix_or_census_layout_fallback" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Ordinary_selection_and_avatar_selection_are_distinct_typed_inputs" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="a5e44c80-cb8f-d9da-fdf7-bc7267e7e530">
+      <Execution id="c31eb49a-cbd3-4cab-ba57-6549d16ce66e" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests" name="Ordinary_selection_and_avatar_selection_are_distinct_typed_inputs" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Batch_has_no_prefix_or_census_layout_fallback(length: 18)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="e17b3e80-e610-73bf-a6a0-36caa521f1bb">
+      <Execution id="579cd53a-f591-4761-a46d-57be18aa13d3" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests" name="Batch_has_no_prefix_or_census_layout_fallback" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="f67a5f4a-75aa-5210-d032-e9944950ed35" executionId="221de03c-bb47-4e9a-ba23-877e1b30d4e9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cfecb74c-fdda-414f-a2e9-bc0abde56e8b" executionId="ba064c68-40ab-486f-8403-016c494a4526" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="bbf76b0b-3533-47f3-ae19-bef6f697e077" executionId="9b9e5232-990a-4357-8431-efdcdf023ba7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8f3900f7-7736-4487-761d-91e95785b948" executionId="dbc541eb-4579-4ad5-b67b-8f5791edae6c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="57c8c3db-94b5-9b48-56dd-21e05900c141" executionId="d7f624e3-76b8-412f-8a37-a99343d19848" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="900a0609-78c1-9083-7fa2-8cd936d9778d" executionId="6c99a171-c6bf-434f-bb1d-d600d1341ee0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="05dce761-2ee1-d8b2-cd63-acaf734d0ec1" executionId="56442b95-f478-4f31-9d5a-258af9aa5ce5" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4b50aea0-3b0a-0926-5719-0ceb5af44519" executionId="21caf471-bc48-4bfe-9c9c-d10dc8678c8d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="80dfd27f-eb8d-f24d-ea27-ee014a46a929" executionId="b12d9d01-fab7-49b9-a1f2-4db670e4767b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e3c6d85d-26bb-f0ce-911f-54499074a3a5" executionId="8edf6796-1e8a-454f-a97f-0a0f7a0f9d92" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="fe7a0ee1-83f3-2963-a9ec-3ca2887b761b" executionId="051e10b2-eb08-4277-a98f-deb190244120" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f2675475-8a0a-13ed-feac-fc2a1b932bd1" executionId="60ab9c2f-c596-430a-8684-c9211dbab717" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5c252291-2d45-6ebc-7e9b-72915d91d34c" executionId="f7779a4b-4d09-4252-a87d-941a0624387d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a3d09dfe-5f54-2b45-6873-32ea1d847d00" executionId="b356ab9c-751e-4ce6-8c74-cae9b3a03e86" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2af999da-1fdc-ba48-d7e2-f4a21e47db34" executionId="3abf156c-9ac1-44f1-8831-8c91d822e489" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0dfd87f9-9a4f-3f61-c1b4-853356586d76" executionId="dc108a66-b646-40f7-a3ee-cf8859885ce4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e17b3e80-e610-73bf-a6a0-36caa521f1bb" executionId="579cd53a-f591-4761-a46d-57be18aa13d3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a5e44c80-cb8f-d9da-fdf7-bc7267e7e530" executionId="c31eb49a-cbd3-4cab-ba57-6549d16ce66e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1bc9a48b-1f94-f2d1-c74f-e968699123cb" executionId="bcf2c52b-fb91-4da9-8542-6bb2a5db1e77" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="19" executed="19" passed="17" failed="2" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.07]   Discovering: Dfo.Server.Protocol.Tests&#xD;
+[xUnit.net 00:00:00.14]   Discovered:  Dfo.Server.Protocol.Tests&#xD;
+[xUnit.net 00:00:00.15]   Starting:    Dfo.Server.Protocol.Tests&#xD;
+[xUnit.net 00:00:00.20]       Assert.Equal() Failure: Collections differ&#xD;
+[xUnit.net 00:00:00.20]       Expected: [10007368]&#xD;
+[xUnit.net 00:00:00.20]       Actual:   [10007368]&#xD;
+[xUnit.net 00:00:00.20]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.20]         E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\Game\PackageOpening\PackageOpeningCodecTests.cs(51,0): at Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Ordinary_selection_and_avatar_selection_are_distinct_typed_inputs()&#xD;
+[xUnit.net 00:00:00.20]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)&#xD;
+[xUnit.net 00:00:00.20]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)&#xD;
+[xUnit.net 00:00:00.21]       Assert.Equal() Failure: Collections differ&#xD;
+[xUnit.net 00:00:00.21]       Expected: [AvatarPackageChoice { ItemId = 10007368, Ability = 7 }]&#xD;
+[xUnit.net 00:00:00.21]       Actual:   [AvatarPackageChoice { ItemId = 10007368, Ability = 7 }]&#xD;
+[xUnit.net 00:00:00.21]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.21]         E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\Game\PackageOpening\PackageOpeningCodecTests.cs(71,0): at Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Avatar_header_is_source_slot_then_count_then_item_and_ability()&#xD;
+[xUnit.net 00:00:00.21]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)&#xD;
+[xUnit.net 00:00:00.21]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)&#xD;
+[xUnit.net 00:00:00.21]   Finished:    Dfo.Server.Protocol.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-09-09T23:37:58.7153030+08:00">
+        <Text>[xUnit.net 00:00:00.20]     Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Ordinary_selection_and_avatar_selection_are_distinct_typed_inputs [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-09-09T23:37:58.7161968+08:00">
+        <Text>[xUnit.net 00:00:00.21]     Dfo.Server.Protocol.Tests.Game.PackageOpening.PackageOpeningCodecTests.Avatar_header_is_source_slot_then_count_then_item_and_ability [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

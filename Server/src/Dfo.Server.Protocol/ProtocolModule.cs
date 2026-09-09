@@ -31,6 +31,10 @@ using Dfo.Server.Protocol.Game.FinishLoading;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Dfo.Server.Protocol.Game.BuyItem;
 using Dfo.Server.Protocol.Game.CeraShopPurchase;
+using Dfo.Server.Protocol.Game.MagicBoxBatchOpening;
+using Dfo.Server.Protocol.Game.MagicBoxSingleOpening;
+using Dfo.Server.Protocol.Game.PackageOpening;
+using Dfo.Server.Protocol.Game.AvatarPackageOpening;
 using Dfo.Server.Protocol.Game.GenCeraTicket;
 using Dfo.Server.Protocol.Game.SellItem;
 using Dfo.Server.Protocol.Game.LearnSkill;
@@ -97,6 +101,7 @@ public sealed class ProtocolModule : IServerModule
         // BUY_ITEM adds to the client inventory. Replaying its acknowledgement could duplicate that addition.
         services.AddNotificationHandler<NpcShopPurchaseCompleted, NpcShopPurchaseCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<CeraShopPurchaseCompleted, CeraShopPurchaseCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<OpeningCompleted, OpeningCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ShopPurchaseCountsReported, ShopPurchaseCountsReportedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ItemSaleCompleted, ItemSaleCompletedHandler>(retryLimit: 0);
         services.TryAddSingleton<ICleanupNotificationDelivery, CleanupNotificationDelivery>();
@@ -223,6 +228,14 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<CeraShopPurchaseCommand, CeraShopPurchaseResult, CeraShopPurchaseCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<MagicBoxBatchOpeningCommand, MagicBoxOpeningResult, MagicBoxBatchOpeningCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<MagicBoxSingleOpeningCommand, MagicBoxOpeningResult, MagicBoxSingleOpeningCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<PackageOpeningCommand, PackageOpeningResult, PackageOpeningCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<AvatarPackageOpeningCommand, PackageOpeningResult, AvatarPackageOpeningCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<QueryShopPurchaseCountsCommand, NpcShopPurchaseCountsResult, QueryShopPurchaseCountsCommandHandler>(
             CommandExecutionKind.Direct, UserAccessMode.Shared, UserAccessMode.Shared);
         // A tutorial step's items settle together, and through the same container everything else
@@ -325,6 +338,10 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<UseStackableHandler>(ClientMessageType.GameUseStackable);
         services.RegisterMessageHandler<BuyItemHandler>(ClientMessageType.GameBuyItem);
         services.RegisterMessageHandler<CeraShopPurchaseHandler>(ClientMessageType.GameCeraShopPurchase);
+        services.RegisterMessageHandler<MagicBoxBatchOpeningHandler>(ClientMessageType.GameMagicBoxBatchOpening);
+        services.RegisterMessageHandler<MagicBoxSingleOpeningHandler>(ClientMessageType.GameMagicBoxSingleOpening);
+        services.RegisterMessageHandler<PackageOpeningHandler>(ClientMessageType.GamePackageOpening);
+        services.RegisterMessageHandler<AvatarPackageOpeningHandler>(ClientMessageType.GameAvatarPackageOpening);
         services.RegisterMessageHandler<GenCeraTicketHandler>(ClientMessageType.GameGenCeraTicket);
         services.RegisterMessageHandler<LearnSkillHandler>(ClientMessageType.GameLearnSkill);
         services.RegisterMessageHandler<SellItemHandler>(ClientMessageType.GameSellItem);
@@ -490,6 +507,10 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<BuyItemMessageDecoder>(
             GameProtocol.BuyItemType, ClientMessageType.GameBuyItem);
         services.AddGameCmdMessageDecoder<CeraShopPurchaseMessageDecoder>(0x0040, ClientMessageType.GameCeraShopPurchase);
+        services.AddGameCmdMessageDecoder<MagicBoxBatchOpeningDecoder>(0x0450, ClientMessageType.GameMagicBoxBatchOpening);
+        services.AddGameCmdMessageDecoder<MagicBoxSingleOpeningDecoder>(0x00D0, ClientMessageType.GameMagicBoxSingleOpening);
+        services.AddGameCmdMessageDecoder<PackageOpeningDecoder>(0x00A0, ClientMessageType.GamePackageOpening);
+        services.AddGameCmdMessageDecoder<AvatarPackageOpeningDecoder>(0x0207, ClientMessageType.GameAvatarPackageOpening);
         services.AddGameCmdMessageDecoder<GenCeraTicketMessageDecoder>(0x0041, ClientMessageType.GameGenCeraTicket);
         services.AddGameCmdMessageDecoder<ShopPurchaseCountDecoder>(
             GameProtocol.ShopPurchaseCountType, ClientMessageType.GameShopPurchaseCount);
@@ -562,6 +583,11 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<UseStackableResponse, UseStackableResponseEncoder>();
         services.AddGameCmdMessageEncoder<BuyItemResponse, BuyItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<CeraShopPurchaseResponse, CeraShopPurchaseResponseEncoder>();
+        services.AddGameCmdMessageEncoder<MagicBoxBatchOpeningResponse, MagicBoxBatchOpeningEncoder>();
+        services.AddGameCmdMessageEncoder<MagicBoxSingleOpeningResponse, MagicBoxSingleOpeningEncoder>();
+        services.AddGameCmdMessageEncoder<PackageOpeningResponse, PackageOpeningEncoder>();
+        services.AddGameCmdMessageEncoder<AvatarPackageOpeningResponse, AvatarPackageOpeningEncoder>();
+        services.AddGameCmdMessageEncoder<OpeningRewardPopup, OpeningRewardPopupEncoder>();
         services.AddGameCmdMessageEncoder<GenCeraTicketUnavailable, GenCeraTicketResponseEncoder>();
         services.AddGameNotiMessageEncoder<GameServerNoticeMessage, GameServerNoticeEncoder>();
         GameInstanceDelivery.AddEncoders(services);

@@ -332,7 +332,7 @@ internal sealed class CeraShopFixture : IDisposable
     public CeraShopTestContent Content { get; } = new();
     public ShopFixture Host { get; }
     public int Cera => Host.Scalar("SELECT cera FROM accounts WHERE account_id=1");
-    public CeraShopFixture(bool useArchive = false)
+    public CeraShopFixture(bool useArchive = false, Action<IServiceCollection>? configure = null)
     {
         Host = new(services =>
         {
@@ -346,6 +346,7 @@ internal sealed class CeraShopFixture : IDisposable
                 services.AddSingleton<ICeraShopDefinitionSource>(Content);
                 services.AddSingleton<IItemPlacementDefinitionSource>(Content);
             }
+            configure?.Invoke(services);
         });
         Host.Sql("UPDATE accounts SET cera=100000; UPDATE characters SET level=85;");
         foreach (var type in (InventoryContainerType[])[InventoryContainerType.Avatar, InventoryContainerType.Pet])

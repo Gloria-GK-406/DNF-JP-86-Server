@@ -30,6 +30,10 @@ public sealed record AccountLotteryRow(int ItemTemplateId, int RewardIndex);
 /// </remarks>
 public interface IAccountTable
 {
+    ValueTask<int?> FindSeriaLuckAsync(AccountId accountId, CancellationToken cancellationToken) =>
+        throw new NotSupportedException("This account table cannot read Seria luck.");
+    ValueTask<int> TrySetSeriaLuckAsync(AccountId accountId, int expected, int next, CancellationToken cancellationToken) =>
+        throw new NotSupportedException("This account table cannot change Seria luck.");
     /// <summary>Changes only the three currencies, if they still equal the expected balances.</summary>
     ValueTask<int> TrySetCeraBalancesAsync(AccountId accountId, AccountCeraBalances expected,
         AccountCeraBalances next, CancellationToken cancellationToken) =>
@@ -130,6 +134,9 @@ public interface IAccountSettingsTable
 /// <summary>The account's premium entitlements.</summary>
 public interface IAccountPremiumTable
 {
+    ValueTask<int> UpsertExpiryAsync(AccountId accountId, int premiumType, long expiresAtUnixSeconds,
+        CancellationToken cancellationToken) => throw new NotSupportedException("This table cannot grant premium time.");
+
     ValueTask<IReadOnlyList<AccountPremiumRow>> ReadAsync(
         AccountId accountId, CancellationToken cancellationToken);
 }

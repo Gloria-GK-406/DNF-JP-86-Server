@@ -211,6 +211,11 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<INpcShopDomainService, NpcShopDomainService>();
         services.TryAddSingleton<ICeraShopRuleService, CeraShopRuleService>();
         services.TryAddSingleton<ICeraShopDomainService, CeraShopDomainService>();
+        services.TryAddSingleton<IPackageOpeningRuleService, PackageOpeningRuleService>();
+        services.TryAddSingleton<IOpeningInventoryDomainService, OpeningInventoryDomainService>();
+        services.TryAddSingleton<IMagicBoxOpeningDomainService, MagicBoxOpeningDomainService>();
+        services.TryAddSingleton<IPackageOpeningDomainService, PackageOpeningDomainService>();
+        services.TryAddSingleton<IAvatarPackageOpeningDomainService, AvatarPackageOpeningDomainService>();
         services.TryAddSingleton<IItemSaleDomainService, ItemSaleDomainService>();
         services.TryAddSingleton<IItemSaleRuleService, ItemSaleRuleService>();
         services.TryAddSingleton<IQuestDefinitionDomainService, QuestDefinitionDomainService>();

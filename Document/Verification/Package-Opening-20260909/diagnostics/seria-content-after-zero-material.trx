@@ -1,0 +1,151 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="6dad133d-4d20-4cd4-9a77-5e1875491117" name="Gloria@家庭台式机 2026-09-09 23:11:02" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-09T23:11:02.7069197+08:00" queuing="2026-09-09T23:11:02.7069198+08:00" start="2026-09-09T23:11:01.1855155+08:00" finish="2026-09-09T23:11:02.7105740+08:00" />
+  <TestSettings name="default" id="80ea8259-cd2f-4040-adcc-03a3a03e3ec2">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-09_23_11_02" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="65e4a81c-3200-46ec-8ecf-9b301161aff3" testId="1c3ae1cf-58f8-1ed8-bbfe-f751760499d5" testName="Dfo.Server.Application.Tests.Inventory.PackageOpeningTests.Actual_seria_pool_has_readable_reward_creation_definitions" computerName="家庭台式机" duration="00:00:00.8966310" startTime="2026-09-09T23:11:01.7083309+08:00" endTime="2026-09-09T23:11:02.6141947+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="65e4a81c-3200-46ec-8ecf-9b301161aff3">
+      <Output>
+        <ErrorInfo>
+          <Message>30: Service: &#xD;
+2660703: Service: &#xD;
+10000391: Service: &#xD;
+44: Service: &#xD;
+31: Service: &#xD;
+2660409: Service: &#xD;
+10000388: Service: &#xD;
+10008064: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008065: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008066: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008067: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008068: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008069: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008070: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008071: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008072: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008073: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008074: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008075: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008076: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008077: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008078: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008079: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008080: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008081: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008082: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008083: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008084: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008085: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008086: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008087: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008088: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008089: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008090: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008091: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008092: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008093: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008094: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008095: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008096: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008097: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008098: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008099: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008100: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008101: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008102: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008103: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008104: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008105: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008106: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+10008107: Stackable: UnsupportedInstanceDeclaration=[usable period]</Message>
+          <StackTrace>   at Dfo.Server.Application.Tests.Inventory.PackageOpeningTests.Actual_seria_pool_has_readable_reward_creation_definitions() in E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\Inventory\PackageOpeningTests.cs:line 38&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.PackageOpeningTests.Actual_seria_pool_has_readable_reward_creation_definitions" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="1c3ae1cf-58f8-1ed8-bbfe-f751760499d5">
+      <Execution id="65e4a81c-3200-46ec-8ecf-9b301161aff3" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.PackageOpeningTests" name="Actual_seria_pool_has_readable_reward_creation_definitions" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="1c3ae1cf-58f8-1ed8-bbfe-f751760499d5" executionId="65e4a81c-3200-46ec-8ecf-9b301161aff3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="1" executed="1" passed="0" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.08]   Discovering: Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.18]   Discovered:  Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.20]   Starting:    Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:01.12]       30: Service: &#xD;
+[xUnit.net 00:00:01.12]       2660703: Service: &#xD;
+[xUnit.net 00:00:01.12]       10000391: Service: &#xD;
+[xUnit.net 00:00:01.12]       44: Service: &#xD;
+[xUnit.net 00:00:01.12]       31: Service: &#xD;
+[xUnit.net 00:00:01.12]       2660409: Service: &#xD;
+[xUnit.net 00:00:01.12]       10000388: Service: &#xD;
+[xUnit.net 00:00:01.12]       10008064: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008065: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008066: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008067: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008068: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008069: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008070: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008071: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008072: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008073: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008074: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008075: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008076: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008077: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008078: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008079: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008080: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008081: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008082: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008083: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008084: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008085: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008086: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008087: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008088: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008089: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008090: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008091: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008092: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008093: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008094: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008095: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008096: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008097: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008098: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008099: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008100: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008101: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008102: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008103: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008104: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008105: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008106: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       10008107: Stackable: UnsupportedInstanceDeclaration=[usable period]&#xD;
+[xUnit.net 00:00:01.12]       Stack Trace:&#xD;
+[xUnit.net 00:00:01.12]         E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\Inventory\PackageOpeningTests.cs(38,0): at Dfo.Server.Application.Tests.Inventory.PackageOpeningTests.Actual_seria_pool_has_readable_reward_creation_definitions()&#xD;
+[xUnit.net 00:00:01.12]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:01.13]   Finished:    Dfo.Server.Application.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-09-09T23:11:02.6163462+08:00">
+        <Text>[xUnit.net 00:00:01.12]     Dfo.Server.Application.Tests.Inventory.PackageOpeningTests.Actual_seria_pool_has_readable_reward_creation_definitions [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

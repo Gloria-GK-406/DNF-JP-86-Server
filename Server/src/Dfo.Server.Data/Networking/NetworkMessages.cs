@@ -2,6 +2,10 @@ namespace Dfo.Server.Data.Networking;
 
 public enum ClientMessageType
 {
+    GameMagicBoxBatchOpening = 0x0001_0450,
+    GameMagicBoxSingleOpening = 0x0001_00D0,
+    GamePackageOpening = 0x0001_00A0,
+    GameAvatarPackageOpening = 0x0001_0207,
     GameGenCeraTicket = 0x0001_0041,
     GameCeraShopPurchase = 0x0001_0040,
     GameBuyItem = 0x0001_0015,
@@ -125,6 +129,10 @@ public enum ClientMessageType
 
 public enum ServerMessageType
 {
+    GameMagicBoxBatchOpening = 0x0001_0450,
+    GameMagicBoxSingleOpening = 0x0001_00D0,
+    GamePackageOpening = 0x0001_00A0,
+    GameAvatarPackageOpening = 0x0001_0207,
     GameGenCeraTicket = 0x0001_0041,
     GameServerNotice = 0x0000_01F7,
     GameCeraShopPurchase = 0x0001_0040,

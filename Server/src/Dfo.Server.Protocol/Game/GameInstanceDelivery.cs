@@ -10,6 +10,7 @@ public static class GameInstanceDelivery
 {
     public static IGameServerMessage Wallet(AccountCeraBalances balances) => new CeraBalanceUpdateMessage(balances);
     public static IGameServerMessage Creatures(IReadOnlyList<CharacterPetRuntimeState> pets) => new CreatureListUpdateMessage(pets);
+    public static IGameServerMessage Premium(AccountPremiumEntryState premium, DateTimeOffset now) => new PremiumGrantedMessage(premium, now);
     internal static byte[] EncodeWallet(AccountCeraBalances balances)
     {
         using var stream = new MemoryStream(13); using var writer = new BinaryWriter(stream);
@@ -34,6 +35,20 @@ public static class GameInstanceDelivery
     {
         services.AddGameNotiMessageEncoder<CeraBalanceUpdateMessage, CeraBalanceUpdateEncoder>();
         services.AddGameNotiMessageEncoder<CreatureListUpdateMessage, CreatureListUpdateEncoder>();
+        services.AddGameNotiMessageEncoder<PremiumGrantedMessage, PremiumGrantedEncoder>();
+    }
+}
+
+internal sealed record PremiumGrantedMessage(AccountPremiumEntryState Premium, DateTimeOffset PreparedAt) : IGameNotiMessage
+{ public ServerMessageType MessageType => ServerMessageType.GameStateSynchronization; }
+internal sealed class PremiumGrantedEncoder : GameNotiMessageEncoder<PremiumGrantedMessage>
+{
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(PremiumGrantedMessage message)
+    {
+        using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
+        writer.Write((ushort)2); writer.Write(checked((byte)message.Premium.PremiumType));
+        writer.Write(Math.Max(0, message.Premium.ExpiresAtUnixSeconds - message.PreparedAt.ToUnixTimeSeconds()));
+        return OnePayload(0x0042, stream.ToArray());
     }
 }
 

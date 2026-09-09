@@ -1,0 +1,41 @@
+{
+  "database": "E:\\Project\\DNF\\DNF-JP-86-Server\\Server\\src\\Dfo.Server.Host\\bin\\Debug\\net10.0\\Data\\dfo-server.db",
+  "backup": "E:\\Project\\DNF\\DNF-JP-86-Server\\Server\\src\\Dfo.Server.Host\\bin\\Debug\\net10.0\\Data\\backups\\dfo-server-before-package-opening-20260909-234255.db",
+  "wallet": [
+    [
+      1,
+      44310,
+      0,
+      0,
+      0
+    ]
+  ],
+  "slots": [
+    [
+      1,
+      0,
+      65,
+      10007476,
+      1
+    ],
+    [
+      1,
+      0,
+      66,
+      10007368,
+      60
+    ],
+    [
+      1,
+      0,
+      122,
+      10007367,
+      60
+    ]
+  ],
+  "tableHashes": {
+    "items": "64970941b876ee8bb75c12d3470a529f7cf4fa7548ece07b6701ab3ac48f4854",
+    "item_slots": "7e96c28ba66328bcf5b200b07258edced849257c3ac380bd017aaf2717991217",
+    "account_premiums": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+  }
+}
