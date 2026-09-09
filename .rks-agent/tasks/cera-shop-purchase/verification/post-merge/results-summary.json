@@ -1,0 +1,136 @@
+[
+  {
+    "Run": "post-merge",
+    "File": "Gloria_家庭台式机_2026-09-09_17_42_07_net10.0.trx",
+    "SHA256": "268629F3E205B6EEFB6D0A4288CE20A8E97BC02853E00016EE789D67B161FC3B",
+    "Outcomes": [
+      {
+        "Name": "Passed",
+        "Count": 54
+      }
+    ],
+    "Skipped": []
+  },
+  {
+    "Run": "post-merge",
+    "File": "Gloria_家庭台式机_2026-09-09_17_42_07_net10.0[1].trx",
+    "SHA256": "F5C1106525F4641F79FB7395E09719D77173D48DE5944F07D03F04210CEBB596",
+    "Outcomes": [
+      {
+        "Name": "Passed",
+        "Count": 60
+      }
+    ],
+    "Skipped": []
+  },
+  {
+    "Run": "post-merge",
+    "File": "Gloria_家庭台式机_2026-09-09_17_42_07_net10.0[2].trx",
+    "SHA256": "F06E19AEFE5FC5289F95BB44D655A4F1BCC445A7C0598A586894098C5A310A36",
+    "Outcomes": [
+      {
+        "Name": "Passed",
+        "Count": 680
+      }
+    ],
+    "Skipped": []
+  },
+  {
+    "Run": "post-merge",
+    "File": "Gloria_家庭台式机_2026-09-09_17_42_07_net10.0[3].trx",
+    "SHA256": "BC09625921E967E533A6242FE7687239CC57D8001D6D29F04F44919E034FDB1B",
+    "Outcomes": [
+      {
+        "Name": "NotExecuted",
+        "Count": 3
+      },
+      {
+        "Name": "Passed",
+        "Count": 276
+      }
+    ],
+    "Skipped": [
+      {
+        "Name": "Dfo.Server.Infrastructure.Tests.Content.ChannelScriptExperienceSourceTests.TheShippedScriptDeclaresTheRateTheCaptureMeasured",
+        "Reason": "The host's channel_info.etc is not beside this test run."
+      },
+      {
+        "Name": "Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message",
+        "Reason": "An archive is reachable from this working tree."
+      },
+      {
+        "Name": "Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog",
+        "Reason": "An archive is reachable from this working tree."
+      }
+    ]
+  },
+  {
+    "Run": "post-merge",
+    "File": "Gloria_家庭台式机_2026-09-09_17_42_08_net10.0.trx",
+    "SHA256": "5B58221A5738F1B2B81C6E2151CACA543441E9231F0993218B4CACDA362024D6",
+    "Outcomes": [
+      {
+        "Name": "NotExecuted",
+        "Count": 1
+      },
+      {
+        "Name": "Passed",
+        "Count": 1239
+      }
+    ],
+    "Skipped": [
+      {
+        "Name": "Dfo.Server.Application.Tests.World.ExperienceTuningSourceTests.TheShippedFileDocumentsTheDefaultsInCode",
+        "Reason": "The host's experience.json is not beside this test run."
+      }
+    ]
+  },
+  {
+    "Run": "post-merge",
+    "File": "Gloria_家庭台式机_2026-09-09_17_42_08_net10.0[1].trx",
+    "SHA256": "817DC5B50D3F37DF7E569D56FA5C91D04A5D18D8B53F327CAA6ADAA8B940F148",
+    "Outcomes": [
+      {
+        "Name": "Passed",
+        "Count": 336
+      }
+    ],
+    "Skipped": []
+  },
+  {
+    "Run": "post-merge",
+    "File": "Gloria_家庭台式机_2026-09-09_17_42_09_net10.0.trx",
+    "SHA256": "1C18E27ACC09AEAB9EEDCE060D883458DEDFC0707C999BB71C5CA2BBBC2253FE",
+    "Outcomes": [
+      {
+        "Name": "Passed",
+        "Count": 6
+      }
+    ],
+    "Skipped": []
+  },
+  {
+    "Run": "post-merge-supplement",
+    "File": "Gloria_家庭台式机_2026-09-09_17_43_36_net10.0.trx",
+    "SHA256": "E121E3297C4D35EA6EE2160A568D489DDE38A328F2D21CBC0F30F67D85F389BB",
+    "Outcomes": [
+      {
+        "Name": "Passed",
+        "Count": 1
+      }
+    ],
+    "Skipped": []
+  },
+  {
+    "Run": "post-merge-supplement",
+    "File": "Gloria_家庭台式机_2026-09-09_17_43_41_net10.0.trx",
+    "SHA256": "77F7297368B4E506D493ED28FE57DA8AAD598ED4276125CD9971EC4DADF0D29A",
+    "Outcomes": [
+      {
+        "Name": "Passed",
+        "Count": 3
+      }
+    ],
+    "Skipped": []
+  }
+]

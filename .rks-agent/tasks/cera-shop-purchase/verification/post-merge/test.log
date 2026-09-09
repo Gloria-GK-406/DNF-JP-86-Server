@@ -1,0 +1,35 @@
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\.integration-build\bin\Dfo.Server.Protocol.Tests\release\Dfo.Server.Protocol.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\.integration-build\bin\Dfo.Server.Infrastructure.Tests\release\Dfo.Server.Infrastructure.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\.integration-build\bin\Dfo.Server.Application.Tests\release\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\.integration-build\bin\Dfo.Server.Networking.Tests\release\Dfo.Server.Networking.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\.integration-build\bin\Dfo.Server.Persistence.Tests\release\Dfo.Server.Persistence.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\.integration-build\bin\Dfo.Pvf.Tests\release\Dfo.Pvf.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\.integration-build\bin\Dfo.Server.Host.Tests\release\Dfo.Server.Host.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+总共 1 个测试文件与指定模式相匹配。
+总共 1 个测试文件与指定模式相匹配。
+总共 1 个测试文件与指定模式相匹配。
+总共 1 个测试文件与指定模式相匹配。
+总共 1 个测试文件与指定模式相匹配。
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.rks-agent\tasks\cera-shop-purchase\verification\post-merge\Gloria_家庭台式机_2026-09-09_17_42_07_net10.0.trx
+
+已通过! - 失败:     0，通过:    54，已跳过:     0，总计:    54，持续时间: 3 s - Dfo.Server.Networking.Tests.dll (net10.0)
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.rks-agent\tasks\cera-shop-purchase\verification\post-merge\Gloria_家庭台式机_2026-09-09_17_42_07_net10.0[1].trx
+
+已通过! - 失败:     0，通过:    60，已跳过:     0，总计:    60，持续时间: 4 s - Dfo.Pvf.Tests.dll (net10.0)
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.rks-agent\tasks\cera-shop-purchase\verification\post-merge\Gloria_家庭台式机_2026-09-09_17_42_07_net10.0[2].trx
+
+已通过! - 失败:     0，通过:   680，已跳过:     0，总计:   680，持续时间: 4 s - Dfo.Server.Protocol.Tests.dll (net10.0)
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.rks-agent\tasks\cera-shop-purchase\verification\post-merge\Gloria_家庭台式机_2026-09-09_17_42_07_net10.0[3].trx
+
+已通过! - 失败:     0，通过:   276，已跳过:     3，总计:   279，持续时间: 14 s - Dfo.Server.Infrastructure.Tests.dll (net10.0)
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.rks-agent\tasks\cera-shop-purchase\verification\post-merge\Gloria_家庭台式机_2026-09-09_17_42_09_net10.0.trx
+
+已通过! - 失败:     0，通过:     6，已跳过:     0，总计:     6，持续时间: 24 s - Dfo.Server.Host.Tests.dll (net10.0)
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.rks-agent\tasks\cera-shop-purchase\verification\post-merge\Gloria_家庭台式机_2026-09-09_17_42_08_net10.0.trx
+
+已通过! - 失败:     0，通过:  1239，已跳过:     1，总计:  1240，持续时间: 25 s - Dfo.Server.Application.Tests.dll (net10.0)
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.rks-agent\tasks\cera-shop-purchase\verification\post-merge\Gloria_家庭台式机_2026-09-09_17_42_08_net10.0[1].trx
+
+已通过! - 失败:     0，通过:   336，已跳过:     0，总计:   336，持续时间: 52 s - Dfo.Server.Persistence.Tests.dll (net10.0)
