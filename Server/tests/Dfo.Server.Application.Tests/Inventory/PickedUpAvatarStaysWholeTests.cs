@@ -76,7 +76,7 @@ public sealed class PickedUpAvatarStaysWholeTests
     private const int JewelSocketLength = 30;
 
     /// <summary>What a fresh avatar's expiry is set to when nothing has said it expires.</summary>
-    private const int NeverExpires = int.MaxValue;
+    private const int NeverExpires = 0;
 
     private const int Account = 91;
 

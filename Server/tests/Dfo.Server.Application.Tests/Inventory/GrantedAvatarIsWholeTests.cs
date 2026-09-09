@@ -148,7 +148,7 @@ public sealed class GrantedAvatarIsWholeTests
             // The six, as the delivery makes them.
             var facts = first.AvatarDetail;
             Assert.NotNull(facts);
-            Assert.Equal(int.MaxValue, facts!.ExpireDate);
+            Assert.Equal(0, facts!.ExpireDate);
             Assert.Equal(0, facts.ClearAvatarId);
             Assert.Equal(new byte[30], facts.JewelSocket);
             Assert.Equal(0, (int)facts.Color1);

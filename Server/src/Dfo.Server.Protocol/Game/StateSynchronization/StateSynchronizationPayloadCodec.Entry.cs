@@ -155,7 +155,7 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(checked((byte)item.SlotIndex));
         writer.Write(core.ItemId);
         writer.Write(unchecked((uint)(core.ItemKind == avatarKind
-            ? RemainingSeconds(item.AvatarDetail!.ExpireDate, preparedAt)
+            ? AvatarLifetimeOnTheWire.RemainingSeconds(item.AvatarDetail!.ExpireDate, preparedAt)
             : core.Value)));
         writer.Write(core.Attribute);
         writer.Write(core.Durability);
@@ -301,10 +301,6 @@ internal static partial class StateSynchronizationPayloadCodec
     /// recorded in <c>Docs/ProtocolScaffoldDissonances.md</c>.
     /// </remarks>
     private const int Noti2CreatureSlot = 24;
-
-    private static int RemainingSeconds(int expiresAt, DateTimeOffset preparedAt) =>
-        expiresAt <= 0 ? 0 : checked((int)Math.Clamp(
-            (long)expiresAt - preparedAt.ToUnixTimeSeconds(), 0, int.MaxValue));
 
     private static byte[] EncodeSupportStats(CharacterPublicEntryState entry)
     {

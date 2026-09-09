@@ -38,7 +38,7 @@ public sealed class CeraShopPurchaseTests
         var avatar = Assert.Single(reloaded.Containers.Single(container => container.ContainerType == InventoryContainerType.Avatar).Items);
         Assert.Equal(413500013, avatar.Core.ItemId);
         Assert.Equal(ability, avatar.Core.Attribute);
-        Assert.Equal(days == 0 ? int.MaxValue : shop.Host.Clock.GetUtcNow().AddDays(days).ToUnixTimeSeconds(), avatar.AvatarDetail!.ExpireDate);
+        Assert.Equal(days == 0 ? 0 : shop.Host.Clock.GetUtcNow().AddDays(days).ToUnixTimeSeconds(), avatar.AvatarDetail!.ExpireDate);
     }
 
     [SkippableTheory]
@@ -59,7 +59,7 @@ public sealed class CeraShopPurchaseTests
             .LoadAsync(shop.Host.Session.AccountId, shop.Host.Session.CharacterId, default);
         var avatar = Assert.Single(reloaded.Containers.Single(container => container.ContainerType == InventoryContainerType.Avatar).Items);
         Assert.Equal(ability, avatar.Core.Attribute);
-        Assert.Equal(days == 0 ? int.MaxValue : shop.Host.Clock.GetUtcNow().AddDays(days).ToUnixTimeSeconds(), avatar.AvatarDetail!.ExpireDate);
+        Assert.Equal(days == 0 ? 0 : shop.Host.Clock.GetUtcNow().AddDays(days).ToUnixTimeSeconds(), avatar.AvatarDetail!.ExpireDate);
     }
 
     [SkippableFact]

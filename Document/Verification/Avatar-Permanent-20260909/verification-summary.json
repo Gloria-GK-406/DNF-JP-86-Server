@@ -1,0 +1,12 @@
+{
+  "red": {
+    "Passed": 4,
+    "Failed": 3
+  },
+  "full": {
+    "Passed": 2672,
+    "NotExecuted": 2
+  },
+  "databaseBackup": "Server\\src\\Dfo.Server.Host\\bin\\Debug\\net10.0\\Data\\backups\\before-avatar-permanent-20260909-220856.db",
+  "databaseBackupIntegrity": "ok"
+}

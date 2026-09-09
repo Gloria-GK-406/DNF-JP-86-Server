@@ -36,6 +36,24 @@ public sealed class JewelSocketHasOneWireLengthTests
     private static readonly DateTimeOffset PreparedAt =
         new(2026, 8, 18, 12, 0, 0, TimeSpan.Zero);
 
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(-1, 0)]
+    [InlineData(int.MaxValue, 0)]
+    [InlineData(1, -1)]
+    [InlineData(1787054400, -1)]
+    [InlineData(1787054401, 1)]
+    [InlineData(1787140800, 86400)]
+    public void Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(int expiresAt, int expected)
+    {
+        foreach (var frame in new[] { ItemListFrame(expiresAt), SupportCharacterFrame(expiresAt: expiresAt), UserInfoFrame(expiresAt) })
+        {
+            var itemOffset = IndexOfRun(frame, BitConverter.GetBytes(222));
+            Assert.True(itemOffset >= 0);
+            Assert.Equal(expected, BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(itemOffset + 4)));
+        }
+    }
+
     private const int StoredJewelBytes = 30;
 
     /// <summary>What the reference A21 server sends, and what these frames are expected to send.</summary>
@@ -213,13 +231,13 @@ public sealed class JewelSocketHasOneWireLengthTests
         return -1;
     }
 
-    private static byte[] ItemListFrame() =>
+    private static byte[] ItemListFrame(int expiresAt = 1_700_000_500) =>
         new InventoryDeltaMessage(
             InventoryContainerType.Avatar,
-            [new InventoryItemState(new ItemIdentity(1), 3, Core(8), AvatarFacts())],
+            [new InventoryItemState(new ItemIdentity(1), 3, Core(8), AvatarFacts() with { ExpireDate = expiresAt })],
             PreparedAt).EncodeBody();
 
-    private static byte[] SupportCharacterFrame(bool avatarKind = true)
+    private static byte[] SupportCharacterFrame(bool avatarKind = true, int expiresAt = 1_700_000_500)
     {
         var source = SelectCharacter.SelectCharacterPayloadTestData.CreateComplete();
         var supportId = new CharacterId(909);
@@ -238,7 +256,7 @@ public sealed class JewelSocketHasOneWireLengthTests
         var inventory = source.CharacterInventory with
         {
             CharacterId = supportId,
-            Containers = [new InventoryContainerState(InventoryContainerType.Equipment, 0, WornAvatar(avatarKind))],
+            Containers = [new InventoryContainerState(InventoryContainerType.Equipment, 0, WornAvatar(avatarKind, expiresAt))],
         };
         var relation = new AccountCharacterRelationEntryState(
             source.Character.Identity.CharacterId, 0, supportId, 77, 88,
@@ -248,22 +266,22 @@ public sealed class JewelSocketHasOneWireLengthTests
             source.Character.Identity.CharacterId, [relation], PreparedAt);
     }
 
-    private static byte[] UserInfoFrame()
+    private static byte[] UserInfoFrame(int expiresAt = 1_700_000_500)
     {
         var source = SelectCharacter.SelectCharacterPayloadTestData.CreateComplete();
         return StateSynchronizationPayloadCodec.EncodeExtendedUserState(
             source.Character,
             source.CharacterEntry.Public,
             source.CharacterEntry.Skills,
-            WornAvatar(avatarKind: true),
+            WornAvatar(avatarKind: true, expiresAt),
             PreparedAt);
     }
 
     /// <summary>One item in costume-bar slot 2, an avatar or -- to check the other branch -- not.</summary>
-    private static InventoryItemState[] WornAvatar(bool avatarKind) =>
+    private static InventoryItemState[] WornAvatar(bool avatarKind, int expiresAt = 1_700_000_500) =>
     [
         avatarKind
-            ? new InventoryItemState(new ItemIdentity(12), 2, Core(8), AvatarFacts())
+            ? new InventoryItemState(new ItemIdentity(12), 2, Core(8), AvatarFacts() with { ExpireDate = expiresAt })
             : new InventoryItemState(new ItemIdentity(12), 2, Core(1)),
     ];
 

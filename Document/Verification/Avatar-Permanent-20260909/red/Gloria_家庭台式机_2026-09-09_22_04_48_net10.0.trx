@@ -1,0 +1,135 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="2e7557fd-320f-4492-8d13-70d1d6e81b5e" name="Gloria@家庭台式机 2026-09-09 22:04:48" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-09T22:04:48.8244047+08:00" queuing="2026-09-09T22:04:48.8244048+08:00" start="2026-09-09T22:04:48.0462673+08:00" finish="2026-09-09T22:04:48.8290732+08:00" />
+  <TestSettings name="default" id="f11c3d52-1d8c-428e-8049-0ceaa6bea520">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-09_22_04_48" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="08e822bb-a782-4fca-9504-68bb20678d20" testId="2a8ffde9-9c0e-d5cd-fe32-b0aadc5fd968" testName="Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(expiresAt: 0, expected: 0)" computerName="家庭台式机" duration="00:00:00.0243486" startTime="2026-09-09T22:04:48.7081333+08:00" endTime="2026-09-09T22:04:48.7369390+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="08e822bb-a782-4fca-9504-68bb20678d20" />
+    <UnitTestResult executionId="b0248e0b-6962-4d6f-8acf-2f23d1d5475a" testId="002309f2-3562-335d-9ddc-4fd63ea5c028" testName="Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(expiresAt: 2147483647, expected: 0)" computerName="家庭台式机" duration="00:00:00.0000805" startTime="2026-09-09T22:04:48.7482841+08:00" endTime="2026-09-09T22:04:48.7483150+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b0248e0b-6962-4d6f-8acf-2f23d1d5475a">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ&#xD;
+Expected: 0&#xD;
+Actual:   360429247</Message>
+          <StackTrace>   at Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(Int32 expiresAt, Int32 expected) in E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\Game\StateSynchronization\JewelSocketHasOneWireLengthTests.cs:line 53&#xD;
+   at InvokeStub_JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(Object, Span`1)&#xD;
+   at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="c2c67471-0760-4b99-9371-fa032cadfada" testId="ce3e5a4b-0861-1780-ce2a-e43580b23e37" testName="Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(expiresAt: 1787140800, expected: 86400)" computerName="家庭台式机" duration="00:00:00.0000328" startTime="2026-09-09T22:04:48.7486436+08:00" endTime="2026-09-09T22:04:48.7486605+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c2c67471-0760-4b99-9371-fa032cadfada" />
+    <UnitTestResult executionId="0e0a34ed-3cbf-4753-b71c-e0fe978e8f40" testId="f4519443-a34f-8f53-2919-371cc9eebf40" testName="Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(expiresAt: 1, expected: -1)" computerName="家庭台式机" duration="00:00:00.0010805" startTime="2026-09-09T22:04:48.7435718+08:00" endTime="2026-09-09T22:04:48.7445197+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0e0a34ed-3cbf-4753-b71c-e0fe978e8f40">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ&#xD;
+Expected: -1&#xD;
+Actual:   0</Message>
+          <StackTrace>   at Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(Int32 expiresAt, Int32 expected) in E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\Game\StateSynchronization\JewelSocketHasOneWireLengthTests.cs:line 53&#xD;
+   at InvokeStub_JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(Object, Span`1)&#xD;
+   at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="9a55ddd9-4358-4150-b46f-1a7234faee4c" testId="a3acf402-d80e-623a-7efb-d4ae3f0df6fa" testName="Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(expiresAt: -1, expected: 0)" computerName="家庭台式机" duration="00:00:00.0001028" startTime="2026-09-09T22:04:48.7482188+08:00" endTime="2026-09-09T22:04:48.7482430+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9a55ddd9-4358-4150-b46f-1a7234faee4c" />
+    <UnitTestResult executionId="8aecafeb-2e94-463d-a5da-54016f971877" testId="30aeae07-98d4-8427-3fe0-ec5609e7ab9f" testName="Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(expiresAt: 1787054401, expected: 1)" computerName="家庭台式机" duration="00:00:00.0004003" startTime="2026-09-09T22:04:48.7431825+08:00" endTime="2026-09-09T22:04:48.7432301+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8aecafeb-2e94-463d-a5da-54016f971877" />
+    <UnitTestResult executionId="b7fd2ebc-dcd0-4a5b-ba68-c15316a9ecaa" testId="ebb03615-3a2b-16d9-1ac5-5aa1a5d0980a" testName="Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(expiresAt: 1787054400, expected: -1)" computerName="家庭台式机" duration="00:00:00.0000302" startTime="2026-09-09T22:04:48.7486884+08:00" endTime="2026-09-09T22:04:48.7487041+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b7fd2ebc-dcd0-4a5b-ba68-c15316a9ecaa">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ&#xD;
+Expected: -1&#xD;
+Actual:   0</Message>
+          <StackTrace>   at Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(Int32 expiresAt, Int32 expected) in E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\Game\StateSynchronization\JewelSocketHasOneWireLengthTests.cs:line 53&#xD;
+   at InvokeStub_JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(Object, Span`1)&#xD;
+   at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(expiresAt: 1787054401, expected: 1)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="30aeae07-98d4-8427-3fe0-ec5609e7ab9f">
+      <Execution id="8aecafeb-2e94-463d-a5da-54016f971877" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests" name="Avatar_lifetime_is_consistent_for_inventory_and_worn_frames" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(expiresAt: 1787054400, expected: -1)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="ebb03615-3a2b-16d9-1ac5-5aa1a5d0980a">
+      <Execution id="b7fd2ebc-dcd0-4a5b-ba68-c15316a9ecaa" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests" name="Avatar_lifetime_is_consistent_for_inventory_and_worn_frames" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(expiresAt: 0, expected: 0)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="2a8ffde9-9c0e-d5cd-fe32-b0aadc5fd968">
+      <Execution id="08e822bb-a782-4fca-9504-68bb20678d20" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests" name="Avatar_lifetime_is_consistent_for_inventory_and_worn_frames" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(expiresAt: -1, expected: 0)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="a3acf402-d80e-623a-7efb-d4ae3f0df6fa">
+      <Execution id="9a55ddd9-4358-4150-b46f-1a7234faee4c" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests" name="Avatar_lifetime_is_consistent_for_inventory_and_worn_frames" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(expiresAt: 2147483647, expected: 0)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="002309f2-3562-335d-9ddc-4fd63ea5c028">
+      <Execution id="b0248e0b-6962-4d6f-8acf-2f23d1d5475a" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests" name="Avatar_lifetime_is_consistent_for_inventory_and_worn_frames" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(expiresAt: 1787140800, expected: 86400)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="ce3e5a4b-0861-1780-ce2a-e43580b23e37">
+      <Execution id="c2c67471-0760-4b99-9371-fa032cadfada" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests" name="Avatar_lifetime_is_consistent_for_inventory_and_worn_frames" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(expiresAt: 1, expected: -1)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="f4519443-a34f-8f53-2919-371cc9eebf40">
+      <Execution id="0e0a34ed-3cbf-4753-b71c-e0fe978e8f40" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests" name="Avatar_lifetime_is_consistent_for_inventory_and_worn_frames" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="2a8ffde9-9c0e-d5cd-fe32-b0aadc5fd968" executionId="08e822bb-a782-4fca-9504-68bb20678d20" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="002309f2-3562-335d-9ddc-4fd63ea5c028" executionId="b0248e0b-6962-4d6f-8acf-2f23d1d5475a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ce3e5a4b-0861-1780-ce2a-e43580b23e37" executionId="c2c67471-0760-4b99-9371-fa032cadfada" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f4519443-a34f-8f53-2919-371cc9eebf40" executionId="0e0a34ed-3cbf-4753-b71c-e0fe978e8f40" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a3acf402-d80e-623a-7efb-d4ae3f0df6fa" executionId="9a55ddd9-4358-4150-b46f-1a7234faee4c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="30aeae07-98d4-8427-3fe0-ec5609e7ab9f" executionId="8aecafeb-2e94-463d-a5da-54016f971877" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ebb03615-3a2b-16d9-1ac5-5aa1a5d0980a" executionId="b7fd2ebc-dcd0-4a5b-ba68-c15316a9ecaa" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="7" executed="7" passed="4" failed="3" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.24]   Discovering: Dfo.Server.Protocol.Tests&#xD;
+[xUnit.net 00:00:00.31]   Discovered:  Dfo.Server.Protocol.Tests&#xD;
+[xUnit.net 00:00:00.33]   Starting:    Dfo.Server.Protocol.Tests&#xD;
+[xUnit.net 00:00:00.38]       Assert.Equal() Failure: Values differ&#xD;
+[xUnit.net 00:00:00.39]       Expected: -1&#xD;
+[xUnit.net 00:00:00.39]       Actual:   0&#xD;
+[xUnit.net 00:00:00.39]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.39]         E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\Game\StateSynchronization\JewelSocketHasOneWireLengthTests.cs(53,0): at Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(Int32 expiresAt, Int32 expected)&#xD;
+[xUnit.net 00:00:00.39]            at InvokeStub_JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(Object, Span`1)&#xD;
+[xUnit.net 00:00:00.39]            at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)&#xD;
+[xUnit.net 00:00:00.39]       Assert.Equal() Failure: Values differ&#xD;
+[xUnit.net 00:00:00.39]       Expected: 0&#xD;
+[xUnit.net 00:00:00.39]       Actual:   360429247&#xD;
+[xUnit.net 00:00:00.39]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.39]         E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\Game\StateSynchronization\JewelSocketHasOneWireLengthTests.cs(53,0): at Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(Int32 expiresAt, Int32 expected)&#xD;
+[xUnit.net 00:00:00.39]            at InvokeStub_JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(Object, Span`1)&#xD;
+[xUnit.net 00:00:00.39]            at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)&#xD;
+[xUnit.net 00:00:00.39]       Assert.Equal() Failure: Values differ&#xD;
+[xUnit.net 00:00:00.39]       Expected: -1&#xD;
+[xUnit.net 00:00:00.39]       Actual:   0&#xD;
+[xUnit.net 00:00:00.39]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.39]         E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\Game\StateSynchronization\JewelSocketHasOneWireLengthTests.cs(53,0): at Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(Int32 expiresAt, Int32 expected)&#xD;
+[xUnit.net 00:00:00.39]            at InvokeStub_JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(Object, Span`1)&#xD;
+[xUnit.net 00:00:00.39]            at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)&#xD;
+[xUnit.net 00:00:00.39]   Finished:    Dfo.Server.Protocol.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-09-09T22:04:48.7464475+08:00">
+        <Text>[xUnit.net 00:00:00.38]     Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(expiresAt: 1, expected: -1) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-09-09T22:04:48.7484999+08:00">
+        <Text>[xUnit.net 00:00:00.39]     Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(expiresAt: 2147483647, expected: 0) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-09-09T22:04:48.7487628+08:00">
+        <Text>[xUnit.net 00:00:00.39]     Dfo.Server.Protocol.Tests.Game.StateSynchronization.JewelSocketHasOneWireLengthTests.Avatar_lifetime_is_consistent_for_inventory_and_worn_frames(expiresAt: 1787054400, expected: -1) [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

@@ -70,43 +70,12 @@ internal static class ArrivingAvatar
     /// What an avatar's expiry is set to when nothing has said it expires.
     /// </summary>
     /// <remarks>
-    /// <b>A placeholder ruling, and it is named as one.</b> In this repository a non-null
-    /// <c>avatar_expire_date</c> means "this row is an avatar", not "this avatar runs out": the
-    /// column is what the load asks to find out whether a row carries facts at all, so an avatar
-    /// that never expires still has to have something in it. What goes on the wire is not this
-    /// number -- the delivery writes <c>max(0, ExpireDate - now)</c>, a count of seconds left --
-    /// so the upper bound of the signed 32-bit seconds this column holds is the largest remaining
-    /// lifetime this server is able to say, which is the defensible way to say "not expiring" with
-    /// the column it has.
-    /// <para>
-    /// What it is not is a measurement. Nobody has yet watched a client draw an avatar whose
-    /// remaining seconds are what this bound leaves, and a client that renders that as a date, or
-    /// refuses it, would be saying this bound is the wrong placeholder. Live play is what settles
-    /// it.
-    /// </para>
-    /// <para>
-    /// <b>What a client should draw is about 11.4 years, not about 68.</b> The delivery writes
-    /// <c>ExpireDate - now</c>, not <c>ExpireDate</c>. Read once, on 2026-09-06T09:32Z, with <c>now</c> at
-    /// <c>1788687136</c>: <c>2147483647 - 1788687136 = 358796511</c> seconds, which is
-    /// <c>358796511 / 86400 = 4152.7</c> days, or <c>358796511 / 31556952 = 11.37</c> years
-    /// against a Julian year -- <b>about 11.4 years</b>, and it falls by one every second, so
-    /// anyone can redo the subtraction against their own clock. About 68 years is the bound
-    /// itself, <c>2147483647 / 31556952 = 68.05</c>, which is about six times the remaining
-    /// lifetime -- <c>2147483647 / 358796511 = 5.99</c>.
-    /// </para>
-    /// <para>
-    /// Written "about 11.4 years" wherever it appears, and a retelling copies the arithmetic rather
-    /// than rounding it again: a colloquial rounding is how the wrong figure travelled.
-    /// </para>
-    /// <para>
-    /// This matters to whoever first watches a client draw one of these. Told to expect about
-    /// sixty-eight years, he would read a client showing eleven-and-something as the client
-    /// mangling the field; told to expect about 11.4 years, he would read the same draw as this
-    /// placeholder working. The wrong number would have sent him looking for a defect that is not
-    /// there.
-    /// </para>
+    /// Zero is a present avatar fact with no expiry; SQL NULL still means no avatar facts.
+    /// A21's zero remaining-time value displays unlimited. The former int.MaxValue
+    /// placeholder is recognized at the wire boundary for existing stored items.
+    /// See Document/Avatar-Permanent-20260909.md for the client comparison branches.
     /// </remarks>
-    private const int NeverExpires = int.MaxValue;
+    private const int NeverExpires = 0;
 
     /// <summary>
     /// The identity a newly delivered avatar is known by, which is above zero and its own.

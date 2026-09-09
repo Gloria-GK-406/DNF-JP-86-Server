@@ -110,7 +110,7 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                     core = baseline with { Value = value };
                     facts = grant.Item.Kind switch
                     {
-                        CeraShopItemKind.Avatar => new(new(grant.ExpireDate == 0 ? int.MaxValue : grant.ExpireDate,
+                        CeraShopItemKind.Avatar => new(new(grant.ExpireDate,
                             0, new byte[30], 0, 0, 0)),
                         // Initial satiety and flags follow the reference creation policy; level is PVF data.
                         CeraShopItemKind.Creature => new(Creature: new(100, 0, 0, 0, 0,
