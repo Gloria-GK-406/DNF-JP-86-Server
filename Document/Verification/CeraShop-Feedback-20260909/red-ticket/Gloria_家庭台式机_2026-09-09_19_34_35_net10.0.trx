@@ -1,0 +1,85 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="f731b661-d40b-47cf-8d2f-45b667c940e7" name="Gloria@家庭台式机 2026-09-09 19:34:35" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-09T19:34:35.1993348+08:00" queuing="2026-09-09T19:34:35.1993349+08:00" start="2026-09-09T19:34:17.3275506+08:00" finish="2026-09-09T19:34:35.2036550+08:00" />
+  <TestSettings name="default" id="624bd906-adee-4cea-b0f6-2884b3d13b44">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-09_19_34_35" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="d342b99b-3d67-44fc-8808-f21708e61f18" testId="f99cb6bb-20ac-f2e8-fe59-d15cb1e7aeed" testName="Dfo.Server.Networking.Tests.Integration.CeraShopPurchaseIntegrationTests.A_captured_request_without_a_selected_character_gets_a_failure_and_the_connection_remains_usable" computerName="家庭台式机" duration="00:00:16.4264344" startTime="2026-09-09T19:34:18.6918633+08:00" endTime="2026-09-09T19:34:35.1293363+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d342b99b-3d67-44fc-8808-f21708e61f18">
+      <Output>
+        <ErrorInfo>
+          <Message>System.OperationCanceledException : The operation was canceled.</Message>
+          <StackTrace>   at System.Threading.CancellationToken.ThrowOperationCanceledException()&#xD;
+   at System.Threading.CancellationToken.ThrowIfCancellationRequested()&#xD;
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)&#xD;
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource&lt;System.Int32&gt;.GetResult(Int16 token)&#xD;
+   at System.IO.Stream.ReadAtLeastAsyncCore(Memory`1 buffer, Int32 minimumBytes, Boolean throwOnEndOfStream, CancellationToken cancellationToken)&#xD;
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)&#xD;
+   at Dfo.Server.Networking.Tests.Integration.CeraShopPurchaseIntegrationTests.ReadAsync(NetworkStream stream, CancellationToken ct) in E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\Integration\CeraShopPurchaseIntegrationTests.cs:line 81&#xD;
+   at Dfo.Server.Networking.Tests.Integration.CeraShopPurchaseIntegrationTests.A_captured_request_without_a_selected_character_gets_a_failure_and_the_connection_remains_usable() in E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\Integration\CeraShopPurchaseIntegrationTests.cs:line 55&#xD;
+   at Dfo.Server.Networking.Tests.Integration.CeraShopPurchaseIntegrationTests.A_captured_request_without_a_selected_character_gets_a_failure_and_the_connection_remains_usable() in E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\Integration\CeraShopPurchaseIntegrationTests.cs:line 65&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.CeraShopPurchaseIntegrationTests.A_captured_request_without_a_selected_character_gets_a_failure_and_the_connection_remains_usable" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\mergeverification\net10.0\dfo.server.networking.tests.dll" id="f99cb6bb-20ac-f2e8-fe59-d15cb1e7aeed">
+      <Execution id="d342b99b-3d67-44fc-8808-f21708e61f18" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\MergeVerification\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.CeraShopPurchaseIntegrationTests" name="A_captured_request_without_a_selected_character_gets_a_failure_and_the_connection_remains_usable" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="f99cb6bb-20ac-f2e8-fe59-d15cb1e7aeed" executionId="d342b99b-3d67-44fc-8808-f21708e61f18" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="1" executed="1" passed="0" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.33]   Discovering: Dfo.Server.Networking.Tests&#xD;
+[xUnit.net 00:00:00.37]   Discovered:  Dfo.Server.Networking.Tests&#xD;
+[xUnit.net 00:00:00.39]   Starting:    Dfo.Server.Networking.Tests&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\MergeVerification\net10.0&#xD;
+info: Dfo.Server.Protocol.Game.CeraShopPurchase.CeraShopPurchaseHandler[0]&#xD;
+      CERA purchase Game:01-00-00-00 refused=NoSession detail=(null)&#xD;
+info: Dfo.Server.Protocol.Game.CeraShopPurchase.CeraShopPurchaseHandler[0]&#xD;
+      CERA purchase Game:01-00-00-00 refused=NoSession detail=(null)&#xD;
+warn: Dfo.Server.Networking.Runtime.GameNetworkPlugin[0]&#xD;
+      Unhandled Game frame Game:01-00-00-00: selector=0x01 type=0x0041 seq=1 body(0B)=&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+[xUnit.net 00:00:16.84]       System.OperationCanceledException : The operation was canceled.&#xD;
+[xUnit.net 00:00:16.84]       Stack Trace:&#xD;
+[xUnit.net 00:00:16.84]            at System.Threading.CancellationToken.ThrowOperationCanceledException()&#xD;
+[xUnit.net 00:00:16.84]            at System.Threading.CancellationToken.ThrowIfCancellationRequested()&#xD;
+[xUnit.net 00:00:16.84]            at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:16.84]            at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource&lt;System.Int32&gt;.GetResult(Int16 token)&#xD;
+[xUnit.net 00:00:16.84]            at System.IO.Stream.ReadAtLeastAsyncCore(Memory`1 buffer, Int32 minimumBytes, Boolean throwOnEndOfStream, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:16.84]            at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)&#xD;
+[xUnit.net 00:00:16.84]         E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\Integration\CeraShopPurchaseIntegrationTests.cs(81,0): at Dfo.Server.Networking.Tests.Integration.CeraShopPurchaseIntegrationTests.ReadAsync(NetworkStream stream, CancellationToken ct)&#xD;
+[xUnit.net 00:00:16.84]         E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\Integration\CeraShopPurchaseIntegrationTests.cs(55,0): at Dfo.Server.Networking.Tests.Integration.CeraShopPurchaseIntegrationTests.A_captured_request_without_a_selected_character_gets_a_failure_and_the_connection_remains_usable()&#xD;
+[xUnit.net 00:00:16.84]         E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\Integration\CeraShopPurchaseIntegrationTests.cs(65,0): at Dfo.Server.Networking.Tests.Integration.CeraShopPurchaseIntegrationTests.A_captured_request_without_a_selected_character_gets_a_failure_and_the_connection_remains_usable()&#xD;
+[xUnit.net 00:00:16.84]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:16.85]   Finished:    Dfo.Server.Networking.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-09-09T19:34:35.1317861+08:00">
+        <Text>[xUnit.net 00:00:16.84]     Dfo.Server.Networking.Tests.Integration.CeraShopPurchaseIntegrationTests.A_captured_request_without_a_selected_character_gets_a_failure_and_the_connection_remains_usable [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

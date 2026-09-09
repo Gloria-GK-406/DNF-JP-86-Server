@@ -133,13 +133,7 @@ internal static class SupplementalSynchronizationCodec
         Payload(0x0004, new byte[] { 0, errorCode });
 
     public static GameMessagePayload EncodeRejectionNotice(string message, byte noticeMode)
-    {
-        using var notice = new MemoryStream();
-        using var writer = new BinaryWriter(notice);
-        writer.Write(noticeMode);
-        WriteDstr(writer, Encoding.UTF8.GetBytes(message ?? string.Empty));
-        return Payload(0x01F7, notice.ToArray());
-    }
+        => GameServerNoticeEncoder.EncodePayload(message, noticeMode);
 
     public static PvpSynchronizationBatch EncodePvpLobby(PvpLobbySynchronizationState value)
     {

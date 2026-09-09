@@ -141,6 +141,19 @@ public sealed class PvfCeraShopDefinitionSourceTests
         Assert.Contains(result.Diagnostics, x => x.Code == "UnknownAvatarPrice");
     }
 
+    [Theory]
+    [InlineData(0, 0, false)]
+    [InlineData(1, 0, false)]
+    [InlineData(2, 0, true)]
+    [InlineData(0, 1, true)]
+    public void Negative_avatar_catalog_flags_accept_only_observed_values(int flag, int other, bool rejected)
+    {
+        var result = PvfCeraShopDefinitionSource.ParseProduct("[avatar]", Numbers(630019, 413550012, 2, flag, other, -1));
+        Assert.Equal(rejected, result.Diagnostics.Any(x => x.Code == "UnsupportedAvatarCatalogFlags"));
+        Assert.Null(result.Price);
+        Assert.Contains(result.Diagnostics, x => x.Code == "UnknownAvatarPrice");
+    }
+
     [Fact]
     public void Incomplete_or_noninteger_package_components_cannot_silently_drop_rewards()
     {

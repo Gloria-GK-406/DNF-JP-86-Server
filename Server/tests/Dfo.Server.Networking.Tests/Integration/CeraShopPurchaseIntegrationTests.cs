@@ -51,6 +51,18 @@ public sealed class CeraShopPurchaseIntegrationTests
             Assert.Equal(GameServerFrameEncoder.Encode(1, 0x0040, Convert.FromHexString("000100FFFFFFFFFFFFFFFF000000000000000000000000")), await ReadAsync(stream, timeout.Token));
             await stream.WriteAsync(Frame(0x0040, [0, 0, 2, 0]), timeout.Token);
             Assert.Equal(GameServerFrameEncoder.Encode(1, 0x0040, Convert.FromHexString("000100FFFFFFFFFFFFFFFF000000000000000000000000")), await ReadAsync(stream, timeout.Token));
+            foreach (var ticketBody in new byte[][] { [], [1, 2] })
+            {
+                await stream.WriteAsync(Frame(0x0041, ticketBody), timeout.Token);
+                Assert.Equal(GameServerFrameEncoder.Encode(1, 0x0041, [0, 1]), await ReadAsync(stream, timeout.Token));
+                var unavailable = await ReadAsync(stream, timeout.Token);
+                Assert.Equal(0, unavailable[0]);
+                Assert.Equal(0x01f7, BinaryPrimitives.ReadUInt16LittleEndian(unavailable.AsSpan(1)));
+                Assert.Equal(0, unavailable[GameServerFrameEncoder.HeaderLength]);
+                var textLength = BinaryPrimitives.ReadInt32LittleEndian(unavailable.AsSpan(GameServerFrameEncoder.HeaderLength + 1));
+                Assert.Equal("黑钻网页服务暂未开放。", System.Text.Encoding.UTF8.GetString(unavailable.AsSpan(GameServerFrameEncoder.HeaderLength + 5, textLength)));
+                Assert.Equal(GameServerFrameEncoder.HeaderLength + 5 + textLength, unavailable.Length);
+            }
             await stream.WriteAsync(Frame(3, []), timeout.Token);
             Assert.Equal(GameServerFrameEncoder.Encode(1, 3, [1]), await ReadAsync(stream, timeout.Token));
         }

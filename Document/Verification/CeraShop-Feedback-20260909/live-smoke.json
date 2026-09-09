@@ -1,0 +1,10 @@
+{
+  "port": 10011,
+  "processId": 41684,
+  "initialType": 1,
+  "ticketFailureBody": "0001",
+  "noticeType": 503,
+  "notice": "黑钻网页服务暂未开放。",
+  "exitBody": "01",
+  "passed": true
+}

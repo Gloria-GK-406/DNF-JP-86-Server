@@ -20,6 +20,27 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class CeraShopPurchaseTests
 {
+    [SkippableTheory]
+    [InlineData(630018, 0, 300, 7)]
+    [InlineData(630019, 4, 660, 30)]
+    [InlineData(630020, 2, 1980, 0)]
+    public async Task Actual_knight_avatar_catalog_flag_does_not_override_selected_term_price_or_ability(
+        int product, byte ability, int price, int days)
+    {
+        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
+        using var shop = new CeraShopFixture(useArchive: true);
+        var result = await shop.Buy(CeraShopTestContent.Entry(product, ability));
+        Assert.True(result.Receipt is not null, result.Detail);
+        Assert.Equal(100000 - price, shop.Cera);
+        Assert.Equal(100000, shop.Host.Gold);
+        Assert.Equal(1, shop.Host.Count(413550012));
+        var reloaded = await shop.Host.Services.GetRequiredService<ICharacterInventoryEntryDomainService>()
+            .LoadAsync(shop.Host.Session.AccountId, shop.Host.Session.CharacterId, default);
+        var avatar = Assert.Single(reloaded.Containers.Single(container => container.ContainerType == InventoryContainerType.Avatar).Items);
+        Assert.Equal(ability, avatar.Core.Attribute);
+        Assert.Equal(days == 0 ? int.MaxValue : shop.Host.Clock.GetUtcNow().AddDays(days).ToUnixTimeSeconds(), avatar.AvatarDetail!.ExpireDate);
+    }
+
     [SkippableFact]
     public async Task Actual_archive_water_purchase_resolves_and_persists_one_item_for_3600()
     {

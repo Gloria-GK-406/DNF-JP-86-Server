@@ -142,8 +142,10 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         if (N(0) <= 0 || N(1) <= 0 || count <= 0) Error("InvalidIdentityOrCount", "Product, item and delivery count must be positive.");
         if (price is not null && (price.Cera < 0 || price.Gold < 0 || price.OtherPayment != 0))
             Error("UnsupportedPayment", "Invalid price or nonzero unknown payment column.");
-        if (isAvatar && N(5) < 0 && (N(3) != 0 || N(4) != 0))
-            Error("UnsupportedPayment", "Negative-price avatar also declares catalog payment fields.");
+        // Avatar rows do not share the standard row's gold/payment columns. The current archive
+        // uses a 0/1 catalog flag here; the selected equipment tier supplies the complete price.
+        if (isAvatar && N(5) < 0 && (N(3) is not (0 or 1) || N(4) != 0))
+            Error("UnsupportedAvatarCatalogFlags", "Unknown avatar catalog flags.");
         if (price is not null && price.Period < 0) Error("InvalidPeriod", "Duration cannot be negative.");
         if (isAvatar && price is not null && avatar is not null && price.RawFields.Length == 7
             && (price.RawFields[4] != 0 || price.RawFields[5] != 0 || price.RawFields[6] != 0))

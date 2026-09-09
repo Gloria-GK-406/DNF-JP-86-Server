@@ -2,6 +2,7 @@ namespace Dfo.Server.Data.Networking;
 
 public enum ClientMessageType
 {
+    GameGenCeraTicket = 0x0001_0041,
     GameCeraShopPurchase = 0x0001_0040,
     GameBuyItem = 0x0001_0015,
     GameSellItem = 0x0001_0016,
@@ -124,6 +125,8 @@ public enum ClientMessageType
 
 public enum ServerMessageType
 {
+    GameGenCeraTicket = 0x0001_0041,
+    GameServerNotice = 0x0000_01F7,
     GameCeraShopPurchase = 0x0001_0040,
     GameBuyItem = 0x0001_0015,
     GameSellItem = 0x0001_0016,

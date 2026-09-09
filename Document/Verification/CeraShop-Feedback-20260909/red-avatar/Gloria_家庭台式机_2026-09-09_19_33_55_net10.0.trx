@@ -1,0 +1,93 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="ba010126-cf82-4015-86e0-4d63a86e863f" name="Gloria@家庭台式机 2026-09-09 19:33:55" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-09T19:33:55.2884471+08:00" queuing="2026-09-09T19:33:55.2884472+08:00" start="2026-09-09T19:33:51.4095342+08:00" finish="2026-09-09T19:33:55.2925148+08:00" />
+  <TestSettings name="default" id="1f7f8fca-4f46-42ee-bf20-fb6ec4c4fb14">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-09_19_33_55" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="242ab52e-fd6f-4c96-a4d8-48d4f33a24ca" testId="9fc43a96-6cb0-17a9-1e61-456835ac0c19" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_knight_avatar_catalog_flag_does_not_override_selected_term_price_or_ability(product: 630020, ability: 2, price: 1980, days: 0)" computerName="家庭台式机" duration="00:00:00.4671665" startTime="2026-09-09T19:33:54.2489852+08:00" endTime="2026-09-09T19:33:54.7078611+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="242ab52e-fd6f-4c96-a4d8-48d4f33a24ca">
+      <Output>
+        <ErrorInfo>
+          <Message>Product 630020: service or UnsupportedPayment: etc/cerashop.etc[avatar]: Negative-price avatar also declares catalog payment fields..</Message>
+          <StackTrace>   at Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_knight_avatar_catalog_flag_does_not_override_selected_term_price_or_ability(Int32 product, Byte ability, Int32 price, Int32 days) in E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\Inventory\CeraShopPurchaseTests.cs:line 33&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="2ef7635a-b0ae-4015-ad92-081319e5700c" testId="7e40a519-6a90-d5ce-2cfb-06d4a23cd3ae" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_knight_avatar_catalog_flag_does_not_override_selected_term_price_or_ability(product: 630019, ability: 4, price: 660, days: 30)" computerName="家庭台式机" duration="00:00:01.1994594" startTime="2026-09-09T19:33:53.0319886+08:00" endTime="2026-09-09T19:33:54.2403662+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2ef7635a-b0ae-4015-ad92-081319e5700c">
+      <Output>
+        <ErrorInfo>
+          <Message>Product 630019: service or UnsupportedPayment: etc/cerashop.etc[avatar]: Negative-price avatar also declares catalog payment fields..</Message>
+          <StackTrace>   at Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_knight_avatar_catalog_flag_does_not_override_selected_term_price_or_ability(Int32 product, Byte ability, Int32 price, Int32 days) in E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\Inventory\CeraShopPurchaseTests.cs:line 33&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="4a3c3e9d-3e2b-477f-888d-762939be8003" testId="12b79755-4934-4c26-a9ca-14a9c57f2bfb" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_knight_avatar_catalog_flag_does_not_override_selected_term_price_or_ability(product: 630018, ability: 0, price: 300, days: 7)" computerName="家庭台式机" duration="00:00:00.5155714" startTime="2026-09-09T19:33:54.7103043+08:00" endTime="2026-09-09T19:33:55.2237793+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4a3c3e9d-3e2b-477f-888d-762939be8003">
+      <Output>
+        <ErrorInfo>
+          <Message>Product 630018: service or UnsupportedPayment: etc/cerashop.etc[avatar]: Negative-price avatar also declares catalog payment fields..</Message>
+          <StackTrace>   at Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_knight_avatar_catalog_flag_does_not_override_selected_term_price_or_ability(Int32 product, Byte ability, Int32 price, Int32 days) in E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\Inventory\CeraShopPurchaseTests.cs:line 33&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_knight_avatar_catalog_flag_does_not_override_selected_term_price_or_ability(product: 630019, ability: 4, price: 660, days: 30)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.application.tests\bin\mergeverification\net10.0\dfo.server.application.tests.dll" id="7e40a519-6a90-d5ce-2cfb-06d4a23cd3ae">
+      <Execution id="2ef7635a-b0ae-4015-ad92-081319e5700c" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\bin\MergeVerification\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="Actual_knight_avatar_catalog_flag_does_not_override_selected_term_price_or_ability" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_knight_avatar_catalog_flag_does_not_override_selected_term_price_or_ability(product: 630018, ability: 0, price: 300, days: 7)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.application.tests\bin\mergeverification\net10.0\dfo.server.application.tests.dll" id="12b79755-4934-4c26-a9ca-14a9c57f2bfb">
+      <Execution id="4a3c3e9d-3e2b-477f-888d-762939be8003" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\bin\MergeVerification\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="Actual_knight_avatar_catalog_flag_does_not_override_selected_term_price_or_ability" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_knight_avatar_catalog_flag_does_not_override_selected_term_price_or_ability(product: 630020, ability: 2, price: 1980, days: 0)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.application.tests\bin\mergeverification\net10.0\dfo.server.application.tests.dll" id="9fc43a96-6cb0-17a9-1e61-456835ac0c19">
+      <Execution id="242ab52e-fd6f-4c96-a4d8-48d4f33a24ca" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\bin\MergeVerification\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="Actual_knight_avatar_catalog_flag_does_not_override_selected_term_price_or_ability" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="9fc43a96-6cb0-17a9-1e61-456835ac0c19" executionId="242ab52e-fd6f-4c96-a4d8-48d4f33a24ca" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7e40a519-6a90-d5ce-2cfb-06d4a23cd3ae" executionId="2ef7635a-b0ae-4015-ad92-081319e5700c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="12b79755-4934-4c26-a9ca-14a9c57f2bfb" executionId="4a3c3e9d-3e2b-477f-888d-762939be8003" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="3" executed="3" passed="0" failed="3" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.54]   Discovering: Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.71]   Discovered:  Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.73]   Starting:    Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:01.95]       Product 630019: service or UnsupportedPayment: etc/cerashop.etc[avatar]: Negative-price avatar also declares catalog payment fields..&#xD;
+[xUnit.net 00:00:01.95]       Stack Trace:&#xD;
+[xUnit.net 00:00:01.96]         E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\Inventory\CeraShopPurchaseTests.cs(33,0): at Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_knight_avatar_catalog_flag_does_not_override_selected_term_price_or_ability(Int32 product, Byte ability, Int32 price, Int32 days)&#xD;
+[xUnit.net 00:00:01.96]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:02.42]       Product 630020: service or UnsupportedPayment: etc/cerashop.etc[avatar]: Negative-price avatar also declares catalog payment fields..&#xD;
+[xUnit.net 00:00:02.42]       Stack Trace:&#xD;
+[xUnit.net 00:00:02.42]         E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\Inventory\CeraShopPurchaseTests.cs(33,0): at Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_knight_avatar_catalog_flag_does_not_override_selected_term_price_or_ability(Int32 product, Byte ability, Int32 price, Int32 days)&#xD;
+[xUnit.net 00:00:02.42]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:02.94]       Product 630018: service or UnsupportedPayment: etc/cerashop.etc[avatar]: Negative-price avatar also declares catalog payment fields..&#xD;
+[xUnit.net 00:00:02.94]       Stack Trace:&#xD;
+[xUnit.net 00:00:02.94]         E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\Inventory\CeraShopPurchaseTests.cs(33,0): at Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_knight_avatar_catalog_flag_does_not_override_selected_term_price_or_ability(Int32 product, Byte ability, Int32 price, Int32 days)&#xD;
+[xUnit.net 00:00:02.94]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:02.94]   Finished:    Dfo.Server.Application.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-09-09T19:33:54.2422957+08:00">
+        <Text>[xUnit.net 00:00:01.95]     Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_knight_avatar_catalog_flag_does_not_override_selected_term_price_or_ability(product: 630019, ability: 4, price: 660, days: 30) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-09-09T19:33:54.7083986+08:00">
+        <Text>[xUnit.net 00:00:02.42]     Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_knight_avatar_catalog_flag_does_not_override_selected_term_price_or_ability(product: 630020, ability: 2, price: 1980, days: 0) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-09-09T19:33:55.2244865+08:00">
+        <Text>[xUnit.net 00:00:02.94]     Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_knight_avatar_catalog_flag_does_not_override_selected_term_price_or_ability(product: 630018, ability: 0, price: 300, days: 7) [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

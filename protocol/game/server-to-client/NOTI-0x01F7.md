@@ -49,5 +49,6 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+2026-09-09 补齐 mode=0 分支：body 为 `u8 mode=0 + i32 UTF-8字节数 + UTF-8文本`。handler RVA `00D838C0` 在 `00D838EE..00D838F7` 读取模式，跳转表 `00D83BCC` 第零项进入 `00D83916`；`00D83940` 调用 dstr reader，之后进入窗口 0x209 的文本提示路径。布局置信度 Confirmed（A21 读取指令及既有 dstr 原语）；其他 mode 不作推断。
+
+服务端复用该布局提供黑钻网页服务不可用提示，保留既有入场拒绝通知字节格式。真实 TCP 测试验证 cmd/type、mode、字节长度、中文内容与后续连接可用性；尚无该提示的实机 UI 观察，不标记 ClientVerified。来源见 [商城反馈复现](../../patterns/data/traces/a21-cera-feedback-20260909.md)。

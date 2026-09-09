@@ -31,6 +31,7 @@ using Dfo.Server.Protocol.Game.FinishLoading;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Dfo.Server.Protocol.Game.BuyItem;
 using Dfo.Server.Protocol.Game.CeraShopPurchase;
+using Dfo.Server.Protocol.Game.GenCeraTicket;
 using Dfo.Server.Protocol.Game.SellItem;
 using Dfo.Server.Protocol.Game.LearnSkill;
 using Dfo.Server.Protocol.Game.ShopPurchaseCount;
@@ -324,6 +325,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<UseStackableHandler>(ClientMessageType.GameUseStackable);
         services.RegisterMessageHandler<BuyItemHandler>(ClientMessageType.GameBuyItem);
         services.RegisterMessageHandler<CeraShopPurchaseHandler>(ClientMessageType.GameCeraShopPurchase);
+        services.RegisterMessageHandler<GenCeraTicketHandler>(ClientMessageType.GameGenCeraTicket);
         services.RegisterMessageHandler<LearnSkillHandler>(ClientMessageType.GameLearnSkill);
         services.RegisterMessageHandler<SellItemHandler>(ClientMessageType.GameSellItem);
         services.RegisterMessageHandler<ShopPurchaseCountHandler>(ClientMessageType.GameShopPurchaseCount);
@@ -488,6 +490,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<BuyItemMessageDecoder>(
             GameProtocol.BuyItemType, ClientMessageType.GameBuyItem);
         services.AddGameCmdMessageDecoder<CeraShopPurchaseMessageDecoder>(0x0040, ClientMessageType.GameCeraShopPurchase);
+        services.AddGameCmdMessageDecoder<GenCeraTicketMessageDecoder>(0x0041, ClientMessageType.GameGenCeraTicket);
         services.AddGameCmdMessageDecoder<ShopPurchaseCountDecoder>(
             GameProtocol.ShopPurchaseCountType, ClientMessageType.GameShopPurchaseCount);
         services.AddGameCmdMessageDecoder<UseStackableDecoder>(
@@ -559,6 +562,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<UseStackableResponse, UseStackableResponseEncoder>();
         services.AddGameCmdMessageEncoder<BuyItemResponse, BuyItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<CeraShopPurchaseResponse, CeraShopPurchaseResponseEncoder>();
+        services.AddGameCmdMessageEncoder<GenCeraTicketUnavailable, GenCeraTicketResponseEncoder>();
+        services.AddGameNotiMessageEncoder<GameServerNoticeMessage, GameServerNoticeEncoder>();
         GameInstanceDelivery.AddEncoders(services);
         services.AddGameCmdMessageEncoder<SellItemResponse, SellItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<LearnSkillResponse, LearnSkillResponseEncoder>();

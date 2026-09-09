@@ -50,7 +50,8 @@
 | `0x01` | `0x001D` | `BUY_SKILL` | Mutation / 有响应 | 实现服务端功能（A21 普通加点，待实机） | [0x001D.md](game/client-to-server/0x001D.md) |
 | `0x01` | `0x0023` | `SET_USER_POSITION` | Report / A12 无响应，A21 推 `NOTI 0x0016` | 实现服务端功能 | [0x0023.md](game/client-to-server/0x0023.md) |
 | `0x01` | `0x003F` | `CERA` | Report / 无响应 | 实现服务端功能 | [0x003F.md](game/client-to-server/0x003F.md) |
-| `0x01` | `0x0040` | `BUY_CERASHOP_ITEM` | Mutation / 有响应 | 实现服务端功能（A21 实体商品，待实机） | [0x0040.md](game/client-to-server/0x0040.md) |
+| `0x01` | `0x0040` | `BUY_CERASHOP_ITEM` | Mutation / 有响应 | 实现服务端功能（A21，宠物蛋实机成功；装扮修复待复测） | [0x0040.md](game/client-to-server/0x0040.md) |
+| `0x01` | `0x0041` | `GEN_CERATICKET` | Query / 有响应 | 实现服务端功能（仅不可用反馈，待实机） | [0x0041.md](game/client-to-server/0x0041.md) |
 | `0x01` | `0x0046` | `CARD_SELECT_RIGHT_STATE` | Query / 有响应；**另在 `0x0045` 的应答之后主动追发一帧** | 实现服务端功能 | [0x0046.md](game/client-to-server/0x0046.md) |
 | `0x01` | `0x0047` | `SELECT_CARD` | Mutation / 有响应（认领不到牌位时不答） | 实现服务端功能 | [0x0047.md](game/client-to-server/0x0047.md) |
 | `0x01` | `0x008F` | `CHANGE_TUTORIAL_FLAG` | Report / 无响应 | 双向验证结束 | [0x008F.md](game/client-to-server/0x008F.md) |
@@ -80,7 +81,9 @@
 | `0x01` CMD | `0x04DD` | `CHECK_USER_CONNECTION` response | Response | 实现服务端功能 | [0x04DD.md](game/client-to-server/0x04DD.md) |
 | `0x00` NOTI | `0x0002` | 角色列表 | Notification | 实现服务端功能 | [NOTI-0x0002.md](game/server-to-client/NOTI-0x0002.md) |
 | `0x01` CMD | `0x0003` | EXIT response | Response | 未知 | — |
-| `0x01` CMD | `0x0040` | `BUY_CERASHOP_ITEM` response | Response | 实现服务端功能（A21 实体商品，待实机） | [CMD-0x0040.md](game/server-to-client/CMD-0x0040.md) |
+| `0x01` CMD | `0x0040` | `BUY_CERASHOP_ITEM` response | Response | 实现服务端功能（A21，宠物蛋实机成功；装扮修复待复测） | [CMD-0x0040.md](game/server-to-client/CMD-0x0040.md) |
+| `0x01` CMD | `0x0041` | `GEN_CERATICKET` response | Response | 实现服务端功能（失败分支，待实机） | [0x0041.md](game/client-to-server/0x0041.md) |
+| `0x00` NOTI | `0x01F7` | `SERVER_NOTICE_MESSAGE` | Notification | 实现服务端功能（mode=0，商城反馈待实机） | [NOTI-0x01F7.md](game/server-to-client/NOTI-0x01F7.md) |
 | `0x00` NOTI | `0x0289` | `HONOR_LEVEL_INFO` | Notification | 实现服务端功能 | [NOTI-0x0289.md](game/server-to-client/NOTI-0x0289.md) |
 | `0x00` NOTI | `0x0003` | `USER_STATE` | Notification | 实现服务端功能 | [NOTI-0x0003.md](game/server-to-client/NOTI-0x0003.md) |
 | `0x00` NOTI | `0x0017` | `USER_AREA` | Notification | 编码器保留，**选副本时不发**——A21 参照只在回城路上发 | [NOTI-0x0017.md](game/server-to-client/NOTI-0x0017.md) |
