@@ -116,6 +116,25 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
     internal static NpcShopItemDefinition ParseItem(PvfArchive archive, int itemId, IReadOnlyList<Section> sections)
     {
         var readable = true;
+        // A gift box's [booster info]/[cera] describes its opening reward, not its purchase cost.
+        var itemSections = new List<Section>();
+        var boosterDepth = 0;
+        foreach (var section in sections)
+        {
+            if (section.Name == "[booster info]")
+                boosterDepth++;
+            else if (section.Name == "[/booster info]")
+            {
+                if (boosterDepth == 0)
+                    readable = false;
+                else
+                    boosterDepth--;
+            }
+            else if (boosterDepth == 0)
+                itemSections.Add(section);
+        }
+        readable &= boosterDepth == 0;
+        sections = itemSections;
         var price = Integer(sections, "[price]", ref readable);
         var correction = Integer(sections, "[add price]", ref readable) ?? 0;
         var durability = Integer(sections, "[durability]", ref readable) ?? 0;

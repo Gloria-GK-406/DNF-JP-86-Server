@@ -1,10 +1,51 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Infrastructure.Content;
+using Dfo.Pvf.Tokens;
 
 namespace Dfo.Server.Infrastructure.Tests.Content;
 
 public sealed class PvfNpcShopDefinitionSourceTests
 {
+    [SkippableTheory]
+    [InlineData(false, false, false)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, true)]
+    public void Only_a_closed_opening_reward_block_is_excluded_from_purchase_conditions(
+        bool insideBooster, bool closed, bool readable)
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var sections = new List<PvfNpcShopDefinitionSource.Section>
+            { new("[price]", [new(PvfTokenKind.Int32, 100)]) };
+        if (insideBooster)
+            sections.Add(new("[booster info]", []));
+        sections.Add(new("[cera]", [new(PvfTokenKind.Int32, 1)]));
+        sections.Add(new("[/cera]", []));
+        if (closed)
+            sections.Add(new("[/booster info]", []));
+        var result = PvfNpcShopDefinitionSource.ParseItem(provider.Archive, 1, sections);
+        Assert.Equal(readable, result.IsReadable);
+        Assert.Equal(100, result.GoldPrice);
+    }
+
+    [SkippableFact]
+    public async Task Resurrection_coin_box_costs_materials_even_though_its_opening_reward_contains_cera()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfNpcShopDefinitionSource(provider);
+        var box = await source.GetItemAsync(490003531, CancellationToken.None);
+
+        Assert.NotNull(box);
+        Assert.True(box.IsReadable);
+        Assert.Null(box.GoldPrice);
+        Assert.Equal(new NpcShopMaterialCost(490003528, 2), Assert.Single(box.Materials));
+        Assert.Equal(new NpcShopPurchaseLimit(NpcShopLimitScope.Account, 10, false), box.Limit);
+        var placement = await new PvfItemPlacementDefinitionSource(provider).GetAsync(490003531, default);
+        Assert.NotNull(placement);
+        Assert.Equal(2, placement.ItemKind);
+    }
+
     [SkippableFact]
     public async Task The_two_sampled_npcs_resolve_their_actual_shop_pages()
     {

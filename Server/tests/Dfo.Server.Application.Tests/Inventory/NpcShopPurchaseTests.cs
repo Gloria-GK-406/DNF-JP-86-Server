@@ -29,6 +29,36 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class NpcShopPurchaseTests
 {
+    [Theory]
+    [InlineData(10, 1, false)]
+    [InlineData(9, 3, false)]
+    [InlineData(9, 1, true)]
+    public async Task Occupied_slots_allow_only_a_purchase_that_fits_completely(
+        int firstPile, int bought, bool fits)
+    {
+        using var shop = new ShopFixture();
+        shop.Content.Items[5000] = shop.Content.Items[5000] with
+            { Limit = new(NpcShopLimitScope.Account, 5, false) };
+        foreach (var slot in new[] { 3, 4, 5, 6, 7, 8, 65, 66 })
+            await shop.Seed(slot, 5000, slot == 3 ? firstPile : 10);
+        await shop.Seed(121, 1000, bought * 5, 3);
+
+        await shop.Buy(5000, bought);
+
+        Assert.Equal(100000 - (fits ? bought * 100 : 0), shop.Gold);
+        Assert.Equal(fits ? 0 : bought * 5, shop.Count(1000));
+        Assert.Equal(70 + firstPile + (fits ? bought : 0), shop.Count(5000));
+        Assert.Equal(fits ? 1 : 0, shop.Scalar("SELECT COUNT(*) FROM npc_shop_purchase_counts"));
+        if (fits)
+            Assert.NotNull(Assert.Single(shop.Sender.Messages.OfType<BuyItemResponse>()).Receipt);
+        else
+        {
+            var failure = Assert.IsType<BuyItemResponse>(Assert.Single(shop.Sender.Messages));
+            Assert.Null(failure.Receipt);
+            Assert.Equal(4, failure.ErrorCode);
+        }
+    }
+
     [Fact]
     public async Task Material_payment_commits_before_the_first_event_delivery()
     {
