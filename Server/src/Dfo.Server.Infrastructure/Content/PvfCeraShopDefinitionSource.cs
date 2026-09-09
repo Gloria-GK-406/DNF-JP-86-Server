@@ -17,6 +17,7 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
     private readonly HashSet<int> serviceItems = [], serviceProducts = [], restricted = [], onlyCera = [], onlyPoint = [];
     private readonly List<CeraShopDiagnostic> contentDiagnostics = [];
     private Dictionary<int, string>? equipment, stackables, creatures;
+    private IReadOnlyList<Section>? avatarAbilityCases;
     private bool loaded;
 
     public ValueTask<CeraShopProductDefinition?> GetProductAsync(int productId, CancellationToken cancellationToken)
@@ -246,17 +247,18 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
             var abilities = ImmutableArray.CreateBuilder<int>();
             foreach (var ability in top.Where(s => s.Name == "[avatar select ability]"))
             {
-                // The supported stat options are index, stat name, operator, numeric value.
-                if (ability.Values.Count % 4 != 0) { Error("UnsupportedAvatarAbilities", "Non-stat option shape."); continue; }
-                for (var i = 0; i < ability.Values.Count; i += 4)
-                {
-                    var v = ability.Values;
-                    if (v[i].Kind != PvfTokenKind.Int32 || v[i].Value is < 0 or > byte.MaxValue
-                        || v[i + 1].Kind != PvfTokenKind.QuotedString || v[i + 2].Kind != PvfTokenKind.QuotedString
-                        || v[i + 3].Kind is not (PvfTokenKind.Int32 or PvfTokenKind.Single))
-                    { Error("UnsupportedAvatarAbilities", "Malformed stat option."); continue; }
-                    abilities.Add(v[i].Value);
-                }
+                var parsed = ParseAvatarAbilities(ability.Values, provider.Archive.ResolveString, path);
+                abilities.AddRange(parsed.Abilities);
+                errors.AddRange(parsed.Diagnostics);
+            }
+            var caseIndex = Number("[ability case index]");
+            if (caseIndex is not null)
+            {
+                avatarAbilityCases ??= Sections("skill/abilitydatas.dat");
+                var parsed = ResolveAvatarAbilityCase(caseIndex.Value, avatarAbilityCases,
+                    provider.Archive.ResolveString);
+                abilities.AddRange(parsed.Abilities);
+                errors.AddRange(parsed.Diagnostics);
             }
             avatar = new(type!, prices.ToImmutable(), abilities.Distinct().ToImmutableArray());
         }
@@ -295,6 +297,47 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
     }
 
     private IReadOnlyList<Section> Sections(string path) => PvfNpcShopDefinitionSource.Sections(provider.Archive, path);
+
+    internal static (ImmutableArray<int> Abilities, ImmutableArray<CeraShopDiagnostic> Diagnostics)
+        ResolveAvatarAbilityCase(int id, IReadOnlyList<Section> sections, Func<int, string> text)
+    {
+        const string source = "skill/abilitydatas.dat";
+        var matches = sections.Select((section, index) => (section, index))
+            .Where(x => x.section.Name == "[ability case]" && x.section.Values.Count > 0
+                && x.section.Values[0].Kind == PvfTokenKind.Int32 && x.section.Values[0].Value == id).ToArray();
+        if (id < 0 || matches.Length != 1 || matches[0].index + 1 >= sections.Count
+            || sections[matches[0].index + 1].Name != "[/ability case]")
+            return ([], [new("UnsupportedAvatarAbilities", source, $"Missing, duplicate or unclosed ability case {id}.")]);
+        return ParseAvatarAbilities(matches[0].section.Values.Skip(1).ToArray(), text, source + $" case={id}");
+    }
+
+    internal static (ImmutableArray<int> Abilities, ImmutableArray<CeraShopDiagnostic> Diagnostics)
+        ParseAvatarAbilities(IReadOnlyList<PvfToken> values, Func<int, string> text, string source)
+    {
+        var abilities = ImmutableArray.CreateBuilder<int>();
+        var seen = new HashSet<int>();
+        var offset = 0;
+        while (offset < values.Count)
+        {
+            if (offset + 4 > values.Count || values[offset].Kind != PvfTokenKind.Int32
+                || values[offset].Value is < 0 or > byte.MaxValue || !seen.Add(values[offset].Value)
+                || values[offset + 1].Kind != PvfTokenKind.QuotedString
+                || values[offset + 2].Kind != PvfTokenKind.QuotedString)
+                break;
+            var skill = text(values[offset + 1].Value) == "[SKILL_LEVEL]";
+            // Stat: option, name, operator, amount. Skill: option, SKILL_LEVEL, job, skill id, levels.
+            if (skill ? offset + 5 > values.Count || values[offset + 3].Kind != PvfTokenKind.Int32
+                    || values[offset + 3].Value < 0 || values[offset + 4].Kind != PvfTokenKind.Int32
+                    || values[offset + 4].Value <= 0
+                : values[offset + 3].Kind is not (PvfTokenKind.Int32 or PvfTokenKind.Single))
+                break;
+            abilities.Add(values[offset].Value);
+            offset += skill ? 5 : 4;
+        }
+        // Do not return a valid prefix if a later option cannot be understood.
+        return offset == values.Count && abilities.Count > 0 ? (abilities.ToImmutable(), [])
+            : ([], [new("UnsupportedAvatarAbilities", source, "Empty, malformed or duplicate avatar option.")]);
+    }
     internal static ImmutableArray<CeraShopDiagnostic> ParseInstanceDeclarations(IEnumerable<Section> sections, string source) =>
         sections.Where(s => s.Name is "[expiration date]" or "[usable period]" or "[trade limit]")
             .Where(s => s.Values.Any(t => t.Kind != PvfTokenKind.Int32 || t.Value != 0))

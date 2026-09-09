@@ -28,3 +28,11 @@ NOTI01F7 直接 reader 与布局见 [协议记录](../../../game/server-to-clien
 ## 回归证据
 
 原始 TRX 位于 [Document/Verification/CeraShop-Feedback-20260909](../../../../Document/Verification/CeraShop-Feedback-20260909)。`red-avatar` 为修复前 3 项实际 PVF 装扮购买失败；`red-ticket` 为未实现0041造成 TCP 测试超时；`green` 为首次定向通过；`full` 为最终完整回归。检查各 TRX 的 UnitTestResult，不把无匹配项目的空 TRX 当成测试通过。
+
+## 21:37 第二次实机与后续修复
+
+同一PVF下，商品650021/650022/650023映射黄色白领丽人上衣413500013，期限/点券为7天450、30天990、永久2970。装备不内联属性，而以 `[ability case index] 1250` 引用 `skill/abilitydatas.dat`；该表token4423为case1250，4434..4438为选项2、`[SKILL_LEVEL]`、`[knight]`、41、1。条目具有稀疏ID，4和39不存在。上述档案读取为Confirmed。
+
+服务端 `server-20260909-194235.stdout.log` 记录 `Item 413500013 has no ability 2.`。补齐公共表读取后三档期限与不同选项的SQLite独立重读测试通过，失败不信任未知选项。黑钻提示被用户确认正常，但退出商城仍受阻：客户端PID41012只读内存中商城+20C20为1，CMD0041失败直接返回，反之CMD0040失败在RVA00D2482D调用0071BF60清理此标记。等待标记为1时RVA00744B85分支跳过商城操作。这是UI等待状态，不是网络未收到失败包。
+
+用户另行批准部署独立A21失败分支兼容DLL。它保留CMD0041原四参数回调和成功行为，仅在失败后清理商城等待标记，不伪造购买/网页票据成功。静态地址、native测试、SQLite异常复检与实际部署说明见 [第二次修复记录](../../../../Document/CeraShop-AbilityCase-20260909.md)。新补丁后的返回商城按钮仍待用户实机验证。

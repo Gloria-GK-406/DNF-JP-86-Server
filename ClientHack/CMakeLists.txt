@@ -318,6 +318,23 @@ clienthack_plugin_a21(plugin_client_compatibility_a21
 clienthack_plugin_a21(plugin_a21_runtime_fix
     plugins/0050_a21_runtime_fix/a21_runtime_fix.c
     "0050_A21RuntimeFix" "A21RuntimeFix")
+# Optional A21-only compatibility repair, built explicitly before manual deployment.
+add_library(plugin_cera_ticket_failure_fix_a21 SHARED EXCLUDE_FROM_ALL
+    plugins/0150_cera_ticket_failure_fix/cera_ticket_failure_fix.c
+    plugins/plugin_entry.c plugins/plugin.def)
+target_include_directories(plugin_cera_ticket_failure_fix_a21 PRIVATE include plugins)
+target_compile_definitions(plugin_cera_ticket_failure_fix_a21 PRIVATE
+    CLIENTHACK_PLUGIN_NAME="CeraTicketFailureFix" CLIENTHACK_PLUGIN_FLAGS=0u)
+clienthack_warnings(plugin_cera_ticket_failure_fix_a21)
+set_target_properties(plugin_cera_ticket_failure_fix_a21 PROPERTIES PREFIX ""
+    OUTPUT_NAME "0150_CeraTicketFailureFix"
+    RUNTIME_OUTPUT_DIRECTORY "${CLIENTHACK_STAGE_DIR_A21}/plugins"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CLIENTHACK_STAGE_DIR_A21}/plugins"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CLIENTHACK_STAGE_DIR_A21}/plugins")
+add_executable(clienthack_cera_ticket_failure_fix_tests tests/test_cera_ticket_failure_fix.c)
+target_include_directories(clienthack_cera_ticket_failure_fix_tests PRIVATE include)
+clienthack_warnings(clienthack_cera_ticket_failure_fix_tests)
+add_test(NAME clienthack_cera_ticket_failure_fix_tests COMMAND clienthack_cera_ticket_failure_fix_tests)
 # Diagnostic, and deliberately NOT required: the recorder exists to explain a
 # failure, so it must never become one. That needs FLAGS=0, which
 # clienthack_plugin_a21() hardcodes to CH_PLUGIN_REQUIRED -- hence the explicit

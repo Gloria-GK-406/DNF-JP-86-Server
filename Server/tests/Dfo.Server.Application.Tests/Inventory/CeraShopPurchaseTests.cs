@@ -21,6 +21,27 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class CeraShopPurchaseTests
 {
     [SkippableTheory]
+    [InlineData(650021, 2, 450, 7)]
+    [InlineData(650022, 0, 990, 30)]
+    [InlineData(650023, 40, 2970, 0)]
+    public async Task Actual_knight_coat_resolves_shared_skill_ability_case_and_persists_selection(
+        int product, byte ability, int price, int days)
+    {
+        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
+        using var shop = new CeraShopFixture(useArchive: true);
+        var result = await shop.Buy(CeraShopTestContent.Entry(product, ability));
+        Assert.True(result.Receipt is not null, result.Detail);
+        Assert.Equal(100000 - price, shop.Cera);
+        Assert.Equal(100000, shop.Host.Gold);
+        var reloaded = await shop.Host.Services.GetRequiredService<ICharacterInventoryEntryDomainService>()
+            .LoadAsync(shop.Host.Session.AccountId, shop.Host.Session.CharacterId, default);
+        var avatar = Assert.Single(reloaded.Containers.Single(container => container.ContainerType == InventoryContainerType.Avatar).Items);
+        Assert.Equal(413500013, avatar.Core.ItemId);
+        Assert.Equal(ability, avatar.Core.Attribute);
+        Assert.Equal(days == 0 ? int.MaxValue : shop.Host.Clock.GetUtcNow().AddDays(days).ToUnixTimeSeconds(), avatar.AvatarDetail!.ExpireDate);
+    }
+
+    [SkippableTheory]
     [InlineData(630018, 0, 300, 7)]
     [InlineData(630019, 4, 660, 30)]
     [InlineData(630020, 2, 1980, 0)]

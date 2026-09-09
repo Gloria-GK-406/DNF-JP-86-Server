@@ -7,6 +7,46 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 public sealed class PvfCeraShopDefinitionSourceTests
 {
     [SkippableFact]
+    public async Task Knight_coat_shared_ability_case_preserves_sparse_option_ids()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var item = await new PvfCeraShopDefinitionSource(provider).GetItemAsync(413500013, default);
+        Assert.NotNull(item?.Avatar);
+        Assert.Empty(item.Diagnostics);
+        Assert.Contains(2, item.Avatar.SelectableAbilities);
+        Assert.Contains(40, item.Avatar.SelectableAbilities);
+        Assert.DoesNotContain(4, item.Avatar.SelectableAbilities);
+        Assert.DoesNotContain(39, item.Avatar.SelectableAbilities);
+    }
+
+    [Fact]
+    public void Shared_avatar_case_requires_one_closed_definition_and_complete_options()
+    {
+        var option = new PvfToken[] { new(PvfTokenKind.Int32, 2), new(PvfTokenKind.QuotedString, 1),
+            new(PvfTokenKind.QuotedString, 2), new(PvfTokenKind.Int32, 41), new(PvfTokenKind.Int32, 1) };
+        string Text(int id) => id == 1 ? "[SKILL_LEVEL]" : "[knight]";
+        var section = new PvfNpcShopDefinitionSource.Section("[ability case]", [new(PvfTokenKind.Int32, 1250), .. option]);
+        var end = new PvfNpcShopDefinitionSource.Section("[/ability case]", []);
+        var valid = PvfCeraShopDefinitionSource.ResolveAvatarAbilityCase(1250, [section, end], Text);
+        Assert.Equal(new[] { 2 }, valid.Abilities);
+        Assert.Empty(valid.Diagnostics);
+        foreach (var sections in new PvfNpcShopDefinitionSource.Section[][] { [], [section], [section, end, section, end] })
+        {
+            var invalid = PvfCeraShopDefinitionSource.ResolveAvatarAbilityCase(1250, sections, Text);
+            Assert.Empty(invalid.Abilities);
+            Assert.NotEmpty(invalid.Diagnostics);
+        }
+        Assert.NotEmpty(PvfCeraShopDefinitionSource.ResolveAvatarAbilityCase(999, [section, end], Text).Diagnostics);
+        foreach (var malformed in new PvfToken[][] { [], option[..4], [.. option, .. option], [.. option, new(PvfTokenKind.Int32, 3)] })
+        {
+            var invalid = PvfCeraShopDefinitionSource.ParseAvatarAbilities(malformed, Text, "test");
+            Assert.Empty(invalid.Abilities);
+            Assert.NotEmpty(invalid.Diagnostics);
+        }
+    }
+
+    [SkippableFact]
     public async Task River_lethe_product_costs_3600_and_delivers_one_item_three()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);

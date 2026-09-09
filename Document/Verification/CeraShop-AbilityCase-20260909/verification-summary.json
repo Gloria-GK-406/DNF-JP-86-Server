@@ -1,0 +1,23 @@
+{
+  "full": {
+    "Passed": 2664,
+    "NotExecuted": 2,
+    "Failed": 1
+  },
+  "application-recheck": {
+    "Passed": 1246
+  },
+  "sqlite-isolated": {
+    "Passed": 1
+  },
+  "staticSignatures": {
+    "0xd1a0f0": "558bec81ec88000000",
+    "0x1f00d10": "8b81ac8f0000c3",
+    "0x71bf60": "c681200c020000c3"
+  },
+  "plugin": {
+    "sha256": "8eba4ebcec12c39da3ff4ff4549e00f659ef4a0d6b9b7acc63053e8974cc9532",
+    "x86": true,
+    "queryExport": true
+  }
+}

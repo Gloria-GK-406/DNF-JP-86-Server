@@ -1,0 +1,19 @@
+Start testing: Sep 09 21:49 中国标准时间
+----------------------------------------------------------
+6/9 Testing: clienthack_cera_ticket_failure_fix_tests
+6/9 Test: clienthack_cera_ticket_failure_fix_tests
+Command: "E:/Project/DNF/DNF-JP-86-Server/ClientHack/out/cera-feedback-win32/Release/clienthack_cera_ticket_failure_fix_tests.exe"
+Directory: E:/Project/DNF/DNF-JP-86-Server/ClientHack/out/cera-feedback-win32
+"clienthack_cera_ticket_failure_fix_tests" start time: Sep 09 21:49 中国标准时间
+Output:
+----------------------------------------------------------
+CERA ticket failure: callback ABI, signatures, failure unlock, success and null-context checks passed
+<end of output>
+Test time =   0.08 sec
+----------------------------------------------------------
+Test Passed.
+"clienthack_cera_ticket_failure_fix_tests" end time: Sep 09 21:49 中国标准时间
+"clienthack_cera_ticket_failure_fix_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Sep 09 21:49 中国标准时间
