@@ -136,6 +136,27 @@ internal sealed class CharacterSkillRule : ICharacterSkillRule
     public long GetSP(int skillLevel) => Cost(skillLevel, tp: false);
     public long GetTP(int skillLevel) => Cost(skillLevel, tp: true);
 
+    public short? FindAvailableSlot(IReadOnlySet<int> occupied)
+    {
+        // Reference ServerS4A21 SkillSlotAllocator; ordinary slots do not infer a special ID mapping.
+        short? Free(int start, int end)
+        {
+            for (var slot = start; slot < end; slot++)
+                if (!occupied.Contains(slot)) return checked((short)slot);
+            return null;
+        }
+        if (definition.IsActive && Job != 9)
+        {
+            var hotkey = Free(0, 6) ?? Free(198, 204);
+            if (hotkey is not null) return hotkey;
+        }
+        var group = definition.IsActive ? 3
+            : definition.RawGroup is >= 0 and <= 3 ? definition.NumberOfGrowTypes <= 2 ? 1 : 0
+            : definition.RawGroup == 4 ? 2 : definition.RawGroup;
+        if (group is < 0 or > 3) group = 0;
+        return Free(6 + group * 48, 54 + group * 48);
+    }
+
     private long Cost(int skillLevel, bool tp)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(skillLevel);

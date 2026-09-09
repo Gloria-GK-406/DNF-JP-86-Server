@@ -1,0 +1,26 @@
+{
+  ".rks-agent/tasks/ordinary-skill-learning/sdd-execution.yaml": {
+    "before": "71b8fb870d2a36d5660181455d52113e38d0dc018f94cc5f046b8750efa2d5ad",
+    "after": "b15cf4d4f9b8b4fafe8d42cd3206217e2e60314147dfff17af6dca202fe1179c"
+  },
+  "Server/src/Dfo.Server.Protocol/Game/LearnSkill/LearnSkillCommand.cs": {
+    "before": "7d8f2463ad8f3701459cf48fe1e0b917768bd69fa6995b916dc040b1e64ead32",
+    "after": "4b26e5f3ca20075503f6927ccf91a6a39c6f9f5c4eb51036f214039cc3334502"
+  },
+  "Server/src/Dfo.Server.Protocol/Game/LearnSkill/LearnSkillMessageDecoder.cs": {
+    "before": "4f0e81c5fd0a88574492a1ead972da8af91518b88304d25042ab2bd98049f34f",
+    "after": "a0aa752e24b9ea851469e25b33d3f06f5d014bbd3bab3f4c9bdd33dc94a10b1f"
+  },
+  "Server/src/Dfo.Server.Protocol/Game/LearnSkill/LearnSkillResponseEncoder.cs": {
+    "before": "f9b7ca54e86e8c5ba7976d10f5b9e1885a9fef081724c07aaa43501f4280ddba",
+    "after": "5425d4468b42a4d907fe292cdec2028af52432d937ec2cbe7217ffc1ce7b3206"
+  },
+  "Server/src/Dfo.Server.Protocol/Game/LearnSkill/Messages.cs": {
+    "before": "f8908c296853d94f873209b1194117a3e83fe7f1db4d779696fd3de697a03c62",
+    "after": "fd1278d5a597f6cafb7582c2eb59fd7fec8c5803dfc8538cb9109673618f395e"
+  },
+  "Server/tests/Dfo.Server.Networking.Tests/Integration/SkillLearningIntegrationTests.cs": {
+    "before": "50e2ec9cdc5c8a109c6ddb4abd32a447138e0a7a6a29bb8118f1402a648049cc",
+    "after": "2567c5379a149e58e0046cb6a69ad739d278804b0c4cb9169cedd5a2a9173e27"
+  }
+}

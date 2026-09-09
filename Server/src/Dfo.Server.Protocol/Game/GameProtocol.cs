@@ -13,6 +13,8 @@ internal static class GameProtocol
     /// </remarks>
     public const int SecretShopNpcId = 1000;
 
+    public const ushort LearnSkillType = 0x001D;
+
     public const ushort LoginType = 0x0001;
 
     public const ushort ReturnToSelectionType = 0x0007;

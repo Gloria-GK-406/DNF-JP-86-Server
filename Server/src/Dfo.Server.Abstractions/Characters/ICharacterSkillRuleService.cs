@@ -16,6 +16,7 @@ public interface ICharacterSkillRule
     long GetSP(int skillLevel);
     long GetTP(int skillLevel);
     int GetFreeLevel(CharacterCareer career, int characterLevel);
+    short? FindAvailableSlot(IReadOnlySet<int> occupied);
 }
 
 public interface ICharacterSkillRuleService

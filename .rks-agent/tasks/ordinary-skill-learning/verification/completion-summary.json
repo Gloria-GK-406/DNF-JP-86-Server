@@ -1,0 +1,234 @@
+{
+  "unique_passed": 2597,
+  "runs": [
+    {
+      "file": "final-Dfo.Pvf.Tests.trx",
+      "results": 60,
+      "outcomes": {
+        "Passed": 60
+      },
+      "sha256": "92d354d94b4f042219e29a736ddfc43b6f916055cba6c832cb75baccab0c2c50"
+    },
+    {
+      "file": "final-Dfo.Server.Application.Tests.trx",
+      "results": 1210,
+      "outcomes": {
+        "Passed": 1210
+      },
+      "sha256": "130a7c1744de43b5a658532315a71043152a5e34c07b45154a1365cb2bd7ae60"
+    },
+    {
+      "file": "final-Dfo.Server.Host.Tests.trx",
+      "results": 6,
+      "outcomes": {
+        "Passed": 6
+      },
+      "sha256": "ce621ac836474e776008fb84c7c25d44f1b0d0ae02161674304ee477d63ceb02"
+    },
+    {
+      "file": "final-Dfo.Server.Infrastructure.Tests.trx",
+      "results": 262,
+      "outcomes": {
+        "NotExecuted": 2,
+        "Passed": 260
+      },
+      "sha256": "77e58c2d6993427b02f64e8bda8766bba3351d8d61007149a754153d6b7cffd0"
+    },
+    {
+      "file": "final-Dfo.Server.Networking.Tests.trx",
+      "results": 53,
+      "outcomes": {
+        "Passed": 53
+      },
+      "sha256": "e135138e0ff25bc841a77001fc194e40990620646e1a1756c9dca9cd70bc2242"
+    },
+    {
+      "file": "final-Dfo.Server.Persistence.Tests.trx",
+      "results": 333,
+      "outcomes": {
+        "Passed": 333
+      },
+      "sha256": "9a140ee735ce0733c063d7a41bc83d3468843eb081cf6d926a8bee9a424c40c9"
+    },
+    {
+      "file": "final-Dfo.Server.Protocol.Tests.trx",
+      "results": 673,
+      "outcomes": {
+        "Passed": 673
+      },
+      "sha256": "6ad8e83e1f43d79d74ba8f7b86ccc24d6582aa549d428e407a134e50d7516978"
+    },
+    {
+      "file": "final-missing-archive.trx",
+      "results": 2,
+      "outcomes": {
+        "Passed": 2
+      },
+      "sha256": "e10391cd41f1c872892abbdb396e3e0566839a546f6b949e3b8550e4ca4d6c1e"
+    }
+  ],
+  "release_binaries": {
+    "Dfo.Server.Host.exe": "2bfd6745a6c4a5dd96f1e2e9810bd806307c10730a6e2e2190599d826407d812",
+    "Dfo.Server.Application.dll": "29c57a2276a676b4f72a2c16f59a73e7e8a93772ba029a23cca50bad4fad9062",
+    "Dfo.Server.Protocol.dll": "d5fb86e6b6537f9351b6211c80abfdacca4e62249191bd303ab2cc6d726c17cc"
+  },
+  "raw_evidence": {
+    "final-Dfo.Pvf.Tests.log": {
+      "sha256": "22567ba1ae7559f0c2b5de0d7937c430f0ae88bebee0e35ae557a1e7e9cc1176",
+      "bytes": 520
+    },
+    "final-Dfo.Pvf.Tests.trx": {
+      "sha256": "92d354d94b4f042219e29a736ddfc43b6f916055cba6c832cb75baccab0c2c50",
+      "bytes": 85890
+    },
+    "final-Dfo.Server.Application.Tests.log": {
+      "sha256": "69548dc0951f947f80bfa0816396c02c74aade84e0df0ee4f08ab90dcf306e35",
+      "bytes": 580
+    },
+    "final-Dfo.Server.Application.Tests.trx": {
+      "sha256": "130a7c1744de43b5a658532315a71043152a5e34c07b45154a1365cb2bd7ae60",
+      "bytes": 1924507
+    },
+    "final-Dfo.Server.Host.Tests.log": {
+      "sha256": "2e8545a3a676c2589c6a250307a4071501197547df15849fed0bcd5edd0721d2",
+      "bytes": 553
+    },
+    "final-Dfo.Server.Host.Tests.trx": {
+      "sha256": "ce621ac836474e776008fb84c7c25d44f1b0d0ae02161674304ee477d63ceb02",
+      "bytes": 10884
+    },
+    "final-Dfo.Server.Infrastructure.Tests.log": {
+      "sha256": "4fa51e70754075065187521553430af5f706947873f85e1200f6219df01c6419",
+      "bytes": 592
+    },
+    "final-Dfo.Server.Infrastructure.Tests.trx": {
+      "sha256": "77e58c2d6993427b02f64e8bda8766bba3351d8d61007149a754153d6b7cffd0",
+      "bytes": 426300
+    },
+    "final-Dfo.Server.Networking.Tests.log": {
+      "sha256": "33e078968e338e97cad5b41c252337b7d83497d428eeace807d41c4b3320a415",
+      "bytes": 576
+    },
+    "final-Dfo.Server.Networking.Tests.trx": {
+      "sha256": "e135138e0ff25bc841a77001fc194e40990620646e1a1756c9dca9cd70bc2242",
+      "bytes": 97090
+    },
+    "final-Dfo.Server.Persistence.Tests.log": {
+      "sha256": "6b7e4f4bb593ae32e2fdc1af9e6f2b09463527fbc87ad91da0b7edef3ae4f09c",
+      "bytes": 581
+    },
+    "final-Dfo.Server.Persistence.Tests.trx": {
+      "sha256": "9a140ee735ce0733c063d7a41bc83d3468843eb081cf6d926a8bee9a424c40c9",
+      "bytes": 544196
+    },
+    "final-Dfo.Server.Protocol.Tests.log": {
+      "sha256": "9b81238436ada1ce72eb81e17b93121f0956b16130e518a367382c55d14741bb",
+      "bytes": 568
+    },
+    "final-Dfo.Server.Protocol.Tests.trx": {
+      "sha256": "6ad8e83e1f43d79d74ba8f7b86ccc24d6582aa549d428e407a134e50d7516978",
+      "bytes": 1073187
+    },
+    "final-missing-archive.log": {
+      "sha256": "79c47b614d3b0e58dbd763ee7338b1831915ee7a74544b526701f60d189073ad",
+      "bytes": 578
+    },
+    "final-missing-archive.trx": {
+      "sha256": "e10391cd41f1c872892abbdb396e3e0566839a546f6b949e3b8550e4ca4d6c1e",
+      "bytes": 4916
+    },
+    "learning-domain-expanded-first.trx": {
+      "sha256": "97dc8df42eec7ccac541c8579b369e0d6c8c70ac9df8401aa24c9b96c8ebeefe",
+      "bytes": 63401
+    },
+    "learning-domain-first-green.trx": {
+      "sha256": "35a1c6ffac2648a32435e4c7876968cd6cb0ee52892d21ecaa157348a25df582",
+      "bytes": 3358
+    },
+    "learning-domain-green.trx": {
+      "sha256": "f3c3968ed584129662cf856da03212a948a1980f871818600ad78146a82cf10c",
+      "bytes": 74132
+    },
+    "learning-domain-red.trx": {
+      "sha256": "593570dc2fa704a4324ba6280c9724261f7b9774e4ecb1f94c09d579e01c9c6b",
+      "bytes": 5722
+    },
+    "learning-domain-regression.trx": {
+      "sha256": "41bba80d1e7781ed270da27742dda2599aff9706607485982e8cc22eeb2c28cc",
+      "bytes": 130575
+    },
+    "learning-integrated-green_net10.0_20260909151016.trx": {
+      "sha256": "7746df67035157e68b81e35743fc4570e59281aafbac37a86a875da59682cd38",
+      "bytes": 1844
+    },
+    "learning-integrated-green_net10.0_20260909151017.trx": {
+      "sha256": "53a48b97ed08eb5363a55bee9089c2c616954038c462be5b99e3973fda90e378",
+      "bytes": 30057
+    },
+    "learning-integrated-green_net10.0_20260909151018.trx": {
+      "sha256": "52fabf8b5779015b9be6f3ef7cf06a34648357fba8adb01a44ceca1566c20222",
+      "bytes": 1904
+    },
+    "learning-integrated-green_net10.0_20260909151019.trx": {
+      "sha256": "66abc00b42554fbe157f9b8a7caac7e1bfed9dedfe2eed0b0de04ce5949502b6",
+      "bytes": 1916
+    },
+    "learning-integrated-green_net10.0_20260909151020.trx": {
+      "sha256": "fb6cdc00dfceae094549a20eab6ce6823a7c36ad7a945f89a5edf2b9b2230f2b",
+      "bytes": 1876
+    },
+    "learning-integrated-green_net10.0_20260909151021.trx": {
+      "sha256": "dd3c8cd5dc93ffd1a4e3e61f6b987a0763336650cf006fe9823f20ebcec13186",
+      "bytes": 4611
+    },
+    "learning-integrated-green_net10.0_20260909151022.trx": {
+      "sha256": "244ab15b3daa2bb7e7f89aa073ce9b03feeb0ab4e1a6e05c47e053fbc8a0aed3",
+      "bytes": 82116
+    },
+    "learning-integrated_net10.0_20260909150959.trx": {
+      "sha256": "20bac61b45116e3192102ec46931030d9db9c4933d21b8673b04847ae9e95dee",
+      "bytes": 30057
+    },
+    "protocol-first-green.trx": {
+      "sha256": "175ec30762cb7a3ed25b4cccfd028d07b3b788518cb19594e8b29cc96a008874",
+      "bytes": 9927
+    },
+    "protocol-red.trx": {
+      "sha256": "afa887dde843d76b9f85335430a50825806dbd683d6a9d1073148d9eb4a3e62d",
+      "bytes": 27520
+    },
+    "release-build.log": {
+      "sha256": "0155b2351392b26a6a6d9a021997c91d6ac97ea23830c4c423ad80bc4c40b872",
+      "bytes": 84
+    },
+    "review-learning_net10.0_20260909151529.trx": {
+      "sha256": "41d6f901979a7b1514bb4f612938342d985d929a4d3e5543371395a7112a88a9",
+      "bytes": 1890
+    },
+    "review-learning_net10.0_20260909151530.trx": {
+      "sha256": "c3d53c26c6eed2b113eed6c2763f491eb998b589ca21a0405408c32610d6f863",
+      "bytes": 30057
+    },
+    "review-learning_net10.0_20260909151531.trx": {
+      "sha256": "52e74c4cd756ea91a566b832392d5303623ef1f643f6d01ae66d4edf2818afb1",
+      "bytes": 1922
+    },
+    "review-learning_net10.0_20260909151532.trx": {
+      "sha256": "cd84039ceb494c19c47f06b9fa5e5b333a93825ef84bf297b9cb04fcae4d6e15",
+      "bytes": 1962
+    },
+    "review-learning_net10.0_20260909151533.trx": {
+      "sha256": "61f080568aafbbbccef531023edef90f92e0f3c6abc4c405d37520a31e2f0ef3",
+      "bytes": 1950
+    },
+    "review-learning_net10.0_20260909151534.trx": {
+      "sha256": "90fa9a319135cedff61951e72d969afb618129d630ce877fffd7ec81a01a05d8",
+      "bytes": 4611
+    },
+    "review-learning_net10.0_20260909151535.trx": {
+      "sha256": "3edf80670fc5b4b0a4bbce812557d05363ba5d37ca818a4596a5500cd061fe5b",
+      "bytes": 101518
+    }
+  },
+  "archive_sha256": "2161109d179aea42250475137533342b4721bf4322cbd8fa54a8aa022d6e054c"
+}

@@ -31,6 +31,7 @@ using Dfo.Server.Protocol.Game.FinishLoading;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Dfo.Server.Protocol.Game.BuyItem;
 using Dfo.Server.Protocol.Game.SellItem;
+using Dfo.Server.Protocol.Game.LearnSkill;
 using Dfo.Server.Protocol.Game.ShopPurchaseCount;
 using Dfo.Server.Protocol.Game.TutorialLevelUp;
 using Dfo.Server.Protocol.Game.UnansweredReports;
@@ -211,6 +212,8 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<UseStackableCommand, ItemUseResult, UseStackableCommandHandler>(
             CommandExecutionKind.Transactional);
+        services.AddCommandHandler<LearnSkillCommand, CharacterSkillLearningResult, LearnSkillCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<SellItemCommand, ItemSaleResult, SellItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<BuyItemCommand, NpcShopPurchaseResult, BuyItemCommandHandler>(
@@ -316,6 +319,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<MoveItemSpaceHandler>(ClientMessageType.GameMoveItemSpace);
         services.RegisterMessageHandler<UseStackableHandler>(ClientMessageType.GameUseStackable);
         services.RegisterMessageHandler<BuyItemHandler>(ClientMessageType.GameBuyItem);
+        services.RegisterMessageHandler<LearnSkillHandler>(ClientMessageType.GameLearnSkill);
         services.RegisterMessageHandler<SellItemHandler>(ClientMessageType.GameSellItem);
         services.RegisterMessageHandler<ShopPurchaseCountHandler>(ClientMessageType.GameShopPurchaseCount);
 
@@ -474,6 +478,7 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.LogConnectProcessType, ClientMessageType.GameLogConnectProcess);
         services.AddGameCmdMessageDecoder<MoveItemSpaceDecoder>(
             GameProtocol.MoveItemSpaceType, ClientMessageType.GameMoveItemSpace);
+        services.AddGameCmdMessageDecoder<LearnSkillMessageDecoder>(GameProtocol.LearnSkillType, ClientMessageType.GameLearnSkill);
         services.AddGameCmdMessageDecoder<SellItemMessageDecoder>(GameProtocol.SellItemType, ClientMessageType.GameSellItem);
         services.AddGameCmdMessageDecoder<BuyItemMessageDecoder>(
             GameProtocol.BuyItemType, ClientMessageType.GameBuyItem);
@@ -548,6 +553,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<UseStackableResponse, UseStackableResponseEncoder>();
         services.AddGameCmdMessageEncoder<BuyItemResponse, BuyItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<SellItemResponse, SellItemResponseEncoder>();
+        services.AddGameCmdMessageEncoder<LearnSkillResponse, LearnSkillResponseEncoder>();
         services.AddGameCmdMessageEncoder<ShopPurchaseCountResponse, ShopPurchaseCountEncoder>();
         services.AddGameCmdMessageEncoder<GetItemResponse, GetItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<TutorialLevelUpResponse, TutorialLevelUpResponseEncoder>();
