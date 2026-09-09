@@ -1,0 +1,269 @@
+id 10007472 -> ect/chn_random/chn_amazingbox_amazinghammer_1ea_10007472.stk
+=== stackable/ect/chn_random/chn_amazingbox_amazinghammer_1ea_10007472.stk ===
+[name]
+幸运魔锤
+[explain]
+可以打开卡恩的命运回响礼盒的锤子。 购买后， 可以获得相同数量的卡恩的命运回响礼盒。
+
+    开启1个卡恩的命运回响礼盒时， 需消耗1个幸运魔锤。
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+2
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[icon]
+Item/stackable/cash_cn.img 1339
+[move wav]
+BONE_TOUCH
+[stackable type]
+[booster] 0
+[booster info]
+[etc]
+1 10007367 1000 1
+[/etc]
+[etc]
+1 10007368 1000 1
+[/etc]
+[/booster info]
+id 10007473 -> ect/chn_random/chn_amazingbox_amazinghammer_5ea_10007473.stk
+=== stackable/ect/chn_random/chn_amazingbox_amazinghammer_5ea_10007473.stk ===
+[name]
+幸运魔锤
+[explain]
+可以打开卡恩的命运回响礼盒的锤子。 购买后， 可以获得相同数量的卡恩的命运回响礼盒。
+
+    开启1个卡恩的命运回响礼盒时， 需消耗1个幸运魔锤。
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+2
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[icon]
+Item/stackable/cash_cn.img 1384
+[move wav]
+BONE_TOUCH
+[stackable type]
+[booster] 0
+[booster info]
+[etc]
+1 10007367 1000 5
+[/etc]
+[etc]
+1 10007368 1000 5
+[/etc]
+[/booster info]
+id 10007474 -> ect/chn_random/chn_amazingbox_amazinghammer_10ea_10007474.stk
+=== stackable/ect/chn_random/chn_amazingbox_amazinghammer_10ea_10007474.stk ===
+[name]
+幸运魔锤
+[explain]
+可以打开卡恩的命运回响礼盒的锤子。 购买后， 可以获得相同数量的卡恩的命运回响礼盒。
+
+    开启1个卡恩的命运回响礼盒时， 需消耗1个幸运魔锤。
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+2
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[icon]
+Item/stackable/cash_cn.img 1385
+[move wav]
+BONE_TOUCH
+[stackable type]
+[booster] 0
+[booster info]
+[etc]
+1 10007367 1000 10
+[/etc]
+[etc]
+1 10007368 1000 10
+[/etc]
+[/booster info]
+id 10007475 -> ect/chn_random/chn_amazingbox_amazinghammer_50ea_10007475.stk
+=== stackable/ect/chn_random/chn_amazingbox_amazinghammer_50ea_10007475.stk ===
+[name]
+幸运魔锤
+[explain]
+可以打开卡恩的命运回响礼盒的锤子。 购买后， 可以获得相同数量的卡恩的命运回响礼盒。
+
+    开启1个卡恩的命运回响礼盒时， 需消耗1个幸运魔锤。
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+2
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[icon]
+Item/stackable/cash_cn.img 1386
+[move wav]
+BONE_TOUCH
+[stackable type]
+[booster] 0
+[booster info]
+[etc]
+1 10007367 1000 50
+[/etc]
+[etc]
+1 10007368 1000 50
+[/etc]
+[/booster info]
+id 10007476 -> ect/chn_random/chn_amazingbox_amazinghammer_60ea_10007476.stk
+=== stackable/ect/chn_random/chn_amazingbox_amazinghammer_60ea_10007476.stk ===
+[name]
+幸运魔锤
+[explain]
+可以打开卡恩的命运回响礼盒的锤子。 购买后， 可以获得相同数量的卡恩的命运回响礼盒。
+
+    开启1个卡恩的命运回响礼盒时， 需消耗1个幸运魔锤。
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+2
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[icon]
+Item/stackable/cash_cn.img 1387
+[move wav]
+BONE_TOUCH
+[stackable type]
+[booster] 0
+[booster info]
+[etc]
+1 10007367 1000 60
+[/etc]
+[etc]
+1 10007368 1000 60
+[/etc]
+[/booster info]
+id 10007477 -> ect/chn_random/chn_amazingbox_amazinghammer_100ea_10007477.stk
+=== stackable/ect/chn_random/chn_amazingbox_amazinghammer_100ea_10007477.stk ===
+[name]
+幸运魔锤
+[explain]
+可以打开卡恩的命运回响礼盒的锤子。 购买后， 可以获得相同数量的卡恩的命运回响礼盒。
+
+    开启1个卡恩的命运回响礼盒时， 需消耗1个幸运魔锤。
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+2
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[icon]
+Item/stackable/cash_cn.img 1388
+[move wav]
+BONE_TOUCH
+[stackable type]
+[booster] 0
+[booster info]
+[etc]
+1 10007367 1000 100
+[/etc]
+[etc]
+1 10007368 1000 100
+[/etc]
+[/booster info]
+id 10007367 -> ect/chn_random/chn_amazinghammer_10007367.stk
+=== stackable/ect/chn_random/chn_amazinghammer_10007367.stk ===
+[name]
+幸运魔锤
+[explain]
+可以打开卡恩的命运回响礼盒的锤子。
+
+    开启1个卡恩的命运回响礼盒时， 需消耗1个幸运魔锤。
+[rarity]
+2
+[grade]
+6
+[attach type]
+[trade]
+[weight]
+10
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[icon]
+Item/stackable/cash_cn.img 1339
+[weight]
+0
+[stackable type]
+[material] 1
+[move wav]
+BOTTLE_TOUCH
+id 10007368 -> ect/chn_random/chn_amazingbox_10007368.stk
+=== stackable/ect/chn_random/chn_amazingbox_10007368.stk ===
+[name]
+卡恩的命运回响礼盒
+[explain]
+使用后， 可以获得2个瞬间移动药剂和1个赛丽亚的幸运。
+
+    使用时， 需消耗1个幸运魔锤。
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+2
+[weight]
+1
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[icon]
+Item/stackable/cash_cn.img 2147
+[field image]
+Item/field_material.img 39
+[weight]
+0
+[stackable type]
+[random upgradable legacy] 1
+[move wav]
+BONE_TOUCH
+[RANDOMBOX]
+[int data]
+2600014 2 0 2600014 18000 2 0 2600014 5000 2 0 2600014 500 2 0 2600014 100 2 0 2600014 1000 2 0 2600014 4000 2 0 2600014 500 2 0 2600014 100 2 0 2600014 500 2 0 2600014 100 2 0 2600014 1000 2 0 2600014 500 2 0 2600014 1500 2 0 2600014 800 2 0 2600014 1000 2 0 2600014 500 2 0 2600014 100 2 0 2600014 700 2 0 2600014 300 2 0 2600014 80 2 0 2600014 2 2 0
+[/int data]
+[int data]
+2682272 1 0 2682272 50000 1 0
+[/int data]
+[sealing removal item]
+2 10007367 1 10007368 1
+[/sealing removal item]
+[/RANDOMBOX]

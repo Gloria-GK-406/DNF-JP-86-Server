@@ -1,0 +1,176 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="ab6dd2b3-a0e7-43e3-9bbf-0561cc9d52d7" name="Gloria@家庭台式机 2026-09-09 22:17:04" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-09T22:17:04.6704434+08:00" queuing="2026-09-09T22:17:04.6704435+08:00" start="2026-09-09T22:17:01.3424140+08:00" finish="2026-09-09T22:17:06.0856304+08:00" />
+  <TestSettings name="default" id="d5f8a254-84ca-4f04-b2b5-3cbc104358a2">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-09_22_17_04" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="5582fe8d-2e55-48a1-978c-7430997ddbd6" testId="174bad3b-1bb0-215f-6686-724941938ba5" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102929, displayItem: 10007476, quantity: 60, cost: 14000)" computerName="家庭台式机" duration="00:00:00.5868551" startTime="2026-09-09T22:17:03.7282061+08:00" endTime="2026-09-09T22:17:04.3124959+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5582fe8d-2e55-48a1-978c-7430997ddbd6">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ&#xD;
+Expected: 60&#xD;
+Actual:   0</Message>
+          <StackTrace>   at Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(Int32 product, Int32 displayItem, Int32 quantity, Int32 cost) in E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\Inventory\CeraShopPurchaseTests.cs:line 40&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="e4ed1252-4f88-433b-b979-a0830614fb52" testId="d3b35df5-9607-b655-d962-e049e794f6db" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102928, displayItem: 10007475, quantity: 50, cost: 11800)" computerName="家庭台式机" duration="00:00:00.5834049" startTime="2026-09-09T22:17:04.8718967+08:00" endTime="2026-09-09T22:17:05.4545824+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e4ed1252-4f88-433b-b979-a0830614fb52">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ&#xD;
+Expected: 50&#xD;
+Actual:   0</Message>
+          <StackTrace>   at Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(Int32 product, Int32 displayItem, Int32 quantity, Int32 cost) in E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\Inventory\CeraShopPurchaseTests.cs:line 40&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="32222f5d-e456-446a-bb50-af0d82cdcac3" testId="22731dd3-2303-4811-6e16-604edf977746" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102927, displayItem: 10007474, quantity: 10, cost: 2380)" computerName="家庭台式机" duration="00:00:00.5754450" startTime="2026-09-09T22:17:05.4554022+08:00" endTime="2026-09-09T22:17:06.0304231+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="32222f5d-e456-446a-bb50-af0d82cdcac3">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ&#xD;
+Expected: 10&#xD;
+Actual:   0</Message>
+          <StackTrace>   at Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(Int32 product, Int32 displayItem, Int32 quantity, Int32 cost) in E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\Inventory\CeraShopPurchaseTests.cs:line 40&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="8ab42b1e-319f-4c2a-bbca-7ca093dc44a3" testId="2eea8a48-594e-2fe6-f696-adebaa375a6f" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102925, displayItem: 10007472, quantity: 1, cost: 300)" computerName="家庭台式机" duration="00:00:01.0108427" startTime="2026-09-09T22:17:02.1336823+08:00" endTime="2026-09-09T22:17:03.1526730+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8ab42b1e-319f-4c2a-bbca-7ca093dc44a3">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ&#xD;
+Expected: 1&#xD;
+Actual:   0</Message>
+          <StackTrace>   at Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(Int32 product, Int32 displayItem, Int32 quantity, Int32 cost) in E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\Inventory\CeraShopPurchaseTests.cs:line 40&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="34f89529-1d25-439e-9db7-df08c29bdc48" testId="4a46931c-eca3-e2d2-8b6d-410d3777f503" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102930, displayItem: 10007477, quantity: 100, cost: 23200)" computerName="家庭台式机" duration="00:00:00.5579223" startTime="2026-09-09T22:17:04.3145628+08:00" endTime="2026-09-09T22:17:04.8708457+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="34f89529-1d25-439e-9db7-df08c29bdc48">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ&#xD;
+Expected: 100&#xD;
+Actual:   0</Message>
+          <StackTrace>   at Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(Int32 product, Int32 displayItem, Int32 quantity, Int32 cost) in E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\Inventory\CeraShopPurchaseTests.cs:line 40&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="2f8b329a-01ae-48ec-a79e-e906ec460b38" testId="29d5f3e6-7952-38c8-3e19-34e261398626" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102926, displayItem: 10007473, quantity: 5, cost: 1200)" computerName="家庭台式机" duration="00:00:00.5722283" startTime="2026-09-09T22:17:03.1613269+08:00" endTime="2026-09-09T22:17:03.7253391+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2f8b329a-01ae-48ec-a79e-e906ec460b38">
+      <Output>
+        <ErrorInfo>
+          <Message>Item 10007473: service or UnsupportedSpecialPurchase: stackable/ect/chn_random/chn_amazingbox_amazinghammer_5ea_10007473.stk: Lucky magic hammer purchase has special behavior..</Message>
+          <StackTrace>   at Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(Int32 product, Int32 displayItem, Int32 quantity, Int32 cost) in E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\Inventory\CeraShopPurchaseTests.cs:line 38&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102929, displayItem: 10007476, quantity: 60, cost: 14000)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="174bad3b-1bb0-215f-6686-724941938ba5">
+      <Execution id="5582fe8d-2e55-48a1-978c-7430997ddbd6" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102927, displayItem: 10007474, quantity: 10, cost: 2380)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="22731dd3-2303-4811-6e16-604edf977746">
+      <Execution id="32222f5d-e456-446a-bb50-af0d82cdcac3" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102925, displayItem: 10007472, quantity: 1, cost: 300)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="2eea8a48-594e-2fe6-f696-adebaa375a6f">
+      <Execution id="8ab42b1e-319f-4c2a-bbca-7ca093dc44a3" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102930, displayItem: 10007477, quantity: 100, cost: 23200)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="4a46931c-eca3-e2d2-8b6d-410d3777f503">
+      <Execution id="34f89529-1d25-439e-9db7-df08c29bdc48" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102928, displayItem: 10007475, quantity: 50, cost: 11800)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="d3b35df5-9607-b655-d962-e049e794f6db">
+      <Execution id="e4ed1252-4f88-433b-b979-a0830614fb52" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102926, displayItem: 10007473, quantity: 5, cost: 1200)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="29d5f3e6-7952-38c8-3e19-34e261398626">
+      <Execution id="2f8b329a-01ae-48ec-a79e-e906ec460b38" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="174bad3b-1bb0-215f-6686-724941938ba5" executionId="5582fe8d-2e55-48a1-978c-7430997ddbd6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d3b35df5-9607-b655-d962-e049e794f6db" executionId="e4ed1252-4f88-433b-b979-a0830614fb52" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="22731dd3-2303-4811-6e16-604edf977746" executionId="32222f5d-e456-446a-bb50-af0d82cdcac3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2eea8a48-594e-2fe6-f696-adebaa375a6f" executionId="8ab42b1e-319f-4c2a-bbca-7ca093dc44a3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4a46931c-eca3-e2d2-8b6d-410d3777f503" executionId="34f89529-1d25-439e-9db7-df08c29bdc48" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="29d5f3e6-7952-38c8-3e19-34e261398626" executionId="2f8b329a-01ae-48ec-a79e-e906ec460b38" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="6" executed="6" passed="0" failed="6" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.33]   Discovering: Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.43]   Discovered:  Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.45]   Starting:    Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:01.49]       Assert.Equal() Failure: Values differ&#xD;
+[xUnit.net 00:00:01.49]       Expected: 1&#xD;
+[xUnit.net 00:00:01.49]       Actual:   0&#xD;
+[xUnit.net 00:00:01.49]       Stack Trace:&#xD;
+[xUnit.net 00:00:01.49]         E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\Inventory\CeraShopPurchaseTests.cs(40,0): at Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(Int32 product, Int32 displayItem, Int32 quantity, Int32 cost)&#xD;
+[xUnit.net 00:00:01.49]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:02.06]       Item 10007473: service or UnsupportedSpecialPurchase: stackable/ect/chn_random/chn_amazingbox_amazinghammer_5ea_10007473.stk: Lucky magic hammer purchase has special behavior..&#xD;
+[xUnit.net 00:00:02.06]       Stack Trace:&#xD;
+[xUnit.net 00:00:02.06]         E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\Inventory\CeraShopPurchaseTests.cs(38,0): at Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(Int32 product, Int32 displayItem, Int32 quantity, Int32 cost)&#xD;
+[xUnit.net 00:00:02.06]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:02.65]       Assert.Equal() Failure: Values differ&#xD;
+[xUnit.net 00:00:02.65]       Expected: 60&#xD;
+[xUnit.net 00:00:02.65]       Actual:   0&#xD;
+[xUnit.net 00:00:02.65]       Stack Trace:&#xD;
+[xUnit.net 00:00:02.65]         E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\Inventory\CeraShopPurchaseTests.cs(40,0): at Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(Int32 product, Int32 displayItem, Int32 quantity, Int32 cost)&#xD;
+[xUnit.net 00:00:02.65]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:03.20]       Assert.Equal() Failure: Values differ&#xD;
+[xUnit.net 00:00:03.20]       Expected: 100&#xD;
+[xUnit.net 00:00:03.20]       Actual:   0&#xD;
+[xUnit.net 00:00:03.20]       Stack Trace:&#xD;
+[xUnit.net 00:00:03.20]         E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\Inventory\CeraShopPurchaseTests.cs(40,0): at Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(Int32 product, Int32 displayItem, Int32 quantity, Int32 cost)&#xD;
+[xUnit.net 00:00:03.20]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:03.79]       Assert.Equal() Failure: Values differ&#xD;
+[xUnit.net 00:00:03.79]       Expected: 50&#xD;
+[xUnit.net 00:00:03.79]       Actual:   0&#xD;
+[xUnit.net 00:00:03.79]       Stack Trace:&#xD;
+[xUnit.net 00:00:03.79]         E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\Inventory\CeraShopPurchaseTests.cs(40,0): at Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(Int32 product, Int32 displayItem, Int32 quantity, Int32 cost)&#xD;
+[xUnit.net 00:00:03.79]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:04.36]       Assert.Equal() Failure: Values differ&#xD;
+[xUnit.net 00:00:04.36]       Expected: 10&#xD;
+[xUnit.net 00:00:04.36]       Actual:   0&#xD;
+[xUnit.net 00:00:04.36]       Stack Trace:&#xD;
+[xUnit.net 00:00:04.36]         E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\Inventory\CeraShopPurchaseTests.cs(40,0): at Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(Int32 product, Int32 displayItem, Int32 quantity, Int32 cost)&#xD;
+[xUnit.net 00:00:04.36]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:04.37]   Finished:    Dfo.Server.Application.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-09-09T22:17:03.1552117+08:00">
+        <Text>[xUnit.net 00:00:01.49]     Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102925, displayItem: 10007472, quantity: 1, cost: 300) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-09-09T22:17:03.7259525+08:00">
+        <Text>[xUnit.net 00:00:02.06]     Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102926, displayItem: 10007473, quantity: 5, cost: 1200) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-09-09T22:17:04.3130058+08:00">
+        <Text>[xUnit.net 00:00:02.65]     Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102929, displayItem: 10007476, quantity: 60, cost: 14000) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-09-09T22:17:04.8718444+08:00">
+        <Text>[xUnit.net 00:00:03.20]     Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102930, displayItem: 10007477, quantity: 100, cost: 23200) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-09-09T22:17:05.4550196+08:00">
+        <Text>[xUnit.net 00:00:03.79]     Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102928, displayItem: 10007475, quantity: 50, cost: 11800) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-09-09T22:17:06.0307517+08:00">
+        <Text>[xUnit.net 00:00:04.36]     Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102927, displayItem: 10007474, quantity: 10, cost: 2380) [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

@@ -203,7 +203,6 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         };
         if (serviceItems.Contains(id) || ServicePath(path)) kind = CeraShopItemKind.Service;
         if (kind == CeraShopItemKind.Unknown) Error("UnknownItemType", "Missing item type declaration.");
-        if (id == 10007473) Error("UnsupportedSpecialPurchase", "Lucky magic hammer purchase has special behavior.");
         var minimum = Number("[restrict buy level cashshop]");
         if (minimum is < 0) Error("MalformedPurchaseLevel", "Negative purchase level.");
         foreach (var section in top)
@@ -213,7 +212,17 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         if (durability is < 0 or > ushort.MaxValue) Error("MalformedItem", "Invalid durability.");
         var components = ImmutableArray.CreateBuilder<CeraShopComponent>();
         var selections = ImmutableArray.CreateBuilder<CeraShopSelectionGroup>();
-        if (kind == CeraShopItemKind.Package)
+        // These six shop wrappers deliver both guaranteed rewards at purchase time.
+        // Other boosters remain inventory items; see protocol/patterns/data/probes/a21-hammer-bundles-20260909.md.
+        if (id is >= 10007472 and <= 10007477)
+        {
+            if (type != "[booster]") Error("MalformedHammerBundle", "Expected a booster shop wrapper.");
+            var parsed = ParseHammerBundle(sections, path);
+            errors.AddRange(parsed.Diagnostics);
+            components.AddRange(parsed.Components);
+            kind = CeraShopItemKind.Package;
+        }
+        else if (kind == CeraShopItemKind.Package)
         {
             foreach (var section in top)
             {
@@ -277,6 +286,37 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         }
         return new(id, path, kind, (ushort)Math.Clamp(durability, 0, ushort.MaxValue), Text("[attach type]") == "[sealing]",
             minimum, components.ToImmutable(), selections.ToImmutable(), avatar, creature, errors.ToImmutable());
+    }
+
+    internal static (ImmutableArray<CeraShopComponent> Components, ImmutableArray<CeraShopDiagnostic> Diagnostics)
+        ParseHammerBundle(IReadOnlyList<Section> sections, string source)
+    {
+        (ImmutableArray<CeraShopComponent>, ImmutableArray<CeraShopDiagnostic>) Invalid() =>
+            ([], [new("MalformedHammerBundle", source, "Expected two equal guaranteed hammer/box rewards in one closed booster section.")]);
+        var starts = sections.Select((section, index) => (section, index))
+            .Where(x => x.section.Name == "[booster info]").ToArray();
+        if (starts.Length != 1 || sections.Count(s => s.Name == "[/booster info]") != 1) return Invalid();
+        var start = starts[0].index;
+        string[] expected = ["[booster info]", "[etc]", "[/etc]", "[etc]", "[/etc]", "[/booster info]"];
+        if (start + expected.Length > sections.Count) return Invalid();
+        var rewards = new Dictionary<int, int>();
+        for (var offset = 0; offset < expected.Length; offset++)
+        {
+            var section = sections[start + offset];
+            if (section.Name != expected[offset]) return Invalid();
+            if (offset is not (1 or 3))
+            {
+                if (section.Values.Count != 0) return Invalid();
+                continue;
+            }
+            var values = section.Values;
+            if (values.Count != 4 || values.Any(t => t.Kind != PvfTokenKind.Int32)
+                || values[0].Value != 1 || values[1].Value is not (10007367 or 10007368)
+                || values[2].Value != 1000 || values[3].Value <= 0
+                || !rewards.TryAdd(values[1].Value, values[3].Value)) return Invalid();
+        }
+        if (rewards[10007367] != rewards[10007368]) return Invalid();
+        return ([new(10007367, rewards[10007367], 0), new(10007368, rewards[10007368], 0)], []);
     }
 
     internal static (ImmutableArray<CeraShopComponent> Components, ImmutableArray<CeraShopDiagnostic> Diagnostics)

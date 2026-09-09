@@ -1,0 +1,64 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="735d29cb-3e25-452c-9262-34667e9887ff" name="Gloria@家庭台式机 2026-09-09 22:17:50" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-09T22:17:50.0256376+08:00" queuing="2026-09-09T22:17:50.0256378+08:00" start="2026-09-09T22:17:48.2119109+08:00" finish="2026-09-09T22:17:52.7970188+08:00" />
+  <TestSettings name="default" id="ecde4fb7-2b72-40d7-9d41-37c7d3eccb71">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-09_22_17_50" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="b239443b-6c82-4950-bea4-4c2f8333b911" testId="174bad3b-1bb0-215f-6686-724941938ba5" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102929, displayItem: 10007476, quantity: 60, cost: 14000)" computerName="家庭台式机" duration="00:00:00.6156074" startTime="2026-09-09T22:17:50.3081909+08:00" endTime="2026-09-09T22:17:50.9233698+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b239443b-6c82-4950-bea4-4c2f8333b911" />
+    <UnitTestResult executionId="8f7fdf7b-b8ac-4509-9af6-55abfd0fcfca" testId="2eea8a48-594e-2fe6-f696-adebaa375a6f" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102925, displayItem: 10007472, quantity: 1, cost: 300)" computerName="家庭台式机" duration="00:00:00.9503770" startTime="2026-09-09T22:17:48.7511799+08:00" endTime="2026-09-09T22:17:49.7064093+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8f7fdf7b-b8ac-4509-9af6-55abfd0fcfca" />
+    <UnitTestResult executionId="8b2f7ea9-51ad-434b-bfaa-96378ec6bff0" testId="d3b35df5-9607-b655-d962-e049e794f6db" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102928, displayItem: 10007475, quantity: 50, cost: 11800)" computerName="家庭台式机" duration="00:00:00.6294276" startTime="2026-09-09T22:17:51.5213643+08:00" endTime="2026-09-09T22:17:52.1507218+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8b2f7ea9-51ad-434b-bfaa-96378ec6bff0" />
+    <UnitTestResult executionId="31aaa99f-04d1-49c1-b198-06eb2b63b0c0" testId="22731dd3-2303-4811-6e16-604edf977746" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102927, displayItem: 10007474, quantity: 10, cost: 2380)" computerName="家庭台式机" duration="00:00:00.5848309" startTime="2026-09-09T22:17:52.1509260+08:00" endTime="2026-09-09T22:17:52.7357368+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="31aaa99f-04d1-49c1-b198-06eb2b63b0c0" />
+    <UnitTestResult executionId="405780a1-750f-46f5-81a1-5eca85ab3401" testId="4a46931c-eca3-e2d2-8b6d-410d3777f503" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102930, displayItem: 10007477, quantity: 100, cost: 23200)" computerName="家庭台式机" duration="00:00:00.5977971" startTime="2026-09-09T22:17:50.9236320+08:00" endTime="2026-09-09T22:17:51.5211736+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="405780a1-750f-46f5-81a1-5eca85ab3401" />
+    <UnitTestResult executionId="88e0c5a4-d083-4fca-b07d-8174f973cc8b" testId="29d5f3e6-7952-38c8-3e19-34e261398626" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102926, displayItem: 10007473, quantity: 5, cost: 1200)" computerName="家庭台式机" duration="00:00:00.6009909" startTime="2026-09-09T22:17:49.7118921+08:00" endTime="2026-09-09T22:17:50.3075302+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="88e0c5a4-d083-4fca-b07d-8174f973cc8b" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102929, displayItem: 10007476, quantity: 60, cost: 14000)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="174bad3b-1bb0-215f-6686-724941938ba5">
+      <Execution id="b239443b-6c82-4950-bea4-4c2f8333b911" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102927, displayItem: 10007474, quantity: 10, cost: 2380)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="22731dd3-2303-4811-6e16-604edf977746">
+      <Execution id="31aaa99f-04d1-49c1-b198-06eb2b63b0c0" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102925, displayItem: 10007472, quantity: 1, cost: 300)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="2eea8a48-594e-2fe6-f696-adebaa375a6f">
+      <Execution id="8f7fdf7b-b8ac-4509-9af6-55abfd0fcfca" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102930, displayItem: 10007477, quantity: 100, cost: 23200)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="4a46931c-eca3-e2d2-8b6d-410d3777f503">
+      <Execution id="405780a1-750f-46f5-81a1-5eca85ab3401" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102928, displayItem: 10007475, quantity: 50, cost: 11800)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="d3b35df5-9607-b655-d962-e049e794f6db">
+      <Execution id="8b2f7ea9-51ad-434b-bfaa-96378ec6bff0" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(product: 102926, displayItem: 10007473, quantity: 5, cost: 1200)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="29d5f3e6-7952-38c8-3e19-34e261398626">
+      <Execution id="88e0c5a4-d083-4fca-b07d-8174f973cc8b" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="174bad3b-1bb0-215f-6686-724941938ba5" executionId="b239443b-6c82-4950-bea4-4c2f8333b911" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2eea8a48-594e-2fe6-f696-adebaa375a6f" executionId="8f7fdf7b-b8ac-4509-9af6-55abfd0fcfca" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d3b35df5-9607-b655-d962-e049e794f6db" executionId="8b2f7ea9-51ad-434b-bfaa-96378ec6bff0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="22731dd3-2303-4811-6e16-604edf977746" executionId="31aaa99f-04d1-49c1-b198-06eb2b63b0c0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4a46931c-eca3-e2d2-8b6d-410d3777f503" executionId="405780a1-750f-46f5-81a1-5eca85ab3401" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="29d5f3e6-7952-38c8-3e19-34e261398626" executionId="88e0c5a4-d083-4fca-b07d-8174f973cc8b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="6" executed="6" passed="6" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.08]   Discovering: Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.19]   Discovered:  Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.21]   Starting:    Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:04.21]   Finished:    Dfo.Server.Application.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

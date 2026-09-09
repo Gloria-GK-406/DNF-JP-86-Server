@@ -21,6 +21,32 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class CeraShopPurchaseTests
 {
     [SkippableTheory]
+    [InlineData(102925, 10007472, 1, 300)]
+    [InlineData(102926, 10007473, 5, 1200)]
+    [InlineData(102927, 10007474, 10, 2380)]
+    [InlineData(102928, 10007475, 50, 11800)]
+    [InlineData(102929, 10007476, 60, 14000)]
+    [InlineData(102930, 10007477, 100, 23200)]
+    public async Task Actual_archive_hammer_purchase_delivers_material_and_equal_boxes_instead_of_the_display_bundle(
+        int product, int displayItem, int quantity, int cost)
+    {
+        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
+        using var shop = new CeraShopFixture(useArchive: true);
+        for (var purchases = 1; purchases <= 2; purchases++)
+        {
+            var result = await shop.Buy(CeraShopTestContent.Entry(product));
+            Assert.True(result.Receipt is not null, result.Detail);
+            Assert.Equal(100000 - cost * purchases, shop.Cera);
+            Assert.Equal(quantity * purchases, shop.Host.Count(10007367));
+            Assert.Equal(quantity * purchases, shop.Host.Count(10007368));
+            Assert.Equal(0, shop.Host.Count(displayItem));
+            var delivered = result.Receipt!.Updates.SelectMany(update => update.Items).ToArray();
+            Assert.Equal(new[] { 10007367, 10007368 }, delivered.Select(item => item.Core.ItemId).Order().ToArray());
+            Assert.All(delivered, item => Assert.Equal(quantity * purchases, item.Core.Value));
+        }
+    }
+
+    [SkippableTheory]
     [InlineData(650021, 2, 450, 7)]
     [InlineData(650022, 0, 990, 30)]
     [InlineData(650023, 40, 2970, 0)]
@@ -60,6 +86,30 @@ public sealed class CeraShopPurchaseTests
         var avatar = Assert.Single(reloaded.Containers.Single(container => container.ContainerType == InventoryContainerType.Avatar).Items);
         Assert.Equal(ability, avatar.Core.Attribute);
         Assert.Equal(days == 0 ? 0 : shop.Host.Clock.GetUtcNow().AddDays(days).ToUnixTimeSeconds(), avatar.AvatarDetail!.ExpireDate);
+    }
+
+    [SkippableFact]
+    public async Task Hammer_bundle_that_only_fits_one_reward_does_not_charge_or_deliver_either_reward()
+    {
+        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
+        using var shop = new CeraShopFixture(useArchive: true);
+        var placements = shop.Host.Services.GetRequiredService<IItemPlacementRuleService>();
+        var hammer = await placements.PlacementForAsync(10007367, default);
+        var box = await placements.PlacementForAsync(10007368, default);
+        Assert.NotNull(hammer);
+        Assert.NotNull(box);
+        var occupied = Enumerable.Range(3, 6)
+            .Concat(Enumerable.Range(hammer.SlotStart, hammer.SlotEnd - hammer.SlotStart + 1))
+            .Concat(Enumerable.Range(box.SlotStart, box.SlotEnd - box.SlotStart + 1))
+            .Distinct().Where(slot => slot != hammer.SlotStart).ToArray();
+        foreach (var slot in occupied) await shop.Host.Seed(slot, 3, 1);
+        var result = await shop.Buy(CeraShopTestContent.Entry(102929));
+        Assert.Equal(CeraShopRejection.NoRoom, result.Rejection);
+        Assert.Null(result.Receipt);
+        Assert.Equal(100000, shop.Cera);
+        Assert.Equal(0, shop.Host.Count(10007367));
+        Assert.Equal(0, shop.Host.Count(10007368));
+        Assert.Equal(occupied.Length, shop.Host.Count(3));
     }
 
     [SkippableFact]

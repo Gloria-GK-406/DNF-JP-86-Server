@@ -206,6 +206,35 @@ public sealed class PvfCeraShopDefinitionSourceTests
         Assert.Equal(7, Assert.Single(timed.Components).UsablePeriod);
     }
 
+    [Fact]
+    public void Hammer_bundle_requires_both_equal_guaranteed_rewards_and_a_closed_section()
+    {
+        PvfNpcShopDefinitionSource.Section[] Bundle(PvfToken[] hammer, PvfToken[] box) =>
+        [
+            new("[booster info]", []), new("[etc]", [.. hammer]), new("[/etc]", []),
+            new("[etc]", [.. box]), new("[/etc]", []), new("[/booster info]", []),
+        ];
+        var valid = Bundle(Numbers(1, 10007367, 1000, 37), Numbers(1, 10007368, 1000, 37));
+        var result = PvfCeraShopDefinitionSource.ParseHammerBundle(valid, "synthetic");
+        Assert.Empty(result.Diagnostics);
+        Assert.Equal(new[] { new CeraShopComponent(10007367, 37, 0), new CeraShopComponent(10007368, 37, 0) }, result.Components);
+        foreach (var malformed in new PvfNpcShopDefinitionSource.Section[][]
+        {
+            [], valid[..5], [.. valid, .. valid],
+            Bundle(Numbers(1, 10007367, 1000, 37), Numbers(1, 10007367, 1000, 37)),
+            Bundle(Numbers(1, 10007367, 500, 37), Numbers(1, 10007368, 1000, 37)),
+            Bundle(Numbers(2, 10007367, 1000, 37), Numbers(1, 10007368, 1000, 37)),
+            Bundle(Numbers(1, 10007367, 1000, 37), Numbers(1, 10007368, 1000, 36)),
+            Bundle(Numbers(1, 10007367, 1000, 0), Numbers(1, 10007368, 1000, 0)),
+            Bundle([new(PvfTokenKind.QuotedString, 1), .. Numbers(10007367, 1000, 37)], Numbers(1, 10007368, 1000, 37)),
+        })
+        {
+            var rejected = PvfCeraShopDefinitionSource.ParseHammerBundle(malformed, "synthetic");
+            Assert.NotEmpty(rejected.Diagnostics);
+            Assert.Empty(rejected.Components);
+        }
+    }
+
     private static PvfToken[] Numbers(params int[] values) => values.Select(x => new PvfToken(PvfTokenKind.Int32, x)).ToArray();
 
     [Fact]

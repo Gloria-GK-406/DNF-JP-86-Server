@@ -1,0 +1,12 @@
+{
+  "red": {
+    "Failed": 6
+  },
+  "focused": {
+    "Passed": 6
+  },
+  "full": {
+    "Passed": 2680,
+    "NotExecuted": 2
+  }
+}
