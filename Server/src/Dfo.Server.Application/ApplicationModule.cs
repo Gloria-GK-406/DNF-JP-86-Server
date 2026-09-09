@@ -205,6 +205,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IItemMovementDomainService, ItemMovementDomainService>();
         services.TryAddSingleton<INpcShopRuleService, NpcShopRuleService>();
         services.TryAddSingleton<INpcShopDomainService, NpcShopDomainService>();
+        services.TryAddSingleton<IItemSaleDomainService, ItemSaleDomainService>();
+        services.TryAddSingleton<IItemSaleRuleService, ItemSaleRuleService>();
         services.TryAddSingleton<IQuestDefinitionDomainService, QuestDefinitionDomainService>();
         services.TryAddSingleton<
             IExperienceValuationDomainService, ExperienceValuationDomainService>();

@@ -3,6 +3,7 @@ namespace Dfo.Server.Data.Networking;
 public enum ClientMessageType
 {
     GameBuyItem = 0x0001_0015,
+    GameSellItem = 0x0001_0016,
     GameShopPurchaseCount = 0x0001_02CC,
     GameLogin = 0x0001_0001,
     GameGetAccountCharacterRoster = 0x0001_0208,
@@ -122,6 +123,7 @@ public enum ClientMessageType
 public enum ServerMessageType
 {
     GameBuyItem = 0x0001_0015,
+    GameSellItem = 0x0001_0016,
     GameShopPurchaseCount = 0x0001_02CC,
     GameInitialConnection = 0x0000_0001,
     GameLogin = 0x0001_0001,

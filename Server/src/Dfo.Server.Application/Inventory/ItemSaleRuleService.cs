@@ -1,0 +1,53 @@
+using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Data.Inventory;
+
+namespace Dfo.Server.Application.Inventory;
+
+internal sealed class ItemSaleRuleService(IItemSaleDefinitionSource prices, INpcShopDefinitionSource shops)
+    : IItemSaleRuleService
+{
+    public async ValueTask<bool> HasShopAsync(int npcId, CancellationToken cancellationToken) =>
+        await shops.GetShopAsync(npcId, cancellationToken).ConfigureAwait(false) is not null;
+
+    public async ValueTask<ItemSaleQuote> QuoteAsync(ContainerSlotItem item, int count, CancellationToken cancellationToken)
+    {
+        if (count <= 0 || count > short.MaxValue || count > item.Count)
+            return new(ItemSaleRejection.InvalidRequest);
+        if (item.Core.EquipmentLockId != 0)
+            return new(ItemSaleRejection.Locked);
+        if (item.WorldClass is not (ItemWorldClass.Equipment or ItemWorldClass.Interchangeable)
+            || item.Core.ExpireTime != 0)
+            return new(ItemSaleRejection.CannotSell);
+        var definition = await prices.GetAsync(item.ItemId, cancellationToken).ConfigureAwait(false);
+        if (definition is not { CanSell: true, Value: >= 0, RatePerThousand: >= 0 })
+            return new(ItemSaleRejection.CannotSell);
+        if (definition.IsEquipment != (item.WorldClass == ItemWorldClass.Equipment))
+            return new(ItemSaleRejection.CannotSell);
+        // Special equipment can select other client price branches. Keep it intact until those
+        // mappings are verified; the ordinary equipment path is backed by the A21 live probe.
+        if (definition.IsEquipment && (item.Core.Attribute != 0 || item.Core.SealFlag != 0
+            || item.Core.AmplifyType != 0 || item.Core.GenuineUpgrade != 0
+            || item.Core.EmancipateEquipmentLevel != 0 || item.Core.RandomOptionState != 0
+            || item.Core.RandomOption0.Type != 0 || item.Core.RandomOption1.Type != 0
+            || item.Core.RandomOption2.Type != 0))
+            return new(ItemSaleRejection.CannotSell);
+
+        // Match A21 RVA 02538230: float32 arithmetic, truncate, then equipment's 90/100.
+        // Rounding the combined percentage or multiplying the pile before truncation differs.
+        float rawGold;
+        if (definition.IsEquipment && definition.MaxDurability != 0)
+            rawGold = (float)definition.RatePerThousand * definition.Value * 0.001f
+                * Math.Min(item.Core.Durability, definition.MaxDurability) / definition.MaxDurability;
+        else
+            rawGold = definition.RatePerThousand * 0.001f * definition.Value;
+        if (!float.IsFinite(rawGold) || (double)rawGold > int.MaxValue)
+            return new(ItemSaleRejection.GoldLimit);
+        var unitGold = (long)rawGold;
+        if (definition.IsEquipment)
+            unitGold = unitGold * 90 / 100;
+        return unitGold > int.MaxValue / count
+            ? new(ItemSaleRejection.GoldLimit)
+            : new(ItemSaleRejection.None, count, (int)(unitGold * count));
+    }
+}

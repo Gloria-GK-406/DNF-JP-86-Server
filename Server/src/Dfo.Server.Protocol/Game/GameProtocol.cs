@@ -227,6 +227,7 @@ internal static class GameProtocol
     public const ushort MoveItemSpaceType = 0x0013;
 
     public const ushort BuyItemType = 0x0015;
+    public const ushort SellItemType = 0x0016;
 
     public const ushort ShopPurchaseCountType = 0x02CC;
 

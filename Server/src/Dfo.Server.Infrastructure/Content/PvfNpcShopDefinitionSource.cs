@@ -196,7 +196,7 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
 
     internal sealed record Section(string Name, List<PvfToken> Values);
 
-    private static IReadOnlyList<Section> Sections(PvfArchive archive, string path)
+    internal static IReadOnlyList<Section> Sections(PvfArchive archive, string path)
     {
         var index = archive.FindFile(path);
         if (index < 0)

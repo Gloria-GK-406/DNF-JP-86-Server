@@ -84,6 +84,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<ITutorialRewardDefinitionSource, PvfTutorialRewardDefinitionSource>();
         services.TryAddSingleton<IItemPlacementDefinitionSource, PvfItemPlacementDefinitionSource>();
         services.TryAddSingleton<INpcShopDefinitionSource, PvfNpcShopDefinitionSource>();
+        services.TryAddSingleton<IItemSaleDefinitionSource, PvfItemSaleDefinitionSource>();
         services.TryAddSingleton<IItemUseRuleDefinitionSource, PvfItemUseRuleDefinitionSource>();
         services.TryAddSingleton(ReadChannelEntryOptions(configuration));
     }

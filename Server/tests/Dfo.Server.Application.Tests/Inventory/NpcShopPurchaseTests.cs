@@ -231,8 +231,11 @@ internal sealed class ShopFixture : IDisposable
     public ShopSender Sender { get; } = new();
     public AdvanceableTimeProvider Clock { get; } = new(new DateTimeOffset(2026, 9, 8, 12, 0, 0, TimeSpan.Zero));
     public SelectedSessionIdentity Session => session;
+    public IServiceProvider Services => provider;
+    public NetworkConnectionContext Connection => connection;
+    public OnlineUserId OnlineUser => onlineUser;
 
-    public ShopFixture()
+    public ShopFixture(Action<IServiceCollection>? configure = null)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
             { ["Database:Path"] = Path.Combine(directory, "shop.db") }).Build();
@@ -246,6 +249,7 @@ internal sealed class ShopFixture : IDisposable
         services.AddSingleton<ICharacterSkillPointDomainService>(new SkillPoints());
         services.AddSingleton<INetworkMessageSender>(Sender);
         services.AddSingleton<TimeProvider>(Clock);
+        configure?.Invoke(services);
         provider = services.BuildServiceProvider();
         _ = provider.GetRequiredService<SqliteDatabase>();
         Sql("INSERT INTO accounts(account_id,m_id,cera) VALUES(1,'shop',77); INSERT INTO characters(character_id,account_id,name,job,level,slot_index) VALUES(1,1,'shop1',12,2,0),(2,1,'shop2',12,2,1); INSERT INTO character_stats(character_id,carried_gold) VALUES(1,100000),(2,100000);");
@@ -271,9 +275,12 @@ internal sealed class ShopFixture : IDisposable
     }
 
     public async Task Seed(int slot, int item, int count, byte kind = 2)
+        => await SeedCore(slot, StackableItemCore.Create(kind, item, count));
+
+    public async Task SeedCore(int slot, InventoryItemCoreState core)
     {
         await using var tx = ((DomainTransactionScope)provider.GetRequiredService<IDomainTransactionAccessor>()).Begin();
-        await bag.PutAsync(slot, StackableItemCore.Create(kind, item, count), default);
+        await bag.PutAsync(slot, core, default);
         await tx.CommitAsync(default);
     }
 
