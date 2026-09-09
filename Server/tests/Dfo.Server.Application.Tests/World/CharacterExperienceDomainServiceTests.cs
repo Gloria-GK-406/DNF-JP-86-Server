@@ -269,6 +269,21 @@ public sealed class CharacterExperienceDomainServiceTests
         Assert.Contains("75", award!.ToString(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task TutorialRequestWithStaleLevelNeverLowersCurrentProgress()
+    {
+        var row = new RecordingCharacterTable(level: 5, experience: 700);
+        var handler = new Dfo.Server.Protocol.Game.TutorialLevelUp.GrantTutorialLevelCommandHandler(Grant(row),
+            new Dfo.Server.Application.Characters.CharacterDomainService(null!, null!, id =>
+                new Dfo.Server.Application.Characters.PlayingCharacter(id, null!, null!, null!, null!, null!, row, null!, null!, null!)));
+        var result = await handler.HandleAsync(null!,
+            new Dfo.Server.Protocol.Game.TutorialLevelUp.GrantTutorialLevelCommand(Character),
+            CancellationToken.None);
+        Assert.Equal(Dfo.Server.Protocol.Game.TutorialLevelUp.TutorialLevelUpStatus.AlreadyPast, result.Status);
+        Assert.Equal(5, (await row.FindProgressAsync(Character, CancellationToken.None))!.Level);
+        Assert.Null(row.LastWrite);
+    }
+
     private static ExperienceValuation Worth(uint amount) => new(amount, []);
 
     private static CharacterExperienceDomainService Grant(ICharacterTable characters) =>

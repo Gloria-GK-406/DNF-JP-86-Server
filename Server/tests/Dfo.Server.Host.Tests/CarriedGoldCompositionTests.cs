@@ -26,7 +26,7 @@ public sealed class CarriedGoldCompositionTests
     [Fact]
     public void The_character_business_acts_through_resolves_from_the_assembled_modules()
     {
-        var services = new ServiceCollection();
+        var services = new ServiceCollection().AddLogging();
         var configuration = new ConfigurationBuilder().Build();
         new PersistenceModule().ConfigureServices(services, configuration);
         new InfrastructureModule().ConfigureServices(services, configuration);
@@ -49,7 +49,7 @@ public sealed class CarriedGoldCompositionTests
     [Fact]
     public void The_carry_cap_rule_and_the_account_cargo_seam_both_resolve()
     {
-        var services = new ServiceCollection();
+        var services = new ServiceCollection().AddLogging();
         var configuration = new ConfigurationBuilder().Build();
         new PersistenceModule().ConfigureServices(services, configuration);
         new InfrastructureModule().ConfigureServices(services, configuration);

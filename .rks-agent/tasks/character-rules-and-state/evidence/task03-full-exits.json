@@ -1,0 +1,37 @@
+[
+  {
+    "Project": "Server/tests\\Dfo.Server.Host.Tests\\Dfo.Server.Host.Tests.csproj",
+    "ExitCode": 1,
+    "Log": ".rks-agent/tasks/character-rules-and-state/evidence/Dfo.Server.Host.Tests-task03-full.log"
+  },
+  {
+    "Project": "Server/tests\\Dfo.Server.Application.Tests\\Dfo.Server.Application.Tests.csproj",
+    "ExitCode": 0,
+    "Log": ".rks-agent/tasks/character-rules-and-state/evidence/Dfo.Server.Application.Tests-task03-full.log"
+  },
+  {
+    "Project": "Server/tests\\Dfo.Server.Infrastructure.Tests\\Dfo.Server.Infrastructure.Tests.csproj",
+    "ExitCode": 0,
+    "Log": ".rks-agent/tasks/character-rules-and-state/evidence/Dfo.Server.Infrastructure.Tests-task03-full.log"
+  },
+  {
+    "Project": "Server/tests\\Dfo.Server.Networking.Tests\\Dfo.Server.Networking.Tests.csproj",
+    "ExitCode": 0,
+    "Log": ".rks-agent/tasks/character-rules-and-state/evidence/Dfo.Server.Networking.Tests-task03-full.log"
+  },
+  {
+    "Project": "Server/tests\\Dfo.Server.Protocol.Tests\\Dfo.Server.Protocol.Tests.csproj",
+    "ExitCode": 0,
+    "Log": ".rks-agent/tasks/character-rules-and-state/evidence/Dfo.Server.Protocol.Tests-task03-full.log"
+  },
+  {
+    "Project": "Server/tests\\Dfo.Pvf.Tests\\Dfo.Pvf.Tests.csproj",
+    "ExitCode": 0,
+    "Log": ".rks-agent/tasks/character-rules-and-state/evidence/Dfo.Pvf.Tests-task03-full.log"
+  },
+  {
+    "Project": "Server/tests\\Dfo.Server.Persistence.Tests\\Dfo.Server.Persistence.Tests.csproj",
+    "ExitCode": 0,
+    "Log": ".rks-agent/tasks/character-rules-and-state/evidence/Dfo.Server.Persistence.Tests-task03-full.log"
+  }
+]

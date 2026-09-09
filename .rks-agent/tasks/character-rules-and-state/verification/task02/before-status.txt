@@ -1,0 +1,15 @@
+ M Server/src/Dfo.Server.Abstractions/Content/CharacterStatContent.cs
+ M Server/src/Dfo.Server.Application/ApplicationModule.cs
+ M Server/src/Dfo.Server.Application/Characters/CharacterCreationRuleService.cs
+ M Server/src/Dfo.Server.Host/Program.cs
+ M Server/src/Dfo.Server.Infrastructure/Content/PvfCharacterStatDefinitionSource.cs
+ M Server/tests/Dfo.Server.Application.Tests/Characters/CharacterLifecycleServiceTests.cs
+ M Server/tests/Dfo.Server.Application.Tests/Characters/CharacterRepositoryProductsTests.cs
+?? .rks-agent/tasks/character-rules-and-state/
+?? Document/CharacterBaseStatRules.md
+?? Server/src/Dfo.Server.Abstractions/Characters/ICharacterStatRuleService.cs
+?? Server/src/Dfo.Server.Application/Characters/CharacterStatRuleService.cs
+?? Server/src/Dfo.Server.Data/Characters/CharacterCareer.cs
+?? Server/src/Dfo.Server.Data/Characters/CharacterStatValues.cs
+?? Server/tests/Dfo.Server.Application.Tests/Characters/CharacterStatArchiveTests.cs
+?? Server/tests/Dfo.Server.Application.Tests/Characters/CharacterStatRuleServiceTests.cs

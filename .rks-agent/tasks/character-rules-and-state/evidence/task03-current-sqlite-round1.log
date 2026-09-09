@@ -1,0 +1,12 @@
+  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+  Dfo.Pvf -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Pvf\bin\Debug\net10.0\Dfo.Pvf.dll
+  Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Data\bin\Debug\net10.0\Dfo.Server.Data.dll
+  Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Abstractions\bin\Debug\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Persistence -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\bin\Debug\net10.0\Dfo.Server.Persistence.dll
+  Dfo.Server.Networking -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Networking\bin\Debug\net10.0\Dfo.Server.Networking.dll
+  Dfo.Server.Application -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Application\bin\Debug\net10.0\Dfo.Server.Application.dll
+  Dfo.Server.Infrastructure -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Infrastructure\bin\Debug\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.Protocol -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Protocol\bin\Debug\net10.0\Dfo.Server.Protocol.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\Characters\CurrentCharacterStateTests.cs(124,22): error CS1503: 参数 1: 无法从“int”转换为“System.DateTime” [E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\Dfo.Server.Application.Tests.csproj]
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\Characters\CurrentCharacterStateTests.cs(124,26): error CS1503: 参数 2: 无法从“uint”转换为“System.DateTime” [E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\Dfo.Server.Application.Tests.csproj]

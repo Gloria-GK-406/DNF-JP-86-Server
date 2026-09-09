@@ -1,0 +1,3314 @@
+[
+  {
+    "Path": "Document\\vmp-agent-next-task.md",
+    "Hash": "14287C51560583246300A7D2444FD29C1F48DF0249C9FF2186990121A0FFBD4A"
+  },
+  {
+    "Path": "Document\\ReturnToSelection-20260908.md",
+    "Hash": "1085F1EA2694B570D554AB76432803F8CA344A380E38E719E45EA289C7845876"
+  },
+  {
+    "Path": "Document\\reply-to-vmp-agent.md",
+    "Hash": "133CCC930E5C3C2FBA5FDF7A73CA77D68B12A0FD77DED53E800F224FF6E0DB5C"
+  },
+  {
+    "Path": "Document\\reply-to-vmp-agent-2.md",
+    "Hash": "100209F82FC7F5EF944B3D92583AE781F5C609C960ED67A56451768F13251E18"
+  },
+  {
+    "Path": "Document\\NpcShopSampling-20260908.md",
+    "Hash": "6220F553EC602D8C9231C77C0996746D11017940A9413D0911EC544A9AEB6A7B"
+  },
+  {
+    "Path": "Document\\NpcShop-20260909.md",
+    "Hash": "BA3B4A11CC6EEE264F267C69F19C9FAD144BFC33EB1DAAAD602625EB118DDF3E"
+  },
+  {
+    "Path": "Document\\ItemSale-20260909.md",
+    "Hash": "05FCCD5FD34B800E8E6CB013B91E9AA554E9D93F997BBF6259573CB6FE06191F"
+  },
+  {
+    "Path": "Document\\CrapMeasurement.md",
+    "Hash": "D6FA2D1920E68A0CCF8163EA4BE5B0ECBB6D1E282F88DA4C804C14501728BCD7"
+  },
+  {
+    "Path": "Document\\CharacterSkillRules.md",
+    "Hash": "AC9806B8DB393041D507970CD13CE7D82A9B6EE5B2875A03A216DF0B0B523585"
+  },
+  {
+    "Path": "Document\\CharacterBaseStatRules.md",
+    "Hash": "ECBF25EBDCF8B9F1266165AF876FF6B35EEEC7AD86B5A1BF85FEAC0B7C9AF36B"
+  },
+  {
+    "Path": "Document\\avatar-container-entry-shape.md",
+    "Hash": "FFAAAD2E553E0DBF7EA2428A1C1F639E377FB134C336E091DEA7B015E05E8B12"
+  },
+  {
+    "Path": "Server\\Directory.Build.props",
+    "Hash": "E1F773524CBE06E47CE9373A35995982889F95F1F943CDE9830A99BA4257E76B"
+  },
+  {
+    "Path": "Server\\86JP.Server.slnx",
+    "Hash": "19BBB9FD932A14C01D4EC3D498FCA6DB6FFD084AAE2AC76D215D7FCE410BE81F"
+  },
+  {
+    "Path": "Server\\Directory.Packages.props",
+    "Hash": "EE1E2EF2EC6470E3FA10415F2A30C0A89620C9048966AF6FA6E27D90F8A5F70D"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Utilities\\Dfo.Server.Utilities.csproj",
+    "Hash": "3702BCD64B09004893C0AFDB530B6B91249DE567D2B8708F8AC16DAB0C9DD561"
+  },
+  {
+    "Path": "Server\\tests\\Directory.Build.props",
+    "Hash": "204D08A62DD3648FBFFBCF5A424CA550F73B1D54E8027249EA3B24B0844BEF21"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\ProtocolModule.cs",
+    "Hash": "34320C83CA235DD05E12D6E69982062E32EF53D8358BB47486032081805DBC47"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Usings.cs",
+    "Hash": "50436EB3A60162E0CFAD749EDDFB06F8908F821A90CA44532DF946A53E071359"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\UseStackable\\UseStackableCodecTests.cs",
+    "Hash": "754E38775679D3BABA492EE7844D839665BE61A6384A0EE41D55F4E2CE97E95A"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\UseStackable\\UseStackableSlice.cs",
+    "Hash": "337FCE706E6E12CDD2ACD6291EC877658DD5F503AD4CD4C0698C7C847FBC19C7"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\UnansweredReports\\UnansweredReportSlices.cs",
+    "Hash": "95280273270D7C5314DD96CAF8916F31980AFE6DC1028C4230374684ECFC3F61"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\TutorialLevelUp\\TutorialLevelUpHandlerTests.cs",
+    "Hash": "E3B2D058DC0BA5BAAAB91BFEDFA16A43A86BE1A61DFB1AF37AD46095EE5444F6"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\TutorialLevelUp\\TutorialLevelUpSlice.cs",
+    "Hash": "00282D7075617E9444131415D1DAC36BB56039C00BA7246B491E2BB81CB2484E"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\TownProjection\\TownProjectionHandlerTests.cs",
+    "Hash": "03BAF3C69CD4DC5282B4C897CD8725A5C8146628AB3D8300E0A58E2BDDB04232"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\TownProjection\\TownProjectionCodecTests.cs",
+    "Hash": "AFFB6ADFB94CFC8A3B017FAD1E2B914D15E085B99C6BF0BEAFA02EBCC17D797D"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\TownProjection\\TownReturnProjection.cs",
+    "Hash": "57A8C699DD3657741F6AE6247D808F76E3CCC6C5B43D9E08CDE77F1CCB626ED1"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\TownProjection\\TownProjectionSlice.cs",
+    "Hash": "28BFC950F482A36622D132759EA7C7A157DFB40AA84D2B46A5066840B12434F9"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\StateSynchronization\\JewelSocketHasOneWireLengthTests.cs",
+    "Hash": "D98759C7F483EFF2A1865BC5201760FD775649FE3E45487A3320CB526931198D"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\StateSynchronization\\InventoryDeltaLiftTests.cs",
+    "Hash": "765D1FFC01EB15ED3AFEA0EF95D7ABD6B694834F9B410410800B0F657B597B1F"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\StateSynchronization\\EntryWriterOptionCountTests.cs",
+    "Hash": "5FA870DAC4DDCFD13D12E8E79F19CD8083752527AB37D1D94B9D30A2A59561D7"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\StateSynchronization\\EntryWriterContainerShapeTests.cs",
+    "Hash": "23641C63AAACE950086B57FDFEAF2FF48C83D8FA89DA89C93EEF91F7999A5A0D"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\StateSynchronization\\EntryWriterAvatarShapeTests.cs",
+    "Hash": "A603B2E9EEB66F16C52942956732871A6D8D737004385C0D5847C012F323C1A6"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\StateSynchronization\\CreatureIdentityFitsTheWireTests.cs",
+    "Hash": "98284E1C10C715DD468FEA97DF89E26B7413004A51031F158DD828B3EBCACE52"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\StateSynchronization\\ContainerInventoryProjectionTests.cs",
+    "Hash": "B223165C0C66DE5F72BE0692690BA1C4F89D4CA75122F011CCEB10FABA2E6C77"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\SmallReportPayloadCodecTests.cs",
+    "Hash": "A3C378087B9B83573835929137184464A3D933B30627E71C6F87684FAD2FF81D"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\TaggedIdReport\\TaggedIdReportPayloadCodec.cs",
+    "Hash": "47E2E00ED3B4DF9CF8940C4A2C039E239F739DEB764FEA76F52864333FE34B94"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\TaggedIdReport\\TaggedIdReportMessageDecoder.cs",
+    "Hash": "ECAC0416AC909479DFCA3152F09373A9027F5BA4E1554D59CF9FDB15E0746A56"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\TaggedIdReport\\TaggedIdReportHandler.cs",
+    "Hash": "F003EE94B0857BAC8D726085494324C1D0C484F4AC49A1907A113AB4047B5126"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\TaggedIdReport\\Messages.cs",
+    "Hash": "F5C747A786B4F4A1FE2AB223D4A7B5A3EF1E162DB0CE5CE193AD3DDE3DE61B1A"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\TaggedIdReport\\GrantTutorialRewardCommand.cs",
+    "Hash": "6D9B7B67A05CD1BEEDE62905CF0BE67BBFF34235737B8BE123418344DBDFABF0"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\SessionMetrics\\SessionMetricsPayloadCodecTests.cs",
+    "Hash": "5215A4406FCECC9F1A58A602C7D50180D794B162217D143B15D720B08455A40C"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\StoryPause\\StoryPauseSlice.cs",
+    "Hash": "13E52877906B7DF86407F493D8CF762D3DADA39EA1E55F0D5C38D3F1E1AFD9BE"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\SellItem\\SellItemCodecTests.cs",
+    "Hash": "F1183893AD8B223AF09C97635B6DD0CEC43ACA5C5744DA1AC96F8844CCCCE59F"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\StateSynchronization\\SupplementalSynchronizationMessages.cs",
+    "Hash": "DF73F347A35C878156A88BBDFD4C232E0337B8AECB2C4317FEF514BE71827B38"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\StateSynchronization\\SupplementalSynchronizationCodec.cs",
+    "Hash": "4A5F9F9E04904E4D6AB6B0103A9A7BB0DE767E9A4DBEBB4A177D3A2656FD7717"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\StateSynchronization\\StateSynchronizationPayloadCodec.Inventory.cs",
+    "Hash": "5006221AEDB78184211F7F445E4C878DD3A11268006B4396483726EEA68628A3"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\StateSynchronization\\StateSynchronizationPayloadCodec.Entry.cs",
+    "Hash": "2CEF7B48A1DB9133079270C4E5CADF750C79FAEB1D7503AF5213D5B5651185B6"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\StateSynchronization\\StateSynchronizationMessages.cs",
+    "Hash": "04D7C713AA92AE83A2AEEA289AF31C7A73FEB33E3A48E175D56F6986750E349B"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\SelectCharacter\\SupplementalSynchronizationTests.cs",
+    "Hash": "E75A405D59A341D95D651A29970594DB494F983AA3034F900F6772ADFAEE7D2B"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\SelectCharacter\\SelectCharacterProductionStateTests.cs",
+    "Hash": "EC77B2FAA9221AC971E871257D61BA1EBCE8911ACE814923EEDB06CCC1CCA9C0"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\SelectCharacter\\SelectCharacterPayloadCodecTests.cs",
+    "Hash": "F75C4EEBBEF502BD6BFAED4ED554F5BFB5B921CFC7285BA556D6004FAF3071BF"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\SelectCharacter\\SelectCharacterAcceptedTranscriptTests.cs",
+    "Hash": "8D4AC37F951EBFB95F49B658001BCAE9464440CF6ECA5AE93E1C6A7F7D404BE3"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\ShopPurchaseCount\\ShopPurchaseCountSlice.cs",
+    "Hash": "DEC29999EC8D5C0958D636947B6EAB2317D2DFBF113E7C27A629423898D70176"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\RosterScreenQueries\\RosterScreenQueryCodecTests.cs",
+    "Hash": "48E5F91373A0FBEEF4304101AA655308D79C52894D606A037A5E5AE3D55C37FF"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\RosterScreenQueries\\MapEntryReportCodecTests.cs",
+    "Hash": "24E12FD613BDB7A8E2935F5DD8F6FD829D6E63F762BC25AA6B26DDDE3457BBC4"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\RosterScreenQueries\\DungeonSelectionWiringTests.cs",
+    "Hash": "B7F99D8260DE78EAE370F45DEF50B7F1242F70F8D882FAC71CE9EC7DDACEF527"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\RosterScreenQueries\\DungeonSelectionCodecTests.cs",
+    "Hash": "5243EF0DDC3F46F9F4BE14CB1608686BAD252C43E1D7D41F3FF44A7AB58E7B8F"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\SessionMetrics\\SessionMetricsPayloadCodec.cs",
+    "Hash": "11F204B1960682C28D9F0BF5A0D6E5A336A63BBD6B5CF56EBB4BE5BF9F817446"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\ReturnToSelection\\ReturnToSelectionTests.cs",
+    "Hash": "D9B783DFD4E57877B6A6A49E86E5D35BA8CCCDD787903FBB3032F9831183A300"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\SessionMetrics\\SessionMetricsMessageDecoder.cs",
+    "Hash": "54590B63D85A460EC2C215BC7A4C989105FC699C28811B25EC9E7F253821ECE4"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\SessionMetrics\\SessionMetricsHandler.cs",
+    "Hash": "586B26D47182B848D26388149E90E0A97DBD857975BDE547080350D16A5FDBF1"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\SessionMetrics\\Messages.cs",
+    "Hash": "6F2E5BF1587C0320B9852D95AB19DC5FEDED6248C43D77DED6A8E0C738D90C56"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\CharacterSelectionDelivery.cs",
+    "Hash": "A032835AC6B3C069FD979A490E28AE75B6017C70299102F1BD07154902254DC5"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\CharacterNameField.cs",
+    "Hash": "7EC286C56353541335C9445EAE4D9BDC21362B4E812177197D39EE2D867375AA"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\ItemPathFrameTests.cs",
+    "Hash": "1283089EFE6BAE95C7D17710A567B562156CF4744680257FF50D9A27B99BAF6C"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\Quests\\QuestOfferRefresherTests.cs",
+    "Hash": "6F7DD2B4409CA9226E4702CBC4D8DBD0DC7179510BF674D2995A1716940AD66A"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\GroundPickup\\GroundPickupSlice.cs",
+    "Hash": "5BF21C4B81D1B622A2FEBC7EE780DC199CD969EA2A4E54A09C513EB10B8BCFD4"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\GameProtocol.cs",
+    "Hash": "5C7375F252EB4B08E0A6A47155F8A3BD488DDCB020E7435C3838B79120729CCC"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\GameMessageSemantics.cs",
+    "Hash": "0970D6069F019EBFFDFCD15F7DF1828DF016C26754250D2B95D12F783C86F958"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\GameInventoryDelivery.cs",
+    "Hash": "C5CA25F9B89A8550705BCF46AF849495518214A6933ACECAE907463496644EB9"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\GameDropIdentity.cs",
+    "Hash": "12F873F0026727890875D20666225D907E1C2C617FC43617A4C764E76EDA8B0F"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\GameCmdEnvelope.cs",
+    "Hash": "B5637CEAF674D35418ED1EE9DF67694612B98C6D867EB37D21690CC397DE2F18"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\SellItem\\SellItemResponseEncoder.cs",
+    "Hash": "B330BD4A71E75CE69FB8447FA658DBB822EF844371A4D8875F7125376B839FDC"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\SellItem\\SellItemMessageDecoder.cs",
+    "Hash": "99E23DA24A840908E314D98630B84471383430CEBA792C3ECA8309079C21F775"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\SellItem\\SellItemHandler.cs",
+    "Hash": "C7A75073190AC87425F843DD2CA0AE6A24E1E2EB3BB7986A2E571CB94B7D8325"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\SellItem\\SellItemCommand.cs",
+    "Hash": "3034FC22A0C56EBD67177B2EDE79B7F6C9F24D1649E28698A8859B9BBCB6792F"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\SellItem\\Messages.cs",
+    "Hash": "EBCE793FE79AE0D97908087CCF0C03E81E09179F58EF7331D2F7225CBE3C60CB"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\SellItem\\ItemSaleCompleted.cs",
+    "Hash": "F423C2BD5F248EDAD4B8B2C5451DE25F0645EBAAFAEE4A4F14427AA3DAEC370C"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\QuestProgress\\SetQuestTriggerPayloadCodecTests.cs",
+    "Hash": "50A80B080B3B84A4B3BFE0A12A3B14517C368B1534430AEFB29EC728AB0D6E88"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\ClientSpecStatistic\\ClientSpecStatisticPayloadCodecTests.cs",
+    "Hash": "0961410BBE8472078EEA888A2FAEE6947D6B15C370A4EE6C88AC5E9196B9EF3B"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\FinishLoading\\FinishLoadingSlice.cs",
+    "Hash": "53040B92EDCBFC80B1A9961655BB1DB1282587BDF4FFAA17981E023AA01EFD45"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\AuctionService\\AuctionServiceSlice.cs",
+    "Hash": "D5FA2BD9D8F3834FBAE4C8323CA1674585B007A015EDDAD9D1727C974F434D3E"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\SelectCharacter\\SelectedCharacterStateMessageFactory.cs",
+    "Hash": "C883294B01E614577F2103BC2D4EDBAB83ADC30E89AD0C6A40387A4491B95006"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\SelectCharacter\\SelectCharacterPhaseCommands.cs",
+    "Hash": "48AFCF3888FE9FF57009D358E5AA4676D68BB639425B01A92DA6170B695A2277"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\SelectCharacter\\SelectCharacterPayloadCodec.cs",
+    "Hash": "0A1108BB76D8897A95252C63E9FC90F7D54EB398A3114B5B02D5BB6BF6CA1DE9"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\SelectCharacter\\SelectCharacterMessageDecoder.cs",
+    "Hash": "5F0EDC882B6596C4AAF0D10A6CBEF8943781483261134ADA6B9754C538710ED7"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\SelectCharacter\\SelectCharacterHandler.cs",
+    "Hash": "975839D09029DEF609526D55E3A7BE0E08098C825BBC1DA6591CF284BE0FF326"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\SelectCharacter\\PvpParticipantPublishedNotification.cs",
+    "Hash": "479F99DDAD27592270B0CE4388D24D2A3C11044207C419258D65C39175F1D6E8"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\SelectCharacter\\Messages.cs",
+    "Hash": "7C421C01F49C660505CB2D1DD505B3B411763061129BDED1F18C17D805ECF8B5"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\QuestCompletion\\FinishQuestPayloadCodecTests.cs",
+    "Hash": "A8E56C4B8F452779F2601B7A51DA8D5654561BC32B22D5E1C59178D27CBB009E"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\QuestCompletion\\FinishQuestHandlerTests.cs",
+    "Hash": "8663C83258B73CFD2C2D025FC4567D5133074E184224BD4CF4FF9B6DE4AF9217"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\QuestCompletion\\FinishQuestCommandHandlerTests.cs",
+    "Hash": "D4147B8100A59E92298CDE5CD42931190ECD009A26975FBC3C6BC0A2AA2C983F"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\InitialConnection\\GameInitialConnectionCodecTests.cs",
+    "Hash": "E47511FA2CA38E5BD160322374A99715131FFF778CE3AA34A3A8149DC6D6C4B1"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\Exit\\Messages.cs",
+    "Hash": "4EF92D83075AEED69297E745E73D0EF85C53CBA3C8F3774D2326CDED39125BA5"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\Exit\\GameExitResponseEncoder.cs",
+    "Hash": "D25CDD86BD52C3D5AD0E7B45D8299209A0051341F2E0547C980EBBA388E334E6"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\Exit\\GameExitMessageDecoder.cs",
+    "Hash": "808108F18E7F8E4E07666EAFC23FE3E54A503DEF92B180432857D02994BC9E23"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\Exit\\GameExitHandler.cs",
+    "Hash": "32834EFB5C9BB2D509BB1A59C71230C200C056D4D6605AFD68EBC69E6AB333E4"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\Exit\\AcknowledgeGameExitCommand.cs",
+    "Hash": "DD8E63C4600EF421CAA4D6DF9B1A237E3DC06C72615E092F35C922AC8EC76B35"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\ClientSpecProfile\\ClientSpecProfilePayloadCodecTests.cs",
+    "Hash": "17663F8A8EA5683A444A73A850D00A4C688BA358936BA7C7A1E35E749B881E05"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\QuestAcceptance\\AcceptQuestPayloadCodecTests.cs",
+    "Hash": "21F8CA697B82E47AC652F2F20D75B96AA0D304347F7BD4264F57FB20A7DAC250"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\QuestAcceptance\\AcceptQuestCommandHandlerTests.cs",
+    "Hash": "D227D614A5C2DFDB5E8807C4AA0A87846B59AB09D117280B5B89C6DB77609424"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Persistence\\Schema\\CharacterDatabaseSchema.cs",
+    "Hash": "49421D6968060777AE62F18F7EBF81CDE7ACEF9F84C1C019E114C45CB9992156"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\DungeonSelection\\DungeonSelectionSlice.cs",
+    "Hash": "7B398F191226F18F1A4A377E24CCC32FF75BCEA5290686F81961F708904E8167"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\BuyItem\\BuyItemHandler.cs",
+    "Hash": "4F95ADE8AB4A333299906EBDFB98F8838731865DFE598E383EB099B7192E41FB"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\BuyItem\\BuyItemCommand.cs",
+    "Hash": "91E25757E4A6A22B4BEE9966EC1AB77721D438E06C99643959D1771E07450E6B"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\AvatarJewelSocketOnTheWire.cs",
+    "Hash": "36C4EF2746F85904D9F6E2F9EB1049C0A2FA65F2C85F9E06B17D0009EA52D7F9"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\BuyItem\\BuyItemResponseEncoder.cs",
+    "Hash": "91767B89022C545E59A874B1BB20A23C95EB052768D760E1D27880F803059131"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\BuyItem\\BuyItemMessageDecoder.cs",
+    "Hash": "7EFCFED02957018164F252BAA7F62B9C4335B8258A6A70EEFFF386F7C8527EB1"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\BuyItem\\Messages.cs",
+    "Hash": "7844500460450BF1DBE37365A0E4DFB2CDAB0E0317066EF835C29B765BCD9942"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\ClientHardwareDetail\\ClientHardwareDetailPayloadCodecTests.cs",
+    "Hash": "21A804C6384853C270D598149D2298C24740A5A33E2D06AC6BAAD61820C23463"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\CleanupNotificationDeliveryTests.cs",
+    "Hash": "F46EFFBF32EFD4CDBAE67AEC944C2442FA1E5F9787EF3EAE6BB292359D90B395"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\AccountRoster\\Messages.cs",
+    "Hash": "E9B627B1EDA9E8705BDDDE51047ECB5845491D7EBD7190C74B0B429E55EA7B5D"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\AccountRoster\\GetUserInfoPayloadCodec.cs",
+    "Hash": "8238C5AE8DC87F40A4B9A755B644B8CE5C5D37F0BC6D550A8C73653A2AF78A95"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\AccountRoster\\GetUserInfoMessageDecoder.cs",
+    "Hash": "8B1E62B14973B9CB350B68B0D46529EB139AB2094BE8C3D07E48142D44C781AE"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\AccountRoster\\GetAccountCharacterRosterHandler.cs",
+    "Hash": "B535063078866853D049883FBE3F8FD4BE24327166DF3E5FC3CE6DB26F7C47FE"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\AccountRoster\\GetAccountCharacterRosterCommand.cs",
+    "Hash": "35DE5F0E2CEC2FE0BD132A9A89446098C9CCAA2B446F40E006CF61DF4E5AC2B0"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\AccountRoster\\AccountCharacterRosterResponseEncoder.cs",
+    "Hash": "987016F30C7974D431EAF4DF2B2F56E996765B02BBC0248FA24C9D5888F0D167"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\AccountRoster\\AccountCharacterRosterPayloadCodec.cs",
+    "Hash": "24F02F61B065B071F04AC3164A5484825F6AA7C775E141B5C24F993A1C94B024"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Dfo.Server.Protocol.csproj",
+    "Hash": "4A916D830CA828AA72D1F74C07E1E57A636EF14922F8BFCA4F12F15C6F80AFDD"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\BuyItem\\NpcShopPurchaseCompleted.cs",
+    "Hash": "563A4FBC1396118A9F6ACEDAFECDF82B3FEC5399FF9C206B9A22AA5D3583D956"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\GroundPickup\\GroundPickupTests.cs",
+    "Hash": "E5AD69B2817C28C4B62CFDE4EB4EBC725EE7B2312838AC2703518D9696B67EF3"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\GroundPickup\\GroundPickupCodecTests.cs",
+    "Hash": "A47B7C60D2FE206A22EDD89BCB077418F1A0885F84F86BF7255D3C15B1B72B73"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\DungeonEntry\\FloorPieces.cs",
+    "Hash": "9947ED1D014C54D063BC1F10BA4FED6AE85F3A6C616935CB8736A3E196C56D89"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\DungeonEntry\\DungeonEntrySlice.cs",
+    "Hash": "50E3A5BC4FC4775FA72796FD08439745E8F35858D33B6696C29F152215399B7D"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\CharacterLifecycle\\CharacterLifecyclePayloadCodecTests.cs",
+    "Hash": "5C022C1C61D52E2575FB241445804212AFCB06AF611D5B178ECDC3098CBA8CDB"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\CarriedGoldStandIns.cs",
+    "Hash": "099C2D3D92AB3DA2190BEC390AEBF9FA8311BD9EA7A5CC803463A901724D59E7"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\FinishLoading\\FinishLoadingCodecTests.cs",
+    "Hash": "CEBA3ECD784D8F0AC62ECDA479B63EB5AF33DE66217535E8B2250A4844156E45"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\ExperienceFrameStandIns.cs",
+    "Hash": "E92C303B3885B0152404E988772FEA72F201A70784BA2C36D36788AF11336822"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\MonsterDeath\\MonsterDeathHandlerTests.cs",
+    "Hash": "0580FDA38F76F9CE57CB44204DAF923B2C6DEB68FDA84155A6544B694995F864"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\MonsterDeath\\MonsterDeathCodecTests.cs",
+    "Hash": "02F377F48490F0303BDFDE8A03FD64FF33F461583F31BB917299E51731C97E92"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\MonsterDeath\\GrantKillExperienceCommandTests.cs",
+    "Hash": "F43B57934E05C0C46ACB31AD59E67CDFC5F6E5CDC12004347D6C1E7EF907BBF6"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Persistence\\Quests\\SqliteQuestDomainStore.cs",
+    "Hash": "8BD321911D20EDE2D03436B05F82A93E8C8CA61D045436CC119A2F4749B0BE98"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Persistence\\PersistenceModule.cs",
+    "Hash": "D41E5693AE6D3ECA995E148D67404E88E63C3860B9880293FB782EF02513AA68"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\CardReward\\CardRewardTests.cs",
+    "Hash": "14D7A78FBA61F997C4E8D350EE51C220D666CE26B21FDB5F3399DFDC52EFF301"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\CardPanelFrameReader.cs",
+    "Hash": "D5B5870B14314CBE739A3272A6E410B64AFC9D2BD9644D6A2765A007CED73051"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\SaveGameOption\\SaveGameOption1Slice.cs",
+    "Hash": "C31C33365AA55074BCE3F55961BB52F19DDD7A0144DA49AC0EA10600B263CA4B"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\MoveItemSpace\\TheCharacterChangesAsYouDressItTests.cs",
+    "Hash": "D39E30AD1D911F6008DCFB28BE8D2149BF16837991A29E2B2C15C27A2AF6A90E"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\MoveItemSpace\\TheAvatarBagIsServedTests.cs",
+    "Hash": "C3A7934701F5DD2A5ACAF692C51222FB71472D2BD43559B9523A40D28F126650"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\MoveItemSpace\\RefusedEquipIsRecordedWithItsTemplateTests.cs",
+    "Hash": "54EB166854C3DAE1E6EE0CFE541A2ECA7325B37EF803FDA78BD0B54013D723F1"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\MoveItemSpace\\MoveItemSpaceCodecTests.cs",
+    "Hash": "1FBD3B3967BF9F3625DAA12A373FEDAE7E7A29959138AFF1AF475046708F9F5A"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\MoveItemSpace\\EitherEndMayBeHoldingItTests.cs",
+    "Hash": "5EB2839FAF771D8CEC905A147FB243CCEE6726B6004DEBB2F030BD21682C0645"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Channel\\ChannelProtocolKeyProvider.cs",
+    "Hash": "EEFF89C1A2ACE4472DFB410C409CD9A66263B79053F4407E0890336D473D3B38"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Channel\\ChannelProtocol.cs",
+    "Hash": "5AE136683C3360518E3D1C2B8DC96CCE9FE725F6C9251203129018EB4714D4D6"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Channel\\ChannelEncryptedFrame.cs",
+    "Hash": "D2DB3A2861257587C6DF7DC84A6C7767F05FE38431AC018CACCCFEC155A2BE89"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\Login\\GameLoginCodecTests.cs",
+    "Hash": "8B4A68F24EB0CD4AAA7EC80E356E8B088DE920012F291D351472323F0978BCBE"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\ItemRefusalCodeTests.cs",
+    "Hash": "0C589070CE580194906CF8D7BE34BAA567A0DDC763177673BB7F16E0D0184F8A"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\ItemPathLiveTests.cs",
+    "Hash": "004D14DE31E7686234401D06AFD2FA26070A1D3DA4C251B4B82574DEB5F2588C"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\CharacterName\\Messages.cs",
+    "Hash": "E0BAD81101241DE49C52B685CE23FFE5E6AC3B77B587BBDD1252C5187DD9CB84"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\CharacterName\\CheckCharacterNameSlice.cs",
+    "Hash": "3C1973ED278FB6F2F44AC5F63CACEB9F0D50EB4CB619D576937BC28DACCF213B"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\DungeonEntry\\UnaccountedFatigueTests.cs",
+    "Hash": "C979AD43577DD9BC9AF44DF5EC5ECD0447C17EDE71FA97D7A5171FCCC45A510A"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\DungeonEntry\\SelectDungeonHandlerTests.cs",
+    "Hash": "C7B0F7CE24D901F3932D57C8CBF11B240EA4D814D68B7EA12F76EC0ABC05892B"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\DungeonEntry\\DungeonEntryCodecTests.cs",
+    "Hash": "9FF0A07AB9F02DB7AF65F963D94607EC2E5BBDDDC7679A3D6AE9CDEC2D734C69"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Data\\World\\WorldEntryModels.cs",
+    "Hash": "B9C9C689AD3B2FFE0D93C65026FDAE3F7B8215A4A05EDCD069D20CE912468894"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Data\\World\\SessionEntryModels.cs",
+    "Hash": "217F2695EEEF018A8E69881707FB073957FB7113F7AD9B052048CDD021C3A9A6"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Data\\World\\SelectedSessionModels.cs",
+    "Hash": "7FAA1553FA37B31173508F32161074AFB6D65E32DB446923388CB74A04DF7607"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\BuyItem\\BuyItemCodecTests.cs",
+    "Hash": "7F89898BB07E7FAE690A69B0DD543BEF20E57558CF752FC26CC5A7E066B1DE04"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\CardReward\\SelectCardCommand.cs",
+    "Hash": "21F29AAEBE193E6712F198704A9135206D2576126F2AE58D6071143BB79E3739"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\CardReward\\Messages.cs",
+    "Hash": "E2794C55537251583E58828348CF5259CAA8B69E7B8BAFC3AAC942E5946944A8"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\CardReward\\CardRewardResponseEncoders.cs",
+    "Hash": "BC90E2E71C3FD81CEADBB92AEEEEAA6F61DF2949AD70A59062513A154446A007"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\CardReward\\CardRewardPayloadCodec.cs",
+    "Hash": "DF2938EE23F524455B4DAC44CECB7CD07CAB69269F1A96146BFAD25D6BDCFAF8"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\CardReward\\CardRewardMessageDecoders.cs",
+    "Hash": "FD228AFFB1C1DCE2CCA4A1F567EA9EE7D837A3D51494BFB8BC2A26AD15C31B1C"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\CardReward\\CardRewardHandlers.cs",
+    "Hash": "85B1F8B42918A7026AD066022C146FAA0C9F53FC27C30B5CCF2F006C900AF7F8"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Persistence\\Inventory\\SqliteItemDomainStore.cs",
+    "Hash": "C3684920E553AF2B1A897E76683B7C4E2625C688D6F97CBA6B4A21B52676D09F"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Persistence\\Inventory\\NpcShopPurchaseTable.cs",
+    "Hash": "3E24CBEA4426E0B8E4EBF0965F3C05A9B4464B3A342D703E6C6DA41013720CD2"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Persistence\\Inventory\\InventoryStateTables.cs",
+    "Hash": "48EABBBF20AD5044EF0448517321630C4E67FDE18CBB22E2913BC0D2981009C9"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Persistence\\Inventory\\InventoryItemTables.cs",
+    "Hash": "F1C5CB3529D23150BCD0CAF568F19B19EA8C58BD609089A36863530E17402677"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Persistence\\Inventory\\InventoryItemCore.cs",
+    "Hash": "4F4E5893D04C57F6DC0F28AAC1635ECF5A3E9456402D76D103A8E0A63325799F"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Persistence\\Dfo.Server.Persistence.csproj",
+    "Hash": "6AD135ADC1952E134EAF02CD0745B4C3EA12C67B123E524F904E381FF4C346EA"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Channel\\ScriptVersion\\Messages.cs",
+    "Hash": "8C29A32FF75F61557EF2F5040B1635AB8AFA01986CED922A6EF75826A3509326"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Channel\\ScriptVersion\\GetChannelScriptVersionCommand.cs",
+    "Hash": "B250671CC467244DDFBF2E56F18D4BF512864CBEE63C2614420DB3BC52BF9B9B"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Channel\\ScriptVersion\\ChannelScriptVersionResponseEncoder.cs",
+    "Hash": "220D87CC04F96F9AF111F23BB414B62E4D0FAA311C9844E7C1F42A230A576BC3"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Channel\\ScriptVersion\\ChannelScriptVersionMessageDecoder.cs",
+    "Hash": "5996512664F995E264E09461286A79F019A2B638AA59DCAD8CAE7AD92B01B23C"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Channel\\ScriptVersion\\ChannelScriptVersionHandler.cs",
+    "Hash": "E140D1C0F919B0B3780324F62BB4B8CE61E95D920F1CDA028C1433D5EA00DF1F"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\RosterFollowUp\\RosterFollowUpPayloadCodec.cs",
+    "Hash": "304E36FA6D45472173DAC74CFC1009DDEB0294B150EDC3CB1666E8C112372A7F"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\RosterFollowUp\\RosterFollowUpMessageDecoder.cs",
+    "Hash": "5AD62826016E2E54731D48C5EC2296A4F4FB326CD72433C87BC08817BBA52000"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\RosterFollowUp\\RosterFollowUpHandler.cs",
+    "Hash": "1889299C86C7576A6E333D448FEDED5B65A1F9BE47C8657FE5954DFFC4BC6BA6"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\RosterFollowUp\\Messages.cs",
+    "Hash": "C675786EA4E82D5A8EFA100B17C8D3C8FBEBA002904DAC5CB355603063B274B6"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\MonsterDeath\\MonsterDeathSlice.cs",
+    "Hash": "25007032DCAC02803533EE958863733E7913C9E7F44A4CC7144F3D86C52FE329"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\MonsterDeath\\GrantKillExperienceCommand.cs",
+    "Hash": "1335FF04BE224A1FAC2576D8B9F55DB2A03EC573EA698AC9B001022E46A32D00"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\AccountRoster\\GetUserInfoPayloadCodecTests.cs",
+    "Hash": "6B21A19C897E9A2C40D061F3D7DB7E4B0EFB1A69411B2A743C334BFDEF832B4B"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\AccountRoster\\BothScreensDrawTheSameCharacterTests.cs",
+    "Hash": "D7AA77EE5A0F2B5028363970683288804F62E76C67C0A769E144FE7361D21B52"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\AccountRoster\\AccountCharacterRosterCodecTests.cs",
+    "Hash": "6589C4A0586966EEC34C1B7F0DB8332E88C66E69DC1D7C5A87CF43D2D5585D15"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Dfo.Server.Protocol.Tests.csproj",
+    "Hash": "EAB3A5CD1FA07F7CBAA3D44E6B703596B5EF60D65076AF404A829FC01B5B583C"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\DungeonClear\\ResultScreenSlice.cs",
+    "Hash": "363181863D909C4F728CF5DE99B2862544794098F112918062A4DDCBA98AB5C8"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\DungeonClear\\LeaveDungeonSlice.cs",
+    "Hash": "4846229BFB0A1A4079938C73A0F1A00AE696FDB13225B6C968B920DCD2E322E8"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\DungeonClear\\GrantClearExperienceCommand.cs",
+    "Hash": "941C17AA740C0618A463061F20B2573BA98F45C753B3F46B5B41F9DD328FE098"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\DungeonClear\\DungeonClearSlice.cs",
+    "Hash": "4305F34DB51E2F814E1D4F1F1AFE7A69617400934AE75EE25C0DAD0669BC4441"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Data\\OnlineUsers\\OnlineUserModels.cs",
+    "Hash": "B553BFB7328131F33608F5315FE118F236CDB5CB2A178B7A2429286E22014615"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Channel\\Connect\\Messages.cs",
+    "Hash": "651D491835CE736F816EB47F991362C29696BC8CFE39B5E7B80A89DD97A8ED73"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Channel\\Connect\\ChannelConnectResponseEncoder.cs",
+    "Hash": "1F62C451F5ED8E0F78261EBDDC3DDBA7F2914B66FC9CC0E2D251924CEE4CF1BB"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Channel\\Connect\\ChannelConnectMessageDecoder.cs",
+    "Hash": "91F28B2B1D2E4245E8A2BF90A604C1C2718B091F968185D56C8B7C4F52487E4B"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Channel\\Connect\\ChannelConnectHandler.cs",
+    "Hash": "44BC24B2039DE0F4598CEBB09ACF5E194D69EC08F959097D7E071189EE5AE181"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Channel\\Info\\ChannelInfoMessageDecoder.cs",
+    "Hash": "5716E25A1C3D86D86AEDD02689A82343A1FCE5CC9E49A649857478C96FD3EAB0"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Channel\\Info\\ChannelInfoHandler.cs",
+    "Hash": "378FBD758C2DDD034AB83259C4AD36266FB2F7B35B50C7180E9BB07424EBD238"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Channel\\Info\\ChannelInfoResponseEncoder.cs",
+    "Hash": "0C337BC78C0B73181A0FE7A4312282906FE04ED1A3471EF9C76DB345E9AD7EA8"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Channel\\Info\\GetChannelInfoCommand.cs",
+    "Hash": "3D3F0DC0AAEBD6FA023C57D4A85782C5A48DBBB690FE61BB86F2C67D004C432E"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Channel\\Info\\Messages.cs",
+    "Hash": "B3201117D34016A1C9D46C404B26CE6466F237FCF8E6A99EF6417964B5154B28"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Data\\Dfo.Server.Data.csproj",
+    "Hash": "3702BCD64B09004893C0AFDB530B6B91249DE567D2B8708F8AC16DAB0C9DD561"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\DungeonClear\\SetPlayResultHandlerTests.cs",
+    "Hash": "DCADEEF2E3E4815F244CE661510D31F846AE04B5973F179DFB593A7E6168D604"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\DungeonClear\\ResultScreenTests.cs",
+    "Hash": "90AED328AE7F52CE206C4E7ACC73646579CF25D4B9F5139DCE92ABEC06187DC8"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\DungeonClear\\LeaveDungeonTests.cs",
+    "Hash": "3F8A379FB86462BDF1D471CCE4BEF9D76BF3B5066A9558530935C005AFEE4612"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\DungeonClear\\GrantClearExperienceCommandTests.cs",
+    "Hash": "A135A0A1C7F157037C6053CB0E971E0316EB247DE9651942627153240EF56204"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\DungeonClear\\EndOfRunWireKeyTests.cs",
+    "Hash": "8A06A8D5DCB830BDA73DC71C4245A7C09BA0C9D0B43FEC3D3BE3BD1E690689F0"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\DungeonClear\\DungeonClearCodecTests.cs",
+    "Hash": "D6CFF768F25DCDB8D5EE1A6C548A4E180243CD2A551510AC93A0B81C47DD06C3"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\QuestAcceptance\\Messages.cs",
+    "Hash": "7B61D6DEE8D4A67B818B44ED270D216379FD6326FDC65F2DCD7E147C40798163"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\QuestAcceptance\\AcceptQuestSlice.cs",
+    "Hash": "CF80ED973B3C4D51EE7E5D317AFBF1F59C1FE4F728D8CACCA584DF553471171C"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\QuestAcceptance\\AcceptQuestPayloadCodec.cs",
+    "Hash": "44E5F0DF9D3FEE9E1DEE598D35FDFBD39C51447D7409D04BA744763C24A9415C"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\QuestAcceptance\\AcceptQuestHandler.cs",
+    "Hash": "EAA8920493BA05314785ED62764C6093F54AE8CFBF2F5DEDD2D54F98B5FF2C74"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\QuestAcceptance\\AcceptQuestCommand.cs",
+    "Hash": "F6D6F090DE228BC561C21009C4E8485CE35FE3CE5AE0A9736A7AB0FB351DEA58"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\OnlineUserConnectionObserver.cs",
+    "Hash": "A6D820DC1F8E489F6F3C92A7937FC723453D8F0B4B155B580961B89B6AD39774"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Persistence\\Database\\SqliteTable.cs",
+    "Hash": "48E232BFEF07881AFCC6CA5E9BF5ED813289104C431FC5939F8B54CBB506C91F"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Persistence\\Database\\SqliteOwnedCharacterSection.cs",
+    "Hash": "953DFE9C8A1AEE777D9E7551D7659BCC4B7715DB8E279BF04587242A270450CF"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Persistence\\Database\\SqliteDatabaseParticipant.cs",
+    "Hash": "DB19EEEC855F4BB55C2E7AAE46DD6F12CAC15EDD1BC59EDEEFFDD6CE4AE5D0BF"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Persistence\\Database\\SqliteDatabase.cs",
+    "Hash": "9C775CC8496BC1A24FC0E897BB74AAE24E1A4C29032091871B5AC30BA4FA09D8"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\MercenaryInfo\\Messages.cs",
+    "Hash": "12815EE5DC6F88B3BC981D7408B586F8A000988E78CBFFAF19E1AB59A07BBD08"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\MercenaryInfo\\MercenaryInfoSlice.cs",
+    "Hash": "A6DB0795FF16BCE0802C71116DA4F4C0C8ED37D539730F1D37C11FAF3D1E687E"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\InitialConnection\\Messages.cs",
+    "Hash": "214E88F6077E33C604E22EBD4B5C23EE8EB8A288BF3CB6E6BEDCD51B9F55B3CD"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\InitialConnection\\GameInitialConnectionPayloadCodec.cs",
+    "Hash": "2C346B17623422C398CE45135B7755CD2AAF5F2C68676EE5EED208C2AD44C769"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\InitialConnection\\GameInitialConnectionNoticeEncoder.cs",
+    "Hash": "28EB65ADEE001CA4EB5A766999B7506B3FBB1C7857E9DD3F61DA4DC2B60EB3F3"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\InitialConnection\\GameInitialConnectionConfigKeys.cs",
+    "Hash": "623F121BE073C1C02083AC9AF0E8F0BB713707E5ED46508E68D55ADE65696121"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Channel\\Script\\Messages.cs",
+    "Hash": "ABD7A668CFD68BE553F107FAD0017B513A97DBE671976128D2459A686EDA4F4E"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Channel\\Script\\GetChannelScriptCommand.cs",
+    "Hash": "67A6621AE24E122052D12BD62A9667E312ED6D112CEB49FD1C2E6A5E1482CEB5"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Channel\\Script\\ChannelScriptResponseEncoder.cs",
+    "Hash": "1FA13C255E04FDBB68398116FD24B4A59011C893BDDD728B9DFFDFC8B46AC357"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Channel\\Script\\ChannelScriptMessageDecoder.cs",
+    "Hash": "67F6F497C13D31C849166F3C11571974746B16CF991391983E2F5F0D17B54DB5"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Channel\\Script\\ChannelScriptHandler.cs",
+    "Hash": "B55998405D1862E31BC3417F973821B77F81A7584AB4B465CFD18D44205EDD94"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\ReturnToSelection\\ReturnToSelectionResponseEncoder.cs",
+    "Hash": "42CE46DD88079F455D7CAB9E5EC7FC96C3ACA9C8F9D7D3A468150E4610CFC6FA"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\ReturnToSelection\\ReturnToSelectionMessageDecoder.cs",
+    "Hash": "604F9B07C9A5E10E5F460FC2BAA1F4625DA5A0E169B4411C868A7B4A4F58E363"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\ReturnToSelection\\ReturnToSelectionHandler.cs",
+    "Hash": "9972C06475230DCBB05CFAEF4128FCAA341858112480674FE60D18C3DD055B47"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\ReturnToSelection\\ReturnToSelectionCommand.cs",
+    "Hash": "A3AFE353512FB536F46EC33B0CACC66352D00A042C8DC37EABF0655B10BB9C88"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\ReturnToSelection\\Messages.cs",
+    "Hash": "DC7E588E354D702B07C6441901F4DB1E155D07C77FBB3D23F3F14199D7726DC3"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\DeleteCharacter\\Messages.cs",
+    "Hash": "01F8EC8B702DE6E9287170DF88933702946FF5518D0DC5BE8A06288F71A6A201"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\DeleteCharacter\\DeleteCharacterSlice.cs",
+    "Hash": "7BF5BC56F0F72D52F40174083D6A8C5D7CEBE0CBF8580763FE2DD6DD6A3AF698"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Data\\Channel\\ChannelModels.cs",
+    "Hash": "5B4275BE4C202EF78D822A5A354DA9C79320B145481836969BC3473359429DE4"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Data\\Networking\\NetworkMessages.cs",
+    "Hash": "B8229ECDF50C99F65796281D006F4B3D4149D4B5F630EAE90E077D2C869CF61C"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Data\\Networking\\NetworkContexts.cs",
+    "Hash": "4E55A7F67E8C0C225D6E45D0A7E28137AAF9D46C16F8A1E85818C95EEE5A9E16"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Usings.cs",
+    "Hash": "9A8E6D795F796A0161452823EA8000C3B48D5D8FDF5BBD6F07B7C74EE9D8AE9D"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\MoveItemSpace\\MoveItemSpaceSlice.cs",
+    "Hash": "93ABC8DF226DF8BD06BF986891769BCCCC37CEFBFAE033E6EF1653EA4C4DA4A9"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Data\\Characters\\CharacterStatValues.cs",
+    "Hash": "A61F765AFCEBF73CAC8F113C92011F840713842F79FE4875A0C613AC88D2D46D"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Data\\Characters\\CharacterSkillPointLedger.cs",
+    "Hash": "FDD20131D58E3A3EBFDC560EF8AE8EAB07CE9CC6215551AF178B149AFED1A1F8"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Data\\Characters\\CharacterModels.cs",
+    "Hash": "B63723661387CCEB9ACDE418C4BB42A85614B190DF833B09207EC1855F8A4F11"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Data\\Characters\\CharacterCareer.cs",
+    "Hash": "91E9F94D58668542665064DB89753438F76D01AA83EE7B1B4FEF0231EC037461"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\InformNotice\\InformNoticeSlice.cs",
+    "Hash": "E57257614C19DE6BE41E5773A9E0B1DA4E5D7A30F3B67854D631A5344B389CD8"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\MapEntryReports\\MapEntryReportSlices.cs",
+    "Hash": "30DD803A753FFF91D98C2321433EAA326D44202275CD3AC1ADCF4B576FCF8EB5"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\ConnectionCheck\\ConnectionCheckCodecTests.cs",
+    "Hash": "99F2254F128FF8490937796716191113DF5ADDD97B6E79EF77BF18A4A3BA0C9A"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\CommandRegistrationTests.cs",
+    "Hash": "061FA689046F6F38BD8B84305A1548CBEED662826686B6DCBBC8B038EF758D03"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\CreateCharacter\\Messages.cs",
+    "Hash": "92A65861A2CE99BC3F7999CC45CA44204BD88A82856DFC7CF2AE1A818182328B"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Data\\Game\\StateSynchronizationModels.cs",
+    "Hash": "15475226BA585BF51EDF28F6D3B1DCF21ADFF0A8F9FA705CB28F3FD1418189EA"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\CreateCharacter\\CreateCharacterSlice.cs",
+    "Hash": "695CF42B3653FC51A71E1D9C6F9F2BC4CD28A5381AF65810DCA164031E5DF3EA"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Data\\Game\\SelectCharacterModels.cs",
+    "Hash": "0DC3CD311F9987131E09E648D1C5A5A8B18E0E5E90854ADB37DF98FC57922378"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Data\\Accounts\\AccountModels.cs",
+    "Hash": "FDF8B49906A4F08CB35C65CCF2F877A95D7D10E9BB4ACD5686C59E975CF7DC84"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\HonorLevel\\HonorLevelSlice.cs",
+    "Hash": "696B28D2380D8C4A29C5E9FD0BD390FA086A0B6806500CFFB1C3B54B9CD347FF"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Persistence\\Characters\\SqliteDarkKnightComboDomainStore.cs",
+    "Hash": "36E193CFCB51A05B3E769D087C1C120D7EC1815965B3064E1686046C9BB52A14"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Persistence\\Characters\\SqliteCharacterDomainStore.cs",
+    "Hash": "6903B92C90C09FADA0CFF9C73533671D9EA7F94A415A49D35DF1CDC0A0FC6FED"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Persistence\\Characters\\DungeonEffectOutboxTable.cs",
+    "Hash": "D8356A70EBE358318F3F85D328170C5310F84849C4EFCD6DDBC981851BEF3B05"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Persistence\\Characters\\CharacterSkillTables.cs",
+    "Hash": "FAD6FCACCF0C126656EC4F10477F98A876DDF2FB4BFA435DCBDA76A9715FDECB"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Persistence\\Characters\\CharacterMailboxTables.cs",
+    "Hash": "95594FB39410B5BC23AFF58A7E487634454A8124AA74776080073911B8BCA215"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Persistence\\Characters\\CharacterEntryTables.cs",
+    "Hash": "D787A1CAF701DCB727C7594D711053B355DF1B0737D0A4F3C3C706E19564FC36"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Persistence\\Characters\\CharacterEntryStateTables.cs",
+    "Hash": "2EED40CE7F1653AC4E33CEFED04EAB49A7F71A963E7D3AC8C3885E2F6EA00060"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Persistence\\Characters\\CharacterBodyTables.cs",
+    "Hash": "86B72A1ADCFECDAE433967ADD4D0682C6BC35F9DAE93698B400610BE7B1DBF03"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\QuestProgress\\SetQuestTriggerSlice.cs",
+    "Hash": "8311802898F70AE3C6EABA0B56260237010DFE745842E7B8D275ADFF5CE56E48"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\QuestProgress\\SetQuestTriggerPayloadCodec.cs",
+    "Hash": "58BC6F33AA7AB758DA925CDE3554B1070C6CF6B16A35A92663CABFFA4E704760"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\QuestProgress\\SetQuestTriggerHandler.cs",
+    "Hash": "1FB5FCCAC7C55F2D876128D22F138D67D3F45E45A2EF8D37A26ADFAA42C6C0E9"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\QuestProgress\\SetQuestTriggerCommand.cs",
+    "Hash": "1E51162EFA2A036921BBC811A6A8C884FECBE4B1E30CDDAD20F1B0E45D6B6DD7"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\QuestProgress\\Messages.cs",
+    "Hash": "AA78B6DBAA6D3109E9C2E984610AEF9BC2FD173743A880FDC4D03CEC613D15AA"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Support\\VolatileItemDomainStore.cs",
+    "Hash": "CBB3D387603FD9D389BE07C84D8C41CF2FF6CF2F08DF122CD605F0E215113EC7"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Support\\StorageRecordDump.cs",
+    "Hash": "EFA5A337DC03E4993A8BB6C17F561EEAFA91731B26ACE21273F14A01F1250A7F"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Support\\InventorySide.cs",
+    "Hash": "DDEE1AB30A3FE1B8481E5DA0DBEF7E8CE6D60CE38D4A66856ECA548455A345FA"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Support\\CharacterSide.cs",
+    "Hash": "958C77E46E239716832DCF299365EFA6010653D25A5C43DAC2CBAA2DF42037B9"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Support\\AccountSide.cs",
+    "Hash": "B3AE222B9E0FC3E6B420D8445364821E8F707359B292FA74EE5273532CEAC694"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Data\\Inventory\\NpcShopModels.cs",
+    "Hash": "DB3CD0247F4A062195CB90314CC7E2BD38ABA08E61C3AE5192BB0FAB83CB174A"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Data\\Inventory\\ItemSaleModels.cs",
+    "Hash": "E0256665B2A5873E54215E76206D4E29EB13E6E58A02A29F497AB98891B66F07"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Data\\Inventory\\InventoryModels.cs",
+    "Hash": "6FB8FA3C8D130215AFEEA502236C73F01DCD1D0F5B7DF9F335DA4C1C34AA265C"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Dfo.Server.Persistence.Tests.csproj",
+    "Hash": "50691DF9512BFD44855EF45D6BE727378DC56572EF138DF1B9EA4CAEE1F5B39A"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\ContentsPlayInfo\\ContentsPlayInfoSlice.cs",
+    "Hash": "CF7079A44C5CE0D16879BAD89FD996489D56A129B521B224D854AB7511AA3CA3"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\QuestCompletion\\Messages.cs",
+    "Hash": "1D47DBE8FA8632FBC1BEBD111C3AA37291D8B04F89CC15D809324158FA8CD9BC"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\QuestCompletion\\FinishQuestSlice.cs",
+    "Hash": "7DF16DCE780FD9061AD491B9FBB89F6E5525619D00A0A8126AED7525C2F187CB"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\QuestCompletion\\FinishQuestPayloadCodec.cs",
+    "Hash": "6536B2ECF8306404849D791AB87ADF3BDA9D1E87FCAA32B3C9AC2F94F7D91B2D"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\QuestCompletion\\FinishQuestHandler.cs",
+    "Hash": "1D3EC3BB80632F26635778BCE3F99E1528CA3E4A34FF4AA560003D15FADFFF3B"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\QuestCompletion\\FinishQuestCommand.cs",
+    "Hash": "6A70BEB26DA606E0CAE7CA1E5D23BF4A2A0D08C6707551DE5B82CD233F47BA68"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Networking.Tests\\Usings.cs",
+    "Hash": "50436EB3A60162E0CFAD749EDDFB06F8908F821A90CA44532DF946A53E071359"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\HiddenCharacterInfo\\Messages.cs",
+    "Hash": "E465C79B939FB4FEAE5AE3DF7CFEFCEE23497F9DD8E143AB1EE762EC3F800D35"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\HiddenCharacterInfo\\HiddenCharacterInfoSlice.cs",
+    "Hash": "306EA4CCDD8BADEC6530DC1F66B92877DFED9FE689CB2359AC1EF0352DBFE584"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\Login\\GameLoginConfigKeys.cs",
+    "Hash": "22F902FBAAAE60EEE52BCFCE573987C40C1174653E5F99A34393D73BD732AC3F"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\Login\\GameLoginHandler.cs",
+    "Hash": "CE89984696885C193704FF5F9D1EC8AC5B672606AC7214155A16009C35F19DF0"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Database\\UseCaseTransactionCoversReadsTests.cs",
+    "Hash": "E535C31B7216508E859AF79617F9BA50AEB258E9CC8C7C80A2B27A392D2D3518"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Database\\OneUseCaseSettlesEveryTableTests.cs",
+    "Hash": "A9EC61F95E5F6266D76332D67AE15E9310FC77096C4BD01FE0E3E53DFF011D06"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Persistence\\Accounts\\AccountTables.cs",
+    "Hash": "DFEC5F9269156507FC66B3A945201A364095617AB93A0F3EA4CF5B38A82F188C"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Schema\\SkillCarrierShapeTests.cs",
+    "Hash": "A2B4BFF5608C2907DB939E80CC0A98D019A69C4DC4837F2E9A4471E7580EC818"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Schema\\SchemaOwnershipTests.cs",
+    "Hash": "2F04FCBCE38B6A16BAE4C5AA851DCFCAE1DD8E526C731D61839BD551EF0CAD54"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Schema\\ItemCarrierShapeTests.cs",
+    "Hash": "7F0367FBAA33CD17EC4262FF5103A9AAC7F59942E49DD7DB5DC635FC089B80CE"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Schema\\CharacterBodyShapeTests.cs",
+    "Hash": "015355A3124DBE21EC2D76C4BBE05BD1958AA1F9E7B624780DF363EC14681BBC"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\ConnectionCheck\\ConnectionCheckSlice.cs",
+    "Hash": "DBA41D72098A46FC2232DE3774309C5F9C0385A321EC3B21B13C78913D93CCEA"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\Login\\Messages.cs",
+    "Hash": "3C26EB992763E26B5195E58E31344C17744B8CA0411242F9041832B8F7AD339A"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\Login\\LoginGameUserCommand.cs",
+    "Hash": "3366A9CD26DE407315DE454EDCA69180B5CCF7936F7771EFBA2D0A40D9B64A05"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\Login\\GameLoginResponseEncoder.cs",
+    "Hash": "D59A42318352562A200364E8A1B533B7659BDC57E68CA01FDE3EC7BADE4323E1"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\Login\\GameLoginPayloadCodec.cs",
+    "Hash": "C81DF6E6A67EA9CD9B7F145F8442DC263D09B7D0A79C1B23D3013FC896F8054E"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\Login\\GameLoginMessageDecoder.cs",
+    "Hash": "FF76BD74CB13D06AEDAAD911AF81D1834AC286E2E98A9067B1B1F676D279F057"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Networking.Tests\\Runtime\\ServerMessageEncoderRegistryTests.cs",
+    "Hash": "A394664F810F7EE019667CFE3574869101F7F346F453C08D6A5B0FF144F4C2CB"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Networking.Tests\\Runtime\\ClientMessageDecoderRegistryTests.cs",
+    "Hash": "F5F178406741457CF5FA5724A4C2CBCFF597C4D0032F8BE90DB2A8C550E51B7F"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Usings.cs",
+    "Hash": "50436EB3A60162E0CFAD749EDDFB06F8908F821A90CA44532DF946A53E071359"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Dfo.Server.Infrastructure.Tests.csproj",
+    "Hash": "21C808F1CF525ED215F49E5E7C54400BE7AEB8C3B35F9CF7E84A48288BCAFB1C"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\ClientSpecStatistic\\Messages.cs",
+    "Hash": "6F558AC87493751B75896325EFB8F10EE30C7BB03B27C1C5CE7C72F86BB0C103"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\ClientSpecStatistic\\ClientSpecStatisticPayloadCodec.cs",
+    "Hash": "40A296ED69B6E2437CFD0F65C96091C9351B1E518725510F05083D0789DB98E7"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\ClientSpecStatistic\\ClientSpecStatisticMessageDecoder.cs",
+    "Hash": "7C1565AB6BA88F2E68C4A8009C272330A3D53B7FE087A22C56A5922C3318D543"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\ClientSpecStatistic\\ClientSpecStatisticHandler.cs",
+    "Hash": "5220DEF71A6520CA039DFBB1D55C6411F1181AEE9EBC880219749859205710AD"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Characters\\SqliteEntryLifecycleRecoveryTests.cs",
+    "Hash": "CCFB8B43C9E141881E1B8BF85FBE707E5ED1DC8A438BA6F0F01FBEC7030FB8BC"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Characters\\SqliteCharacterLifecycleTests.cs",
+    "Hash": "5700451FC06A86331B0AF784246117C377836EC99103EEA7BEDADF92D9867C0E"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Characters\\SqliteCharacterEntryStateRepositoryTests.cs",
+    "Hash": "1B0A2DE489C954BE34C57D2422D89CB89ABBCEF99E34993DFD8D3C1EE91CBD71"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Characters\\SkillCarrierTests.cs",
+    "Hash": "EBBE6BC7335151D5D190E1D6AA57418797206BD4CC6EFEA0E6ED6AE4E64149B4"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Characters\\EntryLoadCharacterizationTests.cs",
+    "Hash": "D2D146F5882862089825DC0B16AD146CDBE6A51BC8971C65A4FF5EF91512D9A3"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Characters\\DungeonRecoveryOnAFreshDatabaseTests.cs",
+    "Hash": "5A22D71A73CDA2E9C7634705B0C2C8CA57655B613F4428C717F1B0E69455C442"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Characters\\CharacterIdentityReadTests.cs",
+    "Hash": "FE7962C4113537FC1F8DB3458C84D7BF4BA2B9D21448038AC9ADED6859EA6E1B"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Characters\\CharacterBodyCreationTests.cs",
+    "Hash": "EBA7CC17BF7B8ED6191E3E4C842CFAD99E2893F960E9E0C5BF004C39ED276F71"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Pvf\\Tokens\\PvfTokens.cs",
+    "Hash": "76FA78A94A546B20331D01E384A8D63B04F84AF6DB22928236B0F1C3D9D9F050"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Pvf.Tests\\Usings.cs",
+    "Hash": "50436EB3A60162E0CFAD749EDDFB06F8908F821A90CA44532DF946A53E071359"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Pvf.Tests\\TokenReaderTests.cs",
+    "Hash": "C71948BDFBF69FB551C0F3012497CD9DF31CD5FCF42BC71E85C7ECD4C6331AE1"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Pvf.Tests\\SyntheticArchiveTests.cs",
+    "Hash": "4413204B67158D5822225722B33FA4B85862B8AFAB9EEE558F8EB95AF194F5FA"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Inventory\\WorldRowSurvivesTheMoveTests.cs",
+    "Hash": "147E881709A6C269A3DEFA6E5610F832F7A62ED02D51CDAB3DB8C936C6E8398A"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Inventory\\WorldAndSlotTableTests.cs",
+    "Hash": "5F9A800DD96D1ABF2A10378D55FE5D142DF695BE2A844E99BE4C5AC424A0165F"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Inventory\\TwoCarriersInOneTransactionTests.cs",
+    "Hash": "4884E9E1776E1EC7B40971740567C472A5884D18593099B0F93A014B5F5EAF76"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Inventory\\TwoAvatarsDoNotShareOneIdentityTests.cs",
+    "Hash": "F8AC6A5D75686D5D95DC927191984B4A71CBB8C0DF3248E28E48DF6A5B2C1E2C"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Inventory\\TitleBookCarrierTests.cs",
+    "Hash": "53F497A4236C188D11AFB99680A9B490745115A97C2D4B46F83A5ECC7CBB3904"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Inventory\\SqliteItemDomainStoreTests.cs",
+    "Hash": "76F27B467FB0E37EDB11FEFA964CB55B75C4BC52EF0530002D9CFC04F6EC1AC5"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Inventory\\SqliteInventoryEntryRepositoryTests.cs",
+    "Hash": "175271F0CAD39D3B28CA87680AD254438D1592A5755854CF85175F266546EF19"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Inventory\\SqliteEntryInventoryMutationRepositoryTests.cs",
+    "Hash": "1A7583EB28757199494106497AE7EB514F62036066BC069A8012951F541A59E5"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Inventory\\SqliteCharacterCarriedGoldTableTests.cs",
+    "Hash": "E2334A87D9BE2BE47C3D020ED1CA2B1214870E9CE24D33F9FE83B663874FBDA7"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Inventory\\SqliteAccountCargoStateTableTests.cs",
+    "Hash": "822D14FD8957BA03C7901C1A91FA8D7C44674CB63FA48398A19C006A064DCE83"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Inventory\\SplitPileTests.cs",
+    "Hash": "C975CB8A790ED565C13D9E8BA2093A162C95CB58CC172D954E0499D0F2F6BC9B"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Inventory\\OneThingInTwoPositionsIsRefusedOnLoadTests.cs",
+    "Hash": "CAA520A6CE7E0A9F9451EC0807EDB72EEC26E39DFEBB181B931FEAC302C0CD1E"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Inventory\\InventoryLoadCharacterizationTests.cs",
+    "Hash": "AC1195AFA9D706A21AE85AA83ADC22E82D83AC1C684400C6C60068ABB19F8C83"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Inventory\\EntrySaveReconciliationTests.cs",
+    "Hash": "DE2BBC61AE5E28CD9EDFE66D2E43BDED3E7B99D7A1B24E4C76871E558C93F757"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Inventory\\CreatureStateFollowsTheIdentityTests.cs",
+    "Hash": "3E594BEC7058D567BBA98310CC417B65DC46E27B5D7F7ECE7FA1774393914FBD"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Inventory\\CreatureRevivalAddressesByIdentityTests.cs",
+    "Hash": "9477C0E2CA28D13B3CE67EE4F57374D1E42F229950211C8EDF6EB69313D5C0CE"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Inventory\\ClassificationRefusalTests.cs",
+    "Hash": "9F48D91F653261F369EB6531212C2ADB6ED44795E3BB736AAE033927E3B2E0F6"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Inventory\\AvatarDetailFollowsTheIdentityTests.cs",
+    "Hash": "4B6E2379261475E81F0EC5ABE8E56AB22AAF5ECB60E17500E3E44EC1566FE72D"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Inventory\\AvatarCarrierRulesTests.cs",
+    "Hash": "112800868470F79527FF2F6450E0FC1D33021DD1224473F8E516B24251291753"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Host\\experience.json",
+    "Hash": "88BEFF15FAF8374D6126639AA3A9A45DC0E4D89557CFC5F3CC07924D6922A767"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Host\\Dfo.Server.Host.csproj",
+    "Hash": "9D951B039676750A50F9336DB67EEA1817EE31D2785E1F140430DC3C7B51B046"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Host\\appsettings.json",
+    "Hash": "41C6A2666C42679E3AAA1B82C265F6F2DD449FD857C244CB6449F66D7787FC4C"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\ClientSpecProfile\\Messages.cs",
+    "Hash": "A50ACBED7CBF6E8B969D311F58B46E902AF7C784F56C670BDB9BB42CFB91E5C8"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\ClientSpecProfile\\ClientSpecProfilePayloadCodec.cs",
+    "Hash": "C2CFF4AC38937271ACEA7A5EA687AF0F335D728DEC53CB5FE10F25EDE43FA7BA"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\ClientSpecProfile\\ClientSpecProfileMessageDecoder.cs",
+    "Hash": "D0A226F6183DE4DEE7E003815F83E237C14C3C25F47E4B85E285345546FD2431"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\ClientSpecProfile\\ClientSpecProfileHandler.cs",
+    "Hash": "39F168A320C5ABEF3686B681EBA6BBF582BD3088504D1B58B2C0E09E7AD0ECB4"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Networking.Tests\\Integration\\UnknownInboundFrameIntegrationTests.cs",
+    "Hash": "F6E8CDF8C735A08996FD9435D12711143C4DCE89AEFEB9E711D7D7BDD291AEB2"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Networking.Tests\\Integration\\TouchSocketNetworkMessageSenderExplicitDeliveryTests.cs",
+    "Hash": "13D6E860C3F444BB318A8F445A75F65230191A65F6DA8AC56E608B34045EB4D2"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Networking.Tests\\Integration\\StaticChannelCatalog.cs",
+    "Hash": "4E983DE22F86F358E5364BE9FAC3EBE4F47BBCC15868F832F0D13447E2A47272"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Networking.Tests\\Integration\\OutboundSendFailureTests.cs",
+    "Hash": "2267D7CA74F3574766FED95BBB4AD4AFE372E998BE82C949C5A2AFC8FF20CCEF"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Networking.Tests\\Integration\\GameLoginIntegrationTests.cs",
+    "Hash": "9E03F5B3300E4E73B7FEC55E1C5CC01D58763A4F65890B3DAC2C85EB4489C854"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Networking.Tests\\Integration\\GameExitIntegrationTests.cs",
+    "Hash": "160DB231397C3DBE6F713C1853CA711987F7FB1559DAEA831F275D7A420A02A3"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Networking.Tests\\Integration\\ChannelControlMessagesIntegrationTests.cs",
+    "Hash": "66CCD71279272DD647C54770DCAD1CA1D764D2C44B58B84C591518C8982E4934"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Networking.Tests\\Integration\\ChannelConnectIntegrationTests.cs",
+    "Hash": "764657629E3A0572D364445ACF556FD28EA5AA846633205163D74492143F495A"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Networking.Tests\\Integration\\CardRewardReconnectIntegrationTests.cs",
+    "Hash": "54F28B0D548F1DAF2212539A472E90730541E336A514C99F0A01AE7350A13A55"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Networking\\Runtime\\TouchSocketNetworkMessageSender.cs",
+    "Hash": "84ABBBE67CA5467BD942781235D364E15701A0A21B402086C58871E7AADA23DD"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Networking\\Runtime\\TouchSocketNetworkConnectionCloser.cs",
+    "Hash": "5547240C65BD9E5871698BC80EE07E55060270F0B19D9647C4DF281EFF1D5412"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Networking\\Runtime\\TouchSocketConnectionRegistry.cs",
+    "Hash": "9092FABE99AA3B01843BA1AAF504DF3C10925F82A4FDB3A71BB3381BC71C3C44"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Networking\\Runtime\\TcpServices.cs",
+    "Hash": "79129B29A56DE5559A0F588BEA3E34C1C0B63397695C56D75681F9CC4ACA62CB"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Networking\\Runtime\\ServerMessageEncoderRegistry.cs",
+    "Hash": "A7B6A29E733C62BCFF15E44F3BA9E8AFB6E154992BD2D4D2189A32EB3777F0F2"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Networking\\Runtime\\NetworkPlugins.cs",
+    "Hash": "7C1D33338B5AC0F705A2842FC5DC516C9948E4BE66276B82A3EBEBE7C671CD39"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Networking\\Runtime\\ClientMessageDecoderRegistries.cs",
+    "Hash": "F109B2F59E766E988FFB4B830926B807E0410695BDDDF292917D055F450B6450"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Networking\\NetworkingModule.cs",
+    "Hash": "02CF215CB3EC4FB502622F4C114FA3FA55B1AAF69C60D85C36BC6084B8F1B1D9"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Pvf\\Strings\\NameTable.cs",
+    "Hash": "AA18E550FB8927E71D4AC714A518BE5147FAD91FB857DC8F2DAD03BF98E54CD7"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Pvf\\PvfArchiveOptions.cs",
+    "Hash": "613418934C69D37B4E9F40A1EB3275010AAB1D68E1CB9FFAFB86CCA586372CC5"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Pvf\\PvfArchive.cs",
+    "Hash": "8B224354DC4DD48AA18473D339C90BD1314E17D13BE8CA9B07A0C3970786A7C5"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Accounts\\SqliteAccountRepositoryTests.cs",
+    "Hash": "3B1791178F29D061B088687480BF0EEF4B31DEA9C29AE63D001D60B1DCC9A0C4"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Accounts\\SqliteAccountEntryStateRepositoryTests.cs",
+    "Hash": "7F9A5682DECA40DAE38FDCDAA52AB945176EA219EFF2F0CAEEECDEA0CD127E85"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Persistence.Tests\\Accounts\\AccountEntryLoadCharacterizationTests.cs",
+    "Hash": "9BF7E127B619D540F8F4E77E19CC8BC0BDDCFEC26044A0B8CE96E7BF32D9FAFD"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Host\\Program.cs",
+    "Hash": "35C291B74C8AFD21ABA40D27AE7F940F01E5BC1BEC8A8FAB8E88055470843E27"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Pvf.Tests\\Support\\PvfArchiveBuilder.cs",
+    "Hash": "49C01AF31FE9416DD80A76D38C3465F0E1B770CF2F17D442327D59C674DD90B4"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Pvf.Tests\\FormatTests.cs",
+    "Hash": "75F77F99DB1C1E98256E274A9122F1604613CA0A17BD60926361F943EC460CA5"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Pvf.Tests\\Dfo.Pvf.Tests.csproj",
+    "Hash": "AD2E04FCAD5EE16529E8541D56CA77F2EAE2B619012CD312711FF8293BF73E75"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Pvf.Tests\\ArchiveTests.cs",
+    "Hash": "7B544D380E82CEEE1A9A941BEBC21F070B9526B5FC4E0001C78098549D20C177"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Host\\Resources\\Channel\\channel_info.etc",
+    "Hash": "C1407121715461DA1C92E7A6ECC4DF52DA85C07CAB233DD4DDEC10D83230F338"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Networking\\Dfo.Server.Networking.csproj",
+    "Hash": "0FE498F6C5223895E7943605476F17835C665B53572093F859E219905E34716D"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Host\\Modules\\ServerModuleRegistrationExtensions.cs",
+    "Hash": "22E10E7A04527167BA0E29A8743784B764B76ECC746B77139916A773DC89AB1E"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Pvf\\Index\\FileIndex.cs",
+    "Hash": "2B5F69B2443F4AC15B1B69B5C946D877D40EFA47D5170D367F4EE4E8953E0BF9"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\ClientHardwareDetail\\Messages.cs",
+    "Hash": "59DF21504BD08A6322A726CB346A3D296FEC7385518C0016C6BECEA045919B96"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\ClientHardwareDetail\\ClientHardwareDetailPayloadCodec.cs",
+    "Hash": "1C46B4989FB4D1D36C23556B4AFC17F9F6558148A47AB3F604AC0C43FE2B859F"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\ClientHardwareDetail\\ClientHardwareDetailMessageDecoder.cs",
+    "Hash": "190A95EDF65F866DE5C1AE579B1B959D0A8F87273C297609F8F674E56098F4E2"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Networking\\Configuration\\NetworkingOptions.cs",
+    "Hash": "6073B789DE8AC717CDD54A107804D6361E29146F2E4032E4BC8B73B69312E40C"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Protocol\\Game\\ClientHardwareDetail\\ClientHardwareDetailHandler.cs",
+    "Hash": "7A20A1F54B5F67DE259B8B83F5BFE02E724B40047F334EFDF76CC662DBADE1F9"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Networking.Tests\\Framing\\FrameRequestInfoTests.cs",
+    "Hash": "BF458E46E87B27A95127C016DBE4ECBC26412575275507C0F6628DF0A2C476F6"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Networking.Tests\\Framing\\FrameEncoderTests.cs",
+    "Hash": "78FB84795F37F258A2AD72E4F6B93485052A35AB19C4393DC00B8C5F7DC07162"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Networking.Tests\\Framing\\FrameAdapterTests.cs",
+    "Hash": "849D73786B02E2A06114EB244E78EA52D98CEB6C5B6A29141329632402C1F8DD"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Networking.Tests\\Framing\\ChannelPayloadCipherTests.cs",
+    "Hash": "877179EAF1BAD949C35789DD323C349EEEC91CE2BE7756EDDA0A17012D400959"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Networking.Tests\\Dfo.Server.Networking.Tests.csproj",
+    "Hash": "5CD0241B7B783763F9122F39BD0E984ABBF1FA5ACCFC581989BD4ED6E5BA8024"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\World\\WorldContentEntryRuleService.cs",
+    "Hash": "6B4ACB9D601921B66A095669AB192DD20010AB448CE607764EF01EB3F686F5A4"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\World\\TutorialRewardRuleService.cs",
+    "Hash": "46C387D0C693D34724A4869448D23743D5349497DD3A471FE8824882E6864D65"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\World\\TutorialRewardDomainService.cs",
+    "Hash": "930AA7F309CCFAAF85D2C534E58D9D8A126C28EA1CB0B947B423D34992E6A367"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\World\\TownMovementDomainService.cs",
+    "Hash": "2E038CF969AD7D8ED5D53DE81D8A7A4270EE6505F015A24B118717907EFB15C2"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\World\\NoDropRateAdjustment.cs",
+    "Hash": "62DA3BBE7B3251D8962BFAAE9D7EBFF867150161113E28742D1D8B716E8AC9AB"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\World\\MonsterKillDomainService.cs",
+    "Hash": "5567571C6043E341ECC34F9ED062E54040A7E09AEE664C660F656F091663E631"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\World\\MonsterDropService.cs",
+    "Hash": "B369C0602E9710CAE70C27F8CAF4CD836160DB5B7B6B2AA2533A7B5781CA2D02"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\World\\GroundPickupDomainService.cs",
+    "Hash": "6C59DE3E3DEFA156AAC02A2FB7BF9F2FC276ADF186533F129597D45C7E77C232"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\World\\ExperienceValuationDomainService.cs",
+    "Hash": "940497A0408EF24107AF9E8383114D5056A3F2902ABFD7FE83FE14D16796087E"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\World\\ExperienceTuningSource.cs",
+    "Hash": "6345BE6C13063F0CC491CE90E0C25C211E33FB9917B2D675FCDF9AC9CF33749A"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\World\\ExperienceRuleService.cs",
+    "Hash": "92748E8EFA81C5489C76DAF6D70A5E44210577C9DBC4DAF195DB4E7580767590"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\World\\ExperienceBonusRules.cs",
+    "Hash": "4F6864056805193150F11A0C43D6C415A3DB3923BFBF19B6802AFE32BFECC5FB"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\World\\ExperienceBonusDomainService.cs",
+    "Hash": "A4B7CED588F31A95F8E2E1A029D8DDCBBB5B7C0EEB54B408C7417522228A7250"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\World\\EntryPlacementRuleService.cs",
+    "Hash": "1B5B1E03C5D53876FEC7469B13D4450C9F3D01E555C347F1EABE76593AD228E2"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\World\\DungeonVisitDomainService.cs",
+    "Hash": "0953FC76482B16A40F783F351C97120B7710AB8EED185B65587C3CACF9A8F4CB"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\World\\DungeonSelectionRuleService.cs",
+    "Hash": "35BE8163EAF0E72F19A59B316175D1B817D87F2D6A35B857911969CD5436FFD2"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\World\\DungeonRunDomainService.cs",
+    "Hash": "76F1AB1B78597E2B190276351E421B3FB72F2C08DBC3BD91D6AA78DE8269D5E7"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\World\\DungeonRoomRuleService.cs",
+    "Hash": "F6F3FF65CFFA2D6E4F110FB4CABA93BBC00C63D16ACE78B7617A8B123A312B44"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\World\\DungeonLayoutRuleService.cs",
+    "Hash": "BD8C6F3D7B17D7F4B5E6B204B31955DBD7A583E13C16877D26E167503E4C2288"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\World\\DropRuleService.cs",
+    "Hash": "E6CBB2C38E13C3CC93165D441C668FA7EDD584DB86610ACD7130243E65EAADC5"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\World\\ClearRewardRuleService.cs",
+    "Hash": "E8ED93BBD839EBEDFE55A1D8528AA597E85D4633F7F65B4A6FE6C08F009E09D1"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\World\\CharacterExperienceDomainService.cs",
+    "Hash": "AFC12E41E8D9DABFEBFA1D033B18D16EE998B2F5C94A155632C7394DEAAEDD92"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\World\\CardRewardDomainService.cs",
+    "Hash": "833FD0F729DC40002946110FF2BA80471917F16010ACCB5A16703651240FDEAD"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Pvf\\Diagnostics\\PvfMetrics.cs",
+    "Hash": "3B9C5DA98762801E223C899050D337ABFA2241026FC602975EFBED621A0E3D22"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Pvf\\Dfo.Pvf.csproj",
+    "Hash": "74CC8CA7A5522CCD0823D5B3AD90D60957D29661F2C6E75F753E63813F55A0C8"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Networking\\Framing\\GameClientFrameRequestInfo.cs",
+    "Hash": "1F372BAE59BDA9BF08681028CC687EDDFEF1CED084B1AA7A8A2ACFCE02B6A6AF"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Networking\\Framing\\FrameProtocolException.cs",
+    "Hash": "664F10B1F39A44D7F8F1F44EC1CB62F8FB3B203E0736B5BABB329713435E0EBF"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Networking\\Framing\\FrameEncoders.cs",
+    "Hash": "7117371F4CFC0AC4D37D761DAB5F5D004CD05401AF9603A96F6C9F08FD10515F"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Networking\\Framing\\FrameDataHandlingAdapters.cs",
+    "Hash": "92D47B4C800ED0F4B013013C4E998E8DEE2BE7BE5951B4EE6D9FD01A5FCD42B3"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Networking\\Framing\\DnfFrameProtocol.cs",
+    "Hash": "6F786C30A8089B6C5CC4FA29C65BF14FD581FDB5EE841731807E425D8BFE97F8"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Networking\\Framing\\ChannelPayloadCipher.cs",
+    "Hash": "CB9420066ADE4A87AF6AE0DA8CD01AFFD2EB4250C8C6FD06BF501B56C738F06A"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Networking\\Framing\\ChannelFrameRequestInfo.cs",
+    "Hash": "0297440BBF43394BA55346EDEF1CE1F3901036FDC4148D20BB734958D289AB4F"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Dfo.Server.Application.Tests.csproj",
+    "Hash": "051AAB35895E17343CBA93F2DAFE4E71290738E1374BA1E7E0249FB807AFB857"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Inventory\\AvatarSlotRulesAfterTheKindChangeTests.cs",
+    "Hash": "64030BC29BB363BF8D68A4C2AAE9164963D36CD31F74F39F11271DF67A254BB1"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Inventory\\AvatarListHasASlotRuleOfItsOwnTests.cs",
+    "Hash": "D475A9FE9D795B28E1C191B93E63B06A053D7069C1B9B465CECDFB3684CAFCF0"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Channel\\ChannelControlMessageHandlerTests.cs",
+    "Hash": "9043D50BCD1BECD6D54956A655784CB33BB1455B971347A4BCD3D307A9C08EF2"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Channel\\ChannelConnectHandlerTests.cs",
+    "Hash": "F1BE6994580894C3F5F6F3FFD3E5FF35C3833CD2015EB614E507A6E6F2D5CE32"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Channel\\ChannelAdmissionTests.cs",
+    "Hash": "B71D1A8538F633708E4D9FC459C936477269CDC60AF72E5809C2AD5B68F397A5"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Accounts\\AccountEntryStateTests.cs",
+    "Hash": "FA92122730565853ABDF1BACD685A4B8DF87C70B9DF534C6A6069532FF97EF44"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Dispatching\\NetworkMessageDispatcherTests.cs",
+    "Hash": "A81EFB824EB48A801C2A1546E0F4FAA70BEFA82BC047D2122FBF744864DA82C4"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Dispatching\\ClientMessageHandlerTests.cs",
+    "Hash": "5F481874A011662203D4BFB354E85349110C14B344A0730A43A02458D28A8032"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Inventory\\CreatureKindAgreesWithTheArchiveTests.cs",
+    "Hash": "11193B8A777152065FFDF4994F330ED28192959E927E81A19AC1F9C8B4E43272"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Inventory\\ContainerIdTests.cs",
+    "Hash": "1ABA75FF9859EC67A78F021C1F291EBD598D9FA22346C9AEFBD49772B00FF358"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Inventory\\CharacterContainerDomainServiceTests.cs",
+    "Hash": "B0539596B6A527971D4F9A89D96B43F058381B9CED638D86472F1539808493FB"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Inventory\\BagPlacementVerbTests.cs",
+    "Hash": "4C129290A45DAEAD38FE7B02BA53AA2B1A00C874BAE545B1FB1441601FC89408"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Inventory\\GrantedAvatarIsWholeTests.cs",
+    "Hash": "E99BC395FFD28BE46DF4154393298667D16F0FBA3F864EE5B0C34AE21EDB7FB4"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Inventory\\DraggedAvatarStaysWholeTests.cs",
+    "Hash": "A359DA9D50D577C82A5BC19CB9FAC023D7AA15302EB7DBB541F66297825F8D01"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Inventory\\ItemClassificationTests.cs",
+    "Hash": "DCFB308377462B17A252594A28CF4CE3D09F6727FAA444155BC24271F16C1878"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Commands\\OnlineUserExecutionGateTests.cs",
+    "Hash": "EEDE9126D0817A5ED3B541EA5120FF2B085C716AD5F926EC1CBD8DC0FBF84FEE"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfTownDefinitionSourceTests.cs",
+    "Hash": "2A0FA530BDA487C7F499A492E8F9B77BD8AB75499BC981EBD7DBC5BFD00C2E6F"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfQuestParameterSourceTests.cs",
+    "Hash": "CEDB4113A5AC512914D1B2CC2F10D114958FFB9A85DA670535D6C8EA3F6F12B2"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfQuestDefinitionSourceTests.cs",
+    "Hash": "440A3B0F0B2B6807AF552D40047C1315150A5969B144BCE7D718FFA3B505565A"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfQuestAcceptanceContentTests.cs",
+    "Hash": "F99FCDFA042170C21F7283A9D8F64417229D088FF6B357696694EC302751B85A"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfNpcShopDefinitionSourceTests.cs",
+    "Hash": "2E5DB3AF70B461B38C272B1CFF52C2CABB6E46D42904EFF693642FF393408969"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfItemUseRuleTagReadingTests.cs",
+    "Hash": "FDF96A9285299A0CBC19BE84348BC74B614BB6B5A00D1A92AA3704D86313D427"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfItemUseRuleDefinitionSourceTests.cs",
+    "Hash": "69781F0413794916FB3DF1FE8610790F0F48B58CCF6DA71243B016343C640319"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfItemSaleDefinitionSourceTests.cs",
+    "Hash": "E478F4B9C105543CD64E4AB2C16FE9C3509A4CDCCB78E53D0DDB9A5089D36F04"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\MonsterExperienceWorth.cs",
+    "Hash": "BCA727E4F94B33BDD6ADB7AC228AA72B1D41F8827C62B2B4543AFCDA0DD338C2"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfInitialSkillDefinitionSourceTests.cs",
+    "Hash": "9B9F18086CB2DEC8241D213C40ED15D2FC82BDAFBD2C5D6C9C1903E284F77542"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfGoldCarryLimitSourceTests.cs",
+    "Hash": "1B6E1A3933618E33F7E38563C09DA159296452FFBDBEF46CD2B1943B1146DC00"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\MonsterExperienceRules.cs",
+    "Hash": "235DF74E738FBA9B58439DADFF273CACDD09D515193685C3BA24F5B1BD74D95B"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfExperienceParameterSourceTests.cs",
+    "Hash": "E53E1E01900D7DB2A66FCDE85BCEF297B2A0BDDC276597D54CAFC5A363B4CEF9"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\IWorldEntryServices.cs",
+    "Hash": "1D4932D90EA75C0FB9DCCFD4B05B4B9305F67F119DC879396FBF3BA18889A049"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfEquipmentSlotsTests.cs",
+    "Hash": "AE2D30740DBDFA04A961409C666C1E3667539D1E16347D3BC383B2DE9CAB1E13"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\ITutorialRewardDomainService.cs",
+    "Hash": "2F0EA7CE0543CD54650244C1BC4568F1CEF1DA2BA6D8E4AC07B98F066BCD2C5D"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\ITownMovementDomainService.cs",
+    "Hash": "2F773E1940C6EEEA2472D3C86788B559983847B94C8F2882B524A8E4C79CC623"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfEntryLifecycleContentSourceTests.cs",
+    "Hash": "516FCDDB91308899447CF4BAE401EC078B57119BB642F34914EB46C38973B258"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\IMonsterKillDomainService.cs",
+    "Hash": "EE12563645CC48594E7AB434C997BA7E73D9BDADB906042A8D8BFC975C149231"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfDungeonRoomDropSourceTests.cs",
+    "Hash": "D53539B27346888B69BEA251EFBA97B8F0198147E872E584A58026AA73DCD034"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\IMonsterDropService.cs",
+    "Hash": "61F7F090D0D7236149CECFDE25F8F14E00B27C5812DE89181CD6360FF238C411"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfDungeonRoomActorSourceTests.cs",
+    "Hash": "6287C606F722205FF552EB0993A4683895C6DA67C66FA5C6C879FD0A588D9B37"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfDungeonRoomActorRankTests.cs",
+    "Hash": "95CDD5C6CC599234E952335601DDAF0A799C86AE3144BA2198698E08E3C3187F"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\IGroundPickupDomainService.cs",
+    "Hash": "A2487463C3509E749F8E8B21926B014AF7353C5C664709B8F31D8DDFEB6A5EA4"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfDungeonRankGradeSourceTests.cs",
+    "Hash": "11D88F57FC6025C01632B6BC2BC35BEDDE02D02E83329FF51C3A1F194E923E80"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\IExperienceValuationDomainService.cs",
+    "Hash": "FEE2CFFC71AEDE249A83AC8BF2119F909BD40EB7E94F027CAF174AB0A1030874"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfDungeonExperienceProgressionPolicySourceTests.cs",
+    "Hash": "B75DE172C91CD6B32A71CDD0952C898427782CC7B2F3317E35914AC8E78F97A0"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\IExperienceRuleService.cs",
+    "Hash": "E19F13DCC3096753C7B195ADD3FFC3171B4B6636E7EAA9867A5EA741051C8805"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfDungeonDefinitionSourceTests.cs",
+    "Hash": "0714DA08F10419D4791C79F2B9325A3B5EE3A99382490DF89BBC30F474E9EA20"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\IExperienceBonusDomainService.cs",
+    "Hash": "3F11D376B658045150AC37CB1E3FA366D5B1B23DB885B8A80AF85A6FE674F504"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfDropRateTableSourceTests.cs",
+    "Hash": "3A2A8DE0C3CFE22B152BFD15CA5B030233B165FE665EA947BF57A1CD7108093D"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfDropItemPoolSourceTests.cs",
+    "Hash": "A24A97CB50C014F76DB1041A69C7C7DAE34BEA14192BA070E1B3B1846A637BFA"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfDailyActivityDefinitionSourceTests.cs",
+    "Hash": "DD1C2CC5C33F90ADB1E5AAEEB6DFCDAFD305A0DB106FED87976879763F39A872"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfCreatureEquipmentLifetimeSourceTests.cs",
+    "Hash": "48ACCA0433EA947F6A1EA8F7102A286A38E729568F753B91767DC81B1F987FC0"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfCreatureDefinitionSourceTests.cs",
+    "Hash": "75906D303FC44EE5346B0D082EBBC2098F7F676609D37167D240D5BEEB846406"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfCollectionBoxDefinitionSourceTests.cs",
+    "Hash": "B5BD506675C126FD0FADC1E8A966E999DE7FDE603F4AA42CB01874A2336CE425"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfClearRewardRateSourceTests.cs",
+    "Hash": "CBE7FF14123853035E8C0DC31CEC0E4433EB65C80E78DC3CAAFA63017CA6BA05"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\PvfCharacterStatDefinitionSourceTests.cs",
+    "Hash": "BA18B58D2C96933B486E5DA47B2EE5F5FFF24DF011FDF3CA745EC9C9E621E440"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\DungeonResultCardDeclarationTests.cs",
+    "Hash": "1302AB90E8D77E252CB4C00D2F70A56B8711AFC42AB81C5CCF7D8D30D7D866F8"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\DungeonPaidCardSwitchTests.cs",
+    "Hash": "C625A16EC593C88A598B758B4BB2822633C0291C58A5E7AF82832AFF87C0C2FB"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\CostumeSlotsWereMeasuredTests.cs",
+    "Hash": "A262E6BB5D7628F078B65F24F3F7FF2D645B4CF5E0A1C8C2C3A87F2CEB231811"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Content\\ChannelScriptExperienceSourceTests.cs",
+    "Hash": "ABD6243463B429C8C649CC37349F5E16592FD4B5144BBBEEFFB60E9ACBB960C1"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Pvf\\Container\\PvfFormat.cs",
+    "Hash": "93FD333F2AC7BA57A268243DE45029EF509567EB4E10964ADE3525A63F46C206"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Pvf\\Container\\PvfFileMap.cs",
+    "Hash": "B05D05377DC39A063EC8176C2650C2B591825D0D3746291B4C61D0AB5088E652"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\InfrastructureModule.cs",
+    "Hash": "04E103FDF6010B9E7E6F5A0C6B1F314D8C867307FE87E1994B8CB1CD3A60C9E4"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Dfo.Server.Infrastructure.csproj",
+    "Hash": "2F056AE1689070DD5F39471E780DADE7015FD06A379A240BCC4C205FEB19674F"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Commands\\CommandBusTests.cs",
+    "Hash": "8D09D7E5D5DECD0578E03A3497FDF5E0B9385AD14AD9209790AE58EBD7F5B28C"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\IEntryPlacementRuleService.cs",
+    "Hash": "FD13E5B68F211C7DA1712DC3ED93A43283CF6FA1716D0427564089B1B081942B"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\IDungeonVisitDomainService.cs",
+    "Hash": "F306D533DA2DA7BE48EF5A62DA63D8A6F5624D88413D06FFB6DE8D6EE64C83AE"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\IDungeonSelectionRuleService.cs",
+    "Hash": "F1EB4E221A0451F8CE1461D1162EA3138FE5D10043A370DB5919988B7914E883"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\IDungeonRunDomainService.cs",
+    "Hash": "0F711A3094B29B9FBE99EFC0BE6799904EEF6C5F9D3F87BD9F3A8F55CFDEEA52"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\IDungeonRoomRuleService.cs",
+    "Hash": "55A04038B47C8AED810B3DD772ED9C0C07E503CCDA5364BBB587E1FE4151CA83"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\IDungeonLayoutRuleService.cs",
+    "Hash": "CAD326B4844DA02EE743C820096E3C5868118B5FBE223145A2105B2F084ECE82"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\IDropRuleService.cs",
+    "Hash": "7B1A3269FA96C3482448FA9643857094DA21AD5759F441373FCE801206EDBCE7"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\IDropRateAdjuster.cs",
+    "Hash": "DA91496183828A590F11FB5F6866DB876DFE798033462C63435D3D4C00F14991"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\IClearRewardRuleService.cs",
+    "Hash": "8092531346884986FEC12101F033ABEEE6D514BD7E0A4D70CAF1D5A923ECB6D7"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\ICharacterExperienceDomainService.cs",
+    "Hash": "FAE4886308998F9FD81522141695264904F927B812C86DEF74102665C6A1FF2B"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\ICardRewardDomainService.cs",
+    "Hash": "0B2461E3BF3C46C5520B38BA86B1B5C735A6919D0E359E08F3826C953F8577E8"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\ExperienceTuning.cs",
+    "Hash": "68E4614B33812FEDFA11760CDB627CB6423524BA77E5F838AC81FAF1AF838874"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\DungeonClearExperienceRules.cs",
+    "Hash": "4602D2A694B5FBFE66A5B7C65EECA4D000EDD6862249E04430C51885D86B3DC4"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\DropRules.cs",
+    "Hash": "FF3B131A00EEA0697E1394E04E80F201064ACA153B7B6BF2D3D941746E68E392"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\DropRandom.cs",
+    "Hash": "5EA3584D27D790737F772420D294953980CCC98D96737DFC949C6B85F5FFC7DB"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\World\\ClearRewardRules.cs",
+    "Hash": "CA2881C90A27671BF9B36F139E92DA68145401E69B57A6E3624D663D1DBB00F8"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Commands\\Game\\AcknowledgeGameExitCommandHandlerTests.cs",
+    "Hash": "D18384F0E4B10BAE0803F3C3A8F78DF960FE076D32BC3B33969039FCD4CAE334"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Commands\\CommandHandlerArchitectureTests.cs",
+    "Hash": "AB9107BC2371D4A3D4E5F898B3E1BF29995A8FFD315C35FFAD06ABBDB29D9714"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Game\\ExitFlushHandlerTests.cs",
+    "Hash": "47C07909818CA8E3EF3D7AE8BCE4F43A85D00035008ABC66C5F052835D199D27"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Game\\CreatureGoesBackOnTests.cs",
+    "Hash": "531645BA4E3D660440023CF119E4EFCC9CA6446EFF6BE740FFC74B5C0A2D3819"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Game\\ClientSpecStatisticHandlerTests.cs",
+    "Hash": "B60BAC3CFF74A240D1C82FBAD8CA4FAF253A056655910075206CEC1121A4DE14"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Game\\ClientSpecProfileHandlerTests.cs",
+    "Hash": "6B0FBF7F5BBD4CEA8EE567E9061CE305A55744F26D6F55D268DF1DEF8F31A0E5"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Game\\ClientHardwareDetailHandlerTests.cs",
+    "Hash": "C6132723DAB83C760F72E4D2B990290BF3F5F690ADFD46568A23B47AED4C3E70"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Game\\GameLoginTests.cs",
+    "Hash": "0CC8CE73A9149C9004810B62AE8D026C0CA462EF2F0ABA24BAAFE508D592C2FA"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Game\\GameExitMessageHandlerTests.cs",
+    "Hash": "3A8DB8E214F90A0E8078677C1E4D9FC84592205B647686729773D210402DFDD2"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Game\\MoveItemSpaceHandlerTests.cs",
+    "Hash": "9C2517E9A9A666C14B71CE6439FB01B04706338F6B47EC7DEAC2C6D322ABC99E"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Game\\SelectCharacterLifecycleTests.cs",
+    "Hash": "C8A545DE51C1B2C315393435C858907F0A3EC75C8A99ACF4F78C33AAFFF30699"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Pvf\\Codec\\ZlibCodec.cs",
+    "Hash": "CFAD1979576BD9F62BA7B88A52449176B3097758A9497FEC5AD56938E98BDBCD"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Pvf\\Codec\\PvfCipher.cs",
+    "Hash": "906981422BBA0ED2DDDD5DB5337093849973C6680DFE2C05AC90ACC31E5CF849"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Game\\UseStackableHandlerTests.cs",
+    "Hash": "E68D91FA674BA6CD8739EBE0371A446B433A020DA4BA8A9FF76CE3C99C926061"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Game\\SelectCharacterReturnTests.cs",
+    "Hash": "87DC9006740B6E40CB0FD9D58B2B5014FE1A99C99282C4FD3ED44A94800A25EB"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Support\\RecordingCharacterDomainStore.cs",
+    "Hash": "15C188B8E81EA8A78570A53C4485F758AF44447FE858844C4139EEB31108164A"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Support\\EntryServices.cs",
+    "Hash": "0DEF082D1D16161F74585130CAD97EC7578CB1680D35DD21A0F33A6446DD769C"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Users\\UserDomainServices.cs",
+    "Hash": "CE51B8BEA630F39A99E416436F4BE55A08ABC4481E9A50AF6F90F04E78B21BCA"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Users\\OnlineStateRegistry.cs",
+    "Hash": "FD8C17E515CBD54DD6BC78BA0E42E5D627554A823825D69CF6EE038608CBC0F8"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Commands\\Channel\\ChannelControlCommandHandlerTests.cs",
+    "Hash": "325EF965985C4B856019650DF665653B04A6D5239F9F950640F136572A241DC7"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Characters\\CharacterIdentityTests.cs",
+    "Hash": "90667D4C6DFB6ECECE785EF0D5255E500ACAAEF2F14E41C3A489695D409DE25C"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Characters\\CharacterEntryStateTests.cs",
+    "Hash": "8C6DDF845AC638BE1616B8EBAA0DC6072B49605D9BAE0F0CCD0804A6BA350FAC"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Characters\\CharacterEntryRuleServiceTests.cs",
+    "Hash": "19BCDD3CF33FE0C96CC37BBA894A609ED7F23C33DA2B1B10F97A8F8FF01C8A91"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Characters\\CharacterEntryInventoryTests.cs",
+    "Hash": "3E3B111863224A473AA857595CD83CE8255D2761E15A563E2D6024DBFF4C2989"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Characters\\CharacterDomainStoreSettlementTests.cs",
+    "Hash": "3E90C547FA03307C082127B51D2DFEE425BCA01A9D1D7E9D53D25F828D43E5EC"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Characters\\CarriedGoldCapTests.cs",
+    "Hash": "91B62307DF8E7ECD18C686027AF52F3E299B452E4DE78DF5C91DF24B28DE38D9"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Characters\\CharacterPositionTests.cs",
+    "Hash": "B12A711F458E0465F3813E26F120C57639BD11814DFCEF36E7C1B6ECE2BCADE1"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Characters\\CharacterLifecycleServiceTests.cs",
+    "Hash": "E01E773F5287712614A6899A5E06A88AAAD287676E1363B0B9CA9AAE6BEA5876"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Characters\\CharacterItemUseTests.cs",
+    "Hash": "2FE15E944144D5861C2F25B091AF98554DD4DF6B51542E19DBFF4950C69FF05D"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Characters\\CharacterSettingsTests.cs",
+    "Hash": "4BE2A373FABA96A6167593CFA0DCFB558BC249CF34581BC97521FB55595D4AE0"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Characters\\CharacterRepositoryProductsTests.cs",
+    "Hash": "E0DF428F625341CF2FF1C4B057AE1474B7EB299A359AD90E48487A1563E517AB"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Characters\\CharacterSkillRuleServiceTests.cs",
+    "Hash": "72D73714133EE2B24721D88D6D955A6C268DF1B5D0EDF1C7AE1ADF5F1A3BA373"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Characters\\CharacterSkillArchiveTests.cs",
+    "Hash": "958F9B29DB2EFF52D67E099CEF56E7AB3B4E2B99F3C6B4FC37F63275A172DA82"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Characters\\CharacterStatArchiveTests.cs",
+    "Hash": "50D84F45AFB19037A2213B2BCC17621BD7E6F8D07801CA930E50A4E8DB4F2C2E"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Characters\\CharacterStatRuleServiceTests.cs",
+    "Hash": "13ADC55B474BE94BEC8ABCF02D48076169F10126283EE7ABCD290A73D7E0F01F"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\WorldContentRuleTests.cs",
+    "Hash": "0464047E3C856227231B56BE26B9C49747A02699800A0818984A75CF32699FD1"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\WorldContentArchiveTests.cs",
+    "Hash": "896DB3B4574B186EAAC093DCD6C556194037F293406D26D6C855C318B681EF10"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Quests\\QuestTriggerTests.cs",
+    "Hash": "8D2DD197537B1D1C12F47A48FFDDCAB81A68AD061B4B7688866AE14B39DD80B4"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\UnconfirmedVocabularyTests.cs",
+    "Hash": "F6729BCFC4F6A835F67366DF32F0B711FCA074F3BB9EE8C5FF584C416BF3AA3B"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Quests\\QuestLogTests.cs",
+    "Hash": "88DFC7C4C0549B53F4ED746665A17F5E4EF7186FC51652C393832BD0E0CAC29E"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\RarityLadderTests.cs",
+    "Hash": "2F9D7830B8A17C9786994DDDE1ABBF8C8BCA7D5B53097CC807514F12350BFA04"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\PaidCardFlipCostTests.cs",
+    "Hash": "81AD7737FDB3858FBB2BC8C226BE22CB476DA81E378772CF26AA7299F9F4020B"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\MonsterExperienceWorthTests.cs",
+    "Hash": "24752138790DB059A0586565F5247B53B9909C8E520DBFD68CD8B88783AD95AE"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\MonsterExperienceRulesTests.cs",
+    "Hash": "E62486149430CBDC547C19122C021A7CD8C7FC5FB619051CB5C37E6F22FEF484"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\MonsterDropServiceTests.cs",
+    "Hash": "A2519EAFFE13FB69964C3641E150443D306C5B61E10F82F9E63B62089EEAAA43"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\ExperienceTuningSourceTests.cs",
+    "Hash": "41592784BB6771EA72C807669C1D13991AF34B82B3167FF7BB1BCDE8BD6491B4"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\ExperienceBonusRulesTests.cs",
+    "Hash": "493D0B4C48820DC653B7E9407A7B8FD2487C4D80A5396007F5FFC1C63FFF3065"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\ExperienceBonusDomainServiceTests.cs",
+    "Hash": "12ED47E5EC1466C0F67798D5AF81299EBC4982BE0C56F79C158DAA02ADA705D3"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\EntryPlacementTests.cs",
+    "Hash": "A6404D2FF57E237885C57C5816B985D4D2EC415841BC4E2DA176BAA52D65C08F"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\DungeonRunDomainServiceTests.cs",
+    "Hash": "BB7D62F177E670D259849FCAD4ABC5867C67F9B3193E4AB13F04F147BA808F30"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\DungeonRunClearRewardCardTests.cs",
+    "Hash": "75440608327E22DD4775146BE1563FB61377BF783447F5B39EB46FD26144EC3F"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\DungeonPaidCardSwitchRuleTests.cs",
+    "Hash": "D5808125D1F1A20EC26B409EE3AF9B5B6BB569B5E9E366C7BFE02E31EBD01095"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\DungeonLayoutRuleServiceTests.cs",
+    "Hash": "5D7F75F524B9507D6FB5E9998C646A8F17E9988C0245229D88EAF96AB8FE3AC1"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\DungeonClearExperienceRulesTests.cs",
+    "Hash": "2AAD2C367216B6D9373E5736F0A172155B811780DEA75376DFE1EF99526710C6"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\DropRulesTests.cs",
+    "Hash": "80BA82DD7CCA8C8AB75E2D00944FD371D59F9191AC2FF86E0B37C11A2B3C9A81"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Support\\UserDomainServices.cs",
+    "Hash": "5948F375ECE150EA3A3999ECF41CA0F280238401873D689FB3021554CB230F2B"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\ClearRewardRulesTests.cs",
+    "Hash": "E82BACCE9173CDAE782B5FC297DC54AB6F90193398F3FE9F34472B12409C8C1B"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\ClearRewardRuleServiceTests.cs",
+    "Hash": "DD76661C780E115C9192B83E563495A14EBD2EE484871B89485CDBADBFAACA81"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\ClearRewardRarityLadderTests.cs",
+    "Hash": "92EE863AD3B58A4416286129CEF3555FDC0834D48E2D859635334B6FB2B75EFF"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Support\\StubWorldContentEntryRuleService.cs",
+    "Hash": "890CC9D01BCEB97D5BD3B11398DF02F3DACAA63125C7E510B5597E3220FFCED2"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Support\\StubSessionAdjacentEntryDomainService.cs",
+    "Hash": "3992E82828140CD465AA565156609114F1A638CA21465CD4C7F92C1C042118CF"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Support\\StubServerConfigService.cs",
+    "Hash": "064E57398EC783E927994B7E84B01A2246FDBDD67E9BC2D2935EF9D64B2B5499"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Support\\StubEntryPlacementRuleService.cs",
+    "Hash": "98E85EFEE8D2CAA9AF55B28925C7AB2AF35437AC396F6021D61C080090BAF249"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Support\\StubChannelEntryPolicy.cs",
+    "Hash": "808D17FDB506FC59246D4E965DF5CA433E3DC6B47AEEA9EDB3EB9492AB9849D3"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Support\\RecordingQuestLogs.cs",
+    "Hash": "DA289E0BF66FE1C416470DEDA9D7C43B7A83CAEEEAF6CC34D1739A5DA30D92CF"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Support\\RecordingCharacterTable.cs",
+    "Hash": "9E62F71592CE13CECE625A86F096BC28FFE8E84C4342C85E9D24FE79D8EA6DA4"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Inventory\\MovingInsideTheAvatarListTests.cs",
+    "Hash": "09428071FEEC7223A37BB4FF309E69B779E2382D0C36E3448C0EA7EB0A3B2177"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Inventory\\ItemUseFixtures.cs",
+    "Hash": "77C0A3243340A455CDB802FCBC3F7F8C0273EF1CFDBEC1A0E053014D83687CCA"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Inventory\\ItemSlotRuleServiceTests.cs",
+    "Hash": "984D1E2143C0AB5F42F5203F25C4074D2F55269F01BEAC4F9A21F4365C1DE9D4"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Inventory\\ItemSaleTests.cs",
+    "Hash": "EA9F538A66B1A969920D6ADB104E8499B74EC43070F31B51109905106725C907"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Inventory\\ItemIdentityArchitectureTests.cs",
+    "Hash": "C07DECFCE95D8009B42815560428B74599362D92823C41D68FA2B25E4CD02856"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Inventory\\PersistentContainerBoundaryTests.cs",
+    "Hash": "5FDCFC3926B2C8CD8D8F44814498D7F7E0F4DB282B14875CC572A50A411DAAE7"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\ClearRewardArchiveTests.cs",
+    "Hash": "F66701272EE5E2735E94E7EC38898F954849EF3C8C93DA416DA318115DBF151B"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Inventory\\NpcShopRuleTests.cs",
+    "Hash": "0803CD03063F97A5E61DCBC1A18DD8BEF27D57C2048A27DC6137FC900F18787D"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\CharacterExperienceDomainServiceTests.cs",
+    "Hash": "0A0EF02A0D8824CC928A6417F562E4A91DC58E09B083CA3441248E50136EBD4B"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Inventory\\NpcShopPurchaseTests.cs",
+    "Hash": "4DB04A53E73FF3C3ED29C191C0FE5E276323778EECC9BD9B50767EDFCFBEEC97"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\World\\CardRewardDomainServiceTests.cs",
+    "Hash": "C665DD20E7D6915950F9B50FC389ABA56372D871D2A01B86C8DBE679940CCD48"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Inventory\\RefillRuleServiceTests.cs",
+    "Hash": "84ED3397BD310CD94FBD2545136AB2BF46DA722DC1CD2509ADA4B30E146DEC1F"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Inventory\\PickedUpAvatarStaysWholeTests.cs",
+    "Hash": "097CEA8F0FA10CB63AF90090B10B1B9C416DE708DFBF11D8C05958D2975AA3CF"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Inventory\\TutorialRewardPlacementTests.cs",
+    "Hash": "DA363DD4355BF3E94DC8B708A02BC07C5025A84129ED9C3EE6A42A9347B5B211"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Usings.cs",
+    "Hash": "50436EB3A60162E0CFAD749EDDFB06F8908F821A90CA44532DF946A53E071359"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Configuration\\ServerConfigServiceTests.cs",
+    "Hash": "BD7E09D335F6445EE3E9C3D89076FCEB934239A2BE389AF328F9957C312A4E1C"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Transactions\\DomainTransactions.cs",
+    "Hash": "F886A256DCC2DC1F136E24F69B2747CFEE40A617B1226C8C5B103FCD08DDCA73"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Transactions\\DomainStores.cs",
+    "Hash": "CBA4420905E193004AB0BB865BB2B7B8E9AC86507F272EA7442E5FFB10EACFE4"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Inventory\\VolatileItemDomainStoreTests.cs",
+    "Hash": "F65C33CA8186ED28431AE3C192611131B3BDA84DA1A6027D849FD4EE1B2EEB26"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Pvf\\Chunks\\ChunkStore.cs",
+    "Hash": "76CB35B9AA4906E44ADC192AE072B2ACCB20E315381B3E176557CDC97566A03D"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\IServerModule.cs",
+    "Hash": "B3BCD450BA53CBE695DA74DA4B37F16B2C9AF1C76F5AF66246C0F93F367C4032"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Transactions\\DomainTransactionScope.cs",
+    "Hash": "4463D7E267F590703BDC3C0A28E3A81C7F78EA58A07359D7F0200712EB0C062F"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Transactions\\DomainTransaction.cs",
+    "Hash": "F73458EC8993B351EC1AB1F5059AD4FB83744D1D2EC15C19073098B580E55C0C"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Characters\\TheStoredAppearanceBlobIsReadExactlyAsWrittenTests.cs",
+    "Hash": "DEC13244A3F334C1A875C17D41FEB49537FA5DDA2A36DE6D759FE9038D7658DB"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Characters\\SupportCreatureMarkerProjectionTests.cs",
+    "Hash": "C67199DA6D9628720A65BEE0105D0837AFFFE093D5E20941848E710EED52F14D"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Characters\\SelectCharacterEntryLifecycleServiceTests.cs",
+    "Hash": "A0F488DC8A2E967E1246B7F82A30201D5D1452960D6E713B7871737DEE50797A"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Characters\\RemainingSkillPointTests.cs",
+    "Hash": "BF3F504B716B3C6AD3239EBB87579121D379E9CF6A105C12542ADADEF6BC06CC"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Characters\\OutsideTransactionTests.cs",
+    "Hash": "FFE28E1350509B4E1CD2DB3E2E3D123D1AFD788B41E6011D47ECA8D2031E060E"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Characters\\NoCarriedGold.cs",
+    "Hash": "BC4DA473371F8772D0C1CD840EEBC32963AD35F35A2D74DBFC24F9D811EF9C42"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Characters\\ItemUseJudgementTests.cs",
+    "Hash": "B957D7353A3461DC0E593581FA4A020808DD2D8249D0C55163A00EC3C2C3DC93"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Characters\\DarkKnightComboBookTests.cs",
+    "Hash": "3987A0EADDC74C38C255F7E37F99279E92A2FE30A2FDE2F21C8DD98D008FDAA3"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Sessions\\RegistryExistenceTests.cs",
+    "Hash": "3F94265815B6523251FCA5E173C5A5CE9C13733CCE1953579028264524E0E746"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Sessions\\PvpLobbyEntryTests.cs",
+    "Hash": "7F7FD06155C1ADE1D063500A89ECD876A53C0217F86DD179FFA9BC1E3C6AF930"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Sessions\\SelectedSessionDomainServiceTests.cs",
+    "Hash": "E6A1C4D56CAC43DEEFD65C8F19F503578738C008DD0FC3F974420D7F387803D7"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Sessions\\SessionAdjacentEntryTests.cs",
+    "Hash": "6C933D6016CDAB44E1E347C2A50F273E0CB645473EF5FB736C31A1691A5F1096"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\OnlineUsers\\OnlineUserServiceTests.cs",
+    "Hash": "4D62515BE098456DEBDF7A21F82442E419AF1167029CC3C87203AA004C5E1375"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Sessions\\SessionGenerationOwnershipTests.cs",
+    "Hash": "B3DFE914ED60591FC0401844AE8267B59A06F5B6B9C8881EBC4FDC7A795E7E1E"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Sessions\\ISessionPresence.cs",
+    "Hash": "460FF95ADECB592758E3B519A6909A2A8645EB64E2E4FF089BBA6CBC3F35AC96"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Sessions\\ISelectCharacterLifecycleServices.cs",
+    "Hash": "4654074447682482C628C4DE524987E664A11D51E0E0B5D7DAF2CB71FC4536E8"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Notifications\\NotificationWorld.cs",
+    "Hash": "1EE0246F743725F36D4DDE6DADEBF1905E2844A982C30D44F91B0074544D54DD"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Channel\\IChannelSources.cs",
+    "Hash": "B58DF995DC2DE966803C53944B836F1DB04A3260FBF59AA693DE100054284FEB"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Notifications\\NotificationRetryTests.cs",
+    "Hash": "5E3C64573ABE984AEE12E9A99246D374DE44A7D2F3DEB566D2B843825B424F6F"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Notifications\\NotificationRetryDrainServiceTests.cs",
+    "Hash": "3ADFDFA1F8E63C539DB2F32D36DC88EE684DA3D45B9F46AE3C4C02D717D389C8"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Channel\\IChannelDirectoryDomainService.cs",
+    "Hash": "6DB3670648DF32531852A3DC3F1828486FDCDED2879EAD46DCD24ED766988870"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Notifications\\NotificationRegistrationTests.cs",
+    "Hash": "04E066AC06C83E2B39CABB2A48E21AEDED05C7E362995879676AFA8E6FB54638"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Channel\\IChannelContentRuleService.cs",
+    "Hash": "3DAC52E5CCFE83D4336B4343070D72D6C06151EAFE66C37A95D9195A7D666697"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Notifications\\NotificationHandlerArchitectureTests.cs",
+    "Hash": "90F36A9203F6EB13FC4C6770E32C609DFEEDF991CE9B266B26343E7F51816C41"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Channel\\ChannelExperienceContent.cs",
+    "Hash": "AC07DB887609E43F641A6F893FD05E4AE725AA1B35AB44879ECF770D8619A936"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Notifications\\NotificationDeliveryTests.cs",
+    "Hash": "47EED1EA98CCED94ECA98DE1ABC19359CD776677BD68AF8FDBBA14C4014028ED"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Notifications\\NotificationAudienceTests.cs",
+    "Hash": "78B8622F76A48CAAC8914381127C9F4EBB7B786894FD59FD9EC65B2DA024DAB0"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Dfo.Server.Abstractions.csproj",
+    "Hash": "D5FB424FB06EE745CE2223FEDBA9B3088212CBB21C7FEA16696854B1564EFEA0"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Infrastructure.Tests\\Channel\\ChannelSourcesTests.cs",
+    "Hash": "BDD3FF45AD65D7B69469DC800023A35D48712775B5F618C2DF438BBA1BB82E41"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Transactions\\UnitOfWorkBehaviorTests.cs",
+    "Hash": "5CE1D4B8531E68C949DE78B4F176EDBC40B7851605CFD96A7183B99324C637E8"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Transactions\\RecordingParticipant.cs",
+    "Hash": "EA195426FCDE513B7D6BABEEB7F913756B764950CC2DF92FFDE6940E6B829E43"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Transactions\\OneDatabaseOneParticipantTests.cs",
+    "Hash": "1E1B35A9C209266787CD8EEAFA23AF7D3582357AA3B21BC920DA031ECA1433A8"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Transactions\\DomainTransactionTests.cs",
+    "Hash": "6B9DA95011563D00C7D9668EFA9C6C927740C80A68B6D6BB4ADAD4FDB6C9F8E2"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Host.Tests\\Usings.cs",
+    "Hash": "50436EB3A60162E0CFAD749EDDFB06F8908F821A90CA44532DF946A53E071359"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Host.Tests\\Dfo.Server.Host.Tests.csproj",
+    "Hash": "6629E79F8409497AF5802277EED4A8696C2047BAD4CDE7BD10C0507FED3BA93E"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Host.Tests\\ChannelHostStartupTests.cs",
+    "Hash": "0781661743AF9E761BB7EB07D986048BC94373607E09B5A94A5D4BB0C9BB2C72"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Host.Tests\\CarriedGoldCompositionTests.cs",
+    "Hash": "B6F5DC39CA6B3DC5E4F74F4FE516D616A8171A40788A9C55E352E12D664FF7E6"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Configuration\\IServerConfigService.cs",
+    "Hash": "23C982A014A384CC23761DF78B920A286ED5B8E90ACD75325BF5857B42353F06"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Accounts\\IAccountRepository.cs",
+    "Hash": "0D825D706F4601E78100EF3B969565E8C57ABDF35D04FE6A22C4C8F537EE2F3E"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Accounts\\IAccountEntryStateServices.cs",
+    "Hash": "845C755B0A5959DDC18112803259EE5B89282F6F9F420A67D8368F5B432122BB"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Accounts\\IAccountDomainService.cs",
+    "Hash": "AA046062212E0F112ADF4BFDACF532E1DC527022C7FEDC919111D77563FFE038"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Inventory\\ICharacterContainerDomainService.cs",
+    "Hash": "EC8489E611CD42455B61F9656573564BFA75C4952165011144511683992439CE"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Inventory\\IInventoryEntryServices.cs",
+    "Hash": "2394C7FBF23C3CF46FF1C9BD9848EAB5DDB4B2CF7F81BF6D03C08AA557A5AB5B"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Sessions\\SessionPresenceDomainService.cs",
+    "Hash": "6492720557BF52C4446C7CD07488652A4AC59625DD53CC4DB10D43BBE82C45D1"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Sessions\\SessionAdjacentEntryDomainService.cs",
+    "Hash": "323751C15B5AB91AC604CCC09E9314EDC856DC7ECA5337DA957D4B5279E1271D"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Sessions\\SelectedSessionRuntimeDirectory.cs",
+    "Hash": "FEED742C2CED7EECC270EA29AC561795957406372E762335E0C4B8DF188E5B1F"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Sessions\\SelectedSessionDomainService.cs",
+    "Hash": "1CD5D27F88E3E5603310EB5E233CF084BD59F5757EC822E5CAAE44E9C143779D"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Sessions\\SelectCharacterLifecycleServices.cs",
+    "Hash": "471E355A154D559ED78124CCF79C615DA1A30D8BD6849841E6BBE6ED0383EDE8"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Sessions\\PvpLobbyDomainService.cs",
+    "Hash": "1B23B0DAE802474E93834392C7FD8E2AD434247B80F96E1378E1725AA114F31F"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Sessions\\ExpertStoreDomainService.cs",
+    "Hash": "BA223B9B0FC5FCF8B7AD0BB47F4BAD918D886EA4F5CA32B6ADA08A31DD9F39EA"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\OnlineUsers\\IOnlineUserServices.cs",
+    "Hash": "AF6A5CE0ED7AF234F4B77BF74E8466FAEC84B4FAD46F91EDD28E2894301DF5FD"
+  },
+  {
+    "Path": "Server\\tests\\Dfo.Server.Application.Tests\\Networking\\ExplicitMessageDeliveryContractTests.cs",
+    "Hash": "AB4623DF0E9239B814CE4F94C3721FFF4ED476FAC38BEA4FD9A33BC2F4190069"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Networking\\ServerMessageEncoding.cs",
+    "Hash": "38A3BD6AE53BD46D698EF7B0CBAA951881E73E58EFF2A8D2491D64CC37380103"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Networking\\INetworkServices.cs",
+    "Hash": "152598DC06F10CD0EE8D0B64199B1914674920F9EAE2E71ADF67E31F2375945A"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Networking\\IClientMessageHandler.cs",
+    "Hash": "7CE6050A58FD7B5FC8889BA2E77C81A78C766FBCABB57788FE86534443343CF2"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Networking\\ClientMessageDecoding.cs",
+    "Hash": "2585DD38F6BEDA315B55F099DE0099208E5473A17E5D0B6C615DF89A1BB8106D"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Notifications\\INotificationBus.cs",
+    "Hash": "D7A3208DD21703A140100BB34601A087E73ABE8919611A530D486FDB3F24A92A"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Notifications\\INotificationHandling.cs",
+    "Hash": "89EABA7BC310E48E4203A7F1D8415E038330E3976AEE0489D43687FB2744B597"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Notifications\\INotificationServices.cs",
+    "Hash": "EB626407EA266FB64DD53767AD94D9638A0F508D52C7410BC6D32C8A5A2A9DCC"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Persistence\\AccountTables.cs",
+    "Hash": "7924A58072DBDB0769AD2C3CC17974592EB7C551275DE0ECEF27D9DDD3069524"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Inventory\\IInventoryLifecycleRuleService.cs",
+    "Hash": "F393E3C77E1759AE1BCAADB3F9022DE3379DCAD1B5B8E218BBD215117FBDEAD1"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Inventory\\IItemArrivalRules.cs",
+    "Hash": "17216B3B319D439C894C373E4FFCAF3AE739903EA0ED443BBD4A233926CA77A9"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Quests\\IQuestDefinitionDomainService.cs",
+    "Hash": "8E11A31CBBB44599CD63D1B54EB4C9D22F276382F300A33A3037ACAB10C6A204"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Quests\\IQuestContentRuleService.cs",
+    "Hash": "B31AE577A8CDCD353CCA7DAEDE0A7555D97AFEDBF2D1F8BAFE81588ACCD00F0E"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Quests\\IQuestDomainStore.cs",
+    "Hash": "CA7AE06F4A83283FA011FD98DC3F898086BBA23C99DDBC94587E211E8C1BFE0A"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Quests\\IQuestLog.cs",
+    "Hash": "37C2894F69382EB12026CF16734536759ED3A62849DFB6781F72CC587EAF9198"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Quests\\QuestTrigger.cs",
+    "Hash": "76EBE2C2631CD92749C10C5BE001AC8695751D33CB1FC5E6DD8C9B58C061E300"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Quests\\IQuestOfferRefreshDomainService.cs",
+    "Hash": "05DF786140D8EED70E358B13A66B5E0D18BB338E9FBE93AD1684E881C8F3AEDD"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfDungeonRoomActorSource.cs",
+    "Hash": "6ADF6C166EC89E69F0F91275B56907BDCE2B759452D7359B9B6052DDBD0475B2"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfDungeonRankGradeSource.cs",
+    "Hash": "A891585CEAA234EED45D1AF5361FC014278D1189F2D87CFDA73E76AFE8E72574"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfDungeonExperienceProgressionPolicySource.cs",
+    "Hash": "24318A5EF7DD085771BF5E1963747C8E907F353C1E33686752C0B235EA394BB4"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfDungeonDefinitionSource.cs",
+    "Hash": "8BEFCDCE421F660A03CB9ECCD91AFA557EEB14D57A34699054090823DD269817"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfDropRateTableSource.cs",
+    "Hash": "7DA526C1233589A700FCE9A6C5F679DB159EC429EAAC2AEFC104E27137EC44C5"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfDropItemPoolSource.cs",
+    "Hash": "92C205FC5B28B0595B49F27EADD1A4FE8FB80845F647D5253E57A19E2F3B41F0"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfDailyActivityDefinitionSource.cs",
+    "Hash": "19EBE8C59DA3709527F3C6BDF5B56ABC870E920EF6295C888A232DB10FA05772"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfCreatureEquipmentLifetimeSource.cs",
+    "Hash": "C198798FCFE00FC06EF73597C12429372DEEFF2457E7701BEDFD5CBAE58DDE48"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfCreatureDefinitionSource.cs",
+    "Hash": "5A8B735DCFA23F89B5C46203C1E92CD70FE49B134D198B0ADD9CF55EB8029ED0"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfContentOptions.cs",
+    "Hash": "44031E1134B6492B046D7C85AFE3E5AAC74D67D0C61180D6D27B5D1D7C27A464"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfCollectionBoxDefinitionSource.cs",
+    "Hash": "D1AD5A89A1511A18F93A3C122B14A774DCC73F5E075A2AFAE1CE1D9BCFFF1CCC"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfClearRewardRateSource.cs",
+    "Hash": "B122074BC413D012EC2D38CB1BD31E1AEF8555A2B08D68B36D528D0099E1A6E2"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfCharacterStatDefinitionSource.cs",
+    "Hash": "AEE7D3EE38451F5425203A5965C18A9349F2B96D38021C241B5FD13C2A0BAD9D"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfArchiveProvider.cs",
+    "Hash": "FAB72D75FD1ED2D3C24D3AA15D6C2004024CF1A47602040E28405003F06BFEDE"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\ChannelScriptExperienceSource.cs",
+    "Hash": "9AB58BD3FA65FB5F28A7BEAF287F7AB31031147CEC528838903330C1B3923552"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\ArchiveJobFamilyTokens.cs",
+    "Hash": "C2709232C2320A790D3FFAF1949746B7A70F2E6D2BEC8E03FCBC16737C306FC4"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Dispatching\\NetworkMessageDispatchingExtensions.cs",
+    "Hash": "F1EE5EFD8DAFF1F77A5FB2BCBEA0EA4BA1620E39EFFBA0ADD3FD874F17A0206F"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Dispatching\\NetworkMessageDispatcher.cs",
+    "Hash": "225B270748300B6356F5E1D06FECC86EFD82917D7C1065983AFA20629AA4C1AF"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Dispatching\\MessageHandlerRegistry.cs",
+    "Hash": "A3DCC75B35ABB4258B9F40C7509051C85C15BE1688F41599B8D3F23FD4E61BF2"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Dfo.Server.Application.csproj",
+    "Hash": "C594C9DBE0E93C32F6DC1A37E73E0C2CCEE56ECD03892CC805F90089ABFE9E0F"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Persistence\\NpcShopPurchaseTables.cs",
+    "Hash": "1B99CD181FD06F73D951F8D7EC2379668DDA53C1303BEE8CA3D69B745E886AF9"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Persistence\\InventoryTables.cs",
+    "Hash": "F5D6CA40B622E23BC2CF3E417C5419DBF16B59B88240A51A2FD5787E47E6C038"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Persistence\\CharacterTables.cs",
+    "Hash": "7508492C85804BC581B9485BE41A81D0247038BF2BF5A3EA0601120ADB9AD139"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Persistence\\CharacterEntryTables.cs",
+    "Hash": "65A867427D698783A403807C3DC11B299629187B0C8DE8AD6B59C82038BB0227"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfTutorialRewardDefinitionSource.cs",
+    "Hash": "741BD4F988ED5912AC3A49096974E635FA7A4A72753A3F16FBD61F6EE776CCB4"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Persistence\\CharacterBodyTables.cs",
+    "Hash": "2E24AA1FADD841F4AFB26D5CF2836FA796023834DED7BE70CE982F45D193B90F"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfTownDefinitionSource.cs",
+    "Hash": "E3A464D4152A1BF0C4AF52AA52F706DD909477C2651255D3B53F30F95F010507"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Inventory\\IItemDomainStore.cs",
+    "Hash": "452E1DFDC92AB0D59C487AA8F682125433D74AC4F9CFAB48C5398D07627FAEE0"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Inventory\\IItemContainer.cs",
+    "Hash": "D2067F77B72C83F2E697FE533B696D19F1729E1DB20B73FA993CDE91F0246D25"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Inventory\\IItemMovementDomainService.cs",
+    "Hash": "4D49F5602DCEA18E637150603D28E5E2D51353A3C32D71E31B8672EF439DEEF2"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Inventory\\IItemPlacementRuleService.cs",
+    "Hash": "4732A8114A342EF5E870A96E1FA19F2E2576B24BBC91BBB6B95B29CB9F02DA4C"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfInitialEquipmentDefinitionSource.cs",
+    "Hash": "1949B9C398B1085DF847CB12854FE3B2A034AC3E18A0BA88C5301CC1E0F3F6BF"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfGoldCarryLimitSource.cs",
+    "Hash": "E3C7C11D98D86122DAA74C9C6445F09CB64080888BBD0159E2D6413A65D213C3"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfExpertSkillContractDefinitionSource.cs",
+    "Hash": "70E89BD63D226966B53D3047FAA3FF289B7F8687DCACBC9FA8285E2DEEB338F1"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfExperienceParameterSource.cs",
+    "Hash": "FC9961F8B47DC8C52F2DDE407345FE8CE3E8162150861CFEF2046FDD80DF3C6B"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfEquipmentSlots.cs",
+    "Hash": "0D94E163B7549F8461231E28CA4E69E3B42189B446FF556D38B539221EAAEEB9"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfEquipmentSlotDefinitionSource.cs",
+    "Hash": "2304BC812DBCCA45CB68D4F5BACA68D93B76C050CD2B95FCEE354896BB7D2D08"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfEquipmentDurability.cs",
+    "Hash": "B2DB59B8C221B9E4FBFB12579E8F68A62B56A600FA898C1C812F94868E06C31D"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfEntryLifecycleContentSource.cs",
+    "Hash": "9666EC0FB068D5B77D7480E27867572B14B21614CB85A32C33B1532DC9F53543"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfDungeonRoomDropSource.cs",
+    "Hash": "4C5D5D7E0A78C80C847CC566960BDFB61235326074D0EB9B6ECA067CF073C9D2"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfItemUseRuleDefinitionSource.cs",
+    "Hash": "6FB895C4E31A4098AAFC6735F7D3FB0A645E00E310890DD381E479451880A9DD"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfItemSaleDefinitionSource.cs",
+    "Hash": "B14C364716DF80D228417AB52F6BA0D29748CE0B54B909019F760A0B05FFE294"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfItemPlacementDefinitionSource.cs",
+    "Hash": "DE706B7723F108F6777A1C9CA2C564A581B4AD509EFAF603ED60E35151620834"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfInitialSkillDefinitionSource.cs",
+    "Hash": "3BEC13770105907959797AEED8E71F3478F0E0DA6A134E4197654F9EACF3F2AC"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfNpcShopDefinitionSource.cs",
+    "Hash": "7A6174C859F1A8C79B6833E306A509655549B19876DDAEE79D99E5817CB9EE93"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfListFile.cs",
+    "Hash": "D9C55D84E38186D4DDDCB165A72691CB5EBF2143159D137CD40257E19241F642"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfQuestDefinitionSource.cs",
+    "Hash": "A35C692B407FEE765D141B731D65C8516445BC8446F9AF4FF2ADAEB724A7EDBB"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfQuestParameterSource.cs",
+    "Hash": "14BAC8EFFFD377A8BEB400B84F0C1876A8C9C1FE52ECF0110521E67099B89A68"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Content\\PvfSkillPointDefinitionSource.cs",
+    "Hash": "FFD19DC92D1ADD5F4455BD16546185F0A33F0C0E6E5A596AFEFB70135D40B6DB"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\ApplicationModule.cs",
+    "Hash": "829F92655939BFF40B08692D5D39036EFCE344054E174C9EF5BA5A43C7D07D4E"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Channel\\ChannelEntryPolicy.cs",
+    "Hash": "174B830C392784BDE22DAC056CD553CC16263DAE71AB456A656F3D195F887866"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Channel\\ChannelDirectoryDomainService.cs",
+    "Hash": "AC94E5FE3BAF4D7B4ADB0DE3CD165FD70B0BB22E2C1440EC977CACD6C3E6B9C9"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Channel\\ChannelContentRuleService.cs",
+    "Hash": "B279CE9341A29BB74A986EFBBDBAB9F8E812011BC8B6913864D0C585CDDD5201"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Inventory\\INpcShopRuleService.cs",
+    "Hash": "46BB6627C033A38AB896539EDD1E63B6182FAD617F8FC9EB5BB322C33BEBD6AC"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Inventory\\INpcShopDomainService.cs",
+    "Hash": "64B155D1C6768FECDEA0DB254AF408EDDF307C35BFD840FE0A82B665F0D79DBE"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Inventory\\IItemUseEffects.cs",
+    "Hash": "9DC9BD384961ACCFCD5E077EB6782D0FB795B8F345E7DD8525AB49C89810E373"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Inventory\\IItemUsabilityDomainService.cs",
+    "Hash": "D735C12787A72D72086B08D67657B6A37F8BC51963BF8BF918EF283BDAEBEEB4"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Inventory\\IItemSlotRuleService.cs",
+    "Hash": "84953FD205FF23FE26731638E95A5849907BEF9E475F3FE575660F98F023910B"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\OnlineUsers\\OnlineUserExecutionGate.cs",
+    "Hash": "7B2BE54083C28A43067822C8060566D41DF029D944A63DCB306BC06E9D9AA9CE"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Characters\\ICharacterEntryStateServices.cs",
+    "Hash": "232F0DB704A8E4510ABD27ED6C28962400158A4F03C8EAB528E8D27E7F147A66"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Characters\\ICharacterEntryRules.cs",
+    "Hash": "2C44EADD5B58B15190921F34465588D8292E67047F4E3F81A7941EF987DBFCFF"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Characters\\ICharacterEntryPreparationRuleService.cs",
+    "Hash": "5ABC165758531E9DF1ACCC6253AC528933FA8D311DE2A8EABE23003A836094B6"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Characters\\ICharacterDomainStore.cs",
+    "Hash": "F47BBF1E0DD4321277C56DDBE5FB0D0E9391DF5D18C323218E331B2BB87A1C3B"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Notifications\\NotificationBus.cs",
+    "Hash": "5E86FDF7CEAA55CA9CE164F280B5F41111CCA94B0AAAAD70692D68E9C9A3E1DE"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Characters\\ICharacterCreationRuleService.cs",
+    "Hash": "62440B66A78E5C13F9FD6C0E80DCE94516ECAFB67B9DB66623A92D7AC43CD95D"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Notifications\\NotificationAudienceResolver.cs",
+    "Hash": "38036B00248D5EAC2B5757B2DC50F79603A43BCD9113BE9E6A6097C23D614525"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Characters\\ICharacter.cs",
+    "Hash": "A0CE2260DE7640B197331103DD110CDEB0F20B9F002D9C2E292B93974D7CD256"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Notifications\\NotificationComposer.cs",
+    "Hash": "E5B962AC6729478772D33694D357C86E81B63BB448FE95B3B216B56E886A5677"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Characters\\ICharacterServices.cs",
+    "Hash": "05BF3D3DEA5390D2316AC80D675AAA9AB9BF1C7E5A166342891E034E11CEE358"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Notifications\\NotificationDispatchingExtensions.cs",
+    "Hash": "D41B358546591A2E3187BAEDFACBA2E96FA877808A3DBBFDEAC167CC0E350039"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Characters\\ICharacterPositionDomainService.cs",
+    "Hash": "8F598A34969ECDE77A27499B8AA5A17CC34EB6B204F0DE2A88F796E4D9124FBD"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Characters\\ICharacterFatigueDomainService.cs",
+    "Hash": "F720C92D21BABCD2FFEEBBBEFFC33C99666B2E25D4756C5235B1763EBDCF0F15"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Inventory\\IItemSaleDomainService.cs",
+    "Hash": "57B04E0C4BD5D43ECF02385EC30CBFB2E92E48AD0D0D2453760A9D11B7414749"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Characters\\ICharacterSkillPointDomainService.cs",
+    "Hash": "3F00F7BAFA62301525FBE170973848913507210E224AC1B728C3A23F3332A633"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Characters\\ICharacterSkillRuleService.cs",
+    "Hash": "D613CD50D93D82BE0867A0960ED15CBC1A0AEB235988A4652B7FE6AD1AFCDA54"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Characters\\ICharacterSettingsDomainService.cs",
+    "Hash": "B64504AD7897188A3BA85483863481380570571C056FC7B0AB73B21E61CED9EC"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\DropItemPoolContent.cs",
+    "Hash": "5329AD66E525D55E35B6908E0735254FE2C678D4B530560552CFA6EC4C4DB0EA"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\DailyActivityContent.cs",
+    "Hash": "8821F232837A5D6ACFC4C3FC357657C6277ECA982C11B9B3EA8C96F5FD0E87CA"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\CreatureEquipmentLifetimeContent.cs",
+    "Hash": "539F9AAC0E66DEF4AE7321CE3C87BE569621843EA01F51802C6E0C8D7CF39141"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Notifications\\NotificationHandlerRegistry.cs",
+    "Hash": "D1A462A142838ABBED9151F994284865C8DDD869F7F4F436CD522B21632117A7"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\CreatureContent.cs",
+    "Hash": "C8F75A407E31FC7110F6E07AA2FCF33D5BF8B265C3BE1C4AA510B652397EAF7B"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\DungeonDefinitionContent.cs",
+    "Hash": "CD9E060938F485EA5B6E75C13824D3684B69484AA2E5C050849A8E55B0B35A83"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\CollectionBoxContent.cs",
+    "Hash": "09DAE23A6339CC1D3A36AA0380AB0F046C2D296192958A9473CC6A79A546B51C"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\DropRateContent.cs",
+    "Hash": "208296911BED9DD181064041B63FE816A958652DB99E98D0C778D401BDCAC3E6"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\ClearRewardContent.cs",
+    "Hash": "65AA4175E99AB6C58FC5AD27F0BC7F38BB964B2AEE3D01459950932E3FE67778"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\CharacterStatContent.cs",
+    "Hash": "692A740C63962C2A5D72D0634ADF831A0EF59BF0C39BA8B482D63C3889D037EC"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Characters\\ICharacterStatRuleService.cs",
+    "Hash": "126FFB5E179E6AE98FACE4F6F60CEDE7F999DD5222D9F73A211737871F10F796"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\DungeonExperienceContent.cs",
+    "Hash": "17343ED7689EE301463CBB828F9978976B2C6631FAB45471EE5374E94213D482"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\DungeonRankContent.cs",
+    "Hash": "7E179BBC7B7BC6CBCCA98009CBDD081E5BF2C72FAF32C89720E4221E57DA08B8"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Inventory\\IItemSaleRuleService.cs",
+    "Hash": "2AE80B6C40EC7D94F2C1AD3CD014CBEC2B37ADC84D48CC94F6F2998AC3F37C0D"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Characters\\IDarkKnightComboBook.cs",
+    "Hash": "A4F265FBC6FB7480FF093C30D068FECFD5287E0D368FA03072FA90B956474EA3"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\DungeonRoomActorContent.cs",
+    "Hash": "6BBE5EA4FC583221C2EFD34D4CB2A7421599128F6629B53CB608DE21F027406C"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Notifications\\NotificationRetryDrainService.cs",
+    "Hash": "0AB771A45429BD0EA2E24BC03447D3A652BD45166F9B83C41A86A842BEA27BBC"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Notifications\\NotificationRetryQueue.cs",
+    "Hash": "EA6F5B62ACA0279BDE4B9B24896A8312EF0A39356DD43F6937682F05A10E4625"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Accounts\\AccountProvisioning.cs",
+    "Hash": "77ECFD3B59E5ED1635D7C42EAFF0753644C9EC0AA6F4CCE95D778AF6B50CCA60"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Accounts\\AccountEntryStateServices.cs",
+    "Hash": "915437832F319289F85886FC184A06B9CF946B3C43486ABDA7F190DC20EC727C"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Accounts\\AccountEntryAssembly.cs",
+    "Hash": "D686CA9EC93C0FB4C61534D4B5642144304BFEB8EB595CA4123253675A315905"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Commands\\CommandContracts.cs",
+    "Hash": "4952B1336A8702D19E72BEA91FA9B68AF39A0E30C365F3AA9DECB2F25B1207D5"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Commands\\CommandBus.cs",
+    "Hash": "2901CA65522D319C880C33AD4F104720D7378F8130F6C1F9E63A9D92225EEA1E"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Commands\\CommandDispatchingExtensions.cs",
+    "Hash": "5A79A8561EA9F08E1782DC5213F076057B68A2337550FEB041591FFDBFE825CA"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Characters\\ISelectCharacterPostEntryServices.cs",
+    "Hash": "EF95702F360E358A0639BDDF66764C17FC25F84CB01ED6DAE813A616FCE075F6"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Characters\\IDarkKnightComboDomainStore.cs",
+    "Hash": "1F854C30666D10C1C3D2C0CD74CCCA8FE706420697DF22DC8B2DE7E9B4352440"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Characters\\ISelectCharacterPreparationDomainService.cs",
+    "Hash": "3E43697BF7D5832E8D2E316DC57E0A4D6379846D611A06471E299F2A80247C19"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\ExperienceParameterContent.cs",
+    "Hash": "3F1521B795A1DC35671E1CF21CF01AAF8A2E3A4141559F09BB8133B275742958"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\EquipmentSlotContent.cs",
+    "Hash": "9C97F79EC0D0FBCD34F5CBBA2270E5AC623DCF6385BA68BF5A74879C63209EC4"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\EntryLifecycleContent.cs",
+    "Hash": "645A7C837F68A17CEBED11FC8012B596704C6AE1F168F526A26419D763E7D6C1"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\InitialEquipmentContent.cs",
+    "Hash": "30847866CD885AE35068076D2219C9F32E37BE88C7E493F4682AB54618456C55"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\InitialSkillContent.cs",
+    "Hash": "D00D1D67088251A23225958DCF820D20C138F31F1C25DFB49DBD08D2102640DD"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Inventory\\CharacterItemCooldownDomainService.cs",
+    "Hash": "EE252B9C2EF73E0B54F099B2414FFCD5788ECA3041574CB4CE57D45CFD566B98"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Inventory\\CharacterContainerDomainService.cs",
+    "Hash": "B152CC210C94760889C5D8E5BAA11847525ABED5844076B0E084272B0F22E14A"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Inventory\\DailyRefillService.cs",
+    "Hash": "704FCFA93665805FFE01775F0B38E022E1971B7D2FCDFF4B043CF680988E6CBF"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Inventory\\InventoryEntryAssembly.cs",
+    "Hash": "F12AF46B698D88FD73D904DFBE880634E56228B38997C579F679E99ED5E40F10"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\ItemPlacementContent.cs",
+    "Hash": "96B04C3FF7A74A7961E88AB162DF3EC51CB1EEE6D753D6FC42E42804F899E8CF"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Commands\\CommandHandlerRegistry.cs",
+    "Hash": "F0619A84EE005EDCDFD02EE173B6382298C3875A855D0F60983E161799A665F2"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Inventory\\InventoryEntryServices.cs",
+    "Hash": "9F28ED1482E27978943260FE76E71931C77BBED3402A14B1EDDB04512C412494"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\ItemSaleContent.cs",
+    "Hash": "17EF224D3FD310F34B541AB9DDE3D1A2DB8889159E230B4CC45CDCCAD431FFE7"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Inventory\\InventoryLifecycleRuleService.cs",
+    "Hash": "0603661F01248819544A7A5EDFE7C0C8DD7FCEFD114CAB00C41F0D4EFF9103A9"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Quests\\QuestContentRuleService.cs",
+    "Hash": "10584C5B8900763452982E186B54121EFB51395D012AD9B196436EDE643DBC8F"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Quests\\QuestOfferRefreshDomainService.cs",
+    "Hash": "E22EAF55E59B8E7FEA1AEE3F55FDC8CDA445507EF51CDF30BACA04C2290F3028"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Quests\\QuestObjectiveAuthority.cs",
+    "Hash": "2AA8BC6E975ECC45F8890B7354C7AEF9777B619F1BA9123A2989A8F5A52964E4"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Quests\\QuestLog.cs",
+    "Hash": "DB77F64DF5425CF6E6EF37A55FDDFC5627481738244EFA669C54E5076CC8ECEA"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Quests\\QuestDefinitionDomainService.cs",
+    "Hash": "4BAA0F3A10E4DF53E570EC59C2BCE60CE03781891CADF688D824A9AC8C62117F"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\NpcShopContent.cs",
+    "Hash": "FBDE15D140A6BDBBE80180BC677F3CBD95D7221A7BE716F9EB54E7A759FCD57E"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\ITutorialRewardRuleService.cs",
+    "Hash": "BAB994B462F9C6BEB0FEB33B1E1090543E01C5934FC7ACCD8E1E43F6B3974D1C"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\ItemUseContent.cs",
+    "Hash": "CBFE9876E3465A57A5B25BAC09A78E9F00111614A02506A48F8AA3C5694D3F78"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Infrastructure\\Configuration\\ServerConfigService.cs",
+    "Hash": "EB2862B9174F50D862648F4B0855C39C8C008467CFB7F61D99167B468092F492"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\QuestContent.cs",
+    "Hash": "A6281C8EC6D163BEE85C7AD1D8F45B0A39BC18E3C5F1B8C300FEE536FB6C09C4"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\QuestParameterContent.cs",
+    "Hash": "0B05FF6140A22DBFED1971B33B4E941C2369F7450B71FBF1059919049E1C486A"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\SkillPointContent.cs",
+    "Hash": "44FCB6B94B579429128164C371646D5C24D26675CD6D4D032F61899EE196552D"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Inventory\\ItemMovementDomainService.cs",
+    "Hash": "72CA086B271E1E14F41CC40CA0E144B52C1B419330D448A290A692000FC852C3"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Inventory\\ItemContainers.cs",
+    "Hash": "BA2A1B972542FA4208B5C0D8F1F45645F74E5415FFA59212533C61C8D349039F"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Inventory\\ItemArrivalRuleService.cs",
+    "Hash": "C6FB4BAC69D03FA461670A04A4AF67DF5DE88A1776BF9C7E88180D0024E0F4BA"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Inventory\\ItemSaleDomainService.cs",
+    "Hash": "B05AC1BE183E97F3DF7B2C67EA96C2144AF6397FFF0537E19A92C298D8E4758D"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Inventory\\ItemPlacementRuleService.cs",
+    "Hash": "0D479CE1629BEC17888B786C98DABD407838F5829565ADFECB421045C8D97B3F"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Inventory\\ItemSaleRuleService.cs",
+    "Hash": "6DDB7F4DC276FBE559EBCE73A3CF43E04B9C641727CC8095988CC02D65221BBE"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Inventory\\ItemSlotRuleService.cs",
+    "Hash": "868B9C3FB76604ACF6AB60D5D2576511B20C2278CCBF61B4253490016E14E1BA"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\TutorialRewardContent.cs",
+    "Hash": "E9121C4F2CE1921720919ED549C2DF08FEAB7FBA620EAACC883C687A5BA4669A"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\TownContent.cs",
+    "Hash": "9C7FC587ED470416A0FB220E1E2C790FB9384CE8040DE378AFEA17F7744DB232"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Abstractions\\Content\\SkillRuleContent.cs",
+    "Hash": "3A5EDD93A6595CF581BADF93E957A1276A8D7189E9A3A7DD3C395219FC91BA35"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Inventory\\NpcShopDomainService.cs",
+    "Hash": "52DB8BA65C6D2F041464DDA58F90AB839F0CCEB6110F9C2B3BA3BB95B5A4D756"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Inventory\\ItemUseEffectDomainService.cs",
+    "Hash": "7CD3A50E46FC68BED365AA619C8F3DE264662EA245B0A041721E91C778354617"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Inventory\\NpcShopRuleService.cs",
+    "Hash": "87707BA696257C8AB8C2328205BCFA8F13E397F9C0C6EE780A7C74647B917150"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Inventory\\SelectCharacterEntryInventoryDomainService.cs",
+    "Hash": "A18347AA9CF566CBB1AA748A4AE83F9E785EE56EAA999D6F0D30BCF284560EC7"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Commands\\Pipeline\\UnitOfWorkBehavior.cs",
+    "Hash": "1C8EA7B426EC5E8AC705CC111BE321360D99F99D7A974B7EE2EF2CE20B5B552A"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Commands\\Pipeline\\OnlineUserExecutionBehavior.cs",
+    "Hash": "3C2E4E3939A0F6B2E63DAA979AB27FE105FFF5BDFBCF6CE8BA815A69CFBD5EBA"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Commands\\Pipeline\\CommandLoggingBehavior.cs",
+    "Hash": "34A09C619A1FEEFD0252DCCD26DFA8B1E740C66E6B4920DB6A0989F8A0885B2B"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Commands\\Pipeline\\CommandExecutionPolicyBehavior.cs",
+    "Hash": "29FD9B1DA208880AB6F462DC1F6CF7201EAA6D82DA64835B359C52BD9485C5C0"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Commands\\Pipeline\\AccountExecutionBehavior.cs",
+    "Hash": "3DA8204C335137874B349648A1126A96A7445A8D6C0648054D1DE88E9AA84BFA"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\CharacterEntryAssembly.cs",
+    "Hash": "3560C9DE03A90BE7614121244290C25CEBF59EE3480BD82235A8170B6E4AF0D6"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\CharacterDomainService.cs",
+    "Hash": "F0370239FF060F764150C76C3DB7C89AE894A7EFD09249E1664E57BD61D335E6"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\CharacterCreationRuleService.cs",
+    "Hash": "C3DA909702295813B121B9A3F6D56AD1D554FF7D9E35E166DE9057639B7DFF2B"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\CharacterEntryPreparationRuleService.cs",
+    "Hash": "37594C2EB685009015BF9205A38DC196112501FCBB5263B81B27B95B2B3CCE44"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\CharacterEntryRuleServices.cs",
+    "Hash": "CCDACB971E3C1C6A8EA9BF75BA43E7FB5D753AC9072D7AE857A85898AC225072"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\CharacterEntryStateServices.cs",
+    "Hash": "6285ACA3C0B8F3C654AE844D6D93A8BA73E073903F7CFCB2F7FF389E58D282C1"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\UnaccountedCharacterFatigueDomainService.cs",
+    "Hash": "8BB91AB93BD7909A4995E8A2FFF05A3E15EBE9303C048B9C1701F42A22305D16"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\SupportCreatureMarkerProjection.cs",
+    "Hash": "57ABE7F4E47B7C8EAD672A0365A3E9C40B3D7A3FEEFC66F72EB82EE958CA9A10"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\SelectCharacterPreparationService.cs",
+    "Hash": "F6D4D49AFD5CE41AD9134BF68D45592191094121E6FAA9575C959759E58A550D"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\SelectCharacterPostEntryServices.cs",
+    "Hash": "6297C26B274D963CC057275E854E792EDC331DDB11B5680BD9B3726E8EBE2A2C"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\SelectCharacterPersistenceServices.cs",
+    "Hash": "84C45AF250B4312FF72C6646E317FE0AB273D353662D97BBF82E0AC85BDE988B"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\PlayingCharacter.cs",
+    "Hash": "60F69F87CD5EDBFC99B80343FED935A6E168D99E05931B0F8B91D83DEAFA2BA1"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\DungeonEffectRecoveryService.cs",
+    "Hash": "D518FCC8D05DE7187BC043674478C16D15B930618C8AFE6B311B7F33FD40D6AE"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\DrawnAppearance.cs",
+    "Hash": "F9DDC7F76663CE5B2ABB230DD5B92D9565C75C1678E54941AE7A5374DE014CE9"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\DarkKnightComboBook.cs",
+    "Hash": "15631C1006C6B97533313E569E685E71E3CDAA7AFE34F989AAE66C78C938B147"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\CharacterStatRuleService.cs",
+    "Hash": "89C358DF447058E54D25891310A48F20DD5E94D8C60A136326A29280314BF2E1"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\CharacterStateAccess.cs",
+    "Hash": "4F9B83FD44CC224E7324207E71843FA1C7971BCBA5AE146D0C72A8BC49164D78"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\CharacterSkillRuleService.cs",
+    "Hash": "501C1A4578129958E1EABF82CA6B4AD661BF59C186FE6A88B71A95D5C1B12B90"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\CharacterSkillPointDomainService.cs",
+    "Hash": "0590BCE923C173EE98E74E4550D752719951B99496BA10AA2F4D3FE1E924A00D"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\CharacterSkillPages.cs",
+    "Hash": "12EDA628B278617BD585CCB9ED8939EEE05E65C01AF3685031308A9DF9B6530A"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\CharacterSettingsDomainService.cs",
+    "Hash": "104BB766480BCBB5D6758774BC02DCB3CA21E7E1B223E171D1EDF4129A2F75EB"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\CharacterRosterService.cs",
+    "Hash": "CC234A788DABB39D126D59E0E0897BADDB57D6FAB499D4AEDB36607904167FE8"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\CharacterPositionDomainService.cs",
+    "Hash": "62BAF30E9B599BD77AD63CBEE9EA26A850EF54B7C807C9E4B8AA83B25C8B00C5"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\CharacterNameRules.cs",
+    "Hash": "15A6F9E033C3A9FCA39DA4A35E40D9F0FB9FB036EDBDAA5BA3B4C7AF17A4B3D4"
+  },
+  {
+    "Path": "Server\\src\\Dfo.Server.Application\\Characters\\CharacterJobFamilies.cs",
+    "Hash": "862BB6479239E115265ADEFACA9BEE947BDAF19E97A688C529E53CC01511CE36"
+  },
+  {
+    "Path": "AGENTS.md",
+    "Hash": "8B8F783E98D03CF64886EAD05C37A79F62D3882A8ED460703865F44ADDCB993A"
+  }
+]

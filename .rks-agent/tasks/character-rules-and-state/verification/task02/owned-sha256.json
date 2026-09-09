@@ -1,0 +1,72 @@
+[
+  {
+    "path": "Server/src/Dfo.Server.Abstractions/Content/SkillPointContent.cs",
+    "before": "E46E21520349698CCCADD629D2F165853F67266CBD71CE6F3EC6DAEFEFD42D68",
+    "after": "44FCB6B94B579429128164C371646D5C24D26675CD6D4D032F61899EE196552D"
+  },
+  {
+    "path": "Server/src/Dfo.Server.Abstractions/Content/SkillRuleContent.cs",
+    "before": null,
+    "after": "3A5EDD93A6595CF581BADF93E957A1276A8D7189E9A3A7DD3C395219FC91BA35"
+  },
+  {
+    "path": "Server/src/Dfo.Server.Abstractions/Characters/ICharacterSkillRuleService.cs",
+    "before": null,
+    "after": "D613CD50D93D82BE0867A0960ED15CBC1A0AEB235988A4652B7FE6AD1AFCDA54"
+  },
+  {
+    "path": "Server/src/Dfo.Server.Application/ApplicationModule.cs",
+    "before": "6804580C0CC030D41A251C3FFEC7517031C10291B47AC17A02DB1FF31B7A2892",
+    "after": "829F92655939BFF40B08692D5D39036EFCE344054E174C9EF5BA5A43C7D07D4E"
+  },
+  {
+    "path": "Server/src/Dfo.Server.Application/Characters/CharacterEntryPreparationRuleService.cs",
+    "before": "48609434A5F0C1D6CBF6FE2DF84D10045F18CEACE8420EDBB284296A6E3329FB",
+    "after": "37594C2EB685009015BF9205A38DC196112501FCBB5263B81B27B95B2B3CCE44"
+  },
+  {
+    "path": "Server/src/Dfo.Server.Application/Characters/CharacterSkillRuleService.cs",
+    "before": null,
+    "after": "501C1A4578129958E1EABF82CA6B4AD661BF59C186FE6A88B71A95D5C1B12B90"
+  },
+  {
+    "path": "Server/src/Dfo.Server.Application/Characters/SelectCharacterPreparationService.cs",
+    "before": "496400BC8E39597C1CB4DCA4763292A256FDE6ADAB1BE48F99F52B76228AFEDF",
+    "after": "F6D4D49AFD5CE41AD9134BF68D45592191094121E6FAA9575C959759E58A550D"
+  },
+  {
+    "path": "Server/src/Dfo.Server.Data/Characters/CharacterSkillPointLedger.cs",
+    "before": null,
+    "after": "FDD20131D58E3A3EBFDC560EF8AE8EAB07CE9CC6215551AF178B149AFED1A1F8"
+  },
+  {
+    "path": "Server/src/Dfo.Server.Infrastructure/Content/PvfSkillPointDefinitionSource.cs",
+    "before": "8A91AB5CE2AC0D812CEE5D5A4BB7746516E2EA8C67DFC449041957844F817302",
+    "after": "FFD19DC92D1ADD5F4455BD16546185F0A33F0C0E6E5A596AFEFB70135D40B6DB"
+  },
+  {
+    "path": "Server/src/Dfo.Server.Infrastructure/InfrastructureModule.cs",
+    "before": "56AD3DE1F60383FBC8441E3DD34EF3C69AD5FF77A8A447F72927D5B6F0C9495D",
+    "after": "04E103FDF6010B9E7E6F5A0C6B1F314D8C867307FE87E1994B8CB1CD3A60C9E4"
+  },
+  {
+    "path": "Server/tests/Dfo.Server.Infrastructure.Tests/Content/PvfSkillPointDefinitionSourceTests.cs",
+    "before": "9E80B4BD1049529C7CE1BE9526A3BD2CEF1FCE7C17FC6B45153F9B95A55C2328",
+    "after": null
+  },
+  {
+    "path": "Server/tests/Dfo.Server.Application.Tests/Characters/CharacterSkillArchiveTests.cs",
+    "before": null,
+    "after": "958F9B29DB2EFF52D67E099CEF56E7AB3B4E2B99F3C6B4FC37F63275A172DA82"
+  },
+  {
+    "path": "Server/tests/Dfo.Server.Application.Tests/Characters/CharacterSkillRuleServiceTests.cs",
+    "before": null,
+    "after": "72D73714133EE2B24721D88D6D955A6C268DF1B5D0EDF1C7AE1ADF5F1A3BA373"
+  },
+  {
+    "path": "Document/CharacterSkillRules.md",
+    "before": null,
+    "after": "AC9806B8DB393041D507970CD13CE7D82A9B6EE5B2875A03A216DF0B0B523585"
+  }
+]

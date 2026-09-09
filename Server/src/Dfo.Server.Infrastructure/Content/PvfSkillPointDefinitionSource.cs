@@ -1,122 +1,43 @@
 using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-/// <summary>
-/// What the archive declares about a job's skill points, read once per distinct question.
-/// </summary>
-/// <remarks>
-/// Answering one of these means walking the archive: <c>Etc/spTable.etc</c>, the character list,
-/// the job's own script, the skill list, and one script per skill the character has learned. That
-/// was affordable while entry was the only caller and asked once per login. It is not any more --
-/// a character is now asked what it has left to spend every time a kill, a clear or a quest sends
-/// an experience frame -- and a full parse of the archive on the kill path is not a cost, it is a
-/// different kind of operation.
-/// <para>
-/// So the answers are kept. What makes that safe is that this is a pure function of its four
-/// arguments over an archive that never changes: <see cref="PvfArchiveProvider"/> opens the file
-/// once and holds it read-only for the life of the process, so an answer that was right when it
-/// was worked out stays right. The cache is here, at the archive, and not in the services above:
-/// their contract is that a character's ledger is worked out from what is stored at the moment of
-/// the question, and remembering what a <em>file</em> says does not touch that -- remembering what
-/// a <em>character</em> has left would break it outright.
-/// </para>
-/// <para>
-/// The learned skills take part in the key in a canonical form, sorted and deduplicated, because
-/// the parameter is an <see cref="IReadOnlyCollection{T}"/> and promises no order -- and the
-/// answer does not depend on one, since the ids are deduplicated into a dictionary before anything
-/// is read. Two callers naming the same skills in different orders must not each pay for a parse.
-/// </para>
-/// <para>
-/// Nothing is evicted. The entries are bounded by the distinct questions a running server asks --
-/// a job, an advancement, a level and a set of learned skills -- so it grows as characters learn
-/// skills and stops when they stop. That is a deliberate choice for a server whose archive is
-/// fixed, not an oversight; if it ever needs a bound, this is the one place to put it.
-/// </para>
-/// </remarks>
-internal sealed class PvfSkillPointDefinitionSource(PvfArchiveProvider provider)
-    : ISkillPointDefinitionSource
+// The byte job key bounds this directory at 256 entries; levels and learned sets never enter it.
+internal sealed class PvfSkillPointDefinitionSource(PvfArchiveProvider provider) : ISkillRuleDefinitionSource
 {
-    /// <summary>One distinct question, in a form two orderings of the same one agree on.</summary>
-    private readonly record struct Question(
-        byte Job, byte PackedGrowType, byte CharacterLevel, string LearnedSkillIds);
+    private readonly ConcurrentDictionary<byte, Lazy<SkillRuleCatalog>> catalogs = new();
 
-    private readonly ConcurrentDictionary<Question, SkillPointDefinitionSet> answers = new();
+    public SkillRuleCatalog Get(byte job) => catalogs.GetOrAdd(job,
+        key => new Lazy<SkillRuleCatalog>(() => Read(key))).Value;
 
-    public ValueTask<SkillPointDefinitionSet> GetAsync(
-        byte job,
-        byte packedGrowType,
-        byte characterLevel,
-        IReadOnlyCollection<int> learnedSkillIds,
-        CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        ArgumentNullException.ThrowIfNull(learnedSkillIds);
-        var question = new Question(
-            job,
-            packedGrowType,
-            characterLevel,
-            string.Join(',', learnedSkillIds.Distinct().Order()));
-        return ValueTask.FromResult(
-            this.answers.TryGetValue(question, out var answered)
-                ? answered
-                // Worked out outside the dictionary rather than inside GetOrAdd's factory: two
-                // callers racing on one question would both parse, which wastes a parse but keeps
-                // the read off the dictionary's lock. Whichever lands first is the one everyone
-                // gets, and the two are equal anyway -- the archive cannot have changed between
-                // them.
-                : this.answers.GetOrAdd(
-                    question,
-                    this.Read(job, packedGrowType, characterLevel, learnedSkillIds)));
-    }
-
-    private SkillPointDefinitionSet Read(
-        byte job,
-        byte packedGrowType,
-        byte characterLevel,
-        IReadOnlyCollection<int> learnedSkillIds)
+    private SkillRuleCatalog Read(byte job)
     {
         var archive = provider.Archive;
-        var totalSp = ReadSpTotal(archive, characterLevel);
-        var totalTp = characterLevel < 50 ? 0 : characterLevel - 49;
-        var grants = ReadFreeGrants(archive, job, packedGrowType);
-        var paths = ReadSkillPaths(archive, job);
-        var skills = new Dictionary<int, SkillPointCostDefinition>();
-        foreach (var skillId in learnedSkillIds.Concat(grants.Select(value => value.SkillId)).Distinct())
-        {
-            if (paths.TryGetValue(skillId, out var path))
-                skills[skillId] = ReadSkill(archive, job, skillId, path, packedGrowType, characterLevel);
-        }
-        return new SkillPointDefinitionSet(totalSp, totalTp, grants, skills);
+        var skills = ReadSkillPaths(archive, job).ToFrozenDictionary(
+            pair => pair.Key, pair => ReadSkill(archive, pair.Key, pair.Value));
+        var sp = ReadSectionInts(archive, "Etc/spTable.etc", "[sp table]");
+        var (grants, careers) = ReadFreeGrants(archive, job);
+        return new(skills, grants, Array.AsReadOnly(
+            Enumerable.Range(0, sp.Count / 2).Select(i => (sp[i * 2], sp[i * 2 + 1])).ToArray()), careers);
     }
 
-    private static int ReadSpTotal(PvfArchive archive, int level)
+    private static (IReadOnlyList<SkillFreeGrant> Grants, IReadOnlySet<CharacterCareer> Careers) ReadFreeGrants(PvfArchive archive, byte job)
     {
-        var values = ReadSectionInts(archive, "Etc/spTable.etc", "[sp table]");
-        var total = 0;
-        for (var index = 0; index + 1 < values.Count; index += 2)
-            if (values[index] <= level) total += values[index + 1];
-        return total;
-    }
-
-    private static IReadOnlyList<SkillPointGrantDefinition> ReadFreeGrants(
-        PvfArchive archive, byte job, byte packedGrowType)
-    {
-        var characterList = PvfListFile.Read(archive, "character/character.lst");
-        var relative = characterList.FirstOrDefault(value => value.Id == job).RelativePath;
-        if (string.IsNullOrEmpty(relative)) return [];
-        var firstGrow = packedGrowType & 0x0F;
-        var secondGrow = (packedGrowType >> 4) & 0x0F;
+        var relative = PvfListFile.Read(archive, "character/character.lst")
+            .FirstOrDefault(value => value.Id == job).RelativePath;
+        if (string.IsNullOrEmpty(relative)) return (Array.Empty<SkillFreeGrant>(), Array.Empty<CharacterCareer>().ToFrozenSet());
         var reader = archive.OpenScript("character/" + relative);
-        var currentGrow = -1;
-        var currentAwakening = 0;
+        var grow = -1;
+        var awakening = 0;
         var accepting = false;
         var operands = new List<int>();
-        var grants = new Dictionary<int, (byte Level, bool Initial)>();
-        var grantOrder = new List<int>();
+        var grants = new List<SkillFreeGrant>();
+        var careers = new HashSet<CharacterCareer>();
         while (reader.Read(out var token))
         {
             if (token.Kind == PvfTokenKind.Identifier)
@@ -124,43 +45,23 @@ internal sealed class PvfSkillPointDefinitionSource(PvfArchiveProvider provider)
                 Flush();
                 var tag = archive.ResolveString(token.Value);
                 accepting = false;
-                if (TryNumberedTag(tag, "[growtype ", out var grow))
-                {
-                    currentGrow = grow - 1;
-                    currentAwakening = 0;
-                }
-                else if (TryNumberedTag(tag, "[awakening ", out var awakening))
-                    currentAwakening = awakening;
-                else if (tag.Equals("[initial value]", StringComparison.OrdinalIgnoreCase))
-                {
-                    currentGrow = -1;
-                    currentAwakening = 0;
-                }
-                else if (tag.Equals("[skill]", StringComparison.OrdinalIgnoreCase))
-                    accepting = currentGrow < 0 || (currentGrow == firstGrow && currentAwakening == 0);
-                else if (tag.Equals("[awakening skill]", StringComparison.OrdinalIgnoreCase))
-                    accepting = currentGrow == firstGrow && currentAwakening is > 0 && currentAwakening <= secondGrow;
+                if (TryNumberedTag(tag, "[growtype ", out var value)) { grow = value - 1; awakening = 0; careers.Add(new(job, grow)); }
+                else if (TryNumberedTag(tag, "[awakening ", out value))
+                { awakening = value; careers.Add(new(job, grow, awakening)); }
+                else if (tag.Equals("[initial value]", StringComparison.OrdinalIgnoreCase)) { grow = -1; awakening = 0; }
+                else if (tag.Equals("[skill]", StringComparison.OrdinalIgnoreCase)
+                    || tag.Equals("[awakening skill]", StringComparison.OrdinalIgnoreCase)) accepting = true;
             }
-            else if (accepting && token.Kind == PvfTokenKind.Int32)
-                operands.Add(token.Value);
+            else if (accepting && token.Kind == PvfTokenKind.Int32) operands.Add(token.Value);
         }
         Flush();
-        return grantOrder.Select(skillId => grants[skillId])
-            .Select((value, index) => new SkillPointGrantDefinition(
-                grantOrder[index], value.Level, value.Initial)).ToArray();
+        return (Array.AsReadOnly(grants.ToArray()), careers.ToFrozenSet());
 
         void Flush()
         {
             if (accepting)
-                for (var index = 0; index + 1 < operands.Count; index += 2)
-                {
-                    var skillId = operands[index];
-                    var grantLevel = checked((byte)operands[index + 1]);
-                    var initial = currentGrow < 0;
-                    if (!grants.ContainsKey(skillId)) grantOrder.Add(skillId);
-                    if (!grants.TryGetValue(skillId, out var existing) || grantLevel > existing.Level)
-                        grants[skillId] = (grantLevel, initial);
-                }
+                for (var i = 0; i + 1 < operands.Count; i += 2)
+                    grants.Add(new(operands[i], operands[i + 1], grow, awakening));
             operands.Clear();
         }
     }
@@ -174,45 +75,29 @@ internal sealed class PvfSkillPointDefinitionSource(PvfArchiveProvider provider)
             .GroupBy(value => value.Id).ToDictionary(group => group.Key, group => group.First().RelativePath);
     }
 
-    private static SkillPointCostDefinition ReadSkill(PvfArchive archive, byte job, int skillId, string relative,
-        byte packedGrowType, byte characterLevel)
+    private static SkillRuleDefinition ReadSkill(PvfArchive archive, int skillId, string relative)
     {
-        var sections = ReadAllIntSections(archive, "skill/" + relative);
-        var feature = sections.GetValueOrDefault("[feature skill type]") ?? [];
-        var costs = feature.Any(value => value != 0)
-            ? sections.GetValueOrDefault("[special purchase cost]") ?? []
-            : sections.GetValueOrDefault("[purchase cost]") ?? [];
-        var fixedValues = sections.GetValueOrDefault("[fixed level skill]") ?? [];
-        var type = ReadStringSection(archive, "skill/" + relative, "[type]");
-        var fitness = sections.GetValueOrDefault("[skill fitness growtype]") ?? [];
-        var grow = packedGrowType & 0x0F; var second = packedGrowType >> 4;
-        var growMax = sections.GetValueOrDefault("[growtype maximum level]") ?? [];
-        var secondMax = sections.GetValueOrDefault("[second growtype maximum level]") ?? [];
-        var directionMax = second > 0 && grow * 2 + second - 1 < secondMax.Count
-            && secondMax[grow * 2 + second - 1] > 0
-            ? secondMax[grow * 2 + second - 1]
-            : growMax.Count > 0 ? grow < growMax.Count ? growMax[grow] : 0
-            : Math.Max(1, First(sections, "[maximum level]", 1));
-        var staticMaximum = Math.Min(
-            Math.Max(1, First(sections, "[maximum level]", 1)), directionMax);
-        var required = First(sections, "[required level]");
-        var interval = Math.Max(1, First(sections, "[required level range]", 1));
-        int? ordinaryMaximum = directionMax <= 0 ? null
-            : characterLevel < required ? 0
-            : Math.Min(staticMaximum,
-                required <= 0 ? staticMaximum : 1 + (characterLevel - required) / interval);
-        return new SkillPointCostDefinition(
-            skillId,
-            feature.Any(value => value != 0),
-            costs,
-            fixedValues.Count > 0,
-            required,
-            Math.Max(1, First(sections, "[maximum level]", 1)),
-            fixedValues.Count > 0 ? fixedValues[0] : 0,
-            fixedValues.Count > 1 ? Math.Max(1, fixedValues[1]) : 1,
-            fixedValues.Count > 2 ? fixedValues[2] : 1,
-            type.Contains("active", StringComparison.OrdinalIgnoreCase),
-            First(sections, "[skill class]"), fitness.Count, ordinaryMaximum);
+        var path = "skill/" + relative;
+        var sections = ReadAllIntSections(archive, path);
+        IReadOnlyList<int> Values(string tag) => sections.GetValueOrDefault(tag) ?? Array.Empty<int>();
+        var usesTp = Values("[feature skill type]").Any(value => value != 0);
+        var prerequisites = Values("[pre required skill]");
+        if (prerequisites.Count % 2 != 0)
+            throw new InvalidDataException($"Unpaired prerequisite in {path}.");
+        return new SkillRuleDefinition(skillId,
+            ReadStringSection(archive, path, "[name]"),
+            ReadStringSection(archive, path, "[explain]"), usesTp,
+            Values(usesTp ? "[special purchase cost]" : "[purchase cost]"),
+            Values("[maximum level]"), Values("[growtype maximum level]"),
+            Values("[second growtype maximum level]"), First(sections, "[required level]"),
+            Math.Max(1, First(sections, "[required level range]", 1)),
+            Array.AsReadOnly(Enumerable.Range(0, prerequisites.Count / 2)
+                .Select(i => new SkillPrerequisite(prerequisites[i * 2], prerequisites[i * 2 + 1])).ToArray()),
+            sections.ContainsKey("[fixed level skill]"), First(sections, "[fixed level skill]"),
+            Math.Max(1, First(sections, "[interval level]", 1)),
+            Math.Max(1, First(sections, "[add level per interval]", 1)),
+            ReadStringSection(archive, path, "[type]").Contains("active", StringComparison.OrdinalIgnoreCase),
+            First(sections, "[skill class]"), Values("[skill fitness growtype]").Count);
     }
 
     private static string ReadStringSection(PvfArchive archive, string path, string tag)
@@ -240,14 +125,14 @@ internal sealed class PvfSkillPointDefinitionSource(PvfArchiveProvider provider)
         {
             if (token.Kind == PvfTokenKind.Identifier)
             {
-                if (section is not null && values is not null) result[section] = values.ToArray();
+                if (section is not null && values is not null) result[section] = Array.AsReadOnly(values.ToArray());
                 section = archive.ResolveString(token.Value);
                 values = [];
             }
             else if (token.Kind == PvfTokenKind.Int32 && values is not null)
                 values.Add(token.Value);
         }
-        if (section is not null && values is not null) result[section] = values.ToArray();
+        if (section is not null && values is not null) result[section] = Array.AsReadOnly(values.ToArray());
         return result;
     }
 

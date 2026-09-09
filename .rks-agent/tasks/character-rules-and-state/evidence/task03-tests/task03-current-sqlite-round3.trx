@@ -1,0 +1,71 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="93d7cd50-69f6-4225-a36c-bbe8ea55226f" name="Gloria@家庭台式机 2026-09-09 13:29:04" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-09T13:29:04.5901458+08:00" queuing="2026-09-09T13:29:04.5901459+08:00" start="2026-09-09T13:29:02.7536130+08:00" finish="2026-09-09T13:29:04.7752466+08:00" />
+  <TestSettings name="default" id="e275dacb-c1bf-4786-a2d7-aaaebf1cd701">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-09_13_29_04" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="94dc34d5-088f-455b-ab72-c677702810aa" testId="a55be73f-2cec-c8f3-00ae-f4ccfd116ce3" testName="Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Selection_and_refresh_replace_only_current_base_facts_preserving_page_and_inventory_configuration" computerName="家庭台式机" duration="00:00:00.3981148" startTime="2026-09-09T13:29:04.3283315+08:00" endTime="2026-09-09T13:29:04.7211209+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="94dc34d5-088f-455b-ab72-c677702810aa" />
+    <UnitTestResult executionId="4ed3617d-18d0-4dba-aaf2-8217c2d004e1" testId="e23b7b14-6b2c-5105-00de-6b9c01907e1d" testName="Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Tutorial_grant_checks_the_actual_row_inside_the_command_transaction" computerName="家庭台式机" duration="00:00:00.1059841" startTime="2026-09-09T13:29:03.3187757+08:00" endTime="2026-09-09T13:29:03.4292960+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4ed3617d-18d0-4dba-aaf2-8217c2d004e1" />
+    <UnitTestResult executionId="106b24fa-1cb2-46d7-aa79-7ba1716e43e7" testId="00f02701-8e03-d269-e2cd-1d864d892ccb" testName="Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload" computerName="家庭台式机" duration="00:00:00.8886738" startTime="2026-09-09T13:29:03.4394722+08:00" endTime="2026-09-09T13:29:04.3232227+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="106b24fa-1cb2-46d7-aa79-7ba1716e43e7">
+      <Output>
+        <ErrorInfo>
+          <Message>System.IO.InvalidDataException : Character bonus skill points cannot be negative.</Message>
+          <StackTrace>   at Dfo.Server.Application.Characters.CharacterEntryAssembly.LoadSkillsAsync(CharacterId characterId, Byte job, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Application\Characters\CharacterEntryAssembly.cs:line 267&#xD;
+   at Dfo.Server.Application.Characters.CharacterEntryAssembly.LoadAsync(AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Application\Characters\CharacterEntryAssembly.cs:line 83&#xD;
+   at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\Characters\CurrentCharacterStateTests.cs:line 73&#xD;
+   at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\Characters\CurrentCharacterStateTests.cs:line 78&#xD;
+   at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\Characters\CurrentCharacterStateTests.cs:line 78&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\character-rules-and-state\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="00f02701-8e03-d269-e2cd-1d864d892ccb">
+      <Execution id="106b24fa-1cb2-46d7-aa79-7ba1716e43e7" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests" name="Same_character_reads_transaction_changes_rollback_commit_and_reload" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Selection_and_refresh_replace_only_current_base_facts_preserving_page_and_inventory_configuration" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\character-rules-and-state\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="a55be73f-2cec-c8f3-00ae-f4ccfd116ce3">
+      <Execution id="94dc34d5-088f-455b-ab72-c677702810aa" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests" name="Selection_and_refresh_replace_only_current_base_facts_preserving_page_and_inventory_configuration" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Tutorial_grant_checks_the_actual_row_inside_the_command_transaction" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\character-rules-and-state\server\tests\dfo.server.application.tests\bin\debug\net10.0\dfo.server.application.tests.dll" id="e23b7b14-6b2c-5105-00de-6b9c01907e1d">
+      <Execution id="4ed3617d-18d0-4dba-aaf2-8217c2d004e1" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests" name="Tutorial_grant_checks_the_actual_row_inside_the_command_transaction" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="a55be73f-2cec-c8f3-00ae-f4ccfd116ce3" executionId="94dc34d5-088f-455b-ab72-c677702810aa" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e23b7b14-6b2c-5105-00de-6b9c01907e1d" executionId="4ed3617d-18d0-4dba-aaf2-8217c2d004e1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="00f02701-8e03-d269-e2cd-1d864d892ccb" executionId="106b24fa-1cb2-46d7-aa79-7ba1716e43e7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="3" executed="3" passed="2" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.09]   Discovering: Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.19]   Discovered:  Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.21]   Starting:    Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:01.23]       System.IO.InvalidDataException : Character bonus skill points cannot be negative.&#xD;
+[xUnit.net 00:00:01.23]       Stack Trace:&#xD;
+[xUnit.net 00:00:01.23]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Application\Characters\CharacterEntryAssembly.cs(267,0): at Dfo.Server.Application.Characters.CharacterEntryAssembly.LoadSkillsAsync(CharacterId characterId, Byte job, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:01.23]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Application\Characters\CharacterEntryAssembly.cs(83,0): at Dfo.Server.Application.Characters.CharacterEntryAssembly.LoadAsync(AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:01.23]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\Characters\CurrentCharacterStateTests.cs(73,0): at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload()&#xD;
+[xUnit.net 00:00:01.23]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\Characters\CurrentCharacterStateTests.cs(78,0): at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload()&#xD;
+[xUnit.net 00:00:01.23]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\Characters\CurrentCharacterStateTests.cs(78,0): at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload()&#xD;
+[xUnit.net 00:00:01.23]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:01.63]   Finished:    Dfo.Server.Application.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-09-09T13:29:04.3250140+08:00">
+        <Text>[xUnit.net 00:00:01.23]     Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

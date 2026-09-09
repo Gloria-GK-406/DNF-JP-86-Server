@@ -620,6 +620,7 @@ public sealed class SelectCharacterPayloadCodecTests
 
             var services = new ServiceCollection();
             services.AddSingleton(repository);
+            services.AddSingleton<ICharacterDomainService>(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain());
             services.AddSingleton<IQuestDefinitionSource>(new Row9QuestDefinitions(13502));
             // The quest rules read both declarations; nothing on this path asks what a quest pays.
             services.AddSingleton<IQuestParameterSource>(new NoQuestParameters());

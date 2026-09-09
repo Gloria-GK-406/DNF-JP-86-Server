@@ -125,7 +125,7 @@ public sealed class CharacterIdentityTests
             new NoCarriedGold(),
             new StoredCarryLimitOnly(),
             row,
-            new NoSkillPointLedger());
+            new NoSkillPointLedger(), null!, null!);
 
     /// <summary>One character's row, whose identity can be moved between questions.</summary>
     /// <remarks>

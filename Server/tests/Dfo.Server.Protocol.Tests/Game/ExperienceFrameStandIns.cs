@@ -137,6 +137,11 @@ internal sealed class SkillPointLedger(bool present = true) : ICharacter
 
     public CharacterId Id => new(60);
 
+    public ValueTask<CharacterBaseStats?> BaseStatsAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+    public ValueTask<IReadOnlyList<CharacterLearnedSkillPage>?> LearnedSkillsAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+    public ValueTask<CharacterSkillPointLedger?> SkillPointLedgerAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+
+
     public ValueTask<CharacterSkillProtocolMirrorState?> RemainingSkillPointsAsync(
         CancellationToken cancellationToken)
     {
@@ -148,8 +153,9 @@ internal sealed class SkillPointLedger(bool present = true) : ICharacter
             this.TimesAsked == 1 ? BeforeTheLevel : AfterTheLevel);
     }
 
+    public CharacterProgressionState? Progress { get; set; } = new(3, 1000);
     public ValueTask<CharacterProgressionState?> ProgressAsync(
-        CancellationToken cancellationToken) => throw Unasked();
+        CancellationToken cancellationToken) => ValueTask.FromResult(Progress);
 
     public ValueTask<CharacterIdentityState?> IdentityAsync(
         CancellationToken cancellationToken) => throw Unasked();

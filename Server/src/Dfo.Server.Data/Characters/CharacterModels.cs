@@ -267,12 +267,12 @@ public sealed record CharacterPvpStandingStorageRecord(
 public sealed record CharacterExpertJobStorageRecord(int Type, long Experience);
 
 /// <summary>
-/// The numbers worked out from everything else the character is.
+/// Persisted compatibility fields for the public stat projection.
 /// </summary>
 /// <remarks>
-/// A cache in the sense that they could be recomputed, and stored because recomputing them on
-/// every entry would mean reading the whole character to answer a packet that already says what
-/// they are.
+/// Base fields are replaced by current career/level rules at projection time. Progress counters,
+/// percentages and other unmodeled fields retain their stored values; this is not a complete
+/// equipment/buff-derived stat model.
 /// </remarks>
 public sealed record CharacterDerivedStatsStorageRecord(
     int HpMaximum,

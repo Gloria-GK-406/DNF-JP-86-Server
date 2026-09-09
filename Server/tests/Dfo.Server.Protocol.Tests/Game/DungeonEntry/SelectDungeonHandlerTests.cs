@@ -160,7 +160,7 @@ public sealed class SelectDungeonHandlerTests
     {
         var fatigue = new RecordingFatigue();
         var sender = new RecordingSender();
-        var handler = new SelectDungeonHandler(
+        var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
             new OneSession(Identity),
             new OneRuntimeSession(Entry()),
             new RefusingVisits(),
@@ -192,7 +192,7 @@ public sealed class SelectDungeonHandlerTests
     {
         var visits = new RecordingVisits();
         var fatigue = new RecordingFatigue();
-        var handler = new SelectDungeonHandler(
+        var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
             new NoSession(),
             new OneRuntimeSession(Entry()),
             visits,
@@ -217,7 +217,7 @@ public sealed class SelectDungeonHandlerTests
     {
         var visits = new RecordingVisits();
         var sender = new RecordingSender();
-        var handler = new SelectDungeonHandler(
+        var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
             new NoSession(),
             new OneRuntimeSession(Entry()),
             visits,
@@ -259,6 +259,7 @@ public sealed class SelectDungeonHandlerTests
         OneLog? logs = null,
         RecordingFatigue? fatigue = null) =>
         new(
+            Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
             new OneSession(Identity),
             new OneRuntimeSession(Entry()),
             visits,

@@ -13,8 +13,8 @@ namespace Dfo.Server.Abstractions.Characters;
 /// back.
 ///
 /// It is an entry point, not a container. What belongs here is what belongs to the character's own
-/// body; a bag, a quest log and a skill page are each their own thing, reached through their own
-/// repository rather than bolted on here.
+/// body; bags and quest logs have their own repositories. Learned skill IDs and levels belong to
+/// the character, while page slot/extra configuration remains on the page projection.
 ///
 /// The gold it carries belongs here by that same test, and the test is about meaning rather than
 /// storage. The client draws that gold as an item -- the first virtual slot of the main list, item
@@ -24,13 +24,16 @@ namespace Dfo.Server.Abstractions.Characters;
 /// cannot be moved, split, merged, locked or rented. The bag is still reached through its own
 /// repository; what is reached here is the character's own money.
 ///
-/// A character can only answer while it is the one being played -- what it reads exists only then.
-/// That is not a lifetime of its own: nothing is prepared for it and nothing is released, and
-/// asking about a character nobody is playing gets the same answer it always did.
+/// Stored identity, progress, base stats and learned skills are available by ID without a playing
+/// session. Runtime-dependent questions still use their owning runtime services.
 /// </remarks>
 public interface ICharacter
 {
     CharacterId Id { get; }
+
+    ValueTask<CharacterBaseStats?> BaseStatsAsync(CancellationToken cancellationToken);
+    ValueTask<IReadOnlyList<CharacterLearnedSkillPage>?> LearnedSkillsAsync(CancellationToken cancellationToken);
+    ValueTask<CharacterSkillPointLedger?> SkillPointLedgerAsync(CancellationToken cancellationToken);
 
     /// <summary>
     /// Whether this character may use the item, from the archive's own declaration.

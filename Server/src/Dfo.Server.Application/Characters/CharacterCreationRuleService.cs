@@ -12,7 +12,7 @@ namespace Dfo.Server.Application.Characters;
 /// for them. The two byte bounds genuinely differ per protocol -- see <see cref="CharacterNameRules"/>.
 /// </remarks>
 internal sealed class CharacterCreationRuleService(
-    ICharacterStatDefinitionSource characterStats,
+    ICharacterStatRuleService characterStats,
     IInitialSkillDefinitionSource initialSkills,
     IInitialEquipmentDefinitionSource initialEquipment) : ICharacterCreationRuleService
 {
@@ -68,8 +68,8 @@ internal sealed class CharacterCreationRuleService(
     public async ValueTask<NewCharacterStartingState> StartingStateAsync(
         byte job, CancellationToken cancellationToken)
     {
-        var stats = await characterStats.GetInitialAsync(job, cancellationToken)
-            .ConfigureAwait(false);
+        await characterStats.InitializeAsync(cancellationToken).ConfigureAwait(false);
+        var stats = characterStats.GetStats(new CharacterCareer(job), 1);
 
         var grants = await initialSkills.GetAsync(job, cancellationToken).ConfigureAwait(false);
         var skills = new List<NewCharacterSkill>();

@@ -1,0 +1,109 @@
+  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+  Dfo.Pvf -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Pvf\bin\Debug\net10.0\Dfo.Pvf.dll
+  Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Data\bin\Debug\net10.0\Dfo.Server.Data.dll
+  Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Abstractions\bin\Debug\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Persistence -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\bin\Debug\net10.0\Dfo.Server.Persistence.dll
+  Dfo.Server.Networking -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Networking\bin\Debug\net10.0\Dfo.Server.Networking.dll
+  Dfo.Server.Infrastructure -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Infrastructure\bin\Debug\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.Application -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Application\bin\Debug\net10.0\Dfo.Server.Application.dll
+  Dfo.Server.Protocol -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Protocol\bin\Debug\net10.0\Dfo.Server.Protocol.dll
+  Dfo.Server.Application.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)
+[xUnit.net 00:00:00.08]   Discovering: Dfo.Server.Application.Tests
+[xUnit.net 00:00:00.18]   Discovered:  Dfo.Server.Application.Tests
+[xUnit.net 00:00:00.20]   Starting:    Dfo.Server.Application.Tests
+[xUnit.net 00:00:00.80]     Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload [FAIL]
+[xUnit.net 00:00:00.80]       System.InvalidOperationException : The data is NULL at ordinal 40. This method can't be called on NULL values. Check using IsDBNull before calling.
+[xUnit.net 00:00:00.80]       Stack Trace:
+[xUnit.net 00:00:00.80]            at Microsoft.Data.Sqlite.SqliteValueReader.GetInt64(Int32 ordinal)
+[xUnit.net 00:00:00.80]            at Microsoft.Data.Sqlite.SqliteValueReader.GetInt32(Int32 ordinal)
+[xUnit.net 00:00:00.80]            at Microsoft.Data.Sqlite.SqliteDataReader.GetInt32(Int32 ordinal)
+[xUnit.net 00:00:00.80]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Characters\CharacterBodyTables.cs(31,0): at Dfo.Server.Persistence.Characters.SqliteCharacterConditionTable.<>c.<FindAsync>b__2_1(SqliteDataReader reader)
+[xUnit.net 00:00:00.80]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Database\SqliteTable.cs(64,0): at Dfo.Server.Persistence.Database.SqliteTable.<>c__DisplayClass1_0`1.<<ReadFirstAsync>b__0>d.MoveNext()
+[xUnit.net 00:00:00.80]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:00.80]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Database\SqliteTable.cs(64,0): at Dfo.Server.Persistence.Database.SqliteTable.<>c__DisplayClass1_0`1.<<ReadFirstAsync>b__0>d.MoveNext()
+[xUnit.net 00:00:00.80]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:00.80]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Database\SqliteDatabase.cs(73,0): at Dfo.Server.Persistence.Database.SqliteDatabase.ReadAsync[TResult](Func`3 read, CancellationToken cancellationToken)
+[xUnit.net 00:00:00.80]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Database\SqliteDatabase.cs(73,0): at Dfo.Server.Persistence.Database.SqliteDatabase.ReadAsync[TResult](Func`3 read, CancellationToken cancellationToken)
+[xUnit.net 00:00:00.80]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Database\SqliteDatabase.cs(73,0): at Dfo.Server.Persistence.Database.SqliteDatabase.ReadAsync[TResult](Func`3 read, CancellationToken cancellationToken)
+[xUnit.net 00:00:00.80]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Application\Characters\CharacterEntryAssembly.cs(137,0): at Dfo.Server.Application.Characters.CharacterEntryAssembly.LoadProfileAsync(AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)
+[xUnit.net 00:00:00.80]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Application\Characters\CharacterEntryAssembly.cs(81,0): at Dfo.Server.Application.Characters.CharacterEntryAssembly.LoadAsync(AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)
+[xUnit.net 00:00:00.80]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Application\Characters\CharacterEntryStateServices.cs(272,0): at Dfo.Server.Application.Characters.CharacterEntryStateDomainService.LoadAsync(AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)
+[xUnit.net 00:00:00.80]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\Characters\CurrentCharacterStateTests.cs(54,0): at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload()
+[xUnit.net 00:00:00.80]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\Characters\CurrentCharacterStateTests.cs(78,0): at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload()
+[xUnit.net 00:00:00.80]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:00.83]     Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Selection_and_refresh_replace_only_current_base_facts_preserving_page_and_inventory_configuration [FAIL]
+[xUnit.net 00:00:00.83]       System.InvalidOperationException : The data is NULL at ordinal 40. This method can't be called on NULL values. Check using IsDBNull before calling.
+[xUnit.net 00:00:00.83]       Stack Trace:
+[xUnit.net 00:00:00.83]            at Microsoft.Data.Sqlite.SqliteValueReader.GetInt64(Int32 ordinal)
+[xUnit.net 00:00:00.83]            at Microsoft.Data.Sqlite.SqliteValueReader.GetInt32(Int32 ordinal)
+[xUnit.net 00:00:00.83]            at Microsoft.Data.Sqlite.SqliteDataReader.GetInt32(Int32 ordinal)
+[xUnit.net 00:00:00.83]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Characters\CharacterBodyTables.cs(31,0): at Dfo.Server.Persistence.Characters.SqliteCharacterConditionTable.<>c.<FindAsync>b__2_1(SqliteDataReader reader)
+[xUnit.net 00:00:00.83]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Database\SqliteTable.cs(64,0): at Dfo.Server.Persistence.Database.SqliteTable.<>c__DisplayClass1_0`1.<<ReadFirstAsync>b__0>d.MoveNext()
+[xUnit.net 00:00:00.83]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:00.83]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Database\SqliteTable.cs(64,0): at Dfo.Server.Persistence.Database.SqliteTable.<>c__DisplayClass1_0`1.<<ReadFirstAsync>b__0>d.MoveNext()
+[xUnit.net 00:00:00.83]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:00.83]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Database\SqliteDatabase.cs(73,0): at Dfo.Server.Persistence.Database.SqliteDatabase.ReadAsync[TResult](Func`3 read, CancellationToken cancellationToken)
+[xUnit.net 00:00:00.83]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Database\SqliteDatabase.cs(73,0): at Dfo.Server.Persistence.Database.SqliteDatabase.ReadAsync[TResult](Func`3 read, CancellationToken cancellationToken)
+[xUnit.net 00:00:00.83]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Database\SqliteDatabase.cs(73,0): at Dfo.Server.Persistence.Database.SqliteDatabase.ReadAsync[TResult](Func`3 read, CancellationToken cancellationToken)
+[xUnit.net 00:00:00.83]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Application\Characters\CharacterEntryAssembly.cs(137,0): at Dfo.Server.Application.Characters.CharacterEntryAssembly.LoadProfileAsync(AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)
+[xUnit.net 00:00:00.83]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Application\Characters\CharacterEntryAssembly.cs(81,0): at Dfo.Server.Application.Characters.CharacterEntryAssembly.LoadAsync(AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)
+[xUnit.net 00:00:00.83]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Application\Characters\CharacterEntryStateServices.cs(272,0): at Dfo.Server.Application.Characters.CharacterEntryStateDomainService.LoadAsync(AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)
+[xUnit.net 00:00:00.83]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\Characters\CurrentCharacterStateTests.cs(87,0): at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Selection_and_refresh_replace_only_current_base_facts_preserving_page_and_inventory_configuration()
+[xUnit.net 00:00:00.83]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\Characters\CurrentCharacterStateTests.cs(124,0): at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Selection_and_refresh_replace_only_current_base_facts_preserving_page_and_inventory_configuration()
+[xUnit.net 00:00:00.83]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:00.83]   Finished:    Dfo.Server.Application.Tests
+  已通过 Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Tutorial_grant_checks_the_actual_row_inside_the_command_transaction [111 ms]
+  失败 Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload [453 ms]
+  错误消息:
+   System.InvalidOperationException : The data is NULL at ordinal 40. This method can't be called on NULL values. Check using IsDBNull before calling.
+  堆栈跟踪:
+     at Microsoft.Data.Sqlite.SqliteValueReader.GetInt64(Int32 ordinal)
+   at Microsoft.Data.Sqlite.SqliteValueReader.GetInt32(Int32 ordinal)
+   at Microsoft.Data.Sqlite.SqliteDataReader.GetInt32(Int32 ordinal)
+   at Dfo.Server.Persistence.Characters.SqliteCharacterConditionTable.<>c.<FindAsync>b__2_1(SqliteDataReader reader) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Characters\CharacterBodyTables.cs:line 31
+   at Dfo.Server.Persistence.Database.SqliteTable.<>c__DisplayClass1_0`1.<<ReadFirstAsync>b__0>d.MoveNext() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Database\SqliteTable.cs:line 64
+--- End of stack trace from previous location ---
+   at Dfo.Server.Persistence.Database.SqliteTable.<>c__DisplayClass1_0`1.<<ReadFirstAsync>b__0>d.MoveNext() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Database\SqliteTable.cs:line 64
+--- End of stack trace from previous location ---
+   at Dfo.Server.Persistence.Database.SqliteDatabase.ReadAsync[TResult](Func`3 read, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Database\SqliteDatabase.cs:line 73
+   at Dfo.Server.Persistence.Database.SqliteDatabase.ReadAsync[TResult](Func`3 read, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Database\SqliteDatabase.cs:line 73
+   at Dfo.Server.Persistence.Database.SqliteDatabase.ReadAsync[TResult](Func`3 read, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Database\SqliteDatabase.cs:line 73
+   at Dfo.Server.Application.Characters.CharacterEntryAssembly.LoadProfileAsync(AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Application\Characters\CharacterEntryAssembly.cs:line 137
+   at Dfo.Server.Application.Characters.CharacterEntryAssembly.LoadAsync(AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Application\Characters\CharacterEntryAssembly.cs:line 81
+   at Dfo.Server.Application.Characters.CharacterEntryStateDomainService.LoadAsync(AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Application\Characters\CharacterEntryStateServices.cs:line 272
+   at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\Characters\CurrentCharacterStateTests.cs:line 54
+   at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\Characters\CurrentCharacterStateTests.cs:line 78
+--- End of stack trace from previous location ---
+  失败 Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Selection_and_refresh_replace_only_current_base_facts_preserving_page_and_inventory_configuration [32 ms]
+  错误消息:
+   System.InvalidOperationException : The data is NULL at ordinal 40. This method can't be called on NULL values. Check using IsDBNull before calling.
+  堆栈跟踪:
+     at Microsoft.Data.Sqlite.SqliteValueReader.GetInt64(Int32 ordinal)
+   at Microsoft.Data.Sqlite.SqliteValueReader.GetInt32(Int32 ordinal)
+   at Microsoft.Data.Sqlite.SqliteDataReader.GetInt32(Int32 ordinal)
+   at Dfo.Server.Persistence.Characters.SqliteCharacterConditionTable.<>c.<FindAsync>b__2_1(SqliteDataReader reader) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Characters\CharacterBodyTables.cs:line 31
+   at Dfo.Server.Persistence.Database.SqliteTable.<>c__DisplayClass1_0`1.<<ReadFirstAsync>b__0>d.MoveNext() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Database\SqliteTable.cs:line 64
+--- End of stack trace from previous location ---
+   at Dfo.Server.Persistence.Database.SqliteTable.<>c__DisplayClass1_0`1.<<ReadFirstAsync>b__0>d.MoveNext() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Database\SqliteTable.cs:line 64
+--- End of stack trace from previous location ---
+   at Dfo.Server.Persistence.Database.SqliteDatabase.ReadAsync[TResult](Func`3 read, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Database\SqliteDatabase.cs:line 73
+   at Dfo.Server.Persistence.Database.SqliteDatabase.ReadAsync[TResult](Func`3 read, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Database\SqliteDatabase.cs:line 73
+   at Dfo.Server.Persistence.Database.SqliteDatabase.ReadAsync[TResult](Func`3 read, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\Database\SqliteDatabase.cs:line 73
+   at Dfo.Server.Application.Characters.CharacterEntryAssembly.LoadProfileAsync(AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Application\Characters\CharacterEntryAssembly.cs:line 137
+   at Dfo.Server.Application.Characters.CharacterEntryAssembly.LoadAsync(AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Application\Characters\CharacterEntryAssembly.cs:line 81
+   at Dfo.Server.Application.Characters.CharacterEntryStateDomainService.LoadAsync(AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Application\Characters\CharacterEntryStateServices.cs:line 272
+   at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Selection_and_refresh_replace_only_current_base_facts_preserving_page_and_inventory_configuration() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\Characters\CurrentCharacterStateTests.cs:line 87
+   at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Selection_and_refresh_replace_only_current_base_facts_preserving_page_and_inventory_configuration() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\Characters\CurrentCharacterStateTests.cs:line 124
+--- End of stack trace from previous location ---
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\.rks-agent\tasks\character-rules-and-state\evidence\task03-tests\task03-current-sqlite-round2.trx
+
+测试运行失败。
+测试总数: 3
+     通过数: 1
+     失败数: 2
+总时间: 1.2184 秒

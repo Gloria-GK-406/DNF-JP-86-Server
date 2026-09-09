@@ -22,7 +22,7 @@ public sealed class CharacterLifecycleServiceTests
         params CharacterSummary[] existing) => BuildWith(new FakeStatSource(), existing);
 
     private static (ICharacterDomainService Service, FakeRepository Repository) BuildWith(
-        ICharacterStatDefinitionSource stats,
+        ICharacterStatRuleService stats,
         params CharacterSummary[] existing)
     {
         var repository = new FakeRepository(existing);
@@ -334,20 +334,20 @@ public sealed class CharacterLifecycleServiceTests
             ValueTask.FromResult(For(job));
     }
 
-    private sealed class FakeStatSource : ICharacterStatDefinitionSource
+    private sealed class FakeStatSource : ICharacterStatRuleService
     {
         public List<byte> Requested { get; } = [];
+        public ValueTask InitializeAsync(CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
+        public IReadOnlyList<CharacterCareer> SupportedCareers => [];
 
         /// <summary>Distinct per job, so a lookup for the wrong one is visible.</summary>
         public static CharacterBaseStats For(byte job) =>
             new(HpMax: 1000 + job, MpMax: 2000 + job, MoveSpeed: 8500);
 
-        public ValueTask<CharacterBaseStats> GetInitialAsync(
-            byte job,
-            CancellationToken cancellationToken)
+        public CharacterBaseStats GetStats(CharacterCareer career, int level)
         {
-            Requested.Add(job);
-            return ValueTask.FromResult(For(job));
+            Requested.Add(career.Job);
+            return For(career.Job);
         }
     }
 

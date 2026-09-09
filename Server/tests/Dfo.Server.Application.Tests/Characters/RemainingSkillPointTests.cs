@@ -138,13 +138,8 @@ public sealed class RemainingSkillPointTests
     {
         var archive = new LevelPricedArchive();
         var points = new CharacterSkillPointDomainService(
-            row,
-            new OneLearnedSkill(),
-            new StoredBonusPoints(),
-            new CharacterEntryPreparationRuleService(
-                archive,
-                new StubExpertContractDefinitionSource(),
-                new StubCreatureEquipmentLifetimeSource()));
+            new CharacterSkillStateDomainService(row, new OneLearnedSkill(), new StoredBonusPoints()),
+            archive, Microsoft.Extensions.Logging.Abstractions.NullLogger<CharacterSkillPointDomainService>.Instance);
         return (
             new PlayingCharacter(
                 Who,
@@ -154,7 +149,7 @@ public sealed class RemainingSkillPointTests
                 new NoCarriedGold(),
                 new StoredCarryLimitOnly(),
                 row,
-                points),
+                points, null!, null!),
             archive);
     }
 
@@ -293,8 +288,15 @@ public sealed class RemainingSkillPointTests
     /// for because there is a second level within reach -- the session's -- and pricing from that
     /// one would produce a figure that still looked reasonable.
     /// </remarks>
-    private sealed class LevelPricedArchive : ISkillPointDefinitionSource
+    private sealed class LevelPricedArchive : ISkillPointDefinitionSource, ICharacterSkillRuleService
     {
+        public ICharacterSkillRule? Get(byte job, int skillId) => throw new NotSupportedException();
+        public IReadOnlyList<ICharacterSkillRule> GetAll(byte job) => throw new NotSupportedException();
+        public CharacterSkillPointBudget GetTotalPoints(byte job, int level) => throw new NotSupportedException();
+        public CharacterSkillPointLedger GetLedger(CharacterCareer career, int level, IReadOnlyList<CharacterSkillPageState> pages, CharacterSkillPointBasisState basis) =>
+            SkillPointLedgerRules.Calculate(GetAsync(career.Job, career.PackedGrowType, checked((byte)level),
+                pages.SelectMany(page => page.Skills).Select(skill => checked((int)skill.SkillId)).ToArray(), default).Result,
+                level, pages, basis);
         private readonly List<byte> _levels = [];
 
         public IReadOnlyList<byte> LevelsAsked => this._levels;

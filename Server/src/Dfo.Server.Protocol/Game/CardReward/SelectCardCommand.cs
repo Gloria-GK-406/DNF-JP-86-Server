@@ -115,29 +115,11 @@ public sealed record SelectCardResult(
 /// into and charged from the gold the character carries -- but the account is what the delivery of
 /// a piece is checked against.
 /// </param>
-/// <param name="CharacterLevel">
-/// What the character stands at. Handed in rather than looked up, for the reason every other fact
-/// a settlement is keyed on is handed in.
-/// <para>
-/// <b>It does not price this flip, and that is the point.</b> The price is fixed with the faces
-/// when the clear settles and is handed back with them, so a clear whose own experience levelled
-/// the character across one of the cost table's bands still charges what the result screen
-/// announced. This level would reach the rules only through a settlement that had no cards yet,
-/// and a flip of a clear with no cards is refused before the charge is reached -- so on this path
-/// it decides nothing.
-/// </para>
-/// <para>
-/// Kept rather than dropped because the settlement seam is keyed on a level and this path goes
-/// through that seam to reach the price. Whether the seam should also be askable for a settled
-/// clear's price without naming a level is a question about the seam, not about this command.
-/// </para>
-/// </param>
 public sealed record SelectCardCommand(
     AccountId AccountId,
     CharacterId CharacterId,
     ClearRewardCardKind Kind,
-    int Index,
-    int CharacterLevel) : ICommand<SelectCardResult>;
+    int Index) : ICommand<SelectCardResult>;
 
 /// <summary>
 /// Claims the chosen position, hands what was behind it to the bag, and reads back the whole face.
@@ -284,8 +266,11 @@ public sealed class SelectCardCommandHandler(
                     .ConfigureAwait(false));
         }
 
+        var current = await characters.Get(command.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false);
+        if (current is null)
+            return (SelectCardStatus.NotPriced, 0, 0);
         var settled = await cards.SettleAsync(
-            new ClearRewardSettlement(command.CharacterId, command.CharacterLevel),
+            new ClearRewardSettlement(command.CharacterId, current.Level),
             cancellationToken).ConfigureAwait(false);
 
         if (settled?.PaidFlipCost is not { } price || price < 0)

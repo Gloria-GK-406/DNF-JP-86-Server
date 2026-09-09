@@ -261,7 +261,8 @@ internal sealed class CharacterEntryStateDomainService(
     ICharacterProfileEntryProjection profiles,
     ICharacterSkillQuestEntryProjection skillQuests,
     ICharacterProgressionEntryProjection progression,
-    ICharacterFeatureEntryProjection features) : ICharacterEntryStateDomainService
+    ICharacterFeatureEntryProjection features,
+    ICharacterDomainService characters) : ICharacterEntryStateDomainService
 {
     public async ValueTask<CharacterEntryState> LoadAsync(
         AccountId accountId,
@@ -275,7 +276,12 @@ internal sealed class CharacterEntryStateDomainService(
             throw new InvalidDataException("Character entry storage returned a different owner.");
         }
 
-        var profile = profiles.Build(storage.Profile);
+        var stats = await characters.Get(characterId).BaseStatsAsync(cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidDataException("Character no longer exists while building entry state.");
+        var profile = profiles.Build(storage.Profile with
+        {
+            DerivedStats = CharacterBaseStatProjection.Apply(storage.Profile.DerivedStats, stats),
+        });
         var skillQuest = skillQuests.Build(storage.Skill, storage.Quest);
         var specialRewardQuestIds = new List<int>();
         foreach (var clearFlag in storage.Quest.ClearFlags.Where(value => value.Value != 0))

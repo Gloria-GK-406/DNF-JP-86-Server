@@ -76,7 +76,7 @@ public sealed class TutorialLevelUpHandlerTests
     }
 
     /// <summary>
-    /// The grant asks for the level the session holds, and reports the one it was given.
+    /// The response reports the level the grant returned.
     /// </summary>
     /// <remarks>
     /// The reference server's own order, from its 2026-08-23 capture of the tutorial: the
@@ -93,7 +93,6 @@ public sealed class TutorialLevelUpHandlerTests
 
         var sent = await AskForTheLevel(ledger, bus, content);
 
-        Assert.Equal(StartingLevel, bus.LevelAskedAbout);
         Assert.Equal(
             [typeof(ExperienceNotification), typeof(AvailableQuestListMessage),
              typeof(TutorialLevelUpResponse)],
@@ -158,7 +157,7 @@ public sealed class TutorialLevelUpHandlerTests
             bus,
             sender,
             new QuestOfferRefreshDomainService(
-                content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs()),
+                content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
             NullLogger<TutorialLevelUpHandler>.Instance);
 
         await handler.HandleAsync(
@@ -184,15 +183,12 @@ public sealed class TutorialLevelUpHandlerTests
         /// <summary>What the ledger's count stood at when the level was written.</summary>
         public int LedgerAsksWhenTheGrantRan { get; private set; } = -1;
 
-        /// <summary>The level the handler said the character was standing at.</summary>
-        public byte? LevelAskedAbout { get; private set; }
 
         public ValueTask<TResult> SendAsync<TResult>(
             ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull
         {
             var grant = Assert.IsType<GrantTutorialLevelCommand>(command);
-            this.LevelAskedAbout = grant.CurrentLevel;
             this.LedgerAsksWhenTheGrantRan = ledger.TimesAsked;
             var result = new TutorialLevelUpResult(
                 TutorialLevelUpStatus.Granted,

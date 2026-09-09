@@ -1,3 +1,6 @@
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Data.Characters;
+
 namespace Dfo.Server.Abstractions.Content;
 
 public sealed record SkillPointGrantDefinition(int SkillId, byte Level, bool IsInitial = false);
@@ -17,7 +20,9 @@ public sealed record SkillPointCostDefinition(
     int NumberOfGrowTypes = 0,
     // null means this advancement cannot learn the skill. Zero is a real, applicable
     // level-derived cap and therefore removes an expired-contract-only learned row.
-    int? OrdinaryMaximumLevel = null);
+    int? OrdinaryMaximumLevel = null,
+    ICharacterSkillRule? Rule = null,
+    CharacterCareer Career = default);
 
 public interface IExpertSkillContractDefinitionSource
 {
@@ -30,7 +35,7 @@ public sealed record SkillPointDefinitionSet(
     IReadOnlyList<SkillPointGrantDefinition> FreeGrants,
     IReadOnlyDictionary<int, SkillPointCostDefinition> Skills);
 
-/// <summary>PVF-owned ingredients required by the pure character skill-point ledger.</summary>
+/// <summary>Compatibility projection of skill rules for entry reconciliation.</summary>
 public interface ISkillPointDefinitionSource
 {
     ValueTask<SkillPointDefinitionSet> GetAsync(

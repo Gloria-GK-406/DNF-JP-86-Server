@@ -21,7 +21,9 @@ public sealed class CharacterEntryStateTests
             new CharacterProfileEntryProjection(),
             new CharacterSkillQuestEntryProjection(),
             new CharacterProgressionEntryProjection(),
-            new CharacterFeatureEntryProjection());
+            new CharacterFeatureEntryProjection(),
+            Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(
+                new Dfo.Server.Application.Tests.Support.CurrentCharacterStub { Stats = new CharacterBaseStats(PhysicalAttack: 123) }));
 
         var result = await service.LoadAsync(accountId, characterId, CancellationToken.None);
 

@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Application;
 using Dfo.Server.Host.Modules;
@@ -63,5 +64,10 @@ logger.LogInformation(
         ? "none found -- any content read will fail"
         : $"{archive} ({new FileInfo(archive).Length} bytes, "
           + $"{File.GetLastWriteTimeUtc(archive):yyyy-MM-dd HH:mm:ss}Z)");
+
+// Missing content keeps the existing startup behavior; content requests still fail explicitly.
+// When present, prepare all shared stats before any network hosted service accepts a client.
+if (archive is not null)
+    await host.Services.GetRequiredService<ICharacterStatRuleService>().InitializeAsync();
 
 await host.RunAsync();

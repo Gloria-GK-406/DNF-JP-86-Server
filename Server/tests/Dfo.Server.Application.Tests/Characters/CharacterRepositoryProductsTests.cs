@@ -100,7 +100,7 @@ public sealed class CharacterRepositoryProductsTests
             characterId => new PlayingCharacter(
                 characterId, judgement, cooldowns, presence, new NoCarriedGold(),
                 new StoredCarryLimitOnly(), new OnlyCharacterSixtysRow(),
-                new NoSkillPointLedger()));
+                new NoSkillPointLedger(), null!, null!));
     }
 
     /// <summary>A table holding a row for character 60 and for nobody else.</summary>
@@ -171,10 +171,11 @@ public sealed class CharacterRepositoryProductsTests
             new("This double says which characters have a row, and nothing else.");
     }
 
-    private sealed class UnusedStats : ICharacterStatDefinitionSource
+    private sealed class UnusedStats : ICharacterStatRuleService
     {
-        public ValueTask<CharacterBaseStats> GetInitialAsync(
-            byte job, CancellationToken cancellationToken) =>
+        public ValueTask InitializeAsync(CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
+        public IReadOnlyList<CharacterCareer> SupportedCareers => [];
+        public CharacterBaseStats GetStats(CharacterCareer career, int level) =>
             throw new NotSupportedException("No test here creates a character.");
     }
 

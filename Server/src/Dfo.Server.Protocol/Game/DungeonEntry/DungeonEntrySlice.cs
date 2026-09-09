@@ -419,6 +419,7 @@ internal sealed class SelectDungeonDecoder : IGameMessageDecoder
 /// protocol/patterns/game-receive.md.
 /// </remarks>
 public sealed class SelectDungeonHandler(
+    ICharacterDomainService characters,
     ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IDungeonVisitDomainService visits,
@@ -534,7 +535,10 @@ public sealed class SelectDungeonHandler(
         // screen opened; the tutorial's first entry defers it to here, which is where the captured
         // session shows it and why this used to send it unconditionally.
         List<IGameServerMessage> frames = [new EnterSelectDungeonAcknowledgement()];
-        if (visits.DefersSelectionState(result.Character.Progression.Level))
+        var currentProgress = await characters.Get(session.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false);
+        if (currentProgress is null)
+            return;
+        if (visits.DefersSelectionState(currentProgress.Level))
         {
             frames.Add(new EnterSelectDungeonNotification(session.WireUserId));
         }

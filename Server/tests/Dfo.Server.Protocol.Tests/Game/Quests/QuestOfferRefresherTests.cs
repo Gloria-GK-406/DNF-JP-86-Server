@@ -30,7 +30,7 @@ public sealed class QuestOfferRefresherTests
     public async Task TheOfferListIsRecomputedAtTheNewLevel()
     {
         var content = new StubWorldContentEntryRuleService();
-        var refresher = new QuestOfferRefreshDomainService(content, new RecordingQuestLogs());
+        var refresher = new QuestOfferRefreshDomainService(content, new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain());
 
         var refreshed = await refresher.RefreshAsync(
             SessionAtLevel(2), Account, Character, level: 3, CancellationToken.None);
@@ -50,7 +50,7 @@ public sealed class QuestOfferRefresherTests
     public async Task ASessionWithNoSubjectIsLeftAsItIs()
     {
         var content = new StubWorldContentEntryRuleService();
-        var refresher = new QuestOfferRefreshDomainService(content, new RecordingQuestLogs());
+        var refresher = new QuestOfferRefreshDomainService(content, new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain());
         var without = SessionAtLevel(2);
         without = without with { World = without.World with { Subject = null } };
 
@@ -59,6 +59,18 @@ public sealed class QuestOfferRefresherTests
 
         Assert.Same(without, refreshed);
         Assert.Null(content.LastSubject);
+    }
+
+    [Fact]
+    public async Task Offers_follow_current_career_instead_of_the_world_subject_copy()
+    {
+        var character = new CurrentCharacterStub { Identity = new(Character, 0, [65], 3, 0x11) };
+        var refresher = new QuestOfferRefreshDomainService(new StubWorldContentEntryRuleService(),
+            new RecordingQuestLogs(), CurrentCharacterStub.Domain(character));
+        var refreshed = await refresher.RefreshAsync(SessionAtLevel(2), Account, Character, 51, default);
+        Assert.Equal(3, refreshed.World.Subject!.Job);
+        Assert.Equal(0x11, refreshed.World.Subject.GrowType);
+        Assert.Equal(51, refreshed.World.Subject.Level);
     }
 
     private static SelectCharacterResult SessionAtLevel(int level)

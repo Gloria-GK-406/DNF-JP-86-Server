@@ -1,0 +1,218 @@
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0\Dfo.Server.Networking.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0\Dfo.Server.Networking.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)
+[xUnit.net 00:00:00.34]   Discovering: Dfo.Server.Networking.Tests
+[xUnit.net 00:00:00.38]   Discovered:  Dfo.Server.Networking.Tests
+[xUnit.net 00:00:00.40]   Starting:    Dfo.Server.Networking.Tests
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameEncoderTests.Channel_encoder_matches_the_reverse_engineered_layout [337 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameEncoderTests.Game_server_encoder_writes_opaque_header_values [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Channel_rejects_invalid_total_length(totalLength: 1) [340 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameEncoderTests.Game_server_encoder_keeps_the_observed_fifteen_byte_header [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.ChannelPayloadCipherTests.CompressedEncryption_ProducesLegacyCompatibleZlibAndZeroPadding [340 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Channel_rejects_invalid_total_length(totalLength: 0) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Channel_rejects_invalid_total_length(totalLength: 10) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.ChannelPayloadCipherTests.UncompressedEncryption_MatchesTheLegacyAesVector [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Channel_rejects_invalid_total_length(totalLength: 1048577) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.The_frame_counter_is_the_last_two_bytes(low: 0, high: 0, expected: 0) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.The_frame_counter_is_the_last_two_bytes(low: 1, high: 0, expected: 1) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.The_frame_counter_is_the_last_two_bytes(low: 2, high: 0, expected: 2) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.The_clients_empty_connection_probe_parses_with_no_body [1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Game_client_rejects_invalid_total_length(totalLength: 1) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Game_client_rejects_invalid_total_length(totalLength: 13) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Game_client_rejects_invalid_total_length(totalLength: 0) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Game_client_rejects_invalid_total_length(totalLength: 4294967295) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Channel_header_is_parsed_as_little_endian_total_length_frame [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.A_login_frames_header_yields_the_measured_body_length [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Game_client_header_is_parsed_as_little_endian_total_length_frame [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.GameRegistry_ResolvesTheDecoderRegisteredForAWireKey [415 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.ServerMessageEncoderRegistryTests.ResolvesTheEncoderAndEndpointRegisteredForAMessage [415 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.Registration_RejectsADecoderThatDeclaresNoProducedMessageType [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.ServerMessageEncoderRegistryTests.RejectsTwoEncodersForTheSameMessage [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.ServerMessageEncoderRegistryTests.TypedEncoderRejectsAMessageItDoesNotEncode [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.ServerMessageEncoderRegistryTests.ReportsAMissForAnUnregisteredMessage [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.ChannelRegistry_RejectsTwoDecodersOnTheSameMessageNumber [2 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.GameRegistry_RejectsTwoDecodersOnTheSameWireKey [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.Registration_DeclaresEveryProducedMessageType [3 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.GameRegistry_ReportsAMissForAnUnregisteredWireKey [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.ChannelRegistry_ResolvesAndReportsMissesByMessageNumber [1 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.TouchSocketNetworkMessageSenderExplicitDeliveryTests.TouchSocketNetworkMessageSender_RequiredDirectFailurePropagatesAndStopsDelivery [424 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.TouchSocketNetworkMessageSenderExplicitDeliveryTests.TouchSocketNetworkMessageSender_PreservesRequiredAndPerTargetOrderAndExcludesOwner [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.TouchSocketNetworkMessageSenderExplicitDeliveryTests.TouchSocketNetworkMessageSender_BestEffortFailureStopsOnlyThatTarget [1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 11) [459 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 1) [1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 12) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 2) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 31) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 17) [< 1 ms]
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 10) [< 1 ms]
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+warn: Dfo.Server.Networking.Runtime.GameNetworkPlugin[0]
+      Unhandled Game frame Game:01-00-00-00: selector=0x01 type=0x7FFF seq=0 body(0B)=
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GetChannelScriptVersionCommand handled by GetChannelScriptVersionCommandHandler as Direct with execution 09606e38-981b-43e5-8be2-57fd8250416f in 4.0074 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution 698f0b25-41fb-488c-a75f-8c4986b6cd8d in 3.8752 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution 18f83049-918f-4862-a3ad-07969a9ccb1a in 0.5981 ms
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GetChannelScriptCommand handled by GetChannelScriptCommandHandler as Direct with execution f5f8636f-8fb2-4102-b770-c3de20b8cee0 in 1.2657 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command GetChannelInfoCommand handled by GetChannelInfoCommandHandler as Direct with execution b5368e03-7921-4008-9761-fbefa1bd5e03 in 0.6931 ms
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution d5c32243-7d6b-40f9-8a55-b9b560982a2f in 0.0102 ms
+warn: Dfo.Server.Networking.Runtime.GameNetworkPlugin[0]
+      Unhandled Game frame Game:01-00-00-00: selector=0x02 type=0x0003 seq=0 body(0B)=
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution 34d90c23-4134-431e-9b61-026f07b26fc1 in 0.0063 ms
+warn: Dfo.Server.Networking.Runtime.GameNetworkPlugin[0]
+      Game decoder GetUserInfoMessageDecoder declined Game:01-00-00-00: selector=0x01 type=0x0008 body(3B); body withheld
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution 1a58cc7b-97b8-40c2-9a1f-dbc5c7bb2125 in 0.0066 ms
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+  已通过 Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Game_client_adapter_handles_one_byte_at_a_time [1 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.GameExitIntegrationTests.Exit_TraversesTypedPipelineAndAcknowledgesWithoutClosingConnection [1 s]
+  已通过 Dfo.Server.Networking.Tests.Integration.OutboundSendFailureTests.AChannelMessageIsRejectedOnAGameConnection [1 s]
+  已通过 Dfo.Server.Networking.Tests.Integration.ChannelConnectIntegrationTests.ChannelConnect_TraversesTouchSocketDispatcherHandlerAndSender [1 s]
+  已通过 Dfo.Server.Networking.Tests.Integration.UnknownInboundFrameIntegrationTests.FramesWithNoDecoder_AreDroppedSilentlyAndLeaveTheConnectionUsable [1 s]
+  已通过 Dfo.Server.Networking.Tests.Integration.OutboundSendFailureTests.AGameMessageIsRejectedOnAChannelConnection [11 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.OutboundSendFailureTests.AFailedLoginResponseIsNotEncodable [31 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.ChannelControlMessagesIntegrationTests.ControlMessages_TraverseTypedCommandsAndPreserveLegacyPayloads [1 s]
+  已通过 Dfo.Server.Networking.Tests.Integration.CardRewardReconnectIntegrationTests.A_clears_cards_survive_the_connection_that_was_shown_them [1 s]
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]
+      ��������������
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]
+      ��������������
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command LoginGameUserCommand handled by LoginGameUserCommandHandler as Transactional with execution 448a174f-365d-4641-afac-1ec27ba4a8f7 in 14.0504 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command PrepareReturnToSelectionCommand handled by PrepareReturnToSelectionCommandHandler as Transactional with execution e66d0672-120e-4ebd-968c-d26fa5d09f7d in 4.6053 ms
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]
+      Command CompleteReturnToSelectionCommand handled by CompleteReturnToSelectionCommandHandler as Workflow with execution 34d277b7-1f7b-4101-b88b-08770026f70f in 0.5378 ms
+info: Dfo.Server.Protocol.Game.BuyItem.BuyItemHandler[0]
+      NPC purchase Game:01-00-00-00 npc=2 shop=15 item=490003532 rawCount=1 refused=NoSession
+info: Dfo.Server.Protocol.Game.SellItem.SellItemHandler[0]
+      NPC sale Game:01-00-00-00 npc=2 container=Main slot=9 count=1 refused=NoSession
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:02.16]   Finished:    Dfo.Server.Networking.Tests
+  已通过 Dfo.Server.Networking.Tests.Integration.OutboundSendFailureTests.AMessageWithNoRegisteredEncoderIsRejectedByName [9 ms]
+  已通过 Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.Login_TraversesTouchSocketAccountRepositoryAndOnlineUserAggregate [1 s]
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\.rks-agent\tasks\character-rules-and-state\evidence\task03-tests\Dfo.Server.Networking.Tests-task03-full.trx
+
+测试运行成功。
+测试总数: 52
+     通过数: 52
+总时间: 2.9828 秒

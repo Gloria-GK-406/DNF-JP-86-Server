@@ -442,12 +442,15 @@ public sealed class MonsterDeathHandler(
             message.ActorSequence,
             message.WireUserId);
 
-        // The session is corrected before the frames go out. Every later frame reads the character
-        // from here -- including the next kill's own experience frame -- so a session left holding
-        // the entry-time total would go on reporting it for the rest of the run.
-        var level = award?.Level ?? checked((byte)result.Character.Progression.Level);
-        var total = award?.Total
-            ?? checked((uint)result.CharacterEntry.Public.Extras.CharacterExperience);
+        // Keep the compatibility projection aligned with the award. Without an award, ask the
+        // character for its current progress rather than reporting the old projection.
+        var currentProgress = award is null
+            ? await characters.Get(session.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false)
+            : new CharacterProgressionState(award.Level, award.Total);
+        if (currentProgress is null)
+            return;
+        var level = currentProgress.Level;
+        var total = currentProgress.Experience;
         if (award is not null)
         {
             result = result with

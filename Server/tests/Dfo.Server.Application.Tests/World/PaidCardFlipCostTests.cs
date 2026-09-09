@@ -442,13 +442,18 @@ public sealed class PaidCardFlipCostTests
         {
             public CharacterId Id => Character;
 
+    public ValueTask<CharacterBaseStats?> BaseStatsAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+    public ValueTask<IReadOnlyList<CharacterLearnedSkillPage>?> LearnedSkillsAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+    public ValueTask<CharacterSkillPointLedger?> SkillPointLedgerAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+
+
             public ValueTask<ItemUsability> CanUseAsync(
                 int itemId, CancellationToken cancellationToken) =>
                 throw new NotSupportedException("This subject is about a flip's price.");
 
-            public ValueTask<CharacterProgressionState?> ProgressAsync(
-                CancellationToken cancellationToken) =>
-                throw new NotSupportedException("This subject is about a flip's price.");
+            public async ValueTask<CharacterProgressionState?> ProgressAsync(CancellationToken cancellationToken) =>
+                await carried.FindAsync(Character, cancellationToken) is { } row
+                    ? new CharacterProgressionState(checked((byte)row.Level), 0) : null;
 
             public ValueTask<CharacterIdentityState?> IdentityAsync(
                 CancellationToken cancellationToken) =>
@@ -474,16 +479,20 @@ public sealed class PaidCardFlipCostTests
         /// <summary>What this clear fixed a paid flip's price at when it settled.</summary>
         public int? Announced { get; }
 
-        public ValueTask<SelectCardResult> Turn(
-            ClearRewardCardKind kind, int index, int standingAt = Level) =>
-            this._handler.HandleAsync(
-                new CommandExecutionContext(
-                    Guid.NewGuid(),
-                    typeof(SelectCardCommand),
-                    typeof(SelectCardCommandHandler),
-                    CommandExecutionKind.Workflow),
-                new SelectCardCommand(Account, Character, kind, index, standingAt),
-                CancellationToken.None);
+        public async ValueTask<SelectCardResult> Turn(ClearRewardCardKind kind, int index, int standingAt = Level)
+        {
+            await using var connection = new SqliteConnection($"Data Source={this._path}");
+            await connection.OpenAsync();
+            await using var update = connection.CreateCommand();
+            update.CommandText = "UPDATE characters SET level=@level WHERE character_id=@id";
+            update.Parameters.AddWithValue("@level", standingAt);
+            update.Parameters.AddWithValue("@id", Character.Value);
+            await update.ExecuteNonQueryAsync();
+            return await this._handler.HandleAsync(
+                new CommandExecutionContext(Guid.NewGuid(), typeof(SelectCardCommand),
+                    typeof(SelectCardCommandHandler), CommandExecutionKind.Workflow),
+                new SelectCardCommand(Account, Character, kind, index), CancellationToken.None);
+        }
 
         /// <summary>What the settlement says a paid flip costs, asked at that level.</summary>
         /// <remarks>

@@ -1,0 +1,40 @@
+  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+  Dfo.Pvf -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Pvf\bin\Debug\net10.0\Dfo.Pvf.dll
+  Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Data\bin\Debug\net10.0\Dfo.Server.Data.dll
+  Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Abstractions\bin\Debug\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Persistence -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\bin\Debug\net10.0\Dfo.Server.Persistence.dll
+  Dfo.Server.Networking -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Networking\bin\Debug\net10.0\Dfo.Server.Networking.dll
+  Dfo.Server.Application -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Application\bin\Debug\net10.0\Dfo.Server.Application.dll
+  Dfo.Server.Infrastructure -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Infrastructure\bin\Debug\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.Protocol -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Protocol\bin\Debug\net10.0\Dfo.Server.Protocol.dll
+  Dfo.Server.Application.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)
+[xUnit.net 00:00:00.08]   Discovering: Dfo.Server.Application.Tests
+[xUnit.net 00:00:00.18]   Discovered:  Dfo.Server.Application.Tests
+[xUnit.net 00:00:00.19]   Starting:    Dfo.Server.Application.Tests
+[xUnit.net 00:00:00.23]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:00.23]       Expected: AlreadyPast
+[xUnit.net 00:00:00.23]       Actual:   Granted
+[xUnit.net 00:00:00.22]     Dfo.Server.Application.Tests.World.CharacterExperienceDomainServiceTests.TutorialRequestWithStaleLevelNeverLowersCurrentProgress [FAIL]
+[xUnit.net 00:00:00.23]       Stack Trace:
+[xUnit.net 00:00:00.23]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\World\CharacterExperienceDomainServiceTests.cs(280,0): at Dfo.Server.Application.Tests.World.CharacterExperienceDomainServiceTests.TutorialRequestWithStaleLevelNeverLowersCurrentProgress()
+[xUnit.net 00:00:00.23]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:00.23]   Finished:    Dfo.Server.Application.Tests
+  失败 Dfo.Server.Application.Tests.World.CharacterExperienceDomainServiceTests.TutorialRequestWithStaleLevelNeverLowersCurrentProgress [6 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: AlreadyPast
+Actual:   Granted
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.World.CharacterExperienceDomainServiceTests.TutorialRequestWithStaleLevelNeverLowersCurrentProgress() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\World\CharacterExperienceDomainServiceTests.cs:line 280
+--- End of stack trace from previous location ---
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\.rks-agent\tasks\character-rules-and-state\evidence\task03-tests\task03-tutorial-red.trx
+
+测试运行失败。
+测试总数: 1
+     失败数: 1
+总时间: 0.6059 秒

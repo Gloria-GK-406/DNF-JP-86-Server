@@ -51,7 +51,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IDungeonRankGradeSource, PvfDungeonRankGradeSource>();
         services.TryAddSingleton<IGoldCarryLimitSource, PvfGoldCarryLimitSource>();
         services.TryAddSingleton<ICollectionBoxDefinitionSource, PvfCollectionBoxDefinitionSource>();
-        services.TryAddSingleton<ISkillPointDefinitionSource, PvfSkillPointDefinitionSource>();
+        services.TryAddSingleton<ISkillRuleDefinitionSource, PvfSkillPointDefinitionSource>();
         services.TryAddSingleton<ICharacterStatDefinitionSource, PvfCharacterStatDefinitionSource>();
         services.TryAddSingleton<IDailyActivityDefinitionSource, PvfDailyActivityDefinitionSource>();
         services.TryAddSingleton<ICreatureDefinitionSource, PvfCreatureDefinitionSource>();

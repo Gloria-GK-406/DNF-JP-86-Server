@@ -1,0 +1,64 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="84cb18ed-0f2c-4f72-b2e4-2a889fb5b403" name="Gloria@家庭台式机 2026-09-09 12:39:10" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-09T12:39:10.8136301+08:00" queuing="2026-09-09T12:39:10.8136304+08:00" start="2026-09-09T12:39:09.0055555+08:00" finish="2026-09-09T12:39:24.8916427+08:00" />
+  <TestSettings name="default" id="0ae01cc0-2703-41f9-b58d-7100bc326dcb">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-09_12_39_10" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="67c82989-ff36-4def-a2f7-120759c079e2" testId="0eabe429-fde2-08a1-19c2-ff59a68e663e" testName="Dfo.Server.Host.Tests.ChannelHostStartupTests.InvalidRequiredChannelScript_FailsBeforeListenersStart(kind: &quot;empty&quot;)" computerName="家庭台式机" duration="00:00:04.9342442" startTime="2026-09-09T12:39:14.2875288+08:00" endTime="2026-09-09T12:39:19.2210736+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="67c82989-ff36-4def-a2f7-120759c079e2" />
+    <UnitTestResult executionId="da4bcffe-cb38-4e82-bda2-51776f1e6bb0" testId="41d4fa7e-477a-8734-2270-443d0e187650" testName="Dfo.Server.Host.Tests.ChannelHostStartupTests.PackagedHost_FromUnrelatedWorkingDirectory_CompletesChannelBootstrap" computerName="家庭台式机" duration="00:00:00.6507571" startTime="2026-09-09T12:39:24.1923939+08:00" endTime="2026-09-09T12:39:24.8431336+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="da4bcffe-cb38-4e82-bda2-51776f1e6bb0" />
+    <UnitTestResult executionId="5e44793e-fbcc-48be-a6b8-eb515a193fb9" testId="c2f83bdf-fb78-968a-53e9-92e2da96aba5" testName="Dfo.Server.Host.Tests.CarriedGoldCompositionTests.The_carry_cap_rule_and_the_account_cargo_seam_both_resolve" computerName="家庭台式机" duration="00:00:00.0014859" startTime="2026-09-09T12:39:09.4931209+08:00" endTime="2026-09-09T12:39:09.4931847+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5e44793e-fbcc-48be-a6b8-eb515a193fb9" />
+    <UnitTestResult executionId="5559fd31-d842-4b3b-8e2d-ac5cced90903" testId="09c474f0-7a69-ff5e-fba8-4c0d14866579" testName="Dfo.Server.Host.Tests.ChannelHostStartupTests.InvalidRequiredChannelScript_FailsBeforeListenersStart(kind: &quot;missing&quot;)" computerName="家庭台式机" duration="00:00:04.9693458" startTime="2026-09-09T12:39:19.2216959+08:00" endTime="2026-09-09T12:39:24.1909221+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5559fd31-d842-4b3b-8e2d-ac5cced90903" />
+    <UnitTestResult executionId="c3b71732-5e6e-4563-92ef-ed5eb8c4dcb3" testId="650feac9-611d-b311-afdc-de15335a795b" testName="Dfo.Server.Host.Tests.CarriedGoldCompositionTests.The_character_business_acts_through_resolves_from_the_assembled_modules" computerName="家庭台式机" duration="00:00:00.0631087" startTime="2026-09-09T12:39:09.4174795+08:00" endTime="2026-09-09T12:39:09.4853752+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c3b71732-5e6e-4563-92ef-ed5eb8c4dcb3" />
+    <UnitTestResult executionId="4e38e3c2-06ee-4787-be7d-88c674c5b0ec" testId="bfe9f626-f371-1056-f60e-6c8359dafd72" testName="Dfo.Server.Host.Tests.ChannelHostStartupTests.InvalidRequiredChannelScript_FailsBeforeListenersStart(kind: &quot;unreadable&quot;)" computerName="家庭台式机" duration="00:00:04.8640218" startTime="2026-09-09T12:39:09.4183607+08:00" endTime="2026-09-09T12:39:14.2858761+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4e38e3c2-06ee-4787-be7d-88c674c5b0ec" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Host.Tests.ChannelHostStartupTests.PackagedHost_FromUnrelatedWorkingDirectory_CompletesChannelBootstrap" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\character-rules-and-state\server\tests\dfo.server.host.tests\bin\debug\net10.0\dfo.server.host.tests.dll" id="41d4fa7e-477a-8734-2270-443d0e187650">
+      <Execution id="da4bcffe-cb38-4e82-bda2-51776f1e6bb0" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.ChannelHostStartupTests" name="PackagedHost_FromUnrelatedWorkingDirectory_CompletesChannelBootstrap" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.CarriedGoldCompositionTests.The_carry_cap_rule_and_the_account_cargo_seam_both_resolve" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\character-rules-and-state\server\tests\dfo.server.host.tests\bin\debug\net10.0\dfo.server.host.tests.dll" id="c2f83bdf-fb78-968a-53e9-92e2da96aba5">
+      <Execution id="5e44793e-fbcc-48be-a6b8-eb515a193fb9" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.CarriedGoldCompositionTests" name="The_carry_cap_rule_and_the_account_cargo_seam_both_resolve" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.ChannelHostStartupTests.InvalidRequiredChannelScript_FailsBeforeListenersStart(kind: &quot;empty&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\character-rules-and-state\server\tests\dfo.server.host.tests\bin\debug\net10.0\dfo.server.host.tests.dll" id="0eabe429-fde2-08a1-19c2-ff59a68e663e">
+      <Execution id="67c82989-ff36-4def-a2f7-120759c079e2" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.ChannelHostStartupTests" name="InvalidRequiredChannelScript_FailsBeforeListenersStart" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.ChannelHostStartupTests.InvalidRequiredChannelScript_FailsBeforeListenersStart(kind: &quot;missing&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\character-rules-and-state\server\tests\dfo.server.host.tests\bin\debug\net10.0\dfo.server.host.tests.dll" id="09c474f0-7a69-ff5e-fba8-4c0d14866579">
+      <Execution id="5559fd31-d842-4b3b-8e2d-ac5cced90903" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.ChannelHostStartupTests" name="InvalidRequiredChannelScript_FailsBeforeListenersStart" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.ChannelHostStartupTests.InvalidRequiredChannelScript_FailsBeforeListenersStart(kind: &quot;unreadable&quot;)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\character-rules-and-state\server\tests\dfo.server.host.tests\bin\debug\net10.0\dfo.server.host.tests.dll" id="bfe9f626-f371-1056-f60e-6c8359dafd72">
+      <Execution id="4e38e3c2-06ee-4787-be7d-88c674c5b0ec" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.ChannelHostStartupTests" name="InvalidRequiredChannelScript_FailsBeforeListenersStart" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Host.Tests.CarriedGoldCompositionTests.The_character_business_acts_through_resolves_from_the_assembled_modules" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\character-rules-and-state\server\tests\dfo.server.host.tests\bin\debug\net10.0\dfo.server.host.tests.dll" id="650feac9-611d-b311-afdc-de15335a795b">
+      <Execution id="c3b71732-5e6e-4563-92ef-ed5eb8c4dcb3" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.CarriedGoldCompositionTests" name="The_character_business_acts_through_resolves_from_the_assembled_modules" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="0eabe429-fde2-08a1-19c2-ff59a68e663e" executionId="67c82989-ff36-4def-a2f7-120759c079e2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="41d4fa7e-477a-8734-2270-443d0e187650" executionId="da4bcffe-cb38-4e82-bda2-51776f1e6bb0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c2f83bdf-fb78-968a-53e9-92e2da96aba5" executionId="5e44793e-fbcc-48be-a6b8-eb515a193fb9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="09c474f0-7a69-ff5e-fba8-4c0d14866579" executionId="5559fd31-d842-4b3b-8e2d-ac5cced90903" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="650feac9-611d-b311-afdc-de15335a795b" executionId="c3b71732-5e6e-4563-92ef-ed5eb8c4dcb3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="bfe9f626-f371-1056-f60e-6c8359dafd72" executionId="4e38e3c2-06ee-4787-be7d-88c674c5b0ec" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="6" executed="6" passed="6" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.05]   Discovering: Dfo.Server.Host.Tests&#xD;
+[xUnit.net 00:00:00.08]   Discovered:  Dfo.Server.Host.Tests&#xD;
+[xUnit.net 00:00:00.10]   Starting:    Dfo.Server.Host.Tests&#xD;
+[xUnit.net 00:00:15.54]   Finished:    Dfo.Server.Host.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

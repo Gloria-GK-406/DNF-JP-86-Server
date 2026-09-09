@@ -353,15 +353,16 @@ internal sealed class EnterSelectDungeonEncoder
 /// does not carry those numbers across into the town actor: it rebuilds the actor when the
 /// selection screen opens and repopulates it from this frame. Re-sending is not redundancy.
 ///
-/// It is rebuilt from the resident entry state rather than re-read from storage. Successful item
-/// moves refresh that state's inventory, so its equipment can differ from the entry-burst copy.
-/// This path does not recompute the other entry fields from equipment.
+/// Current character facts refresh the stat/skill projection before sending. Equipment uses the
+/// resident inventory maintained by item moves. Equipment contributions are not a modeled part
+/// of the base-stat rules.
 ///
 /// A21 answers with CMD 0x000F carrying a single acceptance byte. This used to send no CMD reply,
 /// on the grounds that the reference server sends none -- true of the A12 reference and not of the
 /// A21 one, which sends it here and again after SELECT_DUNGEON.
 /// </remarks>
 public sealed class EnterSelectDungeonHandler(
+    ICharacterStateProjectionDomainService currentState,
     ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IDungeonVisitDomainService visits,
@@ -430,6 +431,7 @@ public sealed class EnterSelectDungeonHandler(
         // defers it -- and every frame this server had been checked against came from a tutorial,
         // so it was only ever sent at the deferred moment. A player at a real dungeon gate got the
         // screen's other three frames and no state to draw it from (2026-08-26).
+        result = await currentState.RefreshAsync(result, cancellationToken).ConfigureAwait(false);
         var defersState = visits.DefersSelectionState(result.Character.Progression.Level);
         List<IGameServerMessage> notifications =
         [

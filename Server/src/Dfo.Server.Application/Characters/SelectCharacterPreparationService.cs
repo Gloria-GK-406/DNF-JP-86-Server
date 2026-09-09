@@ -373,14 +373,9 @@ public sealed class SelectCharacterPreparationService(
             definitions.Skills.TryGetValue(grant.SkillId, out var definition);
             var active = definition?.IsActive == true;
             var grantLevel = grant.Level;
-            if (definition?.IsFixedLevel == true && character.Progression.Level >= definition.RequiredLevel)
-            {
-                var fixedLevel = definition.FixedLevelBase
-                    + (character.Progression.Level - definition.RequiredLevel)
-                    / Math.Max(1, definition.FixedLevelInterval) * definition.FixedLevelAddPerInterval;
-                grantLevel = checked((byte)Math.Clamp(
-                    Math.Max(grantLevel, Math.Min(fixedLevel, definition.MaximumLevel)), 0, byte.MaxValue));
-            }
+            if (definition is not null)
+                grantLevel = checked((byte)Math.Clamp(SkillPointLedgerRules.FreeLevel(
+                    definition, grantLevel, character.Progression.Level), 0, byte.MaxValue));
             int slot;
             if (grant.IsInitial)
                 slot = FirstFree(active ? 0 : 102, active ? 102 : 204);

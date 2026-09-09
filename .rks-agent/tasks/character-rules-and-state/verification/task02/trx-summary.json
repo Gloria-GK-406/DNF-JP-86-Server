@@ -1,0 +1,49 @@
+{
+  "red-behavior.trx": {
+    "results": 2,
+    "outcomes": {
+      "Failed": 2
+    },
+    "nonpassed": [
+      {
+        "name": "Dfo.Server.Infrastructure.Tests.Content.PvfSkillPointDefinitionSourceTests.Multi_value_maximum_uses_the_career_slot",
+        "outcome": "Failed"
+      },
+      {
+        "name": "Dfo.Server.Infrastructure.Tests.Content.PvfSkillPointDefinitionSourceTests.Nested_fixed_level_block_is_recognized",
+        "outcome": "Failed"
+      }
+    ]
+  },
+  "green-focused.trx": {
+    "results": 71,
+    "outcomes": {
+      "Passed": 71
+    },
+    "nonpassed": []
+  },
+  "application-final.trx": {
+    "results": 1158,
+    "outcomes": {
+      "Passed": 1158
+    },
+    "nonpassed": []
+  },
+  "infrastructure.trx": {
+    "results": 262,
+    "outcomes": {
+      "Passed": 260,
+      "NotExecuted": 2
+    },
+    "nonpassed": [
+      {
+        "name": "Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog",
+        "outcome": "NotExecuted"
+      },
+      {
+        "name": "Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message",
+        "outcome": "NotExecuted"
+      }
+    ]
+  }
+}

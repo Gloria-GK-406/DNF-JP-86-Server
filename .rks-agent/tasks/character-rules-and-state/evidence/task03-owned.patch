@@ -1,0 +1,1756 @@
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -104,7 +104,7 @@
+ ```
+ CMD handler          驱动用例，不承载业务语义
+   → 业务服务         （领域服务）读写世界状态，编排用例
+-    → 规则服务       内容 + 传入的 facts + 显式种子 → 值/决定，无状态
++    → 规则服务       内容 + 传入的 facts + 显式种子 → 不可变规则实例/值/决定，无角色状态
+       → 纯规则       静态类，纯函数，不碰 I/O
+ ```
+ 
+@@ -147,23 +147,29 @@
+ 
+ ### 角色自己的数，问角色
+ 
+-等级、经验、剩余 SP/TP 这三个数属于角色自己，**从角色实例问，不从会话快照读**。
+-
+-剩余点数尤其如此：数据库里没有这一列，它每次都要用等级去档案累加总量、加上库里的加成、
+-再减去遍历已学技能算出的花费。入场时算过一次并不代表以后还对——升级会让三项里的第一项变，
+-而没有任何东西会去追那份算好的值。这条规则就是从那个缺陷来的：玩家升级之后客户端看到的
+-技能点不变，要重登才对。
+-
+-算术只有一处实现，在拥有档案答案的那个规则服务上；入场用手边的数据供料，角色实例用从表读到
+-的数据供料。**两个供料方，一个算法**——两份实现迟早分叉。
+-
+-**现在做到了哪一步，如实说**：剩余 SP/TP 已经全部经角色实例回答，四个发经验帧的地方一处不剩；
+-道具的等级判定也改成了问实例。等级与经验则仍有第二条路——发帧时用的是授予动作自己的返回值，
+-那不是第二个来源而是那次写入的回值；会话里那份副本在其余地方仍被读作回落。把它们也收干净，
+-是要连着会话快照其余部分一起拆的下一件事，**还没做**。
++身份、等级、经验、当前基础属性、已学技能和 SP/TP 账本属于角色，从 `ICharacter` 按 ID 现查。
++这些查询不要求角色在线。角色实例只保留 ID 和取数服务，不缓存等级、技能组合或查询结果；
++数据库读取复用当前命令的 SQLite 事务，提交、回滚之后再问仍从当前事实作答。
++
++静态规则由共享规则服务持有。`ICharacterStatRuleService` 准备职业与 1—86 级的不可变基础属性，
++`ICharacterSkillRuleService` 返回按职业/技能共享的不可变规则，显式接收职业、等级和已学事实。
++规则可以持有不可变静态声明与预计算表，但不能查询角色存储或缓存角色状态。职业拆装集中在
++`CharacterCareer`，支持集合由 PVF 声明决定。属性与技能算法依据分别见
++[基础属性规则](Document/CharacterBaseStatRules.md) 和 [技能规则](Document/CharacterSkillRules.md)。
++
++`SkillPointLedgerAsync` 保留四个 long 余额及未知技能诊断，`RemainingSkillPointsAsync` 仅为旧协议
++夹取到 ushort 的兼容读法。未知已学技能仍保留，并以零投入兼容处理、标记不完整和记录警告。
++已学事实只含页号、技能 ID 和等级；slot、extra_values、`SkillTreeIndex` 属于动态配置/表现边界，
++沿用现有存储与技能页投影。普通页账本不代表自由决斗频道的无限点数策略。
++
++选角基础属性以及副本选择界面的基础属性/身份/进度/技能/余额投影由领域服务刷新。
++`CharacterDerivedStatsStorageRecord` 的历史基础列不是当前基础属性真源，Progress1/2、百分比、
++宠物等动态或未建模字段仍保留；装备和 Buff 对战斗属性的合成未实现。副本进出判定、接任务、
++卡牌及无经验授予结果的发帧回落读取当前角色；非空授予结果继续代表该次写入的回值。
++教程命令在现有事务中检查当前等级，不能凭旧会话的 1 级把已升级角色改回 2 级。
+ 
+ 会话快照里仍然留着坐标、在场、世界内容、背包投影与账号侧状态。**那不是说聚合已经拆完了**，
+-只是说剩余点数不在里面了。
++会话中的 `ProtocolMirror` 仍是协议投影，但不再作为当前点数真源。
+ 
+ **这几样状态各自归谁——以及哪几样只做了一半。** 下面这张表按「谁是主人」记，不按「计划要做什么」
+ 记。**先看最后一列**：有两样今天一个生产调用方都没有，那是刻意的，不是漏接线。
+@@ -880,8 +886,9 @@
+ | 后缀 | 含义 | 调用它意味着 |
+ |---|---|---|
+ | `*DomainService` | 领域服务 | 读写世界状态，**次序与并发有意义** |
+-| `*RuleService` | 规则服务 | 内容 + 传入的 facts + 显式种子 → 值/决定，无状态。**内容源与规则配置的唯一读取点**；由业务服务调用，不由 handler 调用 |
++| `*RuleService` | 规则服务 | 内容 + 传入的 facts + 显式种子 → 不可变规则实例/值/决定，无角色状态。**内容源与规则配置的唯一读取点**；由业务服务调用，不由 handler 调用 |
+ | `*Projection` | 投影 | 单个 `Build(存储记录) → 领域值`，无依赖、无 I/O |
++| `*Rule` | 规则实例 | 由规则服务返回并共享的不可变静态规则，只接受显式 facts，不读取世界或角色存储，不缓存角色状态 |
+ | `*Rules`（静态类） | 纯规则 | 纯函数，不碰 I/O。**只由规则服务调用**，是规则服务的下一层而不是它的替代 |
+ | `*Repository` / `*Registry` / `*Directory` / `*Persistence` | 持久化与运行时注册表 | 各自后缀已表明。**不得注入命令处理器** |
+ | `*DomainStore` | 领域 store | 领域状态的事务结算真源，被要一个会话、由事务收口。是命令处理器可注入的两种形状之一 |
+--- a/Document/CurrentCharacterFacts.md
++++ b/Document/CurrentCharacterFacts.md
+@@ -0,0 +1,37 @@
++# 当前角色事实与协议投影
++
++日期：2026-09-09；基准提交：`8b19eaac`。
++
++角色实例按持久 ID 提供当下答案，规则服务提供共享静态知识。这一分工让一个角色对象跨越
++升级、提交、回滚与重载时保持有效，无需维护一份会话外的角色副本。基础规则的档案解释见
++[CharacterBaseStatRules.md](CharacterBaseStatRules.md)，技能规则和账本算法见
++[CharacterSkillRules.md](CharacterSkillRules.md)。
++
++## 当前事实如何进入规则
++
++`PlayingCharacter.BaseStatsAsync` 通过已有 `FindStandingAsync` 一次读取职业、成长型、等级，
++再查询已准备的不可变属性表。身份与进度继续从各自的现有角色行读取。
++`CharacterSkillStateDomainService` 读取普通技能页和奖励点数，保留页号、slot、extra_values；
++`LearnedSkillsAsync` 只公开技能 ID 与等级事实。`CharacterSkillPointDomainService` 将当前事实
++交给共享技能规则，完整 long 账本与旧协议 ushort 镜像分开。未知技能既不从事实中消失，也
++不能被误认作已完整计价：账本携带缺失 ID，并产生警告。
++
++这些领域服务均使用现有持久化接缝。处于命令事务中时，它们通过相同的 `SqliteDatabase`
++参与者读取尚未提交的修改；回滚后重新查询恢复原事实。服务不另开角色缓存，也不按等级和
++已学集合缓存技能规则。事务外的一次方法调用回答查询时的事实，并不声明多个调用之间的
++全局原子快照。
++
++## 选角和发帧的边界
++
++选角的 storage owner 检查之后，领域服务仅覆盖基础属性的 19 个字段。原始入场读取仍检查
++完整性，历史 stat 列仍被加载，但不负责当前职业/等级的基础数值。Progress1/2、当前血蓝
++百分比、宠物等级等未建模字段保留原值；没有把装备属性或 Buff 假定为零后重新合成总属性。
++
++副本选择发帧前，`CharacterStateProjectionDomainService` 局部刷新当前身份、进度、基础属性、
++技能页与余额。库存继续使用物品移动已维护的投影，World、设置和其他 entry 领域仍保持原有
++边界。该服务不写回完整运行态，不声称解决整个会话聚合的并发覆盖问题。现有帧形状与顺序
++不变；技能页 slot/extra_values 保留，活动页索引 `SkillTreeIndex` 仍在现有配置边界内。
++
++已完成的授予动作返回等级和经验，消费者可直接使用该次结果；动作没有返回授予结果时，
++回落读取角色当前进度。卡牌首次结算固定的价格继续沿用，翻牌命令不再接受会话提供的等级。
++教程升级也在命令事务内检查当前进度，避免旧 1 级副本导致角色降级。
+--- a/Server/src/Dfo.Server.Abstractions/Characters/ICharacter.cs
++++ b/Server/src/Dfo.Server.Abstractions/Characters/ICharacter.cs
+@@ -13,8 +13,8 @@
+ /// back.
+ ///
+ /// It is an entry point, not a container. What belongs here is what belongs to the character's own
+-/// body; a bag, a quest log and a skill page are each their own thing, reached through their own
+-/// repository rather than bolted on here.
++/// body; bags and quest logs have their own repositories. Learned skill IDs and levels belong to
++/// the character, while page slot/extra configuration remains on the page projection.
+ ///
+ /// The gold it carries belongs here by that same test, and the test is about meaning rather than
+ /// storage. The client draws that gold as an item -- the first virtual slot of the main list, item
+@@ -24,13 +24,16 @@
+ /// cannot be moved, split, merged, locked or rented. The bag is still reached through its own
+ /// repository; what is reached here is the character's own money.
+ ///
+-/// A character can only answer while it is the one being played -- what it reads exists only then.
+-/// That is not a lifetime of its own: nothing is prepared for it and nothing is released, and
+-/// asking about a character nobody is playing gets the same answer it always did.
++/// Stored identity, progress, base stats and learned skills are available by ID without a playing
++/// session. Runtime-dependent questions still use their owning runtime services.
+ /// </remarks>
+ public interface ICharacter
+ {
+     CharacterId Id { get; }
++
++    ValueTask<CharacterBaseStats?> BaseStatsAsync(CancellationToken cancellationToken);
++    ValueTask<IReadOnlyList<CharacterLearnedSkillPage>?> LearnedSkillsAsync(CancellationToken cancellationToken);
++    ValueTask<CharacterSkillPointLedger?> SkillPointLedgerAsync(CancellationToken cancellationToken);
+ 
+     /// <summary>
+     /// Whether this character may use the item, from the archive's own declaration.
+--- a/Server/src/Dfo.Server.Abstractions/Characters/ICharacterSkillPointDomainService.cs
++++ b/Server/src/Dfo.Server.Abstractions/Characters/ICharacterSkillPointDomainService.cs
+@@ -20,6 +20,8 @@
+ /// </remarks>
+ public interface ICharacterSkillPointDomainService
+ {
++    ValueTask<CharacterSkillPointLedger?> LedgerAsync(CharacterId characterId, CancellationToken cancellationToken);
++
+     /// <summary>
+     /// What this character has left to spend on each page, or nothing when there is no such
+     /// character.
+--- a/Server/src/Dfo.Server.Abstractions/Characters/ICharacterSkillStateDomainService.cs
++++ b/Server/src/Dfo.Server.Abstractions/Characters/ICharacterSkillStateDomainService.cs
+@@ -0,0 +1,7 @@
++using Dfo.Server.Data.Characters;
++namespace Dfo.Server.Abstractions.Characters;
++
++public interface ICharacterSkillStateDomainService
++{
++    ValueTask<CharacterSkillFacts?> ReadAsync(CharacterId characterId, CancellationToken cancellationToken);
++}
+--- a/Server/src/Dfo.Server.Abstractions/Characters/ICharacterStateProjectionDomainService.cs
++++ b/Server/src/Dfo.Server.Abstractions/Characters/ICharacterStateProjectionDomainService.cs
+@@ -0,0 +1,7 @@
++using Dfo.Server.Data.Game;
++namespace Dfo.Server.Abstractions.Characters;
++
++public interface ICharacterStateProjectionDomainService
++{
++    ValueTask<SelectCharacterResult> RefreshAsync(SelectCharacterResult result, CancellationToken cancellationToken);
++}
+--- a/Server/src/Dfo.Server.Application/ApplicationModule.cs
++++ b/Server/src/Dfo.Server.Application/ApplicationModule.cs
+@@ -218,7 +218,9 @@
+             IChannelDirectoryDomainService, ChannelDirectoryDomainService>();
+         services.TryAddSingleton<IMonsterDropService, MonsterDropService>();
+         // What a character has left to spend, asked by identifier and worked out on the spot. The
+-        // arithmetic is the entry rule service's; this is the way to reach it without being entry.
++        // arithmetic belongs to the shared skill rules; the state service supplies current facts.
++        services.TryAddSingleton<ICharacterSkillStateDomainService, CharacterSkillStateDomainService>();
++        services.TryAddSingleton<ICharacterStateProjectionDomainService, CharacterStateProjectionDomainService>();
+         services.TryAddSingleton<
+             ICharacterSkillPointDomainService, CharacterSkillPointDomainService>();
+         // Where a character being played is standing, asked by identifier rather than by session.
+@@ -246,7 +248,9 @@
+                     provider.GetRequiredService<ICharacterCarriedGoldTable>(),
+                     provider.GetRequiredService<ICarriedGoldRuleService>(),
+                     provider.GetRequiredService<ICharacterTable>(),
+-                    provider.GetRequiredService<ICharacterSkillPointDomainService>())));
++                    provider.GetRequiredService<ICharacterSkillPointDomainService>(),
++                    provider.GetRequiredService<ICharacterStatRuleService>(),
++                    provider.GetRequiredService<ICharacterSkillStateDomainService>())));
+         services.TryAddSingleton<ICharacterDomainService>(
+             provider => provider.GetRequiredService<CharacterDomainService>());
+         services.TryAddSingleton<ISelectCharacterPreparationDomainService, SelectCharacterPreparationService>();
+--- a/Server/src/Dfo.Server.Application/Characters/CharacterBaseStatProjection.cs
++++ b/Server/src/Dfo.Server.Application/Characters/CharacterBaseStatProjection.cs
+@@ -0,0 +1,28 @@
++using Dfo.Server.Data.Characters;
++namespace Dfo.Server.Application.Characters;
++
++internal static class CharacterBaseStatProjection
++{
++    public static CharacterDerivedStatsStorageRecord Apply(CharacterDerivedStatsStorageRecord original, CharacterBaseStats stats) => original with
++    {
++        HpMaximum = stats.HpMax,
++        MpMaximum = stats.MpMax,
++        PhysicalAttack = stats.PhysicalAttack,
++        PhysicalDefense = stats.PhysicalDefense,
++        MagicalAttack = stats.MagicalAttack,
++        MagicalDefense = stats.MagicalDefense,
++        FireResistance = stats.FireResistance,
++        WaterResistance = stats.WaterResistance,
++        DarkResistance = stats.DarkResistance,
++        LightResistance = stats.LightResistance,
++        InventoryLimit = stats.InventoryLimit,
++        HpRegenSpeed = stats.HpRegenSpeed,
++        MpRegenSpeed = stats.MpRegenSpeed,
++        MoveSpeed = stats.MoveSpeed,
++        AttackSpeed = stats.AttackSpeed,
++        CastSpeed = stats.CastSpeed,
++        HitRecovery = stats.HitRecovery,
++        JumpPower = stats.JumpPower,
++        Weight = stats.Weight,
++    };
++}
+--- a/Server/src/Dfo.Server.Application/Characters/CharacterEntryStateServices.cs
++++ b/Server/src/Dfo.Server.Application/Characters/CharacterEntryStateServices.cs
+@@ -261,7 +261,8 @@
+     ICharacterProfileEntryProjection profiles,
+     ICharacterSkillQuestEntryProjection skillQuests,
+     ICharacterProgressionEntryProjection progression,
+-    ICharacterFeatureEntryProjection features) : ICharacterEntryStateDomainService
++    ICharacterFeatureEntryProjection features,
++    ICharacterDomainService characters) : ICharacterEntryStateDomainService
+ {
+     public async ValueTask<CharacterEntryState> LoadAsync(
+         AccountId accountId,
+@@ -275,7 +276,12 @@
+             throw new InvalidDataException("Character entry storage returned a different owner.");
+         }
+ 
+-        var profile = profiles.Build(storage.Profile);
++        var stats = await characters.Get(characterId).BaseStatsAsync(cancellationToken).ConfigureAwait(false)
++            ?? throw new InvalidDataException("Character no longer exists while building entry state.");
++        var profile = profiles.Build(storage.Profile with
++        {
++            DerivedStats = CharacterBaseStatProjection.Apply(storage.Profile.DerivedStats, stats),
++        });
+         var skillQuest = skillQuests.Build(storage.Skill, storage.Quest);
+         var specialRewardQuestIds = new List<int>();
+         foreach (var clearFlag in storage.Quest.ClearFlags.Where(value => value.Value != 0))
+--- a/Server/src/Dfo.Server.Application/Characters/CharacterSkillPointDomainService.cs
++++ b/Server/src/Dfo.Server.Application/Characters/CharacterSkillPointDomainService.cs
+@@ -1,84 +1,25 @@
+ using Dfo.Server.Abstractions.Characters;
+-using Dfo.Server.Abstractions.Persistence;
+ using Dfo.Server.Data.Characters;
+-
++using Microsoft.Extensions.Logging;
+ namespace Dfo.Server.Application.Characters;
+ 
+-/// <summary>
+-/// A character's remaining skill points, read from storage and worked out afresh each time.
+-/// </summary>
+-/// <remarks>
+-/// The second supplier of one sum. Entry has the four facts in hand already -- it has just built
+-/// the character's pages and read its bonus -- and hands them to
+-/// <see cref="ICharacterEntryPreparationRuleService.RemainingPoints"/>; this reads the same four
+-/// out of the tables and hands them to the same method. Neither of them owns the arithmetic, so
+-/// neither can drift from the other.
+-/// <para>
+-/// It holds nothing between calls. The whole point of asking a character rather than a session is
+-/// that the answer is worked out from what is stored at the moment of the question, and a cache
+-/// here would put the stale figure back one level down.
+-/// </para>
+-/// <para>
+-/// <b>This answers about the ordinary skill tree, and only that one.</b> Entry does not, on one
+-/// channel: where <c>PvpSkillProfileApplies</c> holds -- the free-duel channel, and only it --
+-/// <c>SelectCharacterPreparationService</c> swaps the character's skills for the separately stored
+-/// duel profile, whose mirror is <c>(65535, 65535, 65535, 65535)</c>. That is not a figure but a
+-/// statement: a duel channel grants points without limit. Nothing here knows about it, so asked on
+-/// such a channel this answers the PVE ledger, which is not what entry published.
+-/// </para>
+-/// <para>
+-/// Written down rather than handled, because the branch cannot be reached today:
+-/// <c>ChannelEntryOptions.Legacy</c> sets <c>FreeDuelEnabled: false</c>, so nobody enters on that
+-/// channel at all, and inventing a duel answer for a path nobody can walk would be inventing
+-/// behaviour rather than serving it. The day free duel is switched on, this needs an answer of its
+-/// own: the frames that carry these points would otherwise report a PVE figure where the reference
+-/// server reports no limit.
+-/// </para>
+-/// </remarks>
++// Ordinary PVE pages only. Free-duel unlimited points remain a separate entry policy.
+ internal sealed class CharacterSkillPointDomainService(
+-    ICharacterTable characters,
+-    ICharacterSkillTable skills,
+-    ICharacterEntryTable entries,
+-    ICharacterEntryPreparationRuleService rules) : ICharacterSkillPointDomainService
++    ICharacterSkillStateDomainService state, ICharacterSkillRuleService rules,
++    ILogger<CharacterSkillPointDomainService> logger) : ICharacterSkillPointDomainService
+ {
++    public async ValueTask<CharacterSkillPointLedger?> LedgerAsync(CharacterId characterId, CancellationToken cancellationToken)
++    {
++        if (await state.ReadAsync(characterId, cancellationToken).ConfigureAwait(false) is not { } facts)
++            return null;
++        var ledger = rules.GetLedger(facts.Career, facts.Level, facts.Pages, facts.PointBasis);
++        if (!ledger.IsComplete)
++            logger.LogWarning("Character {CharacterId} has unknown learned skill rules {MissingSkillIds}; ledger is incomplete",
++                characterId.Value, string.Join(",", ledger.MissingSkillIds));
++        return ledger;
++    }
++
+     public async ValueTask<CharacterSkillProtocolMirrorState?> RemainingAsync(
+-        CharacterId characterId, CancellationToken cancellationToken)
+-    {
+-        // What the archive prices by, read first because without it there is nothing to price. A
+-        // character that is gone answers nothing at all rather than an empty ledger.
+-        if (await characters.FindStandingAsync(characterId, cancellationToken)
+-                .ConfigureAwait(false) is not { } standing)
+-        {
+-            return null;
+-        }
+-
+-        var level = checked((byte)standing.Level);
+-
+-        // The ordinary pages, which are the ones a skill point is spent on and the ones entry
+-        // reconciles. The duel pages are a separate set of rows behind a separate read, and
+-        // pricing against them would answer about a skill tree the player is not spending in.
+-        var pages = CharacterSkillPages.Pages(CharacterSkillPages.Rows(
+-            await skills.ReadEntryAsync(characterId, cancellationToken).ConfigureAwait(false)));
+-
+-        var learnedIds = pages.SelectMany(page => page.Skills)
+-            .Select(value => checked((int)value.SkillId)).Distinct().ToArray();
+-        var definitions = await rules.SkillPointsAsync(
+-            checked((byte)standing.Job),
+-            checked((byte)standing.GrowType),
+-            level,
+-            learnedIds,
+-            cancellationToken).ConfigureAwait(false);
+-
+-        // A character with no bonus row has no bonus, which is what entry makes of the same
+-        // absence. Read after the standing, so a character that has since gone is already refused
+-        // above rather than priced with a zero bonus.
+-        var bonuses = await entries.FindBonusPointsAsync(characterId, cancellationToken)
+-            .ConfigureAwait(false) ?? new BonusPointRow(0, 0);
+-
+-        return rules.RemainingPoints(
+-            definitions,
+-            level,
+-            pages,
+-            new CharacterSkillPointBasisState(bonuses.BonusSp, bonuses.BonusTp));
+-    }
++        CharacterId characterId, CancellationToken cancellationToken) =>
++        (await LedgerAsync(characterId, cancellationToken).ConfigureAwait(false))?.ToProtocolMirror();
+ }
+--- a/Server/src/Dfo.Server.Application/Characters/CharacterSkillStateDomainService.cs
++++ b/Server/src/Dfo.Server.Application/Characters/CharacterSkillStateDomainService.cs
+@@ -0,0 +1,21 @@
++using Dfo.Server.Abstractions.Characters;
++using Dfo.Server.Abstractions.Persistence;
++using Dfo.Server.Data.Characters;
++namespace Dfo.Server.Application.Characters;
++
++internal sealed class CharacterSkillStateDomainService(
++    ICharacterTable characters, ICharacterSkillTable skills, ICharacterEntryTable entries)
++    : ICharacterSkillStateDomainService
++{
++    public async ValueTask<CharacterSkillFacts?> ReadAsync(CharacterId characterId, CancellationToken cancellationToken)
++    {
++        if (await characters.FindStandingAsync(characterId, cancellationToken).ConfigureAwait(false) is not { } standing)
++            return null;
++        var pages = CharacterSkillPages.Pages(CharacterSkillPages.Rows(
++            await skills.ReadEntryAsync(characterId, cancellationToken).ConfigureAwait(false)));
++        var bonus = await entries.FindBonusPointsAsync(characterId, cancellationToken).ConfigureAwait(false);
++        return new CharacterSkillFacts(
++            CharacterCareer.FromPacked(checked((byte)standing.Job), checked((byte)standing.GrowType)),
++            standing.Level, pages, new CharacterSkillPointBasisState(bonus?.BonusSp ?? 0, bonus?.BonusTp ?? 0));
++    }
++}
+--- a/Server/src/Dfo.Server.Application/Characters/CharacterStateProjectionDomainService.cs
++++ b/Server/src/Dfo.Server.Application/Characters/CharacterStateProjectionDomainService.cs
+@@ -0,0 +1,41 @@
++using Dfo.Server.Abstractions.Characters;
++using Dfo.Server.Data.Game;
++namespace Dfo.Server.Application.Characters;
++
++internal sealed class CharacterStateProjectionDomainService(
++    ICharacterDomainService characters, ICharacterSkillStateDomainService skills,
++    ICharacterSkillPointDomainService points) : ICharacterStateProjectionDomainService
++{
++    public async ValueTask<SelectCharacterResult> RefreshAsync(SelectCharacterResult result, CancellationToken cancellationToken)
++    {
++        var character = characters.Get(result.Character.Identity.CharacterId);
++        var identity = await character.IdentityAsync(cancellationToken).ConfigureAwait(false)
++            ?? throw new InvalidDataException("Character identity is unavailable.");
++        var progress = await character.ProgressAsync(cancellationToken).ConfigureAwait(false)
++            ?? throw new InvalidDataException("Character progression is unavailable.");
++        var stats = await character.BaseStatsAsync(cancellationToken).ConfigureAwait(false)
++            ?? throw new InvalidDataException("Character base stats are unavailable.");
++        var facts = await skills.ReadAsync(character.Id, cancellationToken).ConfigureAwait(false)
++            ?? throw new InvalidDataException("Character skills are unavailable.");
++        var ledger = await points.LedgerAsync(character.Id, cancellationToken).ConfigureAwait(false)
++            ?? throw new InvalidDataException("Character skill ledger is unavailable.");
++        return result with
++        {
++            Character = result.Character with { Identity = identity, Progression = progress },
++            CharacterEntry = result.CharacterEntry with
++            {
++                Public = result.CharacterEntry.Public with
++                {
++                    DerivedStats = CharacterBaseStatProjection.Apply(result.CharacterEntry.Public.DerivedStats, stats),
++                    Extras = result.CharacterEntry.Public.Extras with { CharacterExperience = progress.Experience },
++                },
++                Skills = result.CharacterEntry.Skills with
++                {
++                    Pages = facts.Pages,
++                    SkillPointBasis = facts.PointBasis,
++                    ProtocolMirror = ledger.ToProtocolMirror(),
++                },
++            },
++        };
++    }
++}
+--- a/Server/src/Dfo.Server.Application/Characters/PlayingCharacter.cs
++++ b/Server/src/Dfo.Server.Application/Characters/PlayingCharacter.cs
+@@ -8,7 +8,7 @@
+ namespace Dfo.Server.Application.Characters;
+ 
+ /// <summary>
+-/// The character someone is playing, as something to ask.
++/// A character addressed by its persistent identity, with facts read on demand.
+ /// </summary>
+ /// <remarks>
+ /// It holds an identity and the things it needs to look facts up, and nothing else. Every question
+@@ -27,9 +27,26 @@
+     ICharacterCarriedGoldTable carriedGold,
+     ICarriedGoldRuleService goldRules,
+     ICharacterTable characters,
+-    ICharacterSkillPointDomainService skillPoints) : ICharacter
++    ICharacterSkillPointDomainService skillPoints,
++    ICharacterStatRuleService statRules,
++    ICharacterSkillStateDomainService skillState) : ICharacter
+ {
+     public CharacterId Id => characterId;
++
++    public async ValueTask<CharacterBaseStats?> BaseStatsAsync(CancellationToken cancellationToken)
++    {
++        if (await characters.FindStandingAsync(characterId, cancellationToken).ConfigureAwait(false) is not { } standing)
++            return null;
++        await statRules.InitializeAsync(cancellationToken).ConfigureAwait(false);
++        return statRules.GetStats(CharacterCareer.FromPacked(checked((byte)standing.Job), checked((byte)standing.GrowType)), standing.Level);
++    }
++
++    public async ValueTask<IReadOnlyList<CharacterLearnedSkillPage>?> LearnedSkillsAsync(CancellationToken cancellationToken) =>
++        (await skillState.ReadAsync(characterId, cancellationToken).ConfigureAwait(false))?.LearnedPages;
++
++    public ValueTask<CharacterSkillPointLedger?> SkillPointLedgerAsync(CancellationToken cancellationToken) =>
++        skillPoints.LedgerAsync(characterId, cancellationToken);
++
+ 
+     /// <remarks>
+     /// The row, for the reason the progress below is read from the row: a session carries a copy of
+--- a/Server/src/Dfo.Server.Application/Quests/QuestOfferRefreshDomainService.cs
++++ b/Server/src/Dfo.Server.Application/Quests/QuestOfferRefreshDomainService.cs
+@@ -1,4 +1,5 @@
+ using Dfo.Server.Abstractions.Quests;
++using Dfo.Server.Abstractions.Characters;
+ using Dfo.Server.Abstractions.World;
+ using Dfo.Server.Data.Accounts;
+ using Dfo.Server.Data.Characters;
+@@ -27,7 +28,7 @@
+ /// </remarks>
+ internal sealed class QuestOfferRefreshDomainService(
+     IWorldContentEntryRuleService worldContent,
+-    ICharacterQuestLogDomainService logs) : IQuestOfferRefreshDomainService
++    ICharacterQuestLogDomainService logs, ICharacterDomainService characters) : IQuestOfferRefreshDomainService
+ {
+     /// <summary>
+     /// The session with its offer list, and the inputs behind it, brought up to date.
+@@ -52,6 +53,8 @@
+         if (result.World.Subject is not { } subject)
+             return result;
+ 
++        var identity = await characters.Get(characterId).IdentityAsync(cancellationToken).ConfigureAwait(false)
++            ?? throw new InvalidDataException("Character identity is unavailable while refreshing quest offers.");
+         var log = logs.LogOf(accountId, characterId);
+         var carried = await log.CarriedAsync(cancellationToken).ConfigureAwait(false);
+         var cleared = await log.ClearedAsync(cancellationToken).ConfigureAwait(false);
+@@ -59,6 +62,8 @@
+         var updated = subject with
+         {
+             Level = level,
++            Job = identity.Job,
++            GrowType = identity.GrowType,
+             CarriedQuestIds = [.. carried.Select(quest => quest.QuestId)],
+             ClearedQuestFlags = cleared.ToDictionary(
+                 quest => quest.QuestId, quest => (int)quest.Mark),
+--- a/Server/src/Dfo.Server.Data/Characters/CharacterModels.cs
++++ b/Server/src/Dfo.Server.Data/Characters/CharacterModels.cs
+@@ -267,12 +267,12 @@
+ public sealed record CharacterExpertJobStorageRecord(int Type, long Experience);
+ 
+ /// <summary>
+-/// The numbers worked out from everything else the character is.
++/// Persisted compatibility fields for the public stat projection.
+ /// </summary>
+ /// <remarks>
+-/// A cache in the sense that they could be recomputed, and stored because recomputing them on
+-/// every entry would mean reading the whole character to answer a packet that already says what
+-/// they are.
++/// Base fields are replaced by current career/level rules at projection time. Progress counters,
++/// percentages and other unmodeled fields retain their stored values; this is not a complete
++/// equipment/buff-derived stat model.
+ /// </remarks>
+ public sealed record CharacterDerivedStatsStorageRecord(
+     int HpMaximum,
+--- a/Server/src/Dfo.Server.Data/Characters/CharacterSkillFacts.cs
++++ b/Server/src/Dfo.Server.Data/Characters/CharacterSkillFacts.cs
+@@ -0,0 +1,16 @@
++namespace Dfo.Server.Data.Characters;
++
++public sealed record CharacterLearnedSkill(int SkillId, int Level);
++public sealed record CharacterLearnedSkillPage(byte PageIndex, IReadOnlyList<CharacterLearnedSkill> Skills);
++
++// Pages retain slot/extra configuration for protocol projection; learned facts expose only ID/level.
++public sealed record CharacterSkillFacts(
++    CharacterCareer Career,
++    int Level,
++    IReadOnlyList<CharacterSkillPageState> Pages,
++    CharacterSkillPointBasisState PointBasis)
++{
++    public IReadOnlyList<CharacterLearnedSkillPage> LearnedPages => Array.AsReadOnly(Pages.Select(page =>
++        new CharacterLearnedSkillPage(page.PageIndex, Array.AsReadOnly(page.Skills.Select(skill =>
++            new CharacterLearnedSkill(checked((int)skill.SkillId), skill.Level)).ToArray()))).ToArray());
++}
+--- a/Server/src/Dfo.Server.Protocol/Game/CardReward/CardRewardHandlers.cs
++++ b/Server/src/Dfo.Server.Protocol/Game/CardReward/CardRewardHandlers.cs
+@@ -96,8 +96,7 @@
+                 session.AccountId,
+                 session.CharacterId,
+                 message.Kind,
+-                message.Index,
+-                published.Character.Progression.Level),
++                message.Index),
+             cancellationToken).ConfigureAwait(false);
+ 
+         if (result.Status is not SelectCardStatus.Flipped)
+--- a/Server/src/Dfo.Server.Protocol/Game/CardReward/SelectCardCommand.cs
++++ b/Server/src/Dfo.Server.Protocol/Game/CardReward/SelectCardCommand.cs
+@@ -115,29 +115,11 @@
+ /// into and charged from the gold the character carries -- but the account is what the delivery of
+ /// a piece is checked against.
+ /// </param>
+-/// <param name="CharacterLevel">
+-/// What the character stands at. Handed in rather than looked up, for the reason every other fact
+-/// a settlement is keyed on is handed in.
+-/// <para>
+-/// <b>It does not price this flip, and that is the point.</b> The price is fixed with the faces
+-/// when the clear settles and is handed back with them, so a clear whose own experience levelled
+-/// the character across one of the cost table's bands still charges what the result screen
+-/// announced. This level would reach the rules only through a settlement that had no cards yet,
+-/// and a flip of a clear with no cards is refused before the charge is reached -- so on this path
+-/// it decides nothing.
+-/// </para>
+-/// <para>
+-/// Kept rather than dropped because the settlement seam is keyed on a level and this path goes
+-/// through that seam to reach the price. Whether the seam should also be askable for a settled
+-/// clear's price without naming a level is a question about the seam, not about this command.
+-/// </para>
+-/// </param>
+ public sealed record SelectCardCommand(
+     AccountId AccountId,
+     CharacterId CharacterId,
+     ClearRewardCardKind Kind,
+-    int Index,
+-    int CharacterLevel) : ICommand<SelectCardResult>;
++    int Index) : ICommand<SelectCardResult>;
+ 
+ /// <summary>
+ /// Claims the chosen position, hands what was behind it to the bag, and reads back the whole face.
+@@ -284,8 +266,11 @@
+                     .ConfigureAwait(false));
+         }
+ 
++        var current = await characters.Get(command.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false);
++        if (current is null)
++            return (SelectCardStatus.NotPriced, 0, 0);
+         var settled = await cards.SettleAsync(
+-            new ClearRewardSettlement(command.CharacterId, command.CharacterLevel),
++            new ClearRewardSettlement(command.CharacterId, current.Level),
+             cancellationToken).ConfigureAwait(false);
+ 
+         if (settled?.PaidFlipCost is not { } price || price < 0)
+--- a/Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs
++++ b/Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs
+@@ -621,8 +621,11 @@
+         // The level handed in is the one the character cleared at, taken before the award below
+         // can move it: what band a clear's cards are drawn from is a fact about the run that was
+         // just fought, not about the level the last of its experience happened to buy.
++        var clearProgress = await characters.Get(session.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false);
++        if (clearProgress is null)
++            return;
+         var settled = await cardRewards.SettleAsync(
+-            new ClearRewardSettlement(session.CharacterId, result.Character.Progression.Level),
++            new ClearRewardSettlement(session.CharacterId, clearProgress.Level),
+             cancellationToken).ConfigureAwait(false);
+         var freeCards = settled?.Cards.Free.Slots ?? [];
+         var cardGold = settled?.Cards.Free.Gold ?? 0;
+@@ -705,13 +708,16 @@
+             paid.RankBonus,
+             paid.Award);
+ 
+-        // The session is corrected before the frames go out, exactly as a kill does it: every
+-        // later frame reads the character from here, so a session left holding the entry-time
+-        // total would go on reporting it.
++        // The award is the result of this write. When none was made, the character's current
++        // progress supplies the frame; the session remains only a compatibility projection.
+         var award = paid.Award;
+-        var level = award?.Level ?? checked((byte)result.Character.Progression.Level);
+-        var total = award?.Total
+-            ?? checked((uint)result.CharacterEntry.Public.Extras.CharacterExperience);
++        var currentProgress = award is null
++            ? await characters.Get(session.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false)
++            : new CharacterProgressionState(award.Level, award.Total);
++        if (currentProgress is null)
++            return;
++        var level = currentProgress.Level;
++        var total = currentProgress.Experience;
+         if (award is not null)
+         {
+             result = result with
+--- a/Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntrySlice.cs
++++ b/Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntrySlice.cs
+@@ -419,6 +419,7 @@
+ /// protocol/patterns/game-receive.md.
+ /// </remarks>
+ public sealed class SelectDungeonHandler(
++    ICharacterDomainService characters,
+     ISelectedSessionDomainService selectedSessions,
+     ISelectedSessionRuntimeDirectory runtimeSessions,
+     IDungeonVisitDomainService visits,
+@@ -534,7 +535,10 @@
+         // screen opened; the tutorial's first entry defers it to here, which is where the captured
+         // session shows it and why this used to send it unconditionally.
+         List<IGameServerMessage> frames = [new EnterSelectDungeonAcknowledgement()];
+-        if (visits.DefersSelectionState(result.Character.Progression.Level))
++        var currentProgress = await characters.Get(session.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false);
++        if (currentProgress is null)
++            return;
++        if (visits.DefersSelectionState(currentProgress.Level))
+         {
+             frames.Add(new EnterSelectDungeonNotification(session.WireUserId));
+         }
+--- a/Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionSlice.cs
++++ b/Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionSlice.cs
+@@ -353,15 +353,16 @@
+ /// does not carry those numbers across into the town actor: it rebuilds the actor when the
+ /// selection screen opens and repopulates it from this frame. Re-sending is not redundancy.
+ ///
+-/// It is rebuilt from the resident entry state rather than re-read from storage. Successful item
+-/// moves refresh that state's inventory, so its equipment can differ from the entry-burst copy.
+-/// This path does not recompute the other entry fields from equipment.
++/// Current character facts refresh the stat/skill projection before sending. Equipment uses the
++/// resident inventory maintained by item moves. Equipment contributions are not a modeled part
++/// of the base-stat rules.
+ ///
+ /// A21 answers with CMD 0x000F carrying a single acceptance byte. This used to send no CMD reply,
+ /// on the grounds that the reference server sends none -- true of the A12 reference and not of the
+ /// A21 one, which sends it here and again after SELECT_DUNGEON.
+ /// </remarks>
+ public sealed class EnterSelectDungeonHandler(
++    ICharacterStateProjectionDomainService currentState,
+     ISelectedSessionDomainService selectedSessions,
+     ISelectedSessionRuntimeDirectory runtimeSessions,
+     IDungeonVisitDomainService visits,
+@@ -430,6 +431,7 @@
+         // defers it -- and every frame this server had been checked against came from a tutorial,
+         // so it was only ever sent at the deferred moment. A player at a real dungeon gate got the
+         // screen's other three frames and no state to draw it from (2026-08-26).
++        result = await currentState.RefreshAsync(result, cancellationToken).ConfigureAwait(false);
+         var defersState = visits.DefersSelectionState(result.Character.Progression.Level);
+         List<IGameServerMessage> notifications =
+         [
+--- a/Server/src/Dfo.Server.Protocol/Game/MonsterDeath/MonsterDeathSlice.cs
++++ b/Server/src/Dfo.Server.Protocol/Game/MonsterDeath/MonsterDeathSlice.cs
+@@ -442,12 +442,15 @@
+             message.ActorSequence,
+             message.WireUserId);
+ 
+-        // The session is corrected before the frames go out. Every later frame reads the character
+-        // from here -- including the next kill's own experience frame -- so a session left holding
+-        // the entry-time total would go on reporting it for the rest of the run.
+-        var level = award?.Level ?? checked((byte)result.Character.Progression.Level);
+-        var total = award?.Total
+-            ?? checked((uint)result.CharacterEntry.Public.Extras.CharacterExperience);
++        // Keep the compatibility projection aligned with the award. Without an award, ask the
++        // character for its current progress rather than reporting the old projection.
++        var currentProgress = award is null
++            ? await characters.Get(session.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false)
++            : new CharacterProgressionState(award.Level, award.Total);
++        if (currentProgress is null)
++            return;
++        var level = currentProgress.Level;
++        var total = currentProgress.Experience;
+         if (award is not null)
+         {
+             result = result with
+--- a/Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/AcceptQuestHandler.cs
++++ b/Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/AcceptQuestHandler.cs
+@@ -1,4 +1,5 @@
+ using Dfo.Server.Abstractions.Networking;
++using Dfo.Server.Abstractions.Characters;
+ using Dfo.Server.Abstractions.Quests;
+ using Dfo.Server.Abstractions.Sessions;
+ using Dfo.Server.Application.Commands;
+@@ -12,21 +13,14 @@
+ /// Takes the quest on, answers with what it opened at, and refreshes the offer list.
+ /// </summary>
+ /// <remarks>
+-/// Three frames leave here in the reference server's order: the acknowledgement, then -- only when
+-/// the quest was taken -- the acceptable-quest list again. It re-sends that list whether or not it
+-/// changed, and on this server it never does: the list is computed from level, job, grow type and
+-/// cleared quests, and accepting changes none of them. It is sent anyway because matching the
+-/// reference is the rule, and because a client that redraws on receipt would otherwise be left
+-/// showing the offer it just took.
+-///
+-/// The list is the one entry computed, read back from the session rather than recomputed. That is
+-/// not a shortcut around a stale answer -- nothing it depends on has moved -- and recomputing it
+-/// would mean rebuilding the whole world-content subject to arrive at the same bytes.
++/// After acknowledgement, an accepted quest refreshes the offer list from current character
++/// progression, career and quest-log facts. The refreshed list follows in the existing frame order.
+ ///
+ /// <b>Answering at all is what matters most here.</b> Before this existed the client sent the
+ /// request, waited, and sent it again: the two acceptances observed live arrived twice each.
+ /// </remarks>
+ public sealed class AcceptQuestHandler(
++    ICharacterDomainService characters,
+     ISelectedSessionDomainService selectedSessions,
+     ISelectedSessionRuntimeDirectory runtimeSessions,
+     ICommandBus commandBus,
+@@ -97,11 +91,14 @@
+         // prompt again for a quest just accepted, and the second acceptance was refused. Seen live
+         // on 2026-08-27 and reproduced by the reference server on the same client. Recorded in
+         // Docs/ProtocolScaffoldDissonances.md.
++        var currentProgress = await characters.Get(session.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false);
++        if (currentProgress is null)
++            return;
+         result = await offers.RefreshAsync(
+             result,
+             session.AccountId,
+             session.CharacterId,
+-            result.Character.Progression.Level,
++            currentProgress.Level,
+             cancellationToken).ConfigureAwait(false);
+         runtimeSessions.ReplaceExact(session, result);
+ 
+@@ -110,7 +107,7 @@
+             new GameExplicitMessageDelivery(
+                 [
+                     new AvailableQuestListMessage(
+-                        result.Character.Progression.Level, result.World.Content.AvailableQuests),
++                        currentProgress.Level, result.World.Content.AvailableQuests),
+                 ],
+                 []),
+             cancellationToken).ConfigureAwait(false);
+--- a/Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs
++++ b/Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs
+@@ -94,7 +94,7 @@
+ }
+ 
+ /// <summary>One character being put where the tutorial says it should be by now.</summary>
+-public sealed record GrantTutorialLevelCommand(CharacterId CharacterId, byte CurrentLevel)
++public sealed record GrantTutorialLevelCommand(CharacterId CharacterId)
+     : ICommand<TutorialLevelUpResult>;
+ 
+ /// <summary>
+@@ -111,7 +111,7 @@
+ /// so reaching level two means holding the first entry.
+ /// </para>
+ /// </remarks>
+-public sealed class GrantTutorialLevelCommandHandler(ICharacterExperienceDomainService grant)
++public sealed class GrantTutorialLevelCommandHandler(ICharacterExperienceDomainService grant, ICharacterDomainService characters)
+     : ICommandHandler<GrantTutorialLevelCommand, TutorialLevelUpResult>
+ {
+     /// <summary>Where the tutorial leaves a character, as the reference server names it.</summary>
+@@ -124,7 +124,9 @@
+     {
+         ArgumentNullException.ThrowIfNull(command);
+ 
+-        if (command.CurrentLevel >= TargetLevel)
++        if (await characters.Get(command.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false) is not { } progress)
++            return TutorialLevelUpResult.Refused(TutorialLevelUpStatus.NotPersisted);
++        if (progress.Level >= TargetLevel)
+             return TutorialLevelUpResult.Refused(TutorialLevelUpStatus.AlreadyPast);
+ 
+         if (grant.ThresholdForLevel(TargetLevel) is not { } target)
+@@ -150,9 +152,8 @@
+ /// is sent carries the level, so the client learns it; what is not sent is written down in
+ /// <c>Docs/ProtocolScaffoldDissonances.md</c> rather than left to be rediscovered.
+ /// <para>
+-/// The published session is corrected before the frames go out. It is where every later frame
+-/// reads the character's level from -- the kill acknowledgement among them -- so a session left
+-/// saying level one would go on reporting level one for the rest of the run.
++/// The published session remains a compatibility projection and is corrected after the grant.
++/// Later progression decisions read the character itself.
+ /// </para>
+ /// </remarks>
+ public sealed class TutorialLevelUpHandler(
+@@ -197,7 +198,7 @@
+ 
+         var granted = await commandBus.SendAsync(
+             new GrantTutorialLevelCommand(
+-                session.CharacterId, result.Character.Progression.Level),
++                session.CharacterId),
+             cancellationToken).ConfigureAwait(false);
+ 
+         if (granted.Status is not TutorialLevelUpStatus.Granted)
+--- a/Server/tests/Dfo.Server.Application.Tests/Characters/CarriedGoldCapTests.cs
++++ b/Server/tests/Dfo.Server.Application.Tests/Characters/CarriedGoldCapTests.cs
+@@ -146,7 +146,7 @@
+                 gold,
+                 new CarriedGoldRuleService(archive),
+                 CharacterRow.None,
+-                new NoSkillPointLedger()),
++                new NoSkillPointLedger(), null!, null!),
+             archive);
+     }
+ 
+--- a/Server/tests/Dfo.Server.Application.Tests/Characters/CharacterEntryStateTests.cs
++++ b/Server/tests/Dfo.Server.Application.Tests/Characters/CharacterEntryStateTests.cs
+@@ -21,7 +21,9 @@
+             new CharacterProfileEntryProjection(),
+             new CharacterSkillQuestEntryProjection(),
+             new CharacterProgressionEntryProjection(),
+-            new CharacterFeatureEntryProjection());
++            new CharacterFeatureEntryProjection(),
++            Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(
++                new Dfo.Server.Application.Tests.Support.CurrentCharacterStub { Stats = new CharacterBaseStats(PhysicalAttack: 123) }));
+ 
+         var result = await service.LoadAsync(accountId, characterId, CancellationToken.None);
+ 
+--- a/Server/tests/Dfo.Server.Application.Tests/Characters/CharacterIdentityTests.cs
++++ b/Server/tests/Dfo.Server.Application.Tests/Characters/CharacterIdentityTests.cs
+@@ -125,7 +125,7 @@
+             new NoCarriedGold(),
+             new StoredCarryLimitOnly(),
+             row,
+-            new NoSkillPointLedger());
++            new NoSkillPointLedger(), null!, null!);
+ 
+     /// <summary>One character's row, whose identity can be moved between questions.</summary>
+     /// <remarks>
+--- a/Server/tests/Dfo.Server.Application.Tests/Characters/CharacterItemUseTests.cs
++++ b/Server/tests/Dfo.Server.Application.Tests/Characters/CharacterItemUseTests.cs
+@@ -302,7 +302,7 @@
+             new NoCarriedGold(),
+             new StoredCarryLimitOnly(),
+             CharacterRow.At(level: 50),
+-            new NoSkillPointLedger());
++            new NoSkillPointLedger(), null!, null!);
+ 
+         Assert.Equal(
+             ItemUsability.CharacterStateUnavailable,
+@@ -331,7 +331,7 @@
+             new NoCarriedGold(),
+             new StoredCarryLimitOnly(),
+             CharacterRow.None,
+-            new NoSkillPointLedger());
++            new NoSkillPointLedger(), null!, null!);
+ 
+         Assert.Equal(
+             ItemUsability.CharacterStateUnavailable,
+@@ -389,7 +389,7 @@
+                 new NoCarriedGold(),
+                 new StoredCarryLimitOnly(),
+                 new SqliteCharacterTable(database),
+-                new NoSkillPointLedger());
++                new NoSkillPointLedger(), null!, null!);
+ 
+             Assert.Equal(
+                 ItemUsability.Allowed,
+@@ -465,7 +465,7 @@
+             new NoCarriedGold(),
+             new StoredCarryLimitOnly(),
+             CharacterRow.At(level, job),
+-            new NoSkillPointLedger());
++            new NoSkillPointLedger(), null!, null!);
+     }
+ 
+     private static ICharacter Build(
+--- a/Server/tests/Dfo.Server.Application.Tests/Characters/CharacterRepositoryProductsTests.cs
++++ b/Server/tests/Dfo.Server.Application.Tests/Characters/CharacterRepositoryProductsTests.cs
+@@ -100,7 +100,7 @@
+             characterId => new PlayingCharacter(
+                 characterId, judgement, cooldowns, presence, new NoCarriedGold(),
+                 new StoredCarryLimitOnly(), new OnlyCharacterSixtysRow(),
+-                new NoSkillPointLedger()));
++                new NoSkillPointLedger(), null!, null!));
+     }
+ 
+     /// <summary>A table holding a row for character 60 and for nobody else.</summary>
+--- a/Server/tests/Dfo.Server.Application.Tests/Characters/CurrentCharacterStateTests.cs
++++ b/Server/tests/Dfo.Server.Application.Tests/Characters/CurrentCharacterStateTests.cs
+@@ -0,0 +1,228 @@
++using Dfo.Server.Abstractions.Characters;
++using Dfo.Server.Abstractions.Persistence;
++using Dfo.Server.Abstractions.World;
++using Dfo.Server.Application.Characters;
++using Dfo.Server.Application.Inventory;
++using Dfo.Server.Application.Commands;
++using Dfo.Server.Application.Transactions;
++using Dfo.Server.Data.Accounts;
++using Dfo.Server.Data.Characters;
++using Dfo.Server.Data.Game;
++using Dfo.Server.Data.Inventory;
++using Dfo.Server.Infrastructure;
++using Dfo.Server.Infrastructure.Content;
++using Dfo.Server.Persistence;
++using Dfo.Server.Persistence.Database;
++using Dfo.Server.Protocol.Game.TutorialLevelUp;
++using Microsoft.Data.Sqlite;
++using Microsoft.Extensions.Configuration;
++using Microsoft.Extensions.DependencyInjection;
++
++namespace Dfo.Server.Application.Tests.Characters;
++
++public sealed class CurrentCharacterStateTests
++{
++    private static readonly CharacterId Id = new(71);
++    private static readonly AccountId Account = new(1);
++
++    [SkippableFact]
++    public async Task Same_character_reads_transaction_changes_rollback_commit_and_reload()
++    {
++        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
++        await using var fixture = new Fixture();
++        await fixture.SeedAsync();
++        var character = fixture.Character;
++        var baseline = await ReadAsync(character);
++        var baselineStat = Assert.IsType<CharacterBaseStats>(baseline.Stats);
++        Assert.Equal(16, baseline.Progress!.Level);
++        Assert.Same(fixture.Stats.GetStats(new CharacterCareer(0, 1), 16), baselineStat);
++        Assert.Equal(2, baseline.Learned!.Count);
++        Assert.Equal(2, Assert.Single(baseline.Learned[0].Skills).Level);
++        Assert.True(baseline.Ledger!.IsComplete);
++
++        await using (var rollback = fixture.Scope.Begin())
++        {
++            await fixture.ChangeAsync();
++            await AssertChangedAsync(fixture, character, baselineStat);
++        }
++        var rolledBack = await ReadAsync(character);
++        Assert.Same(baselineStat, rolledBack.Stats);
++        Assert.Equal(baseline.Progress, rolledBack.Progress);
++        Assert.Equal(baseline.Ledger.Page0Sp, rolledBack.Ledger!.Page0Sp);
++        Assert.Equal(2, Assert.Single(rolledBack.Learned![0].Skills).Level);
++        Assert.True(rolledBack.Ledger.IsComplete);
++        Assert.Equal(1, (await fixture.Entry.LoadAsync(Account, Id, default)).Public.Extras.SkillTreeIndex);
++
++        await using (var committed = fixture.Scope.Begin())
++        {
++            await fixture.ChangeAsync();
++            await AssertChangedAsync(fixture, character, baselineStat);
++            await committed.CommitAsync(default);
++        }
++        await AssertChangedAsync(fixture, character, baselineStat);
++        await using var reloaded = new Fixture(fixture.Path);
++        var afterReload = await ReadAsync(reloaded.Character);
++        var afterCommit = await ReadAsync(character);
++        Assert.Equal(afterCommit.Stats, afterReload.Stats);
++        Assert.Equal(afterCommit.Progress, afterReload.Progress);
++        Assert.Equal(afterCommit.Ledger!.Page0Sp, afterReload.Ledger!.Page0Sp);
++        Assert.Equal(afterCommit.Ledger.Page1Tp, afterReload.Ledger.Page1Tp);
++        Assert.Equal([999999], afterReload.Ledger.MissingSkillIds);
++        Assert.Equal(70002, afterReload.Ledger.Page0Tp);
++        Assert.Equal(65535, (await reloaded.Character.RemainingSkillPointsAsync(default))!.Page0Tp);
++        var stored = await reloaded.Services.GetRequiredService<ICharacterEntryStateRepository>().LoadAsync(Account, Id, default);
++        Assert.Equal(17, stored.Profile.DerivedStats.HpMaximum);
++        Assert.Equal(4, stored.Profile.DerivedStats.Progress1);
++        Assert.Equal(73, stored.Profile.DerivedStats.CurrentHpMpPercent);
++        Assert.Equal(1, stored.Profile.SkillTreeIndex);
++        Assert.Equal([9, 8], stored.Skill.Skills.Single(row => row.PageIndex == 0 && row.Slot == 7).ExtraValues);
++    }
++
++    [SkippableFact]
++    public async Task Selection_and_refresh_replace_only_current_base_facts_preserving_page_and_inventory_configuration()
++    {
++        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
++        await using var fixture = new Fixture();
++        await fixture.SeedAsync();
++        var entry = await fixture.Entry.LoadAsync(Account, Id, default);
++        Assert.Equal((await fixture.Character.BaseStatsAsync(default))!.HpMax, entry.Public.DerivedStats.HpMaximum);
++        Assert.NotEqual(17, entry.Public.DerivedStats.HpMaximum);
++        Assert.Equal(4, entry.Public.DerivedStats.Progress1);
++        Assert.Equal(73, entry.Public.DerivedStats.CurrentHpMpPercent);
++        var stale = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(Account, Id.Value, 0);
++        var equipment = new InventoryContainerState(InventoryContainerType.Equipment, 24,
++            [new InventoryItemState(new ItemIdentity(456), 2, StackableItemCore.Create(2, 9001, 1))]);
++        stale = stale with
++        {
++            CharacterEntry = entry,
++            CharacterInventory = stale.CharacterInventory with { Containers = [equipment] },
++        };
++        await using var transaction = fixture.Scope.Begin();
++        await fixture.ChangeAsync();
++        var refreshed = await fixture.Services.GetRequiredService<ICharacterStateProjectionDomainService>()
++            .RefreshAsync(stale, default);
++        Assert.Equal(51, refreshed.Character.Progression.Level);
++        Assert.Equal(123456u, refreshed.Character.Progression.Experience);
++        Assert.Equal(0x12, refreshed.Character.Identity.GrowType);
++        Assert.Equal(123456, refreshed.CharacterEntry.Public.Extras.CharacterExperience);
++        Assert.Equal((await fixture.Character.BaseStatsAsync(default))!.HpMax, refreshed.CharacterEntry.Public.DerivedStats.HpMaximum);
++        Assert.Equal(4, refreshed.CharacterEntry.Public.DerivedStats.Progress1);
++        Assert.Equal(73, refreshed.CharacterEntry.Public.DerivedStats.CurrentHpMpPercent);
++        Assert.Same(stale.CharacterEntry.Public.Identity, refreshed.CharacterEntry.Public.Identity);
++        Assert.Same(stale.CharacterEntry.Settings, refreshed.CharacterEntry.Settings);
++        Assert.Same(stale.CharacterInventory, refreshed.CharacterInventory);
++        Assert.Same(equipment, Assert.Single(refreshed.CharacterInventory.Containers));
++        Assert.Same(stale.World, refreshed.World);
++        Assert.Equal(1, refreshed.CharacterEntry.Public.Extras.SkillTreeIndex);
++        var page = refreshed.CharacterEntry.Skills.Pages.Single(page => page.PageIndex == 0);
++        var skill = page.Skills.Single(skill => skill.SkillId == 1);
++        Assert.Equal(7, skill.Slot);
++        Assert.Equal(255, skill.Level);
++        Assert.Equal([9, 8], skill.ExtraValues);
++        Assert.Equal(0, refreshed.CharacterEntry.Skills.ProtocolMirror!.Page0Sp);
++        Assert.Equal(65535, refreshed.CharacterEntry.Skills.ProtocolMirror.Page1Tp);
++        Assert.Equal(16u, entry.Progression.DailyChallengeCharacterLevel);
++    }
++
++    [SkippableFact]
++    public async Task Tutorial_grant_checks_the_actual_row_inside_the_command_transaction()
++    {
++        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
++        await using var fixture = new Fixture();
++        await fixture.SeedAsync();
++        var handler = new GrantTutorialLevelCommandHandler(
++            fixture.Services.GetRequiredService<ICharacterExperienceDomainService>(),
++            fixture.Services.GetRequiredService<ICharacterDomainService>());
++        await using var transaction = fixture.Scope.Begin();
++        await fixture.SqlAsync("UPDATE characters SET level=5,exp=700 WHERE character_id=71;");
++        var result = await handler.HandleAsync(null!, new GrantTutorialLevelCommand(Id), default);
++        Assert.Equal(TutorialLevelUpStatus.AlreadyPast, result.Status);
++        Assert.Equal(new CharacterProgressionState(5, 700), await fixture.Character.ProgressAsync(default));
++    }
++
++    private static async Task AssertChangedAsync(Fixture fixture, ICharacter character, CharacterBaseStats baseline)
++    {
++        var state = await ReadAsync(character);
++        Assert.Equal(new CharacterProgressionState(51, 123456), state.Progress);
++        Assert.Same(fixture.Stats.GetStats(new CharacterCareer(0, 2, 1), 51), state.Stats);
++        Assert.Same(baseline, fixture.Stats.GetStats(new CharacterCareer(0, 1), 16));
++        Assert.NotEqual(baseline, state.Stats);
++        Assert.Equal(255, state.Learned![0].Skills.Single(skill => skill.SkillId == 1).Level);
++        Assert.Equal(1, Assert.Single(state.Learned[1].Skills).Level);
++        Assert.Contains(state.Learned[0].Skills, skill => skill.SkillId == 999999 && skill.Level == 2);
++        Assert.False(state.Ledger!.IsComplete);
++        Assert.Equal([999999], state.Ledger.MissingSkillIds);
++        Assert.True(state.Ledger.Page0Sp < 0);
++        Assert.True(state.Ledger.Page0Tp > ushort.MaxValue);
++        Assert.Equal(0, (await character.RemainingSkillPointsAsync(default))!.Page0Sp);
++        var pages = (await fixture.Services.GetRequiredService<ICharacterSkillStateDomainService>().ReadAsync(Id, default))!.Pages;
++        Assert.Equal([9, 8], pages[0].Skills.Single(skill => skill.SkillId == 1).ExtraValues);
++        Assert.Equal(15, Assert.Single(pages[1].Skills).Slot);
++    }
++
++    private static async Task<(CharacterBaseStats? Stats, CharacterProgressionState? Progress,
++        IReadOnlyList<CharacterLearnedSkillPage>? Learned, CharacterSkillPointLedger? Ledger)> ReadAsync(ICharacter character) =>
++        (await character.BaseStatsAsync(default), await character.ProgressAsync(default),
++            await character.LearnedSkillsAsync(default), await character.SkillPointLedgerAsync(default));
++
++    private sealed class Fixture : IAsyncDisposable
++    {
++        private readonly bool ownsPath;
++        public string Path { get; }
++        public ServiceProvider Services { get; }
++        public DomainTransactionScope Scope => Services.GetRequiredService<DomainTransactionScope>();
++        public ICharacter Character { get; }
++        public ICharacterStatRuleService Stats => Services.GetRequiredService<ICharacterStatRuleService>();
++        public ICharacterEntryStateDomainService Entry => Services.GetRequiredService<ICharacterEntryStateDomainService>();
++        public Fixture(string? existing = null)
++        {
++            ownsPath = existing is null;
++            Path = existing ?? System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"dfo-current-character-{Guid.NewGuid():N}.db");
++            var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
++                { ["Database:Path"] = Path }).Build();
++            var services = new ServiceCollection().AddLogging();
++            new InfrastructureModule().ConfigureServices(services, configuration);
++            new PersistenceModule().ConfigureServices(services, configuration);
++            new ApplicationModule().ConfigureServices(services, configuration);
++            Services = services.BuildServiceProvider();
++            _ = Services.GetRequiredService<SqliteDatabase>();
++            Character = Services.GetRequiredService<ICharacterDomainService>().Get(Id);
++        }
++        public async Task SeedAsync()
++        {
++            await using var transaction = Scope.Begin();
++            await SqlAsync("""
++                INSERT INTO accounts(account_id,m_id) VALUES(1,'current');
++                INSERT INTO characters(character_id,account_id,name,name_bytes,job,grow_type,level,exp,bonus_sp,bonus_tp,skill_tree_index)
++                VALUES(71,1,'current',X'4142',0,1,16,1234,5,3,1);
++                INSERT INTO character_condition(character_id,pc_room_state) VALUES(71,0);
++                INSERT INTO character_stats(character_id,stat_hp_max,progress1,progress2,current_hp_mp_percent) VALUES(71,17,4,5,73);
++                INSERT INTO character_pvp(character_id) VALUES(71);
++                INSERT INTO character_settings(character_id) VALUES(71);
++                INSERT INTO character_expert_job(character_id) VALUES(71);
++                INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level,extra_values)
++                VALUES(71,'pve',0,7,1,2,X'0908'),(71,'pve',1,15,1,1,X'07');
++                """);
++            await transaction.CommitAsync(default);
++        }
++        public ValueTask ChangeAsync() => SqlAsync("""
++            UPDATE characters SET grow_type=18,level=51,exp=123456,bonus_sp=19,bonus_tp=70000 WHERE character_id=71;
++            UPDATE character_skills SET level=255 WHERE character_id=71 AND mode='pve' AND page_index=0 AND slot=7;
++            INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level) VALUES(71,'pve',0,8,999999,2),(71,'pve',0,9,64,255);
++            """);
++        public ValueTask SqlAsync(string sql) => Services.GetRequiredService<SqliteDatabase>().WriteAsync(async (command, token) =>
++        {
++            command.CommandText = sql;
++            await command.ExecuteNonQueryAsync(token);
++        }, default);
++        public async ValueTask DisposeAsync()
++        {
++            await Services.DisposeAsync();
++            if (ownsPath)
++            {
++                SqliteConnection.ClearPool(new SqliteConnection($"Data Source={Path}"));
++                File.Delete(Path);
++            }
++        }
++    }
++}
+--- a/Server/tests/Dfo.Server.Application.Tests/Characters/NoCarriedGold.cs
++++ b/Server/tests/Dfo.Server.Application.Tests/Characters/NoCarriedGold.cs
+@@ -166,6 +166,8 @@
+ /// </remarks>
+ internal sealed class NoSkillPointLedger : ICharacterSkillPointDomainService
+ {
++    public ValueTask<CharacterSkillPointLedger?> LedgerAsync(CharacterId characterId, CancellationToken cancellationToken) => throw new NotSupportedException();
++
+     public ValueTask<CharacterSkillProtocolMirrorState?> RemainingAsync(
+         CharacterId characterId, CancellationToken cancellationToken) =>
+         ValueTask.FromResult<CharacterSkillProtocolMirrorState?>(null);
+--- a/Server/tests/Dfo.Server.Application.Tests/Characters/RemainingSkillPointTests.cs
++++ b/Server/tests/Dfo.Server.Application.Tests/Characters/RemainingSkillPointTests.cs
+@@ -138,13 +138,8 @@
+     {
+         var archive = new LevelPricedArchive();
+         var points = new CharacterSkillPointDomainService(
+-            row,
+-            new OneLearnedSkill(),
+-            new StoredBonusPoints(),
+-            new CharacterEntryPreparationRuleService(
+-                archive,
+-                new StubExpertContractDefinitionSource(),
+-                new StubCreatureEquipmentLifetimeSource()));
++            new CharacterSkillStateDomainService(row, new OneLearnedSkill(), new StoredBonusPoints()),
++            archive, Microsoft.Extensions.Logging.Abstractions.NullLogger<CharacterSkillPointDomainService>.Instance);
+         return (
+             new PlayingCharacter(
+                 Who,
+@@ -154,7 +149,7 @@
+                 new NoCarriedGold(),
+                 new StoredCarryLimitOnly(),
+                 row,
+-                points),
++                points, null!, null!),
+             archive);
+     }
+ 
+@@ -293,8 +288,15 @@
+     /// for because there is a second level within reach -- the session's -- and pricing from that
+     /// one would produce a figure that still looked reasonable.
+     /// </remarks>
+-    private sealed class LevelPricedArchive : ISkillPointDefinitionSource
+-    {
++    private sealed class LevelPricedArchive : ISkillPointDefinitionSource, ICharacterSkillRuleService
++    {
++        public ICharacterSkillRule? Get(byte job, int skillId) => throw new NotSupportedException();
++        public IReadOnlyList<ICharacterSkillRule> GetAll(byte job) => throw new NotSupportedException();
++        public CharacterSkillPointBudget GetTotalPoints(byte job, int level) => throw new NotSupportedException();
++        public CharacterSkillPointLedger GetLedger(CharacterCareer career, int level, IReadOnlyList<CharacterSkillPageState> pages, CharacterSkillPointBasisState basis) =>
++            SkillPointLedgerRules.Calculate(GetAsync(career.Job, career.PackedGrowType, checked((byte)level),
++                pages.SelectMany(page => page.Skills).Select(skill => checked((int)skill.SkillId)).ToArray(), default).Result,
++                level, pages, basis);
+         private readonly List<byte> _levels = [];
+ 
+         public IReadOnlyList<byte> LevelsAsked => this._levels;
+--- a/Server/tests/Dfo.Server.Application.Tests/Game/UseStackableHandlerTests.cs
++++ b/Server/tests/Dfo.Server.Application.Tests/Game/UseStackableHandlerTests.cs
+@@ -313,7 +313,7 @@
+                 new NoCarriedGold(),
+                 new StoredCarryLimitOnly(),
+                 CharacterRow.At(RowLevel),
+-                new NoSkillPointLedger())),
++                new NoSkillPointLedger(), null!, null!)),
+             new ItemUseEffectDomainService(judgement, cooldowns));
+ 
+         return (
+--- a/Server/tests/Dfo.Server.Application.Tests/Inventory/NpcShopPurchaseTests.cs
++++ b/Server/tests/Dfo.Server.Application.Tests/Inventory/NpcShopPurchaseTests.cs
+@@ -320,6 +320,8 @@
+ 
+     private sealed class SkillPoints : ICharacterSkillPointDomainService
+     {
++    public ValueTask<CharacterSkillPointLedger?> LedgerAsync(CharacterId characterId, CancellationToken cancellationToken) => throw new NotSupportedException();
++
+         public ValueTask<CharacterSkillProtocolMirrorState?> RemainingAsync(CharacterId id, CancellationToken ct) =>
+             ValueTask.FromResult<CharacterSkillProtocolMirrorState?>(new(321, 0, 0, 0));
+     }
+--- a/Server/tests/Dfo.Server.Application.Tests/Support/CurrentCharacterStub.cs
++++ b/Server/tests/Dfo.Server.Application.Tests/Support/CurrentCharacterStub.cs
+@@ -0,0 +1,25 @@
++using Dfo.Server.Abstractions.Characters;
++using Dfo.Server.Abstractions.Inventory;
++using Dfo.Server.Application.Characters;
++using Dfo.Server.Data.Characters;
++namespace Dfo.Server.Application.Tests.Support;
++
++internal sealed class CurrentCharacterStub : ICharacter
++{
++    public CharacterId Id { get; init; } = new(60);
++    public CharacterProgressionState? Progress { get; set; } = new(60, 1000);
++    public CharacterIdentityState? Identity { get; set; } = new(new(60), 0, [65], 0, 0);
++    public CharacterBaseStats? Stats { get; set; } = CharacterBaseStats.Zero;
++    public static ICharacterDomainService Domain(CurrentCharacterStub? character = null) =>
++        new CharacterDomainService(null!, null!, _ => character ?? new CurrentCharacterStub());
++    public ValueTask<CharacterBaseStats?> BaseStatsAsync(CancellationToken token) => ValueTask.FromResult(Stats);
++    public ValueTask<CharacterProgressionState?> ProgressAsync(CancellationToken token) => ValueTask.FromResult(Progress);
++    public ValueTask<CharacterIdentityState?> IdentityAsync(CancellationToken token) => ValueTask.FromResult(Identity);
++    public ValueTask<IReadOnlyList<CharacterLearnedSkillPage>?> LearnedSkillsAsync(CancellationToken token) => throw new NotSupportedException();
++    public ValueTask<CharacterSkillPointLedger?> SkillPointLedgerAsync(CancellationToken token) => throw new NotSupportedException();
++    public ValueTask<CharacterSkillProtocolMirrorState?> RemainingSkillPointsAsync(CancellationToken token) => throw new NotSupportedException();
++    public ValueTask<ItemUsability> CanUseAsync(int itemId, CancellationToken token) => throw new NotSupportedException();
++    public ValueTask<int> GoldAsync(CancellationToken token) => throw new NotSupportedException();
++    public ValueTask<int> AddGoldAsync(int amount, CancellationToken token) => throw new NotSupportedException();
++    public ValueTask<int?> TrySpendGoldAsync(int amount, CancellationToken token) => throw new NotSupportedException();
++}
+--- a/Server/tests/Dfo.Server.Application.Tests/World/CharacterExperienceDomainServiceTests.cs
++++ b/Server/tests/Dfo.Server.Application.Tests/World/CharacterExperienceDomainServiceTests.cs
+@@ -269,6 +269,21 @@
+         Assert.Contains("75", award!.ToString(), StringComparison.Ordinal);
+     }
+ 
++    [Fact]
++    public async Task TutorialRequestWithStaleLevelNeverLowersCurrentProgress()
++    {
++        var row = new RecordingCharacterTable(level: 5, experience: 700);
++        var handler = new Dfo.Server.Protocol.Game.TutorialLevelUp.GrantTutorialLevelCommandHandler(Grant(row),
++            new Dfo.Server.Application.Characters.CharacterDomainService(null!, null!, id =>
++                new Dfo.Server.Application.Characters.PlayingCharacter(id, null!, null!, null!, null!, null!, row, null!, null!, null!)));
++        var result = await handler.HandleAsync(null!,
++            new Dfo.Server.Protocol.Game.TutorialLevelUp.GrantTutorialLevelCommand(Character),
++            CancellationToken.None);
++        Assert.Equal(Dfo.Server.Protocol.Game.TutorialLevelUp.TutorialLevelUpStatus.AlreadyPast, result.Status);
++        Assert.Equal(5, (await row.FindProgressAsync(Character, CancellationToken.None))!.Level);
++        Assert.Null(row.LastWrite);
++    }
++
+     private static ExperienceValuation Worth(uint amount) => new(amount, []);
+ 
+     private static CharacterExperienceDomainService Grant(ICharacterTable characters) =>
+--- a/Server/tests/Dfo.Server.Application.Tests/World/PaidCardFlipCostTests.cs
++++ b/Server/tests/Dfo.Server.Application.Tests/World/PaidCardFlipCostTests.cs
+@@ -442,13 +442,18 @@
+         {
+             public CharacterId Id => Character;
+ 
++    public ValueTask<CharacterBaseStats?> BaseStatsAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
++    public ValueTask<IReadOnlyList<CharacterLearnedSkillPage>?> LearnedSkillsAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
++    public ValueTask<CharacterSkillPointLedger?> SkillPointLedgerAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
++
++
+             public ValueTask<ItemUsability> CanUseAsync(
+                 int itemId, CancellationToken cancellationToken) =>
+                 throw new NotSupportedException("This subject is about a flip's price.");
+ 
+-            public ValueTask<CharacterProgressionState?> ProgressAsync(
+-                CancellationToken cancellationToken) =>
+-                throw new NotSupportedException("This subject is about a flip's price.");
++            public async ValueTask<CharacterProgressionState?> ProgressAsync(CancellationToken cancellationToken) =>
++                await carried.FindAsync(Character, cancellationToken) is { } row
++                    ? new CharacterProgressionState(checked((byte)row.Level), 0) : null;
+ 
+             public ValueTask<CharacterIdentityState?> IdentityAsync(
+                 CancellationToken cancellationToken) =>
+@@ -474,16 +479,20 @@
+         /// <summary>What this clear fixed a paid flip's price at when it settled.</summary>
+         public int? Announced { get; }
+ 
+-        public ValueTask<SelectCardResult> Turn(
+-            ClearRewardCardKind kind, int index, int standingAt = Level) =>
+-            this._handler.HandleAsync(
+-                new CommandExecutionContext(
+-                    Guid.NewGuid(),
+-                    typeof(SelectCardCommand),
+-                    typeof(SelectCardCommandHandler),
+-                    CommandExecutionKind.Workflow),
+-                new SelectCardCommand(Account, Character, kind, index, standingAt),
+-                CancellationToken.None);
++        public async ValueTask<SelectCardResult> Turn(ClearRewardCardKind kind, int index, int standingAt = Level)
++        {
++            await using var connection = new SqliteConnection($"Data Source={this._path}");
++            await connection.OpenAsync();
++            await using var update = connection.CreateCommand();
++            update.CommandText = "UPDATE characters SET level=@level WHERE character_id=@id";
++            update.Parameters.AddWithValue("@level", standingAt);
++            update.Parameters.AddWithValue("@id", Character.Value);
++            await update.ExecuteNonQueryAsync();
++            return await this._handler.HandleAsync(
++                new CommandExecutionContext(Guid.NewGuid(), typeof(SelectCardCommand),
++                    typeof(SelectCardCommandHandler), CommandExecutionKind.Workflow),
++                new SelectCardCommand(Account, Character, kind, index), CancellationToken.None);
++        }
+ 
+         /// <summary>What the settlement says a paid flip costs, asked at that level.</summary>
+         /// <remarks>
+--- a/Server/tests/Dfo.Server.Host.Tests/CarriedGoldCompositionTests.cs
++++ b/Server/tests/Dfo.Server.Host.Tests/CarriedGoldCompositionTests.cs
+@@ -26,7 +26,7 @@
+     [Fact]
+     public void The_character_business_acts_through_resolves_from_the_assembled_modules()
+     {
+-        var services = new ServiceCollection();
++        var services = new ServiceCollection().AddLogging();
+         var configuration = new ConfigurationBuilder().Build();
+         new PersistenceModule().ConfigureServices(services, configuration);
+         new InfrastructureModule().ConfigureServices(services, configuration);
+@@ -49,7 +49,7 @@
+     [Fact]
+     public void The_carry_cap_rule_and_the_account_cargo_seam_both_resolve()
+     {
+-        var services = new ServiceCollection();
++        var services = new ServiceCollection().AddLogging();
+         var configuration = new ConfigurationBuilder().Build();
+         new PersistenceModule().ConfigureServices(services, configuration);
+         new InfrastructureModule().ConfigureServices(services, configuration);
+--- a/Server/tests/Dfo.Server.Protocol.Tests/Dfo.Server.Protocol.Tests.csproj
++++ b/Server/tests/Dfo.Server.Protocol.Tests/Dfo.Server.Protocol.Tests.csproj
+@@ -28,6 +28,7 @@
+       quietly stops matching the interface the other is proving something about. There is no
+       shared test-support project, and one double does not earn creating one.
+     -->
++    <Compile Include="..\Dfo.Server.Application.Tests\Support\CurrentCharacterStub.cs" Link="Support\CurrentCharacterStub.cs" />
+     <Compile Include="..\Dfo.Server.Application.Tests\Support\RecordingCharacterTable.cs"
+              Link="Support\RecordingCharacterTable.cs" />
+     <Compile Include="..\Dfo.Server.Application.Tests\Support\RecordingQuestLogs.cs"
+--- a/Server/tests/Dfo.Server.Protocol.Tests/Game/CardReward/CardRewardTests.cs
++++ b/Server/tests/Dfo.Server.Protocol.Tests/Game/CardReward/CardRewardTests.cs
+@@ -964,7 +964,7 @@
+     /// from the one this file hands its own commands, so a handler that made one up would show.
+     /// </remarks>
+     [Fact]
+-    public async Task The_command_carries_the_account_and_the_published_level()
++    public async Task The_command_carries_the_account_and_character_identity()
+     {
+         var world = new World();
+         var sender = new RecordingSender();
+@@ -973,14 +973,12 @@
+ 
+         Assert.NotNull(world.LastCommand);
+         Assert.Equal(Identity.AccountId, world.LastCommand.AccountId);
+-        Assert.Equal(PublishedLevel, world.LastCommand.CharacterLevel);
++        Assert.Equal(Identity.CharacterId, world.LastCommand.CharacterId);
+     }
+ 
+     /// <summary>A flip on a connection whose session was never published never reaches the run.</summary>
+     /// <remarks>
+-    /// The identity alone is not enough now: the level a paid flip is priced at comes off the
+-    /// published session, and a flip dispatched without one would be priced at whatever stood in
+-    /// for it.
++    /// A flip requires a published game session before the command may be dispatched.
+     /// </remarks>
+     [Fact]
+     public async Task A_flip_without_a_published_entry_never_reaches_the_run()
+@@ -1160,7 +1158,7 @@
+         public ValueTask<SelectCardResult> Flip(ClearRewardCardKind kind, int index) =>
+             this.Send(
+                 new SelectCardCommand(
+-                    Identity.AccountId, Identity.CharacterId, kind, index, FlipLevel));
++                    Identity.AccountId, Identity.CharacterId, kind, index));
+ 
+         public async ValueTask<SelectCardResult> Send(SelectCardCommand command)
+         {
+--- a/Server/tests/Dfo.Server.Protocol.Tests/Game/CarriedGoldStandIns.cs
++++ b/Server/tests/Dfo.Server.Protocol.Tests/Game/CarriedGoldStandIns.cs
+@@ -20,6 +20,11 @@
+ {
+     public CharacterId Id => new(60);
+ 
++    public ValueTask<CharacterBaseStats?> BaseStatsAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
++    public ValueTask<IReadOnlyList<CharacterLearnedSkillPage>?> LearnedSkillsAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
++    public ValueTask<CharacterSkillPointLedger?> SkillPointLedgerAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
++
++
+     public int Total { get; private set; } = total;
+ 
+     /// <summary>How many charges were attempted, met or not.</summary>
+@@ -30,7 +35,7 @@
+ 
+     public ValueTask<CharacterProgressionState?> ProgressAsync(
+         CancellationToken cancellationToken) =>
+-        throw new NotSupportedException("These cases are about gold, not about standing.");
++        ValueTask.FromResult<CharacterProgressionState?>(new(60, 0));
+ 
+     public ValueTask<CharacterIdentityState?> IdentityAsync(
+         CancellationToken cancellationToken) =>
+--- a/Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonClear/SetPlayResultHandlerTests.cs
++++ b/Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonClear/SetPlayResultHandlerTests.cs
+@@ -173,7 +173,7 @@
+     [Fact]
+     public async Task AnAwardThatDidNotHappenDeclaresNothing()
+     {
+-        var sent = await Settle(awarded: false);
++        var sent = await Settle(awarded: false, ledger: new SkillPointLedger { Progress = new CharacterProgressionState(9, 6000) });
+ 
+         var reward = sent.OfType<ClearDungeonRewardNotification>().Single();
+         Assert.Equal(0u, reward.ClearBase);
+@@ -181,8 +181,8 @@
+ 
+         // And the standing reported is the one the character actually holds.
+         var experience = sent.OfType<ExperienceNotification>().Single();
+-        Assert.Equal(StartingExperience, experience.TotalExperience);
+-        Assert.Equal(3, experience.Level);
++        Assert.Equal(6000u, experience.TotalExperience);
++        Assert.Equal(9, experience.Level);
+     }
+ 
+     /// <summary>
+@@ -387,10 +387,10 @@
+     {
+         var cards = new RecordingCards();
+ 
+-        await Settle(leveledUp: true, cards: cards);
++        await Settle(leveledUp: true, cards: cards, ledger: new SkillPointLedger { Progress = new CharacterProgressionState(2, 500) });
+ 
+         var settlement = Assert.Single(cards.Settlements);
+-        Assert.Equal(3, settlement.CharacterLevel);
++        Assert.Equal(2, settlement.CharacterLevel);
+         Assert.Equal(new CharacterId(60), settlement.CharacterId);
+         Assert.Equal(1, settlement.PartyMemberCount);
+     }
+@@ -448,7 +448,7 @@
+             cards ?? new RecordingCards(),
+             bus ?? new FixedAward(leveledUp, awarded),
+             new QuestOfferRefreshDomainService(
+-                content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs()),
++                content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+             sender,
+             NullLogger<SetPlayResultHandler>.Instance);
+ 
+--- a/Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/SelectDungeonHandlerTests.cs
++++ b/Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/SelectDungeonHandlerTests.cs
+@@ -160,7 +160,7 @@
+     {
+         var fatigue = new RecordingFatigue();
+         var sender = new RecordingSender();
+-        var handler = new SelectDungeonHandler(
++        var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
+             new OneSession(Identity),
+             new OneRuntimeSession(Entry()),
+             new RefusingVisits(),
+@@ -192,7 +192,7 @@
+     {
+         var visits = new RecordingVisits();
+         var fatigue = new RecordingFatigue();
+-        var handler = new SelectDungeonHandler(
++        var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
+             new NoSession(),
+             new OneRuntimeSession(Entry()),
+             visits,
+@@ -217,7 +217,7 @@
+     {
+         var visits = new RecordingVisits();
+         var sender = new RecordingSender();
+-        var handler = new SelectDungeonHandler(
++        var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
+             new NoSession(),
+             new OneRuntimeSession(Entry()),
+             visits,
+@@ -259,6 +259,7 @@
+         OneLog? logs = null,
+         RecordingFatigue? fatigue = null) =>
+         new(
++            Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
+             new OneSession(Identity),
+             new OneRuntimeSession(Entry()),
+             visits,
+--- a/Server/tests/Dfo.Server.Protocol.Tests/Game/ExperienceFrameStandIns.cs
++++ b/Server/tests/Dfo.Server.Protocol.Tests/Game/ExperienceFrameStandIns.cs
+@@ -137,6 +137,11 @@
+ 
+     public CharacterId Id => new(60);
+ 
++    public ValueTask<CharacterBaseStats?> BaseStatsAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
++    public ValueTask<IReadOnlyList<CharacterLearnedSkillPage>?> LearnedSkillsAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
++    public ValueTask<CharacterSkillPointLedger?> SkillPointLedgerAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
++
++
+     public ValueTask<CharacterSkillProtocolMirrorState?> RemainingSkillPointsAsync(
+         CancellationToken cancellationToken)
+     {
+@@ -148,8 +153,9 @@
+             this.TimesAsked == 1 ? BeforeTheLevel : AfterTheLevel);
+     }
+ 
++    public CharacterProgressionState? Progress { get; set; } = new(3, 1000);
+     public ValueTask<CharacterProgressionState?> ProgressAsync(
+-        CancellationToken cancellationToken) => throw Unasked();
++        CancellationToken cancellationToken) => ValueTask.FromResult(Progress);
+ 
+     public ValueTask<CharacterIdentityState?> IdentityAsync(
+         CancellationToken cancellationToken) => throw Unasked();
+--- a/Server/tests/Dfo.Server.Protocol.Tests/Game/MonsterDeath/MonsterDeathHandlerTests.cs
++++ b/Server/tests/Dfo.Server.Protocol.Tests/Game/MonsterDeath/MonsterDeathHandlerTests.cs
+@@ -124,6 +124,17 @@
+         Assert.Empty(acknowledgement.Drops);
+     }
+ 
++    [Fact]
++    public async Task A_kill_without_an_award_reports_current_progress_instead_of_the_entry_copy()
++    {
++        var ledger = new SkillPointLedger { Progress = new CharacterProgressionState(9, 6000) };
++        var sent = await Kill(ledger: ledger, bus: new FixedKillAward(false, awarded: false));
++        var experience = Assert.Single(sent.OfType<ExperienceNotification>());
++        Assert.Equal(9, experience.Level);
++        Assert.Equal(6000u, experience.TotalExperience);
++        Assert.Equal([typeof(ExperienceNotification), typeof(MonsterDeathNotification)], sent.Select(frame => frame.GetType()));
++    }
++
+     private static async Task<IReadOnlyList<IGameServerMessage>> Kill(
+         bool leveledUp = false,
+         SkillPointLedger? ledger = null,
+@@ -148,7 +159,7 @@
+             new NothingDropped(),
+             bus ?? new FixedKillAward(leveledUp),
+             new QuestOfferRefreshDomainService(
+-                content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs()),
++                content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+             sender,
+             ExperienceDiagnostics.None,
+             NullLogger<MonsterDeathHandler>.Instance);
+@@ -169,7 +180,7 @@
+     /// <see cref="GrantKillExperienceCommandTests"/>. What is checked here is what the handler
+     /// does with the answer.
+     /// </remarks>
+-    private sealed class FixedKillAward(bool leveledUp) : ICommandBus
++    private sealed class FixedKillAward(bool leveledUp, bool awarded = true) : ICommandBus
+     {
+         /// <summary>How many times the kill was priced, which a repeated death would raise.</summary>
+         public int TimesAsked { get; private set; }
+@@ -181,13 +192,13 @@
+             Assert.IsType<GrantKillExperienceCommand>(command);
+             this.TimesAsked++;
+             var result = new KillExperienceResult(
+-                new ExperienceAward(
++                awarded ? new ExperienceAward(
+                     Base: KillGain,
+                     Contributions: [],
+                     Gained: KillGain,
+                     Level: leveledUp ? (byte)(StartingLevel + 1) : StartingLevel,
+                     Total: StartingExperience + KillGain,
+-                    LeveledUp: leveledUp));
++                    LeveledUp: leveledUp) : null);
+             return ValueTask.FromResult((TResult)(object)result);
+         }
+     }
+--- a/Server/tests/Dfo.Server.Protocol.Tests/Game/MoveItemSpace/TheCharacterChangesAsYouDressItTests.cs
++++ b/Server/tests/Dfo.Server.Protocol.Tests/Game/MoveItemSpace/TheCharacterChangesAsYouDressItTests.cs
+@@ -1,3 +1,4 @@
++using Dfo.Server.Abstractions.Characters;
+ using Dfo.Server.Abstractions.Content;
+ using Dfo.Server.Abstractions.Inventory;
+ using Dfo.Server.Abstractions.Networking;
+@@ -332,6 +333,45 @@
+         Assert.Equal(persists, after);
+     }
+ 
++    [Theory]
++    [InlineData((byte)1)]
++    [InlineData((byte)5)]
++    public async Task Dungeon_selection_reports_refreshed_character_values_in_the_existing_frame_order(byte level)
++    {
++        var world = Build(sessionCopyWears: OtherCostume);
++        var current = world.Runtime.Original with
++        {
++            Character = world.Runtime.Original.Character with { Progression = new(level, 9000) },
++            CharacterEntry = world.Runtime.Original.CharacterEntry with
++            {
++                Public = world.Runtime.Original.CharacterEntry.Public with
++                {
++                    DerivedStats = world.Runtime.Original.CharacterEntry.Public.DerivedStats with { HpMaximum = 9876 },
++                },
++                Skills = world.Runtime.Original.CharacterEntry.Skills with
++                {
++                    Pages = [new CharacterSkillPageState(0, [new CharacterSkillState(7, 1, 4, [8, 9])])],
++                    ProtocolMirror = new(11, 12, 13, 14),
++                },
++            },
++        };
++        var frame = await world.OpenDungeonSelectionAsync(new FixedCurrentState(current));
++        Assert.Equal(level, frame.Character.Progression.Level);
++        Assert.Equal(9876, frame.Public.DerivedStats.HpMaximum);
++        Assert.Equal(new CharacterSkillProtocolMirrorState(11, 12, 13, 14), frame.Skills.ProtocolMirror);
++        Assert.Equal(4, Assert.Single(Assert.Single(frame.Skills.Pages).Skills).Level);
++        Assert.Equal(OtherCostume, Assert.Single(frame.Equipment).Core.ItemId);
++        var expected = new List<Type> { typeof(ExtendedUserStateMessage), typeof(EnterSelectDungeonAcknowledgement),
++            typeof(UserStateNotification), typeof(UdpHostNotification) };
++        if (level > 1) expected.Add(typeof(EnterSelectDungeonNotification));
++        Assert.Equal(expected, world.Sender.Sent.Select(message => message.GetType()));
++    }
++
++    private sealed class FixedCurrentState(SelectCharacterResult result) : ICharacterStateProjectionDomainService
++    {
++        public ValueTask<SelectCharacterResult> RefreshAsync(SelectCharacterResult ignored, CancellationToken token) => ValueTask.FromResult(result);
++    }
++
+     private World Build(
+         short? inBagAt = null,
+         short? wornAt = null,
+@@ -379,14 +419,19 @@
+             logger);
+     }
+ 
++    private sealed class UnchangedCurrentState : ICharacterStateProjectionDomainService
++    {
++        public ValueTask<SelectCharacterResult> RefreshAsync(SelectCharacterResult result, CancellationToken token) => ValueTask.FromResult(result);
++    }
++
+     private sealed record World(
+         MoveItemSpaceHandler Handler, RecordingSender Sender, RecordingRuntime Runtime,
+         StoreBackedInventory Inventory, RecordingLogger Logger)
+     {
+-        public async ValueTask<ExtendedUserStateMessage> OpenDungeonSelectionAsync()
++        public async ValueTask<ExtendedUserStateMessage> OpenDungeonSelectionAsync(ICharacterStateProjectionDomainService? current = null)
+         {
+             Sender.Sent.Clear();
+-            await new EnterSelectDungeonHandler(new OneSession(), Runtime, new SelectionVisits(),
++            await new EnterSelectDungeonHandler(current ?? new UnchangedCurrentState(), new OneSession(), Runtime, new SelectionVisits(),
+                 Sender, NullLogger<EnterSelectDungeonHandler>.Instance).HandleAsync(
+                     Dispatch, new EnterSelectDungeonRequest(GameMessageMetadata.Empty, 10000),
+                     CancellationToken.None);
+@@ -634,7 +679,7 @@
+ 
+     private sealed class SelectionVisits : IDungeonVisitDomainService
+     {
+-        public bool DefersSelectionState(byte characterLevel) => false;
++        public bool DefersSelectionState(byte characterLevel) => characterLevel <= 1;
+         public ValueTask<Dfo.Server.Abstractions.World.DungeonEntry?> EnterAsync(CharacterId characterId, int dungeonId,
+             byte difficulty, DungeonEntryFacts facts, CancellationToken cancellationToken) =>
+             throw new NotSupportedException();
+--- a/Server/tests/Dfo.Server.Protocol.Tests/Game/QuestCompletion/FinishQuestHandlerTests.cs
++++ b/Server/tests/Dfo.Server.Protocol.Tests/Game/QuestCompletion/FinishQuestHandlerTests.cs
+@@ -138,7 +138,7 @@
+             bus,
+             sender,
+             new QuestOfferRefreshDomainService(
+-                content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs()),
++                content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+             new FixedClock(DateTimeOffset.FromUnixTimeSeconds(1_700_000_000)),
+             NullLogger<FinishQuestHandler>.Instance);
+ 
+--- a/Server/tests/Dfo.Server.Protocol.Tests/Game/Quests/QuestOfferRefresherTests.cs
++++ b/Server/tests/Dfo.Server.Protocol.Tests/Game/Quests/QuestOfferRefresherTests.cs
+@@ -30,7 +30,7 @@
+     public async Task TheOfferListIsRecomputedAtTheNewLevel()
+     {
+         var content = new StubWorldContentEntryRuleService();
+-        var refresher = new QuestOfferRefreshDomainService(content, new RecordingQuestLogs());
++        var refresher = new QuestOfferRefreshDomainService(content, new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain());
+ 
+         var refreshed = await refresher.RefreshAsync(
+             SessionAtLevel(2), Account, Character, level: 3, CancellationToken.None);
+@@ -50,7 +50,7 @@
+     public async Task ASessionWithNoSubjectIsLeftAsItIs()
+     {
+         var content = new StubWorldContentEntryRuleService();
+-        var refresher = new QuestOfferRefreshDomainService(content, new RecordingQuestLogs());
++        var refresher = new QuestOfferRefreshDomainService(content, new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain());
+         var without = SessionAtLevel(2);
+         without = without with { World = without.World with { Subject = null } };
+ 
+@@ -59,6 +59,18 @@
+ 
+         Assert.Same(without, refreshed);
+         Assert.Null(content.LastSubject);
++    }
++
++    [Fact]
++    public async Task Offers_follow_current_career_instead_of_the_world_subject_copy()
++    {
++        var character = new CurrentCharacterStub { Identity = new(Character, 0, [65], 3, 0x11) };
++        var refresher = new QuestOfferRefreshDomainService(new StubWorldContentEntryRuleService(),
++            new RecordingQuestLogs(), CurrentCharacterStub.Domain(character));
++        var refreshed = await refresher.RefreshAsync(SessionAtLevel(2), Account, Character, 51, default);
++        Assert.Equal(3, refreshed.World.Subject!.Job);
++        Assert.Equal(0x11, refreshed.World.Subject.GrowType);
++        Assert.Equal(51, refreshed.World.Subject.Level);
+     }
+ 
+     private static SelectCharacterResult SessionAtLevel(int level)
+--- a/Server/tests/Dfo.Server.Protocol.Tests/Game/SelectCharacter/SelectCharacterPayloadCodecTests.cs
++++ b/Server/tests/Dfo.Server.Protocol.Tests/Game/SelectCharacter/SelectCharacterPayloadCodecTests.cs
+@@ -620,6 +620,7 @@
+ 
+             var services = new ServiceCollection();
+             services.AddSingleton(repository);
++            services.AddSingleton<ICharacterDomainService>(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain());
+             services.AddSingleton<IQuestDefinitionSource>(new Row9QuestDefinitions(13502));
+             // The quest rules read both declarations; nothing on this path asks what a quest pays.
+             services.AddSingleton<IQuestParameterSource>(new NoQuestParameters());
+--- a/Server/tests/Dfo.Server.Protocol.Tests/Game/TutorialLevelUp/TutorialLevelUpHandlerTests.cs
++++ b/Server/tests/Dfo.Server.Protocol.Tests/Game/TutorialLevelUp/TutorialLevelUpHandlerTests.cs
+@@ -76,7 +76,7 @@
+     }
+ 
+     /// <summary>
+-    /// The grant asks for the level the session holds, and reports the one it was given.
++    /// The response reports the level the grant returned.
+     /// </summary>
+     /// <remarks>
+     /// The reference server's own order, from its 2026-08-23 capture of the tutorial: the
+@@ -93,7 +93,6 @@
+ 
+         var sent = await AskForTheLevel(ledger, bus, content);
+ 
+-        Assert.Equal(StartingLevel, bus.LevelAskedAbout);
+         Assert.Equal(
+             [typeof(ExperienceNotification), typeof(AvailableQuestListMessage),
+              typeof(TutorialLevelUpResponse)],
+@@ -158,7 +157,7 @@
+             bus,
+             sender,
+             new QuestOfferRefreshDomainService(
+-                content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs()),
++                content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+             NullLogger<TutorialLevelUpHandler>.Instance);
+ 
+         await handler.HandleAsync(
+@@ -184,15 +183,12 @@
+         /// <summary>What the ledger's count stood at when the level was written.</summary>
+         public int LedgerAsksWhenTheGrantRan { get; private set; } = -1;
+ 
+-        /// <summary>The level the handler said the character was standing at.</summary>
+-        public byte? LevelAskedAbout { get; private set; }
+ 
+         public ValueTask<TResult> SendAsync<TResult>(
+             ICommand<TResult> command, CancellationToken cancellationToken = default)
+             where TResult : notnull
+         {
+             var grant = Assert.IsType<GrantTutorialLevelCommand>(command);
+-            this.LevelAskedAbout = grant.CurrentLevel;
+             this.LedgerAsksWhenTheGrantRan = ledger.TimesAsked;
+             var result = new TutorialLevelUpResult(
+                 TutorialLevelUpStatus.Granted,

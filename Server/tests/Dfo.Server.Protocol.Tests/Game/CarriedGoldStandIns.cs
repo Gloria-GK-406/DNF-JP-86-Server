@@ -20,6 +20,11 @@ internal sealed class CarriedGold(int total) : ICharacter
 {
     public CharacterId Id => new(60);
 
+    public ValueTask<CharacterBaseStats?> BaseStatsAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+    public ValueTask<IReadOnlyList<CharacterLearnedSkillPage>?> LearnedSkillsAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+    public ValueTask<CharacterSkillPointLedger?> SkillPointLedgerAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+
+
     public int Total { get; private set; } = total;
 
     /// <summary>How many charges were attempted, met or not.</summary>
@@ -30,7 +35,7 @@ internal sealed class CarriedGold(int total) : ICharacter
 
     public ValueTask<CharacterProgressionState?> ProgressAsync(
         CancellationToken cancellationToken) =>
-        throw new NotSupportedException("These cases are about gold, not about standing.");
+        ValueTask.FromResult<CharacterProgressionState?>(new(60, 0));
 
     public ValueTask<CharacterIdentityState?> IdentityAsync(
         CancellationToken cancellationToken) =>

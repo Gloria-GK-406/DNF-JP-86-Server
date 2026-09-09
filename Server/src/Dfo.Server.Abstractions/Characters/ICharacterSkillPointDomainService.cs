@@ -20,6 +20,8 @@ namespace Dfo.Server.Abstractions.Characters;
 /// </remarks>
 public interface ICharacterSkillPointDomainService
 {
+    ValueTask<CharacterSkillPointLedger?> LedgerAsync(CharacterId characterId, CancellationToken cancellationToken);
+
     /// <summary>
     /// What this character has left to spend on each page, or nothing when there is no such
     /// character.

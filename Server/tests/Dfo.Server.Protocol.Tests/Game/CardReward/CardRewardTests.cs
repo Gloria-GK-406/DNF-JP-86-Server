@@ -964,7 +964,7 @@ public sealed class CardRewardTests
     /// from the one this file hands its own commands, so a handler that made one up would show.
     /// </remarks>
     [Fact]
-    public async Task The_command_carries_the_account_and_the_published_level()
+    public async Task The_command_carries_the_account_and_character_identity()
     {
         var world = new World();
         var sender = new RecordingSender();
@@ -973,14 +973,12 @@ public sealed class CardRewardTests
 
         Assert.NotNull(world.LastCommand);
         Assert.Equal(Identity.AccountId, world.LastCommand.AccountId);
-        Assert.Equal(PublishedLevel, world.LastCommand.CharacterLevel);
+        Assert.Equal(Identity.CharacterId, world.LastCommand.CharacterId);
     }
 
     /// <summary>A flip on a connection whose session was never published never reaches the run.</summary>
     /// <remarks>
-    /// The identity alone is not enough now: the level a paid flip is priced at comes off the
-    /// published session, and a flip dispatched without one would be priced at whatever stood in
-    /// for it.
+    /// A flip requires a published game session before the command may be dispatched.
     /// </remarks>
     [Fact]
     public async Task A_flip_without_a_published_entry_never_reaches_the_run()
@@ -1160,7 +1158,7 @@ public sealed class CardRewardTests
         public ValueTask<SelectCardResult> Flip(ClearRewardCardKind kind, int index) =>
             this.Send(
                 new SelectCardCommand(
-                    Identity.AccountId, Identity.CharacterId, kind, index, FlipLevel));
+                    Identity.AccountId, Identity.CharacterId, kind, index));
 
         public async ValueTask<SelectCardResult> Send(SelectCardCommand command)
         {

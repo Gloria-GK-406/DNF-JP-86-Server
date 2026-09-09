@@ -8,7 +8,7 @@ using Dfo.Server.Data.Characters;
 namespace Dfo.Server.Application.Characters;
 
 /// <summary>
-/// The character someone is playing, as something to ask.
+/// A character addressed by its persistent identity, with facts read on demand.
 /// </summary>
 /// <remarks>
 /// It holds an identity and the things it needs to look facts up, and nothing else. Every question
@@ -27,9 +27,26 @@ internal sealed class PlayingCharacter(
     ICharacterCarriedGoldTable carriedGold,
     ICarriedGoldRuleService goldRules,
     ICharacterTable characters,
-    ICharacterSkillPointDomainService skillPoints) : ICharacter
+    ICharacterSkillPointDomainService skillPoints,
+    ICharacterStatRuleService statRules,
+    ICharacterSkillStateDomainService skillState) : ICharacter
 {
     public CharacterId Id => characterId;
+
+    public async ValueTask<CharacterBaseStats?> BaseStatsAsync(CancellationToken cancellationToken)
+    {
+        if (await characters.FindStandingAsync(characterId, cancellationToken).ConfigureAwait(false) is not { } standing)
+            return null;
+        await statRules.InitializeAsync(cancellationToken).ConfigureAwait(false);
+        return statRules.GetStats(CharacterCareer.FromPacked(checked((byte)standing.Job), checked((byte)standing.GrowType)), standing.Level);
+    }
+
+    public async ValueTask<IReadOnlyList<CharacterLearnedSkillPage>?> LearnedSkillsAsync(CancellationToken cancellationToken) =>
+        (await skillState.ReadAsync(characterId, cancellationToken).ConfigureAwait(false))?.LearnedPages;
+
+    public ValueTask<CharacterSkillPointLedger?> SkillPointLedgerAsync(CancellationToken cancellationToken) =>
+        skillPoints.LedgerAsync(characterId, cancellationToken);
+
 
     /// <remarks>
     /// The row, for the reason the progress below is read from the row: a session carries a copy of

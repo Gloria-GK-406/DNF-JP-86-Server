@@ -1,3 +1,5 @@
+using System.Collections.Frozen;
+using System.Globalization;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
@@ -5,119 +7,107 @@ using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfCharacterStatDefinitionSource(PvfArchiveProvider provider)
-    : ICharacterStatDefinitionSource
+internal sealed class PvfCharacterStatDefinitionSource(PvfArchiveProvider provider) : ICharacterStatDefinitionSource
 {
     private const string CharacterList = "character/character.lst";
-    private const string InitialTag = "[initial value]";
+    private readonly object _gate = new();
+    private IReadOnlyList<CharacterStatDefinition>? _definitions;
 
-    /// <summary>Opens the first growth block, which is where the initial block ends.</summary>
-    private const string GrowthTagPrefix = "[growtype ";
-
-    /// <summary>
-    /// Archive numbers are tenths of the value the client is sent: <c>[HP MAX] 180</c> is 1800.
-    /// </summary>
-    private const float WireScale = 10f;
-
-    public ValueTask<CharacterBaseStats> GetInitialAsync(byte job, CancellationToken cancellationToken)
+    public ValueTask<IReadOnlyList<CharacterStatDefinition>> GetAllAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var archive = provider.Archive;
-        var relative = PvfListFile.Read(archive, CharacterList)
-            .FirstOrDefault(value => value.Id == job).RelativePath;
-        if (string.IsNullOrEmpty(relative))
-            throw new InvalidOperationException($"{CharacterList} declares no job {job}.");
-
-        var path = "character/" + relative;
-        var values = ReadInitialSection(archive, path);
-        return ValueTask.FromResult(new CharacterBaseStats(
-            HpMax: Stat(values, "[HP MAX]"),
-            MpMax: Stat(values, "[MP MAX]"),
-            PhysicalAttack: Stat(values, "[physical attack]"),
-            PhysicalDefense: Stat(values, "[physical defense]"),
-            MagicalAttack: Stat(values, "[magical attack]"),
-            MagicalDefense: Stat(values, "[magical defense]"),
-            FireResistance: Stat(values, "[fire resistance]"),
-            WaterResistance: Stat(values, "[water resistance]"),
-            DarkResistance: Stat(values, "[dark resistance]"),
-            LightResistance: Stat(values, "[light resistance]"),
-            InventoryLimit: Stat(values, "[inventory limit]"),
-            HpRegenSpeed: Stat(values, "[HP regen speed]"),
-            MpRegenSpeed: Stat(values, "[MP regen speed]"),
-            MoveSpeed: Stat(values, "[move speed]"),
-            AttackSpeed: Stat(values, "[attack speed]"),
-            CastSpeed: Stat(values, "[cast speed]"),
-            HitRecovery: Stat(values, "[hit recovery]"),
-            JumpPower: Stat(values, "[jump power]"),
-            Weight: Stat(values, "[weight]")));
+        lock (_gate)
+        {
+            if (_definitions is not null) return ValueTask.FromResult(_definitions);
+            var archive = provider.Archive;
+            var definitions = new List<CharacterStatDefinition>();
+            foreach (var (id, relative) in PvfListFile.Read(archive, CharacterList))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                definitions.Add(Read(archive, checked((byte)id), "character/" + relative));
+            }
+            _definitions = definitions.AsReadOnly();
+            return ValueTask.FromResult(_definitions);
+        }
     }
 
-    /// <summary>
-    /// Collects the first value of every tag between <c>[initial value]</c> and the first growth
-    /// block.
-    /// </summary>
-    /// <remarks>
-    /// The scan has to stop at <c>[growtype 1]</c> rather than run to the end of the file. The
-    /// growth blocks repeat the same stat tags with the per-level increments, so a scan that kept
-    /// going would report a swordman's starting HP as the 45 he gains per level instead of the
-    /// 180 he is born with.
-    /// </remarks>
-    private static Dictionary<string, float> ReadInitialSection(PvfArchive archive, string path)
+    public async ValueTask<CharacterBaseStats> GetInitialAsync(byte job, CancellationToken cancellationToken)
+    {
+        var definitions = await GetAllAsync(cancellationToken).ConfigureAwait(false);
+        return (definitions.FirstOrDefault(value => value.Job == job)
+            ?? throw new InvalidOperationException($"The archive declares no job {job}.")).Initial.ToFixedPoint();
+    }
+
+    private static CharacterStatDefinition Read(PvfArchive archive, byte job, string path)
     {
         var index = archive.FindFile(path);
-        if (index < 0)
-            throw new InvalidOperationException($"The archive does not contain {path}.");
-
-        var values = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
+        if (index < 0) throw new InvalidOperationException($"The archive does not contain {path}.");
         var reader = archive.OpenScript(index);
-        var started = false;
+        Dictionary<string, double>? values = null;
+        Dictionary<string, double>? initial = null;
+        var growth = new Dictionary<CharacterCareer, Dictionary<string, double>>();
+        var growType = -1;
         string? tag = null;
-
         while (reader.Read(out var token))
         {
             if (token.Kind == PvfTokenKind.Identifier)
             {
-                var name = archive.ResolveString(token.Value);
-                if (!started)
+                tag = archive.ResolveString(token.Value);
+                if (tag.Equals("[initial value]", StringComparison.OrdinalIgnoreCase))
                 {
-                    started = name.Equals(InitialTag, StringComparison.OrdinalIgnoreCase);
-                    continue;
+                    if (initial is not null) throw new InvalidOperationException($"{path}: duplicate initial block.");
+                    values = initial = new(StringComparer.OrdinalIgnoreCase);
                 }
-
-                if (name.StartsWith(GrowthTagPrefix, StringComparison.OrdinalIgnoreCase))
-                    break;
-
-                tag = name;
+                else if (TryNumber(tag, "[growtype ", out var grow))
+                {
+                    growType = grow - 1;
+                    values = new(StringComparer.OrdinalIgnoreCase);
+                    growth.Add(new CharacterCareer(job, growType), values);
+                }
+                else if (TryNumber(tag, "[awakening ", out var awakening))
+                {
+                    if (growType < 0 || awakening == 0)
+                        throw new InvalidOperationException($"{path}: awakening without a valid growth block.");
+                    values = new(StringComparer.OrdinalIgnoreCase);
+                    growth.Add(new CharacterCareer(job, growType, awakening), values);
+                }
                 continue;
             }
-
-            // Only the first value of a tag. Some blocks in this range carry lists -- the initial
-            // [skill] grants are pairs of integers -- and none of the stats does.
-            if (started && tag is not null && !values.ContainsKey(tag))
-            {
-                if (token.Kind == PvfTokenKind.Single)
-                    values[tag] = token.AsSingle();
-                else if (token.Kind == PvfTokenKind.Int32)
-                    values[tag] = token.Value;
-            }
+            if (values is null || tag is null || values.ContainsKey(tag)) continue;
+            if (token.Kind == PvfTokenKind.Single) values[tag] = token.AsSingle();
+            else if (token.Kind == PvfTokenKind.Int32) values[tag] = token.Value;
         }
-
-        if (!started)
-            throw new InvalidOperationException($"{path} declares no {InitialTag} section.");
-
-        return values;
+        if (initial is null || !growth.ContainsKey(new CharacterCareer(job)))
+            throw new InvalidOperationException($"{path} requires initial and unadvanced growth declarations.");
+        return new(job, Vector(initial), growth.ToFrozenDictionary(pair => pair.Key, pair => Vector(pair.Value)));
     }
 
-    /// <summary>
-    /// Scales one archive number, or zero where the job does not declare it.
-    /// </summary>
-    /// <remarks>
-    /// Rounded rather than truncated. These arrive as IEEE singles, so a tenth that is exact in
-    /// the source text need not be exact in the token: truncating <c>0.7f * 10</c> yields 6.
-    /// No stat observed so far lands on such a value, and rounding costs nothing to be sure.
-    /// </remarks>
-    private static int Stat(Dictionary<string, float> values, string tag) =>
-        values.TryGetValue(tag, out var value)
-            ? (int)MathF.Round(value * WireScale, MidpointRounding.AwayFromZero)
-            : 0;
+    private static bool TryNumber(string tag, string prefix, out int value)
+    {
+        value = 0;
+        return tag.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) && tag.EndsWith(']')
+            && int.TryParse(tag.AsSpan(prefix.Length, tag.Length - prefix.Length - 1),
+                NumberStyles.None, CultureInfo.InvariantCulture, out value);
+    }
+
+    private static CharacterStatValues Vector(Dictionary<string, double> values) => new(
+        HpMax: values.GetValueOrDefault("[HP MAX]"),
+        MpMax: values.GetValueOrDefault("[MP MAX]"),
+        PhysicalAttack: values.GetValueOrDefault("[physical attack]"),
+        PhysicalDefense: values.GetValueOrDefault("[physical defense]"),
+        MagicalAttack: values.GetValueOrDefault("[magical attack]"),
+        MagicalDefense: values.GetValueOrDefault("[magical defense]"),
+        FireResistance: values.GetValueOrDefault("[fire resistance]"),
+        WaterResistance: values.GetValueOrDefault("[water resistance]"),
+        DarkResistance: values.GetValueOrDefault("[dark resistance]"),
+        LightResistance: values.GetValueOrDefault("[light resistance]"),
+        InventoryLimit: values.GetValueOrDefault("[inventory limit]"),
+        HpRegenSpeed: values.GetValueOrDefault("[HP regen speed]"),
+        MpRegenSpeed: values.GetValueOrDefault("[MP regen speed]"),
+        MoveSpeed: values.GetValueOrDefault("[move speed]"),
+        AttackSpeed: values.GetValueOrDefault("[attack speed]"),
+        CastSpeed: values.GetValueOrDefault("[cast speed]"),
+        HitRecovery: values.GetValueOrDefault("[hit recovery]"),
+        JumpPower: values.GetValueOrDefault("[jump power]"),
+        Weight: values.GetValueOrDefault("[weight]"));
 }

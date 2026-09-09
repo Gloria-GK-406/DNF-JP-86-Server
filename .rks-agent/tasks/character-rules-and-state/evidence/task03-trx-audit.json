@@ -1,0 +1,186 @@
+[
+  {
+    "File": "Dfo.Pvf.Tests-task03-full.trx",
+    "Count": 60,
+    "Outcomes": {
+      "Passed": 60
+    },
+    "Failures": [],
+    "Other": []
+  },
+  {
+    "File": "Dfo.Server.Application.Tests-task03-full.trx",
+    "Count": 1162,
+    "Outcomes": {
+      "Passed": 1162
+    },
+    "Failures": [],
+    "Other": []
+  },
+  {
+    "File": "Dfo.Server.Host.Tests-task03-corrected.trx",
+    "Count": 6,
+    "Outcomes": {
+      "Passed": 6
+    },
+    "Failures": [],
+    "Other": []
+  },
+  {
+    "File": "Dfo.Server.Host.Tests-task03-full.trx",
+    "Count": 6,
+    "Outcomes": {
+      "Failed": 1,
+      "Passed": 5
+    },
+    "Failures": [
+      {
+        "Name": "Dfo.Server.Host.Tests.CarriedGoldCompositionTests.The_character_business_acts_through_resolves_from_the_assembled_modules",
+        "Outcome": "Failed",
+        "Error": "System.InvalidOperationException : Unable to resolve service for type 'Microsoft.Extensions.Logging.ILogger`1[Dfo.Server.Application.Characters.CharacterSkillPointDomainService]' while attempting to activate 'Dfo.Server.Application.Characters.CharacterSkillPointDomainService'.   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateArgumentCallSites(ServiceIdentifier serviceIdentifier, Type implementationType, CallSiteChain callSiteChain, ParameterInfo[] parameters, Boolean throwIfCallSiteNotFound)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateConstructorCallSite(ResultCache lifetime, ServiceIdentifier serviceIdentifier, Type implementationType, CallSiteChain callSiteChain)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateExact(ServiceDescriptor descriptor, ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain, Int32 slot)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.TryCreateExact(ServiceDescriptor descriptor, ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain, Int32 slot)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.TryCreateExact(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.GetCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceProvider.CreateServiceAccessor(ServiceIdentifier serviceIdentifier)\r\n   at System.Collections.Concurrent.ConcurrentDictionary`2.GetOrAdd(TKey key, Func`2 valueFactory)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope.GetService(Type serviceType)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)\r\n   at Dfo.Server.Application.ApplicationModule.<>c__DisplayClass3_1.<ConfigureServices>b__15(CharacterId characterId) in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Application\\ApplicationModule.cs:line 243\r\n   at Dfo.Server.Application.Characters.CharacterDomainService.Get(CharacterId characterId) in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Application\\Characters\\CharacterDomainService.cs:line 27\r\n   at Dfo.Server.Host.Tests.CarriedGoldCompositionTests.The_character_business_acts_through_resolves_from_the_assembled_modules() in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\tests\\Dfo.Server.Host.Tests\\CarriedGoldCompositionTests.cs:line 40\r\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\r\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)"
+      }
+    ],
+    "Other": []
+  },
+  {
+    "File": "Dfo.Server.Infrastructure.Tests-task03-full.trx",
+    "Count": 262,
+    "Outcomes": {
+      "NotExecuted": 2,
+      "Passed": 260
+    },
+    "Failures": [],
+    "Other": [
+      {
+        "Name": "Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog",
+        "Outcome": "NotExecuted"
+      },
+      {
+        "Name": "Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message",
+        "Outcome": "NotExecuted"
+      }
+    ]
+  },
+  {
+    "File": "Dfo.Server.Infrastructure.Tests-task03-no-archive.trx",
+    "Count": 2,
+    "Outcomes": {
+      "Passed": 2
+    },
+    "Failures": [],
+    "Other": []
+  },
+  {
+    "File": "Dfo.Server.Networking.Tests-task03-full.trx",
+    "Count": 52,
+    "Outcomes": {
+      "Passed": 52
+    },
+    "Failures": [],
+    "Other": []
+  },
+  {
+    "File": "Dfo.Server.Persistence.Tests-task03-full.trx",
+    "Count": 333,
+    "Outcomes": {
+      "Passed": 333
+    },
+    "Failures": [],
+    "Other": []
+  },
+  {
+    "File": "Dfo.Server.Protocol.Tests-task03-full.trx",
+    "Count": 656,
+    "Outcomes": {
+      "Passed": 656
+    },
+    "Failures": [],
+    "Other": []
+  },
+  {
+    "File": "task03-current-sqlite-round2.trx",
+    "Count": 3,
+    "Outcomes": {
+      "Failed": 2,
+      "Passed": 1
+    },
+    "Failures": [
+      {
+        "Name": "Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload",
+        "Outcome": "Failed",
+        "Error": "System.InvalidOperationException : The data is NULL at ordinal 40. This method can't be called on NULL values. Check using IsDBNull before calling.   at Microsoft.Data.Sqlite.SqliteValueReader.GetInt64(Int32 ordinal)\r\n   at Microsoft.Data.Sqlite.SqliteValueReader.GetInt32(Int32 ordinal)\r\n   at Microsoft.Data.Sqlite.SqliteDataReader.GetInt32(Int32 ordinal)\r\n   at Dfo.Server.Persistence.Characters.SqliteCharacterConditionTable.<>c.<FindAsync>b__2_1(SqliteDataReader reader) in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Persistence\\Characters\\CharacterBodyTables.cs:line 31\r\n   at Dfo.Server.Persistence.Database.SqliteTable.<>c__DisplayClass1_0`1.<<ReadFirstAsync>b__0>d.MoveNext() in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Persistence\\Database\\SqliteTable.cs:line 64\r\n--- End of stack trace from previous location ---\r\n   at Dfo.Server.Persistence.Database.SqliteTable.<>c__DisplayClass1_0`1.<<ReadFirstAsync>b__0>d.MoveNext() in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Persistence\\Database\\SqliteTable.cs:line 64\r\n--- End of stack trace from previous location ---\r\n   at Dfo.Server.Persistence.Database.SqliteDatabase.ReadAsync[TResult](Func`3 read, CancellationToken cancellationToken) in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Persistence\\Database\\SqliteDatabase.cs:line 73\r\n   at Dfo.Server.Persistence.Database.SqliteDatabase.ReadAsync[TResult](Func`3 read, CancellationToken cancellationToken) in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Persistence\\Database\\SqliteDatabase.cs:line 73\r\n   at Dfo.Server.Persistence.Database.SqliteDatabase.ReadAsync[TResult](Func`3 read, CancellationToken cancellationToken) in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Persistence\\Database\\SqliteDatabase.cs:line 73\r\n   at Dfo.Server.Application.Characters.CharacterEntryAssembly.LoadProfileAsync(AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Application\\Characters\\CharacterEntryAssembly.cs:line 137\r\n   at Dfo.Server.Application.Characters.CharacterEntryAssembly.LoadAsync(AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Application\\Characters\\CharacterEntryAssembly.cs:line 81\r\n   at Dfo.Server.Application.Characters.CharacterEntryStateDomainService.LoadAsync(AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Application\\Characters\\CharacterEntryStateServices.cs:line 272\r\n   at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload() in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\tests\\Dfo.Server.Application.Tests\\Characters\\CurrentCharacterStateTests.cs:line 54\r\n   at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload() in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\tests\\Dfo.Server.Application.Tests\\Characters\\CurrentCharacterStateTests.cs:line 78\r\n--- End of stack trace from previous location ---"
+      },
+      {
+        "Name": "Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Selection_and_refresh_replace_only_current_base_facts_preserving_page_and_inventory_configuration",
+        "Outcome": "Failed",
+        "Error": "System.InvalidOperationException : The data is NULL at ordinal 40. This method can't be called on NULL values. Check using IsDBNull before calling.   at Microsoft.Data.Sqlite.SqliteValueReader.GetInt64(Int32 ordinal)\r\n   at Microsoft.Data.Sqlite.SqliteValueReader.GetInt32(Int32 ordinal)\r\n   at Microsoft.Data.Sqlite.SqliteDataReader.GetInt32(Int32 ordinal)\r\n   at Dfo.Server.Persistence.Characters.SqliteCharacterConditionTable.<>c.<FindAsync>b__2_1(SqliteDataReader reader) in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Persistence\\Characters\\CharacterBodyTables.cs:line 31\r\n   at Dfo.Server.Persistence.Database.SqliteTable.<>c__DisplayClass1_0`1.<<ReadFirstAsync>b__0>d.MoveNext() in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Persistence\\Database\\SqliteTable.cs:line 64\r\n--- End of stack trace from previous location ---\r\n   at Dfo.Server.Persistence.Database.SqliteTable.<>c__DisplayClass1_0`1.<<ReadFirstAsync>b__0>d.MoveNext() in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Persistence\\Database\\SqliteTable.cs:line 64\r\n--- End of stack trace from previous location ---\r\n   at Dfo.Server.Persistence.Database.SqliteDatabase.ReadAsync[TResult](Func`3 read, CancellationToken cancellationToken) in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Persistence\\Database\\SqliteDatabase.cs:line 73\r\n   at Dfo.Server.Persistence.Database.SqliteDatabase.ReadAsync[TResult](Func`3 read, CancellationToken cancellationToken) in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Persistence\\Database\\SqliteDatabase.cs:line 73\r\n   at Dfo.Server.Persistence.Database.SqliteDatabase.ReadAsync[TResult](Func`3 read, CancellationToken cancellationToken) in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Persistence\\Database\\SqliteDatabase.cs:line 73\r\n   at Dfo.Server.Application.Characters.CharacterEntryAssembly.LoadProfileAsync(AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Application\\Characters\\CharacterEntryAssembly.cs:line 137\r\n   at Dfo.Server.Application.Characters.CharacterEntryAssembly.LoadAsync(AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Application\\Characters\\CharacterEntryAssembly.cs:line 81\r\n   at Dfo.Server.Application.Characters.CharacterEntryStateDomainService.LoadAsync(AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Application\\Characters\\CharacterEntryStateServices.cs:line 272\r\n   at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Selection_and_refresh_replace_only_current_base_facts_preserving_page_and_inventory_configuration() in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\tests\\Dfo.Server.Application.Tests\\Characters\\CurrentCharacterStateTests.cs:line 87\r\n   at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Selection_and_refresh_replace_only_current_base_facts_preserving_page_and_inventory_configuration() in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\tests\\Dfo.Server.Application.Tests\\Characters\\CurrentCharacterStateTests.cs:line 124\r\n--- End of stack trace from previous location ---"
+      }
+    ],
+    "Other": []
+  },
+  {
+    "File": "task03-current-sqlite-round3.trx",
+    "Count": 3,
+    "Outcomes": {
+      "Failed": 1,
+      "Passed": 2
+    },
+    "Failures": [
+      {
+        "Name": "Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload",
+        "Outcome": "Failed",
+        "Error": "System.IO.InvalidDataException : Character bonus skill points cannot be negative.   at Dfo.Server.Application.Characters.CharacterEntryAssembly.LoadSkillsAsync(CharacterId characterId, Byte job, CancellationToken cancellationToken) in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Application\\Characters\\CharacterEntryAssembly.cs:line 267\r\n   at Dfo.Server.Application.Characters.CharacterEntryAssembly.LoadAsync(AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Application\\Characters\\CharacterEntryAssembly.cs:line 83\r\n   at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload() in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\tests\\Dfo.Server.Application.Tests\\Characters\\CurrentCharacterStateTests.cs:line 73\r\n   at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload() in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\tests\\Dfo.Server.Application.Tests\\Characters\\CurrentCharacterStateTests.cs:line 78\r\n   at Dfo.Server.Application.Tests.Characters.CurrentCharacterStateTests.Same_character_reads_transaction_changes_rollback_commit_and_reload() in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\tests\\Dfo.Server.Application.Tests\\Characters\\CurrentCharacterStateTests.cs:line 78\r\n--- End of stack trace from previous location ---"
+      }
+    ],
+    "Other": []
+  },
+  {
+    "File": "task03-current-sqlite-round4.trx",
+    "Count": 3,
+    "Outcomes": {
+      "Passed": 3
+    },
+    "Failures": [],
+    "Other": []
+  },
+  {
+    "File": "task03-focused-app.trx",
+    "Count": 241,
+    "Outcomes": {
+      "Passed": 241
+    },
+    "Failures": [],
+    "Other": []
+  },
+  {
+    "File": "task03-focused-protocol.trx",
+    "Count": 652,
+    "Outcomes": {
+      "Failed": 1,
+      "Passed": 651
+    },
+    "Failures": [
+      {
+        "Name": "Dfo.Server.Protocol.Tests.Game.SelectCharacter.SelectCharacterPayloadCodecTests.SelectCharacterPayload_Subtype1PreservesRealSqliteSpecialRewardSource",
+        "Outcome": "Failed",
+        "Error": "System.InvalidOperationException : Unable to resolve service for type 'Dfo.Server.Abstractions.Content.ICharacterStatDefinitionSource' while attempting to activate 'Dfo.Server.Application.Characters.CharacterStatRuleService'.   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateArgumentCallSites(ServiceIdentifier serviceIdentifier, Type implementationType, CallSiteChain callSiteChain, ParameterInfo[] parameters, Boolean throwIfCallSiteNotFound)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateConstructorCallSite(ResultCache lifetime, ServiceIdentifier serviceIdentifier, Type implementationType, CallSiteChain callSiteChain)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateExact(ServiceDescriptor descriptor, ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain, Int32 slot)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.TryCreateExact(ServiceDescriptor descriptor, ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain, Int32 slot)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.TryCreateExact(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.GetCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateArgumentCallSites(ServiceIdentifier serviceIdentifier, Type implementationType, CallSiteChain callSiteChain, ParameterInfo[] parameters, Boolean throwIfCallSiteNotFound)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateConstructorCallSite(ResultCache lifetime, ServiceIdentifier serviceIdentifier, Type implementationType, CallSiteChain callSiteChain)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateExact(ServiceDescriptor descriptor, ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain, Int32 slot)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.TryCreateExact(ServiceDescriptor descriptor, ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain, Int32 slot)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.TryCreateExact(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.CreateCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteFactory.GetCallSite(ServiceIdentifier serviceIdentifier, CallSiteChain callSiteChain)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceProvider.CreateServiceAccessor(ServiceIdentifier serviceIdentifier)\r\n   at System.Collections.Concurrent.ConcurrentDictionary`2.GetOrAdd(TKey key, Func`2 valueFactory)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope.GetService(Type serviceType)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)\r\n   at Dfo.Server.Application.ApplicationModule.<>c.<ConfigureServices>b__3_8(IServiceProvider provider) in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Application\\ApplicationModule.cs:line 240\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitFactory(FactoryCallSite factoryCallSite, RuntimeResolverContext context)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSiteMain(ServiceCallSite callSite, TArgument argument)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitRootCache(ServiceCallSite callSite, RuntimeResolverContext context)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.Resolve(ServiceCallSite callSite, ServiceProviderEngineScope scope)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceProvider.CreateServiceAccessor(ServiceIdentifier serviceIdentifier)\r\n   at System.Collections.Concurrent.ConcurrentDictionary`2.GetOrAdd(TKey key, Func`2 valueFactory)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope.GetService(Type serviceType)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)\r\n   at Dfo.Server.Application.ApplicationModule.<>c.<ConfigureServices>b__3_9(IServiceProvider provider) in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\src\\Dfo.Server.Application\\ApplicationModule.cs:line 255\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitFactory(FactoryCallSite factoryCallSite, RuntimeResolverContext context)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSiteMain(ServiceCallSite callSite, TArgument argument)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitRootCache(ServiceCallSite callSite, RuntimeResolverContext context)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitConstructor(ConstructorCallSite constructorCallSite, RuntimeResolverContext context)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSiteMain(ServiceCallSite callSite, TArgument argument)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitRootCache(ServiceCallSite callSite, RuntimeResolverContext context)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.Resolve(ServiceCallSite callSite, ServiceProviderEngineScope scope)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceProvider.CreateServiceAccessor(ServiceIdentifier serviceIdentifier)\r\n   at System.Collections.Concurrent.ConcurrentDictionary`2.GetOrAdd(TKey key, Func`2 valueFactory)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(Type serviceType)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)\r\n   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)\r\n   at Dfo.Server.Protocol.Tests.Game.SelectCharacter.SelectCharacterPayloadCodecTests.SelectCharacterPayload_Subtype1PreservesRealSqliteSpecialRewardSource() in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\SelectCharacter\\SelectCharacterPayloadCodecTests.cs:line 629\r\n   at Dfo.Server.Protocol.Tests.Game.SelectCharacter.SelectCharacterPayloadCodecTests.SelectCharacterPayload_Subtype1PreservesRealSqliteSpecialRewardSource() in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\tests\\Dfo.Server.Protocol.Tests\\Game\\SelectCharacter\\SelectCharacterPayloadCodecTests.cs:line 646\r\n--- End of stack trace from previous location ---"
+      }
+    ],
+    "Other": []
+  },
+  {
+    "File": "task03-tutorial-red.trx",
+    "Count": 1,
+    "Outcomes": {
+      "Failed": 1
+    },
+    "Failures": [
+      {
+        "Name": "Dfo.Server.Application.Tests.World.CharacterExperienceDomainServiceTests.TutorialRequestWithStaleLevelNeverLowersCurrentProgress",
+        "Outcome": "Failed",
+        "Error": "Assert.Equal() Failure: Values differ\r\nExpected: AlreadyPast\r\nActual:   Granted   at Dfo.Server.Application.Tests.World.CharacterExperienceDomainServiceTests.TutorialRequestWithStaleLevelNeverLowersCurrentProgress() in E:\\Project\\DNF\\DNF-JP-86-Server\\.worktrees\\character-rules-and-state\\Server\\tests\\Dfo.Server.Application.Tests\\World\\CharacterExperienceDomainServiceTests.cs:line 280\r\n--- End of stack trace from previous location ---"
+      }
+    ],
+    "Other": []
+  }
+]

@@ -313,7 +313,7 @@ public sealed class UseStackableHandlerTests
                 new NoCarriedGold(),
                 new StoredCarryLimitOnly(),
                 CharacterRow.At(RowLevel),
-                new NoSkillPointLedger())),
+                new NoSkillPointLedger(), null!, null!)),
             new ItemUseEffectDomainService(judgement, cooldowns));
 
         return (

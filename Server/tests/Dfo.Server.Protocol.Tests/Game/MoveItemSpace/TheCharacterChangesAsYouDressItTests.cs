@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
@@ -332,6 +333,45 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         Assert.Equal(persists, after);
     }
 
+    [Theory]
+    [InlineData((byte)1)]
+    [InlineData((byte)5)]
+    public async Task Dungeon_selection_reports_refreshed_character_values_in_the_existing_frame_order(byte level)
+    {
+        var world = Build(sessionCopyWears: OtherCostume);
+        var current = world.Runtime.Original with
+        {
+            Character = world.Runtime.Original.Character with { Progression = new(level, 9000) },
+            CharacterEntry = world.Runtime.Original.CharacterEntry with
+            {
+                Public = world.Runtime.Original.CharacterEntry.Public with
+                {
+                    DerivedStats = world.Runtime.Original.CharacterEntry.Public.DerivedStats with { HpMaximum = 9876 },
+                },
+                Skills = world.Runtime.Original.CharacterEntry.Skills with
+                {
+                    Pages = [new CharacterSkillPageState(0, [new CharacterSkillState(7, 1, 4, [8, 9])])],
+                    ProtocolMirror = new(11, 12, 13, 14),
+                },
+            },
+        };
+        var frame = await world.OpenDungeonSelectionAsync(new FixedCurrentState(current));
+        Assert.Equal(level, frame.Character.Progression.Level);
+        Assert.Equal(9876, frame.Public.DerivedStats.HpMaximum);
+        Assert.Equal(new CharacterSkillProtocolMirrorState(11, 12, 13, 14), frame.Skills.ProtocolMirror);
+        Assert.Equal(4, Assert.Single(Assert.Single(frame.Skills.Pages).Skills).Level);
+        Assert.Equal(OtherCostume, Assert.Single(frame.Equipment).Core.ItemId);
+        var expected = new List<Type> { typeof(ExtendedUserStateMessage), typeof(EnterSelectDungeonAcknowledgement),
+            typeof(UserStateNotification), typeof(UdpHostNotification) };
+        if (level > 1) expected.Add(typeof(EnterSelectDungeonNotification));
+        Assert.Equal(expected, world.Sender.Sent.Select(message => message.GetType()));
+    }
+
+    private sealed class FixedCurrentState(SelectCharacterResult result) : ICharacterStateProjectionDomainService
+    {
+        public ValueTask<SelectCharacterResult> RefreshAsync(SelectCharacterResult ignored, CancellationToken token) => ValueTask.FromResult(result);
+    }
+
     private World Build(
         short? inBagAt = null,
         short? wornAt = null,
@@ -379,14 +419,19 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
             logger);
     }
 
+    private sealed class UnchangedCurrentState : ICharacterStateProjectionDomainService
+    {
+        public ValueTask<SelectCharacterResult> RefreshAsync(SelectCharacterResult result, CancellationToken token) => ValueTask.FromResult(result);
+    }
+
     private sealed record World(
         MoveItemSpaceHandler Handler, RecordingSender Sender, RecordingRuntime Runtime,
         StoreBackedInventory Inventory, RecordingLogger Logger)
     {
-        public async ValueTask<ExtendedUserStateMessage> OpenDungeonSelectionAsync()
+        public async ValueTask<ExtendedUserStateMessage> OpenDungeonSelectionAsync(ICharacterStateProjectionDomainService? current = null)
         {
             Sender.Sent.Clear();
-            await new EnterSelectDungeonHandler(new OneSession(), Runtime, new SelectionVisits(),
+            await new EnterSelectDungeonHandler(current ?? new UnchangedCurrentState(), new OneSession(), Runtime, new SelectionVisits(),
                 Sender, NullLogger<EnterSelectDungeonHandler>.Instance).HandleAsync(
                     Dispatch, new EnterSelectDungeonRequest(GameMessageMetadata.Empty, 10000),
                     CancellationToken.None);
@@ -634,7 +679,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
 
     private sealed class SelectionVisits : IDungeonVisitDomainService
     {
-        public bool DefersSelectionState(byte characterLevel) => false;
+        public bool DefersSelectionState(byte characterLevel) => characterLevel <= 1;
         public ValueTask<Dfo.Server.Abstractions.World.DungeonEntry?> EnterAsync(CharacterId characterId, int dungeonId,
             byte difficulty, DungeonEntryFacts facts, CancellationToken cancellationToken) =>
             throw new NotSupportedException();

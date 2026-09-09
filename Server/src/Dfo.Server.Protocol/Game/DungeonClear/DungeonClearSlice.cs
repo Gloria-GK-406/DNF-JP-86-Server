@@ -621,8 +621,11 @@ public sealed class SetPlayResultHandler(
         // The level handed in is the one the character cleared at, taken before the award below
         // can move it: what band a clear's cards are drawn from is a fact about the run that was
         // just fought, not about the level the last of its experience happened to buy.
+        var clearProgress = await characters.Get(session.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false);
+        if (clearProgress is null)
+            return;
         var settled = await cardRewards.SettleAsync(
-            new ClearRewardSettlement(session.CharacterId, result.Character.Progression.Level),
+            new ClearRewardSettlement(session.CharacterId, clearProgress.Level),
             cancellationToken).ConfigureAwait(false);
         var freeCards = settled?.Cards.Free.Slots ?? [];
         var cardGold = settled?.Cards.Free.Gold ?? 0;
@@ -705,13 +708,16 @@ public sealed class SetPlayResultHandler(
             paid.RankBonus,
             paid.Award);
 
-        // The session is corrected before the frames go out, exactly as a kill does it: every
-        // later frame reads the character from here, so a session left holding the entry-time
-        // total would go on reporting it.
+        // The award is the result of this write. When none was made, the character's current
+        // progress supplies the frame; the session remains only a compatibility projection.
         var award = paid.Award;
-        var level = award?.Level ?? checked((byte)result.Character.Progression.Level);
-        var total = award?.Total
-            ?? checked((uint)result.CharacterEntry.Public.Extras.CharacterExperience);
+        var currentProgress = award is null
+            ? await characters.Get(session.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false)
+            : new CharacterProgressionState(award.Level, award.Total);
+        if (currentProgress is null)
+            return;
+        var level = currentProgress.Level;
+        var total = currentProgress.Experience;
         if (award is not null)
         {
             result = result with

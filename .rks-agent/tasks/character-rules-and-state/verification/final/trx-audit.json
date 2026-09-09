@@ -1,0 +1,72 @@
+{
+  "VerifiedAtUtc": "2026-09-09T06:00:17.0430111Z",
+  "BuildExit": 0,
+  "Baseline": "8b19eaac9863e23da4703fa644bfd0cb882b6cd6",
+  "PassedResults": 2531,
+  "ConditionalSkippedRecords": 2,
+  "SkippedCasesPassedInAlternateEnvironment": [
+    "Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog",
+    "Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message"
+  ],
+  "Projects": [
+    {
+      "File": "Dfo.Pvf.Tests.trx",
+      "Sha256": "0FC829FCCAB6EBF1E7A7BE67732976D26D5069F94AB2CC993F5757254DA2996D",
+      "ExitCode": 0,
+      "Passed": 60,
+      "Skipped": []
+    },
+    {
+      "File": "Dfo.Server.Application.Tests.trx",
+      "Sha256": "57673201DAB45A49D33E81D3C3D6509E31D09E20DB389C5ACCE95DF7FE0E96CC",
+      "ExitCode": 0,
+      "Passed": 1162,
+      "Skipped": []
+    },
+    {
+      "File": "Dfo.Server.Host.Tests.trx",
+      "Sha256": "D94CE91B6F3809DC9747DFC3EFFCD2F089675C38ED77FA5A07A462CE0A6AD8D7",
+      "ExitCode": 0,
+      "Passed": 6,
+      "Skipped": []
+    },
+    {
+      "File": "Dfo.Server.Infrastructure.Tests.trx",
+      "Sha256": "778898CEE3A4103BC400D0DE3F86AD5303ED08B21FAA7EA85D888CA4F54C48D9",
+      "ExitCode": 0,
+      "Passed": 260,
+      "Skipped": [
+        "Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message",
+        "Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog"
+      ]
+    },
+    {
+      "File": "Dfo.Server.Networking.Tests.trx",
+      "Sha256": "358407C0813C731090AB216349981B960A835C656B5CC7486E5CC5E849E3C4FB",
+      "ExitCode": 0,
+      "Passed": 52,
+      "Skipped": []
+    },
+    {
+      "File": "Dfo.Server.Persistence.Tests.trx",
+      "Sha256": "8F2FD49F6CEFF4EA52A204E0BCAA33FBA95CB6A7B9C9005F4B25612D1DCD6DF2",
+      "ExitCode": 0,
+      "Passed": 333,
+      "Skipped": []
+    },
+    {
+      "File": "Dfo.Server.Protocol.Tests.trx",
+      "Sha256": "A5CBED80A8BE0BDA14241D99625383CFB4ECEA8E0E3A90ACBBC623F1D95AB238",
+      "ExitCode": 0,
+      "Passed": 656,
+      "Skipped": []
+    },
+    {
+      "File": "Infrastructure-no-archive.trx",
+      "Sha256": "1A538C0982D5EB42A02EC4A7804B29B9F5658ABBBF9613BBD7B39C9E0B917357",
+      "ExitCode": 0,
+      "Passed": 2,
+      "Skipped": []
+    }
+  ]
+}

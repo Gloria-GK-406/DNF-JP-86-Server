@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -27,7 +28,7 @@ namespace Dfo.Server.Application.Quests;
 /// </remarks>
 internal sealed class QuestOfferRefreshDomainService(
     IWorldContentEntryRuleService worldContent,
-    ICharacterQuestLogDomainService logs) : IQuestOfferRefreshDomainService
+    ICharacterQuestLogDomainService logs, ICharacterDomainService characters) : IQuestOfferRefreshDomainService
 {
     /// <summary>
     /// The session with its offer list, and the inputs behind it, brought up to date.
@@ -52,6 +53,8 @@ internal sealed class QuestOfferRefreshDomainService(
         if (result.World.Subject is not { } subject)
             return result;
 
+        var identity = await characters.Get(characterId).IdentityAsync(cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidDataException("Character identity is unavailable while refreshing quest offers.");
         var log = logs.LogOf(accountId, characterId);
         var carried = await log.CarriedAsync(cancellationToken).ConfigureAwait(false);
         var cleared = await log.ClearedAsync(cancellationToken).ConfigureAwait(false);
@@ -59,6 +62,8 @@ internal sealed class QuestOfferRefreshDomainService(
         var updated = subject with
         {
             Level = level,
+            Job = identity.Job,
+            GrowType = identity.GrowType,
             CarriedQuestIds = [.. carried.Select(quest => quest.QuestId)],
             ClearedQuestFlags = cleared.ToDictionary(
                 quest => quest.QuestId, quest => (int)quest.Mark),

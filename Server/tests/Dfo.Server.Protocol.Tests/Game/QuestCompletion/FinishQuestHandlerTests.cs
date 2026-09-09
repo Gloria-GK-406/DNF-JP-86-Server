@@ -138,7 +138,7 @@ public sealed class FinishQuestHandlerTests
             bus,
             sender,
             new QuestOfferRefreshDomainService(
-                content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs()),
+                content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
             new FixedClock(DateTimeOffset.FromUnixTimeSeconds(1_700_000_000)),
             NullLogger<FinishQuestHandler>.Instance);
 

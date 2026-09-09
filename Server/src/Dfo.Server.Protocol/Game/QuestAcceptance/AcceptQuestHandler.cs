@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
@@ -12,21 +13,14 @@ namespace Dfo.Server.Protocol.Game.QuestAcceptance;
 /// Takes the quest on, answers with what it opened at, and refreshes the offer list.
 /// </summary>
 /// <remarks>
-/// Three frames leave here in the reference server's order: the acknowledgement, then -- only when
-/// the quest was taken -- the acceptable-quest list again. It re-sends that list whether or not it
-/// changed, and on this server it never does: the list is computed from level, job, grow type and
-/// cleared quests, and accepting changes none of them. It is sent anyway because matching the
-/// reference is the rule, and because a client that redraws on receipt would otherwise be left
-/// showing the offer it just took.
-///
-/// The list is the one entry computed, read back from the session rather than recomputed. That is
-/// not a shortcut around a stale answer -- nothing it depends on has moved -- and recomputing it
-/// would mean rebuilding the whole world-content subject to arrive at the same bytes.
+/// After acknowledgement, an accepted quest refreshes the offer list from current character
+/// progression, career and quest-log facts. The refreshed list follows in the existing frame order.
 ///
 /// <b>Answering at all is what matters most here.</b> Before this existed the client sent the
 /// request, waited, and sent it again: the two acceptances observed live arrived twice each.
 /// </remarks>
 public sealed class AcceptQuestHandler(
+    ICharacterDomainService characters,
     ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     ICommandBus commandBus,
@@ -97,11 +91,14 @@ public sealed class AcceptQuestHandler(
         // prompt again for a quest just accepted, and the second acceptance was refused. Seen live
         // on 2026-08-27 and reproduced by the reference server on the same client. Recorded in
         // Docs/ProtocolScaffoldDissonances.md.
+        var currentProgress = await characters.Get(session.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false);
+        if (currentProgress is null)
+            return;
         result = await offers.RefreshAsync(
             result,
             session.AccountId,
             session.CharacterId,
-            result.Character.Progression.Level,
+            currentProgress.Level,
             cancellationToken).ConfigureAwait(false);
         runtimeSessions.ReplaceExact(session, result);
 
@@ -110,7 +107,7 @@ public sealed class AcceptQuestHandler(
             new GameExplicitMessageDelivery(
                 [
                     new AvailableQuestListMessage(
-                        result.Character.Progression.Level, result.World.Content.AvailableQuests),
+                        currentProgress.Level, result.World.Content.AvailableQuests),
                 ],
                 []),
             cancellationToken).ConfigureAwait(false);

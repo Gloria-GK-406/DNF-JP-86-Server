@@ -96,8 +96,7 @@ public sealed class SelectCardHandler(
                 session.AccountId,
                 session.CharacterId,
                 message.Kind,
-                message.Index,
-                published.Character.Progression.Level),
+                message.Index),
             cancellationToken).ConfigureAwait(false);
 
         if (result.Status is not SelectCardStatus.Flipped)

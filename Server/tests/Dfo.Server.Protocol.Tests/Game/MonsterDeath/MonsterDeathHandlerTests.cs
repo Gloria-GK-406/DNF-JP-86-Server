@@ -124,6 +124,17 @@ public sealed class MonsterDeathHandlerTests
         Assert.Empty(acknowledgement.Drops);
     }
 
+    [Fact]
+    public async Task A_kill_without_an_award_reports_current_progress_instead_of_the_entry_copy()
+    {
+        var ledger = new SkillPointLedger { Progress = new CharacterProgressionState(9, 6000) };
+        var sent = await Kill(ledger: ledger, bus: new FixedKillAward(false, awarded: false));
+        var experience = Assert.Single(sent.OfType<ExperienceNotification>());
+        Assert.Equal(9, experience.Level);
+        Assert.Equal(6000u, experience.TotalExperience);
+        Assert.Equal([typeof(ExperienceNotification), typeof(MonsterDeathNotification)], sent.Select(frame => frame.GetType()));
+    }
+
     private static async Task<IReadOnlyList<IGameServerMessage>> Kill(
         bool leveledUp = false,
         SkillPointLedger? ledger = null,
@@ -148,7 +159,7 @@ public sealed class MonsterDeathHandlerTests
             new NothingDropped(),
             bus ?? new FixedKillAward(leveledUp),
             new QuestOfferRefreshDomainService(
-                content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs()),
+                content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
             sender,
             ExperienceDiagnostics.None,
             NullLogger<MonsterDeathHandler>.Instance);
@@ -169,7 +180,7 @@ public sealed class MonsterDeathHandlerTests
     /// <see cref="GrantKillExperienceCommandTests"/>. What is checked here is what the handler
     /// does with the answer.
     /// </remarks>
-    private sealed class FixedKillAward(bool leveledUp) : ICommandBus
+    private sealed class FixedKillAward(bool leveledUp, bool awarded = true) : ICommandBus
     {
         /// <summary>How many times the kill was priced, which a repeated death would raise.</summary>
         public int TimesAsked { get; private set; }
@@ -181,13 +192,13 @@ public sealed class MonsterDeathHandlerTests
             Assert.IsType<GrantKillExperienceCommand>(command);
             this.TimesAsked++;
             var result = new KillExperienceResult(
-                new ExperienceAward(
+                awarded ? new ExperienceAward(
                     Base: KillGain,
                     Contributions: [],
                     Gained: KillGain,
                     Level: leveledUp ? (byte)(StartingLevel + 1) : StartingLevel,
                     Total: StartingExperience + KillGain,
-                    LeveledUp: leveledUp));
+                    LeveledUp: leveledUp) : null);
             return ValueTask.FromResult((TResult)(object)result);
         }
     }

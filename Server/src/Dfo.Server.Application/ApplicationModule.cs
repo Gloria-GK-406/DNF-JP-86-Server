@@ -62,6 +62,10 @@ public sealed class ApplicationModule : IServerModule
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<ICharacterStatRuleService, CharacterStatRuleService>();
+        services.TryAddSingleton<CharacterSkillRuleService>();
+        services.TryAddSingleton<ICharacterSkillRuleService>(sp => sp.GetRequiredService<CharacterSkillRuleService>());
+        services.TryAddSingleton<ISkillPointDefinitionSource>(sp => sp.GetRequiredService<CharacterSkillRuleService>());
 
         // What a premium term adds to an award. Empty unless an operator configures it: the
         // archive declares no rate for any of its fifty-two premium types, so any number here
@@ -214,7 +218,9 @@ public sealed class ApplicationModule : IServerModule
             IChannelDirectoryDomainService, ChannelDirectoryDomainService>();
         services.TryAddSingleton<IMonsterDropService, MonsterDropService>();
         // What a character has left to spend, asked by identifier and worked out on the spot. The
-        // arithmetic is the entry rule service's; this is the way to reach it without being entry.
+        // arithmetic belongs to the shared skill rules; the state service supplies current facts.
+        services.TryAddSingleton<ICharacterSkillStateDomainService, CharacterSkillStateDomainService>();
+        services.TryAddSingleton<ICharacterStateProjectionDomainService, CharacterStateProjectionDomainService>();
         services.TryAddSingleton<
             ICharacterSkillPointDomainService, CharacterSkillPointDomainService>();
         // Where a character being played is standing, asked by identifier rather than by session.
@@ -242,7 +248,9 @@ public sealed class ApplicationModule : IServerModule
                     provider.GetRequiredService<ICharacterCarriedGoldTable>(),
                     provider.GetRequiredService<ICarriedGoldRuleService>(),
                     provider.GetRequiredService<ICharacterTable>(),
-                    provider.GetRequiredService<ICharacterSkillPointDomainService>())));
+                    provider.GetRequiredService<ICharacterSkillPointDomainService>(),
+                    provider.GetRequiredService<ICharacterStatRuleService>(),
+                    provider.GetRequiredService<ICharacterSkillStateDomainService>())));
         services.TryAddSingleton<ICharacterDomainService>(
             provider => provider.GetRequiredService<CharacterDomainService>());
         services.TryAddSingleton<ISelectCharacterPreparationDomainService, SelectCharacterPreparationService>();

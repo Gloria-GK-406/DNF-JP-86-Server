@@ -1,0 +1,306 @@
+{
+  "Baseline": "8b19eaac9863e23da4703fa644bfd0cb882b6cd6",
+  "Branch": "refactor/character-rules-and-state",
+  "Files": [
+    {
+      "Path": "AGENTS.md",
+      "Sha256": "4F47DFD46372A4BB6CAB2FC6EF923E6DF63ACA3114FDE7ABD94E74BFF9AB6AA3"
+    },
+    {
+      "Path": "Document/CharacterBaseStatRules.md",
+      "Sha256": "ECBF25EBDCF8B9F1266165AF876FF6B35EEEC7AD86B5A1BF85FEAC0B7C9AF36B"
+    },
+    {
+      "Path": "Document/CharacterSkillRules.md",
+      "Sha256": "AC9806B8DB393041D507970CD13CE7D82A9B6EE5B2875A03A216DF0B0B523585"
+    },
+    {
+      "Path": "Document/CurrentCharacterFacts.md",
+      "Sha256": "22D900A9027F617DC34047F78932FAD6515335D8E550A0DD52A609E0250526BD"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Abstractions/Characters/ICharacter.cs",
+      "Sha256": "2EB3F64336EB9F417A072769F9D780EA080427020A3030CD80729BB7C7083C37"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Abstractions/Characters/ICharacterSkillPointDomainService.cs",
+      "Sha256": "33C482669E37EB6BF7472838A40E293B45CE58E2EE2E392E2718D1DA2A5A4D58"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Abstractions/Characters/ICharacterSkillRuleService.cs",
+      "Sha256": "D613CD50D93D82BE0867A0960ED15CBC1A0AEB235988A4652B7FE6AD1AFCDA54"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Abstractions/Characters/ICharacterSkillStateDomainService.cs",
+      "Sha256": "50D8439886140DEA2DF5D81FF473C97492FE77BED964582894D9B3DF6344AA59"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Abstractions/Characters/ICharacterStateProjectionDomainService.cs",
+      "Sha256": "A7EF0F0D959B4FD57CD3E918BA91A20F46DB00B532694F5E739F77E8E28D1399"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Abstractions/Characters/ICharacterStatRuleService.cs",
+      "Sha256": "126FFB5E179E6AE98FACE4F6F60CEDE7F999DD5222D9F73A211737871F10F796"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Abstractions/Content/CharacterStatContent.cs",
+      "Sha256": "692A740C63962C2A5D72D0634ADF831A0EF59BF0C39BA8B482D63C3889D037EC"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Abstractions/Content/SkillPointContent.cs",
+      "Sha256": "44FCB6B94B579429128164C371646D5C24D26675CD6D4D032F61899EE196552D"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Abstractions/Content/SkillRuleContent.cs",
+      "Sha256": "3A5EDD93A6595CF581BADF93E957A1276A8D7189E9A3A7DD3C395219FC91BA35"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Application/ApplicationModule.cs",
+      "Sha256": "686511EBDE061D6C030E7064B09CC8376FE915963029F9F7F9FB02F349F5DD5A"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Application/Characters/CharacterBaseStatProjection.cs",
+      "Sha256": "024285F0FAD4B4DF75213FCB99810FC604E4DDBC2B2DBE6055466D6377E2EDB7"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Application/Characters/CharacterCreationRuleService.cs",
+      "Sha256": "C3DA909702295813B121B9A3F6D56AD1D554FF7D9E35E166DE9057639B7DFF2B"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Application/Characters/CharacterEntryPreparationRuleService.cs",
+      "Sha256": "37594C2EB685009015BF9205A38DC196112501FCBB5263B81B27B95B2B3CCE44"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Application/Characters/CharacterEntryStateServices.cs",
+      "Sha256": "FB4D994CA7462042D8B23610DB43CF23076AF6F9F42198F200DF08CD4C632782"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Application/Characters/CharacterSkillPointDomainService.cs",
+      "Sha256": "3D96AD72DB9747A52484953848855F886EB4EDA030E4EEFD604B23392AB9E2C1"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Application/Characters/CharacterSkillRuleService.cs",
+      "Sha256": "501C1A4578129958E1EABF82CA6B4AD661BF59C186FE6A88B71A95D5C1B12B90"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Application/Characters/CharacterSkillStateDomainService.cs",
+      "Sha256": "2BD35ABEB43E92521EA0141DDDC04CACE7FF3E4E3B86ABEA86D10A4CA7F6217A"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Application/Characters/CharacterStateProjectionDomainService.cs",
+      "Sha256": "54CB7EE476150CE77D74966156807AA3AE08195199B8BA3BA2028227FA6A4B59"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Application/Characters/CharacterStatRuleService.cs",
+      "Sha256": "89C358DF447058E54D25891310A48F20DD5E94D8C60A136326A29280314BF2E1"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Application/Characters/PlayingCharacter.cs",
+      "Sha256": "B3BF222835FFDF60493C31437F3FCCC3467080D0BD3C440487CFFAB740BAD7D0"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Application/Characters/SelectCharacterPreparationService.cs",
+      "Sha256": "F6D4D49AFD5CE41AD9134BF68D45592191094121E6FAA9575C959759E58A550D"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Application/Quests/QuestOfferRefreshDomainService.cs",
+      "Sha256": "CC1AE85F297C0709886F888FE86A7D9A61235B5A4FB3DF54F153973E580686DE"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Data/Characters/CharacterCareer.cs",
+      "Sha256": "91E9F94D58668542665064DB89753438F76D01AA83EE7B1B4FEF0231EC037461"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Data/Characters/CharacterModels.cs",
+      "Sha256": "56396CCC434CA54BD27EBCA35019886086FD9F4A7F2134A6A03D8E8E59C4684F"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Data/Characters/CharacterSkillFacts.cs",
+      "Sha256": "217D3792E8A845620E7C142593CC0579A4E9E8F69300FB7D0C57739ECAB41AE0"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Data/Characters/CharacterSkillPointLedger.cs",
+      "Sha256": "FDD20131D58E3A3EBFDC560EF8AE8EAB07CE9CC6215551AF178B149AFED1A1F8"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Data/Characters/CharacterStatValues.cs",
+      "Sha256": "A61F765AFCEBF73CAC8F113C92011F840713842F79FE4875A0C613AC88D2D46D"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Host/Program.cs",
+      "Sha256": "35C291B74C8AFD21ABA40D27AE7F940F01E5BC1BEC8A8FAB8E88055470843E27"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Infrastructure/Content/PvfCharacterStatDefinitionSource.cs",
+      "Sha256": "AEE7D3EE38451F5425203A5965C18A9349F2B96D38021C241B5FD13C2A0BAD9D"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Infrastructure/Content/PvfSkillPointDefinitionSource.cs",
+      "Sha256": "FFD19DC92D1ADD5F4455BD16546185F0A33F0C0E6E5A596AFEFB70135D40B6DB"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Infrastructure/InfrastructureModule.cs",
+      "Sha256": "04E103FDF6010B9E7E6F5A0C6B1F314D8C867307FE87E1994B8CB1CD3A60C9E4"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Protocol/Game/CardReward/CardRewardHandlers.cs",
+      "Sha256": "D9006F489FCC6DE431DDFF1AF7EB4C9A4E4D53A0EF308CEC54A6353E0797C579"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Protocol/Game/CardReward/SelectCardCommand.cs",
+      "Sha256": "7730544DEE8464F3AD37B1ACD02FF4B2CF4CE3742512FD5AD0BC2023470EE423"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
+      "Sha256": "FC70D27779B98EC5DAFF83BE0289D6E52400F4D158A8077F6C23C679ECDF28FB"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntrySlice.cs",
+      "Sha256": "CE6879EF344C5C1163CA30CA94BEC1FA05B44D5384521633D9DB9786FF98D661"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionSlice.cs",
+      "Sha256": "5C0560736095EDE8BDB1B7690AB4676579BCF36A86FC47A912553CE1DD28A887"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/MonsterDeathSlice.cs",
+      "Sha256": "ED254B085D4AFB6BF7AC8815C27EB950E700058C858E55B43F23D7F07CB59F95"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/AcceptQuestHandler.cs",
+      "Sha256": "4AD64D0C79BF098271A780BCBCDEB1F74C048D815C1180DA1EDB0D74152D6BE7"
+    },
+    {
+      "Path": "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs",
+      "Sha256": "234142F9875C25F5AC18354299002D47F6CD6CA643B02EAAFA59DCA57ACF1CC6"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Application.Tests/Characters/CarriedGoldCapTests.cs",
+      "Sha256": "5024B4B2E7317D4312537165D54F288205FFADDD6B10C8C440D56BC18F2F2BD0"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Application.Tests/Characters/CharacterEntryStateTests.cs",
+      "Sha256": "F522D0B1D52887F4A9BF3E95D7AB5CD43FEE4670BE49F71E3CB175684F87B734"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Application.Tests/Characters/CharacterIdentityTests.cs",
+      "Sha256": "BCD2C2CF3FBC7664CBD96C81045DC2F68CCDC2AED6E0A12BCE165EEF4C209EC7"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Application.Tests/Characters/CharacterItemUseTests.cs",
+      "Sha256": "8DEFD104CFA37EAC28DF7205DB3ABAFA71AEAC1CEC963CE5FE6ED953760CDA3F"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Application.Tests/Characters/CharacterLifecycleServiceTests.cs",
+      "Sha256": "E01E773F5287712614A6899A5E06A88AAAD287676E1363B0B9CA9AAE6BEA5876"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Application.Tests/Characters/CharacterRepositoryProductsTests.cs",
+      "Sha256": "06ED139294F10C02211EC813CA92F84C313B04CB25F1E1C244C4261C35D854CA"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Application.Tests/Characters/CharacterSkillArchiveTests.cs",
+      "Sha256": "958F9B29DB2EFF52D67E099CEF56E7AB3B4E2B99F3C6B4FC37F63275A172DA82"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Application.Tests/Characters/CharacterSkillRuleServiceTests.cs",
+      "Sha256": "72D73714133EE2B24721D88D6D955A6C268DF1B5D0EDF1C7AE1ADF5F1A3BA373"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Application.Tests/Characters/CharacterStatArchiveTests.cs",
+      "Sha256": "50D84F45AFB19037A2213B2BCC17621BD7E6F8D07801CA930E50A4E8DB4F2C2E"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Application.Tests/Characters/CharacterStatRuleServiceTests.cs",
+      "Sha256": "13ADC55B474BE94BEC8ABCF02D48076169F10126283EE7ABCD290A73D7E0F01F"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Application.Tests/Characters/CurrentCharacterStateTests.cs",
+      "Sha256": "C76262BF31C2A3BF9839F3AF435EF7495F1D64369FA1EC70344135642074533A"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Application.Tests/Characters/NoCarriedGold.cs",
+      "Sha256": "306B2BD3ABA64F827B7C75C81151B38F85A8B3BC06F953DEDD595CC8660D15F8"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Application.Tests/Characters/RemainingSkillPointTests.cs",
+      "Sha256": "17CA4207F25F27F6C4BC6F0218E261B77982AA3F00B5C16B515F7BF1117A1CBC"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Application.Tests/Game/UseStackableHandlerTests.cs",
+      "Sha256": "8659D3AE40DBCA210A146B88FA6101663BE25ED7354BEF224A5728A77343B592"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Application.Tests/Inventory/NpcShopPurchaseTests.cs",
+      "Sha256": "C812095B162B2D1968FC3D2E1F4FDF9F6D2062EEE49D9BA809A5BA5C88765B46"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Application.Tests/Support/CurrentCharacterStub.cs",
+      "Sha256": "36301C2C645B5991C96279CE0E4C8DFDD31A35466656779A2383F4BD6BDAAEBD"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Application.Tests/World/CharacterExperienceDomainServiceTests.cs",
+      "Sha256": "03720B7D4C96DF7ABABF6F761E821BCE83112F3EE36F801CBA8826AD3B8915FA"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Application.Tests/World/PaidCardFlipCostTests.cs",
+      "Sha256": "0B3EC2536E76A912F4EF1A86DBF8DF3A81D8BD36E5EC46609A12CA2954D87937"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Host.Tests/CarriedGoldCompositionTests.cs",
+      "Sha256": "C6896A1E4A0B9ECF85197FB6376ED5F1A2A0C8F5A184A8CB32AACF6A11D33DA3"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Infrastructure.Tests/Content/PvfSkillPointDefinitionSourceTests.cs",
+      "Sha256": null
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Protocol.Tests/Dfo.Server.Protocol.Tests.csproj",
+      "Sha256": "E1CFF8E32FF4B4E3BBAB65B6C0DA58729A25889690B97C2E513B50B6447EF82C"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Protocol.Tests/Game/CardReward/CardRewardTests.cs",
+      "Sha256": "E39647DE1367230966E88ED7C017F06A9EFE87CF323530CAE181AF4A1546FA57"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Protocol.Tests/Game/CarriedGoldStandIns.cs",
+      "Sha256": "D547F7098276FCDC584A518B2F8E9048C4B07E8C5B7AEEFE466D99DDA3882E94"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonClear/SetPlayResultHandlerTests.cs",
+      "Sha256": "273B06FDA5550D8C51815F89CE180FAEE4418F551321C70F3D7F2A5C3191F2BB"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/SelectDungeonHandlerTests.cs",
+      "Sha256": "AFFF02631A2297A9C39AF9BFE6C411BEACDBB09002BCCE80065B85710C6DAB03"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Protocol.Tests/Game/ExperienceFrameStandIns.cs",
+      "Sha256": "6791D0AF1A0AADC54B0F856BD063ACB31CDE8B57EF5863C752CD705335AE37CD"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Protocol.Tests/Game/MonsterDeath/MonsterDeathHandlerTests.cs",
+      "Sha256": "2F3D420CF04318BCA5D3990C19B2D0A7F822C0B9C237A5B53BEA684F6BCE8A9A"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Protocol.Tests/Game/MoveItemSpace/TheCharacterChangesAsYouDressItTests.cs",
+      "Sha256": "409ED47E4BAA3BBEA4B3436E0192ABC9C37FA96561F417EF5AC0A9D9A1C8F712"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Protocol.Tests/Game/QuestCompletion/FinishQuestHandlerTests.cs",
+      "Sha256": "2C0B6A52984A085BCA7BB790EE137D6C7F84860E09418AE7D13D82548C4D87D8"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Protocol.Tests/Game/Quests/QuestOfferRefresherTests.cs",
+      "Sha256": "DBEF0BAADF513B74DA84E4483AD9C71A46EF72227C14C7B19F5C03DBA7E9F121"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Protocol.Tests/Game/SelectCharacter/SelectCharacterPayloadCodecTests.cs",
+      "Sha256": "1541D963387DC3978123AE5504A2112E92EB3C41C307D4A24AD6629059343983"
+    },
+    {
+      "Path": "Server/tests/Dfo.Server.Protocol.Tests/Game/TutorialLevelUp/TutorialLevelUpHandlerTests.cs",
+      "Sha256": "A5A922D05CC994B726E93BC78BF02B7ED0BA8AA383A146E6AA14D452D31F2780"
+    }
+  ]
+}

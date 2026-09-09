@@ -94,7 +94,7 @@ public sealed record TutorialLevelUpResult(
 }
 
 /// <summary>One character being put where the tutorial says it should be by now.</summary>
-public sealed record GrantTutorialLevelCommand(CharacterId CharacterId, byte CurrentLevel)
+public sealed record GrantTutorialLevelCommand(CharacterId CharacterId)
     : ICommand<TutorialLevelUpResult>;
 
 /// <summary>
@@ -111,7 +111,7 @@ public sealed record GrantTutorialLevelCommand(CharacterId CharacterId, byte Cur
 /// so reaching level two means holding the first entry.
 /// </para>
 /// </remarks>
-public sealed class GrantTutorialLevelCommandHandler(ICharacterExperienceDomainService grant)
+public sealed class GrantTutorialLevelCommandHandler(ICharacterExperienceDomainService grant, ICharacterDomainService characters)
     : ICommandHandler<GrantTutorialLevelCommand, TutorialLevelUpResult>
 {
     /// <summary>Where the tutorial leaves a character, as the reference server names it.</summary>
@@ -124,7 +124,9 @@ public sealed class GrantTutorialLevelCommandHandler(ICharacterExperienceDomainS
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        if (command.CurrentLevel >= TargetLevel)
+        if (await characters.Get(command.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false) is not { } progress)
+            return TutorialLevelUpResult.Refused(TutorialLevelUpStatus.NotPersisted);
+        if (progress.Level >= TargetLevel)
             return TutorialLevelUpResult.Refused(TutorialLevelUpStatus.AlreadyPast);
 
         if (grant.ThresholdForLevel(TargetLevel) is not { } target)
@@ -150,9 +152,8 @@ public sealed class GrantTutorialLevelCommandHandler(ICharacterExperienceDomainS
 /// is sent carries the level, so the client learns it; what is not sent is written down in
 /// <c>Docs/ProtocolScaffoldDissonances.md</c> rather than left to be rediscovered.
 /// <para>
-/// The published session is corrected before the frames go out. It is where every later frame
-/// reads the character's level from -- the kill acknowledgement among them -- so a session left
-/// saying level one would go on reporting level one for the rest of the run.
+/// The published session remains a compatibility projection and is corrected after the grant.
+/// Later progression decisions read the character itself.
 /// </para>
 /// </remarks>
 public sealed class TutorialLevelUpHandler(
@@ -197,7 +198,7 @@ public sealed class TutorialLevelUpHandler(
 
         var granted = await commandBus.SendAsync(
             new GrantTutorialLevelCommand(
-                session.CharacterId, result.Character.Progression.Level),
+                session.CharacterId),
             cancellationToken).ConfigureAwait(false);
 
         if (granted.Status is not TutorialLevelUpStatus.Granted)

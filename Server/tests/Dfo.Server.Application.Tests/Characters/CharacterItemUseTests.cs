@@ -302,7 +302,7 @@ public sealed class CharacterItemUseTests
             new NoCarriedGold(),
             new StoredCarryLimitOnly(),
             CharacterRow.At(level: 50),
-            new NoSkillPointLedger());
+            new NoSkillPointLedger(), null!, null!);
 
         Assert.Equal(
             ItemUsability.CharacterStateUnavailable,
@@ -331,7 +331,7 @@ public sealed class CharacterItemUseTests
             new NoCarriedGold(),
             new StoredCarryLimitOnly(),
             CharacterRow.None,
-            new NoSkillPointLedger());
+            new NoSkillPointLedger(), null!, null!);
 
         Assert.Equal(
             ItemUsability.CharacterStateUnavailable,
@@ -389,7 +389,7 @@ public sealed class CharacterItemUseTests
                 new NoCarriedGold(),
                 new StoredCarryLimitOnly(),
                 new SqliteCharacterTable(database),
-                new NoSkillPointLedger());
+                new NoSkillPointLedger(), null!, null!);
 
             Assert.Equal(
                 ItemUsability.Allowed,
@@ -465,7 +465,7 @@ public sealed class CharacterItemUseTests
             new NoCarriedGold(),
             new StoredCarryLimitOnly(),
             CharacterRow.At(level, job),
-            new NoSkillPointLedger());
+            new NoSkillPointLedger(), null!, null!);
     }
 
     private static ICharacter Build(

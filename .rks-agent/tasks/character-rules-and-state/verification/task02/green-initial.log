@@ -1,0 +1,25 @@
+  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+  Dfo.Pvf -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Pvf\bin\Debug\net10.0\Dfo.Pvf.dll
+  Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Data\bin\Debug\net10.0\Dfo.Server.Data.dll
+  Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Abstractions\bin\Debug\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Networking -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Networking\bin\Debug\net10.0\Dfo.Server.Networking.dll
+  Dfo.Server.Infrastructure -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Infrastructure\bin\Debug\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.Persistence -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Persistence\bin\Debug\net10.0\Dfo.Server.Persistence.dll
+  Dfo.Server.Application -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Application\bin\Debug\net10.0\Dfo.Server.Application.dll
+  Dfo.Server.Protocol -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Protocol\bin\Debug\net10.0\Dfo.Server.Protocol.dll
+  Dfo.Server.Application.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:03.05]     Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Real_archive_preserves_initial_skill_source_order_for_normal_and_dark_knight_jobs [FAIL]
+  失败 Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Real_archive_preserves_initial_skill_source_order_for_normal_and_dark_knight_jobs [399 ms]
+  错误消息:
+   System.ArgumentException : Unsupported skill career: CharacterCareer { Job = 9, GrowType = 1, Awakening = 0, PackedGrowType = 1 }. (Parameter 'career')
+  堆栈跟踪:
+     at Dfo.Server.Application.Characters.CharacterSkillRuleService.Project(CharacterCareer career, Int32 level, IEnumerable`1 learnedIds) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 44
+   at Dfo.Server.Application.Characters.CharacterSkillRuleService.GetAsync(Byte job, Byte packedGrowType, Byte characterLevel, IReadOnlyCollection`1 learnedSkillIds, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\src\Dfo.Server.Application\Characters\CharacterSkillRuleService.cs:line 35
+   at Dfo.Server.Application.Tests.Characters.CharacterSkillArchiveTests.Real_archive_preserves_initial_skill_source_order_for_normal_and_dark_knight_jobs() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\Server\tests\Dfo.Server.Application.Tests\Characters\CharacterSkillArchiveTests.cs:line 55
+--- End of stack trace from previous location ---
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\character-rules-and-state\.rks-agent\tasks\character-rules-and-state\verification\task02\green-initial.trx
+
+失败!  - 失败:     1，通过:    61，已跳过:     0，总计:    62，持续时间: 2 s - Dfo.Server.Application.Tests.dll (net10.0)

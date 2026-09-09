@@ -146,7 +146,7 @@ public sealed class CarriedGoldCapTests
                 gold,
                 new CarriedGoldRuleService(archive),
                 CharacterRow.None,
-                new NoSkillPointLedger()),
+                new NoSkillPointLedger(), null!, null!),
             archive);
     }
 

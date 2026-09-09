@@ -1,0 +1,302 @@
+[
+  {
+    "Path": "AGENTS.md",
+    "BeforeSha256": "8B8F783E98D03CF64886EAD05C37A79F62D3882A8ED460703865F44ADDCB993A",
+    "AfterSha256": "4F47DFD46372A4BB6CAB2FC6EF923E6DF63ACA3114FDE7ABD94E74BFF9AB6AA3",
+    "Note": ""
+  },
+  {
+    "Path": "Document/CurrentCharacterFacts.md",
+    "BeforeSha256": null,
+    "AfterSha256": "22D900A9027F617DC34047F78932FAD6515335D8E550A0DD52A609E0250526BD",
+    "Note": ""
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Abstractions/Characters/ICharacter.cs",
+    "BeforeSha256": "A0CE2260DE7640B197331103DD110CDEB0F20B9F002D9C2E292B93974D7CD256",
+    "AfterSha256": "2EB3F64336EB9F417A072769F9D780EA080427020A3030CD80729BB7C7083C37",
+    "Note": ""
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Abstractions/Characters/ICharacterSkillPointDomainService.cs",
+    "BeforeSha256": "3F00F7BAFA62301525FBE170973848913507210E224AC1B728C3A23F3332A633",
+    "AfterSha256": "33C482669E37EB6BF7472838A40E293B45CE58E2EE2E392E2718D1DA2A5A4D58",
+    "Note": ""
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Abstractions/Characters/ICharacterSkillStateDomainService.cs",
+    "BeforeSha256": null,
+    "AfterSha256": "50D8439886140DEA2DF5D81FF473C97492FE77BED964582894D9B3DF6344AA59",
+    "Note": ""
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Abstractions/Characters/ICharacterStateProjectionDomainService.cs",
+    "BeforeSha256": null,
+    "AfterSha256": "A7EF0F0D959B4FD57CD3E918BA91A20F46DB00B532694F5E739F77E8E28D1399",
+    "Note": ""
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Application/ApplicationModule.cs",
+    "BeforeSha256": "829F92655939BFF40B08692D5D39036EFCE344054E174C9EF5BA5A43C7D07D4E",
+    "AfterSha256": "686511EBDE061D6C030E7064B09CC8376FE915963029F9F7F9FB02F349F5DD5A",
+    "Note": ""
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Application/Characters/CharacterBaseStatProjection.cs",
+    "BeforeSha256": null,
+    "AfterSha256": "024285F0FAD4B4DF75213FCB99810FC604E4DDBC2B2DBE6055466D6377E2EDB7",
+    "Note": ""
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Application/Characters/CharacterEntryStateServices.cs",
+    "BeforeSha256": "6285ACA3C0B8F3C654AE844D6D93A8BA73E073903F7CFCB2F7FF389E58D282C1",
+    "AfterSha256": "FB4D994CA7462042D8B23610DB43CF23076AF6F9F42198F200DF08CD4C632782",
+    "Note": ""
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Application/Characters/CharacterSkillPointDomainService.cs",
+    "BeforeSha256": "0590BCE923C173EE98E74E4550D752719951B99496BA10AA2F4D3FE1E924A00D",
+    "AfterSha256": "3D96AD72DB9747A52484953848855F886EB4EDA030E4EEFD604B23392AB9E2C1",
+    "Note": ""
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Application/Characters/CharacterSkillStateDomainService.cs",
+    "BeforeSha256": null,
+    "AfterSha256": "2BD35ABEB43E92521EA0141DDDC04CACE7FF3E4E3B86ABEA86D10A4CA7F6217A",
+    "Note": ""
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Application/Characters/CharacterStateProjectionDomainService.cs",
+    "BeforeSha256": null,
+    "AfterSha256": "54CB7EE476150CE77D74966156807AA3AE08195199B8BA3BA2028227FA6A4B59",
+    "Note": ""
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Application/Characters/PlayingCharacter.cs",
+    "BeforeSha256": "60F69F87CD5EDBFC99B80343FED935A6E168D99E05931B0F8B91D83DEAFA2BA1",
+    "AfterSha256": "B3BF222835FFDF60493C31437F3FCCC3467080D0BD3C440487CFFAB740BAD7D0",
+    "Note": ""
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Application/Quests/QuestOfferRefreshDomainService.cs",
+    "BeforeSha256": "E22EAF55E59B8E7FEA1AEE3F55FDC8CDA445507EF51CDF30BACA04C2290F3028",
+    "AfterSha256": "CC1AE85F297C0709886F888FE86A7D9A61235B5A4FB3DF54F153973E580686DE",
+    "Note": ""
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Data/Characters/CharacterModels.cs",
+    "BeforeSha256": "B63723661387CCEB9ACDE418C4BB42A85614B190DF833B09207EC1855F8A4F11",
+    "AfterSha256": "56396CCC434CA54BD27EBCA35019886086FD9F4A7F2134A6A03D8E8E59C4684F",
+    "Note": ""
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Data/Characters/CharacterSkillFacts.cs",
+    "BeforeSha256": null,
+    "AfterSha256": "217D3792E8A845620E7C142593CC0579A4E9E8F69300FB7D0C57739ECAB41AE0",
+    "Note": ""
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Protocol/Game/CardReward/CardRewardHandlers.cs",
+    "BeforeSha256": "85B1F8B42918A7026AD066022C146FAA0C9F53FC27C30B5CCF2F006C900AF7F8",
+    "AfterSha256": "D9006F489FCC6DE431DDFF1AF7EB4C9A4E4D53A0EF308CEC54A6353E0797C579",
+    "Note": ""
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Protocol/Game/CardReward/SelectCardCommand.cs",
+    "BeforeSha256": "21F29AAEBE193E6712F198704A9135206D2576126F2AE58D6071143BB79E3739",
+    "AfterSha256": "7730544DEE8464F3AD37B1ACD02FF4B2CF4CE3742512FD5AD0BC2023470EE423",
+    "Note": ""
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
+    "BeforeSha256": "4305F34DB51E2F814E1D4F1F1AFE7A69617400934AE75EE25C0DAD0669BC4441",
+    "AfterSha256": "FC70D27779B98EC5DAFF83BE0289D6E52400F4D158A8077F6C23C679ECDF28FB",
+    "Note": ""
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntrySlice.cs",
+    "BeforeSha256": "50E3A5BC4FC4775FA72796FD08439745E8F35858D33B6696C29F152215399B7D",
+    "AfterSha256": "CE6879EF344C5C1163CA30CA94BEC1FA05B44D5384521633D9DB9786FF98D661",
+    "Note": ""
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionSlice.cs",
+    "BeforeSha256": "7B398F191226F18F1A4A377E24CCC32FF75BCEA5290686F81961F708904E8167",
+    "AfterSha256": "5C0560736095EDE8BDB1B7690AB4676579BCF36A86FC47A912553CE1DD28A887",
+    "Note": ""
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/MonsterDeathSlice.cs",
+    "BeforeSha256": "25007032DCAC02803533EE958863733E7913C9E7F44A4CC7144F3D86C52FE329",
+    "AfterSha256": "ED254B085D4AFB6BF7AC8815C27EB950E700058C858E55B43F23D7F07CB59F95",
+    "Note": ""
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/AcceptQuestHandler.cs",
+    "BeforeSha256": "EAA8920493BA05314785ED62764C6093F54AE8CFBF2F5DEDD2D54F98B5FF2C74",
+    "AfterSha256": "4AD64D0C79BF098271A780BCBCDEB1F74C048D815C1180DA1EDB0D74152D6BE7",
+    "Note": ""
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs",
+    "BeforeSha256": "00282D7075617E9444131415D1DAC36BB56039C00BA7246B491E2BB81CB2484E",
+    "AfterSha256": "234142F9875C25F5AC18354299002D47F6CD6CA643B02EAAFA59DCA57ACF1CC6",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Application.Tests/Characters/CarriedGoldCapTests.cs",
+    "BeforeSha256": "91B62307DF8E7ECD18C686027AF52F3E299B452E4DE78DF5C91DF24B28DE38D9",
+    "AfterSha256": "5024B4B2E7317D4312537165D54F288205FFADDD6B10C8C440D56BC18F2F2BD0",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Application.Tests/Characters/CharacterEntryStateTests.cs",
+    "BeforeSha256": "8C6DDF845AC638BE1616B8EBAA0DC6072B49605D9BAE0F0CCD0804A6BA350FAC",
+    "AfterSha256": "F522D0B1D52887F4A9BF3E95D7AB5CD43FEE4670BE49F71E3CB175684F87B734",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Application.Tests/Characters/CharacterIdentityTests.cs",
+    "BeforeSha256": "90667D4C6DFB6ECECE785EF0D5255E500ACAAEF2F14E41C3A489695D409DE25C",
+    "AfterSha256": "BCD2C2CF3FBC7664CBD96C81045DC2F68CCDC2AED6E0A12BCE165EEF4C209EC7",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Application.Tests/Characters/CharacterItemUseTests.cs",
+    "BeforeSha256": "2FE15E944144D5861C2F25B091AF98554DD4DF6B51542E19DBFF4950C69FF05D",
+    "AfterSha256": "8DEFD104CFA37EAC28DF7205DB3ABAFA71AEAC1CEC963CE5FE6ED953760CDA3F",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Application.Tests/Characters/CharacterRepositoryProductsTests.cs",
+    "BeforeSha256": "E0DF428F625341CF2FF1C4B057AE1474B7EB299A359AD90E48487A1563E517AB",
+    "AfterSha256": "06ED139294F10C02211EC813CA92F84C313B04CB25F1E1C244C4261C35D854CA",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Application.Tests/Characters/CurrentCharacterStateTests.cs",
+    "BeforeSha256": null,
+    "AfterSha256": "C76262BF31C2A3BF9839F3AF435EF7495F1D64369FA1EC70344135642074533A",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Application.Tests/Characters/NoCarriedGold.cs",
+    "BeforeSha256": "BC4DA473371F8772D0C1CD840EEBC32963AD35F35A2D74DBFC24F9D811EF9C42",
+    "AfterSha256": "306B2BD3ABA64F827B7C75C81151B38F85A8B3BC06F953DEDD595CC8660D15F8",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Application.Tests/Characters/RemainingSkillPointTests.cs",
+    "BeforeSha256": "BF3F504B716B3C6AD3239EBB87579121D379E9CF6A105C12542ADADEF6BC06CC",
+    "AfterSha256": "17CA4207F25F27F6C4BC6F0218E261B77982AA3F00B5C16B515F7BF1117A1CBC",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Application.Tests/Game/UseStackableHandlerTests.cs",
+    "BeforeSha256": "E68D91FA674BA6CD8739EBE0371A446B433A020DA4BA8A9FF76CE3C99C926061",
+    "AfterSha256": "8659D3AE40DBCA210A146B88FA6101663BE25ED7354BEF224A5728A77343B592",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Application.Tests/Inventory/NpcShopPurchaseTests.cs",
+    "BeforeSha256": "4DB04A53E73FF3C3ED29C191C0FE5E276323778EECC9BD9B50767EDFCFBEEC97",
+    "AfterSha256": "C812095B162B2D1968FC3D2E1F4FDF9F6D2062EEE49D9BA809A5BA5C88765B46",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Application.Tests/Support/CurrentCharacterStub.cs",
+    "BeforeSha256": null,
+    "AfterSha256": "36301C2C645B5991C96279CE0E4C8DFDD31A35466656779A2383F4BD6BDAAEBD",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Application.Tests/World/CharacterExperienceDomainServiceTests.cs",
+    "BeforeSha256": "D66D5078F2AEC18202934F5A397AF61175A54AF14A9982C19667AE99E93F0B05",
+    "AfterSha256": "03720B7D4C96DF7ABABF6F761E821BCE83112F3EE36F801CBA8826AD3B8915FA",
+    "Note": "Initial capture followed RED addition. Before uses HEAD because this file had no prior-unit changes."
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Application.Tests/World/PaidCardFlipCostTests.cs",
+    "BeforeSha256": "81AD7737FDB3858FBB2BC8C226BE22CB476DA81E378772CF26AA7299F9F4020B",
+    "AfterSha256": "0B3EC2536E76A912F4EF1A86DBF8DF3A81D8BD36E5EC46609A12CA2954D87937",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Host.Tests/CarriedGoldCompositionTests.cs",
+    "BeforeSha256": "B6F5DC39CA6B3DC5E4F74F4FE516D616A8171A40788A9C55E352E12D664FF7E6",
+    "AfterSha256": "C6896A1E4A0B9ECF85197FB6376ED5F1A2A0C8F5A184A8CB32AACF6A11D33DA3",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Protocol.Tests/Dfo.Server.Protocol.Tests.csproj",
+    "BeforeSha256": "EAB3A5CD1FA07F7CBAA3D44E6B703596B5EF60D65076AF404A829FC01B5B583C",
+    "AfterSha256": "E1CFF8E32FF4B4E3BBAB65B6C0DA58729A25889690B97C2E513B50B6447EF82C",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Protocol.Tests/Game/CardReward/CardRewardTests.cs",
+    "BeforeSha256": "14D7A78FBA61F997C4E8D350EE51C220D666CE26B21FDB5F3399DFDC52EFF301",
+    "AfterSha256": "E39647DE1367230966E88ED7C017F06A9EFE87CF323530CAE181AF4A1546FA57",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Protocol.Tests/Game/CarriedGoldStandIns.cs",
+    "BeforeSha256": "099C2D3D92AB3DA2190BEC390AEBF9FA8311BD9EA7A5CC803463A901724D59E7",
+    "AfterSha256": "D547F7098276FCDC584A518B2F8E9048C4B07E8C5B7AEEFE466D99DDA3882E94",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonClear/SetPlayResultHandlerTests.cs",
+    "BeforeSha256": "DCADEEF2E3E4815F244CE661510D31F846AE04B5973F179DFB593A7E6168D604",
+    "AfterSha256": "273B06FDA5550D8C51815F89CE180FAEE4418F551321C70F3D7F2A5C3191F2BB",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/SelectDungeonHandlerTests.cs",
+    "BeforeSha256": "C7B0F7CE24D901F3932D57C8CBF11B240EA4D814D68B7EA12F76EC0ABC05892B",
+    "AfterSha256": "AFFF02631A2297A9C39AF9BFE6C411BEACDBB09002BCCE80065B85710C6DAB03",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Protocol.Tests/Game/ExperienceFrameStandIns.cs",
+    "BeforeSha256": "E92C303B3885B0152404E988772FEA72F201A70784BA2C36D36788AF11336822",
+    "AfterSha256": "6791D0AF1A0AADC54B0F856BD063ACB31CDE8B57EF5863C752CD705335AE37CD",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Protocol.Tests/Game/MonsterDeath/MonsterDeathHandlerTests.cs",
+    "BeforeSha256": "0580FDA38F76F9CE57CB44204DAF923B2C6DEB68FDA84155A6544B694995F864",
+    "AfterSha256": "2F3D420CF04318BCA5D3990C19B2D0A7F822C0B9C237A5B53BEA684F6BCE8A9A",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Protocol.Tests/Game/MoveItemSpace/TheCharacterChangesAsYouDressItTests.cs",
+    "BeforeSha256": "D39E30AD1D911F6008DCFB28BE8D2149BF16837991A29E2B2C15C27A2AF6A90E",
+    "AfterSha256": "409ED47E4BAA3BBEA4B3436E0192ABC9C37FA96561F417EF5AC0A9D9A1C8F712",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Protocol.Tests/Game/QuestCompletion/FinishQuestHandlerTests.cs",
+    "BeforeSha256": "8663C83258B73CFD2C2D025FC4567D5133074E184224BD4CF4FF9B6DE4AF9217",
+    "AfterSha256": "2C0B6A52984A085BCA7BB790EE137D6C7F84860E09418AE7D13D82548C4D87D8",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Protocol.Tests/Game/Quests/QuestOfferRefresherTests.cs",
+    "BeforeSha256": "6F7DD2B4409CA9226E4702CBC4D8DBD0DC7179510BF674D2995A1716940AD66A",
+    "AfterSha256": "DBEF0BAADF513B74DA84E4483AD9C71A46EF72227C14C7B19F5C03DBA7E9F121",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Protocol.Tests/Game/SelectCharacter/SelectCharacterPayloadCodecTests.cs",
+    "BeforeSha256": "F75C4EEBBEF502BD6BFAED4ED554F5BFB5B921CFC7285BA556D6004FAF3071BF",
+    "AfterSha256": "1541D963387DC3978123AE5504A2112E92EB3C41C307D4A24AD6629059343983",
+    "Note": ""
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Protocol.Tests/Game/TutorialLevelUp/TutorialLevelUpHandlerTests.cs",
+    "BeforeSha256": "E3B2D058DC0BA5BAAAB91BFEDFA16A43A86BE1A61DFB1AF37AD46095EE5444F6",
+    "AfterSha256": "A5A922D05CC994B726E93BC78BF02B7ED0BA8AA383A146E6AA14D452D31F2780",
+    "Note": ""
+  }
+]

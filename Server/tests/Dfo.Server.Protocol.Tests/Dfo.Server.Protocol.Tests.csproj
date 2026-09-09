@@ -28,6 +28,7 @@
       quietly stops matching the interface the other is proving something about. There is no
       shared test-support project, and one double does not earn creating one.
     -->
+    <Compile Include="..\Dfo.Server.Application.Tests\Support\CurrentCharacterStub.cs" Link="Support\CurrentCharacterStub.cs" />
     <Compile Include="..\Dfo.Server.Application.Tests\Support\RecordingCharacterTable.cs"
              Link="Support\RecordingCharacterTable.cs" />
     <Compile Include="..\Dfo.Server.Application.Tests\Support\RecordingQuestLogs.cs"

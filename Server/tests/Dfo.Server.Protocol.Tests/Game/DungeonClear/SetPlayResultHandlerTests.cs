@@ -173,7 +173,7 @@ public sealed class SetPlayResultHandlerTests
     [Fact]
     public async Task AnAwardThatDidNotHappenDeclaresNothing()
     {
-        var sent = await Settle(awarded: false);
+        var sent = await Settle(awarded: false, ledger: new SkillPointLedger { Progress = new CharacterProgressionState(9, 6000) });
 
         var reward = sent.OfType<ClearDungeonRewardNotification>().Single();
         Assert.Equal(0u, reward.ClearBase);
@@ -181,8 +181,8 @@ public sealed class SetPlayResultHandlerTests
 
         // And the standing reported is the one the character actually holds.
         var experience = sent.OfType<ExperienceNotification>().Single();
-        Assert.Equal(StartingExperience, experience.TotalExperience);
-        Assert.Equal(3, experience.Level);
+        Assert.Equal(6000u, experience.TotalExperience);
+        Assert.Equal(9, experience.Level);
     }
 
     /// <summary>
@@ -387,10 +387,10 @@ public sealed class SetPlayResultHandlerTests
     {
         var cards = new RecordingCards();
 
-        await Settle(leveledUp: true, cards: cards);
+        await Settle(leveledUp: true, cards: cards, ledger: new SkillPointLedger { Progress = new CharacterProgressionState(2, 500) });
 
         var settlement = Assert.Single(cards.Settlements);
-        Assert.Equal(3, settlement.CharacterLevel);
+        Assert.Equal(2, settlement.CharacterLevel);
         Assert.Equal(new CharacterId(60), settlement.CharacterId);
         Assert.Equal(1, settlement.PartyMemberCount);
     }
@@ -448,7 +448,7 @@ public sealed class SetPlayResultHandlerTests
             cards ?? new RecordingCards(),
             bus ?? new FixedAward(leveledUp, awarded),
             new QuestOfferRefreshDomainService(
-                content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs()),
+                content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
             sender,
             NullLogger<SetPlayResultHandler>.Instance);
 
