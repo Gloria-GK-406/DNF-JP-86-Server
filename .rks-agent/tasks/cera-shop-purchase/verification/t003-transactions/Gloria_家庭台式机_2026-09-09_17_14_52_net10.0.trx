@@ -1,0 +1,88 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="49c1f657-7d60-4f03-b0af-5a56801ea277" name="Gloria@家庭台式机 2026-09-09 17:14:52" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-09T17:14:52.2700930+08:00" queuing="2026-09-09T17:14:52.2700932+08:00" start="2026-09-09T17:14:50.6854782+08:00" finish="2026-09-09T17:14:52.3107201+08:00" />
+  <TestSettings name="default" id="e9ce1723-ec7f-4727-9f6b-d9fd1562d2bd">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-09_17_14_52" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="e8804bfd-55c1-4bc1-bed9-e0ce988e51f6" testId="cc79867f-3a3e-e1b8-f678-39667e145977" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Equipment_avatar_pet_artifact_and_physical_package_reload_as_complete_instances" computerName="家庭台式机" duration="00:00:00.0377609" startTime="2026-09-09T17:14:52.0439716+08:00" endTime="2026-09-09T17:14:52.0817237+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e8804bfd-55c1-4bc1-bed9-e0ce988e51f6" />
+    <UnitTestResult executionId="d1c5e831-794c-4788-95a1-fdf9bb450e93" testId="ac259a0b-7038-8e67-ec86-a7abca87bcb3" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Insufficient_currency_and_a_full_bag_have_no_durable_side_effect" computerName="家庭台式机" duration="00:00:00.0372676" startTime="2026-09-09T17:14:52.0069777+08:00" endTime="2026-09-09T17:14:52.0438281+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d1c5e831-794c-4788-95a1-fdf9bb450e93" />
+    <UnitTestResult executionId="d97333f0-e96e-4305-afcf-05c31a5b5793" testId="e6001017-62c0-e265-4755-a8e1e5c61e9d" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Concurrent_purchases_use_latest_balances_and_accumulate_one_stack" computerName="家庭台式机" duration="00:00:00.6941482" startTime="2026-09-09T17:14:51.2620959+08:00" endTime="2026-09-09T17:14:51.9617654+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d97333f0-e96e-4305-afcf-05c31a5b5793" />
+    <UnitTestResult executionId="80767953-2e79-4bec-a365-d9c193d9575e" testId="d58690dd-5150-9345-b535-c51cc8254acd" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.A_later_unavailable_item_never_charges_or_delivers_the_first(product: 900003)" computerName="家庭台式机" duration="00:00:00.0279470" startTime="2026-09-09T17:14:52.1118998+08:00" endTime="2026-09-09T17:14:52.1397911+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="80767953-2e79-4bec-a365-d9c193d9575e" />
+    <UnitTestResult executionId="b690c8fa-332c-4af0-b177-86673aac1087" testId="fa3677ff-ba97-1e09-0288-d8b33c61f206" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Old_selection_and_mismatched_persisted_ownership_cannot_purchase" computerName="家庭台式机" duration="00:00:00.0288885" startTime="2026-09-09T17:14:52.1682112+08:00" endTime="2026-09-09T17:14:52.1970609+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b690c8fa-332c-4af0-b177-86673aac1087" />
+    <UnitTestResult executionId="de0eeb00-21a3-43fc-9cbf-a26aa52c1eeb" testId="69c4665b-a69d-7d31-fc0d-e096420c380f" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.A_later_unavailable_item_never_charges_or_delivers_the_first(product: 999999)" computerName="家庭台式机" duration="00:00:00.0299105" startTime="2026-09-09T17:14:52.0818914+08:00" endTime="2026-09-09T17:14:52.1117635+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="de0eeb00-21a3-43fc-9cbf-a26aa52c1eeb" />
+    <UnitTestResult executionId="3e8d63f1-0bd5-475d-95c9-0ad740cf9285" testId="990eb09c-5a20-28c9-05d7-8fe31794a458" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Zero_affected_currency_rows_abort_the_transaction_before_delivery" computerName="家庭台式机" duration="00:00:00.0312007" startTime="2026-09-09T17:14:52.2495783+08:00" endTime="2026-09-09T17:14:52.2631126+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3e8d63f1-0bd5-475d-95c9-0ad740cf9285" />
+    <UnitTestResult executionId="cb5b8a7b-9b96-411c-a2ef-0c5f40017a29" testId="fb4a3269-1bb4-6705-ecaa-0d2299679982" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Water_purchase_commits_96400_and_one_item_and_leaves_skills_and_other_owners_unchanged" computerName="家庭台式机" duration="00:00:00.0432434" startTime="2026-09-09T17:14:51.9679662+08:00" endTime="2026-09-09T17:14:52.0064922+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="cb5b8a7b-9b96-411c-a2ef-0c5f40017a29" />
+    <UnitTestResult executionId="47e72f5e-15df-4421-93f5-8adf86b19b1f" testId="f591934e-745e-b6cb-c645-dc5f26d17957" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.A_store_failure_after_the_first_grant_rolls_back_account_gold_and_all_items" computerName="家庭台式机" duration="00:00:00.0346467" startTime="2026-09-09T17:14:52.1971946+08:00" endTime="2026-09-09T17:14:52.2318053+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="47e72f5e-15df-4421-93f5-8adf86b19b1f" />
+    <UnitTestResult executionId="88d7b1e9-eb1c-4d26-9813-d12fc12b75c4" testId="ab092ef0-795d-3442-33e9-b438187ae890" testName="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.A_later_unavailable_item_never_charges_or_delivers_the_first(product: 103945)" computerName="家庭台式机" duration="00:00:00.0281963" startTime="2026-09-09T17:14:52.1399057+08:00" endTime="2026-09-09T17:14:52.1680788+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="88d7b1e9-eb1c-4d26-9813-d12fc12b75c4" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Zero_affected_currency_rows_abort_the_transaction_before_delivery" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\cera-shop-purchase\server\tests\dfo.server.application.tests\bin\release\net10.0\dfo.server.application.tests.dll" id="990eb09c-5a20-28c9-05d7-8fe31794a458">
+      <Execution id="3e8d63f1-0bd5-475d-95c9-0ad740cf9285" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="Zero_affected_currency_rows_abort_the_transaction_before_delivery" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.A_later_unavailable_item_never_charges_or_delivers_the_first(product: 103945)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\cera-shop-purchase\server\tests\dfo.server.application.tests\bin\release\net10.0\dfo.server.application.tests.dll" id="ab092ef0-795d-3442-33e9-b438187ae890">
+      <Execution id="88d7b1e9-eb1c-4d26-9813-d12fc12b75c4" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="A_later_unavailable_item_never_charges_or_delivers_the_first" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Old_selection_and_mismatched_persisted_ownership_cannot_purchase" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\cera-shop-purchase\server\tests\dfo.server.application.tests\bin\release\net10.0\dfo.server.application.tests.dll" id="fa3677ff-ba97-1e09-0288-d8b33c61f206">
+      <Execution id="b690c8fa-332c-4af0-b177-86673aac1087" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="Old_selection_and_mismatched_persisted_ownership_cannot_purchase" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.A_store_failure_after_the_first_grant_rolls_back_account_gold_and_all_items" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\cera-shop-purchase\server\tests\dfo.server.application.tests\bin\release\net10.0\dfo.server.application.tests.dll" id="f591934e-745e-b6cb-c645-dc5f26d17957">
+      <Execution id="47e72f5e-15df-4421-93f5-8adf86b19b1f" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="A_store_failure_after_the_first_grant_rolls_back_account_gold_and_all_items" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Water_purchase_commits_96400_and_one_item_and_leaves_skills_and_other_owners_unchanged" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\cera-shop-purchase\server\tests\dfo.server.application.tests\bin\release\net10.0\dfo.server.application.tests.dll" id="fb4a3269-1bb4-6705-ecaa-0d2299679982">
+      <Execution id="cb5b8a7b-9b96-411c-a2ef-0c5f40017a29" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="Water_purchase_commits_96400_and_one_item_and_leaves_skills_and_other_owners_unchanged" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.A_later_unavailable_item_never_charges_or_delivers_the_first(product: 999999)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\cera-shop-purchase\server\tests\dfo.server.application.tests\bin\release\net10.0\dfo.server.application.tests.dll" id="69c4665b-a69d-7d31-fc0d-e096420c380f">
+      <Execution id="de0eeb00-21a3-43fc-9cbf-a26aa52c1eeb" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="A_later_unavailable_item_never_charges_or_delivers_the_first" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Concurrent_purchases_use_latest_balances_and_accumulate_one_stack" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\cera-shop-purchase\server\tests\dfo.server.application.tests\bin\release\net10.0\dfo.server.application.tests.dll" id="e6001017-62c0-e265-4755-a8e1e5c61e9d">
+      <Execution id="d97333f0-e96e-4305-afcf-05c31a5b5793" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="Concurrent_purchases_use_latest_balances_and_accumulate_one_stack" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.A_later_unavailable_item_never_charges_or_delivers_the_first(product: 900003)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\cera-shop-purchase\server\tests\dfo.server.application.tests\bin\release\net10.0\dfo.server.application.tests.dll" id="d58690dd-5150-9345-b535-c51cc8254acd">
+      <Execution id="80767953-2e79-4bec-a365-d9c193d9575e" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="A_later_unavailable_item_never_charges_or_delivers_the_first" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Insufficient_currency_and_a_full_bag_have_no_durable_side_effect" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\cera-shop-purchase\server\tests\dfo.server.application.tests\bin\release\net10.0\dfo.server.application.tests.dll" id="ac259a0b-7038-8e67-ec86-a7abca87bcb3">
+      <Execution id="d1c5e831-794c-4788-95a1-fdf9bb450e93" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="Insufficient_currency_and_a_full_bag_have_no_durable_side_effect" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests.Equipment_avatar_pet_artifact_and_physical_package_reload_as_complete_instances" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\cera-shop-purchase\server\tests\dfo.server.application.tests\bin\release\net10.0\dfo.server.application.tests.dll" id="cc79867f-3a3e-e1b8-f678-39667e145977">
+      <Execution id="e8804bfd-55c1-4bc1-bed9-e0ce988e51f6" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopPurchaseTests" name="Equipment_avatar_pet_artifact_and_physical_package_reload_as_complete_instances" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="cc79867f-3a3e-e1b8-f678-39667e145977" executionId="e8804bfd-55c1-4bc1-bed9-e0ce988e51f6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ac259a0b-7038-8e67-ec86-a7abca87bcb3" executionId="d1c5e831-794c-4788-95a1-fdf9bb450e93" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e6001017-62c0-e265-4755-a8e1e5c61e9d" executionId="d97333f0-e96e-4305-afcf-05c31a5b5793" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d58690dd-5150-9345-b535-c51cc8254acd" executionId="80767953-2e79-4bec-a365-d9c193d9575e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="fa3677ff-ba97-1e09-0288-d8b33c61f206" executionId="b690c8fa-332c-4af0-b177-86673aac1087" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="69c4665b-a69d-7d31-fc0d-e096420c380f" executionId="de0eeb00-21a3-43fc-9cbf-a26aa52c1eeb" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="990eb09c-5a20-28c9-05d7-8fe31794a458" executionId="3e8d63f1-0bd5-475d-95c9-0ad740cf9285" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="fb4a3269-1bb4-6705-ecaa-0d2299679982" executionId="cb5b8a7b-9b96-411c-a2ef-0c5f40017a29" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f591934e-745e-b6cb-c645-dc5f26d17957" executionId="47e72f5e-15df-4421-93f5-8adf86b19b1f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ab092ef0-795d-3442-33e9-b438187ae890" executionId="88d7b1e9-eb1c-4d26-9813-d12fc12b75c4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="10" executed="10" passed="10" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.13]   Discovering: Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.23]   Discovered:  Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.25]   Starting:    Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:01.26]   Finished:    Dfo.Server.Application.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

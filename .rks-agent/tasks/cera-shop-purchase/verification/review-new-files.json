@@ -1,0 +1,114 @@
+[
+  {
+    "Path": "Document/CeraShop-PhysicalPurchase-20260909.md",
+    "SHA256": "1B9A824B1AF21526D39B7B0D59AF522EB747A40777FF9B3902719A8A4BD8D218"
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Abstractions/Content/ICeraShopDefinitionSource.cs",
+    "SHA256": "CD9C23A72D65E1D015209A729AA7DA30750D49103ADB5B8A948B9DC9FD1F6773"
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Abstractions/Inventory/ICeraShopDomainService.cs",
+    "SHA256": "7A5AFF704A2EA136171AEFE1A53A347D75DE5C00F965D60ABC71D4F8E977B85C"
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Abstractions/Inventory/ICeraShopRuleService.cs",
+    "SHA256": "F16029CE17A10EF4AB711178E84F7A6CCE0123B7BDCFB09F94723C7EECA67A21"
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Application/Inventory/CeraShopDomainService.cs",
+    "SHA256": "7ED8A9952CBFEEB96FDDF7F94787827DDD2155ED067F3394A3EBE4ADD47EFDA4"
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Application/Inventory/CeraShopRuleService.cs",
+    "SHA256": "26916350173B6CF605A18A975A91ED5BB3FEC436EEE9E78DBA5F0359330B701A"
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Data/Accounts/AccountCeraBalances.cs",
+    "SHA256": "CFE765A00DFB669A27015D4408E7DAC21B2FB7823069EAB9BE45728330FF8AF3"
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Data/Content/CeraShopDefinitions.cs",
+    "SHA256": "D34744B7E015E175E87F9CF822476FA94415476F2DAC7C5D1AD17CDD2ACE07BF"
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Data/Inventory/CeraShopModels.cs",
+    "SHA256": "B62A7F3E7B796DDB2329C21CCA5939AE9D62EDB89D55A1C763487E65DCFFD1CD"
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Data/Inventory/InventoryItemCreationFacts.cs",
+    "SHA256": "2B21242235925AA3E72F0AB063779E2CA802F4D5C4606FC13990187B13EDCB18"
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Infrastructure/Content/PvfCeraShopDefinitionSource.cs",
+    "SHA256": "D672E95A6C5299D85696F81B9118AF4FE582BDE035CAC21BBA170F3710A88E89"
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/CeraShopPurchaseCommand.cs",
+    "SHA256": "C0515E23835EDE5D898002402791D349514F7277CC385C342135CFC542573773"
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/CeraShopPurchaseCompleted.cs",
+    "SHA256": "253C2EA9D7A9B2CD186445CF3C9E23ACE8CDA6937972A7F6B351610207C1CD71"
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/CeraShopPurchaseHandler.cs",
+    "SHA256": "172DFBBF7485362177CA3E1BABF5C90C16979F85C83D092F8EF2433A7C2C3B3A"
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/CeraShopPurchaseMessageDecoder.cs",
+    "SHA256": "8B2B929E16F6BFEB85141861CCFCBD9EC4DE3BBB6DB1E714AB9008CC914031FF"
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/CeraShopPurchaseResponseEncoder.cs",
+    "SHA256": "57D57C6F689025D69FBEA588DEA94807EF2E8FDEB6A4989248103FEB75801930"
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Protocol/Game/CeraShopPurchase/Messages.cs",
+    "SHA256": "28B57749ED79B0F19649FE92224528322DE65F141F3E6C11FABD409C2BD3FF5A"
+  },
+  {
+    "Path": "Server/src/Dfo.Server.Protocol/Game/GameInstanceDelivery.cs",
+    "SHA256": "ACA3FE8ABC09136E6BF6840BBFF20528DF27F90CF79128A7D6FF4947F141CD28"
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Application.Tests/Inventory/CeraShopPurchaseTests.cs",
+    "SHA256": "6D0DBB7AE8B9938DD4C2E36BAD4FEB893CC6085282DEB9DEA46A52BFDAD2DD8E"
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Application.Tests/Inventory/CeraShopRuleTests.cs",
+    "SHA256": "54003EA2D8FD909707EA774D4C610082BFEC333042802804D2E69484C5F43EAE"
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Application.Tests/Inventory/CeraShopTestContent.cs",
+    "SHA256": "8439412A9EEE8234A5EC75BC9FF35B4864C39FA3BDACF2999F943D687775EAF3"
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Infrastructure.Tests/Content/PvfCeraShopDefinitionSourceTests.cs",
+    "SHA256": "25B4CC94FD9609DBF3883927BA4AC554EB5EFF2C054F721CDB3DAC25449DBE73"
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Networking.Tests/Integration/CeraShopPurchaseIntegrationTests.cs",
+    "SHA256": "ED29CD9E7681808F6F658360E4C7012BF0CB0EFD256D327CB57363823BDC5956"
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Persistence.Tests/Inventory/CeraShopStorageTests.cs",
+    "SHA256": "04FE5933211489AD64C923B9CE9260DA4B375D5AD2D4BDA34A2A95C5B1B654E3"
+  },
+  {
+    "Path": "Server/tests/Dfo.Server.Protocol.Tests/Game/CeraShopPurchase/CeraShopCodecTests.cs",
+    "SHA256": "5BFFD9497A266CE6AF44D65E663F1FF47F33EDA8C40B09F781461E83BB2B81AD"
+  },
+  {
+    "Path": "protocol/game/server-to-client/CMD-0x0040.md",
+    "SHA256": "D4D45D45BE73ACF8B6BF818B44F471AB3628C55C145E127B091A466D2753847F"
+  },
+  {
+    "Path": "protocol/patterns/data/traces/a21-cera-shop-content-20260909.md",
+    "SHA256": "2527ED6317E2A50FBF84A593472B4E62BA30EB2007E2F0DB96710C13C51215A7"
+  },
+  {
+    "Path": "protocol/patterns/data/traces/a21-cera-shop-wire-20260909.md",
+    "SHA256": "BD01D9092E6FB4C4E1A661F39FBC50F9A6980DA3C29C02473ED4337806E92799"
+  }
+]

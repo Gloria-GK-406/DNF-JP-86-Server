@@ -16,6 +16,24 @@ namespace Dfo.Server.Persistence.Accounts;
 /// </remarks>
 internal sealed class SqliteAccountTable(SqliteDatabase database) : IAccountTable
 {
+    public ValueTask<int> TrySetCeraBalancesAsync(AccountId accountId, AccountCeraBalances expected,
+        AccountCeraBalances next, CancellationToken cancellationToken) => database.ExecuteAsync(
+            """
+            UPDATE accounts SET cera=@cera,token_cera=@token,happy_token_cera=@happy
+            WHERE account_id=@aid AND cera=@oldCera AND token_cera=@oldToken AND happy_token_cera=@oldHappy
+                AND @cera>=0 AND @token>=0 AND @happy>=0;
+            """,
+            parameters =>
+            {
+                parameters.AddWithValue("@aid", accountId.Value);
+                parameters.AddWithValue("@cera", next.Cera);
+                parameters.AddWithValue("@token", next.TokenCera);
+                parameters.AddWithValue("@happy", next.HappyTokenCera);
+                parameters.AddWithValue("@oldCera", expected.Cera);
+                parameters.AddWithValue("@oldToken", expected.TokenCera);
+                parameters.AddWithValue("@oldHappy", expected.HappyTokenCera);
+            }, cancellationToken);
+
     public ValueTask InsertIfAbsentAsync(
         string loginId, string passwordHash, CancellationToken cancellationToken)
     {

@@ -389,6 +389,13 @@ internal abstract class StoreBackedItemContainer(
         int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken) =>
         this.WriteOneAsync(slotIndex, core, null, cancellationToken);
 
+    public ValueTask PutNewAsync(int slotIndex, InventoryItemCoreState core, InventoryItemCreationFacts facts,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(facts);
+        return this.WriteOneAsync(slotIndex, core, facts.Avatar, cancellationToken, facts.Creature);
+    }
+
     /// <summary>The write itself, with whatever an avatar carries into the world on it.</summary>
     /// <remarks>
     /// The facts are null for everything that is not an avatar entering the world, which is every
@@ -400,17 +407,22 @@ internal abstract class StoreBackedItemContainer(
         int slotIndex,
         InventoryItemCoreState core,
         InventoryAvatarDetailState? avatarDetail,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        InventoryCreatureDetailState? creatureDetail = null)
     {
         ArgumentNullException.ThrowIfNull(core);
         var worldClass = await placementRules.ClassifyAsync(core.ItemId, cancellationToken)
             .ConfigureAwait(false);
+        if (avatarDetail is not null && (worldClass != ItemWorldClass.Avatar || core.ItemKind != 8)
+            || creatureDetail is not null && (worldClass != ItemWorldClass.Creature || core.ItemKind != 5))
+            throw new InvalidDataException("Creation facts do not match the item's declared kind.");
         await this.WriteAsync(session => session.Write(
                 id,
                 new StoredItem(slotIndex, core)
                 {
                     WorldClass = worldClass,
                     AvatarDetail = avatarDetail,
+                    CreatureDetail = creatureDetail,
                 }))
             .ConfigureAwait(false);
     }

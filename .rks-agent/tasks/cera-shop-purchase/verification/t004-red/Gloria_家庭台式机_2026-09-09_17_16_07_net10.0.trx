@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="baae5ef6-0ec3-4c74-bf3c-947633855cf4" name="Gloria@家庭台式机 2026-09-09 17:16:07" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-09T17:16:07.2491266+08:00" queuing="2026-09-09T17:16:07.2491270+08:00" start="2026-09-09T17:16:05.4018573+08:00" finish="2026-09-09T17:16:07.2527205+08:00" />
+  <TestSettings name="default" id="4e0977fe-129c-4b35-b092-8f9603d110f2">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-09_17_16_07" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="190f4a71-be13-45d9-a1e0-48217979ee49" testId="bbc05985-c10a-b9c4-dc53-13e8243e0e18" testName="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests.Captured_nineteen_byte_purchase_reaches_the_registered_decoder" computerName="家庭台式机" duration="00:00:00.2905049" startTime="2026-09-09T17:16:06.8638659+08:00" endTime="2026-09-09T17:16:07.1635979+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="190f4a71-be13-45d9-a1e0-48217979ee49">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Single() Failure: The collection did not contain any matching items&#xD;
+Expected:   (predicate expression)&#xD;
+Collection: [GameMessageDecoderRegistration { Selector = 1, Type = 1, DecoderType = Dfo.Server.Protocol.Game.Login.GameLoginMessageDecoder }, GameMessageDecoderRegistration { Selector = 1, Type = 7, DecoderType = Dfo.Server.Protocol.Game.ReturnToSelection.ReturnToSelectionMessageDecoder }, GameMessageDecoderRegistration { Selector = 1, Type = 3, DecoderType = Dfo.Server.Protocol.Game.Exit.GameExitMessageDecoder }, GameMessageDecoderRegistration { Selector = 1, Type = 4, DecoderType = Dfo.Server.Protocol.Game.SelectCharacter.SelectCharacterMessageDecoder }, GameMessageDecoderRegistration { Selector = 1, Type = 8, DecoderType = Dfo.Server.Protocol.Game.AccountRoster.GetUserInfoMessageDecoder }, ···]</Message>
+          <StackTrace>   at Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests.Captured_nineteen_byte_purchase_reaches_the_registered_decoder() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Protocol.Tests\Game\CeraShopPurchase\CeraShopCodecTests.cs:line 17&#xD;
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)&#xD;
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests.Captured_nineteen_byte_purchase_reaches_the_registered_decoder" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\cera-shop-purchase\server\tests\dfo.server.protocol.tests\bin\release\net10.0\dfo.server.protocol.tests.dll" id="bbc05985-c10a-b9c4-dc53-13e8243e0e18">
+      <Execution id="190f4a71-be13-45d9-a1e0-48217979ee49" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Protocol.Tests\bin\Release\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests" name="Captured_nineteen_byte_purchase_reaches_the_registered_decoder" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="bbc05985-c10a-b9c4-dc53-13e8243e0e18" executionId="190f4a71-be13-45d9-a1e0-48217979ee49" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="1" executed="1" passed="0" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.43]   Discovering: Dfo.Server.Protocol.Tests&#xD;
+[xUnit.net 00:00:00.50]   Discovered:  Dfo.Server.Protocol.Tests&#xD;
+[xUnit.net 00:00:00.52]   Starting:    Dfo.Server.Protocol.Tests&#xD;
+[xUnit.net 00:00:00.84]       Assert.Single() Failure: The collection did not contain any matching items&#xD;
+[xUnit.net 00:00:00.84]       Expected:   (predicate expression)&#xD;
+[xUnit.net 00:00:00.84]       Collection: [GameMessageDecoderRegistration { Selector = 1, Type = 1, DecoderType = Dfo.Server.Protocol.Game.Login.GameLoginMessageDecoder }, GameMessageDecoderRegistration { Selector = 1, Type = 7, DecoderType = Dfo.Server.Protocol.Game.ReturnToSelection.ReturnToSelectionMessageDecoder }, GameMessageDecoderRegistration { Selector = 1, Type = 3, DecoderType = Dfo.Server.Protocol.Game.Exit.GameExitMessageDecoder }, GameMessageDecoderRegistration { Selector = 1, Type = 4, DecoderType = Dfo.Server.Protocol.Game.SelectCharacter.SelectCharacterMessageDecoder }, GameMessageDecoderRegistration { Selector = 1, Type = 8, DecoderType = Dfo.Server.Protocol.Game.AccountRoster.GetUserInfoMessageDecoder }, ···]&#xD;
+[xUnit.net 00:00:00.84]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.84]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Protocol.Tests\Game\CeraShopPurchase\CeraShopCodecTests.cs(17,0): at Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests.Captured_nineteen_byte_purchase_reaches_the_registered_decoder()&#xD;
+[xUnit.net 00:00:00.84]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)&#xD;
+[xUnit.net 00:00:00.84]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)&#xD;
+[xUnit.net 00:00:00.84]   Finished:    Dfo.Server.Protocol.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-09-09T17:16:07.1660168+08:00">
+        <Text>[xUnit.net 00:00:00.83]     Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests.Captured_nineteen_byte_purchase_reaches_the_registered_decoder [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

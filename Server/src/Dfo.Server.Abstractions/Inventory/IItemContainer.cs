@@ -154,6 +154,16 @@ public interface IItemContainer
     /// </remarks>
     ValueTask PutAsync(int slotIndex, InventoryItemCoreState core, CancellationToken cancellationToken);
 
+    /// <summary>Puts a newly created item with the instance facts it brings into the world.</summary>
+    ValueTask PutNewAsync(int slotIndex, InventoryItemCoreState core, InventoryItemCreationFacts facts,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(facts);
+        return facts.Avatar is null && facts.Creature is null
+            ? PutAsync(slotIndex, core, cancellationToken)
+            : throw new NotSupportedException("This container cannot create items with instance facts.");
+    }
+
     /// <summary>Leaves the slot empty, under the same rule as <see cref="PutAsync"/>.</summary>
     ValueTask ClearAsync(int slotIndex, CancellationToken cancellationToken);
 

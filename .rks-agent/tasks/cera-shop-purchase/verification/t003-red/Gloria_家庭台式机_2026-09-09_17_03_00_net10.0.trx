@@ -1,0 +1,53 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="8f7363a8-5030-4102-95f7-033cfb442c88" name="Gloria@家庭台式机 2026-09-09 17:03:00" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-09T17:03:00.1995239+08:00" queuing="2026-09-09T17:03:00.1995240+08:00" start="2026-09-09T17:02:58.3952536+08:00" finish="2026-09-09T17:03:00.2029959+08:00" />
+  <TestSettings name="default" id="ecbd7c99-7eeb-456f-b128-00334a7426c8">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-09_17_03_00" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="c4439764-9095-4463-91ac-2e894dccd5ea" testId="d47b1188-5dea-02ef-fc75-904171811f7a" testName="Dfo.Server.Application.Tests.Inventory.CeraShopRuleTests.Water_purchase_plans_96400_cera_and_one_item_without_mutating_current_stock" computerName="家庭台式机" duration="00:00:00.0512384" startTime="2026-09-09T17:03:00.0556178+08:00" endTime="2026-09-09T17:03:00.1181000+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c4439764-9095-4463-91ac-2e894dccd5ea">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.NotNull() Failure: Value is null</Message>
+          <StackTrace>   at Dfo.Server.Application.Tests.Inventory.CeraShopRuleTests.Water_purchase_plans_96400_cera_and_one_item_without_mutating_current_stock() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Application.Tests\Inventory\CeraShopRuleTests.cs:line 24&#xD;
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)&#xD;
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Application.Tests.Inventory.CeraShopRuleTests.Water_purchase_plans_96400_cera_and_one_item_without_mutating_current_stock" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\cera-shop-purchase\server\tests\dfo.server.application.tests\bin\release\net10.0\dfo.server.application.tests.dll" id="d47b1188-5dea-02ef-fc75-904171811f7a">
+      <Execution id="c4439764-9095-4463-91ac-2e894dccd5ea" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Inventory.CeraShopRuleTests" name="Water_purchase_plans_96400_cera_and_one_item_without_mutating_current_stock" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="d47b1188-5dea-02ef-fc75-904171811f7a" executionId="c4439764-9095-4463-91ac-2e894dccd5ea" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="1" executed="1" passed="0" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.54]   Discovering: Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.71]   Discovered:  Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.73]   Starting:    Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.80]       Assert.NotNull() Failure: Value is null&#xD;
+[xUnit.net 00:00:00.80]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.81]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Application.Tests\Inventory\CeraShopRuleTests.cs(24,0): at Dfo.Server.Application.Tests.Inventory.CeraShopRuleTests.Water_purchase_plans_96400_cera_and_one_item_without_mutating_current_stock()&#xD;
+[xUnit.net 00:00:00.81]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)&#xD;
+[xUnit.net 00:00:00.81]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)&#xD;
+[xUnit.net 00:00:00.81]   Finished:    Dfo.Server.Application.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-09-09T17:03:00.1201000+08:00">
+        <Text>[xUnit.net 00:00:00.80]     Dfo.Server.Application.Tests.Inventory.CeraShopRuleTests.Water_purchase_plans_96400_cera_and_one_item_without_mutating_current_stock [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

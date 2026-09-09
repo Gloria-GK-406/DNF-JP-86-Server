@@ -30,6 +30,11 @@ public sealed record AccountLotteryRow(int ItemTemplateId, int RewardIndex);
 /// </remarks>
 public interface IAccountTable
 {
+    /// <summary>Changes only the three currencies, if they still equal the expected balances.</summary>
+    ValueTask<int> TrySetCeraBalancesAsync(AccountId accountId, AccountCeraBalances expected,
+        AccountCeraBalances next, CancellationToken cancellationToken) =>
+        throw new NotSupportedException("This account table cannot change CERA balances.");
+
     /// <summary>Adds the account unless that login name already has one.</summary>
     ValueTask InsertIfAbsentAsync(
         string loginId, string passwordHash, CancellationToken cancellationToken);

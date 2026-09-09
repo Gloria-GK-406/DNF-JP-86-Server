@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="08e9109e-e42a-41a0-b55e-9c4e1ba6cf6e" name="Gloria@家庭台式机 2026-09-09 16:58:49" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-09T16:58:49.3378389+08:00" queuing="2026-09-09T16:58:49.3378390+08:00" start="2026-09-09T16:58:47.6569680+08:00" finish="2026-09-09T16:58:49.3422259+08:00" />
+  <TestSettings name="default" id="cf2b873b-8cd7-4d78-a395-b51886a1a19e">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-09_16_58_49" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="12c12a28-faa8-49c8-885f-5b9b50c51098" testId="4cc66005-2a60-4525-eec0-d8db6c6ec29c" testName="Dfo.Server.Persistence.Tests.Inventory.CeraShopStorageTests.New_creature_reloads_with_all_facts_and_the_same_wire_identity" computerName="家庭台式机" duration="00:00:00.3090130" startTime="2026-09-09T16:58:48.9389946+08:00" endTime="2026-09-09T16:58:49.2571766+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="12c12a28-faa8-49c8-885f-5b9b50c51098">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Single() Failure: The collection was empty</Message>
+          <StackTrace>   at Dfo.Server.Persistence.Tests.Inventory.CeraShopStorageTests.New_creature_reloads_with_all_facts_and_the_same_wire_identity() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Persistence.Tests\Inventory\CeraShopStorageTests.cs:line 30&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Persistence.Tests.Inventory.CeraShopStorageTests.New_creature_reloads_with_all_facts_and_the_same_wire_identity" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\cera-shop-purchase\server\tests\dfo.server.persistence.tests\bin\release\net10.0\dfo.server.persistence.tests.dll" id="4cc66005-2a60-4525-eec0-d8db6c6ec29c">
+      <Execution id="12c12a28-faa8-49c8-885f-5b9b50c51098" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Persistence.Tests\bin\Release\net10.0\Dfo.Server.Persistence.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Persistence.Tests.Inventory.CeraShopStorageTests" name="New_creature_reloads_with_all_facts_and_the_same_wire_identity" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="4cc66005-2a60-4525-eec0-d8db6c6ec29c" executionId="12c12a28-faa8-49c8-885f-5b9b50c51098" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="1" executed="1" passed="0" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.30]   Discovering: Dfo.Server.Persistence.Tests&#xD;
+[xUnit.net 00:00:00.36]   Discovered:  Dfo.Server.Persistence.Tests&#xD;
+[xUnit.net 00:00:00.37]   Starting:    Dfo.Server.Persistence.Tests&#xD;
+[xUnit.net 00:00:00.71]       Assert.Single() Failure: The collection was empty&#xD;
+[xUnit.net 00:00:00.71]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.71]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Persistence.Tests\Inventory\CeraShopStorageTests.cs(30,0): at Dfo.Server.Persistence.Tests.Inventory.CeraShopStorageTests.New_creature_reloads_with_all_facts_and_the_same_wire_identity()&#xD;
+[xUnit.net 00:00:00.71]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.71]   Finished:    Dfo.Server.Persistence.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-09-09T16:58:49.2593531+08:00">
+        <Text>[xUnit.net 00:00:00.71]     Dfo.Server.Persistence.Tests.Inventory.CeraShopStorageTests.New_creature_reloads_with_all_facts_and_the_same_wire_identity [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

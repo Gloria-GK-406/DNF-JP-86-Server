@@ -414,12 +414,11 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
     /// anything looser and this method's silence becomes a hole.
     ///
     /// Third -- and this one is an asymmetry, not a coupling -- what is rescued across a rebuilt
-    /// world row is the six avatar columns and nothing else. The INSERT in <see cref="FillAsync"/>
-    /// does not write the eight creature columns at all. A creature that both moves and has its
-    /// core bytes change in one batch is matched by none of the three passes, so its row is
-    /// deleted and remade, and those eight columns come back NULL. Nothing can reach that today,
-    /// because nothing creates a creature world row; whoever wires the creature domain up is the
-    /// one who will reach it, and this paragraph is addressed to them.
+    /// world row is the six avatar columns. New creature creation supplies its eight columns to
+    /// <see cref="FillAsync"/>, and an unchanged move keeps the original row through Survivors.
+    /// A future operation that both moves a creature and changes its core in the same batch must
+    /// also carry its creature facts: this avatar-only retrieval cannot recover them for a rebuilt
+    /// row. The CERA purchase path creates new creatures and never performs that combined move.
     /// </remarks>
     private async ValueTask<IReadOnlyDictionary<int, object?[]>> CarriedAvatarsAsync(
         IReadOnlyDictionary<(ContainerId, int), Displaced> survivors,
@@ -609,9 +608,12 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
             INSERT INTO items(
                 item_core,
                 avatar_expire_date, avatar_clear_id, avatar_jewel_socket, avatar_color1,
-                avatar_color2, avatar_delete_date)
+                avatar_color2, avatar_delete_date,
+                creature_field04, creature_mode_flag, creature_progress_value, creature_mode1_field0a,
+                creature_mode1_field0b, creature_field_after_value, creature_text, creature_tail_flag)
             SELECT @core, @expire, @clear,
-                @socket, @color1, @color2, @delete
+                @socket, @color1, @color2, @delete,
+                @field04, @modeFlag, @progress, @mode1a, @mode1b, @afterValue, @creatureText, @tailFlag
             WHERE @expire IS NULL OR NOT EXISTS (
                 SELECT 1 FROM items standing
                 WHERE standing.avatar_expire_date IS NOT NULL
@@ -624,15 +626,36 @@ internal sealed class SqliteItemDomainStoreSession(SqliteDatabaseParticipant own
         {
             command.Parameters.AddWithValue(name, facts?[index] ?? DBNull.Value);
         }
+        var creature = item.CreatureDetail;
+        command.Parameters.AddWithValue("@field04", (object?)creature?.Field04 ?? DBNull.Value);
+        command.Parameters.AddWithValue("@modeFlag", (object?)creature?.ModeFlag ?? DBNull.Value);
+        command.Parameters.AddWithValue("@progress", (object?)creature?.ProgressValue ?? DBNull.Value);
+        command.Parameters.AddWithValue("@mode1a", (object?)creature?.Mode1Field0A ?? DBNull.Value);
+        command.Parameters.AddWithValue("@mode1b", (object?)creature?.Mode1Field0B ?? DBNull.Value);
+        command.Parameters.AddWithValue("@afterValue", (object?)creature?.FieldAfterValue ?? DBNull.Value);
+        command.Parameters.AddWithValue("@creatureText", (object?)creature?.CreatureText ?? DBNull.Value);
+        command.Parameters.AddWithValue("@tailFlag", (object?)creature?.TailFlag ?? DBNull.Value);
 
         try
         {
             var allocated = await command.ExecuteScalarAsync(cancellationToken)
                 .ConfigureAwait(false);
-            return allocated is null
+            var identity = allocated is null
                 ? throw new InvalidOperationException(
                     "The world took the item and named no identity.")
                 : checked((int)Convert.ToInt64(allocated, null));
+            if (creature is not null)
+            {
+                // The legacy core's creature UID is the same identifier emitted by the creature
+                // list. Only settlement knows the newly allocated world identity.
+                await using var link = await owner.CommandAsync(cancellationToken).ConfigureAwait(false);
+                link.CommandText = "UPDATE items SET item_core=@core WHERE item_uid=@uid";
+                link.Parameters.AddWithValue("@core", InventoryItemCore.Encode(item.Core with { Value = identity }));
+                link.Parameters.AddWithValue("@uid", identity);
+                if (await link.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) != 1)
+                    throw new InvalidOperationException("The new creature identity could not be linked to its core.");
+            }
+            return identity;
         }
         catch (SqliteException failure) when (
             failure.Message.Contains(WorldIdentityConstraint, StringComparison.Ordinal))

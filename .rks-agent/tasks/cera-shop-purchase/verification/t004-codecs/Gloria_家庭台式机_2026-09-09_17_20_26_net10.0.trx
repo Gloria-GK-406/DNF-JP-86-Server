@@ -1,0 +1,70 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="a24f0ec0-5e0c-4267-9e25-b3627651d399" name="Gloria@家庭台式机 2026-09-09 17:20:26" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-09T17:20:26.3984070+08:00" queuing="2026-09-09T17:20:26.3984071+08:00" start="2026-09-09T17:20:25.7626996+08:00" finish="2026-09-09T17:20:26.4022454+08:00" />
+  <TestSettings name="default" id="f5a753a9-9016-43d7-a114-2bd177941ae1">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-09_17_20_26" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="f1d9dac6-957b-435d-8914-a2b5c4cec99d" testId="af4dd75a-0bfc-e17f-288a-80d72c41f374" testName="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests.Variable_options_and_each_products_coupon_tail_are_decoded_with_one_cursor" computerName="家庭台式机" duration="00:00:00.0076080" startTime="2026-09-09T17:20:26.2946287+08:00" endTime="2026-09-09T17:20:26.2957434+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f1d9dac6-957b-435d-8914-a2b5c4cec99d" />
+    <UnitTestResult executionId="3797059e-b285-415c-8d9e-d509b524ae6e" testId="bbc05985-c10a-b9c4-dc53-13e8243e0e18" testName="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests.Captured_nineteen_byte_purchase_reaches_the_registered_decoder" computerName="家庭台式机" duration="00:00:00.0243353" startTime="2026-09-09T17:20:26.2969846+08:00" endTime="2026-09-09T17:20:26.3213540+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3797059e-b285-415c-8d9e-d509b524ae6e" />
+    <UnitTestResult executionId="c0ccad25-d64a-49e4-9b5f-99fce6abbc1b" testId="d9fab945-a5ae-6e49-64ce-203521bb4a71" testName="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests.Success_names_the_product_without_misusing_display_override_or_extra_items" computerName="家庭台式机" duration="00:00:00.0005730" startTime="2026-09-09T17:20:26.2945542+08:00" endTime="2026-09-09T17:20:26.2945729+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c0ccad25-d64a-49e4-9b5f-99fce6abbc1b" />
+    <UnitTestResult executionId="50fd3e4c-9595-4426-9e59-50ddadd549a4" testId="95acc455-4d52-5843-4a5e-867c52a71ec0" testName="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests.A21_failure_reader_consumes_success_error_flag_and_five_integers(error: 11)" computerName="家庭台式机" duration="00:00:00.0000060" startTime="2026-09-09T17:20:26.2940364+08:00" endTime="2026-09-09T17:20:26.2940550+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="50fd3e4c-9595-4426-9e59-50ddadd549a4" />
+    <UnitTestResult executionId="b3d3dfc0-06ae-4b39-a14e-24521108f593" testId="45d77f99-072f-1ad5-c22d-3b29a465dfc6" testName="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests.A21_failure_reader_consumes_success_error_flag_and_five_integers(error: 1)" computerName="家庭台式机" duration="00:00:00.0066102" startTime="2026-09-09T17:20:26.2764295+08:00" endTime="2026-09-09T17:20:26.2871295+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b3d3dfc0-06ae-4b39-a14e-24521108f593" />
+    <UnitTestResult executionId="070191d9-fbf3-4fe3-94a8-1de2a48101b7" testId="2bfe47d7-84a2-e5c7-e052-6302c0c8bf8e" testName="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests.Every_truncation_and_trailing_bytes_reject_the_entire_cart_without_a_valid_prefix" computerName="家庭台式机" duration="00:00:00.0011309" startTime="2026-09-09T17:20:26.2958055+08:00" endTime="2026-09-09T17:20:26.2969181+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="070191d9-fbf3-4fe3-94a8-1de2a48101b7" />
+    <UnitTestResult executionId="e5983898-6112-48c1-ba82-bbb1d1452a73" testId="8b09704b-1022-904b-2861-39cf827882b1" testName="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests.A21_failure_reader_consumes_success_error_flag_and_five_integers(error: 4)" computerName="家庭台式机" duration="00:00:00.0001999" startTime="2026-09-09T17:20:26.2936200+08:00" endTime="2026-09-09T17:20:26.2936600+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e5983898-6112-48c1-ba82-bbb1d1452a73" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests.A21_failure_reader_consumes_success_error_flag_and_five_integers(error: 11)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\cera-shop-purchase\server\tests\dfo.server.protocol.tests\bin\release\net10.0\dfo.server.protocol.tests.dll" id="95acc455-4d52-5843-4a5e-867c52a71ec0">
+      <Execution id="50fd3e4c-9595-4426-9e59-50ddadd549a4" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Protocol.Tests\bin\Release\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests" name="A21_failure_reader_consumes_success_error_flag_and_five_integers" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests.A21_failure_reader_consumes_success_error_flag_and_five_integers(error: 1)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\cera-shop-purchase\server\tests\dfo.server.protocol.tests\bin\release\net10.0\dfo.server.protocol.tests.dll" id="45d77f99-072f-1ad5-c22d-3b29a465dfc6">
+      <Execution id="b3d3dfc0-06ae-4b39-a14e-24521108f593" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Protocol.Tests\bin\Release\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests" name="A21_failure_reader_consumes_success_error_flag_and_five_integers" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests.A21_failure_reader_consumes_success_error_flag_and_five_integers(error: 4)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\cera-shop-purchase\server\tests\dfo.server.protocol.tests\bin\release\net10.0\dfo.server.protocol.tests.dll" id="8b09704b-1022-904b-2861-39cf827882b1">
+      <Execution id="e5983898-6112-48c1-ba82-bbb1d1452a73" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Protocol.Tests\bin\Release\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests" name="A21_failure_reader_consumes_success_error_flag_and_five_integers" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests.Variable_options_and_each_products_coupon_tail_are_decoded_with_one_cursor" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\cera-shop-purchase\server\tests\dfo.server.protocol.tests\bin\release\net10.0\dfo.server.protocol.tests.dll" id="af4dd75a-0bfc-e17f-288a-80d72c41f374">
+      <Execution id="f1d9dac6-957b-435d-8914-a2b5c4cec99d" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Protocol.Tests\bin\Release\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests" name="Variable_options_and_each_products_coupon_tail_are_decoded_with_one_cursor" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests.Every_truncation_and_trailing_bytes_reject_the_entire_cart_without_a_valid_prefix" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\cera-shop-purchase\server\tests\dfo.server.protocol.tests\bin\release\net10.0\dfo.server.protocol.tests.dll" id="2bfe47d7-84a2-e5c7-e052-6302c0c8bf8e">
+      <Execution id="070191d9-fbf3-4fe3-94a8-1de2a48101b7" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Protocol.Tests\bin\Release\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests" name="Every_truncation_and_trailing_bytes_reject_the_entire_cart_without_a_valid_prefix" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests.Success_names_the_product_without_misusing_display_override_or_extra_items" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\cera-shop-purchase\server\tests\dfo.server.protocol.tests\bin\release\net10.0\dfo.server.protocol.tests.dll" id="d9fab945-a5ae-6e49-64ce-203521bb4a71">
+      <Execution id="c0ccad25-d64a-49e4-9b5f-99fce6abbc1b" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Protocol.Tests\bin\Release\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests" name="Success_names_the_product_without_misusing_display_override_or_extra_items" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests.Captured_nineteen_byte_purchase_reaches_the_registered_decoder" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\cera-shop-purchase\server\tests\dfo.server.protocol.tests\bin\release\net10.0\dfo.server.protocol.tests.dll" id="bbc05985-c10a-b9c4-dc53-13e8243e0e18">
+      <Execution id="3797059e-b285-415c-8d9e-d509b524ae6e" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Protocol.Tests\bin\Release\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.CeraShopPurchase.CeraShopCodecTests" name="Captured_nineteen_byte_purchase_reaches_the_registered_decoder" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="af4dd75a-0bfc-e17f-288a-80d72c41f374" executionId="f1d9dac6-957b-435d-8914-a2b5c4cec99d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="bbc05985-c10a-b9c4-dc53-13e8243e0e18" executionId="3797059e-b285-415c-8d9e-d509b524ae6e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d9fab945-a5ae-6e49-64ce-203521bb4a71" executionId="c0ccad25-d64a-49e4-9b5f-99fce6abbc1b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="95acc455-4d52-5843-4a5e-867c52a71ec0" executionId="50fd3e4c-9595-4426-9e59-50ddadd549a4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="45d77f99-072f-1ad5-c22d-3b29a465dfc6" executionId="b3d3dfc0-06ae-4b39-a14e-24521108f593" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2bfe47d7-84a2-e5c7-e052-6302c0c8bf8e" executionId="070191d9-fbf3-4fe3-94a8-1de2a48101b7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8b09704b-1022-904b-2861-39cf827882b1" executionId="e5983898-6112-48c1-ba82-bbb1d1452a73" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="7" executed="7" passed="7" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.07]   Discovering: Dfo.Server.Protocol.Tests&#xD;
+[xUnit.net 00:00:00.14]   Discovered:  Dfo.Server.Protocol.Tests&#xD;
+[xUnit.net 00:00:00.16]   Starting:    Dfo.Server.Protocol.Tests&#xD;
+[xUnit.net 00:00:00.22]   Finished:    Dfo.Server.Protocol.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

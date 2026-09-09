@@ -1,0 +1,113 @@
+[
+  {
+    "File": "Gloria_家庭台式机_2026-09-09_17_26_10_net10.0.trx",
+    "SHA256": "433B30CE5DC3131CDE22D3636484FAD78D9F17E429F3FFB043194DB29CFD3D08",
+    "Total": 54,
+    "Outcomes": [
+      {
+        "Outcome": "Passed",
+        "Count": 54
+      }
+    ],
+    "Skipped": []
+  },
+  {
+    "File": "Gloria_家庭台式机_2026-09-09_17_26_10_net10.0[1].trx",
+    "SHA256": "192E7154DB76F65859ADF695F0AA50D860E6B82D5134D079FE18C0ED2692FB08",
+    "Total": 680,
+    "Outcomes": [
+      {
+        "Outcome": "Passed",
+        "Count": 680
+      }
+    ],
+    "Skipped": []
+  },
+  {
+    "File": "Gloria_家庭台式机_2026-09-09_17_26_11_net10.0.trx",
+    "SHA256": "70ED15A355933A605BA0B55FCBAC5D7B647D1D6104F9E55A5E1E75BF0FFFC313",
+    "Total": 1240,
+    "Outcomes": [
+      {
+        "Outcome": "Passed",
+        "Count": 1240
+      }
+    ],
+    "Skipped": []
+  },
+  {
+    "File": "Gloria_家庭台式机_2026-09-09_17_26_12_net10.0.trx",
+    "SHA256": "ED54DD32006EED8E0FDF338285047BABD552FE844952C739FD96643C10C97F59",
+    "Total": 60,
+    "Outcomes": [
+      {
+        "Outcome": "Passed",
+        "Count": 60
+      }
+    ],
+    "Skipped": []
+  },
+  {
+    "File": "Gloria_家庭台式机_2026-09-09_17_26_12_net10.0[1].trx",
+    "SHA256": "54F0B74CCE8EE815DEA9E2F0D8574683042FDFCC62077B0801D60473122BB45F",
+    "Total": 336,
+    "Outcomes": [
+      {
+        "Outcome": "Passed",
+        "Count": 336
+      }
+    ],
+    "Skipped": []
+  },
+  {
+    "File": "Gloria_家庭台式机_2026-09-09_17_26_13_net10.0.trx",
+    "SHA256": "DADC4549CECD815CF7307CE9653B986E170B3D1239834DF94907A72ED777319D",
+    "Total": 279,
+    "Outcomes": [
+      {
+        "Outcome": "NotExecuted",
+        "Count": 2
+      },
+      {
+        "Outcome": "Passed",
+        "Count": 277
+      }
+    ],
+    "Skipped": [
+      {
+        "testName": "Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message",
+        "outcome": "NotExecuted",
+        "Output": [
+          [
+            [
+              []
+            ]
+          ]
+        ]
+      },
+      {
+        "testName": "Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog",
+        "outcome": "NotExecuted",
+        "Output": [
+          [
+            [
+              []
+            ]
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "File": "Gloria_家庭台式机_2026-09-09_17_26_14_net10.0.trx",
+    "SHA256": "4553FE23289194919F288F876B7F7E01FE23BA1312F593B04630B1CCE6186260",
+    "Total": 6,
+    "Outcomes": [
+      {
+        "Outcome": "Passed",
+        "Count": 6
+      }
+    ],
+    "Skipped": []
+  }
+]

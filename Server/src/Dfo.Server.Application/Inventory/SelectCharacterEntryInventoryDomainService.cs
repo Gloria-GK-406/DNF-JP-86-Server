@@ -81,7 +81,8 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
                 "Entry inventory has no avatar container to bind the character to.");
 
         containers.Clear(characterId);
-        foreach (var container in (InventoryContainerState[])[main, equipment, avatar])
+        foreach (var container in ((InventoryContainerState[])[main, equipment, avatar])
+            .Concat(inventory.Containers.Where(value => value.ContainerType == InventoryContainerType.Pet)))
         {
             containers.Register(characterId, new PersistentItemContainer(
                 ContainerId.ForCharacter(characterId, container.ContainerType),

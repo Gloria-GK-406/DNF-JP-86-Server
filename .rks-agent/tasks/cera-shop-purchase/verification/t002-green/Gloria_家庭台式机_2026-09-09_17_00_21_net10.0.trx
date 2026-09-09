@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="c295edeb-2198-4139-8ed2-2cce14542d3f" name="Gloria@家庭台式机 2026-09-09 17:00:21" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-09T17:00:21.1316440+08:00" queuing="2026-09-09T17:00:21.1316441+08:00" start="2026-09-09T17:00:20.2723961+08:00" finish="2026-09-09T17:00:21.1351844+08:00" />
+  <TestSettings name="default" id="5cc35866-43e6-4320-8df5-bdb0ae18837d">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-09_17_00_21" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="e68a8137-a083-4d5b-967b-7f36cdcf6e24" testId="4cc66005-2a60-4525-eec0-d8db6c6ec29c" testName="Dfo.Server.Persistence.Tests.Inventory.CeraShopStorageTests.New_creature_reloads_with_all_facts_and_the_same_wire_identity" computerName="家庭台式机" duration="00:00:00.0413883" startTime="2026-09-09T17:00:21.0186746+08:00" endTime="2026-09-09T17:00:21.0595534+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e68a8137-a083-4d5b-967b-7f36cdcf6e24" />
+    <UnitTestResult executionId="6edea37d-109a-4985-aa83-fac3659d63e6" testId="72ce7868-174f-8b63-cea4-2af6de3e573d" testName="Dfo.Server.Persistence.Tests.Inventory.CeraShopStorageTests.Failure_after_payment_and_first_item_rolls_back_every_write" computerName="家庭台式机" duration="00:00:00.0537486" startTime="2026-09-09T17:00:20.9702776+08:00" endTime="2026-09-09T17:00:21.0180934+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6edea37d-109a-4985-aa83-fac3659d63e6" />
+    <UnitTestResult executionId="73bdbaa4-7c17-4e5e-974f-4887e39d2c90" testId="da84db78-177b-2cec-2438-e57e6eefd9fb" testName="Dfo.Server.Persistence.Tests.Inventory.CeraShopStorageTests.Currency_compare_exchange_preserves_other_columns_and_rejects_stale_or_negative_balances" computerName="家庭台式机" duration="00:00:00.1781318" startTime="2026-09-09T17:00:20.7822930+08:00" endTime="2026-09-09T17:00:20.9642916+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="73bdbaa4-7c17-4e5e-974f-4887e39d2c90" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Persistence.Tests.Inventory.CeraShopStorageTests.Currency_compare_exchange_preserves_other_columns_and_rejects_stale_or_negative_balances" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\cera-shop-purchase\server\tests\dfo.server.persistence.tests\bin\release\net10.0\dfo.server.persistence.tests.dll" id="da84db78-177b-2cec-2438-e57e6eefd9fb">
+      <Execution id="73bdbaa4-7c17-4e5e-974f-4887e39d2c90" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Persistence.Tests\bin\Release\net10.0\Dfo.Server.Persistence.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Persistence.Tests.Inventory.CeraShopStorageTests" name="Currency_compare_exchange_preserves_other_columns_and_rejects_stale_or_negative_balances" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Persistence.Tests.Inventory.CeraShopStorageTests.New_creature_reloads_with_all_facts_and_the_same_wire_identity" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\cera-shop-purchase\server\tests\dfo.server.persistence.tests\bin\release\net10.0\dfo.server.persistence.tests.dll" id="4cc66005-2a60-4525-eec0-d8db6c6ec29c">
+      <Execution id="e68a8137-a083-4d5b-967b-7f36cdcf6e24" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Persistence.Tests\bin\Release\net10.0\Dfo.Server.Persistence.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Persistence.Tests.Inventory.CeraShopStorageTests" name="New_creature_reloads_with_all_facts_and_the_same_wire_identity" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Persistence.Tests.Inventory.CeraShopStorageTests.Failure_after_payment_and_first_item_rolls_back_every_write" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\cera-shop-purchase\server\tests\dfo.server.persistence.tests\bin\release\net10.0\dfo.server.persistence.tests.dll" id="72ce7868-174f-8b63-cea4-2af6de3e573d">
+      <Execution id="6edea37d-109a-4985-aa83-fac3659d63e6" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\cera-shop-purchase\Server\tests\Dfo.Server.Persistence.Tests\bin\Release\net10.0\Dfo.Server.Persistence.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Persistence.Tests.Inventory.CeraShopStorageTests" name="Failure_after_payment_and_first_item_rolls_back_every_write" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="4cc66005-2a60-4525-eec0-d8db6c6ec29c" executionId="e68a8137-a083-4d5b-967b-7f36cdcf6e24" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="72ce7868-174f-8b63-cea4-2af6de3e573d" executionId="6edea37d-109a-4985-aa83-fac3659d63e6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="da84db78-177b-2cec-2438-e57e6eefd9fb" executionId="73bdbaa4-7c17-4e5e-974f-4887e39d2c90" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="3" executed="3" passed="3" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.11]   Discovering: Dfo.Server.Persistence.Tests&#xD;
+[xUnit.net 00:00:00.16]   Discovered:  Dfo.Server.Persistence.Tests&#xD;
+[xUnit.net 00:00:00.18]   Starting:    Dfo.Server.Persistence.Tests&#xD;
+[xUnit.net 00:00:00.47]   Finished:    Dfo.Server.Persistence.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

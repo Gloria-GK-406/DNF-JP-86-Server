@@ -126,4 +126,7 @@ public sealed record StoredItem(int SlotIndex, InventoryItemCoreState Core)
     /// six that avatar is already standing with.
     /// </summary>
     public InventoryAvatarDetailState? AvatarDetail { get; init; }
+
+    /// <summary>Creation facts for a new creature; existing world rows keep their own facts.</summary>
+    public InventoryCreatureDetailState? CreatureDetail { get; init; }
 }

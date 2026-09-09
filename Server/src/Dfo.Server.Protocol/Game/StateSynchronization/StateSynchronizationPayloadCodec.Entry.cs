@@ -37,20 +37,7 @@ internal static partial class StateSynchronizationPayloadCodec
         return stream.ToArray();
     }
 
-    public static byte[] EncodeCreatures(IReadOnlyList<CharacterPetRuntimeState> pets)
-    {
-        if (pets.Count > byte.MaxValue) throw CountError("creature", "u8");
-        using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
-        writer.Write(checked((byte)pets.Count));
-        foreach (var pet in pets)
-        {
-            writer.Write(checked((int)pet.PetKey)); writer.Write(checked((byte)pet.Field04));
-            writer.Write(pet.ModeFlag); writer.Write(pet.ProgressValue);
-            if (pet.ModeFlag == 1) { writer.Write(checked((byte)pet.Mode1Field0A)); writer.Write(checked((byte)pet.Mode1Field0B)); }
-            writer.Write(checked((byte)pet.FieldAfterValue)); WriteDstr(writer, pet.CreatureText); writer.Write(pet.TailFlag);
-        }
-        return stream.ToArray();
-    }
+    public static byte[] EncodeCreatures(IReadOnlyList<CharacterPetRuntimeState> pets) => GameInstanceDelivery.EncodeCreatures(pets);
 
     public static byte[] EncodeLotteryProgress(AccountProgressionEntryState progression)
     {
@@ -615,11 +602,8 @@ internal static partial class StateSynchronizationPayloadCodec
         using var stream = new MemoryStream(16); using var writer = new BinaryWriter(stream); writer.Write(e.Value0); writer.Write(e.Value1); writer.Write(e.Value2); writer.Write(e.Value3); return stream.ToArray();
     }
 
-    public static byte[] EncodeCera(AccountWalletEntryState wallet)
-    {
-        using var stream = new MemoryStream(13); using var writer = new BinaryWriter(stream);
-        writer.Write((byte)1); writer.Write(wallet.Cera); writer.Write(wallet.TokenCera); writer.Write(wallet.HappyTokenCera); return stream.ToArray();
-    }
+    public static byte[] EncodeCera(AccountWalletEntryState wallet) =>
+        GameInstanceDelivery.EncodeWallet(new(wallet.Cera, wallet.TokenCera, wallet.HappyTokenCera));
 
     public static byte[] EncodePosition(CharacterId characterId, EntrySpawnState spawn)
     {

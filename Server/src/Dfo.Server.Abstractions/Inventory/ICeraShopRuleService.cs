@@ -1,0 +1,29 @@
+using System.Collections.Immutable;
+using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Content;
+using Dfo.Server.Data.Inventory;
+
+namespace Dfo.Server.Abstractions.Inventory;
+
+public enum CeraShopPaymentMode { Ordinary, CeraOnly, PointsOnly }
+public sealed record CeraShopCharge(int ProductId, int Gold, int Cera, CeraShopPaymentMode Mode);
+public sealed record CeraShopGrant(CeraShopItemDefinition Item, ItemPlacement Placement, int Count,
+    byte Ability, int ExpireDate);
+public sealed record CeraShopQuote(ImmutableArray<int> ProductIds, ImmutableArray<CeraShopCharge> Charges,
+    ImmutableArray<CeraShopGrant> Grants);
+public sealed record CeraShopQuoteResult(CeraShopRejection Rejection, CeraShopQuote? Quote, string? Detail);
+public sealed record CeraShopSlotWrite(InventoryContainerType Container, int SlotIndex,
+    InventoryItemCoreState Core, InventoryItemCreationFacts? CreationFacts);
+public sealed record CeraShopPurchasePlan(AccountCeraBalances Balances, int GoldCost,
+    ImmutableArray<CeraShopSlotWrite> Writes);
+public sealed record CeraShopPlanningResult(CeraShopRejection Rejection, CeraShopPurchasePlan? Plan, string? Detail);
+
+public interface ICeraShopRuleService
+{
+    ValueTask<CeraShopQuoteResult> QuoteAsync(CeraShopPurchaseInput input, int characterLevel,
+        DateTimeOffset now, CancellationToken cancellationToken);
+    CeraShopPlanningResult Plan(CeraShopQuote quote,
+        IReadOnlyDictionary<InventoryContainerType, IReadOnlyList<ContainerSlotItem>> held,
+        int gold, AccountCeraBalances balances, int identitySeed);
+}
