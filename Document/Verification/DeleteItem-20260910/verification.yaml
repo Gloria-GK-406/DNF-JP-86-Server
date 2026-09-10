@@ -1,0 +1,46 @@
+kind: rks-verification
+subject: A21 CMD 0x0012 ordinary DELETE_ITEM implementation and protocol documentation
+verified_at: 2026-09-10
+decision: pass
+claim: >-
+  The server decodes, validates, transactionally applies, and acknowledges the 19-byte A21
+  ordinary single-item discard path, while preserving but not using the two tail semantics.
+conditions:
+  - name: wire codec and registration
+    result: pass
+    evidence:
+      command: >-
+        dotnet test Server/tests/Dfo.Server.Protocol.Tests/Dfo.Server.Protocol.Tests.csproj
+        --no-restore --filter FullyQualifiedName~DeleteItemCodecTests
+      outcome: 6 passed, 0 failed
+      source: Server/tests/Dfo.Server.Protocol.Tests/Game/DeleteItem/DeleteItemCodecTests.cs
+  - name: authoritative inventory mutation and rejection behavior
+    result: pass
+    evidence:
+      command: >-
+        dotnet test Server/tests/Dfo.Server.Application.Tests/Dfo.Server.Application.Tests.csproj
+        --no-restore --filter FullyQualifiedName~ItemDiscardTests
+      outcome: 8 passed, 0 failed
+      source: Server/tests/Dfo.Server.Application.Tests/Inventory/ItemDiscardTests.cs
+  - name: complete server regression with the A21 archive
+    result: pass
+    evidence:
+      command: >-
+        $env:PVF_ARCHIVE_PATH='E:\Project\DNF\DNFClient-A21-debug\Script.pvf';
+        dotnet test Server/86JP.Server.slnx --no-restore --nologo --verbosity minimal -m:1
+      outcome: 2744 passed, 2 conditionally skipped, 0 failed across 2746 tests
+  - name: diff formatting
+    result: pass
+    evidence:
+      command: git diff --check
+      outcome: no errors
+limitations:
+  - Live A21 client behavior has not yet been retested, so the catalog remains at implementation rather than ClientVerified.
+  - The 18-byte operationType 0 builder, batches, avatars, creatures, worn containers, and collection-box behavior remain outside scope.
+  - >-
+    The generated protocol acceptance checker still reports its existing two undeclared-extra documents,
+    game/client-to-server/0x0075.md and game/server-to-client/CMD-0x0040.md; this change adds neither.
+observations:
+  - >-
+    One parallel whole-solution run made the existing 50 ms notification deadline test take about
+    three seconds under cross-project load. Its isolated rerun passed, and the serial full suite passed.

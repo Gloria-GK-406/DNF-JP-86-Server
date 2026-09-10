@@ -26,6 +26,7 @@ using Dfo.Server.Protocol.Game.ConnectionCheck;
 using Dfo.Server.Protocol.Game.ContentsPlayInfo;
 using Dfo.Server.Protocol.Game.CreateCharacter;
 using Dfo.Server.Protocol.Game.DeleteCharacter;
+using Dfo.Server.Protocol.Game.DeleteItem;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.FinishLoading;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
@@ -104,6 +105,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddNotificationHandler<OpeningCompleted, OpeningCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ShopPurchaseCountsReported, ShopPurchaseCountsReportedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ItemSaleCompleted, ItemSaleCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<ItemDiscardCompleted, ItemDiscardCompletedHandler>(retryLimit: 0);
         services.TryAddSingleton<ICleanupNotificationDelivery, CleanupNotificationDelivery>();
         services.AddNotificationHandler<SessionCleanupAnnounced, SessionCleanupAnnouncedHandler>(
             // Nothing. A departure notice that misses somebody is corrected by the next thing that
@@ -223,6 +225,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<LearnSkillCommand, CharacterSkillLearningResult, LearnSkillCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<SellItemCommand, ItemSaleResult, SellItemCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<DeleteItemCommand, ItemDiscardResult, DeleteItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<BuyItemCommand, NpcShopPurchaseResult, BuyItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
@@ -345,6 +349,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<GenCeraTicketHandler>(ClientMessageType.GameGenCeraTicket);
         services.RegisterMessageHandler<LearnSkillHandler>(ClientMessageType.GameLearnSkill);
         services.RegisterMessageHandler<SellItemHandler>(ClientMessageType.GameSellItem);
+        services.RegisterMessageHandler<DeleteItemHandler>(ClientMessageType.GameDeleteItem);
         services.RegisterMessageHandler<ShopPurchaseCountHandler>(ClientMessageType.GameShopPurchaseCount);
 
         // Position and area: the only inputs that move a published character, and so the only
@@ -504,6 +509,8 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.MoveItemSpaceType, ClientMessageType.GameMoveItemSpace);
         services.AddGameCmdMessageDecoder<LearnSkillMessageDecoder>(GameProtocol.LearnSkillType, ClientMessageType.GameLearnSkill);
         services.AddGameCmdMessageDecoder<SellItemMessageDecoder>(GameProtocol.SellItemType, ClientMessageType.GameSellItem);
+        services.AddGameCmdMessageDecoder<DeleteItemMessageDecoder>(
+            GameProtocol.DeleteItemType, ClientMessageType.GameDeleteItem);
         services.AddGameCmdMessageDecoder<BuyItemMessageDecoder>(
             GameProtocol.BuyItemType, ClientMessageType.GameBuyItem);
         services.AddGameCmdMessageDecoder<CeraShopPurchaseMessageDecoder>(0x0040, ClientMessageType.GameCeraShopPurchase);
@@ -592,6 +599,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<GameServerNoticeMessage, GameServerNoticeEncoder>();
         GameInstanceDelivery.AddEncoders(services);
         services.AddGameCmdMessageEncoder<SellItemResponse, SellItemResponseEncoder>();
+        services.AddGameCmdMessageEncoder<DeleteItemResponse, DeleteItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<LearnSkillResponse, LearnSkillResponseEncoder>();
         services.AddGameCmdMessageEncoder<ShopPurchaseCountResponse, ShopPurchaseCountEncoder>();
         services.AddGameCmdMessageEncoder<GetItemResponse, GetItemResponseEncoder>();
