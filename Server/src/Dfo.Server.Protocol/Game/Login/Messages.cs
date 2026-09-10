@@ -5,7 +5,7 @@ namespace Dfo.Server.Protocol.Game.Login;
 public sealed record GameLoginRequest(
     GameMessageMetadata Metadata,
     string LoginId,
-    string PasswordHash) : IClientNetworkMessage
+    string Ticket) : IClientNetworkMessage
 {
     public ClientMessageType MessageType => ClientMessageType.GameLogin;
 }

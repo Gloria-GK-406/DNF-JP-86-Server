@@ -1,0 +1,7 @@
+Host smoke PASS
+bootstrap status=200
+bootstrap body={"apiVersion":"1","status":"ready","registrationEnabled":true}
+channel tcp connected=True
+host pid=36648 httpPort=13511 channelPort=13512 gamePorts=13513,13514
+host output contains started=True
+temp cleanup exists=False

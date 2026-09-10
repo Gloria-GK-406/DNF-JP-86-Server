@@ -1,0 +1,52 @@
+kind: rks-verification
+decision: pass
+claim: >-
+  TASK-06 delivers an accurate launcher-auth runbook and example, proves clean Host and Launcher publication,
+  observes a published Launcher reaching a published loopback Host without starting DNF, and executes every
+  Release test identity in its required PVF environment.
+conditions:
+  - requirement: runbook and single BaseUrl example
+    result: >-
+      An automated check proves the example has exactly one section and one business key. Thirteen documented
+      deployment keys were matched against the current options and endpoint readers. The runbook separates all
+      three public endpoint classes from listeners, states that validation is not reachability, documents direct
+      HTTPS and the default untrusted forwarded-header boundary, gives a per-AccountId legacy migration procedure,
+      and excludes secrets from logs and troubleshooting output.
+    evidence:
+      - task06-runbook-contract.log
+  - requirement: clean publish and example packaging
+    result: >-
+      Clean framework-dependent Host and win-x64 WPF Launcher publishes succeeded in a task-local temporary
+      directory. The first launcher no-restore probe correctly failed because win-x64 assets had not been restored;
+      the documented command permits restore and then succeeded. The published Launcher contains an example whose
+      SHA256 exactly matches the source example.
+    evidence:
+      - task06-publish.log
+  - requirement: published Host and Launcher loopback smoke
+    result: >-
+      The published Host started LauncherApi plus Channel and two Game listeners using isolated loopback ports.
+      A manual bootstrap and the normally started published Launcher each produced a 200 bootstrap request with
+      apiVersion 1 and ready status. The Launcher remained alive after initialization, no DNF process was started,
+      and the exact Launcher and Host smoke processes were stopped; all four smoke ports and the Launcher process
+      count returned to zero.
+    evidence:
+      - task06-loopback-smoke.log
+  - requirement: complete Release build and per-project tests
+    result: >-
+      The solution built with zero warnings and zero errors. Nine test projects ran independently with the real
+      72,894,573-byte A21 PVF: 2960 Passed, 0 Failed, 2 conditionally Skipped. Those two missing-archive tests both
+      passed in the separately preserved no-archive Infrastructure TRX, giving every test identity a passing run
+      in its intended environment. The packaged HTTP-Channel-Game end-to-end test is among the 17 passing Host tests.
+    evidence:
+      - task06-test-summary.md
+      - task06-tests-pvf/Dfo.Launcher.Tests.trx
+      - task06-tests-pvf/Dfo.Server.Infrastructure.Tests.trx
+      - task06-tests-pvf/Dfo.Server.Host.Tests.trx
+      - task06-tests-pvf/Dfo.Server.Application.Tests.trx
+      - task06-tests-pvf/Dfo.Server.Protocol.Tests.trx
+      - task06-tests-pvf/Dfo.Pvf.Tests.trx
+      - task06-tests-pvf/Dfo.Server.Networking.Tests.trx
+      - task06-tests-pvf/Dfo.Server.Persistence.Tests.trx
+      - task06-tests-pvf/Dfo.Server.LauncherApi.Tests.trx
+      - task06-tests/Dfo.Server.Infrastructure.Tests.trx
+owned_manifest_sha256: C0B605C04D481028472A271871CD00F7768E5E3D2DD63CF84B5CB4A22F766A34

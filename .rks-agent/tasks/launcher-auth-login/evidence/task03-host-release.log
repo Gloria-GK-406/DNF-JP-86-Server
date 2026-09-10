@@ -1,0 +1,42 @@
+  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+  Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Data\bin\Release\net10.0\Dfo.Server.Data.dll
+  Dfo.Pvf -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Pvf\bin\Release\net10.0\Dfo.Pvf.dll
+  Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Abstractions\bin\Release\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Networking -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Networking\bin\Release\net10.0\Dfo.Server.Networking.dll
+  Dfo.Server.Persistence -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Persistence\bin\Release\net10.0\Dfo.Server.Persistence.dll
+  Dfo.Server.Application -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Application\bin\Release\net10.0\Dfo.Server.Application.dll
+  Dfo.Server.Infrastructure -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Infrastructure\bin\Release\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.LauncherApi -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.LauncherApi\bin\Release\net10.0\Dfo.Server.LauncherApi.dll
+  Dfo.Server.Protocol -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Protocol\bin\Release\net10.0\Dfo.Server.Protocol.dll
+  Dfo.Server.Host -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Host\bin\Release\net10.0\Dfo.Server.Host.dll
+  Dfo.Server.Host.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)
+[xUnit.net 00:00:00.10]   Discovering: Dfo.Server.Host.Tests
+[xUnit.net 00:00:00.16]   Discovered:  Dfo.Server.Host.Tests
+[xUnit.net 00:00:00.22]   Starting:    Dfo.Server.Host.Tests
+  已通过 Dfo.Server.Host.Tests.CarriedGoldCompositionTests.The_character_business_acts_through_resolves_from_the_assembled_modules [215 ms]
+  已通过 Dfo.Server.Host.Tests.CarriedGoldCompositionTests.The_carry_cap_rule_and_the_account_cargo_seam_both_resolve [1 ms]
+  已通过 Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: "LauncherAuth:PublicChannel:Port", value: "0", expectedOutput: "LauncherAuth:PublicChannel:Port") [4 s]
+  已通过 Dfo.Server.Host.Tests.ChannelHostStartupTests.InvalidRequiredChannelScript_FailsBeforeListenersStart(kind: "unreadable") [6 s]
+  已通过 Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: "GameLogin:EndpointPortA", value: "65536", expectedOutput: "GameLogin:EndpointPortA") [3 s]
+  已通过 Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: "LauncherAuth:PublicChannel:Host", value: "", expectedOutput: "LauncherAuth:PublicChannel:Host") [3 s]
+  已通过 Dfo.Server.Host.Tests.ChannelHostStartupTests.InvalidRequiredChannelScript_FailsBeforeListenersStart(kind: "empty") [5 s]
+  已通过 Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: "Game:EndpointHost", value: "", expectedOutput: "Game:EndpointHost") [3 s]
+  已通过 Dfo.Server.Host.Tests.ChannelHostStartupTests.InvalidRequiredChannelScript_FailsBeforeListenersStart(kind: "missing") [4 s]
+  已通过 Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: "Channel:Channels:0:Port", value: "invalid", expectedOutput: "Channel:Channels:0:Port") [3 s]
+  已通过 Dfo.Server.Host.Tests.ChannelHostStartupTests.PackagedHost_FromUnrelatedWorkingDirectory_CompletesChannelBootstrap [641 ms]
+  已通过 Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: "LauncherAuth:LegacyMd5Migration:AllowedAccountIds:"···, value: "*", expectedOutput: "Legacy MD5 migration") [3 s]
+  已通过 Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.InvalidLauncherConfigurationFailsBeforeAnyListenerStarts(key: "Channel:Channels:0:Host", value: "", expectedOutput: "Channel:Channels:0:Host") [2 s]
+  已通过 Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.RealHttpRegistrationRaceAndCredentialFailuresKeepTheStableContract [2 s]
+  已通过 Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.DisabledLauncherApi_AllowsTwoIsolatedHostsWithoutAHiddenKestrelListener [821 ms]
+[xUnit.net 00:00:27.57]   Finished:    Dfo.Server.Host.Tests
+  已通过 Dfo.Server.Host.Tests.LauncherHttpHostStartupTests.EnabledLauncherApi_ListensOnlyOnTheConfiguredUrlAndReturnsReadyBootstrap [1 s]
+
+测试运行成功。
+测试总数: 16
+     通过数: 16
+总时间: 28.3718 秒
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\.rks-agent\tasks\launcher-auth-login\evidence\task03-host-release.trx

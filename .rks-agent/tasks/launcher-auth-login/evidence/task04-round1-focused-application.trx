@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="d65f6eba-b549-43aa-9d30-2c82501122b0" name="Gloria@家庭台式机 2026-09-10 15:18:55" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-10T15:18:55.6185085+08:00" queuing="2026-09-10T15:18:55.6185090+08:00" start="2026-09-10T15:18:54.9813543+08:00" finish="2026-09-10T15:18:55.6228060+08:00" />
+  <TestSettings name="default" id="26bad84a-9656-4d2a-9e7b-b946a38ef83c">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-10_15_18_55" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="618e3587-4b7e-4968-a366-e4cce8b8d9a7" testId="dc722269-c9f1-7d39-3be2-42644ffabaa5" testName="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests.A_character_below_the_minimum_level_is_refused_the_restricted_channel" computerName="家庭台式机" duration="00:00:00.0056357" startTime="2026-09-10T15:18:55.5247701+08:00" endTime="2026-09-10T15:18:55.5348209+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="618e3587-4b7e-4968-a366-e4cce8b8d9a7" />
+    <UnitTestResult executionId="62b65d5b-c184-4bc4-9f28-d9a60c45b2e5" testId="0cf5ad5a-cb25-3c87-7658-b37c0b43158c" testName="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests.An_ordinary_channel_refuses_nobody_on_level" computerName="家庭台式机" duration="00:00:00.0002579" startTime="2026-09-10T15:18:55.5421767+08:00" endTime="2026-09-10T15:18:55.5421898+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="62b65d5b-c184-4bc4-9f28-d9a60c45b2e5" />
+    <UnitTestResult executionId="7403f2f5-424f-41a6-b19d-5084726b3125" testId="24b1293e-4b00-2522-7b90-aeeb480c4f4c" testName="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests.Only_the_restricted_channel_places_a_character_transiently" computerName="家庭台式机" duration="00:00:00.0005986" startTime="2026-09-10T15:18:55.5421279+08:00" endTime="2026-09-10T15:18:55.5421430+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7403f2f5-424f-41a6-b19d-5084726b3125" />
+    <UnitTestResult executionId="c55886ff-9b96-4881-85e7-30a9e9e6ba25" testId="2922f5f9-9272-c1a7-1855-06ecffe01520" testName="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests.A_character_at_or_above_the_minimum_level_is_admitted(level: 86)" computerName="家庭台式机" duration="00:00:00.0001856" startTime="2026-09-10T15:18:55.5420793+08:00" endTime="2026-09-10T15:18:55.5420935+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c55886ff-9b96-4881-85e7-30a9e9e6ba25" />
+    <UnitTestResult executionId="1698e499-2e68-424b-9682-b47923b4dc31" testId="ee318d5b-7d27-4758-7789-bd94a6a347c0" testName="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests.Public_advertisement_does_not_replace_the_independent_listener_mapping" computerName="家庭台式机" duration="00:00:00.0007111" startTime="2026-09-10T15:18:55.5416763+08:00" endTime="2026-09-10T15:18:55.5417141+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1698e499-2e68-424b-9682-b47923b4dc31" />
+    <UnitTestResult executionId="8bfe266e-22f1-451d-ac96-afbd34e00be6" testId="a9d0b920-c949-fa28-0934-ea27c845a8d8" testName="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests.A_listener_resolves_to_the_channel_configured_on_that_port" computerName="家庭台式机" duration="00:00:00.0014892" startTime="2026-09-10T15:18:55.5422209+08:00" endTime="2026-09-10T15:18:55.5422344+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8bfe266e-22f1-451d-ac96-afbd34e00be6" />
+    <UnitTestResult executionId="96ce841f-86ee-4375-ab65-291f69288e51" testId="9b8347c2-93a5-236c-71e5-0e851ac7e3a5" testName="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests.The_duelling_channel_is_ordinary_while_it_is_switched_off" computerName="家庭台式机" duration="00:00:00.0003428" startTime="2026-09-10T15:18:55.5423049+08:00" endTime="2026-09-10T15:18:55.5423368+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="96ce841f-86ee-4375-ab65-291f69288e51" />
+    <UnitTestResult executionId="ee96224c-7f99-40fa-a42c-6edd7af7982f" testId="5e80f436-a894-e71f-d2ed-11dcbb779671" testName="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests.A_listener_no_channel_claims_resolves_to_an_ordinary_channel" computerName="家庭台式机" duration="00:00:00.0002442" startTime="2026-09-10T15:18:55.5424025+08:00" endTime="2026-09-10T15:18:55.5424182+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ee96224c-7f99-40fa-a42c-6edd7af7982f" />
+    <UnitTestResult executionId="6a5d8b9d-5240-4fe0-92c7-3d9b3898efb8" testId="d1545702-5975-f3bd-2b83-fdb64b7dc210" testName="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests.A_character_at_or_above_the_minimum_level_is_admitted(level: 70)" computerName="家庭台式机" duration="00:00:00.0003451" startTime="2026-09-10T15:18:55.5420274+08:00" endTime="2026-09-10T15:18:55.5420474+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6a5d8b9d-5240-4fe0-92c7-3d9b3898efb8" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests.A_character_at_or_above_the_minimum_level_is_admitted(level: 86)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\server\tests\dfo.server.application.tests\bin\release\net10.0\dfo.server.application.tests.dll" id="2922f5f9-9272-c1a7-1855-06ecffe01520">
+      <Execution id="c55886ff-9b96-4881-85e7-30a9e9e6ba25" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests" name="A_character_at_or_above_the_minimum_level_is_admitted" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests.Public_advertisement_does_not_replace_the_independent_listener_mapping" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\server\tests\dfo.server.application.tests\bin\release\net10.0\dfo.server.application.tests.dll" id="ee318d5b-7d27-4758-7789-bd94a6a347c0">
+      <Execution id="1698e499-2e68-424b-9682-b47923b4dc31" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests" name="Public_advertisement_does_not_replace_the_independent_listener_mapping" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests.A_character_below_the_minimum_level_is_refused_the_restricted_channel" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\server\tests\dfo.server.application.tests\bin\release\net10.0\dfo.server.application.tests.dll" id="dc722269-c9f1-7d39-3be2-42644ffabaa5">
+      <Execution id="618e3587-4b7e-4968-a366-e4cce8b8d9a7" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests" name="A_character_below_the_minimum_level_is_refused_the_restricted_channel" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests.A_listener_resolves_to_the_channel_configured_on_that_port" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\server\tests\dfo.server.application.tests\bin\release\net10.0\dfo.server.application.tests.dll" id="a9d0b920-c949-fa28-0934-ea27c845a8d8">
+      <Execution id="8bfe266e-22f1-451d-ac96-afbd34e00be6" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests" name="A_listener_resolves_to_the_channel_configured_on_that_port" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests.Only_the_restricted_channel_places_a_character_transiently" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\server\tests\dfo.server.application.tests\bin\release\net10.0\dfo.server.application.tests.dll" id="24b1293e-4b00-2522-7b90-aeeb480c4f4c">
+      <Execution id="7403f2f5-424f-41a6-b19d-5084726b3125" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests" name="Only_the_restricted_channel_places_a_character_transiently" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests.An_ordinary_channel_refuses_nobody_on_level" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\server\tests\dfo.server.application.tests\bin\release\net10.0\dfo.server.application.tests.dll" id="0cf5ad5a-cb25-3c87-7658-b37c0b43158c">
+      <Execution id="62b65d5b-c184-4bc4-9f28-d9a60c45b2e5" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests" name="An_ordinary_channel_refuses_nobody_on_level" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests.A_listener_no_channel_claims_resolves_to_an_ordinary_channel" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\server\tests\dfo.server.application.tests\bin\release\net10.0\dfo.server.application.tests.dll" id="5e80f436-a894-e71f-d2ed-11dcbb779671">
+      <Execution id="ee96224c-7f99-40fa-a42c-6edd7af7982f" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests" name="A_listener_no_channel_claims_resolves_to_an_ordinary_channel" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests.A_character_at_or_above_the_minimum_level_is_admitted(level: 70)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\server\tests\dfo.server.application.tests\bin\release\net10.0\dfo.server.application.tests.dll" id="d1545702-5975-f3bd-2b83-fdb64b7dc210">
+      <Execution id="6a5d8b9d-5240-4fe0-92c7-3d9b3898efb8" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests" name="A_character_at_or_above_the_minimum_level_is_admitted" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests.The_duelling_channel_is_ordinary_while_it_is_switched_off" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\server\tests\dfo.server.application.tests\bin\release\net10.0\dfo.server.application.tests.dll" id="9b8347c2-93a5-236c-71e5-0e851ac7e3a5">
+      <Execution id="96ce841f-86ee-4375-ab65-291f69288e51" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Application.Tests.Channel.ChannelAdmissionTests" name="The_duelling_channel_is_ordinary_while_it_is_switched_off" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="dc722269-c9f1-7d39-3be2-42644ffabaa5" executionId="618e3587-4b7e-4968-a366-e4cce8b8d9a7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0cf5ad5a-cb25-3c87-7658-b37c0b43158c" executionId="62b65d5b-c184-4bc4-9f28-d9a60c45b2e5" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="24b1293e-4b00-2522-7b90-aeeb480c4f4c" executionId="7403f2f5-424f-41a6-b19d-5084726b3125" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2922f5f9-9272-c1a7-1855-06ecffe01520" executionId="c55886ff-9b96-4881-85e7-30a9e9e6ba25" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ee318d5b-7d27-4758-7789-bd94a6a347c0" executionId="1698e499-2e68-424b-9682-b47923b4dc31" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a9d0b920-c949-fa28-0934-ea27c845a8d8" executionId="8bfe266e-22f1-451d-ac96-afbd34e00be6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9b8347c2-93a5-236c-71e5-0e851ac7e3a5" executionId="96ce841f-86ee-4375-ab65-291f69288e51" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5e80f436-a894-e71f-d2ed-11dcbb779671" executionId="ee96224c-7f99-40fa-a42c-6edd7af7982f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d1545702-5975-f3bd-2b83-fdb64b7dc210" executionId="6a5d8b9d-5240-4fe0-92c7-3d9b3898efb8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="9" executed="9" passed="9" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.08]   Discovering: Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.19]   Discovered:  Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.21]   Starting:    Dfo.Server.Application.Tests&#xD;
+[xUnit.net 00:00:00.24]   Finished:    Dfo.Server.Application.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

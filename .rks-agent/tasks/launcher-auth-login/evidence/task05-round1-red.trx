@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="bc29c213-86ac-4542-a171-1fa4295f9f96" name="Gloria@家庭台式机 2026-09-10 15:59:09" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-10T15:59:09.1289226+08:00" queuing="2026-09-10T15:59:09.1289228+08:00" start="2026-09-10T15:59:07.7863737+08:00" finish="2026-09-10T15:59:09.1329272+08:00" />
+  <TestSettings name="default" id="90dc6dde-852c-4dba-b38d-5402ce500777">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-10_15_59_09" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="dff2b22d-556c-47a0-9987-7f2b8b7ca136" testId="8663dddc-5f7f-849d-15ca-3bb6ec8c5058" testName="Dfo.Launcher.Tests.Configuration.LauncherConfigurationTests.A_single_secure_base_url_is_normalized_and_unknown_settings_are_rejected" computerName="家庭台式机" duration="00:00:00.0571322" startTime="2026-09-10T15:59:08.9714528+08:00" endTime="2026-09-10T15:59:09.0424852+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="dff2b22d-556c-47a0-9987-7f2b8b7ca136">
+      <Output>
+        <ErrorInfo>
+          <Message>System.NotSupportedException : Launcher configuration is not implemented.</Message>
+          <StackTrace>   at Dfo.Launcher.Configuration.LauncherConfigurationParser.Parse(String text) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher\Configuration\LauncherConfiguration.cs:line 10&#xD;
+   at Dfo.Launcher.Tests.Configuration.LauncherConfigurationTests.A_single_secure_base_url_is_normalized_and_unknown_settings_are_rejected() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Configuration\LauncherConfigurationTests.cs:line 10&#xD;
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)&#xD;
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Launcher.Tests.Configuration.LauncherConfigurationTests.A_single_secure_base_url_is_normalized_and_unknown_settings_are_rejected" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\launcher\dfo.launcher.tests\bin\release\net10.0-windows\dfo.launcher.tests.dll" id="8663dddc-5f7f-849d-15ca-3bb6ec8c5058">
+      <Execution id="dff2b22d-556c-47a0-9987-7f2b8b7ca136" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\bin\Release\net10.0-windows\Dfo.Launcher.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Launcher.Tests.Configuration.LauncherConfigurationTests" name="A_single_secure_base_url_is_normalized_and_unknown_settings_are_rejected" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="8663dddc-5f7f-849d-15ca-3bb6ec8c5058" executionId="dff2b22d-556c-47a0-9987-7f2b8b7ca136" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="1" executed="1" passed="0" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.17]   Discovering: Dfo.Launcher.Tests&#xD;
+[xUnit.net 00:00:00.20]   Discovered:  Dfo.Launcher.Tests&#xD;
+[xUnit.net 00:00:00.21]   Starting:    Dfo.Launcher.Tests&#xD;
+[xUnit.net 00:00:00.30]       System.NotSupportedException : Launcher configuration is not implemented.&#xD;
+[xUnit.net 00:00:00.30]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.30]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher\Configuration\LauncherConfiguration.cs(10,0): at Dfo.Launcher.Configuration.LauncherConfigurationParser.Parse(String text)&#xD;
+[xUnit.net 00:00:00.30]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Configuration\LauncherConfigurationTests.cs(10,0): at Dfo.Launcher.Tests.Configuration.LauncherConfigurationTests.A_single_secure_base_url_is_normalized_and_unknown_settings_are_rejected()&#xD;
+[xUnit.net 00:00:00.30]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)&#xD;
+[xUnit.net 00:00:00.30]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)&#xD;
+[xUnit.net 00:00:00.31]   Finished:    Dfo.Launcher.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="家庭台式机" outcome="Error" timestamp="2026-09-10T15:59:09.0445333+08:00">
+        <Text>[xUnit.net 00:00:00.30]     Dfo.Launcher.Tests.Configuration.LauncherConfigurationTests.A_single_secure_base_url_is_normalized_and_unknown_settings_are_rejected [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

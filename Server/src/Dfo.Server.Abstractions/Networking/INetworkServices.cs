@@ -43,7 +43,13 @@ public interface INetworkMessageSender
 
 public interface INetworkConnectionCloser
 {
-    ValueTask CloseAsync(NetworkConnectionId connectionId, CancellationToken cancellationToken);
+    /// <summary>
+    /// Requests transport closure and returns once that request has been scheduled, not when the
+    /// connection's close callbacks have completed.
+    /// </summary>
+    ValueTask RequestCloseAsync(
+        NetworkConnectionId connectionId,
+        CancellationToken cancellationToken);
 }
 
 public interface INetworkConnectionObserver

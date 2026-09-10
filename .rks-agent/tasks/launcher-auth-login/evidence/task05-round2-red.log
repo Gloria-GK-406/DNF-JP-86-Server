@@ -1,0 +1,147 @@
+  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+  Dfo.Launcher -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher\bin\Release\net10.0-windows\Dfo.Launcher.dll
+  Dfo.Launcher.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\bin\Release\net10.0-windows\Dfo.Launcher.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\bin\Release\net10.0-windows\Dfo.Launcher.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)
+[xUnit.net 00:00:00.06]   Discovering: Dfo.Launcher.Tests
+[xUnit.net 00:00:00.10]   Discovered:  Dfo.Launcher.Tests
+[xUnit.net 00:00:00.12]   Starting:    Dfo.Launcher.Tests
+[xUnit.net 00:00:00.16]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:00.16]       Expected: Ready
+[xUnit.net 00:00:00.16]       Actual:   Error
+[xUnit.net 00:00:00.16]     Dfo.Launcher.Tests.ViewModels.LauncherViewModelTests.Api_field_error_keeps_the_form_editable_and_allows_immediate_resubmit [FAIL]
+[xUnit.net 00:00:00.16]       Stack Trace:
+[xUnit.net 00:00:00.16]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\ViewModels\LauncherViewModelTests.cs(179,0): at Dfo.Launcher.Tests.ViewModels.LauncherViewModelTests.Api_field_error_keeps_the_form_editable_and_allows_immediate_resubmit()
+[xUnit.net 00:00:00.16]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:00.34]       Assert.Equal() Failure: Strings differ
+[xUnit.net 00:00:00.34]                  ↓ (pos 0)
+[xUnit.net 00:00:00.34]     Dfo.Launcher.Tests.Api.LauncherApiClientTests.Default_factory_never_forwards_credentials_across_redirects(redirectStatus: 308) [FAIL]
+[xUnit.net 00:00:00.34]       Expected: "redirect_not_allowed"
+[xUnit.net 00:00:00.34]       Actual:   "network_error"
+[xUnit.net 00:00:00.34]                  ↑ (pos 0)
+[xUnit.net 00:00:00.34]       Stack Trace:
+[xUnit.net 00:00:00.34]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Api\LauncherApiClientTests.cs(185,0): at Dfo.Launcher.Tests.Api.LauncherApiClientTests.Default_factory_never_forwards_credentials_across_redirects(Int32 redirectStatus)
+[xUnit.net 00:00:00.34]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Api\LauncherApiClientTests.cs(188,0): at Dfo.Launcher.Tests.Api.LauncherApiClientTests.Default_factory_never_forwards_credentials_across_redirects(Int32 redirectStatus)
+[xUnit.net 00:00:00.34]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Api\LauncherApiClientTests.cs(188,0): at Dfo.Launcher.Tests.Api.LauncherApiClientTests.Default_factory_never_forwards_credentials_across_redirects(Int32 redirectStatus)
+[xUnit.net 00:00:00.34]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:00.35]     Dfo.Launcher.Tests.Api.LauncherApiClientTests.Default_factory_never_forwards_credentials_across_redirects(redirectStatus: 307) [FAIL]
+[xUnit.net 00:00:00.35]       Assert.Equal() Failure: Strings differ
+[xUnit.net 00:00:00.35]                  ↓ (pos 0)
+[xUnit.net 00:00:00.35]       Expected: "redirect_not_allowed"
+[xUnit.net 00:00:00.35]       Actual:   "network_error"
+[xUnit.net 00:00:00.35]                  ↑ (pos 0)
+[xUnit.net 00:00:00.35]       Stack Trace:
+[xUnit.net 00:00:00.35]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Api\LauncherApiClientTests.cs(185,0): at Dfo.Launcher.Tests.Api.LauncherApiClientTests.Default_factory_never_forwards_credentials_across_redirects(Int32 redirectStatus)
+[xUnit.net 00:00:00.35]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Api\LauncherApiClientTests.cs(188,0): at Dfo.Launcher.Tests.Api.LauncherApiClientTests.Default_factory_never_forwards_credentials_across_redirects(Int32 redirectStatus)
+[xUnit.net 00:00:00.35]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Api\LauncherApiClientTests.cs(188,0): at Dfo.Launcher.Tests.Api.LauncherApiClientTests.Default_factory_never_forwards_credentials_across_redirects(Int32 redirectStatus)
+[xUnit.net 00:00:00.35]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:00.51]     Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Api_field_error_is_visible_in_the_editable_real_WPF_form [FAIL]
+[xUnit.net 00:00:00.51]       Assert.IsAssignableFrom() Failure: Value is null
+[xUnit.net 00:00:00.51]       Expected: typeof(System.Windows.FrameworkElement)
+[xUnit.net 00:00:00.51]       Actual:   null
+[xUnit.net 00:00:00.51]       Stack Trace:
+[xUnit.net 00:00:00.51]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Visual\LauncherVisualRenderTests.cs(217,0): at Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Get(MainWindow window, String name)
+[xUnit.net 00:00:00.51]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Visual\LauncherVisualRenderTests.cs(78,0): at Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.<>c__DisplayClass3_0.<Api_field_error_is_visible_in_the_editable_real_WPF_form>b__0()
+[xUnit.net 00:00:00.51]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:00.51]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Visual\LauncherVisualRenderTests.cs(99,0): at Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Api_field_error_is_visible_in_the_editable_real_WPF_form()
+[xUnit.net 00:00:00.51]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:00.51]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  失败 Dfo.Launcher.Tests.ViewModels.LauncherViewModelTests.Api_field_error_keeps_the_form_editable_and_allows_immediate_resubmit [11 ms]
+  错误消息:
+   Assert.Equal() Failure: Values differ
+Expected: Ready
+Actual:   Error
+  堆栈跟踪:
+     at Dfo.Launcher.Tests.ViewModels.LauncherViewModelTests.Api_field_error_keeps_the_form_editable_and_allows_immediate_resubmit() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\ViewModels\LauncherViewModelTests.cs:line 179
+--- End of stack trace from previous location ---
+  失败 Dfo.Launcher.Tests.Api.LauncherApiClientTests.Default_factory_never_forwards_credentials_across_redirects(redirectStatus: 308) [203 ms]
+  错误消息:
+   Assert.Equal() Failure: Strings differ
+           ↓ (pos 0)
+Expected: "redirect_not_allowed"
+Actual:   "network_error"
+           ↑ (pos 0)
+  堆栈跟踪:
+     at Dfo.Launcher.Tests.Api.LauncherApiClientTests.Default_factory_never_forwards_credentials_across_redirects(Int32 redirectStatus) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Api\LauncherApiClientTests.cs:line 185
+   at Dfo.Launcher.Tests.Api.LauncherApiClientTests.Default_factory_never_forwards_credentials_across_redirects(Int32 redirectStatus) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Api\LauncherApiClientTests.cs:line 188
+   at Dfo.Launcher.Tests.Api.LauncherApiClientTests.Default_factory_never_forwards_credentials_across_redirects(Int32 redirectStatus) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Api\LauncherApiClientTests.cs:line 188
+--- End of stack trace from previous location ---
+  失败 Dfo.Launcher.Tests.Api.LauncherApiClientTests.Default_factory_never_forwards_credentials_across_redirects(redirectStatus: 307) [12 ms]
+  错误消息:
+   Assert.Equal() Failure: Strings differ
+           ↓ (pos 0)
+Expected: "redirect_not_allowed"
+Actual:   "network_error"
+           ↑ (pos 0)
+  堆栈跟踪:
+     at Dfo.Launcher.Tests.Api.LauncherApiClientTests.Default_factory_never_forwards_credentials_across_redirects(Int32 redirectStatus) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Api\LauncherApiClientTests.cs:line 185
+   at Dfo.Launcher.Tests.Api.LauncherApiClientTests.Default_factory_never_forwards_credentials_across_redirects(Int32 redirectStatus) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Api\LauncherApiClientTests.cs:line 188
+   at Dfo.Launcher.Tests.Api.LauncherApiClientTests.Default_factory_never_forwards_credentials_across_redirects(Int32 redirectStatus) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Api\LauncherApiClientTests.cs:line 188
+--- End of stack trace from previous location ---
+  失败 Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Api_field_error_is_visible_in_the_editable_real_WPF_form [375 ms]
+  错误消息:
+   Assert.IsAssignableFrom() Failure: Value is null
+Expected: typeof(System.Windows.FrameworkElement)
+Actual:   null
+  堆栈跟踪:
+     at Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Get(MainWindow window, String name) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Visual\LauncherVisualRenderTests.cs:line 217
+   at Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.<>c__DisplayClass3_0.<Api_field_error_is_visible_in_the_editable_real_WPF_form>b__0() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Visual\LauncherVisualRenderTests.cs:line 78
+--- End of stack trace from previous location ---
+   at Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Api_field_error_is_visible_in_the_editable_real_WPF_form() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Visual\LauncherVisualRenderTests.cs:line 99
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:02.37]       System.Threading.Tasks.TaskCanceledException : A task was canceled.
+[xUnit.net 00:00:02.37]     Dfo.Launcher.Tests.Api.LauncherApiClientTests.Operation_timeout_covers_stalled_success_and_error_bodies_and_retry_recovers(stalledStatus: 200) [FAIL]
+[xUnit.net 00:00:02.37]       Stack Trace:
+[xUnit.net 00:00:02.37]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Api\LauncherApiClientTests.cs(335,0): at Dfo.Launcher.Tests.Api.LauncherApiClientTests.CancellationAwareStalledStream.ReadAsync(Memory`1 buffer, CancellationToken cancellationToken)
+[xUnit.net 00:00:02.37]            at System.Text.Json.Serialization.StreamReadBufferState.ReadAsync(Stream stream, CancellationToken cancellationToken, Boolean fillBuffer)
+[xUnit.net 00:00:02.37]            at System.Text.Json.Serialization.Metadata.JsonTypeInfo`1.DeserializeAsync[TReadBufferState,TStream](TStream utf8Json, TReadBufferState bufferState, CancellationToken cancellationToken)
+[xUnit.net 00:00:02.37]            at System.Net.Http.Json.HttpContentJsonExtensions.ReadFromJsonAsyncCore[T](HttpContent content, JsonSerializerOptions options, CancellationToken cancellationToken)
+[xUnit.net 00:00:02.37]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher\Api\LauncherApiClient.cs(117,0): at Dfo.Launcher.Api.LauncherApiClient.SendAsync[T](HttpRequestMessage request, CancellationToken cancellationToken)
+[xUnit.net 00:00:02.37]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Api\LauncherApiClientTests.cs(207,0): at Dfo.Launcher.Tests.Api.LauncherApiClientTests.Operation_timeout_covers_stalled_success_and_error_bodies_and_retry_recovers(Int32 stalledStatus)
+[xUnit.net 00:00:02.37]         --- End of stack trace from previous location ---
+  失败 Dfo.Launcher.Tests.Api.LauncherApiClientTests.Operation_timeout_covers_stalled_success_and_error_bodies_and_retry_recovers(stalledStatus: 200) [2 s]
+  错误消息:
+   System.Threading.Tasks.TaskCanceledException : A task was canceled.
+  堆栈跟踪:
+     at Dfo.Launcher.Tests.Api.LauncherApiClientTests.CancellationAwareStalledStream.ReadAsync(Memory`1 buffer, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Api\LauncherApiClientTests.cs:line 335
+   at System.Text.Json.Serialization.StreamReadBufferState.ReadAsync(Stream stream, CancellationToken cancellationToken, Boolean fillBuffer)
+   at System.Text.Json.Serialization.Metadata.JsonTypeInfo`1.DeserializeAsync[TReadBufferState,TStream](TStream utf8Json, TReadBufferState bufferState, CancellationToken cancellationToken)
+   at System.Net.Http.Json.HttpContentJsonExtensions.ReadFromJsonAsyncCore[T](HttpContent content, JsonSerializerOptions options, CancellationToken cancellationToken)
+   at Dfo.Launcher.Api.LauncherApiClient.SendAsync[T](HttpRequestMessage request, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher\Api\LauncherApiClient.cs:line 117
+   at Dfo.Launcher.Tests.Api.LauncherApiClientTests.Operation_timeout_covers_stalled_success_and_error_bodies_and_retry_recovers(Int32 stalledStatus) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Api\LauncherApiClientTests.cs:line 207
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:04.38]       System.Threading.Tasks.TaskCanceledException : A task was canceled.
+[xUnit.net 00:00:04.38]     Dfo.Launcher.Tests.Api.LauncherApiClientTests.Operation_timeout_covers_stalled_success_and_error_bodies_and_retry_recovers(stalledStatus: 503) [FAIL]
+[xUnit.net 00:00:04.38]       Stack Trace:
+[xUnit.net 00:00:04.38]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Api\LauncherApiClientTests.cs(335,0): at Dfo.Launcher.Tests.Api.LauncherApiClientTests.CancellationAwareStalledStream.ReadAsync(Memory`1 buffer, CancellationToken cancellationToken)
+[xUnit.net 00:00:04.38]            at System.Text.Json.Serialization.StreamReadBufferState.ReadAsync(Stream stream, CancellationToken cancellationToken, Boolean fillBuffer)
+[xUnit.net 00:00:04.38]            at System.Text.Json.Serialization.Metadata.JsonTypeInfo`1.DeserializeAsync[TReadBufferState,TStream](TStream utf8Json, TReadBufferState bufferState, CancellationToken cancellationToken)
+[xUnit.net 00:00:04.38]            at System.Net.Http.Json.HttpContentJsonExtensions.ReadFromJsonAsyncCore[T](HttpContent content, JsonSerializerOptions options, CancellationToken cancellationToken)
+[xUnit.net 00:00:04.38]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher\Api\LauncherApiClient.cs(150,0): at Dfo.Launcher.Api.LauncherApiClient.ReadErrorAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+[xUnit.net 00:00:04.38]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher\Api\LauncherApiClient.cs(125,0): at Dfo.Launcher.Api.LauncherApiClient.SendAsync[T](HttpRequestMessage request, CancellationToken cancellationToken)
+[xUnit.net 00:00:04.38]         E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Api\LauncherApiClientTests.cs(207,0): at Dfo.Launcher.Tests.Api.LauncherApiClientTests.Operation_timeout_covers_stalled_success_and_error_bodies_and_retry_recovers(Int32 stalledStatus)
+[xUnit.net 00:00:04.38]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:04.49]   Finished:    Dfo.Launcher.Tests
+  失败 Dfo.Launcher.Tests.Api.LauncherApiClientTests.Operation_timeout_covers_stalled_success_and_error_bodies_and_retry_recovers(stalledStatus: 503) [2 s]
+  错误消息:
+   System.Threading.Tasks.TaskCanceledException : A task was canceled.
+  堆栈跟踪:
+     at Dfo.Launcher.Tests.Api.LauncherApiClientTests.CancellationAwareStalledStream.ReadAsync(Memory`1 buffer, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Api\LauncherApiClientTests.cs:line 335
+   at System.Text.Json.Serialization.StreamReadBufferState.ReadAsync(Stream stream, CancellationToken cancellationToken, Boolean fillBuffer)
+   at System.Text.Json.Serialization.Metadata.JsonTypeInfo`1.DeserializeAsync[TReadBufferState,TStream](TStream utf8Json, TReadBufferState bufferState, CancellationToken cancellationToken)
+   at System.Net.Http.Json.HttpContentJsonExtensions.ReadFromJsonAsyncCore[T](HttpContent content, JsonSerializerOptions options, CancellationToken cancellationToken)
+   at Dfo.Launcher.Api.LauncherApiClient.ReadErrorAsync(HttpResponseMessage response, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher\Api\LauncherApiClient.cs:line 150
+   at Dfo.Launcher.Api.LauncherApiClient.SendAsync[T](HttpRequestMessage request, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher\Api\LauncherApiClient.cs:line 125
+   at Dfo.Launcher.Tests.Api.LauncherApiClientTests.Operation_timeout_covers_stalled_success_and_error_bodies_and_retry_recovers(Int32 stalledStatus) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Api\LauncherApiClientTests.cs:line 207
+--- End of stack trace from previous location ---
+  已通过 Dfo.Launcher.Tests.Api.LauncherApiClientTests.Caller_cancellation_during_a_stalled_body_propagates_and_retry_recovers [112 ms]
+
+测试运行失败。
+测试总数: 7
+     通过数: 1
+     失败数: 6
+总时间: 4.9342 秒
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\TestResults\task05-round2-red.trx

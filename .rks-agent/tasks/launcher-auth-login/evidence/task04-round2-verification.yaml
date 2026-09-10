@@ -1,0 +1,64 @@
+kind: rks-verification
+decision: pass
+claim: >-
+  TASK-04 Execution Round 2 remediates QR1-F1 and QR1-F2: disabled launcher channel
+  admission retains advertised-port identity, while two real Game socket and SQLite paths
+  prove rollback after real pending ticket consumption for ordinary prepare failure and
+  precommit cancellation.
+conditions:
+  - requirement: QR1-F1 disabled legacy advertised-port identity
+    result: >-
+      RED failed 1/1 with expected channel 11 but actual channel 100 when catalog and
+      GamePorts were deliberately oppositely ordered. After the production policy branch was
+      corrected, all ten ChannelAdmissionTests passed, including ordinary and restricted
+      channel classification and refusal behavior.
+    evidence:
+      - task04-round2-f1-red.log
+      - task04-round2-f1-red.trx
+      - task04-round2-f1-green.log
+      - task04-round2-f1-green.trx
+      - task04-round2-focused-application.log
+      - task04-round2-focused-application.trx
+  - requirement: QR1-F2 and AC-009 real precommit failure paths
+    result: >-
+      RED failed 2/2 because the unfaulted server returned a success frame rather than EOF.
+      GREEN passed 2/2. Both cases use real TouchSocket Game connections and real SQLite ticket
+      consumption; the test-only authentication decorator enlists after the inner service
+      returns a real AccountId. Its participant observes Connected with a null AccountId and
+      throws from Prepare as either InvalidOperationException or OperationCanceledException.
+      The first socket receives no post-request frame before EOF, SQLite consumed count remains
+      zero after rollback, and the second socket redeems the same ticket, receives the LOGIN CMD
+      plus all six ordered notifications, publishes identity, and leaves consumed count one.
+    evidence:
+      - task04-round2-f2-red.log
+      - task04-round2-f2-red.trx
+      - task04-round2-f2-green.log
+      - task04-round2-f2-green.trx
+      - task04-round2-focused-networking.log
+      - task04-round2-focused-networking.trx
+  - requirement: focused and Release regressions
+    result: >-
+      Focused Channel passed 10/10, GameLogin passed 5/5, and Host end-to-end passed 1/1.
+      Release Host passed 17/17, Networking passed 62/62, Protocol passed 714/714 with the
+      real PVF archive, and the additionally affected Application suite passed 1341/1341 with
+      the real PVF archive. Every UnitTestResult in all eleven Round 2 TRX files was parsed;
+      only the three deliberately preserved RED results are Failed, and every GREEN/focused/
+      Release result is Passed with no skipped or unclassified outcome.
+    evidence:
+      - task04-round2-focused-host.log
+      - task04-round2-focused-host.trx
+      - task04-round2-host-release.log
+      - task04-round2-host-release.trx
+      - task04-round2-networking-release.log
+      - task04-round2-networking-release.trx
+      - task04-round2-protocol-release.log
+      - task04-round2-protocol-release.trx
+      - task04-round2-application-release.log
+      - task04-round2-application-release.trx
+  - requirement: build, diff, and artifact identity
+    result: >-
+      The Release solution build completed with zero warnings and zero errors, git diff check
+      exited zero, and the three-file Round 2 manifest is
+      D8A26C352031AC1917E5351F82FA5857ADB6D802285B843AC1E522DEBBD060D5.
+    evidence:
+      - task04-round2-solution-build.log

@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Protocol.Game.InitialConnection;
@@ -66,10 +67,22 @@ public sealed class OnlineUserConnectionObserver(
         NetworkConnectionContext connection,
         CancellationToken cancellationToken)
     {
-        if (connection.EndpointKind != NetworkEndpointKind.Game
-            || !onlineUsers.TryGetByConnection(connection.ConnectionId, out var observed)
+        if (connection.EndpointKind != NetworkEndpointKind.Game)
+        {
+            return;
+        }
+
+        if (!onlineUsers.TryGetByConnection(connection.ConnectionId, out var observed)
             || observed is null)
         {
+            // Protocol rejection removes an unusable OnlineUser identity immediately. Its
+            // asynchronously requested transport close can arrive here later, while the selected
+            // directory still owns the exact session whose other resources need full cleanup.
+            if (selectedSessions.FindByConnection(connection.ConnectionId) is { } orphaned)
+            {
+                _ = await CleanupSelectedAsync(
+                    connection.ConnectionId, orphaned, cancellationToken).ConfigureAwait(false);
+            }
             return;
         }
 
@@ -78,48 +91,57 @@ public sealed class OnlineUserConnectionObserver(
             UserAccessMode.Exclusive,
             cancellationToken).ConfigureAwait(false);
         var selected = selectedSessions.FindByConnection(connection.ConnectionId);
-        var cleanedSelected = false;
-        if (selected is not null)
-        {
-            await using var lifecycleLease = await lifecycleGate.AcquireAsync(
-                selected.AccountId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
-            // The command may have completed exact cleanup while this observer waited.
-            // Never clean a replacement or a connection that no longer owns this identity.
-            if (selectedSessions.FindByConnection(connection.ConnectionId) == selected)
-            {
-                cleanedSelected = true;
-                try
-                {
-                    var notifications = await cleanup.CleanupAsync(
-                        selected, includeOwner: false, CancellationToken.None).ConfigureAwait(false);
-                    await cleanupDelivery.DeliverAsync(
-                        notifications, CancellationToken.None).ConfigureAwait(false);
-                }
-                catch (SelectedSessionCleanupFailure cleanupFailure)
-                {
-                    try
-                    {
-                        await cleanupDelivery.DeliverAsync(
-                            cleanupFailure.NotificationPlan,
-                            CancellationToken.None).ConfigureAwait(false);
-                    }
-                    catch
-                    {
-                        // The cleanup failure remains primary; peer delivery stays best effort.
-                    }
-                }
-                catch
-                {
-                    // Cleanup is internally compensating and may aggregate individual failures.
-                    // A closed transport still must release the matching online connection.
-                }
-            }
-        }
+        var cleanedSelected = selected is not null
+            && await CleanupSelectedAsync(
+                connection.ConnectionId, selected, cancellationToken).ConfigureAwait(false);
         if (onlineUsers.TryGetByConnection(connection.ConnectionId, out var current)
             && current is not null && current.OnlineUserId == observed.OnlineUserId
             && (cleanedSelected || current.Generation == observed.Generation))
         {
             onlineUsers.TryDisconnectConnection(connection.ConnectionId);
         }
+    }
+
+    private async ValueTask<bool> CleanupSelectedAsync(
+        NetworkConnectionId connectionId,
+        SelectedSessionIdentity selected,
+        CancellationToken cancellationToken)
+    {
+        await using var lifecycleLease = await lifecycleGate.AcquireAsync(
+            selected.AccountId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
+        // A command may have completed exact cleanup while this observer waited. Never clean a
+        // replacement selected by the same account or a reused connection identifier.
+        if (selectedSessions.FindByConnection(connectionId) != selected)
+        {
+            return false;
+        }
+
+        try
+        {
+            var notifications = await cleanup.CleanupAsync(
+                selected, includeOwner: false, CancellationToken.None).ConfigureAwait(false);
+            await cleanupDelivery.DeliverAsync(
+                notifications, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (SelectedSessionCleanupFailure cleanupFailure)
+        {
+            try
+            {
+                await cleanupDelivery.DeliverAsync(
+                    cleanupFailure.NotificationPlan,
+                    CancellationToken.None).ConfigureAwait(false);
+            }
+            catch
+            {
+                // The cleanup failure remains primary; peer delivery stays best effort.
+            }
+        }
+        catch
+        {
+            // Cleanup is internally compensating and may aggregate individual failures.
+            // A closed transport still must release the matching online connection.
+        }
+
+        return true;
     }
 }

@@ -1,0 +1,194 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="acafcb73-20c7-4c3e-83ac-62fa11fc1a81" name="Gloria@家庭台式机 2026-09-10 15:42:19" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-10T15:42:19.1089455+08:00" queuing="2026-09-10T15:42:19.1089456+08:00" start="2026-09-10T15:42:17.2593808+08:00" finish="2026-09-10T15:42:19.6165847+08:00" />
+  <TestSettings name="default" id="78e2ae5b-71b0-4711-9f85-51cc62f04547">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-10_15_42_19" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="e287fb0a-fb9e-4445-9605-60d23a405283" testId="f595f115-e6b9-f973-6723-ea998c847743" testName="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.InvalidTicketClosesWithoutSuccessAndTheOriginalTicketCanStillBeRedeemedOnce" computerName="家庭台式机" duration="00:00:00.3196783" startTime="2026-09-10T15:42:18.3419303+08:00" endTime="2026-09-10T15:42:18.6565869+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e287fb0a-fb9e-4445-9605-60d23a405283" />
+    <UnitTestResult executionId="ae21eaf3-ded3-43eb-b2e9-87f52b911c55" testId="e54bc2cb-b776-ac92-63aa-77fad79c8d52" testName="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.PreCommitCancellationAfterRealTicketConsumptionRollsBackAndAllowsRetry" computerName="家庭台式机" duration="00:00:00.2980861" startTime="2026-09-10T15:42:18.9576555+08:00" endTime="2026-09-10T15:42:19.2559311+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ae21eaf3-ded3-43eb-b2e9-87f52b911c55" />
+    <UnitTestResult executionId="ee0f9fb2-c71b-4d6e-a424-61cdd07dd9ad" testId="a717fe55-1c6e-9bbc-0ff3-4f431cdd6b77" testName="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.LoginDeliveryFailureAfterCommitConsumesTicketCleansIdentityAndRejectsReplay" computerName="家庭台式机" duration="00:00:00.5988381" startTime="2026-09-10T15:42:17.7313175+08:00" endTime="2026-09-10T15:42:18.3356199+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ee0f9fb2-c71b-4d6e-a424-61cdd07dd9ad" />
+    <UnitTestResult executionId="0bc5f9fc-ac22-4043-8c5c-768932dfb579" testId="38269bc0-2535-9685-88e9-1bf3d54a931b" testName="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.CommitPathFailureAfterRealTicketConsumptionRollsBackAndAllowsRetry" computerName="家庭台式机" duration="00:00:00.3075204" startTime="2026-09-10T15:42:19.2564481+08:00" endTime="2026-09-10T15:42:19.5637735+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0bc5f9fc-ac22-4043-8c5c-768932dfb579" />
+    <UnitTestResult executionId="cd7bdccc-ebc2-4f00-bd9c-7725bc347433" testId="72c4699a-1b9f-a096-4b5a-a7620e5eee43" testName="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.Login_TraversesTouchSocketAccountRepositoryAndOnlineUserAggregate" computerName="家庭台式机" duration="00:00:00.3004973" startTime="2026-09-10T15:42:18.6572529+08:00" endTime="2026-09-10T15:42:18.9574548+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="cd7bdccc-ebc2-4f00-bd9c-7725bc347433" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.PreCommitCancellationAfterRealTicketConsumptionRollsBackAndAllowsRetry" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="e54bc2cb-b776-ac92-63aa-77fad79c8d52">
+      <Execution id="ae21eaf3-ded3-43eb-b2e9-87f52b911c55" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests" name="PreCommitCancellationAfterRealTicketConsumptionRollsBackAndAllowsRetry" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.Login_TraversesTouchSocketAccountRepositoryAndOnlineUserAggregate" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="72c4699a-1b9f-a096-4b5a-a7620e5eee43">
+      <Execution id="cd7bdccc-ebc2-4f00-bd9c-7725bc347433" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests" name="Login_TraversesTouchSocketAccountRepositoryAndOnlineUserAggregate" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.InvalidTicketClosesWithoutSuccessAndTheOriginalTicketCanStillBeRedeemedOnce" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="f595f115-e6b9-f973-6723-ea998c847743">
+      <Execution id="e287fb0a-fb9e-4445-9605-60d23a405283" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests" name="InvalidTicketClosesWithoutSuccessAndTheOriginalTicketCanStillBeRedeemedOnce" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.LoginDeliveryFailureAfterCommitConsumesTicketCleansIdentityAndRejectsReplay" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="a717fe55-1c6e-9bbc-0ff3-4f431cdd6b77">
+      <Execution id="ee0f9fb2-c71b-4d6e-a424-61cdd07dd9ad" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests" name="LoginDeliveryFailureAfterCommitConsumesTicketCleansIdentityAndRejectsReplay" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.CommitPathFailureAfterRealTicketConsumptionRollsBackAndAllowsRetry" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="38269bc0-2535-9685-88e9-1bf3d54a931b">
+      <Execution id="0bc5f9fc-ac22-4043-8c5c-768932dfb579" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests" name="CommitPathFailureAfterRealTicketConsumptionRollsBackAndAllowsRetry" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="f595f115-e6b9-f973-6723-ea998c847743" executionId="e287fb0a-fb9e-4445-9605-60d23a405283" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e54bc2cb-b776-ac92-63aa-77fad79c8d52" executionId="ae21eaf3-ded3-43eb-b2e9-87f52b911c55" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a717fe55-1c6e-9bbc-0ff3-4f431cdd6b77" executionId="ee0f9fb2-c71b-4d6e-a424-61cdd07dd9ad" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="38269bc0-2535-9685-88e9-1bf3d54a931b" executionId="0bc5f9fc-ac22-4043-8c5c-768932dfb579" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="72c4699a-1b9f-a096-4b5a-a7620e5eee43" executionId="cd7bdccc-ebc2-4f00-bd9c-7725bc347433" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="5" executed="5" passed="5" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.06]   Discovering: Dfo.Server.Networking.Tests&#xD;
+[xUnit.net 00:00:00.10]   Discovered:  Dfo.Server.Networking.Tests&#xD;
+[xUnit.net 00:00:00.12]   Starting:    Dfo.Server.Networking.Tests&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RegisterAccountCommand handled by RegisterAccountCommandHandler as Transactional with execution c39dca73-923d-4434-9d0b-3b35a386c14c in 81.236 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution 93c1b844-d9c3-4ff8-b415-ba2ba80e530a in 73.1279 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 8d8799ac-a661-48b4-b1e6-fa6bb7ed8aac in 5.921 ms&#xD;
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]&#xD;
+      Game login rejected: delivery_failed&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution e1ca8655-d7f0-4fc5-91eb-755b6d0bb47a in 0.2335 ms&#xD;
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]&#xD;
+      Game login rejected: ticket_rejected&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RegisterAccountCommand handled by RegisterAccountCommandHandler as Transactional with execution af4e61fa-4cce-4503-b663-81f6a149f045 in 65.2694 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution 7644bf8f-38e1-4ce6-aa02-b49c1229abf5 in 65.8423 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution ceef68ef-c03d-470a-b1b5-bedeec75604d in 0.3067 ms&#xD;
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]&#xD;
+      Game login rejected: ticket_rejected&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 6ea8652b-60cc-4998-a75e-9df028a63236 in 0.8276 ms&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RegisterAccountCommand handled by RegisterAccountCommandHandler as Transactional with execution 1848f814-0eff-40b2-a878-da19229a75df in 69.2776 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution 23ff9d1b-6c2c-45cd-9b5d-fec01f17c93f in 67.0657 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 99a11a5e-bad9-4383-be25-daf3868ab923 in 0.7835 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command PrepareReturnToSelectionCommand handled by PrepareReturnToSelectionCommandHandler as Transactional with execution ec80c490-ce54-460d-b725-cd7787c38907 in 5.4303 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command CompleteReturnToSelectionCommand handled by CompleteReturnToSelectionCommandHandler as Workflow with execution 4bd7649f-5ab1-49ee-b9f0-8a71a3635aa5 in 0.5514 ms&#xD;
+info: Dfo.Server.Protocol.Game.BuyItem.BuyItemHandler[0]&#xD;
+      NPC purchase Game:01-00-00-00 npc=2 shop=15 item=490003532 rawCount=1 refused=NoSession&#xD;
+info: Dfo.Server.Protocol.Game.SellItem.SellItemHandler[0]&#xD;
+      NPC sale Game:01-00-00-00 npc=2 container=Main slot=9 count=1 refused=NoSession&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RegisterAccountCommand handled by RegisterAccountCommandHandler as Transactional with execution 3cf4a173-d151-4495-b313-a1ce2618ecc2 in 66.8068 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution bc32d72e-952a-420e-89d5-9ed332c84967 in 66.3084 ms&#xD;
+fail: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RedeemGameLoginCommand failed in handler RedeemGameLoginCommandHandler as Transactional with execution fb308cc6-ede7-45ae-adf7-611c27288835 after 2.1814 ms&#xD;
+      System.OperationCanceledException: test-injected precommit cancellation&#xD;
+         at Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.PrepareFaultParticipant.PrepareAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Networking.Tests\Integration\GameLoginIntegrationTests.cs:line 829&#xD;
+         at Dfo.Server.Application.Transactions.DomainTransaction.CommitAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Application\Transactions\DomainTransaction.cs:line 80&#xD;
+         at Dfo.Server.Application.Transactions.DomainTransaction.CommitAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Application\Transactions\DomainTransaction.cs:line 95&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 36&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 37&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.AccountExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Application\Commands\Pipeline\AccountExecutionBehavior.cs:line 19&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 34&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 34&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Application\Commands\Pipeline\CommandLoggingBehavior.cs:line 21&#xD;
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]&#xD;
+      Game login rejected: redemption_cancelled&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution c283ce57-0967-42d7-b213-48319fd27dfa in 0.7921 ms&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RegisterAccountCommand handled by RegisterAccountCommandHandler as Transactional with execution fa70479c-2cf5-4563-be06-3bb794bb4825 in 70.899 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution b3305935-5a2c-48c6-9a97-6a3493d3134d in 70.1631 ms&#xD;
+fail: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RedeemGameLoginCommand failed in handler RedeemGameLoginCommandHandler as Transactional with execution ed17cd34-04c6-4362-83bc-0d15a9a97ba5 after 0.398 ms&#xD;
+      System.InvalidOperationException: test-injected commit-path failure&#xD;
+         at Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.PrepareFaultParticipant.PrepareAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Networking.Tests\Integration\GameLoginIntegrationTests.cs:line 834&#xD;
+         at Dfo.Server.Application.Transactions.DomainTransaction.CommitAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Application\Transactions\DomainTransaction.cs:line 80&#xD;
+         at Dfo.Server.Application.Transactions.DomainTransaction.CommitAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Application\Transactions\DomainTransaction.cs:line 95&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 36&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 37&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.AccountExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Application\Commands\Pipeline\AccountExecutionBehavior.cs:line 19&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 34&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 34&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Application\Commands\Pipeline\CommandLoggingBehavior.cs:line 21&#xD;
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]&#xD;
+      Game login rejected: redemption_failed&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 6698aa54-35b0-409e-b9aa-496510274fce in 0.7171 ms&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+[xUnit.net 00:00:01.97]   Finished:    Dfo.Server.Networking.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

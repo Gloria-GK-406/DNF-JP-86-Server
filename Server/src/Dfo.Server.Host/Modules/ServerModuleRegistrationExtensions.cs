@@ -6,8 +6,8 @@ namespace Dfo.Server.Host.Modules;
 
 internal static class ServerModuleRegistrationExtensions
 {
-    public static HostApplicationBuilder AddServerModules(
-        this HostApplicationBuilder builder,
+    public static IHostApplicationBuilder AddServerModules(
+        this IHostApplicationBuilder builder,
         params IServerModule[] modules)
     {
         ArgumentNullException.ThrowIfNull(builder);

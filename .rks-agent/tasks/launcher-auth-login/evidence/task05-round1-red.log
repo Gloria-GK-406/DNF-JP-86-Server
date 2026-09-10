@@ -1,0 +1,19 @@
+  正在确定要还原的项目…
+  已还原 E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher\Dfo.Launcher.csproj (用时 51 毫秒)。
+  已还原 E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Dfo.Launcher.Tests.csproj (用时 1.33 秒)。
+  Dfo.Launcher -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher\bin\Release\net10.0-windows\Dfo.Launcher.dll
+  Dfo.Launcher.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\bin\Release\net10.0-windows\Dfo.Launcher.Tests.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\bin\Release\net10.0-windows\Dfo.Launcher.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:00.30]     Dfo.Launcher.Tests.Configuration.LauncherConfigurationTests.A_single_secure_base_url_is_normalized_and_unknown_settings_are_rejected [FAIL]
+  失败 Dfo.Launcher.Tests.Configuration.LauncherConfigurationTests.A_single_secure_base_url_is_normalized_and_unknown_settings_are_rejected [57 ms]
+  错误消息:
+   System.NotSupportedException : Launcher configuration is not implemented.
+  堆栈跟踪:
+     at Dfo.Launcher.Configuration.LauncherConfigurationParser.Parse(String text) in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher\Configuration\LauncherConfiguration.cs:line 10
+   at Dfo.Launcher.Tests.Configuration.LauncherConfigurationTests.A_single_secure_base_url_is_normalized_and_unknown_settings_are_rejected() in E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Configuration\LauncherConfigurationTests.cs:line 10
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\.rks-agent\tasks\launcher-auth-login\evidence\task05-round1-red.trx
+
+失败!  - 失败:     1，通过:     0，已跳过:     0，总计:     1，持续时间: 71 ms - Dfo.Launcher.Tests.dll (net10.0)

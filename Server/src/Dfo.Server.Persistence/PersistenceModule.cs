@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Authentication;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.Characters;
@@ -48,6 +49,7 @@ public sealed class PersistenceModule : IServerModule
             databasePath, provider.GetRequiredService<IDomainTransactionAccessor>()));
         services.TryAddSingleton<IAccountTable>(
             provider => new SqliteAccountTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<IAuthenticationPersistence, SqliteAuthenticationPersistence>();
         services.TryAddSingleton<IAccountSettingsTable>(
             provider => new SqliteAccountSettingsTable(
                 provider.GetRequiredService<SqliteDatabase>()));

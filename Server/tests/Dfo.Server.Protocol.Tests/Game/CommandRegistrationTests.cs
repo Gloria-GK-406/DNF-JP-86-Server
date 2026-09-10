@@ -86,7 +86,7 @@ public sealed class CommandRegistrationTests
 
         Type[] reachPersistentWrites =
         [
-            typeof(LoginGameUserCommand),
+            typeof(RedeemGameLoginCommand),
             typeof(CreateCharacterCommand),
             typeof(DeleteCharacterCommand),
             typeof(PrepareSelectedCharacterSessionCommand),
@@ -105,6 +105,19 @@ public sealed class CommandRegistrationTests
                 $"{command.Name} is not registered at all.");
             Assert.Equal(CommandExecutionKind.Transactional, kind);
         }
+    }
+
+    [Fact]
+    public void GameTicketRedemptionIsTransactionalAndOnlineUserExclusive()
+    {
+        using var provider = BuildProductionGraph();
+        var registration = Assert.Single(
+            provider.GetServices<CommandHandlerRegistration>(),
+            value => value.CommandType == typeof(RedeemGameLoginCommand));
+
+        Assert.Equal(CommandExecutionKind.Transactional, registration.ExecutionKind);
+        Assert.Equal(UserAccessMode.Exclusive, registration.OnlineUserAccessMode);
+        Assert.Equal(UserAccessMode.Unscoped, registration.AccountAccessMode);
     }
 
     [Fact]

@@ -20,6 +20,56 @@ public sealed class ChannelAdmissionTests
         Assert.Equal(ChannelEntryKind.General, general.Kind);
     }
 
+    [Fact]
+    public async Task Public_advertisement_does_not_replace_the_independent_listener_mapping()
+    {
+        var policy = new ChannelEntryPolicy(
+            new ChannelContentRuleService(
+                new StubChannelCatalog(
+                [
+                    new ChannelServerInfo(
+                        11, "#ch.11", 500, 0, "198.51.100.24", 37102),
+                ]),
+                new NoChannelScript()),
+            ChannelEntryOptions.Legacy,
+            new ChannelListenerOptions([10011], AllowAdvertisedPortFallback: false));
+
+        var mapped = await policy.ResolveAsync(10011, CancellationToken.None);
+        var advertisementIsNotABind = await policy.ResolveAsync(37102, CancellationToken.None);
+
+        Assert.Equal(11, mapped.ChannelId);
+        Assert.Equal(0, advertisementIsNotABind.ChannelId);
+    }
+
+    [Fact]
+    public async Task Disabled_launcher_matches_advertised_ports_even_when_listener_order_differs()
+    {
+        var policy = new ChannelEntryPolicy(
+            new ChannelContentRuleService(
+                new StubChannelCatalog(
+                [
+                    new ChannelServerInfo(
+                        100, "#ch.100", 500, 0, "127.0.0.1", 10161),
+                    new ChannelServerInfo(
+                        11, "#ch.11", 500, 0, "127.0.0.1", 10011),
+                ]),
+                new NoChannelScript()),
+            ChannelEntryOptions.Legacy,
+            new ChannelListenerOptions(
+                [10011, 10161],
+                AllowAdvertisedPortFallback: true));
+
+        var general = await policy.ResolveAsync(10011, CancellationToken.None);
+        var restricted = await policy.ResolveAsync(10161, CancellationToken.None);
+
+        Assert.Equal(11, general.ChannelId);
+        Assert.Equal(ChannelEntryKind.General, general.Kind);
+        Assert.Null(policy.Refuse(general, characterLevel: 1));
+        Assert.Equal(100, restricted.ChannelId);
+        Assert.Equal(ChannelEntryKind.LevelRestricted, restricted.Kind);
+        Assert.NotNull(policy.Refuse(restricted, characterLevel: 1));
+    }
+
     /// <remarks>
     /// Refusing an unlisted listener would make a deployment that simply has not enumerated
     /// its channels unplayable, which is a worse failure than treating it as ordinary.
@@ -102,7 +152,8 @@ public sealed class ChannelAdmissionTests
                     new ChannelServerInfo(68, "#ch.68", 500, 0, "127.0.0.1", 10068),
                 ]),
                 new NoChannelScript()),
-            ChannelEntryOptions.Legacy with { FreeDuelEnabled = freeDuelEnabled });
+            ChannelEntryOptions.Legacy with { FreeDuelEnabled = freeDuelEnabled },
+            new ChannelListenerOptions([], AllowAdvertisedPortFallback: true));
 
     private sealed class StubChannelCatalog(IReadOnlyList<ChannelServerInfo> channels) : IChannelCatalog
     {

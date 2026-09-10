@@ -1,4 +1,7 @@
 using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Authentication;
+using Dfo.Server.Application.Authentication;
+using Dfo.Server.Data.Authentication;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -23,6 +26,7 @@ using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Users;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Channel;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.DependencyInjection;
@@ -62,6 +66,14 @@ public sealed class ApplicationModule : IServerModule
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton(new ChannelListenerOptions(
+            configuration.GetSection("Networking:GamePorts")
+                .GetChildren()
+                .Select(port => int.TryParse(port.Value, out var value) ? value : 0)
+                .ToArray(),
+            AllowAdvertisedPortFallback:
+                !bool.TryParse(configuration["LauncherAuth:Enabled"], out var launcherEnabled)
+                || !launcherEnabled));
         services.TryAddSingleton<ICharacterStatRuleService, CharacterStatRuleService>();
         services.TryAddSingleton<CharacterSkillRuleService>();
         services.TryAddSingleton<ICharacterSkillRuleService>(sp => sp.GetRequiredService<CharacterSkillRuleService>());
@@ -96,10 +108,6 @@ public sealed class ApplicationModule : IServerModule
         // One store, three services. The store keeps the collections whose invariant spans them
         // behind a single lock; the services are the three responsibilities read off it.
         services.TryAddSingleton<OnlineStateRegistry>();
-        services.TryAddSingleton<IAccountDomainService>(
-            provider => new AccountDomainService(
-                () => provider.GetRequiredService<IAccountRepository>(),
-                provider.GetRequiredService<OnlineStateRegistry>()));
         services.TryAddSingleton(
             provider => new OnlineUserDomainService(
                 provider.GetRequiredService<OnlineStateRegistry>()));
@@ -304,7 +312,6 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IAccountRelationCompatibilityEntryProjection, AccountRelationCompatibilityEntryProjection>();
         // Creating an account if its login name is new, and putting its eight tables together.
         // Both are decisions, so both are here.
-        services.TryAddSingleton<IAccountRepository, AccountProvisioning>();
         // The character side's decisions. Reading and writing stayed in persistence.
         services.TryAddSingleton<ICharacterRepository, CharacterRosterService>();
         services.TryAddSingleton<ICharacterPvpSkillProfileRepository, PvpSkillProfileService>();
@@ -326,6 +333,12 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ISelectedSessionCleanupDomainService, SelectedSessionCleanupService>();
         services.TryAddSingleton<ISelectCharacterSessionEntryDomainService, SelectCharacterSessionEntryService>();
         services.AddCommandDispatching();
+        services.TryAddSingleton<IPasswordCredentialRuleService, PasswordCredentialService>();
+        services.TryAddSingleton(AuthenticationRuleService.From(configuration));
+        services.TryAddSingleton<IAuthenticationDomainService, AuthenticationDomainService>();
+        services.TryAddSingleton<IGameLoginAuthenticationDomainService, GameLoginAuthenticationDomainService>();
+        services.AddCommandHandler<RegisterAccountCommand, RegistrationResult, RegisterAccountCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddCommandHandler<AuthenticateAndIssueTicketCommand, AuthenticationResult, AuthenticateAndIssueTicketCommandHandler>(CommandExecutionKind.Transactional);
         services.AddNetworkMessageDispatching();
         services.AddNotificationDispatching();
     }

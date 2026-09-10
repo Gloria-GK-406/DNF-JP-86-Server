@@ -2,8 +2,14 @@ using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Dfo.Server.Abstractions.Authentication;
 using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application;
+using Dfo.Server.Application.Authentication;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Authentication;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Infrastructure;
@@ -11,6 +17,8 @@ using Dfo.Server.Persistence;
 using Dfo.Server.Networking.Framing;
 using Dfo.Server.Networking.Runtime;
 using Dfo.Server.Protocol;
+using Dfo.Server.Protocol.Game;
+using Dfo.Server.Protocol.Game.Login;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -37,33 +45,28 @@ public sealed class GameLoginIntegrationTests
                 gamePort = GetAvailablePort();
             }
 
-            var builder = Host.CreateApplicationBuilder();
-            builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Networking:Enabled"] = "true",
-                ["Networking:ChannelPort"] = channelPort.ToString(),
-                ["Networking:GamePorts:0"] = gamePort.ToString(),
-                ["Database:Path"] = Path.Combine(directory, "login.db"),
-                ["Channel:ScriptPath"] = channelScriptPath,
-                ["Game:EndpointHost"] = "192.0.2.20",
-                ["GameLogin:Environment"] = "1",
-                ["GameLogin:ConnectionPort"] = "10128",
-                ["GameLogin:EndpointPortA"] = "17200",
-                ["GameLogin:EndpointPortB"] = "17201",
-            });
             var preparedAt = new DateTimeOffset(2026, 8, 13, 2, 30, 0, TimeSpan.Zero);
-            builder.Services.AddSingleton<TimeProvider>(new FixedTimeProvider(preparedAt));
-            new InfrastructureModule().ConfigureServices(builder.Services, builder.Configuration);
-            new PersistenceModule().ConfigureServices(builder.Services, builder.Configuration);
-            new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
-            new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
-            new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
-
-            using var host = builder.Build();
+            var databasePath = Path.Combine(directory, "login.db");
+            using var host = BuildHost(
+                channelPort,
+                gamePort,
+                databasePath,
+                channelScriptPath,
+                preparedAt);
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             await host.StartAsync(timeout.Token);
             var onlineUsers = host.Services.GetRequiredService<IOnlineUserQueryDomainService>();
             var gameService = host.Services.GetRequiredService<IGameTcpService>();
+            var commands = host.Services.GetRequiredService<ICommandBus>();
+            var registration = await commands.SendAsync(
+                new RegisterAccountCommand("10038", "integration password"),
+                timeout.Token);
+            Assert.Equal(AuthenticationStatus.Success, registration.Status);
+            var issued = await commands.SendAsync(
+                new AuthenticateAndIssueTicketCommand("10038", "integration password"),
+                timeout.Token);
+            Assert.Equal(AuthenticationStatus.Success, issued.Status);
+            Assert.NotNull(issued.Ticket);
 
             NetworkConnectionId connectionId;
             using (var client = new TcpClient())
@@ -82,7 +85,7 @@ public sealed class GameLoginIntegrationTests
                     BuildExpectedInitialConnectionNotice(preparedAt, channelId: 11),
                     await ReadFrameAsync(client.GetStream(), timeout.Token));
 
-                var requestBody = EncodeDStrings("10038", "login-hash");
+                var requestBody = EncodeDStrings("10038", issued.Ticket);
                 var request = EncodeClientFrame(0x01, 0x0001, requestBody);
                 await client.GetStream().WriteAsync(request, timeout.Token);
 
@@ -93,8 +96,13 @@ public sealed class GameLoginIntegrationTests
                 Assert.Equal(OnlineUserState.Authenticated, authenticated!.State);
                 Assert.NotNull(authenticated.AccountId);
 
-                for (var i = 0; i < 6; i++)
-                    _ = await ReadFrameAsync(client.GetStream(), timeout.Token);
+                ushort[] accountStateTypes = [0x00AD, 0x01C7, 0x00B7, 0x00B7, 0x0289, 0x01A1];
+                foreach (var expectedType in accountStateTypes)
+                {
+                    var state = await ReadFrameAsync(client.GetStream(), timeout.Token);
+                    Assert.Equal(0, state[0]);
+                    Assert.Equal(expectedType, BinaryPrimitives.ReadUInt16LittleEndian(state.AsSpan(1)));
+                }
 
                 // Returning from the roster itself is idempotent and preserves authentication.
                 await client.GetStream().WriteAsync(EncodeClientFrame(1, 7, []), timeout.Token);
@@ -132,6 +140,362 @@ public sealed class GameLoginIntegrationTests
             await WaitUntilAsync(
                 () => !onlineUsers.TryGetByConnection(connectionId, out _),
                 timeout.Token);
+            Assert.Equal(1L, await ScalarAsync(databasePath, "SELECT COUNT(*) FROM accounts;"));
+            Assert.Equal(
+                1L,
+                await ScalarAsync(
+                    databasePath,
+                    "SELECT COUNT(*) FROM login_tickets WHERE consumed_at IS NOT NULL;"));
+            await host.StopAsync(timeout.Token);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task InvalidTicketClosesWithoutSuccessAndTheOriginalTicketCanStillBeRedeemedOnce()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"dfo-login-reject-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var channelScriptPath = Path.Combine(directory, "channel_info.etc");
+            await File.WriteAllBytesAsync(channelScriptPath, [0x01]);
+            var channelPort = GetAvailablePort();
+            var gamePort = GetAvailablePort();
+            while (gamePort == channelPort)
+            {
+                gamePort = GetAvailablePort();
+            }
+
+            var preparedAt = new DateTimeOffset(2026, 8, 13, 2, 30, 0, TimeSpan.Zero);
+            var databasePath = Path.Combine(directory, "login.db");
+            using var host = BuildHost(
+                channelPort,
+                gamePort,
+                databasePath,
+                channelScriptPath,
+                preparedAt);
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            await host.StartAsync(timeout.Token);
+            var onlineUsers = host.Services.GetRequiredService<IOnlineUserQueryDomainService>();
+            var gameService = host.Services.GetRequiredService<IGameTcpService>();
+            var commands = host.Services.GetRequiredService<ICommandBus>();
+            _ = await commands.SendAsync(
+                new RegisterAccountCommand("player", "integration password"),
+                timeout.Token);
+            var issued = await commands.SendAsync(
+                new AuthenticateAndIssueTicketCommand("player", "integration password"),
+                timeout.Token);
+            Assert.NotNull(issued.Ticket);
+            var invalidTicket = (issued.Ticket![0] == 'A' ? "B" : "A") + issued.Ticket[1..];
+
+            NetworkConnectionId rejectedConnectionId;
+            using (var rejected = new TcpClient())
+            {
+                await rejected.ConnectAsync(IPAddress.Loopback, gamePort, timeout.Token);
+                rejectedConnectionId = await FindOnlyConnectionAsync(
+                    gameService,
+                    onlineUsers,
+                    timeout.Token);
+                _ = await ReadFrameAsync(rejected.GetStream(), timeout.Token);
+                await rejected.GetStream().WriteAsync(
+                    EncodeClientFrame(0x01, 0x0001, EncodeDStrings("player", invalidTicket)),
+                    timeout.Token);
+
+                await Assert.ThrowsAsync<EndOfStreamException>(async () =>
+                    await ReadFrameAsync(rejected.GetStream(), timeout.Token));
+            }
+
+            await WaitUntilAsync(
+                () => !onlineUsers.TryGetByConnection(rejectedConnectionId, out _),
+                timeout.Token);
+            await WaitUntilAsync(() => gameService.GetClients().Count() == 0, timeout.Token);
+            Assert.Equal(
+                0L,
+                await ScalarAsync(
+                    databasePath,
+                    "SELECT COUNT(*) FROM login_tickets WHERE consumed_at IS NOT NULL;"));
+
+            NetworkConnectionId acceptedConnectionId;
+            using (var accepted = new TcpClient())
+            {
+                await accepted.ConnectAsync(IPAddress.Loopback, gamePort, timeout.Token);
+                acceptedConnectionId = await FindOnlyConnectionAsync(
+                    gameService,
+                    onlineUsers,
+                    timeout.Token);
+                _ = await ReadFrameAsync(accepted.GetStream(), timeout.Token);
+                await accepted.GetStream().WriteAsync(
+                    EncodeClientFrame(0x01, 0x0001, EncodeDStrings("player", issued.Ticket)),
+                    timeout.Token);
+
+                Assert.Equal(
+                    BuildExpectedLoginResponse(),
+                    await ReadFrameAsync(accepted.GetStream(), timeout.Token));
+                for (var index = 0; index < 6; index++)
+                {
+                    _ = await ReadFrameAsync(accepted.GetStream(), timeout.Token);
+                }
+
+                Assert.True(onlineUsers.TryGetByConnection(acceptedConnectionId, out var authenticated));
+                Assert.Equal(OnlineUserState.Authenticated, authenticated!.State);
+            }
+
+            await WaitUntilAsync(
+                () => !onlineUsers.TryGetByConnection(acceptedConnectionId, out _),
+                timeout.Token);
+            Assert.Equal(1L, await ScalarAsync(databasePath, "SELECT COUNT(*) FROM accounts;"));
+            Assert.Equal(
+                1L,
+                await ScalarAsync(
+                    databasePath,
+                    "SELECT COUNT(*) FROM login_tickets WHERE consumed_at IS NOT NULL;"));
+            await host.StopAsync(timeout.Token);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task LoginDeliveryFailureAfterCommitConsumesTicketCleansIdentityAndRejectsReplay()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"dfo-login-delivery-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var channelScriptPath = Path.Combine(directory, "channel_info.etc");
+            await File.WriteAllBytesAsync(channelScriptPath, [0x01]);
+            var channelPort = GetAvailablePort();
+            var gamePort = GetAvailablePort();
+            while (gamePort == channelPort)
+            {
+                gamePort = GetAvailablePort();
+            }
+
+            var databasePath = Path.Combine(directory, "login.db");
+            using var host = BuildHost(
+                channelPort,
+                gamePort,
+                databasePath,
+                channelScriptPath,
+                new DateTimeOffset(2026, 8, 13, 2, 30, 0, TimeSpan.Zero),
+                failFirstLoginDelivery: true);
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            await host.StartAsync(timeout.Token);
+            var onlineUsers = host.Services.GetRequiredService<IOnlineUserQueryDomainService>();
+            var gameService = host.Services.GetRequiredService<IGameTcpService>();
+            var commands = host.Services.GetRequiredService<ICommandBus>();
+            _ = await commands.SendAsync(
+                new RegisterAccountCommand("delivery-player", "integration password"),
+                timeout.Token);
+            var issued = await commands.SendAsync(
+                new AuthenticateAndIssueTicketCommand(
+                    "delivery-player", "integration password"),
+                timeout.Token);
+            Assert.NotNull(issued.Ticket);
+
+            NetworkConnectionId failedConnectionId;
+            using (var failed = new TcpClient())
+            {
+                await failed.ConnectAsync(IPAddress.Loopback, gamePort, timeout.Token);
+                failedConnectionId = await FindOnlyConnectionAsync(
+                    gameService,
+                    onlineUsers,
+                    timeout.Token);
+                _ = await ReadFrameAsync(failed.GetStream(), timeout.Token);
+                await failed.GetStream().WriteAsync(
+                    EncodeClientFrame(
+                        0x01,
+                        0x0001,
+                        EncodeDStrings("delivery-player", issued.Ticket)),
+                    timeout.Token);
+
+                await Assert.ThrowsAsync<EndOfStreamException>(async () =>
+                    await ReadFrameAsync(failed.GetStream(), timeout.Token));
+            }
+
+            await WaitUntilAsync(
+                () => !onlineUsers.TryGetByConnection(failedConnectionId, out _),
+                timeout.Token);
+            await WaitUntilAsync(() => gameService.GetClients().Count() == 0, timeout.Token);
+            Assert.Equal(
+                1L,
+                await ScalarAsync(
+                    databasePath,
+                    "SELECT COUNT(*) FROM login_tickets WHERE consumed_at IS NOT NULL;"));
+
+            NetworkConnectionId replayConnectionId;
+            using (var replay = new TcpClient())
+            {
+                await replay.ConnectAsync(IPAddress.Loopback, gamePort, timeout.Token);
+                replayConnectionId = await FindOnlyConnectionAsync(
+                    gameService,
+                    onlineUsers,
+                    timeout.Token);
+                _ = await ReadFrameAsync(replay.GetStream(), timeout.Token);
+                await replay.GetStream().WriteAsync(
+                    EncodeClientFrame(
+                        0x01,
+                        0x0001,
+                        EncodeDStrings("delivery-player", issued.Ticket)),
+                    timeout.Token);
+
+                await Assert.ThrowsAsync<EndOfStreamException>(async () =>
+                    await ReadFrameAsync(replay.GetStream(), timeout.Token));
+            }
+
+            await WaitUntilAsync(
+                () => !onlineUsers.TryGetByConnection(replayConnectionId, out _),
+                timeout.Token);
+            Assert.Equal(
+                1L,
+                await ScalarAsync(
+                    databasePath,
+                    "SELECT COUNT(*) FROM login_tickets WHERE consumed_at IS NOT NULL;"));
+            await host.StopAsync(timeout.Token);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public Task CommitPathFailureAfterRealTicketConsumptionRollsBackAndAllowsRetry() =>
+        VerifyPrepareFaultRollsBackTicketAsync(PrepareFaultKind.Failure);
+
+    [Fact]
+    public Task PreCommitCancellationAfterRealTicketConsumptionRollsBackAndAllowsRetry() =>
+        VerifyPrepareFaultRollsBackTicketAsync(PrepareFaultKind.Cancellation);
+
+    private static async Task VerifyPrepareFaultRollsBackTicketAsync(PrepareFaultKind kind)
+    {
+        var directory = Path.Combine(
+            Path.GetTempPath(),
+            $"dfo-login-precommit-{kind}-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var channelScriptPath = Path.Combine(directory, "channel_info.etc");
+            await File.WriteAllBytesAsync(channelScriptPath, [0x01]);
+            var channelPort = GetAvailablePort();
+            var gamePort = GetAvailablePort();
+            while (gamePort == channelPort)
+            {
+                gamePort = GetAvailablePort();
+            }
+
+            var databasePath = Path.Combine(directory, "login.db");
+            var fault = new TransactionPrepareFaultProbe(kind);
+            using var host = BuildHost(
+                channelPort,
+                gamePort,
+                databasePath,
+                channelScriptPath,
+                new DateTimeOffset(2026, 8, 13, 2, 30, 0, TimeSpan.Zero),
+                preCommitFault: fault);
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            await host.StartAsync(timeout.Token);
+            var onlineUsers = host.Services.GetRequiredService<IOnlineUserQueryDomainService>();
+            var gameService = host.Services.GetRequiredService<IGameTcpService>();
+            var commands = host.Services.GetRequiredService<ICommandBus>();
+            var loginId = $"precommit-{kind}";
+            _ = await commands.SendAsync(
+                new RegisterAccountCommand(loginId, "integration password"),
+                timeout.Token);
+            var issued = await commands.SendAsync(
+                new AuthenticateAndIssueTicketCommand(loginId, "integration password"),
+                timeout.Token);
+            Assert.NotNull(issued.Ticket);
+
+            NetworkConnectionId failedConnectionId;
+            using (var failed = new TcpClient())
+            {
+                await failed.ConnectAsync(IPAddress.Loopback, gamePort, timeout.Token);
+                failedConnectionId = await FindOnlyConnectionAsync(
+                    gameService,
+                    onlineUsers,
+                    timeout.Token);
+                _ = await ReadFrameAsync(failed.GetStream(), timeout.Token);
+                Assert.True(onlineUsers.TryGetByConnection(failedConnectionId, out var anonymous));
+                Assert.Equal(OnlineUserState.Connected, anonymous!.State);
+                Assert.Null(anonymous.AccountId);
+
+                await failed.GetStream().WriteAsync(
+                    EncodeClientFrame(
+                        0x01,
+                        0x0001,
+                        EncodeDStrings(loginId, issued.Ticket)),
+                    timeout.Token);
+
+                await Assert.ThrowsAsync<EndOfStreamException>(async () =>
+                    await ReadFrameAsync(failed.GetStream(), timeout.Token));
+            }
+
+            Assert.True(fault.WasTriggered);
+            Assert.Equal(OnlineUserState.Connected, fault.ObservedState);
+            Assert.Null(fault.ObservedAccountId);
+            await WaitUntilAsync(
+                () => !onlineUsers.TryGetByConnection(failedConnectionId, out _),
+                timeout.Token);
+            await WaitUntilAsync(() => gameService.GetClients().Count() == 0, timeout.Token);
+            Assert.Equal(
+                0L,
+                await ScalarAsync(
+                    databasePath,
+                    "SELECT COUNT(*) FROM login_tickets WHERE consumed_at IS NOT NULL;"));
+
+            NetworkConnectionId acceptedConnectionId;
+            using (var accepted = new TcpClient())
+            {
+                await accepted.ConnectAsync(IPAddress.Loopback, gamePort, timeout.Token);
+                acceptedConnectionId = await FindOnlyConnectionAsync(
+                    gameService,
+                    onlineUsers,
+                    timeout.Token);
+                _ = await ReadFrameAsync(accepted.GetStream(), timeout.Token);
+                await accepted.GetStream().WriteAsync(
+                    EncodeClientFrame(
+                        0x01,
+                        0x0001,
+                        EncodeDStrings(loginId, issued.Ticket)),
+                    timeout.Token);
+
+                Assert.Equal(
+                    BuildExpectedLoginResponse(),
+                    await ReadFrameAsync(accepted.GetStream(), timeout.Token));
+                ushort[] accountStateTypes = [0x00AD, 0x01C7, 0x00B7, 0x00B7, 0x0289, 0x01A1];
+                foreach (var expectedType in accountStateTypes)
+                {
+                    var state = await ReadFrameAsync(accepted.GetStream(), timeout.Token);
+                    Assert.Equal(0, state[0]);
+                    Assert.Equal(
+                        expectedType,
+                        BinaryPrimitives.ReadUInt16LittleEndian(state.AsSpan(1)));
+                }
+
+                Assert.True(
+                    onlineUsers.TryGetByConnection(acceptedConnectionId, out var authenticated));
+                Assert.Equal(OnlineUserState.Authenticated, authenticated!.State);
+                Assert.NotNull(authenticated.AccountId);
+            }
+
+            await WaitUntilAsync(
+                () => !onlineUsers.TryGetByConnection(acceptedConnectionId, out _),
+                timeout.Token);
+            Assert.Equal(
+                1L,
+                await ScalarAsync(
+                    databasePath,
+                    "SELECT COUNT(*) FROM login_tickets WHERE consumed_at IS NOT NULL;"));
             await host.StopAsync(timeout.Token);
         }
         finally
@@ -262,6 +626,95 @@ public sealed class GameLoginIntegrationTests
         }
     }
 
+    private static async Task<NetworkConnectionId> FindOnlyConnectionAsync(
+        IGameTcpService gameService,
+        IOnlineUserQueryDomainService onlineUsers,
+        CancellationToken cancellationToken)
+    {
+        await WaitUntilAsync(() => gameService.GetClients().Count() == 1, cancellationToken);
+        var session = Assert.IsAssignableFrom<TouchSocketSessionClient>(
+            gameService.GetClients().Single());
+        var connectionId = new NetworkConnectionId($"Game:{session.Id}");
+        await WaitUntilAsync(
+            () => onlineUsers.TryGetByConnection(connectionId, out _),
+            cancellationToken);
+        return connectionId;
+    }
+
+    private static IHost BuildHost(
+        int channelPort,
+        int gamePort,
+        string databasePath,
+        string channelScriptPath,
+        DateTimeOffset preparedAt,
+        bool failFirstLoginDelivery = false,
+        TransactionPrepareFaultProbe? preCommitFault = null)
+    {
+        var builder = Host.CreateApplicationBuilder();
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Networking:Enabled"] = "true",
+            ["Networking:ChannelPort"] = channelPort.ToString(),
+            ["Networking:GamePorts:0"] = gamePort.ToString(),
+            ["Database:Path"] = databasePath,
+            ["Channel:ScriptPath"] = channelScriptPath,
+            ["Game:EndpointHost"] = "192.0.2.20",
+            ["GameLogin:Environment"] = "1",
+            ["GameLogin:ConnectionPort"] = "10128",
+            ["GameLogin:EndpointPortA"] = "17200",
+            ["GameLogin:EndpointPortB"] = "17201",
+        });
+        builder.Services.AddSingleton<TimeProvider>(new FixedTimeProvider(preparedAt));
+        new InfrastructureModule().ConfigureServices(builder.Services, builder.Configuration);
+        new PersistenceModule().ConfigureServices(builder.Services, builder.Configuration);
+        new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
+        new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
+        new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
+        if (failFirstLoginDelivery)
+        {
+            DecorateSingleton<IGameMessageSender>(
+                builder.Services,
+                (_, sender) => new FailFirstLoginDelivery(sender));
+        }
+        if (preCommitFault is { } fault)
+        {
+            DecorateSingleton<IGameLoginAuthenticationDomainService>(
+                builder.Services,
+                (provider, authentication) => new PrepareFaultingAuthentication(
+                    authentication,
+                    provider.GetRequiredService<IDomainTransactionAccessor>(),
+                    provider.GetRequiredService<IOnlineUserQueryDomainService>(),
+                    fault));
+        }
+        return builder.Build();
+    }
+
+    private static void DecorateSingleton<TService>(
+        IServiceCollection services,
+        Func<IServiceProvider, TService, TService> decorate)
+        where TService : class
+    {
+        var descriptor = services.Last(service => service.ServiceType == typeof(TService));
+        services.Remove(descriptor);
+        services.AddSingleton<TService>(provider => decorate(
+            provider,
+            descriptor.ImplementationInstance as TService
+                ?? (descriptor.ImplementationFactory is not null
+                    ? (TService)descriptor.ImplementationFactory(provider)
+                    : (TService)ActivatorUtilities.CreateInstance(
+                        provider,
+                        descriptor.ImplementationType!))));
+    }
+
+    private static async Task<long> ScalarAsync(string databasePath, string sql)
+    {
+        await using var connection = new SqliteConnection($"Data Source={databasePath};Pooling=False");
+        await connection.OpenAsync();
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        return (long)(await command.ExecuteScalarAsync())!;
+    }
+
     private static int GetAvailablePort()
     {
         var listener = new TcpListener(IPAddress.Loopback, 0);
@@ -274,5 +727,117 @@ public sealed class GameLoginIntegrationTests
     private sealed class FixedTimeProvider(DateTimeOffset value) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => value;
+    }
+
+    private sealed class FailFirstLoginDelivery(IGameMessageSender inner) : IGameMessageSender
+    {
+        private int failNext = 1;
+
+        public ValueTask SendCmdAsync(
+            NetworkConnectionId connectionId,
+            IGameCmdMessage message,
+            CancellationToken cancellationToken)
+        {
+            if (message is GameLoginResponse
+                && Interlocked.Exchange(ref this.failNext, 0) == 1)
+            {
+                throw new IOException("test-injected login delivery failure");
+            }
+
+            return inner.SendCmdAsync(connectionId, message, cancellationToken);
+        }
+
+        public ValueTask SendNotiAsync(
+            NetworkConnectionId connectionId,
+            IGameNotiMessage message,
+            CancellationToken cancellationToken) =>
+            inner.SendNotiAsync(connectionId, message, cancellationToken);
+
+        public ValueTask SendExplicitAsync(
+            NetworkConnectionId requiredDirectConnectionId,
+            GameExplicitMessageDelivery delivery,
+            CancellationToken cancellationToken) =>
+            inner.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
+    }
+
+    private enum PrepareFaultKind
+    {
+        Failure,
+        Cancellation,
+    }
+
+    private sealed class TransactionPrepareFaultProbe(PrepareFaultKind kind)
+    {
+        private int armed = 1;
+
+        public PrepareFaultKind Kind { get; } = kind;
+
+        public bool WasTriggered { get; set; }
+
+        public OnlineUserState? ObservedState { get; set; }
+
+        public AccountId? ObservedAccountId { get; set; }
+
+        public bool TryClaim() => Interlocked.Exchange(ref this.armed, 0) == 1;
+    }
+
+    private sealed class PrepareFaultingAuthentication(
+        IGameLoginAuthenticationDomainService inner,
+        IDomainTransactionAccessor transactions,
+        IOnlineUserQueryDomainService onlineUsers,
+        TransactionPrepareFaultProbe fault) : IGameLoginAuthenticationDomainService
+    {
+        public async ValueTask<AccountId?> RedeemTicketAsync(
+            OnlineUserId onlineUserId,
+            string loginId,
+            string ticket,
+            CancellationToken cancellationToken)
+        {
+            var accountId = await inner.RedeemTicketAsync(
+                onlineUserId,
+                loginId,
+                ticket,
+                cancellationToken).ConfigureAwait(false);
+            if (accountId is not null && fault.TryClaim())
+            {
+                var transaction = transactions.Current
+                    ?? throw new InvalidOperationException("Expected an ambient transaction.");
+                transaction.Enlist(
+                    new object(),
+                    () => new PrepareFaultParticipant(onlineUserId, onlineUsers, fault));
+            }
+
+            return accountId;
+        }
+    }
+
+    private sealed class PrepareFaultParticipant(
+        OnlineUserId onlineUserId,
+        IOnlineUserQueryDomainService onlineUsers,
+        TransactionPrepareFaultProbe fault) : ITransactionParticipant
+    {
+        public bool CommitCanFail => false;
+
+        public ValueTask PrepareAsync(CancellationToken cancellationToken)
+        {
+            var snapshot = onlineUsers.GetRequired(onlineUserId);
+            fault.ObservedState = snapshot.State;
+            fault.ObservedAccountId = snapshot.AccountId;
+            fault.WasTriggered = true;
+            if (fault.Kind == PrepareFaultKind.Cancellation)
+            {
+                throw new OperationCanceledException(
+                    "test-injected precommit cancellation",
+                    cancellationToken);
+            }
+
+            throw new InvalidOperationException("test-injected commit-path failure");
+        }
+
+        public ValueTask CommitAsync(CancellationToken cancellationToken) =>
+            ValueTask.CompletedTask;
+
+        public ValueTask RollbackAsync(CancellationToken cancellationToken) =>
+            ValueTask.CompletedTask;
     }
 }

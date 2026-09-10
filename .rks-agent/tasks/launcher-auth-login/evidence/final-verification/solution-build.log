@@ -1,0 +1,363 @@
+生成启动时间为 2026/9/10 19:04:03。
+日志记录详细程度设置为: Normal。     1>节点 1 上的项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\86JP.Server.slnx”(默认目标)。
+     1>ValidateSolutionConfiguration:
+         正在生成解决方案配置“Release|Any CPU”。
+     1>项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\86JP.Server.slnx”(1)正在节点 9 上生成“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Data\Dfo.Server.Data.csproj”(8) (默认目标)。
+     8>GenerateTargetFrameworkMonikerAttribute:
+       正在跳过目标“GenerateTargetFrameworkMonikerAttribute”，因为所有输出文件相对于输入文件而言都是最新的。
+       CoreGenerateAssemblyInfo:
+       正在跳过目标“CoreGenerateAssemblyInfo”，因为所有输出文件相对于输入文件而言都是最新的。
+       _GenerateSourceLinkFile:
+         Source Link 文件 "obj\Release\net10.0\Dfo.Server.Data.sourcelink.json" 是最新的。
+       CoreCompile:
+       正在跳过目标“CoreCompile”，因为所有输出文件相对于输入文件而言都是最新的。
+       GenerateBuildDependencyFile:
+       正在跳过目标“GenerateBuildDependencyFile”，因为所有输出文件相对于输入文件而言都是最新的。
+       CopyFilesToOutputDirectory:
+         Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Data\bin\Release\net10.0\Dfo.Server.Data.dll
+     8>已完成生成项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Data\Dfo.Server.Data.csproj”(默认目标)的操作。
+     1>项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\86JP.Server.slnx”(1)正在节点 15 上生成“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Utilities\Dfo.Server.Utilities.csproj”(2) (默认目标)。
+     2>GenerateTargetFrameworkMonikerAttribute:
+       正在跳过目标“GenerateTargetFrameworkMonikerAttribute”，因为所有输出文件相对于输入文件而言都是最新的。
+     1>项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\86JP.Server.slnx”(1)正在节点 10 上生成“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Pvf\Dfo.Pvf.csproj”(9) (默认目标)。
+     9>GenerateTargetFrameworkMonikerAttribute:
+       正在跳过目标“GenerateTargetFrameworkMonikerAttribute”，因为所有输出文件相对于输入文件而言都是最新的。
+     2>CoreGenerateAssemblyInfo:
+       正在跳过目标“CoreGenerateAssemblyInfo”，因为所有输出文件相对于输入文件而言都是最新的。
+     1>项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\86JP.Server.slnx”(1)正在节点 16 上生成“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher\Dfo.Launcher.csproj”(15) (默认目标)。
+    15>MainResourcesGeneration:
+       正在跳过目标“MainResourcesGeneration”，因为所有输出文件相对于输入文件而言都是最新的。
+     9>CoreGenerateAssemblyInfo:
+       正在跳过目标“CoreGenerateAssemblyInfo”，因为所有输出文件相对于输入文件而言都是最新的。
+    15>GenerateTargetFrameworkMonikerAttribute:
+       正在跳过目标“GenerateTargetFrameworkMonikerAttribute”，因为所有输出文件相对于输入文件而言都是最新的。
+       CoreGenerateAssemblyInfo:
+       正在跳过目标“CoreGenerateAssemblyInfo”，因为所有输出文件相对于输入文件而言都是最新的。
+     2>_GenerateSourceLinkFile:
+         Source Link 文件 "obj\Release\net10.0\Dfo.Server.Utilities.sourcelink.json" 是最新的。
+       CoreCompile:
+       正在跳过目标“CoreCompile”，因为所有输出文件相对于输入文件而言都是最新的。
+     9>_GenerateSourceLinkFile:
+         Source Link 文件 "obj\Release\net10.0\Dfo.Pvf.sourcelink.json" 是最新的。
+       CoreCompile:
+       正在跳过目标“CoreCompile”，因为所有输出文件相对于输入文件而言都是最新的。
+    15>_GenerateSourceLinkFile:
+         Source Link 文件 "obj\Release\net10.0-windows\Dfo.Launcher.sourcelink.json" 是最新的。
+     2>GenerateBuildDependencyFile:
+       正在跳过目标“GenerateBuildDependencyFile”，因为所有输出文件相对于输入文件而言都是最新的。
+     9>GenerateBuildDependencyFile:
+       正在跳过目标“GenerateBuildDependencyFile”，因为所有输出文件相对于输入文件而言都是最新的。
+    15>CoreCompile:
+       正在跳过目标“CoreCompile”，因为所有输出文件相对于输入文件而言都是最新的。
+     2>CopyFilesToOutputDirectory:
+         Dfo.Server.Utilities -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Utilities\bin\Release\net10.0\Dfo.Server.Utilities.dll
+     9>CopyFilesToOutputDirectory:
+         Dfo.Pvf -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Pvf\bin\Release\net10.0\Dfo.Pvf.dll
+    15>_CreateAppHost:
+       正在跳过目标“_CreateAppHost”，因为所有输出文件相对于输入文件而言都是最新的。
+     2>已完成生成项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Utilities\Dfo.Server.Utilities.csproj”(默认目标)的操作。
+     9>已完成生成项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Pvf\Dfo.Pvf.csproj”(默认目标)的操作。
+    15>_CopyOutOfDateSourceItemsToOutputDirectory:
+       正在跳过目标“_CopyOutOfDateSourceItemsToOutputDirectory”，因为所有输出文件相对于输入文件而言都是最新的。
+       GenerateBuildDependencyFile:
+       正在跳过目标“GenerateBuildDependencyFile”，因为所有输出文件相对于输入文件而言都是最新的。
+       GenerateBuildRuntimeConfigurationFiles:
+       正在跳过目标“GenerateBuildRuntimeConfigurationFiles”，因为所有输出文件相对于输入文件而言都是最新的。
+       CopyFilesToOutputDirectory:
+         Dfo.Launcher -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher\bin\Release\net10.0-windows\Dfo.Launcher.dll
+    15>已完成生成项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher\Dfo.Launcher.csproj”(默认目标)的操作。
+     1>项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\86JP.Server.slnx”(1)正在节点 7 上生成“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Abstractions\Dfo.Server.Abstractions.csproj”(13) (默认目标)。
+    13>GenerateTargetFrameworkMonikerAttribute:
+       正在跳过目标“GenerateTargetFrameworkMonikerAttribute”，因为所有输出文件相对于输入文件而言都是最新的。
+       CoreGenerateAssemblyInfo:
+       正在跳过目标“CoreGenerateAssemblyInfo”，因为所有输出文件相对于输入文件而言都是最新的。
+       _GenerateSourceLinkFile:
+         Source Link 文件 "obj\Release\net10.0\Dfo.Server.Abstractions.sourcelink.json" 是最新的。
+       CoreCompile:
+       正在跳过目标“CoreCompile”，因为所有输出文件相对于输入文件而言都是最新的。
+       GenerateBuildDependencyFile:
+       正在跳过目标“GenerateBuildDependencyFile”，因为所有输出文件相对于输入文件而言都是最新的。
+       CopyFilesToOutputDirectory:
+         Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Abstractions\bin\Release\net10.0\Dfo.Server.Abstractions.dll
+    13>已完成生成项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Abstractions\Dfo.Server.Abstractions.csproj”(默认目标)的操作。
+     1>项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\86JP.Server.slnx”(1)正在节点 8 上生成“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Pvf.Tests\Dfo.Pvf.Tests.csproj”(5) (默认目标)。
+     5>GenerateTargetFrameworkMonikerAttribute:
+       正在跳过目标“GenerateTargetFrameworkMonikerAttribute”，因为所有输出文件相对于输入文件而言都是最新的。
+       CoreGenerateAssemblyInfo:
+       正在跳过目标“CoreGenerateAssemblyInfo”，因为所有输出文件相对于输入文件而言都是最新的。
+       _GenerateSourceLinkFile:
+         Source Link 文件 "obj\Release\net10.0\Dfo.Pvf.Tests.sourcelink.json" 是最新的。
+       CoreCompile:
+       正在跳过目标“CoreCompile”，因为所有输出文件相对于输入文件而言都是最新的。
+     1>项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\86JP.Server.slnx”(1)正在节点 6 上生成“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Persistence\Dfo.Server.Persistence.csproj”(7) (默认目标)。
+     7>GenerateTargetFrameworkMonikerAttribute:
+       正在跳过目标“GenerateTargetFrameworkMonikerAttribute”，因为所有输出文件相对于输入文件而言都是最新的。
+     1>项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\86JP.Server.slnx”(1)正在节点 1 上生成“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Dfo.Launcher.Tests.csproj”(22) (默认目标)。
+    22>GenerateTargetFrameworkMonikerAttribute:
+       正在跳过目标“GenerateTargetFrameworkMonikerAttribute”，因为所有输出文件相对于输入文件而言都是最新的。
+     1>项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\86JP.Server.slnx”(1)正在节点 14 上生成“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Infrastructure\Dfo.Server.Infrastructure.csproj”(3) (默认目标)。
+     3>GenerateTargetFrameworkMonikerAttribute:
+       正在跳过目标“GenerateTargetFrameworkMonikerAttribute”，因为所有输出文件相对于输入文件而言都是最新的。
+     5>_CopyOutOfDateSourceItemsToOutputDirectory:
+       正在跳过目标“_CopyOutOfDateSourceItemsToOutputDirectory”，因为所有输出文件相对于输入文件而言都是最新的。
+     3>CoreGenerateAssemblyInfo:
+       正在跳过目标“CoreGenerateAssemblyInfo”，因为所有输出文件相对于输入文件而言都是最新的。
+       _GenerateSourceLinkFile:
+         Source Link 文件 "obj\Release\net10.0\Dfo.Server.Infrastructure.sourcelink.json" 是最新的。
+       CoreCompile:
+       正在跳过目标“CoreCompile”，因为所有输出文件相对于输入文件而言都是最新的。
+     5>GenerateBuildDependencyFile:
+       正在跳过目标“GenerateBuildDependencyFile”，因为所有输出文件相对于输入文件而言都是最新的。
+       GenerateBuildRuntimeConfigurationFiles:
+       正在跳过目标“GenerateBuildRuntimeConfigurationFiles”，因为所有输出文件相对于输入文件而言都是最新的。
+     3>GenerateBuildDependencyFile:
+       正在跳过目标“GenerateBuildDependencyFile”，因为所有输出文件相对于输入文件而言都是最新的。
+       CopyFilesToOutputDirectory:
+         Dfo.Server.Infrastructure -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Infrastructure\bin\Release\net10.0\Dfo.Server.Infrastructure.dll
+     5>CopyFilesToOutputDirectory:
+         Dfo.Pvf.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Pvf.Tests\bin\Release\net10.0\Dfo.Pvf.Tests.dll
+     1>项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\86JP.Server.slnx”(1)正在节点 5 上生成“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Networking\Dfo.Server.Networking.csproj”(12) (默认目标)。
+    12>GenerateTargetFrameworkMonikerAttribute:
+       正在跳过目标“GenerateTargetFrameworkMonikerAttribute”，因为所有输出文件相对于输入文件而言都是最新的。
+     3>已完成生成项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Infrastructure\Dfo.Server.Infrastructure.csproj”(默认目标)的操作。
+     7>CoreGenerateAssemblyInfo:
+       正在跳过目标“CoreGenerateAssemblyInfo”，因为所有输出文件相对于输入文件而言都是最新的。
+    12>CoreGenerateAssemblyInfo:
+       正在跳过目标“CoreGenerateAssemblyInfo”，因为所有输出文件相对于输入文件而言都是最新的。
+     5>已完成生成项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Pvf.Tests\Dfo.Pvf.Tests.csproj”(默认目标)的操作。
+     7>_GenerateSourceLinkFile:
+         Source Link 文件 "obj\Release\net10.0\Dfo.Server.Persistence.sourcelink.json" 是最新的。
+       CoreCompile:
+       正在跳过目标“CoreCompile”，因为所有输出文件相对于输入文件而言都是最新的。
+       GenerateBuildDependencyFile:
+       正在跳过目标“GenerateBuildDependencyFile”，因为所有输出文件相对于输入文件而言都是最新的。
+    12>_GenerateSourceLinkFile:
+         Source Link 文件 "obj\Release\net10.0\Dfo.Server.Networking.sourcelink.json" 是最新的。
+     7>CopyFilesToOutputDirectory:
+         Dfo.Server.Persistence -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Persistence\bin\Release\net10.0\Dfo.Server.Persistence.dll
+    12>CoreCompile:
+       正在跳过目标“CoreCompile”，因为所有输出文件相对于输入文件而言都是最新的。
+    22>CoreGenerateAssemblyInfo:
+       正在跳过目标“CoreGenerateAssemblyInfo”，因为所有输出文件相对于输入文件而言都是最新的。
+     1>项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\86JP.Server.slnx”(1)正在节点 11 上生成“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Application\Dfo.Server.Application.csproj”(11) (默认目标)。
+    11>GenerateTargetFrameworkMonikerAttribute:
+       正在跳过目标“GenerateTargetFrameworkMonikerAttribute”，因为所有输出文件相对于输入文件而言都是最新的。
+     7>已完成生成项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Persistence\Dfo.Server.Persistence.csproj”(默认目标)的操作。
+    11>CoreGenerateAssemblyInfo:
+       正在跳过目标“CoreGenerateAssemblyInfo”，因为所有输出文件相对于输入文件而言都是最新的。
+       _GenerateSourceLinkFile:
+         Source Link 文件 "obj\Release\net10.0\Dfo.Server.Application.sourcelink.json" 是最新的。
+       CoreCompile:
+       正在跳过目标“CoreCompile”，因为所有输出文件相对于输入文件而言都是最新的。
+    12>GenerateBuildDependencyFile:
+       正在跳过目标“GenerateBuildDependencyFile”，因为所有输出文件相对于输入文件而言都是最新的。
+       CopyFilesToOutputDirectory:
+         Dfo.Server.Networking -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Networking\bin\Release\net10.0\Dfo.Server.Networking.dll
+    11>GenerateBuildDependencyFile:
+       正在跳过目标“GenerateBuildDependencyFile”，因为所有输出文件相对于输入文件而言都是最新的。
+    12>已完成生成项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Networking\Dfo.Server.Networking.csproj”(默认目标)的操作。
+    11>CopyFilesToOutputDirectory:
+         Dfo.Server.Application -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Application\bin\Release\net10.0\Dfo.Server.Application.dll
+    11>已完成生成项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Application\Dfo.Server.Application.csproj”(默认目标)的操作。
+    22>_GenerateSourceLinkFile:
+         Source Link 文件 "obj\Release\net10.0-windows\Dfo.Launcher.Tests.sourcelink.json" 是最新的。
+       CoreCompile:
+       正在跳过目标“CoreCompile”，因为所有输出文件相对于输入文件而言都是最新的。
+       _CopyOutOfDateSourceItemsToOutputDirectory:
+       正在跳过目标“_CopyOutOfDateSourceItemsToOutputDirectory”，因为所有输出文件相对于输入文件而言都是最新的。
+       GenerateBuildDependencyFile:
+       正在跳过目标“GenerateBuildDependencyFile”，因为所有输出文件相对于输入文件而言都是最新的。
+       GenerateBuildRuntimeConfigurationFiles:
+       正在跳过目标“GenerateBuildRuntimeConfigurationFiles”，因为所有输出文件相对于输入文件而言都是最新的。
+     1>项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\86JP.Server.slnx”(1)正在节点 14 上生成“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Persistence.Tests\Dfo.Server.Persistence.Tests.csproj”(18) (默认目标)。
+    18>GenerateTargetFrameworkMonikerAttribute:
+       正在跳过目标“GenerateTargetFrameworkMonikerAttribute”，因为所有输出文件相对于输入文件而言都是最新的。
+    22>CopyFilesToOutputDirectory:
+         Dfo.Launcher.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\bin\Release\net10.0-windows\Dfo.Launcher.Tests.dll
+    18>CoreGenerateAssemblyInfo:
+       正在跳过目标“CoreGenerateAssemblyInfo”，因为所有输出文件相对于输入文件而言都是最新的。
+    22>已完成生成项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\Dfo.Launcher.Tests.csproj”(默认目标)的操作。
+    18>_GenerateSourceLinkFile:
+         Source Link 文件 "obj\Release\net10.0\Dfo.Server.Persistence.Tests.sourcelink.json" 是最新的。
+       CoreCompile:
+       正在跳过目标“CoreCompile”，因为所有输出文件相对于输入文件而言都是最新的。
+     1>项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\86JP.Server.slnx”(1)正在节点 2 上生成“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Protocol\Dfo.Server.Protocol.csproj”(4) (默认目标)。
+     4>GenerateTargetFrameworkMonikerAttribute:
+       正在跳过目标“GenerateTargetFrameworkMonikerAttribute”，因为所有输出文件相对于输入文件而言都是最新的。
+       CoreGenerateAssemblyInfo:
+       正在跳过目标“CoreGenerateAssemblyInfo”，因为所有输出文件相对于输入文件而言都是最新的。
+    18>_CopyOutOfDateSourceItemsToOutputDirectory:
+       正在跳过目标“_CopyOutOfDateSourceItemsToOutputDirectory”，因为所有输出文件相对于输入文件而言都是最新的。
+     4>_GenerateSourceLinkFile:
+         Source Link 文件 "obj\Release\net10.0\Dfo.Server.Protocol.sourcelink.json" 是最新的。
+       CoreCompile:
+       正在跳过目标“CoreCompile”，因为所有输出文件相对于输入文件而言都是最新的。
+       GenerateBuildDependencyFile:
+       正在跳过目标“GenerateBuildDependencyFile”，因为所有输出文件相对于输入文件而言都是最新的。
+     1>项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\86JP.Server.slnx”(1)正在节点 3 上生成“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.LauncherApi\Dfo.Server.LauncherApi.csproj”(6) (默认目标)。
+     6>GenerateTargetFrameworkMonikerAttribute:
+       正在跳过目标“GenerateTargetFrameworkMonikerAttribute”，因为所有输出文件相对于输入文件而言都是最新的。
+       CoreGenerateAssemblyInfo:
+       正在跳过目标“CoreGenerateAssemblyInfo”，因为所有输出文件相对于输入文件而言都是最新的。
+     4>CopyFilesToOutputDirectory:
+         Dfo.Server.Protocol -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Protocol\bin\Release\net10.0\Dfo.Server.Protocol.dll
+     4>已完成生成项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Protocol\Dfo.Server.Protocol.csproj”(默认目标)的操作。
+     6>_GenerateSourceLinkFile:
+         Source Link 文件 "obj\Release\net10.0\Dfo.Server.LauncherApi.sourcelink.json" 是最新的。
+       CoreCompile:
+       正在跳过目标“CoreCompile”，因为所有输出文件相对于输入文件而言都是最新的。
+       GenerateBuildDependencyFile:
+       正在跳过目标“GenerateBuildDependencyFile”，因为所有输出文件相对于输入文件而言都是最新的。
+    18>GenerateBuildDependencyFile:
+       正在跳过目标“GenerateBuildDependencyFile”，因为所有输出文件相对于输入文件而言都是最新的。
+     6>CopyFilesToOutputDirectory:
+         Dfo.Server.LauncherApi -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.LauncherApi\bin\Release\net10.0\Dfo.Server.LauncherApi.dll
+    18>GenerateBuildRuntimeConfigurationFiles:
+       正在跳过目标“GenerateBuildRuntimeConfigurationFiles”，因为所有输出文件相对于输入文件而言都是最新的。
+       CopyFilesToOutputDirectory:
+         Dfo.Server.Persistence.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Persistence.Tests\bin\Release\net10.0\Dfo.Server.Persistence.Tests.dll
+    18>已完成生成项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Persistence.Tests\Dfo.Server.Persistence.Tests.csproj”(默认目标)的操作。
+     6>已完成生成项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.LauncherApi\Dfo.Server.LauncherApi.csproj”(默认目标)的操作。
+     1>项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\86JP.Server.slnx”(1)正在节点 3 上生成“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Infrastructure.Tests\Dfo.Server.Infrastructure.Tests.csproj”(17) (默认目标)。
+    17>GenerateTargetFrameworkMonikerAttribute:
+       正在跳过目标“GenerateTargetFrameworkMonikerAttribute”，因为所有输出文件相对于输入文件而言都是最新的。
+       CoreGenerateAssemblyInfo:
+       正在跳过目标“CoreGenerateAssemblyInfo”，因为所有输出文件相对于输入文件而言都是最新的。
+     1>项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\86JP.Server.slnx”(1)正在节点 13 上生成“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Application.Tests\Dfo.Server.Application.Tests.csproj”(10) (默认目标)。
+    10>GenerateTargetFrameworkMonikerAttribute:
+       正在跳过目标“GenerateTargetFrameworkMonikerAttribute”，因为所有输出文件相对于输入文件而言都是最新的。
+       CoreGenerateAssemblyInfo:
+       正在跳过目标“CoreGenerateAssemblyInfo”，因为所有输出文件相对于输入文件而言都是最新的。
+     1>项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\86JP.Server.slnx”(1)正在节点 8 上生成“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Networking.Tests\Dfo.Server.Networking.Tests.csproj”(19) (默认目标)。
+    19>GenerateTargetFrameworkMonikerAttribute:
+       正在跳过目标“GenerateTargetFrameworkMonikerAttribute”，因为所有输出文件相对于输入文件而言都是最新的。
+    17>_GenerateSourceLinkFile:
+         Source Link 文件 "obj\Release\net10.0\Dfo.Server.Infrastructure.Tests.sourcelink.json" 是最新的。
+       CoreCompile:
+       正在跳过目标“CoreCompile”，因为所有输出文件相对于输入文件而言都是最新的。
+    19>CoreGenerateAssemblyInfo:
+       正在跳过目标“CoreGenerateAssemblyInfo”，因为所有输出文件相对于输入文件而言都是最新的。
+    17>_CopyOutOfDateSourceItemsToOutputDirectory:
+       正在跳过目标“_CopyOutOfDateSourceItemsToOutputDirectory”，因为所有输出文件相对于输入文件而言都是最新的。
+       GenerateBuildDependencyFile:
+       正在跳过目标“GenerateBuildDependencyFile”，因为所有输出文件相对于输入文件而言都是最新的。
+       GenerateBuildRuntimeConfigurationFiles:
+       正在跳过目标“GenerateBuildRuntimeConfigurationFiles”，因为所有输出文件相对于输入文件而言都是最新的。
+       CopyFilesToOutputDirectory:
+         Dfo.Server.Infrastructure.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Infrastructure.Tests\bin\Release\net10.0\Dfo.Server.Infrastructure.Tests.dll
+    17>已完成生成项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Infrastructure.Tests\Dfo.Server.Infrastructure.Tests.csproj”(默认目标)的操作。
+     1>项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\86JP.Server.slnx”(1)正在节点 6 上生成“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Protocol.Tests\Dfo.Server.Protocol.Tests.csproj”(21) (默认目标)。
+    21>GenerateTargetFrameworkMonikerAttribute:
+       正在跳过目标“GenerateTargetFrameworkMonikerAttribute”，因为所有输出文件相对于输入文件而言都是最新的。
+       CoreGenerateAssemblyInfo:
+       正在跳过目标“CoreGenerateAssemblyInfo”，因为所有输出文件相对于输入文件而言都是最新的。
+     1>项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\86JP.Server.slnx”(1)正在节点 2 上生成“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.LauncherApi.Tests\Dfo.Server.LauncherApi.Tests.csproj”(20) (默认目标)。
+    20>GenerateTargetFrameworkMonikerAttribute:
+       正在跳过目标“GenerateTargetFrameworkMonikerAttribute”，因为所有输出文件相对于输入文件而言都是最新的。
+     1>项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\86JP.Server.slnx”(1)正在节点 12 上生成“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Host\Dfo.Server.Host.csproj”(16) (默认目标)。
+    16>GenerateTargetFrameworkMonikerAttribute:
+       正在跳过目标“GenerateTargetFrameworkMonikerAttribute”，因为所有输出文件相对于输入文件而言都是最新的。
+    20>CoreGenerateAssemblyInfo:
+       正在跳过目标“CoreGenerateAssemblyInfo”，因为所有输出文件相对于输入文件而言都是最新的。
+    16>CoreGenerateAssemblyInfo:
+       正在跳过目标“CoreGenerateAssemblyInfo”，因为所有输出文件相对于输入文件而言都是最新的。
+       _DiscoverMvcApplicationParts:
+       正在跳过目标“_DiscoverMvcApplicationParts”，因为所有输出文件相对于输入文件而言都是最新的。
+       _GenerateSourceLinkFile:
+         Source Link 文件 "obj\Release\net10.0\Dfo.Server.Host.sourcelink.json" 是最新的。
+       CoreCompile:
+       正在跳过目标“CoreCompile”，因为所有输出文件相对于输入文件而言都是最新的。
+       _CreateAppHost:
+       正在跳过目标“_CreateAppHost”，因为所有输出文件相对于输入文件而言都是最新的。
+    20>_GenerateSourceLinkFile:
+         Source Link 文件 "obj\Release\net10.0\Dfo.Server.LauncherApi.Tests.sourcelink.json" 是最新的。
+       CoreCompile:
+       正在跳过目标“CoreCompile”，因为所有输出文件相对于输入文件而言都是最新的。
+    10>_GenerateSourceLinkFile:
+         Source Link 文件 "obj\Release\net10.0\Dfo.Server.Application.Tests.sourcelink.json" 是最新的。
+    20>_CopyOutOfDateSourceItemsToOutputDirectory:
+       正在跳过目标“_CopyOutOfDateSourceItemsToOutputDirectory”，因为所有输出文件相对于输入文件而言都是最新的。
+    10>CoreCompile:
+       正在跳过目标“CoreCompile”，因为所有输出文件相对于输入文件而言都是最新的。
+    20>GenerateBuildDependencyFile:
+       正在跳过目标“GenerateBuildDependencyFile”，因为所有输出文件相对于输入文件而言都是最新的。
+       GenerateBuildRuntimeConfigurationFiles:
+       正在跳过目标“GenerateBuildRuntimeConfigurationFiles”，因为所有输出文件相对于输入文件而言都是最新的。
+       CopyFilesToOutputDirectory:
+         Dfo.Server.LauncherApi.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.LauncherApi.Tests\bin\Release\net10.0\Dfo.Server.LauncherApi.Tests.dll
+    19>_GenerateSourceLinkFile:
+         Source Link 文件 "obj\Release\net10.0\Dfo.Server.Networking.Tests.sourcelink.json" 是最新的。
+       CoreCompile:
+       正在跳过目标“CoreCompile”，因为所有输出文件相对于输入文件而言都是最新的。
+    20>已完成生成项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.LauncherApi.Tests\Dfo.Server.LauncherApi.Tests.csproj”(默认目标)的操作。
+    21>_GenerateSourceLinkFile:
+         Source Link 文件 "obj\Release\net10.0\Dfo.Server.Protocol.Tests.sourcelink.json" 是最新的。
+       CoreCompile:
+       正在跳过目标“CoreCompile”，因为所有输出文件相对于输入文件而言都是最新的。
+    10>_CopyOutOfDateSourceItemsToOutputDirectory:
+       正在跳过目标“_CopyOutOfDateSourceItemsToOutputDirectory”，因为所有输出文件相对于输入文件而言都是最新的。
+    19>_CopyOutOfDateSourceItemsToOutputDirectory:
+       正在跳过目标“_CopyOutOfDateSourceItemsToOutputDirectory”，因为所有输出文件相对于输入文件而言都是最新的。
+    10>GenerateBuildDependencyFile:
+       正在跳过目标“GenerateBuildDependencyFile”，因为所有输出文件相对于输入文件而言都是最新的。
+       GenerateBuildRuntimeConfigurationFiles:
+       正在跳过目标“GenerateBuildRuntimeConfigurationFiles”，因为所有输出文件相对于输入文件而言都是最新的。
+    19>GenerateBuildDependencyFile:
+       正在跳过目标“GenerateBuildDependencyFile”，因为所有输出文件相对于输入文件而言都是最新的。
+       GenerateBuildRuntimeConfigurationFiles:
+       正在跳过目标“GenerateBuildRuntimeConfigurationFiles”，因为所有输出文件相对于输入文件而言都是最新的。
+    10>CopyFilesToOutputDirectory:
+         Dfo.Server.Application.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Application.Tests\bin\Release\net10.0\Dfo.Server.Application.Tests.dll
+    19>CopyFilesToOutputDirectory:
+         Dfo.Server.Networking.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll
+    21>_CopyOutOfDateSourceItemsToOutputDirectory:
+       正在跳过目标“_CopyOutOfDateSourceItemsToOutputDirectory”，因为所有输出文件相对于输入文件而言都是最新的。
+       GenerateBuildDependencyFile:
+       正在跳过目标“GenerateBuildDependencyFile”，因为所有输出文件相对于输入文件而言都是最新的。
+       GenerateBuildRuntimeConfigurationFiles:
+       正在跳过目标“GenerateBuildRuntimeConfigurationFiles”，因为所有输出文件相对于输入文件而言都是最新的。
+    10>已完成生成项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Application.Tests\Dfo.Server.Application.Tests.csproj”(默认目标)的操作。
+    19>已完成生成项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Networking.Tests\Dfo.Server.Networking.Tests.csproj”(默认目标)的操作。
+    21>CopyFilesToOutputDirectory:
+         Dfo.Server.Protocol.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Protocol.Tests\bin\Release\net10.0\Dfo.Server.Protocol.Tests.dll
+    21>已完成生成项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Protocol.Tests\Dfo.Server.Protocol.Tests.csproj”(默认目标)的操作。
+    16>_ProcessScopedCssFiles:
+       正在跳过目标“_ProcessScopedCssFiles”，因为它没有输出。
+       _ProcessScopedCssFiles:
+       正在跳过目标“_ProcessScopedCssFiles”，因为它没有输出。
+       _BuildCopyStaticWebAssetsPreserveNewest:
+       正在跳过目标“_BuildCopyStaticWebAssetsPreserveNewest”，因为它没有输出。
+       _CopyOutOfDateSourceItemsToOutputDirectory:
+       正在跳过目标“_CopyOutOfDateSourceItemsToOutputDirectory”，因为所有输出文件相对于输入文件而言都是最新的。
+       GenerateBuildDependencyFile:
+       正在跳过目标“GenerateBuildDependencyFile”，因为所有输出文件相对于输入文件而言都是最新的。
+       GenerateBuildRuntimeConfigurationFiles:
+       正在跳过目标“GenerateBuildRuntimeConfigurationFiles”，因为所有输出文件相对于输入文件而言都是最新的。
+       CopyFilesToOutputDirectory:
+         Dfo.Server.Host -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Host\bin\Release\net10.0\Dfo.Server.Host.dll
+    16>已完成生成项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Host\Dfo.Server.Host.csproj”(默认目标)的操作。
+     1>项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\86JP.Server.slnx”(1)正在节点 4 上生成“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Host.Tests\Dfo.Server.Host.Tests.csproj”(14) (默认目标)。
+    14>GenerateTargetFrameworkMonikerAttribute:
+       正在跳过目标“GenerateTargetFrameworkMonikerAttribute”，因为所有输出文件相对于输入文件而言都是最新的。
+       CoreGenerateAssemblyInfo:
+       正在跳过目标“CoreGenerateAssemblyInfo”，因为所有输出文件相对于输入文件而言都是最新的。
+       _GenerateSourceLinkFile:
+         Source Link 文件 "obj\Release\net10.0\Dfo.Server.Host.Tests.sourcelink.json" 是最新的。
+       CoreCompile:
+       正在跳过目标“CoreCompile”，因为所有输出文件相对于输入文件而言都是最新的。
+       _CopyOutOfDateSourceItemsToOutputDirectory:
+       正在跳过目标“_CopyOutOfDateSourceItemsToOutputDirectory”，因为所有输出文件相对于输入文件而言都是最新的。
+       GenerateBuildDependencyFile:
+       正在跳过目标“GenerateBuildDependencyFile”，因为所有输出文件相对于输入文件而言都是最新的。
+       GenerateBuildRuntimeConfigurationFiles:
+       正在跳过目标“GenerateBuildRuntimeConfigurationFiles”，因为所有输出文件相对于输入文件而言都是最新的。
+       CopyFilesToOutputDirectory:
+         Dfo.Server.Host.Tests -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll
+    14>已完成生成项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Host.Tests\Dfo.Server.Host.Tests.csproj”(默认目标)的操作。
+     1>已完成生成项目“E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\86JP.Server.slnx”(默认目标)的操作。
+
+已成功生成。
+    0 个警告
+    0 个错误
+
+已用时间 00:00:02.23

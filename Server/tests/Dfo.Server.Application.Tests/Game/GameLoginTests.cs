@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Authentication;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
@@ -9,18 +10,20 @@ using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Protocol.Game.Login;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Application.Tests.Support;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.Tests.Game;
 
 public sealed class GameLoginTests
 {
     [Fact]
-    public async Task CommandHandler_DelegatesLoginToAccountDomainService()
+    public async Task CommandHandler_DelegatesTicketRedemptionToAuthenticationDomainService()
     {
         var onlineUserId = OnlineUserId.New();
-        var accounts = new StubAccountDomainService(new AccountId(42));
-        var handler = new LoginGameUserCommandHandler(accounts);
-        var command = new LoginGameUserCommand(onlineUserId, "10038", "hash");
+        var authentication = new StubGameLoginAuthenticationDomainService(new AccountId(42));
+        var handler = new RedeemGameLoginCommandHandler(authentication);
+        var command = new RedeemGameLoginCommand(onlineUserId, "10038", new string('t', 43));
         var context = new CommandExecutionContext(
             Guid.NewGuid(),
             command.GetType(),
@@ -30,11 +33,11 @@ public sealed class GameLoginTests
 
         var result = await handler.HandleAsync(context, command, CancellationToken.None);
 
-        var typed = Assert.IsType<LoginGameUserResult>(result);
+        var typed = Assert.IsType<RedeemGameLoginResult>(result);
         Assert.Equal(new AccountId(42), typed.AccountId);
-        Assert.Equal(onlineUserId, accounts.OnlineUserId);
-        Assert.Equal("10038", accounts.LoginId);
-        Assert.Equal("hash", accounts.PasswordHash);
+        Assert.Equal(onlineUserId, authentication.OnlineUserId);
+        Assert.Equal("10038", authentication.LoginId);
+        Assert.Equal(new string('t', 43), authentication.Ticket);
     }
 
     [Fact]
@@ -48,20 +51,27 @@ public sealed class GameLoginTests
             10011);
         var anonymous = onlineUsers.RegisterConnection(connection);
         var sender = new RecordingSender();
-        var bus = new RecordingCommandBus(new LoginGameUserResult(new AccountId(7)));
+        var bus = new PublishingRecordingCommandBus(onlineUsers, new AccountId(7));
         var accountEntryState = new StubAccountEntryStateDomainService();
+        var closer = new RecordingCloser();
         var handler = new GameLoginHandler(
-            onlineUsers, sender, bus, new StubServerConfigService(), accountEntryState);
+            onlineUsers,
+            sender,
+            bus,
+            new StubServerConfigService(),
+            accountEntryState,
+            closer,
+            NullLogger<GameLoginHandler>.Instance);
 
         await handler.HandleAsync(
             new NetworkDispatchContext(connection),
-            new GameLoginRequest(GameMessageMetadata.Empty, "login", "password-hash"),
+            new GameLoginRequest(GameMessageMetadata.Empty, "login", new string('t', 43)),
             CancellationToken.None);
 
-        var command = Assert.IsType<LoginGameUserCommand>(bus.Command);
+        var command = Assert.IsType<RedeemGameLoginCommand>(bus.Command);
         Assert.Equal(anonymous.OnlineUserId, command.OnlineUserId);
         Assert.Equal("login", command.LoginId);
-        Assert.Equal("password-hash", command.PasswordHash);
+        Assert.Equal(new string('t', 43), command.Ticket);
 
         // The login response followed by the whole account-state batch, all to the connection the
         // request arrived on. The batch is asserted as a unit because the client treats it as one:
@@ -88,26 +98,159 @@ public sealed class GameLoginTests
             sender.Sends.Skip(1).Select(send => send.Message.MessageType));
 
         Assert.Equal(new AccountId(7), accountEntryState.RequestedAccountId);
+        Assert.Empty(closer.Closed);
     }
 
-    private sealed class StubAccountDomainService(AccountId accountId) : IAccountDomainService
+    [Fact]
+    public async Task MessageHandler_CommandFailureSendsNoSuccessAndRemovesTheAnonymousConnection()
+    {
+        var onlineUsers = new UserDomainServices(
+            () => new FixedAccountRepository(new AccountId(7)));
+        var connection = new NetworkConnectionContext(
+            new NetworkConnectionId("Game:login-refused"),
+            NetworkEndpointKind.Game,
+            10011);
+        _ = onlineUsers.RegisterConnection(connection);
+        var sender = new RecordingSender();
+        var closer = new RecordingCloser();
+        var handler = new GameLoginHandler(
+            onlineUsers,
+            sender,
+            new ThrowingCommandBus(),
+            new StubServerConfigService(),
+            new StubAccountEntryStateDomainService(),
+            closer,
+            NullLogger<GameLoginHandler>.Instance);
+
+        await handler.HandleAsync(
+            new NetworkDispatchContext(connection),
+            new GameLoginRequest(GameMessageMetadata.Empty, "player", new string('t', 43)),
+            CancellationToken.None);
+
+        Assert.Empty(sender.Sends);
+        Assert.False(onlineUsers.TryGetByConnection(connection.ConnectionId, out _));
+        Assert.Equal([connection.ConnectionId], closer.Closed);
+    }
+
+    [Fact]
+    public async Task MessageHandler_InvalidTicketSendsNothingClosesAndDoesNotAuthenticate()
+    {
+        var onlineUsers = new UserDomainServices(
+            () => new FixedAccountRepository(new AccountId(7)));
+        var connection = new NetworkConnectionContext(
+            new NetworkConnectionId("Game:invalid-ticket"),
+            NetworkEndpointKind.Game,
+            10011);
+        _ = onlineUsers.RegisterConnection(connection);
+        var sender = new RecordingSender();
+        var closer = new RecordingCloser();
+        var logger = new RecordingLogger();
+        var handler = new GameLoginHandler(
+            onlineUsers,
+            sender,
+            new ResultCommandBus(new RedeemGameLoginResult(null)),
+            new StubServerConfigService(),
+            new StubAccountEntryStateDomainService(),
+            closer,
+            logger);
+        var loginId = "secret-player";
+        var ticket = "secret-ticket-that-must-not-enter-the-log-123";
+
+        await handler.HandleAsync(
+            new NetworkDispatchContext(connection),
+            new GameLoginRequest(GameMessageMetadata.Empty, loginId, ticket),
+            CancellationToken.None);
+
+        Assert.Empty(sender.Sends);
+        Assert.False(onlineUsers.TryGetByConnection(connection.ConnectionId, out _));
+        Assert.Equal([connection.ConnectionId], closer.Closed);
+        Assert.Contains("ticket_rejected", logger.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain(loginId, logger.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain(ticket, logger.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task MessageHandler_SendFailureConsumesTheSuccessButRemovesItsPublishedIdentity()
+    {
+        var onlineUsers = new UserDomainServices(
+            () => new FixedAccountRepository(new AccountId(7)));
+        var connection = new NetworkConnectionContext(
+            new NetworkConnectionId("Game:send-failure"),
+            NetworkEndpointKind.Game,
+            10011);
+        _ = onlineUsers.RegisterConnection(connection);
+        var sender = new RecordingSender(failAtAttempt: 2);
+        var closer = new RecordingCloser();
+        var handler = new GameLoginHandler(
+            onlineUsers,
+            sender,
+            new PublishingRecordingCommandBus(onlineUsers, new AccountId(7)),
+            new StubServerConfigService(),
+            new StubAccountEntryStateDomainService(),
+            closer,
+            NullLogger<GameLoginHandler>.Instance);
+
+        await handler.HandleAsync(
+            new NetworkDispatchContext(connection),
+            new GameLoginRequest(GameMessageMetadata.Empty, "player", new string('t', 43)),
+            CancellationToken.None);
+
+        Assert.Single(sender.Sends);
+        Assert.True(sender.Sends[0].IsCmd);
+        Assert.False(onlineUsers.TryGetByConnection(connection.ConnectionId, out _));
+        Assert.Equal([connection.ConnectionId], closer.Closed);
+    }
+
+    [Fact]
+    public async Task MessageHandler_DoesNotSendWhenCommandReturnsWithoutPublishedIdentity()
+    {
+        var onlineUsers = new UserDomainServices(
+            () => new FixedAccountRepository(new AccountId(7)));
+        var connection = new NetworkConnectionContext(
+            new NetworkConnectionId("Game:publication-missing"),
+            NetworkEndpointKind.Game,
+            10011);
+        _ = onlineUsers.RegisterConnection(connection);
+        var sender = new RecordingSender();
+        var closer = new RecordingCloser();
+        var handler = new GameLoginHandler(
+            onlineUsers,
+            sender,
+            new ResultCommandBus(new RedeemGameLoginResult(new AccountId(7))),
+            new StubServerConfigService(),
+            new StubAccountEntryStateDomainService(),
+            closer,
+            NullLogger<GameLoginHandler>.Instance);
+
+        await handler.HandleAsync(
+            new NetworkDispatchContext(connection),
+            new GameLoginRequest(GameMessageMetadata.Empty, "player", new string('t', 43)),
+            CancellationToken.None);
+
+        Assert.Empty(sender.Sends);
+        Assert.False(onlineUsers.TryGetByConnection(connection.ConnectionId, out _));
+        Assert.Equal([connection.ConnectionId], closer.Closed);
+    }
+
+    private sealed class StubGameLoginAuthenticationDomainService(AccountId accountId)
+        : IGameLoginAuthenticationDomainService
     {
         public OnlineUserId OnlineUserId { get; private set; }
 
         public string? LoginId { get; private set; }
 
-        public string? PasswordHash { get; private set; }
+        public string? Ticket { get; private set; }
 
-        public ValueTask<AccountId> LoginAsync(
+        public ValueTask<AccountId?> RedeemTicketAsync(
             OnlineUserId onlineUserId,
             string loginId,
-            string passwordHash,
+            string ticket,
             CancellationToken cancellationToken)
         {
             OnlineUserId = onlineUserId;
             LoginId = loginId;
-            PasswordHash = passwordHash;
-            return ValueTask.FromResult(accountId);
+            Ticket = ticket;
+            return ValueTask.FromResult<AccountId?>(accountId);
         }
     }
 
@@ -124,17 +267,56 @@ public sealed class GameLoginTests
                 DateTimeOffset.UtcNow));
     }
 
-    private sealed class RecordingCommandBus(LoginGameUserResult result) : ICommandBus
+    private sealed class PublishingRecordingCommandBus(
+        UserDomainServices onlineUsers,
+        AccountId accountId) : ICommandBus
     {
         public ICommand? Command { get; private set; }
 
-        public ValueTask<TResult> SendAsync<TResult>(
+        public async ValueTask<TResult> SendAsync<TResult>(
             ICommand<TResult> command,
             CancellationToken cancellationToken = default)
             where TResult : notnull
         {
             Command = command;
-            return ValueTask.FromResult((TResult)(object)result);
+            var login = Assert.IsType<RedeemGameLoginCommand>(command);
+            await onlineUsers.LoginAsync(
+                login.OnlineUserId,
+                login.LoginId,
+                "test-only",
+                cancellationToken);
+            return (TResult)(object)new RedeemGameLoginResult(accountId);
+        }
+    }
+
+    private sealed class ThrowingCommandBus : ICommandBus
+    {
+        public ValueTask<TResult> SendAsync<TResult>(
+            ICommand<TResult> command,
+            CancellationToken cancellationToken = default)
+            where TResult : notnull =>
+            ValueTask.FromException<TResult>(new InvalidOperationException("transaction failed"));
+    }
+
+    private sealed class ResultCommandBus(RedeemGameLoginResult result) : ICommandBus
+    {
+        public ValueTask<TResult> SendAsync<TResult>(
+            ICommand<TResult> command,
+            CancellationToken cancellationToken = default)
+            where TResult : notnull =>
+            ValueTask.FromResult((TResult)(object)result);
+    }
+
+    private sealed class RecordingCloser : INetworkConnectionCloser
+    {
+        public List<NetworkConnectionId> Closed { get; } = [];
+
+        public ValueTask RequestCloseAsync(
+            NetworkConnectionId connectionId,
+            CancellationToken cancellationToken)
+        {
+            Closed.Add(connectionId);
+            return ValueTask.CompletedTask;
         }
     }
 
@@ -151,8 +333,10 @@ public sealed class GameLoginTests
     /// that "login sends a CMD response". Login now sends a CMD response followed by two NOTIs, and
     /// their order is the point, so the sequence has to be observable.
     /// </remarks>
-    private sealed class RecordingSender : IGameMessageSender
+    private sealed class RecordingSender(int? failAtAttempt = null) : IGameMessageSender
     {
+        private int attempts;
+
         public List<RecordedSend> Sends { get; } = [];
 
         public ValueTask SendCmdAsync(
@@ -160,6 +344,7 @@ public sealed class GameLoginTests
             IGameCmdMessage message,
             CancellationToken cancellationToken)
         {
+            this.ThrowIfConfigured();
             Sends.Add(new RecordedSend(connectionId, message, IsCmd: true));
             return ValueTask.CompletedTask;
         }
@@ -175,9 +360,38 @@ public sealed class GameLoginTests
             IGameNotiMessage message,
             CancellationToken cancellationToken)
         {
+            this.ThrowIfConfigured();
             Sends.Add(new RecordedSend(connectionId, message, IsCmd: false));
             return ValueTask.CompletedTask;
         }
+
+        private void ThrowIfConfigured()
+        {
+            this.attempts++;
+            if (this.attempts == failAtAttempt)
+            {
+                throw new IOException("send failed");
+            }
+        }
+    }
+
+    private sealed class RecordingLogger : ILogger<GameLoginHandler>
+    {
+        private readonly List<string> messages = [];
+
+        public string Text => string.Join('\n', this.messages);
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter) =>
+            this.messages.Add(formatter(state, exception));
     }
 
     /// <remarks>

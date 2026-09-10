@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Dfo.Server.Abstractions\Dfo.Server.Abstractions.csproj" />
+    <ProjectReference Include="..\Dfo.Server.Application\Dfo.Server.Application.csproj" />
+    <ProjectReference Include="..\Dfo.Server.Data\Dfo.Server.Data.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Dfo.Server.LauncherApi.Tests" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,118 @@
+<Window x:Class="Dfo.Launcher.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="DNF JP 86 Launcher"
+        Width="760" Height="560" MinWidth="680" MinHeight="520"
+        WindowStartupLocation="CenterScreen"
+        Background="#0E1320"
+        FontFamily="Segoe UI">
+  <Window.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+    <Style TargetType="Button">
+      <Setter Property="Padding" Value="18,10" />
+      <Setter Property="Margin" Value="4" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Background" Value="#3A7AFE" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style TargetType="TextBox">
+      <Setter Property="Padding" Value="12,9" />
+      <Setter Property="Margin" Value="0,5,0,14" />
+      <Setter Property="FontSize" Value="15" />
+    </Style>
+    <Style TargetType="PasswordBox">
+      <Setter Property="Padding" Value="12,9" />
+      <Setter Property="Margin" Value="0,5,0,14" />
+      <Setter Property="FontSize" Value="15" />
+    </Style>
+  </Window.Resources>
+
+  <Grid Background="#0E1320">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="2*" />
+      <ColumnDefinition Width="3*" />
+    </Grid.ColumnDefinitions>
+
+    <Border Grid.Column="0" Background="#151E32" Padding="38">
+      <StackPanel x:Name="BrandPanel" VerticalAlignment="Center">
+        <TextBlock x:Name="BrandName" Text="DNF" Foreground="#6EA0FF" FontSize="50" FontWeight="Bold" />
+        <TextBlock x:Name="BrandVersion" Text="JP 86" Foreground="White" FontSize="30" FontWeight="Light" />
+        <Rectangle Height="3" Width="74" HorizontalAlignment="Left"
+                   Fill="#3A7AFE" Margin="0,20,0,20" />
+        <TextBlock x:Name="BrandSubtitle" Text="安全登录启动器" Foreground="#C7D2E8" FontSize="16" />
+        <TextBlock Text="密码只用于本次 HTTPS 登录，游戏只接收短时票据。"
+                   TextWrapping="Wrap" Foreground="#7F90AE" Margin="0,12,0,0"
+                   LineHeight="22" />
+      </StackPanel>
+    </Border>
+
+    <Grid Grid.Column="1" Margin="48,34">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
+      <StackPanel>
+        <TextBlock x:Name="HeaderTitle" Text="账号入口" Foreground="White" FontSize="27" FontWeight="SemiBold" />
+        <TextBlock x:Name="HeaderStatus" Text="{Binding StatusMessage}" Foreground="#91A1BC" Margin="0,7,0,0" />
+      </StackPanel>
+
+      <Grid Grid.Row="1" Margin="0,24,0,16">
+        <StackPanel x:Name="FormPanel" VerticalAlignment="Center"
+                    Visibility="{Binding IsFormVisible, Converter={StaticResource BoolToVisibility}}">
+          <StackPanel Orientation="Horizontal" Margin="-4,0,0,18">
+            <Button x:Name="LoginTabButton" Content="登录" Click="ShowLogin_Click" Background="#26334D" />
+            <Button x:Name="RegisterTabButton" Content="注册" Click="ShowRegister_Click" Background="#26334D"
+                    IsEnabled="{Binding RegistrationEnabled}" />
+          </StackPanel>
+          <TextBlock x:Name="LoginIdLabel" Text="账号" Foreground="#DCE5F5" />
+          <TextBox x:Name="LoginIdBox" Text="{Binding LoginId, UpdateSourceTrigger=PropertyChanged}"
+                   AutomationProperties.Name="账号" />
+          <TextBlock x:Name="PasswordLabel" Text="密码" Foreground="#DCE5F5" />
+          <PasswordBox x:Name="PasswordInput" AutomationProperties.Name="密码" />
+          <CheckBox x:Name="RememberLoginIdBox" Content="记住账号（不会保存密码）" IsChecked="{Binding RememberLoginId}"
+                    Foreground="#C7D2E8" Margin="0,2,0,14" />
+          <TextBlock x:Name="FieldErrorTextBlock" Text="{Binding FieldErrorText}" Foreground="#FFB0B0"
+                     TextWrapping="Wrap" Margin="0,0,0,8" />
+          <Button x:Name="PrimaryActionButton" Content="{Binding PrimaryActionText}" IsEnabled="{Binding CanSubmit}"
+                  Click="Submit_Click" Margin="0,4,0,0" />
+        </StackPanel>
+
+        <StackPanel x:Name="LoadingPanel" VerticalAlignment="Center" HorizontalAlignment="Center"
+                    Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}">
+          <ProgressBar x:Name="LoadingProgress" Width="210" Height="6" IsIndeterminate="True" />
+          <TextBlock Text="{Binding StatusMessage}" Foreground="#C7D2E8"
+                     Margin="0,18,0,0" HorizontalAlignment="Center" />
+        </StackPanel>
+
+        <StackPanel x:Name="ErrorPanel" VerticalAlignment="Center"
+                    Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}">
+          <Border x:Name="ErrorCard" Background="#2C1E2A" BorderBrush="#7A3E55" BorderThickness="1"
+                  CornerRadius="8" Padding="18">
+            <StackPanel>
+              <TextBlock Text="需要处理" Foreground="#FFCAD8" FontSize="18"
+                         FontWeight="SemiBold" />
+              <TextBlock Text="{Binding GlobalError}" Foreground="#F3CED8" TextWrapping="Wrap"
+                         Margin="0,8,0,0" LineHeight="21" />
+            </StackPanel>
+          </Border>
+          <Button x:Name="RetryButton" Content="重新检查" Click="Retry_Click" IsEnabled="{Binding CanRetry}"
+                  HorizontalAlignment="Left" Margin="0,18,0,0" />
+        </StackPanel>
+
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                    Visibility="{Binding IsLaunched, Converter={StaticResource BoolToVisibility}}">
+          <TextBlock Text="✓" FontSize="54" Foreground="#6DE0A8" HorizontalAlignment="Center" />
+          <TextBlock Text="游戏已启动" FontSize="21" Foreground="White"
+                     HorizontalAlignment="Center" Margin="0,10,0,0" />
+        </StackPanel>
+      </Grid>
+
+      <TextBlock x:Name="FooterText" Grid.Row="2" Text="Launcher API v1 · 功能预览版"
+                 Foreground="#5F6D87" FontSize="11" HorizontalAlignment="Right" />
+    </Grid>
+  </Grid>
+</Window>

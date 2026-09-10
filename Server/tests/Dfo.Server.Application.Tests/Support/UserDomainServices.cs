@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application.Users;
+using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -21,26 +22,35 @@ namespace Dfo.Server.Application.Tests;
 /// all three share one registry, so the tests still exercise the real cross-responsibility path.
 /// </remarks>
 internal sealed class UserDomainServices
-    : IAccountDomainService, IOnlineUserDomainService, IActiveCharacterDomainService
+    : IOnlineUserDomainService, IActiveCharacterDomainService
 {
-    private readonly AccountDomainService accounts;
+    private readonly Func<IAccountRepository> accountRepository;
+    private readonly OnlineStateRegistry state;
     private readonly OnlineUserDomainService online;
     private readonly ActiveCharacterDomainService active;
 
     public UserDomainServices(Func<IAccountRepository> accountRepository)
     {
-        var state = new OnlineStateRegistry();
-        accounts = new AccountDomainService(accountRepository, state);
+        var state = new OnlineStateRegistry(new DomainTransactionScope());
+        this.accountRepository = accountRepository;
+        this.state = state;
         online = new OnlineUserDomainService(state);
         active = new ActiveCharacterDomainService(state);
     }
 
-    public ValueTask<AccountId> LoginAsync(
+    public async ValueTask<AccountId> LoginAsync(
         OnlineUserId onlineUserId,
         string loginId,
         string passwordHash,
-        CancellationToken cancellationToken) =>
-        accounts.LoginAsync(onlineUserId, loginId, passwordHash, cancellationToken);
+        CancellationToken cancellationToken)
+    {
+        var account = await this.accountRepository().GetOrCreateAsync(
+            loginId,
+            passwordHash,
+            cancellationToken);
+        this.state.Authenticate(onlineUserId, account.AccountId);
+        return account.AccountId;
+    }
 
     public OnlineUserSnapshot RegisterConnection(NetworkConnectionContext connection) =>
         online.RegisterConnection(connection);

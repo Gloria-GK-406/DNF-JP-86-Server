@@ -59,7 +59,7 @@ public sealed class ReturnToSelectionHandler(
         {
             // Closing invokes cleanup and must happen after releasing lifecycle ownership.
             // Never claim success after a save, teardown or partial-delivery failure.
-            try { await closer.CloseAsync(connectionId, CancellationToken.None).ConfigureAwait(false); }
+            try { await closer.RequestCloseAsync(connectionId, CancellationToken.None).ConfigureAwait(false); }
             catch { /* Preserve the original failure. */ }
             failure.Throw();
         }

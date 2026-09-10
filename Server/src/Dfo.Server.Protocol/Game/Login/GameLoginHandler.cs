@@ -5,53 +5,94 @@ using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Protocol.Game.AuctionService;
 using Dfo.Server.Protocol.Game.HonorLevel;
 using Dfo.Server.Protocol.Game.InformNotice;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.Login;
 
 public sealed class GameLoginHandler(
-    IOnlineUserQueryDomainService onlineUsers,
+    IOnlineUserDomainService onlineUsers,
     IGameMessageSender sender,
     ICommandBus commandBus,
     IServerConfigService serverConfig,
-    IAccountEntryStateDomainService accountEntryState) : ClientMessageHandler<GameLoginRequest>
+    IAccountEntryStateDomainService accountEntryState,
+    INetworkConnectionCloser closer,
+    ILogger<GameLoginHandler> logger) : ClientMessageHandler<GameLoginRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
         GameLoginRequest message,
         CancellationToken cancellationToken)
     {
-        if (!onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var onlineUser)
+        var connectionId = context.Connection.ConnectionId;
+        if (!onlineUsers.TryGetByConnection(connectionId, out var onlineUser)
             || onlineUser is null)
         {
-            throw new InvalidOperationException(
-                $"Game connection '{context.Connection.ConnectionId}' has no online-user registration.");
+            await RejectAsync(connectionId, "missing_online_registration").ConfigureAwait(false);
+            return;
         }
 
-        var response = new GameLoginResponse(
-            Succeeded: true,
-            serverConfig.GetConfig<byte>(GameLoginConfigKeys.Environment),
-            serverConfig.GetConfig<int>(GameLoginConfigKeys.ConnectionPort),
-            serverConfig.GetConfig<string>(GameLoginConfigKeys.EndpointHost),
-            serverConfig.GetConfig<int>(GameLoginConfigKeys.EndpointPortA),
-            serverConfig.GetConfig<int>(GameLoginConfigKeys.EndpointPortB));
-        var login = await commandBus.SendAsync(
-            new LoginGameUserCommand(
-                onlineUser.OnlineUserId,
-                message.LoginId,
-                message.PasswordHash),
-            cancellationToken).ConfigureAwait(false);
-        await sender.SendCmdAsync(
-            context.Connection.ConnectionId,
-            response,
-            cancellationToken).ConfigureAwait(false);
-        await SendAccountSettingsAsync(
-            context.Connection.ConnectionId,
-            login.AccountId,
-            cancellationToken).ConfigureAwait(false);
+        var commandCompleted = false;
+        try
+        {
+            var login = await commandBus.SendAsync(
+                new RedeemGameLoginCommand(
+                    onlineUser.OnlineUserId,
+                    message.LoginId,
+                    message.Ticket),
+                cancellationToken).ConfigureAwait(false);
+            commandCompleted = true;
+            if (login.AccountId is not { } accountId)
+            {
+                await RejectAsync(connectionId, "ticket_rejected").ConfigureAwait(false);
+                return;
+            }
+
+            if (!onlineUsers.TryGetByConnection(connectionId, out var authenticated)
+                || authenticated is null
+                || authenticated.OnlineUserId != onlineUser.OnlineUserId
+                || authenticated.AccountId != accountId
+                || authenticated.State != OnlineUserState.Authenticated)
+            {
+                await RejectAsync(connectionId, "identity_not_published").ConfigureAwait(false);
+                return;
+            }
+
+            var notifications = await BuildAccountSettingsAsync(
+                accountId,
+                cancellationToken).ConfigureAwait(false);
+            var response = new GameLoginResponse(
+                Succeeded: true,
+                serverConfig.GetConfig<byte>(GameLoginConfigKeys.Environment),
+                serverConfig.GetConfig<int>(GameLoginConfigKeys.ConnectionPort),
+                serverConfig.GetConfig<string>(GameLoginConfigKeys.EndpointHost),
+                serverConfig.GetConfig<int>(GameLoginConfigKeys.EndpointPortA),
+                serverConfig.GetConfig<int>(GameLoginConfigKeys.EndpointPortB));
+            await sender.SendCmdAsync(connectionId, response, cancellationToken).ConfigureAwait(false);
+            foreach (var notification in notifications)
+            {
+                await sender.SendNotiAsync(connectionId, notification, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            await RejectAsync(
+                connectionId,
+                commandCompleted ? "delivery_cancelled" : "redemption_cancelled")
+                .ConfigureAwait(false);
+        }
+        catch
+        {
+            await RejectAsync(
+                connectionId,
+                commandCompleted ? "delivery_failed" : "redemption_failed")
+                .ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -71,8 +112,7 @@ public sealed class GameLoginHandler(
     /// Honour standing is also sent with the roster. Both are kept: the reference server sends it
     /// in both places too, and the second one carries the value computed from the roster.
     /// </remarks>
-    private async ValueTask SendAccountSettingsAsync(
-        NetworkConnectionId connectionId,
+    private async ValueTask<IReadOnlyList<IGameNotiMessage>> BuildAccountSettingsAsync(
         Dfo.Server.Data.Accounts.AccountId accountId,
         CancellationToken cancellationToken)
     {
@@ -82,7 +122,7 @@ public sealed class GameLoginHandler(
         var settings = await accountEntryState.LoadSettingsAsync(accountId, cancellationToken)
             .ConfigureAwait(false);
 
-        IGameNotiMessage[] batch =
+        return
         [
             new AccountGameOptionsMessage(settings),
             new LoginHotkeyStateMessage(settings),
@@ -91,11 +131,19 @@ public sealed class GameLoginHandler(
             new HonorLevelInfoNotice(AccountHonorLevel.Initial),
             InformNoticeNotice.Empty,
         ];
+    }
 
-        foreach (var message in batch)
+    private async ValueTask RejectAsync(NetworkConnectionId connectionId, string category)
+    {
+        logger.LogWarning("Game login rejected: {Category}", category);
+        onlineUsers.TryDisconnectConnection(connectionId);
+        try
         {
-            await sender.SendNotiAsync(connectionId, message, cancellationToken)
-                .ConfigureAwait(false);
+            await closer.RequestCloseAsync(connectionId, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch
+        {
+            logger.LogWarning("Game login connection close failed: {Category}", "close_failed");
         }
     }
 }

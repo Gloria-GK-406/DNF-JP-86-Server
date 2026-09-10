@@ -1,0 +1,39 @@
+kind: rks-verification
+decision: pass
+claim: >-
+  TASK-05 Execution Round 3 closes QR2-F1 without weakening the accepted credential-field-error flow:
+  bootstrap failures never unlock credential submission, while registration and login field errors remain
+  visible, editable, and immediately resubmittable after a successful bootstrap.
+conditions:
+  - requirement: QR2-F1 bootstrap trust boundary
+    result: >-
+      RED used the real typed client result shape and proved that a failed bootstrap carrying fieldErrors
+      produced Ready, CanSubmit=true, and one login request. The ViewModel now routes bootstrap failures to
+      ApplyServiceError, which always selects Error, clears field text, and keeps CanSubmit=false. GREEN proves
+      zero login requests before a later successful retry completes the apiVersion/status gate.
+    evidence:
+      - task05-round3-red.log
+      - task05-round3-red.trx
+      - task05-round3-green.log
+      - task05-round3-green.trx
+  - requirement: credential field errors retain the Round 2 recovery behavior
+    result: >-
+      The focused GREEN set proves a registration or login field error after successful bootstrap remains in
+      Ready with the form editable and can be resubmitted immediately, while network and version bootstrap
+      failures remain retryable Error states.
+    evidence:
+      - task05-round3-green.log
+      - task05-round3-green.trx
+  - requirement: complete Launcher regression, build, and safety
+    result: >-
+      All 60 UnitTestResult entries in the Release Launcher TRX are Passed, with no failed, skipped, or
+      unclassified result. The complete Release solution build reports zero warnings and zero errors. A fresh
+      static sentinel found eleven fixed lifecycle log calls, no unapproved sink, disabled redirects, one
+      whole-operation deadline, separate bootstrap and credential error paths, the single BaseUrl INI, and no
+      running Dfo.Launcher process. git diff --check exits zero. The current 23-file manifest is
+      C842D84B929E9E699F951F300E484A2DFFCA0FC81D6811D43CA66D50CED3BAD7.
+    evidence:
+      - task05-round3-full.log
+      - task05-round3-full.trx
+      - task05-round3-solution-build.log
+      - task05-round3-security-sentinel.log

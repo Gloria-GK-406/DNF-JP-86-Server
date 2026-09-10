@@ -1,0 +1,33 @@
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Persistence.Tests\bin\Release\net10.0\Dfo.Server.Persistence.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Persistence.Tests\bin\Release\net10.0\Dfo.Server.Persistence.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)
+[xUnit.net 00:00:00.06]   Discovering: Dfo.Server.Persistence.Tests
+[xUnit.net 00:00:00.12]   Discovered:  Dfo.Server.Persistence.Tests
+[xUnit.net 00:00:00.14]   Starting:    Dfo.Server.Persistence.Tests
+  已通过 Dfo.Server.Persistence.Tests.Accounts.AuthenticationFailureTests.DefaultEmptyAllowlistAndInvalidCommandsCannotCreateCredentialsOrTickets [174 ms]
+  已通过 Dfo.Server.Persistence.Tests.Accounts.AuthenticationFailureTests.TicketWriteFailureRollsBackLegacyUpgradeAndDoesNotLogSecrets [62 ms]
+  已通过 Dfo.Server.Persistence.Tests.Accounts.AuthenticationFailureTests.CancellationBeforeCommitLeavesTicketAvailableAndCredentialCompareAndSwapRejectsStaleValues [36 ms]
+  已通过 Dfo.Server.Persistence.Tests.Accounts.AuthenticationTicketTests.MissingAccountAndWrongPasswordShareFailureAndNeitherWritesATicket [34 ms]
+  已通过 Dfo.Server.Persistence.Tests.Accounts.AuthenticationTicketTests.PasswordLoginIssuesIndependentSafeTicketsWithOnlyDigestsPersistedForExactlySixtySeconds [40 ms]
+  已通过 Dfo.Server.Persistence.Tests.Accounts.AuthenticationConcurrencyTests.OverlappingPasswordReadsCannotLeaveTheSecondLoginWithAnUnwritableSqliteSnapshot [660 ms]
+  已通过 Dfo.Server.Persistence.Tests.Accounts.AuthenticationSchemaTests.UpgradingAnExistingAccountDatabaseIsIdempotentAndKeepsItsAccount [44 ms]
+  已通过 Dfo.Server.Persistence.Tests.Accounts.AuthenticationRegistrationTests.RegistrationPersistsDistinctModernRecordsAndOnlyOneConcurrentDuplicateWins [204 ms]
+  已通过 Dfo.Server.Persistence.Tests.Accounts.AuthenticationConsumptionTests.ExactAccountCanConsumeOnlyOnceAndCompetingConsumersHaveExactlyOneWinner [43 ms]
+  已通过 Dfo.Server.Persistence.Tests.Accounts.AuthenticationConsumptionTests.ExpiryIsExclusiveAndUncommittedConsumptionCanBeRetried [33 ms]
+  已通过 Dfo.Server.Persistence.Tests.Accounts.AuthenticationExpiryContentionTests.ExpiryIsCheckedAfterACompetingSqliteWriterReleasesItsLock(ticksAfterExpiry: 1, accepted: False) [194 ms]
+  已通过 Dfo.Server.Persistence.Tests.Accounts.AuthenticationExpiryContentionTests.ExpiryIsCheckedAfterACompetingSqliteWriterReleasesItsLock(ticksAfterExpiry: -1, accepted: True) [185 ms]
+  已通过 Dfo.Server.Persistence.Tests.Accounts.AuthenticationExpiryContentionTests.ExpiryIsCheckedAfterACompetingSqliteWriterReleasesItsLock(ticksAfterExpiry: 0, accepted: False) [184 ms]
+  已通过 Dfo.Server.Persistence.Tests.Accounts.AuthenticationMigrationTests.AllowlistingNeverMakesAnUnknownRecordTrustworthy(record: "not-md5") [31 ms]
+  已通过 Dfo.Server.Persistence.Tests.Accounts.AuthenticationMigrationTests.AllowlistingNeverMakesAnUnknownRecordTrustworthy(record: "") [30 ms]
+  已通过 Dfo.Server.Persistence.Tests.Accounts.AuthenticationMigrationTests.AllowlistingNeverMakesAnUnknownRecordTrustworthy(record: "future:01234567890123456789012345678901") [29 ms]
+  已通过 Dfo.Server.Persistence.Tests.Accounts.AuthenticationMigrationTests.AllowlistingNeverMakesAnUnknownRecordTrustworthy(record: "gggggggggggggggggggggggggggggggg") [29 ms]
+  已通过 Dfo.Server.Persistence.Tests.Accounts.AuthenticationMigrationTests.OnlyAuthorizedMatchingLegacyCredentialsMigrateWithoutChangingIdentityOrAccountState [45 ms]
+[xUnit.net 00:00:02.27]   Finished:    Dfo.Server.Persistence.Tests
+  已通过 Dfo.Server.Persistence.Tests.Accounts.AuthenticationMigrationTests.ModernRehashIsPersistedAndAnUncommittedUpgradeRollsBackWithItsTicket [33 ms]
+
+测试运行成功。
+测试总数: 19
+     通过数: 19
+总时间: 2.6037 秒
+结果文件: E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\.rks-agent\tasks\launcher-auth-login\evidence\task01-round2-focused.trx

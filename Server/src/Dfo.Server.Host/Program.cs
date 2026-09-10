@@ -5,6 +5,7 @@ using Dfo.Server.Application;
 using Dfo.Server.Host.Modules;
 using Dfo.Server.Infrastructure;
 using Dfo.Server.Infrastructure.Content;
+using Dfo.Server.LauncherApi;
 using Dfo.Server.Networking;
 using Dfo.Server.Persistence;
 using Dfo.Server.Networking.Configuration;
@@ -13,27 +14,59 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 
-var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
+var hostSettings = new HostApplicationBuilderSettings
 {
     Args = args,
     ContentRootPath = AppContext.BaseDirectory,
-});
+};
+var genericBuilder = Host.CreateApplicationBuilder(hostSettings);
 
 // Balance lives in its own file. It changes for different reasons, at a different rate and often
 // by different hands than the settings beside it: appsettings.json says how the server runs,
 // experience.json says how the game plays. Optional, and every value in it defaults to what was
 // measured -- a deployment without the file behaves exactly as one built before it existed.
-builder.Configuration.AddJsonFile("experience.json", optional: true, reloadOnChange: false);
+genericBuilder.Configuration.AddJsonFile("experience.json", optional: true, reloadOnChange: false);
+var launcherApi = LauncherApiOptions.FromConfiguration(genericBuilder.Configuration);
 
-builder.AddServerModules(
-    new InfrastructureModule(),
-    new PersistenceModule(),
-    new ApplicationModule(),
-    new NetworkingModule(),
-    new ProtocolModule());
+if (launcherApi.Enabled)
+{
+    var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+    {
+        Args = args,
+        ContentRootPath = AppContext.BaseDirectory,
+    });
+    builder.Configuration.AddJsonFile("experience.json", optional: true, reloadOnChange: false);
+    builder.WebHost.UseUrls(launcherApi.ListenUrl!.AbsoluteUri.TrimEnd('/'));
+    builder.AddServerModules(
+        new InfrastructureModule(),
+        new PersistenceModule(),
+        new ApplicationModule(),
+        new NetworkingModule(),
+        new ProtocolModule(),
+        new LauncherApiModule());
 
-using var host = builder.Build();
+    await using var application = builder.Build();
+    application.MapLauncherApi();
+    await PrepareAndRunAsync(application, builder.Environment.ContentRootPath);
+}
+else
+{
+    genericBuilder.AddServerModules(
+        new InfrastructureModule(),
+        new PersistenceModule(),
+        new ApplicationModule(),
+        new NetworkingModule(),
+        new ProtocolModule());
+
+    using var host = genericBuilder.Build();
+    await PrepareAndRunAsync(host, genericBuilder.Environment.ContentRootPath);
+}
+
+static async Task PrepareAndRunAsync(IHost host, string contentRoot)
+{
 var logger = host.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Dfo.Server.Host");
 var channel = host.Services.GetRequiredService<ChannelSourceOptions>();
 var networking = host.Services.GetRequiredService<NetworkingOptions>();
@@ -47,7 +80,7 @@ logger.LogInformation(
     "Effective startup configuration: ContentRoot={ContentRoot}; ChannelScript={ChannelScript}; " +
     "ChannelAddress={ChannelAddress}; GameAddress={GameAddress}; ChannelPort={ChannelPort}; " +
     "GamePorts={GamePorts}",
-    builder.Environment.ContentRootPath,
+    contentRoot,
     channel.ScriptPath,
     channel.PublicServerIp,
     serverConfig.GetConfig<string>("Game:EndpointHost"),
@@ -71,3 +104,4 @@ if (archive is not null)
     await host.Services.GetRequiredService<ICharacterStatRuleService>().InitializeAsync();
 
 await host.RunAsync();
+}

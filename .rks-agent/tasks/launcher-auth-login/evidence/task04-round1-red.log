@@ -1,0 +1,13 @@
+  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+  Dfo.Server.Data -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Data\bin\Release\net10.0\Dfo.Server.Data.dll
+  Dfo.Pvf -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Pvf\bin\Release\net10.0\Dfo.Pvf.dll
+  Dfo.Server.Abstractions -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Abstractions\bin\Release\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Networking -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Networking\bin\Release\net10.0\Dfo.Server.Networking.dll
+  Dfo.Server.Persistence -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Persistence\bin\Release\net10.0\Dfo.Server.Persistence.dll
+  Dfo.Server.Application -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Application\bin\Release\net10.0\Dfo.Server.Application.dll
+  Dfo.Server.Infrastructure -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Infrastructure\bin\Release\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.LauncherApi -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.LauncherApi\bin\Release\net10.0\Dfo.Server.LauncherApi.dll
+  Dfo.Server.Protocol -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Protocol\bin\Release\net10.0\Dfo.Server.Protocol.dll
+  Dfo.Server.Host -> E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\src\Dfo.Server.Host\bin\Release\net10.0\Dfo.Server.Host.dll
+E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Host.Tests\LauncherAuthenticationEndToEndTests.cs(8,41): error CS0103: 当前上下文中不存在名称“EndToEndHostHarness” [E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Host.Tests\Dfo.Server.Host.Tests.csproj]

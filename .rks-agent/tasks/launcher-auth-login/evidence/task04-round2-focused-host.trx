@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="44184d20-d8e9-4d5e-bfef-80c3f2788969" name="Gloria@家庭台式机 2026-09-10 15:42:43" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-10T15:42:43.7826491+08:00" queuing="2026-09-10T15:42:43.7826492+08:00" start="2026-09-10T15:42:42.2078515+08:00" finish="2026-09-10T15:42:43.7862056+08:00" />
+  <TestSettings name="default" id="552f7a4d-1d7b-48db-9708-13a2355520c9">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-10_15_42_43" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="e267cb51-565d-41ad-a842-344ccdf96b60" testId="e012fac4-6226-9582-ed5d-55a147644f2f" testName="Dfo.Server.Host.Tests.LauncherAuthenticationEndToEndTests.HttpChannelAndGame_UseOnlyTheAdvertisedTuplesAndPreserveTheAccountIdentity" computerName="家庭台式机" duration="00:00:00.9568991" startTime="2026-09-10T15:42:42.7405349+08:00" endTime="2026-09-10T15:42:43.7039899+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e267cb51-565d-41ad-a842-344ccdf96b60" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Host.Tests.LauncherAuthenticationEndToEndTests.HttpChannelAndGame_UseOnlyTheAdvertisedTuplesAndPreserveTheAccountIdentity" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\server\tests\dfo.server.host.tests\bin\release\net10.0\dfo.server.host.tests.dll" id="e012fac4-6226-9582-ed5d-55a147644f2f">
+      <Execution id="e267cb51-565d-41ad-a842-344ccdf96b60" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Server\tests\Dfo.Server.Host.Tests\bin\Release\net10.0\Dfo.Server.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Host.Tests.LauncherAuthenticationEndToEndTests" name="HttpChannelAndGame_UseOnlyTheAdvertisedTuplesAndPreserveTheAccountIdentity" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="e012fac4-6226-9582-ed5d-55a147644f2f" executionId="e267cb51-565d-41ad-a842-344ccdf96b60" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="1" executed="1" passed="1" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.06]   Discovering: Dfo.Server.Host.Tests&#xD;
+[xUnit.net 00:00:00.09]   Discovered:  Dfo.Server.Host.Tests&#xD;
+[xUnit.net 00:00:00.11]   Starting:    Dfo.Server.Host.Tests&#xD;
+[xUnit.net 00:00:01.09]   Finished:    Dfo.Server.Host.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

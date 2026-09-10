@@ -1,0 +1,28 @@
+kind: rks-verification
+decision: pass
+claim: >-
+  TASK-06 Execution Round 2 closes QR1-F1 by documenting the transport gate exactly: non-loopback
+  HTTP upstreams are rejected, while same-host loopback HTTP is allowed but cannot prove the original
+  client used TLS and therefore requires an explicit proxy-only local trust boundary.
+conditions:
+  - requirement: QR1-F1 proxy transport boundary
+    result: >-
+      The runbook no longer claims that every HTTP proxy upstream is rejected. It separates a non-loopback
+      TCP peer, which receives secure_transport_required before body reading, from a same-host 127.0.0.1
+      peer, which is accepted by the deliberate development exception. For the latter it requires a loopback-only
+      Host bind, an external-HTTPS-enforcing same-host proxy, and no direct bypass, while stating that the Host
+      itself has not verified original TLS. It continues to state that forwarded headers are neither consumed
+      nor trusted and that any future support needs exact KnownProxies or KnownNetworks.
+    evidence:
+      - task06-round2-proxy-boundary.log
+  - requirement: prior TASK-06 checks remain applicable
+    result: >-
+      This is a documentation-only correction. The accepted clean publish, published Launcher-to-Host loopback
+      smoke, single BaseUrl example, 0-warning/0-error build, and per-project TRX evidence are unchanged. The
+      current three-owned-file manifest is C9A8B5D00F4B084EE7770501B03A661E57B08D813D782AF20D86082AD4740789.
+    evidence:
+      - task06-runbook-contract.log
+      - task06-publish.log
+      - task06-loopback-smoke.log
+      - task06-test-summary.md
+owned_manifest_sha256: C9A8B5D00F4B084EE7770501B03A661E57B08D813D782AF20D86082AD4740789

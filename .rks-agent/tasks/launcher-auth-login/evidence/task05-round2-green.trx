@@ -1,0 +1,70 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="cc06ce06-b0c7-4eb6-b5e8-b6e848be52ba" name="Gloria@家庭台式机 2026-09-10 16:53:49" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-10T16:53:49.5408195+08:00" queuing="2026-09-10T16:53:49.5408197+08:00" start="2026-09-10T16:53:48.2666764+08:00" finish="2026-09-10T16:53:49.5468150+08:00" />
+  <TestSettings name="default" id="d3e3be63-45db-4432-9eee-d326c3d70036">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-10_16_53_49" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="1c1ec46a-98cf-42fe-aff5-0657f498c9af" testId="3c874054-44aa-9fe2-b2f5-d8aca15727be" testName="Dfo.Launcher.Tests.Api.LauncherApiClientTests.Caller_cancellation_during_a_stalled_body_propagates_and_retry_recovers" computerName="家庭台式机" duration="00:00:00.1115761" startTime="2026-09-10T16:53:49.2398295+08:00" endTime="2026-09-10T16:53:49.3514150+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1c1ec46a-98cf-42fe-aff5-0657f498c9af" />
+    <UnitTestResult executionId="7de2a1c8-0e84-4312-a3f5-eab26cc0e273" testId="a11a8b3a-1d91-281a-765a-76fad6e156aa" testName="Dfo.Launcher.Tests.Api.LauncherApiClientTests.Default_factory_never_forwards_credentials_across_redirects(redirectStatus: 308)" computerName="家庭台式机" duration="00:00:00.1895215" startTime="2026-09-10T16:53:48.7194089+08:00" endTime="2026-09-10T16:53:48.9144317+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7de2a1c8-0e84-4312-a3f5-eab26cc0e273" />
+    <UnitTestResult executionId="a561f8d3-0787-4e6c-9ac5-89091ded15f4" testId="70af4d90-0cf6-3ee7-e635-c04560eeb07d" testName="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Api_field_error_is_visible_in_the_editable_real_WPF_form" computerName="家庭台式机" duration="00:00:00.3596688" startTime="2026-09-10T16:53:48.7203242+08:00" endTime="2026-09-10T16:53:49.0829288+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a561f8d3-0787-4e6c-9ac5-89091ded15f4" />
+    <UnitTestResult executionId="1c99f908-041c-4ebe-a045-ba1ee47f4846" testId="60fca4b1-2278-f923-148b-18023d171558" testName="Dfo.Launcher.Tests.ViewModels.LauncherViewModelTests.Api_field_error_keeps_the_form_editable_and_allows_immediate_resubmit" computerName="家庭台式机" duration="00:00:00.0147399" startTime="2026-09-10T16:53:48.7203494+08:00" endTime="2026-09-10T16:53:48.7398221+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1c99f908-041c-4ebe-a045-ba1ee47f4846" />
+    <UnitTestResult executionId="9dc1a394-cbb1-432a-99ed-6b778ff16423" testId="cf4d3465-e86f-8e14-cf96-5c099b2cb587" testName="Dfo.Launcher.Tests.Api.LauncherApiClientTests.Default_factory_never_forwards_credentials_across_redirects(redirectStatus: 307)" computerName="家庭台式机" duration="00:00:00.0126812" startTime="2026-09-10T16:53:48.9150154+08:00" endTime="2026-09-10T16:53:48.9276909+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9dc1a394-cbb1-432a-99ed-6b778ff16423" />
+    <UnitTestResult executionId="0a62be51-13a8-436a-9c04-c481ec66a729" testId="30f91216-1eab-da3c-a54b-348a5c5ecdf5" testName="Dfo.Launcher.Tests.Api.LauncherApiClientTests.Operation_timeout_covers_stalled_success_and_error_bodies_and_retry_recovers(stalledStatus: 200)" computerName="家庭台式机" duration="00:00:00.1550719" startTime="2026-09-10T16:53:48.9281961+08:00" endTime="2026-09-10T16:53:49.0835874+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0a62be51-13a8-436a-9c04-c481ec66a729" />
+    <UnitTestResult executionId="8a8b80c1-43e6-4b94-bdfd-37c5287cdc9b" testId="c126f299-8913-53f8-895b-43b03d0113a3" testName="Dfo.Launcher.Tests.Api.LauncherApiClientTests.Operation_timeout_covers_stalled_success_and_error_bodies_and_retry_recovers(stalledStatus: 503)" computerName="家庭台式机" duration="00:00:00.1551426" startTime="2026-09-10T16:53:49.0837630+08:00" endTime="2026-09-10T16:53:49.2392624+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8a8b80c1-43e6-4b94-bdfd-37c5287cdc9b" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Launcher.Tests.Api.LauncherApiClientTests.Default_factory_never_forwards_credentials_across_redirects(redirectStatus: 307)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\launcher\dfo.launcher.tests\bin\release\net10.0-windows\dfo.launcher.tests.dll" id="cf4d3465-e86f-8e14-cf96-5c099b2cb587">
+      <Execution id="9dc1a394-cbb1-432a-99ed-6b778ff16423" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\bin\Release\net10.0-windows\Dfo.Launcher.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Launcher.Tests.Api.LauncherApiClientTests" name="Default_factory_never_forwards_credentials_across_redirects" />
+    </UnitTest>
+    <UnitTest name="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Api_field_error_is_visible_in_the_editable_real_WPF_form" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\launcher\dfo.launcher.tests\bin\release\net10.0-windows\dfo.launcher.tests.dll" id="70af4d90-0cf6-3ee7-e635-c04560eeb07d">
+      <Execution id="a561f8d3-0787-4e6c-9ac5-89091ded15f4" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\bin\Release\net10.0-windows\Dfo.Launcher.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests" name="Api_field_error_is_visible_in_the_editable_real_WPF_form" />
+    </UnitTest>
+    <UnitTest name="Dfo.Launcher.Tests.Api.LauncherApiClientTests.Default_factory_never_forwards_credentials_across_redirects(redirectStatus: 308)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\launcher\dfo.launcher.tests\bin\release\net10.0-windows\dfo.launcher.tests.dll" id="a11a8b3a-1d91-281a-765a-76fad6e156aa">
+      <Execution id="7de2a1c8-0e84-4312-a3f5-eab26cc0e273" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\bin\Release\net10.0-windows\Dfo.Launcher.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Launcher.Tests.Api.LauncherApiClientTests" name="Default_factory_never_forwards_credentials_across_redirects" />
+    </UnitTest>
+    <UnitTest name="Dfo.Launcher.Tests.Api.LauncherApiClientTests.Caller_cancellation_during_a_stalled_body_propagates_and_retry_recovers" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\launcher\dfo.launcher.tests\bin\release\net10.0-windows\dfo.launcher.tests.dll" id="3c874054-44aa-9fe2-b2f5-d8aca15727be">
+      <Execution id="1c1ec46a-98cf-42fe-aff5-0657f498c9af" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\bin\Release\net10.0-windows\Dfo.Launcher.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Launcher.Tests.Api.LauncherApiClientTests" name="Caller_cancellation_during_a_stalled_body_propagates_and_retry_recovers" />
+    </UnitTest>
+    <UnitTest name="Dfo.Launcher.Tests.Api.LauncherApiClientTests.Operation_timeout_covers_stalled_success_and_error_bodies_and_retry_recovers(stalledStatus: 503)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\launcher\dfo.launcher.tests\bin\release\net10.0-windows\dfo.launcher.tests.dll" id="c126f299-8913-53f8-895b-43b03d0113a3">
+      <Execution id="8a8b80c1-43e6-4b94-bdfd-37c5287cdc9b" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\bin\Release\net10.0-windows\Dfo.Launcher.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Launcher.Tests.Api.LauncherApiClientTests" name="Operation_timeout_covers_stalled_success_and_error_bodies_and_retry_recovers" />
+    </UnitTest>
+    <UnitTest name="Dfo.Launcher.Tests.Api.LauncherApiClientTests.Operation_timeout_covers_stalled_success_and_error_bodies_and_retry_recovers(stalledStatus: 200)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\launcher\dfo.launcher.tests\bin\release\net10.0-windows\dfo.launcher.tests.dll" id="30f91216-1eab-da3c-a54b-348a5c5ecdf5">
+      <Execution id="0a62be51-13a8-436a-9c04-c481ec66a729" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\bin\Release\net10.0-windows\Dfo.Launcher.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Launcher.Tests.Api.LauncherApiClientTests" name="Operation_timeout_covers_stalled_success_and_error_bodies_and_retry_recovers" />
+    </UnitTest>
+    <UnitTest name="Dfo.Launcher.Tests.ViewModels.LauncherViewModelTests.Api_field_error_keeps_the_form_editable_and_allows_immediate_resubmit" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\launcher\dfo.launcher.tests\bin\release\net10.0-windows\dfo.launcher.tests.dll" id="60fca4b1-2278-f923-148b-18023d171558">
+      <Execution id="1c99f908-041c-4ebe-a045-ba1ee47f4846" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\bin\Release\net10.0-windows\Dfo.Launcher.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Launcher.Tests.ViewModels.LauncherViewModelTests" name="Api_field_error_keeps_the_form_editable_and_allows_immediate_resubmit" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="3c874054-44aa-9fe2-b2f5-d8aca15727be" executionId="1c1ec46a-98cf-42fe-aff5-0657f498c9af" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a11a8b3a-1d91-281a-765a-76fad6e156aa" executionId="7de2a1c8-0e84-4312-a3f5-eab26cc0e273" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="70af4d90-0cf6-3ee7-e635-c04560eeb07d" executionId="a561f8d3-0787-4e6c-9ac5-89091ded15f4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="60fca4b1-2278-f923-148b-18023d171558" executionId="1c99f908-041c-4ebe-a045-ba1ee47f4846" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cf4d3465-e86f-8e14-cf96-5c099b2cb587" executionId="9dc1a394-cbb1-432a-99ed-6b778ff16423" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="30f91216-1eab-da3c-a54b-348a5c5ecdf5" executionId="0a62be51-13a8-436a-9c04-c481ec66a729" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c126f299-8913-53f8-895b-43b03d0113a3" executionId="8a8b80c1-43e6-4b94-bdfd-37c5287cdc9b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="7" executed="7" passed="7" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.06]   Discovering: Dfo.Launcher.Tests&#xD;
+[xUnit.net 00:00:00.10]   Discovered:  Dfo.Launcher.Tests&#xD;
+[xUnit.net 00:00:00.12]   Starting:    Dfo.Launcher.Tests&#xD;
+[xUnit.net 00:00:00.77]   Finished:    Dfo.Launcher.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

@@ -74,11 +74,25 @@ public sealed class GameLoginCodecTests
         var decoded = GameLoginPayloadCodec.TryDecode(
             body,
             out var loginId,
-            out var passwordHash);
+            out var ticket);
 
         Assert.True(decoded);
         Assert.Equal("10038", loginId);
-        Assert.Equal("0123456789abcdef", passwordHash);
+        Assert.Equal("0123456789abcdef", ticket);
+    }
+
+    [Fact]
+    public void TryDecode_PreservesTheA21TwoDStringShapeAndIgnoresItsKnownTail()
+    {
+        var body = EncodeDStrings("player", new string('t', 43))
+            .Concat(new byte[] { 0xA2, 0x10, 0x00, 0x7F })
+            .ToArray();
+
+        var decoded = GameLoginPayloadCodec.TryDecode(body, out var loginId, out var ticket);
+
+        Assert.True(decoded);
+        Assert.Equal("player", loginId);
+        Assert.Equal(new string('t', 43), ticket);
     }
 
     [Fact]

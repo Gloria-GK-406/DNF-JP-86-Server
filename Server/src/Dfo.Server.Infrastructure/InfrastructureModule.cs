@@ -23,6 +23,13 @@ public sealed class InfrastructureModule : IServerModule
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.TryAddSingleton<IServerConfigService, ServerConfigService>();
+        if (bool.TryParse(configuration["LauncherAuth:Enabled"], out var launcherEnabled)
+            && launcherEnabled)
+        {
+            services.TryAddSingleton<IPublicEndpointSource>(
+                new ConfigurationPublicEndpointSource(
+                    PublicEndpointConfiguration.FromConfiguration(configuration)));
+        }
         var options = ChannelSourceOptions.FromConfiguration(configuration);
         services.TryAddSingleton(options);
         services.TryAddSingleton(new FileChannelScriptSource(options.ScriptVersion, options.ScriptPath));

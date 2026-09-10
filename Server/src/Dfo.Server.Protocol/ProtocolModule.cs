@@ -153,7 +153,7 @@ public sealed class ProtocolModule : IServerModule
         // worked, it is not taken back by whatever else the command was doing, and no test shows
         // it, because a lone write does succeed. The kind decides only that -- the pipeline treats
         // Direct, Workflow and Transactional identically everywhere else.
-        services.AddCommandHandler<LoginGameUserCommand, LoginGameUserResult, LoginGameUserCommandHandler>(
+        services.AddCommandHandler<RedeemGameLoginCommand, RedeemGameLoginResult, RedeemGameLoginCommandHandler>(
             CommandExecutionKind.Transactional,
             UserAccessMode.Exclusive);
         services.AddCommandHandler<GetAccountCharacterRosterCommand, AccountCharacterRoster, GetAccountCharacterRosterCommandHandler>(

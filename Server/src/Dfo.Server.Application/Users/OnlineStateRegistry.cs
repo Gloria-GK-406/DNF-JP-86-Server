@@ -3,6 +3,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
+using Dfo.Server.Abstractions.Transactions;
 
 namespace Dfo.Server.Application.Users;
 
@@ -26,12 +27,23 @@ namespace Dfo.Server.Application.Users;
 /// nothing outside the access seam that has since been retired.
 /// </para>
 /// </remarks>
-internal sealed class OnlineStateRegistry
+internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transactions)
 {
     private readonly object sync = new();
     private readonly Dictionary<OnlineUserId, OnlineUser> byId = [];
     private readonly Dictionary<NetworkConnectionId, OnlineUserId> byConnection = [];
     private readonly Dictionary<AccountId, ActiveCharacterRegistration> activeByAccount = [];
+
+    public void PrepareAuthentication(OnlineUserId onlineUserId, AccountId accountId)
+    {
+        var transaction = transactions.Current
+            ?? throw new InvalidOperationException(
+                "Online authentication requires an active domain transaction.");
+        var participant = transaction.Enlist(
+            new AuthenticationParticipantIdentity(this, onlineUserId),
+            () => new AuthenticationParticipant(this, onlineUserId, accountId));
+        participant.RequireAccount(accountId);
+    }
 
     public void Authenticate(OnlineUserId onlineUserId, AccountId accountId)
     {
@@ -169,6 +181,83 @@ internal sealed class OnlineStateRegistry
         byId.TryGetValue(onlineUserId, out var onlineUser)
             ? onlineUser
             : throw new KeyNotFoundException($"Online user '{onlineUserId}' is not registered.");
+
+    private sealed record AuthenticationParticipantIdentity(
+        OnlineStateRegistry Registry,
+        OnlineUserId OnlineUserId);
+
+    private sealed class AuthenticationParticipant(
+        OnlineStateRegistry owner,
+        OnlineUserId onlineUserId,
+        AccountId accountId) : ITransactionParticipant
+    {
+        private NetworkConnectionId? preparedConnectionId;
+        private long preparedGeneration;
+
+        public bool CommitCanFail => false;
+
+        public void RequireAccount(AccountId expected)
+        {
+            if (accountId != expected)
+            {
+                throw new InvalidOperationException(
+                    "One transaction cannot authenticate one online user as two accounts.");
+            }
+        }
+
+        public ValueTask PrepareAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            lock (owner.sync)
+            {
+                if (!owner.byId.TryGetValue(onlineUserId, out var user)
+                    || user.AccountId is not null
+                    || user.CurrentCharacterId is not null
+                    || user.State != OnlineUserState.Connected
+                    || !owner.byConnection.TryGetValue(
+                        user.Connection.ConnectionId,
+                        out var connectedId)
+                    || connectedId != onlineUserId)
+                {
+                    throw new InvalidOperationException(
+                        "Game login authentication target is unavailable.");
+                }
+
+                this.preparedConnectionId = user.Connection.ConnectionId;
+                this.preparedGeneration = user.Generation;
+            }
+
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask CommitAsync(CancellationToken cancellationToken)
+        {
+            lock (owner.sync)
+            {
+                if (this.preparedConnectionId is { } connectionId
+                    && owner.byId.TryGetValue(onlineUserId, out var user)
+                    && user.Connection.ConnectionId == connectionId
+                    && user.Generation == this.preparedGeneration
+                    && user.AccountId is null
+                    && user.CurrentCharacterId is null
+                    && user.State == OnlineUserState.Connected
+                    && owner.byConnection.TryGetValue(connectionId, out var connectedId)
+                    && connectedId == onlineUserId)
+                {
+                    user.Authenticate(accountId);
+                }
+            }
+
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask RollbackAsync(CancellationToken cancellationToken)
+        {
+            this.preparedConnectionId = null;
+            this.preparedGeneration = 0;
+            return ValueTask.CompletedTask;
+        }
+    }
 
     /// <summary>
     /// Which character an account is playing, and under which session.

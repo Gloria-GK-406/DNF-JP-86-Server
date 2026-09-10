@@ -1,0 +1,76 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="64d4e955-3ef1-468a-9f73-84ec61140585" name="Gloria@家庭台式机 2026-09-10 16:27:11" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-10T16:27:11.4927619+08:00" queuing="2026-09-10T16:27:11.4927621+08:00" start="2026-09-10T16:27:10.1717418+08:00" finish="2026-09-10T16:27:11.4994963+08:00" />
+  <TestSettings name="default" id="dbb782aa-7933-458f-bed8-885b87da1d4f">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-10_16_27_11" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="0c024cf2-a77d-4119-a05a-32d91ccae90f" testId="6cea08ad-6a8e-7173-72b4-b0854aa17b7b" testName="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Required_state_controls_render_without_clipping_at_requested_dpi(state: &quot;login&quot;, dpi: 144)" computerName="家庭台式机" duration="00:00:00.0385316" startTime="2026-09-10T16:27:11.0911956+08:00" endTime="2026-09-10T16:27:11.1290964+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0c024cf2-a77d-4119-a05a-32d91ccae90f" />
+    <UnitTestResult executionId="26565258-ad27-4b2f-b10a-d516e0e40ab3" testId="518fc765-1cee-6c8b-5e3a-0dacf221cef1" testName="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Required_state_controls_render_without_clipping_at_requested_dpi(state: &quot;error&quot;, dpi: 96)" computerName="家庭台式机" duration="00:00:00.0326455" startTime="2026-09-10T16:27:11.2748225+08:00" endTime="2026-09-10T16:27:11.3074026+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="26565258-ad27-4b2f-b10a-d516e0e40ab3" />
+    <UnitTestResult executionId="58f8ceec-34b8-4c4e-9be7-82333c3846f9" testId="0e55a41f-3a4b-acc2-cd18-cc4667e64300" testName="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Required_state_controls_render_without_clipping_at_requested_dpi(state: &quot;login&quot;, dpi: 96)" computerName="家庭台式机" duration="00:00:00.0333582" startTime="2026-09-10T16:27:11.1678386+08:00" endTime="2026-09-10T16:27:11.2011634+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="58f8ceec-34b8-4c4e-9be7-82333c3846f9" />
+    <UnitTestResult executionId="86b4614e-4920-4e71-9155-b7ac74ed2cea" testId="2a504a7c-616d-4026-d57b-7a09e2a74e07" testName="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Required_state_controls_render_without_clipping_at_requested_dpi(state: &quot;register&quot;, dpi: 144)" computerName="家庭台式机" duration="00:00:00.0385039" startTime="2026-09-10T16:27:11.1292429+08:00" endTime="2026-09-10T16:27:11.1677215+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="86b4614e-4920-4e71-9155-b7ac74ed2cea" />
+    <UnitTestResult executionId="6a1ba997-665e-4822-b532-b9b7a195618b" testId="870ed966-cd5f-4ea5-070e-4b282484ab2e" testName="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Required_state_controls_render_without_clipping_at_requested_dpi(state: &quot;loading&quot;, dpi: 144)" computerName="家庭台式机" duration="00:00:00.0400259" startTime="2026-09-10T16:27:11.2012882+08:00" endTime="2026-09-10T16:27:11.2413123+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6a1ba997-665e-4822-b532-b9b7a195618b" />
+    <UnitTestResult executionId="0d70f8e4-77ce-4b1a-af8b-c6b72f747ab3" testId="723ea4f8-1a56-5980-1ec1-61cc9261aeb1" testName="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Required_state_controls_render_without_clipping_at_requested_dpi(state: &quot;loading&quot;, dpi: 96)" computerName="家庭台式机" duration="00:00:00.0332822" startTime="2026-09-10T16:27:11.2414357+08:00" endTime="2026-09-10T16:27:11.2746682+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0d70f8e4-77ce-4b1a-af8b-c6b72f747ab3" />
+    <UnitTestResult executionId="eb4ed72d-fac2-4c8c-8706-73d882a7e2d3" testId="b42247ab-aba1-9bc7-2f93-d037741be76f" testName="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Required_state_controls_render_without_clipping_at_requested_dpi(state: &quot;register&quot;, dpi: 96)" computerName="家庭台式机" duration="00:00:00.0458992" startTime="2026-09-10T16:27:11.0510862+08:00" endTime="2026-09-10T16:27:11.0905195+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="eb4ed72d-fac2-4c8c-8706-73d882a7e2d3" />
+    <UnitTestResult executionId="91c6a2f9-5f29-44a2-91c6-7be39c3e5495" testId="209fab98-04b8-f383-4186-ad7275e0b9e6" testName="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Required_state_controls_render_without_clipping_at_requested_dpi(state: &quot;error&quot;, dpi: 144)" computerName="家庭台式机" duration="00:00:00.3765567" startTime="2026-09-10T16:27:10.6640885+08:00" endTime="2026-09-10T16:27:11.0445964+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="91c6a2f9-5f29-44a2-91c6-7be39c3e5495" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Required_state_controls_render_without_clipping_at_requested_dpi(state: &quot;loading&quot;, dpi: 144)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\launcher\dfo.launcher.tests\bin\release\net10.0-windows\dfo.launcher.tests.dll" id="870ed966-cd5f-4ea5-070e-4b282484ab2e">
+      <Execution id="6a1ba997-665e-4822-b532-b9b7a195618b" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\bin\Release\net10.0-windows\Dfo.Launcher.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests" name="Required_state_controls_render_without_clipping_at_requested_dpi" />
+    </UnitTest>
+    <UnitTest name="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Required_state_controls_render_without_clipping_at_requested_dpi(state: &quot;register&quot;, dpi: 144)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\launcher\dfo.launcher.tests\bin\release\net10.0-windows\dfo.launcher.tests.dll" id="2a504a7c-616d-4026-d57b-7a09e2a74e07">
+      <Execution id="86b4614e-4920-4e71-9155-b7ac74ed2cea" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\bin\Release\net10.0-windows\Dfo.Launcher.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests" name="Required_state_controls_render_without_clipping_at_requested_dpi" />
+    </UnitTest>
+    <UnitTest name="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Required_state_controls_render_without_clipping_at_requested_dpi(state: &quot;loading&quot;, dpi: 96)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\launcher\dfo.launcher.tests\bin\release\net10.0-windows\dfo.launcher.tests.dll" id="723ea4f8-1a56-5980-1ec1-61cc9261aeb1">
+      <Execution id="0d70f8e4-77ce-4b1a-af8b-c6b72f747ab3" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\bin\Release\net10.0-windows\Dfo.Launcher.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests" name="Required_state_controls_render_without_clipping_at_requested_dpi" />
+    </UnitTest>
+    <UnitTest name="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Required_state_controls_render_without_clipping_at_requested_dpi(state: &quot;register&quot;, dpi: 96)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\launcher\dfo.launcher.tests\bin\release\net10.0-windows\dfo.launcher.tests.dll" id="b42247ab-aba1-9bc7-2f93-d037741be76f">
+      <Execution id="eb4ed72d-fac2-4c8c-8706-73d882a7e2d3" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\bin\Release\net10.0-windows\Dfo.Launcher.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests" name="Required_state_controls_render_without_clipping_at_requested_dpi" />
+    </UnitTest>
+    <UnitTest name="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Required_state_controls_render_without_clipping_at_requested_dpi(state: &quot;login&quot;, dpi: 144)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\launcher\dfo.launcher.tests\bin\release\net10.0-windows\dfo.launcher.tests.dll" id="6cea08ad-6a8e-7173-72b4-b0854aa17b7b">
+      <Execution id="0c024cf2-a77d-4119-a05a-32d91ccae90f" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\bin\Release\net10.0-windows\Dfo.Launcher.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests" name="Required_state_controls_render_without_clipping_at_requested_dpi" />
+    </UnitTest>
+    <UnitTest name="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Required_state_controls_render_without_clipping_at_requested_dpi(state: &quot;error&quot;, dpi: 144)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\launcher\dfo.launcher.tests\bin\release\net10.0-windows\dfo.launcher.tests.dll" id="209fab98-04b8-f383-4186-ad7275e0b9e6">
+      <Execution id="91c6a2f9-5f29-44a2-91c6-7be39c3e5495" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\bin\Release\net10.0-windows\Dfo.Launcher.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests" name="Required_state_controls_render_without_clipping_at_requested_dpi" />
+    </UnitTest>
+    <UnitTest name="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Required_state_controls_render_without_clipping_at_requested_dpi(state: &quot;login&quot;, dpi: 96)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\launcher\dfo.launcher.tests\bin\release\net10.0-windows\dfo.launcher.tests.dll" id="0e55a41f-3a4b-acc2-cd18-cc4667e64300">
+      <Execution id="58f8ceec-34b8-4c4e-9be7-82333c3846f9" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\bin\Release\net10.0-windows\Dfo.Launcher.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests" name="Required_state_controls_render_without_clipping_at_requested_dpi" />
+    </UnitTest>
+    <UnitTest name="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests.Required_state_controls_render_without_clipping_at_requested_dpi(state: &quot;error&quot;, dpi: 96)" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\launcher-auth-login\launcher\dfo.launcher.tests\bin\release\net10.0-windows\dfo.launcher.tests.dll" id="518fc765-1cee-6c8b-5e3a-0dacf221cef1">
+      <Execution id="26565258-ad27-4b2f-b10a-d516e0e40ab3" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\launcher-auth-login\Launcher\Dfo.Launcher.Tests\bin\Release\net10.0-windows\Dfo.Launcher.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Launcher.Tests.Visual.LauncherVisualRenderTests" name="Required_state_controls_render_without_clipping_at_requested_dpi" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="6cea08ad-6a8e-7173-72b4-b0854aa17b7b" executionId="0c024cf2-a77d-4119-a05a-32d91ccae90f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="518fc765-1cee-6c8b-5e3a-0dacf221cef1" executionId="26565258-ad27-4b2f-b10a-d516e0e40ab3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0e55a41f-3a4b-acc2-cd18-cc4667e64300" executionId="58f8ceec-34b8-4c4e-9be7-82333c3846f9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2a504a7c-616d-4026-d57b-7a09e2a74e07" executionId="86b4614e-4920-4e71-9155-b7ac74ed2cea" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="870ed966-cd5f-4ea5-070e-4b282484ab2e" executionId="6a1ba997-665e-4822-b532-b9b7a195618b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="723ea4f8-1a56-5980-1ec1-61cc9261aeb1" executionId="0d70f8e4-77ce-4b1a-af8b-c6b72f747ab3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b42247ab-aba1-9bc7-2f93-d037741be76f" executionId="eb4ed72d-fac2-4c8c-8706-73d882a7e2d3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="209fab98-04b8-f383-4186-ad7275e0b9e6" executionId="91c6a2f9-5f29-44a2-91c6-7be39c3e5495" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="8" executed="8" passed="8" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.11]   Discovering: Dfo.Launcher.Tests&#xD;
+[xUnit.net 00:00:00.15]   Discovered:  Dfo.Launcher.Tests&#xD;
+[xUnit.net 00:00:00.17]   Starting:    Dfo.Launcher.Tests&#xD;
+[xUnit.net 00:00:00.83]   Finished:    Dfo.Launcher.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

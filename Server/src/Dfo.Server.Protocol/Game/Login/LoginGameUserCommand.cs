@@ -1,30 +1,34 @@
-using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Authentication;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.OnlineUsers;
 
 namespace Dfo.Server.Protocol.Game.Login;
 
-public sealed record LoginGameUserCommand(
+public sealed record RedeemGameLoginCommand(
     OnlineUserId OnlineUserId,
     string LoginId,
-    string PasswordHash) : ICommand<LoginGameUserResult>, IOnlineUserCommand;
+    string Ticket) : ICommand<RedeemGameLoginResult>, IOnlineUserCommand;
 
-public sealed record LoginGameUserResult(AccountId AccountId);
-
-public sealed class LoginGameUserCommandHandler(
-    IAccountDomainService accounts) : ICommandHandler<LoginGameUserCommand, LoginGameUserResult>
+public sealed record RedeemGameLoginResult(AccountId? AccountId)
 {
-    public async ValueTask<LoginGameUserResult> HandleAsync(
+    public bool Succeeded => AccountId.HasValue;
+}
+
+public sealed class RedeemGameLoginCommandHandler(
+    IGameLoginAuthenticationDomainService authentication)
+    : ICommandHandler<RedeemGameLoginCommand, RedeemGameLoginResult>
+{
+    public async ValueTask<RedeemGameLoginResult> HandleAsync(
         CommandExecutionContext context,
-        LoginGameUserCommand command,
+        RedeemGameLoginCommand command,
         CancellationToken cancellationToken)
     {
-        var accountId = await accounts.LoginAsync(
+        var accountId = await authentication.RedeemTicketAsync(
             command.OnlineUserId,
             command.LoginId,
-            command.PasswordHash,
+            command.Ticket,
             cancellationToken).ConfigureAwait(false);
-        return new LoginGameUserResult(accountId);
+        return new RedeemGameLoginResult(accountId);
     }
 }

@@ -8,6 +8,17 @@ public sealed record ChannelServerInfo(
     string Host,
     int Port);
 
+/// <summary>
+/// The process-local Game listeners in the same order as the advertised channel catalogue.
+/// </summary>
+/// <remarks>
+/// Listener ports and advertised ports are deliberately separate deployment values. Keeping the
+/// former in this value prevents entry policy from treating a public/NAT port as a local bind.
+/// </remarks>
+public sealed record ChannelListenerOptions(
+    IReadOnlyList<int> GamePorts,
+    bool AllowAdvertisedPortFallback);
+
 /// <summary>What a channel is, as far as entry policy is concerned.</summary>
 public enum ChannelEntryKind
 {

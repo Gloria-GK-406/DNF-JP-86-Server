@@ -13,22 +13,50 @@ namespace Dfo.Server.Application.Channel;
 /// </remarks>
 internal sealed class ChannelEntryPolicy(
     IChannelContentRuleService channels,
-    ChannelEntryOptions options) : IChannelEntryPolicy
+    ChannelEntryOptions options,
+    ChannelListenerOptions listeners) : IChannelEntryPolicy
 {
     public async ValueTask<ChannelEntryIdentity> ResolveAsync(
         int listenerPort,
         CancellationToken cancellationToken)
     {
         var catalog = await channels.ChannelsAsync(cancellationToken).ConfigureAwait(false);
-        foreach (var channel in catalog)
+
+        // Disabled legacy deployments historically identify channels by their advertised port.
+        // Do not let a separately ordered listener list reinterpret those channel identities.
+        if (listeners.AllowAdvertisedPortFallback)
         {
-            if (channel.Port == listenerPort)
-                return new ChannelEntryIdentity(channel.ChannelId, listenerPort, KindOf(channel.ChannelId));
+            foreach (var channel in catalog)
+            {
+                if (channel.Port == listenerPort)
+                {
+                    return new ChannelEntryIdentity(
+                        channel.ChannelId,
+                        listenerPort,
+                        KindOf(channel.ChannelId));
+                }
+            }
+
+            return Unknown(listenerPort);
+        }
+
+        // Enabled launcher deployments validate a strict one-to-one projection at startup, so
+        // only their independent listener order defines the channel identity here.
+        for (var index = 0; index < listeners.GamePorts.Count && index < catalog.Count; index++)
+        {
+            if (listeners.GamePorts[index] == listenerPort)
+            {
+                var channel = catalog[index];
+                return new ChannelEntryIdentity(
+                    channel.ChannelId,
+                    listenerPort,
+                    KindOf(channel.ChannelId));
+            }
         }
 
         // An unmatched listener is an ordinary one. Refusing entry here would take a
         // deployment that simply has not listed its channels and make it unplayable.
-        return new ChannelEntryIdentity(ChannelIdUnknown, listenerPort, ChannelEntryKind.General);
+        return Unknown(listenerPort);
     }
 
     public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel)
@@ -43,6 +71,9 @@ internal sealed class ChannelEntryPolicy(
 
     /// <summary>The channel identifier reported for a listener no channel claims.</summary>
     public const int ChannelIdUnknown = 0;
+
+    private static ChannelEntryIdentity Unknown(int listenerPort) =>
+        new(ChannelIdUnknown, listenerPort, ChannelEntryKind.General);
 
     /// <summary>
     /// The refusal the legacy server sends, byte for byte.

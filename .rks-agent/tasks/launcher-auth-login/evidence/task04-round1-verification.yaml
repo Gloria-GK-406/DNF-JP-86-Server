@@ -1,0 +1,56 @@
+kind: rks-verification
+decision: pass
+claim: >-
+  TASK-04 Execution Round 1 implements and verifies the controlled
+  HTTP-to-Channel-Info-to-Game authentication chain, strict listener mapping, ordinary rejection,
+  and one postcommit delivery-failure path without claiming public-network reachability.
+conditions:
+  - requirement: CK-001 and AC-011 controlled advertised-route chain
+    result: >-
+      Passed 1/1 through the packaged Host, real Kestrel and SQLite, real Channel and Game
+      sockets, three distinct documentation IPv4 hosts, decoded Channel Info, ordered LOGIN
+      response and six notifications, third endpoint projection, and GET_USERINFO continuity.
+    evidence:
+      - task04-round1-green.log
+      - task04-round1-green.trx
+      - task04-round1-focused-host.log
+      - task04-round1-focused-host.trx
+  - requirement: ordinary rejection and AC-018 postcommit delivery failure
+    result: >-
+      GameLoginIntegrationTests passed 3/3; invalid ticket closes without consumption and the
+      test-injected first LOGIN response failure closes and cleans the committed connection,
+      leaves consumed count at one, and rejects replay on a second real socket.
+    evidence:
+      - task04-round1-focused-networking.log
+      - task04-round1-focused-networking.trx
+  - requirement: independent listener truth and fail-closed one-to-one configuration
+    result: >-
+      Infrastructure endpoint cases passed 17/17 and Application channel mapping and disabled
+      legacy compatibility cases passed 9/9.
+    evidence:
+      - task04-round1-focused-infrastructure.log
+      - task04-round1-focused-infrastructure.trx
+      - task04-round1-focused-application.log
+      - task04-round1-focused-application.trx
+  - requirement: required Release regression and build checks
+    result: >-
+      Host passed 17/17, Networking 60/60, Protocol 714/714 with the real PVF archive,
+      Application 1340/1340, and the solution build completed with zero warnings and errors.
+      Infrastructure passed 301 with two mutually exclusive missing-archive cases NotExecuted;
+      the changed endpoint surface separately passed 17/17 without skips.
+    evidence:
+      - task04-round1-host-release.log
+      - task04-round1-host-release.trx
+      - task04-round1-networking-release.log
+      - task04-round1-networking-release.trx
+      - task04-round1-protocol-release.log
+      - task04-round1-protocol-release.trx
+      - task04-round1-application-release.log
+      - task04-round1-application-release.trx
+      - task04-round1-infrastructure-release.log
+      - task04-round1-infrastructure-release.trx
+      - task04-round1-solution-build.log
+  - requirement: artifact identity and workspace hygiene
+    result: >-
+      Nine-file manifest is 6DB0C9E7EDB2D847D937B540E9C3DBD53397172B9285C08CE9775796B42131E5,
+      git diff check exits zero, and no test-owned dfo-auth-e2e temporary directory remains.

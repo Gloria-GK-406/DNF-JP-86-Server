@@ -20,6 +20,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.SelectCharacter;
+using Dfo.Server.Protocol.Game.Login;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -235,6 +236,119 @@ public sealed partial class SelectCharacterLifecycleTests
         await Assert.ThrowsAsync<IOException>(() => command.WaitAsync(TimeSpan.FromSeconds(2)));
         await disconnect.WaitAsync(TimeSpan.FromSeconds(2));
         Assert.Contains(fixture.ConnectionId, fixture.Closer.Closed);
+    }
+
+    [Fact]
+    public async Task RejectedRepeatedLoginStillLetsDisconnectObserverCleanupTheSelectedSession()
+    {
+        var fixture = await Fixture.CreateAsync();
+        await fixture.Handler.HandleAsync(
+            fixture.Context, fixture.Command, CancellationToken.None);
+        var selected = Assert.IsType<SelectedSessionIdentity>(
+            fixture.Directory.FindByConnection(fixture.ConnectionId));
+        var sendsBeforeRejection = fixture.Sender.StateMessageCount;
+        var login = new GameLoginHandler(
+            fixture.Users,
+            fixture.Sender,
+            new RejectedLoginCommandBus(),
+            new StubServerConfigService(),
+            new UnusedAccountEntryStateDomainService(),
+            fixture.Closer,
+            NullLogger<GameLoginHandler>.Instance);
+
+        await login.HandleAsync(
+            fixture.Context,
+            new GameLoginRequest(
+                GameMessageMetadata.Empty,
+                "lifecycle",
+                "already-consumed-ticket-cannot-be-replayed-0"),
+            CancellationToken.None);
+
+        Assert.False(fixture.Users.TryGetByConnection(fixture.ConnectionId, out _));
+        Assert.Equal(selected, fixture.Directory.FindByConnection(fixture.ConnectionId));
+        Assert.Equal(sendsBeforeRejection, fixture.Sender.StateMessageCount);
+        Assert.Contains(fixture.ConnectionId, fixture.Closer.Closed);
+
+        var observer = new OnlineUserConnectionObserver(
+            fixture.Users,
+            new OnlineUserExecutionGate(),
+            fixture.TransitionGate,
+            fixture.Directory,
+            fixture.Cleanup,
+            new StubChannelEntryPolicy(),
+            new StubServerConfigService(),
+            fixture.Sender,
+            new NoopCleanupDelivery(),
+            TimeProvider.System);
+        await observer.DisconnectedAsync(
+            fixture.Context.Connection,
+            CancellationToken.None);
+
+        var cleanup = Assert.Single(fixture.Cleanup.Calls);
+        Assert.Equal(selected, cleanup.Session);
+        Assert.False(cleanup.IncludeOwner);
+        Assert.Null(fixture.Directory.FindByConnection(fixture.ConnectionId));
+        Assert.Null(fixture.Directory.Find(fixture.AccountId));
+    }
+
+    [Fact]
+    public async Task OrphanedDisconnectWaitingForLifecycleGateDoesNotCleanupAReplacementSession()
+    {
+        var fixture = await Fixture.CreateAsync();
+        await fixture.Handler.HandleAsync(
+            fixture.Context, fixture.Command, CancellationToken.None);
+        var original = Assert.IsType<SelectedSessionIdentity>(
+            fixture.Directory.FindByConnection(fixture.ConnectionId));
+        var login = new GameLoginHandler(
+            fixture.Users,
+            fixture.Sender,
+            new RejectedLoginCommandBus(),
+            new StubServerConfigService(),
+            new UnusedAccountEntryStateDomainService(),
+            fixture.Closer,
+            NullLogger<GameLoginHandler>.Instance);
+        await login.HandleAsync(
+            fixture.Context,
+            new GameLoginRequest(
+                GameMessageMetadata.Empty,
+                "lifecycle",
+                "already-consumed-ticket-cannot-be-replayed-0"),
+            CancellationToken.None);
+
+        var observer = new OnlineUserConnectionObserver(
+            fixture.Users,
+            new OnlineUserExecutionGate(),
+            fixture.TransitionGate,
+            fixture.Directory,
+            fixture.Cleanup,
+            new StubChannelEntryPolicy(),
+            new StubServerConfigService(),
+            fixture.Sender,
+            new NoopCleanupDelivery(),
+            TimeProvider.System);
+        var blocker = await fixture.TransitionGate.AcquireAsync(
+            fixture.AccountId, UserAccessMode.Exclusive, CancellationToken.None);
+        var disconnect = observer.DisconnectedAsync(
+            fixture.Context.Connection, CancellationToken.None).AsTask();
+        await Task.Yield();
+        Assert.False(disconnect.IsCompleted);
+
+        var replacement = SelectedSessionIdentity.Create(
+            fixture.AccountId,
+            new CharacterId(650),
+            new NetworkConnectionId("Game:lifecycle-replacement"),
+            connectionGeneration: 1,
+            StubChannelEntryPolicy.GeneralChannel.ListenerPort);
+        Assert.Equal(original, fixture.Directory.Select(replacement));
+        await blocker.DisposeAsync();
+        await disconnect;
+
+        Assert.Empty(fixture.Cleanup.Calls);
+        Assert.Equal(replacement, fixture.Directory.Find(fixture.AccountId));
+        Assert.Equal(replacement, fixture.Directory.FindByCharacter(replacement.CharacterId));
+        Assert.Equal(replacement, fixture.Directory.FindByWireUserId(replacement.WireUserId));
+        Assert.Equal(replacement, fixture.Directory.FindByConnection(replacement.ConnectionId));
+        Assert.Null(fixture.Directory.FindByConnection(original.ConnectionId));
     }
 
     [Fact]
@@ -663,6 +777,28 @@ public sealed partial class SelectCharacterLifecycleTests
                 cancellationToken);
     }
 
+    private sealed class RejectedLoginCommandBus : ICommandBus
+    {
+        public ValueTask<TResult> SendAsync<TResult>(
+            ICommand<TResult> command,
+            CancellationToken cancellationToken = default)
+            where TResult : notnull =>
+            ValueTask.FromResult((TResult)(object)new RedeemGameLoginResult(null));
+    }
+
+    private sealed class UnusedAccountEntryStateDomainService : IAccountEntryStateDomainService
+    {
+        public ValueTask<AccountEntryState> LoadAsync(
+            AccountId accountId,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("Rejected login must not load account state.");
+
+        public ValueTask<AccountSettingsEntryState> LoadSettingsAsync(
+            AccountId accountId,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("Rejected login must not load account settings.");
+    }
+
     private sealed class StubStateMessageFactory : ISelectedCharacterStateMessageFactory
     {
         public IReadOnlyList<IGameServerMessage> CreateValidated(SelectCharacterResult result) =>
@@ -1057,7 +1193,7 @@ public sealed partial class SelectCharacterLifecycleTests
         public List<NetworkConnectionId> Closed { get; } = [];
         public Func<ValueTask>? OnClose { get; set; }
 
-        public ValueTask CloseAsync(
+        public ValueTask RequestCloseAsync(
             NetworkConnectionId connectionId, CancellationToken cancellationToken)
         {
             ledger.Add("close");
