@@ -100,6 +100,52 @@ public sealed class LauncherVisualRenderTests
         }
     }
 
+    [Fact]
+    public void Successful_game_start_closes_the_real_launcher_window()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            MainWindow? window = null;
+            try
+            {
+                using var viewModel = new LauncherViewModel(
+                    new ValidConfigurationSource(),
+                    new SingleApiClientFactory(new SuccessfulApiClient()),
+                    new SuccessfulPreferencesStore(),
+                    new SuccessfulGameLauncher(),
+                    NullLauncherEventLog.Instance);
+                viewModel.InitializeAsync().GetAwaiter().GetResult();
+                viewModel.LoginId = "player";
+                window = new MainWindow(viewModel);
+                window.Show();
+                Assert.True(window.IsVisible);
+
+                var password = Assert.IsType<PasswordBox>(Get(window, "PasswordInput"));
+                password.Password = "password-secret";
+                var submit = Assert.IsType<Button>(Get(window, "PrimaryActionButton"));
+                submit.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+
+                Assert.False(window.IsVisible);
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+            }
+            finally
+            {
+                window?.Close();
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(10)), "WPF close-after-launch test timed out.");
+        if (failure is not null)
+        {
+            ExceptionDispatchInfo.Capture(failure).Throw();
+        }
+    }
+
     private static void RenderState(string state, int dpi)
     {
         var outputDirectory = Environment.GetEnvironmentVariable("TASK05_VISUAL_EVIDENCE_DIR")
@@ -338,6 +384,31 @@ public sealed class LauncherVisualRenderTests
         public void Dispose() { }
     }
 
+    private sealed class SuccessfulApiClient : ILauncherApiClient
+    {
+        public Task<LauncherApiResult<LauncherBootstrap>> GetBootstrapAsync(
+            CancellationToken cancellationToken) => Task.FromResult(
+                new LauncherApiResult<LauncherBootstrap>(new("1", "ready", true)));
+
+        public Task<LauncherApiResult<string>> RegisterAsync(
+            string loginId,
+            string password,
+            CancellationToken cancellationToken) => throw new InvalidOperationException();
+
+        public Task<LauncherApiResult<LauncherLogin>> LoginAsync(
+            string loginId,
+            string password,
+            CancellationToken cancellationToken) => Task.FromResult(
+                new LauncherApiResult<LauncherLogin>(
+                    new(
+                        loginId,
+                        "safe_ticket-123",
+                        DateTimeOffset.MaxValue,
+                        new("127.0.0.1", 7001))));
+
+        public void Dispose() { }
+    }
+
     private sealed class EmptyPreferencesStore : ILauncherPreferencesStore
     {
         public ValueTask<LauncherPreferences> LoadAsync(CancellationToken cancellationToken) =>
@@ -346,6 +417,16 @@ public sealed class LauncherVisualRenderTests
         public ValueTask SaveAsync(
             LauncherPreferences preferences,
             CancellationToken cancellationToken) => throw new InvalidOperationException();
+    }
+
+    private sealed class SuccessfulPreferencesStore : ILauncherPreferencesStore
+    {
+        public ValueTask<LauncherPreferences> LoadAsync(CancellationToken cancellationToken) =>
+            ValueTask.FromResult(LauncherPreferences.Empty);
+
+        public ValueTask SaveAsync(
+            LauncherPreferences preferences,
+            CancellationToken cancellationToken) => ValueTask.CompletedTask;
     }
 
     private sealed class NeverGameLauncher : IGameLauncher

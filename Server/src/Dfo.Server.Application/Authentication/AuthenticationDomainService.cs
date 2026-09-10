@@ -12,6 +12,11 @@ internal sealed class AuthenticationDomainService(
     IAuthenticationPersistence persistence, IPasswordCredentialRuleService passwords,
     TimeProvider clock, AuthenticationRuleService rules) : IAuthenticationDomainService
 {
+    // A21's launch credential slot historically carries a 32-character MD5 string. Sixteen random
+    // bytes retain the required 128 bits of entropy while encoding to 22 URL-safe characters.
+    private const int TicketEntropyBytes = 16;
+    private const int TicketEncodedLength = 22;
+
     public async ValueTask<RegistrationResult> RegisterAsync(string loginId, string password, CancellationToken cancellationToken)
     {
         var errors = rules.Validate(loginId, password, registration: true);
@@ -39,7 +44,8 @@ internal sealed class AuthenticationDomainService(
         if ((migrate || check == PasswordCheck.RehashNeeded)
             && !await persistence.TryReplaceCredentialAsync(account.AccountId, account.PasswordHash, passwords.Hash(password), cancellationToken))
             return new(AuthenticationStatus.InvalidCredentials);
-        var ticket = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        var ticket = Convert.ToBase64String(RandomNumberGenerator.GetBytes(TicketEntropyBytes))
+            .TrimEnd('=').Replace('+', '-').Replace('/', '_');
         var now = clock.GetUtcNow();
         var expiresAt = now.AddSeconds(60);
         await persistence.InsertTicketAsync(Digest(ticket), account.AccountId, now, expiresAt, cancellationToken);
@@ -48,7 +54,9 @@ internal sealed class AuthenticationDomainService(
 
     public async ValueTask<AccountId?> ConsumeTicketAsync(string loginId, string ticket, CancellationToken cancellationToken)
     {
-        if (ticket is null || ticket.Length != 43 || ticket.Any(c => !char.IsAsciiLetterOrDigit(c) && c != '_' && c != '-'))
+        if (ticket is null
+            || ticket.Length != TicketEncodedLength
+            || ticket.Any(c => !char.IsAsciiLetterOrDigit(c) && c != '_' && c != '-'))
             return null;
         // Waiting for another writer may outlive the ticket. Read time only after holding the lock.
         await persistence.AcquireWriteIntentAsync(cancellationToken);

@@ -18,7 +18,10 @@ public sealed class AuthenticationTicketTests
         Assert.Equal(AuthenticationStatus.Success, first.Status);
         Assert.Equal("player", first.LoginId);
         Assert.NotNull(first.Ticket);
-        Assert.Matches("^[A-Za-z0-9_-]{43}$", first.Ticket);
+        Assert.Matches("^[A-Za-z0-9_-]{22,32}$", first.Ticket);
+        Assert.Equal(
+            16,
+            Convert.FromBase64String(first.Ticket.Replace('-', '+').Replace('_', '/') + "==").Length);
         Assert.NotEqual(first.Ticket, second.Ticket);
         Assert.Equal(fixture.Clock.Now.AddSeconds(60), first.ExpiresAtUtc);
         Assert.Equal(2L, await fixture.Scalar("SELECT COUNT(*) FROM login_tickets"));

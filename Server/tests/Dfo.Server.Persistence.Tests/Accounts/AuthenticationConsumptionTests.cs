@@ -13,7 +13,7 @@ public sealed class AuthenticationConsumptionTests
         Assert.NotNull(login.Ticket);
         Assert.Null(await fixture.Consume("other", login.Ticket));
         Assert.Null(await fixture.Consume("Player", login.Ticket));
-        Assert.Null(await fixture.Consume("player", new string('x', 43)));
+        Assert.Null(await fixture.Consume("player", new string('x', 22)));
         Assert.Null(await fixture.Consume("player", login.Ticket + "?"));
         var results = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(() => fixture.Consume("player", login.Ticket))));
         var winner = Assert.Single(results, result => result.HasValue);

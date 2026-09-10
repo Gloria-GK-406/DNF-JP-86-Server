@@ -38,6 +38,11 @@ public partial class MainWindow : Window
             password = string.Empty;
             this.PasswordInput.Clear();
         }
+
+        if (this.viewModel.IsLaunched)
+        {
+            this.Close();
+        }
     }
 
     private async void Retry_Click(object sender, RoutedEventArgs e)
