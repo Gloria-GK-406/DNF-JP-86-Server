@@ -147,7 +147,7 @@ public sealed class LauncherViewModelTests
     }
 
     [Fact]
-    public async Task Login_success_saves_only_the_remember_preference_then_launches()
+    public async Task Login_success_saves_the_remembered_credentials_then_launches()
     {
         var client = new FakeApiClient
         {
@@ -163,17 +163,35 @@ public sealed class LauncherViewModelTests
             launcher);
         await viewModel.InitializeAsync();
         viewModel.LoginId = "player";
-        viewModel.RememberLoginId = true;
+        viewModel.RememberCredentials = true;
 
         await viewModel.SubmitAsync("password-secret-sentinel");
 
         Assert.Equal(LauncherState.Launched, viewModel.State);
-        Assert.Equal([new LauncherPreferences("player", true)], preferences.Saved);
+        Assert.Equal(
+            [new LauncherPreferences("player", "password-secret-sentinel", true)],
+            preferences.Saved);
         Assert.Equal([SuccessfulLogin], launcher.Logins);
-        Assert.DoesNotContain(
-            "password-secret-sentinel",
-            string.Join('|', preferences.Saved.Select(value => $"{value.LoginId}:{value.Remember}")),
-            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Initialize_restores_remembered_login_and_password_for_the_login_form()
+    {
+        var client = new FakeApiClient { BootstrapResult = Success(ReadyBootstrap) };
+        var preferences = new FakePreferencesStore
+        {
+            Loaded = new LauncherPreferences("remembered-player", "remembered-password", true),
+        };
+        using var viewModel = Create(
+            ValidConfiguration(),
+            new FakeApiClientFactory(client),
+            preferences);
+
+        await viewModel.InitializeAsync();
+
+        Assert.Equal("remembered-player", viewModel.LoginId);
+        Assert.Equal("remembered-password", viewModel.RememberedPassword);
+        Assert.True(viewModel.RememberCredentials);
     }
 
     [Fact]

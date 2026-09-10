@@ -3,9 +3,9 @@ using System.Text.Json;
 
 namespace Dfo.Launcher.Preferences;
 
-public sealed record LauncherPreferences(string? LoginId, bool Remember)
+public sealed record LauncherPreferences(string? LoginId, string? Password, bool Remember)
 {
-    public static LauncherPreferences Empty { get; } = new(null, false);
+    public static LauncherPreferences Empty { get; } = new(null, null, false);
 }
 
 public interface ILauncherPreferencesStore
@@ -50,7 +50,7 @@ public sealed class JsonLauncherPreferencesStore(string path) : ILauncherPrefere
     {
         ArgumentNullException.ThrowIfNull(preferences);
         var safe = preferences.Remember
-            ? new LauncherPreferences(preferences.LoginId, true)
+            ? new LauncherPreferences(preferences.LoginId, preferences.Password, true)
             : LauncherPreferences.Empty;
         var directory = Path.GetDirectoryName(path)
             ?? throw new InvalidOperationException("Preferences path must have a directory.");

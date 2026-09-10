@@ -37,5 +37,6 @@ public partial class App : Application
         }
 
         await viewModel.InitializeAsync();
+        window.RestoreRememberedPassword();
     }
 }

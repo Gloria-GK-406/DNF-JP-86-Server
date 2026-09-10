@@ -6,21 +6,23 @@ namespace Dfo.Launcher.Tests.Preferences;
 public sealed class LauncherPreferencesStoreTests
 {
     [Fact]
-    public async Task Remembered_preferences_contain_only_login_id_and_remember()
+    public async Task Remembered_preferences_contain_login_id_password_and_remember()
     {
         var directory = CreateDirectory();
         try
         {
             var path = Path.Combine(directory, "preferences.json");
             var store = new JsonLauncherPreferencesStore(path);
-            await store.SaveAsync(new LauncherPreferences("player", true), CancellationToken.None);
+            await store.SaveAsync(
+                new LauncherPreferences("player", "password-secret", true),
+                CancellationToken.None);
 
             using var json = JsonDocument.Parse(await File.ReadAllTextAsync(path));
-            Assert.Equal(["loginId", "remember"], json.RootElement.EnumerateObject()
+            Assert.Equal(["loginId", "password", "remember"], json.RootElement.EnumerateObject()
                 .Select(property => property.Name).Order().ToArray());
             Assert.Equal("player", json.RootElement.GetProperty("loginId").GetString());
+            Assert.Equal("password-secret", json.RootElement.GetProperty("password").GetString());
             Assert.True(json.RootElement.GetProperty("remember").GetBoolean());
-            Assert.DoesNotContain("password", await File.ReadAllTextAsync(path), StringComparison.OrdinalIgnoreCase);
             Assert.Empty(Directory.GetFiles(directory, "*.tmp"));
         }
         finally
@@ -37,12 +39,17 @@ public sealed class LauncherPreferencesStoreTests
         {
             var path = Path.Combine(directory, "preferences.json");
             var store = new JsonLauncherPreferencesStore(path);
-            await store.SaveAsync(new LauncherPreferences("first", true), CancellationToken.None);
-            await store.SaveAsync(new LauncherPreferences("must-not-remain", false), CancellationToken.None);
+            await store.SaveAsync(
+                new LauncherPreferences("first", "first-password", true),
+                CancellationToken.None);
+            await store.SaveAsync(
+                new LauncherPreferences("must-not-remain", "must-not-remain-password", false),
+                CancellationToken.None);
 
             Assert.Equal(LauncherPreferences.Empty, await store.LoadAsync(CancellationToken.None));
             var text = await File.ReadAllTextAsync(path);
             Assert.DoesNotContain("must-not-remain", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("first-password", text, StringComparison.Ordinal);
             Assert.Empty(Directory.GetFiles(directory, "*.tmp"));
         }
         finally

@@ -34,8 +34,10 @@ public sealed class LauncherViewModel(
     private LauncherState state = LauncherState.Checking;
     private LauncherMode mode = LauncherMode.Login;
     private string loginId = string.Empty;
-    private bool rememberLoginId;
+    private bool rememberCredentials;
+    private string rememberedPassword = string.Empty;
     private bool registrationEnabled;
+    private bool isServerReady;
     private string statusMessage = "正在检查服务器…";
     private string? globalError;
     private string? fieldErrorText;
@@ -76,10 +78,16 @@ public sealed class LauncherViewModel(
         set => this.Set(ref this.loginId, value ?? string.Empty);
     }
 
-    public bool RememberLoginId
+    public bool RememberCredentials
     {
-        get => this.rememberLoginId;
-        set => this.Set(ref this.rememberLoginId, value);
+        get => this.rememberCredentials;
+        set => this.Set(ref this.rememberCredentials, value);
+    }
+
+    public string RememberedPassword
+    {
+        get => this.rememberedPassword;
+        private set => this.Set(ref this.rememberedPassword, value ?? string.Empty);
     }
 
     public bool RegistrationEnabled
@@ -87,6 +95,22 @@ public sealed class LauncherViewModel(
         get => this.registrationEnabled;
         private set => this.Set(ref this.registrationEnabled, value);
     }
+
+    public bool IsServerReady
+    {
+        get => this.isServerReady;
+        private set
+        {
+            if (this.Set(ref this.isServerReady, value))
+            {
+                this.OnPropertyChanged(nameof(this.ServerStatusText));
+            }
+        }
+    }
+
+    public string ServerStatusText => this.IsServerReady
+        ? "服务器在线"
+        : this.State == LauncherState.Checking ? "正在检测" : "服务器离线";
 
     public string StatusMessage
     {
@@ -140,7 +164,8 @@ public sealed class LauncherViewModel(
             if (saved.Remember)
             {
                 this.LoginId = saved.LoginId ?? string.Empty;
-                this.RememberLoginId = true;
+                this.RememberedPassword = saved.Password ?? string.Empty;
+                this.RememberCredentials = true;
             }
         }
 
@@ -214,8 +239,9 @@ public sealed class LauncherViewModel(
 
             await preferences.SaveAsync(
                 new LauncherPreferences(
-                    this.RememberLoginId ? this.LoginId : null,
-                    this.RememberLoginId),
+                    this.RememberCredentials ? this.LoginId : null,
+                    this.RememberCredentials ? password : null,
+                    this.RememberCredentials),
                 cancellationToken);
             var launched = gameLauncher.Launch(login.Value!);
             if (!launched.Succeeded)
@@ -259,19 +285,23 @@ public sealed class LauncherViewModel(
         {
             case "login":
                 this.Mode = LauncherMode.Login;
+                this.IsServerReady = true;
                 this.State = LauncherState.Ready;
                 this.StatusMessage = "服务器已就绪";
                 break;
             case "register":
                 this.Mode = LauncherMode.Register;
+                this.IsServerReady = true;
                 this.State = LauncherState.Ready;
                 this.StatusMessage = "创建一个新的游戏账号";
                 break;
             case "loading":
+                this.IsServerReady = false;
                 this.State = LauncherState.Checking;
                 this.StatusMessage = "正在检查服务器…";
                 break;
             case "error":
+                this.IsServerReady = false;
                 this.State = LauncherState.Error;
                 this.GlobalError = "无法连接服务器，请检查网络后重试。";
                 this.StatusMessage = "连接失败";
@@ -293,6 +323,7 @@ public sealed class LauncherViewModel(
         try
         {
             this.ClearErrors();
+            this.IsServerReady = false;
             this.State = LauncherState.Checking;
             this.StatusMessage = "正在检查服务器…";
             LauncherConfiguration current;
@@ -335,6 +366,7 @@ public sealed class LauncherViewModel(
             }
 
             this.RegistrationEnabled = bootstrap.Value.RegistrationEnabled;
+            this.IsServerReady = true;
             this.State = LauncherState.Ready;
             this.StatusMessage = "服务器已就绪";
             log.Write("bootstrap_ready");
@@ -422,6 +454,7 @@ public sealed class LauncherViewModel(
         this.OnPropertyChanged(nameof(this.IsFormVisible));
         this.OnPropertyChanged(nameof(this.CanRetry));
         this.OnPropertyChanged(nameof(this.CanSubmit));
+        this.OnPropertyChanged(nameof(this.ServerStatusText));
     }
 
     private bool Set<T>(ref T field, T value, [CallerMemberName] string? name = null)

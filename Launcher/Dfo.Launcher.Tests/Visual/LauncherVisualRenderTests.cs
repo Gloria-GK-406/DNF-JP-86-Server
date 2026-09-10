@@ -13,14 +13,12 @@ namespace Dfo.Launcher.Tests.Visual;
 
 public sealed class LauncherVisualRenderTests
 {
-    private const int LogicalWidth = 760;
-    private const int LogicalHeight = 560;
+    private const int LogicalWidth = 1120;
+    private const int LogicalHeight = 630;
 
     [Theory]
     [InlineData("login", 96)]
     [InlineData("login", 144)]
-    [InlineData("register", 96)]
-    [InlineData("register", 144)]
     [InlineData("loading", 96)]
     [InlineData("loading", 144)]
     [InlineData("error", 96)]
@@ -44,6 +42,33 @@ public sealed class LauncherVisualRenderTests
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
         Assert.True(thread.Join(TimeSpan.FromSeconds(30)), "WPF render thread timed out.");
+        if (failure is not null)
+        {
+            ExceptionDispatchInfo.Capture(failure).Throw();
+        }
+    }
+
+    [Theory]
+    [InlineData(96)]
+    [InlineData(144)]
+    public void Registration_dialog_is_a_separate_frameless_window_that_renders_without_clipping(
+        int dpi)
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                RenderRegistration(dpi);
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(30)), "Registration render thread timed out.");
         if (failure is not null)
         {
             ExceptionDispatchInfo.Capture(failure).Throw();
@@ -154,6 +179,9 @@ public sealed class LauncherVisualRenderTests
         using var viewModel = CreateViewModel();
         viewModel.ApplyVisualPreview(state);
         var window = new MainWindow(viewModel);
+        Assert.Equal(WindowStyle.None, window.WindowStyle);
+        Assert.True(window.AllowsTransparency);
+        Assert.Equal(ResizeMode.NoResize, window.ResizeMode);
         var root = Assert.IsAssignableFrom<FrameworkElement>(window.Content);
         var logicalSize = new Size(LogicalWidth, LogicalHeight);
         root.Measure(logicalSize);
@@ -190,6 +218,53 @@ public sealed class LauncherVisualRenderTests
         Assert.True(stream.Length > 5_000, $"{path} is unexpectedly small.");
     }
 
+    private static void RenderRegistration(int dpi)
+    {
+        var outputDirectory = Environment.GetEnvironmentVariable("TASK05_VISUAL_EVIDENCE_DIR")
+            ?? Path.Combine(Path.GetTempPath(), "dfo-launcher-visual-evidence");
+        Directory.CreateDirectory(outputDirectory);
+        using var viewModel = CreateViewModel();
+        viewModel.ApplyVisualPreview("login");
+        var window = new RegistrationWindow(viewModel);
+        Assert.Equal(WindowStyle.None, window.WindowStyle);
+        Assert.True(window.AllowsTransparency);
+        Assert.Equal(ResizeMode.NoResize, window.ResizeMode);
+        var root = Assert.IsAssignableFrom<FrameworkElement>(window.Content);
+        var logicalSize = new Size(440, 560);
+        root.Measure(logicalSize);
+        root.Arrange(new Rect(logicalSize));
+        root.UpdateLayout();
+
+        foreach (var name in new[]
+                 {
+                     "RegistrationFrame", "RegistrationDragRegion", "RegistrationTitle",
+                     "RegistrationLoginIdBox", "RegistrationPasswordInput",
+                     "RegistrationConfirmPasswordInput", "RegistrationSubmitButton",
+                     "RegistrationCancelButton", "RegistrationCloseButton",
+                 })
+        {
+            AssertRequired(window, root, name, "register", dpi);
+        }
+
+        AssertVisibleElementsStayInside(root, "register", dpi);
+        var scale = dpi / 96d;
+        var bitmap = new RenderTargetBitmap(
+            (int)Math.Round(logicalSize.Width * scale),
+            (int)Math.Round(logicalSize.Height * scale),
+            dpi,
+            dpi,
+            PixelFormats.Pbgra32);
+        bitmap.Render(root);
+        AssertHasVisibleContent(bitmap, "register", dpi);
+
+        var path = Path.Combine(outputDirectory, $"launcher-register-{dpi}dpi.png");
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
+        encoder.Save(stream);
+        Assert.True(stream.Length > 5_000, $"{path} is unexpectedly small.");
+    }
+
     private static void AssertRequiredStateControls(
         MainWindow window,
         FrameworkElement root,
@@ -198,8 +273,9 @@ public sealed class LauncherVisualRenderTests
     {
         foreach (var name in new[]
                  {
-                     "BrandPanel", "BrandName", "BrandVersion", "BrandSubtitle",
-                     "HeaderTitle", "HeaderStatus", "FooterText",
+                     "WindowFrame", "HeroArtwork", "DragRegion", "HeaderTitle",
+                     "ServerStatusIndicator", "ServerStatusText", "WindowMinimizeButton",
+                     "WindowCloseButton",
                  })
         {
             AssertRequired(window, root, name, state, dpi);
@@ -208,13 +284,13 @@ public sealed class LauncherVisualRenderTests
         var form = Get(window, "FormPanel");
         var loading = Get(window, "LoadingPanel");
         var error = Get(window, "ErrorPanel");
-        if (state is "login" or "register")
+        if (state == "login")
         {
             foreach (var name in new[]
                      {
-                         "FormPanel", "LoginTabButton", "RegisterTabButton", "LoginIdLabel",
-                         "LoginIdBox", "PasswordLabel", "PasswordInput", "RememberLoginIdBox",
-                         "PrimaryActionButton",
+                         "FormPanel", "LoginIdLabel", "LoginIdBox", "PasswordLabel",
+                         "PasswordInput", "RememberCredentialsBox", "PrimaryActionButton",
+                         "RegisterButton",
                      })
             {
                 AssertRequired(window, root, name, state, dpi);
@@ -223,7 +299,7 @@ public sealed class LauncherVisualRenderTests
             Assert.Equal(Visibility.Collapsed, loading.Visibility);
             Assert.Equal(Visibility.Collapsed, error.Visibility);
             var action = Assert.IsType<Button>(Get(window, "PrimaryActionButton"));
-            Assert.Equal(state == "login" ? "登录并启动" : "申请账号", action.Content);
+            Assert.Equal("进入游戏", action.Content);
         }
         else if (state == "loading")
         {
@@ -235,7 +311,6 @@ public sealed class LauncherVisualRenderTests
         else
         {
             AssertRequired(window, root, "ErrorPanel", state, dpi);
-            AssertRequired(window, root, "ErrorCard", state, dpi);
             AssertRequired(window, root, "RetryButton", state, dpi);
             Assert.Equal(Visibility.Collapsed, form.Visibility);
             Assert.Equal(Visibility.Collapsed, loading.Visibility);
@@ -243,7 +318,7 @@ public sealed class LauncherVisualRenderTests
     }
 
     private static void AssertRequired(
-        MainWindow window,
+        FrameworkElement window,
         FrameworkElement root,
         string name,
         string state,
@@ -259,7 +334,7 @@ public sealed class LauncherVisualRenderTests
         AssertInside(root, bounds, $"required {name}", state, dpi);
     }
 
-    private static FrameworkElement Get(MainWindow window, string name) =>
+    private static FrameworkElement Get(FrameworkElement window, string name) =>
         Assert.IsAssignableFrom<FrameworkElement>(window.FindName(name));
 
     private static void AssertVisibleElementsStayInside(

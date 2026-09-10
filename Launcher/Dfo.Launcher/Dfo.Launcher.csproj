@@ -7,6 +7,9 @@
     <InternalsVisibleTo Include="Dfo.Launcher.Tests" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="Assets\launcher-hero.png" />
+  </ItemGroup>
+  <ItemGroup>
     <None Update="Launcher.ini.example">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>

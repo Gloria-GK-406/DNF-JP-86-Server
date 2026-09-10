@@ -1,0 +1,105 @@
+<Window x:Class="Dfo.Launcher.RegistrationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="注册账号"
+        Width="440" Height="560"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        AllowsTransparency="True"
+        Background="Transparent"
+        FontFamily="Microsoft YaHei UI">
+  <Window.Resources>
+    <Style x:Key="RegistrationInputStyle" TargetType="TextBox">
+      <Setter Property="Height" Value="46" />
+      <Setter Property="Padding" Value="14,10" />
+      <Setter Property="Margin" Value="0,7,0,15" />
+      <Setter Property="FontSize" Value="14" />
+      <Setter Property="Foreground" Value="#F3F5F8" />
+      <Setter Property="CaretBrush" Value="#49C9FF" />
+      <Setter Property="Background" Value="#A00A1729" />
+      <Setter Property="BorderBrush" Value="#A89052" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style x:Key="RegistrationPasswordStyle" TargetType="PasswordBox">
+      <Setter Property="Height" Value="46" />
+      <Setter Property="Padding" Value="14,10" />
+      <Setter Property="Margin" Value="0,7,0,15" />
+      <Setter Property="FontSize" Value="14" />
+      <Setter Property="Foreground" Value="#F3F5F8" />
+      <Setter Property="CaretBrush" Value="#49C9FF" />
+      <Setter Property="Background" Value="#A00A1729" />
+      <Setter Property="BorderBrush" Value="#A89052" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style x:Key="DialogButtonStyle" TargetType="Button">
+      <Setter Property="Height" Value="46" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="Background" Value="#146DB7" />
+      <Setter Property="BorderBrush" Value="#C6AA61" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+  </Window.Resources>
+
+  <Grid Background="Transparent">
+    <Border x:Name="RegistrationFrame" Margin="12" CornerRadius="9"
+            Background="#FA071427" BorderBrush="#C7AB61" BorderThickness="1.5">
+      <Border.Effect>
+        <DropShadowEffect Color="#000000" BlurRadius="18" ShadowDepth="4" Opacity="0.7" />
+      </Border.Effect>
+      <Grid>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="42" />
+          <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border x:Name="RegistrationDragRegion" Grid.Row="0" Background="#0C1D33"
+                BorderBrush="#5D5030" BorderThickness="0,0,0,1"
+                MouseLeftButtonDown="DragRegion_MouseLeftButtonDown">
+          <TextBlock Text="创建新的冒险家账号" Foreground="#D7CDAF" FontSize="13"
+                     VerticalAlignment="Center" Margin="17,0,0,0" />
+        </Border>
+        <Button x:Name="RegistrationCloseButton" Grid.Row="0" Content="×" Width="38" Height="30"
+                HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,7,0"
+                Foreground="#D8C99E" Background="Transparent" BorderThickness="0"
+                FontSize="18" Cursor="Hand" Click="Cancel_Click" />
+
+        <StackPanel Grid.Row="1" Margin="52,31,52,34">
+          <TextBlock x:Name="RegistrationTitle" Text="注册账号" Foreground="#F4E8C5"
+                     FontSize="29" FontWeight="SemiBold" HorizontalAlignment="Center" />
+          <TextBlock Text="注册成功后将自动返回登录界面" Foreground="#8192AA"
+                     FontSize="12" HorizontalAlignment="Center" Margin="0,7,0,25" />
+
+          <TextBlock Text="账号" Foreground="#AEBBD0" FontSize="13" />
+          <TextBox x:Name="RegistrationLoginIdBox" AutomationProperties.Name="注册账号"
+                   Style="{StaticResource RegistrationInputStyle}" />
+          <TextBlock Text="密码" Foreground="#AEBBD0" FontSize="13" />
+          <PasswordBox x:Name="RegistrationPasswordInput" AutomationProperties.Name="注册密码"
+                       Style="{StaticResource RegistrationPasswordStyle}" />
+          <TextBlock Text="确认密码" Foreground="#AEBBD0" FontSize="13" />
+          <PasswordBox x:Name="RegistrationConfirmPasswordInput" AutomationProperties.Name="确认密码"
+                       Style="{StaticResource RegistrationPasswordStyle}" />
+
+          <TextBlock x:Name="RegistrationErrorText" Foreground="#FF9EAA" TextWrapping="Wrap"
+                     MinHeight="34" Margin="0,-2,0,10" />
+
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="12" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Button x:Name="RegistrationCancelButton" Content="取消" Click="Cancel_Click"
+                    Foreground="#D6DCE7" Background="#1C2B42" BorderBrush="#6D7890"
+                    Style="{StaticResource DialogButtonStyle}" />
+            <Button x:Name="RegistrationSubmitButton" Grid.Column="2" Content="完成注册"
+                    Click="Register_Click" IsEnabled="{Binding CanSubmit}"
+                    Style="{StaticResource DialogButtonStyle}" />
+          </Grid>
+        </StackPanel>
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

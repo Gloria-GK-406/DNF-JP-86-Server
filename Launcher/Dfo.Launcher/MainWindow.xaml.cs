@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Input;
 using Dfo.Launcher.ViewModels;
 
 namespace Dfo.Launcher;
@@ -14,20 +15,41 @@ public partial class MainWindow : Window
         this.DataContext = viewModel;
     }
 
-    private void ShowLogin_Click(object sender, RoutedEventArgs e)
+    public void RestoreRememberedPassword()
     {
-        this.PasswordInput.Clear();
-        this.viewModel.ShowLogin();
+        if (this.IsLoaded && this.viewModel.RememberCredentials)
+        {
+            this.PasswordInput.Password = this.viewModel.RememberedPassword;
+        }
     }
 
-    private void ShowRegister_Click(object sender, RoutedEventArgs e)
+    private void DragRegion_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        this.PasswordInput.Clear();
-        this.viewModel.ShowRegister();
+        if (e.LeftButton == MouseButtonState.Pressed)
+        {
+            this.DragMove();
+        }
+    }
+
+    private void Minimize_Click(object sender, RoutedEventArgs e) =>
+        this.WindowState = WindowState.Minimized;
+
+    private void Close_Click(object sender, RoutedEventArgs e) => this.Close();
+
+    private void OpenRegistration_Click(object sender, RoutedEventArgs e)
+    {
+        if (!this.viewModel.RegistrationEnabled || !this.viewModel.CanSubmit)
+        {
+            return;
+        }
+
+        var registration = new RegistrationWindow(this.viewModel) { Owner = this };
+        _ = registration.ShowDialog();
     }
 
     private async void Submit_Click(object sender, RoutedEventArgs e)
     {
+        this.viewModel.ShowLogin();
         var password = this.PasswordInput.Password;
         try
         {
@@ -49,6 +71,7 @@ public partial class MainWindow : Window
     {
         this.PasswordInput.Clear();
         await this.viewModel.RetryAsync();
+        this.RestoreRememberedPassword();
     }
 
     protected override void OnClosed(EventArgs e)
