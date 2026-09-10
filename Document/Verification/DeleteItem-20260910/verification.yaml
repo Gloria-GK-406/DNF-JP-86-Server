@@ -4,7 +4,8 @@ verified_at: 2026-09-10
 decision: pass
 claim: >-
   The server decodes, validates, transactionally applies, and acknowledges the 19-byte A21
-  ordinary single-item discard path, while preserving but not using the two tail semantics.
+  ordinary single-item discard path, while preserving but not using the two tail semantics;
+  the ordinary equipment and stackable paths are ClientVerified.
 conditions:
   - name: wire codec and registration
     result: pass
@@ -29,13 +30,19 @@ conditions:
         $env:PVF_ARCHIVE_PATH='E:\Project\DNF\DNFClient-A21-debug\Script.pvf';
         dotnet test Server/86JP.Server.slnx --no-restore --nologo --verbosity minimal -m:1
       outcome: 2744 passed, 2 conditionally skipped, 0 failed across 2746 tests
+  - name: live A21 client deletion and persisted result
+    result: pass
+    evidence:
+      outcome: >-
+        User confirmed successful client deletion; two transactional commands removed equipment
+        27312 from slot 9 and stackable 10007476 from slot 65; both rows were absent after normal exit.
+      source: protocol/game/client-to-server/traces/a21-delete-item-live-20260910.md
   - name: diff formatting
     result: pass
     evidence:
       command: git diff --check
       outcome: no errors
 limitations:
-  - Live A21 client behavior has not yet been retested, so the catalog remains at implementation rather than ClientVerified.
   - The 18-byte operationType 0 builder, batches, avatars, creatures, worn containers, and collection-box behavior remain outside scope.
   - >-
     The generated protocol acceptance checker still reports its existing two undeclared-extra documents,
