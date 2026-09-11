@@ -143,6 +143,45 @@ internal sealed class SelectCharacterSessionEntryService(
     IPvpLobbyDomainService pvp,
     ICharacterPositionDomainService positions) : ISelectCharacterSessionEntryDomainService
 {
+    public TownParticipantPublicationPlan? PlanTownPublication(
+        SelectedSessionIdentity session, SelectCharacterResult result)
+    {
+        var position = positions.Find(session.CharacterId)
+            ?? throw new InvalidDataException("The published town position is unavailable.");
+        var occupants = presence.InArea(
+            position.TownId, position.AreaId, session.CharacterId);
+        if (occupants.Count == 0)
+            return null;
+
+        var existing = new List<TownParticipantEntryState>(occupants.Count);
+        var audience = new List<CharacterId>(occupants.Count);
+        foreach (var occupant in occupants)
+        {
+            var owner = occupant.Session ?? sessions.FindByCharacter(occupant.CharacterId);
+            if (owner is null
+                || !runtimes.TryGet(owner, out var otherResult, out _)
+                || otherResult is null
+                || positions.Find(occupant.CharacterId) is not { } otherPosition)
+            {
+                continue;
+            }
+
+            existing.Add(CreateTownParticipant(otherResult, otherPosition));
+            audience.Add(occupant.CharacterId);
+        }
+
+        if (existing.Count == 0)
+            return null;
+
+        return new TownParticipantPublicationPlan(
+            audience,
+            new TownPresenceSynchronizationState(
+                position.TownId,
+                position.AreaId,
+                CreateTownParticipant(result, position),
+                existing));
+    }
+
     public PvpLobbySynchronizationState? PlanPvp(
         SelectedSessionIdentity session, SelectCharacterResult result)
     {
@@ -227,5 +266,29 @@ internal sealed class SelectCharacterSessionEntryService(
             result.CharacterEntry.Public,
             equipment,
             result.CharacterEntry.Features.Pets);
+    }
+
+    private static TownParticipantEntryState CreateTownParticipant(
+        SelectCharacterResult result,
+        CharacterPositionState position)
+    {
+        var equipment = result.CharacterInventory.Containers
+            .SingleOrDefault(value =>
+                value.ContainerType == Dfo.Server.Data.Inventory.InventoryContainerType.Equipment)
+            ?.Items ?? [];
+        var spawn = result.World.Channel.Spawn with
+        {
+            TownId = position.TownId,
+            AreaId = position.AreaId,
+            X = position.X,
+            Y = position.Y,
+            Direction = position.Direction,
+        };
+        return new TownParticipantEntryState(
+            result.Character,
+            result.CharacterEntry.Public,
+            equipment,
+            result.CharacterEntry.Features.Pets,
+            spawn);
     }
 }

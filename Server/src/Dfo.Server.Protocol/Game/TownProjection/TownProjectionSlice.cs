@@ -2,9 +2,13 @@ using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
+using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Microsoft.Extensions.Logging;
 
@@ -214,9 +218,11 @@ public sealed class SetUserAreaHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     ICharacterPositionDomainService positions,
+    ISessionPresenceDomainService presence,
     IChannelEntryPolicy channels,
     ITownMovementDomainService towns,
     IGameMessageSender sender,
+    INotificationBus notifications,
     ILogger<SetUserAreaHandler> logger) : ClientMessageHandler<SetUserAreaRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -272,10 +278,25 @@ public sealed class SetUserAreaHandler(
             return;
         }
 
+        var sameArea = standing.TownId == message.TownId && standing.AreaId == message.AreaId;
+        var oldAudience = sameArea
+            ? []
+            : presence.InArea(standing.TownId, standing.AreaId, session.CharacterId)
+                .Select(value => value.CharacterId)
+                .ToArray();
+
         // Reported rather than assembled here and written back: the destination is what this
         // command carries, and the facing it keeps is the service's to hold.
         var moved = positions.CrossInto(
             session, message.TownId, message.AreaId, message.X, message.Y);
+        if (!presence.RelocateExact(
+                session, moved.TownId, moved.AreaId, standingInTown: true))
+        {
+            logger.LogWarning(
+                "Set user area {ConnectionId}: presence generation changed while moving",
+                context.Connection.ConnectionId);
+            return;
+        }
 
         logger.LogInformation(
             "Set user area {ConnectionId} user={WireUserId}: {FromTown}:{FromArea} -> "
@@ -295,26 +316,96 @@ public sealed class SetUserAreaHandler(
             AreaId = moved.AreaId,
             X = moved.X,
             Y = moved.Y,
+            Direction = moved.Direction,
         };
+        var existing = new List<TownParticipantEntryState>();
+        var newAudience = new List<CharacterId>();
+        foreach (var occupant in presence.InArea(
+                     moved.TownId, moved.AreaId, session.CharacterId))
+        {
+            var owner = occupant.Session ?? selectedSessions.FindByCharacter(occupant.CharacterId);
+            if (owner is null
+                || !runtimeSessions.TryGet(owner, out var otherResult, out _)
+                || otherResult is null
+                || positions.Find(occupant.CharacterId) is not { } otherPosition)
+            {
+                continue;
+            }
+
+            existing.Add(CreateParticipant(otherResult, otherPosition));
+            newAudience.Add(occupant.CharacterId);
+        }
+
+        var direct = new List<IGameServerMessage>
+        {
+            new UserAreaNotification(session.WireUserId, spawn, moved.AreaId),
+        };
+        TownPresenceSynchronizationState? state = null;
+        if (existing.Count == 0)
+        {
+            direct.Add(new AreaUsersNotification(
+                moved.TownId,
+                moved.AreaId,
+                [new AreaUserPresence(
+                    session.WireUserId, moved.X, moved.Y,
+                    moved.Direction, spawn.AreaState)]));
+        }
+        else
+        {
+            state = new TownPresenceSynchronizationState(
+                moved.TownId,
+                moved.AreaId,
+                CreateParticipant(result, moved),
+                existing);
+            direct.AddRange(TownPresenceMessages.ForNewcomer(state));
+        }
         // Both frames, in this order. 0x0017 places the character; 0x0018 is the area's roster and
         // the client will not settle into the new area without it -- answering with 0x0017 alone made
         // it resend the same 0x0024 eight times.
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(
-                [
-                    new UserAreaNotification(session.WireUserId, spawn, moved.AreaId),
-                    new AreaUsersNotification(
-                        moved.TownId,
-                        moved.AreaId,
-                        [
-                            new AreaUserPresence(
-                                session.WireUserId, moved.X, moved.Y,
-                                moved.Direction, spawn.AreaState),
-                        ]),
-                ],
+                direct,
                 []),
             cancellationToken).ConfigureAwait(false);
+
+        if (oldAudience.Length > 0)
+        {
+            await notifications.PublishAsync(
+                new NotificationAudience.TheseCharacters(oldAudience),
+                new TownParticipantDeparted(session.WireUserId),
+                cancellationToken).ConfigureAwait(false);
+        }
+        if (!sameArea && newAudience.Count > 0 && state is not null)
+        {
+            await notifications.PublishAsync(
+                new NotificationAudience.TheseCharacters(newAudience),
+                new TownParticipantPublished(state),
+                cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static TownParticipantEntryState CreateParticipant(
+        SelectCharacterResult result,
+        CharacterPositionState position)
+    {
+        var equipment = result.CharacterInventory.Containers
+            .SingleOrDefault(value =>
+                value.ContainerType == Dfo.Server.Data.Inventory.InventoryContainerType.Equipment)
+            ?.Items ?? [];
+        return new TownParticipantEntryState(
+            result.Character,
+            result.CharacterEntry.Public,
+            equipment,
+            result.CharacterEntry.Features.Pets,
+            result.World.Channel.Spawn with
+            {
+                TownId = position.TownId,
+                AreaId = position.AreaId,
+                X = position.X,
+                Y = position.Y,
+                Direction = position.Direction,
+            });
     }
 }
 
@@ -333,10 +424,12 @@ public sealed class SetUserPositionHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     ICharacterPositionDomainService positions,
+    ISessionPresenceDomainService presence,
     IGameMessageSender sender,
+    INotificationBus notifications,
     ILogger<SetUserPositionHandler> logger) : ClientMessageHandler<SetUserPositionRequest>
 {
-    protected override ValueTask HandleMessageAsync(
+    protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
         SetUserPositionRequest message,
         CancellationToken cancellationToken)
@@ -351,16 +444,33 @@ public sealed class SetUserPositionHandler(
                 context.Connection.ConnectionId,
                 message.X,
                 message.Y);
-            return ValueTask.CompletedTask;
+            return;
         }
 
         // The step is reported and the service keeps the rest of where they were. Nothing here
         // reads the position back: the answer this frame carries is the one the client just sent.
-        _ = positions.StepTo(session, message.X, message.Y, message.Direction);
-        return sender.SendNotiAsync(
+        var moved = positions.StepTo(session, message.X, message.Y, message.Direction);
+        await sender.SendNotiAsync(
             context.Connection.ConnectionId,
             new UserPositionNotification(
                 session.WireUserId, message.X, message.Y, message.Direction, message.Trailer),
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
+
+        var audience = presence.InArea(
+            moved.TownId, moved.AreaId, session.CharacterId)
+            .Select(value => value.CharacterId)
+            .ToArray();
+        if (audience.Length > 0)
+        {
+            await notifications.PublishAsync(
+                new NotificationAudience.TheseCharacters(audience),
+                new TownPositionChanged(
+                    session.WireUserId,
+                    message.X,
+                    message.Y,
+                    message.Direction,
+                    message.Trailer),
+                cancellationToken).ConfigureAwait(false);
+        }
     }
 }

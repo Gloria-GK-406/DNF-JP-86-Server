@@ -1,4 +1,5 @@
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 
 namespace Dfo.Server.Data.World;
@@ -24,6 +25,26 @@ public sealed record TownPresenceEntryState(
 {
     public static TownPresenceEntryState Empty { get; } = new(0, 0, Array.Empty<PresentCharacterState>());
 }
+
+/// <summary>Everything the town client needs to draw one nearby character at their live position.</summary>
+public sealed record TownParticipantEntryState(
+    ActiveCharacterState Character,
+    CharacterPublicEntryState Public,
+    IReadOnlyList<InventoryItemState> Equipment,
+    IReadOnlyList<CharacterPetRuntimeState> Pets,
+    EntrySpawnState Spawn);
+
+/// <summary>The stable town view captured when one character is published.</summary>
+public sealed record TownPresenceSynchronizationState(
+    byte TownId,
+    byte AreaId,
+    TownParticipantEntryState Newcomer,
+    IReadOnlyList<TownParticipantEntryState> ExistingCharacters);
+
+/// <summary>The view sent to the entering character and the existing characters told about it.</summary>
+public sealed record TownParticipantPublicationPlan(
+    IReadOnlyList<CharacterId> Audience,
+    TownPresenceSynchronizationState State);
 
 /// <summary>
 /// Migration matrix X-17: the expert-store situation where the character arrives.

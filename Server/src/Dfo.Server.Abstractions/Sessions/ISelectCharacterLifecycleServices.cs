@@ -11,6 +11,8 @@ public interface ISelectedSessionCleanupDomainService
 
 public interface ISelectCharacterSessionEntryDomainService
 {
+    TownParticipantPublicationPlan? PlanTownPublication(
+        SelectedSessionIdentity session, SelectCharacterResult result);
     PvpLobbySynchronizationState? PlanPvp(SelectedSessionIdentity session, SelectCharacterResult result);
     PvpParticipantPublicationPlan PlanPvpPublication(
         SelectedSessionIdentity session, SelectCharacterResult result);

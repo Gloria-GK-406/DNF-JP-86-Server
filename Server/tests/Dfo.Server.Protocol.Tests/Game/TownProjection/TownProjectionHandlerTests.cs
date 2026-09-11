@@ -1,9 +1,11 @@
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
@@ -12,6 +14,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonSelection;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -48,14 +51,18 @@ public sealed class TownProjectionHandlerTests
     public async Task A_crossing_moves_the_character_the_service_owns()
     {
         var positions = Standing();
+        var presenceRegistry = Presence();
         var sender = new RecordingSender();
+        var notifications = new RecordingNotifications();
         var handler = new SetUserAreaHandler(
             new OneSession(Identity),
             new OneRuntimeSession(Entry()),
             positions,
+            presenceRegistry,
             new OneChannel(),
             new EveryTownDeclared(),
             sender,
+            notifications,
             NullLogger<SetUserAreaHandler>.Instance);
 
         await handler.HandleAsync(
@@ -84,6 +91,100 @@ public sealed class TownProjectionHandlerTests
             positions.Find(Identity.CharacterId));
     }
 
+    [Fact]
+    public async Task Crossing_areas_removes_the_mover_from_the_old_peers_and_publishes_to_the_new_peers()
+    {
+        var oldPeer = PeerIdentity(61, "old");
+        var newPeer = PeerIdentity(62, "new");
+        var sessions = new SelectedSessionDomainService();
+        sessions.Select(Identity);
+        sessions.Select(oldPeer);
+        sessions.Select(newPeer);
+        var runtimes = new SelectedSessionRuntimeDirectory();
+        runtimes.Publish(
+            Identity,
+            EntryFor(Identity, WalkedTownId, WalkedAreaId, WalkedX),
+            shouldPersistPosition: false);
+        runtimes.Publish(
+            oldPeer,
+            EntryFor(oldPeer, WalkedTownId, WalkedAreaId, x: 700),
+            shouldPersistPosition: false);
+        runtimes.Publish(
+            newPeer,
+            EntryFor(newPeer, CrossedTownId, CrossedAreaId, x: 800),
+            shouldPersistPosition: false);
+        var positions = Standing();
+        positions.Place(
+            oldPeer,
+            new CharacterPositionState(
+                WalkedTownId, WalkedAreaId, 700, 300, WalkedDirection));
+        positions.Place(
+            newPeer,
+            new CharacterPositionState(
+                CrossedTownId, CrossedAreaId, 800, 300, WalkedDirection));
+        var presence = Presence();
+        presence.Admit(new SessionPresence(
+            oldPeer.CharacterId,
+            oldPeer.ListenerPort,
+            WalkedTownId,
+            WalkedAreaId,
+            StandingInTown: true,
+            oldPeer));
+        presence.Admit(new SessionPresence(
+            newPeer.CharacterId,
+            newPeer.ListenerPort,
+            CrossedTownId,
+            CrossedAreaId,
+            StandingInTown: true,
+            newPeer));
+        var sender = new RecordingSender();
+        var notifications = new RecordingNotifications();
+        var handler = new SetUserAreaHandler(
+            sessions,
+            runtimes,
+            positions,
+            presence,
+            new OneChannel(),
+            new EveryTownDeclared(),
+            sender,
+            notifications,
+            NullLogger<SetUserAreaHandler>.Instance);
+
+        await handler.HandleAsync(
+            Dispatch(),
+            new SetUserAreaRequest(
+                GameMessageMetadata.Empty, CrossedTownId, CrossedAreaId, CrossedX, CrossedY),
+            CancellationToken.None);
+
+        Assert.Collection(
+            notifications.Published,
+            item =>
+            {
+                Assert.Equal(
+                    [oldPeer.CharacterId],
+                    Assert.IsType<NotificationAudience.TheseCharacters>(item.Audience).CharacterIds);
+                Assert.IsType<TownParticipantDeparted>(item.Notification);
+            },
+            item =>
+            {
+                Assert.Equal(
+                    [newPeer.CharacterId],
+                    Assert.IsType<NotificationAudience.TheseCharacters>(item.Audience).CharacterIds);
+                var published = Assert.IsType<TownParticipantPublished>(item.Notification);
+                Assert.Equal(Identity.CharacterId, published.State.Newcomer.Character.Identity.CharacterId);
+                Assert.Equal(
+                    newPeer.CharacterId,
+                    Assert.Single(published.State.ExistingCharacters).Character.Identity.CharacterId);
+            });
+        Assert.Collection(
+            sender.Sent,
+            message => Assert.IsType<UserAreaNotification>(message),
+            message => Assert.IsType<CurrentUserStateMessage>(message),
+            message => Assert.IsType<UserVisibilityMessage>(message),
+            message => Assert.IsType<UserAreaNotification>(message),
+            message => Assert.IsType<AreaUsersNotification>(message));
+    }
+
     /// <summary>
     /// A step moves the character the service owns, in the area the service says they are in.
     /// </summary>
@@ -97,12 +198,16 @@ public sealed class TownProjectionHandlerTests
     public async Task A_step_moves_the_character_the_service_owns()
     {
         var positions = Standing();
+        var presence = Presence();
         var sender = new RecordingSender();
+        var notifications = new RecordingNotifications();
         var handler = new SetUserPositionHandler(
             new OneSession(Identity),
             new OneRuntimeSession(Entry()),
             positions,
+            presence,
             sender,
+            notifications,
             NullLogger<SetUserPositionHandler>.Instance);
 
         await handler.HandleAsync(
@@ -121,6 +226,44 @@ public sealed class TownProjectionHandlerTests
         Assert.Equal(SteppedY, answer.Y);
         Assert.Equal(SteppedDirection, answer.Direction);
         Assert.Equal(Trailer, answer.Trailer);
+    }
+
+    [Fact]
+    public async Task A_step_is_published_to_the_other_characters_in_the_area()
+    {
+        var positions = Standing();
+        var presence = Presence();
+        presence.Admit(new SessionPresence(
+            new CharacterId(61),
+            Identity.ListenerPort,
+            WalkedTownId,
+            WalkedAreaId,
+            StandingInTown: true));
+        var notifications = new RecordingNotifications();
+        var handler = new SetUserPositionHandler(
+            new OneSession(Identity),
+            new OneRuntimeSession(Entry()),
+            positions,
+            presence,
+            new RecordingSender(),
+            notifications,
+            NullLogger<SetUserPositionHandler>.Instance);
+
+        await handler.HandleAsync(
+            Dispatch(),
+            new SetUserPositionRequest(
+                GameMessageMetadata.Empty, SteppedX, SteppedY, SteppedDirection, Trailer),
+            CancellationToken.None);
+
+        var (audience, notification) = Assert.Single(notifications.Published);
+        Assert.Equal(
+            [new CharacterId(61)],
+            Assert.IsType<NotificationAudience.TheseCharacters>(audience).CharacterIds);
+        var changed = Assert.IsType<TownPositionChanged>(notification);
+        Assert.Equal(Identity.WireUserId, changed.WireUserId);
+        Assert.Equal(SteppedX, changed.X);
+        Assert.Equal(SteppedY, changed.Y);
+        Assert.Equal(SteppedDirection, changed.Direction);
     }
 
     /// <summary>Where entry placed them, which is the copy the session snapshot keeps.</summary>
@@ -172,6 +315,19 @@ public sealed class TownProjectionHandlerTests
         return positions;
     }
 
+    private static SessionPresenceDomainService Presence()
+    {
+        var presence = new SessionPresenceDomainService();
+        presence.Admit(new SessionPresence(
+            Identity.CharacterId,
+            Identity.ListenerPort,
+            WalkedTownId,
+            WalkedAreaId,
+            StandingInTown: true,
+            Identity));
+        return presence;
+    }
+
     /// <summary>
     /// A published session whose copy of the position is the one entry took, and stale.
     /// </summary>
@@ -198,6 +354,38 @@ public sealed class TownProjectionHandlerTests
         };
     }
 
+    private static SelectCharacterResult EntryFor(
+        SelectedSessionIdentity identity,
+        byte townId,
+        byte areaId,
+        short x)
+    {
+        var result = SelectCharacterPayloadTestData.CreateComplete();
+        var position = new CharacterPositionState(townId, areaId, x, 300, WalkedDirection);
+        return result with
+        {
+            Character = result.Character with
+            {
+                Identity = result.Character.Identity with { CharacterId = identity.CharacterId },
+                Position = position,
+            },
+            World = result.World with
+            {
+                Channel = result.World.Channel with
+                {
+                    Spawn = result.World.Channel.Spawn with
+                    {
+                        TownId = townId,
+                        AreaId = areaId,
+                        X = x,
+                        Y = 300,
+                        Direction = WalkedDirection,
+                    },
+                },
+            },
+        };
+    }
+
     private static NetworkDispatchContext Dispatch() =>
         new(new NetworkConnectionContext(
             new NetworkConnectionId("one"), NetworkEndpointKind.Game, 10010));
@@ -208,6 +396,14 @@ public sealed class TownProjectionHandlerTests
         new NetworkConnectionId("one"),
         connectionGeneration: 1,
         listenerPort: 10010);
+
+    private static SelectedSessionIdentity PeerIdentity(int characterId, string connection) =>
+        SelectedSessionIdentity.Create(
+            new AccountId(characterId),
+            new CharacterId(characterId),
+            new NetworkConnectionId(connection),
+            connectionGeneration: 1,
+            listenerPort: 10010);
 
     private sealed class OneSession(SelectedSessionIdentity identity) : ISelectedSessionDomainService
     {
@@ -309,6 +505,21 @@ public sealed class TownProjectionHandlerTests
         {
             this.Sent.AddRange(delivery.RequiredDirectMessages);
             return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class RecordingNotifications : INotificationBus
+    {
+        public List<(NotificationAudience Audience, object Notification)> Published { get; } = [];
+
+        public ValueTask<NotificationDelivery> PublishAsync<TNotification>(
+            NotificationAudience audience,
+            TNotification notification,
+            CancellationToken cancellationToken)
+            where TNotification : class, INotification<TNotification>
+        {
+            Published.Add((audience, notification));
+            return ValueTask.FromResult(new NotificationDelivery([]));
         }
     }
 }

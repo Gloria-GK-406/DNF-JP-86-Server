@@ -461,6 +461,21 @@ public sealed partial class SelectCharacterLifecycleTests
     }
 
     [Fact]
+    public async Task EnteringAnOccupiedTown_PublishesTheNewcomerToTheExistingCharacters()
+    {
+        var fixture = await Fixture.CreateAsync(planTown: true);
+
+        await fixture.Handler.HandleAsync(
+            fixture.Context, fixture.Command, CancellationToken.None);
+
+        var (audience, notification) = Assert.Single(fixture.Notifications.Published);
+        Assert.Equal(
+            [new CharacterId(4243)],
+            Assert.IsType<NotificationAudience.TheseCharacters>(audience).CharacterIds);
+        Assert.Equal("TownParticipantPublished", notification.GetType().Name);
+    }
+
+    [Fact]
     public async Task SameConnectionSwitch_RefreshesGenerationAfterNormalCleanup()
     {
         var fixture = await Fixture.CreateAsync();
@@ -618,7 +633,8 @@ public sealed partial class SelectCharacterLifecycleTests
             bool failPreparation = false,
             bool missingRoster = false,
             bool missingSkillMirror = false,
-            bool refillCommits = false)
+            bool refillCommits = false,
+            bool planTown = false)
         {
             var accountId = new AccountId(501);
             var connectionId = new NetworkConnectionId("Game:lifecycle");
@@ -640,6 +656,23 @@ public sealed partial class SelectCharacterLifecycleTests
                     CharacterEntry = result.CharacterEntry with
                     {
                         Skills = result.CharacterEntry.Skills with { ProtocolMirror = null },
+                    },
+                };
+            if (planTown)
+                result = result with
+                {
+                    Session = result.Session with
+                    {
+                        Adjacent = result.Session.Adjacent with
+                        {
+                            TownPresence = new TownPresenceEntryState(
+                                result.World.Channel.Spawn.TownId,
+                                result.World.Channel.Spawn.AreaId,
+                                [new PresentCharacterState(
+                                    new CharacterId(4243),
+                                    result.World.Channel.Spawn.TownId,
+                                    result.World.Channel.Spawn.AreaId)]),
+                        },
                     },
                 };
             var ledger = new List<string>();
@@ -929,6 +962,33 @@ public sealed partial class SelectCharacterLifecycleTests
         : ISelectCharacterSessionEntryDomainService
     {
         public SelectCharacterResult? RuntimeResult { get; private set; }
+        public TownParticipantPublicationPlan? PlanTownPublication(
+            SelectedSessionIdentity session, SelectCharacterResult result)
+        {
+            var nearby = result.Session.Adjacent.TownPresence.Others;
+            if (nearby.Count == 0)
+                return null;
+
+            var spawn = result.World.Channel.Spawn;
+            var existing = nearby.Select(other => Participant(
+                result with
+                {
+                    Character = result.Character with
+                    {
+                        Identity = result.Character.Identity with
+                        { CharacterId = other.CharacterId },
+                    },
+                },
+                spawn with { TownId = other.TownId, AreaId = other.AreaId })).ToArray();
+            return new TownParticipantPublicationPlan(
+                [.. nearby.Select(other => other.CharacterId)],
+                new TownPresenceSynchronizationState(
+                    spawn.TownId,
+                    spawn.AreaId,
+                    Participant(result, spawn),
+                    existing));
+        }
+
         public PvpLobbySynchronizationState? PlanPvp(
             SelectedSessionIdentity session, SelectCharacterResult result)
         {
@@ -968,6 +1028,21 @@ public sealed partial class SelectCharacterLifecycleTests
                 result.CharacterEntry.Public,
                 equipment,
                 result.CharacterEntry.Features.Pets);
+        }
+
+        private static TownParticipantEntryState Participant(
+            SelectCharacterResult result,
+            EntrySpawnState spawn)
+        {
+            var equipment = result.CharacterInventory.Containers
+                .SingleOrDefault(value => value.ContainerType == InventoryContainerType.Equipment)
+                ?.Items ?? [];
+            return new TownParticipantEntryState(
+                result.Character,
+                result.CharacterEntry.Public,
+                equipment,
+                result.CharacterEntry.Features.Pets,
+                spawn);
         }
     }
 

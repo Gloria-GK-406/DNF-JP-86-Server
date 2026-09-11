@@ -112,6 +112,12 @@ public sealed class ProtocolModule : IServerModule
             // redraws who is standing where, and by the time a retry ran the person it describes
             // has been gone for a second -- the notice would arrive as news about nobody.
             retryLimit: 0);
+        services.AddNotificationHandler<TownParticipantPublished, TownParticipantPublishedHandler>(
+            retryLimit: 1);
+        services.AddNotificationHandler<TownPositionChanged, TownPositionChangedHandler>(
+            retryLimit: 0);
+        services.AddNotificationHandler<TownParticipantDeparted, TownParticipantDepartedHandler>(
+            retryLimit: 0);
         services.TryAddSingleton<ChannelProtocolKeyProvider>();
         services.TryAddSingleton(SelectCharacterDeliveryOptions.Everything);
         services.TryAddSingleton<ISelectedCharacterStateMessageFactory, SelectedCharacterStateMessageFactoryService>();

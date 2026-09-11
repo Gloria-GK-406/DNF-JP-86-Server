@@ -30,6 +30,29 @@ internal sealed class SessionPresenceDomainService : ISessionPresenceDomainServi
         && current.Session == session
         && _byCharacter.TryRemove(new KeyValuePair<CharacterId, SessionPresence>(session.CharacterId, current));
 
+    public bool RelocateExact(
+        SelectedSessionIdentity session,
+        byte townId,
+        byte areaId,
+        bool standingInTown)
+    {
+        while (_byCharacter.TryGetValue(session.CharacterId, out var current))
+        {
+            if (current.Session != session)
+                return false;
+            var moved = current with
+            {
+                TownId = townId,
+                AreaId = areaId,
+                StandingInTown = standingInTown,
+            };
+            if (_byCharacter.TryUpdate(session.CharacterId, moved, current))
+                return true;
+        }
+
+        return false;
+    }
+
     public SessionPresence? Find(CharacterId characterId) =>
         _byCharacter.TryGetValue(characterId, out var presence) ? presence : null;
 

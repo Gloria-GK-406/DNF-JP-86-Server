@@ -185,6 +185,7 @@ public sealed record PublishSelectedCharacterSessionCommand(
 }
 
 public sealed record PublishedSelectedCharacterSession(
+    TownParticipantPublicationPlan? TownPresence,
     PvpLobbySynchronizationState? PvpLobby);
 
 public sealed class PublishSelectedCharacterSessionCommandHandler(
@@ -200,7 +201,9 @@ public sealed class PublishSelectedCharacterSessionCommandHandler(
         activeCharacters.Publish(command.Session);
         sessionEntry.Publish(command.Session, command.State);
         return ValueTask.FromResult(
-            new PublishedSelectedCharacterSession(sessionEntry.PlanPvp(command.Session, command.State)));
+            new PublishedSelectedCharacterSession(
+                sessionEntry.PlanTownPublication(command.Session, command.State),
+                sessionEntry.PlanPvp(command.Session, command.State)));
     }
 }
 

@@ -4,6 +4,7 @@ using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Tests.Sessions;
 
@@ -190,6 +191,27 @@ public sealed class SessionAdjacentEntryTests
 
         Assert.Empty(registry.InArea(1, 0, new CharacterId(99)));
         Assert.Single(registry.InArea(1, 7, new CharacterId(99)));
+    }
+
+    [Fact]
+    public void Relocating_moves_only_the_generation_that_owns_the_presence()
+    {
+        var registry = new SessionPresenceDomainService();
+        var owner = SelectedSessionIdentity.Create(
+            new AccountId(1), new CharacterId(10),
+            new Dfo.Server.Data.Networking.NetworkConnectionId("Game:owner"),
+            connectionGeneration: 1, listenerPort: 10011);
+        var stale = owner with { ConnectionGeneration = 0 };
+        registry.Admit(new SessionPresence(
+            owner.CharacterId, owner.ListenerPort, 1, 0, true, owner));
+
+        Assert.False(registry.RelocateExact(stale, 2, 3, true));
+        Assert.True(registry.RelocateExact(owner, 2, 3, true));
+        Assert.Empty(registry.InArea(1, 0, new CharacterId(99)));
+        Assert.Equal(
+            [10],
+            registry.InArea(2, 3, new CharacterId(99))
+                .Select(value => value.CharacterId.Value));
     }
 
     private static SessionAdjacentSubject Subject(int characterId = 99) => new(

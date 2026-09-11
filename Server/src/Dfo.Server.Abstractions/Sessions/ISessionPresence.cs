@@ -49,6 +49,13 @@ public interface ISessionPresenceDomainService
 
     bool WithdrawExact(SelectedSessionIdentity session);
 
+    /// <summary>Moves exactly the generation that owns this presence record.</summary>
+    bool RelocateExact(
+        SelectedSessionIdentity session,
+        byte townId,
+        byte areaId,
+        bool standingInTown);
+
     /// <summary>The presence recorded for a character, or null when none is.</summary>
     SessionPresence? Find(CharacterId characterId);
 

@@ -13,6 +13,7 @@ using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Protocol.Game.TownProjection;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.SelectCharacter;
@@ -271,6 +272,21 @@ public sealed class SelectCharacterHandler(
         var publication = await commandBus.SendAsync(
             new PublishSelectedCharacterSessionCommand(session, prepared),
             cancellationToken).ConfigureAwait(false);
+        EnsureCurrent(session);
+        if (SendsFramesAfterTheCompletionMarker && publication.TownPresence is { } town)
+        {
+            await sender.SendExplicitAsync(
+                session.ConnectionId,
+                new GameExplicitMessageDelivery(
+                    TownPresenceMessages.ForNewcomer(town.State),
+                    []),
+                cancellationToken).ConfigureAwait(false);
+            EnsureCurrent(session);
+            await notifications.PublishAsync(
+                new NotificationAudience.TheseCharacters(town.Audience),
+                new TownParticipantPublished(town.State),
+                cancellationToken).ConfigureAwait(false);
+        }
         EnsureCurrent(session);
         if (SendsFramesAfterTheCompletionMarker && publication.PvpLobby is { } pvp)
         {
