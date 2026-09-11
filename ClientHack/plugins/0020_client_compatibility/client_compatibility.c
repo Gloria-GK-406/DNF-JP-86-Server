@@ -49,7 +49,6 @@ static const uint8_t original_manual_channel[] = { 0x74 };
 static const uint8_t jump_short[] = { 0xEB };
 static const uint8_t original_jge_type52[] = { 0x7D };
 static const uint8_t patched_jz_type52[] = { 0x74 };
-static const uint8_t original_facebar_blit[] = { 0xE8, 0xF8, 0xFC, 0xFF, 0xFF };
 
 static const compatibility_patch patches[] = {
     /* SetCodePage GBK(936) -> UTF-8(65001). The patch lands on the immediate
@@ -74,11 +73,6 @@ static const compatibility_patch patches[] = {
     /* packed JGE -> JZ, so packet types 52-55 reach the first write path. */
     { 0x0165A5D2u, original_jge_type52, patched_jz_type52,
         sizeof(patched_jz_type52), "type52-branch" },
-    /* Trailing face-bar blit, NOPed: it draws the missing-image stub at (0,0)
-     * on select->town because the slot index is past the available frames.
-     * Later official callers of the same routine still run. */
-    { 0x015E97A3u, original_facebar_blit, nop5, sizeof(nop5),
-        "nop-facebar-blit" }
 };
 
 #endif
