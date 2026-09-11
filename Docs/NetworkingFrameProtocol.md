@@ -189,7 +189,7 @@ DString 仍是 `int32 LE` 字节长度后紧跟 ASCII 字节，不带零终止�
 每个字符串的旧代码上限为 256 字节。旧登录逻辑按 `m_id` 查询账号；不存在时使用收到的
 密码 Hash 创建账号，存在时直接复用旧账号，并未在该路径验证新收到的密码 Hash。当前
 实现不复用该认证语义：HTTP 端先用持久账号名和密码验证账号，再签发只存在于本 Host 进程内的
-`mId + ticket摘要 → AccountId` 映射。新登录替换同账号的旧映射，Game 原子兑换一次，60 秒过期；
+`mId + ticket摘要 → AccountId` 映射。新登录替换同账号的旧映射，Game 原子兑换一次，180 秒过期；
 Host 重启即全部失效。SQLite 不保存临时 `mId`、原始 ticket 或 ticket 摘要。
 
 基础成功响应使用 `cmd=0x01/type=0x0001`，Body 为：

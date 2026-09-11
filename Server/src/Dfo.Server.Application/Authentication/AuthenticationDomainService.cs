@@ -42,7 +42,7 @@ internal sealed class AuthenticationDomainService(
             && !await persistence.TryReplaceCredentialAsync(account.AccountId, account.PasswordHash, passwords.Hash(password), cancellationToken))
             return new(AuthenticationStatus.InvalidCredentials);
         var now = clock.GetUtcNow();
-        var expiresAt = now.AddSeconds(60);
+        var expiresAt = now.AddSeconds(180);
         var session = sessions.Issue(account.AccountId, now, expiresAt);
         return new(AuthenticationStatus.Success, session.MId, session.Ticket, session.ExpiresAtUtc);
     }

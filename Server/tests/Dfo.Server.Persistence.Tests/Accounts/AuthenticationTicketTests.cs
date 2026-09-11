@@ -19,7 +19,7 @@ public sealed class AuthenticationTicketTests
         Assert.Matches("^[0-9A-F]{32}$", first.Ticket);
         Assert.NotEqual(first.MId, second.MId);
         Assert.NotEqual(first.Ticket, second.Ticket);
-        Assert.Equal(fixture.Clock.Now.AddSeconds(60), first.ExpiresAtUtc);
+        Assert.Equal(fixture.Clock.Now.AddSeconds(180), first.ExpiresAtUtc);
         Assert.Null(await fixture.Consume(first.MId!, first.Ticket));
         Assert.NotNull(await fixture.Consume(second.MId!, second.Ticket!));
         Assert.Equal(

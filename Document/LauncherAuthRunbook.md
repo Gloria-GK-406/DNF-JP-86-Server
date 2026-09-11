@@ -19,7 +19,7 @@
   `ticket` 是 16 个随机字节编码成的 32 位大写十六进制串；二者都不是稳定账号身份。启动器把它们分别
   写入 A21 参数槽 3、4，Game 兑换成功后，服务端才从进程内映射得到稳定 `AccountId`。
 - 进程内会话表只保留临时 `mId`、ticket 摘要、`AccountId`、时限和兑换预留状态，不保留原始 ticket。
-  每个账号的新一次 HTTP 登录会立即替换旧凭据；凭据默认 60 秒过期且只能成功兑换一次。Host 重启会
+  每个账号的新一次 HTTP 登录会立即替换旧凭据；凭据默认 180 秒过期且只能成功兑换一次。Host 重启会
   自然清空全部未兑换凭据，不需要数据库清理。Game 登录失败、连接中断或成功链投递失败后，应重新登录
   取得新凭据，不能重放旧值。
 
@@ -208,7 +208,7 @@ Kestrel 实际收到的 `Request.IsHttps` 和 TCP 对端是否 loopback，因此
 | `invalid_credentials` | 账号不存在与密码错误故意使用同一外部语义；旧账号另检查逐 AccountId 迁移流程。 |
 | 启动器提示缺少 `DNF.exe` | Launcher 发布文件尚未部署到游玩客户端的 `DNF.exe` 同目录。 |
 | Channel 能连、Game 不能连 | 对照 `Channel:Channels:n` 与 `Networking:GamePorts:n` 的索引、NAT 和防火墙。 |
-| Game 登录后断开 | 检查系统时钟、Host 是否在 HTTP 与 Game 两步之间重启、60 秒凭据窗口和服务端稳定原因码；重新 HTTP 登录取得新凭据，不要重放。 |
+| Game 登录后断开 | 检查系统时钟、Host 是否在 HTTP 与 Game 两步之间重启、180 秒凭据窗口和服务端稳定原因码；重新 HTTP 登录取得新凭据，不要重放。 |
 | 成功 CMD 内地址不可达 | 单独核对 `Game:EndpointHost` 与 `GameLogin` 三个端口；它们不从 Channel/Game listener 推断。 |
 
 排错时应保留稳定错误码、trace id、时间和所处 hop，但在共享日志前先确认没有上述秘密。
