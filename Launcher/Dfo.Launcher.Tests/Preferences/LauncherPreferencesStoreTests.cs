@@ -6,6 +6,14 @@ namespace Dfo.Launcher.Tests.Preferences;
 public sealed class LauncherPreferencesStoreTests
 {
     [Fact]
+    public void Default_preferences_path_is_next_to_the_launcher()
+    {
+        var expected = Path.Combine(AppContext.BaseDirectory, "Launcher.preferences.json");
+
+        Assert.Equal(Path.GetFullPath(expected), Path.GetFullPath(JsonLauncherPreferencesStore.DefaultPath));
+    }
+
+    [Fact]
     public async Task Remembered_preferences_contain_login_id_password_and_remember()
     {
         var directory = CreateDirectory();

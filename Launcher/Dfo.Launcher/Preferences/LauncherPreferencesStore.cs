@@ -20,9 +20,8 @@ public sealed class JsonLauncherPreferencesStore(string path) : ILauncherPrefere
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public static string DefaultPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "DfoLauncher",
-        "preferences.json");
+        AppContext.BaseDirectory,
+        "Launcher.preferences.json");
 
     public async ValueTask<LauncherPreferences> LoadAsync(CancellationToken cancellationToken)
     {

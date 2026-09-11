@@ -79,6 +79,14 @@ target_link_libraries(clienthack_endpoint_redirect_tests PRIVATE clienthack_core
 clienthack_warnings(clienthack_endpoint_redirect_tests)
 add_test(NAME clienthack_endpoint_redirect_tests COMMAND clienthack_endpoint_redirect_tests)
 
+add_executable(clienthack_multi_instance_tests
+    tests/test_multi_instance.c
+    plugins/0030_multi_instance/multi_instance_logic.c)
+target_include_directories(clienthack_multi_instance_tests PRIVATE
+    plugins/0030_multi_instance)
+clienthack_warnings(clienthack_multi_instance_tests)
+add_test(NAME clienthack_multi_instance_tests COMMAND clienthack_multi_instance_tests)
+
 add_executable(clienthack_anti_debug_tests tests/test_anti_debug.c)
 target_include_directories(clienthack_anti_debug_tests PRIVATE include plugins)
 clienthack_warnings(clienthack_anti_debug_tests)
@@ -315,6 +323,24 @@ clienthack_plugin_a21(plugin_disable_gameguard_a21
 clienthack_plugin_a21(plugin_client_compatibility_a21
     plugins/0020_client_compatibility/client_compatibility.c
     "0020_ClientCompatibility" "ClientCompatibility")
+add_library(plugin_multi_instance_a21 SHARED
+    plugins/0030_multi_instance/multi_instance.c
+    plugins/0030_multi_instance/multi_instance_logic.c
+    plugins/plugin_entry.c
+    plugins/plugin.def)
+target_include_directories(plugin_multi_instance_a21 PRIVATE
+    include plugins plugins/0030_multi_instance)
+target_compile_definitions(plugin_multi_instance_a21 PRIVATE
+    CLIENTHACK_CLIENT_A21=1
+    CLIENTHACK_PLUGIN_NAME="MultiInstance"
+    CLIENTHACK_PLUGIN_FLAGS=0u)
+clienthack_warnings(plugin_multi_instance_a21)
+set_target_properties(plugin_multi_instance_a21 PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "0030_MultiInstance"
+    RUNTIME_OUTPUT_DIRECTORY "${CLIENTHACK_STAGE_DIR_A21}/plugins"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CLIENTHACK_STAGE_DIR_A21}/plugins"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CLIENTHACK_STAGE_DIR_A21}/plugins")
 clienthack_plugin_a21(plugin_a21_runtime_fix
     plugins/0050_a21_runtime_fix/a21_runtime_fix.c
     "0050_A21RuntimeFix" "A21RuntimeFix")
@@ -388,6 +414,7 @@ add_custom_target(clienthack_plugins_a21 DEPENDS
     plugin_server_redirect_a21
     plugin_disable_gameguard_a21
     plugin_client_compatibility_a21
+    plugin_multi_instance_a21
     plugin_a21_runtime_fix)
 
 clienthack_plugin(plugin_network_hook

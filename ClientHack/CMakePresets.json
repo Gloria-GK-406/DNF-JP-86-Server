@@ -9,14 +9,14 @@
     {
       "name": "win32-debug",
       "displayName": "Win32 Debug",
-      "generator": "Visual Studio 18 2026",
+      "generator": "Visual Studio 17 2022",
       "architecture": "Win32",
       "binaryDir": "${sourceDir}/out/win32-debug"
     },
     {
       "name": "win32-release",
       "displayName": "Win32 Release",
-      "generator": "Visual Studio 18 2026",
+      "generator": "Visual Studio 17 2022",
       "architecture": "Win32",
       "binaryDir": "${sourceDir}/out/win32-release"
     },
