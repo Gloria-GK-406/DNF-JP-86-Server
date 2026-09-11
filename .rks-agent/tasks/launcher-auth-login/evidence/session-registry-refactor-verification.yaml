@@ -1,0 +1,58 @@
+kind: rks-verification
+decision: pass
+claim: >-
+  Launcher HTTP authentication now issues a rotating six-digit mId and a 32-character
+  uppercase hexadecimal ticket, stores the short-lived mapping only in process memory,
+  atomically redeems it once into the stable AccountId, and leaves SQLite responsible only
+  for persistent account, password, and game data.
+authority:
+  source: user-follow-up
+  date: 2026-09-11
+  delta: >-
+    The user's explicit instruction that the temporary credential store must be in memory and
+    must not use SQLite supersedes the original specification's ticket-table persistence detail.
+checks:
+  - conditions: build-quality
+    command: dotnet build Server/86JP.Server.slnx -c Release --no-restore
+    result: 0 warnings, 0 errors
+  - conditions: focused-authentication-behavior
+    command: >-
+      dotnet test Server/tests/Dfo.Server.Persistence.Tests/Dfo.Server.Persistence.Tests.csproj
+      --filter "FullyQualifiedName~AuthenticationTicketTests|FullyQualifiedName~AuthenticationMigrationTests|FullyQualifiedName~AuthenticationConsumptionTests"
+      --no-restore
+    result: 11 passed, 0 failed, 0 skipped
+  - conditions: complete-regression-with-a21-content
+    command: >-
+      $env:PVF_ARCHIVE_PATH='E:\Project\DNF\DNFClient-A21-protocol\Script.pvf';
+      dotnet test Server/86JP.Server.slnx -c Release --no-build --no-restore
+    result: 2961 passed, 0 failed, 2 conditionally skipped
+    evidence: >-
+      Each of the nine generated TRX files was inspected at UnitTestResult level; all 2961
+      executed results passed. The two skipped tests are the deliberate missing-archive cases.
+  - conditions: missing-archive-opposite-configuration
+    command: >-
+      dotnet test Server/tests/Dfo.Server.Infrastructure.Tests/Dfo.Server.Infrastructure.Tests.csproj
+      -c Release --no-build --no-restore --filter FullyQualifiedName~A_missing_archive_fails
+    result: 2 passed, 0 failed, 0 skipped
+  - conditions: published-runtime-credential-lifecycle
+    result: pass
+    evidence: >-
+      A live Release Host on ports 18080, 7001, 10010, and 10011 returned both exact credential
+      shapes; a second login invalidated the first pair; the latest pair redeemed once; replay
+      failed; a newly issued pair failed after a controlled Host restart; the persistent account
+      then logged in and redeemed a fresh pair successfully.
+  - conditions: sqlite-boundary
+    result: pass
+    evidence: >-
+      Live database query after schema initialization and Host restart returned zero tables named
+      login_tickets and one persistent account row for the smoke account.
+  - conditions: deployment
+    result: pass
+    evidence: >-
+      Host and win-x64 Launcher were published. The Launcher DLL hash matched in both
+      DNFClient-A21-protocol and DNFClient-A21-protocol2, while each existing Launcher.ini hash
+      and DNF.exe presence remained unchanged.
+runtime:
+  host_pid: 31500
+  listeners: [18080, 7001, 10010, 10011]
+  stderr_bytes: 0

@@ -51,32 +51,21 @@ public sealed class GameLoginCommandTransactionTests
                 await commands.SendAsync(
                     new RedeemGameLoginCommand(
                         first.OnlineUserId,
-                        "player",
+                        issued.MId!,
                         issued.Ticket),
                     cancellation.Token));
 
             var anonymous = onlineUsers.GetRequired(first.OnlineUserId);
             Assert.Equal(OnlineUserState.Connected, anonymous.State);
             Assert.Null(anonymous.AccountId);
-            Assert.Equal(
-                0L,
-                await ScalarAsync(
-                    databasePath,
-                    "SELECT COUNT(*) FROM login_tickets WHERE consumed_at IS NOT NULL;"));
-
             Assert.True(onlineUsers.TryDisconnectConnection(first.Connection.ConnectionId));
             var second = Register(onlineUsers, "Game:retry-after-cancel");
             var accepted = await commands.SendAsync(
-                new RedeemGameLoginCommand(second.OnlineUserId, "player", issued.Ticket),
+                new RedeemGameLoginCommand(second.OnlineUserId, issued.MId!, issued.Ticket),
                 CancellationToken.None);
 
             Assert.True(accepted.Succeeded);
             Assert.Equal(accepted.AccountId, onlineUsers.GetRequired(second.OnlineUserId).AccountId);
-            Assert.Equal(
-                1L,
-                await ScalarAsync(
-                    databasePath,
-                    "SELECT COUNT(*) FROM login_tickets WHERE consumed_at IS NOT NULL;"));
         }
         finally
         {
@@ -187,15 +176,6 @@ public sealed class GameLoginCommandTransactionTests
             new NetworkConnectionId(id),
             NetworkEndpointKind.Game,
             10011));
-
-    private static async Task<long> ScalarAsync(string databasePath, string sql)
-    {
-        await using var connection = new SqliteConnection($"Data Source={databasePath};Pooling=False");
-        await connection.OpenAsync();
-        using var command = connection.CreateCommand();
-        command.CommandText = sql;
-        return (long)(await command.ExecuteScalarAsync())!;
-    }
 
     private sealed class CancelOnceGameLoginAuthenticationDomainService(
         IAuthenticationDomainService authentication,

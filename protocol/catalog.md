@@ -35,7 +35,7 @@
 
 | Command | Type | 名称 | 角色 | 阶段 | 文档 |
 |---:|---:|---|---|---|---|
-| `0x01` | `0x0001` | LOGIN | Query | 未知 | — |
+| `0x01` | `0x0001` | LOGIN | Query | 实现服务端功能 | [0x0001.md](game/client-to-server/0x0001.md) |
 | `0x01` | `0x0002` | `SET_UDP_IP_PORT` | Report / 无响应 | 实现服务端功能 | [0x0002.md](game/client-to-server/0x0002.md) |
 | `0x01` | `0x0003` | EXIT | Query | 未知 | — |
 | `0x01` | `0x0004` | `SELECT_CHARACTER` | Mutation / 有响应 | 实现服务端功能 | [0x0004.md](game/client-to-server/0x0004.md) |
@@ -279,7 +279,7 @@ NOTI 没有信封。
 
 | Type | 方向 | Body | 观察 |
 |---:|---|---:|---|
-| `0x0001` | C→S | 73 | LOGIN。服务端已实现，含账号凭证与启动参数 auth hash（样本不得入库） |
+| `0x0001` | C→S | 73 | LOGIN。历史参照样本含旧账号凭证与启动参数 auth hash（样本不得入库）；当前服务端沿用两个 DString 的线格式，解释为临时 `mId` 与一次性 `ticket` |
 | `0x0002` | S→C | 18 | 角色列表；样本为空名单。`0x0008` `mode=2` 的响应；服务端编码器含旧服移植的字面量尾部，未验证 |
 | `0x0002` | C→S | 31 | **已定名：`SET_UDP_IP_PORT`**（上游 `CmdPacketType`，2026-08-16 由上游服务端日志 `SET_UDP_IP_PORT registered: bodyLength=31` 确认）。客户端上报自己的 UDP 端点，供 P2P 使用；本服务端不实现，客户端 handler 也不读 body。与 S→C `0x0002` 同 type 反方向。**条件发送**：五次会话中出现四次，2026-08-15 第五次会话完全没发（其后所有 seq 相应下移一位）。出现时只有一个 u32 变化（offset 12，`0x0005C0E2`/`0x0005C022`，像计数或时间戳），其余恒定，含 `0C000000` + 12 字节 ASCII 十六进制串 `30e3a448ed0f`。构包器在**被混淆的第二代码区**（抓包 stack[1] = `RVA 0x04876980`），`.text` 普查查不到 |
 

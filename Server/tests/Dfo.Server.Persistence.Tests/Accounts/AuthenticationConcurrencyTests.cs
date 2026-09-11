@@ -36,9 +36,8 @@ public sealed class AuthenticationConcurrencyTests
             Assert.Equal(AuthenticationStatus.Success, firstResult.Status);
             Assert.Equal(AuthenticationStatus.Success, secondResult.Status);
             Assert.NotEqual(firstResult.Ticket, secondResult.Ticket);
-            Assert.Equal(2L, await fixture.Scalar("SELECT COUNT(*) FROM login_tickets"));
-            Assert.NotNull(await fixture.Consume("first", firstResult.Ticket!));
-            Assert.NotNull(await fixture.Consume("second", secondResult.Ticket!));
+            Assert.NotNull(await fixture.Consume(firstResult.MId!, firstResult.Ticket!));
+            Assert.NotNull(await fixture.Consume(secondResult.MId!, secondResult.Ticket!));
         }
         finally
         {

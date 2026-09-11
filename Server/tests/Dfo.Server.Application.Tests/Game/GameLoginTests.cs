@@ -23,7 +23,10 @@ public sealed class GameLoginTests
         var onlineUserId = OnlineUserId.New();
         var authentication = new StubGameLoginAuthenticationDomainService(new AccountId(42));
         var handler = new RedeemGameLoginCommandHandler(authentication);
-        var command = new RedeemGameLoginCommand(onlineUserId, "10038", new string('t', 43));
+        var command = new RedeemGameLoginCommand(
+            onlineUserId,
+            "123456",
+            "0123456789ABCDEF0123456789ABCDEF");
         var context = new CommandExecutionContext(
             Guid.NewGuid(),
             command.GetType(),
@@ -36,8 +39,8 @@ public sealed class GameLoginTests
         var typed = Assert.IsType<RedeemGameLoginResult>(result);
         Assert.Equal(new AccountId(42), typed.AccountId);
         Assert.Equal(onlineUserId, authentication.OnlineUserId);
-        Assert.Equal("10038", authentication.LoginId);
-        Assert.Equal(new string('t', 43), authentication.Ticket);
+        Assert.Equal("123456", authentication.MId);
+        Assert.Equal("0123456789ABCDEF0123456789ABCDEF", authentication.Ticket);
     }
 
     [Fact]
@@ -65,13 +68,16 @@ public sealed class GameLoginTests
 
         await handler.HandleAsync(
             new NetworkDispatchContext(connection),
-            new GameLoginRequest(GameMessageMetadata.Empty, "login", new string('t', 43)),
+            new GameLoginRequest(
+                GameMessageMetadata.Empty,
+                "123456",
+                "0123456789ABCDEF0123456789ABCDEF"),
             CancellationToken.None);
 
         var command = Assert.IsType<RedeemGameLoginCommand>(bus.Command);
         Assert.Equal(anonymous.OnlineUserId, command.OnlineUserId);
-        Assert.Equal("login", command.LoginId);
-        Assert.Equal(new string('t', 43), command.Ticket);
+        Assert.Equal("123456", command.MId);
+        Assert.Equal("0123456789ABCDEF0123456789ABCDEF", command.Ticket);
 
         // The login response followed by the whole account-state batch, all to the connection the
         // request arrived on. The batch is asserted as a unit because the client treats it as one:
@@ -237,18 +243,18 @@ public sealed class GameLoginTests
     {
         public OnlineUserId OnlineUserId { get; private set; }
 
-        public string? LoginId { get; private set; }
+        public string? MId { get; private set; }
 
         public string? Ticket { get; private set; }
 
         public ValueTask<AccountId?> RedeemTicketAsync(
             OnlineUserId onlineUserId,
-            string loginId,
+            string mId,
             string ticket,
             CancellationToken cancellationToken)
         {
             OnlineUserId = onlineUserId;
-            LoginId = loginId;
+            MId = mId;
             Ticket = ticket;
             return ValueTask.FromResult<AccountId?>(accountId);
         }
@@ -282,7 +288,7 @@ public sealed class GameLoginTests
             var login = Assert.IsType<RedeemGameLoginCommand>(command);
             await onlineUsers.LoginAsync(
                 login.OnlineUserId,
-                login.LoginId,
+                login.MId,
                 "test-only",
                 cancellationToken);
             return (TResult)(object)new RedeemGameLoginResult(accountId);

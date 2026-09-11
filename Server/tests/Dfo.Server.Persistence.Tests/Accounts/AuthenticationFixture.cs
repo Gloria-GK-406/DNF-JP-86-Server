@@ -55,10 +55,10 @@ internal sealed class AuthenticationFixture : IDisposable
         await lease.CommitAsync(CancellationToken.None);
     }
 
-    public async Task<Dfo.Server.Data.Accounts.AccountId?> Consume(string loginId, string ticket)
+    public async Task<Dfo.Server.Data.Accounts.AccountId?> Consume(string mId, string ticket)
     {
         await using var lease = Scope.Begin();
-        var result = await Services.GetRequiredService<IAuthenticationDomainService>().ConsumeTicketAsync(loginId, ticket, CancellationToken.None);
+        var result = await Services.GetRequiredService<IAuthenticationDomainService>().ConsumeTicketAsync(mId, ticket, CancellationToken.None);
         await lease.CommitAsync(CancellationToken.None);
         return result;
     }

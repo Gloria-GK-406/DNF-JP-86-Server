@@ -73,9 +73,17 @@ internal static class CharacterDatabaseSchema
     {
         ArgumentNullException.ThrowIfNull(connection);
         KeepWritersAndReadersApart(connection);
+        RetireRuntimeTables(connection);
         Apply(connection, Tables);
         Reconcile(connection);
         Apply(connection, Indexes);
+    }
+
+    private static void RetireRuntimeTables(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "DROP TABLE IF EXISTS login_tickets;";
+        command.ExecuteNonQuery();
     }
 
     /// <summary>
@@ -196,13 +204,6 @@ internal static class CharacterDatabaseSchema
     /// allocates it rather than on a caller, because allocation is the only place one is made.
     /// </remarks>
     private const string TableDeclarations = """
-        CREATE TABLE IF NOT EXISTS login_tickets (
-            ticket_digest TEXT PRIMARY KEY NOT NULL,
-            account_id INTEGER NOT NULL REFERENCES accounts(account_id),
-            issued_at INTEGER NOT NULL,
-            expires_at INTEGER NOT NULL,
-            consumed_at INTEGER,
-            CHECK(length(ticket_digest)=64), CHECK(expires_at>issued_at));
         CREATE TABLE IF NOT EXISTS npc_shop_purchase_counts (
             owner_scope TEXT NOT NULL CHECK(owner_scope IN ('account', 'character')),
             owner_id INTEGER NOT NULL CHECK(owner_id > 0),

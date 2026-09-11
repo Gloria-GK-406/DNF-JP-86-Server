@@ -28,7 +28,6 @@ public sealed class AuthenticationMigrationTests
         Assert.Equal(unauthorized, wrong);
         Assert.Equal(Legacy, (await fixture.Store.FindAsync("legacy", default))!.PasswordHash);
         Assert.Equal(Legacy, (await fixture.Store.FindAsync("unauthorized", default))!.PasswordHash);
-        Assert.Equal(0L, await fixture.Scalar("SELECT COUNT(*) FROM login_tickets"));
         var success = await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand("legacy", Password));
         Assert.Equal(AuthenticationStatus.Success, success.Status);
         var upgraded = await fixture.Store.FindAsync("legacy", default);
@@ -39,7 +38,8 @@ public sealed class AuthenticationMigrationTests
         Assert.Equal(12L, await fixture.Scalar("SELECT lucky_star FROM accounts WHERE m_id='legacy'"));
         Assert.Equal("1:kept-character:86", await fixture.Scalar("SELECT account_id||':'||name||':'||level FROM characters WHERE character_id=123"));
         var noAllowlist = new AuthenticationDomainService(fixture.Store, new PasswordCredentialService(100), fixture.Clock,
-            AuthenticationRuleService.From(new ConfigurationBuilder().Build()));
+            AuthenticationRuleService.From(new ConfigurationBuilder().Build()),
+            new LoginSessionRegistry(fixture.Scope, fixture.Clock));
         await using var transaction = fixture.Scope.Begin();
         Assert.Equal(AuthenticationStatus.Success, (await noAllowlist.AuthenticateAndIssueTicketAsync("legacy", Password, default)).Status);
         await transaction.CommitAsync(default);
@@ -58,7 +58,6 @@ public sealed class AuthenticationMigrationTests
         Assert.Equal(AuthenticationStatus.InvalidCredentials,
             (await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand("legacy", Password))).Status);
         Assert.Equal(record, (await fixture.Store.FindAsync("legacy", default))!.PasswordHash);
-        Assert.Equal(0L, await fixture.Scalar("SELECT COUNT(*) FROM login_tickets"));
     }
 
     [Fact]
@@ -73,9 +72,20 @@ public sealed class AuthenticationMigrationTests
         Assert.Equal(PasswordCheck.Verified, new PasswordCredentialService(100).Verify(upgraded, "test password"));
         await fixture.Seed("rollback", old);
         var service = (IAuthenticationDomainService)fixture.Services.GetService(typeof(IAuthenticationDomainService))!;
+        AuthenticationResult rolledBack;
         await using (fixture.Scope.Begin())
-            Assert.Equal(AuthenticationStatus.Success, (await service.AuthenticateAndIssueTicketAsync("rollback", "test password", default)).Status);
+        {
+            rolledBack = await service.AuthenticateAndIssueTicketAsync(
+                "rollback",
+                "test password",
+                default);
+            Assert.Equal(AuthenticationStatus.Success, rolledBack.Status);
+        }
         Assert.Equal(old, (await fixture.Store.FindAsync("rollback", default))!.PasswordHash);
-        Assert.Equal(1L, await fixture.Scalar("SELECT COUNT(*) FROM login_tickets"));
+        Assert.Null(await fixture.Consume(rolledBack.MId!, rolledBack.Ticket!));
+        Assert.Equal(
+            0L,
+            await fixture.Scalar(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='login_tickets'"));
     }
 }

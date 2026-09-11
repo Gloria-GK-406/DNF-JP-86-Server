@@ -22,7 +22,10 @@ public sealed class AuthenticationRegistrationTests
         Assert.StartsWith(PasswordCredentialService.Scheme, first.PasswordHash);
         Assert.NotEqual(first.PasswordHash, second.PasswordHash);
         Assert.Equal(2L, await fixture.Scalar("SELECT COUNT(*) FROM accounts"));
-        Assert.Equal(0L, await fixture.Scalar("SELECT COUNT(*) FROM login_tickets"));
+        Assert.Equal(
+            0L,
+            await fixture.Scalar(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='login_tickets'"));
         await using var reopened = new SqliteConnection($"Data Source={fixture.DatabasePath};Pooling=False");
         await reopened.OpenAsync();
         using var query = reopened.CreateCommand();

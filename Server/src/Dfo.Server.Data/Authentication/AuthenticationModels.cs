@@ -5,7 +5,7 @@ public enum AuthenticationStatus { Success, InvalidRequest, AccountExists, Inval
 public sealed record RegistrationResult(AuthenticationStatus Status, string? LoginId = null,
     IReadOnlyDictionary<string, string>? FieldErrors = null);
 
-public sealed record AuthenticationResult(AuthenticationStatus Status, string? LoginId = null,
+public sealed record AuthenticationResult(AuthenticationStatus Status, string? MId = null,
     string? Ticket = null, DateTimeOffset? ExpiresAtUtc = null,
     IReadOnlyDictionary<string, string>? FieldErrors = null)
 {

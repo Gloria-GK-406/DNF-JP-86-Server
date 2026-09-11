@@ -71,12 +71,13 @@ public sealed class LauncherApiClientTests
         var expiry = DateTimeOffset.Parse("2026-09-10T12:34:56Z");
         var handler = new RecordingHandler(_ => Json(
             HttpStatusCode.OK,
-            """{"loginId":"player","ticket":"safe_ticket-1","expiresAtUtc":"2026-09-10T12:34:56Z","channel":{"host":"203.0.113.10","port":7001}}"""));
+            """{"mId":"123456","ticket":"0123456789ABCDEF0123456789ABCDEF","expiresAtUtc":"2026-09-10T12:34:56Z","channel":{"host":"203.0.113.10","port":7001}}"""));
         using var client = CreateClient(handler);
 
         var result = await client.LoginAsync("player", "password", CancellationToken.None);
 
-        Assert.Equal("safe_ticket-1", result.Value!.Ticket);
+        Assert.Equal("123456", result.Value!.MId);
+        Assert.Equal("0123456789ABCDEF0123456789ABCDEF", result.Value.Ticket);
         Assert.Equal(expiry, result.Value.ExpiresAtUtc);
         Assert.Equal(new LauncherChannelEndpoint("203.0.113.10", 7001), result.Value.Channel);
     }

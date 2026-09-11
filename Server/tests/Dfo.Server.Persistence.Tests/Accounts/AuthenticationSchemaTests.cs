@@ -17,7 +17,7 @@ public sealed class AuthenticationSchemaTests
             {
                 await connection.OpenAsync();
                 using var command = connection.CreateCommand();
-                command.CommandText = "CREATE TABLE accounts(account_id INTEGER PRIMARY KEY AUTOINCREMENT,m_id TEXT NOT NULL UNIQUE,password_hash TEXT NOT NULL DEFAULT '',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP); INSERT INTO accounts(account_id,m_id,password_hash) VALUES(41,'legacy','old-value');";
+                command.CommandText = "CREATE TABLE accounts(account_id INTEGER PRIMARY KEY AUTOINCREMENT,m_id TEXT NOT NULL UNIQUE,password_hash TEXT NOT NULL DEFAULT '',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP); INSERT INTO accounts(account_id,m_id,password_hash) VALUES(41,'legacy','old-value'); CREATE TABLE login_tickets(ticket_digest TEXT PRIMARY KEY,account_id INTEGER,issued_at INTEGER,expires_at INTEGER,consumed_at INTEGER); INSERT INTO login_tickets VALUES('obsolete',41,1,2,NULL);";
                 await command.ExecuteNonQueryAsync();
             }
             var original = await new AccountSide(path).GetOrCreateAsync("legacy", "ignored");
@@ -29,7 +29,7 @@ public sealed class AuthenticationSchemaTests
             await check.OpenAsync();
             using var query = check.CreateCommand();
             query.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='login_tickets'";
-            Assert.Equal(1L, await query.ExecuteScalarAsync());
+            Assert.Equal(0L, await query.ExecuteScalarAsync());
         }
         finally { SqliteConnection.ClearAllPools(); Directory.Delete(directory, true); }
     }

@@ -335,6 +335,7 @@ public sealed class ApplicationModule : IServerModule
         services.AddCommandDispatching();
         services.TryAddSingleton<IPasswordCredentialRuleService, PasswordCredentialService>();
         services.TryAddSingleton(AuthenticationRuleService.From(configuration));
+        services.TryAddSingleton<LoginSessionRegistry>();
         services.TryAddSingleton<IAuthenticationDomainService, AuthenticationDomainService>();
         services.TryAddSingleton<IGameLoginAuthenticationDomainService, GameLoginAuthenticationDomainService>();
         services.AddCommandHandler<RegisterAccountCommand, RegistrationResult, RegisterAccountCommandHandler>(CommandExecutionKind.Transactional);

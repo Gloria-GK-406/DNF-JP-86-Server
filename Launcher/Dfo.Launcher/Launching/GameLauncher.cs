@@ -46,7 +46,7 @@ public static partial class A21LaunchArgumentBuilder
         if (!IPAddress.TryParse(login.Channel.Host, out var address)
             || address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork
             || login.Channel.Port is < 1 or > 65535
-            || !IsSafeLoginId(login.LoginId)
+            || !MIdPattern().IsMatch(login.MId)
             || !TicketPattern().IsMatch(login.Ticket))
         {
             throw new ArgumentException("Login result cannot be encoded for A21.", nameof(login));
@@ -55,16 +55,15 @@ public static partial class A21LaunchArgumentBuilder
         var slots = (string[])Template.Clone();
         slots[1] = login.Channel.Host;
         slots[2] = login.Channel.Port.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        slots[3] = login.LoginId;
+        slots[3] = login.MId;
         slots[4] = login.Ticket;
         return string.Join('?', slots);
     }
 
-    private static bool IsSafeLoginId(string value) =>
-        !string.IsNullOrEmpty(value)
-        && value.All(character => character is >= ' ' and <= '~' && character != '?');
+    [GeneratedRegex("^[0-9]{6}$", RegexOptions.CultureInvariant)]
+    private static partial Regex MIdPattern();
 
-    [GeneratedRegex("^[A-Za-z0-9_-]+$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex("^[0-9A-F]{32}$", RegexOptions.CultureInvariant)]
     private static partial Regex TicketPattern();
 }
 

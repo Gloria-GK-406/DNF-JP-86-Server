@@ -13,10 +13,15 @@
   密码不会被重定向到第二个地址。
 - 当前原型在勾选“保存账号和密码”并成功登录后，会把 `loginId`、`password` 与 `remember` 明文保存到
   `%LOCALAPPDATA%\DfoLauncher\preferences.json`；取消勾选并成功登录会清空已保存值。该文件应按敏感信息
-  处理，不得提交、共享或写入日志。正式发布前必须改为 Windows 凭据保护方案。服务端仍只持久化版本化
-  密码记录和票据摘要，不持久化原始票据。
-- 原始票据默认 60 秒过期且只能成功兑换一次。Game 登录失败、连接中断或成功链投递失败后，应重新在
-  启动器登录取得新票据，不能重放旧票据。
+  处理，不得提交、共享或写入日志。正式发布前必须改为 Windows 凭据保护方案。服务端只持久化账号、
+  版本化密码记录和游戏数据；临时登录凭据不进入 SQLite。
+- HTTP 请求里的 `loginId` 是持久账号名。登录成功响应里的 `mId` 是每次重新生成的 6 位数字会话标识，
+  `ticket` 是 16 个随机字节编码成的 32 位大写十六进制串；二者都不是稳定账号身份。启动器把它们分别
+  写入 A21 参数槽 3、4，Game 兑换成功后，服务端才从进程内映射得到稳定 `AccountId`。
+- 进程内会话表只保留临时 `mId`、ticket 摘要、`AccountId`、时限和兑换预留状态，不保留原始 ticket。
+  每个账号的新一次 HTTP 登录会立即替换旧凭据；凭据默认 60 秒过期且只能成功兑换一次。Host 重启会
+  自然清空全部未兑换凭据，不需要数据库清理。Game 登录失败、连接中断或成功链投递失败后，应重新登录
+  取得新凭据，不能重放旧值。
 
 ## 2. 从仓库发布
 
@@ -138,8 +143,8 @@ Kestrel 实际收到的 `Request.IsHttps` 和 TCP 对端是否 loopback，因此
 
 4. 把示例复制为 Launcher 发布目录中的 `Launcher.ini`，保持同一 loopback BaseUrl，然后启动
    `Dfo.Launcher.exe`。界面应先显示检查状态，再进入登录/注册表单。用注册页创建新账号后回到登录页；
-   登录成功会取得公共 Channel 地址和一次性票据。只有在准备实际启动客户端时，才把整个 Launcher 发布
-   内容部署到 `DNF.exe` 同目录并执行登录。
+   登录成功会取得公共 Channel 地址、6 位临时 `mId` 和 32 位大写十六进制一次性 `ticket`。只有在准备
+   实际启动客户端时，才把整个 Launcher 发布内容部署到 `DNF.exe` 同目录并执行登录。
 5. 完整游戏链路应依次观察：HTTP login 返回公共 Channel → Channel 握手/Channel Info 返回所选公共
    Game → Game LOGIN 兑换同一票据 → 成功 CMD 与六条账号通知 → 成功 CMD 中的第三类后续端点。
 
@@ -203,7 +208,7 @@ Kestrel 实际收到的 `Request.IsHttps` 和 TCP 对端是否 loopback，因此
 | `invalid_credentials` | 账号不存在与密码错误故意使用同一外部语义；旧账号另检查逐 AccountId 迁移流程。 |
 | 启动器提示缺少 `DNF.exe` | Launcher 发布文件尚未部署到游玩客户端的 `DNF.exe` 同目录。 |
 | Channel 能连、Game 不能连 | 对照 `Channel:Channels:n` 与 `Networking:GamePorts:n` 的索引、NAT 和防火墙。 |
-| Game 登录后断开 | 检查系统时钟、60 秒票据窗口和服务端稳定原因码；重新 HTTP 登录取得新票据，不要重放。 |
+| Game 登录后断开 | 检查系统时钟、Host 是否在 HTTP 与 Game 两步之间重启、60 秒凭据窗口和服务端稳定原因码；重新 HTTP 登录取得新凭据，不要重放。 |
 | 成功 CMD 内地址不可达 | 单独核对 `Game:EndpointHost` 与 `GameLogin` 三个端口；它们不从 Channel/Game listener 推断。 |
 
 排错时应保留稳定错误码、trace id、时间和所处 hop，但在共享日志前先确认没有上述秘密。

@@ -16,15 +16,15 @@ public static class GameLoginPayloadCodec
 
     public static bool TryDecode(
         ReadOnlySpan<byte> body,
-        out string loginId,
+        out string mId,
         out string ticket)
     {
         var offset = 0;
-        if (!TryReadDString(body, ref offset, out loginId)
+        if (!TryReadDString(body, ref offset, out mId)
             || !TryReadDString(body, ref offset, out ticket)
-            || string.IsNullOrEmpty(loginId))
+            || string.IsNullOrEmpty(mId))
         {
-            loginId = string.Empty;
+            mId = string.Empty;
             ticket = string.Empty;
             return false;
         }

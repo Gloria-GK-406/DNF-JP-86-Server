@@ -12,7 +12,7 @@ public sealed record LauncherBootstrap(
 public sealed record LauncherChannelEndpoint(string Host, int Port);
 
 public sealed record LauncherLogin(
-    string LoginId,
+    string MId,
     string Ticket,
     DateTimeOffset ExpiresAtUtc,
     LauncherChannelEndpoint Channel);

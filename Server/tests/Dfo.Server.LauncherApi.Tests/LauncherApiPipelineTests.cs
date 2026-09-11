@@ -125,8 +125,8 @@ public sealed class LauncherApiPipelineTests
             AuthenticateAndIssueTicketCommand login when login.LoginId == "player" =>
                 new AuthenticationResult(
                     AuthenticationStatus.Success,
-                    "player",
-                    "ticket_safe-123",
+                    "123456",
+                    "0123456789ABCDEF0123456789ABCDEF",
                     expiry),
             _ => throw new InvalidOperationException("Unexpected command."),
         });
@@ -137,8 +137,9 @@ public sealed class LauncherApiPipelineTests
             "{\"loginId\":\"player\",\"password\":\"password-1\"}");
 
         Assert.Equal(StatusCodes.Status200OK, response.StatusCode);
-        Assert.Equal("player", response.Json.RootElement.GetProperty("loginId").GetString());
-        Assert.Equal("ticket_safe-123", response.Json.RootElement.GetProperty("ticket").GetString());
+        Assert.Equal("123456", response.Json.RootElement.GetProperty("mId").GetString());
+        Assert.False(response.Json.RootElement.TryGetProperty("loginId", out _));
+        Assert.Equal("0123456789ABCDEF0123456789ABCDEF", response.Json.RootElement.GetProperty("ticket").GetString());
         Assert.Equal(expiry, response.Json.RootElement.GetProperty("expiresAtUtc").GetDateTimeOffset());
         var channel = response.Json.RootElement.GetProperty("channel");
         Assert.Equal("203.0.113.10", channel.GetProperty("host").GetString());

@@ -7,7 +7,7 @@ namespace Dfo.Server.Protocol.Game.Login;
 
 public sealed record RedeemGameLoginCommand(
     OnlineUserId OnlineUserId,
-    string LoginId,
+    string MId,
     string Ticket) : ICommand<RedeemGameLoginResult>, IOnlineUserCommand;
 
 public sealed record RedeemGameLoginResult(AccountId? AccountId)
@@ -26,7 +26,7 @@ public sealed class RedeemGameLoginCommandHandler(
     {
         var accountId = await authentication.RedeemTicketAsync(
             command.OnlineUserId,
-            command.LoginId,
+            command.MId,
             command.Ticket,
             cancellationToken).ConfigureAwait(false);
         return new RedeemGameLoginResult(accountId);

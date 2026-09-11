@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using Dfo.Server.Abstractions.Authentication;
 using Dfo.Server.Application.Authentication;
 using Dfo.Server.Data.Authentication;
@@ -9,26 +7,46 @@ namespace Dfo.Server.Persistence.Tests.Accounts;
 public sealed class AuthenticationTicketTests
 {
     [Fact]
-    public async Task PasswordLoginIssuesIndependentSafeTicketsWithOnlyDigestsPersistedForExactlySixtySeconds()
+    public async Task PasswordLoginIssuesRotatingMemoryOnlyCredentialsAndRevokesTheOlderPair()
     {
         using var fixture = new AuthenticationFixture();
         await fixture.Bus.SendAsync(new RegisterAccountCommand("player", "test password"));
         var first = await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand("player", "test password"));
         var second = await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand("player", "test password"));
         Assert.Equal(AuthenticationStatus.Success, first.Status);
-        Assert.Equal("player", first.LoginId);
+        Assert.Matches("^[0-9]{6}$", first.MId!);
         Assert.NotNull(first.Ticket);
-        Assert.Matches("^[A-Za-z0-9_-]{22,32}$", first.Ticket);
-        Assert.Equal(
-            16,
-            Convert.FromBase64String(first.Ticket.Replace('-', '+').Replace('_', '/') + "==").Length);
+        Assert.Matches("^[0-9A-F]{32}$", first.Ticket);
+        Assert.NotEqual(first.MId, second.MId);
         Assert.NotEqual(first.Ticket, second.Ticket);
         Assert.Equal(fixture.Clock.Now.AddSeconds(60), first.ExpiresAtUtc);
-        Assert.Equal(2L, await fixture.Scalar("SELECT COUNT(*) FROM login_tickets"));
-        var digest = Convert.ToHexString(SHA256.HashData(Encoding.ASCII.GetBytes(first.Ticket)));
-        Assert.Equal(1L, await fixture.Scalar($"SELECT COUNT(*) FROM login_tickets WHERE ticket_digest='{digest}'"));
-        Assert.DoesNotContain(first.Ticket, (string)(await fixture.Scalar("SELECT group_concat(ticket_digest) FROM login_tickets"))!);
+        Assert.Null(await fixture.Consume(first.MId!, first.Ticket));
+        Assert.NotNull(await fixture.Consume(second.MId!, second.Ticket!));
+        Assert.Equal(
+            0L,
+            await fixture.Scalar(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='login_tickets'"));
         Assert.DoesNotContain(first.Ticket, first.ToString());
+    }
+
+    [Fact]
+    public async Task NewProcessRegistryStartsEmptyWhileThePersistentAccountSurvives()
+    {
+        using var fixture = new AuthenticationFixture();
+        await fixture.Bus.SendAsync(new RegisterAccountCommand("player", "test password"));
+        var login = await fixture.Bus.SendAsync(
+            new AuthenticateAndIssueTicketCommand("player", "test password"));
+
+        var afterRestart = new LoginSessionRegistry(fixture.Scope, fixture.Clock);
+        await using var transaction = fixture.Scope.Begin();
+        Assert.Null(afterRestart.TryConsume(login.MId!, login.Ticket!));
+        await transaction.CommitAsync(default);
+
+        Assert.NotNull(await fixture.Store.FindAsync("player", default));
+        Assert.Equal(
+            0L,
+            await fixture.Scalar(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='login_tickets'"));
     }
 
     [Fact]
@@ -42,7 +60,10 @@ public sealed class AuthenticationTicketTests
         Assert.Equal(new AuthenticationResult(AuthenticationStatus.InvalidCredentials), wrong);
         Assert.Equal(wrong, missing);
         Assert.Equal(1, passwords.DummyVerifications);
-        Assert.Equal(0L, await fixture.Scalar("SELECT COUNT(*) FROM login_tickets"));
+        Assert.Equal(
+            0L,
+            await fixture.Scalar(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='login_tickets'"));
         Assert.Equal(1L, await fixture.Scalar("SELECT COUNT(*) FROM accounts"));
     }
 

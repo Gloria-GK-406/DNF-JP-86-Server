@@ -17,14 +17,14 @@ public interface IAuthenticationDomainService
 {
     ValueTask<RegistrationResult> RegisterAsync(string loginId, string password, CancellationToken cancellationToken);
     ValueTask<AuthenticationResult> AuthenticateAndIssueTicketAsync(string loginId, string password, CancellationToken cancellationToken);
-    ValueTask<AccountId?> ConsumeTicketAsync(string loginId, string ticket, CancellationToken cancellationToken);
+    ValueTask<AccountId?> ConsumeTicketAsync(string mId, string ticket, CancellationToken cancellationToken);
 }
 
 public interface IGameLoginAuthenticationDomainService
 {
     ValueTask<AccountId?> RedeemTicketAsync(
         OnlineUserId onlineUserId,
-        string loginId,
+        string mId,
         string ticket,
         CancellationToken cancellationToken);
 }
@@ -37,6 +37,4 @@ public interface IAuthenticationPersistence
     ValueTask<AccountRecord?> FindAsync(string loginId, CancellationToken cancellationToken);
     ValueTask<AccountId?> TryCreateAsync(string loginId, string passwordRecord, CancellationToken cancellationToken);
     ValueTask<bool> TryReplaceCredentialAsync(AccountId accountId, string expected, string replacement, CancellationToken cancellationToken);
-    ValueTask InsertTicketAsync(string digest, AccountId accountId, DateTimeOffset issuedAt, DateTimeOffset expiresAt, CancellationToken cancellationToken);
-    ValueTask<AccountId?> TryConsumeTicketAsync(string loginId, string digest, DateTimeOffset now, CancellationToken cancellationToken);
 }

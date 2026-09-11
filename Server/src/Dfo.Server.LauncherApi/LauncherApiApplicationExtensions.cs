@@ -121,7 +121,7 @@ public static class LauncherApiApplicationExtensions
         return result.Status switch
         {
             AuthenticationStatus.Success => Results.Json(new LoginResponse(
-                result.LoginId!,
+                result.MId!,
                 result.Ticket!,
                 result.ExpiresAtUtc!.Value,
                 endpoints.Snapshot.ChannelBootstrap)),
@@ -250,7 +250,7 @@ internal sealed record LauncherCredentialsRequest(string? LoginId, string? Passw
 internal sealed record BootstrapResponse(string ApiVersion, string Status, bool RegistrationEnabled);
 internal sealed record RegistrationResponse(string LoginId);
 internal sealed record LoginResponse(
-    string LoginId,
+    string MId,
     string Ticket,
     DateTimeOffset ExpiresAtUtc,
     Dfo.Server.Data.Configuration.PublicNetworkEndpoint Channel);

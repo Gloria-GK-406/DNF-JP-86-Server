@@ -85,7 +85,7 @@ public sealed class GameLoginIntegrationTests
                     BuildExpectedInitialConnectionNotice(preparedAt, channelId: 11),
                     await ReadFrameAsync(client.GetStream(), timeout.Token));
 
-                var requestBody = EncodeDStrings("10038", issued.Ticket);
+                var requestBody = EncodeDStrings(issued.MId!, issued.Ticket);
                 var request = EncodeClientFrame(0x01, 0x0001, requestBody);
                 await client.GetStream().WriteAsync(request, timeout.Token);
 
@@ -142,10 +142,10 @@ public sealed class GameLoginIntegrationTests
                 timeout.Token);
             Assert.Equal(1L, await ScalarAsync(databasePath, "SELECT COUNT(*) FROM accounts;"));
             Assert.Equal(
-                1L,
+                0L,
                 await ScalarAsync(
                     databasePath,
-                    "SELECT COUNT(*) FROM login_tickets WHERE consumed_at IS NOT NULL;"));
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='login_tickets';"));
             await host.StopAsync(timeout.Token);
         }
         finally
@@ -203,7 +203,7 @@ public sealed class GameLoginIntegrationTests
                     timeout.Token);
                 _ = await ReadFrameAsync(rejected.GetStream(), timeout.Token);
                 await rejected.GetStream().WriteAsync(
-                    EncodeClientFrame(0x01, 0x0001, EncodeDStrings("player", invalidTicket)),
+                    EncodeClientFrame(0x01, 0x0001, EncodeDStrings(issued.MId!, invalidTicket)),
                     timeout.Token);
 
                 await Assert.ThrowsAsync<EndOfStreamException>(async () =>
@@ -214,12 +214,6 @@ public sealed class GameLoginIntegrationTests
                 () => !onlineUsers.TryGetByConnection(rejectedConnectionId, out _),
                 timeout.Token);
             await WaitUntilAsync(() => gameService.GetClients().Count() == 0, timeout.Token);
-            Assert.Equal(
-                0L,
-                await ScalarAsync(
-                    databasePath,
-                    "SELECT COUNT(*) FROM login_tickets WHERE consumed_at IS NOT NULL;"));
-
             NetworkConnectionId acceptedConnectionId;
             using (var accepted = new TcpClient())
             {
@@ -230,7 +224,7 @@ public sealed class GameLoginIntegrationTests
                     timeout.Token);
                 _ = await ReadFrameAsync(accepted.GetStream(), timeout.Token);
                 await accepted.GetStream().WriteAsync(
-                    EncodeClientFrame(0x01, 0x0001, EncodeDStrings("player", issued.Ticket)),
+                    EncodeClientFrame(0x01, 0x0001, EncodeDStrings(issued.MId!, issued.Ticket)),
                     timeout.Token);
 
                 Assert.Equal(
@@ -249,11 +243,6 @@ public sealed class GameLoginIntegrationTests
                 () => !onlineUsers.TryGetByConnection(acceptedConnectionId, out _),
                 timeout.Token);
             Assert.Equal(1L, await ScalarAsync(databasePath, "SELECT COUNT(*) FROM accounts;"));
-            Assert.Equal(
-                1L,
-                await ScalarAsync(
-                    databasePath,
-                    "SELECT COUNT(*) FROM login_tickets WHERE consumed_at IS NOT NULL;"));
             await host.StopAsync(timeout.Token);
         }
         finally
@@ -314,7 +303,7 @@ public sealed class GameLoginIntegrationTests
                     EncodeClientFrame(
                         0x01,
                         0x0001,
-                        EncodeDStrings("delivery-player", issued.Ticket)),
+                        EncodeDStrings(issued.MId!, issued.Ticket)),
                     timeout.Token);
 
                 await Assert.ThrowsAsync<EndOfStreamException>(async () =>
@@ -325,12 +314,6 @@ public sealed class GameLoginIntegrationTests
                 () => !onlineUsers.TryGetByConnection(failedConnectionId, out _),
                 timeout.Token);
             await WaitUntilAsync(() => gameService.GetClients().Count() == 0, timeout.Token);
-            Assert.Equal(
-                1L,
-                await ScalarAsync(
-                    databasePath,
-                    "SELECT COUNT(*) FROM login_tickets WHERE consumed_at IS NOT NULL;"));
-
             NetworkConnectionId replayConnectionId;
             using (var replay = new TcpClient())
             {
@@ -344,7 +327,7 @@ public sealed class GameLoginIntegrationTests
                     EncodeClientFrame(
                         0x01,
                         0x0001,
-                        EncodeDStrings("delivery-player", issued.Ticket)),
+                        EncodeDStrings(issued.MId!, issued.Ticket)),
                     timeout.Token);
 
                 await Assert.ThrowsAsync<EndOfStreamException>(async () =>
@@ -354,11 +337,6 @@ public sealed class GameLoginIntegrationTests
             await WaitUntilAsync(
                 () => !onlineUsers.TryGetByConnection(replayConnectionId, out _),
                 timeout.Token);
-            Assert.Equal(
-                1L,
-                await ScalarAsync(
-                    databasePath,
-                    "SELECT COUNT(*) FROM login_tickets WHERE consumed_at IS NOT NULL;"));
             await host.StopAsync(timeout.Token);
         }
         finally
@@ -433,7 +411,7 @@ public sealed class GameLoginIntegrationTests
                     EncodeClientFrame(
                         0x01,
                         0x0001,
-                        EncodeDStrings(loginId, issued.Ticket)),
+                        EncodeDStrings(issued.MId!, issued.Ticket)),
                     timeout.Token);
 
                 await Assert.ThrowsAsync<EndOfStreamException>(async () =>
@@ -447,12 +425,6 @@ public sealed class GameLoginIntegrationTests
                 () => !onlineUsers.TryGetByConnection(failedConnectionId, out _),
                 timeout.Token);
             await WaitUntilAsync(() => gameService.GetClients().Count() == 0, timeout.Token);
-            Assert.Equal(
-                0L,
-                await ScalarAsync(
-                    databasePath,
-                    "SELECT COUNT(*) FROM login_tickets WHERE consumed_at IS NOT NULL;"));
-
             NetworkConnectionId acceptedConnectionId;
             using (var accepted = new TcpClient())
             {
@@ -466,7 +438,7 @@ public sealed class GameLoginIntegrationTests
                     EncodeClientFrame(
                         0x01,
                         0x0001,
-                        EncodeDStrings(loginId, issued.Ticket)),
+                        EncodeDStrings(issued.MId!, issued.Ticket)),
                     timeout.Token);
 
                 Assert.Equal(
@@ -491,11 +463,6 @@ public sealed class GameLoginIntegrationTests
             await WaitUntilAsync(
                 () => !onlineUsers.TryGetByConnection(acceptedConnectionId, out _),
                 timeout.Token);
-            Assert.Equal(
-                1L,
-                await ScalarAsync(
-                    databasePath,
-                    "SELECT COUNT(*) FROM login_tickets WHERE consumed_at IS NOT NULL;"));
             await host.StopAsync(timeout.Token);
         }
         finally

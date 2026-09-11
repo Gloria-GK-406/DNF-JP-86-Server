@@ -179,16 +179,18 @@ DString 仍是 `int32 LE` 字节长度后紧跟 ASCII 字节，不带零终止�
 
 ### Game CMD `0x0001`（LOGIN）
 
-旧实现将客户端 Body 解析为两个连续的 ASCII DString：
+客户端 Body 是两个连续的 ASCII DString。旧参考服与本仓当前实现对相同的线格式赋予不同认证语义：
 
-| 顺序 | 类型 | 内容 | 状态 |
-|---:|---|---|---|
-| 1 | `int32 LE length + byte[length]` | `m_id` 登录名 | 代码事实 |
-| 2 | `int32 LE length + byte[length]` | 密码 Hash 文本 | 代码事实 |
+| 顺序 | 类型 | 旧参考服语义 | 本仓当前语义 | 状态 |
+|---:|---|---|---|---|
+| 1 | `int32 LE length + byte[length]` | 持久账号 `m_id` | HTTP 登录签发的 6 位数字临时 `mId` | 代码事实 |
+| 2 | `int32 LE length + byte[length]` | 密码 Hash 文本 | 32 位大写十六进制一次性 `ticket` | 代码事实 |
 
 每个字符串的旧代码上限为 256 字节。旧登录逻辑按 `m_id` 查询账号；不存在时使用收到的
 密码 Hash 创建账号，存在时直接复用旧账号，并未在该路径验证新收到的密码 Hash。当前
-迁移仅兼容这项旧行为，不把它解释为推荐的认证策略。
+实现不复用该认证语义：HTTP 端先用持久账号名和密码验证账号，再签发只存在于本 Host 进程内的
+`mId + ticket摘要 → AccountId` 映射。新登录替换同账号的旧映射，Game 原子兑换一次，60 秒过期；
+Host 重启即全部失效。SQLite 不保存临时 `mId`、原始 ticket 或 ticket 摘要。
 
 基础成功响应使用 `cmd=0x01/type=0x0001`，Body 为：
 
@@ -208,8 +210,9 @@ DString 仍是 `int32 LE` 字节长度后紧跟 ASCII 字节，不带零终止�
 [`protocol/game/server-to-client/CMD-0x0001.md`](../protocol/game/server-to-client/CMD-0x0001.md)
 为准；本文件不再维护一份独立的字段语义结论。
 
-当前阶段在 Game 连接建立时创建匿名 `OnlineUserId` 索引；LOGIN Command 以排他方式查询或
-创建账号，并把账号 ID 绑定到同一个在线用户聚合。`OnlineUserId` 只用于登录前连接生命周期；
+当前阶段在 Game 连接建立时创建匿名 `OnlineUserId` 索引；LOGIN Command 原子兑换临时凭据，解析出
+稳定 `AccountId` 并绑定到同一个在线用户聚合。该路径不会按临时 `mId` 查询或创建持久账号。
+`OnlineUserId` 只用于登录前连接生命周期；
 登录后的业务 Message Handler 必须先解析出 `AccountId`，Command 和领域服务不再传递
 `OnlineUserId`。内部索引和 generation 不写入协议帧。
 账号设置、拍卖开放、荣誉等级、成长胶囊以及其他旧登录后通知尚未迁移，后续仍应作为各自

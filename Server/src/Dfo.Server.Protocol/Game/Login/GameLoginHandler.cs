@@ -42,7 +42,7 @@ public sealed class GameLoginHandler(
             var login = await commandBus.SendAsync(
                 new RedeemGameLoginCommand(
                     onlineUser.OnlineUserId,
-                    message.LoginId,
+                    message.MId,
                     message.Ticket),
                 cancellationToken).ConfigureAwait(false);
             commandCompleted = true;

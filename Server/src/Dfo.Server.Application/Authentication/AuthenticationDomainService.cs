@@ -3,19 +3,16 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Authentication;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Application.Users;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace Dfo.Server.Application.Authentication;
 
 internal sealed class AuthenticationDomainService(
     IAuthenticationPersistence persistence, IPasswordCredentialRuleService passwords,
-    TimeProvider clock, AuthenticationRuleService rules) : IAuthenticationDomainService
+    TimeProvider clock, AuthenticationRuleService rules,
+    LoginSessionRegistry sessions) : IAuthenticationDomainService
 {
-    // A21's launch credential slot historically carries a 32-character MD5 string. Sixteen random
-    // bytes retain the required 128 bits of entropy while encoding to 22 URL-safe characters.
-    private const int TicketEntropyBytes = 16;
-    private const int TicketEncodedLength = 22;
+    private const int MIdEncodedLength = 6;
+    private const int TicketEncodedLength = 32;
 
     public async ValueTask<RegistrationResult> RegisterAsync(string loginId, string password, CancellationToken cancellationToken)
     {
@@ -44,25 +41,28 @@ internal sealed class AuthenticationDomainService(
         if ((migrate || check == PasswordCheck.RehashNeeded)
             && !await persistence.TryReplaceCredentialAsync(account.AccountId, account.PasswordHash, passwords.Hash(password), cancellationToken))
             return new(AuthenticationStatus.InvalidCredentials);
-        var ticket = Convert.ToBase64String(RandomNumberGenerator.GetBytes(TicketEntropyBytes))
-            .TrimEnd('=').Replace('+', '-').Replace('/', '_');
         var now = clock.GetUtcNow();
         var expiresAt = now.AddSeconds(60);
-        await persistence.InsertTicketAsync(Digest(ticket), account.AccountId, now, expiresAt, cancellationToken);
-        return new(AuthenticationStatus.Success, account.LoginId, ticket, expiresAt);
+        var session = sessions.Issue(account.AccountId, now, expiresAt);
+        return new(AuthenticationStatus.Success, session.MId, session.Ticket, session.ExpiresAtUtc);
     }
 
-    public async ValueTask<AccountId?> ConsumeTicketAsync(string loginId, string ticket, CancellationToken cancellationToken)
+    public ValueTask<AccountId?> ConsumeTicketAsync(string mId, string ticket, CancellationToken cancellationToken)
     {
-        if (ticket is null
+        cancellationToken.ThrowIfCancellationRequested();
+        if (mId is null
+            || mId.Length != MIdEncodedLength
+            || mId.Any(character => !char.IsAsciiDigit(character))
+            || ticket is null
             || ticket.Length != TicketEncodedLength
-            || ticket.Any(c => !char.IsAsciiLetterOrDigit(c) && c != '_' && c != '-'))
-            return null;
-        // Waiting for another writer may outlive the ticket. Read time only after holding the lock.
-        await persistence.AcquireWriteIntentAsync(cancellationToken);
-        return await persistence.TryConsumeTicketAsync(loginId, Digest(ticket), clock.GetUtcNow(), cancellationToken);
+            || ticket.Any(character => character is not (>= '0' and <= '9')
+                and not (>= 'A' and <= 'F')))
+        {
+            return ValueTask.FromResult<AccountId?>(null);
+        }
+
+        return ValueTask.FromResult(sessions.TryConsume(mId, ticket));
     }
-    private static string Digest(string ticket) => Convert.ToHexString(SHA256.HashData(Encoding.ASCII.GetBytes(ticket)));
 }
 
 internal sealed class GameLoginAuthenticationDomainService(
@@ -71,12 +71,12 @@ internal sealed class GameLoginAuthenticationDomainService(
 {
     public async ValueTask<AccountId?> RedeemTicketAsync(
         OnlineUserId onlineUserId,
-        string loginId,
+        string mId,
         string ticket,
         CancellationToken cancellationToken)
     {
         var accountId = await authentication.ConsumeTicketAsync(
-            loginId,
+            mId,
             ticket,
             cancellationToken).ConfigureAwait(false);
         if (accountId is null)

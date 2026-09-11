@@ -3,7 +3,6 @@ using System.Text;
 using Dfo.Server.Abstractions.Authentication;
 using Dfo.Server.Application.Authentication;
 using Dfo.Server.Data.Authentication;
-using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Persistence.Tests.Accounts;
@@ -11,7 +10,7 @@ namespace Dfo.Server.Persistence.Tests.Accounts;
 public sealed class AuthenticationFailureTests
 {
     [Fact]
-    public async Task TicketWriteFailureRollsBackLegacyUpgradeAndDoesNotLogSecrets()
+    public async Task LegacyUpgradeAndMemorySessionIssuanceDoNotLogSecrets()
     {
         const string password = "秘密-sentinel-password";
         const string loginId = "sentinel-login";
@@ -19,17 +18,11 @@ public sealed class AuthenticationFailureTests
         using var fixture = new AuthenticationFixture(settings: new()
         { ["LauncherAuth:LegacyMd5Migration:AllowedAccountIds:0"] = "1" });
         await fixture.Seed(loginId, legacy);
-        await fixture.Scalar("CREATE TRIGGER reject_ticket BEFORE INSERT ON login_tickets BEGIN SELECT RAISE(ABORT,'Authentication write rejected.'); END; SELECT 1");
-        var failure = await Assert.ThrowsAsync<SqliteException>(async () =>
-            await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand(loginId, password)));
-        Assert.Equal(legacy, (await fixture.Store.FindAsync(loginId, default))!.PasswordHash);
-        Assert.Equal(0L, await fixture.Scalar("SELECT COUNT(*) FROM login_tickets"));
-        await fixture.Scalar("DROP TRIGGER reject_ticket; SELECT 1");
         var result = await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand(loginId, password));
         Assert.Equal(AuthenticationStatus.Success, result.Status);
         var modern = (await fixture.Store.FindAsync(loginId, default))!.PasswordHash;
         var digest = Convert.ToHexString(SHA256.HashData(Encoding.ASCII.GetBytes(result.Ticket!)));
-        var observed = fixture.Logs.Text + failure + result + new AuthenticateAndIssueTicketCommand(loginId, password)
+        var observed = fixture.Logs.Text + result + new AuthenticateAndIssueTicketCommand(loginId, password)
             + new RegisterAccountCommand(loginId, password);
         foreach (var secret in new[] { password, loginId, legacy, modern, result.Ticket!, digest })
             Assert.DoesNotContain(secret, observed);
@@ -45,12 +38,12 @@ public sealed class AuthenticationFailureTests
         var service = fixture.Services.GetRequiredService<IAuthenticationDomainService>();
         await using (var lease = fixture.Scope.Begin())
         {
-            Assert.NotNull(await service.ConsumeTicketAsync("player", login.Ticket!, default));
+            Assert.NotNull(await service.ConsumeTicketAsync(login.MId!, login.Ticket!, default));
             using var canceled = new CancellationTokenSource();
             canceled.Cancel();
             await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await lease.CommitAsync(canceled.Token));
         }
-        Assert.NotNull(await fixture.Consume("player", login.Ticket!));
+        Assert.NotNull(await fixture.Consume(login.MId!, login.Ticket!));
         await using (var lease = fixture.Scope.Begin())
         {
             Assert.False(await fixture.Store.TryReplaceCredentialAsync(account.AccountId, "stale", "replacement", default));
@@ -74,7 +67,10 @@ public sealed class AuthenticationFailureTests
         Assert.Equal(AuthenticationStatus.InvalidRequest, invalidLogin.Status);
         Assert.True(invalidLogin.FieldErrors!.ContainsKey("password"));
         Assert.Equal(1L, await fixture.Scalar("SELECT COUNT(*) FROM accounts"));
-        Assert.Equal(0L, await fixture.Scalar("SELECT COUNT(*) FROM login_tickets"));
+        Assert.Equal(
+            0L,
+            await fixture.Scalar(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='login_tickets'"));
         Assert.Equal(legacy, (await fixture.Store.FindAsync("legacy", default))!.PasswordHash);
     }
 }

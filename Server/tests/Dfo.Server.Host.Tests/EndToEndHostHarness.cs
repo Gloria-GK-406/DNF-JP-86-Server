@@ -111,8 +111,11 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
         using var loginJson = JsonDocument.Parse(
             await login.Content.ReadAsStreamAsync(this.timeout.Token));
         var root = loginJson.RootElement;
+        var mId = root.GetProperty("mId").GetString();
+        Assert.Matches("^[0-9]{6}$", mId!);
         var ticket = root.GetProperty("ticket").GetString();
         Assert.NotNull(ticket);
+        Assert.Matches("^[0-9A-F]{32}$", ticket);
         var advertisedChannel = ReadEndpoint(root.GetProperty("channel"));
         Assert.Equal(new AdvertisedEndpoint(ChannelHost, AdvertisedChannelPort), advertisedChannel);
         Assert.False(IPAddress.IsLoopback(IPAddress.Parse(advertisedChannel.Host)));
@@ -149,7 +152,7 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
         Assert.Equal((ushort)0x0001, initialNotice.Type);
 
         await gameStream.WriteAsync(
-            EncodeGameClientFrame(0x01, 0x0001, EncodeDStrings(loginId, ticket!)),
+            EncodeGameClientFrame(0x01, 0x0001, EncodeDStrings(mId!, ticket!)),
             this.timeout.Token);
         var loginResponse = await ReadGameFrameAsync(gameStream, this.timeout.Token);
         Assert.Equal((byte)0x01, loginResponse.Command);

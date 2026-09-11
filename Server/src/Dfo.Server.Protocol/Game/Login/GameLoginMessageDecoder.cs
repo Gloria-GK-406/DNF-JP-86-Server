@@ -17,7 +17,7 @@ namespace Dfo.Server.Protocol.Game.Login;
 internal sealed class GameLoginMessageDecoder : IGameMessageDecoder
 {
     public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
-        GameLoginPayloadCodec.TryDecode(body, out var loginId, out var ticket)
-            ? new GameLoginRequest(metadata, loginId, ticket)
+        GameLoginPayloadCodec.TryDecode(body, out var mId, out var ticket)
+            ? new GameLoginRequest(metadata, mId, ticket)
             : null;
 }

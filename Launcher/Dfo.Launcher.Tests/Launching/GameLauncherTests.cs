@@ -7,41 +7,44 @@ namespace Dfo.Launcher.Tests.Launching;
 public sealed class GameLauncherTests
 {
     private static readonly DateTimeOffset Now = new(2026, 9, 10, 8, 0, 0, TimeSpan.Zero);
+    private const string MId = "123456";
+    private const string Ticket = "0123456789ABCDEF0123456789ABCDEF";
 
     [Fact]
     public void A21_argument_has_exactly_35_slots_and_the_contract_values()
     {
-        var argument = A21LaunchArgumentBuilder.Build(Login("player", "ticket_123"));
+        var argument = A21LaunchArgumentBuilder.Build(Login());
         var slots = argument.Split('?');
 
         Assert.Equal(35, slots.Length);
         Assert.Equal("9", slots[0]);
         Assert.Equal("203.0.113.10", slots[1]);
         Assert.Equal("7001", slots[2]);
-        Assert.Equal("player", slots[3]);
-        Assert.Equal("ticket_123", slots[4]);
+        Assert.Equal(MId, slots[3]);
+        Assert.Equal(Ticket, slots[4]);
         Assert.Equal("9n2b1c8r3w7y", slots[16]);
         Assert.Equal("4D87", slots[34]);
         Assert.Equal(
-            "9?203.0.113.10?7001?player?ticket_123?1?0?6?0?2?1???0?0?0?9n2b1c8r3w7y?0?0?0?0?0?2?0?0?0?0?0?0?0?0?0?0?0?4D87",
+            $"9?203.0.113.10?7001?{MId}?{Ticket}?1?0?6?0?2?1???0?0?0?9n2b1c8r3w7y?0?0?0?0?0?2?0?0?0?0?0?0?0?0?0?0?0?4D87",
             argument);
     }
 
     [Fact]
-    public void Safe_special_characters_in_login_id_do_not_split_the_single_argument()
+    public void Session_mid_and_ticket_keep_their_exact_slots()
     {
-        var login = Login("player & name=\"quoted\"", "ticket-ABC_123");
+        var login = Login();
         var argument = A21LaunchArgumentBuilder.Build(login);
 
         Assert.Equal(35, argument.Split('?').Length);
-        Assert.Equal(login.LoginId, argument.Split('?')[3]);
+        Assert.Equal(MId, argument.Split('?')[3]);
+        Assert.Equal(Ticket, argument.Split('?')[4]);
     }
 
     [Theory]
-    [InlineData("203.0.113.10", 0, "player", "ticket")]
-    [InlineData("example.test", 7001, "player", "ticket")]
-    [InlineData("203.0.113.10", 7001, "bad?player", "ticket")]
-    [InlineData("203.0.113.10", 7001, "player", "bad ticket")]
+    [InlineData("203.0.113.10", 0, MId, Ticket)]
+    [InlineData("example.test", 7001, MId, Ticket)]
+    [InlineData("203.0.113.10", 7001, "12345", Ticket)]
+    [InlineData("203.0.113.10", 7001, MId, "0123456789abcdef0123456789abcdef")]
     public void Unsafe_or_unrepresentable_values_are_rejected(
         string host,
         int port,
@@ -67,7 +70,7 @@ public sealed class GameLauncherTests
             var log = new RecordingEventLog();
             var launcher = new GameLauncher(directory, new FixedTimeProvider(Now), starter, log);
 
-            var result = launcher.Launch(Login("player", "ticket_123"));
+            var result = launcher.Launch(Login());
 
             Assert.True(result.Succeeded);
             var startInfo = Assert.Single(starter.Starts);
@@ -93,7 +96,7 @@ public sealed class GameLauncherTests
         var log = new RecordingEventLog();
         var launcher = new GameLauncher("unused", new FixedTimeProvider(Now), starter, log);
 
-        var result = launcher.Launch(Login("player", "ticket", Now));
+        var result = launcher.Launch(Login(expiry: Now));
 
         Assert.False(result.Succeeded);
         Assert.Equal("ticket_expired", result.ErrorCode);
@@ -112,7 +115,7 @@ public sealed class GameLauncherTests
             var log = new RecordingEventLog();
             var launcher = new GameLauncher(directory, new FixedTimeProvider(Now), starter, log);
 
-            var result = launcher.Launch(Login("player", "ticket"));
+            var result = launcher.Launch(Login());
 
             Assert.False(result.Succeeded);
             Assert.Equal("game_not_found", result.ErrorCode);
@@ -138,7 +141,7 @@ public sealed class GameLauncherTests
                 new ThrowingProcessStarter(),
                 log);
 
-            var result = launcher.Launch(Login("secret-login", "secret-ticket"));
+            var result = launcher.Launch(Login());
 
             Assert.False(result.Succeeded);
             Assert.Equal("game_launch_failed", result.ErrorCode);
@@ -153,10 +156,10 @@ public sealed class GameLauncherTests
     }
 
     private static LauncherLogin Login(
-        string loginId,
-        string ticket,
+        string mId = MId,
+        string ticket = Ticket,
         DateTimeOffset? expiry = null) =>
-        new(loginId, ticket, expiry ?? Now.AddMinutes(1), new("203.0.113.10", 7001));
+        new(mId, ticket, expiry ?? Now.AddMinutes(1), new("203.0.113.10", 7001));
 
     private static string CreateDirectoryWithGame()
     {
