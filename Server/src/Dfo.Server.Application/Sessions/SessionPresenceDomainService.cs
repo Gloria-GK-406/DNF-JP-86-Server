@@ -58,37 +58,35 @@ internal sealed class SessionPresenceDomainService : ISessionPresenceDomainServi
     public SessionPresence? Find(CharacterId characterId) =>
         _byCharacter.TryGetValue(characterId, out var presence) ? presence : null;
 
-    public IReadOnlyList<SessionPresence> InArea(
-        byte townId,
-        byte areaId,
-        CharacterId excluding,
-        int? listenerPort = null)
+    public IReadOnlyList<SessionPresence> Query(SessionPresenceScope scope)
     {
+        ArgumentNullException.ThrowIfNull(scope);
+        var flags = scope.Flags;
         var occupants = new List<SessionPresence>();
         foreach (var presence in _byCharacter.Values)
         {
-            if (presence.CharacterId == excluding)
+            if (presence.CharacterId == scope.ExcludingCharacterId)
                 continue;
-            // A record whose owner is no longer standing there still holds their last
-            // coordinates. Reporting them would place someone in a dungeon next to the
-            // arriving character.
-            if (!presence.StandingInTown)
+            if ((flags & SessionPresenceScopeFlags.SameChannel) != 0
+                && presence.ListenerPort != scope.ListenerPort)
                 continue;
-            // A gate is a per-character Seria room. Equal town/area bytes do not make
-            // two such records co-occupants of one visible space.
-            if (!presence.SharesTownPresence)
+            if ((flags & SessionPresenceScopeFlags.SameTown) != 0
+                && presence.TownId != scope.TownId)
                 continue;
-            if (listenerPort is { } port && presence.ListenerPort != port)
+            if ((flags & SessionPresenceScopeFlags.SameArea) != 0
+                && presence.AreaId != scope.AreaId)
                 continue;
-            if (presence.TownId != townId || presence.AreaId != areaId)
+            if ((flags & SessionPresenceScopeFlags.StandingInTown) != 0
+                && !presence.StandingInTown)
                 continue;
-
+            if ((flags & SessionPresenceScopeFlags.SharesTownPresence) != 0
+                && !presence.SharesTownPresence)
+                continue;
             occupants.Add(presence);
         }
 
-        // Ordered so a projection that must preserve a stable sequence has one to preserve;
-        // the dictionary's own order is not stable across enumerations.
         occupants.Sort(static (left, right) => left.CharacterId.Value.CompareTo(right.CharacterId.Value));
         return occupants;
     }
+
 }

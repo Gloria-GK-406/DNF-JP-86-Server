@@ -101,6 +101,22 @@ public sealed class SelectedSessionPartyCleanupTests
         Assert.NotNull(failure.NotificationPlan.PartyNotifications.Snapshot);
     }
 
+    [Fact]
+    public async Task Cleanup_notifies_only_town_peers_on_the_same_listener()
+    {
+        var fixture = new Fixture();
+        var owner = fixture.Admit(1);
+        var sameListener = fixture.Admit(2);
+        _ = fixture.Admit(3, listenerPort: 10012);
+
+        var plan = await fixture.Cleanup.CleanupAsync(
+            owner, includeOwner: false, CancellationToken.None);
+
+        Assert.Equal(
+            [sameListener.CharacterId],
+            plan.PeerAudience.Select(value => value.CharacterId));
+    }
+
     private sealed class Fixture
     {
         private readonly SelectedSessionDomainService sessions = new();
@@ -138,17 +154,18 @@ public sealed class SelectedSessionPartyCleanupTests
         public SelectedSessionIdentity Admit(
             int value,
             long generation = 1,
-            string? connection = null)
+            string? connection = null,
+            int listenerPort = 10011)
         {
             var session = SelectedSessionIdentity.Create(
                 new AccountId(value),
                 new CharacterId(value),
                 new NetworkConnectionId(connection ?? $"party-{value}"),
                 generation,
-                10011);
+                listenerPort);
             sessions.Select(session);
             presence.Admit(new SessionPresence(
-                session.CharacterId, 10011, 1, 2, true, session));
+                session.CharacterId, listenerPort, 1, 2, true, session));
             return session;
         }
 

@@ -1,17 +1,20 @@
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.World;
+using Dfo.Server.Abstractions.Sessions;
 
 namespace Dfo.Server.Abstractions.Notifications;
 
-/// <summary>Who one notification is for, said in characters.</summary>
+/// <summary>Who one notification is for, as characters, exact sessions, or a presence scope.</summary>
 /// <remarks>
 /// A value rather than a query result. The same audience resolves to different recipients at
 /// different moments, and that is the point: a caller names the people it means, and who is
 /// reachable at the moment of sending is answered later, in one place.
 ///
-/// Characters, never connections. A domain service that wants a group told something says which
-/// characters and stops there; nothing above the notification service needs to know a socket
-/// exists.
+/// A character audience deliberately follows each character to whichever selected session is
+/// current at send time. An exact-session audience instead preserves the generation that a state
+/// snapshot was built from, so replacing that session cannot redirect old state to a new channel.
+/// Neither shape makes callers resolve recipients or perform sends themselves.
 ///
 /// The shapes below are siblings, each sealed, so no audience is two of them at once, and the
 /// only constructor that makes one out of nothing is private, so writing a new shape the ordinary
@@ -53,20 +56,25 @@ public abstract record NotificationAudience
     /// named twice is a caller naming them twice, and inventing a rule here would hide that.
     /// </remarks>
     public sealed record TheseCharacters(IReadOnlyList<CharacterId> CharacterIds) : NotificationAudience;
+
+    /// <summary>These exact selected-session generations, if they are still current when sent.</summary>
+    public sealed record TheseSessions(IReadOnlyList<SelectedSessionIdentity> Sessions) : NotificationAudience;
+
+    /// <summary>Every currently reachable character whose presence matches this scope.</summary>
+    public sealed record Scoped(SessionPresenceScope Scope) : NotificationAudience;
 }
 
-/// <summary>One character an audience resolved to, and the connection they are on right now.</summary>
+/// <summary>One resolved recipient and, when required, the exact session it must still own.</summary>
 public sealed record NotificationRecipient(
     CharacterId CharacterId,
-    NetworkConnectionId ConnectionId);
+    NetworkConnectionId ConnectionId,
+    SelectedSessionIdentity? ExpectedSession = null);
 
 /// <summary>Turns an audience into the people who can actually be reached.</summary>
 /// <remarks>
-/// Before this existed, a domain service that needed to know who to notify had to look a
-/// connection up itself, which is how a service that only wanted to name three characters ended up
-/// knowing what a socket is. Callers ask for an audience and get people; the question "which
-/// connection is this character on" stays inside the notification service, here and in the bus,
-/// which asks it again at each recipient's turn to see whether the answer still holds.
+/// Callers ask for an audience and get recipients; current-character lookup, exact-generation
+/// validation and scope resolution stay inside the notification service. The bus checks the
+/// resolved ownership again at each recipient's turn.
 /// </remarks>
 public interface INotificationAudienceResolver
 {

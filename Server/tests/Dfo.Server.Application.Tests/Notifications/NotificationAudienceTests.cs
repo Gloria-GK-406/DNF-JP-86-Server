@@ -1,5 +1,6 @@
 using System.Reflection;
 using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Notifications;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Accounts;
@@ -32,7 +33,7 @@ public sealed class NotificationAudienceTests
         var standing = Play(sessions, Standing, "conn-standing");
         var watching = Play(sessions, Watching, "conn-watching");
 
-        var recipients = new NotificationAudienceResolver(sessions)
+        var recipients = Resolver(sessions)
             .Resolve(new NotificationAudience.TheseCharacters([Standing, Watching]));
 
         Assert.Equal(
@@ -55,7 +56,7 @@ public sealed class NotificationAudienceTests
         var sessions = new SelectedSessionDomainService();
         var watching = Play(sessions, Watching, "conn-watching");
 
-        var recipients = new NotificationAudienceResolver(sessions)
+        var recipients = Resolver(sessions)
             .Resolve(new NotificationAudience.TheseCharacters([Gone, Watching]));
 
         Assert.Equal(
@@ -66,7 +67,7 @@ public sealed class NotificationAudienceTests
     /// <summary>Naming nobody who is here reaches nobody, rather than reaching everybody.</summary>
     [Fact]
     public void An_audience_whose_characters_are_all_away_resolves_to_nobody() =>
-        Assert.Empty(new NotificationAudienceResolver(new SelectedSessionDomainService())
+        Assert.Empty(Resolver(new SelectedSessionDomainService())
             .Resolve(new NotificationAudience.TheseCharacters([Gone])));
 
     /// <summary>The order the caller named them in is the order they come back in.</summary>
@@ -81,10 +82,110 @@ public sealed class NotificationAudienceTests
         Play(sessions, Standing, "conn-standing");
         Play(sessions, Watching, "conn-watching");
 
-        var recipients = new NotificationAudienceResolver(sessions)
+        var recipients = Resolver(sessions)
             .Resolve(new NotificationAudience.TheseCharacters([Watching, Standing]));
 
         Assert.Equal([Watching, Standing], recipients.Select(value => value.CharacterId));
+    }
+
+    [Fact]
+    public void A_scoped_audience_resolves_only_matching_current_presence_sessions()
+    {
+        var sessions = new SelectedSessionDomainService();
+        var presence = new SessionPresenceDomainService();
+        var standing = Play(sessions, Standing, "conn-standing");
+        var watching = Play(sessions, Watching, "conn-watching", listenerPort: 10012);
+        presence.Admit(new SessionPresence(Standing, 10011, 1, 2, true, standing));
+        presence.Admit(new SessionPresence(Watching, 10012, 1, 2, true, watching));
+
+        var recipients = new NotificationAudienceResolver(sessions, presence).Resolve(
+            new NotificationAudience.Scoped(
+                SessionPresenceScope.VisibleTownArea(10011, 1, 2)));
+
+        Assert.Equal(
+            [new NotificationRecipient(Standing, standing.ConnectionId, standing)],
+            recipients);
+    }
+
+    [Fact]
+    public void A_scoped_audience_rejects_a_presence_owned_by_a_replaced_session()
+    {
+        var sessions = new SelectedSessionDomainService();
+        var presence = new SessionPresenceDomainService();
+        var old = Play(sessions, Standing, "conn-old");
+        presence.Admit(new SessionPresence(Standing, 10011, 1, 2, true, old));
+        _ = sessions.Select(old with
+        {
+            ConnectionId = new NetworkConnectionId("conn-new"),
+            ConnectionGeneration = 2,
+        });
+
+        var recipients = new NotificationAudienceResolver(sessions, presence).Resolve(
+            new NotificationAudience.Scoped(SessionPresenceScope.Global));
+
+        Assert.Empty(recipients);
+    }
+
+    [Fact]
+    public void A_scoped_audience_requires_a_presence_directory()
+    {
+        var resolver = new NotificationAudienceResolver(new SelectedSessionDomainService());
+
+        var failure = Assert.Throws<InvalidOperationException>(() =>
+            resolver.Resolve(new NotificationAudience.Scoped(SessionPresenceScope.Global)));
+
+        Assert.Contains("require session presence", failure.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_exact_session_audience_rejects_a_replacement_session()
+    {
+        var sessions = new SelectedSessionDomainService();
+        var old = Play(sessions, Standing, "conn-old", listenerPort: 10011);
+        _ = sessions.Select(old with
+        {
+            ConnectionId = new NetworkConnectionId("conn-new"),
+            ConnectionGeneration = 2,
+            ListenerPort = 10012,
+        });
+
+        var recipients = Resolver(sessions).Resolve(
+            new NotificationAudience.TheseSessions([old]));
+
+        Assert.Empty(recipients);
+    }
+
+    [Fact]
+    public void An_exact_session_audience_preserves_order_duplicates_and_identity()
+    {
+        var sessions = new SelectedSessionDomainService();
+        var standing = Play(sessions, Standing, "conn-standing");
+        var watching = Play(sessions, Watching, "conn-watching");
+
+        var recipients = Resolver(sessions).Resolve(
+            new NotificationAudience.TheseSessions([watching, standing, watching]));
+
+        Assert.Equal(
+            [
+                new NotificationRecipient(Watching, watching.ConnectionId, watching),
+                new NotificationRecipient(Standing, standing.ConnectionId, standing),
+                new NotificationRecipient(Watching, watching.ConnectionId, watching),
+            ],
+            recipients);
+    }
+
+    [Fact]
+    public void A_character_audience_preserves_duplicate_entries()
+    {
+        var sessions = new SelectedSessionDomainService();
+        var standing = Play(sessions, Standing, "conn-standing");
+
+        var recipients = Resolver(sessions).Resolve(
+            new NotificationAudience.TheseCharacters([Standing, Standing]));
+
+        Assert.Equal(
+            [standing.ConnectionId, standing.ConnectionId],
+            recipients.Select(value => value.ConnectionId));
     }
 
     /// <summary>
@@ -114,10 +215,15 @@ public sealed class NotificationAudienceTests
         Assert.Contains(constructors, constructor =>
             constructor.IsPrivate && constructor.GetParameters().Length == 0);
         Assert.Equal(
-            [typeof(NotificationAudience.TheseCharacters)],
+            [
+                typeof(NotificationAudience.Scoped),
+                typeof(NotificationAudience.TheseCharacters),
+                typeof(NotificationAudience.TheseSessions),
+            ],
             typeof(NotificationAudience)
                 .GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic)
-                .Where(typeof(NotificationAudience).IsAssignableFrom));
+                .Where(typeof(NotificationAudience).IsAssignableFrom)
+                .OrderBy(value => value.Name));
     }
 
     /// <summary>
@@ -141,7 +247,7 @@ public sealed class NotificationAudienceTests
             new NotificationAudience.TheseCharacters([Standing]), ListenerPort: 10011);
 
         var error = Assert.Throws<InvalidOperationException>(() =>
-            new NotificationAudienceResolver(new SelectedSessionDomainService()).Resolve(mixed));
+            Resolver(new SelectedSessionDomainService()).Resolve(mixed));
 
         Assert.Contains(nameof(CharactersAndAChannel), error.Message, StringComparison.Ordinal);
     }
@@ -150,15 +256,21 @@ public sealed class NotificationAudienceTests
         : NotificationAudience(Source);
 
     private static SelectedSessionIdentity Play(
-        SelectedSessionDomainService sessions, CharacterId characterId, string connection)
+        SelectedSessionDomainService sessions,
+        CharacterId characterId,
+        string connection,
+        int listenerPort = 10011)
     {
         var session = SelectedSessionIdentity.Create(
             new AccountId(characterId.Value),
             characterId,
             new NetworkConnectionId(connection),
             connectionGeneration: 1,
-            listenerPort: 10011);
+            listenerPort);
         _ = sessions.Select(session);
         return session;
     }
+
+    private static NotificationAudienceResolver Resolver(SelectedSessionDomainService sessions) =>
+        new(sessions, new SessionPresenceDomainService());
 }

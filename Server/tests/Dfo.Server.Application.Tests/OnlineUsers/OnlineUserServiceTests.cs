@@ -421,7 +421,12 @@ public sealed class UserServiceTests
             accountId, new CharacterId(1006), connection.ConnectionId,
             authenticated.Generation, 10011);
         sessions.Select(selected);
-        var peer = new CharacterId(1007);
+        var peer = SelectedSessionIdentity.Create(
+            new AccountId(107),
+            new CharacterId(1007),
+            new NetworkConnectionId("Game:peer"),
+            1,
+            10011);
         var plan = new SelectedSessionCleanupNotificationPlan(
             connection.ConnectionId,
             [new SelectedSessionCleanupNotice(
@@ -438,8 +443,8 @@ public sealed class UserServiceTests
         await observer.DisconnectedAsync(connection, CancellationToken.None);
 
         // Both halves are still handed over after a failed cleanup, which is what this case has
-        // always been about. The peer half is named in characters now; which connection that
-        // character is on is answered later, by the notification service.
+        // always been about. The peer half keeps the exact session sampled by cleanup so a later
+        // replacement cannot receive stale town state.
         var delivered = Assert.Single(cleanupDelivery.Delivered);
         Assert.Equal(connection.ConnectionId, delivered.OwnerConnectionId);
         Assert.Equal(

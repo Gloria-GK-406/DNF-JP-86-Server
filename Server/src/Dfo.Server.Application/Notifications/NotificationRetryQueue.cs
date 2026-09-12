@@ -1,21 +1,22 @@
 using System.Collections.Concurrent;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Notifications;
 
 /// <summary>One recipient's second chance, and how many it has already used.</summary>
 /// <remarks>
-/// A character, not a connection, and not a composed message. Both omissions are the point: by the
-/// time this is drained, where they are and what they should be told are both questions with newer
-/// answers than the ones this entry could have carried. Keeping the frame would be the natural
-/// thing to keep, and it is the one that quietly delivers an old value over a newer one -- the
-/// first attempt fails, a second publish succeeds, and then the first retries on top of it.
+/// A current-character retry names only the character and follows its established replacement
+/// semantics. An exact-session retry additionally keeps the expected generation so state frozen
+/// for one session cannot follow the character to another. Neither keeps a composed message: the
+/// handler is asked again so a retry never overlays a cached frame on a newer publication.
 /// </remarks>
 internal sealed record NotificationRetry(
     NotificationHandlerRegistration Registration,
     object Notification,
     CharacterId CharacterId,
-    int Attempts);
+    int Attempts,
+    SelectedSessionIdentity? ExpectedSession = null);
 
 /// <summary>The failed recipients waiting for another go.</summary>
 /// <remarks>

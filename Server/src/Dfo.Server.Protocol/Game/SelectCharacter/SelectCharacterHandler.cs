@@ -283,7 +283,7 @@ public sealed class SelectCharacterHandler(
                 cancellationToken).ConfigureAwait(false);
             EnsureCurrent(session);
             await notifications.PublishAsync(
-                new NotificationAudience.TheseCharacters(town.Audience),
+                new NotificationAudience.TheseSessions(town.Audience),
                 new TownParticipantPublished(town.State),
                 cancellationToken).ConfigureAwait(false);
         }

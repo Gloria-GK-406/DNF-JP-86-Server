@@ -72,7 +72,7 @@ internal sealed class NotificationBus(
             var outcome = await AttemptAsync(composer, recipient, notification, cancellationToken)
                 .ConfigureAwait(false);
             if (outcome == NotificationOutcome.Failed)
-                Requeue(registration, notification, recipient.CharacterId, used: 0);
+                Requeue(registration, notification, recipient, used: 0);
 
             attempts.Add(new NotificationAttempt(recipient.CharacterId, outcome));
         }
@@ -109,12 +109,17 @@ internal sealed class NotificationBus(
     private void Requeue(
         NotificationHandlerRegistration registration,
         object notification,
-        CharacterId characterId,
+        NotificationRecipient recipient,
         int used)
     {
         if (used < registration.RetryLimit)
         {
-            retries.Add(new NotificationRetry(registration, notification, characterId, used));
+            retries.Add(new NotificationRetry(
+                registration,
+                notification,
+                recipient.CharacterId,
+                used,
+                recipient.ExpectedSession));
             return;
         }
 
@@ -130,7 +135,7 @@ internal sealed class NotificationBus(
                 "Notification {Notification} gave up on character {CharacterId} after {Used} "
                     + "of {Limit} further attempts.",
                 registration.NotificationType.Name,
-                characterId.Value,
+                recipient.CharacterId.Value,
                 used,
                 registration.RetryLimit);
         }
@@ -138,26 +143,27 @@ internal sealed class NotificationBus(
 
     /// <summary>One waiting recipient, asked about from scratch.</summary>
     /// <remarks>
-    /// A retry is a fresh evaluation for one person rather than the tail of the publish that
-    /// queued it. Where they are is asked again, and so is what to tell them -- which is why the
-    /// entry carries neither.
+    /// A retry evaluates the recipient and message again rather than keeping a composed frame.
     /// <para>
     /// That is also why somebody who reconnected between the failure and now is delivered to here,
     /// while the same person mid-publish is <see cref="NotificationOutcome.Gone"/>. The two are
     /// not the same moment. Mid-publish, their session was replaced while this very publish was
     /// running, and what is in hand was worked out against the session that just went away. Here,
     /// nothing is in hand: the question starts at "who is this character and where are they", the
-    /// answer is their current session, and the handler composes against it. The queue names a
-    /// person, not a session, and this is what that means.
+    /// answer is their current session, and the handler composes against it. Exact-session
+    /// audiences are different: their queue entry retains the expected generation and disappears
+    /// when that session is replaced.
     /// </para>
     /// </remarks>
     private async ValueTask RetryAsync(NotificationRetry entry, CancellationToken cancellationToken)
     {
-        // Through the audience, so that "which connection is this character on" keeps having one
-        // answer. Nobody home is not a failure and not another retry: they have stopped being
-        // somebody this notification can reach.
+        // Through the same audience semantics that created the retry. Nobody home, or an exact
+        // generation that was replaced, is not a failure and not another retry.
+        NotificationAudience audience = entry.ExpectedSession is { } exact
+            ? new NotificationAudience.TheseSessions([exact])
+            : new NotificationAudience.TheseCharacters([entry.CharacterId]);
         var recipient = audiences
-            .Resolve(new NotificationAudience.TheseCharacters([entry.CharacterId]))
+            .Resolve(audience)
             .FirstOrDefault();
         if (recipient is null)
             return;
@@ -168,7 +174,7 @@ internal sealed class NotificationBus(
         var outcome = await AttemptAsync(composer, recipient, entry.Notification, cancellationToken)
             .ConfigureAwait(false);
         if (outcome == NotificationOutcome.Failed)
-            Requeue(entry.Registration, entry.Notification, entry.CharacterId, entry.Attempts + 1);
+            Requeue(entry.Registration, entry.Notification, recipient, entry.Attempts + 1);
     }
 
     /// <summary>One recipient, isolated from the rest.</summary>
@@ -249,14 +255,15 @@ internal sealed class NotificationBus(
         }
     }
 
-    /// <summary>Is this still their connection?</summary>
+    /// <summary>Does this recipient still own the resolved session or connection?</summary>
     /// <remarks>
-    /// Both halves are the question. A character with no session has logged out; a character whose
-    /// session is now on a different connection has come back on a new one. Neither of them is the
-    /// recipient this publish resolved to, which is what makes them the same answer -- and asking
-    /// before composing rather than after is why neither costs a handler call.
+    /// A character audience checks its resolved connection and keeps its replacement semantics.
+    /// An exact audience checks the whole selected-session identity, including generation and
+    /// listener. Asking before composing is why a replaced recipient costs no handler call.
     /// </remarks>
     private bool IsStillHere(NotificationRecipient recipient) =>
         sessions.FindByCharacter(recipient.CharacterId) is { } session
-        && session.ConnectionId == recipient.ConnectionId;
+        && (recipient.ExpectedSession is { } exact
+            ? session == exact
+            : session.ConnectionId == recipient.ConnectionId);
 }

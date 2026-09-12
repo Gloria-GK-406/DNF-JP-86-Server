@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -61,8 +62,21 @@ public sealed class RegistryExistenceTests
     public async Task A_registry_written_to_is_the_same_one_the_view_consults()
     {
         using var provider = BuildProductionGraph();
+        var session = SelectedSessionIdentity.Create(
+            new AccountId(2),
+            new CharacterId(2),
+            new NetworkConnectionId("Game:2"),
+            connectionGeneration: 1,
+            listenerPort: 10011);
+        _ = provider.GetRequiredService<ISelectedSessionDomainService>().Select(session);
         provider.GetRequiredService<ISessionPresenceDomainService>().Admit(
-            new SessionPresence(new CharacterId(2), 10011, 1, 0, StandingInTown: true));
+            new SessionPresence(
+                session.CharacterId,
+                session.ListenerPort,
+                1,
+                0,
+                StandingInTown: true,
+                session));
 
         var result = await provider.GetRequiredService<ISessionAdjacentEntryDomainService>().LoadAsync(
             new SessionAdjacentSubject(

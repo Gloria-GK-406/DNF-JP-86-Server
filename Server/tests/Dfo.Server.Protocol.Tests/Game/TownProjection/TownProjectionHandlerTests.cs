@@ -96,10 +96,14 @@ public sealed class TownProjectionHandlerTests
     {
         var oldPeer = PeerIdentity(61, "old");
         var newPeer = PeerIdentity(62, "new");
+        var otherListenerOldPeer = PeerIdentity(63, "old-other-listener", listenerPort: 10011);
+        var otherListenerNewPeer = PeerIdentity(64, "new-other-listener", listenerPort: 10011);
         var sessions = new SelectedSessionDomainService();
         sessions.Select(Identity);
         sessions.Select(oldPeer);
         sessions.Select(newPeer);
+        sessions.Select(otherListenerOldPeer);
+        sessions.Select(otherListenerNewPeer);
         var runtimes = new SelectedSessionRuntimeDirectory();
         runtimes.Publish(
             Identity,
@@ -113,6 +117,14 @@ public sealed class TownProjectionHandlerTests
             newPeer,
             EntryFor(newPeer, CrossedTownId, CrossedAreaId, x: 800),
             shouldPersistPosition: false);
+        runtimes.Publish(
+            otherListenerOldPeer,
+            EntryFor(otherListenerOldPeer, WalkedTownId, WalkedAreaId, x: 900),
+            shouldPersistPosition: false);
+        runtimes.Publish(
+            otherListenerNewPeer,
+            EntryFor(otherListenerNewPeer, CrossedTownId, CrossedAreaId, x: 950),
+            shouldPersistPosition: false);
         var positions = Standing();
         positions.Place(
             oldPeer,
@@ -122,6 +134,14 @@ public sealed class TownProjectionHandlerTests
             newPeer,
             new CharacterPositionState(
                 CrossedTownId, CrossedAreaId, 800, 300, WalkedDirection));
+        positions.Place(
+            otherListenerOldPeer,
+            new CharacterPositionState(
+                WalkedTownId, WalkedAreaId, 900, 300, WalkedDirection));
+        positions.Place(
+            otherListenerNewPeer,
+            new CharacterPositionState(
+                CrossedTownId, CrossedAreaId, 950, 300, WalkedDirection));
         var presence = Presence();
         presence.Admit(new SessionPresence(
             oldPeer.CharacterId,
@@ -137,6 +157,20 @@ public sealed class TownProjectionHandlerTests
             CrossedAreaId,
             StandingInTown: true,
             newPeer));
+        presence.Admit(new SessionPresence(
+            otherListenerOldPeer.CharacterId,
+            otherListenerOldPeer.ListenerPort,
+            WalkedTownId,
+            WalkedAreaId,
+            StandingInTown: true,
+            otherListenerOldPeer));
+        presence.Admit(new SessionPresence(
+            otherListenerNewPeer.CharacterId,
+            otherListenerNewPeer.ListenerPort,
+            CrossedTownId,
+            CrossedAreaId,
+            StandingInTown: true,
+            otherListenerNewPeer));
         var sender = new RecordingSender();
         var notifications = new RecordingNotifications();
         var handler = new SetUserAreaHandler(
@@ -162,14 +196,16 @@ public sealed class TownProjectionHandlerTests
             {
                 Assert.Equal(
                     [oldPeer.CharacterId],
-                    Assert.IsType<NotificationAudience.TheseCharacters>(item.Audience).CharacterIds);
+                    Assert.IsType<NotificationAudience.TheseSessions>(item.Audience).Sessions
+                        .Select(value => value.CharacterId));
                 Assert.IsType<TownParticipantDeparted>(item.Notification);
             },
             item =>
             {
                 Assert.Equal(
                     [newPeer.CharacterId],
-                    Assert.IsType<NotificationAudience.TheseCharacters>(item.Audience).CharacterIds);
+                    Assert.IsType<NotificationAudience.TheseSessions>(item.Audience).Sessions
+                        .Select(value => value.CharacterId));
                 var published = Assert.IsType<TownParticipantPublished>(item.Notification);
                 Assert.Equal(Identity.CharacterId, published.State.Newcomer.Character.Identity.CharacterId);
                 Assert.Equal(
@@ -233,15 +269,29 @@ public sealed class TownProjectionHandlerTests
     {
         var positions = Standing();
         var presence = Presence();
+        var peer = PeerIdentity(61, "peer");
+        var otherListenerPeer = PeerIdentity(62, "other-listener", listenerPort: 10011);
         presence.Admit(new SessionPresence(
-            new CharacterId(61),
-            Identity.ListenerPort,
+            peer.CharacterId,
+            peer.ListenerPort,
             WalkedTownId,
             WalkedAreaId,
-            StandingInTown: true));
+            StandingInTown: true,
+            peer));
+        presence.Admit(new SessionPresence(
+            otherListenerPeer.CharacterId,
+            otherListenerPeer.ListenerPort,
+            WalkedTownId,
+            WalkedAreaId,
+            StandingInTown: true,
+            otherListenerPeer));
+        var sessions = new SelectedSessionDomainService();
+        sessions.Select(Identity);
+        sessions.Select(peer);
+        sessions.Select(otherListenerPeer);
         var notifications = new RecordingNotifications();
         var handler = new SetUserPositionHandler(
-            new OneSession(Identity),
+            sessions,
             new OneRuntimeSession(Entry()),
             positions,
             presence,
@@ -258,12 +308,54 @@ public sealed class TownProjectionHandlerTests
         var (audience, notification) = Assert.Single(notifications.Published);
         Assert.Equal(
             [new CharacterId(61)],
-            Assert.IsType<NotificationAudience.TheseCharacters>(audience).CharacterIds);
+            Assert.IsType<NotificationAudience.TheseSessions>(audience).Sessions
+                .Select(value => value.CharacterId));
         var changed = Assert.IsType<TownPositionChanged>(notification);
         Assert.Equal(Identity.WireUserId, changed.WireUserId);
         Assert.Equal(SteppedX, changed.X);
         Assert.Equal(SteppedY, changed.Y);
         Assert.Equal(SteppedDirection, changed.Direction);
+    }
+
+    [Fact]
+    public async Task A_step_does_not_follow_a_stale_presence_to_a_replacement_listener()
+    {
+        var positions = Standing();
+        var presence = Presence();
+        var oldPeer = PeerIdentity(61, "peer-old");
+        presence.Admit(new SessionPresence(
+            oldPeer.CharacterId,
+            oldPeer.ListenerPort,
+            WalkedTownId,
+            WalkedAreaId,
+            StandingInTown: true,
+            oldPeer));
+        var sessions = new SelectedSessionDomainService();
+        sessions.Select(Identity);
+        sessions.Select(oldPeer);
+        _ = sessions.Select(oldPeer with
+        {
+            ConnectionId = new NetworkConnectionId("peer-replacement"),
+            ConnectionGeneration = 2,
+            ListenerPort = 10011,
+        });
+        var notifications = new RecordingNotifications();
+        var handler = new SetUserPositionHandler(
+            sessions,
+            new OneRuntimeSession(Entry()),
+            positions,
+            presence,
+            new RecordingSender(),
+            notifications,
+            NullLogger<SetUserPositionHandler>.Instance);
+
+        await handler.HandleAsync(
+            Dispatch(),
+            new SetUserPositionRequest(
+                GameMessageMetadata.Empty, SteppedX, SteppedY, SteppedDirection, Trailer),
+            CancellationToken.None);
+
+        Assert.Empty(notifications.Published);
     }
 
     /// <summary>Where entry placed them, which is the copy the session snapshot keeps.</summary>
@@ -397,13 +489,16 @@ public sealed class TownProjectionHandlerTests
         connectionGeneration: 1,
         listenerPort: 10010);
 
-    private static SelectedSessionIdentity PeerIdentity(int characterId, string connection) =>
+    private static SelectedSessionIdentity PeerIdentity(
+        int characterId,
+        string connection,
+        int listenerPort = 10010) =>
         SelectedSessionIdentity.Create(
             new AccountId(characterId),
             new CharacterId(characterId),
             new NetworkConnectionId(connection),
             connectionGeneration: 1,
-            listenerPort: 10010);
+            listenerPort);
 
     private sealed class OneSession(SelectedSessionIdentity identity) : ISelectedSessionDomainService
     {

@@ -41,24 +41,30 @@ internal sealed class SelectedSessionCleanupService(
     {
         var failures = new List<Exception>();
         var currentPresence = presence.Find(session.CharacterId);
-        var audience = new List<CharacterId>();
+        var audience = new List<SelectedSessionIdentity>();
         var peerNotices = new List<SelectedSessionCleanupNotice>();
         var required = new List<SelectedSessionCleanupNotice>();
         var partyNotifications = PartyNotificationPlan.Empty;
         if (currentPresence?.Session == session)
         {
-            // Who, in characters. Which connection each of them is on is the notification
-            // service's question; this service used to answer it here, and that is the reason it
-            // knew what a socket was at all.
+            // Preserve the exact peer generations this area snapshot was built from. Reducing
+            // them to character IDs would let a replacement on another listener receive this
+            // departure after the old presence was sampled.
             //
             // Asked here rather than at the moment of sending, because the presence record this
             // departure is leaving is withdrawn a few statements below: resolving the area later
             // would be asking about a different moment.
-            foreach (var peer in presence.InArea(
-                         currentPresence.TownId, currentPresence.AreaId, session.CharacterId,
-                         currentPresence.ListenerPort))
+            foreach (var peer in presence.Query(SessionPresenceScope.VisibleTownArea(
+                         currentPresence.ListenerPort,
+                         currentPresence.TownId,
+                         currentPresence.AreaId,
+                         session.CharacterId)))
             {
-                audience.Add(peer.CharacterId);
+                if (peer.Session is { } exact
+                    && sessions.FindByCharacter(peer.CharacterId) == exact)
+                {
+                    audience.Add(exact);
+                }
             }
 
             // One set for all of them, because they never differ; saying it once is what makes that
@@ -159,17 +165,20 @@ internal sealed class SelectCharacterSessionEntryService(
     {
         var position = positions.Find(session.CharacterId)
             ?? throw new InvalidDataException("The published town position is unavailable.");
-        var occupants = presence.InArea(
-            position.TownId, position.AreaId, session.CharacterId);
+        var occupants = presence.Query(SessionPresenceScope.VisibleTownArea(
+            session.ListenerPort,
+            position.TownId,
+            position.AreaId,
+            session.CharacterId));
         if (occupants.Count == 0)
             return null;
 
         var existing = new List<TownParticipantEntryState>(occupants.Count);
-        var audience = new List<CharacterId>(occupants.Count);
+        var audience = new List<SelectedSessionIdentity>(occupants.Count);
         foreach (var occupant in occupants)
         {
-            var owner = occupant.Session ?? sessions.FindByCharacter(occupant.CharacterId);
-            if (owner is null
+            if (occupant.Session is not { } owner
+                || sessions.FindByCharacter(occupant.CharacterId) != owner
                 || !runtimes.TryGet(owner, out var otherResult, out _)
                 || otherResult is null
                 || positions.Find(occupant.CharacterId) is not { } otherPosition)
@@ -178,7 +187,7 @@ internal sealed class SelectCharacterSessionEntryService(
             }
 
             existing.Add(CreateTownParticipant(otherResult, otherPosition));
-            audience.Add(occupant.CharacterId);
+            audience.Add(owner);
         }
 
         if (existing.Count == 0)

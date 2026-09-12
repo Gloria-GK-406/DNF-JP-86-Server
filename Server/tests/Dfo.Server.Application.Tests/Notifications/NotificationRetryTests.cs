@@ -70,6 +70,24 @@ public sealed class NotificationRetryTests
         Assert.Equal([world.ConnectionOf(First)], world.Sender.Sent.Select(sent => sent.ConnectionId));
     }
 
+    [Fact]
+    public async Task An_exact_session_retry_does_not_follow_a_replacement_session()
+    {
+        var world = new NotificationWorld(retryLimit: 1);
+        world.Play(First);
+        var exact = world.SessionOf(First);
+        world.Sender.FailFor(exact.ConnectionId);
+
+        await world.PublishToExactAsync([exact]);
+        world.Reconnect(First);
+        world.Sender.StopFailing();
+        await world.DrainAsync();
+
+        Assert.Empty(world.Sender.Sent);
+        Assert.Single(world.Sender.Attempted);
+        Assert.Equal(0, world.Waiting);
+    }
+
     /// <summary>Failing again puts them back, until the allowance the notification declared runs out.</summary>
     [Fact]
     public async Task A_recipient_who_keeps_failing_is_dropped_at_the_declared_limit()

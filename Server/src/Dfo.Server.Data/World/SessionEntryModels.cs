@@ -42,9 +42,9 @@ public sealed record TownPresenceSynchronizationState(
     TownParticipantEntryState Newcomer,
     IReadOnlyList<TownParticipantEntryState> ExistingCharacters);
 
-/// <summary>The view sent to the entering character and the existing characters told about it.</summary>
+/// <summary>The view sent to the entering character and the exact existing sessions told about it.</summary>
 public sealed record TownParticipantPublicationPlan(
-    IReadOnlyList<CharacterId> Audience,
+    IReadOnlyList<SelectedSessionIdentity> Audience,
     TownPresenceSynchronizationState State);
 
 /// <summary>
@@ -141,9 +141,9 @@ public sealed record SelectedSessionCleanupNotice(
 /// <remarks>
 /// Three projections that are not the same kind of thing. The owner's notices must reach one
 /// connection this code already has in hand -- it is the connection the departure is happening on.
-/// Town peers are one fan-out, and the independent party plan names its own clear/refresh audiences;
-/// which connection any character is on is not a question this plan, or the domain service that
-/// builds it, has any business answering.
+/// Town peers are one exact-session fan-out tied to the presence snapshot, and the independent
+/// party plan names its own clear/refresh audiences. Keeping the selected-session identity prevents
+/// an old town event from following the same character onto a replacement connection or channel.
 /// <para>
 /// One list of town notices for all town peers rather than one per peer, because they never differ.
 /// </para>
@@ -151,14 +151,14 @@ public sealed record SelectedSessionCleanupNotice(
 public sealed record SelectedSessionCleanupNotificationPlan(
     NetworkConnectionId OwnerConnectionId,
     IReadOnlyList<SelectedSessionCleanupNotice> RequiredOwnerNotices,
-    IReadOnlyList<CharacterId> PeerAudience,
+    IReadOnlyList<SelectedSessionIdentity> PeerAudience,
     IReadOnlyList<SelectedSessionCleanupNotice> PeerNotices,
     PartyNotificationPlan PartyNotifications)
 {
     public SelectedSessionCleanupNotificationPlan(
         NetworkConnectionId ownerConnectionId,
         IReadOnlyList<SelectedSessionCleanupNotice> requiredOwnerNotices,
-        IReadOnlyList<CharacterId> peerAudience,
+        IReadOnlyList<SelectedSessionIdentity> peerAudience,
         IReadOnlyList<SelectedSessionCleanupNotice> peerNotices)
         : this(
             ownerConnectionId,

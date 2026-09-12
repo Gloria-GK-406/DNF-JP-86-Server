@@ -284,8 +284,14 @@ public sealed class SetUserAreaHandler(
             .ConfigureAwait(false);
         var oldAudience = sameArea
             ? []
-            : presence.InArea(standing.TownId, standing.AreaId, session.CharacterId)
-                .Select(value => value.CharacterId)
+            : presence.Query(SessionPresenceScope.VisibleTownArea(
+                    session.ListenerPort,
+                    standing.TownId,
+                    standing.AreaId,
+                    session.CharacterId))
+                .Where(value => value.Session is { } exact
+                    && selectedSessions.FindByCharacter(value.CharacterId) == exact)
+                .Select(value => value.Session!)
                 .ToArray();
 
         // Reported rather than assembled here and written back: the destination is what this
@@ -327,12 +333,15 @@ public sealed class SetUserAreaHandler(
             SharesTownPresence = sharesTownPresence,
         };
         var existing = new List<TownParticipantEntryState>();
-        var newAudience = new List<CharacterId>();
-        foreach (var occupant in presence.InArea(
-                     moved.TownId, moved.AreaId, session.CharacterId))
+        var newAudience = new List<SelectedSessionIdentity>();
+        foreach (var occupant in presence.Query(SessionPresenceScope.VisibleTownArea(
+                     session.ListenerPort,
+                     moved.TownId,
+                     moved.AreaId,
+                     session.CharacterId)))
         {
-            var owner = occupant.Session ?? selectedSessions.FindByCharacter(occupant.CharacterId);
-            if (owner is null
+            if (occupant.Session is not { } owner
+                || selectedSessions.FindByCharacter(occupant.CharacterId) != owner
                 || !runtimeSessions.TryGet(owner, out var otherResult, out _)
                 || otherResult is null
                 || positions.Find(occupant.CharacterId) is not { } otherPosition)
@@ -341,7 +350,7 @@ public sealed class SetUserAreaHandler(
             }
 
             existing.Add(CreateParticipant(otherResult, otherPosition));
-            newAudience.Add(occupant.CharacterId);
+            newAudience.Add(owner);
         }
 
         var direct = new List<IGameServerMessage>
@@ -380,14 +389,14 @@ public sealed class SetUserAreaHandler(
         if (oldAudience.Length > 0)
         {
             await notifications.PublishAsync(
-                new NotificationAudience.TheseCharacters(oldAudience),
+                new NotificationAudience.TheseSessions(oldAudience),
                 new TownParticipantDeparted(session.WireUserId),
                 cancellationToken).ConfigureAwait(false);
         }
         if (!sameArea && newAudience.Count > 0 && state is not null)
         {
             await notifications.PublishAsync(
-                new NotificationAudience.TheseCharacters(newAudience),
+                new NotificationAudience.TheseSessions(newAudience),
                 new TownParticipantPublished(state),
                 cancellationToken).ConfigureAwait(false);
         }
@@ -464,14 +473,19 @@ public sealed class SetUserPositionHandler(
                 session.WireUserId, message.X, message.Y, message.Direction, message.Trailer),
             cancellationToken).ConfigureAwait(false);
 
-        var audience = presence.InArea(
-            moved.TownId, moved.AreaId, session.CharacterId)
-            .Select(value => value.CharacterId)
+        var audience = presence.Query(SessionPresenceScope.VisibleTownArea(
+                session.ListenerPort,
+                moved.TownId,
+                moved.AreaId,
+                session.CharacterId))
+            .Where(value => value.Session is { } exact
+                && selectedSessions.FindByCharacter(value.CharacterId) == exact)
+            .Select(value => value.Session!)
             .ToArray();
         if (audience.Length > 0)
         {
             await notifications.PublishAsync(
-                new NotificationAudience.TheseCharacters(audience),
+                new NotificationAudience.TheseSessions(audience),
                 new TownPositionChanged(
                     session.WireUserId,
                     message.X,

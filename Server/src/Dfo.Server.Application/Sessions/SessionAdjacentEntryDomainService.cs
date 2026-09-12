@@ -12,6 +12,7 @@ namespace Dfo.Server.Application.Sessions;
 /// </remarks>
 internal sealed class SessionAdjacentEntryDomainService(
     ISessionPresenceDomainService presence,
+    ISelectedSessionDomainService sessions,
     IExpertStoreDomainService expertStores,
     IPvpLobbyDomainService lobby) : ISessionAdjacentEntryDomainService
 {
@@ -22,16 +23,24 @@ internal sealed class SessionAdjacentEntryDomainService(
         ArgumentNullException.ThrowIfNull(subject);
         cancellationToken.ThrowIfCancellationRequested();
 
-        // No listener scope: the legacy town-presence path spans listeners, because the
-        // caller that announces arrivals and departures passes none to its directory.
-        var occupants = presence.InArea(
+        var occupants = presence.Query(SessionPresenceScope.VisibleTownArea(
+            subject.Channel.ListenerPort,
             subject.TownId,
             subject.AreaId,
-            subject.CharacterId);
+            subject.CharacterId));
 
         var others = new List<PresentCharacterState>(occupants.Count);
         foreach (var occupant in occupants)
-            others.Add(new PresentCharacterState(occupant.CharacterId, occupant.TownId, occupant.AreaId));
+        {
+            if (occupant.Session is { } exact
+                && sessions.FindByCharacter(occupant.CharacterId) == exact)
+            {
+                others.Add(new PresentCharacterState(
+                    occupant.CharacterId,
+                    occupant.TownId,
+                    occupant.AreaId));
+            }
+        }
 
         return ValueTask.FromResult(new SessionAdjacentEntryState(
             new TownPresenceEntryState(subject.TownId, subject.AreaId, others),

@@ -219,8 +219,22 @@ internal sealed class NotificationWorld
         _ = sessions.Select(session);
     }
 
+    public void ReplaceKeepingConnection(CharacterId characterId, int listenerPort)
+    {
+        var previous = playing[characterId];
+        var session = previous with
+        {
+            ConnectionGeneration = previous.ConnectionGeneration + 1,
+            ListenerPort = listenerPort,
+        };
+        playing[characterId] = session;
+        _ = sessions.Select(session);
+    }
+
     public NetworkConnectionId ConnectionOf(CharacterId characterId) =>
         playing[characterId].ConnectionId;
+
+    public SelectedSessionIdentity SessionOf(CharacterId characterId) => playing[characterId];
 
     /// <summary>How many recipients are waiting for another go.</summary>
     public int Waiting => provider.GetRequiredService<NotificationRetryQueue>().Count;
@@ -229,6 +243,14 @@ internal sealed class NotificationWorld
         IReadOnlyList<CharacterId> audience, CancellationToken cancellationToken = default) =>
         provider.GetRequiredService<INotificationBus>().PublishAsync(
             new NotificationAudience.TheseCharacters(audience),
+            new TownBellRang("closing time"),
+            cancellationToken);
+
+    public ValueTask<NotificationDelivery> PublishToExactAsync(
+        IReadOnlyList<SelectedSessionIdentity> audience,
+        CancellationToken cancellationToken = default) =>
+        provider.GetRequiredService<INotificationBus>().PublishAsync(
+            new NotificationAudience.TheseSessions(audience),
             new TownBellRang("closing time"),
             cancellationToken);
 

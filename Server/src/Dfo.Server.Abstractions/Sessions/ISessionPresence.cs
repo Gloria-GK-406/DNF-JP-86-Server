@@ -28,6 +28,97 @@ public sealed record SessionPresence(
     SelectedSessionIdentity? Session = null,
     bool SharesTownPresence = true);
 
+[Flags]
+public enum SessionPresenceScopeFlags
+{
+    None = 0,
+    SameChannel = 1 << 0,
+    SameTown = 1 << 1,
+    SameArea = 1 << 2,
+    StandingInTown = 1 << 3,
+    SharesTownPresence = 1 << 4,
+}
+
+/// <summary>Composable constraints over the server's current character presences.</summary>
+public sealed record SessionPresenceScope
+{
+    private const SessionPresenceScopeFlags KnownFlags =
+        SessionPresenceScopeFlags.SameChannel
+        | SessionPresenceScopeFlags.SameTown
+        | SessionPresenceScopeFlags.SameArea
+        | SessionPresenceScopeFlags.StandingInTown
+        | SessionPresenceScopeFlags.SharesTownPresence;
+
+    public SessionPresenceScope(
+        SessionPresenceScopeFlags flags,
+        int? listenerPort = null,
+        byte? townId = null,
+        byte? areaId = null,
+        CharacterId? excludingCharacterId = null)
+    {
+        if ((flags & ~KnownFlags) != 0)
+            throw new ArgumentOutOfRangeException(nameof(flags), flags, "Unknown presence-scope flags.");
+        if (Includes(flags, SessionPresenceScopeFlags.SameArea)
+            && !Includes(flags, SessionPresenceScopeFlags.SameTown))
+        {
+            throw new ArgumentException("An area scope must also constrain the town.", nameof(flags));
+        }
+
+        RequireMatchingAnchor(flags, SessionPresenceScopeFlags.SameChannel, listenerPort, nameof(listenerPort));
+        RequireMatchingAnchor(flags, SessionPresenceScopeFlags.SameTown, townId, nameof(townId));
+        RequireMatchingAnchor(flags, SessionPresenceScopeFlags.SameArea, areaId, nameof(areaId));
+        if (listenerPort is <= 0 or > ushort.MaxValue)
+            throw new ArgumentOutOfRangeException(nameof(listenerPort), listenerPort, "Listener port is invalid.");
+
+        Flags = flags;
+        ListenerPort = listenerPort;
+        TownId = townId;
+        AreaId = areaId;
+        ExcludingCharacterId = excludingCharacterId;
+    }
+
+    public SessionPresenceScopeFlags Flags { get; }
+    public int? ListenerPort { get; }
+    public byte? TownId { get; }
+    public byte? AreaId { get; }
+    public CharacterId? ExcludingCharacterId { get; }
+
+    public static SessionPresenceScope Global { get; } = new(SessionPresenceScopeFlags.None);
+
+    public static SessionPresenceScope VisibleTownArea(
+        int listenerPort,
+        byte townId,
+        byte areaId,
+        CharacterId? excludingCharacterId = null) =>
+        new(
+            SessionPresenceScopeFlags.SameChannel
+            | SessionPresenceScopeFlags.SameTown
+            | SessionPresenceScopeFlags.SameArea
+            | SessionPresenceScopeFlags.StandingInTown
+            | SessionPresenceScopeFlags.SharesTownPresence,
+            listenerPort,
+            townId,
+            areaId,
+            excludingCharacterId);
+
+    private static bool Includes(SessionPresenceScopeFlags flags, SessionPresenceScopeFlags value) =>
+        (flags & value) == value;
+
+    private static void RequireMatchingAnchor<T>(
+        SessionPresenceScopeFlags flags,
+        SessionPresenceScopeFlags requiredFlag,
+        T? anchor,
+        string parameterName) where T : struct
+    {
+        var enabled = Includes(flags, requiredFlag);
+        if (enabled == anchor.HasValue)
+            return;
+        throw new ArgumentException(
+            enabled ? $"{requiredFlag} requires {parameterName}." : $"{parameterName} requires {requiredFlag}.",
+            parameterName);
+    }
+}
+
 /// <summary>
 /// The server's record of who is present and where.
 /// </summary>
@@ -61,19 +152,9 @@ public interface ISessionPresenceDomainService
     /// <summary>The presence recorded for a character, or null when none is.</summary>
     SessionPresence? Find(CharacterId characterId);
 
-    /// <summary>
-    /// Everyone else standing in the same area.
-    /// </summary>
-    /// <param name="listenerPort">
-    /// Restricts the answer to one listener. Null spans every listener, which is what the
-    /// legacy town-presence path does — its directory takes the port as an optional filter
-    /// and the caller that announces arrivals and departures supplies none.
-    /// </param>
-    IReadOnlyList<SessionPresence> InArea(
-        byte townId,
-        byte areaId,
-        CharacterId excluding,
-        int? listenerPort = null);
+    /// <summary>All current presences matching every constraint in <paramref name="scope"/>.</summary>
+    IReadOnlyList<SessionPresence> Query(SessionPresenceScope scope);
+
 }
 
 /// <summary>Generation-safe answers about which session each account currently has selected.</summary>

@@ -16,7 +16,7 @@ namespace Dfo.Server.Protocol.Tests.Game;
 /// </summary>
 /// <remarks>
 /// The owner's notices go down the connection the departure is happening on; the peers are a
-/// fan-out named in characters. Six places deliver one of these plans -- four of them inside a
+/// fan-out named in exact selected sessions. Six places deliver one of these plans -- four inside a
 /// catch (OnlineUserConnectionObserver.cs:102, SelectCharacterHandler.cs:136, :156, :162) -- so
 /// the rule that the owner hears first lives here rather than in six hand-written sequences.
 /// </remarks>
@@ -39,7 +39,7 @@ public sealed class CleanupNotificationDeliveryTests
 
         await new CleanupNotificationDelivery(sender, notifications).DeliverAsync(
             new SelectedSessionCleanupNotificationPlan(
-                Owner, [StoreClosed], [new CharacterId(9)], [Departed]),
+                Owner, [StoreClosed], [Peer(9)], [Departed]),
             CancellationToken.None);
 
         Assert.Equal(["owner", "peers"], order);
@@ -63,7 +63,7 @@ public sealed class CleanupNotificationDeliveryTests
             new SelectedSessionCleanupNotificationPlan(
                 Owner,
                 [StoreClosed],
-                [new CharacterId(9)],
+                [Peer(9)],
                 [Departed],
                 new PartyNotificationPlan(
                     [partyMember],
@@ -77,13 +77,13 @@ public sealed class CleanupNotificationDeliveryTests
         Assert.IsType<PartyRosterChanged>(notifications.Published[1].Notification);
     }
 
-    /// <summary>What each half becomes, and that the peers are named as people.</summary>
+    /// <summary>What each half becomes, and that town peers keep their sampled sessions.</summary>
     [Fact]
     public async Task Each_half_becomes_the_frames_it_always_did()
     {
         var sender = new RecordingSender([]);
         var notifications = new RecordingNotifications([]);
-        var peer = new CharacterId(9);
+        var peer = Peer(9);
 
         await new CleanupNotificationDelivery(sender, notifications).DeliverAsync(
             new SelectedSessionCleanupNotificationPlan(
@@ -99,7 +99,7 @@ public sealed class CleanupNotificationDeliveryTests
 
         var (audience, notification) = Assert.Single(notifications.Published);
         Assert.Equal(
-            [peer], Assert.IsType<NotificationAudience.TheseCharacters>(audience).CharacterIds);
+            [peer], Assert.IsType<NotificationAudience.TheseSessions>(audience).Sessions);
         Assert.Equal(
             [SelectedSessionCleanupNoticeKind.ExpertStoreClosed,
                 SelectedSessionCleanupNoticeKind.TownDeparture],
@@ -169,13 +169,21 @@ public sealed class CleanupNotificationDeliveryTests
             new SelectedSessionCleanupNotificationPlan(
                 Owner,
                 owner ? [StoreClosed] : [],
-                peers ? [new CharacterId(9)] : [],
+                peers ? [Peer(9)] : [],
                 peers ? [Departed] : []),
             CancellationToken.None);
 
         Assert.Equal(owner ? 1 : 0, sender.Deliveries.Count);
         Assert.Equal(peers ? 1 : 0, notifications.Published.Count);
     }
+
+    private static SelectedSessionIdentity Peer(int characterId) =>
+        SelectedSessionIdentity.Create(
+            new AccountId(characterId),
+            new CharacterId(characterId),
+            new NetworkConnectionId($"Game:peer-{characterId}"),
+            1,
+            10011);
 
     private sealed class RecordingSender(List<string> order) : IGameMessageSender
     {

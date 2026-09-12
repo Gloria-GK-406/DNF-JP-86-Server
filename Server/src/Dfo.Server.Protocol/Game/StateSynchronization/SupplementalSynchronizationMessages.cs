@@ -261,7 +261,7 @@ internal sealed class CleanupNotificationDelivery(
         if (plan.PeerAudience.Count > 0 && plan.PeerNotices.Count > 0)
         {
             await notifications.PublishAsync(
-                new NotificationAudience.TheseCharacters(plan.PeerAudience),
+                new NotificationAudience.TheseSessions(plan.PeerAudience),
                 new SessionCleanupAnnounced(plan.PeerNotices),
                 cancellationToken).ConfigureAwait(false);
         }

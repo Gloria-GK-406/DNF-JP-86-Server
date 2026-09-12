@@ -89,7 +89,9 @@ public sealed class SessionGenerationOwnershipTests
         Assert.Equal(
             [SelectedSessionCleanupNoticeKind.ExpertStoreClosed],
             failure.NotificationPlan.RequiredOwnerNotices.Select(value => value.Kind));
-        Assert.Equal([peer.CharacterId], failure.NotificationPlan.PeerAudience);
+        Assert.Equal(
+            [peer.CharacterId],
+            failure.NotificationPlan.PeerAudience.Select(value => value.CharacterId));
         Assert.Equal(
             [SelectedSessionCleanupNoticeKind.ExpertStoreClosed,
                 SelectedSessionCleanupNoticeKind.TownDeparture],
@@ -135,7 +137,9 @@ public sealed class SessionGenerationOwnershipTests
             Assert.Equal(
                 SelectedSessionCleanupNoticeKind.ExpertStoreClosed,
                 delivery.RequiredOwnerNotices[0].Kind);
-        Assert.Equal([peer1.CharacterId, peer2.CharacterId], delivery.PeerAudience);
+        Assert.Equal(
+            [peer1.CharacterId, peer2.CharacterId],
+            delivery.PeerAudience.Select(value => value.CharacterId));
         // One set for everybody rather than a copy each. They were always the same two entries;
         // saying so once is the difference between that being true and being a coincidence.
         Assert.Equal(

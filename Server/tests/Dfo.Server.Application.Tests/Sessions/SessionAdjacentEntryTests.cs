@@ -20,7 +20,7 @@ public sealed class SessionAdjacentEntryTests
     [Fact]
     public async Task An_unwritten_registry_reports_an_empty_area_rather_than_failing()
     {
-        var service = new SessionAdjacentEntryDomainService(new SessionPresenceDomainService(), Stores, new PvpLobbyDomainService());
+        var service = Service(new SessionPresenceDomainService(), Stores, new PvpLobbyDomainService());
 
         var result = await service.LoadAsync(Subject(), CancellationToken.None);
 
@@ -34,7 +34,7 @@ public sealed class SessionAdjacentEntryTests
         var registry = new SessionPresenceDomainService();
         registry.Admit(Presence(10));
         registry.Admit(Presence(11));
-        var service = new SessionAdjacentEntryDomainService(registry, Stores, new PvpLobbyDomainService());
+        var service = Service(registry, Stores, new PvpLobbyDomainService());
 
         var result = await service.LoadAsync(Subject(characterId: 99), CancellationToken.None);
 
@@ -49,7 +49,7 @@ public sealed class SessionAdjacentEntryTests
         var registry = new SessionPresenceDomainService();
         registry.Admit(Presence(10, sharesTownPresence: false));
         registry.Admit(Presence(11, sharesTownPresence: false));
-        var service = new SessionAdjacentEntryDomainService(registry, Stores, new PvpLobbyDomainService());
+        var service = Service(registry, Stores, new PvpLobbyDomainService());
 
         var result = await service.LoadAsync(Subject(characterId: 99), CancellationToken.None);
 
@@ -62,7 +62,7 @@ public sealed class SessionAdjacentEntryTests
         var registry = new SessionPresenceDomainService();
         registry.Admit(Presence(10));
         registry.Admit(Presence(99));
-        var service = new SessionAdjacentEntryDomainService(registry, Stores, new PvpLobbyDomainService());
+        var service = Service(registry, Stores, new PvpLobbyDomainService());
 
         var result = await service.LoadAsync(Subject(characterId: 99), CancellationToken.None);
 
@@ -76,7 +76,7 @@ public sealed class SessionAdjacentEntryTests
         registry.Admit(Presence(10));
         registry.Admit(Presence(11, areaId: 5));
         registry.Admit(Presence(12, townId: 2));
-        var service = new SessionAdjacentEntryDomainService(registry, Stores, new PvpLobbyDomainService());
+        var service = Service(registry, Stores, new PvpLobbyDomainService());
 
         var result = await service.LoadAsync(Subject(characterId: 99), CancellationToken.None);
 
@@ -84,22 +84,41 @@ public sealed class SessionAdjacentEntryTests
     }
 
     /// <remarks>
-    /// The legacy directory takes the listener as an optional filter, and the caller that
-    /// announces arrivals and departures supplies none — so town co-presence spans channels
-    /// there. That reads like an oddity, but it is the accepted behaviour, and narrowing it
-    /// here would be a silent change of who sees whom.
+    /// Town and area bytes are reused by every Game listener. They identify a visible place only
+    /// inside one channel, so a character on another listener must not leak into the entry roster.
     /// </remarks>
     [Fact]
-    public async Task Characters_on_a_different_listener_are_still_listed()
+    public async Task Characters_on_a_different_listener_are_not_listed()
     {
         var registry = new SessionPresenceDomainService();
         registry.Admit(Presence(10));
         registry.Admit(Presence(11, listenerPort: 10161));
-        var service = new SessionAdjacentEntryDomainService(registry, Stores, new PvpLobbyDomainService());
+        var service = Service(registry, Stores, new PvpLobbyDomainService());
 
         var result = await service.LoadAsync(Subject(characterId: 99), CancellationToken.None);
 
-        Assert.Equal([10, 11], result.TownPresence.Others.Select(other => other.CharacterId.Value));
+        Assert.Equal([10], result.TownPresence.Others.Select(other => other.CharacterId.Value));
+    }
+
+    [Fact]
+    public async Task A_stale_presence_is_not_listed_after_its_session_moves_to_another_listener()
+    {
+        var registry = new SessionPresenceDomainService();
+        var oldPresence = Presence(10, listenerPort: 10011);
+        registry.Admit(oldPresence);
+        var sessions = new SelectedSessionDomainService();
+        _ = sessions.Select(oldPresence.Session! with
+        {
+            ConnectionId = new Dfo.Server.Data.Networking.NetworkConnectionId("Game:replacement"),
+            ConnectionGeneration = 2,
+            ListenerPort = 10012,
+        });
+        var service = new SessionAdjacentEntryDomainService(
+            registry, sessions, Stores, new PvpLobbyDomainService());
+
+        var result = await service.LoadAsync(Subject(characterId: 99), CancellationToken.None);
+
+        Assert.Empty(result.TownPresence.Others);
     }
 
     /// <remarks>
@@ -114,7 +133,7 @@ public sealed class SessionAdjacentEntryTests
         var registry = new SessionPresenceDomainService();
         registry.Admit(Presence(10));
         registry.Admit(Presence(11, standingInTown: false));
-        var service = new SessionAdjacentEntryDomainService(registry, Stores, new PvpLobbyDomainService());
+        var service = Service(registry, Stores, new PvpLobbyDomainService());
 
         var result = await service.LoadAsync(Subject(characterId: 99), CancellationToken.None);
 
@@ -133,7 +152,7 @@ public sealed class SessionAdjacentEntryTests
         var stores = new ExpertStoreDomainService();
         stores.Open(new CharacterId(99));
         var presence = new SessionPresenceDomainService();
-        var service = new SessionAdjacentEntryDomainService(presence, stores, new PvpLobbyDomainService());
+        var service = Service(presence, stores, new PvpLobbyDomainService());
 
         var result = await service.LoadAsync(Subject(characterId: 99), CancellationToken.None);
 
@@ -148,7 +167,7 @@ public sealed class SessionAdjacentEntryTests
         stores.Open(new CharacterId(10));
         var registry = new SessionPresenceDomainService();
         registry.Admit(Presence(10));
-        var service = new SessionAdjacentEntryDomainService(registry, stores, new PvpLobbyDomainService());
+        var service = Service(registry, stores, new PvpLobbyDomainService());
 
         var result = await service.LoadAsync(Subject(characterId: 99), CancellationToken.None);
 
@@ -177,7 +196,7 @@ public sealed class SessionAdjacentEntryTests
         var registry = new SessionPresenceDomainService();
         foreach (var id in new[] { 30, 10, 20 })
             registry.Admit(Presence(id));
-        var service = new SessionAdjacentEntryDomainService(registry, Stores, new PvpLobbyDomainService());
+        var service = Service(registry, Stores, new PvpLobbyDomainService());
 
         var result = await service.LoadAsync(Subject(characterId: 99), CancellationToken.None);
 
@@ -192,7 +211,8 @@ public sealed class SessionAdjacentEntryTests
 
         Assert.True(registry.Withdraw(new CharacterId(10)));
         Assert.False(registry.Withdraw(new CharacterId(10)));
-        Assert.Empty(registry.InArea(1, 0, new CharacterId(99)));
+        Assert.Empty(registry.Query(SessionPresenceScope.VisibleTownArea(
+            10011, 1, 0, new CharacterId(99))));
     }
 
     [Fact]
@@ -202,8 +222,10 @@ public sealed class SessionAdjacentEntryTests
         registry.Admit(Presence(10));
         registry.Admit(Presence(10, areaId: 7));
 
-        Assert.Empty(registry.InArea(1, 0, new CharacterId(99)));
-        Assert.Single(registry.InArea(1, 7, new CharacterId(99)));
+        Assert.Empty(registry.Query(SessionPresenceScope.VisibleTownArea(
+            10011, 1, 0, new CharacterId(99))));
+        Assert.Single(registry.Query(SessionPresenceScope.VisibleTownArea(
+            10011, 1, 7, new CharacterId(99))));
     }
 
     [Fact]
@@ -220,10 +242,12 @@ public sealed class SessionAdjacentEntryTests
 
         Assert.False(registry.RelocateExact(stale, 2, 3, true));
         Assert.True(registry.RelocateExact(owner, 2, 3, true));
-        Assert.Empty(registry.InArea(1, 0, new CharacterId(99)));
+        Assert.Empty(registry.Query(SessionPresenceScope.VisibleTownArea(
+            10011, 1, 0, new CharacterId(99))));
         Assert.Equal(
             [10],
-            registry.InArea(2, 3, new CharacterId(99))
+            registry.Query(SessionPresenceScope.VisibleTownArea(
+                    10011, 2, 3, new CharacterId(99)))
                 .Select(value => value.CharacterId.Value));
     }
 
@@ -240,8 +264,38 @@ public sealed class SessionAdjacentEntryTests
         byte townId = 1,
         byte areaId = 0,
         bool standingInTown = true,
-        bool sharesTownPresence = true) =>
-        new(
-            new CharacterId(characterId), listenerPort, townId, areaId,
-            standingInTown, SharesTownPresence: sharesTownPresence);
+        bool sharesTownPresence = true)
+    {
+        var id = new CharacterId(characterId);
+        var session = SelectedSessionIdentity.Create(
+            new AccountId(characterId),
+            id,
+            new Dfo.Server.Data.Networking.NetworkConnectionId(
+                $"Game:{characterId}:{listenerPort}"),
+            connectionGeneration: 1,
+            listenerPort);
+        return new SessionPresence(
+            id,
+            listenerPort,
+            townId,
+            areaId,
+            standingInTown,
+            session,
+            sharesTownPresence);
+    }
+
+    private static SessionAdjacentEntryDomainService Service(
+        SessionPresenceDomainService presence,
+        IExpertStoreDomainService stores,
+        IPvpLobbyDomainService lobby)
+    {
+        var sessions = new SelectedSessionDomainService();
+        foreach (var candidate in presence.Query(SessionPresenceScope.Global))
+        {
+            if (candidate.Session is { } exact)
+                _ = sessions.Select(exact);
+        }
+
+        return new SessionAdjacentEntryDomainService(presence, sessions, stores, lobby);
+    }
 }

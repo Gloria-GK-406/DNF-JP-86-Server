@@ -2,19 +2,19 @@
 kind: rks-multi-spec-map
 contract:
   path: ./TaskContract.md
-  revision: 1
+  revision: 2
 phase: child_execution
 phase_state: pending
-active_attempt: spec-002
+active_attempt: spec-003
 last_transition: child-created
-transition_evidence: spec-002-normal-party-mode has deterministic identity and a ready contained TaskContract with empty depends_on; its routing decision selects one coherent Single Spec boundary, no prior active row exists, and root authorization covers evidence-led Normal rules and A21 validation while excluding the separate public-party-directory issue
+transition_evidence: spec-003-composable-broadcast-scope has deterministic identity and a ready contained TaskContract with empty depends_on; its routing decision selects one coherent Single Spec boundary, no prior active row exists, and root revision 2 authorization covers generic scopes plus nearby-character channel isolation while public party directory remains a separate successor
 workspace:
   repository_root: E:/Project/DNF/DNF-JP-86-Server
   task_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/party-mode-rules/.rks-agent/tasks/party-mode-rules
   code_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/party-mode-rules
   branch: task/party-mode-rules
-  baseline: d1351ce6047ea84db1c764efc3ad9466781f07af
-  baseline_evidence: accepted commit d1351ce6047ea84db1c764efc3ad9466781f07af has sole parent d717f1b0538793c86f347fce784acaaa2eab3c49; task worktree was clean immediately after acceptance; source main remains at d717f1b0538793c86f347fce784acaaa2eab3c49; canonical Git/common-dir identity and containment remain verified
+  baseline: 73a36166dfd2e6f2da85c8754a91ba724c2eab8f
+  baseline_evidence: accepted commit 73a36166dfd2e6f2da85c8754a91ba724c2eab8f has sole parent d1351ce6047ea84db1c764efc3ad9466781f07af; task worktree was clean immediately after acceptance; source main remains at d717f1b0538793c86f347fce784acaaa2eab3c49; canonical Git/common-dir identity and containment remain verified
 ---
 
 # Multi-Spec Map
@@ -28,9 +28,9 @@ workspace:
 
 ## Overall Direction
 
-在同一个根 worktree 中串行积累：保守共享规则与严格 `0x000C` → Normal → Story → Cycle →
-整体建模审计。共享连接保持为“协议 handler 调 Command，Command 调领域/规则服务，通知在行为成功后
-投影”；具体字段和模式差异由每个子规格的最新证据决定，不在根图中预先固化。
+在同一个根 worktree 中串行积累：保守共享规则与严格 `0x000C` → Normal → 可组合广播作用域与频道隔离
+→ Story → Cycle → 整体建模审计。共享连接保持为“协议 handler 调 Command，Command 调领域/规则服务，
+通知在行为成功后投影”；广播维度独立于消息主题，具体模式差异由每个子规格的最新证据决定。
 
 ## Controller Cursor
 
@@ -45,12 +45,13 @@ workspace:
 | SC-1 | 初始类型化模型与兼容默认普通行为 | satisfied | accepted `d1351ce6`; spec-001 result and completion verification | none | aligned |
 | SC-2 | 严格 `0x000C` 创建/编辑与无污染拒绝 | satisfied | accepted `d1351ce6`; exact codec/domain rejection and A21 evidence | none | aligned |
 | SC-3 | 原子设置更新与正确通知投影 | satisfied | accepted `d1351ce6`; exact audience and four-ordering regression evidence | none | aligned |
-| SC-4 | Normal 模式闭环 | not_started | none | Normal 专属规则、抓包与 UI 验收 | aligned |
+| SC-4 | Normal 模式闭环 | satisfied | accepted `73a36166`; spec-002 result, current A21 frames/UI and fresh 3085 Passed / 0 Failed | none | aligned |
 | SC-5 | Story 模式闭环 | not_started | none | Story 专属规则、抓包与 UI 验收 | aligned |
 | SC-6 | Cycle 模式闭环 | not_started | none | Cycle 专属规则、抓包与 UI 验收 | aligned |
-| SC-7 | 与现有组队生命周期组合无回归 | in_progress | spec-001 accepted fresh 3082 Passed / 0 Failed and Release build | 后继模式每次接受后的回归与最终全量验证 | aligned |
-| SC-8 | 协议资料与证据等级一致 | in_progress | spec-001 accepted `0x000C` / NOTI `0x0009` samples and static/live trace | 后继模式逐规格同步和最终一致性审查 | aligned |
+| SC-7 | 与现有组队生命周期组合无回归 | in_progress | spec-001 + spec-002 accepted; latest fresh 3085 Passed / 0 Failed and Release build | 广播、后继模式每次接受后的回归与最终全量验证 | aligned |
+| SC-8 | 协议资料与证据等级一致 | in_progress | spec-001 + spec-002 accepted; Normal samples/static/live trace and corrected leave status | 广播与后继模式逐规格同步和最终一致性审查 | aligned |
 | SC-9 | 最终建模审计与必要的聚焦重构 | not_started | none | 汇总全部已接受模式证据后审计 | aligned |
+| SC-10 | 可组合广播作用域与同频道可见性 | not_started | user-confirmed channel boundary; accepted Normal result identifies missing public party directory | 通用作用域、附近角色隔离和公开队伍目录 | aligned |
 
 ## Spec Attempts
 
@@ -59,4 +60,5 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 | # | Attempt | TaskContract | Outcome | Affects | State | Result | Git result |
 |---:|---|---|---|---|---|---|---|
 | `1` | `spec-001` | `./attempts/spec-001-party-settings-foundation/TaskContract.md` | 类型化队伍设置、保守共享规则、严格 `0x000C` 基础闭环与 type-1 投影 | `SC-1, SC-2, SC-3, SC-7, SC-8` | `completed` | `./attempts/spec-001-party-settings-foundation/spec-result.md` | `d1351ce6047ea84db1c764efc3ad9466781f07af` |
-| `2` | `spec-002` | `./attempts/spec-002-normal-party-mode/TaskContract.md` | Normal target/default、创建/编辑与最后成员处置闭环 | `SC-4, SC-7, SC-8` | `running` | `pending` | `active` |
+| `2` | `spec-002` | `./attempts/spec-002-normal-party-mode/TaskContract.md` | Normal target/default、创建/编辑与最后成员处置闭环 | `SC-4, SC-7, SC-8` | `completed` | `./attempts/spec-002-normal-party-mode/spec-result.md` | `73a36166dfd2e6f2da85c8754a91ba724c2eab8f` |
+| `3` | `spec-003` | `./attempts/spec-003-composable-broadcast-scope/TaskContract.md` | 可组合在线会话/通知作用域与附近角色频道隔离 | `SC-7, SC-10` | `running` | `pending` | `active` |

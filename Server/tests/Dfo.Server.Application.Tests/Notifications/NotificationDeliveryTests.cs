@@ -258,6 +258,24 @@ public sealed class NotificationDeliveryTests
         Assert.Equal([world.ConnectionOf(First)], world.Sender.Sent.Select(sent => sent.ConnectionId));
     }
 
+    [Fact]
+    public async Task An_exact_session_is_gone_when_its_generation_changes_on_the_same_connection()
+    {
+        var world = new NotificationWorld();
+        world.Play(First);
+        world.Play(Second);
+        var first = world.SessionOf(First);
+        var second = world.SessionOf(Second);
+        world.Sender.OnSend = _ =>
+            world.ReplaceKeepingConnection(Second, listenerPort: 10012);
+
+        var delivery = await world.PublishToExactAsync([first, second]);
+
+        Assert.Equal([Second], delivery.With(NotificationOutcome.Gone));
+        Assert.Empty(delivery.With(NotificationOutcome.Failed));
+        Assert.Equal([first.ConnectionId], world.Sender.Sent.Select(sent => sent.ConnectionId));
+    }
+
     /// <summary>Even asking where somebody is can fail, and it fails for them alone.</summary>
     /// <remarks>
     /// The presence check runs inside the same guard as composing and sending, and this is the

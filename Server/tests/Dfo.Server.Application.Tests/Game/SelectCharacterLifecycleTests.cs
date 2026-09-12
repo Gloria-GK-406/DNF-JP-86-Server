@@ -471,7 +471,8 @@ public sealed partial class SelectCharacterLifecycleTests
         var (audience, notification) = Assert.Single(fixture.Notifications.Published);
         Assert.Equal(
             [new CharacterId(4243)],
-            Assert.IsType<NotificationAudience.TheseCharacters>(audience).CharacterIds);
+            Assert.IsType<NotificationAudience.TheseSessions>(audience).Sessions
+                .Select(value => value.CharacterId));
         Assert.Equal("TownParticipantPublished", notification.GetType().Name);
     }
 
@@ -981,7 +982,12 @@ public sealed partial class SelectCharacterLifecycleTests
                 },
                 spawn with { TownId = other.TownId, AreaId = other.AreaId })).ToArray();
             return new TownParticipantPublicationPlan(
-                [.. nearby.Select(other => other.CharacterId)],
+                [.. nearby.Select(other => SelectedSessionIdentity.Create(
+                    new AccountId(other.CharacterId.Value),
+                    other.CharacterId,
+                    new NetworkConnectionId($"Game:nearby-{other.CharacterId.Value}"),
+                    connectionGeneration: 1,
+                    session.ListenerPort))],
                 new TownPresenceSynchronizationState(
                     spawn.TownId,
                     spawn.AreaId,
