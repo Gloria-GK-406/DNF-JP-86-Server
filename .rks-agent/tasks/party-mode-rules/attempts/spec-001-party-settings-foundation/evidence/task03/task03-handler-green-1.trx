@@ -1,0 +1,94 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="132a9ff6-0715-422b-9f9e-8a830bcc6d43" name="Gloria@家庭台式机 2026-09-12 10:35:34" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-12T10:35:34.3939373+08:00" queuing="2026-09-12T10:35:34.3939374+08:00" start="2026-09-12T10:35:33.7479385+08:00" finish="2026-09-12T10:35:34.4189169+08:00" />
+  <TestSettings name="default" id="b1a7b45c-f7bc-4323-a6e4-a4255a2b92e9">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-12_10_35_34" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="59eaaf34-fe24-4273-b2a9-33bc6c522a0c" testId="b6ddcc82-f595-bc20-1e59-d5a755b2b9cb" testName="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests.Non_party_peer_types_never_dispatch_a_command" computerName="家庭台式机" duration="00:00:00.0012166" startTime="2026-09-12T10:35:34.3432644+08:00" endTime="2026-09-12T10:35:34.3444637+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="59eaaf34-fe24-4273-b2a9-33bc6c522a0c" />
+    <UnitTestResult executionId="6b5d6cb4-0cd2-4837-beeb-5c0c509c8413" testId="c940e5d9-9016-e301-2a8b-93a24c58b0e0" testName="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests.Commands_are_the_only_route_from_protocol_to_party_writes" computerName="家庭台式机" duration="00:00:00.0075384" startTime="2026-09-12T10:35:34.3376592+08:00" endTime="2026-09-12T10:35:34.3431891+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6b5d6cb4-0cd2-4837-beeb-5c0c509c8413" />
+    <UnitTestResult executionId="f4f6c463-46c3-4e47-9496-5aee3f0bbf41" testId="6df0d327-2e7e-5b9f-e786-903e8e8f6f33" testName="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests.A_higher_account_inviter_replaced_while_waiting_for_the_lower_gate_is_not_dispatched" computerName="家庭台式机" duration="00:00:00.0010501" startTime="2026-09-12T10:35:34.3481223+08:00" endTime="2026-09-12T10:35:34.3494119+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f4f6c463-46c3-4e47-9496-5aee3f0bbf41" />
+    <UnitTestResult executionId="4a319b2f-8824-4b40-93a1-02eb9dff5356" testId="ba04345d-91ab-43ea-6bf1-2c884aabbaa6" testName="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests.Party_realtime_query_dispatches_a_command_and_notifies_only_the_requester" computerName="家庭台式机" duration="00:00:00.0061500" startTime="2026-09-12T10:35:34.3494775+08:00" endTime="2026-09-12T10:35:34.3556302+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4a319b2f-8824-4b40-93a1-02eb9dff5356" />
+    <UnitTestResult executionId="24fec3d0-273e-4ac4-ad1d-1dfa525de54f" testId="30938bca-a187-34d7-1095-8222bcc51a28" testName="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests.A_target_that_was_missing_on_the_first_lookup_cannot_appear_behind_the_gate" computerName="家庭台式机" duration="00:00:00.0002858" startTime="2026-09-12T10:35:34.3478046+08:00" endTime="2026-09-12T10:35:34.3480650+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="24fec3d0-273e-4ac4-ad1d-1dfa525de54f" />
+    <UnitTestResult executionId="9c2e58da-8500-4f4a-86ea-7a5e8285e69e" testId="119271d0-c541-8c8e-487e-5f61f7d354c1" testName="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests.A_target_replaced_before_its_gate_is_acquired_is_not_dispatched" computerName="家庭台式机" duration="00:00:00.0253289" startTime="2026-09-12T10:35:34.2982291+08:00" endTime="2026-09-12T10:35:34.3295656+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9c2e58da-8500-4f4a-86ea-7a5e8285e69e" />
+    <UnitTestResult executionId="8d9a6f46-7c9b-4309-a382-de73fa508c98" testId="11dbc14c-129b-1f19-283e-61dd3dfdbce3" testName="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests.Successful_command_notifications_are_delivered_after_both_transition_gates_release" computerName="家庭台式机" duration="00:00:00.0023160" startTime="2026-09-12T10:35:34.3445329+08:00" endTime="2026-09-12T10:35:34.3468254+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8d9a6f46-7c9b-4309-a382-de73fa508c98" />
+    <UnitTestResult executionId="55517920-c4e7-404f-8bb6-019fc68af57e" testId="9e62013f-9d46-ea3e-4b39-4e76c5427917" testName="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests.Set_party_info_rechecks_the_exact_session_after_acquiring_its_gate" computerName="家庭台式机" duration="00:00:00.0023080" startTime="2026-09-12T10:35:34.3731981+08:00" endTime="2026-09-12T10:35:34.3732393+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="55517920-c4e7-404f-8bb6-019fc68af57e" />
+    <UnitTestResult executionId="aa26f57a-39a5-4e43-9f17-7ddf204f0aef" testId="686062ae-9d23-95e7-6e1d-857814499cbb" testName="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests.A_connection_without_a_current_selected_session_cannot_write_party_state" computerName="家庭台式机" duration="00:00:00.0008769" startTime="2026-09-12T10:35:34.3468943+08:00" endTime="2026-09-12T10:35:34.3477450+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="aa26f57a-39a5-4e43-9f17-7ddf204f0aef" />
+    <UnitTestResult executionId="e86a5bf3-6ded-4822-974a-1dd80ad043a0" testId="3835eae1-5e7f-2805-0bc6-3881062512b4" testName="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests.Reverse_direction_pair_requests_complete_under_one_stable_gate_order" computerName="家庭台式机" duration="00:00:00.0045508" startTime="2026-09-12T10:35:34.3371978+08:00" endTime="2026-09-12T10:35:34.3372393+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e86a5bf3-6ded-4822-974a-1dd80ad043a0" />
+    <UnitTestResult executionId="cb240ae7-f81e-4a08-9c2a-79f5e7b3c978" testId="a2ee38ce-733d-af88-172d-b7ec7db2c8c8" testName="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests.Party_handlers_dispatch_the_five_party_write_commands" computerName="家庭台式机" duration="00:00:00.0028975" startTime="2026-09-12T10:35:34.3734340+08:00" endTime="2026-09-12T10:35:34.3734531+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="cb240ae7-f81e-4a08-9c2a-79f5e7b3c978" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests.A_connection_without_a_current_selected_session_cannot_write_party_state" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\party-mode-rules\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="686062ae-9d23-95e7-6e1d-857814499cbb">
+      <Execution id="aa26f57a-39a5-4e43-9f17-7ddf204f0aef" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\party-mode-rules\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests" name="A_connection_without_a_current_selected_session_cannot_write_party_state" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests.Commands_are_the_only_route_from_protocol_to_party_writes" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\party-mode-rules\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="c940e5d9-9016-e301-2a8b-93a24c58b0e0">
+      <Execution id="6b5d6cb4-0cd2-4837-beeb-5c0c509c8413" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\party-mode-rules\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests" name="Commands_are_the_only_route_from_protocol_to_party_writes" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests.Party_handlers_dispatch_the_five_party_write_commands" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\party-mode-rules\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="a2ee38ce-733d-af88-172d-b7ec7db2c8c8">
+      <Execution id="cb240ae7-f81e-4a08-9c2a-79f5e7b3c978" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\party-mode-rules\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests" name="Party_handlers_dispatch_the_five_party_write_commands" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests.Reverse_direction_pair_requests_complete_under_one_stable_gate_order" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\party-mode-rules\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="3835eae1-5e7f-2805-0bc6-3881062512b4">
+      <Execution id="e86a5bf3-6ded-4822-974a-1dd80ad043a0" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\party-mode-rules\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests" name="Reverse_direction_pair_requests_complete_under_one_stable_gate_order" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests.Non_party_peer_types_never_dispatch_a_command" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\party-mode-rules\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="b6ddcc82-f595-bc20-1e59-d5a755b2b9cb">
+      <Execution id="59eaaf34-fe24-4273-b2a9-33bc6c522a0c" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\party-mode-rules\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests" name="Non_party_peer_types_never_dispatch_a_command" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests.A_target_replaced_before_its_gate_is_acquired_is_not_dispatched" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\party-mode-rules\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="119271d0-c541-8c8e-487e-5f61f7d354c1">
+      <Execution id="9c2e58da-8500-4f4a-86ea-7a5e8285e69e" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\party-mode-rules\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests" name="A_target_replaced_before_its_gate_is_acquired_is_not_dispatched" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests.Party_realtime_query_dispatches_a_command_and_notifies_only_the_requester" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\party-mode-rules\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="ba04345d-91ab-43ea-6bf1-2c884aabbaa6">
+      <Execution id="4a319b2f-8824-4b40-93a1-02eb9dff5356" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\party-mode-rules\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests" name="Party_realtime_query_dispatches_a_command_and_notifies_only_the_requester" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests.Successful_command_notifications_are_delivered_after_both_transition_gates_release" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\party-mode-rules\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="11dbc14c-129b-1f19-283e-61dd3dfdbce3">
+      <Execution id="8d9a6f46-7c9b-4309-a382-de73fa508c98" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\party-mode-rules\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests" name="Successful_command_notifications_are_delivered_after_both_transition_gates_release" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests.A_higher_account_inviter_replaced_while_waiting_for_the_lower_gate_is_not_dispatched" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\party-mode-rules\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="6df0d327-2e7e-5b9f-e786-903e8e8f6f33">
+      <Execution id="f4f6c463-46c3-4e47-9496-5aee3f0bbf41" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\party-mode-rules\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests" name="A_higher_account_inviter_replaced_while_waiting_for_the_lower_gate_is_not_dispatched" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests.A_target_that_was_missing_on_the_first_lookup_cannot_appear_behind_the_gate" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\party-mode-rules\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="30938bca-a187-34d7-1095-8222bcc51a28">
+      <Execution id="24fec3d0-273e-4ac4-ad1d-1dfa525de54f" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\party-mode-rules\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests" name="A_target_that_was_missing_on_the_first_lookup_cannot_appear_behind_the_gate" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests.Set_party_info_rechecks_the_exact_session_after_acquiring_its_gate" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\party-mode-rules\server\tests\dfo.server.protocol.tests\bin\debug\net10.0\dfo.server.protocol.tests.dll" id="9e62013f-9d46-ea3e-4b39-4e76c5427917">
+      <Execution id="55517920-c4e7-404f-8bb6-019fc68af57e" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\party-mode-rules\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Protocol.Tests.Game.Party.PartyCommandHandlerTests" name="Set_party_info_rechecks_the_exact_session_after_acquiring_its_gate" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="b6ddcc82-f595-bc20-1e59-d5a755b2b9cb" executionId="59eaaf34-fe24-4273-b2a9-33bc6c522a0c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c940e5d9-9016-e301-2a8b-93a24c58b0e0" executionId="6b5d6cb4-0cd2-4837-beeb-5c0c509c8413" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6df0d327-2e7e-5b9f-e786-903e8e8f6f33" executionId="f4f6c463-46c3-4e47-9496-5aee3f0bbf41" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ba04345d-91ab-43ea-6bf1-2c884aabbaa6" executionId="4a319b2f-8824-4b40-93a1-02eb9dff5356" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="30938bca-a187-34d7-1095-8222bcc51a28" executionId="24fec3d0-273e-4ac4-ad1d-1dfa525de54f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="119271d0-c541-8c8e-487e-5f61f7d354c1" executionId="9c2e58da-8500-4f4a-86ea-7a5e8285e69e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="11dbc14c-129b-1f19-283e-61dd3dfdbce3" executionId="8d9a6f46-7c9b-4309-a382-de73fa508c98" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9e62013f-9d46-ea3e-4b39-4e76c5427917" executionId="55517920-c4e7-404f-8bb6-019fc68af57e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="686062ae-9d23-95e7-6e1d-857814499cbb" executionId="aa26f57a-39a5-4e43-9f17-7ddf204f0aef" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3835eae1-5e7f-2805-0bc6-3881062512b4" executionId="e86a5bf3-6ded-4822-974a-1dd80ad043a0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a2ee38ce-733d-af88-172d-b7ec7db2c8c8" executionId="cb240ae7-f81e-4a08-9c2a-79f5e7b3c978" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="11" executed="11" passed="11" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.07]   Discovering: Dfo.Server.Protocol.Tests&#xD;
+[xUnit.net 00:00:00.15]   Discovered:  Dfo.Server.Protocol.Tests&#xD;
+[xUnit.net 00:00:00.17]   Starting:    Dfo.Server.Protocol.Tests&#xD;
+[xUnit.net 00:00:00.26]   Finished:    Dfo.Server.Protocol.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

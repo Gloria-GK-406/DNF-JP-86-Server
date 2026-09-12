@@ -34,9 +34,20 @@ public sealed class PartyCommandHandlerTests
             context, new(Invitee), CancellationToken.None);
         await new QueryPartyRealtimeCommandHandler(domain).HandleAsync(
             context, new(Inviter), CancellationToken.None);
+        var settings = Settings();
+        var title = new PartyTitle([0x41]);
+        await new SetPartyInfoCommandHandler(domain).HandleAsync(
+            context, new(Inviter, settings, title), CancellationToken.None);
 
         Assert.Equal(
-            ["endpoint:1", "invite:1->2:64", "accept:2<-1", "leave:2", "query:1"],
+            [
+                "endpoint:1",
+                "invite:1->2:64",
+                "accept:2<-1",
+                "leave:2",
+                "query:1",
+                "settings:1:2:41",
+            ],
             domain.Writes);
     }
 
@@ -67,7 +78,7 @@ public sealed class PartyCommandHandlerTests
     }
 
     [Fact]
-    public async Task Party_handlers_dispatch_the_four_party_commands()
+    public async Task Party_handlers_dispatch_the_five_party_write_commands()
     {
         var sessions = new SessionDirectory(Inviter, Invitee);
         var commands = new RecordingCommandBus();
@@ -91,13 +102,66 @@ public sealed class PartyCommandHandlerTests
                 NullLogger<LeavePartyHandler>.Instance)
             .HandleAsync(Dispatch(Invitee), new LeavePartyRequest(GameMessageMetadata.Empty),
                 CancellationToken.None);
+        await new SetPartyInfoHandler(sessions, gate, commands, Notifications,
+                NullLogger<SetPartyInfoHandler>.Instance)
+            .HandleAsync(Dispatch(Inviter), new SetPartyInfoRequest(
+                GameMessageMetadata.Empty, Settings(), new PartyTitle([0x41])),
+                CancellationToken.None);
 
         Assert.Collection(
             commands.Commands,
             command => Assert.IsType<UpdatePartyEndpointCommand>(command),
             command => Assert.IsType<RequestPartyInviteCommand>(command),
             command => Assert.IsType<AcceptPartyInviteCommand>(command),
-            command => Assert.IsType<LeavePartyCommand>(command));
+            command => Assert.IsType<LeavePartyCommand>(command),
+            command =>
+            {
+                var set = Assert.IsType<SetPartyInfoCommand>(command);
+                Assert.Equal(Settings(), set.Settings);
+                Assert.Equal(new PartyTitle([0x41]), set.Title);
+            });
+    }
+
+    [Fact]
+    public async Task Set_party_info_rechecks_the_exact_session_after_acquiring_its_gate()
+    {
+        var sessions = new SessionDirectory(Inviter);
+        var commands = new RecordingCommandBus();
+        var gate = new SelectedSessionTransitionGate();
+        var blocker = await gate.AcquireAsync(
+            Inviter.AccountId, UserAccessMode.Exclusive, CancellationToken.None);
+        try
+        {
+            var pending = new SetPartyInfoHandler(
+                    sessions,
+                    gate,
+                    commands,
+                    Notifications,
+                    NullLogger<SetPartyInfoHandler>.Instance)
+                .HandleAsync(
+                    Dispatch(Inviter),
+                    new SetPartyInfoRequest(
+                        GameMessageMetadata.Empty, Settings(), PartyTitle.Empty),
+                    CancellationToken.None)
+                .AsTask();
+
+            await sessions.ConnectionLookupObserved.Task.WaitAsync(TimeSpan.FromSeconds(2));
+            sessions.Select(Inviter with
+            {
+                ConnectionId = new NetworkConnectionId("set-info-replacement"),
+                ConnectionGeneration = 2,
+            });
+            await blocker.DisposeAsync();
+            blocker = NoopAsyncDisposable.Instance;
+
+            await pending.WaitAsync(TimeSpan.FromSeconds(2));
+        }
+        finally
+        {
+            await blocker.DisposeAsync();
+        }
+
+        Assert.Empty(commands.Commands);
     }
 
     [Fact]
@@ -317,6 +381,40 @@ public sealed class PartyCommandHandlerTests
         Assert.Equal(1, published.Count);
     }
 
+    [Fact]
+    public async Task Set_party_info_delivers_its_immutable_result_after_the_transition_gate_releases()
+    {
+        var sessions = new SessionDirectory(Inviter, Invitee);
+        var gate = new SelectedSessionTransitionGate();
+        var published = new GateReentryNotificationBus(gate, Inviter.AccountId);
+        var snapshot = Snapshot() with { Revision = 4 };
+        var commands = new RecordingCommandBus(PartyOperationResult.Success(
+            new PartyNotificationPlan(
+                [],
+                snapshot,
+                SettingsChange: PartySettingsChangeKind.Updated)));
+
+        await new SetPartyInfoHandler(
+                sessions,
+                gate,
+                commands,
+                new PartyNotificationDelivery(published),
+                NullLogger<SetPartyInfoHandler>.Instance)
+            .HandleAsync(
+                Dispatch(Inviter),
+                new SetPartyInfoRequest(
+                    GameMessageMetadata.Empty, snapshot.Settings, snapshot.Title),
+                CancellationToken.None)
+            .AsTask()
+            .WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.IsType<SetPartyInfoCommand>(Assert.Single(commands.Commands));
+        // This isolated delivery has not observed a full baseline for the generation, so the
+        // update is deliberately promoted to the three full-state phases. Every phase re-enters
+        // the account gate and therefore proves transport starts only after the handler releases it.
+        Assert.Equal(3, published.Count);
+    }
+
     private static PartyEndpoint Endpoint() => new(
         5,
         new(172, 17, 208, 1),
@@ -329,10 +427,16 @@ public sealed class PartyCommandHandlerTests
         7,
         3,
         Inviter.WireUserId,
+        new PartySettings(
+            [0, 0, 4, 0, 0, 0, 0, 5, 0, (byte)PartyCategory.Normal, 0xFF, 0xFF]),
+        PartyTitle.Empty,
         [
             new PartyMemberSnapshot(Inviter, 0, Endpoint(), 73),
             new PartyMemberSnapshot(Invitee, 1, null, 45),
         ]);
+
+    private static PartySettings Settings() => new(
+        [0, 0, 4, 0, 0, 0, 0, 5, 0, (byte)PartyCategory.Normal, 0xFF, 0xFF]);
 
     private static NetworkDispatchContext Dispatch(SelectedSessionIdentity session) =>
         new(new NetworkConnectionContext(
@@ -436,6 +540,9 @@ public sealed class PartyCommandHandlerTests
         public TaskCompletionSource TwoWireLookupsObserved { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+        public TaskCompletionSource ConnectionLookupObserved { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         private int wireLookups;
 
         public SelectedSessionIdentity? Select(SelectedSessionIdentity session)
@@ -464,8 +571,11 @@ public sealed class PartyCommandHandlerTests
             return sessions.Values.SingleOrDefault(value => value.WireUserId == wireUserId);
         }
 
-        public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) =>
-            sessions.Values.SingleOrDefault(value => value.ConnectionId == connectionId);
+        public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId)
+        {
+            ConnectionLookupObserved.TrySetResult();
+            return sessions.Values.SingleOrDefault(value => value.ConnectionId == connectionId);
+        }
     }
 
     private sealed class NoopAsyncDisposable : IAsyncDisposable
@@ -478,6 +588,16 @@ public sealed class PartyCommandHandlerTests
     private sealed class RecordingParties : IPartyDomainService
     {
         public List<string> Writes { get; } = [];
+
+        public PartyOperationResult CreateOrUpdateSettingsExact(
+            SelectedSessionIdentity session,
+            PartySettings settings,
+            PartyTitle title)
+        {
+            Writes.Add(
+                $"settings:{session.WireUserId}:{(byte)settings.Category}:{Convert.ToHexString(title.ToBytes())}");
+            return PartyOperationResult.Success();
+        }
 
         public PartyOperationResult UpdateEndpoint(
             SelectedSessionIdentity session,

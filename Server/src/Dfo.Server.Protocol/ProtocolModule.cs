@@ -114,6 +114,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddNotificationHandler<PartyInviteAccepted, PartyInviteAcceptedHandler>(retryLimit: 0);
         services.AddNotificationHandler<PartyEndpointsChanged, PartyEndpointsChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<PartyRosterChanged, PartyRosterChangedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<PartySettingsChanged, PartySettingsChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<
             OtherCharacterDetailRequested,
             OtherCharacterDetailRequestedHandler>(retryLimit: 0);
@@ -296,6 +297,9 @@ public sealed class ProtocolModule : IServerModule
             QueryPartyRealtimeCommand, PartyRealtimeQueryResult, QueryPartyRealtimeCommandHandler>(
             CommandExecutionKind.Direct);
         services.AddCommandHandler<
+            SetPartyInfoCommand, PartyOperationResult, SetPartyInfoCommandHandler>(
+            CommandExecutionKind.Direct);
+        services.AddCommandHandler<
             QueryOtherCharacterDetailCommand,
             CharacterDetailQueryResult,
             QueryOtherCharacterDetailCommandHandler>(CommandExecutionKind.Direct);
@@ -340,6 +344,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<LeavePartyHandler>(ClientMessageType.GameLeaveParty);
         services.RegisterMessageHandler<CallPartyMemberRealtimeInfoHandler>(
             ClientMessageType.GameCallPartyMemberRealtimeInfo);
+        services.RegisterMessageHandler<SetPartyInfoHandler>(ClientMessageType.GameSetPartyInfo);
 
         // One handler, the remaining wire keys in the map-entry report family.
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameCeraQuery);
@@ -487,6 +492,9 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<CallPartyMemberRealtimeInfoDecoder>(
             GameProtocol.CallPartyMemberRealtimeInfoType,
             ClientMessageType.GameCallPartyMemberRealtimeInfo);
+        services.AddGameCmdMessageDecoder<SetPartyInfoDecoder>(
+            GameProtocol.SetPartyInfoType,
+            ClientMessageType.GameSetPartyInfo);
         services.AddGameCmdMessageDecoder<CeraQueryDecoder>(
             GameProtocol.CeraQueryType, ClientMessageType.GameCeraQuery);
         services.AddGameCmdMessageDecoder<SetUserPositionDecoder>(
@@ -628,6 +636,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<PartyRealtimeMessage, PartyRealtimeEncoder>();
         services.AddGameNotiMessageEncoder<PartyEndpointsMessage, PartyEndpointsEncoder>();
         services.AddGameNotiMessageEncoder<PartyRosterMessage, PartyRosterEncoder>();
+        services.AddGameNotiMessageEncoder<PartySettingsMessage, PartySettingsEncoder>();
         services.AddGameCmdMessageEncoder<CheckCharacterNameResponse, CheckCharacterNameResponseEncoder>();
         services.AddGameCmdMessageEncoder<CreateCharacterResponse, CreateCharacterResponseEncoder>();
         services.AddGameCmdMessageEncoder<DeleteCharacterResponse, DeleteCharacterResponseEncoder>();

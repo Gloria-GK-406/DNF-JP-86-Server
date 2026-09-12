@@ -340,6 +340,7 @@ public sealed class ApplicationModule : IServerModule
                 () => provider.GetRequiredService<ICharacterInventoryEntryDomainService>(),
                 provider.GetRequiredService<ICharacterFatigueDomainService>(),
                 provider.GetRequiredService<ISelectedSessionRuntimeDirectory>()));
+        services.TryAddSingleton<IPartyModeRuleService, PartyModeRuleService>();
         services.TryAddSingleton<IPartyDomainService, PartyDomainService>();
         services.TryAddSingleton<IExpertStoreDomainService, ExpertStoreDomainService>();
         services.TryAddSingleton<IPvpLobbyDomainService, PvpLobbyDomainService>();

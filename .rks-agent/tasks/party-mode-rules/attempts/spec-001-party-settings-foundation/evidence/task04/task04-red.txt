@@ -1,0 +1,14 @@
+TASK-04 TDD RED evidence — 2026-09-12
+
+1. Capture helper RED
+   Command: python -m unittest -v test_capture_proxy.py
+   Result: import failed with ModuleNotFoundError: No module named 'capture_proxy'.
+   The tests existed first and required split/coalesced Channel and Game frame
+   reassembly, the narrow party allowlist, and preserved 0x0099 -> 0x000B ->
+   0x0009 creation-phase order.
+
+2. Capture helper GREEN
+   Command: python -m unittest -v test_capture_proxy.py
+   Result: 2/2 passed.
+   Command: python capture_proxy.py --self-test
+   Result: SELF_TEST_PASS: split/coalesced reassembly, allowlist, creation order.

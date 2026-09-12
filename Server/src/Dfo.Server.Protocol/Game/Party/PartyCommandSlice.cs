@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Text;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
@@ -48,6 +49,14 @@ public sealed record CallPartyMemberRealtimeInfoRequest(GameMessageMetadata Meta
     : IClientNetworkMessage
 {
     public ClientMessageType MessageType => ClientMessageType.GameCallPartyMemberRealtimeInfo;
+}
+
+public sealed record SetPartyInfoRequest(
+    GameMessageMetadata Metadata,
+    PartySettings Settings,
+    PartyTitle Title) : IClientNetworkMessage
+{
+    public ClientMessageType MessageType => ClientMessageType.GameSetPartyInfo;
 }
 
 internal static class PartyCommandBody
@@ -133,6 +142,66 @@ internal sealed class CallPartyMemberRealtimeInfoDecoder : IGameMessageDecoder
     }
 }
 
+internal sealed class SetPartyInfoDecoder(IPartyModeRuleService rules) : IGameMessageDecoder
+{
+    private static readonly UTF8Encoding StrictUtf8 = new(
+        encoderShouldEmitUTF8Identifier: false,
+        throwOnInvalidBytes: true);
+
+    public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
+    {
+        byte[] canonical;
+        PartyTitle title;
+        if (body.Length == PartySettings.WireLength)
+        {
+            canonical = body.ToArray();
+            title = PartyTitle.Empty;
+        }
+        else
+        {
+            if (body.Length < 16)
+                throw new InvalidDataException(
+                    $"SET_PARTY_INFO requires 12 or at least 16 body bytes; received '{body.Length}'.");
+            if (body[0] > 2 || body[1] != 0)
+                throw new InvalidDataException("SET_PARTY_INFO edit shape contains invalid leading gates.");
+
+            var titleLength = BinaryPrimitives.ReadInt32LittleEndian(body[2..]);
+            if (titleLength < 0)
+                throw new InvalidDataException("SET_PARTY_INFO title length cannot be negative.");
+            var expectedLength = 16L + titleLength;
+            if (expectedLength != body.Length)
+            {
+                throw new InvalidDataException(
+                    $"SET_PARTY_INFO edit length requires '{expectedLength}' bytes; received '{body.Length}'.");
+            }
+
+            var titleBytes = body.Slice(6, titleLength);
+            try
+            {
+                _ = StrictUtf8.GetCharCount(titleBytes);
+            }
+            catch (DecoderFallbackException exception)
+            {
+                throw new InvalidDataException("SET_PARTY_INFO title is not valid UTF-8.", exception);
+            }
+
+            canonical = new byte[PartySettings.WireLength];
+            body[..2].CopyTo(canonical);
+            body.Slice(6 + titleLength, 10).CopyTo(canonical.AsSpan(2));
+            title = new PartyTitle(titleBytes);
+        }
+
+        var settings = new PartySettings(canonical);
+        var validation = rules.Validate(settings, memberCount: 0);
+        if (validation != PartyModeRuleFailure.None)
+        {
+            throw new InvalidDataException(
+                $"SET_PARTY_INFO settings failed shared validation: {validation}.");
+        }
+        return new SetPartyInfoRequest(metadata, settings, title);
+    }
+}
+
 public sealed record UpdatePartyEndpointCommand(
     SelectedSessionIdentity Session,
     PartyEndpoint Endpoint) : ICommand<PartyOperationResult>;
@@ -209,6 +278,24 @@ public sealed class QueryPartyRealtimeCommandHandler(IPartyDomainService parties
         CancellationToken cancellationToken) =>
         ValueTask.FromResult(new PartyRealtimeQueryResult(
             parties.FindParty(command.Session)));
+}
+
+public sealed record SetPartyInfoCommand(
+    SelectedSessionIdentity Session,
+    PartySettings Settings,
+    PartyTitle Title) : ICommand<PartyOperationResult>;
+
+public sealed class SetPartyInfoCommandHandler(IPartyDomainService parties)
+    : ICommandHandler<SetPartyInfoCommand, PartyOperationResult>
+{
+    public ValueTask<PartyOperationResult> HandleAsync(
+        CommandExecutionContext context,
+        SetPartyInfoCommand command,
+        CancellationToken cancellationToken) =>
+        ValueTask.FromResult(parties.CreateOrUpdateSettingsExact(
+            command.Session,
+            command.Settings,
+            command.Title));
 }
 
 internal static class PartyTransitionExecution
@@ -475,5 +562,51 @@ public sealed class CallPartyMemberRealtimeInfoHandler(
         logger.LogInformation(
             "CALL_PARTY_MEMBER_REALTIME_INFO character={CharacterId} inParty={InParty}",
             session.CharacterId, result.Snapshot is not null);
+    }
+}
+
+public sealed class SetPartyInfoHandler(
+    ISelectedSessionDomainService sessions,
+    SelectedSessionTransitionGate transitionGate,
+    ICommandBus commands,
+    PartyNotificationDelivery notifications,
+    ILogger<SetPartyInfoHandler> logger) : ClientMessageHandler<SetPartyInfoRequest>
+{
+    protected override async ValueTask HandleMessageAsync(
+        NetworkDispatchContext context,
+        SetPartyInfoRequest message,
+        CancellationToken cancellationToken)
+    {
+        var session = sessions.FindByConnection(context.Connection.ConnectionId);
+        if (session is null)
+        {
+            logger.LogInformation(
+                "SET_PARTY_INFO ignored for non-current connection {ConnectionId}",
+                context.Connection.ConnectionId);
+            return;
+        }
+
+        var result = await PartyTransitionExecution.RunAsync(
+            transitionGate,
+            session,
+            null,
+            () => sessions.FindByConnection(context.Connection.ConnectionId) == session
+                ? commands.SendAsync(new SetPartyInfoCommand(
+                    session,
+                    message.Settings,
+                    message.Title), cancellationToken)
+                : ValueTask.FromResult(PartyOperationResult.Reject(
+                    PartyFailureReason.SessionNotCurrent)),
+            cancellationToken).ConfigureAwait(false);
+        if (result.Succeeded)
+        {
+            await notifications.DeliverAsync(result.Notifications, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        logger.LogInformation(
+            "SET_PARTY_INFO character={CharacterId} accepted={Accepted} failure={Failure}",
+            session.CharacterId,
+            result.Succeeded,
+            result.Failure);
     }
 }

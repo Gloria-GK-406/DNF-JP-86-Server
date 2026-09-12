@@ -10,6 +10,7 @@ internal sealed class PartyDomainService(
     ISelectedSessionDomainService sessions,
     ISessionPresenceDomainService presence,
     IPartyMemberStatusDomainService memberStatus,
+    IPartyModeRuleService modeRules,
     TimeProvider clock) : IPartyDomainService
 {
     internal static readonly TimeSpan InvitationLifetime = TimeSpan.FromSeconds(30);
@@ -21,6 +22,63 @@ internal sealed class PartyDomainService(
     private readonly Dictionary<ushort, PendingInvite> invitations = [];
     private ushort nextPartyId = 1;
     private long nextGeneration;
+
+    public PartyOperationResult CreateOrUpdateSettingsExact(
+        SelectedSessionIdentity session,
+        PartySettings settings,
+        PartyTitle title)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(settings);
+        ArgumentNullException.ThrowIfNull(title);
+
+        lock (sync)
+        {
+            if (!IsCurrent(session))
+                return PartyOperationResult.Reject(PartyFailureReason.SessionNotCurrent);
+
+            settings = modeRules.Normalize(settings);
+
+            if (membership.TryGetValue(session.WireUserId, out var party))
+            {
+                var member = party.Find(session.WireUserId);
+                if (member?.Session != session)
+                    return PartyOperationResult.Reject(PartyFailureReason.SessionNotCurrent);
+                if (party.LeaderWireUserId != session.WireUserId)
+                    return PartyOperationResult.Reject(PartyFailureReason.NotPartyLeader);
+
+                var validation = modeRules.Validate(settings, party.MemberCount);
+                if (validation != PartyModeRuleFailure.None)
+                    return PartyOperationResult.Reject(Map(validation));
+
+                party.Settings = settings;
+                party.Title = title;
+                party.Revision++;
+                return PartyOperationResult.Success(new PartyNotificationPlan(
+                    [],
+                    Snapshot(party),
+                    SettingsChange: PartySettingsChangeKind.Updated));
+            }
+
+            var createValidation = modeRules.Validate(settings, memberCount: 1);
+            if (createValidation != PartyModeRuleFailure.None)
+                return PartyOperationResult.Reject(Map(createValidation));
+
+            var created = new PartyState(
+                AllocatePartyId(),
+                checked(++nextGeneration),
+                session,
+                settings,
+                title,
+                modeRules.MaximumCapacity);
+            parties.Add(created.PartyId, created);
+            membership.Add(session.WireUserId, created);
+            return PartyOperationResult.Success(new PartyNotificationPlan(
+                [],
+                Snapshot(created),
+                SettingsChange: PartySettingsChangeKind.Created));
+        }
+    }
 
     public PartyOperationResult UpdateEndpoint(
         SelectedSessionIdentity session,
@@ -78,9 +136,20 @@ internal sealed class PartyDomainService(
                     return PartyOperationResult.Reject(PartyFailureReason.SessionNotCurrent);
                 if (inviterParty.LeaderWireUserId != inviter.WireUserId)
                     return PartyOperationResult.Reject(PartyFailureReason.InviterNotLeader);
-                if (inviterParty.IsFull)
-                    return PartyOperationResult.Reject(PartyFailureReason.PartyFull);
+                var admission = modeRules.ValidateAdmission(
+                    inviterParty.Settings,
+                    inviterParty.MemberCount);
+                if (admission != PartyModeRuleFailure.None)
+                    return PartyOperationResult.Reject(MapAdmission(admission));
                 inviterPartyGeneration = inviterParty.Generation;
+            }
+            else
+            {
+                var admission = modeRules.ValidateAdmission(
+                    modeRules.DefaultSettings,
+                    currentMemberCount: 1);
+                if (admission != PartyModeRuleFailure.None)
+                    return PartyOperationResult.Reject(MapAdmission(admission));
             }
 
             invitations[targetWireUserId] = new PendingInvite(
@@ -124,6 +193,7 @@ internal sealed class PartyDomainService(
                 return PartyOperationResult.Reject(PartyFailureReason.TargetAlreadyInParty);
 
             PartyState party;
+            var createsParty = false;
             if (invitation.InviterPartyGeneration is { } expectedGeneration)
             {
                 if (!membership.TryGetValue(inviterWireUserId, out party!)
@@ -137,18 +207,38 @@ internal sealed class PartyDomainService(
                     return PartyOperationResult.Reject(PartyFailureReason.InviteNotFoundOrStale);
                 if (party.LeaderWireUserId != inviterWireUserId)
                     return PartyOperationResult.Reject(PartyFailureReason.InviterNotLeader);
-                if (party.IsFull)
-                    return PartyOperationResult.Reject(PartyFailureReason.PartyFull);
+                var admission = modeRules.ValidateAdmission(party.Settings, party.MemberCount);
+                if (admission != PartyModeRuleFailure.None)
+                    return PartyOperationResult.Reject(MapAdmission(admission));
             }
             else
             {
                 if (membership.ContainsKey(inviterWireUserId))
                     return PartyOperationResult.Reject(PartyFailureReason.PartyGenerationChanged);
 
+                var defaults = modeRules.DefaultSettings;
+                var admission = modeRules.ValidateAdmission(defaults, currentMemberCount: 1);
+                if (admission != PartyModeRuleFailure.None)
+                    return PartyOperationResult.Reject(MapAdmission(admission));
+
                 party = new PartyState(
                     AllocatePartyId(),
-                    checked(++nextGeneration),
-                    invitation.Inviter);
+                    checked(nextGeneration + 1),
+                    invitation.Inviter,
+                    defaults,
+                    PartyTitle.Empty,
+                    modeRules.MaximumCapacity);
+                createsParty = true;
+            }
+
+            var slot = party.FindAvailableSlot()
+                ?? throw new InvalidOperationException(
+                    "Party rules admitted a member without an available physical slot.");
+
+            // All refusal paths end above. The following writes form one lock-protected commit.
+            if (createsParty)
+            {
+                nextGeneration = party.Generation;
                 parties.Add(party.PartyId, party);
                 membership.Add(inviterWireUserId, party);
             }
@@ -156,8 +246,7 @@ internal sealed class PartyDomainService(
             // Invalid responses must leave the pending invitation untouched. Consumption is
             // atomic with the first accepted mutation, which also makes a successful replay fail.
             invitations.Remove(invitee.WireUserId);
-            if (!party.TryAdd(invitee))
-                return PartyOperationResult.Reject(PartyFailureReason.PartyFull);
+            party.Add(invitee, slot);
             membership.Add(invitee.WireUserId, party);
 
             var snapshot = Snapshot(party);
@@ -320,7 +409,7 @@ internal sealed class PartyDomainService(
 
     private PartySnapshot Snapshot(PartyState party)
     {
-        var members = ImmutableArray.CreateBuilder<PartyMemberSnapshot>(PartyState.Capacity);
+        var members = ImmutableArray.CreateBuilder<PartyMemberSnapshot>(party.Members.Length);
         foreach (var member in party.Members)
         {
             if (member is null)
@@ -340,8 +429,24 @@ internal sealed class PartyDomainService(
             party.Generation,
             party.Revision,
             party.LeaderWireUserId,
+            party.Settings,
+            party.Title,
             members.ToImmutable());
     }
+
+    private static PartyFailureReason Map(PartyModeRuleFailure failure) => failure switch
+    {
+        PartyModeRuleFailure.UnknownCategory => PartyFailureReason.UnknownPartyCategory,
+        PartyModeRuleFailure.InvalidCapacity => PartyFailureReason.InvalidPartyCapacity,
+        PartyModeRuleFailure.CapacityBelowMemberCount => PartyFailureReason.PartyCapacityBelowMemberCount,
+        _ => throw new ArgumentOutOfRangeException(nameof(failure), failure, null),
+    };
+
+    private static PartyFailureReason MapAdmission(PartyModeRuleFailure failure) => failure switch
+    {
+        PartyModeRuleFailure.CapacityBelowMemberCount => PartyFailureReason.PartyFull,
+        _ => Map(failure),
+    };
 
     private ushort AllocatePartyId()
     {
@@ -358,12 +463,21 @@ internal sealed class PartyDomainService(
 
     private sealed class PartyState
     {
-        internal const int Capacity = 4;
-
-        internal PartyState(ushort partyId, long generation, SelectedSessionIdentity leader)
+        internal PartyState(
+            ushort partyId,
+            long generation,
+            SelectedSessionIdentity leader,
+            PartySettings settings,
+            PartyTitle title,
+            byte maximumCapacity)
         {
+            if (maximumCapacity == 0)
+                throw new ArgumentOutOfRangeException(nameof(maximumCapacity));
             PartyId = partyId;
             Generation = generation;
+            Settings = settings;
+            Title = title;
+            Members = new PartyMemberState?[maximumCapacity];
             Members[0] = new PartyMemberState(leader, 0);
         }
 
@@ -371,23 +485,30 @@ internal sealed class PartyDomainService(
         internal long Generation { get; }
         internal long Revision { get; set; } = 1;
         internal ushort LeaderWireUserId => Members[0]!.Session.WireUserId;
-        internal PartyMemberState?[] Members { get; } = new PartyMemberState?[Capacity];
-        internal bool IsFull => Members.All(member => member is not null);
+        internal PartySettings Settings { get; set; }
+        internal PartyTitle Title { get; set; }
+        internal PartyMemberState?[] Members { get; }
+        internal int MemberCount => Members.Count(member => member is not null);
 
         internal PartyMemberState? Find(ushort wireUserId) =>
             Members.FirstOrDefault(member => member?.Session.WireUserId == wireUserId);
 
-        internal bool TryAdd(SelectedSessionIdentity session)
+        internal byte? FindAvailableSlot()
         {
-            for (byte slot = 1; slot < Capacity; slot++)
+            for (byte slot = 1; slot < Members.Length; slot++)
             {
-                if (Members[slot] is not null)
-                    continue;
-                Members[slot] = new PartyMemberState(session, slot);
-                Revision++;
-                return true;
+                if (Members[slot] is null)
+                    return slot;
             }
-            return false;
+            return null;
+        }
+
+        internal void Add(SelectedSessionIdentity session, byte slot)
+        {
+            if (slot == 0 || slot >= Members.Length || Members[slot] is not null)
+                throw new InvalidOperationException("The selected party slot is not available.");
+            Members[slot] = new PartyMemberState(session, slot);
+            Revision++;
         }
     }
 

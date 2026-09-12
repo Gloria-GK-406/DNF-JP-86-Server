@@ -54,7 +54,7 @@ public sealed class PartyNotificationTests
         Assert.Equal(
             Hex(
                 "0100341200"
-                + "0000000000000400000000050000FFFF"
+                + "0000000000000400000000050002FFFF"
                 + "0100000000"
                 + "0200000000"
                 + "FFFF000000FFFF000000FFFF000000"
@@ -62,8 +62,25 @@ public sealed class PartyNotificationTests
                 + "00000000"),
             body);
         Assert.Equal((ushort)1, BitConverter.ToUInt16(body, 21));
+        Assert.Equal((byte)PartyCategory.Normal, body[18]);
         Assert.Equal((byte)0, body[62]);
         Assert.Equal((byte)0, body[64]);
+    }
+
+    [Fact]
+    public void Settings_only_body_matches_both_current_a21_information_branches()
+    {
+        var zeroInfo = Snapshot(new PartySettings(
+            [0, 0, 4, 0, 0, 0, 0, 5, 0, (byte)PartyCategory.Cycle, 0x34, 0x12]));
+        Assert.Equal(
+            Hex("01003412010000000000000400000000050001341200"),
+            PartySettingsEncoder.EncodeBody(new PartySettingsMessage(zeroInfo)));
+
+        var indexedInfo = Snapshot(new PartySettings(
+            [1, 0, 4, 0, 0, 0, 0, 5, 0, (byte)PartyCategory.Normal, 0xFF, 0xFF]));
+        Assert.Equal(
+            Hex("010034120101000400000000050002FFFF00"),
+            PartySettingsEncoder.EncodeBody(new PartySettingsMessage(indexedInfo)));
     }
 
     [Fact]
@@ -109,6 +126,247 @@ public sealed class PartyNotificationTests
     }
 
     [Fact]
+    public async Task Direct_creation_projects_the_complete_state_while_update_projects_only_settings()
+    {
+        var bus = new RecordingNotificationBus();
+        var delivery = new PartyNotificationDelivery(bus);
+        var template = Snapshot();
+        var created = template with { Revision = 1, Members = [template.Members[0]] };
+
+        await delivery.DeliverAsync(new PartyNotificationPlan(
+            [],
+            created,
+            SettingsChange: PartySettingsChangeKind.Created), CancellationToken.None);
+
+        Assert.Collection(
+            bus.Publications,
+            value => AssertPublication<PartyRealtimeChanged>(value, 1),
+            value => AssertPublication<PartyEndpointsChanged>(value, 1),
+            value => AssertPublication<PartyRosterChanged>(value, 1));
+
+        var updated = created with { Revision = 2 };
+        await delivery.DeliverAsync(new PartyNotificationPlan(
+            [],
+            updated,
+            SettingsChange: PartySettingsChangeKind.Updated), CancellationToken.None);
+
+        var settings = Assert.Single(bus.Publications.Skip(3));
+        AssertPublication<PartySettingsChanged>(settings, 1);
+        Assert.Same(
+            updated,
+            Assert.IsType<PartySettingsChanged>(settings.Notification).Snapshot);
+    }
+
+    [Fact]
+    public async Task Invalid_plan_shapes_are_rejected_before_any_publication()
+    {
+        var snapshot = Snapshot();
+        PartyNotificationPlan[] invalidPlans =
+        [
+            new(
+                [],
+                snapshot,
+                Invitation: new PartyInviteNotification(Invitee, Inviter, Profile()),
+                SettingsChange: PartySettingsChangeKind.Created),
+            new([], SettingsChange: PartySettingsChangeKind.Created),
+            new([], snapshot, ClearPartyId: 0x1234, SettingsChange: PartySettingsChangeKind.Updated),
+            new([], snapshot, SettingsChange: (PartySettingsChangeKind)99),
+            new([], Acceptance: new PartyAcceptanceNotification(Inviter, Invitee)),
+            new(
+                [Invitee],
+                ClearPartyId: 0x1234,
+                ClearPartyGeneration: snapshot.Generation),
+        ];
+
+        foreach (var plan in invalidPlans)
+        {
+            var bus = new RecordingNotificationBus();
+            var delivery = new PartyNotificationDelivery(bus);
+            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await delivery.DeliverAsync(plan, CancellationToken.None));
+            Assert.Empty(bus.Publications);
+        }
+    }
+
+    [Fact]
+    public async Task Settings_update_arriving_before_creation_promotes_latest_snapshot_to_full_state()
+    {
+        var bus = new RecordingNotificationBus();
+        var delivery = new PartyNotificationDelivery(bus);
+        var template = Snapshot();
+        var created = template with { Revision = 1, Members = [template.Members[0]] };
+        var updated = template with { Revision = 2 };
+
+        await delivery.DeliverAsync(new PartyNotificationPlan(
+            [], updated, SettingsChange: PartySettingsChangeKind.Updated), CancellationToken.None);
+        await delivery.DeliverAsync(new PartyNotificationPlan(
+            [], created, SettingsChange: PartySettingsChangeKind.Created), CancellationToken.None);
+
+        Assert.Collection(
+            bus.Publications,
+            value => AssertPublication<PartyRealtimeChanged>(value, 1, 2),
+            value => AssertPublication<PartyEndpointsChanged>(value, 1, 2),
+            value => AssertPublication<PartyRosterChanged>(value, 1, 2));
+        Assert.All(
+            bus.Publications,
+            value => Assert.Equal(2, SnapshotRevision(value.Notification)));
+    }
+
+    [Fact]
+    public async Task Settings_update_overtaking_acceptance_gives_the_new_member_full_state_and_keeps_the_ack()
+    {
+        var bus = new RecordingNotificationBus();
+        var delivery = new PartyNotificationDelivery(bus);
+        var template = Snapshot();
+        var created = template with { Revision = 1, Members = [template.Members[0]] };
+        await delivery.DeliverAsync(new PartyNotificationPlan(
+            [], created, SettingsChange: PartySettingsChangeKind.Created), CancellationToken.None);
+        bus.Publications.Clear();
+
+        var accepted = template with { Revision = 2 };
+        var updated = template with { Revision = 3 };
+        await delivery.DeliverAsync(new PartyNotificationPlan(
+            [], updated, SettingsChange: PartySettingsChangeKind.Updated), CancellationToken.None);
+        await delivery.DeliverAsync(new PartyNotificationPlan(
+            [], accepted, Acceptance: new PartyAcceptanceNotification(Inviter, Invitee)),
+            CancellationToken.None);
+
+        Assert.Collection(
+            bus.Publications,
+            value => AssertPublication<PartyRealtimeChanged>(value, 1, 2),
+            value => AssertPublication<PartyEndpointsChanged>(value, 1, 2),
+            value => AssertPublication<PartyRosterChanged>(value, 1, 2),
+            value => AssertPublication<PartyInviteAccepted>(value, 1));
+        Assert.All(
+            bus.Publications.Take(3),
+            value => Assert.Equal(3, SnapshotRevision(value.Notification)));
+    }
+
+    [Fact]
+    public async Task Settings_update_overtaking_leave_still_clears_the_leaver_and_rejoin_gets_full_state()
+    {
+        var bus = new RecordingNotificationBus();
+        var delivery = new PartyNotificationDelivery(bus);
+        var template = Snapshot();
+        await delivery.DeliverAsync(new PartyNotificationPlan([], template), CancellationToken.None);
+        bus.Publications.Clear();
+
+        var survivor = template with { Revision = 4, Members = [template.Members[0]] };
+        var updated = survivor with { Revision = 5 };
+        await delivery.DeliverAsync(new PartyNotificationPlan(
+            [], updated, SettingsChange: PartySettingsChangeKind.Updated), CancellationToken.None);
+        await delivery.DeliverAsync(new PartyNotificationPlan(
+            [Invitee],
+            survivor,
+            ClearPartyId: survivor.PartyId,
+            ClearPartyGeneration: survivor.Generation,
+            ClearPartyRevision: survivor.Revision), CancellationToken.None);
+
+        Assert.Collection(
+            bus.Publications,
+            value => AssertPublication<PartySettingsChanged>(value, 1),
+            value =>
+            {
+                AssertPublication<PartyRosterChanged>(value, 2);
+                Assert.True(Assert.IsType<PartyRosterChanged>(value.Notification).ClearsParty);
+            });
+
+        bus.Publications.Clear();
+        var rejoined = template with { Revision = 6 };
+        await delivery.DeliverAsync(new PartyNotificationPlan(
+            [], rejoined, SettingsChange: PartySettingsChangeKind.Updated), CancellationToken.None);
+
+        Assert.Collection(
+            bus.Publications,
+            value => AssertPublication<PartyRealtimeChanged>(value, 1, 2),
+            value => AssertPublication<PartyEndpointsChanged>(value, 1, 2),
+            value => AssertPublication<PartyRosterChanged>(value, 1, 2));
+    }
+
+    [Fact]
+    public async Task Newer_rejoin_suppresses_a_stale_clear_for_the_exact_current_member()
+    {
+        var bus = new RecordingNotificationBus();
+        var delivery = new PartyNotificationDelivery(bus);
+        var template = Snapshot();
+        await delivery.DeliverAsync(new PartyNotificationPlan(
+            [], template with { Revision = 1 }), CancellationToken.None);
+
+        await delivery.DeliverAsync(new PartyNotificationPlan(
+            [],
+            template with { Revision = 3 },
+            Acceptance: new PartyAcceptanceNotification(Inviter, Invitee)),
+            CancellationToken.None);
+        bus.Publications.Clear();
+
+        var staleSurvivor = template with
+        {
+            Revision = 2,
+            Members = [template.Members[0]],
+        };
+        await delivery.DeliverAsync(new PartyNotificationPlan(
+            [Invitee],
+            staleSurvivor,
+            ClearPartyId: staleSurvivor.PartyId,
+            ClearPartyGeneration: staleSurvivor.Generation,
+            ClearPartyRevision: staleSurvivor.Revision), CancellationToken.None);
+
+        Assert.Empty(bus.Publications);
+    }
+
+    [Fact]
+    public async Task Newer_leave_suppresses_a_stale_acceptance_ack_for_the_missing_invitee()
+    {
+        var bus = new RecordingNotificationBus();
+        var delivery = new PartyNotificationDelivery(bus);
+        var template = Snapshot();
+        await delivery.DeliverAsync(new PartyNotificationPlan(
+            [], template with { Revision = 1 }), CancellationToken.None);
+
+        var survivor = template with
+        {
+            Revision = 3,
+            Members = [template.Members[0]],
+        };
+        await delivery.DeliverAsync(new PartyNotificationPlan(
+            [Invitee],
+            survivor,
+            ClearPartyId: survivor.PartyId,
+            ClearPartyGeneration: survivor.Generation,
+            ClearPartyRevision: survivor.Revision), CancellationToken.None);
+        bus.Publications.Clear();
+
+        await delivery.DeliverAsync(new PartyNotificationPlan(
+            [],
+            template with { Revision = 2 },
+            Acceptance: new PartyAcceptanceNotification(Inviter, Invitee)),
+            CancellationToken.None);
+
+        Assert.Empty(bus.Publications);
+    }
+
+    [Fact]
+    public async Task Older_settings_revision_arriving_after_newer_is_suppressed()
+    {
+        var bus = new RecordingNotificationBus();
+        var delivery = new PartyNotificationDelivery(bus);
+        await delivery.DeliverAsync(new PartyNotificationPlan(
+            [], Snapshot() with { Revision = 1 },
+            SettingsChange: PartySettingsChangeKind.Created), CancellationToken.None);
+        bus.Publications.Clear();
+        var older = Snapshot() with { Revision = 3 };
+        var newer = Snapshot() with { Revision = 4 };
+
+        await delivery.DeliverAsync(new PartyNotificationPlan(
+            [], newer, SettingsChange: PartySettingsChangeKind.Updated), CancellationToken.None);
+        await delivery.DeliverAsync(new PartyNotificationPlan(
+            [], older, SettingsChange: PartySettingsChangeKind.Updated), CancellationToken.None);
+
+        var publication = Assert.Single(bus.Publications);
+        Assert.Equal(4, Assert.IsType<PartySettingsChanged>(publication.Notification).Snapshot.Revision);
+    }
+
+    [Fact]
     public async Task Invite_is_published_only_to_its_exact_target()
     {
         var bus = new RecordingNotificationBus();
@@ -133,6 +391,8 @@ public sealed class PartyNotificationTests
             7,
             4,
             1,
+            DefaultSettings(),
+            PartyTitle.Empty,
             [new(Inviter, 0, Endpoint(), 73)]);
 
         await delivery.DeliverAsync(new PartyNotificationPlan(
@@ -219,6 +479,8 @@ public sealed class PartyNotificationTests
             inviteeRecipient, new PartyEndpointsChanged(snapshot), CancellationToken.None));
         Assert.Single(await new PartyRosterChangedHandler(sessions).ComposeAsync(
             inviteeRecipient, PartyRosterChanged.Refresh(snapshot), CancellationToken.None));
+        Assert.Single(await new PartySettingsChangedHandler(sessions).ComposeAsync(
+            inviteeRecipient, new PartySettingsChanged(snapshot), CancellationToken.None));
 
         sessions.Select(Inviter with
         {
@@ -245,6 +507,8 @@ public sealed class PartyNotificationTests
             inviteeRecipient, new PartyEndpointsChanged(snapshot), CancellationToken.None));
         Assert.Empty(await new PartyRosterChangedHandler(sessions).ComposeAsync(
             inviteeRecipient, PartyRosterChanged.Refresh(snapshot), CancellationToken.None));
+        Assert.Empty(await new PartySettingsChangedHandler(sessions).ComposeAsync(
+            inviteeRecipient, new PartySettingsChanged(snapshot), CancellationToken.None));
     }
 
     private static void AssertPublication<TNotification>(
@@ -261,18 +525,24 @@ public sealed class PartyNotificationTests
         PartyRealtimeChanged value => value.Snapshot.Revision,
         PartyEndpointsChanged value => value.Snapshot.Revision,
         PartyRosterChanged { Snapshot: { } snapshot } => snapshot.Revision,
+        PartySettingsChanged value => value.Snapshot.Revision,
         _ => throw new InvalidDataException(
             $"Notification '{notification.GetType().Name}' has no party snapshot."),
     };
 
-    private static PartySnapshot Snapshot() => new(
+    private static PartySnapshot Snapshot(PartySettings? settings = null) => new(
         0x1234,
         7,
         3,
         1,
+        settings ?? DefaultSettings(),
+        PartyTitle.Empty,
         ImmutableArray.Create(
             new PartyMemberSnapshot(Inviter, 0, Endpoint(), 73),
             new PartyMemberSnapshot(Invitee, 1, null, 45)));
+
+    private static PartySettings DefaultSettings() => new(
+        [0, 0, 4, 0, 0, 0, 0, 5, 0, (byte)PartyCategory.Normal, 0xFF, 0xFF]);
 
     private static PartyInviteDisplayState Profile() => new(
         ReviveCoinCount: 64,

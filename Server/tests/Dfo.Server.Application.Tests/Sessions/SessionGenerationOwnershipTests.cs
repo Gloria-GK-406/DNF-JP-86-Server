@@ -283,6 +283,11 @@ public sealed class SessionGenerationOwnershipTests
 
     private sealed class PassiveParties : IPartyDomainService
     {
+        public PartyOperationResult CreateOrUpdateSettingsExact(
+            SelectedSessionIdentity session,
+            PartySettings settings,
+            PartyTitle title) => PartyOperationResult.Success();
+
         public PartyOperationResult UpdateEndpoint(
             SelectedSessionIdentity session,
             PartyEndpoint endpoint) => PartyOperationResult.Success();

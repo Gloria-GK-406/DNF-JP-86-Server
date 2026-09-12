@@ -329,7 +329,11 @@ public sealed class PartyDomainServiceTests
         public PartyFixture()
         {
             Parties = new PartyDomainService(
-                Sessions, Presence, new StubPartyMemberStatusDomainService(), Clock);
+                Sessions,
+                Presence,
+                new StubPartyMemberStatusDomainService(),
+                new PartyModeRuleService(),
+                Clock);
         }
 
         public SelectedSessionDomainService Sessions { get; } = new();

@@ -6,6 +6,11 @@ namespace Dfo.Server.Abstractions.Parties;
 /// <summary>The sole writer for process-local party, invitation and member-endpoint state.</summary>
 public interface IPartyDomainService
 {
+    PartyOperationResult CreateOrUpdateSettingsExact(
+        SelectedSessionIdentity session,
+        PartySettings settings,
+        PartyTitle title);
+
     PartyOperationResult UpdateEndpoint(SelectedSessionIdentity session, PartyEndpoint endpoint);
 
     PartyOperationResult RequestInvite(
@@ -25,6 +30,28 @@ public interface IPartyDomainService
     PartySnapshot? FindParty(SelectedSessionIdentity session);
 
     PartyEndpoint? FindEndpoint(SelectedSessionIdentity session);
+}
+
+public enum PartyModeRuleFailure
+{
+    None = 0,
+    UnknownCategory,
+    InvalidCapacity,
+    CapacityBelowMemberCount,
+}
+
+/// <summary>The single source for default party settings and shared setting invariants.</summary>
+public interface IPartyModeRuleService
+{
+    byte MaximumCapacity { get; }
+
+    PartySettings DefaultSettings { get; }
+
+    PartySettings Normalize(PartySettings settings);
+
+    PartyModeRuleFailure Validate(PartySettings settings, int memberCount);
+
+    PartyModeRuleFailure ValidateAdmission(PartySettings settings, int currentMemberCount);
 }
 
 /// <summary>

@@ -55,6 +55,7 @@ public enum ClientMessageType
     GameResponsePeer = 0x0001_000B,
     GameLeaveParty = 0x0001_000D,
     GameCallPartyMemberRealtimeInfo = 0x0001_00A6,
+    GameSetPartyInfo = 0x0001_000C,
 
     // SET_UDP_IP_PORT is sent with the map-entry reports, but it supplies the party endpoint and
     // therefore belongs to the party slice rather than the fire-and-forget report family.
@@ -188,6 +189,9 @@ public enum ServerMessageType
     GamePartyInviteRequest = 0x0000_0007,
     GamePartyInviteAccepted = 0x0000_0008,
     GamePartyRoster = 0x0000_0009,
+    // Synthetic catalogue identity: the encoder emits NOTI 0x0009 type 1, while a distinct key
+    // keeps settings-only projection separate from the type-zero/type-three roster variants.
+    GamePartySettings = 0x7FFF_0009,
     GamePartyEndpoints = 0x0000_000B,
     GamePartyRealtime = 0x0000_0099,
 

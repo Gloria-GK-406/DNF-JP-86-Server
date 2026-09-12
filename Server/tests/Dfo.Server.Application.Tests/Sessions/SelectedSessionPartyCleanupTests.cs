@@ -109,7 +109,11 @@ public sealed class SelectedSessionPartyCleanupTests
         public Fixture(bool failAfterPartyCleanup = false)
         {
             Parties = new PartyDomainService(
-                sessions, presence, new StubPartyMemberStatusDomainService(), TimeProvider.System);
+                sessions,
+                presence,
+                new StubPartyMemberStatusDomainService(),
+                new PartyModeRuleService(),
+                TimeProvider.System);
             Cleanup = new SelectedSessionCleanupService(
                 sessions,
                 new SelectedSessionRuntimeDirectory(),

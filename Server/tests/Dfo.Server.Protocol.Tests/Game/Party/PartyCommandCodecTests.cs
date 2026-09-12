@@ -1,7 +1,10 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
+using Dfo.Server.Application.Notifications;
+using Dfo.Server.Application.Parties;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Parties;
 using Dfo.Server.Protocol;
 using Dfo.Server.Protocol.Game.Party;
 using Microsoft.Extensions.Configuration;
@@ -11,6 +14,71 @@ namespace Dfo.Server.Protocol.Tests.Game.Party;
 
 public sealed class PartyCommandCodecTests
 {
+    [Theory]
+    [InlineData("000302000000000500020000", "", "000302000000000500020000")]
+    [InlineData(
+        "01000C000000E697A0E9989FE4BC8DE5908D04000000000500020100",
+        "E697A0E9989FE4BC8DE5908D",
+        "010004000000000500020100")]
+    public void Current_a21_set_party_info_shapes_normalize_to_one_settings_block(
+        string bodyHex,
+        string titleHex,
+        string settingsHex)
+    {
+        var request = Assert.IsType<SetPartyInfoRequest>(
+            new SetPartyInfoDecoder(new PartyModeRuleService()).Decode(
+                GameMessageMetadata.Empty,
+                Hex(bodyHex)));
+
+        Assert.Equal(Hex(titleHex), request.Title.ToBytes());
+        Assert.Equal(Hex(settingsHex), request.Settings.ToWireBytes());
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(11)]
+    [InlineData(13)]
+    [InlineData(15)]
+    [InlineData(17)]
+    public void Set_party_info_rejects_unknown_or_trailing_lengths(int length) =>
+        Assert.Throws<InvalidDataException>(() =>
+            new SetPartyInfoDecoder(new PartyModeRuleService()).Decode(
+                GameMessageMetadata.Empty,
+                new byte[length]));
+
+    [Fact]
+    public void Set_party_info_rejects_negative_overflowing_truncated_and_invalid_utf8_titles()
+    {
+        var decoder = new SetPartyInfoDecoder(new PartyModeRuleService());
+
+        Assert.Throws<InvalidDataException>(() => decoder.Decode(
+            GameMessageMetadata.Empty,
+            Hex("0100FFFFFFFF0004000000000500020000")));
+        Assert.Throws<InvalidDataException>(() => decoder.Decode(
+            GameMessageMetadata.Empty,
+            Hex("0100FFFFFF7F0004000000000500020000")));
+        Assert.Throws<InvalidDataException>(() => decoder.Decode(
+            GameMessageMetadata.Empty,
+            Hex("01000400000041420004000000000500020000")));
+        Assert.Throws<InvalidDataException>(() => decoder.Decode(
+            GameMessageMetadata.Empty,
+            Hex("010001000000FF04000000000500020000")));
+    }
+
+    [Theory]
+    [InlineData("03000000000004000000000500020000")]
+    [InlineData("01010000000004000000000500020000")]
+    [InlineData("000302000000000500030000")]
+    [InlineData("000300000000000500020000")]
+    [InlineData("000305000000000500020000")]
+    public void Set_party_info_rejects_invalid_edit_gates_or_rule_values(string bodyHex)
+    {
+        Assert.Throws<InvalidDataException>(() =>
+            new SetPartyInfoDecoder(new PartyModeRuleService()).Decode(
+                GameMessageMetadata.Empty,
+                Hex(bodyHex)));
+    }
+
     [Theory]
     [InlineData("05AC11D001AC11D0010079C00500000C000000646162333266356439643466", 30976)]
     [InlineData("05AC11D001AC11D00108F9C00500000C000000646162333266356439643466", 63752)]
@@ -114,7 +182,7 @@ public sealed class PartyCommandCodecTests
     }
 
     [Fact]
-    public void Production_registers_all_five_wire_keys_handlers_and_direct_commands()
+    public void Production_registers_all_six_wire_keys_handlers_and_direct_commands()
     {
         var services = new ServiceCollection();
         new ProtocolModule().ConfigureServices(services, new ConfigurationBuilder().Build());
@@ -131,6 +199,8 @@ public sealed class PartyCommandCodecTests
             && value.DecoderType == typeof(LeavePartyDecoder));
         Assert.Contains(decoders, value => value.Selector == 1 && value.Type == 0x00A6
             && value.DecoderType == typeof(CallPartyMemberRealtimeInfoDecoder));
+        Assert.Contains(decoders, value => value.Selector == 1 && value.Type == 0x000C
+            && value.DecoderType == typeof(SetPartyInfoDecoder));
 
         var handlers = provider.GetServices<MessageHandlerRegistration>().ToArray();
         Assert.Contains(handlers, value => value.MessageType == ClientMessageType.GameSetUdpIpPort
@@ -144,6 +214,8 @@ public sealed class PartyCommandCodecTests
         Assert.Contains(handlers, value =>
             value.MessageType == ClientMessageType.GameCallPartyMemberRealtimeInfo
             && value.HandlerType == typeof(CallPartyMemberRealtimeInfoHandler));
+        Assert.Contains(handlers, value => value.MessageType == ClientMessageType.GameSetPartyInfo
+            && value.HandlerType == typeof(SetPartyInfoHandler));
 
         Type[] expectedCommands =
         [
@@ -152,17 +224,27 @@ public sealed class PartyCommandCodecTests
             typeof(AcceptPartyInviteCommand),
             typeof(LeavePartyCommand),
             typeof(QueryPartyRealtimeCommand),
+            typeof(SetPartyInfoCommand),
         ];
         var commands = provider.GetServices<CommandHandlerRegistration>()
             .Where(value => expectedCommands.Contains(value.CommandType))
             .ToArray();
-        Assert.Equal(5, commands.Length);
+        Assert.Equal(6, commands.Length);
         Assert.All(commands, value =>
         {
             Assert.Equal(CommandExecutionKind.Direct, value.ExecutionKind);
             Assert.Equal(UserAccessMode.Unscoped, value.OnlineUserAccessMode);
             Assert.Equal(UserAccessMode.Unscoped, value.AccountAccessMode);
         });
+
+        Assert.Contains(
+            provider.GetServices<ServerMessageEncoderRegistration>(),
+            value => value.MessageType == typeof(PartySettingsMessage)
+                && value.EncoderType == typeof(PartySettingsEncoder));
+        Assert.Contains(
+            provider.GetServices<NotificationHandlerRegistration>(),
+            value => value.NotificationType == typeof(PartySettingsChanged)
+                && value.HandlerType == typeof(PartySettingsChangedHandler));
     }
 
     private static byte[] Hex(string value) => Convert.FromHexString(value);

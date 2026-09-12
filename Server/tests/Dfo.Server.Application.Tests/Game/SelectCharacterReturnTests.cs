@@ -47,7 +47,11 @@ public sealed partial class SelectCharacterLifecycleTests
             new CharacterContainerDomainService(), new CharacterItemCooldownDomainService(TimeProvider.System),
             f.Active, presence, stores, new PvpLobbyDomainService(), [f.Mutations], positions,
             new PartyDomainService(
-                f.Directory, presence, new StubPartyMemberStatusDomainService(), TimeProvider.System));
+                f.Directory,
+                presence,
+                new StubPartyMemberStatusDomainService(),
+                new PartyModeRuleService(),
+                TimeProvider.System));
         var runs = new DungeonRunDomainService();
         runs.Begin(selected.CharacterId, new(10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
             61000, 1, new Dictionary<MazeCell, int> { [new(0, 0)] = 61000 }), 0);

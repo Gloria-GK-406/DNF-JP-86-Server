@@ -1,0 +1,5 @@
+REQUEST_PEER inviter=1 target=2 clientReportedReviveCoins=64 accepted=True failure=None
+RESPONSE_PEER invitee=2 inviter=1 accepted=True failure=None
+SET_PARTY_INFO character=1 accepted=True failure=None
+Unhandled Game frame Game:02-00-00-00 selector=0x01 type=0x0079 seq=51 body(1B)=01
+Unhandled Game frame Game:02-00-00-00 selector=0x01 type=0x000E seq=52 body(1B)=01

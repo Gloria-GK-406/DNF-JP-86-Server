@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="05414c37-fac9-4bb1-8b1b-cf6341f89f25" name="Gloria@家庭台式机 2026-09-12 13:12:45" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-12T13:12:45.1851679+08:00" queuing="2026-09-12T13:12:45.1851680+08:00" start="2026-09-12T13:12:44.6386396+08:00" finish="2026-09-12T13:12:45.1891495+08:00" />
+  <TestSettings name="default" id="8f241b45-7d96-437b-a9cb-f7f82bcc4788">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-12_13_12_45" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="fe5420a3-72c9-4949-8085-e8fa878a381c" testId="c383e5d8-0690-0a66-6c4b-1e74f61a682f" testName="Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog" computerName="家庭台式机" duration="00:00:00.0055465" startTime="2026-09-12T13:12:45.0934158+08:00" endTime="2026-09-12T13:12:45.1026682+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="fe5420a3-72c9-4949-8085-e8fa878a381c" />
+    <UnitTestResult executionId="cfc957be-19a0-4e18-9b48-e54e49bc8be1" testId="dc672fea-14a9-da4a-1e4f-87185cc98c48" testName="Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message" computerName="家庭台式机" duration="00:00:00.0056318" startTime="2026-09-12T13:12:45.0925293+08:00" endTime="2026-09-12T13:12:45.1049627+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="cfc957be-19a0-4e18-9b48-e54e49bc8be1" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\party-mode-rules\server\tests\dfo.server.infrastructure.tests\bin\release\net10.0\dfo.server.infrastructure.tests.dll" id="dc672fea-14a9-da4a-1e4f-87185cc98c48">
+      <Execution id="cfc957be-19a0-4e18-9b48-e54e49bc8be1" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\party-mode-rules\Server\tests\Dfo.Server.Infrastructure.Tests\bin\Release\net10.0\Dfo.Server.Infrastructure.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests" name="A_missing_archive_fails_with_an_actionable_message" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog" storage="e:\project\dnf\dnf-jp-86-server\.worktrees\party-mode-rules\server\tests\dfo.server.infrastructure.tests\bin\release\net10.0\dfo.server.infrastructure.tests.dll" id="c383e5d8-0690-0a66-6c4b-1e74f61a682f">
+      <Execution id="fe5420a3-72c9-4949-8085-e8fa878a381c" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\.worktrees\party-mode-rules\Server\tests\Dfo.Server.Infrastructure.Tests\bin\Release\net10.0\Dfo.Server.Infrastructure.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests" name="A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="c383e5d8-0690-0a66-6c4b-1e74f61a682f" executionId="fe5420a3-72c9-4949-8085-e8fa878a381c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="dc672fea-14a9-da4a-1e4f-87185cc98c48" executionId="cfc957be-19a0-4e18-9b48-e54e49bc8be1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="2" executed="2" passed="2" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.05]   Discovering: Dfo.Server.Infrastructure.Tests&#xD;
+[xUnit.net 00:00:00.11]   Discovered:  Dfo.Server.Infrastructure.Tests&#xD;
+[xUnit.net 00:00:00.13]   Starting:    Dfo.Server.Infrastructure.Tests&#xD;
+[xUnit.net 00:00:00.16]   Finished:    Dfo.Server.Infrastructure.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

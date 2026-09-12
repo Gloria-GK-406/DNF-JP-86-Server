@@ -1,0 +1,10 @@
+Command:
+dotnet test Server/tests/Dfo.Server.Application.Tests/Dfo.Server.Application.Tests.csproj --no-restore --filter FullyQualifiedName~PartySettingsDomainTests --logger "trx;LogFileName=task02-red.trx" --results-directory .rks-agent/tasks/party-mode-rules/attempts/spec-001-party-settings-foundation/evidence/task02
+
+Observed before production changes:
+exit 1
+PartySettingsDomainTests.cs(210,56): error CS0246: PartyCategory was not found.
+PartySettingsDomainTests.cs(210,20): error CS0246: PartySettings was not found.
+
+The new observable contract therefore failed at compile time before PartySettings, PartyTitle,
+IPartyModeRuleService and the atomic domain entry point were implemented.

@@ -1,0 +1,32 @@
+TASK-03 TDD RED evidence — 2026-09-12
+
+1. Codec/handler RED
+   Command: dotnet test Dfo.Server.Protocol.Tests with PartyCommandCodecTests enabled.
+   Result: compilation failed as expected because SetPartyInfoRequest,
+   SetPartyInfoDecoder, SetPartyInfoHandler, SetPartyInfoCommand and
+   ClientMessageType.GameSetPartyInfo did not exist (CS0246/CS0117).
+
+2. Notification/encoder RED
+   Command: dotnet test Dfo.Server.Protocol.Tests with PartyNotificationTests enabled.
+   Result: compilation failed as expected because PartySettingsMessage,
+   PartySettingsEncoder, PartySettingsChanged and PartySettingsChangedHandler did not
+   exist (CS0246/CS0103).
+
+3. Atomic delivery-plan validation RED
+   Command: dotnet test Dfo.Server.Protocol.Tests --filter
+   FullyQualifiedName~Invalid_settings_update_plan_is_rejected_before_any_publication
+   Result: 0 passed, 1 failed. The invalid combined Updated plan threw, but the
+   invitation had already been published, proving a partial side effect before plan
+   validation. The production fix moved shape validation ahead of all publication.
+
+The first two RED runs failed during compilation, so vstest did not create TRX files.
+
+4. Independent-review remediation RED
+   Command: dotnet test Dfo.Server.Protocol.Tests --filter
+   FullyQualifiedName~Invalid_plan_shapes_are_rejected_before_any_publication|
+   FullyQualifiedName~Settings_update_arriving_before_creation_promotes_latest_snapshot_to_full_state
+   Result: 0 passed, 2 failed. Invalid Created/partial-clear/unknown-kind plans
+   were not all rejected, and an Updated revision 2 arriving before Created revision
+   1 produced only PartySettingsChanged. The fixes added complete pre-publication
+   shape validation and promoted the first settings delta of a generation to a full
+   latest-snapshot baseline.

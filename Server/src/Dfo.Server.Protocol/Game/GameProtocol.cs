@@ -61,6 +61,8 @@ internal static class GameProtocol
 
     public const ushort CallPartyMemberRealtimeInfoType = 0x00A6;
 
+    public const ushort SetPartyInfoType = 0x000C;
+
     public const ushort PartyInviteRequestNotificationType = 0x0007;
 
     public const ushort PartyInviteAcceptedNotificationType = 0x0008;
