@@ -181,6 +181,7 @@ public enum PartyFailureReason
     InvalidPartyCapacity,
     PartyCapacityBelowMemberCount,
     UnknownPartyCategory,
+    InvalidPartyModeTarget,
 }
 
 public sealed record PartyOperationResult(

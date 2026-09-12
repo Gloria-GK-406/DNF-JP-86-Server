@@ -154,7 +154,10 @@ internal sealed class SetPartyInfoDecoder(IPartyModeRuleService rules) : IGameMe
         PartyTitle title;
         if (body.Length == PartySettings.WireLength)
         {
-            canonical = body.ToArray();
+            canonical = new byte[PartySettings.WireLength];
+            canonical[0] = body[1];
+            canonical[1] = body[0];
+            body[2..].CopyTo(canonical.AsSpan(2));
             title = PartyTitle.Empty;
         }
         else
@@ -186,7 +189,8 @@ internal sealed class SetPartyInfoDecoder(IPartyModeRuleService rules) : IGameMe
             }
 
             canonical = new byte[PartySettings.WireLength];
-            body[..2].CopyTo(canonical);
+            canonical[0] = body[1];
+            canonical[1] = body[0];
             body.Slice(6 + titleLength, 10).CopyTo(canonical.AsSpan(2));
             title = new PartyTitle(titleBytes);
         }

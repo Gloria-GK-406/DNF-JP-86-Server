@@ -206,7 +206,7 @@ internal sealed class PartyRosterEncoder : GameNotiMessageEncoder<PartyRosterMes
 
         var snapshot = message.Snapshot
             ?? throw new InvalidOperationException("A party roster refresh requires a snapshot.");
-        var information = PartyInformationBlockEncoder.Encode(snapshot.Settings);
+        var information = PartyInformationBlockEncoder.Encode(snapshot.Settings, snapshot.Title);
         var rosterOffset = 5 + information.Length;
         var body = new byte[rosterOffset + 44];
         BinaryPrimitives.WriteUInt16LittleEndian(body, 1);
@@ -238,7 +238,9 @@ internal sealed class PartySettingsEncoder : GameNotiMessageEncoder<PartySetting
     internal static byte[] EncodeBody(PartySettingsMessage message)
     {
         ArgumentNullException.ThrowIfNull(message);
-        var information = PartyInformationBlockEncoder.Encode(message.Snapshot.Settings);
+        var information = PartyInformationBlockEncoder.Encode(
+            message.Snapshot.Settings,
+            message.Snapshot.Title);
         var body = new byte[5 + information.Length + 1];
         BinaryPrimitives.WriteUInt16LittleEndian(body, 1);
         BinaryPrimitives.WriteUInt16LittleEndian(body.AsSpan(2), message.Snapshot.PartyId);
@@ -251,16 +253,20 @@ internal sealed class PartySettingsEncoder : GameNotiMessageEncoder<PartySetting
 
 internal static class PartyInformationBlockEncoder
 {
-    public static byte[] Encode(PartySettings settings)
+    public static byte[] Encode(PartySettings settings, PartyTitle title)
     {
         ArgumentNullException.ThrowIfNull(settings);
+        ArgumentNullException.ThrowIfNull(title);
         var canonical = settings.ToWireBytes();
-        var rawDstringLength = canonical[0] == 0 ? sizeof(int) : 0;
-        var encoded = new byte[canonical.Length + rawDstringLength];
+        if (canonical[0] != 0)
+            return canonical;
+
+        var titleBytes = title.ToBytes();
+        var encoded = new byte[checked(canonical.Length + sizeof(int) + titleBytes.Length)];
         encoded[0] = canonical[0];
-        // Current A21 proves the conditional raw-dstring shape, but not non-empty title echo.
-        // When info0 is zero, the four inserted bytes intentionally encode an empty title.
-        canonical.AsSpan(1).CopyTo(encoded.AsSpan(1 + rawDstringLength));
+        BinaryPrimitives.WriteInt32LittleEndian(encoded.AsSpan(1), titleBytes.Length);
+        titleBytes.CopyTo(encoded.AsSpan(1 + sizeof(int)));
+        canonical.AsSpan(1).CopyTo(encoded.AsSpan(1 + sizeof(int) + titleBytes.Length));
         return encoded;
     }
 }

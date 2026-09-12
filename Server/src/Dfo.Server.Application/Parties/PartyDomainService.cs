@@ -439,6 +439,7 @@ internal sealed class PartyDomainService(
         PartyModeRuleFailure.UnknownCategory => PartyFailureReason.UnknownPartyCategory,
         PartyModeRuleFailure.InvalidCapacity => PartyFailureReason.InvalidPartyCapacity,
         PartyModeRuleFailure.CapacityBelowMemberCount => PartyFailureReason.PartyCapacityBelowMemberCount,
+        PartyModeRuleFailure.InvalidModeTarget => PartyFailureReason.InvalidPartyModeTarget,
         _ => throw new ArgumentOutOfRangeException(nameof(failure), failure, null),
     };
 

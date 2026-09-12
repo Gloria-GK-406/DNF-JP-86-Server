@@ -4,17 +4,17 @@ contract:
   path: ./TaskContract.md
   revision: 1
 phase: child_execution
-phase_state: in_progress
-active_attempt: spec-001
+phase_state: pending
+active_attempt: spec-002
 last_transition: child-created
-transition_evidence: spec-001-party-settings-foundation has a ready contained child TaskContract, valid empty depends_on list, matching Single Spec routing decision, unique deterministic identity, and no prior active row; root task authorization covers its bounded outcome
+transition_evidence: spec-002-normal-party-mode has deterministic identity and a ready contained TaskContract with empty depends_on; its routing decision selects one coherent Single Spec boundary, no prior active row exists, and root authorization covers evidence-led Normal rules and A21 validation while excluding the separate public-party-directory issue
 workspace:
   repository_root: E:/Project/DNF/DNF-JP-86-Server
   task_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/party-mode-rules/.rks-agent/tasks/party-mode-rules
   code_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/party-mode-rules
   branch: task/party-mode-rules
-  baseline: d717f1b0538793c86f347fce784acaaa2eab3c49
-  baseline_evidence: source main and task worktree both at d717f1b0538793c86f347fce784acaaa2eab3c49; canonical Git/common-dir identity and containment verified; only .rks-agent/tasks/party-mode-rules is untracked; dotnet build Server/86JP.Server.slnx -c Release --nologo passed with 0 warnings and 0 errors
+  baseline: d1351ce6047ea84db1c764efc3ad9466781f07af
+  baseline_evidence: accepted commit d1351ce6047ea84db1c764efc3ad9466781f07af has sole parent d717f1b0538793c86f347fce784acaaa2eab3c49; task worktree was clean immediately after acceptance; source main remains at d717f1b0538793c86f347fce784acaaa2eab3c49; canonical Git/common-dir identity and containment remain verified
 ---
 
 # Multi-Spec Map
@@ -42,14 +42,14 @@ workspace:
 
 | SC | Requirement | Progress | Evidence | Remaining gap | Constraint |
 |---|---|---|---|---|---|
-| SC-1 | 初始类型化模型与兼容默认普通行为 | not_started | none | 建模、实现、测试和构建证据 | aligned |
-| SC-2 | 严格 `0x000C` 创建/编辑与无污染拒绝 | not_started | none | A21 形状证据、实现和状态测试 | aligned |
-| SC-3 | 原子设置更新与正确通知投影 | not_started | none | 并发、代际、顺序与客户端消费证据 | aligned |
+| SC-1 | 初始类型化模型与兼容默认普通行为 | satisfied | accepted `d1351ce6`; spec-001 result and completion verification | none | aligned |
+| SC-2 | 严格 `0x000C` 创建/编辑与无污染拒绝 | satisfied | accepted `d1351ce6`; exact codec/domain rejection and A21 evidence | none | aligned |
+| SC-3 | 原子设置更新与正确通知投影 | satisfied | accepted `d1351ce6`; exact audience and four-ordering regression evidence | none | aligned |
 | SC-4 | Normal 模式闭环 | not_started | none | Normal 专属规则、抓包与 UI 验收 | aligned |
 | SC-5 | Story 模式闭环 | not_started | none | Story 专属规则、抓包与 UI 验收 | aligned |
 | SC-6 | Cycle 模式闭环 | not_started | none | Cycle 专属规则、抓包与 UI 验收 | aligned |
-| SC-7 | 与现有组队生命周期组合无回归 | not_started | none | 每次接受后的回归与最终全量验证 | aligned |
-| SC-8 | 协议资料与证据等级一致 | not_started | none | 逐规格同步和最终一致性审查 | aligned |
+| SC-7 | 与现有组队生命周期组合无回归 | in_progress | spec-001 accepted fresh 3082 Passed / 0 Failed and Release build | 后继模式每次接受后的回归与最终全量验证 | aligned |
+| SC-8 | 协议资料与证据等级一致 | in_progress | spec-001 accepted `0x000C` / NOTI `0x0009` samples and static/live trace | 后继模式逐规格同步和最终一致性审查 | aligned |
 | SC-9 | 最终建模审计与必要的聚焦重构 | not_started | none | 汇总全部已接受模式证据后审计 | aligned |
 
 ## Spec Attempts
@@ -58,4 +58,5 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 
 | # | Attempt | TaskContract | Outcome | Affects | State | Result | Git result |
 |---:|---|---|---|---|---|---|---|
-| `1` | `spec-001` | `./attempts/spec-001-party-settings-foundation/TaskContract.md` | 类型化队伍设置、保守共享规则、严格 `0x000C` 基础闭环与 type-1 投影 | `SC-1, SC-2, SC-3, SC-7, SC-8` | `running` | `pending` | `active` |
+| `1` | `spec-001` | `./attempts/spec-001-party-settings-foundation/TaskContract.md` | 类型化队伍设置、保守共享规则、严格 `0x000C` 基础闭环与 type-1 投影 | `SC-1, SC-2, SC-3, SC-7, SC-8` | `completed` | `./attempts/spec-001-party-settings-foundation/spec-result.md` | `d1351ce6047ea84db1c764efc3ad9466781f07af` |
+| `2` | `spec-002` | `./attempts/spec-002-normal-party-mode/TaskContract.md` | Normal target/default、创建/编辑与最后成员处置闭环 | `SC-4, SC-7, SC-8` | `running` | `pending` | `active` |

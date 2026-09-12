@@ -46,22 +46,29 @@ public sealed class PartySettingsDomainTests
     {
         IPartyModeRuleService rules = new PartyModeRuleService();
 
-        Assert.Equal(new byte[] { 0, 0, 4, 0, 0, 0, 0, 5, 0, 2, 0xFF, 0xFF },
+        Assert.Equal(new byte[] { 0, 0, 4, 0, 0, 0, 0, 5, 0, 2, 0, 0 },
             rules.DefaultSettings.ToWireBytes());
-        foreach (var category in Enum.GetValues<PartyCategory>())
-        {
-            Assert.Equal(
-                PartyModeRuleFailure.None,
-                rules.Validate(new PartySettings(SettingsBytes(4, category, 7)), 4));
-        }
+        Assert.Equal(
+            PartyModeRuleFailure.None,
+            rules.Validate(new PartySettings(SettingsBytes(4, PartyCategory.Story, 7)), 4));
+        Assert.Equal(
+            PartyModeRuleFailure.None,
+            rules.Validate(new PartySettings(SettingsBytes(4, PartyCategory.Cycle, 7)), 4));
+        Assert.Equal(
+            PartyModeRuleFailure.None,
+            rules.Validate(new PartySettings(SettingsBytes(4, PartyCategory.Normal, 0)), 4));
         foreach (var capacity in Enumerable.Range(1, 4).Select(value => (byte)value))
         {
             Assert.Equal(
                 PartyModeRuleFailure.None,
                 rules.Validate(
-                    new PartySettings(SettingsBytes(capacity, PartyCategory.Normal, 7)),
+                    new PartySettings(SettingsBytes(capacity, PartyCategory.Normal, 0)),
                     capacity));
         }
+
+        Assert.Equal(
+            PartyModeRuleFailure.InvalidModeTarget,
+            rules.Validate(new PartySettings(SettingsBytes(4, PartyCategory.Normal, 7)), 1));
 
         Assert.Equal(
             PartyModeRuleFailure.UnknownCategory,
@@ -160,7 +167,7 @@ public sealed class PartySettingsDomainTests
 
         Assert.True(fixture.Parties.CreateOrUpdateSettingsExact(
             leader,
-            Settings(2, PartyCategory.Normal, ushort.MaxValue),
+            Settings(2, PartyCategory.Normal, 0),
             PartyTitle.Empty).Succeeded);
         Assert.Equal(
             PartyFailureReason.PartyFull,
@@ -242,6 +249,10 @@ public sealed class PartySettingsDomainTests
             PartyFailureReason.UnknownPartyCategory,
             fixture.Parties.CreateOrUpdateSettingsExact(
                 leader, Settings(4, (PartyCategory)9, 1), PartyTitle.Empty).Failure);
+        Assert.Equal(
+            PartyFailureReason.InvalidPartyModeTarget,
+            fixture.Parties.CreateOrUpdateSettingsExact(
+                leader, Settings(4, PartyCategory.Normal, 1), PartyTitle.Empty).Failure);
 
         AssertSnapshotEqual(before, fixture.Parties.FindParty(member));
         Assert.True(fixture.Parties.AcceptInvite(pending, leader.WireUserId).Succeeded);

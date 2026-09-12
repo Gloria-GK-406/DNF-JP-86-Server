@@ -38,6 +38,7 @@ public enum PartyModeRuleFailure
     UnknownCategory,
     InvalidCapacity,
     CapacityBelowMemberCount,
+    InvalidModeTarget,
 }
 
 /// <summary>The single source for default party settings and shared setting invariants.</summary>

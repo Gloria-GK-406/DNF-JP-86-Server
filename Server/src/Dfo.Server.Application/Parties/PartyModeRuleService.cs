@@ -8,7 +8,7 @@ internal sealed class PartyModeRuleService : IPartyModeRuleService
     public byte MaximumCapacity => 4;
 
     private static readonly PartySettings NormalDefaults = new(
-        [0, 0, 4, 0, 0, 0, 0, 5, 0, (byte)PartyCategory.Normal, byte.MaxValue, byte.MaxValue]);
+        [0, 0, 4, 0, 0, 0, 0, 5, 0, (byte)PartyCategory.Normal, 0, 0]);
 
     public PartySettings DefaultSettings => NormalDefaults;
 
@@ -27,8 +27,10 @@ internal sealed class PartyModeRuleService : IPartyModeRuleService
             return PartyModeRuleFailure.UnknownCategory;
         if (settings.Capacity is < 1 || settings.Capacity > MaximumCapacity)
             return PartyModeRuleFailure.InvalidCapacity;
-        return settings.Capacity < memberCount
-            ? PartyModeRuleFailure.CapacityBelowMemberCount
+        if (settings.Capacity < memberCount)
+            return PartyModeRuleFailure.CapacityBelowMemberCount;
+        return settings.Category == PartyCategory.Normal && settings.ModeTargetRaw != 0
+            ? PartyModeRuleFailure.InvalidModeTarget
             : PartyModeRuleFailure.None;
     }
 

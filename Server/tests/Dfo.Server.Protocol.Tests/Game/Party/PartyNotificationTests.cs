@@ -54,7 +54,7 @@ public sealed class PartyNotificationTests
         Assert.Equal(
             Hex(
                 "0100341200"
-                + "0000000000000400000000050002FFFF"
+                + "00000000000004000000000500020000"
                 + "0100000000"
                 + "0200000000"
                 + "FFFF000000FFFF000000FFFF000000"
@@ -68,18 +68,41 @@ public sealed class PartyNotificationTests
     }
 
     [Fact]
+    public void Full_roster_forwards_the_inline_title_before_the_canonical_settings_tail()
+    {
+        var snapshot = Snapshot() with { Title = new PartyTitle([0x61, 0x62]) };
+
+        Assert.Equal(
+            Hex(
+                "0100341200"
+                + "000200000061620004000000000500020000"
+                + "0100000000"
+                + "0200000000"
+                + "FFFF000000FFFF000000FFFF000000"
+                + "FFFF000000FFFF000000FFFF000000"
+                + "00000000"),
+            PartyRosterEncoder.EncodeBody(PartyRosterMessage.Refresh(snapshot)));
+    }
+
+    [Fact]
     public void Settings_only_body_matches_both_current_a21_information_branches()
     {
         var zeroInfo = Snapshot(new PartySettings(
-            [0, 0, 4, 0, 0, 0, 0, 5, 0, (byte)PartyCategory.Cycle, 0x34, 0x12]));
+            [0, 0, 4, 0, 0, 0, 0, 5, 0, (byte)PartyCategory.Cycle, 0x34, 0x12]))
+            with { Title = new PartyTitle(Hex("E697A0E9989FE4BC8DE5908D")) };
         Assert.Equal(
-            Hex("01003412010000000000000400000000050001341200"),
+            Hex(
+                "0100341201"
+                + "000C000000E697A0E9989FE4BC8DE5908D"
+                + "0004000000000500013412"
+                + "00"),
             PartySettingsEncoder.EncodeBody(new PartySettingsMessage(zeroInfo)));
 
         var indexedInfo = Snapshot(new PartySettings(
-            [1, 0, 4, 0, 0, 0, 0, 5, 0, (byte)PartyCategory.Normal, 0xFF, 0xFF]));
+            [1, 0, 4, 0, 0, 0, 0, 5, 0, (byte)PartyCategory.Normal, 0, 0]))
+            with { Title = new PartyTitle([0x61, 0x62]) };
         Assert.Equal(
-            Hex("010034120101000400000000050002FFFF00"),
+            Hex("010034120101000400000000050002000000"),
             PartySettingsEncoder.EncodeBody(new PartySettingsMessage(indexedInfo)));
     }
 
@@ -542,7 +565,7 @@ public sealed class PartyNotificationTests
             new PartyMemberSnapshot(Invitee, 1, null, 45)));
 
     private static PartySettings DefaultSettings() => new(
-        [0, 0, 4, 0, 0, 0, 0, 5, 0, (byte)PartyCategory.Normal, 0xFF, 0xFF]);
+        [0, 0, 4, 0, 0, 0, 0, 5, 0, (byte)PartyCategory.Normal, 0, 0]);
 
     private static PartyInviteDisplayState Profile() => new(
         ReviveCoinCount: 64,

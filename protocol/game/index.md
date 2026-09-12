@@ -33,8 +33,8 @@
 | `0x0009` | `RECOVER_STAMINA` | 布局已闭合 | `2` | [0x0009.md](client-to-server/0x0009.md) |
 | `0x000A` | `REQUEST_PEER` | ClientVerified（A21 type 0） | `7` 或 `9` | [0x000A.md](client-to-server/0x000A.md) |
 | `0x000B` | `RESPONSE_PEER` | ClientVerified（A21 type 0；真实 body 待归档） | `7` 或 `16` | [0x000B.md](client-to-server/0x000B.md) |
-| `0x000C` | `SET_PARTY_INFO` | ClientVerified（A21 12B direct 更新；inline-title 静态 High） | `12` 或 `16+n` | [0x000C.md](client-to-server/0x000C.md) |
-| `0x000D` | `LEAVE_PARTY` | ClientVerified（A21 普通成员主动离队） | `0` | [0x000D.md](client-to-server/0x000D.md) |
+| `0x000C` | `SET_PARTY_INFO` | ClientVerified（A21 12B direct 创建/更新；inline-title 静态 High） | `12` 或 `16+n` | [0x000C.md](client-to-server/0x000C.md) |
+| `0x000D` | `LEAVE_PARTY` | ClientVerified（A21 普通成员、多人队长与单人队主动离队） | `0` | [0x000D.md](client-to-server/0x000D.md) |
 | `0x000E` | `WALKOUT_PARTY_MEMBER` | 布局已闭合 | `1` | [0x000E.md](client-to-server/0x000E.md) |
 | `0x000F` | `ENTER_SELECT_DUNGEON` | 布局部分可得 | `≥ 4` | [0x000F.md](client-to-server/0x000F.md) |
 | `0x0010` | `SELECT_DUNGEON` | 布局部分可得 | `≥ 15` | [0x0010.md](client-to-server/0x0010.md) |
@@ -883,7 +883,7 @@ NOTI 是单向推送通道，客户端从不发送。其 body 没有 CMD 的两�
 | `0x0006` | `USER_LEAVE` | 布局部分可得 | `≥ 2` | [NOTI-0x0006.md](server-to-client/NOTI-0x0006.md) |
 | `0x0007` | `REQUEST_PEER` | ClientVerified（A21 邀请 UI；真实 body 待归档） | `13` | [NOTI-0x0007.md](server-to-client/NOTI-0x0007.md) |
 | `0x0008` | `RESPONSE_PEER` | Implemented（接受链 UI 通过；待逐帧归因） | `7` | [NOTI-0x0008.md](server-to-client/NOTI-0x0008.md) |
-| `0x0009` | `PARTY_INFO` | ClientVerified（A21 type-0 refresh、type-1 18B、普通成员 clear；type-1 22B 静态） | baseline `2`；type-0 `65`；type-1 `18/22`；clear `5` | [NOTI-0x0009.md](server-to-client/NOTI-0x0009.md) |
+| `0x0009` | `PARTY_INFO` | ClientVerified（A21 type-0 refresh、type-1 18B、普通成员/队长解散 clear；type-1 22B 静态） | baseline `2`；type-0 `61/65+n`；type-1 `18/22+n`；clear `5` | [NOTI-0x0009.md](server-to-client/NOTI-0x0009.md) |
 | `0x000A` | `WALKOUT` | 布局部分可得 | `≥ 2` | [NOTI-0x000A.md](server-to-client/NOTI-0x000A.md) |
 | `0x000B` | `USER_UDP_IP_PORT` | Implemented（双端已上报建队 UI 通过；待逐帧归因/P2P） | `1 + n×22` | [NOTI-0x000B.md](server-to-client/NOTI-0x000B.md) |
 | `0x000C` | `MESSAGE` | 布局部分可得 | `≥ 4` | [NOTI-0x000C.md](server-to-client/NOTI-0x000C.md) |

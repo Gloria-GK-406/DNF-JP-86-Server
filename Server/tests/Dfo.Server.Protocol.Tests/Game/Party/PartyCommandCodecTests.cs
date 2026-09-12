@@ -15,12 +15,13 @@ namespace Dfo.Server.Protocol.Tests.Game.Party;
 public sealed class PartyCommandCodecTests
 {
     [Theory]
-    [InlineData("000302000000000500020000", "", "000302000000000500020000")]
+    [InlineData("000302000000000500020000", "", "030002000000000500020000")]
+    [InlineData("000604000000000500020000", "", "060004000000000500020000")]
     [InlineData(
-        "01000C000000E697A0E9989FE4BC8DE5908D04000000000500020100",
+        "01000C000000E697A0E9989FE4BC8DE5908D04000000000500020000",
         "E697A0E9989FE4BC8DE5908D",
-        "010004000000000500020100")]
-    public void Current_a21_set_party_info_shapes_normalize_to_one_settings_block(
+        "000104000000000500020000")]
+    public void Current_a21_set_party_info_shapes_project_to_canonical_s2c_order(
         string bodyHex,
         string titleHex,
         string settingsHex)
@@ -71,6 +72,7 @@ public sealed class PartyCommandCodecTests
     [InlineData("000302000000000500030000")]
     [InlineData("000300000000000500020000")]
     [InlineData("000305000000000500020000")]
+    [InlineData("000304000000000500020100")]
     public void Set_party_info_rejects_invalid_edit_gates_or_rule_values(string bodyHex)
     {
         Assert.Throws<InvalidDataException>(() =>
