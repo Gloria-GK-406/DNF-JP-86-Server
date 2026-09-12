@@ -43,3 +43,12 @@ live oracle，但尚未满足 TaskContract revision 3 对 S2C 逐帧运行时证
 
 `manual_required`。生产与测试代码未发现新缺陷，功能/UI 实机结果成功；完成阻塞仅为需要用户参与的
 带逐帧抓包最小复测。在该证据归档前，TASK-08 与根 SDD 保持未完成。
+
+## 集成记录 — 2026-09-12
+
+用户在知悉上述证据边界后接受当前可运行结果。任务提交 `7aec0c18` 已通过普通 merge 纳入主分支
+`06c6a12a`。合并后 Release build 为 0 warning、0 error；
+[`postmerge-final-20260912`](postmerge-final-20260912) 的十份 TRX 逐条统计为
+3050 Passed、0 Failed、0 Other/NotExecuted。完整收尾和一次已诊断的墙钟测试时序异常见
+[`integration-closeout.md`](integration-closeout.md)。本段只记录集成事实，不改变上述
+`manual_required` 判定。

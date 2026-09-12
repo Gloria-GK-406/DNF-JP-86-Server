@@ -1,0 +1,778 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="ee3cbfe0-59fe-4d2d-b790-34c90ff26024" name="Gloria@家庭台式机 2026-09-12 09:32:46" runUser="家庭台式机\Gloria" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-12T09:32:46.1279737+08:00" queuing="2026-09-12T09:32:46.1279738+08:00" start="2026-09-12T09:32:45.6145021+08:00" finish="2026-09-12T09:32:47.8467244+08:00" />
+  <TestSettings name="default" id="188d9a1e-679a-4fa1-aa41-4e3905af1e27">
+    <Deployment runDeploymentRoot="Gloria_家庭台式机_2026-09-12_09_32_46" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="cfe4898d-e1cf-4e5c-be74-005f5947823b" testId="68767aab-0201-ac29-ec6e-24f3b1c24322" testName="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Game_client_rejects_invalid_total_length(totalLength: 1)" computerName="家庭台式机" duration="00:00:00.0002234" startTime="2026-09-12T09:32:46.1204721+08:00" endTime="2026-09-12T09:32:46.1205098+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="cfe4898d-e1cf-4e5c-be74-005f5947823b" />
+    <UnitTestResult executionId="993ae4a4-c82f-43c7-8099-778173444dde" testId="6751add8-fb2d-5bc3-7536-eb4537d96874" testName="Dfo.Server.Networking.Tests.Integration.PackageOpeningIntegrationTests.Opening_without_selection_and_truncated_requests_are_answered_without_disconnect(opcode: 208, captured: &quot;0042007A00&quot;, failure: &quot;0002&quot;)" computerName="家庭台式机" duration="00:00:00.0080079" startTime="2026-09-12T09:32:46.4185517+08:00" endTime="2026-09-12T09:32:46.4263864+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="993ae4a4-c82f-43c7-8099-778173444dde" />
+    <UnitTestResult executionId="aee08729-0698-4a62-a57b-597ef94eb9c9" testId="1a9c0b8d-19a7-63e5-e375-496130cf6693" testName="Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.Registration_DeclaresEveryProducedMessageType" computerName="家庭台式机" duration="00:00:00.0012304" startTime="2026-09-12T09:32:46.1240406+08:00" endTime="2026-09-12T09:32:46.1240609+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="aee08729-0698-4a62-a57b-597ef94eb9c9" />
+    <UnitTestResult executionId="34a294e6-007b-43bf-9bc9-076a5b3f301f" testId="47ff858e-84ad-de29-482d-5f96cd492336" testName="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Game_client_rejects_invalid_total_length(totalLength: 13)" computerName="家庭台式机" duration="00:00:00.0001486" startTime="2026-09-12T09:32:46.1205720+08:00" endTime="2026-09-12T09:32:46.1206103+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="34a294e6-007b-43bf-9bc9-076a5b3f301f" />
+    <UnitTestResult executionId="6371d20a-0070-4244-8939-aed196e1172b" testId="a544a80f-a0cb-be91-7f88-e602e404e6fe" testName="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 2)" computerName="家庭台式机" duration="00:00:00.0007855" startTime="2026-09-12T09:32:46.1222009+08:00" endTime="2026-09-12T09:32:46.1222976+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6371d20a-0070-4244-8939-aed196e1172b" />
+    <UnitTestResult executionId="7a03d0e6-66cd-4cd2-b713-2ec1f394a4a1" testId="1081aea1-438a-5cb0-ee93-c48085ff6c61" testName="Dfo.Server.Networking.Tests.Runtime.ServerMessageEncoderRegistryTests.ReportsAMissForAnUnregisteredMessage" computerName="家庭台式机" duration="00:00:00.0004549" startTime="2026-09-12T09:32:46.1232274+08:00" endTime="2026-09-12T09:32:46.1233105+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7a03d0e6-66cd-4cd2-b713-2ec1f394a4a1" />
+    <UnitTestResult executionId="946e95e2-a78b-4ad1-a556-83d2be35930c" testId="0e24eed8-22a9-b61c-664d-456a07dee0ce" testName="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Game_client_rejects_invalid_total_length(totalLength: 4294967295)" computerName="家庭台式机" duration="00:00:00.0000066" startTime="2026-09-12T09:32:46.1207585+08:00" endTime="2026-09-12T09:32:46.1207831+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="946e95e2-a78b-4ad1-a556-83d2be35930c" />
+    <UnitTestResult executionId="46ba7fec-d3ed-4d6e-a655-814415d7b378" testId="10d49c3c-1b20-6447-bac9-9c19b86a4c1f" testName="Dfo.Server.Networking.Tests.Integration.GameExitIntegrationTests.Exit_TraversesTypedPipelineAndAcknowledgesWithoutClosingConnection" computerName="家庭台式机" duration="00:00:00.3156138" startTime="2026-09-12T09:32:46.0987726+08:00" endTime="2026-09-12T09:32:46.3980666+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="46ba7fec-d3ed-4d6e-a655-814415d7b378" />
+    <UnitTestResult executionId="746e0aef-092b-4dbd-912a-5608c504a1ca" testId="e54bc2cb-b776-ac92-63aa-77fad79c8d52" testName="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.PreCommitCancellationAfterRealTicketConsumptionRollsBackAndAllowsRetry" computerName="家庭台式机" duration="00:00:00.2921580" startTime="2026-09-12T09:32:47.2085620+08:00" endTime="2026-09-12T09:32:47.5009128+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="746e0aef-092b-4dbd-912a-5608c504a1ca" />
+    <UnitTestResult executionId="b0224dac-cb42-4bb6-a0db-ab7cec6462ac" testId="fdfd264b-2005-864b-c6c2-6b1ef4cd8407" testName="Dfo.Server.Networking.Tests.Integration.CardRewardReconnectIntegrationTests.A_clears_cards_survive_the_connection_that_was_shown_them" computerName="家庭台式机" duration="00:00:00.3665874" startTime="2026-09-12T09:32:46.0986533+08:00" endTime="2026-09-12T09:32:46.4476226+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b0224dac-cb42-4bb6-a0db-ab7cec6462ac" />
+    <UnitTestResult executionId="379589b2-ebad-41e7-b8d3-e46a71d182ec" testId="4417bc6b-377b-1c6c-8152-daf92d9b7ebf" testName="Dfo.Server.Networking.Tests.Integration.OutboundSendFailureTests.AChannelMessageIsRejectedOnAGameConnection" computerName="家庭台式机" duration="00:00:00.3015406" startTime="2026-09-12T09:32:46.1209147+08:00" endTime="2026-09-12T09:32:46.3969338+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="379589b2-ebad-41e7-b8d3-e46a71d182ec" />
+    <UnitTestResult executionId="7ab4bfde-5496-440b-bbd1-ef4d2654337a" testId="1eac7430-d1b4-8181-4613-3619cced0af8" testName="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 17)" computerName="家庭台式机" duration="00:00:00.0010492" startTime="2026-09-12T09:32:46.1232884+08:00" endTime="2026-09-12T09:32:46.1233584+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7ab4bfde-5496-440b-bbd1-ef4d2654337a" />
+    <UnitTestResult executionId="19b71f0d-5872-4481-a737-6bac312b8728" testId="7a16f097-47f0-ae2b-12f8-d4b54d4c0b38" testName="Dfo.Server.Networking.Tests.Integration.ChannelControlMessagesIntegrationTests.ControlMessages_TraverseTypedCommandsAndPreserveLegacyPayloads" computerName="家庭台式机" duration="00:00:00.3194129" startTime="2026-09-12T09:32:46.0986927+08:00" endTime="2026-09-12T09:32:46.4004328+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="19b71f0d-5872-4481-a737-6bac312b8728" />
+    <UnitTestResult executionId="3bae60be-9e25-4cd1-a3b7-26fa4939eb61" testId="a7689c09-8ebe-5d0c-da33-6516b44037b8" testName="Dfo.Server.Networking.Tests.Integration.PackageOpeningIntegrationTests.Opening_without_selection_and_truncated_requests_are_answered_without_disconnect(opcode: 519, captured: &quot;4200010300000000&quot;, failure: &quot;0002&quot;)" computerName="家庭台式机" duration="00:00:00.0118374" startTime="2026-09-12T09:32:46.3980257+08:00" endTime="2026-09-12T09:32:46.4094913+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3bae60be-9e25-4cd1-a3b7-26fa4939eb61" />
+    <UnitTestResult executionId="1ac40870-a5cb-4c72-8c39-72a44d8e1e18" testId="8bd075e0-835f-7813-0450-fb1e4f0c4bca" testName="Dfo.Server.Networking.Tests.Integration.OutboundSendFailureTests.AMessageWithNoRegisteredEncoderIsRejectedByName" computerName="家庭台式机" duration="00:00:00.0076191" startTime="2026-09-12T09:32:46.4158551+08:00" endTime="2026-09-12T09:32:46.4236740+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1ac40870-a5cb-4c72-8c39-72a44d8e1e18" />
+    <UnitTestResult executionId="df8a949d-d9ae-44d7-8eeb-e4051840727c" testId="80b7065e-8584-5810-e909-06426bdbd998" testName="Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.ChannelRegistry_RejectsTwoDecodersOnTheSameMessageNumber" computerName="家庭台式机" duration="00:00:00.0026428" startTime="2026-09-12T09:32:46.1231516+08:00" endTime="2026-09-12T09:32:46.1234723+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="df8a949d-d9ae-44d7-8eeb-e4051840727c" />
+    <UnitTestResult executionId="70c6c3a3-3308-4f7f-8495-48950cd3fd3d" testId="8a3a2a26-64ce-c9c6-c940-051d2be97360" testName="Dfo.Server.Networking.Tests.Runtime.ServerMessageEncoderRegistryTests.RejectsTwoEncodersForTheSameMessage" computerName="家庭台式机" duration="00:00:00.0007412" startTime="2026-09-12T09:32:46.1222727+08:00" endTime="2026-09-12T09:32:46.1228553+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="70c6c3a3-3308-4f7f-8495-48950cd3fd3d" />
+    <UnitTestResult executionId="cf5a4c13-f927-4af1-9912-6f02733cbc16" testId="10cfacce-484a-7ff7-11a7-630c0d50ecd2" testName="Dfo.Server.Networking.Tests.Framing.ChannelPayloadCipherTests.CompressedEncryption_ProducesLegacyCompatibleZlibAndZeroPadding" computerName="家庭台式机" duration="00:00:00.0107478" startTime="2026-09-12T09:32:46.0988096+08:00" endTime="2026-09-12T09:32:46.1175204+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="cf5a4c13-f927-4af1-9912-6f02733cbc16" />
+    <UnitTestResult executionId="a9d840cc-88ea-46b6-81e3-9aee91a61f47" testId="64785f41-ed4d-40f0-bda9-60c671a1c377" testName="Dfo.Server.Networking.Tests.Integration.TouchSocketNetworkMessageSenderExplicitDeliveryTests.TouchSocketNetworkMessageSender_BestEffortFailureStopsOnlyThatTarget" computerName="家庭台式机" duration="00:00:00.0008928" startTime="2026-09-12T09:32:46.1219234+08:00" endTime="2026-09-12T09:32:46.1219607+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a9d840cc-88ea-46b6-81e3-9aee91a61f47" />
+    <UnitTestResult executionId="57ff28f9-9f35-4684-912d-ca0cbb8b999d" testId="7b2edde5-e1cf-a1d1-837a-9c75146ce50a" testName="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.The_clients_empty_connection_probe_parses_with_no_body" computerName="家庭台式机" duration="00:00:00.0016183" startTime="2026-09-12T09:32:46.1185581+08:00" endTime="2026-09-12T09:32:46.1203636+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="57ff28f9-9f35-4684-912d-ca0cbb8b999d" />
+    <UnitTestResult executionId="b8de6292-b294-40e7-937d-c49336eb5af0" testId="6aa81697-d5f8-d4eb-aec6-2b114626e618" testName="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Channel_rejects_invalid_total_length(totalLength: 10)" computerName="家庭台式机" duration="00:00:00.0000072" startTime="2026-09-12T09:32:46.1118861+08:00" endTime="2026-09-12T09:32:46.1119117+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b8de6292-b294-40e7-937d-c49336eb5af0" />
+    <UnitTestResult executionId="59e406a0-fbd8-422f-a920-463cf6f1681a" testId="c0f9da25-5e34-5de3-1f06-40f21695a6b0" testName="Dfo.Server.Networking.Tests.Framing.ChannelPayloadCipherTests.UncompressedEncryption_MatchesTheLegacyAesVector" computerName="家庭台式机" duration="00:00:00.0001876" startTime="2026-09-12T09:32:46.1175782+08:00" endTime="2026-09-12T09:32:46.1176018+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="59e406a0-fbd8-422f-a920-463cf6f1681a" />
+    <UnitTestResult executionId="d685b20b-82ae-4f3c-bfe6-ffb583d58032" testId="bf0bf751-c3bc-9373-e3be-f7b091839135" testName="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.A_login_frames_header_yields_the_measured_body_length" computerName="家庭台式机" duration="00:00:00.0001492" startTime="2026-09-12T09:32:46.1210029+08:00" endTime="2026-09-12T09:32:46.1210263+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d685b20b-82ae-4f3c-bfe6-ffb583d58032" />
+    <UnitTestResult executionId="2cbf2133-ed6e-4fec-816f-e2a1c38fb9b2" testId="313d03d0-c654-f1bd-6fc4-9027d893d850" testName="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 31)" computerName="家庭台式机" duration="00:00:00.0008215" startTime="2026-09-12T09:32:46.1228097+08:00" endTime="2026-09-12T09:32:46.1232491+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2cbf2133-ed6e-4fec-816f-e2a1c38fb9b2" />
+    <UnitTestResult executionId="f6721e85-b17f-479d-a13d-feebd791a05c" testId="fb1e6e9f-718c-4e59-8eb9-a654f14afade" testName="Dfo.Server.Networking.Tests.Integration.TouchSocketNetworkMessageSenderExplicitDeliveryTests.TouchSocketNetworkMessageSender_PreservesRequiredAndPerTargetOrderAndExcludesOwner" computerName="家庭台式机" duration="00:00:00.0010249" startTime="2026-09-12T09:32:46.1218001+08:00" endTime="2026-09-12T09:32:46.1218410+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f6721e85-b17f-479d-a13d-feebd791a05c" />
+    <UnitTestResult executionId="a890c1a9-e498-49d2-912d-fd34e003bbf7" testId="e6b4b100-d1be-9b17-5584-0b0d915d4a41" testName="Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.GameRegistry_ResolvesTheDecoderRegisteredForAWireKey" computerName="家庭台式机" duration="00:00:00.0347691" startTime="2026-09-12T09:32:46.0986118+08:00" endTime="2026-09-12T09:32:46.1230093+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a890c1a9-e498-49d2-912d-fd34e003bbf7" />
+    <UnitTestResult executionId="91252950-605e-4352-abb9-616b4d27a7ae" testId="01a3c52b-7931-eb3a-dcf2-428dab7ca8b9" testName="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.The_frame_counter_is_the_last_two_bytes(low: 0, high: 0, expected: 0)" computerName="家庭台式机" duration="00:00:00.0012533" startTime="2026-09-12T09:32:46.1173669+08:00" endTime="2026-09-12T09:32:46.1176312+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="91252950-605e-4352-abb9-616b4d27a7ae" />
+    <UnitTestResult executionId="68f3eb36-90ad-4999-8669-378e59546b28" testId="f4b9e2a9-38bb-045b-f724-d736e7fcbff5" testName="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Channel_header_is_parsed_as_little_endian_total_length_frame" computerName="家庭台式机" duration="00:00:00.0008831" startTime="2026-09-12T09:32:46.1208501+08:00" endTime="2026-09-12T09:32:46.1209390+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="68f3eb36-90ad-4999-8669-378e59546b28" />
+    <UnitTestResult executionId="0beb5bbc-670c-4119-b981-783e3cd85d02" testId="f99cb6bb-20ac-f2e8-fe59-d15cb1e7aeed" testName="Dfo.Server.Networking.Tests.Integration.CeraShopPurchaseIntegrationTests.A_captured_request_without_a_selected_character_gets_a_failure_and_the_connection_remains_usable" computerName="家庭台式机" duration="00:00:00.3158874" startTime="2026-09-12T09:32:46.0987208+08:00" endTime="2026-09-12T09:32:46.3979709+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0beb5bbc-670c-4119-b981-783e3cd85d02" />
+    <UnitTestResult executionId="e84e6090-8d34-4574-94a3-3dca534a6a8b" testId="a717fe55-1c6e-9bbc-0ff3-4f431cdd6b77" testName="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.LoginDeliveryFailureAfterCommitConsumesTicketCleansIdentityAndRejectsReplay" computerName="家庭台式机" duration="00:00:00.5162095" startTime="2026-09-12T09:32:46.0987069+08:00" endTime="2026-09-12T09:32:46.5972606+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e84e6090-8d34-4574-94a3-3dca534a6a8b" />
+    <UnitTestResult executionId="cfff04e8-a48e-40fc-858f-7d250eeb7731" testId="7dcb22f4-b6e1-ee8a-9586-f4061f30587d" testName="Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.ChannelRegistry_ResolvesAndReportsMissesByMessageNumber" computerName="家庭台式机" duration="00:00:00.0011834" startTime="2026-09-12T09:32:46.1298217+08:00" endTime="2026-09-12T09:32:46.1299373+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="cfff04e8-a48e-40fc-858f-7d250eeb7731" />
+    <UnitTestResult executionId="d2a7287f-6cb9-4004-a67b-69f7d60fcd38" testId="e0752324-cb98-629c-5a41-9d622d98a065" testName="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 11)" computerName="家庭台式机" duration="00:00:00.0269307" startTime="2026-09-12T09:32:46.0995097+08:00" endTime="2026-09-12T09:32:46.1220228+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d2a7287f-6cb9-4004-a67b-69f7d60fcd38" />
+    <UnitTestResult executionId="1e2da360-606b-4fd7-ae45-7db7a22caf47" testId="d2f7d170-a7d7-50fa-e811-61ffcbb90427" testName="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.The_frame_counter_is_the_last_two_bytes(low: 2, high: 0, expected: 2)" computerName="家庭台式机" duration="00:00:00.0000038" startTime="2026-09-12T09:32:46.1177341+08:00" endTime="2026-09-12T09:32:46.1177648+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1e2da360-606b-4fd7-ae45-7db7a22caf47" />
+    <UnitTestResult executionId="683815c8-1201-4422-a817-da6b51f4d634" testId="ec54da0d-07ce-3ac9-30c4-c68a99a011ce" testName="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 12)" computerName="家庭台式机" duration="00:00:00.0007676" startTime="2026-09-12T09:32:46.1221441+08:00" endTime="2026-09-12T09:32:46.1221624+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="683815c8-1201-4422-a817-da6b51f4d634" />
+    <UnitTestResult executionId="4aa80a1e-95fa-4d9c-abc7-d006a922d8ba" testId="56cd65c4-656e-1632-c983-ed9ceab2db5b" testName="Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.Registration_RejectsADecoderThatDeclaresNoProducedMessageType" computerName="家庭台式机" duration="00:00:00.0004109" startTime="2026-09-12T09:32:46.1230827+08:00" endTime="2026-09-12T09:32:46.1231033+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4aa80a1e-95fa-4d9c-abc7-d006a922d8ba" />
+    <UnitTestResult executionId="6f464949-8316-4309-9a30-ae530f141271" testId="22b4a7c5-b20a-1c68-424c-2c90dbb4e633" testName="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 10)" computerName="家庭台式机" duration="00:00:00.0006617" startTime="2026-09-12T09:32:46.1234035+08:00" endTime="2026-09-12T09:32:46.1234303+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6f464949-8316-4309-9a30-ae530f141271" />
+    <UnitTestResult executionId="6cc615ce-da62-4eb9-ad76-764e88d82495" testId="cce70429-fa8a-4eb1-3d6b-1cf496b87477" testName="Dfo.Server.Networking.Tests.Integration.OutboundSendFailureTests.AFailedLoginResponseIsNotEncodable" computerName="家庭台式机" duration="00:00:00.0077844" startTime="2026-09-12T09:32:46.4078558+08:00" endTime="2026-09-12T09:32:46.4157532+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6cc615ce-da62-4eb9-ad76-764e88d82495" />
+    <UnitTestResult executionId="edc33d3a-9d97-4a3b-9b57-72d29a9f7897" testId="99c6152c-8c05-61ff-bff9-8aae51291d8e" testName="Dfo.Server.Networking.Tests.Integration.PackageOpeningIntegrationTests.Opening_without_selection_and_truncated_requests_are_answered_without_disconnect(opcode: 1104, captured: &quot;00420048B398007A0047B398003C00&quot;, failure: &quot;0002&quot;)" computerName="家庭台式机" duration="00:00:00.0083407" startTime="2026-09-12T09:32:46.4095559+08:00" endTime="2026-09-12T09:32:46.4181067+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="edc33d3a-9d97-4a3b-9b57-72d29a9f7897" />
+    <UnitTestResult executionId="e2f791ac-cb1d-47e0-b2ed-e993eff467f7" testId="679531c6-5e2f-b4c7-f6e0-363000a96aac" testName="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Game_client_adapter_handles_one_byte_at_a_time" computerName="家庭台式机" duration="00:00:00.0020736" startTime="2026-09-12T09:32:46.1239569+08:00" endTime="2026-09-12T09:32:46.1298606+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e2f791ac-cb1d-47e0-b2ed-e993eff467f7" />
+    <UnitTestResult executionId="8e24fc43-97f0-488e-8abb-74f8182786a7" testId="9c2ebcb8-da01-3b27-744a-151525471a83" testName="Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.GameRegistry_ReportsAMissForAnUnregisteredWireKey" computerName="家庭台式机" duration="00:00:00.0003140" startTime="2026-09-12T09:32:46.1241088+08:00" endTime="2026-09-12T09:32:46.1241283+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8e24fc43-97f0-488e-8abb-74f8182786a7" />
+    <UnitTestResult executionId="9b6afeb9-52c1-4641-b958-8f5671857626" testId="7a53928c-0668-8c7e-e6a5-b22806724b8e" testName="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 1)" computerName="家庭台式机" duration="00:00:00.0013308" startTime="2026-09-12T09:32:46.1220786+08:00" endTime="2026-09-12T09:32:46.1221061+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9b6afeb9-52c1-4641-b958-8f5671857626" />
+    <UnitTestResult executionId="e20d5cd3-2a51-42ef-8346-35db758a54ac" testId="38269bc0-2535-9685-88e9-1bf3d54a931b" testName="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.CommitPathFailureAfterRealTicketConsumptionRollsBackAndAllowsRetry" computerName="家庭台式机" duration="00:00:00.2958371" startTime="2026-09-12T09:32:47.5073317+08:00" endTime="2026-09-12T09:32:47.7971111+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e20d5cd3-2a51-42ef-8346-35db758a54ac" />
+    <UnitTestResult executionId="25381c1b-cdce-44b6-b831-7c2abbccfeb5" testId="f595f115-e6b9-f973-6723-ea998c847743" testName="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.InvalidTicketClosesWithoutSuccessAndTheOriginalTicketCanStillBeRedeemedOnce" computerName="家庭台式机" duration="00:00:00.3001030" startTime="2026-09-12T09:32:46.5974034+08:00" endTime="2026-09-12T09:32:46.8977981+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="25381c1b-cdce-44b6-b831-7c2abbccfeb5" />
+    <UnitTestResult executionId="888ef36d-f84d-4aed-bd98-f0b01c839fb9" testId="b5430f9f-5873-e29c-89fa-3ec0168becc6" testName="Dfo.Server.Networking.Tests.Integration.ChannelConnectIntegrationTests.ChannelConnect_TraversesTouchSocketDispatcherHandlerAndSender" computerName="家庭台式机" duration="00:00:00.3006332" startTime="2026-09-12T09:32:46.1216488+08:00" endTime="2026-09-12T09:32:46.3973413+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="888ef36d-f84d-4aed-bd98-f0b01c839fb9" />
+    <UnitTestResult executionId="f6faf791-a467-40c3-ae29-115ce56ee4e8" testId="0efd4087-ac49-4ca1-1036-5f2ea3f01264" testName="Dfo.Server.Networking.Tests.Framing.FrameEncoderTests.Game_server_encoder_keeps_the_observed_fifteen_byte_header" computerName="家庭台式机" duration="00:00:00.0000906" startTime="2026-09-12T09:32:46.1174592+08:00" endTime="2026-09-12T09:32:46.1174841+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f6faf791-a467-40c3-ae29-115ce56ee4e8" />
+    <UnitTestResult executionId="a6731f15-3869-4fcd-85b5-7327d2b5ed86" testId="72c4699a-1b9f-a096-4b5a-a7620e5eee43" testName="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.Login_TraversesTouchSocketAccountRepositoryAndOnlineUserAggregate" computerName="家庭台式机" duration="00:00:00.3101840" startTime="2026-09-12T09:32:46.8980168+08:00" endTime="2026-09-12T09:32:47.2083523+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a6731f15-3869-4fcd-85b5-7327d2b5ed86" />
+    <UnitTestResult executionId="94d19dd5-8d31-42c9-a08d-8550c8a302e1" testId="b2c78717-dcb6-ac52-b132-4242fbe56e7f" testName="Dfo.Server.Networking.Tests.Runtime.ServerMessageEncoderRegistryTests.ResolvesTheEncoderAndEndpointRegisteredForAMessage" computerName="家庭台式机" duration="00:00:00.0338490" startTime="2026-09-12T09:32:46.0964791+08:00" endTime="2026-09-12T09:32:46.1222217+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="94d19dd5-8d31-42c9-a08d-8550c8a302e1" />
+    <UnitTestResult executionId="29c74873-ac68-4651-9bf3-766381dd60fd" testId="6710781f-19be-6542-619e-2497e537dca8" testName="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Game_client_header_is_parsed_as_little_endian_total_length_frame" computerName="家庭台式机" duration="00:00:00.0002802" startTime="2026-09-12T09:32:46.1210777+08:00" endTime="2026-09-12T09:32:46.1211050+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="29c74873-ac68-4651-9bf3-766381dd60fd" />
+    <UnitTestResult executionId="d5107d80-5b23-4eb1-8ba2-d27d0893167e" testId="edae25b9-c96e-e4ab-880c-6b3a5ac1e496" testName="Dfo.Server.Networking.Tests.Framing.FrameEncoderTests.Game_server_encoder_writes_opaque_header_values" computerName="家庭台式机" duration="00:00:00.0002651" startTime="2026-09-12T09:32:46.1117346+08:00" endTime="2026-09-12T09:32:46.1173935+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d5107d80-5b23-4eb1-8ba2-d27d0893167e" />
+    <UnitTestResult executionId="6d183724-e508-4638-8ec6-f40966dae1a8" testId="e0ed7fbc-bdc0-657e-5ffb-c78d3d4d4715" testName="Dfo.Server.Networking.Tests.Runtime.ServerMessageEncoderRegistryTests.TypedEncoderRejectsAMessageItDoesNotEncode" computerName="家庭台式机" duration="00:00:00.0005754" startTime="2026-09-12T09:32:46.1229767+08:00" endTime="2026-09-12T09:32:46.1231790+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6d183724-e508-4638-8ec6-f40966dae1a8" />
+    <UnitTestResult executionId="94a1c661-28aa-4b2b-9029-2fe50889678c" testId="0e205e43-14c8-826d-3d33-64d92fc8663f" testName="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.The_frame_counter_is_the_last_two_bytes(low: 1, high: 0, expected: 1)" computerName="家庭台式机" duration="00:00:00.0002376" startTime="2026-09-12T09:32:46.1176697+08:00" endTime="2026-09-12T09:32:46.1176926+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="94a1c661-28aa-4b2b-9029-2fe50889678c" />
+    <UnitTestResult executionId="5449cb00-d2d7-435b-ad87-1efe11161fdf" testId="7b8a71f4-8dcf-6dfc-cfe3-5e06faf09d33" testName="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Channel_rejects_invalid_total_length(totalLength: 1)" computerName="家庭台式机" duration="00:00:00.0071751" startTime="2026-09-12T09:32:46.0987509+08:00" endTime="2026-09-12T09:32:46.1047464+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5449cb00-d2d7-435b-ad87-1efe11161fdf" />
+    <UnitTestResult executionId="d4a02841-060e-4884-b4a6-b61041630d90" testId="ca2a4ebe-799b-97ab-7b10-1f18a3d45737" testName="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Game_client_rejects_invalid_total_length(totalLength: 0)" computerName="家庭台式机" duration="00:00:00.0000080" startTime="2026-09-12T09:32:46.1206681+08:00" endTime="2026-09-12T09:32:46.1207062+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d4a02841-060e-4884-b4a6-b61041630d90" />
+    <UnitTestResult executionId="9ab02e04-546b-4311-8f0d-fb71f2f3f62f" testId="afcee750-1466-9926-d95a-fb23e97a52b0" testName="Dfo.Server.Networking.Tests.Integration.TouchSocketNetworkMessageSenderExplicitDeliveryTests.TouchSocketNetworkMessageSender_RequiredDirectFailurePropagatesAndStopsDelivery" computerName="家庭台式机" duration="00:00:00.0195261" startTime="2026-09-12T09:32:46.0987879+08:00" endTime="2026-09-12T09:32:46.1216994+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9ab02e04-546b-4311-8f0d-fb71f2f3f62f" />
+    <UnitTestResult executionId="a5e422dc-2932-4e83-be7d-1cab270b177b" testId="3afd1a41-f9c0-e94d-c039-8c924d62e656" testName="Dfo.Server.Networking.Tests.Integration.OutboundSendFailureTests.AGameMessageIsRejectedOnAChannelConnection" computerName="家庭台式机" duration="00:00:00.0104622" startTime="2026-09-12T09:32:46.3971795+08:00" endTime="2026-09-12T09:32:46.4076761+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a5e422dc-2932-4e83-be7d-1cab270b177b" />
+    <UnitTestResult executionId="6aae7602-1e3c-482c-9f0c-2d222420fb01" testId="9d5a9875-79ff-e218-c25f-7d86b9c808d7" testName="Dfo.Server.Networking.Tests.Integration.PackageOpeningIntegrationTests.Opening_without_selection_and_truncated_requests_are_answered_without_disconnect(opcode: 160, captured: &quot;4200&quot;, failure: &quot;0000FFFFFFFFFFFFFFFF000000000000000000000000&quot;)" computerName="家庭台式机" duration="00:00:00.3156287" startTime="2026-09-12T09:32:46.0986734+08:00" endTime="2026-09-12T09:32:46.3974036+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6aae7602-1e3c-482c-9f0c-2d222420fb01" />
+    <UnitTestResult executionId="48884c30-b71e-4069-a4f2-552674196848" testId="ad4fc8dd-5ce3-93d4-6a21-866dd60445f7" testName="Dfo.Server.Networking.Tests.Integration.SkillLearningIntegrationTests.A_captured_request_without_a_selected_character_gets_a_failure_and_the_connection_remains_usable" computerName="家庭台式机" duration="00:00:00.3031606" startTime="2026-09-12T09:32:46.1203180+08:00" endTime="2026-09-12T09:32:46.3972457+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="48884c30-b71e-4069-a4f2-552674196848" />
+    <UnitTestResult executionId="6b1d668c-9b49-460a-822c-f8c05f442085" testId="b0d9be3a-85a4-7de0-94aa-5ec73a21fa61" testName="Dfo.Server.Networking.Tests.Framing.FrameEncoderTests.Channel_encoder_matches_the_reverse_engineered_layout" computerName="家庭台式机" duration="00:00:00.0056747" startTime="2026-09-12T09:32:46.0987370+08:00" endTime="2026-09-12T09:32:46.1008936+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6b1d668c-9b49-460a-822c-f8c05f442085" />
+    <UnitTestResult executionId="a265088a-7c56-4b06-8e94-d36af5139933" testId="e357f547-48c4-ed44-a08f-ff3f35fd89aa" testName="Dfo.Server.Networking.Tests.Integration.UnknownInboundFrameIntegrationTests.FramesWithNoDecoder_AreDroppedSilentlyAndLeaveTheConnectionUsable" computerName="家庭台式机" duration="00:00:00.3190773" startTime="2026-09-12T09:32:46.0988008+08:00" endTime="2026-09-12T09:32:46.4000340+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a265088a-7c56-4b06-8e94-d36af5139933" />
+    <UnitTestResult executionId="845369c6-e93b-405b-b699-0e7486ae8315" testId="52c0312b-de3e-8403-8e8e-2d26c64e0f28" testName="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Channel_rejects_invalid_total_length(totalLength: 1048577)" computerName="家庭台式机" duration="00:00:00.0000035" startTime="2026-09-12T09:32:46.1171554+08:00" endTime="2026-09-12T09:32:46.1171948+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="845369c6-e93b-405b-b699-0e7486ae8315" />
+    <UnitTestResult executionId="31871363-6f72-4854-be8e-2d0dd6e59673" testId="51311a3f-bf91-65bc-bedc-f37c1f27e2c2" testName="Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.GameRegistry_RejectsTwoDecodersOnTheSameWireKey" computerName="家庭台式机" duration="00:00:00.0006645" startTime="2026-09-12T09:32:46.1238999+08:00" endTime="2026-09-12T09:32:46.1239798+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="31871363-6f72-4854-be8e-2d0dd6e59673" />
+    <UnitTestResult executionId="20f313e2-426f-4ea5-89fb-c020d4f8840a" testId="13acee30-36ec-7e99-d7d7-0c0f76e2e6fe" testName="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Channel_rejects_invalid_total_length(totalLength: 0)" computerName="家庭台式机" duration="00:00:00.0002422" startTime="2026-09-12T09:32:46.1106436+08:00" endTime="2026-09-12T09:32:46.1117878+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="20f313e2-426f-4ea5-89fb-c020d4f8840a" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.Registration_RejectsADecoderThatDeclaresNoProducedMessageType" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="56cd65c4-656e-1632-c983-ed9ceab2db5b">
+      <Execution id="4aa80a1e-95fa-4d9c-abc7-d006a922d8ba" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests" name="Registration_RejectsADecoderThatDeclaresNoProducedMessageType" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Game_client_adapter_handles_one_byte_at_a_time" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="679531c6-5e2f-b4c7-f6e0-363000a96aac">
+      <Execution id="e2f791ac-cb1d-47e0-b2ed-e993eff467f7" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests" name="Game_client_adapter_handles_one_byte_at_a_time" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.SkillLearningIntegrationTests.A_captured_request_without_a_selected_character_gets_a_failure_and_the_connection_remains_usable" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="ad4fc8dd-5ce3-93d4-6a21-866dd60445f7">
+      <Execution id="48884c30-b71e-4069-a4f2-552674196848" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.SkillLearningIntegrationTests" name="A_captured_request_without_a_selected_character_gets_a_failure_and_the_connection_remains_usable" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.ChannelControlMessagesIntegrationTests.ControlMessages_TraverseTypedCommandsAndPreserveLegacyPayloads" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="7a16f097-47f0-ae2b-12f8-d4b54d4c0b38">
+      <Execution id="19b71f0d-5872-4481-a737-6bac312b8728" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.ChannelControlMessagesIntegrationTests" name="ControlMessages_TraverseTypedCommandsAndPreserveLegacyPayloads" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Runtime.ServerMessageEncoderRegistryTests.TypedEncoderRejectsAMessageItDoesNotEncode" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="e0ed7fbc-bdc0-657e-5ffb-c78d3d4d4715">
+      <Execution id="6d183724-e508-4638-8ec6-f40966dae1a8" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Runtime.ServerMessageEncoderRegistryTests" name="TypedEncoderRejectsAMessageItDoesNotEncode" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.PackageOpeningIntegrationTests.Opening_without_selection_and_truncated_requests_are_answered_without_disconnect(opcode: 519, captured: &quot;4200010300000000&quot;, failure: &quot;0002&quot;)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="a7689c09-8ebe-5d0c-da33-6516b44037b8">
+      <Execution id="3bae60be-9e25-4cd1-a3b7-26fa4939eb61" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.PackageOpeningIntegrationTests" name="Opening_without_selection_and_truncated_requests_are_answered_without_disconnect" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.OutboundSendFailureTests.AChannelMessageIsRejectedOnAGameConnection" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="4417bc6b-377b-1c6c-8152-daf92d9b7ebf">
+      <Execution id="379589b2-ebad-41e7-b8d3-e46a71d182ec" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.OutboundSendFailureTests" name="AChannelMessageIsRejectedOnAGameConnection" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.ChannelRegistry_RejectsTwoDecodersOnTheSameMessageNumber" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="80b7065e-8584-5810-e909-06426bdbd998">
+      <Execution id="df8a949d-d9ae-44d7-8eeb-e4051840727c" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests" name="ChannelRegistry_RejectsTwoDecodersOnTheSameMessageNumber" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Channel_rejects_invalid_total_length(totalLength: 0)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="13acee30-36ec-7e99-d7d7-0c0f76e2e6fe">
+      <Execution id="20f313e2-426f-4ea5-89fb-c020d4f8840a" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests" name="Channel_rejects_invalid_total_length" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameEncoderTests.Channel_encoder_matches_the_reverse_engineered_layout" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="b0d9be3a-85a4-7de0-94aa-5ec73a21fa61">
+      <Execution id="6b1d668c-9b49-460a-822c-f8c05f442085" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameEncoderTests" name="Channel_encoder_matches_the_reverse_engineered_layout" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.CardRewardReconnectIntegrationTests.A_clears_cards_survive_the_connection_that_was_shown_them" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="fdfd264b-2005-864b-c6c2-6b1ef4cd8407">
+      <Execution id="b0224dac-cb42-4bb6-a0db-ab7cec6462ac" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.CardRewardReconnectIntegrationTests" name="A_clears_cards_survive_the_connection_that_was_shown_them" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.The_frame_counter_is_the_last_two_bytes(low: 1, high: 0, expected: 1)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="0e205e43-14c8-826d-3d33-64d92fc8663f">
+      <Execution id="94a1c661-28aa-4b2b-9029-2fe50889678c" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests" name="The_frame_counter_is_the_last_two_bytes" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Channel_header_is_parsed_as_little_endian_total_length_frame" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="f4b9e2a9-38bb-045b-f724-d736e7fcbff5">
+      <Execution id="68f3eb36-90ad-4999-8669-378e59546b28" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests" name="Channel_header_is_parsed_as_little_endian_total_length_frame" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.The_clients_empty_connection_probe_parses_with_no_body" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="7b2edde5-e1cf-a1d1-837a-9c75146ce50a">
+      <Execution id="57ff28f9-9f35-4684-912d-ca0cbb8b999d" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests" name="The_clients_empty_connection_probe_parses_with_no_body" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.Login_TraversesTouchSocketAccountRepositoryAndOnlineUserAggregate" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="72c4699a-1b9f-a096-4b5a-a7620e5eee43">
+      <Execution id="a6731f15-3869-4fcd-85b5-7327d2b5ed86" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests" name="Login_TraversesTouchSocketAccountRepositoryAndOnlineUserAggregate" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.Registration_DeclaresEveryProducedMessageType" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="1a9c0b8d-19a7-63e5-e375-496130cf6693">
+      <Execution id="aee08729-0698-4a62-a57b-597ef94eb9c9" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests" name="Registration_DeclaresEveryProducedMessageType" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.GameRegistry_RejectsTwoDecodersOnTheSameWireKey" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="51311a3f-bf91-65bc-bedc-f37c1f27e2c2">
+      <Execution id="31871363-6f72-4854-be8e-2d0dd6e59673" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests" name="GameRegistry_RejectsTwoDecodersOnTheSameWireKey" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameEncoderTests.Game_server_encoder_writes_opaque_header_values" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="edae25b9-c96e-e4ab-880c-6b3a5ac1e496">
+      <Execution id="d5107d80-5b23-4eb1-8ba2-d27d0893167e" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameEncoderTests" name="Game_server_encoder_writes_opaque_header_values" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 12)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="ec54da0d-07ce-3ac9-30c4-c68a99a011ce">
+      <Execution id="683815c8-1201-4422-a817-da6b51f4d634" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests" name="Channel_adapter_preserves_frames_across_partial_and_sticky_reads" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.GameRegistry_ReportsAMissForAnUnregisteredWireKey" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="9c2ebcb8-da01-3b27-744a-151525471a83">
+      <Execution id="8e24fc43-97f0-488e-8abb-74f8182786a7" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests" name="GameRegistry_ReportsAMissForAnUnregisteredWireKey" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.LoginDeliveryFailureAfterCommitConsumesTicketCleansIdentityAndRejectsReplay" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="a717fe55-1c6e-9bbc-0ff3-4f431cdd6b77">
+      <Execution id="e84e6090-8d34-4574-94a3-3dca534a6a8b" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests" name="LoginDeliveryFailureAfterCommitConsumesTicketCleansIdentityAndRejectsReplay" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Game_client_rejects_invalid_total_length(totalLength: 13)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="47ff858e-84ad-de29-482d-5f96cd492336">
+      <Execution id="34a294e6-007b-43bf-9bc9-076a5b3f301f" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests" name="Game_client_rejects_invalid_total_length" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.UnknownInboundFrameIntegrationTests.FramesWithNoDecoder_AreDroppedSilentlyAndLeaveTheConnectionUsable" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="e357f547-48c4-ed44-a08f-ff3f35fd89aa">
+      <Execution id="a265088a-7c56-4b06-8e94-d36af5139933" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.UnknownInboundFrameIntegrationTests" name="FramesWithNoDecoder_AreDroppedSilentlyAndLeaveTheConnectionUsable" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.ChannelPayloadCipherTests.CompressedEncryption_ProducesLegacyCompatibleZlibAndZeroPadding" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="10cfacce-484a-7ff7-11a7-630c0d50ecd2">
+      <Execution id="cf5a4c13-f927-4af1-9912-6f02733cbc16" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.ChannelPayloadCipherTests" name="CompressedEncryption_ProducesLegacyCompatibleZlibAndZeroPadding" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Channel_rejects_invalid_total_length(totalLength: 1048577)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="52c0312b-de3e-8403-8e8e-2d26c64e0f28">
+      <Execution id="845369c6-e93b-405b-b699-0e7486ae8315" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests" name="Channel_rejects_invalid_total_length" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.ChannelRegistry_ResolvesAndReportsMissesByMessageNumber" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="7dcb22f4-b6e1-ee8a-9586-f4061f30587d">
+      <Execution id="cfff04e8-a48e-40fc-858f-7d250eeb7731" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests" name="ChannelRegistry_ResolvesAndReportsMissesByMessageNumber" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Game_client_rejects_invalid_total_length(totalLength: 1)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="68767aab-0201-ac29-ec6e-24f3b1c24322">
+      <Execution id="cfe4898d-e1cf-4e5c-be74-005f5947823b" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests" name="Game_client_rejects_invalid_total_length" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.PreCommitCancellationAfterRealTicketConsumptionRollsBackAndAllowsRetry" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="e54bc2cb-b776-ac92-63aa-77fad79c8d52">
+      <Execution id="746e0aef-092b-4dbd-912a-5608c504a1ca" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests" name="PreCommitCancellationAfterRealTicketConsumptionRollsBackAndAllowsRetry" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.OutboundSendFailureTests.AGameMessageIsRejectedOnAChannelConnection" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="3afd1a41-f9c0-e94d-c039-8c924d62e656">
+      <Execution id="a5e422dc-2932-4e83-be7d-1cab270b177b" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.OutboundSendFailureTests" name="AGameMessageIsRejectedOnAChannelConnection" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Game_client_rejects_invalid_total_length(totalLength: 0)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="ca2a4ebe-799b-97ab-7b10-1f18a3d45737">
+      <Execution id="d4a02841-060e-4884-b4a6-b61041630d90" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests" name="Game_client_rejects_invalid_total_length" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Game_client_header_is_parsed_as_little_endian_total_length_frame" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="6710781f-19be-6542-619e-2497e537dca8">
+      <Execution id="29c74873-ac68-4651-9bf3-766381dd60fd" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests" name="Game_client_header_is_parsed_as_little_endian_total_length_frame" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 31)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="313d03d0-c654-f1bd-6fc4-9027d893d850">
+      <Execution id="2cbf2133-ed6e-4fec-816f-e2a1c38fb9b2" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests" name="Channel_adapter_preserves_frames_across_partial_and_sticky_reads" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.InvalidTicketClosesWithoutSuccessAndTheOriginalTicketCanStillBeRedeemedOnce" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="f595f115-e6b9-f973-6723-ea998c847743">
+      <Execution id="25381c1b-cdce-44b6-b831-7c2abbccfeb5" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests" name="InvalidTicketClosesWithoutSuccessAndTheOriginalTicketCanStillBeRedeemedOnce" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests.GameRegistry_ResolvesTheDecoderRegisteredForAWireKey" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="e6b4b100-d1be-9b17-5584-0b0d915d4a41">
+      <Execution id="a890c1a9-e498-49d2-912d-fd34e003bbf7" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Runtime.ClientMessageDecoderRegistryTests" name="GameRegistry_ResolvesTheDecoderRegisteredForAWireKey" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Channel_rejects_invalid_total_length(totalLength: 1)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="7b8a71f4-8dcf-6dfc-cfe3-5e06faf09d33">
+      <Execution id="5449cb00-d2d7-435b-ad87-1efe11161fdf" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests" name="Channel_rejects_invalid_total_length" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.PackageOpeningIntegrationTests.Opening_without_selection_and_truncated_requests_are_answered_without_disconnect(opcode: 1104, captured: &quot;00420048B398007A0047B398003C00&quot;, failure: &quot;0002&quot;)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="99c6152c-8c05-61ff-bff9-8aae51291d8e">
+      <Execution id="edc33d3a-9d97-4a3b-9b57-72d29a9f7897" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.PackageOpeningIntegrationTests" name="Opening_without_selection_and_truncated_requests_are_answered_without_disconnect" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.GameExitIntegrationTests.Exit_TraversesTypedPipelineAndAcknowledgesWithoutClosingConnection" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="10d49c3c-1b20-6447-bac9-9c19b86a4c1f">
+      <Execution id="46ba7fec-d3ed-4d6e-a655-814415d7b378" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.GameExitIntegrationTests" name="Exit_TraversesTypedPipelineAndAcknowledgesWithoutClosingConnection" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.OutboundSendFailureTests.AFailedLoginResponseIsNotEncodable" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="cce70429-fa8a-4eb1-3d6b-1cf496b87477">
+      <Execution id="6cc615ce-da62-4eb9-ad76-764e88d82495" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.OutboundSendFailureTests" name="AFailedLoginResponseIsNotEncodable" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 11)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="e0752324-cb98-629c-5a41-9d622d98a065">
+      <Execution id="d2a7287f-6cb9-4004-a67b-69f7d60fcd38" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests" name="Channel_adapter_preserves_frames_across_partial_and_sticky_reads" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.PackageOpeningIntegrationTests.Opening_without_selection_and_truncated_requests_are_answered_without_disconnect(opcode: 208, captured: &quot;0042007A00&quot;, failure: &quot;0002&quot;)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="6751add8-fb2d-5bc3-7536-eb4537d96874">
+      <Execution id="993ae4a4-c82f-43c7-8099-778173444dde" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.PackageOpeningIntegrationTests" name="Opening_without_selection_and_truncated_requests_are_answered_without_disconnect" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Game_client_rejects_invalid_total_length(totalLength: 4294967295)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="0e24eed8-22a9-b61c-664d-456a07dee0ce">
+      <Execution id="946e95e2-a78b-4ad1-a556-83d2be35930c" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests" name="Game_client_rejects_invalid_total_length" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.CommitPathFailureAfterRealTicketConsumptionRollsBackAndAllowsRetry" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="38269bc0-2535-9685-88e9-1bf3d54a931b">
+      <Execution id="e20d5cd3-2a51-42ef-8346-35db758a54ac" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests" name="CommitPathFailureAfterRealTicketConsumptionRollsBackAndAllowsRetry" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.A_login_frames_header_yields_the_measured_body_length" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="bf0bf751-c3bc-9373-e3be-f7b091839135">
+      <Execution id="d685b20b-82ae-4f3c-bfe6-ffb583d58032" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests" name="A_login_frames_header_yields_the_measured_body_length" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Runtime.ServerMessageEncoderRegistryTests.ReportsAMissForAnUnregisteredMessage" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="1081aea1-438a-5cb0-ee93-c48085ff6c61">
+      <Execution id="7a03d0e6-66cd-4cd2-b713-2ec1f394a4a1" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Runtime.ServerMessageEncoderRegistryTests" name="ReportsAMissForAnUnregisteredMessage" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.TouchSocketNetworkMessageSenderExplicitDeliveryTests.TouchSocketNetworkMessageSender_RequiredDirectFailurePropagatesAndStopsDelivery" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="afcee750-1466-9926-d95a-fb23e97a52b0">
+      <Execution id="9ab02e04-546b-4311-8f0d-fb71f2f3f62f" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.TouchSocketNetworkMessageSenderExplicitDeliveryTests" name="TouchSocketNetworkMessageSender_RequiredDirectFailurePropagatesAndStopsDelivery" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.ChannelPayloadCipherTests.UncompressedEncryption_MatchesTheLegacyAesVector" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="c0f9da25-5e34-5de3-1f06-40f21695a6b0">
+      <Execution id="59e406a0-fbd8-422f-a920-463cf6f1681a" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.ChannelPayloadCipherTests" name="UncompressedEncryption_MatchesTheLegacyAesVector" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Runtime.ServerMessageEncoderRegistryTests.ResolvesTheEncoderAndEndpointRegisteredForAMessage" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="b2c78717-dcb6-ac52-b132-4242fbe56e7f">
+      <Execution id="94d19dd5-8d31-42c9-a08d-8550c8a302e1" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Runtime.ServerMessageEncoderRegistryTests" name="ResolvesTheEncoderAndEndpointRegisteredForAMessage" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Runtime.ServerMessageEncoderRegistryTests.RejectsTwoEncodersForTheSameMessage" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="8a3a2a26-64ce-c9c6-c940-051d2be97360">
+      <Execution id="70c6c3a3-3308-4f7f-8495-48950cd3fd3d" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Runtime.ServerMessageEncoderRegistryTests" name="RejectsTwoEncodersForTheSameMessage" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 1)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="7a53928c-0668-8c7e-e6a5-b22806724b8e">
+      <Execution id="9b6afeb9-52c1-4641-b958-8f5671857626" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests" name="Channel_adapter_preserves_frames_across_partial_and_sticky_reads" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.The_frame_counter_is_the_last_two_bytes(low: 2, high: 0, expected: 2)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="d2f7d170-a7d7-50fa-e811-61ffcbb90427">
+      <Execution id="1e2da360-606b-4fd7-ae45-7db7a22caf47" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests" name="The_frame_counter_is_the_last_two_bytes" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 10)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="22b4a7c5-b20a-1c68-424c-2c90dbb4e633">
+      <Execution id="6f464949-8316-4309-9a30-ae530f141271" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests" name="Channel_adapter_preserves_frames_across_partial_and_sticky_reads" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.ChannelConnectIntegrationTests.ChannelConnect_TraversesTouchSocketDispatcherHandlerAndSender" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="b5430f9f-5873-e29c-89fa-3ec0168becc6">
+      <Execution id="888ef36d-f84d-4aed-bd98-f0b01c839fb9" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.ChannelConnectIntegrationTests" name="ChannelConnect_TraversesTouchSocketDispatcherHandlerAndSender" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.Channel_rejects_invalid_total_length(totalLength: 10)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="6aa81697-d5f8-d4eb-aec6-2b114626e618">
+      <Execution id="b8de6292-b294-40e7-937d-c49336eb5af0" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests" name="Channel_rejects_invalid_total_length" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 2)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="a544a80f-a0cb-be91-7f88-e602e404e6fe">
+      <Execution id="6371d20a-0070-4244-8939-aed196e1172b" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests" name="Channel_adapter_preserves_frames_across_partial_and_sticky_reads" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameEncoderTests.Game_server_encoder_keeps_the_observed_fifteen_byte_header" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="0efd4087-ac49-4ca1-1036-5f2ea3f01264">
+      <Execution id="f6faf791-a467-40c3-ae29-115ce56ee4e8" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameEncoderTests" name="Game_server_encoder_keeps_the_observed_fifteen_byte_header" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests.Channel_adapter_preserves_frames_across_partial_and_sticky_reads(bufferLength: 17)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="1eac7430-d1b4-8181-4613-3619cced0af8">
+      <Execution id="7ab4bfde-5496-440b-bbd1-ef4d2654337a" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameAdapterTests" name="Channel_adapter_preserves_frames_across_partial_and_sticky_reads" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.TouchSocketNetworkMessageSenderExplicitDeliveryTests.TouchSocketNetworkMessageSender_PreservesRequiredAndPerTargetOrderAndExcludesOwner" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="fb1e6e9f-718c-4e59-8eb9-a654f14afade">
+      <Execution id="f6721e85-b17f-479d-a13d-feebd791a05c" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.TouchSocketNetworkMessageSenderExplicitDeliveryTests" name="TouchSocketNetworkMessageSender_PreservesRequiredAndPerTargetOrderAndExcludesOwner" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests.The_frame_counter_is_the_last_two_bytes(low: 0, high: 0, expected: 0)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="01a3c52b-7931-eb3a-dcf2-428dab7ca8b9">
+      <Execution id="91252950-605e-4352-abb9-616b4d27a7ae" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Framing.FrameRequestInfoTests" name="The_frame_counter_is_the_last_two_bytes" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.TouchSocketNetworkMessageSenderExplicitDeliveryTests.TouchSocketNetworkMessageSender_BestEffortFailureStopsOnlyThatTarget" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="64785f41-ed4d-40f0-bda9-60c671a1c377">
+      <Execution id="a9d840cc-88ea-46b6-81e3-9aee91a61f47" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.TouchSocketNetworkMessageSenderExplicitDeliveryTests" name="TouchSocketNetworkMessageSender_BestEffortFailureStopsOnlyThatTarget" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.PackageOpeningIntegrationTests.Opening_without_selection_and_truncated_requests_are_answered_without_disconnect(opcode: 160, captured: &quot;4200&quot;, failure: &quot;0000FFFFFFFFFFFFFFFF000000000000000000000000&quot;)" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="9d5a9875-79ff-e218-c25f-7d86b9c808d7">
+      <Execution id="6aae7602-1e3c-482c-9f0c-2d222420fb01" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.PackageOpeningIntegrationTests" name="Opening_without_selection_and_truncated_requests_are_answered_without_disconnect" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.CeraShopPurchaseIntegrationTests.A_captured_request_without_a_selected_character_gets_a_failure_and_the_connection_remains_usable" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="f99cb6bb-20ac-f2e8-fe59-d15cb1e7aeed">
+      <Execution id="0beb5bbc-670c-4119-b981-783e3cd85d02" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.CeraShopPurchaseIntegrationTests" name="A_captured_request_without_a_selected_character_gets_a_failure_and_the_connection_remains_usable" />
+    </UnitTest>
+    <UnitTest name="Dfo.Server.Networking.Tests.Integration.OutboundSendFailureTests.AMessageWithNoRegisteredEncoderIsRejectedByName" storage="e:\project\dnf\dnf-jp-86-server\server\tests\dfo.server.networking.tests\bin\release\net10.0\dfo.server.networking.tests.dll" id="8bd075e0-835f-7813-0450-fb1e4f0c4bca">
+      <Execution id="1ac40870-a5cb-4c72-8c39-72a44d8e1e18" />
+      <TestMethod codeBase="E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0\Dfo.Server.Networking.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Dfo.Server.Networking.Tests.Integration.OutboundSendFailureTests" name="AMessageWithNoRegisteredEncoderIsRejectedByName" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="68767aab-0201-ac29-ec6e-24f3b1c24322" executionId="cfe4898d-e1cf-4e5c-be74-005f5947823b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6751add8-fb2d-5bc3-7536-eb4537d96874" executionId="993ae4a4-c82f-43c7-8099-778173444dde" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1a9c0b8d-19a7-63e5-e375-496130cf6693" executionId="aee08729-0698-4a62-a57b-597ef94eb9c9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="47ff858e-84ad-de29-482d-5f96cd492336" executionId="34a294e6-007b-43bf-9bc9-076a5b3f301f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a544a80f-a0cb-be91-7f88-e602e404e6fe" executionId="6371d20a-0070-4244-8939-aed196e1172b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1081aea1-438a-5cb0-ee93-c48085ff6c61" executionId="7a03d0e6-66cd-4cd2-b713-2ec1f394a4a1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0e24eed8-22a9-b61c-664d-456a07dee0ce" executionId="946e95e2-a78b-4ad1-a556-83d2be35930c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="10d49c3c-1b20-6447-bac9-9c19b86a4c1f" executionId="46ba7fec-d3ed-4d6e-a655-814415d7b378" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e54bc2cb-b776-ac92-63aa-77fad79c8d52" executionId="746e0aef-092b-4dbd-912a-5608c504a1ca" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="fdfd264b-2005-864b-c6c2-6b1ef4cd8407" executionId="b0224dac-cb42-4bb6-a0db-ab7cec6462ac" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4417bc6b-377b-1c6c-8152-daf92d9b7ebf" executionId="379589b2-ebad-41e7-b8d3-e46a71d182ec" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1eac7430-d1b4-8181-4613-3619cced0af8" executionId="7ab4bfde-5496-440b-bbd1-ef4d2654337a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7a16f097-47f0-ae2b-12f8-d4b54d4c0b38" executionId="19b71f0d-5872-4481-a737-6bac312b8728" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a7689c09-8ebe-5d0c-da33-6516b44037b8" executionId="3bae60be-9e25-4cd1-a3b7-26fa4939eb61" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8bd075e0-835f-7813-0450-fb1e4f0c4bca" executionId="1ac40870-a5cb-4c72-8c39-72a44d8e1e18" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="80b7065e-8584-5810-e909-06426bdbd998" executionId="df8a949d-d9ae-44d7-8eeb-e4051840727c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8a3a2a26-64ce-c9c6-c940-051d2be97360" executionId="70c6c3a3-3308-4f7f-8495-48950cd3fd3d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="10cfacce-484a-7ff7-11a7-630c0d50ecd2" executionId="cf5a4c13-f927-4af1-9912-6f02733cbc16" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="64785f41-ed4d-40f0-bda9-60c671a1c377" executionId="a9d840cc-88ea-46b6-81e3-9aee91a61f47" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7b2edde5-e1cf-a1d1-837a-9c75146ce50a" executionId="57ff28f9-9f35-4684-912d-ca0cbb8b999d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6aa81697-d5f8-d4eb-aec6-2b114626e618" executionId="b8de6292-b294-40e7-937d-c49336eb5af0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c0f9da25-5e34-5de3-1f06-40f21695a6b0" executionId="59e406a0-fbd8-422f-a920-463cf6f1681a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="bf0bf751-c3bc-9373-e3be-f7b091839135" executionId="d685b20b-82ae-4f3c-bfe6-ffb583d58032" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="313d03d0-c654-f1bd-6fc4-9027d893d850" executionId="2cbf2133-ed6e-4fec-816f-e2a1c38fb9b2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="fb1e6e9f-718c-4e59-8eb9-a654f14afade" executionId="f6721e85-b17f-479d-a13d-feebd791a05c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e6b4b100-d1be-9b17-5584-0b0d915d4a41" executionId="a890c1a9-e498-49d2-912d-fd34e003bbf7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="01a3c52b-7931-eb3a-dcf2-428dab7ca8b9" executionId="91252950-605e-4352-abb9-616b4d27a7ae" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f4b9e2a9-38bb-045b-f724-d736e7fcbff5" executionId="68f3eb36-90ad-4999-8669-378e59546b28" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f99cb6bb-20ac-f2e8-fe59-d15cb1e7aeed" executionId="0beb5bbc-670c-4119-b981-783e3cd85d02" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a717fe55-1c6e-9bbc-0ff3-4f431cdd6b77" executionId="e84e6090-8d34-4574-94a3-3dca534a6a8b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7dcb22f4-b6e1-ee8a-9586-f4061f30587d" executionId="cfff04e8-a48e-40fc-858f-7d250eeb7731" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e0752324-cb98-629c-5a41-9d622d98a065" executionId="d2a7287f-6cb9-4004-a67b-69f7d60fcd38" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d2f7d170-a7d7-50fa-e811-61ffcbb90427" executionId="1e2da360-606b-4fd7-ae45-7db7a22caf47" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ec54da0d-07ce-3ac9-30c4-c68a99a011ce" executionId="683815c8-1201-4422-a817-da6b51f4d634" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="56cd65c4-656e-1632-c983-ed9ceab2db5b" executionId="4aa80a1e-95fa-4d9c-abc7-d006a922d8ba" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="22b4a7c5-b20a-1c68-424c-2c90dbb4e633" executionId="6f464949-8316-4309-9a30-ae530f141271" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cce70429-fa8a-4eb1-3d6b-1cf496b87477" executionId="6cc615ce-da62-4eb9-ad76-764e88d82495" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="99c6152c-8c05-61ff-bff9-8aae51291d8e" executionId="edc33d3a-9d97-4a3b-9b57-72d29a9f7897" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="679531c6-5e2f-b4c7-f6e0-363000a96aac" executionId="e2f791ac-cb1d-47e0-b2ed-e993eff467f7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9c2ebcb8-da01-3b27-744a-151525471a83" executionId="8e24fc43-97f0-488e-8abb-74f8182786a7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7a53928c-0668-8c7e-e6a5-b22806724b8e" executionId="9b6afeb9-52c1-4641-b958-8f5671857626" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="38269bc0-2535-9685-88e9-1bf3d54a931b" executionId="e20d5cd3-2a51-42ef-8346-35db758a54ac" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f595f115-e6b9-f973-6723-ea998c847743" executionId="25381c1b-cdce-44b6-b831-7c2abbccfeb5" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b5430f9f-5873-e29c-89fa-3ec0168becc6" executionId="888ef36d-f84d-4aed-bd98-f0b01c839fb9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0efd4087-ac49-4ca1-1036-5f2ea3f01264" executionId="f6faf791-a467-40c3-ae29-115ce56ee4e8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="72c4699a-1b9f-a096-4b5a-a7620e5eee43" executionId="a6731f15-3869-4fcd-85b5-7327d2b5ed86" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b2c78717-dcb6-ac52-b132-4242fbe56e7f" executionId="94d19dd5-8d31-42c9-a08d-8550c8a302e1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6710781f-19be-6542-619e-2497e537dca8" executionId="29c74873-ac68-4651-9bf3-766381dd60fd" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="edae25b9-c96e-e4ab-880c-6b3a5ac1e496" executionId="d5107d80-5b23-4eb1-8ba2-d27d0893167e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e0ed7fbc-bdc0-657e-5ffb-c78d3d4d4715" executionId="6d183724-e508-4638-8ec6-f40966dae1a8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0e205e43-14c8-826d-3d33-64d92fc8663f" executionId="94a1c661-28aa-4b2b-9029-2fe50889678c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7b8a71f4-8dcf-6dfc-cfe3-5e06faf09d33" executionId="5449cb00-d2d7-435b-ad87-1efe11161fdf" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ca2a4ebe-799b-97ab-7b10-1f18a3d45737" executionId="d4a02841-060e-4884-b4a6-b61041630d90" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="afcee750-1466-9926-d95a-fb23e97a52b0" executionId="9ab02e04-546b-4311-8f0d-fb71f2f3f62f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3afd1a41-f9c0-e94d-c039-8c924d62e656" executionId="a5e422dc-2932-4e83-be7d-1cab270b177b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9d5a9875-79ff-e218-c25f-7d86b9c808d7" executionId="6aae7602-1e3c-482c-9f0c-2d222420fb01" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ad4fc8dd-5ce3-93d4-6a21-866dd60445f7" executionId="48884c30-b71e-4069-a4f2-552674196848" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b0d9be3a-85a4-7de0-94aa-5ec73a21fa61" executionId="6b1d668c-9b49-460a-822c-f8c05f442085" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e357f547-48c4-ed44-a08f-ff3f35fd89aa" executionId="a265088a-7c56-4b06-8e94-d36af5139933" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="52c0312b-de3e-8403-8e8e-2d26c64e0f28" executionId="845369c6-e93b-405b-b699-0e7486ae8315" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="51311a3f-bf91-65bc-bedc-f37c1f27e2c2" executionId="31871363-6f72-4854-be8e-2d0dd6e59673" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="13acee30-36ec-7e99-d7d7-0c0f76e2e6fe" executionId="20f313e2-426f-4ea5-89fb-c020d4f8840a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="列表中未列出的结果" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="所有已加载的结果" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="62" executed="62" passed="62" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.05]   Discovering: Dfo.Server.Networking.Tests&#xD;
+[xUnit.net 00:00:00.09]   Discovered:  Dfo.Server.Networking.Tests&#xD;
+[xUnit.net 00:00:00.11]   Starting:    Dfo.Server.Networking.Tests&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+warn: Dfo.Server.Networking.Runtime.GameNetworkPlugin[0]&#xD;
+      Unhandled Game frame Game:01-00-00-00: selector=0x01 type=0x7FFF seq=0 body(0B)=&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command GetChannelScriptVersionCommand handled by GetChannelScriptVersionCommandHandler as Direct with execution dd74b6ce-59b7-44a2-9ab9-2781c1553f1d in 3.9501 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution 11f16bc9-bcdd-46f5-bb84-a2160ad634eb in 0.2829 ms&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.Protocol.Game.LearnSkill.LearnSkillHandler[0]&#xD;
+      Skill learning Game:01-00-00-00 page=0 count=1 refused=NoSession&#xD;
+info: Dfo.Server.Protocol.Game.PackageOpening.PackageOpeningHandler[0]&#xD;
+      PackageOpening connection=Game:01-00-00-00 slot=66 result=NoSession detail=(null)&#xD;
+info: Dfo.Server.Protocol.Game.CeraShopPurchase.CeraShopPurchaseHandler[0]&#xD;
+      CERA purchase Game:01-00-00-00 refused=NoSession detail=(null)&#xD;
+info: Dfo.Server.Protocol.Game.PackageOpening.PackageOpeningHandler[0]&#xD;
+      PackageOpening connection=Game:01-00-00-00 slot=(null) result=InvalidRequest detail=(null)&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution 6273606f-db36-48c7-ab06-74801eb8fcfe in 0.0195 ms&#xD;
+info: Dfo.Server.Protocol.Game.CeraShopPurchase.CeraShopPurchaseHandler[0]&#xD;
+      CERA purchase Game:01-00-00-00 refused=NoSession detail=(null)&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.Protocol.Game.LearnSkill.LearnSkillHandler[0]&#xD;
+      Skill learning Game:01-00-00-00 page=0 count=1 refused=NoSession&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution d9bdfbe1-e4b9-4ef9-8e10-95477df201f8 in 0.0044 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution 9ac4daf7-5b20-4401-9617-43c6f2970fbd in 0.0042 ms&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.Protocol.Game.GenCeraTicket.GenCeraTicketHandler[0]&#xD;
+      CERA web ticket Game:01-00-00-00: unavailable, request bytes=0&#xD;
+info: Dfo.Server.Protocol.Game.GenCeraTicket.GenCeraTicketHandler[0]&#xD;
+      CERA web ticket Game:01-00-00-00: unavailable, request bytes=2&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command GetChannelScriptCommand handled by GetChannelScriptCommandHandler as Direct with execution 4c41c233-9bd8-4194-a4d0-e96175e37fab in 1.0793 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution bfd5afc7-2547-47a7-b0fd-478923cd8276 in 0.0025 ms&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution 631343bb-ef1d-4d27-9020-efedfe27ab3b in 0.0035 ms&#xD;
+warn: Dfo.Server.Networking.Runtime.GameNetworkPlugin[0]&#xD;
+      Unhandled Game frame Game:01-00-00-00: selector=0x02 type=0x0003 seq=0 body(0B)=&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution 514c831a-af08-4138-88f4-c7e27682202c in 0.003 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command GetChannelInfoCommand handled by GetChannelInfoCommandHandler as Direct with execution 4e135504-101a-4bec-b8f9-5ba33d5dd889 in 0.6453 ms&#xD;
+warn: Dfo.Server.Networking.Runtime.GameNetworkPlugin[0]&#xD;
+      Game decoder GetUserInfoMessageDecoder declined Game:01-00-00-00: selector=0x01 type=0x0008 body(3B); body withheld&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution 64a3388a-1087-4dc6-9b41-8738a027b737 in 0.0069 ms&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.Protocol.Game.AvatarPackageOpening.AvatarPackageOpeningHandler[0]&#xD;
+      AvatarPackageOpening connection=Game:01-00-00-00 slot=66 result=NoSession detail=(null)&#xD;
+info: Dfo.Server.Protocol.Game.AvatarPackageOpening.AvatarPackageOpeningHandler[0]&#xD;
+      AvatarPackageOpening connection=Game:01-00-00-00 slot=(null) result=InvalidRequest detail=(null)&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution 5c7dd785-df11-42fe-b1b7-ed74828ddcd2 in 0.0072 ms&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.Protocol.Game.MagicBoxBatchOpening.MagicBoxBatchOpeningHandler[0]&#xD;
+      MagicBoxBatchOpening connection=Game:01-00-00-00 slot=66 count=60 result=NoSession detail=(null) luck=(null)-&gt;(null)&#xD;
+info: Dfo.Server.Protocol.Game.MagicBoxBatchOpening.MagicBoxBatchOpeningHandler[0]&#xD;
+      MagicBoxBatchOpening connection=Game:01-00-00-00 slot=(null) count=(null) result=InvalidRequest detail=(null) luck=(null)-&gt;(null)&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution 2fefe033-b6a2-4e0a-9a6f-212d0c3271d2 in 0.0056 ms&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Dfo.Server.Protocol.Game.MagicBoxSingleOpening.MagicBoxSingleOpeningHandler[0]&#xD;
+      MagicBoxSingleOpening connection=Game:01-00-00-00 slot=66 count=1 result=NoSession detail=(null) luck=(null)-&gt;(null)&#xD;
+info: Dfo.Server.Protocol.Game.MagicBoxSingleOpening.MagicBoxSingleOpeningHandler[0]&#xD;
+      MagicBoxSingleOpening connection=Game:01-00-00-00 slot=(null) count=(null) result=InvalidRequest detail=(null) luck=(null)-&gt;(null)&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command AcknowledgeGameExitCommand handled by AcknowledgeGameExitCommandHandler as Direct with execution 267ac801-44e4-4f31-a1d3-e310bfef070b in 0.007 ms&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RegisterAccountCommand handled by RegisterAccountCommandHandler as Transactional with execution e4aa3f66-5ac8-43d4-af6b-f7100456e35a in 84.5978 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution f388e8bd-43cd-4213-9ec9-d12621691faa in 76.7349 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 39ab4c70-d0a9-4853-b726-9b09eeb3522b in 2.5328 ms&#xD;
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]&#xD;
+      Game login rejected: delivery_failed&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 08f68561-2726-4b16-b09e-fcbb34b8e038 in 0.0782 ms&#xD;
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]&#xD;
+      Game login rejected: ticket_rejected&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RegisterAccountCommand handled by RegisterAccountCommandHandler as Transactional with execution 820059a7-397a-4131-8b7b-e4745000afab in 73.0715 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution ba3141c5-bc00-4a37-be15-b60221b26a56 in 67.5694 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 26749c50-8ebb-4f81-811d-b4e27887b48d in 0.0779 ms&#xD;
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]&#xD;
+      Game login rejected: ticket_rejected&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 99f7b5cc-706a-44fc-85bd-dd1e6f36a667 in 0.0972 ms&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RegisterAccountCommand handled by RegisterAccountCommandHandler as Transactional with execution 5992e77d-df96-41e6-b7f4-f5fd282c144a in 66.6695 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution b3932a4d-20f5-4700-9af0-4dc90e4170b5 in 66.3475 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 16d958fc-9388-477e-a742-e3e07f6f0c62 in 0.0914 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command PrepareReturnToSelectionCommand handled by PrepareReturnToSelectionCommandHandler as Transactional with execution 121208b9-b29d-4bdc-b6fb-d9e1fc54e637 in 4.5233 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command CompleteReturnToSelectionCommand handled by CompleteReturnToSelectionCommandHandler as Workflow with execution adfb4fb2-7f5f-4e1c-8ea9-e6a0b03c8ea6 in 0.5141 ms&#xD;
+info: Dfo.Server.Protocol.Game.BuyItem.BuyItemHandler[0]&#xD;
+      NPC purchase Game:01-00-00-00 npc=2 shop=15 item=490003532 rawCount=1 refused=NoSession&#xD;
+info: Dfo.Server.Protocol.Game.SellItem.SellItemHandler[0]&#xD;
+      NPC sale Game:01-00-00-00 npc=2 container=Main slot=9 count=1 refused=NoSession&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RegisterAccountCommand handled by RegisterAccountCommandHandler as Transactional with execution 69ac2462-f412-4fd8-b2bb-bae72f7bca24 in 67.7797 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution f0465625-959f-4886-9212-225330f8ae42 in 67.1943 ms&#xD;
+fail: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RedeemGameLoginCommand failed in handler RedeemGameLoginCommandHandler as Transactional with execution bb43bfce-7919-4770-b572-665ed12cb552 after 1.5284 ms&#xD;
+      System.OperationCanceledException: test-injected precommit cancellation&#xD;
+         at Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.PrepareFaultParticipant.PrepareAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\Integration\GameLoginIntegrationTests.cs:line 796&#xD;
+         at Dfo.Server.Application.Transactions.DomainTransaction.CommitAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\Server\src\Dfo.Server.Application\Transactions\DomainTransaction.cs:line 80&#xD;
+         at Dfo.Server.Application.Transactions.DomainTransaction.CommitAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\Server\src\Dfo.Server.Application\Transactions\DomainTransaction.cs:line 95&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 36&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 37&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.AccountExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\Server\src\Dfo.Server.Application\Commands\Pipeline\AccountExecutionBehavior.cs:line 19&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 34&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 34&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\Server\src\Dfo.Server.Application\Commands\Pipeline\CommandLoggingBehavior.cs:line 21&#xD;
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]&#xD;
+      Game login rejected: redemption_cancelled&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution 46e73c8e-94f5-4db3-83c1-91742732c848 in 0.1826 ms&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Dfo.Server.Networking.Runtime.IChannelTcpService[0]&#xD;
+      ��������������&#xD;
+info: Dfo.Server.Networking.Runtime.IGameTcpService[0]&#xD;
+      ��������������&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Production&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Release\net10.0&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RegisterAccountCommand handled by RegisterAccountCommandHandler as Transactional with execution d7f42eae-8f02-4f11-973c-981f3ec45efb in 66.6538 ms&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command AuthenticateAndIssueTicketCommand handled by AuthenticateAndIssueTicketCommandHandler as Transactional with execution aeb359e4-f7f0-4202-9acf-ecde4a2a278d in 66.5925 ms&#xD;
+fail: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RedeemGameLoginCommand failed in handler RedeemGameLoginCommandHandler as Transactional with execution 0ebbaa2e-d482-45f6-a2f4-40798df05525 after 0.1853 ms&#xD;
+      System.InvalidOperationException: test-injected commit-path failure&#xD;
+         at Dfo.Server.Networking.Tests.Integration.GameLoginIntegrationTests.PrepareFaultParticipant.PrepareAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\Integration\GameLoginIntegrationTests.cs:line 801&#xD;
+         at Dfo.Server.Application.Transactions.DomainTransaction.CommitAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\Server\src\Dfo.Server.Application\Transactions\DomainTransaction.cs:line 80&#xD;
+         at Dfo.Server.Application.Transactions.DomainTransaction.CommitAsync(CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\Server\src\Dfo.Server.Application\Transactions\DomainTransaction.cs:line 95&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 36&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.UnitOfWorkBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\Server\src\Dfo.Server.Application\Commands\Pipeline\UnitOfWorkBehavior.cs:line 37&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.AccountExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\Server\src\Dfo.Server.Application\Commands\Pipeline\AccountExecutionBehavior.cs:line 19&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 34&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.OnlineUserExecutionBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\Server\src\Dfo.Server.Application\Commands\Pipeline\OnlineUserExecutionBehavior.cs:line 34&#xD;
+         at Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior`1.ExecuteAsync(CommandExecutionContext context, ICommand command, CommandExecutionDelegate`1 next, CancellationToken cancellationToken) in E:\Project\DNF\DNF-JP-86-Server\Server\src\Dfo.Server.Application\Commands\Pipeline\CommandLoggingBehavior.cs:line 21&#xD;
+warn: Dfo.Server.Protocol.Game.Login.GameLoginHandler[0]&#xD;
+      Game login rejected: redemption_failed&#xD;
+info: Dfo.Server.Application.Commands.Pipeline.CommandLoggingBehavior[0]&#xD;
+      Command RedeemGameLoginCommand handled by RedeemGameLoginCommandHandler as Transactional with execution be996eb9-a6de-4c0e-9bf7-703f34de921b in 0.0707 ms&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+[xUnit.net 00:00:01.85]   Finished:    Dfo.Server.Networking.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

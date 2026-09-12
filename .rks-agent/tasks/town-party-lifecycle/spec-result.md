@@ -32,8 +32,10 @@ terminal_stage: review
 ## Repository Result
 
 - Baseline: `355aaf5cb6714044b4781185ec3118007bc97bec`。
-- Result: `task/town-party-lifecycle` worktree 中的当前未提交变更集；功能/UI 实机通过但协议证据仍为
-  `manual_required`。用户已明确授权先合并并清理 worktree，以当前结果作为后续队伍模式任务的基线。
+- Result: 任务结果提交 `7aec0c18e3c1d21c26e99e2a24bf6d327c94dbec` 已通过普通 merge 纳入
+  `main` 的 `06c6a12a`；合并后 Release build 通过，十份适用 TRX 为 3050/3050 Passed。
+  功能/UI 实机通过但协议证据仍为 `manual_required`。用户已明确接受该边界并授权清理任务 worktree，
+  以当前结果作为后续队伍模式任务的基线。
 - Parent rollback required: no。
 
 ## Successor Guidance
