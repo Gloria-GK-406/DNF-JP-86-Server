@@ -14,4 +14,10 @@ internal sealed class TownMovementDomainService(
     public ValueTask<bool> CanEnterTownAsync(
         ChannelEntryIdentity channel, int townId, CancellationToken cancellationToken) =>
         placement.CanEnterTownAsync(channel, townId, cancellationToken);
+
+    public ValueTask<bool> SharesTownPresenceAsync(
+        int townId,
+        int areaId,
+        CancellationToken cancellationToken) =>
+        placement.SharesTownPresenceAsync(townId, areaId, cancellationToken);
 }

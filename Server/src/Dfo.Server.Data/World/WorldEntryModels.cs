@@ -152,7 +152,8 @@ public sealed record EntrySpawnState(
     short Y,
     byte Direction,
     byte AreaState,
-    bool IsTransient);
+    bool IsTransient,
+    bool SharesTownPresence = true);
 
 /// <summary>
 /// What the channel decides about this entry.

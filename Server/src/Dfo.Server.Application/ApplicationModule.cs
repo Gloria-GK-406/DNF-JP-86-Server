@@ -9,6 +9,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.World;
@@ -22,6 +23,7 @@ using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Notifications;
 using Dfo.Server.Application.Quests;
 using Dfo.Server.Application.OnlineUsers;
+using Dfo.Server.Application.Parties;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Users;
 using Dfo.Server.Application.World;
@@ -327,6 +329,18 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ISessionPresenceDomainService, SessionPresenceDomainService>();
         services.TryAddSingleton<ISelectedSessionDomainService, SelectedSessionDomainService>();
         services.TryAddSingleton<ISelectedSessionRuntimeDirectory, SelectedSessionRuntimeDirectory>();
+        services.TryAddSingleton<
+            IOtherCharacterDetailQueryDomainService,
+            OtherCharacterDetailQueryDomainService>();
+        // Network-only test hosts deliberately assemble Application without persistence. Party
+        // handlers are discovered eagerly at listener startup, while inventory is only needed if
+        // a real invite is requested, so defer that dependency to the command invocation.
+        services.TryAddSingleton<IPartyMemberStatusDomainService>(provider =>
+            new PartyMemberStatusDomainService(
+                () => provider.GetRequiredService<ICharacterInventoryEntryDomainService>(),
+                provider.GetRequiredService<ICharacterFatigueDomainService>(),
+                provider.GetRequiredService<ISelectedSessionRuntimeDirectory>()));
+        services.TryAddSingleton<IPartyDomainService, PartyDomainService>();
         services.TryAddSingleton<IExpertStoreDomainService, ExpertStoreDomainService>();
         services.TryAddSingleton<IPvpLobbyDomainService, PvpLobbyDomainService>();
         services.TryAddSingleton<ISessionAdjacentEntryDomainService, SessionAdjacentEntryDomainService>();

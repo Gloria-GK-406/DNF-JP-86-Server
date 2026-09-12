@@ -23,18 +23,18 @@
 |---|---|---|---|---|
 | `0x0000` | `CHECK_CONNECTION` | 布局已闭合 | `8` | [0x0000.md](client-to-server/0x0000.md) |
 | `0x0001` | `LOGIN` | 布局部分可得 | `—` | [0x0001.md](client-to-server/0x0001.md) |
-| `0x0002` | `SET_UDP_IP_PORT` | 结构未知 | `—` | [0x0002.md](client-to-server/0x0002.md) |
+| `0x0002` | `SET_UDP_IP_PORT` | ClientVerified（A21 双客户端组队路径） | `≥ 15`；当前真实样本 `31` | [0x0002.md](client-to-server/0x0002.md) |
 | `0x0003` | `EXIT` | 布局已闭合 | `1` | [0x0003.md](client-to-server/0x0003.md) |
 | `0x0004` | `SELECT_CHARACTER` | 布局已闭合 | `2` | [0x0004.md](client-to-server/0x0004.md) |
 | `0x0005` | `CREATE_CHARACTER` | **手写记录** | 见文档 | [0x0005.md](client-to-server/0x0005.md) **(手写)** |
 | `0x0006` | `DELETE_CHARACTER` | **手写记录** | 见文档 | [0x0006.md](client-to-server/0x0006.md) **(手写)** |
 | `0x0007` | `RETURN_SELECT_CHARACTER` | 布局已闭合 | `0` | [0x0007.md](client-to-server/0x0007.md) |
-| `0x0008` | `GET_USERINFO` | **手写记录** | 见文档 | [0x0008.md](client-to-server/0x0008.md) **(手写)** |
+| `0x0008` | `GET_USERINFO` | **手写记录；ClientVerified（mode 2/3）** | `3` | [0x0008.md](client-to-server/0x0008.md) **(手写)** |
 | `0x0009` | `RECOVER_STAMINA` | 布局已闭合 | `2` | [0x0009.md](client-to-server/0x0009.md) |
-| `0x000A` | `REQUEST_PEER` | 布局部分可得 | `≥ 7` | [0x000A.md](client-to-server/0x000A.md) |
-| `0x000B` | `RESPONSE_PEER` | 布局部分可得 | `≥ 7` | [0x000B.md](client-to-server/0x000B.md) |
+| `0x000A` | `REQUEST_PEER` | ClientVerified（A21 type 0） | `7` 或 `9` | [0x000A.md](client-to-server/0x000A.md) |
+| `0x000B` | `RESPONSE_PEER` | ClientVerified（A21 type 0；真实 body 待归档） | `7` 或 `16` | [0x000B.md](client-to-server/0x000B.md) |
 | `0x000C` | `SET_PARTY_INFO` | 布局部分可得 | `—` | [0x000C.md](client-to-server/0x000C.md) |
-| `0x000D` | `LEAVE_PARTY` | 布局已闭合 | `0` | [0x000D.md](client-to-server/0x000D.md) |
+| `0x000D` | `LEAVE_PARTY` | ClientVerified（A21 普通成员主动离队） | `0` | [0x000D.md](client-to-server/0x000D.md) |
 | `0x000E` | `WALKOUT_PARTY_MEMBER` | 布局已闭合 | `1` | [0x000E.md](client-to-server/0x000E.md) |
 | `0x000F` | `ENTER_SELECT_DUNGEON` | 布局部分可得 | `≥ 4` | [0x000F.md](client-to-server/0x000F.md) |
 | `0x0010` | `SELECT_DUNGEON` | 布局部分可得 | `≥ 15` | [0x0010.md](client-to-server/0x0010.md) |
@@ -159,7 +159,7 @@
 | `0x00A3` | `SECURITY_CARD_AUTH_REQ` | 布局已闭合 | `0` | [0x00A3.md](client-to-server/0x00A3.md) |
 | `0x00A4` | `SECURITY_CARD_AUTH_RPY` | 结构未知 | `—` | [0x00A4.md](client-to-server/0x00A4.md) |
 | `0x00A5` | `SECURITY_CARD_CERT_KEY` | 结构未知 | `—` | [0x00A5.md](client-to-server/0x00A5.md) |
-| `0x00A6` | `CALL_PARTY_MEMBER_REALTIME_INFO` | 布局已闭合 | `0` | [0x00A6.md](client-to-server/0x00A6.md) |
+| `0x00A6` | `CALL_PARTY_MEMBER_REALTIME_INFO` | ClientVerified（A21 当前在队查询） | `0` | [0x00A6.md](client-to-server/0x00A6.md) |
 | `0x00A7` | `EVADE_ASSAULT` | 结构未知 | `—` | [0x00A7.md](client-to-server/0x00A7.md) |
 | `0x00AB` | `CLIENT_SPEC_STATISTIC` | **手写记录** | 见文档 | [0x00AB.md](client-to-server/0x00AB.md) **(手写)** |
 | `0x00AC` | `SECURITY_CARD_AUTH_CANCEL` | 结构未知 | `—` | [0x00AC.md](client-to-server/0x00AC.md) |
@@ -876,16 +876,16 @@ NOTI 是单向推送通道，客户端从不发送。其 body 没有 CMD 的两�
 |---|---|---|---|---|
 | `0x0000` | `CHECK_CONNECTION` | 结构未知 | `—` | [NOTI-0x0000.md](server-to-client/NOTI-0x0000.md) |
 | `0x0001` | `CHANNELINFO` | 布局部分可得 | `≥ 2` | [NOTI-0x0001.md](server-to-client/NOTI-0x0001.md) |
-| `0x0002` | `USERINFO` | 布局部分可得 | `≥ 3 + n1×111 + n2×15` | [NOTI-0x0002.md](server-to-client/NOTI-0x0002.md) |
+| `0x0002` | `USERINFO` | 布局部分可得；subtype 3 ClientVerified | subtype 3 最小 `165` | [NOTI-0x0002.md](server-to-client/NOTI-0x0002.md) |
 | `0x0003` | `USER_STATE` | 布局部分可得 | `≥ 4` | [NOTI-0x0003.md](server-to-client/NOTI-0x0003.md) |
 | `0x0004` | `STAMINA` | 布局部分可得 | `≥ 1` | [NOTI-0x0004.md](server-to-client/NOTI-0x0004.md) |
 | `0x0005` | `DUNGEON_PERMISSION` | 布局部分可得 | `≥ 2 + n×5` | [NOTI-0x0005.md](server-to-client/NOTI-0x0005.md) |
 | `0x0006` | `USER_LEAVE` | 布局部分可得 | `≥ 2` | [NOTI-0x0006.md](server-to-client/NOTI-0x0006.md) |
-| `0x0007` | `REQUEST_PEER` | 布局部分可得 | `≥ 11` | [NOTI-0x0007.md](server-to-client/NOTI-0x0007.md) |
-| `0x0008` | `RESPONSE_PEER` | 布局部分可得 | `≥ 7` | [NOTI-0x0008.md](server-to-client/NOTI-0x0008.md) |
-| `0x0009` | `PARTY_INFO` | 布局部分可得 | `≥ 34 + n×5` | [NOTI-0x0009.md](server-to-client/NOTI-0x0009.md) |
+| `0x0007` | `REQUEST_PEER` | ClientVerified（A21 邀请 UI；真实 body 待归档） | `13` | [NOTI-0x0007.md](server-to-client/NOTI-0x0007.md) |
+| `0x0008` | `RESPONSE_PEER` | Implemented（接受链 UI 通过；待逐帧归因） | `7` | [NOTI-0x0008.md](server-to-client/NOTI-0x0008.md) |
+| `0x0009` | `PARTY_INFO` | ClientVerified（A21 refresh、普通成员 clear） | baseline `2`；refresh `65`；clear `5` | [NOTI-0x0009.md](server-to-client/NOTI-0x0009.md) |
 | `0x000A` | `WALKOUT` | 布局部分可得 | `≥ 2` | [NOTI-0x000A.md](server-to-client/NOTI-0x000A.md) |
-| `0x000B` | `USER_UDP_IP_PORT` | 布局部分可得 | `≥ 1 + n×22` | [NOTI-0x000B.md](server-to-client/NOTI-0x000B.md) |
+| `0x000B` | `USER_UDP_IP_PORT` | Implemented（双端已上报建队 UI 通过；待逐帧归因/P2P） | `1 + n×22` | [NOTI-0x000B.md](server-to-client/NOTI-0x000B.md) |
 | `0x000C` | `MESSAGE` | 布局部分可得 | `≥ 4` | [NOTI-0x000C.md](server-to-client/NOTI-0x000C.md) |
 | `0x000D` | `ITEM_LIST` | 布局部分可得 | `≥ 12` | [NOTI-0x000D.md](server-to-client/NOTI-0x000D.md) |
 | `0x000E` | `UPDATE_ITEM_LIST` | 布局部分可得 | `≥ 104` | [NOTI-0x000E.md](server-to-client/NOTI-0x000E.md) |
@@ -897,7 +897,7 @@ NOTI 是单向推送通道，客户端从不发送。其 body 没有 CMD 的两�
 | `0x0015` | `ACCEPTABLE_QUEST_LIST` | 布局部分可得 | `≥ 3 + n×2` | [NOTI-0x0015.md](server-to-client/NOTI-0x0015.md) |
 | `0x0016` | `USER_POSITION` | 布局部分可得 | `≥ 9` | [NOTI-0x0016.md](server-to-client/NOTI-0x0016.md) |
 | `0x0017` | `USER_AREA` | 布局部分可得 | `≥ 10` | [NOTI-0x0017.md](server-to-client/NOTI-0x0017.md) |
-| `0x0018` | `AREA_USERS` | 布局部分可得 | `≥ 12` | [NOTI-0x0018.md](server-to-client/NOTI-0x0018.md) |
+| `0x0018` | `AREA_USERS` | ClientVerified（A21 gate/normal audience） | `≥ 12` | [NOTI-0x0018.md](server-to-client/NOTI-0x0018.md) |
 | `0x0019` | `FISHING` | 结构未知 | `—` | [NOTI-0x0019.md](server-to-client/NOTI-0x0019.md) |
 | `0x001A` | `UDP_HOST` | 布局部分可得 | `≥ 1` | [NOTI-0x001A.md](server-to-client/NOTI-0x001A.md) |
 | `0x001B` | `ENTER_SELECT_DUNGEON` | 布局部分可得 | `≥ 4` | [NOTI-0x001B.md](server-to-client/NOTI-0x001B.md) |
@@ -1019,7 +1019,7 @@ NOTI 是单向推送通道，客户端从不发送。其 body 没有 CMD 的两�
 | `0x0096` | `HAS_BEEN_GUILD_MASTER` | 结构未知 | `—` | [NOTI-0x0096.md](server-to-client/NOTI-0x0096.md) |
 | `0x0097` | `GUILD_SECEDE_TO_USER` | 结构未知 | `—` | [NOTI-0x0097.md](server-to-client/NOTI-0x0097.md) |
 | `0x0098` | `SECURITY_CARD_AUTH_REQ` | 布局部分可得 | `≥ 5` | [NOTI-0x0098.md](server-to-client/NOTI-0x0098.md) |
-| `0x0099` | `PARTY_MEMBER_REALTIME_INFO` | 布局部分可得 | `≥ 1 + n×5` | [NOTI-0x0099.md](server-to-client/NOTI-0x0099.md) |
+| `0x0099` | `PARTY_MEMBER_REALTIME_INFO` | ClientVerified（A21 双端初始 HP） | `1 + n×5` | [NOTI-0x0099.md](server-to-client/NOTI-0x0099.md) |
 | `0x009A` | `NEW_FD` | 结构未知 | `—` | [NOTI-0x009A.md](server-to-client/NOTI-0x009A.md) |
 | `0x009B` | `TOTAL_POWER_WAR_POINT` | 布局部分可得 | `≥ 8` | [NOTI-0x009B.md](server-to-client/NOTI-0x009B.md) |
 | `0x009F` | `POWER_WAR_START` | 结构未知 | `—` | [NOTI-0x009F.md](server-to-client/NOTI-0x009F.md) |

@@ -4,8 +4,10 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Parties;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.World;
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
@@ -43,7 +45,9 @@ public sealed partial class SelectCharacterLifecycleTests
         stores.Open(selected);
         var cleanup = new SelectedSessionCleanupService(f.Directory, runtimes, leases,
             new CharacterContainerDomainService(), new CharacterItemCooldownDomainService(TimeProvider.System),
-            f.Active, presence, stores, new PvpLobbyDomainService(), [f.Mutations], positions);
+            f.Active, presence, stores, new PvpLobbyDomainService(), [f.Mutations], positions,
+            new PartyDomainService(
+                f.Directory, presence, new StubPartyMemberStatusDomainService(), TimeProvider.System));
         var runs = new DungeonRunDomainService();
         runs.Begin(selected.CharacterId, new(10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
             61000, 1, new Dictionary<MazeCell, int> { [new(0, 0)] = 61000 }), 0);

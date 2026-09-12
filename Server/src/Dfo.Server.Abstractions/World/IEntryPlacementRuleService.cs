@@ -49,4 +49,12 @@ public interface IEntryPlacementRuleService
     /// here becomes a crash on the next login rather than an error now.
     /// </remarks>
     ValueTask<bool> DeclaresAreaAsync(int townId, int areaId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Whether the content describes one shared town-presence space at this area.
+    /// </summary>
+    ValueTask<bool> SharesTownPresenceAsync(
+        int townId,
+        int areaId,
+        CancellationToken cancellationToken);
 }

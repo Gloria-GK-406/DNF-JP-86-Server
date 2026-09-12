@@ -1,0 +1,55 @@
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.World;
+
+namespace Dfo.Server.Application.Characters;
+
+internal sealed class OtherCharacterDetailQueryDomainService(
+    ISelectedSessionDomainService sessions,
+    ISelectedSessionRuntimeDirectory runtime,
+    TimeProvider clock) : IOtherCharacterDetailQueryDomainService
+{
+    public CharacterDetailQueryResult Query(
+        SelectedSessionIdentity requester,
+        ushort targetWireUserId)
+    {
+        ArgumentNullException.ThrowIfNull(requester);
+        if (targetWireUserId == ushort.MaxValue)
+            return CharacterDetailQueryResult.Reject(CharacterDetailQueryFailure.InvalidTarget);
+
+        if (sessions.FindByConnection(requester.ConnectionId) != requester)
+            return CharacterDetailQueryResult.Reject(
+                CharacterDetailQueryFailure.RequesterNotCurrent);
+
+        var target = sessions.FindByWireUserId(targetWireUserId);
+        if (target is null || sessions.FindByCharacter(target.CharacterId) != target)
+            return CharacterDetailQueryResult.Reject(CharacterDetailQueryFailure.TargetNotCurrent);
+        if (target.ListenerPort != requester.ListenerPort)
+            return CharacterDetailQueryResult.Reject(CharacterDetailQueryFailure.DifferentListener);
+
+        if (!runtime.TryGet(target, out var targetState, out _) || targetState is null)
+            return CharacterDetailQueryResult.Reject(
+                CharacterDetailQueryFailure.TargetRuntimeUnavailable);
+
+        // Revalidate after reading the independently synchronized runtime directory. Either
+        // generation can have been displaced between the first lookup and that snapshot read.
+        if (sessions.FindByConnection(requester.ConnectionId) != requester)
+            return CharacterDetailQueryResult.Reject(
+                CharacterDetailQueryFailure.RequesterNotCurrent);
+        if (sessions.FindByWireUserId(targetWireUserId) != target
+            || sessions.FindByCharacter(target.CharacterId) != target)
+        {
+            return CharacterDetailQueryResult.Reject(
+                CharacterDetailQueryFailure.TargetNotCurrent);
+        }
+
+        if (targetState.Character.Identity.CharacterId != target.CharacterId)
+            return CharacterDetailQueryResult.Reject(
+                CharacterDetailQueryFailure.TargetRuntimeUnavailable);
+
+        return CharacterDetailQueryResult.Success(
+            new OtherCharacterDetailProjection(
+                requester, target, targetState, clock.GetUtcNow()));
+    }
+}

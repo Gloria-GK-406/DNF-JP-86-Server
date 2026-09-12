@@ -1,0 +1,169 @@
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Dispatching;
+using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol;
+using Dfo.Server.Protocol.Game.Party;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Dfo.Server.Protocol.Tests.Game.Party;
+
+public sealed class PartyCommandCodecTests
+{
+    [Theory]
+    [InlineData("05AC11D001AC11D0010079C00500000C000000646162333266356439643466", 30976)]
+    [InlineData("05AC11D001AC11D00108F9C00500000C000000646162333266356439643466", 63752)]
+    public void Current_a21_endpoint_samples_decode_the_fixed_prefix(string bodyHex, ushort port)
+    {
+        var request = Assert.IsType<SetUdpIpPortRequest>(
+            new SetUdpIpPortDecoder().Decode(GameMessageMetadata.Empty, Hex(bodyHex)));
+
+        Assert.Equal(5, request.Endpoint.NatType);
+        Assert.Equal(new(172, 17, 208, 1), request.Endpoint.InnerAddress);
+        Assert.Equal(new(172, 17, 208, 1), request.Endpoint.OuterAddress);
+        Assert.Equal(port, request.Endpoint.Port);
+        Assert.Equal(1472u, request.Endpoint.Mtu);
+        Assert.Equal(Hex("0C000000646162333266356439643466"), request.IdentityTail);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(14)]
+    public void Endpoint_requires_its_complete_fixed_prefix(int length) =>
+        Assert.Throws<InvalidDataException>(() =>
+            new SetUdpIpPortDecoder().Decode(GameMessageMetadata.Empty, new byte[length]));
+
+    [Theory]
+    [InlineData("050011D001AC11D0010079C0050000")]
+    [InlineData("05AC11D0010011D0010079C0050000")]
+    [InlineData("05AC11D001AC11D0010000C0050000")]
+    [InlineData("05AC11D001AC11D00100793F020000")]
+    [InlineData("05AC11D001AC11D001007900000100")]
+    public void Invalid_endpoint_values_are_rejected(string bodyHex) =>
+        Assert.Throws<InvalidDataException>(() =>
+            new SetUdpIpPortDecoder().Decode(GameMessageMetadata.Empty, Hex(bodyHex)));
+
+    [Theory]
+    [InlineData("02000040000000", 64, 0)]
+    [InlineData("020000400000000000", 64, 2)]
+    public void Request_peer_accepts_only_the_known_seven_or_nine_byte_shapes(
+        string bodyHex,
+        int peerValue,
+        int tailLength)
+    {
+        var request = Assert.IsType<RequestPeerRequest>(
+            new RequestPeerDecoder().Decode(GameMessageMetadata.Empty, Hex(bodyHex)));
+
+        Assert.Equal((ushort)2, request.TargetWireUserId);
+        Assert.Equal(0, request.RequestType);
+        Assert.Equal(peerValue, request.PeerValue);
+        Assert.Equal(tailLength, request.Tail.Length);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(6)]
+    [InlineData(8)]
+    [InlineData(10)]
+    public void Request_peer_rejects_unknown_lengths(int length) =>
+        Assert.Throws<InvalidDataException>(() =>
+            new RequestPeerDecoder().Decode(GameMessageMetadata.Empty, new byte[length]));
+
+    [Theory]
+    [InlineData("02000040000000", 0)]
+    [InlineData("02000000000000000000000000000000", 9)]
+    public void Response_peer_accepts_only_the_known_seven_or_sixteen_byte_shapes(
+        string bodyHex,
+        int tailLength)
+    {
+        var response = Assert.IsType<ResponsePeerRequest>(
+            new ResponsePeerDecoder().Decode(GameMessageMetadata.Empty, Hex(bodyHex)));
+
+        Assert.Equal((ushort)2, response.InviterWireUserId);
+        Assert.Equal(0, response.RequestType);
+        Assert.Equal(tailLength, response.Tail.Length);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(6)]
+    [InlineData(8)]
+    [InlineData(15)]
+    [InlineData(17)]
+    public void Response_peer_rejects_unknown_lengths(int length) =>
+        Assert.Throws<InvalidDataException>(() =>
+            new ResponsePeerDecoder().Decode(GameMessageMetadata.Empty, new byte[length]));
+
+    [Fact]
+    public void Leave_party_requires_an_empty_body()
+    {
+        Assert.IsType<LeavePartyRequest>(
+            new LeavePartyDecoder().Decode(GameMessageMetadata.Empty, []));
+        Assert.Throws<InvalidDataException>(() =>
+            new LeavePartyDecoder().Decode(GameMessageMetadata.Empty, [0]));
+    }
+
+    [Fact]
+    public void Party_realtime_query_requires_an_empty_body()
+    {
+        Assert.IsType<CallPartyMemberRealtimeInfoRequest>(
+            new CallPartyMemberRealtimeInfoDecoder().Decode(GameMessageMetadata.Empty, []));
+        Assert.Throws<InvalidDataException>(() =>
+            new CallPartyMemberRealtimeInfoDecoder().Decode(GameMessageMetadata.Empty, [0]));
+    }
+
+    [Fact]
+    public void Production_registers_all_five_wire_keys_handlers_and_direct_commands()
+    {
+        var services = new ServiceCollection();
+        new ProtocolModule().ConfigureServices(services, new ConfigurationBuilder().Build());
+        using var provider = services.BuildServiceProvider();
+
+        var decoders = provider.GetServices<GameMessageDecoderRegistration>().ToArray();
+        Assert.Contains(decoders, value => value.Selector == 1 && value.Type == 0x0002
+            && value.DecoderType == typeof(SetUdpIpPortDecoder));
+        Assert.Contains(decoders, value => value.Selector == 1 && value.Type == 0x000A
+            && value.DecoderType == typeof(RequestPeerDecoder));
+        Assert.Contains(decoders, value => value.Selector == 1 && value.Type == 0x000B
+            && value.DecoderType == typeof(ResponsePeerDecoder));
+        Assert.Contains(decoders, value => value.Selector == 1 && value.Type == 0x000D
+            && value.DecoderType == typeof(LeavePartyDecoder));
+        Assert.Contains(decoders, value => value.Selector == 1 && value.Type == 0x00A6
+            && value.DecoderType == typeof(CallPartyMemberRealtimeInfoDecoder));
+
+        var handlers = provider.GetServices<MessageHandlerRegistration>().ToArray();
+        Assert.Contains(handlers, value => value.MessageType == ClientMessageType.GameSetUdpIpPort
+            && value.HandlerType == typeof(SetUdpIpPortHandler));
+        Assert.Contains(handlers, value => value.MessageType == ClientMessageType.GameRequestPeer
+            && value.HandlerType == typeof(RequestPeerHandler));
+        Assert.Contains(handlers, value => value.MessageType == ClientMessageType.GameResponsePeer
+            && value.HandlerType == typeof(ResponsePeerHandler));
+        Assert.Contains(handlers, value => value.MessageType == ClientMessageType.GameLeaveParty
+            && value.HandlerType == typeof(LeavePartyHandler));
+        Assert.Contains(handlers, value =>
+            value.MessageType == ClientMessageType.GameCallPartyMemberRealtimeInfo
+            && value.HandlerType == typeof(CallPartyMemberRealtimeInfoHandler));
+
+        Type[] expectedCommands =
+        [
+            typeof(UpdatePartyEndpointCommand),
+            typeof(RequestPartyInviteCommand),
+            typeof(AcceptPartyInviteCommand),
+            typeof(LeavePartyCommand),
+            typeof(QueryPartyRealtimeCommand),
+        ];
+        var commands = provider.GetServices<CommandHandlerRegistration>()
+            .Where(value => expectedCommands.Contains(value.CommandType))
+            .ToArray();
+        Assert.Equal(5, commands.Length);
+        Assert.All(commands, value =>
+        {
+            Assert.Equal(CommandExecutionKind.Direct, value.ExecutionKind);
+            Assert.Equal(UserAccessMode.Unscoped, value.OnlineUserAccessMode);
+            Assert.Equal(UserAccessMode.Unscoped, value.AccountAccessMode);
+        });
+    }
+
+    private static byte[] Hex(string value) => Convert.FromHexString(value);
+}

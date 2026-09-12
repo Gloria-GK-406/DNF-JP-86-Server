@@ -32,6 +32,11 @@ internal sealed class StubEntryPlacementRuleService(ChannelEntryPolicyState? sta
         int townId,
         int areaId,
         CancellationToken cancellationToken) => ValueTask.FromResult(townId > 0 && areaId >= 0);
+
+    public ValueTask<bool> SharesTownPresenceAsync(
+        int townId,
+        int areaId,
+        CancellationToken cancellationToken) => ValueTask.FromResult(true);
 }
 
 /// <summary>Placement that cannot resolve, for proving entry fails before publication.</summary>
@@ -50,6 +55,11 @@ internal sealed class FailingEntryPlacementRuleService : IEntryPlacementRuleServ
         CancellationToken cancellationToken) => ValueTask.FromResult(false);
 
     public ValueTask<bool> DeclaresAreaAsync(
+        int townId,
+        int areaId,
+        CancellationToken cancellationToken) => ValueTask.FromResult(false);
+
+    public ValueTask<bool> SharesTownPresenceAsync(
         int townId,
         int areaId,
         CancellationToken cancellationToken) => ValueTask.FromResult(false);

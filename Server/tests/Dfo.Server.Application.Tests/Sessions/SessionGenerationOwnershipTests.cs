@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Inventory;
@@ -10,6 +11,7 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Tests.Sessions;
@@ -51,7 +53,8 @@ public sealed class SessionGenerationOwnershipTests
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(), new CharacterContainerDomainService(),
             new CharacterItemCooldownDomainService(TimeProvider.System),
             new ThrowingActive(), new SessionPresenceDomainService(), new ExpertStoreDomainService(),
-            new PvpLobbyDomainService(), [], new CharacterPositionDomainService());
+            new PvpLobbyDomainService(), [], new CharacterPositionDomainService(),
+            new PassiveParties());
 
         await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
             await service.CleanupAsync(session, includeOwner: false, CancellationToken.None));
@@ -78,7 +81,7 @@ public sealed class SessionGenerationOwnershipTests
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(), new CharacterContainerDomainService(),
             new CharacterItemCooldownDomainService(TimeProvider.System),
             new ThrowingActive(), presence, stores, new PvpLobbyDomainService(),
-            [], new CharacterPositionDomainService());
+            [], new CharacterPositionDomainService(), new PassiveParties());
 
         var failure = await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
             await service.CleanupAsync(owner, includeOwner: true, CancellationToken.None));
@@ -123,7 +126,7 @@ public sealed class SessionGenerationOwnershipTests
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(), new CharacterContainerDomainService(),
             new CharacterItemCooldownDomainService(TimeProvider.System),
             new PassiveActive(), presence, stores, new PvpLobbyDomainService(),
-            [], new CharacterPositionDomainService());
+            [], new CharacterPositionDomainService(), new PassiveParties());
 
         var delivery = await service.CleanupAsync(owner, includeOwner, CancellationToken.None);
 
@@ -164,7 +167,7 @@ public sealed class SessionGenerationOwnershipTests
             new CharacterItemCooldownDomainService(TimeProvider.System),
             new PassiveActive(),
             new SessionPresenceDomainService(), new ExpertStoreDomainService(), new PvpLobbyDomainService(),
-            [persistence], positions);
+            [persistence], positions, new PassiveParties());
 
         await service.CleanupAsync(session, false, CancellationToken.None);
 
@@ -186,7 +189,7 @@ public sealed class SessionGenerationOwnershipTests
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(), new CharacterContainerDomainService(),
             new CharacterItemCooldownDomainService(TimeProvider.System),
             new PassiveActive(), presence, stores, new PvpLobbyDomainService(),
-            [], new CharacterPositionDomainService());
+            [], new CharacterPositionDomainService(), new PassiveParties());
 
         var delivery = await service.CleanupAsync(
             stale, includeOwner: true, CancellationToken.None);
@@ -216,7 +219,8 @@ public sealed class SessionGenerationOwnershipTests
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(),
             new CharacterContainerDomainService(), cooldowns,
             new PassiveActive(), new SessionPresenceDomainService(), new ExpertStoreDomainService(),
-            new PvpLobbyDomainService(), [], new CharacterPositionDomainService());
+            new PvpLobbyDomainService(), [], new CharacterPositionDomainService(),
+            new PassiveParties());
 
         await service.CleanupAsync(session, includeOwner: false, CancellationToken.None);
 
@@ -241,7 +245,8 @@ public sealed class SessionGenerationOwnershipTests
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(),
             new CharacterContainerDomainService(), cooldowns,
             new PassiveActive(), new SessionPresenceDomainService(), new ExpertStoreDomainService(),
-            new PvpLobbyDomainService(), [], new CharacterPositionDomainService());
+            new PvpLobbyDomainService(), [], new CharacterPositionDomainService(),
+            new PassiveParties());
 
         await service.CleanupAsync(departing, includeOwner: false, CancellationToken.None);
 
@@ -274,6 +279,32 @@ public sealed class SessionGenerationOwnershipTests
     {
         public void Publish(SelectedSessionIdentity session) { }
         public bool ClearExact(SelectedSessionIdentity session) => false;
+    }
+
+    private sealed class PassiveParties : IPartyDomainService
+    {
+        public PartyOperationResult UpdateEndpoint(
+            SelectedSessionIdentity session,
+            PartyEndpoint endpoint) => PartyOperationResult.Success();
+
+        public PartyOperationResult RequestInvite(
+            SelectedSessionIdentity inviter,
+            ushort targetWireUserId,
+            PartyInviteDisplayState display) => PartyOperationResult.Success();
+
+        public PartyOperationResult AcceptInvite(
+            SelectedSessionIdentity invitee,
+            ushort inviterWireUserId) => PartyOperationResult.Success();
+
+        public PartyOperationResult LeavePartyExact(SelectedSessionIdentity session) =>
+            PartyOperationResult.Success();
+
+        public PartyOperationResult CleanupSessionExact(SelectedSessionIdentity session) =>
+            PartyOperationResult.Success();
+
+        public PartySnapshot? FindParty(SelectedSessionIdentity session) => null;
+
+        public PartyEndpoint? FindEndpoint(SelectedSessionIdentity session) => null;
     }
 
     private sealed class NoopSender : INetworkMessageSender

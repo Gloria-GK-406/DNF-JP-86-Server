@@ -2,6 +2,7 @@ using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game.Party;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Protocol.Game.StateSynchronization;
@@ -220,11 +221,10 @@ internal static class CleanupNoticeMessages
 /// <summary>Delivers both halves of a cleanup plan, in the order they have to go out in.</summary>
 /// <remarks>
 /// A service rather than the mapping function it replaces, and that is the whole point. The plan
-/// has two halves that now leave by two different routes -- the owner's notices down the
-/// connection this code already holds, the peers through the notification service -- and there are
-/// six places that deliver one. Left as two calls at each of those places, the rule that the owner
-/// hears first would be six hand-written sequences, and four of the six are inside a catch. Here
-/// it is one.
+/// leaves by three routes -- the owner's notices down the connection this code already holds, town
+/// peers through their notification, then the independently addressed party projection. There are
+/// six places that deliver one. Left as separate calls at each of those places, the order would be
+/// six hand-written sequences, and four of the six are inside a catch. Here it is one.
 /// </remarks>
 public interface ICleanupNotificationDelivery
 {
@@ -234,8 +234,16 @@ public interface ICleanupNotificationDelivery
 
 internal sealed class CleanupNotificationDelivery(
     IGameMessageSender sender,
-    INotificationBus notifications) : ICleanupNotificationDelivery
+    INotificationBus notifications,
+    PartyNotificationDelivery partyNotifications) : ICleanupNotificationDelivery
 {
+    internal CleanupNotificationDelivery(
+        IGameMessageSender sender,
+        INotificationBus notifications)
+        : this(sender, notifications, new PartyNotificationDelivery(notifications))
+    {
+    }
+
     public async ValueTask DeliverAsync(
         SelectedSessionCleanupNotificationPlan plan, CancellationToken cancellationToken)
     {
@@ -257,5 +265,9 @@ internal sealed class CleanupNotificationDelivery(
                 new SessionCleanupAnnounced(plan.PeerNotices),
                 cancellationToken).ConfigureAwait(false);
         }
+
+        await partyNotifications.DeliverAsync(
+            plan.PartyNotifications,
+            cancellationToken).ConfigureAwait(false);
     }
 }

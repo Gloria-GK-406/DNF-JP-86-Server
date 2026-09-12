@@ -909,6 +909,8 @@ public sealed class CharacterEntryInventoryTests
             CancellationToken cancellationToken) => ValueTask.FromResult(true);
         public ValueTask<bool> DeclaresAreaAsync(int townId, int areaId,
             CancellationToken cancellationToken) => ValueTask.FromResult(true);
+        public ValueTask<bool> SharesTownPresenceAsync(int townId, int areaId,
+            CancellationToken cancellationToken) => ValueTask.FromResult(true);
     }
 
     private sealed class StubCharacterEntryStateDomainService(CharacterEntryState state)

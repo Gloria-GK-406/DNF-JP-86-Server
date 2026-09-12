@@ -24,6 +24,9 @@ internal static class GetUserInfoPayloadCodec
     /// <summary>Account-scope query answered with the character roster notification.</summary>
     private const byte AccountRosterMode = 0x02;
 
+    /// <summary>Town-context query for one current online character.</summary>
+    private const byte OtherCharacterDetailMode = 0x03;
+
     public static IClientNetworkMessage? Decode(
         GameMessageMetadata metadata,
         ReadOnlySpan<byte> body)
@@ -41,6 +44,8 @@ internal static class GetUserInfoPayloadCodec
         return body[2] switch
         {
             AccountRosterMode when target == NoTarget => new GetAccountCharacterRosterRequest(metadata),
+            OtherCharacterDetailMode when target != NoTarget =>
+                new GetOtherCharacterDetailRequest(metadata, target),
             _ => null,
         };
     }

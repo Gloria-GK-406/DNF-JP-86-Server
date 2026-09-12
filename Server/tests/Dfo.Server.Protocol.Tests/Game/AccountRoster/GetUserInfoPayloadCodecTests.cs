@@ -34,18 +34,34 @@ public sealed class GetUserInfoPayloadCodecTests
     [Theory]
     [InlineData(0x00)]
     [InlineData(0x01)]
-    [InlineData(0x03)]
     [InlineData(0x04)]
     [InlineData(0xFF)]
     public void Decode_IgnoresModesWithNoTypedMessage(byte mode)
     {
-        // Mode 3 is a real client mode (targeted query) that has no server implementation yet;
-        // modes 0/1 have no builder site in this client at all. Both must decode to nothing
-        // rather than being mistaken for the roster query.
+        // Modes 0/1 have no authorized typed flow in this task, and unknown modes must decode to
+        // nothing rather than being mistaken for either supported query.
         var message = GetUserInfoPayloadCodec.Decode(GameMessageMetadata.Empty, [0x34, 0x12, mode]);
 
         Assert.Null(message);
     }
+
+    [Fact]
+    public void Decode_MapsModeThreeToAnExactTargetDetailQuery()
+    {
+        var metadata = new GameMessageMetadata(0x01, 0x0008, 0x01020304, 7);
+
+        var message = GetUserInfoPayloadCodec.Decode(metadata, [0x34, 0x12, 0x03]);
+
+        var request = Assert.IsType<GetOtherCharacterDetailRequest>(message);
+        Assert.Equal(ClientMessageType.GameGetOtherCharacterDetail, request.MessageType);
+        Assert.Equal((ushort)0x1234, request.TargetWireUserId);
+        Assert.Equal(metadata, request.Metadata);
+    }
+
+    [Fact]
+    public void Decode_RejectsModeThreeWithTheNoTargetSentinel() =>
+        Assert.Null(GetUserInfoPayloadCodec.Decode(
+            GameMessageMetadata.Empty, [0xFF, 0xFF, 0x03]));
 
     [Fact]
     public void Decode_RejectsAccountRosterModeCarryingARealTarget()

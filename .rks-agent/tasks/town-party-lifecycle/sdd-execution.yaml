@@ -1,0 +1,105 @@
+kind: rks-sdd-execution
+controller: sdd-standard
+contract:
+  path: "./TaskContract.md"
+  revision: 3
+current_stage: verification
+state: in_progress
+tasks:
+  items:
+  - id: TASK-01
+    file: ./tasks/TASK-01-party-domain.md
+    depends_on: []
+    state: done
+  - id: TASK-02
+    file: ./tasks/TASK-02-party-commands.md
+    depends_on:
+    - TASK-01
+    state: done
+  - id: TASK-03
+    file: ./tasks/TASK-03-party-notifications.md
+    depends_on:
+    - TASK-01
+    state: done
+  - id: TASK-04
+    file: ./tasks/TASK-04-party-cleanup.md
+    depends_on:
+    - TASK-02
+    - TASK-03
+    state: done
+  - id: TASK-05
+    file: ./tasks/TASK-05-protocol-docs.md
+    depends_on:
+    - TASK-02
+    - TASK-03
+    - TASK-04
+    state: done
+  - id: TASK-06
+    file: ./tasks/TASK-06-complete-validation.md
+    depends_on:
+    - TASK-05
+    state: done
+  - id: TASK-07
+    file: ./tasks/TASK-07-character-detail.md
+    depends_on:
+    - TASK-06
+    state: done
+  - id: TASK-08
+    file: ./tasks/TASK-08-final-validation.md
+    depends_on:
+    - TASK-07
+    state: in_progress
+artifacts:
+  spec: "./spec.md"
+  plan: "./plan.md"
+  result: "./spec-result.md"
+  change_review: "./reviews/change-review.md"
+  completion_evidence: "./verification/completion-evidence.md"
+stages:
+- id: spec
+  reads:
+  - contract
+  skills:
+  - writing-specs
+  gate: none
+  done_when: spec covers the TaskContract
+  writes:
+  - spec
+- id: plan
+  reads:
+  - spec
+  skills:
+  - writing-plans
+  gate: none
+  done_when: plan covers the feature spec and verification
+  writes:
+  - plan
+- id: implementation
+  reads:
+  - plan
+  skills:
+  - executing-tasks
+  - test-driven-development
+  gate: auto
+  done_when: planned feature and required tests are complete
+- id: review
+  reads:
+  - contract
+  - spec
+  - plan
+  skills:
+  - reviewing-code
+  gate: auto
+  done_when: complete change is approved with no unresolved blocking findings
+  writes:
+  - change_review
+- id: verification
+  reads:
+  - contract
+  - change_review
+  skills:
+  - verification-before-completion
+  gate: auto
+  done_when: fresh evidence proves every TaskContract success condition
+  writes:
+  - completion_evidence

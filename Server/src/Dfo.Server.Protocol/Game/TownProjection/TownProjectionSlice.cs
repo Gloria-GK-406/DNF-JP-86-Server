@@ -279,6 +279,9 @@ public sealed class SetUserAreaHandler(
         }
 
         var sameArea = standing.TownId == message.TownId && standing.AreaId == message.AreaId;
+        var sharesTownPresence = await towns
+            .SharesTownPresenceAsync(message.TownId, message.AreaId, cancellationToken)
+            .ConfigureAwait(false);
         var oldAudience = sameArea
             ? []
             : presence.InArea(standing.TownId, standing.AreaId, session.CharacterId)
@@ -290,7 +293,11 @@ public sealed class SetUserAreaHandler(
         var moved = positions.CrossInto(
             session, message.TownId, message.AreaId, message.X, message.Y);
         if (!presence.RelocateExact(
-                session, moved.TownId, moved.AreaId, standingInTown: true))
+                session,
+                moved.TownId,
+                moved.AreaId,
+                standingInTown: true,
+                sharesTownPresence))
         {
             logger.LogWarning(
                 "Set user area {ConnectionId}: presence generation changed while moving",
@@ -317,6 +324,7 @@ public sealed class SetUserAreaHandler(
             X = moved.X,
             Y = moved.Y,
             Direction = moved.Direction,
+            SharesTownPresence = sharesTownPresence,
         };
         var existing = new List<TownParticipantEntryState>();
         var newAudience = new List<CharacterId>();

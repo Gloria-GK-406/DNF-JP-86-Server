@@ -24,6 +24,7 @@ public sealed class EntryPlacementTests
         Assert.Equal(300, result.Spawn.X);
         Assert.Equal(400, result.Spawn.Y);
         Assert.False(result.Spawn.IsTransient);
+        Assert.False(result.Spawn.SharesTownPresence);
     }
 
     [Fact]
@@ -69,6 +70,7 @@ public sealed class EntryPlacementTests
         Assert.False(result.PersistsPosition);
         Assert.Equal(17, result.Spawn.TownId);
         Assert.Equal(4, result.Spawn.AreaId);
+        Assert.True(result.Spawn.SharesTownPresence);
     }
 
     [Fact]
@@ -96,6 +98,16 @@ public sealed class EntryPlacementTests
             StubChannelEntryPolicy.RestrictedChannel, 1, CancellationToken.None));
         Assert.True(await placement.CanEnterTownAsync(
             StubChannelEntryPolicy.GeneralChannel, 1, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task A_gate_is_private_while_an_ordinary_town_area_is_shared()
+    {
+        var placement = Placement();
+
+        Assert.False(await placement.SharesTownPresenceAsync(1, 0, CancellationToken.None));
+        Assert.True(await placement.SharesTownPresenceAsync(1, 1, CancellationToken.None));
+        Assert.False(await placement.SharesTownPresenceAsync(1, 99, CancellationToken.None));
     }
 
     [Fact]
@@ -216,7 +228,11 @@ public sealed class EntryPlacementTests
     private static EntryPlacementRuleService Placement() =>
         new(new StubTownSource(
             [
-                Town(1, [Area(0, "silver.map", TownAreaKind.Gate, 474, 234)]),
+                Town(1,
+                [
+                    Area(0, "silver-gate.map", TownAreaKind.Gate, 474, 234),
+                    Area(1, "silver-street.map", TownAreaKind.Normal),
+                ]),
                 Town(2, [Area(0, "second.map", TownAreaKind.Gate, 300, 400)]),
                 // Town 7 has areas but no gate, which the real content also contains.
                 Town(7, [Area(0, "warfare.map", TownAreaKind.Unrecognized)]),
