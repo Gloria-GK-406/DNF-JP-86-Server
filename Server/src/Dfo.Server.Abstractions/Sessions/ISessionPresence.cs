@@ -25,7 +25,8 @@ public sealed record SessionPresence(
     byte TownId,
     byte AreaId,
     bool StandingInTown,
-    SelectedSessionIdentity? Session = null);
+    SelectedSessionIdentity? Session = null,
+    bool SharesTownPresence = true);
 
 /// <summary>
 /// The server's record of who is present and where.
@@ -54,7 +55,8 @@ public interface ISessionPresenceDomainService
         SelectedSessionIdentity session,
         byte townId,
         byte areaId,
-        bool standingInTown);
+        bool standingInTown,
+        bool sharesTownPresence = true);
 
     /// <summary>The presence recorded for a character, or null when none is.</summary>
     SessionPresence? Find(CharacterId characterId);

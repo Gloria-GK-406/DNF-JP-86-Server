@@ -479,6 +479,10 @@ public sealed class TownProjectionHandlerTests
         public ValueTask<bool> CanEnterTownAsync(
             ChannelEntryIdentity channel, int townId, CancellationToken cancellationToken) =>
             ValueTask.FromResult(true);
+
+        public ValueTask<bool> SharesTownPresenceAsync(
+            int townId, int areaId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(areaId != 0);
     }
 
     private sealed class RecordingSender : IGameMessageSender

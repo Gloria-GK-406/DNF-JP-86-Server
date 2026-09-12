@@ -9,6 +9,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Parties;
 using Dfo.Server.Protocol.Channel;
 using Dfo.Server.Protocol.Channel.Connect;
 using Dfo.Server.Protocol.Channel.Info;
@@ -35,6 +36,7 @@ using Dfo.Server.Protocol.Game.CeraShopPurchase;
 using Dfo.Server.Protocol.Game.MagicBoxBatchOpening;
 using Dfo.Server.Protocol.Game.MagicBoxSingleOpening;
 using Dfo.Server.Protocol.Game.PackageOpening;
+using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.AvatarPackageOpening;
 using Dfo.Server.Protocol.Game.GenCeraTicket;
 using Dfo.Server.Protocol.Game.SellItem;
@@ -106,6 +108,15 @@ public sealed class ProtocolModule : IServerModule
         services.AddNotificationHandler<ShopPurchaseCountsReported, ShopPurchaseCountsReportedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ItemSaleCompleted, ItemSaleCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ItemDiscardCompleted, ItemDiscardCompletedHandler>(retryLimit: 0);
+        services.TryAddSingleton<PartyNotificationDelivery>();
+        services.AddNotificationHandler<PartyInviteIssued, PartyInviteIssuedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<PartyRealtimeChanged, PartyRealtimeChangedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<PartyInviteAccepted, PartyInviteAcceptedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<PartyEndpointsChanged, PartyEndpointsChangedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<PartyRosterChanged, PartyRosterChangedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<
+            OtherCharacterDetailRequested,
+            OtherCharacterDetailRequestedHandler>(retryLimit: 0);
         services.TryAddSingleton<ICleanupNotificationDelivery, CleanupNotificationDelivery>();
         services.AddNotificationHandler<SessionCleanupAnnounced, SessionCleanupAnnouncedHandler>(
             // Nothing. A departure notice that misses somebody is corrected by the next thing that
@@ -270,6 +281,24 @@ public sealed class ProtocolModule : IServerModule
         // write with no boundary open, so this is what makes the arrival possible at all.
         services.AddCommandHandler<SelectCardCommand, SelectCardResult, SelectCardCommandHandler>(
             CommandExecutionKind.Transactional);
+        services.AddCommandHandler<
+            UpdatePartyEndpointCommand, PartyOperationResult, UpdatePartyEndpointCommandHandler>(
+            CommandExecutionKind.Direct);
+        services.AddCommandHandler<
+            RequestPartyInviteCommand, PartyOperationResult, RequestPartyInviteCommandHandler>(
+            CommandExecutionKind.Direct);
+        services.AddCommandHandler<
+            AcceptPartyInviteCommand, PartyOperationResult, AcceptPartyInviteCommandHandler>(
+            CommandExecutionKind.Direct);
+        services.AddCommandHandler<LeavePartyCommand, PartyOperationResult, LeavePartyCommandHandler>(
+            CommandExecutionKind.Direct);
+        services.AddCommandHandler<
+            QueryPartyRealtimeCommand, PartyRealtimeQueryResult, QueryPartyRealtimeCommandHandler>(
+            CommandExecutionKind.Direct);
+        services.AddCommandHandler<
+            QueryOtherCharacterDetailCommand,
+            CharacterDetailQueryResult,
+            QueryOtherCharacterDetailCommandHandler>(CommandExecutionKind.Direct);
     }
 
     /// <summary>Binds each catalogue member to the handler that consumes it.</summary>
@@ -284,6 +313,8 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<GameLoginHandler>(ClientMessageType.GameLogin);
         services.RegisterMessageHandler<GetAccountCharacterRosterHandler>(
             ClientMessageType.GameGetAccountCharacterRoster);
+        services.RegisterMessageHandler<GetOtherCharacterDetailHandler>(
+            ClientMessageType.GameGetOtherCharacterDetail);
         services.RegisterMessageHandler<SelectCharacterHandler>(ClientMessageType.GameSelectCharacter);
         services.RegisterMessageHandler<ClientSpecStatisticHandler>(ClientMessageType.GameClientSpecStatistic);
         services.RegisterMessageHandler<ClientHardwareDetailHandler>(ClientMessageType.GameClientHardwareDetail);
@@ -303,8 +334,14 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<ContentsPlayInfoHandler>(ClientMessageType.GameContentsPlayInfo);
         services.RegisterMessageHandler<ConnectionCheckHandler>(ClientMessageType.GameConnectionCheck);
 
-        // One handler, six wire keys: the map-entry report family.
-        services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameSetUdpIpPort);
+        services.RegisterMessageHandler<SetUdpIpPortHandler>(ClientMessageType.GameSetUdpIpPort);
+        services.RegisterMessageHandler<RequestPeerHandler>(ClientMessageType.GameRequestPeer);
+        services.RegisterMessageHandler<ResponsePeerHandler>(ClientMessageType.GameResponsePeer);
+        services.RegisterMessageHandler<LeavePartyHandler>(ClientMessageType.GameLeaveParty);
+        services.RegisterMessageHandler<CallPartyMemberRealtimeInfoHandler>(
+            ClientMessageType.GameCallPartyMemberRealtimeInfo);
+
+        // One handler, the remaining wire keys in the map-entry report family.
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameCeraQuery);
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameInformNoticeSecond);
         services.RegisterMessageHandler<SecurityStatusHandler>(ClientMessageType.GameSecurityStatus);
@@ -390,7 +427,9 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<SelectCharacterMessageDecoder>(
             GameProtocol.SelectCharacterType, ClientMessageType.GameSelectCharacter);
         services.AddGameCmdMessageDecoder<GetUserInfoMessageDecoder>(
-            GameProtocol.GetUserInfoType, ClientMessageType.GameGetAccountCharacterRoster);
+            GameProtocol.GetUserInfoType,
+            ClientMessageType.GameGetAccountCharacterRoster,
+            ClientMessageType.GameGetOtherCharacterDetail);
         services.AddGameCmdMessageDecoder<ClientSpecStatisticMessageDecoder>(
             GameProtocol.ClientSpecStatisticType, ClientMessageType.GameClientSpecStatistic);
         services.AddGameCmdMessageDecoder<ClientHardwareDetailMessageDecoder>(
@@ -439,6 +478,15 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.ConnectionCheckType, ClientMessageType.GameConnectionCheck);
         services.AddGameCmdMessageDecoder<SetUdpIpPortDecoder>(
             GameProtocol.SetUdpIpPortType, ClientMessageType.GameSetUdpIpPort);
+        services.AddGameCmdMessageDecoder<RequestPeerDecoder>(
+            GameProtocol.RequestPeerType, ClientMessageType.GameRequestPeer);
+        services.AddGameCmdMessageDecoder<ResponsePeerDecoder>(
+            GameProtocol.ResponsePeerType, ClientMessageType.GameResponsePeer);
+        services.AddGameCmdMessageDecoder<LeavePartyDecoder>(
+            GameProtocol.LeavePartyType, ClientMessageType.GameLeaveParty);
+        services.AddGameCmdMessageDecoder<CallPartyMemberRealtimeInfoDecoder>(
+            GameProtocol.CallPartyMemberRealtimeInfoType,
+            ClientMessageType.GameCallPartyMemberRealtimeInfo);
         services.AddGameCmdMessageDecoder<CeraQueryDecoder>(
             GameProtocol.CeraQueryType, ClientMessageType.GameCeraQuery);
         services.AddGameCmdMessageDecoder<SetUserPositionDecoder>(
@@ -569,9 +617,17 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<GameInitialConnectionNotice, GameInitialConnectionNoticeEncoder>();
         services.AddGameCmdMessageEncoder<GameLoginResponse, GameLoginResponseEncoder>();
         services.AddGameNotiMessageEncoder<AccountCharacterRosterResponse, AccountCharacterRosterResponseEncoder>();
+        services.AddGameNotiMessageEncoder<
+            OtherCharacterDetailResponse,
+            OtherCharacterDetailResponseEncoder>();
         services.AddGameNotiMessageEncoder<HonorLevelInfoNotice, HonorLevelInfoNoticeEncoder>();
         services.AddGameNotiMessageEncoder<AuctionServiceStateNotice, AuctionServiceStateNoticeEncoder>();
         services.AddGameNotiMessageEncoder<InformNoticeNotice, InformNoticeNoticeEncoder>();
+        services.AddGameNotiMessageEncoder<PartyInviteRequestMessage, PartyInviteRequestEncoder>();
+        services.AddGameNotiMessageEncoder<PartyInviteAcceptedMessage, PartyInviteAcceptedEncoder>();
+        services.AddGameNotiMessageEncoder<PartyRealtimeMessage, PartyRealtimeEncoder>();
+        services.AddGameNotiMessageEncoder<PartyEndpointsMessage, PartyEndpointsEncoder>();
+        services.AddGameNotiMessageEncoder<PartyRosterMessage, PartyRosterEncoder>();
         services.AddGameCmdMessageEncoder<CheckCharacterNameResponse, CheckCharacterNameResponseEncoder>();
         services.AddGameCmdMessageEncoder<CreateCharacterResponse, CreateCharacterResponseEncoder>();
         services.AddGameCmdMessageEncoder<DeleteCharacterResponse, DeleteCharacterResponseEncoder>();

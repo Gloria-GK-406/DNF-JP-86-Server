@@ -1,9 +1,12 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
+using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 
 namespace Dfo.Server.Protocol.Tests.Game;
@@ -40,6 +43,38 @@ public sealed class CleanupNotificationDeliveryTests
             CancellationToken.None);
 
         Assert.Equal(["owner", "peers"], order);
+    }
+
+    [Fact]
+    public async Task Existing_owner_and_town_notices_finish_before_party_projection()
+    {
+        var order = new List<string>();
+        var sender = new RecordingSender(order);
+        var notifications = new RecordingNotifications(order);
+        var partyDelivery = new PartyNotificationDelivery(notifications);
+        var partyMember = SelectedSessionIdentity.Create(
+            new AccountId(9),
+            new CharacterId(9),
+            new NetworkConnectionId("Game:party-peer"),
+            1,
+            10011);
+
+        await new CleanupNotificationDelivery(sender, notifications, partyDelivery).DeliverAsync(
+            new SelectedSessionCleanupNotificationPlan(
+                Owner,
+                [StoreClosed],
+                [new CharacterId(9)],
+                [Departed],
+                new PartyNotificationPlan(
+                    [partyMember],
+                    ClearPartyId: 7,
+                    ClearPartyGeneration: 11,
+                    ClearPartyRevision: 3)),
+            CancellationToken.None);
+
+        Assert.Equal(["owner", "peers", "party"], order);
+        Assert.IsType<SessionCleanupAnnounced>(notifications.Published[0].Notification);
+        Assert.IsType<PartyRosterChanged>(notifications.Published[1].Notification);
     }
 
     /// <summary>What each half becomes, and that the peers are named as people.</summary>
@@ -176,7 +211,7 @@ public sealed class CleanupNotificationDeliveryTests
             CancellationToken cancellationToken)
             where TNotification : class, INotification<TNotification>
         {
-            order.Add("peers");
+            order.Add(notification is PartyRosterChanged ? "party" : "peers");
             Published.Add((audience, notification));
             return ValueTask.FromResult(new NotificationDelivery([]));
         }

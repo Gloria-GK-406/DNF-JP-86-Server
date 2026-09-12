@@ -4,23 +4,11 @@ using Dfo.Server.Protocol.Game.MapEntryReports;
 namespace Dfo.Server.Protocol.Tests.Game.RosterScreenQueries;
 
 /// <summary>
-/// The five map-entry reports, each pinned by the body the client actually sent on 2026-08-17.
+/// The remaining map-entry reports, each pinned by the body the client actually sent on 2026-08-17.
 /// </summary>
 public sealed class MapEntryReportCodecTests
 {
     private static byte[] Hex(string value) => Convert.FromHexString(value);
-
-    [Fact]
-    public void SetUdpIpPort_KeepsTheWholeBodyBecauseItsStructureIsUnknown()
-    {
-        var body = Hex("05AC1EE00101E01EAC2062C00500000C000000333065336134343865643066");
-
-        var request = (SetUdpIpPortReport)new SetUdpIpPortDecoder()
-            .Decode(GameMessageMetadata.Empty, body)!;
-
-        Assert.Equal(31, request.Body.Length);
-        Assert.Equal(body, request.Body);
-    }
 
     [Fact]
     public void InformNoticeSecond_ReadsItsSingleWord()

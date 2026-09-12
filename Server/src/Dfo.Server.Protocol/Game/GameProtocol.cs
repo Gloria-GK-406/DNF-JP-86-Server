@@ -53,6 +53,24 @@ internal static class GameProtocol
 
     public const ushort SetUdpIpPortType = 0x0002;
 
+    public const ushort RequestPeerType = 0x000A;
+
+    public const ushort ResponsePeerType = 0x000B;
+
+    public const ushort LeavePartyType = 0x000D;
+
+    public const ushort CallPartyMemberRealtimeInfoType = 0x00A6;
+
+    public const ushort PartyInviteRequestNotificationType = 0x0007;
+
+    public const ushort PartyInviteAcceptedNotificationType = 0x0008;
+
+    public const ushort PartyRosterNotificationType = 0x0009;
+
+    public const ushort PartyEndpointsNotificationType = 0x000B;
+
+    public const ushort PartyRealtimeNotificationType = 0x0099;
+
     public const ushort CeraQueryType = 0x003F;
 
     public const ushort SetUserPositionType = 0x0023;

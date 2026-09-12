@@ -289,6 +289,8 @@ public sealed class SelectCharacterProductionStateTests
             ValueTask.FromResult(true);
         public ValueTask<bool> DeclaresAreaAsync(int town, int area, CancellationToken ct) =>
             ValueTask.FromResult(true);
+        public ValueTask<bool> SharesTownPresenceAsync(int town, int area, CancellationToken ct) =>
+            ValueTask.FromResult(true);
         public ValueTask<SessionAdjacentEntryState> LoadAsync(SessionAdjacentSubject subject, CancellationToken ct) =>
             ValueTask.FromResult(SessionAdjacentEntryState.Empty);
         public void Publish(SelectedSessionIdentity session) => Published = true;

@@ -1056,6 +1056,119 @@ internal static partial class StateSynchronizationPayloadCodec
     /// </remarks>
     private const uint FullHpMpPercentOnTheWire = 100;
 
+    /// <summary>
+    /// Encodes A21 USERINFO subtype 3, the response to GET_USERINFO mode 3 for another current
+    /// character. Its prefix and trailer are not subtype one's: A21 consumes a five-byte reserved
+    /// run before the target uid and a 27-byte inspect context before the guild dstr.
+    /// </summary>
+    public static byte[] EncodeOtherCharacterDetail(
+        ActiveCharacterState character,
+        CharacterPublicEntryState publicState,
+        CharacterSkillsEntryState skills,
+        IReadOnlyList<InventoryItemState> equipment,
+        DateTimeOffset preparedAt)
+    {
+        ArgumentNullException.ThrowIfNull(character);
+        ArgumentNullException.ThrowIfNull(publicState);
+        ArgumentNullException.ThrowIfNull(skills);
+        ArgumentNullException.ThrowIfNull(equipment);
+
+        const int inspectReservedPrefixLength = 5;
+        const int inspectContextLength = 27;
+        const byte inspectGuildMarker = 0x6F;
+        var stats = publicState.DerivedStats;
+        var extras = publicState.Extras;
+
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream);
+        writer.Write((byte)3);
+        writer.Write((ushort)1);
+        writer.Write(checked((ushort)extras.ManageLevel));
+        writer.Write(new byte[inspectReservedPrefixLength]);
+        writer.Write(checked((ushort)character.Identity.CharacterId.Value));
+        writer.Write(checked((uint)extras.CharacterExperience));
+        writer.Write(DerivedStatBlockLength);
+        WriteOtherCharacterDetailCombatStats(writer, stats);
+        writer.Write(checked((byte)extras.ExtraEquipmentSlotState));
+
+        if (equipment.Count > byte.MaxValue)
+            throw CountError("inspected equipped item", "u8");
+        writer.Write(checked((byte)equipment.Count));
+        foreach (var item in equipment.OrderBy(value => value.SlotIndex))
+            WriteNoti2EquippedItem(writer, item, preparedAt);
+
+        writer.Write(publicState.CloneTitleItemId);
+        writer.Write(checked((uint)extras.NameTagItemId));
+        writer.Write(checked((uint)extras.NameTagExpireTime));
+        writer.Write(SkillTreeIndexOnTheWire(extras.SkillTreeIndex));
+        WriteOtherCharacterDetailSkillPage(writer, skills, 0);
+        WriteOtherCharacterDetailSkillPage(writer, skills, 1);
+        writer.Write(checked((byte)stats.EquippedCreatureLevel));
+
+        writer.Write(new byte[inspectContextLength]);
+        // Guild identity is not modelled yet. The empty dstr is the A21-compatible no-guild
+        // shape; level remains projected from the target's current guild standing.
+        WriteDstr(writer, []);
+        writer.Write(checked((byte)publicState.Guild.Level));
+        writer.Write((byte)0);
+        writer.Write(inspectGuildMarker);
+        writer.Write(checked((uint)extras.SpecialRewardQuestIds.Count));
+        foreach (var questId in extras.SpecialRewardQuestIds)
+            writer.Write(checked((uint)questId));
+        writer.Write((byte)0);
+        return stream.ToArray();
+    }
+
+    private static void WriteOtherCharacterDetailCombatStats(
+        BinaryWriter writer,
+        CharacterDerivedStatsStorageRecord stats)
+    {
+        writer.Write(checked((uint)stats.HpMaximum));
+        writer.Write(checked((uint)stats.MpMaximum));
+        writer.Write(checked((short)stats.PhysicalAttack));
+        writer.Write(checked((short)stats.PhysicalDefense));
+        writer.Write(checked((short)stats.MagicalAttack));
+        writer.Write(checked((short)stats.MagicalDefense));
+        writer.Write(checked((short)stats.FireResistance));
+        writer.Write(checked((short)stats.WaterResistance));
+        writer.Write(checked((short)stats.DarkResistance));
+        writer.Write(checked((short)stats.LightResistance));
+        writer.Write(new byte[32]);
+        writer.Write(UnnamedStatBeforeInventoryLimit);
+        writer.Write(checked((uint)stats.InventoryLimit));
+        writer.Write(checked((ushort)stats.HpRegenSpeed));
+        writer.Write(checked((ushort)stats.MpRegenSpeed));
+        writer.Write(checked((uint)stats.MoveSpeed));
+        writer.Write(checked((ushort)stats.AttackSpeed));
+        writer.Write(checked((ushort)stats.CastSpeed));
+        writer.Write(checked((ushort)stats.HitRecovery));
+        writer.Write(checked((ushort)stats.JumpPower));
+        writer.Write(checked((uint)stats.Weight));
+        writer.Write(FullHpMpPercentOnTheWire);
+        writer.Write((byte)0);
+        writer.Write((byte)0);
+    }
+
+    private static void WriteOtherCharacterDetailSkillPage(
+        BinaryWriter writer,
+        CharacterSkillsEntryState skills,
+        byte pageIndex)
+    {
+        var learned = skills.Pages
+            .SingleOrDefault(page => page.PageIndex == pageIndex)?.Skills
+            .Where(skill => skill.Level > 0)
+            .OrderBy(skill => skill.Slot)
+            .ToArray() ?? [];
+        if (learned.Length > byte.MaxValue)
+            throw CountError("inspected skill page", "u8");
+        writer.Write(checked((byte)learned.Length));
+        foreach (var skill in learned)
+        {
+            writer.Write(checked((ushort)skill.SkillId));
+            writer.Write(skill.Level);
+        }
+    }
+
     public static byte[] EncodeExtendedUserState(
         ActiveCharacterState character,
         CharacterPublicEntryState publicState,

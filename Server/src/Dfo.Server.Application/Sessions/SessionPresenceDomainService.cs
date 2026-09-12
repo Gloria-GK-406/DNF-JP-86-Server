@@ -34,7 +34,8 @@ internal sealed class SessionPresenceDomainService : ISessionPresenceDomainServi
         SelectedSessionIdentity session,
         byte townId,
         byte areaId,
-        bool standingInTown)
+        bool standingInTown,
+        bool sharesTownPresence = true)
     {
         while (_byCharacter.TryGetValue(session.CharacterId, out var current))
         {
@@ -45,6 +46,7 @@ internal sealed class SessionPresenceDomainService : ISessionPresenceDomainServi
                 TownId = townId,
                 AreaId = areaId,
                 StandingInTown = standingInTown,
+                SharesTownPresence = sharesTownPresence,
             };
             if (_byCharacter.TryUpdate(session.CharacterId, moved, current))
                 return true;
@@ -71,6 +73,10 @@ internal sealed class SessionPresenceDomainService : ISessionPresenceDomainServi
             // coordinates. Reporting them would place someone in a dungeon next to the
             // arriving character.
             if (!presence.StandingInTown)
+                continue;
+            // A gate is a per-character Seria room. Equal town/area bytes do not make
+            // two such records co-occupants of one visible space.
+            if (!presence.SharesTownPresence)
                 continue;
             if (listenerPort is { } port && presence.ListenerPort != port)
                 continue;

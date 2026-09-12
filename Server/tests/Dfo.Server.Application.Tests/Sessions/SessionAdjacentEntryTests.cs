@@ -44,6 +44,19 @@ public sealed class SessionAdjacentEntryTests
     }
 
     [Fact]
+    public async Task A_private_gate_room_does_not_report_another_character_with_the_same_area_ids()
+    {
+        var registry = new SessionPresenceDomainService();
+        registry.Admit(Presence(10, sharesTownPresence: false));
+        registry.Admit(Presence(11, sharesTownPresence: false));
+        var service = new SessionAdjacentEntryDomainService(registry, Stores, new PvpLobbyDomainService());
+
+        var result = await service.LoadAsync(Subject(characterId: 99), CancellationToken.None);
+
+        Assert.Empty(result.TownPresence.Others);
+    }
+
+    [Fact]
     public async Task The_entering_character_is_not_listed_among_the_others()
     {
         var registry = new SessionPresenceDomainService();
@@ -226,6 +239,9 @@ public sealed class SessionAdjacentEntryTests
         int listenerPort = 10011,
         byte townId = 1,
         byte areaId = 0,
-        bool standingInTown = true) =>
-        new(new CharacterId(characterId), listenerPort, townId, areaId, standingInTown);
+        bool standingInTown = true,
+        bool sharesTownPresence = true) =>
+        new(
+            new CharacterId(characterId), listenerPort, townId, areaId,
+            standingInTown, SharesTownPresence: sharesTownPresence);
 }

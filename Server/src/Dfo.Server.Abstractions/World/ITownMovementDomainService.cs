@@ -22,6 +22,19 @@ public interface ITownMovementDomainService
     /// </remarks>
     ValueTask<bool> DeclaresAreaAsync(int townId, int areaId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Whether characters standing in the area occupy one shared town-presence view.
+    /// </summary>
+    /// <remarks>
+    /// The archive marks the per-character Seria arrival room as <c>[gate]</c> and ordinary
+    /// public maps as <c>[normal]</c> or <c>[dungeon gate]</c>. Gate coordinates may be the
+    /// same for every connection, but they do not describe one shared room.
+    /// </remarks>
+    ValueTask<bool> SharesTownPresenceAsync(
+        int townId,
+        int areaId,
+        CancellationToken cancellationToken);
+
     /// <summary>Whether this channel serves that town.</summary>
     ValueTask<bool> CanEnterTownAsync(
         ChannelEntryIdentity channel, int townId, CancellationToken cancellationToken);

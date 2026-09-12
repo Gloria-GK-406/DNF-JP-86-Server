@@ -8,6 +8,13 @@ public sealed record GetAccountCharacterRosterRequest(
     public ClientMessageType MessageType => ClientMessageType.GameGetAccountCharacterRoster;
 }
 
+public sealed record GetOtherCharacterDetailRequest(
+    GameMessageMetadata Metadata,
+    ushort TargetWireUserId) : IClientNetworkMessage
+{
+    public ClientMessageType MessageType => ClientMessageType.GameGetOtherCharacterDetail;
+}
+
 /// <param name="AnswersRosterQuery">
 /// True when this roster answers an explicit query (GET_USERINFO, character selection), false when
 /// it is an unsolicited refresh after the roster changed.

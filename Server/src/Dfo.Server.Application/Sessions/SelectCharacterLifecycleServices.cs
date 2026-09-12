@@ -1,9 +1,11 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Sessions;
@@ -31,7 +33,8 @@ internal sealed class SelectedSessionCleanupService(
     IExpertStoreDomainService expertStores,
     IPvpLobbyDomainService pvp,
     IEnumerable<ISelectedSessionPositionPersistence> positionPersistence,
-    ICharacterPositionDomainService positions) : ISelectedSessionCleanupDomainService
+    ICharacterPositionDomainService positions,
+    IPartyDomainService parties) : ISelectedSessionCleanupDomainService
 {
     public async ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
         SelectedSessionIdentity session, bool includeOwner, CancellationToken cancellationToken)
@@ -41,6 +44,7 @@ internal sealed class SelectedSessionCleanupService(
         var audience = new List<CharacterId>();
         var peerNotices = new List<SelectedSessionCleanupNotice>();
         var required = new List<SelectedSessionCleanupNotice>();
+        var partyNotifications = PartyNotificationPlan.Empty;
         if (currentPresence?.Session == session)
         {
             // Who, in characters. Which connection each of them is on is the notification
@@ -94,6 +98,13 @@ internal sealed class SelectedSessionCleanupService(
                     session.AccountId, session.CharacterId, standing,
                     CancellationToken.None));
         }
+        Run(() =>
+        {
+            var partyCleanup = parties.CleanupSessionExact(session);
+            if (partyCleanup.Succeeded)
+                partyNotifications = partyCleanup.Notifications;
+            return partyCleanup.Succeeded;
+        });
         Run(() => expertStores.CloseExact(session));
         Run(() => presence.WithdrawExact(session));
         Run(() => pvp.ClearReadyExact(session));
@@ -116,7 +127,7 @@ internal sealed class SelectedSessionCleanupService(
             return true;
         });
         var notificationPlan = new SelectedSessionCleanupNotificationPlan(
-            session.ConnectionId, required, audience, peerNotices);
+            session.ConnectionId, required, audience, peerNotices, partyNotifications);
         if (failures.Count != 0)
             throw new SelectedSessionCleanupFailure(notificationPlan, failures);
         return notificationPlan;
@@ -242,7 +253,13 @@ internal sealed class SelectCharacterSessionEntryService(
         positions.Place(session, result.Character.Position);
         var spawn = result.World.Channel.Spawn;
         presence.Admit(new SessionPresence(
-            session.CharacterId, session.ListenerPort, spawn.TownId, spawn.AreaId, true, session));
+            session.CharacterId,
+            session.ListenerPort,
+            spawn.TownId,
+            spawn.AreaId,
+            StandingInTown: true,
+            Session: session,
+            SharesTownPresence: spawn.SharesTownPresence));
     }
 
     public void ReplaceRuntimeExact(SelectedSessionIdentity session, SelectCharacterResult result) =>

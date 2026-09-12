@@ -74,6 +74,18 @@ internal sealed class EntryPlacementRuleService(
         return town?.AreaAt(areaId) is not null;
     }
 
+    public async ValueTask<bool> SharesTownPresenceAsync(
+        int townId,
+        int areaId,
+        CancellationToken cancellationToken)
+    {
+        if (townId <= 0 || areaId < 0)
+            return false;
+
+        var town = await towns.GetAsync(townId, cancellationToken).ConfigureAwait(false);
+        return SharesTownPresence(town?.AreaAt(areaId));
+    }
+
     private async ValueTask<EntrySpawnState> ResolveTownGateSpawnAsync(
         int persistedTownId,
         CancellationToken cancellationToken)
@@ -94,7 +106,8 @@ internal sealed class EntryPlacementRuleService(
             checked((short)gate.Operand2),
             ArrivalDirection,
             ArrivalAreaState,
-            IsTransient: false);
+            IsTransient: false,
+            SharesTownPresence: SharesTownPresence(gate));
     }
 
     private async ValueTask<EntrySpawnState> ResolveTransientSpawnAsync(CancellationToken cancellationToken)
@@ -137,8 +150,12 @@ internal sealed class EntryPlacementRuleService(
             y,
             ArrivalDirection,
             ArrivalAreaState,
-            IsTransient: true);
+            IsTransient: true,
+            SharesTownPresence: SharesTownPresence(area));
     }
+
+    private static bool SharesTownPresence(TownAreaDefinition? area) =>
+        area is not null && area.Kind is not TownAreaKind.Gate;
 
     /// <summary>
     /// Finds a walkable point just outside a local exit, nearest to that exit.

@@ -1,6 +1,7 @@
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Parties;
 
 namespace Dfo.Server.Data.World;
 
@@ -138,20 +139,36 @@ public sealed record SelectedSessionCleanupNotice(
     ushort UserId);
 
 /// <remarks>
-/// Two halves that are not the same kind of thing. The owner's notices must reach one connection
-/// this code already has in hand -- it is the connection the departure is happening on. The peers
-/// are a fan-out, and they are named in characters: which connection each of them is on is not a
-/// question this plan, or the domain service that builds it, has any business answering.
+/// Three projections that are not the same kind of thing. The owner's notices must reach one
+/// connection this code already has in hand -- it is the connection the departure is happening on.
+/// Town peers are one fan-out, and the independent party plan names its own clear/refresh audiences;
+/// which connection any character is on is not a question this plan, or the domain service that
+/// builds it, has any business answering.
 /// <para>
-/// One list of notices for all the peers rather than one per peer, because they never differ.
+/// One list of town notices for all town peers rather than one per peer, because they never differ.
 /// </para>
 /// </remarks>
 public sealed record SelectedSessionCleanupNotificationPlan(
     NetworkConnectionId OwnerConnectionId,
     IReadOnlyList<SelectedSessionCleanupNotice> RequiredOwnerNotices,
     IReadOnlyList<CharacterId> PeerAudience,
-    IReadOnlyList<SelectedSessionCleanupNotice> PeerNotices)
+    IReadOnlyList<SelectedSessionCleanupNotice> PeerNotices,
+    PartyNotificationPlan PartyNotifications)
 {
+    public SelectedSessionCleanupNotificationPlan(
+        NetworkConnectionId ownerConnectionId,
+        IReadOnlyList<SelectedSessionCleanupNotice> requiredOwnerNotices,
+        IReadOnlyList<CharacterId> peerAudience,
+        IReadOnlyList<SelectedSessionCleanupNotice> peerNotices)
+        : this(
+            ownerConnectionId,
+            requiredOwnerNotices,
+            peerAudience,
+            peerNotices,
+            PartyNotificationPlan.Empty)
+    {
+    }
+
     public static SelectedSessionCleanupNotificationPlan Empty(SelectedSessionIdentity session) =>
-        new(session.ConnectionId, [], [], []);
+        new(session.ConnectionId, [], [], [], PartyNotificationPlan.Empty);
 }

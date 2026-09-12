@@ -15,6 +15,10 @@ public enum ClientMessageType
     GameShopPurchaseCount = 0x0001_02CC,
     GameLogin = 0x0001_0001,
     GameGetAccountCharacterRoster = 0x0001_0208,
+    // Synthetic catalogue identity for GET_USERINFO mode 3. The wire key remains CMD 0x0008;
+    // keeping the semantic query distinct prevents its target from entering the account-roster
+    // handler merely because both share one client opcode.
+    GameGetOtherCharacterDetail = 0x0001_0308,
     GameSelectCharacter = 0x0001_0004,
     ChannelScriptVersion = 0x05,
     ChannelScript = 0x09,
@@ -45,9 +49,19 @@ public enum ClientMessageType
     // See Game/ConnectionCheck.
     GameConnectionCheck = 0x0001_04DD,
 
-    // The map-entry report family: sent once the entry batch is accepted and the client starts
-    // loading a town. None is answered. See Game/MapEntryReports.
+    // Native town-party lifecycle commands. REQUEST/RESPONSE type zero is the party branch;
+    // other peer-request types remain deliberately outside this implementation.
+    GameRequestPeer = 0x0001_000A,
+    GameResponsePeer = 0x0001_000B,
+    GameLeaveParty = 0x0001_000D,
+    GameCallPartyMemberRealtimeInfo = 0x0001_00A6,
+
+    // SET_UDP_IP_PORT is sent with the map-entry reports, but it supplies the party endpoint and
+    // therefore belongs to the party slice rather than the fire-and-forget report family.
     GameSetUdpIpPort = 0x0001_0002,
+
+    // The remaining map-entry report family: sent once the entry batch is accepted and the client
+    // starts loading a town. None is answered. See Game/MapEntryReports.
     GameCeraQuery = 0x0001_003F,
     GameInformNoticeSecond = 0x0001_01F8,
     GameSecurityStatus = 0x0001_0252,
@@ -145,6 +159,9 @@ public enum ServerMessageType
     GameInitialConnection = 0x0000_0001,
     GameLogin = 0x0001_0001,
     GameAccountCharacterRoster = 0x0000_0002,
+    // Synthetic catalogue identity for USERINFO subtype 3. The encoder emits NOTI 0x0002, but a
+    // distinct message type keeps the current-user and inspected-user projections type-safe.
+    GameOtherCharacterDetail = 0x0000_0302,
     GameStateSynchronization = 0x7FFF_0001,
     ChannelScriptVersion = 0x06,
     ChannelScript = 0x0A,
@@ -165,6 +182,14 @@ public enum ServerMessageType
     GameConnectionCheck = 0x0001_04DD,
     GameSecurityStatusAcknowledgement = 0x0001_0252,
     GameEnterSelectDungeonAcknowledgement = 0x0001_000F,
+
+    // Native town-party NOTI payloads. These keys are type zero because they are server push
+    // notifications rather than direct replies to the C2S command keys.
+    GamePartyInviteRequest = 0x0000_0007,
+    GamePartyInviteAccepted = 0x0000_0008,
+    GamePartyRoster = 0x0000_0009,
+    GamePartyEndpoints = 0x0000_000B,
+    GamePartyRealtime = 0x0000_0099,
 
     // Pushed on every area change. See Game/TownProjection.
     GameAreaUsers = 0x0000_0018,

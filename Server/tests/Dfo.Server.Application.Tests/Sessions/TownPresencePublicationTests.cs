@@ -37,8 +37,33 @@ public sealed class TownPresencePublicationTests
         Assert.Equal((short)300, plan.State.Newcomer.Spawn.X);
     }
 
+    [Fact]
+    public async Task Private_gate_room_never_builds_a_cross_character_publication()
+    {
+        var sessions = new SelectedSessionDomainService();
+        var runtimes = new SelectedSessionRuntimeDirectory();
+        var presence = new SessionPresenceDomainService();
+        var positions = new CharacterPositionDomainService();
+        var service = new SelectCharacterSessionEntryService(
+            sessions, runtimes, presence, new PvpLobbyDomainService(), positions);
+        var first = await EntryAsync(1, 60, "Game:first", x: 100, sharesTownPresence: false);
+        var second = await EntryAsync(2, 61, "Game:second", x: 300, sharesTownPresence: false);
+
+        sessions.Select(first.Session);
+        service.Publish(first.Session, first.Result);
+        sessions.Select(second.Session);
+        service.Publish(second.Session, second.Result);
+
+        Assert.Null(service.PlanTownPublication(second.Session, second.Result));
+    }
+
     private static async ValueTask<(SelectedSessionIdentity Session, Dfo.Server.Data.Game.SelectCharacterResult Result)>
-        EntryAsync(int accountId, int characterId, string connectionId, short x)
+        EntryAsync(
+            int accountId,
+            int characterId,
+            string connectionId,
+            short x,
+            bool sharesTownPresence = true)
     {
         var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(
             new AccountId(accountId), characterId, 0);
@@ -49,6 +74,7 @@ public sealed class TownPresencePublicationTests
             X = x,
             Y = 200,
             Direction = 5,
+            SharesTownPresence = sharesTownPresence,
         };
         result = result with
         {

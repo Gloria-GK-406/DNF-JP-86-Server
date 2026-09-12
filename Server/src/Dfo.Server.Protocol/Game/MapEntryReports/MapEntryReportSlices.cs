@@ -48,23 +48,6 @@ internal static class MapEntryReportFamily
     }
 }
 
-/// <summary>
-/// CMD 0x0002 <c>SET_UDP_IP_PORT</c>. Body is 31 bytes in the only capture and its structure is
-/// unknown -- the census could not find a builder for it at all.
-/// </summary>
-/// <remarks>
-/// Its census row reads "response-handler-only (builder not found in .text; likely obfuscated
-/// region)", yet the client demonstrably sends it. That is a direct confirmation of the
-/// obfuscated-region blind spot the index documents, not a contradiction: the builder exists, it
-/// just is not in the scannable text section.
-/// </remarks>
-public sealed record SetUdpIpPortReport(
-    GameMessageMetadata Metadata,
-    byte[] Body) : IMapEntryReport
-{
-    public ClientMessageType MessageType => ClientMessageType.GameSetUdpIpPort;
-}
-
 /// <summary>CMD 0x01F8 <c>INFORM_NOTICE_2ND</c>: one <c>u32</c>, 16 in the capture.</summary>
 public sealed record InformNoticeSecondReport(
     GameMessageMetadata Metadata,
@@ -100,12 +83,6 @@ public sealed record RuntimeTingStatisticReport(
     byte Value) : IMapEntryReport
 {
     public ClientMessageType MessageType => ClientMessageType.GameRuntimeTingStatistic;
-}
-
-internal sealed class SetUdpIpPortDecoder : IGameMessageDecoder
-{
-    public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
-        new SetUdpIpPortReport(metadata, body.ToArray());
 }
 
 internal sealed class InformNoticeSecondDecoder : IGameMessageDecoder
@@ -170,7 +147,6 @@ public sealed class MapEntryReportHandler(
             context.Connection.ConnectionId, out var onlineUser) && onlineUser is not null;
         var detail = message switch
         {
-            SetUdpIpPortReport report => $"SET_UDP_IP_PORT {Convert.ToHexString(report.Body)}",
             InformNoticeSecondReport report => $"INFORM_NOTICE_2ND value={report.Value}",
             CeraQueryReport => "CERA (empty body)",
             RuntimeTingStatisticReport report => $"STATICS_RUNTIME_TING value={report.Value}",
