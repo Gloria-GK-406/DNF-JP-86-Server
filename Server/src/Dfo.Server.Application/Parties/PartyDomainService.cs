@@ -54,10 +54,12 @@ internal sealed class PartyDomainService(
                 party.Settings = settings;
                 party.Title = title;
                 party.Revision++;
+                var snapshot = Snapshot(party);
                 return PartyOperationResult.Success(new PartyNotificationPlan(
                     [],
-                    Snapshot(party),
-                    SettingsChange: PartySettingsChangeKind.Updated));
+                    snapshot,
+                    SettingsChange: PartySettingsChangeKind.Updated,
+                    TownObservers: CaptureTownObservers(snapshot, [])));
             }
 
             var createValidation = modeRules.Validate(settings, memberCount: 1);
@@ -73,10 +75,12 @@ internal sealed class PartyDomainService(
                 modeRules.MaximumCapacity);
             parties.Add(created.PartyId, created);
             membership.Add(session.WireUserId, created);
+            var createdSnapshot = Snapshot(created);
             return PartyOperationResult.Success(new PartyNotificationPlan(
                 [],
-                Snapshot(created),
-                SettingsChange: PartySettingsChangeKind.Created));
+                createdSnapshot,
+                SettingsChange: PartySettingsChangeKind.Created,
+                TownObservers: CaptureTownObservers(createdSnapshot, [])));
         }
     }
 
@@ -253,7 +257,8 @@ internal sealed class PartyDomainService(
             return PartyOperationResult.Success(new PartyNotificationPlan(
                 [],
                 snapshot,
-                Acceptance: new PartyAcceptanceNotification(invitation.Inviter, invitee)));
+                Acceptance: new PartyAcceptanceNotification(invitation.Inviter, invitee),
+                TownObservers: CaptureTownObservers(snapshot, [])));
         }
     }
 
@@ -328,6 +333,7 @@ internal sealed class PartyDomainService(
                 .Where(value => value is not null)
                 .Select(value => value!.Session)
                 .ToImmutableArray();
+            var townObservers = CaptureTownObservers(null, audience);
             foreach (var partyMember in party.Members)
             {
                 if (partyMember is not null)
@@ -338,18 +344,21 @@ internal sealed class PartyDomainService(
                 audience,
                 ClearPartyId: party.PartyId,
                 ClearPartyGeneration: party.Generation,
-                ClearPartyRevision: party.Revision));
+                ClearPartyRevision: party.Revision,
+                TownObservers: townObservers));
         }
 
         party.Members[member.Slot] = null;
         party.Revision++;
         membership.Remove(session.WireUserId);
+        var snapshot = Snapshot(party);
         return PartyOperationResult.Success(new PartyNotificationPlan(
             [session],
-            Snapshot(party),
+            snapshot,
             ClearPartyId: party.PartyId,
             ClearPartyGeneration: party.Generation,
-            ClearPartyRevision: party.Revision));
+            ClearPartyRevision: party.Revision,
+            TownObservers: CaptureTownObservers(snapshot, [session])));
     }
 
     private PartyFailureReason ValidateTownPair(
@@ -432,6 +441,48 @@ internal sealed class PartyDomainService(
             party.Settings,
             party.Title,
             members.ToImmutable());
+    }
+
+    private ImmutableArray<SelectedSessionIdentity> CaptureTownObservers(
+        PartySnapshot? snapshot,
+        ImmutableArray<SelectedSessionIdentity> clearAudience)
+    {
+        var anchors = snapshot is null
+            ? clearAudience
+            : snapshot.Members.Select(member => member.Session)
+                .Concat(clearAudience)
+                .Distinct()
+                .ToImmutableArray();
+        var excluded = snapshot is null
+            ? clearAudience.ToHashSet()
+            : snapshot.Members.Select(member => member.Session).ToHashSet();
+        var observers = new SortedDictionary<int, SelectedSessionIdentity>();
+
+        foreach (var anchor in anchors)
+        {
+            var anchorPresence = presence.Find(anchor.CharacterId);
+            if (anchorPresence?.Session != anchor
+                || anchorPresence.ListenerPort != anchor.ListenerPort
+                || !anchorPresence.StandingInTown
+                || !anchorPresence.SharesTownPresence)
+            {
+                continue;
+            }
+
+            var scope = SessionPresenceScope.VisibleTownArea(
+                anchorPresence.ListenerPort,
+                anchorPresence.TownId,
+                anchorPresence.AreaId);
+            foreach (var candidate in presence.Query(scope))
+            {
+                var observer = candidate.Session;
+                if (observer is null || excluded.Contains(observer) || !IsCurrent(observer))
+                    continue;
+                observers[observer.CharacterId.Value] = observer;
+            }
+        }
+
+        return observers.Values.ToImmutableArray();
     }
 
     private static PartyFailureReason Map(PartyModeRuleFailure failure) => failure switch

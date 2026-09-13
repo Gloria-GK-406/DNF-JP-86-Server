@@ -21,7 +21,9 @@ using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.SelectCharacter;
 using Dfo.Server.Protocol.Game.Login;
+using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Game;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -474,6 +476,32 @@ public sealed partial class SelectCharacterLifecycleTests
             Assert.IsType<NotificationAudience.TheseSessions>(audience).Sessions
                 .Select(value => value.CharacterId));
         Assert.Equal("TownParticipantPublished", notification.GetType().Name);
+
+        var partySteps = fixture.Ledger
+            .Where(value => value.StartsWith("party:", StringComparison.Ordinal))
+            .ToArray();
+        Assert.Equal(["party:501<-4243", "party:4243<-501"], partySteps);
+        var firstParty = fixture.Ledger.IndexOf(partySteps[0]);
+        Assert.Equal("pre", fixture.Ledger[firstParty - 1]);
+        Assert.Equal("target", fixture.Ledger[firstParty + 1]);
+        Assert.Equal(partySteps[1], fixture.Ledger[firstParty + 2]);
+    }
+
+    [Fact]
+    public async Task TransientTownPublicationFailureRetriesBeforeSendingPartyState()
+    {
+        var fixture = await Fixture.CreateAsync(
+            planTown: true,
+            failFirstTownPublication: true);
+
+        await fixture.Handler.HandleAsync(
+            fixture.Context, fixture.Command, CancellationToken.None);
+
+        Assert.Equal(
+            ["party:501<-4243", "party:4243<-501"],
+            fixture.Ledger
+                .Where(value => value.StartsWith("party:", StringComparison.Ordinal)));
+        Assert.Equal(2, fixture.Notifications.Published.Count);
     }
 
     [Fact]
@@ -635,7 +663,8 @@ public sealed partial class SelectCharacterLifecycleTests
             bool missingRoster = false,
             bool missingSkillMirror = false,
             bool refillCommits = false,
-            bool planTown = false)
+            bool planTown = false,
+            bool failFirstTownPublication = false)
         {
             var accountId = new AccountId(501);
             var connectionId = new NetworkConnectionId("Game:lifecycle");
@@ -692,7 +721,8 @@ public sealed partial class SelectCharacterLifecycleTests
             var sender = new RecordingSender(
                 ledger, failTrailingLocks, failPvp, failPvpTarget, failStatic, blockStatic);
             var sessionEntry = new SessionEntry(ledger, planPvp);
-            var notifications = new RecordingNotifications(ledger);
+            var notifications = new RecordingNotifications(ledger, failFirstTownPublication);
+            var partyProjection = new RecordingPartyTownProjectionDelivery(ledger);
             var transitionGate = new SelectedSessionTransitionGate();
             var preparation = refuseAdmission
                 ? null
@@ -722,6 +752,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 directory,
                 sender,
                 notifications,
+                partyProjection,
                 new NoopCleanupDelivery(),
                 closer,
                 NullLogger<SelectCharacterHandler>.Instance,
@@ -1240,8 +1271,12 @@ public sealed partial class SelectCharacterLifecycleTests
     /// meant. What became of each recipient is not this file's subject; the notification cases
     /// cover that.
     /// </remarks>
-    private sealed class RecordingNotifications(List<string> ledger) : INotificationBus
+    private sealed class RecordingNotifications(
+        List<string> ledger,
+        bool failFirstTownPublication) : INotificationBus
     {
+        private int townPublicationAttempts;
+
         public List<(NotificationAudience Audience, object Notification)> Published { get; } = [];
 
         public ValueTask<NotificationDelivery> PublishAsync<TNotification>(
@@ -1252,7 +1287,18 @@ public sealed partial class SelectCharacterLifecycleTests
         {
             ledger.Add("target");
             Published.Add((audience, notification));
-            return ValueTask.FromResult(new NotificationDelivery([]));
+            var attempts = audience is NotificationAudience.TheseSessions exact
+                ? exact.Sessions.Select(session =>
+                    new NotificationAttempt(
+                        session.CharacterId,
+                        failFirstTownPublication
+                            && notification is TownParticipantPublished
+                            && Interlocked.Increment(ref townPublicationAttempts) == 1
+                            ? NotificationOutcome.Failed
+                            : NotificationOutcome.Delivered))
+                    .ToArray()
+                : [];
+            return ValueTask.FromResult(new NotificationDelivery(attempts));
         }
     }
 
@@ -1267,6 +1313,21 @@ public sealed partial class SelectCharacterLifecycleTests
         public ValueTask DeliverAsync(
             SelectedSessionCleanupNotificationPlan plan, CancellationToken cancellationToken) =>
             ValueTask.CompletedTask;
+    }
+
+    private sealed class RecordingPartyTownProjectionDelivery(List<string> ledger)
+        : IPartyTownProjectionDelivery
+    {
+        public ValueTask RefreshObservedPartiesAsync(
+            IReadOnlyList<SelectedSessionIdentity> recipients,
+            IReadOnlyList<SelectedSessionIdentity> representedSessions,
+            CancellationToken cancellationToken)
+        {
+            ledger.Add(
+                $"party:{string.Join(',', recipients.Select(value => value.CharacterId.Value))}"
+                + $"<-{string.Join(',', representedSessions.Select(value => value.CharacterId.Value))}");
+            return ValueTask.CompletedTask;
+        }
     }
 
     private sealed class RecordingCloser(List<string> ledger) : INetworkConnectionCloser

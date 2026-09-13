@@ -10,6 +10,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.DungeonSelection;
+using Dfo.Server.Protocol.Game.Party;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.TownProjection;
@@ -223,6 +224,7 @@ public sealed class SetUserAreaHandler(
     ITownMovementDomainService towns,
     IGameMessageSender sender,
     INotificationBus notifications,
+    IPartyTownProjectionDelivery partyTownProjection,
     ILogger<SetUserAreaHandler> logger) : ClientMessageHandler<SetUserAreaRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -386,6 +388,14 @@ public sealed class SetUserAreaHandler(
                 []),
             cancellationToken).ConfigureAwait(false);
 
+        if (newAudience.Count > 0)
+        {
+            await partyTownProjection.RefreshObservedPartiesAsync(
+                [session],
+                newAudience,
+                cancellationToken).ConfigureAwait(false);
+        }
+
         if (oldAudience.Length > 0)
         {
             await notifications.PublishAsync(
@@ -395,10 +405,18 @@ public sealed class SetUserAreaHandler(
         }
         if (!sameArea && newAudience.Count > 0 && state is not null)
         {
-            await notifications.PublishAsync(
-                new NotificationAudience.TheseSessions(newAudience),
+            var publication = await PartyExactNotificationDelivery.PublishWithRetryAsync(
+                notifications,
+                newAudience,
                 new TownParticipantPublished(state),
                 cancellationToken).ConfigureAwait(false);
+            if (!publication.Delivered.IsEmpty)
+            {
+                await partyTownProjection.RefreshObservedPartiesAsync(
+                    publication.Delivered,
+                    [session],
+                    cancellationToken).ConfigureAwait(false);
+            }
         }
     }
 

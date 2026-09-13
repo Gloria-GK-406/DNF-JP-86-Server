@@ -23,6 +23,7 @@ public sealed class SelectedSessionPartyCleanupTests
         var fixture = new Fixture();
         var leader = fixture.Admit(1);
         var member = fixture.Admit(2);
+        var observer = fixture.Admit(3);
         fixture.Form(leader, member);
 
         var plan = await fixture.Cleanup.CleanupAsync(
@@ -36,6 +37,9 @@ public sealed class SelectedSessionPartyCleanupTests
         Assert.Equal(
             [leader.WireUserId],
             survivors.Members.Select(value => value.Session.WireUserId));
+        Assert.Equal(
+            [member.WireUserId, observer.WireUserId],
+            plan.PartyNotifications.TownObservers.Select(value => value.WireUserId));
         Assert.Null(fixture.Parties.FindParty(member));
         Assert.NotNull(fixture.Parties.FindParty(leader));
     }
@@ -46,6 +50,7 @@ public sealed class SelectedSessionPartyCleanupTests
         var fixture = new Fixture();
         var leader = fixture.Admit(1);
         var member = fixture.Admit(2);
+        var observer = fixture.Admit(3);
         fixture.Form(leader, member);
 
         var plan = await fixture.Cleanup.CleanupAsync(
@@ -55,6 +60,9 @@ public sealed class SelectedSessionPartyCleanupTests
         Assert.Equal(
             [leader.WireUserId, member.WireUserId],
             plan.PartyNotifications.ClearAudience.Select(value => value.WireUserId));
+        Assert.Equal(
+            [observer.WireUserId],
+            plan.PartyNotifications.TownObservers.Select(value => value.WireUserId));
         Assert.Null(fixture.Parties.FindParty(leader));
         Assert.Null(fixture.Parties.FindParty(member));
     }

@@ -73,8 +73,8 @@ public sealed class PartyCommandHandlerTests
         Assert.IsType<QueryPartyRealtimeCommand>(Assert.Single(commands.Commands));
         var publication = Assert.Single(published.Publications);
         Assert.IsType<PartyRealtimeChanged>(publication.Notification);
-        var audience = Assert.IsType<NotificationAudience.TheseCharacters>(publication.Audience);
-        Assert.Equal([Inviter.CharacterId], audience.CharacterIds);
+        var audience = Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience);
+        Assert.Equal([Inviter], audience.Sessions);
     }
 
     [Fact]

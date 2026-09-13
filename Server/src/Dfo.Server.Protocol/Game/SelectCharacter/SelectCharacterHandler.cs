@@ -13,6 +13,7 @@ using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Microsoft.Extensions.Logging;
 
@@ -60,6 +61,7 @@ public sealed class SelectCharacterHandler(
     ISelectedSessionDomainService selectedSessions,
     IGameMessageSender sender,
     INotificationBus notifications,
+    IPartyTownProjectionDelivery partyTownProjection,
     ICleanupNotificationDelivery cleanupDelivery,
     INetworkConnectionCloser closer,
     ILogger<SelectCharacterHandler> logger,
@@ -282,10 +284,23 @@ public sealed class SelectCharacterHandler(
                     []),
                 cancellationToken).ConfigureAwait(false);
             EnsureCurrent(session);
-            await notifications.PublishAsync(
-                new NotificationAudience.TheseSessions(town.Audience),
+            await partyTownProjection.RefreshObservedPartiesAsync(
+                [session],
+                town.Audience,
+                cancellationToken).ConfigureAwait(false);
+            EnsureCurrent(session);
+            var townDelivery = await PartyExactNotificationDelivery.PublishWithRetryAsync(
+                notifications,
+                town.Audience,
                 new TownParticipantPublished(town.State),
                 cancellationToken).ConfigureAwait(false);
+            if (!townDelivery.Delivered.IsEmpty)
+            {
+                await partyTownProjection.RefreshObservedPartiesAsync(
+                    townDelivery.Delivered,
+                    [session],
+                    cancellationToken).ConfigureAwait(false);
+            }
         }
         EnsureCurrent(session);
         if (SendsFramesAfterTheCompletionMarker && publication.PvpLobby is { } pvp)

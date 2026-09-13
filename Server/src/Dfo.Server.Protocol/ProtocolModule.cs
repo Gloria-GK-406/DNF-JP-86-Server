@@ -108,7 +108,9 @@ public sealed class ProtocolModule : IServerModule
         services.AddNotificationHandler<ShopPurchaseCountsReported, ShopPurchaseCountsReportedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ItemSaleCompleted, ItemSaleCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ItemDiscardCompleted, ItemDiscardCompletedHandler>(retryLimit: 0);
+        services.TryAddSingleton<PartyProjectionStreamRegistry>();
         services.TryAddSingleton<PartyNotificationDelivery>();
+        services.TryAddSingleton<IPartyTownProjectionDelivery, PartyTownProjectionDelivery>();
         services.AddNotificationHandler<PartyInviteIssued, PartyInviteIssuedHandler>(retryLimit: 0);
         services.AddNotificationHandler<PartyRealtimeChanged, PartyRealtimeChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<PartyInviteAccepted, PartyInviteAcceptedHandler>(retryLimit: 0);
@@ -125,7 +127,9 @@ public sealed class ProtocolModule : IServerModule
             // has been gone for a second -- the notice would arrive as news about nobody.
             retryLimit: 0);
         services.AddNotificationHandler<TownParticipantPublished, TownParticipantPublishedHandler>(
-            retryLimit: 1);
+            // Party projection must follow the successful 0x0002 attempt. Its orchestrator retries
+            // both exact phases together; a detached generic retry could only resend 0x0002.
+            retryLimit: 0);
         services.AddNotificationHandler<TownPositionChanged, TownPositionChangedHandler>(
             retryLimit: 0);
         services.AddNotificationHandler<TownParticipantDeparted, TownParticipantDepartedHandler>(

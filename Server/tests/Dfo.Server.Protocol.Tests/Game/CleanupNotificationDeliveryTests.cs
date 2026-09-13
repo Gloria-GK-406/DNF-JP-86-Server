@@ -58,6 +58,12 @@ public sealed class CleanupNotificationDeliveryTests
             new NetworkConnectionId("Game:party-peer"),
             1,
             10011);
+        var townObserver = SelectedSessionIdentity.Create(
+            new AccountId(10),
+            new CharacterId(10),
+            new NetworkConnectionId("Game:party-observer"),
+            1,
+            10011);
 
         await new CleanupNotificationDelivery(sender, notifications, partyDelivery).DeliverAsync(
             new SelectedSessionCleanupNotificationPlan(
@@ -69,12 +75,14 @@ public sealed class CleanupNotificationDeliveryTests
                     [partyMember],
                     ClearPartyId: 7,
                     ClearPartyGeneration: 11,
-                    ClearPartyRevision: 3)),
+                    ClearPartyRevision: 3,
+                    TownObservers: [townObserver])),
             CancellationToken.None);
 
-        Assert.Equal(["owner", "peers", "party"], order);
+        Assert.Equal(["owner", "peers", "party", "party"], order);
         Assert.IsType<SessionCleanupAnnounced>(notifications.Published[0].Notification);
         Assert.IsType<PartyRosterChanged>(notifications.Published[1].Notification);
+        Assert.IsType<PartyRosterChanged>(notifications.Published[2].Notification);
     }
 
     /// <summary>What each half becomes, and that town peers keep their sampled sessions.</summary>

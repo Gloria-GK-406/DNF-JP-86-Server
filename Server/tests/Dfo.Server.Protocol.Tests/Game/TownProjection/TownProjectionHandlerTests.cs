@@ -14,6 +14,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonSelection;
+using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
@@ -63,6 +64,7 @@ public sealed class TownProjectionHandlerTests
             new EveryTownDeclared(),
             sender,
             notifications,
+            new NoopPartyTownProjectionDelivery(),
             NullLogger<SetUserAreaHandler>.Instance);
 
         await handler.HandleAsync(
@@ -171,8 +173,10 @@ public sealed class TownProjectionHandlerTests
             CrossedAreaId,
             StandingInTown: true,
             otherListenerNewPeer));
-        var sender = new RecordingSender();
-        var notifications = new RecordingNotifications();
+        var order = new List<string>();
+        var sender = new RecordingSender(order);
+        var notifications = new RecordingNotifications(order);
+        var partyProjection = new RecordingPartyTownProjectionDelivery(order);
         var handler = new SetUserAreaHandler(
             sessions,
             runtimes,
@@ -182,6 +186,7 @@ public sealed class TownProjectionHandlerTests
             new EveryTownDeclared(),
             sender,
             notifications,
+            partyProjection,
             NullLogger<SetUserAreaHandler>.Instance);
 
         await handler.HandleAsync(
@@ -219,6 +224,15 @@ public sealed class TownProjectionHandlerTests
             message => Assert.IsType<UserVisibilityMessage>(message),
             message => Assert.IsType<UserAreaNotification>(message),
             message => Assert.IsType<AreaUsersNotification>(message));
+        Assert.Equal(
+            [
+                "town-direct",
+                "party:60<-62",
+                "notify:TownParticipantDeparted",
+                "notify:TownParticipantPublished",
+                "party:62<-60",
+            ],
+            order);
     }
 
     /// <summary>
@@ -580,7 +594,7 @@ public sealed class TownProjectionHandlerTests
             ValueTask.FromResult(areaId != 0);
     }
 
-    private sealed class RecordingSender : IGameMessageSender
+    private sealed class RecordingSender(List<string>? order = null) : IGameMessageSender
     {
         public List<IGameServerMessage> Sent { get; } = [];
 
@@ -603,11 +617,12 @@ public sealed class TownProjectionHandlerTests
             CancellationToken cancellationToken)
         {
             this.Sent.AddRange(delivery.RequiredDirectMessages);
+            order?.Add("town-direct");
             return ValueTask.CompletedTask;
         }
     }
 
-    private sealed class RecordingNotifications : INotificationBus
+    private sealed class RecordingNotifications(List<string>? order = null) : INotificationBus
     {
         public List<(NotificationAudience Audience, object Notification)> Published { get; } = [];
 
@@ -618,7 +633,36 @@ public sealed class TownProjectionHandlerTests
             where TNotification : class, INotification<TNotification>
         {
             Published.Add((audience, notification));
-            return ValueTask.FromResult(new NotificationDelivery([]));
+            order?.Add($"notify:{notification.GetType().Name}");
+            var attempts = audience is NotificationAudience.TheseSessions exact
+                ? exact.Sessions.Select(session =>
+                    new NotificationAttempt(session.CharacterId, NotificationOutcome.Delivered))
+                    .ToArray()
+                : [];
+            return ValueTask.FromResult(new NotificationDelivery(attempts));
         }
+    }
+
+    private sealed class RecordingPartyTownProjectionDelivery(List<string> order)
+        : IPartyTownProjectionDelivery
+    {
+        public ValueTask RefreshObservedPartiesAsync(
+            IReadOnlyList<SelectedSessionIdentity> recipients,
+            IReadOnlyList<SelectedSessionIdentity> representedSessions,
+            CancellationToken cancellationToken)
+        {
+            order.Add(
+                $"party:{string.Join(',', recipients.Select(value => value.CharacterId.Value))}"
+                + $"<-{string.Join(',', representedSessions.Select(value => value.CharacterId.Value))}");
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class NoopPartyTownProjectionDelivery : IPartyTownProjectionDelivery
+    {
+        public ValueTask RefreshObservedPartiesAsync(
+            IReadOnlyList<SelectedSessionIdentity> recipients,
+            IReadOnlyList<SelectedSessionIdentity> representedSessions,
+            CancellationToken cancellationToken) => ValueTask.CompletedTask;
     }
 }

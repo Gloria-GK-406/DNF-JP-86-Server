@@ -106,7 +106,7 @@
 | `0x00` NOTI | `0x001A` | UDP 主机通告 | Notification | 实现服务端功能 | [NOTI-0x001A.md](game/server-to-client/NOTI-0x001A.md) |
 | `0x00` NOTI | `0x001B` | 进图选择状态 | Notification | 实现服务端功能（A21：37 字节，随 `0x0010` 的回包发） | [NOTI-0x001B.md](game/server-to-client/NOTI-0x001B.md) |
 | `0x00` NOTI | `0x007C` | `ENTER_GAMEWORLD_COMPLETE` | **阶段闸点** | 双向验证结束 | [NOTI-0x007C.md](game/server-to-client/NOTI-0x007C.md) |
-| `0x00` NOTI | `0x0009` | `PARTY_INFO` | Notification / baseline、refresh、settings、clear | ClientVerified（A21 type-0 refresh、type-1 18B 设置、普通成员/队长解散 clear；其余分支见专页） | [NOTI-0x0009.md](game/server-to-client/NOTI-0x0009.md) |
+| `0x00` NOTI | `0x0009` | `PARTY_INFO` | Notification / baseline、refresh、settings、clear | ClientVerified（A21 成员 refresh/settings/clear）；town-visible 非成员投影已实现，ID `0x11` 待实机 | [NOTI-0x0009.md](game/server-to-client/NOTI-0x0009.md) |
 | `0x00` NOTI | `0x000B` | `USER_UDP_IP_PORT` | Notification / 队员 P2P 端点 | Implemented（双端已上报建队 UI 通过；待逐帧归因/回落/P2P） | [NOTI-0x000B.md](game/server-to-client/NOTI-0x000B.md) |
 | `0x00` NOTI | `0x0099` | `PARTY_MEMBER_REALTIME_INFO` | Notification / 队员实时摘要 | ClientVerified（A21 双端初始 HP） | [NOTI-0x0099.md](game/server-to-client/NOTI-0x0099.md) |
 | `0x00` NOTI | `0x000E` | `UPDATE_ITEM_LIST` | Notification | 实现服务端功能（两个调用方：当日补给的真实增量、翻牌到货；批次里的空信封已撤） | [NOTI-0x000E.md](game/server-to-client/NOTI-0x000E.md) |

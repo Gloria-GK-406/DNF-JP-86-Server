@@ -155,7 +155,8 @@ public sealed record PartyNotificationPlan(
     ushort? ClearPartyId = null,
     long? ClearPartyGeneration = null,
     long? ClearPartyRevision = null,
-    PartySettingsChangeKind? SettingsChange = null)
+    PartySettingsChangeKind? SettingsChange = null,
+    ImmutableArray<SelectedSessionIdentity> TownObservers = default)
 {
     public static PartyNotificationPlan Empty { get; } = new([]);
 }

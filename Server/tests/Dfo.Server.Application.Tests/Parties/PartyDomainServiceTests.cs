@@ -32,6 +32,109 @@ public sealed class PartyDomainServiceTests
     }
 
     [Fact]
+    public void SettingsMutationsFreezeOnlyCurrentVisibleNonMemberSessionsInCharacterOrder()
+    {
+        var fixture = new PartyFixture();
+        var leader = fixture.Admit(1, 101);
+        var laterObserver = fixture.Admit(5, 505);
+        var earlierObserver = fixture.Admit(3, 303);
+        var otherArea = fixture.Admit(4, 404);
+        var otherTown = fixture.Admit(6, 606);
+        var otherChannel = fixture.Admit(7, 707, listenerPort: 10012);
+        var notStanding = fixture.Admit(8, 808);
+        var notSharing = fixture.Admit(9, 909);
+        var stalePresence = fixture.Admit(10, 1001);
+
+        Assert.True(fixture.Presence.RelocateExact(
+            otherArea, townId: 1, areaId: 2, standingInTown: true));
+        Assert.True(fixture.Presence.RelocateExact(
+            otherTown, townId: 2, areaId: 1, standingInTown: true));
+        Assert.True(fixture.Presence.RelocateExact(
+            notStanding, townId: 1, areaId: 1, standingInTown: false));
+        Assert.True(fixture.Presence.RelocateExact(
+            notSharing, townId: 1, areaId: 1, standingInTown: true,
+            sharesTownPresence: false));
+        fixture.ReplaceSelectionOnly(stalePresence, generation: 2);
+
+        var settings = new PartyModeRuleService().DefaultSettings;
+        var created = fixture.Parties.CreateOrUpdateSettingsExact(
+            leader, settings, PartyTitle.Empty);
+        var updated = fixture.Parties.CreateOrUpdateSettingsExact(
+            leader, settings, PartyTitle.Empty);
+
+        Assert.True(created.Succeeded);
+        Assert.True(updated.Succeeded);
+        var expected = new[] { earlierObserver, laterObserver };
+        Assert.False(created.Notifications.TownObservers.IsDefault);
+        Assert.Equal(expected, created.Notifications.TownObservers);
+        Assert.False(updated.Notifications.TownObservers.IsDefault);
+        Assert.Equal(expected, updated.Notifications.TownObservers);
+        Assert.DoesNotContain(leader, created.Notifications.TownObservers);
+        Assert.DoesNotContain(otherArea, created.Notifications.TownObservers);
+        Assert.DoesNotContain(otherTown, created.Notifications.TownObservers);
+        Assert.DoesNotContain(otherChannel, created.Notifications.TownObservers);
+        Assert.DoesNotContain(notStanding, created.Notifications.TownObservers);
+        Assert.DoesNotContain(notSharing, created.Notifications.TownObservers);
+        Assert.DoesNotContain(stalePresence, created.Notifications.TownObservers);
+    }
+
+    [Fact]
+    public void AcceptFreezesTheObserverUnionAroundAllCurrentPartyMembers()
+    {
+        var fixture = new PartyFixture();
+        var leader = fixture.Admit(1, 101);
+        var existingMember = fixture.Admit(2, 202);
+        fixture.Form(leader, existingMember);
+        Assert.True(fixture.Presence.RelocateExact(
+            existingMember, townId: 1, areaId: 2, standingInTown: true));
+
+        var firstAreaObserver = fixture.Admit(4, 404);
+        var secondAreaObserver = fixture.Admit(5, 505);
+        Assert.True(fixture.Presence.RelocateExact(
+            secondAreaObserver, townId: 1, areaId: 2, standingInTown: true));
+        var invitee = fixture.Admit(3, 303);
+
+        Assert.True(fixture.Parties.RequestInvite(
+            leader, invitee.WireUserId, Profile(1)).Succeeded);
+        var accepted = fixture.Parties.AcceptInvite(invitee, leader.WireUserId);
+
+        Assert.True(accepted.Succeeded);
+        Assert.Equal(
+            new[] { firstAreaObserver, secondAreaObserver },
+            accepted.Notifications.TownObservers);
+        Assert.DoesNotContain(leader, accepted.Notifications.TownObservers);
+        Assert.DoesNotContain(existingMember, accepted.Notifications.TownObservers);
+        Assert.DoesNotContain(invitee, accepted.Notifications.TownObservers);
+    }
+
+    [Fact]
+    public void LeaveAndDisbandFreezeThePostMutationObserverAudience()
+    {
+        var fixture = new PartyFixture();
+        var leader = fixture.Admit(1, 101);
+        var member = fixture.Admit(2, 202);
+        var townObserver = fixture.Admit(3, 303);
+        fixture.Form(leader, member);
+
+        var memberLeave = fixture.Parties.LeavePartyExact(member);
+
+        Assert.True(memberLeave.Succeeded);
+        Assert.Equal(
+            new[] { member, townObserver },
+            memberLeave.Notifications.TownObservers);
+
+        fixture.Form(leader, member);
+        var disband = fixture.Parties.LeavePartyExact(leader);
+
+        Assert.True(disband.Succeeded);
+        Assert.Equal(
+            new[] { townObserver },
+            disband.Notifications.TownObservers);
+        Assert.DoesNotContain(leader, disband.Notifications.TownObservers);
+        Assert.DoesNotContain(member, disband.Notifications.TownObservers);
+    }
+
+    [Fact]
     public void EndpointUpdateRequiresAValidEndpointAndTheCurrentExactSession()
     {
         var fixture = new PartyFixture();
@@ -367,6 +470,19 @@ public sealed class PartyDomainServiceTests
             Presence.Admit(new SessionPresence(
                 replacement.CharacterId, replacement.ListenerPort, TownId: 1, AreaId: 1,
                 StandingInTown: true, replacement));
+            return replacement;
+        }
+
+        public SelectedSessionIdentity ReplaceSelectionOnly(
+            SelectedSessionIdentity old,
+            long generation)
+        {
+            var replacement = Session(
+                old.AccountId.Value,
+                old.CharacterId.Value,
+                generation,
+                old.ListenerPort);
+            Sessions.Select(replacement);
             return replacement;
         }
 

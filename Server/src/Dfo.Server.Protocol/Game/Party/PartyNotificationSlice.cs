@@ -288,13 +288,20 @@ public sealed record PartySettingsChanged(PartySnapshot Snapshot)
 
 public sealed record PartyRosterChanged(
     PartySnapshot? Snapshot,
-    ImmutableArray<SelectedSessionIdentity> ClearAudience,
+    ImmutableArray<SelectedSessionIdentity> ExactAudience,
     ushort? ClearPartyId) : INotification<PartyRosterChanged>
 {
     public bool ClearsParty => Snapshot is null;
 
     public static PartyRosterChanged Refresh(PartySnapshot snapshot) =>
-        new(snapshot ?? throw new ArgumentNullException(nameof(snapshot)), [], null);
+        Refresh(
+            snapshot ?? throw new ArgumentNullException(nameof(snapshot)),
+            snapshot.Members.Select(member => member.Session).ToImmutableArray());
+
+    public static PartyRosterChanged Refresh(
+        PartySnapshot snapshot,
+        ImmutableArray<SelectedSessionIdentity> audience) =>
+        new(snapshot ?? throw new ArgumentNullException(nameof(snapshot)), audience, null);
 
     public static PartyRosterChanged Clear(
         ImmutableArray<SelectedSessionIdentity> audience,
@@ -386,18 +393,20 @@ public sealed class PartyRosterChangedHandler(ISelectedSessionDomainService sess
     {
         if (notification.Snapshot is { } snapshot)
         {
+            var refreshExact = notification.ExactAudience.Any(session =>
+                PartyNotificationProjection.IsExact(recipient, session, sessions));
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(
-                PartyNotificationProjection.IsExactMember(recipient, snapshot, sessions)
+                refreshExact
                     ? [PartyRosterMessage.Refresh(snapshot)]
                     : []);
         }
 
         if (notification.ClearPartyId is not { } partyId)
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
-        var exact = notification.ClearAudience.Any(session =>
+        var clearExact = notification.ExactAudience.Any(session =>
             PartyNotificationProjection.IsExact(recipient, session, sessions));
         return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(
-            exact ? [PartyRosterMessage.Clear(partyId)] : []);
+            clearExact ? [PartyRosterMessage.Clear(partyId)] : []);
     }
 }
 
@@ -414,9 +423,79 @@ public sealed class PartySettingsChangedHandler(ISelectedSessionDomainService se
                 : []);
 }
 
-public sealed class PartyNotificationDelivery(INotificationBus notifications)
+public sealed class PartyProjectionStreamRegistry
 {
-    private readonly ConcurrentDictionary<long, PartyDeliveryStream> partyStreams = [];
+    private readonly ConcurrentDictionary<long, PartyDeliveryStream> streams = [];
+    // A character can cross from one party generation to another. Generation gates cannot order
+    // that transition by themselves, so every full mutation/read-repair also owns the affected
+    // character gates in stable order until its state-shaped sends finish.
+    private readonly ConcurrentDictionary<int, SemaphoreSlim> participantGates = [];
+
+    internal PartyDeliveryStream GetOrAdd(long generation) =>
+        streams.GetOrAdd(generation, static _ => new PartyDeliveryStream());
+
+    internal async ValueTask<IDisposable> EnterParticipantsAsync(
+        IEnumerable<SelectedSessionIdentity> participants,
+        CancellationToken cancellationToken)
+    {
+        var gates = participants
+            .Select(participant => participant.CharacterId.Value)
+            .Distinct()
+            .Order()
+            .Select(characterId => participantGates.GetOrAdd(
+                characterId, static _ => new SemaphoreSlim(1, 1)))
+            .ToArray();
+        var acquired = 0;
+        try
+        {
+            for (; acquired < gates.Length; acquired++)
+                await gates[acquired].WaitAsync(cancellationToken).ConfigureAwait(false);
+            return new PartyParticipantLease(gates);
+        }
+        catch
+        {
+            for (var index = acquired - 1; index >= 0; index--)
+                gates[index].Release();
+            throw;
+        }
+    }
+}
+
+internal sealed class PartyParticipantLease(SemaphoreSlim[] gates) : IDisposable
+{
+    private SemaphoreSlim[]? held = gates;
+
+    public void Dispose()
+    {
+        var releasing = Interlocked.Exchange(ref held, null);
+        if (releasing is null)
+            return;
+        for (var index = releasing.Length - 1; index >= 0; index--)
+            releasing[index].Release();
+    }
+}
+
+internal sealed class PartyDeliveryStream
+{
+    // Streams intentionally retain their final revision as a tombstone: a delayed caller from
+    // a disbanded generation must never resurrect its older roster after the clear.
+    public SemaphoreSlim Gate { get; } = new(1, 1);
+
+    public long LatestRevision { get; set; }
+
+    public HashSet<SelectedSessionIdentity> CurrentMembers { get; } = [];
+
+    public HashSet<SelectedSessionIdentity> FullStateMembers { get; } = [];
+}
+
+public sealed class PartyNotificationDelivery(
+    INotificationBus notifications,
+    PartyProjectionStreamRegistry streams)
+{
+    internal PartyNotificationDelivery(INotificationBus notifications)
+        : this(notifications, new PartyProjectionStreamRegistry())
+    {
+    }
 
     public async ValueTask DeliverAsync(
         PartyNotificationPlan plan,
@@ -426,8 +505,9 @@ public sealed class PartyNotificationDelivery(INotificationBus notifications)
         ValidatePlanShape(plan);
         if (plan.Invitation is { } invitation)
         {
-            await notifications.PublishAsync(
-                Audience([invitation.Target]),
+            await PartyExactNotificationDelivery.PublishWithRetryAsync(
+                notifications,
+                [invitation.Target],
                 new PartyInviteIssued(invitation),
                 cancellationToken).ConfigureAwait(false);
         }
@@ -435,7 +515,9 @@ public sealed class PartyNotificationDelivery(INotificationBus notifications)
         if (!TryGetPartyVersion(plan, out var generation, out var revision))
             return;
 
-        var stream = partyStreams.GetOrAdd(generation, static _ => new PartyDeliveryStream());
+        using var participantLease = await streams.EnterParticipantsAsync(
+            PlanParticipants(plan), cancellationToken).ConfigureAwait(false);
+        var stream = streams.GetOrAdd(generation);
         await stream.Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -449,20 +531,24 @@ public sealed class PartyNotificationDelivery(INotificationBus notifications)
                 var staleClearAudience = plan.ClearAudience
                     .Where(session => !stream.CurrentMembers.Contains(session))
                     .ToImmutableArray();
-                await DeliverStaleSideEffectsAsync(
+                var delivered = await DeliverStaleSideEffectsAsync(
                     plan,
                     staleClearAudience,
                     stream.CurrentMembers,
                     cancellationToken).ConfigureAwait(false);
-                stream.FullStateMembers.ExceptWith(staleClearAudience);
+                if (delivered)
+                    stream.FullStateMembers.ExceptWith(staleClearAudience);
                 return;
             }
-            stream.LatestRevision = revision;
             var promoteSettingsUpdate = plan.SettingsChange == PartySettingsChangeKind.Updated
                 && plan.Snapshot!.Members.Any(
                     member => !stream.FullStateMembers.Contains(member.Session));
-            await DeliverPartyStateAsync(plan, promoteSettingsUpdate, cancellationToken)
-                .ConfigureAwait(false);
+            var stateDelivered = await DeliverPartyStateAsync(
+                plan, promoteSettingsUpdate, cancellationToken).ConfigureAwait(false);
+            if (!stateDelivered)
+                return;
+
+            stream.LatestRevision = revision;
             if (plan.Snapshot is { } latestSnapshot)
             {
                 stream.CurrentMembers.Clear();
@@ -491,7 +577,7 @@ public sealed class PartyNotificationDelivery(INotificationBus notifications)
     /// Answers one member's explicit realtime query without broadcasting another refresh to the
     /// whole party. The shared generation stream keeps a delayed old query behind or below a newer
     /// roster revision, while equal revisions remain answerable because HP can change independently
-    /// of party membership.
+    /// of party membership. A requester-only answer never advances the full-mutation watermark.
     /// </summary>
     public async ValueTask DeliverRealtimeAsync(
         SelectedSessionIdentity requester,
@@ -500,16 +586,15 @@ public sealed class PartyNotificationDelivery(INotificationBus notifications)
     {
         ArgumentNullException.ThrowIfNull(requester);
         ArgumentNullException.ThrowIfNull(snapshot);
-        var stream = partyStreams.GetOrAdd(
-            snapshot.Generation, static _ => new PartyDeliveryStream());
+        var stream = streams.GetOrAdd(snapshot.Generation);
         await stream.Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             if (snapshot.Revision < stream.LatestRevision)
                 return;
-            stream.LatestRevision = Math.Max(stream.LatestRevision, snapshot.Revision);
-            await notifications.PublishAsync(
-                Audience([requester]),
+            await PartyExactNotificationDelivery.PublishWithRetryAsync(
+                notifications,
+                [requester],
                 new PartyRealtimeChanged(snapshot),
                 cancellationToken).ConfigureAwait(false);
         }
@@ -519,7 +604,7 @@ public sealed class PartyNotificationDelivery(INotificationBus notifications)
         }
     }
 
-    private async ValueTask DeliverPartyStateAsync(
+    private async ValueTask<bool> DeliverPartyStateAsync(
         PartyNotificationPlan plan,
         bool promoteSettingsUpdate,
         CancellationToken cancellationToken)
@@ -528,91 +613,159 @@ public sealed class PartyNotificationDelivery(INotificationBus notifications)
         if (plan.SettingsChange == PartySettingsChangeKind.Updated && !promoteSettingsUpdate)
         {
             var settingsSnapshot = plan.Snapshot!;
-            await notifications.PublishAsync(
-                Audience(settingsSnapshot.Members.Select(value => value.Session)),
+            var settingsDelivery = await PartyExactNotificationDelivery.PublishWithRetryAsync(
+                notifications,
+                settingsSnapshot.Members.Select(value => value.Session),
                 new PartySettingsChanged(settingsSnapshot),
                 cancellationToken).ConfigureAwait(false);
-            return;
+            return !settingsDelivery.HasFailures
+                && await DeliverObserverStateAsync(plan, cancellationToken).ConfigureAwait(false);
         }
 
-        await DeliverClearAsync(
+        if (!await DeliverClearAsync(
             plan.ClearAudience,
             plan.ClearPartyId,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken).ConfigureAwait(false))
+        {
+            return false;
+        }
 
         if (plan.Snapshot is not { } snapshot)
-            return;
+            return await DeliverObserverStateAsync(plan, cancellationToken).ConfigureAwait(false);
 
-        var memberAudience = Audience(snapshot.Members.Select(value => value.Session));
-        await notifications.PublishAsync(
+        var memberAudience = snapshot.Members.Select(value => value.Session).ToImmutableArray();
+        var realtimeDelivery = await PartyExactNotificationDelivery.PublishWithRetryAsync(
+            notifications,
             memberAudience,
             new PartyRealtimeChanged(snapshot),
             cancellationToken).ConfigureAwait(false);
+        if (realtimeDelivery.HasFailures)
+            return false;
         if (plan.Acceptance is { } acceptance)
         {
-            await DeliverAcceptanceAsync(acceptance, cancellationToken).ConfigureAwait(false);
+            if (!await DeliverAcceptanceAsync(acceptance, cancellationToken).ConfigureAwait(false))
+                return false;
         }
-        await notifications.PublishAsync(
+        var endpointsDelivery = await PartyExactNotificationDelivery.PublishWithRetryAsync(
+            notifications,
             memberAudience,
             new PartyEndpointsChanged(snapshot),
             cancellationToken).ConfigureAwait(false);
-        await notifications.PublishAsync(
+        if (endpointsDelivery.HasFailures)
+            return false;
+        var rosterDelivery = await PartyExactNotificationDelivery.PublishWithRetryAsync(
+            notifications,
             memberAudience,
             PartyRosterChanged.Refresh(snapshot),
             cancellationToken).ConfigureAwait(false);
+        if (rosterDelivery.HasFailures)
+            return false;
         if (plan.Acceptance is not null)
         {
             // A21 drops the first realtime summary when it arrives before the party slots exist.
             // Replay the same immutable snapshot after the full roster so both clients can bind
             // the current HP without relying on an optional per-client 0x00A6 follow-up query.
-            await notifications.PublishAsync(
+            var replayDelivery = await PartyExactNotificationDelivery.PublishWithRetryAsync(
+                notifications,
                 memberAudience,
                 new PartyRealtimeChanged(snapshot),
                 cancellationToken).ConfigureAwait(false);
+            if (replayDelivery.HasFailures)
+                return false;
         }
+
+        return await DeliverObserverStateAsync(plan, cancellationToken).ConfigureAwait(false);
     }
 
-    private async ValueTask DeliverStaleSideEffectsAsync(
+    private async ValueTask<bool> DeliverObserverStateAsync(
+        PartyNotificationPlan plan,
+        CancellationToken cancellationToken)
+    {
+        if (plan.TownObservers.IsDefaultOrEmpty)
+            return true;
+
+        var excluded = plan.Snapshot is { } snapshot
+            ? snapshot.Members.Select(member => member.Session).ToHashSet()
+            : plan.ClearAudience.ToHashSet();
+        var observers = plan.TownObservers
+            .Where(session => !excluded.Contains(session))
+            .Distinct()
+            .ToImmutableArray();
+        if (observers.IsEmpty)
+            return true;
+
+        if (plan.Snapshot is { } refresh)
+        {
+            var delivery = await PartyExactNotificationDelivery.PublishWithRetryAsync(
+                notifications,
+                observers,
+                PartyRosterChanged.Refresh(refresh, observers),
+                cancellationToken).ConfigureAwait(false);
+            return !delivery.HasFailures;
+        }
+
+        var partyId = plan.ClearPartyId
+            ?? throw new InvalidOperationException("An observer party clear requires its party ID.");
+        var clearDelivery = await PartyExactNotificationDelivery.PublishWithRetryAsync(
+            notifications,
+            observers,
+            PartyRosterChanged.Clear(observers, partyId),
+            cancellationToken).ConfigureAwait(false);
+        return !clearDelivery.HasFailures;
+    }
+
+    private async ValueTask<bool> DeliverStaleSideEffectsAsync(
         PartyNotificationPlan plan,
         ImmutableArray<SelectedSessionIdentity> staleClearAudience,
         HashSet<SelectedSessionIdentity> currentMembers,
         CancellationToken cancellationToken)
     {
-        await DeliverClearAsync(
+        if (!await DeliverClearAsync(
             staleClearAudience,
             plan.ClearPartyId,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken).ConfigureAwait(false))
+        {
+            return false;
+        }
         if (plan.Acceptance is { } acceptance
             && currentMembers.Contains(acceptance.Inviter)
             && currentMembers.Contains(acceptance.Invitee))
         {
-            await DeliverAcceptanceAsync(acceptance, cancellationToken).ConfigureAwait(false);
+            return await DeliverAcceptanceAsync(acceptance, cancellationToken).ConfigureAwait(false);
         }
+
+        return true;
     }
 
-    private async ValueTask DeliverClearAsync(
+    private async ValueTask<bool> DeliverClearAsync(
         ImmutableArray<SelectedSessionIdentity> clearAudience,
         ushort? clearPartyId,
         CancellationToken cancellationToken)
     {
         if (clearAudience.IsDefaultOrEmpty)
-            return;
+            return true;
 
         var partyId = clearPartyId
             ?? throw new InvalidOperationException("A party clear requires its party ID.");
-        await notifications.PublishAsync(
-            Audience(clearAudience),
+        var delivery = await PartyExactNotificationDelivery.PublishWithRetryAsync(
+            notifications,
+            clearAudience,
             PartyRosterChanged.Clear(clearAudience, partyId),
             cancellationToken).ConfigureAwait(false);
+        return !delivery.HasFailures;
     }
 
-    private async ValueTask DeliverAcceptanceAsync(
+    private async ValueTask<bool> DeliverAcceptanceAsync(
         PartyAcceptanceNotification acceptance,
-        CancellationToken cancellationToken) =>
-        await notifications.PublishAsync(
-            Audience([acceptance.Inviter]),
+        CancellationToken cancellationToken)
+    {
+        var delivery = await PartyExactNotificationDelivery.PublishWithRetryAsync(
+            notifications,
+            [acceptance.Inviter],
             new PartyInviteAccepted(acceptance),
             cancellationToken).ConfigureAwait(false);
+        return !delivery.HasFailures;
+    }
 
     private static void ValidatePlanShape(PartyNotificationPlan plan)
     {
@@ -625,6 +778,7 @@ public sealed class PartyNotificationDelivery(INotificationBus notifications)
         }
 
         var hasClearAudience = !plan.ClearAudience.IsDefaultOrEmpty;
+        var hasTownObservers = !plan.TownObservers.IsDefaultOrEmpty;
         var hasAllClearMetadata = plan.ClearPartyId is not null
             && plan.ClearPartyGeneration is not null
             && plan.ClearPartyRevision is not null;
@@ -636,6 +790,12 @@ public sealed class PartyNotificationDelivery(INotificationBus notifications)
         {
             throw new InvalidOperationException(
                 "A party clear requires an audience, party ID, generation, and revision together.");
+        }
+
+        if (hasTownObservers && plan.Snapshot is null && !hasClearAudience)
+        {
+            throw new InvalidOperationException(
+                "Town observers require a party snapshot or a complete party clear.");
         }
 
         if (plan.Invitation is not null
@@ -698,20 +858,11 @@ public sealed class PartyNotificationDelivery(INotificationBus notifications)
         return false;
     }
 
-    private static NotificationAudience Audience(IEnumerable<SelectedSessionIdentity> sessions) =>
-        new NotificationAudience.TheseCharacters(
-            sessions.Select(value => value.CharacterId).ToArray());
+    private static IEnumerable<SelectedSessionIdentity> PlanParticipants(
+        PartyNotificationPlan plan) =>
+        (plan.Snapshot?.Members.Select(member => member.Session)
+            ?? Enumerable.Empty<SelectedSessionIdentity>())
+        .Concat(plan.ClearAudience)
+        .Distinct();
 
-    private sealed class PartyDeliveryStream
-    {
-        // Streams intentionally retain their final revision as a tombstone: a delayed caller from
-        // a disbanded generation must never resurrect its older roster after the clear.
-        public SemaphoreSlim Gate { get; } = new(1, 1);
-
-        public long LatestRevision { get; set; }
-
-        public HashSet<SelectedSessionIdentity> CurrentMembers { get; } = [];
-
-        public HashSet<SelectedSessionIdentity> FullStateMembers { get; } = [];
-    }
 }
