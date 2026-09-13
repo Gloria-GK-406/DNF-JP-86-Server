@@ -1,0 +1,36 @@
+{
+  "captured_at_utc": "2026-09-13T12:02:50.775+00:00",
+  "process_id": 62412,
+  "executable": "E:\\Project\\DNF\\DNFClient-A21-protocol2\\DNF.exe",
+  "module_base": "0x00400000",
+  "process_access": "query+read only",
+  "write_or_inject_access_requested": false,
+  "cnuser_vtable": "0x032F6CBC",
+  "party_vtable": "0x032F7380",
+  "cnusers": [
+    {
+      "object_address": "0x2CC3B900",
+      "user_id": 1,
+      "party_address": "0x00000000",
+      "associated_party_id": null
+    },
+    {
+      "object_address": "0x4FEF6400",
+      "user_id": 2,
+      "party_address": "0x563BBF20",
+      "associated_party_id": 2
+    }
+  ],
+  "parties": [
+    {
+      "object_address": "0x563BBF20",
+      "party_id": 2,
+      "title_index": 0,
+      "member_user_ids": [
+        2
+      ],
+      "leader_slot": 0,
+      "leader_user_id": 2
+    }
+  ]
+}
