@@ -3,18 +3,18 @@ kind: rks-multi-spec-map
 contract:
   path: ./TaskContract.md
   revision: 2
-phase: child_disposition
-phase_state: in_progress
-active_attempt: spec-003
-last_transition: child-sealed
-transition_evidence: spec-003 result passed; independent Round 2 approved after F-001/F-002 remediation; post-review build, helper, runtime/sample/hash, cleanup, zero-production-diff and all 3129 full-suite outcomes passed; observed HEAD remains prior baseline 365baed0 and every changed path is owned by this Spec
+phase: completed
+phase_state: completed
+active_attempt: null
+last_transition: verification-passed
+transition_evidence: fresh post-root-review Release build passed with 0 warnings and 0 errors; runtime helpers passed 14/14 plus receipt test; nine fresh TRX contain 3127 Passed, 2 intentional NotExecuted and 0 Failed; no Server/src 0x023C and accepted commit chain is exact
 workspace:
   repository_root: E:/Project/DNF/DNF-JP-86-Server
   task_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/party-directory-completion/.rks-agent/tasks/party-directory-completion
   code_root: E:/Project/DNF/DNF-JP-86-Server/.worktrees/party-directory-completion
   branch: task/party-directory-completion
-  baseline: 365baed09ee5a19c08550a4f5dbdaecdafca7c8f
-  baseline_evidence: spec-002 completed result, independent approval, fresh completion verification, exact prior parent 2530f35bb0b5fb6d82603fbfaa9a492e37fc6375 and clean accepted product state were sealed in commit 365baed09ee5a19c08550a4f5dbdaecdafca7c8f
+  baseline: c5f76f68a003178ee4d2efa376be9b2605cad6bb
+  baseline_evidence: spec-003 passed result, independent Round 2 approval, fresh post-review build/helper/runtime/sample/hash/cleanup/full-suite verification and exact parent 365baed09ee5a19c08550a4f5dbdaecdafca7c8f were sealed in commit c5f76f68a003178ee4d2efa376be9b2605cad6bb; tracked product state is clean and remaining untracked files are generated pyc/TRX outputs
 ---
 
 # Multi-Spec Map
@@ -43,17 +43,16 @@ workspace:
 | SC-1 | 两窗口、协议归属和主目录数据源裁决 | complete | spec-001 passed; independent Round 3 approved; fresh completion evidence | none | aligned |
 | SC-2 | town-visible `0x0002 -> 0x0009` 非成员投影 | satisfied | spec-002 passed and accepted in `365baed0`; Protocol/Application/full-suite evidence | none | aligned |
 | SC-3 | lifecycle/scope/session projection and ordering | satisfied | spec-002 accepted failure/revision/generation/replacement/lifecycle evidence | none | aligned |
-| SC-4 | native ID 0x11 UI add/update/delete | not_started | CNUser/party-pointer/renderer path statically identified; server projection accepted | exact-session two-client native runtime add/update/delete | aligned |
-| SC-5 | regression, docs and independent review | in_progress | spec-002 approved; build 0/0, Protocol 110/110, Application 79/79, full 3127 Passed + 2 NotExecuted | accumulated runtime result and root review/verification | aligned |
+| SC-4 | native ID 0x11 UI add/update/delete | satisfied | spec-003 accepted in `c5f76f68`; exact-session add/update/delete frames, native UI, stable CNUser/CParty pointer and title-index transition evidence | none | aligned |
+| SC-5 | regression, docs and independent review | satisfied | accumulated independent root review approved with no blockers; fresh root Release build 0/0, helpers 14/14 plus receipt test, and full 3127 Passed + 2 intentional NotExecuted + 0 Failed; protocol records reconcile wire/UI confidence | none | aligned |
 
 ## Current Root Evaluation
 
-- Accepted baseline: `365baed09ee5a19c08550a4f5dbdaecdafca7c8f`; clean immediately after the
-  spec-002 accepted-result commit.
-- Remaining outcome: fixed A21 native ID `0x11` must show one valid nonmember party, refresh it after a settings or
-  membership change, and remove it after disband/departure, with exact-session `0x0002 -> 0x0009` plus UI-state evidence.
-- Accumulated closeout: after that runtime result, reconcile protocol evidence and run complete root review plus fresh root
-  verification.
+- Accepted baseline: `c5f76f68a003178ee4d2efa376be9b2605cad6bb`; tracked product state is clean after the
+  spec-003 accepted-result commit, with only generated pyc/TRX files untracked.
+- Functional outcome: all four root functional success conditions have accepted evidence; spec-003 closes fixed A21 native
+  ID `0x11` add/update/delete with exact-session `0x0002 -> 0x0009`, native UI and client-object snapshots.
+- Accumulated closeout: run complete root drift/result review and fresh root verification across all three accepted children.
 - Constraints: town-visible scope, member/observer separation, `0x0002 -> 0x0009`, exact-session, no new directory
   `0x023C`, Application layering, no Computer Use, and one explicit user action request are all `aligned`.
 
@@ -65,4 +64,34 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 |---:|---|---|---|---|---|---|---|
 | `1` | `spec-001` | `./attempts/spec-001-directory-blocker-closure/TaskContract.md` | 固定 A21 目录阻塞证据闭合与实现输入裁决 | `SC-1` | `passed` | `./attempts/spec-001-directory-blocker-closure/spec-result.md` | `2530f35b` |
 | `2` | `spec-002` | `./attempts/spec-002-town-party-observer-projection/TaskContract.md` | town-visible 非成员 party 投影与生命周期收敛 | `SC-2, SC-3, SC-5` | `passed` | `./attempts/spec-002-town-party-observer-projection/spec-result.md` | `365baed0` |
-| `3` | `spec-003` | `./attempts/spec-003-native-party-directory-runtime/TaskContract.md` | 固定 A21 原生 ID `0x11` add/update/delete 运行时闭环 | `SC-4, SC-5` | `running` | `pending` | `active` |
+| `3` | `spec-003` | `./attempts/spec-003-native-party-directory-runtime/TaskContract.md` | 固定 A21 原生 ID `0x11` add/update/delete 运行时闭环 | `SC-4, SC-5` | `passed` | `./attempts/spec-003-native-party-directory-runtime/spec-result.md` | `c5f76f68` |
+
+## Root Review
+
+- Scope: accepted root baseline `9a3a0b492da11f48525d1225d02513e0dd1cd458` through accepted result
+  `c5f76f68a003178ee4d2efa376be9b2605cad6bb`.
+- Verdict: `approved`; no P1/P2 or other blocking findings.
+- Acceptance: SC-1 is covered by the fixed-B1 boundary correction; SC-2/SC-3 by town-scoped exact-session observer
+  projection, lifecycle ordering and regression evidence; SC-4 by the same observer/party/CParty `titleIndex 0 -> 1`
+  add-update-delete runtime chain and native UI; SC-5 by post-review Release build/full suite/layering/protocol checks.
+- Drift assessment: `aligned`. The children compose as static boundary decision, server projection, then native runtime
+  acceptance. No cross-Spec contradiction, confidence escalation, unauthorized production change, directory `0x023C`,
+  quick-match or PVP path was found.
+- Known inherited result: repository protocol scaffold checks still report the same unregistered `0x0075` and
+  `CMD-0x0040` entries as the accepted baseline; this task did not introduce or worsen them.
+
+## Root Verification
+
+- Decision: `pass` at accepted baseline `c5f76f68a003178ee4d2efa376be9b2605cad6bb`, after the independent root
+  review.
+- Release build: `dotnet build Server/86JP.Server.slnx -c Release --no-restore` passed with `0 warnings / 0 errors`.
+- Full suite: nine fresh TRX under the generated `RootVerificationResults/` contain `3127 Passed`, `2 NotExecuted`,
+  `0 Failed`, total `3129`. The two skips are the PVF-present mutually exclusive missing-archive tests already classified
+  by the accepted child evidence.
+- Runtime helpers: directory capture/proxy and state-probe tests passed `4/4 + 10/10`; receipt UTC identity test passed.
+- Boundaries: `Server/src` contains no `0x023C`; spec-003 has no production diff over `365baed0`; its committed diff and
+  the final controller diff both pass `git diff --check`.
+- Commit chain: `c5f76f68 -> 365baed0 -> 2530f35b -> 9a3a0b49`, matching the three accepted child results and original
+  root baseline exactly.
+- Workspace classification: the only tracked working-tree modification is this terminal controller record; untracked
+  files are generated pyc/TRX verification outputs and are not part of the accepted product result.
