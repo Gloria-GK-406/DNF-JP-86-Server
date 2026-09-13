@@ -4,7 +4,7 @@ contract:
   path: "./TaskContract.md"
   revision: 1
 current_stage: verification
-state: in_progress
+state: completed
 artifacts:
   spec: "./spec.md"
   result: "./spec-result.md"

@@ -49,7 +49,7 @@
 | `0x01` | `0x000C` | `SET_PARTY_INFO` | Mutation / 无队时创建、在队时更新；当前成功路径无 CMD 回包 | ClientVerified（A21 12B direct 创建/更新；`16+n` inline-title 创建；inline-title 更新/拒绝仍待实帧） | [0x000C.md](game/client-to-server/0x000C.md) |
 | `0x01` | `0x000D` | `LEAVE_PARTY` | Mutation / 离队或解散 | ClientVerified（A21 普通成员、多人队长与单人队主动离队） | [0x000D.md](game/client-to-server/0x000D.md) |
 | `0x01` | `0x000F` | `ENTER_SELECT_DUNGEON` | Query / 推 NOTI | 实现服务端功能 | [0x000F.md](game/client-to-server/0x000F.md) |
-| `0x01` | `0x0010` | `SELECT_DUNGEON` | Query / 有响应 | **已观察，未实现**（开副本运行） | [0x0010.md](game/client-to-server/0x0010.md) |
+| `0x01` | `0x0010` | `SELECT_DUNGEON` | Query / 成功路径推 NOTI，拒绝路径有响应 | ClientVerified（A21 教学/正式副本成功入场与 `DungeonNotFound` 拒绝；其余准入规则待补） | [0x0010.md](game/client-to-server/0x0010.md) |
 | `0x01` | `0x0012` | `DELETE_ITEM` | Mutation / 有响应 | ClientVerified（A21 普通装备与堆叠物） | [0x0012.md](game/client-to-server/0x0012.md) |
 | `0x01` | `0x0015` | `BUY_ITEM` | Mutation / 有响应 | 实现服务端功能（A21，部分商品实机通过） | [0x0015.md](game/client-to-server/0x0015.md) |
 | `0x01` | `0x0016` | `SELL_ITEM` | Mutation / 有响应 | ClientVerified（A21 普通装备）；堆叠物自动化通过，特殊装备未覆盖 | [0x0016.md](game/client-to-server/0x0016.md) |
