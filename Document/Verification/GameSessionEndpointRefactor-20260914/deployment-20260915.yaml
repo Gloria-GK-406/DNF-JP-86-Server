@@ -1,0 +1,22 @@
+kind: rks-verification
+decision: pass
+claim: >-
+  Commit c242e8b5 is built in Release and the main-worktree Host is ready for local
+  two-client gameplay testing with the existing database.
+evidence:
+  branch: main
+  implementation_commit: c242e8b5
+  release_build: 0 warnings, 0 errors
+  process:
+    pid: 75228
+    started_at: 2026-09-15T00:09:55+08:00
+  tcp_listeners: [7001, 10010, 10011, 18080]
+  udp_listeners: [12311, 12312]
+  launcher_bootstrap:
+    url: http://127.0.0.1:18080/api/launcher/v1/bootstrap
+    status: ready
+    http_status: 200
+  database: Server/src/Dfo.Server.Host/bin/Release/net10.0/Data/dfo-server.db
+scope_boundary: >-
+  This verifies deployment readiness only. The two-client dungeon and peer-connection behavior
+  remains the user's live-game acceptance test.
