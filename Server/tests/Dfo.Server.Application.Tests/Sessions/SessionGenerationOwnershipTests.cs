@@ -1,12 +1,15 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Tests.Characters;
+using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
@@ -54,7 +57,7 @@ public sealed class SessionGenerationOwnershipTests
             new CharacterItemCooldownDomainService(TimeProvider.System),
             new ThrowingActive(), new SessionPresenceDomainService(), new ExpertStoreDomainService(),
             new PvpLobbyDomainService(), [], new CharacterPositionDomainService(),
-            new PassiveParties());
+            new PassiveParties(), new DungeonRunDomainService(), []);
 
         await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
             await service.CleanupAsync(session, includeOwner: false, CancellationToken.None));
@@ -81,7 +84,8 @@ public sealed class SessionGenerationOwnershipTests
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(), new CharacterContainerDomainService(),
             new CharacterItemCooldownDomainService(TimeProvider.System),
             new ThrowingActive(), presence, stores, new PvpLobbyDomainService(),
-            [], new CharacterPositionDomainService(), new PassiveParties());
+            [], new CharacterPositionDomainService(), new PassiveParties(),
+            new DungeonRunDomainService(), []);
 
         var failure = await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
             await service.CleanupAsync(owner, includeOwner: true, CancellationToken.None));
@@ -128,7 +132,8 @@ public sealed class SessionGenerationOwnershipTests
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(), new CharacterContainerDomainService(),
             new CharacterItemCooldownDomainService(TimeProvider.System),
             new PassiveActive(), presence, stores, new PvpLobbyDomainService(),
-            [], new CharacterPositionDomainService(), new PassiveParties());
+            [], new CharacterPositionDomainService(), new PassiveParties(),
+            new DungeonRunDomainService(), []);
 
         var delivery = await service.CleanupAsync(owner, includeOwner, CancellationToken.None);
 
@@ -171,7 +176,7 @@ public sealed class SessionGenerationOwnershipTests
             new CharacterItemCooldownDomainService(TimeProvider.System),
             new PassiveActive(),
             new SessionPresenceDomainService(), new ExpertStoreDomainService(), new PvpLobbyDomainService(),
-            [persistence], positions, new PassiveParties());
+            [persistence], positions, new PassiveParties(), new DungeonRunDomainService(), []);
 
         await service.CleanupAsync(session, false, CancellationToken.None);
 
@@ -189,11 +194,20 @@ public sealed class SessionGenerationOwnershipTests
         presence.Admit(new SessionPresence(replacement.CharacterId, 10011, 1, 2, true, replacement));
         var stores = new ExpertStoreDomainService();
         stores.Open(replacement);
+        var runs = new DungeonRunDomainService();
+        var replacementRun = runs.Begin(
+            replacement.CharacterId,
+            new DungeonLayout(
+                10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
+                61000, 1, new Dictionary<MazeCell, int> { [new(0, 0)] = 61000 }),
+            difficulty: 0);
+        var departure = new RecordingDepartureSink();
         var service = new SelectedSessionCleanupService(
             directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(), new CharacterContainerDomainService(),
             new CharacterItemCooldownDomainService(TimeProvider.System),
             new PassiveActive(), presence, stores, new PvpLobbyDomainService(),
-            [], new CharacterPositionDomainService(), new PassiveParties());
+            [], new CharacterPositionDomainService(), new PassiveParties(),
+            runs, [departure]);
 
         var delivery = await service.CleanupAsync(
             stale, includeOwner: true, CancellationToken.None);
@@ -204,6 +218,8 @@ public sealed class SessionGenerationOwnershipTests
         Assert.Equal(replacement, directory.Find(replacement.AccountId));
         Assert.Equal(replacement, presence.Find(replacement.CharacterId)!.Session);
         Assert.True(stores.HasOpenStore(replacement.CharacterId));
+        Assert.Equal(replacementRun.RunId, runs.Find(replacement.CharacterId)!.RunId);
+        Assert.Empty(departure.Calls);
     }
 
     /// <remarks>
@@ -224,7 +240,7 @@ public sealed class SessionGenerationOwnershipTests
             new CharacterContainerDomainService(), cooldowns,
             new PassiveActive(), new SessionPresenceDomainService(), new ExpertStoreDomainService(),
             new PvpLobbyDomainService(), [], new CharacterPositionDomainService(),
-            new PassiveParties());
+            new PassiveParties(), new DungeonRunDomainService(), []);
 
         await service.CleanupAsync(session, includeOwner: false, CancellationToken.None);
 
@@ -250,7 +266,7 @@ public sealed class SessionGenerationOwnershipTests
             new CharacterContainerDomainService(), cooldowns,
             new PassiveActive(), new SessionPresenceDomainService(), new ExpertStoreDomainService(),
             new PvpLobbyDomainService(), [], new CharacterPositionDomainService(),
-            new PassiveParties());
+            new PassiveParties(), new DungeonRunDomainService(), []);
 
         await service.CleanupAsync(departing, includeOwner: false, CancellationToken.None);
 
@@ -357,5 +373,13 @@ public sealed class SessionGenerationOwnershipTests
             this.Writes++;
             return ValueTask.CompletedTask;
         }
+    }
+
+    private sealed class RecordingDepartureSink : IDungeonRunParticipantDepartureSink
+    {
+        public List<(DungeonRunId RunId, CharacterId CharacterId)> Calls { get; } = [];
+
+        public void ParticipantDeparted(DungeonRunId runId, CharacterId characterId) =>
+            Calls.Add((runId, characterId));
     }
 }

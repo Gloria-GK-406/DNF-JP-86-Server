@@ -22,32 +22,22 @@ using TouchSocketSessionClient = TouchSocket.Sockets.ITcpSessionClient;
 namespace Dfo.Server.Networking.Tests.Integration;
 
 /// <summary>
-/// The cards of a clear outlive the connection that was shown them.
+/// A dungeon run, including its unclaimed cards, ends with the selected connection that owns it.
 /// </summary>
 /// <remarks>
 /// This lives on a real host and a real socket because the thing under test is the
-/// <b>disconnect path</b> and nothing else. That a face asked for twice answers the same way is
-/// settled by the domain tests; what those cannot settle is whether the server tears the run down
-/// when the transport goes away, because a unit test that drops an object reference is asserting
-/// its own fixture. The connection here is closed the way a player's is -- the socket goes, the
-/// framework notices, and every registered connection observer runs -- and only then does the test
-/// ask what the cards hold.
+/// <b>disconnect path</b> and nothing else. The first fixed-party dungeon implementation has no
+/// in-dungeon reconnect contract: the socket goes, the framework notices, and selected-session
+/// cleanup must remove that participant and its per-run cards before a replacement connection can
+/// select the same character.
 /// <para>
-/// <b>What orders this is the reconnect, not the two waits above it.</b> Observing that the run
-/// survived would prove nothing if the teardown had not run yet, and the waits were written to
-/// say so out loud. They are not what makes it hold, though: <c>ConnectedIdAsync</c> already
-/// refuses to name a connection until exactly one client is attached, and with the second socket
-/// already connected the count cannot come back to one until the lost one is off the service's
-/// list. A count that came back early would name the first connection over again and fail the
-/// assertion that the two differ, so there is no reading of it that passes quietly. Deleting both
-/// waits leaves this test red against a server that ends the run on disconnect -- three runs out
-/// of three, measured rather than argued. They stay as defence, and as the requirement written
-/// where it can be read.
+/// <b>The two waits order the assertion after teardown.</b> Merely closing the client would race
+/// the observer. The test waits until both online-user ownership and the networking client list no
+/// longer contain the old connection, then requires the run to be absent.
 /// </para>
 /// <para>
-/// <b>Where in the observer a run gets ended does not matter to this.</b> An <c>End</c> written
-/// into the disconnect observer's first branch and one written after its last statement both turn
-/// this red, so what is pinned is the disconnect path as a whole rather than one line of it.
+/// A later connection is deliberately not a recovery token. Connection generation protects the
+/// new owner from stale cleanup; it does not resurrect the previous generation's dungeon state.
 /// </para>
 /// </remarks>
 public sealed class CardRewardReconnectIntegrationTests
@@ -80,7 +70,7 @@ public sealed class CardRewardReconnectIntegrationTests
     private const int PaidFlipCost = 580;
 
     [Fact]
-    public async Task A_clears_cards_survive_the_connection_that_was_shown_them()
+    public async Task A_disconnect_ends_the_run_and_a_replacement_cannot_claim_its_cards()
     {
         var directory = Path.Combine(Path.GetTempPath(), $"dfo-reconnect-{Guid.NewGuid():N}");
         Directory.CreateDirectory(directory);
@@ -144,12 +134,11 @@ public sealed class CardRewardReconnectIntegrationTests
                     runs.FixClearRewardCards(Character, FreeFace(), PaidFace(), PaidFlipCost));
             }
 
-            var shown = Snapshot(runs);
-
             // ---- the loss --------------------------------------------------------------------
             await WaitUntilAsync(
                 () => !onlineUsers.TryGetByConnection(first, out _), timeout.Token);
             await WaitUntilAsync(() => !gameService.GetClients().Any(), timeout.Token);
+            Assert.Null(runs.Find(Character));
 
             // ---- the connection that comes back ----------------------------------------------
             using var reconnected = new TcpClient();
@@ -160,23 +149,12 @@ public sealed class CardRewardReconnectIntegrationTests
                 SelectedSessionIdentity.Create(
                     Account, Character, second, connectionGeneration: 2, gamePort));
 
-            // The run is still this character's, and its faces are the ones they were shown.
-            Assert.Equal(shown, Snapshot(runs));
-
-            // and asking for a position hands over what that position held before the loss, which
-            // is the requirement rather than the mere survival of the record.
+            Assert.Null(runs.Find(Character));
             foreach (var kind in new[] { ClearRewardCardKind.Free, ClearRewardCardKind.Paid })
             {
-                foreach (var (index, piece) in Expected(kind))
+                foreach (var (index, _) in Expected(kind))
                 {
-                    var taken = runs.TryClaimClearRewardCard(Character, kind, index);
-
-                    Assert.NotNull(taken);
-                    Assert.Equal(index, taken!.Index);
-                    Assert.Equal(piece?.ItemId, taken.Item?.ItemId);
-                    Assert.Equal(piece?.Quantity, taken.Item?.Quantity);
-                    Assert.Equal(piece?.Rarity, taken.Item?.Rarity);
-                    Assert.Equal(piece?.Durability, taken.Item?.Durability);
+                    Assert.Null(runs.TryClaimClearRewardCard(Character, kind, index));
                 }
             }
 
@@ -187,36 +165,6 @@ public sealed class CardRewardReconnectIntegrationTests
             SqliteConnection.ClearAllPools();
             Directory.Delete(directory, recursive: true);
         }
-    }
-
-    /// <summary>What the two faces hold, position by position, written out as plain values.</summary>
-    /// <remarks>
-    /// Values rather than the records themselves. Comparing the records would compare two
-    /// references to one object and pass however the cards had been rebuilt; this cannot, because
-    /// a face redrawn on reconnect would carry different numbers even where it carried a face of
-    /// the same shape. The price rides along for the same reason it is fixed with the faces.
-    /// </remarks>
-    private static string Snapshot(IDungeonRunDomainService runs)
-    {
-        var run = runs.Find(Character);
-        Assert.NotNull(run);
-        var cards = run!.ClearRewardCards;
-        Assert.NotNull(cards);
-
-        var lines = new List<string> { $"price={cards!.PaidFlipCost}" };
-        foreach (var kind in new[] { ClearRewardCardKind.Free, ClearRewardCardKind.Paid })
-        {
-            foreach (var slot in cards.FaceOf(kind).Slots)
-            {
-                lines.Add(
-                    $"{kind}:{slot.Index}="
-                    + (slot.Item is { } item
-                        ? $"{item.ItemId}x{item.Quantity}/{item.Rarity}/{item.Durability}"
-                        : "-"));
-            }
-        }
-
-        return string.Join('\n', lines);
     }
 
     private static IEnumerable<(int Index, ClearRewardCardItem? Piece)> Expected(

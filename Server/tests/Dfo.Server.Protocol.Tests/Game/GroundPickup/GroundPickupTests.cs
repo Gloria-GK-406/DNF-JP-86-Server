@@ -116,6 +116,23 @@ public sealed class GroundPickupTests
         Assert.Equal(GroundPickupStatus.NothingThere, second.Status);
     }
 
+    [Fact]
+    public async Task A_failed_persistent_insert_releases_the_floor_reservation_for_one_retry()
+    {
+        var (handler, runs, bag, _) = Build();
+        runs.Begin(Character, Layout, difficulty: 0);
+        var dropped = runs.AllocateMonsterDrops(Character, 0, 30001, [TheWeapon()]).Single();
+        bag.FailNextAdd = true;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await PickUp(handler, dropped.Number));
+        Assert.NotNull(runs.Find(Character)!.FindMonsterDrop(dropped.Number));
+
+        Assert.Equal(GroundPickupStatus.PickedUp, (await PickUp(handler, dropped.Number)).Status);
+        Assert.Equal(GroundPickupStatus.NothingThere, (await PickUp(handler, dropped.Number)).Status);
+        Assert.Single(bag.Slots);
+    }
+
     /// <summary>
     /// A room's own pieces keep their numbers and a dropped piece takes the next one.
     /// </summary>
@@ -340,6 +357,8 @@ public sealed class GroundPickupTests
     /// <summary>A bag that opens the next free slot and remembers what went in it.</summary>
     internal sealed class FakeContainer : IItemContainer
     {
+        public bool FailNextAdd { get; set; }
+
         public Dictionary<int, InventoryItemCoreState> Slots { get; } = [];
 
         /// <summary>How many of each slot's item was handed over.</summary>
@@ -356,6 +375,11 @@ public sealed class GroundPickupTests
         public ValueTask<ItemPlacementOutcome> AddAsync(
             int itemId, int count, CancellationToken cancellationToken)
         {
+            if (this.FailNextAdd)
+            {
+                this.FailNextAdd = false;
+                throw new InvalidOperationException("injected persistent insert failure");
+            }
             var slot = this.Slots.Count;
             this.Slots[slot] = StackableItemCore.Create(1, itemId, count);
             this.Counts[slot] = count;

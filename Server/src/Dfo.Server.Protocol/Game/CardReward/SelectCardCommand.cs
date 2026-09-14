@@ -119,7 +119,8 @@ public sealed record SelectCardCommand(
     AccountId AccountId,
     CharacterId CharacterId,
     ClearRewardCardKind Kind,
-    int Index) : ICommand<SelectCardResult>;
+    int Index,
+    DungeonRunId ExpectedRunId = default) : ICommand<SelectCardResult>;
 
 /// <summary>
 /// Claims the chosen position, hands what was behind it to the bag, and reads back the whole face.
@@ -143,10 +144,9 @@ public sealed record SelectCardCommand(
 /// change rather than two.
 /// </para>
 /// <para>
-/// <b>A paid flip is charged before it is claimed.</b> The other order cannot be undone: a claim
-/// given back is a card the player has already been shown. So the position is checked unclaimed,
-/// then the price is taken, then the claim is made -- and a claim that fails after the price was
-/// taken hands the price back, because a flip that turned nothing over may not have cost anything.
+/// <b>A card is reserved before any persistent write and consumed after all writes succeed.</b>
+/// The command transaction rolls the gold and inventory rows back on an exception; releasing the
+/// process-local reservation in the same catch keeps the two state stores aligned for a retry.
 /// </para>
 /// </remarks>
 public sealed class SelectCardCommandHandler(
@@ -164,7 +164,8 @@ public sealed class SelectCardCommandHandler(
         ArgumentNullException.ThrowIfNull(command);
 
         var run = runs.Find(command.CharacterId);
-        if (run is null)
+        if (run is null
+            || (command.ExpectedRunId != default && run.RunId != command.ExpectedRunId))
             return SelectCardResult.Refused(SelectCardStatus.NotInARun, command.Kind, command.Index);
 
         if (run.ClearRewardCards is not { } fixedCards)
@@ -187,51 +188,57 @@ public sealed class SelectCardCommandHandler(
                 SelectCardStatus.AlreadyFlipped, command.Kind, command.Index);
         }
 
-        var charge = await this.ChargeAsync(command, cancellationToken).ConfigureAwait(false);
-        if (charge.Refusal is { } refused)
-            return SelectCardResult.Refused(refused, command.Kind, command.Index);
-
-        var claimed = await cards
-            .ClaimAsync(command.CharacterId, command.Kind, command.Index, cancellationToken)
-            .ConfigureAwait(false);
-        if (claimed is null)
-        {
-            // Between the check above and here somebody else took it. Nothing was revealed, so the
-            // price goes back: this is the one path where gold moved and no card did.
-            if (charge.Price > 0)
-            {
-                await characters.Get(command.CharacterId)
-                    .AddGoldAsync(charge.Price, cancellationToken).ConfigureAwait(false);
-            }
-
+        var claim = runs.TryReserveClearRewardCard(
+            command.CharacterId, run.RunId, command.Kind, command.Index);
+        if (claim is null)
             return SelectCardResult.Refused(
                 SelectCardStatus.AlreadyFlipped, command.Kind, command.Index);
-        }
 
-        // Paid whatever the position held, and paid for turning the card over rather than for
-        // what came out of it. A flipped free card is a floor: the archive gives every level a
-        // gold base and every difficulty a multiplier, and the settlement frame announced that
-        // figure on the card long before any position was claimed or any bag was asked. Paying
-        // only when something was behind the card would leave a player who turned over an empty
-        // one with no sign that anything happened at all.
-        var paid = fixedCards.FaceOf(command.Kind).Gold;
-        var carried = paid > 0
-            ? await characters.Get(command.CharacterId).AddGoldAsync(paid, cancellationToken)
-                .ConfigureAwait(false)
-            : charge.Carried;
+        try
+        {
+            var charge = await this.ChargeAsync(command, run.RunId, cancellationToken)
+                .ConfigureAwait(false);
+            if (charge.Refusal is { } refused)
+            {
+                runs.ReleaseClearRewardCard(claim);
+                return SelectCardResult.Refused(refused, command.Kind, command.Index);
+            }
 
-        return new SelectCardResult(
-            SelectCardStatus.Flipped,
-            command.Kind,
-            command.Index,
-            fixedCards.FaceOf(command.Kind).Slots,
-            claimed.Item is { } piece
+            // Paid whatever the position held, and paid for turning the card over rather than for
+            // what came out of it. A flipped free card is a floor: the archive gives every level a
+            // gold base and every difficulty a multiplier, and the settlement frame announced that
+            // figure on the card long before any position was claimed or any bag was asked.
+            var paid = fixedCards.FaceOf(command.Kind).Gold;
+            var carried = paid > 0
+                ? await characters.Get(command.CharacterId).AddGoldAsync(paid, cancellationToken)
+                    .ConfigureAwait(false)
+                : charge.Carried;
+            var delivery = claim.Slot.Item is { } piece
                 ? await this.DeliverAsync(command.CharacterId, piece, cancellationToken)
                     .ConfigureAwait(false)
-                : null,
-            charge.Price,
-            paid,
-            carried);
+                : null;
+
+            if (!runs.CommitClearRewardCard(claim))
+            {
+                throw new InvalidOperationException(
+                    "The clear-card claim was no longer current after its durable award.");
+            }
+
+            return new SelectCardResult(
+                SelectCardStatus.Flipped,
+                command.Kind,
+                command.Index,
+                fixedCards.FaceOf(command.Kind).Slots,
+                delivery,
+                charge.Price,
+                paid,
+                carried);
+        }
+        catch
+        {
+            runs.ReleaseClearRewardCard(claim);
+            throw;
+        }
     }
 
     /// <summary>
@@ -257,7 +264,9 @@ public sealed class SelectCardCommandHandler(
     /// </para>
     /// </remarks>
     private async ValueTask<(SelectCardStatus? Refusal, int Price, int Carried)> ChargeAsync(
-        SelectCardCommand command, CancellationToken cancellationToken)
+        SelectCardCommand command,
+        DungeonRunId runId,
+        CancellationToken cancellationToken)
     {
         if (command.Kind is not ClearRewardCardKind.Paid)
         {
@@ -270,7 +279,7 @@ public sealed class SelectCardCommandHandler(
         if (current is null)
             return (SelectCardStatus.NotPriced, 0, 0);
         var settled = await cards.SettleAsync(
-            new ClearRewardSettlement(command.CharacterId, current.Level),
+            new ClearRewardSettlement(command.CharacterId, current.Level, RunId: runId),
             cancellationToken).ConfigureAwait(false);
 
         if (settled?.PaidFlipCost is not { } price || price < 0)

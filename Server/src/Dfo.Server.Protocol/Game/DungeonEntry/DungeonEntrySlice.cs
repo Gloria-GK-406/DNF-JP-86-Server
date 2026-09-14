@@ -4,10 +4,17 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Parties;
+using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Protocol.Game.TownProjection;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.DungeonEntry;
@@ -420,8 +427,12 @@ internal sealed class SelectDungeonDecoder : IGameMessageDecoder
 /// </remarks>
 public sealed class SelectDungeonHandler(
     ICharacterDomainService characters,
+    ICharacterStateProjectionDomainService currentState,
     ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
+    IPartyService parties,
+    IDungeonRunDomainService runs,
+    DungeonRunDeliveryRegistry deliveryRegistry,
     IDungeonEntryIntentDomainService entryIntents,
     IDungeonVisitDomainService visits,
     ICharacterQuestLogDomainService questLogs,
@@ -503,8 +514,43 @@ public sealed class SelectDungeonHandler(
             cleared.Select(quest => quest.QuestId).ToArray(),
             intent.Value);
 
-        var entered = await visits.EnterAsync(
-            session.CharacterId, message.DungeonId, message.Difficulty, facts, cancellationToken)
+        var party = intent.Value.Kind == DungeonEntryIntentKind.Directed
+            ? parties.FindParty(session.CharacterId)
+            : null;
+        if (party is not null && party.LeaderWireUserId != session.WireUserId)
+        {
+            await RefuseAsync(
+                context.Connection.ConnectionId,
+                SelectDungeonRefusal.NotPartyLeader,
+                context: 0,
+                cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        var attachments = ResolveAttachments(session, result, party);
+        if (attachments.BlockedSlot is { } blockedSlot)
+        {
+            await RefuseAsync(
+                context.Connection.ConnectionId,
+                SelectDungeonRefusal.MemberBlocked,
+                blockedSlot,
+                cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        var participants = attachments.Members
+            .Select(value => new DungeonRunParticipant(
+                value.Session.AccountId,
+                value.Session.CharacterId,
+                value.Session.WireUserId,
+                value.Slot,
+                value.Session.WireUserId == session.WireUserId))
+            .ToArray();
+        var previousRuns = participants.ToDictionary(
+            participant => participant.CharacterId,
+            participant => runs.Find(participant.CharacterId));
+        var entered = await visits.EnterPartyAsync(
+            participants, message.DungeonId, message.Difficulty, facts, cancellationToken)
             .ConfigureAwait(false);
         if (entered is null)
         {
@@ -521,68 +567,248 @@ public sealed class SelectDungeonHandler(
             return;
         }
 
-        var (layout, visit) = entered;
-
-        // Reported once the entry has actually happened, so that a refused selection reports
-        // nothing. What the seam does with it is nothing at all today -- see
-        // ICharacterFatigueDomainService -- which is why this is the report and not a check: there
-        // is no balance to be short of.
-        await fatigue
-            .SpendAsync(session.CharacterId, FatigueAnEntryCosts, cancellationToken)
-            .ConfigureAwait(false);
-
-        logger.LogInformation(
-            "Select dungeon {ConnectionId} user={WireUserId}: dungeon={DungeonId} difficulty={Difficulty} "
-                + "intent={Intent} maze={MazeIndex} purpose={Purpose} start=({StartX},{StartY}) "
-                + "room={RoomId} boss=({BossX},{BossY}) seed={Seed}",
-            context.Connection.ConnectionId,
-            session.WireUserId,
-            layout.DungeonId,
-            message.Difficulty,
-            intent.Value,
-            layout.MazeIndex,
-            layout.Purpose,
-            layout.StartCell.X,
-            layout.StartCell.Y,
-            layout.StartRoomMapId,
-            layout.BossCell.X,
-            layout.BossCell.Y,
-            layout.Seed);
-
-        // A21's order, which is not the one this used to send. Its answer opens with a second
-        // acceptance byte on CMD 0x000F, then the selection state that used to be sent when the
-        // screen opened, then the support roster, and only then the run's shape and the room. The
-        // older order -- describe the run, place the character, close with the roster -- was the
-        // A12 reference's.
-        // The selection state is sent once. For everyone but the tutorial it went out when the
-        // screen opened; the tutorial's first entry defers it to here, which is where the captured
-        // session shows it and why this used to send it unconditionally.
-        List<IGameServerMessage> frames = [new EnterSelectDungeonAcknowledgement()];
-        var currentProgress = await characters.Get(session.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false);
-        if (currentProgress is null)
-            return;
-        if (visits.DefersSelectionState(currentProgress.Level))
+        var layout = entered.Layout;
+        var enteredRunId = entered.Visits[session.CharacterId].Run.RunId;
+        foreach (var participant in participants)
         {
-            frames.Add(new EnterSelectDungeonNotification(session.WireUserId));
+            if (previousRuns[participant.CharacterId] is { } previous
+                && previous.RunId != enteredRunId)
+            {
+                deliveryRegistry.RemoveParticipant(previous.RunId, participant.CharacterId);
+            }
         }
 
-        await sender.SendExplicitAsync(
-            context.Connection.ConnectionId,
-            new GameExplicitMessageDelivery(
-                [
-                    .. frames,
-                    new SupportTagNotification(),
-                    new DungeonInfoNotification(layout, message.Difficulty),
-                    new StartMapNotification(
-                        visit.Run,
-                        FirstEntry: true,
-                        visit.Actors,
-                        visit.FirstActorSequence,
-                        FloorPieceValues.Describe(visit.Run, visit.FloorDrops)),
-                ],
-                []),
-            cancellationToken).ConfigureAwait(false);
+        // The directory is generation-safe but mutable. Recheck after the domain operation and
+        // before registering or sending anything; if one member was replaced during layout
+        // resolution, tear the whole run back down rather than leaving a split entry behind.
+        if (attachments.Members.Any(value =>
+                selectedSessions.FindByCharacter(value.Session.CharacterId) != value.Session))
+        {
+            RollbackEntry(entered.Visits[session.CharacterId].Run.RunId, participants);
+            if (selectedSessions.FindByCharacter(session.CharacterId) == session)
+            {
+                await RefuseAsync(
+                    context.Connection.ConnectionId,
+                    SelectDungeonRefusal.MemberBlocked,
+                    context: 0,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            return;
+        }
+
+        var leaderVisit = entered.Visits[session.CharacterId];
+        try
+        {
+            deliveryRegistry.Register(
+                leaderVisit.Run.RunId,
+                attachments.Members.Select(value => value.Session).ToArray());
+
+            // Reported once the entry has actually happened, so that a refused selection reports
+            // nothing. What the seam does with it is nothing at all today -- see
+            // ICharacterFatigueDomainService -- which is why this is the report and not a check:
+            // there is no balance to be short of.
+            foreach (var attachment in attachments.Members)
+            {
+                await fatigue
+                    .SpendAsync(
+                        attachment.Session.CharacterId,
+                        FatigueAnEntryCosts,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            logger.LogInformation(
+                "Select dungeon {ConnectionId} user={WireUserId}: run={RunId} party={PartyMemberCount} "
+                    + "dungeon={DungeonId} difficulty={Difficulty} intent={Intent} maze={MazeIndex} "
+                    + "purpose={Purpose} start=({StartX},{StartY}) "
+                    + "room={RoomId} boss=({BossX},{BossY}) seed={Seed}",
+                context.Connection.ConnectionId,
+                session.WireUserId,
+                leaderVisit.Run.RunId.Value,
+                leaderVisit.Run.PartyMemberCount,
+                layout.DungeonId,
+                message.Difficulty,
+                intent.Value,
+                layout.MazeIndex,
+                layout.Purpose,
+                layout.StartCell.X,
+                layout.StartCell.Y,
+                layout.StartRoomMapId,
+                layout.BossCell.X,
+                layout.BossCell.Y,
+                layout.Seed);
+
+            // A21's order, which is not the one this used to send. Its answer opens with a second
+            // acceptance byte on CMD 0x000F, then the selection state that used to be sent when the
+            // screen opened, then the support roster, and only then the run's shape and the room.
+            // The older order -- describe the run, place the character, close with the roster --
+            // was the A12 reference's. The selection state is sent once. For everyone but the
+            // tutorial it went out when the screen opened; the tutorial's first entry defers it to
+            // here, which is where the captured session shows it and why this used to send it
+            // unconditionally.
+            var deliveries = new List<(
+                SelectedSessionIdentity Session,
+                IReadOnlyList<IGameServerMessage> Frames)>();
+            foreach (var attachment in attachments.Members)
+            {
+                var memberSession = attachment.Session;
+                var visit = entered.Visits[memberSession.CharacterId];
+                var frames = new List<IGameServerMessage>();
+                if (memberSession != session && entryIntents.Consume(memberSession) is null)
+                {
+                    var refreshed = await currentState
+                        .RefreshAsync(attachment.Runtime, cancellationToken)
+                        .ConfigureAwait(false);
+                    frames.AddRange(SelectionPrelude(memberSession, refreshed));
+                }
+
+                frames.Add(new EnterSelectDungeonAcknowledgement());
+                var currentProgress = await characters
+                    .Get(memberSession.CharacterId)
+                    .ProgressAsync(cancellationToken)
+                    .ConfigureAwait(false);
+                if (currentProgress is null)
+                {
+                    RollbackEntry(leaderVisit.Run.RunId, participants);
+                    return;
+                }
+                if (visits.DefersSelectionState(currentProgress.Level))
+                    frames.Add(new EnterSelectDungeonNotification(memberSession.WireUserId));
+
+                frames.Add(new SupportTagNotification());
+                frames.Add(new DungeonInfoNotification(layout, message.Difficulty));
+                frames.Add(new StartMapNotification(
+                    visit.Run,
+                    FirstEntry: true,
+                    visit.Actors,
+                    visit.FirstActorSequence,
+                    FloorPieceValues.Describe(visit.Run, visit.FloorDrops)));
+                deliveries.Add((memberSession, frames));
+            }
+
+            // Every awaited projection above is allowed to run user code and database I/O. The
+            // frozen generations therefore need one final validation at the actual delivery
+            // boundary, not merely after the run was created. A replacement receives no frame
+            // from this run and makes the all-or-nothing entry roll back.
+            if (attachments.Members.Any(value =>
+                    selectedSessions.FindByCharacter(value.Session.CharacterId) != value.Session))
+            {
+                RollbackEntry(leaderVisit.Run.RunId, participants);
+                if (selectedSessions.FindByCharacter(session.CharacterId) == session)
+                {
+                    await RefuseAsync(
+                        context.Connection.ConnectionId,
+                        SelectDungeonRefusal.MemberBlocked,
+                        context: 0,
+                        cancellationToken).ConfigureAwait(false);
+                }
+                return;
+            }
+
+            var direct = deliveries.Single(value => value.Session == session);
+            await sender.SendExplicitAsync(
+                context.Connection.ConnectionId,
+                new GameExplicitMessageDelivery(
+                    direct.Frames,
+                    [.. deliveries
+                        .Where(value => value.Session != session)
+                        .Select(value => new GameExplicitMessageTarget(
+                            value.Session.ConnectionId,
+                            value.Frames))]),
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            RollbackEntry(leaderVisit.Run.RunId, participants);
+            throw;
+        }
     }
+
+    private void RollbackEntry(
+        DungeonRunId runId,
+        IReadOnlyList<DungeonRunParticipant> participants)
+    {
+        foreach (var participant in participants)
+        {
+            runs.End(participant.CharacterId, runId);
+            deliveryRegistry.RemoveParticipant(runId, participant.CharacterId);
+        }
+    }
+
+    private EntryAttachments ResolveAttachments(
+        SelectedSessionIdentity requester,
+        SelectCharacterResult requesterRuntime,
+        PartySnapshot? party)
+    {
+        if (party is null)
+            return new EntryAttachments([(requester, requesterRuntime, (byte)0)], null);
+
+        var members = new List<(SelectedSessionIdentity Session, SelectCharacterResult Runtime, byte Slot)>();
+        foreach (var member in party.Members.OrderBy(value => value.Slot))
+        {
+            var current = selectedSessions.FindByCharacter(member.CharacterId);
+            if (current is null
+                || current.AccountId != member.Character.AccountId
+                || current.WireUserId != member.WireUserId
+                || !runtimeSessions.TryGet(current, out var runtime, out _)
+                || runtime is null)
+            {
+                return new EntryAttachments([], member.Slot);
+            }
+
+            if (members.Any(value =>
+                    value.Session.CharacterId == current.CharacterId
+                    || value.Session.WireUserId == current.WireUserId
+                    || value.Session.ConnectionId == current.ConnectionId))
+            {
+                return new EntryAttachments([], member.Slot);
+            }
+
+            members.Add((current, runtime, member.Slot));
+        }
+
+        if (!members.Any(value => value.Session == requester))
+            return new EntryAttachments([], 0);
+        return new EntryAttachments(members, null);
+    }
+
+    private IReadOnlyList<IGameServerMessage> SelectionPrelude(
+        SelectedSessionIdentity session,
+        SelectCharacterResult result)
+    {
+        var equipment = result.CharacterInventory.Containers
+            .SingleOrDefault(value => value.ContainerType == InventoryContainerType.Equipment)
+            ?.Items ?? [];
+        List<IGameServerMessage> frames =
+        [
+            new ExtendedUserStateMessage(
+                result.Character,
+                result.CharacterEntry.Public,
+                result.CharacterEntry.Skills,
+                equipment,
+                result.World.PreparedAt),
+            new EnterSelectDungeonAcknowledgement(),
+            new UserStateNotification(session.WireUserId, 0x01),
+            new UdpHostNotification(),
+        ];
+        if (!visits.DefersSelectionState(result.Character.Progression.Level))
+            frames.Add(new EnterSelectDungeonNotification(session.WireUserId));
+        return frames;
+    }
+
+    private ValueTask RefuseAsync(
+        NetworkConnectionId connectionId,
+        byte errorCode,
+        byte context,
+        CancellationToken cancellationToken) =>
+        sender.SendExplicitAsync(
+            connectionId,
+            new GameExplicitMessageDelivery([new SelectDungeonRefusal(errorCode, context)], []),
+            cancellationToken);
+
+    private sealed record EntryAttachments(
+        IReadOnlyList<(SelectedSessionIdentity Session, SelectCharacterResult Runtime, byte Slot)> Members,
+        byte? BlockedSlot);
 }
 
 /// <summary>
@@ -647,6 +873,7 @@ public sealed class MoveMapHandler(
     ISelectedSessionDomainService selectedSessions,
     IDungeonRunDomainService runs,
     IDungeonVisitDomainService visits,
+    DungeonRunDeliveryRegistry deliveryRegistry,
     IGameMessageSender sender,
     ILogger<MoveMapHandler> logger) : ClientMessageHandler<MoveMapRequest>
 {
@@ -690,6 +917,12 @@ public sealed class MoveMapHandler(
         }
 
         var target = new MazeCell(message.NextX, message.NextY);
+        // FindByConnection identifies who sent this frame; it does not prove that generation is
+        // still the character's published generation. Validate at the mutation boundary so a
+        // superseded connection cannot advance the shared aggregate.
+        if (selectedSessions.FindByCharacter(session.CharacterId) != session)
+            return;
+
         var visit = await visits
             .MoveAsync(session.CharacterId, current, target, cancellationToken)
             .ConfigureAwait(false);
@@ -728,18 +961,37 @@ public sealed class MoveMapHandler(
         // the list again resurrects them under the very same numbers -- which is what a live
         // session saw on 2026-08-26 when it walked back out of the boss room, five monsters and
         // four monsters standing up again with the numbers they had died under.
+        var room = new StartMapNotification(
+            visit.Run,
+            visit.FirstEntry,
+            visit.Actors,
+            visit.FirstActorSequence,
+            FloorPieceValues.Describe(visit.Run, visit.FloorDrops));
+        var frozen = deliveryRegistry.Find(visit.Run.RunId);
+        if (frozen.Count == 0)
+            frozen = [session];
+        var currentRecipients = frozen
+            .Where(value => selectedSessions.FindByCharacter(value.CharacterId) == value)
+            .ToArray();
+        if (currentRecipients.Length == 0)
+            return;
+
+        // If the requester was replaced while room projection was awaited, the room has already
+        // advanced. Do not send to either requester generation, but do keep the remaining frozen
+        // participants in sync with the committed shared room.
+        var required = currentRecipients.Contains(session)
+            ? session
+            : currentRecipients[0];
+
         await sender.SendExplicitAsync(
-            context.Connection.ConnectionId,
+            required.ConnectionId,
             new GameExplicitMessageDelivery(
-                [
-                    new StartMapNotification(
-                        visit.Run,
-                        visit.FirstEntry,
-                        visit.Actors,
-                        visit.FirstActorSequence,
-                        FloorPieceValues.Describe(visit.Run, visit.FloorDrops)),
-                ],
-                []),
+                [room],
+                [.. currentRecipients
+                    .Where(value => value != required)
+                    .Select(value => new GameExplicitMessageTarget(
+                        value.ConnectionId,
+                        [room]))]),
             cancellationToken).ConfigureAwait(false);
     }
 }

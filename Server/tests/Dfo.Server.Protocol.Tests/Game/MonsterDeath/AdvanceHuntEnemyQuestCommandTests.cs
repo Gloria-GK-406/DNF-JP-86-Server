@@ -95,6 +95,36 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         Assert.Equal([new HuntEnemyQuestAdvance(1776, 1, 0)], result.QuestAdvances);
     }
 
+    [Fact]
+    public async Task TheAtomicKillCarriesTheFrozenPartySizeIntoExperienceValuation()
+    {
+        var valuation = new RecordingValuation();
+        var handler = new ApplyMonsterKillCommandHandler(
+            valuation,
+            new UnusedBonuses(),
+            new PricingOnlyExperience(),
+            new OneQuestDefinition(Quest1776()),
+            new OneCharacterLog(new OneLog(new CarriedQuest(0, 1776, 1))));
+
+        await handler.HandleAsync(
+            new CommandExecutionContext(
+                Guid.Empty,
+                typeof(ApplyMonsterKillCommand),
+                typeof(ApplyMonsterKillCommandHandler),
+                CommandExecutionKind.Transactional),
+            new ApplyMonsterKillCommand(
+                Account,
+                Character,
+                new KilledMonster(Code: 13098, Level: 5, Rank: MonsterRank.Ordinary),
+                DungeonId: 144,
+                Difficulty: 0,
+                DungeonWeight: 1,
+                PartyMemberCount: 2),
+            CancellationToken.None);
+
+        Assert.Equal(2, valuation.Kill?.PartyMemberCount);
+    }
+
     [Theory]
     [InlineData(145, 0, 13099, 3)]
     [InlineData(144, 0, 13100, 3)]
@@ -170,6 +200,20 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             throw new NotSupportedException();
     }
 
+    private sealed class RecordingValuation : IExperienceValuationDomainService
+    {
+        public KillCircumstances? Kill { get; private set; }
+
+        public uint WorthOfKill(in KillCircumstances kill)
+        {
+            this.Kill = kill;
+            return 0;
+        }
+
+        public ClearExperienceWorth WorthOfClear(in ClearCircumstances clear) =>
+            throw new NotSupportedException();
+    }
+
     private sealed class UnusedBonuses : IExperienceBonusDomainService
     {
         public IReadOnlyList<ExperienceModifier> Collect(in ExperienceOccasion occasion) =>
@@ -190,6 +234,26 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             CharacterId characterId,
             Func<byte, ExperienceValuation> valuation,
             CancellationToken cancellationToken) => ValueTask.FromResult<ExperienceAward?>(null);
+    }
+
+    private sealed class PricingOnlyExperience : ICharacterExperienceDomainService
+    {
+        public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
+
+        public ValueTask<bool> TrySetProgressAsync(
+            CharacterId characterId,
+            byte level,
+            uint experience,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        public ValueTask<ExperienceAward?> AwardAsync(
+            CharacterId characterId,
+            Func<byte, ExperienceValuation> valuation,
+            CancellationToken cancellationToken)
+        {
+            _ = valuation(3);
+            return ValueTask.FromResult<ExperienceAward?>(null);
+        }
     }
 
     private sealed class ExperienceMustNotBeAwarded : ICharacterExperienceDomainService

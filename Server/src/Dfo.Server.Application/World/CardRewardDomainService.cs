@@ -21,7 +21,8 @@ internal sealed class CardRewardDomainService(
     {
         ArgumentNullException.ThrowIfNull(settlement);
 
-        if (runs.Find(settlement.CharacterId) is not { } run)
+        if (runs.Find(settlement.CharacterId) is not { } run
+            || (settlement.RunId != default && settlement.RunId != run.RunId))
             return null;
 
         // Already fixed: hand back what was fixed rather than drawing a second pair of faces and
@@ -74,7 +75,11 @@ internal sealed class CardRewardDomainService(
         // The answer's price is read back off the cards rather than taken from the local, so that
         // a settlement which lost the race to another one reports the winner's price beside the
         // winner's faces instead of its own beside somebody else's.
-        return runs.FixClearRewardCards(settlement.CharacterId, free, paid, cost)?.ClearRewardCards
+        var fixedRun = settlement.RunId == default
+            ? runs.FixClearRewardCards(settlement.CharacterId, free, paid, cost)
+            : runs.FixClearRewardCards(
+                settlement.CharacterId, settlement.RunId, free, paid, cost);
+        return fixedRun?.ClearRewardCards
             is { } fixedCards
             ? new ClearRewardSettlementResult(fixedCards, fixedCards.PaidFlipCost)
             : null;

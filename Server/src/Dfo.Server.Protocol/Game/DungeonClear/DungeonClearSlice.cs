@@ -10,6 +10,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.MonsterDeath;
+using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Microsoft.Extensions.Logging;
@@ -142,6 +143,7 @@ public sealed class GiveUpGameHandler(
     ISelectedSessionRuntimeDirectory runtimeSessions,
     ICharacterPositionDomainService positions,
     IDungeonRunDomainService runs,
+    DungeonRunDeliveryRegistry deliveries,
     IGameMessageSender sender,
     ILogger<GiveUpGameHandler> logger) : ClientMessageHandler<GiveUpGameRequest>
 {
@@ -162,7 +164,11 @@ public sealed class GiveUpGameHandler(
             return;
         }
 
-        var ended = runs.End(session.CharacterId);
+        var currentRun = runs.Find(session.CharacterId);
+        var ended = currentRun is not null
+            && runs.End(session.CharacterId, currentRun.RunId);
+        if (ended && currentRun is not null)
+            deliveries.RemoveParticipant(currentRun.RunId, session.CharacterId);
         logger.LogInformation(
             "Give up game {ConnectionId} character={CharacterId}: run ended={Ended}",
             context.Connection.ConnectionId,
@@ -628,9 +634,17 @@ public sealed class SetPlayResultHandler(
             return;
         }
 
+        // Completion is a fact of the frozen shared run, whose story purpose came from the
+        // leader's entry intent. A helper is allowed to settle their own reward even when they do
+        // not hold that quest; asking their quest log would turn a successfully cleared party run
+        // into an unfinishable result screen for that one participant. Solo runs have no explicit
+        // participant list and therefore keep the original subject.
+        var leader = currentRun.PartyMemberCount > 1
+            ? currentRun.Participants.SingleOrDefault(participant => participant.IsLeader)
+            : null;
         var settlement = await settlementRules.ForAsync(
-            session.AccountId,
-            session.CharacterId,
+            leader?.AccountId ?? session.AccountId,
+            leader?.CharacterId ?? session.CharacterId,
             currentRun,
             cancellationToken).ConfigureAwait(false);
         if (!settlement.CanComplete)
@@ -648,8 +662,11 @@ public sealed class SetPlayResultHandler(
         // saying so pays experience -- so a repeated report would be a repeated payment. The same
         // guard a kill has, for the same reason, and the run is left in progress either way: what
         // ends it is the character walking out.
-        var run = runs.TrySettle(session.CharacterId);
-        if (run is null)
+        if (selectedSessions.FindByCharacter(session.CharacterId) != session)
+            return;
+
+        var settlementClaim = runs.TryClaimSettlement(session.CharacterId, currentRun.RunId);
+        if (settlementClaim is null)
         {
             logger.LogWarning(
                 "Set play result {ConnectionId} character={CharacterId}: no run in progress, or "
@@ -658,192 +675,223 @@ public sealed class SetPlayResultHandler(
                 session.CharacterId.Value);
             return;
         }
-        // The cards are fixed here, and here is the only place they can be fixed. Above is the
-        // claim: a repeated result report is turned back before it reaches this line, so one run
-        // draws one pair of faces however many times its result is reported. Below is every frame
-        // this settlement sends, and the reward breakdown is one of them -- so a face fixed after
-        // them would be reported as the zeroes it was before it existed.
-        //
-        // The level handed in is the one the character cleared at, taken before the award below
-        // can move it: what band a clear's cards are drawn from is a fact about the run that was
-        // just fought, not about the level the last of its experience happened to buy.
-        var clearProgress = await characters.Get(session.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false);
-        if (clearProgress is null)
-            return;
-        var settled = await cardRewards.SettleAsync(
-            new ClearRewardSettlement(session.CharacterId, clearProgress.Level),
-            cancellationToken).ConfigureAwait(false);
-        var freeCards = settled?.Cards.Free.Slots ?? [];
-        var cardGold = settled?.Cards.Free.Gold ?? 0;
-
-        // What the result screen is told a paid flip costs. The settlement answers the archive's
-        // price for the level this clear settled at, and answers nothing for a level the archive
-        // prices none at -- which is not the same as pricing it at nothing, so the two are not
-        // written the same way. Neither value is invented here: both are the frame's own, named
-        // and argued where the frame is built.
-        var paidFlipCost = settled is null
-            ? DungeonClearPayloadCodec.NoPaidFlipCost
-            : settled.PaidFlipCost ?? DungeonClearPayloadCodec.UnpricedPaidFlipCost;
-
-        var elapsed = DateTimeOffset.UtcNow - run.StartedAt;
-        var clearTime = (int)Math.Clamp(elapsed.TotalMilliseconds, 0, int.MaxValue);
-
-        // Asked before anything is paid, and the same refusal a kill makes. The experience frame
-        // carries the character's remaining skill points as well as the total, so without them
-        // there is no frame to report the new standing on -- and paying anyway would leave the
-        // character credited, the run spent, and the client still drawing the total it entered
-        // with.
-        //
-        // Asked of the character rather than read off the session, for the reason a kill asks:
-        // the session's copy is entry's projection and nothing recomputes it, so a character who
-        // levelled during the run would be told the figure they walked in with.
-        //
-        // Refusing is unrecoverable here in a way it is not for a kill: SET_PLAY_RESULT arrives
-        // once per run, so a clear refused is a clear never paid. That is acceptable only because
-        // the branch cannot be reached for a character this server has -- the ledger is worked out
-        // from stored rows, and only a character that is gone has none. If that ever stops being
-        // true, this becomes a run silently paying nothing, and the choice has to be made again.
-        var character = characters.Get(session.CharacterId);
-        var mirror = await character.RemainingSkillPointsAsync(cancellationToken)
-            .ConfigureAwait(false);
-        if (mirror is null)
+        var run = settlementClaim.Run;
+        var settlementCommitted = false;
+        try
         {
-            logger.LogWarning(
-                "Set play result {ConnectionId} character={CharacterId}: the character has no "
-                    + "skill point ledger to report, so the clear was neither paid nor reported",
-                context.Connection.ConnectionId,
-                session.CharacterId.Value);
-            await sender.SendExplicitAsync(
-                context.Connection.ConnectionId,
-                new GameExplicitMessageDelivery(
-                    [
-                        new PlayResultNotification(
-                            session.WireUserId,
-                            clearTime,
-                            message.ClientRankPoint,
-                            settlement.QuestMaze),
-                        new ClearDungeonRewardNotification(0, 0, freeCards, cardGold, paidFlipCost),
-                    ],
-                    []),
+            // The cards are fixed here, and here is the only place they can be fixed. Above is the
+            // claim: a repeated result report is turned back before it reaches this line, so one run
+            // draws one pair of faces however many times its result is reported. Below is every frame
+            // this settlement sends, and the reward breakdown is one of them -- so a face fixed after
+            // them would be reported as the zeroes it was before it existed.
+            //
+            // The level handed in is the one the character cleared at, taken before the award below
+            // can move it: what band a clear's cards are drawn from is a fact about the run that was
+            // just fought, not about the level the last of its experience happened to buy.
+            var clearProgress = await characters.Get(session.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false);
+            if (clearProgress is null)
+            {
+                runs.ReleaseSettlement(settlementClaim);
+                return;
+            }
+            var settled = await cardRewards.SettleAsync(
+                new ClearRewardSettlement(
+                    session.CharacterId,
+                    clearProgress.Level,
+                    run.PartyMemberCount,
+                    run.RunId),
                 cancellationToken).ConfigureAwait(false);
-            return;
-        }
-
-        var paid = (await commandBus.SendAsync(
-            new GrantClearExperienceCommand(
-                session.AccountId,
-                session.CharacterId,
-                run.Layout.DungeonId,
-                new ClearCircumstances(
-                    run.Layout.BasisLevel,
-                    run.Difficulty,
-                    run.Layout.ExperienceWeight,
-                    message.ClientRankPoint)),
-            cancellationToken).ConfigureAwait(false));
-
-        // The whole award, in its parts. Experience is a number nobody can check by looking, so
-        // this line is what makes a live session usable as evidence for what a clear paid -- and
-        // what the result screen's own figures have to agree with.
-        logger.LogInformation(
-            "Set play result {ConnectionId} character={CharacterId}: dungeon {DungeonId} cleared "
-                + "in {ClearTime}ms at rank {Rank}; clearBase={ClearBase} rankBonus={RankBonus} "
-                + "award={Award}",
-            context.Connection.ConnectionId,
-            session.CharacterId.Value,
-            run.Layout.DungeonId,
-            clearTime,
-            message.ClientRankPoint,
-            paid.ClearBase,
-            paid.RankBonus,
-            paid.Award);
-
-        // The award is the result of this write. When none was made, the character's current
-        // progress supplies the frame; the session remains only a compatibility projection.
-        var award = paid.Award;
-        var currentProgress = award is null
-            ? await characters.Get(session.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false)
-            : new CharacterProgressionState(award.Level, award.Total);
-        if (currentProgress is null)
-            return;
-        var level = currentProgress.Level;
-        var total = currentProgress.Experience;
-        if (award is not null)
-        {
-            result = result with
+            if (settled is null)
             {
-                Character = result.Character with
-                {
-                    Progression = new CharacterProgressionState(level, total),
-                },
-                CharacterEntry = result.CharacterEntry with
-                {
-                    Public = result.CharacterEntry.Public with
-                    {
-                        Extras = result.CharacterEntry.Public.Extras with
-                        {
-                            CharacterExperience = total,
-                        },
-                    },
-                },
-            };
+                runs.ReleaseSettlement(settlementClaim);
+                return;
+            }
+            var freeCards = settled.Cards.Free.Slots;
+            var cardGold = settled.Cards.Free.Gold;
 
-            // A level decides which quests are offered, and a clear is as capable of crossing one
-            // as a kill is -- more so, since it pays in one lump. The same refresh, for the same
-            // reason: a quest whose band was just entered would otherwise stay hidden until the
-            // character next entered the world.
-            if (award.LeveledUp)
+            // What the result screen is told a paid flip costs. The settlement answers the archive's
+            // price for the level this clear settled at, and answers nothing for a level the archive
+            // prices none at -- which is not the same as pricing it at nothing, so the two are not
+            // written the same way. Neither value is invented here: both are the frame's own, named
+            // and argued where the frame is built.
+            var paidFlipCost =
+                settled.PaidFlipCost ?? DungeonClearPayloadCodec.UnpricedPaidFlipCost;
+
+            var elapsed = DateTimeOffset.UtcNow - run.StartedAt;
+            var clearTime = (int)Math.Clamp(elapsed.TotalMilliseconds, 0, int.MaxValue);
+
+            // Asked before anything is paid, and the same refusal a kill makes. The experience frame
+            // carries the character's remaining skill points as well as the total, so without them
+            // there is no frame to report the new standing on -- and paying anyway would leave the
+            // character credited, the run spent, and the client still drawing the total it entered
+            // with.
+            //
+            // Asked of the character rather than read off the session, for the reason a kill asks:
+            // the session's copy is entry's projection and nothing recomputes it, so a character who
+            // levelled during the run would be told the figure they walked in with.
+            //
+            // The settlement claim remains retryable until the award commits. Missing this mirror
+            // therefore leaves the run unpaid rather than spending its one settlement attempt.
+            var character = characters.Get(session.CharacterId);
+            var mirror = await character.RemainingSkillPointsAsync(cancellationToken)
+                .ConfigureAwait(false);
+            if (mirror is null)
             {
-                // And the same second ask a kill makes: crossing a level grants more points, so
-                // the figure taken before the award is a level out of date. Only a level moves
-                // that ledger here -- a clear learns no skills and stores no bonus.
-                mirror = await character.RemainingSkillPointsAsync(cancellationToken)
-                    .ConfigureAwait(false) ?? mirror;
-
-                result = await offers
-                    .RefreshAsync(result, session.AccountId, session.CharacterId, level,
-                        cancellationToken).ConfigureAwait(false);
+                runs.ReleaseSettlement(settlementClaim);
+                logger.LogWarning(
+                    "Set play result {ConnectionId} character={CharacterId}: the character has no "
+                        + "skill point ledger to report, so the clear was neither paid nor reported",
+                    context.Connection.ConnectionId,
+                    session.CharacterId.Value);
+                await sender.SendExplicitAsync(
+                    context.Connection.ConnectionId,
+                    new GameExplicitMessageDelivery(
+                        [
+                            new PlayResultNotification(
+                                session.WireUserId,
+                                clearTime,
+                                message.ClientRankPoint,
+                                settlement.QuestMaze),
+                            new ClearDungeonRewardNotification(
+                                0, 0, freeCards, cardGold, paidFlipCost),
+                        ],
+                        []),
+                    cancellationToken).ConfigureAwait(false);
+                return;
             }
 
-            runtimeSessions.ReplaceExact(session, result);
-        }
+            var paid = (await commandBus.SendAsync(
+                new GrantClearExperienceCommand(
+                    session.AccountId,
+                    session.CharacterId,
+                    run.Layout.DungeonId,
+                    new ClearCircumstances(
+                        run.Layout.BasisLevel,
+                        run.Difficulty,
+                        run.Layout.ExperienceWeight,
+                        message.ClientRankPoint)),
+                cancellationToken).ConfigureAwait(false));
 
-        List<IGameServerMessage> frames =
-        [
-            new PlayResultNotification(
-                session.WireUserId,
+            // The whole award, in its parts. Experience is a number nobody can check by looking, so
+            // this line is what makes a live session usable as evidence for what a clear paid -- and
+            // what the result screen's own figures have to agree with.
+            logger.LogInformation(
+                "Set play result {ConnectionId} character={CharacterId}: dungeon {DungeonId} cleared "
+                    + "in {ClearTime}ms at rank {Rank}; clearBase={ClearBase} rankBonus={RankBonus} "
+                    + "award={Award}",
+                context.Connection.ConnectionId,
+                session.CharacterId.Value,
+                run.Layout.DungeonId,
                 clearTime,
                 message.ClientRankPoint,
-                settlement.QuestMaze),
-            new ExperienceNotification(
-                level,
-                total,
-                mirror,
-                AccountHonorLevel.Initial,
-                // Nothing a clear pays belongs to a named line: the clear's own worth and its rank
-                // bonus are both what the occasion was worth, and the client draws them as the
-                // base. The result screen below reports them apart.
-                ExperienceBonusLines.None),
-        ];
+                paid.ClearBase,
+                paid.RankBonus,
+                paid.Award);
 
-        if (award?.LeveledUp == true)
-        {
-            frames.Add(new AvailableQuestListMessage(
-                level, result.World.Content.AvailableQuests));
+            // The award is the result of this write. When none was made, the character's current
+            // progress supplies the frame; the session remains only a compatibility projection.
+            var award = paid.Award;
+            var currentProgress = award is null
+                ? await characters.Get(session.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false)
+                : new CharacterProgressionState(award.Level, award.Total);
+            if (currentProgress is null)
+            {
+                runs.ReleaseSettlement(settlementClaim);
+                return;
+            }
+
+            if (runs.CommitSettlement(settlementClaim) is null)
+            {
+                throw new InvalidOperationException(
+                    "The dungeon settlement claim was no longer current after its durable award.");
+            }
+            settlementCommitted = true;
+            var level = currentProgress.Level;
+            var total = currentProgress.Experience;
+            if (award is not null)
+            {
+                result = result with
+                {
+                    Character = result.Character with
+                    {
+                        Progression = new CharacterProgressionState(level, total),
+                    },
+                    CharacterEntry = result.CharacterEntry with
+                    {
+                        Public = result.CharacterEntry.Public with
+                        {
+                            Extras = result.CharacterEntry.Public.Extras with
+                            {
+                                CharacterExperience = total,
+                            },
+                        },
+                    },
+                };
+
+                // A level decides which quests are offered, and a clear is as capable of crossing one
+                // as a kill is -- more so, since it pays in one lump. The same refresh, for the same
+                // reason: a quest whose band was just entered would otherwise stay hidden until the
+                // character next entered the world.
+                if (award.LeveledUp)
+                {
+                    // And the same second ask a kill makes: crossing a level grants more points, so
+                    // the figure taken before the award is a level out of date. Only a level moves
+                    // that ledger here -- a clear learns no skills and stores no bonus.
+                    mirror = await character.RemainingSkillPointsAsync(cancellationToken)
+                        .ConfigureAwait(false) ?? mirror;
+
+                    result = await offers
+                        .RefreshAsync(result, session.AccountId, session.CharacterId, level,
+                            cancellationToken).ConfigureAwait(false);
+                }
+
+                runtimeSessions.ReplaceExact(session, result);
+            }
+
+            List<IGameServerMessage> frames =
+            [
+                new PlayResultNotification(
+                    session.WireUserId,
+                    clearTime,
+                    message.ClientRankPoint,
+                    settlement.QuestMaze),
+                new ExperienceNotification(
+                    level,
+                    total,
+                    mirror,
+                    AccountHonorLevel.Initial,
+                    // Nothing a clear pays belongs to a named line: the clear's own worth and its
+                    // rank bonus are both what the occasion was worth, and the client draws them
+                    // as the base. The result screen below reports them apart.
+                    ExperienceBonusLines.None),
+            ];
+
+            if (award?.LeveledUp == true)
+            {
+                frames.Add(new AvailableQuestListMessage(
+                    level, result.World.Content.AvailableQuests));
+            }
+
+            // Read off the award rather than off the valuation. The command's two figures are what the
+            // clear was worth; what the character received can be less -- nothing at all when the
+            // award did not happen, or a clamped amount at the top of the experience table -- and the
+            // result screen must report what landed. An award carries its base and its one
+            // contribution, which are those same two figures whenever nothing was clamped.
+            frames.Add(award is null
+                ? new ClearDungeonRewardNotification(0, 0, freeCards, cardGold, paidFlipCost)
+                : new ClearDungeonRewardNotification(
+                    award.Base, award.Gained - award.Base, freeCards, cardGold, paidFlipCost));
+
+            await sender.SendExplicitAsync(
+                context.Connection.ConnectionId,
+                new GameExplicitMessageDelivery(frames, []),
+                cancellationToken).ConfigureAwait(false);
         }
-
-        // Read off the award rather than off the valuation. The command's two figures are what the
-        // clear was worth; what the character received can be less -- nothing at all when the
-        // award did not happen, or a clamped amount at the top of the experience table -- and the
-        // result screen must report what landed. An award carries its base and its one
-        // contribution, which are those same two figures whenever nothing was clamped.
-        frames.Add(award is null
-            ? new ClearDungeonRewardNotification(0, 0, freeCards, cardGold, paidFlipCost)
-            : new ClearDungeonRewardNotification(
-                award.Base, award.Gained - award.Base, freeCards, cardGold, paidFlipCost));
-
-        await sender.SendExplicitAsync(
-            context.Connection.ConnectionId,
-            new GameExplicitMessageDelivery(frames, []),
-            cancellationToken).ConfigureAwait(false);
+        catch
+        {
+            if (!settlementCommitted)
+                runs.ReleaseSettlement(settlementClaim);
+            throw;
+        }
     }
 }

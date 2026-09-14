@@ -94,6 +94,19 @@ public sealed class CardRewardDomainServiceTests
     /// </remarks>
     private sealed class RecordingRules : IClearRewardRuleService
     {
+        private readonly TaskCompletionSource? offersEntered;
+        private readonly TaskCompletionSource? releaseOffers;
+
+        public RecordingRules(bool pauseOffers = false)
+        {
+            if (!pauseOffers)
+                return;
+            this.offersEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            this.releaseOffers = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+
+        public Task WaitForOffersAsync() => this.offersEntered?.Task ?? Task.CompletedTask;
+        public void ReleaseOffers() => this.releaseOffers?.TrySetResult();
         /// <summary>
         /// What this fixture charges for a flip, at <see cref="BasisLevel"/> and nowhere else.
         /// </summary>
@@ -135,8 +148,14 @@ public sealed class CardRewardDomainServiceTests
         /// <c>PaidCardFlipCostTests</c> -- and a knob nothing in this file sets would look like a
         /// case being covered here while every test ran down the one branch it has.
         /// </remarks>
-        public ValueTask<bool> OffersPaidFlipAsync(
-            int dungeonId, CancellationToken cancellationToken) => ValueTask.FromResult(true);
+        public async ValueTask<bool> OffersPaidFlipAsync(
+            int dungeonId, CancellationToken cancellationToken)
+        {
+            this.offersEntered?.TrySetResult();
+            if (this.releaseOffers is not null)
+                await this.releaseOffers.Task.WaitAsync(cancellationToken);
+            return true;
+        }
 
         /// <summary>What this stub's faces say a flip of them pays.</summary>
         private const int FaceGold = 37;
@@ -212,6 +231,25 @@ public sealed class CardRewardDomainServiceTests
         Assert.Equal(ClearRewardCardKind.Free, cards.Free.Kind);
         Assert.Equal(ClearRewardCardKind.Paid, cards.Paid.Kind);
         Assert.Empty(cards.Claimed);
+    }
+
+    [Fact]
+    public async Task Card_resolution_for_an_old_run_cannot_fix_cards_on_its_replacement()
+    {
+        var runs = new DungeonRunDomainService();
+        var old = runs.Begin(Character, Tutorial, (byte)Difficulty);
+        var rules = new RecordingRules(pauseOffers: true);
+        var service = new CardRewardDomainService(rules, runs);
+        var pending = service.SettleAsync(
+            Settlement with { RunId = old.RunId }, CancellationToken.None).AsTask();
+        await rules.WaitForOffersAsync();
+
+        var replacement = runs.Begin(Character, Tutorial, (byte)(Difficulty + 1));
+        rules.ReleaseOffers();
+
+        Assert.Null(await pending);
+        Assert.Null(runs.Find(Character)!.ClearRewardCards);
+        Assert.NotEqual(old.RunId, replacement.RunId);
     }
 
     /// <summary>

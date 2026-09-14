@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
@@ -11,7 +12,9 @@ using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
+using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.ReturnToSelection;
 
 namespace Dfo.Server.Application.Tests.Game;
@@ -43,17 +46,28 @@ public sealed partial class SelectCharacterLifecycleTests
         presence.Admit(new SessionPresence(selected.CharacterId, 10011, 1, 2, true, selected));
         var stores = new ExpertStoreDomainService();
         stores.Open(selected);
+        var runs = new DungeonRunDomainService();
+        var departure = new RecordingDungeonDeparture();
+        var memberSession = SelectedSessionIdentity.Create(
+            new AccountId(43), new CharacterId(502), new NetworkConnectionId("Game:return-member"), 1, 10011);
+        f.Directory.Select(memberSession);
+        var started = runs.BeginParty(
+            [
+                new(selected.AccountId, selected.CharacterId, selected.WireUserId, 0, true),
+                new(memberSession.AccountId, memberSession.CharacterId, memberSession.WireUserId, 1, false),
+            ],
+            new(10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
+                61000, 1, new Dictionary<MazeCell, int> { [new(0, 0)] = 61000 }), 0);
         var cleanup = new SelectedSessionCleanupService(f.Directory, runtimes, leases,
             new CharacterContainerDomainService(), new CharacterItemCooldownDomainService(TimeProvider.System),
             f.Active, presence, stores, new PvpLobbyDomainService(), [f.Mutations], positions,
             new PartyService(
                 new StubPartyMemberStatusDomainService(),
                 new PartyModeRuleService(),
-                TimeProvider.System));
-        var runs = new DungeonRunDomainService();
-        runs.Begin(selected.CharacterId, new(10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
-            61000, 1, new Dictionary<MazeCell, int> { [new(0, 0)] = 61000 }), 0);
-        var complete = new CompleteReturnToSelectionCommandHandler(f.Users, f.Directory, cleanup, runs);
+                TimeProvider.System),
+            runs,
+            [departure]);
+        var complete = new CompleteReturnToSelectionCommandHandler(f.Users, f.Directory, cleanup);
 
         await complete.HandleAsync(ReturnContext(), new(prepared), CancellationToken.None);
 
@@ -64,6 +78,8 @@ public sealed partial class SelectCharacterLifecycleTests
         Assert.Null(presence.Find(selected.CharacterId));
         Assert.False(stores.HasOpenStore(selected.CharacterId));
         Assert.Null(runs.Find(selected.CharacterId));
+        Assert.Equal(started.RunId, runs.Find(memberSession.CharacterId)!.RunId);
+        Assert.Equal([(started.RunId, selected.CharacterId)], departure.Calls);
         Assert.Equal(f.Result.Character.Position, f.Mutations.PersistedPosition);
         var returned = f.Users.GetRequired(f.OnlineUserId);
         Assert.Equal(f.AccountId, returned.AccountId);
@@ -73,6 +89,12 @@ public sealed partial class SelectCharacterLifecycleTests
         await f.Handler.HandleAsync(f.Context, f.Command, CancellationToken.None);
         Assert.Equal(selected.CharacterId, f.Users.GetRequired(f.OnlineUserId).CurrentCharacterId);
         Assert.NotEqual(selected, f.Directory.Find(f.AccountId));
+
+        await cleanup.CleanupAsync(memberSession, includeOwner: false, CancellationToken.None);
+        Assert.Null(runs.Find(memberSession.CharacterId));
+        Assert.Equal(
+            [(started.RunId, selected.CharacterId), (started.RunId, memberSession.CharacterId)],
+            departure.Calls);
     }
 
     [Fact]
@@ -88,8 +110,7 @@ public sealed partial class SelectCharacterLifecycleTests
         await f.Handler.HandleAsync(f.Context, f.Command, CancellationToken.None);
         var replacement = f.Directory.Find(f.AccountId);
         var cleanupCalls = f.Cleanup.Calls.Count;
-        var complete = new CompleteReturnToSelectionCommandHandler(f.Users, f.Directory, f.Cleanup,
-            new DungeonRunDomainService());
+        var complete = new CompleteReturnToSelectionCommandHandler(f.Users, f.Directory, f.Cleanup);
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await complete.HandleAsync(ReturnContext(), new(old), CancellationToken.None));
@@ -134,5 +155,13 @@ public sealed partial class SelectCharacterLifecycleTests
         public ValueTask<CharacterNameStatus> CheckNameAsync(byte[] name, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<CharacterCreationResult> CreateCharacterAsync(AccountId id, byte job, byte[] name, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<CharacterDeletionResult> DeleteCharacterAsync(AccountId id, ushort slot, byte[] name, CancellationToken ct) => throw new NotSupportedException();
+    }
+
+    private sealed class RecordingDungeonDeparture : IDungeonRunParticipantDepartureSink
+    {
+        public List<(DungeonRunId RunId, CharacterId CharacterId)> Calls { get; } = [];
+
+        public void ParticipantDeparted(DungeonRunId runId, CharacterId characterId) =>
+            Calls.Add((runId, characterId));
     }
 }

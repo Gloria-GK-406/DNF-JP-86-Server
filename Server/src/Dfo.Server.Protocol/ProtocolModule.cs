@@ -96,6 +96,9 @@ public sealed class ProtocolModule : IServerModule
 
         services.AddGameMessageSending();
         services.TryAddSingleton<CharacterSelectionDelivery>();
+        services.TryAddSingleton<DungeonRunDeliveryRegistry>();
+        services.TryAddSingleton<IDungeonRunParticipantDepartureSink>(provider =>
+            provider.GetRequiredService<DungeonRunDeliveryRegistry>());
         // Every notification type declared in this assembly must have a handler registered below,
         // and the server refuses to start if one does not. Declared rather than discovered: the
         // check is only worth having while something says which assemblies it covers, and this

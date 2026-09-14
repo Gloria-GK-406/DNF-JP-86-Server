@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using Dfo.Server.Protocol.Game;
+using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
@@ -11,6 +12,7 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.World;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.GroundPickup;
@@ -246,7 +248,11 @@ public sealed record GroundPickupResult(
 
 /// <summary>One character taking one piece off the floor of the room they are standing in.</summary>
 public sealed record PickUpGroundDropCommand(
-    AccountId AccountId, CharacterId CharacterId, ushort GroundDropNumber)
+    AccountId AccountId,
+    CharacterId CharacterId,
+    ushort GroundDropNumber,
+    DungeonRunId ExpectedRunId = default,
+    long? ExpectedRoomVersion = null)
     : ICommand<GroundPickupResult>;
 
 /// <summary>
@@ -259,10 +265,9 @@ public sealed record PickUpGroundDropCommand(
 /// number fail, and without it a player could walk out of a room and back in and be handed the box
 /// again.
 /// <para>
-/// The claim is taken before the insert and not given back if the insert fails. A failed insert is
-/// a full bag, and the piece it would have gone into is one this server can no longer put back on
-/// the floor without renumbering everything after it. Losing it is the smaller wrong: the refusal
-/// tells the player their bag is full, which is true, and the room is already cleared.
+/// The floor reservation is committed only after the transactional persistent write succeeds. A
+/// refusal or exception releases it, so the same exact run room may retry without consuming a
+/// similarly numbered piece in a replacement room.
 /// </para>
 /// </remarks>
 public sealed class PickUpGroundDropCommandHandler(
@@ -280,7 +285,10 @@ public sealed class PickUpGroundDropCommandHandler(
         ArgumentNullException.ThrowIfNull(command);
 
         var run = runs.Find(command.CharacterId);
-        if (run is null)
+        if (run is null
+            || (command.ExpectedRunId != default && run.RunId != command.ExpectedRunId)
+            || (command.ExpectedRoomVersion is { } roomVersion
+                && run.RoomVersion != roomVersion))
             return GroundPickupResult.Refused(GroundPickupStatus.NotInARun);
 
         var found = await floor.FindOnFloorAsync(run, command.GroundDropNumber, cancellationToken)
@@ -295,49 +303,83 @@ public sealed class PickUpGroundDropCommandHandler(
         // coins.
         if (piece.ItemId == RolledDrop.GoldItemId)
         {
-            if (runs.TryTakeGroundDrop(command.CharacterId, command.GroundDropNumber) is null)
+            var claim = runs.TryClaimGroundDrop(
+                command.CharacterId, run.RunId, run.RoomVersion, command.GroundDropNumber);
+            if (claim is null)
                 return GroundPickupResult.Refused(GroundPickupStatus.AlreadyTaken);
 
-            var total = await characters.Get(command.CharacterId)
-                .AddGoldAsync(piece.Count, cancellationToken).ConfigureAwait(false);
-            return new GroundPickupResult(
-                GroundPickupStatus.Banked, RolledDrop.GoldItemId, 0, piece.Count, total);
+            try
+            {
+                var total = await characters.Get(command.CharacterId)
+                    .AddGoldAsync(piece.Count, cancellationToken).ConfigureAwait(false);
+                if (runs.CommitGroundDrop(claim) is null)
+                {
+                    throw new InvalidOperationException(
+                        "The ground-drop claim was no longer current after its durable gold award.");
+                }
+                return new GroundPickupResult(
+                    GroundPickupStatus.Banked, RolledDrop.GoldItemId, 0, piece.Count, total);
+            }
+            catch
+            {
+                runs.ReleaseGroundDrop(claim);
+                throw;
+            }
         }
 
         var container = containers.FindContainer(command.CharacterId, InventoryContainerType.Main);
         if (container is null)
             return GroundPickupResult.Refused(GroundPickupStatus.NoBoundContainer, piece.ItemId);
 
-        if (runs.TryTakeGroundDrop(command.CharacterId, command.GroundDropNumber) is null)
+        var itemClaim = runs.TryClaimGroundDrop(
+            command.CharacterId, run.RunId, run.RoomVersion, command.GroundDropNumber);
+        if (itemClaim is null)
             return GroundPickupResult.Refused(GroundPickupStatus.AlreadyTaken, piece.ItemId);
 
-        var outcome = await container.AddAsync(piece.ItemId, piece.Count, cancellationToken)
-            .ConfigureAwait(false);
-        switch (outcome)
+        try
         {
-            case ItemPlacementOutcome.AddedToPile topped:
-                return new GroundPickupResult(
-                    GroundPickupStatus.PickedUp, piece.ItemId, topped.SlotIndex);
+            var outcome = await container.AddAsync(piece.ItemId, piece.Count, cancellationToken)
+                .ConfigureAwait(false);
+            int slotIndex;
+            switch (outcome)
+            {
+                case ItemPlacementOutcome.AddedToPile topped:
+                    slotIndex = topped.SlotIndex;
+                    break;
 
-            case ItemPlacementOutcome.PutInEmptySlot opened:
-                await CarryOverAsync(container, piece, opened.SlotIndex, cancellationToken)
-                    .ConfigureAwait(false);
-                return new GroundPickupResult(
-                    GroundPickupStatus.PickedUp, piece.ItemId, opened.SlotIndex);
+                case ItemPlacementOutcome.PutInEmptySlot opened:
+                    slotIndex = opened.SlotIndex;
+                    await CarryOverAsync(container, piece, opened.SlotIndex, cancellationToken)
+                        .ConfigureAwait(false);
+                    break;
 
-            case ItemPlacementOutcome.NoRoom:
-                return GroundPickupResult.Refused(
-                    GroundPickupStatus.InventoryFull, piece.ItemId);
+                case ItemPlacementOutcome.NoRoom:
+                    runs.ReleaseGroundDrop(itemClaim);
+                    return GroundPickupResult.Refused(
+                        GroundPickupStatus.InventoryFull, piece.ItemId);
 
-            case ItemPlacementOutcome.UnknownItem:
-                return GroundPickupResult.Refused(
-                    GroundPickupStatus.UnknownItem, piece.ItemId);
+                case ItemPlacementOutcome.UnknownItem:
+                    runs.ReleaseGroundDrop(itemClaim);
+                    return GroundPickupResult.Refused(
+                        GroundPickupStatus.UnknownItem, piece.ItemId);
 
-            default:
-                // Listed rather than defaulted: an outcome nobody read would become a piece that
-                // left the floor and never arrived anywhere, with nothing said about it.
-                throw new ArgumentOutOfRangeException(
-                    nameof(command), outcome, "No reading was decided for this outcome.");
+                default:
+                    throw new ArgumentOutOfRangeException(
+                        nameof(command), outcome, "No reading was decided for this outcome.");
+            }
+
+            if (runs.CommitGroundDrop(itemClaim) is null)
+            {
+                throw new InvalidOperationException(
+                    "The ground-drop claim was no longer current after its durable item award.");
+            }
+            return new GroundPickupResult(
+                GroundPickupStatus.PickedUp, piece.ItemId, slotIndex);
+        }
+        catch
+        {
+            runs.ReleaseGroundDrop(itemClaim);
+            throw;
         }
     }
 
@@ -442,6 +484,8 @@ public sealed class PickUpGroundDropCommandHandler(
 /// </remarks>
 public sealed class GetItemHandler(
     ISelectedSessionDomainService selectedSessions,
+    IDungeonRunDomainService runs,
+    DungeonRunDeliveryRegistry deliveries,
     ICommandBus commandBus,
     IGameMessageSender sender,
     TimeProvider clock,
@@ -462,9 +506,22 @@ public sealed class GetItemHandler(
             return;
         }
 
+        // The run is read before the shared claim. A successful claim removes the piece from the
+        // aggregate, but it does not end the run; this snapshot supplies only the immutable run id
+        // used to find the frozen delivery set. Delivery identities are still checked against the
+        // live selected-session directory below so a replacement connection never receives an old
+        // run's notification.
+        var run = runs.Find(session.CharacterId);
+        if (selectedSessions.FindByCharacter(session.CharacterId) != session)
+            return;
+
         var result = await commandBus.SendAsync(
             new PickUpGroundDropCommand(
-                session.AccountId, session.CharacterId, message.GroundDropNumber),
+                session.AccountId,
+                session.CharacterId,
+                message.GroundDropNumber,
+                run?.RunId ?? default,
+                run?.RoomVersion),
             cancellationToken).ConfigureAwait(false);
 
         if (result.Status is GroundPickupStatus.Banked)
@@ -478,13 +535,14 @@ public sealed class GetItemHandler(
                 result.Amount,
                 result.Total);
 
+            var pickup = new GroundGoldPickupNotification(
+                message.GroundDropNumber, session.WireUserId, result.Amount);
             await sender.SendExplicitAsync(
                 context.Connection.ConnectionId,
                 new GameExplicitMessageDelivery(
                     [
                         new GetItemResponse(Accepted: true),
-                        new GroundGoldPickupNotification(
-                            message.GroundDropNumber, session.WireUserId, result.Amount),
+                        pickup,
 
                         // And what the character now actually carries. The frame above says how
                         // much the pile held and the client adds it; this one says the total and
@@ -497,7 +555,7 @@ public sealed class GetItemHandler(
                         GameInventoryDelivery.CarriedGoldNotification(
                             result.Total, clock.GetUtcNow()),
                     ],
-                    []),
+                    this.OtherParticipants(run, session, pickup)),
                 cancellationToken).ConfigureAwait(false);
             return;
         }
@@ -513,17 +571,18 @@ public sealed class GetItemHandler(
                 result.ItemId,
                 result.SlotIndex);
 
+            var pickup = new GroundPickupNotification(
+                message.GroundDropNumber,
+                session.WireUserId,
+                checked((ushort)result.SlotIndex));
             await sender.SendExplicitAsync(
                 context.Connection.ConnectionId,
                 new GameExplicitMessageDelivery(
                     [
                         new GetItemResponse(Accepted: true),
-                        new GroundPickupNotification(
-                            message.GroundDropNumber,
-                            session.WireUserId,
-                            checked((ushort)result.SlotIndex)),
+                        pickup,
                     ],
-                    []),
+                    this.OtherParticipants(run, session, pickup)),
                 cancellationToken).ConfigureAwait(false);
             return;
         }
@@ -543,5 +602,24 @@ public sealed class GetItemHandler(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery([new GetItemResponse(Accepted: false)], []),
             cancellationToken).ConfigureAwait(false);
+    }
+
+    private IReadOnlyList<GameExplicitMessageTarget> OtherParticipants(
+        DungeonRunState? run,
+        SelectedSessionIdentity picker,
+        IGameServerMessage notification)
+    {
+        if (run is null)
+            return [];
+
+        return
+        [
+            .. deliveries.Find(run.RunId)
+                .Where(frozen => frozen.CharacterId != picker.CharacterId)
+                .Where(frozen => selectedSessions.FindByCharacter(frozen.CharacterId) == frozen)
+                .Select(frozen => new GameExplicitMessageTarget(
+                    frozen.ConnectionId,
+                    [notification])),
+        ];
     }
 }

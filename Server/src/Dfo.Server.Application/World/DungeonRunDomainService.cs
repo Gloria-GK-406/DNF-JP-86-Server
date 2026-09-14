@@ -1,107 +1,225 @@
-using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.World;
 
-/// <summary>Keeps the runs in progress in memory for the server's lifetime.</summary>
-/// <remarks>
-/// One entry per character, replaced whole on every transition, so a reader either sees the run
-/// before a move or the run after it and never a half-applied one. That is enough while a run has
-/// exactly one participant; the party-grained lease this will need arrives with parties, and is
-/// not invented ahead of the thing it protects.
-/// </remarks>
+/// <summary>Keeps process-local dungeon runs as shared aggregates with participant views.</summary>
 internal sealed class DungeonRunDomainService : IDungeonRunDomainService
 {
-    private readonly ConcurrentDictionary<CharacterId, DungeonRunState> _runs = new();
-    private readonly ConcurrentDictionary<DeathClaimKey, long> _deathClaims = new();
-    private long _nextDeathClaim;
+    private readonly object gate = new();
+    private readonly Dictionary<CharacterId, DungeonRunAggregate> runsByCharacter = new();
+    private readonly Dictionary<DungeonRunId, DungeonRunAggregate> runsById = new();
+    private readonly Dictionary<DeathClaimKey, long> deathClaims = new();
+    private readonly Dictionary<ParticipantEffectClaimKey, long> participantEffectClaims = new();
+    private readonly Dictionary<SettlementClaimKey, long> settlementClaims = new();
+    private readonly Dictionary<GroundDropClaimKey, long> groundDropClaims = new();
+    private readonly Dictionary<ClearRewardCardClaimKey, long> clearRewardCardClaims = new();
+    private long nextClaim;
 
     public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty)
     {
-        ArgumentNullException.ThrowIfNull(layout);
-        this.ClearDeathClaims(characterId);
-        var state = new DungeonRunState(
+        var wireUserId = characterId.Value is > 0 and <= ushort.MaxValue
+            ? checked((ushort)characterId.Value)
+            : (ushort)0;
+        return this.BeginParty(
+            [new DungeonRunParticipant(
+                new AccountId(0), characterId, wireUserId, Slot: 0, IsLeader: true)],
             layout,
-            layout.StartCell,
-            layout.StartRoomMapId,
-            ImmutableHashSet.Create(layout.StartCell),
-            ImmutableHashSet<GroundDropId>.Empty,
-            ImmutableHashSet<RoomActorId>.Empty,
-            // The wall clock, deliberately, and only here. A run's length is a fact about how long
-            // the player took, so it is measured rather than derived from anything the request
-            // carries -- and this service is already the one thing in the dungeon path that keeps
-            // state for as long as a run lasts.
-            DateTimeOffset.UtcNow,
             difficulty);
-        _runs[characterId] = state;
-        return state;
     }
 
-    public DungeonRunState? Find(CharacterId characterId) =>
-        _runs.TryGetValue(characterId, out var state) ? state : null;
+    public DungeonRunState BeginParty(
+        IReadOnlyList<DungeonRunParticipant> participants,
+        DungeonLayout layout,
+        byte difficulty)
+    {
+        ArgumentNullException.ThrowIfNull(participants);
+        ArgumentNullException.ThrowIfNull(layout);
+        if (participants.Count == 0)
+            throw new ArgumentException("A dungeon run requires at least one participant.", nameof(participants));
+        if (participants.Any(participant => participant is null))
+            throw new ArgumentException("A dungeon participant cannot be null.", nameof(participants));
+        if (participants.Select(participant => participant.CharacterId).Distinct().Count()
+            != participants.Count)
+        {
+            throw new ArgumentException(
+                "A character can occur only once in a dungeon run.", nameof(participants));
+        }
+        if (participants.Select(participant => participant.Slot).Distinct().Count()
+            != participants.Count)
+        {
+            throw new ArgumentException(
+                "A dungeon participant slot can occur only once.", nameof(participants));
+        }
+        if (participants.Count(participant => participant.IsLeader) != 1)
+        {
+            throw new ArgumentException(
+                "A dungeon run requires exactly one leader.", nameof(participants));
+        }
+
+        var frozen = participants.ToImmutableArray();
+        var aggregate = new DungeonRunAggregate(
+            DungeonRunId.New(), frozen, layout, difficulty, DateTimeOffset.UtcNow);
+
+        lock (this.gate)
+        {
+            foreach (var participant in frozen)
+                this.DetachParticipant(participant.CharacterId);
+
+            this.runsById.Add(aggregate.RunId, aggregate);
+            foreach (var participant in frozen)
+                this.runsByCharacter.Add(participant.CharacterId, aggregate);
+
+            return aggregate.ViewFor(aggregate.Leader.CharacterId);
+        }
+    }
+
+    public DungeonRunState? Find(CharacterId characterId)
+    {
+        lock (this.gate)
+        {
+            return this.runsByCharacter.TryGetValue(characterId, out var aggregate)
+                ? aggregate.ViewFor(characterId)
+                : null;
+        }
+    }
 
     public DungeonRunState? TryMove(CharacterId characterId, MazeCell target)
     {
-        while (true)
+        lock (this.gate)
         {
-            if (!_runs.TryGetValue(characterId, out var current))
-                return null;
-            if (!current.Layout.Rooms.TryGetValue(target, out var mapId))
-                return null;
-
-            var moved = current with
-            {
-                CurrentCell = target,
-                CurrentRoomMapId = mapId,
-                VisitedCells = ((ImmutableHashSet<MazeCell>)current.VisitedCells).Add(target),
-            };
-            if (_runs.TryUpdate(characterId, moved, current))
-                return moved;
+            return this.TryMoveCore(characterId, expectedRunId: null, expectedRoomVersion: null, target);
         }
     }
 
-    /// <remarks>
-    /// The same compare-and-swap the move uses, and for the same reason: two requests naming one
-    /// piece must not both come away with it. What is remembered is the piece, not the item -- the
-    /// room says what lies where, and this says only what is no longer there.
-    /// </remarks>
+    public DungeonRunState? TryMove(
+        CharacterId characterId,
+        DungeonRunId expectedRunId,
+        long expectedRoomVersion,
+        MazeCell target)
+    {
+        lock (this.gate)
+        {
+            return this.TryMoveCore(characterId, expectedRunId, expectedRoomVersion, target);
+        }
+    }
+
+    private DungeonRunState? TryMoveCore(
+        CharacterId characterId,
+        DungeonRunId? expectedRunId,
+        long? expectedRoomVersion,
+        MazeCell target)
+    {
+        if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
+            || !aggregate.Participant(characterId).IsLeader
+            || (expectedRunId is { } runId && aggregate.RunId != runId)
+            || (expectedRoomVersion is { } version && aggregate.RoomVersion != version)
+            || this.deathClaims.Keys.Any(key =>
+                key.RunId == aggregate.RunId && key.Actor.Cell == aggregate.CurrentCell)
+            || Math.Abs(target.X - aggregate.CurrentCell.X)
+                + Math.Abs(target.Y - aggregate.CurrentCell.Y) != 1
+            || !aggregate.Layout.Rooms.TryGetValue(target, out var mapId))
+        {
+            return null;
+        }
+
+        aggregate.CurrentCell = target;
+        aggregate.CurrentRoomMapId = mapId;
+        aggregate.VisitedCells = aggregate.VisitedCells.Add(target);
+        aggregate.RoomVersion++;
+        return aggregate.ViewFor(characterId);
+    }
+
     public DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber)
     {
-        while (true)
+        lock (this.gate)
         {
-            if (!_runs.TryGetValue(characterId, out var current))
+            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate))
                 return null;
 
-            var taken = (ImmutableHashSet<GroundDropId>)current.TakenGroundDrops;
-            var id = new GroundDropId(current.CurrentCell, groundDropNumber);
-            if (taken.Contains(id))
+            var id = new GroundDropId(aggregate.CurrentCell, groundDropNumber);
+            if (aggregate.TakenGroundDrops.Contains(id))
                 return null;
 
-            var claimed = current with { TakenGroundDrops = taken.Add(id) };
-            if (_runs.TryUpdate(characterId, claimed, current))
-                return claimed;
+            aggregate.TakenGroundDrops = aggregate.TakenGroundDrops.Add(id);
+            return aggregate.ViewFor(characterId);
         }
     }
 
-    /// <remarks>The same compare-and-swap the move and the pick-up use, and for the same reason.</remarks>
+    public DungeonGroundDropClaim? TryClaimGroundDrop(
+        CharacterId characterId,
+        DungeonRunId expectedRunId,
+        long expectedRoomVersion,
+        ushort groundDropNumber)
+    {
+        lock (this.gate)
+        {
+            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
+                || aggregate.RunId != expectedRunId
+                || aggregate.RoomVersion != expectedRoomVersion)
+            {
+                return null;
+            }
+
+            var drop = new GroundDropId(aggregate.CurrentCell, groundDropNumber);
+            var key = new GroundDropClaimKey(aggregate.RunId, drop, characterId);
+            if (aggregate.TakenGroundDrops.Contains(drop)
+                || this.groundDropClaims.Keys.Any(candidate =>
+                    candidate.RunId == aggregate.RunId && candidate.Drop == drop))
+                return null;
+
+            var token = Interlocked.Increment(ref this.nextClaim);
+            this.groundDropClaims.Add(key, token);
+            return new DungeonGroundDropClaim(
+                characterId, aggregate.ViewFor(characterId), drop, token, aggregate.RunId);
+        }
+    }
+
+    public DungeonRunState? CommitGroundDrop(DungeonGroundDropClaim claim)
+    {
+        ArgumentNullException.ThrowIfNull(claim);
+        lock (this.gate)
+        {
+            var key = new GroundDropClaimKey(claim.RunId, claim.Drop, claim.CharacterId);
+            if (!this.TryRemoveGroundDropClaim(key, claim.Token)
+                || !this.runsById.TryGetValue(claim.RunId, out var aggregate)
+                || aggregate.TakenGroundDrops.Contains(claim.Drop))
+            {
+                return null;
+            }
+
+            aggregate.TakenGroundDrops = aggregate.TakenGroundDrops.Add(claim.Drop);
+            return aggregate.ViewFor(claim.CharacterId);
+        }
+    }
+
+    public bool ReleaseGroundDrop(DungeonGroundDropClaim claim)
+    {
+        ArgumentNullException.ThrowIfNull(claim);
+        lock (this.gate)
+        {
+            return this.TryRemoveGroundDropClaim(
+                new GroundDropClaimKey(claim.RunId, claim.Drop, claim.CharacterId), claim.Token);
+        }
+    }
+
     public DungeonRunState? TryReportActorDead(CharacterId characterId, ushort actorSequence)
     {
-        while (true)
+        lock (this.gate)
         {
-            if (!_runs.TryGetValue(characterId, out var current))
+            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate))
                 return null;
 
-            var dead = (ImmutableHashSet<RoomActorId>)current.DeadActors;
-            var id = new RoomActorId(current.CurrentCell, actorSequence);
-            if (dead.Contains(id))
+            var actor = new RoomActorId(aggregate.CurrentCell, actorSequence);
+            if (aggregate.DeadActors.Contains(actor))
                 return null;
 
-            var reported = current with { DeadActors = dead.Add(id) };
-            if (_runs.TryUpdate(characterId, reported, current))
-                return reported;
+            aggregate.DeadActors = aggregate.DeadActors.Add(actor);
+            aggregate.CommittedActorDeaths.Add(actor);
+            return aggregate.ViewFor(characterId);
         }
     }
 
@@ -109,174 +227,337 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         CharacterId characterId,
         ushort actorSequence)
     {
-        while (true)
+        lock (this.gate)
         {
-            if (!_runs.TryGetValue(characterId, out var current))
+            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate))
                 return null;
 
-            var dead = (ImmutableHashSet<RoomActorId>)current.DeadActors;
-            var actor = new RoomActorId(current.CurrentCell, actorSequence);
-            if (!dead.Contains(actor))
-            {
-                var key = DeathClaimKey.Of(characterId, current, actor);
-                var token = Interlocked.Increment(ref this._nextDeathClaim);
-                if (!this._deathClaims.TryAdd(key, token))
-                    return null;
+            var actor = new RoomActorId(aggregate.CurrentCell, actorSequence);
+            if (aggregate.CommittedActorDeaths.Contains(actor))
+                return null;
 
-                var claimed = current with { DeadActors = dead.Add(actor) };
-                if (_runs.TryUpdate(characterId, claimed, current))
-                    return new DungeonActorDeathClaim(characterId, claimed, actor, token);
+            var key = new DeathClaimKey(aggregate.RunId, actor);
+            if (this.deathClaims.ContainsKey(key))
+                return null;
 
-                this.TryRemoveClaim(key, token);
-                continue;
-            }
-
-            return null;
+            var token = Interlocked.Increment(ref this.nextClaim);
+            this.deathClaims.Add(key, token);
+            return new DungeonActorDeathClaim(
+                characterId,
+                aggregate.ViewFor(characterId),
+                actor,
+                token,
+                aggregate.RunId);
         }
     }
 
     public DungeonRunState? CommitActorDeath(DungeonActorDeathClaim claim)
     {
         ArgumentNullException.ThrowIfNull(claim);
-        var key = DeathClaimKey.Of(claim.CharacterId, claim.Run, claim.Actor);
-        if (!this.TryRemoveClaim(key, claim.Token))
-            return null;
-        return _runs.TryGetValue(claim.CharacterId, out var current)
-            && DeathClaimKey.SameRun(current, key)
-            && current.DeadActors.Contains(claim.Actor)
-                ? current
-                : null;
+        lock (this.gate)
+        {
+            var key = new DeathClaimKey(claim.RunId, claim.Actor);
+            if (!this.TryRemoveClaim(key, claim.Token)
+                || !this.runsById.TryGetValue(claim.RunId, out var aggregate)
+                || !aggregate.ActiveParticipants.Contains(claim.CharacterId))
+            {
+                return null;
+            }
+
+            aggregate.DeadActors = aggregate.DeadActors.Add(claim.Actor);
+            aggregate.CommittedActorDeaths.Add(claim.Actor);
+            return aggregate.ViewFor(claim.CharacterId);
+        }
     }
 
     public bool ReleaseActorDeath(DungeonActorDeathClaim claim)
     {
         ArgumentNullException.ThrowIfNull(claim);
-        var key = DeathClaimKey.Of(claim.CharacterId, claim.Run, claim.Actor);
-        if (!this.TryRemoveClaim(key, claim.Token))
-            return false;
-
-        while (true)
+        lock (this.gate)
         {
-            if (!_runs.TryGetValue(claim.CharacterId, out var current)
-                || !DeathClaimKey.SameRun(current, key))
+            var key = new DeathClaimKey(claim.RunId, claim.Actor);
+            if (!this.TryRemoveClaim(key, claim.Token)
+                || !this.runsById.TryGetValue(claim.RunId, out var aggregate))
             {
                 return false;
             }
 
-            var dead = (ImmutableHashSet<RoomActorId>)current.DeadActors;
-            if (!dead.Contains(claim.Actor))
-                return false;
-            var restored = current with { DeadActors = dead.Remove(claim.Actor) };
-            if (_runs.TryUpdate(claim.CharacterId, restored, current))
-                return true;
+            return true;
         }
     }
 
-    private bool TryRemoveClaim(DeathClaimKey key, long token) =>
-        ((ICollection<KeyValuePair<DeathClaimKey, long>>)_deathClaims)
-            .Remove(new KeyValuePair<DeathClaimKey, long>(key, token));
-
-    private void ClearDeathClaims(CharacterId characterId)
+    public DungeonParticipantKillEffectClaim? TryClaimParticipantKillEffect(
+        DungeonActorDeathClaim death,
+        CharacterId characterId)
     {
-        foreach (var key in _deathClaims.Keys)
+        ArgumentNullException.ThrowIfNull(death);
+        lock (this.gate)
         {
-            if (key.CharacterId == characterId)
-                _deathClaims.TryRemove(key, out _);
+            var deathKey = new DeathClaimKey(death.RunId, death.Actor);
+            if (!this.deathClaims.TryGetValue(deathKey, out var deathToken)
+                || deathToken != death.Token
+                || !this.runsById.TryGetValue(death.RunId, out var aggregate)
+                || !aggregate.Participants.Any(
+                    participant => participant.CharacterId == characterId)
+                || !aggregate.ActiveParticipants.Contains(characterId))
+            {
+                return null;
+            }
+
+            var effect = new ParticipantEffectKey(death.Actor, characterId);
+            if (aggregate.CompletedKillEffects.Contains(effect))
+                return null;
+
+            var key = new ParticipantEffectClaimKey(death.RunId, effect);
+            if (this.participantEffectClaims.ContainsKey(key))
+                return null;
+
+            var token = Interlocked.Increment(ref this.nextClaim);
+            this.participantEffectClaims.Add(key, token);
+            return new DungeonParticipantKillEffectClaim(death, characterId, token);
+        }
+    }
+
+    public bool CommitParticipantKillEffect(DungeonParticipantKillEffectClaim claim)
+    {
+        ArgumentNullException.ThrowIfNull(claim);
+        lock (this.gate)
+        {
+            var effect = new ParticipantEffectKey(claim.Death.Actor, claim.CharacterId);
+            var key = new ParticipantEffectClaimKey(claim.Death.RunId, effect);
+            if (!this.TryRemoveParticipantEffectClaim(key, claim.Token)
+                || !this.runsById.TryGetValue(claim.Death.RunId, out var aggregate))
+            {
+                return false;
+            }
+
+            return aggregate.CompletedKillEffects.Add(effect);
+        }
+    }
+
+    public bool ReleaseParticipantKillEffect(DungeonParticipantKillEffectClaim claim)
+    {
+        ArgumentNullException.ThrowIfNull(claim);
+        lock (this.gate)
+        {
+            var effect = new ParticipantEffectKey(claim.Death.Actor, claim.CharacterId);
+            return this.TryRemoveParticipantEffectClaim(
+                new ParticipantEffectClaimKey(claim.Death.RunId, effect), claim.Token);
         }
     }
 
     public DungeonRunState? TrySettle(CharacterId characterId)
     {
-        while (true)
+        var claim = this.TryClaimSettlement(characterId);
+        return claim is null ? null : this.CommitSettlement(claim);
+    }
+
+    public DungeonSettlementClaim? TryClaimSettlement(CharacterId characterId)
+        => this.TryClaimSettlementCore(characterId, expectedRunId: null);
+
+    public DungeonSettlementClaim? TryClaimSettlement(
+        CharacterId characterId,
+        DungeonRunId expectedRunId) =>
+        this.TryClaimSettlementCore(characterId, expectedRunId);
+
+    private DungeonSettlementClaim? TryClaimSettlementCore(
+        CharacterId characterId,
+        DungeonRunId? expectedRunId)
+    {
+        lock (this.gate)
         {
-            if (!_runs.TryGetValue(characterId, out var current))
+            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate))
+                return null;
+            if (expectedRunId is { } runId && aggregate.RunId != runId)
                 return null;
 
-            if (current.IsSettled)
+            var progress = aggregate.ProgressFor(characterId);
+            if (progress.IsSettled)
                 return null;
 
-            var settled = current with { IsSettled = true };
-            if (_runs.TryUpdate(characterId, settled, current))
-                return settled;
+            var key = new SettlementClaimKey(aggregate.RunId, characterId);
+            if (this.settlementClaims.ContainsKey(key))
+                return null;
+
+            var token = Interlocked.Increment(ref this.nextClaim);
+            this.settlementClaims.Add(key, token);
+            return new DungeonSettlementClaim(
+                characterId, aggregate.ViewFor(characterId), token, aggregate.RunId);
         }
     }
 
-    /// <remarks>
-    /// The same compare-and-swap as everything else here. What differs is the answer to a second
-    /// arrival: a claim and a settle refuse it, and this one hands back the faces the run already
-    /// has. Two result reports racing must leave one pair of faces standing, not two, and the
-    /// loser of the race is answered with the winner's rather than with nothing.
-    /// <para>
-    /// The price goes in the same swap as the faces, which is what makes it impossible for a run
-    /// to hold one clear's cards and another clear's price. The loser of a race is answered with
-    /// the winner's price for the same reason it is answered with the winner's faces: the player
-    /// was shown one pair and quoted one figure, and both belong to whichever settlement got there
-    /// first.
-    /// </para>
-    /// </remarks>
+    public DungeonRunState? CommitSettlement(DungeonSettlementClaim claim)
+    {
+        ArgumentNullException.ThrowIfNull(claim);
+        lock (this.gate)
+        {
+            var key = new SettlementClaimKey(claim.RunId, claim.CharacterId);
+            if (!this.TryRemoveSettlementClaim(key, claim.Token)
+                || !this.runsById.TryGetValue(claim.RunId, out var aggregate)
+                || !aggregate.ActiveParticipants.Contains(claim.CharacterId))
+            {
+                return null;
+            }
+
+            var progress = aggregate.ProgressFor(claim.CharacterId);
+            if (progress.IsSettled)
+                return null;
+
+            progress.IsSettled = true;
+            return aggregate.ViewFor(claim.CharacterId);
+        }
+    }
+
+    public bool ReleaseSettlement(DungeonSettlementClaim claim)
+    {
+        ArgumentNullException.ThrowIfNull(claim);
+        lock (this.gate)
+        {
+            return this.TryRemoveSettlementClaim(
+                new SettlementClaimKey(claim.RunId, claim.CharacterId), claim.Token);
+        }
+    }
+
     public DungeonRunState? FixClearRewardCards(
         CharacterId characterId,
+        ClearRewardCardFace free,
+        ClearRewardCardFace paid,
+        int? paidFlipCost)
+        => this.FixClearRewardCardsCore(
+            characterId, expectedRunId: null, free, paid, paidFlipCost);
+
+    public DungeonRunState? FixClearRewardCards(
+        CharacterId characterId,
+        DungeonRunId expectedRunId,
+        ClearRewardCardFace free,
+        ClearRewardCardFace paid,
+        int? paidFlipCost) =>
+        this.FixClearRewardCardsCore(characterId, expectedRunId, free, paid, paidFlipCost);
+
+    private DungeonRunState? FixClearRewardCardsCore(
+        CharacterId characterId,
+        DungeonRunId? expectedRunId,
         ClearRewardCardFace free,
         ClearRewardCardFace paid,
         int? paidFlipCost)
     {
         ArgumentNullException.ThrowIfNull(free);
         ArgumentNullException.ThrowIfNull(paid);
-
-        while (true)
+        lock (this.gate)
         {
-            if (!_runs.TryGetValue(characterId, out var current))
+            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate))
+                return null;
+            if (expectedRunId is { } runId && aggregate.RunId != runId)
                 return null;
 
-            if (current.ClearRewardCards is not null)
-                return current;
-
-            var carded = current with
-            {
-                ClearRewardCards = new ClearRewardCardSet(
-                    free, paid, ImmutableHashSet<ClearRewardCardId>.Empty, paidFlipCost),
-            };
-            if (_runs.TryUpdate(characterId, carded, current))
-                return carded;
+            var progress = aggregate.ProgressFor(characterId);
+            progress.ClearRewardCards ??= new ClearRewardCardSet(
+                free, paid, ImmutableHashSet<ClearRewardCardId>.Empty, paidFlipCost);
+            return aggregate.ViewFor(characterId);
         }
     }
 
-    /// <remarks>
-    /// The same compare-and-swap the pick-up uses, and for the same reason: two requests naming
-    /// one card must not both come away with it. What is remembered is the position, not what was
-    /// behind it -- the faces are fixed and say that themselves.
-    /// </remarks>
     public ClearRewardCardSlot? TryClaimClearRewardCard(
-        CharacterId characterId, ClearRewardCardKind kind, int index)
+        CharacterId characterId,
+        ClearRewardCardKind kind,
+        int index)
     {
-        while (true)
+        lock (this.gate)
         {
-            if (!_runs.TryGetValue(characterId, out var current))
-                return null;
-            if (current.ClearRewardCards is not { } cards)
-                return null;
-            if (cards.SlotAt(kind, index) is not { } slot)
+            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate))
                 return null;
 
-            var claimed = cards.Claimed;
-            var id = new ClearRewardCardId(kind, index);
-            if (claimed.Contains(id))
-                return null;
-
-            var taken = current with
+            var progress = aggregate.ProgressFor(characterId);
+            if (progress.ClearRewardCards is not { } cards
+                || cards.SlotAt(kind, index) is not { } slot)
             {
-                ClearRewardCards = cards with { Claimed = claimed.Add(id) },
-            };
-            if (_runs.TryUpdate(characterId, taken, current))
-                return slot;
+                return null;
+            }
+
+            var id = new ClearRewardCardId(kind, index);
+            if (cards.Claimed.Contains(id))
+                return null;
+
+            progress.ClearRewardCards = cards with { Claimed = cards.Claimed.Add(id) };
+            return slot;
         }
     }
 
-    /// <remarks>
-    /// The same compare-and-swap as everything else here, and it matters more: two kills answered
-    /// at once must not be handed the same number, and unlike a claim a number cannot be worked
-    /// out again to notice the clash.
-    /// </remarks>
+    public DungeonClearRewardCardClaim? TryReserveClearRewardCard(
+        CharacterId characterId,
+        DungeonRunId expectedRunId,
+        ClearRewardCardKind kind,
+        int index)
+    {
+        lock (this.gate)
+        {
+            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
+                || aggregate.RunId != expectedRunId)
+            {
+                return null;
+            }
+
+            var progress = aggregate.ProgressFor(characterId);
+            var card = new ClearRewardCardId(kind, index);
+            if (progress.ClearRewardCards is not { } cards
+                || cards.SlotAt(kind, index) is not { } slot
+                || cards.Claimed.Contains(card))
+            {
+                return null;
+            }
+
+            var key = new ClearRewardCardClaimKey(aggregate.RunId, characterId, card);
+            if (this.clearRewardCardClaims.ContainsKey(key))
+                return null;
+
+            var token = Interlocked.Increment(ref this.nextClaim);
+            this.clearRewardCardClaims.Add(key, token);
+            return new DungeonClearRewardCardClaim(
+                characterId,
+                aggregate.ViewFor(characterId),
+                card,
+                slot,
+                token,
+                aggregate.RunId);
+        }
+    }
+
+    public bool CommitClearRewardCard(DungeonClearRewardCardClaim claim)
+    {
+        ArgumentNullException.ThrowIfNull(claim);
+        lock (this.gate)
+        {
+            var key = new ClearRewardCardClaimKey(claim.RunId, claim.CharacterId, claim.Card);
+            if (!this.TryRemoveClearRewardCardClaim(key, claim.Token)
+                || !this.runsById.TryGetValue(claim.RunId, out var aggregate)
+                || !aggregate.ActiveParticipants.Contains(claim.CharacterId))
+            {
+                return false;
+            }
+
+            var progress = aggregate.ProgressFor(claim.CharacterId);
+            if (progress.ClearRewardCards is not { } cards
+                || cards.Claimed.Contains(claim.Card))
+            {
+                return false;
+            }
+
+            progress.ClearRewardCards = cards with { Claimed = cards.Claimed.Add(claim.Card) };
+            return true;
+        }
+    }
+
+    public bool ReleaseClearRewardCard(DungeonClearRewardCardClaim claim)
+    {
+        ArgumentNullException.ThrowIfNull(claim);
+        lock (this.gate)
+        {
+            return this.TryRemoveClearRewardCardClaim(
+                new ClearRewardCardClaimKey(claim.RunId, claim.CharacterId, claim.Card),
+                claim.Token);
+        }
+    }
+
     public IReadOnlyList<MonsterDrop> AllocateMonsterDrops(
         CharacterId characterId,
         int declaredDropCount,
@@ -284,60 +565,292 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         IReadOnlyList<RolledDrop> rolled)
     {
         ArgumentNullException.ThrowIfNull(rolled);
+        lock (this.gate)
+        {
+            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate))
+                return [];
+
+            var actor = new RoomActorId(aggregate.CurrentCell, actorSequence);
+            return this.AllocateMonsterDropsCore(aggregate, declaredDropCount, actor, rolled);
+        }
+    }
+
+    public IReadOnlyList<MonsterDrop>? TryAllocateMonsterDrops(
+        CharacterId characterId,
+        DungeonRunId expectedRunId,
+        long expectedRoomVersion,
+        RoomActorId actor,
+        int declaredDropCount,
+        IReadOnlyList<RolledDrop> rolled)
+    {
+        ArgumentNullException.ThrowIfNull(rolled);
+        lock (this.gate)
+        {
+            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
+                || aggregate.RunId != expectedRunId
+                || aggregate.RoomVersion != expectedRoomVersion
+                || aggregate.CurrentCell != actor.Cell)
+            {
+                return null;
+            }
+
+            return this.AllocateMonsterDropsCore(
+                aggregate, declaredDropCount, actor, rolled);
+        }
+    }
+
+    private IReadOnlyList<MonsterDrop> AllocateMonsterDropsCore(
+        DungeonRunAggregate aggregate,
+        int declaredDropCount,
+        RoomActorId actor,
+        IReadOnlyList<RolledDrop> rolled)
+    {
+        if (aggregate.AllocatedDropActors.Contains(actor))
+        {
+            return aggregate.MonsterDrops
+                .Where(drop => drop.Cell == actor.Cell && drop.ActorSequence == actor.Sequence)
+                .Select(drop => drop.Drop)
+                .ToArray();
+        }
+
+        aggregate.AllocatedDropActors.Add(actor);
         if (rolled.Count == 0)
             return [];
 
-        while (true)
+        var next = aggregate.NextMonsterDropNumber(actor.Cell, declaredDropCount);
+        var numbered = new List<MonsterDrop>(rolled.Count);
+        var allocated = aggregate.MonsterDrops.ToBuilder();
+        foreach (var piece in rolled)
         {
-            if (!_runs.TryGetValue(characterId, out var current))
-                return [];
-
-            var next = current.NextMonsterDropNumber(declaredDropCount);
-            var numbered = new List<MonsterDrop>(rolled.Count);
-            // Copied rather than cast to a builder: this list is replaced whole on every kill
-            // like every other part of a run, and a run's drops are counted in ones.
-            var allocated = new List<AllocatedMonsterDrop>(current.MonsterDrops);
-            foreach (var piece in rolled)
-            {
-                var drop = new MonsterDrop(next++, piece);
-                numbered.Add(drop);
-                allocated.Add(new AllocatedMonsterDrop(
-                    current.CurrentCell, actorSequence, drop));
-            }
-
-            var updated = current with { MonsterDrops = allocated };
-            if (_runs.TryUpdate(characterId, updated, current))
-                return numbered;
+            var drop = new MonsterDrop(next++, piece);
+            numbered.Add(drop);
+            allocated.Add(new AllocatedMonsterDrop(actor.Cell, actor.Sequence, drop));
         }
+
+        aggregate.MonsterDrops = allocated.ToImmutable();
+        return numbered;
     }
 
     public bool End(CharacterId characterId)
     {
-        this.ClearDeathClaims(characterId);
-        return _runs.TryRemove(characterId, out _);
+        lock (this.gate)
+        {
+            return this.DetachParticipant(characterId);
+        }
     }
 
-    private readonly record struct DeathClaimKey(
-        CharacterId CharacterId,
-        DateTimeOffset StartedAt,
-        int DungeonId,
-        int Seed,
-        RoomActorId Actor)
+    public bool End(CharacterId characterId, DungeonRunId expectedRunId)
     {
-        public static DeathClaimKey Of(
-            CharacterId characterId,
-            DungeonRunState run,
-            RoomActorId actor) =>
-            new(
-                characterId,
-                run.StartedAt,
-                run.Layout.DungeonId,
-                run.Layout.Seed,
-                actor);
+        lock (this.gate)
+        {
+            return this.runsByCharacter.TryGetValue(characterId, out var aggregate)
+                && aggregate.RunId == expectedRunId
+                && this.DetachParticipant(characterId);
+        }
+    }
 
-        public static bool SameRun(DungeonRunState run, DeathClaimKey key) =>
-            run.StartedAt == key.StartedAt
-            && run.Layout.DungeonId == key.DungeonId
-            && run.Layout.Seed == key.Seed;
+    private bool DetachParticipant(CharacterId characterId)
+    {
+        if (!this.runsByCharacter.Remove(characterId, out var aggregate))
+            return false;
+
+        aggregate.ActiveParticipants.Remove(characterId);
+        foreach (var key in this.settlementClaims.Keys
+                     .Where(key => key.RunId == aggregate.RunId && key.CharacterId == characterId)
+                     .ToArray())
+        {
+            this.settlementClaims.Remove(key);
+        }
+        foreach (var key in this.clearRewardCardClaims.Keys
+                     .Where(key => key.RunId == aggregate.RunId && key.CharacterId == characterId)
+                     .ToArray())
+        {
+            this.clearRewardCardClaims.Remove(key);
+        }
+        if (aggregate.ActiveParticipants.Count == 0)
+        {
+            this.runsById.Remove(aggregate.RunId);
+            this.ClearDeathClaims(aggregate.RunId);
+            this.ClearParticipantEffectClaims(aggregate.RunId);
+            this.ClearSettlementClaims(aggregate.RunId);
+            this.ClearGroundDropClaims(aggregate.RunId);
+            this.ClearClearRewardCardClaims(aggregate.RunId);
+        }
+
+        return true;
+    }
+
+    private bool TryRemoveClaim(DeathClaimKey key, long token) =>
+        this.deathClaims.TryGetValue(key, out var current)
+        && current == token
+        && this.deathClaims.Remove(key);
+
+    private bool TryRemoveParticipantEffectClaim(ParticipantEffectClaimKey key, long token) =>
+        this.participantEffectClaims.TryGetValue(key, out var current)
+        && current == token
+        && this.participantEffectClaims.Remove(key);
+
+    private bool TryRemoveSettlementClaim(SettlementClaimKey key, long token) =>
+        this.settlementClaims.TryGetValue(key, out var current)
+        && current == token
+        && this.settlementClaims.Remove(key);
+
+    private bool TryRemoveGroundDropClaim(GroundDropClaimKey key, long token) =>
+        this.groundDropClaims.TryGetValue(key, out var current)
+        && current == token
+        && this.groundDropClaims.Remove(key);
+
+    private bool TryRemoveClearRewardCardClaim(ClearRewardCardClaimKey key, long token) =>
+        this.clearRewardCardClaims.TryGetValue(key, out var current)
+        && current == token
+        && this.clearRewardCardClaims.Remove(key);
+
+    private void ClearDeathClaims(DungeonRunId runId)
+    {
+        foreach (var key in this.deathClaims.Keys.Where(key => key.RunId == runId).ToArray())
+            this.deathClaims.Remove(key);
+    }
+
+    private void ClearParticipantEffectClaims(DungeonRunId runId)
+    {
+        foreach (var key in this.participantEffectClaims.Keys
+                     .Where(key => key.RunId == runId).ToArray())
+        {
+            this.participantEffectClaims.Remove(key);
+        }
+    }
+
+    private void ClearSettlementClaims(DungeonRunId runId)
+    {
+        foreach (var key in this.settlementClaims.Keys
+                     .Where(key => key.RunId == runId).ToArray())
+        {
+            this.settlementClaims.Remove(key);
+        }
+    }
+
+    private void ClearGroundDropClaims(DungeonRunId runId)
+    {
+        foreach (var key in this.groundDropClaims.Keys
+                     .Where(key => key.RunId == runId).ToArray())
+        {
+            this.groundDropClaims.Remove(key);
+        }
+    }
+
+    private void ClearClearRewardCardClaims(DungeonRunId runId)
+    {
+        foreach (var key in this.clearRewardCardClaims.Keys
+                     .Where(key => key.RunId == runId).ToArray())
+        {
+            this.clearRewardCardClaims.Remove(key);
+        }
+    }
+
+    private readonly record struct DeathClaimKey(DungeonRunId RunId, RoomActorId Actor);
+    private readonly record struct ParticipantEffectKey(RoomActorId Actor, CharacterId CharacterId);
+    private readonly record struct ParticipantEffectClaimKey(
+        DungeonRunId RunId, ParticipantEffectKey Effect);
+    private readonly record struct SettlementClaimKey(DungeonRunId RunId, CharacterId CharacterId);
+    private readonly record struct GroundDropClaimKey(
+        DungeonRunId RunId,
+        GroundDropId Drop,
+        CharacterId CharacterId);
+    private readonly record struct ClearRewardCardClaimKey(
+        DungeonRunId RunId,
+        CharacterId CharacterId,
+        ClearRewardCardId Card);
+
+    private sealed class DungeonRunAggregate
+    {
+        private readonly Dictionary<CharacterId, DungeonRunParticipant> participantsByCharacter;
+        private readonly Dictionary<CharacterId, ParticipantProgress> progressByCharacter;
+
+        public DungeonRunAggregate(
+            DungeonRunId runId,
+            ImmutableArray<DungeonRunParticipant> participants,
+            DungeonLayout layout,
+            byte difficulty,
+            DateTimeOffset startedAt)
+        {
+            this.RunId = runId;
+            this.Participants = participants;
+            this.Layout = layout;
+            this.Difficulty = difficulty;
+            this.StartedAt = startedAt;
+            this.CurrentCell = layout.StartCell;
+            this.CurrentRoomMapId = layout.StartRoomMapId;
+            this.VisitedCells = ImmutableHashSet.Create(layout.StartCell);
+            this.participantsByCharacter = participants.ToDictionary(
+                participant => participant.CharacterId);
+            this.progressByCharacter = participants.ToDictionary(
+                participant => participant.CharacterId,
+                _ => new ParticipantProgress());
+            this.ActiveParticipants = [.. this.participantsByCharacter.Keys];
+        }
+
+        public DungeonRunId RunId { get; }
+        public ImmutableArray<DungeonRunParticipant> Participants { get; }
+        public DungeonRunParticipant Leader =>
+            this.Participants.Single(participant => participant.IsLeader);
+        public DungeonLayout Layout { get; }
+        public byte Difficulty { get; }
+        public DateTimeOffset StartedAt { get; }
+        public MazeCell CurrentCell { get; set; }
+        public int CurrentRoomMapId { get; set; }
+        public long RoomVersion { get; set; }
+        public ImmutableHashSet<MazeCell> VisitedCells { get; set; }
+        public ImmutableHashSet<GroundDropId> TakenGroundDrops { get; set; } = [];
+        public ImmutableHashSet<RoomActorId> DeadActors { get; set; } = [];
+        public HashSet<RoomActorId> CommittedActorDeaths { get; } = [];
+        public HashSet<ParticipantEffectKey> CompletedKillEffects { get; } = [];
+        public HashSet<RoomActorId> AllocatedDropActors { get; } = [];
+        public ImmutableArray<AllocatedMonsterDrop> MonsterDrops { get; set; } = [];
+        public HashSet<CharacterId> ActiveParticipants { get; }
+
+        public DungeonRunParticipant Participant(CharacterId characterId) =>
+            this.participantsByCharacter[characterId];
+
+        public ParticipantProgress ProgressFor(CharacterId characterId) =>
+            this.progressByCharacter[characterId];
+
+        public ushort NextMonsterDropNumber(MazeCell cell, int declaredDropCount)
+        {
+            var highest = declaredDropCount;
+            foreach (var allocated in this.MonsterDrops)
+            {
+                if (allocated.Cell == cell && allocated.Drop.Number > highest)
+                    highest = allocated.Drop.Number;
+            }
+
+            return checked((ushort)(highest + 1));
+        }
+
+        public DungeonRunState ViewFor(CharacterId characterId)
+        {
+            var progress = this.ProgressFor(characterId);
+            return new DungeonRunState(
+                this.Layout,
+                this.CurrentCell,
+                this.CurrentRoomMapId,
+                this.VisitedCells,
+                this.TakenGroundDrops,
+                this.DeadActors,
+                this.StartedAt,
+                this.Difficulty,
+                progress.IsSettled,
+                this.MonsterDrops,
+                progress.ClearRewardCards,
+                this.RunId,
+                this.RoomVersion,
+                this.Participant(characterId),
+                this.Participants);
+        }
+    }
+
+    private sealed class ParticipantProgress
+    {
+        public bool IsSettled { get; set; }
+        public ClearRewardCardSet? ClearRewardCards { get; set; }
     }
 }

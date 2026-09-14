@@ -28,9 +28,20 @@ internal sealed class MonsterDropService(
     {
         ArgumentNullException.ThrowIfNull(kill);
 
-        var rolled = this.Roll(kill);
-        if (rolled.Count == 0)
+        var current = runs.Find(kill.CharacterId);
+        if (current is null
+            || (kill.Run.RunId != default && kill.Run.RunId != current.RunId)
+            || kill.Run.RoomVersion != current.RoomVersion
+            || kill.Run.CurrentCell != current.CurrentCell)
+        {
             return [];
+        }
+
+        // Party size and shared room state are frozen on the run. A protocol caller may still be
+        // carrying the legacy default of one, so the aggregate is the authority for both here.
+        kill = kill with { PartyMemberCount = current.PartyMemberCount };
+
+        var rolled = this.Roll(kill);
 
         // The room's own pieces hold the low numbers, so what it declares has to be known before
         // anything can be numbered above them.
@@ -39,8 +50,16 @@ internal sealed class MonsterDropService(
                 kill.Run.Layout.DungeonId, kill.Run.CurrentRoomMapId, cancellationToken)
             .ConfigureAwait(false);
 
-        var allocated = runs.AllocateMonsterDrops(
-            kill.CharacterId, declared.Count, kill.ActorSequence, rolled);
+        var actor = new RoomActorId(kill.Run.CurrentCell, kill.ActorSequence);
+        var allocated = runs.TryAllocateMonsterDrops(
+                kill.CharacterId,
+                kill.Run.RunId,
+                kill.Run.RoomVersion,
+                actor,
+                declared.Count,
+                rolled)
+            ?? throw new InvalidOperationException(
+                "The dungeon room changed while its monster drop was being resolved.");
 
         // What dropped and why, because a rate is not a thing anybody can check by looking. This
         // line is what makes a live session usable as evidence for whether the tables are being

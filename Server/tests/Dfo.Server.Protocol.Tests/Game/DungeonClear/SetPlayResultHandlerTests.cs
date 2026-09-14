@@ -87,6 +87,53 @@ public sealed class SetPlayResultHandlerTests
         Assert.Equal(0, bus.TimesAsked);
     }
 
+    [Fact]
+    public async Task Party_helper_uses_the_frozen_leaders_story_completion_rule()
+    {
+        var leader = new DungeonRunParticipant(
+            new AccountId(9),
+            new CharacterId(59),
+            WireUserId: 59,
+            Slot: 0,
+            IsLeader: true);
+        var rules = new PurposeSettlementRules(canComplete: true);
+
+        var sent = await Settle(
+            purpose: DungeonRunPurpose.QuestLinked(
+                1776,
+                DungeonQuestConnectionState.Active),
+            rules: rules,
+            leader: leader);
+
+        Assert.NotEmpty(sent);
+        Assert.Equal(leader.AccountId, rules.AccountId);
+        Assert.Equal(leader.CharacterId, rules.CharacterId);
+    }
+
+    [Fact]
+    public async Task Solo_run_keeps_using_the_current_session_for_story_completion()
+    {
+        var placeholderLeader = new DungeonRunParticipant(
+            new AccountId(0),
+            new CharacterId(60),
+            WireUserId: 60,
+            Slot: 0,
+            IsLeader: true);
+        var rules = new PurposeSettlementRules(canComplete: true);
+
+        var sent = await Settle(
+            purpose: DungeonRunPurpose.QuestLinked(
+                1776,
+                DungeonQuestConnectionState.Active),
+            rules: rules,
+            leader: placeholderLeader,
+            includeOnlyLeader: true);
+
+        Assert.NotEmpty(sent);
+        Assert.Equal(new AccountId(1), rules.AccountId);
+        Assert.Equal(new CharacterId(60), rules.CharacterId);
+    }
+
     /// <summary>
     /// Every point paid is reported somewhere: the two figures on the screen, and the total.
     /// </summary>
@@ -425,6 +472,30 @@ public sealed class SetPlayResultHandlerTests
         Assert.Equal(1, settlement.PartyMemberCount);
     }
 
+    [Fact]
+    public async Task Party_size_reaches_each_participants_card_settlement()
+    {
+        var cards = new RecordingCards();
+        var leader = new DungeonRunParticipant(
+            new AccountId(2), new CharacterId(61), 61, 0, IsLeader: true);
+
+        await Settle(cards: cards, leader: leader);
+
+        Assert.Equal(2, Assert.Single(cards.Settlements).PartyMemberCount);
+    }
+
+    [Fact]
+    public async Task A_failed_durable_clear_award_releases_the_settlement_for_one_retry()
+    {
+        var bus = new FixedAward(false, failuresBeforeSuccess: 1);
+
+        var sent = await Settle(
+            bus: bus, reports: 2, continueAfterFailure: true);
+
+        Assert.Equal(2, bus.TimesAsked);
+        Assert.Single(sent.OfType<ClearDungeonRewardNotification>());
+    }
+
     /// <summary>
     /// A clear that cannot be paid still fixes its cards and still reports them.
     /// </summary>
@@ -460,7 +531,11 @@ public sealed class SetPlayResultHandlerTests
         int reports = 1,
         RecordingCards? cards = null,
         DungeonRunPurpose purpose = default,
-        bool canComplete = true)
+        bool canComplete = true,
+        PurposeSettlementRules? rules = null,
+        DungeonRunParticipant? leader = null,
+        bool includeOnlyLeader = false,
+        bool continueAfterFailure = false)
     {
         var session = SelectedSessionIdentity.Create(
             new AccountId(1),
@@ -476,8 +551,8 @@ public sealed class SetPlayResultHandlerTests
             new OneSession(session),
             runtime,
             new OnePlayingCharacter(ledger ?? new SkillPointLedger(withLedger)),
-            new OneRun(purpose),
-            new PurposeSettlementRules(canComplete),
+            new OneRun(purpose, leader, includeOnlyLeader),
+            rules ?? new PurposeSettlementRules(canComplete),
             cards ?? new RecordingCards(),
             bus ?? new FixedAward(leveledUp, awarded),
             new QuestOfferRefreshDomainService(
@@ -487,12 +562,19 @@ public sealed class SetPlayResultHandlerTests
 
         for (var report = 0; report < reports; report++)
         {
-            await handler.HandleAsync(
-                new NetworkDispatchContext(
-                    new NetworkConnectionContext(
-                        new NetworkConnectionId("one"), NetworkEndpointKind.Game, 10010)),
-                new SetPlayResultRequest(default!, ClientRankPoint: 80),
-                CancellationToken.None);
+            try
+            {
+                await handler.HandleAsync(
+                    new NetworkDispatchContext(
+                        new NetworkConnectionContext(
+                            new NetworkConnectionId("one"), NetworkEndpointKind.Game, 10010)),
+                    new SetPlayResultRequest(default!, ClientRankPoint: 80),
+                    CancellationToken.None);
+            }
+            catch (InvalidOperationException) when (continueAfterFailure && report + 1 < reports)
+            {
+                // The next report is the retry this fixture is explicitly exercising.
+            }
         }
 
         return sender.Sent;
@@ -513,9 +595,14 @@ public sealed class SetPlayResultHandlerTests
     /// Fixed rather than computed, because what the clear is worth is checked against the archive
     /// next door. What is checked here is what the handler does with the answer.
     /// </remarks>
-    private sealed class FixedAward(bool leveledUp, bool awarded = true, bool clamped = false)
+    private sealed class FixedAward(
+        bool leveledUp,
+        bool awarded = true,
+        bool clamped = false,
+        int failuresBeforeSuccess = 0)
         : ICommandBus
     {
+        private int remainingFailures = failuresBeforeSuccess;
         /// <summary>Whether the settlement got as far as pricing the run.</summary>
         public bool WasAsked => this.TimesAsked > 0;
 
@@ -528,6 +615,8 @@ public sealed class SetPlayResultHandlerTests
         {
             Assert.IsType<GrantClearExperienceCommand>(command);
             this.TimesAsked++;
+            if (this.remainingFailures-- > 0)
+                throw new InvalidOperationException("injected durable clear failure");
             // Clamped is the shape the grant returns when the ceiling took part of the award:
             // what landed, reported whole, with no parts to attribute it to.
             var award = clamped
@@ -642,9 +731,13 @@ public sealed class SetPlayResultHandlerTests
             throw new NotSupportedException("A settlement fixes cards; it turns none over.");
     }
 
-    private sealed class OneRun(DungeonRunPurpose purpose) : IDungeonRunDomainService
+    private sealed class OneRun(
+        DungeonRunPurpose purpose,
+        DungeonRunParticipant? leader = null,
+        bool includeOnlyLeader = false) : IDungeonRunDomainService
     {
         private bool _settled;
+        private bool _settlementClaimed;
 
         /// <summary>The run, claimed once, exactly as the real service claims it.</summary>
         public DungeonRunState? TrySettle(CharacterId characterId)
@@ -654,6 +747,31 @@ public sealed class SetPlayResultHandlerTests
 
             this._settled = true;
             return this.Find(characterId);
+        }
+
+        public DungeonSettlementClaim? TryClaimSettlement(CharacterId characterId)
+        {
+            if (this._settled || this._settlementClaimed || this.Find(characterId) is not { } run)
+                return null;
+            this._settlementClaimed = true;
+            return new DungeonSettlementClaim(characterId, run, 1, run.RunId);
+        }
+
+        public DungeonRunState? CommitSettlement(DungeonSettlementClaim claim)
+        {
+            if (!this._settlementClaimed || this._settled)
+                return null;
+            this._settlementClaimed = false;
+            this._settled = true;
+            return this.Find(claim.CharacterId);
+        }
+
+        public bool ReleaseSettlement(DungeonSettlementClaim claim)
+        {
+            if (!this._settlementClaimed)
+                return false;
+            this._settlementClaimed = false;
+            return true;
         }
 
         private readonly DungeonLayout _layout = new(
@@ -677,7 +795,21 @@ public sealed class SetPlayResultHandlerTests
             VisitedCells: new HashSet<MazeCell>(),
             TakenGroundDrops: new HashSet<GroundDropId>(),
             DeadActors: new HashSet<RoomActorId>(),
-            StartedAt: DateTimeOffset.UnixEpoch);
+            StartedAt: DateTimeOffset.UnixEpoch,
+            Participant: leader is null
+                ? null
+                : new DungeonRunParticipant(
+                    new AccountId(1), characterId, (ushort)characterId.Value, 1, false),
+            Participants: leader is null
+                ? null
+                : includeOnlyLeader
+                    ? [leader]
+                :
+                [
+                    leader,
+                    new DungeonRunParticipant(
+                        new AccountId(1), characterId, (ushort)characterId.Value, 1, false),
+                ]);
 
         public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty) =>
             throw new NotSupportedException("This fixture only answers.");
@@ -715,12 +847,20 @@ public sealed class SetPlayResultHandlerTests
 
     private sealed class PurposeSettlementRules(bool canComplete) : IDungeonSettlementRuleService
     {
+        public AccountId? AccountId { get; private set; }
+
+        public CharacterId? CharacterId { get; private set; }
+
         public ValueTask<DungeonSettlementRules> ForAsync(
             AccountId accountId,
             CharacterId characterId,
             DungeonRunState run,
-            CancellationToken cancellationToken) =>
-            ValueTask.FromResult(
+            CancellationToken cancellationToken)
+        {
+            this.AccountId = accountId;
+            this.CharacterId = characterId;
+            return ValueTask.FromResult(
                 new DungeonSettlementRules(canComplete, run.Layout.Purpose.IsQuestLinked));
+        }
     }
 }

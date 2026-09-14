@@ -29,7 +29,8 @@ public sealed record GrantKillExperienceCommand(
     KilledMonster Monster,
     int DungeonId,
     byte Difficulty,
-    double DungeonWeight) : ICommand<KillExperienceResult>;
+    double DungeonWeight,
+    int PartyMemberCount = 1) : ICommand<KillExperienceResult>;
 
 /// <summary>
 /// Works out what a kill was worth, adds what the character carries, and grants it.
@@ -97,10 +98,7 @@ public sealed class GrantKillExperienceCommandHandler(
                 characterLevel,
                 command.Difficulty,
                 command.DungeonWeight,
-                // Solo. A party rate and a division by party size are both in the rule and both
-                // exercised at one member; parties are not modelled anywhere in this server yet,
-                // and a count taken from nothing would be a guess in the middle of a checked sum.
-                PartyMemberCount: 1));
+                command.PartyMemberCount));
         if (worth == 0)
             return ExperienceValuation.Nothing;
 

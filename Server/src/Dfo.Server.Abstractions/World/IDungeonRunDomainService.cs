@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Abstractions.World;
@@ -26,7 +27,11 @@ public sealed record DungeonRunState(
     byte Difficulty = 0,
     bool IsSettled = false,
     IReadOnlyList<AllocatedMonsterDrop>? MonsterDrops = null,
-    ClearRewardCardSet? ClearRewardCards = null)
+    ClearRewardCardSet? ClearRewardCards = null,
+    DungeonRunId RunId = default,
+    long RoomVersion = 0,
+    DungeonRunParticipant? Participant = null,
+    IReadOnlyList<DungeonRunParticipant>? Participants = null)
 {
     /// <summary>What the run's kills have put on the floor, in the order they were numbered.</summary>
     /// <remarks>
@@ -35,6 +40,12 @@ public sealed record DungeonRunState(
     /// monster dropped exists nowhere else, so if this were lost the piece would be unclaimable.
     /// </remarks>
     public IReadOnlyList<AllocatedMonsterDrop> MonsterDrops { get; init; } = MonsterDrops ?? [];
+
+    /// <summary>The fixed participant order captured when this run began.</summary>
+    public IReadOnlyList<DungeonRunParticipant> Participants { get; init; } = Participants ?? [];
+
+    /// <summary>The fixed party size used by run-scoped reward rules.</summary>
+    public int PartyMemberCount => Math.Max(1, this.Participants.Count);
 
     /// <summary>Whether every actor this room declares has been reported dead.</summary>
     /// <remarks>
@@ -158,6 +169,20 @@ public sealed record DungeonRunState(
     }
 }
 
+/// <summary>A process-local identity shared by every participant view of one dungeon run.</summary>
+public readonly record struct DungeonRunId(Guid Value)
+{
+    public static DungeonRunId New() => new(Guid.NewGuid());
+}
+
+/// <summary>A transport-free participant identity frozen at dungeon entry.</summary>
+public sealed record DungeonRunParticipant(
+    AccountId AccountId,
+    CharacterId CharacterId,
+    ushort WireUserId,
+    byte Slot,
+    bool IsLeader);
+
 /// <summary>One position of one of a clear's two faces.</summary>
 /// <remarks>
 /// The kind belongs in the key rather than beside it. The free face and the paid face are two
@@ -273,7 +298,38 @@ public sealed record DungeonActorDeathClaim(
     CharacterId CharacterId,
     DungeonRunState Run,
     RoomActorId Actor,
+    long Token,
+    DungeonRunId RunId = default);
+
+/// <summary>An exact claim over one participant's durable effects for one actor death.</summary>
+public sealed record DungeonParticipantKillEffectClaim(
+    DungeonActorDeathClaim Death,
+    CharacterId CharacterId,
     long Token);
+
+/// <summary>An exact, retryable claim over one participant's dungeon settlement.</summary>
+public sealed record DungeonSettlementClaim(
+    CharacterId CharacterId,
+    DungeonRunState Run,
+    long Token,
+    DungeonRunId RunId = default);
+
+/// <summary>An exact, retryable claim over one numbered drop in one run room.</summary>
+public sealed record DungeonGroundDropClaim(
+    CharacterId CharacterId,
+    DungeonRunState Run,
+    GroundDropId Drop,
+    long Token,
+    DungeonRunId RunId = default);
+
+/// <summary>An exact, retryable reservation of one clear-card position.</summary>
+public sealed record DungeonClearRewardCardClaim(
+    CharacterId CharacterId,
+    DungeonRunState Run,
+    ClearRewardCardId Card,
+    ClearRewardCardSlot Slot,
+    long Token,
+    DungeonRunId RunId = default);
 
 /// <summary>One piece lying on a room's floor, under the number the client names it by.</summary>
 public sealed record GroundDrop(ushort Number, DungeonRoomDrop Drop);
@@ -298,8 +354,9 @@ public readonly record struct GroundDropId(MazeCell Cell, ushort Number);
 /// reappears in town -- so a run has nothing to survive and nothing to restore.
 /// </para>
 /// <para>
-/// Keyed by character rather than by party because parties are not modelled yet. When they are,
-/// entry becomes a party-grained transition and this key moves with it.
+/// A shared run has its own identifier and a frozen participant set. Character ids are secondary
+/// lookup keys into that aggregate so existing command paths can resolve the caller's participant
+/// view without using a connection or a mutable party as the domain identity.
 /// </para>
 /// </remarks>
 public interface IDungeonRunDomainService
@@ -319,6 +376,26 @@ public interface IDungeonRunDomainService
     /// </param>
     DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty);
 
+    /// <summary>Atomically starts one shared run for a fixed ordered set of participants.</summary>
+    /// <remarks>
+    /// The default preserves lightweight test doubles: they can continue to support the legacy
+    /// one-character entry point without pretending to implement a shared aggregate.
+    /// </remarks>
+    DungeonRunState BeginParty(
+        IReadOnlyList<DungeonRunParticipant> participants,
+        DungeonLayout layout,
+        byte difficulty)
+    {
+        ArgumentNullException.ThrowIfNull(participants);
+        if (participants.Count != 1)
+        {
+            throw new NotSupportedException(
+                "This dungeon-run service does not implement shared party runs.");
+        }
+
+        return Begin(participants[0].CharacterId, layout, difficulty);
+    }
+
     /// <summary>The run this character is in, or null when they are not in one.</summary>
     DungeonRunState? Find(CharacterId characterId);
 
@@ -333,6 +410,21 @@ public interface IDungeonRunDomainService
     /// </remarks>
     DungeonRunState? TryMove(CharacterId characterId, MazeCell target);
 
+    /// <summary>Moves only when the caller still names the current shared room version.</summary>
+    DungeonRunState? TryMove(
+        CharacterId characterId,
+        DungeonRunId expectedRunId,
+        long expectedRoomVersion,
+        MazeCell target)
+    {
+        var current = Find(characterId);
+        return current is not null
+            && current.RunId == expectedRunId
+            && current.RoomVersion == expectedRoomVersion
+                ? TryMove(characterId, target)
+                : null;
+    }
+
     /// <summary>
     /// Takes one piece off the floor of the room the character is standing in.
     /// </summary>
@@ -344,6 +436,40 @@ public interface IDungeonRunDomainService
     /// back in and be handed the same item again.
     /// </remarks>
     DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber);
+
+    /// <summary>
+    /// Reserves one drop from the exact run room without consuming it until durable delivery
+    /// succeeds.
+    /// </summary>
+    DungeonGroundDropClaim? TryClaimGroundDrop(
+        CharacterId characterId,
+        DungeonRunId expectedRunId,
+        long expectedRoomVersion,
+        ushort groundDropNumber)
+    {
+        var current = Find(characterId);
+        if (current is null
+            || current.RunId != expectedRunId
+            || current.RoomVersion != expectedRoomVersion)
+        {
+            return null;
+        }
+
+        return TryTakeGroundDrop(characterId, groundDropNumber) is { } taken
+            ? new DungeonGroundDropClaim(
+                characterId,
+                taken,
+                new GroundDropId(current.CurrentCell, groundDropNumber),
+                0,
+                current.RunId)
+            : null;
+    }
+
+    /// <summary>Consumes an exact drop reservation after durable delivery succeeds.</summary>
+    DungeonRunState? CommitGroundDrop(DungeonGroundDropClaim claim) => claim.Run;
+
+    /// <summary>Releases an exact drop reservation after a refused or failed delivery.</summary>
+    bool ReleaseGroundDrop(DungeonGroundDropClaim claim) => false;
 
     /// <summary>
     /// Records that one of the room's actors is dead.
@@ -378,6 +504,24 @@ public interface IDungeonRunDomainService
     bool ReleaseActorDeath(DungeonActorDeathClaim claim) => false;
 
     /// <summary>
+    /// Claims the durable kill effects of one frozen participant. Null means that participant's
+    /// effects were already committed (or are being attempted by another caller).
+    /// </summary>
+    DungeonParticipantKillEffectClaim? TryClaimParticipantKillEffect(
+        DungeonActorDeathClaim death,
+        CharacterId characterId) =>
+        death.Run.Participants.Count == 0
+        || death.Run.Participants.Any(participant => participant.CharacterId == characterId)
+            ? new DungeonParticipantKillEffectClaim(death, characterId, 0)
+            : null;
+
+    /// <summary>Marks one participant's transactional kill effects complete.</summary>
+    bool CommitParticipantKillEffect(DungeonParticipantKillEffectClaim claim) => true;
+
+    /// <summary>Releases exactly one failed participant-effect attempt for retry.</summary>
+    bool ReleaseParticipantKillEffect(DungeonParticipantKillEffectClaim claim) => false;
+
+    /// <summary>
     /// Records that this run has been settled.
     /// </summary>
     /// <remarks>
@@ -392,6 +536,29 @@ public interface IDungeonRunDomainService
     /// </para>
     /// </remarks>
     DungeonRunState? TrySettle(CharacterId characterId);
+
+    /// <summary>Claims settlement without spending it until durable work has completed.</summary>
+    DungeonSettlementClaim? TryClaimSettlement(CharacterId characterId) =>
+        TrySettle(characterId) is { } run
+            ? new DungeonSettlementClaim(characterId, run, 0, run.RunId)
+            : null;
+
+    /// <summary>Claims settlement only when the character is still in the named run.</summary>
+    DungeonSettlementClaim? TryClaimSettlement(
+        CharacterId characterId,
+        DungeonRunId expectedRunId)
+    {
+        var current = Find(characterId);
+        return current is not null && current.RunId == expectedRunId
+            ? TryClaimSettlement(characterId)
+            : null;
+    }
+
+    /// <summary>Commits a successfully persisted settlement.</summary>
+    DungeonRunState? CommitSettlement(DungeonSettlementClaim claim) => claim.Run;
+
+    /// <summary>Releases exactly this failed settlement attempt for retry.</summary>
+    bool ReleaseSettlement(DungeonSettlementClaim claim) => false;
 
     /// <summary>
     /// Puts what a kill produced on the floor of the room the character is standing in, numbering
@@ -411,6 +578,28 @@ public interface IDungeonRunDomainService
         int declaredDropCount,
         ushort actorSequence,
         IReadOnlyList<RolledDrop> rolled);
+
+    /// <summary>
+    /// Allocates against the exact run room which produced the kill. Null means that run room is
+    /// no longer current.
+    /// </summary>
+    IReadOnlyList<MonsterDrop>? TryAllocateMonsterDrops(
+        CharacterId characterId,
+        DungeonRunId expectedRunId,
+        long expectedRoomVersion,
+        RoomActorId actor,
+        int declaredDropCount,
+        IReadOnlyList<RolledDrop> rolled)
+    {
+        var current = Find(characterId);
+        return current is not null
+            && current.RunId == expectedRunId
+            && current.RoomVersion == expectedRoomVersion
+            && current.CurrentCell == actor.Cell
+                ? AllocateMonsterDrops(
+                    characterId, declaredDropCount, actor.Sequence, rolled)
+                : null;
+    }
 
     /// <summary>
     /// Fixes what this clear's two faces hold, and answers the run as it stands afterwards.
@@ -442,6 +631,20 @@ public interface IDungeonRunDomainService
         ClearRewardCardFace paid,
         int? paidFlipCost);
 
+    /// <summary>Fixes cards only on the named run, never on a replacement run.</summary>
+    DungeonRunState? FixClearRewardCards(
+        CharacterId characterId,
+        DungeonRunId expectedRunId,
+        ClearRewardCardFace free,
+        ClearRewardCardFace paid,
+        int? paidFlipCost)
+    {
+        var current = Find(characterId);
+        return current is not null && current.RunId == expectedRunId
+            ? FixClearRewardCards(characterId, free, paid, paidFlipCost)
+            : null;
+    }
+
     /// <summary>
     /// Takes one position of one of this clear's faces.
     /// </summary>
@@ -460,6 +663,40 @@ public interface IDungeonRunDomainService
     ClearRewardCardSlot? TryClaimClearRewardCard(
         CharacterId characterId, ClearRewardCardKind kind, int index);
 
+    /// <summary>Reserves one card on the named run without consuming it before durable delivery.</summary>
+    DungeonClearRewardCardClaim? TryReserveClearRewardCard(
+        CharacterId characterId,
+        DungeonRunId expectedRunId,
+        ClearRewardCardKind kind,
+        int index)
+    {
+        var current = Find(characterId);
+        var slot = current?.RunId == expectedRunId
+            ? TryClaimClearRewardCard(characterId, kind, index)
+            : null;
+        return slot is null
+            ? null
+            : new DungeonClearRewardCardClaim(
+                characterId,
+                current!,
+                new ClearRewardCardId(kind, index),
+                slot,
+                0,
+                expectedRunId);
+    }
+
+    /// <summary>Consumes a reserved clear-card position after durable delivery succeeds.</summary>
+    bool CommitClearRewardCard(DungeonClearRewardCardClaim claim) => true;
+
+    /// <summary>Releases a reserved clear-card position after durable delivery fails.</summary>
+    bool ReleaseClearRewardCard(DungeonClearRewardCardClaim claim) => false;
+
     /// <summary>Ends the run. False when the character was not in one.</summary>
     bool End(CharacterId characterId);
+
+    /// <summary>Ends only the named run, leaving a replacement run untouched.</summary>
+    bool End(CharacterId characterId, DungeonRunId expectedRunId) =>
+        Find(characterId) is { } current
+        && current.RunId == expectedRunId
+        && End(characterId);
 }

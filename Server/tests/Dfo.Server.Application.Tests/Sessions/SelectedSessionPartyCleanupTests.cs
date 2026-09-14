@@ -6,6 +6,7 @@ using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Parties;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Tests.Support;
+using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
@@ -152,7 +153,9 @@ public sealed class SelectedSessionPartyCleanupTests
                 new PvpLobbyDomainService(),
                 [],
                 new CharacterPositionDomainService(),
-                Parties.Service);
+                Parties.Service,
+                new DungeonRunDomainService(),
+                []);
         }
 
         public PartyServiceTestAdapter Parties { get; }

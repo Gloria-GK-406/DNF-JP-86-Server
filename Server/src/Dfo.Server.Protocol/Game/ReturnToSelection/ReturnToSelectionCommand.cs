@@ -2,7 +2,6 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
-using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -56,8 +55,7 @@ public sealed record CompletedReturnToSelection(SelectedSessionCleanupNotificati
 public sealed class CompleteReturnToSelectionCommandHandler(
     IOnlineUserQueryDomainService onlineUsers,
     ISelectedSessionDomainService sessions,
-    ISelectedSessionCleanupDomainService cleanup,
-    IDungeonRunDomainService runs)
+    ISelectedSessionCleanupDomainService cleanup)
     : ICommandHandler<CompleteReturnToSelectionCommand, CompletedReturnToSelection>
 {
     public async ValueTask<CompletedReturnToSelection> HandleAsync(
@@ -70,7 +68,6 @@ public sealed class CompleteReturnToSelectionCommandHandler(
             throw new InvalidOperationException("Return-to-selection session changed after preparation.");
         if (prepared.Session is not { } session)
             return new(null);
-        runs.End(session.CharacterId);
         return new(await cleanup.CleanupAsync(session, includeOwner: false, cancellationToken)
             .ConfigureAwait(false));
     }

@@ -8,6 +8,7 @@ using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Protocol.Game.DungeonEntry;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.DungeonSelection;
@@ -172,6 +173,7 @@ public sealed class BackToVillageHandler(
     ISelectedSessionRuntimeDirectory runtimeSessions,
     ICharacterPositionDomainService positions,
     IDungeonRunDomainService runs,
+    DungeonRunDeliveryRegistry deliveries,
     IGameMessageSender sender,
     ILogger<BackToVillageHandler> logger) : ClientMessageHandler<BackToVillageRequest>
 {
@@ -195,6 +197,12 @@ public sealed class BackToVillageHandler(
             return;
         }
 
+        var currentRun = runs.Find(session.CharacterId);
+        var ended = currentRun is not null
+            && runs.End(session.CharacterId, currentRun.RunId);
+        if (ended && currentRun is not null)
+            deliveries.RemoveParticipant(currentRun.RunId, session.CharacterId);
+
         logger.LogInformation(
             "Back to village {ConnectionId} user={WireUserId}: {TownId}:{AreaId} pos=({X},{Y}) "
                 + "runEnded={RunEnded}",
@@ -204,7 +212,7 @@ public sealed class BackToVillageHandler(
             position.AreaId,
             position.X,
             position.Y,
-            runs.End(session.CharacterId));
+            ended);
 
         // The same projection the dungeon's own exit sends, and deliberately not a second copy of
         // it: both mean "put this character back in the town they are standing in", and two copies

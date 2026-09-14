@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.World;
@@ -30,22 +31,68 @@ internal sealed class DungeonVisitDomainService(
         DungeonEntryFacts facts,
         CancellationToken cancellationToken)
     {
+        var wireUserId = characterId.Value is > 0 and <= ushort.MaxValue
+            ? checked((ushort)characterId.Value)
+            : (ushort)0;
+        var entered = await this.EnterPartyAsync(
+            [new DungeonRunParticipant(
+                new AccountId(0), characterId, wireUserId, Slot: 0, IsLeader: true)],
+            dungeonId,
+            difficulty,
+            facts,
+            cancellationToken).ConfigureAwait(false);
+        return entered is null
+            ? null
+            : new DungeonEntry(entered.Layout, entered.Visits[characterId]);
+    }
+
+    public async ValueTask<DungeonPartyEntry?> EnterPartyAsync(
+        IReadOnlyList<DungeonRunParticipant> participants,
+        int dungeonId,
+        byte difficulty,
+        DungeonEntryFacts facts,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(participants);
         ArgumentNullException.ThrowIfNull(facts);
 
-        // One seed per run, drawn here and then carried: the rule never invents one, because a
-        // layout has to be reproducible from what was recorded about the run.
+        // One seed and one layout per shared run. Every participant is attached only after the
+        // layout exists, and BeginParty publishes all character indexes under one aggregate lock.
         var layout = await layouts
             .ResolveAsync(dungeonId, facts, Random.Shared.Next(), cancellationToken)
             .ConfigureAwait(false);
         if (layout is null)
             return null;
 
-        // Remembered from here on. The layout was chosen from quest state as it stood at this
-        // moment, so it cannot be recomputed later and still describe the run the client is in.
-        var run = runs.Begin(characterId, layout, difficulty);
-        return new DungeonEntry(
-            layout,
-            await this.DescribeAsync(run, firstEntry: true, cancellationToken).ConfigureAwait(false));
+        var leaderView = runs.BeginParty(participants, layout, difficulty);
+        try
+        {
+            var visits = new Dictionary<CharacterId, DungeonRoomVisit>(participants.Count);
+            foreach (var participant in participants)
+            {
+                var run = participant.CharacterId == leaderView.Participant?.CharacterId
+                    ? leaderView
+                    : runs.Find(participant.CharacterId)
+                        ?? throw new InvalidOperationException(
+                            "A shared dungeon run was published without every participant index.");
+                visits.Add(
+                    participant.CharacterId,
+                    await this.DescribeAsync(run, firstEntry: true, cancellationToken)
+                        .ConfigureAwait(false));
+            }
+
+            return new DungeonPartyEntry(layout, visits);
+        }
+        catch
+        {
+            // Projection is part of entry preparation. If any member's room description cannot
+            // be built, nobody owns a usable entry. End only the run we just published: a member
+            // may already have re-entered on a replacement connection while an awaited rule was
+            // completing, and that newer run must survive this rollback.
+            foreach (var participant in participants)
+                runs.End(participant.CharacterId, leaderView.RunId);
+            throw;
+        }
     }
 
     public async ValueTask<DungeonRoomVisit?> MoveAsync(
@@ -57,7 +104,8 @@ internal sealed class DungeonVisitDomainService(
         ArgumentNullException.ThrowIfNull(current);
 
         var firstEntry = !current.VisitedCells.Contains(target);
-        var moved = runs.TryMove(characterId, target);
+        var moved = runs.TryMove(
+            characterId, current.RunId, current.RoomVersion, target);
         return moved is null
             ? null
             : await this.DescribeAsync(moved, firstEntry, cancellationToken).ConfigureAwait(false);

@@ -914,24 +914,45 @@ public sealed class CardRewardTests
     }
 
     /// <summary>
-    /// A charge whose claim was lost afterwards is handed back.
+    /// A concurrent reservation refuses the second flip before any money moves.
     /// </summary>
     /// <remarks>
-    /// The one order in which money can move without a card moving: the position was unclaimed
-    /// when the price was taken and gone by the time the claim was made. Charging after the claim
-    /// instead would not fix it -- a claim cannot be given back, because the card has been shown.
-    /// So the price is what is given back.
+    /// Reserving first closes the old check/charge/claim race. The losing request is refused with
+    /// its carried gold untouched, and releasing the winning reservation makes the card retryable.
     /// </remarks>
     [Fact]
-    public async Task A_paid_flip_that_lost_its_position_is_given_its_money_back()
+    public async Task A_paid_flip_losing_the_reservation_moves_no_money()
     {
-        var world = new World(claimsAreLost: true);
+        var world = new World();
+        var reservation = world.Reserve(ClearRewardCardKind.Paid, 0);
 
         var result = await world.Flip(ClearRewardCardKind.Paid, 0);
 
         Assert.Equal(SelectCardStatus.AlreadyFlipped, result.Status);
-        Assert.Equal(1, world.Gold.Charges);
+        Assert.Equal(0, world.Gold.Charges);
         Assert.Equal(StartingGold, world.Gold.Total);
+        world.Release(reservation);
+        Assert.Equal(
+            SelectCardStatus.Flipped,
+            (await world.Flip(ClearRewardCardKind.Paid, 0)).Status);
+    }
+
+    [Fact]
+    public async Task A_failed_persistent_card_delivery_releases_the_position_for_one_retry()
+    {
+        var world = new World();
+        world.Bag.FailNextAdd = true;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await world.Flip(ClearRewardCardKind.Free, 0));
+
+        Assert.Equal(
+            SelectCardStatus.Flipped,
+            (await world.Flip(ClearRewardCardKind.Free, 0)).Status);
+        Assert.Equal(
+            SelectCardStatus.AlreadyFlipped,
+            (await world.Flip(ClearRewardCardKind.Free, 0)).Status);
+        Assert.Single(world.Bag.Slots);
     }
 
     /// <summary>
@@ -1107,8 +1128,7 @@ public sealed class CardRewardTests
             bool bagBound = true,
             BagAnswer bagAnswer = BagAnswer.OpensASlot,
             int startingGold = StartingGold,
-            int? paidFlipPrice = FixturePrice,
-            bool claimsAreLost = false)
+            int? paidFlipPrice = FixturePrice)
         {
             this._rules = new RefusingRules();
             this.Bag = new Bag(bagAnswer);
@@ -1116,7 +1136,7 @@ public sealed class CardRewardTests
 
             ICardRewardDomainService cards = new CardRewardDomainService(this._rules, this._runs);
             this._handler = new SelectCardCommandHandler(
-                claimsAreLost ? new LosingCards(cards) : cards,
+                cards,
                 this._runs,
                 new StubContainers(bagBound ? this.Bag : null),
                 new OnePlayingCharacter(this.Gold),
@@ -1155,6 +1175,16 @@ public sealed class CardRewardTests
         /// <summary>The last command that reached the handler, whoever built it.</summary>
         public SelectCardCommand? LastCommand { get; private set; }
 
+        public DungeonClearRewardCardClaim Reserve(ClearRewardCardKind kind, int index)
+        {
+            var run = this._runs.Find(Identity.CharacterId)!;
+            return this._runs.TryReserveClearRewardCard(
+                Identity.CharacterId, run.RunId, kind, index)!;
+        }
+
+        public void Release(DungeonClearRewardCardClaim claim) =>
+            Assert.True(this._runs.ReleaseClearRewardCard(claim));
+
         public ValueTask<SelectCardResult> Flip(ClearRewardCardKind kind, int index) =>
             this.Send(
                 new SelectCardCommand(
@@ -1184,6 +1214,7 @@ public sealed class CardRewardTests
             var handler = new SelectCardHandler(
                 sessions ?? new OneSession(Identity),
                 runtimeSessions ?? new OneRuntimeSession(PublishedEntry()),
+                this._runs,
                 new OneCommandBus(this),
                 sender,
                 NullLogger<SelectCardHandler>.Instance);
@@ -1261,29 +1292,6 @@ public sealed class CardRewardTests
             this.Questions++;
             throw new NotSupportedException("Turning a card over may not ask the rules anything.");
         }
-    }
-
-    /// <summary>
-    /// The card service with its claim taken out from under it.
-    /// </summary>
-    /// <remarks>
-    /// The one shape the flip cannot produce on its own: a position that was unclaimed when the
-    /// price was taken and claimed by the time the claim was made. It is a race in production and
-    /// a wrapper here, because what it costs the player is the whole point of the test that uses
-    /// it.
-    /// </remarks>
-    private sealed class LosingCards(ICardRewardDomainService inner) : ICardRewardDomainService
-    {
-        public ValueTask<ClearRewardSettlementResult?> SettleAsync(
-            ClearRewardSettlement settlement, CancellationToken cancellationToken) =>
-            inner.SettleAsync(settlement, cancellationToken);
-
-        public ValueTask<ClearRewardCardSlot?> ClaimAsync(
-            CharacterId characterId,
-            ClearRewardCardKind kind,
-            int index,
-            CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ClearRewardCardSlot?>(null);
     }
 
     /// <summary>A published session standing at <see cref="PublishedLevel"/>.</summary>
@@ -1456,6 +1464,8 @@ public sealed class CardRewardTests
     /// </remarks>
     private sealed class Bag(BagAnswer answer) : IItemContainer
     {
+        public bool FailNextAdd { get; set; }
+
         /// <summary>The slot a pile already sits in, for the pile answer.</summary>
         public const int PileSlot = 7;
 
@@ -1485,6 +1495,11 @@ public sealed class CardRewardTests
         public ValueTask<ItemPlacementOutcome> AddAsync(
             int itemId, int count, CancellationToken cancellationToken)
         {
+            if (this.FailNextAdd)
+            {
+                this.FailNextAdd = false;
+                throw new InvalidOperationException("injected persistent card delivery failure");
+            }
             switch (answer)
             {
                 case BagAnswer.OpensASlot:

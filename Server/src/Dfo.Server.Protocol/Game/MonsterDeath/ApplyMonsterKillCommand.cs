@@ -15,7 +15,8 @@ public sealed record ApplyMonsterKillCommand(
     int DungeonId,
     byte Difficulty,
     double DungeonWeight,
-    int EnemyType = HuntEnemyTargetTypes.Monster) : ICommand<ApplyMonsterKillResult>;
+    int EnemyType = HuntEnemyTargetTypes.Monster,
+    int PartyMemberCount = 1) : ICommand<ApplyMonsterKillResult>;
 
 public sealed record ApplyMonsterKillResult(
     ExperienceAward? Award,
@@ -57,7 +58,8 @@ public sealed class ApplyMonsterKillCommandHandler(
                     command.Monster,
                     command.DungeonId,
                     command.Difficulty,
-                    command.DungeonWeight),
+                    command.DungeonWeight,
+                    command.PartyMemberCount),
                 cancellationToken).ConfigureAwait(false)
             : null;
         var advanced = await AdvanceHuntEnemyQuestCommandHandler.AdvanceAsync(

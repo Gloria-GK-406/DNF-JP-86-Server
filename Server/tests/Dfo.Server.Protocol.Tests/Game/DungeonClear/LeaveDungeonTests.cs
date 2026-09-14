@@ -12,6 +12,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Networking.Framing;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonClear;
+using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
@@ -173,15 +174,47 @@ public sealed class LeaveDungeonTests
     }
 
     [Fact]
+    public async Task Leaving_removes_only_this_participant_from_the_frozen_delivery_set()
+    {
+        var runs = new OneRun();
+        var helper = SelectedSessionIdentity.Create(
+            new AccountId(2),
+            new CharacterId(61),
+            new NetworkConnectionId("helper"),
+            connectionGeneration: 1,
+            listenerPort: 10010);
+        var deliveries = new DungeonRunDeliveryRegistry();
+        deliveries.Register(runs.RunId, [Identity, helper]);
+        var handler = new EplpCommandHandler(
+            new OneSession(Identity),
+            new OneRuntimeSession(Entry()),
+            new StandingWhereTheyAre(),
+            runs,
+            deliveries,
+            new RecordingSender(),
+            NullLogger<EplpCommandHandler>.Instance);
+
+        await handler.HandleAsync(
+            Dispatch(),
+            new EplpCommandRequest(GameMessageMetadata.Empty, LeaveState, CapturedOption),
+            CancellationToken.None);
+
+        Assert.Equal([helper], deliveries.Find(runs.RunId));
+    }
+
+    [Fact]
     public async Task GiveUpEndsTheRunAndProjectsTheSameTownState()
     {
         var runs = new OneRun();
+        var deliveries = new DungeonRunDeliveryRegistry();
+        deliveries.Register(runs.RunId, [Identity]);
         var sender = new RecordingSender();
         var handler = new GiveUpGameHandler(
             new OneSession(Identity),
             new OneRuntimeSession(Entry()),
             new StandingWhereTheyAre(),
             runs,
+            deliveries,
             sender,
             NullLogger<GiveUpGameHandler>.Instance);
 
@@ -198,6 +231,7 @@ public sealed class LeaveDungeonTests
         Assert.Equal(
             StandingAreaId,
             Assert.Single(sender.Sent.OfType<UserAreaNotification>()).AreaId);
+        Assert.Empty(deliveries.Find(runs.RunId));
     }
 
     /// <summary>Nothing is answered on a connection with no published session.</summary>
@@ -210,6 +244,7 @@ public sealed class LeaveDungeonTests
             new NoRuntimeSession(),
             new StandingNowhere(),
             new OneRun(),
+            new DungeonRunDeliveryRegistry(),
             sender,
             NullLogger<EplpCommandHandler>.Instance);
 
@@ -232,12 +267,16 @@ public sealed class LeaveDungeonTests
     [Fact]
     public async Task Cancelling_out_of_the_selection_screen_projects_the_same_frames()
     {
+        var runs = new OneRun();
+        var deliveries = new DungeonRunDeliveryRegistry();
+        deliveries.Register(runs.RunId, [Identity]);
         var sender = new RecordingSender();
         var handler = new BackToVillageHandler(
             new OneSession(Identity),
             new OneRuntimeSession(Entry()),
             new StandingWhereTheyAre(),
-            new OneRun(),
+            runs,
+            deliveries,
             sender,
             NullLogger<BackToVillageHandler>.Instance);
 
@@ -262,6 +301,7 @@ public sealed class LeaveDungeonTests
         Assert.Equal(StandingX, presence.X);
         Assert.Equal(StandingY, presence.Y);
         Assert.Equal(SpawnAreaState, presence.AreaState);
+        Assert.Empty(deliveries.Find(runs.RunId));
     }
 
     private static async Task<IReadOnlyList<IGameServerMessage>> Leave(byte state, OneRun runs)
@@ -272,6 +312,7 @@ public sealed class LeaveDungeonTests
             new OneRuntimeSession(Entry()),
             new StandingWhereTheyAre(),
             runs,
+            new DungeonRunDeliveryRegistry(),
             sender,
             NullLogger<EplpCommandHandler>.Instance);
 
@@ -343,7 +384,15 @@ public sealed class LeaveDungeonTests
     /// <summary>A run that records whether it was ended, and refuses everything else.</summary>
     private sealed class OneRun(bool hasRun = true) : IDungeonRunDomainService
     {
+        private static readonly DungeonLayout Layout = new(
+            144, 0, 1, 1,
+            new MazeCell(0, 0), new MazeCell(0, 0), 8153, 7,
+            new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 8153 },
+            5);
+
         public bool Ended { get; private set; }
+
+        public DungeonRunId RunId { get; } = DungeonRunId.New();
 
         /// <summary>Not exercised here: nothing in these tests kills anything.</summary>
         public IReadOnlyList<MonsterDrop> AllocateMonsterDrops(
@@ -358,8 +407,17 @@ public sealed class LeaveDungeonTests
             return hasRun;
         }
 
-        public DungeonRunState? Find(CharacterId characterId) =>
-            throw new NotSupportedException("Leaving does not read the run, it ends it.");
+        public DungeonRunState? Find(CharacterId characterId) => hasRun && !this.Ended
+            ? new DungeonRunState(
+                Layout,
+                Layout.StartCell,
+                Layout.StartRoomMapId,
+                new HashSet<MazeCell> { Layout.StartCell },
+                new HashSet<GroundDropId>(),
+                new HashSet<RoomActorId>(),
+                DateTimeOffset.UnixEpoch,
+                RunId: this.RunId)
+            : null;
 
         public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty) =>
             throw new NotSupportedException("This fixture only ends.");

@@ -27,7 +27,10 @@ namespace Dfo.Server.Abstractions.World;
 /// <see cref="MonsterKill.PartyMemberCount"/> is one.
 /// </param>
 public sealed record ClearRewardSettlement(
-    CharacterId CharacterId, int CharacterLevel, int PartyMemberCount = 1);
+    CharacterId CharacterId,
+    int CharacterLevel,
+    int PartyMemberCount = 1,
+    DungeonRunId RunId = default);
 
 /// <summary>
 /// What settling a clear came to: its cards, and what a paid flip of it costs.

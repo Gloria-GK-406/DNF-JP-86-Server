@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Microsoft.Extensions.Logging;
 
@@ -90,6 +91,7 @@ public sealed class EplpCommandHandler(
     ISelectedSessionRuntimeDirectory runtimeSessions,
     ICharacterPositionDomainService positions,
     IDungeonRunDomainService runs,
+    DungeonRunDeliveryRegistry deliveries,
     IGameMessageSender sender,
     ILogger<EplpCommandHandler> logger) : ClientMessageHandler<EplpCommandRequest>
 {
@@ -122,7 +124,11 @@ public sealed class EplpCommandHandler(
         // Ended here rather than inside the log line: this is the state change, and a state change
         // hidden in an argument list is one that disappears the day somebody lowers the log level.
         var leaving = message.State == LeaveState;
-        var runEnded = leaving && runs.End(session.CharacterId);
+        var currentRun = leaving ? runs.Find(session.CharacterId) : null;
+        var runEnded = currentRun is not null
+            && runs.End(session.CharacterId, currentRun.RunId);
+        if (runEnded && currentRun is not null)
+            deliveries.RemoveParticipant(currentRun.RunId, session.CharacterId);
         if (leaving)
         {
             frames.AddRange(TownReturnProjection.Frames(session, result, position));

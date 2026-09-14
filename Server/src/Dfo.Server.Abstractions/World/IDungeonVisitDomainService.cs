@@ -29,6 +29,11 @@ public sealed record DungeonRoomVisit(
 /// <summary>A dungeon entered: the layout it was given, and its first room.</summary>
 public sealed record DungeonEntry(DungeonLayout Layout, DungeonRoomVisit Visit);
 
+/// <summary>One resolved layout and the participant-specific views of its shared first room.</summary>
+public sealed record DungeonPartyEntry(
+    DungeonLayout Layout,
+    IReadOnlyDictionary<CharacterId, DungeonRoomVisit> Visits);
+
 /// <summary>
 /// Entering a dungeon and walking between its rooms.
 /// </summary>
@@ -69,6 +74,37 @@ public interface IDungeonVisitDomainService
         byte difficulty,
         DungeonEntryFacts facts,
         CancellationToken cancellationToken);
+
+    /// <summary>Resolves one layout and atomically begins one run for all frozen participants.</summary>
+    async ValueTask<DungeonPartyEntry?> EnterPartyAsync(
+        IReadOnlyList<DungeonRunParticipant> participants,
+        int dungeonId,
+        byte difficulty,
+        DungeonEntryFacts facts,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(participants);
+        if (participants.Count != 1)
+        {
+            throw new NotSupportedException(
+                "This dungeon-visit service does not implement shared party entry.");
+        }
+
+        var entered = await EnterAsync(
+            participants[0].CharacterId,
+            dungeonId,
+            difficulty,
+            facts,
+            cancellationToken).ConfigureAwait(false);
+        return entered is null
+            ? null
+            : new DungeonPartyEntry(
+                entered.Layout,
+                new Dictionary<CharacterId, DungeonRoomVisit>
+                {
+                    [participants[0].CharacterId] = entered.Visit,
+                });
+    }
 
     /// <summary>
     /// Walks the character into an adjoining cell and describes what is there, or null when the

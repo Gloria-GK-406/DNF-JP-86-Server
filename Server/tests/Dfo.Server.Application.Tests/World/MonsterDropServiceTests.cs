@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -96,6 +97,36 @@ public sealed class MonsterDropServiceTests
                 new NoRoomActors(), new StubRoomDrops(declaredRoomDrops)),
             NullLogger<MonsterDropService>.Instance);
         return (service, runs);
+    }
+
+    [Fact]
+    public async Task Drop_rules_receive_the_party_size_frozen_on_the_shared_run()
+    {
+        var rules = new RecordingDropRules();
+        var runs = new DungeonRunDomainService();
+        var member = new DungeonRunParticipant(
+            new AccountId(2), new CharacterId(2), WireUserId: 2, Slot: 1, IsLeader: false);
+        runs.BeginParty(
+            [
+                new DungeonRunParticipant(
+                    new AccountId(1), Character, WireUserId: 1, Slot: 0, IsLeader: true),
+                member,
+            ],
+            Layout,
+            difficulty: 0);
+        var service = new MonsterDropService(
+            rules,
+            new NoDropRateAdjustment(),
+            runs,
+            new DungeonRoomRuleService(new NoRoomActors(), new StubRoomDrops(0)),
+            NullLogger<MonsterDropService>.Instance);
+
+        await service.ForKillAsync(
+            new MonsterKill(member.CharacterId, runs.Find(member.CharacterId)!, ActorSequence, 86, 0),
+            CancellationToken.None);
+
+        Assert.NotNull(rules.Asked);
+        Assert.Equal(2, rules.Asked.PartyMemberCount);
     }
 
     private static MonsterKill Kill(DungeonRunState run, ushort actor = ActorSequence, int rank = 0) =>
@@ -296,6 +327,19 @@ public sealed class MonsterDropServiceTests
     {
         public DropItemPool Load(DropItemFamily family) =>
             family == DropItemFamily.Equipment ? EquipmentPool() : StackablePool();
+    }
+
+    private sealed class RecordingDropRules : IDropRuleService
+    {
+        public MonsterKill? Asked { get; private set; }
+
+        public DropRates? RatesFor(MonsterKill kill)
+        {
+            this.Asked = kill;
+            return null;
+        }
+
+        public IReadOnlyList<RolledDrop> DrawFor(MonsterKill kill, DropRates rates) => [];
     }
 
     /// <summary>A room declaring no actors; these tests supply their own or need none.</summary>

@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
@@ -8,6 +9,7 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonEntry;
@@ -88,8 +90,12 @@ public sealed class SelectDungeonHandlerTests
         var sender = new RecordingSender();
         var handler = new SelectDungeonHandler(
             Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
+            new UnchangedState(),
             new OneSession(Identity),
             new OneRuntimeSession(Entry()),
+            new NoPartyService(),
+            new NoopRuns(),
+            new DungeonRunDeliveryRegistry(),
             new IntentStore(null),
             visits,
             new OneLog(new UnaskedLog()),
@@ -216,8 +222,12 @@ public sealed class SelectDungeonHandlerTests
         var fatigue = new RecordingFatigue();
         var sender = new RecordingSender();
         var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
+            new UnchangedState(),
             new OneSession(Identity),
             new OneRuntimeSession(Entry()),
+            new NoPartyService(),
+            new NoopRuns(),
+            new DungeonRunDeliveryRegistry(),
             new IntentStore(DungeonEntryIntent.Interactive),
             new RefusingVisits(),
             new OneLog(new StandInLog([], [])),
@@ -249,8 +259,12 @@ public sealed class SelectDungeonHandlerTests
         var visits = new RecordingVisits();
         var fatigue = new RecordingFatigue();
         var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
+            new UnchangedState(),
             new NoSession(),
             new OneRuntimeSession(Entry()),
+            new NoPartyService(),
+            new NoopRuns(),
+            new DungeonRunDeliveryRegistry(),
             new IntentStore(DungeonEntryIntent.Interactive),
             visits,
             new OneLog(new UnaskedLog()),
@@ -275,8 +289,12 @@ public sealed class SelectDungeonHandlerTests
         var visits = new RecordingVisits();
         var sender = new RecordingSender();
         var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
+            new UnchangedState(),
             new NoSession(),
             new OneRuntimeSession(Entry()),
+            new NoPartyService(),
+            new NoopRuns(),
+            new DungeonRunDeliveryRegistry(),
             new IntentStore(DungeonEntryIntent.Interactive),
             visits,
             new OneLog(new UnaskedLog()),
@@ -319,8 +337,12 @@ public sealed class SelectDungeonHandlerTests
         DungeonEntryIntent? intent = null) =>
         new(
             Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
+            new UnchangedState(),
             new OneSession(Identity),
             new OneRuntimeSession(Entry()),
+            new NoPartyService(),
+            new NoopRuns(),
+            new DungeonRunDeliveryRegistry(),
             new IntentStore(intent ?? DungeonEntryIntent.Interactive),
             visits,
             logs ?? new OneLog(new StandInLog(
@@ -381,7 +403,8 @@ public sealed class SelectDungeonHandlerTests
         new HashSet<GroundDropId>(),
         new HashSet<RoomActorId>(),
         DateTimeOffset.UnixEpoch,
-        Difficulty);
+        Difficulty,
+        RunId: DungeonRunId.New());
 
     /// <summary>
     /// The run, recording the facts it was handed and answering with a fixed room.
@@ -655,5 +678,41 @@ public sealed class SelectDungeonHandlerTests
             this.Sent.AddRange(delivery.RequiredDirectMessages);
             return ValueTask.CompletedTask;
         }
+    }
+
+    private sealed class NoPartyService : IPartyService
+    {
+        public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }
+        public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => [];
+        public PartySnapshot? FindParty(CharacterId characterId) => null;
+        public PartyEndpoint? FindEndpoint(CharacterId characterId) => null;
+        public PartyOperationResult CreateOrUpdateSettings(PartyCharacterSnapshot character, PartySettings settings, PartyTitle title) => throw new NotSupportedException();
+        public PartyOperationResult UpdateEndpoint(PartyCharacterSnapshot character, PartyEndpoint endpoint) => throw new NotSupportedException();
+        public PartyOperationResult RequestInvite(PartyCharacterSnapshot inviter, PartyCharacterSnapshot target, PartyInviteDisplayState display) => throw new NotSupportedException();
+        public PartyOperationResult AcceptInvite(PartyCharacterSnapshot invitee, PartyCharacterSnapshot inviter) => throw new NotSupportedException();
+        public PartyOperationResult TransferLeadership(CharacterId currentLeaderCharacterId, CharacterId nextLeaderCharacterId) => throw new NotSupportedException();
+        public PartyOperationResult LeaveParty(CharacterId characterId) => throw new NotSupportedException();
+        public PartyOperationResult CleanupCharacter(CharacterId characterId) => throw new NotSupportedException();
+    }
+
+    private sealed class UnchangedState : ICharacterStateProjectionDomainService
+    {
+        public ValueTask<SelectCharacterResult> RefreshAsync(
+            SelectCharacterResult result,
+            CancellationToken cancellationToken) => ValueTask.FromResult(result);
+    }
+
+    private sealed class NoopRuns : IDungeonRunDomainService
+    {
+        public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty) => throw new NotSupportedException();
+        public DungeonRunState? Find(CharacterId characterId) => null;
+        public DungeonRunState? TryMove(CharacterId characterId, MazeCell target) => null;
+        public DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber) => null;
+        public DungeonRunState? TryReportActorDead(CharacterId characterId, ushort actorSequence) => null;
+        public DungeonRunState? TrySettle(CharacterId characterId) => null;
+        public IReadOnlyList<MonsterDrop> AllocateMonsterDrops(CharacterId characterId, int declaredDropCount, ushort actorSequence, IReadOnlyList<RolledDrop> rolled) => [];
+        public DungeonRunState? FixClearRewardCards(CharacterId characterId, ClearRewardCardFace free, ClearRewardCardFace paid, int? paidFlipCost) => null;
+        public ClearRewardCardSlot? TryClaimClearRewardCard(CharacterId characterId, ClearRewardCardKind kind, int index) => null;
+        public bool End(CharacterId characterId) => true;
     }
 }

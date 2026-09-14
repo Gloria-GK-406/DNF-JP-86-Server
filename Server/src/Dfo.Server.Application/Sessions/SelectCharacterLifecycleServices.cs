@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Parties;
@@ -34,7 +35,9 @@ internal sealed class SelectedSessionCleanupService(
     IPvpLobbyDomainService pvp,
     IEnumerable<ISelectedSessionPositionPersistence> positionPersistence,
     ICharacterPositionDomainService positions,
-    IPartyService parties) : ISelectedSessionCleanupDomainService
+    IPartyService parties,
+    IDungeonRunDomainService dungeonRuns,
+    IEnumerable<IDungeonRunParticipantDepartureSink> dungeonDepartures) : ISelectedSessionCleanupDomainService
 {
     public async ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
         SelectedSessionIdentity session, bool includeOwner, CancellationToken cancellationToken)
@@ -108,6 +111,24 @@ internal sealed class SelectedSessionCleanupService(
         }
         if (ownsSelectedCharacter)
         {
+            var run = dungeonRuns.Find(session.CharacterId);
+            if (run is not null)
+            {
+                var ended = false;
+                Run(() => ended = dungeonRuns.End(session.CharacterId, run.RunId));
+                if (ended)
+                {
+                    foreach (var departure in dungeonDepartures)
+                    {
+                        Run(() =>
+                        {
+                            departure.ParticipantDeparted(run.RunId, session.CharacterId);
+                            return true;
+                        });
+                    }
+                }
+            }
+
             Run(() =>
             {
                 var partyCleanup = parties.CleanupCharacter(session.CharacterId);

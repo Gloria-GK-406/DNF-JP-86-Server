@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game;
@@ -62,6 +63,7 @@ public sealed class CardSelectRightStateHandler(
 public sealed class SelectCardHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
+    IDungeonRunDomainService runs,
     ICommandBus commandBus,
     IGameMessageSender sender,
     ILogger<SelectCardHandler> logger) : ClientMessageHandler<SelectCardRequest>
@@ -91,12 +93,17 @@ public sealed class SelectCardHandler(
             return;
         }
 
+        var run = runs.Find(session.CharacterId);
+        if (run is null || selectedSessions.FindByCharacter(session.CharacterId) != session)
+            return;
+
         var result = await commandBus.SendAsync(
             new SelectCardCommand(
                 session.AccountId,
                 session.CharacterId,
                 message.Kind,
-                message.Index),
+                message.Index,
+                run.RunId),
             cancellationToken).ConfigureAwait(false);
 
         if (result.Status is not SelectCardStatus.Flipped)
