@@ -82,8 +82,8 @@ public sealed class PartyCommandCodecTests
     }
 
     [Theory]
-    [InlineData("05AC11D001AC11D0010079C00500000C000000646162333266356439643466", 30976)]
-    [InlineData("05AC11D001AC11D00108F9C00500000C000000646162333266356439643466", 63752)]
+    [InlineData("05AC11D001AC11D0010079C00500000C000000646162333266356439643466", 121)]
+    [InlineData("05AC11D001AC11D00108F9C00500000C000000646162333266356439643466", 2297)]
     public void Current_a21_endpoint_samples_decode_the_fixed_prefix(string bodyHex, ushort port)
     {
         var request = Assert.IsType<SetUdpIpPortRequest>(
@@ -95,6 +95,21 @@ public sealed class PartyCommandCodecTests
         Assert.Equal(port, request.Endpoint.Port);
         Assert.Equal(1472u, request.Endpoint.Mtu);
         Assert.Equal(Hex("0C000000646162333266356439643466"), request.IdentityTail);
+    }
+
+    [Theory]
+    [InlineData("F57A", 62842)]
+    [InlineData("D8AD", 55469)]
+    public void Live_socket_correlated_endpoint_port_uses_network_byte_order(
+        string wirePortHex,
+        ushort expectedPort)
+    {
+        var body = Hex("05C0A80866C0A80866" + wirePortHex + "C0050000");
+
+        var request = Assert.IsType<SetUdpIpPortRequest>(
+            new SetUdpIpPortDecoder().Decode(GameMessageMetadata.Empty, body));
+
+        Assert.Equal(expectedPort, request.Endpoint.Port);
     }
 
     [Theory]

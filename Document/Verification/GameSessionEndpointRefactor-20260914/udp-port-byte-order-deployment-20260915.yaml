@@ -1,0 +1,27 @@
+kind: rks-verification
+decision: pass
+claim: >-
+  The SET_UDP_IP_PORT network-order correction is regression-tested, built in Release,
+  and deployed from the main worktree for local two-client acceptance testing.
+source:
+  branch: main
+  base_commit: f6e6da9b
+  result_commit: containing commit
+conditions:
+  - condition: Live wire bytes decode to the operating-system-observed client UDP ports.
+    evidence: >-
+      PartyCommandCodecTests passed 43/43, including F5 7A -> 62842 and
+      D8 AD -> 55469; the pre-fix RED produced 31477 and 44504.
+  - condition: The configured Debug solution has no regression.
+    evidence: 3256 passed, 2 skipped by PVF-present conditions, 0 failed.
+  - condition: The Release server is built and locally ready.
+    evidence: >-
+      Release build completed with 0 warnings and 0 errors; Host PID 66044 listens on
+      TCP 7001/10010/10011/18080 and UDP 12311/12312; launcher bootstrap returned ready.
+  - condition: Existing player persistence is preserved.
+    evidence: >-
+      The deployed Host still uses Server/src/Dfo.Server.Host/bin/Release/net10.0/Data/dfo-server.db;
+      its size and last-write timestamp remained 389120 bytes and 2026-09-14T23:13:11.76729+08:00.
+scope_boundary: >-
+  This proves corrected decoding and deployment readiness. Successful client-to-client dungeon
+  connection remains the user's live-game acceptance check.

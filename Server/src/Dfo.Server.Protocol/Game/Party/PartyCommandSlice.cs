@@ -90,7 +90,7 @@ internal sealed class SetUdpIpPortDecoder : IGameMessageDecoder
             body[0],
             new SessionIpv4Address(body[1], body[2], body[3], body[4]),
             new SessionIpv4Address(body[5], body[6], body[7], body[8]),
-            BinaryPrimitives.ReadUInt16LittleEndian(body[9..]),
+            BinaryPrimitives.ReadUInt16BigEndian(body[9..]),
             BinaryPrimitives.ReadUInt32LittleEndian(body[11..]));
         if (!endpoint.IsValidClientReport)
             throw new InvalidDataException("SET_UDP_IP_PORT contains an invalid endpoint prefix.");
