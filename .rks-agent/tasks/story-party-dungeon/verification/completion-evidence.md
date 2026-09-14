@@ -52,4 +52,7 @@ state: ready-for-live-test
 - 当前修复保持 PartyService 的传输无关镜像边界：TCP remote address 只进入 Network dispatch metadata，并在 Protocol handler 中规范化为 `PartyEndpoint`。
 - 修复后独立复审：`approved`。
 - 修复后最终 Debug 全套：9 个 TRX，3249 个结果；3247 Passed、0 Failed、2 NotExecuted。
-- 状态：等待部署后第二次双客户端实机确认，不标记为 `ClientVerified`。
+- 主干修复提交：`4f4bd13e`（`fix: canonicalize party peer endpoints`）。
+- Release 构建：0 warning、0 error。
+- 新运行进程：PID `64888`，产物来自主干 Release；`7001`、`10010`、`10011`、`18080` 均由该进程监听，Launcher bootstrap 返回 `status=ready`。
+- 状态：已部署，等待第二次双客户端实机确认，不标记为 `ClientVerified`。
