@@ -972,11 +972,15 @@ public sealed class PartyNotificationDelivery(
             throw new InvalidOperationException("A party invitation plan cannot contain another operation.");
         }
 
-        if (plan.Acceptance is not null
-            && (plan.Snapshot is null || hasClearAudience || settingsChange is not null))
+        if (plan.Acceptance is { } acceptance
+            && (plan.Snapshot is null
+                || settingsChange is not null
+                || (hasClearAudience
+                    && (plan.ClearAudience.Length != 1
+                        || plan.ClearAudience[0] != acceptance.InviteeCharacterId))))
         {
             throw new InvalidOperationException(
-                "A party acceptance requires only its resulting snapshot.");
+                "A party acceptance requires its resulting snapshot and may clear only the invitee.");
         }
 
         if (settingsChange is not null

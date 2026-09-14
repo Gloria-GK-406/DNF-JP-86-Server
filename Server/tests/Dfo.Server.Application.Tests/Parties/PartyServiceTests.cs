@@ -412,6 +412,8 @@ public sealed class PartyServiceTests
                 second.WireUserId),
             accepted.Notifications.Acceptance);
         var firstSnapshot = Assert.IsType<PartySnapshot>(accepted.Notifications.Snapshot);
+        Assert.Equal(second.CharacterId, Assert.Single(accepted.Notifications.ClearAudience));
+        Assert.Equal(firstSnapshot.PartyId, accepted.Notifications.ClearPartyId);
         Assert.Equal(leader.WireUserId, firstSnapshot.LeaderWireUserId);
         Assert.Collection(
             firstSnapshot.Members,

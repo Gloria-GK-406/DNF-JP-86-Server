@@ -276,10 +276,13 @@ internal sealed class PartyService(
             membership.Add(invitee.CharacterId, party);
             var snapshot = Snapshot(party);
             return PartyOperationResult.Success(new PartyNotificationPlan(
-                [], snapshot,
+                [invitee.CharacterId], snapshot,
                 Acceptance: new PartyAcceptanceNotification(
                     inviter.CharacterId, invitee.CharacterId,
                     inviter.WireUserId, invitee.WireUserId),
+                ClearPartyId: snapshot.PartyId,
+                ClearPartyGeneration: snapshot.Generation,
+                ClearPartyRevision: snapshot.Revision,
                 DirectoryChange: new PartyDirectoryChange(
                     previousDirectoryScope, party.DirectoryScope)));
         }

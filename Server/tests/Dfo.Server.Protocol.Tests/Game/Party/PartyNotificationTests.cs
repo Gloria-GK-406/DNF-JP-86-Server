@@ -123,14 +123,22 @@ public sealed class PartyNotificationTests
         var delivery = Delivery(bus);
         var snapshot = Snapshot();
         var plan = new PartyNotificationPlan(
-            [],
+            [Invitee.CharacterId],
             snapshot,
-            Acceptance: Acceptance());
+            Acceptance: Acceptance(),
+            ClearPartyId: snapshot.PartyId,
+            ClearPartyGeneration: snapshot.Generation,
+            ClearPartyRevision: snapshot.Revision);
 
         await delivery.DeliverAsync(plan, CancellationToken.None);
 
         Assert.Collection(
             bus.Publications,
+            value =>
+            {
+                AssertPublication<PartyRosterChanged>(value, 2);
+                Assert.True(Assert.IsType<PartyRosterChanged>(value.Notification).ClearsParty);
+            },
             value => AssertPublication<PartyRealtimeChanged>(value, 1, 2),
             value => AssertPublication<PartyInviteAccepted>(value, 1),
             value => AssertPublication<PartyEndpointsChanged>(value, 1, 2),
@@ -138,16 +146,16 @@ public sealed class PartyNotificationTests
             value => AssertPublication<PartyRealtimeChanged>(value, 1, 2));
         Assert.Same(
             snapshot,
-            Assert.IsType<PartyRealtimeChanged>(bus.Publications[0].Notification).Snapshot);
+            Assert.IsType<PartyRealtimeChanged>(bus.Publications[1].Notification).Snapshot);
         Assert.Same(
             snapshot,
-            Assert.IsType<PartyEndpointsChanged>(bus.Publications[2].Notification).Snapshot);
+            Assert.IsType<PartyEndpointsChanged>(bus.Publications[3].Notification).Snapshot);
         Assert.Same(
             snapshot,
-            Assert.IsType<PartyRosterChanged>(bus.Publications[3].Notification).Snapshot);
+            Assert.IsType<PartyRosterChanged>(bus.Publications[4].Notification).Snapshot);
         Assert.Same(
             snapshot,
-            Assert.IsType<PartyRealtimeChanged>(bus.Publications[4].Notification).Snapshot);
+            Assert.IsType<PartyRealtimeChanged>(bus.Publications[5].Notification).Snapshot);
     }
 
     [Fact]
@@ -287,6 +295,13 @@ public sealed class PartyNotificationTests
             new([], snapshot, SettingsChange: (PartySettingsChangeKind)99),
             new([], Acceptance: Acceptance()),
             new([], DirectoryChange: ScopeChange()),
+            new(
+                [Inviter.CharacterId],
+                snapshot,
+                Acceptance: Acceptance(),
+                ClearPartyId: snapshot.PartyId,
+                ClearPartyGeneration: snapshot.Generation,
+                ClearPartyRevision: snapshot.Revision),
             new(
                 [Invitee.CharacterId],
                 ClearPartyId: 0x1234,
