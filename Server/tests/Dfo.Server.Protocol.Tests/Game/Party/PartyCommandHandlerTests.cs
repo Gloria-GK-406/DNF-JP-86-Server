@@ -123,6 +123,62 @@ public sealed class PartyCommandHandlerTests
     }
 
     [Fact]
+    public async Task Set_udp_advertises_the_observed_tcp_address_instead_of_a_reported_adapter()
+    {
+        var sessions = new SessionDirectory(Inviter);
+        var commands = new RecordingCommandBus();
+        var reported = Endpoint();
+        var dispatch = new NetworkDispatchContext(new NetworkConnectionContext(
+            Inviter.ConnectionId,
+            NetworkEndpointKind.Game,
+            Inviter.ListenerPort,
+            System.Net.IPAddress.Loopback));
+
+        await new SetUdpIpPortHandler(
+                sessions,
+                Presence,
+                new SelectedSessionTransitionGate(),
+                commands,
+                Notifications,
+                NullLogger<SetUdpIpPortHandler>.Instance)
+            .HandleAsync(
+                dispatch,
+                new SetUdpIpPortRequest(GameMessageMetadata.Empty, reported, []),
+                CancellationToken.None);
+
+        var update = Assert.IsType<UpdatePartyEndpointCommand>(Assert.Single(commands.Commands));
+        Assert.Equal(new PartyIpv4Address(127, 0, 0, 1), update.Endpoint.InnerAddress);
+        Assert.Equal(new PartyIpv4Address(127, 0, 0, 1), update.Endpoint.OuterAddress);
+        Assert.Equal(reported.Port, update.Endpoint.Port);
+        Assert.Equal(0, update.Endpoint.NatType);
+        Assert.Equal(1500U, update.Endpoint.Mtu);
+    }
+
+    [Theory]
+    [InlineData("203.0.113.9", 203, 0, 113, 9)]
+    [InlineData("::ffff:198.51.100.7", 198, 51, 100, 7)]
+    public void Endpoint_observation_canonicalizes_supported_tcp_remote_addresses(
+        string remoteAddress,
+        byte a,
+        byte b,
+        byte c,
+        byte d)
+    {
+        var reported = Endpoint();
+
+        var observed = PartyEndpointObservation.FromConnection(
+            reported,
+            System.Net.IPAddress.Parse(remoteAddress));
+
+        var expectedAddress = new PartyIpv4Address(a, b, c, d);
+        Assert.Equal(expectedAddress, observed.InnerAddress);
+        Assert.Equal(expectedAddress, observed.OuterAddress);
+        Assert.Equal(reported.Port, observed.Port);
+        Assert.Equal(0, observed.NatType);
+        Assert.Equal(1500U, observed.Mtu);
+    }
+
+    [Fact]
     public async Task Set_party_info_rechecks_the_exact_session_after_acquiring_its_gate()
     {
         var sessions = new SessionDirectory(Inviter);

@@ -90,7 +90,7 @@ internal sealed class SetUdpIpPortDecoder : IGameMessageDecoder
             new PartyIpv4Address(body[5], body[6], body[7], body[8]),
             BinaryPrimitives.ReadUInt16LittleEndian(body[9..]),
             BinaryPrimitives.ReadUInt32LittleEndian(body[11..]));
-        if (!endpoint.IsValid)
+        if (!endpoint.IsValidClientReport)
             throw new InvalidDataException("SET_UDP_IP_PORT contains an invalid endpoint prefix.");
 
         return new SetUdpIpPortRequest(metadata, endpoint, body[PrefixLength..].ToArray());
@@ -438,7 +438,11 @@ public sealed class SetUdpIpPortHandler(
             () => sessions.FindByConnection(context.Connection.ConnectionId) == session
                 && PartyCharacterProjection.TryCapture(session, presence, out var character)
                 ? commands.SendAsync(
-                    new UpdatePartyEndpointCommand(character, message.Endpoint), cancellationToken)
+                    new UpdatePartyEndpointCommand(
+                        character,
+                        PartyEndpointObservation.FromConnection(
+                            message.Endpoint, context.Connection.RemoteAddress)),
+                    cancellationToken)
                 : ValueTask.FromResult(PartyOperationResult.Reject(
                     PartyFailureReason.CallerNotCurrent)),
             cancellationToken).ConfigureAwait(false);
@@ -448,8 +452,59 @@ public sealed class SetUdpIpPortHandler(
                     result.Notifications, execution.Recipients, cancellationToken)
                 .ConfigureAwait(false);
         logger.LogInformation(
-            "SET_UDP_IP_PORT character={CharacterId} accepted={Accepted} failure={Failure}",
-            session.CharacterId, result.Succeeded, result.Failure);
+            "SET_UDP_IP_PORT character={CharacterId} accepted={Accepted} failure={Failure} "
+                + "reported={ReportedInner}/{ReportedOuter}:{Port} observed={ObservedAddress}",
+            session.CharacterId,
+            result.Succeeded,
+            result.Failure,
+            message.Endpoint.InnerAddress,
+            message.Endpoint.OuterAddress,
+            message.Endpoint.Port,
+            context.Connection.RemoteAddress);
+    }
+}
+
+internal static class PartyEndpointObservation
+{
+    private const byte DirectNatType = 0;
+    private const uint DirectMtu = 1500;
+
+    public static PartyEndpoint FromConnection(
+        PartyEndpoint reported,
+        System.Net.IPAddress? remoteAddress)
+    {
+        ArgumentNullException.ThrowIfNull(reported);
+        if (remoteAddress is null)
+            return reported;
+
+        byte[] octets;
+        if (System.Net.IPAddress.IsLoopback(remoteAddress))
+        {
+            octets = [127, 0, 0, 1];
+        }
+        else if (remoteAddress.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+        {
+            octets = remoteAddress.GetAddressBytes();
+        }
+        else if (remoteAddress.IsIPv4MappedToIPv6)
+        {
+            octets = remoteAddress.MapToIPv4().GetAddressBytes();
+        }
+        else
+        {
+            return reported;
+        }
+
+        var observed = new PartyIpv4Address(octets[0], octets[1], octets[2], octets[3]);
+        return observed.IsServerObservedUnicast
+            ? reported with
+            {
+                NatType = DirectNatType,
+                InnerAddress = observed,
+                OuterAddress = observed,
+                Mtu = DirectMtu,
+            }
+            : reported;
     }
 }
 

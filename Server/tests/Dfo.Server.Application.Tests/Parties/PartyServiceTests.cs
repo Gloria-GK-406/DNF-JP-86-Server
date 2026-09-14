@@ -318,17 +318,27 @@ public sealed class PartyServiceTests
         Assert.True(fixture.Parties.UpdateEndpoint(first, valid).Succeeded);
         Assert.Equal(valid, fixture.Parties.FindEndpoint(first));
 
+        var observedLoopback = valid with
+        {
+            NatType = 0,
+            InnerAddress = new PartyIpv4Address(127, 0, 0, 1),
+            OuterAddress = new PartyIpv4Address(127, 0, 0, 1),
+            Mtu = 1500,
+        };
+        Assert.True(fixture.Parties.UpdateEndpoint(first, observedLoopback).Succeeded);
+        Assert.Equal(observedLoopback, fixture.Parties.FindEndpoint(first));
+
         var invalid = valid with { Port = 0 };
         Assert.Equal(
             PartyFailureReason.InvalidEndpoint,
             fixture.Parties.UpdateEndpoint(first, invalid).Failure);
-        Assert.Equal(valid, fixture.Parties.FindEndpoint(first));
+        Assert.Equal(observedLoopback, fixture.Parties.FindEndpoint(first));
 
         var replacement = fixture.Replace(first, generation: 2);
         Assert.Equal(
             PartyFailureReason.CallerNotCurrent,
             fixture.Parties.UpdateEndpoint(first, valid with { Port = 36_624 }).Failure);
-        Assert.Equal(valid, fixture.Parties.FindEndpoint(replacement));
+        Assert.Equal(observedLoopback, fixture.Parties.FindEndpoint(replacement));
     }
 
     [Fact]

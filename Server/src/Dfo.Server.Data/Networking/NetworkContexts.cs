@@ -15,7 +15,8 @@ public enum NetworkEndpointKind
 public sealed record NetworkConnectionContext(
     NetworkConnectionId ConnectionId,
     NetworkEndpointKind EndpointKind,
-    int ListenerPort);
+    int ListenerPort,
+    System.Net.IPAddress? RemoteAddress = null);
 
 public sealed record NetworkDispatchContext(NetworkConnectionContext Connection)
 {

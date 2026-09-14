@@ -13,7 +13,11 @@ internal sealed class TouchSocketConnectionRegistry
         var sessionClient = (ITcpSessionClient)session;
         var connectionId = CreateConnectionId(session, endpointKind);
         var listenerPort = session.LocalEndPoint is System.Net.IPEndPoint endpoint ? endpoint.Port : 0;
-        var context = new NetworkConnectionContext(connectionId, endpointKind, listenerPort);
+        var remoteAddress = session.RemoteEndPoint is System.Net.IPEndPoint remote
+            ? remote.Address
+            : null;
+        var context = new NetworkConnectionContext(
+            connectionId, endpointKind, listenerPort, remoteAddress);
         if (!connections.TryAdd(connectionId, new ConnectionEntry(context, sessionClient)))
         {
             throw new InvalidOperationException($"Connection '{connectionId}' is already registered.");

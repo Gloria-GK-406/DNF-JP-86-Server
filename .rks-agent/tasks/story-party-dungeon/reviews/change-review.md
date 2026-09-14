@@ -45,3 +45,21 @@ verdict: approved
 复审证据：Release build 0 警告、0 错误；相关 Application 57/57、共享副本领域 29/29、相关 Protocol 164/164；`git diff --check` 通过。复审后的最终串行全套结果另见 completion evidence。
 
 剩余非阻塞风险：A21 双客户端的首发入场、换图、击杀、拾取和结算投递顺序仍需实机确认；在实机闭环前不得标记为 `ClientVerified`。
+
+---
+kind: rks-review
+scope: live-test-remediation
+baseline: 5b7bd9e8d542838c0e25dba5d0a4c7e9b9494950
+target: working-tree
+verdict: approved
+---
+
+# Change Review Round 3
+
+首次双客户端实机在地下城选择区提示与队友连接失败。服务端日志证明组队建立成功且两端均上报 UDP 端点；防火墙规则与本机 UDP 监听正常。根因定位为服务端把客户端报告的虚拟网卡地址直接投影到 `0x000B`。
+
+修复在 Protocol 边界从已认证 Game TCP 连接提取 observed IPv4：只保留客户端报告的 UDP 端口，两个地址均改为 observed address，并固定 `NatType=0`、`MTU=1500`。该行为与上游 `E:\Project\86JP` 提交 `e95cb259` 的已验证 direct path 一致；不移植其中明确标注待真机验证、默认关闭的 UDP relay。
+
+独立审查首轮发现 NatType/MTU 未同步标准化并要求修改；修正后复审批准。最终定向结果：Protocol Party 89/89、Application Parties/OnlineUsers 50/50；完整 Debug TRX 为 3247 Passed、0 Failed、2 NotExecuted；`git diff --check` 通过。
+
+剩余非阻塞风险：当前 wire 仅支持 IPv4，若将来监听器启用原生 IPv6 双栈，需要另行定义 IPv4 映射或拒绝策略。当前监听器为 IPv4，该分支不可达。修复仍需第二次 A21 双客户端实机确认。

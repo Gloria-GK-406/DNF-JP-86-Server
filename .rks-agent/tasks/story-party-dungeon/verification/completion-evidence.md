@@ -42,3 +42,14 @@ state: ready-for-live-test
 ## Honest boundary
 
 自动化证据证明服务端已具备双客户端连接与测试条件，但不能替代 A21 实机对队员首发投递顺序和客户端状态转换的确认。实机通过前仍标记为待验证，不标记为 `ClientVerified`。
+
+## First live-test remediation
+
+- 首次双客户端进入地下城选择区时，客户端提示与队友连接失败。
+- 运行证据排除 HTTP、组队建立和本机防火墙：两端 Game TCP 会话、UDP 端口上报、队伍通知及 UDP 本地监听均存在。
+- 根因：服务端把客户端报告的虚拟网卡 IPv4 原样投影进 `0x000B`；该地址并不存在于当前活动适配器。
+- 上游 `E:\Project\86JP@e95cb259` 的 direct path 明确使用 Game TCP remote address，只保留客户端报告的动态 UDP 端口，并输出 `NatType=0`、`MTU=1500`。
+- 当前修复保持 PartyService 的传输无关镜像边界：TCP remote address 只进入 Network dispatch metadata，并在 Protocol handler 中规范化为 `PartyEndpoint`。
+- 修复后独立复审：`approved`。
+- 修复后最终 Debug 全套：9 个 TRX，3249 个结果；3247 Passed、0 Failed、2 NotExecuted。
+- 状态：等待部署后第二次双客户端实机确认，不标记为 `ClientVerified`。
