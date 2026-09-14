@@ -1,12 +1,14 @@
 using System.Buffers.Binary;
 using System.Text;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 using Microsoft.Extensions.Logging;
@@ -15,7 +17,7 @@ namespace Dfo.Server.Protocol.Game.Party;
 
 public sealed record SetUdpIpPortRequest(
     GameMessageMetadata Metadata,
-    PartyEndpoint Endpoint,
+    SessionEndpoint Endpoint,
     byte[] IdentityTail) : IClientNetworkMessage
 {
     public ClientMessageType MessageType => ClientMessageType.GameSetUdpIpPort;
@@ -84,10 +86,10 @@ internal sealed class SetUdpIpPortDecoder : IGameMessageDecoder
                 $"SET_UDP_IP_PORT requires at least {PrefixLength} body bytes; received '{body.Length}'.");
         }
 
-        var endpoint = new PartyEndpoint(
+        var endpoint = new SessionEndpoint(
             body[0],
-            new PartyIpv4Address(body[1], body[2], body[3], body[4]),
-            new PartyIpv4Address(body[5], body[6], body[7], body[8]),
+            new SessionIpv4Address(body[1], body[2], body[3], body[4]),
+            new SessionIpv4Address(body[5], body[6], body[7], body[8]),
             BinaryPrimitives.ReadUInt16LittleEndian(body[9..]),
             BinaryPrimitives.ReadUInt32LittleEndian(body[11..]));
         if (!endpoint.IsValidClientReport)
@@ -205,20 +207,6 @@ internal sealed class SetPartyInfoDecoder(IPartyModeRuleService rules) : IGameMe
         }
         return new SetPartyInfoRequest(metadata, settings, title);
     }
-}
-
-public sealed record UpdatePartyEndpointCommand(
-    PartyCharacterSnapshot Character,
-    PartyEndpoint Endpoint) : ICommand<PartyOperationResult>;
-
-public sealed class UpdatePartyEndpointCommandHandler(IPartyService parties)
-    : ICommandHandler<UpdatePartyEndpointCommand, PartyOperationResult>
-{
-    public ValueTask<PartyOperationResult> HandleAsync(
-        CommandExecutionContext context,
-        UpdatePartyEndpointCommand command,
-        CancellationToken cancellationToken) =>
-        ValueTask.FromResult(parties.UpdateEndpoint(command.Character, command.Endpoint));
 }
 
 public sealed record RequestPartyInviteCommand(
@@ -409,68 +397,49 @@ internal static class PartyCharacterProjection
 }
 
 public sealed class SetUdpIpPortHandler(
-    ISelectedSessionDomainService sessions,
-    ISessionPresenceDomainService presence,
-    SelectedSessionTransitionGate transitionGate,
-    ICommandBus commands,
-    PartyNotificationDelivery notifications,
+    IOnlineUserQueryDomainService onlineUsers,
+    IGameSessionEndpointDomainService endpoints,
     ILogger<SetUdpIpPortHandler> logger) : ClientMessageHandler<SetUdpIpPortRequest>
 {
-    protected override async ValueTask HandleMessageAsync(
+    protected override ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
         SetUdpIpPortRequest message,
         CancellationToken cancellationToken)
     {
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null)
+        if (!onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var session)
+            || session is null
+            || session.AccountId is null)
         {
-            logger.LogInformation("SET_UDP_IP_PORT ignored for non-current connection {ConnectionId}",
+            logger.LogInformation("SET_UDP_IP_PORT ignored for unauthenticated connection {ConnectionId}",
                 context.Connection.ConnectionId);
-            return;
+            return ValueTask.CompletedTask;
         }
 
-        var execution = await PartyTransitionExecution.RunPartyAsync(
-            transitionGate,
-            session,
-            null,
-            sessions,
-            presence,
-            () => sessions.FindByConnection(context.Connection.ConnectionId) == session
-                && PartyCharacterProjection.TryCapture(session, presence, out var character)
-                ? commands.SendAsync(
-                    new UpdatePartyEndpointCommand(
-                        character,
-                        PartyEndpointObservation.FromConnection(
-                            message.Endpoint, context.Connection.RemoteAddress)),
-                    cancellationToken)
-                : ValueTask.FromResult(PartyOperationResult.Reject(
-                    PartyFailureReason.CallerNotCurrent)),
-            cancellationToken).ConfigureAwait(false);
-        var result = execution.Result;
-        if (result.Succeeded)
-            await notifications.DeliverAsync(
-                    result.Notifications, execution.Recipients, cancellationToken)
-                .ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        var accepted = endpoints.TryObserve(
+            session.SessionIdentity,
+            SessionEndpointObservation.FromConnection(
+                message.Endpoint, context.Connection.RemoteAddress));
         logger.LogInformation(
-            "SET_UDP_IP_PORT character={CharacterId} accepted={Accepted} failure={Failure} "
+            "SET_UDP_IP_PORT session={SessionId} accepted={Accepted} "
                 + "reported={ReportedInner}/{ReportedOuter}:{Port} observed={ObservedAddress}",
-            session.CharacterId,
-            result.Succeeded,
-            result.Failure,
+            session.SessionIdentity,
+            accepted,
             message.Endpoint.InnerAddress,
             message.Endpoint.OuterAddress,
             message.Endpoint.Port,
             context.Connection.RemoteAddress);
+        return ValueTask.CompletedTask;
     }
 }
 
-internal static class PartyEndpointObservation
+internal static class SessionEndpointObservation
 {
     private const byte DirectNatType = 0;
     private const uint DirectMtu = 1500;
 
-    public static PartyEndpoint FromConnection(
-        PartyEndpoint reported,
+    public static SessionEndpoint FromConnection(
+        SessionEndpoint reported,
         System.Net.IPAddress? remoteAddress)
     {
         ArgumentNullException.ThrowIfNull(reported);
@@ -495,7 +464,7 @@ internal static class PartyEndpointObservation
             return reported;
         }
 
-        var observed = new PartyIpv4Address(octets[0], octets[1], octets[2], octets[3]);
+        var observed = new SessionIpv4Address(octets[0], octets[1], octets[2], octets[3]);
         return observed.IsServerObservedUnicast
             ? reported with
             {

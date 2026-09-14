@@ -106,7 +106,8 @@ public sealed class SessionPresenceScopeTests
         var parties = new PartyService(
             new StubPartyMemberStatusDomainService(),
             new PartyModeRuleService(),
-            TimeProvider.System);
+            TimeProvider.System,
+            EmptyPartyMemberSessionEndpointSource.Instance);
         var sink = new BlockingPartyDirectoryPresenceSink(parties);
         var presence = new SessionPresenceDomainService(sink);
         var session = Session(characterId: 20, generation: 1);

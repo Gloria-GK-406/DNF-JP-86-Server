@@ -12,14 +12,14 @@ namespace Dfo.Server.Application.Parties;
 internal sealed class PartyService(
     IPartyMemberStatusDomainService memberStatus,
     IPartyModeRuleService modeRules,
-    TimeProvider clock) : IPartyService
+    TimeProvider clock,
+    IPartyMemberSessionEndpointSource sessionEndpoints) : IPartyService
 {
     internal static readonly TimeSpan InvitationLifetime = TimeSpan.FromSeconds(30);
 
     private readonly object sync = new();
     private readonly Dictionary<ushort, PartyState> parties = [];
     private readonly Dictionary<CharacterId, PartyState> membership = [];
-    private readonly Dictionary<CharacterId, PartyEndpoint> endpoints = [];
     private readonly Dictionary<CharacterId, PendingInvite> invitations = [];
     private readonly Dictionary<PartyDirectoryScope, SortedSet<ushort>> directory = [];
     private ushort nextPartyId = 1;
@@ -117,31 +117,6 @@ internal sealed class PartyService(
                 [], createdSnapshot,
                 SettingsChange: PartySettingsChangeKind.Created,
                 DirectoryChange: new PartyDirectoryChange(null, created.DirectoryScope)));
-        }
-    }
-
-    public PartyOperationResult UpdateEndpoint(
-        PartyCharacterSnapshot character,
-        PartyEndpoint endpoint)
-    {
-        ArgumentNullException.ThrowIfNull(character);
-        ArgumentNullException.ThrowIfNull(endpoint);
-        if (!endpoint.IsValid)
-            return PartyOperationResult.Reject(PartyFailureReason.InvalidEndpoint);
-
-        lock (sync)
-        {
-            endpoints[character.CharacterId] = endpoint;
-            if (membership.TryGetValue(character.CharacterId, out var party)
-                && party.Find(character.CharacterId) is { } member)
-            {
-                var previous = party.DirectoryScope;
-                member.Character = character;
-                if (member.Slot == 0)
-                    Reindex(party, previous, party.DirectoryScope);
-                party.Revision++;
-            }
-            return PartyOperationResult.Success();
         }
     }
 
@@ -335,7 +310,6 @@ internal sealed class PartyService(
     {
         lock (sync)
         {
-            endpoints.Remove(characterId);
             foreach (var targetCharacterId in invitations
                          .Where(pair => pair.Value.InviterCharacterId == characterId
                              || pair.Value.InviteeCharacterId == characterId)
@@ -355,12 +329,6 @@ internal sealed class PartyService(
     {
         lock (sync)
             return membership.TryGetValue(characterId, out var party) ? Snapshot(party) : null;
-    }
-
-    public PartyEndpoint? FindEndpoint(CharacterId characterId)
-    {
-        lock (sync)
-            return endpoints.GetValueOrDefault(characterId);
     }
 
     private PartyOperationResult LeaveLocked(CharacterId characterId)
@@ -435,7 +403,7 @@ internal sealed class PartyService(
             members.Add(new PartyMemberSnapshot(
                 member.Character,
                 member.Slot,
-                endpoints.GetValueOrDefault(member.Character.CharacterId),
+                sessionEndpoints.FindThroughCurrentSession(member.Character.CharacterId),
                 memberStatus.CurrentHpPercentOf(member.Character.CharacterId)));
         }
         return new PartySnapshot(

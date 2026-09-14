@@ -3,6 +3,8 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Parties;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 
@@ -16,6 +18,7 @@ internal sealed class PartyServiceTestAdapter
 {
     private readonly SelectedSessionDomainService sessions;
     private readonly SessionPresenceDomainService presence;
+    private readonly TestSessionEndpoints endpoints;
     private readonly PartyService inner;
 
     internal PartyServiceTestAdapter(
@@ -27,7 +30,8 @@ internal sealed class PartyServiceTestAdapter
     {
         this.sessions = sessions;
         this.presence = presence;
-        inner = new PartyService(memberStatus, rules, clock);
+        endpoints = new TestSessionEndpoints(sessions);
+        inner = new PartyService(memberStatus, rules, clock, endpoints);
     }
 
     internal void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) =>
@@ -43,12 +47,14 @@ internal sealed class PartyServiceTestAdapter
             ? inner.CreateOrUpdateSettings(character!, settings, title)
             : PartyOperationResult.Reject(PartyFailureReason.CallerNotCurrent);
 
-    internal PartyOperationResult UpdateEndpoint(
+    internal PartyOperationResult ObserveSessionEndpoint(
         SelectedSessionIdentity session,
-        PartyEndpoint endpoint) =>
-        TryProject(session, out var character)
-            ? inner.UpdateEndpoint(character!, endpoint)
-            : PartyOperationResult.Reject(PartyFailureReason.CallerNotCurrent);
+        SessionEndpoint endpoint) =>
+        !IsCurrent(session)
+            ? PartyOperationResult.Reject(PartyFailureReason.CallerNotCurrent)
+            : !endpoint.IsValid
+                ? PartyOperationResult.Reject(PartyFailureReason.InvalidEndpoint)
+                : endpoints.Observe(session, endpoint);
 
     internal PartyOperationResult RequestInvite(
         SelectedSessionIdentity inviter,
@@ -88,8 +94,8 @@ internal sealed class PartyServiceTestAdapter
     internal PartySnapshot? FindParty(SelectedSessionIdentity session) =>
         inner.FindParty(session.CharacterId);
 
-    internal PartyEndpoint? FindEndpoint(SelectedSessionIdentity session) =>
-        inner.FindEndpoint(session.CharacterId);
+    internal SessionEndpoint? FindSessionEndpoint(SelectedSessionIdentity session) =>
+        endpoints.FindThroughCurrentSession(session.CharacterId);
 
     internal PartyService Service => inner;
 
@@ -123,4 +129,27 @@ internal sealed class PartyServiceTestAdapter
 
     private bool IsCurrent(SelectedSessionIdentity session) =>
         sessions.FindByCharacter(session.CharacterId) == session;
+
+    private sealed class TestSessionEndpoints(SelectedSessionDomainService sessions)
+        : IPartyMemberSessionEndpointSource
+    {
+        private readonly Dictionary<(NetworkConnectionId ConnectionId, long Generation), SessionEndpoint>
+            values = [];
+
+        public PartyOperationResult Observe(
+            SelectedSessionIdentity session,
+            SessionEndpoint endpoint)
+        {
+            values[(session.ConnectionId, session.ConnectionGeneration)] = endpoint;
+            return PartyOperationResult.Success();
+        }
+
+        public SessionEndpoint? FindThroughCurrentSession(CharacterId characterId)
+        {
+            var session = sessions.FindByCharacter(characterId);
+            return session is null
+                ? null
+                : values.GetValueOrDefault((session.ConnectionId, session.ConnectionGeneration));
+        }
+    }
 }

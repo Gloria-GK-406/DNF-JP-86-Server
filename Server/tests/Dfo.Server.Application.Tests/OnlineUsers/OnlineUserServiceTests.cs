@@ -27,6 +27,56 @@ namespace Dfo.Server.Application.Tests.OnlineUsers;
 public sealed class UserServiceTests
 {
     [Fact]
+    public async Task Udp_endpoint_belongs_to_the_game_session_not_its_selected_character()
+    {
+        var service = CreateService(new AccountId(700));
+        var connection = new NetworkConnectionContext(
+            new NetworkConnectionId("Game:endpoint-owner"), NetworkEndpointKind.Game, 10011);
+        var connected = service.RegisterConnection(connection);
+        await service.LoginAsync(
+            connected.OnlineUserId, "endpoint-owner", "hash", CancellationToken.None);
+        var authenticated = service.GetRequired(connected.OnlineUserId);
+        var endpoint = Endpoint(30_976);
+
+        Assert.True(service.TryObserve(authenticated.SessionIdentity, endpoint));
+        Assert.Equal(endpoint, service.Find(authenticated.SessionIdentity));
+
+        var selected = SelectedSessionIdentity.Create(
+            new AccountId(700),
+            new CharacterId(77),
+            connection.ConnectionId,
+            authenticated.Generation,
+            connection.ListenerPort);
+        service.Publish(selected);
+        Assert.Equal(endpoint, service.Find(authenticated.SessionIdentity));
+
+        Assert.True(service.ClearExact(selected));
+        Assert.Equal(endpoint, service.Find(authenticated.SessionIdentity));
+    }
+
+    [Fact]
+    public async Task Disconnect_removes_only_the_exact_game_sessions_udp_endpoint()
+    {
+        var service = CreateService(new AccountId(701));
+        var connection = new NetworkConnectionContext(
+            new NetworkConnectionId("Game:reused-endpoint"), NetworkEndpointKind.Game, 10011);
+        var oldConnected = service.RegisterConnection(connection);
+        await service.LoginAsync(
+            oldConnected.OnlineUserId, "old-endpoint", "hash", CancellationToken.None);
+        var oldSession = service.GetRequired(oldConnected.OnlineUserId).SessionIdentity;
+        Assert.True(service.TryObserve(oldSession, Endpoint(30_976)));
+
+        Assert.True(service.TryDisconnectConnection(connection.ConnectionId));
+        var replacement = service.RegisterConnection(connection);
+        await service.LoginAsync(
+            replacement.OnlineUserId, "replacement-endpoint", "hash", CancellationToken.None);
+
+        Assert.Null(service.Find(oldSession));
+        Assert.False(service.TryObserve(oldSession, Endpoint(36_624)));
+        Assert.Null(service.Find(service.GetRequired(replacement.OnlineUserId).SessionIdentity));
+    }
+
+    [Fact]
     public async Task ConnectedGame_RegistersIdentityBeforeSendingInitialNotice()
     {
         var service = CreateService();
@@ -486,6 +536,13 @@ public sealed class UserServiceTests
             accountId == default ? new AccountId(1) : accountId);
         return new UserDomainServices(() => repository);
     }
+
+    private static SessionEndpoint Endpoint(ushort port) => new(
+        NatType: 5,
+        InnerAddress: new SessionIpv4Address(172, 17, 208, 1),
+        OuterAddress: new SessionIpv4Address(172, 17, 208, 1),
+        Port: port,
+        Mtu: 1472);
 
     private static OnlineUserConnectionObserver CreateObserver(
         IOnlineUserDomainService service,

@@ -32,6 +32,15 @@ internal sealed class OnlineUserDomainService(OnlineStateRegistry state) : IOnli
         state.TryGetByConnection(connectionId, out onlineUser);
 }
 
+internal sealed class GameSessionEndpointDomainService(OnlineStateRegistry state)
+    : IGameSessionEndpointDomainService
+{
+    public bool TryObserve(GameSessionIdentity session, SessionEndpoint endpoint) =>
+        state.TryObserveEndpoint(session, endpoint);
+
+    public SessionEndpoint? Find(GameSessionIdentity session) => state.FindEndpoint(session);
+}
+
 /// <summary>The character each account currently has in play, and the session that owns it.</summary>
 internal sealed class ActiveCharacterDomainService(OnlineStateRegistry state)
     : IActiveCharacterDomainService

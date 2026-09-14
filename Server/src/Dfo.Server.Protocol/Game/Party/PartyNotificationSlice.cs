@@ -7,6 +7,7 @@ using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 
@@ -138,10 +139,10 @@ internal sealed class PartyEndpointsEncoder : GameNotiMessageEncoder<PartyEndpoi
     // A21's party endpoint consumer immediately constructs its P2P peer state. The legacy
     // server therefore never emits 0.0.0.0:0 when SET_UDP_IP_PORT has not arrived: it uses
     // loopback and the client's conventional base port until a real report replaces them.
-    private static readonly PartyEndpoint UnknownEndpoint = new(
+    private static readonly SessionEndpoint UnknownEndpoint = new(
         NatType: 0,
-        InnerAddress: new PartyIpv4Address(127, 0, 0, 1),
-        OuterAddress: new PartyIpv4Address(127, 0, 0, 1),
+        InnerAddress: new SessionIpv4Address(127, 0, 0, 1),
+        OuterAddress: new SessionIpv4Address(127, 0, 0, 1),
         Port: 10000,
         Mtu: 1500);
 
@@ -178,7 +179,7 @@ internal sealed class PartyEndpointsEncoder : GameNotiMessageEncoder<PartyEndpoi
         return body;
     }
 
-    private static void WriteAddress(Span<byte> destination, PartyIpv4Address address)
+    private static void WriteAddress(Span<byte> destination, SessionIpv4Address address)
     {
         destination[0] = address.A;
         destination[1] = address.B;

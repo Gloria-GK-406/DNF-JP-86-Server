@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
@@ -7,6 +8,7 @@ using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.Party;
@@ -20,12 +22,9 @@ public sealed class PartyCommandHandlerTests
     public async Task Commands_are_the_only_route_from_protocol_to_party_writes()
     {
         var domain = new RecordingParties();
-        var endpoint = Endpoint();
         var context = new CommandExecutionContext(
             Guid.NewGuid(), typeof(object), typeof(object), CommandExecutionKind.Direct);
 
-        await new UpdatePartyEndpointCommandHandler(domain).HandleAsync(
-            context, new(Character(Inviter), endpoint), CancellationToken.None);
         await new RequestPartyInviteCommandHandler(domain, new FixedPartyMemberStatus()).HandleAsync(
             context, new(Character(Inviter), Character(Invitee)), CancellationToken.None);
         await new AcceptPartyInviteCommandHandler(domain).HandleAsync(
@@ -41,7 +40,6 @@ public sealed class PartyCommandHandlerTests
 
         Assert.Equal(
             [
-                "endpoint:1",
                 "invite:1->2:64",
                 "accept:2<-1",
                 "leave:2",
@@ -78,16 +76,12 @@ public sealed class PartyCommandHandlerTests
     }
 
     [Fact]
-    public async Task Party_handlers_dispatch_the_five_party_write_commands()
+    public async Task Party_handlers_dispatch_the_four_party_write_commands()
     {
         var sessions = new SessionDirectory(Inviter, Invitee);
         var commands = new RecordingCommandBus();
         var gate = new SelectedSessionTransitionGate();
 
-        await new SetUdpIpPortHandler(sessions, Presence, gate, commands, Notifications,
-                NullLogger<SetUdpIpPortHandler>.Instance)
-            .HandleAsync(Dispatch(Inviter), new SetUdpIpPortRequest(
-                GameMessageMetadata.Empty, Endpoint(), []), CancellationToken.None);
         await new RequestPeerHandler(sessions, Presence, gate, commands, Notifications,
                 NullLogger<RequestPeerHandler>.Instance)
             .HandleAsync(Dispatch(Inviter), new RequestPeerRequest(
@@ -110,7 +104,6 @@ public sealed class PartyCommandHandlerTests
 
         Assert.Collection(
             commands.Commands,
-            command => Assert.IsType<UpdatePartyEndpointCommand>(command),
             command => Assert.IsType<RequestPartyInviteCommand>(command),
             command => Assert.IsType<AcceptPartyInviteCommand>(command),
             command => Assert.IsType<LeavePartyCommand>(command),
@@ -123,35 +116,53 @@ public sealed class PartyCommandHandlerTests
     }
 
     [Fact]
+    public async Task Set_udp_before_character_selection_is_stored_on_the_game_session()
+    {
+        var connection = new NetworkConnectionContext(
+            new NetworkConnectionId("pre-selection"), NetworkEndpointKind.Game, 10011);
+        var online = AuthenticatedSession(connection);
+        var endpoints = new RecordingSessionEndpoints();
+
+        await new SetUdpIpPortHandler(
+                new FixedOnlineUsers(online),
+                endpoints,
+                NullLogger<SetUdpIpPortHandler>.Instance)
+            .HandleAsync(
+                new NetworkDispatchContext(connection),
+                new SetUdpIpPortRequest(GameMessageMetadata.Empty, Endpoint(), []),
+                CancellationToken.None);
+
+        Assert.Equal(Endpoint(), endpoints.Find(online.SessionIdentity));
+        Assert.Null(online.CurrentCharacterId);
+    }
+
+    [Fact]
     public async Task Set_udp_advertises_the_observed_tcp_address_instead_of_a_reported_adapter()
     {
-        var sessions = new SessionDirectory(Inviter);
-        var commands = new RecordingCommandBus();
         var reported = Endpoint();
-        var dispatch = new NetworkDispatchContext(new NetworkConnectionContext(
+        var connection = new NetworkConnectionContext(
             Inviter.ConnectionId,
             NetworkEndpointKind.Game,
             Inviter.ListenerPort,
-            System.Net.IPAddress.Loopback));
+            System.Net.IPAddress.Loopback);
+        var online = AuthenticatedSession(connection);
+        var endpoints = new RecordingSessionEndpoints();
 
         await new SetUdpIpPortHandler(
-                sessions,
-                Presence,
-                new SelectedSessionTransitionGate(),
-                commands,
-                Notifications,
+                new FixedOnlineUsers(online),
+                endpoints,
                 NullLogger<SetUdpIpPortHandler>.Instance)
             .HandleAsync(
-                dispatch,
+                new NetworkDispatchContext(connection),
                 new SetUdpIpPortRequest(GameMessageMetadata.Empty, reported, []),
                 CancellationToken.None);
 
-        var update = Assert.IsType<UpdatePartyEndpointCommand>(Assert.Single(commands.Commands));
-        Assert.Equal(new PartyIpv4Address(127, 0, 0, 1), update.Endpoint.InnerAddress);
-        Assert.Equal(new PartyIpv4Address(127, 0, 0, 1), update.Endpoint.OuterAddress);
-        Assert.Equal(reported.Port, update.Endpoint.Port);
-        Assert.Equal(0, update.Endpoint.NatType);
-        Assert.Equal(1500U, update.Endpoint.Mtu);
+        var observed = Assert.IsType<SessionEndpoint>(endpoints.Find(online.SessionIdentity));
+        Assert.Equal(new SessionIpv4Address(127, 0, 0, 1), observed.InnerAddress);
+        Assert.Equal(new SessionIpv4Address(127, 0, 0, 1), observed.OuterAddress);
+        Assert.Equal(reported.Port, observed.Port);
+        Assert.Equal(0, observed.NatType);
+        Assert.Equal(1500U, observed.Mtu);
     }
 
     [Theory]
@@ -166,11 +177,11 @@ public sealed class PartyCommandHandlerTests
     {
         var reported = Endpoint();
 
-        var observed = PartyEndpointObservation.FromConnection(
+        var observed = SessionEndpointObservation.FromConnection(
             reported,
             System.Net.IPAddress.Parse(remoteAddress));
 
-        var expectedAddress = new PartyIpv4Address(a, b, c, d);
+        var expectedAddress = new SessionIpv4Address(a, b, c, d);
         Assert.Equal(expectedAddress, observed.InnerAddress);
         Assert.Equal(expectedAddress, observed.OuterAddress);
         Assert.Equal(reported.Port, observed.Port);
@@ -489,12 +500,21 @@ public sealed class PartyCommandHandlerTests
         Assert.Equal(3, published.Count);
     }
 
-    private static PartyEndpoint Endpoint() => new(
+    private static SessionEndpoint Endpoint() => new(
         5,
         new(172, 17, 208, 1),
         new(172, 17, 208, 1),
         30976,
         1472);
+
+    private static OnlineUserSnapshot AuthenticatedSession(NetworkConnectionContext connection) =>
+        new(
+            new OnlineUserId(Guid.NewGuid()),
+            connection,
+            new AccountId(900),
+            CurrentCharacterId: null,
+            OnlineUserState.Authenticated,
+            Generation: 2);
 
     private static PartySnapshot Snapshot() => new(
         0x1234,
@@ -570,6 +590,36 @@ public sealed class PartyCommandHandlerTests
             CancellationToken cancellationToken)
             where TNotification : class, INotification<TNotification> =>
             ValueTask.FromResult(new NotificationDelivery([]));
+    }
+
+    private sealed class FixedOnlineUsers(OnlineUserSnapshot session)
+        : IOnlineUserQueryDomainService
+    {
+        public OnlineUserSnapshot GetRequired(OnlineUserId onlineUserId) =>
+            onlineUserId == session.OnlineUserId
+                ? session
+                : throw new KeyNotFoundException();
+
+        public bool TryGetByConnection(
+            NetworkConnectionId connectionId,
+            out OnlineUserSnapshot? onlineUser)
+        {
+            onlineUser = connectionId == session.Connection.ConnectionId ? session : null;
+            return onlineUser is not null;
+        }
+    }
+
+    private sealed class RecordingSessionEndpoints : IGameSessionEndpointDomainService
+    {
+        private readonly Dictionary<GameSessionIdentity, SessionEndpoint> values = [];
+
+        public bool TryObserve(GameSessionIdentity session, SessionEndpoint endpoint)
+        {
+            values[session] = endpoint;
+            return true;
+        }
+
+        public SessionEndpoint? Find(GameSessionIdentity session) => values.GetValueOrDefault(session);
     }
 
     private sealed class RecordingCommandBus(
@@ -714,14 +764,6 @@ public sealed class PartyCommandHandlerTests
             return PartyOperationResult.Success();
         }
 
-        public PartyOperationResult UpdateEndpoint(
-            PartyCharacterSnapshot character,
-            PartyEndpoint endpoint)
-        {
-            Writes.Add($"endpoint:{character.WireUserId}");
-            return PartyOperationResult.Success();
-        }
-
         public PartyOperationResult RequestInvite(
             PartyCharacterSnapshot inviter,
             PartyCharacterSnapshot target,
@@ -758,7 +800,6 @@ public sealed class PartyCommandHandlerTests
             return Snapshot();
         }
 
-        public PartyEndpoint? FindEndpoint(CharacterId characterId) => null;
     }
 
     private sealed class FixedPartyMemberStatus : IPartyMemberStatusDomainService

@@ -1,5 +1,6 @@
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.OnlineUsers;
 
 namespace Dfo.Server.Abstractions.Parties;
 
@@ -18,8 +19,6 @@ public interface IPartyService : IPartyDirectoryPresenceSink
         PartyCharacterSnapshot character,
         PartySettings settings,
         PartyTitle title);
-
-    PartyOperationResult UpdateEndpoint(PartyCharacterSnapshot character, PartyEndpoint endpoint);
 
     PartyOperationResult RequestInvite(
         PartyCharacterSnapshot inviter,
@@ -40,8 +39,16 @@ public interface IPartyService : IPartyDirectoryPresenceSink
     PartyOperationResult CleanupCharacter(CharacterId characterId);
 
     PartySnapshot? FindParty(CharacterId characterId);
+}
 
-    PartyEndpoint? FindEndpoint(CharacterId characterId);
+/// <summary>Resolves a party member's endpoint through that character's current session.</summary>
+/// <remarks>
+/// This is a projection query, not character-owned endpoint state. The implementation must bridge
+/// character to selected session, selected session to game session, and game session to endpoint.
+/// </remarks>
+public interface IPartyMemberSessionEndpointSource
+{
+    SessionEndpoint? FindThroughCurrentSession(CharacterId characterId);
 }
 
 public enum PartyModeRuleFailure

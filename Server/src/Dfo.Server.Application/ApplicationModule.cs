@@ -117,6 +117,9 @@ public sealed class ApplicationModule : IServerModule
             provider => provider.GetRequiredService<OnlineUserDomainService>());
         services.TryAddSingleton<IOnlineUserQueryDomainService>(
             provider => provider.GetRequiredService<OnlineUserDomainService>());
+        services.TryAddSingleton<IGameSessionEndpointDomainService>(provider =>
+            new GameSessionEndpointDomainService(
+                provider.GetRequiredService<OnlineStateRegistry>()));
         services.TryAddSingleton<IActiveCharacterDomainService>(
             provider => new ActiveCharacterDomainService(
                 provider.GetRequiredService<OnlineStateRegistry>()));
@@ -345,6 +348,8 @@ public sealed class ApplicationModule : IServerModule
                 provider.GetRequiredService<ISelectedSessionDomainService>(),
                 provider.GetRequiredService<ISelectedSessionRuntimeDirectory>()));
         services.TryAddSingleton<IPartyModeRuleService, PartyModeRuleService>();
+        services.TryAddSingleton<IPartyMemberSessionEndpointSource,
+            PartyMemberSessionEndpointSource>();
         services.TryAddSingleton<PartyService>();
         services.TryAddSingleton<IPartyService>(provider =>
             provider.GetRequiredService<PartyService>());

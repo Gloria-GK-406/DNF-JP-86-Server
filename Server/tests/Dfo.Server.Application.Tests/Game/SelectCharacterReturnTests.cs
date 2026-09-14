@@ -64,7 +64,8 @@ public sealed partial class SelectCharacterLifecycleTests
             new PartyService(
                 new StubPartyMemberStatusDomainService(),
                 new PartyModeRuleService(),
-                TimeProvider.System),
+                TimeProvider.System,
+                EmptyPartyMemberSessionEndpointSource.Instance),
             runs,
             [departure]);
         var complete = new CompleteReturnToSelectionCommandHandler(f.Users, f.Directory, cleanup);

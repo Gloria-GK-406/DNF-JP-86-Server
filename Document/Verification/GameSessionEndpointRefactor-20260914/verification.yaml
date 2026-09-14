@@ -1,0 +1,17 @@
+kind: rks-verification
+decision: pass
+claim: >-
+  The server owns each reported UDP endpoint on the exact authenticated Game Session,
+  independently of character selection, and party snapshots resolve an endpoint only through
+  Character -> SelectedSession -> GameSession -> SessionEndpoint.
+conditions:
+  - condition: SET_UDP_IP_PORT accepts an authenticated current Game Session before character selection.
+    evidence: Dfo.Server.Protocol.Tests Game.Party slice passed 90/90.
+  - condition: Endpoint state survives character select and deselect but cannot cross an exact disconnect or replacement session.
+    evidence: Focused UserServiceTests and PartyServiceTests passed 39/39.
+  - condition: PartyService owns no CharacterId-to-endpoint state or endpoint update command.
+    evidence: Static stale-symbol search returned no production matches; Debug solution build passed with 0 warnings and 0 errors.
+  - condition: The refactor does not regress the configured solution test suite.
+    evidence: >-
+      PVF_ARCHIVE_PATH=E:\Project\DNF\DNFClient-A21-protocol\Script.pvf;
+      Debug solution test run passed 3254, skipped 2, failed 0.

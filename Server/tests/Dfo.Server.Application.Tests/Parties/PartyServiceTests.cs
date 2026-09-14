@@ -1,5 +1,7 @@
 using Dfo.Server.Application.Parties;
 using Dfo.Server.Application.Sessions;
+using Dfo.Server.Application.Transactions;
+using Dfo.Server.Application.Users;
 using Dfo.Server.Application;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Parties;
@@ -7,6 +9,7 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 using Microsoft.Extensions.Configuration;
@@ -17,12 +20,64 @@ namespace Dfo.Server.Application.Tests.Parties;
 public sealed class PartyServiceTests
 {
     [Fact]
+    public void Party_snapshot_reaches_an_endpoint_only_through_the_characters_current_session()
+    {
+        var state = new OnlineStateRegistry(new DomainTransactionScope());
+        var onlineUsers = new OnlineUserDomainService(state);
+        var sessionEndpoints = new GameSessionEndpointDomainService(state);
+        var selectedSessions = new SelectedSessionDomainService();
+        var activeCharacters = new ActiveCharacterDomainService(state);
+        var connection = new NetworkConnectionContext(
+            new NetworkConnectionId("party-session-endpoint"),
+            NetworkEndpointKind.Game,
+            10011);
+        var connected = onlineUsers.RegisterConnection(connection);
+        state.Authenticate(connected.OnlineUserId, new AccountId(42));
+        var authenticated = onlineUsers.GetRequired(connected.OnlineUserId);
+        var endpoint = Endpoint(30_976);
+        Assert.True(sessionEndpoints.TryObserve(authenticated.SessionIdentity, endpoint));
+
+        var selected = SelectedSessionIdentity.Create(
+            new AccountId(42),
+            new CharacterId(4242),
+            connection.ConnectionId,
+            authenticated.Generation,
+            connection.ListenerPort);
+        selectedSessions.Select(selected);
+        activeCharacters.Publish(selected);
+        var parties = new PartyService(
+            new StubPartyMemberStatusDomainService(),
+            new PartyModeRuleService(),
+            TimeProvider.System,
+            new PartyMemberSessionEndpointSource(
+                selectedSessions, onlineUsers, sessionEndpoints));
+        Assert.True(parties.CreateOrUpdateSettings(
+            new PartyCharacterSnapshot(
+                selected.AccountId,
+                selected.CharacterId,
+                selected.WireUserId,
+                new PartyDirectoryScope(11, 1, 1)),
+            new PartyModeRuleService().DefaultSettings,
+            PartyTitle.Empty).Succeeded);
+
+        Assert.Equal(
+            endpoint,
+            Assert.Single(parties.FindParty(selected.CharacterId)!.Members).Endpoint);
+
+        Assert.True(selectedSessions.ReleaseExact(selected));
+        Assert.True(activeCharacters.ClearExact(selected));
+        Assert.Null(Assert.Single(parties.FindParty(selected.CharacterId)!.Members).Endpoint);
+        Assert.Equal(endpoint, sessionEndpoints.Find(authenticated.SessionIdentity));
+    }
+
+    [Fact]
     public void DirectoryQueryCombinesScopeCategoryAndModeFiltersAndReturnsAllMatches()
     {
         var service = new PartyService(
             new StubPartyMemberStatusDomainService(),
             new PartyModeRuleService(),
-            TimeProvider.System);
+            TimeProvider.System,
+            EmptyPartyMemberSessionEndpointSource.Instance);
         var scope = new PartyDirectoryScope(11, 1, 1);
         Create(service, 1, scope, DirectorySettings(PartyCategory.Story, 10));
         Create(service, 2, scope, DirectorySettings(PartyCategory.Story, 10));
@@ -56,7 +111,8 @@ public sealed class PartyServiceTests
         var service = new PartyService(
             new StubPartyMemberStatusDomainService(),
             new PartyModeRuleService(),
-            TimeProvider.System);
+            TimeProvider.System,
+            EmptyPartyMemberSessionEndpointSource.Instance);
         var first = new PartyDirectoryScope(11, 1, 1);
         var second = new PartyDirectoryScope(11, 1, 2);
         Create(service, 1, first, DirectorySettings(PartyCategory.Story, 10));
@@ -81,7 +137,8 @@ public sealed class PartyServiceTests
         var service = new PartyService(
             new StubPartyMemberStatusDomainService(),
             new PartyModeRuleService(),
-            TimeProvider.System);
+            TimeProvider.System,
+            EmptyPartyMemberSessionEndpointSource.Instance);
         var presence = new SessionPresenceDomainService(service);
         var first = SelectedSessionIdentity.Create(
             new AccountId(1), new CharacterId(1), new NetworkConnectionId("private-1"), 1, 10011);
@@ -128,7 +185,8 @@ public sealed class PartyServiceTests
         var service = new PartyService(
             new StubPartyMemberStatusDomainService(),
             new PartyModeRuleService(),
-            TimeProvider.System);
+            TimeProvider.System,
+            EmptyPartyMemberSessionEndpointSource.Instance);
         var presence = new SessionPresenceDomainService(service);
         var old = SelectedSessionIdentity.Create(
             new AccountId(1), new CharacterId(1), new NetworkConnectionId("old"), 1, 10011);
@@ -278,7 +336,8 @@ public sealed class PartyServiceTests
         var service = new PartyService(
             new StubPartyMemberStatusDomainService(),
             new PartyModeRuleService(),
-            TimeProvider.System);
+            TimeProvider.System,
+            EmptyPartyMemberSessionEndpointSource.Instance);
         var firstScope = new PartyDirectoryScope(11, 1, 1);
         var secondScope = new PartyDirectoryScope(11, 1, 2);
         var leader = Character(1, firstScope);
@@ -309,36 +368,41 @@ public sealed class PartyServiceTests
     }
 
     [Fact]
-    public void EndpointUpdateRequiresAValidEndpointAndTheCurrentExactSession()
+    public void EndpointUpdateRequiresAValidEndpointAndNeverFlowsIntoAReplacementSession()
     {
         var fixture = new PartyFixture();
         var first = fixture.Admit(1, 101);
         var valid = Endpoint(30_976);
 
-        Assert.True(fixture.Parties.UpdateEndpoint(first, valid).Succeeded);
-        Assert.Equal(valid, fixture.Parties.FindEndpoint(first));
+        Assert.True(fixture.Parties.ObserveSessionEndpoint(first, valid).Succeeded);
+        Assert.Equal(valid, fixture.Parties.FindSessionEndpoint(first));
 
         var observedLoopback = valid with
         {
             NatType = 0,
-            InnerAddress = new PartyIpv4Address(127, 0, 0, 1),
-            OuterAddress = new PartyIpv4Address(127, 0, 0, 1),
+            InnerAddress = new SessionIpv4Address(127, 0, 0, 1),
+            OuterAddress = new SessionIpv4Address(127, 0, 0, 1),
             Mtu = 1500,
         };
-        Assert.True(fixture.Parties.UpdateEndpoint(first, observedLoopback).Succeeded);
-        Assert.Equal(observedLoopback, fixture.Parties.FindEndpoint(first));
+        Assert.True(fixture.Parties.ObserveSessionEndpoint(first, observedLoopback).Succeeded);
+        Assert.Equal(observedLoopback, fixture.Parties.FindSessionEndpoint(first));
 
         var invalid = valid with { Port = 0 };
         Assert.Equal(
             PartyFailureReason.InvalidEndpoint,
-            fixture.Parties.UpdateEndpoint(first, invalid).Failure);
-        Assert.Equal(observedLoopback, fixture.Parties.FindEndpoint(first));
+            fixture.Parties.ObserveSessionEndpoint(first, invalid).Failure);
+        Assert.Equal(observedLoopback, fixture.Parties.FindSessionEndpoint(first));
 
         var replacement = fixture.Replace(first, generation: 2);
         Assert.Equal(
             PartyFailureReason.CallerNotCurrent,
-            fixture.Parties.UpdateEndpoint(first, valid with { Port = 36_624 }).Failure);
-        Assert.Equal(observedLoopback, fixture.Parties.FindEndpoint(replacement));
+            fixture.Parties.ObserveSessionEndpoint(first, valid with { Port = 36_624 }).Failure);
+        Assert.Null(fixture.Parties.FindSessionEndpoint(replacement));
+        Assert.True(fixture.Parties.ObserveSessionEndpoint(
+            replacement, valid with { Port = 36_624 }).Succeeded);
+        Assert.Equal(
+            valid with { Port = 36_624 },
+            fixture.Parties.FindSessionEndpoint(replacement));
     }
 
     [Fact]
@@ -576,20 +640,20 @@ public sealed class PartyServiceTests
         var fixture = new PartyFixture();
         var first = fixture.Admit(1, 101);
         var peer = fixture.Admit(2, 202);
-        Assert.True(fixture.Parties.UpdateEndpoint(first, Endpoint(30_976)).Succeeded);
+        Assert.True(fixture.Parties.ObserveSessionEndpoint(first, Endpoint(30_976)).Succeeded);
         fixture.Form(first, peer);
         Assert.True(fixture.Parties.CleanupSessionExact(first).Succeeded);
 
         var replacement = fixture.Replace(first, generation: 2);
         var replacementPeer = fixture.Admit(3, 303);
-        Assert.True(fixture.Parties.UpdateEndpoint(replacement, Endpoint(36_624)).Succeeded);
+        Assert.True(fixture.Parties.ObserveSessionEndpoint(replacement, Endpoint(36_624)).Succeeded);
         Assert.True(fixture.Parties.RequestInvite(
             replacement, replacementPeer.WireUserId, Profile(9)).Succeeded);
 
         Assert.Equal(
             PartyFailureReason.CallerNotCurrent,
             fixture.Parties.CleanupSessionExact(first).Failure);
-        Assert.Equal(Endpoint(36_624), fixture.Parties.FindEndpoint(replacement));
+        Assert.Equal(Endpoint(36_624), fixture.Parties.FindSessionEndpoint(replacement));
         Assert.True(fixture.Parties.AcceptInvite(replacementPeer, replacement.WireUserId).Succeeded);
         Assert.NotNull(fixture.Parties.FindParty(replacement));
     }
@@ -600,11 +664,11 @@ public sealed class PartyServiceTests
         var fixture = new PartyFixture();
         var leader = fixture.Admit(1, 101);
         var member = fixture.Admit(2, 202);
-        fixture.Parties.UpdateEndpoint(leader, Endpoint(30_976));
+        fixture.Parties.ObserveSessionEndpoint(leader, Endpoint(30_976));
         var accepted = fixture.Form(leader, member);
         var original = Assert.IsType<PartySnapshot>(accepted.Notifications.Snapshot);
 
-        fixture.Parties.UpdateEndpoint(leader, Endpoint(36_624));
+        fixture.Parties.ObserveSessionEndpoint(leader, Endpoint(36_624));
         fixture.Parties.LeavePartyExact(member);
 
         Assert.Equal(2, original.Members.Length);
@@ -615,10 +679,10 @@ public sealed class PartyServiceTests
         Assert.True(current.Revision > original.Revision);
     }
 
-    private static PartyEndpoint Endpoint(ushort port) => new(
+    private static SessionEndpoint Endpoint(ushort port) => new(
         NatType: 5,
-        InnerAddress: new PartyIpv4Address(172, 17, 208, 1),
-        OuterAddress: new PartyIpv4Address(172, 17, 208, 1),
+        InnerAddress: new SessionIpv4Address(172, 17, 208, 1),
+        OuterAddress: new SessionIpv4Address(172, 17, 208, 1),
         Port: port,
         Mtu: 1436);
 

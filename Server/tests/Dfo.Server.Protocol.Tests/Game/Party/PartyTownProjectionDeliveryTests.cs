@@ -289,10 +289,6 @@ public sealed class PartyTownProjectionDeliveryTests
             PartySettings settings,
             PartyTitle title) => throw new NotSupportedException();
 
-        public PartyOperationResult UpdateEndpoint(
-            PartyCharacterSnapshot character,
-            PartyEndpoint endpoint) => throw new NotSupportedException();
-
         public PartyOperationResult RequestInvite(
             PartyCharacterSnapshot inviter,
             PartyCharacterSnapshot target,
@@ -312,8 +308,6 @@ public sealed class PartyTownProjectionDeliveryTests
         public PartyOperationResult CleanupCharacter(
             CharacterId characterId) => throw new NotSupportedException();
 
-        public PartyEndpoint? FindEndpoint(
-            CharacterId characterId) => throw new NotSupportedException();
     }
 
     private sealed class MutableParties(
@@ -340,10 +334,6 @@ public sealed class PartyTownProjectionDeliveryTests
             PartySettings settings,
             PartyTitle title) => throw new NotSupportedException();
 
-        public PartyOperationResult UpdateEndpoint(
-            PartyCharacterSnapshot character,
-            PartyEndpoint endpoint) => throw new NotSupportedException();
-
         public PartyOperationResult RequestInvite(
             PartyCharacterSnapshot inviter,
             PartyCharacterSnapshot target,
@@ -363,8 +353,6 @@ public sealed class PartyTownProjectionDeliveryTests
         public PartyOperationResult CleanupCharacter(
             CharacterId characterId) => throw new NotSupportedException();
 
-        public PartyEndpoint? FindEndpoint(
-            CharacterId characterId) => throw new NotSupportedException();
     }
 
     private sealed class FixedPresence(params SelectedSessionIdentity[] sessions)

@@ -11,6 +11,16 @@ public readonly record struct OnlineUserId(Guid Value)
     public override string ToString() => Value.ToString("N");
 }
 
+/// <summary>The immutable identity of one accepted game connection.</summary>
+/// <remarks>
+/// This identity deliberately survives authentication and character selection transitions. A
+/// character and a UDP endpoint are both attached to this session; neither is attached to the
+/// other.
+/// </remarks>
+public readonly record struct GameSessionIdentity(
+    OnlineUserId OnlineUserId,
+    NetworkConnectionId ConnectionId);
+
 public enum OnlineUserState
 {
     Connected = 0,
@@ -24,4 +34,8 @@ public sealed record OnlineUserSnapshot(
     AccountId? AccountId,
     CharacterId? CurrentCharacterId,
     OnlineUserState State,
-    long Generation);
+    long Generation)
+{
+    public GameSessionIdentity SessionIdentity =>
+        new(OnlineUserId, Connection.ConnectionId);
+}

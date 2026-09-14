@@ -22,12 +22,13 @@ namespace Dfo.Server.Application.Tests;
 /// all three share one registry, so the tests still exercise the real cross-responsibility path.
 /// </remarks>
 internal sealed class UserDomainServices
-    : IOnlineUserDomainService, IActiveCharacterDomainService
+    : IOnlineUserDomainService, IActiveCharacterDomainService, IGameSessionEndpointDomainService
 {
     private readonly Func<IAccountRepository> accountRepository;
     private readonly OnlineStateRegistry state;
     private readonly OnlineUserDomainService online;
     private readonly ActiveCharacterDomainService active;
+    private readonly GameSessionEndpointDomainService endpoints;
 
     public UserDomainServices(Func<IAccountRepository> accountRepository)
     {
@@ -36,6 +37,7 @@ internal sealed class UserDomainServices
         this.state = state;
         online = new OnlineUserDomainService(state);
         active = new ActiveCharacterDomainService(state);
+        endpoints = new GameSessionEndpointDomainService(state);
     }
 
     public async ValueTask<AccountId> LoginAsync(
@@ -75,4 +77,9 @@ internal sealed class UserDomainServices
     public void Publish(SelectedSessionIdentity session) => active.Publish(session);
 
     public bool ClearExact(SelectedSessionIdentity session) => active.ClearExact(session);
+
+    public bool TryObserve(GameSessionIdentity session, SessionEndpoint endpoint) =>
+        endpoints.TryObserve(session, endpoint);
+
+    public SessionEndpoint? Find(GameSessionIdentity session) => endpoints.Find(session);
 }

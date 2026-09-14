@@ -6,6 +6,7 @@ using Dfo.Server.Application.Parties;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.Party;
@@ -547,7 +548,8 @@ public sealed class PartyNotificationTests
         var parties = new PartyService(
             new FixedPartyMemberStatus(),
             new PartyModeRuleService(),
-            TimeProvider.System);
+            TimeProvider.System,
+            NoPartyEndpoints.Instance);
         var created = parties.CreateOrUpdateSettings(
             Character(Inviter),
             DefaultSettings(),
@@ -818,7 +820,7 @@ public sealed class PartyNotificationTests
         Stamina: 0,
         AntiMagic: 0);
 
-    private static PartyEndpoint Endpoint() => new(
+    private static SessionEndpoint Endpoint() => new(
         5,
         new(172, 17, 208, 1),
         new(172, 17, 208, 1),
@@ -891,6 +893,13 @@ public sealed class PartyNotificationTests
             ValueTask.FromResult(Profile());
 
         public byte CurrentHpPercentOf(CharacterId characterId) => 73;
+    }
+
+    private sealed class NoPartyEndpoints : IPartyMemberSessionEndpointSource
+    {
+        public static NoPartyEndpoints Instance { get; } = new();
+
+        public SessionEndpoint? FindThroughCurrentSession(CharacterId characterId) => null;
     }
 
     private sealed class BlockingNotificationBus : INotificationBus

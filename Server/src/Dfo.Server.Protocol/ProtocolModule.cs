@@ -294,9 +294,6 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<SelectCardCommand, SelectCardResult, SelectCardCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<
-            UpdatePartyEndpointCommand, PartyOperationResult, UpdatePartyEndpointCommandHandler>(
-            CommandExecutionKind.Direct);
-        services.AddCommandHandler<
             RequestPartyInviteCommand, PartyOperationResult, RequestPartyInviteCommandHandler>(
             CommandExecutionKind.Direct);
         services.AddCommandHandler<

@@ -312,10 +312,6 @@ public sealed class SessionGenerationOwnershipTests
             PartySettings settings,
             PartyTitle title) => PartyOperationResult.Success();
 
-        public PartyOperationResult UpdateEndpoint(
-            PartyCharacterSnapshot character,
-            PartyEndpoint endpoint) => PartyOperationResult.Success();
-
         public PartyOperationResult RequestInvite(
             PartyCharacterSnapshot inviter,
             PartyCharacterSnapshot target,
@@ -337,7 +333,6 @@ public sealed class SessionGenerationOwnershipTests
 
         public PartySnapshot? FindParty(CharacterId characterId) => null;
 
-        public PartyEndpoint? FindEndpoint(CharacterId characterId) => null;
     }
 
     private sealed class NoopSender : INetworkMessageSender

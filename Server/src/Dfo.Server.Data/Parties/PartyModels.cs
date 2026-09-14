@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.Collections.Immutable;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.OnlineUsers;
 
 namespace Dfo.Server.Data.Parties;
 
@@ -78,36 +79,6 @@ public sealed class PartyTitle : IEquatable<PartyTitle>
     }
 }
 
-public readonly record struct PartyIpv4Address(byte A, byte B, byte C, byte D)
-{
-    public bool IsServerObservedUnicast => A is > 0 and < 224;
-
-    public bool IsUsableUnicast => A is > 0 and < 224 and not 127;
-}
-
-public sealed record PartyEndpoint(
-    byte NatType,
-    PartyIpv4Address InnerAddress,
-    PartyIpv4Address OuterAddress,
-    ushort Port,
-    uint Mtu)
-{
-    public const uint MinimumMtu = 576;
-    public const uint MaximumMtu = ushort.MaxValue;
-
-    public bool IsValid =>
-        InnerAddress.IsServerObservedUnicast
-        && OuterAddress.IsServerObservedUnicast
-        && Port != 0
-        && Mtu is >= MinimumMtu and <= MaximumMtu;
-
-    public bool IsValidClientReport =>
-        InnerAddress.IsUsableUnicast
-        && OuterAddress.IsUsableUnicast
-        && Port != 0
-        && Mtu is >= MinimumMtu and <= MaximumMtu;
-}
-
 /// <summary>The public party-directory partition owned by a character's current location.</summary>
 public sealed record PartyDirectoryScope(
     int ChannelId,
@@ -130,7 +101,7 @@ public sealed record PartyCharacterSnapshot(
 public sealed record PartyMemberSnapshot(
     PartyCharacterSnapshot Character,
     byte Slot,
-    PartyEndpoint? Endpoint,
+    SessionEndpoint? Endpoint,
     byte HpPercent)
 {
     public CharacterId CharacterId => Character.CharacterId;

@@ -185,7 +185,7 @@ public sealed class PartyCommandCodecTests
     }
 
     [Fact]
-    public void Production_registers_all_six_wire_keys_handlers_and_direct_commands()
+    public void Production_registers_all_six_wire_keys_and_handlers_plus_five_party_commands()
     {
         var services = new ServiceCollection();
         new ProtocolModule().ConfigureServices(services, new ConfigurationBuilder().Build());
@@ -222,7 +222,6 @@ public sealed class PartyCommandCodecTests
 
         Type[] expectedCommands =
         [
-            typeof(UpdatePartyEndpointCommand),
             typeof(RequestPartyInviteCommand),
             typeof(AcceptPartyInviteCommand),
             typeof(LeavePartyCommand),
@@ -232,7 +231,7 @@ public sealed class PartyCommandCodecTests
         var commands = provider.GetServices<CommandHandlerRegistration>()
             .Where(value => expectedCommands.Contains(value.CommandType))
             .ToArray();
-        Assert.Equal(6, commands.Length);
+        Assert.Equal(expectedCommands.Length, commands.Length);
         Assert.All(commands, value =>
         {
             Assert.Equal(CommandExecutionKind.Direct, value.ExecutionKind);

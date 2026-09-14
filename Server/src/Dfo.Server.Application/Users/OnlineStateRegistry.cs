@@ -33,6 +33,7 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
     private readonly Dictionary<OnlineUserId, OnlineUser> byId = [];
     private readonly Dictionary<NetworkConnectionId, OnlineUserId> byConnection = [];
     private readonly Dictionary<AccountId, ActiveCharacterRegistration> activeByAccount = [];
+    private readonly Dictionary<GameSessionIdentity, SessionEndpoint> endpoints = [];
 
     public void PrepareAuthentication(OnlineUserId onlineUserId, AccountId accountId)
     {
@@ -93,6 +94,7 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
                 RemoveActive(accountId);
             }
 
+            endpoints.Remove(onlineUser.Snapshot.SessionIdentity);
             byConnection.Remove(connectionId);
             byId.Remove(onlineUserId);
             return true;
@@ -140,6 +142,7 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
             if (user.AccountId is { } accountId
                 && activeByAccount.TryGetValue(accountId, out var active)
                 && active.OnlineUserId == id) RemoveActive(accountId);
+            endpoints.Remove(user.Snapshot.SessionIdentity);
             byConnection.Remove(connectionId);
             byId.Remove(id);
             return true;
@@ -169,6 +172,44 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
 
             onlineUser = null;
             return false;
+        }
+    }
+
+    public bool TryObserveEndpoint(GameSessionIdentity session, SessionEndpoint endpoint)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+        if (!endpoint.IsValid)
+            return false;
+
+        lock (sync)
+        {
+            if (!byId.TryGetValue(session.OnlineUserId, out var onlineUser)
+                || onlineUser.Connection.ConnectionId != session.ConnectionId
+                || onlineUser.AccountId is null
+                || !byConnection.TryGetValue(session.ConnectionId, out var currentId)
+                || currentId != session.OnlineUserId)
+            {
+                return false;
+            }
+
+            endpoints[session] = endpoint;
+            return true;
+        }
+    }
+
+    public SessionEndpoint? FindEndpoint(GameSessionIdentity session)
+    {
+        lock (sync)
+        {
+            if (!byId.TryGetValue(session.OnlineUserId, out var onlineUser)
+                || onlineUser.Connection.ConnectionId != session.ConnectionId
+                || !byConnection.TryGetValue(session.ConnectionId, out var currentId)
+                || currentId != session.OnlineUserId)
+            {
+                return null;
+            }
+
+            return endpoints.GetValueOrDefault(session);
         }
     }
 
