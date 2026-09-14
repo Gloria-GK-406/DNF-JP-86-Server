@@ -26,7 +26,14 @@ state: ready-for-live-test
 
 ## Runtime evidence
 
-部署后的提交、进程路径、PID、监听端口和启动日志在本文件末尾补录。
+- 实现提交：`03762701`（`feat: add shared story party dungeon runs`）。
+- 运行进程：PID `68344`。
+- 运行产物：`E:\Project\DNF\DNF-JP-86-Server\.worktrees\story-party-dungeon\Server\src\Dfo.Server.Host\bin\Release\net10.0\Dfo.Server.Host.exe`。
+- 监听：`0.0.0.0:7001`、`0.0.0.0:10010`、`0.0.0.0:10011` 均归属 PID `68344`。
+- 静态内容：`E:\Project\DNF\DNFClient-A21-protocol\Script.pvf`，启动日志确认已加载。
+- 数据库：继续使用主运行库 `E:\Project\DNF\DNF-JP-86-Server\Server\src\Dfo.Server.Host\bin\Release\net10.0\Data\dfo-server.db`。
+- 切换前备份：`dfo-server.before-story-party-20260914-1922.db`。
+- 启动日志包含 `Application started`；stderr 长度为 0。
 
 ## Honest boundary
 
