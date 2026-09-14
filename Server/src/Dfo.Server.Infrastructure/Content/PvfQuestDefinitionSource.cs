@@ -192,6 +192,9 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         var objectiveType = string.Empty;
         var objectiveIntData = new List<int>();
         var eventItemValues = new List<int>();
+        var fixedItemRewardOperands = new List<ItemRewardOperand>();
+        var selectableItemRewardOperands = new List<ItemRewardOperand>();
+        var goldMultiplierValues = new List<int>();
         var difficulty = string.Empty;
         var rewards = new List<QuestReward>();
         var completedGroups = new List<IReadOnlyList<int>>();
@@ -257,9 +260,21 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
                 rewards.Add(new QuestReward(
                     MapRequired(RewardTokens, ReadString(archive, token, questId, "reward type"), questId),
                     []));
-            else if (section == tags.RewardIntData && token.Kind == PvfTokenKind.Int32)
+            else if (section == tags.RewardIntData)
             {
-                ReadInteger(rewardData: rewards, token, questId);
+                if (rewards.Count == 0)
+                    rewards.Add(new QuestReward(QuestRewardKind.Item, []));
+                if (rewards[^1].Kind == QuestRewardKind.Item)
+                    AddItemRewardOperand(fixedItemRewardOperands, archive, token, questId);
+                else
+                    ReadInteger(rewardData: rewards, token, questId);
+            }
+            else if (section == tags.RewardSelectionIntData)
+            {
+                if (rewards.Count == 0)
+                    rewards.Add(new QuestReward(QuestRewardKind.Item, []));
+                if (rewards[^1].Kind == QuestRewardKind.Item)
+                    AddItemRewardOperand(selectableItemRewardOperands, archive, token, questId);
             }
             else if (section == tags.Level)
                 AddInteger(levelValues, token, questId, "level");
@@ -281,6 +296,8 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
                 AddInteger(expertJobValues, token, questId, "expertjob level");
             else if (section == tags.JobChangeQuest)
                 AddInteger(jobChangeValues, token, questId, "job change quest");
+            else if (section == tags.GoldMultiplier)
+                AddInteger(goldMultiplierValues, token, questId, "gold multiple");
         }
 
         var grade = gradeText is null
@@ -328,7 +345,13 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             ProjectSeekingItems(objectiveType, objectiveIntData),
             ComputeInitialTrigger(objectiveType, objectiveIntData),
             ProjectEventItems(eventItemValues),
-            paysAtCharacterLevel);
+            paysAtCharacterLevel,
+            ProjectHuntEnemyRequirements(objectiveType, objectiveIntData),
+            ProjectItemRewards(
+                fixedItemRewardOperands,
+                selectableItemRewardOperands,
+                questId),
+            OptionalNonNegative(goldMultiplierValues, questId, "gold multiple") ?? 0);
 
         return new RawQuestDefinition(
             definition,
@@ -432,6 +455,35 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
                 continue;
             result.Add(new SeekingItemRequirement(values[index], values[index + 1]));
         }
+        return result;
+    }
+
+    internal static IReadOnlyList<HuntEnemyRequirement> ProjectHuntEnemyRequirements(
+        string objectiveType,
+        IReadOnlyList<int> values)
+    {
+        if (!string.Equals(
+                objectiveType.Trim().Trim('[', ']'),
+                "hunt enemy",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return [];
+        }
+
+        var result = new List<HuntEnemyRequirement>();
+        for (var index = 0; index + 5 <= values.Count; index += 5)
+        {
+            if (values[index] > 0 && values[index + 2] > 0 && values[index + 4] > 0)
+            {
+                result.Add(new HuntEnemyRequirement(
+                    values[index],
+                    values[index + 1],
+                    values[index + 2],
+                    values[index + 3],
+                    values[index + 4]));
+            }
+        }
+
         return result;
     }
 
@@ -712,6 +764,111 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         }
     }
 
+    private static void AddItemRewardOperand(
+        List<ItemRewardOperand> values,
+        PvfArchive archive,
+        PvfToken token,
+        int questId)
+    {
+        if (token.Kind == PvfTokenKind.Int32)
+        {
+            values.Add(ItemRewardOperand.Number(token.Value));
+            return;
+        }
+
+        if (token.IsString
+            && archive.ResolveString(token.Value).Trim()
+                .Equals("[job]", StringComparison.OrdinalIgnoreCase))
+        {
+            values.Add(ItemRewardOperand.JobMarker);
+            return;
+        }
+
+        throw Invalid(questId, "item reward contains an unrecognized operand");
+    }
+
+    internal static QuestItemRewardDefinition ProjectItemRewards(
+        IReadOnlyList<ItemRewardOperand> fixedOperands,
+        IReadOnlyList<ItemRewardOperand> selectableOperands,
+        int questId)
+    {
+        var fixedItems = ParseItemRewardRules(
+            fixedOperands, allowGold: true, questId, out var formula, out var fixedGold);
+        var selectableItems = ParseItemRewardRules(
+            selectableOperands, allowGold: false, questId, out _, out _);
+        return new QuestItemRewardDefinition(fixedItems, selectableItems, formula, fixedGold);
+    }
+
+    private static IReadOnlyList<QuestItemRewardRule> ParseItemRewardRules(
+        IReadOnlyList<ItemRewardOperand> operands,
+        bool allowGold,
+        int questId,
+        out bool hasGoldFormula,
+        out int fixedGold)
+    {
+        var items = new List<QuestItemRewardRule>();
+        hasGoldFormula = false;
+        fixedGold = 0;
+        var index = 0;
+        while (index < operands.Count)
+        {
+            if (!operands[index++].TryNumber(out var itemId))
+                throw Invalid(questId, "item reward requires an integer item id");
+
+            if (index < operands.Count && operands[index].IsJobMarker)
+            {
+                index++;
+                if (itemId <= 0
+                    || !TakeNumber(operands, ref index, out var jobId)
+                    || !TakeNumber(operands, ref index, out var growType)
+                    || !TakeNumber(operands, ref index, out var count)
+                    || jobId < -1
+                    || growType < -1
+                    || count <= 0)
+                {
+                    throw Invalid(questId, "job-filtered item reward is malformed");
+                }
+
+                items.Add(new QuestItemRewardRule(
+                    itemId,
+                    count,
+                    new QuestRewardCharacterCondition(jobId, growType)));
+                continue;
+            }
+
+            if (!TakeNumber(operands, ref index, out var ordinaryCount))
+                throw Invalid(questId, "item reward has no integer count");
+
+            if (itemId == 0)
+            {
+                if (!allowGold || ordinaryCount < 0)
+                    throw Invalid(questId, "gold is not valid in this item reward list");
+                if (ordinaryCount == 0)
+                    hasGoldFormula = true;
+                else
+                    fixedGold = checked(fixedGold + ordinaryCount);
+                continue;
+            }
+
+            if (itemId < 0 || ordinaryCount <= 0)
+                throw Invalid(questId, "item reward contains a non-positive item or count");
+            items.Add(new QuestItemRewardRule(itemId, ordinaryCount));
+        }
+
+        return items;
+    }
+
+    private static bool TakeNumber(
+        IReadOnlyList<ItemRewardOperand> operands,
+        ref int index,
+        out int value)
+    {
+        if (index < operands.Count && operands[index++].TryNumber(out value))
+            return true;
+        value = 0;
+        return false;
+    }
+
     private static string ReadString(PvfArchive archive, PvfToken token, int questId, string field) =>
         token.IsString
             ? archive.ResolveString(token.Value)
@@ -768,6 +925,8 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             Difficulty = Offset(archive, "[difficulty]");
             RewardType = Offset(archive, "[reward type]");
             RewardIntData = Offset(archive, "[reward int data]");
+            RewardSelectionIntData = Offset(archive, "[reward selection int data]");
+            GoldMultiplier = Offset(archive, "[gold multiple]");
             ExposedByNpc = Offset(archive, "[exposed by npc]");
             Event = Offset(archive, "[event]");
             CreatureKind = Offset(archive, "[creature kind]");
@@ -798,6 +957,8 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         public int Difficulty { get; }
         public int RewardType { get; }
         public int RewardIntData { get; }
+        public int RewardSelectionIntData { get; }
+        public int GoldMultiplier { get; }
         public int ExposedByNpc { get; }
         public int Event { get; }
         public int CreatureKind { get; }
@@ -823,6 +984,19 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         IReadOnlyList<IReadOnlyList<int>> RequiredAnswerGroups,
         IReadOnlyList<IReadOnlyList<int>> CollisionQuestGroups,
         IReadOnlyList<IReadOnlyList<int>> AccountCollisionQuestGroups);
+
+    internal readonly record struct ItemRewardOperand(int Value, bool IsJobMarker)
+    {
+        public static ItemRewardOperand Number(int value) => new(value, false);
+
+        public static ItemRewardOperand JobMarker => new(0, true);
+
+        public bool TryNumber(out int value)
+        {
+            value = this.Value;
+            return !this.IsJobMarker;
+        }
+    }
 
     private sealed record Catalog(
         IReadOnlyList<QuestDefinition> Ordered,

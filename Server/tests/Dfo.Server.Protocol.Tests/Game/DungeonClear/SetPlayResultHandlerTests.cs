@@ -57,6 +57,36 @@ public sealed class SetPlayResultHandlerTests
             });
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TheResultScreenIdentifiesTheFrozenRunPurpose(bool questLinked)
+    {
+        var purpose = questLinked
+            ? DungeonRunPurpose.QuestLinked(1776, DungeonQuestConnectionState.Active)
+            : DungeonRunPurpose.Ordinary;
+
+        var sent = await Settle(purpose: purpose);
+
+        Assert.Equal(
+            questLinked,
+            Assert.Single(sent.OfType<PlayResultNotification>()).QuestMaze);
+    }
+
+    [Fact]
+    public async Task AnIncompleteQuestLinkedRunCannotBeSettled()
+    {
+        var bus = new FixedAward(leveledUp: false);
+        var purpose = DungeonRunPurpose.QuestLinked(
+            1776,
+            DungeonQuestConnectionState.Active);
+
+        var sent = await Settle(bus: bus, purpose: purpose, canComplete: false);
+
+        Assert.Empty(sent);
+        Assert.Equal(0, bus.TimesAsked);
+    }
+
     /// <summary>
     /// Every point paid is reported somewhere: the two figures on the screen, and the total.
     /// </summary>
@@ -428,7 +458,9 @@ public sealed class SetPlayResultHandlerTests
         bool withLedger = true,
         SkillPointLedger? ledger = null,
         int reports = 1,
-        RecordingCards? cards = null)
+        RecordingCards? cards = null,
+        DungeonRunPurpose purpose = default,
+        bool canComplete = true)
     {
         var session = SelectedSessionIdentity.Create(
             new AccountId(1),
@@ -444,7 +476,8 @@ public sealed class SetPlayResultHandlerTests
             new OneSession(session),
             runtime,
             new OnePlayingCharacter(ledger ?? new SkillPointLedger(withLedger)),
-            new OneRun(),
+            new OneRun(purpose),
+            new PurposeSettlementRules(canComplete),
             cards ?? new RecordingCards(),
             bus ?? new FixedAward(leveledUp, awarded),
             new QuestOfferRefreshDomainService(
@@ -609,7 +642,7 @@ public sealed class SetPlayResultHandlerTests
             throw new NotSupportedException("A settlement fixes cards; it turns none over.");
     }
 
-    private sealed class OneRun : IDungeonRunDomainService
+    private sealed class OneRun(DungeonRunPurpose purpose) : IDungeonRunDomainService
     {
         private bool _settled;
 
@@ -623,7 +656,7 @@ public sealed class SetPlayResultHandlerTests
             return this.Find(characterId);
         }
 
-        private static readonly DungeonLayout Layout = new(
+        private readonly DungeonLayout _layout = new(
             DungeonId: 144,
             MazeIndex: 0,
             Width: 1,
@@ -634,10 +667,11 @@ public sealed class SetPlayResultHandlerTests
             Seed: 0,
             Rooms: new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 1 },
             BasisLevel: 5,
-            ExperienceWeight: 1.45);
+            ExperienceWeight: 1.45,
+            Purpose: purpose);
 
         public DungeonRunState? Find(CharacterId characterId) => new(
-            Layout,
+            this._layout,
             new MazeCell(0, 0),
             CurrentRoomMapId: 1,
             VisitedCells: new HashSet<MazeCell>(),
@@ -677,5 +711,16 @@ public sealed class SetPlayResultHandlerTests
         public ClearRewardCardSlot? TryClaimClearRewardCard(
             CharacterId characterId, ClearRewardCardKind kind, int index) =>
             throw new NotSupportedException("This fixture only answers.");
+    }
+
+    private sealed class PurposeSettlementRules(bool canComplete) : IDungeonSettlementRuleService
+    {
+        public ValueTask<DungeonSettlementRules> ForAsync(
+            AccountId accountId,
+            CharacterId characterId,
+            DungeonRunState run,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult(
+                new DungeonSettlementRules(canComplete, run.Layout.Purpose.IsQuestLinked));
     }
 }

@@ -103,22 +103,22 @@
 `USER_APC_INFO_TOD`、竞技场追加 `TOURNAMENT_INFO` + `TOURNAMENT_MAP_INFO`、
 深渊追加 `0x02A6` 怪物信息。
 
-## 五、我们这边现有什么
+## 五、当前实现（2026-09-14）
 
-**副本运行状态：没有。** 没有 run、没有实例、没有房间、没有迷宫模型。
-`Abstractions/Content/DungeonExperienceContent.cs` 只是一条经验曲线端口，
-`DungeonEffectRecoveryService`（Application/Characters，读写 `dungeon_persistent_effect_outbox`）只服务入场投影，不含运行本身。
-本节初稿还提到过 `DungeonRejoinRegistry`，它已于 2026-08-18 删除——本作没有重连，
-那套从上游转录来的机制从未被填过，副本入场不必去对接它。
+普通 maze 家族已有独立运行存储、房间移动、actor、死亡去重、掉落和结算。普通与任务关联运行
+复用这些机制，差异由三处类型化值和规则表达：
 
-已有可复用的：
+| 边界 | 当前实现 |
+|---|---|
+| 入口意图 | `0x000F=0` 为交互式普通选择，非零为定向 dungeon；绑定当前角色的精确连接代次，并由下一次 `0x0010` 一次性消费 |
+| 内容资格 | `PvfDungeonDefinitionSource` 保留 dungeon/maze 的 `[quest connection]`；两字段连接的难度缺省为 `-1`。普通候选只含无连接 maze，定向候选按活动/完成任务和难度过滤 |
+| 运行目的 | `DungeonLayout.Purpose` 在入口固定为 Ordinary 或 QuestLinked，并随 `DungeonRunState` 保存；后续不重新读取任务状态改写本局 |
+| 任务目标 | `[hunt enemy]` 的 enemy type 1/2 是服务器 actor 事实；type 3 是客户端地图脚本的被动对象报告，但只在同 quest/dungeon/difficulty 的 Active QuestLinked 运行中接受声明通道。经验与服务端目标推进使用同一事务，失败释放精确死亡 claim 供重试 |
+| 完成/结算 | 普通运行保持 boss 房清空判据；活动任务运行还要求冻结的关联任务 trigger 到 0，完成态连接要求该任务已完成；`PLAY_RESULT.questMaze` 来自冻结目的 |
+| 退出 | 未证实的卡牌差异继续共享。GiveUp 与 EPLP 复用同一回城投影 |
 
-| 已有 | 位置 | 与副本入场的关系 |
-|---|---|---|
-| 内容源模式（端口在 `Abstractions.Content`、`Pvf*` 适配器在 `Infrastructure.Content`） | 10 个端口 | 副本定义源应照此建 |
-| `IEntryPlacementRuleService` | `Abstractions/World` | 已有"内容声明了这个区域吗"的判断，副本落点可以类推 |
-| 运行时会话目录 + `ReplaceExact` | `Abstractions/Sessions` | 运行状态挂在哪的现成接缝 |
-| 任务入场状态 `CharacterQuestEntryState` | 已在入场批次里加载 | 第 6 步的任务门禁要用它 |
+网络 session 只负责找到当前角色和回复当前连接，不进入 maze 选择或运行目的；`PartyCategory` 也不
+充当副本运行类型。
 
 ## 六、待决与风险
 
@@ -129,8 +129,10 @@
   按已有判据"注册不等于必须回"，但这一条尚无实机对照。
 - 第 2 步（绝望之塔改写 id）会让"客户端请求的副本"与"实际进入的副本"不同。
   这不是教程需要的，但它说明**入场 id 不能当成不可变输入**。
-- 迷宫选择在有多个 `[maze info]` 时才有分支；教程只有一个。多迷宫与难度分支的规则
-  （`SelectDungeonMaze` 用任务 id 与难度做筛选）尚未细读。
+- 2026-09-14 双路径实机已确认：普通入口 `0x000F=0 -> maze 0 -> Ordinary`；任务 1776 剧情入口
+  `0x000F=144 -> maze 1 -> QuestLinked(1776, Active)`。同场还确认 1776 在 boss 房发送
+  `SET_QUEST_TRIGGER selector=0x10 decrement`；其 target type 3 是 map 中的 Passive Object，不能按
+  monster rank 解释。
 
 ## 八、疲劳值规则（用户 2026-08-27 口述，尚未实现）
 

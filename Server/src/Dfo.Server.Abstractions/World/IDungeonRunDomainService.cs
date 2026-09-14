@@ -268,6 +268,13 @@ public readonly record struct AllocatedMonsterDrop(
 /// </remarks>
 public readonly record struct RoomActorId(MazeCell Cell, ushort Sequence);
 
+/// <summary>An exact, retryable claim over one actor death in one run.</summary>
+public sealed record DungeonActorDeathClaim(
+    CharacterId CharacterId,
+    DungeonRunState Run,
+    RoomActorId Actor,
+    long Token);
+
 /// <summary>One piece lying on a room's floor, under the number the client names it by.</summary>
 public sealed record GroundDrop(ushort Number, DungeonRoomDrop Drop);
 
@@ -348,6 +355,27 @@ public interface IDungeonRunDomainService
     /// client will not ask to leave until it has been told the exit is open.
     /// </remarks>
     DungeonRunState? TryReportActorDead(CharacterId characterId, ushort actorSequence);
+
+    /// <summary>
+    /// Claims one actor death before its durable effects are attempted. A duplicate or pending
+    /// report returns null.
+    /// </summary>
+    DungeonActorDeathClaim? TryClaimActorDeath(
+        CharacterId characterId,
+        ushort actorSequence) =>
+        TryReportActorDead(characterId, actorSequence) is { } run
+            ? new DungeonActorDeathClaim(
+                characterId,
+                run,
+                new RoomActorId(run.CurrentCell, actorSequence),
+                0)
+            : null;
+
+    /// <summary>Finalizes a successful durable kill and returns the current run.</summary>
+    DungeonRunState? CommitActorDeath(DungeonActorDeathClaim claim) => claim.Run;
+
+    /// <summary>Releases exactly this failed claim so the client may retry it.</summary>
+    bool ReleaseActorDeath(DungeonActorDeathClaim claim) => false;
 
     /// <summary>
     /// Records that this run has been settled.

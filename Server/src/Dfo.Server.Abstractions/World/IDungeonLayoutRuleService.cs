@@ -2,6 +2,51 @@ using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Abstractions.World;
 
+public enum DungeonEntryIntentKind : byte
+{
+    Interactive = 0,
+    Directed = 1,
+}
+
+/// <summary>The client-side selection path that immediately precedes dungeon entry.</summary>
+public readonly record struct DungeonEntryIntent(
+    DungeonEntryIntentKind Kind,
+    int? DirectedDungeonId)
+{
+    public static DungeonEntryIntent Interactive { get; } =
+        new(DungeonEntryIntentKind.Interactive, null);
+
+    public static DungeonEntryIntent Directed(int dungeonId) =>
+        dungeonId > 0
+            ? new DungeonEntryIntent(DungeonEntryIntentKind.Directed, dungeonId)
+            : throw new ArgumentOutOfRangeException(nameof(dungeonId));
+}
+
+public enum DungeonRunPurposeKind : byte
+{
+    Ordinary = 0,
+    QuestLinked = 1,
+}
+
+/// <summary>The reason this particular run selected its maze, frozen at entry.</summary>
+public readonly record struct DungeonRunPurpose(
+    DungeonRunPurposeKind Kind,
+    int? QuestId,
+    DungeonQuestConnectionState? QuestState)
+{
+    public static DungeonRunPurpose Ordinary { get; } =
+        new(DungeonRunPurposeKind.Ordinary, null, null);
+
+    public static DungeonRunPurpose QuestLinked(
+        int questId,
+        DungeonQuestConnectionState state) =>
+        questId > 0
+            ? new DungeonRunPurpose(DungeonRunPurposeKind.QuestLinked, questId, state)
+            : throw new ArgumentOutOfRangeException(nameof(questId));
+
+    public bool IsQuestLinked => Kind == DungeonRunPurposeKind.QuestLinked;
+}
+
 /// <summary>
 /// What a caller knows about the character asking to enter, gathered before the rule is consulted.
 /// </summary>
@@ -14,9 +59,10 @@ namespace Dfo.Server.Abstractions.World;
 public sealed record DungeonEntryFacts(
     byte Difficulty,
     IReadOnlyCollection<int> ActiveQuestIds,
-    IReadOnlyCollection<int> ClearedQuestIds)
+    IReadOnlyCollection<int> ClearedQuestIds,
+    DungeonEntryIntent Intent = default)
 {
-    public static DungeonEntryFacts None { get; } = new(0, [], []);
+    public static DungeonEntryFacts None { get; } = new(0, [], [], DungeonEntryIntent.Interactive);
 }
 
 /// <summary>
@@ -60,7 +106,8 @@ public sealed record DungeonLayout(
     int Seed,
     IReadOnlyDictionary<MazeCell, int> Rooms,
     byte BasisLevel = 1,
-    double ExperienceWeight = 1.0)
+    double ExperienceWeight = 1.0,
+    DungeonRunPurpose Purpose = default)
 {
 
     /// <summary>What a monster of this run is worth when its map declines to say.</summary>

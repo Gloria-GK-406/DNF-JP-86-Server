@@ -118,10 +118,34 @@ public sealed class FinishQuestHandlerTests
             sent.Select(frame => frame.GetType()));
     }
 
+    [Fact]
+    public async Task TheWireSelectionAndCompletionCountEnterTheCommand()
+    {
+        var ledger = new SkillPointLedger();
+        var bus = new FixedCompletion(ledger);
+
+        _ = await Finish(ledger, bus, rewardSelection: 7, completionCount: 3);
+
+        Assert.Equal((ushort)7, bus.LastCommand?.RewardSelection);
+        Assert.Equal((ushort)3, bus.LastCommand?.CompletionCount);
+    }
+
+    [Fact]
+    public async Task ASettlementExceptionBecomesOnlyTheReferenceRefusal()
+    {
+        var sent = await Finish(new SkillPointLedger(), new RejectedCompletion());
+
+        var acknowledgement = Assert.IsType<FinishQuestAcknowledgement>(Assert.Single(sent));
+        Assert.False(acknowledgement.Finished);
+        Assert.Equal((byte)QuestFinishRefusal.Unusable, acknowledgement.RefusalCode);
+    }
+
     private static async Task<IReadOnlyList<IGameServerMessage>> Finish(
         SkillPointLedger ledger,
-        FixedCompletion bus,
-        StubWorldContentEntryRuleService? content = null)
+        ICommandBus bus,
+        StubWorldContentEntryRuleService? content = null,
+        ushort rewardSelection = FinishQuestRequest.NoRewardSelection,
+        ushort completionCount = 1)
     {
         var session = SelectedSessionIdentity.Create(
             new AccountId(1),
@@ -149,8 +173,8 @@ public sealed class FinishQuestHandlerTests
             new FinishQuestRequest(
                 GameMessageMetadata.Empty,
                 QuestId,
-                FinishQuestRequest.NoRewardSelection,
-                CompletionCount: 1),
+                rewardSelection,
+                completionCount),
             CancellationToken.None);
 
         return sender.Sent;
@@ -170,11 +194,13 @@ public sealed class FinishQuestHandlerTests
         /// <summary>What the ledger's count stood at when the completion was written.</summary>
         public int LedgerAsksWhenTheCompletionRan { get; private set; } = -1;
 
+        public FinishQuestCommand? LastCommand { get; private set; }
+
         public ValueTask<TResult> SendAsync<TResult>(
             ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull
         {
-            Assert.IsType<FinishQuestCommand>(command);
+            this.LastCommand = Assert.IsType<FinishQuestCommand>(command);
             this.LedgerAsksWhenTheCompletionRan = ledger.TimesAsked;
             var outcome = new QuestFinishOutcome(
                 Finished: true,
@@ -186,6 +212,14 @@ public sealed class FinishQuestHandlerTests
                 NewExperience: FinishedTotal);
             return ValueTask.FromResult((TResult)(object)outcome);
         }
+    }
+
+    private sealed class RejectedCompletion : ICommandBus
+    {
+        public ValueTask<TResult> SendAsync<TResult>(
+            ICommand<TResult> command, CancellationToken cancellationToken = default)
+            where TResult : notnull =>
+            throw new QuestFinishRejectedException(QuestId, "settlement failed");
     }
 
     /// <summary>A clock that does not move, because nothing here is about when.</summary>

@@ -10,6 +10,7 @@ internal sealed class CurrentCharacterStub : ICharacter
     public CharacterProgressionState? Progress { get; set; } = new(60, 1000);
     public CharacterIdentityState? Identity { get; set; } = new(new(60), 0, [65], 0, 0);
     public CharacterBaseStats? Stats { get; set; } = CharacterBaseStats.Zero;
+    public int Gold { get; set; }
     public static ICharacterDomainService Domain(CurrentCharacterStub? character = null) =>
         new CharacterDomainService(null!, null!, _ => character ?? new CurrentCharacterStub());
     public ValueTask<CharacterBaseStats?> BaseStatsAsync(CancellationToken token) => ValueTask.FromResult(Stats);
@@ -19,7 +20,18 @@ internal sealed class CurrentCharacterStub : ICharacter
     public ValueTask<CharacterSkillPointLedger?> SkillPointLedgerAsync(CancellationToken token) => throw new NotSupportedException();
     public ValueTask<CharacterSkillProtocolMirrorState?> RemainingSkillPointsAsync(CancellationToken token) => throw new NotSupportedException();
     public ValueTask<ItemUsability> CanUseAsync(int itemId, CancellationToken token) => throw new NotSupportedException();
-    public ValueTask<int> GoldAsync(CancellationToken token) => throw new NotSupportedException();
-    public ValueTask<int> AddGoldAsync(int amount, CancellationToken token) => throw new NotSupportedException();
-    public ValueTask<int?> TrySpendGoldAsync(int amount, CancellationToken token) => throw new NotSupportedException();
+    public ValueTask<int> GoldAsync(CancellationToken token) => ValueTask.FromResult(this.Gold);
+    public ValueTask<int> AddGoldAsync(int amount, CancellationToken token)
+    {
+        this.Gold = checked(this.Gold + amount);
+        return ValueTask.FromResult(this.Gold);
+    }
+
+    public ValueTask<int?> TrySpendGoldAsync(int amount, CancellationToken token)
+    {
+        if (amount < 0 || amount > this.Gold)
+            return ValueTask.FromResult<int?>(null);
+        this.Gold -= amount;
+        return ValueTask.FromResult<int?>(this.Gold);
+    }
 }

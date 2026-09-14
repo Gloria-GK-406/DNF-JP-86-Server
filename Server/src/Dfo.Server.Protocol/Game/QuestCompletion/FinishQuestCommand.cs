@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
@@ -52,7 +53,20 @@ public sealed record FinishQuestCommand(
     AccountId AccountId,
     CharacterId CharacterId,
     ushort QuestId,
+    ushort RewardSelection,
+    ushort CompletionCount,
     uint AcquiredAtUnixTime) : ICommand<QuestFinishOutcome>;
+
+public sealed class QuestFinishRejectedException : Exception
+{
+    public QuestFinishRejectedException(ushort questId, string message)
+        : base(message) => this.QuestId = questId;
+
+    internal QuestFinishRejectedException(ushort questId, string message, Exception innerException)
+        : base(message, innerException) => this.QuestId = questId;
+
+    public ushort QuestId { get; }
+}
 
 /// <summary>
 /// Takes the quest out of the log, prices what it pays, and hands it over.
@@ -67,19 +81,17 @@ public sealed record FinishQuestCommand(
 /// likely to refuse -- a quest not carried, an objective unmet -- and refusing before touching the
 /// bag keeps a refused completion from having to unwind a placement.
 ///
-/// <b>A refusal raised after that point does not unwind anything, and this remark used to say it
-/// did.</b> Returning a refusal is a normal return, so the unit of work commits: the quest has left
-/// the carried list, entered the cleared list and the items are in the bag, while the client is
-/// told 22. Three paths reach that state -- the bag refusing a reward, no such character, and a
-/// character row that will not take the write -- and none of them is reachable from a real client,
-/// which is why it has never been seen. Making them unwind means failing rather than returning,
-/// and that is a change to what a refused command does everywhere, not a repair to this one.
+/// Every ordinary refusal is decided before the log writes. A refusal discovered afterwards throws
+/// <see cref="QuestFinishRejectedException"/> through the command bus, so the unit-of-work boundary
+/// disposes without committing and rolls every enlisted store back. The package handler catches that
+/// dedicated failure outside the boundary and maps it to the reference server's wire code 22.
 /// </remarks>
 public sealed class FinishQuestCommandHandler(
     IQuestDefinitionDomainService quests,
     ICharacterQuestLogDomainService logs,
     ICharacterContainerDomainService containers,
-    ICharacterExperienceDomainService grant)
+    ICharacterExperienceDomainService grant,
+    ICharacterDomainService characters)
     : ICommandHandler<FinishQuestCommand, QuestFinishOutcome>
 {
     public async ValueTask<QuestFinishOutcome> HandleAsync(
@@ -102,118 +114,125 @@ public sealed class FinishQuestCommandHandler(
         if (definition is null)
             return QuestFinishOutcome.Refuse(command.QuestId);
 
-        var log = logs.LogOf(command.AccountId, command.CharacterId);
-        var verdict = await log.FinishAsync(command.QuestId, cancellationToken)
-            .ConfigureAwait(false);
-        if (verdict is not QuestFinishVerdict.Finished)
+        var character = characters.Get(command.CharacterId);
+        var identity = await character.IdentityAsync(cancellationToken).ConfigureAwait(false);
+        var progress = await character.ProgressAsync(cancellationToken).ConfigureAwait(false);
+        if (identity is null || progress is null)
             return QuestFinishOutcome.Refuse(command.QuestId);
 
-        var placed = new List<FinishedQuestItem>();
-        var rewards = ItemRewardsOf(definition);
-        if (rewards.Count > 0)
+        var resolution = quests.ResolveRewards(
+            definition,
+            new QuestRewardCandidate(identity.Job, identity.GrowType, progress.Level),
+            command.RewardSelection,
+            command.CompletionCount);
+        if (!resolution.IsValid)
+            return QuestFinishOutcome.Refuse(command.QuestId);
+        var reward = resolution.Plan!;
+
+        try
         {
-            var container = containers.FindContainer(
-                command.CharacterId, InventoryContainerType.Main);
-            if (container is null)
+            var log = logs.LogOf(command.AccountId, command.CharacterId);
+            var verdict = await log.FinishAsync(command.QuestId, cancellationToken)
+                .ConfigureAwait(false);
+            if (verdict is not QuestFinishVerdict.Finished)
                 return QuestFinishOutcome.Refuse(command.QuestId);
 
-            foreach (var (itemId, count) in rewards)
+            var placed = new List<FinishedQuestItem>();
+            if (reward.Items.Count > 0)
             {
-                var outcome = await container.AddAsync(itemId, count, cancellationToken)
-                    .ConfigureAwait(false);
-                switch (outcome)
+                var container = containers.FindContainer(
+                    command.CharacterId, InventoryContainerType.Main);
+                if (container is null)
+                    throw Rejected(command, "the character has no main item container");
+
+                foreach (var (itemId, count) in reward.Items)
                 {
-                    case ItemPlacementOutcome.AddedToPile topped:
-                        placed.Add(new FinishedQuestItem(
-                            checked((ushort)topped.SlotIndex), (uint)itemId, (uint)topped.Added));
-                        break;
+                    var outcome = await container.AddAsync(itemId, count, cancellationToken)
+                        .ConfigureAwait(false);
+                    switch (outcome)
+                    {
+                        case ItemPlacementOutcome.AddedToPile topped:
+                            placed.Add(new FinishedQuestItem(
+                                checked((ushort)topped.SlotIndex), (uint)itemId, (uint)topped.Added));
+                            break;
 
-                    case ItemPlacementOutcome.PutInEmptySlot opened:
-                        placed.Add(new FinishedQuestItem(
-                            checked((ushort)opened.SlotIndex), (uint)itemId, (uint)opened.Count));
-                        break;
+                        case ItemPlacementOutcome.PutInEmptySlot opened:
+                            placed.Add(new FinishedQuestItem(
+                                checked((ushort)opened.SlotIndex), (uint)itemId, (uint)opened.Count));
+                            break;
 
-                    case ItemPlacementOutcome.NoRoom:
-                    case ItemPlacementOutcome.UnknownItem:
-                        return QuestFinishOutcome.Refuse(command.QuestId);
+                        case ItemPlacementOutcome.NoRoom:
+                        case ItemPlacementOutcome.UnknownItem:
+                            throw Rejected(command, $"item {itemId} could not be placed");
 
-                    default:
-                        throw new ArgumentOutOfRangeException(
-                            nameof(command), outcome, "No reading was decided for this outcome.");
+                        default:
+                            throw new ArgumentOutOfRangeException(
+                                nameof(command), outcome, "No reading was decided for this outcome.");
+                    }
                 }
             }
-        }
 
-        // Through the same grant a kill uses. What a quest pays is its own rule -- the archive's
-        // quest table, nothing to do with monsters -- but raising the total, crossing thresholds
-        // and persisting are not, and a second copy of those is what made this command write the
-        // same total for two completions of one quest.
-        var award = await grant.AwardAsync(
-            command.CharacterId,
-            characterLevel => new ExperienceValuation(
-                quests.RewardParameters().ExperienceFor(
-                    characterLevel,
-                    RewardLevelOf(definition),
-                    DifficultyOf(definition),
-                    definition.Grade == QuestGrade.Epic,
-                    definition.PaysAtCharacterLevel),
-                []),
-            cancellationToken).ConfigureAwait(false);
-
-        // No character to award to, or a row that would not take the write. Both were refusals
-        // before this command shared its granting, and both must stay refusals: reporting a
-        // completion whose award did not happen would tell the client its level and total from a
-        // placeholder, and on the first of the two that placeholder is level 1 with no experience.
-        if (award is null)
-            return QuestFinishOutcome.Refuse(command.QuestId);
-
-        return new QuestFinishOutcome(
-            true,
-            command.QuestId,
-            ObjectiveKindOf(definition.ObjectiveTypeCode),
-            award.Gained,
-            placed,
-            award.Level,
-            award.Total);
-    }
-
-    /// <remarks>
-    /// The bottom of the quest's own level band, which is what the reference server prices at. A
-    /// quest that declares no band is priced at level one rather than at zero, where the table has
-    /// no entry and the quest would pay nothing.
-    /// </remarks>
-    private static int RewardLevelOf(QuestDefinition definition) =>
-        definition.RequiredLevel is { Minimum: > 0 } band ? band.Minimum : 1;
-
-    /// <remarks>
-    /// One letter, upper-cased by the table itself. A quest that declares none takes the default
-    /// weight, which is what an unlisted letter takes too.
-    /// </remarks>
-    private static char DifficultyOf(QuestDefinition definition) =>
-        string.IsNullOrWhiteSpace(definition.DifficultyCode)
-            ? ' '
-            : definition.DifficultyCode.Trim()[0];
-
-    private static IReadOnlyList<(int ItemId, int Count)> ItemRewardsOf(QuestDefinition definition)
-    {
-        // `[reward int data]` is a flat list of item/count pairs under a reward of kind Item. A
-        // trailing odd value is not a pair and is dropped rather than granted with a made-up count.
-        var rewards = new List<(int, int)>();
-        foreach (var reward in definition.Rewards)
-        {
-            if (reward.Kind is not QuestRewardKind.Item)
-                continue;
-            for (var index = 0; index + 1 < reward.Values.Count; index += 2)
+            if (reward.Gold > 0)
             {
-                var itemId = reward.Values[index];
-                var count = reward.Values[index + 1];
-                if (itemId > 0 && count > 0)
-                    rewards.Add((itemId, count));
-            }
-        }
+                var before = await character.GoldAsync(cancellationToken).ConfigureAwait(false);
+                var after = await character.AddGoldAsync(reward.Gold, cancellationToken)
+                    .ConfigureAwait(false);
+                if (after < before
+                    || await character.IdentityAsync(cancellationToken).ConfigureAwait(false) is null)
+                {
+                    throw Rejected(command, "the character disappeared while gold was being granted");
+                }
 
-        return rewards;
+                var gained = after - before;
+                if (gained > 0)
+                    placed.Add(new FinishedQuestItem(0, 0, checked((uint)gained)));
+            }
+
+            // Through the same grant a kill uses. What a quest pays is its own rule -- the archive's
+            // quest table, nothing to do with monsters -- but raising the total, crossing thresholds
+            // and persisting are not, and a second copy of those is what made this command write the
+            // same total for two completions of one quest.
+            var award = await grant.AwardAsync(
+                command.CharacterId,
+                _ => new ExperienceValuation(reward.Experience, []),
+                cancellationToken).ConfigureAwait(false);
+
+            // No character to award to, or a row that would not take the write. Both were refusals
+            // before this command shared its granting, and both must stay refusals: reporting a
+            // completion whose award did not happen would tell the client its level and total from a
+            // placeholder, and on the first of the two that placeholder is level 1 with no experience.
+            if (award is null)
+                throw Rejected(command, "experience could not be granted");
+
+            return new QuestFinishOutcome(
+                true,
+                command.QuestId,
+                ObjectiveKindOf(definition.ObjectiveTypeCode),
+                award.Gained,
+                placed,
+                award.Level,
+                award.Total);
+        }
+        catch (Exception exception)
+            when (exception is not (QuestFinishRejectedException or OperationCanceledException))
+        {
+            throw Rejected(command, "settlement failed", exception);
+        }
     }
+
+    private static QuestFinishRejectedException Rejected(
+        FinishQuestCommand command,
+        string reason) =>
+        new(command.QuestId, $"Quest {command.QuestId} completion was rejected after settlement began: {reason}.");
+
+    private static QuestFinishRejectedException Rejected(
+        FinishQuestCommand command,
+        string reason,
+        Exception innerException) =>
+        new(
+            command.QuestId,
+            $"Quest {command.QuestId} completion was rejected after settlement began: {reason}.",
+            innerException);
 
     /// <summary>
     /// What the answer calls the objective, in the reference server's numbering.

@@ -162,6 +162,10 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<GrantKillExperienceCommand, KillExperienceResult, GrantKillExperienceCommandHandler>(
             CommandExecutionKind.Transactional);
+        services.AddCommandHandler<AdvanceHuntEnemyQuestCommand, AdvanceHuntEnemyQuestResult, AdvanceHuntEnemyQuestCommandHandler>(
+            CommandExecutionKind.Transactional);
+        services.AddCommandHandler<ApplyMonsterKillCommand, ApplyMonsterKillResult, ApplyMonsterKillCommandHandler>(
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<GrantClearExperienceCommand, ClearExperienceResult, GrantClearExperienceCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<PrepareReturnToSelectionCommand, PreparedReturnToSelection, PrepareReturnToSelectionCommandHandler>(

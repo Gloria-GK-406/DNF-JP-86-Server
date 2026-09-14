@@ -172,6 +172,34 @@ public sealed class LeaveDungeonTests
         Assert.Contains(sent, frame => frame is AreaUsersNotification);
     }
 
+    [Fact]
+    public async Task GiveUpEndsTheRunAndProjectsTheSameTownState()
+    {
+        var runs = new OneRun();
+        var sender = new RecordingSender();
+        var handler = new GiveUpGameHandler(
+            new OneSession(Identity),
+            new OneRuntimeSession(Entry()),
+            new StandingWhereTheyAre(),
+            runs,
+            sender,
+            NullLogger<GiveUpGameHandler>.Instance);
+
+        await handler.HandleAsync(
+            Dispatch(),
+            new GiveUpGameRequest(GameMessageMetadata.Empty),
+            CancellationToken.None);
+
+        Assert.True(runs.Ended);
+        Assert.Equal(
+            [typeof(GiveUpGameResponse), typeof(UserStateNotification),
+             typeof(UserAreaNotification), typeof(AreaUsersNotification)],
+            sender.Sent.Select(frame => frame.GetType()));
+        Assert.Equal(
+            StandingAreaId,
+            Assert.Single(sender.Sent.OfType<UserAreaNotification>()).AreaId);
+    }
+
     /// <summary>Nothing is answered on a connection with no published session.</summary>
     [Fact]
     public async Task A_command_without_a_published_session_is_ignored()

@@ -97,6 +97,25 @@ public enum QuestRewardKind
 /// <summary>One reward the quest grants, with the content's own operands.</summary>
 public sealed record QuestReward(QuestRewardKind Kind, IReadOnlyList<int> Values);
 
+/// <summary>A job and grow-type condition attached to one item reward.</summary>
+public sealed record QuestRewardCharacterCondition(int JobId, int GrowType);
+
+/// <summary>One declared item/count reward, optionally restricted to one character career.</summary>
+public sealed record QuestItemRewardRule(
+    int ItemId,
+    int Count,
+    QuestRewardCharacterCondition? Condition = null);
+
+/// <summary>The two item-reward lists and the distinct gold declaration carried beside them.</summary>
+public sealed record QuestItemRewardDefinition(
+    IReadOnlyList<QuestItemRewardRule> Fixed,
+    IReadOnlyList<QuestItemRewardRule> Selectable,
+    bool HasGoldFormulaMarker,
+    int FixedGold)
+{
+    public static QuestItemRewardDefinition Empty { get; } = new([], [], false, 0);
+}
+
 /// <summary>A quest restriction on one expert-job type and its minimum level.</summary>
 public sealed record ExpertJobRequirement(int ExpertJobType, int MinimumLevel);
 
@@ -145,6 +164,25 @@ public sealed record TrainingQuestAvailability(int CharacterLevel, IReadOnlyList
 /// <c>seeking</c> or <c>meet npc</c>. It is passed through rather than modelled as an
 /// enumeration because the full vocabulary is not yet confirmed.
 /// </param>
+/// <summary>The archive's actor family in one <c>[hunt enemy]</c> target.</summary>
+public static class HuntEnemyTargetTypes
+{
+    public const int Monster = 1;
+    public const int AiCharacter = 2;
+    public const int PassiveObject = 3;
+}
+
+/// <summary>
+/// One <c>[hunt enemy]</c> target. <paramref name="EnemyType"/> is the actor family above; it is
+/// not the monster rank carried by room actors.
+/// </summary>
+public sealed record HuntEnemyRequirement(
+    int DungeonId,
+    int Difficulty,
+    int EnemyCode,
+    int EnemyType,
+    int Count);
+
 public sealed record QuestDefinition(
     int QuestId,
     string Name,
@@ -172,12 +210,21 @@ public sealed record QuestDefinition(
     IReadOnlyList<SeekingItemRequirement>? SeekingItems = null,
     uint InitialTrigger = 1,
     IReadOnlyList<QuestEventItem>? EventItems = null,
-    bool PaysAtCharacterLevel = false)
+    bool PaysAtCharacterLevel = false,
+    IReadOnlyList<HuntEnemyRequirement>? HuntEnemyRequirements = null,
+    QuestItemRewardDefinition? ItemRewards = null,
+    int GoldMultiplier = 0)
 {
     /// <summary>A quest offered regardless of grow type.</summary>
     public const int AnyGrowType = -1;
 
     public bool AppliesToAnyGrowType => GrowTypeRequirement is null;
+
+    public IReadOnlyList<HuntEnemyRequirement> HuntEnemyRequirements { get; init; }
+        = HuntEnemyRequirements ?? [];
+
+    public QuestItemRewardDefinition ItemRewards { get; init; }
+        = ItemRewards ?? QuestItemRewardDefinition.Empty;
 
     /// <summary>Whether clearing this quest leaves it available to accept again.</summary>
     /// <remarks>

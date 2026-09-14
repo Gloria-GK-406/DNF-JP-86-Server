@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Application.Quests;
 
@@ -108,6 +109,70 @@ internal static class QuestObjectives
         return ClientCounted.Contains(objective)
             ? QuestObjectiveAuthority.Client
             : QuestObjectiveAuthority.Server;
+    }
+
+    /// <summary>
+    /// The hunt-enemy family also needs its target actor kind. A monster or AI death is something
+    /// the server can identify from the room; a passive story object is client-side map script
+    /// state and is reported through the target's trigger channel instead.
+    /// </summary>
+    public static QuestObjectiveAuthority AuthorityOver(
+        Dfo.Server.Abstractions.Content.QuestDefinition definition,
+        byte selector)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+        if (Normalize(definition.ObjectiveTypeCode) != "hunt enemy")
+            return AuthorityOver(definition.ObjectiveTypeCode, selector);
+        if (!QuestTrigger.IsReportable(selector))
+            return QuestObjectiveAuthority.None;
+
+        var targets = definition.HuntEnemyRequirements;
+        if (targets.Count == 0)
+            return QuestObjectiveAuthority.Server;
+
+        IEnumerable<HuntEnemyRequirement> selectedTargets;
+        if (selector is 0 or 1)
+        {
+            selectedTargets = targets;
+        }
+        else
+        {
+            var selected = new List<HuntEnemyRequirement>(QuestTrigger.ChannelCount);
+            for (var index = 0; index < QuestTrigger.ChannelCount; index++)
+            {
+                var mask = 0x10 << index;
+                if ((selector & mask) == 0)
+                    continue;
+                if (index >= targets.Count)
+                    return QuestObjectiveAuthority.None;
+                selected.Add(targets[index]);
+            }
+
+            selectedTargets = selected;
+        }
+
+        var authority = QuestObjectiveAuthority.None;
+        foreach (var target in selectedTargets)
+        {
+            if (target.EnemyCode <= 0)
+                return QuestObjectiveAuthority.None;
+
+            var targetAuthority = target.EnemyType switch
+            {
+                HuntEnemyTargetTypes.Monster or HuntEnemyTargetTypes.AiCharacter =>
+                    QuestObjectiveAuthority.Server,
+                HuntEnemyTargetTypes.PassiveObject when selector is not (0 or 1) =>
+                    QuestObjectiveAuthority.Client,
+                _ => QuestObjectiveAuthority.None,
+            };
+            if (targetAuthority == QuestObjectiveAuthority.None)
+                return QuestObjectiveAuthority.None;
+            if (authority != QuestObjectiveAuthority.None && authority != targetAuthority)
+                return QuestObjectiveAuthority.None;
+            authority = targetAuthority;
+        }
+
+        return authority;
     }
 
     /// <remarks>

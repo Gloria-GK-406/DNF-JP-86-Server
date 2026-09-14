@@ -60,6 +60,18 @@ public sealed class PvfQuestParameterSourceTests
         Assert.True(experience.Count >= 200, $"only {experience.Count} levels are priced");
     }
 
+    [SkippableFact]
+    public void TheGoldTableKeepsItsLevelOrderAndFormulaIndexing()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var parameters = new PvfQuestParameterSource(provider).Load();
+
+        Assert.Equal([72, 101, 130, 158, 187], parameters.GoldByLevel!.Take(5));
+        Assert.Equal(101u, parameters.GoldFor(
+            characterLevel: 1, rewardLevel: 1, multiplier: 0, ignoreLevel: false));
+    }
+
     /// <summary>The letters and their permille bonuses, as the archive lists them.</summary>
     [SkippableFact]
     public void DifficultyLettersCarryTheirOwnBonus()

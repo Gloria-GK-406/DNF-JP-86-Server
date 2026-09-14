@@ -1,6 +1,9 @@
 using Dfo.Server.Application.World;
 using Dfo.Server.Application.Tests.Support;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Characters;
@@ -10,10 +13,15 @@ using Dfo.Server.Application.Quests;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Persistence.Database;
+using Dfo.Server.Persistence.Characters;
+using Dfo.Server.Persistence.Inventory;
 using Dfo.Server.Persistence.Quests;
+using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Protocol.Game.QuestCompletion;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Protocol.Tests.Game.QuestCompletion;
 
@@ -57,7 +65,8 @@ public sealed class FinishQuestCommandHandlerTests
         await using var boundary = fixture.Scope.Begin();
         var outcome = await handler.HandleAsync(
             Transactional,
-            new FinishQuestCommand(Account, Character, QuestId, AcquiredAtUnixTime: 0),
+            new FinishQuestCommand(
+                Account, Character, QuestId, ushort.MaxValue, 1, AcquiredAtUnixTime: 0),
             CancellationToken.None);
         await boundary.CommitAsync(CancellationToken.None);
 
@@ -102,7 +111,8 @@ public sealed class FinishQuestCommandHandlerTests
         await using var boundary = fixture.Scope.Begin();
         var outcome = await handler.HandleAsync(
             Transactional,
-            new FinishQuestCommand(Account, Character, QuestId, AcquiredAtUnixTime: 0),
+            new FinishQuestCommand(
+                Account, Character, QuestId, ushort.MaxValue, 1, AcquiredAtUnixTime: 0),
             CancellationToken.None);
 
         Assert.False(outcome.Finished);
@@ -120,7 +130,8 @@ public sealed class FinishQuestCommandHandlerTests
         await using var boundary = fixture.Scope.Begin();
         var outcome = await handler.HandleAsync(
             Transactional,
-            new FinishQuestCommand(Account, Character, QuestId, AcquiredAtUnixTime: 0),
+            new FinishQuestCommand(
+                Account, Character, QuestId, ushort.MaxValue, 1, AcquiredAtUnixTime: 0),
             CancellationToken.None);
 
         Assert.False(outcome.Finished);
@@ -147,6 +158,172 @@ public sealed class FinishQuestCommandHandlerTests
             $"level 40 was paid {atForty.Experience} and level 1 was paid {atOne.Experience}");
     }
 
+    /// <summary>A downstream refusal is an exception, so the command boundary rolls its log write back.</summary>
+    [Fact]
+    public async Task ARewardThatCannotBePlacedLeavesTheQuestCarriedThroughTheRealUnitOfWork()
+    {
+        await using var fixture = await Fixture.CreateAsync(level: 1, experience: 1000);
+        await fixture.CarryAsync(QuestId, triggerValue: 0);
+        var definition = Quest(QuestId) with
+        {
+            ItemRewards = new QuestItemRewardDefinition(
+                [new QuestItemRewardRule(101010437, 1)], [], false, 0),
+        };
+        var containers = new CharacterContainerDomainService();
+        containers.Register(Character, new RejectingContainer());
+
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton(fixture.Scope);
+        services.AddCommandDispatching();
+        services.AddSingleton<IQuestDefinitionDomainService>(new QuestDefinitionDomainService(
+            new QuestContentRuleService(new Quests(definition), new InventedQuestParameters()),
+            new QuestRewardRuleService()));
+        services.AddSingleton<ICharacterQuestLogDomainService>(
+            new CharacterQuestLogDomainService(
+                new SqliteQuestDomainStore(fixture.Path), new AmbientStoreAccess(fixture.Scope)));
+        services.AddSingleton<ICharacterContainerDomainService>(containers);
+        services.AddSingleton<ICharacterExperienceDomainService>(
+            new CharacterExperienceDomainService(fixture.Characters, new FixedProgression()));
+        services.AddSingleton(CurrentCharacterStub.Domain(fixture.Current));
+        services.AddCommandHandler<FinishQuestCommand, QuestFinishOutcome, FinishQuestCommandHandler>(
+            CommandExecutionKind.Transactional);
+        await using var provider = services.BuildServiceProvider();
+
+        await Assert.ThrowsAsync<QuestFinishRejectedException>(async () =>
+            await provider.GetRequiredService<ICommandBus>().SendAsync(
+                new FinishQuestCommand(
+                    Account, Character, QuestId, ushort.MaxValue, 1, AcquiredAtUnixTime: 0),
+                CancellationToken.None));
+
+        await using var connection = Fixture.Open(fixture.Path);
+        Assert.Equal(1L, await CountAsync(connection, "character_active_quests"));
+        Assert.Equal(0L, await CountAsync(connection, "character_invisible_flags"));
+        Assert.Null(fixture.Characters.LastWrite);
+    }
+
+    [Fact]
+    public async Task ALateExperienceFailureRollsBackRealQuestItemGoldAndExperienceWrites()
+    {
+        await using var fixture = await Fixture.CreateAsync(level: 1, experience: 1000);
+        await fixture.CarryAsync(QuestId, triggerValue: 0);
+        await using (var setup = Fixture.Open(fixture.Path))
+        await using (var command = setup.CreateCommand())
+        {
+            command.CommandText =
+                "UPDATE characters SET level=1,exp=1000 WHERE character_id=60;"
+                + "INSERT INTO character_stats(character_id,carried_gold) VALUES(60,10);";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        var definition = Quest(QuestId) with
+        {
+            ItemRewards = new QuestItemRewardDefinition(
+                [new QuestItemRewardRule(101010437, 1)], [], false, 77),
+        };
+        var database = new SqliteDatabase(fixture.Path, fixture.Scope);
+        var characterRows = new SqliteCharacterTable(database);
+        var carriedGold = new SqliteCharacterCarriedGoldTable(database);
+        var character = new PersistentSettlementCharacter(carriedGold);
+        var containers = new CharacterContainerDomainService();
+        var bag = new PersistentItemContainer(
+            ContainerId.ForCharacter(Character, InventoryContainerType.Main),
+            Character,
+            new ContainerShape(InventoryContainerType.Main, 0),
+            new SqliteItemDomainStore(fixture.Path),
+            fixture.Scope,
+            null!,
+            new ItemPlacementRuleService(new KnownRewardPlacement(), new NoWearables()),
+            new ItemArrivalRuleService(),
+            new ItemSlotRuleService());
+        containers.Register(Character, bag);
+        var lateFailure = new FailAfterExperienceWrite(
+            new CharacterExperienceDomainService(characterRows, new FixedProgression()),
+            characterRows,
+            character,
+            bag);
+
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton(fixture.Scope);
+        services.AddCommandDispatching();
+        services.AddSingleton<IQuestDefinitionDomainService>(new QuestDefinitionDomainService(
+            new QuestContentRuleService(new Quests(definition), new InventedQuestParameters()),
+            new QuestRewardRuleService()));
+        services.AddSingleton<ICharacterQuestLogDomainService>(
+            new CharacterQuestLogDomainService(
+                new SqliteQuestDomainStore(fixture.Path), new AmbientStoreAccess(fixture.Scope)));
+        services.AddSingleton<ICharacterContainerDomainService>(containers);
+        services.AddSingleton<ICharacterExperienceDomainService>(lateFailure);
+        services.AddSingleton<ICharacterDomainService>(
+            new CharacterDomainService(null!, null!, _ => character));
+        services.AddCommandHandler<FinishQuestCommand, QuestFinishOutcome, FinishQuestCommandHandler>(
+            CommandExecutionKind.Transactional);
+        await using var provider = services.BuildServiceProvider();
+
+        await Assert.ThrowsAsync<QuestFinishRejectedException>(async () =>
+            await provider.GetRequiredService<ICommandBus>().SendAsync(
+                new FinishQuestCommand(
+                    Account, Character, QuestId, ushort.MaxValue, 1, AcquiredAtUnixTime: 0),
+                CancellationToken.None));
+
+        Assert.True(lateFailure.SawAllPriorWrites);
+        await using var connection = Fixture.Open(fixture.Path);
+        Assert.Equal(1L, await CountAsync(connection, "character_active_quests"));
+        Assert.Equal(0L, await CountAsync(connection, "character_invisible_flags"));
+        Assert.Equal(0L, await ScalarAsync(
+            connection,
+            "SELECT COUNT(*) FROM item_slots WHERE owner_scope='character' AND owner_id=60"));
+        Assert.Equal(10L, await ScalarAsync(
+            connection,
+            "SELECT carried_gold FROM character_stats WHERE character_id=60"));
+        Assert.Equal(1L, await ScalarAsync(
+            connection,
+            "SELECT level FROM characters WHERE character_id=60"));
+        Assert.Equal(1000L, await ScalarAsync(
+            connection,
+            "SELECT exp FROM characters WHERE character_id=60"));
+    }
+
+    [SkippableFact]
+    public async Task RealQuest1776ActuallyGrantsOnlyJobZeroEquipment()
+    {
+        var path = new PvfContentOptions().ResolveArchivePath();
+        Skip.If(path is null, "PVF_ARCHIVE_PATH is not available.");
+        using var provider = new PvfArchiveProvider(
+            new PvfContentOptions { ArchivePath = path });
+        var definition = await new PvfQuestDefinitionSource(provider)
+            .GetAsync(1776, CancellationToken.None);
+        Assert.NotNull(definition);
+
+        await using var fixture = await Fixture.CreateAsync(level: 1, experience: 0);
+        await fixture.CarryAsync(1776, triggerValue: 0);
+        var bag = new Dfo.Server.Protocol.Tests.Game.GroundPickup.GroundPickupTests.FakeContainer();
+        var containers = new CharacterContainerDomainService();
+        containers.Register(Character, bag);
+        var handler = fixture.Handler(
+            definition!,
+            containers,
+            new PvfQuestParameterSource(provider));
+
+        await using var boundary = fixture.Scope.Begin();
+        var outcome = await handler.HandleAsync(
+            Transactional,
+            new FinishQuestCommand(
+                Account, Character, 1776, ushort.MaxValue, 1, AcquiredAtUnixTime: 0),
+            CancellationToken.None);
+        await boundary.CommitAsync(CancellationToken.None);
+
+        Assert.True(outcome.Finished);
+        Assert.Equal([101010437], bag.Slots.Values.Select(item => item.ItemId));
+        Assert.Equal([1], bag.Counts.Values);
+        Assert.DoesNotContain(bag.Slots.Values, item => item.ItemId != 101010437);
+        Assert.Equal(101, fixture.Current.Gold);
+        Assert.Contains(
+            new FinishedQuestItem(SlotIndex: 0, ItemId: 0, Count: 101),
+            outcome.Items);
+    }
+
     private static QuestDefinition Quest(
         int questId, bool repeatable = false, bool paysAtCharacterLevel = false) =>
         new(questId, "", repeatable ? QuestGrade.Daily : QuestGrade.Epic, null,
@@ -164,15 +341,21 @@ public sealed class FinishQuestCommandHandlerTests
         /// </remarks>
         public const uint QuestAward = 101;
 
-        private Fixture(string path, RecordingCharacterTable characters)
+        private Fixture(
+            string path,
+            RecordingCharacterTable characters,
+            CurrentCharacterStub current)
         {
             this.Path = path;
             this.Characters = characters;
+            this.Current = current;
         }
 
         public string Path { get; }
 
         public RecordingCharacterTable Characters { get; }
+
+        public CurrentCharacterStub Current { get; }
 
         public DomainTransactionScope Scope { get; } = new();
 
@@ -182,7 +365,17 @@ public sealed class FinishQuestCommandHandlerTests
                 System.IO.Path.GetTempPath(), $"dfo-questfinish-{Guid.NewGuid():N}.db");
             _ = new SqliteDatabase(path, new DomainTransactionScope());
             var fixture = new Fixture(
-                path, new RecordingCharacterTable(level, experience) { Exists = exists });
+                path,
+                new RecordingCharacterTable(level, experience) { Exists = exists },
+                new CurrentCharacterStub
+                {
+                    Progress = exists
+                        ? new CharacterProgressionState(checked((byte)level), experience)
+                        : null,
+                    Identity = exists
+                        ? new CharacterIdentityState(Character, 0, [65], 0, 0)
+                        : null,
+                });
             await using var connection = Open(path);
             await using var character = connection.CreateCommand();
             character.CommandText =
@@ -191,14 +384,19 @@ public sealed class FinishQuestCommandHandlerTests
             return fixture;
         }
 
-        public FinishQuestCommandHandler Handler(QuestDefinition definition) =>
+        public FinishQuestCommandHandler Handler(
+            QuestDefinition definition,
+            ICharacterContainerDomainService? containers = null,
+            IQuestParameterSource? parameters = null) =>
             new(new QuestDefinitionDomainService(
                     new QuestContentRuleService(
-                        new Quests(definition), new InventedQuestParameters())),
+                        new Quests(definition), parameters ?? new InventedQuestParameters()),
+                    new QuestRewardRuleService()),
                 new CharacterQuestLogDomainService(
                     new SqliteQuestDomainStore(this.Path), new AmbientStoreAccess(this.Scope)),
-                new CharacterContainerDomainService(),
-                new CharacterExperienceDomainService(this.Characters, new FixedProgression()));
+                containers ?? new CharacterContainerDomainService(),
+                new CharacterExperienceDomainService(this.Characters, new FixedProgression()),
+                CurrentCharacterStub.Domain(this.Current));
 
         /// <summary>Puts the quest in the carried list with its objective already at that value.</summary>
         public async Task CarryAsync(int questId, int triggerValue)
@@ -219,7 +417,8 @@ public sealed class FinishQuestCommandHandlerTests
             await using var boundary = this.Scope.Begin();
             var outcome = await handler.HandleAsync(
                 Transactional,
-                new FinishQuestCommand(Account, Character, questId, AcquiredAtUnixTime: 0),
+                new FinishQuestCommand(
+                    Account, Character, questId, ushort.MaxValue, 1, AcquiredAtUnixTime: 0),
                 CancellationToken.None);
             await boundary.CommitAsync(CancellationToken.None);
             return outcome;
@@ -240,11 +439,126 @@ public sealed class FinishQuestCommandHandlerTests
             return ValueTask.CompletedTask;
         }
 
-        private static SqliteConnection Open(string path)
+        internal static SqliteConnection Open(string path)
         {
             var connection = new SqliteConnection($"Data Source={path}");
             connection.Open();
             return connection;
+        }
+    }
+
+    private static async Task<long> CountAsync(SqliteConnection connection, string table)
+    {
+        await using var command = connection.CreateCommand();
+        var questColumn = table == "character_active_quests" ? "quest_id" : "slot_index";
+        command.CommandText = $"SELECT COUNT(*) FROM {table} WHERE character_id=60 AND {questColumn}={QuestId}";
+        return (long)(await command.ExecuteScalarAsync() ?? 0L);
+    }
+
+    private static async Task<long> ScalarAsync(SqliteConnection connection, string sql)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        return Convert.ToInt64(await command.ExecuteScalarAsync());
+    }
+
+    private sealed class RejectingContainer : IItemContainer
+    {
+        public ContainerId Id => new("rejecting");
+        public InventoryContainerType Type => InventoryContainerType.Main;
+        public ContainerShape Shape => new(Type, 56);
+        public bool IsRemovable => false;
+        public ValueTask<ItemPlacementOutcome> AddAsync(int itemId, int count, CancellationToken token) =>
+            ValueTask.FromResult<ItemPlacementOutcome>(new ItemPlacementOutcome.NoRoom());
+        public ValueTask<ContainerSlotItem?> ReadSlotAsync(int slot, CancellationToken token) => throw new NotSupportedException();
+        public ValueTask<ContainerSlotPair> ReadSlotsAsync(int first, int second, CancellationToken token) => throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken token) => throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(CancellationToken token) => throw new NotSupportedException();
+        public ValueTask PutAsync(int slot, InventoryItemCoreState core, CancellationToken token) => throw new NotSupportedException();
+        public ValueTask ClearAsync(int slot, CancellationToken token) => throw new NotSupportedException();
+        public ValueTask<ItemPlacementOutcome> RefillAsync(ItemRefill refill, CancellationToken token) => throw new NotSupportedException();
+        public ValueTask<ItemMoveOutcome> MoveToAsync(int from, int to, int count, CancellationToken token) => throw new NotSupportedException();
+    }
+
+    private sealed class KnownRewardPlacement : IItemPlacementDefinitionSource
+    {
+        public ValueTask<ItemPlacement?> GetAsync(
+            int itemId,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ItemPlacement?>(new ItemPlacement(2, 100, 65, 120));
+    }
+
+    private sealed class NoWearables : IEquipmentSlotDefinitionSource
+    {
+        public ValueTask<byte?> GetAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<byte?>(null);
+    }
+
+    private sealed class PersistentSettlementCharacter(ICharacterCarriedGoldTable gold) : ICharacter
+    {
+        public CharacterId Id => Character;
+
+        public ValueTask<CharacterIdentityState?> IdentityAsync(CancellationToken token) =>
+            ValueTask.FromResult<CharacterIdentityState?>(
+                new CharacterIdentityState(Character, 0, [65], 0, 0));
+
+        public ValueTask<CharacterProgressionState?> ProgressAsync(CancellationToken token) =>
+            ValueTask.FromResult<CharacterProgressionState?>(new CharacterProgressionState(1, 1000));
+
+        public async ValueTask<int> GoldAsync(CancellationToken token) =>
+            (await gold.FindAsync(Character, token)
+                ?? throw new InvalidOperationException("the persisted gold row is missing")).Carried;
+
+        public ValueTask<int> AddGoldAsync(int amount, CancellationToken token) =>
+            gold.AddAsync(Character, amount, int.MaxValue, token);
+
+        public async ValueTask<int?> TrySpendGoldAsync(int amount, CancellationToken token) =>
+            await gold.TryTakeAsync(Character, amount, token);
+
+        public ValueTask<CharacterBaseStats?> BaseStatsAsync(CancellationToken token) =>
+            throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<CharacterLearnedSkillPage>?> LearnedSkillsAsync(
+            CancellationToken token) => throw new NotSupportedException();
+        public ValueTask<CharacterSkillPointLedger?> SkillPointLedgerAsync(CancellationToken token) =>
+            throw new NotSupportedException();
+        public ValueTask<CharacterSkillProtocolMirrorState?> RemainingSkillPointsAsync(
+            CancellationToken token) => throw new NotSupportedException();
+        public ValueTask<ItemUsability> CanUseAsync(int itemId, CancellationToken token) =>
+            throw new NotSupportedException();
+    }
+
+    private sealed class FailAfterExperienceWrite(
+        ICharacterExperienceDomainService inner,
+        ICharacterTable rows,
+        ICharacter character,
+        IItemContainer bag)
+        : ICharacterExperienceDomainService
+    {
+        public bool SawAllPriorWrites { get; private set; }
+
+        public uint? ThresholdForLevel(byte level) => inner.ThresholdForLevel(level);
+
+        public ValueTask<bool> TrySetProgressAsync(
+            CharacterId characterId,
+            byte level,
+            uint experience,
+            CancellationToken cancellationToken) =>
+            inner.TrySetProgressAsync(characterId, level, experience, cancellationToken);
+
+        public async ValueTask<ExperienceAward?> AwardAsync(
+            CharacterId characterId,
+            Func<byte, ExperienceValuation> valuation,
+            CancellationToken cancellationToken)
+        {
+            var award = await inner.AwardAsync(characterId, valuation, cancellationToken);
+            Assert.NotNull(award);
+            Assert.Equal(1101L, (await rows.FindProgressAsync(characterId, cancellationToken))?.Experience);
+            Assert.Equal(87, await character.GoldAsync(cancellationToken));
+            Assert.Contains(
+                await bag.ReadAllAsync(cancellationToken),
+                item => item.ItemId == 101010437 && item.Count == 1);
+            this.SawAllPriorWrites = true;
+            throw new InvalidOperationException("injected failure after the real experience write");
         }
     }
 

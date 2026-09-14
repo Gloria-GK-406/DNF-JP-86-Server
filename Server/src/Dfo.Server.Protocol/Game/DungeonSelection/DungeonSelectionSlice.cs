@@ -366,6 +366,7 @@ public sealed class EnterSelectDungeonHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
     IDungeonVisitDomainService visits,
+    IDungeonEntryIntentDomainService entryIntents,
     IGameMessageSender sender,
     ILogger<EnterSelectDungeonHandler> logger)
     : ClientMessageHandler<EnterSelectDungeonRequest>
@@ -391,12 +392,17 @@ public sealed class EnterSelectDungeonHandler(
         }
 
         var spawn = result.World.Channel.Spawn;
+        var intent = message.Selection == 0
+            ? DungeonEntryIntent.Interactive
+            : DungeonEntryIntent.Directed(message.Selection);
+        entryIntents.Record(session, intent);
         logger.LogInformation(
-            "Enter select dungeon {ConnectionId} user={WireUserId}: selection={Selection} "
+            "Enter select dungeon {ConnectionId} user={WireUserId}: selection={Selection} intent={Intent} "
                 + "town={TownId} area={AreaId}->0xFF pos=({X},{Y})",
             context.Connection.ConnectionId,
             session.WireUserId,
             message.Selection,
+            intent,
             spawn.TownId,
             spawn.AreaId,
             spawn.X,

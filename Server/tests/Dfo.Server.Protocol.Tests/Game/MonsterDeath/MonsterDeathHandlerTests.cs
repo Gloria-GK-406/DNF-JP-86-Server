@@ -135,12 +135,76 @@ public sealed class MonsterDeathHandlerTests
         Assert.Equal([typeof(ExperienceNotification), typeof(MonsterDeathNotification)], sent.Select(frame => frame.GetType()));
     }
 
+    [Fact]
+    public async Task AVerifiedFirstDeathProducesOneCanonicalQuestKillFact()
+    {
+        var bus = new FixedKillAward(leveledUp: false);
+
+        await Kill(bus: bus);
+
+        var fact = Assert.IsType<ApplyMonsterKillCommand>(bus.LastKillCommand);
+        Assert.Equal(144, fact.DungeonId);
+        Assert.Equal(3001, fact.Monster.Code);
+        Assert.Equal(0, (int)fact.Monster.Rank);
+        Assert.Equal(1, bus.QuestCommands);
+    }
+
+    [Fact]
+    public async Task AFailedDurableKillCanBeRetriedWithoutDoubleApplyingIt()
+    {
+        var run = new OneRun();
+        var bus = new FixedKillAward(leveledUp: false, failuresBeforeSuccess: 1);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await Kill(bus: bus, run: run));
+        var sent = await Kill(bus: bus, run: run);
+
+        Assert.Equal(1, run.Restores);
+        Assert.Equal(2, bus.TimesAsked);
+        Assert.Single(sent.OfType<MonsterDeathNotification>());
+    }
+
+    [Fact]
+    public async Task AnAiCharacterDeathProducesOnlyOneServerVerifiedAiQuestFact()
+    {
+        var run = new OneRun();
+        var bus = new FixedKillAward(
+            leveledUp: false,
+            awarded: false,
+            failuresBeforeSuccess: 1);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await Kill(
+                bus: bus,
+                run: run,
+                killRules: new OneDeclaredAiCharacter(),
+                dropService: new DropsMustNotBeRolled()));
+        var sent = await Kill(
+            bus: bus,
+            run: run,
+            killRules: new OneDeclaredAiCharacter(),
+            dropService: new DropsMustNotBeRolled());
+        await Kill(
+            bus: bus,
+            run: run,
+            killRules: new OneDeclaredAiCharacter(),
+            dropService: new DropsMustNotBeRolled());
+
+        Assert.Equal(1, run.Restores);
+        Assert.Equal(2, bus.TimesAsked);
+        Assert.Equal(HuntEnemyTargetTypes.AiCharacter, bus.LastKillCommand?.EnemyType);
+        Assert.Single(sent.OfType<MonsterDeathNotification>());
+    }
+
     private static async Task<IReadOnlyList<IGameServerMessage>> Kill(
         bool leveledUp = false,
         SkillPointLedger? ledger = null,
         FixedKillAward? bus = null,
         bool withLedger = true,
-        StubWorldContentEntryRuleService? content = null)
+        StubWorldContentEntryRuleService? content = null,
+        OneRun? run = null,
+        IMonsterKillDomainService? killRules = null,
+        IMonsterDropService? dropService = null)
     {
         var session = SelectedSessionIdentity.Create(
             new AccountId(1),
@@ -154,9 +218,10 @@ public sealed class MonsterDeathHandlerTests
             new OneSession(session),
             new OneRuntimeSession(ExperienceFrameEntry.At(StartingLevel, StartingExperience)),
             new OnePlayingCharacter(ledger ?? new SkillPointLedger(withLedger)),
-            new OneRun(),
-            new OneDeclaredMonster(),
-            new NothingDropped(),
+            run ?? new OneRun(),
+            killRules ?? new OneDeclaredMonster(),
+            dropService ?? new NothingDropped(),
+            new AlwaysCompleteSettlementRules(),
             bus ?? new FixedKillAward(leveledUp),
             new QuestOfferRefreshDomainService(
                 content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
@@ -180,27 +245,51 @@ public sealed class MonsterDeathHandlerTests
     /// <see cref="GrantKillExperienceCommandTests"/>. What is checked here is what the handler
     /// does with the answer.
     /// </remarks>
-    private sealed class FixedKillAward(bool leveledUp, bool awarded = true) : ICommandBus
+    private sealed class FixedKillAward(
+        bool leveledUp,
+        bool awarded = true,
+        int failuresBeforeSuccess = 0) : ICommandBus
     {
+        private int _remainingFailures = failuresBeforeSuccess;
+
         /// <summary>How many times the kill was priced, which a repeated death would raise.</summary>
         public int TimesAsked { get; private set; }
+
+        public int QuestCommands { get; private set; }
+
+        public ApplyMonsterKillCommand? LastKillCommand { get; private set; }
 
         public ValueTask<TResult> SendAsync<TResult>(
             ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull
         {
-            Assert.IsType<GrantKillExperienceCommand>(command);
+            var kill = Assert.IsType<ApplyMonsterKillCommand>(command);
+            this.QuestCommands++;
+            this.LastKillCommand = kill;
             this.TimesAsked++;
-            var result = new KillExperienceResult(
+            if (this._remainingFailures-- > 0)
+                throw new InvalidOperationException("injected durable kill failure");
+            var result = new ApplyMonsterKillResult(
                 awarded ? new ExperienceAward(
                     Base: KillGain,
                     Contributions: [],
                     Gained: KillGain,
                     Level: leveledUp ? (byte)(StartingLevel + 1) : StartingLevel,
                     Total: StartingExperience + KillGain,
-                    LeveledUp: leveledUp) : null);
+                    LeveledUp: leveledUp) : null,
+                []);
             return ValueTask.FromResult((TResult)(object)result);
         }
+    }
+
+    private sealed class AlwaysCompleteSettlementRules : IDungeonSettlementRuleService
+    {
+        public ValueTask<DungeonSettlementRules> ForAsync(
+            AccountId accountId,
+            CharacterId characterId,
+            DungeonRunState run,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult(new DungeonSettlementRules(true, run.Layout.Purpose.IsQuestLinked));
     }
 
     /// <summary>A room that declares exactly the monster the client says it killed.</summary>
@@ -220,12 +309,38 @@ public sealed class MonsterDeathHandlerTests
                 "These kills happen in the start room, which no exit hangs off.");
     }
 
+    private sealed class OneDeclaredAiCharacter : IMonsterKillDomainService
+    {
+        public ValueTask<KillIdentification> IdentifyAsync(
+            DungeonRunState run, ushort actorSequence, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(
+                new KillIdentification(
+                    new IdentifiedKill(
+                        Code: 3001,
+                        Level: 4,
+                        Rank: MonsterRank.Ordinary,
+                        IsMonster: false),
+                    DeclaredCount: 1));
+
+        public ValueTask<bool> IsCurrentRoomClearedAsync(
+            DungeonRunState run, CancellationToken cancellationToken) =>
+            throw new NotSupportedException(
+                "These deaths happen in the start room, which no exit hangs off.");
+    }
+
     /// <summary>A kill that put nothing on the floor, which is what most kills are.</summary>
     private sealed class NothingDropped : IMonsterDropService
     {
         public ValueTask<IReadOnlyList<MonsterDrop>> ForKillAsync(
             MonsterKill kill, CancellationToken cancellationToken) =>
             ValueTask.FromResult<IReadOnlyList<MonsterDrop>>([]);
+    }
+
+    private sealed class DropsMustNotBeRolled : IMonsterDropService
+    {
+        public ValueTask<IReadOnlyList<MonsterDrop>> ForKillAsync(
+            MonsterKill kill, CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("AI character deaths must not roll drops.");
     }
 
     /// <summary>
@@ -239,6 +354,9 @@ public sealed class MonsterDeathHandlerTests
     private sealed class OneRun : IDungeonRunDomainService
     {
         private bool _reported;
+        private long _claimToken;
+
+        public int Restores { get; private set; }
 
         private static readonly DungeonLayout Layout = new(
             DungeonId: 144,
@@ -274,6 +392,31 @@ public sealed class MonsterDeathHandlerTests
             TakenGroundDrops: new HashSet<GroundDropId>(),
             DeadActors: new HashSet<RoomActorId>(),
             StartedAt: DateTimeOffset.UnixEpoch);
+
+        public DungeonActorDeathClaim? TryClaimActorDeath(
+            CharacterId characterId,
+            ushort actorSequence)
+        {
+            var run = this.TryReportActorDead(characterId, actorSequence);
+            return run is null
+                ? null
+                : new DungeonActorDeathClaim(
+                    characterId,
+                    run,
+                    new RoomActorId(run.CurrentCell, actorSequence),
+                    ++this._claimToken);
+        }
+
+        public DungeonRunState? CommitActorDeath(DungeonActorDeathClaim claim) => claim.Run;
+
+        public bool ReleaseActorDeath(DungeonActorDeathClaim claim)
+        {
+            if (!this._reported || claim.Token != this._claimToken)
+                return false;
+            this._reported = false;
+            this.Restores++;
+            return true;
+        }
 
         public DungeonRunState? TrySettle(CharacterId characterId) =>
             throw new NotSupportedException("This fixture only answers.");

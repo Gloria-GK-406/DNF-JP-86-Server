@@ -144,6 +144,43 @@ public sealed class PvfDungeonDefinitionSourceTests
         Assert.Equal(5, dungeon.BasisLevel);
     }
 
+    [SkippableFact]
+    public async Task Dungeon144PreservesTheQuest1776MazeConnection()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfDungeonDefinitionSource(provider);
+
+        var dungeon = await source.GetAsync(144, CancellationToken.None);
+
+        Assert.NotNull(dungeon);
+        var connected = Assert.Single(
+            dungeon!.Mazes,
+            maze => maze.QuestConnection == new DungeonQuestConnection(
+                DungeonQuestConnectionState.Active, 1776, -1));
+        Assert.Equal(1, connected.Index);
+        Assert.Contains(dungeon.Mazes, maze => maze.QuestConnection is null);
+    }
+
+    [Fact]
+    public void AQuestConnectionWithoutDifficultyAppliesToEveryDifficulty()
+    {
+        var connection = PvfDungeonDefinitionSource.ProjectQuestConnection([0, 1776]);
+
+        Assert.Equal(
+            new DungeonQuestConnection(DungeonQuestConnectionState.Active, 1776, -1),
+            connection);
+    }
+
+    [Theory]
+    [InlineData()]
+    [InlineData(0)]
+    [InlineData(0, 1776, -1, 9)]
+    public void UnknownQuestConnectionShapesAreNotProjected(params int[] values)
+    {
+        Assert.Null(PvfDungeonDefinitionSource.ProjectQuestConnection(values));
+    }
+
     /// <summary>A weight written as a whole number rather than as a decimal.</summary>
     /// <remarks>
     /// Both forms are real, and reading only the decimal one left every dungeon using the other at

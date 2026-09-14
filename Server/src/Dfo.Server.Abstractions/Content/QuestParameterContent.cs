@@ -32,7 +32,8 @@ public sealed record QuestParameters(
     int GreenPenaltyPercent,
     int GreyPenaltyPercent,
     int EpicGreenPenaltyPercent,
-    int EpicGreyPenaltyPercent)
+    int EpicGreyPenaltyPercent,
+    IReadOnlyList<int>? GoldByLevel = null)
 {
     /// <summary>What an unlisted difficulty letter is worth.</summary>
     public const int DefaultDifficultyPermille = 10;
@@ -96,6 +97,21 @@ public sealed record QuestParameters(
         > 6 => isEpic ? this.EpicGreenPenaltyPercent : this.GreenPenaltyPercent,
         _ => 100,
     };
+
+    public uint GoldFor(
+        int characterLevel, int rewardLevel, int multiplier, bool ignoreLevel)
+    {
+        var values = this.GoldByLevel ?? [];
+        var lookupIndex = ignoreLevel ? characterLevel - 1 : rewardLevel;
+        if (lookupIndex < 0 || lookupIndex >= values.Count || values[lookupIndex] <= 0)
+            return 0;
+
+        var effectiveMultiplier = multiplier > 0 ? multiplier : 100;
+        var penalty = ignoreLevel
+            ? 100
+            : this.PenaltyPercentFor(characterLevel - rewardLevel, isEpic: false);
+        return checked((uint)(effectiveMultiplier * ((long)penalty * values[lookupIndex] / 100L) / 100L));
+    }
 }
 
 /// <summary>The archive's shared quest-reward parameters.</summary>

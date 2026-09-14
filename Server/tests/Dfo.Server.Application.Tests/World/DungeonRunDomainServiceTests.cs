@@ -126,6 +126,22 @@ public sealed class DungeonRunDomainServiceTests
         Assert.Null(service.TryReportActorDead(Character, FirstSequence));
     }
 
+    [Fact]
+    public void AFailedDurableKillCanReleaseItsDeathClaimForOneRetry()
+    {
+        var service = new DungeonRunDomainService();
+        service.Begin(Character, Tutorial, difficulty: 0);
+        var claimed = service.TryClaimActorDeath(Character, FirstSequence);
+        Assert.NotNull(claimed);
+
+        Assert.True(service.ReleaseActorDeath(claimed!));
+        var retry = service.TryClaimActorDeath(Character, FirstSequence);
+        Assert.NotNull(retry);
+        Assert.False(service.ReleaseActorDeath(claimed));
+        Assert.NotNull(service.CommitActorDeath(retry!));
+        Assert.Null(service.TryClaimActorDeath(Character, FirstSequence));
+    }
+
     /// <summary>Every cell of the maze is one of the three kinds, and only one.</summary>
     [Fact]
     public void The_layout_says_what_each_of_its_rooms_is_for()

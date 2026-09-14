@@ -66,16 +66,29 @@ public sealed class GrantKillExperienceCommandHandler(
                 + $"registered transactional; this execution is {context.ExecutionKind}.");
         }
 
-        // The character's level decides what the kill is worth, and the grant is what knows it.
-        // Valuing inside the grant's callback is what keeps the two from disagreeing.
         return new KillExperienceResult(
-            await grant.AwardAsync(
-                command.CharacterId,
-                characterLevel => this.Value(command, characterLevel),
-                cancellationToken).ConfigureAwait(false));
+            await AwardAsync(valuation, bonuses, grant, command, cancellationToken)
+                .ConfigureAwait(false));
     }
 
-    private ExperienceValuation Value(GrantKillExperienceCommand command, byte characterLevel)
+    internal static ValueTask<ExperienceAward?> AwardAsync(
+        IExperienceValuationDomainService valuation,
+        IExperienceBonusDomainService bonuses,
+        ICharacterExperienceDomainService grant,
+        GrantKillExperienceCommand command,
+        CancellationToken cancellationToken) =>
+        // The character's level decides what the kill is worth, and the grant is what knows it.
+        // Valuing inside the grant's callback is what keeps the two from disagreeing.
+        grant.AwardAsync(
+            command.CharacterId,
+            characterLevel => Value(valuation, bonuses, command, characterLevel),
+            cancellationToken);
+
+    private static ExperienceValuation Value(
+        IExperienceValuationDomainService valuation,
+        IExperienceBonusDomainService bonuses,
+        GrantKillExperienceCommand command,
+        byte characterLevel)
     {
         var worth = valuation.WorthOfKill(
             new KillCircumstances(

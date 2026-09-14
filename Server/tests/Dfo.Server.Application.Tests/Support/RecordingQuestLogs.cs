@@ -24,6 +24,8 @@ internal sealed class RecordingQuestLogs : ICharacterQuestLogDomainService
     /// <summary>What each character is carrying, seeded by the test and changed by the log.</summary>
     public Dictionary<int, List<CarriedQuest>> Carried { get; } = [];
 
+    public Dictionary<int, List<ClearedQuest>> Cleared { get; } = [];
+
     /// <summary>Every progress change asked for, whole, in the order it was asked for.</summary>
     public List<(CarriedQuest AsLastSeen, int TriggerValue)> ProgressWrites { get; } = [];
 
@@ -39,6 +41,17 @@ internal sealed class RecordingQuestLogs : ICharacterQuestLogDomainService
         }
 
         return held;
+    }
+
+    private List<ClearedQuest> Finished(CharacterId characterId)
+    {
+        if (!this.Cleared.TryGetValue(characterId.Value, out var finished))
+        {
+            finished = [];
+            this.Cleared.Add(characterId.Value, finished);
+        }
+
+        return finished;
     }
 
     private sealed class Log(RecordingQuestLogs logs, CharacterId characterId) : IQuestLog
@@ -57,7 +70,8 @@ internal sealed class RecordingQuestLogs : ICharacterQuestLogDomainService
 
         public ValueTask<IReadOnlyList<ClearedQuest>> ClearedAsync(
             CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<ClearedQuest>>([]);
+            ValueTask.FromResult<IReadOnlyList<ClearedQuest>>(
+                [.. logs.Finished(characterId)]);
 
         public ValueTask<IReadOnlyList<int>> TrackedAsync(CancellationToken cancellationToken) =>
             ValueTask.FromResult<IReadOnlyList<int>>([]);

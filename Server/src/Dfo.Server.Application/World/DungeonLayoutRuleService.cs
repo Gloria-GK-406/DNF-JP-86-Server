@@ -31,7 +31,10 @@ internal sealed class DungeonLayoutRuleService(IDungeonDefinitionSource dungeons
         if (definition is null)
             return null;
 
-        var maze = SelectMaze(definition, seed);
+        var candidate = SelectMaze(definition, facts, seed);
+        if (candidate is null)
+            return null;
+        var (maze, purpose) = candidate.Value;
         var startCell = Choose(maze.StartCandidates, seed, salt: 1);
         var bossCell = Choose(maze.BossCandidates, seed, salt: 2);
 
@@ -56,21 +59,69 @@ internal sealed class DungeonLayoutRuleService(IDungeonDefinitionSource dungeons
             seed,
             maze.Rooms,
             definition.BasisLevel,
-            definition.ExperienceWeight);
+            definition.ExperienceWeight,
+            purpose);
     }
 
     /// <remarks>
-    /// One maze is the ordinary case and needs no choice. Where a dungeon declares several, the
-    /// reference server filters them by the quests the character carries and by difficulty; that
-    /// rule has not been read out of it yet, so the choice here is made from the seed alone and
-    /// the facts are deliberately unused. The consequence is bounded and known: a quest-linked
-    /// maze can be chosen that the character's quest did not ask for. It does not reach the
-    /// tutorial, which declares one maze. Recorded in Docs/DungeonEntryNotes.md.
+    /// Candidate partition precedes random choice. An interactive entry sees only ordinary mazes;
+    /// a directed entry sees only quest connections its active/cleared state and difficulty make
+    /// eligible. The seed therefore varies a layout only inside one semantic candidate set and
+    /// cannot turn an ordinary entry into a quest run.
     /// </remarks>
-    private static MazeDefinition SelectMaze(DungeonDefinition definition, int seed) =>
-        definition.Mazes.Count == 1
-            ? definition.Mazes[0]
-            : definition.Mazes[(int)(Mix(seed, salt: 0) % (uint)definition.Mazes.Count)];
+    private static (MazeDefinition Maze, DungeonRunPurpose Purpose)? SelectMaze(
+        DungeonDefinition definition,
+        DungeonEntryFacts facts,
+        int seed)
+    {
+        var connected = definition.Mazes
+            .Select(maze => (Maze: maze, Connection: maze.QuestConnection ?? definition.QuestConnection))
+            .Where(candidate => candidate.Connection is not null)
+            .ToArray();
+
+        if (facts.Intent.Kind == DungeonEntryIntentKind.Interactive)
+        {
+            var ordinary = definition.Mazes
+                .Where(maze => maze.QuestConnection is null && definition.QuestConnection is null)
+                .ToArray();
+            return ChooseMaze(ordinary, seed, DungeonRunPurpose.Ordinary);
+        }
+
+        if (facts.Intent.DirectedDungeonId != definition.DungeonId)
+            return null;
+
+        if (connected.Length == 0)
+            return ChooseMaze(definition.Mazes, seed, DungeonRunPurpose.Ordinary);
+
+        var eligible = connected
+            .Where(candidate => IsEligible(candidate.Connection!, facts))
+            .ToArray();
+        if (eligible.Length == 0)
+            return null;
+
+        var selected = eligible[(int)(Mix(seed, salt: 0) % (uint)eligible.Length)];
+        return (
+            selected.Maze,
+            DungeonRunPurpose.QuestLinked(
+                selected.Connection!.QuestId,
+                selected.Connection.State));
+    }
+
+    private static (MazeDefinition Maze, DungeonRunPurpose Purpose)? ChooseMaze(
+        IReadOnlyList<MazeDefinition> candidates,
+        int seed,
+        DungeonRunPurpose purpose) =>
+        candidates.Count == 0
+            ? null
+            : (candidates[(int)(Mix(seed, salt: 0) % (uint)candidates.Count)], purpose);
+
+    private static bool IsEligible(
+        DungeonQuestConnection connection,
+        DungeonEntryFacts facts) =>
+        (connection.MinimumDifficulty < 0 || facts.Difficulty >= connection.MinimumDifficulty)
+        && (connection.State == DungeonQuestConnectionState.Active
+            ? facts.ActiveQuestIds.Contains(connection.QuestId)
+            : facts.ClearedQuestIds.Contains(connection.QuestId));
 
     private static MazeCell Choose(IReadOnlyList<MazeCell> candidates, int seed, int salt) =>
         candidates.Count switch

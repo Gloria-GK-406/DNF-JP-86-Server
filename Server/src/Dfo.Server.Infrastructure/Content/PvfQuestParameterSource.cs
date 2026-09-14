@@ -32,6 +32,7 @@ internal sealed class PvfQuestParameterSource(PvfArchiveProvider provider) : IQu
     private QuestParameters Read()
     {
         var experience = new List<int>();
+        var gold = new List<int>();
         var difficulty = new Dictionary<char, int>();
         var penalties = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         string? section = null;
@@ -77,6 +78,11 @@ internal sealed class PvfQuestParameterSource(PvfArchiveProvider provider) : IQu
                 if (token.Value >= 0)
                     experience.Add(token.Value);
             }
+            else if (IsSection(section, "[gold reward table]"))
+            {
+                if (token.Value >= 0)
+                    gold.Add(token.Value);
+            }
             else if (IsPenalty(section))
             {
                 penalties.TryAdd(section, token.Value);
@@ -97,7 +103,8 @@ internal sealed class PvfQuestParameterSource(PvfArchiveProvider provider) : IQu
             Penalty(penalties, "[green level penalty]", 80),
             Penalty(penalties, "[grey level penalty]", 30),
             Penalty(penalties, "[epic green level penalty]", 120),
-            Penalty(penalties, "[epic grey level penalty]", 140));
+            Penalty(penalties, "[epic grey level penalty]", 140),
+            gold);
     }
 
     private static bool IsSection(string section, string name) =>

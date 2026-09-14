@@ -518,6 +518,52 @@ public sealed class QuestLogTests
             [new CarriedQuest(0, 2000, 5)], await log.CarriedAsync(CancellationToken.None));
     }
 
+    [Fact]
+    public async Task Quest1776PassiveObjectReportMovesOnlyItsDeclaredChannel()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var log = fixture.Log();
+        var quest = Quest(1776, trigger: 1, objective: "hunt enemy") with
+        {
+            HuntEnemyRequirements =
+            [
+                new HuntEnemyRequirement(
+                    144, -1, 13099, HuntEnemyTargetTypes.PassiveObject, 1),
+            ],
+        };
+        await log.AcceptAsync(quest, CancellationToken.None);
+
+        var advance = await log.AdvanceAsync(
+            quest, selector: 0x10, increment: false, CancellationToken.None);
+
+        Assert.Equal(QuestAdvanceVerdict.Advanced, advance.Verdict);
+        Assert.Equal(new QuestTrigger(0), advance.Trigger);
+        Assert.Equal(
+            [new CarriedQuest(0, 1776, 0)], await log.CarriedAsync(CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task AClientReportCannotMoveAServerCountedHuntEnemyMonsterTarget()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var log = fixture.Log();
+        var quest = Quest(2001, trigger: 1, objective: "hunt enemy") with
+        {
+            HuntEnemyRequirements =
+            [
+                new HuntEnemyRequirement(
+                    144, -1, 13099, HuntEnemyTargetTypes.Monster, 1),
+            ],
+        };
+        await log.AcceptAsync(quest, CancellationToken.None);
+
+        var advance = await log.AdvanceAsync(
+            quest, selector: 0x10, increment: false, CancellationToken.None);
+
+        Assert.Equal(QuestAdvanceVerdict.Unchanged, advance.Verdict);
+        Assert.Equal(new QuestTrigger(1), advance.Trigger);
+    }
+
     /// <remarks>
     /// An item-seeking quest's progress is a count of what is in the bag, which this log does not
     /// read. It says so with its own verdict rather than passing for an ordinary no-change: the

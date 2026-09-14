@@ -130,6 +130,57 @@ public sealed class DungeonLayoutRuleServiceTests
         }
     }
 
+    [Fact]
+    public async Task AnActiveQuestDoesNotUpgradeAnInteractiveOrdinaryEntry()
+    {
+        var service = Service(MixedQuestMazes());
+        var facts = new DungeonEntryFacts(
+            0,
+            [1776],
+            [],
+            DungeonEntryIntent.Interactive);
+
+        var layout = await service.ResolveAsync(144, facts, seed: 1, default);
+
+        Assert.NotNull(layout);
+        Assert.Equal(0, layout!.MazeIndex);
+        Assert.Equal(DungeonRunPurpose.Ordinary, layout.Purpose);
+    }
+
+    [Fact]
+    public async Task ADirectedEntryUsesTheEligibleActiveQuestMazeAndFreezesItsPurpose()
+    {
+        var service = Service(MixedQuestMazes());
+        var facts = new DungeonEntryFacts(
+            0,
+            [1776],
+            [],
+            DungeonEntryIntent.Directed(144));
+
+        var layout = await service.ResolveAsync(144, facts, seed: 1, default);
+
+        Assert.NotNull(layout);
+        Assert.Equal(1, layout!.MazeIndex);
+        Assert.Equal(
+            DungeonRunPurpose.QuestLinked(
+                1776,
+                DungeonQuestConnectionState.Active),
+            layout.Purpose);
+    }
+
+    [Fact]
+    public async Task ADirectedEntryWithConnectionsButNoEligibleQuestIsRefused()
+    {
+        var service = Service(MixedQuestMazes());
+        var facts = new DungeonEntryFacts(
+            0,
+            [],
+            [],
+            DungeonEntryIntent.Directed(144));
+
+        Assert.Null(await service.ResolveAsync(144, facts, seed: 1, default));
+    }
+
     private static IDungeonLayoutRuleService Service(DungeonDefinition definition) =>
         new DungeonLayoutRuleService(new StubDungeonSource(definition));
 
@@ -149,6 +200,32 @@ public sealed class DungeonLayoutRuleServiceTests
         return new DungeonDefinition(
             1, "dungeon/Many.dgn", 1, true,
             [new MazeDefinition(0, 5, 1, rooms, candidates, candidates)]);
+    }
+
+    private static DungeonDefinition MixedQuestMazes()
+    {
+        MazeDefinition Maze(int index, DungeonQuestConnection? connection = null) =>
+            new(
+                index,
+                1,
+                1,
+                new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 55600 + index },
+                [new MazeCell(0, 0)],
+                [new MazeCell(0, 0)],
+                connection);
+
+        return new DungeonDefinition(
+            144,
+            "dungeon/mixed.dgn",
+            1,
+            true,
+            [
+                Maze(0),
+                Maze(1, new DungeonQuestConnection(
+                    DungeonQuestConnectionState.Active, 1776, -1)),
+                Maze(2, new DungeonQuestConnection(
+                    DungeonQuestConnectionState.Cleared, 1776, -1)),
+            ]);
     }
 
     private sealed class StubDungeonSource(DungeonDefinition definition) : IDungeonDefinitionSource

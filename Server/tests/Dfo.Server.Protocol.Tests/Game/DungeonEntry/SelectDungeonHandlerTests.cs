@@ -66,6 +66,61 @@ public sealed class SelectDungeonHandlerTests
         Assert.Equal([ClearedInLog], facts.ClearedQuestIds);
     }
 
+    [Fact]
+    public async Task DirectedSelectionContextIsPassedToTheEntryRule()
+    {
+        var visits = new RecordingVisits();
+        var handler = Handler(
+            visits,
+            intent: DungeonEntryIntent.Directed(TutorialDungeonId));
+
+        await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
+
+        Assert.Equal(
+            DungeonEntryIntent.Directed(TutorialDungeonId),
+            Assert.Single(visits.Facts).Intent);
+    }
+
+    [Fact]
+    public async Task MissingSelectionContextIsRefusedWithoutReadingQuestState()
+    {
+        var visits = new RecordingVisits();
+        var sender = new RecordingSender();
+        var handler = new SelectDungeonHandler(
+            Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
+            new OneSession(Identity),
+            new OneRuntimeSession(Entry()),
+            new IntentStore(null),
+            visits,
+            new OneLog(new UnaskedLog()),
+            new RecordingFatigue(),
+            sender,
+            NullLogger<SelectDungeonHandler>.Instance);
+
+        await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
+
+        Assert.Empty(visits.Facts);
+        var refusal = Assert.IsType<SelectDungeonRefusal>(Assert.Single(sender.Sent));
+        Assert.Equal(SelectDungeonRefusal.InvalidSelectionState, refusal.ErrorCode);
+    }
+
+    [Fact]
+    public async Task DirectedSelectionForAnotherDungeonIsRefused()
+    {
+        var visits = new RecordingVisits();
+        var sender = new RecordingSender();
+        var handler = Handler(
+            visits,
+            sender,
+            intent: DungeonEntryIntent.Directed(TutorialDungeonId + 1));
+
+        await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
+
+        Assert.Empty(visits.Facts);
+        var refusal = Assert.IsType<SelectDungeonRefusal>(Assert.Single(sender.Sent));
+        Assert.Equal(SelectDungeonRefusal.InvalidSelectionState, refusal.ErrorCode);
+    }
+
     /// <summary>
     /// Everything else about the entry is unchanged: the difficulty asked for reaches the run, and
     /// the same four frames answer it in the same order.
@@ -163,6 +218,7 @@ public sealed class SelectDungeonHandlerTests
         var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
             new OneSession(Identity),
             new OneRuntimeSession(Entry()),
+            new IntentStore(DungeonEntryIntent.Interactive),
             new RefusingVisits(),
             new OneLog(new StandInLog([], [])),
             fatigue,
@@ -195,6 +251,7 @@ public sealed class SelectDungeonHandlerTests
         var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
             new NoSession(),
             new OneRuntimeSession(Entry()),
+            new IntentStore(DungeonEntryIntent.Interactive),
             visits,
             new OneLog(new UnaskedLog()),
             fatigue,
@@ -220,6 +277,7 @@ public sealed class SelectDungeonHandlerTests
         var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
             new NoSession(),
             new OneRuntimeSession(Entry()),
+            new IntentStore(DungeonEntryIntent.Interactive),
             visits,
             new OneLog(new UnaskedLog()),
             new RecordingFatigue(),
@@ -257,11 +315,13 @@ public sealed class SelectDungeonHandlerTests
         RecordingVisits visits,
         RecordingSender? sender = null,
         OneLog? logs = null,
-        RecordingFatigue? fatigue = null) =>
+        RecordingFatigue? fatigue = null,
+        DungeonEntryIntent? intent = null) =>
         new(
             Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
             new OneSession(Identity),
             new OneRuntimeSession(Entry()),
+            new IntentStore(intent ?? DungeonEntryIntent.Interactive),
             visits,
             logs ?? new OneLog(new StandInLog(
                 [
@@ -423,6 +483,27 @@ public sealed class SelectDungeonHandlerTests
             Assert.Equal(Identity.AccountId, accountId);
             Assert.Equal(Identity.CharacterId, characterId);
             return log;
+        }
+    }
+
+    private sealed class IntentStore(DungeonEntryIntent? intent) : IDungeonEntryIntentDomainService
+    {
+        private DungeonEntryIntent? _intent = intent;
+
+        public void Record(SelectedSessionIdentity session, DungeonEntryIntent value) => _intent = value;
+
+        public DungeonEntryIntent? Consume(SelectedSessionIdentity session)
+        {
+            var current = _intent;
+            _intent = null;
+            return current;
+        }
+
+        public bool ClearExact(SelectedSessionIdentity session)
+        {
+            var found = _intent is not null;
+            _intent = null;
+            return found;
         }
     }
 

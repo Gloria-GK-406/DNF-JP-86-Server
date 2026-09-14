@@ -422,6 +422,7 @@ public sealed class SelectDungeonHandler(
     ICharacterDomainService characters,
     ISelectedSessionDomainService selectedSessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
+    IDungeonEntryIntentDomainService entryIntents,
     IDungeonVisitDomainService visits,
     ICharacterQuestLogDomainService questLogs,
     ICharacterFatigueDomainService fatigue,
@@ -469,6 +470,24 @@ public sealed class SelectDungeonHandler(
             return;
         }
 
+        var intent = entryIntents.Consume(session);
+        if (intent is null
+            || (intent.Value.Kind == DungeonEntryIntentKind.Directed
+                && intent.Value.DirectedDungeonId != message.DungeonId))
+        {
+            logger.LogWarning(
+                "Select dungeon {ConnectionId}: invalid selection context intent={Intent} dungeon={DungeonId}",
+                context.Connection.ConnectionId,
+                intent,
+                message.DungeonId);
+            await sender.SendExplicitAsync(
+                context.Connection.ConnectionId,
+                new GameExplicitMessageDelivery(
+                    [SelectDungeonRefusal.For(SelectDungeonRefusal.InvalidSelectionState)], []),
+                cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
         // Gathered here and handed over, so the rule stays a function of what it is given. They
         // are asked of the character's own log rather than read out of the session, because the
         // session's copy is whatever the entry batch put there and nothing refreshes it: a quest
@@ -481,7 +500,8 @@ public sealed class SelectDungeonHandler(
         var facts = new DungeonEntryFacts(
             message.Difficulty,
             carried.Select(quest => quest.QuestId).ToArray(),
-            cleared.Select(quest => quest.QuestId).ToArray());
+            cleared.Select(quest => quest.QuestId).ToArray(),
+            intent.Value);
 
         var entered = await visits.EnterAsync(
             session.CharacterId, message.DungeonId, message.Difficulty, facts, cancellationToken)
@@ -513,12 +533,15 @@ public sealed class SelectDungeonHandler(
 
         logger.LogInformation(
             "Select dungeon {ConnectionId} user={WireUserId}: dungeon={DungeonId} difficulty={Difficulty} "
-                + "maze={MazeIndex} start=({StartX},{StartY}) room={RoomId} boss=({BossX},{BossY}) seed={Seed}",
+                + "intent={Intent} maze={MazeIndex} purpose={Purpose} start=({StartX},{StartY}) "
+                + "room={RoomId} boss=({BossX},{BossY}) seed={Seed}",
             context.Connection.ConnectionId,
             session.WireUserId,
             layout.DungeonId,
             message.Difficulty,
+            intent.Value,
             layout.MazeIndex,
+            layout.Purpose,
             layout.StartCell.X,
             layout.StartCell.Y,
             layout.StartRoomMapId,

@@ -89,6 +89,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         var experienceWeight = 1.0;
         var consumesFatigue = true;
         var offersPaidCard = true;
+        DungeonQuestConnection? questConnection = null;
         var pending = new List<int>();
 
         var reader = archive.OpenScript(fileIndex);
@@ -99,6 +100,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
                 var name = archive.ResolveString(token.Value);
                 if (name.StartsWith('['))
                 {
+                    FlushQuestConnection(draft, section, pending, ref questConnection);
                     Flush(draft, section, pending);
                     pending.Clear();
 
@@ -122,6 +124,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
                     else if (token.Value == tags.BasisLevel) section = Section.BasisLevel;
                     else if (token.Value == tags.ExperienceWeight) section = Section.ExperienceWeight;
                     else if (token.Value == tags.PaidCardSwitch) section = Section.PaidCardSwitch;
+                    else if (token.Value == tags.QuestConnection) section = Section.QuestConnection;
                     else if (token.Value == tags.NoFatigue)
                     {
                         consumesFatigue = false;
@@ -216,6 +219,9 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
                         : basisLevel;
                     section = Section.None;
                     break;
+                case Section.QuestConnection:
+                    pending.Add(token.Value);
+                    break;
                 case Section.Size:
                 case Section.Rooms:
                 case Section.Start:
@@ -226,6 +232,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
             }
         }
 
+        FlushQuestConnection(draft, section, pending, ref questConnection);
         Flush(draft, section, pending);
         Close(mazes, draft);
 
@@ -234,7 +241,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
             ? null
             : new DungeonDefinition(
                 dungeonId, archivePath, minimumLevel, consumesFatigue, mazes, basisLevel,
-                experienceWeight, offersPaidCard);
+                experienceWeight, offersPaidCard, questConnection);
     }
 
     /// <summary>Consumes whole rows once enough operands have arrived, leaving partial ones.</summary>
@@ -278,7 +285,35 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
             draft.Height,
             draft.Rooms,
             draft.StartCandidates,
-            draft.BossCandidates));
+            draft.BossCandidates,
+            draft.QuestConnection));
+    }
+
+    private static void FlushQuestConnection(
+        MazeDraft? draft,
+        Section section,
+        IReadOnlyList<int> pending,
+        ref DungeonQuestConnection? dungeonConnection)
+    {
+        if (section != Section.QuestConnection || pending.Count == 0)
+            return;
+
+        var projected = ProjectQuestConnection(pending);
+        if (draft is null)
+            dungeonConnection = projected;
+        else
+            draft.QuestConnection = projected;
+    }
+
+    internal static DungeonQuestConnection? ProjectQuestConnection(IReadOnlyList<int> values)
+    {
+        if (values.Count is not (2 or 3) || values[1] <= 0 || values[0] is < 0 or > 1)
+            return null;
+
+        return new DungeonQuestConnection(
+            (DungeonQuestConnectionState)values[0],
+            values[1],
+            values.Count == 3 ? values[2] : -1);
     }
 
     private static byte Clamp(int value) =>
@@ -295,6 +330,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         BasisLevel,
         ExperienceWeight,
         PaidCardSwitch,
+        QuestConnection,
         SkippedRoomEntry,
     }
 
@@ -311,6 +347,8 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         public List<MazeCell> StartCandidates { get; } = [];
 
         public List<MazeCell> BossCandidates { get; } = [];
+
+        public DungeonQuestConnection? QuestConnection { get; set; }
     }
 
     private readonly struct DungeonTags
@@ -328,6 +366,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
             ExperienceWeight = archive.GetTag("[experience increasing point]").Offset;
             NoFatigue = archive.GetTag("[no fatigue]").Offset;
             PaidCardSwitch = archive.GetTag("[gold card use]").Offset;
+            QuestConnection = archive.GetTag("[quest connection]").Offset;
         }
 
         public int MazeInfo { get; }
@@ -351,5 +390,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource
         public int NoFatigue { get; }
 
         public int PaidCardSwitch { get; }
+
+        public int QuestConnection { get; }
     }
 }

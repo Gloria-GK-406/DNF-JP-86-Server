@@ -11,6 +11,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.MonsterDeath;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Protocol.Game.TownProjection;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.DungeonClear;
@@ -59,7 +60,10 @@ public sealed record SetPlayResultRequest(GameMessageMetadata Metadata, byte Cli
 
 /// <summary>NOTI 0x0022 <c>PLAY_RESULT</c>: the run's result, as the screen draws it.</summary>
 internal sealed record PlayResultNotification(
-    ushort WireUserId, int ClearTimeMilliseconds, byte ClientRankPoint) : IGameNotiMessage
+    ushort WireUserId,
+    int ClearTimeMilliseconds,
+    byte ClientRankPoint,
+    bool QuestMaze = false) : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GamePlayResult;
 }
@@ -100,10 +104,9 @@ internal sealed record ClearDungeonRewardNotification(
 /// still, as far as the server knew, standing in a dungeon -- which is half of why that session
 /// could walk back into the boss room after clearing it.
 /// <para>
-/// The client reached town without this being answered. What it did not get is the town state the
-/// reference server pushes behind the acknowledgement -- <c>NOTI 0x0003</c>, <c>0x0017</c> and
-/// <c>0x0018</c> -- which it went and asked for itself instead. Those are not sent here; see
-/// <c>Docs/ProtocolScaffoldDissonances.md</c>.
+/// The acknowledgement is followed by the same town projection used by EPLP and cancelling the
+/// selection screen. Ending server state without that projection leaves the client drawing a
+/// dungeon whose run no longer exists, so the two changes are one exit operation.
 /// </para>
 /// </remarks>
 public sealed record GiveUpGameRequest(GameMessageMetadata Metadata) : IClientNetworkMessage
@@ -136,6 +139,8 @@ internal sealed class GiveUpGameResponseEncoder : GameCmdMessageEncoder<GiveUpGa
 /// </remarks>
 public sealed class GiveUpGameHandler(
     ISelectedSessionDomainService selectedSessions,
+    ISelectedSessionRuntimeDirectory runtimeSessions,
+    ICharacterPositionDomainService positions,
     IDungeonRunDomainService runs,
     IGameMessageSender sender,
     ILogger<GiveUpGameHandler> logger) : ClientMessageHandler<GiveUpGameRequest>
@@ -146,7 +151,10 @@ public sealed class GiveUpGameHandler(
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null)
+        if (session is null
+            || !runtimeSessions.TryGet(session, out var result, out _)
+            || result is null
+            || positions.Find(session.CharacterId) is not { } position)
         {
             logger.LogWarning(
                 "Give up game {ConnectionId}: no published session, ignoring",
@@ -154,15 +162,21 @@ public sealed class GiveUpGameHandler(
             return;
         }
 
+        var ended = runs.End(session.CharacterId);
         logger.LogInformation(
             "Give up game {ConnectionId} character={CharacterId}: run ended={Ended}",
             context.Connection.ConnectionId,
             session.CharacterId.Value,
-            runs.End(session.CharacterId));
+            ended);
 
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
-            new GameExplicitMessageDelivery([new GiveUpGameResponse()], []),
+            new GameExplicitMessageDelivery(
+                [
+                    new GiveUpGameResponse(),
+                    .. TownReturnProjection.Frames(session, result, position),
+                ],
+                []),
             cancellationToken).ConfigureAwait(false);
     }
 }
@@ -192,7 +206,10 @@ internal static class DungeonClearPayloadCodec
     /// a server that disagreed would change the letter on a screen the player is looking at.
     /// </remarks>
     public static byte[] EncodePlayResult(
-        ushort wireUserId, int clearTimeMilliseconds, byte clientRankPoint)
+        ushort wireUserId,
+        int clearTimeMilliseconds,
+        byte clientRankPoint,
+        bool questMaze = false)
     {
         using var stream = new MemoryStream(16);
         using var writer = new BinaryWriter(stream);
@@ -200,7 +217,7 @@ internal static class DungeonClearPayloadCodec
         writer.Write(clearTimeMilliseconds);
         writer.Write((byte)0); // time bonus point
         writer.Write(clientRankPoint);
-        writer.Write((byte)0); // not a quest maze
+        writer.Write(questMaze ? (byte)1 : (byte)0);
         writer.Write((byte)1); // one member
         writer.Write(wireUserId);
         writer.Write(clearTimeMilliseconds);
@@ -539,7 +556,10 @@ internal sealed class PlayResultEncoder : GameNotiMessageEncoder<PlayResultNotif
         OnePayload(
             GameProtocol.PlayResultNotificationType,
             DungeonClearPayloadCodec.EncodePlayResult(
-                message.WireUserId, message.ClearTimeMilliseconds, message.ClientRankPoint));
+                message.WireUserId,
+                message.ClearTimeMilliseconds,
+                message.ClientRankPoint,
+                message.QuestMaze));
 }
 
 internal sealed class ClearDungeonRewardEncoder
@@ -575,6 +595,7 @@ public sealed class SetPlayResultHandler(
     ISelectedSessionRuntimeDirectory runtimeSessions,
     ICharacterDomainService characters,
     IDungeonRunDomainService runs,
+    IDungeonSettlementRuleService settlementRules,
     ICardRewardDomainService cardRewards,
     ICommandBus commandBus,
     IQuestOfferRefreshDomainService offers,
@@ -597,6 +618,32 @@ public sealed class SetPlayResultHandler(
             return;
         }
 
+        var currentRun = runs.Find(session.CharacterId);
+        if (currentRun is null)
+        {
+            logger.LogWarning(
+                "Set play result {ConnectionId} character={CharacterId}: no run in progress",
+                context.Connection.ConnectionId,
+                session.CharacterId.Value);
+            return;
+        }
+
+        var settlement = await settlementRules.ForAsync(
+            session.AccountId,
+            session.CharacterId,
+            currentRun,
+            cancellationToken).ConfigureAwait(false);
+        if (!settlement.CanComplete)
+        {
+            logger.LogWarning(
+                "Set play result {ConnectionId} character={CharacterId}: run purpose {Purpose} "
+                    + "has not met its completion rule; ignoring",
+                context.Connection.ConnectionId,
+                session.CharacterId.Value,
+                currentRun.Layout.Purpose);
+            return;
+        }
+
         // Claimed, not merely looked up. The client says when a run is over, and since 2026-08-29
         // saying so pays experience -- so a repeated report would be a repeated payment. The same
         // guard a kill has, for the same reason, and the run is left in progress either way: what
@@ -611,7 +658,6 @@ public sealed class SetPlayResultHandler(
                 session.CharacterId.Value);
             return;
         }
-
         // The cards are fixed here, and here is the only place they can be fixed. Above is the
         // claim: a repeated result report is turned back before it reaches this line, so one run
         // draws one pair of faces however many times its result is reported. Below is every frame
@@ -672,7 +718,10 @@ public sealed class SetPlayResultHandler(
                 new GameExplicitMessageDelivery(
                     [
                         new PlayResultNotification(
-                            session.WireUserId, clearTime, message.ClientRankPoint),
+                            session.WireUserId,
+                            clearTime,
+                            message.ClientRankPoint,
+                            settlement.QuestMaze),
                         new ClearDungeonRewardNotification(0, 0, freeCards, cardGold, paidFlipCost),
                     ],
                     []),
@@ -760,7 +809,11 @@ public sealed class SetPlayResultHandler(
 
         List<IGameServerMessage> frames =
         [
-            new PlayResultNotification(session.WireUserId, clearTime, message.ClientRankPoint),
+            new PlayResultNotification(
+                session.WireUserId,
+                clearTime,
+                message.ClientRankPoint,
+                settlement.QuestMaze),
             new ExperienceNotification(
                 level,
                 total,

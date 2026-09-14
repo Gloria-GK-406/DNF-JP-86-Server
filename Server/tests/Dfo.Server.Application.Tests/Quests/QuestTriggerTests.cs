@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Application.Quests;
 
 namespace Dfo.Server.Application.Tests.Quests;
@@ -151,6 +152,76 @@ public sealed class QuestTriggerTests
             QuestObjectiveAuthority.Derived,
             QuestObjectives.AuthorityOver("seeking", selector: 0));
     }
+
+    [Fact]
+    public void HuntEnemyAuthorityComesFromTheDeclaredActorFamilyAndChannel()
+    {
+        var passive = Quest("hunt enemy", HuntEnemyTargetTypes.PassiveObject);
+        Assert.Equal(
+            QuestObjectiveAuthority.Client,
+            QuestObjectives.AuthorityOver(passive, selector: 0x10));
+        Assert.Equal(
+            QuestObjectiveAuthority.None,
+            QuestObjectives.AuthorityOver(passive, selector: 0x20));
+        Assert.Equal(
+            QuestObjectiveAuthority.None,
+            QuestObjectives.AuthorityOver(passive, selector: 0));
+
+        Assert.Equal(
+            QuestObjectiveAuthority.Server,
+            QuestObjectives.AuthorityOver(
+                Quest("hunt enemy", HuntEnemyTargetTypes.Monster), selector: 0x10));
+    }
+
+    [Fact]
+    public void HuntEnemyAuthorityIsResolvedOnlyFromTheSelectedChannels()
+    {
+        var mixed = Quest(
+            "hunt enemy",
+            new HuntEnemyRequirement(144, -1, 1001, HuntEnemyTargetTypes.Monster, 1),
+            new HuntEnemyRequirement(144, -1, 1002, HuntEnemyTargetTypes.PassiveObject, 1));
+
+        Assert.Equal(
+            QuestObjectiveAuthority.Server,
+            QuestObjectives.AuthorityOver(mixed, selector: 0x10));
+        Assert.Equal(
+            QuestObjectiveAuthority.Client,
+            QuestObjectives.AuthorityOver(mixed, selector: 0x20));
+        Assert.Equal(
+            QuestObjectiveAuthority.None,
+            QuestObjectives.AuthorityOver(mixed, selector: 0x30));
+    }
+
+    [Fact]
+    public void HuntEnemyAuthorityRejectsMissingOrInvalidSelectedTargets()
+    {
+        var invalid = Quest(
+            "hunt enemy",
+            new HuntEnemyRequirement(144, -1, 0, HuntEnemyTargetTypes.PassiveObject, 1),
+            new HuntEnemyRequirement(144, -1, 1002, 99, 1));
+
+        Assert.Equal(
+            QuestObjectiveAuthority.None,
+            QuestObjectives.AuthorityOver(invalid, selector: 0x10));
+        Assert.Equal(
+            QuestObjectiveAuthority.None,
+            QuestObjectives.AuthorityOver(invalid, selector: 0x20));
+        Assert.Equal(
+            QuestObjectiveAuthority.None,
+            QuestObjectives.AuthorityOver(invalid, selector: 0x40));
+    }
+
+    private static QuestDefinition Quest(string objective, int enemyType) =>
+        Quest(
+            objective,
+            new HuntEnemyRequirement(144, -1, 13099, enemyType, 1));
+
+    private static QuestDefinition Quest(
+        string objective,
+        params HuntEnemyRequirement[] requirements) =>
+        new(1776, "", null, null, null, null, null, null, [], objective, "",
+            null, null, null, null, null, null, null, [], [], [], [],
+            HuntEnemyRequirements: requirements);
 
     /// <remarks>
     /// The safe direction. The archive's objective vocabulary is not closed and this server has not

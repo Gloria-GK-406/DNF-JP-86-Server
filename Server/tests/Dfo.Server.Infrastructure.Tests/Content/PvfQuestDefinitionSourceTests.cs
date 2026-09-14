@@ -1,4 +1,6 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Application.Quests;
 using Dfo.Server.Infrastructure.Content;
 
 namespace Dfo.Server.Infrastructure.Tests.Content;
@@ -57,6 +59,42 @@ public sealed class PvfQuestDefinitionSourceTests
             [new SeekingItemRequirement(77, 3)],
             PvfQuestDefinitionSource.ProjectSeekingItems("seek n meet npc", [77, 3, 99]));
         Assert.Empty(PvfQuestDefinitionSource.ProjectSeekingItems("meet npc", [77, 3]));
+    }
+
+    [Fact]
+    public void ItemRewardOperandsPreserveConditionsSelectionsAndGoldSemantics()
+    {
+        var number = PvfQuestDefinitionSource.ItemRewardOperand.Number;
+        var job = PvfQuestDefinitionSource.ItemRewardOperand.JobMarker;
+
+        var reward = PvfQuestDefinitionSource.ProjectItemRewards(
+            [number(0), number(0), number(10), number(2), number(20), job,
+             number(0), number(-1), number(1)],
+            [number(30), job, number(0), number(2), number(4)],
+            questId: 7);
+
+        Assert.True(reward.HasGoldFormulaMarker);
+        Assert.Equal(0, reward.FixedGold);
+        Assert.Equal(
+            [new QuestItemRewardRule(10, 2), new(20, 1, new(0, -1))],
+            reward.Fixed);
+        Assert.Equal(
+            [new QuestItemRewardRule(30, 4, new(0, 2))],
+            reward.Selectable);
+    }
+
+    [Fact]
+    public void MalformedItemRewardOperandsFailClosed()
+    {
+        var number = PvfQuestDefinitionSource.ItemRewardOperand.Number;
+        var job = PvfQuestDefinitionSource.ItemRewardOperand.JobMarker;
+
+        Assert.Throws<InvalidDataException>(() =>
+            PvfQuestDefinitionSource.ProjectItemRewards(
+                [number(10), job, number(0), number(-1)], [], questId: 8));
+        Assert.Throws<InvalidDataException>(() =>
+            PvfQuestDefinitionSource.ProjectItemRewards(
+                [], [number(0), number(5)], questId: 9));
     }
 
     [Fact]
@@ -301,6 +339,57 @@ public sealed class PvfQuestDefinitionSourceTests
         var reward = Assert.Single(quest.Rewards);
         Assert.Equal(QuestRewardKind.Title, reward.Kind);
         Assert.Equal([26607, 1], reward.Values);
+    }
+
+    [SkippableFact]
+    public async Task Quest1776PreservesItsClientReportedPassiveObjectTarget()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfQuestDefinitionSource(provider);
+
+        var quest = await source.GetAsync(1776, CancellationToken.None);
+
+        Assert.NotNull(quest);
+        Assert.Equal("hunt enemy", quest!.ObjectiveTypeCode);
+        Assert.Equal(
+            [new HuntEnemyRequirement(
+                144, -1, 13099, HuntEnemyTargetTypes.PassiveObject, 1)],
+            quest.HuntEnemyRequirements);
+    }
+
+    [SkippableFact]
+    public async Task Quest1776DoesNotFlattenEveryJobsEquipmentIntoJobZeroRewards()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfQuestDefinitionSource(provider);
+
+        var quest = await source.GetAsync(1776, CancellationToken.None);
+        var reward = new QuestRewardRuleService().Resolve(
+            quest!,
+            new PvfQuestParameterSource(provider).Load(),
+            new(Job: 0, GrowType: 0, Level: 1),
+            rewardSelection: ushort.MaxValue,
+            completionCount: 1);
+
+        Assert.Equal(14, quest!.ItemRewards.Fixed.Count);
+        Assert.Empty(quest.ItemRewards.Selectable);
+        Assert.True(reward.IsValid);
+        Assert.Equal([new QuestRewardItemGrant(101010437, 1)], reward.Plan!.Items);
+    }
+
+    [SkippableFact]
+    public async Task Quest130DeclaresFormulaGoldThroughItsMultiplierWithoutAnItemZeroMarker()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var quest = await new PvfQuestDefinitionSource(provider)
+            .GetAsync(130, CancellationToken.None);
+
+        Assert.NotNull(quest);
+        Assert.Equal(200, quest!.GoldMultiplier);
+        Assert.False(quest.ItemRewards.HasGoldFormulaMarker);
     }
 
     [SkippableFact]

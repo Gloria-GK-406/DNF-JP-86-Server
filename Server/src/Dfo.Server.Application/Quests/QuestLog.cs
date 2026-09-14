@@ -159,7 +159,7 @@ internal sealed class QuestLog(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(definition);
-        var authority = QuestObjectives.AuthorityOver(definition.ObjectiveTypeCode, selector);
+        var authority = QuestObjectives.AuthorityOver(definition, selector);
         if (authority == QuestObjectiveAuthority.None)
             return QuestAdvance.Refused;
 

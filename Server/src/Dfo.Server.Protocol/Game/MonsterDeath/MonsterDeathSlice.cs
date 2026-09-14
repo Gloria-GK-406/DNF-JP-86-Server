@@ -361,6 +361,7 @@ public sealed class MonsterDeathHandler(
     IDungeonRunDomainService runs,
     IMonsterKillDomainService kills,
     IMonsterDropService drops,
+    IDungeonSettlementRuleService settlementRules,
     ICommandBus commandBus,
     IQuestOfferRefreshDomainService offers,
     IGameMessageSender sender,
@@ -408,31 +409,107 @@ public sealed class MonsterDeathHandler(
             return;
         }
 
-        // Reported dead first, and everything else hangs off whether that took. The client repeats
-        // a death it was not answered for, and the run refuses the repeat -- so this is the one
-        // place that can tell a kill from its echo. Awarding before it would pay for both.
-        var run = runs.TryReportActorDead(session.CharacterId, message.ActorSequence);
+        // Claimed first, and everything else hangs off whether that took. The durable experience
+        // and quest writes share one transaction. Failure releases this exact claim for one retry;
+        // success commits it as dead, so an echo cannot pay either ledger twice.
+        var deathClaim = runs.TryClaimActorDeath(session.CharacterId, message.ActorSequence);
+        var run = deathClaim?.Run;
         ExperienceAward? award = null;
         IReadOnlyList<MonsterDrop> dropped = [];
         var instance = 0u;
-        if (run is not null
-            && await this.KilledAsync(context, run, message.ActorSequence, cancellationToken)
-                .ConfigureAwait(false) is { } killed)
+        IdentifiedKill? killed;
+        try
         {
-            award = await this.AwardAsync(session, run, killed, cancellationToken)
-                .ConfigureAwait(false);
+            killed = run is null
+                ? null
+                : await this.KilledAsync(context, run, message.ActorSequence, cancellationToken)
+                    .ConfigureAwait(false);
+        }
+        catch
+        {
+            if (deathClaim is not null)
+                runs.ReleaseActorDeath(deathClaim);
+            throw;
+        }
+        if (run is not null && killed is { } verifiedKill)
+        {
+            ApplyMonsterKillResult applied;
+            try
+            {
+                applied = await commandBus.SendAsync(
+                    new ApplyMonsterKillCommand(
+                        session.AccountId,
+                        session.CharacterId,
+                        new KilledMonster(
+                            verifiedKill.Code,
+                            verifiedKill.Level,
+                            verifiedKill.Rank),
+                        run.Layout.DungeonId,
+                        run.Difficulty,
+                        run.Layout.ExperienceWeight,
+                        verifiedKill.IsMonster
+                            ? HuntEnemyTargetTypes.Monster
+                            : HuntEnemyTargetTypes.AiCharacter),
+                    cancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                var restored = runs.ReleaseActorDeath(deathClaim!);
+                logger.LogWarning(
+                    "Monster death {ConnectionId}: durable kill transaction failed; actor={Actor} "
+                        + "claim restored={Restored}",
+                    context.Connection.ConnectionId,
+                    message.ActorSequence,
+                    restored);
+                throw;
+            }
+
+            run = runs.CommitActorDeath(deathClaim!) ?? run;
+
+            award = applied.Award;
+            logger.LogInformation(
+                "Kill experience character={CharacterId}: monster={Monster} "
+                    + "level={MonsterLevel} rank={Rank} award={Award}",
+                session.CharacterId.Value,
+                verifiedKill.Code,
+                verifiedKill.Level,
+                verifiedKill.Rank,
+                award);
+
+            foreach (var advance in applied.QuestAdvances)
+            {
+                logger.LogInformation(
+                    "Monster death {ConnectionId}: quest={QuestId} trigger={Before}->{After} "
+                        + "dungeon={DungeonId} enemy={EnemyCode} type={EnemyType}",
+                    context.Connection.ConnectionId,
+                    advance.QuestId,
+                    advance.Before,
+                    advance.After,
+                    run.Layout.DungeonId,
+                    verifiedKill.Code,
+                    verifiedKill.IsMonster
+                        ? HuntEnemyTargetTypes.Monster
+                        : HuntEnemyTargetTypes.AiCharacter);
+            }
 
             // Rolled after the experience and from the same identification, so a kill that pays
             // nothing also drops nothing and the two can never disagree about what died.
-            dropped = await drops.ForKillAsync(
-                new MonsterKill(
-                    session.CharacterId,
-                    run,
-                    message.ActorSequence,
-                    killed.Level,
-                    (int)killed.Rank),
-                cancellationToken).ConfigureAwait(false);
-            instance = GameDropIdentity.ForKill(run, message.ActorSequence);
+            if (verifiedKill.IsMonster)
+            {
+                dropped = await drops.ForKillAsync(
+                    new MonsterKill(
+                        session.CharacterId,
+                        run,
+                        message.ActorSequence,
+                        verifiedKill.Level,
+                        (int)verifiedKill.Rank),
+                    cancellationToken).ConfigureAwait(false);
+                instance = GameDropIdentity.ForKill(run, message.ActorSequence);
+            }
+        }
+        else if (deathClaim is not null)
+        {
+            run = runs.CommitActorDeath(deathClaim) ?? run;
         }
 
         logger.LogInformation(
@@ -521,7 +598,7 @@ public sealed class MonsterDeathHandler(
         if (run is not null)
         {
             frames.AddRange(
-                await this.ClearedAsync(context, session.CharacterId, run, cancellationToken)
+                await this.ClearedAsync(context, session, run, cancellationToken)
                     .ConfigureAwait(false));
         }
 
@@ -545,7 +622,7 @@ public sealed class MonsterDeathHandler(
     /// let the two disagree.
     /// </para>
     /// </remarks>
-    private async ValueTask<KilledMonster?> KilledAsync(
+    private async ValueTask<IdentifiedKill?> KilledAsync(
         NetworkDispatchContext context,
         DungeonRunState run,
         ushort actorSequence,
@@ -566,43 +643,11 @@ public sealed class MonsterDeathHandler(
         {
             logger.LogInformation(
                 "Monster death {ConnectionId}: actor {Actor} is an AI character, not a monster; "
-                    + "nothing was awarded and nothing dropped",
+                    + "only server-verified quest progress may be recorded",
                 context.Connection.ConnectionId, actorSequence);
-            return null;
         }
 
-        return new KilledMonster(killed.Code, killed.Level, killed.Rank);
-    }
-
-    /// <summary>What the kill was worth, awarded.</summary>
-    private async ValueTask<ExperienceAward?> AwardAsync(
-        SelectedSessionIdentity session,
-        DungeonRunState run,
-        KilledMonster monster,
-        CancellationToken cancellationToken)
-    {
-        var award = (await commandBus.SendAsync(
-            new GrantKillExperienceCommand(
-                session.AccountId,
-                session.CharacterId,
-                monster,
-                run.Layout.DungeonId,
-                run.Difficulty,
-                run.Layout.ExperienceWeight),
-            cancellationToken).ConfigureAwait(false)).Award;
-
-        // The whole award, in its parts. Experience is a number nobody can check by looking, so
-        // this line is what makes a live session usable as evidence for what was paid -- and it is
-        // how the reference server's own arithmetic was recovered in the first place.
-        logger.LogInformation(
-            "Kill experience character={CharacterId}: monster={Monster} "
-                + "level={MonsterLevel} rank={Rank} award={Award}",
-            session.CharacterId.Value,
-            monster.Code,
-            monster.Level,
-            monster.Rank,
-            award);
-        return award;
+        return killed;
     }
 
     /// <summary>
@@ -620,7 +665,7 @@ public sealed class MonsterDeathHandler(
     /// </remarks>
     private async ValueTask<IReadOnlyList<IGameServerMessage>> ClearedAsync(
         NetworkDispatchContext context,
-        CharacterId characterId,
+        SelectedSessionIdentity session,
         DungeonRunState run,
         CancellationToken cancellationToken)
     {
@@ -630,11 +675,27 @@ public sealed class MonsterDeathHandler(
         if (!await kills.IsCurrentRoomClearedAsync(run, cancellationToken).ConfigureAwait(false))
             return [];
 
+        var settlement = await settlementRules.ForAsync(
+            session.AccountId,
+            session.CharacterId,
+            run,
+            cancellationToken).ConfigureAwait(false);
+        if (!settlement.CanComplete)
+        {
+            logger.LogInformation(
+                "Monster death {ConnectionId} character={CharacterId}: boss room is clear but "
+                    + "run purpose {Purpose} is not complete",
+                context.Connection.ConnectionId,
+                session.CharacterId.Value,
+                run.Layout.Purpose);
+            return [];
+        }
+
         logger.LogInformation(
             "Monster death {ConnectionId} character={CharacterId}: boss room {RoomId} of dungeon "
                 + "{DungeonId} is clear, opening the exit",
             context.Connection.ConnectionId,
-            characterId.Value,
+            session.CharacterId.Value,
             run.CurrentRoomMapId,
             run.Layout.DungeonId);
 

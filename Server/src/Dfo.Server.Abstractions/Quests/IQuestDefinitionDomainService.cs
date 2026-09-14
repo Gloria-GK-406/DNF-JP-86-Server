@@ -17,4 +17,10 @@ public interface IQuestDefinitionDomainService
 
     /// <summary>The shared parameters a quest reward is worked out from.</summary>
     QuestParameters RewardParameters();
+
+    QuestRewardResolution ResolveRewards(
+        QuestDefinition definition,
+        QuestRewardCandidate candidate,
+        ushort rewardSelection,
+        ushort completionCount);
 }

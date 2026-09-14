@@ -16,10 +16,13 @@ namespace Dfo.Server.Application.World;
 internal sealed class DungeonRunDomainService : IDungeonRunDomainService
 {
     private readonly ConcurrentDictionary<CharacterId, DungeonRunState> _runs = new();
+    private readonly ConcurrentDictionary<DeathClaimKey, long> _deathClaims = new();
+    private long _nextDeathClaim;
 
     public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty)
     {
         ArgumentNullException.ThrowIfNull(layout);
+        this.ClearDeathClaims(characterId);
         var state = new DungeonRunState(
             layout,
             layout.StartCell,
@@ -99,6 +102,86 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             var reported = current with { DeadActors = dead.Add(id) };
             if (_runs.TryUpdate(characterId, reported, current))
                 return reported;
+        }
+    }
+
+    public DungeonActorDeathClaim? TryClaimActorDeath(
+        CharacterId characterId,
+        ushort actorSequence)
+    {
+        while (true)
+        {
+            if (!_runs.TryGetValue(characterId, out var current))
+                return null;
+
+            var dead = (ImmutableHashSet<RoomActorId>)current.DeadActors;
+            var actor = new RoomActorId(current.CurrentCell, actorSequence);
+            if (!dead.Contains(actor))
+            {
+                var key = DeathClaimKey.Of(characterId, current, actor);
+                var token = Interlocked.Increment(ref this._nextDeathClaim);
+                if (!this._deathClaims.TryAdd(key, token))
+                    return null;
+
+                var claimed = current with { DeadActors = dead.Add(actor) };
+                if (_runs.TryUpdate(characterId, claimed, current))
+                    return new DungeonActorDeathClaim(characterId, claimed, actor, token);
+
+                this.TryRemoveClaim(key, token);
+                continue;
+            }
+
+            return null;
+        }
+    }
+
+    public DungeonRunState? CommitActorDeath(DungeonActorDeathClaim claim)
+    {
+        ArgumentNullException.ThrowIfNull(claim);
+        var key = DeathClaimKey.Of(claim.CharacterId, claim.Run, claim.Actor);
+        if (!this.TryRemoveClaim(key, claim.Token))
+            return null;
+        return _runs.TryGetValue(claim.CharacterId, out var current)
+            && DeathClaimKey.SameRun(current, key)
+            && current.DeadActors.Contains(claim.Actor)
+                ? current
+                : null;
+    }
+
+    public bool ReleaseActorDeath(DungeonActorDeathClaim claim)
+    {
+        ArgumentNullException.ThrowIfNull(claim);
+        var key = DeathClaimKey.Of(claim.CharacterId, claim.Run, claim.Actor);
+        if (!this.TryRemoveClaim(key, claim.Token))
+            return false;
+
+        while (true)
+        {
+            if (!_runs.TryGetValue(claim.CharacterId, out var current)
+                || !DeathClaimKey.SameRun(current, key))
+            {
+                return false;
+            }
+
+            var dead = (ImmutableHashSet<RoomActorId>)current.DeadActors;
+            if (!dead.Contains(claim.Actor))
+                return false;
+            var restored = current with { DeadActors = dead.Remove(claim.Actor) };
+            if (_runs.TryUpdate(claim.CharacterId, restored, current))
+                return true;
+        }
+    }
+
+    private bool TryRemoveClaim(DeathClaimKey key, long token) =>
+        ((ICollection<KeyValuePair<DeathClaimKey, long>>)_deathClaims)
+            .Remove(new KeyValuePair<DeathClaimKey, long>(key, token));
+
+    private void ClearDeathClaims(CharacterId characterId)
+    {
+        foreach (var key in _deathClaims.Keys)
+        {
+            if (key.CharacterId == characterId)
+                _deathClaims.TryRemove(key, out _);
         }
     }
 
@@ -228,5 +311,33 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         }
     }
 
-    public bool End(CharacterId characterId) => _runs.TryRemove(characterId, out _);
+    public bool End(CharacterId characterId)
+    {
+        this.ClearDeathClaims(characterId);
+        return _runs.TryRemove(characterId, out _);
+    }
+
+    private readonly record struct DeathClaimKey(
+        CharacterId CharacterId,
+        DateTimeOffset StartedAt,
+        int DungeonId,
+        int Seed,
+        RoomActorId Actor)
+    {
+        public static DeathClaimKey Of(
+            CharacterId characterId,
+            DungeonRunState run,
+            RoomActorId actor) =>
+            new(
+                characterId,
+                run.StartedAt,
+                run.Layout.DungeonId,
+                run.Layout.Seed,
+                actor);
+
+        public static bool SameRun(DungeonRunState run, DeathClaimKey key) =>
+            run.StartedAt == key.StartedAt
+            && run.Layout.DungeonId == key.DungeonId
+            && run.Layout.Seed == key.Seed;
+    }
 }

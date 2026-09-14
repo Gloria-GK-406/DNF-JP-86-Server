@@ -62,7 +62,7 @@ public sealed record SetQuestTriggerCommand(
 /// </remarks>
 public sealed class SetQuestTriggerCommandHandler(
     IQuestDefinitionDomainService quests,
-    ICharacterQuestLogDomainService logs)
+    IQuestTriggerDomainService progress)
     : ICommandHandler<SetQuestTriggerCommand, QuestTriggerOutcome>
 {
     public async ValueTask<QuestTriggerOutcome> HandleAsync(
@@ -88,9 +88,14 @@ public sealed class SetQuestTriggerCommandHandler(
         if (definition is null)
             return QuestTriggerOutcome.Refuse(command.QuestId);
 
-        var log = logs.LogOf(command.AccountId, command.CharacterId);
-        var advance = await log
-            .AdvanceAsync(definition, command.Selector, command.Increment, cancellationToken)
+        var advance = await progress
+            .ApplyClientReportAsync(
+                command.AccountId,
+                command.CharacterId,
+                definition,
+                command.Selector,
+                command.Increment,
+                cancellationToken)
             .ConfigureAwait(false);
 
         return advance.Verdict switch

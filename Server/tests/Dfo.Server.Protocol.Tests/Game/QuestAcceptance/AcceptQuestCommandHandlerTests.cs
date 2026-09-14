@@ -180,7 +180,8 @@ public sealed class AcceptQuestCommandHandlerTests
                 new ItemSlotRuleService()));
             return new AcceptQuestCommandHandler(
                 new QuestDefinitionDomainService(
-                    new QuestContentRuleService(new Quests(definition), new NoQuestParameters())),
+                    new QuestContentRuleService(new Quests(definition), new NoQuestParameters()),
+                    new QuestRewardRuleService()),
                 new CharacterQuestLogDomainService(
                     new SqliteQuestDomainStore(this.Path), new AmbientStoreAccess(this.Scope)),
                 containers);

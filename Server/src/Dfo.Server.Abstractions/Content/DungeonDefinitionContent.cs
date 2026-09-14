@@ -3,6 +3,26 @@ namespace Dfo.Server.Abstractions.Content;
 /// <summary>One cell of a maze grid.</summary>
 public readonly record struct MazeCell(byte X, byte Y);
 
+/// <summary>How a maze is connected to a quest in dungeon content.</summary>
+public enum DungeonQuestConnectionState : byte
+{
+    /// <summary>The maze is available while the quest is active.</summary>
+    Active = 0,
+
+    /// <summary>The maze is available after the quest has been cleared.</summary>
+    Cleared = 1,
+}
+
+/// <summary>A dungeon-content link between one maze and one quest state.</summary>
+/// <param name="MinimumDifficulty">
+/// The minimum difficulty declared by the content, or -1 when the connection applies to every
+/// difficulty.
+/// </param>
+public sealed record DungeonQuestConnection(
+    DungeonQuestConnectionState State,
+    int QuestId,
+    int MinimumDifficulty);
+
 /// <summary>
 /// One maze a dungeon can be run as: its grid, the rooms on it, and where a run may start and
 /// where its boss may stand.
@@ -25,7 +45,8 @@ public sealed record MazeDefinition(
     byte Height,
     IReadOnlyDictionary<MazeCell, int> Rooms,
     IReadOnlyList<MazeCell> StartCandidates,
-    IReadOnlyList<MazeCell> BossCandidates);
+    IReadOnlyList<MazeCell> BossCandidates,
+    DungeonQuestConnection? QuestConnection = null);
 
 /// <summary>
 /// A dungeon as the archive declares it.
@@ -86,7 +107,8 @@ public sealed record DungeonDefinition(
     IReadOnlyList<MazeDefinition> Mazes,
     byte BasisLevel = 1,
     double ExperienceWeight = 1.0,
-    bool OffersPaidCard = true);
+    bool OffersPaidCard = true,
+    DungeonQuestConnection? QuestConnection = null);
 
 /// <summary>Reads dungeon declarations out of the content archive.</summary>
 public interface IDungeonDefinitionSource

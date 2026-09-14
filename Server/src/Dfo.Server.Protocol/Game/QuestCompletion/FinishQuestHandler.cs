@@ -55,28 +55,28 @@ public sealed class FinishQuestHandler(
             return;
         }
 
-        // Recorded rather than acted on. The reference server picks one reward out of a list when
-        // the quest offers a choice and repeats a completion when asked for several; no quest this
-        // server can finish declares either, so the request's own words for them are logged where
-        // the first quest that uses one will show up.
-        if (message.HasRewardSelection || message.CompletionCount != 1)
+        QuestFinishOutcome outcome;
+        try
+        {
+            outcome = await commandBus.SendAsync(
+                new FinishQuestCommand(
+                    session.AccountId,
+                    session.CharacterId,
+                    message.QuestId,
+                    message.RewardSelection,
+                    message.CompletionCount,
+                    checked((uint)clock.GetUtcNow().ToUnixTimeSeconds())),
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (QuestFinishRejectedException exception)
         {
             logger.LogWarning(
-                "Finish quest {ConnectionId}: quest {Quest} asks for selection={Selection} "
-                    + "count={Count}; this server grants the whole reward once",
+                exception,
+                "Finish quest {ConnectionId}: quest {Quest} settlement rolled back",
                 context.Connection.ConnectionId,
-                message.QuestId,
-                message.RewardSelection,
-                message.CompletionCount);
+                message.QuestId);
+            outcome = QuestFinishOutcome.Refuse(message.QuestId);
         }
-
-        var outcome = await commandBus.SendAsync(
-            new FinishQuestCommand(
-                session.AccountId,
-                session.CharacterId,
-                message.QuestId,
-                checked((uint)clock.GetUtcNow().ToUnixTimeSeconds())),
-            cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation(
             "Finish quest {ConnectionId} account={Account}: quest={Quest} {Verdict} "

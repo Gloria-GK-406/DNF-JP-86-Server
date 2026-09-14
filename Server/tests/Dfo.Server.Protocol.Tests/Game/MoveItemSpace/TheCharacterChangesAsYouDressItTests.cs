@@ -431,7 +431,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         public async ValueTask<ExtendedUserStateMessage> OpenDungeonSelectionAsync(ICharacterStateProjectionDomainService? current = null)
         {
             Sender.Sent.Clear();
-            await new EnterSelectDungeonHandler(current ?? new UnchangedCurrentState(), new OneSession(), Runtime, new SelectionVisits(),
+            await new EnterSelectDungeonHandler(current ?? new UnchangedCurrentState(), new OneSession(), Runtime, new SelectionVisits(), new IgnoredEntryIntents(),
                 Sender, NullLogger<EnterSelectDungeonHandler>.Instance).HandleAsync(
                     Dispatch, new EnterSelectDungeonRequest(GameMessageMetadata.Empty, 10000),
                     CancellationToken.None);
@@ -455,6 +455,15 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
                     destinationSlot,
                     DestinationInstanceValue: 0),
                 CancellationToken.None);
+    }
+
+    private sealed class IgnoredEntryIntents : IDungeonEntryIntentDomainService
+    {
+        public void Record(SelectedSessionIdentity session, DungeonEntryIntent intent) { }
+
+        public DungeonEntryIntent? Consume(SelectedSessionIdentity session) => null;
+
+        public bool ClearExact(SelectedSessionIdentity session) => false;
     }
 
     /// <summary>
