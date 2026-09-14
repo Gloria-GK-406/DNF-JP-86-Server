@@ -1,6 +1,12 @@
+using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Application.Parties;
 using Dfo.Server.Application.Sessions;
+using Dfo.Server.Application.Tests.Support;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Tests.Sessions;
@@ -94,6 +100,42 @@ public sealed class SessionPresenceScopeTests
         Assert.Equal(replacement, current.Session);
     }
 
+    [Fact]
+    public async Task Party_scope_callbacks_follow_presence_write_order_for_one_character()
+    {
+        var parties = new PartyService(
+            new StubPartyMemberStatusDomainService(),
+            new PartyModeRuleService(),
+            TimeProvider.System);
+        var sink = new BlockingPartyDirectoryPresenceSink(parties);
+        var presence = new SessionPresenceDomainService(sink);
+        var session = Session(characterId: 20, generation: 1);
+        var firstScope = new PartyDirectoryScope(11, 1, 1);
+        var staleScope = new PartyDirectoryScope(11, 1, 2);
+        var latestScope = new PartyDirectoryScope(11, 1, 3);
+        presence.Admit(new SessionPresence(
+            session.CharacterId, 10011, 1, 1, true, session, ChannelId: 11));
+        Assert.True(parties.CreateOrUpdateSettings(
+            new PartyCharacterSnapshot(
+                session.AccountId, session.CharacterId, session.WireUserId, firstScope),
+            new PartyModeRuleService().DefaultSettings,
+            PartyTitle.Empty).Succeeded);
+        sink.BlockNextUpdate();
+
+        var staleMove = Task.Run(() => presence.RelocateExact(
+            session, staleScope.TownId, staleScope.AreaId, standingInTown: true));
+        await sink.BlockedUpdateEntered.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        var latestMove = Task.Run(() => presence.RelocateExact(
+            session, latestScope.TownId, latestScope.AreaId, standingInTown: true));
+
+        sink.ReleaseBlockedUpdate();
+        Assert.True(await staleMove.WaitAsync(TimeSpan.FromSeconds(2)));
+        Assert.True(await latestMove.WaitAsync(TimeSpan.FromSeconds(2)));
+        Assert.Empty(parties.Query(new PartyDirectoryQuery(staleScope)));
+        Assert.Single(parties.Query(new PartyDirectoryQuery(latestScope)));
+        Assert.Equal(latestScope, sink.Scopes.Last());
+    }
+
     [Theory]
     [InlineData(SessionPresenceScopeFlags.SameChannel, null, null, null)]
     [InlineData(SessionPresenceScopeFlags.None, 10011, null, null)]
@@ -158,4 +200,33 @@ public sealed class SessionPresenceScopeTests
             new Dfo.Server.Data.Networking.NetworkConnectionId($"conn-{generation}"),
             generation,
             listenerPort: 10011);
+
+    private sealed class BlockingPartyDirectoryPresenceSink(IPartyDirectoryPresenceSink inner)
+        : IPartyDirectoryPresenceSink
+    {
+        private readonly ManualResetEventSlim release = new(initialState: false);
+        private int blockNext;
+
+        public TaskCompletionSource BlockedUpdateEntered { get; } = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public List<PartyDirectoryScope?> Scopes { get; } = [];
+
+        public void BlockNextUpdate() => Interlocked.Exchange(ref blockNext, 1);
+
+        public void ReleaseBlockedUpdate() => release.Set();
+
+        public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope)
+        {
+            if (Interlocked.Exchange(ref blockNext, 0) == 1)
+            {
+                BlockedUpdateEntered.TrySetResult();
+                release.Wait(TimeSpan.FromSeconds(2));
+            }
+
+            inner.UpdateDirectoryPresence(characterId, scope);
+            lock (Scopes)
+                Scopes.Add(scope);
+        }
+    }
 }

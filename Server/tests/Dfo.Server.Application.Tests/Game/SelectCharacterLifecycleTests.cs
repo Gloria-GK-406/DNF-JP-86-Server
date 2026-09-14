@@ -528,7 +528,7 @@ public sealed partial class SelectCharacterLifecycleTests
     }
 
     [Fact]
-    public async Task CrossConnectionDisplacement_CleansWithoutOwnerAndClosesOldConnection()
+    public async Task CrossConnectionDisplacement_CleansCurrentOwnerBeforeRegisteringReplacement()
     {
         var fixture = await Fixture.CreateAsync();
         var displaced = SelectedSessionIdentity.Create(
@@ -545,6 +545,7 @@ public sealed partial class SelectCharacterLifecycleTests
             .AsTask().WaitAsync(TimeSpan.FromSeconds(2));
 
         Assert.Equal([(displaced, false)], fixture.Cleanup.Calls);
+        Assert.Equal([displaced], fixture.Cleanup.SelectedOwnersAtCall);
         Assert.Contains(displaced.ConnectionId, fixture.Closer.Closed);
         Assert.Equal(fixture.ConnectionId, fixture.Directory.Find(fixture.AccountId)!.ConnectionId);
     }
@@ -1163,6 +1164,7 @@ public sealed partial class SelectCharacterLifecycleTests
         : ISelectedSessionCleanupDomainService
     {
         public List<(SelectedSessionIdentity Session, bool IncludeOwner)> Calls { get; } = [];
+        public List<SelectedSessionIdentity?> SelectedOwnersAtCall { get; } = [];
         public SelectedSessionIdentity? FailureSession { get; set; }
 
         public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
@@ -1170,6 +1172,7 @@ public sealed partial class SelectCharacterLifecycleTests
         {
             ledger.Add("cleanup");
             Calls.Add((session, includeOwner));
+            SelectedOwnersAtCall.Add(directory.Find(session.AccountId));
             if (FailureSession == session)
                 return ValueTask.FromException<SelectedSessionCleanupNotificationPlan>(
                     new IOException("cleanup failed"));

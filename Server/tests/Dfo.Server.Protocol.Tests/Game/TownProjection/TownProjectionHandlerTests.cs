@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
@@ -62,6 +63,7 @@ public sealed class TownProjectionHandlerTests
             presenceRegistry,
             new OneChannel(),
             new EveryTownDeclared(),
+            new SelectedSessionTransitionGate(),
             sender,
             notifications,
             new NoopPartyTownProjectionDelivery(),
@@ -91,6 +93,43 @@ public sealed class TownProjectionHandlerTests
             new CharacterPositionState(
                 CrossedTownId, CrossedAreaId, CrossedX, CrossedY, WalkedDirection),
             positions.Find(Identity.CharacterId));
+    }
+
+    [Fact]
+    public async Task AreaCrossingWaitsForTheSameAccountPartyTransitionGate()
+    {
+        var positions = Standing();
+        var gate = new SelectedSessionTransitionGate();
+        var held = await gate.AcquireAsync(
+            Identity.AccountId,
+            Dfo.Server.Application.Commands.UserAccessMode.Exclusive,
+            CancellationToken.None);
+        var handler = new SetUserAreaHandler(
+            new OneSession(Identity),
+            new OneRuntimeSession(Entry()),
+            positions,
+            Presence(),
+            new OneChannel(),
+            new EveryTownDeclared(),
+            gate,
+            new RecordingSender(),
+            new RecordingNotifications(),
+            new NoopPartyTownProjectionDelivery(),
+            NullLogger<SetUserAreaHandler>.Instance);
+
+        var pending = handler.HandleAsync(
+                Dispatch(),
+                new SetUserAreaRequest(
+                    GameMessageMetadata.Empty, CrossedTownId, CrossedAreaId, CrossedX, CrossedY),
+                CancellationToken.None)
+            .AsTask();
+
+        Assert.False(pending.IsCompleted);
+        Assert.Equal(WalkedAreaId, positions.Find(Identity.CharacterId)!.AreaId);
+
+        await held.DisposeAsync();
+        await pending.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.Equal(CrossedAreaId, positions.Find(Identity.CharacterId)!.AreaId);
     }
 
     [Fact]
@@ -184,6 +223,7 @@ public sealed class TownProjectionHandlerTests
             presence,
             new OneChannel(),
             new EveryTownDeclared(),
+            new SelectedSessionTransitionGate(),
             sender,
             notifications,
             partyProjection,

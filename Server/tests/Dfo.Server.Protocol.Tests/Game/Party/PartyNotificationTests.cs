@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Application.Parties;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -118,12 +120,12 @@ public sealed class PartyNotificationTests
     public async Task Formation_is_published_in_cross_recipient_phases()
     {
         var bus = new RecordingNotificationBus();
-        var delivery = new PartyNotificationDelivery(bus);
+        var delivery = Delivery(bus);
         var snapshot = Snapshot();
         var plan = new PartyNotificationPlan(
             [],
             snapshot,
-            Acceptance: new PartyAcceptanceNotification(Inviter, Invitee));
+            Acceptance: Acceptance());
 
         await delivery.DeliverAsync(plan, CancellationToken.None);
 
@@ -152,14 +154,14 @@ public sealed class PartyNotificationTests
     public async Task TownObserversReceiveOneRosterRefreshAfterTheMemberProjection()
     {
         var bus = new RecordingNotificationBus();
-        var delivery = new PartyNotificationDelivery(bus);
+        var delivery = Delivery(bus);
         var snapshot = Snapshot();
 
         await delivery.DeliverAsync(new PartyNotificationPlan(
             [],
             snapshot,
-            Acceptance: new PartyAcceptanceNotification(Inviter, Invitee),
-            TownObservers: [Observer]), CancellationToken.None);
+            Acceptance: Acceptance(),
+            DirectoryChange: ScopeChange()), CancellationToken.None);
 
         Assert.Equal(6, bus.Publications.Count);
         Assert.Collection(
@@ -180,11 +182,11 @@ public sealed class PartyNotificationTests
     public async Task ATransientObserverFailureRetriesWithinOneMutationDelivery()
     {
         var bus = new FailingObserverNotificationBus(failureCount: 1);
-        var delivery = new PartyNotificationDelivery(bus);
+        var delivery = Delivery(bus);
         var plan = new PartyNotificationPlan(
             [],
             Snapshot(),
-            TownObservers: [Observer]);
+            DirectoryChange: ScopeChange());
 
         await delivery.DeliverAsync(plan, CancellationToken.None);
 
@@ -196,11 +198,11 @@ public sealed class PartyNotificationTests
     public async Task APersistentlyFailedObserverLeavesTheSameRevisionRetryableLater()
     {
         var bus = new FailingObserverNotificationBus(failureCount: 2);
-        var delivery = new PartyNotificationDelivery(bus);
+        var delivery = Delivery(bus);
         var plan = new PartyNotificationPlan(
             [],
             Snapshot(),
-            TownObservers: [Observer]);
+            DirectoryChange: ScopeChange());
 
         await delivery.DeliverAsync(plan, CancellationToken.None);
         Assert.Equal(2, bus.ObserverAttempts);
@@ -217,13 +219,13 @@ public sealed class PartyNotificationTests
     {
         var bus = new RecordingNotificationBus();
         var streams = new PartyProjectionStreamRegistry();
-        var delivery = new PartyNotificationDelivery(bus, streams);
+        var delivery = Delivery(bus, streams);
         var snapshot = Snapshot() with { Revision = 4 };
 
         await delivery.DeliverRealtimeAsync(Inviter, snapshot, CancellationToken.None);
         bus.Publications.Clear();
         await delivery.DeliverAsync(
-            new PartyNotificationPlan([], snapshot, TownObservers: [Observer]),
+            new PartyNotificationPlan([], snapshot, DirectoryChange: ScopeChange()),
             CancellationToken.None);
 
         Assert.Collection(
@@ -238,7 +240,7 @@ public sealed class PartyNotificationTests
     public async Task Direct_creation_projects_the_complete_state_while_update_projects_only_settings()
     {
         var bus = new RecordingNotificationBus();
-        var delivery = new PartyNotificationDelivery(bus);
+        var delivery = Delivery(bus);
         var template = Snapshot();
         var created = template with { Revision = 1, Members = [template.Members[0]] };
 
@@ -258,12 +260,12 @@ public sealed class PartyNotificationTests
             [],
             updated,
             SettingsChange: PartySettingsChangeKind.Updated,
-            TownObservers: [Observer]), CancellationToken.None);
+            DirectoryChange: ScopeChange()), CancellationToken.None);
 
         Assert.Collection(
             bus.Publications.Skip(3),
             settings => AssertPublication<PartySettingsChanged>(settings, 1),
-            observer => AssertPublication<PartyRosterChanged>(observer, 3));
+            observer => AssertPublication<PartyRosterChanged>(observer, 2, 3));
         Assert.Same(
             updated,
             Assert.IsType<PartySettingsChanged>(bus.Publications[3].Notification).Snapshot);
@@ -278,15 +280,15 @@ public sealed class PartyNotificationTests
             new(
                 [],
                 snapshot,
-                Invitation: new PartyInviteNotification(Invitee, Inviter, Profile()),
+                Invitation: Invitation(),
                 SettingsChange: PartySettingsChangeKind.Created),
             new([], SettingsChange: PartySettingsChangeKind.Created),
             new([], snapshot, ClearPartyId: 0x1234, SettingsChange: PartySettingsChangeKind.Updated),
             new([], snapshot, SettingsChange: (PartySettingsChangeKind)99),
-            new([], Acceptance: new PartyAcceptanceNotification(Inviter, Invitee)),
-            new([], TownObservers: [Observer]),
+            new([], Acceptance: Acceptance()),
+            new([], DirectoryChange: ScopeChange()),
             new(
-                [Invitee],
+                [Invitee.CharacterId],
                 ClearPartyId: 0x1234,
                 ClearPartyGeneration: snapshot.Generation),
         ];
@@ -294,7 +296,7 @@ public sealed class PartyNotificationTests
         foreach (var plan in invalidPlans)
         {
             var bus = new RecordingNotificationBus();
-            var delivery = new PartyNotificationDelivery(bus);
+            var delivery = Delivery(bus);
             await Assert.ThrowsAsync<InvalidOperationException>(async () =>
                 await delivery.DeliverAsync(plan, CancellationToken.None));
             Assert.Empty(bus.Publications);
@@ -305,7 +307,7 @@ public sealed class PartyNotificationTests
     public async Task Settings_update_arriving_before_creation_promotes_latest_snapshot_to_full_state()
     {
         var bus = new RecordingNotificationBus();
-        var delivery = new PartyNotificationDelivery(bus);
+        var delivery = Delivery(bus);
         var template = Snapshot();
         var created = template with { Revision = 1, Members = [template.Members[0]] };
         var updated = template with { Revision = 2 };
@@ -329,7 +331,7 @@ public sealed class PartyNotificationTests
     public async Task Settings_update_overtaking_acceptance_gives_the_new_member_full_state_and_keeps_the_ack()
     {
         var bus = new RecordingNotificationBus();
-        var delivery = new PartyNotificationDelivery(bus);
+        var delivery = Delivery(bus);
         var template = Snapshot();
         var created = template with { Revision = 1, Members = [template.Members[0]] };
         await delivery.DeliverAsync(new PartyNotificationPlan(
@@ -341,7 +343,7 @@ public sealed class PartyNotificationTests
         await delivery.DeliverAsync(new PartyNotificationPlan(
             [], updated, SettingsChange: PartySettingsChangeKind.Updated), CancellationToken.None);
         await delivery.DeliverAsync(new PartyNotificationPlan(
-            [], accepted, Acceptance: new PartyAcceptanceNotification(Inviter, Invitee)),
+            [], accepted, Acceptance: Acceptance()),
             CancellationToken.None);
 
         Assert.Collection(
@@ -359,7 +361,7 @@ public sealed class PartyNotificationTests
     public async Task Settings_update_overtaking_leave_still_clears_the_leaver_and_rejoin_gets_full_state()
     {
         var bus = new RecordingNotificationBus();
-        var delivery = new PartyNotificationDelivery(bus);
+        var delivery = Delivery(bus);
         var template = Snapshot();
         await delivery.DeliverAsync(new PartyNotificationPlan([], template), CancellationToken.None);
         bus.Publications.Clear();
@@ -369,7 +371,7 @@ public sealed class PartyNotificationTests
         await delivery.DeliverAsync(new PartyNotificationPlan(
             [], updated, SettingsChange: PartySettingsChangeKind.Updated), CancellationToken.None);
         await delivery.DeliverAsync(new PartyNotificationPlan(
-            [Invitee],
+            [Invitee.CharacterId],
             survivor,
             ClearPartyId: survivor.PartyId,
             ClearPartyGeneration: survivor.Generation,
@@ -400,7 +402,7 @@ public sealed class PartyNotificationTests
     public async Task Newer_rejoin_suppresses_a_stale_clear_for_the_exact_current_member()
     {
         var bus = new RecordingNotificationBus();
-        var delivery = new PartyNotificationDelivery(bus);
+        var delivery = Delivery(bus);
         var template = Snapshot();
         await delivery.DeliverAsync(new PartyNotificationPlan(
             [], template with { Revision = 1 }), CancellationToken.None);
@@ -408,7 +410,7 @@ public sealed class PartyNotificationTests
         await delivery.DeliverAsync(new PartyNotificationPlan(
             [],
             template with { Revision = 3 },
-            Acceptance: new PartyAcceptanceNotification(Inviter, Invitee)),
+            Acceptance: Acceptance()),
             CancellationToken.None);
         bus.Publications.Clear();
 
@@ -418,7 +420,7 @@ public sealed class PartyNotificationTests
             Members = [template.Members[0]],
         };
         await delivery.DeliverAsync(new PartyNotificationPlan(
-            [Invitee],
+            [Invitee.CharacterId],
             staleSurvivor,
             ClearPartyId: staleSurvivor.PartyId,
             ClearPartyGeneration: staleSurvivor.Generation,
@@ -431,7 +433,7 @@ public sealed class PartyNotificationTests
     public async Task Newer_leave_suppresses_a_stale_acceptance_ack_for_the_missing_invitee()
     {
         var bus = new RecordingNotificationBus();
-        var delivery = new PartyNotificationDelivery(bus);
+        var delivery = Delivery(bus);
         var template = Snapshot();
         await delivery.DeliverAsync(new PartyNotificationPlan(
             [], template with { Revision = 1 }), CancellationToken.None);
@@ -442,7 +444,7 @@ public sealed class PartyNotificationTests
             Members = [template.Members[0]],
         };
         await delivery.DeliverAsync(new PartyNotificationPlan(
-            [Invitee],
+            [Invitee.CharacterId],
             survivor,
             ClearPartyId: survivor.PartyId,
             ClearPartyGeneration: survivor.Generation,
@@ -452,7 +454,7 @@ public sealed class PartyNotificationTests
         await delivery.DeliverAsync(new PartyNotificationPlan(
             [],
             template with { Revision = 2 },
-            Acceptance: new PartyAcceptanceNotification(Inviter, Invitee)),
+            Acceptance: Acceptance()),
             CancellationToken.None);
 
         Assert.Empty(bus.Publications);
@@ -462,7 +464,7 @@ public sealed class PartyNotificationTests
     public async Task Older_settings_revision_arriving_after_newer_is_suppressed()
     {
         var bus = new RecordingNotificationBus();
-        var delivery = new PartyNotificationDelivery(bus);
+        var delivery = Delivery(bus);
         await delivery.DeliverAsync(new PartyNotificationPlan(
             [], Snapshot() with { Revision = 1 },
             SettingsChange: PartySettingsChangeKind.Created), CancellationToken.None);
@@ -483,11 +485,11 @@ public sealed class PartyNotificationTests
     public async Task Invite_is_published_only_to_its_exact_target()
     {
         var bus = new RecordingNotificationBus();
-        var delivery = new PartyNotificationDelivery(bus);
+        var delivery = Delivery(bus);
 
         await delivery.DeliverAsync(new PartyNotificationPlan(
             [],
-            Invitation: new PartyInviteNotification(Invitee, Inviter, Profile())),
+            Invitation: Invitation()),
             CancellationToken.None);
 
         var publication = Assert.Single(bus.Publications);
@@ -495,10 +497,75 @@ public sealed class PartyNotificationTests
     }
 
     [Fact]
+    public async Task CapturedInviteAudienceNeverRetargetsToAReplacementConnection()
+    {
+        var bus = new RecordingNotificationBus();
+        var sessions = new SessionDirectory(Inviter, Invitee, Observer);
+        var presence = new FixedPresence(Inviter, Invitee, Observer);
+        var delivery = new PartyNotificationDelivery(
+            bus,
+            new PartyProjectionStreamRegistry(),
+            sessions,
+            presence);
+        var plan = new PartyNotificationPlan([], Invitation: Invitation());
+        var captured = PartyNotificationRecipientCapture.Capture(plan, sessions, presence);
+        var replacement = Invitee with
+        {
+            ConnectionId = new NetworkConnectionId("replacement-invitee"),
+            ConnectionGeneration = 2,
+        };
+        sessions.Select(replacement);
+
+        await delivery.DeliverAsync(plan, captured, CancellationToken.None);
+
+        var publication = Assert.Single(bus.Publications);
+        Assert.Equal(
+            [Invitee],
+            Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
+        Assert.DoesNotContain(replacement,
+            Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
+    }
+
+    [Fact]
+    public async Task DelayedPreMovePlanCannotRepublishItsOldDirectoryScope()
+    {
+        var parties = new PartyService(
+            new FixedPartyMemberStatus(),
+            new PartyModeRuleService(),
+            TimeProvider.System);
+        var created = parties.CreateOrUpdateSettings(
+            Character(Inviter),
+            DefaultSettings(),
+            PartyTitle.Empty);
+        Assert.True(created.Succeeded);
+        var plan = created.Notifications;
+        var sessions = new SessionDirectory(Inviter, Invitee, Observer);
+        var presence = new FixedPresence(Inviter, Invitee, Observer);
+        var captured = PartyNotificationRecipientCapture.Capture(plan, sessions, presence);
+        parties.UpdateDirectoryPresence(
+            Inviter.CharacterId,
+            new PartyDirectoryScope(11, 1, 2));
+        var bus = new RecordingNotificationBus();
+        var delivery = new PartyNotificationDelivery(
+            bus,
+            new PartyProjectionStreamRegistry(),
+            sessions,
+            presence,
+            parties);
+
+        await delivery.DeliverAsync(plan, captured, CancellationToken.None);
+
+        Assert.DoesNotContain(bus.Publications, publication =>
+            publication.Notification is PartyRosterChanged
+            && Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience)
+                .Sessions.Any(session => session == Invitee || session == Observer));
+    }
+
+    [Fact]
     public async Task Leaving_member_clear_and_survivor_refresh_use_disjoint_audiences()
     {
         var bus = new RecordingNotificationBus();
-        var delivery = new PartyNotificationDelivery(bus);
+        var delivery = Delivery(bus);
         var survivor = new PartySnapshot(
             0x1234,
             7,
@@ -506,15 +573,15 @@ public sealed class PartyNotificationTests
             1,
             DefaultSettings(),
             PartyTitle.Empty,
-            [new(Inviter, 0, Endpoint(), 73)]);
+            [new(Character(Inviter), 0, Endpoint(), 73)]);
 
         await delivery.DeliverAsync(new PartyNotificationPlan(
-            [Invitee],
+            [Invitee.CharacterId],
             survivor,
             ClearPartyId: 0x1234,
             ClearPartyGeneration: survivor.Generation,
             ClearPartyRevision: survivor.Revision,
-            TownObservers: [Inviter, Invitee, Observer]), CancellationToken.None);
+            DirectoryChange: ScopeChange()), CancellationToken.None);
 
         Assert.Collection(
             bus.Publications,
@@ -537,15 +604,15 @@ public sealed class PartyNotificationTests
     public async Task DisbandClearsMembersBeforeUnrelatedObserversWithoutDuplicateRecipients()
     {
         var bus = new RecordingNotificationBus();
-        var delivery = new PartyNotificationDelivery(bus);
+        var delivery = Delivery(bus);
         var snapshot = Snapshot();
 
         await delivery.DeliverAsync(new PartyNotificationPlan(
-            [Inviter, Invitee],
+            [Inviter.CharacterId, Invitee.CharacterId],
             ClearPartyId: snapshot.PartyId,
             ClearPartyGeneration: snapshot.Generation,
             ClearPartyRevision: snapshot.Revision,
-            TownObservers: [Inviter, Invitee, Observer, Observer]), CancellationToken.None);
+            DirectoryChange: new PartyDirectoryChange(Scope(), null)), CancellationToken.None);
 
         Assert.Collection(
             bus.Publications,
@@ -566,8 +633,8 @@ public sealed class PartyNotificationTests
     {
         var bus = new BlockingNotificationBus();
         var streams = new PartyProjectionStreamRegistry();
-        var olderDeliveryService = new PartyNotificationDelivery(bus, streams);
-        var newerDeliveryService = new PartyNotificationDelivery(bus, streams);
+        var olderDeliveryService = Delivery(bus, streams);
+        var newerDeliveryService = Delivery(bus, streams);
         var older = Snapshot() with { Revision = 3 };
         var newer = Snapshot() with { Revision = 4 };
 
@@ -591,7 +658,7 @@ public sealed class PartyNotificationTests
     public async Task An_older_revision_arriving_after_a_newer_one_is_suppressed()
     {
         var bus = new RecordingNotificationBus();
-        var delivery = new PartyNotificationDelivery(bus);
+        var delivery = Delivery(bus);
         var older = Snapshot() with { Revision = 3 };
         var newer = Snapshot() with { Revision = 4 };
 
@@ -616,23 +683,25 @@ public sealed class PartyNotificationTests
 
         Assert.Single(await new PartyInviteIssuedHandler(sessions).ComposeAsync(
             inviteeRecipient,
-            new PartyInviteIssued(new PartyInviteNotification(Invitee, Inviter, Profile())),
+            new PartyInviteIssued(Invitation()),
             CancellationToken.None));
         Assert.Single(await new PartyInviteAcceptedHandler(sessions).ComposeAsync(
             inviterRecipient,
-            new PartyInviteAccepted(new PartyAcceptanceNotification(Inviter, Invitee)),
+            new PartyInviteAccepted(Acceptance()),
             CancellationToken.None));
         Assert.Single(await new PartyRealtimeChangedHandler(sessions).ComposeAsync(
             inviteeRecipient, new PartyRealtimeChanged(snapshot), CancellationToken.None));
         Assert.Single(await new PartyEndpointsChangedHandler(sessions).ComposeAsync(
             inviteeRecipient, new PartyEndpointsChanged(snapshot), CancellationToken.None));
         Assert.Single(await new PartyRosterChangedHandler(sessions).ComposeAsync(
-            inviteeRecipient, PartyRosterChanged.Refresh(snapshot), CancellationToken.None));
+            inviteeRecipient,
+            PartyRosterChanged.Refresh(snapshot, [Invitee.CharacterId]),
+            CancellationToken.None));
         Assert.Single(await new PartySettingsChangedHandler(sessions).ComposeAsync(
             inviteeRecipient, new PartySettingsChanged(snapshot), CancellationToken.None));
         Assert.Single(await new PartyRosterChangedHandler(sessions).ComposeAsync(
             new NotificationRecipient(Observer.CharacterId, Observer.ConnectionId),
-            PartyRosterChanged.Refresh(snapshot, [Observer]),
+            PartyRosterChanged.Refresh(snapshot, [Observer.CharacterId]),
             CancellationToken.None));
 
         sessions.Select(Inviter with
@@ -648,18 +717,20 @@ public sealed class PartyNotificationTests
 
         Assert.Empty(await new PartyInviteIssuedHandler(sessions).ComposeAsync(
             inviteeRecipient,
-            new PartyInviteIssued(new PartyInviteNotification(Invitee, Inviter, Profile())),
+            new PartyInviteIssued(Invitation()),
             CancellationToken.None));
         Assert.Empty(await new PartyInviteAcceptedHandler(sessions).ComposeAsync(
             inviterRecipient,
-            new PartyInviteAccepted(new PartyAcceptanceNotification(Inviter, Invitee)),
+            new PartyInviteAccepted(Acceptance()),
             CancellationToken.None));
         Assert.Empty(await new PartyRealtimeChangedHandler(sessions).ComposeAsync(
             inviteeRecipient, new PartyRealtimeChanged(snapshot), CancellationToken.None));
         Assert.Empty(await new PartyEndpointsChangedHandler(sessions).ComposeAsync(
             inviteeRecipient, new PartyEndpointsChanged(snapshot), CancellationToken.None));
         Assert.Empty(await new PartyRosterChangedHandler(sessions).ComposeAsync(
-            inviteeRecipient, PartyRosterChanged.Refresh(snapshot), CancellationToken.None));
+            inviteeRecipient,
+            PartyRosterChanged.Refresh(snapshot, [Invitee.CharacterId]),
+            CancellationToken.None));
         Assert.Empty(await new PartySettingsChangedHandler(sessions).ComposeAsync(
             inviteeRecipient, new PartySettingsChanged(snapshot), CancellationToken.None));
     }
@@ -691,8 +762,37 @@ public sealed class PartyNotificationTests
         settings ?? DefaultSettings(),
         PartyTitle.Empty,
         ImmutableArray.Create(
-            new PartyMemberSnapshot(Inviter, 0, Endpoint(), 73),
-            new PartyMemberSnapshot(Invitee, 1, null, 45)));
+            new PartyMemberSnapshot(Character(Inviter), 0, Endpoint(), 73),
+            new PartyMemberSnapshot(Character(Invitee), 1, null, 45)));
+
+    private static PartyCharacterSnapshot Character(SelectedSessionIdentity session) =>
+        new(session.AccountId, session.CharacterId, session.WireUserId, Scope());
+
+    private static PartyDirectoryScope Scope() => new(11, 1, 1);
+
+    private static PartyDirectoryChange ScopeChange() => new(Scope(), Scope());
+
+    private static PartyInviteNotification Invitation() =>
+        new(Invitee.CharacterId, Inviter.WireUserId, Profile());
+
+    private static PartyAcceptanceNotification Acceptance() =>
+        new(
+            Inviter.CharacterId,
+            Invitee.CharacterId,
+            Inviter.WireUserId,
+            Invitee.WireUserId);
+
+    private static PartyNotificationDelivery Delivery(
+        INotificationBus bus,
+        PartyProjectionStreamRegistry? streams = null)
+    {
+        var sessions = new SessionDirectory(Inviter, Invitee, Observer);
+        return new PartyNotificationDelivery(
+            bus,
+            streams ?? new PartyProjectionStreamRegistry(),
+            sessions,
+            new FixedPresence(Inviter, Invitee, Observer));
+    }
 
     private static PartySettings DefaultSettings() => new(
         [0, 0, 4, 0, 0, 0, 0, 5, 0, (byte)PartyCategory.Normal, 0, 0]);
@@ -768,6 +868,16 @@ public sealed class PartyNotificationTests
         }
     }
 
+    private sealed class FixedPartyMemberStatus : IPartyMemberStatusDomainService
+    {
+        public ValueTask<PartyInviteDisplayState> InvitationOfAsync(
+            PartyCharacterSnapshot character,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult(Profile());
+
+        public byte CurrentHpPercentOf(CharacterId characterId) => 73;
+    }
+
     private sealed class BlockingNotificationBus : INotificationBus
     {
         public List<Publication> Publications { get; } = [];
@@ -823,5 +933,33 @@ public sealed class PartyNotificationTests
 
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) =>
             sessions.Values.SingleOrDefault(value => value.ConnectionId == connectionId);
+    }
+
+    private sealed class FixedPresence(params SelectedSessionIdentity[] sessions)
+        : ISessionPresenceDomainService
+    {
+        private readonly Dictionary<CharacterId, SessionPresence> values = sessions.ToDictionary(
+            session => session.CharacterId,
+            session => new SessionPresence(
+                session.CharacterId,
+                session.ListenerPort,
+                1,
+                1,
+                true,
+                session,
+                ChannelId: 11));
+
+        public void Admit(SessionPresence presence) => values[presence.CharacterId] = presence;
+        public bool Withdraw(CharacterId characterId) => values.Remove(characterId);
+        public bool WithdrawExact(SelectedSessionIdentity session) => false;
+        public bool RelocateExact(
+            SelectedSessionIdentity session,
+            byte townId,
+            byte areaId,
+            bool standingInTown,
+            bool sharesTownPresence = true) => false;
+        public SessionPresence? Find(CharacterId characterId) => values.GetValueOrDefault(characterId);
+        public IReadOnlyList<SessionPresence> Query(SessionPresenceScope scope) =>
+            values.Values.ToArray();
     }
 }

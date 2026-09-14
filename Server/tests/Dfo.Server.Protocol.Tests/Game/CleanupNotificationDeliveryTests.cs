@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -51,7 +52,6 @@ public sealed class CleanupNotificationDeliveryTests
         var order = new List<string>();
         var sender = new RecordingSender(order);
         var notifications = new RecordingNotifications(order);
-        var partyDelivery = new PartyNotificationDelivery(notifications);
         var partyMember = SelectedSessionIdentity.Create(
             new AccountId(9),
             new CharacterId(9),
@@ -64,6 +64,11 @@ public sealed class CleanupNotificationDeliveryTests
             new NetworkConnectionId("Game:party-observer"),
             1,
             10011);
+        var partyDelivery = new PartyNotificationDelivery(
+            notifications,
+            new PartyProjectionStreamRegistry(),
+            new FixedSelectedSessions(partyMember, townObserver),
+            new FixedPresence(partyMember, townObserver));
 
         await new CleanupNotificationDelivery(sender, notifications, partyDelivery).DeliverAsync(
             new SelectedSessionCleanupNotificationPlan(
@@ -72,11 +77,18 @@ public sealed class CleanupNotificationDeliveryTests
                 [Peer(9)],
                 [Departed],
                 new PartyNotificationPlan(
-                    [partyMember],
+                    [partyMember.CharacterId],
                     ClearPartyId: 7,
                     ClearPartyGeneration: 11,
                     ClearPartyRevision: 3,
-                    TownObservers: [townObserver])),
+                    DirectoryChange: new PartyDirectoryChange(
+                        new PartyDirectoryScope(11, 1, 1),
+                        null)),
+                new PartyNotificationRecipientPlan(
+                    [partyMember],
+                    [new PartyDirectoryRecipientGroup(
+                        new PartyDirectoryScope(11, 1, 1),
+                        [partyMember, townObserver])])),
             CancellationToken.None);
 
         Assert.Equal(["owner", "peers", "party", "party"], order);
@@ -192,6 +204,49 @@ public sealed class CleanupNotificationDeliveryTests
             new NetworkConnectionId($"Game:peer-{characterId}"),
             1,
             10011);
+
+    private sealed class FixedSelectedSessions(params SelectedSessionIdentity[] values)
+        : ISelectedSessionDomainService
+    {
+        public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => null;
+        public bool ReleaseExact(SelectedSessionIdentity session) => false;
+        public SelectedSessionIdentity? Find(AccountId accountId) =>
+            values.SingleOrDefault(value => value.AccountId == accountId);
+        public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) =>
+            values.SingleOrDefault(value => value.CharacterId == characterId);
+        public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) =>
+            values.SingleOrDefault(value => value.WireUserId == wireUserId);
+        public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) =>
+            values.SingleOrDefault(value => value.ConnectionId == connectionId);
+    }
+
+    private sealed class FixedPresence(params SelectedSessionIdentity[] sessions)
+        : ISessionPresenceDomainService
+    {
+        private readonly Dictionary<CharacterId, SessionPresence> values = sessions.ToDictionary(
+            session => session.CharacterId,
+            session => new SessionPresence(
+                session.CharacterId,
+                session.ListenerPort,
+                1,
+                1,
+                true,
+                session,
+                ChannelId: 11));
+
+        public void Admit(SessionPresence presence) => values[presence.CharacterId] = presence;
+        public bool Withdraw(CharacterId characterId) => values.Remove(characterId);
+        public bool WithdrawExact(SelectedSessionIdentity session) => false;
+        public bool RelocateExact(
+            SelectedSessionIdentity session,
+            byte townId,
+            byte areaId,
+            bool standingInTown,
+            bool sharesTownPresence = true) => false;
+        public SessionPresence? Find(CharacterId characterId) => values.GetValueOrDefault(characterId);
+        public IReadOnlyList<SessionPresence> Query(SessionPresenceScope scope) =>
+            values.Values.ToArray();
+    }
 
     private sealed class RecordingSender(List<string> order) : IGameMessageSender
     {

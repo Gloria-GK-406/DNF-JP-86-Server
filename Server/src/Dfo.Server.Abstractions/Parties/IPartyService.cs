@@ -1,35 +1,47 @@
 using Dfo.Server.Data.Parties;
-using Dfo.Server.Data.World;
+using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Abstractions.Parties;
 
-/// <summary>The sole writer for process-local party, invitation and member-endpoint state.</summary>
-public interface IPartyDomainService
+/// <summary>Narrow ordered presence projection consumed by the session lifecycle.</summary>
+public interface IPartyDirectoryPresenceSink
 {
-    PartyOperationResult CreateOrUpdateSettingsExact(
-        SelectedSessionIdentity session,
+    void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope);
+}
+
+/// <summary>The sole writer and query boundary for process-local party state.</summary>
+public interface IPartyService : IPartyDirectoryPresenceSink
+{
+    IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query);
+
+    PartyOperationResult CreateOrUpdateSettings(
+        PartyCharacterSnapshot character,
         PartySettings settings,
         PartyTitle title);
 
-    PartyOperationResult UpdateEndpoint(SelectedSessionIdentity session, PartyEndpoint endpoint);
+    PartyOperationResult UpdateEndpoint(PartyCharacterSnapshot character, PartyEndpoint endpoint);
 
     PartyOperationResult RequestInvite(
-        SelectedSessionIdentity inviter,
-        ushort targetWireUserId,
+        PartyCharacterSnapshot inviter,
+        PartyCharacterSnapshot target,
         PartyInviteDisplayState display);
 
     PartyOperationResult AcceptInvite(
-        SelectedSessionIdentity invitee,
-        ushort inviterWireUserId);
+        PartyCharacterSnapshot invitee,
+        PartyCharacterSnapshot inviter);
 
-    PartyOperationResult LeavePartyExact(SelectedSessionIdentity session);
+    PartyOperationResult TransferLeadership(
+        CharacterId currentLeaderCharacterId,
+        CharacterId nextLeaderCharacterId);
 
-    /// <summary>Withdraws every artifact owned by exactly this selected-session generation.</summary>
-    PartyOperationResult CleanupSessionExact(SelectedSessionIdentity session);
+    PartyOperationResult LeaveParty(CharacterId characterId);
 
-    PartySnapshot? FindParty(SelectedSessionIdentity session);
+    /// <summary>Withdraws every party artifact owned by this character.</summary>
+    PartyOperationResult CleanupCharacter(CharacterId characterId);
 
-    PartyEndpoint? FindEndpoint(SelectedSessionIdentity session);
+    PartySnapshot? FindParty(CharacterId characterId);
+
+    PartyEndpoint? FindEndpoint(CharacterId characterId);
 }
 
 public enum PartyModeRuleFailure
@@ -66,8 +78,8 @@ public interface IPartyModeRuleService
 public interface IPartyMemberStatusDomainService
 {
     ValueTask<PartyInviteDisplayState> InvitationOfAsync(
-        SelectedSessionIdentity session,
+        PartyCharacterSnapshot character,
         CancellationToken cancellationToken);
 
-    byte CurrentHpPercentOf(SelectedSessionIdentity session);
+    byte CurrentHpPercentOf(CharacterId characterId);
 }

@@ -26,7 +26,8 @@ public sealed record SessionPresence(
     byte AreaId,
     bool StandingInTown,
     SelectedSessionIdentity? Session = null,
-    bool SharesTownPresence = true);
+    bool SharesTownPresence = true,
+    int ChannelId = 0);
 
 [Flags]
 public enum SessionPresenceScopeFlags
@@ -37,6 +38,7 @@ public enum SessionPresenceScopeFlags
     SameArea = 1 << 2,
     StandingInTown = 1 << 3,
     SharesTownPresence = 1 << 4,
+    SameLogicalChannel = 1 << 5,
 }
 
 /// <summary>Composable constraints over the server's current character presences.</summary>
@@ -47,14 +49,16 @@ public sealed record SessionPresenceScope
         | SessionPresenceScopeFlags.SameTown
         | SessionPresenceScopeFlags.SameArea
         | SessionPresenceScopeFlags.StandingInTown
-        | SessionPresenceScopeFlags.SharesTownPresence;
+        | SessionPresenceScopeFlags.SharesTownPresence
+        | SessionPresenceScopeFlags.SameLogicalChannel;
 
     public SessionPresenceScope(
         SessionPresenceScopeFlags flags,
         int? listenerPort = null,
         byte? townId = null,
         byte? areaId = null,
-        CharacterId? excludingCharacterId = null)
+        CharacterId? excludingCharacterId = null,
+        int? channelId = null)
     {
         if ((flags & ~KnownFlags) != 0)
             throw new ArgumentOutOfRangeException(nameof(flags), flags, "Unknown presence-scope flags.");
@@ -65,6 +69,7 @@ public sealed record SessionPresenceScope
         }
 
         RequireMatchingAnchor(flags, SessionPresenceScopeFlags.SameChannel, listenerPort, nameof(listenerPort));
+        RequireMatchingAnchor(flags, SessionPresenceScopeFlags.SameLogicalChannel, channelId, nameof(channelId));
         RequireMatchingAnchor(flags, SessionPresenceScopeFlags.SameTown, townId, nameof(townId));
         RequireMatchingAnchor(flags, SessionPresenceScopeFlags.SameArea, areaId, nameof(areaId));
         if (listenerPort is <= 0 or > ushort.MaxValue)
@@ -72,6 +77,7 @@ public sealed record SessionPresenceScope
 
         Flags = flags;
         ListenerPort = listenerPort;
+        ChannelId = channelId;
         TownId = townId;
         AreaId = areaId;
         ExcludingCharacterId = excludingCharacterId;
@@ -79,6 +85,7 @@ public sealed record SessionPresenceScope
 
     public SessionPresenceScopeFlags Flags { get; }
     public int? ListenerPort { get; }
+    public int? ChannelId { get; }
     public byte? TownId { get; }
     public byte? AreaId { get; }
     public CharacterId? ExcludingCharacterId { get; }
@@ -100,6 +107,22 @@ public sealed record SessionPresenceScope
             townId,
             areaId,
             excludingCharacterId);
+
+    public static SessionPresenceScope VisiblePartyArea(
+        int channelId,
+        byte townId,
+        byte areaId,
+        CharacterId? excludingCharacterId = null) =>
+        new(
+            SessionPresenceScopeFlags.SameLogicalChannel
+            | SessionPresenceScopeFlags.SameTown
+            | SessionPresenceScopeFlags.SameArea
+            | SessionPresenceScopeFlags.StandingInTown
+            | SessionPresenceScopeFlags.SharesTownPresence,
+            channelId: channelId,
+            townId: townId,
+            areaId: areaId,
+            excludingCharacterId: excludingCharacterId);
 
     private static bool Includes(SessionPresenceScopeFlags flags, SessionPresenceScopeFlags value) =>
         (flags & value) == value;
@@ -125,11 +148,7 @@ public sealed record SessionPresenceScope
 /// <remarks>
 /// This service exists for the server's lifetime, so consulting it always answers. An
 /// empty answer means nobody is there, which is different from there being nowhere to ask.
-/// <para>
-/// Admitting and withdrawing belong to the entry lifecycle, which is not migrated yet.
-/// Until it is, nothing calls them in production and every query legitimately answers
-/// empty.
-/// </para>
+/// Admission, exact relocation, and withdrawal are owned by the selected-character lifecycle.
 /// </remarks>
 public interface ISessionPresenceDomainService
 {

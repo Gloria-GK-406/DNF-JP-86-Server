@@ -136,8 +136,9 @@ facts。两半合起来才是一条线——一边不许往上摸世界，一边
 （`*Directory` / `*Registry`）、内容源、规则服务、命令总线。要用它们，就把用法收进拥有那件事
 的领域服务里。
 
-唯一的例外是一张具名豁免清单，目前只有 `TimeProvider`（环境时钟，不是这个游戏知道的东西）。
-清单与它每一项的理由都写在守它的判据旁边。
+例外必须进入具名豁免清单并写明理由。目前包括 `TimeProvider`（环境时钟，不是这个游戏知道的
+东西），以及用户明确采用领域名称的 `IPartyService`（队伍聚合与目录的权威服务边界，不追加
+`Domain` 后缀）。清单与它每一项的理由都写在守它的判据旁边；其它接口不得借此绕过后缀规则。
 
 **这条由判据守着**：`Server/tests/Dfo.Server.Application.Tests/Commands/CommandHandlerArchitectureTests.cs`
 反射遍历全部 `ICommandHandler<,>` 实现的构造器参数。它按类型判定而不是按一张类型名单——

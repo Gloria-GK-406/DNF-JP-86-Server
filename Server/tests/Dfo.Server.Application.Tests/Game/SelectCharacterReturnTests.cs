@@ -46,9 +46,7 @@ public sealed partial class SelectCharacterLifecycleTests
         var cleanup = new SelectedSessionCleanupService(f.Directory, runtimes, leases,
             new CharacterContainerDomainService(), new CharacterItemCooldownDomainService(TimeProvider.System),
             f.Active, presence, stores, new PvpLobbyDomainService(), [f.Mutations], positions,
-            new PartyDomainService(
-                f.Directory,
-                presence,
+            new PartyService(
                 new StubPartyMemberStatusDomainService(),
                 new PartyModeRuleService(),
                 TimeProvider.System));

@@ -268,6 +268,7 @@ internal sealed class CleanupNotificationDelivery(
 
         await partyNotifications.DeliverAsync(
             plan.PartyNotifications,
+            plan.PartyRecipients,
             cancellationToken).ConfigureAwait(false);
     }
 }

@@ -2,8 +2,8 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Parties;
-using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Parties;
 
@@ -18,18 +18,19 @@ namespace Dfo.Server.Application.Parties;
 internal sealed class PartyMemberStatusDomainService(
     Func<ICharacterInventoryEntryDomainService> inventories,
     ICharacterFatigueDomainService fatigue,
+    ISelectedSessionDomainService sessions,
     ISelectedSessionRuntimeDirectory runtimeSessions) : IPartyMemberStatusDomainService
 {
     private const int ReviveCoinSlot = 1;
     private const int ReviveCoinItemId = 1;
 
     public async ValueTask<PartyInviteDisplayState> InvitationOfAsync(
-        SelectedSessionIdentity session,
+        PartyCharacterSnapshot character,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(character);
         var inventory = await inventories().LoadAsync(
-                session.AccountId, session.CharacterId, cancellationToken)
+                character.AccountId, character.CharacterId, cancellationToken)
             .ConfigureAwait(false);
         var reviveCoins = inventory.VirtualResources.SingleOrDefault(
             value => value.SlotIndex == ReviveCoinSlot);
@@ -39,7 +40,7 @@ internal sealed class PartyMemberStatusDomainService(
                 $"Party invitation found item {reviveCoins.ItemId} in revive-coin slot {ReviveCoinSlot}.");
         }
 
-        var balance = await fatigue.BalanceOfAsync(session.CharacterId, cancellationToken)
+        var balance = await fatigue.BalanceOfAsync(character.CharacterId, cancellationToken)
             .ConfigureAwait(false);
         return new PartyInviteDisplayState(
             reviveCoins?.Value ?? 0,
@@ -48,12 +49,14 @@ internal sealed class PartyMemberStatusDomainService(
             AntiMagic: 0);
     }
 
-    public byte CurrentHpPercentOf(SelectedSessionIdentity session)
+    public byte CurrentHpPercentOf(CharacterId characterId)
     {
-        ArgumentNullException.ThrowIfNull(session);
+        var session = sessions.FindByCharacter(characterId);
+        if (session is null)
+            return 0;
         if (!runtimeSessions.TryGet(session, out var result, out _)
             || result is null
-            || result.Character.Identity.CharacterId != session.CharacterId)
+            || result.Character.Identity.CharacterId != characterId)
         {
             return 0;
         }

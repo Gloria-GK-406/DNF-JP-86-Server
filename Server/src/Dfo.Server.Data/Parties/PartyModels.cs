@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Collections.Immutable;
-using Dfo.Server.Data.World;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Data.Parties;
 
@@ -99,11 +100,34 @@ public sealed record PartyEndpoint(
         && Mtu is >= MinimumMtu and <= MaximumMtu;
 }
 
+/// <summary>The public party-directory partition owned by a character's current location.</summary>
+public sealed record PartyDirectoryScope(
+    int ChannelId,
+    byte TownId,
+    byte AreaId);
+
+/// <summary>Composable filters over the process-local party directory.</summary>
+public sealed record PartyDirectoryQuery(
+    PartyDirectoryScope Scope,
+    PartyCategory? Category = null,
+    ushort? ModeTargetRaw = null);
+
+/// <summary>A transport-free character view consumed by party behavior.</summary>
+public sealed record PartyCharacterSnapshot(
+    AccountId AccountId,
+    CharacterId CharacterId,
+    ushort WireUserId,
+    PartyDirectoryScope? DirectoryScope);
+
 public sealed record PartyMemberSnapshot(
-    SelectedSessionIdentity Session,
+    PartyCharacterSnapshot Character,
     byte Slot,
     PartyEndpoint? Endpoint,
-    byte HpPercent);
+    byte HpPercent)
+{
+    public CharacterId CharacterId => Character.CharacterId;
+    public ushort WireUserId => Character.WireUserId;
+}
 
 /// <summary>
 /// The inviter values consumed by A21's native party-invitation window.
@@ -130,13 +154,20 @@ public sealed record PartySnapshot(
     ImmutableArray<PartyMemberSnapshot> Members);
 
 public sealed record PartyInviteNotification(
-    SelectedSessionIdentity Target,
-    SelectedSessionIdentity Inviter,
+    CharacterId TargetCharacterId,
+    ushort InviterWireUserId,
     PartyInviteDisplayState Display);
 
 public sealed record PartyAcceptanceNotification(
-    SelectedSessionIdentity Inviter,
-    SelectedSessionIdentity Invitee);
+    CharacterId InviterCharacterId,
+    CharacterId InviteeCharacterId,
+    ushort InviterWireUserId,
+    ushort InviteeWireUserId);
+
+/// <summary>The directory partitions affected by one atomic party mutation.</summary>
+public sealed record PartyDirectoryChange(
+    PartyDirectoryScope? Previous,
+    PartyDirectoryScope? Current);
 
 public enum PartySettingsChangeKind
 {
@@ -148,7 +179,7 @@ public enum PartySettingsChangeKind
 /// Protocol-independent audiences and one immutable state generation for downstream notifications.
 /// </summary>
 public sealed record PartyNotificationPlan(
-    ImmutableArray<SelectedSessionIdentity> ClearAudience,
+    ImmutableArray<CharacterId> ClearAudience,
     PartySnapshot? Snapshot = null,
     PartyInviteNotification? Invitation = null,
     PartyAcceptanceNotification? Acceptance = null,
@@ -156,7 +187,7 @@ public sealed record PartyNotificationPlan(
     long? ClearPartyGeneration = null,
     long? ClearPartyRevision = null,
     PartySettingsChangeKind? SettingsChange = null,
-    ImmutableArray<SelectedSessionIdentity> TownObservers = default)
+    PartyDirectoryChange? DirectoryChange = null)
 {
     public static PartyNotificationPlan Empty { get; } = new([]);
 }
@@ -165,7 +196,7 @@ public enum PartyFailureReason
 {
     None = 0,
     InvalidEndpoint,
-    SessionNotCurrent,
+    CallerNotCurrent,
     TargetNotFound,
     SelfInvite,
     NotStandingInTown,

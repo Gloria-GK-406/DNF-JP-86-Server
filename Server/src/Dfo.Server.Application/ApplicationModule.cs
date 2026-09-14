@@ -326,7 +326,6 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IWorldContentEntryRuleService, WorldContentEntryRuleService>();
         services.TryAddSingleton<IChannelEntryPolicy, ChannelEntryPolicy>();
         services.TryAddSingleton<IEntryPlacementRuleService, EntryPlacementRuleService>();
-        services.TryAddSingleton<ISessionPresenceDomainService, SessionPresenceDomainService>();
         services.TryAddSingleton<ISelectedSessionDomainService, SelectedSessionDomainService>();
         services.TryAddSingleton<ISelectedSessionRuntimeDirectory, SelectedSessionRuntimeDirectory>();
         services.TryAddSingleton<
@@ -339,9 +338,15 @@ public sealed class ApplicationModule : IServerModule
             new PartyMemberStatusDomainService(
                 () => provider.GetRequiredService<ICharacterInventoryEntryDomainService>(),
                 provider.GetRequiredService<ICharacterFatigueDomainService>(),
+                provider.GetRequiredService<ISelectedSessionDomainService>(),
                 provider.GetRequiredService<ISelectedSessionRuntimeDirectory>()));
         services.TryAddSingleton<IPartyModeRuleService, PartyModeRuleService>();
-        services.TryAddSingleton<IPartyDomainService, PartyDomainService>();
+        services.TryAddSingleton<PartyService>();
+        services.TryAddSingleton<IPartyService>(provider =>
+            provider.GetRequiredService<PartyService>());
+        services.TryAddSingleton<IPartyDirectoryPresenceSink>(provider =>
+            provider.GetRequiredService<PartyService>());
+        services.TryAddSingleton<ISessionPresenceDomainService, SessionPresenceDomainService>();
         services.TryAddSingleton<IExpertStoreDomainService, ExpertStoreDomainService>();
         services.TryAddSingleton<IPvpLobbyDomainService, PvpLobbyDomainService>();
         services.TryAddSingleton<ISessionAdjacentEntryDomainService, SessionAdjacentEntryDomainService>();

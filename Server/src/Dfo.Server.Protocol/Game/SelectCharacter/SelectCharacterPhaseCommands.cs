@@ -88,20 +88,27 @@ public sealed class PrepareSelectedCharacterSessionCommandHandler(
         var pendingCloses = new List<NetworkConnectionId>();
         try
         {
-            var displaced = sessions.Select(session);
-            if (displaced is not null)
+            if (previous is not null && previous.ConnectionId != command.ConnectionId)
             {
-                pendingCloses.Add(displaced.ConnectionId);
+                pendingCloses.Add(previous.ConnectionId);
                 try
                 {
                     cleanupNotifications.Add(await cleanup.CleanupAsync(
-                        displaced, includeOwner: false, cancellationToken).ConfigureAwait(false));
+                        previous, includeOwner: false, cancellationToken).ConfigureAwait(false));
                 }
                 finally
                 {
-                    _ = sessions.ReleaseExact(displaced);
+                    _ = sessions.ReleaseExact(previous);
                 }
             }
+
+            // Account selection runs under the lifecycle transition gate. Cleanup must finish
+            // while the displaced session is still the current owner, otherwise its character
+            // artifacts would be indistinguishable from replacement state at the cleanup seam.
+            var displaced = sessions.Select(session);
+            if (displaced is not null)
+                throw new InvalidOperationException(
+                    "A selected session changed outside its account lifecycle gate.");
 
             var prepared = await preparation.PrepareAsync(
                 selected, command.AccountId, command.Channel, cancellationToken)

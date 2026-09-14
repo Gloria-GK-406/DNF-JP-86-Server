@@ -285,35 +285,43 @@ public sealed class SessionGenerationOwnershipTests
         public bool ClearExact(SelectedSessionIdentity session) => false;
     }
 
-    private sealed class PassiveParties : IPartyDomainService
+    private sealed class PassiveParties : IPartyService
     {
-        public PartyOperationResult CreateOrUpdateSettingsExact(
-            SelectedSessionIdentity session,
+        public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }
+
+        public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => [];
+
+        public PartyOperationResult CreateOrUpdateSettings(
+            PartyCharacterSnapshot character,
             PartySettings settings,
             PartyTitle title) => PartyOperationResult.Success();
 
         public PartyOperationResult UpdateEndpoint(
-            SelectedSessionIdentity session,
+            PartyCharacterSnapshot character,
             PartyEndpoint endpoint) => PartyOperationResult.Success();
 
         public PartyOperationResult RequestInvite(
-            SelectedSessionIdentity inviter,
-            ushort targetWireUserId,
+            PartyCharacterSnapshot inviter,
+            PartyCharacterSnapshot target,
             PartyInviteDisplayState display) => PartyOperationResult.Success();
 
         public PartyOperationResult AcceptInvite(
-            SelectedSessionIdentity invitee,
-            ushort inviterWireUserId) => PartyOperationResult.Success();
+            PartyCharacterSnapshot invitee,
+            PartyCharacterSnapshot inviter) => PartyOperationResult.Success();
 
-        public PartyOperationResult LeavePartyExact(SelectedSessionIdentity session) =>
+        public PartyOperationResult TransferLeadership(
+            CharacterId currentLeaderCharacterId,
+            CharacterId nextLeaderCharacterId) => PartyOperationResult.Success();
+
+        public PartyOperationResult LeaveParty(CharacterId characterId) =>
             PartyOperationResult.Success();
 
-        public PartyOperationResult CleanupSessionExact(SelectedSessionIdentity session) =>
+        public PartyOperationResult CleanupCharacter(CharacterId characterId) =>
             PartyOperationResult.Success();
 
-        public PartySnapshot? FindParty(SelectedSessionIdentity session) => null;
+        public PartySnapshot? FindParty(CharacterId characterId) => null;
 
-        public PartyEndpoint? FindEndpoint(SelectedSessionIdentity session) => null;
+        public PartyEndpoint? FindEndpoint(CharacterId characterId) => null;
     }
 
     private sealed class NoopSender : INetworkMessageSender

@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
@@ -207,25 +208,25 @@ internal sealed class SetPartyInfoDecoder(IPartyModeRuleService rules) : IGameMe
 }
 
 public sealed record UpdatePartyEndpointCommand(
-    SelectedSessionIdentity Session,
+    PartyCharacterSnapshot Character,
     PartyEndpoint Endpoint) : ICommand<PartyOperationResult>;
 
-public sealed class UpdatePartyEndpointCommandHandler(IPartyDomainService parties)
+public sealed class UpdatePartyEndpointCommandHandler(IPartyService parties)
     : ICommandHandler<UpdatePartyEndpointCommand, PartyOperationResult>
 {
     public ValueTask<PartyOperationResult> HandleAsync(
         CommandExecutionContext context,
         UpdatePartyEndpointCommand command,
         CancellationToken cancellationToken) =>
-        ValueTask.FromResult(parties.UpdateEndpoint(command.Session, command.Endpoint));
+        ValueTask.FromResult(parties.UpdateEndpoint(command.Character, command.Endpoint));
 }
 
 public sealed record RequestPartyInviteCommand(
-    SelectedSessionIdentity Inviter,
-    ushort TargetWireUserId) : ICommand<PartyOperationResult>;
+    PartyCharacterSnapshot Inviter,
+    PartyCharacterSnapshot Target) : ICommand<PartyOperationResult>;
 
 public sealed class RequestPartyInviteCommandHandler(
-    IPartyDomainService parties,
+    IPartyService parties,
     IPartyMemberStatusDomainService memberStatus)
     : ICommandHandler<RequestPartyInviteCommand, PartyOperationResult>
 {
@@ -237,43 +238,43 @@ public sealed class RequestPartyInviteCommandHandler(
         var display = await memberStatus
             .InvitationOfAsync(command.Inviter, cancellationToken)
             .ConfigureAwait(false);
-        return parties.RequestInvite(command.Inviter, command.TargetWireUserId, display);
+        return parties.RequestInvite(command.Inviter, command.Target, display);
     }
 }
 
 public sealed record AcceptPartyInviteCommand(
-    SelectedSessionIdentity Invitee,
-    ushort InviterWireUserId) : ICommand<PartyOperationResult>;
+    PartyCharacterSnapshot Invitee,
+    PartyCharacterSnapshot Inviter) : ICommand<PartyOperationResult>;
 
-public sealed class AcceptPartyInviteCommandHandler(IPartyDomainService parties)
+public sealed class AcceptPartyInviteCommandHandler(IPartyService parties)
     : ICommandHandler<AcceptPartyInviteCommand, PartyOperationResult>
 {
     public ValueTask<PartyOperationResult> HandleAsync(
         CommandExecutionContext context,
         AcceptPartyInviteCommand command,
         CancellationToken cancellationToken) =>
-        ValueTask.FromResult(parties.AcceptInvite(command.Invitee, command.InviterWireUserId));
+        ValueTask.FromResult(parties.AcceptInvite(command.Invitee, command.Inviter));
 }
 
-public sealed record LeavePartyCommand(SelectedSessionIdentity Session)
+public sealed record LeavePartyCommand(CharacterId CharacterId)
     : ICommand<PartyOperationResult>;
 
-public sealed class LeavePartyCommandHandler(IPartyDomainService parties)
+public sealed class LeavePartyCommandHandler(IPartyService parties)
     : ICommandHandler<LeavePartyCommand, PartyOperationResult>
 {
     public ValueTask<PartyOperationResult> HandleAsync(
         CommandExecutionContext context,
         LeavePartyCommand command,
         CancellationToken cancellationToken) =>
-        ValueTask.FromResult(parties.LeavePartyExact(command.Session));
+        ValueTask.FromResult(parties.LeaveParty(command.CharacterId));
 }
 
-public sealed record QueryPartyRealtimeCommand(SelectedSessionIdentity Session)
+public sealed record QueryPartyRealtimeCommand(CharacterId CharacterId)
     : ICommand<PartyRealtimeQueryResult>;
 
 public sealed record PartyRealtimeQueryResult(PartySnapshot? Snapshot);
 
-public sealed class QueryPartyRealtimeCommandHandler(IPartyDomainService parties)
+public sealed class QueryPartyRealtimeCommandHandler(IPartyService parties)
     : ICommandHandler<QueryPartyRealtimeCommand, PartyRealtimeQueryResult>
 {
     public ValueTask<PartyRealtimeQueryResult> HandleAsync(
@@ -281,23 +282,23 @@ public sealed class QueryPartyRealtimeCommandHandler(IPartyDomainService parties
         QueryPartyRealtimeCommand command,
         CancellationToken cancellationToken) =>
         ValueTask.FromResult(new PartyRealtimeQueryResult(
-            parties.FindParty(command.Session)));
+            parties.FindParty(command.CharacterId)));
 }
 
 public sealed record SetPartyInfoCommand(
-    SelectedSessionIdentity Session,
+    PartyCharacterSnapshot Character,
     PartySettings Settings,
     PartyTitle Title) : ICommand<PartyOperationResult>;
 
-public sealed class SetPartyInfoCommandHandler(IPartyDomainService parties)
+public sealed class SetPartyInfoCommandHandler(IPartyService parties)
     : ICommandHandler<SetPartyInfoCommand, PartyOperationResult>
 {
     public ValueTask<PartyOperationResult> HandleAsync(
         CommandExecutionContext context,
         SetPartyInfoCommand command,
         CancellationToken cancellationToken) =>
-        ValueTask.FromResult(parties.CreateOrUpdateSettingsExact(
-            command.Session,
+        ValueTask.FromResult(parties.CreateOrUpdateSettings(
+            command.Character,
             command.Settings,
             command.Title));
 }
@@ -334,10 +335,82 @@ internal static class PartyTransitionExecution
                 await leases[index].DisposeAsync().ConfigureAwait(false);
         }
     }
+
+    public static async ValueTask<PartyCommandExecution> RunPartyAsync(
+        SelectedSessionTransitionGate transitionGate,
+        SelectedSessionIdentity first,
+        SelectedSessionIdentity? second,
+        ISelectedSessionDomainService sessions,
+        ISessionPresenceDomainService? presence,
+        Func<ValueTask<PartyOperationResult>> action,
+        CancellationToken cancellationToken)
+    {
+        var accountIds = second is null || second.AccountId == first.AccountId
+            ? [first.AccountId]
+            : new[] { first.AccountId, second.AccountId }
+                .OrderBy(value => value.Value)
+                .ToArray();
+        var leases = new List<IAsyncDisposable>(accountIds.Length);
+        try
+        {
+            foreach (var accountId in accountIds)
+            {
+                leases.Add(await transitionGate
+                    .AcquireAsync(accountId, UserAccessMode.Exclusive, cancellationToken)
+                    .ConfigureAwait(false));
+            }
+
+            var result = await action().ConfigureAwait(false);
+            return new PartyCommandExecution(
+                result,
+                PartyNotificationRecipientCapture.Capture(
+                    result.Notifications,
+                    sessions,
+                    presence));
+        }
+        finally
+        {
+            for (var index = leases.Count - 1; index >= 0; index--)
+                await leases[index].DisposeAsync().ConfigureAwait(false);
+        }
+    }
+}
+
+internal sealed record PartyCommandExecution(
+    PartyOperationResult Result,
+    PartyNotificationRecipientPlan Recipients);
+
+internal static class PartyCharacterProjection
+{
+    public static bool TryCapture(
+        SelectedSessionIdentity session,
+        ISessionPresenceDomainService presence,
+        out PartyCharacterSnapshot character)
+    {
+        var current = presence.Find(session.CharacterId);
+        if (current?.Session != session)
+        {
+            character = null!;
+            return false;
+        }
+
+        var scope = current.StandingInTown
+            && current.SharesTownPresence
+            && current.ChannelId > 0
+                ? new PartyDirectoryScope(current.ChannelId, current.TownId, current.AreaId)
+                : null;
+        character = new PartyCharacterSnapshot(
+            session.AccountId,
+            session.CharacterId,
+            session.WireUserId,
+            scope);
+        return true;
+    }
 }
 
 public sealed class SetUdpIpPortHandler(
     ISelectedSessionDomainService sessions,
+    ISessionPresenceDomainService presence,
     SelectedSessionTransitionGate transitionGate,
     ICommandBus commands,
     PartyNotificationDelivery notifications,
@@ -356,18 +429,23 @@ public sealed class SetUdpIpPortHandler(
             return;
         }
 
-        var result = await PartyTransitionExecution.RunAsync(
+        var execution = await PartyTransitionExecution.RunPartyAsync(
             transitionGate,
             session,
             null,
+            sessions,
+            presence,
             () => sessions.FindByConnection(context.Connection.ConnectionId) == session
+                && PartyCharacterProjection.TryCapture(session, presence, out var character)
                 ? commands.SendAsync(
-                    new UpdatePartyEndpointCommand(session, message.Endpoint), cancellationToken)
+                    new UpdatePartyEndpointCommand(character, message.Endpoint), cancellationToken)
                 : ValueTask.FromResult(PartyOperationResult.Reject(
-                    PartyFailureReason.SessionNotCurrent)),
+                    PartyFailureReason.CallerNotCurrent)),
             cancellationToken).ConfigureAwait(false);
+        var result = execution.Result;
         if (result.Succeeded)
-            await notifications.DeliverAsync(result.Notifications, cancellationToken)
+            await notifications.DeliverAsync(
+                    result.Notifications, execution.Recipients, cancellationToken)
                 .ConfigureAwait(false);
         logger.LogInformation(
             "SET_UDP_IP_PORT character={CharacterId} accepted={Accepted} failure={Failure}",
@@ -377,6 +455,7 @@ public sealed class SetUdpIpPortHandler(
 
 public sealed class RequestPeerHandler(
     ISelectedSessionDomainService sessions,
+    ISessionPresenceDomainService presence,
     SelectedSessionTransitionGate transitionGate,
     ICommandBus commands,
     PartyNotificationDelivery notifications,
@@ -412,19 +491,25 @@ public sealed class RequestPeerHandler(
             return;
         }
 
-        var result = await PartyTransitionExecution.RunAsync(
+        var execution = await PartyTransitionExecution.RunPartyAsync(
             transitionGate,
             inviter,
             target,
+            sessions,
+            presence,
             () => sessions.FindByConnection(context.Connection.ConnectionId) == inviter
                 && sessions.FindByWireUserId(message.TargetWireUserId) == target
+                && PartyCharacterProjection.TryCapture(inviter, presence, out var inviterCharacter)
+                && PartyCharacterProjection.TryCapture(target, presence, out var targetCharacter)
                     ? commands.SendAsync(new RequestPartyInviteCommand(
-                        inviter, message.TargetWireUserId), cancellationToken)
+                        inviterCharacter, targetCharacter), cancellationToken)
                     : ValueTask.FromResult(PartyOperationResult.Reject(
-                        PartyFailureReason.SessionNotCurrent)),
+                        PartyFailureReason.CallerNotCurrent)),
             cancellationToken).ConfigureAwait(false);
+        var result = execution.Result;
         if (result.Succeeded)
-            await notifications.DeliverAsync(result.Notifications, cancellationToken)
+            await notifications.DeliverAsync(
+                    result.Notifications, execution.Recipients, cancellationToken)
                 .ConfigureAwait(false);
         logger.LogInformation(
             "REQUEST_PEER inviter={Inviter} target={Target} clientReportedReviveCoins={ReviveCoins} accepted={Accepted} failure={Failure}",
@@ -435,6 +520,7 @@ public sealed class RequestPeerHandler(
 
 public sealed class ResponsePeerHandler(
     ISelectedSessionDomainService sessions,
+    ISessionPresenceDomainService presence,
     SelectedSessionTransitionGate transitionGate,
     ICommandBus commands,
     PartyNotificationDelivery notifications,
@@ -470,19 +556,25 @@ public sealed class ResponsePeerHandler(
             return;
         }
 
-        var result = await PartyTransitionExecution.RunAsync(
+        var execution = await PartyTransitionExecution.RunPartyAsync(
             transitionGate,
             invitee,
             inviter,
+            sessions,
+            presence,
             () => sessions.FindByConnection(context.Connection.ConnectionId) == invitee
                 && sessions.FindByWireUserId(message.InviterWireUserId) == inviter
+                && PartyCharacterProjection.TryCapture(invitee, presence, out var inviteeCharacter)
+                && PartyCharacterProjection.TryCapture(inviter, presence, out var inviterCharacter)
                     ? commands.SendAsync(new AcceptPartyInviteCommand(
-                        invitee, message.InviterWireUserId), cancellationToken)
+                        inviteeCharacter, inviterCharacter), cancellationToken)
                     : ValueTask.FromResult(PartyOperationResult.Reject(
-                        PartyFailureReason.SessionNotCurrent)),
+                        PartyFailureReason.CallerNotCurrent)),
             cancellationToken).ConfigureAwait(false);
+        var result = execution.Result;
         if (result.Succeeded)
-            await notifications.DeliverAsync(result.Notifications, cancellationToken)
+            await notifications.DeliverAsync(
+                    result.Notifications, execution.Recipients, cancellationToken)
                 .ConfigureAwait(false);
         logger.LogInformation(
             "RESPONSE_PEER invitee={Invitee} inviter={Inviter} accepted={Accepted} failure={Failure}",
@@ -495,7 +587,8 @@ public sealed class LeavePartyHandler(
     SelectedSessionTransitionGate transitionGate,
     ICommandBus commands,
     PartyNotificationDelivery notifications,
-    ILogger<LeavePartyHandler> logger) : ClientMessageHandler<LeavePartyRequest>
+    ILogger<LeavePartyHandler> logger,
+    ISessionPresenceDomainService? presence = null) : ClientMessageHandler<LeavePartyRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -510,17 +603,21 @@ public sealed class LeavePartyHandler(
             return;
         }
 
-        var result = await PartyTransitionExecution.RunAsync(
+        var execution = await PartyTransitionExecution.RunPartyAsync(
             transitionGate,
             session,
             null,
+            sessions,
+            presence,
             () => sessions.FindByConnection(context.Connection.ConnectionId) == session
-                ? commands.SendAsync(new LeavePartyCommand(session), cancellationToken)
+                ? commands.SendAsync(new LeavePartyCommand(session.CharacterId), cancellationToken)
                 : ValueTask.FromResult(PartyOperationResult.Reject(
-                    PartyFailureReason.SessionNotCurrent)),
+                    PartyFailureReason.CallerNotCurrent)),
             cancellationToken).ConfigureAwait(false);
+        var result = execution.Result;
         if (result.Succeeded)
-            await notifications.DeliverAsync(result.Notifications, cancellationToken)
+            await notifications.DeliverAsync(
+                    result.Notifications, execution.Recipients, cancellationToken)
                 .ConfigureAwait(false);
         logger.LogInformation(
             "LEAVE_PARTY character={CharacterId} accepted={Accepted} failure={Failure}",
@@ -555,7 +652,7 @@ public sealed class CallPartyMemberRealtimeInfoHandler(
             session,
             null,
             () => sessions.FindByConnection(context.Connection.ConnectionId) == session
-                ? commands.SendAsync(new QueryPartyRealtimeCommand(session), cancellationToken)
+                ? commands.SendAsync(new QueryPartyRealtimeCommand(session.CharacterId), cancellationToken)
                 : ValueTask.FromResult(new PartyRealtimeQueryResult(null)),
             cancellationToken).ConfigureAwait(false);
         if (result.Snapshot is { } snapshot)
@@ -571,6 +668,7 @@ public sealed class CallPartyMemberRealtimeInfoHandler(
 
 public sealed class SetPartyInfoHandler(
     ISelectedSessionDomainService sessions,
+    ISessionPresenceDomainService presence,
     SelectedSessionTransitionGate transitionGate,
     ICommandBus commands,
     PartyNotificationDelivery notifications,
@@ -590,21 +688,26 @@ public sealed class SetPartyInfoHandler(
             return;
         }
 
-        var result = await PartyTransitionExecution.RunAsync(
+        var execution = await PartyTransitionExecution.RunPartyAsync(
             transitionGate,
             session,
             null,
+            sessions,
+            presence,
             () => sessions.FindByConnection(context.Connection.ConnectionId) == session
+                && PartyCharacterProjection.TryCapture(session, presence, out var character)
                 ? commands.SendAsync(new SetPartyInfoCommand(
-                    session,
+                    character,
                     message.Settings,
                     message.Title), cancellationToken)
                 : ValueTask.FromResult(PartyOperationResult.Reject(
-                    PartyFailureReason.SessionNotCurrent)),
+                    PartyFailureReason.CallerNotCurrent)),
             cancellationToken).ConfigureAwait(false);
+        var result = execution.Result;
         if (result.Succeeded)
         {
-            await notifications.DeliverAsync(result.Notifications, cancellationToken)
+            await notifications.DeliverAsync(
+                    result.Notifications, execution.Recipients, cancellationToken)
                 .ConfigureAwait(false);
         }
         logger.LogInformation(

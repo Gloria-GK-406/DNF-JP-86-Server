@@ -1,6 +1,6 @@
 using Dfo.Server.Abstractions.Parties;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Parties;
-using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Tests.Support;
 
@@ -9,9 +9,9 @@ internal sealed class StubPartyMemberStatusDomainService(
     PartyInviteDisplayState? invitation = null) : IPartyMemberStatusDomainService
 {
     public ValueTask<PartyInviteDisplayState> InvitationOfAsync(
-        SelectedSessionIdentity session,
+        PartyCharacterSnapshot character,
         CancellationToken cancellationToken) =>
         ValueTask.FromResult(invitation ?? new PartyInviteDisplayState(0, 0, 0, 0));
 
-    public byte CurrentHpPercentOf(SelectedSessionIdentity session) => hpPercent;
+    public byte CurrentHpPercentOf(CharacterId characterId) => hpPercent;
 }

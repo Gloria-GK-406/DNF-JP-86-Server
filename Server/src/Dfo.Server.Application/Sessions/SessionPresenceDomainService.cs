@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
+using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Sessions;
@@ -13,22 +15,48 @@ namespace Dfo.Server.Application.Sessions;
 /// Infrastructure: it holds no external technology, and the accepted online-user and
 /// active-character state already lives here.
 /// </remarks>
-internal sealed class SessionPresenceDomainService : ISessionPresenceDomainService
+internal sealed class SessionPresenceDomainService(IPartyDirectoryPresenceSink? parties = null)
+    : ISessionPresenceDomainService
 {
     private readonly ConcurrentDictionary<CharacterId, SessionPresence> _byCharacter = new();
+    private readonly ConcurrentDictionary<CharacterId, object> _ordering = new();
 
     public void Admit(SessionPresence presence)
     {
         ArgumentNullException.ThrowIfNull(presence);
-        _byCharacter[presence.CharacterId] = presence;
+        lock (OrderingGate(presence.CharacterId))
+        {
+            _byCharacter[presence.CharacterId] = presence;
+            parties?.UpdateDirectoryPresence(presence.CharacterId, DirectoryScopeOf(presence));
+        }
     }
 
-    public bool Withdraw(CharacterId characterId) => _byCharacter.TryRemove(characterId, out _);
+    public bool Withdraw(CharacterId characterId)
+    {
+        lock (OrderingGate(characterId))
+        {
+            if (!_byCharacter.TryRemove(characterId, out _))
+                return false;
+            parties?.UpdateDirectoryPresence(characterId, null);
+            return true;
+        }
+    }
 
-    public bool WithdrawExact(SelectedSessionIdentity session) =>
-        _byCharacter.TryGetValue(session.CharacterId, out var current)
-        && current.Session == session
-        && _byCharacter.TryRemove(new KeyValuePair<CharacterId, SessionPresence>(session.CharacterId, current));
+    public bool WithdrawExact(SelectedSessionIdentity session)
+    {
+        lock (OrderingGate(session.CharacterId))
+        {
+            if (!_byCharacter.TryGetValue(session.CharacterId, out var current)
+                || current.Session != session
+                || !_byCharacter.TryRemove(
+                    new KeyValuePair<CharacterId, SessionPresence>(session.CharacterId, current)))
+            {
+                return false;
+            }
+            parties?.UpdateDirectoryPresence(session.CharacterId, null);
+            return true;
+        }
+    }
 
     public bool RelocateExact(
         SelectedSessionIdentity session,
@@ -37,38 +65,56 @@ internal sealed class SessionPresenceDomainService : ISessionPresenceDomainServi
         bool standingInTown,
         bool sharesTownPresence = true)
     {
-        while (_byCharacter.TryGetValue(session.CharacterId, out var current))
+        lock (OrderingGate(session.CharacterId))
         {
-            if (current.Session != session)
-                return false;
-            var moved = current with
+            while (_byCharacter.TryGetValue(session.CharacterId, out var current))
             {
-                TownId = townId,
-                AreaId = areaId,
-                StandingInTown = standingInTown,
-                SharesTownPresence = sharesTownPresence,
-            };
-            if (_byCharacter.TryUpdate(session.CharacterId, moved, current))
-                return true;
-        }
+                if (current.Session != session)
+                    return false;
+                var moved = current with
+                {
+                    TownId = townId,
+                    AreaId = areaId,
+                    StandingInTown = standingInTown,
+                    SharesTownPresence = sharesTownPresence,
+                };
+                if (_byCharacter.TryUpdate(session.CharacterId, moved, current))
+                {
+                    parties?.UpdateDirectoryPresence(session.CharacterId, DirectoryScopeOf(moved));
+                    return true;
+                }
+            }
 
-        return false;
+            return false;
+        }
     }
 
-    public SessionPresence? Find(CharacterId characterId) =>
-        _byCharacter.TryGetValue(characterId, out var presence) ? presence : null;
+    public SessionPresence? Find(CharacterId characterId)
+    {
+        lock (OrderingGate(characterId))
+            return _byCharacter.TryGetValue(characterId, out var presence) ? presence : null;
+    }
 
     public IReadOnlyList<SessionPresence> Query(SessionPresenceScope scope)
     {
         ArgumentNullException.ThrowIfNull(scope);
         var flags = scope.Flags;
         var occupants = new List<SessionPresence>();
-        foreach (var presence in _byCharacter.Values)
+        foreach (var characterId in _byCharacter.Keys)
         {
+            SessionPresence presence;
+            lock (OrderingGate(characterId))
+            {
+                if (!_byCharacter.TryGetValue(characterId, out presence!))
+                    continue;
+            }
             if (presence.CharacterId == scope.ExcludingCharacterId)
                 continue;
             if ((flags & SessionPresenceScopeFlags.SameChannel) != 0
                 && presence.ListenerPort != scope.ListenerPort)
+                continue;
+            if ((flags & SessionPresenceScopeFlags.SameLogicalChannel) != 0
+                && presence.ChannelId != scope.ChannelId)
                 continue;
             if ((flags & SessionPresenceScopeFlags.SameTown) != 0
                 && presence.TownId != scope.TownId)
@@ -88,5 +134,13 @@ internal sealed class SessionPresenceDomainService : ISessionPresenceDomainServi
         occupants.Sort(static (left, right) => left.CharacterId.Value.CompareTo(right.CharacterId.Value));
         return occupants;
     }
+
+    private static PartyDirectoryScope? DirectoryScopeOf(SessionPresence presence) =>
+        presence.StandingInTown && presence.SharesTownPresence && presence.ChannelId > 0
+            ? new PartyDirectoryScope(presence.ChannelId, presence.TownId, presence.AreaId)
+            : null;
+
+    private object OrderingGate(CharacterId characterId) =>
+        _ordering.GetOrAdd(characterId, static _ => new object());
 
 }

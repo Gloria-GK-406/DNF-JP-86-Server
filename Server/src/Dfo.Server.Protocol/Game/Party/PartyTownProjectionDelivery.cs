@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Parties;
+using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 
@@ -15,7 +16,8 @@ public interface IPartyTownProjectionDelivery
 }
 
 public sealed class PartyTownProjectionDelivery(
-    IPartyDomainService parties,
+    IPartyService parties,
+    ISessionPresenceDomainService presence,
     INotificationBus notifications,
     PartyProjectionStreamRegistry streams) : IPartyTownProjectionDelivery
 {
@@ -33,62 +35,57 @@ public sealed class PartyTownProjectionDelivery(
             return;
 
         using var participantLease = await streams.EnterParticipantsAsync(
-            representedSessions, cancellationToken).ConfigureAwait(false);
-        var candidates = representedSessions
-            .Distinct()
-            .Select(session => new PartyCandidate(session, parties.FindParty(session)))
-            .Where(candidate => candidate.Snapshot is not null)
-            .GroupBy(candidate => new PartyKey(
-                candidate.Snapshot!.PartyId,
-                candidate.Snapshot.Generation))
-            .OrderBy(group => group.Key.PartyId)
-            .ThenBy(group => group.Key.Generation)
-            .ToArray();
-
-        foreach (var candidate in candidates)
+            representedSessions.Concat(exactRecipients), cancellationToken).ConfigureAwait(false);
+        foreach (var recipient in exactRecipients)
         {
-            var stream = streams.GetOrAdd(candidate.Key.Generation);
-            await stream.Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
-            try
+            var currentPresence = presence.Find(recipient.CharacterId);
+            if (currentPresence?.Session != recipient
+                || !currentPresence.StandingInTown
+                || !currentPresence.SharesTownPresence
+                || currentPresence.ChannelId <= 0)
             {
-                var current = candidate
-                    .Select(value => parties.FindParty(value.Session))
-                    .Where(snapshot => snapshot is not null
-                        && snapshot.PartyId == candidate.Key.PartyId
-                        && snapshot.Generation == candidate.Key.Generation)
-                    .OrderByDescending(snapshot => snapshot!.Revision)
-                    .FirstOrDefault();
-                if (current is null || current.Revision < stream.LatestRevision)
-                    continue;
-
-                var currentMembers = current.Members
-                    .Select(member => member.Session)
-                    .ToHashSet();
-                var observers = exactRecipients
-                    .Where(recipient => !currentMembers.Contains(recipient))
-                    .ToImmutableArray();
-                if (observers.IsEmpty)
-                    continue;
-
-                await PartyExactNotificationDelivery.PublishWithRetryAsync(
-                    notifications,
-                    observers,
-                    PartyRosterChanged.Refresh(current, observers),
-                    cancellationToken).ConfigureAwait(false);
+                continue;
             }
-            finally
+
+            var query = new PartyDirectoryQuery(new PartyDirectoryScope(
+                currentPresence.ChannelId,
+                currentPresence.TownId,
+                currentPresence.AreaId));
+            foreach (var candidate in parties.Query(query))
             {
-                stream.Gate.Release();
+                if (candidate.Members.Any(member => member.CharacterId == recipient.CharacterId))
+                    continue;
+
+                var stream = streams.GetOrAdd(candidate.Generation);
+                await stream.Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    var current = parties.Query(query).SingleOrDefault(snapshot =>
+                        snapshot.PartyId == candidate.PartyId
+                        && snapshot.Generation == candidate.Generation);
+                    if (current is null
+                        || current.Revision < stream.LatestRevision
+                        || current.Members.Any(member =>
+                            member.CharacterId == recipient.CharacterId))
+                    {
+                        continue;
+                    }
+
+                    await PartyExactNotificationDelivery.PublishWithRetryAsync(
+                        notifications,
+                        [recipient],
+                        PartyRosterChanged.Refresh(
+                            current,
+                            ImmutableArray.Create(recipient.CharacterId)),
+                        cancellationToken).ConfigureAwait(false);
+                }
+                finally
+                {
+                    stream.Gate.Release();
+                }
             }
         }
     }
-
-    private sealed record PartyCandidate(
-        SelectedSessionIdentity Session,
-        PartySnapshot? Snapshot);
-
-    private readonly record struct PartyKey(ushort PartyId, long Generation);
-
 }
 
 internal readonly record struct PartyExactNotificationDeliveryResult(

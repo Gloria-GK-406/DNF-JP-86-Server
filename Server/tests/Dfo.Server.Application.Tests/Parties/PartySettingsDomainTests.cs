@@ -125,8 +125,8 @@ public sealed class PartySettingsDomainTests
         Assert.Equal(first.Generation, second.Generation);
         Assert.Equal(first.Revision + 1, second.Revision);
         Assert.Equal(
-            first.Members.Select(value => (value.Session, value.Slot, value.Endpoint, value.HpPercent)),
-            second.Members.Select(value => (value.Session, value.Slot, value.Endpoint, value.HpPercent)));
+            first.Members.Select(value => (value.Character, value.Slot, value.Endpoint, value.HpPercent)),
+            second.Members.Select(value => (value.Character, value.Slot, value.Endpoint, value.HpPercent)));
         Assert.Equal(updateSettings, second.Settings);
         Assert.Equal(new PartyTitle([0x62, 0x63]), second.Title);
         AssertSnapshotEqual(second, fixture.Parties.FindParty(leader));
@@ -260,11 +260,11 @@ public sealed class PartySettingsDomainTests
 
         var replacement = fixture.Replace(leader, 2);
         Assert.Equal(
-            PartyFailureReason.SessionNotCurrent,
+            PartyFailureReason.CallerNotCurrent,
             fixture.Parties.CreateOrUpdateSettingsExact(
                 leader, Settings(4, PartyCategory.Normal, 1), PartyTitle.Empty).Failure);
         AssertSnapshotEqual(afterAccept, fixture.Parties.FindParty(member));
-        Assert.Null(fixture.Parties.FindParty(replacement));
+        AssertSnapshotEqual(afterAccept, fixture.Parties.FindParty(replacement));
     }
 
     [Fact]
@@ -310,8 +310,8 @@ public sealed class PartySettingsDomainTests
         Assert.Equal(expected.Settings, actual.Settings);
         Assert.Equal(expected.Title, actual.Title);
         Assert.Equal(
-            expected.Members.Select(value => (value.Session, value.Slot, value.Endpoint, value.HpPercent)),
-            actual.Members.Select(value => (value.Session, value.Slot, value.Endpoint, value.HpPercent)));
+            expected.Members.Select(value => (value.Character, value.Slot, value.Endpoint, value.HpPercent)),
+            actual.Members.Select(value => (value.Character, value.Slot, value.Endpoint, value.HpPercent)));
     }
 
     private static byte[] SettingsBytes(byte capacity, PartyCategory category, ushort target)
@@ -334,7 +334,7 @@ public sealed class PartySettingsDomainTests
 
         public PartySettingsFixture(IPartyModeRuleService? rules = null)
         {
-            Parties = new PartyDomainService(
+            Parties = new PartyServiceTestAdapter(
                 Sessions,
                 Presence,
                 new StubPartyMemberStatusDomainService(),
@@ -344,14 +344,15 @@ public sealed class PartySettingsDomainTests
 
         public SelectedSessionDomainService Sessions { get; } = new();
         public SessionPresenceDomainService Presence { get; } = new();
-        public PartyDomainService Parties { get; }
+        public PartyServiceTestAdapter Parties { get; }
 
         public SelectedSessionIdentity Admit(int account, int character, long generation = 1)
         {
             var session = Session(account, character, generation);
             Sessions.Select(session);
             Presence.Admit(new SessionPresence(
-                session.CharacterId, session.ListenerPort, 1, 1, true, session));
+                session.CharacterId, session.ListenerPort, 1, 1, true, session,
+                ChannelId: 11));
             return session;
         }
 
@@ -360,7 +361,8 @@ public sealed class PartySettingsDomainTests
             var replacement = Session(old.AccountId.Value, old.CharacterId.Value, generation);
             Sessions.Select(replacement);
             Presence.Admit(new SessionPresence(
-                replacement.CharacterId, replacement.ListenerPort, 1, 1, true, replacement));
+                replacement.CharacterId, replacement.ListenerPort, 1, 1, true, replacement,
+                ChannelId: 11));
             return replacement;
         }
 

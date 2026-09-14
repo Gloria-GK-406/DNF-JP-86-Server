@@ -1,5 +1,6 @@
 using System.Reflection;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Protocol.Channel.Connect;
 
@@ -27,14 +28,16 @@ public sealed class CommandHandlerArchitectureTests
     /// </summary>
     /// <remarks>
     /// This is the one hand-kept list, and it is meant to stay short. An entry belongs here only
-    /// when it carries no domain meaning at all: an ambient capability of the platform rather than
-    /// something this game knows about.
+    /// when it is either an ambient platform capability or an explicitly named domain boundary
+    /// whose accepted ubiquitous-language name intentionally does not use the canonical suffix.
     /// </remarks>
     private static readonly IReadOnlyDictionary<Type, string> Exempt =
         new Dictionary<Type, string>
         {
             [typeof(TimeProvider)] =
                 "环境时钟。它不是这个游戏知道的任何东西，注入它是为了让时间在测试里可控。",
+            [typeof(IPartyService)] =
+                "队伍聚合的权威边界按领域语言明确命名为 PartyService；用户要求该名称不追加 Domain 后缀。",
         };
 
     private static readonly Assembly Abstractions = typeof(ICharacterDomainService).Assembly;
@@ -109,6 +112,7 @@ public sealed class CommandHandlerArchitectureTests
 
     [Theory]
     [InlineData(typeof(ICharacterDomainService))]
+    [InlineData(typeof(IPartyService))]
     [InlineData(typeof(Dfo.Server.Abstractions.Inventory.IItemDomainStore))]
     [InlineData(typeof(TimeProvider))]
     public void ADomainShapeOrANamedExemptionIsPermitted(Type type) => Assert.True(IsPermitted(type));

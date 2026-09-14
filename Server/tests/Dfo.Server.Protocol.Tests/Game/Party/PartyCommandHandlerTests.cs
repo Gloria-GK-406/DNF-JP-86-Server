@@ -25,19 +25,19 @@ public sealed class PartyCommandHandlerTests
             Guid.NewGuid(), typeof(object), typeof(object), CommandExecutionKind.Direct);
 
         await new UpdatePartyEndpointCommandHandler(domain).HandleAsync(
-            context, new(Inviter, endpoint), CancellationToken.None);
+            context, new(Character(Inviter), endpoint), CancellationToken.None);
         await new RequestPartyInviteCommandHandler(domain, new FixedPartyMemberStatus()).HandleAsync(
-            context, new(Inviter, Invitee.WireUserId), CancellationToken.None);
+            context, new(Character(Inviter), Character(Invitee)), CancellationToken.None);
         await new AcceptPartyInviteCommandHandler(domain).HandleAsync(
-            context, new(Invitee, Inviter.WireUserId), CancellationToken.None);
+            context, new(Character(Invitee), Character(Inviter)), CancellationToken.None);
         await new LeavePartyCommandHandler(domain).HandleAsync(
-            context, new(Invitee), CancellationToken.None);
+            context, new(Invitee.CharacterId), CancellationToken.None);
         await new QueryPartyRealtimeCommandHandler(domain).HandleAsync(
-            context, new(Inviter), CancellationToken.None);
+            context, new(Inviter.CharacterId), CancellationToken.None);
         var settings = Settings();
         var title = new PartyTitle([0x41]);
         await new SetPartyInfoCommandHandler(domain).HandleAsync(
-            context, new(Inviter, settings, title), CancellationToken.None);
+            context, new(Character(Inviter), settings, title), CancellationToken.None);
 
         Assert.Equal(
             [
@@ -84,16 +84,16 @@ public sealed class PartyCommandHandlerTests
         var commands = new RecordingCommandBus();
         var gate = new SelectedSessionTransitionGate();
 
-        await new SetUdpIpPortHandler(sessions, gate, commands, Notifications,
+        await new SetUdpIpPortHandler(sessions, Presence, gate, commands, Notifications,
                 NullLogger<SetUdpIpPortHandler>.Instance)
             .HandleAsync(Dispatch(Inviter), new SetUdpIpPortRequest(
                 GameMessageMetadata.Empty, Endpoint(), []), CancellationToken.None);
-        await new RequestPeerHandler(sessions, gate, commands, Notifications,
+        await new RequestPeerHandler(sessions, Presence, gate, commands, Notifications,
                 NullLogger<RequestPeerHandler>.Instance)
             .HandleAsync(Dispatch(Inviter), new RequestPeerRequest(
                 GameMessageMetadata.Empty, Invitee.WireUserId, 0, 64, []),
                 CancellationToken.None);
-        await new ResponsePeerHandler(sessions, gate, commands, Notifications,
+        await new ResponsePeerHandler(sessions, Presence, gate, commands, Notifications,
                 NullLogger<ResponsePeerHandler>.Instance)
             .HandleAsync(Dispatch(Invitee), new ResponsePeerRequest(
                 GameMessageMetadata.Empty, Inviter.WireUserId, 0, 0, []),
@@ -102,7 +102,7 @@ public sealed class PartyCommandHandlerTests
                 NullLogger<LeavePartyHandler>.Instance)
             .HandleAsync(Dispatch(Invitee), new LeavePartyRequest(GameMessageMetadata.Empty),
                 CancellationToken.None);
-        await new SetPartyInfoHandler(sessions, gate, commands, Notifications,
+        await new SetPartyInfoHandler(sessions, Presence, gate, commands, Notifications,
                 NullLogger<SetPartyInfoHandler>.Instance)
             .HandleAsync(Dispatch(Inviter), new SetPartyInfoRequest(
                 GameMessageMetadata.Empty, Settings(), new PartyTitle([0x41])),
@@ -134,6 +134,7 @@ public sealed class PartyCommandHandlerTests
         {
             var pending = new SetPartyInfoHandler(
                     sessions,
+                    Presence,
                     gate,
                     commands,
                     Notifications,
@@ -171,12 +172,12 @@ public sealed class PartyCommandHandlerTests
         var commands = new RecordingCommandBus();
         var gate = new SelectedSessionTransitionGate();
 
-        await new RequestPeerHandler(sessions, gate, commands, Notifications,
+        await new RequestPeerHandler(sessions, Presence, gate, commands, Notifications,
                 NullLogger<RequestPeerHandler>.Instance)
             .HandleAsync(Dispatch(Inviter), new RequestPeerRequest(
                 GameMessageMetadata.Empty, Invitee.WireUserId, 1, 90667, []),
                 CancellationToken.None);
-        await new ResponsePeerHandler(sessions, gate, commands, Notifications,
+        await new ResponsePeerHandler(sessions, Presence, gate, commands, Notifications,
                 NullLogger<ResponsePeerHandler>.Instance)
             .HandleAsync(Dispatch(Invitee), new ResponsePeerRequest(
                 GameMessageMetadata.Empty, Inviter.WireUserId, 2, 64, []),
@@ -209,6 +210,7 @@ public sealed class PartyCommandHandlerTests
 
         await new RequestPeerHandler(
                 sessions,
+                Presence,
                 new SelectedSessionTransitionGate(),
                 commands,
                 Notifications,
@@ -233,6 +235,7 @@ public sealed class PartyCommandHandlerTests
         {
             var pending = new RequestPeerHandler(
                     sessions,
+                    Presence,
                     gate,
                     commands,
                     Notifications,
@@ -275,6 +278,7 @@ public sealed class PartyCommandHandlerTests
         {
             var pending = new RequestPeerHandler(
                     sessions,
+                    Presence,
                     gate,
                     commands,
                     Notifications,
@@ -318,6 +322,7 @@ public sealed class PartyCommandHandlerTests
         {
             var lowToHigh = new RequestPeerHandler(
                     sessions,
+                    Presence,
                     gate,
                     commands,
                     Notifications,
@@ -328,6 +333,7 @@ public sealed class PartyCommandHandlerTests
                 .AsTask();
             var highToLow = new RequestPeerHandler(
                     sessions,
+                    Presence,
                     gate,
                     commands,
                     Notifications,
@@ -357,15 +363,22 @@ public sealed class PartyCommandHandlerTests
         var sessions = new SessionDirectory(Inviter, Invitee);
         var gate = new SelectedSessionTransitionGate();
         var published = new GateReentryNotificationBus(gate, Inviter.AccountId);
-        var delivery = new PartyNotificationDelivery(published);
+        var delivery = new PartyNotificationDelivery(
+            published,
+            new PartyProjectionStreamRegistry(),
+            sessions,
+            Presence);
         var commands = new RecordingCommandBus(PartyOperationResult.Success(
             new PartyNotificationPlan(
                 [],
                 Invitation: new PartyInviteNotification(
-                    Invitee, Inviter, new PartyInviteDisplayState(64, 188, 0, 0)))));
+                    Invitee.CharacterId,
+                    Inviter.WireUserId,
+                    new PartyInviteDisplayState(64, 188, 0, 0)))));
 
         await new RequestPeerHandler(
                 sessions,
+                Presence,
                 gate,
                 commands,
                 delivery,
@@ -396,9 +409,14 @@ public sealed class PartyCommandHandlerTests
 
         await new SetPartyInfoHandler(
                 sessions,
+                Presence,
                 gate,
                 commands,
-                new PartyNotificationDelivery(published),
+                new PartyNotificationDelivery(
+                    published,
+                    new PartyProjectionStreamRegistry(),
+                    sessions,
+                    Presence),
                 NullLogger<SetPartyInfoHandler>.Instance)
             .HandleAsync(
                 Dispatch(Inviter),
@@ -431,9 +449,16 @@ public sealed class PartyCommandHandlerTests
             [0, 0, 4, 0, 0, 0, 0, 5, 0, (byte)PartyCategory.Normal, 0xFF, 0xFF]),
         PartyTitle.Empty,
         [
-            new PartyMemberSnapshot(Inviter, 0, Endpoint(), 73),
-            new PartyMemberSnapshot(Invitee, 1, null, 45),
+            new PartyMemberSnapshot(Character(Inviter), 0, Endpoint(), 73),
+            new PartyMemberSnapshot(Character(Invitee), 1, null, 45),
         ]);
+
+    private static PartyCharacterSnapshot Character(SelectedSessionIdentity session) =>
+        new(
+            session.AccountId,
+            session.CharacterId,
+            session.WireUserId,
+            new PartyDirectoryScope(11, 1, 1));
 
     private static PartySettings Settings() => new(
         [0, 0, 4, 0, 0, 0, 0, 5, 0, (byte)PartyCategory.Normal, 0xFF, 0xFF]);
@@ -450,6 +475,36 @@ public sealed class PartyCommandHandlerTests
 
     private static PartyNotificationDelivery Notifications { get; } =
         new(new NoopNotificationBus());
+
+    private static ISessionPresenceDomainService Presence { get; } =
+        new FixedPresence(Inviter, Invitee);
+
+    private sealed class FixedPresence(params SelectedSessionIdentity[] sessions)
+        : ISessionPresenceDomainService
+    {
+        private readonly Dictionary<CharacterId, SessionPresence> values = sessions.ToDictionary(
+            session => session.CharacterId,
+            session => new SessionPresence(
+                session.CharacterId,
+                session.ListenerPort,
+                1,
+                1,
+                true,
+                session,
+                ChannelId: 11));
+
+        public void Admit(SessionPresence presence) => values[presence.CharacterId] = presence;
+        public bool Withdraw(CharacterId characterId) => values.Remove(characterId);
+        public bool WithdrawExact(SelectedSessionIdentity session) => false;
+        public bool RelocateExact(
+            SelectedSessionIdentity session,
+            byte townId,
+            byte areaId,
+            bool standingInTown,
+            bool sharesTownPresence = true) => false;
+        public SessionPresence? Find(CharacterId characterId) => values.GetValueOrDefault(characterId);
+        public IReadOnlyList<SessionPresence> Query(SessionPresenceScope scope) => values.Values.ToArray();
+    }
 
     private sealed class NoopNotificationBus : INotificationBus
     {
@@ -585,70 +640,78 @@ public sealed class PartyCommandHandlerTests
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 
-    private sealed class RecordingParties : IPartyDomainService
+    private sealed class RecordingParties : IPartyService
     {
         public List<string> Writes { get; } = [];
 
-        public PartyOperationResult CreateOrUpdateSettingsExact(
-            SelectedSessionIdentity session,
+        public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }
+
+        public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => [Snapshot()];
+
+        public PartyOperationResult CreateOrUpdateSettings(
+            PartyCharacterSnapshot character,
             PartySettings settings,
             PartyTitle title)
         {
             Writes.Add(
-                $"settings:{session.WireUserId}:{(byte)settings.Category}:{Convert.ToHexString(title.ToBytes())}");
+                $"settings:{character.WireUserId}:{(byte)settings.Category}:{Convert.ToHexString(title.ToBytes())}");
             return PartyOperationResult.Success();
         }
 
         public PartyOperationResult UpdateEndpoint(
-            SelectedSessionIdentity session,
+            PartyCharacterSnapshot character,
             PartyEndpoint endpoint)
         {
-            Writes.Add($"endpoint:{session.WireUserId}");
+            Writes.Add($"endpoint:{character.WireUserId}");
             return PartyOperationResult.Success();
         }
 
         public PartyOperationResult RequestInvite(
-            SelectedSessionIdentity inviter,
-            ushort targetWireUserId,
+            PartyCharacterSnapshot inviter,
+            PartyCharacterSnapshot target,
             PartyInviteDisplayState display)
         {
-            Writes.Add($"invite:{inviter.WireUserId}->{targetWireUserId}:{display.ReviveCoinCount}");
+            Writes.Add($"invite:{inviter.WireUserId}->{target.WireUserId}:{display.ReviveCoinCount}");
             return PartyOperationResult.Success();
         }
 
         public PartyOperationResult AcceptInvite(
-            SelectedSessionIdentity invitee,
-            ushort inviterWireUserId)
+            PartyCharacterSnapshot invitee,
+            PartyCharacterSnapshot inviter)
         {
-            Writes.Add($"accept:{invitee.WireUserId}<-{inviterWireUserId}");
+            Writes.Add($"accept:{invitee.WireUserId}<-{inviter.WireUserId}");
             return PartyOperationResult.Success();
         }
 
-        public PartyOperationResult LeavePartyExact(SelectedSessionIdentity session)
+        public PartyOperationResult TransferLeadership(
+            CharacterId currentLeaderCharacterId,
+            CharacterId nextLeaderCharacterId) => throw new NotSupportedException();
+
+        public PartyOperationResult LeaveParty(CharacterId characterId)
         {
-            Writes.Add($"leave:{session.WireUserId}");
+            Writes.Add($"leave:{characterId.Value}");
             return PartyOperationResult.Success();
         }
 
-        public PartyOperationResult CleanupSessionExact(SelectedSessionIdentity session) =>
+        public PartyOperationResult CleanupCharacter(CharacterId characterId) =>
             throw new NotSupportedException();
 
-        public PartySnapshot? FindParty(SelectedSessionIdentity session)
+        public PartySnapshot? FindParty(CharacterId characterId)
         {
-            Writes.Add($"query:{session.WireUserId}");
+            Writes.Add($"query:{characterId.Value}");
             return Snapshot();
         }
 
-        public PartyEndpoint? FindEndpoint(SelectedSessionIdentity session) => null;
+        public PartyEndpoint? FindEndpoint(CharacterId characterId) => null;
     }
 
     private sealed class FixedPartyMemberStatus : IPartyMemberStatusDomainService
     {
         public ValueTask<PartyInviteDisplayState> InvitationOfAsync(
-            SelectedSessionIdentity session,
+            PartyCharacterSnapshot character,
             CancellationToken cancellationToken) =>
             ValueTask.FromResult(new PartyInviteDisplayState(64, 188, 0, 0));
 
-        public byte CurrentHpPercentOf(SelectedSessionIdentity session) => 73;
+        public byte CurrentHpPercentOf(CharacterId characterId) => 73;
     }
 }

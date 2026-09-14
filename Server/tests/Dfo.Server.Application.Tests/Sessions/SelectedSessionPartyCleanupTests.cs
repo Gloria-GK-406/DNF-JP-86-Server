@@ -11,6 +11,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Tests.Sessions;
@@ -30,16 +31,16 @@ public sealed class SelectedSessionPartyCleanupTests
             member, includeOwner: false, CancellationToken.None);
 
         Assert.Equal(
-            [member.WireUserId],
-            plan.PartyNotifications.ClearAudience.Select(value => value.WireUserId));
+            [member.CharacterId],
+            plan.PartyNotifications.ClearAudience.ToArray());
         var survivors = Assert.IsType<Dfo.Server.Data.Parties.PartySnapshot>(
             plan.PartyNotifications.Snapshot);
         Assert.Equal(
             [leader.WireUserId],
-            survivors.Members.Select(value => value.Session.WireUserId));
+            survivors.Members.Select(value => value.WireUserId));
         Assert.Equal(
-            [member.WireUserId, observer.WireUserId],
-            plan.PartyNotifications.TownObservers.Select(value => value.WireUserId));
+            new PartyDirectoryChange(new PartyDirectoryScope(11, 1, 2), new PartyDirectoryScope(11, 1, 2)),
+            plan.PartyNotifications.DirectoryChange);
         Assert.Null(fixture.Parties.FindParty(member));
         Assert.NotNull(fixture.Parties.FindParty(leader));
     }
@@ -58,11 +59,11 @@ public sealed class SelectedSessionPartyCleanupTests
 
         Assert.Null(plan.PartyNotifications.Snapshot);
         Assert.Equal(
-            [leader.WireUserId, member.WireUserId],
-            plan.PartyNotifications.ClearAudience.Select(value => value.WireUserId));
+            [leader.CharacterId, member.CharacterId],
+            plan.PartyNotifications.ClearAudience.ToArray());
         Assert.Equal(
-            [observer.WireUserId],
-            plan.PartyNotifications.TownObservers.Select(value => value.WireUserId));
+            new PartyDirectoryChange(new PartyDirectoryScope(11, 1, 2), null),
+            plan.PartyNotifications.DirectoryChange);
         Assert.Null(fixture.Parties.FindParty(leader));
         Assert.Null(fixture.Parties.FindParty(member));
     }
@@ -103,9 +104,8 @@ public sealed class SelectedSessionPartyCleanupTests
                 member, includeOwner: false, CancellationToken.None));
 
         Assert.Equal(
-            [member.WireUserId],
-            failure.NotificationPlan.PartyNotifications.ClearAudience
-                .Select(value => value.WireUserId));
+            [member.CharacterId],
+            failure.NotificationPlan.PartyNotifications.ClearAudience.ToArray());
         Assert.NotNull(failure.NotificationPlan.PartyNotifications.Snapshot);
     }
 
@@ -132,7 +132,7 @@ public sealed class SelectedSessionPartyCleanupTests
 
         public Fixture(bool failAfterPartyCleanup = false)
         {
-            Parties = new PartyDomainService(
+            Parties = new PartyServiceTestAdapter(
                 sessions,
                 presence,
                 new StubPartyMemberStatusDomainService(),
@@ -152,10 +152,10 @@ public sealed class SelectedSessionPartyCleanupTests
                 new PvpLobbyDomainService(),
                 [],
                 new CharacterPositionDomainService(),
-                Parties);
+                Parties.Service);
         }
 
-        public PartyDomainService Parties { get; }
+        public PartyServiceTestAdapter Parties { get; }
 
         public SelectedSessionCleanupService Cleanup { get; }
 
@@ -173,7 +173,8 @@ public sealed class SelectedSessionPartyCleanupTests
                 listenerPort);
             sessions.Select(session);
             presence.Admit(new SessionPresence(
-                session.CharacterId, listenerPort, 1, 2, true, session));
+                session.CharacterId, listenerPort, 1, 2, true, session,
+                ChannelId: listenerPort - 10_000));
             return session;
         }
 

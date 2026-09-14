@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Parties;
+using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -22,6 +23,7 @@ public sealed class PartyTownProjectionDeliveryTests
         var bus = new RecordingNotificationBus();
         var delivery = new PartyTownProjectionDelivery(
             parties,
+            Presence(),
             bus,
             new PartyProjectionStreamRegistry());
 
@@ -47,6 +49,7 @@ public sealed class PartyTownProjectionDeliveryTests
         var currentBus = new RecordingNotificationBus();
         var current = new PartyTownProjectionDelivery(
             new StubParties((Leader, Snapshot(revision: 3))),
+            Presence(),
             currentBus,
             streams);
 
@@ -59,6 +62,7 @@ public sealed class PartyTownProjectionDeliveryTests
         var staleBus = new RecordingNotificationBus();
         var stale = new PartyTownProjectionDelivery(
             new StubParties((Leader, Snapshot(revision: 3))),
+            Presence(),
             staleBus,
             streams);
 
@@ -76,7 +80,7 @@ public sealed class PartyTownProjectionDeliveryTests
         await stream.Gate.WaitAsync(CancellationToken.None);
         var parties = new MutableParties(Leader, Snapshot(revision: 3));
         var bus = new RecordingNotificationBus();
-        var delivery = new PartyTownProjectionDelivery(parties, bus, streams);
+        var delivery = new PartyTownProjectionDelivery(parties, Presence(), bus, streams);
 
         try
         {
@@ -109,6 +113,7 @@ public sealed class PartyTownProjectionDeliveryTests
         var bus = new FailFirstRosterNotificationBus();
         var delivery = new PartyTownProjectionDelivery(
             new StubParties((Leader, snapshot)),
+            Presence(),
             bus,
             new PartyProjectionStreamRegistry());
 
@@ -127,8 +132,10 @@ public sealed class PartyTownProjectionDeliveryTests
         var streams = new PartyProjectionStreamRegistry();
         var parties = new MutableParties(Leader, oldSnapshot);
         var bus = new BlockingFirstRosterNotificationBus();
-        var readRepair = new PartyTownProjectionDelivery(parties, bus, streams);
-        var mutation = new PartyNotificationDelivery(bus, streams);
+        var fixedPresence = Presence();
+        var readRepair = new PartyTownProjectionDelivery(parties, fixedPresence, bus, streams);
+        var mutation = new PartyNotificationDelivery(
+            bus, streams, new FixedSelectedSessions(), fixedPresence);
 
         var oldDelivery = readRepair.RefreshObservedPartiesAsync(
             [Observer], [Leader], CancellationToken.None).AsTask();
@@ -136,7 +143,12 @@ public sealed class PartyTownProjectionDeliveryTests
         parties.Current = newSnapshot;
 
         var newDelivery = mutation.DeliverAsync(
-            new PartyNotificationPlan([], newSnapshot, TownObservers: [Observer]),
+            new PartyNotificationPlan(
+                [],
+                newSnapshot,
+                DirectoryChange: new PartyDirectoryChange(
+                    new PartyDirectoryScope(11, 1, 1),
+                    new PartyDirectoryScope(11, 1, 1))),
             CancellationToken.None).AsTask();
         await Task.Yield();
 
@@ -157,8 +169,18 @@ public sealed class PartyTownProjectionDeliveryTests
         new PartySettings([0, 0, 4, 0, 0, 0, 0, 5, 0, (byte)PartyCategory.Normal, 0, 0]),
         PartyTitle.Empty,
         ImmutableArray.Create(
-            new PartyMemberSnapshot(Leader, 0, null, 100),
-            new PartyMemberSnapshot(Member, 1, null, 100)));
+            new PartyMemberSnapshot(Character(Leader), 0, null, 100),
+            new PartyMemberSnapshot(Character(Member), 1, null, 100)));
+
+    private static PartyCharacterSnapshot Character(SelectedSessionIdentity session) =>
+        new(
+            session.AccountId,
+            session.CharacterId,
+            session.WireUserId,
+            new PartyDirectoryScope(11, 1, 1));
+
+    private static FixedPresence Presence() =>
+        new(Leader, Member, Observer, NoParty);
 
     private static SelectedSessionIdentity Session(int id, string connection) =>
         SelectedSessionIdentity.Create(
@@ -247,81 +269,154 @@ public sealed class PartyTownProjectionDeliveryTests
 
     private sealed class StubParties(
         params (SelectedSessionIdentity Session, PartySnapshot Snapshot)[] snapshots)
-        : IPartyDomainService
+        : IPartyService
     {
-        private readonly Dictionary<SelectedSessionIdentity, PartySnapshot> parties =
-            snapshots.ToDictionary(value => value.Session, value => value.Snapshot);
+        private readonly PartySnapshot[] parties = snapshots
+            .Select(value => value.Snapshot)
+            .DistinctBy(value => (value.PartyId, value.Generation))
+            .ToArray();
 
-        public PartySnapshot? FindParty(SelectedSessionIdentity session) =>
-            parties.GetValueOrDefault(session);
+        public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }
 
-        public PartyOperationResult CreateOrUpdateSettingsExact(
-            SelectedSessionIdentity session,
+        public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => parties;
+
+        public PartySnapshot? FindParty(CharacterId characterId) =>
+            parties.SingleOrDefault(snapshot => snapshot.Members.Any(
+                member => member.CharacterId == characterId));
+
+        public PartyOperationResult CreateOrUpdateSettings(
+            PartyCharacterSnapshot character,
             PartySettings settings,
             PartyTitle title) => throw new NotSupportedException();
 
         public PartyOperationResult UpdateEndpoint(
-            SelectedSessionIdentity session,
+            PartyCharacterSnapshot character,
             PartyEndpoint endpoint) => throw new NotSupportedException();
 
         public PartyOperationResult RequestInvite(
-            SelectedSessionIdentity inviter,
-            ushort targetWireUserId,
+            PartyCharacterSnapshot inviter,
+            PartyCharacterSnapshot target,
             PartyInviteDisplayState display) => throw new NotSupportedException();
 
         public PartyOperationResult AcceptInvite(
-            SelectedSessionIdentity invitee,
-            ushort inviterWireUserId) => throw new NotSupportedException();
+            PartyCharacterSnapshot invitee,
+            PartyCharacterSnapshot inviter) => throw new NotSupportedException();
 
-        public PartyOperationResult LeavePartyExact(
-            SelectedSessionIdentity session) => throw new NotSupportedException();
+        public PartyOperationResult TransferLeadership(
+            CharacterId currentLeaderCharacterId,
+            CharacterId nextLeaderCharacterId) => throw new NotSupportedException();
 
-        public PartyOperationResult CleanupSessionExact(
-            SelectedSessionIdentity session) => throw new NotSupportedException();
+        public PartyOperationResult LeaveParty(
+            CharacterId characterId) => throw new NotSupportedException();
+
+        public PartyOperationResult CleanupCharacter(
+            CharacterId characterId) => throw new NotSupportedException();
 
         public PartyEndpoint? FindEndpoint(
-            SelectedSessionIdentity session) => throw new NotSupportedException();
+            CharacterId characterId) => throw new NotSupportedException();
     }
 
     private sealed class MutableParties(
         SelectedSessionIdentity member,
-        PartySnapshot current) : IPartyDomainService
+        PartySnapshot current) : IPartyService
     {
         public int ReadCount { get; private set; }
 
         public PartySnapshot Current { get; set; } = current;
 
-        public PartySnapshot? FindParty(SelectedSessionIdentity session)
+        public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }
+
+        public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query)
         {
             ReadCount++;
-            return session == member ? Current : null;
+            return [Current];
         }
 
-        public PartyOperationResult CreateOrUpdateSettingsExact(
-            SelectedSessionIdentity session,
+        public PartySnapshot? FindParty(CharacterId characterId) =>
+            characterId == member.CharacterId ? Current : null;
+
+        public PartyOperationResult CreateOrUpdateSettings(
+            PartyCharacterSnapshot character,
             PartySettings settings,
             PartyTitle title) => throw new NotSupportedException();
 
         public PartyOperationResult UpdateEndpoint(
-            SelectedSessionIdentity session,
+            PartyCharacterSnapshot character,
             PartyEndpoint endpoint) => throw new NotSupportedException();
 
         public PartyOperationResult RequestInvite(
-            SelectedSessionIdentity inviter,
-            ushort targetWireUserId,
+            PartyCharacterSnapshot inviter,
+            PartyCharacterSnapshot target,
             PartyInviteDisplayState display) => throw new NotSupportedException();
 
         public PartyOperationResult AcceptInvite(
-            SelectedSessionIdentity invitee,
-            ushort inviterWireUserId) => throw new NotSupportedException();
+            PartyCharacterSnapshot invitee,
+            PartyCharacterSnapshot inviter) => throw new NotSupportedException();
 
-        public PartyOperationResult LeavePartyExact(
-            SelectedSessionIdentity session) => throw new NotSupportedException();
+        public PartyOperationResult TransferLeadership(
+            CharacterId currentLeaderCharacterId,
+            CharacterId nextLeaderCharacterId) => throw new NotSupportedException();
 
-        public PartyOperationResult CleanupSessionExact(
-            SelectedSessionIdentity session) => throw new NotSupportedException();
+        public PartyOperationResult LeaveParty(
+            CharacterId characterId) => throw new NotSupportedException();
+
+        public PartyOperationResult CleanupCharacter(
+            CharacterId characterId) => throw new NotSupportedException();
 
         public PartyEndpoint? FindEndpoint(
-            SelectedSessionIdentity session) => throw new NotSupportedException();
+            CharacterId characterId) => throw new NotSupportedException();
+    }
+
+    private sealed class FixedPresence(params SelectedSessionIdentity[] sessions)
+        : ISessionPresenceDomainService
+    {
+        private readonly Dictionary<CharacterId, SessionPresence> values = sessions.ToDictionary(
+            session => session.CharacterId,
+            session => new SessionPresence(
+                session.CharacterId,
+                session.ListenerPort,
+                1,
+                1,
+                true,
+                session,
+                ChannelId: 11));
+
+        public void Admit(SessionPresence value) => values[value.CharacterId] = value;
+
+        public bool Withdraw(CharacterId characterId) => values.Remove(characterId);
+
+        public bool WithdrawExact(SelectedSessionIdentity session) =>
+            values.TryGetValue(session.CharacterId, out var value)
+            && value.Session == session
+            && values.Remove(session.CharacterId);
+
+        public bool RelocateExact(
+            SelectedSessionIdentity session,
+            byte townId,
+            byte areaId,
+            bool standingInTown,
+            bool sharesTownPresence = true) => throw new NotSupportedException();
+
+        public SessionPresence? Find(CharacterId characterId) =>
+            values.GetValueOrDefault(characterId);
+
+        public IReadOnlyList<SessionPresence> Query(SessionPresenceScope scope) =>
+            values.Values.ToArray();
+    }
+
+    private sealed class FixedSelectedSessions : ISelectedSessionDomainService
+    {
+        private readonly SelectedSessionIdentity[] values = [Leader, Member, Observer, NoParty];
+
+        public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => null;
+        public bool ReleaseExact(SelectedSessionIdentity session) => false;
+        public SelectedSessionIdentity? Find(AccountId accountId) =>
+            values.SingleOrDefault(value => value.AccountId == accountId);
+        public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) =>
+            values.SingleOrDefault(value => value.CharacterId == characterId);
+        public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) =>
+            values.SingleOrDefault(value => value.WireUserId == wireUserId);
+        public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) =>
+            values.SingleOrDefault(value => value.ConnectionId == connectionId);
     }
 }

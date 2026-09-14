@@ -5,6 +5,9 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.OnlineUsers;
+using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
@@ -222,6 +225,7 @@ public sealed class SetUserAreaHandler(
     ISessionPresenceDomainService presence,
     IChannelEntryPolicy channels,
     ITownMovementDomainService towns,
+    SelectedSessionTransitionGate transitionGate,
     IGameMessageSender sender,
     INotificationBus notifications,
     IPartyTownProjectionDelivery partyTownProjection,
@@ -233,11 +237,25 @@ public sealed class SetUserAreaHandler(
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        if (session is null)
+        {
+            logger.LogWarning(
+                "Set user area {ConnectionId}: no selected session, ignoring {TownId}:{AreaId}",
+                context.Connection.ConnectionId,
+                message.TownId,
+                message.AreaId);
+            return;
+        }
+
+        await using var transitionLease = await transitionGate.AcquireAsync(
+            session.AccountId,
+            UserAccessMode.Exclusive,
+            cancellationToken).ConfigureAwait(false);
         // The position is asked for here alongside the published session because the refusal below
         // reports where the character stays. The two arrive and leave together -- publication
         // records both and teardown drops both -- so this conjunct admits and refuses exactly the
         // connections the two before it do.
-        if (session is null
+        if (selectedSessions.FindByConnection(context.Connection.ConnectionId) != session
             || !runtimeSessions.TryGet(session, out var result, out _)
             || result is null
             || positions.Find(session.CharacterId) is not { } standing)

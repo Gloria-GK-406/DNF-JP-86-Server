@@ -47,15 +47,19 @@ public sealed class PartyMemberStatusDomainServiceTests
         };
         var runtime = new SelectedSessionRuntimeDirectory();
         runtime.Publish(session, result, shouldPersistPosition: false);
+        var sessions = new SelectedSessionDomainService();
+        sessions.Select(session);
         var service = new PartyMemberStatusDomainService(
             () => new FixedInventory(inventory),
             new FixedFatigue(new CharacterFatigueBalance(188, 31)),
+            sessions,
             runtime);
 
-        var invitation = await service.InvitationOfAsync(session, CancellationToken.None);
+        var invitation = await service.InvitationOfAsync(
+            Character(session), CancellationToken.None);
 
         Assert.Equal(new PartyInviteDisplayState(64, 157, 0, 0), invitation);
-        Assert.Equal(73, service.CurrentHpPercentOf(session));
+        Assert.Equal(73, service.CurrentHpPercentOf(session.CharacterId));
     }
 
     [Fact]
@@ -84,18 +88,24 @@ public sealed class PartyMemberStatusDomainServiceTests
         };
         var runtime = new SelectedSessionRuntimeDirectory();
         runtime.Publish(session, result, shouldPersistPosition: false);
+        var sessions = new SelectedSessionDomainService();
+        sessions.Select(session);
         var service = new PartyMemberStatusDomainService(
             () => new FixedInventory(result.CharacterInventory with { VirtualResources = [] }),
             new FixedFatigue(new CharacterFatigueBalance(0, 0)),
+            sessions,
             runtime);
 
         Assert.Equal(new PartyInviteDisplayState(0, 0, 0, 0),
-            await service.InvitationOfAsync(session, CancellationToken.None));
-        Assert.Equal(100, service.CurrentHpPercentOf(session));
+            await service.InvitationOfAsync(Character(session), CancellationToken.None));
+        Assert.Equal(100, service.CurrentHpPercentOf(session.CharacterId));
 
         Assert.True(runtime.RemoveExact(session));
-        Assert.Equal(0, service.CurrentHpPercentOf(session));
+        Assert.Equal(0, service.CurrentHpPercentOf(session.CharacterId));
     }
+
+    private static PartyCharacterSnapshot Character(SelectedSessionIdentity session) =>
+        new(session.AccountId, session.CharacterId, session.WireUserId, null);
 
     private sealed class FixedInventory(CharacterInventoryEntryState state)
         : ICharacterInventoryEntryDomainService

@@ -34,7 +34,7 @@ internal sealed class SelectedSessionCleanupService(
     IPvpLobbyDomainService pvp,
     IEnumerable<ISelectedSessionPositionPersistence> positionPersistence,
     ICharacterPositionDomainService positions,
-    IPartyDomainService parties) : ISelectedSessionCleanupDomainService
+    IPartyService parties) : ISelectedSessionCleanupDomainService
 {
     public async ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
         SelectedSessionIdentity session, bool includeOwner, CancellationToken cancellationToken)
@@ -45,6 +45,8 @@ internal sealed class SelectedSessionCleanupService(
         var peerNotices = new List<SelectedSessionCleanupNotice>();
         var required = new List<SelectedSessionCleanupNotice>();
         var partyNotifications = PartyNotificationPlan.Empty;
+        var partyRecipients = PartyNotificationRecipientPlan.Empty;
+        var ownsSelectedCharacter = sessions.FindByCharacter(session.CharacterId) == session;
         if (currentPresence?.Session == session)
         {
             // Preserve the exact peer generations this area snapshot was built from. Reducing
@@ -104,13 +106,19 @@ internal sealed class SelectedSessionCleanupService(
                     session.AccountId, session.CharacterId, standing,
                     CancellationToken.None));
         }
-        Run(() =>
+        if (ownsSelectedCharacter)
         {
-            var partyCleanup = parties.CleanupSessionExact(session);
-            if (partyCleanup.Succeeded)
-                partyNotifications = partyCleanup.Notifications;
-            return partyCleanup.Succeeded;
-        });
+            Run(() =>
+            {
+                var partyCleanup = parties.CleanupCharacter(session.CharacterId);
+                if (partyCleanup.Succeeded)
+                {
+                    partyNotifications = partyCleanup.Notifications;
+                    partyRecipients = CapturePartyRecipients(partyNotifications);
+                }
+                return partyCleanup.Succeeded;
+            });
+        }
         Run(() => expertStores.CloseExact(session));
         Run(() => presence.WithdrawExact(session));
         Run(() => pvp.ClearReadyExact(session));
@@ -133,7 +141,12 @@ internal sealed class SelectedSessionCleanupService(
             return true;
         });
         var notificationPlan = new SelectedSessionCleanupNotificationPlan(
-            session.ConnectionId, required, audience, peerNotices, partyNotifications);
+            session.ConnectionId,
+            required,
+            audience,
+            peerNotices,
+            partyNotifications,
+            partyRecipients);
         if (failures.Count != 0)
             throw new SelectedSessionCleanupFailure(notificationPlan, failures);
         return notificationPlan;
@@ -150,6 +163,48 @@ internal sealed class SelectedSessionCleanupService(
             try { await action().ConfigureAwait(false); }
             catch (Exception error) { failures.Add(error); }
         }
+    }
+
+    private PartyNotificationRecipientPlan CapturePartyRecipients(PartyNotificationPlan plan)
+    {
+        var characterIds = new HashSet<CharacterId>(plan.ClearAudience);
+        if (plan.Snapshot is { } snapshot)
+            characterIds.UnionWith(snapshot.Members.Select(member => member.CharacterId));
+        if (plan.Invitation is { } invitation)
+            characterIds.Add(invitation.TargetCharacterId);
+        if (plan.Acceptance is { } acceptance)
+        {
+            characterIds.Add(acceptance.InviterCharacterId);
+            characterIds.Add(acceptance.InviteeCharacterId);
+        }
+
+        var characterRecipients = characterIds
+            .Select(sessions.FindByCharacter)
+            .Where(candidate => candidate is not null)
+            .Cast<SelectedSessionIdentity>()
+            .Distinct()
+            .ToArray();
+        var scopes = new[]
+            {
+                plan.DirectoryChange?.Previous,
+                plan.DirectoryChange?.Current,
+            }
+            .Where(scope => scope is not null)
+            .Cast<PartyDirectoryScope>()
+            .Distinct()
+            .Select(scope => new PartyDirectoryRecipientGroup(
+                scope,
+                presence.Query(SessionPresenceScope.VisiblePartyArea(
+                        scope.ChannelId,
+                        scope.TownId,
+                        scope.AreaId))
+                    .Where(item => item.Session is { } exact
+                        && sessions.FindByCharacter(item.CharacterId) == exact)
+                    .Select(item => item.Session!)
+                    .Distinct()
+                    .ToArray()))
+            .ToArray();
+        return new PartyNotificationRecipientPlan(characterRecipients, scopes);
     }
 }
 
@@ -268,7 +323,8 @@ internal sealed class SelectCharacterSessionEntryService(
             spawn.AreaId,
             StandingInTown: true,
             Session: session,
-            SharesTownPresence: spawn.SharesTownPresence));
+            SharesTownPresence: spawn.SharesTownPresence,
+            ChannelId: result.World.Channel.ChannelId));
     }
 
     public void ReplaceRuntimeExact(SelectedSessionIdentity session, SelectCharacterResult result) =>

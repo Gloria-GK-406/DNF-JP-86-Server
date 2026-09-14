@@ -138,6 +138,20 @@ public sealed record SelectedSessionCleanupNotice(
     SelectedSessionCleanupNoticeKind Kind,
     ushort UserId);
 
+public sealed record PartyDirectoryRecipientGroup(
+    PartyDirectoryScope Scope,
+    IReadOnlyList<SelectedSessionIdentity> Sessions);
+
+/// <summary>
+/// Exact transport recipients captured outside the Party domain while lifecycle gates are held.
+/// </summary>
+public sealed record PartyNotificationRecipientPlan(
+    IReadOnlyList<SelectedSessionIdentity> CharacterRecipients,
+    IReadOnlyList<PartyDirectoryRecipientGroup> DirectoryRecipients)
+{
+    public static PartyNotificationRecipientPlan Empty { get; } = new([], []);
+}
+
 /// <remarks>
 /// Three projections that are not the same kind of thing. The owner's notices must reach one
 /// connection this code already has in hand -- it is the connection the departure is happening on.
@@ -153,8 +167,25 @@ public sealed record SelectedSessionCleanupNotificationPlan(
     IReadOnlyList<SelectedSessionCleanupNotice> RequiredOwnerNotices,
     IReadOnlyList<SelectedSessionIdentity> PeerAudience,
     IReadOnlyList<SelectedSessionCleanupNotice> PeerNotices,
-    PartyNotificationPlan PartyNotifications)
+    PartyNotificationPlan PartyNotifications,
+    PartyNotificationRecipientPlan PartyRecipients)
 {
+    public SelectedSessionCleanupNotificationPlan(
+        NetworkConnectionId ownerConnectionId,
+        IReadOnlyList<SelectedSessionCleanupNotice> requiredOwnerNotices,
+        IReadOnlyList<SelectedSessionIdentity> peerAudience,
+        IReadOnlyList<SelectedSessionCleanupNotice> peerNotices,
+        PartyNotificationPlan partyNotifications)
+        : this(
+            ownerConnectionId,
+            requiredOwnerNotices,
+            peerAudience,
+            peerNotices,
+            partyNotifications,
+            PartyNotificationRecipientPlan.Empty)
+    {
+    }
+
     public SelectedSessionCleanupNotificationPlan(
         NetworkConnectionId ownerConnectionId,
         IReadOnlyList<SelectedSessionCleanupNotice> requiredOwnerNotices,
@@ -165,10 +196,17 @@ public sealed record SelectedSessionCleanupNotificationPlan(
             requiredOwnerNotices,
             peerAudience,
             peerNotices,
-            PartyNotificationPlan.Empty)
+            PartyNotificationPlan.Empty,
+            PartyNotificationRecipientPlan.Empty)
     {
     }
 
     public static SelectedSessionCleanupNotificationPlan Empty(SelectedSessionIdentity session) =>
-        new(session.ConnectionId, [], [], [], PartyNotificationPlan.Empty);
+        new(
+            session.ConnectionId,
+            [],
+            [],
+            [],
+            PartyNotificationPlan.Empty,
+            PartyNotificationRecipientPlan.Empty);
 }
