@@ -283,6 +283,7 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
         startInfo.Environment["LauncherAuth__PublicChannel__Host"] = ChannelHost;
         startInfo.Environment["LauncherAuth__PublicChannel__Port"] = AdvertisedChannelPort.ToString();
         startInfo.Environment["Networking__Enabled"] = "true";
+        startInfo.Environment["Networking__UdpDiscoveryEnabled"] = "false";
         startInfo.Environment["Networking__ChannelPort"] = channelListenerPort.ToString();
         startInfo.Environment["Networking__GamePorts__0"] = gameListenerPort.ToString();
         startInfo.Environment["Networking__GamePorts__1"] = secondGameListenerPort.ToString();

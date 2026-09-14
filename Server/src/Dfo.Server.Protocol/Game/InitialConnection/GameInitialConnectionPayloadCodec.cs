@@ -9,8 +9,6 @@ namespace Dfo.Server.Protocol.Game.InitialConnection;
 public static class GameInitialConnectionPayloadCodec
 {
     private const int ServerIndex = 1;
-    private const int InitialUdpPort1 = 12311;
-    private const int InitialUdpPort2 = 12312;
     /// <summary>The sizes of the client's two dispatch tables, which it checks against its own.</summary>
     /// <remarks>
     /// These are the A21 client's table sizes, read off a known-good session rather than counted
@@ -62,8 +60,8 @@ public static class GameInitialConnectionPayloadCodec
         WriteInt32(body, checked((int)notice.PreparedAt.ToUnixTimeSeconds()));
         WriteInt32(body, 1);
         WriteDString(body, notice.EndpointHost);
-        WriteInt32(body, InitialUdpPort1);
-        WriteInt32(body, InitialUdpPort2);
+        WriteInt32(body, A21UdpDiscoveryProtocol.PortA);
+        WriteInt32(body, A21UdpDiscoveryProtocol.PortB);
         WriteInt32(body, ExtraAddressCount);
         body.WriteByte(MarkerCharacter);
         body.WriteByte(MarkerCharacter);

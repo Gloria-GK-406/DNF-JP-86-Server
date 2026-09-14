@@ -174,6 +174,7 @@ public sealed class ChannelHostStartupTests
             UseShellExecute = false,
         };
         startInfo.Environment["Networking__Enabled"] = "true";
+        startInfo.Environment["Networking__UdpDiscoveryEnabled"] = "false";
         startInfo.Environment["Networking__ChannelPort"] = channelPort.ToString();
         for (var index = 0; index < gamePorts.Count; index++)
         {

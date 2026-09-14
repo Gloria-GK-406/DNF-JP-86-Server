@@ -29,6 +29,9 @@ public sealed class NetworkingModule : IServerModule
         var options = new NetworkingOptions
         {
             Enabled = bool.TryParse(section[nameof(NetworkingOptions.Enabled)], out var enabled) && enabled,
+            UdpDiscoveryEnabled = bool.TryParse(
+                    section[nameof(NetworkingOptions.UdpDiscoveryEnabled)], out var udpDiscoveryEnabled)
+                && udpDiscoveryEnabled,
             ChannelPort = int.TryParse(section[nameof(NetworkingOptions.ChannelPort)], out var channelPort)
                 ? channelPort
                 : 7001,
@@ -65,6 +68,11 @@ public sealed class NetworkingModule : IServerModule
             .SetListenIPHosts(options.GamePorts.Select(port => new IPHost(port)).ToArray())
             .SetSingleStreamDataHandlingAdapter(() => new GameClientFrameDataHandlingAdapter())
             .ConfigurePlugins(plugins => plugins.Add<GameNetworkPlugin>()));
+
+        if (options.UdpDiscoveryEnabled)
+        {
+            services.AddHostedService<A21UdpDiscoveryService>();
+        }
     }
 
     private static void ValidatePort(int port, string settingName)

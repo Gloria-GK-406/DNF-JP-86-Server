@@ -1,0 +1,22 @@
+kind: rks-verification
+decision: manual_required
+claim: A21 双客户端的组队连接失败已端到端解决
+verified_conditions:
+  - condition: A21 UDP 探测协议由真实 socket 行为保护
+    result: 3 passed, 0 failed
+    evidence: dotnet test Dfo.Server.Networking.Tests --filter A21UdpDiscoveryServiceTests
+  - condition: 当前 Release 产物可构建
+    result: 0 warnings, 0 errors
+    evidence: dotnet build Server/86JP.Server.slnx -c Release --no-restore
+  - condition: 当前 Release 全量自动化回归无失败
+    result: 3250 passed, 0 failed, 2 skipped
+    evidence: dotnet test Server/86JP.Server.slnx -c Release --no-build --no-restore with PVF_ARCHIVE_PATH
+  - condition: 主干部署暴露既有 TCP/HTTP 和新增 UDP 端口
+    result: TCP 7001/10010/10011 and HTTP 18080 reachable; UDP 12311/12312 owned by host PID 40452
+    evidence: local runtime socket inspection after deployment
+  - condition: 部署实例返回正确的绑定与换端口响应
+    result: 0x01 replied from 12311 and 0x05 replied from 12312; both encoded the observed client port
+    evidence: local UDP probes against deployed Release host
+unverified_conditions:
+  - 两个 A21 客户端重新登录选角后能完成彼此握手并共同进入剧情地下城
+  - 同机两个客户端在各自动态 UDP 端口上能持续交换副本 P2P 数据

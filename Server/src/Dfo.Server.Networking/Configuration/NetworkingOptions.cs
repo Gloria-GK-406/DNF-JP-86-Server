@@ -6,6 +6,8 @@ public sealed class NetworkingOptions
 
     public bool Enabled { get; init; }
 
+    public bool UdpDiscoveryEnabled { get; init; }
+
     public int ChannelPort { get; init; } = 7001;
 
     public IReadOnlyList<int> GamePorts { get; init; } = new[] { 10011 };

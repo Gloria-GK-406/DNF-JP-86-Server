@@ -236,6 +236,7 @@ public sealed class LauncherHttpHostStartupTests
         startInfo.Environment["LauncherAuth__PublicChannel__Host"] = "127.0.0.1";
         startInfo.Environment["LauncherAuth__PublicChannel__Port"] = channelPort.ToString();
         startInfo.Environment["Networking__Enabled"] = "true";
+        startInfo.Environment["Networking__UdpDiscoveryEnabled"] = "false";
         startInfo.Environment["Networking__ChannelPort"] = channelPort.ToString();
         startInfo.Environment["Networking__GamePorts__0"] = gamePort.ToString();
         startInfo.Environment["Networking__GamePorts__1"] = GetAvailablePortExcept(httpPort, channelPort, gamePort).ToString();
