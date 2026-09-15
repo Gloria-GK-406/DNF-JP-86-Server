@@ -53,8 +53,8 @@ public sealed partial class SelectCharacterLifecycleTests
         f.Directory.Select(memberSession);
         var started = runs.BeginParty(
             [
-                new(selected.AccountId, selected.CharacterId, selected.WireUserId, 0, true),
-                new(memberSession.AccountId, memberSession.CharacterId, memberSession.WireUserId, 1, false),
+                new(selected.AccountId, selected.CharacterId, 0, true),
+                new(memberSession.AccountId, memberSession.CharacterId, 1, false),
             ],
             new(10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
                 61000, 1, new Dictionary<MazeCell, int> { [new(0, 0)] = 61000 }), 0);

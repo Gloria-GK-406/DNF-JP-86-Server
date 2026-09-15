@@ -31,7 +31,9 @@ public sealed record DungeonRunState(
     DungeonRunId RunId = default,
     long RoomVersion = 0,
     DungeonRunParticipant? Participant = null,
-    IReadOnlyList<DungeonRunParticipant>? Participants = null)
+    IReadOnlyList<DungeonRunParticipant>? Participants = null,
+    long EntryRevision = 0,
+    IReadOnlySet<CharacterId>? ReadyParticipants = null)
 {
     /// <summary>What the run's kills have put on the floor, in the order they were numbered.</summary>
     /// <remarks>
@@ -43,6 +45,10 @@ public sealed record DungeonRunState(
 
     /// <summary>The fixed participant order captured when this run began.</summary>
     public IReadOnlyList<DungeonRunParticipant> Participants { get; init; } = Participants ?? [];
+
+    /// <summary>The participants whose current client finished loading this room.</summary>
+    public IReadOnlySet<CharacterId> ReadyParticipants { get; init; } =
+        ReadyParticipants ?? ImmutableHashSet<CharacterId>.Empty;
 
     /// <summary>The fixed party size used by run-scoped reward rules.</summary>
     public int PartyMemberCount => Math.Max(1, this.Participants.Count);
@@ -179,9 +185,22 @@ public readonly record struct DungeonRunId(Guid Value)
 public sealed record DungeonRunParticipant(
     AccountId AccountId,
     CharacterId CharacterId,
-    ushort WireUserId,
     byte Slot,
     bool IsLeader);
+
+/// <summary>A committed entry-state transition emitted by one shared dungeon instance.</summary>
+public sealed record DungeonEntryChange(
+    DungeonEntryChangeKind Kind,
+    DungeonRunState Run,
+    long Revision,
+    IReadOnlyList<CharacterId> Recipients);
+
+public enum DungeonEntryChangeKind
+{
+    Prepared,
+    ParticipantReady,
+    Snapshot,
+}
 
 /// <summary>One position of one of a clear's two faces.</summary>
 /// <remarks>
@@ -395,6 +414,49 @@ public interface IDungeonRunDomainService
 
         return Begin(participants[0].CharacterId, layout, difficulty);
     }
+
+    /// <summary>Atomically prepares one shared entry and identifies its semantic audience.</summary>
+    DungeonEntryChange PreparePartyEntry(
+        IReadOnlyList<DungeonRunParticipant> participants,
+        DungeonLayout layout,
+        byte difficulty)
+    {
+        var run = BeginParty(participants, layout, difficulty);
+        return new DungeonEntryChange(
+            DungeonEntryChangeKind.Prepared,
+            run,
+            run.EntryRevision,
+            run.Participants.OrderBy(value => value.Slot)
+                .Select(value => value.CharacterId).ToArray());
+    }
+
+    /// <summary>Marks one participant ready only for the exact shared room they loaded.</summary>
+    DungeonEntryChange? TryMarkParticipantReady(
+        CharacterId characterId,
+        DungeonRunId expectedRunId,
+        long expectedRoomVersion) => null;
+
+    /// <summary>Reads the latest entry projection state visible to one active participant.</summary>
+    DungeonEntryChange? FindEntryChange(CharacterId characterId)
+    {
+        var current = Find(characterId);
+        return current is null
+            ? null
+            : new DungeonEntryChange(
+                DungeonEntryChangeKind.Snapshot,
+                current,
+                current.EntryRevision,
+                current.Participants.OrderBy(value => value.Slot)
+                    .Select(value => value.CharacterId).ToArray());
+    }
+
+    /// <summary>
+    /// Atomically abandons an entry preparation only while the named revision is still current.
+    /// </summary>
+    bool TryAbortEntry(
+        DungeonRunId expectedRunId,
+        long expectedEntryRevision,
+        IReadOnlyList<CharacterId> expectedRecipients) => false;
 
     /// <summary>The run this character is in, or null when they are not in one.</summary>
     DungeonRunState? Find(CharacterId characterId);

@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Collections.Immutable;
 using Dfo.Server.Protocol.Game.DungeonSelection;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -444,9 +445,14 @@ public sealed class SelectDungeonHandler(
     ICharacterQuestLogDomainService questLogs,
     ICharacterFatigueDomainService fatigue,
     IGameMessageSender sender,
+    INetworkConnectionCloser connectionCloser,
     TownAreaProjectionDelivery townAreaProjection,
     ILogger<SelectDungeonHandler> logger,
-    SelectedSessionTransitionGate transitionGate) : ClientMessageHandler<SelectDungeonRequest>
+    SelectedSessionTransitionGate transitionGate,
+    DungeonEntryProjectionDelivery? entryProjection = null,
+    DungeonProjectionGate? entryProjectionGate = null,
+    ILogger<DungeonEntryProjectionDelivery>? entryProjectionLogger = null)
+    : ClientMessageHandler<SelectDungeonRequest>
 {
     /// <summary>What one entry reports as spent.</summary>
     /// <remarks>
@@ -538,344 +544,33 @@ public sealed class SelectDungeonHandler(
             return;
         }
 
-        var attachments = ResolveAttachments(session, result, party);
-        if (attachments.BlockedSlot is { } blockedSlot)
-        {
-            await RefuseAsync(
-                context.Connection.ConnectionId,
-                SelectDungeonRefusal.MemberBlocked,
-                blockedSlot,
-                cancellationToken).ConfigureAwait(false);
-            return;
-        }
-
-        var participants = attachments.Members
-            .Select(value => new DungeonRunParticipant(
-                value.Session.AccountId,
-                value.Session.CharacterId,
-                value.Session.WireUserId,
-                value.Slot,
-                value.Session.WireUserId == session.WireUserId))
-            .ToArray();
-        var previousRuns = participants.ToDictionary(
-            participant => participant.CharacterId,
-            participant => runs.Find(participant.CharacterId));
-        var entered = await visits.EnterPartyAsync(
-            participants, message.DungeonId, message.Difficulty, facts, cancellationToken)
-            .ConfigureAwait(false);
-        if (entered is null)
-        {
-            logger.LogWarning(
-                "Select dungeon {ConnectionId}: the archive declares no enterable dungeon "
-                    + "{DungeonId}, refusing",
-                context.Connection.ConnectionId,
-                message.DungeonId);
-            await sender.SendExplicitAsync(
-                context.Connection.ConnectionId,
-                new GameExplicitMessageDelivery(
-                    [SelectDungeonRefusal.For(SelectDungeonRefusal.DungeonNotFound)], []),
-                cancellationToken).ConfigureAwait(false);
-            return;
-        }
-
-        var layout = entered.Layout;
-        var enteredRunId = entered.Visits[session.CharacterId].Run.RunId;
-        foreach (var participant in participants)
-        {
-            if (previousRuns[participant.CharacterId] is { } previous
-                && previous.RunId != enteredRunId)
-            {
-                deliveryRegistry.RemoveParticipant(previous.RunId, participant.CharacterId);
-            }
-        }
-
-        // The directory is generation-safe but mutable. Recheck after the domain operation and
-        // before registering or sending anything; if one member was replaced during layout
-        // resolution, tear the whole run back down rather than leaving a split entry behind.
-        if (attachments.Members.Any(value =>
-                selectedSessions.FindByCharacter(value.Session.CharacterId) != value.Session))
-        {
-            RollbackEntry(entered.Visits[session.CharacterId].Run.RunId, participants);
-            if (selectedSessions.FindByCharacter(session.CharacterId) == session)
-            {
-                await RefuseAsync(
-                    context.Connection.ConnectionId,
-                    SelectDungeonRefusal.MemberBlocked,
-                    context: 0,
-                    cancellationToken).ConfigureAwait(false);
-            }
-            return;
-        }
-
-        var leaderVisit = entered.Visits[session.CharacterId];
-        var entryDeliveries = new List<(
-            SelectedSessionIdentity Session,
-            IReadOnlyList<IGameServerMessage> Frames)>();
-        try
-        {
-            deliveryRegistry.Register(
-                leaderVisit.Run.RunId,
-                attachments.Members.Select(value => value.Session).ToArray());
-
-            // Reported once the entry has actually happened, so that a refused selection reports
-            // nothing. What the seam does with it is nothing at all today -- see
-            // ICharacterFatigueDomainService -- which is why this is the report and not a check:
-            // there is no balance to be short of.
-            foreach (var attachment in attachments.Members)
-            {
-                await fatigue
-                    .SpendAsync(
-                        attachment.Session.CharacterId,
-                        FatigueAnEntryCosts,
-                        cancellationToken)
-                    .ConfigureAwait(false);
-            }
-
-            logger.LogInformation(
-                "Select dungeon {ConnectionId} user={WireUserId}: run={RunId} party={PartyMemberCount} "
-                    + "dungeon={DungeonId} difficulty={Difficulty} intent={Intent} maze={MazeIndex} "
-                    + "purpose={Purpose} start=({StartX},{StartY}) "
-                    + "room={RoomId} boss=({BossX},{BossY}) seed={Seed}",
-                context.Connection.ConnectionId,
-                session.WireUserId,
-                leaderVisit.Run.RunId.Value,
-                leaderVisit.Run.PartyMemberCount,
-                layout.DungeonId,
-                message.Difficulty,
-                intent.Value,
-                layout.MazeIndex,
-                layout.Purpose,
-                layout.StartCell.X,
-                layout.StartCell.Y,
-                layout.StartRoomMapId,
-                layout.BossCell.X,
-                layout.BossCell.Y,
-                layout.Seed);
-
-            // A21's order, which is not the one this used to send. Its answer opens with a second
-            // acceptance byte on CMD 0x000F, then the selection state that used to be sent when the
-            // screen opened, then the support roster, and only then the run's shape and the room.
-            // The older order -- describe the run, place the character, close with the roster --
-            // was the A12 reference's. The selection state is sent once. For everyone but the
-            // tutorial it went out when the screen opened; the tutorial's first entry defers it to
-            // here, which is where the captured session shows it and why this used to send it
-            // unconditionally.
-            foreach (var attachment in attachments.Members)
-            {
-                var memberSession = attachment.Session;
-                var visit = entered.Visits[memberSession.CharacterId];
-                var frames = new List<IGameServerMessage>();
-                if (memberSession != session && entryIntents.Consume(memberSession) is null)
-                {
-                    var refreshed = await currentState
-                        .RefreshAsync(attachment.Runtime, cancellationToken)
-                        .ConfigureAwait(false);
-                    frames.AddRange(SelectionPrelude(memberSession, refreshed, participants));
-                }
-
-                frames.Add(new EnterSelectDungeonAcknowledgement());
-                var currentProgress = await characters
-                    .Get(memberSession.CharacterId)
-                    .ProgressAsync(cancellationToken)
-                    .ConfigureAwait(false);
-                if (currentProgress is null)
-                {
-                    RollbackEntry(leaderVisit.Run.RunId, participants);
-                    return;
-                }
-                if (visits.DefersSelectionState(currentProgress.Level))
-                    frames.Add(new EnterSelectDungeonNotification(
-                        participants.Select(value => value.WireUserId).ToImmutableArray()));
-
-                frames.Add(new SupportTagNotification());
-                frames.Add(new DungeonInfoNotification(layout, message.Difficulty));
-                frames.Add(new StartMapNotification(
-                    visit.Run,
-                    FirstEntry: true,
-                    visit.Actors,
-                    visit.FirstActorSequence,
-                    FloorPieceValues.Describe(visit.Run, visit.FloorDrops)));
-                entryDeliveries.Add((memberSession, frames));
-            }
-
-            // Every awaited projection above is allowed to run user code and database I/O. The
-            // frozen generations therefore need one final validation at the actual delivery
-            // boundary, not merely after the run was created. A replacement receives no frame
-            // from this run and makes the all-or-nothing entry roll back.
-            if (attachments.Members.Any(value =>
-                    selectedSessions.FindByCharacter(value.Session.CharacterId) != value.Session))
-            {
-                RollbackEntry(leaderVisit.Run.RunId, participants);
-                if (selectedSessions.FindByCharacter(session.CharacterId) == session)
-                {
-                    await RefuseAsync(
-                        context.Connection.ConnectionId,
-                        SelectDungeonRefusal.MemberBlocked,
-                        context: 0,
-                        cancellationToken).ConfigureAwait(false);
-                }
-                return;
-            }
-
-        }
-        catch
-        {
-            RollbackEntry(leaderVisit.Run.RunId, participants);
-            throw;
-        }
-
-        // This is the entry commit boundary. All fallible frame construction has finished. The
-        // exact-session recheck and first-room delivery share the account transition gates, so a
-        // replacement cannot receive an old run. Once delivery succeeds, the area service owns
-        // removal and its projections as one operation; a replacement landing before that call is
-        // rejected by the exact membership lease instead of being removed as the old character.
-        IAsyncDisposable transitions;
-        try
-        {
-            transitions = await AcquireTransitionsAsync(
-                transitionGate, attachments.Members, cancellationToken).ConfigureAwait(false);
-        }
-        catch
-        {
-            RollbackEntry(leaderVisit.Run.RunId, participants);
-            throw;
-        }
-
-        await using (transitions)
-        {
-            if (attachments.Members.Any(value =>
-                    selectedSessions.FindByCharacter(value.Session.CharacterId) != value.Session))
-            {
-                RollbackEntry(leaderVisit.Run.RunId, participants);
-                if (selectedSessions.FindByCharacter(session.CharacterId) == session)
-                {
-                    await RefuseAsync(
-                        context.Connection.ConnectionId,
-                        SelectDungeonRefusal.MemberBlocked,
-                        context: 0,
-                        cancellationToken).ConfigureAwait(false);
-                }
-                return;
-            }
-
-            var direct = entryDeliveries.Single(value => value.Session == session);
-            await sender.SendExplicitAsync(
-                context.Connection.ConnectionId,
-                new GameExplicitMessageDelivery(
-                    direct.Frames,
-                    [.. entryDeliveries
-                        .Where(value => value.Session != session)
-                        .Select(value => new GameExplicitMessageTarget(
-                            value.Session.ConnectionId,
-                            value.Frames))]),
-                cancellationToken).ConfigureAwait(false);
-        }
-
-        await townAreaProjection.LeaveManyAsync(
-            attachments.Members.Select(attachment => attachment.Session).ToArray(),
-            TownAreaDepartureReason.DungeonEntry,
+        var projection = entryProjection ?? new DungeonEntryProjectionDelivery(
+            characters,
+            currentState,
+            selectedSessions,
+            runtimeSessions,
+            runs,
+            deliveryRegistry,
+            entryIntents,
+            visits,
+            fatigue,
+            sender,
+            connectionCloser,
+            townAreaProjection,
+            transitionGate,
+            entryProjectionGate ?? new DungeonProjectionGate(),
+            entryProjectionLogger
+                ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<
+                    DungeonEntryProjectionDelivery>.Instance);
+        await projection.EnterAsync(
+            context.Connection.ConnectionId,
+            session,
+            result,
+            party,
+            message,
+            facts,
+            intent.Value,
             cancellationToken).ConfigureAwait(false);
-    }
-
-    private static async ValueTask<IAsyncDisposable> AcquireTransitionsAsync(
-        SelectedSessionTransitionGate gate,
-        IReadOnlyList<(SelectedSessionIdentity Session, SelectCharacterResult Runtime, byte Slot)>
-            members,
-        CancellationToken cancellationToken)
-    {
-        var leases = new List<IAsyncDisposable>();
-        try
-        {
-            foreach (var accountId in members
-                .Select(value => value.Session.AccountId)
-                .Distinct()
-                .OrderBy(value => value.Value))
-            {
-                leases.Add(await gate.AcquireAsync(
-                    accountId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false));
-            }
-            return new TransitionLeaseSet(leases);
-        }
-        catch
-        {
-            for (var index = leases.Count - 1; index >= 0; index--)
-                await leases[index].DisposeAsync().ConfigureAwait(false);
-            throw;
-        }
-    }
-
-    private void RollbackEntry(
-        DungeonRunId runId,
-        IReadOnlyList<DungeonRunParticipant> participants)
-    {
-        foreach (var participant in participants)
-        {
-            runs.End(participant.CharacterId, runId);
-            deliveryRegistry.RemoveParticipant(runId, participant.CharacterId);
-        }
-    }
-
-    private EntryAttachments ResolveAttachments(
-        SelectedSessionIdentity requester,
-        SelectCharacterResult requesterRuntime,
-        PartySnapshot? party)
-    {
-        if (party is null)
-            return new EntryAttachments([(requester, requesterRuntime, (byte)0)], null);
-
-        var members = new List<(SelectedSessionIdentity Session, SelectCharacterResult Runtime, byte Slot)>();
-        foreach (var member in party.Members.OrderBy(value => value.Slot))
-        {
-            var current = selectedSessions.FindByCharacter(member.CharacterId);
-            if (current is null
-                || current.AccountId != member.Character.AccountId
-                || current.WireUserId != member.WireUserId
-                || !runtimeSessions.TryGet(current, out var runtime, out _)
-                || runtime is null)
-            {
-                return new EntryAttachments([], member.Slot);
-            }
-
-            if (members.Any(value =>
-                    value.Session.CharacterId == current.CharacterId
-                    || value.Session.WireUserId == current.WireUserId
-                    || value.Session.ConnectionId == current.ConnectionId))
-            {
-                return new EntryAttachments([], member.Slot);
-            }
-
-            members.Add((current, runtime, member.Slot));
-        }
-
-        if (!members.Any(value => value.Session == requester))
-            return new EntryAttachments([], 0);
-        return new EntryAttachments(members, null);
-    }
-
-    private IReadOnlyList<IGameServerMessage> SelectionPrelude(
-        SelectedSessionIdentity session,
-        SelectCharacterResult result,
-        IReadOnlyList<DungeonRunParticipant> participants)
-    {
-        var equipment = result.CharacterInventory.Containers
-            .SingleOrDefault(value => value.ContainerType == InventoryContainerType.Equipment)
-            ?.Items ?? [];
-        List<IGameServerMessage> frames =
-        [
-            new ExtendedUserStateMessage(
-                result.Character,
-                result.CharacterEntry.Public,
-                result.CharacterEntry.Skills,
-                equipment,
-                result.World.PreparedAt),
-            new EnterSelectDungeonAcknowledgement(),
-            new UserStateNotification(session.WireUserId, 0x01),
-            new UdpHostNotification(),
-        ];
-        if (!visits.DefersSelectionState(result.Character.Progression.Level))
-            frames.Add(new EnterSelectDungeonNotification(
-                participants.Select(value => value.WireUserId).ToImmutableArray()));
-        return frames;
     }
 
     private ValueTask RefuseAsync(
@@ -888,19 +583,6 @@ public sealed class SelectDungeonHandler(
             new GameExplicitMessageDelivery([new SelectDungeonRefusal(errorCode, context)], []),
             cancellationToken);
 
-    private sealed record EntryAttachments(
-        IReadOnlyList<(SelectedSessionIdentity Session, SelectCharacterResult Runtime, byte Slot)> Members,
-        byte? BlockedSlot);
-
-    private sealed class TransitionLeaseSet(IReadOnlyList<IAsyncDisposable> leases)
-        : IAsyncDisposable
-    {
-        public async ValueTask DisposeAsync()
-        {
-            for (var index = leases.Count - 1; index >= 0; index--)
-                await leases[index].DisposeAsync().ConfigureAwait(false);
-        }
-    }
 }
 
 /// <summary>

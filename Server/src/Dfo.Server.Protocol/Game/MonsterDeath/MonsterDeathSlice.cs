@@ -14,6 +14,7 @@ using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.MonsterDeath;

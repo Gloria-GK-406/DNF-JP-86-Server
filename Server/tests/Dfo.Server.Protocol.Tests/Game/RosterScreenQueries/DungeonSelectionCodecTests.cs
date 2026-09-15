@@ -67,8 +67,20 @@ public sealed class DungeonSelectionCodecTests
     }
 
     [Fact]
+    public void UserState_CarriesEveryDungeonParticipantInStableOrder()
+    {
+        var body = DungeonSelectionPayloadCodec.EncodeUserState([0x0102, 0x0304], 0x01);
+
+        Assert.Equal("02020101040301", Convert.ToHexString(body));
+    }
+
+    [Fact]
     public void UdpHostOffersNothing() =>
         Assert.Equal("00", Convert.ToHexString(DungeonSelectionPayloadCodec.EncodeUdpHostUnavailable()));
+
+    [Fact]
+    public void UdpHostNamesThePartyLeaderSlot() =>
+        Assert.Equal("02", Convert.ToHexString(DungeonSelectionPayloadCodec.EncodeUdpHost(2)));
 
     /// <remarks>
     /// This pinned the older client's nineteen bytes, including a tower-of-despair floor the test

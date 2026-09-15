@@ -105,11 +105,11 @@ public sealed class MonsterDropServiceTests
         var rules = new RecordingDropRules();
         var runs = new DungeonRunDomainService();
         var member = new DungeonRunParticipant(
-            new AccountId(2), new CharacterId(2), WireUserId: 2, Slot: 1, IsLeader: false);
+            new AccountId(2), new CharacterId(2), Slot: 1, IsLeader: false);
         runs.BeginParty(
             [
                 new DungeonRunParticipant(
-                    new AccountId(1), Character, WireUserId: 1, Slot: 0, IsLeader: true),
+                    new AccountId(1), Character, Slot: 0, IsLeader: true),
                 member,
             ],
             Layout,

@@ -31,12 +31,9 @@ internal sealed class DungeonVisitDomainService(
         DungeonEntryFacts facts,
         CancellationToken cancellationToken)
     {
-        var wireUserId = characterId.Value is > 0 and <= ushort.MaxValue
-            ? checked((ushort)characterId.Value)
-            : (ushort)0;
         var entered = await this.EnterPartyAsync(
             [new DungeonRunParticipant(
-                new AccountId(0), characterId, wireUserId, Slot: 0, IsLeader: true)],
+                new AccountId(0), characterId, Slot: 0, IsLeader: true)],
             dungeonId,
             difficulty,
             facts,
@@ -64,7 +61,8 @@ internal sealed class DungeonVisitDomainService(
         if (layout is null)
             return null;
 
-        var leaderView = runs.BeginParty(participants, layout, difficulty);
+        var prepared = runs.PreparePartyEntry(participants, layout, difficulty);
+        var leaderView = prepared.Run;
         try
         {
             var visits = new Dictionary<CharacterId, DungeonRoomVisit>(participants.Count);
@@ -81,16 +79,17 @@ internal sealed class DungeonVisitDomainService(
                         .ConfigureAwait(false));
             }
 
-            return new DungeonPartyEntry(layout, visits);
+            return new DungeonPartyEntry(layout, visits, prepared);
         }
         catch
         {
-            // Projection is part of entry preparation. If any member's room description cannot
-            // be built, nobody owns a usable entry. End only the run we just published: a member
-            // may already have re-entered on a replacement connection while an awaited rule was
-            // completing, and that newer run must survive this rollback.
-            foreach (var participant in participants)
-                runs.End(participant.CharacterId, leaderView.RunId);
+            // Room description is part of preparation. Compensation is valid only while the exact
+            // prepared revision is still current; an awaited rule may have allowed this run or a
+            // replacement run to advance, and neither newer state may be erased here.
+            _ = runs.TryAbortEntry(
+                prepared.Run.RunId,
+                prepared.Revision,
+                prepared.Recipients);
             throw;
         }
     }

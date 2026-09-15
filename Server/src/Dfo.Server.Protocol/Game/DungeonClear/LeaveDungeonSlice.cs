@@ -6,6 +6,7 @@ using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Microsoft.Extensions.Logging;
 

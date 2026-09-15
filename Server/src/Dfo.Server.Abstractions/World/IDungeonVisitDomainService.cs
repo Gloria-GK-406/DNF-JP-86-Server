@@ -32,7 +32,8 @@ public sealed record DungeonEntry(DungeonLayout Layout, DungeonRoomVisit Visit);
 /// <summary>One resolved layout and the participant-specific views of its shared first room.</summary>
 public sealed record DungeonPartyEntry(
     DungeonLayout Layout,
-    IReadOnlyDictionary<CharacterId, DungeonRoomVisit> Visits);
+    IReadOnlyDictionary<CharacterId, DungeonRoomVisit> Visits,
+    DungeonEntryChange? Change = null);
 
 /// <summary>
 /// Entering a dungeon and walking between its rooms.

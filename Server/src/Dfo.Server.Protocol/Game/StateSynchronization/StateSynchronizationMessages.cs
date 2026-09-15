@@ -80,11 +80,12 @@ internal sealed record ExtendedUserStateMessage(
     CharacterPublicEntryState Public,
     CharacterSkillsEntryState Skills,
     IReadOnlyList<InventoryItemState> Equipment,
-    DateTimeOffset PreparedAt) : GameStateSynchronizationMessage, IGameNotiMessage
+    DateTimeOffset PreparedAt,
+    ushort? RoutingWireUserId = null) : GameStateSynchronizationMessage, IGameNotiMessage
 {
     internal override ushort Type => 0x0002;
     internal override byte[] EncodeBody() => StateSynchronizationPayloadCodec.EncodeExtendedUserState(
-        Character, Public, Skills, Equipment, PreparedAt);
+        Character, Public, Skills, Equipment, PreparedAt, RoutingWireUserId);
 }
 
 internal sealed record KnightShieldDeckMessage(

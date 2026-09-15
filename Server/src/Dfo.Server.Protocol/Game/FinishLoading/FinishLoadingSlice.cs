@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.FinishLoading;
@@ -99,29 +100,38 @@ internal sealed class LoadingCompleteEncoder : GameNotiMessageEncoder<LoadingCom
 /// </remarks>
 public sealed class FinishLoadingHandler(
     IGameMessageSender sender,
-    ILogger<FinishLoadingHandler> logger) : ClientMessageHandler<FinishLoadingRequest>
+    ILogger<FinishLoadingHandler> logger,
+    IDungeonLoadingProjectionDelivery entryProjection)
+    : ClientMessageHandler<FinishLoadingRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
         FinishLoadingRequest message,
         CancellationToken cancellationToken)
     {
+        if (!await entryProjection.CompleteLoadingAsync(
+                context.Connection.ConnectionId,
+                token => sender.SendExplicitAsync(
+                    context.Connection.ConnectionId,
+                    new GameExplicitMessageDelivery(
+                        [new LoadingCompleteNotification()],
+                        []),
+                    token),
+                cancellationToken).ConfigureAwait(false))
+        {
+            logger.LogWarning(
+                "Finish loading {ConnectionId}: stale or missing selected-session generation",
+                context.Connection.ConnectionId);
+            return;
+        }
+
         logger.LogInformation(
-            "Finish loading {ConnectionId}: releasing the loading screen ({First},{Second})",
+            "Finish loading {ConnectionId}: releasing the current map ({First},{Second})",
             context.Connection.ConnectionId,
             message.First,
             message.Second);
 
-        // Only the notification. A21's reference answers FINISH_LOADING with NOTI 0x001E and
-        // nothing else -- both times its session sends one, at the dungeon's first room and again
-        // after MOVE_MAP. The CMD acknowledgement this used to send in front of it is a frame the
-        // reference does not send at all; its encoder stays registered, because the older client
-        // did get one and the record of that shape is worth keeping.
-        await sender.SendExplicitAsync(
-            context.Connection.ConnectionId,
-            new GameExplicitMessageDelivery(
-                [new LoadingCompleteNotification()],
-                []),
-            cancellationToken).ConfigureAwait(false);
+        // A21 answers with only NOTI 0x001E. The shared coordinator delivered it while the exact
+        // selected-session generation was still leased; no CMD acknowledgement precedes it.
     }
 }

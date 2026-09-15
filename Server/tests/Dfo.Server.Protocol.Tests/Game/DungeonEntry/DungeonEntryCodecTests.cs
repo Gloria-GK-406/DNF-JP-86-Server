@@ -660,7 +660,6 @@ public sealed class DungeonEntryCodecTests
         var participant = new DungeonRunParticipant(
             new Dfo.Server.Data.Accounts.AccountId(2),
             new Dfo.Server.Data.Characters.CharacterId(1002),
-            21,
             Slot: 1,
             IsLeader: false);
         var run = AtStart with

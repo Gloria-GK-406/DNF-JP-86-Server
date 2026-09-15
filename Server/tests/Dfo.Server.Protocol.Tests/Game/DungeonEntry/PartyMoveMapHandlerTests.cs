@@ -8,6 +8,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Microsoft.Extensions.Logging.Abstractions;
 using EnteredDungeon = Dfo.Server.Abstractions.World.DungeonEntry;
 
@@ -187,8 +188,8 @@ public sealed class PartyMoveMapHandlerTests
                 });
             participants =
             [
-                new DungeonRunParticipant(Leader.AccountId, Leader.CharacterId, Leader.WireUserId, 0, true),
-                new DungeonRunParticipant(Member.AccountId, Member.CharacterId, Member.WireUserId, 1, false),
+                new DungeonRunParticipant(Leader.AccountId, Leader.CharacterId, 0, true),
+                new DungeonRunParticipant(Member.AccountId, Member.CharacterId, 1, false),
             ];
             Start = StartFor(Leader.CharacterId);
         }

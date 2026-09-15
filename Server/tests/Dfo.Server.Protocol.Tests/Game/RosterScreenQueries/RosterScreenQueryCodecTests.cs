@@ -141,6 +141,35 @@ public sealed class RosterScreenQueryCodecTests
         Assert.Equal(0x01, pageOne[offset]);
     }
 
+    [Fact]
+    public void ExtendedUserState_BindsTheRoutingUserWithoutReplacingTheCharacterId()
+    {
+        var source = Dfo.Server.Protocol.Tests.Game.SelectCharacter
+            .SelectCharacterPayloadTestData.CreateComplete();
+        const ushort routingUser = 0x1234;
+        var body = new ExtendedUserStateMessage(
+            source.Character,
+            source.CharacterEntry.Public,
+            source.CharacterEntry.Skills,
+            source.CharacterInventory.Containers
+                .Single(value => value.ContainerType == InventoryContainerType.Equipment).Items,
+            source.World.PreparedAt,
+            routingUser).EncodeBody();
+        var selfBody = new ExtendedUserStateMessage(
+            source.Character,
+            source.CharacterEntry.Public,
+            source.CharacterEntry.Skills,
+            source.CharacterInventory.Containers
+                .Single(value => value.ContainerType == InventoryContainerType.Equipment).Items,
+            source.World.PreparedAt).EncodeBody();
+
+        Assert.Equal(0, BinaryPrimitives.ReadUInt16LittleEndian(selfBody.AsSpan(3)));
+        Assert.Equal(routingUser, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(3)));
+        Assert.Equal(
+            checked((ushort)source.Character.Identity.CharacterId.Value),
+            BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(18)));
+    }
+
     private static byte[] EncodeExtendedUserStateWithSkillTree(int storedIndex)
     {
         var source = Dfo.Server.Protocol.Tests.Game.SelectCharacter

@@ -14,6 +14,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonClear;
 using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.MonsterDeath;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -211,9 +212,9 @@ public sealed class MonsterDeathHandlerTests
         var participants = new[]
         {
             new DungeonRunParticipant(
-                leader.AccountId, leader.CharacterId, leader.WireUserId, Slot: 0, IsLeader: true),
+                leader.AccountId, leader.CharacterId, Slot: 0, IsLeader: true),
             new DungeonRunParticipant(
-                member.AccountId, member.CharacterId, member.WireUserId, Slot: 1, IsLeader: false),
+                member.AccountId, member.CharacterId, Slot: 1, IsLeader: false),
         };
         var run = new PartyRun(participants);
         var registry = new DungeonRunDeliveryRegistry();
@@ -283,9 +284,9 @@ public sealed class MonsterDeathHandlerTests
         var run = new PartyRun(
         [
             new DungeonRunParticipant(
-                leader.AccountId, leader.CharacterId, leader.WireUserId, 0, IsLeader: true),
+                leader.AccountId, leader.CharacterId, 0, IsLeader: true),
             new DungeonRunParticipant(
-                frozenMember.AccountId, frozenMember.CharacterId, frozenMember.WireUserId, 1,
+                frozenMember.AccountId, frozenMember.CharacterId, 1,
                 IsLeader: false),
         ]);
         var registry = new DungeonRunDeliveryRegistry();
@@ -331,9 +332,9 @@ public sealed class MonsterDeathHandlerTests
         var run = new PartyRun(
         [
             new DungeonRunParticipant(
-                leader.AccountId, leader.CharacterId, leader.WireUserId, 0, IsLeader: true),
+                leader.AccountId, leader.CharacterId, 0, IsLeader: true),
             new DungeonRunParticipant(
-                member.AccountId, member.CharacterId, member.WireUserId, 1, IsLeader: false),
+                member.AccountId, member.CharacterId, 1, IsLeader: false),
         ]);
         var registry = new DungeonRunDeliveryRegistry();
         registry.Register(run.RunId, [leader, member]);
@@ -381,9 +382,9 @@ public sealed class MonsterDeathHandlerTests
         var run = new PartyRun(
         [
             new DungeonRunParticipant(
-                leader.AccountId, leader.CharacterId, leader.WireUserId, 0, IsLeader: true),
+                leader.AccountId, leader.CharacterId, 0, IsLeader: true),
             new DungeonRunParticipant(
-                member.AccountId, member.CharacterId, member.WireUserId, 1, IsLeader: false),
+                member.AccountId, member.CharacterId, 1, IsLeader: false),
         ]);
         var registry = new DungeonRunDeliveryRegistry();
         registry.Register(run.RunId, [leader, member]);
@@ -443,7 +444,7 @@ public sealed class MonsterDeathHandlerTests
         var run = new PartyRun(
         [
             new DungeonRunParticipant(
-                new AccountId(0), new CharacterId(60), WireUserId: 60, Slot: 0,
+                new AccountId(0), new CharacterId(60), Slot: 0,
                 IsLeader: true),
         ]);
 

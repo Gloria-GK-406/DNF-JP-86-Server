@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;

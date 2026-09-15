@@ -14,8 +14,10 @@ using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.Party;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.OnlineUsers;
@@ -107,6 +109,7 @@ public sealed class SelectDungeonHandlerTests
             new OneLog(new UnaskedLog()),
             new RecordingFatigue(),
             sender,
+            new NoopConnectionCloser(),
             TownAreaProjectionTestFactory.Create(
                 new OneSession(Identity),
                 new OneRuntimeSession(Entry()),
@@ -139,13 +142,11 @@ public sealed class SelectDungeonHandlerTests
     }
 
     /// <summary>
-    /// Everything else about the entry is unchanged: the difficulty asked for reaches the run, and
-    /// the same four frames answer it in the same order.
+    /// The difficulty reaches the run and the entry projection now supplies the complete avatar,
+    /// user-state and host prelude before START_MAP.
     /// </summary>
     /// <remarks>
-    /// Asserted here so that a change of source is not mistaken for licence to change the answer.
-    /// The character is level sixty, so the selection state is not deferred to this frame and the
-    /// acknowledgement is followed straight by the support roster.
+    /// The character is level sixty, so the selection state is not deferred to this frame.
     /// </remarks>
     [Fact]
     public async Task The_answer_to_an_entry_is_what_it_was()
@@ -160,10 +161,13 @@ public sealed class SelectDungeonHandlerTests
         Assert.Equal(TutorialDungeonId, Assert.Single(visits.Dungeons));
         Assert.Collection(
             sender.Sent,
+            frame => Assert.IsType<ExtendedUserStateMessage>(frame),
             frame => Assert.IsType<EnterSelectDungeonAcknowledgement>(frame),
+            frame => Assert.IsType<UserStateNotification>(frame),
+            frame => Assert.IsType<UdpHostNotification>(frame),
             frame => Assert.IsType<SupportTagNotification>(frame),
             frame => Assert.IsType<DungeonInfoNotification>(frame),
-            frame => Assert.IsType<StartMapNotification>(frame));
+            frame => Assert.Null(Assert.IsType<StartMapNotification>(frame).Run.Participant));
     }
 
     /// <summary>
@@ -264,6 +268,7 @@ public sealed class SelectDungeonHandlerTests
             new OneLog(new StandInLog([], [])),
             fatigue,
             sender,
+            new NoopConnectionCloser(),
             townProjection,
             NullLogger<SelectDungeonHandler>.Instance,
             new SelectedSessionTransitionGate());
@@ -319,6 +324,7 @@ public sealed class SelectDungeonHandlerTests
             new OneLog(new StandInLog([], [])),
             new RecordingFatigue(),
             sender,
+            new NoopConnectionCloser(),
             townProjection,
             NullLogger<SelectDungeonHandler>.Instance,
             new SelectedSessionTransitionGate());
@@ -357,6 +363,7 @@ public sealed class SelectDungeonHandlerTests
             new OneLog(new UnaskedLog()),
             fatigue,
             new RecordingSender(),
+            new NoopConnectionCloser(),
             TownAreaProjectionTestFactory.Create(
                 new NoSession(),
                 new OneRuntimeSession(Entry()),
@@ -392,6 +399,7 @@ public sealed class SelectDungeonHandlerTests
             new OneLog(new UnaskedLog()),
             new RecordingFatigue(),
             sender,
+            new NoopConnectionCloser(),
             TownAreaProjectionTestFactory.Create(
                 new NoSession(),
                 new OneRuntimeSession(Entry()),
@@ -454,6 +462,7 @@ public sealed class SelectDungeonHandlerTests
                 [new ClearedQuest(ClearedInLog, IQuestLog.ClearedMark)])),
             fatigue ?? new RecordingFatigue(),
             actualSender,
+            new NoopConnectionCloser(),
             TownAreaProjectionTestFactory.Create(sessions, runtimes, actualSender),
             NullLogger<SelectDungeonHandler>.Instance,
             new SelectedSessionTransitionGate());
@@ -805,6 +814,13 @@ public sealed class SelectDungeonHandlerTests
             this.Sent.AddRange(delivery.RequiredDirectMessages);
             return ValueTask.CompletedTask;
         }
+    }
+
+    private sealed class NoopConnectionCloser : INetworkConnectionCloser
+    {
+        public ValueTask RequestCloseAsync(
+            NetworkConnectionId connectionId,
+            CancellationToken cancellationToken) => ValueTask.CompletedTask;
     }
 
     private sealed class NoPartyService : IPartyService

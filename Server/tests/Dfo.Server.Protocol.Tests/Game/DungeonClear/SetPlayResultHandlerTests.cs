@@ -93,7 +93,6 @@ public sealed class SetPlayResultHandlerTests
         var leader = new DungeonRunParticipant(
             new AccountId(9),
             new CharacterId(59),
-            WireUserId: 59,
             Slot: 0,
             IsLeader: true);
         var rules = new PurposeSettlementRules(canComplete: true);
@@ -116,7 +115,6 @@ public sealed class SetPlayResultHandlerTests
         var placeholderLeader = new DungeonRunParticipant(
             new AccountId(0),
             new CharacterId(60),
-            WireUserId: 60,
             Slot: 0,
             IsLeader: true);
         var rules = new PurposeSettlementRules(canComplete: true);
@@ -477,7 +475,7 @@ public sealed class SetPlayResultHandlerTests
     {
         var cards = new RecordingCards();
         var leader = new DungeonRunParticipant(
-            new AccountId(2), new CharacterId(61), 61, 0, IsLeader: true);
+            new AccountId(2), new CharacterId(61), 0, IsLeader: true);
 
         await Settle(cards: cards, leader: leader);
 
@@ -799,7 +797,7 @@ public sealed class SetPlayResultHandlerTests
             Participant: leader is null
                 ? null
                 : new DungeonRunParticipant(
-                    new AccountId(1), characterId, (ushort)characterId.Value, 1, false),
+                    new AccountId(1), characterId, 1, false),
             Participants: leader is null
                 ? null
                 : includeOnlyLeader
@@ -808,7 +806,7 @@ public sealed class SetPlayResultHandlerTests
                 [
                     leader,
                     new DungeonRunParticipant(
-                        new AccountId(1), characterId, (ushort)characterId.Value, 1, false),
+                        new AccountId(1), characterId, 1, false),
                 ]);
 
         public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty) =>

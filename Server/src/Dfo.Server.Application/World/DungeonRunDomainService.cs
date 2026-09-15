@@ -21,17 +21,19 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
 
     public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty)
     {
-        var wireUserId = characterId.Value is > 0 and <= ushort.MaxValue
-            ? checked((ushort)characterId.Value)
-            : (ushort)0;
         return this.BeginParty(
             [new DungeonRunParticipant(
-                new AccountId(0), characterId, wireUserId, Slot: 0, IsLeader: true)],
+                new AccountId(0), characterId, Slot: 0, IsLeader: true)],
             layout,
             difficulty);
     }
 
     public DungeonRunState BeginParty(
+        IReadOnlyList<DungeonRunParticipant> participants,
+        DungeonLayout layout,
+        byte difficulty) => this.PreparePartyEntry(participants, layout, difficulty).Run;
+
+    public DungeonEntryChange PreparePartyEntry(
         IReadOnlyList<DungeonRunParticipant> participants,
         DungeonLayout layout,
         byte difficulty)
@@ -73,7 +75,62 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             foreach (var participant in frozen)
                 this.runsByCharacter.Add(participant.CharacterId, aggregate);
 
-            return aggregate.ViewFor(aggregate.Leader.CharacterId);
+            return aggregate.EntryChange(
+                DungeonEntryChangeKind.Prepared,
+                aggregate.Leader.CharacterId);
+        }
+    }
+
+    public DungeonEntryChange? TryMarkParticipantReady(
+        CharacterId characterId,
+        DungeonRunId expectedRunId,
+        long expectedRoomVersion)
+    {
+        lock (this.gate)
+        {
+            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
+                || aggregate.RunId != expectedRunId
+                || aggregate.RoomVersion != expectedRoomVersion
+                || !aggregate.ActiveParticipants.Contains(characterId)
+                || !aggregate.ReadyParticipants.Add(characterId))
+            {
+                return null;
+            }
+
+            aggregate.EntryRevision++;
+            return aggregate.EntryChange(DungeonEntryChangeKind.ParticipantReady, characterId);
+        }
+    }
+
+    public DungeonEntryChange? FindEntryChange(CharacterId characterId)
+    {
+        lock (this.gate)
+        {
+            return this.runsByCharacter.TryGetValue(characterId, out var aggregate)
+                && aggregate.ActiveParticipants.Contains(characterId)
+                    ? aggregate.EntryChange(DungeonEntryChangeKind.Snapshot, characterId)
+                    : null;
+        }
+    }
+
+    public bool TryAbortEntry(
+        DungeonRunId expectedRunId,
+        long expectedEntryRevision,
+        IReadOnlyList<CharacterId> expectedRecipients)
+    {
+        ArgumentNullException.ThrowIfNull(expectedRecipients);
+        lock (this.gate)
+        {
+            if (!this.runsById.TryGetValue(expectedRunId, out var aggregate)
+                || aggregate.EntryRevision != expectedEntryRevision
+                || !aggregate.ActiveParticipants.SetEquals(expectedRecipients))
+            {
+                return false;
+            }
+
+            foreach (var characterId in expectedRecipients.ToArray())
+                _ = this.DetachParticipant(characterId);
+            return true;
         }
     }
 
@@ -130,6 +187,8 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         aggregate.CurrentRoomMapId = mapId;
         aggregate.VisitedCells = aggregate.VisitedCells.Add(target);
         aggregate.RoomVersion++;
+        aggregate.EntryRevision++;
+        aggregate.ReadyParticipants.Clear();
         return aggregate.ViewFor(characterId);
     }
 
@@ -655,6 +714,8 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             return false;
 
         aggregate.ActiveParticipants.Remove(characterId);
+        aggregate.ReadyParticipants.Remove(characterId);
+        aggregate.EntryRevision++;
         foreach (var key in this.settlementClaims.Keys
                      .Where(key => key.RunId == aggregate.RunId && key.CharacterId == characterId)
                      .ToArray())
@@ -799,6 +860,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         public MazeCell CurrentCell { get; set; }
         public int CurrentRoomMapId { get; set; }
         public long RoomVersion { get; set; }
+        public long EntryRevision { get; set; } = 1;
         public ImmutableHashSet<MazeCell> VisitedCells { get; set; }
         public ImmutableHashSet<GroundDropId> TakenGroundDrops { get; set; } = [];
         public ImmutableHashSet<RoomActorId> DeadActors { get; set; } = [];
@@ -807,12 +869,25 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         public HashSet<RoomActorId> AllocatedDropActors { get; } = [];
         public ImmutableArray<AllocatedMonsterDrop> MonsterDrops { get; set; } = [];
         public HashSet<CharacterId> ActiveParticipants { get; }
+        public HashSet<CharacterId> ReadyParticipants { get; } = [];
 
         public DungeonRunParticipant Participant(CharacterId characterId) =>
             this.participantsByCharacter[characterId];
 
         public ParticipantProgress ProgressFor(CharacterId characterId) =>
             this.progressByCharacter[characterId];
+
+        public DungeonEntryChange EntryChange(
+            DungeonEntryChangeKind kind,
+            CharacterId viewer) =>
+            new(
+                kind,
+                this.ViewFor(viewer),
+                this.EntryRevision,
+                [.. this.Participants
+                    .Where(participant => this.ActiveParticipants.Contains(participant.CharacterId))
+                    .OrderBy(participant => participant.Slot)
+                    .Select(participant => participant.CharacterId)]);
 
         public ushort NextMonsterDropNumber(MazeCell cell, int declaredDropCount)
         {
@@ -844,7 +919,9 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                 this.RunId,
                 this.RoomVersion,
                 this.Participant(characterId),
-                this.Participants);
+                this.Participants,
+                this.EntryRevision,
+                this.ReadyParticipants.ToImmutableHashSet());
         }
     }
 

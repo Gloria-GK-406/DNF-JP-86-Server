@@ -4,7 +4,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.MonsterDeath;
 
-namespace Dfo.Server.Protocol.Game.DungeonEntry;
+namespace Dfo.Server.Protocol.Game.Dungeons;
 
 /// <summary>
 /// Freezes the selected-session generations that were attached when a dungeon run began.

@@ -29,6 +29,7 @@ using Dfo.Server.Protocol.Game.CreateCharacter;
 using Dfo.Server.Protocol.Game.DeleteCharacter;
 using Dfo.Server.Protocol.Game.DeleteItem;
 using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.FinishLoading;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Dfo.Server.Protocol.Game.BuyItem;
@@ -97,6 +98,9 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameMessageSending();
         services.TryAddSingleton<CharacterSelectionDelivery>();
         services.TryAddSingleton<DungeonRunDeliveryRegistry>();
+        services.TryAddSingleton<DungeonProjectionGate>();
+        services.TryAddSingleton<DungeonEntryProjectionDelivery>();
+        services.TryAddSingleton<IDungeonLoadingProjectionDelivery, DungeonLoadingProjectionDelivery>();
         services.TryAddSingleton<IDungeonRunParticipantDepartureSink>(provider =>
             provider.GetRequiredService<DungeonRunDeliveryRegistry>());
         // Every notification type declared in this assembly must have a handler registered below,
@@ -153,6 +157,8 @@ public sealed class ProtocolModule : IServerModule
     /// <summary>The commands a protocol slice owns, with their execution kind and access modes.</summary>
     private static void RegisterCommands(IServiceCollection services)
     {
+        services.AddCommandHandler<MarkDungeonParticipantReadyCommand, MarkDungeonParticipantReadyResult, MarkDungeonParticipantReadyCommandHandler>(
+            CommandExecutionKind.Direct);
         services.AddCommandHandler<GetChannelScriptVersionCommand, GetChannelScriptVersionResult, GetChannelScriptVersionCommandHandler>(
             CommandExecutionKind.Direct);
         services.AddCommandHandler<GetChannelScriptCommand, GetChannelScriptResult, GetChannelScriptCommandHandler>(

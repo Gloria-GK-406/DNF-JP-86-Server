@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -19,6 +20,7 @@ using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.StateSynchronization;
@@ -199,18 +201,22 @@ public sealed class PartySelectDungeonHandlerTests
 
         Assert.Collection(
             world.Sender.Messages(Leader.ConnectionId),
+            frame => Assert.IsType<ExtendedUserStateMessage>(frame),
+            frame => Assert.IsType<ExtendedUserStateMessage>(frame),
             frame => Assert.IsType<EnterSelectDungeonAcknowledgement>(frame),
+            frame => Assert.IsType<UserStateNotification>(frame),
+            frame => Assert.IsType<UdpHostNotification>(frame),
             frame => Assert.IsType<SupportTagNotification>(frame),
             frame => Assert.IsType<DungeonInfoNotification>(frame),
             frame => Assert.IsType<StartMapNotification>(frame));
         Assert.Collection(
             world.Sender.Messages(Member.ConnectionId),
             frame => Assert.IsType<ExtendedUserStateMessage>(frame),
+            frame => Assert.IsType<ExtendedUserStateMessage>(frame),
             frame => Assert.IsType<EnterSelectDungeonAcknowledgement>(frame),
             frame => Assert.IsType<UserStateNotification>(frame),
             frame => Assert.IsType<UdpHostNotification>(frame),
             frame => Assert.IsType<EnterSelectDungeonNotification>(frame),
-            frame => Assert.IsType<EnterSelectDungeonAcknowledgement>(frame),
             frame => Assert.IsType<SupportTagNotification>(frame),
             frame => Assert.IsType<DungeonInfoNotification>(frame),
             frame => Assert.IsType<StartMapNotification>(frame));
@@ -218,6 +224,48 @@ public sealed class PartySelectDungeonHandlerTests
             new[] { Leader.WireUserId, Member.WireUserId },
             Assert.Single(world.Sender.Messages(Member.ConnectionId)
                 .OfType<EnterSelectDungeonNotification>()).WireUserIds);
+        Assert.Equal(
+            new ushort?[] { null, Member.WireUserId },
+            world.Sender.Messages(Leader.ConnectionId)
+                .OfType<ExtendedUserStateMessage>()
+                .Select(value => value.RoutingWireUserId));
+        Assert.Equal(
+            new ushort?[] { null, Leader.WireUserId },
+            world.Sender.Messages(Member.ConnectionId)
+                .OfType<ExtendedUserStateMessage>()
+                .Select(value => value.RoutingWireUserId));
+        var leaderUserInfos = world.Sender.Messages(Leader.ConnectionId)
+            .OfType<ExtendedUserStateMessage>().Select(value => value.EncodeBody()).ToArray();
+        Assert.Equal(0, BinaryPrimitives.ReadUInt16LittleEndian(leaderUserInfos[0].AsSpan(3)));
+        Assert.Equal(
+            checked((ushort)Leader.CharacterId.Value),
+            BinaryPrimitives.ReadUInt16LittleEndian(leaderUserInfos[0].AsSpan(18)));
+        Assert.Equal(
+            Member.WireUserId,
+            BinaryPrimitives.ReadUInt16LittleEndian(leaderUserInfos[1].AsSpan(3)));
+        Assert.Equal(
+            checked((ushort)Member.CharacterId.Value),
+            BinaryPrimitives.ReadUInt16LittleEndian(leaderUserInfos[1].AsSpan(18)));
+        foreach (var recipient in new[] { Leader, Member })
+        {
+            Assert.Equal(
+                new[] { Leader.WireUserId, Member.WireUserId },
+                Assert.Single(world.Sender.Messages(recipient.ConnectionId)
+                    .OfType<UserStateNotification>()).WireUserIds);
+            Assert.Equal(
+                0,
+                Assert.Single(world.Sender.Messages(recipient.ConnectionId)
+                    .OfType<UdpHostNotification>()).HostSlot);
+        }
+        var leaderStart = Assert.Single(world.Sender.Messages(Leader.ConnectionId)
+            .OfType<StartMapNotification>());
+        var memberStart = Assert.Single(world.Sender.Messages(Member.ConnectionId)
+            .OfType<StartMapNotification>());
+        Assert.Equal<byte?>(0, leaderStart.Run.Participant?.Slot);
+        Assert.Equal<byte?>(1, memberStart.Run.Participant?.Slot);
+        Assert.Equal(leaderStart.Run.CurrentRoomMapId, memberStart.Run.CurrentRoomMapId);
+        Assert.Equal(leaderStart.Actors, memberStart.Actors);
+        Assert.Equal(leaderStart.Drops, memberStart.Drops);
         Assert.Equal(
             [Leader.CharacterId, Member.CharacterId],
             world.Fatigue.Spent.Select(value => value.CharacterId));
@@ -301,6 +349,30 @@ public sealed class PartySelectDungeonHandlerTests
     }
 
     [Fact]
+    public async Task A_newer_entry_revision_is_reread_and_projected_without_destroying_the_run()
+    {
+        var world = World(advanceEntryRevisionDuringPrelude: true, withTownProjection: true);
+        world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
+
+        await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
+
+        Assert.Equal([Leader, Member], world.Registry.Find(world.Visits.RunId));
+        Assert.Empty(world.Runs.Ended);
+        Assert.Contains(
+            world.Sender.Messages(Leader.ConnectionId),
+            frame => frame is StartMapNotification);
+        Assert.Contains(
+            world.Sender.Messages(Member.ConnectionId),
+            frame => frame is StartMapNotification);
+        Assert.Equal(
+            3,
+            Assert.Single(world.Sender.Messages(Leader.ConnectionId)
+                .OfType<StartMapNotification>()).Run.EntryRevision);
+        Assert.Null(world.Areas.Find(Leader.CharacterId));
+        Assert.Null(world.Areas.Find(Member.CharacterId));
+    }
+
+    [Fact]
     public async Task Cancelling_while_acquiring_commit_gates_rolls_back_before_leaving_town()
     {
         var world = World(withTownProjection: true);
@@ -342,20 +414,73 @@ public sealed class PartySelectDungeonHandlerTests
         Assert.Empty(world.Runs.Ended);
     }
 
+    [Fact]
+    public async Task A_secondary_recipient_delivery_failure_aborts_entry_before_anyone_leaves_town()
+    {
+        var world = World(
+            withTownProjection: true,
+            failRequiredConnection: Member.ConnectionId);
+        world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => world.Handler.HandleAsync(
+            Dispatch(Leader), Request(), CancellationToken.None).AsTask());
+
+        Assert.Empty(world.Registry.Find(world.Visits.RunId));
+        Assert.Equal(
+            [Leader.CharacterId, Member.CharacterId],
+            world.Runs.Ended.OrderBy(value => value.Value));
+        Assert.DoesNotContain(
+            world.Sender.Messages(Leader.ConnectionId),
+            frame => frame is StartMapNotification);
+        Assert.Equal([Member.ConnectionId], world.Closer.Closed);
+        Assert.True(Leader.Owns(world.Areas.Find(Leader.CharacterId)!));
+        Assert.True(Member.Owns(world.Areas.Find(Member.CharacterId)!));
+    }
+
+    [Fact]
+    public async Task A_leader_delivery_failure_isolates_the_member_that_already_received_start_map()
+    {
+        var world = World(
+            withTownProjection: true,
+            failRequiredConnection: Leader.ConnectionId);
+        world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => world.Handler.HandleAsync(
+            Dispatch(Leader), Request(), CancellationToken.None).AsTask());
+
+        Assert.Contains(
+            world.Sender.Messages(Member.ConnectionId),
+            frame => frame is StartMapNotification);
+        Assert.Equal(
+            [Member.ConnectionId, Leader.ConnectionId],
+            world.Closer.Closed);
+        Assert.Empty(world.Registry.Find(world.Visits.RunId));
+        Assert.Equal(
+            [Leader.CharacterId, Member.CharacterId],
+            world.Runs.Ended.OrderBy(value => value.Value));
+        Assert.True(Leader.Owns(world.Areas.Find(Leader.CharacterId)!));
+        Assert.True(Member.Owns(world.Areas.Find(Member.CharacterId)!));
+    }
+
     private static TestWorld World(
         bool memberRuntimeAvailable = true,
         bool replaceMemberDuringPrelude = false,
+        bool advanceEntryRevisionDuringPrelude = false,
         bool withTownProjection = false,
-        IPartyTownProjectionDelivery? partyTownProjection = null)
+        IPartyTownProjectionDelivery? partyTownProjection = null,
+        NetworkConnectionId? failRequiredConnection = null)
     {
         var sessions = new Sessions(Leader, Member);
-        var runtime = new Runtime(Entry(), memberRuntimeAvailable ? [Leader, Member] : [Leader]);
-        var visits = new PartyVisits();
+        var runtime = memberRuntimeAvailable
+            ? new PartyRuntime((Leader, EntryFor(Leader)), (Member, EntryFor(Member)))
+            : new PartyRuntime((Leader, EntryFor(Leader)));
+        var runs = new RollbackRuns();
+        var visits = new PartyVisits(runs);
         var intents = new Intents();
         var registry = new DungeonRunDeliveryRegistry();
-        var runs = new RollbackRuns();
         var fatigue = new Fatigue();
-        var sender = new Sender();
+        var sender = new Sender(failRequiredConnection);
+        var closer = new RecordingCloser();
         var areas = new SessionPresenceDomainService();
         foreach (var member in new[] { Leader, Member })
         {
@@ -381,14 +506,25 @@ public sealed class PartySelectDungeonHandlerTests
         var state = new UnchangedState(() =>
         {
             if (!replaceMemberDuringPrelude)
-                return;
-            sessions.Replace(
-                Member.CharacterId,
-                Member with
+            {
+                if (advanceEntryRevisionDuringPrelude
+                    && runs.Find(Leader.CharacterId) is { } current)
                 {
-                    ConnectionId = new NetworkConnectionId("member-replacement"),
-                    ConnectionGeneration = Member.ConnectionGeneration + 1,
-                });
+                    foreach (var participant in new[] { Leader, Member })
+                        runs.SetCurrent(participant.CharacterId, current with
+                        {
+                            Participant = current.Participants.Single(value =>
+                                value.CharacterId == participant.CharacterId),
+                            EntryRevision = current.EntryRevision + 1,
+                        });
+                }
+                return;
+            }
+            sessions.Replace(Member.CharacterId, Member with
+            {
+                ConnectionId = new NetworkConnectionId("member-replacement"),
+                ConnectionGeneration = Member.ConnectionGeneration + 1,
+            });
         });
         var handler = new SelectDungeonHandler(
             CurrentCharacterStub.Domain(),
@@ -403,11 +539,12 @@ public sealed class PartySelectDungeonHandlerTests
             new RecordingQuestLogs(),
             fatigue,
             sender,
+            closer,
             townProjection,
             NullLogger<SelectDungeonHandler>.Instance,
             transitionGate);
         return new TestWorld(
-            handler, visits, intents, registry, runs, fatigue, sender, areas, transitionGate);
+            handler, visits, intents, registry, runs, fatigue, sender, closer, areas, transitionGate);
     }
 
     private static SelectCharacterResult Entry() => SelectCharacterPayloadTestData.Create();
@@ -466,6 +603,7 @@ public sealed class PartySelectDungeonHandlerTests
         RollbackRuns Runs,
         Fatigue Fatigue,
         Sender Sender,
+        RecordingCloser Closer,
         ITownAreaDomainService Areas,
         SelectedSessionTransitionGate TransitionGate);
 
@@ -580,7 +718,7 @@ public sealed class PartySelectDungeonHandlerTests
         public bool ClearExact(SelectedSessionIdentity session) => values.Remove(session);
     }
 
-    private sealed class PartyVisits : IDungeonVisitDomainService
+    private sealed class PartyVisits(RollbackRuns? runs = null) : IDungeonVisitDomainService
     {
         public int PartyEntries { get; private set; }
         public DungeonRunId RunId { get; } = DungeonRunId.New();
@@ -609,12 +747,24 @@ public sealed class PartySelectDungeonHandlerTests
                         difficulty,
                         RunId: RunId,
                         Participant: value,
-                        Participants: participants),
+                        Participants: participants,
+                        EntryRevision: 1),
                     true,
                     [],
                     [],
                     1));
-            return ValueTask.FromResult<DungeonPartyEntry?>(new DungeonPartyEntry(layout, Visits));
+            foreach (var visit in Visits.Values)
+                runs?.SetCurrent(visit.Run.Participant!.CharacterId, visit.Run);
+            var leaderRun = Visits.Values.Single(value => value.Run.Participant!.IsLeader).Run;
+            return ValueTask.FromResult<DungeonPartyEntry?>(new DungeonPartyEntry(
+                layout,
+                Visits,
+                new DungeonEntryChange(
+                    DungeonEntryChangeKind.Prepared,
+                    leaderRun,
+                    leaderRun.EntryRevision,
+                    participants.OrderBy(value => value.Slot)
+                        .Select(value => value.CharacterId).ToArray())));
         }
         public ValueTask<DungeonRoomVisit?> MoveAsync(CharacterId characterId, DungeonRunState current, MazeCell target, CancellationToken cancellationToken) => throw new NotSupportedException();
 
@@ -644,6 +794,26 @@ public sealed class PartySelectDungeonHandlerTests
             current[characterId] = run;
         public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty) => throw new NotSupportedException();
         public DungeonRunState? Find(CharacterId characterId) => current.GetValueOrDefault(characterId);
+        public bool TryAbortEntry(
+            DungeonRunId expectedRunId,
+            long expectedEntryRevision,
+            IReadOnlyList<CharacterId> expectedRecipients)
+        {
+            if (expectedRecipients.Any(characterId =>
+                current.GetValueOrDefault(characterId) is not { } run
+                || run.RunId != expectedRunId
+                || run.EntryRevision != expectedEntryRevision))
+            {
+                return false;
+            }
+
+            foreach (var characterId in expectedRecipients)
+            {
+                current.Remove(characterId);
+                Ended.Add(characterId);
+            }
+            return true;
+        }
         public DungeonRunState? TryMove(CharacterId characterId, MazeCell target) => null;
         public DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber) => null;
         public DungeonRunState? TryReportActorDead(CharacterId characterId, ushort actorSequence) => null;
@@ -686,7 +856,8 @@ public sealed class PartySelectDungeonHandlerTests
         }
     }
 
-    private sealed class Sender : IGameMessageSender
+    private sealed class Sender(NetworkConnectionId? failRequiredConnection = null)
+        : IGameMessageSender
     {
         private readonly Dictionary<NetworkConnectionId, List<IGameServerMessage>> sent = [];
         public IReadOnlyList<IGameServerMessage> Messages(NetworkConnectionId connectionId) =>
@@ -695,6 +866,8 @@ public sealed class PartySelectDungeonHandlerTests
         public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken)
         {
+            if (requiredDirectConnectionId == failRequiredConnection)
+                throw new InvalidOperationException("required delivery failed");
             Add(requiredDirectConnectionId, delivery.RequiredDirectMessages);
             foreach (var target in delivery.BestEffortTargets)
                 Add(target.ConnectionId, target.OrderedMessages);
@@ -708,6 +881,19 @@ public sealed class PartySelectDungeonHandlerTests
                 sent.Add(connectionId, destination);
             }
             destination.AddRange(messages);
+        }
+    }
+
+    private sealed class RecordingCloser : INetworkConnectionCloser
+    {
+        public List<NetworkConnectionId> Closed { get; } = [];
+
+        public ValueTask RequestCloseAsync(
+            NetworkConnectionId connectionId,
+            CancellationToken cancellationToken)
+        {
+            Closed.Add(connectionId);
+            return ValueTask.CompletedTask;
         }
     }
 

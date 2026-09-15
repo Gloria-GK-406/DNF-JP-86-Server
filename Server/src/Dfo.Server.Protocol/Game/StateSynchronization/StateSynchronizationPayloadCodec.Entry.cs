@@ -1174,12 +1174,17 @@ internal static partial class StateSynchronizationPayloadCodec
         CharacterPublicEntryState publicState,
         CharacterSkillsEntryState skills,
         IReadOnlyList<InventoryItemState> equipment,
-        DateTimeOffset preparedAt)
+        DateTimeOffset preparedAt,
+        ushort? routingWireUserId = null)
     {
         var stats = publicState.DerivedStats; var extras = publicState.Extras;
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         writer.Write((byte)1); writer.Write((ushort)1);
-        writer.Write(new byte[ExtendedSubtypeReservedBlock]);
+        // A21's dungeon projection binds a remote participant's routing user id at body +3. The
+        // receiver's own USERINFO keeps this word zero. The character id remains independently at
+        // +18; replacing it with the routing id makes the client create the wrong avatar identity.
+        writer.Write(routingWireUserId ?? (ushort)0);
+        writer.Write(new byte[ExtendedSubtypeReservedBlock - sizeof(ushort)]);
         writer.Write(checked((ushort)character.Identity.CharacterId.Value)); writer.Write(checked((uint)extras.CharacterExperience));
         writer.Write(DerivedStatBlockLength); writer.Write(checked((uint)stats.HpMaximum)); writer.Write(checked((uint)stats.MpMaximum)); writer.Write(checked((short)stats.PhysicalAttack)); writer.Write(checked((short)stats.PhysicalDefense));
         writer.Write(checked((short)stats.MagicalAttack)); writer.Write(checked((short)stats.MagicalDefense)); writer.Write(checked((short)stats.FireResistance)); writer.Write(checked((short)stats.WaterResistance)); writer.Write(checked((short)stats.DarkResistance)); writer.Write(checked((short)stats.LightResistance));

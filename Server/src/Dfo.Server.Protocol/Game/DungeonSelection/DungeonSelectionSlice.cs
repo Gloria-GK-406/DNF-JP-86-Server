@@ -15,6 +15,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.DungeonSelection;
@@ -91,14 +92,21 @@ internal sealed record UserAreaNotification(
 
 /// <summary>NOTI 0x0003 <c>USER_STATE</c>: a counted list of (user, state) pairs.</summary>
 internal sealed record UserStateNotification(
-    ushort WireUserId,
+    ImmutableArray<ushort> WireUserIds,
     byte UserState) : IGameNotiMessage
 {
+    public UserStateNotification(ushort wireUserId, byte userState)
+        : this(ImmutableArray.Create(wireUserId), userState)
+    {
+    }
+
+    public ushort WireUserId => WireUserIds[0];
+
     public ServerMessageType MessageType => ServerMessageType.GameUserState;
 }
 
-/// <summary>NOTI 0x001A: the peer-to-peer UDP host offer. A single zero means "none".</summary>
-internal sealed record UdpHostNotification : IGameNotiMessage
+/// <summary>NOTI 0x001A: the peer-to-peer UDP host slot. Zero is also the first party slot.</summary>
+internal sealed record UdpHostNotification(byte HostSlot = 0) : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameUdpHost;
 }
@@ -405,16 +413,30 @@ internal static class DungeonSelectionPayloadCodec
     }
 
     public static byte[] EncodeUserState(ushort wireUserId, byte userState)
+        => EncodeUserState([wireUserId], userState);
+
+    public static byte[] EncodeUserState(IReadOnlyList<ushort> wireUserIds, byte userState)
     {
-        using var stream = new MemoryStream(4);
+        ArgumentNullException.ThrowIfNull(wireUserIds);
+        if (wireUserIds.Count is 0 or > byte.MaxValue)
+            throw new ArgumentOutOfRangeException(nameof(wireUserIds));
+        if (wireUserIds.Distinct().Count() != wireUserIds.Count)
+            throw new InvalidDataException("Dungeon user-state users must be distinct.");
+
+        using var stream = new MemoryStream(1 + (wireUserIds.Count * 3));
         using var writer = new BinaryWriter(stream);
-        writer.Write((byte)1);
-        writer.Write(wireUserId);
-        writer.Write(userState);
+        writer.Write(checked((byte)wireUserIds.Count));
+        foreach (var wireUserId in wireUserIds)
+        {
+            writer.Write(wireUserId);
+            writer.Write(userState);
+        }
         return stream.ToArray();
     }
 
     public static byte[] EncodeUdpHostUnavailable() => [0x00];
+
+    public static byte[] EncodeUdpHost(byte hostSlot) => [hostSlot];
 
     /// <summary>NOTI 0x001B as A21 builds it: 37 bytes for a party of one.</summary>
     /// <remarks>
@@ -481,7 +503,7 @@ internal sealed class UserStateEncoder : GameNotiMessageEncoder<UserStateNotific
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(UserStateNotification message) =>
         OnePayload(
             GameProtocol.UserStateNotificationType,
-            DungeonSelectionPayloadCodec.EncodeUserState(message.WireUserId, message.UserState));
+            DungeonSelectionPayloadCodec.EncodeUserState(message.WireUserIds, message.UserState));
 }
 
 internal sealed class UdpHostEncoder : GameNotiMessageEncoder<UdpHostNotification>
@@ -489,7 +511,7 @@ internal sealed class UdpHostEncoder : GameNotiMessageEncoder<UdpHostNotificatio
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(UdpHostNotification message) =>
         OnePayload(
             GameProtocol.UdpHostNotificationType,
-            DungeonSelectionPayloadCodec.EncodeUdpHostUnavailable());
+            DungeonSelectionPayloadCodec.EncodeUdpHost(message.HostSlot));
 }
 
 internal sealed class EnterSelectDungeonEncoder

@@ -25,8 +25,8 @@ public sealed class DungeonVisitDomainServiceTests
     {
         DungeonRunParticipant[] party =
         [
-            new(new AccountId(11), new CharacterId(1), 1, 0, IsLeader: true),
-            new(new AccountId(22), new CharacterId(2), 2, 1, IsLeader: false),
+            new(new AccountId(11), new CharacterId(1), 0, IsLeader: true),
+            new(new AccountId(22), new CharacterId(2), 1, IsLeader: false),
         ];
         var layouts = new RecordingLayouts();
         var visits = new DungeonVisitDomainService(
@@ -45,6 +45,11 @@ public sealed class DungeonVisitDomainServiceTests
         Assert.Single(entered.Visits.Values.Select(visit => visit.Run.RunId).Distinct());
         Assert.Single(entered.Visits.Values.Select(visit => visit.Run.CurrentCell).Distinct());
         Assert.All(entered.Visits.Values, visit => Assert.True(visit.FirstEntry));
+        Assert.NotNull(entered.Change);
+        Assert.Equal(DungeonEntryChangeKind.Prepared, entered.Change.Kind);
+        Assert.Equal(
+            party.Select(participant => participant.CharacterId),
+            entered.Change.Recipients);
     }
 
     [Fact]
@@ -52,8 +57,8 @@ public sealed class DungeonVisitDomainServiceTests
     {
         DungeonRunParticipant[] party =
         [
-            new(new AccountId(11), new CharacterId(1), 1, 0, IsLeader: true),
-            new(new AccountId(22), new CharacterId(2), 2, 1, IsLeader: false),
+            new(new AccountId(11), new CharacterId(1), 0, IsLeader: true),
+            new(new AccountId(22), new CharacterId(2), 1, IsLeader: false),
         ];
         var runs = new DungeonRunDomainService();
         var visits = new DungeonVisitDomainService(
@@ -79,8 +84,8 @@ public sealed class DungeonVisitDomainServiceTests
     {
         DungeonRunParticipant[] party =
         [
-            new(new AccountId(11), new CharacterId(1), 1, 0, IsLeader: true),
-            new(new AccountId(22), new CharacterId(2), 2, 1, IsLeader: false),
+            new(new AccountId(11), new CharacterId(1), 0, IsLeader: true),
+            new(new AccountId(22), new CharacterId(2), 1, IsLeader: false),
         ];
         var runs = new DungeonRunDomainService();
         var rooms = new ReplacingCancelledSecondRoomProjection(runs, party[1].CharacterId);
@@ -99,11 +104,47 @@ public sealed class DungeonVisitDomainServiceTests
                 DungeonEntryFacts.None,
                 CancellationToken.None));
 
-        Assert.Null(runs.Find(party[0].CharacterId));
+        var survivingLeader = runs.Find(party[0].CharacterId);
+        Assert.NotNull(survivingLeader);
+        Assert.NotEqual(rooms.ReplacementRunId, survivingLeader.RunId);
         var replacement = runs.Find(party[1].CharacterId);
         Assert.NotNull(replacement);
         Assert.Equal(rooms.ReplacementRunId, replacement.RunId);
         Assert.Equal(1, replacement.PartyMemberCount);
+    }
+
+    [Fact]
+    public async Task A_failed_description_cannot_abort_a_newer_revision_of_the_same_run()
+    {
+        DungeonRunParticipant[] party =
+        [
+            new(new AccountId(11), new CharacterId(1), 0, IsLeader: true),
+            new(new AccountId(22), new CharacterId(2), 1, IsLeader: false),
+        ];
+        var runs = new DungeonRunDomainService();
+        var rooms = new AdvancingFailedSecondRoomProjection(runs, party[1].CharacterId);
+        var visits = new DungeonVisitDomainService(
+            new RecordingLayouts(),
+            runs,
+            rooms,
+            new NoPlacement(),
+            new ImmediateSelection());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await visits.EnterPartyAsync(
+                party,
+                Layout.DungeonId,
+                difficulty: 2,
+                DungeonEntryFacts.None,
+                CancellationToken.None));
+
+        var leader = runs.Find(party[0].CharacterId);
+        var member = runs.Find(party[1].CharacterId);
+        Assert.NotNull(leader);
+        Assert.NotNull(member);
+        Assert.Equal(leader.RunId, member.RunId);
+        Assert.Equal(2, leader.EntryRevision);
+        Assert.Contains(member.Participant!.CharacterId, leader.ReadyParticipants);
     }
 
     private sealed class RecordingLayouts : IDungeonLayoutRuleService
@@ -175,6 +216,26 @@ public sealed class DungeonVisitDomainServiceTests
 
             ReplacementRunId = runs.Begin(replacementCharacterId, Layout, difficulty: 1).RunId;
             throw new OperationCanceledException("projection was cancelled after replacement");
+        }
+    }
+
+    private sealed class AdvancingFailedSecondRoomProjection(
+        IDungeonRunDomainService runs,
+        CharacterId advancingCharacterId) : EmptyRooms
+    {
+        private int calls;
+
+        public override ValueTask<DungeonRoomContents> DescribeAsync(
+            DungeonRunState run, bool firstEntry, CancellationToken cancellationToken)
+        {
+            if (++calls != 2)
+                return base.DescribeAsync(run, firstEntry, cancellationToken);
+
+            Assert.NotNull(runs.TryMarkParticipantReady(
+                advancingCharacterId,
+                run.RunId,
+                run.RoomVersion));
+            throw new InvalidOperationException("projection failed after the run advanced");
         }
     }
 

@@ -18,6 +18,7 @@ using Dfo.Server.Networking.Framing;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonClear;
 using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.TownProjection;

@@ -11,6 +11,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.GroundPickup;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -94,7 +95,6 @@ public sealed class GetItemHandlerTests
         var participants = frozen.Select((session, index) => new DungeonRunParticipant(
             session.AccountId,
             session.CharacterId,
-            session.WireUserId,
             checked((byte)index),
             index == 0)).ToArray();
         var run = runs.BeginParty(participants, Layout(), difficulty: 0);

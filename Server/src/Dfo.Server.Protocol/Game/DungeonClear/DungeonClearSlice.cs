@@ -13,6 +13,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Protocol.Game.MonsterDeath;
 using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Game.Party;

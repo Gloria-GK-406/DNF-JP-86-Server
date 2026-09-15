@@ -20,12 +20,187 @@ public sealed class DungeonRunDomainServiceTests
     private static readonly CharacterId Character = new(1);
 
     [Fact]
+    public void Party_entry_changes_share_one_instance_and_readiness_is_monotonic_and_idempotent()
+    {
+        var leader = new DungeonRunParticipant(
+            new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
+        var member = new DungeonRunParticipant(
+            new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
+        var service = new DungeonRunDomainService();
+
+        var prepared = service.PreparePartyEntry([leader, member], Tutorial, difficulty: 2);
+
+        Assert.Equal(DungeonEntryChangeKind.Prepared, prepared.Kind);
+        Assert.Equal(1, prepared.Revision);
+        Assert.Equal([leader.CharacterId, member.CharacterId], prepared.Recipients);
+        Assert.Empty(prepared.Run.ReadyParticipants);
+        Assert.Equal(prepared.Run.RunId, service.Find(member.CharacterId)!.RunId);
+
+        var memberReady = service.TryMarkParticipantReady(
+            member.CharacterId,
+            prepared.Run.RunId,
+            prepared.Run.RoomVersion);
+
+        Assert.NotNull(memberReady);
+        Assert.Equal(DungeonEntryChangeKind.ParticipantReady, memberReady.Kind);
+        Assert.Equal(2, memberReady.Revision);
+        Assert.Equal([leader.CharacterId, member.CharacterId], memberReady.Recipients);
+        Assert.Equal([member.CharacterId], memberReady.Run.ReadyParticipants);
+
+        Assert.Null(service.TryMarkParticipantReady(
+            member.CharacterId,
+            prepared.Run.RunId,
+            prepared.Run.RoomVersion));
+
+        var leaderReady = service.TryMarkParticipantReady(
+            leader.CharacterId,
+            prepared.Run.RunId,
+            prepared.Run.RoomVersion);
+
+        Assert.NotNull(leaderReady);
+        Assert.Equal(3, leaderReady.Revision);
+        Assert.Equal(
+            [leader.CharacterId, member.CharacterId],
+            leaderReady.Run.ReadyParticipants.OrderBy(value => value.Value));
+    }
+
+    [Fact]
+    public void Leader_then_member_loading_produces_the_same_monotonic_ready_set()
+    {
+        var leader = new DungeonRunParticipant(
+            new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
+        var member = new DungeonRunParticipant(
+            new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
+        var service = new DungeonRunDomainService();
+        var prepared = service.PreparePartyEntry([leader, member], Tutorial, difficulty: 2);
+
+        var leaderReady = service.TryMarkParticipantReady(
+            leader.CharacterId, prepared.Run.RunId, prepared.Run.RoomVersion);
+        var memberReady = service.TryMarkParticipantReady(
+            member.CharacterId, prepared.Run.RunId, prepared.Run.RoomVersion);
+
+        Assert.NotNull(leaderReady);
+        Assert.Equal([leader.CharacterId], leaderReady.Run.ReadyParticipants);
+        Assert.NotNull(memberReady);
+        Assert.Equal(prepared.Revision + 2, memberReady.Revision);
+        Assert.Equal(
+            [leader.CharacterId, member.CharacterId],
+            memberReady.Run.ReadyParticipants.OrderBy(value => value.Value));
+    }
+
+    [Fact]
+    public void Entry_readiness_rejects_the_wrong_run_room_and_departed_participant()
+    {
+        var leader = new DungeonRunParticipant(
+            new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
+        var member = new DungeonRunParticipant(
+            new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
+        var service = new DungeonRunDomainService();
+        var prepared = service.PreparePartyEntry([leader, member], Tutorial, difficulty: 2);
+
+        Assert.Null(service.TryMarkParticipantReady(
+            member.CharacterId,
+            DungeonRunId.New(),
+            prepared.Run.RoomVersion));
+        Assert.Null(service.TryMarkParticipantReady(
+            member.CharacterId,
+            prepared.Run.RunId,
+            prepared.Run.RoomVersion + 1));
+
+        Assert.True(service.End(member.CharacterId, prepared.Run.RunId));
+        Assert.Null(service.TryMarkParticipantReady(
+            member.CharacterId,
+            prepared.Run.RunId,
+            prepared.Run.RoomVersion));
+
+        var leaderReady = service.TryMarkParticipantReady(
+            leader.CharacterId,
+            prepared.Run.RunId,
+            prepared.Run.RoomVersion);
+
+        Assert.NotNull(leaderReady);
+        Assert.Equal([leader.CharacterId], leaderReady.Recipients);
+    }
+
+    [Fact]
+    public void A_participant_replaced_by_a_new_run_cannot_ready_the_old_instance()
+    {
+        var leader = new DungeonRunParticipant(
+            new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
+        var member = new DungeonRunParticipant(
+            new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
+        var service = new DungeonRunDomainService();
+        var oldEntry = service.PreparePartyEntry([leader, member], Tutorial, difficulty: 2);
+
+        var replacement = service.PreparePartyEntry(
+            [member with { Slot = 0, IsLeader = true }],
+            Tutorial,
+            difficulty: 2);
+
+        Assert.NotEqual(oldEntry.Run.RunId, replacement.Run.RunId);
+        Assert.Null(service.TryMarkParticipantReady(
+            member.CharacterId,
+            oldEntry.Run.RunId,
+            oldEntry.Run.RoomVersion));
+        Assert.NotNull(service.TryMarkParticipantReady(
+            member.CharacterId,
+            replacement.Run.RunId,
+            replacement.Run.RoomVersion));
+        Assert.Equal(oldEntry.Run.RunId, service.Find(leader.CharacterId)!.RunId);
+    }
+
+    [Fact]
+    public void Exact_entry_compensation_aborts_the_whole_prepared_instance_atomically()
+    {
+        var leader = new DungeonRunParticipant(
+            new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
+        var member = new DungeonRunParticipant(
+            new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
+        var service = new DungeonRunDomainService();
+        var prepared = service.PreparePartyEntry([leader, member], Tutorial, difficulty: 2);
+
+        Assert.True(service.TryAbortEntry(
+            prepared.Run.RunId,
+            prepared.Revision,
+            prepared.Recipients));
+
+        Assert.Null(service.Find(leader.CharacterId));
+        Assert.Null(service.Find(member.CharacterId));
+    }
+
+    [Fact]
+    public void Entry_compensation_cannot_destroy_a_newer_revision_of_the_same_instance()
+    {
+        var leader = new DungeonRunParticipant(
+            new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
+        var member = new DungeonRunParticipant(
+            new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
+        var service = new DungeonRunDomainService();
+        var prepared = service.PreparePartyEntry([leader, member], Tutorial, difficulty: 2);
+        Assert.NotNull(service.TryMarkParticipantReady(
+            member.CharacterId,
+            prepared.Run.RunId,
+            prepared.Run.RoomVersion));
+
+        Assert.False(service.TryAbortEntry(
+            prepared.Run.RunId,
+            prepared.Revision,
+            prepared.Recipients));
+
+        var latest = service.FindEntryChange(leader.CharacterId);
+        Assert.NotNull(latest);
+        Assert.Equal(prepared.Run.RunId, latest.Run.RunId);
+        Assert.Equal(prepared.Revision + 1, latest.Revision);
+        Assert.Contains(member.CharacterId, latest.Run.ReadyParticipants);
+    }
+
+    [Fact]
     public void Two_members_share_world_facts_but_keep_rewards_and_lifetime_per_participant()
     {
         var leader = new DungeonRunParticipant(
-            new AccountId(101), new CharacterId(1), WireUserId: 1, Slot: 0, IsLeader: true);
+            new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
         var member = new DungeonRunParticipant(
-            new AccountId(202), new CharacterId(2), WireUserId: 2, Slot: 1, IsLeader: false);
+            new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
         DungeonRunParticipant[] party = [leader, member];
         var service = new DungeonRunDomainService();
 
@@ -223,9 +398,9 @@ public sealed class DungeonRunDomainServiceTests
     public void A_retried_party_death_claims_only_the_participant_whose_effect_is_unfinished()
     {
         var leader = new DungeonRunParticipant(
-            new AccountId(101), new CharacterId(1), 1, 0, IsLeader: true);
+            new AccountId(101), new CharacterId(1), 0, IsLeader: true);
         var member = new DungeonRunParticipant(
-            new AccountId(202), new CharacterId(2), 2, 1, IsLeader: false);
+            new AccountId(202), new CharacterId(2), 1, IsLeader: false);
         var service = new DungeonRunDomainService();
         service.BeginParty([leader, member], Tutorial, difficulty: 0);
 
@@ -407,9 +582,9 @@ public sealed class DungeonRunDomainServiceTests
     public void A_durable_ground_drop_claim_can_commit_after_the_picker_leaves_a_shared_run()
     {
         var leader = new DungeonRunParticipant(
-            new AccountId(101), new CharacterId(1), WireUserId: 1, Slot: 0, IsLeader: true);
+            new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
         var member = new DungeonRunParticipant(
-            new AccountId(202), new CharacterId(2), WireUserId: 2, Slot: 1, IsLeader: false);
+            new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
         var service = new DungeonRunDomainService();
         var run = service.BeginParty([leader, member], Tutorial, difficulty: 0);
         var claim = Assert.IsType<DungeonGroundDropClaim>(
@@ -451,9 +626,9 @@ public sealed class DungeonRunDomainServiceTests
     public void Departed_party_member_cannot_claim_an_old_run_kill_effect()
     {
         var leader = new DungeonRunParticipant(
-            new AccountId(101), new CharacterId(1), 1, 0, IsLeader: true);
+            new AccountId(101), new CharacterId(1), 0, IsLeader: true);
         var member = new DungeonRunParticipant(
-            new AccountId(202), new CharacterId(2), 2, 1, IsLeader: false);
+            new AccountId(202), new CharacterId(2), 1, IsLeader: false);
         var service = new DungeonRunDomainService();
         var run = service.BeginParty([leader, member], Tutorial, difficulty: 0);
         var death = Assert.IsType<DungeonActorDeathClaim>(

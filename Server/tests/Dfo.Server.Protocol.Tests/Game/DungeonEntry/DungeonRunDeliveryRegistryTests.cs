@@ -4,6 +4,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.Dungeons;
 
 namespace Dfo.Server.Protocol.Tests.Game.DungeonEntry;
 
