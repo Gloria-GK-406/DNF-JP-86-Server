@@ -344,6 +344,26 @@ set_target_properties(plugin_multi_instance_a21 PROPERTIES
 clienthack_plugin_a21(plugin_a21_runtime_fix
     plugins/0050_a21_runtime_fix/a21_runtime_fix.c
     "0050_A21RuntimeFix" "A21RuntimeFix")
+# Optional A21-only P2P diagnostic.  It hooks Winsock exports and deliberately
+# stays separate from NetworkHook because 0050_A21RuntimeFix owns the cipher
+# and game socket staging routines in the current A21 runtime.
+add_library(plugin_udp_trace_a21 SHARED EXCLUDE_FROM_ALL
+    plugins/0060_udp_trace/udp_trace.c
+    plugins/plugin_entry.c plugins/plugin.def)
+target_include_directories(plugin_udp_trace_a21 PRIVATE include plugins)
+target_compile_definitions(plugin_udp_trace_a21 PRIVATE
+    CLIENTHACK_CLIENT_A21=1
+    CLIENTHACK_PLUGIN_NAME="UdpTrace"
+    CLIENTHACK_PLUGIN_FLAGS=0u
+    CLIENTHACK_PLUGIN_HAS_SHUTDOWN=1)
+target_link_libraries(plugin_udp_trace_a21 PRIVATE ws2_32)
+clienthack_warnings(plugin_udp_trace_a21)
+set_target_properties(plugin_udp_trace_a21 PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "0060_UdpTrace"
+    RUNTIME_OUTPUT_DIRECTORY "${CLIENTHACK_STAGE_DIR_A21}/plugins"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CLIENTHACK_STAGE_DIR_A21}/plugins"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CLIENTHACK_STAGE_DIR_A21}/plugins")
 # Optional A21-only compatibility repair, built explicitly before manual deployment.
 add_library(plugin_cera_ticket_failure_fix_a21 SHARED EXCLUDE_FROM_ALL
     plugins/0150_cera_ticket_failure_fix/cera_ticket_failure_fix.c
