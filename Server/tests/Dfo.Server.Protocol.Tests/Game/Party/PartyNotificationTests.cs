@@ -35,7 +35,7 @@ public sealed class PartyNotificationTests
     }
 
     [Fact]
-    public void Endpoint_body_uses_reported_octets_host_order_port_and_safe_unknown_fallback()
+    public void Endpoint_body_uses_reported_octets_network_order_port_and_safe_unknown_fallback()
     {
         var body = PartyEndpointsEncoder.EncodeBody(new PartyEndpointsMessage(Snapshot()));
 
@@ -43,8 +43,8 @@ public sealed class PartyNotificationTests
         Assert.Equal(
             Hex(
                 "02"
-                + "0100AC11D001AC11D00100790100000005C005000000"
-                + "02007F0000017F00000110270200000000DC05000000"),
+                + "0100AC11D001AC11D00179000100000005C005000000"
+                + "02007F0000017F00000127100200000000DC05000000"),
             body);
     }
 

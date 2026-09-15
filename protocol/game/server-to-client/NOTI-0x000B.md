@@ -35,7 +35,7 @@ BodyLength = 未知（字段集合已知不完整）
 | &nbsp;&nbsp;↳&nbsp;0 | 2 | `u16` | 该成员的 uid（u16 LE） | Confirmed | 上游 PartyIpInfoBuilder.cs:28 写 m.UserId；PvpPeerInfoBuilder.cs:91 写 member.Player.UserId，取自 `[ebp - 0x10]` |
 | &nbsp;&nbsp;↳&nbsp;2 | 4 | `u32` | 内网 IPv4：4 个点分字节 a.b.c.d 直写（不是整数字节序）。组队路径填该会话 TCP 远端的 IPv4；中继模式下对端记录改填中继服务器公网 IP | Confirmed | 上游 PartyIpInfoBuilder.cs:29-30（中继分支 :91-95）；取值来源 PartyHandler.cs:344-345 TCP 远端 octets；PvP 侧 PvpPeerInfoBuilder.cs:122 与 :144，取自 `[ebp - 0xc]` |
 | &nbsp;&nbsp;↳&nbsp;6 | 4 | `u32` | 外网 IPv4：同样是 4 个点分字节。组队路径与内网同值；PvP 路径填经认证的 TCP 远端地址，取不到则写 4 字节 0（连同端口一并置 0） | Confirmed | 上游 PartyIpInfoBuilder.cs:31；PvpPeerInfoBuilder.cs:126-140 与 :145，取自 `[ebp - 0x10]` |
-| &nbsp;&nbsp;↳&nbsp;10 | 2 | `u16` | UDP P2P 端口，A21 wire 为 u16 LE：handler 先按主机序读值，再调用 ws2_32!htons 后存入成员 socket 视图。中继模式下该值仍表示「收包人→该对端」这条有序中继腿的端口 | Confirmed | A21 handler 0x011896E0；[0x03029638]=ws2_32!htons；旧上游 PartyIpInfoBuilder.cs:32-33 的 BE 写法不适用于 A21，取自 `[ebp - 0x14]` |
+| &nbsp;&nbsp;↳&nbsp;10 | 2 | `u16` | UDP P2P 端口，当前 A21 实机工作编码为 u16 BE（网络序）。handler 的 ws2_32!htons 调用只证明后续 socket 转换，不能单独推出 wire 为 LE；把已工作的大端基线仅改为小端后，双端均已成功上报真实端口但稳定停在连接中并退队。中继模式下该值仍表示「收包人→该对端」这条有序中继腿的端口 | High | 2026-09-15 双客户端受控回归：C2S 端口 53644/53663 均 accepted，S2C 改 LE 后连接失败；旧上游 PartyIpInfoBuilder.cs:32-33 同为 BE；A21 handler 0x011896E0 与 [0x03029638]=ws2_32!htons 不能独立判定 wire 字节序，取自 `[ebp - 0x14]` |
 | &nbsp;&nbsp;↳&nbsp;12 | 4 | `bytes` | acc_id：账号 ID（u32 LE）。组队路径用 characterId 充当，PvP 路径优先用真实 AccountId、否则回落 characterId | Confirmed | 上游 PartyIpInfoBuilder.cs:34 写 m.AccId（来源 PartyHandler.cs:359 AccId=(uint)cid）；PvpPeerInfoBuilder.cs:149-153，取自 `[ebp - 0x18]` |
 | &nbsp;&nbsp;↳&nbsp;16 | 1 | `u8` | nat_type：NAT 类型。组队路径恒写 0（open/LAN）；PvP 路径写客户端经 CMD 0x0002 SET_UDP_IP_PORT 上报的值，中继腿则恒写 0 | Confirmed | 上游 PartyIpInfoBuilder.cs:35；PvpPeerInfoBuilder.cs:141 与 :154（中继腿 :114）；上报入口 PartyHandler.cs:98-103，取自 `[ebp - 2]` |
 | &nbsp;&nbsp;↳&nbsp;17 | 4 | `u32` | mtu（u32 LE）：组队路径恒写 1500；PvP 路径写客户端上报的 MTU，无上报则 0 | Confirmed | 上游 PartyIpInfoBuilder.cs:36 WriteUInt32(1500)；PvpPeerInfoBuilder.cs:155 endpoint?.Mtu ?? 0，取自 `[ebp - 0x20]` |
@@ -60,19 +60,20 @@ BodyLength = 未知（字段集合已知不完整）
 
 ## A21 服务端实现
 
-**状态：Implemented（A21 双端均已上报端点的建队 UI 通过；端点通知缺少逐帧证据）。**
+**状态：Implemented（A21 双端均已上报端点；网络序回退等待再次实机验收）。**
 [`PartyEndpointsEncoder`](../../../Server/src/Dfo.Server.Protocol/Game/Party/PartyNotificationSlice.cs) 按
-`1 + n×22` 编码当前队员。2026-09-15 的 A21 静态复核确认 S2C 端口是主机序
-`u16 LE`：客户端 handler `0x011896E0` 先读取该值，再经
-`[0x03029638] = ws2_32!htons` 转成 socket 使用的网络序。它与 C2S `0x0002`
-报告网络序端口的方向是刻意不对称的：
+`1 + n×22` 编码当前队员。2026-09-15 的双客户端受控回归否定了此前仅凭
+`htons` 推出的 S2C 小端结论：C2S `0x0002` 上报的真实端口均被接受，只把
+S2C 端口从已工作的大端改为小端后，两端稳定停在“连接中”并退队。因此当前
+S2C 与 C2S 都按网络序编码；handler `0x011896E0` 的 `htons` 调用保留为静态事实，
+但不再把它单独当作 wire 字节序证据：
 
 | 记录内 Offset | Size | Enc | 值/含义 |
 |---:|---:|---|---|
 | 0 | 2 | `u16 LE` | wire user id |
 | 2 | 4 | 4 个字节 | 内网 IPv4 |
 | 6 | 4 | 4 个字节 | 外网 IPv4 |
-| 10 | 2 | `u16 LE` | UDP 端口；客户端读取后调用 `htons`，与 C2S `0x0002` 的 BE 报告不对称 |
+| 10 | 2 | `u16 BE` | UDP 端口；与 C2S `0x0002` 的端口报告一致采用网络序 |
 | 12 | 4 | `u32 LE` | 当前 A21 兼容路径写 character id（客户端字段名/参照注释称 acc_id） |
 | 16 | 1 | `u8` | NAT 类型 |
 | 17 | 4 | `u32 LE` | MTU |
@@ -82,7 +83,7 @@ BodyLength = 未知（字段集合已知不完整）
 实测中只有一端上报 UDP；服务端随后向双方发送含零端点的两人 `0x000B`，两端在同一秒、
 同一客户端地址异常退出。对照同版本旧服 `PartyMember`/`PartyIpInfoBuilder`，缺失上报时应写
 内外网地址 `127.0.0.1`、端口 `10000`、NAT `0`、MTU `1500`。当前实现保留该回落，
-但按 A21 消费端要求把端口编码为 LE；
+端口同样按 A21 已工作基线编码为 BE；
 这是结构安全兼容值，不冒充可跨主机连通的公网端点，character id 仍保留。
 通知只投递给 snapshot 中仍是当前精确会话的成员；建队时位于
 `0x0099 → 0x0008 → 0x000B → 0x0009` 的第三阶段；成员离开后的幸存者刷新不含 0x0008。
@@ -95,6 +96,6 @@ BodyLength = 未知（字段集合已知不完整）
 ## 待验证
 
 - [ ] 用逐帧发送记录或客户端读取 trace 证明双端实际收到并消费当前端点投影。
-- [ ] 用副本内实际 P2P 数据流确认小端端口修正与 character-id 字段的完整连通语义。
+- [ ] 用副本内实际 P2P 数据流重新确认大端端口回退与 character-id 字段的完整连通语义。
 - [ ] A21 双客户端确认缺失端点的回环/10000 回落不再触发接受后异常退出。
 - [ ] 归档有端点和回落端点成员两种真实 S2C body。

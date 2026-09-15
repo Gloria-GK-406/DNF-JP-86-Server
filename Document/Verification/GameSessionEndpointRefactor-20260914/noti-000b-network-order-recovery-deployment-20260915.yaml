@@ -1,0 +1,29 @@
+kind: rks-verification
+decision: pass
+claim: >-
+  The A21 NOTI 0x000B network-order recovery is regression-tested, built in
+  Release, and deployed from the main worktree for two-client acceptance.
+source:
+  branch: main
+  parent_commit: e72e4be7
+  result_commit: containing commit
+conditions:
+  - condition: S2C party endpoint ports use the previously working network-order bytes.
+    evidence: >-
+      The focused test first failed against the little-endian implementation at byte
+      position 11, then passed after restoring big-endian output; all 93 Party protocol
+      tests and all 876 Protocol tests passed in Debug, and all 93 Party protocol tests
+      passed against the Release build.
+  - condition: The Release server is built and locally ready.
+    evidence: >-
+      Release build completed with 0 warnings and 0 errors; Host PID 65012 listens on
+      TCP 7001/10010/10011/18080 and UDP 12311/12312; launcher bootstrap returned
+      HTTP 200 with status ready.
+  - condition: Existing player persistence was preserved by the rebuild.
+    evidence: >-
+      Server/src/Dfo.Server.Host/bin/Release/net10.0/Data/dfo-server.db remained
+      389120 bytes and SHA-256 75243FC2BB5D967208EC3B898B93B760524BE511913EEB5334549124070EAB02
+      across the Release build.
+scope_boundary: >-
+  This proves the recovery is deployed and ready. Whether both A21 clients leave
+  the connecting state and form a usable peer link still requires the user's live test.

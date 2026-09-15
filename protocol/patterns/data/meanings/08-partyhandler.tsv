@@ -28,7 +28,7 @@ NOTI	0x000B	0	成员记录数 n（u8）：其后按此数量重复 22 字节的�
 NOTI	0x000B	g1:0	该成员的 uid（u16 LE）	Confirmed	上游 PartyIpInfoBuilder.cs:28 写 m.UserId；PvpPeerInfoBuilder.cs:91 写 member.Player.UserId
 NOTI	0x000B	g1:2	内网 IPv4：4 个点分字节 a.b.c.d 直写（不是整数字节序）。组队路径填该会话 TCP 远端的 IPv4；中继模式下对端记录改填中继服务器公网 IP	Confirmed	上游 PartyIpInfoBuilder.cs:29-30（中继分支 :91-95）；取值来源 PartyHandler.cs:344-345 TCP 远端 octets；PvP 侧 PvpPeerInfoBuilder.cs:122 与 :144
 NOTI	0x000B	g1:6	外网 IPv4：同样是 4 个点分字节。组队路径与内网同值；PvP 路径填经认证的 TCP 远端地址，取不到则写 4 字节 0（连同端口一并置 0）	Confirmed	上游 PartyIpInfoBuilder.cs:31；PvpPeerInfoBuilder.cs:126-140 与 :145
-NOTI	0x000B	g1:10	UDP P2P 端口，A21 wire 为 u16 LE：handler 先按主机序读值，再调用 ws2_32!htons 后存入成员 socket 视图。中继模式下该值仍表示「收包人→该对端」这条有序中继腿的端口	Confirmed	A21 handler 0x011896E0；[0x03029638]=ws2_32!htons；旧上游 PartyIpInfoBuilder.cs:32-33 的 BE 写法不适用于 A21
+NOTI	0x000B	g1:10	UDP P2P 端口，当前 A21 实机工作编码为 u16 BE（网络序）。handler 的 ws2_32!htons 调用只证明后续 socket 转换，不能单独推出 wire 为 LE；把已工作的大端基线仅改为小端后，双端均已成功上报真实端口但稳定停在连接中并退队。中继模式下该值仍表示「收包人→该对端」这条有序中继腿的端口	High	2026-09-15 双客户端受控回归：C2S 端口 53644/53663 均 accepted，S2C 改 LE 后连接失败；旧上游 PartyIpInfoBuilder.cs:32-33 同为 BE；A21 handler 0x011896E0 与 [0x03029638]=ws2_32!htons 不能独立判定 wire 字节序
 NOTI	0x000B	g1:12	acc_id：账号 ID（u32 LE）。组队路径用 characterId 充当，PvP 路径优先用真实 AccountId、否则回落 characterId	Confirmed	上游 PartyIpInfoBuilder.cs:34 写 m.AccId（来源 PartyHandler.cs:359 AccId=(uint)cid）；PvpPeerInfoBuilder.cs:149-153
 NOTI	0x000B	g1:16	nat_type：NAT 类型。组队路径恒写 0（open/LAN）；PvP 路径写客户端经 CMD 0x0002 SET_UDP_IP_PORT 上报的值，中继腿则恒写 0	Confirmed	上游 PartyIpInfoBuilder.cs:35；PvpPeerInfoBuilder.cs:141 与 :154（中继腿 :114）；上报入口 PartyHandler.cs:98-103
 NOTI	0x000B	g1:17	mtu（u32 LE）：组队路径恒写 1500；PvP 路径写客户端上报的 MTU，无上报则 0	Confirmed	上游 PartyIpInfoBuilder.cs:36 WriteUInt32(1500)；PvpPeerInfoBuilder.cs:155 endpoint?.Mtu ?? 0
