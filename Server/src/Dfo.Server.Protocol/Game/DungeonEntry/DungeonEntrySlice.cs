@@ -522,9 +522,12 @@ public sealed class SelectDungeonHandler(
             cleared.Select(quest => quest.QuestId).ToArray(),
             intent.Value);
 
-        var party = intent.Value.Kind == DungeonEntryIntentKind.Directed
-            ? parties.FindParty(session.CharacterId)
-            : null;
+        // The entry intent decides how the selected dungeon is validated and resolved; it does
+        // not decide whether the character belongs to a party. The selection-screen handler has
+        // already moved the whole party into one selection context for both interactive gates and
+        // directed story entries. Resolve the same party here so the final confirmation creates
+        // one shared run instead of silently turning an interactive party into parallel solo runs.
+        var party = parties.FindParty(session.CharacterId);
         if (party is not null && party.LeaderWireUserId != session.WireUserId)
         {
             await RefuseAsync(

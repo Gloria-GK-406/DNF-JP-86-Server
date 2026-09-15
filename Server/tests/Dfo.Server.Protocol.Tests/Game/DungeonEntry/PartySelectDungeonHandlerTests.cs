@@ -224,21 +224,40 @@ public sealed class PartySelectDungeonHandlerTests
     }
 
     [Fact]
-    public async Task An_interactive_ordinary_selection_does_not_become_a_story_party_entry()
+    public async Task An_interactive_party_selection_enters_one_shared_party_run()
     {
         var world = World();
         world.Intents.Record(Leader, DungeonEntryIntent.Interactive);
 
         await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
 
-        var participant = Assert.Single(world.Visits.Participants);
-        Assert.Equal(Leader.CharacterId, participant.CharacterId);
-        Assert.Empty(world.Sender.Messages(Member.ConnectionId));
-        Assert.Equal([Leader], world.Registry.Find(world.Visits.RunId));
+        Assert.Equal(1, world.Visits.PartyEntries);
+        Assert.Collection(
+            world.Visits.Participants,
+            participant =>
+            {
+                Assert.Equal(Leader.CharacterId, participant.CharacterId);
+                Assert.Equal(0, participant.Slot);
+                Assert.True(participant.IsLeader);
+            },
+            participant =>
+            {
+                Assert.Equal(Member.CharacterId, participant.CharacterId);
+                Assert.Equal(1, participant.Slot);
+                Assert.False(participant.IsLeader);
+            });
+        Assert.Equal(world.Visits.RunId, world.Visits.Visits[Leader.CharacterId].Run.RunId);
+        Assert.Equal(world.Visits.RunId, world.Visits.Visits[Member.CharacterId].Run.RunId);
+        Assert.Equal([Leader, Member], world.Registry.Find(world.Visits.RunId));
+        Assert.Contains(
+            world.Sender.Messages(Member.ConnectionId),
+            frame => frame is StartMapNotification start
+                && start.Run.Participant?.Slot == 1
+                && start.Run.Participants.Count == 2);
     }
 
     [Fact]
-    public async Task Entering_an_interactive_solo_run_removes_that_member_from_the_old_story_delivery()
+    public async Task Entering_an_interactive_party_run_replaces_the_whole_old_party_delivery()
     {
         var world = World();
         var oldRunId = DungeonRunId.New();
@@ -260,8 +279,8 @@ public sealed class PartySelectDungeonHandlerTests
 
         await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
 
-        Assert.Equal([Member], world.Registry.Find(oldRunId));
-        Assert.Equal([Leader], world.Registry.Find(world.Visits.RunId));
+        Assert.Empty(world.Registry.Find(oldRunId));
+        Assert.Equal([Leader, Member], world.Registry.Find(world.Visits.RunId));
     }
 
     [Fact]
