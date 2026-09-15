@@ -1,5 +1,6 @@
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 
@@ -34,7 +35,8 @@ internal static class TownReturnProjection
     public static IReadOnlyList<IGameServerMessage> Frames(
         SelectedSessionIdentity session,
         SelectCharacterResult result,
-        CharacterPositionState position)
+        CharacterPositionState position,
+        IReadOnlyList<TownParticipantEntryState>? visiblePeers = null)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(result);
@@ -46,20 +48,63 @@ internal static class TownReturnProjection
             AreaId = position.AreaId,
             X = position.X,
             Y = position.Y,
+            Direction = position.Direction,
         };
+
+        if (visiblePeers is null || visiblePeers.Count == 0)
+        {
+            return
+            [
+                new UserStateNotification(session.WireUserId, StandingInTown),
+                new UserAreaNotification(session.WireUserId, spawn, position.AreaId),
+                new AreaUsersNotification(
+                    position.TownId,
+                    position.AreaId,
+                    [new AreaUserPresence(
+                        session.WireUserId,
+                        position.X,
+                        position.Y,
+                        position.Direction,
+                        spawn.AreaState)]),
+            ];
+        }
+
+        var participant = Participant(result, position);
 
         return
         [
             new UserStateNotification(session.WireUserId, StandingInTown),
-            new UserAreaNotification(session.WireUserId, spawn, position.AreaId),
-            new AreaUsersNotification(
+            new UserAreaNotification(session.WireUserId, participant.Spawn, position.AreaId),
+            .. TownPresenceMessages.ForNewcomer(new TownPresenceSynchronizationState(
                 position.TownId,
                 position.AreaId,
-                [
-                    new AreaUserPresence(
-                        session.WireUserId, position.X, position.Y,
-                        position.Direction, spawn.AreaState),
-                ]),
+                participant,
+                visiblePeers ?? [])),
         ];
+    }
+
+    public static TownParticipantEntryState Participant(
+        SelectCharacterResult result,
+        CharacterPositionState position)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        ArgumentNullException.ThrowIfNull(position);
+
+        var equipment = result.CharacterInventory.Containers
+            .SingleOrDefault(value => value.ContainerType == InventoryContainerType.Equipment)
+            ?.Items ?? [];
+        return new TownParticipantEntryState(
+            result.Character,
+            result.CharacterEntry.Public,
+            equipment,
+            result.CharacterEntry.Features.Pets,
+            result.World.Channel.Spawn with
+            {
+                TownId = position.TownId,
+                AreaId = position.AreaId,
+                X = position.X,
+                Y = position.Y,
+                Direction = position.Direction,
+            });
     }
 }

@@ -17,7 +17,9 @@ using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using EnteredDungeon = Dfo.Server.Abstractions.World.DungeonEntry;
 
@@ -58,6 +60,69 @@ public sealed class PartySelectDungeonHandlerTests
                 .OfType<EnterSelectDungeonNotification>()).WireUserIds);
         Assert.NotNull(intents.Consume(Leader));
         Assert.NotNull(intents.Consume(Member));
+    }
+
+    [Fact]
+    public async Task The_leader_cancels_selection_for_every_member_and_restores_the_shared_town()
+    {
+        var sessions = new Sessions(Leader, Member);
+        var runtime = new PartyRuntime(
+            (Leader, EntryFor(Leader)),
+            (Member, EntryFor(Member)));
+        var intents = new Intents();
+        intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
+        intents.Record(Member, DungeonEntryIntent.Directed(DungeonId));
+        var sender = new Sender();
+        using var services = new ServiceCollection()
+            .AddSingleton<ISelectedSessionDomainService>(sessions)
+            .AddSingleton<ISelectedSessionRuntimeDirectory>(runtime)
+            .AddSingleton<ICharacterPositionDomainService>(new PartyPositions())
+            .AddSingleton<IDungeonRunDomainService>(new RollbackRuns())
+            .AddSingleton(new DungeonRunDeliveryRegistry())
+            .AddSingleton<IDungeonEntryIntentDomainService>(intents)
+            .AddSingleton<IPartyService>(new Parties(Snapshot()))
+            .AddSingleton<IGameMessageSender>(sender)
+            .AddSingleton<Microsoft.Extensions.Logging.ILogger<BackToVillageHandler>>(
+                NullLogger<BackToVillageHandler>.Instance)
+            .BuildServiceProvider();
+        var handler = ActivatorUtilities.CreateInstance<BackToVillageHandler>(services);
+
+        await handler.HandleAsync(
+            Dispatch(Leader),
+            new BackToVillageRequest(GameMessageMetadata.Empty),
+            CancellationToken.None);
+
+        Assert.IsType<BackToVillageResponse>(sender.Messages(Leader.ConnectionId).First());
+        Assert.DoesNotContain(
+            sender.Messages(Member.ConnectionId),
+            frame => frame is BackToVillageResponse);
+        foreach (var participant in new[] { Leader, Member })
+        {
+            var messages = sender.Messages(participant.ConnectionId);
+            Assert.Contains(messages, frame => frame is UserStateNotification state
+                && state.WireUserId == participant.WireUserId
+                && state.UserState == 0);
+            var roster = Assert.Single(messages.OfType<AreaUsersNotification>());
+            Assert.Equal(
+                new[] { Leader.WireUserId, Member.WireUserId }.Order(),
+                roster.Users.Select(value => value.WireUserId).Order());
+            Assert.Contains(
+                messages.OfType<CurrentUserStateMessage>(),
+                frame => frame.Character.Identity.CharacterId != participant.CharacterId);
+        }
+        Assert.Null(intents.Consume(Leader));
+        Assert.Null(intents.Consume(Member));
+
+        var memberFramesBeforeLateRequest = sender.Messages(Member.ConnectionId).Count;
+        await handler.HandleAsync(
+            Dispatch(Member),
+            new BackToVillageRequest(GameMessageMetadata.Empty),
+            CancellationToken.None);
+
+        var lateFrames = sender.Messages(Member.ConnectionId)
+            .Skip(memberFramesBeforeLateRequest)
+            .ToArray();
+        Assert.IsType<BackToVillageResponse>(Assert.Single(lateFrames));
     }
 
     [Fact]
@@ -249,6 +314,22 @@ public sealed class PartySelectDungeonHandlerTests
 
     private static SelectCharacterResult Entry() => SelectCharacterPayloadTestData.Create();
 
+    private static SelectCharacterResult EntryFor(SelectedSessionIdentity session)
+    {
+        var entry = SelectCharacterPayloadTestData.CreateComplete();
+        return entry with
+        {
+            Character = entry.Character with
+            {
+                Identity = entry.Character.Identity with
+                {
+                    CharacterId = session.CharacterId,
+                    Name = [(byte)(session.WireUserId & byte.MaxValue)],
+                },
+            },
+        };
+    }
+
     private static SelectDungeonRequest Request() =>
         new(GameMessageMetadata.Empty, DungeonId, Difficulty, 0, 0);
 
@@ -344,6 +425,50 @@ public sealed class PartySelectDungeonHandlerTests
         public void Publish(SelectedSessionIdentity session, SelectCharacterResult value, bool persist) => throw new NotSupportedException();
         public void ReplaceExact(SelectedSessionIdentity session, SelectCharacterResult value) => throw new NotSupportedException();
         public bool RemoveExact(SelectedSessionIdentity session) => throw new NotSupportedException();
+    }
+
+    private sealed class PartyRuntime(
+        params (SelectedSessionIdentity Session, SelectCharacterResult Result)[] entries)
+        : ISelectedSessionRuntimeDirectory
+    {
+        private readonly Dictionary<SelectedSessionIdentity, SelectCharacterResult> results =
+            entries.ToDictionary(value => value.Session, value => value.Result);
+
+        public bool TryGet(
+            SelectedSessionIdentity session,
+            out SelectCharacterResult? result,
+            out bool persist)
+        {
+            persist = false;
+            return results.TryGetValue(session, out result);
+        }
+
+        public SelectCharacterResult GetRequired(SelectedSessionIdentity session) => results[session];
+        public void Publish(SelectedSessionIdentity session, SelectCharacterResult value, bool persist) =>
+            throw new NotSupportedException();
+        public void ReplaceExact(SelectedSessionIdentity session, SelectCharacterResult value) =>
+            throw new NotSupportedException();
+        public bool RemoveExact(SelectedSessionIdentity session) => throw new NotSupportedException();
+    }
+
+    private sealed class PartyPositions : ICharacterPositionDomainService
+    {
+        public CharacterPositionState? Find(CharacterId characterId) =>
+            characterId == Leader.CharacterId
+                ? new CharacterPositionState(1, 1, 400, 300, 1)
+                : characterId == Member.CharacterId
+                    ? new CharacterPositionState(1, 1, 430, 300, 3)
+                    : null;
+
+        public void Place(SelectedSessionIdentity session, CharacterPositionState position) =>
+            throw new NotSupportedException();
+        public CharacterPositionState CrossInto(
+            SelectedSessionIdentity session, byte townId, byte areaId, short x, short y) =>
+            throw new NotSupportedException();
+        public CharacterPositionState StepTo(
+            SelectedSessionIdentity session, short x, short y, byte direction) =>
+            throw new NotSupportedException();
+        public bool ForgetExact(SelectedSessionIdentity session) => throw new NotSupportedException();
     }
 
     private sealed class Intents : IDungeonEntryIntentDomainService

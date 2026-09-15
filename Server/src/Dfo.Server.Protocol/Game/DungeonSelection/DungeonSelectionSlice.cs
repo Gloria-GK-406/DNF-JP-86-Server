@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Abstractions.World;
@@ -183,7 +184,9 @@ public sealed class BackToVillageHandler(
     IDungeonRunDomainService runs,
     DungeonRunDeliveryRegistry deliveries,
     IGameMessageSender sender,
-    ILogger<BackToVillageHandler> logger) : ClientMessageHandler<BackToVillageRequest>
+    ILogger<BackToVillageHandler> logger,
+    IDungeonEntryIntentDomainService? entryIntents = null,
+    IPartyService? parties = null) : ClientMessageHandler<BackToVillageRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -205,36 +208,135 @@ public sealed class BackToVillageHandler(
             return;
         }
 
-        var currentRun = runs.Find(session.CharacterId);
-        var ended = currentRun is not null
-            && runs.End(session.CharacterId, currentRun.RunId);
-        if (ended && currentRun is not null)
-            deliveries.RemoveParticipant(currentRun.RunId, session.CharacterId);
+        // The leader's fan-out consumes every attached member's one-shot selection intent. A
+        // follower can still have its own button request queued behind that push; acknowledging it
+        // is required, but replaying a self-only town projection would erase the party roster that
+        // the leader has just restored.
+        if (entryIntents is not null && !entryIntents.ClearExact(session))
+        {
+            await sender.SendExplicitAsync(
+                context.Connection.ConnectionId,
+                new GameExplicitMessageDelivery([new BackToVillageResponse()], []),
+                cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        var returning = ResolveReturningMembers(session, result, position)
+            .Where(value => selectedSessions.FindByCharacter(value.Session.CharacterId)
+                == value.Session)
+            .ToArray();
+        var requester = returning.SingleOrDefault(value => value.Session == session);
+        if (requester is null)
+            return;
+
+        var endedRuns = 0;
+        foreach (var member in returning)
+        {
+            var currentRun = runs.Find(member.Session.CharacterId);
+            var ended = currentRun is not null
+                && runs.End(member.Session.CharacterId, currentRun.RunId);
+            if (!ended || currentRun is null)
+                continue;
+
+            deliveries.RemoveParticipant(currentRun.RunId, member.Session.CharacterId);
+            endedRuns++;
+        }
 
         logger.LogInformation(
             "Back to village {ConnectionId} user={WireUserId}: {TownId}:{AreaId} pos=({X},{Y}) "
-                + "runEnded={RunEnded}",
+                + "members={MemberCount} runsEnded={RunsEnded}",
             context.Connection.ConnectionId,
             session.WireUserId,
             position.TownId,
             position.AreaId,
             position.X,
             position.Y,
-            ended);
+            returning.Length,
+            endedRuns);
 
         // The same projection the dungeon's own exit sends, and deliberately not a second copy of
         // it: both mean "put this character back in the town they are standing in", and two copies
         // would drift into one route working and the other not.
+        returning = returning
+            .Where(value => selectedSessions.FindByCharacter(value.Session.CharacterId)
+                == value.Session)
+            .ToArray();
+        requester = returning.SingleOrDefault(value => value.Session == session);
+        if (requester is null)
+            return;
+
+        IReadOnlyList<TownParticipantEntryState> VisiblePeers(ReturningMember member) =>
+            [.. returning
+                .Where(value => value.Session != member.Session
+                    && value.Position.TownId == member.Position.TownId
+                    && value.Position.AreaId == member.Position.AreaId)
+                .Select(value => TownReturnProjection.Participant(value.Runtime, value.Position))];
+
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(
                 [
                     new BackToVillageResponse(),
-                    .. TownReturnProjection.Frames(session, result, position),
+                    .. TownReturnProjection.Frames(
+                        requester.Session,
+                        requester.Runtime,
+                        requester.Position,
+                        VisiblePeers(requester)),
                 ],
-                []),
+                [.. returning
+                    .Where(value => value.Session != session)
+                    .Select(value => new GameExplicitMessageTarget(
+                        value.Session.ConnectionId,
+                        TownReturnProjection.Frames(
+                            value.Session,
+                            value.Runtime,
+                            value.Position,
+                            VisiblePeers(value))))]),
             cancellationToken).ConfigureAwait(false);
     }
+
+    private IReadOnlyList<ReturningMember> ResolveReturningMembers(
+        SelectedSessionIdentity requester,
+        SelectCharacterResult requesterRuntime,
+        CharacterPositionState requesterPosition)
+    {
+        var returning = new List<ReturningMember>
+        {
+            new(requester, requesterRuntime, requesterPosition),
+        };
+        var party = parties?.FindParty(requester.CharacterId);
+        if (entryIntents is null
+            || party is null
+            || party.LeaderWireUserId != requester.WireUserId)
+        {
+            return returning;
+        }
+
+        foreach (var member in party.Members.OrderBy(value => value.Slot))
+        {
+            var current = selectedSessions.FindByCharacter(member.CharacterId);
+            if (current is null
+                || current == requester
+                || current.AccountId != member.Character.AccountId
+                || current.WireUserId != member.WireUserId
+                || !runtimeSessions.TryGet(current, out var runtime, out _)
+                || runtime is null
+                || positions.Find(current.CharacterId) is not { } position
+                || !entryIntents.ClearExact(current))
+            {
+                continue;
+            }
+
+            returning.Add(new ReturningMember(current, runtime, position));
+        }
+
+        return returning;
+    }
+
+    private sealed record ReturningMember(
+        SelectedSessionIdentity Session,
+        SelectCharacterResult Runtime,
+        CharacterPositionState Position);
 }
 
 /// <summary>
