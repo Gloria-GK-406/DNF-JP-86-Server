@@ -295,7 +295,7 @@ NOTI 没有信封。
 |---:|---|---:|---|
 | `0x0001` | C→S | 73 | LOGIN。历史参照样本含旧账号凭证与启动参数 auth hash（样本不得入库）；当前服务端沿用两个 DString 的线格式，解释为临时 `mId` 与一次性 `ticket` |
 | `0x0002` | S→C | 18 | 角色列表；样本为空名单。`0x0008` `mode=2` 的响应；服务端编码器含旧服移植的字面量尾部，未验证 |
-| `0x0002` | C→S | 31 | **已定名、实现并 ClientVerified：`SET_UDP_IP_PORT`**。15 字节端点前缀为 NAT、内/外 IPv4、BE 网络序端口、LE MTU；其后身份尾部原样保留。2026-09-15 双客户端 socket 对照确认 `F5 7A → 62842`、`D8 AD → 55469`，纠正了旧 type 5 样本未经 socket 对照得出的 LE 误判。当前 decoder/handler 将端点归属精确 Game Session；Party 只沿角色的当前 Session 链投影端点。客户端是否要求同 type CMD response 仍无证据，但当前无回包路径已被实际接受。构包器仍位于静态普查未覆盖的第二代码区，详见协议页。 |
+| `0x0002` | C→S | 31 | **已定名、实现并 ClientVerified：`SET_UDP_IP_PORT`**。15 字节端点前缀为 NAT、内/外 IPv4、BE 网络序端口、LE MTU；其后身份尾部原样保留。2026-09-15 双客户端 socket 对照确认 `F5 7A → 62842`、`D8 AD → 55469`，纠正了旧 type 5 样本未经 socket 对照得出的 LE 误判；同日第二实例实测上报 MTU `512`，与客户端静态确认的 `{512, 1024, 1280, 1472}` 四档一致。当前 decoder/handler 将端点归属精确 Game Session；Party 只沿角色的当前 Session 链投影端点。客户端是否要求同 type CMD response 仍无证据，但当前无回包路径已被实际接受。构包器仍位于静态普查未覆盖的第二代码区，详见协议页。 |
 
 ### 退出 flush 段
 

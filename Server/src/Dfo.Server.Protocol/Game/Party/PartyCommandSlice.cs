@@ -93,8 +93,18 @@ internal sealed class SetUdpIpPortDecoder : IGameMessageDecoder
             new SessionIpv4Address(body[5], body[6], body[7], body[8]),
             BinaryPrimitives.ReadUInt16BigEndian(body[9..]),
             BinaryPrimitives.ReadUInt32LittleEndian(body[11..]));
-        if (!endpoint.IsValidClientReport)
-            throw new InvalidDataException("SET_UDP_IP_PORT contains an invalid endpoint prefix.");
+        if (!endpoint.InnerAddress.IsUsableUnicast)
+            throw new InvalidDataException("SET_UDP_IP_PORT contains an invalid inner IPv4 address.");
+        if (!endpoint.OuterAddress.IsUsableUnicast)
+            throw new InvalidDataException("SET_UDP_IP_PORT contains an invalid outer IPv4 address.");
+        if (endpoint.Port == 0)
+            throw new InvalidDataException("SET_UDP_IP_PORT contains a zero UDP port.");
+        if (!SessionEndpoint.IsValidClientMtu(endpoint.Mtu))
+        {
+            throw new InvalidDataException(
+                $"SET_UDP_IP_PORT contains unsupported A21 MTU '{endpoint.Mtu}'; " +
+                "expected 512, 1024, 1280, or 1472.");
+        }
 
         return new SetUdpIpPortRequest(metadata, endpoint, body[PrefixLength..].ToArray());
     }

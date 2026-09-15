@@ -112,6 +112,21 @@ public sealed class PartyCommandCodecTests
         Assert.Equal(expectedPort, request.Endpoint.Port);
     }
 
+    [Fact]
+    public void Mtu_discovery_fallback_of_512_is_a_valid_a21_endpoint_report()
+    {
+        var request = Assert.IsType<SetUdpIpPortRequest>(
+            new SetUdpIpPortDecoder().Decode(
+                GameMessageMetadata.Empty,
+                Hex("05C0A80866C0A80866D0B8000200000C000000646162333266356439643466")));
+
+        Assert.Equal(5, request.Endpoint.NatType);
+        Assert.Equal(new(192, 168, 8, 102), request.Endpoint.InnerAddress);
+        Assert.Equal(new(192, 168, 8, 102), request.Endpoint.OuterAddress);
+        Assert.Equal(53432, request.Endpoint.Port);
+        Assert.Equal(512u, request.Endpoint.Mtu);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(14)]

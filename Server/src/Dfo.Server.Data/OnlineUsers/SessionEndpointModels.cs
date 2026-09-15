@@ -15,8 +15,10 @@ public sealed record SessionEndpoint(
     ushort Port,
     uint Mtu)
 {
-    public const uint MinimumMtu = 576;
+    public const uint MinimumMtu = 512;
     public const uint MaximumMtu = ushort.MaxValue;
+
+    public static bool IsValidClientMtu(uint mtu) => mtu is 512 or 1024 or 1280 or 1472;
 
     public bool IsValid =>
         InnerAddress.IsServerObservedUnicast
@@ -28,5 +30,5 @@ public sealed record SessionEndpoint(
         InnerAddress.IsUsableUnicast
         && OuterAddress.IsUsableUnicast
         && Port != 0
-        && Mtu is >= MinimumMtu and <= MaximumMtu;
+        && IsValidClientMtu(Mtu);
 }

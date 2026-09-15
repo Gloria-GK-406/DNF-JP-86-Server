@@ -1,0 +1,24 @@
+kind: rks-verification
+decision: pass
+claim: >-
+  The A21 SET_UDP_IP_PORT decoder accepts the client-defined 512-byte MTU fallback,
+  preserves rejection of non-bucket MTU values, and the updated main-worktree Host
+  is ready for live client acceptance testing.
+conditions:
+  - condition: The exact failing 31-byte client report is accepted as NAT 5, 192.168.8.102:53432, MTU 512.
+    evidence: >-
+      The focused regression failed before the production change with InvalidDataException,
+      then passed after the A21 MTU bucket validation was implemented.
+  - condition: Existing protocol behavior and invalid endpoint rejection remain intact.
+    evidence: Dfo.Server.Protocol.Tests passed 887/887 in Debug.
+  - condition: The complete Release solution has no automated regression.
+    evidence: >-
+      Release build completed with 0 warnings and 0 errors; serial Release tests with
+      PVF_ARCHIVE_PATH set passed 3265, failed 0, and skipped 2 expected missing-archive cases.
+  - condition: The rebuilt Host is locally ready.
+    evidence: >-
+      PID 75908 listens on TCP 7001/10010/10011/18080 and UDP 12311/12312;
+      GET http://127.0.0.1:18080/api/launcher/v1/bootstrap returned status ready.
+scope_boundary: >-
+  Automated verification proves decoder acceptance and deployment readiness. Re-entering the
+  public area with both live clients remains the user's acceptance check.
