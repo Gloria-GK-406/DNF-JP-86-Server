@@ -165,8 +165,10 @@ internal sealed class PartyEndpointsEncoder : GameNotiMessageEncoder<PartyEndpoi
                 body.AsSpan(offset), member.WireUserId);
             WriteAddress(body.AsSpan(offset + 2), endpoint.InnerAddress);
             WriteAddress(body.AsSpan(offset + 6), endpoint.OuterAddress);
-            body[offset + 10] = checked((byte)(endpoint.Port >> 8));
-            body[offset + 11] = (byte)(endpoint.Port & byte.MaxValue);
+            // This S2C field is deliberately asymmetric with SET_UDP_IP_PORT. A21 reads the
+            // host-order value and applies htons before storing it in the member's socket view.
+            BinaryPrimitives.WriteUInt16LittleEndian(
+                body.AsSpan(offset + 10), endpoint.Port);
 
             BinaryPrimitives.WriteUInt32LittleEndian(
                 body.AsSpan(offset + 12), checked((uint)member.CharacterId.Value));
