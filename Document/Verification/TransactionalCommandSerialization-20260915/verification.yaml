@@ -1,0 +1,18 @@
+kind: rks-verification
+decision: manual_required
+claim: Transactional CMD execution is process-wide serial before UnitOfWork begins; Direct CMD execution remains concurrent.
+conditions:
+  - condition: Concurrent transactional handlers never overlap.
+    result: pass
+    evidence: TransactionalCommandSerializationTests.TransactionalCommands_DoNotRunTheirHandlersConcurrently passed after failing with maximum concurrency 2 on the baseline.
+  - condition: Direct commands remain concurrent.
+    result: pass
+    evidence: TransactionalCommandSerializationTests.DirectCommands_RemainConcurrent passed with maximum concurrency 2.
+  - condition: A cancelled waiter never enters the handler and does not retain admission.
+    result: pass
+    evidence: TransactionalCommandSerializationTests.CancelledWaiter_DoesNotEnterAndDoesNotKeepTheGate passed.
+  - condition: The complete solution remains compatible with the new pipeline behavior.
+    result: pass
+    evidence: Server/86JP.Server.slnx passed in Debug with PVF_ARCHIVE_PATH set and MSBuild project parallelism disabled; Release build completed with zero warnings and zero errors.
+Unverified Conditions:
+  - No database-is-locked failure occurs during a live two-player multi-monster dungeon run; this requires the user's game-client retest after deployment.

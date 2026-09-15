@@ -18,6 +18,7 @@ public static class CommandDispatchingExtensions
         services.TryAddSingleton<OnlineUserExecutionGate>();
         services.TryAddSingleton<SelectedSessionTransitionGate>();
         services.TryAddSingleton<AccountExecutionGate>();
+        services.TryAddSingleton<TransactionalExecutionGate>();
         // The scope holds the open transaction for the flow the command runs on. Stores are
         // singletons and containers are held per character, so neither can be handed the
         // transaction by injection; both ask this accessor for it instead.
@@ -32,6 +33,8 @@ public static class CommandDispatchingExtensions
             typeof(ICommandPipelineBehavior<>), typeof(OnlineUserExecutionBehavior<>)));
         services.TryAddEnumerable(ServiceDescriptor.Scoped(
             typeof(ICommandPipelineBehavior<>), typeof(AccountExecutionBehavior<>)));
+        services.TryAddEnumerable(ServiceDescriptor.Scoped(
+            typeof(ICommandPipelineBehavior<>), typeof(TransactionalExecutionBehavior<>)));
         services.TryAddEnumerable(ServiceDescriptor.Scoped(
             typeof(ICommandPipelineBehavior<>), typeof(UnitOfWorkBehavior<>)));
         services.TryAddEnumerable(ServiceDescriptor.Scoped(

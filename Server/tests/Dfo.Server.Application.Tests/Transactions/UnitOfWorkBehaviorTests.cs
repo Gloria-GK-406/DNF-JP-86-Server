@@ -90,7 +90,7 @@ public sealed class UnitOfWorkBehaviorTests
     /// the exact numbers.
     /// </summary>
     [Fact]
-    public void UnitOfWork_OpensInsideTheAccountGateAndOutsideTheExecutionPolicy()
+    public void UnitOfWork_OpensInsideTheAccountAndTransactionalGatesAndOutsideTheExecutionPolicy()
     {
         var probe = new ParticipantProbe();
         using var provider = BuildProvider(probe, CommandExecutionKind.Transactional);
@@ -105,6 +105,14 @@ public sealed class UnitOfWorkBehaviorTests
         Assert.True(
             orders[typeof(AccountExecutionBehavior<>)] < orders[typeof(UnitOfWorkBehavior<>)],
             "the transaction must open inside the account gate");
+        Assert.True(
+            orders[typeof(AccountExecutionBehavior<>)]
+                < orders[typeof(TransactionalExecutionBehavior<>)],
+            "transactional admission must happen inside the account gate");
+        Assert.True(
+            orders[typeof(TransactionalExecutionBehavior<>)]
+                < orders[typeof(UnitOfWorkBehavior<>)],
+            "the transaction must open after transactional admission");
         Assert.True(
             orders[typeof(UnitOfWorkBehavior<>)] < orders[typeof(CommandExecutionPolicyBehavior<>)],
             "the command must execute inside the transaction");

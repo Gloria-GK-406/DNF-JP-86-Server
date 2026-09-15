@@ -170,6 +170,7 @@ public sealed class CommandBusTests
                 typeof(CommandLoggingBehavior<TestResult>),
                 typeof(OnlineUserExecutionBehavior<TestResult>),
                 typeof(AccountExecutionBehavior<TestResult>),
+                typeof(TransactionalExecutionBehavior<TestResult>),
                 typeof(UnitOfWorkBehavior<TestResult>),
                 typeof(CommandExecutionPolicyBehavior<TestResult>),
             },
