@@ -72,7 +72,8 @@ public sealed class TownProjectionHandlerTests
                 runtimes,
                 notifications,
                 new NoopPartyTownProjectionDelivery(),
-                sender),
+                sender,
+                new EveryTownDeclared()),
             NullLogger<SetUserAreaHandler>.Instance);
 
         await handler.HandleAsync(
@@ -129,7 +130,8 @@ public sealed class TownProjectionHandlerTests
                 runtimes,
                 notifications,
                 new NoopPartyTownProjectionDelivery(),
-                sender),
+                sender,
+                new EveryTownDeclared()),
             NullLogger<SetUserAreaHandler>.Instance);
 
         var pending = handler.HandleAsync(
@@ -267,7 +269,8 @@ public sealed class TownProjectionHandlerTests
                 runtimes,
                 notifications,
                 partyProjection,
-                sender),
+                sender,
+                new EveryTownDeclared()),
             NullLogger<SetUserAreaHandler>.Instance);
 
         await handler.HandleAsync(
@@ -365,7 +368,8 @@ public sealed class TownProjectionHandlerTests
                 runtimes,
                 notifications,
                 new NoopPartyTownProjectionDelivery(),
-                sender),
+                sender,
+                new EveryTownDeclared()),
             NullLogger<SetUserPositionHandler>.Instance);
 
         await handler.HandleAsync(
@@ -427,7 +431,8 @@ public sealed class TownProjectionHandlerTests
                 runtimes,
                 notifications,
                 new NoopPartyTownProjectionDelivery(),
-                sender),
+                sender,
+                new EveryTownDeclared()),
             NullLogger<SetUserPositionHandler>.Instance);
 
         await handler.HandleAsync(
@@ -485,7 +490,8 @@ public sealed class TownProjectionHandlerTests
                 runtimes,
                 notifications,
                 new NoopPartyTownProjectionDelivery(),
-                sender),
+                sender,
+                new EveryTownDeclared()),
             NullLogger<SetUserPositionHandler>.Instance);
 
         await handler.HandleAsync(

@@ -15,11 +15,14 @@ namespace Dfo.Server.Protocol.Game.TownProjection;
 /// <summary>Serializes projections that can redraw the same logical town area.</summary>
 public sealed class TownAreaProjectionGate : UserExecutionGate<TownAreaKey>;
 
-/// <summary>A committed return admission whose wire projection has not yet been delivered.</summary>
-public sealed record TownReturnAdmission(
+/// <summary>One selected character asking the area service to enter its current town location.</summary>
+public sealed record TownAreaEntry(
     SelectedSessionIdentity Session,
     SelectCharacterResult Runtime,
-    Dfo.Server.Data.Characters.CharacterPositionState Position,
+    Dfo.Server.Data.Characters.CharacterPositionState Position);
+
+internal sealed record TownAreaAdmission(
+    TownAreaEntry Entry,
     TownAreaMembershipChange Change,
     PartyDirectoryScope? PreviousScope);
 
@@ -31,7 +34,7 @@ public sealed record TownAreaDeparture(
     bool SharedTownPresence,
     PartyDirectoryScope? PreviousScope);
 
-/// <summary>The protocol boundary that turns committed town-area changes into client projections.</summary>
+/// <summary>The area boundary that commits town membership changes and projects their latest state.</summary>
 /// <remarks>
 /// Every delivery takes the destination area's projection gate and re-reads its current snapshot.
 /// A delayed older change can therefore only redraw the newest state, never an older roster.
@@ -41,6 +44,7 @@ public sealed class TownAreaProjectionDelivery
     private readonly ITownAreaDomainService townAreas;
     private readonly ISelectedSessionDomainService selectedSessions;
     private readonly ISelectedSessionRuntimeDirectory runtimes;
+    private readonly ITownMovementDomainService towns;
     private readonly INotificationBus notifications;
     private readonly IPartyTownProjectionDelivery partyTownProjection;
     private readonly IGameMessageSender sender;
@@ -53,31 +57,45 @@ public sealed class TownAreaProjectionDelivery
         INotificationBus notifications,
         IPartyTownProjectionDelivery partyTownProjection,
         IGameMessageSender sender,
+        ITownMovementDomainService towns,
         TownAreaProjectionGate? projectionGate = null)
     {
         this.townAreas = townAreas;
         this.selectedSessions = selectedSessions;
         this.runtimes = runtimes;
+        this.towns = towns;
         this.notifications = notifications;
         this.partyTownProjection = partyTownProjection;
         this.sender = sender;
         this.projectionGate = projectionGate ?? new TownAreaProjectionGate();
     }
 
-    public async ValueTask ProjectTransferAsync(
+    public async ValueTask<bool> TransferAsync(
         NetworkConnectionId connectionId,
         SelectedSessionIdentity session,
         SelectCharacterResult result,
+        int channelId,
         Dfo.Server.Data.Characters.CharacterPositionState moved,
         TownAreaMember previousMember,
-        TownAreaMembershipChange change,
+        bool sharesTownPresence,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(moved);
         ArgumentNullException.ThrowIfNull(previousMember);
-        ArgumentNullException.ThrowIfNull(change);
+        var destination = new TownAreaKey(
+            channelId,
+            moved.TownId,
+            moved.AreaId);
+        var change = townAreas.TransferExact(
+            session.CharacterId,
+            session.TownAreaLease(),
+            destination,
+            moved,
+            sharesTownPresence);
+        if (change is null)
+            return false;
 
         var keys = new[] { change.PreviousArea?.Key, change.CurrentArea?.Key }
             .Where(key => key.HasValue)
@@ -99,7 +117,7 @@ public sealed class TownAreaProjectionDelivery
                 await PublishCurrentRosterCoreAsync(abandonedPrevious.Key, cancellationToken)
                     .ConfigureAwait(false);
             }
-            return;
+            return false;
         }
 
         var visible = VisibleParticipants(current!, session);
@@ -161,25 +179,48 @@ public sealed class TownAreaProjectionDelivery
             await partyTownProjection.RefreshMovedPartyAsync(
                 session, Scope(previousMember.Area), cancellationToken).ConfigureAwait(false);
         }
+        return true;
     }
 
-    public async ValueTask ProjectMovementAsync(
+    public async ValueTask<bool> MoveAsync(
         NetworkConnectionId connectionId,
         SelectedSessionIdentity session,
-        TownAreaSnapshot? area,
-        short x,
-        short y,
-        byte direction,
+        Dfo.Server.Data.Characters.CharacterPositionState position,
         ushort trailer,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(position);
+        var previous = townAreas.Find(session.CharacterId);
+        if (previous is null || !session.Owns(previous))
+        {
+            await sender.SendNotiAsync(
+                connectionId,
+                new UserPositionNotification(
+                    session.WireUserId,
+                    position.X,
+                    position.Y,
+                    position.Direction,
+                    trailer),
+                cancellationToken).ConfigureAwait(false);
+            return false;
+        }
+        var movement = townAreas.MoveExact(
+            session.CharacterId,
+            session.TownAreaLease(),
+            position);
+        var area = movement?.Area ?? townAreas.Find(previous.Area);
         if (area is null)
         {
             await sender.SendNotiAsync(
                 connectionId,
-                new UserPositionNotification(session.WireUserId, x, y, direction, trailer),
+                new UserPositionNotification(
+                    session.WireUserId,
+                    position.X,
+                    position.Y,
+                    position.Direction,
+                    trailer),
                 cancellationToken).ConfigureAwait(false);
-            return;
+            return false;
         }
 
         await using var projection = await AcquireAreasAsync([area.Key], cancellationToken)
@@ -187,7 +228,7 @@ public sealed class TownAreaProjectionDelivery
         var current = townAreas.Find(area.Key);
         var own = current?.Members.SingleOrDefault(member => session.Owns(member));
         if (own is null)
-            return;
+            return false;
 
         await sender.SendNotiAsync(
             connectionId,
@@ -199,7 +240,7 @@ public sealed class TownAreaProjectionDelivery
                 trailer),
             cancellationToken).ConfigureAwait(false);
         if (!own.SharesTownPresence)
-            return;
+            return true;
 
         var audience = current!.Members
             .Where(member => member.SharesTownPresence
@@ -220,6 +261,7 @@ public sealed class TownAreaProjectionDelivery
                     trailer),
                 cancellationToken).ConfigureAwait(false);
         }
+        return true;
     }
 
     public async ValueTask<TownAreaMembershipChange?> LeaveAsync(
@@ -227,163 +269,166 @@ public sealed class TownAreaProjectionDelivery
         TownAreaDepartureReason reason,
         CancellationToken cancellationToken)
     {
-        var departure = TryLeave(session, reason);
-        if (departure is null)
-            return null;
-
-        await ProjectDepartureAsync(departure, cancellationToken).ConfigureAwait(false);
-        return departure.Change;
+        var changes = await LeaveManyAsync([session], reason, cancellationToken)
+            .ConfigureAwait(false);
+        return changes.SingleOrDefault();
     }
 
-    /// <summary>Commits only the area fact; callers can batch several departures atomically.</summary>
-    public TownAreaDeparture? TryLeave(
-        SelectedSessionIdentity session,
-        TownAreaDepartureReason reason)
-    {
-        ArgumentNullException.ThrowIfNull(session);
-        var current = townAreas.Find(session.CharacterId);
-        if (current is null || !session.Owns(current))
-            return null;
-        var previousScope = current.SharesTownPresence ? Scope(current.Area) : null;
-        var change = townAreas.LeaveExact(
-            session.CharacterId,
-            session.TownAreaLease(),
-            reason);
-        return change is null
-            ? null
-            : new TownAreaDeparture(
-                session,
-                change,
-                current.Area,
-                current.SharesTownPresence,
-                previousScope);
-    }
-
-    public async ValueTask ProjectDepartureAsync(
-        TownAreaDeparture departure,
+    /// <summary>Removes every exact member before publishing each area's final revision.</summary>
+    public async ValueTask<IReadOnlyList<TownAreaMembershipChange>> LeaveManyAsync(
+        IReadOnlyList<SelectedSessionIdentity> sessions,
+        TownAreaDepartureReason reason,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(departure);
-        await using var projection = await AcquireAreasAsync(
-            [departure.PreviousArea], cancellationToken)
-            .ConfigureAwait(false);
-        if (departure.SharedTownPresence)
+        ArgumentNullException.ThrowIfNull(sessions);
+        var departures = new List<TownAreaDeparture>(sessions.Count);
+        foreach (var session in sessions.Distinct())
         {
-            await PublishCurrentRosterCoreAsync(departure.PreviousArea, cancellationToken)
+            ArgumentNullException.ThrowIfNull(session);
+            var current = townAreas.Find(session.CharacterId);
+            if (current is null || !session.Owns(current))
+                continue;
+            var previousScope = current.SharesTownPresence ? Scope(current.Area) : null;
+            var change = townAreas.LeaveExact(
+                session.CharacterId,
+                session.TownAreaLease(),
+                reason);
+            if (change is not null)
+            {
+                departures.Add(new TownAreaDeparture(
+                    session,
+                    change,
+                    current.Area,
+                    current.SharesTownPresence,
+                    previousScope));
+            }
+        }
+        if (departures.Count == 0)
+            return [];
+
+        await using var projection = await AcquireAreasAsync(
+            departures.Select(departure => departure.PreviousArea), cancellationToken)
+            .ConfigureAwait(false);
+        foreach (var area in departures
+            .Where(departure => departure.SharedTownPresence)
+            .Select(departure => departure.PreviousArea)
+            .Distinct())
+        {
+            await PublishCurrentRosterCoreAsync(area, cancellationToken)
                 .ConfigureAwait(false);
         }
-        await partyTownProjection.RefreshMovedPartyAsync(
-            departure.Session, departure.PreviousScope, cancellationToken).ConfigureAwait(false);
+        foreach (var departure in departures)
+        {
+            await partyTownProjection.RefreshMovedPartyAsync(
+                departure.Session, departure.PreviousScope, cancellationToken).ConfigureAwait(false);
+        }
+        return departures.Select(departure => departure.Change).ToArray();
     }
 
-    /// <summary>Commits a town return while the caller owns the account transition gate.</summary>
-    public TownReturnAdmission? TryAdmitForTownReturn(
-        SelectedSessionIdentity session,
-        SelectCharacterResult result,
-        Dfo.Server.Data.Characters.CharacterPositionState position)
-    {
-        ArgumentNullException.ThrowIfNull(session);
-        ArgumentNullException.ThrowIfNull(result);
-        ArgumentNullException.ThrowIfNull(position);
-        if (selectedSessions.FindByCharacter(session.CharacterId) != session)
-            return null;
-
-        var previous = townAreas.Find(session.CharacterId);
-        var previousScope = previous is { SharesTownPresence: true }
-            ? Scope(previous.Area)
-            : null;
-        var member = new TownAreaMember(
-            session.CharacterId,
-            session.TownAreaLease(),
-            new TownAreaKey(result.World.Channel.ChannelId, position.TownId, position.AreaId),
-            position,
-            result.World.Channel.Spawn.SharesTownPresence);
-        return new TownReturnAdmission(
-            session,
-            result,
-            position,
-            townAreas.Enter(member),
-            previousScope);
-    }
-
-    public async ValueTask<bool> SendTownReturnAsync(
-        TownReturnAdmission admission,
-        IReadOnlyList<IGameServerMessage> prefix,
+    /// <summary>
+    /// Admits one or more characters and projects the resulting area revision. Callers describe
+    /// only where the characters are; the destination area's content policy and every visibility
+    /// notification remain owned here.
+    /// </summary>
+    public async ValueTask<int> EnterAsync(
+        IReadOnlyList<TownAreaEntry> entries,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(admission);
-        var key = admission.Change.CurrentArea?.Key
-            ?? throw new InvalidDataException("A town return did not produce a destination area.");
-        await using var projection = await AcquireAreasAsync([key], cancellationToken)
-            .ConfigureAwait(false);
-        var current = townAreas.Find(key);
-        var own = current?.Members.SingleOrDefault(member => admission.Session.Owns(member));
-        if (own is null)
-            return false;
+        ArgumentNullException.ThrowIfNull(entries);
+        var candidates = new List<(TownAreaEntry Entry, bool SharesTownPresence)>();
+        foreach (var entry in entries)
+        {
+            ArgumentNullException.ThrowIfNull(entry);
+            if (selectedSessions.FindByCharacter(entry.Session.CharacterId) != entry.Session)
+                continue;
+            var sharesTownPresence = await towns.SharesTownPresenceAsync(
+                entry.Position.TownId,
+                entry.Position.AreaId,
+                cancellationToken).ConfigureAwait(false);
+            candidates.Add((entry, sharesTownPresence));
+        }
+        if (candidates.Count == 0)
+            return 0;
 
-        var peers = VisibleParticipants(current!, admission.Session);
-        var frames = TownReturnProjection.Frames(
-            admission.Session,
-            admission.Runtime,
-            own.Position,
-            peers.Select(candidate => candidate.Participant).ToArray());
-        await sender.SendExplicitAsync(
-            admission.Session.ConnectionId,
-            new GameExplicitMessageDelivery([.. prefix, .. frames], []),
-            cancellationToken).ConfigureAwait(false);
-        await PublishTownReturnCoreAsync(admission, current!, peers, cancellationToken)
-            .ConfigureAwait(false);
-        return true;
-    }
-
-    public async ValueTask<bool> SendTownReturnBatchAsync(
-        NetworkConnectionId requesterConnectionId,
-        SelectedSessionIdentity requester,
-        IReadOnlyList<TownReturnAdmission> admissions,
-        IReadOnlyList<IGameServerMessage> requesterPrefix,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(requester);
-        ArgumentNullException.ThrowIfNull(admissions);
-        var keys = admissions.Select(admission => admission.Change.CurrentArea?.Key
-            ?? throw new InvalidDataException("A town return has no destination area."));
+        var keys = candidates.Select(candidate => new TownAreaKey(
+                candidate.Entry.Runtime.World.Channel.ChannelId,
+                candidate.Entry.Position.TownId,
+                candidate.Entry.Position.AreaId))
+            .Concat(candidates
+                .Select(candidate => townAreas.Find(candidate.Entry.Session.CharacterId))
+                .Where(member => member is not null
+                    && selectedSessions.FindByCharacter(member.CharacterId) is { } exact
+                    && exact.Owns(member))
+                .Select(member => member!.Area));
         await using var projection = await AcquireAreasAsync(keys, cancellationToken)
             .ConfigureAwait(false);
+
+        var admissions = new List<TownAreaAdmission>(candidates.Count);
+        foreach (var candidate in candidates)
+        {
+            var entry = candidate.Entry;
+            if (selectedSessions.FindByCharacter(entry.Session.CharacterId) != entry.Session)
+                continue;
+            var previous = townAreas.Find(entry.Session.CharacterId);
+            var previousScope = previous is { SharesTownPresence: true }
+                ? Scope(previous.Area)
+                : null;
+            var member = new TownAreaMember(
+                entry.Session.CharacterId,
+                entry.Session.TownAreaLease(),
+                new TownAreaKey(
+                    entry.Runtime.World.Channel.ChannelId,
+                    entry.Position.TownId,
+                    entry.Position.AreaId),
+                entry.Position,
+                candidate.SharesTownPresence);
+            admissions.Add(new TownAreaAdmission(
+                entry,
+                townAreas.Enter(member),
+                previousScope));
+        }
 
         var deliveries = new List<ReturnDelivery>();
         foreach (var admission in admissions)
         {
             var current = townAreas.Find(admission.Change.CurrentArea!.Key);
-            var own = current?.Members.SingleOrDefault(member => admission.Session.Owns(member));
+            var own = current?.Members.SingleOrDefault(
+                member => admission.Entry.Session.Owns(member));
             if (own is null)
                 continue;
-            var peers = VisibleParticipants(current!, admission.Session);
+            var peers = VisibleParticipants(current!, admission.Entry.Session);
             deliveries.Add(new ReturnDelivery(
                 admission,
                 current!,
                 peers,
                 TownReturnProjection.Frames(
-                    admission.Session,
-                    admission.Runtime,
+                    admission.Entry.Session,
+                    admission.Entry.Runtime,
                     own.Position,
                     peers.Select(candidate => candidate.Participant).ToArray())));
         }
 
-        var direct = deliveries.SingleOrDefault(value => value.Admission.Session == requester);
-        if (direct is null)
-            return false;
-        await sender.SendExplicitAsync(
-            requesterConnectionId,
-            new GameExplicitMessageDelivery(
-                [.. requesterPrefix, .. direct.Frames],
-                [.. deliveries
-                    .Where(value => value.Admission.Session != requester)
-                    .Select(value => new GameExplicitMessageTarget(
-                        value.Admission.Session.ConnectionId,
-                        value.Frames))]),
-            cancellationToken).ConfigureAwait(false);
+        foreach (var delivery in deliveries)
+        {
+            await sender.SendExplicitAsync(
+                delivery.Admission.Entry.Session.ConnectionId,
+                new GameExplicitMessageDelivery(delivery.Frames, []),
+                cancellationToken).ConfigureAwait(false);
+        }
 
-        var returningCharacters = admissions.Select(value => value.Session.CharacterId).ToHashSet();
+        foreach (var previousArea in admissions
+            .Where(admission => admission.Change.PreviousArea is { } previous
+                && previous.Key != admission.Change.CurrentArea?.Key)
+            .Select(admission => admission.Change.PreviousArea!.Key)
+            .Distinct())
+        {
+            await PublishCurrentRosterCoreAsync(previousArea, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        var returningCharacters = admissions
+            .Select(value => value.Entry.Session.CharacterId)
+            .ToHashSet();
         foreach (var delivery in deliveries)
         {
             var preExistingPeers = delivery.Peers
@@ -395,7 +440,40 @@ public sealed class TownAreaProjectionDelivery
                 preExistingPeers,
                 cancellationToken).ConfigureAwait(false);
         }
-        return true;
+        return deliveries.Count;
+    }
+
+    /// <summary>Projects an entry already committed by the selected-character lifecycle.</summary>
+    public async ValueTask PublishCommittedEntryAsync(
+        SelectedSessionIdentity session,
+        TownParticipantPublicationPlan publication,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(publication);
+        if (selectedSessions.FindByCharacter(session.CharacterId) != session)
+            return;
+        await sender.SendExplicitAsync(
+            session.ConnectionId,
+            new GameExplicitMessageDelivery(
+                TownPresenceMessages.ForNewcomer(publication.State), []),
+            cancellationToken).ConfigureAwait(false);
+        if (selectedSessions.FindByCharacter(session.CharacterId) != session)
+            return;
+        await partyTownProjection.RefreshObservedPartiesAsync(
+            [session], publication.Audience, cancellationToken).ConfigureAwait(false);
+        if (selectedSessions.FindByCharacter(session.CharacterId) != session)
+            return;
+        var delivered = await PartyExactNotificationDelivery.PublishWithRetryAsync(
+            notifications,
+            publication.Audience,
+            new TownParticipantPublished(publication.State),
+            cancellationToken).ConfigureAwait(false);
+        if (!delivered.Delivered.IsEmpty)
+        {
+            await partyTownProjection.RefreshObservedPartiesAsync(
+                delivered.Delivered, [session], cancellationToken).ConfigureAwait(false);
+        }
     }
 
     public async ValueTask PublishRosterAsync(
@@ -409,13 +487,13 @@ public sealed class TownAreaProjectionDelivery
     }
 
     private async ValueTask PublishTownReturnCoreAsync(
-        TownReturnAdmission admission,
+        TownAreaAdmission admission,
         TownAreaSnapshot current,
         IReadOnlyList<(SelectedSessionIdentity Session, TownParticipantEntryState Participant)> peers,
         CancellationToken cancellationToken)
     {
         var peerSessions = peers.Select(candidate => candidate.Session).ToArray();
-        var own = current.Members.Single(member => admission.Session.Owns(member));
+        var own = current.Members.Single(member => admission.Entry.Session.Owns(member));
         if (admission.Change.Kind != TownAreaMembershipChangeKind.Unchanged
             && own.SharesTownPresence
             && peerSessions.Length > 0)
@@ -423,20 +501,20 @@ public sealed class TownAreaProjectionDelivery
             var state = new TownPresenceSynchronizationState(
                 own.Position.TownId,
                 own.Position.AreaId,
-                TownReturnProjection.Participant(admission.Runtime, own.Position),
+                TownReturnProjection.Participant(admission.Entry.Runtime, own.Position),
                 peers.Select(candidate => candidate.Participant).ToArray());
             await PublishArrivalCoreAsync(
-                admission.Session, state, peerSessions, cancellationToken).ConfigureAwait(false);
+                admission.Entry.Session, state, peerSessions, cancellationToken).ConfigureAwait(false);
         }
         if (peerSessions.Length > 0)
         {
             await partyTownProjection.RefreshObservedPartiesAsync(
-                [admission.Session], peerSessions, cancellationToken).ConfigureAwait(false);
+                [admission.Entry.Session], peerSessions, cancellationToken).ConfigureAwait(false);
         }
         if (admission.Change.Kind != TownAreaMembershipChangeKind.Unchanged)
         {
             await partyTownProjection.RefreshMovedPartyAsync(
-                admission.Session, admission.PreviousScope, cancellationToken).ConfigureAwait(false);
+                admission.Entry.Session, admission.PreviousScope, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -490,7 +568,7 @@ public sealed class TownAreaProjectionDelivery
                 var exact = ExactSession(occupant);
                 if (exact is null
                     || !runtimes.TryGet(exact, out var runtime, out _)
-                    || runtime is null)
+                    || runtime?.World?.Channel?.Spawn is not { } spawn)
                 {
                     continue;
                 }
@@ -499,7 +577,7 @@ public sealed class TownAreaProjectionDelivery
                     occupant.Position.X,
                     occupant.Position.Y,
                     occupant.Position.Direction,
-                    runtime.World.Channel.Spawn.AreaState));
+                    spawn.AreaState));
             }
 
             await notifications.PublishAsync(
@@ -565,7 +643,7 @@ public sealed class TownAreaProjectionDelivery
         new(key.ChannelId, key.TownId, key.AreaId);
 
     private sealed record ReturnDelivery(
-        TownReturnAdmission Admission,
+        TownAreaAdmission Admission,
         TownAreaSnapshot Area,
         IReadOnlyList<(SelectedSessionIdentity Session, TownParticipantEntryState Participant)> Peers,
         IReadOnlyList<IGameServerMessage> Frames);

@@ -24,6 +24,7 @@ using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
+using Dfo.Server.Protocol.Tests.Game.TownProjection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using EnteredDungeon = Dfo.Server.Abstractions.World.DungeonEntry;
@@ -46,6 +47,7 @@ public sealed class PartySelectDungeonHandlerTests
             new PartyVisits(),
             intents,
             sender,
+            TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
             NullLogger<EnterSelectDungeonHandler>.Instance,
             new Parties(Snapshot()));
 
@@ -87,6 +89,7 @@ public sealed class PartySelectDungeonHandlerTests
             .AddSingleton<IDungeonEntryIntentDomainService>(intents)
             .AddSingleton<IPartyService>(new Parties(Snapshot()))
             .AddSingleton<IGameMessageSender>(sender)
+            .AddSingleton(TownAreaProjectionTestFactory.Create(sessions, runtime, sender))
             .AddSingleton<SelectedSessionTransitionGate>()
             .AddSingleton<Microsoft.Extensions.Logging.ILogger<BackToVillageHandler>>(
                 NullLogger<BackToVillageHandler>.Instance)
@@ -347,15 +350,14 @@ public sealed class PartySelectDungeonHandlerTests
                 true,
                 1));
         }
-        var townProjection = withTownProjection
-            ? new TownAreaProjectionDelivery(
-                areas,
-                sessions,
-                runtime,
-                new NoopNotificationBus(),
-                partyTownProjection ?? new NoopPartyTownProjection(),
-                sender)
-            : null;
+        var townProjection = new TownAreaProjectionDelivery(
+            areas,
+            sessions,
+            runtime,
+            new NoopNotificationBus(),
+            partyTownProjection ?? new NoopPartyTownProjection(),
+            sender,
+            SharedTownMovementDomainService.Instance);
         var transitionGate = new SelectedSessionTransitionGate();
         var state = new UnchangedState(() =>
         {
@@ -382,9 +384,9 @@ public sealed class PartySelectDungeonHandlerTests
             new RecordingQuestLogs(),
             fatigue,
             sender,
+            townProjection,
             NullLogger<SelectDungeonHandler>.Instance,
-            transitionGate,
-            townProjection);
+            transitionGate);
         return new TestWorld(
             handler, visits, intents, registry, runs, fatigue, sender, areas, transitionGate);
     }

@@ -148,9 +148,9 @@ public sealed class GiveUpGameHandler(
     IDungeonRunDomainService runs,
     DungeonRunDeliveryRegistry deliveries,
     IGameMessageSender sender,
+    TownAreaProjectionDelivery townAreaProjection,
     ILogger<GiveUpGameHandler> logger,
     SelectedSessionTransitionGate transitionGate,
-    TownAreaProjectionDelivery? townAreaProjection = null,
     ITownAreaDomainService? townAreas = null,
     ICommandBus? commands = null,
     PartyNotificationDelivery? partyNotifications = null)
@@ -175,7 +175,6 @@ public sealed class GiveUpGameHandler(
 
         var ended = false;
         PartyCommandExecution? partyExecution = null;
-        TownReturnAdmission? admission = null;
         await using (var transition = await transitionGate.AcquireAsync(
             session.AccountId, UserAccessMode.Exclusive, cancellationToken)
             .ConfigureAwait(false))
@@ -197,7 +196,6 @@ public sealed class GiveUpGameHandler(
                     PartyNotificationRecipientCapture.Capture(
                         partyResult.Notifications, selectedSessions, townAreas));
             }
-            admission = townAreaProjection?.TryAdmitForTownReturn(session, result, position);
         }
 
         if (partyExecution is { Result.Succeeded: true } && partyNotifications is not null)
@@ -213,24 +211,12 @@ public sealed class GiveUpGameHandler(
             session.CharacterId.Value,
             ended);
 
-        if (admission is not null)
-        {
-            await townAreaProjection!.SendTownReturnAsync(
-                admission,
-                [new GiveUpGameResponse()],
-                cancellationToken).ConfigureAwait(false);
-            return;
-        }
-
-        var townFrames = TownReturnProjection.Frames(session, result, position, []);
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
-            new GameExplicitMessageDelivery(
-                [
-                    new GiveUpGameResponse(),
-                    .. townFrames,
-                ],
-                []),
+            new GameExplicitMessageDelivery([new GiveUpGameResponse()], []),
+            cancellationToken).ConfigureAwait(false);
+        await townAreaProjection.EnterAsync(
+            [new TownAreaEntry(session, result, position)],
             cancellationToken).ConfigureAwait(false);
     }
 }

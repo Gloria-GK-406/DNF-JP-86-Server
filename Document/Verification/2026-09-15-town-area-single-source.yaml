@@ -1,0 +1,37 @@
+kind: rks-verification
+decision: manual_required
+claim: >-
+  Town membership mutations and town visibility delivery are routed through the single
+  TownAreaProjectionDelivery boundary for character selection, movement, area transfer,
+  dungeon selection, dungeon entry, and every return-to-town path.
+conditions:
+  - condition: No protocol handler mutates the town-area store directly.
+    result: pass
+    evidence: >-
+      Source audit for townAreas.Enter, LeaveExact, TransferExact, and MoveExact finds only
+      Server/src/Dfo.Server.Protocol/Game/TownProjection/TownAreaProjectionDelivery.cs.
+  - condition: No return-to-town handler builds its own town participant or roster projection.
+    result: pass
+    evidence: >-
+      Source audit finds TownReturnProjection use only inside the town projection boundary;
+      SendTownReturn and TryAdmitForTownReturn compatibility entry points no longer exist.
+  - condition: Existing server behavior remains regression-safe.
+    result: pass
+    evidence: >-
+      dotnet test Server/86JP.Server.slnx --no-restore with PVF_ARCHIVE_PATH set completed
+      with 3266 passed, 2 skipped, and 0 failed tests on 2026-09-15.
+  - condition: Release artifacts compile with strict warnings enabled.
+    result: pass
+    evidence: >-
+      dotnet build Server/86JP.Server.slnx -c Release --no-restore completed with 0 warnings
+      and 0 errors on 2026-09-15.
+  - condition: The rebuilt main-branch host starts with its live endpoints available.
+    result: pass
+    evidence: >-
+      Release host process 42376 started from the main checkout; launcher bootstrap returned HTTP
+      200 ready, TCP ports 7001, 10010, 10011, and 18080 are listening, and UDP ports 12311 and
+      12312 are bound.
+Unverified Conditions:
+  - >-
+    Two live clients must confirm that entering dungeon selection and returning restores both
+    characters and the current area roster without disconnecting either client.

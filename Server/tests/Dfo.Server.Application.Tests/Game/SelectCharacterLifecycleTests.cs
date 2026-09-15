@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
@@ -14,6 +15,7 @@ using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Application.Users;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -724,6 +726,14 @@ public sealed partial class SelectCharacterLifecycleTests
             var sessionEntry = new SessionEntry(ledger, planPvp);
             var notifications = new RecordingNotifications(ledger, failFirstTownPublication);
             var partyProjection = new RecordingPartyTownProjectionDelivery(ledger);
+            var townAreaProjection = new TownAreaProjectionDelivery(
+                new SessionPresenceDomainService(),
+                directory,
+                new SelectedSessionRuntimeDirectory(),
+                notifications,
+                partyProjection,
+                sender,
+                new EveryTownMovement());
             var transitionGate = new SelectedSessionTransitionGate();
             var preparation = refuseAdmission
                 ? null
@@ -753,7 +763,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 directory,
                 sender,
                 notifications,
-                partyProjection,
+                townAreaProjection,
                 new NoopCleanupDelivery(),
                 closer,
                 NullLogger<SelectCharacterHandler>.Instance,
@@ -767,6 +777,21 @@ public sealed partial class SelectCharacterLifecycleTests
                 preparation, transitionGate, bus, handler, command,
                 registered.OnlineUserId, authenticated.Generation);
         }
+    }
+
+    private sealed class EveryTownMovement : ITownMovementDomainService
+    {
+        public ValueTask<bool> DeclaresAreaAsync(
+            int townId, int areaId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(true);
+
+        public ValueTask<bool> SharesTownPresenceAsync(
+            int townId, int areaId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(true);
+
+        public ValueTask<bool> CanEnterTownAsync(
+            ChannelEntryIdentity channel, int townId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(true);
     }
 
     private sealed class RecordingCommandBus(

@@ -186,11 +186,11 @@ public sealed class BackToVillageHandler(
     IDungeonRunDomainService runs,
     DungeonRunDeliveryRegistry deliveries,
     IGameMessageSender sender,
+    TownAreaProjectionDelivery townAreaProjection,
     ILogger<BackToVillageHandler> logger,
     SelectedSessionTransitionGate transitionGate,
     IDungeonEntryIntentDomainService? entryIntents = null,
-    IPartyService? parties = null,
-    TownAreaProjectionDelivery? townAreaProjection = null) : ClientMessageHandler<BackToVillageRequest>
+    IPartyService? parties = null) : ClientMessageHandler<BackToVillageRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -235,7 +235,7 @@ public sealed class BackToVillageHandler(
 
         var transitionLeases = await AcquireTransitionsAsync(
             transitionGate, returning, cancellationToken).ConfigureAwait(false);
-        List<TownReturnAdmission>? admissions = townAreaProjection is null ? null : [];
+        List<TownAreaEntry> areaEntries = [];
         var endedRuns = 0;
         try
         {
@@ -258,15 +258,10 @@ public sealed class BackToVillageHandler(
                     endedRuns++;
                 }
 
-                if (townAreaProjection is not null)
-                {
-                    var admission = townAreaProjection.TryAdmitForTownReturn(
-                        member.Session,
-                        member.Runtime,
-                        member.Position);
-                    if (admission is not null)
-                        admissions!.Add(admission);
-                }
+                areaEntries.Add(new TownAreaEntry(
+                    member.Session,
+                    member.Runtime,
+                    member.Position));
             }
         }
         finally
@@ -286,40 +281,12 @@ public sealed class BackToVillageHandler(
             returning.Length,
             endedRuns);
 
-        if (townAreaProjection is not null)
-        {
-            await townAreaProjection.SendTownReturnBatchAsync(
-                context.Connection.ConnectionId,
-                session,
-                admissions!,
-                [new BackToVillageResponse()],
-                cancellationToken).ConfigureAwait(false);
-            return;
-        }
-
-        var returned = returning.Select(member => (
-            Member: member,
-            Frames: TownReturnProjection.Frames(
-                member.Session,
-                member.Runtime,
-                member.Position,
-                returning
-                    .Where(peer => peer.Session != member.Session)
-                    .Select(peer => TownReturnProjection.Participant(peer.Runtime, peer.Position))
-                    .ToArray()))).ToArray();
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
-            new GameExplicitMessageDelivery(
-                [
-                    new BackToVillageResponse(),
-                    .. returned.Single(value => value.Member == requester).Frames,
-                ],
-                [.. returned
-                    .Where(value => value.Member.Session != session)
-                    .Select(value => new GameExplicitMessageTarget(
-                        value.Member.Session.ConnectionId,
-                        value.Frames))]),
+            new GameExplicitMessageDelivery([new BackToVillageResponse()], []),
             cancellationToken).ConfigureAwait(false);
+        await townAreaProjection.EnterAsync(areaEntries, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private static async ValueTask<IAsyncDisposable> AcquireTransitionsAsync(
@@ -561,9 +528,9 @@ public sealed class EnterSelectDungeonHandler(
     IDungeonVisitDomainService visits,
     IDungeonEntryIntentDomainService entryIntents,
     IGameMessageSender sender,
+    TownAreaProjectionDelivery townAreaProjection,
     ILogger<EnterSelectDungeonHandler> logger,
-    IPartyService? parties = null,
-    TownAreaProjectionDelivery? townAreaProjection = null)
+    IPartyService? parties = null)
     : ClientMessageHandler<EnterSelectDungeonRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -597,14 +564,11 @@ public sealed class EnterSelectDungeonHandler(
         foreach (var member in attached)
         {
             entryIntents.Record(member.Session, intent);
-            if (townAreaProjection is not null)
-            {
-                await townAreaProjection.LeaveAsync(
-                    member.Session,
-                    TownAreaDepartureReason.DungeonSelection,
-                    cancellationToken).ConfigureAwait(false);
-            }
         }
+        await townAreaProjection.LeaveManyAsync(
+            attached.Select(member => member.Session).ToArray(),
+            TownAreaDepartureReason.DungeonSelection,
+            cancellationToken).ConfigureAwait(false);
         logger.LogInformation(
             "Enter select dungeon {ConnectionId} user={WireUserId}: selection={Selection} intent={Intent} "
                 + "town={TownId} area={AreaId}->0xFF pos=({X},{Y})",

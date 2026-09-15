@@ -444,9 +444,9 @@ public sealed class SelectDungeonHandler(
     ICharacterQuestLogDomainService questLogs,
     ICharacterFatigueDomainService fatigue,
     IGameMessageSender sender,
+    TownAreaProjectionDelivery townAreaProjection,
     ILogger<SelectDungeonHandler> logger,
-    SelectedSessionTransitionGate transitionGate,
-    TownAreaProjectionDelivery? townAreaProjection = null) : ClientMessageHandler<SelectDungeonRequest>
+    SelectedSessionTransitionGate transitionGate) : ClientMessageHandler<SelectDungeonRequest>
 {
     /// <summary>What one entry reports as spent.</summary>
     /// <remarks>
@@ -722,10 +722,10 @@ public sealed class SelectDungeonHandler(
         }
 
         // This is the entry commit boundary. All fallible frame construction has finished. The
-        // exact-session recheck, removal from town, and first-room delivery share the account
-        // transition gates, so a replacement cannot land in the gap. From this point a transport
-        // failure leaves the run committed for normal disconnect cleanup instead of rolling the
-        // run back while also forgetting to restore town membership.
+        // exact-session recheck and first-room delivery share the account transition gates, so a
+        // replacement cannot receive an old run. Once delivery succeeds, the area service owns
+        // removal and its projections as one operation; a replacement landing before that call is
+        // rejected by the exact membership lease instead of being removed as the old character.
         IAsyncDisposable transitions;
         try
         {
@@ -738,7 +738,6 @@ public sealed class SelectDungeonHandler(
             throw;
         }
 
-        var departures = new List<TownAreaDeparture>();
         await using (transitions)
         {
             if (attachments.Members.Any(value =>
@@ -756,21 +755,6 @@ public sealed class SelectDungeonHandler(
                 return;
             }
 
-            // Commit all membership facts before any roster/party notification can invoke an
-            // external handler. A failed projection can no longer split one party between town
-            // and dungeon after its shared run has already been created.
-            if (townAreaProjection is not null)
-            {
-                foreach (var attachment in attachments.Members)
-                {
-                    var departure = townAreaProjection.TryLeave(
-                        attachment.Session,
-                        TownAreaDepartureReason.DungeonEntry);
-                    if (departure is not null)
-                        departures.Add(departure);
-                }
-            }
-
             var direct = entryDeliveries.Single(value => value.Session == session);
             await sender.SendExplicitAsync(
                 context.Connection.ConnectionId,
@@ -784,11 +768,10 @@ public sealed class SelectDungeonHandler(
                 cancellationToken).ConfigureAwait(false);
         }
 
-        foreach (var departure in departures)
-        {
-            await townAreaProjection!.ProjectDepartureAsync(departure, cancellationToken)
-                .ConfigureAwait(false);
-        }
+        await townAreaProjection.LeaveManyAsync(
+            attachments.Members.Select(attachment => attachment.Session).ToArray(),
+            TownAreaDepartureReason.DungeonEntry,
+            cancellationToken).ConfigureAwait(false);
     }
 
     private static async ValueTask<IAsyncDisposable> AcquireTransitionsAsync(

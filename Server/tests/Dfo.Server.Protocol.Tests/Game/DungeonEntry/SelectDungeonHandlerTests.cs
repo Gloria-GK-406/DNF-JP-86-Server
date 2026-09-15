@@ -20,6 +20,7 @@ using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
+using Dfo.Server.Protocol.Tests.Game.TownProjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using EnteredDungeon = Dfo.Server.Abstractions.World.DungeonEntry;
 using QuestTaken = Dfo.Server.Abstractions.Quests.QuestAcceptance;
@@ -106,6 +107,10 @@ public sealed class SelectDungeonHandlerTests
             new OneLog(new UnaskedLog()),
             new RecordingFatigue(),
             sender,
+            TownAreaProjectionTestFactory.Create(
+                new OneSession(Identity),
+                new OneRuntimeSession(Entry()),
+                sender),
             NullLogger<SelectDungeonHandler>.Instance,
             new SelectedSessionTransitionGate());
 
@@ -245,7 +250,8 @@ public sealed class SelectDungeonHandlerTests
             runtime,
             new NoopNotifications(),
             new NoopPartyTownProjection(),
-            sender);
+            sender,
+            SharedTownMovementDomainService.Instance);
         var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
             new UnchangedState(),
             sessions,
@@ -258,9 +264,9 @@ public sealed class SelectDungeonHandlerTests
             new OneLog(new StandInLog([], [])),
             fatigue,
             sender,
+            townProjection,
             NullLogger<SelectDungeonHandler>.Instance,
-            new SelectedSessionTransitionGate(),
-            townProjection);
+            new SelectedSessionTransitionGate());
 
         await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
 
@@ -293,7 +299,8 @@ public sealed class SelectDungeonHandlerTests
             runtime,
             new NoopNotifications(),
             new NoopPartyTownProjection(),
-            sender);
+            sender,
+            SharedTownMovementDomainService.Instance);
         var character = new Dfo.Server.Application.Tests.Support.CurrentCharacterStub
         {
             Id = Identity.CharacterId,
@@ -312,9 +319,9 @@ public sealed class SelectDungeonHandlerTests
             new OneLog(new StandInLog([], [])),
             new RecordingFatigue(),
             sender,
+            townProjection,
             NullLogger<SelectDungeonHandler>.Instance,
-            new SelectedSessionTransitionGate(),
-            townProjection);
+            new SelectedSessionTransitionGate());
 
         await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
 
@@ -350,6 +357,10 @@ public sealed class SelectDungeonHandlerTests
             new OneLog(new UnaskedLog()),
             fatigue,
             new RecordingSender(),
+            TownAreaProjectionTestFactory.Create(
+                new NoSession(),
+                new OneRuntimeSession(Entry()),
+                new RecordingSender()),
             NullLogger<SelectDungeonHandler>.Instance,
             new SelectedSessionTransitionGate());
 
@@ -381,6 +392,10 @@ public sealed class SelectDungeonHandlerTests
             new OneLog(new UnaskedLog()),
             new RecordingFatigue(),
             sender,
+            TownAreaProjectionTestFactory.Create(
+                new NoSession(),
+                new OneRuntimeSession(Entry()),
+                sender),
             NullLogger<SelectDungeonHandler>.Instance,
             new SelectedSessionTransitionGate());
 
@@ -416,12 +431,16 @@ public sealed class SelectDungeonHandlerTests
         RecordingSender? sender = null,
         OneLog? logs = null,
         RecordingFatigue? fatigue = null,
-        DungeonEntryIntent? intent = null) =>
-        new(
+        DungeonEntryIntent? intent = null)
+    {
+        var actualSender = sender ?? new RecordingSender();
+        var sessions = new OneSession(Identity);
+        var runtimes = new OneRuntimeSession(Entry());
+        return new(
             Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
             new UnchangedState(),
-            new OneSession(Identity),
-            new OneRuntimeSession(Entry()),
+            sessions,
+            runtimes,
             new NoPartyService(),
             new NoopRuns(),
             new DungeonRunDeliveryRegistry(),
@@ -434,9 +453,11 @@ public sealed class SelectDungeonHandlerTests
                 ],
                 [new ClearedQuest(ClearedInLog, IQuestLog.ClearedMark)])),
             fatigue ?? new RecordingFatigue(),
-            sender ?? new RecordingSender(),
+            actualSender,
+            TownAreaProjectionTestFactory.Create(sessions, runtimes, actualSender),
             NullLogger<SelectDungeonHandler>.Instance,
             new SelectedSessionTransitionGate());
+    }
 
     private static SelectDungeonRequest Request() =>
         new(GameMessageMetadata.Empty, TutorialDungeonId, Difficulty, 0, 0);

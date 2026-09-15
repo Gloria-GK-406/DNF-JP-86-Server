@@ -95,9 +95,9 @@ public sealed class EplpCommandHandler(
     IDungeonRunDomainService runs,
     DungeonRunDeliveryRegistry deliveries,
     IGameMessageSender sender,
+    TownAreaProjectionDelivery townAreaProjection,
     ILogger<EplpCommandHandler> logger,
-    SelectedSessionTransitionGate transitionGate,
-    TownAreaProjectionDelivery? townAreaProjection = null) : ClientMessageHandler<EplpCommandRequest>
+    SelectedSessionTransitionGate transitionGate) : ClientMessageHandler<EplpCommandRequest>
 {
     /// <summary>The state that means "take me out of here".</summary>
     public const byte LeaveState = 1;
@@ -123,7 +123,6 @@ public sealed class EplpCommandHandler(
         }
 
         var leaving = message.State == LeaveState;
-        TownReturnAdmission? admission = null;
         var runEnded = false;
         if (leaving)
         {
@@ -136,7 +135,6 @@ public sealed class EplpCommandHandler(
             runEnded = currentRun is not null && runs.End(session.CharacterId, currentRun.RunId);
             if (runEnded && currentRun is not null)
                 deliveries.RemoveParticipant(currentRun.RunId, session.CharacterId);
-            admission = townAreaProjection?.TryAdmitForTownReturn(session, result, position);
         }
 
         logger.LogInformation(
@@ -149,22 +147,23 @@ public sealed class EplpCommandHandler(
             leaving,
             runEnded);
 
-        if (admission is not null)
+        if (leaving)
         {
-            await townAreaProjection!.SendTownReturnAsync(
-                admission,
-                [new EplpCommandResponse(message.State, message.Option)],
+            await sender.SendExplicitAsync(
+                context.Connection.ConnectionId,
+                new GameExplicitMessageDelivery(
+                    [new EplpCommandResponse(message.State, message.Option)], []),
+                cancellationToken).ConfigureAwait(false);
+            await townAreaProjection.EnterAsync(
+                [new TownAreaEntry(session, result, position)],
                 cancellationToken).ConfigureAwait(false);
             return;
         }
 
-        List<IGameServerMessage> frames =
-            [new EplpCommandResponse(message.State, message.Option)];
-        if (leaving)
-            frames.AddRange(TownReturnProjection.Frames(session, result, position, []));
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
-            new GameExplicitMessageDelivery(frames, []),
+            new GameExplicitMessageDelivery(
+                [new EplpCommandResponse(message.State, message.Option)], []),
             cancellationToken).ConfigureAwait(false);
     }
 }

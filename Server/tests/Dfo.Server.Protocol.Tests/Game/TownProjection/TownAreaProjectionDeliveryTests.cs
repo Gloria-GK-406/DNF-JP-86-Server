@@ -43,16 +43,14 @@ public sealed class TownAreaProjectionDeliveryTests
             runtimes,
             notifications,
             new NoopPartyProjection(),
-            sender);
+            sender,
+            SharedTownMovementDomainService.Instance);
 
-        var admission = delivery.TryAdmitForTownReturn(
-            returning,
-            returningResult,
-            new CharacterPositionState(3, 6, 100, 200, 1));
-        Assert.NotNull(admission);
-        Assert.True(await delivery.SendTownReturnAsync(
-            admission,
-            [],
+        Assert.Equal(1, await delivery.EnterAsync(
+            [new TownAreaEntry(
+                returning,
+                returningResult,
+                new CharacterPositionState(3, 6, 100, 200, 1))],
             CancellationToken.None));
         var frames = Assert.Single(sender.Deliveries).Delivery.RequiredDirectMessages;
 
@@ -71,6 +69,60 @@ public sealed class TownAreaProjectionDeliveryTests
             [returning.CharacterId, existing.CharacterId],
             ((ITownAreaDomainService)areas).Find(key)!.Members
                 .Select(member => member.CharacterId));
+    }
+
+    [Fact]
+    public async Task Returning_to_a_shared_area_does_not_inherit_the_hidden_login_gate_policy()
+    {
+        var returning = Session(1, "returning");
+        var existing = Session(2, "existing");
+        var sessions = new SelectedSessionDomainService();
+        sessions.Select(returning);
+        sessions.Select(existing);
+        var runtimes = new SelectedSessionRuntimeDirectory();
+        var returningBaseline = Entry(returning, x: 100);
+        var returningResult = returningBaseline with
+        {
+            World = returningBaseline.World with
+            {
+                Channel = returningBaseline.World.Channel with
+                {
+                    Spawn = returningBaseline.World.Channel.Spawn with
+                    {
+                        SharesTownPresence = false,
+                    },
+                },
+            },
+        };
+        var existingResult = Entry(existing, x: 300);
+        runtimes.Publish(returning, returningResult, false);
+        runtimes.Publish(existing, existingResult, false);
+        var areas = new SessionPresenceDomainService();
+        var key = new TownAreaKey(11, 3, 6);
+        ((ITownAreaDomainService)areas).Enter(Member(existing, key, x: 300));
+        var notifications = new RecordingNotificationBus();
+        var sender = new RecordingSender();
+        var delivery = new TownAreaProjectionDelivery(
+            areas,
+            sessions,
+            runtimes,
+            notifications,
+            new NoopPartyProjection(),
+            sender,
+            towns: new SharedTownMovement());
+
+        Assert.Equal(1, await delivery.EnterAsync(
+            [new TownAreaEntry(
+                returning,
+                returningResult,
+                new CharacterPositionState(3, 6, 100, 200, 1))],
+            CancellationToken.None));
+        var frames = Assert.Single(sender.Deliveries).Delivery.RequiredDirectMessages;
+
+        Assert.Contains(
+            frames.OfType<CurrentUserStateMessage>(),
+            frame => frame.Character.Identity.CharacterId == existing.CharacterId);
+        Assert.IsType<TownParticipantPublished>(Assert.Single(notifications.Publications).Notification);
     }
 
     [Fact]
@@ -100,26 +152,25 @@ public sealed class TownAreaProjectionDeliveryTests
             runtimes,
             new RecordingNotificationBus(),
             new NoopPartyProjection(),
-            sender);
-        var firstAdmission = delivery.TryAdmitForTownReturn(
-            first, firstResult, new CharacterPositionState(3, 6, 100, 200, 1));
-        var secondAdmission = delivery.TryAdmitForTownReturn(
-            second, secondResult, new CharacterPositionState(3, 6, 200, 200, 1));
-
-        Assert.True(await delivery.SendTownReturnBatchAsync(
-            first.ConnectionId,
-            first,
-            [Assert.IsType<TownReturnAdmission>(firstAdmission),
-             Assert.IsType<TownReturnAdmission>(secondAdmission)],
-            [],
+            sender,
+            SharedTownMovementDomainService.Instance);
+        Assert.Equal(2, await delivery.EnterAsync(
+            [new TownAreaEntry(
+                 first, firstResult, new CharacterPositionState(3, 6, 100, 200, 1)),
+             new TownAreaEntry(
+                 second, secondResult, new CharacterPositionState(3, 6, 200, 200, 1))],
             CancellationToken.None));
 
-        var batch = Assert.Single(sender.Deliveries).Delivery;
+        var firstFrames = sender.Deliveries
+            .Single(value => value.ConnectionId == first.ConnectionId)
+            .Delivery.RequiredDirectMessages;
         Assert.Equal(
             [second.CharacterId, existing.CharacterId],
-            batch.RequiredDirectMessages.OfType<CurrentUserStateMessage>()
+            firstFrames.OfType<CurrentUserStateMessage>()
                 .Select(message => message.Character.Identity.CharacterId));
-        var secondFrames = Assert.Single(batch.BestEffortTargets).OrderedMessages;
+        var secondFrames = sender.Deliveries
+            .Single(value => value.ConnectionId == second.ConnectionId)
+            .Delivery.RequiredDirectMessages;
         Assert.Equal(
             [first.CharacterId, existing.CharacterId],
             secondFrames.OfType<CurrentUserStateMessage>()
@@ -149,7 +200,8 @@ public sealed class TownAreaProjectionDeliveryTests
             runtimes,
             notifications,
             new NoopPartyProjection(),
-            new RecordingSender());
+            new RecordingSender(),
+            SharedTownMovementDomainService.Instance);
 
         await delivery.PublishRosterAsync(oldSnapshot, CancellationToken.None);
 
@@ -162,7 +214,7 @@ public sealed class TownAreaProjectionDeliveryTests
     }
 
     [Fact]
-    public void Late_old_session_cannot_replace_the_current_area_lease()
+    public async Task Late_old_session_cannot_replace_the_current_area_lease()
     {
         var old = Session(1, "old");
         var replacement = SelectedSessionIdentity.Create(
@@ -187,14 +239,15 @@ public sealed class TownAreaProjectionDeliveryTests
             runtimes,
             new RecordingNotificationBus(),
             new NoopPartyProjection(),
-            new RecordingSender());
+            new RecordingSender(),
+            SharedTownMovementDomainService.Instance);
 
-        var admission = delivery.TryAdmitForTownReturn(
-            old,
-            Entry(old, 100),
-            new CharacterPositionState(3, 6, 100, 200, 1));
-
-        Assert.Null(admission);
+        Assert.Equal(0, await delivery.EnterAsync(
+            [new TownAreaEntry(
+                old,
+                Entry(old, 100),
+                new CharacterPositionState(3, 6, 100, 200, 1))],
+            CancellationToken.None));
         Assert.Equal(replacement.TownAreaLease(), store.Find(old.CharacterId)!.Lease);
     }
 
@@ -275,6 +328,23 @@ public sealed class TownAreaProjectionDeliveryTests
             SelectedSessionIdentity mover,
             PartyDirectoryScope? previousScope,
             CancellationToken cancellationToken) => ValueTask.CompletedTask;
+    }
+
+    private sealed class SharedTownMovement : ITownMovementDomainService
+    {
+        public ValueTask<bool> DeclaresAreaAsync(
+            int townId, int areaId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(true);
+
+        public ValueTask<bool> SharesTownPresenceAsync(
+            int townId, int areaId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(true);
+
+        public ValueTask<bool> CanEnterTownAsync(
+            Dfo.Server.Data.Channel.ChannelEntryIdentity channel,
+            int townId,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult(true);
     }
 
     private sealed record SentDelivery(

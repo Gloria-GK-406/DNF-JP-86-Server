@@ -61,7 +61,7 @@ public sealed class SelectCharacterHandler(
     ISelectedSessionDomainService selectedSessions,
     IGameMessageSender sender,
     INotificationBus notifications,
-    IPartyTownProjectionDelivery partyTownProjection,
+    TownAreaProjectionDelivery townAreaProjection,
     ICleanupNotificationDelivery cleanupDelivery,
     INetworkConnectionCloser closer,
     ILogger<SelectCharacterHandler> logger,
@@ -277,30 +277,8 @@ public sealed class SelectCharacterHandler(
         EnsureCurrent(session);
         if (SendsFramesAfterTheCompletionMarker && publication.TownPresence is { } town)
         {
-            await sender.SendExplicitAsync(
-                session.ConnectionId,
-                new GameExplicitMessageDelivery(
-                    TownPresenceMessages.ForNewcomer(town.State),
-                    []),
-                cancellationToken).ConfigureAwait(false);
-            EnsureCurrent(session);
-            await partyTownProjection.RefreshObservedPartiesAsync(
-                [session],
-                town.Audience,
-                cancellationToken).ConfigureAwait(false);
-            EnsureCurrent(session);
-            var townDelivery = await PartyExactNotificationDelivery.PublishWithRetryAsync(
-                notifications,
-                town.Audience,
-                new TownParticipantPublished(town.State),
-                cancellationToken).ConfigureAwait(false);
-            if (!townDelivery.Delivered.IsEmpty)
-            {
-                await partyTownProjection.RefreshObservedPartiesAsync(
-                    townDelivery.Delivered,
-                    [session],
-                    cancellationToken).ConfigureAwait(false);
-            }
+            await townAreaProjection.PublishCommittedEntryAsync(
+                session, town, cancellationToken).ConfigureAwait(false);
         }
         EnsureCurrent(session);
         if (SendsFramesAfterTheCompletionMarker && publication.PvpLobby is { } pvp)

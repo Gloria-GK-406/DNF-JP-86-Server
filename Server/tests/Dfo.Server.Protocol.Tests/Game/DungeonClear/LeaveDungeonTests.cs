@@ -22,6 +22,7 @@ using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
+using Dfo.Server.Protocol.Tests.Game.TownProjection;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Dfo.Server.Protocol.Tests.Game.DungeonClear;
@@ -198,6 +199,10 @@ public sealed class LeaveDungeonTests
             runs,
             deliveries,
             new RecordingSender(),
+            TownAreaProjectionTestFactory.Create(
+                new OneSession(Identity),
+                new OneRuntimeSession(Entry()),
+                new RecordingSender()),
             NullLogger<EplpCommandHandler>.Instance,
             new SelectedSessionTransitionGate());
 
@@ -224,9 +229,12 @@ public sealed class LeaveDungeonTests
             runs,
             deliveries,
             sender,
+            TownAreaProjectionTestFactory.Create(
+                new OneSession(Identity),
+                new OneRuntimeSession(Entry()),
+                sender),
             NullLogger<GiveUpGameHandler>.Instance,
             new SelectedSessionTransitionGate(),
-            townAreaProjection: null,
             new SessionPresenceDomainService(),
             commands,
             new PartyNotificationDelivery(new NoopNotificationBus()));
@@ -261,9 +269,12 @@ public sealed class LeaveDungeonTests
             new OneRun(hasRun: false),
             new DungeonRunDeliveryRegistry(),
             new RecordingSender(),
+            TownAreaProjectionTestFactory.Create(
+                new OneSession(Identity),
+                new OneRuntimeSession(Entry()),
+                new RecordingSender()),
             NullLogger<GiveUpGameHandler>.Instance,
             new SelectedSessionTransitionGate(),
-            townAreaProjection: null,
             new SessionPresenceDomainService(),
             commands,
             new PartyNotificationDelivery(new NoopNotificationBus()));
@@ -288,6 +299,10 @@ public sealed class LeaveDungeonTests
             new OneRun(),
             new DungeonRunDeliveryRegistry(),
             sender,
+            TownAreaProjectionTestFactory.Create(
+                new NoSession(),
+                new NoRuntimeSession(),
+                sender),
             NullLogger<EplpCommandHandler>.Instance,
             new SelectedSessionTransitionGate());
 
@@ -321,6 +336,10 @@ public sealed class LeaveDungeonTests
             runs,
             deliveries,
             sender,
+            TownAreaProjectionTestFactory.Create(
+                new OneSession(Identity),
+                new OneRuntimeSession(Entry()),
+                sender),
             NullLogger<BackToVillageHandler>.Instance,
             new SelectedSessionTransitionGate());
 
@@ -384,7 +403,8 @@ public sealed class LeaveDungeonTests
             runtimes,
             new NoopNotificationBus(),
             new NoopPartyTownProjection(),
-            sender);
+            sender,
+            SharedTownMovementDomainService.Instance);
         var handler = new EplpCommandHandler(
             sessions,
             runtimes,
@@ -392,9 +412,9 @@ public sealed class LeaveDungeonTests
             new OneRun(),
             new DungeonRunDeliveryRegistry(),
             sender,
+            projection,
             NullLogger<EplpCommandHandler>.Instance,
-            transitionGate,
-            projection);
+            transitionGate);
         var blocker = await transitionGate.AcquireAsync(
             Identity.AccountId,
             UserAccessMode.Exclusive,
@@ -439,6 +459,10 @@ public sealed class LeaveDungeonTests
             runs,
             new DungeonRunDeliveryRegistry(),
             sender,
+            TownAreaProjectionTestFactory.Create(
+                new OneSession(Identity),
+                new OneRuntimeSession(Entry()),
+                sender),
             NullLogger<EplpCommandHandler>.Instance,
             new SelectedSessionTransitionGate());
 

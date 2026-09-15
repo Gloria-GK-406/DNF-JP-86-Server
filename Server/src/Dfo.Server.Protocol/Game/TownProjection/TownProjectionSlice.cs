@@ -299,7 +299,6 @@ public sealed class SetUserAreaHandler(
             return;
         }
 
-        var sameArea = standing.TownId == message.TownId && standing.AreaId == message.AreaId;
         var sharesTownPresence = await towns
             .SharesTownPresenceAsync(message.TownId, message.AreaId, cancellationToken)
             .ConfigureAwait(false);
@@ -307,19 +306,15 @@ public sealed class SetUserAreaHandler(
         // command carries, and the facing it keeps is the service's to hold.
         var moved = positions.CrossInto(
             session, message.TownId, message.AreaId, message.X, message.Y);
-        var destination = new TownAreaKey(
-            channel.ChannelId,
-            moved.TownId,
-            moved.AreaId);
-        var change = townAreas.TransferExact(
-            session.CharacterId,
-            session.TownAreaLease(),
-            destination,
-            moved,
-            sharesTownPresence);
-        var currentArea = change?.CurrentArea ?? townAreas.Find(destination);
-        if (currentArea is null
-            || currentArea.Members.All(member => !session.Owns(member)))
+        if (!await townAreaProjection.TransferAsync(
+                context.Connection.ConnectionId,
+                session,
+                result,
+                channel.ChannelId,
+                moved,
+                standingMember,
+                sharesTownPresence,
+                cancellationToken).ConfigureAwait(false))
         {
             logger.LogWarning(
                 "Set user area {ConnectionId}: area membership generation changed while moving",
@@ -339,14 +334,6 @@ public sealed class SetUserAreaHandler(
             moved.X,
             moved.Y);
 
-        await townAreaProjection.ProjectTransferAsync(
-            context.Connection.ConnectionId,
-            session,
-            result,
-            moved,
-            standingMember,
-            change ?? throw new InvalidDataException("A committed transfer returned no change."),
-            cancellationToken).ConfigureAwait(false);
     }
 }
 
@@ -392,17 +379,10 @@ public sealed class SetUserPositionHandler(
         // The step is reported and the service keeps the rest of where they were. Nothing here
         // reads the position back: the answer this frame carries is the one the client just sent.
         var moved = positions.StepTo(session, message.X, message.Y, message.Direction);
-        var areaMovement = townAreas.MoveExact(
-            session.CharacterId,
-            session.TownAreaLease(),
-            moved);
-        await townAreaProjection.ProjectMovementAsync(
+        await townAreaProjection.MoveAsync(
             context.Connection.ConnectionId,
             session,
-            areaMovement?.Area ?? townAreas.Find(member.Area),
-            message.X,
-            message.Y,
-            message.Direction,
+            moved,
             message.Trailer,
             cancellationToken).ConfigureAwait(false);
     }
