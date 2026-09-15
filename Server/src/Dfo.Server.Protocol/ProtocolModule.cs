@@ -135,7 +135,7 @@ public sealed class ProtocolModule : IServerModule
             retryLimit: 0);
         services.AddNotificationHandler<TownPositionChanged, TownPositionChangedHandler>(
             retryLimit: 0);
-        services.AddNotificationHandler<TownParticipantDeparted, TownParticipantDepartedHandler>(
+        services.AddNotificationHandler<TownAreaRosterReconciled, TownAreaRosterReconciledHandler>(
             retryLimit: 0);
         services.TryAddSingleton<ChannelProtocolKeyProvider>();
         services.TryAddSingleton(SelectCharacterDeliveryOptions.Everything);

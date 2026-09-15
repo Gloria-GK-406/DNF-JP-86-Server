@@ -19,9 +19,18 @@ public sealed record TownPositionChanged(
     byte Direction,
     ushort Trailer) : INotification<TownPositionChanged>;
 
-/// <summary>A character left the recipients' town area.</summary>
-public sealed record TownParticipantDeparted(ushort WireUserId)
-    : INotification<TownParticipantDeparted>;
+/// <summary>The authoritative occupants left in one area after its membership changed.</summary>
+/// <remarks>
+/// An area crossing must not be projected as USER_LEAVE. That notification removes the user by
+/// its global wire ID and A21 also drops the party/P2P member object attached to it. AREA_USERS is
+/// scoped by town and area, so it can remove only the old town actor while preserving the selected
+/// session, party membership and UDP endpoint.
+/// </remarks>
+public sealed record TownAreaRosterReconciled(
+    byte TownId,
+    byte AreaId,
+    IReadOnlyList<AreaUserPresence> RemainingUsers)
+    : INotification<TownAreaRosterReconciled>;
 
 public sealed class TownParticipantPublishedHandler
     : INotificationHandler<TownParticipantPublished>
@@ -57,17 +66,20 @@ public sealed class TownPositionChangedHandler : INotificationHandler<TownPositi
     }
 }
 
-public sealed class TownParticipantDepartedHandler
-    : INotificationHandler<TownParticipantDeparted>
+public sealed class TownAreaRosterReconciledHandler
+    : INotificationHandler<TownAreaRosterReconciled>
 {
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(
         NotificationRecipient recipient,
-        TownParticipantDeparted notification,
+        TownAreaRosterReconciled notification,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(notification);
         return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(
-            [new TownDepartureMessage(notification.WireUserId)]);
+            [new AreaUsersNotification(
+                notification.TownId,
+                notification.AreaId,
+                notification.RemainingUsers)]);
     }
 }
 

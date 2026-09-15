@@ -78,15 +78,24 @@ public sealed class TownPresenceNotificationTests
     }
 
     [Fact]
-    public async Task Departure_event_composes_the_town_leave_notification()
+    public async Task Area_roster_reconciliation_composes_the_scoped_authoritative_roster()
     {
-        var messages = await new TownParticipantDepartedHandler().ComposeAsync(
+        var messages = await new TownAreaRosterReconciledHandler().ComposeAsync(
             new NotificationRecipient(new CharacterId(61), new NetworkConnectionId("Game:61")),
-            new TownParticipantDeparted(60),
+            new TownAreaRosterReconciled(
+                1,
+                2,
+                [new AreaUserPresence(61, 300, 200, 5, 0)]),
             CancellationToken.None);
 
-        var message = Assert.IsType<TownDepartureMessage>(Assert.Single(messages));
-        Assert.Equal((ushort)60, message.UserId);
+        var message = Assert.IsType<AreaUsersNotification>(Assert.Single(messages));
+        Assert.Equal((byte)1, message.TownId);
+        Assert.Equal((byte)2, message.AreaId);
+        var remaining = Assert.Single(message.Users);
+        Assert.Equal((ushort)61, remaining.WireUserId);
+        Assert.Equal((short)300, remaining.X);
+        Assert.Equal((short)200, remaining.Y);
+        Assert.Equal((byte)5, remaining.Direction);
     }
 
     private static TownParticipantEntryState Participant(

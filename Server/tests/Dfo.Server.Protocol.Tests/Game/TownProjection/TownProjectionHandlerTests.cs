@@ -136,12 +136,14 @@ public sealed class TownProjectionHandlerTests
     public async Task Crossing_areas_removes_the_mover_from_the_old_peers_and_publishes_to_the_new_peers()
     {
         var oldPeer = PeerIdentity(61, "old");
+        var secondOldPeer = PeerIdentity(65, "old-second");
         var newPeer = PeerIdentity(62, "new");
         var otherListenerOldPeer = PeerIdentity(63, "old-other-listener", listenerPort: 10011);
         var otherListenerNewPeer = PeerIdentity(64, "new-other-listener", listenerPort: 10011);
         var sessions = new SelectedSessionDomainService();
         sessions.Select(Identity);
         sessions.Select(oldPeer);
+        sessions.Select(secondOldPeer);
         sessions.Select(newPeer);
         sessions.Select(otherListenerOldPeer);
         sessions.Select(otherListenerNewPeer);
@@ -153,6 +155,10 @@ public sealed class TownProjectionHandlerTests
         runtimes.Publish(
             oldPeer,
             EntryFor(oldPeer, WalkedTownId, WalkedAreaId, x: 700),
+            shouldPersistPosition: false);
+        runtimes.Publish(
+            secondOldPeer,
+            EntryFor(secondOldPeer, WalkedTownId, WalkedAreaId, x: 750),
             shouldPersistPosition: false);
         runtimes.Publish(
             newPeer,
@@ -171,6 +177,10 @@ public sealed class TownProjectionHandlerTests
             oldPeer,
             new CharacterPositionState(
                 WalkedTownId, WalkedAreaId, 700, 300, WalkedDirection));
+        positions.Place(
+            secondOldPeer,
+            new CharacterPositionState(
+                WalkedTownId, WalkedAreaId, 750, 300, WalkedDirection));
         positions.Place(
             newPeer,
             new CharacterPositionState(
@@ -191,6 +201,13 @@ public sealed class TownProjectionHandlerTests
             WalkedAreaId,
             StandingInTown: true,
             oldPeer));
+        presence.Admit(new SessionPresence(
+            secondOldPeer.CharacterId,
+            secondOldPeer.ListenerPort,
+            WalkedTownId,
+            WalkedAreaId,
+            StandingInTown: true,
+            secondOldPeer));
         presence.Admit(new SessionPresence(
             newPeer.CharacterId,
             newPeer.ListenerPort,
@@ -243,7 +260,25 @@ public sealed class TownProjectionHandlerTests
                     [oldPeer.CharacterId],
                     Assert.IsType<NotificationAudience.TheseSessions>(item.Audience).Sessions
                         .Select(value => value.CharacterId));
-                Assert.IsType<TownParticipantDeparted>(item.Notification);
+                var roster = Assert.IsType<TownAreaRosterReconciled>(item.Notification);
+                Assert.Equal(WalkedTownId, roster.TownId);
+                Assert.Equal(WalkedAreaId, roster.AreaId);
+                Assert.Equal(
+                    [oldPeer.WireUserId, secondOldPeer.WireUserId],
+                    roster.RemainingUsers.Select(user => user.WireUserId));
+            },
+            item =>
+            {
+                Assert.Equal(
+                    [secondOldPeer.CharacterId],
+                    Assert.IsType<NotificationAudience.TheseSessions>(item.Audience).Sessions
+                        .Select(value => value.CharacterId));
+                var roster = Assert.IsType<TownAreaRosterReconciled>(item.Notification);
+                Assert.Equal(WalkedTownId, roster.TownId);
+                Assert.Equal(WalkedAreaId, roster.AreaId);
+                Assert.Equal(
+                    [secondOldPeer.WireUserId, oldPeer.WireUserId],
+                    roster.RemainingUsers.Select(user => user.WireUserId));
             },
             item =>
             {
@@ -267,11 +302,12 @@ public sealed class TownProjectionHandlerTests
         Assert.Equal(
             [
                 "town-direct",
-                "party-move:60@10:3:6",
-                "party:60<-62",
-                "notify:TownParticipantDeparted",
+                "notify:TownAreaRosterReconciled",
+                "notify:TownAreaRosterReconciled",
                 "notify:TownParticipantPublished",
                 "party:62<-60",
+                "party:60<-62",
+                "party-move:60@10:3:6",
             ],
             order);
     }

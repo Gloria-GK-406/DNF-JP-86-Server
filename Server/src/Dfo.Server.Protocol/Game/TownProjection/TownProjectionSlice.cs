@@ -407,28 +407,57 @@ public sealed class SetUserAreaHandler(
                 []),
             cancellationToken).ConfigureAwait(false);
 
-        if (!sameArea)
-        {
-            await partyTownProjection.RefreshMovedPartyAsync(
-                session,
-                new PartyDirectoryScope(channel.ChannelId, standing.TownId, standing.AreaId),
-                cancellationToken).ConfigureAwait(false);
-        }
-
-        if (newAudience.Count > 0)
-        {
-            await partyTownProjection.RefreshObservedPartiesAsync(
-                [session],
-                newAudience,
-                cancellationToken).ConfigureAwait(false);
-        }
-
         if (oldAudience.Length > 0)
         {
-            await notifications.PublishAsync(
-                new NotificationAudience.TheseSessions(oldAudience),
-                new TownParticipantDeparted(session.WireUserId),
-                cancellationToken).ConfigureAwait(false);
+            var remainingUsers = new List<(SelectedSessionIdentity Session, AreaUserPresence User)>(
+                oldAudience.Length);
+            foreach (var oldPeer in oldAudience)
+            {
+                if (!runtimeSessions.TryGet(oldPeer, out var oldResult, out _)
+                    || oldResult is null
+                    || positions.Find(oldPeer.CharacterId) is not { } oldPosition)
+                {
+                    continue;
+                }
+
+                remainingUsers.Add((
+                    oldPeer,
+                    new AreaUserPresence(
+                        oldPeer.WireUserId,
+                        oldPosition.X,
+                        oldPosition.Y,
+                        oldPosition.Direction,
+                        oldResult.World.Channel.Spawn.AreaState)));
+            }
+
+            foreach (var oldPeer in oldAudience)
+            {
+                var ownIndex = remainingUsers.FindIndex(entry => entry.Session == oldPeer);
+                if (ownIndex < 0)
+                {
+                    continue;
+                }
+
+                var recipientUsers = new List<AreaUserPresence>(remainingUsers.Count)
+                {
+                    remainingUsers[ownIndex].User,
+                };
+                for (var index = 0; index < remainingUsers.Count; index++)
+                {
+                    if (index != ownIndex)
+                    {
+                        recipientUsers.Add(remainingUsers[index].User);
+                    }
+                }
+
+                await notifications.PublishAsync(
+                    new NotificationAudience.TheseSessions([oldPeer]),
+                    new TownAreaRosterReconciled(
+                        standing.TownId,
+                        standing.AreaId,
+                        recipientUsers),
+                    cancellationToken).ConfigureAwait(false);
+            }
         }
         if (!sameArea && newAudience.Count > 0 && state is not null)
         {
@@ -444,6 +473,25 @@ public sealed class SetUserAreaHandler(
                     [session],
                     cancellationToken).ConfigureAwait(false);
             }
+        }
+
+        if (newAudience.Count > 0)
+        {
+            await partyTownProjection.RefreshObservedPartiesAsync(
+                [session],
+                newAudience,
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        // Party members survive an area crossing. Publish their final full-party view only after
+        // both old- and new-area projections, so no town projection can subsequently erase or
+        // overwrite the member objects that hold their P2P endpoints.
+        if (!sameArea)
+        {
+            await partyTownProjection.RefreshMovedPartyAsync(
+                session,
+                new PartyDirectoryScope(channel.ChannelId, standing.TownId, standing.AreaId),
+                cancellationToken).ConfigureAwait(false);
         }
     }
 
