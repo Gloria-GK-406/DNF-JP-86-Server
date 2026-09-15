@@ -1,0 +1,23 @@
+kind: rks-verification
+decision: pass
+claim: >-
+  Commit 6cff4c96 is built in Release and deployed from the main worktree; the
+  server is ready for the user's two-client NOTI 0x000B endpoint acceptance test.
+conditions:
+  - condition: The deployed Release encoding has the A21 S2C UDP port byte order fix.
+    evidence: >-
+      Release build completed with 0 warnings and 0 errors; the focused Release
+      PartyNotification endpoint test passed 1/1 with no failures or skips.
+  - condition: All required local service endpoints are live on one Host process.
+    evidence: >-
+      Host PID 59432 listens on TCP 7001/10010/10011/18080 and UDP 12311/12312;
+      GET http://127.0.0.1:18080/api/launcher/v1/bootstrap returned HTTP 200 with
+      status ready.
+  - condition: Existing player persistence was preserved across the build and startup.
+    evidence: >-
+      Server/src/Dfo.Server.Host/bin/Release/net10.0/Data/dfo-server.db remains
+      389120 bytes with last-write time 2026-09-15T08:46:40.8996192+08:00.
+scope_boundary: >-
+  This proves deployment readiness only. Successful peer visibility, member status,
+  monster removal, door opening, room transition, and disconnect-free play still
+  require the user's two-client live-game acceptance test.
