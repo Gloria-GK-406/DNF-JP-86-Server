@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
@@ -17,23 +18,23 @@ public interface IPartyTownProjectionDelivery
 
     ValueTask RefreshMovedPartyAsync(
         SelectedSessionIdentity mover,
-        PartyDirectoryScope previousScope,
+        PartyDirectoryScope? previousScope,
         CancellationToken cancellationToken);
 }
 
 public sealed class PartyTownProjectionDelivery(
     IPartyService parties,
-    ISessionPresenceDomainService presence,
+    ITownAreaDomainService townAreas,
+    ISelectedSessionDomainService selectedSessions,
     INotificationBus notifications,
     PartyProjectionStreamRegistry streams) : IPartyTownProjectionDelivery
 {
     public async ValueTask RefreshMovedPartyAsync(
         SelectedSessionIdentity mover,
-        PartyDirectoryScope previousScope,
+        PartyDirectoryScope? previousScope,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(mover);
-        ArgumentNullException.ThrowIfNull(previousScope);
         cancellationToken.ThrowIfCancellationRequested();
 
         var candidate = parties.FindParty(mover.CharacterId);
@@ -41,12 +42,14 @@ public sealed class PartyTownProjectionDelivery(
             return;
 
         var memberSessions = candidate.Members
-            .Select(member => presence.Find(member.CharacterId)?.Session)
+            .Select(member => ExactSession(member.CharacterId))
             .Where(session => session is not null)
             .Cast<SelectedSessionIdentity>()
             .Distinct()
             .ToArray();
-        var previousObservers = SessionsInScope(previousScope, mover.CharacterId);
+        var previousObservers = previousScope is null
+            ? []
+            : SessionsInScope(previousScope, mover.CharacterId);
         var candidateScope = candidate.Members.Single(value => value.Slot == 0)
             .Character.DirectoryScope;
         var currentObservers = candidateScope is null
@@ -69,7 +72,7 @@ public sealed class PartyTownProjectionDelivery(
             }
 
             memberSessions = current.Members
-                .Select(member => presence.Find(member.CharacterId)?.Session)
+                .Select(member => ExactSession(member.CharacterId))
                 .Where(session => session is not null)
                 .Cast<SelectedSessionIdentity>()
                 .Distinct()
@@ -89,7 +92,9 @@ public sealed class PartyTownProjectionDelivery(
             if (leaderMovedDirectory)
             {
                 var memberIds = current.Members.Select(value => value.CharacterId).ToHashSet();
-                var oldObservers = SessionsInScope(previousScope, mover.CharacterId)
+                var oldObservers = previousScope is null
+                    ? []
+                    : SessionsInScope(previousScope, mover.CharacterId)
                     .Where(value => !memberIds.Contains(value.CharacterId))
                     .Distinct()
                     .ToArray();
@@ -141,13 +146,13 @@ public sealed class PartyTownProjectionDelivery(
     private SelectedSessionIdentity[] SessionsInScope(
         PartyDirectoryScope scope,
         CharacterId excludingCharacterId) =>
-        presence.Query(SessionPresenceScope.VisiblePartyArea(
-                scope.ChannelId,
-                scope.TownId,
-                scope.AreaId,
-                excludingCharacterId))
-            .Where(value => value.Session is not null)
-            .Select(value => value.Session!)
+        (townAreas.Find(new TownAreaKey(scope.ChannelId, scope.TownId, scope.AreaId))
+            ?.Members ?? [])
+            .Where(value => value.SharesTownPresence
+                && value.CharacterId != excludingCharacterId)
+            .Select(value => ExactSession(value.CharacterId))
+            .Where(value => value is not null)
+            .Cast<SelectedSessionIdentity>()
             .Distinct()
             .ToArray();
 
@@ -168,19 +173,18 @@ public sealed class PartyTownProjectionDelivery(
             representedSessions.Concat(exactRecipients), cancellationToken).ConfigureAwait(false);
         foreach (var recipient in exactRecipients)
         {
-            var currentPresence = presence.Find(recipient.CharacterId);
-            if (currentPresence?.Session != recipient
-                || !currentPresence.StandingInTown
-                || !currentPresence.SharesTownPresence
-                || currentPresence.ChannelId <= 0)
+            var currentPresence = townAreas.Find(recipient.CharacterId);
+            if (currentPresence is null
+                || !recipient.Owns(currentPresence)
+                || !currentPresence.SharesTownPresence)
             {
                 continue;
             }
 
             var query = new PartyDirectoryQuery(new PartyDirectoryScope(
-                currentPresence.ChannelId,
-                currentPresence.TownId,
-                currentPresence.AreaId));
+                currentPresence.Area.ChannelId,
+                currentPresence.Area.TownId,
+                currentPresence.Area.AreaId));
             foreach (var candidate in parties.Query(query))
             {
                 if (candidate.Members.Any(member => member.CharacterId == recipient.CharacterId))
@@ -215,6 +219,15 @@ public sealed class PartyTownProjectionDelivery(
                 }
             }
         }
+    }
+
+    private SelectedSessionIdentity? ExactSession(CharacterId characterId)
+    {
+        var member = townAreas.Find(characterId);
+        var session = selectedSessions.FindByCharacter(characterId);
+        return member is not null && session is not null && session.Owns(member)
+            ? session
+            : null;
     }
 }
 

@@ -2,6 +2,8 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.TownProjection;
@@ -93,7 +95,9 @@ public sealed class EplpCommandHandler(
     IDungeonRunDomainService runs,
     DungeonRunDeliveryRegistry deliveries,
     IGameMessageSender sender,
-    ILogger<EplpCommandHandler> logger) : ClientMessageHandler<EplpCommandRequest>
+    ILogger<EplpCommandHandler> logger,
+    SelectedSessionTransitionGate transitionGate,
+    TownAreaProjectionDelivery? townAreaProjection = null) : ClientMessageHandler<EplpCommandRequest>
 {
     /// <summary>The state that means "take me out of here".</summary>
     public const byte LeaveState = 1;
@@ -118,20 +122,21 @@ public sealed class EplpCommandHandler(
             return;
         }
 
-        List<IGameServerMessage> frames =
-            [new EplpCommandResponse(message.State, message.Option)];
-
-        // Ended here rather than inside the log line: this is the state change, and a state change
-        // hidden in an argument list is one that disappears the day somebody lowers the log level.
         var leaving = message.State == LeaveState;
-        var currentRun = leaving ? runs.Find(session.CharacterId) : null;
-        var runEnded = currentRun is not null
-            && runs.End(session.CharacterId, currentRun.RunId);
-        if (runEnded && currentRun is not null)
-            deliveries.RemoveParticipant(currentRun.RunId, session.CharacterId);
+        TownReturnAdmission? admission = null;
+        var runEnded = false;
         if (leaving)
         {
-            frames.AddRange(TownReturnProjection.Frames(session, result, position));
+            await using var transition = await transitionGate.AcquireAsync(
+                session.AccountId, UserAccessMode.Exclusive, cancellationToken)
+                .ConfigureAwait(false);
+            if (selectedSessions.FindByConnection(context.Connection.ConnectionId) != session)
+                return;
+            var currentRun = runs.Find(session.CharacterId);
+            runEnded = currentRun is not null && runs.End(session.CharacterId, currentRun.RunId);
+            if (runEnded && currentRun is not null)
+                deliveries.RemoveParticipant(currentRun.RunId, session.CharacterId);
+            admission = townAreaProjection?.TryAdmitForTownReturn(session, result, position);
         }
 
         logger.LogInformation(
@@ -144,6 +149,19 @@ public sealed class EplpCommandHandler(
             leaving,
             runEnded);
 
+        if (admission is not null)
+        {
+            await townAreaProjection!.SendTownReturnAsync(
+                admission,
+                [new EplpCommandResponse(message.State, message.Option)],
+                cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        List<IGameServerMessage> frames =
+            [new EplpCommandResponse(message.State, message.Option)];
+        if (leaving)
+            frames.AddRange(TownReturnProjection.Frames(session, result, position, []));
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(frames, []),

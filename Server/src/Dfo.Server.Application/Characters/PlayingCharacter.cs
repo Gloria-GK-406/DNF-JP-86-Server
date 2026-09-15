@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.Characters;
@@ -23,13 +24,14 @@ internal sealed class PlayingCharacter(
     CharacterId characterId,
     IItemUseJudgementService judgement,
     ICharacterItemCooldownDomainService cooldowns,
-    ISessionPresenceDomainService presence,
+    ITownAreaDomainService townAreas,
     ICharacterCarriedGoldTable carriedGold,
     ICarriedGoldRuleService goldRules,
     ICharacterTable characters,
     ICharacterSkillPointDomainService skillPoints,
     ICharacterStatRuleService statRules,
-    ICharacterSkillStateDomainService skillState) : ICharacter
+    ICharacterSkillStateDomainService skillState,
+    IDungeonRunDomainService? dungeonRuns = null) : ICharacter
 {
     public CharacterId Id => characterId;
 
@@ -164,7 +166,7 @@ internal sealed class PlayingCharacter(
         // is written anywhere else. What is refused here is the gap entry leaves before both
         // happen -- the session is registered and its lease is being prepared, which is a database
         // round trip a request can arrive during.
-        if (presence.Find(characterId) is null)
+        if (townAreas.Find(characterId) is null && dungeonRuns?.Find(characterId) is null)
         {
             return ItemUsability.CharacterStateUnavailable;
         }
@@ -227,7 +229,7 @@ internal sealed class PlayingCharacter(
     /// </para>
     /// </remarks>
     private ItemUsePlace Place() =>
-        presence.Find(characterId) is { StandingInTown: false }
+        dungeonRuns?.Find(characterId) is not null
             ? ItemUsePlace.Dungeon
             : ItemUsePlace.Village;
 }

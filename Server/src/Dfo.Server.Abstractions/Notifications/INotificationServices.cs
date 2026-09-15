@@ -1,7 +1,7 @@
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
-using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Abstractions.Notifications;
 
@@ -61,7 +61,7 @@ public abstract record NotificationAudience
     public sealed record TheseSessions(IReadOnlyList<SelectedSessionIdentity> Sessions) : NotificationAudience;
 
     /// <summary>Every currently reachable character whose presence matches this scope.</summary>
-    public sealed record Scoped(SessionPresenceScope Scope) : NotificationAudience;
+    public sealed record Scoped(TownAreaFilter Scope) : NotificationAudience;
 }
 
 /// <summary>One resolved recipient and, when required, the exact session it must still own.</summary>

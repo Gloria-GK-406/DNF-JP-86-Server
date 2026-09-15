@@ -58,7 +58,7 @@ public sealed class TownPresencePublicationTests
     }
 
     [Fact]
-    public async Task A_character_on_another_listener_is_not_in_the_town_publication()
+    public async Task A_character_on_another_listener_but_the_same_logical_channel_is_published()
     {
         var sessions = new SelectedSessionDomainService();
         var runtimes = new SelectedSessionRuntimeDirectory();
@@ -74,7 +74,9 @@ public sealed class TownPresencePublicationTests
         sessions.Select(second.Session);
         service.Publish(second.Session, second.Result);
 
-        Assert.Null(service.PlanTownPublication(second.Session, second.Result));
+        var plan = Assert.IsType<TownParticipantPublicationPlan>(
+            service.PlanTownPublication(second.Session, second.Result));
+        Assert.Equal([first.Session], plan.Audience);
     }
 
     [Fact]

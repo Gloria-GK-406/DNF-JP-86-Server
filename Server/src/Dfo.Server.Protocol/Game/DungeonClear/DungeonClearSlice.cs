@@ -4,15 +4,18 @@ using Dfo.Server.Protocol.Game;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Parties;
 using Dfo.Server.Protocol.Game.MonsterDeath;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TownProjection;
+using Dfo.Server.Protocol.Game.Party;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.DungeonClear;
@@ -145,7 +148,13 @@ public sealed class GiveUpGameHandler(
     IDungeonRunDomainService runs,
     DungeonRunDeliveryRegistry deliveries,
     IGameMessageSender sender,
-    ILogger<GiveUpGameHandler> logger) : ClientMessageHandler<GiveUpGameRequest>
+    ILogger<GiveUpGameHandler> logger,
+    SelectedSessionTransitionGate transitionGate,
+    TownAreaProjectionDelivery? townAreaProjection = null,
+    ITownAreaDomainService? townAreas = null,
+    ICommandBus? commands = null,
+    PartyNotificationDelivery? partyNotifications = null)
+    : ClientMessageHandler<GiveUpGameRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -164,23 +173,62 @@ public sealed class GiveUpGameHandler(
             return;
         }
 
-        var currentRun = runs.Find(session.CharacterId);
-        var ended = currentRun is not null
-            && runs.End(session.CharacterId, currentRun.RunId);
-        if (ended && currentRun is not null)
-            deliveries.RemoveParticipant(currentRun.RunId, session.CharacterId);
+        var ended = false;
+        PartyCommandExecution? partyExecution = null;
+        TownReturnAdmission? admission = null;
+        await using (var transition = await transitionGate.AcquireAsync(
+            session.AccountId, UserAccessMode.Exclusive, cancellationToken)
+            .ConfigureAwait(false))
+        {
+            if (selectedSessions.FindByConnection(context.Connection.ConnectionId) != session)
+                return;
+
+            var currentRun = runs.Find(session.CharacterId);
+            ended = currentRun is not null && runs.End(session.CharacterId, currentRun.RunId);
+            if (ended && currentRun is not null)
+                deliveries.RemoveParticipant(currentRun.RunId, session.CharacterId);
+            if (ended && townAreas is not null && commands is not null)
+            {
+                var partyResult = await commands.SendAsync(
+                    new LeavePartyCommand(session.CharacterId),
+                    cancellationToken).ConfigureAwait(false);
+                partyExecution = new PartyCommandExecution(
+                    partyResult,
+                    PartyNotificationRecipientCapture.Capture(
+                        partyResult.Notifications, selectedSessions, townAreas));
+            }
+            admission = townAreaProjection?.TryAdmitForTownReturn(session, result, position);
+        }
+
+        if (partyExecution is { Result.Succeeded: true } && partyNotifications is not null)
+        {
+            await partyNotifications.DeliverAsync(
+                partyExecution.Result.Notifications,
+                partyExecution.Recipients,
+                cancellationToken).ConfigureAwait(false);
+        }
         logger.LogInformation(
             "Give up game {ConnectionId} character={CharacterId}: run ended={Ended}",
             context.Connection.ConnectionId,
             session.CharacterId.Value,
             ended);
 
+        if (admission is not null)
+        {
+            await townAreaProjection!.SendTownReturnAsync(
+                admission,
+                [new GiveUpGameResponse()],
+                cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        var townFrames = TownReturnProjection.Frames(session, result, position, []);
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(
                 [
                     new GiveUpGameResponse(),
-                    .. TownReturnProjection.Frames(session, result, position),
+                    .. townFrames,
                 ],
                 []),
             cancellationToken).ConfigureAwait(false);

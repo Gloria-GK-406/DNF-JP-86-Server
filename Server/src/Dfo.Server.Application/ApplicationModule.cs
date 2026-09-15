@@ -270,13 +270,14 @@ public sealed class ApplicationModule : IServerModule
                     characterId,
                     provider.GetRequiredService<IItemUseJudgementService>(),
                     provider.GetRequiredService<ICharacterItemCooldownDomainService>(),
-                    provider.GetRequiredService<ISessionPresenceDomainService>(),
+                    provider.GetRequiredService<ITownAreaDomainService>(),
                     provider.GetRequiredService<ICharacterCarriedGoldTable>(),
                     provider.GetRequiredService<ICarriedGoldRuleService>(),
                     provider.GetRequiredService<ICharacterTable>(),
                     provider.GetRequiredService<ICharacterSkillPointDomainService>(),
                     provider.GetRequiredService<ICharacterStatRuleService>(),
-                    provider.GetRequiredService<ICharacterSkillStateDomainService>())));
+                    provider.GetRequiredService<ICharacterSkillStateDomainService>(),
+                    provider.GetRequiredService<IDungeonRunDomainService>())));
         services.TryAddSingleton<ICharacterDomainService>(
             provider => provider.GetRequiredService<CharacterDomainService>());
         services.TryAddSingleton<ISelectCharacterPreparationDomainService, SelectCharacterPreparationService>();
@@ -355,7 +356,7 @@ public sealed class ApplicationModule : IServerModule
             provider.GetRequiredService<PartyService>());
         services.TryAddSingleton<IPartyDirectoryPresenceSink>(provider =>
             provider.GetRequiredService<PartyService>());
-        services.TryAddSingleton<ISessionPresenceDomainService, SessionPresenceDomainService>();
+        services.TryAddSingleton<ITownAreaDomainService, TownAreaDomainService>();
         services.TryAddSingleton<IExpertStoreDomainService, ExpertStoreDomainService>();
         services.TryAddSingleton<IPvpLobbyDomainService, PvpLobbyDomainService>();
         services.TryAddSingleton<ISessionAdjacentEntryDomainService, SessionAdjacentEntryDomainService>();

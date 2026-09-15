@@ -114,6 +114,8 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<PartyProjectionStreamRegistry>();
         services.TryAddSingleton<PartyNotificationDelivery>();
         services.TryAddSingleton<IPartyTownProjectionDelivery, PartyTownProjectionDelivery>();
+        services.TryAddSingleton<TownAreaProjectionGate>();
+        services.TryAddSingleton<TownAreaProjectionDelivery>();
         services.AddNotificationHandler<PartyInviteIssued, PartyInviteIssuedHandler>(retryLimit: 0);
         services.AddNotificationHandler<PartyRealtimeChanged, PartyRealtimeChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<PartyInviteAccepted, PartyInviteAcceptedHandler>(retryLimit: 0);

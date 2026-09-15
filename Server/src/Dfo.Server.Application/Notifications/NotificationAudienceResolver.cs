@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
 
@@ -18,10 +19,10 @@ namespace Dfo.Server.Application.Notifications;
 /// </remarks>
 internal sealed class NotificationAudienceResolver(
     ISelectedSessionDomainService sessions,
-    ISessionPresenceDomainService? presence = null)
+    ITownAreaDomainService? townAreas = null)
     : INotificationAudienceResolver
 {
-    private readonly ISessionPresenceDomainService? presence = presence;
+    private readonly ITownAreaDomainService? townAreas = townAreas;
 
     public IReadOnlyList<NotificationRecipient> Resolve(NotificationAudience audience)
     {
@@ -38,16 +39,17 @@ internal sealed class NotificationAudienceResolver(
         };
     }
 
-    private IReadOnlyList<NotificationRecipient> Reachable(SessionPresenceScope scope)
+    private IReadOnlyList<NotificationRecipient> Reachable(TownAreaFilter scope)
     {
-        var directory = presence ?? throw new InvalidOperationException(
-            "Scoped notification audiences require session presence.");
+        var directory = townAreas ?? throw new InvalidOperationException(
+            "Scoped notification audiences require town areas.");
         var recipients = new List<NotificationRecipient>();
-        foreach (var candidate in directory.Query(scope))
+        foreach (var candidate in directory.Query(scope)
+                     .SelectMany(area => area.Members)
+                     .Where(member => member.SharesTownPresence))
         {
-            if (candidate.Session is not { } exact
-                || sessions.FindByCharacter(candidate.CharacterId) is not { } current
-                || current != exact)
+            if (sessions.FindByCharacter(candidate.CharacterId) is not { } current
+                || !current.Owns(candidate))
             {
                 continue;
             }

@@ -9,6 +9,8 @@ using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -442,7 +444,9 @@ public sealed class SelectDungeonHandler(
     ICharacterQuestLogDomainService questLogs,
     ICharacterFatigueDomainService fatigue,
     IGameMessageSender sender,
-    ILogger<SelectDungeonHandler> logger) : ClientMessageHandler<SelectDungeonRequest>
+    ILogger<SelectDungeonHandler> logger,
+    SelectedSessionTransitionGate transitionGate,
+    TownAreaProjectionDelivery? townAreaProjection = null) : ClientMessageHandler<SelectDungeonRequest>
 {
     /// <summary>What one entry reports as spent.</summary>
     /// <remarks>
@@ -601,6 +605,9 @@ public sealed class SelectDungeonHandler(
         }
 
         var leaderVisit = entered.Visits[session.CharacterId];
+        var entryDeliveries = new List<(
+            SelectedSessionIdentity Session,
+            IReadOnlyList<IGameServerMessage> Frames)>();
         try
         {
             deliveryRegistry.Register(
@@ -650,9 +657,6 @@ public sealed class SelectDungeonHandler(
             // tutorial it went out when the screen opened; the tutorial's first entry defers it to
             // here, which is where the captured session shows it and why this used to send it
             // unconditionally.
-            var deliveries = new List<(
-                SelectedSessionIdentity Session,
-                IReadOnlyList<IGameServerMessage> Frames)>();
             foreach (var attachment in attachments.Members)
             {
                 var memberSession = attachment.Session;
@@ -688,7 +692,7 @@ public sealed class SelectDungeonHandler(
                     visit.Actors,
                     visit.FirstActorSequence,
                     FloorPieceValues.Describe(visit.Run, visit.FloorDrops)));
-                deliveries.Add((memberSession, frames));
+                entryDeliveries.Add((memberSession, frames));
             }
 
             // Every awaited projection above is allowed to run user code and database I/O. The
@@ -710,21 +714,106 @@ public sealed class SelectDungeonHandler(
                 return;
             }
 
-            var direct = deliveries.Single(value => value.Session == session);
+        }
+        catch
+        {
+            RollbackEntry(leaderVisit.Run.RunId, participants);
+            throw;
+        }
+
+        // This is the entry commit boundary. All fallible frame construction has finished. The
+        // exact-session recheck, removal from town, and first-room delivery share the account
+        // transition gates, so a replacement cannot land in the gap. From this point a transport
+        // failure leaves the run committed for normal disconnect cleanup instead of rolling the
+        // run back while also forgetting to restore town membership.
+        IAsyncDisposable transitions;
+        try
+        {
+            transitions = await AcquireTransitionsAsync(
+                transitionGate, attachments.Members, cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            RollbackEntry(leaderVisit.Run.RunId, participants);
+            throw;
+        }
+
+        var departures = new List<TownAreaDeparture>();
+        await using (transitions)
+        {
+            if (attachments.Members.Any(value =>
+                    selectedSessions.FindByCharacter(value.Session.CharacterId) != value.Session))
+            {
+                RollbackEntry(leaderVisit.Run.RunId, participants);
+                if (selectedSessions.FindByCharacter(session.CharacterId) == session)
+                {
+                    await RefuseAsync(
+                        context.Connection.ConnectionId,
+                        SelectDungeonRefusal.MemberBlocked,
+                        context: 0,
+                        cancellationToken).ConfigureAwait(false);
+                }
+                return;
+            }
+
+            // Commit all membership facts before any roster/party notification can invoke an
+            // external handler. A failed projection can no longer split one party between town
+            // and dungeon after its shared run has already been created.
+            if (townAreaProjection is not null)
+            {
+                foreach (var attachment in attachments.Members)
+                {
+                    var departure = townAreaProjection.TryLeave(
+                        attachment.Session,
+                        TownAreaDepartureReason.DungeonEntry);
+                    if (departure is not null)
+                        departures.Add(departure);
+                }
+            }
+
+            var direct = entryDeliveries.Single(value => value.Session == session);
             await sender.SendExplicitAsync(
                 context.Connection.ConnectionId,
                 new GameExplicitMessageDelivery(
                     direct.Frames,
-                    [.. deliveries
+                    [.. entryDeliveries
                         .Where(value => value.Session != session)
                         .Select(value => new GameExplicitMessageTarget(
                             value.Session.ConnectionId,
                             value.Frames))]),
                 cancellationToken).ConfigureAwait(false);
         }
+
+        foreach (var departure in departures)
+        {
+            await townAreaProjection!.ProjectDepartureAsync(departure, cancellationToken)
+                .ConfigureAwait(false);
+        }
+    }
+
+    private static async ValueTask<IAsyncDisposable> AcquireTransitionsAsync(
+        SelectedSessionTransitionGate gate,
+        IReadOnlyList<(SelectedSessionIdentity Session, SelectCharacterResult Runtime, byte Slot)>
+            members,
+        CancellationToken cancellationToken)
+    {
+        var leases = new List<IAsyncDisposable>();
+        try
+        {
+            foreach (var accountId in members
+                .Select(value => value.Session.AccountId)
+                .Distinct()
+                .OrderBy(value => value.Value))
+            {
+                leases.Add(await gate.AcquireAsync(
+                    accountId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false));
+            }
+            return new TransitionLeaseSet(leases);
+        }
         catch
         {
-            RollbackEntry(leaderVisit.Run.RunId, participants);
+            for (var index = leases.Count - 1; index >= 0; index--)
+                await leases[index].DisposeAsync().ConfigureAwait(false);
             throw;
         }
     }
@@ -816,6 +905,16 @@ public sealed class SelectDungeonHandler(
     private sealed record EntryAttachments(
         IReadOnlyList<(SelectedSessionIdentity Session, SelectCharacterResult Runtime, byte Slot)> Members,
         byte? BlockedSlot);
+
+    private sealed class TransitionLeaseSet(IReadOnlyList<IAsyncDisposable> leases)
+        : IAsyncDisposable
+    {
+        public async ValueTask DisposeAsync()
+        {
+            for (var index = leases.Count - 1; index >= 0; index--)
+                await leases[index].DisposeAsync().ConfigureAwait(false);
+        }
+    }
 }
 
 /// <summary>

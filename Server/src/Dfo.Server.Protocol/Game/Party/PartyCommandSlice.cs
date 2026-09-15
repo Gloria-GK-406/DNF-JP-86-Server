@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Characters;
@@ -329,7 +330,7 @@ internal static class PartyTransitionExecution
         SelectedSessionIdentity first,
         SelectedSessionIdentity? second,
         ISelectedSessionDomainService sessions,
-        ISessionPresenceDomainService? presence,
+        ITownAreaDomainService? townAreas,
         Func<ValueTask<PartyOperationResult>> action,
         CancellationToken cancellationToken)
     {
@@ -354,7 +355,7 @@ internal static class PartyTransitionExecution
                 PartyNotificationRecipientCapture.Capture(
                     result.Notifications,
                     sessions,
-                    presence));
+                    townAreas));
         }
         finally
         {
@@ -372,20 +373,21 @@ internal static class PartyCharacterProjection
 {
     public static bool TryCapture(
         SelectedSessionIdentity session,
-        ISessionPresenceDomainService presence,
+        ITownAreaDomainService townAreas,
         out PartyCharacterSnapshot character)
     {
-        var current = presence.Find(session.CharacterId);
-        if (current?.Session != session)
+        var current = townAreas.Find(session.CharacterId);
+        if (current is null || !session.Owns(current))
         {
             character = null!;
             return false;
         }
 
-        var scope = current.StandingInTown
-            && current.SharesTownPresence
-            && current.ChannelId > 0
-                ? new PartyDirectoryScope(current.ChannelId, current.TownId, current.AreaId)
+        var scope = current.SharesTownPresence
+                ? new PartyDirectoryScope(
+                    current.Area.ChannelId,
+                    current.Area.TownId,
+                    current.Area.AreaId)
                 : null;
         character = new PartyCharacterSnapshot(
             session.AccountId,
@@ -479,7 +481,7 @@ internal static class SessionEndpointObservation
 
 public sealed class RequestPeerHandler(
     ISelectedSessionDomainService sessions,
-    ISessionPresenceDomainService presence,
+    ITownAreaDomainService townAreas,
     SelectedSessionTransitionGate transitionGate,
     ICommandBus commands,
     PartyNotificationDelivery notifications,
@@ -520,11 +522,11 @@ public sealed class RequestPeerHandler(
             inviter,
             target,
             sessions,
-            presence,
+            townAreas,
             () => sessions.FindByConnection(context.Connection.ConnectionId) == inviter
                 && sessions.FindByWireUserId(message.TargetWireUserId) == target
-                && PartyCharacterProjection.TryCapture(inviter, presence, out var inviterCharacter)
-                && PartyCharacterProjection.TryCapture(target, presence, out var targetCharacter)
+                && PartyCharacterProjection.TryCapture(inviter, townAreas, out var inviterCharacter)
+                && PartyCharacterProjection.TryCapture(target, townAreas, out var targetCharacter)
                     ? commands.SendAsync(new RequestPartyInviteCommand(
                         inviterCharacter, targetCharacter), cancellationToken)
                     : ValueTask.FromResult(PartyOperationResult.Reject(
@@ -544,7 +546,7 @@ public sealed class RequestPeerHandler(
 
 public sealed class ResponsePeerHandler(
     ISelectedSessionDomainService sessions,
-    ISessionPresenceDomainService presence,
+    ITownAreaDomainService townAreas,
     SelectedSessionTransitionGate transitionGate,
     ICommandBus commands,
     PartyNotificationDelivery notifications,
@@ -585,11 +587,11 @@ public sealed class ResponsePeerHandler(
             invitee,
             inviter,
             sessions,
-            presence,
+            townAreas,
             () => sessions.FindByConnection(context.Connection.ConnectionId) == invitee
                 && sessions.FindByWireUserId(message.InviterWireUserId) == inviter
-                && PartyCharacterProjection.TryCapture(invitee, presence, out var inviteeCharacter)
-                && PartyCharacterProjection.TryCapture(inviter, presence, out var inviterCharacter)
+                && PartyCharacterProjection.TryCapture(invitee, townAreas, out var inviteeCharacter)
+                && PartyCharacterProjection.TryCapture(inviter, townAreas, out var inviterCharacter)
                     ? commands.SendAsync(new AcceptPartyInviteCommand(
                         inviteeCharacter, inviterCharacter), cancellationToken)
                     : ValueTask.FromResult(PartyOperationResult.Reject(
@@ -612,7 +614,7 @@ public sealed class LeavePartyHandler(
     ICommandBus commands,
     PartyNotificationDelivery notifications,
     ILogger<LeavePartyHandler> logger,
-    ISessionPresenceDomainService? presence = null) : ClientMessageHandler<LeavePartyRequest>
+    ITownAreaDomainService? townAreas = null) : ClientMessageHandler<LeavePartyRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -632,7 +634,7 @@ public sealed class LeavePartyHandler(
             session,
             null,
             sessions,
-            presence,
+            townAreas,
             () => sessions.FindByConnection(context.Connection.ConnectionId) == session
                 ? commands.SendAsync(new LeavePartyCommand(session.CharacterId), cancellationToken)
                 : ValueTask.FromResult(PartyOperationResult.Reject(
@@ -692,7 +694,7 @@ public sealed class CallPartyMemberRealtimeInfoHandler(
 
 public sealed class SetPartyInfoHandler(
     ISelectedSessionDomainService sessions,
-    ISessionPresenceDomainService presence,
+    ITownAreaDomainService townAreas,
     SelectedSessionTransitionGate transitionGate,
     ICommandBus commands,
     PartyNotificationDelivery notifications,
@@ -717,9 +719,9 @@ public sealed class SetPartyInfoHandler(
             session,
             null,
             sessions,
-            presence,
+            townAreas,
             () => sessions.FindByConnection(context.Connection.ConnectionId) == session
-                && PartyCharacterProjection.TryCapture(session, presence, out var character)
+                && PartyCharacterProjection.TryCapture(session, townAreas, out var character)
                 ? commands.SendAsync(new SetPartyInfoCommand(
                     character,
                     message.Settings,

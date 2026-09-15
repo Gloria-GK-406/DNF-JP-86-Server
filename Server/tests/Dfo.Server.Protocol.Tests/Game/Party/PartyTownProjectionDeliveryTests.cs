@@ -35,6 +35,7 @@ public sealed class PartyTownProjectionDeliveryTests
         var delivery = new PartyTownProjectionDelivery(
             new StubParties((Leader, snapshot), (Member, snapshot)),
             MovedPresence(),
+            new FixedSelectedSessions(),
             bus,
             new PartyProjectionStreamRegistry());
 
@@ -77,6 +78,7 @@ public sealed class PartyTownProjectionDeliveryTests
         var delivery = new PartyTownProjectionDelivery(
             parties,
             Presence(),
+            new FixedSelectedSessions(),
             bus,
             new PartyProjectionStreamRegistry());
 
@@ -103,6 +105,7 @@ public sealed class PartyTownProjectionDeliveryTests
         var current = new PartyTownProjectionDelivery(
             new StubParties((Leader, Snapshot(revision: 3))),
             Presence(),
+            new FixedSelectedSessions(),
             currentBus,
             streams);
 
@@ -116,6 +119,7 @@ public sealed class PartyTownProjectionDeliveryTests
         var stale = new PartyTownProjectionDelivery(
             new StubParties((Leader, Snapshot(revision: 3))),
             Presence(),
+            new FixedSelectedSessions(),
             staleBus,
             streams);
 
@@ -133,7 +137,8 @@ public sealed class PartyTownProjectionDeliveryTests
         await stream.Gate.WaitAsync(CancellationToken.None);
         var parties = new MutableParties(Leader, Snapshot(revision: 3));
         var bus = new RecordingNotificationBus();
-        var delivery = new PartyTownProjectionDelivery(parties, Presence(), bus, streams);
+        var delivery = new PartyTownProjectionDelivery(
+            parties, Presence(), new FixedSelectedSessions(), bus, streams);
 
         try
         {
@@ -167,6 +172,7 @@ public sealed class PartyTownProjectionDeliveryTests
         var delivery = new PartyTownProjectionDelivery(
             new StubParties((Leader, snapshot)),
             Presence(),
+            new FixedSelectedSessions(),
             bus,
             new PartyProjectionStreamRegistry());
 
@@ -186,7 +192,8 @@ public sealed class PartyTownProjectionDeliveryTests
         var parties = new MutableParties(Leader, oldSnapshot);
         var bus = new BlockingFirstRosterNotificationBus();
         var fixedPresence = Presence();
-        var readRepair = new PartyTownProjectionDelivery(parties, fixedPresence, bus, streams);
+        var readRepair = new PartyTownProjectionDelivery(
+            parties, fixedPresence, new FixedSelectedSessions(), bus, streams);
         var mutation = new PartyNotificationDelivery(
             bus, streams, new FixedSelectedSessions(), fixedPresence);
 

@@ -36,6 +36,8 @@
              Link="Support\RecordingQuestLogs.cs" />
     <Compile Include="..\Dfo.Server.Application.Tests\Support\StubWorldContentEntryRuleService.cs"
              Link="Support\StubWorldContentEntryRuleService.cs" />
+    <Compile Include="..\Dfo.Server.Application.Tests\Support\LegacyTownAreaTestAdapter.cs"
+             Link="Support\LegacyTownAreaTestAdapter.cs" />
   </ItemGroup>
   <ItemGroup>
     <!-- Compiled in rather than copied: three test assemblies reach the inventory seam, and this

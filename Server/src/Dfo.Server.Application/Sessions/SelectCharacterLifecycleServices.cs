@@ -30,7 +30,7 @@ internal sealed class SelectedSessionCleanupService(
     ICharacterContainerDomainService containers,
     ICharacterItemCooldownDomainService cooldowns,
     IActiveCharacterDomainService activeCharacters,
-    ISessionPresenceDomainService presence,
+    ITownAreaDomainService townAreas,
     IExpertStoreDomainService expertStores,
     IPvpLobbyDomainService pvp,
     IEnumerable<ISelectedSessionPositionPersistence> positionPersistence,
@@ -43,14 +43,14 @@ internal sealed class SelectedSessionCleanupService(
         SelectedSessionIdentity session, bool includeOwner, CancellationToken cancellationToken)
     {
         var failures = new List<Exception>();
-        var currentPresence = presence.Find(session.CharacterId);
+        var currentMember = townAreas.Find(session.CharacterId);
         var audience = new List<SelectedSessionIdentity>();
         var peerNotices = new List<SelectedSessionCleanupNotice>();
         var required = new List<SelectedSessionCleanupNotice>();
         var partyNotifications = PartyNotificationPlan.Empty;
         var partyRecipients = PartyNotificationRecipientPlan.Empty;
         var ownsSelectedCharacter = sessions.FindByCharacter(session.CharacterId) == session;
-        if (currentPresence?.Session == session)
+        if (currentMember is not null && session.Owns(currentMember))
         {
             // Preserve the exact peer generations this area snapshot was built from. Reducing
             // them to character IDs would let a replacement on another listener receive this
@@ -59,14 +59,13 @@ internal sealed class SelectedSessionCleanupService(
             // Asked here rather than at the moment of sending, because the presence record this
             // departure is leaving is withdrawn a few statements below: resolving the area later
             // would be asking about a different moment.
-            foreach (var peer in presence.Query(SessionPresenceScope.VisibleTownArea(
-                         currentPresence.ListenerPort,
-                         currentPresence.TownId,
-                         currentPresence.AreaId,
-                         session.CharacterId)))
+            foreach (var peer in townAreas.Find(currentMember.Area)?.Members
+                         .Where(member => member.SharesTownPresence
+                             && member.CharacterId != session.CharacterId)
+                     ?? [])
             {
-                if (peer.Session is { } exact
-                    && sessions.FindByCharacter(peer.CharacterId) == exact)
+                if (sessions.FindByCharacter(peer.CharacterId) is { } exact
+                    && exact.Owns(peer))
                 {
                     audience.Add(exact);
                 }
@@ -141,7 +140,10 @@ internal sealed class SelectedSessionCleanupService(
             });
         }
         Run(() => expertStores.CloseExact(session));
-        Run(() => presence.WithdrawExact(session));
+        Run(() => townAreas.LeaveExact(
+            session.CharacterId,
+            session.TownAreaLease(),
+            TownAreaDepartureReason.SessionEnded) is not null);
         Run(() => pvp.ClearReadyExact(session));
         Run(() => inventoryLeases.ReleaseExact(session));
         Run(() => positions.ForgetExact(session));
@@ -215,13 +217,14 @@ internal sealed class SelectedSessionCleanupService(
             .Distinct()
             .Select(scope => new PartyDirectoryRecipientGroup(
                 scope,
-                presence.Query(SessionPresenceScope.VisiblePartyArea(
-                        scope.ChannelId,
-                        scope.TownId,
-                        scope.AreaId))
-                    .Where(item => item.Session is { } exact
-                        && sessions.FindByCharacter(item.CharacterId) == exact)
-                    .Select(item => item.Session!)
+                (townAreas.Find(new TownAreaKey(
+                         scope.ChannelId,
+                         scope.TownId,
+                         scope.AreaId))?.Members ?? [])
+                    .Where(item => item.SharesTownPresence
+                        && sessions.FindByCharacter(item.CharacterId) is { } exact
+                        && exact.Owns(item))
+                    .Select(item => sessions.FindByCharacter(item.CharacterId)!)
                     .Distinct()
                     .ToArray()))
             .ToArray();
@@ -232,7 +235,7 @@ internal sealed class SelectedSessionCleanupService(
 internal sealed class SelectCharacterSessionEntryService(
     ISelectedSessionDomainService sessions,
     ISelectedSessionRuntimeDirectory runtimes,
-    ISessionPresenceDomainService presence,
+    ITownAreaDomainService townAreas,
     IPvpLobbyDomainService pvp,
     ICharacterPositionDomainService positions) : ISelectCharacterSessionEntryDomainService
 {
@@ -241,28 +244,29 @@ internal sealed class SelectCharacterSessionEntryService(
     {
         var position = positions.Find(session.CharacterId)
             ?? throw new InvalidDataException("The published town position is unavailable.");
-        var occupants = presence.Query(SessionPresenceScope.VisibleTownArea(
-            session.ListenerPort,
-            position.TownId,
-            position.AreaId,
-            session.CharacterId));
-        if (occupants.Count == 0)
+        var current = townAreas.Find(session.CharacterId);
+        if (current is null || !session.Owns(current) || !current.SharesTownPresence)
+            return null;
+        var occupants = townAreas.Find(current.Area)?.Members
+            .Where(member => member.SharesTownPresence
+                && member.CharacterId != session.CharacterId)
+            .ToArray() ?? [];
+        if (occupants.Length == 0)
             return null;
 
-        var existing = new List<TownParticipantEntryState>(occupants.Count);
-        var audience = new List<SelectedSessionIdentity>(occupants.Count);
+        var existing = new List<TownParticipantEntryState>(occupants.Length);
+        var audience = new List<SelectedSessionIdentity>(occupants.Length);
         foreach (var occupant in occupants)
         {
-            if (occupant.Session is not { } owner
-                || sessions.FindByCharacter(occupant.CharacterId) != owner
+            if (sessions.FindByCharacter(occupant.CharacterId) is not { } owner
+                || !owner.Owns(occupant)
                 || !runtimes.TryGet(owner, out var otherResult, out _)
-                || otherResult is null
-                || positions.Find(occupant.CharacterId) is not { } otherPosition)
+                || otherResult is null)
             {
                 continue;
             }
 
-            existing.Add(CreateTownParticipant(otherResult, otherPosition));
+            existing.Add(CreateTownParticipant(otherResult, occupant.Position));
             audience.Add(owner);
         }
 
@@ -336,16 +340,16 @@ internal sealed class SelectCharacterSessionEntryService(
     {
         runtimes.Publish(session, result, result.World.Channel.PersistsPosition);
         positions.Place(session, result.Character.Position);
-        var spawn = result.World.Channel.Spawn;
-        presence.Admit(new SessionPresence(
+        var position = result.Character.Position;
+        townAreas.Enter(new TownAreaMember(
             session.CharacterId,
-            session.ListenerPort,
-            spawn.TownId,
-            spawn.AreaId,
-            StandingInTown: true,
-            Session: session,
-            SharesTownPresence: spawn.SharesTownPresence,
-            ChannelId: result.World.Channel.ChannelId));
+            session.TownAreaLease(),
+            new TownAreaKey(
+                result.World.Channel.ChannelId,
+                position.TownId,
+                position.AreaId),
+            position,
+            result.World.Channel.Spawn.SharesTownPresence));
     }
 
     public void ReplaceRuntimeExact(SelectedSessionIdentity session, SelectCharacterResult result) =>

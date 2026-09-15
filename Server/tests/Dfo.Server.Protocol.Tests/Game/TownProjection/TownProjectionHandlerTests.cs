@@ -56,17 +56,23 @@ public sealed class TownProjectionHandlerTests
         var presenceRegistry = Presence();
         var sender = new RecordingSender();
         var notifications = new RecordingNotifications();
+        var sessions = new OneSession(Identity);
+        var runtimes = new OneRuntimeSession(Entry());
         var handler = new SetUserAreaHandler(
-            new OneSession(Identity),
-            new OneRuntimeSession(Entry()),
+            sessions,
+            runtimes,
             positions,
             presenceRegistry,
             new OneChannel(),
             new EveryTownDeclared(),
             new SelectedSessionTransitionGate(),
-            sender,
-            notifications,
-            new NoopPartyTownProjectionDelivery(),
+            new TownAreaProjectionDelivery(
+                presenceRegistry,
+                sessions,
+                runtimes,
+                notifications,
+                new NoopPartyTownProjectionDelivery(),
+                sender),
             NullLogger<SetUserAreaHandler>.Instance);
 
         await handler.HandleAsync(
@@ -100,21 +106,30 @@ public sealed class TownProjectionHandlerTests
     {
         var positions = Standing();
         var gate = new SelectedSessionTransitionGate();
+        var presence = Presence();
+        var sender = new RecordingSender();
+        var notifications = new RecordingNotifications();
+        var sessions = new OneSession(Identity);
+        var runtimes = new OneRuntimeSession(Entry());
         var held = await gate.AcquireAsync(
             Identity.AccountId,
             Dfo.Server.Application.Commands.UserAccessMode.Exclusive,
             CancellationToken.None);
         var handler = new SetUserAreaHandler(
-            new OneSession(Identity),
-            new OneRuntimeSession(Entry()),
+            sessions,
+            runtimes,
             positions,
-            Presence(),
+            presence,
             new OneChannel(),
             new EveryTownDeclared(),
             gate,
-            new RecordingSender(),
-            new RecordingNotifications(),
-            new NoopPartyTownProjectionDelivery(),
+            new TownAreaProjectionDelivery(
+                presence,
+                sessions,
+                runtimes,
+                notifications,
+                new NoopPartyTownProjectionDelivery(),
+                sender),
             NullLogger<SetUserAreaHandler>.Instance);
 
         var pending = handler.HandleAsync(
@@ -200,35 +215,40 @@ public sealed class TownProjectionHandlerTests
             WalkedTownId,
             WalkedAreaId,
             StandingInTown: true,
-            oldPeer));
+            oldPeer,
+            ChannelId: 10));
         presence.Admit(new SessionPresence(
             secondOldPeer.CharacterId,
             secondOldPeer.ListenerPort,
             WalkedTownId,
             WalkedAreaId,
             StandingInTown: true,
-            secondOldPeer));
+            secondOldPeer,
+            ChannelId: 10));
         presence.Admit(new SessionPresence(
             newPeer.CharacterId,
             newPeer.ListenerPort,
             CrossedTownId,
             CrossedAreaId,
             StandingInTown: true,
-            newPeer));
+            newPeer,
+            ChannelId: 10));
         presence.Admit(new SessionPresence(
             otherListenerOldPeer.CharacterId,
             otherListenerOldPeer.ListenerPort,
             WalkedTownId,
             WalkedAreaId,
             StandingInTown: true,
-            otherListenerOldPeer));
+            otherListenerOldPeer,
+            ChannelId: 99));
         presence.Admit(new SessionPresence(
             otherListenerNewPeer.CharacterId,
             otherListenerNewPeer.ListenerPort,
             CrossedTownId,
             CrossedAreaId,
             StandingInTown: true,
-            otherListenerNewPeer));
+            otherListenerNewPeer,
+            ChannelId: 99));
         var order = new List<string>();
         var sender = new RecordingSender(order);
         var notifications = new RecordingNotifications(order);
@@ -241,9 +261,13 @@ public sealed class TownProjectionHandlerTests
             new OneChannel(),
             new EveryTownDeclared(),
             new SelectedSessionTransitionGate(),
-            sender,
-            notifications,
-            partyProjection,
+            new TownAreaProjectionDelivery(
+                presence,
+                sessions,
+                runtimes,
+                notifications,
+                partyProjection,
+                sender),
             NullLogger<SetUserAreaHandler>.Instance);
 
         await handler.HandleAsync(
@@ -328,13 +352,20 @@ public sealed class TownProjectionHandlerTests
         var presence = Presence();
         var sender = new RecordingSender();
         var notifications = new RecordingNotifications();
+        var sessions = new OneSession(Identity);
+        var runtimes = new OneRuntimeSession(Entry());
         var handler = new SetUserPositionHandler(
-            new OneSession(Identity),
-            new OneRuntimeSession(Entry()),
+            sessions,
+            runtimes,
             positions,
             presence,
-            sender,
-            notifications,
+            new TownAreaProjectionDelivery(
+                presence,
+                sessions,
+                runtimes,
+                notifications,
+                new NoopPartyTownProjectionDelivery(),
+                sender),
             NullLogger<SetUserPositionHandler>.Instance);
 
         await handler.HandleAsync(
@@ -368,26 +399,35 @@ public sealed class TownProjectionHandlerTests
             WalkedTownId,
             WalkedAreaId,
             StandingInTown: true,
-            peer));
+            peer,
+            ChannelId: 10));
         presence.Admit(new SessionPresence(
             otherListenerPeer.CharacterId,
             otherListenerPeer.ListenerPort,
             WalkedTownId,
             WalkedAreaId,
             StandingInTown: true,
-            otherListenerPeer));
+            otherListenerPeer,
+            ChannelId: 99));
         var sessions = new SelectedSessionDomainService();
         sessions.Select(Identity);
         sessions.Select(peer);
         sessions.Select(otherListenerPeer);
         var notifications = new RecordingNotifications();
+        var sender = new RecordingSender();
+        var runtimes = new OneRuntimeSession(Entry());
         var handler = new SetUserPositionHandler(
             sessions,
-            new OneRuntimeSession(Entry()),
+            runtimes,
             positions,
             presence,
-            new RecordingSender(),
-            notifications,
+            new TownAreaProjectionDelivery(
+                presence,
+                sessions,
+                runtimes,
+                notifications,
+                new NoopPartyTownProjectionDelivery(),
+                sender),
             NullLogger<SetUserPositionHandler>.Instance);
 
         await handler.HandleAsync(
@@ -420,7 +460,8 @@ public sealed class TownProjectionHandlerTests
             WalkedTownId,
             WalkedAreaId,
             StandingInTown: true,
-            oldPeer));
+            oldPeer,
+            ChannelId: 10));
         var sessions = new SelectedSessionDomainService();
         sessions.Select(Identity);
         sessions.Select(oldPeer);
@@ -431,13 +472,20 @@ public sealed class TownProjectionHandlerTests
             ListenerPort = 10011,
         });
         var notifications = new RecordingNotifications();
+        var sender = new RecordingSender();
+        var runtimes = new OneRuntimeSession(Entry());
         var handler = new SetUserPositionHandler(
             sessions,
-            new OneRuntimeSession(Entry()),
+            runtimes,
             positions,
             presence,
-            new RecordingSender(),
-            notifications,
+            new TownAreaProjectionDelivery(
+                presence,
+                sessions,
+                runtimes,
+                notifications,
+                new NoopPartyTownProjectionDelivery(),
+                sender),
             NullLogger<SetUserPositionHandler>.Instance);
 
         await handler.HandleAsync(
@@ -507,7 +555,8 @@ public sealed class TownProjectionHandlerTests
             WalkedTownId,
             WalkedAreaId,
             StandingInTown: true,
-            Identity));
+            Identity,
+            ChannelId: 10));
         return presence;
     }
 
@@ -725,12 +774,12 @@ public sealed class TownProjectionHandlerTests
     {
         public ValueTask RefreshMovedPartyAsync(
             SelectedSessionIdentity mover,
-            Dfo.Server.Data.Parties.PartyDirectoryScope previousScope,
+            Dfo.Server.Data.Parties.PartyDirectoryScope? previousScope,
             CancellationToken cancellationToken)
         {
             order.Add(
-                $"party-move:{mover.CharacterId.Value}@{previousScope.ChannelId}:"
-                + $"{previousScope.TownId}:{previousScope.AreaId}");
+                $"party-move:{mover.CharacterId.Value}@{previousScope?.ChannelId}:"
+                + $"{previousScope?.TownId}:{previousScope?.AreaId}");
             return ValueTask.CompletedTask;
         }
 
@@ -750,7 +799,7 @@ public sealed class TownProjectionHandlerTests
     {
         public ValueTask RefreshMovedPartyAsync(
             SelectedSessionIdentity mover,
-            Dfo.Server.Data.Parties.PartyDirectoryScope previousScope,
+            Dfo.Server.Data.Parties.PartyDirectoryScope? previousScope,
             CancellationToken cancellationToken) => ValueTask.CompletedTask;
 
         public ValueTask RefreshObservedPartiesAsync(

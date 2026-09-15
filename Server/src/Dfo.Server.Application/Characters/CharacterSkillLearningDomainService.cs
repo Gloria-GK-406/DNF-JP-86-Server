@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
@@ -11,7 +12,7 @@ namespace Dfo.Server.Application.Characters;
 
 internal sealed class CharacterSkillLearningDomainService(
     ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    ISelectedSessionRuntimeDirectory runtime, ISessionPresenceDomainService presence,
+    ISelectedSessionRuntimeDirectory runtime, ITownAreaDomainService townAreas,
     ICharacterTable characters, ICharacterEntryTable entries, ICharacterSkillTable skills,
     ICharacterSkillStateDomainService state, ICharacterSkillRuleService rules,
     IDomainTransactionAccessor transactions) : ICharacterSkillLearningDomainService
@@ -32,8 +33,8 @@ internal sealed class CharacterSkillLearningDomainService(
             || changes.Select(change => change.SkillId).Distinct().Count() != changes.Count)
             return new(CharacterSkillLearningRejection.InvalidRequest);
         if (mode != 0 || selected.World.Channel.PvpSkillProfileApplies
-            || presence.Find(session.CharacterId) is not { StandingInTown: true } currentPresence
-            || currentPresence.Session != session)
+            || townAreas.Find(session.CharacterId) is not { } member
+            || !session.Owns(member))
             return new(CharacterSkillLearningRejection.UnsupportedScenario);
         var entry = await entries.FindEntryAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);
         if (entry is null || entry.AccountId != session.AccountId.Value

@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
@@ -266,7 +267,12 @@ internal sealed class ShopFixture : IDisposable
             registry.GetRequiredUser(onlineUser).Generation, 10011);
         registry.Publish(session);
         provider.GetRequiredService<ISelectedSessionDomainService>().Select(session);
-        provider.GetRequiredService<ISessionPresenceDomainService>().Admit(new(session.CharacterId, 10011, 0, 0, true, session));
+        provider.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(
+            session.CharacterId,
+            session.TownAreaLease(),
+            new TownAreaKey(1, 0, 0),
+            new CharacterPositionState(0, 0, 0, 0, 0),
+            true));
         bag = new PersistentItemContainer(ContainerId.ForCharacter(session.CharacterId, InventoryContainerType.Main),
             session.CharacterId, new(InventoryContainerType.Main, 0), provider.GetRequiredService<IItemDomainStore>(),
             provider.GetRequiredService<IDomainTransactionAccessor>(), null!, provider.GetRequiredService<IItemPlacementRuleService>(),

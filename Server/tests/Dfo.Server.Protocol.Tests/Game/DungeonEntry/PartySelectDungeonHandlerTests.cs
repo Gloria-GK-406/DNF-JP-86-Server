@@ -2,11 +2,15 @@ using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Tests.Support;
+using Dfo.Server.Application.OnlineUsers;
+using Dfo.Server.Application.Sessions;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
@@ -16,6 +20,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.DungeonSelection;
+using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
@@ -82,6 +87,7 @@ public sealed class PartySelectDungeonHandlerTests
             .AddSingleton<IDungeonEntryIntentDomainService>(intents)
             .AddSingleton<IPartyService>(new Parties(Snapshot()))
             .AddSingleton<IGameMessageSender>(sender)
+            .AddSingleton<SelectedSessionTransitionGate>()
             .AddSingleton<Microsoft.Extensions.Logging.ILogger<BackToVillageHandler>>(
                 NullLogger<BackToVillageHandler>.Instance)
             .BuildServiceProvider();
@@ -258,7 +264,7 @@ public sealed class PartySelectDungeonHandlerTests
     [Fact]
     public async Task A_generation_change_during_delivery_preparation_rolls_back_without_run_frames()
     {
-        var world = World(replaceMemberDuringPrelude: true);
+        var world = World(replaceMemberDuringPrelude: true, withTownProjection: true);
         world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
 
         await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
@@ -269,11 +275,56 @@ public sealed class PartySelectDungeonHandlerTests
             world.Runs.Ended.OrderBy(value => value.Value));
         Assert.DoesNotContain(world.Sender.Messages(Leader.ConnectionId), frame => frame is StartMapNotification);
         Assert.DoesNotContain(world.Sender.Messages(Member.ConnectionId), frame => frame is StartMapNotification);
+        Assert.True(Leader.Owns(world.Areas.Find(Leader.CharacterId)!));
+    }
+
+    [Fact]
+    public async Task Cancelling_while_acquiring_commit_gates_rolls_back_before_leaving_town()
+    {
+        var world = World(withTownProjection: true);
+        world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
+        var blocker = await world.TransitionGate.AcquireAsync(
+            Leader.AccountId,
+            UserAccessMode.Exclusive,
+            CancellationToken.None);
+        using var cancellation = new CancellationTokenSource();
+        var pending = world.Handler.HandleAsync(
+            Dispatch(Leader), Request(), cancellation.Token).AsTask();
+        await Task.Yield();
+        Assert.False(pending.IsCompleted);
+
+        cancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
+        await blocker.DisposeAsync();
+
+        Assert.Equal(
+            [Leader.CharacterId, Member.CharacterId],
+            world.Runs.Ended.OrderBy(value => value.Value));
+        Assert.True(Leader.Owns(world.Areas.Find(Leader.CharacterId)!));
+        Assert.True(Member.Owns(world.Areas.Find(Member.CharacterId)!));
+    }
+
+    [Fact]
+    public async Task A_projection_failure_cannot_split_party_members_between_town_and_run()
+    {
+        var world = World(
+            withTownProjection: true,
+            partyTownProjection: new ThrowingPartyTownProjection());
+        world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => world.Handler.HandleAsync(
+            Dispatch(Leader), Request(), CancellationToken.None).AsTask());
+
+        Assert.Null(world.Areas.Find(Leader.CharacterId));
+        Assert.Null(world.Areas.Find(Member.CharacterId));
+        Assert.Empty(world.Runs.Ended);
     }
 
     private static TestWorld World(
         bool memberRuntimeAvailable = true,
-        bool replaceMemberDuringPrelude = false)
+        bool replaceMemberDuringPrelude = false,
+        bool withTownProjection = false,
+        IPartyTownProjectionDelivery? partyTownProjection = null)
     {
         var sessions = new Sessions(Leader, Member);
         var runtime = new Runtime(Entry(), memberRuntimeAvailable ? [Leader, Member] : [Leader]);
@@ -283,6 +334,29 @@ public sealed class PartySelectDungeonHandlerTests
         var runs = new RollbackRuns();
         var fatigue = new Fatigue();
         var sender = new Sender();
+        var areas = new SessionPresenceDomainService();
+        foreach (var member in new[] { Leader, Member })
+        {
+            areas.Admit(new SessionPresence(
+                member.CharacterId,
+                member.ListenerPort,
+                1,
+                1,
+                true,
+                member,
+                true,
+                1));
+        }
+        var townProjection = withTownProjection
+            ? new TownAreaProjectionDelivery(
+                areas,
+                sessions,
+                runtime,
+                new NoopNotificationBus(),
+                partyTownProjection ?? new NoopPartyTownProjection(),
+                sender)
+            : null;
+        var transitionGate = new SelectedSessionTransitionGate();
         var state = new UnchangedState(() =>
         {
             if (!replaceMemberDuringPrelude)
@@ -308,8 +382,11 @@ public sealed class PartySelectDungeonHandlerTests
             new RecordingQuestLogs(),
             fatigue,
             sender,
-            NullLogger<SelectDungeonHandler>.Instance);
-        return new TestWorld(handler, visits, intents, registry, runs, fatigue, sender);
+            NullLogger<SelectDungeonHandler>.Instance,
+            transitionGate,
+            townProjection);
+        return new TestWorld(
+            handler, visits, intents, registry, runs, fatigue, sender, areas, transitionGate);
     }
 
     private static SelectCharacterResult Entry() => SelectCharacterPayloadTestData.Create();
@@ -367,7 +444,9 @@ public sealed class PartySelectDungeonHandlerTests
         DungeonRunDeliveryRegistry Registry,
         RollbackRuns Runs,
         Fatigue Fatigue,
-        Sender Sender);
+        Sender Sender,
+        ITownAreaDomainService Areas,
+        SelectedSessionTransitionGate TransitionGate);
 
     private sealed class Parties(PartySnapshot snapshot) : IPartyService
     {
@@ -609,5 +688,42 @@ public sealed class PartySelectDungeonHandlerTests
             }
             destination.AddRange(messages);
         }
+    }
+
+    private sealed class NoopNotificationBus : INotificationBus
+    {
+        public ValueTask<NotificationDelivery> PublishAsync<TNotification>(
+            NotificationAudience audience,
+            TNotification notification,
+            CancellationToken cancellationToken)
+            where TNotification : class, INotification<TNotification> =>
+            ValueTask.FromResult(new NotificationDelivery([]));
+    }
+
+    private sealed class NoopPartyTownProjection : IPartyTownProjectionDelivery
+    {
+        public ValueTask RefreshObservedPartiesAsync(
+            IReadOnlyList<SelectedSessionIdentity> recipients,
+            IReadOnlyList<SelectedSessionIdentity> representedSessions,
+            CancellationToken cancellationToken) => ValueTask.CompletedTask;
+
+        public ValueTask RefreshMovedPartyAsync(
+            SelectedSessionIdentity mover,
+            PartyDirectoryScope? previousScope,
+            CancellationToken cancellationToken) => ValueTask.CompletedTask;
+    }
+
+    private sealed class ThrowingPartyTownProjection : IPartyTownProjectionDelivery
+    {
+        public ValueTask RefreshObservedPartiesAsync(
+            IReadOnlyList<SelectedSessionIdentity> recipients,
+            IReadOnlyList<SelectedSessionIdentity> representedSessions,
+            CancellationToken cancellationToken) => ValueTask.CompletedTask;
+
+        public ValueTask RefreshMovedPartyAsync(
+            SelectedSessionIdentity mover,
+            PartyDirectoryScope? previousScope,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("projection failed");
     }
 }

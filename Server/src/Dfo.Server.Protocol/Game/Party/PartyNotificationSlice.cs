@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
@@ -493,7 +494,7 @@ internal static class PartyNotificationRecipientCapture
     public static PartyNotificationRecipientPlan Capture(
         PartyNotificationPlan plan,
         ISelectedSessionDomainService? sessions,
-        ISessionPresenceDomainService? presence)
+        ITownAreaDomainService? townAreas)
     {
         if (sessions is null)
             return PartyNotificationRecipientPlan.Empty;
@@ -515,7 +516,7 @@ internal static class PartyNotificationRecipientCapture
             .Cast<SelectedSessionIdentity>()
             .Distinct()
             .ToArray();
-        if (presence is null)
+        if (townAreas is null)
             return new PartyNotificationRecipientPlan(characterRecipients, []);
 
         var directoryRecipients = new[]
@@ -528,13 +529,14 @@ internal static class PartyNotificationRecipientCapture
             .Distinct()
             .Select(scope => new PartyDirectoryRecipientGroup(
                 scope,
-                presence.Query(SessionPresenceScope.VisiblePartyArea(
-                        scope.ChannelId,
-                        scope.TownId,
-                        scope.AreaId))
-                    .Where(item => item.Session is { } exact
-                        && sessions.FindByCharacter(item.CharacterId) == exact)
-                    .Select(item => item.Session!)
+                (townAreas.Find(new TownAreaKey(
+                         scope.ChannelId,
+                         scope.TownId,
+                         scope.AreaId))?.Members ?? [])
+                    .Where(item => item.SharesTownPresence
+                        && sessions.FindByCharacter(item.CharacterId) is { } exact
+                        && exact.Owns(item))
+                    .Select(item => sessions.FindByCharacter(item.CharacterId)!)
                     .Distinct()
                     .ToArray()))
             .ToArray();
@@ -580,7 +582,7 @@ public sealed class PartyNotificationDelivery(
     INotificationBus notifications,
     PartyProjectionStreamRegistry streams,
     ISelectedSessionDomainService? sessions = null,
-    ISessionPresenceDomainService? presence = null,
+    ITownAreaDomainService? townAreas = null,
     IPartyService? parties = null)
 {
     internal PartyNotificationDelivery(INotificationBus notifications)
@@ -592,7 +594,7 @@ public sealed class PartyNotificationDelivery(
         PartyNotificationPlan plan,
         CancellationToken cancellationToken)
     {
-        var recipients = PartyNotificationRecipientCapture.Capture(plan, sessions, presence);
+        var recipients = PartyNotificationRecipientCapture.Capture(plan, sessions, townAreas);
         await DeliverAsync(plan, recipients, cancellationToken).ConfigureAwait(false);
     }
 

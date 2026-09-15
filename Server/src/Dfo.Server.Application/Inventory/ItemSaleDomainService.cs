@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
@@ -10,7 +11,7 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class ItemSaleDomainService(
     ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    ISessionPresenceDomainService presence, ICharacterDomainService characters,
+    ITownAreaDomainService townAreas, ICharacterDomainService characters,
     ICharacterContainerDomainService containers, IItemSaleRuleService rules) : IItemSaleDomainService
 {
     public async ValueTask<ItemSaleResult> SellAsync(SelectedSessionIdentity session, InventoryContainerType container,
@@ -24,7 +25,8 @@ internal sealed class ItemSaleDomainService(
         // Worn pieces, avatars and creatures require their own appearance/lifecycle updates.
         if (container != InventoryContainerType.Main || slotIndex is < 3 or >= 354 || count <= 0)
             return new(ItemSaleRejection.InvalidRequest);
-        if (presence.Find(session.CharacterId) is not { StandingInTown: true }
+        if (townAreas.Find(session.CharacterId) is not { } member
+            || !session.Owns(member)
             || !await rules.HasShopAsync(npcId, cancellationToken).ConfigureAwait(false))
             return new(ItemSaleRejection.ShopUnavailable);
         var bag = containers.FindContainer(session.CharacterId, container);

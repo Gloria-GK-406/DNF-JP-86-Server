@@ -7,6 +7,7 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
+using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Application.Tests.Notifications;
 
@@ -100,7 +101,7 @@ public sealed class NotificationAudienceTests
 
         var recipients = new NotificationAudienceResolver(sessions, presence).Resolve(
             new NotificationAudience.Scoped(
-                SessionPresenceScope.VisibleTownArea(10011, 1, 2)));
+                new TownAreaFilter(11, 1, 2)));
 
         Assert.Equal(
             [new NotificationRecipient(Standing, standing.ConnectionId, standing)],
@@ -121,7 +122,7 @@ public sealed class NotificationAudienceTests
         });
 
         var recipients = new NotificationAudienceResolver(sessions, presence).Resolve(
-            new NotificationAudience.Scoped(SessionPresenceScope.Global));
+            new NotificationAudience.Scoped(new TownAreaFilter()));
 
         Assert.Empty(recipients);
     }
@@ -132,9 +133,9 @@ public sealed class NotificationAudienceTests
         var resolver = new NotificationAudienceResolver(new SelectedSessionDomainService());
 
         var failure = Assert.Throws<InvalidOperationException>(() =>
-            resolver.Resolve(new NotificationAudience.Scoped(SessionPresenceScope.Global)));
+            resolver.Resolve(new NotificationAudience.Scoped(new TownAreaFilter())));
 
-        Assert.Contains("require session presence", failure.Message, StringComparison.Ordinal);
+        Assert.Contains("require town areas", failure.Message, StringComparison.Ordinal);
     }
 
     [Fact]

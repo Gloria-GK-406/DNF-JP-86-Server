@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -25,7 +26,7 @@ public sealed class RegistryExistenceTests
     {
         using var provider = BuildProductionGraph();
 
-        Assert.NotNull(provider.GetRequiredService<ISessionPresenceDomainService>());
+        Assert.NotNull(provider.GetRequiredService<ITownAreaDomainService>());
         Assert.NotNull(provider.GetRequiredService<IExpertStoreDomainService>());
         Assert.NotNull(provider.GetRequiredService<IPvpLobbyDomainService>());
         Assert.NotNull(provider.GetRequiredService<ISessionAdjacentEntryDomainService>());
@@ -69,14 +70,12 @@ public sealed class RegistryExistenceTests
             connectionGeneration: 1,
             listenerPort: 10011);
         _ = provider.GetRequiredService<ISelectedSessionDomainService>().Select(session);
-        provider.GetRequiredService<ISessionPresenceDomainService>().Admit(
-            new SessionPresence(
-                session.CharacterId,
-                session.ListenerPort,
-                1,
-                0,
-                StandingInTown: true,
-                session));
+        provider.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(
+            session.CharacterId,
+            session.TownAreaLease(),
+            new TownAreaKey(StubChannelEntryPolicy.GeneralChannel.ChannelId, 1, 0),
+            new CharacterPositionState(1, 0, 0, 0, 0),
+            true));
 
         var result = await provider.GetRequiredService<ISessionAdjacentEntryDomainService>().LoadAsync(
             new SessionAdjacentSubject(

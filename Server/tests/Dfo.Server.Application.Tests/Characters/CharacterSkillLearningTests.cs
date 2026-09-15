@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Application.Users;
 using Dfo.Server.Data.Characters;
@@ -175,7 +176,10 @@ public sealed class CharacterSkillLearningTests
             { World = selected.World with { Channel = selected.World.Channel with { PvpSkillProfileApplies = true } } });
         Assert.Equal(CharacterSkillLearningRejection.UnsupportedScenario, (await fixture.LearnAsync([new(1, 0, 1)])).Rejection);
         runtime.ReplaceExact(fixture.Session, selected);
-        fixture.Services.GetRequiredService<ISessionPresenceDomainService>().Withdraw(fixture.Session.CharacterId);
+        fixture.Services.GetRequiredService<ITownAreaDomainService>().LeaveExact(
+            fixture.Session.CharacterId,
+            fixture.Session.TownAreaLease(),
+            TownAreaDepartureReason.SessionEnded);
         Assert.Equal(CharacterSkillLearningRejection.UnsupportedScenario, (await fixture.LearnAsync([new(1, 0, 1)])).Rejection);
         runtime.RemoveExact(fixture.Session);
         Assert.Equal(CharacterSkillLearningRejection.NoSession, (await fixture.LearnAsync([new(1, 0, 1)])).Rejection);
@@ -387,7 +391,12 @@ internal sealed class LearningFixture : IAsyncDisposable
             registry.GetRequiredUser(user).Generation, 10011);
         registry.Publish(Session);
         Services.GetRequiredService<ISelectedSessionDomainService>().Select(Session);
-        Services.GetRequiredService<ISessionPresenceDomainService>().Admit(new(new(71), 10011, 0, 0, true, Session));
+        Services.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(
+            Session.CharacterId,
+            Session.TownAreaLease(),
+            new TownAreaKey(1, 0, 0),
+            new CharacterPositionState(0, 0, 0, 0, 0),
+            true));
         var runtime = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(new(1), 71, 0);
         Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().Publish(Session, runtime, false);
     }

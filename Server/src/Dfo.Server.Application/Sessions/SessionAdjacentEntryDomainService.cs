@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Sessions;
@@ -11,7 +12,7 @@ namespace Dfo.Server.Application.Sessions;
 /// about their arrival, belong to the entry lifecycle.
 /// </remarks>
 internal sealed class SessionAdjacentEntryDomainService(
-    ISessionPresenceDomainService presence,
+    ITownAreaDomainService townAreas,
     ISelectedSessionDomainService sessions,
     IExpertStoreDomainService expertStores,
     IPvpLobbyDomainService lobby) : ISessionAdjacentEntryDomainService
@@ -23,22 +24,25 @@ internal sealed class SessionAdjacentEntryDomainService(
         ArgumentNullException.ThrowIfNull(subject);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var occupants = presence.Query(SessionPresenceScope.VisibleTownArea(
-            subject.Channel.ListenerPort,
-            subject.TownId,
-            subject.AreaId,
-            subject.CharacterId));
+        var occupants = townAreas.Find(new TownAreaKey(
+                subject.Channel.ChannelId,
+                subject.TownId,
+                subject.AreaId))
+            ?.Members
+            .Where(member => member.SharesTownPresence
+                && member.CharacterId != subject.CharacterId)
+            .ToArray() ?? [];
 
-        var others = new List<PresentCharacterState>(occupants.Count);
+        var others = new List<PresentCharacterState>(occupants.Length);
         foreach (var occupant in occupants)
         {
-            if (occupant.Session is { } exact
-                && sessions.FindByCharacter(occupant.CharacterId) == exact)
+            if (sessions.FindByCharacter(occupant.CharacterId) is { } exact
+                && exact.Owns(occupant))
             {
                 others.Add(new PresentCharacterState(
                     occupant.CharacterId,
-                    occupant.TownId,
-                    occupant.AreaId));
+                    occupant.Area.TownId,
+                    occupant.Area.AreaId));
             }
         }
 

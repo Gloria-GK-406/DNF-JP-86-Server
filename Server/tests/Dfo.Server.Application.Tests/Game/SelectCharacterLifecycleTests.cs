@@ -1323,7 +1323,7 @@ public sealed partial class SelectCharacterLifecycleTests
     {
         public ValueTask RefreshMovedPartyAsync(
             SelectedSessionIdentity mover,
-            Dfo.Server.Data.Parties.PartyDirectoryScope previousScope,
+            Dfo.Server.Data.Parties.PartyDirectoryScope? previousScope,
             CancellationToken cancellationToken) => ValueTask.CompletedTask;
 
         public ValueTask RefreshObservedPartiesAsync(

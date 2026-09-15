@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
@@ -13,7 +14,7 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class NpcShopDomainService(
     ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers,
-    ISessionPresenceDomainService presence,
+    ITownAreaDomainService townAreas,
     ICharacterDomainService characters,
     IAccountTable accounts,
     ICharacterContainerDomainService containers,
@@ -26,7 +27,7 @@ internal sealed class NpcShopDomainService(
     {
         if (!IsCurrent(session))
             return NpcShopPurchaseResult.Refused(NpcShopRejection.NoSession);
-        if (presence.Find(session.CharacterId) is not { StandingInTown: true })
+        if (townAreas.Find(session.CharacterId) is not { } member || !session.Owns(member))
             return NpcShopPurchaseResult.Refused(NpcShopRejection.ShopUnavailable);
         var character = characters.Get(session.CharacterId);
         var identity = await character.IdentityAsync(cancellationToken).ConfigureAwait(false);

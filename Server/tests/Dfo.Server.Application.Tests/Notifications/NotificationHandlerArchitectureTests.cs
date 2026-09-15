@@ -85,7 +85,7 @@ public sealed class NotificationHandlerArchitectureTests
 
     [Theory]
     [InlineData(typeof(ICharacterDomainService))]
-    [InlineData(typeof(Dfo.Server.Abstractions.Sessions.ISessionPresenceDomainService))]
+    [InlineData(typeof(Dfo.Server.Abstractions.World.ITownAreaDomainService))]
     public void ADomainServiceIsPermitted(Type type) => Assert.True(IsPermitted(type));
 
     /// <summary>Naming yourself a seam is not being one.</summary>

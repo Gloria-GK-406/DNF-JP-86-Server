@@ -2,18 +2,24 @@ using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.OnlineUsers;
+using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 using Dfo.Server.Networking.Framing;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonClear;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.DungeonSelection;
+using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -192,7 +198,8 @@ public sealed class LeaveDungeonTests
             runs,
             deliveries,
             new RecordingSender(),
-            NullLogger<EplpCommandHandler>.Instance);
+            NullLogger<EplpCommandHandler>.Instance,
+            new SelectedSessionTransitionGate());
 
         await handler.HandleAsync(
             Dispatch(),
@@ -209,6 +216,7 @@ public sealed class LeaveDungeonTests
         var deliveries = new DungeonRunDeliveryRegistry();
         deliveries.Register(runs.RunId, [Identity]);
         var sender = new RecordingSender();
+        var commands = new RecordingCommandBus();
         var handler = new GiveUpGameHandler(
             new OneSession(Identity),
             new OneRuntimeSession(Entry()),
@@ -216,7 +224,12 @@ public sealed class LeaveDungeonTests
             runs,
             deliveries,
             sender,
-            NullLogger<GiveUpGameHandler>.Instance);
+            NullLogger<GiveUpGameHandler>.Instance,
+            new SelectedSessionTransitionGate(),
+            townAreaProjection: null,
+            new SessionPresenceDomainService(),
+            commands,
+            new PartyNotificationDelivery(new NoopNotificationBus()));
 
         await handler.HandleAsync(
             Dispatch(),
@@ -232,6 +245,35 @@ public sealed class LeaveDungeonTests
             StandingAreaId,
             Assert.Single(sender.Sent.OfType<UserAreaNotification>()).AreaId);
         Assert.Empty(deliveries.Find(runs.RunId));
+        Assert.Equal(
+            Identity.CharacterId,
+            Assert.IsType<LeavePartyCommand>(Assert.Single(commands.Commands)).CharacterId);
+    }
+
+    [Fact]
+    public async Task GiveUp_without_an_active_run_does_not_leave_the_party()
+    {
+        var commands = new RecordingCommandBus();
+        var handler = new GiveUpGameHandler(
+            new OneSession(Identity),
+            new OneRuntimeSession(Entry()),
+            new StandingWhereTheyAre(),
+            new OneRun(hasRun: false),
+            new DungeonRunDeliveryRegistry(),
+            new RecordingSender(),
+            NullLogger<GiveUpGameHandler>.Instance,
+            new SelectedSessionTransitionGate(),
+            townAreaProjection: null,
+            new SessionPresenceDomainService(),
+            commands,
+            new PartyNotificationDelivery(new NoopNotificationBus()));
+
+        await handler.HandleAsync(
+            Dispatch(),
+            new GiveUpGameRequest(GameMessageMetadata.Empty),
+            CancellationToken.None);
+
+        Assert.Empty(commands.Commands);
     }
 
     /// <summary>Nothing is answered on a connection with no published session.</summary>
@@ -246,7 +288,8 @@ public sealed class LeaveDungeonTests
             new OneRun(),
             new DungeonRunDeliveryRegistry(),
             sender,
-            NullLogger<EplpCommandHandler>.Instance);
+            NullLogger<EplpCommandHandler>.Instance,
+            new SelectedSessionTransitionGate());
 
         await handler.HandleAsync(
             Dispatch(),
@@ -278,7 +321,8 @@ public sealed class LeaveDungeonTests
             runs,
             deliveries,
             sender,
-            NullLogger<BackToVillageHandler>.Instance);
+            NullLogger<BackToVillageHandler>.Instance,
+            new SelectedSessionTransitionGate());
 
         await handler.HandleAsync(
             Dispatch(),
@@ -304,6 +348,87 @@ public sealed class LeaveDungeonTests
         Assert.Empty(deliveries.Find(runs.RunId));
     }
 
+    [Fact]
+    public async Task A_return_waiting_on_the_transition_gate_cannot_overwrite_a_replacement()
+    {
+        var sessions = new SelectedSessionDomainService();
+        sessions.Select(Identity);
+        var runtimes = new SelectedSessionRuntimeDirectory();
+        var runtime = Entry();
+        runtime = runtime with
+        {
+            Character = runtime.Character with
+            {
+                Identity = runtime.Character.Identity with
+                {
+                    CharacterId = Identity.CharacterId,
+                },
+            },
+        };
+        runtimes.Publish(Identity, runtime, false);
+        var areas = new SessionPresenceDomainService();
+        areas.Admit(new SessionPresence(
+            Identity.CharacterId,
+            Identity.ListenerPort,
+            StandingTownId,
+            StandingAreaId,
+            true,
+            Identity,
+            true,
+            10));
+        var sender = new RecordingSender();
+        var transitionGate = new SelectedSessionTransitionGate();
+        var projection = new TownAreaProjectionDelivery(
+            areas,
+            sessions,
+            runtimes,
+            new NoopNotificationBus(),
+            new NoopPartyTownProjection(),
+            sender);
+        var handler = new EplpCommandHandler(
+            sessions,
+            runtimes,
+            new StandingWhereTheyAre(),
+            new OneRun(),
+            new DungeonRunDeliveryRegistry(),
+            sender,
+            NullLogger<EplpCommandHandler>.Instance,
+            transitionGate,
+            projection);
+        var blocker = await transitionGate.AcquireAsync(
+            Identity.AccountId,
+            UserAccessMode.Exclusive,
+            CancellationToken.None);
+        var pending = handler.HandleAsync(
+            Dispatch(),
+            new EplpCommandRequest(GameMessageMetadata.Empty, LeaveState, CapturedOption),
+            CancellationToken.None).AsTask();
+        Assert.False(pending.IsCompleted);
+
+        var replacement = SelectedSessionIdentity.Create(
+            Identity.AccountId,
+            Identity.CharacterId,
+            new NetworkConnectionId("replacement"),
+            Identity.ConnectionGeneration + 1,
+            Identity.ListenerPort);
+        sessions.Select(replacement);
+        areas.Admit(new SessionPresence(
+            replacement.CharacterId,
+            replacement.ListenerPort,
+            StandingTownId,
+            StandingAreaId,
+            true,
+            replacement,
+            true,
+            10));
+        await blocker.DisposeAsync();
+        await pending;
+
+        Assert.True(replacement.Owns(
+            ((ITownAreaDomainService)areas).Find(replacement.CharacterId)!));
+        Assert.Empty(sender.Sent);
+    }
+
     private static async Task<IReadOnlyList<IGameServerMessage>> Leave(byte state, OneRun runs)
     {
         var sender = new RecordingSender();
@@ -314,7 +439,8 @@ public sealed class LeaveDungeonTests
             runs,
             new DungeonRunDeliveryRegistry(),
             sender,
-            NullLogger<EplpCommandHandler>.Instance);
+            NullLogger<EplpCommandHandler>.Instance,
+            new SelectedSessionTransitionGate());
 
         await handler.HandleAsync(
             Dispatch(),
@@ -594,5 +720,43 @@ public sealed class LeaveDungeonTests
             this.Sent.AddRange(delivery.RequiredDirectMessages);
             return ValueTask.CompletedTask;
         }
+    }
+
+    private sealed class RecordingCommandBus : ICommandBus
+    {
+        public List<ICommand> Commands { get; } = [];
+
+        public ValueTask<TResult> SendAsync<TResult>(
+            ICommand<TResult> command,
+            CancellationToken cancellationToken = default)
+            where TResult : notnull
+        {
+            Commands.Add(command);
+            return ValueTask.FromResult(
+                (TResult)(object)PartyOperationResult.Success());
+        }
+    }
+
+    private sealed class NoopNotificationBus : INotificationBus
+    {
+        public ValueTask<NotificationDelivery> PublishAsync<TNotification>(
+            NotificationAudience audience,
+            TNotification notification,
+            CancellationToken cancellationToken)
+            where TNotification : class, INotification<TNotification> =>
+            ValueTask.FromResult(new NotificationDelivery([]));
+    }
+
+    private sealed class NoopPartyTownProjection : IPartyTownProjectionDelivery
+    {
+        public ValueTask RefreshObservedPartiesAsync(
+            IReadOnlyList<SelectedSessionIdentity> recipients,
+            IReadOnlyList<SelectedSessionIdentity> representedSessions,
+            CancellationToken cancellationToken) => ValueTask.CompletedTask;
+
+        public ValueTask RefreshMovedPartyAsync(
+            SelectedSessionIdentity mover,
+            PartyDirectoryScope? previousScope,
+            CancellationToken cancellationToken) => ValueTask.CompletedTask;
     }
 }
