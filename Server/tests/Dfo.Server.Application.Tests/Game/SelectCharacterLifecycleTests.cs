@@ -1321,6 +1321,11 @@ public sealed partial class SelectCharacterLifecycleTests
     private sealed class RecordingPartyTownProjectionDelivery(List<string> ledger)
         : IPartyTownProjectionDelivery
     {
+        public ValueTask RefreshMovedPartyAsync(
+            SelectedSessionIdentity mover,
+            Dfo.Server.Data.Parties.PartyDirectoryScope previousScope,
+            CancellationToken cancellationToken) => ValueTask.CompletedTask;
+
         public ValueTask RefreshObservedPartiesAsync(
             IReadOnlyList<SelectedSessionIdentity> recipients,
             IReadOnlyList<SelectedSessionIdentity> representedSessions,

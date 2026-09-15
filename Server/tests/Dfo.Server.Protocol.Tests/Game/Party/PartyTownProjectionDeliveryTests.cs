@@ -14,6 +14,59 @@ namespace Dfo.Server.Protocol.Tests.Game.Party;
 public sealed class PartyTownProjectionDeliveryTests
 {
     [Fact]
+    public async Task A_leader_area_change_refreshes_members_and_clears_the_old_directory_observers()
+    {
+        var previousScope = new PartyDirectoryScope(11, 1, 1);
+        var currentScope = new PartyDirectoryScope(11, 1, 2);
+        var snapshot = new PartySnapshot(
+            0x1234,
+            7,
+            4,
+            Leader.WireUserId,
+            new PartySettings([0, 0, 4, 0, 0, 0, 0, 5, 0, (byte)PartyCategory.Normal, 0, 0]),
+            PartyTitle.Empty,
+            ImmutableArray.Create(
+                new PartyMemberSnapshot(
+                    new PartyCharacterSnapshot(
+                        Leader.AccountId, Leader.CharacterId, Leader.WireUserId, currentScope),
+                    0, null, 100),
+                new PartyMemberSnapshot(Character(Member), 1, null, 100)));
+        var bus = new RecordingNotificationBus();
+        var delivery = new PartyTownProjectionDelivery(
+            new StubParties((Leader, snapshot), (Member, snapshot)),
+            MovedPresence(),
+            bus,
+            new PartyProjectionStreamRegistry());
+
+        await delivery.RefreshMovedPartyAsync(
+            Leader, previousScope, CancellationToken.None);
+
+        Assert.Collection(
+            bus.Publications,
+            publication =>
+            {
+                Assert.Equal(
+                    [Leader, Member],
+                    Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
+                Assert.False(Assert.IsType<PartyRosterChanged>(publication.Notification).ClearsParty);
+            },
+            publication =>
+            {
+                Assert.Equal(
+                    [Observer],
+                    Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
+                Assert.True(Assert.IsType<PartyRosterChanged>(publication.Notification).ClearsParty);
+            },
+            publication =>
+            {
+                Assert.Equal(
+                    [NoParty],
+                    Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
+                Assert.False(Assert.IsType<PartyRosterChanged>(publication.Notification).ClearsParty);
+            });
+    }
+
+    [Fact]
     public async Task RepresentedMembersOfOnePartyProduceOneRefreshForExactObservers()
     {
         var snapshot = Snapshot(revision: 3);
@@ -181,6 +234,13 @@ public sealed class PartyTownProjectionDeliveryTests
 
     private static FixedPresence Presence() =>
         new(Leader, Member, Observer, NoParty);
+
+    private static FixedPresence MovedPresence() =>
+        new(
+            (Leader, (byte)1, (byte)2),
+            (Member, (byte)1, (byte)1),
+            (Observer, (byte)1, (byte)1),
+            (NoParty, (byte)1, (byte)2));
 
     private static SelectedSessionIdentity Session(int id, string connection) =>
         SelectedSessionIdentity.Create(
@@ -355,19 +415,29 @@ public sealed class PartyTownProjectionDeliveryTests
 
     }
 
-    private sealed class FixedPresence(params SelectedSessionIdentity[] sessions)
-        : ISessionPresenceDomainService
+    private sealed class FixedPresence : ISessionPresenceDomainService
     {
-        private readonly Dictionary<CharacterId, SessionPresence> values = sessions.ToDictionary(
-            session => session.CharacterId,
-            session => new SessionPresence(
-                session.CharacterId,
-                session.ListenerPort,
-                1,
-                1,
-                true,
-                session,
-                ChannelId: 11));
+        private readonly Dictionary<CharacterId, SessionPresence> values;
+
+        public FixedPresence(params SelectedSessionIdentity[] sessions)
+            : this(sessions.Select(session => (session, (byte)1, (byte)1)).ToArray())
+        {
+        }
+
+        public FixedPresence(
+            params (SelectedSessionIdentity Session, byte TownId, byte AreaId)[] sessions)
+        {
+            values = sessions.ToDictionary(
+                value => value.Session.CharacterId,
+                value => new SessionPresence(
+                    value.Session.CharacterId,
+                    value.Session.ListenerPort,
+                    value.TownId,
+                    value.AreaId,
+                    true,
+                    value.Session,
+                    ChannelId: 11));
+        }
 
         public void Admit(SessionPresence value) => values[value.CharacterId] = value;
 
@@ -389,7 +459,17 @@ public sealed class PartyTownProjectionDeliveryTests
             values.GetValueOrDefault(characterId);
 
         public IReadOnlyList<SessionPresence> Query(SessionPresenceScope scope) =>
-            values.Values.ToArray();
+            values.Values
+                .Where(value => value.CharacterId != scope.ExcludingCharacterId)
+                .Where(value => scope.ChannelId is null || value.ChannelId == scope.ChannelId)
+                .Where(value => scope.TownId is null || value.TownId == scope.TownId)
+                .Where(value => scope.AreaId is null || value.AreaId == scope.AreaId)
+                .Where(value => !scope.Flags.HasFlag(SessionPresenceScopeFlags.StandingInTown)
+                    || value.StandingInTown)
+                .Where(value => !scope.Flags.HasFlag(SessionPresenceScopeFlags.SharesTownPresence)
+                    || value.SharesTownPresence)
+                .OrderBy(value => value.CharacterId.Value)
+                .ToArray();
     }
 
     private sealed class FixedSelectedSessions : ISelectedSessionDomainService

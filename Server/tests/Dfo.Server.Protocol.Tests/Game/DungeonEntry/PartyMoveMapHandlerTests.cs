@@ -32,8 +32,12 @@ public sealed class PartyMoveMapHandlerTests
 
         await handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
 
-        Assert.IsType<StartMapNotification>(Assert.Single(sender.Messages(Leader.ConnectionId)));
-        Assert.IsType<StartMapNotification>(Assert.Single(sender.Messages(Member.ConnectionId)));
+        var leaderRoom = Assert.IsType<StartMapNotification>(
+            Assert.Single(sender.Messages(Leader.ConnectionId)));
+        var memberRoom = Assert.IsType<StartMapNotification>(
+            Assert.Single(sender.Messages(Member.ConnectionId)));
+        Assert.Equal(0, leaderRoom.Run.Participant!.Slot);
+        Assert.Equal(1, memberRoom.Run.Participant!.Slot);
         Assert.Equal(1, visits.Moves);
     }
 
@@ -226,8 +230,13 @@ public sealed class PartyMoveMapHandlerTests
 
     private sealed class Runs(DungeonRunState state) : IDungeonRunDomainService
     {
+        private readonly IReadOnlyDictionary<CharacterId, DungeonRunState> states =
+            state.Participants.ToDictionary(
+                participant => participant.CharacterId,
+                participant => state with { Participant = participant });
+
         public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty) => throw new NotSupportedException();
-        public DungeonRunState? Find(CharacterId characterId) => state;
+        public DungeonRunState? Find(CharacterId characterId) => states.GetValueOrDefault(characterId);
         public DungeonRunState? TryMove(CharacterId characterId, MazeCell target) => throw new NotSupportedException();
         public DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber) => throw new NotSupportedException();
         public DungeonRunState? TryReportActorDead(CharacterId characterId, ushort actorSequence) => throw new NotSupportedException();

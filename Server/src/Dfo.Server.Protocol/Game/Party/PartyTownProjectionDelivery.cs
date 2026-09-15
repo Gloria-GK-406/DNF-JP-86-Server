@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 
@@ -13,6 +14,11 @@ public interface IPartyTownProjectionDelivery
         IReadOnlyList<SelectedSessionIdentity> recipients,
         IReadOnlyList<SelectedSessionIdentity> representedSessions,
         CancellationToken cancellationToken);
+
+    ValueTask RefreshMovedPartyAsync(
+        SelectedSessionIdentity mover,
+        PartyDirectoryScope previousScope,
+        CancellationToken cancellationToken);
 }
 
 public sealed class PartyTownProjectionDelivery(
@@ -21,6 +27,130 @@ public sealed class PartyTownProjectionDelivery(
     INotificationBus notifications,
     PartyProjectionStreamRegistry streams) : IPartyTownProjectionDelivery
 {
+    public async ValueTask RefreshMovedPartyAsync(
+        SelectedSessionIdentity mover,
+        PartyDirectoryScope previousScope,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(mover);
+        ArgumentNullException.ThrowIfNull(previousScope);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var candidate = parties.FindParty(mover.CharacterId);
+        if (candidate is null)
+            return;
+
+        var memberSessions = candidate.Members
+            .Select(member => presence.Find(member.CharacterId)?.Session)
+            .Where(session => session is not null)
+            .Cast<SelectedSessionIdentity>()
+            .Distinct()
+            .ToArray();
+        var previousObservers = SessionsInScope(previousScope, mover.CharacterId);
+        var candidateScope = candidate.Members.Single(value => value.Slot == 0)
+            .Character.DirectoryScope;
+        var currentObservers = candidateScope is null
+            ? []
+            : SessionsInScope(candidateScope, mover.CharacterId);
+        using var participantLease = await streams.EnterParticipantsAsync(
+            memberSessions.Concat(previousObservers).Concat(currentObservers).Append(mover),
+            cancellationToken)
+            .ConfigureAwait(false);
+        var stream = streams.GetOrAdd(candidate.Generation);
+        await stream.Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var current = parties.FindParty(mover.CharacterId);
+            if (current is null
+                || current.Generation != candidate.Generation
+                || current.Revision < stream.LatestRevision)
+            {
+                return;
+            }
+
+            memberSessions = current.Members
+                .Select(member => presence.Find(member.CharacterId)?.Session)
+                .Where(session => session is not null)
+                .Cast<SelectedSessionIdentity>()
+                .Distinct()
+                .ToArray();
+            var members = memberSessions.Select(value => value.CharacterId).ToImmutableArray();
+            var refresh = await PartyExactNotificationDelivery.PublishWithRetryAsync(
+                notifications,
+                memberSessions,
+                PartyRosterChanged.Refresh(current, members),
+                cancellationToken).ConfigureAwait(false);
+            if (refresh.HasFailures)
+                return;
+
+            var leaderMovedDirectory = current.LeaderWireUserId == mover.WireUserId
+                && current.Members.Single(value => value.Slot == 0).Character.DirectoryScope
+                    != previousScope;
+            if (leaderMovedDirectory)
+            {
+                var memberIds = current.Members.Select(value => value.CharacterId).ToHashSet();
+                var oldObservers = SessionsInScope(previousScope, mover.CharacterId)
+                    .Where(value => !memberIds.Contains(value.CharacterId))
+                    .Distinct()
+                    .ToArray();
+                if (oldObservers.Length > 0)
+                {
+                    var clear = await PartyExactNotificationDelivery.PublishWithRetryAsync(
+                        notifications,
+                        oldObservers,
+                        PartyRosterChanged.Clear(
+                            oldObservers.Select(value => value.CharacterId).ToImmutableArray(),
+                            current.PartyId),
+                        cancellationToken).ConfigureAwait(false);
+                    if (clear.HasFailures)
+                        return;
+                }
+
+                var currentScope = current.Members.Single(value => value.Slot == 0)
+                    .Character.DirectoryScope;
+                var newObservers = currentScope is null
+                    ? []
+                    : SessionsInScope(currentScope, mover.CharacterId)
+                        .Where(value => !memberIds.Contains(value.CharacterId))
+                        .Distinct()
+                        .ToArray();
+                if (newObservers.Length > 0)
+                {
+                    var observerRefresh = await PartyExactNotificationDelivery.PublishWithRetryAsync(
+                        notifications,
+                        newObservers,
+                        PartyRosterChanged.Refresh(
+                            current,
+                            newObservers.Select(value => value.CharacterId).ToImmutableArray()),
+                        cancellationToken).ConfigureAwait(false);
+                    if (observerRefresh.HasFailures)
+                        return;
+                }
+            }
+
+            stream.LatestRevision = current.Revision;
+            stream.CurrentMembers.Clear();
+            stream.CurrentMembers.UnionWith(memberSessions);
+        }
+        finally
+        {
+            stream.Gate.Release();
+        }
+    }
+
+    private SelectedSessionIdentity[] SessionsInScope(
+        PartyDirectoryScope scope,
+        CharacterId excludingCharacterId) =>
+        presence.Query(SessionPresenceScope.VisiblePartyArea(
+                scope.ChannelId,
+                scope.TownId,
+                scope.AreaId,
+                excludingCharacterId))
+            .Where(value => value.Session is not null)
+            .Select(value => value.Session!)
+            .Distinct()
+            .ToArray();
+
     public async ValueTask RefreshObservedPartiesAsync(
         IReadOnlyList<SelectedSessionIdentity> recipients,
         IReadOnlyList<SelectedSessionIdentity> representedSessions,

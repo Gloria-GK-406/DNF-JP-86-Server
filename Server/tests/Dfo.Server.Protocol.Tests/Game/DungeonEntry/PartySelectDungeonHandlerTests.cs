@@ -26,6 +26,41 @@ namespace Dfo.Server.Protocol.Tests.Game.DungeonEntry;
 public sealed class PartySelectDungeonHandlerTests
 {
     [Fact]
+    public async Task The_leader_opens_one_selection_context_for_every_party_member()
+    {
+        var sessions = new Sessions(Leader, Member);
+        var runtime = new Runtime(SelectCharacterPayloadTestData.CreateComplete(), [Leader, Member]);
+        var intents = new Intents();
+        var sender = new Sender();
+        var handler = new EnterSelectDungeonHandler(
+            new UnchangedState(),
+            sessions,
+            runtime,
+            new PartyVisits(),
+            intents,
+            sender,
+            NullLogger<EnterSelectDungeonHandler>.Instance,
+            new Parties(Snapshot()));
+
+        await handler.HandleAsync(
+            Dispatch(Leader),
+            new EnterSelectDungeonRequest(GameMessageMetadata.Empty, DungeonId),
+            CancellationToken.None);
+
+        var expectedUsers = new[] { Leader.WireUserId, Member.WireUserId };
+        Assert.Equal(
+            expectedUsers,
+            Assert.Single(sender.Messages(Leader.ConnectionId)
+                .OfType<EnterSelectDungeonNotification>()).WireUserIds);
+        Assert.Equal(
+            expectedUsers,
+            Assert.Single(sender.Messages(Member.ConnectionId)
+                .OfType<EnterSelectDungeonNotification>()).WireUserIds);
+        Assert.NotNull(intents.Consume(Leader));
+        Assert.NotNull(intents.Consume(Member));
+    }
+
+    [Fact]
     public async Task A_party_member_cannot_select_the_story_dungeon_for_the_party()
     {
         var world = World();
@@ -105,6 +140,10 @@ public sealed class PartySelectDungeonHandlerTests
             frame => Assert.IsType<SupportTagNotification>(frame),
             frame => Assert.IsType<DungeonInfoNotification>(frame),
             frame => Assert.IsType<StartMapNotification>(frame));
+        Assert.Equal(
+            new[] { Leader.WireUserId, Member.WireUserId },
+            Assert.Single(world.Sender.Messages(Member.ConnectionId)
+                .OfType<EnterSelectDungeonNotification>()).WireUserIds);
         Assert.Equal(
             [Leader.CharacterId, Member.CharacterId],
             world.Fatigue.Spent.Select(value => value.CharacterId));

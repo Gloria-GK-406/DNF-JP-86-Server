@@ -11,6 +11,7 @@ using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.Party;
@@ -405,6 +406,14 @@ public sealed class SetUserAreaHandler(
                 direct,
                 []),
             cancellationToken).ConfigureAwait(false);
+
+        if (!sameArea)
+        {
+            await partyTownProjection.RefreshMovedPartyAsync(
+                session,
+                new PartyDirectoryScope(channel.ChannelId, standing.TownId, standing.AreaId),
+                cancellationToken).ConfigureAwait(false);
+        }
 
         if (newAudience.Count > 0)
         {

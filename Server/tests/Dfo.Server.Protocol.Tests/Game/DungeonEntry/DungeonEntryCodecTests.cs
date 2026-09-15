@@ -654,6 +654,27 @@ public sealed class DungeonEntryCodecTests
         Assert.Equal(0xFF, body[22]);
     }
 
+    [Fact]
+    public void Party_start_map_carries_the_receiving_participants_slot()
+    {
+        var participant = new DungeonRunParticipant(
+            new Dfo.Server.Data.Accounts.AccountId(2),
+            new Dfo.Server.Data.Characters.CharacterId(1002),
+            21,
+            Slot: 1,
+            IsLeader: false);
+        var run = AtStart with
+        {
+            Participant = participant,
+            Participants = [participant],
+        };
+
+        var body = DungeonEntryPayloadCodec.EncodeStartMap(
+            run, firstEntry: true, NoActors, FirstSequence, NoDrops);
+
+        Assert.Equal(1, body[^1]);
+    }
+
     /// <remarks>
     /// The empty room is this slice's deliberate limit, not an oversight: it is the cheapest frame
     /// that can answer whether the client accepts this shape at all.

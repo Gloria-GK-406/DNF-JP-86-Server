@@ -1,7 +1,10 @@
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Characters;
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Protocol.Game.TownProjection;
@@ -111,8 +114,13 @@ internal sealed record UdpHostNotification : IGameNotiMessage
 /// </para>
 /// </remarks>
 internal sealed record EnterSelectDungeonNotification(
-    ushort WireUserId) : IGameNotiMessage
+    ImmutableArray<ushort> WireUserIds) : IGameNotiMessage
 {
+    public EnterSelectDungeonNotification(ushort wireUserId)
+        : this(ImmutableArray.Create(wireUserId))
+    {
+    }
+
     public ServerMessageType MessageType => ServerMessageType.GameEnterSelectDungeonState;
 }
 
@@ -291,17 +299,29 @@ internal static class DungeonSelectionPayloadCodec
     /// The tower-of-despair floor this used to write has no place in A21's shape. It is not lost
     /// evidence: it was the older client's field, at an offset A21 does not use.
     /// </remarks>
-    public static byte[] EncodeEnterSelectDungeon(ushort wireUserId)
+    public static byte[] EncodeEnterSelectDungeon(ushort wireUserId) =>
+        EncodeEnterSelectDungeon([wireUserId]);
+
+    public static byte[] EncodeEnterSelectDungeon(IReadOnlyList<ushort> wireUserIds)
     {
-        using var stream = new MemoryStream(37);
+        ArgumentNullException.ThrowIfNull(wireUserIds);
+        if (wireUserIds.Count is 0 or > byte.MaxValue)
+            throw new ArgumentOutOfRangeException(nameof(wireUserIds));
+        if (wireUserIds.Distinct().Count() != wireUserIds.Count)
+            throw new InvalidDataException("Dungeon-selection users must be distinct.");
+
+        using var stream = new MemoryStream(34 + (wireUserIds.Count * 3));
         using var writer = new BinaryWriter(stream);
         writer.Write(0);
         writer.Write(0);
         writer.Write((byte)0);   // hell-quest blocked slot count
         writer.Write((byte)0);
-        writer.Write((byte)1);   // user count
-        writer.Write(wireUserId);
-        writer.Write((byte)0);
+        writer.Write(checked((byte)wireUserIds.Count));
+        foreach (var wireUserId in wireUserIds)
+        {
+            writer.Write(wireUserId);
+            writer.Write((byte)0);
+        }
         writer.Write(0);
         writer.Write((ushort)1);
         writer.Write((ushort)0);
@@ -347,7 +367,7 @@ internal sealed class EnterSelectDungeonEncoder
         EnterSelectDungeonNotification message) =>
         OnePayload(
             GameProtocol.EnterSelectDungeonNotificationType,
-            DungeonSelectionPayloadCodec.EncodeEnterSelectDungeon(message.WireUserId));
+            DungeonSelectionPayloadCodec.EncodeEnterSelectDungeon(message.WireUserIds));
 }
 
 /// <summary>
@@ -376,7 +396,8 @@ public sealed class EnterSelectDungeonHandler(
     IDungeonVisitDomainService visits,
     IDungeonEntryIntentDomainService entryIntents,
     IGameMessageSender sender,
-    ILogger<EnterSelectDungeonHandler> logger)
+    ILogger<EnterSelectDungeonHandler> logger,
+    IPartyService? parties = null)
     : ClientMessageHandler<EnterSelectDungeonRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -403,7 +424,12 @@ public sealed class EnterSelectDungeonHandler(
         var intent = message.Selection == 0
             ? DungeonEntryIntent.Interactive
             : DungeonEntryIntent.Directed(message.Selection);
-        entryIntents.Record(session, intent);
+        var attached = ResolveSelectionMembers(session, result);
+        var wireUserIds = attached
+            .Select(value => value.Session.WireUserId)
+            .ToImmutableArray();
+        foreach (var member in attached)
+            entryIntents.Record(member.Session, intent);
         logger.LogInformation(
             "Enter select dungeon {ConnectionId} user={WireUserId}: selection={Selection} intent={Intent} "
                 + "town={TownId} area={AreaId}->0xFF pos=({X},{Y})",
@@ -428,11 +454,6 @@ public sealed class EnterSelectDungeonHandler(
                 session.ConnectionId);
         }
 
-        // The resident inventory is refreshed after moves; the stat frame must use those items.
-        var equipment = result.CharacterInventory.Containers
-            .SingleOrDefault(value => value.ContainerType == InventoryContainerType.Equipment)
-            ?.Items ?? [];
-
         // A21's answer, in its order: the stat block, the acceptance, the user state, the UDP
         // offer. Two frames this used to send are gone from here:
         //
@@ -445,24 +466,42 @@ public sealed class EnterSelectDungeonHandler(
         // defers it -- and every frame this server had been checked against came from a tutorial,
         // so it was only ever sent at the deferred moment. A player at a real dungeon gate got the
         // screen's other three frames and no state to draw it from (2026-08-26).
-        result = await currentState.RefreshAsync(result, cancellationToken).ConfigureAwait(false);
-        var defersState = visits.DefersSelectionState(result.Character.Progression.Level);
-        List<IGameServerMessage> notifications =
-        [
-            new ExtendedUserStateMessage(
-                result.Character,
-                result.CharacterEntry.Public,
-                result.CharacterEntry.Skills,
-                equipment,
-                result.World.PreparedAt),
-            new EnterSelectDungeonAcknowledgement(),
-            new UserStateNotification(session.WireUserId, 0x01),
-            new UdpHostNotification(),
-        ];
-        if (!defersState)
+        var deliveries = new List<(
+            SelectedSessionIdentity Session,
+            IReadOnlyList<IGameServerMessage> Messages)>();
+        foreach (var member in attached)
         {
-            notifications.Add(new EnterSelectDungeonNotification(session.WireUserId));
+            var refreshed = await currentState
+                .RefreshAsync(member.Runtime, cancellationToken)
+                .ConfigureAwait(false);
+            var equipment = refreshed.CharacterInventory.Containers
+                .SingleOrDefault(value => value.ContainerType == InventoryContainerType.Equipment)
+                ?.Items ?? [];
+            List<IGameServerMessage> notifications =
+            [
+                new ExtendedUserStateMessage(
+                    refreshed.Character,
+                    refreshed.CharacterEntry.Public,
+                    refreshed.CharacterEntry.Skills,
+                    equipment,
+                    refreshed.World.PreparedAt),
+                new EnterSelectDungeonAcknowledgement(),
+                new UserStateNotification(member.Session.WireUserId, 0x01),
+                new UdpHostNotification(),
+            ];
+            if (!visits.DefersSelectionState(refreshed.Character.Progression.Level))
+                notifications.Add(new EnterSelectDungeonNotification(wireUserIds));
+            deliveries.Add((member.Session, notifications));
         }
+
+        if (selectedSessions.FindByCharacter(session.CharacterId) != session)
+            return;
+        deliveries = deliveries
+            .Where(value => selectedSessions.FindByCharacter(value.Session.CharacterId) == value.Session)
+            .ToList();
+        var direct = deliveries.SingleOrDefault(value => value.Session == session);
+        if (direct == default)
+            return;
 
         // Logged here rather than left to the dispatch layer. The first live run produced this
         // handler's own log line and no frames at all, with nothing reported anywhere -- the
@@ -472,12 +511,18 @@ public sealed class EnterSelectDungeonHandler(
         {
             await sender.SendExplicitAsync(
                 context.Connection.ConnectionId,
-                new GameExplicitMessageDelivery(notifications, []),
+                new GameExplicitMessageDelivery(
+                    direct.Messages,
+                    [.. deliveries
+                        .Where(value => value.Session != session)
+                        .Select(value => new GameExplicitMessageTarget(
+                            value.Session.ConnectionId,
+                            value.Messages))]),
                 cancellationToken).ConfigureAwait(false);
             logger.LogInformation(
                 "Enter select dungeon {ConnectionId}: {Count} notifications handed to the sender",
                 context.Connection.ConnectionId,
-                notifications.Count);
+                deliveries.Sum(value => value.Messages.Count));
         }
         catch (Exception error)
         {
@@ -487,5 +532,35 @@ public sealed class EnterSelectDungeonHandler(
                 context.Connection.ConnectionId);
             throw;
         }
+    }
+
+    private IReadOnlyList<(
+        SelectedSessionIdentity Session,
+        SelectCharacterResult Runtime)> ResolveSelectionMembers(
+            SelectedSessionIdentity requester,
+            SelectCharacterResult requesterRuntime)
+    {
+        var party = parties?.FindParty(requester.CharacterId);
+        if (party is null || party.LeaderWireUserId != requester.WireUserId)
+            return [(requester, requesterRuntime)];
+
+        var members = new List<(SelectedSessionIdentity, SelectCharacterResult)>();
+        foreach (var member in party.Members.OrderBy(value => value.Slot))
+        {
+            var current = selectedSessions.FindByCharacter(member.CharacterId);
+            if (current is null
+                || current.AccountId != member.Character.AccountId
+                || current.WireUserId != member.WireUserId
+                || !runtimeSessions.TryGet(current, out var runtime, out _)
+                || runtime is null)
+            {
+                continue;
+            }
+            members.Add((current, runtime));
+        }
+
+        return members.Any(value => value.Item1 == requester)
+            ? members
+            : [(requester, requesterRuntime)];
     }
 }

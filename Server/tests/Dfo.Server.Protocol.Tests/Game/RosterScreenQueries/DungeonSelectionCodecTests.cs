@@ -100,4 +100,17 @@ public sealed class DungeonSelectionCodecTests
 
         Assert.Equal(0x0102, BitConverter.ToUInt16(body, 11));
     }
+
+    [Fact]
+    public void EnterSelectDungeonState_CarriesEveryFrozenPartyUser()
+    {
+        var body = DungeonSelectionPayloadCodec.EncodeEnterSelectDungeon(
+            new ushort[] { 0x0102, 0x0304 });
+
+        Assert.Equal(40, body.Length);
+        Assert.Equal(2, body[10]);
+        Assert.Equal(0x0102, BitConverter.ToUInt16(body, 11));
+        Assert.Equal(0x0304, BitConverter.ToUInt16(body, 14));
+        Assert.Equal(1, BitConverter.ToUInt16(body, 21));
+    }
 }

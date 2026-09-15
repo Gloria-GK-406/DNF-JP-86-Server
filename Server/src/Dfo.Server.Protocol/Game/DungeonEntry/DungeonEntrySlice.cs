@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Collections.Immutable;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -305,7 +306,10 @@ internal static class DungeonEntryPayloadCodec
 
         writer.Write((byte)0); // abyss fog
         writer.Write((byte)0); // no ridable object groups
-        writer.Write((byte)0xFF); // party member index, the builder's default for a run of one
+        // The client binds its local dungeon actor and party HUD to this frozen entry slot. 0xFF is
+        // only the solo/default sentinel; sending it to a party participant leaves the shared run
+        // alive on the server while the client constructs a one-player room.
+        writer.Write(run.Participant?.Slot ?? (byte)0xFF);
         return stream.ToArray();
     }
 
@@ -659,7 +663,7 @@ public sealed class SelectDungeonHandler(
                     var refreshed = await currentState
                         .RefreshAsync(attachment.Runtime, cancellationToken)
                         .ConfigureAwait(false);
-                    frames.AddRange(SelectionPrelude(memberSession, refreshed));
+                    frames.AddRange(SelectionPrelude(memberSession, refreshed, participants));
                 }
 
                 frames.Add(new EnterSelectDungeonAcknowledgement());
@@ -673,7 +677,8 @@ public sealed class SelectDungeonHandler(
                     return;
                 }
                 if (visits.DefersSelectionState(currentProgress.Level))
-                    frames.Add(new EnterSelectDungeonNotification(memberSession.WireUserId));
+                    frames.Add(new EnterSelectDungeonNotification(
+                        participants.Select(value => value.WireUserId).ToImmutableArray()));
 
                 frames.Add(new SupportTagNotification());
                 frames.Add(new DungeonInfoNotification(layout, message.Difficulty));
@@ -774,7 +779,8 @@ public sealed class SelectDungeonHandler(
 
     private IReadOnlyList<IGameServerMessage> SelectionPrelude(
         SelectedSessionIdentity session,
-        SelectCharacterResult result)
+        SelectCharacterResult result,
+        IReadOnlyList<DungeonRunParticipant> participants)
     {
         var equipment = result.CharacterInventory.Containers
             .SingleOrDefault(value => value.ContainerType == InventoryContainerType.Equipment)
@@ -792,7 +798,8 @@ public sealed class SelectDungeonHandler(
             new UdpHostNotification(),
         ];
         if (!visits.DefersSelectionState(result.Character.Progression.Level))
-            frames.Add(new EnterSelectDungeonNotification(session.WireUserId));
+            frames.Add(new EnterSelectDungeonNotification(
+                participants.Select(value => value.WireUserId).ToImmutableArray()));
         return frames;
     }
 
@@ -961,17 +968,14 @@ public sealed class MoveMapHandler(
         // the list again resurrects them under the very same numbers -- which is what a live
         // session saw on 2026-08-26 when it walked back out of the boss room, five monsters and
         // four monsters standing up again with the numbers they had died under.
-        var room = new StartMapNotification(
-            visit.Run,
-            visit.FirstEntry,
-            visit.Actors,
-            visit.FirstActorSequence,
-            FloorPieceValues.Describe(visit.Run, visit.FloorDrops));
         var frozen = deliveryRegistry.Find(visit.Run.RunId);
         if (frozen.Count == 0)
             frozen = [session];
         var currentRecipients = frozen
             .Where(value => selectedSessions.FindByCharacter(value.CharacterId) == value)
+            .Select(value => (Session: value, Run: runs.Find(value.CharacterId)))
+            .Where(value => value.Run?.RunId == visit.Run.RunId)
+            .Select(value => (value.Session, Run: value.Run!))
             .ToArray();
         if (currentRecipients.Length == 0)
             return;
@@ -979,19 +983,26 @@ public sealed class MoveMapHandler(
         // If the requester was replaced while room projection was awaited, the room has already
         // advanced. Do not send to either requester generation, but do keep the remaining frozen
         // participants in sync with the committed shared room.
-        var required = currentRecipients.Contains(session)
-            ? session
-            : currentRecipients[0];
+        var required = currentRecipients.FirstOrDefault(value => value.Session == session);
+        if (required == default)
+            required = currentRecipients[0];
+
+        StartMapNotification RoomFor(DungeonRunState run) => new(
+            run,
+            visit.FirstEntry,
+            visit.Actors,
+            visit.FirstActorSequence,
+            FloorPieceValues.Describe(run, visit.FloorDrops));
 
         await sender.SendExplicitAsync(
-            required.ConnectionId,
+            required.Session.ConnectionId,
             new GameExplicitMessageDelivery(
-                [room],
+                [RoomFor(required.Run)],
                 [.. currentRecipients
-                    .Where(value => value != required)
+                    .Where(value => value.Session != required.Session)
                     .Select(value => new GameExplicitMessageTarget(
-                        value.ConnectionId,
-                        [room]))]),
+                        value.Session.ConnectionId,
+                        [RoomFor(value.Run)]))]),
             cancellationToken).ConfigureAwait(false);
     }
 }

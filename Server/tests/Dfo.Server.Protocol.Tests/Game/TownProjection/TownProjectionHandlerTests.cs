@@ -267,6 +267,7 @@ public sealed class TownProjectionHandlerTests
         Assert.Equal(
             [
                 "town-direct",
+                "party-move:60@10:3:6",
                 "party:60<-62",
                 "notify:TownParticipantDeparted",
                 "notify:TownParticipantPublished",
@@ -686,6 +687,17 @@ public sealed class TownProjectionHandlerTests
     private sealed class RecordingPartyTownProjectionDelivery(List<string> order)
         : IPartyTownProjectionDelivery
     {
+        public ValueTask RefreshMovedPartyAsync(
+            SelectedSessionIdentity mover,
+            Dfo.Server.Data.Parties.PartyDirectoryScope previousScope,
+            CancellationToken cancellationToken)
+        {
+            order.Add(
+                $"party-move:{mover.CharacterId.Value}@{previousScope.ChannelId}:"
+                + $"{previousScope.TownId}:{previousScope.AreaId}");
+            return ValueTask.CompletedTask;
+        }
+
         public ValueTask RefreshObservedPartiesAsync(
             IReadOnlyList<SelectedSessionIdentity> recipients,
             IReadOnlyList<SelectedSessionIdentity> representedSessions,
@@ -700,6 +712,11 @@ public sealed class TownProjectionHandlerTests
 
     private sealed class NoopPartyTownProjectionDelivery : IPartyTownProjectionDelivery
     {
+        public ValueTask RefreshMovedPartyAsync(
+            SelectedSessionIdentity mover,
+            Dfo.Server.Data.Parties.PartyDirectoryScope previousScope,
+            CancellationToken cancellationToken) => ValueTask.CompletedTask;
+
         public ValueTask RefreshObservedPartiesAsync(
             IReadOnlyList<SelectedSessionIdentity> recipients,
             IReadOnlyList<SelectedSessionIdentity> representedSessions,
