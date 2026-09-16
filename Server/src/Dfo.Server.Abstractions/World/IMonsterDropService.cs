@@ -21,7 +21,12 @@ namespace Dfo.Server.Abstractions.World;
 /// is a broken one.
 /// </param>
 public readonly record struct RolledDrop(
-    int ItemId, int Count, DropRarity Rarity, DropItemKind Kind, ushort Durability = 0)
+    int ItemId,
+    int Count,
+    DropRarity Rarity,
+    DropItemKind Kind,
+    ushort Durability = 0,
+    CharacterId? OwnerCharacterId = null)
 {
     /// <summary>What the wire calls gold.</summary>
     public const int GoldItemId = 0;
@@ -56,7 +61,15 @@ public sealed record MonsterKill(
     ushort ActorSequence,
     int MonsterLevel,
     int MonsterRank,
-    int PartyMemberCount = 1);
+    int PartyMemberCount = 1,
+    int MonsterCode = 0);
+
+/// <summary>Quest-declared items one verified monster puts on this exact run's floor.</summary>
+public interface IQuestMonsterDropRuleService
+{
+    ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(
+        MonsterKill kill, CancellationToken cancellationToken);
+}
 
 /// <summary>
 /// What a monster's death is worth in things on the floor.

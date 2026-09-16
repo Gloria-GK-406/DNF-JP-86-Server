@@ -118,7 +118,8 @@ internal sealed record MonsterDeathNotification(
     ushort ActorSequence,
     IReadOnlyList<MonsterDrop> Drops,
     ushort Owner,
-    uint Instance = 0) : IGameNotiMessage
+    uint Instance = 0,
+    IReadOnlyDictionary<ushort, ushort>? DropOwners = null) : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameMonsterDeath;
 
@@ -179,7 +180,7 @@ internal static class MonsterDeathPayloadCodec
             System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(
                 record[16..], message.Instance);
             System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(
-                record[44..], message.Owner);
+                record[44..], message.DropOwners?.GetValueOrDefault(drop.Number) ?? message.Owner);
         }
 
         MonsterDeathTail.CopyTo(body.AsSpan(body.Length - MonsterDeathTail.Length));
@@ -528,7 +529,8 @@ public sealed class MonsterDeathHandler(
                             message.ActorSequence,
                             verifiedKill.Level,
                             (int)verifiedKill.Rank,
-                            run.PartyMemberCount),
+                            run.PartyMemberCount,
+                            verifiedKill.Code),
                         cancellationToken).ConfigureAwait(false);
                     instance = GameDropIdentity.ForKill(run, message.ActorSequence);
                 }
@@ -624,7 +626,13 @@ public sealed class MonsterDeathHandler(
                 mirror, AccountHonorLevel.Initial,
                 ExperienceBonusLines.Of(award), diagnostics.LabelProbe),
             new MonsterDeathNotification(
-                message.ActorSequence, dropped, session.WireUserId, instance),
+                message.ActorSequence,
+                dropped,
+                session.WireUserId,
+                instance,
+                run is null
+                    ? new Dictionary<ushort, ushort>()
+                    : DropOwners(dropped)),
         ];
 
         if (award?.LeveledUp == true)
@@ -800,7 +808,8 @@ public sealed class MonsterDeathHandler(
                         message.ActorSequence,
                         monster.Level,
                         (int)monster.Rank,
-                        run.PartyMemberCount),
+                        run.PartyMemberCount,
+                        monster.Code),
                     cancellationToken).ConfigureAwait(false);
                 instance = GameDropIdentity.ForKill(deathClaim.Run, message.ActorSequence);
             }
@@ -823,7 +832,11 @@ public sealed class MonsterDeathHandler(
             run,
             cancellationToken).ConfigureAwait(false);
         var sharedDeath = new MonsterDeathNotification(
-            message.ActorSequence, dropped, reporter.WireUserId, instance);
+            message.ActorSequence,
+            dropped,
+            reporter.WireUserId,
+            instance,
+            DropOwners(dropped));
 
         var framesByCharacter = new Dictionary<CharacterId, IReadOnlyList<IGameServerMessage>>();
         foreach (var recipient in recipients)
@@ -965,6 +978,20 @@ public sealed class MonsterDeathHandler(
                     ? HuntEnemyTargetTypes.Monster
                     : HuntEnemyTargetTypes.AiCharacter);
         }
+    }
+
+    private static IReadOnlyDictionary<ushort, ushort> DropOwners(
+        IReadOnlyList<MonsterDrop> drops)
+    {
+        if (drops.All(drop => drop.Rolled.OwnerCharacterId is null))
+            return new Dictionary<ushort, ushort>();
+
+        return drops
+            .Where(drop => drop.Rolled.OwnerCharacterId is { })
+            .ToDictionary(
+                drop => drop.Number,
+                drop => SelectedSessionIdentity.ToWireUserId(
+                    drop.Rolled.OwnerCharacterId!.Value));
     }
 
     private sealed record PartyDeathRecipient(

@@ -95,6 +95,23 @@ public sealed class MonsterDeathCodecTests
             body);
     }
 
+    [Fact]
+    public void Each_drop_record_can_name_its_own_party_owner()
+    {
+        var body = MonsterDeathPayloadCodec.EncodeMonsterDeath(
+            new MonsterDeathNotification(
+                32543,
+                [
+                    new MonsterDrop(3, new RolledDrop(10, 1, DropRarity.Common, DropItemKind.Stackable)),
+                    new MonsterDrop(4, new RolledDrop(20, 1, DropRarity.Common, DropItemKind.Stackable)),
+                ],
+                Owner: 3,
+                DropOwners: new Dictionary<ushort, ushort> { [3] = 7, [4] = 9 }));
+
+        Assert.Equal(7, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(3 + 44)));
+        Assert.Equal(9, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(3 + 48 + 44)));
+    }
+
     private static byte[] Bytes(string hex) =>
         [.. hex.Split(' ', StringSplitOptions.RemoveEmptyEntries)
             .Select(pair => Convert.ToByte(pair, 16))];

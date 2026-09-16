@@ -21,6 +21,7 @@ internal sealed class MonsterDropService(
     IDropRateAdjuster adjuster,
     IDungeonRunDomainService runs,
     IDungeonRoomRuleService rooms,
+    IQuestMonsterDropRuleService questDrops,
     ILogger<MonsterDropService> logger) : IMonsterDropService
 {
     public async ValueTask<IReadOnlyList<MonsterDrop>> ForKillAsync(
@@ -41,7 +42,8 @@ internal sealed class MonsterDropService(
         // carrying the legacy default of one, so the aggregate is the authority for both here.
         kill = kill with { PartyMemberCount = current.PartyMemberCount };
 
-        var rolled = this.Roll(kill);
+        var rolled = new List<RolledDrop>(this.Roll(kill));
+        rolled.AddRange(await questDrops.DrawAsync(kill, cancellationToken).ConfigureAwait(false));
 
         // The room's own pieces hold the low numbers, so what it declares has to be known before
         // anything can be numbered above them.

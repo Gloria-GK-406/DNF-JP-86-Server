@@ -1,3 +1,5 @@
+using Dfo.Server.Data.Characters;
+
 namespace Dfo.Server.Abstractions.World;
 
 /// <summary>
@@ -26,7 +28,8 @@ public sealed record GroundPiece(
     ushort Durability,
     bool IsEquipment,
     byte? ObjectIndex,
-    ushort? FromKillActorSequence);
+    ushort? FromKillActorSequence,
+    CharacterId? OwnerCharacterId = null);
 
 /// <summary>What a character can take off the floor of the room they are standing in.</summary>
 public interface IGroundPickupDomainService

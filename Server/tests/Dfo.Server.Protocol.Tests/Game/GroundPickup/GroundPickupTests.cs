@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
@@ -25,6 +26,8 @@ public sealed class GroundPickupTests
 {
     private static readonly CharacterId Character = new(1);
     private static readonly AccountId Account = new(1);
+    private static readonly CharacterId Helper = new(2);
+    private static readonly AccountId HelperAccount = new(2);
 
     /// <summary>The 铁脊蛇矛, which a monster may drop and the tutorial's box may not.</summary>
     private const int Weapon = 114000088;
@@ -50,6 +53,12 @@ public sealed class GroundPickupTests
 
     private static (PickUpGroundDropCommandHandler Handler, DungeonRunDomainService Runs,
         FakeContainer Bag, CarriedGold Carried) Build(params DungeonRoomDrop[] declared)
+        => Build(new NoSeekingProgress(), declared);
+
+    private static (PickUpGroundDropCommandHandler Handler, DungeonRunDomainService Runs,
+        FakeContainer Bag, CarriedGold Carried) Build(
+        ISeekingQuestProgressDomainService seeking,
+        params DungeonRoomDrop[] declared)
     {
         var runs = new DungeonRunDomainService();
         var bag = new FakeContainer();
@@ -60,7 +69,8 @@ public sealed class GroundPickupTests
                 new DungeonRoomRuleService(new NoRoomActors(), new StubRoomDrops(declared)),
                 new ItemPlacementRuleService(new StubPlacements(), new NoWearables())),
             new StubContainers(bag),
-            new OnePlayingCharacter(carried));
+            new OnePlayingCharacter(carried),
+            seeking);
         return (handler, runs, bag, carried);
     }
 
@@ -94,6 +104,64 @@ public sealed class GroundPickupTests
         // Not broken. A piece banked at zero durability is a broken one, and nothing on the wire
         // would have said so -- the kill's frame carries no durability field at all.
         Assert.Equal(WeaponDurability, bag.Slots[result.SlotIndex].Durability);
+    }
+
+    [Fact]
+    public async Task A_quest_owned_piece_refuses_another_member_without_consuming_the_floor()
+    {
+        var (handler, runs, bag, _) = Build();
+        runs.BeginParty(
+            [
+                new DungeonRunParticipant(Account, Character, 0, IsLeader: true),
+                new DungeonRunParticipant(HelperAccount, Helper, 1, IsLeader: false),
+            ],
+            Layout,
+            difficulty: 0);
+        var dropped = runs.AllocateMonsterDrops(
+            Character,
+            0,
+            30001,
+            [TheWeapon() with { OwnerCharacterId = Character }]).Single();
+
+        var refused = await handler.HandleAsync(
+            default!,
+            new PickUpGroundDropCommand(HelperAccount, Helper, dropped.Number),
+            CancellationToken.None);
+
+        Assert.Equal(GroundPickupStatus.NotOwner, refused.Status);
+        Assert.Empty(bag.Slots);
+        Assert.NotNull(runs.Find(Character)!.FindMonsterDrop(dropped.Number));
+        Assert.Equal(GroundPickupStatus.PickedUp, (await PickUp(handler, dropped.Number)).Status);
+    }
+
+    [Fact]
+    public async Task Item_pickup_derives_quest_progress_before_committing_the_floor_change()
+    {
+        var progress = new SeekingQuestProgressSynchronization(
+            [new CarriedQuest(0, 1779, 14)]);
+        var seeking = new RecordingSeekingProgress(progress);
+        var (handler, runs, _, _) = Build(seeking);
+        runs.Begin(Character, Layout, difficulty: 0);
+        var dropped = runs.AllocateMonsterDrops(Character, 0, 30001, [TheWeapon()]).Single();
+
+        var result = await PickUp(handler, dropped.Number);
+
+        Assert.Same(progress, result.QuestProgress);
+        Assert.Equal(1, seeking.Calls);
+        Assert.NotNull(result.Change);
+    }
+
+    [Fact]
+    public async Task Failed_quest_progress_does_not_commit_the_shared_floor_change()
+    {
+        var (handler, runs, _, _) = Build(new ThrowingSeekingProgress());
+        runs.Begin(Character, Layout, difficulty: 0);
+        var dropped = runs.AllocateMonsterDrops(Character, 0, 30001, [TheWeapon()]).Single();
+
+        await Assert.ThrowsAsync<InvalidDataException>(async () =>
+            await PickUp(handler, dropped.Number));
+
+        Assert.NotNull(runs.Find(Character)!.FindMonsterDrop(dropped.Number));
     }
 
     /// <summary>And only once.</summary>
@@ -352,6 +420,39 @@ public sealed class GroundPickupTests
             throw new NotSupportedException();
 
         public void Clear(CharacterId characterId) => throw new NotSupportedException();
+    }
+
+    private sealed class NoSeekingProgress : ISeekingQuestProgressDomainService
+    {
+        public ValueTask<SeekingQuestProgressSynchronization?> SynchronizeAsync(
+            AccountId accountId,
+            CharacterId characterId,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult<SeekingQuestProgressSynchronization?>(null);
+    }
+
+    private sealed class RecordingSeekingProgress(
+        SeekingQuestProgressSynchronization result) : ISeekingQuestProgressDomainService
+    {
+        public int Calls { get; private set; }
+
+        public ValueTask<SeekingQuestProgressSynchronization?> SynchronizeAsync(
+            AccountId accountId,
+            CharacterId characterId,
+            CancellationToken cancellationToken)
+        {
+            this.Calls++;
+            return ValueTask.FromResult<SeekingQuestProgressSynchronization?>(result);
+        }
+    }
+
+    private sealed class ThrowingSeekingProgress : ISeekingQuestProgressDomainService
+    {
+        public ValueTask<SeekingQuestProgressSynchronization?> SynchronizeAsync(
+            AccountId accountId,
+            CharacterId characterId,
+            CancellationToken cancellationToken) =>
+            throw new InvalidDataException("injected quest progress failure");
     }
 
     /// <summary>A bag that opens the next free slot and remembers what went in it.</summary>

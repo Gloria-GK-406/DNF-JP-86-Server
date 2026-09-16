@@ -357,6 +357,26 @@ public sealed record DungeonPickupChange(
     DungeonPickupKind Kind,
     IReadOnlyList<CharacterId> Recipients);
 
+/// <summary>
+/// A dungeon pickup publication whose value becomes available only after the surrounding domain
+/// transaction commits.
+/// </summary>
+/// <remarks>
+/// Persistent inventory and quest writes commit before the process-local run is allowed to
+/// consume the floor piece. Keeping the receipt in the command result lets the projection read
+/// that final change after the command bus has settled the transaction without publishing an
+/// uncommitted runtime fact.
+/// </remarks>
+public sealed class DungeonPickupCommit(Func<DungeonPickupChange?> read, bool isDeferred = true)
+{
+    public DungeonPickupChange? Change => read();
+
+    public bool IsDeferred { get; } = isDeferred;
+
+    public static DungeonPickupCommit Completed(DungeonPickupChange? change) =>
+        new(() => change, isDeferred: false);
+}
+
 /// <summary>An exact, retryable reservation of one clear-card position.</summary>
 public sealed record DungeonClearRewardCardClaim(
     CharacterId CharacterId,
@@ -557,6 +577,15 @@ public interface IDungeonRunDomainService
             claim.Drop,
             kind,
             claim.Run.Participants.Select(value => value.CharacterId).ToArray());
+
+    /// <summary>
+    /// Stages consumption of a reserved floor piece. Production applies it only after durable
+    /// transaction participants commit; simple domain doubles may use the completed default.
+    /// </summary>
+    DungeonPickupCommit StageGroundDrop(
+        DungeonGroundDropClaim claim,
+        DungeonPickupKind kind) =>
+        DungeonPickupCommit.Completed(CommitGroundDrop(claim, kind));
 
     /// <summary>Releases an exact drop reservation after a refused or failed delivery.</summary>
     bool ReleaseGroundDrop(DungeonGroundDropClaim claim) => false;

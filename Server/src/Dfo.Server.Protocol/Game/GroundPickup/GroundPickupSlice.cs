@@ -2,15 +2,18 @@ using System.Buffers.Binary;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.Dungeons;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
@@ -231,6 +234,9 @@ public enum GroundPickupStatus
     /// <summary>The archive declares nothing holdable under that identifier.</summary>
     UnknownItem,
 
+    /// <summary>The piece belongs to another participant.</summary>
+    NotOwner,
+
     /// <summary>Gold, which goes onto the character rather than into a bag.</summary>
     Banked,
 }
@@ -246,8 +252,12 @@ public sealed record GroundPickupResult(
     int SlotIndex,
     int Amount = 0,
     int Total = 0,
-    DungeonPickupChange? Change = null)
+    DungeonPickupChange? Change = null,
+    SeekingQuestProgressSynchronization? QuestProgress = null,
+    DungeonPickupCommit? PendingCommit = null)
 {
+    public DungeonPickupChange? CommittedChange => this.PendingCommit?.Change ?? this.Change;
+
     public static GroundPickupResult Refused(GroundPickupStatus status, int itemId = 0) =>
         new(status, itemId, 0);
 }
@@ -280,7 +290,8 @@ public sealed class PickUpGroundDropCommandHandler(
     IDungeonRunDomainService runs,
     IGroundPickupDomainService floor,
     ICharacterContainerDomainService containers,
-    ICharacterDomainService characters)
+    ICharacterDomainService characters,
+    ISeekingQuestProgressDomainService seekingQuests)
     : ICommandHandler<PickUpGroundDropCommand, GroundPickupResult>
 {
     public async ValueTask<GroundPickupResult> HandleAsync(
@@ -301,6 +312,8 @@ public sealed class PickUpGroundDropCommandHandler(
             .ConfigureAwait(false);
         if (found is null)
             return GroundPickupResult.Refused(GroundPickupStatus.NothingThere);
+        if (found.OwnerCharacterId is { } owner && owner != command.CharacterId)
+            return GroundPickupResult.Refused(GroundPickupStatus.NotOwner, found.ItemId);
 
         var piece = Announced(run, found);
 
@@ -318,8 +331,8 @@ public sealed class PickUpGroundDropCommandHandler(
             {
                 var total = await characters.Get(command.CharacterId)
                     .AddGoldAsync(piece.Count, cancellationToken).ConfigureAwait(false);
-                var change = runs.CommitGroundDrop(claim, DungeonPickupKind.Gold);
-                if (change is null)
+                var staged = runs.StageGroundDrop(claim, DungeonPickupKind.Gold);
+                if (!staged.IsDeferred && staged.Change is null)
                 {
                     throw new InvalidOperationException(
                         "The ground-drop claim was no longer current after its durable gold award.");
@@ -330,7 +343,8 @@ public sealed class PickUpGroundDropCommandHandler(
                     0,
                     piece.Count,
                     total,
-                    change);
+                    Change: staged.Change,
+                    PendingCommit: staged.IsDeferred ? staged : null);
             }
             catch
             {
@@ -380,14 +394,23 @@ public sealed class PickUpGroundDropCommandHandler(
                         nameof(command), outcome, "No reading was decided for this outcome.");
             }
 
-            var change = runs.CommitGroundDrop(itemClaim, DungeonPickupKind.Item);
-            if (change is null)
+            var questProgress = await seekingQuests.SynchronizeAsync(
+                command.AccountId,
+                command.CharacterId,
+                cancellationToken).ConfigureAwait(false);
+            var staged = runs.StageGroundDrop(itemClaim, DungeonPickupKind.Item);
+            if (!staged.IsDeferred && staged.Change is null)
             {
                 throw new InvalidOperationException(
                     "The ground-drop claim was no longer current after its durable item award.");
             }
             return new GroundPickupResult(
-                GroundPickupStatus.PickedUp, piece.ItemId, slotIndex, Change: change);
+                GroundPickupStatus.PickedUp,
+                piece.ItemId,
+                slotIndex,
+                Change: staged.Change,
+                QuestProgress: questProgress,
+                PendingCommit: staged.IsDeferred ? staged : null);
         }
         catch
         {
@@ -509,7 +532,7 @@ public sealed class DungeonPickupProjectionDelivery(
     {
         ArgumentNullException.ThrowIfNull(requester);
         ArgumentNullException.ThrowIfNull(result);
-        var change = result.Change;
+        var change = result.CommittedChange;
         if (change is null || change.Picker != requester.CharacterId)
             return false;
 
@@ -545,7 +568,21 @@ public sealed class DungeonPickupProjectionDelivery(
                     change.Drop.Number,
                     requester.WireUserId,
                     checked((ushort)result.SlotIndex));
-                required = [new GetItemResponse(Accepted: true), notification];
+                var itemMessages = new List<IGameServerMessage>
+                {
+                    new GetItemResponse(Accepted: true),
+                    notification,
+                };
+                if (result.QuestProgress is { } questProgress)
+                {
+                    itemMessages.Add(new AcceptedQuestProgressMessage(
+                        [.. questProgress.Quests
+                            .OrderBy(quest => quest.Slot)
+                            .Select(quest => new AcceptedQuestProgressState(
+                                checked((ushort)quest.QuestId),
+                                unchecked((uint)quest.TriggerValue)))]));
+                }
+                required = itemMessages;
                 break;
 
             default:

@@ -191,6 +191,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         var jobChangeValues = new List<int>();
         var objectiveType = string.Empty;
         var objectiveIntData = new List<int>();
+        var monsterRewardItemValues = new List<int>();
         var eventItemValues = new List<int>();
         var fixedItemRewardOperands = new List<ItemRewardOperand>();
         var selectableItemRewardOperands = new List<ItemRewardOperand>();
@@ -252,6 +253,8 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
                 objectiveType = StripBrackets(ReadString(archive, token, questId, "type"));
             else if (section == tags.IntData)
                 AddInteger(objectiveIntData, token, questId, "int data");
+            else if (section == tags.MonsterRewardItem)
+                AddInteger(monsterRewardItemValues, token, questId, "monster reward item");
             else if (section == tags.DependGiveItem)
                 AddInteger(eventItemValues, token, questId, "depend give item");
             else if (section == tags.Difficulty)
@@ -351,7 +354,8 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
                 fixedItemRewardOperands,
                 selectableItemRewardOperands,
                 questId),
-            OptionalNonNegative(goldMultiplierValues, questId, "gold multiple") ?? 0);
+            OptionalNonNegative(goldMultiplierValues, questId, "gold multiple") ?? 0,
+            ProjectMonsterRewardItems(monsterRewardItemValues, questId));
 
         return new RawQuestDefinition(
             definition,
@@ -455,6 +459,49 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
                 continue;
             result.Add(new SeekingItemRequirement(values[index], values[index + 1]));
         }
+        return result;
+    }
+
+    internal static IReadOnlyList<QuestMonsterRewardItem> ProjectMonsterRewardItems(
+        IReadOnlyList<int> values,
+        int questId)
+    {
+        if (values.Count == 0)
+            return [];
+        if (values.Count % 7 != 0)
+            throw Invalid(questId, "monster reward item must contain seven-field groups");
+
+        var result = new List<QuestMonsterRewardItem>(values.Count / 7);
+        for (var index = 0; index < values.Count; index += 7)
+        {
+            var monsterCode = values[index];
+            var dungeonId = values[index + 1];
+            var difficulty = values[index + 2];
+            var itemId = values[index + 3];
+            var count = values[index + 4];
+            var dropRate = values[index + 5];
+            var maxStack = values[index + 6];
+            if (monsterCode <= 0
+                || dungeonId < -1
+                || difficulty < -1
+                || itemId <= 0
+                || count <= 0
+                || dropRate is < 0 or > 100
+                || maxStack < -1)
+            {
+                throw Invalid(questId, "monster reward item contains an invalid field");
+            }
+
+            result.Add(new QuestMonsterRewardItem(
+                monsterCode,
+                dungeonId,
+                difficulty,
+                itemId,
+                count,
+                dropRate,
+                maxStack));
+        }
+
         return result;
     }
 
@@ -921,6 +968,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             CompleteNpcIndex = Offset(archive, "[complete npc index]");
             Type = Offset(archive, "[type]");
             IntData = Offset(archive, "[int data]");
+            MonsterRewardItem = Offset(archive, "[monster reward item]");
             DependGiveItem = Offset(archive, "[depend give item]");
             Difficulty = Offset(archive, "[difficulty]");
             RewardType = Offset(archive, "[reward type]");
@@ -952,6 +1000,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         public int CompleteNpcIndex { get; }
         public int Type { get; }
         public int IntData { get; }
+        public int MonsterRewardItem { get; }
 
         public int DependGiveItem { get; }
         public int Difficulty { get; }

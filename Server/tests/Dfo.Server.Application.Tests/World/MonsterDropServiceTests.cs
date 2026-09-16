@@ -95,6 +95,7 @@ public sealed class MonsterDropServiceTests
             runs,
             new DungeonRoomRuleService(
                 new NoRoomActors(), new StubRoomDrops(declaredRoomDrops)),
+            new NoQuestDrops(),
             NullLogger<MonsterDropService>.Instance);
         return (service, runs);
     }
@@ -119,6 +120,7 @@ public sealed class MonsterDropServiceTests
             new NoDropRateAdjustment(),
             runs,
             new DungeonRoomRuleService(new NoRoomActors(), new StubRoomDrops(0)),
+            new NoQuestDrops(),
             NullLogger<MonsterDropService>.Instance);
 
         await service.ForKillAsync(
@@ -340,6 +342,13 @@ public sealed class MonsterDropServiceTests
         }
 
         public IReadOnlyList<RolledDrop> DrawFor(MonsterKill kill, DropRates rates) => [];
+    }
+
+    private sealed class NoQuestDrops : IQuestMonsterDropRuleService
+    {
+        public ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(
+            MonsterKill kill, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<RolledDrop>>([]);
     }
 
     /// <summary>A room declaring no actors; these tests supply their own or need none.</summary>

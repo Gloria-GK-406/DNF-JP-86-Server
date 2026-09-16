@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Tests.World;
@@ -339,7 +340,8 @@ public sealed class PickedUpAvatarStaysWholeTests
                         placements,
                         content.GetRequiredService<IEquipmentSlotDefinitionSource>())),
                 side.Containers,
-                null!);
+                null!,
+                new NoSeekingProgress());
 
             await body(side, handler, runs);
         }
@@ -371,5 +373,14 @@ public sealed class PickedUpAvatarStaysWholeTests
         public ValueTask<IReadOnlyList<DungeonRoomDrop>> GetAsync(
             int dungeonId, int mapId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<IReadOnlyList<DungeonRoomDrop>>([]);
+    }
+
+    private sealed class NoSeekingProgress : ISeekingQuestProgressDomainService
+    {
+        public ValueTask<SeekingQuestProgressSynchronization?> SynchronizeAsync(
+            AccountId accountId,
+            CharacterId characterId,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult<SeekingQuestProgressSynchronization?>(null);
     }
 }

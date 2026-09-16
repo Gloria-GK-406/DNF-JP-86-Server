@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Content;
@@ -13,6 +14,7 @@ using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.GroundPickup;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Dfo.Server.Protocol.Tests.Game.GroundPickup;
@@ -43,6 +45,32 @@ public sealed class GetItemHandlerTests
         var notice = Assert.IsType<GroundPickupNotification>(Assert.Single(helper.OrderedMessages));
         Assert.Equal(Leader.WireUserId, notice.PickerActorId);
         Assert.Equal((ushort)3, notice.GroundDropNumber);
+    }
+
+    [Fact]
+    public async Task Successful_task_item_pickup_projects_the_complete_carried_quest_progress()
+    {
+        var (handler, sender) = Build(
+            [Leader, Helper],
+            [new GroundPickupResult(
+                GroundPickupStatus.PickedUp,
+                10149163,
+                7,
+                QuestProgress: new SeekingQuestProgressSynchronization(
+                    [new CarriedQuest(0, 1779, 14), new CarriedQuest(1, 2000, 7)]))]);
+
+        await handler.HandleAsync(
+            Dispatch(Leader.ConnectionId),
+            new GetItemRequest(GameMessageMetadata.Empty, 3),
+            CancellationToken.None);
+
+        var progress = Assert.IsType<AcceptedQuestProgressMessage>(
+            sender.Delivery!.RequiredDirectMessages[2]);
+        Assert.Equal([(1779, 14u), (2000, 7u)],
+            progress.Quests.Select(quest => ((int)quest.QuestId, quest.TriggerValue)));
+        Assert.Single(sender.Delivery.BestEffortTargets);
+        Assert.IsType<GroundPickupNotification>(
+            Assert.Single(sender.Delivery.BestEffortTargets[0].OrderedMessages));
     }
 
     [Fact]

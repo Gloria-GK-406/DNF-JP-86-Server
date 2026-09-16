@@ -300,3 +300,16 @@ public interface ICharacterQuestLogDomainService
     /// </remarks>
     IQuestLog LogOf(AccountId accountId, CharacterId characterId);
 }
+
+/// <summary>The complete carried-quest projection after a derived seeking correction.</summary>
+public sealed record SeekingQuestProgressSynchronization(
+    IReadOnlyList<CarriedQuest> Quests);
+
+/// <summary>Re-derives seeking progress from the character's current authoritative holdings.</summary>
+public interface ISeekingQuestProgressDomainService
+{
+    ValueTask<SeekingQuestProgressSynchronization?> SynchronizeAsync(
+        AccountId accountId,
+        CharacterId characterId,
+        CancellationToken cancellationToken);
+}

@@ -348,7 +348,7 @@ public sealed class MonsterDeathHandlerTests
             new PartyCharacters([member.CharacterId]),
             run,
             new OneClearedBossMonster(),
-            new OnePartyDrop(),
+            new OnePartyDrop(leader.CharacterId),
             settlement,
             bus,
             new QuestOfferRefreshDomainService(
@@ -369,7 +369,12 @@ public sealed class MonsterDeathHandlerTests
         Assert.Equal(2, applied.PartyMemberCount);
         Assert.Equal(leader.AccountId, settlement.AccountId);
         Assert.Equal(leader.CharacterId, settlement.CharacterId);
-        Assert.Single(sender.For(member.ConnectionId).OfType<EnableClearDungeonNotification>());
+        var memberFrames = sender.For(member.ConnectionId);
+        Assert.Single(memberFrames.OfType<EnableClearDungeonNotification>());
+        var death = Assert.Single(memberFrames.OfType<MonsterDeathNotification>());
+        Assert.Equal(
+            leader.WireUserId,
+            Assert.IsAssignableFrom<IReadOnlyDictionary<ushort, ushort>>(death.DropOwners)[1]);
     }
 
     [Fact]
@@ -953,7 +958,7 @@ public sealed class MonsterDeathHandlerTests
         }
     }
 
-    private sealed class OnePartyDrop : IMonsterDropService
+    private sealed class OnePartyDrop(CharacterId? owner = null) : IMonsterDropService
     {
         public int TimesAsked { get; private set; }
 
@@ -964,7 +969,12 @@ public sealed class MonsterDeathHandlerTests
             return ValueTask.FromResult<IReadOnlyList<MonsterDrop>>(
                 [new MonsterDrop(
                     1,
-                    new RolledDrop(0, 44, DropRarity.Common, DropItemKind.Gold))]);
+                    new RolledDrop(
+                        0,
+                        44,
+                        DropRarity.Common,
+                        DropItemKind.Gold,
+                        OwnerCharacterId: owner))]);
         }
     }
 
