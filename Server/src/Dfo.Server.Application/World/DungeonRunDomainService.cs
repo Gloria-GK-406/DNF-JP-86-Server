@@ -237,7 +237,9 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         }
     }
 
-    public DungeonRunState? CommitGroundDrop(DungeonGroundDropClaim claim)
+    public DungeonPickupChange? CommitGroundDrop(
+        DungeonGroundDropClaim claim,
+        DungeonPickupKind kind)
     {
         ArgumentNullException.ThrowIfNull(claim);
         lock (this.gate)
@@ -251,7 +253,18 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             }
 
             aggregate.TakenGroundDrops = aggregate.TakenGroundDrops.Add(claim.Drop);
-            return aggregate.ViewFor(claim.CharacterId);
+            aggregate.RuntimeRevision++;
+            return new DungeonPickupChange(
+                aggregate.RunId,
+                aggregate.RuntimeRevision,
+                claim.CharacterId,
+                claim.Drop,
+                kind,
+                [.. aggregate.Participants
+                    .Where(participant => aggregate.ActiveParticipants.Contains(
+                        participant.CharacterId))
+                    .OrderBy(participant => participant.Slot)
+                    .Select(participant => participant.CharacterId)]);
         }
     }
 
@@ -861,6 +874,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         public int CurrentRoomMapId { get; set; }
         public long RoomVersion { get; set; }
         public long EntryRevision { get; set; } = 1;
+        public long RuntimeRevision { get; set; }
         public ImmutableHashSet<MazeCell> VisitedCells { get; set; }
         public ImmutableHashSet<GroundDropId> TakenGroundDrops { get; set; } = [];
         public ImmutableHashSet<RoomActorId> DeadActors { get; set; } = [];

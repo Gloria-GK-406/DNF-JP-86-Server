@@ -395,6 +395,41 @@ public sealed class DungeonRunDomainServiceTests
     }
 
     [Fact]
+    public void Committed_pickups_publish_one_monotonic_change_to_active_participants()
+    {
+        var leader = new DungeonRunParticipant(
+            new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
+        var member = new DungeonRunParticipant(
+            new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
+        var service = new DungeonRunDomainService();
+        var run = service.BeginParty([leader, member], Tutorial, difficulty: 0);
+        var first = Assert.IsType<DungeonGroundDropClaim>(
+            service.TryClaimGroundDrop(leader.CharacterId, run.RunId, run.RoomVersion, 1));
+
+        var item = Assert.IsType<DungeonPickupChange>(
+            service.CommitGroundDrop(first, DungeonPickupKind.Item));
+
+        Assert.Equal(run.RunId, item.RunId);
+        Assert.Equal(1, item.Revision);
+        Assert.Equal(leader.CharacterId, item.Picker);
+        Assert.Equal(new GroundDropId(run.CurrentCell, 1), item.Drop);
+        Assert.Equal(DungeonPickupKind.Item, item.Kind);
+        Assert.Equal([leader.CharacterId, member.CharacterId], item.Recipients);
+        Assert.Null(service.TryClaimGroundDrop(
+            member.CharacterId, run.RunId, run.RoomVersion, 1));
+
+        var second = Assert.IsType<DungeonGroundDropClaim>(
+            service.TryClaimGroundDrop(member.CharacterId, run.RunId, run.RoomVersion, 2));
+        Assert.True(service.End(leader.CharacterId, run.RunId));
+
+        var gold = Assert.IsType<DungeonPickupChange>(
+            service.CommitGroundDrop(second, DungeonPickupKind.Gold));
+
+        Assert.Equal(2, gold.Revision);
+        Assert.Equal([member.CharacterId], gold.Recipients);
+    }
+
+    [Fact]
     public void A_retried_party_death_claims_only_the_participant_whose_effect_is_unfinished()
     {
         var leader = new DungeonRunParticipant(
@@ -574,7 +609,7 @@ public sealed class DungeonRunDomainServiceTests
         Assert.True(service.ReleaseGroundDrop(first));
         var retry = Assert.IsType<DungeonGroundDropClaim>(
             service.TryClaimGroundDrop(Character, run.RunId, run.RoomVersion, 1));
-        Assert.NotNull(service.CommitGroundDrop(retry));
+        Assert.NotNull(service.CommitGroundDrop(retry, DungeonPickupKind.Item));
         Assert.Null(service.TryClaimGroundDrop(Character, run.RunId, run.RoomVersion, 1));
     }
 
@@ -592,7 +627,7 @@ public sealed class DungeonRunDomainServiceTests
                 leader.CharacterId, run.RunId, run.RoomVersion, groundDropNumber: 1));
 
         Assert.True(service.End(leader.CharacterId, run.RunId));
-        Assert.NotNull(service.CommitGroundDrop(claim));
+        Assert.NotNull(service.CommitGroundDrop(claim, DungeonPickupKind.Item));
         Assert.Null(service.TryClaimGroundDrop(
             member.CharacterId, run.RunId, run.RoomVersion, groundDropNumber: 1));
     }

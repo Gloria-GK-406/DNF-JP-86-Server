@@ -86,6 +86,99 @@ public sealed class GetItemHandlerTests
         Assert.Single(sender.Deliveries[0].BestEffortTargets);
     }
 
+    [Fact]
+    public async Task Replacement_picker_does_not_receive_the_old_runs_pickup()
+    {
+        var replacement = Leader with
+        {
+            ConnectionId = new NetworkConnectionId("replacement-leader"),
+            ConnectionGeneration = 2,
+        };
+        var (projection, sender, run) = Projection(
+            [Leader, Helper], [replacement, Helper]);
+
+        var delivered = await projection.DeliverAsync(
+            Leader,
+            Picked(run, Leader.CharacterId, [Leader.CharacterId, Helper.CharacterId]),
+            CancellationToken.None);
+
+        Assert.False(delivered);
+        Assert.Empty(sender.Deliveries);
+    }
+
+    [Fact]
+    public async Task Departed_picker_is_not_projected_after_the_commit_excludes_them()
+    {
+        var (projection, sender, run) = Projection([Leader, Helper], [Leader, Helper]);
+
+        var delivered = await projection.DeliverAsync(
+            Leader,
+            Picked(run, Leader.CharacterId, [Helper.CharacterId]),
+            CancellationToken.None);
+
+        Assert.False(delivered);
+        Assert.Empty(sender.Deliveries);
+    }
+
+    [Fact]
+    public async Task Foreign_run_change_cannot_reuse_the_current_picker_connection()
+    {
+        var (projection, sender, run) = Projection([Leader, Helper], [Leader, Helper]);
+        var foreign = Picked(run, Leader.CharacterId, [Leader.CharacterId, Helper.CharacterId]) with
+        {
+            Change = Picked(run, Leader.CharacterId, [Leader.CharacterId, Helper.CharacterId])
+                .Change! with { RunId = DungeonRunId.New() },
+        };
+
+        var delivered = await projection.DeliverAsync(
+            Leader, foreign, CancellationToken.None);
+
+        Assert.False(delivered);
+        Assert.Empty(sender.Deliveries);
+    }
+
+    private static GroundPickupResult Picked(
+        DungeonRunState run,
+        CharacterId picker,
+        IReadOnlyList<CharacterId> recipients) =>
+        new(
+            GroundPickupStatus.PickedUp,
+            14400,
+            7,
+            Change: new DungeonPickupChange(
+                run.RunId,
+                1,
+                picker,
+                new GroundDropId(run.CurrentCell, 3),
+                DungeonPickupKind.Item,
+                recipients));
+
+    private static (
+        DungeonPickupProjectionDelivery Projection,
+        RecordingSender Sender,
+        DungeonRunState Run) Projection(
+        IReadOnlyList<SelectedSessionIdentity> frozen,
+        IReadOnlyList<SelectedSessionIdentity> current)
+    {
+        var runs = new DungeonRunDomainService();
+        var run = runs.BeginParty(
+            frozen.Select((session, index) => new DungeonRunParticipant(
+                session.AccountId,
+                session.CharacterId,
+                checked((byte)index),
+                index == 0)).ToArray(),
+            Layout(),
+            difficulty: 0);
+        var registry = new DungeonRunDeliveryRegistry();
+        registry.Register(run.RunId, frozen);
+        var sender = new RecordingSender();
+        return (
+            new DungeonPickupProjectionDelivery(
+                new Sessions(current), registry, sender, TimeProvider.System),
+            sender,
+            run);
+    }
+
     private static (GetItemHandler Handler, RecordingSender Sender) Build(
         IReadOnlyList<SelectedSessionIdentity> frozen,
         IReadOnlyList<GroundPickupResult> results,
@@ -101,14 +194,14 @@ public sealed class GetItemHandlerTests
         var deliveries = new DungeonRunDeliveryRegistry();
         deliveries.Register(run.RunId, frozen);
         var sender = new RecordingSender();
+        var projection = new DungeonPickupProjectionDelivery(
+            new Sessions(current ?? frozen), deliveries, sender, TimeProvider.System);
         return (
             new GetItemHandler(
                 new Sessions(current ?? frozen),
                 runs,
-                deliveries,
-                new PickupBus(results),
-                sender,
-                TimeProvider.System,
+                new PickupBus(results, run, frozen.Select(value => value.CharacterId).ToArray()),
+                projection,
                 NullLogger<GetItemHandler>.Instance),
             sender);
     }
@@ -136,16 +229,36 @@ public sealed class GetItemHandlerTests
     private static NetworkDispatchContext Dispatch(NetworkConnectionId connectionId) =>
         new(new NetworkConnectionContext(connectionId, NetworkEndpointKind.Game, 10010));
 
-    private sealed class PickupBus(IReadOnlyList<GroundPickupResult> results) : ICommandBus
+    private sealed class PickupBus(
+        IReadOnlyList<GroundPickupResult> results,
+        DungeonRunState run,
+        IReadOnlyList<CharacterId> recipients) : ICommandBus
     {
         private int index;
+        private long revision;
 
         public ValueTask<TResult> SendAsync<TResult>(
             ICommand<TResult> command,
             CancellationToken cancellationToken = default) where TResult : notnull
         {
-            Assert.IsType<PickUpGroundDropCommand>(command);
-            return ValueTask.FromResult((TResult)(object)results[index++]);
+            var pickup = Assert.IsType<PickUpGroundDropCommand>(command);
+            var result = results[index++];
+            if (result.Status is GroundPickupStatus.PickedUp or GroundPickupStatus.Banked)
+            {
+                result = result with
+                {
+                    Change = new DungeonPickupChange(
+                        run.RunId,
+                        ++revision,
+                        pickup.CharacterId,
+                        new GroundDropId(run.CurrentCell, pickup.GroundDropNumber),
+                        result.Status is GroundPickupStatus.Banked
+                            ? DungeonPickupKind.Gold
+                            : DungeonPickupKind.Item,
+                        recipients),
+                };
+            }
+            return ValueTask.FromResult((TResult)(object)result);
         }
     }
 

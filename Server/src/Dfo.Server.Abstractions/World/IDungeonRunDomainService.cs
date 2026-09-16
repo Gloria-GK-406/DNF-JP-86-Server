@@ -341,6 +341,22 @@ public sealed record DungeonGroundDropClaim(
     long Token,
     DungeonRunId RunId = default);
 
+/// <summary>What kind of durable result consumed one shared ground drop.</summary>
+public enum DungeonPickupKind
+{
+    Item,
+    Gold,
+}
+
+/// <summary>A committed shared pickup, expressed without transport identities.</summary>
+public sealed record DungeonPickupChange(
+    DungeonRunId RunId,
+    long Revision,
+    CharacterId Picker,
+    GroundDropId Drop,
+    DungeonPickupKind Kind,
+    IReadOnlyList<CharacterId> Recipients);
+
 /// <summary>An exact, retryable reservation of one clear-card position.</summary>
 public sealed record DungeonClearRewardCardClaim(
     CharacterId CharacterId,
@@ -527,8 +543,20 @@ public interface IDungeonRunDomainService
             : null;
     }
 
-    /// <summary>Consumes an exact drop reservation after durable delivery succeeds.</summary>
-    DungeonRunState? CommitGroundDrop(DungeonGroundDropClaim claim) => claim.Run;
+    /// <summary>
+    /// Consumes an exact drop reservation after durable delivery succeeds and publishes the
+    /// shared runtime fact to the run's active semantic participants.
+    /// </summary>
+    DungeonPickupChange? CommitGroundDrop(
+        DungeonGroundDropClaim claim,
+        DungeonPickupKind kind) =>
+        new(
+            claim.RunId,
+            0,
+            claim.CharacterId,
+            claim.Drop,
+            kind,
+            claim.Run.Participants.Select(value => value.CharacterId).ToArray());
 
     /// <summary>Releases an exact drop reservation after a refused or failed delivery.</summary>
     bool ReleaseGroundDrop(DungeonGroundDropClaim claim) => false;

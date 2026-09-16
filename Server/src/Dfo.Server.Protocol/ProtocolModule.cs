@@ -100,6 +100,7 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<DungeonRunDeliveryRegistry>();
         services.TryAddSingleton<DungeonProjectionGate>();
         services.TryAddSingleton<DungeonEntryProjectionDelivery>();
+        services.TryAddSingleton<DungeonPickupProjectionDelivery>();
         services.TryAddSingleton<IDungeonLoadingProjectionDelivery, DungeonLoadingProjectionDelivery>();
         services.TryAddSingleton<IDungeonRunParticipantDepartureSink>(provider =>
             provider.GetRequiredService<DungeonRunDeliveryRegistry>());
