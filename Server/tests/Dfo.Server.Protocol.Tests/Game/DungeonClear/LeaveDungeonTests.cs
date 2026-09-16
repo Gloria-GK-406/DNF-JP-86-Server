@@ -24,6 +24,7 @@ using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 using Dfo.Server.Protocol.Tests.Game.TownProjection;
+using Dfo.Server.Protocol.Tests.Game.Party;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Dfo.Server.Protocol.Tests.Game.DungeonClear;
@@ -342,7 +343,8 @@ public sealed class LeaveDungeonTests
                 new OneRuntimeSession(Entry()),
                 sender),
             NullLogger<BackToVillageHandler>.Instance,
-            new SelectedSessionTransitionGate());
+            new SelectedSessionTransitionGate(),
+            new VirtualOnlyPartyService());
 
         await handler.HandleAsync(
             Dispatch(),

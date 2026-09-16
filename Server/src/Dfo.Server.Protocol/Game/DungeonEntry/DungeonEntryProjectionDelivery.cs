@@ -48,13 +48,13 @@ public sealed class DungeonEntryProjectionDelivery(
         NetworkConnectionId requesterConnection,
         SelectedSessionIdentity requester,
         SelectCharacterResult requesterRuntime,
-        PartySnapshot? party,
+        PartySnapshot roster,
         SelectDungeonRequest message,
         DungeonEntryFacts facts,
         DungeonEntryIntent intent,
         CancellationToken cancellationToken)
     {
-        var attachments = ResolveAttachments(requester, requesterRuntime, party);
+        var attachments = ResolveAttachments(requester, requesterRuntime, roster);
         if (attachments.BlockedSlot is { } blockedSlot)
         {
             await RefuseAsync(requesterConnection, SelectDungeonRefusal.MemberBlocked, blockedSlot,
@@ -208,7 +208,7 @@ public sealed class DungeonEntryProjectionDelivery(
                 frames.Add(new SupportTagNotification());
                 frames.Add(new DungeonInfoNotification(layout, message.Difficulty));
                 frames.Add(new StartMapNotification(
-                    party is null ? visit.Run with { Participant = null } : visit.Run,
+                    roster.IsVirtual ? visit.Run with { Participant = null } : visit.Run,
                     FirstEntry: true,
                     visit.Actors,
                     visit.FirstActorSequence,
@@ -266,7 +266,7 @@ public sealed class DungeonEntryProjectionDelivery(
             for (var index = 0; index < deliveries.Count; index++)
             {
                 var delivery = deliveries[index];
-                var currentRun = party is null
+                var currentRun = roster.IsVirtual
                     ? change.Run with { Participant = null }
                     : change.Run with
                     {
@@ -380,13 +380,10 @@ public sealed class DungeonEntryProjectionDelivery(
     private EntryAttachments ResolveAttachments(
         SelectedSessionIdentity requester,
         SelectCharacterResult requesterRuntime,
-        PartySnapshot? party)
+        PartySnapshot roster)
     {
-        if (party is null)
-            return new EntryAttachments([(requester, requesterRuntime, (byte)0)], null);
-
         var members = new List<(SelectedSessionIdentity Session, SelectCharacterResult Runtime, byte Slot)>();
-        foreach (var member in party.Members.OrderBy(value => value.Slot))
+        foreach (var member in roster.Members.OrderBy(value => value.Slot))
         {
             var current = selectedSessions.FindByCharacter(member.CharacterId);
             if (current is null

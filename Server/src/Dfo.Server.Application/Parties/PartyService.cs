@@ -325,10 +325,13 @@ internal sealed class PartyService(
         }
     }
 
-    public PartySnapshot? FindParty(CharacterId characterId)
+    public PartySnapshot FindParty(PartyCharacterSnapshot character)
     {
+        ArgumentNullException.ThrowIfNull(character);
         lock (sync)
-            return membership.TryGetValue(characterId, out var party) ? Snapshot(party) : null;
+            return membership.TryGetValue(character.CharacterId, out var party)
+                ? Snapshot(party)
+                : PartySnapshot.Virtual(character, modeRules.DefaultSettings);
     }
 
     private PartyOperationResult LeaveLocked(CharacterId characterId)

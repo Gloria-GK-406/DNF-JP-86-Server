@@ -347,9 +347,10 @@ public sealed class PartyTownProjectionDeliveryTests
 
         public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => parties;
 
-        public PartySnapshot? FindParty(CharacterId characterId) =>
+        public PartySnapshot FindParty(PartyCharacterSnapshot character) =>
             parties.SingleOrDefault(snapshot => snapshot.Members.Any(
-                member => member.CharacterId == characterId));
+                member => member.CharacterId == character.CharacterId))
+            ?? PartySnapshot.Virtual(character, new PartySettings(new byte[PartySettings.WireLength]));
 
         public PartyOperationResult CreateOrUpdateSettings(
             PartyCharacterSnapshot character,
@@ -393,8 +394,9 @@ public sealed class PartyTownProjectionDeliveryTests
             return [Current];
         }
 
-        public PartySnapshot? FindParty(CharacterId characterId) =>
-            characterId == member.CharacterId ? Current : null;
+        public PartySnapshot FindParty(PartyCharacterSnapshot character) =>
+            character.CharacterId == member.CharacterId ? Current
+                : PartySnapshot.Virtual(character, new PartySettings(new byte[PartySettings.WireLength]));
 
         public PartyOperationResult CreateOrUpdateSettings(
             PartyCharacterSnapshot character,

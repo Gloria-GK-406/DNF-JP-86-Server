@@ -38,7 +38,8 @@ public interface IPartyService : IPartyDirectoryPresenceSink
     /// <summary>Withdraws every party artifact owned by this character.</summary>
     PartyOperationResult CleanupCharacter(CharacterId characterId);
 
-    PartySnapshot? FindParty(CharacterId characterId);
+    /// <summary>Returns a real party or a transient, one-member virtual party view.</summary>
+    PartySnapshot FindParty(PartyCharacterSnapshot character);
 }
 
 /// <summary>Resolves a party member's endpoint through that character's current session.</summary>

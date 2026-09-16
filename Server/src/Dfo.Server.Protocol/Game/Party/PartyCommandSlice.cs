@@ -268,7 +268,7 @@ public sealed class LeavePartyCommandHandler(IPartyService parties)
         ValueTask.FromResult(parties.LeaveParty(command.CharacterId));
 }
 
-public sealed record QueryPartyRealtimeCommand(CharacterId CharacterId)
+public sealed record QueryPartyRealtimeCommand(PartyCharacterSnapshot Character)
     : ICommand<PartyRealtimeQueryResult>;
 
 public sealed record PartyRealtimeQueryResult(PartySnapshot? Snapshot);
@@ -281,7 +281,7 @@ public sealed class QueryPartyRealtimeCommandHandler(IPartyService parties)
         QueryPartyRealtimeCommand command,
         CancellationToken cancellationToken) =>
         ValueTask.FromResult(new PartyRealtimeQueryResult(
-            parties.FindParty(command.CharacterId)));
+            parties.FindParty(command.Character)));
 }
 
 public sealed record SetPartyInfoCommand(
@@ -688,17 +688,18 @@ public sealed class CallPartyMemberRealtimeInfoHandler(
             session,
             null,
             () => sessions.FindByConnection(context.Connection.ConnectionId) == session
-                ? commands.SendAsync(new QueryPartyRealtimeCommand(session.CharacterId), cancellationToken)
+                ? commands.SendAsync(new QueryPartyRealtimeCommand(new PartyCharacterSnapshot(
+                    session.AccountId, session.CharacterId, session.WireUserId, null)), cancellationToken)
                 : ValueTask.FromResult(new PartyRealtimeQueryResult(null)),
             cancellationToken).ConfigureAwait(false);
-        if (result.Snapshot is { } snapshot)
+        if (result.Snapshot is { IsVirtual: false } snapshot)
         {
             await notifications.DeliverRealtimeAsync(session, snapshot, cancellationToken)
                 .ConfigureAwait(false);
         }
         logger.LogInformation(
             "CALL_PARTY_MEMBER_REALTIME_INFO character={CharacterId} inParty={InParty}",
-            session.CharacterId, result.Snapshot is not null);
+            session.CharacterId, result.Snapshot is { IsVirtual: false });
     }
 }
 

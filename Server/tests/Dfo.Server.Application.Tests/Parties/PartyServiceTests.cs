@@ -20,6 +20,38 @@ namespace Dfo.Server.Application.Tests.Parties;
 public sealed class PartyServiceTests
 {
     [Fact]
+    public void Dungeon_roster_is_always_nonempty_without_creating_a_real_party()
+    {
+        IPartyService service = new PartyService(
+            new StubPartyMemberStatusDomainService(),
+            new PartyModeRuleService(),
+            TimeProvider.System,
+            EmptyPartyMemberSessionEndpointSource.Instance);
+        var character = Character(91, new PartyDirectoryScope(11, 1, 1));
+
+        var roster = service.FindParty(character);
+
+        Assert.True(roster.IsVirtual);
+        Assert.Equal(character.WireUserId, roster.LeaderWireUserId);
+        var member = Assert.Single(roster.Members);
+        Assert.Equal(character.CharacterId, member.CharacterId);
+        Assert.Equal(0, member.Slot);
+        Assert.True(service.FindParty(character).IsVirtual);
+        Assert.Empty(service.Query(new PartyDirectoryQuery(character.DirectoryScope!)));
+        Assert.Equal(PartyFailureReason.NotInParty,
+            service.LeaveParty(character.CharacterId).Failure);
+
+        Assert.True(service.CreateOrUpdateSettings(
+            character,
+            new PartyModeRuleService().DefaultSettings,
+            PartyTitle.Empty).Succeeded);
+        var actual = service.FindParty(character);
+        Assert.False(actual.IsVirtual);
+        Assert.Equal(character.WireUserId, actual.LeaderWireUserId);
+        Assert.Equal(character.CharacterId, Assert.Single(actual.Members).CharacterId);
+    }
+
+    [Fact]
     public void Party_snapshot_reaches_an_endpoint_only_through_the_characters_current_session()
     {
         var state = new OnlineStateRegistry(new DomainTransactionScope());
@@ -62,11 +94,13 @@ public sealed class PartyServiceTests
 
         Assert.Equal(
             endpoint,
-            Assert.Single(parties.FindParty(selected.CharacterId)!.Members).Endpoint);
+            Assert.Single(parties.FindParty(new PartyCharacterSnapshot(
+                selected.AccountId, selected.CharacterId, selected.WireUserId, null)).Members).Endpoint);
 
         Assert.True(selectedSessions.ReleaseExact(selected));
         Assert.True(activeCharacters.ClearExact(selected));
-        Assert.Null(Assert.Single(parties.FindParty(selected.CharacterId)!.Members).Endpoint);
+        Assert.Null(Assert.Single(parties.FindParty(new PartyCharacterSnapshot(
+            selected.AccountId, selected.CharacterId, selected.WireUserId, null)).Members).Endpoint);
         Assert.Equal(endpoint, sessionEndpoints.Find(authenticated.SessionIdentity));
     }
 
@@ -364,7 +398,7 @@ public sealed class PartyServiceTests
 
         Assert.True(service.LeaveParty(successor.CharacterId).Succeeded);
         Assert.Empty(service.Query(new PartyDirectoryQuery(secondScope)));
-        Assert.Null(service.FindParty(leader.CharacterId));
+        Assert.True(service.FindParty(leader).IsVirtual);
     }
 
     [Fact]
@@ -450,9 +484,9 @@ public sealed class PartyServiceTests
             PartyFailureReason.NotInSameGameChannel,
             fixture.Parties.RequestInvite(inviter, otherListener.WireUserId, Profile(1)).Failure);
 
-        Assert.Null(fixture.Parties.FindParty(inviter));
-        Assert.Null(fixture.Parties.FindParty(target));
-        Assert.Null(fixture.Parties.FindParty(otherListener));
+        Assert.True(fixture.Parties.FindParty(inviter).IsVirtual);
+        Assert.True(fixture.Parties.FindParty(target).IsVirtual);
+        Assert.True(fixture.Parties.FindParty(otherListener).IsVirtual);
     }
 
     [Fact]
@@ -566,7 +600,7 @@ public sealed class PartyServiceTests
         Assert.True(fixture.Presence.RelocateExact(
             target, townId: 1, areaId: 1, standingInTown: true));
         Assert.True(fixture.Parties.AcceptInvite(target, leader.WireUserId).Succeeded);
-        Assert.NotNull(fixture.Parties.FindParty(target));
+        Assert.False(fixture.Parties.FindParty(target).IsVirtual);
     }
 
     [Fact]
@@ -618,7 +652,7 @@ public sealed class PartyServiceTests
         Assert.Equal(
             [leader.WireUserId, third.WireUserId],
             survivors.Members.Select(item => item.WireUserId));
-        Assert.Null(fixture.Parties.FindParty(member));
+        Assert.True(fixture.Parties.FindParty(member).IsVirtual);
 
         var leaderLeave = fixture.Parties.LeavePartyExact(leader);
 
@@ -627,8 +661,8 @@ public sealed class PartyServiceTests
         Assert.Equal(
             [leader.CharacterId.Value, third.CharacterId.Value],
             leaderLeave.Notifications.ClearAudience.Select(character => character.Value));
-        Assert.Null(fixture.Parties.FindParty(leader));
-        Assert.Null(fixture.Parties.FindParty(third));
+        Assert.True(fixture.Parties.FindParty(leader).IsVirtual);
+        Assert.True(fixture.Parties.FindParty(third).IsVirtual);
         Assert.Equal(
             PartyFailureReason.NotInParty,
             fixture.Parties.LeavePartyExact(leader).Failure);
@@ -655,7 +689,7 @@ public sealed class PartyServiceTests
             fixture.Parties.CleanupSessionExact(first).Failure);
         Assert.Equal(Endpoint(36_624), fixture.Parties.FindSessionEndpoint(replacement));
         Assert.True(fixture.Parties.AcceptInvite(replacementPeer, replacement.WireUserId).Succeeded);
-        Assert.NotNull(fixture.Parties.FindParty(replacement));
+        Assert.False(fixture.Parties.FindParty(replacement).IsVirtual);
     }
 
     [Fact]

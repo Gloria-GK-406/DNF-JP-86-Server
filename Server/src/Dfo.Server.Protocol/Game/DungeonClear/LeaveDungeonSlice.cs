@@ -4,7 +4,10 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.CardReward;
@@ -127,20 +130,85 @@ public sealed class EplpCommandHandler(
         }
 
         var leaving = message.State == LeaveState;
+        var currentRun = runs.Find(session.CharacterId);
+        var participants = currentRun is { Participants.Count: > 0 }
+            ? currentRun.Participants.OrderBy(value => value.Slot).ToArray()
+            : [new DungeonRunParticipant(session.AccountId, session.CharacterId, 0, true)];
+        var leader = participants.SingleOrDefault(value => value.IsLeader);
+        if (leader is null || leader.CharacterId != session.CharacterId)
+        {
+            logger.LogWarning(
+                "Eplp command {ConnectionId}: non-leader character={CharacterId} ignored",
+                context.Connection.ConnectionId, session.CharacterId.Value);
+            return;
+        }
+
+        var returning = new List<ReturnMember>();
+        foreach (var participant in participants)
+        {
+            var memberSession = selectedSessions.FindByCharacter(participant.CharacterId);
+            if (memberSession is null
+                || memberSession.AccountId != participant.AccountId
+                || !runtimeSessions.TryGet(memberSession, out var memberRuntime, out _)
+                || memberRuntime is null
+                || positions.Find(participant.CharacterId) is not { } memberPosition
+                || (currentRun is not null
+                    && runs.Find(participant.CharacterId)?.RunId != currentRun.RunId))
+            {
+                continue;
+            }
+            returning.Add(new ReturnMember(memberSession, memberRuntime, memberPosition));
+        }
+        if (!returning.Any(value => value.Session == session))
+            return;
+
         var runEnded = false;
+        HashSet<CharacterId> endedCharacters = [];
         if (leaving)
         {
-            await using var transition = await transitionGate.AcquireAsync(
-                session.AccountId, UserAccessMode.Exclusive, cancellationToken)
-                .ConfigureAwait(false);
-            if (selectedSessions.FindByConnection(context.Connection.ConnectionId) != session)
+            var leases = new List<IAsyncDisposable>();
+            try
+            {
+                foreach (var accountId in participants.Select(value => value.AccountId)
+                             .Distinct().OrderBy(value => value.Value))
+                {
+                    leases.Add(await transitionGate.AcquireAsync(
+                        accountId, UserAccessMode.Exclusive, cancellationToken)
+                        .ConfigureAwait(false));
+                }
+                if (selectedSessions.FindByConnection(context.Connection.ConnectionId) != session
+                    || (currentRun is not null
+                        && runs.Find(session.CharacterId)?.RunId != currentRun.RunId))
+                {
+                    return;
+                }
+
+                foreach (var participant in participants)
+                {
+                    if (currentRun is null
+                        || runs.Find(participant.CharacterId)?.RunId != currentRun.RunId)
+                        continue;
+                    cardPresentation?.Cancel(participant.CharacterId, currentRun.RunId);
+                    if (!runs.End(participant.CharacterId, currentRun.RunId))
+                        continue;
+                    deliveries.RemoveParticipant(currentRun.RunId, participant.CharacterId);
+                    endedCharacters.Add(participant.CharacterId);
+                    runEnded = true;
+                }
+            }
+            finally
+            {
+                for (var index = leases.Count - 1; index >= 0; index--)
+                    await leases[index].DisposeAsync().ConfigureAwait(false);
+            }
+            if (currentRun is not null && !runEnded)
                 return;
-            var currentRun = runs.Find(session.CharacterId);
             if (currentRun is not null)
-                cardPresentation?.Cancel(session.CharacterId, currentRun.RunId);
-            runEnded = currentRun is not null && runs.End(session.CharacterId, currentRun.RunId);
-            if (runEnded && currentRun is not null)
-                deliveries.RemoveParticipant(currentRun.RunId, session.CharacterId);
+            {
+                returning.RemoveAll(value => !endedCharacters.Contains(value.Session.CharacterId));
+                if (!returning.Any(value => value.Session == session))
+                    return;
+            }
         }
 
         logger.LogInformation(
@@ -153,23 +221,47 @@ public sealed class EplpCommandHandler(
             leaving,
             runEnded);
 
-        if (leaving)
+        // Peers must see the decision before the leader's ACK can open another selection.
+        foreach (var member in returning.Where(value => value.Session != session))
         {
-            await sender.SendExplicitAsync(
-                context.Connection.ConnectionId,
-                new GameExplicitMessageDelivery(
-                    [new EplpCommandResponse(message.State, message.Option)], []),
-                cancellationToken).ConfigureAwait(false);
-            await townAreaProjection.EnterAsync(
-                [new TownAreaEntry(session, result, position)],
-                cancellationToken).ConfigureAwait(false);
-            return;
+            if (selectedSessions.FindByCharacter(member.Session.CharacterId) != member.Session)
+                continue;
+            try
+            {
+                await sender.SendExplicitAsync(
+                    member.Session.ConnectionId,
+                    new GameExplicitMessageDelivery(
+                        [new EplpCommandResponse(message.State, message.Option)], []),
+                    cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception error) when (!cancellationToken.IsCancellationRequested)
+            {
+                logger.LogWarning(error,
+                    "Eplp command {ConnectionId}: peer decision delivery failed for character={CharacterId}",
+                    context.Connection.ConnectionId, member.Session.CharacterId.Value);
+            }
         }
-
+        if (selectedSessions.FindByCharacter(session.CharacterId) != session)
+            return;
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(
                 [new EplpCommandResponse(message.State, message.Option)], []),
             cancellationToken).ConfigureAwait(false);
+        if (leaving)
+        {
+            await townAreaProjection.EnterAsync(
+                returning.Where(value => selectedSessions.FindByCharacter(
+                        value.Session.CharacterId) == value.Session)
+                    .Select(value => new TownAreaEntry(
+                        value.Session, value.Runtime, value.Position))
+                    .ToArray(),
+                cancellationToken).ConfigureAwait(false);
+        }
     }
+
+    private sealed record ReturnMember(
+        SelectedSessionIdentity Session,
+        SelectCharacterResult Runtime,
+        CharacterPositionState Position);
 }

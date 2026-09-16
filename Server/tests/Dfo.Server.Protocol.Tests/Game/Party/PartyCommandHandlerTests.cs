@@ -32,7 +32,7 @@ public sealed class PartyCommandHandlerTests
         await new LeavePartyCommandHandler(domain).HandleAsync(
             context, new(Invitee.CharacterId), CancellationToken.None);
         await new QueryPartyRealtimeCommandHandler(domain).HandleAsync(
-            context, new(Inviter.CharacterId), CancellationToken.None);
+            context, new(Character(Inviter)), CancellationToken.None);
         var settings = Settings();
         var title = new PartyTitle([0x41]);
         await new SetPartyInfoCommandHandler(domain).HandleAsync(
@@ -794,9 +794,9 @@ public sealed class PartyCommandHandlerTests
         public PartyOperationResult CleanupCharacter(CharacterId characterId) =>
             throw new NotSupportedException();
 
-        public PartySnapshot? FindParty(CharacterId characterId)
+        public PartySnapshot FindParty(PartyCharacterSnapshot character)
         {
-            Writes.Add($"query:{characterId.Value}");
+            Writes.Add($"query:{character.CharacterId.Value}");
             return Snapshot();
         }
 

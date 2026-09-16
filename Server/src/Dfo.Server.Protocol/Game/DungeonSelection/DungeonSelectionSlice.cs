@@ -7,6 +7,7 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Parties;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
@@ -197,8 +198,9 @@ public sealed class BackToVillageHandler(
     TownAreaProjectionDelivery townAreaProjection,
     ILogger<BackToVillageHandler> logger,
     SelectedSessionTransitionGate transitionGate,
-    IDungeonEntryIntentDomainService? entryIntents = null,
-    IPartyService? parties = null) : ClientMessageHandler<BackToVillageRequest>
+    IPartyService parties,
+    IDungeonEntryIntentDomainService? entryIntents = null)
+    : ClientMessageHandler<BackToVillageRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -332,9 +334,11 @@ public sealed class BackToVillageHandler(
         {
             new(requester, requesterRuntime, requesterPosition),
         };
-        var party = parties?.FindParty(requester.CharacterId);
+        var requesterCharacter = new PartyCharacterSnapshot(
+            requester.AccountId, requester.CharacterId, requester.WireUserId, null);
+        var party = parties.FindParty(requesterCharacter);
         if (entryIntents is null
-            || party is null
+            || party.IsVirtual
             || party.LeaderWireUserId != requester.WireUserId)
         {
             return returning;
@@ -552,7 +556,7 @@ public sealed class EnterSelectDungeonHandler(
     IGameMessageSender sender,
     TownAreaProjectionDelivery townAreaProjection,
     ILogger<EnterSelectDungeonHandler> logger,
-    IPartyService? parties = null)
+    IPartyService parties)
     : ClientMessageHandler<EnterSelectDungeonRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -579,7 +583,17 @@ public sealed class EnterSelectDungeonHandler(
         var intent = message.Selection == 0
             ? DungeonEntryIntent.Interactive
             : DungeonEntryIntent.Directed(message.Selection);
-        var attached = ResolveSelectionMembers(session, result);
+        var requesterCharacter = new PartyCharacterSnapshot(
+            session.AccountId, session.CharacterId, session.WireUserId, null);
+        var roster = parties.FindParty(requesterCharacter);
+        if (roster.LeaderWireUserId != session.WireUserId)
+        {
+            logger.LogWarning(
+                "Enter select dungeon {ConnectionId}: non-leader ignored",
+                context.Connection.ConnectionId);
+            return;
+        }
+        var attached = ResolveSelectionMembers(session, result, roster);
         var wireUserIds = attached
             .Select(value => value.Session.WireUserId)
             .ToImmutableArray();
@@ -698,15 +712,12 @@ public sealed class EnterSelectDungeonHandler(
     private IReadOnlyList<(
         SelectedSessionIdentity Session,
         SelectCharacterResult Runtime)> ResolveSelectionMembers(
-            SelectedSessionIdentity requester,
-            SelectCharacterResult requesterRuntime)
+        SelectedSessionIdentity requester,
+        SelectCharacterResult requesterRuntime,
+        PartySnapshot roster)
     {
-        var party = parties?.FindParty(requester.CharacterId);
-        if (party is null || party.LeaderWireUserId != requester.WireUserId)
-            return [(requester, requesterRuntime)];
-
         var members = new List<(SelectedSessionIdentity, SelectCharacterResult)>();
-        foreach (var member in party.Members.OrderBy(value => value.Slot))
+        foreach (var member in roster.Members.OrderBy(value => value.Slot))
         {
             var current = selectedSessions.FindByCharacter(member.CharacterId);
             if (current is null

@@ -331,7 +331,8 @@ public sealed class SessionGenerationOwnershipTests
         public PartyOperationResult CleanupCharacter(CharacterId characterId) =>
             PartyOperationResult.Success();
 
-        public PartySnapshot? FindParty(CharacterId characterId) => null;
+        public PartySnapshot FindParty(PartyCharacterSnapshot character) =>
+            PartySnapshot.Virtual(character, new PartySettings(new byte[PartySettings.WireLength]));
 
     }
 

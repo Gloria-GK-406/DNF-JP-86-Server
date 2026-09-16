@@ -130,7 +130,14 @@ public sealed record PartySnapshot(
     ushort LeaderWireUserId,
     PartySettings Settings,
     PartyTitle Title,
-    ImmutableArray<PartyMemberSnapshot> Members);
+    ImmutableArray<PartyMemberSnapshot> Members,
+    bool IsVirtual = false)
+{
+    /// <summary>Builds a non-persistent view for an ungrouped character.</summary>
+    public static PartySnapshot Virtual(PartyCharacterSnapshot character, PartySettings settings) =>
+        new(0, 0, 0, character.WireUserId, settings, PartyTitle.Empty,
+            [new PartyMemberSnapshot(character, 0, null, 100)], IsVirtual: true);
+}
 
 public sealed record PartyInviteNotification(
     CharacterId TargetCharacterId,

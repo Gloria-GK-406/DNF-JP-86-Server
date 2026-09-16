@@ -37,8 +37,10 @@ public sealed class PartyTownProjectionDelivery(
         ArgumentNullException.ThrowIfNull(mover);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var candidate = parties.FindParty(mover.CharacterId);
-        if (candidate is null)
+        var character = new PartyCharacterSnapshot(
+            mover.AccountId, mover.CharacterId, mover.WireUserId, null);
+        var candidate = parties.FindParty(character);
+        if (candidate.IsVirtual)
             return;
 
         var memberSessions = candidate.Members
@@ -63,8 +65,8 @@ public sealed class PartyTownProjectionDelivery(
         await stream.Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var current = parties.FindParty(mover.CharacterId);
-            if (current is null
+            var current = parties.FindParty(character);
+            if (current.IsVirtual
                 || current.Generation != candidate.Generation
                 || current.Revision < stream.LatestRevision)
             {

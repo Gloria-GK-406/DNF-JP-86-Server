@@ -91,8 +91,9 @@ internal sealed class PartyServiceTestAdapter
             ? inner.CleanupCharacter(session.CharacterId)
             : PartyOperationResult.Reject(PartyFailureReason.CallerNotCurrent);
 
-    internal PartySnapshot? FindParty(SelectedSessionIdentity session) =>
-        inner.FindParty(session.CharacterId);
+    internal PartySnapshot FindParty(SelectedSessionIdentity session) =>
+        inner.FindParty(new PartyCharacterSnapshot(
+            session.AccountId, session.CharacterId, session.WireUserId, null));
 
     internal SessionEndpoint? FindSessionEndpoint(SelectedSessionIdentity session) =>
         endpoints.FindThroughCurrentSession(session.CharacterId);

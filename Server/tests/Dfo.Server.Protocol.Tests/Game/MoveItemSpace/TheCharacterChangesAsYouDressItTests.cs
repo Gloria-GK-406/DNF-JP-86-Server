@@ -20,6 +20,7 @@ using Dfo.Server.Protocol.Game.SelectCharacter;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Tests.Game.TownProjection;
+using Dfo.Server.Protocol.Tests.Game.Party;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging;
 
@@ -435,7 +436,8 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
             await new EnterSelectDungeonHandler(current ?? new UnchangedCurrentState(), new OneSession(), Runtime, new SelectionVisits(), new IgnoredEntryIntents(),
                 Sender,
                 TownAreaProjectionTestFactory.Create(new OneSession(), Runtime, Sender),
-                NullLogger<EnterSelectDungeonHandler>.Instance).HandleAsync(
+                NullLogger<EnterSelectDungeonHandler>.Instance,
+                new VirtualOnlyPartyService()).HandleAsync(
                     Dispatch, new EnterSelectDungeonRequest(GameMessageMetadata.Empty, 10000),
                     CancellationToken.None);
             return Assert.Single(Sender.Sent.OfType<ExtendedUserStateMessage>());

@@ -20,6 +20,7 @@ using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.DungeonClear;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.Party;
@@ -35,6 +36,59 @@ namespace Dfo.Server.Protocol.Tests.Game.DungeonEntry;
 
 public sealed class PartySelectDungeonHandlerTests
 {
+    [Fact]
+    public async Task Only_the_leader_can_return_the_frozen_dungeon_cohort_to_town()
+    {
+        var participants = new[]
+        {
+            new DungeonRunParticipant(Leader.AccountId, Leader.CharacterId, 0, true),
+            new DungeonRunParticipant(Member.AccountId, Member.CharacterId, 1, false),
+        };
+        var layout = PartyVisits.LayoutForTest();
+        var runId = DungeonRunId.New();
+        var baseRun = new DungeonRunState(
+            layout, layout.StartCell, layout.StartRoomMapId,
+            new HashSet<MazeCell> { layout.StartCell }, DateTimeOffset.UnixEpoch,
+            RunId: runId, Participant: participants[0], Participants: participants,
+            CurrentCellState: DungeonCellSeed.CompleteEmpty(
+                layout.StartCell, layout.StartRoomMapId).Snapshot());
+        var runs = new RollbackRuns();
+        runs.SetCurrent(Leader.CharacterId, baseRun);
+        runs.SetCurrent(Member.CharacterId, baseRun with { Participant = participants[1] });
+        var sessions = new Sessions(Leader, Member);
+        var runtime = new PartyRuntime((Leader, EntryFor(Leader)), (Member, EntryFor(Member)));
+        var sender = new Sender();
+        var deliveries = new DungeonRunDeliveryRegistry();
+        deliveries.Register(runId, [Leader, Member]);
+        var handler = new EplpCommandHandler(
+            sessions, runtime, new PartyPositions(), runs, deliveries, sender,
+            TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
+            NullLogger<EplpCommandHandler>.Instance,
+            new SelectedSessionTransitionGate());
+        var request = new EplpCommandRequest(GameMessageMetadata.Empty, 1, 2);
+
+        await handler.HandleAsync(Dispatch(Member), request, CancellationToken.None);
+        Assert.Empty(runs.Ended);
+
+        await handler.HandleAsync(Dispatch(Leader),
+            new EplpCommandRequest(GameMessageMetadata.Empty, 2, 2),
+            CancellationToken.None);
+        Assert.Empty(runs.Ended);
+        Assert.Contains(sender.Messages(Member.ConnectionId),
+            message => message is EplpCommandResponse { State: 2, Option: 2 });
+
+        await handler.HandleAsync(Dispatch(Leader), request, CancellationToken.None);
+        Assert.Equal([Leader.CharacterId, Member.CharacterId], runs.Ended);
+        foreach (var session in new[] { Leader, Member })
+        {
+            Assert.Contains(sender.Messages(session.ConnectionId),
+                message => message is EplpCommandResponse { State: 1, Option: 2 });
+            Assert.Contains(sender.Messages(session.ConnectionId),
+                message => message is UserAreaNotification);
+        }
+        Assert.Empty(deliveries.Find(runId));
+    }
+
     [Fact]
     public async Task The_leader_opens_one_selection_context_for_every_party_member()
     {
@@ -69,6 +123,27 @@ public sealed class PartySelectDungeonHandlerTests
                 .OfType<EnterSelectDungeonNotification>()).WireUserIds);
         Assert.NotNull(intents.Consume(Leader));
         Assert.NotNull(intents.Consume(Member));
+    }
+
+    [Fact]
+    public async Task A_follower_cannot_open_a_solo_selection_while_in_a_party()
+    {
+        var sessions = new Sessions(Leader, Member);
+        var runtime = new Runtime(SelectCharacterPayloadTestData.CreateComplete(), [Leader, Member]);
+        var intents = new Intents();
+        var sender = new Sender();
+        var handler = new EnterSelectDungeonHandler(
+            new UnchangedState(), sessions, runtime, new PartyVisits(), intents, sender,
+            TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
+            NullLogger<EnterSelectDungeonHandler>.Instance, new Parties(Snapshot()));
+
+        await handler.HandleAsync(
+            Dispatch(Member), new EnterSelectDungeonRequest(GameMessageMetadata.Empty, DungeonId),
+            CancellationToken.None);
+
+        Assert.Empty(sender.Messages(Member.ConnectionId));
+        Assert.Null(intents.Consume(Member));
+        Assert.Null(intents.Consume(Leader));
     }
 
     [Fact]
@@ -609,7 +684,7 @@ public sealed class PartySelectDungeonHandlerTests
 
     private sealed class Parties(PartySnapshot snapshot) : IPartyService
     {
-        public PartySnapshot? FindParty(CharacterId characterId) => snapshot;
+        public PartySnapshot FindParty(PartyCharacterSnapshot character) => snapshot;
         public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }
         public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => [snapshot];
         public PartyOperationResult CreateOrUpdateSettings(PartyCharacterSnapshot character, PartySettings settings, PartyTitle title) => throw new NotSupportedException();

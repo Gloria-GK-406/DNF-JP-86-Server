@@ -806,8 +806,9 @@ public sealed class PartyNotificationDelivery(
         if (plan.Snapshot is { } projected
             && parties is not null
             && projected.Members
-                .Select(member => parties.FindParty(member.CharacterId))
-                .FirstOrDefault(current => current?.Generation == projected.Generation)
+                .Select(member => parties.FindParty(member.Character))
+                .FirstOrDefault(current => !current.IsVirtual
+                    && current.Generation == projected.Generation)
                 is { } latest
             && latest.Revision > projected.Revision
             && latest.Members.Single(member => member.Slot == 0).Character.DirectoryScope

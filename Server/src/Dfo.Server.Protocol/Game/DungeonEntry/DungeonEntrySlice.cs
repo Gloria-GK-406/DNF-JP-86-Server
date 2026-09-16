@@ -533,8 +533,9 @@ public sealed class SelectDungeonHandler(
         // already moved the whole party into one selection context for both interactive gates and
         // directed story entries. Resolve the same party here so the final confirmation creates
         // one shared run instead of silently turning an interactive party into parallel solo runs.
-        var party = parties.FindParty(session.CharacterId);
-        if (party is not null && party.LeaderWireUserId != session.WireUserId)
+        var roster = parties.FindParty(new PartyCharacterSnapshot(
+            session.AccountId, session.CharacterId, session.WireUserId, null));
+        if (roster.LeaderWireUserId != session.WireUserId)
         {
             await RefuseAsync(
                 context.Connection.ConnectionId,
@@ -566,7 +567,7 @@ public sealed class SelectDungeonHandler(
             context.Connection.ConnectionId,
             session,
             result,
-            party,
+            roster,
             message,
             facts,
             intent.Value,

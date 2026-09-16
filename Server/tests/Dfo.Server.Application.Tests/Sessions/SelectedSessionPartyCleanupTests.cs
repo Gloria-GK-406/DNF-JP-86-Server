@@ -42,8 +42,8 @@ public sealed class SelectedSessionPartyCleanupTests
         Assert.Equal(
             new PartyDirectoryChange(new PartyDirectoryScope(11, 1, 2), new PartyDirectoryScope(11, 1, 2)),
             plan.PartyNotifications.DirectoryChange);
-        Assert.Null(fixture.Parties.FindParty(member));
-        Assert.NotNull(fixture.Parties.FindParty(leader));
+        Assert.True(fixture.Parties.FindParty(member).IsVirtual);
+        Assert.False(fixture.Parties.FindParty(leader).IsVirtual);
     }
 
     [Fact]
@@ -65,8 +65,8 @@ public sealed class SelectedSessionPartyCleanupTests
         Assert.Equal(
             new PartyDirectoryChange(new PartyDirectoryScope(11, 1, 2), null),
             plan.PartyNotifications.DirectoryChange);
-        Assert.Null(fixture.Parties.FindParty(leader));
-        Assert.Null(fixture.Parties.FindParty(member));
+        Assert.True(fixture.Parties.FindParty(leader).IsVirtual);
+        Assert.True(fixture.Parties.FindParty(member).IsVirtual);
     }
 
     [Fact]
@@ -88,8 +88,8 @@ public sealed class SelectedSessionPartyCleanupTests
 
         Assert.Empty(stalePlan.PartyNotifications.ClearAudience);
         Assert.Null(stalePlan.PartyNotifications.Snapshot);
-        Assert.NotNull(fixture.Parties.FindParty(replacement));
-        Assert.NotNull(fixture.Parties.FindParty(replacementMember));
+        Assert.False(fixture.Parties.FindParty(replacement).IsVirtual);
+        Assert.False(fixture.Parties.FindParty(replacementMember).IsVirtual);
     }
 
     [Fact]

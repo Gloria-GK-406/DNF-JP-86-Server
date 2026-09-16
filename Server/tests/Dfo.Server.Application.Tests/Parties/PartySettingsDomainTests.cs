@@ -193,7 +193,7 @@ public sealed class PartySettingsDomainTests
             PartyFailureReason.PartyFull,
             fixture.Parties.AcceptInvite(third, leader.WireUserId).Failure);
         AssertSnapshotEqual(full, fixture.Parties.FindParty(leader));
-        Assert.Null(fixture.Parties.FindParty(third));
+        Assert.True(fixture.Parties.FindParty(third).IsVirtual);
 
         Assert.True(fixture.Parties.CreateOrUpdateSettingsExact(
             leader,
@@ -215,8 +215,8 @@ public sealed class PartySettingsDomainTests
         Assert.Equal(
             PartyFailureReason.PartyFull,
             fixture.Parties.AcceptInvite(invitee, leader.WireUserId).Failure);
-        Assert.Null(fixture.Parties.FindParty(leader));
-        Assert.Null(fixture.Parties.FindParty(invitee));
+        Assert.True(fixture.Parties.FindParty(leader).IsVirtual);
+        Assert.True(fixture.Parties.FindParty(invitee).IsVirtual);
 
         rules.DefaultSettings = Settings(4, PartyCategory.Normal, 0);
         Assert.True(fixture.Parties.AcceptInvite(invitee, leader.WireUserId).Succeeded);
