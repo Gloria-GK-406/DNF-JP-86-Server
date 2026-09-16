@@ -33,7 +33,9 @@ public sealed record DungeonRunState(
     DungeonRunParticipant? Participant = null,
     IReadOnlyList<DungeonRunParticipant>? Participants = null,
     long EntryRevision = 0,
-    IReadOnlySet<CharacterId>? ReadyParticipants = null)
+    IReadOnlySet<CharacterId>? ReadyParticipants = null,
+    bool ClearOpen = false,
+    long RuntimeRevision = 0)
 {
     /// <summary>What the run's kills have put on the floor, in the order they were numbered.</summary>
     /// <remarks>
@@ -355,6 +357,13 @@ public sealed record DungeonPickupChange(
     CharacterId Picker,
     GroundDropId Drop,
     DungeonPickupKind Kind,
+    IReadOnlyList<CharacterId> Recipients,
+    long RoomVersion = 0);
+
+/// <summary>A shared run opening its clear exit for its current semantic participants.</summary>
+public sealed record DungeonClearChange(
+    DungeonRunId RunId,
+    long Revision,
     IReadOnlyList<CharacterId> Recipients);
 
 /// <summary>
@@ -586,6 +595,26 @@ public interface IDungeonRunDomainService
         DungeonGroundDropClaim claim,
         DungeonPickupKind kind) =>
         DungeonPickupCommit.Completed(CommitGroundDrop(claim, kind));
+
+    /// <summary>
+    /// Opens the exact run room's clear exit once after authoritative rules have approved it.
+    /// </summary>
+    DungeonClearChange? TryOpenClear(
+        CharacterId characterId,
+        DungeonRunId expectedRunId,
+        long expectedRoomVersion)
+    {
+        var run = Find(characterId);
+        return run is null
+            || run.RunId != expectedRunId
+            || run.RoomVersion != expectedRoomVersion
+            || run.ClearOpen
+                ? null
+                : new DungeonClearChange(
+                    run.RunId,
+                    run.RuntimeRevision + 1,
+                    run.Participants.Select(value => value.CharacterId).ToArray());
+    }
 
     /// <summary>Releases an exact drop reservation after a refused or failed delivery.</summary>
     bool ReleaseGroundDrop(DungeonGroundDropClaim claim) => false;

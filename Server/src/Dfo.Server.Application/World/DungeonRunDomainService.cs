@@ -276,7 +276,8 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                     .Where(participant => aggregate.ActiveParticipants.Contains(
                         participant.CharacterId))
                     .OrderBy(participant => participant.Slot)
-                    .Select(participant => participant.CharacterId)]);
+                    .Select(participant => participant.CharacterId)],
+                aggregate.RoomVersion);
         }
     }
 
@@ -304,6 +305,34 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         {
             return this.TryRemoveGroundDropClaim(
                 new GroundDropClaimKey(claim.RunId, claim.Drop, claim.CharacterId), claim.Token);
+        }
+    }
+
+    public DungeonClearChange? TryOpenClear(
+        CharacterId characterId,
+        DungeonRunId expectedRunId,
+        long expectedRoomVersion)
+    {
+        lock (this.gate)
+        {
+            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
+                || aggregate.RunId != expectedRunId
+                || aggregate.RoomVersion != expectedRoomVersion
+                || aggregate.ClearOpen)
+            {
+                return null;
+            }
+
+            aggregate.ClearOpen = true;
+            aggregate.RuntimeRevision++;
+            return new DungeonClearChange(
+                aggregate.RunId,
+                aggregate.RuntimeRevision,
+                [.. aggregate.Participants
+                    .Where(participant => aggregate.ActiveParticipants.Contains(
+                        participant.CharacterId))
+                    .OrderBy(participant => participant.Slot)
+                    .Select(participant => participant.CharacterId)]);
         }
     }
 
@@ -846,7 +875,8 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                     .Where(participant => prepared.Aggregate.ActiveParticipants.Contains(
                         participant.CharacterId))
                     .OrderBy(participant => participant.Slot)
-                    .Select(participant => participant.CharacterId)]);
+                    .Select(participant => participant.CharacterId)],
+                prepared.Aggregate.RoomVersion);
         }
     }
 
@@ -1016,6 +1046,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         public long RoomVersion { get; set; }
         public long EntryRevision { get; set; } = 1;
         public long RuntimeRevision { get; set; }
+        public bool ClearOpen { get; set; }
         public ImmutableHashSet<MazeCell> VisitedCells { get; set; }
         public ImmutableHashSet<GroundDropId> TakenGroundDrops { get; set; } = [];
         public ImmutableHashSet<RoomActorId> DeadActors { get; set; } = [];
@@ -1076,7 +1107,9 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                 this.Participant(characterId),
                 this.Participants,
                 this.EntryRevision,
-                this.ReadyParticipants.ToImmutableHashSet());
+                this.ReadyParticipants.ToImmutableHashSet(),
+                this.ClearOpen,
+                this.RuntimeRevision);
         }
     }
 

@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.DungeonClear;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Abstractions.Content;
@@ -523,7 +524,9 @@ public sealed class DungeonPickupProjectionDelivery(
     ISelectedSessionDomainService selectedSessions,
     DungeonRunDeliveryRegistry deliveries,
     IGameMessageSender sender,
-    TimeProvider clock)
+    TimeProvider clock,
+    IDungeonClearDomainService? clearEvaluator = null,
+    DungeonClearProjectionDelivery? clearProjection = null)
 {
     public async ValueTask<bool> DeliverAsync(
         SelectedSessionIdentity requester,
@@ -598,10 +601,35 @@ public sealed class DungeonPickupProjectionDelivery(
                 [notification]))
             .ToArray();
 
+        // The final required quest item may be picked up after the boss already died. The command
+        // has already committed its SQLite transaction before this projection is entered, so the
+        // shared clear fact must be committed before any network I/O can fail. Its wire frames are
+        // still sent after the pickup frames, preserving A21's observable ordering without making
+        // authoritative ClearOpen depend on a socket write succeeding.
+        DungeonClearChange? clear = null;
+        if (result.QuestProgress is not null
+            && clearEvaluator is not null
+            && clearProjection is not null
+            && await clearEvaluator.EvaluateAsync(
+                requester.AccountId,
+                requester.CharacterId,
+                change.RunId,
+                change.RoomVersion,
+                cancellationToken).ConfigureAwait(false) is { } opened)
+        {
+            clear = opened;
+        }
+
         await sender.SendExplicitAsync(
             requester.ConnectionId,
             new GameExplicitMessageDelivery(required, secondary),
             cancellationToken).ConfigureAwait(false);
+
+        if (clear is not null)
+        {
+            _ = await clearProjection!.DeliverAsync(requester, clear, cancellationToken)
+                .ConfigureAwait(false);
+        }
         return true;
     }
 

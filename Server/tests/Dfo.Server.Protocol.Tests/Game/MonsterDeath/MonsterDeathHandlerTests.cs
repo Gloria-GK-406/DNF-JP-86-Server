@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Quests;
+using Dfo.Server.Application.World;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -225,14 +226,16 @@ public sealed class MonsterDeathHandlerTests
         var dropService = new OnePartyDrop();
         var settlement = new RecordingSettlementRules();
         var sender = new PartyRecordingSender();
+        var killRules = new OneClearedBossMonster();
         var handler = new MonsterDeathHandler(
             sessions,
             runtime,
             new PartyCharacters([leader.CharacterId, member.CharacterId]),
             run,
-            new OneClearedBossMonster(),
+            killRules,
             dropService,
-            settlement,
+            new DungeonClearDomainService(run, killRules, settlement),
+            new DungeonClearProjectionDelivery(sessions, run, registry, sender),
             bus,
             new QuestOfferRefreshDomainService(
                 new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
@@ -293,14 +296,18 @@ public sealed class MonsterDeathHandlerTests
         registry.Register(run.RunId, [leader, frozenMember]);
         var bus = new PartyKillBus();
         var sender = new PartyRecordingSender();
+        var sessions = new PartySessions([leader, replacement]);
+        var killRules = new OneClearedBossMonster();
+        var settlement = new RecordingSettlementRules();
         var handler = new MonsterDeathHandler(
-            new PartySessions([leader, replacement]),
+            sessions,
             new PartyRuntimeSessions([leader, replacement]),
             new PartyCharacters([leader.CharacterId, frozenMember.CharacterId]),
             run,
-            new OneClearedBossMonster(),
+            killRules,
             new OnePartyDrop(),
-            new RecordingSettlementRules(),
+            new DungeonClearDomainService(run, killRules, settlement),
+            new DungeonClearProjectionDelivery(sessions, run, registry, sender),
             bus,
             new QuestOfferRefreshDomainService(
                 new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
@@ -342,14 +349,17 @@ public sealed class MonsterDeathHandlerTests
         var bus = new PartyKillBus();
         var settlement = new RecordingSettlementRules();
         var sender = new PartyRecordingSender();
+        var sessions = new PartySessions([member]);
+        var killRules = new OneClearedBossMonster();
         var handler = new MonsterDeathHandler(
-            new PartySessions([member]),
+            sessions,
             new PartyRuntimeSessions([member]),
             new PartyCharacters([member.CharacterId]),
             run,
-            new OneClearedBossMonster(),
+            killRules,
             new OnePartyDrop(leader.CharacterId),
-            settlement,
+            new DungeonClearDomainService(run, killRules, settlement),
+            new DungeonClearProjectionDelivery(sessions, run, registry, sender),
             bus,
             new QuestOfferRefreshDomainService(
                 new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
@@ -397,14 +407,18 @@ public sealed class MonsterDeathHandlerTests
         var drops = new OnePartyDrop();
         var sender = new PartyRecordingSender();
         var runtime = new PartyRuntimeSessions([leader, member]);
+        var sessions = new PartySessions([leader, member]);
+        var killRules = new OneClearedBossMonster();
+        var settlement = new RecordingSettlementRules();
         var handler = new MonsterDeathHandler(
-            new PartySessions([leader, member]),
+            sessions,
             runtime,
             new PartyCharacters([leader.CharacterId, member.CharacterId]),
             run,
-            new OneClearedBossMonster(),
+            killRules,
             drops,
-            new RecordingSettlementRules(),
+            new DungeonClearDomainService(run, killRules, settlement),
+            new DungeonClearProjectionDelivery(sessions, run, registry, sender),
             bus,
             new QuestOfferRefreshDomainService(
                 new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
@@ -463,6 +477,69 @@ public sealed class MonsterDeathHandlerTests
         Assert.Single(sent.OfType<EnableClearDungeonNotification>());
     }
 
+    [Fact]
+    public async Task Death_send_failure_cannot_erase_the_committed_shared_clear_fact()
+    {
+        var session = SelectedSessionIdentity.Create(
+            new AccountId(1),
+            new CharacterId(60),
+            new NetworkConnectionId("one"),
+            connectionGeneration: 1,
+            listenerPort: 10010);
+        var runs = new DungeonRunDomainService();
+        var run = runs.BeginParty(
+            [new DungeonRunParticipant(
+                session.AccountId, session.CharacterId, 0, IsLeader: true)],
+            BossLayout(),
+            difficulty: 0);
+        var sessions = new OneSession(session);
+        var registry = new DungeonRunDeliveryRegistry();
+        registry.Register(run.RunId, [session]);
+        var sender = new ThrowingSender();
+        var killRules = new OneClearedBossMonster();
+        var handler = new MonsterDeathHandler(
+            sessions,
+            new OneRuntimeSession(ExperienceFrameEntry.At(
+                StartingLevel, StartingExperience)),
+            new OnePlayingCharacter(new SkillPointLedger()),
+            runs,
+            killRules,
+            new NothingDropped(),
+            new DungeonClearDomainService(
+                runs, killRules, new AlwaysCompleteSettlementRules()),
+            new DungeonClearProjectionDelivery(sessions, runs, registry, sender),
+            new FixedKillAward(leveledUp: false),
+            new QuestOfferRefreshDomainService(
+                new StubWorldContentEntryRuleService(),
+                new RecordingQuestLogs(),
+                CurrentCharacterStub.Domain()),
+            registry,
+            sender,
+            ExperienceDiagnostics.None,
+            NullLogger<MonsterDeathHandler>.Instance);
+
+        await Assert.ThrowsAsync<IOException>(async () =>
+            await handler.HandleAsync(
+                ContextOf(session),
+                new MonsterDeathRequest(
+                    GameMessageMetadata.Empty, DeadActor, session.WireUserId),
+                default));
+
+        Assert.True(runs.Find(session.CharacterId)!.ClearOpen);
+        Assert.Null(runs.TryOpenClear(session.CharacterId, run.RunId, run.RoomVersion));
+    }
+
+    private static DungeonLayout BossLayout() => new(
+        144,
+        0,
+        1,
+        1,
+        new MazeCell(0, 0),
+        new MazeCell(0, 0),
+        8153,
+        7,
+        new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 8153 });
+
     private static NetworkDispatchContext ContextOf(SelectedSessionIdentity session) =>
         new(new NetworkConnectionContext(
             session.ConnectionId, NetworkEndpointKind.Game, session.ListenerPort));
@@ -485,19 +562,27 @@ public sealed class MonsterDeathHandlerTests
             connectionGeneration: 1,
             listenerPort: 10010);
         var sender = new RecordingSender();
+        var effectiveRun = run ?? new OneRun();
+        var effectiveKills = killRules ?? new OneDeclaredMonster();
+        var effectiveSettlement = settlementRules ?? new AlwaysCompleteSettlementRules();
+        var sessions = new OneSession(session);
+        var registry = new DungeonRunDeliveryRegistry();
+        if (effectiveRun.Find(session.CharacterId) is { } active && active.RunId != default)
+            registry.Register(active.RunId, [session]);
 
         var handler = new MonsterDeathHandler(
-            new OneSession(session),
+            sessions,
             new OneRuntimeSession(ExperienceFrameEntry.At(StartingLevel, StartingExperience)),
             new OnePlayingCharacter(ledger ?? new SkillPointLedger(withLedger)),
-            run ?? new OneRun(),
-            killRules ?? new OneDeclaredMonster(),
+            effectiveRun,
+            effectiveKills,
             dropService ?? new NothingDropped(),
-            settlementRules ?? new AlwaysCompleteSettlementRules(),
+            new DungeonClearDomainService(effectiveRun, effectiveKills, effectiveSettlement),
+            new DungeonClearProjectionDelivery(sessions, effectiveRun, registry, sender),
             bus ?? new FixedKillAward(leveledUp),
             new QuestOfferRefreshDomainService(
                 content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
-            new DungeonRunDeliveryRegistry(),
+            registry,
             sender,
             ExperienceDiagnostics.None,
             NullLogger<MonsterDeathHandler>.Instance);
@@ -1041,5 +1126,21 @@ public sealed class MonsterDeathHandlerTests
 
         private static NotSupportedException Unused() =>
             new("This fixture records only explicit deliveries.");
+    }
+
+    private sealed class ThrowingSender : IGameMessageSender
+    {
+        public ValueTask SendCmdAsync(
+            NetworkConnectionId connectionId,
+            IGameCmdMessage message,
+            CancellationToken cancellationToken) => throw new IOException("send failed");
+        public ValueTask SendNotiAsync(
+            NetworkConnectionId connectionId,
+            IGameNotiMessage message,
+            CancellationToken cancellationToken) => throw new IOException("send failed");
+        public ValueTask SendExplicitAsync(
+            NetworkConnectionId requiredDirectConnectionId,
+            GameExplicitMessageDelivery delivery,
+            CancellationToken cancellationToken) => throw new IOException("send failed");
     }
 }

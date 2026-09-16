@@ -11,6 +11,7 @@ using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
+using Dfo.Server.Protocol.Game.DungeonClear;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.GroundPickup;
@@ -71,6 +72,109 @@ public sealed class GetItemHandlerTests
         Assert.Single(sender.Delivery.BestEffortTargets);
         Assert.IsType<GroundPickupNotification>(
             Assert.Single(sender.Delivery.BestEffortTargets[0].OrderedMessages));
+    }
+
+    [Fact]
+    public async Task Final_task_item_pickup_rechecks_and_projects_shared_clear_after_pickup()
+    {
+        var runs = new DungeonRunDomainService();
+        var run = runs.BeginParty(
+            [
+                new DungeonRunParticipant(Leader.AccountId, Leader.CharacterId, 0, true),
+                new DungeonRunParticipant(Helper.AccountId, Helper.CharacterId, 1, false),
+            ],
+            Layout(),
+            difficulty: 0);
+        var registry = new DungeonRunDeliveryRegistry();
+        registry.Register(run.RunId, [Leader, Helper]);
+        var sessions = new Sessions([Leader, Helper]);
+        var sender = new RecordingSender();
+        var evaluator = new RecordingClearEvaluator(new DungeonClearChange(
+            run.RunId,
+            1,
+            [Leader.CharacterId, Helper.CharacterId]));
+        var projection = new DungeonPickupProjectionDelivery(
+            sessions,
+            registry,
+            sender,
+            TimeProvider.System,
+            evaluator,
+            new DungeonClearProjectionDelivery(sessions, runs, registry, sender));
+        var result = new GroundPickupResult(
+            GroundPickupStatus.PickedUp,
+            10149163,
+            7,
+            Change: new DungeonPickupChange(
+                run.RunId,
+                1,
+                Leader.CharacterId,
+                new GroundDropId(run.CurrentCell, 3),
+                DungeonPickupKind.Item,
+                [Leader.CharacterId, Helper.CharacterId],
+                run.RoomVersion),
+            QuestProgress: new SeekingQuestProgressSynchronization(
+                [new CarriedQuest(0, 1779, 15)]));
+
+        Assert.True(await projection.DeliverAsync(Leader, result, default));
+
+        Assert.Equal((run.RunId, run.RoomVersion), evaluator.LastRequest);
+        Assert.Equal(2, sender.Deliveries.Count);
+        Assert.Contains(
+            sender.Deliveries[0].RequiredDirectMessages,
+            message => message is AcceptedQuestProgressMessage);
+        Assert.Collection(
+            sender.Deliveries[1].RequiredDirectMessages,
+            message => Assert.IsType<EnableClearDungeonNotification>(message),
+            message => Assert.IsType<SecretShopNpcNotification>(message));
+        Assert.Collection(
+            sender.Deliveries[1].BestEffortTargets.Single().OrderedMessages,
+            message => Assert.IsType<EnableClearDungeonNotification>(message),
+            message => Assert.IsType<SecretShopNpcNotification>(message));
+    }
+
+    [Fact]
+    public async Task Pickup_send_failure_cannot_erase_the_committed_shared_clear_fact()
+    {
+        var runs = new DungeonRunDomainService();
+        var run = runs.BeginParty(
+            [new DungeonRunParticipant(Leader.AccountId, Leader.CharacterId, 0, true)],
+            Layout(),
+            difficulty: 0);
+        var registry = new DungeonRunDeliveryRegistry();
+        registry.Register(run.RunId, [Leader]);
+        var sessions = new Sessions([Leader]);
+        var sender = new ThrowingSender();
+        var clear = new DungeonClearDomainService(
+            runs,
+            new ClearedRoom(),
+            new CompleteSettlement());
+        var projection = new DungeonPickupProjectionDelivery(
+            sessions,
+            registry,
+            sender,
+            TimeProvider.System,
+            clear,
+            new DungeonClearProjectionDelivery(sessions, runs, registry, sender));
+        var result = new GroundPickupResult(
+            GroundPickupStatus.PickedUp,
+            10149163,
+            7,
+            Change: new DungeonPickupChange(
+                run.RunId,
+                1,
+                Leader.CharacterId,
+                new GroundDropId(run.CurrentCell, 3),
+                DungeonPickupKind.Item,
+                [Leader.CharacterId],
+                run.RoomVersion),
+            QuestProgress: new SeekingQuestProgressSynchronization(
+                [new CarriedQuest(0, 1779, 0)]));
+
+        await Assert.ThrowsAsync<IOException>(async () =>
+            await projection.DeliverAsync(Leader, result, default));
+
+        Assert.True(runs.Find(Leader.CharacterId)!.ClearOpen);
+        Assert.Null(runs.TryOpenClear(Leader.CharacterId, run.RunId, run.RoomVersion));
     }
 
     [Fact]
@@ -310,6 +414,59 @@ public sealed class GetItemHandlerTests
 
         public bool ReleaseExact(SelectedSessionIdentity session) =>
             throw new NotSupportedException();
+    }
+
+    private sealed class RecordingClearEvaluator(DungeonClearChange change)
+        : IDungeonClearDomainService
+    {
+        public (DungeonRunId RunId, long RoomVersion)? LastRequest { get; private set; }
+
+        public ValueTask<DungeonClearChange?> EvaluateAsync(
+            AccountId accountId,
+            CharacterId characterId,
+            DungeonRunId expectedRunId,
+            long expectedRoomVersion,
+            CancellationToken cancellationToken)
+        {
+            LastRequest = (expectedRunId, expectedRoomVersion);
+            return ValueTask.FromResult<DungeonClearChange?>(change);
+        }
+    }
+
+    private sealed class ClearedRoom : IMonsterKillDomainService
+    {
+        public ValueTask<KillIdentification> IdentifyAsync(
+            DungeonRunState run, ushort actorSequence, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+        public ValueTask<bool> IsCurrentRoomClearedAsync(
+            DungeonRunState run, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(true);
+    }
+
+    private sealed class CompleteSettlement : IDungeonSettlementRuleService
+    {
+        public ValueTask<DungeonSettlementRules> ForAsync(
+            AccountId accountId,
+            CharacterId characterId,
+            DungeonRunState run,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult(new DungeonSettlementRules(true, QuestMaze: true));
+    }
+
+    private sealed class ThrowingSender : IGameMessageSender
+    {
+        public ValueTask SendCmdAsync(
+            NetworkConnectionId connectionId,
+            IGameCmdMessage message,
+            CancellationToken cancellationToken) => throw new IOException("send failed");
+        public ValueTask SendNotiAsync(
+            NetworkConnectionId connectionId,
+            IGameNotiMessage message,
+            CancellationToken cancellationToken) => throw new IOException("send failed");
+        public ValueTask SendExplicitAsync(
+            NetworkConnectionId requiredDirectConnectionId,
+            GameExplicitMessageDelivery delivery,
+            CancellationToken cancellationToken) => throw new IOException("send failed");
     }
 
     private sealed class RecordingSender : IGameMessageSender

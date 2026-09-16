@@ -366,7 +366,8 @@ public sealed class MonsterDeathHandler(
     IDungeonRunDomainService runs,
     IMonsterKillDomainService kills,
     IMonsterDropService drops,
-    IDungeonSettlementRuleService settlementRules,
+    IDungeonClearDomainService clearEvaluator,
+    DungeonClearProjectionDelivery clearProjection,
     ICommandBus commandBus,
     IQuestOfferRefreshDomainService offers,
     DungeonRunDeliveryRegistry runDeliveries,
@@ -641,22 +642,27 @@ public sealed class MonsterDeathHandler(
                 level, result.World.Content.AvailableQuests));
         }
 
-        if (run is not null)
+        DungeonClearChange? clear = null;
+        if (run is not null
+            && await clearEvaluator.EvaluateAsync(
+                session.AccountId,
+                session.CharacterId,
+                run.RunId,
+                run.RoomVersion,
+                cancellationToken).ConfigureAwait(false) is { } opened)
         {
-            frames.AddRange(
-                await this.ClearedAsync(
-                    context,
-                    session.AccountId,
-                    session.CharacterId,
-                    run,
-                    cancellationToken)
-                    .ConfigureAwait(false));
+            clear = opened;
         }
 
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(frames, []),
             cancellationToken).ConfigureAwait(false);
+        if (clear is not null)
+        {
+            _ = await clearProjection.DeliverAsync(session, clear, cancellationToken)
+                .ConfigureAwait(false);
+        }
     }
 
     private async ValueTask HandlePartyDeathAsync(
@@ -824,13 +830,6 @@ public sealed class MonsterDeathHandler(
             ?? throw new InvalidOperationException(
                 "The actor-death claim was no longer current after its durable effects.");
 
-        var leader = run.Participants.Single(value => value.IsLeader);
-        var clearedFrames = await this.ClearedAsync(
-            context,
-            leader.AccountId,
-            leader.CharacterId,
-            run,
-            cancellationToken).ConfigureAwait(false);
         var sharedDeath = new MonsterDeathNotification(
             message.ActorSequence,
             dropped,
@@ -845,7 +844,7 @@ public sealed class MonsterDeathHandler(
                 recipient,
                 results.GetValueOrDefault(recipient.Session.CharacterId),
                 sharedDeath,
-                clearedFrames,
+                [],
                 cancellationToken).ConfigureAwait(false);
             framesByCharacter[recipient.Session.CharacterId] = frames;
         }
@@ -864,11 +863,23 @@ public sealed class MonsterDeathHandler(
                 framesByCharacter[value.Session.CharacterId]))
             .ToArray();
 
+        var clear = await clearEvaluator.EvaluateAsync(
+            reporter.AccountId,
+            reporter.CharacterId,
+            run.RunId,
+            run.RoomVersion,
+            cancellationToken).ConfigureAwait(false);
+
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(requiredFrames, secondary),
             cancellationToken).ConfigureAwait(false);
         runDeliveries.CompleteKillDelivery(deathClaim.RunId, deathClaim.Actor);
+        if (clear is not null)
+        {
+            _ = await clearProjection.DeliverAsync(reporter, clear, cancellationToken)
+                .ConfigureAwait(false);
+        }
     }
 
     private async ValueTask<IReadOnlyList<IGameServerMessage>> PartyFramesAsync(
@@ -1041,60 +1052,4 @@ public sealed class MonsterDeathHandler(
         return killed;
     }
 
-    /// <summary>
-    /// The frames that follow the kill that empties the boss room, and nothing otherwise.
-    /// </summary>
-    /// <remarks>
-    /// This is where a run ends. The client asks for nothing after the last monster falls until it
-    /// has been told the dungeon may be cleared -- which is what a live session showed on
-    /// 2026-08-26, the player left standing in an emptied boss room with only heartbeats on the
-    /// wire.
-    /// <para>
-    /// Fired once, because the report that empties the room can only happen once: the caller has
-    /// already refused a repeated death, and a run reached here is one that took a fresh one.
-    /// </para>
-    /// </remarks>
-    private async ValueTask<IReadOnlyList<IGameServerMessage>> ClearedAsync(
-        NetworkDispatchContext context,
-        AccountId accountId,
-        CharacterId characterId,
-        DungeonRunState run,
-        CancellationToken cancellationToken)
-    {
-        if (!run.IsBossRoom)
-            return [];
-
-        if (!await kills.IsCurrentRoomClearedAsync(run, cancellationToken).ConfigureAwait(false))
-            return [];
-
-        var settlement = await settlementRules.ForAsync(
-            accountId,
-            characterId,
-            run,
-            cancellationToken).ConfigureAwait(false);
-        if (!settlement.CanComplete)
-        {
-            logger.LogInformation(
-                "Monster death {ConnectionId} character={CharacterId}: boss room is clear but "
-                    + "run purpose {Purpose} is not complete",
-                context.Connection.ConnectionId,
-                characterId.Value,
-                run.Layout.Purpose);
-            return [];
-        }
-
-        logger.LogInformation(
-            "Monster death {ConnectionId} character={CharacterId}: boss room {RoomId} of dungeon "
-                + "{DungeonId} is clear, opening the exit",
-            context.Connection.ConnectionId,
-            characterId.Value,
-            run.CurrentRoomMapId,
-            run.Layout.DungeonId);
-
-        return
-        [
-            new EnableClearDungeonNotification(),
-            new SecretShopNpcNotification(GameProtocol.SecretShopNpcId),
-        ];
-    }
 }

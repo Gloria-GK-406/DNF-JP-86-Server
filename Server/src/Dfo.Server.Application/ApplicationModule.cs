@@ -134,6 +134,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IDungeonLayoutRuleService, DungeonLayoutRuleService>();
         services.TryAddSingleton<IDungeonEntryIntentDomainService, DungeonEntryIntentDomainService>();
         services.TryAddSingleton<IDungeonSettlementRuleService, DungeonSettlementRuleService>();
+        services.TryAddSingleton<IDungeonClearDomainService, DungeonClearDomainService>();
         // What the server declares about its channels, and what a tutorial step hands over.
         services.TryAddSingleton<IChannelContentRuleService, ChannelContentRuleService>();
         services.TryAddSingleton<ITutorialRewardRuleService, TutorialRewardRuleService>();

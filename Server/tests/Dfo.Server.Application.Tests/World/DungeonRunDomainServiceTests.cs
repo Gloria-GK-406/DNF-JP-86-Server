@@ -808,4 +808,27 @@ public sealed class DungeonRunDomainServiceTests
     [Fact]
     public void ACharacterInNoRunHasNothingToSettle() =>
         Assert.Null(new DungeonRunDomainService().TrySettle(Character));
+
+    [Fact]
+    public void Shared_clear_opens_once_with_one_revision_and_current_recipients()
+    {
+        var helper = new CharacterId(61);
+        var runs = new DungeonRunDomainService();
+        var started = runs.BeginParty(
+            [
+                new DungeonRunParticipant(new AccountId(6), Character, 0, IsLeader: true),
+                new DungeonRunParticipant(new AccountId(7), helper, 1, IsLeader: false),
+            ],
+            Tutorial,
+            difficulty: 0);
+
+        var opened = runs.TryOpenClear(Character, started.RunId, started.RoomVersion);
+
+        Assert.NotNull(opened);
+        Assert.Equal(1, opened.Revision);
+        Assert.Equal([Character, helper], opened.Recipients);
+        Assert.True(runs.Find(Character)!.ClearOpen);
+        Assert.True(runs.Find(helper)!.ClearOpen);
+        Assert.Null(runs.TryOpenClear(helper, started.RunId, started.RoomVersion));
+    }
 }
