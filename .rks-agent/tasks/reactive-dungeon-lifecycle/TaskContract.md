@@ -1,7 +1,7 @@
 ---
 kind: rks-task-contract
 revision: 2
-state: ready
+state: complete
 ---
 
 # TaskContract: 响应式地下城同步与结算生命周期

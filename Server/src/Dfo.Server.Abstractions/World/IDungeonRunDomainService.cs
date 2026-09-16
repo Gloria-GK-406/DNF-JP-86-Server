@@ -547,6 +547,9 @@ public interface IDungeonRunDomainService
     /// <summary>The run this character is in, or null when they are not in one.</summary>
     DungeonRunState? Find(CharacterId characterId);
 
+    /// <summary>Finds one active participant view of an exact shared run.</summary>
+    DungeonRunState? Find(DungeonRunId runId) => null;
+
     /// <summary>
     /// Moves the character into an adjoining cell, or answers null when the maze declares no room
     /// there.

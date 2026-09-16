@@ -44,8 +44,12 @@ public sealed class QuestClearVerticalTests
     private static readonly SelectedSessionIdentity HelperSession = Session(
         HelperAccount, Helper, "helper", 1);
 
-    [Fact]
-    public async Task Boss_dead_then_last_sqlite_task_item_opens_and_projects_one_shared_clear()
+    [Theory]
+    [InlineData(PostCommitTransition.None)]
+    [InlineData(PostCommitTransition.PickerReplaced)]
+    [InlineData(PostCommitTransition.PickerDeparted)]
+    public async Task Boss_dead_then_last_sqlite_task_item_opens_and_projects_one_shared_clear(
+        PostCommitTransition transition)
     {
         var path = Path.Combine(Path.GetTempPath(), $"dfo-pickup-clear-{Guid.NewGuid():N}.db");
         try
@@ -137,29 +141,47 @@ public sealed class QuestClearVerticalTests
                     run.RoomVersion),
                 CancellationToken.None);
 
-            var sessions = new Sessions([LeaderSession, HelperSession]);
+            var replacement = Session(LeaderAccount, Leader, "replacement", 2);
+            IReadOnlyList<SelectedSessionIdentity> current = transition switch
+            {
+                PostCommitTransition.PickerReplaced => [replacement, HelperSession],
+                PostCommitTransition.PickerDeparted => [HelperSession],
+                _ => [LeaderSession, HelperSession],
+            };
+            if (transition is PostCommitTransition.PickerDeparted)
+                Assert.True(runs.End(Leader, run.RunId));
+
+            var sessions = new Sessions(current);
             var registry = new DungeonRunDeliveryRegistry();
             registry.Register(run.RunId, [LeaderSession, HelperSession]);
             var sender = new RecordingSender();
             var projection = new DungeonPickupProjectionDelivery(
-                sessions,
-                registry,
-                sender,
-                TimeProvider.System,
+                sessions, registry, sender, TimeProvider.System);
+            var postCommit = new DungeonPickupPostCommitCoordinator(
                 clear,
                 new DungeonClearProjectionDelivery(sessions, runs, registry, sender));
-            Assert.True(await projection.DeliverAsync(LeaderSession, pickup, default));
+            var opened = Assert.IsType<DungeonClearChange>(
+                await postCommit.EvaluateAsync(LeaderSession, pickup));
+            var pickupDelivered = await projection.DeliverAsync(
+                LeaderSession, pickup, default);
+            _ = await postCommit.ProjectAsync(LeaderSession, opened, default);
 
             Assert.Equal(GroundPickupStatus.PickedUp, pickup.Status);
             Assert.Equal(0, Assert.Single(pickup.QuestProgress!.Quests).TriggerValue);
             Assert.NotNull(pickup.CommittedChange);
             Assert.Equal(15, await StoredQuantityAsync(itemStore));
             Assert.Equal(0, await TriggerAsync(path));
-            Assert.True(runs.Find(Leader)!.ClearOpen);
+            Assert.Equal(transition is PostCommitTransition.None, pickupDelivered);
+            Assert.True(runs.Find(run.RunId)!.ClearOpen);
             Assert.Null(await clear.EvaluateAsync(
                 LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
-            Assert.Single(sender.For(LeaderSession.ConnectionId)
-                .OfType<EnableClearDungeonNotification>());
+            Assert.Equal(
+                transition is PostCommitTransition.None ? 1 : 0,
+                sender.For(LeaderSession.ConnectionId)
+                    .OfType<EnableClearDungeonNotification>().Count());
+            if (transition is not PostCommitTransition.None)
+                Assert.Empty(sender.For(LeaderSession.ConnectionId));
+            Assert.Empty(sender.For(replacement.ConnectionId));
             Assert.Single(sender.For(HelperSession.ConnectionId)
                 .OfType<EnableClearDungeonNotification>());
         }
@@ -175,6 +197,13 @@ public sealed class QuestClearVerticalTests
                 // A pooled test connection may outlive the assertion process briefly.
             }
         }
+    }
+
+    public enum PostCommitTransition
+    {
+        None,
+        PickerReplaced,
+        PickerDeparted,
     }
 
     private static IItemPlacementRuleService PlacementRules() =>

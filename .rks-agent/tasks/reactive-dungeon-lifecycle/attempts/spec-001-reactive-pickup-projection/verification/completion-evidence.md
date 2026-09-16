@@ -37,4 +37,3 @@ passed
 ## Broader-suite Note
 
 `dotnet test Server/86JP.Server.slnx -c Release --no-restore` 的受影响项目及绝大多数项目通过；未改动的 `Dfo.Server.Host.Tests` 中 `InvalidLauncherConfigurationFailsBeforeAnyListenerStarts` 在并行拉起多个 Host 子进程时有 20 秒随机超时（复跑时失败参数发生变化），与本次差异没有文件或调用路径交集。该基线/环境性失败不削弱本子契约要求的受影响测试与 Release 构建证据。
-

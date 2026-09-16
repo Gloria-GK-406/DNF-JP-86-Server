@@ -101,6 +101,7 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<DungeonProjectionGate>();
         services.TryAddSingleton<DungeonEntryProjectionDelivery>();
         services.TryAddSingleton<DungeonPickupProjectionDelivery>();
+        services.TryAddSingleton<DungeonPickupPostCommitCoordinator>();
         services.TryAddSingleton<DungeonClearProjectionDelivery>();
         services.TryAddSingleton<DungeonCardSelectionProjectionDelivery>();
         services.TryAddSingleton(DungeonCardPresentationTiming.Production);

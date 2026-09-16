@@ -94,10 +94,8 @@ public sealed class GetItemHandlerTests
             1,
             [Leader.CharacterId, Helper.CharacterId]));
         var projection = new DungeonPickupProjectionDelivery(
-            sessions,
-            registry,
-            sender,
-            TimeProvider.System,
+            sessions, registry, sender, TimeProvider.System);
+        var postCommit = new DungeonPickupPostCommitCoordinator(
             evaluator,
             new DungeonClearProjectionDelivery(sessions, runs, registry, sender));
         var result = new GroundPickupResult(
@@ -115,7 +113,10 @@ public sealed class GetItemHandlerTests
             QuestProgress: new SeekingQuestProgressSynchronization(
                 [new CarriedQuest(0, 1779, 15)]));
 
+        var opened = Assert.IsType<DungeonClearChange>(
+            await postCommit.EvaluateAsync(Leader, result));
         Assert.True(await projection.DeliverAsync(Leader, result, default));
+        _ = await postCommit.ProjectAsync(Leader, opened, default);
 
         Assert.Equal((run.RunId, run.RoomVersion), evaluator.LastRequest);
         Assert.Equal(2, sender.Deliveries.Count);
@@ -149,10 +150,8 @@ public sealed class GetItemHandlerTests
             new ClearedRoom(),
             new CompleteSettlement());
         var projection = new DungeonPickupProjectionDelivery(
-            sessions,
-            registry,
-            sender,
-            TimeProvider.System,
+            sessions, registry, sender, TimeProvider.System);
+        var postCommit = new DungeonPickupPostCommitCoordinator(
             clear,
             new DungeonClearProjectionDelivery(sessions, runs, registry, sender));
         var result = new GroundPickupResult(
@@ -170,6 +169,7 @@ public sealed class GetItemHandlerTests
             QuestProgress: new SeekingQuestProgressSynchronization(
                 [new CarriedQuest(0, 1779, 0)]));
 
+        Assert.NotNull(await postCommit.EvaluateAsync(Leader, result));
         await Assert.ThrowsAsync<IOException>(async () =>
             await projection.DeliverAsync(Leader, result, default));
 

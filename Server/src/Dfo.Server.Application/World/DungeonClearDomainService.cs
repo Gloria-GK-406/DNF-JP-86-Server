@@ -20,6 +20,17 @@ public sealed class DungeonClearDomainService(
         CancellationToken cancellationToken)
     {
         var run = runs.Find(characterId);
+        var evaluatorAccountId = accountId;
+        var evaluatorCharacterId = characterId;
+        if (run is null || run.RunId != expectedRunId)
+        {
+            run = runs.Find(expectedRunId);
+            if (run?.Participant is { } active)
+            {
+                evaluatorAccountId = active.AccountId;
+                evaluatorCharacterId = active.CharacterId;
+            }
+        }
         if (run is null
             || run.RunId != expectedRunId
             || run.RoomVersion != expectedRoomVersion
@@ -36,13 +47,16 @@ public sealed class DungeonClearDomainService(
         var leader = run.PartyMemberCount > 1
             ? run.Participants.Single(participant => participant.IsLeader)
             : null;
+        var activeParticipant = run.Participant
+            ?? throw new InvalidOperationException("An active run view requires one participant.");
         var rules = await settlements.ForAsync(
-            leader?.AccountId ?? accountId,
-            leader?.CharacterId ?? characterId,
+            leader?.AccountId ?? evaluatorAccountId,
+            leader?.CharacterId ?? evaluatorCharacterId,
             run,
             cancellationToken).ConfigureAwait(false);
         return rules.CanComplete
-            ? runs.TryOpenClear(characterId, expectedRunId, expectedRoomVersion)
+            ? runs.TryOpenClear(
+                activeParticipant.CharacterId, expectedRunId, expectedRoomVersion)
             : null;
     }
 }

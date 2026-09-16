@@ -17,4 +17,3 @@ spec: ./spec.md
 ## Review and Verification
 
 独立复审 verdict 为 `approved`。受影响定向测试、Release 构建与差异检查全部通过；完成证据见 `verification/completion-evidence.md`。
-

@@ -23,4 +23,3 @@ reviewer: /root/pickup_change_review
 - `GroundPickup` 定向测试：24/24 通过。
 - `DungeonRunDomainServiceTests`：36/36 通过。
 - `git diff --check`：通过。
-

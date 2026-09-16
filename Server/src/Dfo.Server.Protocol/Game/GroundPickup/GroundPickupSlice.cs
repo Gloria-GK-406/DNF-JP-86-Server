@@ -524,9 +524,7 @@ public sealed class DungeonPickupProjectionDelivery(
     ISelectedSessionDomainService selectedSessions,
     DungeonRunDeliveryRegistry deliveries,
     IGameMessageSender sender,
-    TimeProvider clock,
-    IDungeonClearDomainService? clearEvaluator = null,
-    DungeonClearProjectionDelivery? clearProjection = null)
+    TimeProvider clock)
 {
     public async ValueTask<bool> DeliverAsync(
         SelectedSessionIdentity requester,
@@ -601,35 +599,11 @@ public sealed class DungeonPickupProjectionDelivery(
                 [notification]))
             .ToArray();
 
-        // The final required quest item may be picked up after the boss already died. The command
-        // has already committed its SQLite transaction before this projection is entered, so the
-        // shared clear fact must be committed before any network I/O can fail. Its wire frames are
-        // still sent after the pickup frames, preserving A21's observable ordering without making
-        // authoritative ClearOpen depend on a socket write succeeding.
-        DungeonClearChange? clear = null;
-        if (result.QuestProgress is not null
-            && clearEvaluator is not null
-            && clearProjection is not null
-            && await clearEvaluator.EvaluateAsync(
-                requester.AccountId,
-                requester.CharacterId,
-                change.RunId,
-                change.RoomVersion,
-                cancellationToken).ConfigureAwait(false) is { } opened)
-        {
-            clear = opened;
-        }
-
         await sender.SendExplicitAsync(
             requester.ConnectionId,
             new GameExplicitMessageDelivery(required, secondary),
             cancellationToken).ConfigureAwait(false);
 
-        if (clear is not null)
-        {
-            _ = await clearProjection!.DeliverAsync(requester, clear, cancellationToken)
-                .ConfigureAwait(false);
-        }
         return true;
     }
 
@@ -642,12 +616,53 @@ public sealed class DungeonPickupProjectionDelivery(
             cancellationToken);
 }
 
+/// <summary>
+/// Re-evaluates shared clear state after a quest pickup commits, independently of transport
+/// eligibility, then projects that committed fact on its own generation-filtered path.
+/// </summary>
+/// <remarks>
+/// Evaluation is deliberately non-cancellable once the pickup transaction committed. A closed or
+/// replaced requester connection may suppress wire delivery, but cannot suppress the shared run's
+/// authoritative transition.
+/// </remarks>
+public sealed class DungeonPickupPostCommitCoordinator(
+    IDungeonClearDomainService clearEvaluator,
+    DungeonClearProjectionDelivery clearProjection)
+{
+    public ValueTask<DungeonClearChange?> EvaluateAsync(
+        SelectedSessionIdentity requester,
+        GroundPickupResult result)
+    {
+        ArgumentNullException.ThrowIfNull(requester);
+        ArgumentNullException.ThrowIfNull(result);
+        var change = result.CommittedChange;
+        return result.Status is GroundPickupStatus.PickedUp
+            && result.QuestProgress is not null
+            && change is not null
+            && change.Picker == requester.CharacterId
+                ? clearEvaluator.EvaluateAsync(
+                    requester.AccountId,
+                    requester.CharacterId,
+                    change.RunId,
+                    change.RoomVersion,
+                    CancellationToken.None)
+                : ValueTask.FromResult<DungeonClearChange?>(null);
+    }
+
+    public ValueTask<int> ProjectAsync(
+        SelectedSessionIdentity requester,
+        DungeonClearChange change,
+        CancellationToken cancellationToken) =>
+        clearProjection.DeliverAsync(requester, change, cancellationToken);
+}
+
 public sealed class GetItemHandler(
     ISelectedSessionDomainService selectedSessions,
     IDungeonRunDomainService runs,
     ICommandBus commandBus,
     DungeonPickupProjectionDelivery projection,
-    ILogger<GetItemHandler> logger) : ClientMessageHandler<GetItemRequest>
+    ILogger<GetItemHandler> logger,
+    DungeonPickupPostCommitCoordinator? postCommit = null) : ClientMessageHandler<GetItemRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -676,6 +691,10 @@ public sealed class GetItemHandler(
                 run?.RunId ?? default,
                 run?.RoomVersion),
             cancellationToken).ConfigureAwait(false);
+        var clear = postCommit is null
+            ? null
+            : await postCommit.EvaluateAsync(session, result)
+                .ConfigureAwait(false);
 
         if (result.Status is GroundPickupStatus.Banked)
         {
@@ -689,6 +708,9 @@ public sealed class GetItemHandler(
                 result.Total);
 
             await projection.DeliverAsync(session, result, cancellationToken).ConfigureAwait(false);
+            if (clear is not null)
+                _ = await postCommit!.ProjectAsync(session, clear, cancellationToken)
+                    .ConfigureAwait(false);
             return;
         }
 
@@ -704,6 +726,9 @@ public sealed class GetItemHandler(
                 result.SlotIndex);
 
             await projection.DeliverAsync(session, result, cancellationToken).ConfigureAwait(false);
+            if (clear is not null)
+                _ = await postCommit!.ProjectAsync(session, clear, cancellationToken)
+                    .ConfigureAwait(false);
             return;
         }
 

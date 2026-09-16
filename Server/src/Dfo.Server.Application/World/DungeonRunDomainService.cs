@@ -156,6 +156,22 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         }
     }
 
+    public DungeonRunState? Find(DungeonRunId runId)
+    {
+        lock (this.gate)
+        {
+            if (!this.runsById.TryGetValue(runId, out var aggregate))
+                return null;
+
+            var active = aggregate.Participants
+                .Where(participant => aggregate.ActiveParticipants.Contains(
+                    participant.CharacterId))
+                .OrderBy(participant => participant.Slot)
+                .FirstOrDefault();
+            return active is null ? null : aggregate.ViewFor(active.CharacterId);
+        }
+    }
+
     public DungeonRunState? TryMove(CharacterId characterId, MazeCell target)
     {
         lock (this.gate)
