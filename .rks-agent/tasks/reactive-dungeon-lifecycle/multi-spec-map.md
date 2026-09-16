@@ -52,4 +52,4 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 | # | Attempt | TaskContract | Outcome | Affects | State | Result | Git result |
 |---:|---|---|---|---|---|---|---|
 | 1 | `spec-001` | `attempts/spec-001-reactive-pickup-projection/TaskContract.md` | 响应式拾取投影与远端拾取表现 | `SC-1, SC-3, SC-5` | `accepted` | `attempts/spec-001-reactive-pickup-projection/spec-result.md` | `38fbceff` |
-| 2 | `spec-002` | `attempts/spec-002-quest-item-seeking/TaskContract.md` | 剧情任务物品与 seeking 派生进度 | `SC-2, SC-6, SC-7` | `accepted` | `attempts/spec-002-quest-item-seeking/spec-result.md` | `pending local commit` |
+| 2 | `spec-002` | `attempts/spec-002-quest-item-seeking/TaskContract.md` | 剧情任务物品与 seeking 派生进度 | `SC-2, SC-6, SC-7` | `accepted` | `attempts/spec-002-quest-item-seeking/spec-result.md` | `a7687ae0` |
