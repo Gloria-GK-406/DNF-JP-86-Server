@@ -2,7 +2,6 @@ using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.World;
-using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.World;
@@ -31,27 +30,25 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
     public DungeonRunDomainService(IDomainTransactionAccessor transactions) =>
         this.transactions = transactions;
 
-    public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty)
-    {
-        return this.BeginParty(
-            [new DungeonRunParticipant(
-                new AccountId(0), characterId, Slot: 0, IsLeader: true)],
-            layout,
-            difficulty);
-    }
-
-    public DungeonRunState BeginParty(
-        IReadOnlyList<DungeonRunParticipant> participants,
-        DungeonLayout layout,
-        byte difficulty) => this.PreparePartyEntry(participants, layout, difficulty).Run;
-
     public DungeonEntryChange PreparePartyEntry(
         IReadOnlyList<DungeonRunParticipant> participants,
         DungeonLayout layout,
-        byte difficulty)
+        byte difficulty,
+        DungeonCellSeed initialCell,
+        DungeonRunId runId,
+        DateTimeOffset startedAt)
     {
         ArgumentNullException.ThrowIfNull(participants);
         ArgumentNullException.ThrowIfNull(layout);
+        ArgumentNullException.ThrowIfNull(initialCell);
+        if (!initialCell.IsComplete)
+            throw new ArgumentException("A dungeon run cannot publish an incomplete Cell.", nameof(initialCell));
+        if (initialCell.Cell != layout.StartCell
+            || initialCell.MapId != layout.StartRoomMapId)
+        {
+            throw new ArgumentException(
+                "The initial Cell identity must match the layout's start room.", nameof(initialCell));
+        }
         if (participants.Count == 0)
             throw new ArgumentException("A dungeon run requires at least one participant.", nameof(participants));
         if (participants.Any(participant => participant is null))
@@ -76,7 +73,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
 
         var frozen = participants.ToImmutableArray();
         var aggregate = new DungeonRunAggregate(
-            DungeonRunId.New(), frozen, layout, difficulty, DateTimeOffset.UtcNow);
+            runId, frozen, layout, difficulty, startedAt, initialCell);
 
         lock (this.gate)
         {
@@ -188,7 +185,22 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
     {
         lock (this.gate)
         {
-            return this.TryMoveCore(characterId, expectedRunId, expectedRoomVersion, target);
+            return this.TryMoveCore(
+                characterId, expectedRunId, expectedRoomVersion, target, preparedCell: null);
+        }
+    }
+
+    public DungeonRunState? TryMove(
+        CharacterId characterId,
+        DungeonRunId expectedRunId,
+        long expectedRoomVersion,
+        MazeCell target,
+        DungeonCellSeed? preparedCell)
+    {
+        lock (this.gate)
+        {
+            return this.TryMoveCore(
+                characterId, expectedRunId, expectedRoomVersion, target, preparedCell);
         }
     }
 
@@ -196,7 +208,8 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         CharacterId characterId,
         DungeonRunId? expectedRunId,
         long? expectedRoomVersion,
-        MazeCell target)
+        MazeCell target,
+        DungeonCellSeed? preparedCell = null)
     {
         if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
             || !aggregate.Participant(characterId).IsLeader
@@ -204,36 +217,33 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             || (expectedRoomVersion is { } version && aggregate.RoomVersion != version)
             || this.deathClaims.Keys.Any(key =>
                 key.RunId == aggregate.RunId && key.Actor.Cell == aggregate.CurrentCell)
+            || this.groundDropClaims.Keys.Any(key =>
+                key.RunId == aggregate.RunId && key.Drop.Cell == aggregate.CurrentCell)
+            || this.preparedGroundDropClaims.Any(key =>
+                key.RunId == aggregate.RunId && key.Drop.Cell == aggregate.CurrentCell)
             || Math.Abs(target.X - aggregate.CurrentCell.X)
                 + Math.Abs(target.Y - aggregate.CurrentCell.Y) != 1
-            || !aggregate.Layout.Rooms.TryGetValue(target, out var mapId))
+            || !aggregate.Layout.Rooms.TryGetValue(target, out var mapId)
+            || (preparedCell is not null
+                && (preparedCell.Cell != target || preparedCell.MapId != mapId)))
         {
             return null;
         }
 
+        if (!aggregate.Cells.ContainsKey(target))
+        {
+            if (preparedCell is null || !preparedCell.IsComplete)
+                return null;
+            aggregate.Cells.Add(
+                target,
+                new DungeonCellAggregate(preparedCell));
+        }
         aggregate.CurrentCell = target;
-        aggregate.CurrentRoomMapId = mapId;
         aggregate.VisitedCells = aggregate.VisitedCells.Add(target);
         aggregate.RoomVersion++;
         aggregate.EntryRevision++;
         aggregate.ReadyParticipants.Clear();
         return aggregate.ViewFor(characterId);
-    }
-
-    public DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber)
-    {
-        lock (this.gate)
-        {
-            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate))
-                return null;
-
-            var id = new GroundDropId(aggregate.CurrentCell, groundDropNumber);
-            if (aggregate.TakenGroundDrops.Contains(id))
-                return null;
-
-            aggregate.TakenGroundDrops = aggregate.TakenGroundDrops.Add(id);
-            return aggregate.ViewFor(characterId);
-        }
     }
 
     public DungeonGroundDropClaim? TryClaimGroundDrop(
@@ -252,8 +262,10 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             }
 
             var drop = new GroundDropId(aggregate.CurrentCell, groundDropNumber);
+            var cell = aggregate.Cells[aggregate.CurrentCell];
+            var item = cell.FindGroundItem(groundDropNumber);
             var key = new GroundDropClaimKey(aggregate.RunId, drop, characterId);
-            if (aggregate.TakenGroundDrops.Contains(drop)
+            if (item is null
                 || this.groundDropClaims.Keys.Any(candidate =>
                     candidate.RunId == aggregate.RunId && candidate.Drop == drop)
                 || this.preparedGroundDropClaims.Any(candidate =>
@@ -263,7 +275,14 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             var token = Interlocked.Increment(ref this.nextClaim);
             this.groundDropClaims.Add(key, token);
             return new DungeonGroundDropClaim(
-                characterId, aggregate.ViewFor(characterId), drop, token, aggregate.RunId);
+                characterId,
+                aggregate.ViewFor(characterId),
+                drop,
+                token,
+                aggregate.RunId,
+                item,
+                aggregate.RoomVersion,
+                cell.Revision);
         }
     }
 
@@ -275,14 +294,19 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         lock (this.gate)
         {
             var key = new GroundDropClaimKey(claim.RunId, claim.Drop, claim.CharacterId);
-            if (!this.TryRemoveGroundDropClaim(key, claim.Token)
+            if (!this.groundDropClaims.TryGetValue(key, out var token)
+                || token != claim.Token
                 || !this.runsById.TryGetValue(claim.RunId, out var aggregate)
-                || aggregate.TakenGroundDrops.Contains(claim.Drop))
+                || aggregate.CurrentCell != claim.Drop.Cell
+                || aggregate.RoomVersion != claim.RoomVersion
+                || !aggregate.Cells.TryGetValue(claim.Drop.Cell, out var cell)
+                || cell.Revision != claim.CellRevision
+                || cell.RemoveGroundItem(claim.Drop.Number) is null)
             {
                 return null;
             }
 
-            aggregate.TakenGroundDrops = aggregate.TakenGroundDrops.Add(claim.Drop);
+            _ = this.groundDropClaims.Remove(key);
             aggregate.RuntimeRevision++;
             return new DungeonPickupChange(
                 aggregate.RunId,
@@ -295,7 +319,8 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                         participant.CharacterId))
                     .OrderBy(participant => participant.Slot)
                     .Select(participant => participant.CharacterId)],
-                aggregate.RoomVersion);
+                aggregate.RoomVersion,
+                cell.Revision);
         }
     }
 
@@ -326,6 +351,44 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         }
     }
 
+    public DungeonGroundItemsAddedChange? TryAddGroundItems(
+        CharacterId characterId,
+        DungeonRunId expectedRunId,
+        long expectedRoomVersion,
+        long expectedCellRevision,
+        IReadOnlyList<DungeonGroundItemDraft> items)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+        lock (this.gate)
+        {
+            if (items.Count == 0
+                || !this.runsByCharacter.TryGetValue(characterId, out var aggregate)
+                || aggregate.RunId != expectedRunId
+                || aggregate.RoomVersion != expectedRoomVersion)
+            {
+                return null;
+            }
+
+            var cell = aggregate.Cells[aggregate.CurrentCell];
+            if (cell.Revision != expectedCellRevision)
+                return null;
+            var added = cell.AppendGroundItems(items);
+            cell.Revision++;
+            aggregate.RuntimeRevision++;
+            var run = aggregate.ViewFor(characterId);
+            return new DungeonGroundItemsAddedChange(
+                run,
+                aggregate.RuntimeRevision,
+                cell.Revision,
+                added,
+                [.. aggregate.Participants
+                    .Where(participant => aggregate.ActiveParticipants.Contains(
+                        participant.CharacterId))
+                    .OrderBy(participant => participant.Slot)
+                    .Select(participant => participant.CharacterId)]);
+        }
+    }
+
     public DungeonClearChange? TryOpenClear(
         CharacterId characterId,
         DungeonRunId expectedRunId,
@@ -336,12 +399,14 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
                 || aggregate.RunId != expectedRunId
                 || aggregate.RoomVersion != expectedRoomVersion
-                || aggregate.ClearOpen)
+                || aggregate.Cells[aggregate.CurrentCell].ClearOpen)
             {
                 return null;
             }
 
-            aggregate.ClearOpen = true;
+            var cell = aggregate.Cells[aggregate.CurrentCell];
+            cell.ClearOpen = true;
+            cell.Revision++;
             aggregate.RuntimeRevision++;
             return new DungeonClearChange(
                 aggregate.RunId,
@@ -351,23 +416,6 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                         participant.CharacterId))
                     .OrderBy(participant => participant.Slot)
                     .Select(participant => participant.CharacterId)]);
-        }
-    }
-
-    public DungeonRunState? TryReportActorDead(CharacterId characterId, ushort actorSequence)
-    {
-        lock (this.gate)
-        {
-            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate))
-                return null;
-
-            var actor = new RoomActorId(aggregate.CurrentCell, actorSequence);
-            if (aggregate.DeadActors.Contains(actor))
-                return null;
-
-            aggregate.DeadActors = aggregate.DeadActors.Add(actor);
-            aggregate.CommittedActorDeaths.Add(actor);
-            return aggregate.ViewFor(characterId);
         }
     }
 
@@ -381,7 +429,8 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                 return null;
 
             var actor = new RoomActorId(aggregate.CurrentCell, actorSequence);
-            if (aggregate.CommittedActorDeaths.Contains(actor))
+            var cell = aggregate.Cells[aggregate.CurrentCell];
+            if (!cell.CanClaimDeath(actorSequence))
                 return null;
 
             var key = new DeathClaimKey(aggregate.RunId, actor);
@@ -395,11 +444,15 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                 aggregate.ViewFor(characterId),
                 actor,
                 token,
-                aggregate.RunId);
+                aggregate.RunId,
+                cell.FindActor(actorSequence));
         }
     }
 
-    public DungeonRunState? CommitActorDeath(DungeonActorDeathClaim claim)
+    public DungeonRunState? CommitActorDeath(DungeonActorDeathClaim claim) =>
+        this.CommitActorDeathChange(claim)?.Run;
+
+    public DungeonActorDeathChange? CommitActorDeathChange(DungeonActorDeathClaim claim)
     {
         ArgumentNullException.ThrowIfNull(claim);
         lock (this.gate)
@@ -412,9 +465,24 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                 return null;
             }
 
-            aggregate.DeadActors = aggregate.DeadActors.Add(claim.Actor);
-            aggregate.CommittedActorDeaths.Add(claim.Actor);
-            return aggregate.ViewFor(claim.CharacterId);
+            var cell = aggregate.Cells[claim.Actor.Cell];
+            var added = cell.CommitActorDeath(claim.Actor.Sequence);
+            if (added is null)
+                return null;
+            aggregate.RuntimeRevision++;
+            var run = aggregate.ViewFor(claim.CharacterId);
+            return new DungeonActorDeathChange(
+                run,
+                claim.Actor,
+                aggregate.RuntimeRevision,
+                cell.Revision,
+                added,
+                cell.Snapshot().IsCleared,
+                [.. aggregate.Participants
+                    .Where(participant => aggregate.ActiveParticipants.Contains(
+                        participant.CharacterId))
+                    .OrderBy(participant => participant.Slot)
+                    .Select(participant => participant.CharacterId)]);
         }
     }
 
@@ -516,7 +584,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         {
             if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
                 || !aggregate.ActiveParticipants.Contains(characterId)
-                || !aggregate.ClearOpen)
+                || !aggregate.Cells[aggregate.CurrentCell].ClearOpen)
                 return null;
             if (expectedRunId is { } runId && aggregate.RunId != runId)
                 return null;
@@ -844,79 +912,6 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         }
     }
 
-    public IReadOnlyList<MonsterDrop> AllocateMonsterDrops(
-        CharacterId characterId,
-        int declaredDropCount,
-        ushort actorSequence,
-        IReadOnlyList<RolledDrop> rolled)
-    {
-        ArgumentNullException.ThrowIfNull(rolled);
-        lock (this.gate)
-        {
-            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate))
-                return [];
-
-            var actor = new RoomActorId(aggregate.CurrentCell, actorSequence);
-            return this.AllocateMonsterDropsCore(aggregate, declaredDropCount, actor, rolled);
-        }
-    }
-
-    public IReadOnlyList<MonsterDrop>? TryAllocateMonsterDrops(
-        CharacterId characterId,
-        DungeonRunId expectedRunId,
-        long expectedRoomVersion,
-        RoomActorId actor,
-        int declaredDropCount,
-        IReadOnlyList<RolledDrop> rolled)
-    {
-        ArgumentNullException.ThrowIfNull(rolled);
-        lock (this.gate)
-        {
-            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
-                || aggregate.RunId != expectedRunId
-                || aggregate.RoomVersion != expectedRoomVersion
-                || aggregate.CurrentCell != actor.Cell)
-            {
-                return null;
-            }
-
-            return this.AllocateMonsterDropsCore(
-                aggregate, declaredDropCount, actor, rolled);
-        }
-    }
-
-    private IReadOnlyList<MonsterDrop> AllocateMonsterDropsCore(
-        DungeonRunAggregate aggregate,
-        int declaredDropCount,
-        RoomActorId actor,
-        IReadOnlyList<RolledDrop> rolled)
-    {
-        if (aggregate.AllocatedDropActors.Contains(actor))
-        {
-            return aggregate.MonsterDrops
-                .Where(drop => drop.Cell == actor.Cell && drop.ActorSequence == actor.Sequence)
-                .Select(drop => drop.Drop)
-                .ToArray();
-        }
-
-        aggregate.AllocatedDropActors.Add(actor);
-        if (rolled.Count == 0)
-            return [];
-
-        var next = aggregate.NextMonsterDropNumber(actor.Cell, declaredDropCount);
-        var numbered = new List<MonsterDrop>(rolled.Count);
-        var allocated = aggregate.MonsterDrops.ToBuilder();
-        foreach (var piece in rolled)
-        {
-            var drop = new MonsterDrop(next++, piece);
-            numbered.Add(drop);
-            allocated.Add(new AllocatedMonsterDrop(actor.Cell, actor.Sequence, drop));
-        }
-
-        aggregate.MonsterDrops = allocated.ToImmutable();
-        return numbered;
-    }
-
     public bool End(CharacterId characterId)
     {
         lock (this.gate)
@@ -999,7 +994,11 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             if (!this.groundDropClaims.TryGetValue(key, out var token)
                 || token != claim.Token
                 || !this.runsById.TryGetValue(claim.RunId, out var aggregate)
-                || aggregate.TakenGroundDrops.Contains(claim.Drop)
+                || aggregate.CurrentCell != claim.Drop.Cell
+                || aggregate.RoomVersion != claim.RoomVersion
+                || !aggregate.Cells.TryGetValue(claim.Drop.Cell, out var cell)
+                || cell.Revision != claim.CellRevision
+                || cell.FindGroundItem(claim.Drop.Number) is null
                 || !this.preparedGroundDropClaims.Add(key))
             {
                 throw new InvalidOperationException(
@@ -1021,8 +1020,10 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             // captured aggregate remains the transaction's exact target and commit is infallible.
             _ = this.groundDropClaims.Remove(prepared.Key);
             _ = this.preparedGroundDropClaims.Remove(prepared.Key);
-            prepared.Aggregate.TakenGroundDrops =
-                prepared.Aggregate.TakenGroundDrops.Add(prepared.Key.Drop);
+            var cell = prepared.Aggregate.Cells[prepared.Key.Drop.Cell];
+            _ = cell.RemoveGroundItem(prepared.Key.Drop.Number)
+                ?? throw new InvalidOperationException(
+                    "A prepared ground item must still exist when its transaction commits.");
             prepared.Aggregate.RuntimeRevision++;
             return new DungeonPickupChange(
                 prepared.Aggregate.RunId,
@@ -1035,7 +1036,8 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                         participant.CharacterId))
                     .OrderBy(participant => participant.Slot)
                     .Select(participant => participant.CharacterId)],
-                prepared.Aggregate.RoomVersion);
+                prepared.Aggregate.RoomVersion,
+                cell.Revision);
         }
     }
 
@@ -1223,7 +1225,8 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             ImmutableArray<DungeonRunParticipant> participants,
             DungeonLayout layout,
             byte difficulty,
-            DateTimeOffset startedAt)
+            DateTimeOffset startedAt,
+            DungeonCellSeed initialCell)
         {
             this.RunId = runId;
             this.Participants = participants;
@@ -1231,7 +1234,10 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             this.Difficulty = difficulty;
             this.StartedAt = startedAt;
             this.CurrentCell = layout.StartCell;
-            this.CurrentRoomMapId = layout.StartRoomMapId;
+            this.Cells = new Dictionary<MazeCell, DungeonCellAggregate>
+            {
+                [initialCell.Cell] = new DungeonCellAggregate(initialCell),
+            };
             this.VisitedCells = ImmutableHashSet.Create(layout.StartCell);
             this.participantsByCharacter = participants.ToDictionary(
                 participant => participant.CharacterId);
@@ -1249,18 +1255,13 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         public byte Difficulty { get; }
         public DateTimeOffset StartedAt { get; }
         public MazeCell CurrentCell { get; set; }
-        public int CurrentRoomMapId { get; set; }
+        public int CurrentRoomMapId => this.Cells[this.CurrentCell].MapId;
+        public Dictionary<MazeCell, DungeonCellAggregate> Cells { get; }
         public long RoomVersion { get; set; }
         public long EntryRevision { get; set; } = 1;
         public long RuntimeRevision { get; set; }
-        public bool ClearOpen { get; set; }
         public ImmutableHashSet<MazeCell> VisitedCells { get; set; }
-        public ImmutableHashSet<GroundDropId> TakenGroundDrops { get; set; } = [];
-        public ImmutableHashSet<RoomActorId> DeadActors { get; set; } = [];
-        public HashSet<RoomActorId> CommittedActorDeaths { get; } = [];
         public HashSet<ParticipantEffectKey> CompletedKillEffects { get; } = [];
-        public HashSet<RoomActorId> AllocatedDropActors { get; } = [];
-        public ImmutableArray<AllocatedMonsterDrop> MonsterDrops { get; set; } = [];
         public HashSet<CharacterId> ActiveParticipants { get; }
         public HashSet<CharacterId> ReadyParticipants { get; } = [];
         public List<DungeonCardSelection> CardSelections { get; } = [];
@@ -1283,18 +1284,6 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                     .OrderBy(participant => participant.Slot)
                     .Select(participant => participant.CharacterId)]);
 
-        public ushort NextMonsterDropNumber(MazeCell cell, int declaredDropCount)
-        {
-            var highest = declaredDropCount;
-            foreach (var allocated in this.MonsterDrops)
-            {
-                if (allocated.Cell == cell && allocated.Drop.Number > highest)
-                    highest = allocated.Drop.Number;
-            }
-
-            return checked((ushort)(highest + 1));
-        }
-
         public DungeonRunState ViewFor(CharacterId characterId)
         {
             var progress = this.ProgressFor(characterId);
@@ -1303,12 +1292,9 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                 this.CurrentCell,
                 this.CurrentRoomMapId,
                 this.VisitedCells,
-                this.TakenGroundDrops,
-                this.DeadActors,
                 this.StartedAt,
                 this.Difficulty,
                 progress.IsSettled,
-                this.MonsterDrops,
                 progress.ClearRewardCards,
                 this.RunId,
                 this.RoomVersion,
@@ -1316,11 +1302,113 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                 this.Participants,
                 this.EntryRevision,
                 this.ReadyParticipants.ToImmutableHashSet(),
-                this.ClearOpen,
+                this.Cells[this.CurrentCell].ClearOpen,
                 this.RuntimeRevision,
                 [.. this.CardSelections],
-                progress.CardLayoutOpen);
+                progress.CardLayoutOpen,
+                this.Cells[this.CurrentCell].Snapshot());
         }
+    }
+
+    private sealed class DungeonCellAggregate(DungeonCellSeed seed)
+    {
+        private readonly Dictionary<ushort, DungeonCellActorState> actors =
+            seed.Actors.ToDictionary(
+                actor => actor.Sequence,
+                actor => actor with { PendingLoot = actor.PendingLoot.ToArray() });
+        private readonly Dictionary<ushort, DungeonGroundItem> groundItems =
+            seed.GroundItems.ToDictionary(item => item.Number);
+        private int nextGroundItemNumber = seed.GroundItems.Count == 0
+            ? 1
+            : seed.GroundItems.Max(item => item.Number) + 1;
+
+        public MazeCell Cell { get; } = seed.Cell;
+        public int MapId { get; } = seed.MapId;
+        public ushort FirstActorSequence { get; } = seed.FirstActorSequence;
+        public long Revision { get; set; }
+        public bool ClearOpen { get; set; }
+
+        public DungeonCellActorState? FindActor(ushort sequence) =>
+            this.actors.GetValueOrDefault(sequence);
+
+        public DungeonGroundItem? FindGroundItem(ushort number) =>
+            this.groundItems.GetValueOrDefault(number);
+
+        public DungeonGroundItem? RemoveGroundItem(ushort number)
+        {
+            if (!this.groundItems.Remove(number, out var item))
+                return null;
+            this.Revision++;
+            return item;
+        }
+
+        public bool CanClaimDeath(ushort sequence) =>
+            this.actors.TryGetValue(sequence, out var actor) && !actor.IsDead;
+
+        public IReadOnlyList<DungeonGroundItem>? CommitActorDeath(ushort sequence)
+        {
+            if (!this.actors.TryGetValue(sequence, out var actor) || actor.IsDead)
+                return null;
+
+            var added = this.AppendGroundItems(actor.PendingLoot.Select(rolled =>
+                new DungeonGroundItemDraft(
+                    rolled.ItemId,
+                    rolled.Count,
+                    rolled.Durability,
+                    rolled.Kind == DropItemKind.Equipment,
+                    DungeonGroundItemSource.FromActor(sequence),
+                    rolled.Rarity,
+                    rolled.Kind,
+                    rolled.OwnerCharacterId)).ToArray());
+
+            this.actors[sequence] = actor with { IsDead = true, PendingLoot = [] };
+            this.Revision++;
+            return added;
+        }
+
+        public IReadOnlyList<DungeonGroundItem> AppendGroundItems(
+            IReadOnlyList<DungeonGroundItemDraft> items)
+        {
+            if (items.Count > 0
+                && this.nextGroundItemNumber + items.Count - 1 > ushort.MaxValue)
+            {
+                throw new InvalidOperationException(
+                    "The dungeon cell exhausted its stable ground-item number space.");
+            }
+
+            var added = new List<DungeonGroundItem>(items.Count);
+            for (var index = 0; index < items.Count; index++)
+            {
+                var draft = items[index];
+                if (draft.Count <= 0)
+                    throw new ArgumentOutOfRangeException(nameof(items), "Ground item count must be positive.");
+                added.Add(new DungeonGroundItem(
+                    checked((ushort)(this.nextGroundItemNumber + index)),
+                    draft.ItemId,
+                    draft.Count,
+                    draft.Durability,
+                    draft.IsEquipment,
+                    draft.Source,
+                    draft.Rarity,
+                    draft.Kind,
+                    draft.OwnerCharacterId));
+            }
+
+            foreach (var item in added)
+                this.groundItems.Add(item.Number, item);
+            this.nextGroundItemNumber += added.Count;
+            return added;
+        }
+
+        public DungeonCellState Snapshot() => new(
+            this.Cell,
+            this.MapId,
+            this.Revision,
+            this.FirstActorSequence,
+            [.. this.actors.Values.OrderBy(actor => actor.Sequence)
+                .Select(actor => actor with { PendingLoot = actor.PendingLoot.ToArray() })],
+            [.. this.groundItems.Values.OrderBy(item => item.Number)],
+            this.ClearOpen);
     }
 
     private sealed class ParticipantProgress

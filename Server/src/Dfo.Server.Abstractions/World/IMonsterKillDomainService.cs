@@ -33,10 +33,9 @@ public readonly record struct KillIdentification(IdentifiedKill? Kill, int Decla
 /// What a kill reported against a run means.
 /// </summary>
 /// <remarks>
-/// Two questions a kill raises that neither the run nor the rules can answer alone: which declared
-/// actor a running number names — the run supplies the room, the archive supplies its actors — and
-/// whether the room is now empty, which needs both the declaration and what the run has recorded
-/// as dead.
+/// The current Cell already owns the actor and its frozen monster classification. Identification
+/// and clear checks consume that snapshot only; runtime kill handling does not reread room content,
+/// experience rules or loot rules.
 /// </remarks>
 public interface IMonsterKillDomainService
 {
@@ -51,7 +50,7 @@ public interface IMonsterKillDomainService
     ValueTask<KillIdentification> IdentifyAsync(
         DungeonRunState run, ushort actorSequence, CancellationToken cancellationToken);
 
-    /// <summary>Whether every actor the run's current room declares has been reported dead.</summary>
+    /// <summary>Whether every monster Actor in the current Cell is dead.</summary>
     ValueTask<bool> IsCurrentRoomClearedAsync(
         DungeonRunState run, CancellationToken cancellationToken);
 }

@@ -212,8 +212,7 @@ public sealed class ApplicationModule : IServerModule
         // Entering a dungeon and walking between its rooms.
         services.TryAddSingleton<IDungeonSelectionRuleService, DungeonSelectionRuleService>();
         services.TryAddSingleton<IDungeonVisitDomainService, DungeonVisitDomainService>();
-        // What a kill reported against a run means: which declared actor it names, and whether
-        // the room is now empty.
+        // Runtime kill interpretation reads only the published Cell snapshot.
         services.TryAddSingleton<IMonsterKillDomainService, MonsterKillDomainService>();
         // Recomputing a session's offer list after a level or a quest moved what it is made of.
         services.TryAddSingleton<
@@ -243,7 +242,10 @@ public sealed class ApplicationModule : IServerModule
             IExperienceValuationDomainService, ExperienceValuationDomainService>();
         services.TryAddSingleton<
             IChannelDirectoryDomainService, ChannelDirectoryDomainService>();
-        services.TryAddSingleton<IMonsterDropService, MonsterDropService>();
+        services.TryAddSingleton<MonsterLootRuleService>();
+        services.TryAddSingleton<IMonsterLootRuleService>(services =>
+            services.GetRequiredService<MonsterLootRuleService>());
+        services.TryAddSingleton<IDungeonCellFactory, DungeonCellFactory>();
         services.TryAddSingleton<IQuestMonsterDropRuleService, QuestMonsterDropRuleService>();
         // What a character has left to spend, asked by identifier and worked out on the spot. The
         // arithmetic belongs to the shared skill rules; the state service supplies current facts.

@@ -102,15 +102,19 @@ public sealed class QuestMonsterDropRuleServiceTests
         containers.Register(Leader, new Bag(10149163, held));
         var service = new QuestMonsterDropRuleService(
             new QuestRules(definition), logs, containers);
-        var runs = new DungeonRunDomainService();
-        var run = runs.BeginParty(
-            [new DungeonRunParticipant(Account, Leader, 0, IsLeader: true)],
-            Layout(dungeonId, purpose),
-            difficulty);
+        var layout = Layout(dungeonId, purpose);
+        var run = new DungeonCellCreationContext(
+            DungeonRunId.New(),
+            layout,
+            layout.StartCell,
+            layout.StartRoomMapId,
+            difficulty,
+            DateTimeOffset.UnixEpoch,
+            [new DungeonRunParticipant(Account, Leader, 0, IsLeader: true)]);
         return new Fixture(service, run);
     }
 
-    private static MonsterKill Kill(DungeonRunState run, int monsterCode) =>
+    private static MonsterKill Kill(DungeonCellCreationContext run, int monsterCode) =>
         new(Leader, run, 30001, 5, 0, 1, monsterCode);
 
     private static QuestDefinition Definition(
@@ -138,7 +142,7 @@ public sealed class QuestMonsterDropRuleServiceTests
 
     private sealed record Fixture(
         QuestMonsterDropRuleService Service,
-        DungeonRunState Run);
+        DungeonCellCreationContext Run);
 
     private sealed class QuestRules(QuestDefinition definition) : IQuestContentRuleService
     {

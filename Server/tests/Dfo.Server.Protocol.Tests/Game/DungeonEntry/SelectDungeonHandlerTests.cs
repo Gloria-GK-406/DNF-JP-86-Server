@@ -536,11 +536,11 @@ public sealed class SelectDungeonHandlerTests
         Tutorial.StartCell,
         Tutorial.StartRoomMapId,
         new HashSet<MazeCell> { Tutorial.StartCell },
-        new HashSet<GroundDropId>(),
-        new HashSet<RoomActorId>(),
         DateTimeOffset.UnixEpoch,
         Difficulty,
-        RunId: DungeonRunId.New());
+        RunId: DungeonRunId.New(),
+        CurrentCellState: DungeonCellSeed.CompleteEmpty(
+            Tutorial.StartCell, Tutorial.StartRoomMapId).Snapshot());
 
     /// <summary>
     /// The run, recording the facts it was handed and answering with a fixed room.

@@ -40,45 +40,23 @@ public sealed record DungeonRoomContents(
 public readonly record struct DeclaredActorLookup(DungeonRoomActor? Actor, int DeclaredCount);
 
 /// <summary>
-/// What a dungeon room declares, and what a run standing in it makes of that declaration.
+/// Resolves the static room inputs used while a dungeon Cell is being created.
 /// </summary>
 /// <remarks>
-/// A room's contents are content plus one fact: the archive says what the map holds, and the run
-/// says which of it is still there and what numbers it goes under. Both halves are here so that the
-/// numbering, the monster-or-ally boundary and the clearing test are answered in one place instead
-/// of being re-derived by each frame that needs them.
+/// The archive says what the map starts with; the Cell factory supplies the unpublished creation context
+/// needed for stable identities. Once the Cell is published, runtime actor, floor and clear queries
+/// use its snapshot and never return to this service.
 /// <para>
-/// The run is handed in. Nothing here looks a run up, so this reads no world state.
+/// The creation context is handed in. Nothing here looks a run up, so this reads no world state.
 /// </para>
 /// </remarks>
 public interface IDungeonRoomRuleService
 {
     /// <summary>
-    /// What to describe the run's current room as holding.
+    /// What the not-yet-published Cell starts with.
     /// </summary>
-    /// <param name="firstEntry">
-    /// False when the character has stood in this room before, in which case the room is described
-    /// as empty: the client already killed what was in there and still holds those identities, and
-    /// sending the list again resurrects them under the very same numbers.
-    /// </param>
     ValueTask<DungeonRoomContents> DescribeAsync(
-        DungeonRunState run, bool firstEntry, CancellationToken cancellationToken);
-
-    /// <summary>Which declared actor this running number names.</summary>
-    ValueTask<DeclaredActorLookup> FindDeclaredActorAsync(
-        DungeonRunState run, ushort actorSequence, CancellationToken cancellationToken);
-
-    /// <summary>Whether every actor the run's current room declares has been reported dead.</summary>
-    ValueTask<bool> IsCurrentRoomClearedAsync(
-        DungeonRunState run, CancellationToken cancellationToken);
-
-    /// <summary>What the run's current room still has on its floor, under its numbers.</summary>
-    ValueTask<IReadOnlyList<GroundDrop>> RemainingGroundDropsAsync(
-        DungeonRunState run, CancellationToken cancellationToken);
-
-    /// <summary>What this room's breakable objects are declared to yield.</summary>
-    ValueTask<IReadOnlyList<DungeonRoomDrop>> DeclaredDropsAsync(
-        int dungeonId, int mapId, CancellationToken cancellationToken);
+        DungeonCellCreationContext context, CancellationToken cancellationToken);
 
     /// <summary>
     /// What each of these declared actors is, as the frame that draws the room needs it.
@@ -89,6 +67,6 @@ public interface IDungeonRoomRuleService
     /// </remarks>
     IReadOnlyList<RoomActorDescription> Describe(IReadOnlyList<DungeonRoomActor> declared);
 
-    /// <summary>The number the run's current room gives its first actor.</summary>
-    ushort FirstActorSequenceFor(DungeonRunState run);
+    /// <summary>The number this run and Cell identity gives its first actor.</summary>
+    ushort FirstActorSequenceFor(DungeonCellCreationContext context);
 }

@@ -1,5 +1,4 @@
 using Dfo.Server.Abstractions.Content;
-using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -17,9 +16,8 @@ namespace Dfo.Server.Application.World;
 internal sealed class DungeonVisitDomainService(
     IDungeonLayoutRuleService layouts,
     IDungeonRunDomainService runs,
-    IDungeonRoomRuleService rooms,
-    IItemPlacementRuleService placementRules,
-    IDungeonSelectionRuleService selection) : IDungeonVisitDomainService
+    IDungeonSelectionRuleService selection,
+    IDungeonCellFactory cells) : IDungeonVisitDomainService
 {
     public bool DefersSelectionState(byte characterLevel) =>
         selection.DefersSelectionState(characterLevel);
@@ -61,37 +59,28 @@ internal sealed class DungeonVisitDomainService(
         if (layout is null)
             return null;
 
-        var prepared = runs.PreparePartyEntry(participants, layout, difficulty);
-        var leaderView = prepared.Run;
-        try
-        {
-            var visits = new Dictionary<CharacterId, DungeonRoomVisit>(participants.Count);
-            foreach (var participant in participants)
-            {
-                var run = participant.CharacterId == leaderView.Participant?.CharacterId
-                    ? leaderView
-                    : runs.Find(participant.CharacterId)
-                        ?? throw new InvalidOperationException(
-                            "A shared dungeon run was published without every participant index.");
-                visits.Add(
-                    participant.CharacterId,
-                    await this.DescribeAsync(run, firstEntry: true, cancellationToken)
-                        .ConfigureAwait(false));
-            }
-
-            return new DungeonPartyEntry(layout, visits, prepared);
-        }
-        catch
-        {
-            // Room description is part of preparation. Compensation is valid only while the exact
-            // prepared revision is still current; an awaited rule may have allowed this run or a
-            // replacement run to advance, and neither newer state may be erased here.
-            _ = runs.TryAbortEntry(
-                prepared.Run.RunId,
-                prepared.Revision,
-                prepared.Recipients);
-            throw;
-        }
+        var runId = DungeonRunId.New();
+        var startedAt = DateTimeOffset.UtcNow;
+        var initialCell = await cells.CreateAsync(
+            new DungeonCellCreationContext(
+                runId,
+                layout,
+                layout.StartCell,
+                layout.StartRoomMapId,
+                difficulty,
+                startedAt,
+                participants),
+            cancellationToken).ConfigureAwait(false);
+        var change = runs.PreparePartyEntry(
+            participants, layout, difficulty, initialCell, runId, startedAt);
+        var createdVisits = participants.ToDictionary(
+            participant => participant.CharacterId,
+            participant => this.DescribeCreatedCell(
+                runs.Find(participant.CharacterId)
+                    ?? throw new InvalidOperationException(
+                        "A shared dungeon run was published without every participant index."),
+                firstEntry: true));
+        return new DungeonPartyEntry(layout, createdVisits, change);
     }
 
     public async ValueTask<DungeonRoomVisit?> MoveAsync(
@@ -103,40 +92,59 @@ internal sealed class DungeonVisitDomainService(
         ArgumentNullException.ThrowIfNull(current);
 
         var firstEntry = !current.VisitedCells.Contains(target);
-        var moved = runs.TryMove(
-            characterId, current.RunId, current.RoomVersion, target);
-        return moved is null
-            ? null
-            : await this.DescribeAsync(moved, firstEntry, cancellationToken).ConfigureAwait(false);
-    }
+        if (!current.Layout.Rooms.TryGetValue(target, out var mapId))
+            return null;
 
-    /// <summary>
-    /// What the room the run is standing in holds, with each piece's kind already read.
-    /// </summary>
-    /// <remarks>
-    /// A room walked into a second time is described as empty. The reference server has a separate
-    /// revisit builder that writes no actors and no drops at all, and it is right to: the client
-    /// already killed what was in there and still holds those identities. Sending the list again
-    /// resurrects them under the very same numbers -- which is what a live session saw on
-    /// 2026-08-26 when it walked back out of the boss room, five monsters and four monsters
-    /// standing up again with the numbers they had died under.
-    /// </remarks>
-    private async ValueTask<DungeonRoomVisit> DescribeAsync(
-        DungeonRunState run, bool firstEntry, CancellationToken cancellationToken)
-    {
-        var contents = await rooms.DescribeAsync(run, firstEntry, cancellationToken)
-            .ConfigureAwait(false);
-
-        var floor = new List<FloorDropDescription>(contents.GroundDrops.Count);
-        foreach (var drop in contents.GroundDrops)
+        DungeonCellSeed? preparedCell = null;
+        if (firstEntry)
         {
-            floor.Add(new FloorDropDescription(
-                drop,
-                await placementRules.IsEquipmentAsync(drop.Drop.ItemId, cancellationToken)
-                    .ConfigureAwait(false)));
+            preparedCell = await cells.CreateAsync(
+                new DungeonCellCreationContext(
+                    current.RunId,
+                    current.Layout,
+                    target,
+                    mapId,
+                    current.Difficulty,
+                    current.StartedAt,
+                    current.Participants),
+                cancellationToken).ConfigureAwait(false);
         }
 
-        return new DungeonRoomVisit(
-            run, firstEntry, contents.Actors, floor, contents.FirstActorSequence);
+        var entered = runs.TryMove(
+            characterId,
+            current.RunId,
+            current.RoomVersion,
+            target,
+            preparedCell);
+        return entered is null ? null : this.DescribeCreatedCell(entered, firstEntry);
+    }
+
+    private DungeonRoomVisit DescribeCreatedCell(DungeonRunState run, bool firstEntry)
+    {
+        var cell = run.CurrentCellState;
+        if (!firstEntry)
+        {
+            // A21's revisit builder does not recreate actors or floor objects client-side. The
+            // domain mirror remains the complete, reused cell above; only this wire projection is
+            // empty.
+            return new DungeonRoomVisit(run, firstEntry, [], [], cell.FirstActorSequence);
+        }
+
+        var actors = cell.Actors
+            .Select(actor => new RoomActorDescription(actor.Actor, actor.IsAiCharacter))
+            .ToArray();
+        var floor = cell.GroundItems
+            .Where(item => item.Source.Kind == DungeonGroundItemSourceKind.DeclaredObject)
+            .Select(item => new FloorDropDescription(
+                new GroundDrop(
+                    item.Number,
+                    new DungeonRoomDrop(
+                        item.Source.ObjectIndex!.Value,
+                        item.ItemId,
+                        item.Durability,
+                        item.Count)),
+                item.IsEquipment))
+            .ToArray();
+        return new DungeonRoomVisit(run, firstEntry, actors, floor, cell.FirstActorSequence);
     }
 }

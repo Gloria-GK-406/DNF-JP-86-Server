@@ -17,7 +17,7 @@ internal sealed class QuestMonsterDropRuleService(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(kill);
-        var purpose = kill.Run.Layout.Purpose;
+        var purpose = kill.Context.Layout.Purpose;
         if (purpose.Kind != DungeonRunPurposeKind.QuestLinked
             || purpose.QuestState != DungeonQuestConnectionState.Active
             || purpose.QuestId is not { } questId)
@@ -25,7 +25,7 @@ internal sealed class QuestMonsterDropRuleService(
             return [];
         }
 
-        var leader = kill.Run.Participants.SingleOrDefault(participant => participant.IsLeader);
+        var leader = kill.Context.Participants.SingleOrDefault(participant => participant.IsLeader);
         if (leader is null)
             return [];
 
@@ -48,18 +48,18 @@ internal sealed class QuestMonsterDropRuleService(
         var planned = new Dictionary<int, int>();
         var random = new DropRandom(
             DropRandom.SeedFor(
-                kill.Run.Layout.Seed,
-                kill.Run.CurrentRoomMapId,
-                kill.Run.CurrentCell.X,
-                kill.Run.CurrentCell.Y,
+                kill.Context.Layout.Seed,
+                kill.Context.MapId,
+                kill.Context.Cell.X,
+                kill.Context.Cell.Y,
                 kill.ActorSequence)
             ^ 0x5155_4553_5444_524FUL);
         var result = new List<RolledDrop>();
         foreach (var source in definition.MonsterRewardItems)
         {
             if (source.MonsterCode != kill.MonsterCode
-                || (source.DungeonId >= 0 && source.DungeonId != kill.Run.Layout.DungeonId)
-                || (source.Difficulty >= 0 && source.Difficulty != kill.Run.Difficulty))
+                || (source.DungeonId >= 0 && source.DungeonId != kill.Context.Layout.DungeonId)
+                || (source.Difficulty >= 0 && source.Difficulty != kill.Context.Difficulty))
             {
                 continue;
             }

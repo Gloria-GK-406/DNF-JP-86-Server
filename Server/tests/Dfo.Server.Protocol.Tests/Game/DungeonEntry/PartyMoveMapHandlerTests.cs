@@ -203,12 +203,12 @@ public sealed class PartyMoveMapHandlerTests
             layout.StartCell,
             layout.StartRoomMapId,
             new HashSet<MazeCell> { layout.StartCell },
-            new HashSet<GroundDropId>(),
-            new HashSet<RoomActorId>(),
             DateTimeOffset.UnixEpoch,
             RunId: RunId,
             Participant: participants.Single(value => value.CharacterId == characterId),
-            Participants: participants);
+            Participants: participants,
+            CurrentCellState: DungeonCellSeed.CompleteEmpty(
+                layout.StartCell, layout.StartRoomMapId).Snapshot());
 
         public bool DefersSelectionState(byte characterLevel) => false;
         public ValueTask<EnteredDungeon?> EnterAsync(CharacterId characterId, int dungeonId, byte difficulty, DungeonEntryFacts facts, CancellationToken cancellationToken) => throw new NotSupportedException();
@@ -222,6 +222,7 @@ public sealed class PartyMoveMapHandlerTests
                 CurrentCell = target,
                 CurrentRoomMapId = 61001,
                 RoomVersion = current.RoomVersion + 1,
+                CurrentCellState = DungeonCellSeed.CompleteEmpty(target, 61001).Snapshot(),
             };
             this.afterMove?.Invoke();
             return ValueTask.FromResult<DungeonRoomVisit?>(

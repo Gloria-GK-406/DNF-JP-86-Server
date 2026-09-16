@@ -125,9 +125,8 @@ public sealed class PickedUpAvatarStaysWholeTests
 
         await WithASeededCharacterAsync(content, async (side, handler, runs) =>
         {
-            _ = runs.Begin(Who, Layout, difficulty: 0);
-            var lying = runs.AllocateMonsterDrops(
-                Who, 0, 30011, [Dropped(AvatarItemId)]).Single();
+            var lying = Assert.Single(BeginWithDrops(
+                runs, (30011, [Dropped(AvatarItemId)])));
 
             var taken = await side.InUseCaseAsync(token => PickUp(handler, lying.Number, token));
 
@@ -173,10 +172,9 @@ public sealed class PickedUpAvatarStaysWholeTests
 
         await WithASeededCharacterAsync(content, async (side, handler, runs) =>
         {
-            _ = runs.Begin(Who, Layout, difficulty: 0);
-            var pair = runs.AllocateMonsterDrops(
-                Who, 0, 30012, [Dropped(AvatarItemId), Dropped(AvatarItemId)]);
-            Assert.Equal(2, pair.Count);
+            var pair = BeginWithDrops(
+                runs, (30012, [Dropped(AvatarItemId), Dropped(AvatarItemId)]));
+            Assert.Equal(2, pair.Length);
 
             var earlier = await side.InUseCaseAsync(token => PickUp(handler, pair[0].Number, token));
             var later = await side.InUseCaseAsync(token => PickUp(handler, pair[1].Number, token));
@@ -228,11 +226,12 @@ public sealed class PickedUpAvatarStaysWholeTests
 
         await WithASeededCharacterAsync(content, async (side, handler, runs) =>
         {
-            _ = runs.Begin(Who, Layout, difficulty: 0);
-            var pair = runs.AllocateMonsterDrops(
-                Who, 0, 30013, [Dropped(WeaponItemId), Dropped(WeaponItemId)]);
-            var alone = runs.AllocateMonsterDrops(
-                Who, 0, 30014, [Dropped(WeaponItemId)]).Single();
+            var all = BeginWithDrops(
+                runs,
+                (30013, [Dropped(WeaponItemId), Dropped(WeaponItemId)]),
+                (30014, [Dropped(WeaponItemId)]));
+            var pair = all[..2];
+            var alone = all[2];
 
             var first = await side.InUseCaseAsync(token => PickUp(handler, pair[0].Number, token));
             var second = await side.InUseCaseAsync(token => PickUp(handler, pair[1].Number, token));
@@ -277,6 +276,40 @@ public sealed class PickedUpAvatarStaysWholeTests
             DropRarity.Epic,
             itemId == AvatarItemId ? DropItemKind.Avatar : DropItemKind.Equipment,
             AnnouncedDurability);
+
+    private static DungeonGroundItem[] BeginWithDrops(
+        DungeonRunDomainService runs,
+        params (ushort ActorSequence, IReadOnlyList<RolledDrop> Drops)[] groups)
+    {
+        ushort number = 1;
+        var items = groups
+            .SelectMany(group => group.Drops.Select(drop => new DungeonGroundItem(
+                number++,
+                drop.ItemId,
+                drop.Count,
+                drop.Durability,
+                IsEquipment: true,
+                DungeonGroundItemSource.FromActor(group.ActorSequence),
+                drop.Rarity,
+                drop.Kind,
+                drop.OwnerCharacterId)))
+            .ToArray();
+        var participant = new DungeonRunParticipant(
+            new AccountId(Account), Who, Slot: 0, IsLeader: true);
+        _ = runs.PreparePartyEntry(
+            [participant],
+            Layout,
+            difficulty: 0,
+            new DungeonCellSeed(
+                Layout.StartCell,
+                Layout.StartRoomMapId,
+                FirstActorSequence: 1,
+                Actors: [],
+                GroundItems: items),
+            DungeonRunId.New(),
+            DateTimeOffset.UtcNow);
+        return items;
+    }
 
     private static ValueTask<GroundPickupResult> PickUp(
         PickUpGroundDropCommandHandler handler, ushort number, CancellationToken cancellationToken) =>
@@ -334,11 +367,7 @@ public sealed class PickedUpAvatarStaysWholeTests
             var runs = new DungeonRunDomainService();
             var handler = new PickUpGroundDropCommandHandler(
                 runs,
-                new GroundPickupDomainService(
-                    new DungeonRoomRuleService(new NoRoomActors(), new NoRoomDrops()),
-                    new ItemPlacementRuleService(
-                        placements,
-                        content.GetRequiredService<IEquipmentSlotDefinitionSource>())),
+                new GroundPickupDomainService(),
                 side.Containers,
                 null!,
                 new NoSeekingProgress());
@@ -357,22 +386,6 @@ public sealed class PickedUpAvatarStaysWholeTests
                 // A file the runtime still holds is left for the temp directory to reap.
             }
         }
-    }
-
-    /// <summary>A room declaring no actors; every piece here is put down by a kill.</summary>
-    private sealed class NoRoomActors : IDungeonRoomActorSource
-    {
-        public ValueTask<IReadOnlyList<DungeonRoomActor>> GetAsync(
-            int mapId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<DungeonRoomActor>>([]);
-    }
-
-    /// <summary>A room declaring nothing breakable, for the same reason.</summary>
-    private sealed class NoRoomDrops : IDungeonRoomDropSource
-    {
-        public ValueTask<IReadOnlyList<DungeonRoomDrop>> GetAsync(
-            int dungeonId, int mapId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<DungeonRoomDrop>>([]);
     }
 
     private sealed class NoSeekingProgress : ISeekingQuestProgressDomainService

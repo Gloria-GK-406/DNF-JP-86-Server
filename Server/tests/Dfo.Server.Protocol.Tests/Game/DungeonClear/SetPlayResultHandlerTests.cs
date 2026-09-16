@@ -791,8 +791,6 @@ public sealed class SetPlayResultHandlerTests
             new MazeCell(0, 0),
             CurrentRoomMapId: 1,
             VisitedCells: new HashSet<MazeCell>(),
-            TakenGroundDrops: new HashSet<GroundDropId>(),
-            DeadActors: new HashSet<RoomActorId>(),
             StartedAt: DateTimeOffset.UnixEpoch,
             Participant: leader is null
                 ? null
@@ -807,7 +805,9 @@ public sealed class SetPlayResultHandlerTests
                     leader,
                     new DungeonRunParticipant(
                         new AccountId(1), characterId, 1, false),
-                ]);
+                ],
+            CurrentCellState: DungeonCellSeed.CompleteEmpty(
+                new MazeCell(0, 0), 1).Snapshot());
 
         public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty) =>
             throw new NotSupportedException("This fixture only answers.");

@@ -57,18 +57,31 @@ public sealed class DungeonPickupTransactionTests
             await using var provider = services.BuildServiceProvider();
 
             var runs = provider.GetRequiredService<IDungeonRunDomainService>();
-            runs.Begin(Character, Layout, difficulty: 0);
-            var drop = Assert.Single(runs.AllocateMonsterDrops(
-                Character,
-                0,
-                1,
-                [new RolledDrop(10149163, 1, DropRarity.Common, DropItemKind.Stackable)]));
+            var drop = new DungeonGroundItem(
+                Number: 1,
+                ItemId: 10149163,
+                Count: 1,
+                Durability: 0,
+                IsEquipment: false,
+                DungeonGroundItemSource.FromActor(actorSequence: 1));
+            _ = runs.PreparePartyEntry(
+                [new DungeonRunParticipant(Account, Character, Slot: 0, IsLeader: true)],
+                Layout,
+                difficulty: 0,
+                new DungeonCellSeed(
+                    Layout.StartCell,
+                    Layout.StartRoomMapId,
+                    FirstActorSequence: 1,
+                    Actors: [],
+                    GroundItems: [drop]),
+                DungeonRunId.New(),
+                DateTimeOffset.UtcNow);
 
             await Assert.ThrowsAsync<InvalidDataException>(async () =>
                 await provider.GetRequiredService<ICommandBus>().SendAsync(
                     new StaleQuestPickupCommand(drop.Number), CancellationToken.None));
 
-            Assert.NotNull(runs.Find(Character)!.FindMonsterDrop(drop.Number));
+            Assert.NotNull(runs.Find(Character)!.CurrentCellState.FindGroundItem(drop.Number));
             Assert.Equal(13, await TriggerAsync(path));
             Assert.Equal(0, await ItemCountAsync(path));
         }

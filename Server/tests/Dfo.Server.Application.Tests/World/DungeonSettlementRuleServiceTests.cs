@@ -83,8 +83,7 @@ public sealed class DungeonSettlementRuleServiceTests
             cell,
             55612,
             ImmutableHashSet.Create(cell),
-            ImmutableHashSet<GroundDropId>.Empty,
-            ImmutableHashSet<RoomActorId>.Empty,
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow,
+            CurrentCellState: DungeonCellSeed.CompleteEmpty(cell, 55612).Snapshot());
     }
 }

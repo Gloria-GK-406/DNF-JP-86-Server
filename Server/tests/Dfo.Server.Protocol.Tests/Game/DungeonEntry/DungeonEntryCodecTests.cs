@@ -44,9 +44,9 @@ public sealed class DungeonEntryCodecTests
         Tutorial.StartCell,
         Tutorial.StartRoomMapId,
         new HashSet<MazeCell> { Tutorial.StartCell },
-        new HashSet<GroundDropId>(),
-        new HashSet<RoomActorId>(),
-        DateTimeOffset.UnixEpoch);
+        DateTimeOffset.UnixEpoch,
+        CurrentCellState: DungeonCellSeed.CompleteEmpty(
+            Tutorial.StartCell, Tutorial.StartRoomMapId).Snapshot());
 
     /// <remarks>
     /// The captured body, byte for byte: <c>102700000000000000</c>, identical across all eight
@@ -356,7 +356,7 @@ public sealed class DungeonEntryCodecTests
         foreach (var mapId in new[] { 61000, 61001, 61002, 61005 })
         {
             bases.Add(Rooms.FirstActorSequenceFor(
-                AtStart with { CurrentRoomMapId = mapId }));
+                CreationContext(AtStart with { CurrentRoomMapId = mapId })));
         }
 
         // Wider apart than any room's actor count could ever be. The tutorial's largest room
@@ -382,9 +382,9 @@ public sealed class DungeonEntryCodecTests
     [Fact]
     public void The_actor_sequence_base_is_stable_for_a_run_and_inside_the_clients_range()
     {
-        var first = Rooms.FirstActorSequenceFor(AtStart);
+        var first = Rooms.FirstActorSequenceFor(CreationContext(AtStart));
 
-        Assert.Equal(first, Rooms.FirstActorSequenceFor(AtStart));
+        Assert.Equal(first, Rooms.FirstActorSequenceFor(CreationContext(AtStart)));
         Assert.InRange(first, 1, 60000);
     }
 
@@ -392,11 +392,8 @@ public sealed class DungeonEntryCodecTests
     /// A piece already picked up is gone from the room without renumbering what is left.
     /// </summary>
     /// <remarks>
-    /// What a room has on its floor is read back out of the archive every time the room is
-    /// described, so the run has to remember what has been taken or a player could walk out of a
-    /// room and back in and be handed the box again. The numbering is derived from the room's own
-    /// declaration and not from what survives: a client that took the second of three has to keep
-    /// naming the third by three.
+    /// The cell owns its current floor. Removing one item must not renumber the surviving items:
+    /// a client that took the second of three has to keep naming the third by three.
     /// </remarks>
     [Fact]
     public void A_taken_piece_leaves_the_floor_without_renumbering_what_is_left()
@@ -408,20 +405,23 @@ public sealed class DungeonEntryCodecTests
             new DungeonRoomDrop(2, 14401, 20),
         ];
 
-        Assert.Equal([1, 2, 3], AtStart.RemainingGroundDrops(declared).Select(drop => drop.Number));
+        var beforeTaking = WithDeclaredGroundItems(AtStart, declared);
+        Assert.Equal([1, 2, 3], beforeTaking.CurrentCellState.GroundItems.Select(drop => drop.Number));
 
-        var afterTaking = AtStart with
+        var afterTaking = beforeTaking with
         {
-            TakenGroundDrops = new HashSet<GroundDropId>
+            CurrentCellState = beforeTaking.CurrentCellState with
             {
-                new GroundDropId(AtStart.CurrentCell, 2),
+                Revision = 1,
+                GroundItems = beforeTaking.CurrentCellState.GroundItems
+                    .Where(drop => drop.Number != 2).ToArray(),
             },
         };
 
         Assert.Equal(
-            [1, 3], afterTaking.RemainingGroundDrops(declared).Select(drop => drop.Number));
-        Assert.Equal(14401, afterTaking.FindGroundDrop(declared, 3)!.Drop.ItemId);
-        Assert.Null(afterTaking.FindGroundDrop(declared, 2));
+            [1, 3], afterTaking.CurrentCellState.GroundItems.Select(drop => drop.Number));
+        Assert.Equal(14401, afterTaking.CurrentCellState.FindGroundItem(3)!.ItemId);
+        Assert.Null(afterTaking.CurrentCellState.FindGroundItem(2));
     }
 
     /// <summary>
@@ -431,23 +431,32 @@ public sealed class DungeonEntryCodecTests
     public void Clearing_one_rooms_floor_leaves_the_next_rooms_alone()
     {
         DungeonRoomDrop[] declared = [new DungeonRoomDrop(0, 14400, 25)];
-        var afterTaking = AtStart with
+        var populated = WithDeclaredGroundItems(AtStart, declared);
+        var afterTaking = populated with
         {
-            TakenGroundDrops = new HashSet<GroundDropId>
+            CurrentCellState = populated.CurrentCellState with
             {
-                new GroundDropId(AtStart.CurrentCell, 1),
+                Revision = 1,
+                GroundItems = [],
             },
         };
 
-        Assert.Empty(afterTaking.RemainingGroundDrops(declared));
+        Assert.Empty(afterTaking.CurrentCellState.GroundItems);
 
         var nextRoom = afterTaking with
         {
             CurrentCell = new MazeCell(1, 1),
             CurrentRoomMapId = 61001,
+            CurrentCellState = WithDeclaredGroundItems(
+                AtStart with
+                {
+                    CurrentCell = new MazeCell(1, 1),
+                    CurrentRoomMapId = 61001,
+                },
+                declared).CurrentCellState,
         };
 
-        Assert.Single(nextRoom.RemainingGroundDrops(declared));
+        Assert.Single(nextRoom.CurrentCellState.GroundItems);
     }
 
     /// <summary>
@@ -483,6 +492,15 @@ public sealed class DungeonEntryCodecTests
     private static readonly IDungeonRoomRuleService Rooms =
         new DungeonRoomRuleService(new NoRoomActors(), new NoRoomDrops());
 
+    private static DungeonCellCreationContext CreationContext(DungeonRunState run) => new(
+        run.RunId,
+        run.Layout,
+        run.CurrentCell,
+        run.CurrentRoomMapId,
+        run.Difficulty,
+        run.StartedAt,
+        run.Participants);
+
 
     /// <summary>A room with nothing breakable in it.</summary>
     private static readonly FloorPiece[] NoDrops = [];
@@ -508,15 +526,42 @@ public sealed class DungeonEntryCodecTests
         // about.
         var placementRules = new ItemPlacementRuleService(new TwoItems(), new NoWearables());
         var described = new List<FloorDropDescription>();
-        foreach (var drop in run.RemainingGroundDrops(declared))
+        var populated = WithDeclaredGroundItems(run, declared);
+        foreach (var item in populated.CurrentCellState.GroundItems)
         {
+            var drop = new GroundDrop(
+                item.Number,
+                new DungeonRoomDrop(
+                    item.Source.ObjectIndex ?? checked((byte)(item.Number - 1)),
+                    item.ItemId,
+                    item.Durability,
+                    item.Count));
             described.Add(new FloorDropDescription(
                 drop,
                 await placementRules.IsEquipmentAsync(drop.Drop.ItemId, CancellationToken.None)));
         }
 
-        return FloorPieceValues.Describe(run, described);
+        return FloorPieceValues.Describe(populated, described);
     }
+
+    private static DungeonRunState WithDeclaredGroundItems(
+        DungeonRunState run,
+        IReadOnlyList<DungeonRoomDrop> declared) => run with
+    {
+        CurrentCellState = new DungeonCellState(
+            run.CurrentCell,
+            run.CurrentRoomMapId,
+            Revision: 0,
+            FirstActorSequence: run.CurrentCellState.FirstActorSequence,
+            Actors: run.CurrentCellState.Actors,
+            GroundItems: declared.Select((drop, index) => new DungeonGroundItem(
+                Number: checked((ushort)(index + 1)),
+                drop.ItemId,
+                Math.Max(1, drop.Count),
+                drop.Durability,
+                IsEquipment: false,
+                DungeonGroundItemSource.Declared(drop.ObjectIndex))).ToArray()),
+    };
 
     /// <summary>An archive in which the shoulder is equipment and the material is not.</summary>
     private sealed class TwoItems : IItemPlacementDefinitionSource

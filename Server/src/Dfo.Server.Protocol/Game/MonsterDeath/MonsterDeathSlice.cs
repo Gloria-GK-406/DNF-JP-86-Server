@@ -365,7 +365,6 @@ public sealed class MonsterDeathHandler(
     ICharacterDomainService characters,
     IDungeonRunDomainService runs,
     IMonsterKillDomainService kills,
-    IMonsterDropService drops,
     IDungeonClearDomainService clearEvaluator,
     DungeonClearProjectionDelivery clearProjection,
     ICommandBus commandBus,
@@ -517,38 +516,19 @@ public sealed class MonsterDeathHandler(
                         : HuntEnemyTargetTypes.AiCharacter);
             }
 
-            // Rolled after the experience and from the same identification, so a kill that pays
-            // nothing also drops nothing and the two can never disagree about what died.
-            if (verifiedKill.IsMonster)
-            {
-                try
-                {
-                    dropped = await drops.ForKillAsync(
-                        new MonsterKill(
-                            session.CharacterId,
-                            run,
-                            message.ActorSequence,
-                            verifiedKill.Level,
-                            (int)verifiedKill.Rank,
-                            run.PartyMemberCount,
-                            verifiedKill.Code),
-                        cancellationToken).ConfigureAwait(false);
-                    instance = GameDropIdentity.ForKill(run, message.ActorSequence);
-                }
-                catch
-                {
-                    runs.ReleaseActorDeath(deathClaim!);
-                    throw;
-                }
-            }
-
-            run = runs.CommitActorDeath(deathClaim!)
+            var deathChange = runs.CommitActorDeathChange(deathClaim!)
                 ?? throw new InvalidOperationException(
                     "The actor-death claim was no longer current after its durable effects.");
+            run = deathChange.Run;
+            if (verifiedKill.IsMonster)
+            {
+                dropped = [.. deathChange.AddedGroundItems.Select(item => item.ToMonsterDrop())];
+                instance = GameDropIdentity.ForKill(run, message.ActorSequence);
+            }
         }
         else if (deathClaim is not null)
         {
-            run = runs.CommitActorDeath(deathClaim)
+            run = runs.CommitActorDeathChange(deathClaim)?.Run
                 ?? throw new InvalidOperationException(
                     "The actor-death claim was no longer current after validation.");
         }
@@ -800,35 +780,16 @@ public sealed class MonsterDeathHandler(
             }
         }
 
-        var run = deathClaim.Run;
-        IReadOnlyList<MonsterDrop> dropped = [];
-        var instance = 0u;
-        try
-        {
-            if (killed is { IsMonster: true } monster)
-            {
-                dropped = await drops.ForKillAsync(
-                    new MonsterKill(
-                        reporter.CharacterId,
-                        run,
-                        message.ActorSequence,
-                        monster.Level,
-                        (int)monster.Rank,
-                        run.PartyMemberCount,
-                        monster.Code),
-                    cancellationToken).ConfigureAwait(false);
-                instance = GameDropIdentity.ForKill(deathClaim.Run, message.ActorSequence);
-            }
-        }
-        catch
-        {
-            runs.ReleaseActorDeath(deathClaim);
-            throw;
-        }
-
-        run = runs.CommitActorDeath(deathClaim)
+        var deathChange = runs.CommitActorDeathChange(deathClaim)
             ?? throw new InvalidOperationException(
                 "The actor-death claim was no longer current after its durable effects.");
+        var run = deathChange.Run;
+        var dropped = killed is { IsMonster: true }
+            ? deathChange.AddedGroundItems.Select(item => item.ToMonsterDrop()).ToArray()
+            : [];
+        var instance = killed is { IsMonster: true }
+            ? GameDropIdentity.ForKill(run, message.ActorSequence)
+            : 0u;
 
         var sharedDeath = new MonsterDeathNotification(
             message.ActorSequence,

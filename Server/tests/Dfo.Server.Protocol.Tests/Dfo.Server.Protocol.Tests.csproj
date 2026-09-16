@@ -38,6 +38,8 @@
              Link="Support\StubWorldContentEntryRuleService.cs" />
     <Compile Include="..\Dfo.Server.Application.Tests\Support\LegacyTownAreaTestAdapter.cs"
              Link="Support\LegacyTownAreaTestAdapter.cs" />
+    <Compile Include="..\Dfo.Server.Application.Tests\Support\DungeonRunTestEntryExtensions.cs"
+             Link="Support\DungeonRunTestEntryExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <!-- Compiled in rather than copied: three test assemblies reach the inventory seam, and this

@@ -52,22 +52,19 @@ public sealed class GroundPickupTests
         BasisLevel: 86);
 
     private static (PickUpGroundDropCommandHandler Handler, DungeonRunDomainService Runs,
-        FakeContainer Bag, CarriedGold Carried) Build(params DungeonRoomDrop[] declared)
-        => Build(new NoSeekingProgress(), declared);
+        FakeContainer Bag, CarriedGold Carried) Build()
+        => Build(new NoSeekingProgress());
 
     private static (PickUpGroundDropCommandHandler Handler, DungeonRunDomainService Runs,
         FakeContainer Bag, CarriedGold Carried) Build(
-        ISeekingQuestProgressDomainService seeking,
-        params DungeonRoomDrop[] declared)
+        ISeekingQuestProgressDomainService seeking)
     {
         var runs = new DungeonRunDomainService();
         var bag = new FakeContainer();
         var carried = new CarriedGold(0);
         var handler = new PickUpGroundDropCommandHandler(
             runs,
-            new GroundPickupDomainService(
-                new DungeonRoomRuleService(new NoRoomActors(), new StubRoomDrops(declared)),
-                new ItemPlacementRuleService(new StubPlacements(), new NoWearables())),
+            new GroundPickupDomainService(),
             new StubContainers(bag),
             new OnePlayingCharacter(carried),
             seeking);
@@ -87,13 +84,60 @@ public sealed class GroundPickupTests
     private static RolledDrop TheWeapon() =>
         new(Weapon, 1, DropRarity.Epic, DropItemKind.Equipment, WeaponDurability);
 
+    private static DungeonRunState BeginWithItems(
+        DungeonRunDomainService runs,
+        IReadOnlyList<DungeonGroundItem> items,
+        IReadOnlyList<DungeonRunParticipant>? participants = null)
+    {
+        participants ??=
+        [
+            new DungeonRunParticipant(Account, Character, Slot: 0, IsLeader: true),
+        ];
+        return runs.PreparePartyEntry(
+            participants,
+            Layout,
+            difficulty: 0,
+            new DungeonCellSeed(
+                Layout.StartCell,
+                Layout.StartRoomMapId,
+                FirstActorSequence: 1,
+                Actors: [],
+                GroundItems: items),
+            DungeonRunId.New(),
+            DateTimeOffset.UtcNow).Run;
+    }
+
+    private static DungeonGroundItem MonsterItem(
+        ushort number,
+        ushort actorSequence,
+        RolledDrop drop) =>
+        new(
+            number,
+            drop.ItemId,
+            drop.Count,
+            drop.Durability,
+            drop.Kind == DropItemKind.Equipment,
+            DungeonGroundItemSource.FromActor(actorSequence),
+            drop.Rarity,
+            drop.Kind,
+            drop.OwnerCharacterId);
+
+    private static DungeonGroundItem DeclaredItem(ushort number, DungeonRoomDrop drop) =>
+        new(
+            number,
+            drop.ItemId,
+            Math.Max(1, drop.Count),
+            drop.Durability,
+            IsEquipment: drop.Durability > 0,
+            DungeonGroundItemSource.Declared(drop.ObjectIndex));
+
     /// <summary>A piece a monster dropped can be taken by the number it was given.</summary>
     [Fact]
     public async Task A_piece_a_monster_dropped_can_be_taken_by_its_number()
     {
         var (handler, runs, bag, carried) = Build();
-        runs.Begin(Character, Layout, difficulty: 0);
-        var dropped = runs.AllocateMonsterDrops(Character, 0, 30001, [TheWeapon()]).Single();
+        var dropped = MonsterItem(1, 30001, TheWeapon());
+        _ = BeginWithItems(runs, [dropped]);
 
         var result = await PickUp(handler, dropped.Number);
 
@@ -110,18 +154,14 @@ public sealed class GroundPickupTests
     public async Task A_quest_owned_piece_refuses_another_member_without_consuming_the_floor()
     {
         var (handler, runs, bag, _) = Build();
-        runs.BeginParty(
-            [
-                new DungeonRunParticipant(Account, Character, 0, IsLeader: true),
-                new DungeonRunParticipant(HelperAccount, Helper, 1, IsLeader: false),
-            ],
-            Layout,
-            difficulty: 0);
-        var dropped = runs.AllocateMonsterDrops(
-            Character,
-            0,
-            30001,
-            [TheWeapon() with { OwnerCharacterId = Character }]).Single();
+        DungeonRunParticipant[] party =
+        [
+            new DungeonRunParticipant(Account, Character, 0, IsLeader: true),
+            new DungeonRunParticipant(HelperAccount, Helper, 1, IsLeader: false),
+        ];
+        var dropped = MonsterItem(
+            1, 30001, TheWeapon() with { OwnerCharacterId = Character });
+        _ = BeginWithItems(runs, [dropped], party);
 
         var refused = await handler.HandleAsync(
             default!,
@@ -130,7 +170,7 @@ public sealed class GroundPickupTests
 
         Assert.Equal(GroundPickupStatus.NotOwner, refused.Status);
         Assert.Empty(bag.Slots);
-        Assert.NotNull(runs.Find(Character)!.FindMonsterDrop(dropped.Number));
+        Assert.NotNull(runs.Find(Character)!.CurrentCellState.FindGroundItem(dropped.Number));
         Assert.Equal(GroundPickupStatus.PickedUp, (await PickUp(handler, dropped.Number)).Status);
     }
 
@@ -141,8 +181,8 @@ public sealed class GroundPickupTests
             [new CarriedQuest(0, 1779, 14)]);
         var seeking = new RecordingSeekingProgress(progress);
         var (handler, runs, _, _) = Build(seeking);
-        runs.Begin(Character, Layout, difficulty: 0);
-        var dropped = runs.AllocateMonsterDrops(Character, 0, 30001, [TheWeapon()]).Single();
+        var dropped = MonsterItem(1, 30001, TheWeapon());
+        _ = BeginWithItems(runs, [dropped]);
 
         var result = await PickUp(handler, dropped.Number);
 
@@ -155,13 +195,13 @@ public sealed class GroundPickupTests
     public async Task Failed_quest_progress_does_not_commit_the_shared_floor_change()
     {
         var (handler, runs, _, _) = Build(new ThrowingSeekingProgress());
-        runs.Begin(Character, Layout, difficulty: 0);
-        var dropped = runs.AllocateMonsterDrops(Character, 0, 30001, [TheWeapon()]).Single();
+        var dropped = MonsterItem(1, 30001, TheWeapon());
+        _ = BeginWithItems(runs, [dropped]);
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
             await PickUp(handler, dropped.Number));
 
-        Assert.NotNull(runs.Find(Character)!.FindMonsterDrop(dropped.Number));
+        Assert.NotNull(runs.Find(Character)!.CurrentCellState.FindGroundItem(dropped.Number));
     }
 
     /// <summary>And only once.</summary>
@@ -174,8 +214,8 @@ public sealed class GroundPickupTests
     public async Task The_same_number_is_not_given_twice()
     {
         var (handler, runs, _, carried) = Build();
-        runs.Begin(Character, Layout, difficulty: 0);
-        var dropped = runs.AllocateMonsterDrops(Character, 0, 30001, [TheWeapon()]).Single();
+        var dropped = MonsterItem(1, 30001, TheWeapon());
+        _ = BeginWithItems(runs, [dropped]);
 
         Assert.Equal(GroundPickupStatus.PickedUp, (await PickUp(handler, dropped.Number)).Status);
 
@@ -188,13 +228,13 @@ public sealed class GroundPickupTests
     public async Task A_failed_persistent_insert_releases_the_floor_reservation_for_one_retry()
     {
         var (handler, runs, bag, _) = Build();
-        runs.Begin(Character, Layout, difficulty: 0);
-        var dropped = runs.AllocateMonsterDrops(Character, 0, 30001, [TheWeapon()]).Single();
+        var dropped = MonsterItem(1, 30001, TheWeapon());
+        _ = BeginWithItems(runs, [dropped]);
         bag.FailNextAdd = true;
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await PickUp(handler, dropped.Number));
-        Assert.NotNull(runs.Find(Character)!.FindMonsterDrop(dropped.Number));
+        Assert.NotNull(runs.Find(Character)!.CurrentCellState.FindGroundItem(dropped.Number));
 
         Assert.Equal(GroundPickupStatus.PickedUp, (await PickUp(handler, dropped.Number)).Status);
         Assert.Equal(GroundPickupStatus.NothingThere, (await PickUp(handler, dropped.Number)).Status);
@@ -212,9 +252,10 @@ public sealed class GroundPickupTests
     [Fact]
     public async Task A_declared_piece_and_a_dropped_one_do_not_answer_to_one_number()
     {
-        var (handler, runs, _, carried) = Build(new DungeonRoomDrop(0, Shoulder, 25));
-        runs.Begin(Character, Layout, difficulty: 0);
-        var dropped = runs.AllocateMonsterDrops(Character, 1, 30001, [TheWeapon()]).Single();
+        var (handler, runs, _, carried) = Build();
+        var declared = DeclaredItem(1, new DungeonRoomDrop(0, Shoulder, 25));
+        var dropped = MonsterItem(2, 30001, TheWeapon());
+        _ = BeginWithItems(runs, [declared, dropped]);
 
         Assert.Equal(2, dropped.Number);
         Assert.Equal(Shoulder, (await PickUp(handler, 1)).ItemId);
@@ -233,10 +274,11 @@ public sealed class GroundPickupTests
     public async Task Gold_goes_onto_the_character()
     {
         var (handler, runs, bag, carried) = Build();
-        runs.Begin(Character, Layout, difficulty: 0);
-        var gold = runs.AllocateMonsterDrops(
-            Character, 0, 30001,
-            [new RolledDrop(0, 1357, DropRarity.Common, DropItemKind.Gold)]).Single();
+        var gold = MonsterItem(
+            1,
+            30001,
+            new RolledDrop(0, 1357, DropRarity.Common, DropItemKind.Gold));
+        _ = BeginWithItems(runs, [gold]);
 
         var result = await PickUp(handler, gold.Number);
 
@@ -254,10 +296,11 @@ public sealed class GroundPickupTests
     public async Task Gold_is_paid_once()
     {
         var (handler, runs, _, carried) = Build();
-        runs.Begin(Character, Layout, difficulty: 0);
-        var gold = runs.AllocateMonsterDrops(
-            Character, 0, 30001,
-            [new RolledDrop(0, 44, DropRarity.Common, DropItemKind.Gold)]).Single();
+        var gold = MonsterItem(
+            1,
+            30001,
+            new RolledDrop(0, 44, DropRarity.Common, DropItemKind.Gold));
+        _ = BeginWithItems(runs, [gold]);
 
         Assert.Equal(GroundPickupStatus.Banked, (await PickUp(handler, gold.Number)).Status);
         var second = await PickUp(handler, gold.Number);
@@ -271,7 +314,7 @@ public sealed class GroundPickupTests
     public async Task A_number_nothing_holds_is_refused()
     {
         var (handler, runs, _, carried) = Build();
-        runs.Begin(Character, Layout, difficulty: 0);
+        _ = BeginWithItems(runs, []);
 
         Assert.Equal(GroundPickupStatus.NothingThere, (await PickUp(handler, 9)).Status);
     }
@@ -287,10 +330,16 @@ public sealed class GroundPickupTests
     public async Task A_dropped_piece_stays_in_the_room_it_fell_in()
     {
         var (handler, runs, _, carried) = Build();
-        runs.Begin(Character, Layout, difficulty: 0);
-        var dropped = runs.AllocateMonsterDrops(Character, 0, 30001, [TheWeapon()]).Single();
+        var dropped = MonsterItem(1, 30001, TheWeapon());
+        var run = BeginWithItems(runs, [dropped]);
 
-        runs.TryMove(Character, new MazeCell(1, 0));
+        var target = new MazeCell(1, 0);
+        _ = runs.TryMove(
+            Character,
+            run.RunId,
+            run.RoomVersion,
+            target,
+            new DungeonCellSeed(target, Layout.Rooms[target], 1, [], []));
 
         Assert.Equal(GroundPickupStatus.NothingThere, (await PickUp(handler, dropped.Number)).Status);
     }
@@ -315,8 +364,8 @@ public sealed class GroundPickupTests
     {
         const ushort Actor = 30007;
         var (handler, runs, bag, carried) = Build();
-        var run = runs.Begin(Character, Layout, difficulty: 0);
-        var dropped = runs.AllocateMonsterDrops(Character, 0, Actor, [TheWeapon()]).Single();
+        var dropped = MonsterItem(1, Actor, TheWeapon());
+        var run = BeginWithItems(runs, [dropped]);
 
         var result = await PickUp(handler, dropped.Number);
 
@@ -331,10 +380,13 @@ public sealed class GroundPickupTests
     public async Task Every_piece_of_one_kill_carries_one_value()
     {
         var (handler, runs, bag, carried) = Build();
-        runs.Begin(Character, Layout, difficulty: 0);
-        var pair = runs.AllocateMonsterDrops(
-            Character, 0, 30007, [TheWeapon(), TheWeapon()]);
-        var other = runs.AllocateMonsterDrops(Character, 0, 30008, [TheWeapon()]).Single();
+        DungeonGroundItem[] pair =
+        [
+            MonsterItem(1, 30007, TheWeapon()),
+            MonsterItem(2, 30007, TheWeapon()),
+        ];
+        var other = MonsterItem(3, 30008, TheWeapon());
+        _ = BeginWithItems(runs, [.. pair, other]);
 
         foreach (var piece in pair)
             await PickUp(handler, piece.Number);
@@ -358,8 +410,10 @@ public sealed class GroundPickupTests
     [Fact]
     public async Task A_declared_stack_is_banked_at_the_count_the_room_declares()
     {
-        var (handler, runs, bag, carried) = Build(new DungeonRoomDrop(0, 10088621, 0, Count: 3));
-        runs.Begin(Character, Layout, difficulty: 0);
+        var (handler, runs, bag, carried) = Build();
+        _ = BeginWithItems(
+            runs,
+            [DeclaredItem(1, new DungeonRoomDrop(0, 10088621, 0, Count: 3))]);
 
         var result = await PickUp(handler, 1);
 
@@ -367,37 +421,6 @@ public sealed class GroundPickupTests
         Assert.Equal(3, bag.Counts[result.SlotIndex]);
     }
 
-
-    private sealed class StubRoomDrops(IReadOnlyList<DungeonRoomDrop> declared)
-        : IDungeonRoomDropSource
-    {
-        public ValueTask<IReadOnlyList<DungeonRoomDrop>> GetAsync(
-            int dungeonId, int mapId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(declared);
-    }
-
-    /// <summary>A room declaring no actors; these tests supply their own or need none.</summary>
-    private sealed class NoRoomActors : IDungeonRoomActorSource
-    {
-        public ValueTask<IReadOnlyList<DungeonRoomActor>> GetAsync(
-            int mapId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<DungeonRoomActor>>([]);
-    }
-
-    /// <summary>Everything here is a piece of gear, which is what these tests drop and pick up.</summary>
-    private sealed class StubPlacements : IItemPlacementDefinitionSource
-    {
-        public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ItemPlacement?>(
-                new ItemPlacement(1, 1, 0, 55) { WorldClass = ItemWorldClass.Equipment });
-    }
-
-    /// <summary>Nothing here is worn; these tests never put a piece on.</summary>
-    private sealed class NoWearables : IEquipmentSlotDefinitionSource
-    {
-        public ValueTask<byte?> GetAsync(int itemId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<byte?>(null);
-    }
 
     private sealed class StubContainers(IItemContainer bag) : ICharacterContainerDomainService
     {

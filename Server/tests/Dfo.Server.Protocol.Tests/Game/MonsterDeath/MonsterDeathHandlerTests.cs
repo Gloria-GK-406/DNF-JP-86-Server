@@ -184,18 +184,15 @@ public sealed class MonsterDeathHandlerTests
             async () => await Kill(
                 bus: bus,
                 run: run,
-                killRules: new OneDeclaredAiCharacter(),
-                dropService: new DropsMustNotBeRolled()));
+                killRules: new OneDeclaredAiCharacter()));
         var sent = await Kill(
             bus: bus,
             run: run,
-            killRules: new OneDeclaredAiCharacter(),
-            dropService: new DropsMustNotBeRolled());
+            killRules: new OneDeclaredAiCharacter());
         await Kill(
             bus: bus,
             run: run,
-            killRules: new OneDeclaredAiCharacter(),
-            dropService: new DropsMustNotBeRolled());
+            killRules: new OneDeclaredAiCharacter());
 
         Assert.Equal(1, run.Restores);
         Assert.Equal(2, bus.TimesAsked);
@@ -223,7 +220,6 @@ public sealed class MonsterDeathHandlerTests
         var sessions = new PartySessions([leader, member]);
         var runtime = new PartyRuntimeSessions([leader, member]);
         var bus = new PartyKillBus();
-        var dropService = new OnePartyDrop();
         var settlement = new RecordingSettlementRules();
         var sender = new PartyRecordingSender();
         var killRules = new OneClearedBossMonster();
@@ -233,7 +229,6 @@ public sealed class MonsterDeathHandlerTests
             new PartyCharacters([leader.CharacterId, member.CharacterId]),
             run,
             killRules,
-            dropService,
             new DungeonClearDomainService(run, killRules, settlement),
             new DungeonClearProjectionDelivery(sessions, run, registry, sender),
             bus,
@@ -257,7 +252,6 @@ public sealed class MonsterDeathHandlerTests
         Assert.Equal([leader.CharacterId, member.CharacterId],
             bus.Commands.Select(command => command.CharacterId));
         Assert.All(bus.Commands, command => Assert.Equal(2, command.PartyMemberCount));
-        Assert.Equal(1, dropService.TimesAsked);
         Assert.Equal(leader.CharacterId, settlement.CharacterId);
 
         foreach (var session in new[] { leader, member })
@@ -305,7 +299,6 @@ public sealed class MonsterDeathHandlerTests
             new PartyCharacters([leader.CharacterId, frozenMember.CharacterId]),
             run,
             killRules,
-            new OnePartyDrop(),
             new DungeonClearDomainService(run, killRules, settlement),
             new DungeonClearProjectionDelivery(sessions, run, registry, sender),
             bus,
@@ -342,7 +335,7 @@ public sealed class MonsterDeathHandlerTests
                 leader.AccountId, leader.CharacterId, 0, IsLeader: true),
             new DungeonRunParticipant(
                 member.AccountId, member.CharacterId, 1, IsLeader: false),
-        ]);
+        ], leader.CharacterId);
         var registry = new DungeonRunDeliveryRegistry();
         registry.Register(run.RunId, [leader, member]);
         Assert.True(registry.RemoveParticipant(run.RunId, leader.CharacterId));
@@ -357,7 +350,6 @@ public sealed class MonsterDeathHandlerTests
             new PartyCharacters([member.CharacterId]),
             run,
             killRules,
-            new OnePartyDrop(leader.CharacterId),
             new DungeonClearDomainService(run, killRules, settlement),
             new DungeonClearProjectionDelivery(sessions, run, registry, sender),
             bus,
@@ -404,7 +396,6 @@ public sealed class MonsterDeathHandlerTests
         var registry = new DungeonRunDeliveryRegistry();
         registry.Register(run.RunId, [leader, member]);
         var bus = new PartyKillBus(member.CharacterId, leader.CharacterId);
-        var drops = new OnePartyDrop();
         var sender = new PartyRecordingSender();
         var runtime = new PartyRuntimeSessions([leader, member]);
         var sessions = new PartySessions([leader, member]);
@@ -416,7 +407,6 @@ public sealed class MonsterDeathHandlerTests
             new PartyCharacters([leader.CharacterId, member.CharacterId]),
             run,
             killRules,
-            drops,
             new DungeonClearDomainService(run, killRules, settlement),
             new DungeonClearProjectionDelivery(sessions, run, registry, sender),
             bus,
@@ -443,7 +433,6 @@ public sealed class MonsterDeathHandlerTests
             bus.Commands.Select(command => command.CharacterId));
         Assert.Equal(1, run.CommitCount);
         Assert.Equal(1, run.ReleaseCount);
-        Assert.Equal(1, drops.TimesAsked);
         Assert.Single(sender.For(leader.ConnectionId).OfType<MonsterDeathNotification>());
         Assert.Single(sender.For(member.ConnectionId).OfType<MonsterDeathNotification>());
         var leaderExperience = Assert.Single(
@@ -487,11 +476,29 @@ public sealed class MonsterDeathHandlerTests
             connectionGeneration: 1,
             listenerPort: 10010);
         var runs = new DungeonRunDomainService();
-        var run = runs.BeginParty(
+        var layout = BossLayout();
+        var run = runs.PreparePartyEntry(
             [new DungeonRunParticipant(
                 session.AccountId, session.CharacterId, 0, IsLeader: true)],
-            BossLayout(),
-            difficulty: 0);
+            layout,
+            difficulty: 0,
+            new DungeonCellSeed(
+                layout.StartCell,
+                layout.StartRoomMapId,
+                FirstActorSequence: DeadActor,
+                Actors:
+                [
+                    new DungeonCellActorState(
+                        DeadActor,
+                        new DungeonRoomActor(3001, 0, 0),
+                        IsAiCharacter: false,
+                        IsDead: false,
+                        PendingLoot: [],
+                        IsMonster: true),
+                ],
+                GroundItems: []),
+            DungeonRunId.New(),
+            DateTimeOffset.UnixEpoch).Run;
         var sessions = new OneSession(session);
         var registry = new DungeonRunDeliveryRegistry();
         registry.Register(run.RunId, [session]);
@@ -504,7 +511,6 @@ public sealed class MonsterDeathHandlerTests
             new OnePlayingCharacter(new SkillPointLedger()),
             runs,
             killRules,
-            new NothingDropped(),
             new DungeonClearDomainService(
                 runs, killRules, new AlwaysCompleteSettlementRules()),
             new DungeonClearProjectionDelivery(sessions, runs, registry, sender),
@@ -552,7 +558,6 @@ public sealed class MonsterDeathHandlerTests
         StubWorldContentEntryRuleService? content = null,
         IDungeonRunDomainService? run = null,
         IMonsterKillDomainService? killRules = null,
-        IMonsterDropService? dropService = null,
         IDungeonSettlementRuleService? settlementRules = null)
     {
         var session = SelectedSessionIdentity.Create(
@@ -576,7 +581,6 @@ public sealed class MonsterDeathHandlerTests
             new OnePlayingCharacter(ledger ?? new SkillPointLedger(withLedger)),
             effectiveRun,
             effectiveKills,
-            dropService ?? new NothingDropped(),
             new DungeonClearDomainService(effectiveRun, effectiveKills, effectiveSettlement),
             new DungeonClearProjectionDelivery(sessions, effectiveRun, registry, sender),
             bus ?? new FixedKillAward(leveledUp),
@@ -686,21 +690,6 @@ public sealed class MonsterDeathHandlerTests
                 "These deaths happen in the start room, which no exit hangs off.");
     }
 
-    /// <summary>A kill that put nothing on the floor, which is what most kills are.</summary>
-    private sealed class NothingDropped : IMonsterDropService
-    {
-        public ValueTask<IReadOnlyList<MonsterDrop>> ForKillAsync(
-            MonsterKill kill, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<MonsterDrop>>([]);
-    }
-
-    private sealed class DropsMustNotBeRolled : IMonsterDropService
-    {
-        public ValueTask<IReadOnlyList<MonsterDrop>> ForKillAsync(
-            MonsterKill kill, CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("AI character deaths must not roll drops.");
-    }
-
     /// <summary>
     /// A run that takes one report of one actor's death, exactly as the real service takes it.
     /// </summary>
@@ -712,6 +701,7 @@ public sealed class MonsterDeathHandlerTests
     private sealed class OneRun : IDungeonRunDomainService
     {
         private bool _reported;
+        private bool _committed;
         private long _claimToken;
 
         public int Restores { get; private set; }
@@ -747,9 +737,22 @@ public sealed class MonsterDeathHandlerTests
             new MazeCell(0, 0),
             CurrentRoomMapId: 1,
             VisitedCells: new HashSet<MazeCell>(),
-            TakenGroundDrops: new HashSet<GroundDropId>(),
-            DeadActors: new HashSet<RoomActorId>(),
-            StartedAt: DateTimeOffset.UnixEpoch);
+            StartedAt: DateTimeOffset.UnixEpoch,
+            CurrentCellState: new DungeonCellState(
+                new MazeCell(0, 0),
+                MapId: 1,
+                Revision: this._committed ? 1 : 0,
+                FirstActorSequence: DeadActor,
+                Actors:
+                [
+                    new DungeonCellActorState(
+                        DeadActor,
+                        new DungeonRoomActor(3001, 4, 0),
+                        IsAiCharacter: false,
+                        IsDead: this._committed,
+                        PendingLoot: []),
+                ],
+                GroundItems: []));
 
         public DungeonActorDeathClaim? TryClaimActorDeath(
             CharacterId characterId,
@@ -765,7 +768,11 @@ public sealed class MonsterDeathHandlerTests
                     ++this._claimToken);
         }
 
-        public DungeonRunState? CommitActorDeath(DungeonActorDeathClaim claim) => claim.Run;
+        public DungeonRunState? CommitActorDeath(DungeonActorDeathClaim claim)
+        {
+            this._committed = true;
+            return this.Find(claim.CharacterId);
+        }
 
         public bool ReleaseActorDeath(DungeonActorDeathClaim claim)
         {
@@ -811,10 +818,11 @@ public sealed class MonsterDeathHandlerTests
             throw new NotSupportedException("This fixture only answers.");
     }
 
-    private sealed class PartyRun(IReadOnlyList<DungeonRunParticipant> participants)
+    private sealed class PartyRun(
+        IReadOnlyList<DungeonRunParticipant> participants,
+        CharacterId? dropOwner = null)
         : IDungeonRunDomainService
     {
-        private bool reported;
         private bool claimActive;
         private bool committed;
         private CharacterId? pendingEffect;
@@ -844,14 +852,38 @@ public sealed class MonsterDeathHandlerTests
                 new MazeCell(0, 0),
                 CurrentRoomMapId: 1,
                 VisitedCells: new HashSet<MazeCell>(),
-                TakenGroundDrops: new HashSet<GroundDropId>(),
-                DeadActors: this.reported
-                    ? new HashSet<RoomActorId> { new(new MazeCell(0, 0), DeadActor) }
-                    : new HashSet<RoomActorId>(),
                 StartedAt: DateTimeOffset.UnixEpoch,
                 RunId: this.RunId,
                 Participant: participant,
-                Participants: participants);
+                Participants: participants,
+                CurrentCellState: new DungeonCellState(
+                    new MazeCell(0, 0),
+                    MapId: 1,
+                    Revision: this.committed ? 1 : 0,
+                    FirstActorSequence: DeadActor,
+                    Actors:
+                    [
+                        new DungeonCellActorState(
+                            DeadActor,
+                            new DungeonRoomActor(3001, 4, 0),
+                            IsAiCharacter: false,
+                            IsDead: this.committed,
+                            PendingLoot: []),
+                    ],
+                    GroundItems: this.committed
+                        ?
+                        [
+                            new DungeonGroundItem(
+                                Number: 1,
+                                ItemId: 0,
+                                Count: 44,
+                                Durability: 0,
+                                IsEquipment: false,
+                                DungeonGroundItemSource.FromActor(DeadActor),
+                                Kind: DropItemKind.Gold,
+                                OwnerCharacterId: dropOwner),
+                        ]
+                        : []));
         }
 
         public DungeonActorDeathClaim? TryClaimActorDeath(
@@ -859,7 +891,6 @@ public sealed class MonsterDeathHandlerTests
         {
             if (this.claimActive || this.committed || this.Find(characterId) is not { } run)
                 return null;
-            this.reported = true;
             this.claimActive = true;
             return new DungeonActorDeathClaim(
                 characterId,
@@ -1040,26 +1071,6 @@ public sealed class MonsterDeathHandlerTests
                 Total: StartingExperience + KillGain,
                 LeveledUp: kill.CharacterId == levelFor);
             return ValueTask.FromResult((TResult)(object)new ApplyMonsterKillResult(award, []));
-        }
-    }
-
-    private sealed class OnePartyDrop(CharacterId? owner = null) : IMonsterDropService
-    {
-        public int TimesAsked { get; private set; }
-
-        public ValueTask<IReadOnlyList<MonsterDrop>> ForKillAsync(
-            MonsterKill kill, CancellationToken cancellationToken)
-        {
-            this.TimesAsked++;
-            return ValueTask.FromResult<IReadOnlyList<MonsterDrop>>(
-                [new MonsterDrop(
-                    1,
-                    new RolledDrop(
-                        0,
-                        44,
-                        DropRarity.Common,
-                        DropItemKind.Gold,
-                        OwnerCharacterId: owner))]);
         }
     }
 

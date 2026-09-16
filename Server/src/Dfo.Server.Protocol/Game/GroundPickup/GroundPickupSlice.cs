@@ -276,15 +276,12 @@ public sealed record PickUpGroundDropCommand(
 /// Moves a declared drop off the room's floor and into the character's bag.
 /// </summary>
 /// <remarks>
-/// What is on the floor is read back out of the archive rather than remembered: a room declares its
-/// breakable objects, and the run remembers only which of them have been taken. That is why the
-/// piece is claimed before it is banked -- the claim is what makes a second request for the same
-/// number fail, and without it a player could walk out of a room and back in and be handed the box
-/// again.
+/// The current Cell owns the complete ground-item collection. The piece is claimed from that
+/// collection before it is banked so a concurrent request cannot reserve the same stable number.
 /// <para>
 /// The floor reservation is committed only after the transactional persistent write succeeds. A
-/// refusal or exception releases it, so the same exact run room may retry without consuming a
-/// similarly numbered piece in a replacement room.
+/// refusal or exception releases it. A claim is bound to the exact run, room version and Cell
+/// revision, and room movement is refused while a claim is outstanding.
 /// </para>
 /// </remarks>
 public sealed class PickUpGroundDropCommandHandler(

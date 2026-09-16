@@ -315,10 +315,10 @@ public sealed class PartySelectDungeonHandlerTests
                 new MazeCell(0, 0),
                 61000,
                 new HashSet<MazeCell> { new(0, 0) },
-                new HashSet<GroundDropId>(),
-                new HashSet<RoomActorId>(),
                 DateTimeOffset.UnixEpoch,
-                RunId: oldRunId)
+                RunId: oldRunId,
+                CurrentCellState: DungeonCellSeed.CompleteEmpty(
+                    new MazeCell(0, 0), 61000).Snapshot())
             : throw new InvalidOperationException();
         world.Runs.SetCurrent(Leader.CharacterId, oldRun);
         world.Runs.SetCurrent(Member.CharacterId, oldRun);
@@ -741,14 +741,14 @@ public sealed class PartySelectDungeonHandlerTests
                         layout.StartCell,
                         layout.StartRoomMapId,
                         new HashSet<MazeCell> { layout.StartCell },
-                        new HashSet<GroundDropId>(),
-                        new HashSet<RoomActorId>(),
                         DateTimeOffset.UnixEpoch,
                         difficulty,
                         RunId: RunId,
                         Participant: value,
                         Participants: participants,
-                        EntryRevision: 1),
+                        EntryRevision: 1,
+                        CurrentCellState: DungeonCellSeed.CompleteEmpty(
+                            layout.StartCell, layout.StartRoomMapId).Snapshot()),
                     true,
                     [],
                     [],

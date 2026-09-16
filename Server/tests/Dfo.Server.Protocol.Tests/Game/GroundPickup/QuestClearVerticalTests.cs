@@ -95,10 +95,7 @@ public sealed class QuestClearVerticalTests
                     provider.GetRequiredService<ICharacterQuestLogDomainService>(),
                     provider.GetRequiredService<ICharacterContainerDomainService>(),
                     provider.GetRequiredService<ICharacterDomainService>()));
-            services.AddSingleton<IGroundPickupDomainService>(
-                new GroundPickupDomainService(
-                    new DungeonRoomRuleService(new NoRoomActors(), new NoRoomDrops()),
-                    PlacementRules()));
+            services.AddSingleton<IGroundPickupDomainService>(new GroundPickupDomainService());
             services.AddCommandHandler<
                 PickUpGroundDropCommand,
                 GroundPickupResult,
@@ -106,14 +103,43 @@ public sealed class QuestClearVerticalTests
             await using var provider = services.BuildServiceProvider();
 
             var runs = provider.GetRequiredService<IDungeonRunDomainService>();
-            var run = runs.BeginParty(
-                [
-                    new DungeonRunParticipant(LeaderAccount, Leader, 0, IsLeader: true),
-                    new DungeonRunParticipant(HelperAccount, Helper, 1, IsLeader: false),
-                ],
-                QuestLayout(),
-                difficulty: 0);
-            Assert.NotNull(runs.TryReportActorDead(Leader, 30001));
+            DungeonRunParticipant[] participants =
+            [
+                new DungeonRunParticipant(LeaderAccount, Leader, 0, IsLeader: true),
+                new DungeonRunParticipant(HelperAccount, Helper, 1, IsLeader: false),
+            ];
+            var layout = QuestLayout();
+            var run = runs.PreparePartyEntry(
+                participants,
+                layout,
+                difficulty: 0,
+                new DungeonCellSeed(
+                    layout.StartCell,
+                    layout.StartRoomMapId,
+                    FirstActorSequence: 30001,
+                    Actors:
+                    [
+                        new DungeonCellActorState(
+                            Sequence: 30001,
+                            new DungeonRoomActor(1, 4, 0),
+                            IsAiCharacter: false,
+                            IsDead: false,
+                            PendingLoot:
+                            [
+                                new RolledDrop(
+                                    10149163,
+                                    1,
+                                    DropRarity.Common,
+                                    DropItemKind.Stackable,
+                                    OwnerCharacterId: Leader),
+                            ]),
+                    ],
+                    GroundItems: []),
+                DungeonRunId.New(),
+                DateTimeOffset.UnixEpoch).Run;
+            var death = Assert.IsType<DungeonActorDeathClaim>(
+                runs.TryClaimActorDeath(Leader, 30001));
+            var afterDeath = Assert.IsType<DungeonRunState>(runs.CommitActorDeath(death));
             var clear = new DungeonClearDomainService(
                 runs,
                 new ClearedBossRoom(),
@@ -122,16 +148,7 @@ public sealed class QuestClearVerticalTests
             Assert.Null(await clear.EvaluateAsync(
                 LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
 
-            var drop = Assert.Single(runs.AllocateMonsterDrops(
-                Leader,
-                0,
-                30001,
-                [new RolledDrop(
-                    10149163,
-                    1,
-                    DropRarity.Common,
-                    DropItemKind.Stackable,
-                    OwnerCharacterId: Leader)]));
+            var drop = Assert.Single(afterDeath.CurrentCellState.GroundItems);
             var pickup = await provider.GetRequiredService<ICommandBus>().SendAsync(
                 new PickUpGroundDropCommand(
                     LeaderAccount,
@@ -347,7 +364,7 @@ public sealed class QuestClearVerticalTests
             throw new NotSupportedException();
         public ValueTask<bool> IsCurrentRoomClearedAsync(
             DungeonRunState run, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(run.DeadActors.Count > 0);
+            ValueTask.FromResult(run.CurrentCellState.IsCleared);
     }
 
     private sealed class Sessions(IReadOnlyList<SelectedSessionIdentity> sessions)

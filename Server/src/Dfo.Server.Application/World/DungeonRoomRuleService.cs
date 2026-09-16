@@ -4,7 +4,7 @@ using Dfo.Server.Abstractions.World;
 namespace Dfo.Server.Application.World;
 
 /// <summary>
-/// Reads what a room declares and answers what a run standing in it makes of that.
+/// Reads the static room declaration used to create one complete Cell seed.
 /// </summary>
 /// <remarks>
 /// Three things used to be written down wherever they were needed: the number a room's first actor
@@ -28,19 +28,19 @@ internal sealed class DungeonRoomRuleService(
     private const uint ActorSequenceRange = 60000;
 
     public async ValueTask<DungeonRoomContents> DescribeAsync(
-        DungeonRunState run, bool firstEntry, CancellationToken cancellationToken)
+        DungeonCellCreationContext context, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(run);
+        ArgumentNullException.ThrowIfNull(context);
 
-        if (!firstEntry)
-            return new DungeonRoomContents([], [], this.FirstActorSequenceFor(run));
-
-        var declared = await roomActors.GetAsync(run.CurrentRoomMapId, cancellationToken)
+        var declared = await roomActors.GetAsync(context.MapId, cancellationToken)
             .ConfigureAwait(false);
         return new DungeonRoomContents(
             this.Describe(declared),
-            await this.RemainingGroundDropsAsync(run, cancellationToken).ConfigureAwait(false),
-            this.FirstActorSequenceFor(run));
+            [.. (await roomDrops.GetAsync(
+                    context.Layout.DungeonId, context.MapId, cancellationToken)
+                .ConfigureAwait(false))
+                .Select((drop, index) => new GroundDrop(checked((ushort)(index + 1)), drop))],
+            this.FirstActorSequenceFor(context));
     }
 
     public IReadOnlyList<RoomActorDescription> Describe(IReadOnlyList<DungeonRoomActor> declared)
@@ -49,44 +49,6 @@ internal sealed class DungeonRoomRuleService(
         return [.. declared.Select(
             actor => new RoomActorDescription(actor, actor.ActorType >= FirstAiCharacterActorType))];
     }
-
-    public async ValueTask<DeclaredActorLookup> FindDeclaredActorAsync(
-        DungeonRunState run, ushort actorSequence, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(run);
-
-        var declared = await roomActors.GetAsync(run.CurrentRoomMapId, cancellationToken)
-            .ConfigureAwait(false);
-        var index = actorSequence - this.FirstActorSequenceFor(run);
-        return index < 0 || index >= declared.Count
-            ? new DeclaredActorLookup(null, declared.Count)
-            : new DeclaredActorLookup(declared[index], declared.Count);
-    }
-
-    public async ValueTask<bool> IsCurrentRoomClearedAsync(
-        DungeonRunState run, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(run);
-
-        var declared = await roomActors.GetAsync(run.CurrentRoomMapId, cancellationToken)
-            .ConfigureAwait(false);
-        return run.IsCleared(declared, this.FirstActorSequenceFor(run));
-    }
-
-    public async ValueTask<IReadOnlyList<GroundDrop>> RemainingGroundDropsAsync(
-        DungeonRunState run, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(run);
-
-        return run.RemainingGroundDrops(
-            await this.DeclaredDropsAsync(
-                run.Layout.DungeonId, run.CurrentRoomMapId, cancellationToken)
-                .ConfigureAwait(false));
-    }
-
-    public ValueTask<IReadOnlyList<DungeonRoomDrop>> DeclaredDropsAsync(
-        int dungeonId, int mapId, CancellationToken cancellationToken) =>
-        roomDrops.GetAsync(dungeonId, mapId, cancellationToken);
 
     /// <summary>
     /// The number the room's first actor is given, derived rather than drawn.
@@ -105,11 +67,11 @@ internal sealed class DungeonRoomRuleService(
     /// player has already killed hands it a monster the client believes is dead. Two multiplies
     /// and two shifts scatter adjacent map identifiers across the range instead.
     /// </remarks>
-    public ushort FirstActorSequenceFor(DungeonRunState run)
+    public ushort FirstActorSequenceFor(DungeonCellCreationContext context)
     {
-        ArgumentNullException.ThrowIfNull(run);
+        ArgumentNullException.ThrowIfNull(context);
 
-        var mixed = ((uint)run.CurrentRoomMapId * 2654435761u) ^ (uint)run.Layout.Seed;
+        var mixed = ((uint)context.MapId * 2654435761u) ^ (uint)context.Layout.Seed;
         mixed ^= mixed >> 15;
         mixed *= 2246822519u;
         mixed ^= mixed >> 13;

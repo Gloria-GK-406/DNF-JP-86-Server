@@ -30,7 +30,7 @@ internal sealed class DropRuleService(
                 table,
                 band,
                 kill.MonsterRank,
-                kill.Run.Difficulty,
+                kill.Context.Difficulty,
                 kill.PartyMemberCount,
                 options.RateBasis);
     }
@@ -42,10 +42,10 @@ internal sealed class DropRuleService(
 
         var table = rateTables.Load(DropRateTables.Monster);
         var random = new DropRandom(DropRandom.SeedFor(
-            kill.Run.Layout.Seed,
-            kill.Run.CurrentRoomMapId,
-            kill.Run.CurrentCell.X,
-            kill.Run.CurrentCell.Y,
+            kill.Context.Layout.Seed,
+            kill.Context.MapId,
+            kill.Context.Cell.X,
+            kill.Context.Cell.Y,
             kill.ActorSequence));
 
         var rolled = new List<RolledDrop>();

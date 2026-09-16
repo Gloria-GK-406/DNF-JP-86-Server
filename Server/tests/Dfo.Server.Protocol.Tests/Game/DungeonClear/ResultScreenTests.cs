@@ -301,9 +301,22 @@ public sealed class ResultScreenTests
                     Cell,
                     CurrentRoomMapId: 55611,
                     VisitedCells: new HashSet<MazeCell> { Cell },
-                    TakenGroundDrops: new HashSet<GroundDropId>(),
-                    DeadActors: new HashSet<RoomActorId> { new(Cell, deadActor) },
-                    StartedAt: DateTimeOffset.UnixEpoch)
+                    StartedAt: DateTimeOffset.UnixEpoch,
+                    CurrentCellState: new DungeonCellState(
+                        Cell,
+                        MapId: 55611,
+                        Revision: 1,
+                        FirstActorSequence: deadActor,
+                        Actors:
+                        [
+                            new DungeonCellActorState(
+                                deadActor,
+                                new DungeonRoomActor(1, 1, 0),
+                                IsAiCharacter: false,
+                                IsDead: true,
+                                PendingLoot: []),
+                        ],
+                        GroundItems: []))
                 : null;
         }
 

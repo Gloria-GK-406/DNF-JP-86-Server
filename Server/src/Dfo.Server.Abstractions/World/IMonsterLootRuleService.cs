@@ -51,13 +51,12 @@ public readonly record struct MonsterDrop(ushort Number, RolledDrop Rolled)
 /// same kill asked about twice answers the same way.
 /// </param>
 /// <param name="PartyMemberCount">
-/// How many were in the party. One for a character playing alone, which is every character for
-/// now; it is a parameter rather than a constant because the archive declares a multiplier for it
-/// and hiding that behind a hard-coded one would make the table's own group unreachable.
+/// How many frozen participants entered this run. It is part of the Cell creation input because
+/// the archive declares a party multiplier for it.
 /// </param>
 public sealed record MonsterKill(
     CharacterId CharacterId,
-    DungeonRunState Run,
+    DungeonCellCreationContext Context,
     ushort ActorSequence,
     int MonsterLevel,
     int MonsterRank,
@@ -72,23 +71,10 @@ public interface IQuestMonsterDropRuleService
 }
 
 /// <summary>
-/// What a monster's death is worth in things on the floor.
+/// Resolves the deterministic loot attached to an actor while its cell is being constructed.
 /// </summary>
-/// <remarks>
-/// One interface for one way of playing. The card flip, the abyss and the dimensional dungeons
-/// each produce and deliver something differently shaped -- one piece against a list, into the bag
-/// against onto the floor -- and folding them together would give a signature that is the least
-/// common denominator of all of them plus a mode enum. They share the rules and the pools
-/// underneath instead, which is where the sharing is real.
-/// </remarks>
-public interface IMonsterDropService
+public interface IMonsterLootRuleService
 {
-    /// <summary>
-    /// What this kill dropped, numbered and recorded against the run.
-    /// </summary>
-    /// <remarks>
-    /// May be empty, which is what most kills are.
-    /// </remarks>
-    ValueTask<IReadOnlyList<MonsterDrop>> ForKillAsync(
+    ValueTask<IReadOnlyList<RolledDrop>> ResolveAsync(
         MonsterKill kill, CancellationToken cancellationToken);
 }

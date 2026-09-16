@@ -393,7 +393,8 @@ stackable/stackable.lst → 每个文件的 [creation rate] / [grade] / [rarity]
 |---|---|---|
 | **门** 掷不掷 | 规则服务（纯） | 吃**已算好的费率**，不自己查表——留给爆率控制做装饰 |
 | **抽** 取哪一件 | 规则服务（纯） | 吃 `(种类, 等级, 稀有度, 随机源)`，**不吃副本/怪物实体** |
-| **发** 给不给得进 | 领域服务 | 仓检、落地、编号。怪掉的东西落地不进包，仓检只对翻牌与拾取适用 |
+| **固化** 本次掉什么 | Cell 创建规则 | Cell 首次创建时把怪物 pending loot 固化；死亡时只在 Cell 内转成地面物 |
+| **取** 能不能进包 | 拾取事务 | 从 Cell 预占地面物，背包或金币写入成功后提交移除，失败释放预占 |
 
 **抽这一步的稀有度是参数而不是内部掷**——随机入口传掷出来的，约束入口（「给我一件这个等级的粉装」）
 直接传。两个入口因此免费。
@@ -401,7 +402,7 @@ stackable/stackable.lst → 每个文件的 [creation rate] / [grade] / [rarity]
 ### 领域服务按游戏模式分接口
 
 ```text
-IMonsterDropService        一期
+IMonsterLootRuleService    Cell 创建期掉落规则
 ICardRewardDomainService   二期（已落地；规则那半是 IClearRewardRuleService）
 （异次元 / 塔 / 深渊        以后）
 ```
@@ -409,7 +410,7 @@ ICardRewardDomainService   二期（已落地；规则那半是 IClearRewardRule
 几种模式的输入输出根本不同（一件 vs 一串、进包 vs 落地），合成一个泛用方法会退化成
 最小公分母签名加一个模式枚举。分开也给了以后拆分的缝。
 
-内部各自持有产出者，共享规则服务与随机源。
+运行期死亡不再调用掉落 content 或规则；它只提交 Cell 创建期已经固化的 pending loot。
 
 ### 爆率控制是另一个独立领域服务
 
@@ -523,5 +524,5 @@ ICardRewardDomainService   二期（已落地；规则那半是 IClearRewardRule
 | `[drop bonus of dungeon level increase]` | 等级差掉落惩罚：+8→0.4 … 0→1 … −3→1.225 | 本期验收未要求；缺它是偏高的有界偏差，不是编造 |
 | `[user derived drop job mapping]` | 职业→可掉落装备类别 | 抽取不吃角色 |
 | `[drop upgrade rarity]` | 掉落装备的强化等级分布（只有 `[rare]` 有表） | 记录待做 |
-| **怪掉的东西不进 `START_MAP`** | 重新进同一间房时，房间声明的箱子会重新画出来，怪掉在地上的不会 | 本期范围是击杀帧与既有拾取路径，两者都正常；编号仍然认得出来，捡得到，只是重描述后画不出来。二期之前要补 |
+| 怪物掉落与声明物统一进入 Cell `GroundItems` | 重访从同一个 Cell 快照投影，已拾取物不再出现、未拾取物仍存在 | 已由响应式 Cell 运行时统一；`START_MAP` 不再从怪物集合或房间档案重建第二份地面状态 |
 | `itemdropinfo_clearreward.etc` 的 `[drop prob]` | 按 profile 命名分组、每段只有 1 个率 | **二期不是「换一张表」那么简单**，那一段要另写一个读法；其余各段虽然段名与怪物表共有，读法也要自己写——`[item drop ref table]` 尤其借不得（借了会在 80–89 级多开一个品级且不报错）。可复用的是 `RarityLadder` / `ItemGradeBand` 两个类型，与抽取那一层 |

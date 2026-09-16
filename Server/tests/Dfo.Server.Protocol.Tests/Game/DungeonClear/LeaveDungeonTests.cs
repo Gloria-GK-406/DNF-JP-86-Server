@@ -564,10 +564,10 @@ public sealed class LeaveDungeonTests
                 Layout.StartCell,
                 Layout.StartRoomMapId,
                 new HashSet<MazeCell> { Layout.StartCell },
-                new HashSet<GroundDropId>(),
-                new HashSet<RoomActorId>(),
                 DateTimeOffset.UnixEpoch,
-                RunId: this.RunId)
+                RunId: this.RunId,
+                CurrentCellState: DungeonCellSeed.CompleteEmpty(
+                    Layout.StartCell, Layout.StartRoomMapId).Snapshot())
             : null;
 
         public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty) =>

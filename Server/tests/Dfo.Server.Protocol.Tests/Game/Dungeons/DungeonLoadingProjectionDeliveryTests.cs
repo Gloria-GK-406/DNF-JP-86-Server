@@ -120,13 +120,13 @@ public sealed class DungeonLoadingProjectionDeliveryTests
             new MazeCell(0, 0),
             61000,
             new HashSet<MazeCell> { new(0, 0) },
-            new HashSet<GroundDropId>(),
-            new HashSet<RoomActorId>(),
             DateTimeOffset.UnixEpoch,
             RunId: DungeonRunId.New(),
             Participant: participant,
             Participants: [participant],
-            EntryRevision: 1);
+            EntryRevision: 1,
+            CurrentCellState: DungeonCellSeed.CompleteEmpty(
+                new MazeCell(0, 0), 61000).Snapshot());
         var sessions = new Sessions(Current);
         var runs = new Runs(run);
         var registry = new DungeonRunDeliveryRegistry();

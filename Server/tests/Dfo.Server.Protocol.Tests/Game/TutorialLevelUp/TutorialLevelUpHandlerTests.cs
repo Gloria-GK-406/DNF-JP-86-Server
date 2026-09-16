@@ -226,9 +226,9 @@ public sealed class TutorialLevelUpHandlerTests
             new MazeCell(0, 0),
             CurrentRoomMapId: 1,
             VisitedCells: new HashSet<MazeCell>(),
-            TakenGroundDrops: new HashSet<GroundDropId>(),
-            DeadActors: new HashSet<RoomActorId>(),
-            StartedAt: DateTimeOffset.UnixEpoch);
+            StartedAt: DateTimeOffset.UnixEpoch,
+            CurrentCellState: DungeonCellSeed.CompleteEmpty(
+                new MazeCell(0, 0), 1).Snapshot());
 
         public DungeonRunState? TrySettle(CharacterId characterId) =>
             throw new NotSupportedException("This fixture only answers.");

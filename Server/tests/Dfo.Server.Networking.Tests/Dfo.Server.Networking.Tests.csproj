@@ -21,4 +21,9 @@
     <ProjectReference Include="..\..\src\Dfo.Server.Networking\Dfo.Server.Networking.csproj" />
     <ProjectReference Include="..\..\src\Dfo.Server.Protocol\Dfo.Server.Protocol.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Dfo.Server.Application.Tests\Support\DungeonRunTestEntryExtensions.cs"
+             Link="Support\DungeonRunTestEntryExtensions.cs" />
+  </ItemGroup>
 </Project>

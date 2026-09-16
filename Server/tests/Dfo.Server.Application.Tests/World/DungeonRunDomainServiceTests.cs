@@ -197,6 +197,69 @@ public sealed class DungeonRunDomainServiceTests
     }
 
     [Fact]
+    public void Incomplete_or_mismatched_initial_cells_are_rejected_before_publication()
+    {
+        var service = new DungeonRunDomainService();
+        var participant = new DungeonRunParticipant(
+            new AccountId(1), Character, Slot: 0, IsLeader: true);
+        var incomplete = new DungeonCellSeed(
+            Tutorial.StartCell,
+            Tutorial.StartRoomMapId,
+            FirstSequence,
+            [],
+            [],
+            IsComplete: false);
+        var wrongIdentity = DungeonCellSeed.CompleteEmpty(
+            new MazeCell(1, 1),
+            Tutorial.Rooms[new MazeCell(1, 1)]);
+
+        Assert.Throws<ArgumentException>(() => service.PreparePartyEntry(
+            [participant],
+            Tutorial,
+            difficulty: 0,
+            incomplete,
+            DungeonRunId.New(),
+            DateTimeOffset.UtcNow));
+        Assert.Throws<ArgumentException>(() => service.PreparePartyEntry(
+            [participant],
+            Tutorial,
+            difficulty: 0,
+            wrongIdentity,
+            DungeonRunId.New(),
+            DateTimeOffset.UtcNow));
+        Assert.Null(service.Find(Character));
+    }
+
+    [Fact]
+    public void Unprepared_moves_and_unknown_runtime_identities_cannot_invent_cell_content()
+    {
+        var service = new DungeonRunDomainService();
+        var run = BeginWithCell(service);
+        var target = new MazeCell(1, 1);
+        var incompleteTarget = new DungeonCellSeed(
+            target,
+            Tutorial.Rooms[target],
+            FirstSequence,
+            [],
+            [],
+            IsComplete: false);
+
+        Assert.Null(service.TryMove(
+            Character, run.RunId, run.RoomVersion, target));
+        Assert.Null(service.TryMove(
+            Character, run.RunId, run.RoomVersion, target, incompleteTarget));
+        Assert.Null(service.TryClaimActorDeath(Character, FirstSequence));
+        Assert.Null(service.TryClaimGroundDrop(
+            Character, run.RunId, run.RoomVersion, groundDropNumber: 1));
+
+        var after = service.Find(Character)!;
+        Assert.Equal(Tutorial.StartCell, after.CurrentCell);
+        Assert.Empty(after.CurrentCellState.Actors);
+        Assert.Empty(after.CurrentCellState.GroundItems);
+        Assert.Equal(0, after.CurrentCellState.Revision);
+    }
+
+    [Fact]
     public void Two_members_share_world_facts_but_keep_rewards_and_lifetime_per_participant()
     {
         var leader = new DungeonRunParticipant(
@@ -206,7 +269,11 @@ public sealed class DungeonRunDomainServiceTests
         DungeonRunParticipant[] party = [leader, member];
         var service = new DungeonRunDomainService();
 
-        var started = service.BeginParty(party, Tutorial, difficulty: 2);
+        var started = BeginPartyWithCell(
+            service,
+            party,
+            actors: [CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0))],
+            difficulty: 2);
         var leaderRun = service.Find(leader.CharacterId);
         var memberRun = service.Find(member.CharacterId);
 
@@ -223,30 +290,26 @@ public sealed class DungeonRunDomainServiceTests
 
         Assert.Null(service.TryMove(member.CharacterId, new MazeCell(1, 1)));
         var moved = service.TryMove(
-            leader.CharacterId, leaderRun.RunId, leaderRun.RoomVersion, new MazeCell(1, 1));
+            leader.CharacterId,
+            leaderRun.RunId,
+            leaderRun.RoomVersion,
+            new MazeCell(1, 1),
+            CellSeed(
+                new MazeCell(1, 1),
+                Tutorial.Rooms[new MazeCell(1, 1)],
+                actors: [CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0))]));
         Assert.NotNull(moved);
         Assert.Equal(moved.CurrentCell, service.Find(member.CharacterId)!.CurrentCell);
         Assert.Equal(moved.RoomVersion, service.Find(member.CharacterId)!.RoomVersion);
         Assert.Null(service.TryMove(
             leader.CharacterId, leaderRun.RunId, leaderRun.RoomVersion, Tutorial.BossCell));
 
-        Assert.NotNull(service.TryReportActorDead(member.CharacterId, FirstSequence));
-        Assert.Null(service.TryReportActorDead(leader.CharacterId, FirstSequence));
-        Assert.Contains(
-            new RoomActorId(moved.CurrentCell, FirstSequence),
-            service.Find(leader.CharacterId)!.DeadActors);
-
-        var rolled = new RolledDrop(
-            ItemId: 10087807,
-            Count: 1,
-            Rarity: DropRarity.Common,
-            Kind: DropItemKind.Stackable);
-        var allocated = service.AllocateMonsterDrops(
-            member.CharacterId, declaredDropCount: 0, FirstSequence, [rolled]);
-        var drop = Assert.Single(allocated);
-        Assert.Equal(drop, Assert.Single(service.Find(leader.CharacterId)!.MonsterDrops).Drop);
-        Assert.NotNull(service.TryTakeGroundDrop(leader.CharacterId, drop.Number));
-        Assert.Null(service.TryTakeGroundDrop(member.CharacterId, drop.Number));
+        var death = Assert.IsType<DungeonActorDeathClaim>(
+            service.TryClaimActorDeath(member.CharacterId, FirstSequence));
+        Assert.NotNull(service.CommitActorDeath(death));
+        Assert.Null(service.TryClaimActorDeath(leader.CharacterId, FirstSequence));
+        Assert.True(service.Find(leader.CharacterId)!.CurrentCellState
+            .FindActor(FirstSequence)!.IsDead);
 
         var beforeSettlement = service.Find(leader.CharacterId)!;
         Assert.NotNull(service.TryOpenClear(
@@ -291,29 +354,26 @@ public sealed class DungeonRunDomainServiceTests
             [new MazeCell(2, 1)] = 61005,
         });
 
-    private static readonly DungeonRoomDrop[] OneBreakableObject = [new DungeonRoomDrop(0, 14400, 25)];
-
     [Fact]
     public void A_run_opens_with_nothing_taken_off_its_floor()
     {
         var service = new DungeonRunDomainService();
 
-        var run = service.Begin(Character, Tutorial, difficulty: 0);
+        var run = BeginWithCell(service, groundItems: [DeclaredItem(1)]);
 
-        Assert.Empty(run.TakenGroundDrops);
-        Assert.Single(run.RemainingGroundDrops(OneBreakableObject));
+        Assert.Single(run.CurrentCellState.GroundItems);
     }
 
     [Fact]
     public void A_piece_can_be_taken_once()
     {
         var service = new DungeonRunDomainService();
-        var run = service.Begin(Character, Tutorial, difficulty: 0);
-        var afterTaking = service.TryTakeGroundDrop(Character, 1);
+        var run = BeginWithCell(service, groundItems: [DeclaredItem(1)]);
+        var afterTaking = Take(service, run, 1);
 
         Assert.NotNull(afterTaking);
-        Assert.Empty(afterTaking.RemainingGroundDrops(OneBreakableObject));
-        Assert.Null(service.TryTakeGroundDrop(Character, 1));
+        Assert.Empty(afterTaking.CurrentCellState.GroundItems);
+        Assert.Null(service.TryClaimGroundDrop(Character, run.RunId, run.RoomVersion, 1));
     }
 
     /// <summary>
@@ -329,15 +389,16 @@ public sealed class DungeonRunDomainServiceTests
     public void A_revisited_room_does_not_get_its_floor_back()
     {
         var service = new DungeonRunDomainService();
-        service.Begin(Character, Tutorial, difficulty: 0);
-        service.TryTakeGroundDrop(Character, 1);
+        var started = BeginWithCell(service, groundItems: [DeclaredItem(1)]);
+        _ = Take(service, started, 1);
 
-        service.TryMove(Character, new MazeCell(1, 1));
+        _ = MoveToEmptyCell(service, service.Find(Character)!, new MazeCell(1, 1));
         var returned = service.TryMove(Character, new MazeCell(0, 1));
 
         Assert.NotNull(returned);
-        Assert.Empty(returned.RemainingGroundDrops(OneBreakableObject));
-        Assert.Null(service.TryTakeGroundDrop(Character, 1));
+        Assert.Empty(returned.CurrentCellState.GroundItems);
+        Assert.Null(service.TryClaimGroundDrop(
+            Character, returned.RunId, returned.RoomVersion, 1));
     }
 
     /// <summary>Emptying one room's floor leaves the next room's alone.</summary>
@@ -345,14 +406,20 @@ public sealed class DungeonRunDomainServiceTests
     public void The_next_room_still_has_what_it_declares()
     {
         var service = new DungeonRunDomainService();
-        service.Begin(Character, Tutorial, difficulty: 0);
-        service.TryTakeGroundDrop(Character, 1);
+        var started = BeginWithCell(service, groundItems: [DeclaredItem(1)]);
+        _ = Take(service, started, 1);
 
-        var moved = service.TryMove(Character, new MazeCell(1, 1));
+        var target = new MazeCell(1, 1);
+        var moved = service.TryMove(
+            Character,
+            started.RunId,
+            started.RoomVersion,
+            target,
+            CellSeed(target, Tutorial.Rooms[target], groundItems: [DeclaredItem(1)]));
 
         Assert.NotNull(moved);
-        Assert.Single(moved.RemainingGroundDrops(OneBreakableObject));
-        Assert.NotNull(service.TryTakeGroundDrop(Character, 1));
+        Assert.Single(moved.CurrentCellState.GroundItems);
+        Assert.NotNull(Take(service, moved, 1));
     }
 
     /// <summary>
@@ -365,28 +432,33 @@ public sealed class DungeonRunDomainServiceTests
     [Fact]
     public void A_room_is_clear_once_its_monsters_are_dead_and_its_allies_are_not_counted()
     {
-        DungeonRoomActor[] declared =
-        [
-            new DungeonRoomActor(61670, 1, 0),
-            new DungeonRoomActor(461, 80, 5),
-        ];
         var service = new DungeonRunDomainService();
-        var run = service.Begin(Character, Tutorial, difficulty: 0);
+        var run = BeginWithCell(
+            service,
+            actors:
+            [
+                CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0)),
+                CellActor((ushort)(FirstSequence + 1), new DungeonRoomActor(461, 80, 5), isAi: true),
+            ]);
 
-        Assert.False(run.IsCleared(declared, FirstSequence));
+        Assert.False(run.IsCleared);
 
-        var afterKill = service.TryReportActorDead(Character, FirstSequence);
+        var claim = Assert.IsType<DungeonActorDeathClaim>(
+            service.TryClaimActorDeath(Character, FirstSequence));
+        var afterKill = service.CommitActorDeath(claim);
 
         Assert.NotNull(afterKill);
-        Assert.True(afterKill.IsCleared(declared, FirstSequence));
-        Assert.Null(service.TryReportActorDead(Character, FirstSequence));
+        Assert.True(afterKill.IsCleared);
+        Assert.Null(service.TryClaimActorDeath(Character, FirstSequence));
     }
 
     [Fact]
     public void AFailedDurableKillCanReleaseItsDeathClaimForOneRetry()
     {
         var service = new DungeonRunDomainService();
-        service.Begin(Character, Tutorial, difficulty: 0);
+        _ = BeginWithCell(
+            service,
+            actors: [CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0))]);
         var claimed = service.TryClaimActorDeath(Character, FirstSequence);
         Assert.NotNull(claimed);
 
@@ -399,6 +471,93 @@ public sealed class DungeonRunDomainServiceTests
     }
 
     [Fact]
+    public void Committing_actor_death_moves_its_pending_loot_into_the_same_cell()
+    {
+        var service = new DungeonRunDomainService();
+        var participant = new DungeonRunParticipant(
+            new AccountId(1), Character, Slot: 0, IsLeader: true);
+        var pending = new RolledDrop(
+            99, 2, DropRarity.Rare, DropItemKind.Stackable);
+        var initial = new DungeonGroundItem(
+            1,
+            14400,
+            1,
+            25,
+            IsEquipment: false,
+            DungeonGroundItemSource.Declared(0));
+        var seed = new DungeonCellSeed(
+            Tutorial.StartCell,
+            Tutorial.StartRoomMapId,
+            FirstSequence,
+            [new DungeonCellActorState(
+                FirstSequence,
+                new DungeonRoomActor(61670, 1, 0),
+                IsAiCharacter: false,
+                IsDead: false,
+                [pending])],
+            [initial]);
+        var runId = DungeonRunId.New();
+        service.PreparePartyEntry(
+            [participant], Tutorial, difficulty: 0, seed, runId, DateTimeOffset.UtcNow);
+
+        var claim = Assert.IsType<DungeonActorDeathClaim>(
+            service.TryClaimActorDeath(Character, FirstSequence));
+        var change = Assert.IsType<DungeonActorDeathChange>(
+            service.CommitActorDeathChange(claim));
+        var committed = change.Run;
+
+        Assert.True(committed.CurrentCellState.FindActor(FirstSequence)!.IsDead);
+        Assert.Equal(1, committed.CurrentCellState.Revision);
+        Assert.Equal(committed.RuntimeRevision, change.Revision);
+        Assert.Equal(committed.CurrentCellState.Revision, change.CellRevision);
+        var dropped = Assert.Single(change.AddedGroundItems);
+        Assert.Equal((ushort)2, dropped.Number);
+        Assert.Equal(99, dropped.ItemId);
+        Assert.Equal(2, dropped.Count);
+        Assert.Same(
+            dropped,
+            Assert.Single(
+                committed.CurrentCellState.GroundItems,
+                item => item.Source == DungeonGroundItemSource.FromActor(FirstSequence)));
+    }
+
+    [Fact]
+    public void Removing_a_drop_never_reuses_its_cell_identity_for_a_later_death()
+    {
+        var service = new DungeonRunDomainService();
+        var run = BeginWithCell(
+            service,
+            actors:
+            [
+                CellActor(
+                    FirstSequence,
+                    new DungeonRoomActor(61670, 1, 0),
+                    pendingLoot: [new RolledDrop(1001, 1, DropRarity.Common, DropItemKind.Stackable)]),
+                CellActor(
+                    (ushort)(FirstSequence + 1),
+                    new DungeonRoomActor(61671, 1, 0),
+                    pendingLoot: [new RolledDrop(1002, 1, DropRarity.Common, DropItemKind.Stackable)]),
+            ],
+            groundItems: [DeclaredItem(1)]);
+        var first = Assert.IsType<DungeonActorDeathClaim>(
+            service.TryClaimActorDeath(Character, FirstSequence));
+        var firstChange = Assert.IsType<DungeonActorDeathChange>(
+            service.CommitActorDeathChange(first));
+        var firstDrop = Assert.Single(firstChange.AddedGroundItems);
+        var pickup = Assert.IsType<DungeonGroundDropClaim>(service.TryClaimGroundDrop(
+            Character, run.RunId, run.RoomVersion, firstDrop.Number));
+        Assert.NotNull(service.CommitGroundDrop(pickup, DungeonPickupKind.Item));
+
+        var second = Assert.IsType<DungeonActorDeathClaim>(service.TryClaimActorDeath(
+            Character, (ushort)(FirstSequence + 1)));
+        var secondChange = Assert.IsType<DungeonActorDeathChange>(
+            service.CommitActorDeathChange(second));
+
+        Assert.Equal((ushort)2, firstDrop.Number);
+        Assert.Equal((ushort)3, Assert.Single(secondChange.AddedGroundItems).Number);
+    }
+
+    [Fact]
     public void Committed_pickups_publish_one_monotonic_change_to_active_participants()
     {
         var leader = new DungeonRunParticipant(
@@ -406,7 +565,10 @@ public sealed class DungeonRunDomainServiceTests
         var member = new DungeonRunParticipant(
             new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
         var service = new DungeonRunDomainService();
-        var run = service.BeginParty([leader, member], Tutorial, difficulty: 0);
+        var run = BeginPartyWithCell(
+            service,
+            [leader, member],
+            groundItems: [DeclaredItem(1), DeclaredItem(2)]);
         var first = Assert.IsType<DungeonGroundDropClaim>(
             service.TryClaimGroundDrop(leader.CharacterId, run.RunId, run.RoomVersion, 1));
 
@@ -434,6 +596,43 @@ public sealed class DungeonRunDomainServiceTests
     }
 
     [Fact]
+    public void Committed_pickup_removes_the_item_from_the_current_cell_only_after_commit()
+    {
+        var service = new DungeonRunDomainService();
+        var participant = new DungeonRunParticipant(
+            new AccountId(1), Character, Slot: 0, IsLeader: true);
+        var item = new DungeonGroundItem(
+            1,
+            14400,
+            1,
+            25,
+            IsEquipment: true,
+            DungeonGroundItemSource.Declared(0),
+            Kind: DropItemKind.Equipment);
+        var seed = new DungeonCellSeed(
+            Tutorial.StartCell,
+            Tutorial.StartRoomMapId,
+            FirstSequence,
+            [],
+            [item]);
+        var runId = DungeonRunId.New();
+        var started = service.PreparePartyEntry(
+            [participant], Tutorial, difficulty: 0, seed, runId, DateTimeOffset.UtcNow).Run;
+
+        var claim = Assert.IsType<DungeonGroundDropClaim>(
+            service.TryClaimGroundDrop(Character, runId, started.RoomVersion, 1));
+        Assert.NotNull(service.Find(Character)!.CurrentCellState.FindGroundItem(1));
+
+        var change = Assert.IsType<DungeonPickupChange>(
+            service.CommitGroundDrop(claim, DungeonPickupKind.Item));
+
+        Assert.Null(service.Find(Character)!.CurrentCellState.FindGroundItem(1));
+        Assert.Equal(1, service.Find(Character)!.CurrentCellState.Revision);
+        Assert.Equal(1, change.CellRevision);
+        Assert.Null(service.TryClaimGroundDrop(Character, runId, started.RoomVersion, 1));
+    }
+
+    [Fact]
     public void A_retried_party_death_claims_only_the_participant_whose_effect_is_unfinished()
     {
         var leader = new DungeonRunParticipant(
@@ -441,7 +640,10 @@ public sealed class DungeonRunDomainServiceTests
         var member = new DungeonRunParticipant(
             new AccountId(202), new CharacterId(2), 1, IsLeader: false);
         var service = new DungeonRunDomainService();
-        service.BeginParty([leader, member], Tutorial, difficulty: 0);
+        _ = BeginPartyWithCell(
+            service,
+            [leader, member],
+            actors: [CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0))]);
 
         var firstDeath = Assert.IsType<DungeonActorDeathClaim>(
             service.TryClaimActorDeath(leader.CharacterId, FirstSequence));
@@ -464,19 +666,26 @@ public sealed class DungeonRunDomainServiceTests
     }
 
     [Fact]
-    public void Monster_drop_allocation_is_fixed_once_even_when_the_actor_attempt_is_retried()
+    public void Actor_pending_loot_is_fixed_once_even_when_the_death_attempt_is_retried()
     {
         var service = new DungeonRunDomainService();
-        service.Begin(Character, Tutorial, difficulty: 0);
         var first = new RolledDrop(1001, 1, DropRarity.Common, DropItemKind.Stackable);
-        var replacement = new RolledDrop(2002, 1, DropRarity.Rare, DropItemKind.Stackable);
+        _ = BeginWithCell(
+            service,
+            actors: [CellActor(
+                FirstSequence,
+                new DungeonRoomActor(61670, 1, 0),
+                pendingLoot: [first])]);
 
-        var allocated = service.AllocateMonsterDrops(Character, 0, FirstSequence, [first]);
-        var replayed = service.AllocateMonsterDrops(Character, 0, FirstSequence, [replacement]);
+        var failed = Assert.IsType<DungeonActorDeathClaim>(
+            service.TryClaimActorDeath(Character, FirstSequence));
+        Assert.True(service.ReleaseActorDeath(failed));
+        var retry = Assert.IsType<DungeonActorDeathClaim>(
+            service.TryClaimActorDeath(Character, FirstSequence));
+        var committed = Assert.IsType<DungeonRunState>(service.CommitActorDeath(retry));
 
-        Assert.Equal(allocated, replayed);
-        Assert.Equal(1001, Assert.Single(replayed).Rolled.ItemId);
-        Assert.Single(service.Find(Character)!.MonsterDrops);
+        Assert.Equal(1001, Assert.Single(committed.CurrentCellState.GroundItems).ItemId);
+        Assert.Null(service.TryClaimActorDeath(Character, FirstSequence));
     }
 
     [Fact]
@@ -506,7 +715,11 @@ public sealed class DungeonRunDomainServiceTests
         Assert.Null(service.TryMove(
             Character, run.RunId, run.RoomVersion, Tutorial.BossCell));
         Assert.NotNull(service.TryMove(
-            Character, run.RunId, run.RoomVersion, new MazeCell(1, 1)));
+            Character,
+            run.RunId,
+            run.RoomVersion,
+            new MazeCell(1, 1),
+            CellSeed(new MazeCell(1, 1), Tutorial.Rooms[new MazeCell(1, 1)])));
     }
 
     [Fact]
@@ -524,70 +737,66 @@ public sealed class DungeonRunDomainServiceTests
     public void Pending_death_is_not_clear_and_blocks_room_movement_until_commit_or_release()
     {
         var service = new DungeonRunDomainService();
-        var run = service.Begin(Character, Tutorial, difficulty: 0);
+        var run = BeginWithCell(
+            service,
+            actors: [CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0))]);
         var claim = Assert.IsType<DungeonActorDeathClaim>(
             service.TryClaimActorDeath(Character, FirstSequence));
 
-        Assert.DoesNotContain(claim.Actor, service.Find(Character)!.DeadActors);
+        Assert.False(service.Find(Character)!.CurrentCellState
+            .FindActor(FirstSequence)!.IsDead);
         Assert.Null(service.TryMove(
             Character, run.RunId, run.RoomVersion, new MazeCell(1, 1)));
 
         Assert.True(service.ReleaseActorDeath(claim));
         Assert.NotNull(service.TryMove(
-            Character, run.RunId, run.RoomVersion, new MazeCell(1, 1)));
+            Character,
+            run.RunId,
+            run.RoomVersion,
+            new MazeCell(1, 1),
+            CellSeed(new MazeCell(1, 1), Tutorial.Rooms[new MazeCell(1, 1)])));
     }
 
     [Fact]
     public void Room_clear_linearizes_on_the_last_committed_death_not_on_pending_claims()
     {
-        DungeonRoomActor[] declared =
-        [
-            new DungeonRoomActor(61670, 1, 0),
-            new DungeonRoomActor(61671, 1, 0),
-        ];
         var service = new DungeonRunDomainService();
-        service.Begin(Character, Tutorial, difficulty: 0);
+        _ = BeginWithCell(
+            service,
+            actors:
+            [
+                CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0)),
+                CellActor((ushort)(FirstSequence + 1), new DungeonRoomActor(61671, 1, 0)),
+            ]);
         var first = Assert.IsType<DungeonActorDeathClaim>(
             service.TryClaimActorDeath(Character, FirstSequence));
         var second = Assert.IsType<DungeonActorDeathClaim>(
             service.TryClaimActorDeath(Character, (ushort)(FirstSequence + 1)));
 
         var firstCommitted = Assert.IsType<DungeonRunState>(service.CommitActorDeath(first));
-        Assert.False(firstCommitted.IsCleared(declared, FirstSequence));
+        Assert.False(firstCommitted.IsCleared);
         Assert.True(service.ReleaseActorDeath(second));
-        Assert.False(service.Find(Character)!.IsCleared(declared, FirstSequence));
+        Assert.False(service.Find(Character)!.IsCleared);
 
         var retry = Assert.IsType<DungeonActorDeathClaim>(
             service.TryClaimActorDeath(Character, (ushort)(FirstSequence + 1)));
         var lastCommitted = Assert.IsType<DungeonRunState>(service.CommitActorDeath(retry));
-        Assert.True(lastCommitted.IsCleared(declared, FirstSequence));
+        Assert.True(lastCommitted.IsCleared);
     }
 
     [Fact]
-    public void Exact_drop_allocation_stays_on_the_claimed_room_and_fixes_an_empty_roll()
+    public void An_empty_pending_loot_plan_stays_empty_after_death()
     {
         var service = new DungeonRunDomainService();
-        var run = service.Begin(Character, Tutorial, difficulty: 0);
-        var actor = new RoomActorId(run.CurrentCell, FirstSequence);
+        _ = BeginWithCell(
+            service,
+            actors: [CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0))]);
 
-        var empty = service.TryAllocateMonsterDrops(
-            Character, run.RunId, run.RoomVersion, actor, 0, []);
-        var rerolled = service.TryAllocateMonsterDrops(
-            Character,
-            run.RunId,
-            run.RoomVersion,
-            actor,
-            0,
-            [new RolledDrop(99, 1, DropRarity.Rare, DropItemKind.Stackable)]);
+        var claim = Assert.IsType<DungeonActorDeathClaim>(
+            service.TryClaimActorDeath(Character, FirstSequence));
+        var committed = Assert.IsType<DungeonRunState>(service.CommitActorDeath(claim));
 
-        Assert.NotNull(empty);
-        Assert.Empty(empty);
-        Assert.NotNull(rerolled);
-        Assert.Empty(rerolled);
-        var replacement = service.Begin(Character, Tutorial, difficulty: 1);
-        Assert.Null(service.TryAllocateMonsterDrops(
-            Character, run.RunId, run.RoomVersion, actor, 0, []));
-        Assert.NotEqual(run.RunId, replacement.RunId);
+        Assert.Empty(committed.CurrentCellState.GroundItems);
     }
 
     [Fact]
@@ -607,7 +816,7 @@ public sealed class DungeonRunDomainServiceTests
     public void Ground_drop_reservation_releases_for_retry_and_commits_once()
     {
         var service = new DungeonRunDomainService();
-        var run = service.Begin(Character, Tutorial, difficulty: 0);
+        var run = BeginWithCell(service, groundItems: [DeclaredItem(1)]);
         var first = Assert.IsType<DungeonGroundDropClaim>(
             service.TryClaimGroundDrop(Character, run.RunId, run.RoomVersion, 1));
 
@@ -620,6 +829,100 @@ public sealed class DungeonRunDomainServiceTests
     }
 
     [Fact]
+    public void A_ground_claim_linearizes_room_movement_until_it_commits_or_releases()
+    {
+        var service = new DungeonRunDomainService();
+        var run = BeginWithCell(service, groundItems: [DeclaredItem(1)]);
+        var target = new MazeCell(1, 1);
+        var claim = Assert.IsType<DungeonGroundDropClaim>(service.TryClaimGroundDrop(
+            Character, run.RunId, run.RoomVersion, groundDropNumber: 1));
+
+        Assert.Null(service.TryMove(
+            Character,
+            run.RunId,
+            run.RoomVersion,
+            target,
+            CellSeed(target, Tutorial.Rooms[target], groundItems: [DeclaredItem(1)])));
+
+        var change = Assert.IsType<DungeonPickupChange>(
+            service.CommitGroundDrop(claim, DungeonPickupKind.Item));
+        Assert.Equal(Tutorial.StartCell, change.Drop.Cell);
+        Assert.Equal(run.RoomVersion, change.RoomVersion);
+        Assert.Null(service.Find(Character)!.CurrentCellState.FindGroundItem(1));
+
+        var moved = Assert.IsType<DungeonRunState>(service.TryMove(
+            Character,
+            run.RunId,
+            run.RoomVersion,
+            target,
+            CellSeed(target, Tutorial.Rooms[target], groundItems: [DeclaredItem(1)])));
+        Assert.Equal(target, moved.CurrentCell);
+        Assert.NotNull(moved.CurrentCellState.FindGroundItem(1));
+    }
+
+    [Fact]
+    public void Source_neutral_ground_addition_uses_the_same_cell_collection_and_revision()
+    {
+        var service = new DungeonRunDomainService();
+        var run = BeginWithCell(service);
+        DungeonGroundItemDraft[] drafts =
+        [
+            new(
+                ItemId: 3020,
+                Count: 2,
+                Durability: 0,
+                IsEquipment: false,
+                DungeonGroundItemSource.FromPlayer()),
+        ];
+
+        var change = Assert.IsType<DungeonGroundItemsAddedChange>(service.TryAddGroundItems(
+            Character,
+            run.RunId,
+            run.RoomVersion,
+            run.CurrentCellState.Revision,
+            drafts));
+
+        var item = Assert.Single(change.AddedGroundItems);
+        Assert.Equal(DungeonGroundItemSourceKind.PlayerDrop, item.Source.Kind);
+        Assert.Same(item, Assert.Single(change.Run.CurrentCellState.GroundItems));
+        Assert.Equal(1, change.CellRevision);
+        Assert.Null(service.TryAddGroundItems(
+            Character,
+            run.RunId,
+            run.RoomVersion,
+            expectedCellRevision: 0,
+            drafts));
+    }
+
+    [Fact]
+    public void Cell_adoption_and_snapshots_defensively_copy_pending_loot()
+    {
+        var pending = new List<RolledDrop>
+        {
+            new(1001, 1, DropRarity.Common, DropItemKind.Stackable),
+        };
+        var service = new DungeonRunDomainService();
+        _ = BeginWithCell(
+            service,
+            actors:
+            [
+                CellActor(
+                    FirstSequence,
+                    new DungeonRoomActor(61670, 1, 0),
+                    pendingLoot: pending),
+            ]);
+
+        pending.Add(new RolledDrop(1002, 1, DropRarity.Common, DropItemKind.Stackable));
+        var first = service.Find(Character)!.CurrentCellState.FindActor(FirstSequence)!;
+        Assert.Single(first.PendingLoot);
+        ((RolledDrop[])first.PendingLoot)[0] = new RolledDrop(
+            9999, 1, DropRarity.Unique, DropItemKind.Stackable);
+
+        var reread = service.Find(Character)!.CurrentCellState.FindActor(FirstSequence)!;
+        Assert.Equal(1001, Assert.Single(reread.PendingLoot).ItemId);
+    }
+
+    [Fact]
     public void A_durable_ground_drop_claim_can_commit_after_the_picker_leaves_a_shared_run()
     {
         var leader = new DungeonRunParticipant(
@@ -627,7 +930,10 @@ public sealed class DungeonRunDomainServiceTests
         var member = new DungeonRunParticipant(
             new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
         var service = new DungeonRunDomainService();
-        var run = service.BeginParty([leader, member], Tutorial, difficulty: 0);
+        var run = BeginPartyWithCell(
+            service,
+            [leader, member],
+            groundItems: [DeclaredItem(1)]);
         var claim = Assert.IsType<DungeonGroundDropClaim>(
             service.TryClaimGroundDrop(
                 leader.CharacterId, run.RunId, run.RoomVersion, groundDropNumber: 1));
@@ -770,7 +1076,10 @@ public sealed class DungeonRunDomainServiceTests
         var member = new DungeonRunParticipant(
             new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
         var service = new DungeonRunDomainService();
-        var run = service.BeginParty([leader, member], Tutorial, difficulty: 0);
+        var run = BeginPartyWithCell(
+            service,
+            [leader, member],
+            actors: [CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0))]);
         var free = new ClearRewardCardFace(
             ClearRewardCardKind.Free,
             [new ClearRewardCardSlot(0, null), new ClearRewardCardSlot(1, null)],
@@ -889,7 +1198,10 @@ public sealed class DungeonRunDomainServiceTests
         var member = new DungeonRunParticipant(
             new AccountId(202), new CharacterId(2), 1, IsLeader: false);
         var service = new DungeonRunDomainService();
-        var run = service.BeginParty([leader, member], Tutorial, difficulty: 0);
+        var run = BeginPartyWithCell(
+            service,
+            [leader, member],
+            actors: [CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0))]);
         var death = Assert.IsType<DungeonActorDeathClaim>(
             service.TryClaimActorDeath(leader.CharacterId, FirstSequence));
 
@@ -925,11 +1237,16 @@ public sealed class DungeonRunDomainServiceTests
         Assert.False(start.IsBossRoom);
         Assert.True(start.MayLeaveCurrentRoom);
 
-        var ordinary = service.TryMove(Character, new MazeCell(1, 1));
+        var ordinary = MoveToEmptyCell(service, start, new MazeCell(1, 1));
         Assert.NotNull(ordinary);
         Assert.True(ordinary.MayLeaveCurrentRoom);
 
-        var boss = service.TryMove(Character, Tutorial.BossCell);
+        var boss = service.TryMove(
+            Character,
+            ordinary.RunId,
+            ordinary.RoomVersion,
+            Tutorial.BossCell,
+            CellSeed(Tutorial.BossCell, Tutorial.Rooms[Tutorial.BossCell]));
         Assert.NotNull(boss);
         Assert.True(boss.IsBossRoom);
         Assert.False(boss.MayLeaveCurrentRoom);
@@ -955,15 +1272,27 @@ public sealed class DungeonRunDomainServiceTests
     [Fact]
     public void A_kill_in_one_room_does_not_clear_another()
     {
-        DungeonRoomActor[] declared = [new DungeonRoomActor(61670, 1, 0)];
         var service = new DungeonRunDomainService();
-        service.Begin(Character, Tutorial, difficulty: 0);
-        service.TryReportActorDead(Character, FirstSequence);
+        var started = BeginWithCell(
+            service,
+            actors: [CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0))]);
+        var death = Assert.IsType<DungeonActorDeathClaim>(
+            service.TryClaimActorDeath(Character, FirstSequence));
+        _ = service.CommitActorDeath(death);
 
-        var moved = service.TryMove(Character, new MazeCell(1, 1));
+        var target = new MazeCell(1, 1);
+        var moved = service.TryMove(
+            Character,
+            started.RunId,
+            started.RoomVersion,
+            target,
+            CellSeed(
+                target,
+                Tutorial.Rooms[target],
+                actors: [CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0))]));
 
         Assert.NotNull(moved);
-        Assert.False(moved.IsCleared(declared, FirstSequence));
+        Assert.False(moved.IsCleared);
     }
 
     /// <summary>A run is timed from the moment it begins.</summary>
@@ -989,7 +1318,8 @@ public sealed class DungeonRunDomainServiceTests
     {
         var service = new DungeonRunDomainService();
 
-        Assert.Null(service.TryTakeGroundDrop(Character, 1));
+        Assert.Null(service.TryClaimGroundDrop(
+            Character, DungeonRunId.New(), expectedRoomVersion: 0, groundDropNumber: 1));
     }
 
     /// <summary>A run may be settled once, and a repeat is refused.</summary>
@@ -1056,6 +1386,103 @@ public sealed class DungeonRunDomainServiceTests
         Assert.True(runs.Find(Character)!.ClearOpen);
         Assert.True(runs.Find(helper)!.ClearOpen);
         Assert.Null(runs.TryOpenClear(helper, started.RunId, started.RoomVersion));
+    }
+
+    private static DungeonRunState BeginWithCell(
+        DungeonRunDomainService service,
+        IReadOnlyList<DungeonCellActorState>? actors = null,
+        IReadOnlyList<DungeonGroundItem>? groundItems = null)
+    {
+        var participant = new DungeonRunParticipant(
+            new AccountId(1), Character, Slot: 0, IsLeader: true);
+        return service.PreparePartyEntry(
+            [participant],
+            Tutorial,
+            difficulty: 0,
+            CellSeed(
+                Tutorial.StartCell,
+                Tutorial.StartRoomMapId,
+                actors,
+                groundItems),
+            DungeonRunId.New(),
+            DateTimeOffset.UtcNow).Run;
+    }
+
+    private static DungeonRunState BeginPartyWithCell(
+        DungeonRunDomainService service,
+        IReadOnlyList<DungeonRunParticipant> participants,
+        IReadOnlyList<DungeonCellActorState>? actors = null,
+        IReadOnlyList<DungeonGroundItem>? groundItems = null,
+        byte difficulty = 0) =>
+        service.PreparePartyEntry(
+            participants,
+            Tutorial,
+            difficulty,
+            CellSeed(
+                Tutorial.StartCell,
+                Tutorial.StartRoomMapId,
+                actors,
+                groundItems),
+            DungeonRunId.New(),
+            DateTimeOffset.UtcNow).Run;
+
+    private static DungeonRunState? MoveToEmptyCell(
+        DungeonRunDomainService service,
+        DungeonRunState run,
+        MazeCell target) =>
+        service.TryMove(
+            run.Participant!.CharacterId,
+            run.RunId,
+            run.RoomVersion,
+            target,
+            CellSeed(target, run.Layout.Rooms[target]));
+
+    private static DungeonCellSeed CellSeed(
+        MazeCell cell,
+        int mapId,
+        IReadOnlyList<DungeonCellActorState>? actors = null,
+        IReadOnlyList<DungeonGroundItem>? groundItems = null) =>
+        new(
+            cell,
+            mapId,
+            FirstSequence,
+            actors ?? [],
+            groundItems ?? []);
+
+    private static DungeonCellActorState CellActor(
+        ushort sequence,
+        DungeonRoomActor actor,
+        bool isAi = false,
+        IReadOnlyList<RolledDrop>? pendingLoot = null) =>
+        new(
+            sequence,
+            actor,
+            isAi,
+            IsDead: false,
+            pendingLoot ?? [],
+            IsMonster: !isAi && MonsterExperienceRules.IsMonster(actor.ActorType));
+
+    private static DungeonGroundItem DeclaredItem(ushort number) =>
+        new(
+            number,
+            ItemId: 14400,
+            Count: 1,
+            Durability: 25,
+            IsEquipment: true,
+            DungeonGroundItemSource.Declared(checked((byte)(number - 1))),
+            Kind: DropItemKind.Equipment);
+
+    private static DungeonRunState? Take(
+        DungeonRunDomainService service,
+        DungeonRunState run,
+        ushort number)
+    {
+        var claim = service.TryClaimGroundDrop(
+            Character, run.RunId, run.RoomVersion, number);
+        return claim is null
+            || service.CommitGroundDrop(claim, DungeonPickupKind.Item) is null
+                ? null
+                : service.Find(Character);
     }
 
     private sealed class FailingCommit : ITransactionParticipant

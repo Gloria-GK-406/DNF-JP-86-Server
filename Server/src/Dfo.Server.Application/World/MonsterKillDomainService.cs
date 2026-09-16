@@ -2,30 +2,33 @@ using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Application.World;
 
-/// <summary>What a kill reported against a run means.</summary>
-internal sealed class MonsterKillDomainService(
-    IDungeonRoomRuleService rooms,
-    IExperienceRuleService experienceRules) : IMonsterKillDomainService
+/// <summary>What a kill reported against the current Cell snapshot means.</summary>
+internal sealed class MonsterKillDomainService : IMonsterKillDomainService
 {
-    public async ValueTask<KillIdentification> IdentifyAsync(
+    public ValueTask<KillIdentification> IdentifyAsync(
         DungeonRunState run, ushort actorSequence, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(run);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        var lookup = await rooms.FindDeclaredActorAsync(run, actorSequence, cancellationToken)
-            .ConfigureAwait(false);
-        return lookup.Actor is not { } actor
-            ? new KillIdentification(null, lookup.DeclaredCount)
+        var cell = run.CurrentCellState;
+        var actor = cell.FindActor(actorSequence);
+        return ValueTask.FromResult(actor is null
+            ? new KillIdentification(null, cell.Actors.Count)
             : new KillIdentification(
                 new IdentifiedKill(
-                    actor.Code,
-                    run.Layout.LevelOf(actor.Level),
-                    (MonsterRank)actor.ActorType,
-                    experienceRules.IsMonster(actor.ActorType)),
-                lookup.DeclaredCount);
+                    actor.Actor.Code,
+                    run.Layout.LevelOf(actor.Actor.Level),
+                    (MonsterRank)actor.Actor.ActorType,
+                    actor.IsMonster),
+                cell.Actors.Count));
     }
 
     public ValueTask<bool> IsCurrentRoomClearedAsync(
-        DungeonRunState run, CancellationToken cancellationToken) =>
-        rooms.IsCurrentRoomClearedAsync(run, cancellationToken);
+        DungeonRunState run, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(run);
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(run.CurrentCellState.IsCleared);
+    }
 }

@@ -21,12 +21,9 @@ public sealed record DungeonRunState(
     MazeCell CurrentCell,
     int CurrentRoomMapId,
     IReadOnlySet<MazeCell> VisitedCells,
-    IReadOnlySet<GroundDropId> TakenGroundDrops,
-    IReadOnlySet<RoomActorId> DeadActors,
     DateTimeOffset StartedAt,
     byte Difficulty = 0,
     bool IsSettled = false,
-    IReadOnlyList<AllocatedMonsterDrop>? MonsterDrops = null,
     ClearRewardCardSet? ClearRewardCards = null,
     DungeonRunId RunId = default,
     long RoomVersion = 0,
@@ -37,15 +34,14 @@ public sealed record DungeonRunState(
     bool ClearOpen = false,
     long RuntimeRevision = 0,
     IReadOnlyList<DungeonCardSelection>? CardSelections = null,
-    bool CardLayoutOpen = false)
+    bool CardLayoutOpen = false,
+    DungeonCellState? CurrentCellState = null)
 {
-    /// <summary>What the run's kills have put on the floor, in the order they were numbered.</summary>
-    /// <remarks>
-    /// Held rather than derived, which is the difference between these and the drops a room
-    /// declares. A room's floor can be described again from the archive at any time; what a
-    /// monster dropped exists nowhere else, so if this were lost the piece would be unclaimable.
-    /// </remarks>
-    public IReadOnlyList<AllocatedMonsterDrop> MonsterDrops { get; init; } = MonsterDrops ?? [];
+    /// <summary>The authoritative runtime mirror of the room this view stands in.</summary>
+    public DungeonCellState CurrentCellState { get; init; } = CurrentCellState
+        ?? throw new ArgumentNullException(
+            nameof(CurrentCellState),
+            "A dungeon run cannot exist without a complete current Cell snapshot.");
 
     /// <summary>The fixed participant order captured when this run began.</summary>
     public IReadOnlyList<DungeonRunParticipant> Participants { get; init; } = Participants ?? [];
@@ -66,20 +62,7 @@ public sealed record DungeonRunState(
     /// AI characters are not counted. They fight beside the player rather than against them, and a
     /// room whose clearing waited on the tutorial's own escort would never clear at all.
     /// </remarks>
-    public bool IsCleared(IReadOnlyList<DungeonRoomActor> declared, ushort firstSequence)
-    {
-        ArgumentNullException.ThrowIfNull(declared);
-        for (var index = 0; index < declared.Count; index++)
-        {
-            if (declared[index].ActorType > LastHostileActorType)
-                continue;
-            var sequence = unchecked((ushort)(firstSequence + index));
-            if (!DeadActors.Contains(new RoomActorId(CurrentCell, sequence)))
-                return false;
-        }
-
-        return true;
-    }
+    public bool IsCleared => this.CurrentCellState.IsCleared;
 
     /// <summary>What the room the character is standing in is for.</summary>
     public DungeonRoomKind CurrentRoomKind => Layout.KindOf(CurrentCell);
@@ -98,89 +81,6 @@ public sealed record DungeonRunState(
     /// </remarks>
     public bool MayLeaveCurrentRoom => CurrentRoomKind != DungeonRoomKind.Boss;
 
-    /// <summary>
-    /// Everything above this is an ally, not a monster. Type five is the tutorial's own escort.
-    /// </summary>
-    private const byte LastHostileActorType = 3;
-
-    /// <summary>
-    /// What of a room's declared drops is still on its floor, each under the number the client
-    /// names it by when it picks one up.
-    /// </summary>
-    /// <remarks>
-    /// The number is the drop's position among everything the room declares, counted from one, and
-    /// it is derived rather than allocated: a room re-described mid-run has to name the same piece
-    /// the same way, or the client's request would arrive under a number this server had given to
-    /// something else. Which is also why the taken ones are removed after the numbering rather
-    /// than before -- dropping one first would renumber the rest.
-    /// </remarks>
-    public IReadOnlyList<GroundDrop> RemainingGroundDrops(IReadOnlyList<DungeonRoomDrop> declared)
-    {
-        ArgumentNullException.ThrowIfNull(declared);
-        return
-        [
-            .. declared
-                .Select((drop, index) => new GroundDrop(checked((ushort)(index + 1)), drop))
-                .Where(candidate => !TakenGroundDrops.Contains(
-                    new GroundDropId(CurrentCell, candidate.Number))),
-        ];
-    }
-
-    /// <summary>
-    /// What this room still has lying under that number, or null when it has nothing there.
-    /// </summary>
-    public GroundDrop? FindGroundDrop(IReadOnlyList<DungeonRoomDrop> declared, ushort number) =>
-        RemainingGroundDrops(declared)
-            .FirstOrDefault(candidate => candidate.Number == number);
-
-    /// <summary>
-    /// The next number a piece dropped in this room may be given.
-    /// </summary>
-    /// <remarks>
-    /// Above everything the room declares and above everything already dropped in it. The room's
-    /// own pieces are numbered from one by their declaration order and are renumbered every time
-    /// the room is described, so a dropped piece that took one of those numbers would be shadowed
-    /// by a box the moment the player walked back in.
-    /// <para>
-    /// Per cell rather than per run, because that is how the numbering already works here: a maze
-    /// may lead through one map twice and the two rooms number from one independently.
-    /// <b>This deviates from live capture, not from the reference server:</b> six captured frames
-    /// number 1 through 6 straight across a run without resetting per room. Both are
-    /// collision-free, and this server's declared floor pieces are already numbered per room, so
-    /// numbering dropped pieces per run would have needed the declared ones to change with them.
-    /// </para>
-    /// </remarks>
-    public ushort NextMonsterDropNumber(int declaredDropCount)
-    {
-        var highest = declaredDropCount;
-        foreach (var allocated in MonsterDrops)
-        {
-            if (allocated.Cell == CurrentCell && allocated.Drop.Number > highest)
-                highest = allocated.Drop.Number;
-        }
-
-        return checked((ushort)(highest + 1));
-    }
-
-    /// <summary>What a kill dropped in this room and nobody has taken, under its number.</summary>
-    /// <remarks>
-    /// The whole record rather than the piece, because what identifies the piece to the client is
-    /// derived from the kill that produced it and not from its number.
-    /// </remarks>
-    public AllocatedMonsterDrop? FindMonsterDrop(ushort number)
-    {
-        foreach (var allocated in MonsterDrops)
-        {
-            if (allocated.Cell == CurrentCell
-                && allocated.Drop.Number == number
-                && !TakenGroundDrops.Contains(new GroundDropId(CurrentCell, number)))
-            {
-                return allocated;
-            }
-        }
-
-        return null;
-    }
 }
 
 /// <summary>A process-local identity shared by every participant view of one dungeon run.</summary>
@@ -303,16 +203,6 @@ public sealed record ClearRewardCardSet(
         this.Claimed.Contains(new ClearRewardCardId(kind, index));
 }
 
-/// <summary>One piece a kill put on a room's floor, under the number it was given.</summary>
-/// <param name="ActorSequence">
-/// Which kill produced it. Kept because the value that tells one piece of equipment from another
-/// is derived from the kill rather than from the piece: every piece of one kill carries the same
-/// one, which is what the captured frames show, and the piece a player ends up holding has to
-/// carry the value its arrival announced.
-/// </param>
-public readonly record struct AllocatedMonsterDrop(
-    MazeCell Cell, ushort ActorSequence, MonsterDrop Drop);
-
 /// <summary>One actor of one room, under the running number the client names it by.</summary>
 /// <remarks>
 /// Keyed by cell for the same reason a ground drop is: a maze may lead through the same map twice,
@@ -326,7 +216,18 @@ public sealed record DungeonActorDeathClaim(
     DungeonRunState Run,
     RoomActorId Actor,
     long Token,
-    DungeonRunId RunId = default);
+    DungeonRunId RunId = default,
+    DungeonCellActorState? ActorState = null);
+
+/// <summary>The ordered Cell change produced by one committed actor death.</summary>
+public sealed record DungeonActorDeathChange(
+    DungeonRunState Run,
+    RoomActorId Actor,
+    long Revision,
+    long CellRevision,
+    IReadOnlyList<DungeonGroundItem> AddedGroundItems,
+    bool IsCellCleared,
+    IReadOnlyList<CharacterId> Recipients);
 
 /// <summary>An exact claim over one participant's durable effects for one actor death.</summary>
 public sealed record DungeonParticipantKillEffectClaim(
@@ -347,7 +248,10 @@ public sealed record DungeonGroundDropClaim(
     DungeonRunState Run,
     GroundDropId Drop,
     long Token,
-    DungeonRunId RunId = default);
+    DungeonRunId RunId = default,
+    DungeonGroundItem? Item = null,
+    long RoomVersion = 0,
+    long CellRevision = 0);
 
 /// <summary>What kind of durable result consumed one shared ground drop.</summary>
 public enum DungeonPickupKind
@@ -364,7 +268,8 @@ public sealed record DungeonPickupChange(
     GroundDropId Drop,
     DungeonPickupKind Kind,
     IReadOnlyList<CharacterId> Recipients,
-    long RoomVersion = 0);
+    long RoomVersion = 0,
+    long CellRevision = 0);
 
 /// <summary>A shared run opening its clear exit for its current semantic participants.</summary>
 public sealed record DungeonClearChange(
@@ -450,10 +355,10 @@ public readonly record struct GroundDropId(MazeCell Cell, ushort Number);
 
 /// <summary>The dungeon runs the server currently has going, and who is in them.</summary>
 /// <remarks>
-/// Deliberately small, and deliberately not the aggregate described in
-/// <c>Docs/领域结构重构设计.md</c>. It exists because walking between rooms cannot be answered
-/// without remembering which maze the character was given, and that remembering had to start
-/// somewhere. It keeps only what the next frame needs.
+/// This is the process-local dungeon-instance boundary. It owns the frozen participants, layout,
+/// current Cell reference and the set of already-created Cells. Each Cell exclusively owns its
+/// Actors, pending loot, ground items, clear state and Cell revision; the Run does not rebuild
+/// those facts in parallel collections.
 /// <para>
 /// In memory only. There is no reconnect in this game -- a character who drops in a dungeon
 /// reappears in town -- so a run has nothing to survive and nothing to restore.
@@ -466,55 +371,15 @@ public readonly record struct GroundDropId(MazeCell Cell, ushort Number);
 /// </remarks>
 public interface IDungeonRunDomainService
 {
-    /// <summary>
-    /// Starts a run in its layout's start room, replacing whatever that character was in.
-    /// </summary>
-    /// <remarks>
-    /// Replacing rather than refusing: a character who selects a dungeon has left whatever they
-    /// were in, and the client has already been told so. Refusing here would leave the server
-    /// describing a run the client has abandoned.
-    /// </remarks>
-    /// <param name="difficulty">
-    /// What the character chose on the way in. It is a fact about this run rather than about the
-    /// dungeon, so it is not on the layout: the same maze entered twice at two difficulties is two
-    /// runs whose kills are worth different amounts.
-    /// </param>
-    DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, byte difficulty);
-
-    /// <summary>Atomically starts one shared run for a fixed ordered set of participants.</summary>
-    /// <remarks>
-    /// The default preserves lightweight test doubles: they can continue to support the legacy
-    /// one-character entry point without pretending to implement a shared aggregate.
-    /// </remarks>
-    DungeonRunState BeginParty(
-        IReadOnlyList<DungeonRunParticipant> participants,
-        DungeonLayout layout,
-        byte difficulty)
-    {
-        ArgumentNullException.ThrowIfNull(participants);
-        if (participants.Count != 1)
-        {
-            throw new NotSupportedException(
-                "This dungeon-run service does not implement shared party runs.");
-        }
-
-        return Begin(participants[0].CharacterId, layout, difficulty);
-    }
-
-    /// <summary>Atomically prepares one shared entry and identifies its semantic audience.</summary>
+    /// <summary>Publishes a shared run together with its already-complete initial cell.</summary>
     DungeonEntryChange PreparePartyEntry(
         IReadOnlyList<DungeonRunParticipant> participants,
         DungeonLayout layout,
-        byte difficulty)
-    {
-        var run = BeginParty(participants, layout, difficulty);
-        return new DungeonEntryChange(
-            DungeonEntryChangeKind.Prepared,
-            run,
-            run.EntryRevision,
-            run.Participants.OrderBy(value => value.Slot)
-                .Select(value => value.CharacterId).ToArray());
-    }
+        byte difficulty,
+        DungeonCellSeed initialCell,
+        DungeonRunId runId,
+        DateTimeOffset startedAt) => throw new NotSupportedException(
+            "This dungeon-run service does not implement complete Cell publication.");
 
     /// <summary>Marks one participant ready only for the exact shared room they loaded.</summary>
     DungeonEntryChange? TryMarkParticipantReady(
@@ -577,16 +442,16 @@ public interface IDungeonRunDomainService
     }
 
     /// <summary>
-    /// Takes one piece off the floor of the room the character is standing in.
+    /// Moves into an existing cell, or atomically publishes <paramref name="preparedCell"/> and
+    /// moves into it when the target has not been visited before.
     /// </summary>
-    /// <remarks>
-    /// Answers the run as it stands afterwards, or null when that piece was already gone -- which
-    /// is what a second request for the same number is. Refusing the second is the whole point:
-    /// the drops a room declares are read back out of the archive every time the room is
-    /// described, so without a record of what has been taken a player could walk out of a room and
-    /// back in and be handed the same item again.
-    /// </remarks>
-    DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber);
+    DungeonRunState? TryMove(
+        CharacterId characterId,
+        DungeonRunId expectedRunId,
+        long expectedRoomVersion,
+        MazeCell target,
+        DungeonCellSeed? preparedCell) =>
+        TryMove(characterId, expectedRunId, expectedRoomVersion, target);
 
     /// <summary>
     /// Reserves one drop from the exact run room without consuming it until durable delivery
@@ -596,25 +461,7 @@ public interface IDungeonRunDomainService
         CharacterId characterId,
         DungeonRunId expectedRunId,
         long expectedRoomVersion,
-        ushort groundDropNumber)
-    {
-        var current = Find(characterId);
-        if (current is null
-            || current.RunId != expectedRunId
-            || current.RoomVersion != expectedRoomVersion)
-        {
-            return null;
-        }
-
-        return TryTakeGroundDrop(characterId, groundDropNumber) is { } taken
-            ? new DungeonGroundDropClaim(
-                characterId,
-                taken,
-                new GroundDropId(current.CurrentCell, groundDropNumber),
-                0,
-                current.RunId)
-            : null;
-    }
+        ushort groundDropNumber) => null;
 
     /// <summary>
     /// Consumes an exact drop reservation after durable delivery succeeds and publishes the
@@ -640,6 +487,14 @@ public interface IDungeonRunDomainService
         DungeonPickupKind kind) =>
         DungeonPickupCommit.Completed(CommitGroundDrop(claim, kind));
 
+    /// <summary>Adds source-neutral ground items to the current Cell at an exact revision.</summary>
+    DungeonGroundItemsAddedChange? TryAddGroundItems(
+        CharacterId characterId,
+        DungeonRunId expectedRunId,
+        long expectedRoomVersion,
+        long expectedCellRevision,
+        IReadOnlyList<DungeonGroundItemDraft> items) => null;
+
     /// <summary>
     /// Opens the exact run room's clear exit once after authoritative rules have approved it.
     /// </summary>
@@ -664,33 +519,37 @@ public interface IDungeonRunDomainService
     bool ReleaseGroundDrop(DungeonGroundDropClaim claim) => false;
 
     /// <summary>
-    /// Records that one of the room's actors is dead.
-    /// </summary>
-    /// <remarks>
-    /// Answers the run as it stands afterwards, or null when that actor was already down -- which
-    /// is what a repeated report is. What this is for is knowing when a room has been emptied: the
-    /// dungeon's exit does not open until the boss room's last monster is reported dead, and the
-    /// client will not ask to leave until it has been told the exit is open.
-    /// </remarks>
-    DungeonRunState? TryReportActorDead(CharacterId characterId, ushort actorSequence);
-
-    /// <summary>
     /// Claims one actor death before its durable effects are attempted. A duplicate or pending
     /// report returns null.
     /// </summary>
     DungeonActorDeathClaim? TryClaimActorDeath(
         CharacterId characterId,
-        ushort actorSequence) =>
-        TryReportActorDead(characterId, actorSequence) is { } run
-            ? new DungeonActorDeathClaim(
-                characterId,
-                run,
-                new RoomActorId(run.CurrentCell, actorSequence),
-                0)
-            : null;
+        ushort actorSequence) => null;
 
     /// <summary>Finalizes a successful durable kill and returns the current run.</summary>
     DungeonRunState? CommitActorDeath(DungeonActorDeathClaim claim) => claim.Run;
+
+    /// <summary>Finalizes a durable kill and exposes the exact ordered Cell change.</summary>
+    DungeonActorDeathChange? CommitActorDeathChange(DungeonActorDeathClaim claim)
+    {
+        var run = CommitActorDeath(claim);
+        if (run is null)
+            return null;
+        var added = run.CurrentCellState.GroundItems
+            .Where(item => item.Source.Kind == DungeonGroundItemSourceKind.ActorDeath
+                && item.Source.ActorSequence == claim.Actor.Sequence)
+            .OrderBy(item => item.Number)
+            .ToArray();
+        return new DungeonActorDeathChange(
+            run,
+            claim.Actor,
+            run.RuntimeRevision,
+            run.CurrentCellState.Revision,
+            added,
+            run.CurrentCellState.IsCleared,
+            run.Participants.OrderBy(participant => participant.Slot)
+                .Select(participant => participant.CharacterId).ToArray());
+    }
 
     /// <summary>Releases exactly this failed claim so the client may retry it.</summary>
     bool ReleaseActorDeath(DungeonActorDeathClaim claim) => false;
@@ -721,8 +580,8 @@ public interface IDungeonRunDomainService
     /// is what a repeated result report is. The run itself is not ended: what ends it is the
     /// character leaving, and between the result screen and the door the run is still theirs.
     /// <para>
-    /// This is the same guard a kill has in <see cref="TryReportActorDead"/>, and it is needed for
-    /// the same reason. A settlement pays experience, and it is the client that says when one
+    /// This is the same one-shot guard used by actor-death claims, and it is needed for the same
+    /// reason. A settlement pays experience, and it is the client that says when one
     /// happens; without a record of having paid, a repeated report is a repeated payment. That
     /// only became true on 2026-08-29, when the settlement started paying anything at all.
     /// </para>
@@ -756,47 +615,6 @@ public interface IDungeonRunDomainService
     DungeonCardLayoutChange? TryOpenCardLayout(
         CharacterId characterId,
         DungeonRunId expectedRunId) => null;
-
-    /// <summary>
-    /// Puts what a kill produced on the floor of the room the character is standing in, numbering
-    /// each piece.
-    /// </summary>
-    /// <remarks>
-    /// Numbering is an allocation and not a derivation, which is what makes this a mutation rather
-    /// than a query: nothing anywhere declares that a monster dropped anything, so a number given
-    /// out here cannot be worked out again and has to be remembered.
-    /// <para>
-    /// Answers what was numbered, or an empty list when the character is not in a run. The caller
-    /// supplies how many pieces the room itself declares, because those hold the low numbers.
-    /// </para>
-    /// </remarks>
-    IReadOnlyList<MonsterDrop> AllocateMonsterDrops(
-        CharacterId characterId,
-        int declaredDropCount,
-        ushort actorSequence,
-        IReadOnlyList<RolledDrop> rolled);
-
-    /// <summary>
-    /// Allocates against the exact run room which produced the kill. Null means that run room is
-    /// no longer current.
-    /// </summary>
-    IReadOnlyList<MonsterDrop>? TryAllocateMonsterDrops(
-        CharacterId characterId,
-        DungeonRunId expectedRunId,
-        long expectedRoomVersion,
-        RoomActorId actor,
-        int declaredDropCount,
-        IReadOnlyList<RolledDrop> rolled)
-    {
-        var current = Find(characterId);
-        return current is not null
-            && current.RunId == expectedRunId
-            && current.RoomVersion == expectedRoomVersion
-            && current.CurrentCell == actor.Cell
-                ? AllocateMonsterDrops(
-                    characterId, declaredDropCount, actor.Sequence, rolled)
-                : null;
-    }
 
     /// <summary>
     /// Fixes what this clear's two faces hold, and answers the run as it stands afterwards.

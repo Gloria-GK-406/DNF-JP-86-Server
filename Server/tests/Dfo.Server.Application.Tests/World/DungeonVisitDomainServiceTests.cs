@@ -1,5 +1,4 @@
 using Dfo.Server.Abstractions.Content;
-using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
@@ -20,6 +19,21 @@ public sealed class DungeonVisitDomainServiceTests
         Seed: 123,
         Rooms: new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 61000 });
 
+    private static readonly DungeonLayout TwoRoomLayout = new(
+        DungeonId: 10001,
+        MazeIndex: 0,
+        Width: 2,
+        Height: 1,
+        StartCell: new MazeCell(0, 0),
+        BossCell: new MazeCell(1, 0),
+        StartRoomMapId: 61000,
+        Seed: 456,
+        Rooms: new Dictionary<MazeCell, int>
+        {
+            [new MazeCell(0, 0)] = 61000,
+            [new MazeCell(1, 0)] = 61001,
+        });
+
     [Fact]
     public async Task Party_entry_resolves_one_layout_and_describes_one_shared_start_room()
     {
@@ -32,9 +46,8 @@ public sealed class DungeonVisitDomainServiceTests
         var visits = new DungeonVisitDomainService(
             layouts,
             new DungeonRunDomainService(),
-            new EmptyRooms(),
-            new NoPlacement(),
-            new ImmediateSelection());
+            new ImmediateSelection(),
+            new RecordingCellFactory());
 
         var entered = await visits.EnterPartyAsync(
             party, Layout.DungeonId, difficulty: 2, DungeonEntryFacts.None, CancellationToken.None);
@@ -53,7 +66,7 @@ public sealed class DungeonVisitDomainServiceTests
     }
 
     [Fact]
-    public async Task A_failed_member_projection_removes_every_participant_published_by_the_entry()
+    public async Task Failed_initial_cell_creation_does_not_publish_any_run()
     {
         DungeonRunParticipant[] party =
         [
@@ -64,9 +77,8 @@ public sealed class DungeonVisitDomainServiceTests
         var visits = new DungeonVisitDomainService(
             new RecordingLayouts(),
             runs,
-            new FailingSecondRoomProjection(),
-            new NoPlacement(),
-            new ImmediateSelection());
+            new ImmediateSelection(),
+            new ThrowingCellFactory());
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await visits.EnterPartyAsync(
@@ -80,71 +92,92 @@ public sealed class DungeonVisitDomainServiceTests
     }
 
     [Fact]
-    public async Task A_cancelled_projection_rolls_back_the_old_run_without_ending_a_replacement()
+    public async Task Failed_first_visit_does_not_move_the_run_before_the_cell_is_ready()
     {
-        DungeonRunParticipant[] party =
-        [
-            new(new AccountId(11), new CharacterId(1), 0, IsLeader: true),
-            new(new AccountId(22), new CharacterId(2), 1, IsLeader: false),
-        ];
+        var character = new CharacterId(1);
         var runs = new DungeonRunDomainService();
-        var rooms = new ReplacingCancelledSecondRoomProjection(runs, party[1].CharacterId);
+        var current = runs.Begin(character, TwoRoomLayout, difficulty: 0);
         var visits = new DungeonVisitDomainService(
             new RecordingLayouts(),
             runs,
-            rooms,
-            new NoPlacement(),
-            new ImmediateSelection());
+            new ImmediateSelection(),
+            new ThrowingCellFactory());
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
-            await visits.EnterPartyAsync(
-                party,
-                Layout.DungeonId,
-                difficulty: 2,
-                DungeonEntryFacts.None,
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await visits.MoveAsync(
+                character,
+                current,
+                new MazeCell(1, 0),
                 CancellationToken.None));
 
-        var survivingLeader = runs.Find(party[0].CharacterId);
-        Assert.NotNull(survivingLeader);
-        Assert.NotEqual(rooms.ReplacementRunId, survivingLeader.RunId);
-        var replacement = runs.Find(party[1].CharacterId);
-        Assert.NotNull(replacement);
-        Assert.Equal(rooms.ReplacementRunId, replacement.RunId);
-        Assert.Equal(1, replacement.PartyMemberCount);
+        var after = runs.Find(character);
+        Assert.NotNull(after);
+        Assert.Equal(new MazeCell(0, 0), after.CurrentCell);
+        Assert.Equal(0, after.RoomVersion);
     }
 
     [Fact]
-    public async Task A_failed_description_cannot_abort_a_newer_revision_of_the_same_run()
+    public async Task Revisit_reuses_the_published_cell_without_calling_the_factory_again()
     {
-        DungeonRunParticipant[] party =
-        [
-            new(new AccountId(11), new CharacterId(1), 0, IsLeader: true),
-            new(new AccountId(22), new CharacterId(2), 1, IsLeader: false),
-        ];
+        var character = new CharacterId(1);
         var runs = new DungeonRunDomainService();
-        var rooms = new AdvancingFailedSecondRoomProjection(runs, party[1].CharacterId);
+        var current = runs.Begin(character, TwoRoomLayout, difficulty: 0);
+        var factory = new RecordingCellFactory();
         var visits = new DungeonVisitDomainService(
             new RecordingLayouts(),
             runs,
-            rooms,
-            new NoPlacement(),
-            new ImmediateSelection());
+            new ImmediateSelection(),
+            factory);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await visits.EnterPartyAsync(
-                party,
-                Layout.DungeonId,
-                difficulty: 2,
-                DungeonEntryFacts.None,
-                CancellationToken.None));
+        var second = await visits.MoveAsync(
+            character, current, new MazeCell(1, 0), CancellationToken.None);
+        Assert.NotNull(second);
+        var returned = await visits.MoveAsync(
+            character, second.Run, new MazeCell(0, 0), CancellationToken.None);
 
-        var leader = runs.Find(party[0].CharacterId);
-        var member = runs.Find(party[1].CharacterId);
-        Assert.NotNull(leader);
-        Assert.NotNull(member);
-        Assert.Equal(leader.RunId, member.RunId);
-        Assert.Equal(2, leader.EntryRevision);
-        Assert.Contains(member.Participant!.CharacterId, leader.ReadyParticipants);
+        Assert.NotNull(returned);
+        Assert.False(returned.FirstEntry);
+        Assert.Empty(returned.Actors);
+        Assert.Empty(returned.FloorDrops);
+        Assert.Equal(1, factory.CallCount);
+        Assert.Equal(new MazeCell(0, 0), returned.Run.CurrentCellState.Cell);
+    }
+
+    [Fact]
+    public async Task Concurrent_first_visits_publish_only_one_complete_cell_and_reuse_it()
+    {
+        var character = new CharacterId(1);
+        var runs = new DungeonRunDomainService();
+        var current = runs.Begin(character, TwoRoomLayout, difficulty: 0);
+        var factory = new RacingCellFactory();
+        var visits = new DungeonVisitDomainService(
+            new RecordingLayouts(),
+            runs,
+            new ImmediateSelection(),
+            factory);
+        var target = new MazeCell(1, 0);
+
+        var attempts = await Task.WhenAll(
+            visits.MoveAsync(character, current, target, CancellationToken.None).AsTask(),
+            visits.MoveAsync(character, current, target, CancellationToken.None).AsTask());
+
+        var adopted = Assert.Single(attempts, visit => visit is not null)!;
+        Assert.Single(adopted.Run.CurrentCellState.Actors);
+        Assert.Contains(
+            adopted.Run.CurrentCellState.Actors[0].Actor.Code,
+            factory.CreatedActorCodes);
+        Assert.Equal(2, factory.CallCount);
+
+        var back = Assert.IsType<DungeonRoomVisit>(await visits.MoveAsync(
+            character, adopted.Run, TwoRoomLayout.StartCell, CancellationToken.None));
+        var revisited = Assert.IsType<DungeonRoomVisit>(await visits.MoveAsync(
+            character, back.Run, target, CancellationToken.None));
+
+        Assert.Equal(2, factory.CallCount);
+        Assert.Equal(
+            adopted.Run.CurrentCellState.Actors[0].Actor.Code,
+            revisited.Run.CurrentCellState.Actors[0].Actor.Code);
+        Assert.Empty(revisited.Actors);
     }
 
     private sealed class RecordingLayouts : IDungeonLayoutRuleService
@@ -162,97 +195,59 @@ public sealed class DungeonVisitDomainServiceTests
         }
     }
 
-    private class EmptyRooms : IDungeonRoomRuleService
+    private sealed class ThrowingCellFactory : IDungeonCellFactory
     {
-        public virtual ValueTask<DungeonRoomContents> DescribeAsync(
-            DungeonRunState run, bool firstEntry, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(new DungeonRoomContents([], [], 1));
-
-        public ValueTask<DeclaredActorLookup> FindDeclaredActorAsync(
-            DungeonRunState run, ushort actorSequence, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(new DeclaredActorLookup(null, 0));
-
-        public ValueTask<bool> IsCurrentRoomClearedAsync(
-            DungeonRunState run, CancellationToken cancellationToken) => ValueTask.FromResult(true);
-
-        public ValueTask<IReadOnlyList<GroundDrop>> RemainingGroundDropsAsync(
-            DungeonRunState run, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<GroundDrop>>([]);
-
-        public ValueTask<IReadOnlyList<DungeonRoomDrop>> DeclaredDropsAsync(
-            int dungeonId, int mapId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<DungeonRoomDrop>>([]);
-
-        public IReadOnlyList<RoomActorDescription> Describe(
-            IReadOnlyList<DungeonRoomActor> declared) => [];
-
-        public ushort FirstActorSequenceFor(DungeonRunState run) => 1;
+        public ValueTask<DungeonCellSeed> CreateAsync(
+            DungeonCellCreationContext context, CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("cell construction failed");
     }
 
-    private sealed class FailingSecondRoomProjection : EmptyRooms
+    private sealed class RecordingCellFactory : IDungeonCellFactory
     {
-        private int calls;
+        public int CallCount { get; private set; }
 
-        public override ValueTask<DungeonRoomContents> DescribeAsync(
-            DungeonRunState run, bool firstEntry, CancellationToken cancellationToken) =>
-            ++calls == 2
-                ? throw new InvalidOperationException("second participant projection failed")
-                : base.DescribeAsync(run, firstEntry, cancellationToken);
-    }
-
-    private sealed class ReplacingCancelledSecondRoomProjection(
-        IDungeonRunDomainService runs,
-        CharacterId replacementCharacterId) : EmptyRooms
-    {
-        private int calls;
-
-        public DungeonRunId ReplacementRunId { get; private set; }
-
-        public override ValueTask<DungeonRoomContents> DescribeAsync(
-            DungeonRunState run, bool firstEntry, CancellationToken cancellationToken)
+        public ValueTask<DungeonCellSeed> CreateAsync(
+            DungeonCellCreationContext context, CancellationToken cancellationToken)
         {
-            if (++calls != 2)
-                return base.DescribeAsync(run, firstEntry, cancellationToken);
-
-            ReplacementRunId = runs.Begin(replacementCharacterId, Layout, difficulty: 1).RunId;
-            throw new OperationCanceledException("projection was cancelled after replacement");
+            this.CallCount++;
+            return ValueTask.FromResult(DungeonCellSeed.CompleteEmpty(context.Cell, context.MapId));
         }
     }
 
-    private sealed class AdvancingFailedSecondRoomProjection(
-        IDungeonRunDomainService runs,
-        CharacterId advancingCharacterId) : EmptyRooms
+    private sealed class RacingCellFactory : IDungeonCellFactory
     {
+        private readonly TaskCompletionSource bothStarted = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
         private int calls;
 
-        public override ValueTask<DungeonRoomContents> DescribeAsync(
-            DungeonRunState run, bool firstEntry, CancellationToken cancellationToken)
+        public int CallCount => Volatile.Read(ref this.calls);
+        public List<int> CreatedActorCodes { get; } = [];
+
+        public async ValueTask<DungeonCellSeed> CreateAsync(
+            DungeonCellCreationContext context,
+            CancellationToken cancellationToken)
         {
-            if (++calls != 2)
-                return base.DescribeAsync(run, firstEntry, cancellationToken);
-
-            Assert.NotNull(runs.TryMarkParticipantReady(
-                advancingCharacterId,
-                run.RunId,
-                run.RoomVersion));
-            throw new InvalidOperationException("projection failed after the run advanced");
+            var call = Interlocked.Increment(ref this.calls);
+            lock (this.CreatedActorCodes)
+                this.CreatedActorCodes.Add(60000 + call);
+            if (call == 2)
+                this.bothStarted.TrySetResult();
+            await this.bothStarted.Task.WaitAsync(cancellationToken);
+            return new DungeonCellSeed(
+                context.Cell,
+                context.MapId,
+                FirstActorSequence: 100,
+                Actors:
+                [
+                    new DungeonCellActorState(
+                        Sequence: 100,
+                        new DungeonRoomActor(60000 + call, 1, 0),
+                        IsAiCharacter: false,
+                        IsDead: false,
+                        PendingLoot: []),
+                ],
+                GroundItems: []);
         }
-    }
-
-    private sealed class NoPlacement : IItemPlacementRuleService
-    {
-        public ValueTask<ItemPlacement?> PlacementForAsync(
-            int itemId, CancellationToken cancellationToken) => ValueTask.FromResult<ItemPlacement?>(null);
-
-        public ValueTask<byte?> WornSlotForAsync(
-            int itemId, CancellationToken cancellationToken) => ValueTask.FromResult<byte?>(null);
-
-        public ValueTask<ItemWorldClass> ClassifyAsync(
-            int itemId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(ItemWorldClass.Interchangeable);
-
-        public ValueTask<bool> IsEquipmentAsync(
-            int itemId, CancellationToken cancellationToken) => ValueTask.FromResult(false);
     }
 
     private sealed class ImmediateSelection : IDungeonSelectionRuleService

@@ -109,8 +109,7 @@ public sealed class BossDieCheckHandler(
             return ValueTask.CompletedTask;
         }
 
-        var agrees = run.DeadActors.Contains(
-            new RoomActorId(run.CurrentCell, message.ReportedActorSequence));
+        var agrees = run.CurrentCellState.FindActor(message.ReportedActorSequence)?.IsDead == true;
 
         logger.LogInformation(
             "Boss die check {ConnectionId} character={CharacterId}: actor {Actor} of room {RoomId} "
