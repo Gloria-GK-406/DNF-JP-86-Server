@@ -91,7 +91,7 @@ public sealed class DungeonRunClearRewardCardTests
     public void Cards_are_fixed_once_and_a_second_fix_leaves_the_first_pair_standing()
     {
         var runs = new DungeonRunDomainService();
-        runs.Begin(Character, Tutorial, difficulty: 0);
+        var run = runs.Begin(Character, Tutorial, difficulty: 0);
 
         var first = runs.FixClearRewardCards(
             Character,
@@ -287,7 +287,8 @@ public sealed class DungeonRunClearRewardCardTests
     public void Settling_a_run_does_not_by_itself_fix_its_cards()
     {
         var runs = new DungeonRunDomainService();
-        runs.Begin(Character, Tutorial, difficulty: 0);
+        var run = runs.Begin(Character, Tutorial, difficulty: 0);
+        Assert.NotNull(runs.TryOpenClear(Character, run.RunId, run.RoomVersion));
 
         var settled = runs.TrySettle(Character);
 

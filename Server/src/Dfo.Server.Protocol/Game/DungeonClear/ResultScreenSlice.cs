@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol.Game.CardReward;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.DungeonClear;
@@ -196,7 +197,9 @@ internal sealed class ScoreScrollStateResponseEncoder
 public sealed class ScoreScrollStateHandler(
     ISelectedSessionDomainService selectedSessions,
     IGameMessageSender sender,
-    ILogger<ScoreScrollStateHandler> logger) : ClientMessageHandler<ScoreScrollStateRequest>
+    ILogger<ScoreScrollStateHandler> logger,
+    DungeonCardPresentationCoordinator? cardPresentation = null)
+    : ClientMessageHandler<ScoreScrollStateRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -211,10 +214,12 @@ public sealed class ScoreScrollStateHandler(
             context.Connection.ConnectionId,
             session?.CharacterId.Value);
 
+        IReadOnlyList<IGameServerMessage> frames = cardPresentation is null
+            ? [new ScoreScrollStateResponse(), new CardSelectRightStateResponse()]
+            : [new ScoreScrollStateResponse()];
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
-            new GameExplicitMessageDelivery(
-                [new ScoreScrollStateResponse(), new CardSelectRightStateResponse()], []),
+            new GameExplicitMessageDelivery(frames, []),
             cancellationToken).ConfigureAwait(false);
     }
 }

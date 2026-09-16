@@ -35,7 +35,8 @@ internal sealed class GroundPickupDomainService(
                 await this.IsEquipmentAsync(dropped.Drop.ItemId, cancellationToken)
                     .ConfigureAwait(false),
                 null,
-                dropped.ActorSequence)
+                dropped.ActorSequence,
+                dropped.Drop.Rolled.OwnerCharacterId)
             : null;
     }
 

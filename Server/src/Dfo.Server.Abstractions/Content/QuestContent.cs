@@ -183,6 +183,16 @@ public sealed record HuntEnemyRequirement(
     int EnemyType,
     int Count);
 
+/// <summary>One seven-field <c>[monster reward item]</c> declaration.</summary>
+public sealed record QuestMonsterRewardItem(
+    int MonsterCode,
+    int DungeonId,
+    int Difficulty,
+    int ItemId,
+    int Count,
+    int DropRate,
+    int MaxStack);
+
 public sealed record QuestDefinition(
     int QuestId,
     string Name,
@@ -213,7 +223,8 @@ public sealed record QuestDefinition(
     bool PaysAtCharacterLevel = false,
     IReadOnlyList<HuntEnemyRequirement>? HuntEnemyRequirements = null,
     QuestItemRewardDefinition? ItemRewards = null,
-    int GoldMultiplier = 0)
+    int GoldMultiplier = 0,
+    IReadOnlyList<QuestMonsterRewardItem>? MonsterRewardItems = null)
 {
     /// <summary>A quest offered regardless of grow type.</summary>
     public const int AnyGrowType = -1;
@@ -225,6 +236,9 @@ public sealed record QuestDefinition(
 
     public QuestItemRewardDefinition ItemRewards { get; init; }
         = ItemRewards ?? QuestItemRewardDefinition.Empty;
+
+    public IReadOnlyList<QuestMonsterRewardItem> MonsterRewardItems { get; init; }
+        = MonsterRewardItems ?? [];
 
     /// <summary>Whether clearing this quest leaves it available to accept again.</summary>
     /// <remarks>

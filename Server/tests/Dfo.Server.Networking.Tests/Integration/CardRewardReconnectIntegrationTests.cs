@@ -128,10 +128,13 @@ public sealed class CardRewardReconnectIntegrationTests
                     SelectedSessionIdentity.Create(
                         Account, Character, first, connectionGeneration: 1, gamePort));
 
-                Assert.NotNull(runs.Begin(Character, Layout, difficulty: 1));
-                Assert.NotNull(runs.TrySettle(Character));
+                var run = runs.Begin(Character, Layout, difficulty: 1);
+                Assert.NotNull(runs.TryOpenClear(Character, run.RunId, run.RoomVersion));
                 Assert.NotNull(
-                    runs.FixClearRewardCards(Character, FreeFace(), PaidFace(), PaidFlipCost));
+                    runs.FixClearRewardCards(
+                        Character, run.RunId, FreeFace(), PaidFace(), PaidFlipCost));
+                Assert.NotNull(runs.TrySettle(Character));
+                Assert.NotNull(runs.TryOpenCardLayout(Character, run.RunId));
             }
 
             // ---- the loss --------------------------------------------------------------------

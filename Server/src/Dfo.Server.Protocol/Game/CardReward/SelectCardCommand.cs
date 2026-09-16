@@ -102,8 +102,12 @@ public sealed record SelectCardResult(
     CommittedInventoryUpdateState? Delivered = null,
     int GoldCharged = 0,
     int GoldPaid = 0,
-    int GoldCarried = 0)
+    int GoldCarried = 0,
+    DungeonCardSelectionChange? StaticChange = null,
+    DungeonCardSelectionCommit? SelectionCommit = null)
 {
+    public DungeonCardSelectionChange? Change => this.SelectionCommit?.Change ?? this.StaticChange;
+
     public static SelectCardResult Refused(
         SelectCardStatus status, ClearRewardCardKind kind, int index) =>
         new(status, kind, index, []);
@@ -218,7 +222,8 @@ public sealed class SelectCardCommandHandler(
                     .ConfigureAwait(false)
                 : null;
 
-            if (!runs.CommitClearRewardCard(claim))
+            var commit = runs.CommitClearRewardCard(claim);
+            if (!commit.IsDeferred && commit.Change is null)
             {
                 throw new InvalidOperationException(
                     "The clear-card claim was no longer current after its durable award.");
@@ -232,7 +237,9 @@ public sealed class SelectCardCommandHandler(
                 delivery,
                 charge.Price,
                 paid,
-                carried);
+                carried,
+                StaticChange: null,
+                SelectionCommit: commit);
         }
         catch
         {

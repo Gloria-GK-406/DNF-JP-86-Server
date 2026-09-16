@@ -50,6 +50,29 @@ internal static class ContentArchive
 public sealed class PvfQuestDefinitionSourceTests
 {
     [Fact]
+    public void Monster_reward_operands_are_strict_seven_field_groups()
+    {
+        Assert.Equal(
+        [
+            new QuestMonsterRewardItem(65601, 145, -1, 10149163, 1, 100, 15),
+            new QuestMonsterRewardItem(65305, 145, -1, 10149163, 1, 100, 15),
+        ],
+            PvfQuestDefinitionSource.ProjectMonsterRewardItems(
+                [65601, 145, -1, 10149163, 1, 100, 15,
+                 65305, 145, -1, 10149163, 1, 100, 15],
+                questId: 1779));
+
+        Assert.Throws<InvalidDataException>(() =>
+            PvfQuestDefinitionSource.ProjectMonsterRewardItems(
+                [65601, 145, -1, 10149163, 1, 100],
+                questId: 1779));
+        Assert.Throws<InvalidDataException>(() =>
+            PvfQuestDefinitionSource.ProjectMonsterRewardItems(
+                [65601, 145, -1, 10149163, 0, 100, 15],
+                questId: 1779));
+    }
+
+    [Fact]
     public void Seeking_operands_preserve_gold_and_seek_meet_uses_only_item_pair()
     {
         Assert.Equal(
@@ -237,6 +260,24 @@ public sealed class PvfQuestDefinitionSourceTests
             Assert.True(requirement.ItemId >= 0);
             Assert.True(requirement.RequiredCount > 0);
         });
+    }
+
+    [SkippableFact]
+    public async Task Real_archive_projects_quest_1779_monster_item_sources_exactly()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var quest = await new PvfQuestDefinitionSource(provider)
+            .GetAsync(1779, CancellationToken.None);
+
+        Assert.NotNull(quest);
+        Assert.Equal(
+        [
+            new QuestMonsterRewardItem(65601, 145, -1, 10149163, 1, 100, 15),
+            new QuestMonsterRewardItem(65305, 145, -1, 10149163, 1, 100, 15),
+        ],
+            quest.MonsterRewardItems);
+        Assert.Equal([new SeekingItemRequirement(10149163, 15)], quest.SeekingItems);
     }
 
     [Fact]

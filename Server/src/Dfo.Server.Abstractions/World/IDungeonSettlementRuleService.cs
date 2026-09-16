@@ -22,3 +22,17 @@ public interface IDungeonSettlementRuleService
         DungeonRunState run,
         CancellationToken cancellationToken);
 }
+
+/// <summary>
+/// Re-evaluates whether one exact shared run may open its clear exit after an authoritative
+/// runtime change.
+/// </summary>
+public interface IDungeonClearDomainService
+{
+    ValueTask<DungeonClearChange?> EvaluateAsync(
+        AccountId accountId,
+        CharacterId characterId,
+        DungeonRunId expectedRunId,
+        long expectedRoomVersion,
+        CancellationToken cancellationToken);
+}

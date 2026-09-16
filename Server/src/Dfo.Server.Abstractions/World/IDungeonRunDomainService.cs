@@ -33,7 +33,11 @@ public sealed record DungeonRunState(
     DungeonRunParticipant? Participant = null,
     IReadOnlyList<DungeonRunParticipant>? Participants = null,
     long EntryRevision = 0,
-    IReadOnlySet<CharacterId>? ReadyParticipants = null)
+    IReadOnlySet<CharacterId>? ReadyParticipants = null,
+    bool ClearOpen = false,
+    long RuntimeRevision = 0,
+    IReadOnlyList<DungeonCardSelection>? CardSelections = null,
+    bool CardLayoutOpen = false)
 {
     /// <summary>What the run's kills have put on the floor, in the order they were numbered.</summary>
     /// <remarks>
@@ -49,6 +53,10 @@ public sealed record DungeonRunState(
     /// <summary>The participants whose current client finished loading this room.</summary>
     public IReadOnlySet<CharacterId> ReadyParticipants { get; init; } =
         ReadyParticipants ?? ImmutableHashSet<CharacterId>.Empty;
+
+    /// <summary>The shared card-panel ownership accumulated by all participants.</summary>
+    public IReadOnlyList<DungeonCardSelection> CardSelections { get; init; } =
+        CardSelections ?? [];
 
     /// <summary>The fixed party size used by run-scoped reward rules.</summary>
     public int PartyMemberCount => Math.Max(1, this.Participants.Count);
@@ -341,6 +349,84 @@ public sealed record DungeonGroundDropClaim(
     long Token,
     DungeonRunId RunId = default);
 
+/// <summary>What kind of durable result consumed one shared ground drop.</summary>
+public enum DungeonPickupKind
+{
+    Item,
+    Gold,
+}
+
+/// <summary>A committed shared pickup, expressed without transport identities.</summary>
+public sealed record DungeonPickupChange(
+    DungeonRunId RunId,
+    long Revision,
+    CharacterId Picker,
+    GroundDropId Drop,
+    DungeonPickupKind Kind,
+    IReadOnlyList<CharacterId> Recipients,
+    long RoomVersion = 0);
+
+/// <summary>A shared run opening its clear exit for its current semantic participants.</summary>
+public sealed record DungeonClearChange(
+    DungeonRunId RunId,
+    long Revision,
+    IReadOnlyList<CharacterId> Recipients);
+
+/// <summary>One shared card column owned by one frozen dungeon participant.</summary>
+public sealed record DungeonCardSelection(
+    ClearRewardCardKind Kind,
+    int Index,
+    CharacterId CharacterId,
+    byte Seat);
+
+/// <summary>A participant's card panel becoming available.</summary>
+public sealed record DungeonCardLayoutChange(
+    DungeonRunId RunId,
+    long Revision,
+    CharacterId CharacterId,
+    IReadOnlyList<CharacterId> Recipients);
+
+/// <summary>A committed card flip and the complete shared panel state after it.</summary>
+public sealed record DungeonCardSelectionChange(
+    DungeonRunId RunId,
+    long Revision,
+    CharacterId Actor,
+    IReadOnlyList<DungeonCardSelection> Selections,
+    IReadOnlyList<CharacterId> Recipients);
+
+/// <summary>
+/// A dungeon pickup publication whose value becomes available only after the surrounding domain
+/// transaction commits.
+/// </summary>
+/// <remarks>
+/// Persistent inventory and quest writes commit before the process-local run is allowed to
+/// consume the floor piece. Keeping the receipt in the command result lets the projection read
+/// that final change after the command bus has settled the transaction without publishing an
+/// uncommitted runtime fact.
+/// </remarks>
+public sealed class DungeonPickupCommit(Func<DungeonPickupChange?> read, bool isDeferred = true)
+{
+    public DungeonPickupChange? Change => read();
+
+    public bool IsDeferred { get; } = isDeferred;
+
+    public static DungeonPickupCommit Completed(DungeonPickupChange? change) =>
+        new(() => change, isDeferred: false);
+}
+
+/// <summary>A card selection publication made visible only after its durable reward commits.</summary>
+public sealed class DungeonCardSelectionCommit(
+    Func<DungeonCardSelectionChange?> read,
+    bool isDeferred = true)
+{
+    public DungeonCardSelectionChange? Change => read();
+
+    public bool IsDeferred { get; } = isDeferred;
+
+    public static DungeonCardSelectionCommit Completed(DungeonCardSelectionChange? change) =>
+        new(() => change, isDeferred: false);
+}
+
 /// <summary>An exact, retryable reservation of one clear-card position.</summary>
 public sealed record DungeonClearRewardCardClaim(
     CharacterId CharacterId,
@@ -461,6 +547,9 @@ public interface IDungeonRunDomainService
     /// <summary>The run this character is in, or null when they are not in one.</summary>
     DungeonRunState? Find(CharacterId characterId);
 
+    /// <summary>Finds one active participant view of an exact shared run.</summary>
+    DungeonRunState? Find(DungeonRunId runId) => null;
+
     /// <summary>
     /// Moves the character into an adjoining cell, or answers null when the maze declares no room
     /// there.
@@ -527,8 +616,49 @@ public interface IDungeonRunDomainService
             : null;
     }
 
-    /// <summary>Consumes an exact drop reservation after durable delivery succeeds.</summary>
-    DungeonRunState? CommitGroundDrop(DungeonGroundDropClaim claim) => claim.Run;
+    /// <summary>
+    /// Consumes an exact drop reservation after durable delivery succeeds and publishes the
+    /// shared runtime fact to the run's active semantic participants.
+    /// </summary>
+    DungeonPickupChange? CommitGroundDrop(
+        DungeonGroundDropClaim claim,
+        DungeonPickupKind kind) =>
+        new(
+            claim.RunId,
+            0,
+            claim.CharacterId,
+            claim.Drop,
+            kind,
+            claim.Run.Participants.Select(value => value.CharacterId).ToArray());
+
+    /// <summary>
+    /// Stages consumption of a reserved floor piece. Production applies it only after durable
+    /// transaction participants commit; simple domain doubles may use the completed default.
+    /// </summary>
+    DungeonPickupCommit StageGroundDrop(
+        DungeonGroundDropClaim claim,
+        DungeonPickupKind kind) =>
+        DungeonPickupCommit.Completed(CommitGroundDrop(claim, kind));
+
+    /// <summary>
+    /// Opens the exact run room's clear exit once after authoritative rules have approved it.
+    /// </summary>
+    DungeonClearChange? TryOpenClear(
+        CharacterId characterId,
+        DungeonRunId expectedRunId,
+        long expectedRoomVersion)
+    {
+        var run = Find(characterId);
+        return run is null
+            || run.RunId != expectedRunId
+            || run.RoomVersion != expectedRoomVersion
+            || run.ClearOpen
+                ? null
+                : new DungeonClearChange(
+                    run.RunId,
+                    run.RuntimeRevision + 1,
+                    run.Participants.Select(value => value.CharacterId).ToArray());
+    }
 
     /// <summary>Releases an exact drop reservation after a refused or failed delivery.</summary>
     bool ReleaseGroundDrop(DungeonGroundDropClaim claim) => false;
@@ -621,6 +751,11 @@ public interface IDungeonRunDomainService
 
     /// <summary>Releases exactly this failed settlement attempt for retry.</summary>
     bool ReleaseSettlement(DungeonSettlementClaim claim) => false;
+
+    /// <summary>Opens one settled participant's card panel on the named run exactly once.</summary>
+    DungeonCardLayoutChange? TryOpenCardLayout(
+        CharacterId characterId,
+        DungeonRunId expectedRunId) => null;
 
     /// <summary>
     /// Puts what a kill produced on the floor of the room the character is standing in, numbering
@@ -747,8 +882,11 @@ public interface IDungeonRunDomainService
                 expectedRunId);
     }
 
-    /// <summary>Consumes a reserved clear-card position after durable delivery succeeds.</summary>
-    bool CommitClearRewardCard(DungeonClearRewardCardClaim claim) => true;
+    /// <summary>
+    /// Consumes a reserved position after durable delivery and returns the full shared panel.
+    /// </summary>
+    DungeonCardSelectionCommit CommitClearRewardCard(
+        DungeonClearRewardCardClaim claim) => DungeonCardSelectionCommit.Completed(null);
 
     /// <summary>Releases a reserved clear-card position after durable delivery fails.</summary>
     bool ReleaseClearRewardCard(DungeonClearRewardCardClaim claim) => false;

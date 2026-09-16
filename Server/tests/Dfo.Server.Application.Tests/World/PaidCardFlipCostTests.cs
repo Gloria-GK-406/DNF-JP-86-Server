@@ -396,7 +396,7 @@ public sealed class PaidCardFlipCostTests
                 .AsTask().GetAwaiter().GetResult();
 
             var runs = new DungeonRunDomainService();
-            runs.Begin(Character, LayoutFor(dungeonId), difficulty: 1);
+            var run = runs.Begin(Character, LayoutFor(dungeonId), difficulty: 1);
             this._cards = new CardRewardDomainService(Rules(provider), runs);
 
             if (settleAtLevel is { } settledAt)
@@ -421,6 +421,12 @@ public sealed class PaidCardFlipCostTests
                     Face(ClearRewardCardKind.Paid),
                     this.Announced);
             }
+
+            Assert.NotNull(runs.TryOpenClear(Character, run.RunId, run.RoomVersion));
+            var settlement = Assert.IsType<DungeonSettlementClaim>(
+                runs.TryClaimSettlement(Character, run.RunId));
+            Assert.NotNull(runs.CommitSettlement(settlement));
+            Assert.NotNull(runs.TryOpenCardLayout(Character, run.RunId));
 
             this._handler = new SelectCardCommandHandler(
                 this._cards,

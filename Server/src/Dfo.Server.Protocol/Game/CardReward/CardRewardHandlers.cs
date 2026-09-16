@@ -22,7 +22,9 @@ namespace Dfo.Server.Protocol.Game.CardReward;
 public sealed class CardSelectRightStateHandler(
     ISelectedSessionDomainService selectedSessions,
     IGameMessageSender sender,
-    ILogger<CardSelectRightStateHandler> logger)
+    ILogger<CardSelectRightStateHandler> logger,
+    IDungeonRunDomainService? runs = null,
+    DungeonCardPresentationCoordinator? cardPresentation = null)
     : ClientMessageHandler<CardSelectRightStateRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -31,6 +33,15 @@ public sealed class CardSelectRightStateHandler(
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+
+        if (session is not null
+            && runs?.Find(session.CharacterId) is { } run
+            && cardPresentation is not null)
+        {
+            await cardPresentation.OpenOnRequestAsync(
+                session, run.RunId, cancellationToken).ConfigureAwait(false);
+            return;
+        }
 
         logger.LogInformation(
             "Card layout {ConnectionId} character={CharacterId}: layout sent",
@@ -66,7 +77,10 @@ public sealed class SelectCardHandler(
     IDungeonRunDomainService runs,
     ICommandBus commandBus,
     IGameMessageSender sender,
-    ILogger<SelectCardHandler> logger) : ClientMessageHandler<SelectCardRequest>
+    ILogger<SelectCardHandler> logger,
+    DungeonCardSelectionProjectionDelivery? projection = null,
+    DungeonCardPresentationCoordinator? cardPresentation = null)
+    : ClientMessageHandler<SelectCardRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -131,11 +145,20 @@ public sealed class SelectCardHandler(
             result.GoldCharged,
             result.GoldPaid);
 
+        if (message.Kind is ClearRewardCardKind.Free)
+            cardPresentation?.Cancel(session.CharacterId, run.RunId);
+
+        if (projection is not null)
+        {
+            await projection.DeliverAsync(
+                session, result, published.World.PreparedAt, cancellationToken)
+                .ConfigureAwait(false);
+            return;
+        }
+
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
-            new GameExplicitMessageDelivery(
-                Frames(result, message.Index, published.World.PreparedAt),
-                []),
+            new GameExplicitMessageDelivery(Frames(result, published.World.PreparedAt), []),
             cancellationToken).ConfigureAwait(false);
     }
 
@@ -149,11 +172,12 @@ public sealed class SelectCardHandler(
     /// defect wore: the server had the right number and the client was never told it.
     /// </remarks>
     private static IReadOnlyList<IGameServerMessage> Frames(
-        SelectCardResult result, int index, DateTimeOffset preparedAt)
+        SelectCardResult result, DateTimeOffset preparedAt)
     {
         var frames = new List<IGameServerMessage>
         {
-            new SelectCardResponse(result.Kind, index),
+            new SelectCardResponse(result.Change?.Selections
+                ?? [new DungeonCardSelection(result.Kind, result.Index, default, Seat: 0)]),
         };
         if (result.Delivered is { } delivered)
             frames.Add(GameInventoryDelivery.Notification(delivered));

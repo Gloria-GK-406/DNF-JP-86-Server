@@ -11,6 +11,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Parties;
+using Dfo.Server.Protocol.Game.CardReward;
 using Dfo.Server.Protocol.Game.MonsterDeath;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.Dungeons;
@@ -154,7 +155,8 @@ public sealed class GiveUpGameHandler(
     SelectedSessionTransitionGate transitionGate,
     ITownAreaDomainService? townAreas = null,
     ICommandBus? commands = null,
-    PartyNotificationDelivery? partyNotifications = null)
+    PartyNotificationDelivery? partyNotifications = null,
+    DungeonCardPresentationCoordinator? cardPresentation = null)
     : ClientMessageHandler<GiveUpGameRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -184,6 +186,8 @@ public sealed class GiveUpGameHandler(
                 return;
 
             var currentRun = runs.Find(session.CharacterId);
+            if (currentRun is not null)
+                cardPresentation?.Cancel(session.CharacterId, currentRun.RunId);
             ended = currentRun is not null && runs.End(session.CharacterId, currentRun.RunId);
             if (ended && currentRun is not null)
                 deliveries.RemoveParticipant(currentRun.RunId, session.CharacterId);
@@ -641,7 +645,9 @@ public sealed class SetPlayResultHandler(
     ICommandBus commandBus,
     IQuestOfferRefreshDomainService offers,
     IGameMessageSender sender,
-    ILogger<SetPlayResultHandler> logger) : ClientMessageHandler<SetPlayResultRequest>
+    ILogger<SetPlayResultHandler> logger,
+    DungeonCardPresentationCoordinator? cardPresentation = null)
+    : ClientMessageHandler<SetPlayResultRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -921,6 +927,7 @@ public sealed class SetPlayResultHandler(
                 context.Connection.ConnectionId,
                 new GameExplicitMessageDelivery(frames, []),
                 cancellationToken).ConfigureAwait(false);
+            cardPresentation?.ScheduleAfterSettlement(session, currentRun.RunId);
         }
         catch
         {

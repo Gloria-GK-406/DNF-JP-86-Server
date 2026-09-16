@@ -1,5 +1,7 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Transactions;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -246,6 +248,9 @@ public sealed class DungeonRunDomainServiceTests
         Assert.NotNull(service.TryTakeGroundDrop(leader.CharacterId, drop.Number));
         Assert.Null(service.TryTakeGroundDrop(member.CharacterId, drop.Number));
 
+        var beforeSettlement = service.Find(leader.CharacterId)!;
+        Assert.NotNull(service.TryOpenClear(
+            leader.CharacterId, beforeSettlement.RunId, beforeSettlement.RoomVersion));
         Assert.NotNull(service.TrySettle(leader.CharacterId));
         Assert.NotNull(service.TrySettle(member.CharacterId));
         Assert.Null(service.TrySettle(leader.CharacterId));
@@ -303,8 +308,7 @@ public sealed class DungeonRunDomainServiceTests
     public void A_piece_can_be_taken_once()
     {
         var service = new DungeonRunDomainService();
-        service.Begin(Character, Tutorial, difficulty: 0);
-
+        var run = service.Begin(Character, Tutorial, difficulty: 0);
         var afterTaking = service.TryTakeGroundDrop(Character, 1);
 
         Assert.NotNull(afterTaking);
@@ -395,6 +399,41 @@ public sealed class DungeonRunDomainServiceTests
     }
 
     [Fact]
+    public void Committed_pickups_publish_one_monotonic_change_to_active_participants()
+    {
+        var leader = new DungeonRunParticipant(
+            new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
+        var member = new DungeonRunParticipant(
+            new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
+        var service = new DungeonRunDomainService();
+        var run = service.BeginParty([leader, member], Tutorial, difficulty: 0);
+        var first = Assert.IsType<DungeonGroundDropClaim>(
+            service.TryClaimGroundDrop(leader.CharacterId, run.RunId, run.RoomVersion, 1));
+
+        var item = Assert.IsType<DungeonPickupChange>(
+            service.CommitGroundDrop(first, DungeonPickupKind.Item));
+
+        Assert.Equal(run.RunId, item.RunId);
+        Assert.Equal(1, item.Revision);
+        Assert.Equal(leader.CharacterId, item.Picker);
+        Assert.Equal(new GroundDropId(run.CurrentCell, 1), item.Drop);
+        Assert.Equal(DungeonPickupKind.Item, item.Kind);
+        Assert.Equal([leader.CharacterId, member.CharacterId], item.Recipients);
+        Assert.Null(service.TryClaimGroundDrop(
+            member.CharacterId, run.RunId, run.RoomVersion, 1));
+
+        var second = Assert.IsType<DungeonGroundDropClaim>(
+            service.TryClaimGroundDrop(member.CharacterId, run.RunId, run.RoomVersion, 2));
+        Assert.True(service.End(leader.CharacterId, run.RunId));
+
+        var gold = Assert.IsType<DungeonPickupChange>(
+            service.CommitGroundDrop(second, DungeonPickupKind.Gold));
+
+        Assert.Equal(2, gold.Revision);
+        Assert.Equal([member.CharacterId], gold.Recipients);
+    }
+
+    [Fact]
     public void A_retried_party_death_claims_only_the_participant_whose_effect_is_unfinished()
     {
         var leader = new DungeonRunParticipant(
@@ -444,7 +483,8 @@ public sealed class DungeonRunDomainServiceTests
     public void A_failed_settlement_claim_can_retry_but_a_committed_one_cannot()
     {
         var service = new DungeonRunDomainService();
-        service.Begin(Character, Tutorial, difficulty: 0);
+        var run = service.Begin(Character, Tutorial, difficulty: 0);
+        Assert.NotNull(service.TryOpenClear(Character, run.RunId, run.RoomVersion));
 
         var failed = Assert.IsType<DungeonSettlementClaim>(
             service.TryClaimSettlement(Character));
@@ -475,7 +515,6 @@ public sealed class DungeonRunDomainServiceTests
         var service = new DungeonRunDomainService();
         var old = service.Begin(Character, Tutorial, difficulty: 0);
         var replacement = service.Begin(Character, Tutorial, difficulty: 1);
-
         Assert.False(service.End(Character, old.RunId));
         Assert.Equal(replacement.RunId, service.Find(Character)!.RunId);
         Assert.True(service.End(Character, replacement.RunId));
@@ -557,6 +596,8 @@ public sealed class DungeonRunDomainServiceTests
         var service = new DungeonRunDomainService();
         var old = service.Begin(Character, Tutorial, difficulty: 0);
         var replacement = service.Begin(Character, Tutorial, difficulty: 1);
+        Assert.NotNull(service.TryOpenClear(
+            Character, replacement.RunId, replacement.RoomVersion));
 
         Assert.Null(service.TryClaimSettlement(Character, old.RunId));
         Assert.NotNull(service.TryClaimSettlement(Character, replacement.RunId));
@@ -574,7 +615,7 @@ public sealed class DungeonRunDomainServiceTests
         Assert.True(service.ReleaseGroundDrop(first));
         var retry = Assert.IsType<DungeonGroundDropClaim>(
             service.TryClaimGroundDrop(Character, run.RunId, run.RoomVersion, 1));
-        Assert.NotNull(service.CommitGroundDrop(retry));
+        Assert.NotNull(service.CommitGroundDrop(retry, DungeonPickupKind.Item));
         Assert.Null(service.TryClaimGroundDrop(Character, run.RunId, run.RoomVersion, 1));
     }
 
@@ -592,7 +633,7 @@ public sealed class DungeonRunDomainServiceTests
                 leader.CharacterId, run.RunId, run.RoomVersion, groundDropNumber: 1));
 
         Assert.True(service.End(leader.CharacterId, run.RunId));
-        Assert.NotNull(service.CommitGroundDrop(claim));
+        Assert.NotNull(service.CommitGroundDrop(claim, DungeonPickupKind.Item));
         Assert.Null(service.TryClaimGroundDrop(
             member.CharacterId, run.RunId, run.RoomVersion, groundDropNumber: 1));
     }
@@ -607,6 +648,11 @@ public sealed class DungeonRunDomainServiceTests
         var paid = new ClearRewardCardFace(
             ClearRewardCardKind.Paid, [new ClearRewardCardSlot(0, null)], Gold: 2);
         service.FixClearRewardCards(Character, run.RunId, free, paid, 3);
+        Assert.NotNull(service.TryOpenClear(Character, run.RunId, run.RoomVersion));
+        var settlement = Assert.IsType<DungeonSettlementClaim>(
+            service.TryClaimSettlement(Character, run.RunId));
+        Assert.NotNull(service.CommitSettlement(settlement));
+        Assert.NotNull(service.TryOpenCardLayout(Character, run.RunId));
 
         var first = Assert.IsType<DungeonClearRewardCardClaim>(
             service.TryReserveClearRewardCard(
@@ -617,9 +663,222 @@ public sealed class DungeonRunDomainServiceTests
         var retry = Assert.IsType<DungeonClearRewardCardClaim>(
             service.TryReserveClearRewardCard(
                 Character, run.RunId, ClearRewardCardKind.Free, 0));
-        Assert.True(service.CommitClearRewardCard(retry));
+        Assert.NotNull(service.CommitClearRewardCard(retry).Change);
         Assert.Null(service.TryReserveClearRewardCard(
             Character, run.RunId, ClearRewardCardKind.Free, 0));
+    }
+
+    [Fact]
+    public async Task Clear_card_selection_is_published_only_after_the_transaction_commits()
+    {
+        var scope = new DomainTransactionScope();
+        var service = new DungeonRunDomainService(scope);
+        var run = PrepareCardPanel(service);
+
+        await using var transaction = scope.Begin();
+        var claim = Assert.IsType<DungeonClearRewardCardClaim>(
+            service.TryReserveClearRewardCard(
+                Character, run.RunId, ClearRewardCardKind.Free, 0));
+        var receipt = service.CommitClearRewardCard(claim);
+
+        Assert.Null(receipt.Change);
+        Assert.Empty(service.Find(Character)!.CardSelections);
+
+        await transaction.CommitAsync(CancellationToken.None);
+
+        Assert.NotNull(receipt.Change);
+        Assert.Single(service.Find(Character)!.CardSelections);
+    }
+
+    [Fact]
+    public async Task Durable_commit_failure_rolls_back_the_card_selection_and_allows_one_retry()
+    {
+        var scope = new DomainTransactionScope();
+        var service = new DungeonRunDomainService(scope);
+        var run = PrepareCardPanel(service);
+
+        await using (var transaction = scope.Begin())
+        {
+            var claim = Assert.IsType<DungeonClearRewardCardClaim>(
+                service.TryReserveClearRewardCard(
+                    Character, run.RunId, ClearRewardCardKind.Free, 0));
+            var receipt = service.CommitClearRewardCard(claim);
+            _ = scope.Current!.Enlist("failing durable store", static () => new FailingCommit());
+
+            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await transaction.CommitAsync(CancellationToken.None));
+
+            Assert.Null(receipt.Change);
+            Assert.Empty(service.Find(Character)!.CardSelections);
+        }
+
+        var retry = Assert.IsType<DungeonClearRewardCardClaim>(
+            service.TryReserveClearRewardCard(
+                Character, run.RunId, ClearRewardCardKind.Free, 0));
+        Assert.NotNull(service.CommitClearRewardCard(retry).Change);
+        Assert.Null(service.TryReserveClearRewardCard(
+            Character, run.RunId, ClearRewardCardKind.Free, 0));
+    }
+
+    [Fact]
+    public async Task Prepared_card_keeps_its_exact_reservation_when_actor_leaves_during_durable_commit()
+    {
+        var scope = new DomainTransactionScope();
+        var service = new DungeonRunDomainService(scope);
+        var leader = new DungeonRunParticipant(
+            new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
+        var member = new DungeonRunParticipant(
+            new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
+        var run = PreparePartyCardPanel(service, leader, member);
+        DungeonClearRewardCardClaim? stolen = null;
+
+        DungeonCardSelectionCommit receipt;
+        await using (var transaction = scope.Begin())
+        {
+            var claim = Assert.IsType<DungeonClearRewardCardClaim>(
+                service.TryReserveClearRewardCard(
+                    leader.CharacterId, run.RunId, ClearRewardCardKind.Free, 0));
+            receipt = service.CommitClearRewardCard(claim);
+            _ = scope.Current!.Enlist(
+                "durable store",
+                () => new CallbackCommit(() =>
+                {
+                    Assert.True(service.End(leader.CharacterId, run.RunId));
+                    stolen = service.TryReserveClearRewardCard(
+                        member.CharacterId, run.RunId, ClearRewardCardKind.Free, 0);
+                }));
+
+            await transaction.CommitAsync(CancellationToken.None);
+        }
+
+        Assert.Null(stolen);
+        var committed = Assert.IsType<DungeonCardSelectionChange>(receipt.Change);
+        Assert.Equal([member.CharacterId], committed.Recipients);
+        Assert.Equal(leader.CharacterId, Assert.Single(committed.Selections).CharacterId);
+
+        var memberClaim = Assert.IsType<DungeonClearRewardCardClaim>(
+            service.TryReserveClearRewardCard(
+                member.CharacterId, run.RunId, ClearRewardCardKind.Free, 1));
+        Assert.NotNull(service.CommitClearRewardCard(memberClaim).Change);
+    }
+
+    [Fact]
+    public void Shared_card_columns_are_unique_and_changes_carry_the_complete_party_snapshot()
+    {
+        var leader = new DungeonRunParticipant(
+            new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
+        var member = new DungeonRunParticipant(
+            new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
+        var service = new DungeonRunDomainService();
+        var run = service.BeginParty([leader, member], Tutorial, difficulty: 0);
+        var free = new ClearRewardCardFace(
+            ClearRewardCardKind.Free,
+            [new ClearRewardCardSlot(0, null), new ClearRewardCardSlot(1, null)],
+            Gold: 1);
+        var paid = new ClearRewardCardFace(
+            ClearRewardCardKind.Paid,
+            [new ClearRewardCardSlot(0, null), new ClearRewardCardSlot(1, null)],
+            Gold: 2);
+
+        Assert.NotNull(service.TryOpenClear(leader.CharacterId, run.RunId, run.RoomVersion));
+        foreach (var participant in new[] { leader, member })
+        {
+            Assert.NotNull(service.FixClearRewardCards(
+                participant.CharacterId, run.RunId, free, paid, paidFlipCost: 3));
+            var settlement = Assert.IsType<DungeonSettlementClaim>(
+                service.TryClaimSettlement(participant.CharacterId, run.RunId));
+            Assert.NotNull(service.CommitSettlement(settlement));
+            Assert.NotNull(service.TryOpenCardLayout(participant.CharacterId, run.RunId));
+        }
+
+        var leaderClaim = Assert.IsType<DungeonClearRewardCardClaim>(
+            service.TryReserveClearRewardCard(
+                leader.CharacterId, run.RunId, ClearRewardCardKind.Free, 0));
+        Assert.Null(service.TryReserveClearRewardCard(
+            member.CharacterId, run.RunId, ClearRewardCardKind.Free, 0));
+        var leaderChange = Assert.IsType<DungeonCardSelectionChange>(
+            service.CommitClearRewardCard(leaderClaim).Change);
+        var first = Assert.Single(leaderChange.Selections);
+        Assert.Equal((leader.CharacterId, (byte)0, 0),
+            (first.CharacterId, first.Seat, first.Index));
+        Assert.Equal([leader.CharacterId, member.CharacterId], leaderChange.Recipients);
+        Assert.Null(service.TryReserveClearRewardCard(
+            leader.CharacterId, run.RunId, ClearRewardCardKind.Free, 1));
+
+        var memberClaim = Assert.IsType<DungeonClearRewardCardClaim>(
+            service.TryReserveClearRewardCard(
+                member.CharacterId, run.RunId, ClearRewardCardKind.Free, 1));
+        var memberChange = Assert.IsType<DungeonCardSelectionChange>(
+            service.CommitClearRewardCard(memberClaim).Change);
+        Assert.Collection(
+            memberChange.Selections,
+            selection => Assert.Equal((0, (byte)0), (selection.Index, selection.Seat)),
+            selection => Assert.Equal((1, (byte)1), (selection.Index, selection.Seat)));
+        Assert.Equal(memberChange.Selections, service.Find(leader.CharacterId)!.CardSelections);
+
+        Assert.True(service.End(leader.CharacterId, run.RunId));
+        var remainingClaim = Assert.IsType<DungeonClearRewardCardClaim>(
+            service.TryReserveClearRewardCard(
+                member.CharacterId, run.RunId, ClearRewardCardKind.Paid, 0));
+        var afterDeparture = Assert.IsType<DungeonCardSelectionChange>(
+            service.CommitClearRewardCard(remainingClaim).Change);
+        Assert.Equal([member.CharacterId], afterDeparture.Recipients);
+        Assert.Null(service.Find(leader.CharacterId));
+        Assert.Equal(run.RunId, service.Find(member.CharacterId)!.RunId);
+    }
+
+    private static DungeonRunState PrepareCardPanel(DungeonRunDomainService service)
+    {
+        var run = service.Begin(Character, Tutorial, difficulty: 0);
+        var free = new ClearRewardCardFace(
+            ClearRewardCardKind.Free, [new ClearRewardCardSlot(0, null)], Gold: 1);
+        var paid = new ClearRewardCardFace(
+            ClearRewardCardKind.Paid, [new ClearRewardCardSlot(0, null)], Gold: 2);
+        Assert.NotNull(service.FixClearRewardCards(Character, run.RunId, free, paid, 3));
+        Assert.NotNull(service.TryOpenClear(Character, run.RunId, run.RoomVersion));
+        var settlement = Assert.IsType<DungeonSettlementClaim>(
+            service.TryClaimSettlement(Character, run.RunId));
+        Assert.NotNull(service.CommitSettlement(settlement));
+        Assert.NotNull(service.TryOpenCardLayout(Character, run.RunId));
+        return run;
+    }
+
+    private static DungeonRunState PreparePartyCardPanel(
+        DungeonRunDomainService service,
+        params DungeonRunParticipant[] participants)
+    {
+        var run = service.BeginParty(participants, Tutorial, difficulty: 0);
+        var free = new ClearRewardCardFace(
+            ClearRewardCardKind.Free,
+            [new ClearRewardCardSlot(0, null), new ClearRewardCardSlot(1, null)],
+            Gold: 1);
+        var paid = new ClearRewardCardFace(
+            ClearRewardCardKind.Paid,
+            [new ClearRewardCardSlot(0, null), new ClearRewardCardSlot(1, null)],
+            Gold: 2);
+        Assert.NotNull(service.TryOpenClear(
+            participants[0].CharacterId, run.RunId, run.RoomVersion));
+        foreach (var participant in participants)
+        {
+            Assert.NotNull(service.FixClearRewardCards(
+                participant.CharacterId, run.RunId, free, paid, 3));
+            var settlement = Assert.IsType<DungeonSettlementClaim>(
+                service.TryClaimSettlement(participant.CharacterId, run.RunId));
+            Assert.NotNull(service.CommitSettlement(settlement));
+            Assert.NotNull(service.TryOpenCardLayout(participant.CharacterId, run.RunId));
+        }
+        return run;
+    }
+
+    [Fact]
+    public void Settlement_is_refused_until_the_shared_clear_is_open()
+    {
+        var service = new DungeonRunDomainService();
+        var run = service.Begin(Character, Tutorial, difficulty: 0);
+
+        Assert.Null(service.TryClaimSettlement(Character, run.RunId));
+        Assert.NotNull(service.TryOpenClear(Character, run.RunId, run.RoomVersion));
+        Assert.NotNull(service.TryClaimSettlement(Character, run.RunId));
     }
 
     [Fact]
@@ -743,7 +1002,8 @@ public sealed class DungeonRunDomainServiceTests
     public void ARunIsSettledOnceAndARepeatIsRefused()
     {
         var runs = new DungeonRunDomainService();
-        runs.Begin(Character, Tutorial, difficulty: 0);
+        var run = runs.Begin(Character, Tutorial, difficulty: 0);
+        Assert.NotNull(runs.TryOpenClear(Character, run.RunId, run.RoomVersion));
 
         var settled = runs.TrySettle(Character);
 
@@ -762,7 +1022,8 @@ public sealed class DungeonRunDomainServiceTests
     public void SettlingDoesNotEndTheRun()
     {
         var runs = new DungeonRunDomainService();
-        runs.Begin(Character, Tutorial, difficulty: 0);
+        var run = runs.Begin(Character, Tutorial, difficulty: 0);
+        Assert.NotNull(runs.TryOpenClear(Character, run.RunId, run.RoomVersion));
         runs.TrySettle(Character);
 
         Assert.NotNull(runs.Find(Character));
@@ -773,4 +1034,58 @@ public sealed class DungeonRunDomainServiceTests
     [Fact]
     public void ACharacterInNoRunHasNothingToSettle() =>
         Assert.Null(new DungeonRunDomainService().TrySettle(Character));
+
+    [Fact]
+    public void Shared_clear_opens_once_with_one_revision_and_current_recipients()
+    {
+        var helper = new CharacterId(61);
+        var runs = new DungeonRunDomainService();
+        var started = runs.BeginParty(
+            [
+                new DungeonRunParticipant(new AccountId(6), Character, 0, IsLeader: true),
+                new DungeonRunParticipant(new AccountId(7), helper, 1, IsLeader: false),
+            ],
+            Tutorial,
+            difficulty: 0);
+
+        var opened = runs.TryOpenClear(Character, started.RunId, started.RoomVersion);
+
+        Assert.NotNull(opened);
+        Assert.Equal(1, opened.Revision);
+        Assert.Equal([Character, helper], opened.Recipients);
+        Assert.True(runs.Find(Character)!.ClearOpen);
+        Assert.True(runs.Find(helper)!.ClearOpen);
+        Assert.Null(runs.TryOpenClear(helper, started.RunId, started.RoomVersion));
+    }
+
+    private sealed class FailingCommit : ITransactionParticipant
+    {
+        public bool CommitCanFail => true;
+
+        public ValueTask PrepareAsync(CancellationToken cancellationToken) =>
+            ValueTask.CompletedTask;
+
+        public ValueTask CommitAsync(CancellationToken cancellationToken) =>
+            ValueTask.FromException(new InvalidOperationException("injected durable failure"));
+
+        public ValueTask RollbackAsync(CancellationToken cancellationToken) =>
+            ValueTask.CompletedTask;
+    }
+
+    private sealed class CallbackCommit(Action callback) : ITransactionParticipant
+    {
+        public bool CommitCanFail => true;
+
+        public ValueTask PrepareAsync(CancellationToken cancellationToken) =>
+            ValueTask.CompletedTask;
+
+        public ValueTask CommitAsync(CancellationToken cancellationToken)
+        {
+            callback();
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask RollbackAsync(CancellationToken cancellationToken) =>
+            ValueTask.CompletedTask;
+    }
 }

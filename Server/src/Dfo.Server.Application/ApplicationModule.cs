@@ -129,10 +129,12 @@ public sealed class ApplicationModule : IServerModule
         // What the archive declares about quests, and the shared parameters a reward is worked
         // out from. One reader for both, because no quest outcome is decided without both.
         services.TryAddSingleton<IQuestContentRuleService, QuestContentRuleService>();
+        services.TryAddSingleton<ISeekingQuestProgressDomainService, SeekingQuestProgressDomainService>();
         services.TryAddSingleton<IQuestRewardRuleService, QuestRewardRuleService>();
         services.TryAddSingleton<IDungeonLayoutRuleService, DungeonLayoutRuleService>();
         services.TryAddSingleton<IDungeonEntryIntentDomainService, DungeonEntryIntentDomainService>();
         services.TryAddSingleton<IDungeonSettlementRuleService, DungeonSettlementRuleService>();
+        services.TryAddSingleton<IDungeonClearDomainService, DungeonClearDomainService>();
         // What the server declares about its channels, and what a tutorial step hands over.
         services.TryAddSingleton<IChannelContentRuleService, ChannelContentRuleService>();
         services.TryAddSingleton<ITutorialRewardRuleService, TutorialRewardRuleService>();
@@ -242,6 +244,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<
             IChannelDirectoryDomainService, ChannelDirectoryDomainService>();
         services.TryAddSingleton<IMonsterDropService, MonsterDropService>();
+        services.TryAddSingleton<IQuestMonsterDropRuleService, QuestMonsterDropRuleService>();
         // What a character has left to spend, asked by identifier and worked out on the spot. The
         // arithmetic belongs to the shared skill rules; the state service supplies current facts.
         services.TryAddSingleton<ICharacterSkillStateDomainService, CharacterSkillStateDomainService>();

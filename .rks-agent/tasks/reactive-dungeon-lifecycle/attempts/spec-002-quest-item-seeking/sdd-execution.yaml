@@ -1,0 +1,15 @@
+kind: rks-sdd-execution
+controller: sdd-standard
+contract:
+  path: ./TaskContract.md
+  revision: 2
+parent_controller: ../../multi-spec-map.md
+current_stage: completed
+state: accepted
+artifacts:
+  spec: ./spec.md
+  diagnosis: ./diagnosis.md
+  plan: ./plan.md
+  result: ./spec-result.md
+  change_review: ./reviews/change-review.md
+  completion_evidence: ./verification/completion-evidence.md

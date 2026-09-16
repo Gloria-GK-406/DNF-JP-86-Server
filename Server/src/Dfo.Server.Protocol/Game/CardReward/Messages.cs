@@ -44,10 +44,22 @@ public sealed record SelectCardRequest(
 /// the request's position byte is a written-in constant. See
 /// <see cref="CardRewardPayloadCodec.EncodeSelectCardResponse"/>.
 /// </remarks>
-/// <param name="Kind">Which row was turned over: the free row or the gold one.</param>
-/// <param name="TurnedColumn">Which column of that row this answer declares face up.</param>
-public sealed record SelectCardResponse(ClearRewardCardKind Kind, int TurnedColumn)
+/// <param name="Selections">The complete shared ownership snapshot after the flip.</param>
+public sealed record SelectCardResponse(IReadOnlyList<DungeonCardSelection> Selections)
     : IGameCmdMessage
 {
+    public SelectCardResponse(ClearRewardCardKind kind, int turnedColumn)
+        : this([new DungeonCardSelection(kind, turnedColumn, default, Seat: 0)])
+    {
+    }
+
+    /// <summary>Compatibility view for single-selection callers and diagnostics.</summary>
+    public ClearRewardCardKind Kind => this.Selections.Count == 0
+        ? ClearRewardCardKind.Free
+        : this.Selections[^1].Kind;
+
+    /// <summary>Compatibility view for single-selection callers and diagnostics.</summary>
+    public int TurnedColumn => this.Selections.Count == 0 ? -1 : this.Selections[^1].Index;
+
     public ServerMessageType MessageType => ServerMessageType.GameSelectCard;
 }

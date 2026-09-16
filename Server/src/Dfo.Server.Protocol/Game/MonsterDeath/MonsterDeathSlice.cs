@@ -118,7 +118,8 @@ internal sealed record MonsterDeathNotification(
     ushort ActorSequence,
     IReadOnlyList<MonsterDrop> Drops,
     ushort Owner,
-    uint Instance = 0) : IGameNotiMessage
+    uint Instance = 0,
+    IReadOnlyDictionary<ushort, ushort>? DropOwners = null) : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameMonsterDeath;
 
@@ -179,7 +180,7 @@ internal static class MonsterDeathPayloadCodec
             System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(
                 record[16..], message.Instance);
             System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(
-                record[44..], message.Owner);
+                record[44..], message.DropOwners?.GetValueOrDefault(drop.Number) ?? message.Owner);
         }
 
         MonsterDeathTail.CopyTo(body.AsSpan(body.Length - MonsterDeathTail.Length));
@@ -365,7 +366,8 @@ public sealed class MonsterDeathHandler(
     IDungeonRunDomainService runs,
     IMonsterKillDomainService kills,
     IMonsterDropService drops,
-    IDungeonSettlementRuleService settlementRules,
+    IDungeonClearDomainService clearEvaluator,
+    DungeonClearProjectionDelivery clearProjection,
     ICommandBus commandBus,
     IQuestOfferRefreshDomainService offers,
     DungeonRunDeliveryRegistry runDeliveries,
@@ -528,7 +530,8 @@ public sealed class MonsterDeathHandler(
                             message.ActorSequence,
                             verifiedKill.Level,
                             (int)verifiedKill.Rank,
-                            run.PartyMemberCount),
+                            run.PartyMemberCount,
+                            verifiedKill.Code),
                         cancellationToken).ConfigureAwait(false);
                     instance = GameDropIdentity.ForKill(run, message.ActorSequence);
                 }
@@ -624,7 +627,13 @@ public sealed class MonsterDeathHandler(
                 mirror, AccountHonorLevel.Initial,
                 ExperienceBonusLines.Of(award), diagnostics.LabelProbe),
             new MonsterDeathNotification(
-                message.ActorSequence, dropped, session.WireUserId, instance),
+                message.ActorSequence,
+                dropped,
+                session.WireUserId,
+                instance,
+                run is null
+                    ? new Dictionary<ushort, ushort>()
+                    : DropOwners(dropped)),
         ];
 
         if (award?.LeveledUp == true)
@@ -633,22 +642,27 @@ public sealed class MonsterDeathHandler(
                 level, result.World.Content.AvailableQuests));
         }
 
-        if (run is not null)
+        DungeonClearChange? clear = null;
+        if (run is not null
+            && await clearEvaluator.EvaluateAsync(
+                session.AccountId,
+                session.CharacterId,
+                run.RunId,
+                run.RoomVersion,
+                cancellationToken).ConfigureAwait(false) is { } opened)
         {
-            frames.AddRange(
-                await this.ClearedAsync(
-                    context,
-                    session.AccountId,
-                    session.CharacterId,
-                    run,
-                    cancellationToken)
-                    .ConfigureAwait(false));
+            clear = opened;
         }
 
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(frames, []),
             cancellationToken).ConfigureAwait(false);
+        if (clear is not null)
+        {
+            _ = await clearProjection.DeliverAsync(session, clear, cancellationToken)
+                .ConfigureAwait(false);
+        }
     }
 
     private async ValueTask HandlePartyDeathAsync(
@@ -800,7 +814,8 @@ public sealed class MonsterDeathHandler(
                         message.ActorSequence,
                         monster.Level,
                         (int)monster.Rank,
-                        run.PartyMemberCount),
+                        run.PartyMemberCount,
+                        monster.Code),
                     cancellationToken).ConfigureAwait(false);
                 instance = GameDropIdentity.ForKill(deathClaim.Run, message.ActorSequence);
             }
@@ -815,15 +830,12 @@ public sealed class MonsterDeathHandler(
             ?? throw new InvalidOperationException(
                 "The actor-death claim was no longer current after its durable effects.");
 
-        var leader = run.Participants.Single(value => value.IsLeader);
-        var clearedFrames = await this.ClearedAsync(
-            context,
-            leader.AccountId,
-            leader.CharacterId,
-            run,
-            cancellationToken).ConfigureAwait(false);
         var sharedDeath = new MonsterDeathNotification(
-            message.ActorSequence, dropped, reporter.WireUserId, instance);
+            message.ActorSequence,
+            dropped,
+            reporter.WireUserId,
+            instance,
+            DropOwners(dropped));
 
         var framesByCharacter = new Dictionary<CharacterId, IReadOnlyList<IGameServerMessage>>();
         foreach (var recipient in recipients)
@@ -832,7 +844,7 @@ public sealed class MonsterDeathHandler(
                 recipient,
                 results.GetValueOrDefault(recipient.Session.CharacterId),
                 sharedDeath,
-                clearedFrames,
+                [],
                 cancellationToken).ConfigureAwait(false);
             framesByCharacter[recipient.Session.CharacterId] = frames;
         }
@@ -851,11 +863,23 @@ public sealed class MonsterDeathHandler(
                 framesByCharacter[value.Session.CharacterId]))
             .ToArray();
 
+        var clear = await clearEvaluator.EvaluateAsync(
+            reporter.AccountId,
+            reporter.CharacterId,
+            run.RunId,
+            run.RoomVersion,
+            cancellationToken).ConfigureAwait(false);
+
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(requiredFrames, secondary),
             cancellationToken).ConfigureAwait(false);
         runDeliveries.CompleteKillDelivery(deathClaim.RunId, deathClaim.Actor);
+        if (clear is not null)
+        {
+            _ = await clearProjection.DeliverAsync(reporter, clear, cancellationToken)
+                .ConfigureAwait(false);
+        }
     }
 
     private async ValueTask<IReadOnlyList<IGameServerMessage>> PartyFramesAsync(
@@ -967,6 +991,20 @@ public sealed class MonsterDeathHandler(
         }
     }
 
+    private static IReadOnlyDictionary<ushort, ushort> DropOwners(
+        IReadOnlyList<MonsterDrop> drops)
+    {
+        if (drops.All(drop => drop.Rolled.OwnerCharacterId is null))
+            return new Dictionary<ushort, ushort>();
+
+        return drops
+            .Where(drop => drop.Rolled.OwnerCharacterId is { })
+            .ToDictionary(
+                drop => drop.Number,
+                drop => SelectedSessionIdentity.ToWireUserId(
+                    drop.Rolled.OwnerCharacterId!.Value));
+    }
+
     private sealed record PartyDeathRecipient(
         SelectedSessionIdentity Session,
         SelectCharacterResult Runtime,
@@ -1014,60 +1052,4 @@ public sealed class MonsterDeathHandler(
         return killed;
     }
 
-    /// <summary>
-    /// The frames that follow the kill that empties the boss room, and nothing otherwise.
-    /// </summary>
-    /// <remarks>
-    /// This is where a run ends. The client asks for nothing after the last monster falls until it
-    /// has been told the dungeon may be cleared -- which is what a live session showed on
-    /// 2026-08-26, the player left standing in an emptied boss room with only heartbeats on the
-    /// wire.
-    /// <para>
-    /// Fired once, because the report that empties the room can only happen once: the caller has
-    /// already refused a repeated death, and a run reached here is one that took a fresh one.
-    /// </para>
-    /// </remarks>
-    private async ValueTask<IReadOnlyList<IGameServerMessage>> ClearedAsync(
-        NetworkDispatchContext context,
-        AccountId accountId,
-        CharacterId characterId,
-        DungeonRunState run,
-        CancellationToken cancellationToken)
-    {
-        if (!run.IsBossRoom)
-            return [];
-
-        if (!await kills.IsCurrentRoomClearedAsync(run, cancellationToken).ConfigureAwait(false))
-            return [];
-
-        var settlement = await settlementRules.ForAsync(
-            accountId,
-            characterId,
-            run,
-            cancellationToken).ConfigureAwait(false);
-        if (!settlement.CanComplete)
-        {
-            logger.LogInformation(
-                "Monster death {ConnectionId} character={CharacterId}: boss room is clear but "
-                    + "run purpose {Purpose} is not complete",
-                context.Connection.ConnectionId,
-                characterId.Value,
-                run.Layout.Purpose);
-            return [];
-        }
-
-        logger.LogInformation(
-            "Monster death {ConnectionId} character={CharacterId}: boss room {RoomId} of dungeon "
-                + "{DungeonId} is clear, opening the exit",
-            context.Connection.ConnectionId,
-            characterId.Value,
-            run.CurrentRoomMapId,
-            run.Layout.DungeonId);
-
-        return
-        [
-            new EnableClearDungeonNotification(),
-            new SecretShopNpcNotification(GameProtocol.SecretShopNpcId),
-        ];
-    }
 }

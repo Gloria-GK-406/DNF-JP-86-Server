@@ -1,16 +1,20 @@
 using System.Buffers.Binary;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.DungeonClear;
 using Dfo.Server.Protocol.Game.Dungeons;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
@@ -231,6 +235,9 @@ public enum GroundPickupStatus
     /// <summary>The archive declares nothing holdable under that identifier.</summary>
     UnknownItem,
 
+    /// <summary>The piece belongs to another participant.</summary>
+    NotOwner,
+
     /// <summary>Gold, which goes onto the character rather than into a bag.</summary>
     Banked,
 }
@@ -241,8 +248,17 @@ public enum GroundPickupStatus
 /// went into a bag.
 /// </param>
 public sealed record GroundPickupResult(
-    GroundPickupStatus Status, int ItemId, int SlotIndex, int Amount = 0, int Total = 0)
+    GroundPickupStatus Status,
+    int ItemId,
+    int SlotIndex,
+    int Amount = 0,
+    int Total = 0,
+    DungeonPickupChange? Change = null,
+    SeekingQuestProgressSynchronization? QuestProgress = null,
+    DungeonPickupCommit? PendingCommit = null)
 {
+    public DungeonPickupChange? CommittedChange => this.PendingCommit?.Change ?? this.Change;
+
     public static GroundPickupResult Refused(GroundPickupStatus status, int itemId = 0) =>
         new(status, itemId, 0);
 }
@@ -275,7 +291,8 @@ public sealed class PickUpGroundDropCommandHandler(
     IDungeonRunDomainService runs,
     IGroundPickupDomainService floor,
     ICharacterContainerDomainService containers,
-    ICharacterDomainService characters)
+    ICharacterDomainService characters,
+    ISeekingQuestProgressDomainService seekingQuests)
     : ICommandHandler<PickUpGroundDropCommand, GroundPickupResult>
 {
     public async ValueTask<GroundPickupResult> HandleAsync(
@@ -296,6 +313,8 @@ public sealed class PickUpGroundDropCommandHandler(
             .ConfigureAwait(false);
         if (found is null)
             return GroundPickupResult.Refused(GroundPickupStatus.NothingThere);
+        if (found.OwnerCharacterId is { } owner && owner != command.CharacterId)
+            return GroundPickupResult.Refused(GroundPickupStatus.NotOwner, found.ItemId);
 
         var piece = Announced(run, found);
 
@@ -313,13 +332,20 @@ public sealed class PickUpGroundDropCommandHandler(
             {
                 var total = await characters.Get(command.CharacterId)
                     .AddGoldAsync(piece.Count, cancellationToken).ConfigureAwait(false);
-                if (runs.CommitGroundDrop(claim) is null)
+                var staged = runs.StageGroundDrop(claim, DungeonPickupKind.Gold);
+                if (!staged.IsDeferred && staged.Change is null)
                 {
                     throw new InvalidOperationException(
                         "The ground-drop claim was no longer current after its durable gold award.");
                 }
                 return new GroundPickupResult(
-                    GroundPickupStatus.Banked, RolledDrop.GoldItemId, 0, piece.Count, total);
+                    GroundPickupStatus.Banked,
+                    RolledDrop.GoldItemId,
+                    0,
+                    piece.Count,
+                    total,
+                    Change: staged.Change,
+                    PendingCommit: staged.IsDeferred ? staged : null);
             }
             catch
             {
@@ -369,13 +395,23 @@ public sealed class PickUpGroundDropCommandHandler(
                         nameof(command), outcome, "No reading was decided for this outcome.");
             }
 
-            if (runs.CommitGroundDrop(itemClaim) is null)
+            var questProgress = await seekingQuests.SynchronizeAsync(
+                command.AccountId,
+                command.CharacterId,
+                cancellationToken).ConfigureAwait(false);
+            var staged = runs.StageGroundDrop(itemClaim, DungeonPickupKind.Item);
+            if (!staged.IsDeferred && staged.Change is null)
             {
                 throw new InvalidOperationException(
                     "The ground-drop claim was no longer current after its durable item award.");
             }
             return new GroundPickupResult(
-                GroundPickupStatus.PickedUp, piece.ItemId, slotIndex);
+                GroundPickupStatus.PickedUp,
+                piece.ItemId,
+                slotIndex,
+                Change: staged.Change,
+                QuestProgress: questProgress,
+                PendingCommit: staged.IsDeferred ? staged : null);
         }
         catch
         {
@@ -483,14 +519,150 @@ public sealed class PickUpGroundDropCommandHandler(
 /// The order is the reference server's and it is not decoration: the client consumes the one-byte
 /// acknowledgement and only then reads the notification that says where the piece went.
 /// </remarks>
+/// <summary>Projects one committed shared pickup onto current transport generations.</summary>
+public sealed class DungeonPickupProjectionDelivery(
+    ISelectedSessionDomainService selectedSessions,
+    DungeonRunDeliveryRegistry deliveries,
+    IGameMessageSender sender,
+    TimeProvider clock)
+{
+    public async ValueTask<bool> DeliverAsync(
+        SelectedSessionIdentity requester,
+        GroundPickupResult result,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(requester);
+        ArgumentNullException.ThrowIfNull(result);
+        var change = result.CommittedChange;
+        if (change is null || change.Picker != requester.CharacterId)
+            return false;
+
+        var recipients = change.Recipients.ToHashSet();
+        var frozenPicker = deliveries.Find(change.RunId)
+            .SingleOrDefault(frozen => frozen.CharacterId == change.Picker);
+        if (!recipients.Contains(change.Picker)
+            || frozenPicker is null
+            || frozenPicker != requester
+            || selectedSessions.FindByCharacter(change.Picker) != frozenPicker)
+        {
+            return false;
+        }
+
+        IGameServerMessage notification;
+        IReadOnlyList<IGameServerMessage> required;
+        switch (result.Status)
+        {
+            case GroundPickupStatus.Banked when change.Kind is DungeonPickupKind.Gold:
+                notification = new GroundGoldPickupNotification(
+                    change.Drop.Number, requester.WireUserId, result.Amount);
+                required =
+                [
+                    new GetItemResponse(Accepted: true),
+                    notification,
+                    GameInventoryDelivery.CarriedGoldNotification(
+                        result.Total, clock.GetUtcNow()),
+                ];
+                break;
+
+            case GroundPickupStatus.PickedUp when change.Kind is DungeonPickupKind.Item:
+                notification = new GroundPickupNotification(
+                    change.Drop.Number,
+                    requester.WireUserId,
+                    checked((ushort)result.SlotIndex));
+                var itemMessages = new List<IGameServerMessage>
+                {
+                    new GetItemResponse(Accepted: true),
+                    notification,
+                };
+                if (result.QuestProgress is { } questProgress)
+                {
+                    itemMessages.Add(new AcceptedQuestProgressMessage(
+                        [.. questProgress.Quests
+                            .OrderBy(quest => quest.Slot)
+                            .Select(quest => new AcceptedQuestProgressState(
+                                checked((ushort)quest.QuestId),
+                                unchecked((uint)quest.TriggerValue)))]));
+                }
+                required = itemMessages;
+                break;
+
+            default:
+                return false;
+        }
+
+        var secondary = deliveries.Find(change.RunId)
+            .Where(frozen => frozen.CharacterId != change.Picker)
+            .Where(frozen => recipients.Contains(frozen.CharacterId))
+            .Where(frozen => selectedSessions.FindByCharacter(frozen.CharacterId) == frozen)
+            .Select(frozen => new GameExplicitMessageTarget(
+                frozen.ConnectionId,
+                [notification]))
+            .ToArray();
+
+        await sender.SendExplicitAsync(
+            requester.ConnectionId,
+            new GameExplicitMessageDelivery(required, secondary),
+            cancellationToken).ConfigureAwait(false);
+
+        return true;
+    }
+
+    public ValueTask RefuseInventoryFullAsync(
+        SelectedSessionIdentity requester,
+        CancellationToken cancellationToken) =>
+        sender.SendExplicitAsync(
+            requester.ConnectionId,
+            new GameExplicitMessageDelivery([new GetItemResponse(Accepted: false)], []),
+            cancellationToken);
+}
+
+/// <summary>
+/// Re-evaluates shared clear state after a quest pickup commits, independently of transport
+/// eligibility, then projects that committed fact on its own generation-filtered path.
+/// </summary>
+/// <remarks>
+/// Evaluation is deliberately non-cancellable once the pickup transaction committed. A closed or
+/// replaced requester connection may suppress wire delivery, but cannot suppress the shared run's
+/// authoritative transition.
+/// </remarks>
+public sealed class DungeonPickupPostCommitCoordinator(
+    IDungeonClearDomainService clearEvaluator,
+    DungeonClearProjectionDelivery clearProjection)
+{
+    public ValueTask<DungeonClearChange?> EvaluateAsync(
+        SelectedSessionIdentity requester,
+        GroundPickupResult result)
+    {
+        ArgumentNullException.ThrowIfNull(requester);
+        ArgumentNullException.ThrowIfNull(result);
+        var change = result.CommittedChange;
+        return result.Status is GroundPickupStatus.PickedUp
+            && result.QuestProgress is not null
+            && change is not null
+            && change.Picker == requester.CharacterId
+                ? clearEvaluator.EvaluateAsync(
+                    requester.AccountId,
+                    requester.CharacterId,
+                    change.RunId,
+                    change.RoomVersion,
+                    CancellationToken.None)
+                : ValueTask.FromResult<DungeonClearChange?>(null);
+    }
+
+    public ValueTask<int> ProjectAsync(
+        SelectedSessionIdentity requester,
+        DungeonClearChange change,
+        CancellationToken cancellationToken) =>
+        clearProjection.DeliverAsync(requester, change, cancellationToken);
+}
+
 public sealed class GetItemHandler(
     ISelectedSessionDomainService selectedSessions,
     IDungeonRunDomainService runs,
-    DungeonRunDeliveryRegistry deliveries,
     ICommandBus commandBus,
-    IGameMessageSender sender,
-    TimeProvider clock,
-    ILogger<GetItemHandler> logger) : ClientMessageHandler<GetItemRequest>
+    DungeonPickupProjectionDelivery projection,
+    ILogger<GetItemHandler> logger,
+    DungeonPickupPostCommitCoordinator? postCommit = null) : ClientMessageHandler<GetItemRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -507,11 +679,6 @@ public sealed class GetItemHandler(
             return;
         }
 
-        // The run is read before the shared claim. A successful claim removes the piece from the
-        // aggregate, but it does not end the run; this snapshot supplies only the immutable run id
-        // used to find the frozen delivery set. Delivery identities are still checked against the
-        // live selected-session directory below so a replacement connection never receives an old
-        // run's notification.
         var run = runs.Find(session.CharacterId);
         if (selectedSessions.FindByCharacter(session.CharacterId) != session)
             return;
@@ -524,6 +691,10 @@ public sealed class GetItemHandler(
                 run?.RunId ?? default,
                 run?.RoomVersion),
             cancellationToken).ConfigureAwait(false);
+        var clear = postCommit is null
+            ? null
+            : await postCommit.EvaluateAsync(session, result)
+                .ConfigureAwait(false);
 
         if (result.Status is GroundPickupStatus.Banked)
         {
@@ -536,28 +707,10 @@ public sealed class GetItemHandler(
                 result.Amount,
                 result.Total);
 
-            var pickup = new GroundGoldPickupNotification(
-                message.GroundDropNumber, session.WireUserId, result.Amount);
-            await sender.SendExplicitAsync(
-                context.Connection.ConnectionId,
-                new GameExplicitMessageDelivery(
-                    [
-                        new GetItemResponse(Accepted: true),
-                        pickup,
-
-                        // And what the character now actually carries. The frame above says how
-                        // much the pile held and the client adds it; this one says the total and
-                        // the client takes it as read. They agree on every ordinary pick-up, and
-                        // they disagree by exactly the amount the carry cap refused when the cap
-                        // was reached -- which is the case where the addition alone would leave
-                        // the player looking at a figure the server does not hold, right up until
-                        // the next entry. That is the shape of the defect this whole seam exists
-                        // to remove, so it is corrected in the same breath rather than detected.
-                        GameInventoryDelivery.CarriedGoldNotification(
-                            result.Total, clock.GetUtcNow()),
-                    ],
-                    this.OtherParticipants(run, session, pickup)),
-                cancellationToken).ConfigureAwait(false);
+            await projection.DeliverAsync(session, result, cancellationToken).ConfigureAwait(false);
+            if (clear is not null)
+                _ = await postCommit!.ProjectAsync(session, clear, cancellationToken)
+                    .ConfigureAwait(false);
             return;
         }
 
@@ -572,19 +725,10 @@ public sealed class GetItemHandler(
                 result.ItemId,
                 result.SlotIndex);
 
-            var pickup = new GroundPickupNotification(
-                message.GroundDropNumber,
-                session.WireUserId,
-                checked((ushort)result.SlotIndex));
-            await sender.SendExplicitAsync(
-                context.Connection.ConnectionId,
-                new GameExplicitMessageDelivery(
-                    [
-                        new GetItemResponse(Accepted: true),
-                        pickup,
-                    ],
-                    this.OtherParticipants(run, session, pickup)),
-                cancellationToken).ConfigureAwait(false);
+            await projection.DeliverAsync(session, result, cancellationToken).ConfigureAwait(false);
+            if (clear is not null)
+                _ = await postCommit!.ProjectAsync(session, clear, cancellationToken)
+                    .ConfigureAwait(false);
             return;
         }
 
@@ -599,28 +743,6 @@ public sealed class GetItemHandler(
         if (result.Status is not GroundPickupStatus.InventoryFull)
             return;
 
-        await sender.SendExplicitAsync(
-            context.Connection.ConnectionId,
-            new GameExplicitMessageDelivery([new GetItemResponse(Accepted: false)], []),
-            cancellationToken).ConfigureAwait(false);
-    }
-
-    private IReadOnlyList<GameExplicitMessageTarget> OtherParticipants(
-        DungeonRunState? run,
-        SelectedSessionIdentity picker,
-        IGameServerMessage notification)
-    {
-        if (run is null)
-            return [];
-
-        return
-        [
-            .. deliveries.Find(run.RunId)
-                .Where(frozen => frozen.CharacterId != picker.CharacterId)
-                .Where(frozen => selectedSessions.FindByCharacter(frozen.CharacterId) == frozen)
-                .Select(frozen => new GameExplicitMessageTarget(
-                    frozen.ConnectionId,
-                    [notification])),
-        ];
+        await projection.RefuseInventoryFullAsync(session, cancellationToken).ConfigureAwait(false);
     }
 }
