@@ -490,6 +490,98 @@ public sealed class MonsterDeathHandlerTests
     }
 
     [Fact]
+    public async Task Boss_death_projects_remaining_monsters_as_empty_deaths_before_clear()
+    {
+        var runs = new DungeonRunDomainService();
+        var layout = BossLayout();
+        var character = new CharacterId(60);
+        var other = checked((ushort)(DeadActor + 1));
+        _ = runs.PreparePartyEntry(
+            [new DungeonRunParticipant(new AccountId(1), character, 0, IsLeader: true)],
+            layout, difficulty: 0,
+            new DungeonCellSeed(
+                layout.StartCell, layout.StartRoomMapId, DeadActor,
+                [
+                    new DungeonCellActorState(
+                        DeadActor, new DungeonRoomActor(65303, 1, (byte)MonsterRank.Boss),
+                        IsAiCharacter: false, IsDead: false, PendingLoot: []),
+                    new DungeonCellActorState(
+                        other, new DungeonRoomActor(65601, 1, 0),
+                        IsAiCharacter: false, IsDead: false, PendingLoot: []),
+                ], []),
+            DungeonRunId.New(), DateTimeOffset.UnixEpoch);
+
+        var sent = await Kill(run: runs, killRules: new OneClearedBossMonster());
+
+        Assert.Equal([DeadActor, other], sent.OfType<MonsterDeathNotification>()
+            .Select(notification => notification.ActorSequence));
+        Assert.Empty(sent.OfType<MonsterDeathNotification>().Last().Drops);
+        Assert.Single(sent.OfType<EnableClearDungeonNotification>());
+    }
+
+    [Fact]
+    public async Task Party_boss_death_projects_the_same_remaining_monsters_to_both_players()
+    {
+        var leader = SelectedSessionIdentity.Create(
+            new AccountId(1), new CharacterId(60), new NetworkConnectionId("leader"), 1, 10010);
+        var member = SelectedSessionIdentity.Create(
+            new AccountId(2), new CharacterId(61), new NetworkConnectionId("member"), 1, 10011);
+        var layout = BossLayout();
+        var other = checked((ushort)(DeadActor + 1));
+        var runs = new DungeonRunDomainService();
+        var run = runs.PreparePartyEntry(
+            [
+                new DungeonRunParticipant(leader.AccountId, leader.CharacterId, 0, IsLeader: true),
+                new DungeonRunParticipant(member.AccountId, member.CharacterId, 1, IsLeader: false),
+            ],
+            layout, difficulty: 0,
+            new DungeonCellSeed(layout.StartCell, layout.StartRoomMapId, DeadActor,
+            [
+                new DungeonCellActorState(
+                    DeadActor, new DungeonRoomActor(65303, 1, (byte)MonsterRank.Boss),
+                    IsAiCharacter: false, IsDead: false, PendingLoot: []),
+                new DungeonCellActorState(
+                    other, new DungeonRoomActor(65601, 1, 0),
+                    IsAiCharacter: false, IsDead: false, PendingLoot: []),
+            ], []),
+            DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
+        var registry = new DungeonRunDeliveryRegistry();
+        registry.Register(run.RunId, [leader, member]);
+        var sessions = new PartySessions([leader, member]);
+        var sender = new PartyRecordingSender();
+        var killRules = new OneClearedBossMonster();
+        var bus = new PartyKillBus();
+        var handler = new MonsterDeathHandler(
+            sessions,
+            new PartyRuntimeSessions([leader, member]),
+            new PartyCharacters([leader.CharacterId, member.CharacterId]),
+            runs, killRules,
+            new DungeonClearDomainService(runs, killRules, new RecordingSettlementRules()),
+            new DungeonClearProjectionDelivery(sessions, runs, registry, sender),
+            bus,
+            new QuestOfferRefreshDomainService(
+                new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
+                Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+            registry, sender, ExperienceDiagnostics.None,
+            NullLogger<MonsterDeathHandler>.Instance);
+
+        await handler.HandleAsync(
+            ContextOf(leader),
+            new MonsterDeathRequest(GameMessageMetadata.Empty, DeadActor, leader.WireUserId),
+            CancellationToken.None);
+
+        Assert.Equal(2, bus.Commands.Count);
+        Assert.True(runs.Find(member.CharacterId)!.IsCleared);
+        foreach (var session in new[] { leader, member })
+        {
+            var received = sender.For(session.ConnectionId);
+            Assert.Equal([DeadActor, other], received.OfType<MonsterDeathNotification>()
+                .Select(notification => notification.ActorSequence));
+            Assert.Single(received.OfType<EnableClearDungeonNotification>());
+        }
+    }
+
+    [Fact]
     public async Task Death_send_failure_cannot_erase_the_committed_shared_clear_fact()
     {
         var session = SelectedSessionIdentity.Create(

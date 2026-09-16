@@ -20,7 +20,8 @@ namespace Dfo.Server.Protocol.Game.DungeonClear;
 /// <b>Nothing is answered and nothing changes.</b> Both halves of that are decisions with
 /// evidence behind them, written up in <c>protocol/game/client-to-server/0x0075.md</c>; the short
 /// form is that the client registers no handler for a reply, and that the exit has already been
-/// opened by the server's own accounting by the time this arrives.
+/// opened by the server's own Cell accounting by the time this arrives. A confirmed boss death
+/// also retires the room's remaining monsters without paying their unearned kills.
 /// </para>
 /// </remarks>
 public sealed record BossDieCheckRequest(
@@ -66,9 +67,10 @@ internal sealed class BossDieCheckDecoder : IGameMessageDecoder
 /// to <c>0x0076</c> -- so a reply under this type would arrive at a client with nowhere to put it.
 /// <para>
 /// <b>Why nothing changes.</b> The reference server treats this frame as the trigger for clearing
-/// the dungeon; this server does not, and deliberately. Here the exit opens when every hostile
-/// actor the boss room declares has been reported dead, which has already happened by the time
-/// this frame arrives -- the live ordering on 2026-08-29 was exit, then this. Adopting the
+/// the dungeon; this server does not, and deliberately. Here the exit opens from the recorded
+/// Cell state: a confirmed boss death retires other live monsters in the same change. This has
+/// already happened by the time this frame arrives -- the live ordering on 2026-08-29 was exit,
+/// then this. Adopting the
 /// client's trigger would mean a run could be cleared by a client that merely says so, and would
 /// replace a rule the server can check with one it cannot.
 /// </para>

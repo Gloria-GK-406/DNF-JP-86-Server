@@ -466,9 +466,16 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             }
 
             var cell = aggregate.Cells[claim.Actor.Cell];
+            var killedActor = cell.FindActor(claim.Actor.Sequence);
             var added = cell.CommitActorDeath(claim.Actor.Sequence);
             if (added is null)
                 return null;
+            var autoKilled = killedActor is { IsMonster: true, Actor.ActorType: (byte)MonsterRank.Boss }
+                && aggregate.Layout.KindOf(claim.Actor.Cell) == DungeonRoomKind.Boss
+                    ? cell.SuppressRemainingMonsters(sequence =>
+                        !this.deathClaims.ContainsKey(new DeathClaimKey(
+                            claim.RunId, new RoomActorId(claim.Actor.Cell, sequence))))
+                    : [];
             aggregate.RuntimeRevision++;
             var run = aggregate.ViewFor(claim.CharacterId);
             return new DungeonActorDeathChange(
@@ -482,7 +489,10 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                     .Where(participant => aggregate.ActiveParticipants.Contains(
                         participant.CharacterId))
                     .OrderBy(participant => participant.Slot)
-                    .Select(participant => participant.CharacterId)]);
+                    .Select(participant => participant.CharacterId)])
+            {
+                AutoKilledActorSequences = autoKilled,
+            };
         }
     }
 
@@ -1366,6 +1376,19 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             this.actors[sequence] = actor with { IsDead = true, PendingLoot = [] };
             this.Revision++;
             return added;
+        }
+
+        // Part of the boss death change: no separate ground roll, reward, or revision.
+        public IReadOnlyList<ushort> SuppressRemainingMonsters(Func<ushort, bool> canSuppress)
+        {
+            var sequences = this.actors.Values
+                .Where(actor => actor.IsMonster && !actor.IsDead && canSuppress(actor.Sequence))
+                .OrderBy(actor => actor.Sequence)
+                .Select(actor => actor.Sequence)
+                .ToArray();
+            foreach (var sequence in sequences)
+                this.actors[sequence] = this.actors[sequence] with { IsDead = true, PendingLoot = [] };
+            return sequences;
         }
 
         public IReadOnlyList<DungeonGroundItem> AppendGroundItems(

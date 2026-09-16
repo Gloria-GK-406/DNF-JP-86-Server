@@ -227,7 +227,11 @@ public sealed record DungeonActorDeathChange(
     long CellRevision,
     IReadOnlyList<DungeonGroundItem> AddedGroundItems,
     bool IsCellCleared,
-    IReadOnlyList<CharacterId> Recipients);
+    IReadOnlyList<CharacterId> Recipients)
+{
+    /// <summary>Other monsters removed with a boss death, without kill rewards or drops.</summary>
+    public IReadOnlyList<ushort> AutoKilledActorSequences { get; init; } = [];
+}
 
 /// <summary>An exact claim over one participant's durable effects for one actor death.</summary>
 public sealed record DungeonParticipantKillEffectClaim(

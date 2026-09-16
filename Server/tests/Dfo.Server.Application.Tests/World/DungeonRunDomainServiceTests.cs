@@ -553,6 +553,68 @@ public sealed class DungeonRunDomainServiceTests
     }
 
     [Fact]
+    public void Boss_death_clears_remaining_monsters_without_paying_their_pending_loot()
+    {
+        var service = new DungeonRunDomainService();
+        var run = BeginWithCell(service);
+        run = Assert.IsType<DungeonRunState>(MoveToEmptyCell(
+            service, run, new MazeCell(1, 1)));
+        var boss = FirstSequence;
+        var remaining = checked((ushort)(FirstSequence + 1));
+        run = Assert.IsType<DungeonRunState>(service.TryMove(
+            Character, run.RunId, run.RoomVersion, Tutorial.BossCell,
+            CellSeed(Tutorial.BossCell, Tutorial.Rooms[Tutorial.BossCell],
+            [
+                CellActor(boss, new DungeonRoomActor(65303, 1, (byte)MonsterRank.Boss)),
+                CellActor(remaining, new DungeonRoomActor(65601, 1, 0),
+                    pendingLoot: [new RolledDrop(10088621, 1, DropRarity.Common,
+                        DropItemKind.Stackable)]),
+            ])));
+
+        var claim = Assert.IsType<DungeonActorDeathClaim>(
+            service.TryClaimActorDeath(Character, boss));
+        var change = Assert.IsType<DungeonActorDeathChange>(service.CommitActorDeathChange(claim));
+
+        Assert.True(change.IsCellCleared);
+        Assert.Equal([remaining], change.AutoKilledActorSequences);
+        Assert.True(change.Run.CurrentCellState.FindActor(remaining)!.IsDead);
+        Assert.Empty(change.Run.CurrentCellState.GroundItems);
+        Assert.Null(service.TryClaimActorDeath(Character, remaining));
+        Assert.Null(service.TryClaimActorDeath(Character, boss));
+    }
+
+    [Fact]
+    public void Boss_death_leaves_an_already_claimed_kill_to_finish_its_own_effects()
+    {
+        var service = new DungeonRunDomainService();
+        var run = BeginWithCell(service);
+        run = Assert.IsType<DungeonRunState>(MoveToEmptyCell(
+            service, run, new MazeCell(1, 1)));
+        var other = checked((ushort)(FirstSequence + 1));
+        run = Assert.IsType<DungeonRunState>(service.TryMove(
+            Character, run.RunId, run.RoomVersion, Tutorial.BossCell,
+            CellSeed(Tutorial.BossCell, Tutorial.Rooms[Tutorial.BossCell],
+            [
+                CellActor(FirstSequence,
+                    new DungeonRoomActor(65303, 1, (byte)MonsterRank.Boss)),
+                CellActor(other, new DungeonRoomActor(65601, 1, 0)),
+            ])));
+
+        var otherClaim = Assert.IsType<DungeonActorDeathClaim>(
+            service.TryClaimActorDeath(Character, other));
+        var bossClaim = Assert.IsType<DungeonActorDeathClaim>(
+            service.TryClaimActorDeath(Character, FirstSequence));
+        var bossChange = Assert.IsType<DungeonActorDeathChange>(
+            service.CommitActorDeathChange(bossClaim));
+
+        Assert.Empty(bossChange.AutoKilledActorSequences);
+        Assert.False(bossChange.IsCellCleared);
+        var otherChange = Assert.IsType<DungeonActorDeathChange>(
+            service.CommitActorDeathChange(otherClaim));
+        Assert.True(otherChange.IsCellCleared);
+    }
+
+    [Fact]
     public void Removing_a_drop_never_reuses_its_cell_identity_for_a_later_death()
     {
         var service = new DungeonRunDomainService();

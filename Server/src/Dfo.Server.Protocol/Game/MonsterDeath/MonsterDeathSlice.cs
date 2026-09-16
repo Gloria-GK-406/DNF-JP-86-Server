@@ -431,6 +431,7 @@ public sealed class MonsterDeathHandler(
         ExperienceAward? award = null;
         ApplyMonsterKillResult? appliedKill = null;
         IReadOnlyList<MonsterDrop> dropped = [];
+        IReadOnlyList<ushort> autoKilled = [];
         var instance = 0u;
         IdentifiedKill? killed;
         try
@@ -521,6 +522,7 @@ public sealed class MonsterDeathHandler(
                 ?? throw new InvalidOperationException(
                     "The actor-death claim was no longer current after its durable effects.");
             run = deathChange.Run;
+            autoKilled = deathChange.AutoKilledActorSequences;
             if (verifiedKill.IsMonster)
             {
                 dropped = [.. deathChange.AddedGroundItems.Select(item => item.ToMonsterDrop())];
@@ -529,9 +531,11 @@ public sealed class MonsterDeathHandler(
         }
         else if (deathClaim is not null)
         {
-            run = runs.CommitActorDeathChange(deathClaim)?.Run
+            var deathChange = runs.CommitActorDeathChange(deathClaim)
                 ?? throw new InvalidOperationException(
                     "The actor-death claim was no longer current after validation.");
+            run = deathChange.Run;
+            autoKilled = deathChange.AutoKilledActorSequences;
         }
 
         logger.LogInformation(
@@ -616,6 +620,7 @@ public sealed class MonsterDeathHandler(
                     ? new Dictionary<ushort, ushort>()
                     : DropOwners(dropped)),
         ];
+        frames.AddRange(autoKilled.Select(MonsterDeathNotification.Empty));
         AppendQuestGrantFrames(frames, appliedKill);
 
         if (award?.LeveledUp == true)
@@ -800,6 +805,8 @@ public sealed class MonsterDeathHandler(
             reporter.WireUserId,
             instance,
             DropOwners(dropped));
+        IReadOnlyList<IGameServerMessage> autoDeaths =
+            [.. deathChange.AutoKilledActorSequences.Select(MonsterDeathNotification.Empty)];
 
         var framesByCharacter = new Dictionary<CharacterId, IReadOnlyList<IGameServerMessage>>();
         foreach (var recipient in recipients)
@@ -808,7 +815,7 @@ public sealed class MonsterDeathHandler(
                 recipient,
                 results.GetValueOrDefault(recipient.Session.CharacterId),
                 sharedDeath,
-                [],
+                autoDeaths,
                 cancellationToken).ConfigureAwait(false);
             framesByCharacter[recipient.Session.CharacterId] = frames;
         }
