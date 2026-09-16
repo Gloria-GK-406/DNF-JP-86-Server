@@ -53,4 +53,4 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 |---:|---|---|---|---|---|---|---|
 | 1 | `spec-001` | `attempts/spec-001-reactive-pickup-projection/TaskContract.md` | 响应式拾取投影与远端拾取表现 | `SC-1, SC-3, SC-5` | `accepted` | `attempts/spec-001-reactive-pickup-projection/spec-result.md` | `38fbceff` |
 | 2 | `spec-002` | `attempts/spec-002-quest-item-seeking/TaskContract.md` | 剧情任务物品与 seeking 派生进度 | `SC-2, SC-6, SC-7` | `accepted` | `attempts/spec-002-quest-item-seeking/spec-result.md` | `a7687ae0` |
-| 3 | `spec-003` | `attempts/spec-003-shared-clear-projection/TaskContract.md` | 共享 Boss 清关变更与投影 | `SC-3, SC-6, SC-7` | `accepted` | `attempts/spec-003-shared-clear-projection/spec-result.md` | `818f9223` |
+| 3 | `spec-003` | `attempts/spec-003-shared-clear-projection/TaskContract.md` | 共享 Boss 清关变更与投影 | `SC-3, SC-6, SC-7` | `accepted` | `attempts/spec-003-shared-clear-projection/spec-result.md` | `199ed9c8` |
