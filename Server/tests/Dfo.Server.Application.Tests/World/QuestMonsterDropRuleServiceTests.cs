@@ -15,6 +15,7 @@ public sealed class QuestMonsterDropRuleServiceTests
 {
     private static readonly AccountId Account = new(7);
     private static readonly CharacterId Leader = new(70);
+    private static readonly CharacterId Member = new(71);
 
     [Fact]
     public async Task Exact_story_kill_draws_the_owned_task_item()
@@ -29,15 +30,19 @@ public sealed class QuestMonsterDropRuleServiceTests
         Assert.Equal(10149163, drop.ItemId);
         Assert.Equal(1, drop.Count);
         Assert.Equal(Leader, drop.OwnerCharacterId);
+        Assert.Equal(RolledDropDelivery.DirectQuestItem, drop.Delivery);
+        Assert.Equal(1779, drop.QuestId);
     }
 
     [Fact]
-    public async Task Ordinary_run_never_injects_a_carried_story_quests_item()
+    public async Task Ordinary_run_still_resolves_a_carried_quest_item_when_the_source_matches()
     {
         var fixture = Build(DungeonRunPurpose.Ordinary);
 
-        Assert.Empty(await fixture.Service.DrawAsync(
+        var drop = Assert.Single(await fixture.Service.DrawAsync(
             Kill(fixture.Run, monsterCode: 65601), CancellationToken.None));
+        Assert.Equal(10149163, drop.ItemId);
+        Assert.Equal(Leader, drop.OwnerCharacterId);
     }
 
     [Theory]
@@ -83,6 +88,18 @@ public sealed class QuestMonsterDropRuleServiceTests
             Kill(fixture.Run, monsterCode: 65601), CancellationToken.None));
     }
 
+    [Fact]
+    public async Task Each_participant_with_the_quest_gets_an_independent_direct_item()
+    {
+        var fixture = Build(DungeonRunPurpose.Ordinary, memberCarriesQuest: true);
+
+        var drops = await fixture.Service.DrawAsync(
+            Kill(fixture.Run, monsterCode: 65601), CancellationToken.None);
+
+        Assert.Equal([Leader, Member], drops.Select(drop => drop.OwnerCharacterId));
+        Assert.All(drops, drop => Assert.Equal(RolledDropDelivery.DirectQuestItem, drop.Delivery));
+    }
+
     private static Fixture Build(
         DungeonRunPurpose purpose,
         int dungeonId = 145,
@@ -91,15 +108,20 @@ public sealed class QuestMonsterDropRuleServiceTests
         int maxStack = 15,
         int rewardCount = 1,
         int rewardDifficulty = -1,
-        bool carriesQuest = true)
+        bool carriesQuest = true,
+        bool memberCarriesQuest = false)
     {
         var definition = Definition(rewardCount, maxStack, rewardDifficulty);
         var logs = new RecordingQuestLogs();
         if (carriesQuest)
             logs.Carried[Leader.Value] = [new CarriedQuest(0, 1779, 15)];
+        if (memberCarriesQuest)
+            logs.Carried[Member.Value] = [new CarriedQuest(0, 1779, 15)];
 
         var containers = new CharacterContainerDomainService();
         containers.Register(Leader, new Bag(10149163, held));
+        if (memberCarriesQuest)
+            containers.Register(Member, new Bag(10149163, 0));
         var service = new QuestMonsterDropRuleService(
             new QuestRules(definition), logs, containers);
         var layout = Layout(dungeonId, purpose);
@@ -110,7 +132,10 @@ public sealed class QuestMonsterDropRuleServiceTests
             layout.StartRoomMapId,
             difficulty,
             DateTimeOffset.UnixEpoch,
-            [new DungeonRunParticipant(Account, Leader, 0, IsLeader: true)]);
+            memberCarriesQuest
+                ? [new DungeonRunParticipant(Account, Leader, 0, IsLeader: true),
+                    new DungeonRunParticipant(new AccountId(8), Member, 1, IsLeader: false)]
+                : [new DungeonRunParticipant(Account, Leader, 0, IsLeader: true)]);
         return new Fixture(service, run);
     }
 

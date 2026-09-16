@@ -1,9 +1,12 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Protocol.Game.MonsterDeath;
 using QuestTaken = Dfo.Server.Abstractions.Quests.QuestAcceptance;
 
@@ -44,7 +47,9 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             new UnusedBonuses(),
             new NoExperienceAward(),
             new OneQuestDefinition(Quest1776()),
-            new OneCharacterLog(log));
+            new OneCharacterLog(log),
+            new CharacterContainerDomainService(),
+            new NoSeekingProgress());
 
         var result = await handler.HandleAsync(
             new CommandExecutionContext(
@@ -73,7 +78,9 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             new UnusedBonuses(),
             new ExperienceMustNotBeAwarded(),
             new OneQuestDefinition(Quest1776(HuntEnemyTargetTypes.AiCharacter)),
-            new OneCharacterLog(log));
+            new OneCharacterLog(log),
+            new CharacterContainerDomainService(),
+            new NoSeekingProgress());
 
         var result = await handler.HandleAsync(
             new CommandExecutionContext(
@@ -104,7 +111,9 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             new UnusedBonuses(),
             new PricingOnlyExperience(),
             new OneQuestDefinition(Quest1776()),
-            new OneCharacterLog(new OneLog(new CarriedQuest(0, 1776, 1))));
+            new OneCharacterLog(new OneLog(new CarriedQuest(0, 1776, 1))),
+            new CharacterContainerDomainService(),
+            new NoSeekingProgress());
 
         await handler.HandleAsync(
             new CommandExecutionContext(
@@ -123,6 +132,51 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             CancellationToken.None);
 
         Assert.Equal(2, valuation.Kill?.PartyMemberCount);
+    }
+
+    [Fact]
+    public async Task A_direct_quest_item_is_banked_for_its_owner_and_capped_again_at_kill_time()
+    {
+        var bag = new DirectGrantBag(14);
+        var containers = new CharacterContainerDomainService();
+        containers.Register(Character, bag);
+        var seeking = new RecordingSeekingProgress();
+        var handler = new ApplyMonsterKillCommandHandler(
+            new UnusedValuation(),
+            new UnusedBonuses(),
+            new NoExperienceAward(),
+            new OneQuestDefinition(Quest1776()),
+            new OneCharacterLog(new OneLog(new CarriedQuest(0, 1776, 1))),
+            containers,
+            seeking);
+
+        var result = await handler.HandleAsync(
+            new CommandExecutionContext(
+                Guid.Empty,
+                typeof(ApplyMonsterKillCommand),
+                typeof(ApplyMonsterKillCommandHandler),
+                CommandExecutionKind.Transactional),
+            new ApplyMonsterKillCommand(
+                Account, Character,
+                new KilledMonster(13098, 5, MonsterRank.Ordinary),
+                144, 0, 1,
+                EnemyType: HuntEnemyTargetTypes.AiCharacter,
+                PendingLoot:
+                [
+                    new RolledDrop(10149163, 3, DropRarity.Common, DropItemKind.Stackable,
+                        OwnerCharacterId: Character,
+                        Delivery: RolledDropDelivery.DirectQuestItem,
+                        QuestId: 1776, GrantLimit: 15),
+                    new RolledDrop(10149163, 1, DropRarity.Common, DropItemKind.Stackable,
+                        OwnerCharacterId: new CharacterId(61),
+                        Delivery: RolledDropDelivery.DirectQuestItem,
+                        QuestId: 1776, GrantLimit: 15),
+                ]),
+            CancellationToken.None);
+
+        Assert.Equal(15, bag.Count);
+        Assert.Single(result.QuestItems!.Items);
+        Assert.Equal(1, seeking.TimesAsked);
     }
 
     [Theory]
@@ -281,6 +335,71 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             Assert.Equal(Character, characterId);
             return log;
         }
+    }
+
+    private sealed class NoSeekingProgress : ISeekingQuestProgressDomainService
+    {
+        public ValueTask<SeekingQuestProgressSynchronization?> SynchronizeAsync(
+            AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<SeekingQuestProgressSynchronization?>(null);
+    }
+
+    private sealed class RecordingSeekingProgress : ISeekingQuestProgressDomainService
+    {
+        public int TimesAsked { get; private set; }
+
+        public ValueTask<SeekingQuestProgressSynchronization?> SynchronizeAsync(
+            AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)
+        {
+            this.TimesAsked++;
+            return ValueTask.FromResult<SeekingQuestProgressSynchronization?>(null);
+        }
+    }
+
+    private sealed class DirectGrantBag(int count) : IItemContainer
+    {
+        public int Count { get; private set; } = count;
+        public ContainerId Id => new("direct-quest-test");
+        public InventoryContainerType Type => InventoryContainerType.Main;
+        public ContainerShape Shape => new(this.Type, 56);
+        public bool IsRemovable => false;
+
+        private ContainerSlotItem? Slot => this.Count == 0
+            ? null
+            : new ContainerSlotItem(0,
+                StackableItemCore.Create(6, 10149163, this.Count),
+                ItemWorldClass.Interchangeable);
+
+        public ValueTask<ContainerSlotItem?> ReadSlotAsync(
+            int slotIndex, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(slotIndex == 0 ? this.Slot : null);
+
+        public ValueTask<IReadOnlyList<ContainerSlotItem>> ReadAllAsync(
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<ContainerSlotItem>>(
+                this.Slot is { } item ? [item] : []);
+
+        public ValueTask<ItemPlacementOutcome> AddAsync(
+            int itemId, int incoming, CancellationToken cancellationToken)
+        {
+            Assert.Equal(10149163, itemId);
+            this.Count += incoming;
+            return ValueTask.FromResult<ItemPlacementOutcome>(
+                new ItemPlacementOutcome.AddedToPile(0, incoming, this.Count));
+        }
+
+        public ValueTask<IReadOnlyList<InventoryItemState>> SnapshotAsync(CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+        public ValueTask<ContainerSlotPair> ReadSlotsAsync(int firstSlotIndex, int secondSlotIndex,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask PutAsync(int slotIndex, InventoryItemCoreState core,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask ClearAsync(int slotIndex, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+        public ValueTask<ItemPlacementOutcome> RefillAsync(ItemRefill refill,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<ItemMoveOutcome> MoveToAsync(int fromSlotIndex, int toSlotIndex, int count,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 
     private sealed class OneLog(CarriedQuest carried) : IQuestLog

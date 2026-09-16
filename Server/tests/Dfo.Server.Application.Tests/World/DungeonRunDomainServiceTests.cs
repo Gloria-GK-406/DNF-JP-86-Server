@@ -522,6 +522,37 @@ public sealed class DungeonRunDomainServiceTests
     }
 
     [Fact]
+    public void Direct_quest_item_stays_off_the_floor_when_its_actor_dies()
+    {
+        var service = new DungeonRunDomainService();
+        _ = BeginWithCell(
+            service,
+            actors:
+            [
+                CellActor(
+                    FirstSequence,
+                    new DungeonRoomActor(65601, 1, 0),
+                    pendingLoot:
+                    [
+                        new RolledDrop(
+                            10149163, 1, DropRarity.Common, DropItemKind.Stackable,
+                            OwnerCharacterId: Character,
+                            Delivery: RolledDropDelivery.DirectQuestItem,
+                            QuestId: 1779,
+                            GrantLimit: 15),
+                    ]),
+            ]);
+
+        var claim = Assert.IsType<DungeonActorDeathClaim>(
+            service.TryClaimActorDeath(Character, FirstSequence));
+        var change = Assert.IsType<DungeonActorDeathChange>(service.CommitActorDeathChange(claim));
+
+        Assert.Empty(change.AddedGroundItems);
+        Assert.Empty(change.Run.CurrentCellState.GroundItems);
+        Assert.Null(service.TryClaimActorDeath(Character, FirstSequence));
+    }
+
+    [Fact]
     public void Removing_a_drop_never_reuses_its_cell_identity_for_a_later_death()
     {
         var service = new DungeonRunDomainService();

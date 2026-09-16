@@ -429,6 +429,7 @@ public sealed class MonsterDeathHandler(
         var deathClaim = runs.TryClaimActorDeath(session.CharacterId, message.ActorSequence);
         var run = deathClaim?.Run;
         ExperienceAward? award = null;
+        ApplyMonsterKillResult? appliedKill = null;
         IReadOnlyList<MonsterDrop> dropped = [];
         var instance = 0u;
         IdentifiedKill? killed;
@@ -447,14 +448,13 @@ public sealed class MonsterDeathHandler(
         }
         if (run is not null && killed is { } verifiedKill)
         {
-            ApplyMonsterKillResult? applied = null;
             var effectClaim = runs.TryClaimParticipantKillEffect(
                 deathClaim!, session.CharacterId);
             if (effectClaim is not null)
             {
                 try
                 {
-                    applied = await commandBus.SendAsync(
+                    appliedKill = await commandBus.SendAsync(
                         new ApplyMonsterKillCommand(
                             session.AccountId,
                             session.CharacterId,
@@ -468,7 +468,8 @@ public sealed class MonsterDeathHandler(
                             verifiedKill.IsMonster
                                 ? HuntEnemyTargetTypes.Monster
                                 : HuntEnemyTargetTypes.AiCharacter,
-                            run.PartyMemberCount),
+                            run.PartyMemberCount,
+                            deathClaim!.ActorState?.PendingLoot),
                         cancellationToken).ConfigureAwait(false);
                     if (!runs.CommitParticipantKillEffect(effectClaim))
                     {
@@ -490,7 +491,7 @@ public sealed class MonsterDeathHandler(
                 }
             }
 
-            award = applied?.Award;
+            award = appliedKill?.Award;
             logger.LogInformation(
                 "Kill experience character={CharacterId}: monster={Monster} "
                     + "level={MonsterLevel} rank={Rank} award={Award}",
@@ -500,7 +501,7 @@ public sealed class MonsterDeathHandler(
                 verifiedKill.Rank,
                 award);
 
-            foreach (var advance in applied?.QuestAdvances ?? [])
+            foreach (var advance in appliedKill?.QuestAdvances ?? [])
             {
                 logger.LogInformation(
                     "Monster death {ConnectionId}: quest={QuestId} trigger={Before}->{After} "
@@ -615,6 +616,7 @@ public sealed class MonsterDeathHandler(
                     ? new Dictionary<ushort, ushort>()
                     : DropOwners(dropped)),
         ];
+        AppendQuestGrantFrames(frames, appliedKill);
 
         if (award?.LeveledUp == true)
         {
@@ -748,7 +750,8 @@ public sealed class MonsterDeathHandler(
                             verifiedKill.IsMonster
                                 ? HuntEnemyTargetTypes.Monster
                                 : HuntEnemyTargetTypes.AiCharacter,
-                            deathClaim.Run.PartyMemberCount),
+                            deathClaim.Run.PartyMemberCount,
+                            deathClaim.ActorState?.PendingLoot),
                         cancellationToken).ConfigureAwait(false);
                     if (!runs.CommitParticipantKillEffect(effectClaim))
                     {
@@ -913,8 +916,25 @@ public sealed class MonsterDeathHandler(
         {
             frames.Add(sharedDeath);
         }
+        AppendQuestGrantFrames(frames, applied);
         frames.AddRange(clearedFrames);
         return frames;
+    }
+
+    private static void AppendQuestGrantFrames(
+        List<IGameServerMessage> frames,
+        ApplyMonsterKillResult? applied)
+    {
+        if (applied?.QuestItems is { } items)
+            frames.Add(GameInventoryDelivery.Notification(items));
+        if (applied?.SeekingProgress is { } progress)
+        {
+            frames.Add(new AcceptedQuestProgressMessage(
+                [.. progress.Quests.OrderBy(quest => quest.Slot)
+                    .Select(quest => new AcceptedQuestProgressState(
+                        checked((ushort)quest.QuestId),
+                        unchecked((uint)quest.TriggerValue)))]));
+        }
     }
 
     private void LogAppliedKill(

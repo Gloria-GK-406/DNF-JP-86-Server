@@ -1,15 +1,18 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Quests;
 using Dfo.Server.Application.World;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
@@ -140,6 +143,26 @@ public sealed class MonsterDeathHandlerTests
         Assert.Equal(9, experience.Level);
         Assert.Equal(6000u, experience.TotalExperience);
         Assert.Equal([typeof(ExperienceNotification), typeof(MonsterDeathNotification)], sent.Select(frame => frame.GetType()));
+    }
+
+    [Fact]
+    public async Task A_direct_quest_grant_refreshes_the_receivers_bag_and_quest_after_death()
+    {
+        var item = new InventoryItemState(
+            null, 180, StackableItemCore.Create(6, 10149163, 1));
+        var update = new CommittedInventoryUpdateState(
+            InventoryContainerType.Main, [item], DateTimeOffset.UnixEpoch);
+        var progress = new SeekingQuestProgressSynchronization(
+            [new CarriedQuest(0, 1779, 14)]);
+
+        var sent = await Kill(bus: new FixedKillAward(
+            leveledUp: false, questItems: update, seekingProgress: progress));
+
+        Assert.Equal(
+            [typeof(ExperienceNotification), typeof(MonsterDeathNotification),
+                typeof(InventoryDeltaMessage), typeof(AcceptedQuestProgressMessage)],
+            sent.Select(frame => frame.GetType()));
+        Assert.Equal(180, Assert.Single(sent.OfType<InventoryDeltaMessage>()).Items.Single().SlotIndex);
     }
 
     [Fact]
@@ -610,7 +633,9 @@ public sealed class MonsterDeathHandlerTests
     private sealed class FixedKillAward(
         bool leveledUp,
         bool awarded = true,
-        int failuresBeforeSuccess = 0) : ICommandBus
+        int failuresBeforeSuccess = 0,
+        CommittedInventoryUpdateState? questItems = null,
+        SeekingQuestProgressSynchronization? seekingProgress = null) : ICommandBus
     {
         private int _remainingFailures = failuresBeforeSuccess;
 
@@ -639,7 +664,7 @@ public sealed class MonsterDeathHandlerTests
                     Level: leveledUp ? (byte)(StartingLevel + 1) : StartingLevel,
                     Total: StartingExperience + KillGain,
                     LeveledUp: leveledUp) : null,
-                []);
+                [], questItems, seekingProgress);
             return ValueTask.FromResult((TResult)(object)result);
         }
     }

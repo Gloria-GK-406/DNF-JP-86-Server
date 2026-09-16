@@ -3,7 +3,14 @@ using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Abstractions.World;
 
-/// <summary>One thing a kill produced, before it has been given a number.</summary>
+/// <summary>How a pre-rolled item is consumed when its Cell actor dies.</summary>
+public enum RolledDropDelivery
+{
+    Ground,
+    DirectQuestItem,
+}
+
+/// <summary>One pre-rolled kill outcome, before ground pieces have been numbered.</summary>
 /// <param name="ItemId">
 /// What it is. <b>Zero is gold</b>, and its <paramref name="Count"/> is the amount rather than a
 /// number of pieces -- which is the client's own reading, confirmed against captured frames where
@@ -26,7 +33,10 @@ public readonly record struct RolledDrop(
     DropRarity Rarity,
     DropItemKind Kind,
     ushort Durability = 0,
-    CharacterId? OwnerCharacterId = null)
+    CharacterId? OwnerCharacterId = null,
+    RolledDropDelivery Delivery = RolledDropDelivery.Ground,
+    int QuestId = 0,
+    int GrantLimit = 0)
 {
     /// <summary>What the wire calls gold.</summary>
     public const int GoldItemId = 0;
@@ -63,7 +73,7 @@ public sealed record MonsterKill(
     int PartyMemberCount = 1,
     int MonsterCode = 0);
 
-/// <summary>Quest-declared items one verified monster puts on this exact run's floor.</summary>
+/// <summary>Quest-declared automatic grants for each participant of this Cell.</summary>
 public interface IQuestMonsterDropRuleService
 {
     ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(

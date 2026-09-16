@@ -1350,16 +1350,18 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             if (!this.actors.TryGetValue(sequence, out var actor) || actor.IsDead)
                 return null;
 
-            var added = this.AppendGroundItems(actor.PendingLoot.Select(rolled =>
-                new DungeonGroundItemDraft(
-                    rolled.ItemId,
-                    rolled.Count,
-                    rolled.Durability,
-                    rolled.Kind == DropItemKind.Equipment,
-                    DungeonGroundItemSource.FromActor(sequence),
-                    rolled.Rarity,
-                    rolled.Kind,
-                    rolled.OwnerCharacterId)).ToArray());
+            var added = this.AppendGroundItems(actor.PendingLoot
+                .Where(rolled => rolled.Delivery == RolledDropDelivery.Ground)
+                .Select(rolled =>
+                    new DungeonGroundItemDraft(
+                        rolled.ItemId,
+                        rolled.Count,
+                        rolled.Durability,
+                        rolled.Kind == DropItemKind.Equipment,
+                        DungeonGroundItemSource.FromActor(sequence),
+                        rolled.Rarity,
+                        rolled.Kind,
+                        rolled.OwnerCharacterId)).ToArray());
 
             this.actors[sequence] = actor with { IsDead = true, PendingLoot = [] };
             this.Revision++;

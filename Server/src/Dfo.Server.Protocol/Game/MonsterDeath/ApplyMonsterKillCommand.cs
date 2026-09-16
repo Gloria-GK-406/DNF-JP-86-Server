@@ -1,9 +1,12 @@
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Protocol.Game.MonsterDeath;
 
@@ -16,11 +19,14 @@ public sealed record ApplyMonsterKillCommand(
     byte Difficulty,
     double DungeonWeight,
     int EnemyType = HuntEnemyTargetTypes.Monster,
-    int PartyMemberCount = 1) : ICommand<ApplyMonsterKillResult>;
+    int PartyMemberCount = 1,
+    IReadOnlyList<RolledDrop>? PendingLoot = null) : ICommand<ApplyMonsterKillResult>;
 
 public sealed record ApplyMonsterKillResult(
     ExperienceAward? Award,
-    IReadOnlyList<HuntEnemyQuestAdvance> QuestAdvances);
+    IReadOnlyList<HuntEnemyQuestAdvance> QuestAdvances,
+    CommittedInventoryUpdateState? QuestItems = null,
+    SeekingQuestProgressSynchronization? SeekingProgress = null);
 
 /// <summary>
 /// Keeps experience and server-authoritative quest progress on the same transaction boundary.
@@ -30,7 +36,9 @@ public sealed class ApplyMonsterKillCommandHandler(
     IExperienceBonusDomainService bonuses,
     ICharacterExperienceDomainService experience,
     IQuestDefinitionDomainService questDefinitions,
-    ICharacterQuestLogDomainService questLogs)
+    ICharacterQuestLogDomainService questLogs,
+    ICharacterContainerDomainService containers,
+    ISeekingQuestProgressDomainService seekingQuests)
     : ICommandHandler<ApplyMonsterKillCommand, ApplyMonsterKillResult>
 {
     public async ValueTask<ApplyMonsterKillResult> HandleAsync(
@@ -74,6 +82,81 @@ public sealed class ApplyMonsterKillCommandHandler(
                 command.EnemyType),
             cancellationToken).ConfigureAwait(false);
 
-        return new ApplyMonsterKillResult(awarded, advanced);
+        var granted = await GrantQuestItemsAsync(command, cancellationToken).ConfigureAwait(false);
+        var seeking = granted is null
+            ? null
+            : await seekingQuests.SynchronizeAsync(
+                command.AccountId, command.CharacterId, cancellationToken).ConfigureAwait(false);
+        return new ApplyMonsterKillResult(awarded, advanced, granted, seeking);
+    }
+
+    private async ValueTask<CommittedInventoryUpdateState?> GrantQuestItemsAsync(
+        ApplyMonsterKillCommand command,
+        CancellationToken cancellationToken)
+    {
+        var candidates = command.PendingLoot?
+            .Where(drop => drop.Delivery == RolledDropDelivery.DirectQuestItem
+                && drop.OwnerCharacterId == command.CharacterId)
+            .ToArray() ?? [];
+        if (candidates.Length == 0)
+            return null;
+
+        var bag = containers.FindContainer(command.CharacterId, InventoryContainerType.Main);
+        if (bag is null)
+            return null;
+        var carried = await questLogs.LogOf(command.AccountId, command.CharacterId)
+            .CarriedAsync(cancellationToken).ConfigureAwait(false);
+        var active = carried.Select(quest => quest.QuestId).ToHashSet();
+        var changed = new HashSet<int>();
+        foreach (var drop in candidates)
+        {
+            if (drop.QuestId <= 0 || !active.Contains(drop.QuestId)
+                || drop.ItemId <= 0 || drop.Count <= 0 || drop.GrantLimit <= 0)
+                continue;
+
+            var held = (await bag.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+                .Where(item => item.ItemId == drop.ItemId)
+                .Sum(item => (long)item.Count);
+            var count = checked((int)Math.Min(drop.Count, Math.Max(0, drop.GrantLimit - held)));
+            if (count <= 0)
+                continue;
+            var remaining = count;
+            while (remaining > 0)
+            {
+                var placement = await bag.AddAsync(drop.ItemId, remaining, cancellationToken)
+                    .ConfigureAwait(false);
+                switch (placement)
+                {
+                    case ItemPlacementOutcome.AddedToPile topped when topped.Added > 0:
+                        changed.Add(topped.SlotIndex);
+                        remaining -= topped.Added;
+                        break;
+                    case ItemPlacementOutcome.PutInEmptySlot opened when opened.Count > 0:
+                        changed.Add(opened.SlotIndex);
+                        remaining -= opened.Count;
+                        break;
+                    case ItemPlacementOutcome.NoRoom:
+                        remaining = 0;
+                        break;
+                    case ItemPlacementOutcome.UnknownItem:
+                        throw new InvalidDataException($"Quest item {drop.ItemId} has no inventory definition.");
+                    default:
+                        throw new InvalidDataException(
+                            $"Quest item {drop.ItemId} placement made no progress: {placement}.");
+                }
+            }
+        }
+
+        if (changed.Count == 0)
+            return null;
+        var items = new List<InventoryItemState>(changed.Count);
+        foreach (var slot in changed.Order())
+        {
+            var item = await bag.ReadSlotAsync(slot, cancellationToken).ConfigureAwait(false)
+                ?? throw new InvalidDataException($"Quest item slot {slot} disappeared before commit.");
+            items.Add(new InventoryItemState(null, slot, item.Core));
+        }
+        return new CommittedInventoryUpdateState(
+            InventoryContainerType.Main, items, DateTimeOffset.UtcNow);
     }
 }

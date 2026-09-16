@@ -55,24 +55,25 @@ A21 的重访线格式会省略客户端已经持有的 Actor 和地面物记录
 
 ## Actor 死亡与掉落转移
 
-Cell 创建时，每个怪物 Actor 已经持有确定的 `PendingLoot`。`IsMonster` 是规则服务在构造期解析并
+Cell 创建时，每个怪物 Actor 已经持有确定的 `PendingLoot`，其中同时容纳地面产物和按角色直发的
+任务物品。`IsMonster` 是规则服务在构造期解析并
 冻结的领域事实，与用于客户端 AI/表现分类的 `IsAi` 分离；例如 actor type 4 不是怪物，不阻塞
 清房、不给经验，也没有 pending loot。死亡流程如下：
 
 ```text
 DIE_MONSTER
   -> 从当前 Cell 预占 Actor death
-  -> CMD 完成参与者经验和任务等持久化效果
+  -> 各参与者的 CMD 在同一事务中完成经验、任务和属于自己的直发物品入包
   -> 提交 Cell death
        -> Actor.IsDead = true
-       -> PendingLoot 原子转入同一 Cell.GroundItems
+       -> 只将地面类 PendingLoot 转入同一 Cell.GroundItems；消费全部待发产物
        -> CellRevision + 1，Run RuntimeRevision + 1
        -> 返回 DungeonActorDeathChange
-  -> 协议层用 change 中新增的 GroundItems 构造死亡/掉落通知
+  -> 协议层用 change 中新增的 GroundItems 构造死亡/掉落通知，并向直发接收者发送背包和任务刷新
 ```
 
 提交前失败会释放 death claim：Actor 仍存活，pending loot 不动，Cell revision 不增加。重复死亡
-报告拿不到第二个 claim，因此不会重复产生经验、任务进度或地面物。
+报告拿不到第二个 claim，因此不会重复产生经验、任务进度、直发物或地面物。
 
 声明物和死亡掉落共享一个 `GroundItems` 编号空间。编号一旦使用，即使物品后来被拾取也不会
 被后续掉落复用。来源字段只用于投影和审计，不形成第二套库存。
@@ -98,6 +99,9 @@ DIE_MONSTER
 
 ## 当前边界
 
+- 本次自动入包只覆盖房间 Actor 的 `[monster reward item]`。`[enemy reward item]` 中的
+  Passive Object 来源尚未进入 Cell Actor 模型；它的销毁报告使用不同的对象标识，不能把
+  客户端任务计数帧冒充为一次对象销毁。普通建筑预声明地面物也暂不改写其现有 START_MAP 表现。
 - 当前死亡请求没有可信坐标，因此地面物模型不伪造 `x/y`。获得客户端或上游证据后，可以在
   Cell 内扩充 placement 字段而不改变所有权边界。
 - Boss 结算、翻牌、回城等待、任务规则、经验公式和掉落概率不在本次重构中改变；它们只迁移
