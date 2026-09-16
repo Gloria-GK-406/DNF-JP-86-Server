@@ -3,11 +3,11 @@ kind: rks-multi-spec-map
 contract:
   path: ./TaskContract.md
   revision: 2
-phase: child_execution
-phase_state: pending
+phase: accumulated_review
+phase_state: running
 active_attempt: none
 last_transition: child-accepted
-transition_evidence: spec-003 accepted after independent review; shared ClearOpen is committed before I/O and one real SQLite vertical proves final task-item clear projection
+transition_evidence: spec-004 independent remediation review approved after durable card commit, prepared/leave, bounded auto-free and controllable timing findings were closed
 workspace:
   repository_root: E:\Project\DNF\DNF-JP-86-Server
   task_root: E:\Project\DNF\DNF-JP-86-Server\.worktrees\reactive-dungeon-lifecycle\.rks-agent\tasks\reactive-dungeon-lifecycle
@@ -40,10 +40,10 @@ workspace:
 | SC-1 | 拾取权威变更唯一，且不与客户端 P2P 动作形成第二真源 | done | spec-001：单一 `DungeonPickupChange`、逐接收者投影、A21 0x0027/P2P 责任边界、旧会话过滤；独立复审 approved | 实机确认共享消失维持现状；远端动作仍由客户端 P2P 负责 | aligned |
 | SC-2 | 任务 1779 怪物任务物品与 seeking Trigger 形成运行期闭环 | done | spec-002：真实 PVF 七元组、QuestLinked owned drop、owner-only pickup、SQLite 原子 bag/Trigger、commit 后共享 change 与当前连接投影；独立复审 approved | 实机确认任务物品数量与客户端任务栏表现 | aligned |
 | SC-3 | 共享 Boss 清关一次并向全部有效参与者开放结算 | done | spec-003：共享 ClearOpen/revision、统一 death/pickup evaluator、冻结 leader 规则、generation-safe 投影、真实 SQLite 最后任务物品纵向测试；独立复审 approved | 实机确认双端同时进入结算 | aligned |
-| SC-4 | 参与者独立结算、牌面计时与幂等翻牌 | not_started | none | 参与者阶段、自动/手动竞态、队伍翻牌投影 | aligned |
-| SC-5 | 独立回城且旧局通知不能到离开或替换连接 | not_started | none | 离场状态、接收者收缩、过期计时过滤 | aligned |
-| SC-6 | 单人剧情与显式普通地下城回归保持 | not_started | none | 定向与综合回归 | aligned |
-| SC-7 | Release 构建和测试无新增失败 | not_started | none | 各子结果及根级完整验证 | aligned |
+| SC-4 | 参与者独立结算、牌面计时与幂等翻牌 | done | spec-004：参与者结算、共享 seat 快照、durable commit 后发布、2s/4s 可控计时、手动/自动/瞬态列竞争有界幂等；独立复审 approved | 双客户端实机确认结算与翻牌表现 | aligned |
+| SC-5 | 独立回城且旧局通知不能到离开或替换连接 | done | spec-004：EPLP/GiveUp 只结束发起者；recipients 收缩；离场/replacement/new run 取消或过滤旧 timer | 双客户端实机确认先后回城 | aligned |
+| SC-6 | 单人剧情与显式普通地下城回归保持 | done | spec-002～004 定向与综合回归全部通过 | 实机抽样 | aligned |
+| SC-7 | Release 构建和测试无新增失败 | done | Release 0 warnings/0 errors；Application 1488、Protocol 924；顺序全项目合计 3334 passed、2 intentional skipped | 根级 accumulated review | aligned |
 
 ## Spec Attempts
 
@@ -54,3 +54,4 @@ Only the final row may be `running`. Seal terminal rows in place and never reope
 | 1 | `spec-001` | `attempts/spec-001-reactive-pickup-projection/TaskContract.md` | 响应式拾取投影与远端拾取表现 | `SC-1, SC-3, SC-5` | `accepted` | `attempts/spec-001-reactive-pickup-projection/spec-result.md` | `38fbceff` |
 | 2 | `spec-002` | `attempts/spec-002-quest-item-seeking/TaskContract.md` | 剧情任务物品与 seeking 派生进度 | `SC-2, SC-6, SC-7` | `accepted` | `attempts/spec-002-quest-item-seeking/spec-result.md` | `a7687ae0` |
 | 3 | `spec-003` | `attempts/spec-003-shared-clear-projection/TaskContract.md` | 共享 Boss 清关变更与投影 | `SC-3, SC-6, SC-7` | `accepted` | `attempts/spec-003-shared-clear-projection/spec-result.md` | `199ed9c8` |
+| 4 | `spec-004` | `attempts/spec-004-participant-settlement-cards-exit/TaskContract.md` | 参与者结算、共享牌面与独立离场 | `SC-4, SC-5, SC-6, SC-7` | `accepted` | `attempts/spec-004-participant-settlement-cards-exit/spec-result.md` | `pending` |

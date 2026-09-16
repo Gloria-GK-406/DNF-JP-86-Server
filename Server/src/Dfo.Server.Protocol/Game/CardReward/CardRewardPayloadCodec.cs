@@ -78,25 +78,6 @@ internal static class CardRewardPayloadCodec
     private const byte NoSeat = 0xFF;
 
     /// <summary>
-    /// The seat this server answers as.
-    /// </summary>
-    /// <remarks>
-    /// <b>A seat number, not a boolean.</b> The client compares this byte against a small integer
-    /// it fetches at run time and only acts on the record when the two are equal; a live run that
-    /// answered <c>0x00</c>, <c>0x01</c>, <c>0x02</c> and <c>0x03</c> on four records had exactly
-    /// the <c>0x00</c> one take effect, which a boolean could not produce. That run also measured
-    /// the run-time number for a lone player: zero.
-    /// <para>
-    /// <b>This is the one place a party would change</b>, and it is a constant here for that
-    /// reason. Whether the number is the player's own party seat is an inference the record marks
-    /// as one -- see <c>protocol/game/client-to-server/0x0047.md</c>. Answering a fixed zero is
-    /// right for one player and wrong for a party, where it would credit every member's flip to
-    /// whoever received the frame.
-    /// </para>
-    /// </remarks>
-    private const byte OwnSeat = 0x00;
-
-    /// <summary>
     /// The card panel's layout: which positions exist, and nothing else.
     /// </summary>
     /// <remarks>
@@ -217,9 +198,12 @@ internal static class CardRewardPayloadCodec
         var at = 0;
         for (var column = 0; column < WirePositionCount; column++)
         {
-            var turned = column == message.TurnedColumn;
-            payload[at++] = turned && message.Kind is ClearRewardCardKind.Free ? OwnSeat : NoSeat;
-            payload[at++] = turned && message.Kind is ClearRewardCardKind.Paid ? OwnSeat : NoSeat;
+            var free = message.Selections.FirstOrDefault(selection =>
+                selection.Kind is ClearRewardCardKind.Free && selection.Index == column);
+            var paid = message.Selections.FirstOrDefault(selection =>
+                selection.Kind is ClearRewardCardKind.Paid && selection.Index == column);
+            payload[at++] = free is null ? NoSeat : free.Seat;
+            payload[at++] = paid is null ? NoSeat : paid.Seat;
             payload[at++] = 0; // no entries follow
             payload[at++] = 0; // the record's trailing flag
         }

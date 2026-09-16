@@ -339,6 +339,29 @@ public sealed class CardRewardTests
         Assert.Equal(ObservedFlipType, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1, 2)));
     }
 
+    [Fact]
+    public void A_party_answer_carries_the_complete_free_and_paid_seat_snapshot()
+    {
+        var message = new SelectCardResponse(
+        [
+            new DungeonCardSelection(
+                ClearRewardCardKind.Free, 0, new CharacterId(10), Seat: 0),
+            new DungeonCardSelection(
+                ClearRewardCardKind.Free, 2, new CharacterId(20), Seat: 1),
+            new DungeonCardSelection(
+                ClearRewardCardKind.Paid, 1, new CharacterId(20), Seat: 1),
+        ]);
+        var frame = Assert.Single(new SelectCardResponseEncoder().Encode(message));
+        var records = CardPanelFrameReader.ReadSelectCardAnswer(
+            frame[GameServerFrameEncoder.HeaderLength..]);
+
+        Assert.Equal(0, records[0].FreeSeat);
+        Assert.Equal(1, records[1].GoldSeat);
+        Assert.Equal(1, records[2].FreeSeat);
+        Assert.Equal(NoSeatByte, records[3].FreeSeat);
+        Assert.Equal(NoSeatByte, records[3].GoldSeat);
+    }
+
     // ---- the flip's request ----------------------------------------------------------------
 
     /// <summary>A free flip names the face and the position it clicked.</summary>
@@ -1031,6 +1054,7 @@ public sealed class CardRewardTests
     {
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddSingleton<IGameMessageSender>(new RecordingSender());
         var configuration = new ConfigurationBuilder().Build();
         new ApplicationModule().ConfigureServices(services, configuration);
         new InfrastructureModule().ConfigureServices(services, configuration);
@@ -1045,6 +1069,10 @@ public sealed class CardRewardTests
         Assert.Equal(
             typeof(SelectCardHandler),
             registry.GetHandlerType(ClientMessageType.GameSelectCard));
+        Assert.NotNull(provider.GetRequiredService<DungeonCardPresentationCoordinator>());
+        Assert.NotNull(provider.GetRequiredService<CardSelectRightStateHandler>());
+        Assert.NotNull(provider.GetRequiredService<SelectCardHandler>());
+        Assert.NotNull(provider.GetRequiredService<SetPlayResultHandler>());
         // Transactional, not workflow. The flip puts a row in a bag, and the bag's own container
         // refuses a write with no boundary open -- so this is not bookkeeping about which enum a
         // registration carries, it is whether the arrival can happen at all. A claim marked taken
@@ -1145,7 +1173,7 @@ public sealed class CardRewardTests
             if (!inARun)
                 return;
 
-            this._runs.Begin(Identity.CharacterId, Layout, difficulty: 1);
+            var run = this._runs.Begin(Identity.CharacterId, Layout, difficulty: 1);
             if (cardsFixed)
             {
                 // The price goes down with the faces, which is where a clear fixes it. Handing it
@@ -1157,6 +1185,17 @@ public sealed class CardRewardTests
                     Face(ClearRewardCardKind.Free),
                     Face(ClearRewardCardKind.Paid),
                     paidFlipPrice);
+            }
+
+            Assert.NotNull(this._runs.TryOpenClear(
+                Identity.CharacterId, run.RunId, run.RoomVersion));
+            var settlement = Assert.IsType<DungeonSettlementClaim>(
+                this._runs.TryClaimSettlement(Identity.CharacterId, run.RunId));
+            Assert.NotNull(this._runs.CommitSettlement(settlement));
+            if (cardsFixed)
+            {
+                Assert.NotNull(this._runs.TryOpenCardLayout(
+                    Identity.CharacterId, run.RunId));
             }
         }
 

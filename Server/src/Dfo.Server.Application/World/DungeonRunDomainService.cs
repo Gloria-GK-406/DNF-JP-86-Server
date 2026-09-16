@@ -19,7 +19,9 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
     private readonly Dictionary<SettlementClaimKey, long> settlementClaims = new();
     private readonly Dictionary<GroundDropClaimKey, long> groundDropClaims = new();
     private readonly HashSet<GroundDropClaimKey> preparedGroundDropClaims = [];
-    private readonly Dictionary<ClearRewardCardClaimKey, long> clearRewardCardClaims = new();
+    private readonly Dictionary<ClearRewardCardClaimKey, ClearRewardReservation>
+        clearRewardCardClaims = new();
+    private readonly HashSet<ClearRewardCardClaimKey> preparedClearRewardCardClaims = [];
     private long nextClaim;
 
     public DungeonRunDomainService()
@@ -496,7 +498,9 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
     {
         lock (this.gate)
         {
-            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate))
+            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
+                || !aggregate.ActiveParticipants.Contains(characterId)
+                || !aggregate.ClearOpen)
                 return null;
             if (expectedRunId is { } runId && aggregate.RunId != runId)
                 return null;
@@ -545,6 +549,37 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         {
             return this.TryRemoveSettlementClaim(
                 new SettlementClaimKey(claim.RunId, claim.CharacterId), claim.Token);
+        }
+    }
+
+    public DungeonCardLayoutChange? TryOpenCardLayout(
+        CharacterId characterId,
+        DungeonRunId expectedRunId)
+    {
+        lock (this.gate)
+        {
+            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
+                || aggregate.RunId != expectedRunId
+                || !aggregate.ActiveParticipants.Contains(characterId))
+            {
+                return null;
+            }
+
+            var progress = aggregate.ProgressFor(characterId);
+            if (!progress.IsSettled
+                || progress.ClearRewardCards is null
+                || progress.CardLayoutOpen)
+            {
+                return null;
+            }
+
+            progress.CardLayoutOpen = true;
+            aggregate.RuntimeRevision++;
+            return new DungeonCardLayoutChange(
+                aggregate.RunId,
+                aggregate.RuntimeRevision,
+                characterId,
+                [characterId]);
         }
     }
 
@@ -630,18 +665,31 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             var progress = aggregate.ProgressFor(characterId);
             var card = new ClearRewardCardId(kind, index);
             if (progress.ClearRewardCards is not { } cards
+                || !progress.IsSettled
+                || !progress.CardLayoutOpen
                 || cards.SlotAt(kind, index) is not { } slot
-                || cards.Claimed.Contains(card))
+                || cards.Claimed.Contains(card)
+                || aggregate.CardSelections.Any(selection =>
+                    selection.Kind == kind
+                    && (selection.Index == index
+                        || selection.CharacterId == characterId)))
             {
                 return null;
             }
 
-            var key = new ClearRewardCardClaimKey(aggregate.RunId, characterId, card);
-            if (this.clearRewardCardClaims.ContainsKey(key))
+            var key = new ClearRewardCardClaimKey(aggregate.RunId, card);
+            if (this.preparedClearRewardCardClaims.Contains(key)
+                || this.clearRewardCardClaims.ContainsKey(key)
+                || this.clearRewardCardClaims.Any(entry =>
+                    entry.Key.RunId == aggregate.RunId
+                    && entry.Key.Card.Kind == kind
+                    && entry.Value.CharacterId == characterId))
+            {
                 return null;
+            }
 
             var token = Interlocked.Increment(ref this.nextClaim);
-            this.clearRewardCardClaims.Add(key, token);
+            this.clearRewardCardClaims.Add(key, new ClearRewardReservation(characterId, token));
             return new DungeonClearRewardCardClaim(
                 characterId,
                 aggregate.ViewFor(characterId),
@@ -652,28 +700,120 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         }
     }
 
-    public bool CommitClearRewardCard(DungeonClearRewardCardClaim claim)
+    public DungeonCardSelectionCommit CommitClearRewardCard(
+        DungeonClearRewardCardClaim claim)
     {
         ArgumentNullException.ThrowIfNull(claim);
+        var transaction = this.transactions?.Current;
+        if (transaction is null)
+        {
+            var prepared = this.TryPrepareClearRewardCard(claim);
+            if (prepared is null)
+            {
+                _ = this.ReleaseClearRewardCard(claim);
+                return DungeonCardSelectionCommit.Completed(null);
+            }
+
+            return DungeonCardSelectionCommit.Completed(
+                this.CommitPreparedClearRewardCard(prepared));
+        }
+
+        var participant = transaction.Enlist(
+            new ClearRewardCardCommitIdentity(
+                this, claim.RunId, claim.Card, claim.CharacterId, claim.Token),
+            () => new ClearRewardCardCommitParticipant(this, claim));
+        return participant.Receipt;
+    }
+
+    private PreparedClearRewardCard? TryPrepareClearRewardCard(
+        DungeonClearRewardCardClaim claim)
+    {
         lock (this.gate)
         {
-            var key = new ClearRewardCardClaimKey(claim.RunId, claim.CharacterId, claim.Card);
-            if (!this.TryRemoveClearRewardCardClaim(key, claim.Token)
+            var key = new ClearRewardCardClaimKey(claim.RunId, claim.Card);
+            if (!this.clearRewardCardClaims.TryGetValue(key, out var reservation)
+                || reservation.CharacterId != claim.CharacterId
+                || reservation.Token != claim.Token
                 || !this.runsById.TryGetValue(claim.RunId, out var aggregate)
-                || !aggregate.ActiveParticipants.Contains(claim.CharacterId))
+                || !aggregate.ActiveParticipants.Contains(claim.CharacterId)
+                || this.preparedClearRewardCardClaims.Contains(key))
             {
-                return false;
+                return null;
             }
 
             var progress = aggregate.ProgressFor(claim.CharacterId);
             if (progress.ClearRewardCards is not { } cards
-                || cards.Claimed.Contains(claim.Card))
+                || !progress.IsSettled
+                || !progress.CardLayoutOpen
+                || cards.Claimed.Contains(claim.Card)
+                || aggregate.CardSelections.Any(selection =>
+                    selection.Kind == claim.Card.Kind
+                    && (selection.Index == claim.Card.Index
+                        || selection.CharacterId == claim.CharacterId))
+                || !this.preparedClearRewardCardClaims.Add(key))
             {
-                return false;
+                return null;
             }
 
-            progress.ClearRewardCards = cards with { Claimed = cards.Claimed.Add(claim.Card) };
-            return true;
+            return new PreparedClearRewardCard(key, claim.CharacterId, claim.Token, aggregate);
+        }
+    }
+
+    private DungeonCardSelectionChange CommitPreparedClearRewardCard(
+        PreparedClearRewardCard prepared)
+    {
+        lock (this.gate)
+        {
+            // Prepare captured the exact run and reservation. Durable inventory/gold commits first;
+            // this process-local publication is deliberately non-failing afterwards, even if the
+            // participant disconnected and the aggregate left the live directory in between.
+            _ = this.TryRemoveClearRewardCardClaim(prepared.Key, prepared.Token);
+            _ = this.preparedClearRewardCardClaims.Remove(prepared.Key);
+            var progress = prepared.Aggregate.ProgressFor(prepared.CharacterId);
+            var cards = progress.ClearRewardCards
+                ?? throw new InvalidOperationException(
+                    "A prepared clear-card commit lost its frozen card layout.");
+            progress.ClearRewardCards = cards with
+            {
+                Claimed = cards.Claimed.Add(prepared.Key.Card),
+            };
+            prepared.Aggregate.CardSelections.Add(new DungeonCardSelection(
+                prepared.Key.Card.Kind,
+                prepared.Key.Card.Index,
+                prepared.CharacterId,
+                prepared.Aggregate.Participant(prepared.CharacterId).Slot));
+            prepared.Aggregate.RuntimeRevision++;
+            return new DungeonCardSelectionChange(
+                prepared.Aggregate.RunId,
+                prepared.Aggregate.RuntimeRevision,
+                prepared.CharacterId,
+                [.. prepared.Aggregate.CardSelections
+                    .OrderBy(selection => selection.Kind)
+                    .ThenBy(selection => selection.Index)],
+                [.. prepared.Aggregate.Participants
+                    .Where(participant => prepared.Aggregate.ActiveParticipants.Contains(
+                        participant.CharacterId))
+                    .Where(participant =>
+                    {
+                        var participantProgress = prepared.Aggregate.ProgressFor(
+                            participant.CharacterId);
+                        return participantProgress.IsSettled && participantProgress.CardLayoutOpen;
+                    })
+                    .OrderBy(participant => participant.Slot)
+                    .Select(participant => participant.CharacterId)]);
+        }
+    }
+
+    private void RollbackPreparedClearRewardCard(
+        DungeonClearRewardCardClaim claim,
+        PreparedClearRewardCard? prepared)
+    {
+        lock (this.gate)
+        {
+            if (prepared is { } value)
+                _ = this.preparedClearRewardCardClaims.Remove(value.Key);
+            _ = this.TryRemoveClearRewardCardClaim(
+                new ClearRewardCardClaimKey(claim.RunId, claim.Card), claim.Token);
         }
     }
 
@@ -682,9 +822,9 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         ArgumentNullException.ThrowIfNull(claim);
         lock (this.gate)
         {
-            return this.TryRemoveClearRewardCardClaim(
-                new ClearRewardCardClaimKey(claim.RunId, claim.CharacterId, claim.Card),
-                claim.Token);
+            var key = new ClearRewardCardClaimKey(claim.RunId, claim.Card);
+            return !this.preparedClearRewardCardClaims.Contains(key)
+                && this.TryRemoveClearRewardCardClaim(key, claim.Token);
         }
     }
 
@@ -793,8 +933,11 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         {
             this.settlementClaims.Remove(key);
         }
-        foreach (var key in this.clearRewardCardClaims.Keys
-                     .Where(key => key.RunId == aggregate.RunId && key.CharacterId == characterId)
+        foreach (var key in this.clearRewardCardClaims
+                     .Where(entry => entry.Key.RunId == aggregate.RunId
+                         && entry.Value.CharacterId == characterId
+                         && !this.preparedClearRewardCardClaims.Contains(entry.Key))
+                     .Select(entry => entry.Key)
                      .ToArray())
         {
             this.clearRewardCardClaims.Remove(key);
@@ -895,7 +1038,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
 
     private bool TryRemoveClearRewardCardClaim(ClearRewardCardClaimKey key, long token) =>
         this.clearRewardCardClaims.TryGetValue(key, out var current)
-        && current == token
+        && current.Token == token
         && this.clearRewardCardClaims.Remove(key);
 
     private void ClearDeathClaims(DungeonRunId runId)
@@ -934,7 +1077,8 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
     private void ClearClearRewardCardClaims(DungeonRunId runId)
     {
         foreach (var key in this.clearRewardCardClaims.Keys
-                     .Where(key => key.RunId == runId).ToArray())
+                     .Where(key => key.RunId == runId
+                         && !this.preparedClearRewardCardClaims.Contains(key)).ToArray())
         {
             this.clearRewardCardClaims.Remove(key);
         }
@@ -960,8 +1104,19 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         DungeonRunAggregate Aggregate);
     private readonly record struct ClearRewardCardClaimKey(
         DungeonRunId RunId,
-        CharacterId CharacterId,
         ClearRewardCardId Card);
+    private readonly record struct ClearRewardReservation(CharacterId CharacterId, long Token);
+    private readonly record struct ClearRewardCardCommitIdentity(
+        DungeonRunDomainService Owner,
+        DungeonRunId RunId,
+        ClearRewardCardId Card,
+        CharacterId CharacterId,
+        long Token);
+    private sealed record PreparedClearRewardCard(
+        ClearRewardCardClaimKey Key,
+        CharacterId CharacterId,
+        long Token,
+        DungeonRunAggregate Aggregate);
 
     private sealed class GroundDropCommitParticipant(
         DungeonRunDomainService owner,
@@ -1002,6 +1157,42 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         public ValueTask RollbackAsync(CancellationToken cancellationToken)
         {
             owner.RollbackPreparedGroundDrop(claim, this.prepared);
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class ClearRewardCardCommitParticipant(
+        DungeonRunDomainService owner,
+        DungeonClearRewardCardClaim claim) : ITransactionParticipant
+    {
+        private PreparedClearRewardCard? prepared;
+
+        public bool CommitCanFail => false;
+
+        public DungeonCardSelectionChange? Change { get; private set; }
+
+        public DungeonCardSelectionCommit Receipt => new(() => this.Change);
+
+        public ValueTask PrepareAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            this.prepared = owner.TryPrepareClearRewardCard(claim)
+                ?? throw new InvalidOperationException(
+                    "The clear-card reservation changed before its transaction prepared.");
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask CommitAsync(CancellationToken cancellationToken)
+        {
+            this.Change = owner.CommitPreparedClearRewardCard(
+                this.prepared ?? throw new InvalidOperationException(
+                    "A clear-card commit must be prepared before it is applied."));
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask RollbackAsync(CancellationToken cancellationToken)
+        {
+            owner.RollbackPreparedClearRewardCard(claim, this.prepared);
             return ValueTask.CompletedTask;
         }
     }
@@ -1056,6 +1247,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         public ImmutableArray<AllocatedMonsterDrop> MonsterDrops { get; set; } = [];
         public HashSet<CharacterId> ActiveParticipants { get; }
         public HashSet<CharacterId> ReadyParticipants { get; } = [];
+        public List<DungeonCardSelection> CardSelections { get; } = [];
 
         public DungeonRunParticipant Participant(CharacterId characterId) =>
             this.participantsByCharacter[characterId];
@@ -1109,7 +1301,9 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                 this.EntryRevision,
                 this.ReadyParticipants.ToImmutableHashSet(),
                 this.ClearOpen,
-                this.RuntimeRevision);
+                this.RuntimeRevision,
+                [.. this.CardSelections],
+                progress.CardLayoutOpen);
         }
     }
 
@@ -1117,5 +1311,6 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
     {
         public bool IsSettled { get; set; }
         public ClearRewardCardSet? ClearRewardCards { get; set; }
+        public bool CardLayoutOpen { get; set; }
     }
 }

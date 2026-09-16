@@ -7,6 +7,7 @@ using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.Dungeons;
+using Dfo.Server.Protocol.Game.CardReward;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Microsoft.Extensions.Logging;
 
@@ -98,7 +99,9 @@ public sealed class EplpCommandHandler(
     IGameMessageSender sender,
     TownAreaProjectionDelivery townAreaProjection,
     ILogger<EplpCommandHandler> logger,
-    SelectedSessionTransitionGate transitionGate) : ClientMessageHandler<EplpCommandRequest>
+    SelectedSessionTransitionGate transitionGate,
+    DungeonCardPresentationCoordinator? cardPresentation = null)
+    : ClientMessageHandler<EplpCommandRequest>
 {
     /// <summary>The state that means "take me out of here".</summary>
     public const byte LeaveState = 1;
@@ -133,6 +136,8 @@ public sealed class EplpCommandHandler(
             if (selectedSessions.FindByConnection(context.Connection.ConnectionId) != session)
                 return;
             var currentRun = runs.Find(session.CharacterId);
+            if (currentRun is not null)
+                cardPresentation?.Cancel(session.CharacterId, currentRun.RunId);
             runEnded = currentRun is not null && runs.End(session.CharacterId, currentRun.RunId);
             if (runEnded && currentRun is not null)
                 deliveries.RemoveParticipant(currentRun.RunId, session.CharacterId);
