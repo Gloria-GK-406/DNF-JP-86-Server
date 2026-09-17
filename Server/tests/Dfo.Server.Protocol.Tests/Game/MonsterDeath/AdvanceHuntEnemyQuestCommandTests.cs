@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Quests;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
@@ -46,10 +47,9 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             new UnusedValuation(),
             new UnusedBonuses(),
             new NoExperienceAward(),
-            new OneQuestDefinition(Quest1776()),
             new OneCharacterLog(log),
             new CharacterContainerDomainService(),
-            new NoSeekingProgress());
+            Progress(log));
 
         var result = await handler.HandleAsync(
             new CommandExecutionContext(
@@ -77,10 +77,9 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             new UnusedValuation(),
             new UnusedBonuses(),
             new ExperienceMustNotBeAwarded(),
-            new OneQuestDefinition(Quest1776(HuntEnemyTargetTypes.AiCharacter)),
             new OneCharacterLog(log),
             new CharacterContainerDomainService(),
-            new NoSeekingProgress());
+            Progress(log, Quest1776(HuntEnemyTargetTypes.AiCharacter)));
 
         var result = await handler.HandleAsync(
             new CommandExecutionContext(
@@ -106,14 +105,14 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
     public async Task TheAtomicKillCarriesTheFrozenPartySizeIntoExperienceValuation()
     {
         var valuation = new RecordingValuation();
+        var log = new OneLog(new CarriedQuest(0, 1776, 1));
         var handler = new ApplyMonsterKillCommandHandler(
             valuation,
             new UnusedBonuses(),
             new PricingOnlyExperience(),
-            new OneQuestDefinition(Quest1776()),
-            new OneCharacterLog(new OneLog(new CarriedQuest(0, 1776, 1))),
+            new OneCharacterLog(log),
             new CharacterContainerDomainService(),
-            new NoSeekingProgress());
+            Progress(log));
 
         await handler.HandleAsync(
             new CommandExecutionContext(
@@ -141,14 +140,14 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         var containers = new CharacterContainerDomainService();
         containers.Register(Character, bag);
         var seeking = new RecordingSeekingProgress();
+        var log = new OneLog(new CarriedQuest(0, 1776, 1));
         var handler = new ApplyMonsterKillCommandHandler(
             new UnusedValuation(),
             new UnusedBonuses(),
             new NoExperienceAward(),
-            new OneQuestDefinition(Quest1776()),
-            new OneCharacterLog(new OneLog(new CarriedQuest(0, 1776, 1))),
+            new OneCharacterLog(log),
             containers,
-            seeking);
+            Progress(log, seeking: seeking));
 
         var result = await handler.HandleAsync(
             new CommandExecutionContext(
@@ -201,7 +200,25 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
     }
 
     private static AdvanceHuntEnemyQuestCommandHandler Handler(OneLog log) =>
-        new(new OneQuestDefinition(Quest1776()), new OneCharacterLog(log));
+        new(Progress(log));
+
+    private static IQuestProgressDomainService Progress(
+        OneLog log,
+        QuestDefinition? definition = null,
+        ISeekingQuestProgressDomainService? seeking = null) =>
+        new QuestProgressDomainService(
+            new OneQuestDefinition(definition ?? Quest1776()),
+            new OneCharacterLog(log),
+            new UnusedClientReports(),
+            seeking ?? new NoSeekingProgress());
+
+    private sealed class UnusedClientReports : IQuestTriggerDomainService
+    {
+        public ValueTask<QuestAdvance> ApplyClientReportAsync(
+            AccountId accountId, CharacterId characterId, QuestDefinition definition,
+            byte selector, bool increment, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+    }
 
     private static AdvanceHuntEnemyQuestCommand Command(
         int dungeonId,

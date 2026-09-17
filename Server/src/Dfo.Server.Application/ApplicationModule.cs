@@ -305,6 +305,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICharacterContainerDomainService, CharacterContainerDomainService>();
         services.TryAddSingleton<ICharacterQuestLogDomainService, CharacterQuestLogDomainService>();
         services.TryAddSingleton<IQuestTriggerDomainService, QuestTriggerDomainService>();
+        services.TryAddSingleton<IQuestProgressDomainService, QuestProgressDomainService>();
         services.TryAddSingleton<
             ICharacterDarkKnightComboDomainService, CharacterDarkKnightComboDomainService>();
         services.TryAddSingleton<ICharacterItemCooldownDomainService, CharacterItemCooldownDomainService>();

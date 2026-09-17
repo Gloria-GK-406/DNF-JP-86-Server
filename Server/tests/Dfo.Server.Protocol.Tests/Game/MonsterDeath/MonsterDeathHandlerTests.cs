@@ -156,17 +156,29 @@ public sealed class MonsterDeathHandlerTests
             null, 180, StackableItemCore.Create(6, 10149163, 1));
         var update = new CommittedInventoryUpdateState(
             InventoryContainerType.Main, [item], DateTimeOffset.UnixEpoch);
-        var progress = new SeekingQuestProgressSynchronization(
+        var progress = new QuestProgressSnapshot(
             [new CarriedQuest(0, 1779, 14)]);
 
         var sent = await Kill(bus: new FixedKillAward(
-            leveledUp: false, questItems: update, seekingProgress: progress));
+            leveledUp: false, questItems: update, questProgress: progress));
 
         Assert.Equal(
             [typeof(ExperienceNotification), typeof(MonsterDeathNotification),
                 typeof(InventoryDeltaMessage), typeof(AcceptedQuestProgressMessage)],
             sent.Select(frame => frame.GetType()));
         Assert.Equal(180, Assert.Single(sent.OfType<InventoryDeltaMessage>()).Items.Single().SlotIndex);
+    }
+
+    [Fact]
+    public async Task A_server_counted_kill_pushes_its_quest_progress_without_a_trigger_request()
+    {
+        var sent = await Kill(bus: new FixedKillAward(
+            leveledUp: false,
+            questProgress: new QuestProgressSnapshot([new CarriedQuest(0, 1776, 0)])));
+
+        var notice = Assert.Single(sent.OfType<AcceptedQuestProgressMessage>());
+        Assert.Equal([(1776, 0u)], notice.Quests
+            .Select(quest => ((int)quest.QuestId, quest.TriggerValue)));
     }
 
     [Fact]
@@ -781,7 +793,7 @@ public sealed class MonsterDeathHandlerTests
         bool awarded = true,
         int failuresBeforeSuccess = 0,
         CommittedInventoryUpdateState? questItems = null,
-        SeekingQuestProgressSynchronization? seekingProgress = null) : ICommandBus
+        QuestProgressSnapshot? questProgress = null) : ICommandBus
     {
         private int _remainingFailures = failuresBeforeSuccess;
 
@@ -810,7 +822,7 @@ public sealed class MonsterDeathHandlerTests
                     Level: leveledUp ? (byte)(StartingLevel + 1) : StartingLevel,
                     Total: StartingExperience + KillGain,
                     LeveledUp: leveledUp) : null,
-                [], questItems, seekingProgress);
+                [], questItems, questProgress);
             return ValueTask.FromResult((TResult)(object)result);
         }
     }

@@ -939,10 +939,11 @@ public sealed class MonsterDeathHandler(
     {
         if (applied?.QuestItems is { } items)
             frames.Add(GameInventoryDelivery.Notification(items));
-        if (applied?.SeekingProgress is { } progress)
+        var quests = applied?.QuestProgress?.Quests;
+        if (quests is not null)
         {
             frames.Add(new AcceptedQuestProgressMessage(
-                [.. progress.Quests.OrderBy(quest => quest.Slot)
+                [.. quests.OrderBy(quest => quest.Slot)
                     .Select(quest => new AcceptedQuestProgressState(
                         checked((ushort)quest.QuestId),
                         unchecked((uint)quest.TriggerValue)))]));

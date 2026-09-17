@@ -370,7 +370,7 @@ public sealed class PickedUpAvatarStaysWholeTests
                 new GroundPickupDomainService(),
                 side.Containers,
                 null!,
-                new NoSeekingProgress());
+                new NoQuestProgress());
 
             await body(side, handler, runs);
         }
@@ -388,12 +388,13 @@ public sealed class PickedUpAvatarStaysWholeTests
         }
     }
 
-    private sealed class NoSeekingProgress : ISeekingQuestProgressDomainService
+    private sealed class NoQuestProgress : IQuestProgressDomainService
     {
-        public ValueTask<SeekingQuestProgressSynchronization?> SynchronizeAsync(
+        public ValueTask<QuestProgressReport> ReportAsync(
             AccountId accountId,
             CharacterId characterId,
+            IReadOnlyList<QuestProgressFact> facts,
             CancellationToken cancellationToken) =>
-            ValueTask.FromResult<SeekingQuestProgressSynchronization?>(null);
+            ValueTask.FromResult(new QuestProgressReport(null, [], null));
     }
 }

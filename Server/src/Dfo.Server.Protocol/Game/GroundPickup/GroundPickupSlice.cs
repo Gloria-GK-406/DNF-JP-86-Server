@@ -254,7 +254,7 @@ public sealed record GroundPickupResult(
     int Amount = 0,
     int Total = 0,
     DungeonPickupChange? Change = null,
-    SeekingQuestProgressSynchronization? QuestProgress = null,
+    QuestProgressSnapshot? QuestProgress = null,
     DungeonPickupCommit? PendingCommit = null)
 {
     public DungeonPickupChange? CommittedChange => this.PendingCommit?.Change ?? this.Change;
@@ -289,7 +289,7 @@ public sealed class PickUpGroundDropCommandHandler(
     IGroundPickupDomainService floor,
     ICharacterContainerDomainService containers,
     ICharacterDomainService characters,
-    ISeekingQuestProgressDomainService seekingQuests)
+    IQuestProgressDomainService questProgress)
     : ICommandHandler<PickUpGroundDropCommand, GroundPickupResult>
 {
     public async ValueTask<GroundPickupResult> HandleAsync(
@@ -335,6 +335,9 @@ public sealed class PickUpGroundDropCommandHandler(
                     throw new InvalidOperationException(
                         "The ground-drop claim was no longer current after its durable gold award.");
                 }
+                var goldProgress = await questProgress.ReportAsync(
+                    command.AccountId, command.CharacterId,
+                    [new QuestHoldingsChanged()], cancellationToken).ConfigureAwait(false);
                 return new GroundPickupResult(
                     GroundPickupStatus.Banked,
                     RolledDrop.GoldItemId,
@@ -342,6 +345,7 @@ public sealed class PickUpGroundDropCommandHandler(
                     piece.Count,
                     total,
                     Change: staged.Change,
+                    QuestProgress: goldProgress.NotificationSnapshot,
                     PendingCommit: staged.IsDeferred ? staged : null);
             }
             catch
@@ -392,10 +396,9 @@ public sealed class PickUpGroundDropCommandHandler(
                         nameof(command), outcome, "No reading was decided for this outcome.");
             }
 
-            var questProgress = await seekingQuests.SynchronizeAsync(
-                command.AccountId,
-                command.CharacterId,
-                cancellationToken).ConfigureAwait(false);
+            var reported = await questProgress.ReportAsync(
+                command.AccountId, command.CharacterId,
+                [new QuestHoldingsChanged()], cancellationToken).ConfigureAwait(false);
             var staged = runs.StageGroundDrop(itemClaim, DungeonPickupKind.Item);
             if (!staged.IsDeferred && staged.Change is null)
             {
@@ -407,7 +410,7 @@ public sealed class PickUpGroundDropCommandHandler(
                 piece.ItemId,
                 slotIndex,
                 Change: staged.Change,
-                QuestProgress: questProgress,
+                QuestProgress: reported.NotificationSnapshot,
                 PendingCommit: staged.IsDeferred ? staged : null);
         }
         catch
@@ -555,13 +558,16 @@ public sealed class DungeonPickupProjectionDelivery(
             case GroundPickupStatus.Banked when change.Kind is DungeonPickupKind.Gold:
                 notification = new GroundGoldPickupNotification(
                     change.Drop.Number, requester.WireUserId, result.Amount);
-                required =
-                [
+                var goldMessages = new List<IGameServerMessage>
+                {
                     new GetItemResponse(Accepted: true),
                     notification,
                     GameInventoryDelivery.CarriedGoldNotification(
                         result.Total, clock.GetUtcNow()),
-                ];
+                };
+                if (result.QuestProgress is { } goldProgress)
+                    goldMessages.Add(QuestProgressMessage(goldProgress));
+                required = goldMessages;
                 break;
 
             case GroundPickupStatus.PickedUp when change.Kind is DungeonPickupKind.Item:
@@ -575,20 +581,21 @@ public sealed class DungeonPickupProjectionDelivery(
                     notification,
                 };
                 if (result.QuestProgress is { } questProgress)
-                {
-                    itemMessages.Add(new AcceptedQuestProgressMessage(
-                        [.. questProgress.Quests
-                            .OrderBy(quest => quest.Slot)
-                            .Select(quest => new AcceptedQuestProgressState(
-                                checked((ushort)quest.QuestId),
-                                unchecked((uint)quest.TriggerValue)))]));
-                }
+                    itemMessages.Add(QuestProgressMessage(questProgress));
                 required = itemMessages;
                 break;
 
             default:
                 return false;
         }
+
+        static AcceptedQuestProgressMessage QuestProgressMessage(
+            QuestProgressSnapshot progress) =>
+            new([.. progress.Quests
+                .OrderBy(quest => quest.Slot)
+                .Select(quest => new AcceptedQuestProgressState(
+                    checked((ushort)quest.QuestId),
+                    unchecked((uint)quest.TriggerValue)))]);
 
         var secondary = partyMembers
             .Where(frozen => frozen.CharacterId != change.Picker)

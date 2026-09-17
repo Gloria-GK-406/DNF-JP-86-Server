@@ -57,7 +57,7 @@ public sealed class GetItemHandlerTests
                 GroundPickupStatus.PickedUp,
                 10149163,
                 7,
-                QuestProgress: new SeekingQuestProgressSynchronization(
+                QuestProgress: new QuestProgressSnapshot(
                     [new CarriedQuest(0, 1779, 14), new CarriedQuest(1, 2000, 7)]))]);
 
         await handler.HandleAsync(
@@ -110,7 +110,7 @@ public sealed class GetItemHandlerTests
                 DungeonPickupKind.Item,
                 [Leader.CharacterId, Helper.CharacterId],
                 run.RoomVersion),
-            QuestProgress: new SeekingQuestProgressSynchronization(
+            QuestProgress: new QuestProgressSnapshot(
                 [new CarriedQuest(0, 1779, 15)]));
 
         var opened = Assert.IsType<DungeonClearChange>(
@@ -166,7 +166,7 @@ public sealed class GetItemHandlerTests
                 DungeonPickupKind.Item,
                 [Leader.CharacterId],
                 run.RoomVersion),
-            QuestProgress: new SeekingQuestProgressSynchronization(
+            QuestProgress: new QuestProgressSnapshot(
                 [new CarriedQuest(0, 1779, 0)]));
 
         Assert.NotNull(await postCommit.EvaluateAsync(Leader, result));
@@ -198,6 +198,27 @@ public sealed class GetItemHandlerTests
         Assert.Empty(sender.Delivery!.BestEffortTargets);
         Assert.Contains(sender.Delivery.RequiredDirectMessages,
             message => message is GroundGoldPickupNotification);
+    }
+
+    [Fact]
+    public async Task Gold_pickup_projects_quest_progress_when_currency_changes_an_objective()
+    {
+        var (handler, sender) = Build(
+            [Leader],
+            [new GroundPickupResult(
+                GroundPickupStatus.Banked, 0, 0, 90, 190,
+                QuestProgress: new QuestProgressSnapshot([new CarriedQuest(0, 1779, 0)]))]);
+
+        await handler.HandleAsync(
+            Dispatch(Leader.ConnectionId),
+            new GetItemRequest(GameMessageMetadata.Empty, 5),
+            CancellationToken.None);
+
+        var progress = Assert.Single(sender.Delivery!.RequiredDirectMessages
+            .OfType<AcceptedQuestProgressMessage>());
+        Assert.Equal((1779, 0u),
+            ((int)Assert.Single(progress.Quests).QuestId,
+                Assert.Single(progress.Quests).TriggerValue));
     }
 
     [Fact]

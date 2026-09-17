@@ -95,6 +95,9 @@ public sealed class QuestClearVerticalTests
                     provider.GetRequiredService<ICharacterQuestLogDomainService>(),
                     provider.GetRequiredService<ICharacterContainerDomainService>(),
                     provider.GetRequiredService<ICharacterDomainService>()));
+            services.AddSingleton<IQuestProgressDomainService>(provider =>
+                new SeekingFactAdapter(
+                    provider.GetRequiredService<ISeekingQuestProgressDomainService>()));
             services.AddSingleton<IGroundPickupDomainService>(new GroundPickupDomainService());
             services.AddCommandHandler<
                 PickUpGroundDropCommand,
@@ -355,6 +358,21 @@ public sealed class QuestClearVerticalTests
         public ValueTask<IReadOnlyList<DungeonRoomDrop>> GetAsync(
             int dungeonId, int mapId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<IReadOnlyList<DungeonRoomDrop>>([]);
+    }
+
+    private sealed class SeekingFactAdapter(ISeekingQuestProgressDomainService seeking)
+        : IQuestProgressDomainService
+    {
+        public async ValueTask<QuestProgressReport> ReportAsync(
+            AccountId accountId, CharacterId characterId,
+            IReadOnlyList<QuestProgressFact> facts, CancellationToken cancellationToken)
+        {
+            Assert.All(facts, fact => Assert.IsType<QuestHoldingsChanged>(fact));
+            var changed = await seeking.SynchronizeAsync(
+                accountId, characterId, cancellationToken);
+            return new QuestProgressReport(
+                null, [], changed is null ? null : new QuestProgressSnapshot(changed.Quests));
+        }
     }
 
     private sealed class ClearedBossRoom : IMonsterKillDomainService

@@ -305,6 +305,9 @@ public interface ICharacterQuestLogDomainService
 public sealed record SeekingQuestProgressSynchronization(
     IReadOnlyList<CarriedQuest> Quests);
 
+/// <summary>The authoritative carried-quest state after a server-originated progress change.</summary>
+public sealed record QuestProgressSnapshot(IReadOnlyList<CarriedQuest> Quests);
+
 /// <summary>Re-derives seeking progress from the character's current authoritative holdings.</summary>
 public interface ISeekingQuestProgressDomainService
 {

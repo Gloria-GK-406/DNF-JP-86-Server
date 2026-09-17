@@ -26,7 +26,7 @@ public sealed record ApplyMonsterKillResult(
     ExperienceAward? Award,
     IReadOnlyList<HuntEnemyQuestAdvance> QuestAdvances,
     CommittedInventoryUpdateState? QuestItems = null,
-    SeekingQuestProgressSynchronization? SeekingProgress = null);
+    QuestProgressSnapshot? QuestProgress = null);
 
 /// <summary>
 /// Keeps experience and server-authoritative quest progress on the same transaction boundary.
@@ -35,10 +35,9 @@ public sealed class ApplyMonsterKillCommandHandler(
     IExperienceValuationDomainService valuation,
     IExperienceBonusDomainService bonuses,
     ICharacterExperienceDomainService experience,
-    IQuestDefinitionDomainService questDefinitions,
     ICharacterQuestLogDomainService questLogs,
     ICharacterContainerDomainService containers,
-    ISeekingQuestProgressDomainService seekingQuests)
+    IQuestProgressDomainService questProgress)
     : ICommandHandler<ApplyMonsterKillCommand, ApplyMonsterKillResult>
 {
     public async ValueTask<ApplyMonsterKillResult> HandleAsync(
@@ -70,24 +69,21 @@ public sealed class ApplyMonsterKillCommandHandler(
                     command.PartyMemberCount),
                 cancellationToken).ConfigureAwait(false)
             : null;
-        var advanced = await AdvanceHuntEnemyQuestCommandHandler.AdvanceAsync(
-            questDefinitions,
-            questLogs,
-            new AdvanceHuntEnemyQuestCommand(
-                command.AccountId,
-                command.CharacterId,
-                command.DungeonId,
-                command.Difficulty,
-                command.Monster.Code,
-                command.EnemyType),
-            cancellationToken).ConfigureAwait(false);
-
         var granted = await GrantQuestItemsAsync(command, cancellationToken).ConfigureAwait(false);
-        var seeking = granted is null
-            ? null
-            : await seekingQuests.SynchronizeAsync(
-                command.AccountId, command.CharacterId, cancellationToken).ConfigureAwait(false);
-        return new ApplyMonsterKillResult(awarded, advanced, granted, seeking);
+        var facts = new List<QuestProgressFact>
+        {
+            new QuestEnemyDefeated(
+                command.DungeonId, command.Difficulty, command.Monster.Code, command.EnemyType),
+        };
+        if (granted is not null)
+            facts.Add(new QuestHoldingsChanged());
+        var reported = await questProgress.ReportAsync(
+            command.AccountId, command.CharacterId, facts, cancellationToken).ConfigureAwait(false);
+        var advanced = reported.Changes
+            .Select(change => new HuntEnemyQuestAdvance(change.QuestId, change.Before, change.After))
+            .ToArray();
+        return new ApplyMonsterKillResult(
+            awarded, advanced, granted, QuestProgress: reported.NotificationSnapshot);
     }
 
     private async ValueTask<CommittedInventoryUpdateState?> GrantQuestItemsAsync(

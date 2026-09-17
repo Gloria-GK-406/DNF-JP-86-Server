@@ -67,7 +67,7 @@ public sealed class GroundPickupTests
             new GroundPickupDomainService(),
             new StubContainers(bag),
             new OnePlayingCharacter(carried),
-            seeking);
+            new QuestProgressFromSeeking(seeking));
         return (handler, runs, bag, carried);
     }
 
@@ -186,7 +186,7 @@ public sealed class GroundPickupTests
 
         var result = await PickUp(handler, dropped.Number);
 
-        Assert.Same(progress, result.QuestProgress);
+        Assert.Equal(progress.Quests, result.QuestProgress?.Quests);
         Assert.Equal(1, seeking.Calls);
         Assert.NotNull(result.Change);
     }
@@ -476,6 +476,21 @@ public sealed class GroundPickupTests
             CharacterId characterId,
             CancellationToken cancellationToken) =>
             throw new InvalidDataException("injected quest progress failure");
+    }
+
+    private sealed class QuestProgressFromSeeking(ISeekingQuestProgressDomainService seeking)
+        : IQuestProgressDomainService
+    {
+        public async ValueTask<QuestProgressReport> ReportAsync(
+            AccountId accountId, CharacterId characterId,
+            IReadOnlyList<QuestProgressFact> facts, CancellationToken cancellationToken)
+        {
+            Assert.All(facts, fact => Assert.IsType<QuestHoldingsChanged>(fact));
+            var result = await seeking.SynchronizeAsync(
+                accountId, characterId, cancellationToken);
+            return new QuestProgressReport(
+                null, [], result is null ? null : new QuestProgressSnapshot(result.Quests));
+        }
     }
 
     /// <summary>A bag that opens the next free slot and remembers what went in it.</summary>

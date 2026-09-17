@@ -61,8 +61,7 @@ public sealed record SetQuestTriggerCommand(
 /// are asked in and which byte carries which answer.
 /// </remarks>
 public sealed class SetQuestTriggerCommandHandler(
-    IQuestDefinitionDomainService quests,
-    IQuestTriggerDomainService progress)
+    IQuestProgressDomainService progress)
     : ICommandHandler<SetQuestTriggerCommand, QuestTriggerOutcome>
 {
     public async ValueTask<QuestTriggerOutcome> HandleAsync(
@@ -83,20 +82,14 @@ public sealed class SetQuestTriggerCommandHandler(
                 + $"registered transactional; this execution is {context.ExecutionKind}.");
         }
 
-        var definition = await quests.FindAsync(command.QuestId, cancellationToken)
-            .ConfigureAwait(false);
-        if (definition is null)
-            return QuestTriggerOutcome.Refuse(command.QuestId);
-
-        var advance = await progress
-            .ApplyClientReportAsync(
-                command.AccountId,
-                command.CharacterId,
-                definition,
-                command.Selector,
-                command.Increment,
-                cancellationToken)
-            .ConfigureAwait(false);
+        var reported = await progress.ReportAsync(
+            command.AccountId,
+            command.CharacterId,
+            [new ClientQuestTriggerReport(
+                command.QuestId, command.Selector, command.Increment)],
+            cancellationToken).ConfigureAwait(false);
+        var advance = reported.ClientResponse
+            ?? throw new InvalidDataException("A client quest report produced no CMD response.");
 
         return advance.Verdict switch
         {

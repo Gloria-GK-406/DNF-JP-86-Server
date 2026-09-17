@@ -20,8 +20,7 @@ public sealed record AdvanceHuntEnemyQuestResult(
 
 /// <summary>Applies one server-verified monster death to every matching active quest target.</summary>
 public sealed class AdvanceHuntEnemyQuestCommandHandler(
-    IQuestDefinitionDomainService quests,
-    ICharacterQuestLogDomainService logs)
+    IQuestProgressDomainService progress)
     : ICommandHandler<AdvanceHuntEnemyQuestCommand, AdvanceHuntEnemyQuestResult>
 {
     public async ValueTask<AdvanceHuntEnemyQuestResult> HandleAsync(
@@ -37,63 +36,14 @@ public sealed class AdvanceHuntEnemyQuestCommandHandler(
                 "Hunt-enemy quest progress is persistent and requires a transactional command.");
         }
 
+        var reported = await progress.ReportAsync(
+            command.AccountId,
+            command.CharacterId,
+            [new QuestEnemyDefeated(
+                command.DungeonId, command.Difficulty, command.EnemyCode, command.EnemyType)],
+            cancellationToken).ConfigureAwait(false);
         return new AdvanceHuntEnemyQuestResult(
-            await AdvanceAsync(quests, logs, command, cancellationToken).ConfigureAwait(false));
+            [.. reported.Changes.Select(change => new HuntEnemyQuestAdvance(
+                change.QuestId, change.Before, change.After))]);
     }
-
-    internal static async ValueTask<IReadOnlyList<HuntEnemyQuestAdvance>> AdvanceAsync(
-        IQuestDefinitionDomainService quests,
-        ICharacterQuestLogDomainService logs,
-        AdvanceHuntEnemyQuestCommand command,
-        CancellationToken cancellationToken)
-    {
-        var log = logs.LogOf(command.AccountId, command.CharacterId);
-        var carried = await log.CarriedAsync(cancellationToken).ConfigureAwait(false);
-        var advances = new List<HuntEnemyQuestAdvance>();
-        foreach (var active in carried)
-        {
-            var definition = await quests.FindAsync(active.QuestId, cancellationToken)
-                .ConfigureAwait(false);
-            if (definition is null || definition.HuntEnemyRequirements.Count == 0)
-                continue;
-
-            var current = new QuestTrigger(unchecked((uint)active.TriggerValue));
-            var next = current;
-            var count = Math.Min(
-                definition.HuntEnemyRequirements.Count,
-                QuestTrigger.ChannelCount);
-            for (var index = 0; index < count; index++)
-            {
-                var target = definition.HuntEnemyRequirements[index];
-                if (Matches(target, command))
-                {
-                    next = next.ReplaceChannel(index, next.GetChannel(index) - 1L);
-                }
-            }
-
-            if (next == current)
-                continue;
-
-            if (await log.RecordProgressAsync(
-                    active,
-                    unchecked((int)next.PackedValue),
-                    cancellationToken).ConfigureAwait(false))
-            {
-                advances.Add(new HuntEnemyQuestAdvance(
-                    active.QuestId,
-                    current.PackedValue,
-                    next.PackedValue));
-            }
-        }
-
-        return advances;
-    }
-
-    private static bool Matches(
-        Dfo.Server.Abstractions.Content.HuntEnemyRequirement target,
-        AdvanceHuntEnemyQuestCommand command) =>
-        target.DungeonId == command.DungeonId
-        && (target.Difficulty < 0 || target.Difficulty == command.Difficulty)
-        && target.EnemyCode == command.EnemyCode
-        && target.EnemyType == command.EnemyType;
 }
