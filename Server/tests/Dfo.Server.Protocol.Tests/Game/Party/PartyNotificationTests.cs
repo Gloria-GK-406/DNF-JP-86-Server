@@ -618,6 +618,45 @@ public sealed class PartyNotificationTests
     }
 
     [Fact]
+    public async Task Leader_leave_projects_succession_before_clear_and_survivor_roster()
+    {
+        var bus = new RecordingNotificationBus();
+        var transfer = new PartySnapshot(
+            0x1234, 7, 4, Invitee.WireUserId, DefaultSettings(), PartyTitle.Empty,
+            [new(Character(Invitee), 0, null, 45),
+             new(Character(Inviter), 1, Endpoint(), 73)]);
+        var survivor = transfer with
+        {
+            Revision = 5,
+            Members = [new(Character(Invitee), 0, null, 45)],
+        };
+
+        await Delivery(bus).DeliverAsync(new PartyNotificationPlan(
+            [Inviter.CharacterId], survivor,
+            ClearPartyId: survivor.PartyId,
+            ClearPartyGeneration: survivor.Generation,
+            ClearPartyRevision: survivor.Revision,
+            DirectoryChange: ScopeChange(),
+            LeadershipTransfer: transfer), CancellationToken.None);
+
+        Assert.Collection(bus.Publications,
+            value => AssertPublication<PartyRealtimeChanged>(value, 2, 1),
+            value => AssertPublication<PartyEndpointsChanged>(value, 2, 1),
+            value => AssertPublication<PartyRosterChanged>(value, 2, 1),
+            value => AssertPublication<PartyRosterChanged>(value, 1),
+            value => AssertPublication<PartyRealtimeChanged>(value, 2),
+            value => AssertPublication<PartyEndpointsChanged>(value, 2),
+            value => AssertPublication<PartyRosterChanged>(value, 2),
+            value => AssertPublication<PartyRosterChanged>(value, 1, 3));
+        Assert.Equal(4, Assert.IsType<PartyRosterChanged>(bus.Publications[2].Notification)
+            .Snapshot!.Revision);
+        Assert.True(Assert.IsType<PartyRosterChanged>(bus.Publications[3].Notification)
+            .ClearsParty);
+        Assert.Equal(5, Assert.IsType<PartyRosterChanged>(bus.Publications[6].Notification)
+            .Snapshot!.Revision);
+    }
+
+    [Fact]
     public async Task DisbandClearsMembersBeforeUnrelatedObserversWithoutDuplicateRecipients()
     {
         var bus = new RecordingNotificationBus();

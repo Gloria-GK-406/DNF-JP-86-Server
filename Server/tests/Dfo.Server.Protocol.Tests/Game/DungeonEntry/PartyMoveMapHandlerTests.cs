@@ -9,6 +9,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.Dungeons;
+using Dfo.Server.Protocol.Tests.Game.Party;
 using Microsoft.Extensions.Logging.Abstractions;
 using EnteredDungeon = Dfo.Server.Abstractions.World.DungeonEntry;
 
@@ -117,6 +118,33 @@ public sealed class PartyMoveMapHandlerTests
 
         Assert.Equal(0, visits.Moves);
         Assert.Empty(sender.Messages(Leader.ConnectionId));
+        Assert.Empty(sender.Messages(replacement.ConnectionId));
+        Assert.Empty(sender.Messages(Member.ConnectionId));
+    }
+
+    [Fact]
+    public async Task A_current_replacement_is_not_admitted_to_the_old_run()
+    {
+        var replacement = Leader with
+        {
+            ConnectionId = new NetworkConnectionId("leader-replacement"),
+            ConnectionGeneration = Leader.ConnectionGeneration + 1,
+        };
+        var sessions = new Sessions(replacement, Member);
+        var sender = new Sender();
+        var visits = new Visits();
+        var runs = new Runs(visits.Start);
+        var registry = new DungeonRunDeliveryRegistry();
+        registry.Register(visits.RunId, [Leader, Member]);
+        var handler = new MoveMapHandler(
+            sessions, runs, visits, registry, sender,
+            NullLogger<MoveMapHandler>.Instance,
+            new DungeonPartyRecipients(
+                new VirtualOnlyPartyService(), sessions, runs, registry));
+
+        await handler.HandleAsync(Dispatch(replacement), Request(), CancellationToken.None);
+
+        Assert.Equal(0, visits.Moves);
         Assert.Empty(sender.Messages(replacement.ConnectionId));
         Assert.Empty(sender.Messages(Member.ConnectionId));
     }

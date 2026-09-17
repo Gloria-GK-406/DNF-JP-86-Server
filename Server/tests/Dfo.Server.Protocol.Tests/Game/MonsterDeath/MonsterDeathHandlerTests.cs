@@ -1,11 +1,13 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Parties;
 using Dfo.Server.Application.Quests;
 using Dfo.Server.Application.World;
 using Dfo.Server.Application.Tests.Support;
@@ -14,6 +16,8 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.OnlineUsers;
+using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonClear;
@@ -400,6 +404,56 @@ public sealed class MonsterDeathHandlerTests
         Assert.Equal(
             leader.WireUserId,
             Assert.IsAssignableFrom<IReadOnlyDictionary<ushort, ushort>>(death.DropOwners)[1]);
+    }
+
+    [Fact]
+    public void DungeonRecipientsFollowCurrentPartyButNeverAdmitAReplacementConnection()
+    {
+        var leader = SelectedSessionIdentity.Create(
+            new AccountId(1), new CharacterId(60), new NetworkConnectionId("leader"), 1, 10010);
+        var member = SelectedSessionIdentity.Create(
+            new AccountId(2), new CharacterId(61), new NetworkConnectionId("member"), 1, 10011);
+        var townMember = SelectedSessionIdentity.Create(
+            new AccountId(3), new CharacterId(62), new NetworkConnectionId("town-member"), 1, 10012);
+        var replacement = member with
+        {
+            ConnectionId = new NetworkConnectionId("replacement"),
+            ConnectionGeneration = 2,
+        };
+        var party = new PartyService(
+            new FixedPartyMemberStatus(), new PartyModeRuleService(),
+            TimeProvider.System, NoPartyEndpoints.Instance);
+        var scope = new PartyDirectoryScope(11, 1, 1);
+        var first = new PartyCharacterSnapshot(
+            leader.AccountId, leader.CharacterId, leader.WireUserId, scope);
+        var second = new PartyCharacterSnapshot(
+            member.AccountId, member.CharacterId, member.WireUserId, scope);
+        Assert.True(party.RequestInvite(first, second,
+            new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+        Assert.True(party.AcceptInvite(second, first).Succeeded);
+        var third = new PartyCharacterSnapshot(
+            townMember.AccountId, townMember.CharacterId, townMember.WireUserId, scope);
+        Assert.True(party.RequestInvite(first, third,
+            new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+        Assert.True(party.AcceptInvite(third, first).Succeeded);
+        var run = new PartyRun([
+            new DungeonRunParticipant(leader.AccountId, leader.CharacterId, 0, true),
+            new DungeonRunParticipant(member.AccountId, member.CharacterId, 1, false),
+        ]);
+        var registry = new DungeonRunDeliveryRegistry();
+        registry.Register(run.RunId, [leader, member]);
+        var recipients = new DungeonPartyRecipients(
+            party, new PartySessions([leader, member, townMember]), run, registry);
+
+        Assert.Equal([leader, member], recipients.Find(leader, run.RunId));
+        Assert.Equal([leader], new DungeonPartyRecipients(
+            party, new PartySessions([leader, replacement]), run, registry)
+            .Find(leader, run.RunId));
+        Assert.True(party.LeaveParty(leader.CharacterId).Succeeded);
+        Assert.Equal([member], recipients.Find(member, run.RunId));
+        Assert.Empty(new DungeonPartyRecipients(
+            party, new PartySessions([replacement]), run, registry)
+            .Find(member, run.RunId));
     }
 
     [Fact]
@@ -933,6 +987,22 @@ public sealed class MonsterDeathHandlerTests
         public ClearRewardCardSlot? TryClaimClearRewardCard(
             CharacterId characterId, ClearRewardCardKind kind, int index) =>
             throw new NotSupportedException("This fixture only answers.");
+    }
+
+    private sealed class FixedPartyMemberStatus : IPartyMemberStatusDomainService
+    {
+        public ValueTask<PartyInviteDisplayState> InvitationOfAsync(
+            PartyCharacterSnapshot character, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(new PartyInviteDisplayState(0, 0, 0, 0));
+
+        public byte CurrentHpPercentOf(CharacterId characterId) => 100;
+    }
+
+    private sealed class NoPartyEndpoints : IPartyMemberSessionEndpointSource
+    {
+        public static NoPartyEndpoints Instance { get; } = new();
+
+        public SessionEndpoint? FindThroughCurrentSession(CharacterId characterId) => null;
     }
 
     private sealed class PartyRun(

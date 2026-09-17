@@ -650,7 +650,8 @@ public sealed class MoveMapHandler(
     IDungeonVisitDomainService visits,
     DungeonRunDeliveryRegistry deliveryRegistry,
     IGameMessageSender sender,
-    ILogger<MoveMapHandler> logger) : ClientMessageHandler<MoveMapRequest>
+    ILogger<MoveMapHandler> logger,
+    DungeonPartyRecipients? partyRecipients = null) : ClientMessageHandler<MoveMapRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -697,6 +698,9 @@ public sealed class MoveMapHandler(
         // superseded connection cannot advance the shared aggregate.
         if (selectedSessions.FindByCharacter(session.CharacterId) != session)
             return;
+        if (partyRecipients is not null
+            && !partyRecipients.Find(session, current.RunId).Contains(session))
+            return;
 
         var visit = await visits
             .MoveAsync(session.CharacterId, current, target, cancellationToken)
@@ -736,8 +740,9 @@ public sealed class MoveMapHandler(
         // the list again resurrects them under the very same numbers -- which is what a live
         // session saw on 2026-08-26 when it walked back out of the boss room, five monsters and
         // four monsters standing up again with the numbers they had died under.
-        var frozen = deliveryRegistry.Find(visit.Run.RunId);
-        if (frozen.Count == 0)
+        var frozen = partyRecipients?.Find(session, visit.Run.RunId)
+            ?? deliveryRegistry.Find(visit.Run.RunId);
+        if (frozen.Count == 0 && partyRecipients is null)
             frozen = [session];
         var currentRecipients = frozen
             .Where(value => selectedSessions.FindByCharacter(value.CharacterId) == value)

@@ -173,7 +173,8 @@ public sealed record PartyNotificationPlan(
     long? ClearPartyGeneration = null,
     long? ClearPartyRevision = null,
     PartySettingsChangeKind? SettingsChange = null,
-    PartyDirectoryChange? DirectoryChange = null)
+    PartyDirectoryChange? DirectoryChange = null,
+    PartySnapshot? LeadershipTransfer = null)
 {
     public static PartyNotificationPlan Empty { get; } = new([]);
 }

@@ -47,7 +47,7 @@ public sealed class SelectedSessionPartyCleanupTests
     }
 
     [Fact]
-    public async Task Leader_cleanup_disbands_and_clears_every_party_member()
+    public async Task Leader_cleanup_promotes_the_next_member_and_clears_only_the_owner()
     {
         var fixture = new Fixture();
         var leader = fixture.Admit(1);
@@ -58,15 +58,20 @@ public sealed class SelectedSessionPartyCleanupTests
         var plan = await fixture.Cleanup.CleanupAsync(
             leader, includeOwner: false, CancellationToken.None);
 
-        Assert.Null(plan.PartyNotifications.Snapshot);
+        var survivors = Assert.IsType<Dfo.Server.Data.Parties.PartySnapshot>(
+            plan.PartyNotifications.Snapshot);
+        Assert.Equal(member.WireUserId, survivors.LeaderWireUserId);
+        Assert.Equal(member.CharacterId, Assert.Single(survivors.Members).CharacterId);
         Assert.Equal(
-            [leader.CharacterId, member.CharacterId],
+            [leader.CharacterId],
             plan.PartyNotifications.ClearAudience.ToArray());
         Assert.Equal(
-            new PartyDirectoryChange(new PartyDirectoryScope(11, 1, 2), null),
+            new PartyDirectoryChange(
+                new PartyDirectoryScope(11, 1, 2),
+                new PartyDirectoryScope(11, 1, 2)),
             plan.PartyNotifications.DirectoryChange);
         Assert.True(fixture.Parties.FindParty(leader).IsVirtual);
-        Assert.True(fixture.Parties.FindParty(member).IsVirtual);
+        Assert.False(fixture.Parties.FindParty(member).IsVirtual);
     }
 
     [Fact]

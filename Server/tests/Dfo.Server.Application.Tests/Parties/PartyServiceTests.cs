@@ -339,7 +339,7 @@ public sealed class PartyServiceTests
     }
 
     [Fact]
-    public void LeaveAndDisbandDescribeTheAffectedDirectoryScopes()
+    public void LeaveAndLeaderSuccessionDescribeTheAffectedDirectoryScopes()
     {
         var fixture = new PartyFixture();
         var leader = fixture.Admit(1, 101);
@@ -356,12 +356,15 @@ public sealed class PartyServiceTests
             memberLeave.Notifications.DirectoryChange);
 
         fixture.Form(leader, member);
-        var disband = fixture.Parties.LeavePartyExact(leader);
+        var leaderLeave = fixture.Parties.LeavePartyExact(leader);
 
-        Assert.True(disband.Succeeded);
+        Assert.True(leaderLeave.Succeeded);
         Assert.Equal(
-            new PartyDirectoryChange(scope, null),
-            disband.Notifications.DirectoryChange);
+            new PartyDirectoryChange(scope, scope),
+            leaderLeave.Notifications.DirectoryChange);
+        Assert.Equal(member.CharacterId,
+            Assert.Single(leaderLeave.Notifications.Snapshot!.Members).CharacterId);
+        Assert.Equal(member.WireUserId, leaderLeave.Notifications.Snapshot.LeaderWireUserId);
     }
 
     [Fact]
@@ -397,8 +400,9 @@ public sealed class PartyServiceTests
             moved.Members.Select(member => (member.CharacterId, member.Slot)));
 
         Assert.True(service.LeaveParty(successor.CharacterId).Succeeded);
+        Assert.Single(service.Query(new PartyDirectoryQuery(firstScope)));
         Assert.Empty(service.Query(new PartyDirectoryQuery(secondScope)));
-        Assert.True(service.FindParty(leader).IsVirtual);
+        Assert.Equal(leader.WireUserId, service.FindParty(leader).LeaderWireUserId);
     }
 
     [Fact]
@@ -633,7 +637,7 @@ public sealed class PartyServiceTests
     }
 
     [Fact]
-    public void MemberLeaveRefreshesSurvivorsWhileLeaderLeaveDisbandsEveryone()
+    public void MemberLeaveAndLeaderLeaveBothKeepRemainingMembersInTheParty()
     {
         var fixture = new PartyFixture();
         var leader = fixture.Admit(1, 101);
@@ -657,12 +661,12 @@ public sealed class PartyServiceTests
         var leaderLeave = fixture.Parties.LeavePartyExact(leader);
 
         Assert.True(leaderLeave.Succeeded);
-        Assert.Null(leaderLeave.Notifications.Snapshot);
-        Assert.Equal(
-            [leader.CharacterId.Value, third.CharacterId.Value],
-            leaderLeave.Notifications.ClearAudience.Select(character => character.Value));
+        var remaining = Assert.IsType<PartySnapshot>(leaderLeave.Notifications.Snapshot);
+        Assert.Equal(third.CharacterId, Assert.Single(remaining.Members).CharacterId);
+        Assert.Equal(third.WireUserId, remaining.LeaderWireUserId);
+        Assert.Equal(leader.CharacterId, Assert.Single(leaderLeave.Notifications.ClearAudience));
         Assert.True(fixture.Parties.FindParty(leader).IsVirtual);
-        Assert.True(fixture.Parties.FindParty(third).IsVirtual);
+        Assert.False(fixture.Parties.FindParty(third).IsVirtual);
         Assert.Equal(
             PartyFailureReason.NotInParty,
             fixture.Parties.LeavePartyExact(leader).Failure);

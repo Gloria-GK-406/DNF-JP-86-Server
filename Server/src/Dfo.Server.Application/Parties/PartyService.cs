@@ -343,7 +343,7 @@ internal sealed class PartyService(
         }
 
         var previous = party.DirectoryScope;
-        if (member.Slot == 0)
+        if (member.Slot == 0 && party.MemberCount == 1)
         {
             party.Revision++;
             var audience = party.Members
@@ -365,16 +365,29 @@ internal sealed class PartyService(
                 DirectoryChange: new PartyDirectoryChange(previous, null)));
         }
 
+        PartySnapshot? transfer = null;
+        if (member.Slot == 0)
+        {
+            var successor = party.Members.Skip(1).First(value => value is not null)!;
+            party.Members[0] = new PartyMemberState(successor.Character, 0);
+            party.Members[successor.Slot] = new PartyMemberState(member.Character, successor.Slot);
+            party.Revision++;
+            transfer = Snapshot(party);
+            member = party.Members[successor.Slot]!;
+        }
+
         party.Members[member.Slot] = null;
         party.Revision++;
         membership.Remove(characterId);
+        Reindex(party, previous, party.DirectoryScope);
         var snapshot = Snapshot(party);
         return PartyOperationResult.Success(new PartyNotificationPlan(
             [characterId], snapshot,
             ClearPartyId: party.PartyId,
             ClearPartyGeneration: party.Generation,
             ClearPartyRevision: party.Revision,
-            DirectoryChange: new PartyDirectoryChange(previous, party.DirectoryScope)));
+            DirectoryChange: new PartyDirectoryChange(previous, party.DirectoryScope),
+            LeadershipTransfer: transfer));
     }
 
     private static PartyFailureReason ValidateTownPair(

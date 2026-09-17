@@ -734,6 +734,28 @@ public sealed class PartyNotificationDelivery(
                     .ConfigureAwait(false);
         }
 
+        if (plan.LeadershipTransfer is { } transfer)
+        {
+            var transferAudience = resolver.Characters(
+                transfer.Members.Select(value => value.CharacterId));
+            if ((await PartyExactNotificationDelivery.PublishWithRetryAsync(
+                    notifications, transferAudience,
+                    new PartyRealtimeChanged(transfer), cancellationToken)
+                    .ConfigureAwait(false)).HasFailures
+                || (await PartyExactNotificationDelivery.PublishWithRetryAsync(
+                    notifications, transferAudience,
+                    new PartyEndpointsChanged(transfer), cancellationToken)
+                    .ConfigureAwait(false)).HasFailures
+                || (await PartyExactNotificationDelivery.PublishWithRetryAsync(
+                    notifications, transferAudience,
+                    PartyRosterChanged.Refresh(transfer,
+                        transferAudience.Select(value => value.CharacterId).ToImmutableArray()),
+                    cancellationToken).ConfigureAwait(false)).HasFailures)
+            {
+                return false;
+            }
+        }
+
         if (!await DeliverClearAsync(
             resolver.Characters(plan.ClearAudience),
             plan.ClearPartyId,
@@ -941,6 +963,19 @@ public sealed class PartyNotificationDelivery(
 
     private static void ValidatePlanShape(PartyNotificationPlan plan)
     {
+        if (plan.LeadershipTransfer is { } transfer
+            && (plan.Snapshot is not { } final
+                || transfer.PartyId != final.PartyId
+                || transfer.Generation != final.Generation
+                || transfer.Revision >= final.Revision
+                || plan.ClearAudience.Length != 1
+                || !transfer.Members.Any(member =>
+                    member.CharacterId == plan.ClearAudience[0])))
+        {
+            throw new InvalidOperationException(
+                "A leadership transfer must precede one departing member's final roster.");
+        }
+
         var settingsChange = plan.SettingsChange;
         if (settingsChange is not null
             && settingsChange is not PartySettingsChangeKind.Created

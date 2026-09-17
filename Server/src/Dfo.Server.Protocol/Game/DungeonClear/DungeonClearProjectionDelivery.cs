@@ -12,7 +12,8 @@ public sealed class DungeonClearProjectionDelivery(
     ISelectedSessionDomainService selectedSessions,
     IDungeonRunDomainService runs,
     DungeonRunDeliveryRegistry deliveries,
-    IGameMessageSender sender)
+    IGameMessageSender sender,
+    DungeonPartyRecipients? partyRecipients = null)
 {
     public async ValueTask<int> DeliverAsync(
         SelectedSessionIdentity requester,
@@ -22,7 +23,8 @@ public sealed class DungeonClearProjectionDelivery(
         ArgumentNullException.ThrowIfNull(requester);
         ArgumentNullException.ThrowIfNull(change);
         var recipients = change.Recipients.ToHashSet();
-        var targets = deliveries.Find(change.RunId)
+        var targets = (partyRecipients?.Find(requester, change.RunId)
+                ?? deliveries.Find(change.RunId))
             .Where(frozen => recipients.Contains(frozen.CharacterId))
             .Where(frozen => selectedSessions.FindByCharacter(frozen.CharacterId) == frozen)
             .Where(frozen => runs.Find(frozen.CharacterId) is { } run

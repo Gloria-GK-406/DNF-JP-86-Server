@@ -98,6 +98,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameMessageSending();
         services.TryAddSingleton<CharacterSelectionDelivery>();
         services.TryAddSingleton<DungeonRunDeliveryRegistry>();
+        services.TryAddSingleton<DungeonPartyRecipients>();
         services.TryAddSingleton<DungeonProjectionGate>();
         services.TryAddSingleton<DungeonEntryProjectionDelivery>();
         services.TryAddSingleton<DungeonPickupProjectionDelivery>();

@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.CardReward;
@@ -79,7 +80,8 @@ public sealed class SelectCardHandler(
     IGameMessageSender sender,
     ILogger<SelectCardHandler> logger,
     DungeonCardSelectionProjectionDelivery? projection = null,
-    DungeonCardPresentationCoordinator? cardPresentation = null)
+    DungeonCardPresentationCoordinator? cardPresentation = null,
+    DungeonPartyRecipients? partyRecipients = null)
     : ClientMessageHandler<SelectCardRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -109,6 +111,9 @@ public sealed class SelectCardHandler(
 
         var run = runs.Find(session.CharacterId);
         if (run is null || selectedSessions.FindByCharacter(session.CharacterId) != session)
+            return;
+        if (partyRecipients is not null
+            && !partyRecipients.Find(session, run.RunId).Contains(session))
             return;
 
         var result = await commandBus.SendAsync(

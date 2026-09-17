@@ -372,7 +372,8 @@ public sealed class MonsterDeathHandler(
     DungeonRunDeliveryRegistry runDeliveries,
     IGameMessageSender sender,
     ExperienceDiagnostics diagnostics,
-    ILogger<MonsterDeathHandler> logger) : ClientMessageHandler<MonsterDeathRequest>
+    ILogger<MonsterDeathHandler> logger,
+    DungeonPartyRecipients? partyRecipients = null) : ClientMessageHandler<MonsterDeathRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -391,6 +392,9 @@ public sealed class MonsterDeathHandler(
         }
 
         var currentRun = runs.Find(session.CharacterId);
+        if (currentRun is not null && partyRecipients is not null
+            && !partyRecipients.Find(session, currentRun.RunId).Contains(session))
+            return;
         if (currentRun is { PartyMemberCount: > 1 })
         {
             await this.HandlePartyDeathAsync(
@@ -660,7 +664,8 @@ public sealed class MonsterDeathHandler(
         CancellationToken cancellationToken)
     {
         var recipients = new List<PartyDeathRecipient>();
-        foreach (var frozen in runDeliveries.Find(initialRun.RunId))
+        foreach (var frozen in partyRecipients?.Find(reporter, initialRun.RunId)
+                     ?? runDeliveries.Find(initialRun.RunId))
         {
             if (selectedSessions.FindByCharacter(frozen.CharacterId) != frozen
                 || !runtimeSessions.TryGet(frozen, out var result, out _)

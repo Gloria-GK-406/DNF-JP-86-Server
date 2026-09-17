@@ -1,10 +1,13 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Parties;
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Parties;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -336,6 +339,41 @@ public sealed class DungeonRunDomainServiceTests
         Assert.Equal(started.RunId, service.Find(member.CharacterId)!.RunId);
         Assert.True(service.End(member.CharacterId));
         Assert.Null(service.Find(member.CharacterId));
+    }
+
+    [Fact]
+    public void Successor_can_advance_the_shared_run_after_the_original_leader_departs()
+    {
+        var leader = new DungeonRunParticipant(new AccountId(101), new CharacterId(1), 0, true);
+        var member = new DungeonRunParticipant(new AccountId(202), new CharacterId(2), 1, false);
+        var parties = new PartyService(
+            new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
+            TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance);
+        var scope = new PartyDirectoryScope(11, 1, 1);
+        var first = new PartyCharacterSnapshot(
+            leader.AccountId, leader.CharacterId, 1, scope);
+        var second = new PartyCharacterSnapshot(
+            member.AccountId, member.CharacterId, 2, scope);
+        Assert.True(parties.RequestInvite(first, second,
+            new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+        Assert.True(parties.AcceptInvite(second, first).Succeeded);
+        var service = new DungeonRunDomainService(parties);
+        var run = BeginPartyWithCell(
+            service, [leader, member],
+            actors: [CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0))],
+            difficulty: 2);
+
+        Assert.True(service.End(leader.CharacterId, run.RunId));
+        Assert.True(parties.LeaveParty(leader.CharacterId).Succeeded);
+        var current = Assert.IsType<DungeonRunState>(service.Find(member.CharacterId));
+        var moved = service.TryMove(
+            member.CharacterId, current.RunId, current.RoomVersion,
+            new MazeCell(1, 1),
+            CellSeed(new MazeCell(1, 1), Tutorial.Rooms[new MazeCell(1, 1)],
+                actors: []));
+
+        Assert.NotNull(moved);
+        Assert.Equal(new MazeCell(1, 1), moved.CurrentCell);
     }
 
     private static readonly DungeonLayout Tutorial = new(

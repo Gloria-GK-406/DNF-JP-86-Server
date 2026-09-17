@@ -1,8 +1,10 @@
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Parties;
 
 namespace Dfo.Server.Application.World;
 
@@ -10,6 +12,7 @@ namespace Dfo.Server.Application.World;
 internal sealed class DungeonRunDomainService : IDungeonRunDomainService
 {
     private readonly IDomainTransactionAccessor? transactions;
+    private readonly IPartyService? parties;
     private readonly object gate = new();
     private readonly Dictionary<CharacterId, DungeonRunAggregate> runsByCharacter = new();
     private readonly Dictionary<DungeonRunId, DungeonRunAggregate> runsById = new();
@@ -29,6 +32,16 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
 
     public DungeonRunDomainService(IDomainTransactionAccessor transactions) =>
         this.transactions = transactions;
+
+    public DungeonRunDomainService(
+        IDomainTransactionAccessor transactions,
+        IPartyService parties)
+    {
+        this.transactions = transactions;
+        this.parties = parties;
+    }
+
+    internal DungeonRunDomainService(IPartyService parties) => this.parties = parties;
 
     public DungeonEntryChange PreparePartyEntry(
         IReadOnlyList<DungeonRunParticipant> participants,
@@ -212,7 +225,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         DungeonCellSeed? preparedCell = null)
     {
         if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
-            || !aggregate.Participant(characterId).IsLeader
+            || !this.IsCurrentLeader(aggregate, characterId)
             || (expectedRunId is { } runId && aggregate.RunId != runId)
             || (expectedRoomVersion is { } version && aggregate.RoomVersion != version)
             || this.deathClaims.Keys.Any(key =>
@@ -244,6 +257,18 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         aggregate.EntryRevision++;
         aggregate.ReadyParticipants.Clear();
         return aggregate.ViewFor(characterId);
+    }
+
+    private bool IsCurrentLeader(DungeonRunAggregate aggregate, CharacterId characterId)
+    {
+        if (this.parties is null)
+            return aggregate.Participant(characterId).IsLeader;
+
+        var participant = aggregate.Participant(characterId);
+        var party = this.parties.FindParty(new PartyCharacterSnapshot(
+            participant.AccountId, characterId, 0, null));
+        return (!party.IsVirtual || aggregate.ActiveParticipants.Count == 1)
+            && party.Members[0].CharacterId == characterId;
     }
 
     public DungeonGroundDropClaim? TryClaimGroundDrop(

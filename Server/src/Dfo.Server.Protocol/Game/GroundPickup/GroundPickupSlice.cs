@@ -521,7 +521,8 @@ public sealed class DungeonPickupProjectionDelivery(
     ISelectedSessionDomainService selectedSessions,
     DungeonRunDeliveryRegistry deliveries,
     IGameMessageSender sender,
-    TimeProvider clock)
+    TimeProvider clock,
+    DungeonPartyRecipients? partyRecipients = null)
 {
     public async ValueTask<bool> DeliverAsync(
         SelectedSessionIdentity requester,
@@ -535,7 +536,9 @@ public sealed class DungeonPickupProjectionDelivery(
             return false;
 
         var recipients = change.Recipients.ToHashSet();
-        var frozenPicker = deliveries.Find(change.RunId)
+        var partyMembers = partyRecipients?.Find(requester, change.RunId)
+            ?? deliveries.Find(change.RunId);
+        var frozenPicker = partyMembers
             .SingleOrDefault(frozen => frozen.CharacterId == change.Picker);
         if (!recipients.Contains(change.Picker)
             || frozenPicker is null
@@ -587,7 +590,7 @@ public sealed class DungeonPickupProjectionDelivery(
                 return false;
         }
 
-        var secondary = deliveries.Find(change.RunId)
+        var secondary = partyMembers
             .Where(frozen => frozen.CharacterId != change.Picker)
             .Where(frozen => recipients.Contains(frozen.CharacterId))
             .Where(frozen => selectedSessions.FindByCharacter(frozen.CharacterId) == frozen)
@@ -659,7 +662,8 @@ public sealed class GetItemHandler(
     ICommandBus commandBus,
     DungeonPickupProjectionDelivery projection,
     ILogger<GetItemHandler> logger,
-    DungeonPickupPostCommitCoordinator? postCommit = null) : ClientMessageHandler<GetItemRequest>
+    DungeonPickupPostCommitCoordinator? postCommit = null,
+    DungeonPartyRecipients? partyRecipients = null) : ClientMessageHandler<GetItemRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -678,6 +682,9 @@ public sealed class GetItemHandler(
 
         var run = runs.Find(session.CharacterId);
         if (selectedSessions.FindByCharacter(session.CharacterId) != session)
+            return;
+        if (run is not null && partyRecipients is not null
+            && !partyRecipients.Find(session, run.RunId).Contains(session))
             return;
 
         var result = await commandBus.SendAsync(

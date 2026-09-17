@@ -12,7 +12,8 @@ public sealed class DungeonCardSelectionProjectionDelivery(
     ISelectedSessionDomainService selectedSessions,
     IDungeonRunDomainService runs,
     DungeonRunDeliveryRegistry deliveries,
-    IGameMessageSender sender)
+    IGameMessageSender sender,
+    DungeonPartyRecipients? partyRecipients = null)
 {
     public async ValueTask<int> DeliverAsync(
         SelectedSessionIdentity actor,
@@ -27,7 +28,8 @@ public sealed class DungeonCardSelectionProjectionDelivery(
                 "A successful card projection requires its committed change.", nameof(result));
 
         var recipients = change.Recipients.ToHashSet();
-        var targets = deliveries.Find(change.RunId)
+        var targets = (partyRecipients?.Find(actor, change.RunId)
+                ?? deliveries.Find(change.RunId))
             .Where(frozen => recipients.Contains(frozen.CharacterId))
             .Where(frozen => selectedSessions.FindByCharacter(frozen.CharacterId) == frozen)
             .Where(frozen => runs.Find(frozen.CharacterId) is { } run

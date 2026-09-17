@@ -113,6 +113,7 @@ public sealed class DungeonCardPresentationCoordinatorTests
         world.Delay.Release(TimeSpan.FromSeconds(4));
         await WaitUntilAsync(() => world.Runs.Find(world.Sessions.All[0].CharacterId)!
             .CardSelections.Count == 2);
+        await WaitUntilAsync(() => world.Bus.Selections == 2);
 
         var selections = world.Runs.Find(world.Sessions.All[0].CharacterId)!.CardSelections;
         Assert.Equal(2, world.Bus.Selections);
@@ -319,7 +320,9 @@ public sealed class DungeonCardPresentationCoordinatorTests
     {
         private bool conflictReturned;
 
-        public int Selections { get; private set; }
+        private int selections;
+
+        public int Selections => Volatile.Read(ref selections);
         public List<int> Attempts { get; } = [];
 
         public async ValueTask<TResult> SendAsync<TResult>(
@@ -353,7 +356,7 @@ public sealed class DungeonCardPresentationCoordinatorTests
             {
                 var change = runs.CommitClearRewardCard(claim).Change;
                 Assert.NotNull(change);
-                this.Selections++;
+                Interlocked.Increment(ref this.selections);
                 result = new SelectCardResult(
                     SelectCardStatus.Flipped,
                     select.Kind,

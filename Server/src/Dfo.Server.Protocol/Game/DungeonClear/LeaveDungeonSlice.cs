@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
@@ -7,6 +8,7 @@ using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.Dungeons;
@@ -103,7 +105,8 @@ public sealed class EplpCommandHandler(
     TownAreaProjectionDelivery townAreaProjection,
     ILogger<EplpCommandHandler> logger,
     SelectedSessionTransitionGate transitionGate,
-    DungeonCardPresentationCoordinator? cardPresentation = null)
+    DungeonCardPresentationCoordinator? cardPresentation = null,
+    IPartyService? parties = null)
     : ClientMessageHandler<EplpCommandRequest>
 {
     /// <summary>The state that means "take me out of here".</summary>
@@ -131,9 +134,18 @@ public sealed class EplpCommandHandler(
 
         var leaving = message.State == LeaveState;
         var currentRun = runs.Find(session.CharacterId);
-        var participants = currentRun is { Participants.Count: > 0 }
-            ? currentRun.Participants.OrderBy(value => value.Slot).ToArray()
-            : [new DungeonRunParticipant(session.AccountId, session.CharacterId, 0, true)];
+        var participants = currentRun is not null && parties is not null
+            ? parties.FindParty(new PartyCharacterSnapshot(
+                    session.AccountId, session.CharacterId, session.WireUserId, null))
+                .Members.OrderBy(value => value.Slot)
+                .Select(value => new DungeonRunParticipant(
+                    value.Character.AccountId, value.CharacterId, value.Slot,
+                    value.Slot == 0))
+                .Where(value => runs.Find(value.CharacterId)?.RunId == currentRun.RunId)
+                .ToArray()
+            : currentRun is { Participants.Count: > 0 }
+                ? currentRun.Participants.OrderBy(value => value.Slot).ToArray()
+                : [new DungeonRunParticipant(session.AccountId, session.CharacterId, 0, true)];
         var leader = participants.SingleOrDefault(value => value.IsLeader);
         if (leader is null || leader.CharacterId != session.CharacterId)
         {
