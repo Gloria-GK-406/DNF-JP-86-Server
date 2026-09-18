@@ -18,5 +18,10 @@ public sealed class PvfEquipmentRepairDefinitionSourceTests
         Assert.NotNull(rates);
         Assert.Equal(0.08415f, rates.Value.CostRate);
         Assert.Equal(1f, rates.Value.UpgradeRates[0]);
+        var nondurableBracelet = await source.GetAsync(100310669, default);
+        Assert.NotNull(nondurableBracelet);
+        Assert.Equal((0, 7, (ushort)0),
+            (nondurableBracelet.RepairPrice, nondurableBracelet.Grade, nondurableBracelet.MaxDurability));
+        Assert.Null(await source.GetAsync(int.MaxValue, default));
     }
 }

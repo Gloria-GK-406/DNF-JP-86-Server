@@ -40,6 +40,11 @@ internal sealed class PvfEquipmentRepairDefinitionSource(PvfArchiveProvider prov
         var price = OneInt(sections, "[repair price]");
         var grade = OneInt(sections, "[grade]");
         var durability = OneInt(sections, "[durability]");
+        // Some equipment (such as non-durable bracelets) declares neither repair field. It is
+        // still a valid equipment instance: repairing it is a zero-cost, unchanged operation.
+        // A single missing or malformed field is not the same thing and must stay unreadable.
+        if (grade is >= 0 && !sections.Any(x => x.Name is "[repair price]" or "[durability]"))
+            return new(0, grade.Value, 0);
         return price is > 0 && grade is >= 0 && durability is > 0 and <= ushort.MaxValue
             ? new(price.Value, grade.Value, (ushort)durability.Value) : null;
     }

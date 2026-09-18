@@ -41,6 +41,32 @@ public sealed class EquipmentRepairTests
     }
 
     [Fact]
+    public async Task All_repair_treats_a_nondurable_equipment_as_a_zero_cost_unchanged_piece()
+    {
+        using var shop = Fixture();
+        await shop.SeedCore(12, Piece(0), InventoryContainerType.Equipment);
+        await shop.SeedCore(20, StackableItemCore.Create(1, 100310669, 4321), InventoryContainerType.Equipment);
+        await Repair(shop, InventoryContainerType.Main, -1);
+        Assert.Equal(99887, shop.Gold);
+        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Equipment, 12));
+        Assert.Equal((ushort)0, await shop.Durability(InventoryContainerType.Equipment, 20));
+        Assert.Equal(99887, Assert.IsType<RepairItemResponse>(Assert.Single(shop.Sender.Messages)).Receipt!.Gold);
+    }
+
+    [Fact]
+    public async Task Single_nondurable_repair_consumes_zero_and_does_not_write_the_item()
+    {
+        using var shop = Fixture();
+        await shop.SeedCore(20, StackableItemCore.Create(1, 100310669, 4321), InventoryContainerType.Equipment);
+        shop.Sql("CREATE TRIGGER refuse_item_write BEFORE INSERT ON item_slots BEGIN SELECT RAISE(ABORT,'unexpected item write'); END;");
+        await Repair(shop, InventoryContainerType.Equipment, 20);
+        Assert.Equal(100000, shop.Gold);
+        Assert.Equal((ushort)0, await shop.Durability(InventoryContainerType.Equipment, 20));
+        var ack = Assert.IsType<RepairItemResponse>(Assert.Single(shop.Sender.Messages));
+        Assert.Equal((100000, 20), (ack.Receipt!.Gold, ack.Receipt.SlotIndex));
+    }
+
+    [Fact]
     public async Task Insufficient_gold_leaves_all_durability_untouched()
     {
         using var shop = Fixture();
@@ -105,7 +131,12 @@ public sealed class EquipmentRepairTests
     private sealed class Prices : IEquipmentRepairDefinitionSource
     {
         public ValueTask<EquipmentRepairDefinition?> GetAsync(int itemId, CancellationToken ct) =>
-            ValueTask.FromResult<EquipmentRepairDefinition?>(itemId == 3000 ? new(1680, 3, 45) : null);
+            ValueTask.FromResult<EquipmentRepairDefinition?>(itemId switch
+            {
+                3000 => new(1680, 3, 45),
+                100310669 => new(0, 7, 0),
+                _ => null,
+            });
 
         public ValueTask<(float CostRate, IReadOnlyList<float> UpgradeRates)?> RatesAsync(CancellationToken ct) =>
             ValueTask.FromResult<(float, IReadOnlyList<float>)?>((0.08415f, new float[] { 1 }));

@@ -112,6 +112,7 @@ internal sealed class NpcShopTestContent : INpcShopDefinitionSource, IItemPlacem
         {
             1000 => new(3, 1000, 121, 122),
             3000 => new(1, 1, 9, 10) { WorldClass = ItemWorldClass.Equipment },
+            100310669 => new(1, 1, 9, 56) { WorldClass = ItemWorldClass.Equipment },
             4000 => new(2, 1, 65, 66),
             _ => new(2, 10, 65, 66),
         });

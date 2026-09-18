@@ -30,7 +30,7 @@ internal sealed class EquipmentRepairDomainService(
         if (rates is null)
             return new(EquipmentRepairRejection.CannotRepair);
 
-        var candidates = new List<(IItemContainer Bag, ContainerSlotItem Item, ushort MaxDurability, int Cost)>();
+        var candidates = new List<(IItemContainer Bag, ContainerSlotItem Item, ushort DurabilityAfter, int Cost)>();
         if (slotIndex == -1)
         {
             foreach (var (type, first, last) in new[]
@@ -70,28 +70,23 @@ internal sealed class EquipmentRepairDomainService(
         var gold = await character.TrySpendGoldAsync((int)total, cancellationToken).ConfigureAwait(false);
         if (gold is null)
             return new(EquipmentRepairRejection.InsufficientGold);
-        foreach (var (bag, item, maxDurability, _) in candidates)
-            if (item.Core.Durability < maxDurability)
-                await bag.PutAsync(item.SlotIndex, item.Core with { Durability = maxDurability }, cancellationToken)
+        foreach (var (bag, item, durabilityAfter, _) in candidates)
+            if (item.Core.Durability != durabilityAfter)
+                await bag.PutAsync(item.SlotIndex, item.Core with { Durability = durabilityAfter }, cancellationToken)
                     .ConfigureAwait(false);
         return new(EquipmentRepairRejection.None, new(session, container, slotIndex, gold.Value));
     }
 
-    private async ValueTask<(IItemContainer Bag, ContainerSlotItem Item, ushort MaxDurability, int Cost)?> QuoteAsync(
+    private async ValueTask<(IItemContainer Bag, ContainerSlotItem Item, ushort DurabilityAfter, int Cost)?> QuoteAsync(
         IItemContainer bag, ContainerSlotItem item, (float CostRate, IReadOnlyList<float> UpgradeRates) rates,
         CancellationToken cancellationToken)
     {
         var definition = await definitions.GetAsync(item.ItemId, cancellationToken).ConfigureAwait(false);
-        if (definition is null || item.Core.Durability > definition.MaxDurability
-            || item.Core.EnchantUpgradeCount >= rates.UpgradeRates.Count)
+        if (definition is null)
             return null;
-        var lost = definition.MaxDurability - item.Core.Durability;
-        // The observed A21 quote truncates after float32 arithmetic; grade adjustment is integer division.
-        var basePrice = (long)definition.RepairPrice * (definition.Grade + 5L) / 10;
-        var raw = (float)basePrice * rates.CostRate / definition.MaxDurability * lost
-            * rates.UpgradeRates[item.Core.EnchantUpgradeCount];
-        if (!float.IsFinite(raw) || raw < 0 || raw > int.MaxValue)
-            return null;
-        return (bag, item, definition.MaxDurability, (int)raw);
+        var decision = new EquipmentForRepair(item, definition).Repair(rates);
+        return decision is { } repaired
+            ? (bag, item, repaired.DurabilityAfter, repaired.Cost)
+            : null;
     }
 }
