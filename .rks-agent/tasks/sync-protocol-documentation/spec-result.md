@@ -1,17 +1,16 @@
 ---
-kind: rks-stage-result
-stage: implementation
-round: 1
-state: complete
+kind: rks-spec-result
+outcome: completed
+terminal_stage: verification
 target:
   branch: docs/sync-protocol-documentation
   baseline: 1677e4e28b289ed0a49d091cb5a2bde935fa15c3
 ---
 
-# Implementation Result
+# Spec Result: A21 协议资料同步
 
-内容经第二轮独立审查批准；提交前的范围限定验证见
-`./verification/precommit-evidence.md`，SC-8 的提交与清洁状态仍待实际操作。
+完整结果的提交前检查及提交后 Git 状态见
+`./verification/completion-evidence.md`；单一产品结果提交为 `6b1147a6`。
 下述实现记录保留作为交接摘要，不把代码覆盖统计当作 A21 协议正确性证明。
 
 ## Changed
@@ -46,7 +45,7 @@ target:
 ## Remaining Evidence Boundaries
 
 - 首轮完整审查指出源码注册提取失配时可能伪报通过；失败自测与调用形状哨兵已补齐，
-  第二轮完整独立复审已批准。新鲜内容检查已通过；结果提交后再封口整项任务，
-  合并与工作树清理也须分别核对。
+  第四轮完整独立复审已批准。新鲜内容检查及结果提交后置状态已核对；
+  合并与工作树清理仍须分别核对。
 - A12 residue 报告仍有 a12-only 48、mixed 37、empty 1094；这些是后续逐协议逆向工作的候选，不属于本次“纠正当前覆盖状态和建立同步机制”的完成阻塞项。
 - 19 个动态或多载荷 override 已验证注册符号与来源文件存在，但其每个运行时分支的精确 payload 语义仍需按真实帧逐项收敛；审计文档已显式记录此限制。
