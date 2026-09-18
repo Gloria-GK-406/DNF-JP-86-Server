@@ -251,6 +251,7 @@ internal static class GameProtocol
     public const ushort DeleteItemType = 0x0012;
     public const ushort BuyItemType = 0x0015;
     public const ushort SellItemType = 0x0016;
+    public const ushort RepairItemType = 0x0017;
 
     public const ushort ShopPurchaseCountType = 0x02CC;
 

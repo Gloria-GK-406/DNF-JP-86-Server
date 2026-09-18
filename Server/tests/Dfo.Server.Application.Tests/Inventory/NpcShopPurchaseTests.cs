@@ -226,6 +226,7 @@ internal sealed class ShopFixture : IDisposable
     private readonly NetworkConnectionContext connection = new(new("shop-test"), NetworkEndpointKind.Game, 10011);
     private readonly OnlineUserId onlineUser;
     private IItemContainer bag = null!;
+    private IItemContainer equipment = null!;
     private SelectedSessionIdentity session = null!;
     private string ConnectionString => new SqliteConnectionStringBuilder { DataSource = Path.Combine(directory, "shop.db") }.ToString();
     public NpcShopTestContent Content { get; } = new();
@@ -278,15 +279,21 @@ internal sealed class ShopFixture : IDisposable
             provider.GetRequiredService<IDomainTransactionAccessor>(), null!, provider.GetRequiredService<IItemPlacementRuleService>(),
             provider.GetRequiredService<IItemArrivalRuleService>(), provider.GetRequiredService<IItemSlotRuleService>());
         provider.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId, bag);
+        equipment = new PersistentItemContainer(ContainerId.ForCharacter(session.CharacterId, InventoryContainerType.Equipment),
+            session.CharacterId, new(InventoryContainerType.Equipment, 0), provider.GetRequiredService<IItemDomainStore>(),
+            provider.GetRequiredService<IDomainTransactionAccessor>(), null!, provider.GetRequiredService<IItemPlacementRuleService>(),
+            provider.GetRequiredService<IItemArrivalRuleService>(), provider.GetRequiredService<IItemSlotRuleService>());
+        provider.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId, equipment);
     }
 
     public async Task Seed(int slot, int item, int count, byte kind = 2)
         => await SeedCore(slot, StackableItemCore.Create(kind, item, count));
 
-    public async Task SeedCore(int slot, InventoryItemCoreState core)
+    public async Task SeedCore(int slot, InventoryItemCoreState core,
+        InventoryContainerType container = InventoryContainerType.Main)
     {
         await using var tx = ((DomainTransactionScope)provider.GetRequiredService<IDomainTransactionAccessor>()).Begin();
-        await bag.PutAsync(slot, core, default);
+        await (container == InventoryContainerType.Equipment ? equipment : bag).PutAsync(slot, core, default);
         await tx.CommitAsync(default);
     }
 
@@ -300,6 +307,8 @@ internal sealed class ShopFixture : IDisposable
         _ = await provider.GetRequiredService<INotificationBus>().PublishAsync(
             new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]), new NpcShopPurchaseCompleted(receipt), default);
     public int Gold => Scalar($"SELECT carried_gold FROM character_stats WHERE character_id={session.CharacterId.Value}");
+    public async ValueTask<ushort?> Durability(InventoryContainerType container, int slot) =>
+        (await (container == InventoryContainerType.Equipment ? equipment : bag).ReadSlotAsync(slot, default))?.Core.Durability;
     public int Count(int item) => Scalar($"SELECT COALESCE(SUM(s.count),0) FROM item_slots s JOIN items i ON s.core_uid=i.item_uid WHERE s.owner_scope='character' AND s.owner_id={session.CharacterId.Value} AND substr(hex(i.item_core),3,8)='{Convert.ToHexString(BitConverter.GetBytes(item))}'");
     public int Scalar(string sql)
     {

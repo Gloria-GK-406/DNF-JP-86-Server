@@ -42,6 +42,7 @@ using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.AvatarPackageOpening;
 using Dfo.Server.Protocol.Game.GenCeraTicket;
 using Dfo.Server.Protocol.Game.SellItem;
+using Dfo.Server.Protocol.Game.RepairItem;
 using Dfo.Server.Protocol.Game.LearnSkill;
 using Dfo.Server.Protocol.Game.ShopPurchaseCount;
 using Dfo.Server.Protocol.Game.TutorialLevelUp;
@@ -126,6 +127,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddNotificationHandler<OpeningCompleted, OpeningCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ShopPurchaseCountsReported, ShopPurchaseCountsReportedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ItemSaleCompleted, ItemSaleCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<EquipmentRepairCompleted, EquipmentRepairCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ItemDiscardCompleted, ItemDiscardCompletedHandler>(retryLimit: 0);
         services.TryAddSingleton<PartyProjectionStreamRegistry>();
         services.TryAddSingleton<PartyNotificationDelivery>();
@@ -281,6 +283,8 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<SellItemCommand, ItemSaleResult, SellItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<RepairItemCommand, EquipmentRepairResult, RepairItemCommandHandler>(
+            CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<DeleteItemCommand, ItemDiscardResult, DeleteItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<BuyItemCommand, NpcShopPurchaseResult, BuyItemCommandHandler>(
@@ -431,6 +435,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<GenCeraTicketHandler>(ClientMessageType.GameGenCeraTicket);
         services.RegisterMessageHandler<LearnSkillHandler>(ClientMessageType.GameLearnSkill);
         services.RegisterMessageHandler<SellItemHandler>(ClientMessageType.GameSellItem);
+        services.RegisterMessageHandler<RepairItemHandler>(ClientMessageType.GameRepairItem);
         services.RegisterMessageHandler<DeleteItemHandler>(ClientMessageType.GameDeleteItem);
         services.RegisterMessageHandler<ShopPurchaseCountHandler>(ClientMessageType.GameShopPurchaseCount);
 
@@ -605,6 +610,7 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.MoveItemSpaceType, ClientMessageType.GameMoveItemSpace);
         services.AddGameCmdMessageDecoder<LearnSkillMessageDecoder>(GameProtocol.LearnSkillType, ClientMessageType.GameLearnSkill);
         services.AddGameCmdMessageDecoder<SellItemMessageDecoder>(GameProtocol.SellItemType, ClientMessageType.GameSellItem);
+        services.AddGameCmdMessageDecoder<RepairItemMessageDecoder>(GameProtocol.RepairItemType, ClientMessageType.GameRepairItem);
         services.AddGameCmdMessageDecoder<DeleteItemMessageDecoder>(
             GameProtocol.DeleteItemType, ClientMessageType.GameDeleteItem);
         services.AddGameCmdMessageDecoder<BuyItemMessageDecoder>(
@@ -704,6 +710,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<GameServerNoticeMessage, GameServerNoticeEncoder>();
         GameInstanceDelivery.AddEncoders(services);
         services.AddGameCmdMessageEncoder<SellItemResponse, SellItemResponseEncoder>();
+        services.AddGameCmdMessageEncoder<RepairItemResponse, RepairItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<DeleteItemResponse, DeleteItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<LearnSkillResponse, LearnSkillResponseEncoder>();
         services.AddGameCmdMessageEncoder<ShopPurchaseCountResponse, ShopPurchaseCountEncoder>();

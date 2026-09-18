@@ -94,6 +94,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<ICeraShopDefinitionSource, PvfCeraShopDefinitionSource>();
         services.TryAddSingleton<IPackageOpeningDefinitionSource, PvfPackageOpeningDefinitionSource>();
         services.TryAddSingleton<IItemSaleDefinitionSource, PvfItemSaleDefinitionSource>();
+        services.TryAddSingleton<IEquipmentRepairDefinitionSource, PvfEquipmentRepairDefinitionSource>();
         services.TryAddSingleton<IItemUseRuleDefinitionSource, PvfItemUseRuleDefinitionSource>();
         services.TryAddSingleton(ReadChannelEntryOptions(configuration));
     }
