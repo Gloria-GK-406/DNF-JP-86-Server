@@ -32,7 +32,7 @@ internal static class CardRewardPayloadCodec
     /// <summary>The layout frame's whole body, envelope included.</summary>
     public const int LayoutBodyLength = 1 + (WirePositionCount * 2);
 
-    /// <summary>What the reference server writes in the first position's word.</summary>
+    /// <summary>What the reference server writes at an eligible party seat.</summary>
     /// <remarks>
     /// Transcribed, not understood. The captured frame is
     /// <c>01 01 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF</c> and the reference builder writes
@@ -42,7 +42,7 @@ internal static class CardRewardPayloadCodec
     /// </remarks>
     private const ushort LayoutFirstPosition = 0x0001;
 
-    /// <summary>What the reference server writes in the other seven positions.</summary>
+    /// <summary>What the reference server writes at an unoccupied party seat.</summary>
     private const ushort LayoutOtherPosition = 0xFFFF;
 
     /// <summary>The two bytes the client writes when a card is clicked.</summary>
@@ -81,19 +81,25 @@ internal static class CardRewardPayloadCodec
     /// The card panel's layout: which positions exist, and nothing else.
     /// </summary>
     /// <remarks>
-    /// <b>No item reaches this frame, and none can.</b> It takes no argument at all: the cards are
-    /// face down at this point, and what is behind them is not told until one is turned over. The
-    /// seventeen bytes are the captured ones byte for byte -- see
+    /// <b>No item reaches this frame, and none can.</b> It carries only the eligible party seats.
+    /// The captured single-player body is reproduced when seat zero is the only member; see
     /// <c>protocol/game/client-to-server/0x0046.md</c>.
     /// </remarks>
-    public static byte[] EncodeLayout()
+    public static byte[] EncodeLayout(IReadOnlyList<byte>? eligibleSeats = null)
     {
+        eligibleSeats ??= [0];
         var positions = new byte[WirePositionCount * 2];
-        BinaryPrimitives.WriteUInt16LittleEndian(positions, LayoutFirstPosition);
-        for (var position = 1; position < WirePositionCount; position++)
+        for (var position = 0; position < WirePositionCount; position++)
         {
             BinaryPrimitives.WriteUInt16LittleEndian(
                 positions.AsSpan(position * 2), LayoutOtherPosition);
+        }
+        foreach (var seat in eligibleSeats)
+        {
+            if (seat >= WirePositionCount)
+                throw new ArgumentOutOfRangeException(nameof(eligibleSeats));
+            BinaryPrimitives.WriteUInt16LittleEndian(
+                positions.AsSpan(seat * 2), LayoutFirstPosition);
         }
 
         return GameCmdEnvelope.Accept(positions);

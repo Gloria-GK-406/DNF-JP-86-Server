@@ -38,8 +38,14 @@ public sealed class DungeonCardSelectionProjectionDelivery(
         if (targets.Length == 0)
             return 0;
 
-        var shared = new SelectCardResponse(change.Selections);
-        var actorFrames = new List<IGameServerMessage> { shared };
+        // A private confirmation has no shared board yet. Only the last free-card confirmation
+        // carries the complete, party-ordered ownership snapshot.
+        SelectCardResponse? shared = change.Selections.Count > 0
+            ? new SelectCardResponse(change.Selections)
+            : null;
+        var actorFrames = new List<IGameServerMessage>();
+        if (shared is not null)
+            actorFrames.Add(shared);
         if (result.Delivered is { } delivered)
             actorFrames.Add(GameInventoryDelivery.Notification(delivered));
         if (result.GoldPaid > 0 || result.GoldCharged > 0)
@@ -53,8 +59,11 @@ public sealed class DungeonCardSelectionProjectionDelivery(
             : [];
         var secondary = targets
             .Where(target => target != actor)
-            .Select(target => new GameExplicitMessageTarget(target.ConnectionId, [shared]))
+            .Where(_ => shared is not null)
+            .Select(target => new GameExplicitMessageTarget(target.ConnectionId, [shared!]))
             .ToArray();
+        if (required.Count == 0 && secondary.Length == 0)
+            return 0;
         await sender.SendExplicitAsync(
             actor.ConnectionId,
             new GameExplicitMessageDelivery(required, secondary),

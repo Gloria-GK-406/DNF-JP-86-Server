@@ -23,8 +23,8 @@ public sealed record CardSelectRightStateRequest(GameMessageMetadata Metadata)
 /// CMD 0x0047 <c>SELECT_CARD</c>: the player turning one card of one face over.
 /// </summary>
 /// <remarks>
-/// Two bytes, and both of them are choices rather than reports: which of the two faces is being
-/// flipped, and which position of it. Neither is trusted -- see
+/// Two bytes: the face and a wire position. On the free-card path the position is not the local
+/// visual column; the server confirms the character's personal result at position zero. See
 /// <see cref="CardRewardPayloadCodec"/> for the two readings that produce this, and for why the
 /// free one and the paid one are read apart.
 /// </remarks>
@@ -44,7 +44,7 @@ public sealed record SelectCardRequest(
 /// the request's position byte is a written-in constant. See
 /// <see cref="CardRewardPayloadCodec.EncodeSelectCardResponse"/>.
 /// </remarks>
-/// <param name="Selections">The complete shared ownership snapshot after the flip.</param>
+/// <param name="Selections">The party-ordered ownership snapshot after collective reveal.</param>
 public sealed record SelectCardResponse(IReadOnlyList<DungeonCardSelection> Selections)
     : IGameCmdMessage
 {

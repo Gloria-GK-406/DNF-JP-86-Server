@@ -141,7 +141,11 @@ public sealed class DungeonCardPresentationCoordinator(
 
         await sender.SendCmdAsync(
             session.ConnectionId,
-            new CardSelectRightStateResponse(),
+            new CardSelectRightStateResponse(
+                run.Participants
+                    .Where(participant => runs.Find(participant.CharacterId)?.RunId == runId)
+                    .Select(participant => participant.Slot)
+                    .ToArray()),
             cancellationToken).ConfigureAwait(false);
         if (runs.Find(session.CharacterId) is { } afterLayout
             && afterLayout.RunId == runId
@@ -165,34 +169,22 @@ public sealed class DungeonCardPresentationCoordinator(
         try
         {
             await delay.WaitAsync(timing.AutoFlipDelay, cancellationToken).ConfigureAwait(false);
-            var attempted = new HashSet<int>();
-            while (true)
+            // A transient reservation conflict retries the same personal confirmation. It must
+            // never turn into a choice of another shared display column.
+            for (var attempt = 0; attempt < 3; attempt++)
             {
                 if (!this.IsCurrent(session, runId, out var run)
                     || !run.CardLayoutOpen
-                    || run.CardSelections.Any(selection =>
-                        selection.Kind is ClearRewardCardKind.Free
-                        && selection.CharacterId == session.CharacterId)
-                    || run.ClearRewardCards is not { } cards)
-                {
+                    || run.ClearRewardCards is not { } cards
+                    || cards.IsClaimed(ClearRewardCardKind.Free, 0))
                     return;
-                }
-
-                var index = Enumerable.Range(0, cards.Free.Slots.Count)
-                    .FirstOrDefault(candidate => !run.CardSelections.Any(selection =>
-                        selection.Kind is ClearRewardCardKind.Free
-                        && selection.Index == candidate)
-                        && !attempted.Contains(candidate), -1);
-                if (index < 0)
-                    return;
-                attempted.Add(index);
 
                 var result = await commandBus.SendAsync(
                     new SelectCardCommand(
                         session.AccountId,
                         session.CharacterId,
                         ClearRewardCardKind.Free,
-                        index,
+                        0,
                         runId),
                     cancellationToken).ConfigureAwait(false);
                 if (result.Status is SelectCardStatus.Flipped && result.Change is not null)
@@ -202,7 +194,6 @@ public sealed class DungeonCardPresentationCoordinator(
                         .ConfigureAwait(false);
                     return;
                 }
-
                 if (result.Status is not SelectCardStatus.AlreadyFlipped)
                     return;
             }

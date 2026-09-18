@@ -19,6 +19,32 @@ public sealed class DungeonCardSelectionProjectionDeliveryTests
     private static readonly SelectedSessionIdentity Helper = Session(2, "helper", 1);
 
     [Fact]
+    public async Task First_party_confirmation_does_not_reveal_a_partial_board()
+    {
+        var world = Build([Leader, Helper]);
+        var change = new DungeonCardSelectionChange(
+            world.Run.RunId,
+            Revision: 7,
+            Leader.CharacterId,
+            [],
+            [Leader.CharacterId, Helper.CharacterId]);
+
+        await world.Projection.DeliverAsync(
+            Leader,
+            new SelectCardResult(
+                SelectCardStatus.Flipped,
+                ClearRewardCardKind.Free,
+                0,
+                [],
+                StaticChange: change),
+            DateTimeOffset.UnixEpoch,
+            default);
+
+        Assert.Empty(world.Sender.For(Leader.ConnectionId));
+        Assert.Empty(world.Sender.For(Helper.ConnectionId));
+    }
+
+    [Fact]
     public async Task Shared_snapshot_reaches_both_current_generations()
     {
         var world = Build([Leader, Helper]);

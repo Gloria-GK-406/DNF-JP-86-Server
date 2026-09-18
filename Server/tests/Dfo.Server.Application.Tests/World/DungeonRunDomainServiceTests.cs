@@ -1257,15 +1257,47 @@ public sealed class DungeonRunDomainServiceTests
             await transaction.CommitAsync(CancellationToken.None);
         }
 
-        Assert.Null(stolen);
+        Assert.NotNull(stolen);
         var committed = Assert.IsType<DungeonCardSelectionChange>(receipt.Change);
         Assert.Equal([member.CharacterId], committed.Recipients);
-        Assert.Equal(leader.CharacterId, Assert.Single(committed.Selections).CharacterId);
+        Assert.Empty(committed.Selections);
 
-        var memberClaim = Assert.IsType<DungeonClearRewardCardClaim>(
+        var memberChange = Assert.IsType<DungeonCardSelectionChange>(
+            service.CommitClearRewardCard(stolen!).Change);
+        Assert.Equal(member.CharacterId, Assert.Single(memberChange.Selections).CharacterId);
+    }
+
+    [Fact]
+    public void Party_members_can_both_confirm_free_card_zero_before_the_ordered_result_is_revealed()
+    {
+        var service = new DungeonRunDomainService();
+        var leader = new DungeonRunParticipant(
+            new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
+        var member = new DungeonRunParticipant(
+            new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
+        var run = PreparePartyCardPanel(service, leader, member);
+
+        var first = Assert.IsType<DungeonClearRewardCardClaim>(
             service.TryReserveClearRewardCard(
-                member.CharacterId, run.RunId, ClearRewardCardKind.Free, 1));
-        Assert.NotNull(service.CommitClearRewardCard(memberClaim).Change);
+                leader.CharacterId, run.RunId, ClearRewardCardKind.Free, 0));
+        var firstChange = Assert.IsType<DungeonCardSelectionChange>(
+            service.CommitClearRewardCard(first).Change);
+        Assert.Empty(firstChange.Selections);
+        Assert.Empty(service.Find(member.CharacterId)!.CardSelections);
+
+        var second = Assert.IsType<DungeonClearRewardCardClaim>(
+            service.TryReserveClearRewardCard(
+                member.CharacterId, run.RunId, ClearRewardCardKind.Free, 0));
+        var finalChange = Assert.IsType<DungeonCardSelectionChange>(
+            service.CommitClearRewardCard(second).Change);
+        Assert.Collection(finalChange.Selections,
+            selection => Assert.Equal((leader.CharacterId, 0, (byte)0),
+                (selection.CharacterId, selection.Index, selection.Seat)),
+            selection => Assert.Equal((member.CharacterId, 1, (byte)1),
+                (selection.CharacterId, selection.Index, selection.Seat)));
+        Assert.Equal(finalChange.Selections, service.Find(leader.CharacterId)!.CardSelections);
+        Assert.Null(service.TryReserveClearRewardCard(
+            leader.CharacterId, run.RunId, ClearRewardCardKind.Free, 0));
     }
 
     [Fact]
@@ -1303,20 +1335,16 @@ public sealed class DungeonRunDomainServiceTests
         var leaderClaim = Assert.IsType<DungeonClearRewardCardClaim>(
             service.TryReserveClearRewardCard(
                 leader.CharacterId, run.RunId, ClearRewardCardKind.Free, 0));
-        Assert.Null(service.TryReserveClearRewardCard(
-            member.CharacterId, run.RunId, ClearRewardCardKind.Free, 0));
         var leaderChange = Assert.IsType<DungeonCardSelectionChange>(
             service.CommitClearRewardCard(leaderClaim).Change);
-        var first = Assert.Single(leaderChange.Selections);
-        Assert.Equal((leader.CharacterId, (byte)0, 0),
-            (first.CharacterId, first.Seat, first.Index));
+        Assert.Empty(leaderChange.Selections);
         Assert.Equal([leader.CharacterId, member.CharacterId], leaderChange.Recipients);
         Assert.Null(service.TryReserveClearRewardCard(
             leader.CharacterId, run.RunId, ClearRewardCardKind.Free, 1));
 
         var memberClaim = Assert.IsType<DungeonClearRewardCardClaim>(
             service.TryReserveClearRewardCard(
-                member.CharacterId, run.RunId, ClearRewardCardKind.Free, 1));
+                member.CharacterId, run.RunId, ClearRewardCardKind.Free, 0));
         var memberChange = Assert.IsType<DungeonCardSelectionChange>(
             service.CommitClearRewardCard(memberClaim).Change);
         Assert.Collection(

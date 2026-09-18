@@ -281,10 +281,8 @@ internal static class GameProtocol
 /// CMD 0x0046 <c>CARD_SELECT_RIGHT_STATE</c>: the card panel's layout, seventeen bytes of it.
 /// </summary>
 /// <remarks>
-/// <b>It carries nothing, and it has nowhere to carry anything.</b> The record has no member: the
-/// cards are face down when this arrives and the client is told what is behind them only when one
-/// is turned over. Its bytes are a transcribed constant --
-/// <c>01 01 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF</c> -- built in
+/// It names eligible party seats, not rewards. The captured single-player body marks seat zero;
+/// a party marks each current member in the same eight-word layout. See
 /// <c>Game/CardReward/CardRewardPayloadCodec.cs</c>.
 /// <para>
 /// It lives at the endpoint layer rather than in the card slice for the reason
@@ -293,7 +291,8 @@ internal static class GameProtocol
 /// and a slice may not reach into another.
 /// </para>
 /// </remarks>
-public sealed record CardSelectRightStateResponse : IGameCmdMessage
+public sealed record CardSelectRightStateResponse(IReadOnlyList<byte>? EligibleSeats = null)
+    : IGameCmdMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameCardSelectRightState;
 }

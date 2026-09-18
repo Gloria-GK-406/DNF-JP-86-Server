@@ -123,6 +123,20 @@ public sealed class CardRewardTests
         Assert.Equal(CapturedLayout, frame[GameServerFrameEncoder.HeaderLength..]);
     }
 
+    [Fact]
+    public void Party_layout_marks_each_eligible_seat_without_changing_the_wire_shape()
+    {
+        var frame = Assert.Single(new CardSelectRightStateResponseEncoder().Encode(
+            new CardSelectRightStateResponse([0, 1])));
+        var body = frame.AsSpan(GameServerFrameEncoder.HeaderLength);
+
+        Assert.Equal(17, body.Length);
+        Assert.Equal(1, body[0]);
+        Assert.Equal((ushort)1, BinaryPrimitives.ReadUInt16LittleEndian(body[1..]));
+        Assert.Equal((ushort)1, BinaryPrimitives.ReadUInt16LittleEndian(body[3..]));
+        Assert.Equal(ushort.MaxValue, BinaryPrimitives.ReadUInt16LittleEndian(body[5..]));
+    }
+
     /// <summary>It goes out as a CMD under the type the client registered a handler for.</summary>
     [Fact]
     public void The_layout_goes_out_under_the_type_the_client_registered()
@@ -135,14 +149,11 @@ public sealed class CardRewardTests
     }
 
     /// <summary>
-    /// The layout has no way to carry an item, which is the requirement rather than a property of
-    /// today's values.
+    /// The layout carries only occupied party seats, never reward items.
     /// </summary>
     /// <remarks>
-    /// Asserting the bytes would pass just as well if the record grew an item and the encoder
-    /// ignored it; the next person to touch the encoder would then have a field sitting there
-    /// waiting to be written. What is asserted is that there is nothing to write: the message is a
-    /// record with no state at all, so the cards stay face down by construction.
+    /// The only state the layout message may carry is the set of occupied party seats. It cannot
+    /// carry an item while the cards are still face down.
     /// </remarks>
     [Fact]
     public void The_layout_message_has_nowhere_to_put_an_item()
@@ -152,9 +163,7 @@ public sealed class CardRewardTests
             .Where(property => property.Name != nameof(CardSelectRightStateResponse.MessageType))
             .Select(property => property.Name);
 
-        Assert.Empty(carried);
-        Assert.Empty(Assert.Single(typeof(CardSelectRightStateResponse).GetConstructors())
-            .GetParameters());
+        Assert.Equal([nameof(CardSelectRightStateResponse.EligibleSeats)], carried);
     }
 
     /// <summary>The scroll's acknowledgement is followed by the layout, in that order.</summary>
@@ -554,7 +563,7 @@ public sealed class CardRewardTests
         await world.Handle(sender, ClearRewardCardKind.Free, 1);
 
         var answer = Assert.IsType<SelectCardResponse>(sender.Sent[0]);
-        Assert.Equal(1, answer.TurnedColumn);
+        Assert.Equal(0, answer.TurnedColumn);
         AssertCarriedGold(sender.Sent[^1], StartingGold + FaceGold);
     }
 
@@ -697,13 +706,13 @@ public sealed class CardRewardTests
     /// </summary>
     /// <remarks>
     /// Read off the encoded body rather than off the message, because what the client gets is the
-    /// body. Both held positions again, so a body built from constants cannot pass.
+    /// body. Either visual choice still awards the one personal result fixed at settlement.
     /// </remarks>
     [Theory]
-    [InlineData(0, FirstItemId, 1)]
-    [InlineData(2, SecondItemId, 2)]
+    [InlineData(0)]
+    [InlineData(2)]
     public async Task The_bag_change_carries_the_slot_the_piece_and_how_many(
-        int index, int itemId, int quantity)
+        int index)
     {
         var world = new World();
         var sender = new RecordingSender();
@@ -719,14 +728,14 @@ public sealed class CardRewardTests
         Assert.Equal((byte)InventoryContainerType.Main, body[0]);
         Assert.Equal((ushort)1, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(1)));
         Assert.Equal((short)Bag.OpenedSlot, BinaryPrimitives.ReadInt16LittleEndian(body.AsSpan(3)));
-        Assert.Equal(itemId, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(5)));
-        Assert.Equal(quantity, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(9)));
+        Assert.Equal(FirstItemId, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(5)));
+        Assert.Equal(1, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(9)));
         Assert.Equal(HeldDurability, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(14)));
     }
 
-    /// <summary>A position that held nothing says nothing about the bag.</summary>
+    /// <summary>The visual column does not select a different personal reward.</summary>
     [Fact]
-    public async Task A_position_that_held_nothing_says_nothing_about_the_bag()
+    public async Task The_visual_column_does_not_select_a_different_personal_reward()
     {
         var world = new World();
         var sender = new RecordingSender();
@@ -735,7 +744,7 @@ public sealed class CardRewardTests
 
         Assert.IsType<SelectCardResponse>(sender.Sent[0]);
         AssertCarriedGold(sender.Sent[^1], StartingGold + FaceGold);
-        Assert.Empty(world.Bag.Slots);
+        Assert.Equal(FirstItemId, world.Bag.Slots[Bag.OpenedSlot].ItemId);
     }
 
     /// <summary>

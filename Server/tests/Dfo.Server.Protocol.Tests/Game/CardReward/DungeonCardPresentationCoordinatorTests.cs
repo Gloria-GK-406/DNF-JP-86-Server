@@ -60,7 +60,7 @@ public sealed class DungeonCardPresentationCoordinatorTests
                 world.Session.AccountId,
                 world.Session.CharacterId,
                 ClearRewardCardKind.Free,
-                1,
+                0,
                 world.Run.RunId));
         world.Coordinator.Cancel(world.Session.CharacterId, world.Run.RunId);
         await world.Projection.DeliverAsync(
@@ -68,7 +68,7 @@ public sealed class DungeonCardPresentationCoordinatorTests
         await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(4)) == 0);
 
         Assert.Equal(1, world.Bus.Selections);
-        Assert.Equal(1, Assert.Single(
+        Assert.Equal(0, Assert.Single(
             world.Runs.Find(world.Session.CharacterId)!.CardSelections).Index);
     }
 
@@ -139,8 +139,11 @@ public sealed class DungeonCardPresentationCoordinatorTests
         }
 
         foreach (var session in world.Sessions.All)
-            Assert.Single(world.Sender.For(session.ConnectionId)
+        {
+            var layout = Assert.Single(world.Sender.For(session.ConnectionId)
                 .OfType<CardSelectRightStateResponse>());
+            Assert.Equal([0, 1], layout.EligibleSeats);
+        }
         Assert.Equal(2, world.Delay.Pending(TimeSpan.FromSeconds(4)));
 
         world.Delay.Release(TimeSpan.FromSeconds(4));
@@ -169,7 +172,7 @@ public sealed class DungeonCardPresentationCoordinatorTests
     }
 
     [Fact]
-    public async Task Auto_flip_skips_an_in_flight_reserved_column_and_stops_after_bounded_attempts()
+    public async Task Auto_flip_retries_the_same_personal_confirmation_after_a_transient_conflict()
     {
         using var world = Build(
             TimeSpan.FromSeconds(2),
@@ -183,8 +186,8 @@ public sealed class DungeonCardPresentationCoordinatorTests
         world.Delay.Release(TimeSpan.FromSeconds(4));
         await WaitUntilAsync(() => world.Bus.Selections == 1);
 
-        Assert.Equal([0, 1], world.Bus.Attempts);
-        Assert.Equal(1, Assert.Single(
+        Assert.Equal([0, 0], world.Bus.Attempts);
+        Assert.Equal(0, Assert.Single(
             world.Runs.Find(world.Session.CharacterId)!.CardSelections).Index);
     }
 

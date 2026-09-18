@@ -811,14 +811,12 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                 || cards.SlotAt(kind, index) is not { } slot
                 || cards.Claimed.Contains(card)
                 || aggregate.CardSelections.Any(selection =>
-                    selection.Kind == kind
-                    && (selection.Index == index
-                        || selection.CharacterId == characterId)))
+                    selection.Kind == kind && selection.CharacterId == characterId))
             {
                 return null;
             }
 
-            var key = new ClearRewardCardClaimKey(aggregate.RunId, card);
+            var key = new ClearRewardCardClaimKey(aggregate.RunId, characterId, card);
             if (this.preparedClearRewardCardClaims.Contains(key)
                 || this.clearRewardCardClaims.ContainsKey(key)
                 || this.clearRewardCardClaims.Any(entry =>
@@ -871,7 +869,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
     {
         lock (this.gate)
         {
-            var key = new ClearRewardCardClaimKey(claim.RunId, claim.Card);
+            var key = new ClearRewardCardClaimKey(claim.RunId, claim.CharacterId, claim.Card);
             if (!this.clearRewardCardClaims.TryGetValue(key, out var reservation)
                 || reservation.CharacterId != claim.CharacterId
                 || reservation.Token != claim.Token
@@ -889,8 +887,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                 || cards.Claimed.Contains(claim.Card)
                 || aggregate.CardSelections.Any(selection =>
                     selection.Kind == claim.Card.Kind
-                    && (selection.Index == claim.Card.Index
-                        || selection.CharacterId == claim.CharacterId))
+                    && selection.CharacterId == claim.CharacterId)
                 || !this.preparedClearRewardCardClaims.Add(key))
             {
                 return null;
@@ -923,17 +920,24 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             };
             prepared.Aggregate.CardSelections.Add(new DungeonCardSelection(
                 prepared.Key.Card.Kind,
-                prepared.Key.Card.Index,
+                prepared.Slot,
                 prepared.CharacterId,
                 prepared.Slot));
+            // A free-card confirmation is private until every current participant has confirmed.
+            // The wire index is not the shared display column; the party seat is.
+            var ready = prepared.Key.Card.Kind is ClearRewardCardKind.Paid
+                || prepared.Aggregate.ActiveParticipants.All(characterId =>
+                    prepared.Aggregate.CardSelections.Any(selection =>
+                        selection.Kind is ClearRewardCardKind.Free
+                        && selection.CharacterId == characterId));
+            if (ready)
+                prepared.Aggregate.RevealedCardKinds.Add(prepared.Key.Card.Kind);
             prepared.Aggregate.RuntimeRevision++;
             return new DungeonCardSelectionChange(
                 prepared.Aggregate.RunId,
                 prepared.Aggregate.RuntimeRevision,
                 prepared.CharacterId,
-                [.. prepared.Aggregate.CardSelections
-                    .OrderBy(selection => selection.Kind)
-                    .ThenBy(selection => selection.Index)],
+                ready ? prepared.Aggregate.PublishedCardSelections() : [],
                 [.. prepared.Aggregate.Participants
                     .Where(participant => prepared.Aggregate.ActiveParticipants.Contains(
                         participant.CharacterId))
@@ -957,7 +961,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             if (prepared is { } value)
                 _ = this.preparedClearRewardCardClaims.Remove(value.Key);
             _ = this.TryRemoveClearRewardCardClaim(
-                new ClearRewardCardClaimKey(claim.RunId, claim.Card), claim.Token);
+                new ClearRewardCardClaimKey(claim.RunId, claim.CharacterId, claim.Card), claim.Token);
         }
     }
 
@@ -966,7 +970,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         ArgumentNullException.ThrowIfNull(claim);
         lock (this.gate)
         {
-            var key = new ClearRewardCardClaimKey(claim.RunId, claim.Card);
+            var key = new ClearRewardCardClaimKey(claim.RunId, claim.CharacterId, claim.Card);
             return !this.preparedClearRewardCardClaims.Contains(key)
                 && this.TryRemoveClearRewardCardClaim(key, claim.Token);
         }
@@ -1182,6 +1186,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         DungeonRunAggregate Aggregate);
     private readonly record struct ClearRewardCardClaimKey(
         DungeonRunId RunId,
+        CharacterId CharacterId,
         ClearRewardCardId Card);
     private readonly record struct ClearRewardReservation(CharacterId CharacterId, long Token);
     private readonly record struct ClearRewardCardCommitIdentity(
@@ -1351,6 +1356,14 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         public HashSet<CharacterId> ActiveParticipants { get; }
         public HashSet<CharacterId> ReadyParticipants { get; } = [];
         public List<DungeonCardSelection> CardSelections { get; } = [];
+        public HashSet<ClearRewardCardKind> RevealedCardKinds { get; } = [];
+
+        public IReadOnlyList<DungeonCardSelection> PublishedCardSelections() =>
+            [.. this.CardSelections
+                .Where(selection => this.RevealedCardKinds.Contains(selection.Kind)
+                    && this.ActiveParticipants.Contains(selection.CharacterId))
+                .OrderBy(selection => selection.Kind)
+                .ThenBy(selection => selection.Index)];
 
         public bool IsActiveMember(CharacterId characterId) =>
             this.ActiveParticipants.Contains(characterId)
@@ -1391,7 +1404,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                 this.ReadyParticipants.ToImmutableHashSet(),
                 this.Cells[this.CurrentCell].ClearOpen,
                 this.RuntimeRevision,
-                [.. this.CardSelections],
+                this.PublishedCardSelections(),
                 progress.CardLayoutOpen,
                 this.Cells[this.CurrentCell].Snapshot())
             {

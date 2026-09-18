@@ -55,19 +55,14 @@ public sealed class CardSelectRightStateHandler(
 }
 
 /// <summary>
-/// Turns one card over and answers with the whole panel's state.
+/// Confirms one personal card; the shared panel waits for all free-card confirmations.
 /// </summary>
 /// <remarks>
-/// <b>A flip that hands nothing over is answered with nothing.</b> That is the reference server's
-/// behaviour and it is the right one here: the positions were revealed by the flip that did take
-/// something, and the client ignores a position it has already been shown, so a second answer would
-/// be a frame that changes nothing. Silence also keeps a request naming a run that does not exist
-/// from being told anything about one.
+/// A refused or duplicate confirmation publishes nothing. Successful personal confirmation may
+/// likewise have no shared reply yet; the local client already turned its chosen card over.
 /// <para>
-/// <b>The acknowledgement goes first and the bag change after it, in one exchange.</b> That order is
-/// the ground pick-up's, which is the reference server's: the client consumes the answer to what it
-/// asked and only then reads what changed underneath it. A position that held nothing sends the one
-/// frame alone -- there is no bag change to describe.
+/// The first participant receives only private inventory and gold changes. The last confirmation
+/// releases one party-ordered 0x0047 snapshot before that actor's private changes.
 /// </para>
 /// </remarks>
 public sealed class SelectCardHandler(
@@ -119,7 +114,7 @@ public sealed class SelectCardHandler(
                 session.AccountId,
                 session.CharacterId,
                 message.Kind,
-                message.Index,
+                message.Kind is ClearRewardCardKind.Free ? 0 : message.Index,
                 run.RunId),
             cancellationToken).ConfigureAwait(false);
 
@@ -137,13 +132,13 @@ public sealed class SelectCardHandler(
         }
 
         logger.LogInformation(
-            "Select card {ConnectionId} character={CharacterId}: {Kind} position {Index} taken, "
-                + "{Revealed} positions revealed, bag {Bag}, charged {Charged}, paid {Paid}",
+            "Select card {ConnectionId} character={CharacterId}: {Kind} wire position {Index} "
+                + "confirmed, party reveal ready={RevealReady}, bag {Bag}, charged {Charged}, paid {Paid}",
             context.Connection.ConnectionId,
             session.CharacterId.Value,
             message.Kind,
             message.Index,
-            result.Slots.Count,
+            result.Change?.Selections.Count > 0,
             result.Delivered is null ? "unchanged" : "told",
             result.GoldCharged,
             result.GoldPaid);
@@ -177,11 +172,9 @@ public sealed class SelectCardHandler(
     private static IReadOnlyList<IGameServerMessage> Frames(
         SelectCardResult result, DateTimeOffset preparedAt)
     {
-        var frames = new List<IGameServerMessage>
-        {
-            new SelectCardResponse(result.Change?.Selections
-                ?? [new DungeonCardSelection(result.Kind, result.Index, default, Seat: 0)]),
-        };
+        var frames = new List<IGameServerMessage>();
+        if (result.Change is { Selections.Count: > 0 } change)
+            frames.Add(new SelectCardResponse(change.Selections));
         if (result.Delivered is { } delivered)
             frames.Add(GameInventoryDelivery.Notification(delivered));
 

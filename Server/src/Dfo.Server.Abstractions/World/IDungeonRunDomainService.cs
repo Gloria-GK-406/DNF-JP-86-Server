@@ -56,7 +56,7 @@ public sealed record DungeonRunState(
     public IReadOnlySet<CharacterId> ReadyParticipants { get; init; } =
         ReadyParticipants ?? ImmutableHashSet<CharacterId>.Empty;
 
-    /// <summary>The shared card-panel ownership accumulated by all participants.</summary>
+    /// <summary>The card-panel ownership already released to the party.</summary>
     public IReadOnlyList<DungeonCardSelection> CardSelections { get; init; } =
         CardSelections ?? [];
 
@@ -287,7 +287,7 @@ public sealed record DungeonClearChange(
     long Revision,
     IReadOnlyList<CharacterId> Recipients);
 
-/// <summary>One shared card column owned by one frozen dungeon participant.</summary>
+/// <summary>One displayed card column owned by one current dungeon participant.</summary>
 public sealed record DungeonCardSelection(
     ClearRewardCardKind Kind,
     int Index,
@@ -301,7 +301,7 @@ public sealed record DungeonCardLayoutChange(
     CharacterId CharacterId,
     IReadOnlyList<CharacterId> Recipients);
 
-/// <summary>A committed card flip and the complete shared panel state after it.</summary>
+/// <summary>A committed personal confirmation; selections are empty until reveal is ready.</summary>
 public sealed record DungeonCardSelectionChange(
     DungeonRunId RunId,
     long Revision,
