@@ -265,10 +265,8 @@ internal static class DungeonEntryPayloadCodec
             writer.Write(packetIndex);
             writer.Write(unchecked((ushort)(firstActorSequence + index)));
             writer.Write(actor.Code);
-            // A map declaring level zero is declining to set one, not setting zero. What the
-            // monster is then worth is the dungeon's own [basis level], which the map cannot carry
-            // because it is shared between dungeons. Dungeon 144 declares zero on every monster it
-            // has, so reading the zero literally made a whole dungeon's monsters level one.
+            // Room creation has resolved the map's absolute/relative level fields against this
+            // dungeon. LevelOf remains the fallback for any actor with no declared level.
             writer.Write(layout.LevelOf(actor.Level));
             writer.Write(actor.ActorType);
             writer.Write((byte)0); // first flag

@@ -34,8 +34,15 @@ internal sealed class DungeonRoomRuleService(
 
         var declared = await roomActors.GetAsync(context.MapId, cancellationToken)
             .ConfigureAwait(false);
+        var resolved = declared.Select(actor => actor.ActorType < FirstAiCharacterActorType
+            ? actor with
+            {
+                Level = context.Layout.LevelOf(actor.Level, actor.BasisLevelOffset),
+                BasisLevelOffset = null,
+            }
+            : actor).ToArray();
         return new DungeonRoomContents(
-            this.Describe(declared),
+            this.Describe(resolved),
             [.. (await roomDrops.GetAsync(
                     context.Layout.DungeonId, context.MapId, cancellationToken)
                 .ConfigureAwait(false))

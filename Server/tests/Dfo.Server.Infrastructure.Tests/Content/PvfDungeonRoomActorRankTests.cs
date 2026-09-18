@@ -7,22 +7,21 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 /// </summary>
 /// <remarks>
 /// Both were read out of the wrong place until 2026-08-27, and both were reported live. A monster
-/// record is <c>code, level, autoLevel, x, y, z, randomDrops, fixedDrops</c> and then two quoted
+/// record is <c>code, relativeFlag, levelValue, x, y, z, randomDrops, fixedDrops</c> and then two quoted
 /// words -- where it stands and what rank it is. The rank was being taken from the third INTEGER,
-/// which is the auto-level; dungeon 144 sets that to 3 and 4 on monsters it calls
+/// which is a level value; dungeon 144 sets that to 3 and 4 on monsters it calls
 /// <c>[normal]</c>, and 3 is the number the client draws a boss by. The player met ordinary
 /// monsters wearing boss health bars.
 ///
-/// The level was the same record read the same way: dungeon 144 declares zero on every monster,
-/// which means "use the dungeon's basis level" and was being read as a literal zero and clamped
-/// to one.
+/// The first level field selects relative mode; the second holds either the signed adjustment or
+/// the absolute level. The source keeps this declaration until a dungeon supplies its basis level.
 /// </remarks>
 public sealed class PvfDungeonRoomActorRankTests
 {
     /// <summary>The room the player met the false bosses in.</summary>
     private const int Dungeon144NormalRoomMapId = 8153;
 
-    /// <summary>Its neighbour, which mixes auto-levels 3 and 4 across monsters of one rank.</summary>
+    /// <summary>Its neighbour, which mixes level values 3 and 4 across monsters of one rank.</summary>
     private const int Dungeon144SecondRoomMapId = 8154;
 
     /// <summary>The A21 tutorial's boss room, whose monsters are also all ordinary.</summary>
@@ -42,13 +41,13 @@ public sealed class PvfDungeonRoomActorRankTests
     }
 
     /// <remarks>
-    /// The clinching case. Every monster in this room is <c>[normal]</c>, and the auto-levels
+    /// The clinching case. Every monster in this room is <c>[normal]</c>, and the level values
     /// differ between them -- 3 on three of them and 4 on two. Read as a rank that is "three
     /// bosses and two ordinary monsters"; read correctly it is five ordinary monsters. A test that
-    /// only checked one room could pass on a room where auto-level happens to be zero.
+    /// only checked one room could pass on a room where the level value happens to be zero.
     /// </remarks>
     [SkippableFact]
-    public async Task OneRanksWorthOfMonstersIsNotSplitByTheirAutoLevels()
+    public async Task OneRanksWorthOfMonstersIsNotSplitByTheirLevelValues()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var provider = ContentArchive.CreateProvider();
@@ -81,24 +80,32 @@ public sealed class PvfDungeonRoomActorRankTests
     }
 
     /// <summary>
-    /// A level the map does not set comes back as zero, for the caller to fill from the dungeon.
+    /// Relative and absolute level declarations survive map parsing distinctly.
     /// </summary>
     /// <remarks>
-    /// Passed through rather than defaulted here on purpose: a map belongs to no one dungeon, so
-    /// this source cannot know the basis level, and inventing a one would be an answer that looks
-    /// like the archive's.
+    /// The tutorial asks for its dungeon basis level; dungeon 144's room declares an absolute
+    /// level through the second integer. A map belongs to no one dungeon, so only the former
+    /// needs a later basis-level projection.
     /// </remarks>
     [SkippableFact]
-    public async Task AnUndeclaredLevelIsReportedAsAbsentRatherThanAsOne()
+    public async Task RelativeAndAbsoluteMapLevelsRemainDistinctBeforeRoomCreation()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var provider = ContentArchive.CreateProvider();
         var source = new PvfDungeonRoomActorSource(provider);
 
         var declared = await source.GetAsync(TutorialBossRoomMapId, CancellationToken.None);
-        var undeclared = await source.GetAsync(Dungeon144NormalRoomMapId, CancellationToken.None);
+        var absolute = await source.GetAsync(Dungeon144NormalRoomMapId, CancellationToken.None);
 
-        Assert.All(declared, actor => Assert.Equal(1, actor.Level));
-        Assert.All(undeclared, actor => Assert.Equal(0, actor.Level));
+        Assert.All(declared, actor =>
+        {
+            Assert.Equal(0, actor.Level);
+            Assert.Equal(0, actor.BasisLevelOffset);
+        });
+        Assert.All(absolute, actor =>
+        {
+            Assert.Equal(3, actor.Level);
+            Assert.Null(actor.BasisLevelOffset);
+        });
     }
 }

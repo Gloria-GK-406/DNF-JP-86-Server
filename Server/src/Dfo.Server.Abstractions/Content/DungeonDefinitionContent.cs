@@ -69,9 +69,8 @@ public sealed record MazeDefinition(
 /// gives dungeon 144 a weight of 1.45.
 /// </param>
 /// <param name="BasisLevel">
-/// What a monster in this dungeon is worth when its map declines to say. A map is shared between
-/// dungeons and so cannot carry it; the dungeon names it under <c>[basis level]</c>, and most maps
-/// declare monster level zero and lean on it entirely.
+/// The dungeon's <c>[basis level]</c>, used when a map requests a relative monster level or
+/// declares neither an absolute level nor an adjustment. A map may be shared between dungeons.
 /// </param>
 /// <param name="OffersPaidCard">
 /// Whether a clear of this dungeon offers the paid card, from its <c>[gold card use]</c>.

@@ -127,8 +127,8 @@ public sealed class PvfDungeonDefinitionSourceTests
     /// point and therefore stored as a single; read through the integer path it would arrive as the
     /// bit pattern 1069967704 and price a kill a billion times over.
     ///
-    /// The basis level matters for the same run: every monster in those rooms declares level zero,
-    /// which means "use this", and the reference server sent level 5 for them.
+    /// The basis level matters whenever a map requests a relative monster level. The captured
+    /// run included level-5 monsters; their level cannot be inferred from this dungeon field alone.
     /// </remarks>
     [SkippableFact]
     public async Task ADungeonDeclaresWhatItsKillsAreWorthAndWhatLevelItsMonstersAre()

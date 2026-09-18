@@ -6,7 +6,13 @@ namespace Dfo.Server.Abstractions.Content;
 /// characters, which the room declares separately and which fight beside the player rather than
 /// against them.
 /// </param>
-public readonly record struct DungeonRoomActor(int Code, byte Level, byte ActorType);
+/// <param name="Level">Absolute level when known; zero requests the dungeon basis level.</param>
+/// <param name="BasisLevelOffset">
+/// When set, the map requests the dungeon basis level plus this signed adjustment instead of an
+/// absolute level. Cleared when the room is materialized so its Cell holds a concrete level.
+/// </param>
+public readonly record struct DungeonRoomActor(
+    int Code, byte Level, byte ActorType, int? BasisLevelOffset = null);
 
 /// <summary>Reads a room's actors out of the map the room resolves to.</summary>
 /// <remarks>

@@ -39,11 +39,11 @@ internal sealed class PvfDungeonRoomActorSource : IDungeonRoomActorSource
     private const byte HighestMonsterActorType = 3;
 
     /// <summary>
-    /// <c>code, level, autoLevel, x, y, z, randomDrops, fixedDrops</c>, then two quoted words.
+    /// <c>code, relativeLevelFlag, levelValue, x, y, z, randomDrops, fixedDrops</c>, then two quoted words.
     /// </summary>
     /// <remarks>
-    /// The third integer is the map's AUTO-LEVEL, not the actor's rank. Reading it as the rank is
-    /// what made ordinary monsters arrive as bosses: dungeon 144's rooms declare auto-level 3 and
+    /// The third integer is the map's level value/adjustment, not the actor's rank. Reading it as
+    /// the rank made ordinary monsters arrive as bosses: dungeon 144's rooms declare values 3 and
     /// 4 on monsters the map calls <c>[normal]</c>, and 3 is the rank number for a boss. The rank
     /// is the second quoted word, which this used to skip.
     /// </remarks>
@@ -210,18 +210,21 @@ internal sealed class PvfDungeonRoomActorSource : IDungeonRoomActorSource
     }
 
     /// <remarks>
-    /// The level is passed through as declared, zero included. Zero is not "level zero": it is the
-    /// map declining to set one, and what the monster is then worth comes from the dungeon's own
-    /// <c>[basis level]</c> -- which this source cannot see, because a map belongs to no one
-    /// dungeon. The caller substitutes it.
+    /// The second integer selects relative mode when nonzero; the third then adjusts the
+    /// dungeon basis level. Otherwise the third is an absolute level. Keep relative declarations
+    /// unresolved because this source knows the map but not which dungeon is using it.
     /// </remarks>
     private static DungeonRoomActor Monster(IReadOnlyList<int> record, IReadOnlyList<string> words)
     {
-        var level = record[1] is > 0 and <= byte.MaxValue ? (byte)record[1] : (byte)0;
+        var relative = record[1] != 0;
+        var level = !relative && record[2] > 0
+            ? (byte)Math.Min(record[2], byte.MaxValue)
+            : (byte)0;
         var rank = words.Count > MonsterRankWordPosition
             ? RankOf(words[MonsterRankWordPosition])
             : (byte)0;
-        return new DungeonRoomActor(record[0], level, rank);
+        return new DungeonRoomActor(
+            record[0], level, rank, relative ? record[2] : null);
     }
 
     /// <summary>The map's word for how big a monster is, as the number the client draws it by.</summary>

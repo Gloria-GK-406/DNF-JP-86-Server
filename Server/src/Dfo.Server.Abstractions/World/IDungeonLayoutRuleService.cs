@@ -110,13 +110,22 @@ public sealed record DungeonLayout(
     DungeonRunPurpose Purpose = default)
 {
 
-    /// <summary>What a monster of this run is worth when its map declines to say.</summary>
+    /// <summary>Resolve an absolute map level or a level relative to this dungeon.</summary>
     /// <remarks>
-    /// The dungeon's <c>[basis level]</c>, carried here because a map is shared between dungeons
-    /// and cannot hold it. Most maps declare monster level zero and lean on this entirely; reading
-    /// a declared zero as a level rather than as an absence made every such monster level one.
+    /// The dungeon's <c>[basis level]</c> belongs here because a map may be shared between
+    /// dungeons. A relative map declaration carries a signed adjustment; an absent absolute level
+    /// falls back to the basis level.
     /// </remarks>
-    public byte LevelOf(byte declaredLevel) => declaredLevel > 0 ? declaredLevel : BasisLevel;
+    public byte LevelOf(byte declaredLevel, int? basisLevelOffset = null)
+    {
+        if (basisLevelOffset is { } offset)
+        {
+            var adjusted = (long)BasisLevel + offset;
+            return adjusted > 0 ? (byte)Math.Min(adjusted, byte.MaxValue) : BasisLevel;
+        }
+
+        return declaredLevel > 0 ? declaredLevel : BasisLevel;
+    }
 
     /// <summary>What this cell's room is for.</summary>
     public DungeonRoomKind KindOf(MazeCell cell) =>

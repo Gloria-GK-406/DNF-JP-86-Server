@@ -33,7 +33,7 @@ public sealed class PvfDungeonRoomActorSourceTests
         // says nothing about it.
         Assert.Equal(
             [
-                new DungeonRoomActor(61670, 1, 0),  // 地图声明的怪物
+                new DungeonRoomActor(61670, 0, 0, BasisLevelOffset: 0), // 相对副本基础等级
                 new DungeonRoomActor(461, 80, 5),   // 阿甘左, [ai character]
             ],
             actors);

@@ -25,6 +25,49 @@ namespace Dfo.Server.Application.Tests.World;
 public sealed class WorldContentArchiveTests
 {
     [SkippableFact]
+    public async Task Quest_rooms_resolve_monster_level_from_both_map_fields_and_dungeon_basis()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var scope = ContentArchive.CreateContentProvider();
+        var rooms = new DungeonRoomRuleService(
+            scope.GetRequiredService<IDungeonRoomActorSource>(),
+            scope.GetRequiredService<IDungeonRoomDropSource>());
+        var dungeon = await scope.GetRequiredService<IDungeonDefinitionSource>()
+            .GetAsync(146, CancellationToken.None);
+        Assert.NotNull(dungeon);
+        Assert.Equal(11, dungeon.BasisLevel);
+        var ordinary = new MazeCell(0, 0);
+        var boss = new MazeCell(1, 0);
+        var layout = new DungeonLayout(
+            DungeonId: 146,
+            MazeIndex: 1,
+            Width: 2,
+            Height: 1,
+            StartCell: ordinary,
+            BossCell: boss,
+            StartRoomMapId: 55623,
+            Seed: 1,
+            Rooms: new Dictionary<MazeCell, int> { [ordinary] = 55623, [boss] = 55625 },
+            BasisLevel: dungeon.BasisLevel);
+
+        async Task<DungeonRoomContents> Describe(MazeCell cell, int mapId) =>
+            await rooms.DescribeAsync(
+                new DungeonCellCreationContext(
+                    DungeonRunId.New(), layout, cell, mapId, 0,
+                    DateTimeOffset.UnixEpoch, []),
+                CancellationToken.None);
+
+        var absolute = await Describe(ordinary, 55623);
+        var forestMonsters = absolute.Actors.Where(actor => actor.Actor.Code == 65311).ToArray();
+        Assert.NotEmpty(forestMonsters);
+        Assert.All(forestMonsters, actor => Assert.Equal(10, actor.Actor.Level));
+
+        var relative = await Describe(boss, 55625);
+        Assert.Equal(11, Assert.Single(relative.Actors, actor => actor.Actor.Code == 59753)
+            .Actor.Level);
+    }
+
+    [SkippableFact]
     public async Task A_high_level_character_is_offered_a_different_quest_set_than_a_low_level_one()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
