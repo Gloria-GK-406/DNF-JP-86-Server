@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game.DungeonClear;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.CardReward;
@@ -139,13 +140,18 @@ public sealed class DungeonCardPresentationCoordinator(
             return;
         }
 
-        await sender.SendCmdAsync(
+        await sender.SendExplicitAsync(
             session.ConnectionId,
-            new CardSelectRightStateResponse(
-                run.Participants
-                    .Where(participant => runs.Find(participant.CharacterId)?.RunId == runId)
-                    .Select(participant => participant.Slot)
-                    .ToArray()),
+            new GameExplicitMessageDelivery(
+                [
+                    new ScoreScrollStateResponse(),
+                    new CardSelectRightStateResponse(
+                        run.Participants
+                            .Where(participant => runs.Find(participant.CharacterId)?.RunId == runId)
+                            .Select(participant => participant.Slot)
+                            .ToArray()),
+                ],
+                []),
             cancellationToken).ConfigureAwait(false);
         if (runs.Find(session.CharacterId) is { } afterLayout
             && afterLayout.RunId == runId

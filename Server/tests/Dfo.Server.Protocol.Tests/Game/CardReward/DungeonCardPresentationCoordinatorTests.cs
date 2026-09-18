@@ -11,6 +11,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.CardReward;
 using Dfo.Server.Protocol.Game.Dungeons;
+using Dfo.Server.Protocol.Game.DungeonClear;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Dfo.Server.Protocol.Tests.Game.CardReward;
@@ -27,6 +28,10 @@ public sealed class DungeonCardPresentationCoordinatorTests
         world.Delay.Release(TimeSpan.FromSeconds(2));
         await WaitUntilAsync(() => world.Sender.For(world.Session.ConnectionId)
             .Any(message => message is CardSelectRightStateResponse));
+        Assert.Collection(
+            world.Sender.For(world.Session.ConnectionId),
+            first => Assert.IsType<ScoreScrollStateResponse>(first),
+            second => Assert.IsType<CardSelectRightStateResponse>(second));
         await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(4)) == 1);
         world.Delay.Release(TimeSpan.FromSeconds(4));
         await WaitUntilAsync(() => world.Sender.For(world.Session.ConnectionId)
@@ -148,6 +153,61 @@ public sealed class DungeonCardPresentationCoordinatorTests
 
         world.Delay.Release(TimeSpan.FromSeconds(4));
         await WaitUntilAsync(() => world.Bus.Selections == 2);
+    }
+
+    [Fact]
+    public async Task Late_scroll_request_does_not_send_a_second_acknowledgement()
+    {
+        using var world = Build(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4));
+        world.Coordinator.ScheduleAfterSettlement(world.Session, world.Run.RunId);
+        await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 1);
+        world.Delay.Release(TimeSpan.FromSeconds(2));
+        await WaitUntilAsync(() => world.Sender.For(world.Session.ConnectionId)
+            .Any(message => message is CardSelectRightStateResponse));
+
+        var handler = new ScoreScrollStateHandler(
+            world.Sessions,
+            world.Sender,
+            NullLogger<ScoreScrollStateHandler>.Instance,
+            world.Coordinator,
+            world.Runs);
+        await handler.HandleAsync(
+            new NetworkDispatchContext(new NetworkConnectionContext(
+                world.Session.ConnectionId, NetworkEndpointKind.Game, 10010)),
+            new ScoreScrollStateRequest(GameMessageMetadata.Empty),
+            CancellationToken.None);
+
+        Assert.Collection(
+            world.Sender.For(world.Session.ConnectionId),
+            first => Assert.IsType<ScoreScrollStateResponse>(first),
+            second => Assert.IsType<CardSelectRightStateResponse>(second));
+    }
+
+    [Fact]
+    public async Task Early_scroll_request_sends_the_ordered_pair_once_and_retires_layout_timer()
+    {
+        using var world = Build(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4));
+        world.Coordinator.ScheduleAfterSettlement(world.Session, world.Run.RunId);
+        await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 1);
+
+        var handler = new ScoreScrollStateHandler(
+            world.Sessions,
+            world.Sender,
+            NullLogger<ScoreScrollStateHandler>.Instance,
+            world.Coordinator,
+            world.Runs);
+        await handler.HandleAsync(
+            new NetworkDispatchContext(new NetworkConnectionContext(
+                world.Session.ConnectionId, NetworkEndpointKind.Game, 10010)),
+            new ScoreScrollStateRequest(GameMessageMetadata.Empty),
+            CancellationToken.None);
+
+        await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 0);
+        Assert.Equal(1, world.Delay.Pending(TimeSpan.FromSeconds(4)));
+        Assert.Collection(
+            world.Sender.For(world.Session.ConnectionId),
+            first => Assert.IsType<ScoreScrollStateResponse>(first),
+            second => Assert.IsType<CardSelectRightStateResponse>(second));
     }
 
     [Fact]

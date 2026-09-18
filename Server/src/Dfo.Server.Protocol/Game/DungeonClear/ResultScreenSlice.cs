@@ -152,8 +152,8 @@ public sealed record ScoreScrollStateRequest(GameMessageMetadata Metadata) : ICl
 /// graph, so beyond that first byte the body's contents do not matter.
 /// <para>
 /// <b>The reference sends a second frame with it</b>, <c>CMD 0x0046</c>, carrying the card panel's
-/// layout. With the presentation coordinator installed, this server sends that layout once per
-/// participant when its timer or the client opens the panel, rather than from this handler.
+/// layout. With the presentation coordinator installed, the first timer or client request sends
+/// this acknowledgement and the layout as one ordered delivery per participant.
 /// <see cref="CardSelectRightStateResponse"/> puts the cards face down in front of the player.
 /// See <c>protocol/game/client-to-server/0x0045.md</c>.
 /// </para>
@@ -177,25 +177,23 @@ internal sealed class ScoreScrollStateResponseEncoder
         OnePayload(GameProtocol.ScoreScrollStateType, new byte[] { 0x01 });
 }
 
-/// <summary>Answers the scroll; the presentation coordinator opens the cards when installed.</summary>
+/// <summary>Opens the cards through the coordinator, or answers the scroll without it.</summary>
 /// <remarks>
-/// Unconditionally, and unlike every other handler here, which returns early without a published
-/// session. The scroll has already been drawn by the time this is sent and the client cannot ask
-/// again, so a silence is indistinguishable from the server not having the type at all -- which is
-/// the defect being fixed. There is nothing to withhold either: the answer carries no reward,
-/// grants nothing and reads nothing, so a client that sent this outside a run learns nothing it
-/// did not already have.
+/// Without an active run, the scroll acknowledgement still carries no reward or state. During a
+/// run, however, the timer may already have delivered the ordered pair before this client request
+/// arrives, so answering here again would replay the presentation.
 /// <para>
-/// With the presentation coordinator installed, this handler only acknowledges the scroll; a
-/// per-participant timer or the client's layout request opens the cards once. The fallback without
-/// the coordinator sends the acknowledgement and layout together, matching the reference's pair.
+/// With the presentation coordinator installed, the first timer or client request sends the
+/// acknowledgement and layout together. A later scroll request must not replay either frame.
+/// The fallback without the coordinator sends the same pair directly.
 /// </para>
 /// </remarks>
 public sealed class ScoreScrollStateHandler(
     ISelectedSessionDomainService selectedSessions,
     IGameMessageSender sender,
     ILogger<ScoreScrollStateHandler> logger,
-    DungeonCardPresentationCoordinator? cardPresentation = null)
+    DungeonCardPresentationCoordinator? cardPresentation = null,
+    IDungeonRunDomainService? runs = null)
     : ClientMessageHandler<ScoreScrollStateRequest>
 {
     protected override async ValueTask HandleMessageAsync(
@@ -204,6 +202,20 @@ public sealed class ScoreScrollStateHandler(
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+
+        if (session is not null
+            && runs?.Find(session.CharacterId) is { } run
+            && cardPresentation is not null)
+        {
+            logger.LogInformation(
+                "Score scroll state {ConnectionId} character={CharacterId}: "
+                    + "routed through card presentation",
+                context.Connection.ConnectionId,
+                session.CharacterId.Value);
+            await cardPresentation.OpenOnRequestAsync(
+                session, run.RunId, cancellationToken).ConfigureAwait(false);
+            return;
+        }
 
         logger.LogInformation(
             "Score scroll state {ConnectionId} character={CharacterId}: acknowledged, "
