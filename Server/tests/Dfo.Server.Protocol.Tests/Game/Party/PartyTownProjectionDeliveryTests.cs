@@ -221,6 +221,53 @@ public sealed class PartyTownProjectionDeliveryTests
             bus.Rosters.Select(value => value.Snapshot!.Generation));
     }
 
+    [Fact]
+    public async Task TownReadRepairCannotSupersedePendingLeaderRekeyClearForSurvivor()
+    {
+        var oldSnapshot = Snapshot(revision: 3);
+        var newSnapshot = Snapshot(revision: 4) with
+        {
+            PartyId = 0x5678,
+            LeaderWireUserId = Member.WireUserId,
+            Members = ImmutableArray.Create(
+                new PartyMemberSnapshot(Character(Member), 0, null, 100)),
+        };
+        var streams = new PartyProjectionStreamRegistry();
+        var bus = new RecordingNotificationBus();
+        var sessions = new FixedSelectedSessions();
+        var presence = Presence();
+        var mutation = new PartyNotificationDelivery(bus, streams, sessions, presence);
+        await mutation.DeliverAsync(
+            new PartyNotificationPlan([], oldSnapshot), CancellationToken.None);
+        bus.Publications.Clear();
+
+        var town = new PartyTownProjectionDelivery(
+            new MutableParties(Member, newSnapshot), presence, sessions, bus, streams);
+        await town.RefreshMovedPartyAsync(Member, Character(Member).DirectoryScope,
+            CancellationToken.None);
+        await mutation.DeliverAsync(
+            new PartyNotificationPlan(
+                [Leader.CharacterId, Member.CharacterId], newSnapshot,
+                ClearPartyId: oldSnapshot.PartyId,
+                ClearPartyGeneration: oldSnapshot.Generation,
+                ClearPartyRevision: newSnapshot.Revision),
+            CancellationToken.None);
+
+        var survivorRosters = bus.Publications
+            .Where(value => value.Notification is PartyRosterChanged
+                && Assert.IsType<NotificationAudience.TheseSessions>(value.Audience)
+                    .Sessions.Contains(Member))
+            .Select(value => Assert.IsType<PartyRosterChanged>(value.Notification))
+            .ToArray();
+        Assert.Contains(survivorRosters, value => value.ClearsParty
+            && value.ClearPartyId == oldSnapshot.PartyId);
+        Assert.Contains(survivorRosters, value => !value.ClearsParty
+            && value.Snapshot?.PartyId == newSnapshot.PartyId);
+        Assert.True(Array.FindIndex(survivorRosters, value => value.ClearsParty)
+            < Array.FindIndex(survivorRosters, value => !value.ClearsParty
+                && value.Snapshot?.PartyId == newSnapshot.PartyId));
+    }
+
     private static PartySnapshot Snapshot(long revision, long generation = 7) => new(
         0x1234,
         generation,
@@ -338,6 +385,7 @@ public sealed class PartyTownProjectionDeliveryTests
         params (SelectedSessionIdentity Session, PartySnapshot Snapshot)[] snapshots)
         : IPartyService
     {
+        public PartyMembershipSnapshot? FindByKey(PartyKey key) => null;
         private readonly PartySnapshot[] parties = snapshots
             .Select(value => value.Snapshot)
             .DistinctBy(value => (value.PartyId, value.Generation))
@@ -382,6 +430,7 @@ public sealed class PartyTownProjectionDeliveryTests
         SelectedSessionIdentity member,
         PartySnapshot current) : IPartyService
     {
+        public PartyMembershipSnapshot? FindByKey(PartyKey key) => null;
         public int ReadCount { get; private set; }
 
         public PartySnapshot Current { get; set; } = current;

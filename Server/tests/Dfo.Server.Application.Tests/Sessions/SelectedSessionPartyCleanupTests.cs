@@ -47,13 +47,14 @@ public sealed class SelectedSessionPartyCleanupTests
     }
 
     [Fact]
-    public async Task Leader_cleanup_promotes_the_next_member_and_clears_only_the_owner()
+    public async Task Leader_cleanup_promotes_the_next_member_and_rekeys_every_old_member()
     {
         var fixture = new Fixture();
         var leader = fixture.Admit(1);
         var member = fixture.Admit(2);
         var observer = fixture.Admit(3);
         fixture.Form(leader, member);
+        var oldParty = fixture.Parties.FindParty(leader);
 
         var plan = await fixture.Cleanup.CleanupAsync(
             leader, includeOwner: false, CancellationToken.None);
@@ -62,8 +63,12 @@ public sealed class SelectedSessionPartyCleanupTests
             plan.PartyNotifications.Snapshot);
         Assert.Equal(member.WireUserId, survivors.LeaderWireUserId);
         Assert.Equal(member.CharacterId, Assert.Single(survivors.Members).CharacterId);
+        Assert.Equal(oldParty.Key, survivors.Key);
+        Assert.NotEqual(oldParty.LeadershipVersion, survivors.LeadershipVersion);
+        Assert.Equal(oldParty.Key, plan.PartyNotifications.ClearPartyKey);
+        Assert.Equal(oldParty.LeadershipVersion, plan.PartyNotifications.ClearLeadershipVersion);
         Assert.Equal(
-            [leader.CharacterId],
+            [leader.CharacterId, member.CharacterId],
             plan.PartyNotifications.ClearAudience.ToArray());
         Assert.Equal(
             new PartyDirectoryChange(

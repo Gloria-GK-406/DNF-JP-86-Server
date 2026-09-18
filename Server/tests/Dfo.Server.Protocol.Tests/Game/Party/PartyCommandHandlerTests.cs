@@ -1,10 +1,14 @@
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.OnlineUsers;
+using Dfo.Server.Application.Parties;
+using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -12,12 +16,48 @@ using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.Party;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Dfo.Server.Protocol.Tests.Game.Party;
 
 public sealed class PartyCommandHandlerTests
 {
+    [Fact]
+    public async Task Leaving_party_in_a_run_detaches_only_the_departing_character()
+    {
+        var parties = new PartyService(
+            new FixedPartyMemberStatus(), new PartyModeRuleService(),
+            TimeProvider.System, new NoPartyEndpoints());
+        var scope = new PartyDirectoryScope(11, 1, 1);
+        var first = Character(Inviter) with { DirectoryScope = scope };
+        var second = Character(Invitee) with { DirectoryScope = scope };
+        Assert.True(parties.RequestInvite(first, second,
+            new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+        Assert.True(parties.AcceptInvite(second, first).Succeeded);
+        var runs = new DungeonRunDomainService(parties);
+        var layout = new DungeonLayout(
+            10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
+            61000, 1, new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 61000 });
+        var run = runs.PreparePartyEntry(
+            [new DungeonRunParticipant(Inviter.AccountId, Inviter.CharacterId, 0, true),
+             new DungeonRunParticipant(Invitee.AccountId, Invitee.CharacterId, 1, false)],
+            layout, 0, DungeonCellSeed.CompleteEmpty(layout.StartCell, layout.StartRoomMapId),
+            DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
+        var deliveries = new DungeonRunDeliveryRegistry();
+        deliveries.Register(run.RunId, [Inviter, Invitee]);
+        var context = new CommandExecutionContext(
+            Guid.NewGuid(), typeof(object), typeof(object), CommandExecutionKind.Direct);
+
+        var result = await new LeavePartyCommandHandler(parties, runs)
+            .HandleAsync(context, new LeavePartyCommand(Inviter.CharacterId), CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Null(runs.Find(Inviter.CharacterId));
+        Assert.Equal(run.RunId, runs.Find(Invitee.CharacterId)!.RunId);
+        Assert.Equal([Inviter, Invitee], deliveries.Find(run.RunId));
+    }
+
     [Fact]
     public async Task Commands_are_the_only_route_from_protocol_to_party_writes()
     {
@@ -748,6 +788,7 @@ public sealed class PartyCommandHandlerTests
 
     private sealed class RecordingParties : IPartyService
     {
+        public PartyMembershipSnapshot? FindByKey(PartyKey key) => null;
         public List<string> Writes { get; } = [];
 
         public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }
@@ -800,6 +841,11 @@ public sealed class PartyCommandHandlerTests
             return Snapshot();
         }
 
+    }
+
+    private sealed class NoPartyEndpoints : IPartyMemberSessionEndpointSource
+    {
+        public SessionEndpoint? FindThroughCurrentSession(CharacterId characterId) => null;
     }
 
     private sealed class FixedPartyMemberStatus : IPartyMemberStatusDomainService

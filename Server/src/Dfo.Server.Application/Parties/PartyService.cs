@@ -9,7 +9,7 @@ namespace Dfo.Server.Application.Parties;
 /// Owns all process-local party behavior and directory indexes. Transport/session ownership is
 /// validated before callers enter this boundary.
 /// </summary>
-internal sealed class PartyService(
+public sealed class PartyService(
     IPartyMemberStatusDomainService memberStatus,
     IPartyModeRuleService modeRules,
     TimeProvider clock,
@@ -18,11 +18,10 @@ internal sealed class PartyService(
     internal static readonly TimeSpan InvitationLifetime = TimeSpan.FromSeconds(30);
 
     private readonly object sync = new();
-    private readonly Dictionary<ushort, PartyState> parties = [];
+    private readonly Dictionary<PartyKey, PartyState> parties = [];
     private readonly Dictionary<CharacterId, PartyState> membership = [];
     private readonly Dictionary<CharacterId, PendingInvite> invitations = [];
-    private readonly Dictionary<PartyDirectoryScope, SortedSet<ushort>> directory = [];
-    private ushort nextPartyId = 1;
+    private readonly Dictionary<PartyDirectoryScope, SortedSet<PartyKey>> directory = [];
     private long nextGeneration;
 
     public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope)
@@ -53,11 +52,11 @@ internal sealed class PartyService(
 
         lock (sync)
         {
-            if (!directory.TryGetValue(query.Scope, out var partyIds))
+            if (!directory.TryGetValue(query.Scope, out var partyKeys))
                 return [];
 
-            return partyIds
-                .Select(partyId => parties[partyId])
+            return partyKeys
+                .Select(key => parties[key])
                 .Where(party => query.Category is null || party.Settings.Category == query.Category)
                 .Where(party => query.ModeTargetRaw is null
                     || party.Settings.ModeTargetRaw == query.ModeTargetRaw)
@@ -107,11 +106,11 @@ internal sealed class PartyService(
                 return PartyOperationResult.Reject(Map(createValidation));
 
             var created = new PartyState(
-                AllocatePartyId(), checked(++nextGeneration), character, settings, title,
+                checked(++nextGeneration), character, settings, title,
                 modeRules.MaximumCapacity);
-            parties.Add(created.PartyId, created);
+            parties.Add(created.Key, created);
             membership.Add(character.CharacterId, created);
-            AddToDirectory(created.DirectoryScope, created.PartyId);
+            AddToDirectory(created.DirectoryScope, created.Key);
             var createdSnapshot = Snapshot(created);
             return PartyOperationResult.Success(new PartyNotificationPlan(
                 [], createdSnapshot,
@@ -222,7 +221,7 @@ internal sealed class PartyService(
                 if (admission != PartyModeRuleFailure.None)
                     return PartyOperationResult.Reject(MapAdmission(admission));
                 party = new PartyState(
-                    AllocatePartyId(), checked(nextGeneration + 1), inviter, defaults,
+                    checked(nextGeneration + 1), inviter, defaults,
                     PartyTitle.Empty, modeRules.MaximumCapacity);
                 createsParty = true;
                 previousDirectoryScope = null;
@@ -234,9 +233,9 @@ internal sealed class PartyService(
             if (createsParty)
             {
                 nextGeneration = party.Generation;
-                parties.Add(party.PartyId, party);
+                parties.Add(party.Key, party);
                 membership.Add(inviter.CharacterId, party);
-                AddToDirectory(party.DirectoryScope, party.PartyId);
+                AddToDirectory(party.DirectoryScope, party.Key);
             }
             else
             {
@@ -255,7 +254,8 @@ internal sealed class PartyService(
                 Acceptance: new PartyAcceptanceNotification(
                     inviter.CharacterId, invitee.CharacterId,
                     inviter.WireUserId, invitee.WireUserId),
-                ClearPartyId: snapshot.PartyId,
+                ClearPartyKey: party.Key,
+                ClearLeadershipVersion: party.LeadershipVersion,
                 ClearPartyGeneration: snapshot.Generation,
                 ClearPartyRevision: snapshot.Revision,
                 DirectoryChange: new PartyDirectoryChange(
@@ -292,16 +292,26 @@ internal sealed class PartyService(
             }
 
             var previous = party.DirectoryScope;
+            var previousLeadershipVersion = party.LeadershipVersion;
+            var clearAudience = party.Members
+                .Where(member => member is not null)
+                .Select(member => member!.Character.CharacterId)
+                .ToImmutableArray();
             party.Members[0] = new PartyMemberState(nextLeader.Character, 0);
             party.Members[nextLeader.Slot] = new PartyMemberState(
                 currentLeader.Character,
                 nextLeader.Slot);
             party.Revision++;
+            party.LeadershipVersion++;
             Reindex(party, previous, party.DirectoryScope);
             var snapshot = Snapshot(party);
             return PartyOperationResult.Success(new PartyNotificationPlan(
-                [],
+                clearAudience,
                 snapshot,
+                ClearPartyKey: party.Key,
+                ClearLeadershipVersion: previousLeadershipVersion,
+                ClearPartyGeneration: party.Generation,
+                ClearPartyRevision: party.Revision,
                 DirectoryChange: new PartyDirectoryChange(previous, party.DirectoryScope)));
         }
     }
@@ -334,6 +344,35 @@ internal sealed class PartyService(
                 : PartySnapshot.Virtual(character, modeRules.DefaultSettings);
     }
 
+    public PartyMembershipSnapshot? FindByKey(PartyKey key)
+    {
+        lock (sync)
+        {
+            if (key.Kind == PartyKeyKind.Virtual && key.Value is > 0 and <= int.MaxValue)
+            {
+                var characterId = new CharacterId(checked((int)key.Value));
+                return membership.ContainsKey(characterId)
+                    ? null
+                    : new PartyMembershipSnapshot(
+                        key, characterId, modeRules.DefaultSettings, PartyTitle.Empty,
+                        [new PartyMembershipMember(characterId, 0)]);
+            }
+
+            if (key.Kind != PartyKeyKind.Real || !parties.TryGetValue(key, out var party))
+                return null;
+
+            return new PartyMembershipSnapshot(
+                key,
+                party.Members[0]!.Character.CharacterId,
+                party.Settings,
+                party.Title,
+                [.. party.Members
+                    .Where(member => member is not null)
+                    .Select(member => new PartyMembershipMember(
+                        member!.Character.CharacterId, member.Slot))]);
+        }
+    }
+
     private PartyOperationResult LeaveLocked(CharacterId characterId)
     {
         if (!membership.TryGetValue(characterId, out var party)
@@ -355,25 +394,32 @@ internal sealed class PartyService(
                 if (partyMember is not null)
                     membership.Remove(partyMember.Character.CharacterId);
             }
-            RemoveFromDirectory(previous, party.PartyId);
-            parties.Remove(party.PartyId);
+            RemoveFromDirectory(previous, party.Key);
+            parties.Remove(party.Key);
             return PartyOperationResult.Success(new PartyNotificationPlan(
                 audience,
-                ClearPartyId: party.PartyId,
+                ClearPartyKey: party.Key,
+                ClearLeadershipVersion: party.LeadershipVersion,
                 ClearPartyGeneration: party.Generation,
                 ClearPartyRevision: party.Revision,
                 DirectoryChange: new PartyDirectoryChange(previous, null)));
         }
 
-        PartySnapshot? transfer = null;
+        long? previousLeadershipVersion = null;
+        ImmutableArray<CharacterId> clearAudience = [characterId];
         if (member.Slot == 0)
         {
+            previousLeadershipVersion = party.LeadershipVersion;
+            clearAudience = party.Members
+                .Where(value => value is not null)
+                .Select(value => value!.Character.CharacterId)
+                .ToImmutableArray();
             var successor = party.Members.Skip(1).First(value => value is not null)!;
             party.Members[0] = new PartyMemberState(successor.Character, 0);
             party.Members[successor.Slot] = new PartyMemberState(member.Character, successor.Slot);
             party.Revision++;
-            transfer = Snapshot(party);
             member = party.Members[successor.Slot]!;
+            party.LeadershipVersion++;
         }
 
         party.Members[member.Slot] = null;
@@ -382,12 +428,12 @@ internal sealed class PartyService(
         Reindex(party, previous, party.DirectoryScope);
         var snapshot = Snapshot(party);
         return PartyOperationResult.Success(new PartyNotificationPlan(
-            [characterId], snapshot,
-            ClearPartyId: party.PartyId,
+            clearAudience, snapshot,
+            ClearPartyKey: party.Key,
+            ClearLeadershipVersion: previousLeadershipVersion ?? party.LeadershipVersion,
             ClearPartyGeneration: party.Generation,
             ClearPartyRevision: party.Revision,
-            DirectoryChange: new PartyDirectoryChange(previous, party.DirectoryScope),
-            LeadershipTransfer: transfer));
+            DirectoryChange: new PartyDirectoryChange(previous, party.DirectoryScope)));
     }
 
     private static PartyFailureReason ValidateTownPair(
@@ -423,8 +469,9 @@ internal sealed class PartyService(
                 memberStatus.CurrentHpPercentOf(member.Character.CharacterId)));
         }
         return new PartySnapshot(
-            party.PartyId, party.Generation, party.Revision, party.LeaderWireUserId,
-            party.Settings, party.Title, members.ToImmutable());
+            0, party.Generation, party.Revision, party.LeaderWireUserId,
+            party.Settings, party.Title, members.ToImmutable(), Key: party.Key,
+            LeadershipVersion: party.LeadershipVersion);
     }
 
     private void Reindex(
@@ -434,28 +481,28 @@ internal sealed class PartyService(
     {
         if (previous == current)
             return;
-        RemoveFromDirectory(previous, party.PartyId);
-        AddToDirectory(current, party.PartyId);
+        RemoveFromDirectory(previous, party.Key);
+        AddToDirectory(current, party.Key);
     }
 
-    private void AddToDirectory(PartyDirectoryScope? scope, ushort partyId)
+    private void AddToDirectory(PartyDirectoryScope? scope, PartyKey key)
     {
         if (scope is null)
             return;
-        if (!directory.TryGetValue(scope, out var partyIds))
+        if (!directory.TryGetValue(scope, out var partyKeys))
         {
-            partyIds = [];
-            directory.Add(scope, partyIds);
+            partyKeys = [];
+            directory.Add(scope, partyKeys);
         }
-        partyIds.Add(partyId);
+        partyKeys.Add(key);
     }
 
-    private void RemoveFromDirectory(PartyDirectoryScope? scope, ushort partyId)
+    private void RemoveFromDirectory(PartyDirectoryScope? scope, PartyKey key)
     {
-        if (scope is null || !directory.TryGetValue(scope, out var partyIds))
+        if (scope is null || !directory.TryGetValue(scope, out var partyKeys))
             return;
-        partyIds.Remove(partyId);
-        if (partyIds.Count == 0)
+        partyKeys.Remove(key);
+        if (partyKeys.Count == 0)
             directory.Remove(scope);
     }
 
@@ -474,23 +521,9 @@ internal sealed class PartyService(
         _ => Map(failure),
     };
 
-    private ushort AllocatePartyId()
-    {
-        for (var attempts = 0; attempts < ushort.MaxValue - 1; attempts++)
-        {
-            var candidate = nextPartyId++;
-            if (nextPartyId is 0 or ushort.MaxValue)
-                nextPartyId = 1;
-            if (candidate is not 0 and not ushort.MaxValue && !parties.ContainsKey(candidate))
-                return candidate;
-        }
-        throw new InvalidOperationException("No party identifier is available.");
-    }
-
     private sealed class PartyState
     {
         internal PartyState(
-            ushort partyId,
             long generation,
             PartyCharacterSnapshot leader,
             PartySettings settings,
@@ -499,15 +532,16 @@ internal sealed class PartyService(
         {
             if (maximumCapacity == 0)
                 throw new ArgumentOutOfRangeException(nameof(maximumCapacity));
-            PartyId = partyId;
             Generation = generation;
+            Key = PartyKey.Real(generation);
             Settings = settings;
             Title = title;
             Members = new PartyMemberState?[maximumCapacity];
             Members[0] = new PartyMemberState(leader, 0);
         }
 
-        internal ushort PartyId { get; }
+        internal long LeadershipVersion { get; set; } = 1;
+        internal PartyKey Key { get; }
         internal long Generation { get; }
         internal long Revision { get; set; } = 1;
         internal ushort LeaderWireUserId => Members[0]!.Character.WireUserId;

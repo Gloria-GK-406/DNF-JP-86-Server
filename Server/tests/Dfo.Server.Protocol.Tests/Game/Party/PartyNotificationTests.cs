@@ -657,6 +657,53 @@ public sealed class PartyNotificationTests
     }
 
     [Fact]
+    public async Task Leader_leave_rekeys_client_party_by_clearing_old_id_before_new_full_roster()
+    {
+        var bus = new RecordingNotificationBus();
+        var survivor = Snapshot() with
+        {
+            PartyId = 0x5678,
+            Revision = 5,
+            LeaderWireUserId = Invitee.WireUserId,
+            Members = [new(Character(Invitee), 0, null, 45)],
+        };
+        await Delivery(bus).DeliverAsync(new PartyNotificationPlan(
+            [Inviter.CharacterId, Invitee.CharacterId], survivor,
+            ClearPartyId: 0x1234,
+            ClearPartyGeneration: survivor.Generation,
+            ClearPartyRevision: survivor.Revision,
+            DirectoryChange: ScopeChange()), CancellationToken.None);
+
+        Assert.Collection(bus.Publications,
+            value =>
+            {
+                AssertPublication<PartyRosterChanged>(value, 1, 2);
+                Assert.Equal((ushort)0x1234,
+                    Assert.IsType<PartyRosterChanged>(value.Notification).ClearPartyId);
+            },
+            value => AssertPublication<PartyRealtimeChanged>(value, 2),
+            value => AssertPublication<PartyEndpointsChanged>(value, 2),
+            value =>
+            {
+                AssertPublication<PartyRosterChanged>(value, 2);
+                Assert.Equal((ushort)0x5678,
+                    Assert.IsType<PartyRosterChanged>(value.Notification).Snapshot!.PartyId);
+            },
+            value =>
+            {
+                AssertPublication<PartyRosterChanged>(value, 3);
+                Assert.Equal((ushort)0x1234,
+                    Assert.IsType<PartyRosterChanged>(value.Notification).ClearPartyId);
+            },
+            value =>
+            {
+                AssertPublication<PartyRosterChanged>(value, 3);
+                Assert.Equal((ushort)0x5678,
+                    Assert.IsType<PartyRosterChanged>(value.Notification).Snapshot!.PartyId);
+            });
+    }
+
+    [Fact]
     public async Task DisbandClearsMembersBeforeUnrelatedObserversWithoutDuplicateRecipients()
     {
         var bus = new RecordingNotificationBus();

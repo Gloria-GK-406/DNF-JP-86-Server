@@ -24,7 +24,8 @@ public sealed record PrepareSelectedCharacterSessionCommand(
 
 public sealed record PreparedSelectedCharacterSession(
     SelectedSessionIdentity Session,
-    SelectCharacterResult State,
+    ActiveCharacterState Selected,
+    ChannelEntryIdentity Channel,
     IReadOnlyList<SelectedSessionCleanupNotificationPlan> CleanupNotifications,
     IReadOnlyList<NetworkConnectionId> ConnectionsToClose);
 
@@ -110,16 +111,8 @@ public sealed class PrepareSelectedCharacterSessionCommandHandler(
                 throw new InvalidOperationException(
                     "A selected session changed outside its account lifecycle gate.");
 
-            var prepared = await preparation.PrepareAsync(
-                selected, command.AccountId, command.Channel, cancellationToken)
-                .ConfigureAwait(false);
-            prepared = await preparation.PlaceAtSpawnAsync(session, prepared, cancellationToken)
-                .ConfigureAwait(false);
-            prepared = await inventoryEntry.PrepareLeaseAsync(session, prepared, cancellationToken)
-                .ConfigureAwait(false);
-
             return new PreparedSelectedCharacterSession(
-                session, prepared, cleanupNotifications, pendingCloses);
+                session, selected, command.Channel, cleanupNotifications, pendingCloses);
         }
         catch (Exception error)
         {
@@ -161,6 +154,51 @@ public sealed class PrepareSelectedCharacterSessionCommandHandler(
             throw new InvalidOperationException(
                 "Select-character connection generation is stale.");
         }
+    }
+}
+
+public sealed record CleanupExpiredCharacterItemsCommand(SelectedSessionIdentity Session)
+    : ICommand<bool>, IAccountCommand
+{
+    public AccountId AccountId => Session.AccountId;
+}
+
+public sealed class CleanupExpiredCharacterItemsCommandHandler(
+    IExpiredCharacterItemCleanupDomainService expiredItems)
+    : ICommandHandler<CleanupExpiredCharacterItemsCommand, bool>
+{
+    public ValueTask<bool> HandleAsync(
+        CommandExecutionContext context,
+        CleanupExpiredCharacterItemsCommand command,
+        CancellationToken cancellationToken) =>
+        expiredItems.CleanupAsync(command.Session.AccountId, command.Session.CharacterId, cancellationToken);
+}
+
+public sealed record PrepareSelectedCharacterStateCommand(
+    SelectedSessionIdentity Session,
+    ActiveCharacterState Selected,
+    ChannelEntryIdentity Channel) : ICommand<SelectCharacterResult>, IAccountCommand
+{
+    public AccountId AccountId => Session.AccountId;
+}
+
+public sealed class PrepareSelectedCharacterStateCommandHandler(
+    ISelectCharacterPreparationDomainService preparation,
+    ISelectCharacterEntryInventoryDomainService inventoryEntry)
+    : ICommandHandler<PrepareSelectedCharacterStateCommand, SelectCharacterResult>
+{
+    public async ValueTask<SelectCharacterResult> HandleAsync(
+        CommandExecutionContext context,
+        PrepareSelectedCharacterStateCommand command,
+        CancellationToken cancellationToken)
+    {
+        var prepared = await preparation.PrepareAsync(
+            command.Selected, command.Session.AccountId, command.Channel, cancellationToken)
+            .ConfigureAwait(false);
+        prepared = await preparation.PlaceAtSpawnAsync(command.Session, prepared, cancellationToken)
+            .ConfigureAwait(false);
+        return await inventoryEntry.PrepareLeaseAsync(command.Session, prepared, cancellationToken)
+            .ConfigureAwait(false);
     }
 }
 

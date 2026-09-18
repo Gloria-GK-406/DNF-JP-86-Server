@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Application.Notifications;
@@ -95,6 +96,8 @@ public sealed class ProtocolModule : IServerModule
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        services.TryAddSingleton<PartyClientIdRegistry>();
+        services.Replace(ServiceDescriptor.Singleton<IPartyService, PartyClientProjectionService>());
         services.AddGameMessageSending();
         services.TryAddSingleton<CharacterSelectionDelivery>();
         services.TryAddSingleton<DungeonRunDeliveryRegistry>();
@@ -219,6 +222,12 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional,
             accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<PrepareSelectedCharacterSessionCommand, PreparedSelectedCharacterSession, PrepareSelectedCharacterSessionCommandHandler>(
+            CommandExecutionKind.Transactional,
+            accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<CleanupExpiredCharacterItemsCommand, bool, CleanupExpiredCharacterItemsCommandHandler>(
+            CommandExecutionKind.Transactional,
+            accountAccessMode: UserAccessMode.Exclusive);
+        services.AddCommandHandler<PrepareSelectedCharacterStateCommand, SelectCharacterResult, PrepareSelectedCharacterStateCommandHandler>(
             CommandExecutionKind.Transactional,
             accountAccessMode: UserAccessMode.Exclusive);
         services.AddCommandHandler<ApplySelectedCharacterDailyRefillCommand, EntryInventoryPreparation, ApplySelectedCharacterDailyRefillCommandHandler>(

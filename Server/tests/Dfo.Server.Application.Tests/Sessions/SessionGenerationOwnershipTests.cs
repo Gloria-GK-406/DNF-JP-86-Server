@@ -303,6 +303,7 @@ public sealed class SessionGenerationOwnershipTests
 
     private sealed class PassiveParties : IPartyService
     {
+        public PartyMembershipSnapshot? FindByKey(PartyKey key) => null;
         public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }
 
         public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => [];

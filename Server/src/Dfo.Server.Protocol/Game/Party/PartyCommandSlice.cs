@@ -258,14 +258,24 @@ public sealed class AcceptPartyInviteCommandHandler(IPartyService parties)
 public sealed record LeavePartyCommand(CharacterId CharacterId)
     : ICommand<PartyOperationResult>;
 
-public sealed class LeavePartyCommandHandler(IPartyService parties)
+public sealed class LeavePartyCommandHandler(
+    IPartyService parties,
+    IDungeonRunDomainService? runs = null)
     : ICommandHandler<LeavePartyCommand, PartyOperationResult>
 {
     public ValueTask<PartyOperationResult> HandleAsync(
         CommandExecutionContext context,
         LeavePartyCommand command,
-        CancellationToken cancellationToken) =>
-        ValueTask.FromResult(parties.LeaveParty(command.CharacterId));
+        CancellationToken cancellationToken)
+    {
+        // Capture before the party mutation: run views reject a departing character immediately
+        // after the PartyService membership changes, while the exact run index still needs cleanup.
+        var run = runs?.Find(command.CharacterId);
+        var result = parties.LeaveParty(command.CharacterId);
+        if (result.Succeeded && run is not null)
+            _ = runs!.End(command.CharacterId, run.RunId);
+        return ValueTask.FromResult(result);
+    }
 }
 
 public sealed record QueryPartyRealtimeCommand(PartyCharacterSnapshot Character)
@@ -624,7 +634,10 @@ public sealed class LeavePartyHandler(
     ICommandBus commands,
     PartyNotificationDelivery notifications,
     ILogger<LeavePartyHandler> logger,
-    ITownAreaDomainService? townAreas = null) : ClientMessageHandler<LeavePartyRequest>
+    ITownAreaDomainService? townAreas = null,
+    IDungeonRunDomainService? runs = null,
+    IDungeonRunParticipantDepartureSink? departureSink = null)
+    : ClientMessageHandler<LeavePartyRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -639,6 +652,7 @@ public sealed class LeavePartyHandler(
             return;
         }
 
+        var departingRun = runs?.Find(session.CharacterId);
         var execution = await PartyTransitionExecution.RunPartyAsync(
             transitionGate,
             session,
@@ -652,9 +666,13 @@ public sealed class LeavePartyHandler(
             cancellationToken).ConfigureAwait(false);
         var result = execution.Result;
         if (result.Succeeded)
+        {
+            if (departingRun is not null && runs?.Find(session.CharacterId) is null)
+                departureSink?.ParticipantDeparted(departingRun.RunId, session.CharacterId);
             await notifications.DeliverAsync(
                     result.Notifications, execution.Recipients, cancellationToken)
                 .ConfigureAwait(false);
+        }
         logger.LogInformation(
             "LEAVE_PARTY character={CharacterId} accepted={Accepted} failure={Failure}",
             session.CharacterId, result.Succeeded, result.Failure);

@@ -314,6 +314,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IInventoryLifecycleRuleService, InventoryLifecycleRuleService>();
         services.TryAddSingleton<IItemUseEffectDomainService, ItemUseEffectDomainService>();
         services.TryAddSingleton<ISelectCharacterEntryInventoryDomainService, SelectCharacterEntryInventoryDomainService>();
+        services.TryAddSingleton<IExpiredCharacterItemCleanupDomainService, ExpiredCharacterItemCleanupDomainService>();
         services.TryAddSingleton<ICharacterProfileEntryProjection, CharacterProfileEntryProjection>();
         services.TryAddSingleton<ICharacterSkillQuestEntryProjection, CharacterSkillQuestEntryProjection>();
         services.TryAddSingleton<ICharacterProgressionEntryProjection, CharacterProgressionEntryProjection>();

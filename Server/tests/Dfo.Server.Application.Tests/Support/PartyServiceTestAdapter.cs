@@ -95,6 +95,8 @@ internal sealed class PartyServiceTestAdapter
         inner.FindParty(new PartyCharacterSnapshot(
             session.AccountId, session.CharacterId, session.WireUserId, null));
 
+    internal PartyMembershipSnapshot? FindByKey(PartyKey key) => inner.FindByKey(key);
+
     internal SessionEndpoint? FindSessionEndpoint(SelectedSessionIdentity session) =>
         endpoints.FindThroughCurrentSession(session.CharacterId);
 

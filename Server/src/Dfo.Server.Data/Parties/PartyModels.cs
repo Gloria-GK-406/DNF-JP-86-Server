@@ -108,6 +108,40 @@ public sealed record PartyMemberSnapshot(
     public ushort WireUserId => Character.WireUserId;
 }
 
+/// <summary>Stable domain identity for either a real party or one character's virtual party.</summary>
+public readonly record struct PartyKey(PartyKeyKind Kind, long Value) : IComparable<PartyKey>
+{
+    public static PartyKey Real(long generation) => generation > 0
+        ? new(PartyKeyKind.Real, generation)
+        : throw new ArgumentOutOfRangeException(nameof(generation));
+
+    public static PartyKey Virtual(CharacterId characterId) => characterId.Value > 0
+        ? new(PartyKeyKind.Virtual, characterId.Value)
+        : throw new ArgumentOutOfRangeException(nameof(characterId));
+
+    public int CompareTo(PartyKey other)
+    {
+        var kindOrder = Kind.CompareTo(other.Kind);
+        return kindOrder != 0 ? kindOrder : Value.CompareTo(other.Value);
+    }
+}
+
+public enum PartyKeyKind : byte
+{
+    Real = 1,
+    Virtual = 2,
+}
+
+public sealed record PartyMembershipMember(CharacterId CharacterId, byte Slot);
+
+/// <summary>Transport-free current party membership resolved by its stable domain key.</summary>
+public sealed record PartyMembershipSnapshot(
+    PartyKey Key,
+    CharacterId LeaderCharacterId,
+    PartySettings Settings,
+    PartyTitle Title,
+    ImmutableArray<PartyMembershipMember> Members);
+
 /// <summary>
 /// The inviter values consumed by A21's native party-invitation window.
 /// </summary>
@@ -131,12 +165,15 @@ public sealed record PartySnapshot(
     PartySettings Settings,
     PartyTitle Title,
     ImmutableArray<PartyMemberSnapshot> Members,
-    bool IsVirtual = false)
+    bool IsVirtual = false,
+    PartyKey Key = default,
+    long LeadershipVersion = 0)
 {
     /// <summary>Builds a non-persistent view for an ungrouped character.</summary>
     public static PartySnapshot Virtual(PartyCharacterSnapshot character, PartySettings settings) =>
         new(0, 0, 0, character.WireUserId, settings, PartyTitle.Empty,
-            [new PartyMemberSnapshot(character, 0, null, 100)], IsVirtual: true);
+            [new PartyMemberSnapshot(character, 0, null, 100)], IsVirtual: true,
+            Key: PartyKey.Virtual(character.CharacterId));
 }
 
 public sealed record PartyInviteNotification(
@@ -174,7 +211,9 @@ public sealed record PartyNotificationPlan(
     long? ClearPartyRevision = null,
     PartySettingsChangeKind? SettingsChange = null,
     PartyDirectoryChange? DirectoryChange = null,
-    PartySnapshot? LeadershipTransfer = null)
+    PartySnapshot? LeadershipTransfer = null,
+    PartyKey? ClearPartyKey = null,
+    long? ClearLeadershipVersion = null)
 {
     public static PartyNotificationPlan Empty { get; } = new([]);
 }

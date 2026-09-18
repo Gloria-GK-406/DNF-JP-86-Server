@@ -474,7 +474,8 @@ public sealed class MonsterDeathHandler(
                                 ? HuntEnemyTargetTypes.Monster
                                 : HuntEnemyTargetTypes.AiCharacter,
                             run.PartyMemberCount,
-                            deathClaim!.ActorState?.PendingLoot),
+                            deathClaim!.ActorState?.PendingLoot,
+                            run.PartyKey),
                         cancellationToken).ConfigureAwait(false);
                     if (!runs.CommitParticipantKillEffect(effectClaim))
                     {
@@ -761,7 +762,8 @@ public sealed class MonsterDeathHandler(
                                 ? HuntEnemyTargetTypes.Monster
                                 : HuntEnemyTargetTypes.AiCharacter,
                             deathClaim.Run.PartyMemberCount,
-                            deathClaim.ActorState?.PendingLoot),
+                            deathClaim.ActorState?.PendingLoot,
+                            deathClaim.Run.PartyKey),
                         cancellationToken).ConfigureAwait(false);
                     if (!runs.CommitParticipantKillEffect(effectClaim))
                     {

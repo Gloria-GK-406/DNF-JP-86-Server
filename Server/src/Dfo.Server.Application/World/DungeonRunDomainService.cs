@@ -85,8 +85,21 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         }
 
         var frozen = participants.ToImmutableArray();
+        var entryLeader = frozen.Single(participant => participant.IsLeader);
+        var partyKey = this.parties is null
+            ? PartyKey.Virtual(entryLeader.CharacterId)
+            : this.parties.FindParty(new PartyCharacterSnapshot(
+                entryLeader.AccountId, entryLeader.CharacterId, 0, null)).Key;
+        if (this.parties is not null)
+        {
+            var currentParty = this.parties.FindByKey(partyKey)
+                ?? throw new InvalidOperationException("The entry party no longer exists.");
+            if (!currentParty.Members.Select(member => member.CharacterId)
+                    .ToHashSet().SetEquals(frozen.Select(participant => participant.CharacterId)))
+                throw new InvalidOperationException("The entry roster no longer matches the party.");
+        }
         var aggregate = new DungeonRunAggregate(
-            runId, frozen, layout, difficulty, startedAt, initialCell);
+            runId, partyKey, this.parties, frozen, layout, difficulty, startedAt, initialCell);
 
         lock (this.gate)
         {
@@ -113,7 +126,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
                 || aggregate.RunId != expectedRunId
                 || aggregate.RoomVersion != expectedRoomVersion
-                || !aggregate.ActiveParticipants.Contains(characterId)
+                || !aggregate.IsActiveMember(characterId)
                 || !aggregate.ReadyParticipants.Add(characterId))
             {
                 return null;
@@ -129,7 +142,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         lock (this.gate)
         {
             return this.runsByCharacter.TryGetValue(characterId, out var aggregate)
-                && aggregate.ActiveParticipants.Contains(characterId)
+                && aggregate.IsActiveMember(characterId)
                     ? aggregate.EntryChange(DungeonEntryChangeKind.Snapshot, characterId)
                     : null;
         }
@@ -161,6 +174,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         lock (this.gate)
         {
             return this.runsByCharacter.TryGetValue(characterId, out var aggregate)
+                && aggregate.IsActiveMember(characterId)
                 ? aggregate.ViewFor(characterId)
                 : null;
         }
@@ -261,14 +275,8 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
 
     private bool IsCurrentLeader(DungeonRunAggregate aggregate, CharacterId characterId)
     {
-        if (this.parties is null)
-            return aggregate.Participant(characterId).IsLeader;
-
-        var participant = aggregate.Participant(characterId);
-        var party = this.parties.FindParty(new PartyCharacterSnapshot(
-            participant.AccountId, characterId, 0, null));
-        return (!party.IsVirtual || aggregate.ActiveParticipants.Count == 1)
-            && party.Members[0].CharacterId == characterId;
+        return aggregate.Participants.Any(participant =>
+            participant.CharacterId == characterId && participant.IsLeader);
     }
 
     public DungeonGroundDropClaim? TryClaimGroundDrop(
@@ -281,7 +289,8 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         {
             if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
                 || aggregate.RunId != expectedRunId
-                || aggregate.RoomVersion != expectedRoomVersion)
+                || aggregate.RoomVersion != expectedRoomVersion
+                || !aggregate.IsActiveMember(characterId))
             {
                 return null;
             }
@@ -389,7 +398,8 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             if (items.Count == 0
                 || !this.runsByCharacter.TryGetValue(characterId, out var aggregate)
                 || aggregate.RunId != expectedRunId
-                || aggregate.RoomVersion != expectedRoomVersion)
+                || aggregate.RoomVersion != expectedRoomVersion
+                || !aggregate.IsActiveMember(characterId))
             {
                 return null;
             }
@@ -397,7 +407,11 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             var cell = aggregate.Cells[aggregate.CurrentCell];
             if (cell.Revision != expectedCellRevision)
                 return null;
-            var added = cell.AppendGroundItems(items);
+            var eligible = items.Where(item => item.OwnerCharacterId is not { } owner
+                || aggregate.IsActiveMember(owner)).ToArray();
+            if (eligible.Length == 0)
+                return null;
+            var added = cell.AppendGroundItems(eligible);
             cell.Revision++;
             aggregate.RuntimeRevision++;
             var run = aggregate.ViewFor(characterId);
@@ -424,6 +438,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
                 || aggregate.RunId != expectedRunId
                 || aggregate.RoomVersion != expectedRoomVersion
+                || !aggregate.IsActiveMember(characterId)
                 || aggregate.Cells[aggregate.CurrentCell].ClearOpen)
             {
                 return null;
@@ -450,7 +465,8 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
     {
         lock (this.gate)
         {
-            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate))
+            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
+                || !aggregate.IsActiveMember(characterId))
                 return null;
 
             var actor = new RoomActorId(aggregate.CurrentCell, actorSequence);
@@ -485,14 +501,17 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             var key = new DeathClaimKey(claim.RunId, claim.Actor);
             if (!this.TryRemoveClaim(key, claim.Token)
                 || !this.runsById.TryGetValue(claim.RunId, out var aggregate)
-                || !aggregate.ActiveParticipants.Contains(claim.CharacterId))
+                || !aggregate.IsActiveMember(claim.CharacterId))
             {
                 return null;
             }
 
             var cell = aggregate.Cells[claim.Actor.Cell];
             var killedActor = cell.FindActor(claim.Actor.Sequence);
-            var added = cell.CommitActorDeath(claim.Actor.Sequence);
+            var added = cell.CommitActorDeath(
+                claim.Actor.Sequence,
+                rolled => rolled.OwnerCharacterId is not { } owner
+                    || aggregate.IsActiveMember(owner));
             if (added is null)
                 return null;
             var autoKilled = killedActor is { IsMonster: true, Actor.ActorType: (byte)MonsterRank.Boss }
@@ -550,7 +569,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                 || !this.runsById.TryGetValue(death.RunId, out var aggregate)
                 || !aggregate.Participants.Any(
                     participant => participant.CharacterId == characterId)
-                || !aggregate.ActiveParticipants.Contains(characterId))
+                || !aggregate.IsActiveMember(characterId))
             {
                 return null;
             }
@@ -618,7 +637,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         lock (this.gate)
         {
             if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
-                || !aggregate.ActiveParticipants.Contains(characterId)
+                || !aggregate.IsActiveMember(characterId)
                 || !aggregate.Cells[aggregate.CurrentCell].ClearOpen)
                 return null;
             if (expectedRunId is { } runId && aggregate.RunId != runId)
@@ -647,7 +666,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             var key = new SettlementClaimKey(claim.RunId, claim.CharacterId);
             if (!this.TryRemoveSettlementClaim(key, claim.Token)
                 || !this.runsById.TryGetValue(claim.RunId, out var aggregate)
-                || !aggregate.ActiveParticipants.Contains(claim.CharacterId))
+                || !aggregate.IsActiveMember(claim.CharacterId))
             {
                 return null;
             }
@@ -679,7 +698,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         {
             if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
                 || aggregate.RunId != expectedRunId
-                || !aggregate.ActiveParticipants.Contains(characterId))
+                || !aggregate.IsActiveMember(characterId))
             {
                 return null;
             }
@@ -729,7 +748,8 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         ArgumentNullException.ThrowIfNull(paid);
         lock (this.gate)
         {
-            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate))
+            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
+                || !aggregate.IsActiveMember(characterId))
                 return null;
             if (expectedRunId is { } runId && aggregate.RunId != runId)
                 return null;
@@ -748,7 +768,8 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
     {
         lock (this.gate)
         {
-            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate))
+            if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
+                || !aggregate.IsActiveMember(characterId))
                 return null;
 
             var progress = aggregate.ProgressFor(characterId);
@@ -776,7 +797,8 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         lock (this.gate)
         {
             if (!this.runsByCharacter.TryGetValue(characterId, out var aggregate)
-                || aggregate.RunId != expectedRunId)
+                || aggregate.RunId != expectedRunId
+                || !aggregate.IsActiveMember(characterId))
             {
                 return null;
             }
@@ -854,7 +876,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                 || reservation.CharacterId != claim.CharacterId
                 || reservation.Token != claim.Token
                 || !this.runsById.TryGetValue(claim.RunId, out var aggregate)
-                || !aggregate.ActiveParticipants.Contains(claim.CharacterId)
+                || !aggregate.IsActiveMember(claim.CharacterId)
                 || this.preparedClearRewardCardClaims.Contains(key))
             {
                 return null;
@@ -874,7 +896,10 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                 return null;
             }
 
-            return new PreparedClearRewardCard(key, claim.CharacterId, claim.Token, aggregate);
+            return new PreparedClearRewardCard(
+                key, claim.CharacterId, claim.Token, aggregate,
+                aggregate.Participants.Single(participant =>
+                    participant.CharacterId == claim.CharacterId).Slot);
         }
     }
 
@@ -900,7 +925,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                 prepared.Key.Card.Kind,
                 prepared.Key.Card.Index,
                 prepared.CharacterId,
-                prepared.Aggregate.Participant(prepared.CharacterId).Slot));
+                prepared.Slot));
             prepared.Aggregate.RuntimeRevision++;
             return new DungeonCardSelectionChange(
                 prepared.Aggregate.RunId,
@@ -1169,7 +1194,8 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         ClearRewardCardClaimKey Key,
         CharacterId CharacterId,
         long Token,
-        DungeonRunAggregate Aggregate);
+        DungeonRunAggregate Aggregate,
+        byte Slot);
 
     private sealed class GroundDropCommitParticipant(
         DungeonRunDomainService owner,
@@ -1252,11 +1278,15 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
 
     private sealed class DungeonRunAggregate
     {
+        private readonly IPartyService? parties;
+        private readonly ImmutableArray<DungeonRunParticipant> entryParticipants;
         private readonly Dictionary<CharacterId, DungeonRunParticipant> participantsByCharacter;
         private readonly Dictionary<CharacterId, ParticipantProgress> progressByCharacter;
 
         public DungeonRunAggregate(
             DungeonRunId runId,
+            PartyKey partyKey,
+            IPartyService? parties,
             ImmutableArray<DungeonRunParticipant> participants,
             DungeonLayout layout,
             byte difficulty,
@@ -1264,7 +1294,9 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
             DungeonCellSeed initialCell)
         {
             this.RunId = runId;
-            this.Participants = participants;
+            this.PartyKey = partyKey;
+            this.parties = parties;
+            this.entryParticipants = participants;
             this.Layout = layout;
             this.Difficulty = difficulty;
             this.StartedAt = startedAt;
@@ -1283,7 +1315,26 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         }
 
         public DungeonRunId RunId { get; }
-        public ImmutableArray<DungeonRunParticipant> Participants { get; }
+        public PartyKey PartyKey { get; }
+        public ImmutableArray<DungeonRunParticipant> Participants
+        {
+            get
+            {
+                if (this.parties is null)
+                    return this.entryParticipants;
+                var membership = this.parties.FindByKey(this.PartyKey);
+                if (membership is null)
+                    return [];
+                return [.. membership.Members
+                    .Where(member => this.ActiveParticipants.Contains(member.CharacterId)
+                        && this.participantsByCharacter.ContainsKey(member.CharacterId))
+                    .Select(member => new DungeonRunParticipant(
+                        this.participantsByCharacter[member.CharacterId].AccountId,
+                        member.CharacterId,
+                        member.Slot,
+                        member.CharacterId == membership.LeaderCharacterId))];
+            }
+        }
         public DungeonRunParticipant Leader =>
             this.Participants.Single(participant => participant.IsLeader);
         public DungeonLayout Layout { get; }
@@ -1301,8 +1352,9 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         public HashSet<CharacterId> ReadyParticipants { get; } = [];
         public List<DungeonCardSelection> CardSelections { get; } = [];
 
-        public DungeonRunParticipant Participant(CharacterId characterId) =>
-            this.participantsByCharacter[characterId];
+        public bool IsActiveMember(CharacterId characterId) =>
+            this.ActiveParticipants.Contains(characterId)
+            && this.Participants.Any(participant => participant.CharacterId == characterId);
 
         public ParticipantProgress ProgressFor(CharacterId characterId) =>
             this.progressByCharacter[characterId];
@@ -1333,7 +1385,7 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                 progress.ClearRewardCards,
                 this.RunId,
                 this.RoomVersion,
-                this.Participant(characterId),
+                this.Participants.Single(participant => participant.CharacterId == characterId),
                 this.Participants,
                 this.EntryRevision,
                 this.ReadyParticipants.ToImmutableHashSet(),
@@ -1341,7 +1393,11 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
                 this.RuntimeRevision,
                 [.. this.CardSelections],
                 progress.CardLayoutOpen,
-                this.Cells[this.CurrentCell].Snapshot());
+                this.Cells[this.CurrentCell].Snapshot())
+            {
+                PartyKey = this.PartyKey,
+                EntryPurposeOwner = this.entryParticipants.Single(participant => participant.IsLeader),
+            };
         }
     }
 
@@ -1380,13 +1436,16 @@ internal sealed class DungeonRunDomainService : IDungeonRunDomainService
         public bool CanClaimDeath(ushort sequence) =>
             this.actors.TryGetValue(sequence, out var actor) && !actor.IsDead;
 
-        public IReadOnlyList<DungeonGroundItem>? CommitActorDeath(ushort sequence)
+        public IReadOnlyList<DungeonGroundItem>? CommitActorDeath(
+            ushort sequence,
+            Func<RolledDrop, bool> mayMaterialize)
         {
             if (!this.actors.TryGetValue(sequence, out var actor) || actor.IsDead)
                 return null;
 
             var added = this.AppendGroundItems(actor.PendingLoot
                 .Where(rolled => rolled.Delivery == RolledDropDelivery.Ground)
+                .Where(mayMaterialize)
                 .Select(rolled =>
                     new DungeonGroundItemDraft(
                         rolled.ItemId,

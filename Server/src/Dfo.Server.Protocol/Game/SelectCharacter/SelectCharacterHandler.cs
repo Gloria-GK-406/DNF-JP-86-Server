@@ -88,6 +88,7 @@ public sealed class SelectCharacterHandler(
         var pendingCloses = new List<NetworkConnectionId>();
         SelectedSessionIdentity? session = null;
         ExceptionDispatchInfo? failure = null;
+        var expiredItemCleanupRejected = false;
         var lifecycleLease = await lifecycleGate.AcquireAsync(
             accountId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
         try
@@ -106,7 +107,29 @@ public sealed class SelectCharacterHandler(
             {
                 await cleanupDelivery.DeliverAsync(notifications, cancellationToken).ConfigureAwait(false);
             }
-            await ExecuteAcceptedWorkflowAsync(session, prepared.State, cancellationToken)
+            bool cleaned;
+            try
+            {
+                cleaned = await commandBus.SendAsync(
+                    new CleanupExpiredCharacterItemsCommand(session), cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (Exception error)
+            {
+                expiredItemCleanupRejected = true;
+                throw new InvalidOperationException("Expired-item cleanup failed.", error);
+            }
+            if (!cleaned)
+            {
+                expiredItemCleanupRejected = true;
+                throw new InvalidOperationException(
+                    "Selected character is no longer owned by the account during expired-item cleanup.");
+            }
+            var state = await commandBus.SendAsync(
+                new PrepareSelectedCharacterStateCommand(
+                    session, prepared.Selected, prepared.Channel), cancellationToken)
+                .ConfigureAwait(false);
+            await ExecuteAcceptedWorkflowAsync(session, state, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (ChannelAdmissionRefusedException refusal)
@@ -148,6 +171,23 @@ public sealed class SelectCharacterHandler(
         catch (Exception error)
         {
             failure = ExceptionDispatchInfo.Capture(error);
+            if (expiredItemCleanupRejected)
+            {
+                try
+                {
+                    await sender.SendExplicitAsync(
+                        context.Connection.ConnectionId,
+                        new GameExplicitMessageDelivery(
+                            [new EntryAdmissionRejectedCommandMessage(0x02),
+                                new EntryAdmissionNoticeMessage("Character entry failed. Please log in again.")],
+                            []),
+                        CancellationToken.None).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Entry failure and selected-session compensation remain primary.
+                }
+            }
             if (session is not null)
             {
                 pendingCloses.Add(session.ConnectionId);

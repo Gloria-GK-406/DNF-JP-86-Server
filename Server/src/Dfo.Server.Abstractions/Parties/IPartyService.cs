@@ -40,6 +40,9 @@ public interface IPartyService : IPartyDirectoryPresenceSink
 
     /// <summary>Returns a real party or a transient, one-member virtual party view.</summary>
     PartySnapshot FindParty(PartyCharacterSnapshot character);
+
+    /// <summary>Finds current members through a stable real or virtual party identity.</summary>
+    PartyMembershipSnapshot? FindByKey(PartyKey key);
 }
 
 /// <summary>Resolves a party member's endpoint through that character's current session.</summary>
