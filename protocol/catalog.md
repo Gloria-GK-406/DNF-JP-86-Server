@@ -55,15 +55,23 @@
 | `0x01` | `0x0012` | `DELETE_ITEM` | Mutation / 有响应 | ClientVerified（A21 普通装备与堆叠物） | [0x0012.md](game/client-to-server/0x0012.md) |
 | `0x01` | `0x0015` | `BUY_ITEM` | Mutation / 有响应 | 实现服务端功能（A21，部分商品实机通过） | [0x0015.md](game/client-to-server/0x0015.md) |
 | `0x01` | `0x0016` | `SELL_ITEM` | Mutation / 有响应 | ClientVerified（A21 普通装备）；堆叠物自动化通过，特殊装备未覆盖 | [0x0016.md](game/client-to-server/0x0016.md) |
+| `0x01` | `0x0017` | `REPAIR_EQUIPMENT` | Mutation / 有响应 | 实现服务端功能（普通修理；A21 请求/回包未逐帧归档，自动/快速修理未实现） | [0x0017.md](game/client-to-server/0x0017.md) |
 | `0x01` | `0x001D` | `BUY_SKILL` | Mutation / 有响应 | 实现服务端功能（A21 普通加点，待实机） | [0x001D.md](game/client-to-server/0x001D.md) |
+| `0x01` | `0x001F` | `ACCEPT_QUEST` | Mutation / 有响应 | 实现服务端功能（A21 受理请求与回包有实帧；后续任务投影未整体验证） | [0x001F.md](game/client-to-server/0x001F.md) |
+| `0x01` | `0x0020` | `GIVEUP_QUEST` | Mutation / 有响应 | 实现服务端功能（A21 静态请求布局、上游回包；本仓实机待验证） | [0x0020.md](game/client-to-server/0x0020.md) |
+| `0x01` | `0x0021` | `SET_QUEST_TRIGGER` | Mutation / 有响应 | 实现服务端功能（A21 赛丽亚任务往返有样本；服务端事实推进与背包重算另待验证） | [0x0021.md](game/client-to-server/0x0021.md) |
+| `0x01` | `0x0022` | `FINISH_QUEST` | Mutation / 有响应 | 实现服务端功能（奖励结算及旧持有量复核；具体分支待 A21 实帧） | [0x0022.md](game/client-to-server/0x0022.md) |
 | `0x01` | `0x0023` | `SET_USER_POSITION` | Report / A12 无响应，A21 推 `NOTI 0x0016` | 实现服务端功能 | [0x0023.md](game/client-to-server/0x0023.md) |
 | `0x01` | `0x002D` | `MOVE_MAP` | Mutation / 成功路径推下一房间 `START_MAP` | 实现服务端功能（A21 线级重放，真客户端待复验） | [0x002D.md](game/client-to-server/0x002D.md) |
+| `0x01` | `0x0030` | `DECREASE_DURABILITY` | Mutation / 有响应 | 实现服务端功能（槽位与回包按上游；A21 成对实帧和显示待验证） | [0x0030.md](game/client-to-server/0x0030.md) |
 | `0x01` | `0x003F` | `CERA` | Report / 无响应 | 实现服务端功能 | [0x003F.md](game/client-to-server/0x003F.md) |
 | `0x01` | `0x0040` | `BUY_CERASHOP_ITEM` | Mutation / 有响应 | 实现服务端功能（A21，宠物蛋实机成功；装扮修复待复测） | [0x0040.md](game/client-to-server/0x0040.md) |
 | `0x01` | `0x0041` | `GEN_CERATICKET` | Query / 有响应 | 实现服务端功能（仅不可用反馈，待实机） | [0x0041.md](game/client-to-server/0x0041.md) |
-| `0x01` | `0x0046` | `CARD_SELECT_RIGHT_STATE` | Query / 有响应；**另在 `0x0045` 的应答之后主动追发一帧** | 实现服务端功能 | [0x0046.md](game/client-to-server/0x0046.md) |
+| `0x01` | `0x0045` | `SCORE_SCROLL_STATE` | Query / 有响应 | 实现服务端功能（与牌面计时共用状态；双客户端重测待归档） | [0x0045.md](game/client-to-server/0x0045.md) |
+| `0x01` | `0x0046` | `CARD_SELECT_RIGHT_STATE` | Query / 首次请求与自动计时争用同一牌面状态 | 实现服务端功能（防重复牌面；双客户端重测待归档） | [0x0046.md](game/client-to-server/0x0046.md) |
 | `0x01` | `0x0047` | `SELECT_CARD` | Mutation / 有响应（认领不到牌位时不答） | 实现服务端功能 | [0x0047.md](game/client-to-server/0x0047.md) |
 | `0x01` | `0x0048` | `EPLP_COMMAND` | Mutation / state 1 离开副本并恢复城镇投影 | 实现服务端功能（A21 静态布局 + 参照帧；当前真客户端待复验） | [0x0048.md](game/client-to-server/0x0048.md) |
+| `0x01` | `0x0075` | `BOSS_DIE_CHECK` | Report / 无 CMD 应答 | WireCaptured（A21 单次 39B 实帧；当前只核对，不以它触发通关） | [0x0075.md](game/client-to-server/0x0075.md) |
 | `0x01` | `0x0084` | `BACK_2_VILLAGE` | Mutation / 关闭选图界面并恢复城镇投影 | 实现服务端功能（A21 空请求实帧；实现后的按钮行为待复验） | [0x0084.md](game/client-to-server/0x0084.md) |
 | `0x01` | `0x008F` | `CHANGE_TUTORIAL_FLAG` | Report / 无响应 | 双向验证结束 | [0x008F.md](game/client-to-server/0x008F.md) |
 | `0x01` | `0x00A0` | `USE_BOOSTER_ITEM` | Mutation / 有响应 | 实现服务端功能（A21，待实机） | [0x00A0.md](game/client-to-server/0x00A0.md) |
@@ -404,8 +412,10 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` | `0x0013` | `MoveItemSpaceDecoder` | 仅证明 decoder 已注册 | [0x0013](game/client-to-server/0x0013.md) |
 | `0x01` | `0x0015` | `BuyItemMessageDecoder` | 仅证明 decoder 已注册 | [0x0015](game/client-to-server/0x0015.md) |
 | `0x01` | `0x0016` | `SellItemMessageDecoder` | 仅证明 decoder 已注册 | [0x0016](game/client-to-server/0x0016.md) |
+| `0x01` | `0x0017` | `RepairItemMessageDecoder` | 仅证明 decoder 已注册 | [0x0017](game/client-to-server/0x0017.md) |
 | `0x01` | `0x001D` | `LearnSkillMessageDecoder` | 仅证明 decoder 已注册 | [0x001D](game/client-to-server/0x001D.md) |
 | `0x01` | `0x001F` | `AcceptQuestMessageDecoder` | 仅证明 decoder 已注册 | [0x001F](game/client-to-server/0x001F.md) |
+| `0x01` | `0x0020` | `GiveUpQuestMessageDecoder` | 仅证明 decoder 已注册 | [0x0020](game/client-to-server/0x0020.md) |
 | `0x01` | `0x0021` | `SetQuestTriggerMessageDecoder` | 仅证明 decoder 已注册 | [0x0021](game/client-to-server/0x0021.md) |
 | `0x01` | `0x0022` | `FinishQuestMessageDecoder` | 仅证明 decoder 已注册 | [0x0022](game/client-to-server/0x0022.md) |
 | `0x01` | `0x0023` | `SetUserPositionDecoder` | 仅证明 decoder 已注册 | [0x0023](game/client-to-server/0x0023.md) |
@@ -418,7 +428,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` | `0x002C` | `UseStackableDecoder` | 仅证明 decoder 已注册 | [0x002C](game/client-to-server/0x002C.md) |
 | `0x01` | `0x002D` | `MoveMapDecoder` | 仅证明 decoder 已注册 | [0x002D](game/client-to-server/0x002D.md) |
 | `0x01` | `0x002E` | `SetPlayResultDecoder` | 仅证明 decoder 已注册 | [0x002E](game/client-to-server/0x002E.md) |
-| `0x01` | `0x0030` | `DecreaseDurabilityDecoder` | 仅证明 decoder 已注册 | [0x0030](game/client-to-server/0x0030.md) |
+| `0x01` | `0x0030` | `DecreaseDurabilityMessageDecoder` | 仅证明 decoder 已注册 | [0x0030](game/client-to-server/0x0030.md) |
 | `0x01` | `0x003F` | `CeraQueryDecoder` | 仅证明 decoder 已注册 | [0x003F](game/client-to-server/0x003F.md) |
 | `0x01` | `0x0040` | `CeraShopPurchaseMessageDecoder` | 仅证明 decoder 已注册 | [0x0040](game/client-to-server/0x0040.md) |
 | `0x01` | `0x0041` | `GenCeraTicketMessageDecoder` | 仅证明 decoder 已注册 | [0x0041](game/client-to-server/0x0041.md) |
@@ -480,14 +490,17 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` CMD | `0x0013` | `MoveItemSpaceResponse` | 仅证明 encoder 可产生该 identity | [0x0013](game/client-to-server/0x0013.md) |
 | `0x01` CMD | `0x0015` | `BuyItemResponse` | 仅证明 encoder 可产生该 identity | [0x0015](game/client-to-server/0x0015.md) |
 | `0x01` CMD | `0x0016` | `SellItemResponse` | 仅证明 encoder 可产生该 identity | [0x0016](game/client-to-server/0x0016.md) |
+| `0x01` CMD | `0x0017` | `RepairItemResponse` | 仅证明 encoder 可产生该 identity | [0x0017](game/client-to-server/0x0017.md) |
 | `0x01` CMD | `0x001D` | `LearnSkillResponse` | 仅证明 encoder 可产生该 identity | [0x001D](game/client-to-server/0x001D.md) |
 | `0x01` CMD | `0x001F` | `AcceptQuestAcknowledgement` | 仅证明 encoder 可产生该 identity | [0x001F](game/client-to-server/0x001F.md) |
+| `0x01` CMD | `0x0020` | `GiveUpQuestAcknowledgement` | 仅证明 encoder 可产生该 identity | [0x0020](game/client-to-server/0x0020.md) |
 | `0x01` CMD | `0x0021` | `SetQuestTriggerAcknowledgement` | 仅证明 encoder 可产生该 identity | [0x0021](game/client-to-server/0x0021.md) |
 | `0x01` CMD | `0x0022` | `FinishQuestAcknowledgement` | 仅证明 encoder 可产生该 identity | [0x0022](game/client-to-server/0x0022.md) |
 | `0x01` CMD | `0x0025` | `FinishLoadingResponse` | 仅证明 encoder 可产生该 identity | [0x0025](game/client-to-server/0x0025.md) |
 | `0x01` CMD | `0x002A` | `GiveUpGameResponse` | 仅证明 encoder 可产生该 identity | [0x002A](game/client-to-server/0x002A.md) |
 | `0x01` CMD | `0x002B` | `GetItemResponse` | 仅证明 encoder 可产生该 identity | [0x002B](game/client-to-server/0x002B.md) |
 | `0x01` CMD | `0x002C` | `UseStackableResponse` | 仅证明 encoder 可产生该 identity | [0x002C](game/client-to-server/0x002C.md) |
+| `0x01` CMD | `0x0030` | `DecreaseDurabilityResponse` | 仅证明 encoder 可产生该 identity | [0x0030](game/client-to-server/0x0030.md) |
 | `0x01` CMD | `0x0040` | `CeraShopPurchaseResponse` | 仅证明 encoder 可产生该 identity | [0x0040](game/client-to-server/0x0040.md) |
 | `0x01` CMD | `0x0041` | `GenCeraTicketUnavailable` | 仅证明 encoder 可产生该 identity | [0x0041](game/client-to-server/0x0041.md) |
 | `0x01` CMD | `0x0045` | `ScoreScrollStateResponse` | 仅证明 encoder 可产生该 identity | [0x0045](game/client-to-server/0x0045.md) |

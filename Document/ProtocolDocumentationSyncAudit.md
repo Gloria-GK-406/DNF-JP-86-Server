@@ -3,9 +3,14 @@
 日期：2026-09-16。对象：`DNF-JP-86-Server` 的 Game 协议资料库与当前
 `Dfo.Server.Protocol` 接入面。
 
+> 本页的 77 个入站、125 个出站是当次审计快照，不再是 2026-09-18 的当前数量。
+> 后续修理、耐久和放弃任务接入后为 79 个入站、128 个出站（46 CMD / 82 NOTI），
+> 差集重新检查为零；增量语义与 A21 实机缺口见
+> [2026-09-18 证据盘点](ProtocolEvidenceAudit-20260918.md)。
+
 ## 结论
 
-当前服务端接入面已能被资料库完整看见：77 个已注册 C→S decoder identity、43 个
+当次服务端接入面已能被资料库完整看见：77 个已注册 C→S decoder identity、43 个
 encoder-backed S→C CMD identity、82 个 encoder-backed S→C NOTI identity，未登记差集与缺页
 差集均为零。这个结论只代表**文档覆盖了当前实现**，不代表 202 个 identity 的编号、布局、
 响应关系或客户端效果全部正确。

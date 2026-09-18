@@ -58,8 +58,12 @@ body = 00        ← 一个字节,值为零
 上游 `DungeonNotificationBuilder.BuildEnableClearDungeon` 就是 `new byte[] { 0x00 }`。
 注释指明它对应 `df_game_r CParty::ClearDungeon`。
 
-**发送时机:Boss 房最后一只怪被上报死亡。** 本仓因此在运行状态里记住每间房已死的 actor
-(按格子+运行序号),AI 角色不计 —— 教学第一间房那位阿甘左是友方,等它死房间永远不会清。
-紧跟着发 [NOTI 0x0117 SECRET_SHOP_NPC](NOTI-0x0117.md)。
+**2026-08-26 的触发观察：Boss 房清完时出现此帧。** 2026-09-18 的当前实现已经改为
+确认最终 Boss 死亡即可判定通关，并把同一 Cell 的其余活怪标为死亡；它们不另发经验或掉落。
+此前“必须等 Boss 房最后一只怪死亡”只适用于那次观察，不再描述当前服务端规则。
+该规则与对应任务推进的代码/测试已完成，A21 当前版本的最终 Boss 死亡 → 本通知 →
+结算画面仍需成对实帧与客户端表现核验。普通房间的清场与本通关通知要分开判定。
+2026-08-26 的样本中紧跟着发 [NOTI 0x0117 SECRET_SHOP_NPC](NOTI-0x0117.md)；
+这一帧的当前发送时机仍应随结算链复验。
 
 **在此之前客户端什么都不问。** 它随后才发 [`CMD 0x002E SET_PLAY_RESULT`](../client-to-server/0x002E.md)。
