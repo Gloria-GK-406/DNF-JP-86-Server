@@ -33,7 +33,9 @@
 #include "clienthack/runtime_signatures.h"
 
 #include <windows.h>
+#include <stdio.h>
 #include <string.h>
+#include <wchar.h>
 
 /* --- S4A21 addresses (RVA; upstream states them as VA = RVA + 0x00400000) - */
 #define A21_CIPHER_ENCRYPT_RVA   0x022B7D90u
@@ -66,11 +68,76 @@ static void* g_original_decrypt;
 static void* g_original_socket_write;
 static uint8_t g_cthread_call_bytes[5];
 static const uint8_t g_cthread_call_expected[5] = { 0xE8, 0x7B, 0x8A, 0x6C, 0x02 };
+static int g_pickup_trace_enabled;
+static wchar_t g_pickup_trace_path[MAX_PATH];
+static volatile LONG g_pickup_trace_open_failed;
+static SRWLOCK g_pickup_trace_lock = SRWLOCK_INIT;
 
 static void log_line(uint32_t level, const char* message)
 {
     if (g_host != NULL && g_host->log != NULL)
         g_host->log(level, "A21RuntimeFix", message);
+}
+
+/* Build a path beside DNF.exe, never relative to an arbitrary launch directory. */
+static int path_beside_exe(wchar_t* out, size_t cap, const wchar_t* name)
+{
+    DWORD length = GetModuleFileNameW(NULL, out, (DWORD)cap);
+    wchar_t* slash = NULL;
+    if (length == 0 || length >= cap) return 0;
+    for (size_t i = 0; out[i] != L'\0'; ++i)
+        if (out[i] == L'\\' || out[i] == L'/') slash = out + i;
+    if (slash == NULL) return 0;
+    slash[1] = L'\0';
+    return wcscat_s(out, cap, name) == 0;
+}
+
+/* Cipher::Decrypt receives the body, not its frame header. This trace proves
+ * arrival at the client network layer, not dispatch or removal from the map. */
+static void trace_pickup_packet(const char* direction, int packet_type,
+    const char* body, int body_length)
+{
+    FILE* file = NULL;
+    SYSTEMTIME now;
+    int dumped;
+    if (!g_pickup_trace_enabled || body == NULL || body_length < 0
+        || (packet_type != 0x0027 && packet_type != 0x002B)) return;
+    AcquireSRWLockExclusive(&g_pickup_trace_lock);
+    if (_wfopen_s(&file, g_pickup_trace_path, L"a") != 0 || file == NULL) {
+        if (InterlockedCompareExchange(&g_pickup_trace_open_failed, 1, 0) == 0)
+            log_line(1, "pickup trace could not open its log file");
+        ReleaseSRWLockExclusive(&g_pickup_trace_lock);
+        return;
+    }
+    GetSystemTime(&now);
+    dumped = body_length < 128 ? body_length : 128;
+    fprintf(file,
+        "{\"utc\":\"%04u-%02u-%02uT%02u:%02u:%02u.%03uZ\","
+        "\"pid\":%lu,\"dir\":\"%s\",\"type\":%d,"
+        "\"body_len\":%d,\"dumped\":%d,\"hex\":\"",
+        now.wYear, now.wMonth, now.wDay, now.wHour, now.wMinute,
+        now.wSecond, now.wMilliseconds, (unsigned long)GetCurrentProcessId(),
+        direction, packet_type, body_length, dumped);
+    for (int i = 0; i < dumped; ++i)
+        fprintf(file, "%02X", (unsigned char)body[i]);
+    fputs("\"}\n", file);
+    fclose(file);
+    ReleaseSRWLockExclusive(&g_pickup_trace_lock);
+}
+
+static void load_pickup_trace_config(void)
+{
+    wchar_t ini[MAX_PATH];
+    if (!path_beside_exe(ini, MAX_PATH, L"ClientHack.ini")
+        || !path_beside_exe(g_pickup_trace_path, MAX_PATH,
+            L"clienthack-a21-pickup-trace.log")) {
+        log_line(1, "pickup trace paths could not be resolved");
+        return;
+    }
+    g_pickup_trace_enabled = GetPrivateProfileIntW(
+        L"A21PickupTrace", L"Enabled", 0, ini) != 0;
+    if (g_pickup_trace_enabled)
+        log_line(3, "pickup packet trace enabled for types 0x0027 and 0x002B");
 }
 
 /* --- CThread::Create ------------------------------------------------------ */
@@ -109,13 +176,13 @@ static int __fastcall cipher_encrypt_passthrough(
 {
     (void)self;
     (void)edx_value;
-    (void)packet_type;
     if (input == NULL || output == NULL || output_size == NULL || input_size < 0)
         return 0;
     *(int*)(input - A21_HEADER_SIZE + A21_HEADER_TOTALLENGTH_OFFSET) =
         input_size + A21_HEADER_SIZE;
     if (input_size != 0) memcpy(output, input, (size_t)input_size);
     *output_size = input_size;
+    trace_pickup_packet("send", packet_type, input, input_size);
     return 1;
 }
 
@@ -125,11 +192,11 @@ static int __fastcall cipher_decrypt_passthrough(
 {
     (void)self;
     (void)edx_value;
-    (void)packet_type;
     if (input == NULL || output == NULL || output_size == NULL || input_size < 0)
         return 0;
     if (input_size != 0) memcpy(output, input, (size_t)input_size);
     *output_size = input_size;
+    trace_pickup_packet("recv", packet_type, input, input_size);
     return 1;
 }
 
@@ -250,6 +317,7 @@ ch_status CH_CALL ch_plugin_initialize(const ch_host_api* host)
         host->patch_apply == NULL || host->hook_create == NULL) {
         return CH_STATUS_UNSUPPORTED_ABI;
     }
+    load_pickup_trace_config();
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable: 4055)
