@@ -136,6 +136,9 @@ internal static class GameProtocol
     /// </remarks>
     public const ushort AcceptQuestType = 0x001F;
 
+    /// <summary>CMD 0x0020 <c>GIVEUP_QUEST</c>: the client abandoning a carried quest.</summary>
+    public const ushort GiveUpQuestType = 0x0020;
+
     /// <summary>CMD 0x0021 <c>SET_QUEST_TRIGGER</c>: the client reporting that a quest moved.</summary>
     /// <remarks>
     /// The number is <c>FAIL_CLEAR_DUNGEON</c> in the notification family, which this server does

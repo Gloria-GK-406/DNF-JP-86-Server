@@ -23,12 +23,12 @@ public sealed class DeleteItemHandler(
         CancellationToken cancellationToken)
     {
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        ItemDiscardResult result;
+        DeleteItemOutcome result;
         if (session is null
             || !onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online)
             || online is null)
         {
-            result = new(ItemDiscardRejection.NoSession);
+            result = new(new ItemDiscardResult(ItemDiscardRejection.NoSession), null);
         }
         else
         {
@@ -47,7 +47,7 @@ public sealed class DeleteItemHandler(
                 receipt.ItemId, receipt.AppliedCount);
             await notifications.PublishAsync(
                 new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
-                new ItemDiscardCompleted(receipt), cancellationToken).ConfigureAwait(false);
+                new ItemDiscardCompleted(receipt, result.QuestProgress), cancellationToken).ConfigureAwait(false);
             return;
         }
 

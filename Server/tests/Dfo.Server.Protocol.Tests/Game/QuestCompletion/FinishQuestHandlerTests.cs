@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Quests;
 using Dfo.Server.Application.Tests.Support;
@@ -140,6 +141,18 @@ public sealed class FinishQuestHandlerTests
         Assert.Equal((byte)QuestFinishRefusal.Unusable, acknowledgement.RefusalCode);
     }
 
+    [Fact]
+    public async Task A_stale_seeking_objective_refusal_sends_the_corrected_progress()
+    {
+        var sent = await Finish(new SkillPointLedger(), new RefusedWithProgress());
+
+        Assert.Equal([typeof(FinishQuestAcknowledgement), typeof(AcceptedQuestProgressMessage)],
+            sent.Select(message => message.GetType()));
+        Assert.False(Assert.IsType<FinishQuestAcknowledgement>(sent[0]).Finished);
+        var progress = Assert.IsType<AcceptedQuestProgressMessage>(sent[1]);
+        Assert.Equal(1u, Assert.Single(progress.Quests).TriggerValue);
+    }
+
     private static async Task<IReadOnlyList<IGameServerMessage>> Finish(
         SkillPointLedger ledger,
         ICommandBus bus,
@@ -220,6 +233,15 @@ public sealed class FinishQuestHandlerTests
             ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull =>
             throw new QuestFinishRejectedException(QuestId, "settlement failed");
+    }
+
+    private sealed class RefusedWithProgress : ICommandBus
+    {
+        public ValueTask<TResult> SendAsync<TResult>(
+            ICommand<TResult> command, CancellationToken cancellationToken = default)
+            where TResult : notnull =>
+            ValueTask.FromResult((TResult)(object)QuestFinishOutcome.Refuse(QuestId,
+                new QuestProgressSnapshot([new CarriedQuest(0, QuestId, 1)])));
     }
 
     /// <summary>A clock that does not move, because nothing here is about when.</summary>

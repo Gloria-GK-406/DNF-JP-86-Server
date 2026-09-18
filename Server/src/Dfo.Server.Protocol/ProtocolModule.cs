@@ -70,6 +70,7 @@ using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Game.SessionMetrics;
 using Dfo.Server.Protocol.Game.QuestAcceptance;
+using Dfo.Server.Protocol.Game.QuestGiveUp;
 using Dfo.Server.Protocol.Game.QuestCompletion;
 using Dfo.Server.Protocol.Game.QuestProgress;
 using Dfo.Server.Protocol.Game.TaggedIdReport;
@@ -183,6 +184,8 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Direct);
         services.AddCommandHandler<AcceptQuestCommand, QuestAcceptOutcome, AcceptQuestCommandHandler>(
             CommandExecutionKind.Transactional);
+        services.AddCommandHandler<GiveUpQuestCommand, GiveUpQuestOutcome, GiveUpQuestCommandHandler>(
+            CommandExecutionKind.Transactional);
         services.AddCommandHandler<SetQuestTriggerCommand, QuestTriggerOutcome, SetQuestTriggerCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<FinishQuestCommand, QuestFinishOutcome, FinishQuestCommandHandler>(
@@ -290,7 +293,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<DecreaseDurabilityCommand, EquipmentDurabilityResult,
             DecreaseDurabilityCommandHandler>(CommandExecutionKind.Transactional,
             UserAccessMode.Exclusive, UserAccessMode.Exclusive);
-        services.AddCommandHandler<DeleteItemCommand, ItemDiscardResult, DeleteItemCommandHandler>(
+        services.AddCommandHandler<DeleteItemCommand, DeleteItemOutcome, DeleteItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<BuyItemCommand, BuyItemOutcome, BuyItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
@@ -368,6 +371,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<ClientSpecProfileHandler>(ClientMessageType.GameClientSpecProfile);
         services.RegisterMessageHandler<SessionMetricsHandler>(ClientMessageType.GameSessionMetrics);
         services.RegisterMessageHandler<AcceptQuestHandler>(ClientMessageType.GameAcceptQuest);
+        services.RegisterMessageHandler<GiveUpQuestHandler>(ClientMessageType.GameGiveUpQuest);
         services.RegisterMessageHandler<SetQuestTriggerHandler>(ClientMessageType.GameSetQuestTrigger);
         services.RegisterMessageHandler<FinishQuestHandler>(ClientMessageType.GameFinishQuest);
         services.RegisterMessageHandler<TaggedIdReportHandler>(ClientMessageType.GameTaggedIdReport);
@@ -489,6 +493,8 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.SessionMetricsType, ClientMessageType.GameSessionMetrics);
         services.AddGameCmdMessageDecoder<AcceptQuestMessageDecoder>(
             GameProtocol.AcceptQuestType, ClientMessageType.GameAcceptQuest);
+        services.AddGameCmdMessageDecoder<GiveUpQuestMessageDecoder>(
+            GameProtocol.GiveUpQuestType, ClientMessageType.GameGiveUpQuest);
         services.AddGameCmdMessageDecoder<SetQuestTriggerMessageDecoder>(
             GameProtocol.SetQuestTriggerType, ClientMessageType.GameSetQuestTrigger);
         services.AddGameCmdMessageDecoder<FinishQuestMessageDecoder>(
@@ -496,6 +502,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<TaggedIdReportMessageDecoder>(
             GameProtocol.TaggedIdReportType, ClientMessageType.GameTaggedIdReport);
         services.AddGameCmdMessageEncoder<AcceptQuestAcknowledgement, AcceptQuestAcknowledgementEncoder>();
+        services.AddGameCmdMessageEncoder<GiveUpQuestAcknowledgement, GiveUpQuestAcknowledgementEncoder>();
         services.AddGameCmdMessageEncoder<SetQuestTriggerAcknowledgement, SetQuestTriggerAcknowledgementEncoder>();
         services.AddGameCmdMessageEncoder<FinishQuestAcknowledgement, FinishQuestAcknowledgementEncoder>();
         services.AddGameCmdMessageEncoder<TutorialFlagAcknowledgement, TutorialFlagAcknowledgementEncoder>();

@@ -37,8 +37,9 @@ public sealed record QuestFinishOutcome(
     QuestFinishRefusal? Refusal = null,
     QuestProgressSnapshot? QuestProgress = null)
 {
-    public static QuestFinishOutcome Refuse(ushort questId) =>
-        new(false, questId, 0, 0, [], 0, 0, QuestFinishRefusal.Unusable);
+    public static QuestFinishOutcome Refuse(
+        ushort questId, QuestProgressSnapshot? questProgress = null) =>
+        new(false, questId, 0, 0, [], 0, 0, QuestFinishRefusal.Unusable, questProgress);
 }
 
 /// <summary>One character handing one quest in.</summary>
@@ -134,10 +135,18 @@ public sealed class FinishQuestCommandHandler(
         try
         {
             var log = logs.LogOf(command.AccountId, command.CharacterId);
+            // A carried-item objective is a projection of the current bag, not proof that the
+            // item still exists. Recheck before the log can clear the quest and grant rewards.
+            var holdingsProgress = definition.SeekingItems is { Count: > 0 }
+                ? (await questProgress.ReportAsync(
+                    command.AccountId, command.CharacterId,
+                    [new QuestHoldingsChanged()], cancellationToken).ConfigureAwait(false))
+                    .NotificationSnapshot
+                : null;
             var verdict = await log.FinishAsync(command.QuestId, cancellationToken)
                 .ConfigureAwait(false);
             if (verdict is not QuestFinishVerdict.Finished)
-                return QuestFinishOutcome.Refuse(command.QuestId);
+                return QuestFinishOutcome.Refuse(command.QuestId, holdingsProgress);
 
             var placed = new List<FinishedQuestItem>();
             if (reward.Items.Count > 0)

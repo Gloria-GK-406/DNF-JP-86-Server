@@ -32,6 +32,7 @@ public enum ClientMessageType
     GameClientSpecProfile = 0x0001_00C2,
     GameSessionMetrics = 0x0001_00FA,
     GameAcceptQuest = 0x0001_001F,
+    GameGiveUpQuest = 0x0001_0020,
     GameSetQuestTrigger = 0x0001_0021,
     GameFinishQuest = 0x0001_0022,
 
@@ -222,6 +223,7 @@ public enum ServerMessageType
     // Acknowledges a tutorial flag change and carries what the step gave.
     // See Game/TaggedIdReport.
     GameAcceptQuest = 0x0001_001F,
+    GameGiveUpQuest = 0x0001_0020,
     GameSetQuestTrigger = 0x0001_0021,
     GameFinishQuest = 0x0001_0022,
 

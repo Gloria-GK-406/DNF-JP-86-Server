@@ -1,15 +1,37 @@
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.DeleteItem;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class ItemDiscardTests
 {
+    [Fact]
+    public async Task Discarding_the_last_required_item_reopens_the_carried_quest_objective()
+    {
+        using var bag = new ShopFixture(services =>
+        {
+            services.RemoveAll<IQuestContentRuleService>();
+            services.AddSingleton<IQuestContentRuleService>(new HeldItemQuestRules());
+        });
+        bag.Sql("INSERT INTO character_active_quests(character_id,slot,quest_id,trigger_value) "
+            + "VALUES(1,0,2001,0)");
+        await bag.Seed(65, 5000, 1);
+
+        await Discard(bag, 65, 5000, 1);
+
+        Assert.Equal(0, bag.Count(5000));
+        Assert.Equal(1, bag.Scalar(
+            "SELECT trigger_value FROM character_active_quests WHERE character_id=1 AND quest_id=2001"));
+    }
+
     [Fact]
     public async Task Equipment_is_removed_before_one_success_ack_and_context_does_not_change_the_decision()
     {
@@ -105,4 +127,24 @@ public sealed class ItemDiscardTests
         bag.Services.GetRequiredService<DeleteItemHandler>().HandleAsync(new(bag.Connection),
             new DeleteItemRequest(GameMessageMetadata.Empty, InventoryContainerType.Main, 1, operationType,
                 slot, itemId, count, 0, safeModeSkipIndex), default);
+
+    private sealed class HeldItemQuestRules : IQuestContentRuleService
+    {
+        private static readonly QuestDefinition Quest = new(
+            2001, "hold an item", null, null, null, null, null, null, [], "seeking", "",
+            null, null, null, null, null, null, null, [], [], [], [],
+            SeekingItems: [new SeekingItemRequirement(5000, 1)]);
+
+        public ValueTask<IReadOnlyList<QuestDefinition>> AllAsync(CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<QuestDefinition>>([Quest]);
+
+        public ValueTask<QuestDefinition?> FindAsync(int questId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<QuestDefinition?>(questId == Quest.QuestId ? Quest : null);
+
+        public ValueTask<IReadOnlyList<TrainingQuestAvailability>> TrainingAvailabilityAsync(
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<TrainingQuestAvailability>>([]);
+
+        public QuestParameters Parameters() => throw new NotSupportedException();
+    }
 }

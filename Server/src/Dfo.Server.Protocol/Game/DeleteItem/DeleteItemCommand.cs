@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Inventory;
@@ -15,19 +16,38 @@ public sealed record DeleteItemCommand(
     ushort OperationType,
     int SlotIndex,
     int ItemId,
-    int Count) : ICommand<ItemDiscardResult>, IOnlineUserCommand, IAccountCommand
+    int Count) : ICommand<DeleteItemOutcome>, IOnlineUserCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }
 
-public sealed class DeleteItemCommandHandler(IItemDiscardDomainService discards, TimeProvider clock)
-    : ICommandHandler<DeleteItemCommand, ItemDiscardResult>
+public sealed record DeleteItemOutcome(ItemDiscardResult Discard, QuestProgressSnapshot? QuestProgress)
 {
-    public ValueTask<ItemDiscardResult> HandleAsync(
+    public ItemDiscardReceipt? Receipt => Discard.Receipt;
+    public ItemDiscardRejection Rejection => Discard.Rejection;
+}
+
+public sealed class DeleteItemCommandHandler(
+    IItemDiscardDomainService discards,
+    IQuestProgressDomainService quests,
+    TimeProvider clock)
+    : ICommandHandler<DeleteItemCommand, DeleteItemOutcome>
+{
+    public async ValueTask<DeleteItemOutcome> HandleAsync(
         CommandExecutionContext context,
         DeleteItemCommand command,
-        CancellationToken cancellationToken) =>
-        discards.DiscardAsync(command.Session, command.Container, command.EntryCount,
+        CancellationToken cancellationToken)
+    {
+        var discard = await discards.DiscardAsync(
+            command.Session, command.Container, command.EntryCount,
             command.OperationType, command.SlotIndex, command.ItemId, command.Count,
-            clock.GetUtcNow(), cancellationToken);
+            clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+        if (discard.Receipt is null || command.Container != InventoryContainerType.Main)
+            return new DeleteItemOutcome(discard, null);
+
+        var progress = await quests.ReportAsync(
+            command.Session.AccountId, command.Session.CharacterId,
+            [new QuestHoldingsChanged()], cancellationToken).ConfigureAwait(false);
+        return new DeleteItemOutcome(discard, progress.NotificationSnapshot);
+    }
 }

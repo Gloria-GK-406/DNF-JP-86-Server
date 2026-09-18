@@ -105,7 +105,16 @@ public sealed class FinishQuestHandler(
             cancellationToken).ConfigureAwait(false);
 
         if (!outcome.Finished)
+        {
+            if (outcome.QuestProgress is { } refusedProgress)
+            {
+                await sender.SendExplicitAsync(
+                    context.Connection.ConnectionId,
+                    new GameExplicitMessageDelivery([QuestProgressMessage(refusedProgress)], []),
+                    cancellationToken).ConfigureAwait(false);
+            }
             return;
+        }
 
         // The session is corrected before the frames go out, and the correction is the fix for a
         // real defect rather than tidiness. Every later frame reads the character and the offer
@@ -177,11 +186,7 @@ public sealed class FinishQuestHandler(
 
         if (outcome.QuestProgress is { } progress)
         {
-            frames.Add(new AcceptedQuestProgressMessage(
-                [.. progress.Quests.OrderBy(quest => quest.Slot)
-                    .Select(quest => new AcceptedQuestProgressState(
-                        checked((ushort)quest.QuestId),
-                        unchecked((uint)quest.TriggerValue)))]));
+            frames.Add(QuestProgressMessage(progress));
         }
 
         await sender.SendExplicitAsync(
@@ -192,6 +197,11 @@ public sealed class FinishQuestHandler(
 
     private static FinishQuestAcknowledgement Refusal(ushort questId) =>
         new(false, questId, 0, 0, [], 0, (byte)QuestFinishRefusal.Unusable);
+
+    private static AcceptedQuestProgressMessage QuestProgressMessage(QuestProgressSnapshot progress) =>
+        new([.. progress.Quests.OrderBy(quest => quest.Slot)
+            .Select(quest => new AcceptedQuestProgressState(
+                checked((ushort)quest.QuestId), unchecked((uint)quest.TriggerValue)))]);
 
     private ValueTask AnswerAsync(
         NetworkDispatchContext context,
