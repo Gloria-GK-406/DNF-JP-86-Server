@@ -4,6 +4,7 @@ using Dfo.Server.Application.Quests;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Application.Tests.Quests;
 
@@ -70,6 +71,71 @@ public sealed class QuestProgressDomainServiceTests
     }
 
     [Fact]
+    public async Task Verified_monster_death_counts_only_matching_hunt_monster_channels()
+    {
+        var logs = new RecordingQuestLogs
+        {
+            Carried = { [Character.Value] = [new CarriedQuest(0, 2001, 2 | (1 << 9))] },
+        };
+        var service = Service(logs, new FixedClientReport(QuestAdvance.Refused));
+
+        var result = await service.ReportAsync(
+            Account, Character,
+            [new QuestEnemyDefeated(144, 2, 13099, HuntEnemyTargetTypes.Monster,
+                MonsterRank.Boss)], CancellationToken.None);
+
+        Assert.Equal([new QuestProgressChange(2001, 514, 1)], result.Changes);
+        Assert.Equal(1, Assert.Single(result.NotificationSnapshot!.Quests).TriggerValue);
+    }
+
+    [Fact]
+    public async Task Hunt_monster_wildcard_needs_verified_rank_and_minimum_difficulty()
+    {
+        var logs = new RecordingQuestLogs
+        {
+            Carried = { [Character.Value] = [new CarriedQuest(0, 2001, 2 | (1 << 9))] },
+        };
+        var service = Service(logs, new FixedClientReport(QuestAdvance.Refused));
+        foreach (var fact in new[]
+        {
+            new QuestEnemyDefeated(145, 2, 13099, HuntEnemyTargetTypes.Monster,
+                MonsterRank.Boss),
+            new QuestEnemyDefeated(144, 0, 13099, HuntEnemyTargetTypes.Monster,
+                MonsterRank.Boss),
+            new QuestEnemyDefeated(144, 2, 13100, HuntEnemyTargetTypes.Monster),
+        })
+        {
+            var result = await service.ReportAsync(Account, Character, [fact],
+                CancellationToken.None);
+            Assert.Empty(result.Changes);
+            Assert.Null(result.NotificationSnapshot);
+        }
+    }
+
+    [Fact]
+    public async Task Cleared_quest_fact_advances_only_dependents_and_is_idempotent()
+    {
+        var logs = new RecordingQuestLogs
+        {
+            Carried = { [Character.Value] = [new CarriedQuest(0, 2002, 1)] },
+        };
+        var service = Service(logs, new FixedClientReport(QuestAdvance.Refused));
+
+        var unrelated = await service.ReportAsync(
+            Account, Character, [new QuestCleared(101)], CancellationToken.None);
+        logs.Cleared[Character.Value] = [new ClearedQuest(1776, 1)];
+        var matched = await service.ReportAsync(
+            Account, Character, [new QuestCleared(1776)], CancellationToken.None);
+        var duplicate = await service.ReportAsync(
+            Account, Character, [new QuestCleared(1776)], CancellationToken.None);
+
+        Assert.Null(unrelated.NotificationSnapshot);
+        Assert.Equal([new QuestProgressChange(2002, 1, 0)], matched.Changes);
+        Assert.Equal(0, Assert.Single(matched.NotificationSnapshot!.Quests).TriggerValue);
+        Assert.Null(duplicate.NotificationSnapshot);
+    }
+
+    [Fact]
     public async Task Holdings_change_recomputes_progress_and_requests_one_private_snapshot()
     {
         var logs = new RecordingQuestLogs
@@ -105,6 +171,18 @@ public sealed class QuestProgressDomainServiceTests
                     HuntEnemyRequirements:
                     [new HuntEnemyRequirement(
                         144, -1, 13099, HuntEnemyTargetTypes.Monster, 1)])
+                : questId == 2001
+                ? new QuestDefinition(
+                    2001, "", null, null, null, null, null, null, [], "hunt monster", "",
+                    null, null, null, null, null, null, null, [], [], [], [],
+                    HuntMonsterRequirements:
+                    [new HuntMonsterRequirement(144, 1, 13099, 2),
+                     new HuntMonsterRequirement(144, 1, -3, 1)])
+                : questId == 2002
+                ? new QuestDefinition(
+                    2002, "", null, null, null, null, null, null, [], "clear quest", "",
+                    null, null, null, null, null, null, null, [], [], [], [],
+                    ClearedQuestRequirements: [1776])
                 : null);
 
         public QuestParameters RewardParameters() => throw new NotSupportedException();

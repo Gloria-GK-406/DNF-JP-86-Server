@@ -71,6 +71,24 @@ public sealed class QuestLogTests
     }
 
     [Fact]
+    public async Task Clear_quest_starts_complete_when_its_required_quest_was_already_cleared()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var log = fixture.Log();
+        await log.AcceptAsync(Quest(1016, trigger: 0), CancellationToken.None);
+        Assert.True(await log.CompleteAsync(1016, 1, CancellationToken.None));
+
+        var dependent = Quest(2002, trigger: 1, objective: "clear quest") with
+        {
+            ClearedQuestRequirements = [1016],
+        };
+        var accepted = await log.AcceptAsync(dependent, CancellationToken.None);
+
+        Assert.Equal(0, accepted.TriggerValue);
+        Assert.Equal(0, Assert.Single(await log.CarriedAsync(CancellationToken.None)).TriggerValue);
+    }
+
+    [Fact]
     public async Task TheFirstQuestTakenOnGoesInTheFirstSlotAtTheProgressTheArchiveDeclares()
     {
         await using var fixture = await Fixture.CreateAsync();

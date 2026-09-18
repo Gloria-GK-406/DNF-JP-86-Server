@@ -53,7 +53,8 @@ public sealed record QuestAcceptOutcome(
     ushort QuestId,
     uint InitialTrigger,
     IReadOnlyList<AcceptedQuestItem> Items,
-    QuestAcceptRefusal? Refusal = null)
+    QuestAcceptRefusal? Refusal = null,
+    QuestProgressSnapshot? QuestProgress = null)
 {
     public static QuestAcceptOutcome Refuse(ushort questId, QuestAcceptRefusal refusal) =>
         new(false, questId, 0, [], refusal);
@@ -82,7 +83,8 @@ public sealed record AcceptQuestCommand(
 public sealed class AcceptQuestCommandHandler(
     IQuestDefinitionDomainService quests,
     ICharacterQuestLogDomainService logs,
-    ICharacterContainerDomainService containers)
+    ICharacterContainerDomainService containers,
+    IQuestProgressDomainService questProgress)
     : ICommandHandler<AcceptQuestCommand, QuestAcceptOutcome>
 {
     public async ValueTask<QuestAcceptOutcome> HandleAsync(
@@ -159,7 +161,19 @@ public sealed class AcceptQuestCommandHandler(
             }
         }
 
-        return new QuestAcceptOutcome(true, command.QuestId, definition.InitialTrigger, placed);
+        var progress = placed.Count > 0
+            ? (await questProgress.ReportAsync(
+                command.AccountId, command.CharacterId,
+                [new QuestHoldingsChanged()], cancellationToken).ConfigureAwait(false))
+                .NotificationSnapshot
+            : null;
+        if (progress is null && taken.TriggerValue != definition.InitialTrigger)
+        {
+            progress = new QuestProgressSnapshot(await log.CarriedAsync(cancellationToken)
+                .ConfigureAwait(false));
+        }
+        return new QuestAcceptOutcome(
+            true, command.QuestId, definition.InitialTrigger, placed, QuestProgress: progress);
     }
 
     /// <remarks>

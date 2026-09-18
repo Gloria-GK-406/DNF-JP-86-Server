@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.MonsterDeath;
@@ -173,6 +174,15 @@ public sealed class FinishQuestHandler(
 
         frames.Add(new AvailableQuestListMessage(
             outcome.NewLevel, result.World.Content.AvailableQuests));
+
+        if (outcome.QuestProgress is { } progress)
+        {
+            frames.Add(new AcceptedQuestProgressMessage(
+                [.. progress.Quests.OrderBy(quest => quest.Slot)
+                    .Select(quest => new AcceptedQuestProgressState(
+                        checked((ushort)quest.QuestId),
+                        unchecked((uint)quest.TriggerValue)))]));
+        }
 
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,

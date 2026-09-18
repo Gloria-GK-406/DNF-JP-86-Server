@@ -60,6 +60,46 @@ public sealed class PvfQuestAcceptanceContentTests
             $"quest {quest.QuestId} packs a trigger wider than three nine-bit channels"));
     }
 
+    [Fact]
+    public void Hunt_monster_targets_require_complete_supported_four_field_groups()
+    {
+        Assert.Equal(
+            [new HuntMonsterRequirement(144, 1, 13099, 2),
+             new HuntMonsterRequirement(-1, -1, -3, 1)],
+            PvfQuestDefinitionSource.ProjectHuntMonsterRequirements(
+                "hunt monster", [144, 1, 13099, 2, -1, -1, -3, 1]));
+        Assert.Empty(PvfQuestDefinitionSource.ProjectHuntMonsterRequirements(
+            "hunt monster", [-2, 100, 0, -3, 1]));
+        Assert.Empty(PvfQuestDefinitionSource.ProjectHuntMonsterRequirements(
+            "hunt monster", [144, 1, 13099]));
+    }
+
+    [Fact]
+    public void Clear_quest_projects_distinct_dependencies_within_trigger_capacity()
+    {
+        Assert.Equal([1776], PvfQuestDefinitionSource.ProjectClearedQuestRequirements(
+            "clear quest", [1776]));
+        Assert.Equal([1776, 1777], PvfQuestDefinitionSource.ProjectClearedQuestRequirements(
+            "clear quest", [1776, 1777]));
+        Assert.Empty(PvfQuestDefinitionSource.ProjectClearedQuestRequirements(
+            "clear quest", [1776, 1776]));
+    }
+
+    [SkippableFact]
+    public async Task Current_archive_exposes_real_server_counted_hunt_and_clear_dependencies()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var source = new PvfQuestDefinitionSource(provider);
+        var quests = await source.GetAllAsync(CancellationToken.None);
+
+        Assert.Contains(quests, quest => quest.ObjectiveTypeCode == "hunt monster"
+            && quest.HuntMonsterRequirements.Count > 0);
+        var clearQuest = quests.Where(quest => quest.ObjectiveTypeCode == "clear quest").ToArray();
+        Assert.NotEmpty(clearQuest);
+        Assert.All(clearQuest, quest => Assert.Single(quest.ClearedQuestRequirements));
+    }
+
     /// <summary>
     /// The archive's event items are read as pairs, and every one it declares is usable.
     /// </summary>

@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Game;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Logging;
 
@@ -74,6 +75,20 @@ public sealed class AcceptQuestHandler(
 
         if (!outcome.Accepted)
             return;
+
+        if (outcome.QuestProgress is { } progress)
+        {
+            var projected = progress.Quests.OrderBy(quest => quest.Slot)
+                .Select(quest => new AcceptedQuestProgressState(
+                    checked((ushort)quest.QuestId),
+                    unchecked((uint)quest.TriggerValue)))
+                .ToArray();
+            await sender.SendExplicitAsync(
+                context.Connection.ConnectionId,
+                new GameExplicitMessageDelivery(
+                    [new AcceptedQuestProgressMessage(projected)], []),
+                cancellationToken).ConfigureAwait(false);
+        }
 
         if (!runtimeSessions.TryGet(session, out var result, out _) || result is null)
         {

@@ -34,7 +34,8 @@ public sealed record QuestFinishOutcome(
     IReadOnlyList<FinishedQuestItem> Items,
     byte NewLevel,
     uint NewExperience,
-    QuestFinishRefusal? Refusal = null)
+    QuestFinishRefusal? Refusal = null,
+    QuestProgressSnapshot? QuestProgress = null)
 {
     public static QuestFinishOutcome Refuse(ushort questId) =>
         new(false, questId, 0, 0, [], 0, 0, QuestFinishRefusal.Unusable);
@@ -72,8 +73,8 @@ public sealed class QuestFinishRejectedException : Exception
 /// Takes the quest out of the log, prices what it pays, and hands it over.
 /// </summary>
 /// <remarks>
-/// Four things settle together or not at all: the quest leaving the carried list, the quest
-/// entering the cleared list, the items entering the bag, and the character's new experience. A
+/// The quest leaving the carried list, entering the cleared list, rewards, experience, and any
+/// dependent quest progress settle together or not at all. A
 /// completion that granted the items and then failed to record the clear would be a quest the
 /// player could hand in twice.
 ///
@@ -91,7 +92,8 @@ public sealed class FinishQuestCommandHandler(
     ICharacterQuestLogDomainService logs,
     ICharacterContainerDomainService containers,
     ICharacterExperienceDomainService grant,
-    ICharacterDomainService characters)
+    ICharacterDomainService characters,
+    IQuestProgressDomainService questProgress)
     : ICommandHandler<FinishQuestCommand, QuestFinishOutcome>
 {
     public async ValueTask<QuestFinishOutcome> HandleAsync(
@@ -204,6 +206,13 @@ public sealed class FinishQuestCommandHandler(
             if (award is null)
                 throw Rejected(command, "experience could not be granted");
 
+            var facts = new List<QuestProgressFact> { new QuestCleared(command.QuestId) };
+            if (placed.Count > 0)
+                facts.Add(new QuestHoldingsChanged());
+            var questReport = await questProgress.ReportAsync(
+                command.AccountId, command.CharacterId, facts, cancellationToken)
+                .ConfigureAwait(false);
+
             return new QuestFinishOutcome(
                 true,
                 command.QuestId,
@@ -211,7 +220,8 @@ public sealed class FinishQuestCommandHandler(
                 award.Gained,
                 placed,
                 award.Level,
-                award.Total);
+                award.Total,
+                QuestProgress: questReport.NotificationSnapshot);
         }
         catch (Exception exception)
             when (exception is not (QuestFinishRejectedException or OperationCanceledException))

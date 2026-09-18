@@ -35,8 +35,8 @@ public enum QuestRefusal
 
 /// <summary>What became of one attempt to take a quest on.</summary>
 /// <param name="TriggerValue">
-/// The progress the quest starts at, which is the archive's value rather than anything stored --
-/// nothing was stored for this quest until now.
+/// The progress the quest starts at. Most objectives take the archive's value; a quest-clear
+/// objective derives its missing prerequisite count from the character's already-cleared list.
 /// </param>
 public sealed record QuestAcceptance(
     bool Accepted, short Slot, int TriggerValue, QuestRefusal? Refusal)
@@ -253,10 +253,10 @@ public interface IQuestLog
     /// be a choice nobody makes. A caller that needs a different mark has
     /// <see cref="CompleteAsync"/>.
     ///
-    /// <b>Two of the reference server's gates are not asked</b>, both for quest shapes this server
-    /// does not model: a "question" quest answers with a chosen flag value instead of a progress
-    /// word, and a "quest clear" quest is gated on how many other quests are cleared. Neither
-    /// reaches the tutorial, and both would need state this log does not read.
+    /// A "question" quest answers with a chosen flag value instead of an ordinary progress word;
+    /// that special completion gate is not modeled here. A "quest clear" objective now derives
+    /// the number of missing dependencies on acceptance and after a relevant completion, so its
+    /// ordinary zero-progress gate remains sufficient.
     /// </remarks>
     ValueTask<QuestFinishVerdict> FinishAsync(int questId, CancellationToken cancellationToken);
 

@@ -1,5 +1,6 @@
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Abstractions.Quests;
 
@@ -12,10 +13,14 @@ public sealed record ClientQuestTriggerReport(int QuestId, byte Selector, bool I
 
 /// <summary>An actor death already claimed and verified by the dungeon run.</summary>
 public sealed record QuestEnemyDefeated(
-    int DungeonId, byte Difficulty, int EnemyCode, int EnemyType) : QuestProgressFact;
+    int DungeonId, byte Difficulty, int EnemyCode, int EnemyType,
+    MonsterRank? Rank = null) : QuestProgressFact;
 
 /// <summary>The authoritative inventory or currency balance changed; item goals are re-read.</summary>
 public sealed record QuestHoldingsChanged : QuestProgressFact;
+
+/// <summary>A quest hand-in was committed in the character's quest log.</summary>
+public sealed record QuestCleared(int QuestId) : QuestProgressFact;
 
 public sealed record QuestProgressChange(int QuestId, uint Before, uint After);
 

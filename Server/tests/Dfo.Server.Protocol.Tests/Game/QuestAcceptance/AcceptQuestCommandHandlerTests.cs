@@ -60,6 +60,55 @@ public sealed class AcceptQuestCommandHandlerTests
         Assert.Equal([(0, QuestId, 5)], await fixture.ReadQuestsAsync());
     }
 
+    [Fact]
+    public async Task Already_cleared_dependency_keeps_archive_CMD_value_but_projects_current_progress()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        await using (var connection = Fixture.Open(fixture.Path))
+        await using (var command = connection.CreateCommand())
+        {
+            command.CommandText =
+                "INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) "
+                + "VALUES(60,1016,1)";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        var definition = Quest(2002, trigger: 1) with
+        {
+            ObjectiveTypeCode = "clear quest",
+            ClearedQuestRequirements = [1016],
+        };
+        var handler = fixture.Handler(definition);
+        await using var boundary = fixture.Scope.Begin();
+        var outcome = await handler.HandleAsync(
+            Transactional, new AcceptQuestCommand(Account, Character, 2002),
+            CancellationToken.None);
+        await boundary.CommitAsync(CancellationToken.None);
+
+        Assert.True(outcome.Accepted);
+        Assert.Equal(1u, outcome.InitialTrigger);
+        Assert.Equal(0, Assert.Single(outcome.QuestProgress!.Quests).TriggerValue);
+        Assert.Equal([(0, 2002, 0)], await fixture.ReadQuestsAsync());
+    }
+
+    [Fact]
+    public async Task Acceptance_items_report_holdings_change_and_project_result_once()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        fixture.Progress.Snapshot = new QuestProgressSnapshot([new CarriedQuest(0, QuestId, 0)]);
+        var handler = fixture.Handler(Quest(QuestId, items: [new QuestEventItem(8474, 1)]));
+
+        await using var boundary = fixture.Scope.Begin();
+        var outcome = await handler.HandleAsync(
+            Transactional, new AcceptQuestCommand(Account, Character, QuestId),
+            CancellationToken.None);
+        await boundary.CommitAsync(CancellationToken.None);
+
+        Assert.True(outcome.Accepted);
+        Assert.Contains(fixture.Progress.Facts, fact => fact is QuestHoldingsChanged);
+        Assert.Same(fixture.Progress.Snapshot, outcome.QuestProgress);
+    }
+
     /// <remarks>
     /// The archive declares no item that can be held, so the container places nothing. A quest
     /// whose premise never arrived is not a quest that was accepted, and the row must not survive
@@ -150,6 +199,8 @@ public sealed class AcceptQuestCommandHandlerTests
 
         public DomainTransactionScope Scope { get; } = new();
 
+        public RecordingQuestProgress Progress { get; } = new();
+
         public static async Task<Fixture> CreateAsync(bool placementIsKnown = true)
         {
             var path = System.IO.Path.Combine(
@@ -184,7 +235,8 @@ public sealed class AcceptQuestCommandHandlerTests
                     new QuestRewardRuleService()),
                 new CharacterQuestLogDomainService(
                     new SqliteQuestDomainStore(this.Path), new AmbientStoreAccess(this.Scope)),
-                containers);
+                containers,
+                this.Progress);
         }
 
         public async Task<List<(int Slot, int QuestId, int TriggerValue)>> ReadQuestsAsync()
@@ -221,7 +273,7 @@ public sealed class AcceptQuestCommandHandlerTests
             return rows;
         }
 
-        private static SqliteConnection Open(string path)
+        public static SqliteConnection Open(string path)
         {
             var connection = new SqliteConnection(
                 new SqliteConnectionStringBuilder { DataSource = path }.ToString());
@@ -242,6 +294,22 @@ public sealed class AcceptQuestCommandHandlerTests
             }
 
             return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class RecordingQuestProgress : IQuestProgressDomainService
+    {
+        public List<QuestProgressFact> Facts { get; } = [];
+
+        public QuestProgressSnapshot? Snapshot { get; set; }
+
+        public ValueTask<QuestProgressReport> ReportAsync(
+            AccountId accountId, CharacterId characterId,
+            IReadOnlyList<QuestProgressFact> facts,
+            CancellationToken cancellationToken)
+        {
+            Facts.AddRange(facts);
+            return ValueTask.FromResult(new QuestProgressReport(null, [], this.Snapshot));
         }
     }
 

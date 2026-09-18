@@ -100,6 +100,14 @@ internal sealed class QuestLog(
         }
 
         var triggerValue = checked((int)definition.InitialTrigger);
+        if (definition.ClearedQuestRequirements.Count > 0)
+        {
+            var clearedIds = (await this.ClearedAsync(cancellationToken).ConfigureAwait(false))
+                .Where(quest => quest.Mark != 0)
+                .Select(quest => quest.QuestId)
+                .ToHashSet();
+            triggerValue = definition.ClearedQuestRequirements.Count(id => !clearedIds.Contains(id));
+        }
         await stores.ChangeAsync(store, session =>
         {
             session.Carried.Write(

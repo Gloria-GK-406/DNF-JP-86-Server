@@ -74,6 +74,7 @@ public sealed class FinishQuestCommandHandlerTests
         Assert.Equal(Fixture.QuestAward, outcome.Experience);
         Assert.Equal(1000u + Fixture.QuestAward, outcome.NewExperience);
         Assert.Equal((1, 1000u + Fixture.QuestAward), fixture.Characters.LastWrite);
+        Assert.Contains(fixture.Progress.Facts, fact => fact is QuestCleared(QuestId));
     }
 
     /// <remarks>
@@ -186,6 +187,7 @@ public sealed class FinishQuestCommandHandlerTests
         services.AddSingleton<ICharacterExperienceDomainService>(
             new CharacterExperienceDomainService(fixture.Characters, new FixedProgression()));
         services.AddSingleton(CurrentCharacterStub.Domain(fixture.Current));
+        services.AddSingleton<IQuestProgressDomainService>(new RecordingQuestProgress());
         services.AddCommandHandler<FinishQuestCommand, QuestFinishOutcome, FinishQuestCommandHandler>(
             CommandExecutionKind.Transactional);
         await using var provider = services.BuildServiceProvider();
@@ -257,6 +259,7 @@ public sealed class FinishQuestCommandHandlerTests
         services.AddSingleton<ICharacterExperienceDomainService>(lateFailure);
         services.AddSingleton<ICharacterDomainService>(
             new CharacterDomainService(null!, null!, _ => character));
+        services.AddSingleton<IQuestProgressDomainService>(new RecordingQuestProgress());
         services.AddCommandHandler<FinishQuestCommand, QuestFinishOutcome, FinishQuestCommandHandler>(
             CommandExecutionKind.Transactional);
         await using var provider = services.BuildServiceProvider();
@@ -322,6 +325,7 @@ public sealed class FinishQuestCommandHandlerTests
         Assert.Contains(
             new FinishedQuestItem(SlotIndex: 0, ItemId: 0, Count: 101),
             outcome.Items);
+        Assert.Contains(fixture.Progress.Facts, fact => fact is QuestHoldingsChanged);
     }
 
     private static QuestDefinition Quest(
@@ -358,6 +362,8 @@ public sealed class FinishQuestCommandHandlerTests
         public CurrentCharacterStub Current { get; }
 
         public DomainTransactionScope Scope { get; } = new();
+
+        public RecordingQuestProgress Progress { get; } = new();
 
         public static async Task<Fixture> CreateAsync(int level, uint experience, bool exists = true)
         {
@@ -396,7 +402,8 @@ public sealed class FinishQuestCommandHandlerTests
                     new SqliteQuestDomainStore(this.Path), new AmbientStoreAccess(this.Scope)),
                 containers ?? new CharacterContainerDomainService(),
                 new CharacterExperienceDomainService(this.Characters, new FixedProgression()),
-                CurrentCharacterStub.Domain(this.Current));
+                CurrentCharacterStub.Domain(this.Current),
+                this.Progress);
 
         /// <summary>Puts the quest in the carried list with its objective already at that value.</summary>
         public async Task CarryAsync(int questId, int triggerValue)
@@ -611,6 +618,20 @@ public sealed class FinishQuestCommandHandlerTests
     /// read the real table, not this.
     /// </para>
     /// </remarks>
+    private sealed class RecordingQuestProgress : IQuestProgressDomainService
+    {
+        public List<QuestProgressFact> Facts { get; } = [];
+
+        public ValueTask<QuestProgressReport> ReportAsync(
+            AccountId accountId, CharacterId characterId,
+            IReadOnlyList<QuestProgressFact> facts,
+            CancellationToken cancellationToken)
+        {
+            Facts.AddRange(facts);
+            return ValueTask.FromResult(new QuestProgressReport(null, [], null));
+        }
+    }
+
     private sealed class InventedQuestParameters : IQuestParameterSource
     {
         public QuestParameters Load() =>

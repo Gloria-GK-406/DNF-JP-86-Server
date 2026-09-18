@@ -355,7 +355,9 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
                 selectableItemRewardOperands,
                 questId),
             OptionalNonNegative(goldMultiplierValues, questId, "gold multiple") ?? 0,
-            ProjectMonsterRewardItems(monsterRewardItemValues, questId));
+            ProjectMonsterRewardItems(monsterRewardItemValues, questId),
+            ProjectHuntMonsterRequirements(objectiveType, objectiveIntData),
+            ProjectClearedQuestRequirements(objectiveType, objectiveIntData));
 
         return new RawQuestDefinition(
             definition,
@@ -386,6 +388,9 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         {
             "condition under clear" or "clear map" or "hunt monster" => PackChannels(intData, 4),
             "condition under clear2" or "hunt enemy" => PackChannels(intData, 5),
+            "clear quest" or "quest clear" when intData.Count is > 0 and <= 3
+                && intData.All(id => id > 0)
+                && intData.Distinct().Count() == intData.Count => (uint)intData.Count,
             "normal clear" => PackTrigger(1, 1, 0),
             _ => DefaultInitialTrigger,
         };
@@ -500,6 +505,51 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
                 count,
                 dropRate,
                 maxStack));
+        }
+
+        return result;
+    }
+
+    internal static IReadOnlyList<int> ProjectClearedQuestRequirements(
+        string objectiveType,
+        IReadOnlyList<int> values)
+    {
+        var normalized = objectiveType.Trim().Trim('[', ']').ToLowerInvariant();
+        return normalized is "clear quest" or "quest clear"
+            && values.Count is > 0 and <= 3 && values.All(id => id > 0)
+            && values.Distinct().Count() == values.Count
+            ? values.ToArray()
+            : [];
+    }
+
+    internal static IReadOnlyList<HuntMonsterRequirement> ProjectHuntMonsterRequirements(
+        string objectiveType,
+        IReadOnlyList<int> values)
+    {
+        if (!string.Equals(objectiveType.Trim().Trim('[', ']'), "hunt monster",
+                StringComparison.OrdinalIgnoreCase)
+            || values.Count == 0 || values.Count % 4 != 0 || values.Count > 12)
+        {
+            return [];
+        }
+
+        var result = new List<HuntMonsterRequirement>();
+        for (var index = 0; index < values.Count; index += 4)
+        {
+            var dungeonId = values[index];
+            var difficulty = values[index + 1];
+            var monsterCode = values[index + 2];
+            var count = values[index + 3];
+            // -3 dungeon scope requires the character's recommended-level check, which the
+            // kill fact does not carry. Keep that format unprojected rather than count it broadly.
+            if ((dungeonId <= 0 && dungeonId != -1) || difficulty < -1
+                || (monsterCode <= 0 && monsterCode is not (-1 or -2 or -3))
+                || count <= 0)
+            {
+                return [];
+            }
+
+            result.Add(new HuntMonsterRequirement(dungeonId, difficulty, monsterCode, count));
         }
 
         return result;

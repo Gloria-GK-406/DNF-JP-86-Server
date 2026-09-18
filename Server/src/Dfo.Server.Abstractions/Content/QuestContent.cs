@@ -183,6 +183,13 @@ public sealed record HuntEnemyRequirement(
     int EnemyType,
     int Count);
 
+/// <summary>One four-field <c>[hunt monster]</c> objective from the quest archive.</summary>
+public sealed record HuntMonsterRequirement(
+    int DungeonId,
+    int MinimumDifficulty,
+    int MonsterCode,
+    int Count);
+
 /// <summary>One seven-field <c>[monster reward item]</c> declaration.</summary>
 public sealed record QuestMonsterRewardItem(
     int MonsterCode,
@@ -224,7 +231,9 @@ public sealed record QuestDefinition(
     IReadOnlyList<HuntEnemyRequirement>? HuntEnemyRequirements = null,
     QuestItemRewardDefinition? ItemRewards = null,
     int GoldMultiplier = 0,
-    IReadOnlyList<QuestMonsterRewardItem>? MonsterRewardItems = null)
+    IReadOnlyList<QuestMonsterRewardItem>? MonsterRewardItems = null,
+    IReadOnlyList<HuntMonsterRequirement>? HuntMonsterRequirements = null,
+    IReadOnlyList<int>? ClearedQuestRequirements = null)
 {
     /// <summary>A quest offered regardless of grow type.</summary>
     public const int AnyGrowType = -1;
@@ -239,6 +248,12 @@ public sealed record QuestDefinition(
 
     public IReadOnlyList<QuestMonsterRewardItem> MonsterRewardItems { get; init; }
         = MonsterRewardItems ?? [];
+
+    public IReadOnlyList<HuntMonsterRequirement> HuntMonsterRequirements { get; init; }
+        = HuntMonsterRequirements ?? [];
+
+    public IReadOnlyList<int> ClearedQuestRequirements { get; init; }
+        = ClearedQuestRequirements ?? [];
 
     /// <summary>Whether clearing this quest leaves it available to accept again.</summary>
     /// <remarks>

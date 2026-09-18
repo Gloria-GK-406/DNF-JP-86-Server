@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Application.Quests;
 
@@ -54,12 +55,22 @@ public sealed class QuestProgressDomainService(
                     var advanced = await AdvanceEnemyQuestsAsync(
                         log, death, cancellationToken).ConfigureAwait(false);
                     changes.AddRange(advanced);
-                    serverProgressChanged |= advanced.Count != 0;
+                    var monsterAdvanced = await AdvanceMonsterQuestsAsync(
+                        log, death, cancellationToken).ConfigureAwait(false);
+                    changes.AddRange(monsterAdvanced);
+                    serverProgressChanged |= advanced.Count != 0 || monsterAdvanced.Count != 0;
                     break;
 
                 case QuestHoldingsChanged:
                     serverProgressChanged |= await seeking.SynchronizeAsync(
                         accountId, characterId, cancellationToken).ConfigureAwait(false) is not null;
+                    break;
+
+                case QuestCleared cleared:
+                    var dependents = await AdvanceClearedQuestDependentsAsync(
+                        log, cleared, cancellationToken).ConfigureAwait(false);
+                    changes.AddRange(dependents);
+                    serverProgressChanged |= dependents.Count != 0;
                     break;
 
                 default:
@@ -118,4 +129,102 @@ public sealed class QuestProgressDomainService(
         && (target.Difficulty < 0 || target.Difficulty == death.Difficulty)
         && target.EnemyCode == death.EnemyCode
         && target.EnemyType == death.EnemyType;
+
+    private async ValueTask<IReadOnlyList<QuestProgressChange>> AdvanceMonsterQuestsAsync(
+        IQuestLog log,
+        QuestEnemyDefeated death,
+        CancellationToken cancellationToken)
+    {
+        if (death.EnemyType != HuntEnemyTargetTypes.Monster)
+            return [];
+
+        var carried = await log.CarriedAsync(cancellationToken).ConfigureAwait(false);
+        var changes = new List<QuestProgressChange>();
+        foreach (var active in carried)
+        {
+            var definition = await definitions.FindAsync(active.QuestId, cancellationToken)
+                .ConfigureAwait(false);
+            if (definition?.HuntMonsterRequirements is not { Count: > 0 } targets)
+                continue;
+
+            var before = new QuestTrigger(unchecked((uint)active.TriggerValue));
+            var after = before;
+            for (var index = 0; index < Math.Min(targets.Count, QuestTrigger.ChannelCount); index++)
+            {
+                if (Matches(targets[index], death))
+                    after = after.ReplaceChannel(index, after.GetChannel(index) - 1L);
+            }
+
+            if (after == before)
+                continue;
+            if (!await log.RecordProgressAsync(
+                    active, unchecked((int)after.PackedValue), cancellationToken)
+                .ConfigureAwait(false))
+            {
+                throw new InvalidDataException(
+                    $"Quest {active.QuestId} changed while reporting a verified monster death.");
+            }
+
+            changes.Add(new QuestProgressChange(active.QuestId, before.PackedValue,
+                after.PackedValue));
+        }
+
+        return changes;
+    }
+
+    private static bool Matches(HuntMonsterRequirement target, QuestEnemyDefeated death)
+    {
+        if (death.EnemyCode <= 0
+            || (target.DungeonId != -1 && target.DungeonId != death.DungeonId)
+            || death.Difficulty < target.MinimumDifficulty)
+            return false;
+
+        return target.MonsterCode switch
+        {
+            > 0 => target.MonsterCode == death.EnemyCode,
+            -1 => death.Rank == MonsterRank.Ordinary,
+            -2 => death.Rank == MonsterRank.Champion,
+            -3 => death.Rank == MonsterRank.Boss,
+            _ => false,
+        };
+    }
+
+    private async ValueTask<IReadOnlyList<QuestProgressChange>> AdvanceClearedQuestDependentsAsync(
+        IQuestLog log,
+        QuestCleared cleared,
+        CancellationToken cancellationToken)
+    {
+        var carried = await log.CarriedAsync(cancellationToken).ConfigureAwait(false);
+        var clearedIds = (await log.ClearedAsync(cancellationToken).ConfigureAwait(false))
+            .Where(quest => quest.Mark != 0)
+            .Select(quest => quest.QuestId)
+            .ToHashSet();
+        var changes = new List<QuestProgressChange>();
+        foreach (var active in carried)
+        {
+            var definition = await definitions.FindAsync(active.QuestId, cancellationToken)
+                .ConfigureAwait(false);
+            if (definition?.ClearedQuestRequirements is not { Count: > 0 } requirements
+                || !requirements.Contains(cleared.QuestId))
+                continue;
+
+            var before = new QuestTrigger(unchecked((uint)active.TriggerValue));
+            var missing = requirements.Count(id => !clearedIds.Contains(id));
+            var after = before.ReplaceChannel(0, missing);
+            if (after == before)
+                continue;
+            if (!await log.RecordProgressAsync(
+                    active, unchecked((int)after.PackedValue), cancellationToken)
+                .ConfigureAwait(false))
+            {
+                throw new InvalidDataException(
+                    $"Quest {active.QuestId} changed while reporting a cleared quest.");
+            }
+
+            changes.Add(new QuestProgressChange(active.QuestId, before.PackedValue,
+                after.PackedValue));
+        }
+
+        return changes;
+    }
 }

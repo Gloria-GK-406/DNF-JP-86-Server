@@ -73,7 +73,8 @@ public sealed class ApplyMonsterKillCommandHandler(
         var facts = new List<QuestProgressFact>
         {
             new QuestEnemyDefeated(
-                command.DungeonId, command.Difficulty, command.Monster.Code, command.EnemyType),
+                command.DungeonId, command.Difficulty, command.Monster.Code, command.EnemyType,
+                command.Monster.Rank),
         };
         if (granted is not null)
             facts.Add(new QuestHoldingsChanged());
