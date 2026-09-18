@@ -33,7 +33,7 @@
 
 | 目的 | 去处 |
 |---|---|
-| **客户端到底有哪些协议**（静态可见的全部 1410 条，含官方名与 body 初稿） | [Game 协议全量索引](game/index.md) |
+| **客户端到底有哪些协议**（A21 静态索引：846 个 CMD 交换页、839 个 NOTI 页；另列实帧/发送行为证明的静态盲区例外） | [Game 协议全量索引](game/index.md) |
 | 有哪些协议**正在做/已做完** | [协议清单](catalog.md) |
 | 某条协议的全部细节 | 清单里该行链接的协议文档 |
 | **证据该怎么写、冲突时谁赢、错了怎么删** | [evidence.md](evidence.md) |
@@ -85,6 +85,21 @@ protocol/
 
 跨多条协议反复出现的 header、长度编码、列表模式、构包原语或定位技巧，应从单条协议文档
 **提升**到 `patterns/`，并在该协议文档里回链。
+
+## 与当前服务端对账
+
+当前服务端源码只能回答“代码注册/可发送了什么”，不能证明协议号、布局、响应关系或客户端
+效果正确。新增或删除 decoder/encoder 后，在仓库根运行：
+
+```powershell
+python protocol/patterns/data/check-server-documentation-sync.py --repo-root .
+```
+
+检查器会对账已注册 C→S decoder、encoder-backed S→C CMD/NOTI、catalog 登记、协议页和 catalog
+本地链接。差集归零只代表**实现覆盖已被文档看见**；成熟度仍须由 A21 客户端逆向、线级样本与
+真实客户端行为共同裁决。显式动态发送映射位于
+[`server-wire-overrides.tsv`](patterns/data/server-wire-overrides.tsv)，它是静态分析补充输入，
+同样不是协议真相。
 
 ## 证据等级
 

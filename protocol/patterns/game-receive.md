@@ -5,7 +5,12 @@ S→C 是**另一套机制**，本页记录它。地址约定（RVA / VA）见
 [game-frame 的地址约定小节](game-frame.md#地址约定rva-还是-va先读这一节)——本页所有
 `RVA` 标注都按那条规则换算过。
 
-- 支持客户端 SHA-256：`F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`
+- 本页前半保留 A12 指令级机制证据，客户端 SHA-256：
+  `F78F0AEA5137DF06B63ED0F7470B66F3A24D061B69D4DA13758E65574A7FC04C`。
+- 当前 A21 锚点、原语与普查来源见
+  [`data/probes/a21-census-anchors.md`](data/probes/a21-census-anchors.md)，客户端 SHA-256：
+  `1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`。A12 RVA 和计数不得
+  直接当成 A21 结论；当前 A21 汇总见[文末对照](#当前-a21-与-cs-普查对照)。
 
 ## 为什么调用栈在 S→C 上不管用
 
@@ -218,6 +223,9 @@ trace 记不到 selector（原语只看得见流），而同一个 type 在两�
 
 ## 两张注册表 = CMD 与 NOTI
 
+> 本节的 RVA、批次规模与 1086/1036 初始通知值是 A12 指令级基线；机制用于说明两族为何必须
+> 分开，当前 A21 数字与地址以[文末对照](#当前-a21-与-cs-普查对照)和 A21 锚点页为准。
+
 客户端有**两张并存的注册表**，各自是进程级懒汉单例，在同一处一次性建起来
 （`RVA 0x00D8878F`）：
 
@@ -242,8 +250,8 @@ call 0xd8a010      ; orchestrator B → 另 3 个批量函数 → 500 条注册
 | orchestrator | `0x00D89D40` | `0x00D8A010` |
 | 批量函数 | `0x008C5920`(41) `0x008D04C0`(75) `0x008F3C70`(216) | `0x0090BD20`(147) `0x009301C0`(210) `0x0093EAD0`(143) |
 | 分发器 | `0x00D855E0` | `0x00D856F0` |
-| 已普查 type | 静态 331 + 动态 207 = **538**，max `0x0435` | 静态 499 + 动态 229 = **728**，max `0x0405` |
-| type 空间容量 | **1086** | **1036** |
+| A12 已普查 type | 静态 331 + 动态 207 = **538**，max `0x0435` | 静态 499 + 动态 229 = **728**，max `0x0405` |
+| A12 初始通知值 | **1086** | **1036** |
 
 两个 orchestrator 都是 `mov esi, ecx` 后把**同一个 `this`** 反复传给自己名下三个批次，
 所以每个 orchestrator 名下的三批注册进同一张表。
@@ -264,7 +272,7 @@ call 0xd8a010      ; orchestrator B → 另 3 个批量函数 → 500 条注册
    ```
 
    所以**客户端只发 CMD，永远不发 NOTI**；NOTI 是单向的服务端推送通道。
-3. **type 空间容量把两张表钉死。** 服务端在初始连接通知里告诉客户端
+3. **A12 初始通知的边界值辅助钉死两张表。** 服务端在初始连接通知里告诉客户端
    `CommandPacketCount = 1086`、`NotificationPacketCount = 1036`
    （见 `Dfo.Server.Protocol/Game/InitialConnection/GameInitialConnectionPayloadCodec.cs`）。
    表 A 的最大 type 是 `0x0435` = **1077 > 1036**，装不进 NOTI 空间，只能是 CMD；
@@ -353,7 +361,7 @@ call  0x00D855C0 / 0x00D85680
 （只在 TSV 里留下 `0x00D855D6` / `0x00D85696` 两行 `no-3-pushes`）。放行该 thunk 后
 **439 个点全部解出**，没有一个未解析。
 
-### 合并后的普查规模
+### A12 合并后的普查规模
 
 | 指标 | 表 A（CMD） | 表 B（NOTI） |
 |---|---:|---:|
@@ -363,7 +371,7 @@ call  0x00D855C0 / 0x00D85680
 | 运行时转发器得到的 type | 207 | 229 |
 | **合计不同 type** | **538** | **728** |
 | 最大 type | `0x0435` (1077) | `0x0405` (1029) |
-| 空间容量 | 1086 | 1036 |
+| A12 初始通知值 | 1086 | 1036 |
 
 两条路径得到的 type 集合**零重叠**（动态 207/229 全是静态没有的），与"同表内一个 type 只有
 一个 handler"的覆盖语义相符。两表都出现的 type 共 389 个，仅表 A 149 个，仅表 B 339 个；
@@ -400,16 +408,21 @@ S→C 合计 **1266** 个不同的 `(command, type)` 对。
 （差 `+0xAA59BA` / `+0x2F8ED3`），因为它们是 handler 再往下调用的函数发出的——
 `0x01DD` 少一层、`0x00AB` 多两层，与各自记录里的栈层数一致。
 
-## 与 C→S 普查的对照
+## 当前 A21 与 C→S 普查对照
 
 | | C→S | S→C |
 |---|---|---|
-| 锚点 | `MakeHeader` `0x1C90460` 的直接调用点 | `Register` `0x00D89FC0` 的直接调用点 |
+| 锚点 | `MakeHeader` `0x0234D1E0` 的直接调用点 | `Register` `0x0123C4A0` + CMD/NOTI forwarder |
 | 得到 | type + 构包点 | type + handler 入口 |
 | 协议族 | 全部是 CMD（`MakeHeader` 写死 command 1） | CMD 表 A + NOTI 表 B |
-| 规模 | 1082 点 / 604 type | 1271 点 / 1266 个 `(command,type)` 对（A 538 + B 728） |
-| 一对多 | 一个 type 多个构包点（平均 1.79） | 同表内 type → handler 唯一（覆盖语义）；389 个 type 在两张表各有一份 |
-| 取字段 | 写入原语 + `MakeHeader`/`Finalize` | 读取原语 + 全局入站流 `0x031C7E00` |
+| 规模 | **1411 个调用点；1391 点解析为 762 type** | **1515 点 / 1510 个 `(command,type)` 对**（CMD 671 + NOTI 839） |
+| 一对多 | 一个 type 可有多个构包点 | 同表内 type 最终按覆盖语义绑定一个 handler；CMD/NOTI 同号仍是两个 identity |
+| 取字段 | A21 写入原语 + `MakeHeader`/`Finalize` | A21 读取原语 + 全局入站流 |
 | 盲区 | 被混淆的第二代码区扫不到 | 约 25% 的 handler 不读 body，无法从指令推出布局 |
 
-两者都用同一套「前向对齐投票」取立即数，理由见 game-frame。
+这些数字来自当前 [`protocol-identity.tsv`](data/protocol-identity.tsv)，不是上方 A12 计数的平移。
+其余 20 个 C→S 调用点保留为未解析分类，不能把“行数”误写成 type 数。全量索引另纳入 84 个
+只有 CMD 响应 handler、静态未找到请求 builder 的 type，因此有 846 个 CMD 交换页。
+A21 初始通知实帧携带 `CmdPacketType.END = 1271`、`NotiPacketType.END = 1218`；它们是枚举
+边界值，不是当前可见注册数。两方向仍使用同一套「前向对齐投票」取立即数，理由见
+[game-frame](game-frame.md)。

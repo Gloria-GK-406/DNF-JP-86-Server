@@ -8,7 +8,7 @@
 
 来源消耗、全部物品/宠物实例、账户期限和幸运值同事务提交。失败回滚且不发送成功提示；成功先 CMD，再背包绝对更新，再期限或宠物通知。原生魔盒成功包对客户端有扣减副作用，通知不自动重试，旧会话收件人会被过滤。
 
-协议条目：[0450](../protocol/game/client-to-server/0x0450.md)、[00D0](../protocol/game/client-to-server/0x00D0.md)、[00A0](../protocol/game/client-to-server/0x00A0.md)、[0207](../protocol/game/client-to-server/0x0207.md)、[NOTI 0042](../protocol/game/server-to-client/NOTI-0x0042.md)。[流程文档](../protocol/patterns/flow-package-opening.md)记录事务顺序、业务策略、PVF 边界与待实机项。机器区保持不变，人工区纠正 0450 错误长度和 0207 头部错误语义；清单均标为“实现服务端功能，待实机”。
+协议条目：[0450](../protocol/game/client-to-server/0x0450.md)、[00D0](../protocol/game/client-to-server/0x00D0.md)、[00A0](../protocol/game/client-to-server/0x00A0.md)、[0207](../protocol/game/client-to-server/0x0207.md)、[NOTI 0042](../protocol/game/server-to-client/NOTI-0x0042.md)。[流程文档](../protocol/patterns/flow-package-opening.md)记录事务顺序、业务策略、PVF 边界与待实机项。初次交付时机器区保持不变，人工区纠正 0450 错误长度和 0207 头部错误语义；当时四条入口均标为“实现服务端功能，待实机”。交付后的实机回填见本文末尾。
 
 ## 验证
 
@@ -52,4 +52,10 @@ dotnet build Server/86JP.Server.slnx -c Release --no-restore -v q
 
 初始化后比对 `items`、`item_slots`、`account_premiums` 全表摘要与钱包，均未改变：[runtime-after.json](Verification/Package-Opening-20260909/runtime-after.json)。账户点券仍为 44310；角色 1 的 slot 65 保留 `10007476 ×1`，slot 66 为 `10007368 ×60`，slot 122 为 `10007367 ×60`。
 
-仍需用户实机打开现有魔盒、赛丽亚魔盒和装扮礼包，确认弹窗、幸运效果、属性/期限与重登状态；此前不标记 ClientVerified。
+本节记录的是部署完成当刻的状态：当时仍需用户实机打开现有魔盒、赛丽亚魔盒和装扮礼包，确认弹窗、幸运效果、属性/期限与重登状态；此前不标记 ClientVerified。
+
+## 交付后实机回填
+
+2026-09-09 交付后，用户确认 A21 客户端的赛丽亚魔盒批量和单个开启均正常；服务端日志摘要显示成功结算，并出现 `seria_luck_value` 的 `0→2`、`2→4`、`4→6`、`6→8`、`8→2` 等迁移。由此，0450/00D0 的**已观察赛丽亚成功路径**可以标记 ClientVerified。
+
+这次后续反馈的原始逐帧抓包和完整运行日志没有归档到仓库，故证据边界止于“真实客户端完成了上述路径 + 服务端观察到对应状态迁移”。它不证明 0450/00D0 的全部响应字段语义，也不覆盖第一层魔盒的全部展示分支、00A0 普通礼包、0207 装扮礼包、特殊奖励逐项展示或重登后的持久化 UI。后四类仍需新的可归档实测证据。

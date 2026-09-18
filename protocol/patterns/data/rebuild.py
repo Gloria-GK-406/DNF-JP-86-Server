@@ -9,6 +9,10 @@ Regeneration is safe to run at any time. Documents written by hand are skipped, 
 zones are replaced in place, and field meanings come from `meanings/*.tsv` rather than
 from the documents, so nothing a person wrote is at risk.
 
+The client dump and upstream enum source are external to this repository. When their
+historical D: paths are unavailable, set ``DNF_A21_DUMP_PATH`` and
+``DNF_A21_ENUMS_PATH``; every subprocess inherits the same frozen inputs.
+
 usage: rebuild.py [--skip-controls]
 """
 import os

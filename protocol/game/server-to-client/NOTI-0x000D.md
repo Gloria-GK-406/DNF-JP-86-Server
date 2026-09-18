@@ -31,7 +31,7 @@ BodyLength = 未知（字段集合已知不完整）
 | Offset | Size | Enc | 可能含义 | 置信度 | 证据 |
 |---:|---:|---|---|---|---|
 | 0 | 1 | `u8` | 物品列表类型 listType / 物品空间 id；上游枚举 InventoryListType：0=主背包 1=时装 2=个人仓库 3=装备 7=宠物 12=账号金库 | Confirmed | 上游 Network/Builders/Init/ItemListPacketBuilder.cs:227、:106、:147 三条构造路径首字节都写 (byte)listType；枚举值见 Game/Inventory/InventoryListType.cs:5-10，取自 `[0x3a29de4]` |
-| 1 | 2 | `u16` | 紧随 listType 的列表级 u16，含义随 listType 分支而异，**逐容器不同，「容量」这个概括不准**（主背包是扩容阶段键、装扮栏恒 0、个人货柜才是容量——见本文「补记（2026-09-07，同日第二次）」的 `listParam16` 一节）：普通列表写 listParam16，账号金库写 AccountCargo.SelectionKey，宠物列表此处写的却是条目数 count | High | 上游 ItemListPacketBuilder.cs:228 写 listParam16、:148 写 SelectionKey、:107 宠物分支在同一位置写 count，取自 `[ebp - 0x194]` |
+| 1 | 2 | `u16` | 紧随 listType 的列表级 u16，含义随 listType 分支而异，逐容器不同；“容量”不是通用含义（主背包是扩容阶段键、装扮栏当前发 0、个人货柜才是容量、账号金库写 SelectionKey，宠物分支在同一位置写 count） | High | 上游 ItemListPacketBuilder.cs:228 写 listParam16、:148 写 SelectionKey、:107 宠物分支写 count；协议页 2026-09-07 实机/实现补记，取自 `[ebp - 0x194]` |
 | 3 | 2 | `u16` | 普通列表分支（主背包/时装/个人仓库/装备）在此写 u16 条目数 count，其后即条目区；账号金库分支此处起是 4 字节 Money（金库内金币），与 offset 5 合起来构成该 u32 | High | 上游 ItemListPacketBuilder.cs:220-231 普通分支 u8+u16+u16(count)；:146-152 账号金库分支 u8+u16+u32(Money)+u16，取自 `[ebp - 0x19c]` |
 | 5 | 2 | `u16` | 账号金库分支下属于 body[3..6] 的 Money(u32) 的后半——该 u32 在客户端被拆成两次 u16 读，故此处出现字段边界；普通列表分支此偏移已进入条目区 | Hypothesis | 上游 ItemListPacketBuilder.cs:149 在 listType+SelectionKey 之后写 4 字节 Money，恰好占 body[3..6]，取自 `[ebp - 0x184]` |
 | 7 | 1 | `u8` | 账号金库分支的条目数 count：上游头部为 u8 listType + u16 SelectionKey + u32 Money，count 正落在 offset 7，其后紧跟条目区 | High | 上游 ItemListPacketBuilder.cs:146-152 依次 WriteByte/WriteUInt16/WriteInt32/WriteUInt16(count)/WriteBytes(entries)，取自 `[ebp - 0x17e]` |

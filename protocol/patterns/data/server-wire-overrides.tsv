@@ -1,0 +1,20 @@
+family	symbol	type	source	reason
+NOTI	AccountCharacterRosterResponse	0x0002	Game/AccountRoster/AccountCharacterRosterResponseEncoder.cs	encoder constructs payloads directly
+NOTI	OtherCharacterDetailResponse	0x0002	Game/AccountRoster/OtherCharacterDetailSlice.cs	encoder constructs payloads directly
+NOTI	GameServerNoticeMessage	0x01F7	Game/InformNotice/InformNoticeSlice.cs	wire type is owned by a shared static payload helper
+NOTI	UserVisibilityMessage	0x0165	Game/StateSynchronization/SupplementalSynchronizationCodec.cs	type is returned by a supplemental codec method
+CMD	CloneTitleStateMessage	0x0239	Game/StateSynchronization/SupplementalSynchronizationCodec.cs	type is returned by a supplemental codec method
+NOTI	AccountRosterStateMessage	0x0002	Game/StateSynchronization/SupplementalSynchronizationCodec.cs	type is returned by a supplemental codec method
+NOTI	HonorProgressStateMessage	0x0289	Game/StateSynchronization/SupplementalSynchronizationCodec.cs	type is returned by a supplemental codec method
+NOTI	GrowthCapsuleStateMessage	0x0025	Game/StateSynchronization/SupplementalSynchronizationCodec.cs	type is returned by a supplemental codec method
+CMD	EntryAdmissionRejectedCommandMessage	0x0004	Game/StateSynchronization/SupplementalSynchronizationCodec.cs	type is returned by a supplemental codec method
+NOTI	EntryAdmissionNoticeMessage	0x01F7	Game/InformNotice/InformNoticeSlice.cs	codec delegates to the shared server-notice payload helper
+NOTI	PvpLobbySnapshotMessage	0x0002	Game/StateSynchronization/SupplementalSynchronizationCodec.cs	one registered message emits a multi-payload batch
+NOTI	PvpLobbySnapshotMessage	0x0029	Game/StateSynchronization/SupplementalSynchronizationCodec.cs	one registered message emits a multi-payload batch
+NOTI	PvpParticipantPublicationMessage	0x0002	Game/StateSynchronization/SupplementalSynchronizationCodec.cs	type is returned by a supplemental codec method
+NOTI	TrailingEquipmentLockSnapshotMessage	0x00FB	Game/StateSynchronization/SupplementalSynchronizationCodec.cs	type is returned by a supplemental codec method
+NOTI	AcceptedQuestProgressMessage	0x023F	Game/StateSynchronization/SupplementalSynchronizationCodec.cs	type is returned by a supplemental codec method
+NOTI	PetRevivalStateMessage	0x006B	Game/StateSynchronization/SupplementalSynchronizationCodec.cs	one registered message emits two payloads
+NOTI	PetRevivalStateMessage	0x0067	Game/StateSynchronization/SupplementalSynchronizationCodec.cs	one registered message emits two payloads
+NOTI	ExpertStoreClosedMessage	0x021C	Game/StateSynchronization/SupplementalSynchronizationCodec.cs	type is returned by a supplemental codec method
+NOTI	TownDepartureMessage	0x0006	Game/StateSynchronization/SupplementalSynchronizationCodec.cs	type is returned by a supplemental codec method

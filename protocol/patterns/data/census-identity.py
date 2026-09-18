@@ -3,7 +3,7 @@
 
 This supersedes the two earlier single-purpose censuses by resolving the one thing
 they each left open: which of the client's two registries a handler belongs to, and
-the 439 registrations that happen through runtime forwarders rather than the startup
+the registrations that happen through runtime forwarders rather than the startup
 batches. Identity here means the full quadruple endpoint + direction + family + type,
 because the client really does keep two unrelated hash tables and a bare type number
 does not select a protocol.
@@ -13,31 +13,35 @@ voting used by the earlier censuses (x86 cannot be decoded backwards unambiguous
 every alignment in a window before the call is swept forwards and those landing exactly
 on the call vote on the operands):
 
-  MakeHeader  0x01C90460   push <type>                      -> C->S, always CMD
-  Register    0x00D89FC0   push <ctx>/<handler>/<type>       -> S->C, family by batch
-  forwarders  0x00D855C0   push <ctx>/<handler>/<type>       -> S->C table A (CMD)
-              0x00D85680   ... then a 0-arg thunk            -> S->C table B (NOTI)
+  MakeHeader  0x0234D1E0   push <type>                      -> C->S, always CMD
+  Register    0x0123C4A0   push <ctx>/<handler>/<type>      -> S->C, family by batch
+  forwarders  0x01237660   push <ctx>/<handler>/<type>      -> S->C table A (CMD)
+              0x01237720   ... then a 0-arg thunk           -> S->C table B (NOTI)
 
 Family attribution differs per path and is the reason this script exists:
 
   * Direct `Register` sites carry the registry in `ecx`, not as an immediate, so the
     site itself cannot say which table it wrote. The six startup batch functions each
-    belong to exactly one orchestrator, and their address ranges separate cleanly at
-    0x00900000, so the batch containing the site decides the family.
+    belong to exactly one orchestrator. A21's batch ranges overlap by family, so the
+    explicit BATCHES mapping below -- recovered from startup wiring -- decides the family.
   * Forwarder sites need no inference: each forwarder fetches its own registry
     internally, so the forwarder identity *is* the family.
 
 Both call shapes interpose a call between the pushes and the anchor, which the naive
 voting rule treats as a block boundary and discards. GetWriter (builder path) and the
-0-arg thunk 0x008BC420 (forwarder path) are therefore declared transparent; without
-that the forwarder path resolves zero of its 439 sites.
+0-arg thunk 0x00D02C30 (forwarder path) are therefore declared transparent; without
+that the A21 forwarder path resolves none of its 574 call sites.
 
 RVA/VA: the dump is indexed by RVA and pushed handler addresses are absolute VAs.
 RVA = VA - 0x00400000. Reading a pushed handler as an RVA lands mid-instruction and
 makes every handler look like garbage.
 
+External input: set ``DNF_A21_DUMP_PATH`` when the historical local path below is not
+available. The dump is intentionally not checked into this repository.
+
 usage: census-identity.py [out.tsv]
 """
+import os
 import sys
 import struct
 import collections
@@ -52,7 +56,10 @@ from capstone import Cs, CS_ARCH_X86, CS_MODE_32
 # swap back is a copy, not another hunt.
 # ---------------------------------------------------------------------------
 CLIENT = "A21"          # DNF.unpacked-b1-debug.exe, SHA-256 1F8244D3...
-DUMP = r"D:\project\DNF\DNFClient-A21-protocol\dumps\dnf-dump-20260822-232754-263-26888\DNF-memory-rva.bin"
+DUMP = os.environ.get(
+    "DNF_A21_DUMP_PATH",
+    r"D:\project\DNF\DNFClient-A21-protocol\dumps\dnf-dump-20260822-232754-263-26888\DNF-memory-rva.bin",
+)
 IMAGE_BASE = 0x00400000
 
 GET_WRITER = 0x0234CA50         # A12: 0x01C8F5B0
@@ -85,6 +92,11 @@ FORWARDER_INTERNAL = {0x01237676, 0x01237736}           # A12: 0x00D855D6, 0x00D
 # alignments must agree with the true one to affect the majority.
 WINDOW = 128
 
+if not os.path.isfile(DUMP):
+    sys.exit(
+        "A21 dump not found: %s\nSet DNF_A21_DUMP_PATH to a 122085376-byte "
+        "DNF-memory-rva.bin from client SHA-256 1F8244D3..." % DUMP
+    )
 data = open(DUMP, "rb").read()
 md = Cs(CS_ARCH_X86, CS_MODE_32)
 
@@ -255,7 +267,8 @@ for site, why, path in sorted(s2c_unresolved):
     rows.append("S2C\t?\t?\t1\t\t\tunresolved:%s\t0x%08X\t%s" % (why, site, path))
 
 out = sys.argv[1] if len(sys.argv) > 1 else "protocol-identity.tsv"
-open(out, "w").write("\n".join(rows) + "\n")
+with open(out, "w", encoding="utf-8", newline="\n") as stream:
+    stream.write("\n".join(rows) + "\n")
 
 print("C->S  MakeHeader sites : %d" % len(call_sites(MAKE_HEADER)))
 print("      types resolved   : %d sites / %d types  (range 0x%04X..0x%04X)"

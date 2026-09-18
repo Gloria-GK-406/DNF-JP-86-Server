@@ -32,7 +32,7 @@ BodyLength = 未知（字段集合已知不完整）
 |---:|---:|---|---|---|---|
 | 0 | 1 | `u8` | 物品空间/背包列表类型 itemSpace（InventoryListType：0=主背包 1=时装 2=个人仓库 3=装备 7=宠物 12=账号金库 29=快捷栏） | Confirmed | 上游 Network/Builders/Inventory/ItemListUpdateBuilder.cs:48 WriteByte((byte)itemSpace)（BuildItemSpaceUpdateBody）；空更新路径 :101 同位置同值；枚举见 Game/Inventory/InventoryListType.cs:5-18，取自 `[ebp - 0x268]` |
 | 1 | 2 | `u16` | 其后条目区的条目数 count；上游每成功写入一条槽位条目就自增一次 | Confirmed | 上游 ItemListUpdateBuilder.cs:49 WriteUInt16(count)，count 由 :44-45 与 :69-78 每条自增；空更新路径 :102 写 slotIndexes.Count，取自 `[ebp - 0x268]` |
-| 3 | 101 | `bytes` | 条目区：count 条槽位更新条目连续排列，单条长度随 offset 0 的列表类型而定（**装扮栏为 131 字节，其余为 101**；见下方补记，此处原写的 `0x7E`＝126 是 A12 的总长） | High | 上游 ItemListUpdateBuilder.cs:50 WriteBytes(entries)；单条长度表见 :114-123 GetUpdateEntrySize，取自 `[ebp - 0x218]` |
+| 3 | 101 | `bytes` | 条目区：count 条槽位更新条目连续排列，单条长度随 offset 0 的列表类型而定（A21 装扮栏为 131 字节，其余为 101；旧 `0x7E`=126 是 A12 总长） | High | 上游 ItemListUpdateBuilder.cs:50、:114-123；协议页 2026-09-07 A21 实机/实现补记，取自 `[ebp - 0x218]` |
 
 `可能含义` 为 `unknown` 表示**字段边界已确定但含义无证据**——这类未知靠实机改值做差分即可解决，与上面的「结构未知」不是一回事。
 

@@ -152,6 +152,28 @@ def load_meanings():
     return out
 
 
+def load_index_overrides():
+    """Load evidence-backed index summaries that static layout analysis cannot express."""
+    path = os.path.join(os.path.dirname(LAYOUTS), "index-overrides.tsv")
+    out = {}
+    if not os.path.exists(path):
+        return out
+    with open(path, encoding="utf-8") as f:
+        header = f.readline().rstrip("\n").split("\t")
+        for number, line in enumerate(f, 2):
+            if not line.strip() or line.startswith("#"):
+                continue
+            row = dict(zip(header, line.rstrip("\n").split("\t")))
+            canon = canonical_type(row.get("type", ""))
+            key = (row.get("direction", "").strip(), row.get("family", "").strip(), canon)
+            if canon is None or key[0] not in {"C2S", "S2C"} or key[1] not in {"CMD", "NOTI"}:
+                sys.exit("invalid index override at %s:%d" % (path, number))
+            if key in out:
+                sys.exit("duplicate index override at %s:%d: %s" % (path, number, key))
+            out[key] = (row.get("status", "").strip(), row.get("rule", "").strip())
+    return out
+
+
 def field_rows(entry, meanings, fam, ty):
     """Render fields in wire order, with repeat groups shown inline where they occur.
 
@@ -411,6 +433,7 @@ with open(INVENTORY, encoding="utf-8") as f:
 
 layouts = json.load(open(LAYOUTS, encoding="utf-8"))
 meanings = load_meanings()
+index_overrides = load_index_overrides()
 stats = collections.Counter()
 index = {"C2S": [], "S2C": []}
 
@@ -429,6 +452,15 @@ def index_table(items, direction):
     L = ["| Type | 名称 | Body 状态 | 长度规则 | 文档 |",
          "|---|---|---|---|---|"]
     for row, entry, status in items:
+        override = index_overrides.get((direction, row["family"], row["type"]))
+        if override is not None:
+            override_status, override_rule = override
+            handwritten = " **(手写)**" if status == "skipped-handwritten" else ""
+            L.append("| `%s` | `%s` | %s | %s | [%s](%s)%s |"
+                     % (row["type"], row["name"] or "—", override_status,
+                        override_rule, os.path.basename(row["doc"]),
+                        row["doc"].split("game/", 1)[1], handwritten))
+            continue
         if status == "skipped-handwritten":
             # Never print the machine verdict for a hand-written document. Those carry
             # capture-confirmed conclusions this extractor cannot reach, and showing
@@ -479,11 +511,21 @@ idx += ["", "## Server → Client（NOTI 族，服务端主动推送）", "",
 idx += index_table(index["S2C"], "S2C")
 idx += ["", "### S→C 的 CMD 响应", "",
         "CMD 的响应与其请求同 type、同属一次交换，因此记在该 type 的 **C→S 文档**内，"
-        "上表不重复列出。下面是唯一的例外：一条在该约定确立之前就已单独成篇的手写记录，"
-        "其请求文档反向链接到它。", "",
+        "上表不重复列出。下面两条是在该约定确立前或专项逆向中已经单独成篇的手写记录，"
+        "各自请求文档会反向链接。", "",
         "| Type | 名称 | 文档 |", "|---|---|---|",
         "| `0x0001` | `LOGIN` 响应 | "
-        "[CMD-0x0001.md](server-to-client/CMD-0x0001.md) **(手写)** |"]
+        "[CMD-0x0001.md](server-to-client/CMD-0x0001.md) **(手写)** |",
+        "| `0x0040` | `BUY_CERASHOP_ITEM` 响应 | "
+        "[CMD-0x0040.md](server-to-client/CMD-0x0040.md) **(手写)** |"]
+idx += ["", "### 静态普查不可见、但 A21 实帧已确认的 C→S CMD", "",
+        "混淆代码区里的构包器可能不经过当前普查可扫描的 `.text` 路径。下面的身份由 A21 真客户端"
+        "实帧直接证明，使用手写页；生成器不会用自己的沉默覆盖它。", "",
+        "| Type | 名称 | 文档 |", "|---|---|---|",
+        "| `0x0075` | `BOSS_DIE_CHECK` | "
+        "[0x0075.md](client-to-server/0x0075.md) **(手写)** |",
+        "| `0x0084` | `BACK_2_VILLAGE` | "
+        "[0x0084.md](client-to-server/0x0084.md) **(手写)** |"]
 idx += ["", "### 客户端不接收、但服务端会发的 NOTI", "",
         "本索引的表来自**接收注册表普查**，所以只覆盖客户端注册了 handler 的 type。"
         "下面这条没有 handler——客户端收到就丢——但 A21 参照服务器在入场批次里发它，"

@@ -1,0 +1,16 @@
+direction	family	type	status	rule
+C2S	CMD	0x0002	ClientVerified（A21 双客户端组队路径）	`≥ 15`；当前真实样本 `31`
+C2S	CMD	0x0008	**手写记录；ClientVerified（mode 2/3）**	`3`
+C2S	CMD	0x000A	ClientVerified（A21 type 0）	`7` 或 `9`
+C2S	CMD	0x000B	ClientVerified（A21 type 0；真实 body 待归档）	`7` 或 `16`
+C2S	CMD	0x000C	ClientVerified（A21 12B direct 创建/更新；`16+n` inline-title 创建，更新仍待实帧）	`12` 或 `16+n`
+C2S	CMD	0x000D	ClientVerified（A21 普通成员、多人队长与单人队主动离队）	`0`
+C2S	CMD	0x00A6	ClientVerified（A21 当前在队查询）	`0`
+S2C	NOTI	0x0002	布局部分可得；subtype 3 ClientVerified	subtype 3 最小 `165`
+S2C	NOTI	0x0006	WireCaptured（A21 正常退出）	`2`
+S2C	NOTI	0x0007	ClientVerified（A21 邀请 UI；真实 body 待归档）	`13`
+S2C	NOTI	0x0008	Implemented（接受链 UI 通过；待逐帧归因）	`7`
+S2C	NOTI	0x0009	ClientVerified（A21 成员与同区非成员 type-0/type-1/clear，原生 ID `0x11` add/update/delete；type-1 22B 静态）	baseline `2`；type-0 `61/65+n`；type-1 `18/22+n`；clear `5`
+S2C	NOTI	0x000B	Implemented（双端已上报建队 UI 通过；待逐帧归因/P2P）	`1 + n×22`
+S2C	NOTI	0x0018	ClientVerified（A21 gate/normal audience）	`≥ 12`
+S2C	NOTI	0x0099	ClientVerified（A21 双端初始 HP）	`1 + n×5`

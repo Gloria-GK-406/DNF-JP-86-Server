@@ -34,8 +34,12 @@ the handler delegates to. Calls are followed to a bounded depth and the reads ar
 in call order. Depth and branch presence are reported with each result so a reader can
 tell a straight-line certainty from a reconstructed guess.
 
+External input: set ``DNF_A21_DUMP_PATH`` when the historical local path below is not
+available. Use the same dump as the identity census.
+
 usage: extract-layout.py <inventory.tsv> <out.json>
 """
+import os
 import sys
 import json
 import struct
@@ -51,7 +55,10 @@ from capstone import Cs, CS_ARCH_X86, CS_MODE_32
 # The A12 values are kept beside each so a swap back is a copy.
 # ---------------------------------------------------------------------------
 CLIENT = "A21"          # DNF.unpacked-b1-debug.exe, SHA-256 1F8244D3...
-DUMP = r"D:\project\DNF\DNFClient-A21-protocol\dumps\dnf-dump-20260822-232754-263-26888\DNF-memory-rva.bin"
+DUMP = os.environ.get(
+    "DNF_A21_DUMP_PATH",
+    r"D:\project\DNF\DNFClient-A21-protocol\dumps\dnf-dump-20260822-232754-263-26888\DNF-memory-rva.bin",
+)
 IMAGE_BASE = 0x00400000
 TEXT_HI = 0x02C29000            # end of .text.  A12: 0x01D10000
 OPAQUE_LO = 0x0355E000          # first non-code address; calls beyond are unfollowable.
@@ -131,6 +138,11 @@ def detect_repeat_groups(insns, fields, start):
     flat = [f for f in fields if id(f) not in grouped_ids]
     return flat, groups
 
+if not os.path.isfile(DUMP):
+    sys.exit(
+        "A21 dump not found: %s\nSet DNF_A21_DUMP_PATH to the same "
+        "DNF-memory-rva.bin used by census-identity.py." % DUMP
+    )
 data = open(DUMP, "rb").read()
 md = Cs(CS_ARCH_X86, CS_MODE_32)
 
@@ -492,7 +504,8 @@ for row in inventory:
     stats[(row["direction"], entry["state"])] += 1
     out[key] = entry
 
-json.dump(out, open(sys.argv[2], "w"), indent=1)
+with open(sys.argv[2], "w", encoding="utf-8", newline="\n") as stream:
+    json.dump(out, stream, indent=1)
 
 print("extracted %d protocols" % len(out))
 for direction in ("C2S", "S2C"):
