@@ -5,8 +5,8 @@ namespace Dfo.Server.Abstractions.World;
 
 /// <summary>Confirmed completion and settlement distinctions for one frozen dungeon run.</summary>
 /// <param name="CanComplete">
-/// Whether the ordinary room rule and, for a quest-linked run, its frozen quest condition permit
-/// the exit and result settlement.
+/// Whether the run has opened its clear after the boss room was verified empty. Quest progress
+/// consumes that same clear event and cannot gate it.
 /// </param>
 /// <param name="QuestMaze">
 /// Whether PLAY_RESULT identifies this run as a quest maze. Other presentation and card behavior

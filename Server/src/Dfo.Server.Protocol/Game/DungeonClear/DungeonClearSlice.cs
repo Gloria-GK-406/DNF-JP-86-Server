@@ -675,17 +675,11 @@ public sealed class SetPlayResultHandler(
             return;
         }
 
-        // Completion is a fact of the frozen shared run, whose story purpose came from the
-        // leader's entry intent. A helper is allowed to settle their own reward even when they do
-        // not hold that quest; asking their quest log would turn a successfully cleared party run
-        // into an unfinishable result screen for that one participant. Solo runs have no explicit
-        // participant list and therefore keep the original subject.
-        var leader = currentRun.PartyMemberCount > 1
-            ? currentRun.Participants.SingleOrDefault(participant => participant.IsLeader)
-            : null;
+        // Both story and ordinary runs settle from the run's verified clear fact. A party
+        // member's personal quest progress is not a second completion gate.
         var settlement = await settlementRules.ForAsync(
-            leader?.AccountId ?? session.AccountId,
-            leader?.CharacterId ?? session.CharacterId,
+            session.AccountId,
+            session.CharacterId,
             currentRun,
             cancellationToken).ConfigureAwait(false);
         if (!settlement.CanComplete)

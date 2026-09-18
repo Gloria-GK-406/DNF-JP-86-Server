@@ -61,6 +61,7 @@ internal static class QuestObjectives
     /// </remarks>
     private static readonly HashSet<string> ClientCounted =
     [
+        // The subtype-6 two-operand dungeon clear variant is overridden as server-owned below.
         "meet npc", "seeking repeat", "get item", "condition under clear", "condition under clear2",
         "normal clear", "use item", "get score", "custom quest", "send chatting", "check life",
         "amplify item", "disjoint item", "equipped item", "check time", "use fortune coin",
@@ -121,6 +122,10 @@ internal static class QuestObjectives
         byte selector)
     {
         ArgumentNullException.ThrowIfNull(definition);
+        if (definition.DungeonClearRequirement is not null)
+            return QuestTrigger.IsReportable(selector)
+                ? QuestObjectiveAuthority.Server
+                : QuestObjectiveAuthority.None;
         if (Normalize(definition.ObjectiveTypeCode) != "hunt enemy")
             return AuthorityOver(definition.ObjectiveTypeCode, selector);
         if (!QuestTrigger.IsReportable(selector))

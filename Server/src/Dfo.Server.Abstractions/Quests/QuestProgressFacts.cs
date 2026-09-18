@@ -16,6 +16,9 @@ public sealed record QuestEnemyDefeated(
     int DungeonId, byte Difficulty, int EnemyCode, int EnemyType,
     MonsterRank? Rank = null) : QuestProgressFact;
 
+/// <summary>The run opened its clear after the boss room was verified empty.</summary>
+public sealed record QuestDungeonCleared(int DungeonId, byte Difficulty) : QuestProgressFact;
+
 /// <summary>The authoritative inventory or currency balance changed; item goals are re-read.</summary>
 public sealed record QuestHoldingsChanged : QuestProgressFact;
 

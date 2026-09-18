@@ -15,20 +15,38 @@ public sealed class DungeonClearDomainServiceTests
     private static readonly CharacterId Helper = new(200);
 
     [Fact]
-    public async Task Boss_clear_opens_only_after_room_and_settlement_conditions_are_true()
+    public async Task Verified_boss_room_clear_does_not_wait_for_its_own_quest_trigger()
+    {
+        var runs = new DungeonRunDomainService();
+        var run = runs.Begin(
+            Leader,
+            BossLayout() with
+            {
+                Purpose = DungeonRunPurpose.QuestLinked(
+                    1781, DungeonQuestConnectionState.Active),
+            },
+            difficulty: 0);
+        var service = new DungeonClearDomainService(
+            runs, new MutableRoomCleared { Cleared = true });
+
+        var opened = await service.EvaluateAsync(
+            LeaderAccount, Leader, run.RunId, run.RoomVersion, default);
+
+        Assert.NotNull(opened);
+        Assert.True(runs.Find(Leader)!.ClearOpen);
+    }
+
+    [Fact]
+    public async Task Boss_clear_opens_only_after_the_room_is_cleared()
     {
         var runs = new DungeonRunDomainService();
         var run = runs.Begin(Leader, BossLayout(), difficulty: 0);
         var room = new MutableRoomCleared();
-        var settlement = new MutableSettlementRules();
-        var service = new DungeonClearDomainService(runs, room, settlement);
+        var service = new DungeonClearDomainService(runs, room);
 
         Assert.Null(await service.EvaluateAsync(
             LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
         room.Cleared = true;
-        Assert.Null(await service.EvaluateAsync(
-            LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
-        settlement.CanComplete = true;
 
         var opened = await service.EvaluateAsync(
             LeaderAccount, Leader, run.RunId, run.RoomVersion, default);
@@ -37,11 +55,10 @@ public sealed class DungeonClearDomainServiceTests
         Assert.True(runs.Find(Leader)!.ClearOpen);
         Assert.Null(await service.EvaluateAsync(
             LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
-        Assert.Equal(2, settlement.TimesAsked);
     }
 
     [Fact]
-    public async Task Party_helper_rechecks_the_frozen_leaders_story_condition()
+    public async Task Party_helper_can_open_the_shared_clear()
     {
         var runs = new DungeonRunDomainService();
         var run = runs.BeginParty(
@@ -51,16 +68,13 @@ public sealed class DungeonClearDomainServiceTests
             ],
             BossLayout(),
             difficulty: 0);
-        var settlement = new MutableSettlementRules { CanComplete = true };
         var service = new DungeonClearDomainService(
-            runs, new MutableRoomCleared { Cleared = true }, settlement);
+            runs, new MutableRoomCleared { Cleared = true });
 
         var opened = await service.EvaluateAsync(
             HelperAccount, Helper, run.RunId, run.RoomVersion, default);
 
         Assert.NotNull(opened);
-        Assert.Equal(LeaderAccount, settlement.LastAccountId);
-        Assert.Equal(Leader, settlement.LastCharacterId);
         Assert.Equal([Leader, Helper], opened.Recipients);
     }
 
@@ -69,15 +83,13 @@ public sealed class DungeonClearDomainServiceTests
     {
         var runs = new DungeonRunDomainService();
         var ordinary = runs.Begin(Leader, OrdinaryLayout(), difficulty: 0);
-        var settlement = new MutableSettlementRules { CanComplete = true };
         var service = new DungeonClearDomainService(
-            runs, new MutableRoomCleared { Cleared = true }, settlement);
+            runs, new MutableRoomCleared { Cleared = true });
 
         Assert.Null(await service.EvaluateAsync(
             LeaderAccount, Leader, ordinary.RunId, ordinary.RoomVersion, default));
         Assert.Null(await service.EvaluateAsync(
             LeaderAccount, Leader, ordinary.RunId, ordinary.RoomVersion + 1, default));
-        Assert.Equal(0, settlement.TimesAsked);
     }
 
     private static DungeonLayout BossLayout() => new(
@@ -119,24 +131,4 @@ public sealed class DungeonClearDomainServiceTests
             ValueTask.FromResult(Cleared);
     }
 
-    private sealed class MutableSettlementRules : IDungeonSettlementRuleService
-    {
-        public bool CanComplete { get; set; }
-        public int TimesAsked { get; private set; }
-        public AccountId? LastAccountId { get; private set; }
-        public CharacterId? LastCharacterId { get; private set; }
-
-        public ValueTask<DungeonSettlementRules> ForAsync(
-            AccountId accountId,
-            CharacterId characterId,
-            DungeonRunState run,
-            CancellationToken cancellationToken)
-        {
-            TimesAsked++;
-            LastAccountId = accountId;
-            LastCharacterId = characterId;
-            return ValueTask.FromResult(new DungeonSettlementRules(
-                CanComplete, run.Layout.Purpose.IsQuestLinked));
-        }
-    }
 }

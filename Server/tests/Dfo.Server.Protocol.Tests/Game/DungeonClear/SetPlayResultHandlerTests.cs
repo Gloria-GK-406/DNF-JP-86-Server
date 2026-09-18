@@ -74,7 +74,7 @@ public sealed class SetPlayResultHandlerTests
     }
 
     [Fact]
-    public async Task AnIncompleteQuestLinkedRunCannotBeSettled()
+    public async Task ARunWithoutVerifiedClearCannotBeSettled()
     {
         var bus = new FixedAward(leveledUp: false);
         var purpose = DungeonRunPurpose.QuestLinked(
@@ -88,7 +88,7 @@ public sealed class SetPlayResultHandlerTests
     }
 
     [Fact]
-    public async Task Party_helper_uses_the_frozen_leaders_story_completion_rule()
+    public async Task Party_helper_uses_the_shared_run_clear_rule_not_the_leaders_quest_log()
     {
         var leader = new DungeonRunParticipant(
             new AccountId(9),
@@ -105,8 +105,8 @@ public sealed class SetPlayResultHandlerTests
             leader: leader);
 
         Assert.NotEmpty(sent);
-        Assert.Equal(leader.AccountId, rules.AccountId);
-        Assert.Equal(leader.CharacterId, rules.CharacterId);
+        Assert.Equal(new AccountId(1), rules.AccountId);
+        Assert.Equal(new CharacterId(60), rules.CharacterId);
     }
 
     [Fact]

@@ -400,6 +400,22 @@ public sealed class PvfQuestDefinitionSourceTests
     }
 
     [SkippableFact]
+    public async Task Quest1781ProjectsOnlyItsSubtype6DungeonClearTarget()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var quest = await new PvfQuestDefinitionSource(provider)
+            .GetAsync(1781, CancellationToken.None);
+
+        Assert.NotNull(quest);
+        Assert.Equal(new DungeonClearRequirement(146, -1), quest.DungeonClearRequirement);
+        Assert.Null(PvfQuestDefinitionSource.ProjectDungeonClearRequirement(
+            "condition under clear", [4], [146, -1]));
+        Assert.Null(PvfQuestDefinitionSource.ProjectDungeonClearRequirement(
+            "condition under clear", [6], [146, -1, 1]));
+    }
+
+    [SkippableFact]
     public async Task Quest1776DoesNotFlattenEveryJobsEquipmentIntoJobZeroRewards()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);

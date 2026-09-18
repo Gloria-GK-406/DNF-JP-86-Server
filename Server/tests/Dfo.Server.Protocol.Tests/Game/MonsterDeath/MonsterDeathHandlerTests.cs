@@ -268,7 +268,7 @@ public sealed class MonsterDeathHandlerTests
             new PartyCharacters([leader.CharacterId, member.CharacterId]),
             run,
             killRules,
-            new DungeonClearDomainService(run, killRules, settlement),
+            new DungeonClearDomainService(run, killRules),
             new DungeonClearProjectionDelivery(sessions, run, registry, sender),
             bus,
             new QuestOfferRefreshDomainService(
@@ -291,7 +291,7 @@ public sealed class MonsterDeathHandlerTests
         Assert.Equal([leader.CharacterId, member.CharacterId],
             bus.Commands.Select(command => command.CharacterId));
         Assert.All(bus.Commands, command => Assert.Equal(2, command.PartyMemberCount));
-        Assert.Equal(leader.CharacterId, settlement.CharacterId);
+        Assert.All(bus.Commands, command => Assert.True(command.IsFinalBossDeath));
 
         foreach (var session in new[] { leader, member })
         {
@@ -338,7 +338,7 @@ public sealed class MonsterDeathHandlerTests
             new PartyCharacters([leader.CharacterId, frozenMember.CharacterId]),
             run,
             killRules,
-            new DungeonClearDomainService(run, killRules, settlement),
+            new DungeonClearDomainService(run, killRules),
             new DungeonClearProjectionDelivery(sessions, run, registry, sender),
             bus,
             new QuestOfferRefreshDomainService(
@@ -389,7 +389,7 @@ public sealed class MonsterDeathHandlerTests
             new PartyCharacters([member.CharacterId]),
             run,
             killRules,
-            new DungeonClearDomainService(run, killRules, settlement),
+            new DungeonClearDomainService(run, killRules),
             new DungeonClearProjectionDelivery(sessions, run, registry, sender),
             bus,
             new QuestOfferRefreshDomainService(
@@ -408,8 +408,7 @@ public sealed class MonsterDeathHandlerTests
         var applied = Assert.Single(bus.Commands);
         Assert.Equal(member.CharacterId, applied.CharacterId);
         Assert.Equal(2, applied.PartyMemberCount);
-        Assert.Equal(leader.AccountId, settlement.AccountId);
-        Assert.Equal(leader.CharacterId, settlement.CharacterId);
+        Assert.True(applied.IsFinalBossDeath);
         var memberFrames = sender.For(member.ConnectionId);
         Assert.Single(memberFrames.OfType<EnableClearDungeonNotification>());
         var death = Assert.Single(memberFrames.OfType<MonsterDeathNotification>());
@@ -496,7 +495,7 @@ public sealed class MonsterDeathHandlerTests
             new PartyCharacters([leader.CharacterId, member.CharacterId]),
             run,
             killRules,
-            new DungeonClearDomainService(run, killRules, settlement),
+            new DungeonClearDomainService(run, killRules),
             new DungeonClearProjectionDelivery(sessions, run, registry, sender),
             bus,
             new QuestOfferRefreshDomainService(
@@ -550,8 +549,6 @@ public sealed class MonsterDeathHandlerTests
             killRules: new OneClearedBossMonster(),
             settlementRules: settlement);
 
-        Assert.Equal(new AccountId(1), settlement.AccountId);
-        Assert.Equal(new CharacterId(60), settlement.CharacterId);
         Assert.Single(sent.OfType<EnableClearDungeonNotification>());
     }
 
@@ -622,7 +619,7 @@ public sealed class MonsterDeathHandlerTests
             new PartyRuntimeSessions([leader, member]),
             new PartyCharacters([leader.CharacterId, member.CharacterId]),
             runs, killRules,
-            new DungeonClearDomainService(runs, killRules, new RecordingSettlementRules()),
+            new DungeonClearDomainService(runs, killRules),
             new DungeonClearProjectionDelivery(sessions, runs, registry, sender),
             bus,
             new QuestOfferRefreshDomainService(
@@ -692,8 +689,7 @@ public sealed class MonsterDeathHandlerTests
             new OnePlayingCharacter(new SkillPointLedger()),
             runs,
             killRules,
-            new DungeonClearDomainService(
-                runs, killRules, new AlwaysCompleteSettlementRules()),
+            new DungeonClearDomainService(runs, killRules),
             new DungeonClearProjectionDelivery(sessions, runs, registry, sender),
             new FixedKillAward(leveledUp: false),
             new QuestOfferRefreshDomainService(
@@ -762,7 +758,7 @@ public sealed class MonsterDeathHandlerTests
             new OnePlayingCharacter(ledger ?? new SkillPointLedger(withLedger)),
             effectiveRun,
             effectiveKills,
-            new DungeonClearDomainService(effectiveRun, effectiveKills, effectiveSettlement),
+            new DungeonClearDomainService(effectiveRun, effectiveKills),
             new DungeonClearProjectionDelivery(sessions, effectiveRun, registry, sender),
             bus ?? new FixedKillAward(leveledUp),
             new QuestOfferRefreshDomainService(
@@ -1282,7 +1278,7 @@ public sealed class MonsterDeathHandlerTests
         public ValueTask<KillIdentification> IdentifyAsync(
             DungeonRunState run, ushort actorSequence, CancellationToken cancellationToken) =>
             ValueTask.FromResult(new KillIdentification(
-                new IdentifiedKill(3001, 4, MonsterRank.Ordinary, IsMonster: true), 1));
+                new IdentifiedKill(3001, 4, MonsterRank.Boss, IsMonster: true), 1));
 
         public ValueTask<bool> IsCurrentRoomClearedAsync(
             DungeonRunState run, CancellationToken cancellationToken) => ValueTask.FromResult(true);

@@ -147,8 +147,7 @@ public sealed class GetItemHandlerTests
         var sender = new ThrowingSender();
         var clear = new DungeonClearDomainService(
             runs,
-            new ClearedRoom(),
-            new CompleteSettlement());
+            new ClearedRoom());
         var projection = new DungeonPickupProjectionDelivery(
             sessions, registry, sender, TimeProvider.System);
         var postCommit = new DungeonPickupPostCommitCoordinator(

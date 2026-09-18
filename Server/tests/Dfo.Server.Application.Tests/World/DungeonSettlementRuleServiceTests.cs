@@ -1,8 +1,6 @@
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
-using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
-using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -15,32 +13,31 @@ public sealed class DungeonSettlementRuleServiceTests
     private static readonly CharacterId Character = new(42);
 
     [Fact]
-    public async Task OrdinaryRunsCanCompleteWithoutReadingQuestState()
+    public async Task OrdinaryRunRequiresVerifiedClear()
     {
-        var rules = new DungeonSettlementRuleService(new RecordingQuestLogs());
+        var rules = new DungeonSettlementRuleService();
 
         var result = await rules.ForAsync(
             Account, Character, Run(DungeonRunPurpose.Ordinary), default);
 
-        Assert.True(result.CanComplete);
+        Assert.False(result.CanComplete);
         Assert.False(result.QuestMaze);
     }
 
     [Theory]
-    [InlineData(1, false)]
-    [InlineData(0, true)]
-    public async Task ActiveQuestRunsRequireTheirFrozenQuestTargetToBeComplete(
-        int trigger,
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    public async Task QuestRunSettlementDependsOnVerifiedClearNotQuestTrigger(
+        bool clearOpen,
         bool expected)
     {
-        var logs = new RecordingQuestLogs();
-        logs.Carried[Character.Value] = [new CarriedQuest(0, 1776, trigger)];
-        var rules = new DungeonSettlementRuleService(logs);
+        var rules = new DungeonSettlementRuleService();
 
         var result = await rules.ForAsync(
             Account,
             Character,
-            Run(DungeonRunPurpose.QuestLinked(1776, DungeonQuestConnectionState.Active)),
+            Run(DungeonRunPurpose.QuestLinked(1776, DungeonQuestConnectionState.Active))
+                with { ClearOpen = clearOpen },
             default);
 
         Assert.Equal(expected, result.CanComplete);
@@ -48,16 +45,15 @@ public sealed class DungeonSettlementRuleServiceTests
     }
 
     [Fact]
-    public async Task ClearedQuestRunsRequireTheFrozenQuestInTheClearedLog()
+    public async Task ClearedQuestRunUsesTheSameClearFact()
     {
-        var logs = new RecordingQuestLogs();
-        logs.Cleared[Character.Value] = [new ClearedQuest(1776, IQuestLog.ClearedMark)];
-        var rules = new DungeonSettlementRuleService(logs);
+        var rules = new DungeonSettlementRuleService();
 
         var result = await rules.ForAsync(
             Account,
             Character,
-            Run(DungeonRunPurpose.QuestLinked(1776, DungeonQuestConnectionState.Cleared)),
+            Run(DungeonRunPurpose.QuestLinked(1776, DungeonQuestConnectionState.Cleared))
+                with { ClearOpen = true },
             default);
 
         Assert.True(result.CanComplete);

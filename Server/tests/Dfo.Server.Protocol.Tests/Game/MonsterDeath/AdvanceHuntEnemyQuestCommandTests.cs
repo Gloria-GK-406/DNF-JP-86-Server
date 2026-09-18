@@ -71,6 +71,36 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         Assert.Equal([new HuntEnemyQuestAdvance(1776, 1, 0)], result.QuestAdvances);
     }
 
+    [Theory]
+    [InlineData(true, 0)]
+    [InlineData(false, 1)]
+    public async Task OnlyTheFinalBossKillReportsDungeonClearWithinItsQuestTransaction(
+        bool finalBoss,
+        int expectedTrigger)
+    {
+        var log = new OneLog(new CarriedQuest(0, 1781, 1));
+        var definition = new QuestDefinition(
+            1781, "", null, null, null, null, null, null, [],
+            "condition under clear", "", null, null, null, null, null, null,
+            null, [], [], [], [],
+            DungeonClearRequirement: new DungeonClearRequirement(146, -1));
+        var handler = new ApplyMonsterKillCommandHandler(
+            new UnusedValuation(), new UnusedBonuses(), new NoExperienceAward(),
+            new OneCharacterLog(log), new CharacterContainerDomainService(),
+            Progress(log, definition));
+
+        var result = await handler.HandleAsync(
+            new CommandExecutionContext(Guid.Empty, typeof(ApplyMonsterKillCommand),
+                typeof(ApplyMonsterKillCommandHandler), CommandExecutionKind.Transactional),
+            new ApplyMonsterKillCommand(
+                Account, Character, new KilledMonster(3001, 5, MonsterRank.Boss),
+                146, 0, 1, IsFinalBossDeath: finalBoss),
+            CancellationToken.None);
+
+        Assert.Equal(expectedTrigger, log.Carried.TriggerValue);
+        Assert.Equal(finalBoss, result.QuestProgress is not null);
+    }
+
     [Fact]
     public async Task AnAiCharacterDeathAdvancesItsTargetWithoutAwardingExperience()
     {

@@ -190,6 +190,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         var expertJobValues = new List<int>();
         var jobChangeValues = new List<int>();
         var objectiveType = string.Empty;
+        var objectiveSubType = new List<int>();
         var objectiveIntData = new List<int>();
         var monsterRewardItemValues = new List<int>();
         var eventItemValues = new List<int>();
@@ -251,6 +252,8 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
                     ReadString(archive, token, questId, "target character"));
             else if (section == tags.Type)
                 objectiveType = StripBrackets(ReadString(archive, token, questId, "type"));
+            else if (section == tags.SubType)
+                AddInteger(objectiveSubType, token, questId, "sub type");
             else if (section == tags.IntData)
                 AddInteger(objectiveIntData, token, questId, "int data");
             else if (section == tags.MonsterRewardItem)
@@ -357,7 +360,8 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             OptionalNonNegative(goldMultiplierValues, questId, "gold multiple") ?? 0,
             ProjectMonsterRewardItems(monsterRewardItemValues, questId),
             ProjectHuntMonsterRequirements(objectiveType, objectiveIntData),
-            ProjectClearedQuestRequirements(objectiveType, objectiveIntData));
+            ProjectClearedQuestRequirements(objectiveType, objectiveIntData),
+            ProjectDungeonClearRequirement(objectiveType, objectiveSubType, objectiveIntData));
 
         return new RawQuestDefinition(
             definition,
@@ -520,6 +524,20 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             && values.Distinct().Count() == values.Count
             ? values.ToArray()
             : [];
+    }
+
+    internal static DungeonClearRequirement? ProjectDungeonClearRequirement(
+        string objectiveType,
+        IReadOnlyList<int> subType,
+        IReadOnlyList<int> values)
+    {
+        // Other clear objectives have different operand layouts and remain client-counted.
+        return string.Equals(objectiveType.Trim().Trim('[', ']'), "condition under clear",
+                StringComparison.OrdinalIgnoreCase)
+            && subType.Count == 1 && subType[0] == 6
+            && values.Count == 2 && values[0] > 0 && values[1] >= -1
+            ? new DungeonClearRequirement(values[0], values[1])
+            : null;
     }
 
     internal static IReadOnlyList<HuntMonsterRequirement> ProjectHuntMonsterRequirements(
@@ -1017,6 +1035,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
             NpcIndex = Offset(archive, "[npc index]");
             CompleteNpcIndex = Offset(archive, "[complete npc index]");
             Type = Offset(archive, "[type]");
+            SubType = Offset(archive, "[sub type]");
             IntData = Offset(archive, "[int data]");
             MonsterRewardItem = Offset(archive, "[monster reward item]");
             DependGiveItem = Offset(archive, "[depend give item]");
@@ -1049,6 +1068,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource
         public int NpcIndex { get; }
         public int CompleteNpcIndex { get; }
         public int Type { get; }
+        public int SubType { get; }
         public int IntData { get; }
         public int MonsterRewardItem { get; }
 

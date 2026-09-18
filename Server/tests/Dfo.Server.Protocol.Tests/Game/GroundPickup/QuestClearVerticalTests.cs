@@ -48,7 +48,7 @@ public sealed class QuestClearVerticalTests
     [InlineData(PostCommitTransition.None)]
     [InlineData(PostCommitTransition.PickerReplaced)]
     [InlineData(PostCommitTransition.PickerDeparted)]
-    public async Task Boss_dead_then_last_sqlite_task_item_opens_and_projects_one_shared_clear(
+    public async Task Boss_death_opens_clear_before_the_last_sqlite_task_item_is_picked_up(
         PostCommitTransition transition)
     {
         var path = Path.Combine(Path.GetTempPath(), $"dfo-pickup-clear-{Guid.NewGuid():N}.db");
@@ -145,10 +145,8 @@ public sealed class QuestClearVerticalTests
             var afterDeath = Assert.IsType<DungeonRunState>(runs.CommitActorDeath(death));
             var clear = new DungeonClearDomainService(
                 runs,
-                new ClearedBossRoom(),
-                new DungeonSettlementRuleService(
-                    provider.GetRequiredService<ICharacterQuestLogDomainService>()));
-            Assert.Null(await clear.EvaluateAsync(
+                new ClearedBossRoom());
+            var bossClear = Assert.IsType<DungeonClearChange>(await clear.EvaluateAsync(
                 LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
 
             var drop = Assert.Single(afterDeath.CurrentCellState.GroundItems);
@@ -180,11 +178,10 @@ public sealed class QuestClearVerticalTests
             var postCommit = new DungeonPickupPostCommitCoordinator(
                 clear,
                 new DungeonClearProjectionDelivery(sessions, runs, registry, sender));
-            var opened = Assert.IsType<DungeonClearChange>(
-                await postCommit.EvaluateAsync(LeaderSession, pickup));
+            Assert.Null(await postCommit.EvaluateAsync(LeaderSession, pickup));
             var pickupDelivered = await projection.DeliverAsync(
                 LeaderSession, pickup, default);
-            _ = await postCommit.ProjectAsync(LeaderSession, opened, default);
+            _ = await postCommit.ProjectAsync(LeaderSession, bossClear, default);
 
             Assert.Equal(GroundPickupStatus.PickedUp, pickup.Status);
             Assert.Equal(0, Assert.Single(pickup.QuestProgress!.Quests).TriggerValue);

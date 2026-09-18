@@ -61,6 +61,13 @@ public sealed class QuestProgressDomainService(
                     serverProgressChanged |= advanced.Count != 0 || monsterAdvanced.Count != 0;
                     break;
 
+                case QuestDungeonCleared dungeonClear:
+                    var clearAdvances = await AdvanceDungeonClearQuestsAsync(
+                        log, dungeonClear, cancellationToken).ConfigureAwait(false);
+                    changes.AddRange(clearAdvances);
+                    serverProgressChanged |= clearAdvances.Count != 0;
+                    break;
+
                 case QuestHoldingsChanged:
                     serverProgressChanged |= await seeking.SynchronizeAsync(
                         accountId, characterId, cancellationToken).ConfigureAwait(false) is not null;
@@ -129,6 +136,38 @@ public sealed class QuestProgressDomainService(
         && (target.Difficulty < 0 || target.Difficulty == death.Difficulty)
         && target.EnemyCode == death.EnemyCode
         && target.EnemyType == death.EnemyType;
+
+    private async ValueTask<IReadOnlyList<QuestProgressChange>> AdvanceDungeonClearQuestsAsync(
+        IQuestLog log,
+        QuestDungeonCleared clear,
+        CancellationToken cancellationToken)
+    {
+        var carried = await log.CarriedAsync(cancellationToken).ConfigureAwait(false);
+        var changes = new List<QuestProgressChange>();
+        foreach (var active in carried)
+        {
+            var definition = await definitions.FindAsync(active.QuestId, cancellationToken)
+                .ConfigureAwait(false);
+            var target = definition?.DungeonClearRequirement;
+            if (target is null || target.DungeonId != clear.DungeonId
+                || (target.Difficulty >= 0 && target.Difficulty != clear.Difficulty))
+                continue;
+
+            var before = new QuestTrigger(unchecked((uint)active.TriggerValue));
+            var after = before.ReplaceChannel(0, 0);
+            if (after == before)
+                continue;
+            if (!await log.RecordProgressAsync(active, unchecked((int)after.PackedValue),
+                    cancellationToken).ConfigureAwait(false))
+                throw new InvalidDataException(
+                    $"Quest {active.QuestId} changed while reporting a verified dungeon clear.");
+
+            changes.Add(new QuestProgressChange(active.QuestId, before.PackedValue,
+                after.PackedValue));
+        }
+
+        return changes;
+    }
 
     private async ValueTask<IReadOnlyList<QuestProgressChange>> AdvanceMonsterQuestsAsync(
         IQuestLog log,

@@ -23,7 +23,8 @@ public sealed record ApplyMonsterKillCommand(
     int EnemyType = HuntEnemyTargetTypes.Monster,
     int PartyMemberCount = 1,
     IReadOnlyList<RolledDrop>? PendingLoot = null,
-    PartyKey PartyKey = default) : ICommand<ApplyMonsterKillResult>;
+    PartyKey PartyKey = default,
+    bool IsFinalBossDeath = false) : ICommand<ApplyMonsterKillResult>;
 
 public sealed record ApplyMonsterKillResult(
     ExperienceAward? Award,
@@ -80,6 +81,9 @@ public sealed class ApplyMonsterKillCommandHandler(
                 command.DungeonId, command.Difficulty, command.Monster.Code, command.EnemyType,
                 command.Monster.Rank),
         };
+        if (command.IsFinalBossDeath && command.Monster.Rank == MonsterRank.Boss
+            && command.EnemyType == HuntEnemyTargetTypes.Monster)
+            facts.Add(new QuestDungeonCleared(command.DungeonId, command.Difficulty));
         if (granted is not null)
             facts.Add(new QuestHoldingsChanged());
         var reported = await questProgress.ReportAsync(

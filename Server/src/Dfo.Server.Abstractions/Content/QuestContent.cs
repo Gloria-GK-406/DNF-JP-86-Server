@@ -190,6 +190,9 @@ public sealed record HuntMonsterRequirement(
     int MonsterCode,
     int Count);
 
+/// <summary>One verified dungeon clear required by a subtype-6 clear objective.</summary>
+public sealed record DungeonClearRequirement(int DungeonId, int Difficulty);
+
 /// <summary>One seven-field <c>[monster reward item]</c> declaration.</summary>
 public sealed record QuestMonsterRewardItem(
     int MonsterCode,
@@ -233,7 +236,8 @@ public sealed record QuestDefinition(
     int GoldMultiplier = 0,
     IReadOnlyList<QuestMonsterRewardItem>? MonsterRewardItems = null,
     IReadOnlyList<HuntMonsterRequirement>? HuntMonsterRequirements = null,
-    IReadOnlyList<int>? ClearedQuestRequirements = null)
+    IReadOnlyList<int>? ClearedQuestRequirements = null,
+    DungeonClearRequirement? DungeonClearRequirement = null)
 {
     /// <summary>A quest offered regardless of grow type.</summary>
     public const int AnyGrowType = -1;

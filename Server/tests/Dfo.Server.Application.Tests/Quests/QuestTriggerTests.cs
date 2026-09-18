@@ -211,6 +211,20 @@ public sealed class QuestTriggerTests
             QuestObjectives.AuthorityOver(invalid, selector: 0x40));
     }
 
+    [Fact]
+    public void ProjectedDungeonClearCannotBeCountedAgainByTheClient()
+    {
+        var clear = Quest("condition under clear") with
+        {
+            DungeonClearRequirement = new DungeonClearRequirement(146, -1),
+        };
+
+        Assert.Equal(QuestObjectiveAuthority.Server,
+            QuestObjectives.AuthorityOver(clear, selector: 0x10));
+        Assert.Equal(QuestObjectiveAuthority.Client,
+            QuestObjectives.AuthorityOver(Quest("condition under clear"), selector: 0x10));
+    }
+
     private static QuestDefinition Quest(string objective, int enemyType) =>
         Quest(
             objective,

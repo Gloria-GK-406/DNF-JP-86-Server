@@ -71,6 +71,36 @@ public sealed class QuestProgressDomainServiceTests
     }
 
     [Fact]
+    public async Task Verified_dungeon_clear_completes_only_the_matching_objective_once()
+    {
+        var logs = new RecordingQuestLogs
+        {
+            Carried =
+            {
+                [Character.Value] =
+                [new CarriedQuest(0, 1781, 1), new CarriedQuest(1, 1776, 1)],
+            },
+        };
+        var service = Service(logs, new FixedClientReport(QuestAdvance.Refused));
+
+        var unrelated = await service.ReportAsync(
+            Account, Character, [new QuestDungeonCleared(145, 0)], default);
+        var matched = await service.ReportAsync(
+            Account, Character, [new QuestDungeonCleared(146, 0)], default);
+        var repeated = await service.ReportAsync(
+            Account, Character, [new QuestDungeonCleared(146, 0)], default);
+
+        Assert.Empty(unrelated.Changes);
+        Assert.Null(unrelated.NotificationSnapshot);
+        Assert.Equal([new QuestProgressChange(1781, 1, 0)], matched.Changes);
+        Assert.Equal([(1781, 0), (1776, 1)], matched.NotificationSnapshot!.Quests
+            .Select(quest => (quest.QuestId, quest.TriggerValue)));
+        Assert.Empty(repeated.Changes);
+        Assert.Null(repeated.NotificationSnapshot);
+        Assert.Single(logs.ProgressWrites);
+    }
+
+    [Fact]
     public async Task Verified_monster_death_counts_only_matching_hunt_monster_channels()
     {
         var logs = new RecordingQuestLogs
@@ -183,6 +213,12 @@ public sealed class QuestProgressDomainServiceTests
                     2002, "", null, null, null, null, null, null, [], "clear quest", "",
                     null, null, null, null, null, null, null, [], [], [], [],
                     ClearedQuestRequirements: [1776])
+                : questId == 1781
+                ? new QuestDefinition(
+                    1781, "", null, null, null, null, null, null, [],
+                    "condition under clear", "", null, null, null, null, null, null,
+                    null, [], [], [], [],
+                    DungeonClearRequirement: new DungeonClearRequirement(146, -1))
                 : null);
 
         public QuestParameters RewardParameters() => throw new NotSupportedException();
