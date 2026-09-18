@@ -11,7 +11,7 @@ namespace Dfo.Server.Protocol.Tests.Game.Party;
 public sealed class PartyClientProjectionServiceTests
 {
     [Fact]
-    public void Explicit_leadership_transfer_rekeys_the_client_view_without_replacing_the_party()
+    public void Explicit_leadership_transfer_preserves_the_client_view_and_member_slots()
     {
         var inner = new PartyService(new FixedStatus(), new PartyModeRuleService(),
             TimeProvider.System, new NoEndpoints());
@@ -28,10 +28,12 @@ public sealed class PartyClientProjectionServiceTests
 
         Assert.True(transfer.Succeeded);
         Assert.Equal(before.Key, transfer.Notifications.Snapshot!.Key);
-        Assert.NotEqual(before.PartyId, transfer.Notifications.Snapshot.PartyId);
-        Assert.Equal(before.PartyId, transfer.Notifications.ClearPartyId);
-        Assert.Equal([leader.CharacterId, successor.CharacterId],
-            transfer.Notifications.ClearAudience.ToArray());
+        Assert.Equal(before.PartyId, transfer.Notifications.Snapshot.PartyId);
+        Assert.Null(transfer.Notifications.ClearPartyId);
+        Assert.Empty(transfer.Notifications.ClearAudience);
+        Assert.Equal(
+            [(leader.CharacterId, (byte)0), (successor.CharacterId, (byte)1)],
+            transfer.Notifications.Snapshot.Members.Select(member => (member.CharacterId, member.Slot)));
     }
 
     [Fact]

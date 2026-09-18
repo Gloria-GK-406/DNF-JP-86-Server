@@ -228,8 +228,7 @@ internal sealed class PartyRosterEncoder : GameNotiMessageEncoder<PartyRosterMes
                 member?.WireUserId ?? ushort.MaxValue);
         }
 
-        body[rosterOffset + 41] = snapshot.Members.FirstOrDefault(
-            value => value.WireUserId == snapshot.LeaderWireUserId)?.Slot ?? 0;
+        body[rosterOffset + 41] = snapshot.LeaderMember.Slot;
         // The three roster trailers and the final has-extra byte otherwise remain zero.
         return body;
     }
@@ -839,8 +838,7 @@ public sealed class PartyNotificationDelivery(
                     && current.Generation == projected.Generation)
                 is { } latest
             && latest.Revision > projected.Revision
-            && latest.Members.Single(member => member.Slot == 0).Character.DirectoryScope
-                != change.Current)
+            && latest.LeaderMember.Character.DirectoryScope != change.Current)
         {
             // Presence migration advances the Party revision even though the movement protocol
             // performs its own directory read-repair. Do not let a delayed pre-move plan publish

@@ -169,6 +169,9 @@ public sealed record PartySnapshot(
     PartyKey Key = default,
     long LeadershipVersion = 0)
 {
+    public PartyMemberSnapshot LeaderMember => Members.Single(member =>
+        member.WireUserId == LeaderWireUserId);
+
     /// <summary>Builds a non-persistent view for an ungrouped character.</summary>
     public static PartySnapshot Virtual(PartyCharacterSnapshot character, PartySettings settings) =>
         new(0, 0, 0, character.WireUserId, settings, PartyTitle.Empty,

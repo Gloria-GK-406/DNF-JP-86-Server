@@ -71,6 +71,18 @@ public sealed class PartyNotificationTests
     }
 
     [Fact]
+    public void Full_roster_marks_a_leader_in_slot_one_without_reordering_members()
+    {
+        var snapshot = Snapshot() with { LeaderWireUserId = Invitee.WireUserId };
+
+        var body = PartyRosterEncoder.EncodeBody(PartyRosterMessage.Refresh(snapshot));
+
+        Assert.Equal((ushort)Inviter.WireUserId, BitConverter.ToUInt16(body, 21));
+        Assert.Equal((ushort)Invitee.WireUserId, BitConverter.ToUInt16(body, 26));
+        Assert.Equal((byte)1, body[62]);
+    }
+
+    [Fact]
     public void Full_roster_forwards_the_inline_title_before_the_canonical_settings_tail()
     {
         var snapshot = Snapshot() with { Title = new PartyTitle([0x61, 0x62]) };

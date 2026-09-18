@@ -455,13 +455,62 @@ public sealed class PartyServiceTests
         var moved = Assert.Single(service.Query(new PartyDirectoryQuery(secondScope)));
         Assert.Equal(successor.WireUserId, moved.LeaderWireUserId);
         Assert.Equal(
-            [(successor.CharacterId, (byte)0), (leader.CharacterId, (byte)1)],
+            [(leader.CharacterId, (byte)0), (successor.CharacterId, (byte)1)],
             moved.Members.Select(member => (member.CharacterId, member.Slot)));
+        Assert.Equal(successor.CharacterId, service.FindByKey(moved.Key)!.LeaderCharacterId);
+        Assert.Equal(PartyFailureReason.NotPartyLeader,
+            service.CreateOrUpdateSettings(
+                leader, new PartyModeRuleService().DefaultSettings, PartyTitle.Empty).Failure);
+        Assert.True(service.CreateOrUpdateSettings(
+            successor with { DirectoryScope = secondScope },
+            new PartyModeRuleService().DefaultSettings,
+            PartyTitle.Empty).Succeeded);
+
+        var third = Character(3, secondScope);
+        Assert.True(service.RequestInvite(
+            successor with { DirectoryScope = secondScope }, third, Profile(1)).Succeeded);
+        Assert.True(service.AcceptInvite(
+            third, successor with { DirectoryScope = secondScope }).Succeeded);
+        Assert.Equal((byte)2, service.FindParty(third).Members.Single(
+            member => member.CharacterId == third.CharacterId).Slot);
 
         Assert.True(service.LeaveParty(successor.CharacterId).Succeeded);
         Assert.Single(service.Query(new PartyDirectoryQuery(firstScope)));
         Assert.Empty(service.Query(new PartyDirectoryQuery(secondScope)));
         Assert.Equal(leader.WireUserId, service.FindParty(leader).LeaderWireUserId);
+        Assert.Equal((byte)0, service.FindParty(leader).Members.Single(
+            member => member.CharacterId == leader.CharacterId).Slot);
+        Assert.Equal((byte)2, service.FindParty(third).Members.Single(
+            member => member.CharacterId == third.CharacterId).Slot);
+    }
+
+    [Fact]
+    public void Departing_slot_zero_member_does_not_replace_a_leader_in_another_slot()
+    {
+        var service = new PartyService(
+            new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
+            TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance);
+        var scope = new PartyDirectoryScope(11, 1, 1);
+        var founder = Character(1, scope);
+        var leader = Character(2, scope);
+        var newcomer = Character(3, scope);
+        Assert.True(service.RequestInvite(founder, leader, Profile(1)).Succeeded);
+        Assert.True(service.AcceptInvite(leader, founder).Succeeded);
+        var before = service.FindParty(founder);
+        Assert.True(service.TransferLeadership(founder.CharacterId, leader.CharacterId).Succeeded);
+
+        var departure = service.LeaveParty(founder.CharacterId);
+
+        Assert.True(departure.Succeeded);
+        var remaining = service.FindParty(leader);
+        Assert.Equal(before.Key, remaining.Key);
+        Assert.Equal(before.LeadershipVersion, remaining.LeadershipVersion);
+        Assert.Equal(leader.CharacterId, service.FindByKey(before.Key)!.LeaderCharacterId);
+        Assert.Equal((byte)1, Assert.Single(remaining.Members).Slot);
+        Assert.True(service.RequestInvite(leader, newcomer, Profile(1)).Succeeded);
+        Assert.True(service.AcceptInvite(newcomer, leader).Succeeded);
+        Assert.Equal((byte)0, service.FindParty(newcomer).Members.Single(
+            member => member.CharacterId == newcomer.CharacterId).Slot);
     }
 
     [Fact]

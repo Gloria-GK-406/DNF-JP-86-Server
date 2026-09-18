@@ -134,14 +134,18 @@ public sealed class EplpCommandHandler(
 
         var leaving = message.State == LeaveState;
         var currentRun = runs.Find(session.CharacterId);
-        var participants = currentRun is not null && parties is not null
+        var roster = currentRun is not null && parties is not null
             ? parties.FindParty(new PartyCharacterSnapshot(
-                    session.AccountId, session.CharacterId, session.WireUserId, null))
-                .Members.OrderBy(value => value.Slot)
+                session.AccountId, session.CharacterId, session.WireUserId, null))
+            : null;
+        var leaderWireUserId = roster?.LeaderWireUserId ?? session.WireUserId;
+        var currentRunId = currentRun?.RunId;
+        var participants = roster is not null
+            ? roster.Members.OrderBy(value => value.Slot)
                 .Select(value => new DungeonRunParticipant(
                     value.Character.AccountId, value.CharacterId, value.Slot,
-                    value.Slot == 0))
-                .Where(value => runs.Find(value.CharacterId)?.RunId == currentRun.RunId)
+                    value.WireUserId == leaderWireUserId))
+                .Where(value => runs.Find(value.CharacterId)?.RunId == currentRunId)
                 .ToArray()
             : currentRun is { Participants.Count: > 0 }
                 ? currentRun.Participants.OrderBy(value => value.Slot).ToArray()

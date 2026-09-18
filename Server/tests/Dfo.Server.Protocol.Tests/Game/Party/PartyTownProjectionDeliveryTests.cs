@@ -29,8 +29,8 @@ public sealed class PartyTownProjectionDeliveryTests
                 new PartyMemberSnapshot(
                     new PartyCharacterSnapshot(
                         Leader.AccountId, Leader.CharacterId, Leader.WireUserId, currentScope),
-                    0, null, 100),
-                new PartyMemberSnapshot(Character(Member), 1, null, 100)));
+                    1, null, 100),
+                new PartyMemberSnapshot(Character(Member), 0, null, 100)));
         var bus = new RecordingNotificationBus();
         var delivery = new PartyTownProjectionDelivery(
             new StubParties((Leader, snapshot), (Member, snapshot)),

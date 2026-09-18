@@ -52,8 +52,7 @@ public sealed class PartyTownProjectionDelivery(
         var previousObservers = previousScope is null
             ? []
             : SessionsInScope(previousScope, mover.CharacterId);
-        var candidateScope = candidate.Members.Single(value => value.Slot == 0)
-            .Character.DirectoryScope;
+        var candidateScope = candidate.LeaderMember.Character.DirectoryScope;
         var currentObservers = candidateScope is null
             ? []
             : SessionsInScope(candidateScope, mover.CharacterId);
@@ -91,8 +90,7 @@ public sealed class PartyTownProjectionDelivery(
                 return;
 
             var leaderMovedDirectory = current.LeaderWireUserId == mover.WireUserId
-                && current.Members.Single(value => value.Slot == 0).Character.DirectoryScope
-                    != previousScope;
+                && current.LeaderMember.Character.DirectoryScope != previousScope;
             if (leaderMovedDirectory)
             {
                 var memberIds = current.Members.Select(value => value.CharacterId).ToHashSet();
@@ -115,8 +113,7 @@ public sealed class PartyTownProjectionDelivery(
                         return;
                 }
 
-                var currentScope = current.Members.Single(value => value.Slot == 0)
-                    .Character.DirectoryScope;
+                var currentScope = current.LeaderMember.Character.DirectoryScope;
                 var newObservers = currentScope is null
                     ? []
                     : SessionsInScope(currentScope, mover.CharacterId)
