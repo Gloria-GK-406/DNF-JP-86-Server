@@ -55,15 +55,15 @@
 | `0x01` | `0x0012` | `DELETE_ITEM` | Mutation / 有响应 | ClientVerified（A21 普通装备与堆叠物） | [0x0012.md](game/client-to-server/0x0012.md) |
 | `0x01` | `0x0015` | `BUY_ITEM` | Mutation / 有响应 | 实现服务端功能（A21，部分商品实机通过） | [0x0015.md](game/client-to-server/0x0015.md) |
 | `0x01` | `0x0016` | `SELL_ITEM` | Mutation / 有响应 | ClientVerified（A21 普通装备）；堆叠物自动化通过，特殊装备未覆盖 | [0x0016.md](game/client-to-server/0x0016.md) |
-| `0x01` | `0x0017` | `REPAIR_EQUIPMENT` | Mutation / 有响应 | 实现服务端功能（普通修理；A21 请求/回包未逐帧归档，自动/快速修理未实现） | [0x0017.md](game/client-to-server/0x0017.md) |
+| `0x01` | `0x0017` | `REPAIR_EQUIPMENT` | Mutation / 有响应 | 实现服务端普通修理；A21 静态有 8B/7B 两种构包及 10B 成功读取，成对帧与 7B 触发条件待归档 | [0x0017.md](game/client-to-server/0x0017.md) |
 | `0x01` | `0x001D` | `BUY_SKILL` | Mutation / 有响应 | 实现服务端功能（A21 普通加点，待实机） | [0x001D.md](game/client-to-server/0x001D.md) |
 | `0x01` | `0x001F` | `ACCEPT_QUEST` | Mutation / 有响应 | 实现服务端功能（A21 受理请求与回包有实帧；后续任务投影未整体验证） | [0x001F.md](game/client-to-server/0x001F.md) |
-| `0x01` | `0x0020` | `GIVEUP_QUEST` | Mutation / 有响应 | 实现服务端功能（A21 静态请求布局、上游回包；本仓实机待验证） | [0x0020.md](game/client-to-server/0x0020.md) |
+| `0x01` | `0x0020` | `GIVEUP_QUEST` | Mutation / 有响应 | 实现服务端功能；A21 静态证实 `0x0020+questId` 请求及成功回包读法，实帧/UI 待验证 | [0x0020.md](game/client-to-server/0x0020.md) |
 | `0x01` | `0x0021` | `SET_QUEST_TRIGGER` | Mutation / 有响应 | 实现服务端功能（A21 赛丽亚任务往返有样本；服务端事实推进与背包重算另待验证） | [0x0021.md](game/client-to-server/0x0021.md) |
-| `0x01` | `0x0022` | `FINISH_QUEST` | Mutation / 有响应 | 实现服务端功能（奖励结算及旧持有量复核；具体分支待 A21 实帧） | [0x0022.md](game/client-to-server/0x0022.md) |
+| `0x01` | `0x0022` | `FINISH_QUEST` | Mutation / 有响应 | 实现服务端常规结算；A21 另一静态构包路径末字段非恒定哨兵，具体触发与实帧待查 | [0x0022.md](game/client-to-server/0x0022.md) |
 | `0x01` | `0x0023` | `SET_USER_POSITION` | Report / A12 无响应，A21 推 `NOTI 0x0016` | 实现服务端功能 | [0x0023.md](game/client-to-server/0x0023.md) |
 | `0x01` | `0x002D` | `MOVE_MAP` | Mutation / 成功路径推下一房间 `START_MAP` | 实现服务端功能（A21 线级重放，真客户端待复验） | [0x002D.md](game/client-to-server/0x002D.md) |
-| `0x01` | `0x0030` | `DECREASE_DURABILITY` | Mutation / 有响应 | 实现服务端功能（槽位与回包按上游；A21 成对实帧和显示待验证） | [0x0030.md](game/client-to-server/0x0030.md) |
+| `0x01` | `0x0030` | `DECREASE_DURABILITY` | Mutation / 有响应 | 实现服务端功能；A21 双向静态支持请求 `u8`/成功回复 `01+u8`，成对实帧和显示待验证 | [0x0030.md](game/client-to-server/0x0030.md) |
 | `0x01` | `0x003F` | `CERA` | Report / 无响应 | 实现服务端功能 | [0x003F.md](game/client-to-server/0x003F.md) |
 | `0x01` | `0x0040` | `BUY_CERASHOP_ITEM` | Mutation / 有响应 | 实现服务端功能（A21，宠物蛋实机成功；装扮修复待复测） | [0x0040.md](game/client-to-server/0x0040.md) |
 | `0x01` | `0x0041` | `GEN_CERATICKET` | Query / 有响应 | 实现服务端功能（仅不可用反馈，待实机） | [0x0041.md](game/client-to-server/0x0041.md) |

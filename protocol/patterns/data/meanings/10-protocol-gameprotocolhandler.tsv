@@ -17,13 +17,13 @@ CMD	0x0019	4	来源类型标志:==1 表示 offset 0 存的是道具 id	Confirmed
 CMD	0x0019	5	合成请求数量 RequestedCount,为 0 直接判为非法请求	Confirmed	上游 InventoryHandler.CompoundItem.cs:73-75 读 BitConverter.ToUInt16(body,5) 作 requestedCount 并拒绝 0
 CMD	0x001F	0	上游在解析前无条件丢弃的 2 字节前缀;任务命令解析自 offset 2 开始	High	上游 QuestManager.cs:98-104 StripEcho 丢掉 body[0..1],111 起才把剩余部分交给解析器
 CMD	0x001F	2	任务 id (questId)	High	上游 QuestManager.cs:111 StripEcho 后 QuestCommandParser.cs:25 读 ToUInt16(qBody,0),对应原 body offset 2
-CMD	0x0020	0	上游在解析前无条件丢弃的 2 字节前缀;任务命令解析自 offset 2 开始	High	上游 QuestManager.cs:98-104 StripEcho 丢掉 body[0..1],171 起才把剩余部分交给解析器
-CMD	0x0020	2	任务 id (questId)	High	上游 QuestManager.cs:171 StripEcho 后 QuestCommandParser.cs:36 读 ToUInt16(qBody,0),对应原 body offset 2
-CMD	0x0022	0	上游在解析前无条件丢弃的 2 字节前缀;任务命令解析自 offset 2 开始(剩余 8 字节恰为 FinishBodyLength)	High	上游 QuestManager.cs:98-104,283 StripEcho 丢掉 body[0..1];QuestCommandParser.cs:8,45 要求剩余长度恰为 8
+CMD	0x0020	0	任务命令前缀常数 0x0020;上游解析前丢弃此 2 字节	Confirmed	A21 构包函数 RVA 0x00C7EDE0: 0x00C7EDFC 压入 0x20, 0x00C7EE05 调用 WriteU16;静态复核见 patterns/data/probes/a21-quest-repair-durability-readers-20260918.md
+CMD	0x0020	2	任务 id (questId)	Confirmed	A21 构包函数 RVA 0x00C7EE0A 取参数, 0x00C7EE15 调用 WriteU16;静态复核见 patterns/data/probes/a21-quest-repair-durability-readers-20260918.md
+CMD	0x0022	0	任务命令前缀常数 0x0022;其后 8 字节随构包路径变化	Confirmed	A21 RVA 0x00C7ED2C..0x00C7ED35 与 0x00B4D317..0x00B4D320 都压入 0x22 并调用 WriteU16;见 patterns/data/probes/a21-quest-repair-durability-readers-20260918.md
 CMD	0x0022	2	任务 id (questId)	High	上游 QuestCommandParser.cs:48 读 ToUInt16(qBody,0),经 QuestManager.cs:283 StripEcho 对应原 body offset 2
 CMD	0x0022	4	奖励选择索引 rewardSelection;0xFFFF 表示不选择奖励	High	上游 QuestCommandParser.cs:49,57-58 读 ToUInt16(qBody,2) 并以 !=0xFFFF 判定"已选奖励",对应原 body offset 4
 CMD	0x0022	6	完成次数 completionCount	High	上游 QuestCommandParser.cs:50 读 ToUInt16(qBody,4),对应原 body offset 6
-CMD	0x0022	8	哨兵字段:必须为 0xFFFF,否则整包被拒	High	上游 QuestCommandParser.cs:51-53 读 ToUInt16(qBody,6) 作 sentinel 并要求 ==0xFFFF,对应原 body offset 8
+CMD	0x0022	8	常规构包路径写 0xFFFF;另一构包路径写经 >0 检查的 edi 低 16 位,不是恒定哨兵	Confirmed	A21 RVA 0x00C7ED6A..0x00C7ED76 写 0xFFFF,另一路 0x00B4D2F2..0x00B4D305 确认 edi>0 后于 0x00B4D354..0x00B4D35C WriteU16(edi);见 patterns/data/probes/a21-quest-repair-durability-readers-20260918.md
 CMD	0x0023	0	目标位置 X(int16),写入 Player.CurPosX	Confirmed	上游 TownHandler.cs:163,165 读 BitConverter.ToInt16(body,0) 作 gotoPosX
 CMD	0x0023	2	目标位置 Y(int16),写入 Player.CurPosY	Confirmed	上游 TownHandler.cs:164,166 读 BitConverter.ToInt16(body,2) 作 gotoPosY
 CMD	0x0024	0	目标城镇 id (gotoTownId)	Confirmed	上游 TownHandler.cs:196 读 body[0] 作 gotoTownId

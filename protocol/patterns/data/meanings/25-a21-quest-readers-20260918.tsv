@@ -1,0 +1,5 @@
+family	type	offset	meaning	confidence	source
+CMD	0x0030	0	穿戴对象槽位值;来源为角色对象偏移 +0x60C	High	A21 构包 RVA 0x0126FE16..0x0126FE25 读取 +0x60C 并 WriteU8;响应 handler RVA 0x00D06ACB 以 ReadU8 结果查询穿戴对象;见 patterns/data/probes/a21-quest-repair-durability-readers-20260918.md
+NOTI	0x023F	0	本次任务状态条目数 count	High	A21 handler RVA 0x00D62451 ReadU32 并于 0x00D62470..0x00D624B2 用作循环次数;见 patterns/data/probes/a21-quest-repair-durability-readers-20260918.md
+NOTI	0x023F	g1:0	任务 id (questId);0xFFFF 时跳过应用	High	A21 handler RVA 0x00D62477 ReadU16,0x00D624A7 应用前检查 0xFFFF;见 patterns/data/probes/a21-quest-repair-durability-readers-20260918.md
+NOTI	0x023F	g1:2	任务触发器当前值 triggerValue	High	A21 handler RVA 0x00D62483 ReadU32 后把该值与 questId 交任务状态对象;见 patterns/data/probes/a21-quest-repair-durability-readers-20260918.md

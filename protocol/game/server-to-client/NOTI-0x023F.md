@@ -30,10 +30,10 @@ BodyLength = 未知（字段集合已知不完整）
 
 | Offset | Size | Enc | 可能含义 | 置信度 | 证据 |
 |---:|---:|---|---|---|---|
-| 0 | 4 | `u32` | unknown | — | 接收指令，取自 `[ebp - 4]` |
+| 0 | 4 | `u32` | 本次任务状态条目数 count | High | A21 handler RVA 0x00D62451 ReadU32 并于 0x00D62470..0x00D624B2 用作循环次数;见 patterns/data/probes/a21-quest-repair-durability-readers-20260918.md，取自 `[ebp - 4]` |
 | **重复组 g1 ×n** |  |  | *以下字段按运行时计数重复；其后字段的偏移随重复次数变化* |  |  |
-| &nbsp;&nbsp;↳&nbsp;0 | 2 | `u16` | unknown | — | 接收指令，取自 `[ebp - 8]` |
-| &nbsp;&nbsp;↳&nbsp;2 | 4 | `u32` | unknown | — | 接收指令，取自 `[ebp - 0xc]` |
+| &nbsp;&nbsp;↳&nbsp;0 | 2 | `u16` | 任务 id (questId);0xFFFF 时跳过应用 | High | A21 handler RVA 0x00D62477 ReadU16,0x00D624A7 应用前检查 0xFFFF;见 patterns/data/probes/a21-quest-repair-durability-readers-20260918.md，取自 `[ebp - 8]` |
+| &nbsp;&nbsp;↳&nbsp;2 | 4 | `u32` | 任务触发器当前值 triggerValue | High | A21 handler RVA 0x00D62483 ReadU32 后把该值与 questId 交任务状态对象;见 patterns/data/probes/a21-quest-repair-durability-readers-20260918.md，取自 `[ebp - 0xc]` |
 
 `可能含义` 为 `unknown` 表示**字段边界已确定但含义无证据**——这类未知靠实机改值做差分即可解决，与上面的「结构未知」不是一回事。
 
@@ -67,3 +67,13 @@ BodyLength = 未知（字段集合已知不完整）
 不为同一次客户端报告额外推本通知。需要在 A21 分别记录这些触发源的原始通知、
 与相邻 CMD 的次序，以及双方画面的任务计数；仅服务端测试或玩家看到任务变化
 不足以独立证明每条触发源都正确归因到本帧。
+
+## A21 读取路径复核（2026-09-18）
+
+handler `RVA 0x00D62440` 先于 `0x00D62451` 读 `u32 count`，再循环
+`count` 次读 `u16 questId`、`u32 triggerValue`；`questId=0xFFFF`
+时跳过应用。静态直线路径支持 `4+6n` 的字段顺序及计数语义，
+详见[`A21 静态复核`](../../patterns/data/probes/a21-quest-repair-durability-readers-20260918.md)。
+机器区仍如实保留间接调用造成的“部分可得”裁决；未拿到本通知的 A21
+原始帧及运行时读取 trace 前，不把 `4+6n` 升格为完整线协议，
+也不把购买/丢弃/放弃等任一触发链标为 `ClientVerified`。
