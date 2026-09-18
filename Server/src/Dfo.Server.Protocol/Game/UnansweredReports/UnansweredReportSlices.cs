@@ -63,23 +63,6 @@ public sealed record SyncItemSpaceReport(GameMessageMetadata Metadata, byte[] Bo
     public ClientMessageType MessageType => ClientMessageType.GameSyncItemSpace;
 }
 
-/// <summary>
-/// CMD 0x0030 <c>DECREASE_DURABILITY</c>: wear reported on what the character is using.
-/// </summary>
-/// <remarks>
-/// One byte in the live capture, <c>0C</c>. <b>This is the one member of the family with no
-/// reference frame behind it</b> -- the captured A21 session never sent it, so "the reference
-/// answers nothing" is not something that can be said here. What can be said is that this server
-/// does not model durability loss, so there is nothing for it to answer with; recognising the
-/// frame is what keeps it from being mistaken for a hole. See
-/// <c>Docs/ProtocolScaffoldDissonances.md</c>.
-/// </remarks>
-public sealed record DecreaseDurabilityReport(GameMessageMetadata Metadata, byte[] Body)
-    : IUnansweredReport
-{
-    public ClientMessageType MessageType => ClientMessageType.GameDecreaseDurability;
-}
-
 /// <summary>CMD 0x00D9 <c>OVERFLOW_INFO</c>: three bytes, <c>01 C1 02</c> in the live capture.</summary>
 /// <remarks>A working A21 session received one and answered none.</remarks>
 public sealed record OverflowInfoReport(GameMessageMetadata Metadata, byte[] Body)
@@ -143,9 +126,8 @@ public sealed record FarmEventActionReport(GameMessageMetadata Metadata, byte[] 
 /// <summary>CMD 0x011B <c>PI</c>: eight bytes, and <b>no reference frame behind it</b>.</summary>
 /// <remarks>
 /// Sent once as a room finished loading. The captured A21 session never sent it, so "the reference
-/// answers nothing" cannot be said here -- only that nothing in this server knows what it is. The
-/// same caveat <see cref="DecreaseDurabilityReport"/> carries, and the same place it is written
-/// down.
+/// answers nothing" cannot be said here -- only that nothing in this server knows what it is.
+/// Unlike the durability request, this report still has no modeled behavior.
 /// </remarks>
 public sealed record PiReport(GameMessageMetadata Metadata, byte[] Body) : IUnansweredReport
 {
@@ -156,7 +138,7 @@ public sealed record PiReport(GameMessageMetadata Metadata, byte[] Body) : IUnan
 /// <remarks>
 /// Sixteen bytes, sent once while standing in town. <b>No reference frame behind it</b> -- neither
 /// captured A21 session sent it. The same caveat <see cref="PiReport"/> and
-/// <see cref="DecreaseDurabilityReport"/> carry: nothing here knows what it is, and the silence is
+/// durability once carried: nothing here knows what it is, and the silence is
 /// this server having no advertising service rather than the reference declining to answer.
 /// </remarks>
 public sealed record RequestIgaVersionReport(GameMessageMetadata Metadata, byte[] Body)
@@ -261,12 +243,6 @@ internal sealed class SyncItemSpaceDecoder : IGameMessageDecoder
 {
     public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
         new SyncItemSpaceReport(metadata, body.ToArray());
-}
-
-internal sealed class DecreaseDurabilityDecoder : IGameMessageDecoder
-{
-    public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
-        new DecreaseDurabilityReport(metadata, body.ToArray());
 }
 
 internal sealed class OverflowInfoDecoder : IGameMessageDecoder

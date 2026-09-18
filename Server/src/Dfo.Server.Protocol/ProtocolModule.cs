@@ -43,6 +43,7 @@ using Dfo.Server.Protocol.Game.AvatarPackageOpening;
 using Dfo.Server.Protocol.Game.GenCeraTicket;
 using Dfo.Server.Protocol.Game.SellItem;
 using Dfo.Server.Protocol.Game.RepairItem;
+using Dfo.Server.Protocol.Game.EquipmentDurability;
 using Dfo.Server.Protocol.Game.LearnSkill;
 using Dfo.Server.Protocol.Game.ShopPurchaseCount;
 using Dfo.Server.Protocol.Game.TutorialLevelUp;
@@ -128,6 +129,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddNotificationHandler<ShopPurchaseCountsReported, ShopPurchaseCountsReportedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ItemSaleCompleted, ItemSaleCompletedHandler>(retryLimit: 0);
         services.AddNotificationHandler<EquipmentRepairCompleted, EquipmentRepairCompletedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<EquipmentDurabilityChanged, EquipmentDurabilityChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<ItemDiscardCompleted, ItemDiscardCompletedHandler>(retryLimit: 0);
         services.TryAddSingleton<PartyProjectionStreamRegistry>();
         services.TryAddSingleton<PartyNotificationDelivery>();
@@ -285,6 +287,9 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<RepairItemCommand, EquipmentRepairResult, RepairItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
+        services.AddCommandHandler<DecreaseDurabilityCommand, EquipmentDurabilityResult,
+            DecreaseDurabilityCommandHandler>(CommandExecutionKind.Transactional,
+            UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<DeleteItemCommand, ItemDiscardResult, DeleteItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<BuyItemCommand, NpcShopPurchaseResult, BuyItemCommandHandler>(
@@ -408,11 +413,11 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<GiveUpGameHandler>(ClientMessageType.GameGiveUpGame);
         services.RegisterMessageHandler<BackToVillageHandler>(ClientMessageType.GameBackToVillage);
 
-        // One handler, six wire keys: the reports nothing answers. Registered so that the log can
-        // tell a protocol this server has decided about from one it has never heard of.
+        // Known reports that this server intentionally does not answer. A durability request is
+        // not one of them: it changes a persisted equipment instance and has its own CMD reply.
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameUseSkill);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameSyncItemSpace);
-        services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameDecreaseDurability);
+        services.RegisterMessageHandler<DecreaseDurabilityHandler>(ClientMessageType.GameDecreaseDurability);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameOverflowInfo);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogDomainConnect);
         services.RegisterMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogConnectProcess);
@@ -598,7 +603,7 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.UseSkillType, ClientMessageType.GameUseSkill);
         services.AddGameCmdMessageDecoder<SyncItemSpaceDecoder>(
             GameProtocol.SyncItemSpaceType, ClientMessageType.GameSyncItemSpace);
-        services.AddGameCmdMessageDecoder<DecreaseDurabilityDecoder>(
+        services.AddGameCmdMessageDecoder<DecreaseDurabilityMessageDecoder>(
             GameProtocol.DecreaseDurabilityType, ClientMessageType.GameDecreaseDurability);
         services.AddGameCmdMessageDecoder<OverflowInfoDecoder>(
             GameProtocol.OverflowInfoType, ClientMessageType.GameOverflowInfo);
@@ -711,6 +716,7 @@ public sealed class ProtocolModule : IServerModule
         GameInstanceDelivery.AddEncoders(services);
         services.AddGameCmdMessageEncoder<SellItemResponse, SellItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<RepairItemResponse, RepairItemResponseEncoder>();
+        services.AddGameCmdMessageEncoder<DecreaseDurabilityResponse, DecreaseDurabilityResponseEncoder>();
         services.AddGameCmdMessageEncoder<DeleteItemResponse, DeleteItemResponseEncoder>();
         services.AddGameCmdMessageEncoder<LearnSkillResponse, LearnSkillResponseEncoder>();
         services.AddGameCmdMessageEncoder<ShopPurchaseCountResponse, ShopPurchaseCountEncoder>();

@@ -30,7 +30,7 @@ internal sealed class EquipmentRepairDomainService(
         if (rates is null)
             return new(EquipmentRepairRejection.CannotRepair);
 
-        var candidates = new List<(IItemContainer Bag, ContainerSlotItem Item, ushort DurabilityAfter, int Cost)>();
+        var candidates = new List<(IItemContainer Bag, EquipmentInstance Equipment, int Cost)>();
         if (slotIndex == -1)
         {
             foreach (var (type, first, last) in new[]
@@ -70,23 +70,24 @@ internal sealed class EquipmentRepairDomainService(
         var gold = await character.TrySpendGoldAsync((int)total, cancellationToken).ConfigureAwait(false);
         if (gold is null)
             return new(EquipmentRepairRejection.InsufficientGold);
-        foreach (var (bag, item, durabilityAfter, _) in candidates)
-            if (item.Core.Durability != durabilityAfter)
-                await bag.PutAsync(item.SlotIndex, item.Core with { Durability = durabilityAfter }, cancellationToken)
+        foreach (var (bag, equipment, _) in candidates)
+            if (equipment.Core.Durability != equipment.OriginalDurability)
+                await bag.PutAsync(equipment.SlotIndex, equipment.Core, cancellationToken)
                     .ConfigureAwait(false);
         return new(EquipmentRepairRejection.None, new(session, container, slotIndex, gold.Value));
     }
 
-    private async ValueTask<(IItemContainer Bag, ContainerSlotItem Item, ushort DurabilityAfter, int Cost)?> QuoteAsync(
+    private async ValueTask<(IItemContainer Bag, EquipmentInstance Equipment, int Cost)?> QuoteAsync(
         IItemContainer bag, ContainerSlotItem item, (float CostRate, IReadOnlyList<float> UpgradeRates) rates,
         CancellationToken cancellationToken)
     {
         var definition = await definitions.GetAsync(item.ItemId, cancellationToken).ConfigureAwait(false);
         if (definition is null)
             return null;
-        var decision = new EquipmentForRepair(item, definition).Repair(rates);
+        var equipment = EquipmentInstance.From(item);
+        var decision = equipment?.Repair(definition, rates);
         return decision is { } repaired
-            ? (bag, item, repaired.DurabilityAfter, repaired.Cost)
+            ? (bag, equipment!, repaired.Cost)
             : null;
     }
 }

@@ -156,6 +156,7 @@ public enum ServerMessageType
     GameBuyItem = 0x0001_0015,
     GameSellItem = 0x0001_0016,
     GameRepairItem = 0x0001_0017,
+    GameDecreaseDurability = 0x0001_0030,
     GameDeleteItem = 0x0001_0012,
     GameLearnSkill = 0x0001_001D,
     GameShopPurchaseCount = 0x0001_02CC,
