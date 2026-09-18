@@ -90,6 +90,8 @@ public sealed class CommandRegistrationTests
             typeof(CreateCharacterCommand),
             typeof(DeleteCharacterCommand),
             typeof(PrepareSelectedCharacterSessionCommand),
+            typeof(CleanupExpiredCharacterItemsCommand),
+            typeof(PrepareSelectedCharacterStateCommand),
             typeof(ApplySelectedCharacterDailyRefillCommand),
             typeof(SynchronizeSelectedCharacterQuestsCommand),
             typeof(ReviveSelectedCharacterPetCommand),

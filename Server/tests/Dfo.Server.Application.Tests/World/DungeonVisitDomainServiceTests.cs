@@ -1,8 +1,11 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Parties;
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Parties;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -144,6 +147,47 @@ public sealed class DungeonVisitDomainServiceTests
     }
 
     [Fact]
+    public async Task First_cell_after_leader_leaves_uses_current_party_even_with_stale_caller_view()
+    {
+        var leader = new DungeonRunParticipant(new AccountId(11), new CharacterId(1), 0, true);
+        var successor = new DungeonRunParticipant(new AccountId(22), new CharacterId(2), 1, false);
+        var parties = new PartyService(
+            new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
+            TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance);
+        var scope = new PartyDirectoryScope(11, 1, 1);
+        var first = new PartyCharacterSnapshot(leader.AccountId, leader.CharacterId, 1, scope);
+        var second = new PartyCharacterSnapshot(successor.AccountId, successor.CharacterId, 2, scope);
+        Assert.True(parties.RequestInvite(first, second,
+            new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+        Assert.True(parties.AcceptInvite(second, first).Succeeded);
+        var runs = new DungeonRunDomainService(parties);
+        var start = runs.PreparePartyEntry(
+            [leader, successor], TwoRoomLayout, 0,
+            DungeonCellSeed.CompleteEmpty(TwoRoomLayout.StartCell, TwoRoomLayout.StartRoomMapId),
+            DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
+        var factory = new RecordingCellFactory();
+        var visits = new DungeonVisitDomainService(
+            new RecordingLayouts(), runs, new ImmediateSelection(), factory);
+
+        Assert.True(parties.LeaveParty(leader.CharacterId).Succeeded);
+        var moved = await visits.MoveAsync(
+            successor.CharacterId, start, new MazeCell(1, 0), CancellationToken.None);
+
+        Assert.NotNull(moved);
+        Assert.Equal(start.RunId, moved.Run.RunId);
+        Assert.Equal(start.PartyKey, moved.Run.PartyKey);
+        var generatedFor = Assert.Single(Assert.Single(factory.Contexts).Participants);
+        Assert.Equal(successor.CharacterId, generatedFor.CharacterId);
+        Assert.True(generatedFor.IsLeader);
+        var returned = Assert.IsType<DungeonRoomVisit>(await visits.MoveAsync(
+            successor.CharacterId, moved.Run, TwoRoomLayout.StartCell, CancellationToken.None));
+        var revisited = Assert.IsType<DungeonRoomVisit>(await visits.MoveAsync(
+            successor.CharacterId, returned.Run, new MazeCell(1, 0), CancellationToken.None));
+        Assert.False(revisited.FirstEntry);
+        Assert.Single(factory.Contexts);
+    }
+
+    [Fact]
     public async Task Concurrent_first_visits_publish_only_one_complete_cell_and_reuse_it()
     {
         var character = new CharacterId(1);
@@ -205,11 +249,13 @@ public sealed class DungeonVisitDomainServiceTests
     private sealed class RecordingCellFactory : IDungeonCellFactory
     {
         public int CallCount { get; private set; }
+        public List<DungeonCellCreationContext> Contexts { get; } = [];
 
         public ValueTask<DungeonCellSeed> CreateAsync(
             DungeonCellCreationContext context, CancellationToken cancellationToken)
         {
             this.CallCount++;
+            this.Contexts.Add(context);
             return ValueTask.FromResult(DungeonCellSeed.CompleteEmpty(context.Cell, context.MapId));
         }
     }

@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Parties;
 
 namespace Dfo.Server.Abstractions.World;
 
@@ -37,13 +38,18 @@ public sealed record DungeonRunState(
     bool CardLayoutOpen = false,
     DungeonCellState? CurrentCellState = null)
 {
+    /// <summary>Stable party identity bound to this run, independent of the client's party number.</summary>
+    public PartyKey PartyKey { get; init; }
+
+    /// <summary>The entry-time quest purpose owner, not an authority for current membership.</summary>
+    public DungeonRunParticipant? EntryPurposeOwner { get; init; }
     /// <summary>The authoritative runtime mirror of the room this view stands in.</summary>
     public DungeonCellState CurrentCellState { get; init; } = CurrentCellState
         ?? throw new ArgumentNullException(
             nameof(CurrentCellState),
             "A dungeon run cannot exist without a complete current Cell snapshot.");
 
-    /// <summary>The fixed participant order captured when this run began.</summary>
+    /// <summary>Current party members who also entered this run, ordered by current slots.</summary>
     public IReadOnlyList<DungeonRunParticipant> Participants { get; init; } = Participants ?? [];
 
     /// <summary>The participants whose current client finished loading this room.</summary>
@@ -54,7 +60,7 @@ public sealed record DungeonRunState(
     public IReadOnlyList<DungeonCardSelection> CardSelections { get; init; } =
         CardSelections ?? [];
 
-    /// <summary>The fixed party size used by run-scoped reward rules.</summary>
+    /// <summary>The current in-run party size used by run-scoped reward rules.</summary>
     public int PartyMemberCount => Math.Max(1, this.Participants.Count);
 
     /// <summary>Whether every actor this room declares has been reported dead.</summary>
@@ -89,7 +95,7 @@ public readonly record struct DungeonRunId(Guid Value)
     public static DungeonRunId New() => new(Guid.NewGuid());
 }
 
-/// <summary>A transport-free participant identity frozen at dungeon entry.</summary>
+/// <summary>A transport-free in-run participant projection; slot and leader may change.</summary>
 public sealed record DungeonRunParticipant(
     AccountId AccountId,
     CharacterId CharacterId,

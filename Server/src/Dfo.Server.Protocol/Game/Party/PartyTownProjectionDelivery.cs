@@ -68,7 +68,9 @@ public sealed class PartyTownProjectionDelivery(
             var current = parties.FindParty(character);
             if (current.IsVirtual
                 || current.Generation != candidate.Generation
-                || current.Revision < stream.LatestRevision)
+                || current.Revision < stream.LatestRevision
+                || stream.CurrentPartyId is { } projectedId
+                    && projectedId != current.PartyId)
             {
                 return;
             }
@@ -136,6 +138,7 @@ public sealed class PartyTownProjectionDelivery(
             }
 
             stream.LatestRevision = current.Revision;
+            stream.CurrentPartyId = current.PartyId;
             stream.CurrentMembers.Clear();
             stream.CurrentMembers.UnionWith(memberSessions);
         }
@@ -201,6 +204,8 @@ public sealed class PartyTownProjectionDelivery(
                         && snapshot.Generation == candidate.Generation);
                     if (current is null
                         || current.Revision < stream.LatestRevision
+                        || stream.CurrentPartyId is { } projectedId
+                            && projectedId != current.PartyId
                         || current.Members.Any(member =>
                             member.CharacterId == recipient.CharacterId))
                     {

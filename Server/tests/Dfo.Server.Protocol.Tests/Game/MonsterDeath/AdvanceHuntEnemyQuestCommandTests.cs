@@ -8,6 +8,8 @@ using Dfo.Server.Application.Quests;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Parties;
+using Dfo.Server.Protocol.Tests.Game.Party;
 using Dfo.Server.Protocol.Game.MonsterDeath;
 using QuestTaken = Dfo.Server.Abstractions.Quests.QuestAcceptance;
 
@@ -176,6 +178,38 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         Assert.Equal(15, bag.Count);
         Assert.Single(result.QuestItems!.Items);
         Assert.Equal(1, seeking.TimesAsked);
+    }
+
+    [Fact]
+    public async Task A_departed_owner_does_not_receive_an_ungranted_direct_quest_item()
+    {
+        var bag = new DirectGrantBag(14);
+        var containers = new CharacterContainerDomainService();
+        containers.Register(Character, bag);
+        var log = new OneLog(new CarriedQuest(0, 1776, 1));
+        var handler = new ApplyMonsterKillCommandHandler(
+            new UnusedValuation(), new UnusedBonuses(), new NoExperienceAward(),
+            new OneCharacterLog(log), containers, Progress(log),
+            new VirtualOnlyPartyService());
+
+        var result = await handler.HandleAsync(
+            new CommandExecutionContext(Guid.Empty, typeof(ApplyMonsterKillCommand),
+                typeof(ApplyMonsterKillCommandHandler), CommandExecutionKind.Transactional),
+            new ApplyMonsterKillCommand(
+                Account, Character, new KilledMonster(13098, 5, MonsterRank.Ordinary),
+                144, 0, 1, EnemyType: HuntEnemyTargetTypes.AiCharacter,
+                PendingLoot:
+                [
+                    new RolledDrop(10149163, 1, DropRarity.Common, DropItemKind.Stackable,
+                        OwnerCharacterId: Character,
+                        Delivery: RolledDropDelivery.DirectQuestItem,
+                        QuestId: 1776, GrantLimit: 15),
+                ],
+                PartyKey: PartyKey.Virtual(Character)),
+            CancellationToken.None);
+
+        Assert.Equal(14, bag.Count);
+        Assert.Null(result.QuestItems);
     }
 
     [Theory]

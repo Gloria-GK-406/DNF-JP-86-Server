@@ -58,6 +58,8 @@ public sealed partial class SelectCharacterLifecycleTests
         Assert.Equal(
             [
                 typeof(PrepareSelectedCharacterSessionCommand),
+                typeof(CleanupExpiredCharacterItemsCommand),
+                typeof(PrepareSelectedCharacterStateCommand),
                 typeof(ApplySelectedCharacterDailyRefillCommand),
                 typeof(PublishSelectedCharacterSessionCommand),
                 typeof(SynchronizeSelectedCharacterQuestsCommand),
@@ -130,6 +132,35 @@ public sealed partial class SelectCharacterLifecycleTests
             fixture.Command,
             CancellationToken.None);
         Assert.Equal(1, fixture.Inventory.Claims);
+    }
+
+    [Fact]
+    public async Task ExpiredItemCleanupRefusal_RejectsBeforeCharacterSnapshotAndCompensates()
+    {
+        var fixture = await Fixture.CreateAsync(refuseExpiredCleanup: true);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await fixture.Handler.HandleAsync(fixture.Context, fixture.Command, CancellationToken.None));
+
+        Assert.Equal(["prepare", "x08", "cleanup", "close"], fixture.Ledger);
+        Assert.Equal(0, fixture.Sender.StateMessageCount);
+        Assert.Equal(0, fixture.Inventory.Claims);
+        Assert.Null(fixture.Directory.Find(fixture.AccountId));
+        Assert.DoesNotContain(typeof(PrepareSelectedCharacterStateCommand), fixture.Bus.DispatchedCommands);
+    }
+
+    [Fact]
+    public async Task ExpiredItemCleanupException_RejectsBeforeCharacterSnapshotAndCompensates()
+    {
+        var fixture = await Fixture.CreateAsync(failExpiredCleanup: true);
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await fixture.Handler.HandleAsync(fixture.Context, fixture.Command, CancellationToken.None));
+
+        Assert.IsType<IOException>(error.InnerException);
+        Assert.Equal(["prepare", "x08", "cleanup", "close"], fixture.Ledger);
+        Assert.Equal(0, fixture.Sender.StateMessageCount);
+        Assert.Null(fixture.Directory.Find(fixture.AccountId));
     }
 
     [Theory]
@@ -667,7 +698,9 @@ public sealed partial class SelectCharacterLifecycleTests
             bool missingSkillMirror = false,
             bool refillCommits = false,
             bool planTown = false,
-            bool failFirstTownPublication = false)
+            bool failFirstTownPublication = false,
+            bool refuseExpiredCleanup = false,
+            bool failExpiredCleanup = false)
         {
             var accountId = new AccountId(501);
             var connectionId = new NetworkConnectionId("Game:lifecycle");
@@ -746,6 +779,10 @@ public sealed partial class SelectCharacterLifecycleTests
                 inventory);
             var bus = new RecordingCommandBus(
                 prepareHandler,
+                new CleanupExpiredCharacterItemsCommandHandler(
+                    new StubExpiredCleanup(refuseExpiredCleanup, failExpiredCleanup)),
+                new PrepareSelectedCharacterStateCommandHandler(
+                    refuseAdmission ? new RefusingPreparation(ledger) : preparation!, inventory),
                 new ApplySelectedCharacterDailyRefillCommandHandler(inventory),
                 new PublishSelectedCharacterSessionCommandHandler(active, sessionEntry),
                 new MarkSelectedCharacterPvpReadyCommandHandler(sessionEntry),
@@ -796,6 +833,8 @@ public sealed partial class SelectCharacterLifecycleTests
 
     private sealed class RecordingCommandBus(
         PrepareSelectedCharacterSessionCommandHandler prepare,
+        CleanupExpiredCharacterItemsCommandHandler cleanupExpired,
+        PrepareSelectedCharacterStateCommandHandler prepareState,
         ApplySelectedCharacterDailyRefillCommandHandler refill,
         PublishSelectedCharacterSessionCommandHandler publish,
         MarkSelectedCharacterPvpReadyCommandHandler markPvpReady,
@@ -816,6 +855,10 @@ public sealed partial class SelectCharacterLifecycleTests
             {
                 PrepareSelectedCharacterSessionCommand value =>
                     await RunAsync(prepare, value, cancellationToken),
+                CleanupExpiredCharacterItemsCommand value =>
+                    await RunAsync(cleanupExpired, value, cancellationToken),
+                PrepareSelectedCharacterStateCommand value =>
+                    await RunAsync(prepareState, value, cancellationToken),
                 ApplySelectedCharacterDailyRefillCommand value =>
                     await RunAsync(refill, value, cancellationToken),
                 PublishSelectedCharacterSessionCommand value =>
@@ -834,8 +877,8 @@ public sealed partial class SelectCharacterLifecycleTests
 
             switch (result)
             {
-                case PreparedSelectedCharacterSession value:
-                    State = value.State;
+                case SelectCharacterResult value:
+                    State = value;
                     break;
                 case EntryInventoryPreparation value:
                     State = value.Result;
@@ -866,6 +909,14 @@ public sealed partial class SelectCharacterLifecycleTests
                     AccountAccessMode: UserAccessMode.Exclusive),
                 command,
                 cancellationToken);
+    }
+
+    private sealed class StubExpiredCleanup(bool refuse, bool fail) : IExpiredCharacterItemCleanupDomainService
+    {
+        public ValueTask<bool> CleanupAsync(
+            AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) =>
+            fail ? ValueTask.FromException<bool>(new IOException("database write failed"))
+                : ValueTask.FromResult(!refuse);
     }
 
     private sealed class RejectedLoginCommandBus : ICommandBus

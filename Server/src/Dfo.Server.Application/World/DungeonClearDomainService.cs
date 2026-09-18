@@ -44,14 +44,15 @@ public sealed class DungeonClearDomainService(
 
         // A party run's story purpose is frozen from the leader's entry intent. Helpers may
         // trigger re-evaluation, but their unrelated quest logs cannot satisfy or block it.
-        var leader = run.PartyMemberCount > 1
-            ? run.Participants.Single(participant => participant.IsLeader)
-            : null;
+        var purposeOwner = run.EntryPurposeOwner
+            ?? (run.PartyMemberCount > 1
+                ? run.Participants.Single(participant => participant.IsLeader)
+                : null);
         var activeParticipant = run.Participant
             ?? throw new InvalidOperationException("An active run view requires one participant.");
         var rules = await settlements.ForAsync(
-            leader?.AccountId ?? evaluatorAccountId,
-            leader?.CharacterId ?? evaluatorCharacterId,
+            purposeOwner?.AccountId ?? evaluatorAccountId,
+            purposeOwner?.CharacterId ?? evaluatorCharacterId,
             run,
             cancellationToken).ConfigureAwait(false);
         return rules.CanComplete

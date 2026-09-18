@@ -180,6 +180,41 @@ internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : IChara
             cancellationToken);
     }
 
+    public async ValueTask<int> DeleteOwnByUidsAsync(
+        CharacterId characterId, IReadOnlyList<long> itemUids, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(itemUids);
+        var removed = 0;
+        foreach (var itemUid in itemUids.Distinct())
+        {
+            var deletedItem = await database.ExecuteAsync(
+                "DELETE FROM items WHERE item_uid=@uid AND EXISTS ("
+                + "SELECT 1 FROM item_slots WHERE core_uid=@uid "
+                + "AND owner_scope='character' AND owner_id=@cid "
+                + "AND list_type NOT BETWEEN 19 AND 23);",
+                parameters =>
+                {
+                    parameters.AddWithValue("@uid", itemUid);
+                    parameters.AddWithValue("@cid", characterId.Value);
+                }, cancellationToken).ConfigureAwait(false);
+            if (deletedItem != 1)
+                throw new InvalidOperationException($"Expired item {itemUid} is no longer owned by {characterId}.");
+
+            var deletedPosition = await database.ExecuteAsync(
+                "DELETE FROM item_slots WHERE core_uid=@uid AND owner_scope='character' "
+                + "AND owner_id=@cid AND list_type NOT BETWEEN 19 AND 23;",
+                parameters =>
+                {
+                    parameters.AddWithValue("@uid", itemUid);
+                    parameters.AddWithValue("@cid", characterId.Value);
+                }, cancellationToken).ConfigureAwait(false);
+            if (deletedPosition != 1)
+                throw new InvalidOperationException($"Expired item {itemUid} has an invalid position count.");
+            removed++;
+        }
+        return removed;
+    }
+
     /// <remarks>
     /// Only the positions. What stood in them is left in the world, because the save is about to
     /// say where each of those things now is, and a thing it no longer holds has already been

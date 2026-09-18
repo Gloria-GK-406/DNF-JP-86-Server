@@ -20,6 +20,65 @@ namespace Dfo.Server.Application.Tests.Parties;
 public sealed class PartyServiceTests
 {
     [Fact]
+    public void Real_and_virtual_party_keys_are_distinct_and_resolve_only_current_members()
+    {
+        var service = new PartyService(
+            new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
+            TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance);
+        var scope = new PartyDirectoryScope(11, 1, 1);
+        var first = Character(1, scope);
+        var second = Character(2, scope);
+        var loneA = Character(3, scope);
+        var loneB = Character(4, scope);
+        var defaults = new PartyModeRuleService().DefaultSettings;
+        Assert.True(service.CreateOrUpdateSettings(first, defaults, PartyTitle.Empty).Succeeded);
+        Assert.True(service.CreateOrUpdateSettings(second, defaults, PartyTitle.Empty).Succeeded);
+
+        var keys = new[]
+        {
+            service.FindParty(first).Key,
+            service.FindParty(second).Key,
+            service.FindParty(loneA).Key,
+            service.FindParty(loneB).Key,
+        };
+
+        Assert.Equal(4, keys.Distinct().Count());
+        Assert.Equal(first.CharacterId,
+            Assert.Single(service.FindByKey(keys[0])!.Members).CharacterId);
+        Assert.Equal(second.CharacterId,
+            Assert.Single(service.FindByKey(keys[1])!.Members).CharacterId);
+        Assert.Equal(loneA.CharacterId,
+            Assert.Single(service.FindByKey(keys[2])!.Members).CharacterId);
+        Assert.Equal(loneB.CharacterId,
+            Assert.Single(service.FindByKey(keys[3])!.Members).CharacterId);
+    }
+
+    [Fact]
+    public void Party_key_identifies_current_membership_across_leader_succession()
+    {
+        var fixture = new PartyFixture();
+        var leader = fixture.Admit(1, 101);
+        var successor = fixture.Admit(2, 202);
+        fixture.Form(leader, successor);
+
+        var before = fixture.Parties.FindParty(leader);
+        Assert.Equal(PartyKeyKind.Real, before.Key.Kind);
+        Assert.Equal(
+            [leader.CharacterId, successor.CharacterId],
+            fixture.Parties.FindByKey(before.Key)!.Members.Select(member => member.CharacterId));
+
+        Assert.True(fixture.Parties.LeavePartyExact(leader).Succeeded);
+        var after = fixture.Parties.FindParty(successor);
+        Assert.Equal(before.Key, after.Key);
+        var current = Assert.IsType<PartyMembershipSnapshot>(fixture.Parties.FindByKey(before.Key));
+        Assert.Equal(successor.CharacterId, current.LeaderCharacterId);
+        Assert.Equal(successor.CharacterId, Assert.Single(current.Members).CharacterId);
+        Assert.Null(fixture.Parties.FindByKey(PartyKey.Virtual(successor.CharacterId)));
+        Assert.Equal(leader.CharacterId,
+            Assert.Single(fixture.Parties.FindByKey(PartyKey.Virtual(leader.CharacterId))!.Members).CharacterId);
+    }
+
+    [Fact]
     public void Dungeon_roster_is_always_nonempty_without_creating_a_real_party()
     {
         IPartyService service = new PartyService(
@@ -515,7 +574,9 @@ public sealed class PartyServiceTests
             accepted.Notifications.Acceptance);
         var firstSnapshot = Assert.IsType<PartySnapshot>(accepted.Notifications.Snapshot);
         Assert.Equal(second.CharacterId, Assert.Single(accepted.Notifications.ClearAudience));
-        Assert.Equal(firstSnapshot.PartyId, accepted.Notifications.ClearPartyId);
+        Assert.Equal(firstSnapshot.Key, accepted.Notifications.ClearPartyKey);
+        Assert.Equal(firstSnapshot.LeadershipVersion, accepted.Notifications.ClearLeadershipVersion);
+        Assert.Equal((ushort)0, firstSnapshot.PartyId);
         Assert.Equal(leader.WireUserId, firstSnapshot.LeaderWireUserId);
         Assert.Collection(
             firstSnapshot.Members,
@@ -662,9 +723,16 @@ public sealed class PartyServiceTests
 
         Assert.True(leaderLeave.Succeeded);
         var remaining = Assert.IsType<PartySnapshot>(leaderLeave.Notifications.Snapshot);
+        Assert.NotEqual(survivors.LeadershipVersion, remaining.LeadershipVersion);
+        Assert.Equal(survivors.Key, remaining.Key);
+        Assert.Equal(survivors.Key, leaderLeave.Notifications.ClearPartyKey);
+        Assert.Equal(survivors.LeadershipVersion, leaderLeave.Notifications.ClearLeadershipVersion);
+        Assert.Equal(
+            [leader.CharacterId, third.CharacterId],
+            leaderLeave.Notifications.ClearAudience.ToArray());
+        Assert.Null(leaderLeave.Notifications.LeadershipTransfer);
         Assert.Equal(third.CharacterId, Assert.Single(remaining.Members).CharacterId);
         Assert.Equal(third.WireUserId, remaining.LeaderWireUserId);
-        Assert.Equal(leader.CharacterId, Assert.Single(leaderLeave.Notifications.ClearAudience));
         Assert.True(fixture.Parties.FindParty(leader).IsVirtual);
         Assert.False(fixture.Parties.FindParty(third).IsVirtual);
         Assert.Equal(

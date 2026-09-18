@@ -263,6 +263,10 @@ public sealed class AvatarCarrierRulesTests
             CharacterId characterId, IReadOnlyList<long> keep, CancellationToken cancellationToken)
             => throw Unreached();
 
+        public ValueTask<int> DeleteOwnByUidsAsync(
+            CharacterId characterId, IReadOnlyList<long> itemUids, CancellationToken cancellationToken)
+            => throw Unreached();
+
         public ValueTask<int> UpdateOwnAsync(
             long itemUid, CharacterId characterId, InventoryItemCoreState core,
             InventoryAvatarDetailState? avatarDetail, CancellationToken cancellationToken)

@@ -460,6 +460,10 @@ public sealed class SqliteCharacterLifecycleTests
             CharacterId characterId, IReadOnlyList<long> keep, CancellationToken cancellationToken) =>
             inner.DeleteOwnExceptAsync(characterId, keep, cancellationToken);
 
+        public ValueTask<int> DeleteOwnByUidsAsync(
+            CharacterId characterId, IReadOnlyList<long> itemUids, CancellationToken cancellationToken) =>
+            inner.DeleteOwnByUidsAsync(characterId, itemUids, cancellationToken);
+
         public ValueTask<int> UpdateOwnAsync(
             long itemUid, CharacterId characterId, InventoryItemCoreState core,
             InventoryAvatarDetailState? avatarDetail, CancellationToken cancellationToken) =>

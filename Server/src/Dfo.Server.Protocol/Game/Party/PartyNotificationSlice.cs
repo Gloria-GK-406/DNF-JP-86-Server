@@ -484,6 +484,11 @@ internal sealed class PartyDeliveryStream
 
     public long LatestRevision { get; set; }
 
+    // The wire identity currently projected to this generation. A town read-repair may
+    // advance a roster revision, but it must not consume a pending leader rekey without
+    // retiring the old client object first.
+    public ushort? CurrentPartyId { get; set; }
+
     public HashSet<SelectedSessionIdentity> CurrentMembers { get; } = [];
 
     public HashSet<SelectedSessionIdentity> FullStateMembers { get; } = [];
@@ -657,6 +662,7 @@ public sealed class PartyNotificationDelivery(
                 return;
 
             stream.LatestRevision = revision;
+            stream.CurrentPartyId = plan.Snapshot?.PartyId;
             if (plan.Snapshot is { } latestSnapshot)
             {
                 stream.CurrentMembers.Clear();
@@ -842,9 +848,14 @@ public sealed class PartyNotificationDelivery(
             return true;
         }
 
+        var rekeyed = plan.Snapshot is { } currentSnapshot
+            && plan.ClearPartyId is { } oldId
+            && oldId != currentSnapshot.PartyId;
         var excluded = plan.Snapshot is { } snapshot
             ? snapshot.Members.Select(member => member.CharacterId).ToHashSet()
             : plan.ClearAudience.ToHashSet();
+        if (rekeyed)
+            excluded.UnionWith(plan.ClearAudience);
         var previousObservers = resolver.Scope(change.Previous)
             .Where(session => !excluded.Contains(session.CharacterId))
             .Distinct()
@@ -854,7 +865,7 @@ public sealed class PartyNotificationDelivery(
             .Distinct()
             .ToImmutableArray();
 
-        if (change.Previous is not null && change.Previous != change.Current
+        if (change.Previous is not null && (change.Previous != change.Current || rekeyed)
             && !previousObservers.IsEmpty)
         {
             var partyId = plan.ClearPartyId ?? plan.Snapshot?.PartyId

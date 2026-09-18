@@ -353,6 +353,10 @@ public interface ICharacterItemTable
     ValueTask<int> DeleteOwnExceptAsync(
         CharacterId characterId, IReadOnlyList<long> keep, CancellationToken cancellationToken);
 
+    /// <summary>Removes only the named items and positions currently owned by this character.</summary>
+    ValueTask<int> DeleteOwnByUidsAsync(
+        CharacterId characterId, IReadOnlyList<long> itemUids, CancellationToken cancellationToken);
+
     /// <summary>Changes what one of this character's own things carries, wherever it is.</summary>
     /// <remarks>
     /// One when the thing is this character's, and nothing at all when it is not -- which is how a

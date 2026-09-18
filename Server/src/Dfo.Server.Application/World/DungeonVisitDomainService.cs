@@ -91,8 +91,15 @@ internal sealed class DungeonVisitDomainService(
     {
         ArgumentNullException.ThrowIfNull(current);
 
-        var firstEntry = !current.VisitedCells.Contains(target);
-        if (!current.Layout.Rooms.TryGetValue(target, out var mapId))
+        // The caller's view can predate a leader departure. Cell preparation reads the current
+        // party-backed run view; the existing room version still guards the final move commit.
+        var latest = runs.Find(characterId);
+        if (latest is null || latest.RunId != current.RunId
+            || latest.RoomVersion != current.RoomVersion)
+            return null;
+
+        var firstEntry = !latest.VisitedCells.Contains(target);
+        if (!latest.Layout.Rooms.TryGetValue(target, out var mapId))
             return null;
 
         DungeonCellSeed? preparedCell = null;
@@ -100,20 +107,20 @@ internal sealed class DungeonVisitDomainService(
         {
             preparedCell = await cells.CreateAsync(
                 new DungeonCellCreationContext(
-                    current.RunId,
-                    current.Layout,
+                    latest.RunId,
+                    latest.Layout,
                     target,
                     mapId,
-                    current.Difficulty,
-                    current.StartedAt,
-                    current.Participants),
+                    latest.Difficulty,
+                    latest.StartedAt,
+                    latest.Participants),
                 cancellationToken).ConfigureAwait(false);
         }
 
         var entered = runs.TryMove(
             characterId,
-            current.RunId,
-            current.RoomVersion,
+            latest.RunId,
+            latest.RoomVersion,
             target,
             preparedCell);
         return entered is null ? null : this.DescribeCreatedCell(entered, firstEntry);

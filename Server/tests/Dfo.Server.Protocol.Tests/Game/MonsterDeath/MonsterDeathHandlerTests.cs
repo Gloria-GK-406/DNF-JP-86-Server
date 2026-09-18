@@ -451,7 +451,7 @@ public sealed class MonsterDeathHandlerTests
         var run = new PartyRun([
             new DungeonRunParticipant(leader.AccountId, leader.CharacterId, 0, true),
             new DungeonRunParticipant(member.AccountId, member.CharacterId, 1, false),
-        ]);
+        ]) { PartyKey = party.FindParty(first).Key };
         var registry = new DungeonRunDeliveryRegistry();
         registry.Register(run.RunId, [leader, member]);
         var recipients = new DungeonPartyRecipients(
@@ -1040,8 +1040,12 @@ public sealed class MonsterDeathHandlerTests
             ExperienceWeight: 1.45);
 
         public DungeonRunId RunId { get; } = DungeonRunId.New();
+        public PartyKey PartyKey { get; init; }
         public int CommitCount { get; private set; }
         public int ReleaseCount { get; private set; }
+
+        public DungeonRunState? Find(DungeonRunId runId) =>
+            runId == this.RunId ? this.Find(participants[0].CharacterId) : null;
 
         public DungeonRunState? Find(CharacterId characterId)
         {
@@ -1082,7 +1086,7 @@ public sealed class MonsterDeathHandlerTests
                                 Kind: DropItemKind.Gold,
                                 OwnerCharacterId: dropOwner),
                         ]
-                        : []));
+                        : [])) { PartyKey = this.PartyKey };
         }
 
         public DungeonActorDeathClaim? TryClaimActorDeath(

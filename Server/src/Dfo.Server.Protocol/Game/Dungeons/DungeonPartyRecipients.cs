@@ -1,7 +1,6 @@
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
-using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Protocol.Game.Dungeons;
@@ -21,8 +20,12 @@ public sealed class DungeonPartyRecipients(
         DungeonRunId runId)
     {
         ArgumentNullException.ThrowIfNull(actor);
-        var party = parties.FindParty(new PartyCharacterSnapshot(
-            actor.AccountId, actor.CharacterId, actor.WireUserId, null));
+        var run = runs.Find(runId);
+        if (run is null || runs.Find(actor.CharacterId)?.RunId != runId)
+            return [];
+        var party = parties.FindByKey(run.PartyKey);
+        if (party is null)
+            return [];
         var admittedGenerations = runGenerations.Find(runId).ToHashSet();
         return party.Members
             .OrderBy(member => member.Slot)

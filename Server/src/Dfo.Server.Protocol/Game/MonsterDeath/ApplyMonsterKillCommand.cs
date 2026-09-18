@@ -3,10 +3,12 @@ using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Parties;
 
 namespace Dfo.Server.Protocol.Game.MonsterDeath;
 
@@ -20,7 +22,8 @@ public sealed record ApplyMonsterKillCommand(
     double DungeonWeight,
     int EnemyType = HuntEnemyTargetTypes.Monster,
     int PartyMemberCount = 1,
-    IReadOnlyList<RolledDrop>? PendingLoot = null) : ICommand<ApplyMonsterKillResult>;
+    IReadOnlyList<RolledDrop>? PendingLoot = null,
+    PartyKey PartyKey = default) : ICommand<ApplyMonsterKillResult>;
 
 public sealed record ApplyMonsterKillResult(
     ExperienceAward? Award,
@@ -37,7 +40,8 @@ public sealed class ApplyMonsterKillCommandHandler(
     ICharacterExperienceDomainService experience,
     ICharacterQuestLogDomainService questLogs,
     ICharacterContainerDomainService containers,
-    IQuestProgressDomainService questProgress)
+    IQuestProgressDomainService questProgress,
+    IPartyService? parties = null)
     : ICommandHandler<ApplyMonsterKillCommand, ApplyMonsterKillResult>
 {
     public async ValueTask<ApplyMonsterKillResult> HandleAsync(
@@ -91,6 +95,10 @@ public sealed class ApplyMonsterKillCommandHandler(
         ApplyMonsterKillCommand command,
         CancellationToken cancellationToken)
     {
+        if (command.PartyKey != default
+            && (parties?.FindByKey(command.PartyKey) is not { } current
+                || !current.Members.Any(member => member.CharacterId == command.CharacterId)))
+            return null;
         var candidates = command.PendingLoot?
             .Where(drop => drop.Delivery == RolledDropDelivery.DirectQuestItem
                 && drop.OwnerCharacterId == command.CharacterId)

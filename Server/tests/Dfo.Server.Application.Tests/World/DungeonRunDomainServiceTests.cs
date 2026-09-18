@@ -363,9 +363,14 @@ public sealed class DungeonRunDomainServiceTests
             actors: [CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0))],
             difficulty: 2);
 
-        Assert.True(service.End(leader.CharacterId, run.RunId));
         Assert.True(parties.LeaveParty(leader.CharacterId).Succeeded);
         var current = Assert.IsType<DungeonRunState>(service.Find(member.CharacterId));
+        Assert.Equal(parties.FindParty(second).Key, current.PartyKey);
+        Assert.Equal(leader.CharacterId, current.EntryPurposeOwner!.CharacterId);
+        Assert.Equal(member.CharacterId, Assert.Single(current.Participants).CharacterId);
+        Assert.True(Assert.Single(current.Participants).IsLeader);
+        Assert.Null(service.Find(leader.CharacterId));
+        Assert.True(service.End(leader.CharacterId, run.RunId));
         var moved = service.TryMove(
             member.CharacterId, current.RunId, current.RoomVersion,
             new MazeCell(1, 1),
@@ -374,6 +379,36 @@ public sealed class DungeonRunDomainServiceTests
 
         Assert.NotNull(moved);
         Assert.Equal(new MazeCell(1, 1), moved.CurrentCell);
+    }
+
+    [Fact]
+    public void A_member_joining_the_party_after_entry_is_not_admitted_to_the_existing_run()
+    {
+        var leader = new DungeonRunParticipant(new AccountId(101), new CharacterId(1), 0, true);
+        var member = new DungeonRunParticipant(new AccountId(202), new CharacterId(2), 1, false);
+        var outsider = new PartyCharacterSnapshot(
+            new AccountId(303), new CharacterId(3), 3, new PartyDirectoryScope(11, 1, 1));
+        var parties = new PartyService(
+            new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
+            TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance);
+        var first = new PartyCharacterSnapshot(
+            leader.AccountId, leader.CharacterId, 1, outsider.DirectoryScope);
+        var second = new PartyCharacterSnapshot(
+            member.AccountId, member.CharacterId, 2, outsider.DirectoryScope);
+        Assert.True(parties.RequestInvite(first, second,
+            new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+        Assert.True(parties.AcceptInvite(second, first).Succeeded);
+        var runs = new DungeonRunDomainService(parties);
+        var run = BeginPartyWithCell(runs, [leader, member]);
+
+        Assert.True(parties.RequestInvite(first, outsider,
+            new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+        Assert.True(parties.AcceptInvite(outsider, first).Succeeded);
+
+        Assert.Null(runs.Find(outsider.CharacterId));
+        Assert.Equal(2, runs.Find(run.RunId)!.Participants.Count);
+        Assert.Equal([leader.CharacterId, member.CharacterId],
+            runs.Find(run.RunId)!.Participants.Select(value => value.CharacterId));
     }
 
     private static readonly DungeonLayout Tutorial = new(
@@ -557,6 +592,40 @@ public sealed class DungeonRunDomainServiceTests
             Assert.Single(
                 committed.CurrentCellState.GroundItems,
                 item => item.Source == DungeonGroundItemSource.FromActor(FirstSequence)));
+    }
+
+    [Fact]
+    public void Death_materializes_shared_loot_but_skips_a_departed_members_personal_loot()
+    {
+        var leader = new DungeonRunParticipant(new AccountId(101), new CharacterId(1), 0, true);
+        var member = new DungeonRunParticipant(new AccountId(202), new CharacterId(2), 1, false);
+        var parties = new PartyService(
+            new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
+            TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance);
+        var scope = new PartyDirectoryScope(11, 1, 1);
+        var first = new PartyCharacterSnapshot(leader.AccountId, leader.CharacterId, 1, scope);
+        var second = new PartyCharacterSnapshot(member.AccountId, member.CharacterId, 2, scope);
+        Assert.True(parties.RequestInvite(first, second,
+            new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+        Assert.True(parties.AcceptInvite(second, first).Succeeded);
+        var service = new DungeonRunDomainService(parties);
+        _ = BeginPartyWithCell(service, [leader, member],
+            actors: [CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0),
+                pendingLoot:
+                [
+                    new RolledDrop(1001, 1, DropRarity.Common, DropItemKind.Stackable,
+                        OwnerCharacterId: leader.CharacterId),
+                    new RolledDrop(1002, 1, DropRarity.Common, DropItemKind.Stackable),
+                ])]);
+
+        Assert.True(parties.LeaveParty(leader.CharacterId).Succeeded);
+        var claim = Assert.IsType<DungeonActorDeathClaim>(
+            service.TryClaimActorDeath(member.CharacterId, FirstSequence));
+        var change = Assert.IsType<DungeonActorDeathChange>(service.CommitActorDeathChange(claim));
+
+        Assert.Equal(1002, Assert.Single(change.AddedGroundItems).ItemId);
+        Assert.Equal(member.CharacterId, Assert.Single(change.Recipients));
+        Assert.Null(service.Find(leader.CharacterId));
     }
 
     [Fact]
