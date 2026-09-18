@@ -71,7 +71,10 @@ static const uint8_t g_cthread_call_expected[5] = { 0xE8, 0x7B, 0x8A, 0x6C, 0x02
 static int g_pickup_trace_enabled;
 static wchar_t g_pickup_trace_path[MAX_PATH];
 static volatile LONG g_pickup_trace_open_failed;
-static SRWLOCK g_pickup_trace_lock = SRWLOCK_INIT;
+static int g_card_trace_enabled;
+static wchar_t g_card_trace_path[MAX_PATH];
+static volatile LONG g_card_trace_open_failed;
+static SRWLOCK g_packet_trace_lock = SRWLOCK_INIT;
 
 static void log_line(uint32_t level, const char* message)
 {
@@ -92,25 +95,46 @@ static int path_beside_exe(wchar_t* out, size_t cap, const wchar_t* name)
     return wcscat_s(out, cap, name) == 0;
 }
 
-/* Cipher::Decrypt receives the body, not its frame header. This trace proves
- * arrival at the client network layer, not dispatch or removal from the map. */
-static void trace_pickup_packet(const char* direction, int packet_type,
+/* Cipher::Decrypt receives the body, not its frame header. These traces prove
+ * arrival at the client network layer, not dispatch or UI state transitions. */
+static void trace_selected_packet(const char* direction, int packet_type,
     const char* body, int body_length)
 {
     FILE* file = NULL;
     SYSTEMTIME now;
     int dumped;
-    if (!g_pickup_trace_enabled || body == NULL || body_length < 0
-        || (packet_type != 0x0027 && packet_type != 0x002B)) return;
-    AcquireSRWLockExclusive(&g_pickup_trace_lock);
-    if (_wfopen_s(&file, g_pickup_trace_path, L"a") != 0 || file == NULL) {
-        if (InterlockedCompareExchange(&g_pickup_trace_open_failed, 1, 0) == 0)
-            log_line(1, "pickup trace could not open its log file");
-        ReleaseSRWLockExclusive(&g_pickup_trace_lock);
+    const wchar_t* path = NULL;
+    volatile LONG* open_failed = NULL;
+    const char* failure = NULL;
+    int max_body = 0;
+
+    if (body_length < 0 || (body == NULL && body_length != 0)) return;
+    if (g_pickup_trace_enabled
+        && (packet_type == 0x0027 || packet_type == 0x002B)) {
+        path = g_pickup_trace_path;
+        open_failed = &g_pickup_trace_open_failed;
+        failure = "pickup trace could not open its log file";
+        max_body = 128;
+    } else if (g_card_trace_enabled
+        && (packet_type == 0x0023 || packet_type == 0x0045
+            || packet_type == 0x0046 || packet_type == 0x0047)) {
+        path = g_card_trace_path;
+        open_failed = &g_card_trace_open_failed;
+        failure = "card trace could not open its log file";
+        max_body = 4096;
+    } else {
+        return;
+    }
+
+    AcquireSRWLockExclusive(&g_packet_trace_lock);
+    if (_wfopen_s(&file, path, L"a") != 0 || file == NULL) {
+        if (InterlockedCompareExchange(open_failed, 1, 0) == 0)
+            log_line(1, failure);
+        ReleaseSRWLockExclusive(&g_packet_trace_lock);
         return;
     }
     GetSystemTime(&now);
-    dumped = body_length < 128 ? body_length : 128;
+    dumped = body_length < max_body ? body_length : max_body;
     fprintf(file,
         "{\"utc\":\"%04u-%02u-%02uT%02u:%02u:%02u.%03uZ\","
         "\"pid\":%lu,\"dir\":\"%s\",\"type\":%d,"
@@ -122,22 +146,28 @@ static void trace_pickup_packet(const char* direction, int packet_type,
         fprintf(file, "%02X", (unsigned char)body[i]);
     fputs("\"}\n", file);
     fclose(file);
-    ReleaseSRWLockExclusive(&g_pickup_trace_lock);
+    ReleaseSRWLockExclusive(&g_packet_trace_lock);
 }
 
-static void load_pickup_trace_config(void)
+static void load_packet_trace_config(void)
 {
     wchar_t ini[MAX_PATH];
     if (!path_beside_exe(ini, MAX_PATH, L"ClientHack.ini")
         || !path_beside_exe(g_pickup_trace_path, MAX_PATH,
-            L"clienthack-a21-pickup-trace.log")) {
-        log_line(1, "pickup trace paths could not be resolved");
+            L"clienthack-a21-pickup-trace.log")
+        || !path_beside_exe(g_card_trace_path, MAX_PATH,
+            L"clienthack-a21-card-trace.log")) {
+        log_line(1, "packet trace paths could not be resolved");
         return;
     }
     g_pickup_trace_enabled = GetPrivateProfileIntW(
         L"A21PickupTrace", L"Enabled", 0, ini) != 0;
     if (g_pickup_trace_enabled)
         log_line(3, "pickup packet trace enabled for types 0x0027 and 0x002B");
+    g_card_trace_enabled = GetPrivateProfileIntW(
+        L"A21CardTrace", L"Enabled", 0, ini) != 0;
+    if (g_card_trace_enabled)
+        log_line(3, "card packet trace enabled for types 0x0023 and 0x0045-0x0047");
 }
 
 /* --- CThread::Create ------------------------------------------------------ */
@@ -182,7 +212,7 @@ static int __fastcall cipher_encrypt_passthrough(
         input_size + A21_HEADER_SIZE;
     if (input_size != 0) memcpy(output, input, (size_t)input_size);
     *output_size = input_size;
-    trace_pickup_packet("send", packet_type, input, input_size);
+    trace_selected_packet("send", packet_type, input, input_size);
     return 1;
 }
 
@@ -196,7 +226,7 @@ static int __fastcall cipher_decrypt_passthrough(
         return 0;
     if (input_size != 0) memcpy(output, input, (size_t)input_size);
     *output_size = input_size;
-    trace_pickup_packet("recv", packet_type, input, input_size);
+    trace_selected_packet("recv", packet_type, input, input_size);
     return 1;
 }
 
@@ -317,7 +347,7 @@ ch_status CH_CALL ch_plugin_initialize(const ch_host_api* host)
         host->patch_apply == NULL || host->hook_create == NULL) {
         return CH_STATUS_UNSUPPORTED_ABI;
     }
-    load_pickup_trace_config();
+    load_packet_trace_config();
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable: 4055)
