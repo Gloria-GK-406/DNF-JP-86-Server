@@ -45,8 +45,20 @@ STATES = ["布局已闭合（含计数重复组）", "布局已闭合", "布局�
 #               server sends it in the entry batch regardless, and so does this server, so
 #               there is something to document. A page the client will discard is still a
 #               page about what goes on the wire.
+#   C2S 0x0084  The A21 client sent this empty request three times, but its builder lives in
+#               the obfuscated region the static MakeHeader census cannot scan.  The live
+#               identity therefore has a hand-written page without an inventory row.
+#   C2S 0x0075  A21 runtime logs captured the 39-byte BOSS_DIE_CHECK report after boss
+#               death. Neither its builder nor a same-type response handler is visible to
+#               the static census, so this report-only identity is hand-written.
+#   CMD-0x0040  The response was documented separately during the CERA shop reconstruction;
+#               the ordinary ownership rule now keeps responses on the request page, but
+#               this evidence-bearing historical page remains cross-linked.
 DECLARED_EXTRA_DOCS = {
+    "game/client-to-server/0x0075.md",
+    "game/client-to-server/0x0084.md",
     "game/server-to-client/CMD-0x0001.md",
+    "game/server-to-client/CMD-0x0040.md",
     "game/server-to-client/NOTI-0x0381.md",
 }
 

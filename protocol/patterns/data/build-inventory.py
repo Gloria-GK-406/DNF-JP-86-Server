@@ -4,11 +4,12 @@
 The client's own type-indexed diagnostic tables live in the runtime data region, which
 is all zeroes in a code dump, so the binary cannot tell us what a protocol is called.
 The upstream server tree carries two enums that can: `CmdPacketType` and
-`NotiPacketType`. Their declared counts (1086 and 1036) equal the capacities the server
-announces to the client in the initial connection notice, and spot checks against every
-protocol this repository has already verified end to end -- including numbers that mean
+`NotiPacketType`. The A21 source contains 1272 CMD members and 1219 NOTI members; the
+initial connection frame carries their respective END values 1271 and 1218. Spot checks
+against protocols this repository has verified end to end -- including numbers that mean
 different things in each family, such as 0x01BA MERCENARY_INFO vs GROWTH_WEAPON_EVENT_INFO
--- agree with no off-by-one. So the enum value is the wire type directly.
+-- agree with no off-by-one. So the enum value is the wire type directly. Member count,
+END value and actually registered identity count remain separate metrics.
 
 Names are evidence of what a protocol is called, not of what it does. Upstream comments
 and handler behaviour are a separate, weaker class of evidence, deliberately not merged
@@ -26,8 +27,12 @@ and the existing hand-written documents keep their paths. S->C carries both fami
 one shared number space, so its names must state the family or NOTI 0x0001 and the CMD
 0x0001 response would claim the same file.
 
+External input: set ``DNF_A21_ENUMS_PATH`` when the historical upstream checkout path
+below is not available.
+
 usage: build-inventory.py [identity.tsv] [out.tsv]
 """
+import os
 import sys
 import re
 import collections
@@ -39,7 +44,16 @@ OUT = sys.argv[2] if len(sys.argv) > 2 else "protocol-inventory.tsv"
 #   D:\project\86JP\Server\DfoServer\Network\Core\PacketTypes.cs
 # and the two disagree on 375 NOTI and 361 CMD names -- pointing this at the wrong one
 # mislabels a third of the tree and does not fail while doing it.
-ENUMS = r"D:\project\DNF\ServerS4A21\Server\DfoServer\Network\Core\PacketTypesA21.cs"
+ENUMS = os.environ.get(
+    "DNF_A21_ENUMS_PATH",
+    r"D:\project\DNF\ServerS4A21\Server\DfoServer\Network\Core\PacketTypesA21.cs",
+)
+
+if not os.path.isfile(ENUMS):
+    sys.exit(
+        "A21 enum source not found: %s\nSet DNF_A21_ENUMS_PATH to "
+        "ServerS4A21/Server/DfoServer/Network/Core/PacketTypesA21.cs." % ENUMS
+    )
 
 # ------------------------------------------------------------------ upstream names
 names = {"CMD": {}, "NOTI": {}}
@@ -116,7 +130,8 @@ for t in sorted(s2c_noti):
         "notification (server push only)",
     ]))
 
-open(OUT, "w", encoding="utf-8").write("\n".join(out) + "\n")
+with open(OUT, "w", encoding="utf-8", newline="\n") as stream:
+    stream.write("\n".join(out) + "\n")
 
 named = sum(1 for line in out[1:] if line.split("\t")[4])
 print("upstream enums        : CMD %d entries, NOTI %d entries"

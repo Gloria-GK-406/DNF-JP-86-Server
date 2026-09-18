@@ -149,7 +149,7 @@ call 0x274e6d0      ; 发送
 
 ## forwarder 注册的那批
 
-A12 有 439 条注册走运行时 forwarder 而非启动批次。A21 同样有，形状是：
+A12 有 439 条注册走运行时 forwarder 而非启动批次。A21 当前找到 574 个调用点，形状是：
 
 ```asm
 push ebx           ; ctx
@@ -160,27 +160,29 @@ mov  ecx, eax
 call 0x1637660     ; forwarder（族别由它决定）
 ```
 
-CMD forwarder 272 个调用点解出 258 条，NOTI forwarder 302 个解出 292 条。
+CMD forwarder 272 个调用点全部解出，对应 271 个 type；NOTI forwarder 302 个调用点全部解出，
+对应 300 个 type。重复调用点由同表覆盖语义归并，不是未解析。
 
 ## 这次静态产出
 
 | 项 | 数 |
 |---|---|
 | `Register` 直接调用点 | 943（批次内 941） |
-| forwarder 调用点 | 574（CMD 272 + NOTI 302），解出 550 |
-| **CMD 接收 type** | **657**（批次 400 + forwarder 257） |
-| **NOTI 接收 type** | **829**（批次 539 + forwarder 290） |
-| 两表都注册的 type（仅批次部分） | 252 |
-| **C→S 发送 type**（`MakeHeader` 配对 1485 处） | **759** |
+| forwarder 调用点 | 574（CMD 272 + NOTI 302），全部解出 |
+| **CMD 接收 type** | **671**（批次 400 + forwarder 271） |
+| **NOTI 接收 type** | **839**（批次 539 + forwarder 300） |
+| 两表都注册的 type | 460 |
+| **C→S 发送 type** | 1411 个 `MakeHeader` 调用点；1391 点解析为 **762 type**，20 点保留未解析分类 |
 
 作个尺度对照：枚举表里 NOTI 1219 条、CMD 1272 条。普查解出的是**实际注册了 handler 的**
 子集，不是枚举全集——枚举里有大量号客户端根本不接收。
 
-## 还没做
+## 仍未参数化的边界
 
-- **跑布局提取**。锚点与原语已经齐了，但 `extract-layout.py`（以及它上游的
-  `build-inventory.py`、下游的 `generate-docs.py`）里 DUMP 路径与这十几个常量都是**硬编码**的。
-  要跑 A21 得先把这条流水线参数化——输入应该是「客户端 + 转储 + 锚点表」，而不是写死一套。
+- **客户端 profile 仍在脚本内。** 当前流水线已经完成 A21 identity、inventory、layout 与文档生成；
+  外部 dump/枚举路径分别通过 `DNF_A21_DUMP_PATH`、`DNF_A21_ENUMS_PATH` 注入。但 RVA 锚点、
+  原语和代码区边界仍是脚本内的 A21 常量；切到另一客户端版本前，仍需把这组常量抽成受校验的
+  profile，不能只换文件路径。
 - **派发点**：按 selector 选表的那处代码没找到。找到即可把族别判定从 `High` 提到指令级
   （两个注册表的全局只在各自 getter 内被引用，派发走的是 getter 返回值或对象字段）。
 - **dstring 读原语**：A21 没有独立形态，见上文。

@@ -274,8 +274,9 @@ A21 那两个定长块里的 61 与 25 个字节含义未确证，其中若干�
 **C2S 一行都没有**,只有 `S2C NOTI 0x0084 END_ASSAULT`。
 
 与 `SET_UDP_IP_PORT` 同一类:构包点在静态扫不到的混淆区。这不是矛盾,是普查盲点的又一次直接确认。
-因此这一 type 没有可追加的协议页面,内容记在
-[a21-dungeon-admission-20260826](../protocol/patterns/data/traces/a21-dungeon-admission-20260826.md)。
+静态索引仍不能凭空生成这条身份，但真实 A21 帧足以建立手写例外。现已补入
+[0x0084 协议页](../protocol/game/client-to-server/0x0084.md)，并由服务端资料同步检查持续对账；
+原始观察仍见 [a21-dungeon-admission-20260826](../protocol/patterns/data/traces/a21-dungeon-admission-20260826.md)。
 
 ## 二十一、解码器抛异常就拆连接，哪怕那一帧根本没人回
 
