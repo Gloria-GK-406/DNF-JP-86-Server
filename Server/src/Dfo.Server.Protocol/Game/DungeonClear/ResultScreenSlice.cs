@@ -152,11 +152,10 @@ public sealed record ScoreScrollStateRequest(GameMessageMetadata Metadata) : ICl
 /// graph, so beyond that first byte the body's contents do not matter.
 /// <para>
 /// <b>The reference sends a second frame with it</b>, <c>CMD 0x0046</c>, carrying the card panel's
-/// layout, <b>and so does this server now</b>. It used not to: a layout presupposes rewards to lay
-/// out, and what a flip is worth was a domain this server did not have. It has it now -- the cards
-/// of a clear are fixed at settlement, and <see cref="CardSelectRightStateResponse"/> is the frame
-/// that puts them face down in front of the player. Without it the client closes the scroll and
-/// offers no cards at all. See <c>protocol/game/client-to-server/0x0045.md</c>.
+/// layout. With the presentation coordinator installed, this server sends that layout once per
+/// participant when its timer or the client opens the panel, rather than from this handler.
+/// <see cref="CardSelectRightStateResponse"/> puts the cards face down in front of the player.
+/// See <c>protocol/game/client-to-server/0x0045.md</c>.
 /// </para>
 /// </remarks>
 public sealed record ScoreScrollStateResponse : IGameCmdMessage
@@ -178,7 +177,7 @@ internal sealed class ScoreScrollStateResponseEncoder
         OnePayload(GameProtocol.ScoreScrollStateType, new byte[] { 0x01 });
 }
 
-/// <summary>Answers, and puts the cards down behind the answer, whatever state the character is in.</summary>
+/// <summary>Answers the scroll; the presentation coordinator opens the cards when installed.</summary>
 /// <remarks>
 /// Unconditionally, and unlike every other handler here, which returns early without a published
 /// session. The scroll has already been drawn by the time this is sent and the client cannot ask
@@ -187,12 +186,9 @@ internal sealed class ScoreScrollStateResponseEncoder
 /// grants nothing and reads nothing, so a client that sent this outside a run learns nothing it
 /// did not already have.
 /// <para>
-/// <b>Two frames, in that order.</b> The acknowledgement first, because the client's handler for it
-/// is what moves the run off the result screen; the layout second, because that handler's own
-/// branch is what would otherwise ask for it, and that branch cannot be decided without a live
-/// client. Sending it unasked is what the reference server does and it costs nothing to be wrong
-/// about: the layout carries no item, and a player with no cards fixed gets nothing for turning one
-/// over.
+/// With the presentation coordinator installed, this handler only acknowledges the scroll; a
+/// per-participant timer or the client's layout request opens the cards once. The fallback without
+/// the coordinator sends the acknowledgement and layout together, matching the reference's pair.
 /// </para>
 /// </remarks>
 public sealed class ScoreScrollStateHandler(
@@ -211,9 +207,10 @@ public sealed class ScoreScrollStateHandler(
 
         logger.LogInformation(
             "Score scroll state {ConnectionId} character={CharacterId}: acknowledged, "
-                + "card layout sent",
+                + "card layout sent here={LayoutSentHere}",
             context.Connection.ConnectionId,
-            session?.CharacterId.Value);
+            session?.CharacterId.Value,
+            cardPresentation is null);
 
         IReadOnlyList<IGameServerMessage> frames = cardPresentation is null
             ? [new ScoreScrollStateResponse(), new CardSelectRightStateResponse()]

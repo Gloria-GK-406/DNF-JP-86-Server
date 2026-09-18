@@ -59,8 +59,7 @@ public sealed class DungeonCardPresentationCoordinator(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(session);
-        this.Cancel(session.CharacterId, runId);
-        await this.OpenLayoutAsync(session, runId, forceSnapshot: true, cancellationToken)
+        await this.OpenLayoutAsync(session, runId, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -99,7 +98,7 @@ public sealed class DungeonCardPresentationCoordinator(
         try
         {
             await delay.WaitAsync(timing.LayoutDelay, cancellationToken).ConfigureAwait(false);
-            await this.OpenLayoutAsync(session, runId, forceSnapshot: false, cancellationToken)
+            await this.OpenLayoutAsync(session, runId, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -122,7 +121,6 @@ public sealed class DungeonCardPresentationCoordinator(
     private async ValueTask OpenLayoutAsync(
         SelectedSessionIdentity session,
         DungeonRunId runId,
-        bool forceSnapshot,
         CancellationToken cancellationToken)
     {
         if (!this.IsCurrent(session, runId, out var run)
@@ -133,12 +131,7 @@ public sealed class DungeonCardPresentationCoordinator(
             return;
         }
 
-        var opened = runs.TryOpenCardLayout(session.CharacterId, runId);
-        var snapshot = opened is null ? runs.Find(session.CharacterId) : null;
-        if (opened is null
-            && (!forceSnapshot
-                || snapshot is not { CardLayoutOpen: true }
-                || snapshot.RunId != runId))
+        if (runs.TryOpenCardLayout(session.CharacterId, runId) is null)
             return;
         if (!this.IsCurrent(session, runId, out _))
         {

@@ -10,15 +10,13 @@ using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Protocol.Game.CardReward;
 
 /// <summary>
-/// Answers the layout request with the layout, whatever state the character is in.
+/// Opens the requesting character's card panel once when the presentation coordinator is active.
 /// </summary>
 /// <remarks>
-/// Unconditionally, and for the reason the scroll's own acknowledgement is unconditional: this
-/// frame arrives once, at the end of a run, and the client has no way to ask again -- so a silence
-/// here is indistinguishable from the server not having the type, which is the defect being fixed.
-/// There is nothing to withhold either. The layout names positions and carries no item, so a
-/// character who somehow sent this outside a run is shown four backs and, having no cards fixed,
-/// gets nothing at all for turning one over.
+/// The coordinator races this request with the post-settlement layout timer. The winner opens
+/// the panel and sends its layout; a later request must not replay the opening animation or
+/// cancel the pending automatic flip. Without a live run/coordinator, the compatibility fallback
+/// still replies with an empty-reward layout.
 /// </remarks>
 public sealed class CardSelectRightStateHandler(
     ISelectedSessionDomainService selectedSessions,

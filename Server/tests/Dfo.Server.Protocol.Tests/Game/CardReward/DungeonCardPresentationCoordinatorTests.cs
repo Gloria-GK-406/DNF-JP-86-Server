@@ -122,6 +122,53 @@ public sealed class DungeonCardPresentationCoordinatorTests
     }
 
     [Fact]
+    public async Task Late_party_layout_requests_do_not_repeat_the_panel_or_cancel_auto_flip()
+    {
+        using var world = BuildParty();
+        foreach (var session in world.Sessions.All)
+            world.Coordinator.ScheduleAfterSettlement(session, world.Run.RunId);
+
+        await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 2);
+        world.Delay.Release(TimeSpan.FromSeconds(2));
+        await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(4)) == 2);
+
+        foreach (var session in world.Sessions.All)
+        {
+            await world.Coordinator.OpenOnRequestAsync(session, world.Run.RunId, default);
+            await world.Coordinator.OpenOnRequestAsync(session, world.Run.RunId, default);
+        }
+
+        foreach (var session in world.Sessions.All)
+            Assert.Single(world.Sender.For(session.ConnectionId)
+                .OfType<CardSelectRightStateResponse>());
+        Assert.Equal(2, world.Delay.Pending(TimeSpan.FromSeconds(4)));
+
+        world.Delay.Release(TimeSpan.FromSeconds(4));
+        await WaitUntilAsync(() => world.Bus.Selections == 2);
+    }
+
+    [Fact]
+    public async Task Early_party_layout_requests_open_once_and_retire_the_layout_timers()
+    {
+        using var world = BuildParty();
+        foreach (var session in world.Sessions.All)
+            world.Coordinator.ScheduleAfterSettlement(session, world.Run.RunId);
+
+        await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 2);
+        foreach (var session in world.Sessions.All)
+            await world.Coordinator.OpenOnRequestAsync(session, world.Run.RunId, default);
+
+        await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 0);
+        Assert.Equal(2, world.Delay.Pending(TimeSpan.FromSeconds(4)));
+        foreach (var session in world.Sessions.All)
+            Assert.Single(world.Sender.For(session.ConnectionId)
+                .OfType<CardSelectRightStateResponse>());
+
+        world.Delay.Release(TimeSpan.FromSeconds(4));
+        await WaitUntilAsync(() => world.Bus.Selections == 2);
+    }
+
+    [Fact]
     public async Task Auto_flip_skips_an_in_flight_reserved_column_and_stops_after_bounded_attempts()
     {
         using var world = Build(
