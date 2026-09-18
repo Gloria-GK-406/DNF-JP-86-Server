@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Inventory;
@@ -9,16 +10,38 @@ namespace Dfo.Server.Protocol.Game.BuyItem;
 
 public sealed record BuyItemCommand(
     OnlineUserId OnlineUserId, SelectedSessionIdentity Session, int ItemId, int RawCount, int ShopId, int NpcId)
-    : ICommand<NpcShopPurchaseResult>, IOnlineUserCommand, IAccountCommand
+    : ICommand<BuyItemOutcome>, IOnlineUserCommand, IAccountCommand
 {
     public AccountId AccountId => Session.AccountId;
 }
 
-public sealed class BuyItemCommandHandler(INpcShopDomainService shops, TimeProvider clock)
-    : ICommandHandler<BuyItemCommand, NpcShopPurchaseResult>
+public sealed record BuyItemOutcome(NpcShopPurchaseResult Purchase, QuestProgressSnapshot? QuestProgress)
 {
-    public ValueTask<NpcShopPurchaseResult> HandleAsync(
-        CommandExecutionContext context, BuyItemCommand command, CancellationToken cancellationToken) =>
-        shops.PurchaseAsync(command.Session, command.ItemId, command.RawCount, command.ShopId, command.NpcId,
-            clock.GetUtcNow(), cancellationToken);
+    public NpcShopPurchaseReceipt? Receipt => Purchase.Receipt;
+    public NpcShopRejection Rejection => Purchase.Rejection;
+
+    public static BuyItemOutcome Refused(NpcShopRejection rejection) =>
+        new(NpcShopPurchaseResult.Refused(rejection), null);
+}
+
+public sealed class BuyItemCommandHandler(
+    INpcShopDomainService shops,
+    IQuestProgressDomainService quests,
+    TimeProvider clock)
+    : ICommandHandler<BuyItemCommand, BuyItemOutcome>
+{
+    public async ValueTask<BuyItemOutcome> HandleAsync(
+        CommandExecutionContext context, BuyItemCommand command, CancellationToken cancellationToken)
+    {
+        var purchase = await shops.PurchaseAsync(
+            command.Session, command.ItemId, command.RawCount, command.ShopId, command.NpcId,
+            clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+        if (purchase.Receipt is null)
+            return new BuyItemOutcome(purchase, null);
+
+        var progress = await quests.ReportAsync(
+            command.Session.AccountId, command.Session.CharacterId,
+            [new QuestHoldingsChanged()], cancellationToken).ConfigureAwait(false);
+        return new BuyItemOutcome(purchase, progress.NotificationSnapshot);
+    }
 }

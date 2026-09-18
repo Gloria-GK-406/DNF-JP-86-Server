@@ -1,12 +1,16 @@
 using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 
 namespace Dfo.Server.Protocol.Game.BuyItem;
 
-public sealed record NpcShopPurchaseCompleted(NpcShopPurchaseReceipt Receipt) : INotification<NpcShopPurchaseCompleted>;
+public sealed record NpcShopPurchaseCompleted(
+    NpcShopPurchaseReceipt Receipt,
+    QuestProgressSnapshot? QuestProgress = null) : INotification<NpcShopPurchaseCompleted>;
 
 public sealed class NpcShopPurchaseCompletedHandler(ISelectedSessionDomainService sessions)
     : INotificationHandler<NpcShopPurchaseCompleted>
@@ -29,6 +33,13 @@ public sealed class NpcShopPurchaseCompletedHandler(ISelectedSessionDomainServic
             messages.Add(GameInventoryDelivery.CarriedGoldNotification(receipt.Gold, receipt.PreparedAt));
         messages.Add(GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(InventoryContainerType.Main,
             receipt.GrantedSlots.Select(slot => slot.Item).ToArray(), receipt.PreparedAt)));
+        if (notification.QuestProgress is { } progress)
+        {
+            messages.Add(new AcceptedQuestProgressMessage(
+                [.. progress.Quests.OrderBy(quest => quest.Slot)
+                    .Select(quest => new AcceptedQuestProgressState(
+                        checked((ushort)quest.QuestId), unchecked((uint)quest.TriggerValue)))]));
+        }
         return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(messages);
     }
 }

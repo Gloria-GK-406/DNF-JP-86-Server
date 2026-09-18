@@ -22,10 +22,10 @@ public sealed class BuyItemHandler(
         NetworkDispatchContext context, BuyItemRequest message, CancellationToken cancellationToken)
     {
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        NpcShopPurchaseResult result;
+        BuyItemOutcome result;
         if (session is null || !onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online)
             || online is null)
-            result = NpcShopPurchaseResult.Refused(NpcShopRejection.NoSession);
+            result = BuyItemOutcome.Refused(NpcShopRejection.NoSession);
         else
         {
             try
@@ -36,7 +36,7 @@ public sealed class BuyItemHandler(
             }
             catch (NpcShopPurchaseRejectedException rejected)
             {
-                result = NpcShopPurchaseResult.Refused(rejected.Reason);
+                result = BuyItemOutcome.Refused(rejected.Reason);
             }
         }
         if (result.Receipt is { } receipt)
@@ -44,7 +44,7 @@ public sealed class BuyItemHandler(
             logger.LogInformation("NPC purchase character={CharacterId} npc={NpcId} shop={ShopId} item={ItemId} count={Count} gold={Gold}",
                 receipt.Session.CharacterId.Value, message.NpcId, message.ShopId, receipt.ItemId, receipt.Count, receipt.Gold);
             await notifications.PublishAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
-                new NpcShopPurchaseCompleted(receipt), cancellationToken).ConfigureAwait(false);
+                new NpcShopPurchaseCompleted(receipt, result.QuestProgress), cancellationToken).ConfigureAwait(false);
         }
         else
         {

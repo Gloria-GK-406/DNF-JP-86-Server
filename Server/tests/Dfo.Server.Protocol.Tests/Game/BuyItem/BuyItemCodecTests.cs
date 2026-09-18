@@ -1,11 +1,15 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.BuyItem;
 using Dfo.Server.Protocol.Game.ShopPurchaseCount;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 using System.Buffers.Binary;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +18,31 @@ namespace Dfo.Server.Protocol.Tests.Game.BuyItem;
 
 public sealed class BuyItemCodecTests
 {
+    [Fact]
+    public async Task Purchase_projects_changed_quest_progress_after_the_inventory_update()
+    {
+        var session = SelectedSessionIdentity.Create(new(1), new(2), new("purchase-quest"), 1, 10011);
+        var sessions = new SelectedSessionDomainService();
+        sessions.Select(session);
+        var receipt = new NpcShopPurchaseReceipt(session, 2000, 1, 100, 0, 0, false, [],
+            [new(new(null, 3, StackableItemCore.Create(2, 2000, 1)), 1)], DateTimeOffset.UnixEpoch);
+        var messages = await new NpcShopPurchaseCompletedHandler(sessions).ComposeAsync(
+            new NotificationRecipient(session.CharacterId, session.ConnectionId),
+            new NpcShopPurchaseCompleted(receipt,
+                new QuestProgressSnapshot([new CarriedQuest(0, 2001, 0)])),
+            CancellationToken.None);
+
+        Assert.IsType<BuyItemResponse>(messages[0]);
+        var progress = Assert.IsType<AcceptedQuestProgressMessage>(messages[^1]);
+        var frame = Assert.Single(
+            new SupplementalNotiSynchronizationEncoder<AcceptedQuestProgressMessage>().Encode(progress));
+        Assert.Equal(0, frame[0]);
+        Assert.Equal(0x023F, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1, 2)));
+        Assert.Equal(1u, BinaryPrimitives.ReadUInt32LittleEndian(frame.AsSpan(15, 4)));
+        Assert.Equal((ushort)2001, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(19, 2)));
+        Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(frame.AsSpan(21, 4)));
+    }
+
     [Theory]
     [InlineData("4CDC341D010000000F00000002000000")]
     [InlineData("B06A000000000000570000002E010000")]

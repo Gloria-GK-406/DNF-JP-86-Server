@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Transactions;
@@ -25,11 +26,31 @@ using Dfo.Server.Protocol.Game.ShopPurchaseCount;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class NpcShopPurchaseTests
 {
+    [Fact]
+    public async Task Buying_a_sought_item_completes_the_carried_quest_from_the_committed_bag()
+    {
+        using var shop = new ShopFixture(services =>
+        {
+            services.RemoveAll<IQuestContentRuleService>();
+            services.AddSingleton<IQuestContentRuleService>(new SeekingQuestRules());
+        });
+        shop.Sql("INSERT INTO character_active_quests(character_id,slot,quest_id,trigger_value) "
+            + "VALUES(1,0,2001,1)");
+        await shop.Seed(121, 1000, 100, 3);
+
+        await shop.Buy(2000, 1);
+
+        Assert.Equal(1, shop.Count(2000));
+        Assert.Equal(0, shop.Scalar(
+            "SELECT trigger_value FROM character_active_quests WHERE character_id=1 AND quest_id=2001"));
+    }
+
     [Theory]
     [InlineData(10, 1, false)]
     [InlineData(9, 3, false)]
@@ -217,6 +238,26 @@ public sealed class NpcShopPurchaseTests
         Assert.Equal(30, shop.Count(1000));
         Assert.Equal(2, shop.Count(4000));
     }
+
+    private sealed class SeekingQuestRules : IQuestContentRuleService
+    {
+        private static readonly QuestDefinition Quest = new(
+            2001, "buy a potion", null, null, null, null, null, null, [], "seeking", "",
+            null, null, null, null, null, null, null, [], [], [], [],
+            SeekingItems: [new SeekingItemRequirement(2000, 1)]);
+
+        public ValueTask<IReadOnlyList<QuestDefinition>> AllAsync(CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<QuestDefinition>>([Quest]);
+
+        public ValueTask<QuestDefinition?> FindAsync(int questId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<QuestDefinition?>(questId == Quest.QuestId ? Quest : null);
+
+        public ValueTask<IReadOnlyList<TrainingQuestAvailability>> TrainingAvailabilityAsync(
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<TrainingQuestAvailability>>([]);
+
+        public QuestParameters Parameters() => throw new NotSupportedException();
+    }
 }
 
 internal sealed class ShopFixture : IDisposable
@@ -301,7 +342,7 @@ internal sealed class ShopFixture : IDisposable
         new BuyItemRequest(GameMessageMetadata.Empty, item, count, 15, 2), default);
     public ValueTask Query() => provider.GetRequiredService<ShopPurchaseCountHandler>().HandleAsync(new(connection),
         new ShopPurchaseCountRequest(GameMessageMetadata.Empty, 2), default);
-    public Task<NpcShopPurchaseResult> Command(int item, int count, SelectedSessionIdentity? owner = null) => provider.GetRequiredService<ICommandBus>()
+    public Task<BuyItemOutcome> Command(int item, int count, SelectedSessionIdentity? owner = null) => provider.GetRequiredService<ICommandBus>()
         .SendAsync(new BuyItemCommand(onlineUser, owner ?? session, item, count, 15, 2)).AsTask();
     public async ValueTask Publish(NpcShopPurchaseReceipt receipt) =>
         _ = await provider.GetRequiredService<INotificationBus>().PublishAsync(

@@ -292,7 +292,7 @@ public sealed class ProtocolModule : IServerModule
             UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<DeleteItemCommand, ItemDiscardResult, DeleteItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
-        services.AddCommandHandler<BuyItemCommand, NpcShopPurchaseResult, BuyItemCommandHandler>(
+        services.AddCommandHandler<BuyItemCommand, BuyItemOutcome, BuyItemCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
         services.AddCommandHandler<CeraShopPurchaseCommand, CeraShopPurchaseResult, CeraShopPurchaseCommandHandler>(
             CommandExecutionKind.Transactional, UserAccessMode.Exclusive, UserAccessMode.Exclusive);
