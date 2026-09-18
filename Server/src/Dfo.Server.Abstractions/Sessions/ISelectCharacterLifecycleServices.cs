@@ -11,12 +11,12 @@ public interface ISelectedSessionCleanupDomainService
 
 public interface ISelectCharacterSessionEntryDomainService
 {
-    TownParticipantPublicationPlan? PlanTownPublication(
-        SelectedSessionIdentity session, SelectCharacterResult result);
-    PvpLobbySynchronizationState? PlanPvp(SelectedSessionIdentity session, SelectCharacterResult result);
+    ValueTask<TownParticipantPublicationPlan?> PlanTownPublicationAsync(
+        SelectedSessionIdentity session, SelectCharacterResult result, CancellationToken cancellationToken);
+    ValueTask<PvpLobbySynchronizationState?> PlanPvpAsync(
+        SelectedSessionIdentity session, SelectCharacterResult result, CancellationToken cancellationToken);
     PvpParticipantPublicationPlan PlanPvpPublication(
         SelectedSessionIdentity session, SelectCharacterResult result);
     void Publish(SelectedSessionIdentity session, SelectCharacterResult result);
-    void ReplaceRuntimeExact(SelectedSessionIdentity session, SelectCharacterResult result);
     void MarkPvpReady(SelectedSessionIdentity session, SelectCharacterResult result);
 }

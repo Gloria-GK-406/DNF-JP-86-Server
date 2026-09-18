@@ -18,8 +18,7 @@ namespace Dfo.Server.Application.Parties;
 internal sealed class PartyMemberStatusDomainService(
     Func<ICharacterInventoryEntryDomainService> inventories,
     ICharacterFatigueDomainService fatigue,
-    ISelectedSessionDomainService sessions,
-    ISelectedSessionRuntimeDirectory runtimeSessions) : IPartyMemberStatusDomainService
+    ICharacterVitalRuntimeDomainService vitals) : IPartyMemberStatusDomainService
 {
     private const int ReviveCoinSlot = 1;
     private const int ReviveCoinItemId = 1;
@@ -49,21 +48,5 @@ internal sealed class PartyMemberStatusDomainService(
             AntiMagic: 0);
     }
 
-    public byte CurrentHpPercentOf(CharacterId characterId)
-    {
-        var session = sessions.FindByCharacter(characterId);
-        if (session is null)
-            return 0;
-        if (!runtimeSessions.TryGet(session, out var result, out _)
-            || result is null
-            || result.Character.Identity.CharacterId != characterId)
-        {
-            return 0;
-        }
-
-        return checked((byte)Math.Clamp(
-            result.CharacterEntry.Public.DerivedStats.CurrentHpMpPercent,
-            0,
-            100));
-    }
+    public byte CurrentHpPercentOf(CharacterId characterId) => vitals.HpPercentOf(characterId);
 }

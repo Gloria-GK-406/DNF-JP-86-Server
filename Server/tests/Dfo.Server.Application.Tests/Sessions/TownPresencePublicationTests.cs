@@ -1,6 +1,8 @@
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Tests.Characters;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -17,18 +19,22 @@ public sealed class TownPresencePublicationTests
         var runtimes = new SelectedSessionRuntimeDirectory();
         var presence = new SessionPresenceDomainService();
         var positions = new CharacterPositionDomainService();
+        var currentViews = new FixedCurrentViews();
         var service = new SelectCharacterSessionEntryService(
-            sessions, runtimes, presence, new PvpLobbyDomainService(), positions);
+            sessions, runtimes, currentViews, presence, new PvpLobbyDomainService(), positions,
+            new CharacterVitalRuntimeDomainService());
         var first = await EntryAsync(1, 60, "Game:first", x: 100);
         var second = await EntryAsync(2, 61, "Game:second", x: 300);
 
         sessions.Select(first.Session);
         service.Publish(first.Session, first.Result);
+        currentViews.Publish(first.Session, first.Result);
         sessions.Select(second.Session);
         service.Publish(second.Session, second.Result);
+        currentViews.Publish(second.Session, second.Result);
 
         var plan = Assert.IsType<TownParticipantPublicationPlan>(
-            service.PlanTownPublication(second.Session, second.Result));
+            await service.PlanTownPublicationAsync(second.Session, second.Result, CancellationToken.None));
         Assert.Equal([new CharacterId(60)], plan.Audience.Select(value => value.CharacterId));
         Assert.Equal(new CharacterId(61), plan.State.Newcomer.Character.Identity.CharacterId);
         var existing = Assert.Single(plan.State.ExistingCharacters);
@@ -44,17 +50,21 @@ public sealed class TownPresencePublicationTests
         var runtimes = new SelectedSessionRuntimeDirectory();
         var presence = new SessionPresenceDomainService();
         var positions = new CharacterPositionDomainService();
+        var currentViews = new FixedCurrentViews();
         var service = new SelectCharacterSessionEntryService(
-            sessions, runtimes, presence, new PvpLobbyDomainService(), positions);
+            sessions, runtimes, currentViews, presence, new PvpLobbyDomainService(), positions,
+            new CharacterVitalRuntimeDomainService());
         var first = await EntryAsync(1, 60, "Game:first", x: 100, sharesTownPresence: false);
         var second = await EntryAsync(2, 61, "Game:second", x: 300, sharesTownPresence: false);
 
         sessions.Select(first.Session);
         service.Publish(first.Session, first.Result);
+        currentViews.Publish(first.Session, first.Result);
         sessions.Select(second.Session);
         service.Publish(second.Session, second.Result);
+        currentViews.Publish(second.Session, second.Result);
 
-        Assert.Null(service.PlanTownPublication(second.Session, second.Result));
+        Assert.Null(await service.PlanTownPublicationAsync(second.Session, second.Result, CancellationToken.None));
     }
 
     [Fact]
@@ -64,18 +74,22 @@ public sealed class TownPresencePublicationTests
         var runtimes = new SelectedSessionRuntimeDirectory();
         var presence = new SessionPresenceDomainService();
         var positions = new CharacterPositionDomainService();
+        var currentViews = new FixedCurrentViews();
         var service = new SelectCharacterSessionEntryService(
-            sessions, runtimes, presence, new PvpLobbyDomainService(), positions);
+            sessions, runtimes, currentViews, presence, new PvpLobbyDomainService(), positions,
+            new CharacterVitalRuntimeDomainService());
         var first = await EntryAsync(1, 60, "Game:first", x: 100, listenerPort: 10012);
         var second = await EntryAsync(2, 61, "Game:second", x: 300, listenerPort: 10011);
 
         sessions.Select(first.Session);
         service.Publish(first.Session, first.Result);
+        currentViews.Publish(first.Session, first.Result);
         sessions.Select(second.Session);
         service.Publish(second.Session, second.Result);
+        currentViews.Publish(second.Session, second.Result);
 
         var plan = Assert.IsType<TownParticipantPublicationPlan>(
-            service.PlanTownPublication(second.Session, second.Result));
+            await service.PlanTownPublicationAsync(second.Session, second.Result, CancellationToken.None));
         Assert.Equal([first.Session], plan.Audience);
     }
 
@@ -86,13 +100,16 @@ public sealed class TownPresencePublicationTests
         var runtimes = new SelectedSessionRuntimeDirectory();
         var presence = new SessionPresenceDomainService();
         var positions = new CharacterPositionDomainService();
+        var currentViews = new FixedCurrentViews();
         var service = new SelectCharacterSessionEntryService(
-            sessions, runtimes, presence, new PvpLobbyDomainService(), positions);
+            sessions, runtimes, currentViews, presence, new PvpLobbyDomainService(), positions,
+            new CharacterVitalRuntimeDomainService());
         var old = await EntryAsync(1, 60, "Game:old", x: 100, listenerPort: 10011);
         var newcomer = await EntryAsync(2, 61, "Game:newcomer", x: 300, listenerPort: 10011);
 
         sessions.Select(old.Session);
         service.Publish(old.Session, old.Result);
+        currentViews.Publish(old.Session, old.Result);
         _ = sessions.Select(old.Session with
         {
             ConnectionId = new NetworkConnectionId("Game:replacement"),
@@ -101,8 +118,9 @@ public sealed class TownPresencePublicationTests
         });
         sessions.Select(newcomer.Session);
         service.Publish(newcomer.Session, newcomer.Result);
+        currentViews.Publish(newcomer.Session, newcomer.Result);
 
-        Assert.Null(service.PlanTownPublication(newcomer.Session, newcomer.Result));
+        Assert.Null(await service.PlanTownPublicationAsync(newcomer.Session, newcomer.Result, CancellationToken.None));
     }
 
     private static async ValueTask<(SelectedSessionIdentity Session, Dfo.Server.Data.Game.SelectCharacterResult Result)>
@@ -144,5 +162,17 @@ public sealed class TownPresencePublicationTests
             connectionGeneration: 1,
             listenerPort);
         return (session, result);
+    }
+
+    private sealed class FixedCurrentViews : ISelectedCharacterCurrentViewDomainService
+    {
+        private readonly Dictionary<SelectedSessionIdentity, SelectCharacterResult> entries = [];
+
+        public void Publish(SelectedSessionIdentity session, SelectCharacterResult result) =>
+            entries[session] = result;
+
+        public ValueTask<SelectCharacterResult?> TryLoadAsync(
+            SelectedSessionIdentity session, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(entries.GetValueOrDefault(session));
     }
 }

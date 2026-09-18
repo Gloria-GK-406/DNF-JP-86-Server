@@ -22,35 +22,26 @@ namespace Dfo.Server.Application.Tests.Characters;
 public sealed class SelectCharacterEntryLifecycleServiceTests
 {
     [Fact]
-    public async Task DirtyExactLease_IsSavedBeforeFreshInventoryIsLoadedAndRegistered()
+    public async Task FreshEntryReloadsInventoryWithoutCarryingThePreviousSessionCopy()
     {
         var result = WithMainContainer(
             await CharacterEntryInventoryTests.CreateLifecycleResultAsync(new AccountId(600), 600, 1));
         var previous = Session(result);
         var next = previous with { ConnectionGeneration = previous.ConnectionGeneration + 1 };
-        var dirty = new CharacterItemLeaseState(result.CharacterInventory.CharacterId,
-            result.CharacterInventory.Containers);
-        var leases = new EntryInventoryLeaseRegistry();
-        leases.Replace(previous, result.CharacterInventory);
-        Assert.True(leases.TryMarkDirtyExact(previous, dirty));
-        var persistence = new RecordingLeasePersistence();
         var loader = new InventoryLoader(result.CharacterInventory);
         var service = new SelectCharacterEntryInventoryDomainService(
-            new InventoryLifecycleRuleService(new RefillContent()), new RefillMutation(), loader, persistence, leases,
+            new InventoryLifecycleRuleService(new RefillContent()), new RefillMutation(), loader,
             new CharacterContainerDomainService(), new VolatileItemDomainStore(), new DomainTransactionScope(),
             null!, null!, null!);
 
-        await service.SaveExistingLeaseAsync(previous, CancellationToken.None);
         var updated = await service.PrepareLeaseAsync(next, result, CancellationToken.None);
 
-        Assert.Equal(dirty, Assert.Single(persistence.Saved).Inventory);
         Assert.Equal(result.CharacterInventory, updated.CharacterInventory);
-        Assert.Equal(next, leases.Find(next.AccountId)!.Session);
-        Assert.False(leases.TryMarkDirtyExact(previous, dirty));
+        Assert.Equal(1, loader.LoadCount);
     }
 
     [Fact]
-    public async Task InventoryPreparation_ReloadsCommittedGroupsAndOwnsExactLease()
+    public async Task InventoryPreparation_ReloadsCommittedGroups()
     {
         var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(new AccountId(601), 601, 1);
         var session = Session(result);
@@ -62,10 +53,9 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
                 new InventoryContainerState(InventoryContainerType.Equipment, 0, []),
                 new InventoryContainerState(InventoryContainerType.Avatar, 0, [])]
         };
-        var leases = new EntryInventoryLeaseRegistry();
         var service = new SelectCharacterEntryInventoryDomainService(
             new InventoryLifecycleRuleService(new RefillContent()), new RefillMutation(), new InventoryLoader(reloaded),
-            new NoopLeasePersistence(), leases, new CharacterContainerDomainService(),
+            new CharacterContainerDomainService(),
             new VolatileItemDomainStore(), new DomainTransactionScope(), null!, null!, null!);
         _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
 
@@ -75,20 +65,17 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var update = Assert.Single(prepared.CommittedUpdates);
         Assert.Equal(InventoryContainerType.Main, update.ContainerType);
         Assert.Equal(65, Assert.Single(update.Items).SlotIndex);
-        Assert.True(leases.ReleaseExact(session));
-        Assert.False(leases.ReleaseExact(session));
     }
 
     [Fact]
-    public async Task InventoryPreparation_MutationFailureReloadsATrustworthyLease()
+    public async Task InventoryPreparation_MutationFailureDoesNotRefreshAnUnusedLease()
     {
         var result = WithMainContainer(
             await CharacterEntryInventoryTests.CreateLifecycleResultAsync(new AccountId(605), 605, 1));
         var session = Session(result);
         var loader = new InventoryLoader(result.CharacterInventory);
-        var leases = new EntryInventoryLeaseRegistry();
         var service = new SelectCharacterEntryInventoryDomainService(
-            new InventoryLifecycleRuleService(new RefillContent()), new FailingRefillMutation(), loader, new NoopLeasePersistence(), leases,
+            new InventoryLifecycleRuleService(new RefillContent()), new FailingRefillMutation(), loader,
             new CharacterContainerDomainService(), new VolatileItemDomainStore(), new DomainTransactionScope(),
             null!, null!, null!);
         _ = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
@@ -96,8 +83,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         await Assert.ThrowsAsync<IOException>(async () =>
             await service.ApplyDailyRefillAsync(session, result, CancellationToken.None));
 
-        Assert.Equal(2, loader.LoadCount);
-        Assert.True(leases.ReleaseExact(session));
+        Assert.Equal(1, loader.LoadCount);
     }
 
     [Fact]
@@ -218,8 +204,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var containers = new CharacterContainerDomainService();
         var service = new SelectCharacterEntryInventoryDomainService(
             new InventoryLifecycleRuleService(new RefillContent()), new RefillMutation(),
-            new InventoryLoader(expanded), new NoopLeasePersistence(),
-            new EntryInventoryLeaseRegistry(), containers,
+            new InventoryLoader(expanded), containers,
             new VolatileItemDomainStore(), new DomainTransactionScope(), null!, null!, null!);
 
         var prepared = await service.PrepareLeaseAsync(session, result, CancellationToken.None);
@@ -368,20 +353,4 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
             ValueTask.FromResult<IReadOnlyList<TrainingQuestAvailability>>([]);
     }
 
-    private sealed class NoopLeasePersistence : IEntryInventoryLeasePersistence
-    {
-        public ValueTask SaveAsync(EntryInventoryLeaseSnapshot lease,
-            CancellationToken cancellationToken) => ValueTask.CompletedTask;
-    }
-
-    private sealed class RecordingLeasePersistence : IEntryInventoryLeasePersistence
-    {
-        public List<EntryInventoryLeaseSnapshot> Saved { get; } = [];
-        public ValueTask SaveAsync(EntryInventoryLeaseSnapshot lease,
-            CancellationToken cancellationToken)
-        {
-            Saved.Add(lease);
-            return ValueTask.CompletedTask;
-        }
-    }
 }

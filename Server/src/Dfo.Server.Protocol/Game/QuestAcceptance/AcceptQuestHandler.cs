@@ -23,7 +23,7 @@ namespace Dfo.Server.Protocol.Game.QuestAcceptance;
 public sealed class AcceptQuestHandler(
     ICharacterDomainService characters,
     ISelectedSessionDomainService selectedSessions,
-    ISelectedSessionRuntimeDirectory runtimeSessions,
+    ISelectedCharacterCurrentViewDomainService currentViews,
     ICommandBus commandBus,
     IGameMessageSender sender,
     IQuestOfferRefreshDomainService offers,
@@ -90,7 +90,8 @@ public sealed class AcceptQuestHandler(
                 cancellationToken).ConfigureAwait(false);
         }
 
-        if (!runtimeSessions.TryGet(session, out var result, out _) || result is null)
+        var result = await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
+        if (result is null)
         {
             logger.LogWarning(
                 "Accept quest {ConnectionId}: quest {Quest} was taken but the session holds no "
@@ -115,7 +116,6 @@ public sealed class AcceptQuestHandler(
             session.CharacterId,
             currentProgress.Level,
             cancellationToken).ConfigureAwait(false);
-        runtimeSessions.ReplaceExact(session, result);
 
         await sender.SendExplicitAsync(
             context.Connection.ConnectionId,

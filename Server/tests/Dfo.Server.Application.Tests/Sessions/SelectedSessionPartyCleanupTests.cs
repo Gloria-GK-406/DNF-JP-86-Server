@@ -152,7 +152,6 @@ public sealed class SelectedSessionPartyCleanupTests
             Cleanup = new SelectedSessionCleanupService(
                 sessions,
                 new SelectedSessionRuntimeDirectory(),
-                new EmptyInventoryLease(),
                 new CharacterContainerDomainService(),
                 new CharacterItemCooldownDomainService(TimeProvider.System),
                 failAfterPartyCleanup
@@ -163,6 +162,7 @@ public sealed class SelectedSessionPartyCleanupTests
                 new PvpLobbyDomainService(),
                 [],
                 new CharacterPositionDomainService(),
+                new CharacterVitalRuntimeDomainService(),
                 Parties.Service,
                 new DungeonRunDomainService(),
                 []);
@@ -199,23 +199,6 @@ public sealed class SelectedSessionPartyCleanupTests
                 new Dfo.Server.Data.Parties.PartyInviteDisplayState(64, 188, 0, 0)).Succeeded);
             Assert.True(Parties.AcceptInvite(member, leader.WireUserId).Succeeded);
         }
-    }
-
-    private sealed class EmptyInventoryLease : IEntryInventoryLeaseRegistry
-    {
-        public EntryInventoryLeaseSnapshot? Find(AccountId accountId) => null;
-
-        public bool TryMarkDirtyExact(
-            SelectedSessionIdentity session,
-            CharacterItemLeaseState inventory) => false;
-
-        public void Replace(
-            SelectedSessionIdentity session,
-            CharacterInventoryEntryState inventory)
-        {
-        }
-
-        public bool ReleaseExact(SelectedSessionIdentity session) => false;
     }
 
     private sealed class PassiveActiveCharacters : IActiveCharacterDomainService

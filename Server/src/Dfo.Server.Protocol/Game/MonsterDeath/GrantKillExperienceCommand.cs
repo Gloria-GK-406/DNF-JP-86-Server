@@ -72,22 +72,27 @@ public sealed class GrantKillExperienceCommandHandler(
                 .ConfigureAwait(false));
     }
 
-    internal static ValueTask<ExperienceAward?> AwardAsync(
+    internal static async ValueTask<ExperienceAward?> AwardAsync(
         IExperienceValuationDomainService valuation,
         IExperienceBonusDomainService bonuses,
         ICharacterExperienceDomainService grant,
         GrantKillExperienceCommand command,
-        CancellationToken cancellationToken) =>
+        CancellationToken cancellationToken)
+    {
+        var occasion = new ExperienceOccasion(
+            ExperienceEvent.MonsterKill, command.AccountId, command.CharacterId, command.DungeonId);
+        var modifiers = await bonuses.CollectAsync(occasion, cancellationToken).ConfigureAwait(false);
         // The character's level decides what the kill is worth, and the grant is what knows it.
         // Valuing inside the grant's callback is what keeps the two from disagreeing.
-        grant.AwardAsync(
+        return await grant.AwardAsync(
             command.CharacterId,
-            characterLevel => Value(valuation, bonuses, command, characterLevel),
-            cancellationToken);
+            characterLevel => Value(valuation, modifiers, command, characterLevel),
+            cancellationToken).ConfigureAwait(false);
+    }
 
     private static ExperienceValuation Value(
         IExperienceValuationDomainService valuation,
-        IExperienceBonusDomainService bonuses,
+        IReadOnlyList<ExperienceModifier> modifiers,
         GrantKillExperienceCommand command,
         byte characterLevel)
     {
@@ -102,18 +107,12 @@ public sealed class GrantKillExperienceCommandHandler(
         if (worth == 0)
             return ExperienceValuation.Nothing;
 
-        var occasion = new ExperienceOccasion(
-            ExperienceEvent.MonsterKill,
-            command.AccountId,
-            command.CharacterId,
-            command.DungeonId);
-
         // Each entitlement's amount is rounded down on its own and then added, rather than the
         // rates being summed into one multiplier. The two agree on every captured award, all of
         // which had exactly one contribution in play, and diverge only when two are; an elixir's
         // own text says such effects "overlap", which is this shape. Recorded as unsettled in the
         // TaskContract because nothing observed can yet tell them apart.
-        var contributions = bonuses.Collect(occasion)
+        var contributions = modifiers
             .Select(modifier => new ExperienceContribution(
                 modifier.Source, modifier.Rate, Floor(worth * modifier.Rate), modifier.Kind))
             .Where(contribution => contribution.Amount > 0)

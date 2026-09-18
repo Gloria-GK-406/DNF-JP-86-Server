@@ -72,7 +72,7 @@ public sealed class CardSelectRightStateHandler(
 /// </remarks>
 public sealed class SelectCardHandler(
     ISelectedSessionDomainService selectedSessions,
-    ISelectedSessionRuntimeDirectory runtimeSessions,
+    ISelectedCharacterCurrentViewDomainService currentViews,
     IDungeonRunDomainService runs,
     ICommandBus commandBus,
     IGameMessageSender sender,
@@ -95,9 +95,9 @@ public sealed class SelectCardHandler(
         // level the character stands at and the level is one of the things a published session
         // carries. Reading it here is a read of state this handler does not own and does not
         // change; what is done with it is the command's.
-        if (session is null
-            || !runtimeSessions.TryGet(session, out var published, out _)
-            || published is null)
+        var published = session is null ? null
+            : await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
+        if (session is null || published is null)
         {
             logger.LogWarning(
                 "Select card {ConnectionId}: no published session, ignoring {Kind} position {Index}",

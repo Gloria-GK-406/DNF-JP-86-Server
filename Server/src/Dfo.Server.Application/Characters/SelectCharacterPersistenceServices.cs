@@ -52,6 +52,14 @@ internal sealed class PvpSkillProfileService(
                 .ConfigureAwait(false);
         }
 
+        return await ReadAsync(accountId, characterId, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async ValueTask<CharacterSkillsEntryState> ReadAsync(
+        AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)
+    {
+        if (await characters.FindOwnerAsync(characterId, cancellationToken).ConfigureAwait(false) != accountId)
+            throw new InvalidDataException("PvP skill profile owner does not match the account.");
         var pages = new[] { new List<CharacterSkillState>(), new List<CharacterSkillState>() };
         foreach (var row in await skills.ReadDuelSkillsAsync(characterId, cancellationToken)
                      .ConfigureAwait(false))

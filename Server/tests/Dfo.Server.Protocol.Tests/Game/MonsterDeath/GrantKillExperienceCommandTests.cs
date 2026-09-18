@@ -151,10 +151,11 @@ public sealed class GrantKillExperienceCommandTests
     /// <summary>A channel that adds this much, or nothing at all.</summary>
     private sealed class FixedChannelBonus(double rate) : IExperienceBonusDomainService
     {
-        public IReadOnlyList<ExperienceModifier> Collect(in ExperienceOccasion occasion) =>
-            rate > 0
+        public ValueTask<IReadOnlyList<ExperienceModifier>> CollectAsync(
+            ExperienceOccasion occasion, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<ExperienceModifier>>(rate > 0
                 ? [new ExperienceModifier("channel", rate, ExperienceBonusKind.SeriaBlessing)]
-                : [];
+                : []);
     }
 
     /// <summary>

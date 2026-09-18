@@ -190,7 +190,7 @@ internal sealed class BackToVillageResponseEncoder : GameCmdMessageEncoder<BackT
 /// </remarks>
 public sealed class BackToVillageHandler(
     ISelectedSessionDomainService selectedSessions,
-    ISelectedSessionRuntimeDirectory runtimeSessions,
+    ISelectedCharacterCurrentViewDomainService currentViews,
     ICharacterPositionDomainService positions,
     IDungeonRunDomainService runs,
     DungeonRunDeliveryRegistry deliveries,
@@ -211,9 +211,9 @@ public sealed class BackToVillageHandler(
         // Where they are standing is asked of the service that owns it. It is recorded and dropped
         // with the published session, so this conjunct admits exactly the connections the two
         // before it do.
-        if (session is null
-            || !runtimeSessions.TryGet(session, out var result, out _)
-            || result is null
+        var result = session is null ? null
+            : await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
+        if (session is null || result is null
             || positions.Find(session.CharacterId) is not { } position)
         {
             logger.LogWarning(
@@ -235,7 +235,8 @@ public sealed class BackToVillageHandler(
             return;
         }
 
-        var returning = ResolveReturningMembers(session, result, position)
+        var returning = (await ResolveReturningMembersAsync(session, result, position, cancellationToken)
+                .ConfigureAwait(false))
             .Where(value => selectedSessions.FindByCharacter(value.Session.CharacterId)
                 == value.Session)
             .ToArray();
@@ -325,10 +326,11 @@ public sealed class BackToVillageHandler(
         }
     }
 
-    private IReadOnlyList<ReturningMember> ResolveReturningMembers(
+    private async ValueTask<IReadOnlyList<ReturningMember>> ResolveReturningMembersAsync(
         SelectedSessionIdentity requester,
         SelectCharacterResult requesterRuntime,
-        CharacterPositionState requesterPosition)
+        CharacterPositionState requesterPosition,
+        CancellationToken cancellationToken)
     {
         var returning = new List<ReturningMember>
         {
@@ -347,11 +349,12 @@ public sealed class BackToVillageHandler(
         foreach (var member in party.Members.OrderBy(value => value.Slot))
         {
             var current = selectedSessions.FindByCharacter(member.CharacterId);
+            var runtime = current is null ? null
+                : await currentViews.TryLoadAsync(current, cancellationToken).ConfigureAwait(false);
             if (current is null
                 || current == requester
                 || current.AccountId != member.Character.AccountId
                 || current.WireUserId != member.WireUserId
-                || !runtimeSessions.TryGet(current, out var runtime, out _)
                 || runtime is null
                 || positions.Find(current.CharacterId) is not { } position
                 || !entryIntents.ClearExact(current))
@@ -550,7 +553,7 @@ internal sealed class EnterSelectDungeonEncoder
 public sealed class EnterSelectDungeonHandler(
     ICharacterStateProjectionDomainService currentState,
     ISelectedSessionDomainService selectedSessions,
-    ISelectedSessionRuntimeDirectory runtimeSessions,
+    ISelectedCharacterCurrentViewDomainService currentViews,
     IDungeonVisitDomainService visits,
     IDungeonEntryIntentDomainService entryIntents,
     IGameMessageSender sender,
@@ -565,9 +568,9 @@ public sealed class EnterSelectDungeonHandler(
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null
-            || !runtimeSessions.TryGet(session, out var result, out _)
-            || result is null)
+        var result = session is null ? null
+            : await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
+        if (session is null || result is null)
         {
             // Reached before a character is published. Nothing can be answered from an unpublished
             // session, and inventing a spawn would put the client somewhere the server does not
@@ -593,7 +596,8 @@ public sealed class EnterSelectDungeonHandler(
                 context.Connection.ConnectionId);
             return;
         }
-        var attached = ResolveSelectionMembers(session, result, roster);
+        var attached = await ResolveSelectionMembersAsync(
+            session, result, roster, cancellationToken).ConfigureAwait(false);
         var wireUserIds = attached
             .Select(value => value.Session.WireUserId)
             .ToImmutableArray();
@@ -646,8 +650,7 @@ public sealed class EnterSelectDungeonHandler(
             IReadOnlyList<IGameServerMessage> Messages)>();
         foreach (var member in attached)
         {
-            var refreshed = await currentState
-                .RefreshAsync(member.Runtime, cancellationToken)
+            var refreshed = await currentState.RefreshAsync(member.Runtime, cancellationToken)
                 .ConfigureAwait(false);
             var equipment = refreshed.CharacterInventory.Containers
                 .SingleOrDefault(value => value.ContainerType == InventoryContainerType.Equipment)
@@ -709,21 +712,23 @@ public sealed class EnterSelectDungeonHandler(
         }
     }
 
-    private IReadOnlyList<(
+    private async ValueTask<IReadOnlyList<(
         SelectedSessionIdentity Session,
-        SelectCharacterResult Runtime)> ResolveSelectionMembers(
+        SelectCharacterResult Runtime)>> ResolveSelectionMembersAsync(
         SelectedSessionIdentity requester,
         SelectCharacterResult requesterRuntime,
-        PartySnapshot roster)
+        PartySnapshot roster,
+        CancellationToken cancellationToken)
     {
         var members = new List<(SelectedSessionIdentity, SelectCharacterResult)>();
         foreach (var member in roster.Members.OrderBy(value => value.Slot))
         {
             var current = selectedSessions.FindByCharacter(member.CharacterId);
+            var runtime = current is null ? null
+                : await currentViews.TryLoadAsync(current, cancellationToken).ConfigureAwait(false);
             if (current is null
                 || current.AccountId != member.Character.AccountId
                 || current.WireUserId != member.WireUserId
-                || !runtimeSessions.TryGet(current, out var runtime, out _)
                 || runtime is null)
             {
                 continue;

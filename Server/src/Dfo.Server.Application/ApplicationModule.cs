@@ -291,14 +291,11 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICharacterInventoryEntryDomainService, CharacterInventoryEntryDomainService>();
         services.TryAddSingleton<IAccountInventoryEntryDomainService, AccountInventoryEntryDomainService>();
         services.TryAddSingleton<IEquippedCreatureQuery, EquippedCreatureQuery>();
-        services.TryAddSingleton<IEntryInventoryLeaseRegistry, EntryInventoryLeaseRegistry>();
         // Fourteen inventory tables, and the sequencing that makes them one inventory.
         services.TryAddSingleton<InventoryEntryAssembly>();
         services.TryAddSingleton<ICharacterInventoryEntryRepository>(
             provider => provider.GetRequiredService<InventoryEntryAssembly>());
         services.TryAddSingleton<IAccountInventoryEntryRepository>(
-            provider => provider.GetRequiredService<InventoryEntryAssembly>());
-        services.TryAddSingleton<IEntryInventoryLeasePersistence>(
             provider => provider.GetRequiredService<InventoryEntryAssembly>());
         services.TryAddSingleton<IEntryInventoryMutationRepository, DailyRefillService>();
         // Thirty-three tables: the order they are read in, and everything that makes them one
@@ -345,6 +342,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IEntryPlacementRuleService, EntryPlacementRuleService>();
         services.TryAddSingleton<ISelectedSessionDomainService, SelectedSessionDomainService>();
         services.TryAddSingleton<ISelectedSessionRuntimeDirectory, SelectedSessionRuntimeDirectory>();
+        services.TryAddSingleton<ICharacterVitalRuntimeDomainService, CharacterVitalRuntimeDomainService>();
+        services.TryAddSingleton<ISelectedCharacterCurrentViewDomainService, SelectedCharacterCurrentViewDomainService>();
         services.TryAddSingleton<
             IOtherCharacterDetailQueryDomainService,
             OtherCharacterDetailQueryDomainService>();
@@ -355,8 +354,7 @@ public sealed class ApplicationModule : IServerModule
             new PartyMemberStatusDomainService(
                 () => provider.GetRequiredService<ICharacterInventoryEntryDomainService>(),
                 provider.GetRequiredService<ICharacterFatigueDomainService>(),
-                provider.GetRequiredService<ISelectedSessionDomainService>(),
-                provider.GetRequiredService<ISelectedSessionRuntimeDirectory>()));
+                provider.GetRequiredService<ICharacterVitalRuntimeDomainService>()));
         services.TryAddSingleton<IPartyModeRuleService, PartyModeRuleService>();
         services.TryAddSingleton<IPartyMemberSessionEndpointSource,
             PartyMemberSessionEndpointSource>();

@@ -145,7 +145,7 @@ internal sealed class GiveUpGameResponseEncoder : GameCmdMessageEncoder<GiveUpGa
 /// </remarks>
 public sealed class GiveUpGameHandler(
     ISelectedSessionDomainService selectedSessions,
-    ISelectedSessionRuntimeDirectory runtimeSessions,
+    ISelectedCharacterCurrentViewDomainService currentViews,
     ICharacterPositionDomainService positions,
     IDungeonRunDomainService runs,
     DungeonRunDeliveryRegistry deliveries,
@@ -165,9 +165,9 @@ public sealed class GiveUpGameHandler(
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null
-            || !runtimeSessions.TryGet(session, out var result, out _)
-            || result is null
+        var result = session is null ? null
+            : await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
+        if (session is null || result is null
             || positions.Find(session.CharacterId) is not { } position)
         {
             logger.LogWarning(
@@ -637,7 +637,7 @@ internal sealed class ClearDungeonRewardEncoder
 /// </remarks>
 public sealed class SetPlayResultHandler(
     ISelectedSessionDomainService selectedSessions,
-    ISelectedSessionRuntimeDirectory runtimeSessions,
+    ISelectedCharacterCurrentViewDomainService currentViews,
     ICharacterDomainService characters,
     IDungeonRunDomainService runs,
     IDungeonSettlementRuleService settlementRules,
@@ -655,9 +655,9 @@ public sealed class SetPlayResultHandler(
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null
-            || !runtimeSessions.TryGet(session, out var result, out _)
-            || result is null)
+        var result = session is null ? null
+            : await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
+        if (session is null || result is null)
         {
             logger.LogWarning(
                 "Set play result {ConnectionId}: no published session, ignoring",
@@ -880,7 +880,6 @@ public sealed class SetPlayResultHandler(
                             cancellationToken).ConfigureAwait(false);
                 }
 
-                runtimeSessions.ReplaceExact(session, result);
             }
 
             List<IGameServerMessage> frames =

@@ -1248,7 +1248,7 @@ public sealed class CardRewardTests
             ClearRewardCardKind kind,
             int index,
             ISelectedSessionDomainService? sessions = null,
-            ISelectedSessionRuntimeDirectory? runtimeSessions = null)
+            ISelectedCharacterCurrentViewDomainService? runtimeSessions = null)
         {
             var handler = new SelectCardHandler(
                 sessions ?? new OneSession(Identity),
@@ -1347,7 +1347,7 @@ public sealed class CardRewardTests
     }
 
     private sealed class OneRuntimeSession(SelectCharacterResult entry)
-        : ISelectedSessionRuntimeDirectory
+        : ILegacySessionSnapshotFixture
     {
         public bool TryGet(
             SelectedSessionIdentity session,
@@ -1372,7 +1372,7 @@ public sealed class CardRewardTests
             throw new NotSupportedException("This fixture only answers.");
     }
 
-    private sealed class NoRuntimeSession : ISelectedSessionRuntimeDirectory
+    private sealed class NoRuntimeSession : ILegacySessionSnapshotFixture
     {
         public bool TryGet(
             SelectedSessionIdentity session,

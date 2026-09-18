@@ -218,7 +218,7 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
         var logger = new RecordingLogger();
         return (
             new MoveItemSpaceHandler(
-                new OneSession(), new NoPublishedRuntime(), new UnreachableInventory(),
+                new OneSession(), new NoPublishedRuntime(),
                 new DirectMoveBus(commandHandler), sender, logger),
             sender,
             logger);
@@ -377,7 +377,7 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
     /// rather than mocked: a session that cannot be read is exactly the case the handler answers by
     /// sending the acknowledgement alone.
     /// </remarks>
-    private sealed class NoPublishedRuntime : ISelectedSessionRuntimeDirectory
+    private sealed class NoPublishedRuntime : ILegacySessionSnapshotFixture
     {
         public void Publish(
             SelectedSessionIdentity session, SelectCharacterResult result, bool shouldPersistPosition) =>

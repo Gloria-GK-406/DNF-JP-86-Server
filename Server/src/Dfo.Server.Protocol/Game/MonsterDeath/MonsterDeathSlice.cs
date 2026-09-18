@@ -361,7 +361,7 @@ internal sealed class MonsterDeathDecoder : IGameMessageDecoder
 /// <summary>Acknowledges a kill and reports what the character is worth after it.</summary>
 public sealed class MonsterDeathHandler(
     ISelectedSessionDomainService selectedSessions,
-    ISelectedSessionRuntimeDirectory runtimeSessions,
+    ISelectedCharacterCurrentViewDomainService currentViews,
     ICharacterDomainService characters,
     IDungeonRunDomainService runs,
     IMonsterKillDomainService kills,
@@ -381,8 +381,9 @@ public sealed class MonsterDeathHandler(
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null || !runtimeSessions.TryGet(session, out var result, out _)
-            || result is null)
+        var result = session is null ? null
+            : await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
+        if (session is null || result is null)
         {
             logger.LogWarning(
                 "Monster death {ConnectionId}: no published session, ignoring actor={Actor}",
@@ -600,7 +601,6 @@ public sealed class MonsterDeathHandler(
                         cancellationToken).ConfigureAwait(false);
             }
 
-            runtimeSessions.ReplaceExact(session, result);
         }
 
         // The experience frame first, then the acknowledgement. That is the order a working A21
@@ -670,8 +670,8 @@ public sealed class MonsterDeathHandler(
         foreach (var frozen in partyRecipients?.Find(reporter, initialRun.RunId)
                      ?? runDeliveries.Find(initialRun.RunId))
         {
+            var result = await currentViews.TryLoadAsync(frozen, cancellationToken).ConfigureAwait(false);
             if (selectedSessions.FindByCharacter(frozen.CharacterId) != frozen
-                || !runtimeSessions.TryGet(frozen, out var result, out _)
                 || result is null)
             {
                 continue;
@@ -913,7 +913,6 @@ public sealed class MonsterDeathHandler(
                         level,
                         cancellationToken).ConfigureAwait(false);
                 }
-                runtimeSessions.ReplaceExact(recipient.Session, result);
             }
 
             frames.Add(new ExperienceNotification(

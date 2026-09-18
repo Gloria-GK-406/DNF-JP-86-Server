@@ -33,8 +33,7 @@ public sealed class PrepareSelectedCharacterSessionCommandHandler(
     IOnlineUserQueryDomainService onlineUsers,
     ISelectCharacterPreparationDomainService preparation,
     ISelectedSessionDomainService sessions,
-    ISelectedSessionCleanupDomainService cleanup,
-    ISelectCharacterEntryInventoryDomainService inventoryEntry)
+    ISelectedSessionCleanupDomainService cleanup)
     : ICommandHandler<PrepareSelectedCharacterSessionCommand, PreparedSelectedCharacterSession>
 {
     public async ValueTask<PreparedSelectedCharacterSession> HandleAsync(
@@ -52,8 +51,6 @@ public sealed class PrepareSelectedCharacterSessionCommandHandler(
         _ = SelectedSessionIdentity.ToWireUserId(selected.Identity.CharacterId);
         var cleanupNotifications = new List<SelectedSessionCleanupNotificationPlan>();
         var previous = sessions.Find(command.AccountId);
-        if (previous is not null)
-            await inventoryEntry.SaveExistingLeaseAsync(previous, cancellationToken).ConfigureAwait(false);
         if (previous?.ConnectionId == command.ConnectionId)
         {
             try
@@ -238,17 +235,18 @@ public sealed class PublishSelectedCharacterSessionCommandHandler(
     ISelectCharacterSessionEntryDomainService sessionEntry)
     : ICommandHandler<PublishSelectedCharacterSessionCommand, PublishedSelectedCharacterSession>
 {
-    public ValueTask<PublishedSelectedCharacterSession> HandleAsync(
+    public async ValueTask<PublishedSelectedCharacterSession> HandleAsync(
         CommandExecutionContext context,
         PublishSelectedCharacterSessionCommand command,
         CancellationToken cancellationToken)
     {
         activeCharacters.Publish(command.Session);
         sessionEntry.Publish(command.Session, command.State);
-        return ValueTask.FromResult(
-            new PublishedSelectedCharacterSession(
-                sessionEntry.PlanTownPublication(command.Session, command.State),
-                sessionEntry.PlanPvp(command.Session, command.State)));
+        return new PublishedSelectedCharacterSession(
+            await sessionEntry.PlanTownPublicationAsync(
+                command.Session, command.State, cancellationToken).ConfigureAwait(false),
+            await sessionEntry.PlanPvpAsync(
+                command.Session, command.State, cancellationToken).ConfigureAwait(false));
     }
 }
 
@@ -289,8 +287,7 @@ public sealed record SynchronizedSelectedCharacterQuests(
     SelectCharacterQuestSynchronization? Change);
 
 public sealed class SynchronizeSelectedCharacterQuestsCommandHandler(
-    ISelectCharacterQuestEntryDomainService questEntry,
-    ISelectCharacterSessionEntryDomainService sessionEntry)
+    ISelectCharacterQuestEntryDomainService questEntry)
     : ICommandHandler<SynchronizeSelectedCharacterQuestsCommand, SynchronizedSelectedCharacterQuests>
 {
     public async ValueTask<SynchronizedSelectedCharacterQuests> HandleAsync(
@@ -300,8 +297,6 @@ public sealed class SynchronizeSelectedCharacterQuestsCommandHandler(
     {
         var change = await questEntry.SynchronizeAsync(
             command.Session, command.State, cancellationToken).ConfigureAwait(false);
-        if (change is not null)
-            sessionEntry.ReplaceRuntimeExact(command.Session, change.Result);
         return new SynchronizedSelectedCharacterQuests(change);
     }
 }
@@ -317,8 +312,7 @@ public sealed record ReviveSelectedCharacterPetCommand(
 public sealed record RevivedSelectedCharacterPet(SelectCharacterPetRevival? Change);
 
 public sealed class ReviveSelectedCharacterPetCommandHandler(
-    ISelectCharacterPetEntryDomainService petEntry,
-    ISelectCharacterSessionEntryDomainService sessionEntry)
+    ISelectCharacterPetEntryDomainService petEntry)
     : ICommandHandler<ReviveSelectedCharacterPetCommand, RevivedSelectedCharacterPet>
 {
     public async ValueTask<RevivedSelectedCharacterPet> HandleAsync(
@@ -328,8 +322,6 @@ public sealed class ReviveSelectedCharacterPetCommandHandler(
     {
         var change = await petEntry.ReviveAsync(
             command.Session, command.State, cancellationToken).ConfigureAwait(false);
-        if (change is not null)
-            sessionEntry.ReplaceRuntimeExact(command.Session, change.Result);
         return new RevivedSelectedCharacterPet(change);
     }
 }

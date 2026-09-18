@@ -183,7 +183,7 @@ public sealed partial class SelectCharacterLifecycleTests
     }
 
     [Fact]
-    public async Task QuestAndPetChangesReplaceThePublishedRuntimeSnapshot()
+    public async Task QuestAndPetChangesRemainInDeliveryWithoutReplacingASessionSnapshot()
     {
         var fixture = await Fixture.CreateAsync(changeQuest: true, revivePet: true);
 
@@ -193,8 +193,8 @@ public sealed partial class SelectCharacterLifecycleTests
 
         Assert.Equal(3, Assert.Single(result.CharacterEntry.Quests.ActiveQuests).TriggerValue);
         Assert.Equal(1, Assert.Single(result.CharacterEntry.Features.Pets).Field04);
-        Assert.Equal(result, fixture.SessionEntry.RuntimeResult);
-        Assert.Equal(2, fixture.Ledger.Count(value => value == "runtime-update"));
+        Assert.NotNull(fixture.SessionEntry.RuntimeResult);
+        Assert.DoesNotContain("runtime-update", fixture.Ledger);
     }
 
     [Fact]
@@ -762,7 +762,7 @@ public sealed partial class SelectCharacterLifecycleTests
             var townAreaProjection = new TownAreaProjectionDelivery(
                 new SessionPresenceDomainService(),
                 directory,
-                new SelectedSessionRuntimeDirectory(),
+                new EmptyCurrentViews(),
                 notifications,
                 partyProjection,
                 sender,
@@ -775,8 +775,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 users,
                 refuseAdmission ? new RefusingPreparation(ledger) : preparation!,
                 directory,
-                cleanup,
-                inventory);
+                cleanup);
             var bus = new RecordingCommandBus(
                 prepareHandler,
                 new CleanupExpiredCharacterItemsCommandHandler(
@@ -787,9 +786,9 @@ public sealed partial class SelectCharacterLifecycleTests
                 new PublishSelectedCharacterSessionCommandHandler(active, sessionEntry),
                 new MarkSelectedCharacterPvpReadyCommandHandler(sessionEntry),
                 new SynchronizeSelectedCharacterQuestsCommandHandler(
-                    new QuestEntry(ledger, changeQuest), sessionEntry),
+                    new QuestEntry(ledger, changeQuest)),
                 new ReviveSelectedCharacterPetCommandHandler(
-                    new PetEntry(ledger, revivePet), sessionEntry),
+                    new PetEntry(ledger, revivePet)),
                 new CompensateSelectedCharacterSessionCommandHandler(cleanup, directory));
             var handler = new SelectCharacterHandler(
                 users,
@@ -965,6 +964,9 @@ public sealed partial class SelectCharacterLifecycleTests
         ISelectedSessionPositionPersistence positions)
         : ISelectCharacterPreparationDomainService
     {
+        public ValueTask<SelectCharacterResult> LoadCurrentAsync(
+            SelectedSessionIdentity session, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(result);
         /// <summary>The real service's own act: stamp the spawn, then store it when the channel keeps positions.</summary>
         public async ValueTask<SelectCharacterResult> PlaceAtSpawnAsync(
             SelectedSessionIdentity session, SelectCharacterResult prepared,
@@ -1005,6 +1007,9 @@ public sealed partial class SelectCharacterLifecycleTests
 
     private sealed class RefusingPreparation(List<string> ledger) : ISelectCharacterPreparationDomainService
     {
+        public ValueTask<SelectCharacterResult> LoadCurrentAsync(
+            SelectedSessionIdentity session, CancellationToken cancellationToken) =>
+            throw new InvalidOperationException();
         public ValueTask<ActiveCharacterState> PreflightAsync(
             AccountId accountId, ushort slotIndex, Dfo.Server.Data.Channel.ChannelEntryIdentity channel,
             CancellationToken cancellationToken)
@@ -1070,6 +1075,14 @@ public sealed partial class SelectCharacterLifecycleTests
         List<string> ledger, bool planPvp)
         : ISelectCharacterSessionEntryDomainService
     {
+        public ValueTask<TownParticipantPublicationPlan?> PlanTownPublicationAsync(
+            SelectedSessionIdentity session, SelectCharacterResult result,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult(PlanTownPublication(session, result));
+        public ValueTask<PvpLobbySynchronizationState?> PlanPvpAsync(
+            SelectedSessionIdentity session, SelectCharacterResult result,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult(PlanPvp(session, result));
         public SelectCharacterResult? RuntimeResult { get; private set; }
         public TownParticipantPublicationPlan? PlanTownPublication(
             SelectedSessionIdentity session, SelectCharacterResult result)
@@ -1121,12 +1134,6 @@ public sealed partial class SelectCharacterLifecycleTests
         {
             RuntimeResult = result;
             ledger.Add("publish");
-        }
-
-        public void ReplaceRuntimeExact(SelectedSessionIdentity session, SelectCharacterResult result)
-        {
-            RuntimeResult = result;
-            ledger.Add("runtime-update");
         }
 
         public void MarkPvpReady(SelectedSessionIdentity session, SelectCharacterResult result) =>
@@ -1426,5 +1433,12 @@ public sealed partial class SelectCharacterLifecycleTests
             Closed.Add(connectionId);
             return OnClose?.Invoke() ?? ValueTask.CompletedTask;
         }
+    }
+
+    private sealed class EmptyCurrentViews : ISelectedCharacterCurrentViewDomainService
+    {
+        public ValueTask<SelectCharacterResult?> TryLoadAsync(
+            SelectedSessionIdentity session, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<SelectCharacterResult?>(null);
     }
 }

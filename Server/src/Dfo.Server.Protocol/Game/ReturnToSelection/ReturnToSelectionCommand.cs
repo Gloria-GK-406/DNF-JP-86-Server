@@ -22,7 +22,6 @@ public sealed record PreparedReturnToSelection(
 public sealed class PrepareReturnToSelectionCommandHandler(
     IOnlineUserQueryDomainService onlineUsers,
     ISelectedSessionDomainService sessions,
-    ISelectCharacterEntryInventoryDomainService inventory,
     ICharacterDomainService characters)
     : ICommandHandler<PrepareReturnToSelectionCommand, PreparedReturnToSelection>
 {
@@ -32,8 +31,6 @@ public sealed class PrepareReturnToSelectionCommandHandler(
         ReturnToSelectionOwnership.Require(onlineUsers, sessions,
             command.AccountId, command.ConnectionId, command.Generation);
         var session = sessions.Find(command.AccountId);
-        if (session is not null)
-            await inventory.SaveExistingLeaseAsync(session, cancellationToken).ConfigureAwait(false);
         var roster = await characters.GetAccountRosterWithAppearanceAsync(command.AccountId, cancellationToken)
             .ConfigureAwait(false);
         var resetKnight = session is not null

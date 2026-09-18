@@ -7,12 +7,13 @@ namespace Dfo.Server.Application.Characters;
 
 internal sealed class OtherCharacterDetailQueryDomainService(
     ISelectedSessionDomainService sessions,
-    ISelectedSessionRuntimeDirectory runtime,
+    ISelectedCharacterCurrentViewDomainService currentViews,
     TimeProvider clock) : IOtherCharacterDetailQueryDomainService
 {
-    public CharacterDetailQueryResult Query(
+    public async ValueTask<CharacterDetailQueryResult> QueryAsync(
         SelectedSessionIdentity requester,
-        ushort targetWireUserId)
+        ushort targetWireUserId,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(requester);
         if (targetWireUserId == ushort.MaxValue)
@@ -28,7 +29,9 @@ internal sealed class OtherCharacterDetailQueryDomainService(
         if (target.ListenerPort != requester.ListenerPort)
             return CharacterDetailQueryResult.Reject(CharacterDetailQueryFailure.DifferentListener);
 
-        if (!runtime.TryGet(target, out var targetState, out _) || targetState is null)
+        var targetState = await currentViews.TryLoadAsync(target, cancellationToken)
+            .ConfigureAwait(false);
+        if (targetState is null)
             return CharacterDetailQueryResult.Reject(
                 CharacterDetailQueryFailure.TargetRuntimeUnavailable);
 

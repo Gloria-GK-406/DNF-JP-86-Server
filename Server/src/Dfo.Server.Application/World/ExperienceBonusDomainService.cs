@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Channel;
+using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 
@@ -23,14 +24,16 @@ namespace Dfo.Server.Application.World;
 internal sealed class ExperienceBonusDomainService(
     ISelectedSessionDomainService sessions,
     ISelectedSessionRuntimeDirectory runtimeSessions,
+    IAccountPremiumTable premiums,
+    IChannelEntryPolicy channels,
     IExperienceRuleService experienceRules,
     TimeProvider clock) : IExperienceBonusDomainService
 {
-    public IReadOnlyList<ExperienceModifier> Collect(in ExperienceOccasion occasion)
+    public async ValueTask<IReadOnlyList<ExperienceModifier>> CollectAsync(
+        ExperienceOccasion occasion, CancellationToken cancellationToken)
     {
         var session = sessions.FindByCharacter(occasion.Character);
-        if (session is null || !runtimeSessions.TryGet(session, out var result, out _)
-            || result is null)
+        if (session is null || !runtimeSessions.IsPublishedExact(session))
         {
             // Nothing resident to read. Every bonus this service knows about is a fact about the
             // published session -- the account's terms, the channel the connection came in on --
@@ -38,16 +41,19 @@ internal sealed class ExperienceBonusDomainService(
             return [];
         }
 
-        // Everything the rules need, and nothing they could have found for themselves. The
-        // account's premium terms arrive with the character's entry and sit in the published
-        // session -- so this reads memory, not the database, which is what lets the whole
-        // interface be synchronous. The channel is the one the session entered on, and the
-        // dungeon is this occasion's; the rule that decides has no business finding either.
+        var currentPremiums = await premiums.ReadAsync(occasion.Account, cancellationToken)
+            .ConfigureAwait(false);
+        var channel = await channels.ResolveAsync(session.ListenerPort, cancellationToken)
+            .ConfigureAwait(false);
+        if (sessions.FindByCharacter(occasion.Character) != session
+            || !runtimeSessions.IsPublishedExact(session))
+            return [];
         return experienceRules.ModifiersFor(
             occasion.Event,
-            result.Account.Entitlements.Premiums,
+            currentPremiums.Select(row => new Dfo.Server.Data.Accounts.AccountPremiumEntryState(
+                row.PremiumType, row.ExpiresAtUnixSeconds)).ToArray(),
             clock.GetUtcNow(),
-            result.World.Channel.ChannelId,
+            channel.ChannelId,
             occasion.DungeonId);
     }
 }

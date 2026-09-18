@@ -528,9 +528,7 @@ public sealed class MonsterDeathHandlerTests
         Assert.Equal((byte)(StartingLevel + 1), leaderExperience.Level);
         Assert.Equal(17u, leaderExperience.Lines[ExperienceBonusKind.PartyReward]);
         Assert.Single(sender.For(leader.ConnectionId).OfType<AvailableQuestListMessage>());
-        Assert.Equal(
-            StartingExperience + KillGain,
-            runtime.GetRequired(leader).Character.Progression.Experience);
+        Assert.Equal(StartingExperience + KillGain, leaderExperience.TotalExperience);
     }
 
     [Fact]
@@ -1182,7 +1180,7 @@ public sealed class MonsterDeathHandlerTests
         private static NotSupportedException Unused() => new("This fixture only answers.");
     }
 
-    private sealed class PartyRuntimeSessions : ISelectedSessionRuntimeDirectory
+    private sealed class PartyRuntimeSessions : ILegacySessionSnapshotFixture
     {
         private readonly Dictionary<SelectedSessionIdentity, SelectCharacterResult> entries;
 

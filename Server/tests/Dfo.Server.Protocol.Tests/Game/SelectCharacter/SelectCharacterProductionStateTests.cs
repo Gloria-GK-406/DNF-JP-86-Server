@@ -20,6 +20,43 @@ namespace Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 public sealed class SelectCharacterProductionStateTests
 {
     [Fact]
+    public async Task CurrentView_ReadsChangedDurabilityWithoutRepeatingEntryRecovery()
+    {
+        var seed = SelectCharacterPayloadTestData.CreateComplete();
+        var sources = new Sources(seed, []);
+        var service = new SelectCharacterPreparationService(
+            sources, sources, sources, sources, sources, sources, sources,
+            new CharacterEntryPreparationRuleService(sources, sources, sources),
+            sources, sources, sources, sources, sources, sources, sources,
+            new FixedTimeProvider(seed.World.PreparedAt));
+        var session = SelectedSessionIdentity.Create(
+            seed.Account.AccountId, seed.Character.Identity.CharacterId,
+            new Dfo.Server.Data.Networking.NetworkConnectionId("current-view"), 1, 10011);
+        var equipment = seed.CharacterInventory.Containers.Single(container =>
+            container.ContainerType == InventoryContainerType.Equipment);
+        var changed = equipment with
+        {
+            Items = [equipment.Items.Single() with
+            {
+                Core = equipment.Items.Single().Core with { Durability = 37 },
+            }],
+        };
+        sources.CharacterInventory = seed.CharacterInventory with
+        {
+            Containers = seed.CharacterInventory.Containers
+                .Select(container => container.ContainerType == InventoryContainerType.Equipment
+                    ? changed : container).ToArray(),
+        };
+
+        var current = await service.LoadCurrentAsync(session, CancellationToken.None);
+
+        Assert.Equal(37, current.CharacterInventory.Containers.Single(container =>
+            container.ContainerType == InventoryContainerType.Equipment).Items.Single().Core.Durability);
+        Assert.Equal(0, sources.RecoveryCalls);
+        Assert.Equal(0, sources.ReconciliationCalls);
+    }
+
+    [Fact]
     public async Task ApplicationProducedResult_EncodesTheCompleteStaticStream()
     {
         var seed = SelectCharacterPayloadTestData.CreateComplete();
@@ -188,6 +225,9 @@ public sealed class SelectCharacterProductionStateTests
         ISelectedSessionPositionPersistence
     {
         public bool Published { get; private set; }
+        public CharacterInventoryEntryState CharacterInventory { get; set; } = seed.CharacterInventory;
+        public int RecoveryCalls { get; private set; }
+        public int ReconciliationCalls { get; private set; }
 
         public ValueTask PersistAsync(
             AccountId accountId, CharacterId characterId, CharacterPositionState position,
@@ -231,7 +271,7 @@ public sealed class SelectCharacterProductionStateTests
         public ValueTask<CharacterDeletionResult> DeleteCharacterAsync(
             AccountId id, ushort slot, byte[] name, CancellationToken ct) => throw new NotSupportedException();
         ValueTask<CharacterInventoryEntryState> ICharacterInventoryEntryDomainService.LoadAsync(
-            AccountId id, CharacterId cid, CancellationToken ct) => ValueTask.FromResult(seed.CharacterInventory);
+            AccountId id, CharacterId cid, CancellationToken ct) => ValueTask.FromResult(CharacterInventory);
         ValueTask<AccountInventoryEntryState> IAccountInventoryEntryDomainService.LoadAsync(
             AccountId id, CharacterId cid, CancellationToken ct) => ValueTask.FromResult(seed.AccountInventory);
         public ValueTask<CharacterEntryState> LoadAsync(AccountId id, CharacterId cid, CancellationToken ct) =>
@@ -269,14 +309,23 @@ public sealed class SelectCharacterProductionStateTests
         ValueTask<CharacterSkillsEntryState> ICharacterPvpSkillProfileRepository.LoadOrInitializeAsync(
             AccountId accountId, CharacterId characterId, CharacterSkillsEntryState initialProfile,
             CancellationToken cancellationToken) => ValueTask.FromResult(seed.CharacterEntry.Skills);
-        public ValueTask<DungeonPersistentEffectRecoveryOutcome> RecoverAsync(
+        ValueTask<CharacterSkillsEntryState> ICharacterPvpSkillProfileRepository.ReadAsync(
             AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(new DungeonPersistentEffectRecoveryOutcome(0, 0, 0, 0));
+            ValueTask.FromResult(seed.CharacterEntry.Skills);
+        public ValueTask<DungeonPersistentEffectRecoveryOutcome> RecoverAsync(
+            AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)
+        {
+            RecoveryCalls++;
+            return ValueTask.FromResult(new DungeonPersistentEffectRecoveryOutcome(0, 0, 0, 0));
+        }
         public IReadOnlySet<int> GetOverSkillPremiumTypes() => new HashSet<int>();
         public ValueTask<bool> ReconcileAsync(AccountId accountId, CharacterId characterId,
             IReadOnlySet<int> premiumTypes, IReadOnlyDictionary<int, SkillPointCostDefinition> definitions,
-            IReadOnlyDictionary<int, byte> freeBaseline, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(false);
+            IReadOnlyDictionary<int, byte> freeBaseline, CancellationToken cancellationToken)
+        {
+            ReconciliationCalls++;
+            return ValueTask.FromResult(false);
+        }
         public ValueTask<CreatureEquipmentLifetime> GetAsync(
             int itemTemplateId, DateTimeOffset preparedAt, CancellationToken ct) =>
             ValueTask.FromResult(default(CreatureEquipmentLifetime));

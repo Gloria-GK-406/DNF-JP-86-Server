@@ -43,7 +43,7 @@ internal sealed class OneSession(SelectedSessionIdentity identity) : ISelectedSe
 
 /// <summary>The one published session these cases play, and what it holds after they run.</summary>
 internal sealed class OneRuntimeSession(SelectCharacterResult entry)
-    : ISelectedSessionRuntimeDirectory
+    : ILegacySessionSnapshotFixture
 {
     private SelectCharacterResult _entry = entry;
 

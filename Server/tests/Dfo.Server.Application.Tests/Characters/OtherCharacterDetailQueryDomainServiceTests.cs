@@ -1,6 +1,7 @@
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
@@ -19,6 +20,7 @@ public sealed class OtherCharacterDetailQueryDomainServiceTests
         var services = new ServiceCollection();
         new ApplicationModule().ConfigureServices(
             services, new ConfigurationBuilder().Build());
+        services.AddSingleton<ISelectedCharacterCurrentViewDomainService, FixedCurrentViews>();
         using var provider = services.BuildServiceProvider();
 
         var first = provider.GetRequiredService<IOtherCharacterDetailQueryDomainService>();
@@ -28,13 +30,13 @@ public sealed class OtherCharacterDetailQueryDomainServiceTests
     }
 
     [Fact]
-    public void CurrentSameListenerTargetReturnsAnExactTwoGenerationPlan()
+    public async Task CurrentSameListenerTargetReturnsAnExactTwoGenerationPlan()
     {
         var fixture = new DetailFixture();
         var requester = fixture.Admit(101, 1, "requester", 1, 10011, publishRuntime: false);
         var target = fixture.Admit(202, 2, "target", 1, 10011, publishRuntime: true);
 
-        var result = fixture.Details.Query(requester, target.WireUserId);
+        var result = await fixture.Details.QueryAsync(requester, target.WireUserId, CancellationToken.None);
 
         Assert.True(result.Succeeded);
         Assert.Equal(CharacterDetailQueryFailure.None, result.Failure);
@@ -45,20 +47,20 @@ public sealed class OtherCharacterDetailQueryDomainServiceTests
     }
 
     [Fact]
-    public void CrossListenerAndMissingRuntimeTargetsAreRejectedWithoutAProjection()
+    public async Task CrossListenerAndMissingRuntimeTargetsAreRejectedWithoutAProjection()
     {
         var fixture = new DetailFixture();
         var requester = fixture.Admit(101, 1, "requester", 1, 10011, publishRuntime: false);
         var crossListener = fixture.Admit(202, 2, "cross", 1, 10010, publishRuntime: true);
 
-        var cross = fixture.Details.Query(requester, crossListener.WireUserId);
+        var cross = await fixture.Details.QueryAsync(requester, crossListener.WireUserId, CancellationToken.None);
 
         Assert.False(cross.Succeeded);
         Assert.Equal(CharacterDetailQueryFailure.DifferentListener, cross.Failure);
         Assert.Null(cross.Projection);
 
         var noRuntime = fixture.Admit(303, 3, "no-runtime", 1, 10011, publishRuntime: false);
-        var missing = fixture.Details.Query(requester, noRuntime.WireUserId);
+        var missing = await fixture.Details.QueryAsync(requester, noRuntime.WireUserId, CancellationToken.None);
 
         Assert.False(missing.Succeeded);
         Assert.Equal(CharacterDetailQueryFailure.TargetRuntimeUnavailable, missing.Failure);
@@ -66,19 +68,19 @@ public sealed class OtherCharacterDetailQueryDomainServiceTests
     }
 
     [Fact]
-    public void ReplacedRequesterOrTargetCannotReadAnOldGeneration()
+    public async Task ReplacedRequesterOrTargetCannotReadAnOldGeneration()
     {
         var fixture = new DetailFixture();
         var requester = fixture.Admit(101, 1, "requester-old", 1, 10011, publishRuntime: false);
         var target = fixture.Admit(202, 2, "target-old", 1, 10011, publishRuntime: true);
 
         _ = fixture.Admit(101, 1, "requester-new", 2, 10011, publishRuntime: false);
-        var staleRequester = fixture.Details.Query(requester, target.WireUserId);
+        var staleRequester = await fixture.Details.QueryAsync(requester, target.WireUserId, CancellationToken.None);
         Assert.Equal(CharacterDetailQueryFailure.RequesterNotCurrent, staleRequester.Failure);
 
         var currentRequester = fixture.Sessions.Find(new AccountId(101))!;
         _ = fixture.Admit(202, 2, "target-new", 2, 10011, publishRuntime: true);
-        var staleTargetId = fixture.Details.Query(currentRequester, target.WireUserId);
+        var staleTargetId = await fixture.Details.QueryAsync(currentRequester, target.WireUserId, CancellationToken.None);
 
         Assert.True(staleTargetId.Succeeded);
         Assert.Equal(2, staleTargetId.Projection!.Target.ConnectionGeneration);
@@ -86,27 +88,28 @@ public sealed class OtherCharacterDetailQueryDomainServiceTests
     }
 
     [Fact]
-    public void UnknownAndSentinelTargetsAreRejected()
+    public async Task UnknownAndSentinelTargetsAreRejected()
     {
         var fixture = new DetailFixture();
         var requester = fixture.Admit(101, 1, "requester", 1, 10011, publishRuntime: false);
 
         Assert.Equal(
             CharacterDetailQueryFailure.InvalidTarget,
-            fixture.Details.Query(requester, ushort.MaxValue).Failure);
+            (await fixture.Details.QueryAsync(requester, ushort.MaxValue, CancellationToken.None)).Failure);
         Assert.Equal(
             CharacterDetailQueryFailure.TargetNotCurrent,
-            fixture.Details.Query(requester, 42).Failure);
+            (await fixture.Details.QueryAsync(requester, 42, CancellationToken.None)).Failure);
     }
 
     private sealed class DetailFixture
     {
         public DetailFixture() =>
             Details = new OtherCharacterDetailQueryDomainService(
-                Sessions, Runtime, TimeProvider.System);
+                Sessions, Views, TimeProvider.System);
 
         public SelectedSessionDomainService Sessions { get; } = new();
         public SelectedSessionRuntimeDirectory Runtime { get; } = new();
+        public FixedCurrentViews Views { get; } = new();
         public OtherCharacterDetailQueryDomainService Details { get; }
 
         public SelectedSessionIdentity Admit(
@@ -125,7 +128,10 @@ public sealed class OtherCharacterDetailQueryDomainServiceTests
                 listenerPort);
             Sessions.Select(identity);
             if (publishRuntime)
-                Runtime.Publish(identity, RuntimeState(identity.CharacterId), shouldPersistPosition: false);
+            {
+                Runtime.Publish(identity, shouldPersistPosition: false);
+                Views.Publish(identity, RuntimeState(identity.CharacterId));
+            }
             return identity;
         }
 
@@ -137,5 +143,17 @@ public sealed class OtherCharacterDetailQueryDomainServiceTests
                 new CharacterPositionState(0, 0, 0, 0, 0),
                 DateTimeOffset.UnixEpoch),
             null!, null!, null!, null!, null!, null!);
+    }
+
+    private sealed class FixedCurrentViews : ISelectedCharacterCurrentViewDomainService
+    {
+        private readonly Dictionary<SelectedSessionIdentity, SelectCharacterResult> entries = [];
+
+        public void Publish(SelectedSessionIdentity session, SelectCharacterResult value) =>
+            entries[session] = value;
+
+        public ValueTask<SelectCharacterResult?> TryLoadAsync(
+            SelectedSessionIdentity session, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(entries.GetValueOrDefault(session));
     }
 }

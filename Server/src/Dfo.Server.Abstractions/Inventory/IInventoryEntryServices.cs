@@ -147,10 +147,6 @@ public sealed record EntryInventoryPreparation(
 
 public interface ISelectCharacterEntryInventoryDomainService
 {
-    ValueTask SaveExistingLeaseAsync(
-        SelectedSessionIdentity previousSession,
-        CancellationToken cancellationToken);
-
     ValueTask<SelectCharacterResult> PrepareLeaseAsync(
         SelectedSessionIdentity session,
         SelectCharacterResult result,
@@ -164,21 +160,8 @@ public interface ISelectCharacterEntryInventoryDomainService
 }
 
 /// <summary>
-/// Pure in-memory ownership seam for the selected session's prepared inventory.
-/// Keeping it separate prevents disconnect cleanup from resolving PVF or persistence services.
-/// </summary>
-public interface IEntryInventoryLeaseRegistry
-{
-    EntryInventoryLeaseSnapshot? Find(AccountId accountId);
-    bool TryMarkDirtyExact(SelectedSessionIdentity session, CharacterItemLeaseState inventory);
-    void Replace(SelectedSessionIdentity session, CharacterInventoryEntryState inventory);
-    bool ReleaseExact(SelectedSessionIdentity session);
-}
-
-/// <summary>
-/// The mutable selected-session lease is deliberately limited to item containers. Item
-/// values, locks, rentals, virtual resources and gold limits have independent mutation
-/// owners and are not implied to be persisted when this lease is marked dirty.
+/// Legacy persistence input for direct reconciliation tests. The selected-session lifecycle no
+/// longer holds or writes this shape; current item state is read from the item domain store.
 /// </summary>
 public sealed record CharacterItemLeaseState(
     CharacterId CharacterId,
@@ -194,4 +177,3 @@ public interface IEntryInventoryLeasePersistence
 {
     ValueTask SaveAsync(EntryInventoryLeaseSnapshot lease, CancellationToken cancellationToken);
 }
-

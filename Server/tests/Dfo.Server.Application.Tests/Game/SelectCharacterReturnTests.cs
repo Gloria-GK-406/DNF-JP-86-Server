@@ -29,17 +29,15 @@ public sealed partial class SelectCharacterLifecycleTests
         var selected = f.Directory.Find(f.AccountId)!;
         var online = f.Users.GetRequired(f.OnlineUserId);
         var roster = new RosterCharacters(f.Result);
-        var prepared = await new PrepareReturnToSelectionCommandHandler(f.Users, f.Directory, f.Inventory, roster)
+        var prepared = await new PrepareReturnToSelectionCommandHandler(f.Users, f.Directory, roster)
             .HandleAsync(ReturnContext(), new(f.AccountId, f.ConnectionId, online.Generation), CancellationToken.None);
-        Assert.Equal(1, f.Inventory.Saves);
+        Assert.Equal(0, f.Inventory.Saves);
         Assert.Same(roster.Latest, prepared.Roster);
         Assert.Equal(413500016, Assert.Single(prepared.Roster.Characters[0].Appearances!).DisplayItemId);
         Assert.True(prepared.ResetKnightDeck);
 
         var runtimes = new SelectedSessionRuntimeDirectory();
-        runtimes.Publish(selected, f.Result, shouldPersistPosition: true);
-        var leases = new EntryInventoryLeaseRegistry();
-        leases.Replace(selected, f.Result.CharacterInventory);
+        runtimes.Publish(selected, shouldPersistPosition: true);
         var positions = new CharacterPositionDomainService();
         positions.Place(selected, f.Result.Character.Position);
         var presence = new SessionPresenceDomainService();
@@ -58,9 +56,10 @@ public sealed partial class SelectCharacterLifecycleTests
             ],
             new(10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
                 61000, 1, new Dictionary<MazeCell, int> { [new(0, 0)] = 61000 }), 0);
-        var cleanup = new SelectedSessionCleanupService(f.Directory, runtimes, leases,
+        var cleanup = new SelectedSessionCleanupService(f.Directory, runtimes,
             new CharacterContainerDomainService(), new CharacterItemCooldownDomainService(TimeProvider.System),
             f.Active, presence, stores, new PvpLobbyDomainService(), [f.Mutations], positions,
+            new CharacterVitalRuntimeDomainService(),
             new PartyService(
                 new StubPartyMemberStatusDomainService(),
                 new PartyModeRuleService(),
@@ -73,8 +72,7 @@ public sealed partial class SelectCharacterLifecycleTests
         await complete.HandleAsync(ReturnContext(), new(prepared), CancellationToken.None);
 
         Assert.Null(f.Directory.Find(f.AccountId));
-        Assert.False(runtimes.TryGet(selected, out _, out _));
-        Assert.Null(leases.Find(f.AccountId));
+        Assert.False(runtimes.IsPublishedExact(selected));
         Assert.Null(positions.Find(selected.CharacterId));
         Assert.Null(presence.Find(selected.CharacterId));
         Assert.False(stores.HasOpenStore(selected.CharacterId));
@@ -104,7 +102,7 @@ public sealed partial class SelectCharacterLifecycleTests
         var f = await Fixture.CreateAsync();
         await f.Handler.HandleAsync(f.Context, f.Command, CancellationToken.None);
         var online = f.Users.GetRequired(f.OnlineUserId);
-        var prepare = new PrepareReturnToSelectionCommandHandler(f.Users, f.Directory, f.Inventory,
+        var prepare = new PrepareReturnToSelectionCommandHandler(f.Users, f.Directory,
             new RosterCharacters(f.Result));
         var old = await prepare.HandleAsync(ReturnContext(),
             new(f.AccountId, f.ConnectionId, online.Generation), CancellationToken.None);
@@ -121,18 +119,19 @@ public sealed partial class SelectCharacterLifecycleTests
     }
 
     [Fact]
-    public async Task Inventory_save_failure_leaves_selection_registered()
+    public async Task Return_preparation_does_not_call_obsolete_inventory_save()
     {
         var f = await Fixture.CreateAsync();
         await f.Handler.HandleAsync(f.Context, f.Command, CancellationToken.None);
         var selected = f.Directory.Find(f.AccountId);
         f.Inventory.FailSave = true;
-        var handler = new PrepareReturnToSelectionCommandHandler(f.Users, f.Directory, f.Inventory,
+        var handler = new PrepareReturnToSelectionCommandHandler(f.Users, f.Directory,
             new RosterCharacters(f.Result));
 
-        await Assert.ThrowsAsync<IOException>(async () => await handler.HandleAsync(ReturnContext(),
-            new(f.AccountId, f.ConnectionId, f.Users.GetRequired(f.OnlineUserId).Generation), CancellationToken.None));
+        _ = await handler.HandleAsync(ReturnContext(),
+            new(f.AccountId, f.ConnectionId, f.Users.GetRequired(f.OnlineUserId).Generation), CancellationToken.None);
 
+        Assert.Equal(0, f.Inventory.Saves);
         Assert.Equal(selected, f.Directory.Find(f.AccountId));
         Assert.Equal(selected!.CharacterId, f.Users.GetRequired(f.OnlineUserId).CurrentCharacterId);
     }

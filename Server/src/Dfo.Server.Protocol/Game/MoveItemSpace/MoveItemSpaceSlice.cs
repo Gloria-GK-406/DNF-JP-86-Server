@@ -739,8 +739,7 @@ public sealed class MoveItemSpaceCommandHandler(
 /// </remarks>
 public sealed class MoveItemSpaceHandler(
     ISelectedSessionDomainService selectedSessions,
-    ISelectedSessionRuntimeDirectory runtimeSessions,
-    ICharacterInventoryEntryDomainService inventories,
+    ISelectedCharacterCurrentViewDomainService currentViews,
     ICommandBus commandBus,
     IGameMessageSender sender,
     ILogger<MoveItemSpaceHandler> logger) : ClientMessageHandler<MoveItemSpaceRequest>
@@ -809,34 +808,21 @@ public sealed class MoveItemSpaceHandler(
             && StateSynchronizationPayloadCodec.CurrentUserStateDrawsFrom(
                 message.DestinationSlotIndex));
 
-    /// <summary>Reloads inventory for the resident copy and the optional appearance frame.</summary>
-    /// <remarks>
-    /// Dungeon selection and PvP participant projection read this copy's equipment. Reload once
-    /// after a committed move so those consumers and the immediate appearance use the same items.
-    /// ReplaceExact checks the generation, not the result version: a concurrent writer can still
-    /// be overwritten across this load. It does not make the aggregate safe for concurrent refreshes.
-    /// </remarks>
+    /// <summary>Reads the post-move equipment from its owner for the optional appearance frame.</summary>
     private async ValueTask<IGameServerMessage?> RefreshSessionAsync(
         NetworkDispatchContext context, bool draw, CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null || !runtimeSessions.TryGet(session, out var state, out _)
-            || state is null)
+        if (session is null || !draw)
         {
             return null;
         }
 
-        var reloaded = await inventories
-            .LoadAsync(session.AccountId, session.CharacterId, cancellationToken)
-            .ConfigureAwait(false);
+        var state = await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
+        if (state is null)
+            return null;
 
-        // Preserve the other members of the snapshot read above; a generation change during
-        // the load is refused by ReplaceExact and leaves only the committed move's acknowledgement.
-        runtimeSessions.ReplaceExact(session, state with { CharacterInventory = reloaded });
-
-        if (!draw) return null;
-
-        var equipment = reloaded.Containers
+        var equipment = state.CharacterInventory.Containers
             .SingleOrDefault(value => value.ContainerType == InventoryContainerType.Equipment)
             ?.Items ?? [];
 

@@ -20,7 +20,7 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
     ICharacterContainerDomainService containers, IItemArrivalRuleService arrivals,
     IItemDomainStore store, IDomainTransactionAccessor transactions,
     ICharacterInventoryEntryDomainService inventory, IAccountPremiumTable premiums,
-    ICharacterCreatureTable creatures, ISelectedSessionRuntimeDirectory runtimeSessions,
+    ICharacterCreatureTable creatures,
     ICharacterDomainService characterDomain, IItemUseJudgementService useRules,
     ICharacterItemCooldownDomainService cooldowns) : IOpeningInventoryDomainService
 {
@@ -144,9 +144,6 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
         foreach (var (type, expiry) in changedPremiums)
             if (await premiums.UpsertExpiryAsync(session.AccountId, type, expiry, ct).ConfigureAwait(false) != 1)
                 throw new OpeningRejectedException(OpeningRejection.StateChanged, "Premium settlement affected no row.");
-        if (changedPremiums.Count > 0)
-            transaction.Enlist(new object(), () => new PremiumRuntimeRefresh(runtimeSessions, session,
-                new(premiumState.Select(p => new AccountPremiumEntryState(p.Key, p.Value)).ToArray())));
         if (useRule.CooldownMilliseconds > 0)
             transaction.Enlist(new object(), () => new OpeningCooldown(sessions, cooldowns, session,
                 useRules.CooldownKeyFor(consumed[0].ItemId, useRule), TimeSpan.FromMilliseconds(useRule.CooldownMilliseconds)));
@@ -172,23 +169,6 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
         return new(session, updates.ToImmutable(), writes.Where(w => w.Key.Bag == InventoryContainerType.Main && w.Value.Core is null)
             .Select(w => w.Key.Slot).ToImmutableArray(), displayed.ToImmutable(), now,
             changedPremiums.Select(p => new AccountPremiumEntryState(p.Key, p.Value)).ToImmutableArray(), pets, creaturesChanged);
-    }
-
-    private sealed class PremiumRuntimeRefresh(ISelectedSessionRuntimeDirectory runtime,
-        SelectedSessionIdentity session, AccountEntitlementEntryState entitlements) : ITransactionParticipant
-    {
-        public bool CommitCanFail => false;
-        public ValueTask PrepareAsync(CancellationToken ct) => ValueTask.CompletedTask;
-        public ValueTask RollbackAsync(CancellationToken ct) => ValueTask.CompletedTask;
-        public ValueTask CommitAsync(CancellationToken ct)
-        {
-            if (runtime.TryGet(session, out var current, out _) && current is not null)
-            {
-                try { runtime.ReplaceExact(session, current with { Account = current.Account with { Entitlements = entitlements } }); }
-                catch (InvalidOperationException) { /* A replaced generation must not receive the old account projection. */ }
-            }
-            return ValueTask.CompletedTask;
-        }
     }
 
     private sealed class OpeningCooldown(ISelectedSessionDomainService sessions, ICharacterItemCooldownDomainService cooldowns,

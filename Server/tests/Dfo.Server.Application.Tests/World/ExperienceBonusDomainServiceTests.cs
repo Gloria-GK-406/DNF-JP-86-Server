@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Quests;
@@ -114,8 +115,9 @@ public sealed class ExperienceBonusDomainServiceTests
         IExperienceBonusDomainService service,
         int dungeonId,
         ExperienceEvent occasion = ExperienceEvent.MonsterKill) =>
-        service.Collect(new ExperienceOccasion(
-            occasion, new AccountId(1), new CharacterId(60), dungeonId));
+        service.CollectAsync(new ExperienceOccasion(
+            occasion, new AccountId(1), new CharacterId(60), dungeonId),
+            CancellationToken.None).AsTask().GetAwaiter().GetResult();
 
     /// <summary>
     /// The service over one published session on <see cref="Channel"/>, with no premium terms.
@@ -132,6 +134,8 @@ public sealed class ExperienceBonusDomainServiceTests
         new ExperienceBonusDomainService(
             new OneSession(),
             new OneRuntimeSession(published, channelId),
+            new NoPremium(),
+            new OneChannel(channelId),
             new ExperienceRuleService(
                 new UnpricedKills(),
                 new UngradedRanks(),
@@ -229,6 +233,15 @@ public sealed class ExperienceBonusDomainServiceTests
     private sealed class OneRuntimeSession(bool published, int channelId)
         : ISelectedSessionRuntimeDirectory
     {
+        public void Publish(SelectedSessionIdentity session, bool shouldPersistPosition) =>
+            throw new NotSupportedException("This fixture only answers.");
+        public bool IsPublishedExact(SelectedSessionIdentity session) => published;
+        public bool TryGetPositionPersistence(
+            SelectedSessionIdentity session, out bool shouldPersistPosition)
+        {
+            shouldPersistPosition = false;
+            return published;
+        }
         private readonly SelectCharacterResult _result = new(
             null!,
             null!,
@@ -269,5 +282,22 @@ public sealed class ExperienceBonusDomainServiceTests
 
         public bool RemoveExact(SelectedSessionIdentity session) =>
             throw new NotSupportedException("This fixture only answers.");
+    }
+
+    private sealed class NoPremium : IAccountPremiumTable
+    {
+        public ValueTask<IReadOnlyList<AccountPremiumRow>> ReadAsync(
+            AccountId accountId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<AccountPremiumRow>>([]);
+    }
+
+    private sealed class OneChannel(int channelId) : IChannelEntryPolicy
+    {
+        public ValueTask<ChannelEntryIdentity> ResolveAsync(
+            int listenerPort, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(new ChannelEntryIdentity(
+                channelId, listenerPort, ChannelEntryKind.General));
+
+        public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel) => null;
     }
 }

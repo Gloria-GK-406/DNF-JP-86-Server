@@ -49,6 +49,9 @@ public sealed record CharacterSkillStorageRecord(
 /// </summary>
 public interface ICharacterPvpSkillProfileRepository
 {
+    ValueTask<CharacterSkillsEntryState> ReadAsync(
+        AccountId accountId, CharacterId characterId, CancellationToken cancellationToken);
+
     ValueTask<CharacterSkillsEntryState> LoadOrInitializeAsync(
         AccountId accountId,
         CharacterId characterId,

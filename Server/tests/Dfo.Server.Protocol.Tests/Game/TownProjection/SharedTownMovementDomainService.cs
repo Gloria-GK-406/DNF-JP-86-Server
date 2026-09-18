@@ -33,13 +33,13 @@ internal static class TownAreaProjectionTestFactory
 {
     public static TownAreaProjectionDelivery Create(
         ISelectedSessionDomainService sessions,
-        ISelectedSessionRuntimeDirectory runtimes,
+        ISelectedCharacterCurrentViewDomainService currentViews,
         IGameMessageSender sender,
         ITownAreaDomainService? areas = null) =>
         new(
             areas ?? new SessionPresenceDomainService(),
             sessions,
-            runtimes,
+            currentViews,
             new NoopNotificationBus(),
             new NoopPartyTownProjection(),
             sender,

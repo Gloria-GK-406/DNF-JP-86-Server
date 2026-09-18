@@ -37,8 +37,44 @@ public sealed class SelectCharacterPreparationService(
     IEntryPlacementRuleService placement,
     ISessionAdjacentEntryDomainService sessionAdjacent,
     ISelectedSessionPositionPersistence positions,
-    TimeProvider timeProvider) : ISelectCharacterPreparationDomainService
+    TimeProvider timeProvider,
+    ICharacterPositionDomainService? currentPositions = null) : ISelectCharacterPreparationDomainService
 {
+    public async ValueTask<SelectCharacterResult> LoadCurrentAsync(
+        SelectedSessionIdentity session, CancellationToken cancellationToken)
+    {
+        var roster = await characters.GetAccountRosterAsync(session.AccountId, cancellationToken)
+            .ConfigureAwait(false);
+        var member = roster.Characters.SingleOrDefault(value => value.CharacterId == session.CharacterId)
+            ?? throw new InvalidDataException("Selected character is absent from the account roster.");
+        var character = await characters.LoadForSelectionAsync(
+            session.AccountId, member.SlotIndex, cancellationToken).ConfigureAwait(false);
+        var currentPosition = currentPositions?.Find(session.CharacterId);
+        if (currentPosition is not null)
+            character = character with { Position = currentPosition };
+        var channel = await channels.ResolveAsync(session.ListenerPort, cancellationToken)
+            .ConfigureAwait(false);
+        var result = await BuildResultAsync(
+            character, session.AccountId, channel, cancellationToken, selectionEntry: false)
+            .ConfigureAwait(false);
+        if (currentPosition is { } position)
+            result = result with
+            {
+                World = result.World with
+                {
+                    Channel = result.World.Channel with
+                    {
+                        Spawn = result.World.Channel.Spawn with
+                        {
+                            TownId = position.TownId, AreaId = position.AreaId,
+                            X = position.X, Y = position.Y, Direction = position.Direction,
+                        },
+                    },
+                },
+            };
+        return result;
+    }
+
     public async ValueTask<SelectCharacterResult> PlaceAtSpawnAsync(
         SelectedSessionIdentity session,
         SelectCharacterResult prepared,
@@ -86,16 +122,25 @@ public sealed class SelectCharacterPreparationService(
     public async ValueTask<SelectCharacterResult> PrepareAsync(
         ActiveCharacterState character, AccountId accountId, ChannelEntryIdentity channel,
         CancellationToken cancellationToken)
+        => await BuildResultAsync(character, accountId, channel, cancellationToken,
+            selectionEntry: true).ConfigureAwait(false);
+
+    private async ValueTask<SelectCharacterResult> BuildResultAsync(
+        ActiveCharacterState character, AccountId accountId, ChannelEntryIdentity channel,
+        CancellationToken cancellationToken, bool selectionEntry)
     {
         ArgumentNullException.ThrowIfNull(channel);
 
-        var recovery = await dungeonEffects.RecoverAsync(
-            accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false);
-        if (recovery.FailedCount > 0 || recovery.RemainingCount > 0)
-            throw new InvalidDataException("Dungeon persistent effects were not completely recovered.");
-        if (recovery.RequiresReload)
-            character = await characters.LoadForSelectionAsync(
-                accountId, character.Identity.SlotIndex, cancellationToken).ConfigureAwait(false);
+        if (selectionEntry)
+        {
+            var recovery = await dungeonEffects.RecoverAsync(
+                accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false);
+            if (recovery.FailedCount > 0 || recovery.RemainingCount > 0)
+                throw new InvalidDataException("Dungeon persistent effects were not completely recovered.");
+            if (recovery.RequiresReload)
+                character = await characters.LoadForSelectionAsync(
+                    accountId, character.Identity.SlotIndex, cancellationToken).ConfigureAwait(false);
+        }
 
         var roster = await characters.GetAccountRosterAsync(
             accountId,
@@ -125,7 +170,7 @@ public sealed class SelectCharacterPreparationService(
             learnedSkillIds, cancellationToken).ConfigureAwait(false);
         var freeBaseline = reconciliationDefinitions.FreeGrants.GroupBy(value => value.SkillId)
             .ToDictionary(group => group.Key, group => group.Max(value => value.Level));
-        if (await expertSkillReconciliation.ReconcileAsync(
+        if (selectionEntry && await expertSkillReconciliation.ReconcileAsync(
                 accountId, character.Identity.CharacterId,
                 preparationRules.OverSkillPremiumTypes(), reconciliationDefinitions.Skills,
                 freeBaseline, cancellationToken).ConfigureAwait(false))
@@ -150,14 +195,21 @@ public sealed class SelectCharacterPreparationService(
             cancellationToken).ConfigureAwait(false);
         if (channelPolicy.PvpSkillProfileApplies)
         {
-            var initial = await BuildInitialPvpSkillProfileAsync(
-                character, characterEntry.Skills, preparationRules, cancellationToken)
-                .ConfigureAwait(false);
+            var initial = selectionEntry
+                ? await BuildInitialPvpSkillProfileAsync(
+                    character, characterEntry.Skills, preparationRules, cancellationToken)
+                    .ConfigureAwait(false)
+                : null;
+            var profile = selectionEntry
+                ? await pvpSkills.LoadOrInitializeAsync(
+                    accountId, character.Identity.CharacterId, initial!, cancellationToken)
+                    .ConfigureAwait(false)
+                : await pvpSkills.ReadAsync(
+                    accountId, character.Identity.CharacterId, cancellationToken)
+                    .ConfigureAwait(false);
             characterEntry = characterEntry with
             {
-                Skills = MergePvpProfile(characterEntry.Skills,
-                    await pvpSkills.LoadOrInitializeAsync(
-                        accountId, character.Identity.CharacterId, initial, cancellationToken).ConfigureAwait(false)),
+                Skills = MergePvpProfile(characterEntry.Skills, profile),
             };
         }
         else

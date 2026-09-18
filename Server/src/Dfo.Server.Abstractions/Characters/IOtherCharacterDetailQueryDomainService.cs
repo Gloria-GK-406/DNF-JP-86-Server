@@ -6,7 +6,8 @@ namespace Dfo.Server.Abstractions.Characters;
 /// <summary>Reads one current same-listener character for the native town inspect flow.</summary>
 public interface IOtherCharacterDetailQueryDomainService
 {
-    CharacterDetailQueryResult Query(
+    ValueTask<CharacterDetailQueryResult> QueryAsync(
         SelectedSessionIdentity requester,
-        ushort targetWireUserId);
+        ushort targetWireUserId,
+        CancellationToken cancellationToken);
 }

@@ -434,7 +434,7 @@ public sealed class SelectDungeonHandler(
     ICharacterDomainService characters,
     ICharacterStateProjectionDomainService currentState,
     ISelectedSessionDomainService selectedSessions,
-    ISelectedSessionRuntimeDirectory runtimeSessions,
+    ISelectedCharacterCurrentViewDomainService currentViews,
     IPartyService parties,
     IDungeonRunDomainService runs,
     DungeonRunDeliveryRegistry deliveryRegistry,
@@ -482,9 +482,9 @@ public sealed class SelectDungeonHandler(
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null
-            || !runtimeSessions.TryGet(session, out var result, out _)
-            || result is null)
+        var result = session is null ? null
+            : await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
+        if (session is null || result is null)
         {
             logger.LogWarning(
                 "Select dungeon {ConnectionId}: no published session, ignoring dungeon {DungeonId}",
@@ -547,7 +547,7 @@ public sealed class SelectDungeonHandler(
             characters,
             currentState,
             selectedSessions,
-            runtimeSessions,
+            currentViews,
             runs,
             deliveryRegistry,
             entryIntents,

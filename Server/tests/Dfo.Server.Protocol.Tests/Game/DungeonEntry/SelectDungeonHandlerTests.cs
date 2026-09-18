@@ -100,7 +100,7 @@ public sealed class SelectDungeonHandlerTests
             Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
             new UnchangedState(),
             new OneSession(Identity),
-            new OneRuntimeSession(Entry()),
+            new RuntimeCurrentView(new OneRuntimeSession(Entry())),
             new NoPartyService(),
             new NoopRuns(),
             new DungeonRunDeliveryRegistry(),
@@ -259,7 +259,7 @@ public sealed class SelectDungeonHandlerTests
         var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
             new UnchangedState(),
             sessions,
-            runtime,
+            new RuntimeCurrentView(runtime),
             new NoPartyService(),
             new NoopRuns(),
             new DungeonRunDeliveryRegistry(),
@@ -315,7 +315,7 @@ public sealed class SelectDungeonHandlerTests
             Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(character),
             new UnchangedState(),
             sessions,
-            runtime,
+            new RuntimeCurrentView(runtime),
             new NoPartyService(),
             new NoopRuns(),
             new DungeonRunDeliveryRegistry(),
@@ -354,7 +354,7 @@ public sealed class SelectDungeonHandlerTests
         var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
             new UnchangedState(),
             new NoSession(),
-            new OneRuntimeSession(Entry()),
+            new RuntimeCurrentView(new OneRuntimeSession(Entry())),
             new NoPartyService(),
             new NoopRuns(),
             new DungeonRunDeliveryRegistry(),
@@ -390,7 +390,7 @@ public sealed class SelectDungeonHandlerTests
         var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
             new UnchangedState(),
             new NoSession(),
-            new OneRuntimeSession(Entry()),
+            new RuntimeCurrentView(new OneRuntimeSession(Entry())),
             new NoPartyService(),
             new NoopRuns(),
             new DungeonRunDeliveryRegistry(),
@@ -448,7 +448,7 @@ public sealed class SelectDungeonHandlerTests
             Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
             new UnchangedState(),
             sessions,
-            runtimes,
+            new RuntimeCurrentView(runtimes),
             new NoPartyService(),
             new NoopRuns(),
             new DungeonRunDeliveryRegistry(),
@@ -767,7 +767,7 @@ public sealed class SelectDungeonHandlerTests
     }
 
     private sealed class OneRuntimeSession(SelectCharacterResult entry)
-        : ISelectedSessionRuntimeDirectory
+        : ILegacySessionSnapshotFixture
     {
         public bool TryGet(
             SelectedSessionIdentity session,

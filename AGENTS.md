@@ -169,8 +169,9 @@ facts。两半合起来才是一条线——一边不许往上摸世界，一边
 卡牌及无经验授予结果的发帧回落读取当前角色；非空授予结果继续代表该次写入的回值。
 教程命令在现有事务中检查当前等级，不能凭旧会话的 1 级把已升级角色改回 2 级。
 
-会话快照里仍然留着坐标、在场、世界内容、背包投影与账号侧状态。**那不是说聚合已经拆完了**，
-会话中的 `ProtocolMirror` 仍是协议投影，但不再作为当前点数真源。
+`SelectCharacterResult` 只在选角响应组包期间存在，不再存入会话运行时目录。后续投影通过
+`ISelectedCharacterCurrentViewDomainService` 在精确会话校验前后重建，物品、角色、任务、账号等
+可变内容分别从所属领域读取。`ProtocolMirror` 是协议投影，不是当前点数真源。
 
 **这几样状态各自归谁——以及哪几样只做了一半。** 下面这张表按「谁是主人」记，不按「计划要做什么」
 记。**先看最后一列**：有两样今天一个生产调用方都没有，那是刻意的，不是漏接线。
@@ -184,33 +185,17 @@ facts。两半合起来才是一条线——一边不许往上摸世界，一边
 | 暗骑连招页 | `IDarkKnightComboDomainStore` + `IDarkKnightComboBook` | **零个。刻意的，见下。** |
 | 疲劳 | `ICharacterFatigueDomainService` | 进本处报告消耗（`DungeonEntrySlice.cs:509-511`）。**接缝不记账，见下。** |
 
-**会话运行态聚合仍然存在，而且几乎原样存在。** `SelectCharacterResult`
-（`Dfo.Server.Data/Game/SelectCharacterModels.cs:35`）九个成员一个没少，
-`ISelectedSessionRuntimeDirectory` 照旧。已经动的是**谁来回答**，不是**快照里有什么**：
-取数点从快照挪到各自的主人。快照本身只少了一个字段——`ActiveCharacterState.DarkKnightCombo`
-连同 `DarkKnightComboState` 记录一起退役了，理由是它此前**每个构造点写的都是 `null`、
-全仓零个读点**，删它逐值不变。除此之外一个字段没删、没改。**整个聚合还没拆**，
-要等入场投影的公开态/进度/特性三块内容查清之后再定。
+`ISelectedSessionRuntimeDirectory` 只保留精确连接身份的发布标记和位置持久化策略；
+`SelectCharacterResult` DTO 本身仍完整，作为一次性组包结果使用，不是运行期角色聚合。
+入场后的当前视图走只读重建，不重复执行选角恢复、技能和解锁等写入。
 
-**`ActiveCharacterState.Position` 已经成了死字段——它还在，但没有人维护它，也没有人读它。**
-`Server/src` 里写它的只有一处：`SelectCharacterPreparationService.cs:54`，入场落位时用频道出生点
-`with` 出来的。读它的只有两处，都在入场序列之内（`SelectCharacterPreparationService.cs:149`
-解析频道落点、`SelectCharacterLifecycleServices.cs:188` 把它交给坐标服务）。入场之后再没有任何
-东西写它——`Server/src` 全量搜 `Position =` 与 `Position:`，除上面那一处只剩坐标服务对自己私有
-`Standing` 记录的写；也再没有任何东西读它——`Server/src/Dfo.Server.Protocol` 下 `.Position`
-成员访问 **0 处**。而 `ReplaceExact` 有 7 个生产调用点
-（`SelectCharacterLifecycleServices`、`DungeonClearSlice`、`MonsterDeathSlice`、
-`AcceptQuestHandler`、`FinishQuestHandler`、`TutorialLevelUpSlice`、`MoveItemSpaceSlice`），
-没有一处在交回去之前动过 `Character.Position`，于是每一次都把入场那一刻的坐标原样搬回。
-**所以快照里的坐标自入场起永久陈旧。** 摘掉这个字段要动 `Dfo.Server.Data` 与五个切片文件，
-**至今没做**；在那之前，**任何从它取坐标的新代码都是错的**——坐标问
-`ICharacterPositionDomainService`。
+坐标运行期由 `ICharacterPositionDomainService` 持有；当前视图构造时把这个位置覆盖到
+`ActiveCharacterState.Position`，再解析频道/出生投影。选角入口结果中的坐标只用于当次入场，
+不得在之后作为真源复用。
 
-**物品移动成功后会重新加载 `CharacterInventory` 并替换会话中的该成员。** 副本选择界面和
-PvP 参与者投影随后读到刷新后的装备。读取或更新失败只记日志，已提交移动仍回成功确认；
-这时快照可能保持旧值。`ReplaceExact` 只在锁内检查会话代次，然后整体覆盖结果，不比较结果
-版本；协议 handler 在命令执行门释放后刷新，跨库存读取等待的并发覆盖风险仍在，不能把
-保留读取时其他八个成员的 `with` 表达式当作并发安全合并。
+**物品移动、修理和耐久消耗直接落在物品领域。** 要发外观帧或进本投影时再读取当前库存；
+不存在会话物品副本和 `ReplaceExact` 回写。入场时的物品租约缓存及退场保存链路已移除。
+会话与当前视图的边界见 [选角结果与运行期当前视图](Document/SelectedSessionCurrentView.md)。
 
 **疲劳有接缝，但接缝不记账。** 唯一注册的实现是
 `UnaccountedCharacterFatigueDomainService`：它答一对定值，对报给它的东西一律丢弃。进本处

@@ -43,7 +43,7 @@ public sealed class TownAreaProjectionDelivery
 {
     private readonly ITownAreaDomainService townAreas;
     private readonly ISelectedSessionDomainService selectedSessions;
-    private readonly ISelectedSessionRuntimeDirectory runtimes;
+    private readonly ISelectedCharacterCurrentViewDomainService currentViews;
     private readonly ITownMovementDomainService towns;
     private readonly INotificationBus notifications;
     private readonly IPartyTownProjectionDelivery partyTownProjection;
@@ -53,7 +53,7 @@ public sealed class TownAreaProjectionDelivery
     public TownAreaProjectionDelivery(
         ITownAreaDomainService townAreas,
         ISelectedSessionDomainService selectedSessions,
-        ISelectedSessionRuntimeDirectory runtimes,
+        ISelectedCharacterCurrentViewDomainService currentViews,
         INotificationBus notifications,
         IPartyTownProjectionDelivery partyTownProjection,
         IGameMessageSender sender,
@@ -62,7 +62,7 @@ public sealed class TownAreaProjectionDelivery
     {
         this.townAreas = townAreas;
         this.selectedSessions = selectedSessions;
-        this.runtimes = runtimes;
+        this.currentViews = currentViews;
         this.towns = towns;
         this.notifications = notifications;
         this.partyTownProjection = partyTownProjection;
@@ -120,7 +120,8 @@ public sealed class TownAreaProjectionDelivery
             return false;
         }
 
-        var visible = VisibleParticipants(current!, session);
+        var visible = await VisibleParticipantsAsync(current!, session, cancellationToken)
+            .ConfigureAwait(false);
         var peers = visible.Select(candidate => candidate.Participant).ToArray();
         var peerSessions = visible.Select(candidate => candidate.Session).ToArray();
         var currentPosition = own.Position;
@@ -396,7 +397,8 @@ public sealed class TownAreaProjectionDelivery
                 member => admission.Entry.Session.Owns(member));
             if (own is null)
                 continue;
-            var peers = VisibleParticipants(current!, admission.Entry.Session);
+            var peers = await VisibleParticipantsAsync(
+                current!, admission.Entry.Session, cancellationToken).ConfigureAwait(false);
             deliveries.Add(new ReturnDelivery(
                 admission,
                 current!,
@@ -544,6 +546,10 @@ public sealed class TownAreaProjectionDelivery
         if (snapshot is null)
             return;
 
+        // A roster redraw may project the same occupant to every viewer. Keep the
+        // current view only for this redraw and for this exact session generation.
+        var areaStates = new Dictionary<SelectedSessionIdentity, byte?>();
+
         foreach (var member in snapshot.Members.Where(candidate => candidate.SharesTownPresence))
         {
             var recipient = ExactSession(member);
@@ -566,18 +572,27 @@ public sealed class TownAreaProjectionDelivery
             foreach (var occupant in ordered)
             {
                 var exact = ExactSession(occupant);
-                if (exact is null
-                    || !runtimes.TryGet(exact, out var runtime, out _)
-                    || runtime?.World?.Channel?.Spawn is not { } spawn)
-                {
+                if (exact is null)
                     continue;
+
+                if (!areaStates.TryGetValue(exact, out var areaState))
+                {
+                    var runtime = await currentViews.TryLoadAsync(exact, cancellationToken)
+                        .ConfigureAwait(false);
+                    areaState = runtime?.World?.Channel?.Spawn is { } spawn
+                        ? spawn.AreaState
+                        : null;
+                    areaStates.Add(exact, areaState);
                 }
+                if (areaState is not { } state)
+                    continue;
+
                 users.Add(new AreaUserPresence(
                     exact.WireUserId,
                     occupant.Position.X,
                     occupant.Position.Y,
                     occupant.Position.Direction,
-                    spawn.AreaState));
+                    state));
             }
 
             await notifications.PublishAsync(
@@ -587,21 +602,29 @@ public sealed class TownAreaProjectionDelivery
         }
     }
 
-    private IReadOnlyList<(SelectedSessionIdentity Session, TownParticipantEntryState Participant)>
-        VisibleParticipants(TownAreaSnapshot area, SelectedSessionIdentity viewer) =>
-        [.. area.VisibleTo(viewer.CharacterId)
-            .Where(member => member.CharacterId != viewer.CharacterId)
-            .Select(TryCreateParticipant)
-            .Where(candidate => candidate.Session is not null && candidate.Participant is not null)
-            .Select(candidate => (candidate.Session!, candidate.Participant!))];
+    private async ValueTask<IReadOnlyList<(SelectedSessionIdentity Session, TownParticipantEntryState Participant)>>
+        VisibleParticipantsAsync(TownAreaSnapshot area, SelectedSessionIdentity viewer,
+            CancellationToken cancellationToken)
+    {
+        var result = new List<(SelectedSessionIdentity, TownParticipantEntryState)>();
+        foreach (var member in area.VisibleTo(viewer.CharacterId)
+                     .Where(member => member.CharacterId != viewer.CharacterId))
+        {
+            var candidate = await TryCreateParticipantAsync(member, cancellationToken)
+                .ConfigureAwait(false);
+            if (candidate.Session is not null && candidate.Participant is not null)
+                result.Add((candidate.Session, candidate.Participant));
+        }
+        return result;
+    }
 
-    private (SelectedSessionIdentity? Session, TownParticipantEntryState? Participant)
-        TryCreateParticipant(TownAreaMember member)
+    private async ValueTask<(SelectedSessionIdentity? Session, TownParticipantEntryState? Participant)>
+        TryCreateParticipantAsync(TownAreaMember member, CancellationToken cancellationToken)
     {
         var session = ExactSession(member);
-        if (session is null
-            || !runtimes.TryGet(session, out var runtime, out _)
-            || runtime is null)
+        var runtime = session is null ? null
+            : await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
+        if (session is null || runtime is null)
         {
             return (null, null);
         }

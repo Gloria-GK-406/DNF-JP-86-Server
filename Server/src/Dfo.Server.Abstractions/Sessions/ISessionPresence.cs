@@ -29,13 +29,9 @@ public interface ISelectedSessionDomainService
 
 public interface ISelectedSessionRuntimeDirectory
 {
-    void Publish(SelectedSessionIdentity session, SelectCharacterResult result, bool shouldPersistPosition);
-    void ReplaceExact(SelectedSessionIdentity session, SelectCharacterResult result);
-    SelectCharacterResult GetRequired(SelectedSessionIdentity session);
-    bool TryGet(
-        SelectedSessionIdentity session,
-        out SelectCharacterResult? result,
-        out bool shouldPersistPosition);
+    void Publish(SelectedSessionIdentity session, bool shouldPersistPosition);
+    bool IsPublishedExact(SelectedSessionIdentity session);
+    bool TryGetPositionPersistence(SelectedSessionIdentity session, out bool shouldPersistPosition);
     bool RemoveExact(SelectedSessionIdentity session);
 }
 

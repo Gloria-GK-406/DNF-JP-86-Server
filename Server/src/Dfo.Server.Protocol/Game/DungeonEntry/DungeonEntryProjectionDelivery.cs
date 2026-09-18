@@ -31,7 +31,7 @@ public sealed class DungeonEntryProjectionDelivery(
     ICharacterDomainService characters,
     ICharacterStateProjectionDomainService currentState,
     ISelectedSessionDomainService selectedSessions,
-    ISelectedSessionRuntimeDirectory runtimeSessions,
+    ISelectedCharacterCurrentViewDomainService currentViews,
     IDungeonRunDomainService runs,
     DungeonRunDeliveryRegistry deliveryRegistry,
     IDungeonEntryIntentDomainService entryIntents,
@@ -54,7 +54,8 @@ public sealed class DungeonEntryProjectionDelivery(
         DungeonEntryIntent intent,
         CancellationToken cancellationToken)
     {
-        var attachments = ResolveAttachments(requester, requesterRuntime, roster);
+        var attachments = await ResolveAttachmentsAsync(
+            requester, requesterRuntime, roster, cancellationToken).ConfigureAwait(false);
         if (attachments.BlockedSlot is { } blockedSlot)
         {
             await RefuseAsync(requesterConnection, SelectDungeonRefusal.MemberBlocked, blockedSlot,
@@ -148,8 +149,7 @@ public sealed class DungeonEntryProjectionDelivery(
             foreach (var attachment in attachments.Members.OrderBy(value => value.Slot))
             {
                 refreshed[attachment.Session.CharacterId] = await currentState
-                    .RefreshAsync(attachment.Runtime, cancellationToken)
-                    .ConfigureAwait(false);
+                    .RefreshAsync(attachment.Runtime, cancellationToken).ConfigureAwait(false);
             }
 
             var orderedAttachments = attachments.Members.OrderBy(value => value.Slot).ToArray();
@@ -377,19 +377,21 @@ public sealed class DungeonEntryProjectionDelivery(
         return new CohortObservation(CohortStatus.Current, latest);
     }
 
-    private EntryAttachments ResolveAttachments(
+    private async ValueTask<EntryAttachments> ResolveAttachmentsAsync(
         SelectedSessionIdentity requester,
         SelectCharacterResult requesterRuntime,
-        PartySnapshot roster)
+        PartySnapshot roster,
+        CancellationToken cancellationToken)
     {
         var members = new List<(SelectedSessionIdentity Session, SelectCharacterResult Runtime, byte Slot)>();
         foreach (var member in roster.Members.OrderBy(value => value.Slot))
         {
             var current = selectedSessions.FindByCharacter(member.CharacterId);
+            var runtime = current is null ? null
+                : await currentViews.TryLoadAsync(current, cancellationToken).ConfigureAwait(false);
             if (current is null
                 || current.AccountId != member.Character.AccountId
                 || current.WireUserId != member.WireUserId
-                || !runtimeSessions.TryGet(current, out var runtime, out _)
                 || runtime is null)
             {
                 return new EntryAttachments([], member.Slot);

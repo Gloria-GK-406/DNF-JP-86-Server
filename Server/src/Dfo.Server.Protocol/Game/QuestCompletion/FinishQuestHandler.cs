@@ -31,7 +31,7 @@ namespace Dfo.Server.Protocol.Game.QuestCompletion;
 /// </remarks>
 public sealed class FinishQuestHandler(
     ISelectedSessionDomainService selectedSessions,
-    ISelectedSessionRuntimeDirectory runtimeSessions,
+    ISelectedCharacterCurrentViewDomainService currentViews,
     ICharacterDomainService characters,
     ICommandBus commandBus,
     IGameMessageSender sender,
@@ -45,8 +45,9 @@ public sealed class FinishQuestHandler(
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null || !runtimeSessions.TryGet(session, out var result, out _)
-            || result is null)
+        var result = session is null ? null
+            : await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
+        if (session is null || result is null)
         {
             logger.LogWarning(
                 "Finish quest {ConnectionId}: quest {Quest} with no published session",
@@ -142,7 +143,6 @@ public sealed class FinishQuestHandler(
             session.CharacterId,
             outcome.NewLevel,
             cancellationToken).ConfigureAwait(false);
-        runtimeSessions.ReplaceExact(session, result);
 
         // Asked of the character, and asked after the completion has been written: handing a quest
         // in can cross a level, and a level grants more points to spend. The session's own copy is

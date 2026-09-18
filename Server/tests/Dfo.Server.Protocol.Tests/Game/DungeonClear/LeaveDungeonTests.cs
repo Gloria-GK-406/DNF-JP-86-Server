@@ -333,7 +333,7 @@ public sealed class LeaveDungeonTests
         var sender = new RecordingSender();
         var handler = new BackToVillageHandler(
             new OneSession(Identity),
-            new OneRuntimeSession(Entry()),
+            new RuntimeCurrentView(new OneRuntimeSession(Entry())),
             new StandingWhereTheyAre(),
             runs,
             deliveries,
@@ -387,7 +387,9 @@ public sealed class LeaveDungeonTests
                 },
             },
         };
-        runtimes.Publish(Identity, runtime, false);
+        runtimes.Publish(Identity, false);
+        var currentViews = new FixedCurrentViews();
+        currentViews.Publish(Identity, runtime);
         var areas = new SessionPresenceDomainService();
         areas.Admit(new SessionPresence(
             Identity.CharacterId,
@@ -403,14 +405,14 @@ public sealed class LeaveDungeonTests
         var projection = new TownAreaProjectionDelivery(
             areas,
             sessions,
-            runtimes,
+            currentViews,
             new NoopNotificationBus(),
             new NoopPartyTownProjection(),
             sender,
             SharedTownMovementDomainService.Instance);
         var handler = new EplpCommandHandler(
             sessions,
-            runtimes,
+            currentViews,
             new StandingWhereTheyAre(),
             new OneRun(),
             new DungeonRunDeliveryRegistry(),
@@ -634,7 +636,7 @@ public sealed class LeaveDungeonTests
     }
 
     private sealed class OneRuntimeSession(SelectCharacterResult entry)
-        : ISelectedSessionRuntimeDirectory
+        : ILegacySessionSnapshotFixture
     {
         public bool TryGet(
             SelectedSessionIdentity session,
@@ -659,7 +661,7 @@ public sealed class LeaveDungeonTests
             throw new NotSupportedException("This fixture only answers.");
     }
 
-    private sealed class NoRuntimeSession : ISelectedSessionRuntimeDirectory
+    private sealed class NoRuntimeSession : ILegacySessionSnapshotFixture
     {
         public bool TryGet(
             SelectedSessionIdentity session,

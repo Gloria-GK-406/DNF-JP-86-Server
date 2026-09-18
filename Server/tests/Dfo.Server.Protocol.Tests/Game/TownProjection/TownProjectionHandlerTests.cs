@@ -165,30 +165,33 @@ public sealed class TownProjectionHandlerTests
         sessions.Select(otherListenerOldPeer);
         sessions.Select(otherListenerNewPeer);
         var runtimes = new SelectedSessionRuntimeDirectory();
+        var currentViews = new FixedCurrentViews();
         runtimes.Publish(
             Identity,
-            EntryFor(Identity, WalkedTownId, WalkedAreaId, WalkedX),
             shouldPersistPosition: false);
+        currentViews.Publish(Identity, EntryFor(Identity, WalkedTownId, WalkedAreaId, WalkedX));
         runtimes.Publish(
             oldPeer,
-            EntryFor(oldPeer, WalkedTownId, WalkedAreaId, x: 700),
             shouldPersistPosition: false);
+        currentViews.Publish(oldPeer, EntryFor(oldPeer, WalkedTownId, WalkedAreaId, x: 700));
         runtimes.Publish(
             secondOldPeer,
-            EntryFor(secondOldPeer, WalkedTownId, WalkedAreaId, x: 750),
             shouldPersistPosition: false);
+        currentViews.Publish(secondOldPeer, EntryFor(secondOldPeer, WalkedTownId, WalkedAreaId, x: 750));
         runtimes.Publish(
             newPeer,
-            EntryFor(newPeer, CrossedTownId, CrossedAreaId, x: 800),
             shouldPersistPosition: false);
+        currentViews.Publish(newPeer, EntryFor(newPeer, CrossedTownId, CrossedAreaId, x: 800));
         runtimes.Publish(
             otherListenerOldPeer,
-            EntryFor(otherListenerOldPeer, WalkedTownId, WalkedAreaId, x: 900),
             shouldPersistPosition: false);
+        currentViews.Publish(otherListenerOldPeer,
+            EntryFor(otherListenerOldPeer, WalkedTownId, WalkedAreaId, x: 900));
         runtimes.Publish(
             otherListenerNewPeer,
-            EntryFor(otherListenerNewPeer, CrossedTownId, CrossedAreaId, x: 950),
             shouldPersistPosition: false);
+        currentViews.Publish(otherListenerNewPeer,
+            EntryFor(otherListenerNewPeer, CrossedTownId, CrossedAreaId, x: 950));
         var positions = Standing();
         positions.Place(
             oldPeer,
@@ -257,7 +260,7 @@ public sealed class TownProjectionHandlerTests
         var partyProjection = new RecordingPartyTownProjectionDelivery(order);
         var handler = new SetUserAreaHandler(
             sessions,
-            runtimes,
+            currentViews,
             positions,
             presence,
             new OneChannel(),
@@ -266,7 +269,7 @@ public sealed class TownProjectionHandlerTests
             new TownAreaProjectionDelivery(
                 presence,
                 sessions,
-                runtimes,
+                currentViews,
                 notifications,
                 partyProjection,
                 sender,
@@ -672,7 +675,7 @@ public sealed class TownProjectionHandlerTests
     /// of a wrong coordinate -- and would say nothing about which position the handler used.
     /// </remarks>
     private sealed class OneRuntimeSession(SelectCharacterResult entry)
-        : ISelectedSessionRuntimeDirectory
+        : ILegacySessionSnapshotFixture
     {
         public SelectCharacterResult Current { get; private set; } = entry;
 

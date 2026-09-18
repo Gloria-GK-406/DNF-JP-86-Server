@@ -372,7 +372,6 @@ public sealed class MoveItemSpaceHandlerTests
             new MoveItemSpaceHandler(
                 new OneSession(),
                 new NoPublishedRuntime(),
-                new UnreachableInventory(),
                 new DirectCommandBus(move: commandHandler, scope: inventory.Scope),
                 sender,
                 NullLogger<MoveItemSpaceHandler>.Instance),
@@ -455,8 +454,23 @@ public sealed class MoveItemSpaceHandlerTests
     /// follows a move that changed the character's look. A session that cannot be read is exactly
     /// the case the handler answers by sending the acknowledgement alone.
     /// </remarks>
-    private sealed class NoPublishedRuntime : ISelectedSessionRuntimeDirectory
+    private sealed class NoPublishedRuntime : ISelectedSessionRuntimeDirectory, ISelectedCharacterCurrentViewDomainService
     {
+        public ValueTask<SelectCharacterResult?> TryLoadAsync(
+            SelectedSessionIdentity session, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<SelectCharacterResult?>(null);
+        public void Publish(SelectedSessionIdentity session, bool shouldPersistPosition) =>
+            throw new NotSupportedException("Nothing publishes here.");
+
+        public bool IsPublishedExact(SelectedSessionIdentity session) => false;
+
+        public bool TryGetPositionPersistence(
+            SelectedSessionIdentity session, out bool shouldPersistPosition)
+        {
+            shouldPersistPosition = false;
+            return false;
+        }
+
         public void Publish(
             SelectedSessionIdentity session, SelectCharacterResult result, bool shouldPersistPosition) =>
             throw new NotSupportedException("Nothing publishes here.");

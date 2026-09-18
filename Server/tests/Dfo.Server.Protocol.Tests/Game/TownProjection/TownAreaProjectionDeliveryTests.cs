@@ -28,10 +28,13 @@ public sealed class TownAreaProjectionDeliveryTests
         sessions.Select(returning);
         sessions.Select(existing);
         var runtimes = new SelectedSessionRuntimeDirectory();
+        var currentViews = new FixedCurrentViews();
         var returningResult = Entry(returning, x: 100);
         var existingResult = Entry(existing, x: 300);
-        runtimes.Publish(returning, returningResult, false);
-        runtimes.Publish(existing, existingResult, false);
+        runtimes.Publish(returning, false);
+        runtimes.Publish(existing, false);
+        currentViews.Publish(returning, returningResult);
+        currentViews.Publish(existing, existingResult);
         var areas = new SessionPresenceDomainService();
         var key = new TownAreaKey(11, 3, 6);
         ((ITownAreaDomainService)areas).Enter(Member(existing, key, x: 300));
@@ -40,7 +43,7 @@ public sealed class TownAreaProjectionDeliveryTests
         var delivery = new TownAreaProjectionDelivery(
             areas,
             sessions,
-            runtimes,
+            currentViews,
             notifications,
             new NoopPartyProjection(),
             sender,
@@ -80,6 +83,7 @@ public sealed class TownAreaProjectionDeliveryTests
         sessions.Select(returning);
         sessions.Select(existing);
         var runtimes = new SelectedSessionRuntimeDirectory();
+        var currentViews = new FixedCurrentViews();
         var returningBaseline = Entry(returning, x: 100);
         var returningResult = returningBaseline with
         {
@@ -95,8 +99,10 @@ public sealed class TownAreaProjectionDeliveryTests
             },
         };
         var existingResult = Entry(existing, x: 300);
-        runtimes.Publish(returning, returningResult, false);
-        runtimes.Publish(existing, existingResult, false);
+        runtimes.Publish(returning, false);
+        runtimes.Publish(existing, false);
+        currentViews.Publish(returning, returningResult);
+        currentViews.Publish(existing, existingResult);
         var areas = new SessionPresenceDomainService();
         var key = new TownAreaKey(11, 3, 6);
         ((ITownAreaDomainService)areas).Enter(Member(existing, key, x: 300));
@@ -105,7 +111,7 @@ public sealed class TownAreaProjectionDeliveryTests
         var delivery = new TownAreaProjectionDelivery(
             areas,
             sessions,
-            runtimes,
+            currentViews,
             notifications,
             new NoopPartyProjection(),
             sender,
@@ -136,12 +142,16 @@ public sealed class TownAreaProjectionDeliveryTests
         sessions.Select(second);
         sessions.Select(existing);
         var runtimes = new SelectedSessionRuntimeDirectory();
+        var currentViews = new FixedCurrentViews();
         var firstResult = Entry(first, 100);
         var secondResult = Entry(second, 200);
         var existingResult = Entry(existing, 300);
-        runtimes.Publish(first, firstResult, false);
-        runtimes.Publish(second, secondResult, false);
-        runtimes.Publish(existing, existingResult, false);
+        runtimes.Publish(first, false);
+        runtimes.Publish(second, false);
+        runtimes.Publish(existing, false);
+        currentViews.Publish(first, firstResult);
+        currentViews.Publish(second, secondResult);
+        currentViews.Publish(existing, existingResult);
         var areas = new SessionPresenceDomainService();
         var key = new TownAreaKey(11, 3, 6);
         ((ITownAreaDomainService)areas).Enter(Member(existing, key, 300));
@@ -149,7 +159,7 @@ public sealed class TownAreaProjectionDeliveryTests
         var delivery = new TownAreaProjectionDelivery(
             areas,
             sessions,
-            runtimes,
+            currentViews,
             new RecordingNotificationBus(),
             new NoopPartyProjection(),
             sender,
@@ -186,8 +196,11 @@ public sealed class TownAreaProjectionDeliveryTests
         sessions.Select(first);
         sessions.Select(second);
         var runtimes = new SelectedSessionRuntimeDirectory();
-        runtimes.Publish(first, Entry(first, 100), false);
-        runtimes.Publish(second, Entry(second, 200), false);
+        var currentViews = new FixedCurrentViews();
+        runtimes.Publish(first, false);
+        runtimes.Publish(second, false);
+        currentViews.Publish(first, Entry(first, 100));
+        currentViews.Publish(second, Entry(second, 200));
         var areas = new SessionPresenceDomainService();
         var store = (ITownAreaDomainService)areas;
         var key = new TownAreaKey(11, 3, 6);
@@ -197,7 +210,7 @@ public sealed class TownAreaProjectionDeliveryTests
         var delivery = new TownAreaProjectionDelivery(
             areas,
             sessions,
-            runtimes,
+            currentViews,
             notifications,
             new NoopPartyProjection(),
             new RecordingSender(),
@@ -211,6 +224,7 @@ public sealed class TownAreaProjectionDeliveryTests
             .ToArray();
         Assert.Equal(2, rosters.Length);
         Assert.All(rosters, roster => Assert.Equal(2, roster.RemainingUsers.Count));
+        Assert.Equal(2, currentViews.LoadCount);
     }
 
     [Fact]
@@ -227,8 +241,10 @@ public sealed class TownAreaProjectionDeliveryTests
         sessions.Select(old);
         sessions.Select(replacement);
         var runtimes = new SelectedSessionRuntimeDirectory();
+        var currentViews = new FixedCurrentViews();
         var replacementResult = Entry(replacement, 300);
-        runtimes.Publish(replacement, replacementResult, false);
+        runtimes.Publish(replacement, false);
+        currentViews.Publish(replacement, replacementResult);
         var areas = new SessionPresenceDomainService();
         var store = (ITownAreaDomainService)areas;
         var key = new TownAreaKey(11, 3, 6);
@@ -236,7 +252,7 @@ public sealed class TownAreaProjectionDeliveryTests
         var delivery = new TownAreaProjectionDelivery(
             areas,
             sessions,
-            runtimes,
+            currentViews,
             new RecordingNotificationBus(),
             new NoopPartyProjection(),
             new RecordingSender(),

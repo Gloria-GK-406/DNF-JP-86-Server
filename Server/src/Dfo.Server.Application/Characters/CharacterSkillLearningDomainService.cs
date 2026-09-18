@@ -12,7 +12,7 @@ namespace Dfo.Server.Application.Characters;
 
 internal sealed class CharacterSkillLearningDomainService(
     ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    ISelectedSessionRuntimeDirectory runtime, ITownAreaDomainService townAreas,
+    ISelectedCharacterCurrentViewDomainService currentViews, ITownAreaDomainService townAreas,
     ICharacterTable characters, ICharacterEntryTable entries, ICharacterSkillTable skills,
     ICharacterSkillStateDomainService state, ICharacterSkillRuleService rules,
     IDomainTransactionAccessor transactions) : ICharacterSkillLearningDomainService
@@ -25,8 +25,10 @@ internal sealed class CharacterSkillLearningDomainService(
         if (sessions.Find(session.AccountId) != session
             || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
             || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId
-            || !runtime.TryGet(session, out var selected, out _) || selected is null)
+            || online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId)
+            return new(CharacterSkillLearningRejection.NoSession);
+        var selected = await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
+        if (selected is null)
             return new(CharacterSkillLearningRejection.NoSession);
         if (changes.Count is 0 or > byte.MaxValue || changes.Any(change =>
             change.SkillId == 0 || change.Refund != 0 || change.Increment == 0)

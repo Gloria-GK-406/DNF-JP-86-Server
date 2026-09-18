@@ -351,8 +351,9 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
 
     private sealed class UnusedBonuses : IExperienceBonusDomainService
     {
-        public IReadOnlyList<ExperienceModifier> Collect(in ExperienceOccasion occasion) =>
-            throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<ExperienceModifier>> CollectAsync(
+            ExperienceOccasion occasion, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<ExperienceModifier>>([]);
     }
 
     private sealed class NoExperienceAward : ICharacterExperienceDomainService

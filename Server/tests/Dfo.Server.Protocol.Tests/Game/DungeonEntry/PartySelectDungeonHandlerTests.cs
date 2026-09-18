@@ -99,7 +99,7 @@ public sealed class PartySelectDungeonHandlerTests
         var handler = new EnterSelectDungeonHandler(
             new UnchangedState(),
             sessions,
-            runtime,
+            new RuntimeCurrentView(runtime),
             new PartyVisits(),
             intents,
             sender,
@@ -133,7 +133,7 @@ public sealed class PartySelectDungeonHandlerTests
         var intents = new Intents();
         var sender = new Sender();
         var handler = new EnterSelectDungeonHandler(
-            new UnchangedState(), sessions, runtime, new PartyVisits(), intents, sender,
+            new UnchangedState(), sessions, new RuntimeCurrentView(runtime), new PartyVisits(), intents, sender,
             TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
             NullLogger<EnterSelectDungeonHandler>.Instance, new Parties(Snapshot()));
 
@@ -160,6 +160,7 @@ public sealed class PartySelectDungeonHandlerTests
         using var services = new ServiceCollection()
             .AddSingleton<ISelectedSessionDomainService>(sessions)
             .AddSingleton<ISelectedSessionRuntimeDirectory>(runtime)
+            .AddSingleton<ISelectedCharacterCurrentViewDomainService>(new RuntimeCurrentView(runtime))
             .AddSingleton<ICharacterPositionDomainService>(new PartyPositions())
             .AddSingleton<IDungeonRunDomainService>(new RollbackRuns())
             .AddSingleton(new DungeonRunDeliveryRegistry())
@@ -605,7 +606,7 @@ public sealed class PartySelectDungeonHandlerTests
             CurrentCharacterStub.Domain(),
             state,
             sessions,
-            runtime,
+            new RuntimeCurrentView(runtime),
             new Parties(Snapshot()),
             runs,
             registry,
@@ -727,7 +728,7 @@ public sealed class PartySelectDungeonHandlerTests
 
     private sealed class Runtime(
         SelectCharacterResult result,
-        IReadOnlyList<SelectedSessionIdentity> available) : ISelectedSessionRuntimeDirectory
+        IReadOnlyList<SelectedSessionIdentity> available) : ILegacySessionSnapshotFixture
     {
         public bool TryGet(SelectedSessionIdentity session, out SelectCharacterResult? found, out bool persist)
         {
@@ -743,7 +744,7 @@ public sealed class PartySelectDungeonHandlerTests
 
     private sealed class PartyRuntime(
         params (SelectedSessionIdentity Session, SelectCharacterResult Result)[] entries)
-        : ISelectedSessionRuntimeDirectory
+        : ILegacySessionSnapshotFixture
     {
         private readonly Dictionary<SelectedSessionIdentity, SelectCharacterResult> results =
             entries.ToDictionary(value => value.Session, value => value.Result);

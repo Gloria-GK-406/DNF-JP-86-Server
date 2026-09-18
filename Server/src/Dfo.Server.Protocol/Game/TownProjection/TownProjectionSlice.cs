@@ -221,7 +221,7 @@ internal sealed class SetUserPositionDecoder : IGameMessageDecoder
 /// </remarks>
 public sealed class SetUserAreaHandler(
     ISelectedSessionDomainService selectedSessions,
-    ISelectedSessionRuntimeDirectory runtimeSessions,
+    ISelectedCharacterCurrentViewDomainService currentViews,
     ICharacterPositionDomainService positions,
     ITownAreaDomainService townAreas,
     IChannelEntryPolicy channels,
@@ -254,8 +254,8 @@ public sealed class SetUserAreaHandler(
         // reports where the character stays. The two arrive and leave together -- publication
         // records both and teardown drops both -- so this conjunct admits and refuses exactly the
         // connections the two before it do.
+        var result = await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
         if (selectedSessions.FindByConnection(context.Connection.ConnectionId) != session
-            || !runtimeSessions.TryGet(session, out var result, out _)
             || result is null
             || positions.Find(session.CharacterId) is not { } standing
             || townAreas.Find(session.CharacterId) is not { } standingMember
@@ -363,8 +363,7 @@ public sealed class SetUserPositionHandler(
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
         if (session is null
-            || !runtimeSessions.TryGet(session, out var result, out _)
-            || result is null
+            || !runtimeSessions.IsPublishedExact(session)
             || townAreas.Find(session.CharacterId) is not { } member
             || !session.Owns(member))
         {

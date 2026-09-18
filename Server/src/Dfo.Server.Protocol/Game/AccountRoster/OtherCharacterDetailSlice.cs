@@ -26,7 +26,7 @@ public sealed class QueryOtherCharacterDetailCommandHandler(
         CommandExecutionContext context,
         QueryOtherCharacterDetailCommand command,
         CancellationToken cancellationToken) =>
-        ValueTask.FromResult(details.Query(command.Requester, command.TargetWireUserId));
+        details.QueryAsync(command.Requester, command.TargetWireUserId, cancellationToken);
 }
 
 public sealed record OtherCharacterDetailRequested(

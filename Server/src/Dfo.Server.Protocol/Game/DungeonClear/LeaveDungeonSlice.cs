@@ -97,7 +97,7 @@ internal sealed class EplpCommandResponseEncoder : GameCmdMessageEncoder<EplpCom
 /// </remarks>
 public sealed class EplpCommandHandler(
     ISelectedSessionDomainService selectedSessions,
-    ISelectedSessionRuntimeDirectory runtimeSessions,
+    ISelectedCharacterCurrentViewDomainService currentViews,
     ICharacterPositionDomainService positions,
     IDungeonRunDomainService runs,
     DungeonRunDeliveryRegistry deliveries,
@@ -121,9 +121,9 @@ public sealed class EplpCommandHandler(
         // Where they are standing is asked of the service that owns it. It is recorded and dropped
         // with the published session, so this conjunct admits exactly the connections the two
         // before it do.
-        if (session is null
-            || !runtimeSessions.TryGet(session, out var result, out _)
-            || result is null
+        var result = session is null ? null
+            : await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
+        if (session is null || result is null
             || positions.Find(session.CharacterId) is not { } position)
         {
             logger.LogWarning(
@@ -159,9 +159,10 @@ public sealed class EplpCommandHandler(
         foreach (var participant in participants)
         {
             var memberSession = selectedSessions.FindByCharacter(participant.CharacterId);
+            var memberRuntime = memberSession is null ? null
+                : await currentViews.TryLoadAsync(memberSession, cancellationToken).ConfigureAwait(false);
             if (memberSession is null
                 || memberSession.AccountId != participant.AccountId
-                || !runtimeSessions.TryGet(memberSession, out var memberRuntime, out _)
                 || memberRuntime is null
                 || positions.Find(participant.CharacterId) is not { } memberPosition
                 || (currentRun is not null

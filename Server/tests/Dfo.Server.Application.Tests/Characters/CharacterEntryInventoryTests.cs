@@ -873,6 +873,9 @@ public sealed class CharacterEntryInventoryTests
     private sealed class FixedPvpSkills(CharacterSkillsEntryState state)
         : ICharacterPvpSkillProfileRepository
     {
+        public ValueTask<CharacterSkillsEntryState> ReadAsync(
+            AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(state);
         public ValueTask<CharacterSkillsEntryState> LoadOrInitializeAsync(
             AccountId accountId, CharacterId characterId, CharacterSkillsEntryState initialProfile,
             CancellationToken cancellationToken) => ValueTask.FromResult(state);

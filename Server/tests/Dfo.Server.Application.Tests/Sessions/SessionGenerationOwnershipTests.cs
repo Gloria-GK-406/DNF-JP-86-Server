@@ -53,10 +53,11 @@ public sealed class SessionGenerationOwnershipTests
         var directory = new SelectedSessionDomainService();
         directory.Select(session);
         var service = new SelectedSessionCleanupService(
-            directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(), new CharacterContainerDomainService(),
+            directory, new SelectedSessionRuntimeDirectory(), new CharacterContainerDomainService(),
             new CharacterItemCooldownDomainService(TimeProvider.System),
             new ThrowingActive(), new SessionPresenceDomainService(), new ExpertStoreDomainService(),
             new PvpLobbyDomainService(), [], new CharacterPositionDomainService(),
+            new CharacterVitalRuntimeDomainService(),
             new PassiveParties(), new DungeonRunDomainService(), []);
 
         await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
@@ -81,10 +82,10 @@ public sealed class SessionGenerationOwnershipTests
         var stores = new ExpertStoreDomainService();
         stores.Open(owner);
         var service = new SelectedSessionCleanupService(
-            directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(), new CharacterContainerDomainService(),
+            directory, new SelectedSessionRuntimeDirectory(), new CharacterContainerDomainService(),
             new CharacterItemCooldownDomainService(TimeProvider.System),
             new ThrowingActive(), presence, stores, new PvpLobbyDomainService(),
-            [], new CharacterPositionDomainService(), new PassiveParties(),
+            [], new CharacterPositionDomainService(), new CharacterVitalRuntimeDomainService(), new PassiveParties(),
             new DungeonRunDomainService(), []);
 
         var failure = await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
@@ -129,10 +130,10 @@ public sealed class SessionGenerationOwnershipTests
         var stores = new ExpertStoreDomainService();
         stores.Open(owner);
         var service = new SelectedSessionCleanupService(
-            directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(), new CharacterContainerDomainService(),
+            directory, new SelectedSessionRuntimeDirectory(), new CharacterContainerDomainService(),
             new CharacterItemCooldownDomainService(TimeProvider.System),
             new PassiveActive(), presence, stores, new PvpLobbyDomainService(),
-            [], new CharacterPositionDomainService(), new PassiveParties(),
+            [], new CharacterPositionDomainService(), new CharacterVitalRuntimeDomainService(), new PassiveParties(),
             new DungeonRunDomainService(), []);
 
         var delivery = await service.CleanupAsync(owner, includeOwner, CancellationToken.None);
@@ -163,7 +164,7 @@ public sealed class SessionGenerationOwnershipTests
         var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(
             session.AccountId, session.CharacterId.Value, 1);
         var runtimes = new SelectedSessionRuntimeDirectory();
-        runtimes.Publish(session, result, shouldPersist);
+        runtimes.Publish(session, shouldPersist);
         // Entry hands both of these over in one run; this stands in for that. What is saved is what
         // the position service holds, and whether it is saved at all is still the runtime's flag.
         var positions = new CharacterPositionDomainService();
@@ -172,11 +173,11 @@ public sealed class SessionGenerationOwnershipTests
         directory.Select(session);
         var persistence = new RecordingPositionPersistence();
         var service = new SelectedSessionCleanupService(
-            directory, runtimes, new EmptyInventoryLease(), new CharacterContainerDomainService(),
+            directory, runtimes, new CharacterContainerDomainService(),
             new CharacterItemCooldownDomainService(TimeProvider.System),
             new PassiveActive(),
             new SessionPresenceDomainService(), new ExpertStoreDomainService(), new PvpLobbyDomainService(),
-            [persistence], positions, new PassiveParties(), new DungeonRunDomainService(), []);
+            [persistence], positions, new CharacterVitalRuntimeDomainService(), new PassiveParties(), new DungeonRunDomainService(), []);
 
         await service.CleanupAsync(session, false, CancellationToken.None);
 
@@ -203,10 +204,10 @@ public sealed class SessionGenerationOwnershipTests
             difficulty: 0);
         var departure = new RecordingDepartureSink();
         var service = new SelectedSessionCleanupService(
-            directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(), new CharacterContainerDomainService(),
+            directory, new SelectedSessionRuntimeDirectory(), new CharacterContainerDomainService(),
             new CharacterItemCooldownDomainService(TimeProvider.System),
             new PassiveActive(), presence, stores, new PvpLobbyDomainService(),
-            [], new CharacterPositionDomainService(), new PassiveParties(),
+            [], new CharacterPositionDomainService(), new CharacterVitalRuntimeDomainService(), new PassiveParties(),
             runs, [departure]);
 
         var delivery = await service.CleanupAsync(
@@ -236,10 +237,11 @@ public sealed class SessionGenerationOwnershipTests
         var cooldowns = new CharacterItemCooldownDomainService(TimeProvider.System);
         cooldowns.Start(session.CharacterId, ItemCooldownKey.ForGroup(70), TimeSpan.FromMinutes(30));
         var service = new SelectedSessionCleanupService(
-            directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(),
+            directory, new SelectedSessionRuntimeDirectory(),
             new CharacterContainerDomainService(), cooldowns,
             new PassiveActive(), new SessionPresenceDomainService(), new ExpertStoreDomainService(),
             new PvpLobbyDomainService(), [], new CharacterPositionDomainService(),
+            new CharacterVitalRuntimeDomainService(),
             new PassiveParties(), new DungeonRunDomainService(), []);
 
         await service.CleanupAsync(session, includeOwner: false, CancellationToken.None);
@@ -262,10 +264,11 @@ public sealed class SessionGenerationOwnershipTests
         var cooldowns = new CharacterItemCooldownDomainService(TimeProvider.System);
         cooldowns.Start(returned.CharacterId, ItemCooldownKey.ForGroup(70), TimeSpan.FromMinutes(30));
         var service = new SelectedSessionCleanupService(
-            directory, new SelectedSessionRuntimeDirectory(), new EmptyInventoryLease(),
+            directory, new SelectedSessionRuntimeDirectory(),
             new CharacterContainerDomainService(), cooldowns,
             new PassiveActive(), new SessionPresenceDomainService(), new ExpertStoreDomainService(),
             new PvpLobbyDomainService(), [], new CharacterPositionDomainService(),
+            new CharacterVitalRuntimeDomainService(),
             new PassiveParties(), new DungeonRunDomainService(), []);
 
         await service.CleanupAsync(departing, includeOwner: false, CancellationToken.None);
@@ -278,16 +281,6 @@ public sealed class SessionGenerationOwnershipTests
         SelectedSessionIdentity.Create(
             new AccountId(7), new CharacterId(70), new NetworkConnectionId(connection),
             generation, 10011);
-
-    private sealed class EmptyInventoryLease : IEntryInventoryLeaseRegistry
-    {
-        public EntryInventoryLeaseSnapshot? Find(AccountId accountId) => null;
-        public bool TryMarkDirtyExact(SelectedSessionIdentity session,
-            CharacterItemLeaseState inventory) => false;
-        public void Replace(SelectedSessionIdentity session,
-            Dfo.Server.Data.Inventory.CharacterInventoryEntryState inventory) { }
-        public bool ReleaseExact(SelectedSessionIdentity session) => false;
-    }
 
     private sealed class ThrowingActive : IActiveCharacterDomainService
     {

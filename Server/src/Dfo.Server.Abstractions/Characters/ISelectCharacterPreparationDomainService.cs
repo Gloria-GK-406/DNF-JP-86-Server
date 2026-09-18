@@ -8,6 +8,9 @@ namespace Dfo.Server.Abstractions.Characters;
 
 public interface ISelectCharacterPreparationDomainService
 {
+    /// <summary>Builds a one-shot view from current domain state without selection-time mutations.</summary>
+    ValueTask<SelectCharacterResult> LoadCurrentAsync(
+        SelectedSessionIdentity session, CancellationToken cancellationToken);
     ValueTask<ActiveCharacterState> PreflightAsync(
         AccountId accountId, ushort rosterIndex, ChannelEntryIdentity channel,
         CancellationToken cancellationToken);

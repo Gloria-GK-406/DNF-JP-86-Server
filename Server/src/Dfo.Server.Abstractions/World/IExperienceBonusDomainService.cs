@@ -123,17 +123,13 @@ public readonly record struct ExperienceModifier(
 /// holds an elixir effect and does not know what it is for; an account holds a premium term and
 /// does not know either. Splitting that knowledge across the domains it reads would scatter one
 /// concern without reducing it.
-/// <para>
-/// <b>Synchronous on purpose.</b> Every fact this needs is already resident -- an account's
-/// entitlements arrive with the character's entry, a channel is session state -- and a source that
-/// wanted a database round trip on every kill would be a fact stored in the wrong place. Returning
-/// no task makes that impossible to write by accident rather than merely discouraged.
-/// </para>
+/// <para>Account entitlements are read from their authoritative store for each award.</para>
 /// </remarks>
 public interface IExperienceBonusDomainService
 {
     /// <summary>What this character earns on top of this occasion, each reason named.</summary>
-    IReadOnlyList<ExperienceModifier> Collect(in ExperienceOccasion occasion);
+    ValueTask<IReadOnlyList<ExperienceModifier>> CollectAsync(
+        ExperienceOccasion occasion, CancellationToken cancellationToken);
 }
 
 /// <summary>

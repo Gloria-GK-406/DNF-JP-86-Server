@@ -6,6 +6,7 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Application.Users;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Infrastructure;
@@ -162,7 +163,7 @@ public sealed class CharacterSkillLearningTests
     }
 
     [Fact]
-    public async Task Stale_or_unpublished_sessions_and_duel_or_absent_presence_cannot_learn()
+    public async Task Stale_or_unpublished_sessions_and_unsupported_mode_or_absent_presence_cannot_learn()
     {
         await using var fixture = new LearningFixture();
         await fixture.SeedAsync();
@@ -171,11 +172,8 @@ public sealed class CharacterSkillLearningTests
         Assert.Equal(CharacterSkillLearningRejection.NoSession, (await fixture.LearnAsync([new(1, 0, 1)])).Rejection);
         sessions.Select(fixture.Session);
         var runtime = fixture.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>();
-        var selected = runtime.GetRequired(fixture.Session);
-        runtime.ReplaceExact(fixture.Session, selected with
-            { World = selected.World with { Channel = selected.World.Channel with { PvpSkillProfileApplies = true } } });
-        Assert.Equal(CharacterSkillLearningRejection.UnsupportedScenario, (await fixture.LearnAsync([new(1, 0, 1)])).Rejection);
-        runtime.ReplaceExact(fixture.Session, selected);
+        Assert.Equal(CharacterSkillLearningRejection.UnsupportedScenario,
+            (await fixture.LearnAsync([new(1, 0, 1)], mode: 1)).Rejection);
         fixture.Services.GetRequiredService<ITownAreaDomainService>().LeaveExact(
             fixture.Session.CharacterId,
             fixture.Session.TownAreaLease(),
@@ -369,6 +367,7 @@ internal sealed class LearningFixture : IAsyncDisposable
         new InfrastructureModule().ConfigureServices(services, configuration);
         new PersistenceModule().ConfigureServices(services, configuration);
         new ApplicationModule().ConfigureServices(services, configuration);
+        services.AddSingleton<ISelectedCharacterCurrentViewDomainService, MinimalCurrentView>();
         if (!useArchive) services.AddSingleton<ISkillRuleDefinitionSource>(Content);
         configure?.Invoke(services);
         Services = services.BuildServiceProvider();
@@ -397,8 +396,20 @@ internal sealed class LearningFixture : IAsyncDisposable
             new TownAreaKey(1, 0, 0),
             new CharacterPositionState(0, 0, 0, 0, 0),
             true));
-        var runtime = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(new(1), 71, 0);
-        Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().Publish(Session, runtime, false);
+        Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().Publish(Session, false);
+    }
+
+    private sealed class MinimalCurrentView(ISelectedSessionRuntimeDirectory published)
+        : ISelectedCharacterCurrentViewDomainService
+    {
+        public ValueTask<SelectCharacterResult?> TryLoadAsync(
+            SelectedSessionIdentity session, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<SelectCharacterResult?>(published.IsPublishedExact(session)
+                ? new SelectCharacterResult(
+                    null!, null!, null!, null!, null!,
+                    new GameWorldEntryState(DateTimeOffset.UnixEpoch, null!,
+                        new ChannelEntryPolicyState(11, null!, true, false)), null!)
+                : null);
     }
     public async Task<CharacterSkillLearningResult> LearnAsync(IReadOnlyList<CharacterSkillLearningChange> changes,
         byte page = 0, byte mode = 0, SelectedSessionIdentity? session = null)

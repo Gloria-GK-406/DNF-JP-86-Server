@@ -87,6 +87,9 @@ internal static class EntryServices
 
 internal sealed class StubPvpSkillProfileRepository : ICharacterPvpSkillProfileRepository
 {
+    public ValueTask<Dfo.Server.Data.Characters.CharacterSkillsEntryState> ReadAsync(
+        AccountId accountId, Dfo.Server.Data.Characters.CharacterId characterId,
+        CancellationToken cancellationToken) => throw new NotSupportedException();
     public ValueTask<Dfo.Server.Data.Characters.CharacterSkillsEntryState> LoadOrInitializeAsync(
         AccountId accountId, Dfo.Server.Data.Characters.CharacterId characterId,
         Dfo.Server.Data.Characters.CharacterSkillsEntryState initialProfile,

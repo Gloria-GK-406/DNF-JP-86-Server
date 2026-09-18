@@ -26,7 +26,6 @@ public sealed class SelectedSessionCleanupFailure(
 internal sealed class SelectedSessionCleanupService(
     ISelectedSessionDomainService sessions,
     ISelectedSessionRuntimeDirectory runtimes,
-    IEntryInventoryLeaseRegistry inventoryLeases,
     ICharacterContainerDomainService containers,
     ICharacterItemCooldownDomainService cooldowns,
     IActiveCharacterDomainService activeCharacters,
@@ -35,6 +34,7 @@ internal sealed class SelectedSessionCleanupService(
     IPvpLobbyDomainService pvp,
     IEnumerable<ISelectedSessionPositionPersistence> positionPersistence,
     ICharacterPositionDomainService positions,
+    ICharacterVitalRuntimeDomainService vitals,
     IPartyService parties,
     IDungeonRunDomainService dungeonRuns,
     IEnumerable<IDungeonRunParticipantDepartureSink> dungeonDepartures) : ISelectedSessionCleanupDomainService
@@ -89,14 +89,10 @@ internal sealed class SelectedSessionCleanupService(
 
         // Every mutation is exact and isolated; a stale session can attempt all safely.
         //
-        // Where the character is standing is asked of the service that owns it rather than read
-        // off the runtime snapshot. The two are put there and taken away together -- publication
-        // records both in one method and the two removals below are in one run -- so the added
-        // conjunct answers for exactly the sessions the first two already admitted. What is not
-        // moved is when this happens: it stays here, inside whatever use case is running, for the
-        // reason the persistence seam states.
-        if (runtimes.TryGet(session, out var runtime, out var shouldPersistPosition)
-            && runtime is not null && shouldPersistPosition
+        // The session directory retains only the exact publication/persistence policy. The
+        // position itself comes from its owner; neither may be borrowed from a replaced session.
+        if (runtimes.TryGetPositionPersistence(session, out var shouldPersistPosition)
+            && shouldPersistPosition
             && positions.Find(session.CharacterId) is { } standing)
         {
             var persistence = positionPersistence.SingleOrDefault();
@@ -145,8 +141,8 @@ internal sealed class SelectedSessionCleanupService(
             session.TownAreaLease(),
             TownAreaDepartureReason.SessionEnded) is not null);
         Run(() => pvp.ClearReadyExact(session));
-        Run(() => inventoryLeases.ReleaseExact(session));
         Run(() => positions.ForgetExact(session));
+        Run(() => vitals.RemoveExact(session));
         Run(() => runtimes.RemoveExact(session));
         Run(() => activeCharacters.ClearExact(session));
         Run(() => sessions.ReleaseExact(session));
@@ -235,12 +231,15 @@ internal sealed class SelectedSessionCleanupService(
 internal sealed class SelectCharacterSessionEntryService(
     ISelectedSessionDomainService sessions,
     ISelectedSessionRuntimeDirectory runtimes,
+    ISelectedCharacterCurrentViewDomainService currentViews,
     ITownAreaDomainService townAreas,
     IPvpLobbyDomainService pvp,
-    ICharacterPositionDomainService positions) : ISelectCharacterSessionEntryDomainService
+    ICharacterPositionDomainService positions,
+    ICharacterVitalRuntimeDomainService vitals) : ISelectCharacterSessionEntryDomainService
 {
-    public TownParticipantPublicationPlan? PlanTownPublication(
-        SelectedSessionIdentity session, SelectCharacterResult result)
+    public async ValueTask<TownParticipantPublicationPlan?> PlanTownPublicationAsync(
+        SelectedSessionIdentity session, SelectCharacterResult result,
+        CancellationToken cancellationToken)
     {
         var position = positions.Find(session.CharacterId)
             ?? throw new InvalidDataException("The published town position is unavailable.");
@@ -258,10 +257,10 @@ internal sealed class SelectCharacterSessionEntryService(
         var audience = new List<SelectedSessionIdentity>(occupants.Length);
         foreach (var occupant in occupants)
         {
-            if (sessions.FindByCharacter(occupant.CharacterId) is not { } owner
-                || !owner.Owns(occupant)
-                || !runtimes.TryGet(owner, out var otherResult, out _)
-                || otherResult is null)
+            var owner = sessions.FindByCharacter(occupant.CharacterId);
+            var otherResult = owner is null ? null
+                : await currentViews.TryLoadAsync(owner, cancellationToken).ConfigureAwait(false);
+            if (owner is null || !owner.Owns(occupant) || otherResult is null)
             {
                 continue;
             }
@@ -282,17 +281,22 @@ internal sealed class SelectCharacterSessionEntryService(
                 existing));
     }
 
-    public PvpLobbySynchronizationState? PlanPvp(
-        SelectedSessionIdentity session, SelectCharacterResult result)
+    public async ValueTask<PvpLobbySynchronizationState?> PlanPvpAsync(
+        SelectedSessionIdentity session, SelectCharacterResult result,
+        CancellationToken cancellationToken)
     {
         var lobby = result.Session.Adjacent.PvpLobby;
         if (lobby is null) return null;
-        var identities = pvp.ReadyOn(session.ListenerPort, session.CharacterId).Select(value =>
+        var identities = new List<PvpParticipantEntryState>();
+        foreach (var value in pvp.ReadyOn(session.ListenerPort, session.CharacterId))
         {
             var owner = value.Session ?? sessions.FindByCharacter(value.CharacterId)
                 ?? throw new InvalidDataException("PvP participant session is unavailable.");
-            return CreatePvpParticipant(runtimes.GetRequired(owner));
-        }).ToArray();
+            var current = await currentViews.TryLoadAsync(owner, cancellationToken)
+                .ConfigureAwait(false)
+                ?? throw new InvalidDataException("PvP participant state is unavailable.");
+            identities.Add(CreatePvpParticipant(current));
+        }
         var offeredRooms = pvp.OfferedOn(session.ListenerPort).ToDictionary(value => value.RoomId);
         var rooms = lobby.Rooms.Select(room =>
         {
@@ -329,17 +333,15 @@ internal sealed class SelectCharacterSessionEntryService(
             CreatePvpParticipant(result));
 
     /// <remarks>
-    /// The position is handed to its own service in the same statement run that publishes the
-    /// runtime state and admits the presence record, so the three are there for exactly the same
-    /// span. What is handed over is the position entry settled on -- placement resolved it and the
-    /// entry write already stored it -- rather than anything read back out of the runtime
-    /// directory; from here on it is the service that answers, and the copy in the snapshot is not
-    /// read again.
+    /// Publication retains only exact-session policy; position and HP go to their own runtime
+    /// services. The entry result remains a one-shot message-building value.
     /// </remarks>
     public void Publish(SelectedSessionIdentity session, SelectCharacterResult result)
     {
-        runtimes.Publish(session, result, result.World.Channel.PersistsPosition);
+        runtimes.Publish(session, result.World.Channel.PersistsPosition);
         positions.Place(session, result.Character.Position);
+        vitals.Publish(session, checked((byte)Math.Clamp(
+            result.CharacterEntry.Public.DerivedStats.CurrentHpMpPercent, 0, 100)));
         var position = result.Character.Position;
         townAreas.Enter(new TownAreaMember(
             session.CharacterId,
@@ -351,9 +353,6 @@ internal sealed class SelectCharacterSessionEntryService(
             position,
             result.World.Channel.Spawn.SharesTownPresence));
     }
-
-    public void ReplaceRuntimeExact(SelectedSessionIdentity session, SelectCharacterResult result) =>
-        runtimes.ReplaceExact(session, result);
 
     public void MarkPvpReady(SelectedSessionIdentity session, SelectCharacterResult result)
     {

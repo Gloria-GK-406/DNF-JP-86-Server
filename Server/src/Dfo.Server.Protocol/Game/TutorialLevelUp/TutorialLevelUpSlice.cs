@@ -147,18 +147,14 @@ public sealed class GrantTutorialLevelCommandHandler(ICharacterExperienceDomainS
 /// <remarks>
 /// Three frames, in the reference server's order: the experience frame carrying the new level and
 /// total, then the acknowledgement. The reference sends two more between them -- the quest list for
-/// the new level and the character's own state -- and this does not: both are re-projections of the
-/// whole published entry state, and the session's snapshot has no partial-update path yet. What
+/// the new level and the character's own state -- and this does not yet send the latter. The
+/// omission is a protocol gap rather than a reason to retain a mutable session snapshot. What
 /// is sent carries the level, so the client learns it; what is not sent is written down in
 /// <c>Docs/ProtocolScaffoldDissonances.md</c> rather than left to be rediscovered.
-/// <para>
-/// The published session remains a compatibility projection and is corrected after the grant.
-/// Later progression decisions read the character itself.
-/// </para>
 /// </remarks>
 public sealed class TutorialLevelUpHandler(
     ISelectedSessionDomainService selectedSessions,
-    ISelectedSessionRuntimeDirectory runtimeSessions,
+    ISelectedCharacterCurrentViewDomainService currentViews,
     ICharacterDomainService characters,
     IDungeonRunDomainService runs,
     ICommandBus commandBus,
@@ -172,9 +168,9 @@ public sealed class TutorialLevelUpHandler(
         CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null
-            || !runtimeSessions.TryGet(session, out var result, out _)
-            || result is null)
+        var result = session is null ? null
+            : await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
+        if (session is null || result is null)
         {
             logger.LogWarning(
                 "Tutorial level up {ConnectionId}: no published session, refusing",
@@ -239,7 +235,6 @@ public sealed class TutorialLevelUpHandler(
             session.CharacterId,
             granted.Level,
             cancellationToken).ConfigureAwait(false);
-        runtimeSessions.ReplaceExact(session, updated);
 
         logger.LogInformation(
             "Tutorial level up {ConnectionId} character={CharacterId}: now level {Level} at {Exp}",
@@ -251,12 +246,10 @@ public sealed class TutorialLevelUpHandler(
         // The reference server's own order, from its 2026-08-23 capture of the tutorial: the
         // experience frame, the quest list for the new level, then the acknowledgement. It sends
         // one more between the list and the acknowledgement -- NOTI 0x0002, the character's whole
-        // state -- and this still does not: that is a re-projection of the published entry and the
-        // session has no partial-update path for it. Recorded in Docs/ProtocolScaffoldDissonances.md.
+        // state -- and this still does not. Recorded in Docs/ProtocolScaffoldDissonances.md.
         // Asked of the character, after the grant has been written. This is the one place in the
         // tutorial where a level is actually gained, so it is the frame that most needs the points
-        // worked out again: the session's copy is entry's projection from before the level, and
-        // reporting it here told the player their new level bought them nothing.
+        // worked out again from the character's current facts, never an entry-time projection.
         var mirror = await characters.Get(session.CharacterId)
             .RemainingSkillPointsAsync(cancellationToken).ConfigureAwait(false);
         var frames = new List<IGameServerMessage>();
