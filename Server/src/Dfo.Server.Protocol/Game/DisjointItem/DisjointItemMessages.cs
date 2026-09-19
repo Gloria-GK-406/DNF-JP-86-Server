@@ -6,8 +6,8 @@ namespace Dfo.Server.Protocol.Game.DisjointItem;
 public sealed record DisjointItemRequest(
     GameMessageMetadata Metadata,
     GameSlot TargetSlot,
-    short DisjointItemSlotIndex,
-    int ContextValue) : IClientNetworkMessage
+    short DisjointToolSlotIndex,
+    int DisjointProviderId) : IClientNetworkMessage
 {
     public ClientMessageType MessageType => ClientMessageType.GameDisjointItem;
 }

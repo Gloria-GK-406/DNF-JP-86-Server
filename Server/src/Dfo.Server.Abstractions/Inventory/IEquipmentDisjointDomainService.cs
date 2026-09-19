@@ -19,8 +19,7 @@ public interface IEquipmentDisjointDomainService
     ValueTask<EquipmentDisjointResult> DisjointAsync(
         SelectedSessionIdentity session,
         BusinessSlot targetSlot,
-        short disjointItemSlotIndex,
-        int contextValue,
+        BusinessSlot? disjointToolSlot,
         EquipmentDisjointSettings settings,
         CancellationToken cancellationToken);
 }

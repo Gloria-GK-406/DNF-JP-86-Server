@@ -1,0 +1,926 @@
+00422EC8 dst=r2 dist=10 func~00000000 
+0042CCD0 dst=r0 dist=3 func~00000000 
+00446F12 dst=r0 dist=6 func~00000000 
+00466DA7 dst=r0 dist=6 func~00000000 
+00467A11 dst=r0 dist=6 func~00000000 
+00494A38 dst=r1 dist=24 func~00000000 
+00498490 dst=r2 dist=16 func~00000000 
+004BC5BB dst=r2 dist=12 func~00000000 
+004BFB6B dst=r0 dist=8 func~00000000 
+004BFBA6 dst=r0 dist=8 func~00000000 
+004D2C29 dst=r6 dist=14 func~004D1360 DNFClient\RDAR\Event\China\IntegrateEventDataManager.cpp
+004D2CE0 dst=r7 dist=13 func~004D1360 DNFClient\RDAR\Event\China\IntegrateEventDataManager.cpp
+004D2D48 dst=r7 dist=13 func~004D1360 DNFClient\RDAR\Event\China\IntegrateEventDataManager.cpp
+004D2DB2 dst=r7 dist=13 func~004D1360 DNFClient\RDAR\Event\China\IntegrateEventDataManager.cpp
+0052B702 dst=r2 dist=12 func~005233D0 DNFClient\RDAR\PopupWindow\JewelryBattleWindow.cpp
+0057C487 dst=r0 dist=16 func~00554E70 DNFClient\RDAR\CNNpcFavorSystem.cpp
+0057CA7C dst=r1 dist=12 func~00554E70 DNFClient\RDAR\CNNpcFavorSystem.cpp
+005B9443 dst=r6 dist=25 func~00000000 
+005B99F4 dst=r6 dist=25 func~00000000 
+005DD612 dst=r1 dist=10 func~005D0AE0 DNFClient\RDAR\Localization\china\CardGameData.cpp
+005DD677 dst=r1 dist=10 func~005D0AE0 DNFClient\RDAR\Localization\china\CardGameData.cpp
+00607EC7 dst=r0 dist=8 func~005E14C0 DNFClient\RDAR\PopupWindow\China\FriendshipHellpartyWindow.cpp
+0062B44C dst=r0 dist=3 func~00608BB0 DNFClient\RDAR\MatchChannelMoveManager.cpp
+0062B47C dst=r2 dist=3 func~00608BB0 DNFClient\RDAR\MatchChannelMoveManager.cpp
+00639BCF dst=r2 dist=3 func~00000000 
+006E4C5B dst=r1 dist=22 func~006CFF70 DNFClient\RDAR\PopupWindow\China\MysteriousGraceEventWindow.cpp
+006EC31C dst=r1 dist=19 func~006CFF70 DNFClient\RDAR\PopupWindow\China\MysteriousGraceEventWindow.cpp
+0070D6C8 dst=r0 dist=15 func~00000000 
+0071D21C dst=r1 dist=19 func~00000000 
+0071D313 dst=r1 dist=18 func~00000000 
+0072FAE9 dst=r0 dist=8 func~00000000 
+0073137B dst=r0 dist=3 func~00000000 
+0073D119 dst=r0 dist=5 func~00738790 DNFClient\RDAR\CNEntryDungeonPartyManager.cpp
+00759DB5 dst=r0 dist=3 func~0073F830 DNFClient\RDAR\Event\RealEstateClient.cpp
+00776019 dst=r3 dist=19 func~00000000 
+007909C3 dst=r1 dist=20 func~00000000 
+00795BD9 dst=r1 dist=10 func~00000000 
+00795ED1 dst=r1 dist=10 func~00000000 
+007A3096 dst=r1 dist=17 func~00000000 
+007A30AC dst=r1 dist=19 func~00000000 
+007B088F dst=r1 dist=22 func~00000000 
+007B1C95 dst=r2 dist=19 func~00000000 
+007E0FFF dst=r0 dist=3 func~00000000 
+00811501 dst=r2 dist=15 func~007E2900 DNFClient\RDAR\AnimationSubCacher.cpp
+00811A20 dst=r2 dist=3 func~007E2900 DNFClient\RDAR\AnimationSubCacher.cpp
+00812276 dst=r0 dist=3 func~007E2900 DNFClient\RDAR\AnimationSubCacher.cpp
+008143D6 dst=r2 dist=16 func~00000000 
+0081444C dst=r1 dist=16 func~00000000 
+008144C0 dst=r1 dist=16 func~00000000 
+0082757B dst=r7 dist=25 func~00000000 
+008623BF dst=r1 dist=14 func~00843920 DNFClient\RDAR\Character\Gunner\CNSubWeaponPowerUp.cpp
+00862E94 dst=r2 dist=19 func~00843920 DNFClient\RDAR\Character\Gunner\CNSubWeaponPowerUp.cpp
+008790BA dst=r6 dist=25 func~00876F70 DNFClient\RDAR\Event\China\CNRDBuffVendingMachineEventData.cpp
+008C02DD dst=r0 dist=15 func~008BC110 DNFClient\RDAR\Character\CharacterAnimationHelper.cpp
+008EEC8F dst=r1 dist=18 func~00000000 
+008EEE54 dst=r1 dist=10 func~00000000 
+008EEF24 dst=r2 dist=23 func~00000000 
+008EEF29 dst=r7 dist=18 func~00000000 
+008EF13A dst=r1 dist=14 func~00000000 
+00916763 dst=r0 dist=5 func~00000000 
+009170F3 dst=r0 dist=5 func~00000000 
+0092B706 dst=r0 dist=12 func~00000000 
+0092EC59 dst=r0 dist=24 func~00000000 
+00937A09 dst=r0 dist=20 func~00000000 
+00978AA6 dst=r2 dist=7 func~00972370 DNFClient\RDAR\Localization\china\LegendSwordEventData.cpp
+0099C919 dst=r0 dist=9 func~00999A30 DNFClient\RDAR\PopupWindow\China\TotalAttendanceTodayRewardWindow.cpp
+0099E6BD dst=r2 dist=7 func~0099E400 DNFClient\RDAR\PopupWindow\InformationButtonSubEffect.cpp
+009C645C dst=r2 dist=10 func~009B4270 DNFClient\RDAR\PopupWindow\China\NewYearBox2015Window.cpp
+009F35FE dst=r0 dist=5 func~009D62B0 DNFClient\RDAR\PopupWindow\PvpPracticeWindow.cpp
+00A043DA dst=r2 dist=5 func~009D62B0 DNFClient\RDAR\PopupWindow\PvpPracticeWindow.cpp
+00A0449E dst=r2 dist=8 func~009D62B0 DNFClient\RDAR\PopupWindow\PvpPracticeWindow.cpp
+00A0E10C dst=r0 dist=13 func~00000000 
+00A411AF dst=r1 dist=16 func~00A272F0 DNFClient\RDAR\Appendage\CNCharacterDrawChangeAppendage.cpp
+00A4241D dst=r1 dist=8 func~00A272F0 DNFClient\RDAR\Appendage\CNCharacterDrawChangeAppendage.cpp
+00A4265D dst=r1 dist=8 func~00A272F0 DNFClient\RDAR\Appendage\CNCharacterDrawChangeAppendage.cpp
+00A49046 dst=r0 dist=6 func~00A272F0 DNFClient\RDAR\Appendage\CNCharacterDrawChangeAppendage.cpp
+00ACC367 dst=r2 dist=5 func~00AAAE40 DNFClient\RDAR\TerritoryCombat\TerritoryCombatManager.cpp
+00ACC674 dst=r0 dist=9 func~00AAAE40 DNFClient\RDAR\TerritoryCombat\TerritoryCombatManager.cpp
+00ACC7F4 dst=r0 dist=9 func~00AAAE40 DNFClient\RDAR\TerritoryCombat\TerritoryCombatManager.cpp
+00AD4EA8 dst=r0 dist=22 func~00AD3EF0 DNFClient\RDAR\NateramTimeAttackUI.cpp
+00AE26B5 dst=r0 dist=3 func~00ADAA30 DNFClient\RDAR\Appendage\CNGaugeAppendage.cpp
+00AE26E1 dst=r0 dist=3 func~00ADAA30 DNFClient\RDAR\Appendage\CNGaugeAppendage.cpp
+00AE270D dst=r0 dist=3 func~00ADAA30 DNFClient\RDAR\Appendage\CNGaugeAppendage.cpp
+00AE2739 dst=r0 dist=3 func~00ADAA30 DNFClient\RDAR\Appendage\CNGaugeAppendage.cpp
+00AF7B2C dst=r1 dist=15 func~00ADAA30 DNFClient\RDAR\Appendage\CNGaugeAppendage.cpp
+00AF7B3D dst=r1 dist=25 func~00ADAA30 DNFClient\RDAR\Appendage\CNGaugeAppendage.cpp
+00AF7B58 dst=r1 dist=9 func~00ADAA30 DNFClient\RDAR\Appendage\CNGaugeAppendage.cpp
+00AF7B63 dst=r1 dist=11 func~00ADAA30 DNFClient\RDAR\Appendage\CNGaugeAppendage.cpp
+00AF7B70 dst=r1 dist=18 func~00ADAA30 DNFClient\RDAR\Appendage\CNGaugeAppendage.cpp
+00AF7B96 dst=r1 dist=15 func~00ADAA30 DNFClient\RDAR\Appendage\CNGaugeAppendage.cpp
+00AF7BBF dst=r1 dist=18 func~00ADAA30 DNFClient\RDAR\Appendage\CNGaugeAppendage.cpp
+00AF7D1A dst=r1 dist=18 func~00ADAA30 DNFClient\RDAR\Appendage\CNGaugeAppendage.cpp
+00AF7D48 dst=r1 dist=19 func~00ADAA30 DNFClient\RDAR\Appendage\CNGaugeAppendage.cpp
+00AFAD52 dst=r1 dist=13 func~00ADAA30 DNFClient\RDAR\Appendage\CNGaugeAppendage.cpp
+00B28EE1 dst=r0 dist=3 func~00B23320 DNFClient\RDAR\CashShop\Localization\CNRDCashShop_CHN.cpp
+00B2E416 dst=r1 dist=9 func~00B23320 DNFClient\RDAR\CashShop\Localization\CNRDCashShop_CHN.cpp
+00B2E8F5 dst=r1 dist=9 func~00B23320 DNFClient\RDAR\CashShop\Localization\CNRDCashShop_CHN.cpp
+00B3CBDA dst=r1 dist=13 func~00B35950 DNFClient\RDAR\CashShop\Localization\CNRDCashShop_CHN.cpp
+00B3D02C dst=r1 dist=10 func~00B35950 DNFClient\RDAR\CashShop\Localization\CNRDCashShop_CHN.cpp
+00B3D0A2 dst=r1 dist=13 func~00B35950 DNFClient\RDAR\CashShop\Localization\CNRDCashShop_CHN.cpp
+00B3D0BC dst=r1 dist=10 func~00B35950 DNFClient\RDAR\CashShop\Localization\CNRDCashShop_CHN.cpp
+00B3D130 dst=r1 dist=10 func~00B35950 DNFClient\RDAR\CashShop\Localization\CNRDCashShop_CHN.cpp
+00B3D2A2 dst=r1 dist=10 func~00B35950 DNFClient\RDAR\CashShop\Localization\CNRDCashShop_CHN.cpp
+00B3D2E6 dst=r1 dist=10 func~00B35950 DNFClient\RDAR\CashShop\Localization\CNRDCashShop_CHN.cpp
+00B3D33E dst=r1 dist=25 func~00B35950 DNFClient\RDAR\CashShop\Localization\CNRDCashShop_CHN.cpp
+00B3D34D dst=r1 dist=10 func~00B35950 DNFClient\RDAR\CashShop\Localization\CNRDCashShop_CHN.cpp
+00B3D364 dst=r1 dist=10 func~00B35950 DNFClient\RDAR\CashShop\Localization\CNRDCashShop_CHN.cpp
+00B3D377 dst=r1 dist=10 func~00B35950 DNFClient\RDAR\CashShop\Localization\CNRDCashShop_CHN.cpp
+00B3D38E dst=r1 dist=10 func~00B35950 DNFClient\RDAR\CashShop\Localization\CNRDCashShop_CHN.cpp
+00B3D3A5 dst=r1 dist=10 func~00B35950 DNFClient\RDAR\CashShop\Localization\CNRDCashShop_CHN.cpp
+00B4B71F dst=r1 dist=16 func~00B35950 DNFClient\RDAR\CashShop\Localization\CNRDCashShop_CHN.cpp
+00B6AE1B dst=r1 dist=21 func~00000000 
+00B78995 dst=r2 dist=7 func~00000000 
+00B789A0 dst=r2 dist=7 func~00000000 
+00B9B2DD dst=r0 dist=15 func~00B7B6B0 DNFClient\RDAR\Character\Common\HardcoreTitleMaker.cpp
+00B9BE3C dst=r2 dist=18 func~00B7B6B0 DNFClient\RDAR\Character\Common\HardcoreTitleMaker.cpp
+00BC0B57 dst=r0 dist=11 func~00BA42D0 DNFClient\RDAR\Character\Knight\Chaosmonster\CNFormation.cpp
+00BC0FFA dst=r1 dist=16 func~00BA42D0 DNFClient\RDAR\Character\Knight\Chaosmonster\CNFormation.cpp
+00BDB550 dst=r2 dist=7 func~00000000 
+00C09CBD dst=r1 dist=11 func~00BFF1E0 DNFClient\RDAR\Character\Knight\CNSummonChaosMonster.cpp
+00C0DA81 dst=r1 dist=11 func~00BFF1E0 DNFClient\RDAR\Character\Knight\CNSummonChaosMonster.cpp
+00C0DAF9 dst=r0 dist=9 func~00BFF1E0 DNFClient\RDAR\Character\Knight\CNSummonChaosMonster.cpp
+00C0DB78 dst=r2 dist=12 func~00BFF1E0 DNFClient\RDAR\Character\Knight\CNSummonChaosMonster.cpp
+00C2C5E6 dst=r0 dist=4 func~00C24DB0 DNFClient\RDAR\CNRDRaidManager.cpp
+00C2F4DE dst=r2 dist=4 func~00C24DB0 DNFClient\RDAR\CNRDRaidManager.cpp
+00C62493 dst=r1 dist=14 func~00C5AC60 DNFClient\RDAR\Event\SlotMachineEventData.cpp
+00C6256B dst=r1 dist=10 func~00C5AC60 DNFClient\RDAR\Event\SlotMachineEventData.cpp
+00C62577 dst=r1 dist=11 func~00C5AC60 DNFClient\RDAR\Event\SlotMachineEventData.cpp
+00C786D2 dst=r0 dist=3 func~00C71D30 DNFClient\RDAR\Localization\china\PlayWithFriendEventData.cpp
+00CDD105 dst=r1 dist=20 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CDD1CA dst=r0 dist=8 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CE314A dst=r2 dist=6 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CEEB56 dst=r1 dist=13 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF00F5 dst=r2 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF0822 dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF087C dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF08BD dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF0C92 dst=r2 dist=6 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF0CC8 dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF168A dst=r2 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF17FF dst=r2 dist=6 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF3439 dst=r2 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF35E3 dst=r2 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF37A8 dst=r2 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF3859 dst=r2 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF3977 dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF3A52 dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF3D1E dst=r2 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF3DA7 dst=r2 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF3EB9 dst=r2 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF418B dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF421A dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF42B1 dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF4378 dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF443C dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF4539 dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF457D dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF462F dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF46AD dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF474B dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF480E dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF4856 dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF48A4 dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF4AED dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF65A6 dst=r2 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6785 dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF67CD dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6884 dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF694D dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6A15 dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6A5D dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6AAA dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6B6D dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6BB1 dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6C63 dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6CE1 dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6D81 dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6E46 dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6E8E dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6EDB dst=r0 dist=3 func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00D0584C dst=r0 dist=12 func~00D03950 DNFClient\RDAR\CharacterBuffSystem\CNRDCharacterBuffSystem.cpp
+00D10B4C dst=r1 dist=13 func~00D03950 DNFClient\RDAR\CharacterBuffSystem\CNRDCharacterBuffSystem.cpp
+00D10CA7 dst=r1 dist=22 func~00D03950 DNFClient\RDAR\CharacterBuffSystem\CNRDCharacterBuffSystem.cpp
+00D16BD0 dst=r1 dist=8 func~00D03950 DNFClient\RDAR\CharacterBuffSystem\CNRDCharacterBuffSystem.cpp
+00D16BE9 dst=r1 dist=10 func~00D03950 DNFClient\RDAR\CharacterBuffSystem\CNRDCharacterBuffSystem.cpp
+00D187B6 dst=r1 dist=24 func~00D03950 DNFClient\RDAR\CharacterBuffSystem\CNRDCharacterBuffSystem.cpp
+00D187D0 dst=r1 dist=14 func~00D03950 DNFClient\RDAR\CharacterBuffSystem\CNRDCharacterBuffSystem.cpp
+00D187E0 dst=r1 dist=14 func~00D03950 DNFClient\RDAR\CharacterBuffSystem\CNRDCharacterBuffSystem.cpp
+00D187F0 dst=r1 dist=18 func~00D03950 DNFClient\RDAR\CharacterBuffSystem\CNRDCharacterBuffSystem.cpp
+00D6816F dst=r3 dist=22 func~00000000 
+00DA5EA0 dst=r1 dist=18 func~00D975E0 DNFClient\RDAR\Character\CNATSwordman.cpp
+00DA5EC5 dst=r1 dist=18 func~00D975E0 DNFClient\RDAR\Character\CNATSwordman.cpp
+00DB7E45 dst=r0 dist=5 func~00D975E0 DNFClient\RDAR\Character\CNATSwordman.cpp
+00DDFF94 dst=r0 dist=16 func~00000000 
+00DE0164 dst=r0 dist=19 func~00000000 
+00DE52CC dst=r1 dist=18 func~00000000 
+00DED56A dst=r1 dist=19 func~00000000 
+00DED5A8 dst=r1 dist=8 func~00000000 
+00DEFA94 dst=r0 dist=20 func~00000000 
+00E16FD6 dst=r2 dist=7 func~00E12700 DNFClient\RDAR\CNBossTowerModule.cpp
+00E1A5F3 dst=r1 dist=11 func~00E12700 DNFClient\RDAR\CNBossTowerModule.cpp
+00E1A617 dst=r1 dist=15 func~00E12700 DNFClient\RDAR\CNBossTowerModule.cpp
+00E1A85A dst=r1 dist=11 func~00E12700 DNFClient\RDAR\CNBossTowerModule.cpp
+00E1A98E dst=r0 dist=5 func~00E12700 DNFClient\RDAR\CNBossTowerModule.cpp
+00E1A9EE dst=r1 dist=15 func~00E12700 DNFClient\RDAR\CNBossTowerModule.cpp
+00E2C3E6 dst=r2 dist=6 func~00E2AB30 DNFClient\RDAR\CNRDItemShopWindowVer2.cpp
+00E2C87D dst=r2 dist=6 func~00E2AB30 DNFClient\RDAR\CNRDItemShopWindowVer2.cpp
+00E4B578 dst=r6 dist=11 func~00E47B90 DNFClient\RDAR\CNRDObjectMoveSystem.cpp
+00E4B9BD dst=r2 dist=3 func~00E47B90 DNFClient\RDAR\CNRDObjectMoveSystem.cpp
+00E7573A dst=r1 dist=15 func~00E47B90 DNFClient\RDAR\CNRDObjectMoveSystem.cpp
+00E7576B dst=r1 dist=12 func~00E47B90 DNFClient\RDAR\CNRDObjectMoveSystem.cpp
+00E7BC57 dst=r2 dist=18 func~00E75E20 DNFClient\RDAR\CNRDQuestModuleVer2.cpp
+00E7D47B dst=r2 dist=3 func~00E75E20 DNFClient\RDAR\CNRDQuestModuleVer2.cpp
+00E7D4C8 dst=r2 dist=3 func~00E75E20 DNFClient\RDAR\CNRDQuestModuleVer2.cpp
+00E7D510 dst=r2 dist=3 func~00E75E20 DNFClient\RDAR\CNRDQuestModuleVer2.cpp
+00E7D86E dst=r2 dist=4 func~00E75E20 DNFClient\RDAR\CNRDQuestModuleVer2.cpp
+00E87EC9 dst=r2 dist=16 func~00E7EEF0 DNFClient\RDAR\CNRDReplayHelper.cpp
+00E88313 dst=r2 dist=16 func~00E7EEF0 DNFClient\RDAR\CNRDReplayHelper.cpp
+00E90C57 dst=r6 dist=18 func~00E8C520 DNFClient\RDAR\DrawQueue.cpp
+00ED7BD6 dst=r6 dist=17 func~00EC9FF0 DNFClient\RDAR\ExpertJob\CNRDExpertJobShop.cpp
+00EEC715 dst=r2 dist=7 func~00EDB230 DNFClient\RDAR\FogOfWar\CNFogTexture.cpp
+00EEF0B1 dst=r0 dist=7 func~00EDB230 DNFClient\RDAR\FogOfWar\CNFogTexture.cpp
+00EF5B67 dst=r2 dist=13 func~00EF3E20 DNFClient\RDAR\ItemControl.cpp
+00F246C5 dst=r1 dist=9 func~00F1A1E0 DNFClient\RDAR\PopupWindow\China\CompoundUniqueEventWindow.cpp
+00F7E65F dst=r2 dist=3 func~00F7E000 DNFClient\RDAR\PopupWindow\KnightShieldWindow.cpp
+00FA2873 dst=r2 dist=3 func~00F8FD40 DNFClient\RDAR\PopupWindow\RaidChannelWindow.cpp
+00FAB579 dst=r0 dist=6 func~00F8FD40 DNFClient\RDAR\PopupWindow\RaidChannelWindow.cpp
+00FAF0B6 dst=r2 dist=9 func~00F8FD40 DNFClient\RDAR\PopupWindow\RaidChannelWindow.cpp
+00FB2BC4 dst=r0 dist=3 func~00F8FD40 DNFClient\RDAR\PopupWindow\RaidChannelWindow.cpp
+00FC649E dst=r0 dist=19 func~00000000 
+00FD06C3 dst=r2 dist=5 func~00FCDB90 DNFClient\RDAR\Npc\CNFighterSecondAwakeningEventStatueNpc.cpp
+00FD905D dst=r2 dist=5 func~00FD5340 DNFClient\RDAR\PassiveObject\Cinematic\MovieDirector.cpp
+00FE5605 dst=r2 dist=5 func~00FDDFB0 DNFClient\RDAR\PassiveObject\Cinematic\MovieDirector.cpp
+01022985 dst=r2 dist=3 func~0101F540 DNFClient\RDAR\POPUPwindow\CNRDRandomOptionItemUnsealResultWindow.cpp
+01024894 dst=r2 dist=11 func~0101F540 DNFClient\RDAR\POPUPwindow\CNRDRandomOptionItemUnsealResultWindow.cpp
+01038C03 dst=r0 dist=3 func~0101F540 DNFClient\RDAR\POPUPwindow\CNRDRandomOptionItemUnsealResultWindow.cpp
+01048CD6 dst=r0 dist=19 func~01048680 DNFClient\RDAR\PopupWindow\SelectDollWindow.cpp
+0106D6B3 dst=r0 dist=3 func~010495D0 DNFClient\RDAR\PopupWindow\SelectDollWindow.cpp
+0107B1FE dst=r2 dist=20 func~01073AC0 DNFClient\RDAR\PvpDollSkillManager.cpp
+0107B8A1 dst=r2 dist=20 func~01073AC0 DNFClient\RDAR\PvpDollSkillManager.cpp
+0107BCC0 dst=r0 dist=10 func~01073AC0 DNFClient\RDAR\PvpDollSkillManager.cpp
+010933DA dst=r2 dist=16 func~01090FE0 DNFClient\RDAR\RecentPartnerManager.cpp
+0109C1E7 dst=r0 dist=3 func~01090FE0 DNFClient\RDAR\RecentPartnerManager.cpp
+0109DE6D dst=r2 dist=5 func~0109CDE0 DNFClient\RDAR\Schedules\CNAOSPatternProcess.cpp
+0109E808 dst=r0 dist=3 func~0109CDE0 DNFClient\RDAR\Schedules\CNAOSPatternProcess.cpp
+0109EB20 dst=r0 dist=5 func~0109CDE0 DNFClient\RDAR\Schedules\CNAOSPatternProcess.cpp
+0109EB86 dst=r2 dist=5 func~0109CDE0 DNFClient\RDAR\Schedules\CNAOSPatternProcess.cpp
+010A3EDD dst=r2 dist=3 func~0109CDE0 DNFClient\RDAR\Schedules\CNAOSPatternProcess.cpp
+010C0819 dst=r2 dist=4 func~010BFE10 DNFClient\RDAR\CNSelectChannelSocket.cpp
+010C1042 dst=r0 dist=7 func~010BFE10 DNFClient\RDAR\CNSelectChannelSocket.cpp
+010ECA84 dst=r1 dist=21 func~010C97F0 DNFClient\RDAR\CNRDBossTowerReward.cpp
+010EF723 dst=r0 dist=22 func~010ECB10 DNFClient\RDAR\DrawOnly\CNHomingObject.cpp
+010F0A87 dst=r2 dist=9 func~010ECB10 DNFClient\RDAR\DrawOnly\CNHomingObject.cpp
+0114871F dst=r2 dist=3 func~01146000 DNFClient\RDAR\GameCoreNetwork_NOTI_Dungeon.cpp
+0114B85B dst=r2 dist=5 func~01146000 DNFClient\RDAR\GameCoreNetwork_NOTI_Dungeon.cpp
+0114F71D dst=r0 dist=3 func~0114F380 DNFClient\RDAR\GameCoreNetwork_NOTI_Dungeon.cpp
+0114F892 dst=r0 dist=5 func~0114F380 DNFClient\RDAR\GameCoreNetwork_NOTI_Dungeon.cpp
+01163DB6 dst=r0 dist=4 func~01163410 DNFClient\RDAR\GameCoreNetwork_NOTI_Etc.cpp
+01172791 dst=r0 dist=5 func~0116F62E DNFClient\RDAR\GameCoreNetwork_NOTI_Etc.cpp
+01172C2F dst=r0 dist=5 func~0116F62E DNFClient\RDAR\GameCoreNetwork_NOTI_Etc.cpp
+011917FE dst=r0 dist=5 func~0118C3A0 DNFClient\RDAR\GameCoreNetwork_NOTI_Town.cpp
+01199620 dst=r0 dist=20 func~01198C80 DNFClient\RDAR\GameCoreNetwork_NOTI_Town.cpp
+011BE1BD dst=r0 dist=11 func~011BADF0 DNFClient\RDAR\DualRaid\CNRDDualRaidPacketManager.cpp
+011BF12B dst=r2 dist=3 func~011BADF0 DNFClient\RDAR\DualRaid\CNRDDualRaidPacketManager.cpp
+011BFB98 dst=r0 dist=22 func~011BADF0 DNFClient\RDAR\DualRaid\CNRDDualRaidPacketManager.cpp
+011BFC0F dst=r2 dist=22 func~011BADF0 DNFClient\RDAR\DualRaid\CNRDDualRaidPacketManager.cpp
+011C60BA dst=r0 dist=8 func~011C4970 DNFClient\RDAR\DungeonQuestTrigger\CNRDProcessObserver.cpp
+011DA5A1 dst=r1 dist=10 func~011D0F00 DNFClient\RDAR\Appendage\Character\CNRebirthAppendage.cpp
+011DAE08 dst=r1 dist=19 func~011D0F00 DNFClient\RDAR\Appendage\Character\CNRebirthAppendage.cpp
+011DB132 dst=r1 dist=25 func~011D0F00 DNFClient\RDAR\Appendage\Character\CNRebirthAppendage.cpp
+011DB142 dst=r1 dist=9 func~011D0F00 DNFClient\RDAR\Appendage\Character\CNRebirthAppendage.cpp
+011DB191 dst=r1 dist=10 func~011D0F00 DNFClient\RDAR\Appendage\Character\CNRebirthAppendage.cpp
+011DB203 dst=r1 dist=21 func~011D0F00 DNFClient\RDAR\Appendage\Character\CNRebirthAppendage.cpp
+011DB20F dst=r1 dist=9 func~011D0F00 DNFClient\RDAR\Appendage\Character\CNRebirthAppendage.cpp
+011EABFE dst=r1 dist=10 func~011E2290 DNFClient\RDAR\Event\CNRDMInorityEventWindow.cpp
+011EAC21 dst=r1 dist=10 func~011E2290 DNFClient\RDAR\Event\CNRDMInorityEventWindow.cpp
+011EAC41 dst=r1 dist=10 func~011E2290 DNFClient\RDAR\Event\CNRDMInorityEventWindow.cpp
+011EB1F8 dst=r1 dist=19 func~011E2290 DNFClient\RDAR\Event\CNRDMInorityEventWindow.cpp
+011FC6FE dst=r0 dist=24 func~011F5300 DNFClient\RDAR\ImageCommunication\CNRDImageCommunicationManager.cpp
+0120964E dst=r2 dist=17 func~01202D20 DNFClient\RDAR\Localization\UDPSuccessRateChecker.cpp
+01223A48 dst=r2 dist=4 func~01211080 DNFClient\RDAR\MatchingSystem\CNRDMatchingUIManager.cpp
+01223ADD dst=r2 dist=4 func~01211080 DNFClient\RDAR\MatchingSystem\CNRDMatchingUIManager.cpp
+01223D81 dst=r2 dist=4 func~01211080 DNFClient\RDAR\MatchingSystem\CNRDMatchingUIManager.cpp
+0127680F dst=r0 dist=3 func~0126CF10 DNFClient\RDAR\PopupWindow\ATSwordmanLevelUpAdditionRewardWindow.cpp
+0127682C dst=r0 dist=3 func~0126CF10 DNFClient\RDAR\PopupWindow\ATSwordmanLevelUpAdditionRewardWindow.cpp
+01297CE2 dst=r0 dist=10 func~0126CF10 DNFClient\RDAR\PopupWindow\ATSwordmanLevelUpAdditionRewardWindow.cpp
+012A8108 dst=r0 dist=3 func~0129AF60 DNFClient\RDAR\PopupWindow\PVPSelectModeWindow.cpp
+012AB3E9 dst=r6 dist=18 func~0129AF60 DNFClient\RDAR\PopupWindow\PVPSelectModeWindow.cpp
+012BF638 dst=r2 dist=15 func~012BAF50 DNFClient\RDAR\PopupWindow\UsableCeraPackageWindow.cpp
+012CAA87 dst=r3 dist=10 func~012BAF50 DNFClient\RDAR\PopupWindow\UsableCeraPackageWindow.cpp
+012D8997 dst=r0 dist=7 func~012D7650 DNFClient\RDAR\Table\CNPVPRevisionTable.cpp
+012E8669 dst=r2 dist=6 func~012D7650 DNFClient\RDAR\Table\CNPVPRevisionTable.cpp
+012ED33F dst=r2 dist=5 func~012E9970 DNFClient\RDAR\TCLS\TCLSWapper.cpp
+01308DB7 dst=r1 dist=17 func~01308A20 DNFClient\RDAR\BlueMarble\CNRDBlueMarble.cpp
+0131C757 dst=r2 dist=3 func~01309B30 DNFClient\RDAR\BlueMarble\CNRDBlueMarble.cpp
+0131DE96 dst=r2 dist=3 func~01309B30 DNFClient\RDAR\BlueMarble\CNRDBlueMarble.cpp
+0131E234 dst=r2 dist=3 func~01309B30 DNFClient\RDAR\BlueMarble\CNRDBlueMarble.cpp
+013440EE dst=r0 dist=6 func~01335D40 DNFClient\RDAR\CNRDBaseInterface.cpp
+0134E2E3 dst=r0 dist=3 func~01335D40 DNFClient\RDAR\CNRDBaseInterface.cpp
+01359F0B dst=r1 dist=16 func~01335D40 DNFClient\RDAR\CNRDBaseInterface.cpp
+01362787 dst=r0 dist=3 func~0135CF20 DNFClient\RDAR\CNRDBaseInterface.cpp
+01362DFF dst=r0 dist=10 func~0135CF20 DNFClient\RDAR\CNRDBaseInterface.cpp
+0136332A dst=r0 dist=10 func~0135CF20 DNFClient\RDAR\CNRDBaseInterface.cpp
+013636CF dst=r2 dist=3 func~0135CF20 DNFClient\RDAR\CNRDBaseInterface.cpp
+01363AC4 dst=r0 dist=6 func~0135CF20 DNFClient\RDAR\CNRDBaseInterface.cpp
+01364103 dst=r2 dist=6 func~0135CF20 DNFClient\RDAR\CNRDBaseInterface.cpp
+013645CF dst=r2 dist=6 func~0135CF20 DNFClient\RDAR\CNRDBaseInterface.cpp
+01364C0B dst=r2 dist=6 func~0135CF20 DNFClient\RDAR\CNRDBaseInterface.cpp
+0136505B dst=r2 dist=6 func~0135CF20 DNFClient\RDAR\CNRDBaseInterface.cpp
+01366AAF dst=r0 dist=3 func~0135CF20 DNFClient\RDAR\CNRDBaseInterface.cpp
+01366CA2 dst=r0 dist=7 func~0135CF20 DNFClient\RDAR\CNRDBaseInterface.cpp
+01367C11 dst=r2 dist=3 func~0135CF20 DNFClient\RDAR\CNRDBaseInterface.cpp
+01367E0E dst=r1 dist=17 func~0135CF20 DNFClient\RDAR\CNRDBaseInterface.cpp
+01369033 dst=r2 dist=3 func~01367F70 DNFClient\RDAR\CNRDBaseInterface.cpp
+013BCF76 dst=r1 dist=13 func~013AA560 DNFClient\RDAR\CNRDMainHudMenuManager.cpp
+013BD437 dst=r0 dist=5 func~013AA560 DNFClient\RDAR\CNRDMainHudMenuManager.cpp
+013BDFA6 dst=r0 dist=5 func~013AA560 DNFClient\RDAR\CNRDMainHudMenuManager.cpp
+013BE0E4 dst=r6 dist=5 func~013AA560 DNFClient\RDAR\CNRDMainHudMenuManager.cpp
+013BE0F1 dst=r0 dist=5 func~013AA560 DNFClient\RDAR\CNRDMainHudMenuManager.cpp
+013BE5B3 dst=r1 dist=13 func~013AA560 DNFClient\RDAR\CNRDMainHudMenuManager.cpp
+013BE8D0 dst=r2 dist=3 func~013AA560 DNFClient\RDAR\CNRDMainHudMenuManager.cpp
+013CCE8E dst=r6 dist=25 func~013C1AB0 DNFClient\RDAR\CNRDSkillBuyWindow.cpp
+013CD052 dst=r6 dist=25 func~013C1AB0 DNFClient\RDAR\CNRDSkillBuyWindow.cpp
+013D8810 dst=r0 dist=3 func~013CF5D0 DNFClient\RDAR\CNRDSkillBuyWindow.cpp
+013EDBAB dst=r0 dist=17 func~013E8AF0 DNFClient\RDAR\CNRDUserInfoPacketHandler.cpp
+013FC75B dst=r2 dist=3 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+013FC77D dst=r2 dist=3 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+013FC814 dst=r2 dist=3 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+013FC8F1 dst=r1 dist=12 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+013FC996 dst=r0 dist=3 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+013FCD3E dst=r6 dist=25 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+013FD8D8 dst=r0 dist=3 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+013FD909 dst=r0 dist=10 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+013FE61B dst=r0 dist=5 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+013FFCDB dst=r2 dist=3 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+013FFE29 dst=r0 dist=3 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+014028DC dst=r2 dist=3 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01402A35 dst=r1 dist=12 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01402A3E dst=r0 dist=3 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01402AC4 dst=r0 dist=3 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01402B79 dst=r0 dist=3 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01402C82 dst=r1 dist=12 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01402C8B dst=r0 dist=3 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01402D82 dst=r0 dist=3 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01402E2E dst=r2 dist=3 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01402F48 dst=r0 dist=3 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01402F77 dst=r0 dist=3 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01402FA6 dst=r0 dist=3 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01403168 dst=r0 dist=3 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+014033F3 dst=r2 dist=3 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01403421 dst=r2 dist=3 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01403457 dst=r2 dist=3 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01403509 dst=r2 dist=3 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01405A60 dst=r2 dist=5 func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+014286F7 dst=r0 dist=3 func~0141D5D0 DNFClient\RDAR\Event\CNRDChristmasEventSeriaRoomTreeNpc.cpp
+01428E61 dst=r0 dist=3 func~0141D5D0 DNFClient\RDAR\Event\CNRDChristmasEventSeriaRoomTreeNpc.cpp
+01428E70 dst=r0 dist=3 func~0141D5D0 DNFClient\RDAR\Event\CNRDChristmasEventSeriaRoomTreeNpc.cpp
+01428EB6 dst=r0 dist=3 func~0141D5D0 DNFClient\RDAR\Event\CNRDChristmasEventSeriaRoomTreeNpc.cpp
+014531FB dst=r2 dist=6 func~0144B970 DNFClient\RDAR\Localization\japan\PointAuction\CNPointAuctionList_Jpn.cpp
+01455CCC dst=r0 dist=3 func~014559B0 DNFClient\RDAR\Localization\japan\PointAuction\CNRDPointAuctionWindow_Jpn.cpp
+01457215 dst=r2 dist=3 func~01455D60 DNFClient\RDAR\Localization\japan\PointAuction\CNRDPointAuctionWindow_Jpn.cpp
+014579BD dst=r2 dist=3 func~01455D60 DNFClient\RDAR\Localization\japan\PointAuction\CNRDPointAuctionWindow_Jpn.cpp
+01458C62 dst=r2 dist=7 func~01455D60 DNFClient\RDAR\Localization\japan\PointAuction\CNRDPointAuctionWindow_Jpn.cpp
+01458D32 dst=r2 dist=7 func~01455D60 DNFClient\RDAR\Localization\japan\PointAuction\CNRDPointAuctionWindow_Jpn.cpp
+0145AA57 dst=r2 dist=3 func~01455D60 DNFClient\RDAR\Localization\japan\PointAuction\CNRDPointAuctionWindow_Jpn.cpp
+01464C04 dst=r2 dist=12 func~01464750 DNFClient\RDAR\Localization\localglobal\AdvanceAltarMode.cpp
+0148327E dst=r0 dist=3 func~01481170 DNFClient\RDAR\PopupWindow\China\EventNoticeWindowEx.cpp
+01485739 dst=r2 dist=6 func~01481170 DNFClient\RDAR\PopupWindow\China\EventNoticeWindowEx.cpp
+0148893C dst=r2 dist=3 func~01486980 DNFClient\RDAR\PopupWindow\China\EventNoticeWindowEx.cpp
+0149BD57 dst=r0 dist=24 func~01486980 DNFClient\RDAR\PopupWindow\China\EventNoticeWindowEx.cpp
+0149C959 dst=r1 dist=23 func~01486980 DNFClient\RDAR\PopupWindow\China\EventNoticeWindowEx.cpp
+014A097A dst=r1 dist=10 func~0149DA40 DNFClient\RDAR\PopupWindow\localglobal\AdvanceAltarRewardWindow.cpp
+014C3F36 dst=r2 dist=16 func~014B78E0 DNFClient\RDAR\PopupWindow\RandomBoxSystem\RandomBoxItemModePT.cpp
+014C42B0 dst=r1 dist=18 func~014B78E0 DNFClient\RDAR\PopupWindow\RandomBoxSystem\RandomBoxItemModePT.cpp
+014C59CA dst=r6 dist=19 func~014B78E0 DNFClient\RDAR\PopupWindow\RandomBoxSystem\RandomBoxItemModePT.cpp
+014D933D dst=r1 dist=4 func~014B78E0 DNFClient\RDAR\PopupWindow\RandomBoxSystem\RandomBoxItemModePT.cpp
+014EEB2E dst=r2 dist=20 func~014EE5F0 DNFClient\RDAR\PassiveObject\CNSniper.cpp
+01501947 dst=r0 dist=3 func~01500A40 DNFClient\RDAR\PopupWindow\Chronicle3ndEnchant.cpp
+0151855C dst=r0 dist=24 func~015044B0 DNFClient\RDAR\PopupWindow\DungeonEnterConditionWindow.cpp
+015268F2 dst=r0 dist=13 func~015044B0 DNFClient\RDAR\PopupWindow\DungeonEnterConditionWindow.cpp
+0153912D dst=r0 dist=3 func~00000000 
+015393CA dst=r0 dist=3 func~00000000 
+01553AD8 dst=r0 dist=12 func~01551DE0 DNFClient\RDAR\Event\CNRDGrowthPowerModule.cpp
+01554000 dst=r0 dist=12 func~01551DE0 DNFClient\RDAR\Event\CNRDGrowthPowerModule.cpp
+0155B1A7 dst=r1 dist=14 func~01551DE0 DNFClient\RDAR\Event\CNRDGrowthPowerModule.cpp
+01560E63 dst=r1 dist=25 func~01551DE0 DNFClient\RDAR\Event\CNRDGrowthPowerModule.cpp
+01561013 dst=r1 dist=25 func~01551DE0 DNFClient\RDAR\Event\CNRDGrowthPowerModule.cpp
+015B1FF1 dst=r0 dist=5 func~01589A30 DNFClient\RDAR\Party\CNRDQuickPartyManager.cpp
+015B4AC6 dst=r6 dist=20 func~01589A30 DNFClient\RDAR\Party\CNRDQuickPartyManager.cpp
+015C5289 dst=r2 dist=9 func~015BA9B0 DNFClient\RDAR\Inventory\CNRDInventoryWindow.cpp
+015C563C dst=r0 dist=3 func~015BA9B0 DNFClient\RDAR\Inventory\CNRDInventoryWindow.cpp
+015C57A6 dst=r0 dist=3 func~015BA9B0 DNFClient\RDAR\Inventory\CNRDInventoryWindow.cpp
+015C9D82 dst=r2 dist=16 func~015BA9B0 DNFClient\RDAR\Inventory\CNRDInventoryWindow.cpp
+015D4C5B dst=r2 dist=8 func~015BA9B0 DNFClient\RDAR\Inventory\CNRDInventoryWindow.cpp
+015D53E4 dst=r2 dist=3 func~015BA9B0 DNFClient\RDAR\Inventory\CNRDInventoryWindow.cpp
+015F0AD9 dst=r2 dist=3 func~00000000 
+01612F7E dst=r0 dist=3 func~0160F4D0 DNFClient\RDAR\TagSystem\CNRDTagSystem.cpp
+0161ACA2 dst=r0 dist=5 func~01614FC0 DNFClient\RDAR\TagSystem\CNRDTagSystem.cpp
+0161ACF3 dst=r2 dist=3 func~01614FC0 DNFClient\RDAR\TagSystem\CNRDTagSystem.cpp
+0161ADE8 dst=r0 dist=5 func~01614FC0 DNFClient\RDAR\TagSystem\CNRDTagSystem.cpp
+0161AE3F dst=r2 dist=3 func~01614FC0 DNFClient\RDAR\TagSystem\CNRDTagSystem.cpp
+0161BD93 dst=r0 dist=5 func~01614FC0 DNFClient\RDAR\TagSystem\CNRDTagSystem.cpp
+01620DF8 dst=r2 dist=10 func~01614FC0 DNFClient\RDAR\TagSystem\CNRDTagSystem.cpp
+01621D7A dst=r2 dist=6 func~01614FC0 DNFClient\RDAR\TagSystem\CNRDTagSystem.cpp
+016226A4 dst=r0 dist=3 func~01614FC0 DNFClient\RDAR\TagSystem\CNRDTagSystem.cpp
+0162C338 dst=r2 dist=5 func~01614FC0 DNFClient\RDAR\TagSystem\CNRDTagSystem.cpp
+0162C9F4 dst=r0 dist=7 func~01614FC0 DNFClient\RDAR\TagSystem\CNRDTagSystem.cpp
+0162EE9F dst=r0 dist=6 func~01614FC0 DNFClient\RDAR\TagSystem\CNRDTagSystem.cpp
+016451F2 dst=r2 dist=3 func~01644210 DNFClient\RDAR\GameCoreSub.cpp
+0164CCD8 dst=r0 dist=3 func~016471B0 DNFClient\RDAR\GameCoreSub.cpp
+0164FB4C dst=r0 dist=5 func~0164F14B DNFClient\RDAR\CNRDObject.cpp
+01650D4A dst=r2 dist=3 func~0164F14B DNFClient\RDAR\CNRDObject.cpp
+016546A6 dst=r0 dist=12 func~01653CC0 DNFClient\RDAR\RDCommon.cpp
+01655753 dst=r2 dist=3 func~016551F0 DNFClient\RDAR\RDCommon.cpp
+01690908 dst=r1 dist=25 func~00000000 
+016D25AB dst=r1 dist=21 func~016D12D0 DNFClient\RDAR\CNRDEquipment.cpp
+016D262D dst=r0 dist=25 func~016D12D0 DNFClient\RDAR\CNRDEquipment.cpp
+016DC519 dst=r1 dist=13 func~016DAD90 DNFClient\RDAR\CNRDEquipment.cpp
+016DC540 dst=r2 dist=13 func~016DAD90 DNFClient\RDAR\CNRDEquipment.cpp
+016E2AB0 dst=r0 dist=5 func~016DAD90 DNFClient\RDAR\CNRDEquipment.cpp
+016E2C1C dst=r0 dist=5 func~016DAD90 DNFClient\RDAR\CNRDEquipment.cpp
+016E350F dst=r0 dist=5 func~016DAD90 DNFClient\RDAR\CNRDEquipment.cpp
+016E366B dst=r0 dist=5 func~016DAD90 DNFClient\RDAR\CNRDEquipment.cpp
+0174A60E dst=r2 dist=5 func~017467F0 DNFClient\RDAR\CNRDDungeon.cpp
+0174A8FA dst=r2 dist=5 func~017467F0 DNFClient\RDAR\CNRDDungeon.cpp
+01762543 dst=r0 dist=21 func~0175C950 DNFClient\RDAR\CNRDNpc.cpp
+017630CB dst=r2 dist=20 func~0175C950 DNFClient\RDAR\CNRDNpc.cpp
+01764862 dst=r2 dist=17 func~0175C950 DNFClient\RDAR\CNRDNpc.cpp
+017648F8 dst=r1 dist=19 func~0175C950 DNFClient\RDAR\CNRDNpc.cpp
+01764E91 dst=r2 dist=7 func~0175C950 DNFClient\RDAR\CNRDNpc.cpp
+01768013 dst=r0 dist=4 func~0175C950 DNFClient\RDAR\CNRDNpc.cpp
+01777E1C dst=r0 dist=12 func~01774570 DNFClient\RDAR\CNRDPassiveObject.cpp
+017862E4 dst=r1 dist=16 func~0177FE70 DNFClient\RDAR\CNRDPassiveObject.cpp
+0178D857 dst=r1 dist=19 func~0177FE70 DNFClient\RDAR\CNRDPassiveObject.cpp
+017963D0 dst=r0 dist=10 func~0177FE70 DNFClient\RDAR\CNRDPassiveObject.cpp
+017968E4 dst=r0 dist=10 func~0177FE70 DNFClient\RDAR\CNRDPassiveObject.cpp
+017B189D dst=r1 dist=19 func~01799F20 DNFClient\RDAR\CNRDVirtualCharacter.cpp
+017B211F dst=r1 dist=16 func~01799F20 DNFClient\RDAR\CNRDVirtualCharacter.cpp
+017D2DED dst=r0 dist=5 func~00000000 
+017D6F51 dst=r0 dist=21 func~00000000 
+017DD738 dst=r0 dist=7 func~00000000 
+017E7FF6 dst=r0 dist=12 func~017DDD90 DNFClient\RDAR\IRDActiveObject.cpp
+017E8044 dst=r1 dist=19 func~017DDD90 DNFClient\RDAR\IRDActiveObject.cpp
+018087A4 dst=r1 dist=16 func~017DDD90 DNFClient\RDAR\IRDActiveObject.cpp
+01808DAB dst=r1 dist=20 func~017DDD90 DNFClient\RDAR\IRDActiveObject.cpp
+01832981 dst=r0 dist=25 func~00000000 
+0183BA0D dst=r0 dist=3 func~01837290 DNFClient\RDAR\IRDCharacter.cpp
+018486F9 dst=r2 dist=10 func~0183CDC0 DNFClient\RDAR\IRDCharacter.cpp
+01848789 dst=r2 dist=10 func~0183CDC0 DNFClient\RDAR\IRDCharacter.cpp
+01848819 dst=r2 dist=10 func~0183CDC0 DNFClient\RDAR\IRDCharacter.cpp
+01849A3B dst=r0 dist=25 func~0183CDC0 DNFClient\RDAR\IRDCharacter.cpp
+0185F086 dst=r0 dist=3 func~0183CDC0 DNFClient\RDAR\IRDCharacter.cpp
+01867B5D dst=r2 dist=22 func~0183CDC0 DNFClient\RDAR\IRDCharacter.cpp
+01869B00 dst=r0 dist=10 func~0183CDC0 DNFClient\RDAR\IRDCharacter.cpp
+01869F7F dst=r0 dist=10 func~0183CDC0 DNFClient\RDAR\IRDCharacter.cpp
+0187236B dst=r0 dist=3 func~01870B80 DNFClient\RDAR\IRDCharacter.cpp
+01872513 dst=r0 dist=3 func~01870B80 DNFClient\RDAR\IRDCharacter.cpp
+01886B55 dst=r2 dist=3 func~01870B80 DNFClient\RDAR\IRDCharacter.cpp
+01895D6E dst=r2 dist=5 func~01870B80 DNFClient\RDAR\IRDCharacter.cpp
+018A7A5F dst=r2 dist=4 func~01898380 DNFClient\RDAR\IRDCharacter.cpp
+018A8226 dst=r0 dist=4 func~01898380 DNFClient\RDAR\IRDCharacter.cpp
+018A97EF dst=r2 dist=7 func~01898380 DNFClient\RDAR\IRDCharacter.cpp
+018AA735 dst=r3 dist=13 func~01898380 DNFClient\RDAR\IRDCharacter.cpp
+018B5981 dst=r1 dist=14 func~018B27D0 DNFClient\RDAR\IRDCollisionObject.cpp
+018D069C dst=r2 dist=7 func~018BAB00 DNFClient\RDAR\IRDCollisionObject.cpp
+018E8EF6 dst=r0 dist=13 func~018E09F0 DNFClient\RDAR\IRDMonster.cpp
+018E8F27 dst=r0 dist=13 func~018E09F0 DNFClient\RDAR\IRDMonster.cpp
+018E8F58 dst=r0 dist=13 func~018E09F0 DNFClient\RDAR\IRDMonster.cpp
+01910611 dst=r2 dist=3 func~018E09F0 DNFClient\RDAR\IRDMonster.cpp
+01913906 dst=r0 dist=7 func~00000000 
+01915BE4 dst=r7 dist=18 func~00000000 
+01916C53 dst=r1 dist=19 func~00000000 
+01916D8D dst=r0 dist=9 func~00000000 
+019183D3 dst=r1 dist=19 func~00000000 
+0191924A dst=r1 dist=16 func~00000000 
+0191B903 dst=r0 dist=5 func~00000000 
+0191EC1F dst=r0 dist=5 func~0191BF20 DNFClient\RDAR\CNRDObjectManager.cpp
+019204C7 dst=r0 dist=4 func~0191BF20 DNFClient\RDAR\CNRDObjectManager.cpp
+01920779 dst=r1 dist=22 func~0191BF20 DNFClient\RDAR\CNRDObjectManager.cpp
+01920904 dst=r0 dist=4 func~0191BF20 DNFClient\RDAR\CNRDObjectManager.cpp
+019398C4 dst=r1 dist=23 func~01927F50 DNFClient\RDAR\CNRDMovementUnitBuffer.cpp
+01939C64 dst=r7 dist=20 func~01927F50 DNFClient\RDAR\CNRDMovementUnitBuffer.cpp
+0194AD0D dst=r2 dist=6 func~01927F50 DNFClient\RDAR\CNRDMovementUnitBuffer.cpp
+0194AD8D dst=r2 dist=6 func~01927F50 DNFClient\RDAR\CNRDMovementUnitBuffer.cpp
+0194B473 dst=r0 dist=4 func~01927F50 DNFClient\RDAR\CNRDMovementUnitBuffer.cpp
+0194B4F4 dst=r0 dist=4 func~01927F50 DNFClient\RDAR\CNRDMovementUnitBuffer.cpp
+0194B9C3 dst=r2 dist=4 func~01927F50 DNFClient\RDAR\CNRDMovementUnitBuffer.cpp
+0194BA44 dst=r2 dist=6 func~01927F50 DNFClient\RDAR\CNRDMovementUnitBuffer.cpp
+0194BE52 dst=r2 dist=6 func~01927F50 DNFClient\RDAR\CNRDMovementUnitBuffer.cpp
+0194BE6A dst=r2 dist=6 func~01927F50 DNFClient\RDAR\CNRDMovementUnitBuffer.cpp
+0194D2DE dst=r0 dist=4 func~01927F50 DNFClient\RDAR\CNRDMovementUnitBuffer.cpp
+0194D35D dst=r0 dist=4 func~01927F50 DNFClient\RDAR\CNRDMovementUnitBuffer.cpp
+01950991 dst=r2 dist=6 func~01927F50 DNFClient\RDAR\CNRDMovementUnitBuffer.cpp
+019518F3 dst=r0 dist=4 func~01927F50 DNFClient\RDAR\CNRDMovementUnitBuffer.cpp
+0195D57D dst=r2 dist=6 func~00000000 
+0195D5E5 dst=r2 dist=5 func~00000000 
+01975DFB dst=r0 dist=3 func~00000000 
+0197CA11 dst=r0 dist=25 func~00000000 
+0197CA9C dst=r0 dist=25 func~00000000 
+0197CBB4 dst=r0 dist=5 func~00000000 
+01982C84 dst=r0 dist=3 func~00000000 
+01983568 dst=r0 dist=3 func~00000000 
+01983614 dst=r2 dist=5 func~00000000 
+0198366A dst=r2 dist=3 func~00000000 
+01983840 dst=r2 dist=5 func~00000000 
+019838DB dst=r0 dist=3 func~00000000 
+019A5859 dst=r0 dist=3 func~0199FB10 DNFClient\RDAR\CNRDStage.cpp
+019C3444 dst=r0 dist=17 func~0199FB10 DNFClient\RDAR\CNRDStage.cpp
+019C4274 dst=r7 dist=5 func~0199FB10 DNFClient\RDAR\CNRDStage.cpp
+019CDE9D dst=r3 dist=21 func~0199FB10 DNFClient\RDAR\CNRDStage.cpp
+019D5D76 dst=r1 dist=16 func~00000000 
+019FA7D8 dst=r0 dist=5 func~019F4740 DNFClient\RDAR\CNRDFriendManager.cpp
+019FD447 dst=r2 dist=25 func~019F4740 DNFClient\RDAR\CNRDFriendManager.cpp
+01A00706 dst=r2 dist=13 func~019F4740 DNFClient\RDAR\CNRDFriendManager.cpp
+01A0075D dst=r0 dist=15 func~019F4740 DNFClient\RDAR\CNRDFriendManager.cpp
+01A11DE9 dst=r2 dist=3 func~01A07380 DNFClient\RDAR\CNAssaultRoom.cpp
+01A152D5 dst=r2 dist=4 func~01A07380 DNFClient\RDAR\CNAssaultRoom.cpp
+01A15456 dst=r1 dist=24 func~01A07380 DNFClient\RDAR\CNAssaultRoom.cpp
+01A15499 dst=r1 dist=20 func~01A07380 DNFClient\RDAR\CNAssaultRoom.cpp
+01A18480 dst=r0 dist=5 func~01A17450 DNFClient\RDAR\Event\CNRDInGameEvent.cpp
+01A20D84 dst=r6 dist=17 func~01A17450 DNFClient\RDAR\Event\CNRDInGameEvent.cpp
+01A25859 dst=r3 dist=21 func~01A17450 DNFClient\RDAR\Event\CNRDInGameEvent.cpp
+01A27FA4 dst=r3 dist=20 func~01A17450 DNFClient\RDAR\Event\CNRDInGameEvent.cpp
+01A3CC0C dst=r0 dist=3 func~01A382C0 DNFClient\RDAR\VillageAttack\CNRDVillageAttack.cpp
+01A60153 dst=r0 dist=21 func~01A382C0 DNFClient\RDAR\VillageAttack\CNRDVillageAttack.cpp
+01A6049B dst=r2 dist=4 func~01A382C0 DNFClient\RDAR\VillageAttack\CNRDVillageAttack.cpp
+01A63B85 dst=r2 dist=10 func~01A382C0 DNFClient\RDAR\VillageAttack\CNRDVillageAttack.cpp
+01A6E105 dst=r0 dist=4 func~01A6DEF0 DNFClient\RDAR\ReplayManager\CNRDReplayManager.cpp
+01A6FE9A dst=r2 dist=4 func~01A6FD20 DNFClient\RDAR\ReplayManager\CNRDReplayManager.cpp
+01A8287B dst=r1 dist=17 func~01A6FD20 DNFClient\RDAR\ReplayManager\CNRDReplayManager.cpp
+01A8A77F dst=r0 dist=15 func~01A85220 DNFClient\RDAR\ItemFactory.cpp
+01ACD164 dst=r1 dist=12 func~01ABA8B0 DNFClient\RDAR\Appendage\CNChangeTeam.cpp
+01ACD181 dst=r1 dist=12 func~01ABA8B0 DNFClient\RDAR\Appendage\CNChangeTeam.cpp
+01B7A40B dst=r1 dist=20 func~00000000 
+01B7A4D0 dst=r0 dist=8 func~00000000 
+01B8BDB5 dst=r1 dist=13 func~00000000 
+01B8E44D dst=r2 dist=25 func~00000000 
+01B8E6BD dst=r1 dist=21 func~00000000 
+01BD0206 dst=r0 dist=20 func~01BC5450 DNFClient\RDAR\PassiveObject\CNDiseaseWind.cpp
+01BD0237 dst=r0 dist=16 func~01BC5450 DNFClient\RDAR\PassiveObject\CNDiseaseWind.cpp
+01BD9A8A dst=r7 dist=8 func~01BC5450 DNFClient\RDAR\PassiveObject\CNDiseaseWind.cpp
+01BDCAEE dst=r0 dist=19 func~01BC5450 DNFClient\RDAR\PassiveObject\CNDiseaseWind.cpp
+01BFB28C dst=r0 dist=24 func~01BF5C20 DNFClient\RDAR\PassiveObject\Trap\CNSwamp.cpp
+01C0243B dst=r7 dist=24 func~01BF5C20 DNFClient\RDAR\PassiveObject\Trap\CNSwamp.cpp
+01C25B41 dst=r6 dist=25 func~01C06CB0 DNFClient\RDAR\PassiveObject\CNTileGameManager.cpp
+01C27AE5 dst=r6 dist=25 func~01C06CB0 DNFClient\RDAR\PassiveObject\CNTileGameManager.cpp
+01C27DD7 dst=r6 dist=25 func~01C06CB0 DNFClient\RDAR\PassiveObject\CNTileGameManager.cpp
+01C2856D dst=r7 dist=25 func~01C06CB0 DNFClient\RDAR\PassiveObject\CNTileGameManager.cpp
+01C93836 dst=r2 dist=18 func~00000000 
+01CB2C46 dst=r2 dist=7 func~00000000 
+01CFE9B2 dst=r2 dist=22 func~00000000 
+01D03393 dst=r2 dist=22 func~00000000 
+01D66D0A dst=r0 dist=5 func~01D63410 DNFClient\RDAR\PassiveObject\Character\CNThrowWeapon.cpp
+01D8F4B1 dst=r2 dist=8 func~01D63410 DNFClient\RDAR\PassiveObject\Character\CNThrowWeapon.cpp
+01D9FF9B dst=r2 dist=5 func~01D931A0 DNFClient\RDAR\PassiveObject\CNStorageBird.cpp
+01DA0C50 dst=r0 dist=8 func~01D931A0 DNFClient\RDAR\PassiveObject\CNStorageBird.cpp
+01DABBDD dst=r0 dist=10 func~01D931A0 DNFClient\RDAR\PassiveObject\CNStorageBird.cpp
+01DBA3E8 dst=r2 dist=5 func~01DB9D00 DNFClient\RDAR\Monster\CNRidableObject.cpp
+01DEDCE6 dst=r0 dist=3 func~00000000 
+01F85575 dst=r0 dist=3 func~01F7D4A0 DNFClient\RDAR\Character\CNMage.cpp
+02001439 dst=r0 dist=5 func~02000B90 DNFClient\RDAR\Character\CNMage.cpp
+02010524 dst=r0 dist=5 func~02000B90 DNFClient\RDAR\Character\CNMage.cpp
+0210A859 dst=r2 dist=4 func~00000000 
+0211FEDF dst=r0 dist=23 func~02118F60 DNFClient\RDAR\AICharacterFactory.cpp
+021202ED dst=r0 dist=23 func~02118F60 DNFClient\RDAR\AICharacterFactory.cpp
+02120EAD dst=r3 dist=14 func~02118F60 DNFClient\RDAR\AICharacterFactory.cpp
+02160516 dst=r0 dist=15 func~00000000 
+021DD7DA dst=r2 dist=6 func~00000000 
+0224FEC1 dst=r7 dist=11 func~00000000 
+02253A50 dst=r1 dist=14 func~00000000 
+02261441 dst=r0 dist=13 func~00000000 
+02261E32 dst=r0 dist=13 func~00000000 
+02261E6F dst=r7 dist=11 func~00000000 
+02270366 dst=r1 dist=19 func~00000000 
+02279D34 dst=r1 dist=19 func~00000000 
+0227AD77 dst=r7 dist=13 func~00000000 
+022939E7 dst=r2 dist=14 func~00000000 
+0229F7C3 dst=r2 dist=14 func~00000000 
+022B41E4 dst=r1 dist=21 func~00000000 
+022B7D29 dst=r2 dist=5 func~00000000 
+022B86DE dst=r0 dist=15 func~00000000 
+022BA709 dst=r0 dist=7 func~00000000 
+022D591E dst=r0 dist=3 func~022D2330 DNFShared\CNRDScriptData.cpp
+022E1A0C dst=r2 dist=4 func~022E00C0 DNFClient\RDAR\CNRDParticle.cpp
+022E801E dst=r1 dist=25 func~022E7B40 DNFClient\RDAR\CNRDUdpModule.cpp
+022E8320 dst=r1 dist=9 func~022E7B40 DNFClient\RDAR\CNRDUdpModule.cpp
+022EAE37 dst=r1 dist=25 func~022EA720 DNFClient\RDAR\CNRDUdpModule.cpp
+022EAF88 dst=r1 dist=21 func~022EA720 DNFClient\RDAR\CNRDUdpModule.cpp
+022EB141 dst=r1 dist=25 func~022EA720 DNFClient\RDAR\CNRDUdpModule.cpp
+022EB2A7 dst=r1 dist=25 func~022EA720 DNFClient\RDAR\CNRDUdpModule.cpp
+022F158D dst=r0 dist=4 func~022EA720 DNFClient\RDAR\CNRDUdpModule.cpp
+02304FA7 dst=r0 dist=7 func~02304C70 DNFClient\RDAR\CNRDInterfaceManager.cpp
+0232029F dst=r0 dist=4 func~02312480 DNFClient\RDAR\CNRDInterfaceManager.cpp
+02322939 dst=r0 dist=5 func~02312480 DNFClient\RDAR\CNRDInterfaceManager.cpp
+0232C374 dst=r0 dist=6 func~02312480 DNFClient\RDAR\CNRDInterfaceManager.cpp
+0232C75B dst=r2 dist=6 func~02312480 DNFClient\RDAR\CNRDInterfaceManager.cpp
+02335EDD dst=r2 dist=3 func~02312480 DNFClient\RDAR\CNRDInterfaceManager.cpp
+023378AF dst=r2 dist=3 func~02312480 DNFClient\RDAR\CNRDInterfaceManager.cpp
+02337F3E dst=r2 dist=3 func~02312480 DNFClient\RDAR\CNRDInterfaceManager.cpp
+02338D62 dst=r2 dist=7 func~02312480 DNFClient\RDAR\CNRDInterfaceManager.cpp
+02338E22 dst=r2 dist=7 func~02312480 DNFClient\RDAR\CNRDInterfaceManager.cpp
+02340522 dst=r2 dist=5 func~02312480 DNFClient\RDAR\CNRDInterfaceManager.cpp
+02340E87 dst=r2 dist=3 func~02312480 DNFClient\RDAR\CNRDInterfaceManager.cpp
+02345B7C dst=r0 dist=3 func~00000000 
+02367D0F dst=r2 dist=4 func~00000000 
+0236E2AB dst=r0 dist=21 func~00000000 
+02370099 dst=r0 dist=6 func~00000000 
+0237088F dst=r2 dist=5 func~00000000 
+02370C7F dst=r0 dist=5 func~00000000 
+02370DE8 dst=r2 dist=5 func~00000000 
+023711AA dst=r0 dist=5 func~00000000 
+02374E86 dst=r2 dist=5 func~00000000 
+02374FCF dst=r2 dist=5 func~00000000 
+023777CD dst=r2 dist=5 func~00000000 
+023782EE dst=r2 dist=5 func~00000000 
+02379914 dst=r0 dist=15 func~00000000 
+02379930 dst=r0 dist=5 func~00000000 
+0237A39F dst=r2 dist=3 func~00000000 
+0237A4F8 dst=r0 dist=5 func~00000000 
+0237A91F dst=r2 dist=5 func~00000000 
+0237A93A dst=r0 dist=5 func~00000000 
+0237A9EE dst=r0 dist=5 func~00000000 
+0237AA09 dst=r0 dist=5 func~00000000 
+0237B76D dst=r2 dist=5 func~00000000 
+0237B855 dst=r2 dist=5 func~00000000 
+0237B92C dst=r2 dist=5 func~00000000 
+0237DC09 dst=r2 dist=5 func~00000000 
+0237DDC8 dst=r2 dist=5 func~00000000 
+0237E7DA dst=r0 dist=5 func~00000000 
+0237E8FA dst=r0 dist=5 func~00000000 
+0237EBB2 dst=r2 dist=5 func~00000000 
+0237EC54 dst=r2 dist=5 func~00000000 
+0237ED1F dst=r2 dist=5 func~00000000 
+0237ED59 dst=r2 dist=5 func~00000000 
+0237F002 dst=r2 dist=5 func~00000000 
+0237F0C7 dst=r2 dist=5 func~00000000 
+0237F107 dst=r2 dist=5 func~00000000 
+0237F5E9 dst=r0 dist=5 func~00000000 
+02380C4C dst=r2 dist=5 func~00000000 
+02380D6D dst=r0 dist=5 func~00000000 
+0238105D dst=r2 dist=5 func~00000000 
+02381107 dst=r2 dist=5 func~00000000 
+023811CC dst=r2 dist=5 func~00000000 
+02381206 dst=r2 dist=5 func~00000000 
+02381432 dst=r0 dist=5 func~00000000 
+023814F1 dst=r0 dist=5 func~00000000 
+02381529 dst=r0 dist=6 func~00000000 
+023818A2 dst=r0 dist=5 func~00000000 
+02382FCF dst=r0 dist=6 func~00000000 
+02385C41 dst=r3 dist=21 func~00000000 
+02385CC0 dst=r1 dist=24 func~00000000 
+02385D33 dst=r1 dist=21 func~00000000 
+02385F76 dst=r3 dist=17 func~00000000 
+023860B1 dst=r1 dist=22 func~00000000 
+02386D26 dst=r3 dist=23 func~00000000 
+02386DAF dst=r0 dist=17 func~00000000 
+02386EDD dst=r2 dist=17 func~00000000 
+02386FAD dst=r0 dist=16 func~00000000 
+023876DF dst=r0 dist=3 func~00000000 
+02387999 dst=r0 dist=6 func~00000000 
+0239A04E dst=r1 dist=18 func~00000000 
+0239A949 dst=r0 dist=3 func~00000000 
+0239ABA4 dst=r0 dist=3 func~00000000 
+023B164D dst=r0 dist=4 func~023AB300 DNFClient\RDAR\PopupWindow\CompoundMonsterCard.cpp
+023B3C14 dst=r2 dist=5 func~023AB300 DNFClient\RDAR\PopupWindow\CompoundMonsterCard.cpp
+023B40DE dst=r3 dist=20 func~023AB300 DNFClient\RDAR\PopupWindow\CompoundMonsterCard.cpp
+023B8C8B dst=r2 dist=24 func~023AB300 DNFClient\RDAR\PopupWindow\CompoundMonsterCard.cpp
+023D29EE dst=r0 dist=6 func~023AB300 DNFClient\RDAR\PopupWindow\CompoundMonsterCard.cpp
+023D2CFE dst=r0 dist=6 func~023AB300 DNFClient\RDAR\PopupWindow\CompoundMonsterCard.cpp
+023D5C05 dst=r0 dist=6 func~023AB300 DNFClient\RDAR\PopupWindow\CompoundMonsterCard.cpp
+023F6C1E dst=r0 dist=6 func~023F53E0 DNFClient\RDAR\PopupWindow\ReportConfirmWindow.cpp
+0240BF35 dst=r2 dist=10 func~023F53E0 DNFClient\RDAR\PopupWindow\ReportConfirmWindow.cpp
+02419CDC dst=r0 dist=7 func~02411280 DNFClient\RDAR\PopupWindow\TodayPartner.cpp
+02475F9E dst=r0 dist=24 func~0246D5B0 DNFClient\RDAR\PopupWindow\ItemTradeResultWindow.cpp
+0248A439 dst=r2 dist=4 func~0246D5B0 DNFClient\RDAR\PopupWindow\ItemTradeResultWindow.cpp
+0248CFA4 dst=r2 dist=4 func~0246D5B0 DNFClient\RDAR\PopupWindow\ItemTradeResultWindow.cpp
+02494DFD dst=r0 dist=8 func~0246D5B0 DNFClient\RDAR\PopupWindow\ItemTradeResultWindow.cpp
+024A725F dst=r2 dist=3 func~00000000 
+024CD160 dst=r2 dist=4 func~024AD000 DNFClient\RDAR\PopupWindow\ClassChangePopupWindow.cpp
+024ECA22 dst=r2 dist=7 func~024D53F0 DNFClient\RDAR\PopupWindow\ExpertProduceProgressWindow.cpp
+024F485F dst=r2 dist=3 func~024D53F0 DNFClient\RDAR\PopupWindow\ExpertProduceProgressWindow.cpp
+024F917F dst=r2 dist=6 func~024D53F0 DNFClient\RDAR\PopupWindow\ExpertProduceProgressWindow.cpp
+024FF953 dst=r2 dist=5 func~024D53F0 DNFClient\RDAR\PopupWindow\ExpertProduceProgressWindow.cpp
+0250C0B2 dst=r0 dist=3 func~025085C0 DNFClient\RDAR\PopupWindow\NewNPCDialogWindow.cpp
+0251A926 dst=r0 dist=3 func~025085C0 DNFClient\RDAR\PopupWindow\NewNPCDialogWindow.cpp
+0251DF0A dst=r2 dist=8 func~025085C0 DNFClient\RDAR\PopupWindow\NewNPCDialogWindow.cpp
+0251DFCF dst=r2 dist=8 func~025085C0 DNFClient\RDAR\PopupWindow\NewNPCDialogWindow.cpp
+0251E396 dst=r2 dist=8 func~025085C0 DNFClient\RDAR\PopupWindow\NewNPCDialogWindow.cpp
+0251F618 dst=r2 dist=3 func~025085C0 DNFClient\RDAR\PopupWindow\NewNPCDialogWindow.cpp
+025298EF dst=r0 dist=5 func~02526D10 DNFClient\RDAR\PopupWindow\QuestGuideWindow.cpp
+02530AB1 dst=r0 dist=4 func~02526D10 DNFClient\RDAR\PopupWindow\QuestGuideWindow.cpp
+0253236B dst=r0 dist=3 func~02526D10 DNFClient\RDAR\PopupWindow\QuestGuideWindow.cpp
+0253D554 dst=r2 dist=6 func~02534C20 DNFClient\RDAR\PopupWindow\ResponsePeerWindow.cpp
+0253DB07 dst=r2 dist=6 func~02534C20 DNFClient\RDAR\PopupWindow\ResponsePeerWindow.cpp
+025501E5 dst=r1 dist=8 func~0253DDB0 DNFClient\RDAR\PopupWindow\SelectServerWindow.cpp
+02551D51 dst=r1 dist=10 func~0253DDB0 DNFClient\RDAR\PopupWindow\SelectServerWindow.cpp
+025529FF dst=r1 dist=18 func~0253DDB0 DNFClient\RDAR\PopupWindow\SelectServerWindow.cpp
+0255D3B9 dst=r2 dist=4 func~0255C3F0 DNFClient\RDAR\PopupWindow\PVPRoomCreateWindow.cpp
+02562D1B dst=r0 dist=5 func~0255C3F0 DNFClient\RDAR\PopupWindow\PVPRoomCreateWindow.cpp
+02562D3C dst=r0 dist=5 func~0255C3F0 DNFClient\RDAR\PopupWindow\PVPRoomCreateWindow.cpp
+025661A5 dst=r0 dist=6 func~0255C3F0 DNFClient\RDAR\PopupWindow\PVPRoomCreateWindow.cpp
+025693D6 dst=r6 dist=17 func~0255C3F0 DNFClient\RDAR\PopupWindow\PVPRoomCreateWindow.cpp
+0257FAF1 dst=r1 dist=18 func~025738A0 DNFClient\RDAR\PopupWindow\TitleBook.cpp
+02585415 dst=r0 dist=24 func~025738A0 DNFClient\RDAR\PopupWindow\TitleBook.cpp
+02585697 dst=r0 dist=24 func~025738A0 DNFClient\RDAR\PopupWindow\TitleBook.cpp
+02585CEA dst=r2 dist=6 func~025738A0 DNFClient\RDAR\PopupWindow\TitleBook.cpp
+02587A21 dst=r1 dist=8 func~025738A0 DNFClient\RDAR\PopupWindow\TitleBook.cpp
+02587A3C dst=r1 dist=10 func~025738A0 DNFClient\RDAR\PopupWindow\TitleBook.cpp
+02587A64 dst=r1 dist=10 func~025738A0 DNFClient\RDAR\PopupWindow\TitleBook.cpp
+0258863B dst=r1 dist=9 func~025738A0 DNFClient\RDAR\PopupWindow\TitleBook.cpp
+025950B5 dst=r1 dist=13 func~025738A0 DNFClient\RDAR\PopupWindow\TitleBook.cpp
+02598253 dst=r0 dist=22 func~025738A0 DNFClient\RDAR\PopupWindow\TitleBook.cpp
+02598285 dst=r3 dist=22 func~025738A0 DNFClient\RDAR\PopupWindow\TitleBook.cpp
+025B0C24 dst=r1 dist=8 func~025A7950 DNFClient\RDAR\CNRDPopupMenu.cpp
+025B0D46 dst=r1 dist=8 func~025A7950 DNFClient\RDAR\CNRDPopupMenu.cpp
+025D6A3C dst=r0 dist=22 func~025D50A0 DNFClient\RDAR\PVP\CNRDPVPPractice.cpp
+025E33B6 dst=r6 dist=20 func~025D50A0 DNFClient\RDAR\PVP\CNRDPVPPractice.cpp
+02612AD6 dst=r2 dist=5 func~00000000 
+02612BE7 dst=r2 dist=5 func~00000000 
+02612EDF dst=r2 dist=5 func~00000000 
+026311A8 dst=r1 dist=17 func~0262CA00 DNFClient\RDAR\UI Automation\Control\CNUIControlWorldmapBalloonForRDAR.cpp
+026313A3 dst=r2 dist=3 func~0262CA00 DNFClient\RDAR\UI Automation\Control\CNUIControlWorldmapBalloonForRDAR.cpp
+0263F21E dst=r3 dist=20 func~0262CA00 DNFClient\RDAR\UI Automation\Control\CNUIControlWorldmapBalloonForRDAR.cpp
+026B7E19 dst=r6 dist=20 func~026B4440 DNFClient\RDAR\CNRDActionTrigger.cpp
+026B7ECC dst=r6 dist=20 func~026B4440 DNFClient\RDAR\CNRDActionTrigger.cpp
+026C5B72 dst=r1 dist=10 func~026B4440 DNFClient\RDAR\CNRDActionTrigger.cpp
+026CC6E0 dst=r1 dist=10 func~026B4440 DNFClient\RDAR\CNRDActionTrigger.cpp
+026CC75F dst=r0 dist=12 func~026B4440 DNFClient\RDAR\CNRDActionTrigger.cpp
+026CCDD2 dst=r1 dist=10 func~026B4440 DNFClient\RDAR\CNRDActionTrigger.cpp
+026D53D1 dst=r0 dist=7 func~026D3270 DNFClient\RDAR\CNAssaultModule.cpp
+026E0046 dst=r2 dist=22 func~026DBEF0 DNFClient\RDAR\CNSelectCharacterModule.cpp
+026E08DB dst=r1 dist=14 func~026DBEF0 DNFClient\RDAR\CNSelectCharacterModule.cpp
+026F6C56 dst=r0 dist=3 func~026F5050 DNFClient\RDAR\CNSelectCharacterModule.cpp
+026F83E6 dst=r0 dist=3 func~026F5050 DNFClient\RDAR\CNSelectCharacterModule.cpp
+02701BB7 dst=r0 dist=4 func~026FB7A0 DNFClient\RDAR\CNMainGameModule.cpp
+02702A96 dst=r0 dist=3 func~027026A0 DNFClient\RDAR\CNPVPModule.cpp
+02705293 dst=r2 dist=5 func~027037C0 DNFClient\RDAR\CNPVPModule.cpp
+0270898C dst=r0 dist=23 func~02706C80 DNFClient\RDAR\CNTownModule.cpp
+02746BA8 dst=r2 dist=8 func~027464F0 DNFClient\RDAR\CNRDAStar.cpp
+02746D2C dst=r1 dist=6 func~027464F0 DNFClient\RDAR\CNRDAStar.cpp
+0274701B dst=r1 dist=6 func~027464F0 DNFClient\RDAR\CNRDAStar.cpp
+02748A4B dst=r0 dist=3 func~027464F0 DNFClient\RDAR\CNRDAStar.cpp
+0274FE98 dst=r1 dist=12 func~0274F380 DNFClient\RDAR\CNGameSocket.cpp
+02750276 dst=r0 dist=8 func~0274F380 DNFClient\RDAR\CNGameSocket.cpp
+0275C72D dst=r2 dist=20 func~0274F380 DNFClient\RDAR\CNGameSocket.cpp
+0276917C dst=r0 dist=6 func~02769070 DNFClient\RDAR\Library\CNAntiBot.cpp
+02792B24 dst=r2 dist=3 func~02792770 DNFClient\RDAR\Main\Main.cpp
+02792D0F dst=r2 dist=3 func~02792770 DNFClient\RDAR\Main\Main.cpp
+027942C8 dst=r2 dist=3 func~02793870 DNFClient\RDAR\Main\Main.cpp
+027942D2 dst=r2 dist=3 func~02793870 DNFClient\RDAR\Main\Main.cpp
+02796AE4 dst=r2 dist=4 func~02793870 DNFClient\RDAR\Main\Main.cpp
+0279793A dst=r0 dist=3 func~02793870 DNFClient\RDAR\Main\Main.cpp
+0279E1E5 dst=r2 dist=25 func~0279CD60 DNFClient\RDAR\Main\CCrashReporter.cpp
+0279E22F dst=r0 dist=3 func~0279CD60 DNFClient\RDAR\Main\CCrashReporter.cpp
+0279E412 dst=r2 dist=20 func~0279CD60 DNFClient\RDAR\Main\CCrashReporter.cpp
+0279FDC4 dst=r0 dist=5 func~0279F390 DNFClient\RDAR\Tools\DungeonTool\CNRDDungeonTool.cpp
+027A46B1 dst=r1 dist=23 func~0279FE30 DNFClient\RDAR\Tools\DungeonTool\CNRDDungeonTool.cpp
+027A4DD6 dst=r0 dist=5 func~0279FE30 DNFClient\RDAR\Tools\DungeonTool\CNRDDungeonTool.cpp
+027A52BD dst=r0 dist=5 func~0279FE30 DNFClient\RDAR\Tools\DungeonTool\CNRDDungeonTool.cpp
+027B3A18 dst=r1 dist=15 func~027A7D00 DNFClient\RDAR\PerformanceProfiler\PerformanceProfiler.cpp
+027BE3F4 dst=r2 dist=21 func~027B4AF0 Library\Include\AudioSystem\AudioManager.cpp
+027C9CD3 dst=r3 dist=20 func~027C42E0 Library\Include\Nengine\CNMemoryPool.cpp
+027CA28D dst=r2 dist=13 func~027C42E0 Library\Include\Nengine\CNMemoryPool.cpp
+027CA2C1 dst=r2 dist=13 func~027C42E0 Library\Include\Nengine\CNMemoryPool.cpp
+027D22AF dst=r1 dist=25 func~027D11A0 Library\Include\Nengine\CNImagePackEx2.cpp
+027D7C7C dst=r2 dist=5 func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027DF3B3 dst=r2 dist=13 func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027E183C dst=r2 dist=3 func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027EA875 dst=r0 dist=4 func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027EDA71 dst=r2 dist=3 func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027EEB4F dst=r2 dist=6 func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027EEE6B dst=r0 dist=3 func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F01D7 dst=r2 dist=3 func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F0234 dst=r0 dist=3 func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F02EC dst=r2 dist=3 func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F03ED dst=r2 dist=3 func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F04A3 dst=r2 dist=3 func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F0500 dst=r0 dist=3 func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F2FEA dst=r2 dist=16 func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F3024 dst=r2 dist=16 func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F3069 dst=r2 dist=5 func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F3098 dst=r2 dist=16 func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F3490 dst=r0 dist=12 func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F5440 dst=r0 dist=3 func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F5915 dst=r0 dist=3 func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F5AF9 dst=r0 dist=3 func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F66C5 dst=r0 dist=3 func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+02804FF0 dst=r2 dist=11 func~02804E30 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+02805D6E dst=r0 dist=13 func~02805B90 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+0280627C dst=r2 dist=5 func~02805B90 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+028062E5 dst=r2 dist=3 func~02805B90 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+02806463 dst=r0 dist=11 func~02805B90 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+02806587 dst=r0 dist=5 func~02805B90 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+0280661A dst=r2 dist=5 func~02805B90 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+02806AEA dst=r0 dist=5 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+028073D7 dst=r2 dist=13 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+0280A770 dst=r0 dist=8 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+0280BFC5 dst=r2 dist=13 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+0280BFF9 dst=r2 dist=13 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+02811557 dst=r2 dist=13 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+0281158B dst=r2 dist=13 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+028117D5 dst=r2 dist=13 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+028123B7 dst=r0 dist=12 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+02816351 dst=r0 dist=7 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+02817B1F dst=r2 dist=3 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+02817B3F dst=r0 dist=3 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+02818BB4 dst=r2 dist=3 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+02819D32 dst=r0 dist=15 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+0281E210 dst=r0 dist=3 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+0281E7B2 dst=r0 dist=3 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+0281E9CB dst=r0 dist=3 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+0281EAFE dst=r0 dist=3 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+0281ECCB dst=r0 dist=14 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+0281ED6D dst=r0 dist=3 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+0281F669 dst=r0 dist=3 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+028206EB dst=r2 dist=5 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+02828025 dst=r2 dist=3 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+02829CEB dst=r2 dist=3 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+02829D45 dst=r2 dist=3 func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+0282AEC6 dst=r2 dist=5 func~0282AE20 Library\Include\Nengine\CND3DBaseTexture.cpp
+0282D479 dst=r0 dist=3 func~0282AE20 Library\Include\Nengine\CND3DBaseTexture.cpp
+0282D494 dst=r0 dist=3 func~0282AE20 Library\Include\Nengine\CND3DBaseTexture.cpp
+0282DE7E dst=r0 dist=3 func~0282AE20 Library\Include\Nengine\CND3DBaseTexture.cpp
+0282F753 dst=r1 dist=16 func~0282AE20 Library\Include\Nengine\CND3DBaseTexture.cpp
+0282F864 dst=r1 dist=12 func~0282AE20 Library\Include\Nengine\CND3DBaseTexture.cpp
+0282F8A6 dst=r1 dist=9 func~0282AE20 Library\Include\Nengine\CND3DBaseTexture.cpp
+0282FB6D dst=r1 dist=10 func~0282AE20 Library\Include\Nengine\CND3DBaseTexture.cpp
+028312E4 dst=r1 dist=10 func~0282AE20 Library\Include\Nengine\CND3DBaseTexture.cpp
+02834CC1 dst=r0 dist=6 func~0282AE20 Library\Include\Nengine\CND3DBaseTexture.cpp
+028350F5 dst=r0 dist=6 func~0282AE20 Library\Include\Nengine\CND3DBaseTexture.cpp
+02836283 dst=r0 dist=10 func~0282AE20 Library\Include\Nengine\CND3DBaseTexture.cpp
+0283A75E dst=r2 dist=6 func~0283A210 Library\Include\Nengine\IFileResourceManager.cpp
+0283AA8E dst=r2 dist=6 func~0283A210 Library\Include\Nengine\IFileResourceManager.cpp
+0283ADDE dst=r2 dist=6 func~0283A210 Library\Include\Nengine\IFileResourceManager.cpp
+0283B556 dst=r2 dist=6 func~0283A210 Library\Include\Nengine\IFileResourceManager.cpp
+02843EA4 dst=r2 dist=9 func~0283A210 Library\Include\Nengine\IFileResourceManager.cpp
+02844080 dst=r0 dist=3 func~0283A210 Library\Include\Nengine\IFileResourceManager.cpp
+028440A7 dst=r0 dist=9 func~0283A210 Library\Include\Nengine\IFileResourceManager.cpp
+028440BE dst=r2 dist=9 func~0283A210 Library\Include\Nengine\IFileResourceManager.cpp
+028441BB dst=r0 dist=10 func~0283A210 Library\Include\Nengine\IFileResourceManager.cpp
+028449B4 dst=r0 dist=9 func~0283A210 Library\Include\Nengine\IFileResourceManager.cpp
+02847007 dst=r2 dist=3 func~02846E50 Library\Include\Nengine\CNVideoSystem.cpp
+0284722B dst=r7 dist=16 func~028470B0 Library\Include\Nengine\CNVideoSystem.cpp
+028476BA dst=r0 dist=3 func~028473C0 Library\Include\Nengine\CNVideoSystem.cpp
+02858191 dst=r1 dist=12 func~0284F820 Library\Include\Nengine\IIme.cpp
+02859D4A dst=r2 dist=7 func~0284F820 Library\Include\Nengine\IIme.cpp
+0286134A dst=r0 dist=14 func~0284F820 Library\Include\Nengine\IIme.cpp
+0286140A dst=r2 dist=14 func~0284F820 Library\Include\Nengine\IIme.cpp
+02866AF6 dst=r0 dist=3 func~0284F820 Library\Include\Nengine\IIme.cpp
+02867D5D dst=r2 dist=13 func~0284F820 Library\Include\Nengine\IIme.cpp
+02877AD4 dst=r1 dist=13 func~028749A0 Library\Include\Nengine\NEPackFile.cpp
+02877B58 dst=r2 dist=24 func~028749A0 Library\Include\Nengine\NEPackFile.cpp
+02877CD0 dst=r0 dist=20 func~028749A0 Library\Include\Nengine\NEPackFile.cpp
+02878AE1 dst=r2 dist=9 func~02878660 Library\Include\Nengine\CND3DDevice.cpp
+02878D4F dst=r2 dist=7 func~02878660 Library\Include\Nengine\CND3DDevice.cpp
+02878E6C dst=r0 dist=3 func~02878660 Library\Include\Nengine\CND3DDevice.cpp
+02878F78 dst=r0 dist=3 func~02878660 Library\Include\Nengine\CND3DDevice.cpp
+02879070 dst=r0 dist=6 func~02878660 Library\Include\Nengine\CND3DDevice.cpp
+0287FF51 dst=r2 dist=11 func~02878660 Library\Include\Nengine\CND3DDevice.cpp
+02883325 dst=r2 dist=7 func~02878660 Library\Include\Nengine\CND3DDevice.cpp
+028891B5 dst=r2 dist=13 func~02878660 Library\Include\Nengine\CND3DDevice.cpp
+0289030A dst=r2 dist=5 func~02878660 Library\Include\Nengine\CND3DDevice.cpp
+02890353 dst=r0 dist=5 func~02878660 Library\Include\Nengine\CND3DDevice.cpp
+02890676 dst=r2 dist=12 func~02878660 Library\Include\Nengine\CND3DDevice.cpp
+02893593 dst=r0 dist=14 func~02892340 Library\Include\Nengine\TextureUpscale.cpp
+028935C8 dst=r0 dist=15 func~02892340 Library\Include\Nengine\TextureUpscale.cpp
+02893606 dst=r0 dist=21 func~02892340 Library\Include\Nengine\TextureUpscale.cpp
+02893646 dst=r0 dist=25 func~02892340 Library\Include\Nengine\TextureUpscale.cpp
+028938A3 dst=r1 dist=9 func~02892340 Library\Include\Nengine\TextureUpscale.cpp
+028938B0 dst=r1 dist=8 func~02892340 Library\Include\Nengine\TextureUpscale.cpp
+028938F7 dst=r1 dist=9 func~02892340 Library\Include\Nengine\TextureUpscale.cpp
+02893984 dst=r1 dist=12 func~02892340 Library\Include\Nengine\TextureUpscale.cpp
+028939B5 dst=r1 dist=8 func~02892340 Library\Include\Nengine\TextureUpscale.cpp
+02893AD2 dst=r2 dist=6 func~02892340 Library\Include\Nengine\TextureUpscale.cpp
+02893BC2 dst=r1 dist=16 func~02892340 Library\Include\Nengine\TextureUpscale.cpp
+02893C48 dst=r1 dist=8 func~02892340 Library\Include\Nengine\TextureUpscale.cpp
+02896EA1 dst=r2 dist=3 func~02892340 Library\Include\Nengine\TextureUpscale.cpp
+02899FBE dst=r0 dist=3 func~02899410 Library\Include\Nengine\CND3DRenderTarget.cpp
+0289A093 dst=r2 dist=5 func~02899410 Library\Include\Nengine\CND3DRenderTarget.cpp
+0289B83A dst=r0 dist=5 func~02899410 Library\Include\Nengine\CND3DRenderTarget.cpp
+0289B867 dst=r2 dist=5 func~02899410 Library\Include\Nengine\CND3DRenderTarget.cpp
+0289CC4D dst=r0 dist=5 func~02899410 Library\Include\Nengine\CND3DRenderTarget.cpp
+0289D0B9 dst=r2 dist=5 func~02899410 Library\Include\Nengine\CND3DRenderTarget.cpp
+0289D10A dst=r0 dist=5 func~02899410 Library\Include\Nengine\CND3DRenderTarget.cpp
+0289D11E dst=r0 dist=5 func~02899410 Library\Include\Nengine\CND3DRenderTarget.cpp
+0289D281 dst=r0 dist=7 func~02899410 Library\Include\Nengine\CND3DRenderTarget.cpp
+0289D2A7 dst=r2 dist=5 func~02899410 Library\Include\Nengine\CND3DRenderTarget.cpp
+0289D449 dst=r2 dist=5 func~02899410 Library\Include\Nengine\CND3DRenderTarget.cpp
+0289D499 dst=r0 dist=5 func~02899410 Library\Include\Nengine\CND3DRenderTarget.cpp
+0289D4AD dst=r0 dist=5 func~02899410 Library\Include\Nengine\CND3DRenderTarget.cpp
+0289D626 dst=r0 dist=6 func~02899410 Library\Include\Nengine\CND3DRenderTarget.cpp
+0289D64D dst=r2 dist=3 func~02899410 Library\Include\Nengine\CND3DRenderTarget.cpp
+0289D676 dst=r2 dist=5 func~02899410 Library\Include\Nengine\CND3DRenderTarget.cpp
+0289D697 dst=r2 dist=3 func~02899410 Library\Include\Nengine\CND3DRenderTarget.cpp
+0289D7BE dst=r0 dist=5 func~02899410 Library\Include\Nengine\CND3DRenderTarget.cpp
+0289E44D dst=r2 dist=13 func~0289E280 Library\Include\Nengine\SceneRecorderThread.cpp
+028A3229 dst=r1 dist=21 func~028A1ED0 Library\Include\UdpClientSystem\UdpCore.cpp
+028A3ACE dst=r1 dist=18 func~028A3A80 Library\Include\UdpClientSystem\TcpEvSocket2.cpp
+028A3C71 dst=r2 dist=7 func~028A3A80 Library\Include\UdpClientSystem\TcpEvSocket2.cpp
+028A3C74 dst=r0 dist=4 func~028A3A80 Library\Include\UdpClientSystem\TcpEvSocket2.cpp
+029B86CC dst=r1 dist=22 func~02999F40 DNFShared\GameScript\RDARScriptItem.cpp
+029B8747 dst=r1 dist=12 func~02999F40 DNFShared\GameScript\RDARScriptItem.cpp
+029B878E dst=r1 dist=12 func~02999F40 DNFShared\GameScript\RDARScriptItem.cpp
+029BA9AA dst=r1 dist=12 func~02999F40 DNFShared\GameScript\RDARScriptItem.cpp
+029BAB31 dst=r1 dist=12 func~02999F40 DNFShared\GameScript\RDARScriptItem.cpp
+02B4C8CE dst=r2 dist=3 func~02B30CB0 DNFShared\GameScript\localtaiwan\CommonTwEventScript.cpp
+02C41925 dst=r6 dist=22 func~00000000 
+02C41951 dst=r6 dist=14 func~00000000 
+02C4195A dst=r2 dist=5 func~00000000 
+02C41972 dst=r2 dist=6 func~00000000 
+02C4198A dst=r2 dist=5 func~00000000 
+02C419A2 dst=r2 dist=6 func~00000000 
+02C41A0D dst=r6 dist=15 func~00000000 
+02C41A61 dst=r6 dist=18 func~00000000 
+02C41B64 dst=r6 dist=24 func~00000000 
+02C41BB9 dst=r6 dist=15 func~00000000 
+02C41BF9 dst=r0 dist=3 func~00000000 
+02C41D65 dst=r6 dist=22 func~00000000 
+02C41F1C dst=r1 dist=14 func~00000000 
+02C41F4B dst=r7 dist=17 func~00000000 
+02C41FE0 dst=r1 dist=12 func~00000000 
+02C42480 dst=r6 dist=25 func~00000000 
+02C42EAE dst=r7 dist=14 func~00000000 
+02C437F2 dst=r6 dist=21 func~00000000 
+02C44585 dst=r2 dist=3 func~00000000 
+02C4D31D dst=r1 dist=22 func~00000000 

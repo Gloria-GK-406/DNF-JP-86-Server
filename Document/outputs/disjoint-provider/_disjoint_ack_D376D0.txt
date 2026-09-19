@@ -1,0 +1,110 @@
+00D376D0  mov      eax, dword ptr [edi + 0xe4]
+00D376D6  push     eax
+00D376D7  mov      ecx, edi
+00D376D9  call     0xd35a10
+00D376DE  mov      ecx, dword ptr [edi + 0xe4]
+00D376E4  push     eax
+00D376E5  push     ecx
+00D376E6  mov      ecx, edi
+00D376E8  call     0xd35a10
+00D376ED  push     eax
+00D376EE  push     0x31bcfc8
+00D376F3  call     0x27bacc0
+00D376F8  add      esp, 4
+00D376FB  push     eax
+00D376FC  lea      edx, [ebp - 0x210]
+00D37702  push     0x1fe
+00D37707  push     edx
+00D37708  call     0x442570
+00D3770D  add      esp, 0x14
+00D37710  push     0
+00D37712  push     1
+00D37714  sub      esp, 8
+00D37717  mov      eax, esp
+00D37719  mov      dword ptr [ebp - 0x214], esp
+00D3771F  push     0
+00D37721  push     1
+00D37723  lea      ecx, [ebp - 0x210]
+00D37729  push     ecx
+00D3772A  push     eax
+00D3772B  call     0x7e52b0
+00D37730  add      esp, 0x10
+00D37733  mov      edx, dword ptr [esi]
+00D37735  mov      edx, dword ptr [edx + 0x180]
+00D3773B  lea      eax, [ebp - 0x224]
+00D37741  push     eax
+00D37742  mov      ecx, esi
+00D37744  mov      dword ptr [ebp - 4], 0
+00D3774B  call     edx
+00D3774D  mov      ecx, dword ptr [eax]
+00D3774F  mov      byte ptr [ebp - 4], 1
+00D37753  push     0x2711
+00D37758  mov      byte ptr [ebp - 4], 2
+00D3775C  call     0x2667de0
+00D37761  mov      eax, dword ptr [ebp - 0x220]
+00D37767  mov      dword ptr [ebp - 4], 0xffffffff
+00D3776E  test     eax, eax
+00D37770  je       0xd3779d
+00D37772  mov      edi, eax
+00D37774  or       ecx, 0xffffffff
+00D37777  add      eax, 4
+00D3777A  lock xadd dword ptr [eax], ecx
+00D3777E  jne      0xd3779d
+00D37780  mov      edx, dword ptr [edi]
+00D37782  mov      eax, dword ptr [edx]
+00D37784  mov      ecx, edi
+00D37786  call     eax
+00D37788  or       edx, 0xffffffff
+00D3778B  lea      ecx, [edi + 8]
+00D3778E  lock xadd dword ptr [ecx], edx
+00D37792  jne      0xd3779d
+00D37794  mov      eax, dword ptr [edi]
+00D37796  mov      edx, dword ptr [eax + 4]
+00D37799  mov      ecx, edi
+00D3779B  call     edx
+00D3779D  mov      eax, dword ptr [esi]
+00D3779F  mov      edx, dword ptr [eax + 0x180]
+00D377A5  lea      ecx, [ebp - 0x234]
+00D377AB  push     ecx
+00D377AC  mov      ecx, esi
+00D377AE  call     edx
+00D377B0  mov      eax, dword ptr [eax]
+00D377B2  movss    xmm0, dword ptr [0x31bcbe8]
+00D377BA  push     ecx
+00D377BB  mov      ecx, eax
+00D377BD  mov      dword ptr [ebp - 4], 0xb
+00D377C4  movss    dword ptr [esp], xmm0
+00D377C9  call     0x2660a10
+00D377CE  mov      eax, dword ptr [ebp - 0x230]
+00D377D4  mov      dword ptr [ebp - 4], 0xffffffff
+00D377DB  test     eax, eax
+00D377DD  je       0xd3780a
+00D377DF  mov      esi, eax
+00D377E1  add      eax, 4
+00D377E4  or       ecx, 0xffffffff
+00D377E7  lock xadd dword ptr [eax], ecx
+00D377EB  jne      0xd3780a
+00D377ED  mov      edx, dword ptr [esi]
+00D377EF  mov      eax, dword ptr [edx]
+00D377F1  mov      ecx, esi
+00D377F3  call     eax
+00D377F5  lea      ecx, [esi + 8]
+00D377F8  or       edx, 0xffffffff
+00D377FB  lock xadd dword ptr [ecx], edx
+00D377FF  jne      0xd3780a
+00D37801  mov      eax, dword ptr [esi]
+00D37803  mov      edx, dword ptr [eax + 4]
+00D37806  mov      ecx, esi
+00D37808  call     edx
+00D3780A  mov      ecx, dword ptr [ebp - 0xc]
+00D3780D  mov      dword ptr fs:[0], ecx
+00D37814  pop      ecx
+00D37815  pop      edi
+00D37816  pop      esi
+00D37817  mov      ecx, dword ptr [ebp - 0x10]
+00D3781A  xor      ecx, ebp
+00D3781C  call     0x2c627f3
+00D37821  mov      esp, ebp
+00D37823  pop      ebp
+00D37824  ret      4
+

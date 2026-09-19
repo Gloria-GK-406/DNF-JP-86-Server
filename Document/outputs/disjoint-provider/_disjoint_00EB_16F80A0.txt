@@ -1,0 +1,195 @@
+016F80A0  push     ebp
+016F80A1  mov      ebp, esp
+016F80A3  sub      esp, 0x18
+016F80A6  push     esi
+016F80A7  mov      esi, ecx
+016F80A9  push     2
+016F80AB  mov      dword ptr [ebp - 8], esi
+016F80AE  call     0x1102c30
+016F80B3  mov      ecx, eax
+016F80B5  call     0x163e2d0
+016F80BA  test     al, al
+016F80BC  je       0x16f80e7
+016F80BE  push     0
+016F80C0  push     0x95da
+016F80C5  call     0x28c14c0
+016F80CA  mov      ecx, dword ptr [0x3a5c9b8]
+016F80D0  add      esp, 4
+016F80D3  push     eax
+016F80D4  push     0x209
+016F80D9  call     0x2304c70
+016F80DE  xor      al, al
+016F80E0  pop      esi
+016F80E1  mov      esp, ebp
+016F80E3  pop      ebp
+016F80E4  ret      8
+016F80E7  mov      ecx, dword ptr [0x3a5c9b8]
+016F80ED  push     0xf7
+016F80F2  call     0x23016f0
+016F80F7  test     al, al
+016F80F9  jne      0x16f80de
+016F80FB  mov      eax, dword ptr [esi + 0x70]
+016F80FE  sub      eax, dword ptr [esi + 0x6c]
+016F8101  push     ebx
+016F8102  lea      ebx, [esi + 0x68]
+016F8105  and      eax, 0xfffffffc
+016F8108  push     edi
+016F8109  mov      dword ptr [ebp - 0xc], ebx
+016F810C  cmp      eax, 4
+016F810F  jl       0x16f81bb
+016F8115  lea      ecx, [ebp - 0x18]
+016F8118  push     ecx
+016F8119  mov      ecx, ebx
+016F811B  call     0xe56100
+016F8120  mov      edi, dword ptr [ebp - 0x18]
+016F8123  mov      esi, dword ptr [ebp - 0x10]
+016F8126  lea      edx, [ebp - 0x18]
+016F8129  push     edx
+016F812A  mov      ecx, ebx
+016F812C  call     0x293b470
+016F8131  test     edi, edi
+016F8133  je       0x16f8188
+016F8135  mov      edx, dword ptr [edi]
+016F8137  test     edx, edx
+016F8139  je       0x16f8188
+016F813B  mov      ecx, dword ptr [eax]
+016F813D  test     ecx, ecx
+016F813F  je       0x16f8143
+016F8141  mov      ecx, dword ptr [ecx]
+016F8143  cmp      edx, ecx
+016F8145  jne      0x16f8188
+016F8147  cmp      esi, dword ptr [eax + 8]
+016F814A  je       0x16f81b8
+016F814C  mov      eax, edx
+016F814E  test     eax, eax
+016F8150  je       0x16f8188
+016F8152  test     esi, esi
+016F8154  je       0x16f8188
+016F8156  cmp      dword ptr [eax + 4], esi
+016F8159  ja       0x16f8188
+016F815B  cmp      esi, dword ptr [eax + 8]
+016F815E  jae      0x16f8188
+016F8160  mov      ecx, dword ptr [esi]
+016F8162  cmp      ecx, 0xb
+016F8165  je       0x16f817a
+016F8167  test     eax, eax
+016F8169  je       0x16f8188
+016F816B  cmp      dword ptr [eax + 4], esi
+016F816E  ja       0x16f8188
+016F8170  cmp      esi, dword ptr [eax + 8]
+016F8173  jae      0x16f8188
+016F8175  cmp      ecx, 0x2b
+016F8178  jne      0x16f818d
+016F817A  test     eax, eax
+016F817C  je       0x16f8188
+016F817E  cmp      esi, dword ptr [eax + 8]
+016F8181  jae      0x16f8188
+016F8183  add      esi, 4
+016F8186  jmp      0x16f8126
+016F8188  call     0x2c623e1
+016F818D  push     0
+016F818F  push     0x67b
+016F8194  call     0x28c14c0
+016F8199  mov      ecx, dword ptr [0x3a5c9b8]
+016F819F  add      esp, 4
+016F81A2  push     eax
+016F81A3  push     0x209
+016F81A8  call     0x2304c70
+016F81AD  pop      edi
+016F81AE  pop      ebx
+016F81AF  xor      al, al
+016F81B1  pop      esi
+016F81B2  mov      esp, ebp
+016F81B4  pop      ebp
+016F81B5  ret      8
+016F81B8  mov      esi, dword ptr [ebp - 8]
+016F81BB  add      esi, 0x34
+016F81BE  mov      ebx, esi
+016F81C0  and      ebx, 0xf
+016F81C3  lea      edi, [esi + 4]
+016F81C6  cmp      ebx, 0xc
+016F81C9  ja       0x16f8211
+016F81CB  movzx    eax, byte ptr [ebx + 0x16f8398]
+016F81D2  jmp      dword ptr [eax*4 + 0x16f8384]
+016F8211  lea      edx, [ebp - 4]
+016F8214  push     edx
+016F8215  push     edi
+016F8216  mov      ecx, esi
+016F8218  call     0x27bc390
+016F821D  cmp      dword ptr [ebp - 4], 0
+016F8221  je       0x16f8280
+016F8223  cmp      ebx, 0xc
+016F8226  ja       0x16f826e
+016F8228  movzx    eax, byte ptr [ebx + 0x16f83bc]
+016F822F  jmp      dword ptr [eax*4 + 0x16f83a8]
+016F826E  lea      edx, [ebp - 4]
+016F8271  push     edx
+016F8272  push     edi
+016F8273  mov      ecx, esi
+016F8275  call     0x27bc390
+016F827A  cmp      dword ptr [ebp - 4], 7
+016F827E  jne      0x16f82ac
+016F8280  mov      ecx, dword ptr [0x3a5c9e8]
+016F8286  call     0x1705320
+016F828B  test     al, al
+016F828D  je       0x16f82b7
+016F828F  push     0x1e
+016F8291  push     0x111ad
+016F8296  call     0x28c14c0
+016F829B  mov      ecx, dword ptr [0x3a5c9b8]
+016F82A1  add      esp, 4
+016F82A4  push     eax
+016F82A5  push     0
+016F82A7  call     0x2305350
+016F82AC  pop      edi
+016F82AD  pop      ebx
+016F82AE  xor      al, al
+016F82B0  pop      esi
+016F82B1  mov      esp, ebp
+016F82B3  pop      ebp
+016F82B4  ret      8
+016F82B7  mov      eax, dword ptr [ebp - 8]
+016F82BA  cmp      byte ptr [eax + 0x7c], 0
+016F82BE  jne      0x16f8363
+016F82C4  push     0
+016F82C6  push     0xeb
+016F82CB  call     0x274ca50
+016F82D0  mov      ecx, eax
+016F82D2  call     0x274d1e0
+016F82D7  mov      ecx, dword ptr [ebp + 0xc]
+016F82DA  push     ecx
+016F82DB  call     0x274ca50
+016F82E0  mov      ecx, eax
+016F82E2  call     0x274d310
+016F82E7  mov      edx, dword ptr [ebp + 8]
+016F82EA  push     edx
+016F82EB  call     0x274ca50
+016F82F0  mov      ecx, eax
+016F82F2  call     0x274d310
+016F82F7  cmp      ebx, 0xc
+016F82FA  ja       0x16f8342
+016F82FC  movzx    eax, byte ptr [ebx + 0x16f83e0]
+016F8303  jmp      dword ptr [eax*4 + 0x16f83cc]
+016F8342  lea      edx, [ebp + 0xc]
+016F8345  push     edx
+016F8346  push     edi
+016F8347  mov      ecx, esi
+016F8349  call     0x27bc390
+016F834E  mov      eax, dword ptr [ebp + 0xc]
+016F8351  push     eax
+016F8352  call     0x274ca50
+016F8357  mov      ecx, eax
+016F8359  call     0x274d2e0
+016F835E  call     0x274e6d0
+016F8363  lea      ecx, [ebp + 0xc]
+016F8366  push     ecx
+016F8367  mov      ecx, dword ptr [ebp - 0xc]
+016F836A  mov      dword ptr [ebp + 0xc], 0xb
+016F8371  call     0x1bf01e0
+016F8376  pop      edi
+016F8377  pop      ebx
+016F8378  mov      al, 1
+016F837A  pop      esi
+016F837B  mov      esp, ebp
+016F837D  pop      ebp
+016F837E  ret      8

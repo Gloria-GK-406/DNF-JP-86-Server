@@ -6,6 +6,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
+using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.DisjointItem;
 
@@ -15,7 +16,8 @@ public sealed class DisjointItemHandler(
     IInventorySlotMappingRuleService slotMappings,
     ICommandBus commands,
     INotificationBus notifications,
-    IGameMessageSender sender) : ClientMessageHandler<DisjointItemRequest>
+    IGameMessageSender sender,
+    ILogger<DisjointItemHandler> logger) : ClientMessageHandler<DisjointItemRequest>
 {
     protected override async ValueTask HandleMessageAsync(
         NetworkDispatchContext context,
@@ -23,19 +25,31 @@ public sealed class DisjointItemHandler(
         CancellationToken cancellationToken)
     {
         var targetSlot = slotMappings.ToBusinessSlot(message.TargetSlot);
+        var invalidToolSlot = message.DisjointToolSlotIndex < -1;
+        BusinessSlot? disjointToolSlot = message.DisjointToolSlotIndex >= 0
+            ? slotMappings.ToBusinessSlot(new GameSlot(
+                InventoryContainerType.Main, message.DisjointToolSlotIndex))
+            : null;
+        logger.LogDebug(
+            "DISJOINT_ITEM target={TargetSpace}/{TargetIndex} toolSlot={ToolSlot} providerId={ProviderId}",
+            message.TargetSlot.Space,
+            message.TargetSlot.Index,
+            message.DisjointToolSlotIndex,
+            message.DisjointProviderId);
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
         EquipmentDisjointResult result;
         if (session is null
             || !onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online)
             || online is null)
             result = new(EquipmentDisjointRejection.NoSession);
+        else if (invalidToolSlot)
+            result = new(EquipmentDisjointRejection.InvalidRequest);
         else
             result = await commands.SendAsync(new DisjointItemCommand(
                 online.OnlineUserId,
                 session,
                 targetSlot,
-                message.DisjointItemSlotIndex,
-                message.ContextValue,
+                disjointToolSlot,
                 EquipmentDisjointSettings.System), cancellationToken).ConfigureAwait(false);
 
         if (result.Receipt is { } receipt)

@@ -57,7 +57,7 @@
 | `0x01` | `0x0015` | `BUY_ITEM` | Mutation / 有响应 | 实现服务端功能（A21，部分商品实机通过） | [0x0015.md](game/client-to-server/0x0015.md) |
 | `0x01` | `0x0016` | `SELL_ITEM` | Mutation / 有响应 | ClientVerified（A21 普通装备）；堆叠物自动化通过，特殊装备未覆盖 | [0x0016.md](game/client-to-server/0x0016.md) |
 | `0x01` | `0x0017` | `REPAIR_EQUIPMENT` | Mutation / 有响应 | 实现服务端普通修理；A21 静态有 8B/7B 两种构包及 10B 成功读取，成对帧与 7B 触发条件待归档 | [0x0017.md](game/client-to-server/0x0017.md) |
-| `0x01` | `0x001A` | `DISJOINT_ITEM` | Mutation / 有响应 | 实现服务端系统分解；A21 普通路径静态确认 9B 请求与批量 UI 连续单件发送，成功/失败回包来自上游，实机待验证 | [0x001A.md](game/client-to-server/0x001A.md) |
+| `0x01` | `0x001A` | `DISJOINT_ITEM` | Mutation / 有响应 | 实现服务端系统分解；A21 静态确认 9B 请求、工具槽位与供应商 id，NPC index 语义 High，便携模式待样本反证；批量 UI 连续单件发送，成功/失败回包来自上游，实机待验证 | [0x001A.md](game/client-to-server/0x001A.md) |
 | `0x01` | `0x001D` | `BUY_SKILL` | Mutation / 有响应 | 实现服务端功能（A21 普通加点，待实机） | [0x001D.md](game/client-to-server/0x001D.md) |
 | `0x01` | `0x001F` | `ACCEPT_QUEST` | Mutation / 有响应 | 实现服务端功能（A21 受理请求与回包有实帧；后续任务投影未整体验证） | [0x001F.md](game/client-to-server/0x001F.md) |
 | `0x01` | `0x0020` | `GIVEUP_QUEST` | Mutation / 有响应 | 实现服务端功能；A21 静态证实 `0x0020+questId` 请求及成功回包读法，实帧/UI 待验证 | [0x0020.md](game/client-to-server/0x0020.md) |

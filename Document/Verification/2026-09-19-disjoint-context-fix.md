@@ -23,3 +23,10 @@ decision: manual_required
 ## Unverified Conditions
 
 - 需要用 A21 客户端重新执行一次普通分解和一次批量分解，确认成功动画、背包删除与材料展示均正常。
+
+## 后续语义修订
+
+rev 3 客户端静态调查与 A21 PVF 交叉证明，该字段在 NPC 模式下是分解服务提供者的 NPC index，
+现名 `DisjointProviderId`；便携模式的实际取值仍待样本反证。它继续只作为非权威协议旁证，
+不进入分解领域规则。详见
+[A21 分解供应商字段调查](2026-09-19-A21-disjoint-provider-client-investigation.md)。

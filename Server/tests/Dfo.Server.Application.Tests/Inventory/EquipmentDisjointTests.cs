@@ -82,12 +82,12 @@ public sealed class EquipmentDisjointTests
     }
 
     [Fact]
-    public async Task Opaque_client_context_does_not_reject_system_disjoint()
+    public async Task Reported_provider_id_does_not_reject_system_disjoint()
     {
         using var shop = Fixture();
         await shop.SeedCore(9, Piece());
 
-        await Disjoint(shop, 9, contextValue: 0x12345678);
+        await Disjoint(shop, 9, disjointProviderId: 0x12345678);
 
         Assert.Null(await shop.Durability(InventoryContainerType.Main, 9));
         Assert.Equal(12, shop.Count(1000));
@@ -142,11 +142,11 @@ public sealed class EquipmentDisjointTests
     private static InventoryItemCoreState Piece() =>
         StackableItemCore.Create(1, 3000, 1234) with { Durability = 45 };
 
-    private static ValueTask Disjoint(ShopFixture shop, short slot, int contextValue = 0) =>
+    private static ValueTask Disjoint(ShopFixture shop, short slot, int disjointProviderId = 0) =>
         shop.Services.GetRequiredService<DisjointItemHandler>().HandleAsync(new(shop.Connection),
             new DisjointItemRequest(
                 GameMessageMetadata.Empty,
-                new GameSlot(InventoryContainerType.Main, slot), -1, contextValue),
+                new GameSlot(InventoryContainerType.Main, slot), -1, disjointProviderId),
             default);
 
     private sealed class FixedRules : IEquipmentDisjointRuleService

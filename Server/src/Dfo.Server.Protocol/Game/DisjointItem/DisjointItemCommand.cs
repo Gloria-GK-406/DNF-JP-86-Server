@@ -11,8 +11,7 @@ public sealed record DisjointItemCommand(
     OnlineUserId OnlineUserId,
     SelectedSessionIdentity Session,
     BusinessSlot TargetSlot,
-    short DisjointItemSlotIndex,
-    int ContextValue,
+    BusinessSlot? DisjointToolSlot,
     EquipmentDisjointSettings Settings)
     : ICommand<EquipmentDisjointResult>, IOnlineUserCommand, IAccountCommand
 {
@@ -27,6 +26,6 @@ public sealed class DisjointItemCommandHandler(IEquipmentDisjointDomainService d
         DisjointItemCommand command,
         CancellationToken cancellationToken) =>
         disjoint.DisjointAsync(command.Session, command.TargetSlot,
-            command.DisjointItemSlotIndex, command.ContextValue, command.Settings,
+            command.DisjointToolSlot, command.Settings,
             cancellationToken);
 }

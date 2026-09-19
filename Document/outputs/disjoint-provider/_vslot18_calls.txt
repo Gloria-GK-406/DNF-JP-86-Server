@@ -1,0 +1,222 @@
+0042CCD0 call func~00000000 
+0062B44C call func~00608BB0 DNFClient\RDAR\MatchChannelMoveManager.cpp
+0062B47C call func~00608BB0 DNFClient\RDAR\MatchChannelMoveManager.cpp
+00639BCF call func~00000000 
+0073137B call func~00000000 
+00759DB5 call func~0073F830 DNFClient\RDAR\Event\RealEstateClient.cpp
+007E0FFF jmp func~00000000 
+00811A20 jmp func~007E2900 DNFClient\RDAR\AnimationSubCacher.cpp
+00812276 call func~007E2900 DNFClient\RDAR\AnimationSubCacher.cpp
+00AE26B5 call func~00ADAA30 DNFClient\RDAR\Appendage\CNGaugeAppendage.cpp
+00AE26E1 call func~00ADAA30 DNFClient\RDAR\Appendage\CNGaugeAppendage.cpp
+00AE270D call func~00ADAA30 DNFClient\RDAR\Appendage\CNGaugeAppendage.cpp
+00AE2739 call func~00ADAA30 DNFClient\RDAR\Appendage\CNGaugeAppendage.cpp
+00B28EE1 call func~00B23320 DNFClient\RDAR\CashShop\Localization\CNRDCashShop_CHN.cpp
+00C786D2 call func~00C71D30 DNFClient\RDAR\Localization\china\PlayWithFriendEventData.cpp
+00CF00F5 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF0822 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF087C call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF08BD call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF0CC8 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF168A call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF3439 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF35E3 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF37A8 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF3859 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF3977 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF3A52 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF3D1E call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF3DA7 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF3EB9 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF418B call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF421A call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF42B1 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF4378 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF443C call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF4539 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF457D call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF462F call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF46AD call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF474B call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF480E call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF4856 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF48A4 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF4AED call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF65A6 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6785 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF67CD call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6884 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF694D call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6A15 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6A5D call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6AAA call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6B6D call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6BB1 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6C63 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6CE1 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6D81 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6E46 call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6E8E call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00CF6EDB call func~00CD9A90 DNFClient\RDAR\Appendage\CNKallaFireImitation.cpp
+00E4B9BD call func~00E47B90 DNFClient\RDAR\CNRDObjectMoveSystem.cpp
+00E7D47B call func~00E75E20 DNFClient\RDAR\CNRDQuestModuleVer2.cpp
+00E7D4C8 jmp func~00E75E20 DNFClient\RDAR\CNRDQuestModuleVer2.cpp
+00E7D510 call func~00E75E20 DNFClient\RDAR\CNRDQuestModuleVer2.cpp
+00F7E65F call func~00F7E000 DNFClient\RDAR\PopupWindow\KnightShieldWindow.cpp
+00FA2873 call func~00F8FD40 DNFClient\RDAR\PopupWindow\RaidChannelWindow.cpp
+00FB2BC4 call func~00F8FD40 DNFClient\RDAR\PopupWindow\RaidChannelWindow.cpp
+01022985 call func~0101F540 DNFClient\RDAR\POPUPwindow\CNRDRandomOptionItemUnsealResultWindow.cpp
+01038C03 call func~0101F540 DNFClient\RDAR\POPUPwindow\CNRDRandomOptionItemUnsealResultWindow.cpp
+0106D6B3 call func~010495D0 DNFClient\RDAR\PopupWindow\SelectDollWindow.cpp
+0109C1E7 call func~01090FE0 DNFClient\RDAR\RecentPartnerManager.cpp
+0109E808 call func~0109CDE0 DNFClient\RDAR\Schedules\CNAOSPatternProcess.cpp
+010A3EDD call func~0109CDE0 DNFClient\RDAR\Schedules\CNAOSPatternProcess.cpp
+0114871F call func~01146000 DNFClient\RDAR\GameCoreNetwork_NOTI_Dungeon.cpp
+0114F71D call func~0114F380 DNFClient\RDAR\GameCoreNetwork_NOTI_Dungeon.cpp
+011BF12B jmp func~011BADF0 DNFClient\RDAR\DualRaid\CNRDDualRaidPacketManager.cpp
+0127680F call func~0126CF10 DNFClient\RDAR\PopupWindow\ATSwordmanLevelUpAdditionRewardWindow.cpp
+0127682C call func~0126CF10 DNFClient\RDAR\PopupWindow\ATSwordmanLevelUpAdditionRewardWindow.cpp
+012A8108 call func~0129AF60 DNFClient\RDAR\PopupWindow\PVPSelectModeWindow.cpp
+0131C757 call func~01309B30 DNFClient\RDAR\BlueMarble\CNRDBlueMarble.cpp
+0131DE96 call func~01309B30 DNFClient\RDAR\BlueMarble\CNRDBlueMarble.cpp
+0131E234 call func~01309B30 DNFClient\RDAR\BlueMarble\CNRDBlueMarble.cpp
+0134E2E3 call func~01335D40 DNFClient\RDAR\CNRDBaseInterface.cpp
+01362787 call func~0135CF20 DNFClient\RDAR\CNRDBaseInterface.cpp
+013636CF call func~0135CF20 DNFClient\RDAR\CNRDBaseInterface.cpp
+01366AAF call func~0135CF20 DNFClient\RDAR\CNRDBaseInterface.cpp
+01367C11 call func~0135CF20 DNFClient\RDAR\CNRDBaseInterface.cpp
+01369033 call func~01367F70 DNFClient\RDAR\CNRDBaseInterface.cpp
+013BE8D0 call func~013AA560 DNFClient\RDAR\CNRDMainHudMenuManager.cpp
+013D8810 call func~013CF5D0 DNFClient\RDAR\CNRDSkillBuyWindow.cpp
+013FC75B call func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+013FC77D call func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+013FC814 call func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+013FC996 call func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+013FD8D8 call func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+013FFCDB call func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+013FFE29 call func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+014028DC call func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01402A3E call func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01402AC4 call func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01402B79 call func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01402C8B call func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01402D82 call func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01402E2E call func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01402F48 call func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01402F77 call func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01402FA6 call func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01403168 call func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+014033F3 call func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01403421 call func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01403457 call func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+01403509 call func~013F6AA0 DNFClient\RDAR\EquipmentFactory.cpp
+014286F7 call func~0141D5D0 DNFClient\RDAR\Event\CNRDChristmasEventSeriaRoomTreeNpc.cpp
+01428E61 call func~0141D5D0 DNFClient\RDAR\Event\CNRDChristmasEventSeriaRoomTreeNpc.cpp
+01428E70 call func~0141D5D0 DNFClient\RDAR\Event\CNRDChristmasEventSeriaRoomTreeNpc.cpp
+01428EB6 call func~0141D5D0 DNFClient\RDAR\Event\CNRDChristmasEventSeriaRoomTreeNpc.cpp
+01455CCC call func~014559B0 DNFClient\RDAR\Localization\japan\PointAuction\CNRDPointAuctionWindow_Jpn.cpp
+01457215 call func~01455D60 DNFClient\RDAR\Localization\japan\PointAuction\CNRDPointAuctionWindow_Jpn.cpp
+014579BD call func~01455D60 DNFClient\RDAR\Localization\japan\PointAuction\CNRDPointAuctionWindow_Jpn.cpp
+0145AA57 call func~01455D60 DNFClient\RDAR\Localization\japan\PointAuction\CNRDPointAuctionWindow_Jpn.cpp
+0148327E call func~01481170 DNFClient\RDAR\PopupWindow\China\EventNoticeWindowEx.cpp
+0148893C call func~01486980 DNFClient\RDAR\PopupWindow\China\EventNoticeWindowEx.cpp
+01501947 call func~01500A40 DNFClient\RDAR\PopupWindow\Chronicle3ndEnchant.cpp
+0153912D call func~00000000 
+015393CA call func~00000000 
+015C563C call func~015BA9B0 DNFClient\RDAR\Inventory\CNRDInventoryWindow.cpp
+015C57A6 call func~015BA9B0 DNFClient\RDAR\Inventory\CNRDInventoryWindow.cpp
+015D53E4 call func~015BA9B0 DNFClient\RDAR\Inventory\CNRDInventoryWindow.cpp
+015F0AD9 call func~00000000 
+01612F7E call func~0160F4D0 DNFClient\RDAR\TagSystem\CNRDTagSystem.cpp
+0161ACF3 call func~01614FC0 DNFClient\RDAR\TagSystem\CNRDTagSystem.cpp
+0161AE3F call func~01614FC0 DNFClient\RDAR\TagSystem\CNRDTagSystem.cpp
+016226A4 call func~01614FC0 DNFClient\RDAR\TagSystem\CNRDTagSystem.cpp
+016451F2 call func~01644210 DNFClient\RDAR\GameCoreSub.cpp
+0164CCD8 call func~016471B0 DNFClient\RDAR\GameCoreSub.cpp
+01650D4A call func~0164F14B DNFClient\RDAR\CNRDObject.cpp
+01655753 call func~016551F0 DNFClient\RDAR\RDCommon.cpp
+0183BA0D call func~01837290 DNFClient\RDAR\IRDCharacter.cpp
+0185F086 call func~0183CDC0 DNFClient\RDAR\IRDCharacter.cpp
+0187236B call func~01870B80 DNFClient\RDAR\IRDCharacter.cpp
+01872513 call func~01870B80 DNFClient\RDAR\IRDCharacter.cpp
+01886B55 call func~01870B80 DNFClient\RDAR\IRDCharacter.cpp
+01910611 call func~018E09F0 DNFClient\RDAR\IRDMonster.cpp
+01975DFB call func~00000000 
+01982C84 call func~00000000 
+01983568 call func~00000000 
+0198366A jmp func~00000000 
+019838DB call func~00000000 
+019A5859 call func~0199FB10 DNFClient\RDAR\CNRDStage.cpp
+01A11DE9 call func~01A07380 DNFClient\RDAR\CNAssaultRoom.cpp
+01A3CC0C call func~01A382C0 DNFClient\RDAR\VillageAttack\CNRDVillageAttack.cpp
+01DEDCE6 call func~00000000 
+01F85575 call func~01F7D4A0 DNFClient\RDAR\Character\CNMage.cpp
+022D591E call func~022D2330 DNFShared\CNRDScriptData.cpp
+02335EDD call func~02312480 DNFClient\RDAR\CNRDInterfaceManager.cpp
+023378AF call func~02312480 DNFClient\RDAR\CNRDInterfaceManager.cpp
+02337F3E call func~02312480 DNFClient\RDAR\CNRDInterfaceManager.cpp
+02340E87 call func~02312480 DNFClient\RDAR\CNRDInterfaceManager.cpp
+02345B7C call func~00000000 
+0237A39F call func~00000000 
+023876DF call func~00000000 
+0239A949 call func~00000000 
+0239ABA4 call func~00000000 
+024A725F call func~00000000 
+024F485F call func~024D53F0 DNFClient\RDAR\PopupWindow\ExpertProduceProgressWindow.cpp
+0250C0B2 call func~025085C0 DNFClient\RDAR\PopupWindow\NewNPCDialogWindow.cpp
+0251A926 call func~025085C0 DNFClient\RDAR\PopupWindow\NewNPCDialogWindow.cpp
+0251F618 call func~025085C0 DNFClient\RDAR\PopupWindow\NewNPCDialogWindow.cpp
+0253236B call func~02526D10 DNFClient\RDAR\PopupWindow\QuestGuideWindow.cpp
+026313A3 call func~0262CA00 DNFClient\RDAR\UI Automation\Control\CNUIControlWorldmapBalloonForRDAR.cpp
+026F6C56 call func~026F5050 DNFClient\RDAR\CNSelectCharacterModule.cpp
+026F83E6 call func~026F5050 DNFClient\RDAR\CNSelectCharacterModule.cpp
+02702A96 call func~027026A0 DNFClient\RDAR\CNPVPModule.cpp
+02748A4B call func~027464F0 DNFClient\RDAR\CNRDAStar.cpp
+02792B24 call func~02792770 DNFClient\RDAR\Main\Main.cpp
+02792D0F call func~02792770 DNFClient\RDAR\Main\Main.cpp
+027942C8 call func~02793870 DNFClient\RDAR\Main\Main.cpp
+027942D2 call func~02793870 DNFClient\RDAR\Main\Main.cpp
+0279793A call func~02793870 DNFClient\RDAR\Main\Main.cpp
+0279E22F call func~0279CD60 DNFClient\RDAR\Main\CCrashReporter.cpp
+027E183C call func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027EDA71 call func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027EEE6B call func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F01D7 call func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F0234 call func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F02EC call func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F03ED call func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F04A3 call func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F0500 call func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F5440 call func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F5915 call func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F5AF9 call func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+027F66C5 call func~027D7660 Library\Include\Nengine\CNImagePackEx2.cpp
+028062E5 call func~02805B90 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+02817B1F call func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+02817B3F call func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+02818BB4 call func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+0281E210 call func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+0281E7B2 call func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+0281E9CB call func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+0281EAFE call func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+0281ED6D call func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+0281F669 call func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+02828025 call func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+02829CEB call func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+02829D45 call func~02806740 Library\Include\Nengine\CNGraphicSystemDirect3D.cpp
+0282D479 call func~0282AE20 Library\Include\Nengine\CND3DBaseTexture.cpp
+0282D494 call func~0282AE20 Library\Include\Nengine\CND3DBaseTexture.cpp
+0282DE7E call func~0282AE20 Library\Include\Nengine\CND3DBaseTexture.cpp
+02844080 call func~0283A210 Library\Include\Nengine\IFileResourceManager.cpp
+02847007 call func~02846E50 Library\Include\Nengine\CNVideoSystem.cpp
+028476BA call func~028473C0 Library\Include\Nengine\CNVideoSystem.cpp
+02866AF6 call func~0284F820 Library\Include\Nengine\IIme.cpp
+02878E6C call func~02878660 Library\Include\Nengine\CND3DDevice.cpp
+02878F78 call func~02878660 Library\Include\Nengine\CND3DDevice.cpp
+02896EA1 jmp func~02892340 Library\Include\Nengine\TextureUpscale.cpp
+02899FBE call func~02899410 Library\Include\Nengine\CND3DRenderTarget.cpp
+0289D64D call func~02899410 Library\Include\Nengine\CND3DRenderTarget.cpp
+0289D697 call func~02899410 Library\Include\Nengine\CND3DRenderTarget.cpp
+02B4C8CE call func~02B30CB0 DNFShared\GameScript\localtaiwan\CommonTwEventScript.cpp
+02C41BF9 call func~00000000 
+02C44585 call func~00000000 

@@ -25,8 +25,8 @@ public sealed class DisjointItemCodecTests
 
         Assert.Equal(ClientMessageType.GameDisjointItem, request.MessageType);
         Assert.Equal(((short)9, InventoryContainerType.Main, (short)-1, 0),
-            ((short)request.TargetSlot.Index, request.TargetSlot.Space, request.DisjointItemSlotIndex,
-                request.ContextValue));
+            ((short)request.TargetSlot.Index, request.TargetSlot.Space, request.DisjointToolSlotIndex,
+                request.DisjointProviderId));
     }
 
     [Fact]

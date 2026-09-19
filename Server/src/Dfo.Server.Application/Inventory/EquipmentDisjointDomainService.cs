@@ -23,8 +23,7 @@ internal sealed class EquipmentDisjointDomainService(
     public async ValueTask<EquipmentDisjointResult> DisjointAsync(
         SelectedSessionIdentity session,
         BusinessSlot targetSlot,
-        short disjointItemSlotIndex,
-        int contextValue,
+        BusinessSlot? disjointToolSlot,
         EquipmentDisjointSettings settings,
         CancellationToken cancellationToken)
     {
@@ -34,12 +33,11 @@ internal sealed class EquipmentDisjointDomainService(
             || online.AccountId != session.AccountId
             || online.CurrentCharacterId != session.CharacterId)
             return new(EquipmentDisjointRejection.NoSession);
-        // Portable tools use another client path. The final request dword is an opaque client/UI
-        // context: A21 forwards it for ordinary system disjoint and the reference server does not
-        // use it as authority. Eligibility therefore comes from the selected tool slot and rules,
-        // never from this caller-provided context value.
+        // A21 reports the disjoint provider id in the protocol layer, but that client value is not
+        // domain authority. Portable-tool eligibility is represented only by its mapped business
+        // slot; the current system-NPC method intentionally accepts no tool.
         if (!targetSlot.Space.IsCarriedItemSpace()
-            || disjointItemSlotIndex != -1
+            || disjointToolSlot is not null
             || settings.Method != EquipmentDisjointMethod.SystemNpc)
             return new(EquipmentDisjointRejection.InvalidRequest);
 
