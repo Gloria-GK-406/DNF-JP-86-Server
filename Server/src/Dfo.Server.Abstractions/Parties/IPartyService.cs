@@ -33,6 +33,10 @@ public interface IPartyService : IPartyDirectoryPresenceSink
         CharacterId currentLeaderCharacterId,
         CharacterId nextLeaderCharacterId);
 
+    PartyOperationResult RemoveMember(
+        CharacterId currentLeaderCharacterId,
+        CharacterId targetCharacterId);
+
     PartyOperationResult LeaveParty(CharacterId characterId);
 
     /// <summary>Withdraws every party artifact owned by this character.</summary>

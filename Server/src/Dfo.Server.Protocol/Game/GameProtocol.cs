@@ -59,6 +59,10 @@ internal static class GameProtocol
 
     public const ushort LeavePartyType = 0x000D;
 
+    public const ushort RemovePartyMemberType = 0x000E;
+
+    public const ushort ChangePartyLeaderType = 0x0079;
+
     public const ushort CallPartyMemberRealtimeInfoType = 0x00A6;
 
     public const ushort SetPartyInfoType = 0x000C;

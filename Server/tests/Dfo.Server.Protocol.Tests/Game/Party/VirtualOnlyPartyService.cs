@@ -30,6 +30,10 @@ internal sealed class VirtualOnlyPartyService : IPartyService
         CharacterId currentLeaderCharacterId, CharacterId nextLeaderCharacterId) =>
         throw new NotSupportedException();
 
+    public PartyOperationResult RemoveMember(
+        CharacterId currentLeaderCharacterId, CharacterId targetCharacterId) =>
+        throw new NotSupportedException();
+
     public PartyOperationResult LeaveParty(CharacterId characterId) =>
         throw new NotSupportedException();
 

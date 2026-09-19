@@ -56,6 +56,8 @@ public enum ClientMessageType
     GameRequestPeer = 0x0001_000A,
     GameResponsePeer = 0x0001_000B,
     GameLeaveParty = 0x0001_000D,
+    GameRemovePartyMember = 0x0001_000E,
+    GameChangePartyLeader = 0x0001_0079,
     GameCallPartyMemberRealtimeInfo = 0x0001_00A6,
     GameSetPartyInfo = 0x0001_000C,
 
@@ -174,6 +176,7 @@ public enum ServerMessageType
     ChannelInfo = 0x12,
     GameExit = 0x0001_0003,
     GameReturnToSelection = 0x0001_0007,
+    GameRemovePartyMemberRefusal = 0x0001_000E,
     GameCheckCharacterName = 0x0001_02B5,
     GameCreateCharacter = 0x0001_0005,
     GameDeleteCharacter = 0x0001_0006,

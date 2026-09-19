@@ -319,6 +319,10 @@ public sealed class SessionGenerationOwnershipTests
             CharacterId currentLeaderCharacterId,
             CharacterId nextLeaderCharacterId) => PartyOperationResult.Success();
 
+        public PartyOperationResult RemoveMember(
+            CharacterId currentLeaderCharacterId,
+            CharacterId targetCharacterId) => PartyOperationResult.Success();
+
         public PartyOperationResult LeaveParty(CharacterId characterId) =>
             PartyOperationResult.Success();
 

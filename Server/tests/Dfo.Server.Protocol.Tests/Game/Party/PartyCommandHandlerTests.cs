@@ -15,6 +15,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -59,6 +60,39 @@ public sealed class PartyCommandHandlerTests
     }
 
     [Fact]
+    public async Task Removing_a_member_in_a_run_detaches_only_the_removed_character()
+    {
+        var parties = new PartyService(
+            new FixedPartyMemberStatus(), new PartyModeRuleService(),
+            TimeProvider.System, new NoPartyEndpoints());
+        var scope = new PartyDirectoryScope(11, 1, 1);
+        var leader = Character(Inviter) with { DirectoryScope = scope };
+        var target = Character(Invitee) with { DirectoryScope = scope };
+        Assert.True(parties.RequestInvite(leader, target,
+            new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+        Assert.True(parties.AcceptInvite(target, leader).Succeeded);
+        var runs = new DungeonRunDomainService(parties);
+        var layout = new DungeonLayout(
+            10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
+            61000, 1, new Dictionary<MazeCell, int> { [new MazeCell(0, 0)] = 61000 });
+        var run = runs.PreparePartyEntry(
+            [new DungeonRunParticipant(Inviter.AccountId, Inviter.CharacterId, 0, true),
+             new DungeonRunParticipant(Invitee.AccountId, Invitee.CharacterId, 1, false)],
+            layout, 0, DungeonCellSeed.CompleteEmpty(layout.StartCell, layout.StartRoomMapId),
+            DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
+        var context = new CommandExecutionContext(
+            Guid.NewGuid(), typeof(object), typeof(object), CommandExecutionKind.Direct);
+
+        var result = await new RemovePartyMemberCommandHandler(parties, runs)
+            .HandleAsync(context, new RemovePartyMemberCommand(
+                Inviter.CharacterId, Invitee.CharacterId), CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(run.RunId, runs.Find(Inviter.CharacterId)!.RunId);
+        Assert.Null(runs.Find(Invitee.CharacterId));
+    }
+
+    [Fact]
     public async Task Commands_are_the_only_route_from_protocol_to_party_writes()
     {
         var domain = new RecordingParties();
@@ -71,6 +105,10 @@ public sealed class PartyCommandHandlerTests
             context, new(Character(Invitee), Character(Inviter)), CancellationToken.None);
         await new LeavePartyCommandHandler(domain).HandleAsync(
             context, new(Invitee.CharacterId), CancellationToken.None);
+        await new TransferPartyLeadershipCommandHandler(domain).HandleAsync(
+            context, new(Inviter.CharacterId, Invitee.CharacterId), CancellationToken.None);
+        await new RemovePartyMemberCommandHandler(domain).HandleAsync(
+            context, new(Inviter.CharacterId, Invitee.CharacterId), CancellationToken.None);
         await new QueryPartyRealtimeCommandHandler(domain).HandleAsync(
             context, new(Character(Inviter)), CancellationToken.None);
         var settings = Settings();
@@ -83,6 +121,8 @@ public sealed class PartyCommandHandlerTests
                 "invite:1->2:64",
                 "accept:2<-1",
                 "leave:2",
+                "lead:1->2",
+                "remove:1->2",
                 "query:1",
                 "settings:1:2:41",
             ],
@@ -116,7 +156,7 @@ public sealed class PartyCommandHandlerTests
     }
 
     [Fact]
-    public async Task Party_handlers_dispatch_the_four_party_write_commands()
+    public async Task Party_handlers_dispatch_the_six_party_write_commands()
     {
         var sessions = new SessionDirectory(Inviter, Invitee);
         var commands = new RecordingCommandBus();
@@ -136,6 +176,19 @@ public sealed class PartyCommandHandlerTests
                 NullLogger<LeavePartyHandler>.Instance)
             .HandleAsync(Dispatch(Invitee), new LeavePartyRequest(GameMessageMetadata.Empty),
                 CancellationToken.None);
+        await new ChangePartyLeaderHandler(
+                sessions, new RecordingParties(), gate, commands, Notifications,
+                NullLogger<ChangePartyLeaderHandler>.Instance)
+            .HandleAsync(Dispatch(Inviter),
+                new ChangePartyLeaderRequest(GameMessageMetadata.Empty, 1),
+                CancellationToken.None);
+        var sender = new RecordingSender();
+        await new RemovePartyMemberHandler(
+                sessions, new RecordingParties(), gate, commands, Notifications, sender,
+                NullLogger<RemovePartyMemberHandler>.Instance)
+            .HandleAsync(Dispatch(Inviter),
+                new RemovePartyMemberRequest(GameMessageMetadata.Empty, 1),
+                CancellationToken.None);
         await new SetPartyInfoHandler(sessions, Presence, gate, commands, Notifications,
                 NullLogger<SetPartyInfoHandler>.Instance)
             .HandleAsync(Dispatch(Inviter), new SetPartyInfoRequest(
@@ -147,12 +200,38 @@ public sealed class PartyCommandHandlerTests
             command => Assert.IsType<RequestPartyInviteCommand>(command),
             command => Assert.IsType<AcceptPartyInviteCommand>(command),
             command => Assert.IsType<LeavePartyCommand>(command),
+            command => Assert.IsType<TransferPartyLeadershipCommand>(command),
+            command => Assert.IsType<RemovePartyMemberCommand>(command),
             command =>
             {
                 var set = Assert.IsType<SetPartyInfoCommand>(command);
                 Assert.Equal(Settings(), set.Settings);
                 Assert.Equal(new PartyTitle([0x41]), set.Title);
             });
+    }
+
+    [Fact]
+    public async Task Removing_an_empty_slot_returns_the_native_error_without_a_domain_write()
+    {
+        var sessions = new SessionDirectory(Inviter, Invitee);
+        var commands = new RecordingCommandBus();
+        var sender = new RecordingSender();
+
+        await new RemovePartyMemberHandler(
+                sessions,
+                new RecordingParties(),
+                new SelectedSessionTransitionGate(),
+                commands,
+                Notifications,
+                sender,
+                NullLogger<RemovePartyMemberHandler>.Instance)
+            .HandleAsync(
+                Dispatch(Inviter),
+                new RemovePartyMemberRequest(GameMessageMetadata.Empty, 7),
+                CancellationToken.None);
+
+        Assert.Empty(commands.Commands);
+        Assert.IsType<RemovePartyMemberRefusal>(Assert.Single(sender.Sent));
     }
 
     [Fact]
@@ -662,6 +741,38 @@ public sealed class PartyCommandHandlerTests
         public SessionEndpoint? Find(GameSessionIdentity session) => values.GetValueOrDefault(session);
     }
 
+    private sealed class RecordingSender : IGameMessageSender
+    {
+        public List<IGameServerMessage> Sent { get; } = [];
+
+        public ValueTask SendCmdAsync(
+            NetworkConnectionId connectionId,
+            IGameCmdMessage message,
+            CancellationToken cancellationToken)
+        {
+            Sent.Add(message);
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask SendNotiAsync(
+            NetworkConnectionId connectionId,
+            IGameNotiMessage message,
+            CancellationToken cancellationToken)
+        {
+            Sent.Add(message);
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask SendExplicitAsync(
+            NetworkConnectionId requiredDirectConnectionId,
+            GameExplicitMessageDelivery delivery,
+            CancellationToken cancellationToken)
+        {
+            Sent.AddRange(delivery.RequiredDirectMessages);
+            return ValueTask.CompletedTask;
+        }
+    }
+
     private sealed class RecordingCommandBus(
         PartyOperationResult? result = null) : ICommandBus
     {
@@ -824,7 +935,19 @@ public sealed class PartyCommandHandlerTests
 
         public PartyOperationResult TransferLeadership(
             CharacterId currentLeaderCharacterId,
-            CharacterId nextLeaderCharacterId) => throw new NotSupportedException();
+            CharacterId nextLeaderCharacterId)
+        {
+            Writes.Add($"lead:{currentLeaderCharacterId.Value}->{nextLeaderCharacterId.Value}");
+            return PartyOperationResult.Success();
+        }
+
+        public PartyOperationResult RemoveMember(
+            CharacterId currentLeaderCharacterId,
+            CharacterId targetCharacterId)
+        {
+            Writes.Add($"remove:{currentLeaderCharacterId.Value}->{targetCharacterId.Value}");
+            return PartyOperationResult.Success();
+        }
 
         public PartyOperationResult LeaveParty(CharacterId characterId)
         {

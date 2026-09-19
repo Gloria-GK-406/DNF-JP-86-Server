@@ -11,6 +11,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game.DungeonSelection;
 
 namespace Dfo.Server.Protocol.Game.Party;
 
@@ -46,22 +47,31 @@ public sealed record PartySettingsMessage(PartySnapshot Snapshot) : IGameNotiMes
 
 public sealed record PartyRosterMessage : IGameNotiMessage
 {
-    private PartyRosterMessage(PartySnapshot? snapshot, ushort? clearedPartyId)
+    private PartyRosterMessage(
+        PartySnapshot? snapshot,
+        ushort? clearedPartyId,
+        bool hostChanged)
     {
         Snapshot = snapshot;
         ClearedPartyId = clearedPartyId;
+        HostChanged = hostChanged;
     }
 
     public PartySnapshot? Snapshot { get; }
 
     public ushort? ClearedPartyId { get; }
 
+    public bool HostChanged { get; }
+
     public ServerMessageType MessageType => ServerMessageType.GamePartyRoster;
 
     public static PartyRosterMessage Refresh(PartySnapshot snapshot) =>
-        new(snapshot ?? throw new ArgumentNullException(nameof(snapshot)), null);
+        new(snapshot ?? throw new ArgumentNullException(nameof(snapshot)), null, false);
 
-    public static PartyRosterMessage Clear(ushort partyId) => new(null, partyId);
+    public static PartyRosterMessage ChangeHost(PartySnapshot snapshot) =>
+        new(snapshot ?? throw new ArgumentNullException(nameof(snapshot)), null, true);
+
+    public static PartyRosterMessage Clear(ushort partyId) => new(null, partyId, false);
 }
 
 internal sealed class PartyInviteRequestEncoder
@@ -212,12 +222,14 @@ internal sealed class PartyRosterEncoder : GameNotiMessageEncoder<PartyRosterMes
 
         var snapshot = message.Snapshot
             ?? throw new InvalidOperationException("A party roster refresh requires a snapshot.");
-        var information = PartyInformationBlockEncoder.Encode(snapshot.Settings, snapshot.Title);
+        var information = message.HostChanged
+            ? []
+            : PartyInformationBlockEncoder.Encode(snapshot.Settings, snapshot.Title);
         var rosterOffset = 5 + information.Length;
         var body = new byte[rosterOffset + 44];
         BinaryPrimitives.WriteUInt16LittleEndian(body, 1);
         BinaryPrimitives.WriteUInt16LittleEndian(body.AsSpan(2), snapshot.PartyId);
-        body[4] = 0;
+        body[4] = message.HostChanged ? (byte)2 : (byte)0;
         information.CopyTo(body.AsSpan(5));
 
         for (byte slot = 0; slot < 8; slot++)
@@ -290,6 +302,9 @@ public sealed record PartyEndpointsChanged(PartySnapshot Snapshot)
 
 public sealed record PartySettingsChanged(PartySnapshot Snapshot)
     : INotification<PartySettingsChanged>;
+
+public sealed record PartyLeadershipChanged(PartySnapshot Snapshot)
+    : INotification<PartyLeadershipChanged>;
 
 public sealed record PartyRosterChanged(
     PartySnapshot? Snapshot,
@@ -420,6 +435,20 @@ public sealed class PartySettingsChangedHandler(ISelectedSessionDomainService se
         ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(
             PartyNotificationProjection.IsExactMember(recipient, notification.Snapshot, sessions)
                 ? [new PartySettingsMessage(notification.Snapshot)]
+                : []);
+}
+
+public sealed class PartyLeadershipChangedHandler(ISelectedSessionDomainService sessions)
+    : INotificationHandler<PartyLeadershipChanged>
+{
+    public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(
+        NotificationRecipient recipient,
+        PartyLeadershipChanged notification,
+        CancellationToken cancellationToken) =>
+        ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(
+            PartyNotificationProjection.IsExactMember(recipient, notification.Snapshot, sessions)
+                ? [new UdpHostNotification(notification.Snapshot.LeaderMember.Slot),
+                    PartyRosterMessage.ChangeHost(notification.Snapshot)]
                 : []);
 }
 
@@ -743,22 +772,12 @@ public sealed class PartyNotificationDelivery(
         {
             var transferAudience = resolver.Characters(
                 transfer.Members.Select(value => value.CharacterId));
-            if ((await PartyExactNotificationDelivery.PublishWithRetryAsync(
-                    notifications, transferAudience,
-                    new PartyRealtimeChanged(transfer), cancellationToken)
-                    .ConfigureAwait(false)).HasFailures
-                || (await PartyExactNotificationDelivery.PublishWithRetryAsync(
-                    notifications, transferAudience,
-                    new PartyEndpointsChanged(transfer), cancellationToken)
-                    .ConfigureAwait(false)).HasFailures
-                || (await PartyExactNotificationDelivery.PublishWithRetryAsync(
-                    notifications, transferAudience,
-                    PartyRosterChanged.Refresh(transfer,
-                        transferAudience.Select(value => value.CharacterId).ToImmutableArray()),
-                    cancellationToken).ConfigureAwait(false)).HasFailures)
-            {
-                return false;
-            }
+            var transferDelivery = await PartyExactNotificationDelivery.PublishWithRetryAsync(
+                notifications, transferAudience,
+                new PartyLeadershipChanged(transfer), cancellationToken).ConfigureAwait(false);
+            return !transferDelivery.HasFailures
+                && await DeliverObserverStateAsync(plan, resolver, cancellationToken)
+                    .ConfigureAwait(false);
         }
 
         if (!await DeliverClearAsync(
@@ -976,13 +995,12 @@ public sealed class PartyNotificationDelivery(
             && (plan.Snapshot is not { } final
                 || transfer.PartyId != final.PartyId
                 || transfer.Generation != final.Generation
-                || transfer.Revision >= final.Revision
-                || plan.ClearAudience.Length != 1
-                || !transfer.Members.Any(member =>
-                    member.CharacterId == plan.ClearAudience[0])))
+                || transfer.Revision != final.Revision
+                || transfer.LeaderWireUserId != final.LeaderWireUserId
+                || !plan.ClearAudience.IsDefaultOrEmpty))
         {
             throw new InvalidOperationException(
-                "A leadership transfer must precede one departing member's final roster.");
+                "A leadership transfer must be the final unchanged roster for the same party revision.");
         }
 
         var settingsChange = plan.SettingsChange;

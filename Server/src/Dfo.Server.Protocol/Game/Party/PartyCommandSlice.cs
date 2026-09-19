@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Text;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Parties;
@@ -12,6 +13,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game.TownProjection;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.Party;
@@ -47,6 +49,25 @@ public sealed record ResponsePeerRequest(
 public sealed record LeavePartyRequest(GameMessageMetadata Metadata) : IClientNetworkMessage
 {
     public ClientMessageType MessageType => ClientMessageType.GameLeaveParty;
+}
+
+public sealed record RemovePartyMemberRequest(
+    GameMessageMetadata Metadata,
+    byte TargetSlot) : IClientNetworkMessage
+{
+    public ClientMessageType MessageType => ClientMessageType.GameRemovePartyMember;
+}
+
+public sealed record ChangePartyLeaderRequest(
+    GameMessageMetadata Metadata,
+    byte TargetSlot) : IClientNetworkMessage
+{
+    public ClientMessageType MessageType => ClientMessageType.GameChangePartyLeader;
+}
+
+public sealed record RemovePartyMemberRefusal : IGameCmdMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameRemovePartyMemberRefusal;
 }
 
 public sealed record CallPartyMemberRealtimeInfoRequest(GameMessageMetadata Metadata)
@@ -145,6 +166,34 @@ internal sealed class LeavePartyDecoder : IGameMessageDecoder
         PartyCommandBody.RequireLength("LEAVE_PARTY", body, 0);
         return new LeavePartyRequest(metadata);
     }
+}
+
+internal sealed class RemovePartyMemberDecoder : IGameMessageDecoder
+{
+    public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
+    {
+        PartyCommandBody.RequireLength("WALKOUT_PARTY_MEMBER", body, 1);
+        return new RemovePartyMemberRequest(metadata, body[0]);
+    }
+}
+
+internal sealed class ChangePartyLeaderDecoder : IGameMessageDecoder
+{
+    public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
+    {
+        PartyCommandBody.RequireLength("CHANGE_HOST", body, 1);
+        return new ChangePartyLeaderRequest(metadata, body[0]);
+    }
+}
+
+internal sealed class RemovePartyMemberRefusalEncoder
+    : GameCmdMessageEncoder<RemovePartyMemberRefusal>
+{
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
+        RemovePartyMemberRefusal message) =>
+        OnePayload(GameProtocol.RemovePartyMemberType, EncodeBody());
+
+    internal static byte[] EncodeBody() => [0x00, 0x13];
 }
 
 internal sealed class CallPartyMemberRealtimeInfoDecoder : IGameMessageDecoder
@@ -274,6 +323,46 @@ public sealed class LeavePartyCommandHandler(
         var result = parties.LeaveParty(command.CharacterId);
         if (result.Succeeded && run is not null)
             _ = runs!.End(command.CharacterId, run.RunId);
+        return ValueTask.FromResult(result);
+    }
+}
+
+public sealed record TransferPartyLeadershipCommand(
+    CharacterId CurrentLeaderCharacterId,
+    CharacterId NextLeaderCharacterId) : ICommand<PartyOperationResult>;
+
+public sealed class TransferPartyLeadershipCommandHandler(IPartyService parties)
+    : ICommandHandler<TransferPartyLeadershipCommand, PartyOperationResult>
+{
+    public ValueTask<PartyOperationResult> HandleAsync(
+        CommandExecutionContext context,
+        TransferPartyLeadershipCommand command,
+        CancellationToken cancellationToken) =>
+        ValueTask.FromResult(parties.TransferLeadership(
+            command.CurrentLeaderCharacterId,
+            command.NextLeaderCharacterId));
+}
+
+public sealed record RemovePartyMemberCommand(
+    CharacterId CurrentLeaderCharacterId,
+    CharacterId TargetCharacterId) : ICommand<PartyOperationResult>;
+
+public sealed class RemovePartyMemberCommandHandler(
+    IPartyService parties,
+    IDungeonRunDomainService? runs = null)
+    : ICommandHandler<RemovePartyMemberCommand, PartyOperationResult>
+{
+    public ValueTask<PartyOperationResult> HandleAsync(
+        CommandExecutionContext context,
+        RemovePartyMemberCommand command,
+        CancellationToken cancellationToken)
+    {
+        var run = runs?.Find(command.TargetCharacterId);
+        var result = parties.RemoveMember(
+            command.CurrentLeaderCharacterId,
+            command.TargetCharacterId);
+        if (result.Succeeded && run is not null)
+            _ = runs!.End(command.TargetCharacterId, run.RunId);
         return ValueTask.FromResult(result);
     }
 }
@@ -677,6 +766,160 @@ public sealed class LeavePartyHandler(
             "LEAVE_PARTY character={CharacterId} accepted={Accepted} failure={Failure}",
             session.CharacterId, result.Succeeded, result.Failure);
     }
+}
+
+public sealed class ChangePartyLeaderHandler(
+    ISelectedSessionDomainService sessions,
+    IPartyService parties,
+    SelectedSessionTransitionGate transitionGate,
+    ICommandBus commands,
+    PartyNotificationDelivery notifications,
+    ILogger<ChangePartyLeaderHandler> logger,
+    ITownAreaDomainService? townAreas = null)
+    : ClientMessageHandler<ChangePartyLeaderRequest>
+{
+    protected override async ValueTask HandleMessageAsync(
+        NetworkDispatchContext context,
+        ChangePartyLeaderRequest message,
+        CancellationToken cancellationToken)
+    {
+        var leader = sessions.FindByConnection(context.Connection.ConnectionId);
+        if (leader is null)
+            return;
+        var roster = parties.FindParty(Character(leader));
+        var targetMember = roster.IsVirtual
+            ? null
+            : roster.Members.SingleOrDefault(member => member.Slot == message.TargetSlot);
+        var target = targetMember is null
+            ? null
+            : sessions.FindByCharacter(targetMember.CharacterId);
+        if (target is null)
+        {
+            logger.LogInformation(
+                "CHANGE_HOST leader={Leader} slot={Slot} ignored because the target is not current",
+                leader.CharacterId, message.TargetSlot);
+            return;
+        }
+
+        var execution = await PartyTransitionExecution.RunPartyAsync(
+            transitionGate,
+            leader,
+            target,
+            sessions,
+            townAreas,
+            () => sessions.FindByConnection(context.Connection.ConnectionId) == leader
+                && sessions.FindByCharacter(target.CharacterId) == target
+                    ? commands.SendAsync(new TransferPartyLeadershipCommand(
+                        leader.CharacterId, target.CharacterId), cancellationToken)
+                    : ValueTask.FromResult(PartyOperationResult.Reject(
+                        PartyFailureReason.CallerNotCurrent)),
+            cancellationToken).ConfigureAwait(false);
+        if (execution.Result.Succeeded)
+        {
+            await notifications.DeliverAsync(
+                    execution.Result.Notifications, execution.Recipients, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        logger.LogInformation(
+            "CHANGE_HOST leader={Leader} target={Target} slot={Slot} accepted={Accepted} failure={Failure}",
+            leader.CharacterId, target.CharacterId, message.TargetSlot,
+            execution.Result.Succeeded, execution.Result.Failure);
+    }
+
+    private static PartyCharacterSnapshot Character(SelectedSessionIdentity session) =>
+        new(session.AccountId, session.CharacterId, session.WireUserId, null);
+}
+
+public sealed class RemovePartyMemberHandler(
+    ISelectedSessionDomainService sessions,
+    IPartyService parties,
+    SelectedSessionTransitionGate transitionGate,
+    ICommandBus commands,
+    PartyNotificationDelivery notifications,
+    IGameMessageSender sender,
+    ILogger<RemovePartyMemberHandler> logger,
+    ITownAreaDomainService? townAreas = null,
+    IDungeonRunDomainService? runs = null,
+    IDungeonRunParticipantDepartureSink? departureSink = null,
+    ISelectedCharacterCurrentViewDomainService? currentViews = null,
+    ICharacterPositionDomainService? positions = null,
+    TownAreaProjectionDelivery? townAreaProjection = null)
+    : ClientMessageHandler<RemovePartyMemberRequest>
+{
+    protected override async ValueTask HandleMessageAsync(
+        NetworkDispatchContext context,
+        RemovePartyMemberRequest message,
+        CancellationToken cancellationToken)
+    {
+        var leader = sessions.FindByConnection(context.Connection.ConnectionId);
+        if (leader is null)
+            return;
+        var roster = parties.FindParty(Character(leader));
+        var targetMember = roster.IsVirtual
+            ? null
+            : roster.Members.SingleOrDefault(member => member.Slot == message.TargetSlot);
+        var target = targetMember is null
+            ? null
+            : sessions.FindByCharacter(targetMember.CharacterId);
+        if (target is null)
+        {
+            await RefuseAsync(context.Connection.ConnectionId, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        var departingRun = runs?.Find(target.CharacterId);
+        var returnRuntime = departingRun is not null && currentViews is not null
+            ? await currentViews.TryLoadAsync(target, cancellationToken).ConfigureAwait(false)
+            : null;
+        var returnPosition = departingRun is not null ? positions?.Find(target.CharacterId) : null;
+        var execution = await PartyTransitionExecution.RunPartyAsync(
+            transitionGate,
+            leader,
+            target,
+            sessions,
+            townAreas,
+            () => sessions.FindByConnection(context.Connection.ConnectionId) == leader
+                && sessions.FindByCharacter(target.CharacterId) == target
+                    ? commands.SendAsync(new RemovePartyMemberCommand(
+                        leader.CharacterId, target.CharacterId), cancellationToken)
+                    : ValueTask.FromResult(PartyOperationResult.Reject(
+                        PartyFailureReason.CallerNotCurrent)),
+            cancellationToken).ConfigureAwait(false);
+        if (!execution.Result.Succeeded)
+        {
+            await RefuseAsync(context.Connection.ConnectionId, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            if (departingRun is not null && runs?.Find(target.CharacterId) is null)
+                departureSink?.ParticipantDeparted(departingRun.RunId, target.CharacterId);
+            await notifications.DeliverAsync(
+                    execution.Result.Notifications, execution.Recipients, cancellationToken)
+                .ConfigureAwait(false);
+            if (departingRun is not null
+                && returnRuntime is not null
+                && returnPosition is not null
+                && townAreaProjection is not null
+                && sessions.FindByCharacter(target.CharacterId) == target)
+            {
+                await townAreaProjection.EnterAsync(
+                    [new TownAreaEntry(target, returnRuntime, returnPosition)],
+                    cancellationToken).ConfigureAwait(false);
+            }
+        }
+        logger.LogInformation(
+            "WALKOUT_PARTY_MEMBER leader={Leader} target={Target} slot={Slot} accepted={Accepted} failure={Failure}",
+            leader.CharacterId, target.CharacterId, message.TargetSlot,
+            execution.Result.Succeeded, execution.Result.Failure);
+    }
+
+    private ValueTask RefuseAsync(
+        NetworkConnectionId connectionId,
+        CancellationToken cancellationToken) =>
+        sender.SendCmdAsync(connectionId, new RemovePartyMemberRefusal(), cancellationToken);
+
+    private static PartyCharacterSnapshot Character(SelectedSessionIdentity session) =>
+        new(session.AccountId, session.CharacterId, session.WireUserId, null);
 }
 
 public sealed class CallPartyMemberRealtimeInfoHandler(

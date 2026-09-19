@@ -143,6 +143,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddNotificationHandler<PartyEndpointsChanged, PartyEndpointsChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<PartyRosterChanged, PartyRosterChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<PartySettingsChanged, PartySettingsChangedHandler>(retryLimit: 0);
+        services.AddNotificationHandler<PartyLeadershipChanged, PartyLeadershipChangedHandler>(retryLimit: 0);
         services.AddNotificationHandler<
             OtherCharacterDetailRequested,
             OtherCharacterDetailRequestedHandler>(retryLimit: 0);
@@ -340,6 +341,14 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<LeavePartyCommand, PartyOperationResult, LeavePartyCommandHandler>(
             CommandExecutionKind.Direct);
         services.AddCommandHandler<
+            TransferPartyLeadershipCommand,
+            PartyOperationResult,
+            TransferPartyLeadershipCommandHandler>(CommandExecutionKind.Direct);
+        services.AddCommandHandler<
+            RemovePartyMemberCommand,
+            PartyOperationResult,
+            RemovePartyMemberCommandHandler>(CommandExecutionKind.Direct);
+        services.AddCommandHandler<
             QueryPartyRealtimeCommand, PartyRealtimeQueryResult, QueryPartyRealtimeCommandHandler>(
             CommandExecutionKind.Direct);
         services.AddCommandHandler<
@@ -389,6 +398,10 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<RequestPeerHandler>(ClientMessageType.GameRequestPeer);
         services.RegisterMessageHandler<ResponsePeerHandler>(ClientMessageType.GameResponsePeer);
         services.RegisterMessageHandler<LeavePartyHandler>(ClientMessageType.GameLeaveParty);
+        services.RegisterMessageHandler<RemovePartyMemberHandler>(
+            ClientMessageType.GameRemovePartyMember);
+        services.RegisterMessageHandler<ChangePartyLeaderHandler>(
+            ClientMessageType.GameChangePartyLeader);
         services.RegisterMessageHandler<CallPartyMemberRealtimeInfoHandler>(
             ClientMessageType.GameCallPartyMemberRealtimeInfo);
         services.RegisterMessageHandler<SetPartyInfoHandler>(ClientMessageType.GameSetPartyInfo);
@@ -540,6 +553,10 @@ public sealed class ProtocolModule : IServerModule
             GameProtocol.ResponsePeerType, ClientMessageType.GameResponsePeer);
         services.AddGameCmdMessageDecoder<LeavePartyDecoder>(
             GameProtocol.LeavePartyType, ClientMessageType.GameLeaveParty);
+        services.AddGameCmdMessageDecoder<RemovePartyMemberDecoder>(
+            GameProtocol.RemovePartyMemberType, ClientMessageType.GameRemovePartyMember);
+        services.AddGameCmdMessageDecoder<ChangePartyLeaderDecoder>(
+            GameProtocol.ChangePartyLeaderType, ClientMessageType.GameChangePartyLeader);
         services.AddGameCmdMessageDecoder<CallPartyMemberRealtimeInfoDecoder>(
             GameProtocol.CallPartyMemberRealtimeInfoType,
             ClientMessageType.GameCallPartyMemberRealtimeInfo);
@@ -689,6 +706,9 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<PartyEndpointsMessage, PartyEndpointsEncoder>();
         services.AddGameNotiMessageEncoder<PartyRosterMessage, PartyRosterEncoder>();
         services.AddGameNotiMessageEncoder<PartySettingsMessage, PartySettingsEncoder>();
+        services.AddGameCmdMessageEncoder<
+            RemovePartyMemberRefusal,
+            RemovePartyMemberRefusalEncoder>();
         services.AddGameCmdMessageEncoder<CheckCharacterNameResponse, CheckCharacterNameResponseEncoder>();
         services.AddGameCmdMessageEncoder<CreateCharacterResponse, CreateCharacterResponseEncoder>();
         services.AddGameCmdMessageEncoder<DeleteCharacterResponse, DeleteCharacterResponseEncoder>();

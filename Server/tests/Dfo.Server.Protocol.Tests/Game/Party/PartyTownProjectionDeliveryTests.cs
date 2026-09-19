@@ -418,6 +418,10 @@ public sealed class PartyTownProjectionDeliveryTests
             CharacterId currentLeaderCharacterId,
             CharacterId nextLeaderCharacterId) => throw new NotSupportedException();
 
+        public PartyOperationResult RemoveMember(
+            CharacterId currentLeaderCharacterId,
+            CharacterId targetCharacterId) => throw new NotSupportedException();
+
         public PartyOperationResult LeaveParty(
             CharacterId characterId) => throw new NotSupportedException();
 
@@ -464,6 +468,10 @@ public sealed class PartyTownProjectionDeliveryTests
         public PartyOperationResult TransferLeadership(
             CharacterId currentLeaderCharacterId,
             CharacterId nextLeaderCharacterId) => throw new NotSupportedException();
+
+        public PartyOperationResult RemoveMember(
+            CharacterId currentLeaderCharacterId,
+            CharacterId targetCharacterId) => throw new NotSupportedException();
 
         public PartyOperationResult LeaveParty(
             CharacterId characterId) => throw new NotSupportedException();

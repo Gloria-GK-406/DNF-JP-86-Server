@@ -9,6 +9,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.Party;
 
 namespace Dfo.Server.Protocol.Tests.Game.Party;
@@ -80,6 +81,21 @@ public sealed class PartyNotificationTests
         Assert.Equal((ushort)Inviter.WireUserId, BitConverter.ToUInt16(body, 21));
         Assert.Equal((ushort)Invitee.WireUserId, BitConverter.ToUInt16(body, 26));
         Assert.Equal((byte)1, body[62]);
+    }
+
+    [Fact]
+    public void Host_change_roster_uses_type_two_and_omits_the_information_block()
+    {
+        var snapshot = Snapshot() with { LeaderWireUserId = Invitee.WireUserId };
+
+        var body = PartyRosterEncoder.EncodeBody(PartyRosterMessage.ChangeHost(snapshot));
+
+        Assert.Equal(49, body.Length);
+        Assert.Equal((byte)2, body[4]);
+        Assert.Equal((ushort)Inviter.WireUserId, BitConverter.ToUInt16(body, 5));
+        Assert.Equal((ushort)Invitee.WireUserId, BitConverter.ToUInt16(body, 10));
+        Assert.Equal((byte)1, body[46]);
+        Assert.Equal((byte)0, body[48]);
     }
 
     [Fact]
@@ -630,42 +646,33 @@ public sealed class PartyNotificationTests
     }
 
     [Fact]
-    public async Task Leader_leave_projects_succession_before_clear_and_survivor_roster()
+    public async Task Manual_leadership_transfer_projects_only_the_native_host_change()
     {
         var bus = new RecordingNotificationBus();
         var transfer = new PartySnapshot(
             0x1234, 7, 4, Invitee.WireUserId, DefaultSettings(), PartyTitle.Empty,
-            [new(Character(Invitee), 0, null, 45),
-             new(Character(Inviter), 1, Endpoint(), 73)]);
-        var survivor = transfer with
-        {
-            Revision = 5,
-            Members = [new(Character(Invitee), 0, null, 45)],
-        };
+            [new(Character(Inviter), 0, Endpoint(), 73),
+             new(Character(Invitee), 1, null, 45)]);
 
         await Delivery(bus).DeliverAsync(new PartyNotificationPlan(
-            [Inviter.CharacterId], survivor,
-            ClearPartyId: survivor.PartyId,
-            ClearPartyGeneration: survivor.Generation,
-            ClearPartyRevision: survivor.Revision,
+            [], transfer,
             DirectoryChange: ScopeChange(),
             LeadershipTransfer: transfer), CancellationToken.None);
 
         Assert.Collection(bus.Publications,
-            value => AssertPublication<PartyRealtimeChanged>(value, 2, 1),
-            value => AssertPublication<PartyEndpointsChanged>(value, 2, 1),
-            value => AssertPublication<PartyRosterChanged>(value, 2, 1),
-            value => AssertPublication<PartyRosterChanged>(value, 1),
-            value => AssertPublication<PartyRealtimeChanged>(value, 2),
-            value => AssertPublication<PartyEndpointsChanged>(value, 2),
-            value => AssertPublication<PartyRosterChanged>(value, 2),
-            value => AssertPublication<PartyRosterChanged>(value, 1, 3));
-        Assert.Equal(4, Assert.IsType<PartyRosterChanged>(bus.Publications[2].Notification)
-            .Snapshot!.Revision);
-        Assert.True(Assert.IsType<PartyRosterChanged>(bus.Publications[3].Notification)
-            .ClearsParty);
-        Assert.Equal(5, Assert.IsType<PartyRosterChanged>(bus.Publications[6].Notification)
-            .Snapshot!.Revision);
+            publication => AssertPublication<PartyLeadershipChanged>(publication, 1, 2),
+            publication => AssertPublication<PartyRosterChanged>(publication, 3));
+        var hostChange = Assert.IsType<PartyLeadershipChanged>(bus.Publications[0].Notification);
+
+        var messages = await new PartyLeadershipChangedHandler(
+                new SessionDirectory(Inviter, Invitee))
+            .ComposeAsync(
+                new NotificationRecipient(Inviter.CharacterId, Inviter.ConnectionId),
+                hostChange,
+                CancellationToken.None);
+        Assert.Collection(messages,
+            value => Assert.Equal((byte)1, Assert.IsType<UdpHostNotification>(value).HostSlot),
+            value => Assert.True(Assert.IsType<PartyRosterMessage>(value).HostChanged));
     }
 
     [Fact]

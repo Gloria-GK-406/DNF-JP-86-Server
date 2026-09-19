@@ -451,6 +451,7 @@ public sealed class PartyServiceTests
         Assert.Equal(
             new PartyDirectoryChange(firstScope, secondScope),
             transfer.Notifications.DirectoryChange);
+        Assert.Same(transfer.Notifications.Snapshot, transfer.Notifications.LeadershipTransfer);
         Assert.Empty(service.Query(new PartyDirectoryQuery(firstScope)));
         var moved = Assert.Single(service.Query(new PartyDirectoryQuery(secondScope)));
         Assert.Equal(successor.WireUserId, moved.LeaderWireUserId);
@@ -511,6 +512,36 @@ public sealed class PartyServiceTests
         Assert.True(service.AcceptInvite(newcomer, leader).Succeeded);
         Assert.Equal((byte)0, service.FindParty(newcomer).Members.Single(
             member => member.CharacterId == newcomer.CharacterId).Slot);
+    }
+
+    [Fact]
+    public void Only_the_explicit_leader_can_remove_a_nonleader_without_reordering_survivors()
+    {
+        var service = new PartyService(
+            new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
+            TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance);
+        var scope = new PartyDirectoryScope(11, 1, 1);
+        var leader = Character(1, scope);
+        var removed = Character(2, scope);
+        var survivor = Character(3, scope);
+        Assert.True(service.RequestInvite(leader, removed, Profile(1)).Succeeded);
+        Assert.True(service.AcceptInvite(removed, leader).Succeeded);
+        Assert.True(service.RequestInvite(leader, survivor, Profile(1)).Succeeded);
+        Assert.True(service.AcceptInvite(survivor, leader).Succeeded);
+
+        Assert.Equal(
+            PartyFailureReason.NotPartyLeader,
+            service.RemoveMember(removed.CharacterId, survivor.CharacterId).Failure);
+        var result = service.RemoveMember(leader.CharacterId, removed.CharacterId);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal([removed.CharacterId], result.Notifications.ClearAudience.ToArray());
+        Assert.Equal(
+            [(leader.CharacterId, (byte)0), (survivor.CharacterId, (byte)2)],
+            result.Notifications.Snapshot!.Members.Select(member =>
+                (member.CharacterId, member.Slot)));
+        Assert.True(service.FindParty(removed).IsVirtual);
+        Assert.False(service.FindParty(survivor).IsVirtual);
     }
 
     [Fact]

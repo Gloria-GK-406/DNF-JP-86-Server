@@ -288,6 +288,40 @@ public sealed class PartyService(
             return PartyOperationResult.Success(new PartyNotificationPlan(
                 [],
                 snapshot,
+                DirectoryChange: new PartyDirectoryChange(previous, party.DirectoryScope),
+                LeadershipTransfer: snapshot));
+        }
+    }
+
+    public PartyOperationResult RemoveMember(
+        CharacterId currentLeaderCharacterId,
+        CharacterId targetCharacterId)
+    {
+        lock (sync)
+        {
+            if (!membership.TryGetValue(currentLeaderCharacterId, out var party))
+                return PartyOperationResult.Reject(PartyFailureReason.NotInParty);
+            if (!party.IsLeader(currentLeaderCharacterId))
+                return PartyOperationResult.Reject(PartyFailureReason.NotPartyLeader);
+            if (targetCharacterId == currentLeaderCharacterId
+                || !membership.TryGetValue(targetCharacterId, out var targetParty)
+                || !ReferenceEquals(targetParty, party))
+            {
+                return PartyOperationResult.Reject(PartyFailureReason.TargetNotFound);
+            }
+
+            var previous = party.DirectoryScope;
+            party.Remove(targetCharacterId);
+            membership.Remove(targetCharacterId);
+            Reindex(party, previous, party.DirectoryScope);
+            var snapshot = Snapshot(party);
+            return PartyOperationResult.Success(new PartyNotificationPlan(
+                [targetCharacterId],
+                snapshot,
+                ClearPartyKey: party.Key,
+                ClearLeadershipVersion: party.LeadershipVersion,
+                ClearPartyGeneration: party.Generation,
+                ClearPartyRevision: party.Revision,
                 DirectoryChange: new PartyDirectoryChange(previous, party.DirectoryScope)));
         }
     }

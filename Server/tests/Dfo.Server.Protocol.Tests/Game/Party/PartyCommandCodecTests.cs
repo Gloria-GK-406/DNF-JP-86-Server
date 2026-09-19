@@ -206,6 +206,20 @@ public sealed class PartyCommandCodecTests
     }
 
     [Fact]
+    public void Member_removal_and_leadership_transfer_each_decode_one_stable_slot()
+    {
+        Assert.Equal((byte)3, Assert.IsType<RemovePartyMemberRequest>(
+            new RemovePartyMemberDecoder().Decode(GameMessageMetadata.Empty, [3]))!.TargetSlot);
+        Assert.Equal((byte)1, Assert.IsType<ChangePartyLeaderRequest>(
+            new ChangePartyLeaderDecoder().Decode(GameMessageMetadata.Empty, [1]))!.TargetSlot);
+        Assert.Throws<InvalidDataException>(() =>
+            new RemovePartyMemberDecoder().Decode(GameMessageMetadata.Empty, []));
+        Assert.Throws<InvalidDataException>(() =>
+            new ChangePartyLeaderDecoder().Decode(GameMessageMetadata.Empty, [1, 2]));
+        Assert.Equal([0x00, 0x13], RemovePartyMemberRefusalEncoder.EncodeBody());
+    }
+
+    [Fact]
     public void Party_realtime_query_requires_an_empty_body()
     {
         Assert.IsType<CallPartyMemberRealtimeInfoRequest>(
@@ -215,7 +229,7 @@ public sealed class PartyCommandCodecTests
     }
 
     [Fact]
-    public void Production_registers_all_six_wire_keys_and_handlers_plus_five_party_commands()
+    public void Production_registers_all_eight_wire_keys_and_handlers_plus_seven_party_commands()
     {
         var services = new ServiceCollection();
         new ProtocolModule().ConfigureServices(services, new ConfigurationBuilder().Build());
@@ -230,6 +244,10 @@ public sealed class PartyCommandCodecTests
             && value.DecoderType == typeof(ResponsePeerDecoder));
         Assert.Contains(decoders, value => value.Selector == 1 && value.Type == 0x000D
             && value.DecoderType == typeof(LeavePartyDecoder));
+        Assert.Contains(decoders, value => value.Selector == 1 && value.Type == 0x000E
+            && value.DecoderType == typeof(RemovePartyMemberDecoder));
+        Assert.Contains(decoders, value => value.Selector == 1 && value.Type == 0x0079
+            && value.DecoderType == typeof(ChangePartyLeaderDecoder));
         Assert.Contains(decoders, value => value.Selector == 1 && value.Type == 0x00A6
             && value.DecoderType == typeof(CallPartyMemberRealtimeInfoDecoder));
         Assert.Contains(decoders, value => value.Selector == 1 && value.Type == 0x000C
@@ -245,6 +263,12 @@ public sealed class PartyCommandCodecTests
         Assert.Contains(handlers, value => value.MessageType == ClientMessageType.GameLeaveParty
             && value.HandlerType == typeof(LeavePartyHandler));
         Assert.Contains(handlers, value =>
+            value.MessageType == ClientMessageType.GameRemovePartyMember
+            && value.HandlerType == typeof(RemovePartyMemberHandler));
+        Assert.Contains(handlers, value =>
+            value.MessageType == ClientMessageType.GameChangePartyLeader
+            && value.HandlerType == typeof(ChangePartyLeaderHandler));
+        Assert.Contains(handlers, value =>
             value.MessageType == ClientMessageType.GameCallPartyMemberRealtimeInfo
             && value.HandlerType == typeof(CallPartyMemberRealtimeInfoHandler));
         Assert.Contains(handlers, value => value.MessageType == ClientMessageType.GameSetPartyInfo
@@ -255,6 +279,8 @@ public sealed class PartyCommandCodecTests
             typeof(RequestPartyInviteCommand),
             typeof(AcceptPartyInviteCommand),
             typeof(LeavePartyCommand),
+            typeof(TransferPartyLeadershipCommand),
+            typeof(RemovePartyMemberCommand),
             typeof(QueryPartyRealtimeCommand),
             typeof(SetPartyInfoCommand),
         ];
@@ -277,6 +303,14 @@ public sealed class PartyCommandCodecTests
             provider.GetServices<NotificationHandlerRegistration>(),
             value => value.NotificationType == typeof(PartySettingsChanged)
                 && value.HandlerType == typeof(PartySettingsChangedHandler));
+        Assert.Contains(
+            provider.GetServices<NotificationHandlerRegistration>(),
+            value => value.NotificationType == typeof(PartyLeadershipChanged)
+                && value.HandlerType == typeof(PartyLeadershipChangedHandler));
+        Assert.Contains(
+            provider.GetServices<ServerMessageEncoderRegistration>(),
+            value => value.MessageType == typeof(RemovePartyMemberRefusal)
+                && value.EncoderType == typeof(RemovePartyMemberRefusalEncoder));
     }
 
     private static byte[] Hex(string value) => Convert.FromHexString(value);

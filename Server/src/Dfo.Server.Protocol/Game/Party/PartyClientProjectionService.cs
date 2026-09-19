@@ -85,6 +85,10 @@ public sealed class PartyClientProjectionService(
         CharacterId currentLeaderCharacterId, CharacterId nextLeaderCharacterId) =>
         Project(inner.TransferLeadership(currentLeaderCharacterId, nextLeaderCharacterId));
 
+    public PartyOperationResult RemoveMember(
+        CharacterId currentLeaderCharacterId, CharacterId targetCharacterId) =>
+        Project(inner.RemoveMember(currentLeaderCharacterId, targetCharacterId));
+
     public PartyOperationResult LeaveParty(CharacterId characterId) =>
         Project(inner.LeaveParty(characterId));
 
